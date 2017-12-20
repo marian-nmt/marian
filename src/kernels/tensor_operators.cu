@@ -2122,12 +2122,12 @@ __global__ void gMaxPoolingForward(float* out,
   int colId = tid % outRows;
 
   float* b = in + (rowId * inCols) + (colId * width);
+  float* localMask = mask  + (rowId / numKernels) * maskCols + colId * width;
 
   if (colId == outRows - 1) {
     width = lastWidth;
   }
 
-  float* localMask = mask  + (rowId / numKernels) * maskCols + colId * width;
   float currentMax = b[0] * localMask[0];
   for (int i = 1; i < width; ++i) {
     if (b[i] * localMask[i] > currentMax) {

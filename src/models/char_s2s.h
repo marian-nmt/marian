@@ -48,7 +48,7 @@ public:
 
     Expr stridedMask = getStridedMask(graph, batch, stride);
     Expr context = applyEncoderRNN(
-        graph, inHighway, batchMask, opt<std::string>("enc-type"));
+        graph, inHighway, stridedMask, opt<std::string>("enc-type"));
 
     return New<EncoderState>(context, stridedMask, batch);
   }
