@@ -197,10 +197,11 @@ void EncoderDecoder::DecodeAsyncInternal()
 
     if (survivors == 0) {
       ///*
+      size_t numNewsentences = histories.size() - histories.GetNumActive();
       std::vector<EncOut::SentenceElement> newSentences;
-      encDecBuffer_.Get(maxBeamSize, newSentences);
+      encDecBuffer_.Get(numNewsentences, newSentences);
 
-      vector<unsigned> batchIds = AddToBatch(newSentences,sentences, histories, sentenceLengths, sourceContext);
+      vector<unsigned> batchIds = AddToBatch(newSentences, sentences, histories, sentenceLengths, sourceContext);
       //*/
       /*
       encOut = encDecBuffer_.Get();
@@ -336,6 +337,18 @@ size_t FindNextEmptyIndex(size_t nextBatchInd,
   assert(false);
   return 9999999;
 }
+
+unsigned MaxLength(const std::vector<EncOut::SentenceElement> &newSentences)
+{
+  unsigned ret = 0;
+  for (const EncOut::SentenceElement &ele: newSentences) {
+    unsigned len = ele.GetSentence()->size();
+    if (ret < len) {
+      ret = len;
+    }
+  }
+  return ret;
+}
 ////////////////////////////////////////////////////////////////////////
 
 vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<EncOut::SentenceElement> &newSentences,
@@ -345,7 +358,6 @@ vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<EncOut::SentenceEl
                                 mblas::Matrix &sourceContext)
 {
   cerr << "sentenceLengths=" << sentenceLengths.Debug() << endl;
-  cerr << "sourceContext=" << sourceContext.Debug() << endl;
 
   vector<uint> newSentenceLengths(newSentences.size());
   vector<uint> newBatchIds(newSentences.size());
@@ -381,6 +393,16 @@ vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<EncOut::SentenceEl
   mblas::Vector<uint> d_newSentenceLengths(newSentenceLengths);
   mblas::Vector<uint> d_newBatchIds(newBatchIds);
   UpdateSentenceLengths(d_newSentenceLengths, d_newBatchIds, sentenceLengths);
+
+  unsigned newMaxLength = MaxLength(newSentences);
+
+  cerr << "newSentences=" << newSentences.size() << endl;
+  cerr << "sourceContext1=" << sourceContext.Debug() << endl;
+  cerr << "newMaxLength=" << newMaxLength << endl;
+
+  EnlargeMatrix(sourceContext, 0, newMaxLength);
+
+  cerr << "sourceContext2=" << sourceContext.Debug() << endl;
 
   return newBatchIds;
 }

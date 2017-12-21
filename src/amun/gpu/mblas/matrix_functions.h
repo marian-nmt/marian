@@ -428,6 +428,71 @@ void UpdateSentenceLengths(const mblas::Vector<uint> &newSentenceLengths,
                           const mblas::Vector<uint> &newBatchIds,
                           mblas::Vector<uint> &sentenceLengths);
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+template<typename T>
+__global__ void gCopyMatrix(MatrixWrapper<T> out,
+                                const MatrixWrapper<T> in)
+{
+  int id = threadIdx.x + blockIdx.x * blockDim.x;
+  if (id < in.size()) {
+    uint indices[SHAPE_SIZE];
+    in.id2Indices(id, indices);
+
+    out(indices[0], indices[1], indices[2], indices[3])
+      = in(indices[0], indices[1], indices[2], indices[3]);
+  }
+
+}
+
+template<typename T>
+void CopyMatrix(TMatrix<T> &out, const TMatrix<T> &in)
+{
+  if (in.size() == 0) {
+    return;
+  }
+  //cerr << "out=" << out.Debug(0) << endl;
+  //cerr << "in=" << in.Debug(0) << endl;
+
+  assert(out.dim(0) >= in.dim(0));
+  assert(out.dim(1) >= in.dim(1));
+  assert(out.dim(2) >= in.dim(2));
+  assert(out.dim(3) >= in.dim(3));
+
+  uint size = in.size();
+  uint threads = std::min(size, (uint) MAX_THREADS);
+  uint blocks  = (size / threads) + 1;
+
+  const cudaStream_t &stream = CudaStreamHandler::GetStream();
+  MatrixWrapper<T> outWrap(out);
+  const MatrixWrapper<T> inWrap(in);
+
+  gCopyMatrix<<<blocks, threads, 0, stream>>>(outWrap, inWrap);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T>
+void EnlargeMatrix(TMatrix<T> &matrix,
+                    uint whichDim,
+                    uint newSize)
+{
+  if (newSize > matrix.dim(whichDim)) {
+    thread_local TMatrix<T> out;
+    out.NewSize(whichDim == 0 ? newSize : matrix.dim(0),
+                whichDim == 1 ? newSize : matrix.dim(1),
+                whichDim == 2 ? newSize : matrix.dim(2),
+                whichDim == 3 ? newSize : matrix.dim(3)
+    );
+
+    CopyMatrix(out, matrix);
+
+    out.swap(matrix);
+  }
+
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 template<typename T>
 void TestMemCpy(size_t size, const T *data1)
 {
