@@ -1446,7 +1446,7 @@ void UpdateSentenceLengths(const mblas::Vector<uint> &newSentenceSizes,
   int blocks = 1;
   int threads = std::min(MAX_THREADS, (int) newSentenceSizes.size());
 
-  gUpdateSentenceLengths<<<blocks, threads>>>(newSentenceSizes, newBatchIds, sentenceLengths);
+  gUpdateSentenceLengths<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(newSentenceSizes, newBatchIds, sentenceLengths);
 }
 
 
