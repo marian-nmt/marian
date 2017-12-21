@@ -355,7 +355,6 @@ vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<EncOut::SentenceEl
   size_t nextBatchInd = 0;
   for (size_t i = 0; i < newSentences.size(); ++i) {
     const EncOut::SentenceElement &eleSent = newSentences[i];
-    //const EncOutPtr &encOut = eleSent.encOut;
     const SentencePtr &sentence = eleSent.GetSentence();
 
     // work out offset in existing batch
@@ -389,9 +388,19 @@ vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<EncOut::SentenceEl
   cerr << "sourceContext1=" << sourceContext.Debug() << endl;
   cerr << "newMaxLength=" << maxLength << endl;
 
+  // source context
   EnlargeMatrix(sourceContext, 0, maxLength);
-
   cerr << "sourceContext2=" << sourceContext.Debug() << endl;
+
+  for (size_t i = 0; i < newSentences.size(); ++i) {
+    const EncOut::SentenceElement &eleSent = newSentences[i];
+    size_t sentenceInd = eleSent.sentenceInd;
+    const EncOutPtr &encOut = eleSent.encOut;
+    const mblas::Matrix &newSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+    cerr << "newSourceContext=" << newSourceContext.Debug() << endl;
+
+    //AddNewData(d_newBatchIds,  sourceContext);
+  }
 
   return newBatchIds;
 }
