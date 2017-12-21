@@ -338,17 +338,6 @@ size_t FindNextEmptyIndex(size_t nextBatchInd,
   return 9999999;
 }
 
-unsigned MaxLength(const std::vector<EncOut::SentenceElement> &newSentences)
-{
-  unsigned ret = 0;
-  for (const EncOut::SentenceElement &ele: newSentences) {
-    unsigned len = ele.GetSentence()->size();
-    if (ret < len) {
-      ret = len;
-    }
-  }
-  return ret;
-}
 ////////////////////////////////////////////////////////////////////////
 
 vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<EncOut::SentenceElement> &newSentences,
@@ -394,13 +383,13 @@ vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<EncOut::SentenceEl
   mblas::Vector<uint> d_newBatchIds(newBatchIds);
   UpdateSentenceLengths(d_newSentenceLengths, d_newBatchIds, sentenceLengths);
 
-  unsigned newMaxLength = MaxLength(newSentences);
+  unsigned maxLength = sentences.GetMaxLength();
 
   cerr << "newSentences=" << newSentences.size() << endl;
   cerr << "sourceContext1=" << sourceContext.Debug() << endl;
-  cerr << "newMaxLength=" << newMaxLength << endl;
+  cerr << "newMaxLength=" << maxLength << endl;
 
-  EnlargeMatrix(sourceContext, 0, newMaxLength);
+  EnlargeMatrix(sourceContext, 0, maxLength);
 
   cerr << "sourceContext2=" << sourceContext.Debug() << endl;
 
