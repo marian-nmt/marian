@@ -1420,13 +1420,13 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
 }
 
 __global__
-void gUpdateSentenceLengths(const VectorWrapper<uint> newSentenceSizes,
+void gUpdateSentenceLengths(const VectorWrapper<uint> newSentenceLengths,
                             const VectorWrapper<uint> newBatchIds,
                             VectorWrapper<uint> sentenceLengths)
 {
   uint id =  threadIdx.x; // index of previous hypo
-  while (id < newSentenceSizes.size()) {
-    uint sentenceLength = newSentenceSizes[id];
+  while (id < newSentenceLengths.size()) {
+    uint sentenceLength = newSentenceLengths[id];
     uint batchId = newBatchIds[id];
 
     assert(batchId < sentenceLengths.size());
@@ -1436,17 +1436,17 @@ void gUpdateSentenceLengths(const VectorWrapper<uint> newSentenceSizes,
   }
 }
 
-void UpdateSentenceLengths(const mblas::Vector<uint> &newSentenceSizes,
+void UpdateSentenceLengths(const mblas::Vector<uint> &newSentenceLengths,
                           const mblas::Vector<uint> &newBatchIds,
                           mblas::Vector<uint> &sentenceLengths)
 {
-  assert(newSentenceSizes.size() == newBatchIds.size());
-  assert(newSentenceSizes.size() <= sentenceLengths.size());
+  assert(newSentenceLengths.size() == newBatchIds.size());
+  assert(newSentenceLengths.size() <= sentenceLengths.size());
 
   int blocks = 1;
-  int threads = std::min(MAX_THREADS, (int) newSentenceSizes.size());
+  int threads = std::min(MAX_THREADS, (int) newSentenceLengths.size());
 
-  gUpdateSentenceLengths<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(newSentenceSizes, newBatchIds, sentenceLengths);
+  gUpdateSentenceLengths<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(newSentenceLengths, newBatchIds, sentenceLengths);
 }
 
 
