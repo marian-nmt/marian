@@ -65,13 +65,13 @@ problems due to incompatibilities of the default g++ compiler and CUDA.
  * Boost 1.58 (default)
  * CUDA 8.0
 
-**Ubuntu 14.04 LTS (tested).** A newer CMake version than the default version is
+**Ubuntu 14.04 LTS.** A newer CMake version than the default version is
 required and can be installed from source.
 
  * CMake 3.5.1 (due to CUDA related bugs in earlier versions)
  * GCC/G++ 4.9
  * Boost 1.54
- * CUDA 7.5
+ * CUDA 8.0
 
 ### CPU version
 
