@@ -1424,16 +1424,29 @@ void gUpdateSentenceLengths(const VectorWrapper<uint> newSentenceSizes,
                             const VectorWrapper<uint> newBatchIds,
                             VectorWrapper<uint> sentenceLengths)
 {
+  uint id =  threadIdx.x; // index of previous hypo
+  while (id < newSentenceSizes.size()) {
+    uint sentenceLength = newSentenceSizes[id];
+    uint batchId = newBatchIds[id];
 
+    assert(batchId < sentenceLengths.size());
+    sentenceLengths[batchId] = sentenceLength;
+
+    id += blockDim.x;
+  }
 }
 
-void UpdateSentenceLengths(const mblas::Vector<uint> &d_newSentenceSizes,
-                          const mblas::Vector<uint> &d_newBatchIds,
+void UpdateSentenceLengths(const mblas::Vector<uint> &newSentenceSizes,
+                          const mblas::Vector<uint> &newBatchIds,
                           mblas::Vector<uint> &sentenceLengths)
 {
+  assert(newSentenceSizes.size() == newBatchIds.size());
+  assert(newSentenceSizes.size() <= sentenceLengths.size());
 
+  int blocks = 1;
+  int threads = std::min(MAX_THREADS, (int) newSentenceSizes.size());
 
-  gUpdateSentenceLengths<<<1, 1>>>(d_newSentenceSizes, d_newBatchIds, sentenceLengths);
+  gUpdateSentenceLengths<<<blocks, threads>>>(newSentenceSizes, newBatchIds, sentenceLengths);
 }
 
 

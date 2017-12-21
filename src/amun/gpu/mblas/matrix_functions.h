@@ -424,8 +424,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 const Histories& beamSizes,
                 uint beamSizeSum);
 
-void UpdateSentenceLengths(const mblas::Vector<uint> &d_newSentenceSizes,
-                          const mblas::Vector<uint> &d_newBatchIds,
+void UpdateSentenceLengths(const mblas::Vector<uint> &newSentenceSizes,
+                          const mblas::Vector<uint> &newBatchIds,
                           mblas::Vector<uint> &sentenceLengths);
 
 template<typename T>
