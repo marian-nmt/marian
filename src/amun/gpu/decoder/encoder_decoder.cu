@@ -353,11 +353,33 @@ bool EncoderDecoder::FetchBatch(Histories &histories,
     nextBatchInd = batchInd + 1;
   }
 
-  size_t newMaxLength =  histories.MaxLength();
+  size_t maxLength =  histories.MaxLength();
 
   cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
   cerr << "newSentenceLengths=" << Debug(newSentenceLengths, 2) << endl;
 
+  // update gpu data
+  mblas::Vector<uint> d_newSentenceLengths(newSentenceLengths);
+  mblas::Vector<uint> d_newBatchIds(newBatchIds);
+  UpdateSentenceLengths(d_newSentenceLengths, d_newBatchIds, sentenceLengths);
+
+  cerr << "newSentences=" << newSentences.size() << endl;
+  cerr << "sourceContext1=" << sourceContext.Debug() << endl;
+  cerr << "maxLength=" << maxLength << endl;
+
+  // source context
+  EnlargeMatrix(sourceContext, 0, maxLength);
+  cerr << "sourceContext2=" << sourceContext.Debug() << endl;
+
+  for (size_t i = 0; i < newSentences.size(); ++i) {
+    const BufferOutput &eleSent = newSentences[i];
+    //size_t sentenceInd = eleSent.sentenceInd;
+    const EncOutPtr &encOut = eleSent.GetEncOut();
+    const mblas::Matrix &newSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+    cerr << "newSourceContext=" << newSourceContext.Debug() << endl;
+
+    //AddNewData(d_newBatchIds,  sourceContext);
+  }
 
   return true;
 }
@@ -445,71 +467,6 @@ void EncoderDecoder::AssembleBeamState(const State& state,
   decoder_->Lookup(edNextState.GetEmbeddings(), beamWords);
   //cerr << "edNextState.GetEmbeddings()=" << edNextState.GetEmbeddings().Debug(1) << endl;
   //PAUSE_TIMER("AssembleBeamState");
-}
-
-vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<BufferOutput> &newSentences,
-                                Sentences &sentences,
-                                Histories &histories,
-                                mblas::Vector<uint> &sentenceLengths,
-                                mblas::Matrix &sourceContext)
-{
-  cerr << "sentenceLengths=" << sentenceLengths.Debug() << endl;
-
-  vector<uint> newSentenceLengths(newSentences.size());
-  vector<uint> newBatchIds(newSentences.size());
-
-  // update existing batch
-  size_t nextBatchInd = 0;
-  for (size_t i = 0; i < newSentences.size(); ++i) {
-    const BufferOutput &eleSent = newSentences[i];
-    const SentencePtr &sentence = eleSent.GetSentence();
-
-    // work out offset in existing batch
-    size_t batchInd = FindNextEmptyIndex(nextBatchInd, histories);
-    newBatchIds[i] = batchInd;
-
-    // sentences
-    sentences.Set(batchInd, sentence);
-
-    // sentence lengths
-    newSentenceLengths[i] = sentence->size();
-
-    // histories
-    HistoriesElementPtr &eleHist = histories.Get(nextBatchInd);
-    assert(eleHist == nullptr);
-    eleHist.reset(new HistoriesElement(sentence, histories.NormalizeScore()));
-
-    nextBatchInd = batchInd + 1;
-  }
-
-  size_t newMaxLength =  histories.MaxLength();
-
-  // update gpu data
-  mblas::Vector<uint> d_newSentenceLengths(newSentenceLengths);
-  mblas::Vector<uint> d_newBatchIds(newBatchIds);
-  UpdateSentenceLengths(d_newSentenceLengths, d_newBatchIds, sentenceLengths);
-
-  unsigned maxLength = sentences.GetMaxLength();
-
-  cerr << "newSentences=" << newSentences.size() << endl;
-  cerr << "sourceContext1=" << sourceContext.Debug() << endl;
-  cerr << "newMaxLength=" << maxLength << endl;
-
-  // source context
-  EnlargeMatrix(sourceContext, 0, maxLength);
-  cerr << "sourceContext2=" << sourceContext.Debug() << endl;
-
-  for (size_t i = 0; i < newSentences.size(); ++i) {
-    const BufferOutput &eleSent = newSentences[i];
-    //size_t sentenceInd = eleSent.sentenceInd;
-    const EncOutPtr &encOut = eleSent.GetEncOut();
-    const mblas::Matrix &newSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
-    cerr << "newSourceContext=" << newSourceContext.Debug() << endl;
-
-    //AddNewData(d_newBatchIds,  sourceContext);
-  }
-
-  return newBatchIds;
 }
 
 }
