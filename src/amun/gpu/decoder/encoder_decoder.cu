@@ -166,7 +166,7 @@ void EncoderDecoder::DecodeAsyncInternal()
   state.reset(NewState());
   nextState.reset(NewState());
 
-  bool hasSentences = FetchBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
+  bool hasSentences = InitBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
 
   unsigned step = 0;
   while (hasSentences && histories.GetNumActive()) {
@@ -196,6 +196,62 @@ void EncoderDecoder::DecodeAsyncInternal()
     LOG(progress)->info("  Step {} took {} sentences {} prevHypos {} survivors {}", step++, timerStep.format(5, "%w"), histories.GetNumActive(), numPrevHyps, survivors);
   }
 
+}
+
+bool EncoderDecoder::InitBatch(Histories &histories,
+                                mblas::Vector<uint> &sentenceLengths,
+                                mblas::Matrix &sourceContext,
+                                mblas::Matrix &SCU,
+                                State &state,
+                                Hypotheses &prevHyps)
+{
+  ///*
+  uint miniBatch = god_.Get<uint>("mini-batch");
+
+  std::vector<BufferOutput> newSentences;
+  encDecBuffer_.Get(miniBatch, newSentences);
+
+  //vector<unsigned> batchIds = AddToBatch(newSentences, sentences, histories, sentenceLengths, sourceContext);
+
+  if (newSentences.size() == 0) {
+    return false;
+  }
+
+  const EncOutPtr &encOut = newSentences.front().GetEncOut();
+  assert(encOut);
+  //*/
+  /*
+  EncOutPtr encOut = encDecBuffer_.Get();
+  assert(encOut);
+
+  sentences = encOut->GetSentences();
+  if (sentences.size() == 0) {
+      return false;
+  }
+  */
+
+  //sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
+  sentenceLengths.newSize(encOut->Get<EncOutGPU>().GetSentenceLengths().size());
+  mblas::copy(encOut->Get<EncOutGPU>().GetSentenceLengths().data(),
+              sentenceLengths.size(),
+              sentenceLengths.data(),
+              cudaMemcpyDeviceToHost);
+
+  //sourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+  const mblas::Matrix &origSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+  sourceContext.NewSize(origSourceContext.dim(0), origSourceContext.dim(1), origSourceContext.dim(2), origSourceContext.dim(3));
+  mblas::CopyMatrix(sourceContext, origSourceContext);
+
+  cerr << "sentenceLengths=" << sentenceLengths.Debug(0) << endl;
+  cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
+
+  histories.Init(newSentences);
+
+  BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, state, SCU);
+
+  prevHyps = histories.GetFirstHyps();
+
+  return true;
 }
 
 bool EncoderDecoder::FetchBatch(Histories &histories,
