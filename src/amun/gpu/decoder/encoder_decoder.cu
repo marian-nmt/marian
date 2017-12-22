@@ -161,14 +161,9 @@ void EncoderDecoder::DecodeAsyncInternal()
   Sentences sentences;
   mblas::Vector<uint> sentenceLengths;
   mblas::Matrix sourceContext, SCU;
+  StatePtr state, nextState;
 
-  FetchBatch(sentences, sentenceLengths, sourceContext);
-
-  StatePtr state(NewState());
-  BeginSentenceState(sentences.size(), sourceContext, sentenceLengths, *state, SCU);
-  StatePtr nextState(NewState());
-
-  histories.Init(sentences);
+  FetchBatch(sentences, histories, sentenceLengths, sourceContext, SCU, state, nextState);
 
   Hypotheses prevHyps = histories.GetFirstHyps();
 
@@ -202,17 +197,11 @@ void EncoderDecoder::DecodeAsyncInternal()
       vector<unsigned> batchIds = AddToBatch(newSentences, sentences, histories, sentenceLengths, sourceContext);
       */
       ///*
-      bool hasSentences = FetchBatch(sentences, sentenceLengths, sourceContext);
+      bool hasSentences = FetchBatch(sentences, histories, sentenceLengths, sourceContext, SCU, state, nextState);
       if (!hasSentences) {
         break;
       }
       //*/
-
-      //state.reset(NewState());
-      BeginSentenceState(sentences.size(), sourceContext, sentenceLengths, *state, SCU);
-      //nextState.reset(NewState());
-
-      histories.Init(sentences);
 
       prevHyps = histories.GetFirstHyps();
     }
@@ -227,7 +216,13 @@ void EncoderDecoder::DecodeAsyncInternal()
 
 }
 
-bool EncoderDecoder::FetchBatch(Sentences &sentences, mblas::Vector<uint> &sentenceLengths, mblas::Matrix &sourceContext)
+bool EncoderDecoder::FetchBatch(Sentences &sentences,
+                                Histories &histories,
+                                mblas::Vector<uint> &sentenceLengths,
+                                mblas::Matrix &sourceContext,
+                                mblas::Matrix &SCU,
+                                StatePtr &state,
+                                StatePtr &nextState)
 {
   EncOutPtr encOut = encDecBuffer_.Get();
   assert(encOut);
@@ -239,6 +234,12 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences, mblas::Vector<uint> &sente
 
   sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
   sourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+
+  state.reset(NewState());
+  nextState.reset(NewState());
+
+  BeginSentenceState(sentences.size(), sourceContext, sentenceLengths, *state, SCU);
+  histories.Init(sentences);
 
   return true;
 }
