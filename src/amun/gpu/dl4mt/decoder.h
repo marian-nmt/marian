@@ -73,7 +73,7 @@ class Decoder {
           using namespace mblas;
 
           HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          std::cerr << "InitializeState1" << std::endl;
+          std::cerr << "InitializeState1=" << batchSize << std::endl;
 
           CellLength cellLength = gru_->GetStateLength();
           if (cellLength.cell > 0) {
@@ -90,8 +90,8 @@ class Decoder {
           HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           std::cerr << "InitializeState3" << std::endl;
 
-          //std::cerr << "SourceContext=" << SourceContext.Debug(1) << std::endl;
-          //std::cerr << "mapping=" << Debug(mapping, 2) << std::endl;
+          std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
+          std::cerr << "sentenceLengths=" << sentenceLengths.Debug(0) << std::endl;
           Mean(Temp2, SourceContext, sentenceLengths);
           HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           std::cerr << "InitializeState4" << std::endl;

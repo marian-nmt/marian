@@ -37,6 +37,13 @@ void Sentences::Set(size_t id, const SentencePtr &sentence)
   coll_[id] = sentence;
 }
 
+void Sentences::ResetAll()
+{
+  for (size_t i = 0; i < coll_.size(); ++i) {
+    coll_[i].reset();
+  }
+}
+
 size_t Sentences::size() const {
   return coll_.size();
 }

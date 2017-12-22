@@ -235,6 +235,7 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences,
     return false;
   }
 
+  sentences.ResetAll();
   for (size_t i = 0; i < newSentences.size(); ++i) {
     const EncOut::SentenceElement &ele = newSentences[i];
     const SentencePtr &sentence = ele.GetSentence();
@@ -262,9 +263,11 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences,
   state.reset(NewState());
   nextState.reset(NewState());
 
-  cerr << "FetchBatch11" << endl;
+  cerr << "histories1=" << histories.GetNumActive() << endl;
 
   histories.Init(sentences);
+
+  cerr << "histories2=" << histories.GetNumActive() << endl;
   cerr << "FetchBatch12=" << " "
       << histories.size() << " "
       << histories.GetNumActive() << " "

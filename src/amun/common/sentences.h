@@ -20,6 +20,8 @@ class Sentences {
 
     void Set(size_t id, const SentencePtr &sentence);
 
+    void ResetAll();
+
     size_t size() const;
 
     size_t GetMaxLength() const;
