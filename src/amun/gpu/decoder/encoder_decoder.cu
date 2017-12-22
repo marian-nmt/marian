@@ -364,19 +364,19 @@ bool EncoderDecoder::FetchBatch(Histories &histories,
   UpdateSentenceLengths(d_newSentenceLengths, d_newBatchIds, sentenceLengths);
 
   cerr << "newSentences=" << newSentences.size() << endl;
-  cerr << "sourceContext1=" << sourceContext.Debug() << endl;
+  cerr << "sourceContext1=" << sourceContext.Debug(0) << endl;
   cerr << "maxLength=" << maxLength << endl;
 
   // source context
   EnlargeMatrix(sourceContext, 0, maxLength);
-  cerr << "sourceContext2=" << sourceContext.Debug() << endl;
+  cerr << "sourceContext2=" << sourceContext.Debug(0) << endl;
 
   for (size_t i = 0; i < newSentences.size(); ++i) {
     const BufferOutput &eleSent = newSentences[i];
     //size_t sentenceInd = eleSent.sentenceInd;
     const EncOutPtr &encOut = eleSent.GetEncOut();
     const mblas::Matrix &newSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
-    cerr << "newSourceContext=" << newSourceContext.Debug() << endl;
+    cerr << "newSourceContext=" << newSourceContext.Debug(0) << endl;
 
     //AddNewData(d_newBatchIds,  sourceContext);
   }
