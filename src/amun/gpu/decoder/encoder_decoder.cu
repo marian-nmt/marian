@@ -162,13 +162,12 @@ void EncoderDecoder::DecodeAsyncInternal()
   mblas::Vector<uint> sentenceLengths;
   mblas::Matrix sourceContext, SCU;
   StatePtr state, nextState;
+  Hypotheses prevHyps;
 
-  FetchBatch(sentences, histories, sentenceLengths, sourceContext, SCU, state, nextState);
-
-  Hypotheses prevHyps = histories.GetFirstHyps();
+  bool hasSentences = FetchBatch(sentences, histories, sentenceLengths, sourceContext, SCU, state, nextState, prevHyps);
 
   unsigned step = 0;
-  while (histories.GetNumActive()) {
+  while (hasSentences && histories.GetNumActive()) {
     boost::timer::cpu_timer timerStep;
 
     const EDState& edstate = state->get<EDState>();
@@ -197,13 +196,8 @@ void EncoderDecoder::DecodeAsyncInternal()
       vector<unsigned> batchIds = AddToBatch(newSentences, sentences, histories, sentenceLengths, sourceContext);
       */
       ///*
-      bool hasSentences = FetchBatch(sentences, histories, sentenceLengths, sourceContext, SCU, state, nextState);
-      if (!hasSentences) {
-        break;
-      }
+      hasSentences = FetchBatch(sentences, histories, sentenceLengths, sourceContext, SCU, state, nextState, prevHyps);
       //*/
-
-      prevHyps = histories.GetFirstHyps();
     }
 
     /*
@@ -222,7 +216,8 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences,
                                 mblas::Matrix &sourceContext,
                                 mblas::Matrix &SCU,
                                 StatePtr &state,
-                                StatePtr &nextState)
+                                StatePtr &nextState,
+                                Hypotheses &prevHyps)
 {
   EncOutPtr encOut = encDecBuffer_.Get();
   assert(encOut);
@@ -240,6 +235,7 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences,
 
   BeginSentenceState(sentences.size(), sourceContext, sentenceLengths, *state, SCU);
   histories.Init(sentences);
+  prevHyps = histories.GetFirstHyps();
 
   return true;
 }
