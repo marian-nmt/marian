@@ -255,14 +255,14 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences,
 
   cerr << "FetchBatch11" << endl;
 
-  BeginSentenceState(sentences.size(), sourceContext, sentenceLengths, *state, SCU);
-  cerr << "FetchBatch13" << endl;
-
   histories.Init(sentences);
   cerr << "FetchBatch12=" << " "
       << histories.size() << " "
       << histories.GetNumActive() << " "
       << endl;
+
+  BeginSentenceState(sentences.size(), sourceContext, sentenceLengths, *state, SCU);
+  cerr << "FetchBatch13" << endl;
 
   prevHyps = histories.GetFirstHyps();
   cerr << "FetchBatch14" << endl;
