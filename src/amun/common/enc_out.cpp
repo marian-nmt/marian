@@ -4,20 +4,6 @@ using namespace std;
 
 namespace amunmt {
 
-BufferOutput::BufferOutput(EncOutPtr vencOut, size_t vsentenceInd)
-:encOut(vencOut)
-,sentenceInd(vsentenceInd)
-{}
-
-const SentencePtr &BufferOutput::GetSentence() const
-{
-  const Sentences &sentences = encOut->GetSentences();
-  const SentencePtr &sentence = sentences.Get(sentenceInd);
-  return sentence;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-
 EncOut::EncOut(const SentencesPtr &sentences)
 :sentences_(sentences)
 ,h_sentenceLengths_(sentences->size())
@@ -34,4 +20,21 @@ EncOut::~EncOut()
   //cerr << "~EncOut" << endl;
 }
 
+
+/////////////////////////////////////////////////////////////////////////////
+
+BufferOutput::BufferOutput(EncOutPtr vencOut, size_t vsentenceInd)
+:encOut_(vencOut)
+,sentenceInd_(vsentenceInd)
+{}
+
+const SentencePtr &BufferOutput::GetSentence() const
+{
+  const Sentences &sentences = encOut_->GetSentences();
+  const SentencePtr &sentence = sentences.Get(sentenceInd_);
+  return sentence;
 }
+
+
+}
+

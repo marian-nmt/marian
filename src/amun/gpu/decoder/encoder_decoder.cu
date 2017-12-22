@@ -217,7 +217,7 @@ bool EncoderDecoder::FetchBatch(Histories &histories,
     return false;
   }
 
-  const EncOutPtr &encOut = newSentences.front().encOut;
+  const EncOutPtr &encOut = newSentences.front().GetEncOut();
   assert(encOut);
   //*/
   /*
@@ -413,7 +413,7 @@ vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<BufferOutput> &new
   for (size_t i = 0; i < newSentences.size(); ++i) {
     const BufferOutput &eleSent = newSentences[i];
     //size_t sentenceInd = eleSent.sentenceInd;
-    const EncOutPtr &encOut = eleSent.encOut;
+    const EncOutPtr &encOut = eleSent.GetEncOut();
     const mblas::Matrix &newSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
     cerr << "newSourceContext=" << newSourceContext.Debug() << endl;
 
