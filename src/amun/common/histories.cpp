@@ -36,17 +36,18 @@ bool HistoriesElement::IsFirst() const
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Histories::Histories(bool normalizeScore)
 :normalizeScore_(normalizeScore)
+,active_(0)
 {
 }
 
 void Histories::Init(const Sentences& sentences)
 {
-  active_ = sentences.size();
   coll_.resize(sentences.size());
 
   for (size_t i = 0; i < size(); ++i) {
     const SentencePtr &sentence = sentences.Get(i);
     coll_[i].reset(new HistoriesElement(sentence, normalizeScore_));
+    ++active_;
   }
 }
 
