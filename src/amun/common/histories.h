@@ -31,6 +31,9 @@ public:
   const History &GetHistory() const
   { return history_; }
 
+  const SentencePtr &GetSentence() const
+  { return sentence_; }
+
   void Add(const Hypotheses &hypos, Hypotheses &survivors);
 
   bool IsFirst() const;
@@ -38,6 +41,7 @@ public:
 protected:
   unsigned beamSize_;  // beam size 0..beam
   History history_;
+  SentencePtr sentence_;
 
 };
 
@@ -71,6 +75,8 @@ public:
   bool Empty(size_t ind) const;
 
   size_t Sum() const;
+
+  size_t MaxLength() const;
 
   void SetNewBeamSize(unsigned val);
 

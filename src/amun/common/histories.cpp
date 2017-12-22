@@ -12,6 +12,7 @@ namespace amunmt {
 HistoriesElement::HistoriesElement(const SentencePtr &sentence, bool normalizeScore)
 :beamSize_(1)
 ,history_(*sentence, normalizeScore, 3 * sentence->size())
+,sentence_(sentence)
 {}
 
 void HistoriesElement::Add(const Hypotheses &hypos, Hypotheses &survivors)
@@ -19,7 +20,6 @@ void HistoriesElement::Add(const Hypotheses &hypos, Hypotheses &survivors)
   unsigned numEOS = history_.Add(hypos, survivors);
   assert(beamSize_ >= numEOS);
   beamSize_ -= numEOS;
-
 }
 
 void HistoriesElement::SetNewBeamSize(unsigned val)
@@ -67,8 +67,20 @@ bool Histories::Empty(size_t ind) const
 size_t Histories::Sum() const
 {
   size_t ret = 0;
-  for (size_t i = 0; i < size(); ++i) {
+  for (size_t i = 0; i < coll_.size(); ++i) {
     ret += GetBeamSize(i);
+  }
+
+  return ret;
+}
+
+size_t Histories::MaxLength() const
+{
+  size_t ret = 0;
+  for (size_t i = 0; i < coll_.size(); ++i) {
+    const HistoriesElementPtr &ele = coll_[i];
+    const SentencePtr &sent = ele->GetSentence();
+    ret += sent->size();
   }
 
   return ret;

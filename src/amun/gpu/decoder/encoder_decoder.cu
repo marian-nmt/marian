@@ -254,6 +254,25 @@ bool EncoderDecoder::InitBatch(Histories &histories,
   return true;
 }
 
+//////////////////////////////////////////////////////////////////////
+//helper fn
+size_t FindNextEmptyIndex(size_t nextBatchInd,
+                        Histories &histories)
+{
+  while(nextBatchInd < histories.size()) {
+    const HistoriesElementPtr &ele = histories.Get(nextBatchInd);
+    if (ele == nullptr) {
+      return nextBatchInd;
+    }
+    ++nextBatchInd;
+  }
+
+  assert(false);
+  return 9999999;
+}
+
+////////////////////////////////////////////////////////////////////////
+
 bool EncoderDecoder::FetchBatch(Histories &histories,
                                 mblas::Vector<uint> &sentenceLengths,
                                 mblas::Matrix &sourceContext,
@@ -286,6 +305,8 @@ bool EncoderDecoder::FetchBatch(Histories &histories,
   }
   */
 
+  // OLD
+  /*
   //sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
   sentenceLengths.newSize(encOut->Get<EncOutGPU>().GetSentenceLengths().size());
   mblas::copy(encOut->Get<EncOutGPU>().GetSentenceLengths().data(),
@@ -306,6 +327,37 @@ bool EncoderDecoder::FetchBatch(Histories &histories,
   BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, state, SCU);
 
   prevHyps = histories.GetFirstHyps();
+  */
+  // NEW
+  vector<uint> newBatchIds(newSentences.size());
+  vector<uint> newSentenceLengths(newSentences.size());
+
+  // update existing batch
+  size_t nextBatchInd = 0;
+  for (size_t i = 0; i < newSentences.size(); ++i) {
+    const BufferOutput &eleSent = newSentences[i];
+    const SentencePtr &sentence = eleSent.GetSentence();
+
+    // work out offset in existing batch
+    size_t batchInd = FindNextEmptyIndex(nextBatchInd, histories);
+    newBatchIds[i] = batchInd;
+
+    // sentence lengths
+    newSentenceLengths[i] = sentence->size();
+
+    // histories
+    HistoriesElementPtr &eleHist = histories.Get(nextBatchInd);
+    assert(eleHist == nullptr);
+    eleHist.reset(new HistoriesElement(sentence, histories.NormalizeScore()));
+
+    nextBatchInd = batchInd + 1;
+  }
+
+  size_t newMaxLength =  histories.MaxLength();
+
+  cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
+  cerr << "newSentenceLengths=" << Debug(newSentenceLengths, 2) << endl;
+
 
   return true;
 }
@@ -395,25 +447,6 @@ void EncoderDecoder::AssembleBeamState(const State& state,
   //PAUSE_TIMER("AssembleBeamState");
 }
 
-//////////////////////////////////////////////////////////////////////
-//helper fn
-size_t FindNextEmptyIndex(size_t nextBatchInd,
-                        Histories &histories)
-{
-  while(nextBatchInd < histories.size()) {
-    const HistoriesElementPtr &ele = histories.Get(nextBatchInd);
-    if (ele == nullptr) {
-      return nextBatchInd;
-    }
-    ++nextBatchInd;
-  }
-
-  assert(false);
-  return 9999999;
-}
-
-////////////////////////////////////////////////////////////////////////
-
 vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<BufferOutput> &newSentences,
                                 Sentences &sentences,
                                 Histories &histories,
@@ -449,7 +482,7 @@ vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<BufferOutput> &new
     nextBatchInd = batchInd + 1;
   }
 
-  sentences.RecalcMaxLength();
+  size_t newMaxLength =  histories.MaxLength();
 
   // update gpu data
   mblas::Vector<uint> d_newSentenceLengths(newSentenceLengths);
