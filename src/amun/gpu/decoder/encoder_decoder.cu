@@ -228,8 +228,20 @@ bool EncoderDecoder::FetchBatch(Histories &histories,
   }
   */
 
-  sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
-  sourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+  //sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
+  sentenceLengths.newSize(encOut->Get<EncOutGPU>().GetSentenceLengths().size());
+  mblas::copy(encOut->Get<EncOutGPU>().GetSentenceLengths().data(),
+              sentenceLengths.size(),
+              sentenceLengths.data(),
+              cudaMemcpyDeviceToHost);
+
+  //sourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+  const mblas::Matrix &origSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+  sourceContext.NewSize(origSourceContext.dim(0), origSourceContext.dim(1), origSourceContext.dim(2), origSourceContext.dim(3));
+  mblas::CopyMatrix(sourceContext, origSourceContext);
+
+  cerr << "sentenceLengths=" << sentenceLengths.Debug(0) << endl;
+  cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
 
   state.reset(NewState());
   nextState.reset(NewState());
