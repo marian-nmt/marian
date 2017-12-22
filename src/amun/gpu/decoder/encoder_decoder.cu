@@ -164,14 +164,18 @@ void EncoderDecoder::DecodeAsyncInternal()
   StatePtr state, nextState;
   Hypotheses prevHyps;
 
+  cerr << "DecodeAsyncInternal1" << endl;
   bool hasSentences = FetchBatch(sentences, histories, sentenceLengths, sourceContext, SCU, state, nextState, prevHyps);
+  cerr << "DecodeAsyncInternal2" << endl;
 
   unsigned step = 0;
   while (hasSentences && histories.GetNumActive()) {
+    cerr << "DecodeAsyncInternal3" << endl;
     boost::timer::cpu_timer timerStep;
 
     const EDState& edstate = state->get<EDState>();
     EDState& ednextState = nextState->get<EDState>();
+    cerr << "DecodeAsyncInternal4" << endl;
 
     decoder_->Decode(ednextState.GetStates(),
                      edstate.GetStates(),
@@ -181,11 +185,14 @@ void EncoderDecoder::DecodeAsyncInternal()
                      sourceContext,
                      SCU,
                      sentenceLengths);
+    cerr << "DecodeAsyncInternal5" << endl;
 
     histories.SetNewBeamSize(maxBeamSize);
+    cerr << "DecodeAsyncInternal6" << endl;
 
     unsigned numPrevHyps = prevHyps.size();
     size_t survivors = CalcBeam(search_.GetBestHyps(), histories, prevHyps, *state, *nextState, search_.GetFilterIndices());
+    cerr << "DecodeAsyncInternal7" << endl;
 
     if (survivors == 0) {
       ///*
@@ -212,7 +219,7 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences,
                                 StatePtr &nextState,
                                 Hypotheses &prevHyps)
 {
-  /*
+  ///*
   uint miniBatch = god_.Get<uint>("mini-batch");
 
   std::vector<EncOut::SentenceElement> newSentences;
@@ -237,7 +244,8 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences,
 
   const EncOutPtr &encOut = newSentences.front().encOut;
   assert(encOut);
-  */
+  //*/
+  /*
   EncOutPtr encOut = encDecBuffer_.Get();
   assert(encOut);
 
@@ -245,6 +253,7 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences,
   if (sentences.size() == 0) {
       return false;
   }
+  */
   cerr << "FetchBatch10=" << sentences.size() << endl;
 
   sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
@@ -278,9 +287,17 @@ void EncoderDecoder::BeginSentenceState(size_t batchSize,
 {
   //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();
+
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "BeginSentenceState1" << endl;
+
   decoder_->EmptyState(edState.GetStates(), batchSize, sourceContext, sentenceLengths, SCU);
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "BeginSentenceState2" << endl;
 
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "BeginSentenceState3" << endl;
   //PAUSE_TIMER("BeginSentenceState");
 }
 
@@ -310,7 +327,6 @@ size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
   //cerr << "survivors=" << survivors.size() << endl;
   prevHyps.swap(survivors);
   return prevHyps.size();
-
 }
 
 void EncoderDecoder::AssembleBeamState(const State& state,

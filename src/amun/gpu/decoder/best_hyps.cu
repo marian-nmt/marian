@@ -147,7 +147,9 @@ void  BestHyps::CalcBeam(
 
   std::vector<float> vCosts;
   for (const HypothesisPtr &h : prevHyps) {
-    vCosts.push_back(h->GetCost());
+    if (h) {
+      vCosts.push_back(h->GetCost());
+    }
   }
 
   mblas::copy(vCosts.data(),

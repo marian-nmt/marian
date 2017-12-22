@@ -46,8 +46,10 @@ void Histories::Init(const Sentences& sentences)
 
   for (size_t i = 0; i < size(); ++i) {
     const SentencePtr &sentence = sentences.Get(i);
-    coll_[i].reset(new HistoriesElement(sentence, normalizeScore_));
-    ++active_;
+    if (sentence) {
+      coll_[i].reset(new HistoriesElement(sentence, normalizeScore_));
+      ++active_;
+    }
   }
 }
 
@@ -134,10 +136,13 @@ Hypotheses Histories::GetFirstHyps()
 {
   Hypotheses ret(coll_.size());
   for (size_t i = 0; i < coll_.size(); ++i) {
-    const History &history = coll_[i]->GetHistory();
-    const Hypotheses &beam = history.front();
-    HypothesisPtr hypo = beam[0];
-    ret[i] = hypo;
+    HistoriesElementPtr ele =  coll_[i];
+    if (ele) {
+      const History &history = ele->GetHistory();
+      const Hypotheses &beam = history.front();
+      HypothesisPtr hypo = beam[0];
+      ret[i] = hypo;
+    }
   }
   return ret;
 }
