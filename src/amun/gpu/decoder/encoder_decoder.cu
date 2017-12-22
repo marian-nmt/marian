@@ -221,6 +221,7 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences,
   encDecBuffer_.Get(miniBatch, newSentences);
   cerr << "FetchBatch3=" << " "
       << miniBatch << " "
+      << newSentences.size() << " "
       << endl;
 
   //vector<unsigned> batchIds = AddToBatch(newSentences, sentences, histories, sentenceLengths, sourceContext);
@@ -245,14 +246,21 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences,
 
   cerr << "FetchBatch7" << endl;
   sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
+  cerr << "FetchBatch8" << endl;
   sourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
 
+  cerr << "FetchBatch9" << endl;
   state.reset(NewState());
+  cerr << "FetchBatch10" << endl;
   nextState.reset(NewState());
 
+  cerr << "FetchBatch11" << endl;
   BeginSentenceState(sentences.size(), sourceContext, sentenceLengths, *state, SCU);
+  cerr << "FetchBatch12" << endl;
   histories.Init(sentences);
+  cerr << "FetchBatch13" << endl;
   prevHyps = histories.GetFirstHyps();
+  cerr << "FetchBatch14" << endl;
 
   return true;
 }
