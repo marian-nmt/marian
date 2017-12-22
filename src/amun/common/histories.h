@@ -10,6 +10,7 @@ namespace amunmt {
 
 class Sentences;
 class History;
+class BufferOutput;
 
 class Hypothesis;
 using HypothesisPtr = std::shared_ptr<Hypothesis>;
@@ -49,7 +50,7 @@ class Histories
 public:
   Histories(bool normalizeScore);
 
-  void Init(const Sentences& sentences);
+  void Init(const std::vector<BufferOutput> &newSentences);
 
   size_t size() const
   { return coll_.size(); }

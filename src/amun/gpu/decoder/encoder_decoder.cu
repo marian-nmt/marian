@@ -244,7 +244,7 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences,
   state.reset(NewState());
   nextState.reset(NewState());
 
-  histories.Init(sentences);
+  histories.Init(newSentences);
 
   BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, *state, SCU);
 

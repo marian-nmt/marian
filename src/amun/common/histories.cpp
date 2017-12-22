@@ -3,6 +3,7 @@
 #include "histories.h"
 #include "sentences.h"
 #include "history.h"
+#include "enc_out.h"
 
 using namespace std;
 
@@ -40,12 +41,12 @@ Histories::Histories(bool normalizeScore)
 {
 }
 
-void Histories::Init(const Sentences& sentences)
+void Histories::Init(const std::vector<BufferOutput> &newSentences)
 {
-  coll_.resize(sentences.size());
+  coll_.resize(newSentences.size());
 
   for (size_t i = 0; i < size(); ++i) {
-    const SentencePtr &sentence = sentences.Get(i);
+    const SentencePtr &sentence = newSentences[i].GetSentence();
     if (sentence) {
       coll_[i].reset(new HistoriesElement(sentence, normalizeScore_));
       ++active_;
