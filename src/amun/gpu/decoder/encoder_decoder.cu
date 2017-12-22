@@ -202,16 +202,10 @@ void EncoderDecoder::DecodeAsyncInternal()
       vector<unsigned> batchIds = AddToBatch(newSentences, sentences, histories, sentenceLengths, sourceContext);
       */
       ///*
-      EncOutPtr encOut = encDecBuffer_.Get();
-      assert(encOut);
-
-      sentences = encOut->GetSentences();
-      if (sentences.size() == 0) {
+      bool hasSentences = FetchBatch(sentences, sentenceLengths, sourceContext);
+      if (!hasSentences) {
         break;
       }
-
-      sourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
-      sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
       //*/
 
       //state.reset(NewState());
@@ -239,8 +233,14 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences, mblas::Vector<uint> &sente
   assert(encOut);
 
   sentences = encOut->GetSentences();
+  if (sentences.size() == 0) {
+    return false;
+  }
+
   sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
   sourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+
+  return true;
 }
 
 void EncoderDecoder::BeginSentenceState(size_t batchSize,
