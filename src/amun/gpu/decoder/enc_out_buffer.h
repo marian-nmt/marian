@@ -12,9 +12,8 @@ public:
   virtual ~EncOutBuffer();
 
   void Add(EncOutPtr obj);
-  EncOutPtr Get();
 
-  void Get(size_t num, std::vector<SentenceElement> &ret);
+  void Get(size_t num, std::vector<BufferOutput> &ret);
 
   size_t size() const
   { return buffer_.size(); }
@@ -24,6 +23,8 @@ protected:
 
   EncOutPtr unfinishedEncOutPtr_;
   size_t unfinishedInd_;
+
+  EncOutPtr Get();
 };
 
 

@@ -4,12 +4,12 @@ using namespace std;
 
 namespace amunmt {
 
-SentenceElement::SentenceElement(EncOutPtr vencOut, size_t vsentenceInd)
+BufferOutput::BufferOutput(EncOutPtr vencOut, size_t vsentenceInd)
 :encOut(vencOut)
 ,sentenceInd(vsentenceInd)
 {}
 
-const SentencePtr &SentenceElement::GetSentence() const
+const SentencePtr &BufferOutput::GetSentence() const
 {
   const Sentences &sentences = encOut->GetSentences();
   const SentencePtr &sentence = sentences.Get(sentenceInd);

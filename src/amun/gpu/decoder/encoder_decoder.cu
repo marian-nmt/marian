@@ -208,7 +208,7 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences,
   ///*
   uint miniBatch = god_.Get<uint>("mini-batch");
 
-  std::vector<SentenceElement> newSentences;
+  std::vector<BufferOutput> newSentences;
   encDecBuffer_.Get(miniBatch, newSentences);
 
   //vector<unsigned> batchIds = AddToBatch(newSentences, sentences, histories, sentenceLengths, sourceContext);
@@ -219,7 +219,7 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences,
 
   sentences.ResetAll();
   for (size_t i = 0; i < newSentences.size(); ++i) {
-    const SentenceElement &ele = newSentences[i];
+    const BufferOutput &ele = newSentences[i];
     const SentencePtr &sentence = ele.GetSentence();
     sentences.Set(i, sentence);
   }
@@ -357,7 +357,7 @@ size_t FindNextEmptyIndex(size_t nextBatchInd,
 
 ////////////////////////////////////////////////////////////////////////
 
-vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<SentenceElement> &newSentences,
+vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<BufferOutput> &newSentences,
                                 Sentences &sentences,
                                 Histories &histories,
                                 mblas::Vector<uint> &sentenceLengths,
@@ -371,7 +371,7 @@ vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<SentenceElement> &
   // update existing batch
   size_t nextBatchInd = 0;
   for (size_t i = 0; i < newSentences.size(); ++i) {
-    const SentenceElement &eleSent = newSentences[i];
+    const BufferOutput &eleSent = newSentences[i];
     const SentencePtr &sentence = eleSent.GetSentence();
 
     // work out offset in existing batch
@@ -410,7 +410,7 @@ vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<SentenceElement> &
   cerr << "sourceContext2=" << sourceContext.Debug() << endl;
 
   for (size_t i = 0; i < newSentences.size(); ++i) {
-    const SentenceElement &eleSent = newSentences[i];
+    const BufferOutput &eleSent = newSentences[i];
     //size_t sentenceInd = eleSent.sentenceInd;
     const EncOutPtr &encOut = eleSent.encOut;
     const mblas::Matrix &newSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();

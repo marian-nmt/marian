@@ -99,7 +99,7 @@ class EncoderDecoder : public Scorer {
                           State& nextState,
                           const Words &filterIndices);
 
-    std::vector<unsigned> AddToBatch(const std::vector<SentenceElement> &newSentences,
+    std::vector<unsigned> AddToBatch(const std::vector<BufferOutput> &newSentences,
                     Sentences &sentences,
                     Histories &histories,
                     mblas::Vector<uint> &sentenceLengths,

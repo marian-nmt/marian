@@ -8,13 +8,13 @@ namespace amunmt {
 class EncOut;
 using EncOutPtr = std::shared_ptr<EncOut>;
 
-class SentenceElement
+class BufferOutput
 {
 public:
   EncOutPtr encOut;
   size_t sentenceInd; // index of the sentence we're translation within encOut.sentences
 
-  SentenceElement(EncOutPtr vencOut, size_t vsentenceInd);
+  BufferOutput(EncOutPtr vencOut, size_t vsentenceInd);
   const SentencePtr &GetSentence() const;
 };
 

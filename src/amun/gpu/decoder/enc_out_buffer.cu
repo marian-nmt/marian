@@ -25,7 +25,7 @@ EncOutPtr EncOutBuffer::Get()
   return buffer_.remove();
 }
 
-void EncOutBuffer::Get(size_t num, std::vector<SentenceElement> &ret)
+void EncOutBuffer::Get(size_t num, std::vector<BufferOutput> &ret)
 {
   for (size_t currNum = 0; currNum < num; ++currNum) {
     if (unfinishedEncOutPtr_.get() == nullptr) {
@@ -39,7 +39,7 @@ void EncOutBuffer::Get(size_t num, std::vector<SentenceElement> &ret)
     }
 
     assert(unfinishedEncOutPtr_);
-    SentenceElement ele(unfinishedEncOutPtr_, unfinishedInd_);
+    BufferOutput ele(unfinishedEncOutPtr_, unfinishedInd_);
     ret.push_back(ele);
 
     ++unfinishedInd_;
