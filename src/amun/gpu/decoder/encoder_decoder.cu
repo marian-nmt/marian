@@ -188,13 +188,6 @@ void EncoderDecoder::DecodeAsyncInternal()
     size_t survivors = CalcBeam(search_.GetBestHyps(), histories, prevHyps, *state, *nextState, search_.GetFilterIndices());
 
     if (survivors == 0) {
-      /*
-      size_t numNewsentences = histories.size() - histories.GetNumActive();
-      std::vector<EncOut::SentenceElement> newSentences;
-      encDecBuffer_.Get(numNewsentences, newSentences);
-
-      vector<unsigned> batchIds = AddToBatch(newSentences, sentences, histories, sentenceLengths, sourceContext);
-      */
       ///*
       hasSentences = FetchBatch(sentences, histories, sentenceLengths, sourceContext, SCU, state, nextState, prevHyps);
       //*/
@@ -219,16 +212,38 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences,
                                 StatePtr &nextState,
                                 Hypotheses &prevHyps)
 {
-  EncOutPtr encOut = encDecBuffer_.Get();
-  assert(encOut);
+  cerr << "FetchBatch1" << endl;
+  //size_t numNewsentences = histories.size() - histories.GetNumActive();
+  uint miniBatch = god_.Get<uint>("mini-batch");
 
-  sentences = encOut->GetSentences();
-  if (sentences.size() == 0) {
+  std::vector<EncOut::SentenceElement> newSentences;
+  cerr << "FetchBatch2" << endl;
+  encDecBuffer_.Get(miniBatch, newSentences);
+  cerr << "FetchBatch3=" << " "
+      << miniBatch << " "
+      << endl;
+
+  //vector<unsigned> batchIds = AddToBatch(newSentences, sentences, histories, sentenceLengths, sourceContext);
+
+  if (newSentences.size() == 0) {
     return false;
   }
+  cerr << "FetchBatch4" << endl;
 
+  for (size_t i = 0; i < newSentences.size(); ++i) {
+    const EncOut::SentenceElement &ele = newSentences[i];
+    const SentencePtr &sentence = ele.GetSentence();
+    sentences.Set(i, sentence);
+  }
+  cerr << "FetchBatch5" << endl;
   sentences.RecalcMaxLength();
 
+  cerr << "FetchBatch6" << endl;
+  const EncOutPtr &encOut = newSentences.front().encOut;
+  assert(encOut);
+
+
+  cerr << "FetchBatch7" << endl;
   sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
   sourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
 
