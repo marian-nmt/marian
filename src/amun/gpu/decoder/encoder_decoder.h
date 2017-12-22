@@ -77,6 +77,8 @@ class EncoderDecoder : public Scorer {
     void DecodeAsyncInternal();
     void DecodeAsyncInternal(EncOutPtr encOut);
 
+    bool FetchBatch(Sentences &sentences, mblas::Vector<uint> &sentenceLengths, mblas::Matrix &sourceContext);
+
     void BeginSentenceState(size_t batchSize,
                             const mblas::Matrix &sourceContext,
                             const mblas::Vector<uint> &sentenceLengths,

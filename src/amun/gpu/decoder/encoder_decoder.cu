@@ -158,13 +158,11 @@ void EncoderDecoder::DecodeAsyncInternal()
 
   Histories histories(search_.NormalizeScore());
 
-  EncOutPtr encOut = encDecBuffer_.Get();
-  assert(encOut);
+  Sentences sentences;
+  mblas::Vector<uint> sentenceLengths;
+  mblas::Matrix sourceContext, SCU;
 
-  Sentences sentences(encOut->GetSentences());
-  mblas::Matrix sourceContext(encOut->Get<EncOutGPU>().GetSourceContext());
-  mblas::Vector<uint> sentenceLengths(encOut->Get<EncOutGPU>().GetSentenceLengths());
-  mblas::Matrix SCU;
+  FetchBatch(sentences, sentenceLengths, sourceContext);
 
   StatePtr state(NewState());
   BeginSentenceState(sentences.size(), sourceContext, sentenceLengths, *state, SCU);
@@ -196,15 +194,15 @@ void EncoderDecoder::DecodeAsyncInternal()
     size_t survivors = CalcBeam(search_.GetBestHyps(), histories, prevHyps, *state, *nextState, search_.GetFilterIndices());
 
     if (survivors == 0) {
-      ///*
+      /*
       size_t numNewsentences = histories.size() - histories.GetNumActive();
       std::vector<EncOut::SentenceElement> newSentences;
       encDecBuffer_.Get(numNewsentences, newSentences);
 
       vector<unsigned> batchIds = AddToBatch(newSentences, sentences, histories, sentenceLengths, sourceContext);
-      //*/
-      /*
-      encOut = encDecBuffer_.Get();
+      */
+      ///*
+      EncOutPtr encOut = encDecBuffer_.Get();
       assert(encOut);
 
       sentences = encOut->GetSentences();
@@ -214,7 +212,7 @@ void EncoderDecoder::DecodeAsyncInternal()
 
       sourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
       sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
-      */
+      //*/
 
       //state.reset(NewState());
       BeginSentenceState(sentences.size(), sourceContext, sentenceLengths, *state, SCU);
@@ -233,6 +231,16 @@ void EncoderDecoder::DecodeAsyncInternal()
     LOG(progress)->info("  Step {} took {} sentences {} prevHypos {} survivors {}", step++, timerStep.format(5, "%w"), histories.GetNumActive(), numPrevHyps, survivors);
   }
 
+}
+
+bool EncoderDecoder::FetchBatch(Sentences &sentences, mblas::Vector<uint> &sentenceLengths, mblas::Matrix &sourceContext)
+{
+  EncOutPtr encOut = encDecBuffer_.Get();
+  assert(encOut);
+
+  sentences = encOut->GetSentences();
+  sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
+  sourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
 }
 
 void EncoderDecoder::BeginSentenceState(size_t batchSize,
@@ -394,7 +402,7 @@ vector<unsigned> EncoderDecoder::AddToBatch(const std::vector<EncOut::SentenceEl
 
   for (size_t i = 0; i < newSentences.size(); ++i) {
     const EncOut::SentenceElement &eleSent = newSentences[i];
-    size_t sentenceInd = eleSent.sentenceInd;
+    //size_t sentenceInd = eleSent.sentenceInd;
     const EncOutPtr &encOut = eleSent.encOut;
     const mblas::Matrix &newSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
     cerr << "newSourceContext=" << newSourceContext.Debug() << endl;
