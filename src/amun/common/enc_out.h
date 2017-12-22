@@ -8,31 +8,21 @@ namespace amunmt {
 class EncOut;
 using EncOutPtr = std::shared_ptr<EncOut>;
 
+class SentenceElement
+{
+public:
+  EncOutPtr encOut;
+  size_t sentenceInd; // index of the sentence we're translation within encOut.sentences
+
+  SentenceElement(EncOutPtr vencOut, size_t vsentenceInd);
+  const SentencePtr &GetSentence() const;
+};
+
+/////////////////////////////////////////////////////////////////////////////
+
 class EncOut
 {
 public:
-
-  /////////////////////////////////////////////////////////////////////////////
-  struct SentenceElement
-  {
-    EncOutPtr encOut;
-    size_t sentenceInd; // index of the sentence we're translation within encOut.sentences
-
-    SentenceElement(EncOutPtr vencOut,
-                    size_t vsentenceInd)
-    :encOut(vencOut)
-    ,sentenceInd(vsentenceInd)
-    {}
-
-    const SentencePtr &GetSentence() const
-    {
-      const Sentences &sentences = encOut->GetSentences();
-      const SentencePtr &sentence = sentences.Get(sentenceInd);
-      return sentence;
-    }
-
-  };
-  /////////////////////////////////////////////////////////////////////////////
 
   EncOut(const SentencesPtr &sentences);
   virtual ~EncOut();

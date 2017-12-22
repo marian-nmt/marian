@@ -4,6 +4,20 @@ using namespace std;
 
 namespace amunmt {
 
+SentenceElement::SentenceElement(EncOutPtr vencOut, size_t vsentenceInd)
+:encOut(vencOut)
+,sentenceInd(vsentenceInd)
+{}
+
+const SentencePtr &SentenceElement::GetSentence() const
+{
+  const Sentences &sentences = encOut->GetSentences();
+  const SentencePtr &sentence = sentences.Get(sentenceInd);
+  return sentence;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
 EncOut::EncOut(const SentencesPtr &sentences)
 :sentences_(sentences)
 ,h_sentenceLengths_(sentences->size())
