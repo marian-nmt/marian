@@ -158,13 +158,12 @@ void EncoderDecoder::DecodeAsyncInternal()
 
   Histories histories(search_.NormalizeScore());
 
-  Sentences sentences(miniBatch);
   mblas::Vector<uint> sentenceLengths;
   mblas::Matrix sourceContext, SCU;
   StatePtr state, nextState;
   Hypotheses prevHyps;
 
-  bool hasSentences = FetchBatch(sentences, histories, sentenceLengths, sourceContext, SCU, state, nextState, prevHyps);
+  bool hasSentences = FetchBatch(histories, sentenceLengths, sourceContext, SCU, state, nextState, prevHyps);
 
   unsigned step = 0;
   while (hasSentences && histories.GetNumActive()) {
@@ -188,7 +187,7 @@ void EncoderDecoder::DecodeAsyncInternal()
     size_t survivors = CalcBeam(search_.GetBestHyps(), histories, prevHyps, *state, *nextState, search_.GetFilterIndices());
 
     if (survivors == 0) {
-      hasSentences = FetchBatch(sentences, histories, sentenceLengths, sourceContext, SCU, state, nextState, prevHyps);
+      hasSentences = FetchBatch(histories, sentenceLengths, sourceContext, SCU, state, nextState, prevHyps);
     }
 
     LOG(progress)->info("  Step {} took {} sentences {} prevHypos {} survivors {}", step++, timerStep.format(5, "%w"), histories.GetNumActive(), numPrevHyps, survivors);
@@ -196,8 +195,7 @@ void EncoderDecoder::DecodeAsyncInternal()
 
 }
 
-bool EncoderDecoder::FetchBatch(Sentences &sentences,
-                                Histories &histories,
+bool EncoderDecoder::FetchBatch(Histories &histories,
                                 mblas::Vector<uint> &sentenceLengths,
                                 mblas::Matrix &sourceContext,
                                 mblas::Matrix &SCU,
@@ -216,14 +214,6 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences,
   if (newSentences.size() == 0) {
     return false;
   }
-
-  sentences.ResetAll();
-  for (size_t i = 0; i < newSentences.size(); ++i) {
-    const BufferOutput &ele = newSentences[i];
-    const SentencePtr &sentence = ele.GetSentence();
-    sentences.Set(i, sentence);
-  }
-  sentences.RecalcMaxLength();
 
   const EncOutPtr &encOut = newSentences.front().encOut;
   assert(encOut);
