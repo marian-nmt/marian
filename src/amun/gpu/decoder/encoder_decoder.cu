@@ -163,7 +163,10 @@ void EncoderDecoder::DecodeAsyncInternal()
   StatePtr state, nextState;
   Hypotheses prevHyps;
 
-  bool hasSentences = FetchBatch(histories, sentenceLengths, sourceContext, SCU, state, nextState, prevHyps);
+  state.reset(NewState());
+  nextState.reset(NewState());
+
+  bool hasSentences = FetchBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
 
   unsigned step = 0;
   while (hasSentences && histories.GetNumActive()) {
@@ -187,7 +190,7 @@ void EncoderDecoder::DecodeAsyncInternal()
     size_t survivors = CalcBeam(search_.GetBestHyps(), histories, prevHyps, *state, *nextState, search_.GetFilterIndices());
 
     if (survivors == 0) {
-      hasSentences = FetchBatch(histories, sentenceLengths, sourceContext, SCU, state, nextState, prevHyps);
+      hasSentences = FetchBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
     }
 
     LOG(progress)->info("  Step {} took {} sentences {} prevHypos {} survivors {}", step++, timerStep.format(5, "%w"), histories.GetNumActive(), numPrevHyps, survivors);
@@ -199,8 +202,7 @@ bool EncoderDecoder::FetchBatch(Histories &histories,
                                 mblas::Vector<uint> &sentenceLengths,
                                 mblas::Matrix &sourceContext,
                                 mblas::Matrix &SCU,
-                                StatePtr &state,
-                                StatePtr &nextState,
+                                State &state,
                                 Hypotheses &prevHyps)
 {
   ///*
@@ -243,12 +245,9 @@ bool EncoderDecoder::FetchBatch(Histories &histories,
   cerr << "sentenceLengths=" << sentenceLengths.Debug(0) << endl;
   cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
 
-  state.reset(NewState());
-  nextState.reset(NewState());
-
   histories.Init(newSentences);
 
-  BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, *state, SCU);
+  BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, state, SCU);
 
   prevHyps = histories.GetFirstHyps();
 
