@@ -10,6 +10,13 @@ Sentences::Sentences()
   : maxLength_(0)
 {}
 
+Sentences::Sentences(size_t size)
+:coll_(size)
+,maxLength_(0)
+{
+}
+
+
 Sentences::Sentences(const Sentences &other)
 :coll_(other.coll_)
 ,maxLength_(other.maxLength_)

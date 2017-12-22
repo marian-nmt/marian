@@ -10,6 +10,7 @@ using SentencesPtr = std::shared_ptr<Sentences>;
 class Sentences {
   public:
     Sentences();
+    Sentences(size_t size);
     Sentences(const Sentences &other);
     ~Sentences();
 

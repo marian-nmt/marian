@@ -158,7 +158,7 @@ void EncoderDecoder::DecodeAsyncInternal()
 
   Histories histories(search_.NormalizeScore());
 
-  Sentences sentences;
+  Sentences sentences(miniBatch);
   mblas::Vector<uint> sentenceLengths;
   mblas::Matrix sourceContext, SCU;
   StatePtr state, nextState;
@@ -226,6 +226,8 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences,
   if (sentences.size() == 0) {
     return false;
   }
+
+  sentences.RecalcMaxLength();
 
   sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
   sourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
