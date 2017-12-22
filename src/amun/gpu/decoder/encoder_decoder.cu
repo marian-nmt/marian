@@ -212,12 +212,10 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences,
                                 StatePtr &nextState,
                                 Hypotheses &prevHyps)
 {
-  cerr << "FetchBatch1" << endl;
-  //size_t numNewsentences = histories.size() - histories.GetNumActive();
+  /*
   uint miniBatch = god_.Get<uint>("mini-batch");
 
   std::vector<EncOut::SentenceElement> newSentences;
-  cerr << "FetchBatch2" << endl;
   encDecBuffer_.Get(miniBatch, newSentences);
   cerr << "FetchBatch3=" << " "
       << miniBatch << " "
@@ -229,36 +227,43 @@ bool EncoderDecoder::FetchBatch(Sentences &sentences,
   if (newSentences.size() == 0) {
     return false;
   }
-  cerr << "FetchBatch4" << endl;
 
   for (size_t i = 0; i < newSentences.size(); ++i) {
     const EncOut::SentenceElement &ele = newSentences[i];
     const SentencePtr &sentence = ele.GetSentence();
     sentences.Set(i, sentence);
   }
-  cerr << "FetchBatch5" << endl;
   sentences.RecalcMaxLength();
 
-  cerr << "FetchBatch6" << endl;
   const EncOutPtr &encOut = newSentences.front().encOut;
   assert(encOut);
+  */
+  EncOutPtr encOut = encDecBuffer_.Get();
+  assert(encOut);
 
+  sentences = encOut->GetSentences();
+  if (sentences.size() == 0) {
+      return false;
+  }
+  cerr << "FetchBatch10=" << sentences.size() << endl;
 
-  cerr << "FetchBatch7" << endl;
   sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
-  cerr << "FetchBatch8" << endl;
   sourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
 
-  cerr << "FetchBatch9" << endl;
   state.reset(NewState());
-  cerr << "FetchBatch10" << endl;
   nextState.reset(NewState());
 
   cerr << "FetchBatch11" << endl;
+
   BeginSentenceState(sentences.size(), sourceContext, sentenceLengths, *state, SCU);
-  cerr << "FetchBatch12" << endl;
-  histories.Init(sentences);
   cerr << "FetchBatch13" << endl;
+
+  histories.Init(sentences);
+  cerr << "FetchBatch12=" << " "
+      << histories.size() << " "
+      << histories.GetNumActive() << " "
+      << endl;
+
   prevHyps = histories.GetFirstHyps();
   cerr << "FetchBatch14" << endl;
 
