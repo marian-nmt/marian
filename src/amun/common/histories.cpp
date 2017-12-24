@@ -48,10 +48,17 @@ void Histories::Init(const std::vector<BufferOutput> &newSentences)
   for (size_t i = 0; i < size(); ++i) {
     const SentencePtr &sentence = newSentences[i].GetSentence();
     if (sentence) {
-      coll_[i].reset(new HistoriesElement(sentence, normalizeScore_));
-      ++active_;
+      Set(i, new HistoriesElement(sentence, normalizeScore_));
     }
   }
+}
+
+void Histories::Set(size_t ind, HistoriesElement *val)
+{
+  HistoriesElementPtr &ele = coll_[ind];
+  assert(ele == nullptr);
+  ele.reset(val);
+  ++active_;
 }
 
 size_t Histories::GetBeamSize(size_t ind) const

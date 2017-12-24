@@ -316,9 +316,7 @@ bool EncoderDecoder::FetchBatch(Histories &histories,
     newSentenceOffsets[i] = eleSent.GetSentenceOffset();
 
     // histories
-    HistoriesElementPtr &eleHist = histories.Get(nextBatchInd);
-    assert(eleHist == nullptr);
-    eleHist.reset(new HistoriesElement(sentence, histories.NormalizeScore()));
+    histories.Set(nextBatchInd, new HistoriesElement(sentence, histories.NormalizeScore()));
 
     nextBatchInd = batchInd + 1;
   }
@@ -335,13 +333,8 @@ bool EncoderDecoder::FetchBatch(Histories &histories,
 
   UpdateSentenceLengths(d_newSentenceLengths, d_newBatchIds, sentenceLengths);
 
-  cerr << "newSentences=" << newSentences.size() << endl;
-  cerr << "sourceContext1=" << sourceContext.Debug(0) << endl;
-  cerr << "maxLength=" << maxLength << endl;
-
   // source context
   ResizeMatrix(sourceContext, 0, maxLength);
-  cerr << "sourceContext2=" << sourceContext.Debug(0) << endl;
 
   for (size_t i = 0; i < newSentences.size(); ++i) {
     const BufferOutput &eleSent = newSentences[i];
@@ -351,13 +344,16 @@ bool EncoderDecoder::FetchBatch(Histories &histories,
     size_t batchId = newBatchIds[i];
     size_t newSentenceOffset = eleSent.GetSentenceOffset();
 
-    cerr << "newSourceContext=" << newSourceContext.Debug(0) << endl;
-    cerr << "newSentenceOffset=" << newSentenceOffset << endl;
-
     AddNewData(sourceContext, newSourceContext, batchId, newSentenceOffset);
   }
 
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "HH1" << endl;
+
   BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, state, SCU);
+
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "HH2" << endl;
 
   return true;
 }

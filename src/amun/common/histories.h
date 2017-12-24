@@ -71,6 +71,8 @@ public:
   HistoriesElementPtr &Get(size_t ind)
   { return coll_[ind]; }
 
+  void Set(size_t ind, HistoriesElement *val);
+
   size_t GetBeamSize(size_t ind) const;
   bool Empty(size_t ind) const;
 

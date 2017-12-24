@@ -1456,7 +1456,7 @@ void UpdateSentenceLengths(const mblas::Vector<uint> &newSentenceLengths,
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 __global__
 void gAddNewData(mblas::MatrixWrapper<float> dest,
-                mblas::MatrixWrapper<float> source,
+                const mblas::MatrixWrapper<float> source,
                 size_t batchId,
                 size_t newSentenceOffset)
 {
@@ -1479,7 +1479,7 @@ void AddNewData(mblas::Matrix &sourceContext,
   mblas::MatrixWrapper<float> dest(sourceContext);
   const mblas::MatrixWrapper<float> source(newSourceContext);
 
-  gAddNewData<<<1,1>>>(dest, source, batchId, newSentenceOffset);
+  gAddNewData<<<1,1, 0, CudaStreamHandler::GetStream()>>>(dest, source, batchId, newSentenceOffset);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
