@@ -1,4 +1,5 @@
 #include "common/histories.h"
+#include "common/enc_out.h"
 #include "gpu/mblas/matrix_functions.h"
 #include "gpu/mblas/handles.h"
 
@@ -56,10 +57,6 @@ void Mean(Matrix& Out,
           const Matrix& In,
           const mblas::Vector<uint> &sentenceLengths)
 {
-  cerr << "Mean Out=" << Out.Debug(0) << endl;
-  cerr << "Mean In=" << In.Debug(0) << endl;
-  cerr << "Mean sentenceLengths=" << sentenceLengths.Debug(0) << endl;
-
   assert(Out.dim(2) == 1);
   assert(Out.dim(3) == 1);
   assert(Out.dim(0) == In.dim(3));
@@ -1470,8 +1467,11 @@ void gAddNewData(mblas::MatrixWrapper<float> dest,
 void AddNewData(mblas::Matrix &sourceContext,
                 const mblas::Matrix &newSourceContext,
                 size_t batchId,
-                size_t newSentenceOffset)
+                size_t newSentenceOffset,
+                const vector<uint> &newBatchIds,
+                const std::vector<BufferOutput> &newSentences)
 {
+  BEGIN_TIMER("AddNewData");
   //cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
   //cerr << "newSourceContext=" << newSourceContext.Debug(0) << endl;
 
@@ -1485,6 +1485,8 @@ void AddNewData(mblas::Matrix &sourceContext,
   const mblas::MatrixWrapper<float> source(newSourceContext);
 
   gAddNewData<<<1,1, 0, CudaStreamHandler::GetStream()>>>(dest, source, batchId, newSentenceOffset);
+
+  PAUSE_TIMER("AddNewData");
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////

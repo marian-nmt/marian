@@ -19,6 +19,7 @@
 namespace amunmt {
 
 class Histories;
+class BufferOutput;
 
 namespace GPU {
 namespace mblas {
@@ -496,7 +497,9 @@ void ResizeMatrix(TMatrix<T> &matrix,
 void AddNewData(mblas::Matrix &sourceContext,
                 const mblas::Matrix &newSourceContext,
                 size_t batchId,
-                size_t newSentenceOffset);
+                size_t newSentenceOffset,
+                const std::vector<uint> &newBatchIds,
+                const std::vector<BufferOutput> &newSentences);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
