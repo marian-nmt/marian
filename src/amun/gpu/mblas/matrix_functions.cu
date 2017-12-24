@@ -353,8 +353,6 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
 {
   BEGIN_TIMER("Prod");
   assert((A.dim(2) == A.dim(3) == 1) || (B.dim(2) == B.dim(3) == 1));
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  std::cerr << "Prod1" << std::endl;
 
   Matrix::value_type alpha = 1.0;
   Matrix::value_type beta = 0.0;
@@ -380,16 +378,12 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
     }
 
   assert(k == l);
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  std::cerr << "Prod2" << std::endl;
 
   size_t lda = A.dim(1);
   size_t ldb = B.dim(1);
   size_t ldc = transB ? B.dim(0) * B.dim(2) * B.dim(3) : B.dim(1);
 
   size_t dim2 = A.dim(2);
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  std::cerr << "Prod3" << std::endl;
   if (transB) {
     // for GetAlignedSourceContext()
     assert((A.dim(2) == A.dim(3) == 1));
@@ -398,8 +392,6 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   else {
     C.NewSize(mOut, nOut, A.dim(2) * B.dim(2), A.dim(3) * B.dim(3));
   }
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  std::cerr << "Prod4" << std::endl;
   /*
   cerr << "C=" << C.Debug(0) << endl;
   cerr << "A=" << A.Debug(0) << endl;
@@ -412,8 +404,6 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  std::cerr << "Prod5" << std::endl;
   HANDLE_ERROR_CUBLAS(cublasSgemm(handle, opB, opA,
                       n, m, k,
                       &alpha,
@@ -421,8 +411,6 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
                       A.data(), lda,
                       &beta,
                       C.data(), ldc));
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  std::cerr << "Prod6" << std::endl;
   PAUSE_TIMER("Prod");
   return C;
 }
@@ -1376,8 +1364,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   int shared = sizeof(NthOutBatch) * threads * maxBeamSize
              + sizeof(float) * threads;
 
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  //cerr << "step0" << endl;
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "LogSoftmaxAndNBest1" << endl;
 
   //BEGIN_TIMER("gBeamSizeInit");
   gBeamSizeInit<<<1, 1, 0, CudaStreamHandler::GetStream()>>>
@@ -1389,6 +1377,9 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
     beamSizesWrap
     );
   //PAUSE_TIMER("gBeamSizeInit");
+
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "LogSoftmaxAndNBest2" << endl;
 
   /*
   cerr << "hypo2BeamSize=" << Debug(hypo2BeamSize, 2) << endl;
