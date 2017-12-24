@@ -333,16 +333,7 @@ bool EncoderDecoder::FetchBatch(Histories &histories,
   ResizeMatrix(sourceContext, 0, maxLength);
   ResizeMatrix(sourceContext, 3, histories.GetNumActive());
 
-  for (size_t i = 0; i < newSentences.size(); ++i) {
-    const BufferOutput &eleSent = newSentences[i];
-    const EncOutPtr &encOut = eleSent.GetEncOut();
-    const mblas::Matrix &newSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
-
-    size_t batchId = newBatchIds[i];
-    size_t newSentenceOffset = eleSent.GetSentenceOffset();
-
-    AddNewData(sourceContext, newSourceContext, batchId, newSentenceOffset, newBatchIds, newSentences);
-  }
+  AddNewData(sourceContext, newBatchIds, newSentences);
 
   BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, state, SCU);
 

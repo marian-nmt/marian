@@ -1,7 +1,7 @@
 #include "common/histories.h"
-#include "common/enc_out.h"
 #include "gpu/mblas/matrix_functions.h"
 #include "gpu/mblas/handles.h"
+#include "gpu/decoder/enc_out_gpu.h"
 
 using namespace std;
 
@@ -1465,26 +1465,32 @@ void gAddNewData(mblas::MatrixWrapper<float> dest,
 }
 
 void AddNewData(mblas::Matrix &sourceContext,
-                const mblas::Matrix &newSourceContext,
-                size_t batchId,
-                size_t newSentenceOffset,
                 const vector<uint> &newBatchIds,
                 const std::vector<BufferOutput> &newSentences)
 {
   BEGIN_TIMER("AddNewData");
   //cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
-  //cerr << "newSourceContext=" << newSourceContext.Debug(0) << endl;
 
-  assert(batchId < sourceContext.dim(3));
-  assert(newSentenceOffset < newSourceContext.dim(3));
-  assert(sourceContext.dim(0) == newSourceContext.dim(0));
-  assert(sourceContext.dim(1) == newSourceContext.dim(1));
-  assert(sourceContext.dim(2) == newSourceContext.dim(2) == 1);
+  for (size_t i = 0; i < newSentences.size(); ++i) {
+    const BufferOutput &eleSent = newSentences[i];
+    const EncOutPtr &encOut = eleSent.GetEncOut();
+    const mblas::Matrix &newSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+    //cerr << "newSourceContext=" << newSourceContext.Debug(0) << endl;
 
-  mblas::MatrixWrapper<float> dest(sourceContext);
-  const mblas::MatrixWrapper<float> source(newSourceContext);
+    size_t batchId = newBatchIds[i];
+    size_t newSentenceOffset = eleSent.GetSentenceOffset();
 
-  gAddNewData<<<1,1, 0, CudaStreamHandler::GetStream()>>>(dest, source, batchId, newSentenceOffset);
+    assert(batchId < sourceContext.dim(3));
+    assert(newSentenceOffset < newSourceContext.dim(3));
+    assert(sourceContext.dim(0) == newSourceContext.dim(0));
+    assert(sourceContext.dim(1) == newSourceContext.dim(1));
+    assert(sourceContext.dim(2) == newSourceContext.dim(2) == 1);
+
+    mblas::MatrixWrapper<float> dest(sourceContext);
+    const mblas::MatrixWrapper<float> source(newSourceContext);
+
+    gAddNewData<<<1,1, 0, CudaStreamHandler::GetStream()>>>(dest, source, batchId, newSentenceOffset);
+  }
 
   PAUSE_TIMER("AddNewData");
 }
