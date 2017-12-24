@@ -86,10 +86,12 @@ size_t Histories::MaxLength() const
   size_t ret = 0;
   for (size_t i = 0; i < coll_.size(); ++i) {
     const HistoriesElementPtr &ele = coll_[i];
-    const SentencePtr &sent = ele->GetSentence();
-    size_t size = sent->size();
-    if (ret < size) {
-      ret = size;
+    if (ele) {
+      const SentencePtr &sent = ele->GetSentence();
+      size_t size = sent->size();
+      if (ret < size) {
+        ret = size;
+      }
     }
   }
 

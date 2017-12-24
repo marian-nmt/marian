@@ -484,7 +484,7 @@ void ResizeMatrix(TMatrix<T> &matrix,
                 whichDim == 3 ? newSize : matrix.dim(3)
     );
 
-    CopyMatrix(out, matrix);
+    //CopyMatrix(out, matrix);
 
     out.swap(matrix);
   //}
