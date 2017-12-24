@@ -373,7 +373,12 @@ bool EncoderDecoder::FetchBatch(Histories &histories,
   BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, state, SCU);
 
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "FetchBatch1" << endl;
+  cerr << "FetchBatch2" << endl;
+
+  prevHyps = histories.GetFirstHyps();
+
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "FetchBatch3" << endl;
 
   return true;
 }
@@ -399,24 +404,32 @@ size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
                       State& nextState,
                       const Words &filterIndices)
 {
+  cerr << "CalcBeam1" << endl;
   size_t batchSize = histories.size();
   HypothesesBatch beams(batchSize);
+  cerr << "CalcBeam2" << endl;
   bestHyps.CalcBeam(prevHyps, *this, filterIndices, beams, histories);
+  cerr << "CalcBeam3" << endl;
 
   //cerr << "beams=" << beams.size() << endl;
   assert(beams.size() == histories.size());
   assert(beams.size() == batchSize);
 
+  cerr << "CalcBeam4" << endl;
   Hypotheses survivors = histories.Add(god_, beams);
+  cerr << "CalcBeam5" << endl;
 
   if (survivors.size() == 0) {
     return 0;
   }
 
+  cerr << "CalcBeam6" << endl;
   AssembleBeamState(nextState, survivors, state);
+  cerr << "CalcBeam7" << endl;
 
   //cerr << "survivors=" << survivors.size() << endl;
   prevHyps.swap(survivors);
+  cerr << "CalcBeam8" << endl;
   return prevHyps.size();
 }
 
