@@ -191,6 +191,7 @@ void EncoderDecoder::DecodeAsyncInternal()
     size_t survivors = CalcBeam(search_.GetBestHyps(), histories, prevHyps, *state, *nextState, search_.GetFilterIndices());
 
     if (survivors == 0) {
+    //if (survivors < 10) {
       FetchBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
     }
 
@@ -253,19 +254,19 @@ void EncoderDecoder::InitBatch(Histories &histories,
 
 //////////////////////////////////////////////////////////////////////
 //helper fn
-size_t FindNextEmptyIndex(size_t nextBatchInd,
+void FindNextEmptyIndex(size_t &batchInd,
                         Histories &histories)
 {
-  while(nextBatchInd < histories.size()) {
-    const HistoriesElementPtr &ele = histories.Get(nextBatchInd);
+  while(batchInd < histories.size()) {
+    const HistoriesElementPtr &ele = histories.Get(batchInd);
     if (ele == nullptr) {
-      return nextBatchInd;
+      return;
     }
-    ++nextBatchInd;
+    ++batchInd;
   }
 
   assert(false);
-  return 9999999;
+  batchInd = 9999999;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -277,10 +278,13 @@ void EncoderDecoder::FetchBatch(Histories &histories,
                                 State &state,
                                 Hypotheses &prevHyps)
 {
-  uint miniBatch = god_.Get<uint>("mini-batch");
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+
+  size_t numSentToGet = god_.Get<uint>("mini-batch") - histories.GetNumActive();
+  cerr << "FetchBatch1=" << numSentToGet << endl;
 
   std::vector<BufferOutput> newSentences;
-  encDecBuffer_.Get(miniBatch, newSentences);
+  encDecBuffer_.Get(numSentToGet, newSentences);
 
   //vector<unsigned> batchIds = AddToBatch(newSentences, sentences, histories, sentenceLengths, sourceContext);
 
@@ -293,13 +297,13 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   vector<uint> newSentenceOffsets(newSentences.size());
 
   // update existing batch
-  size_t nextBatchInd = 0;
+  size_t batchInd = 0;
   for (size_t i = 0; i < newSentences.size(); ++i) {
     const BufferOutput &eleSent = newSentences[i];
     const SentencePtr &sentence = eleSent.GetSentence();
 
     // work out offset in existing batch
-    size_t batchInd = FindNextEmptyIndex(nextBatchInd, histories);
+    FindNextEmptyIndex(batchInd, histories);
     newBatchIds[i] = batchInd;
 
     // sentence lengths
@@ -308,10 +312,16 @@ void EncoderDecoder::FetchBatch(Histories &histories,
     // offsets
     newSentenceOffsets[i] = eleSent.GetSentenceOffset();
 
-    // histories
-    histories.Set(nextBatchInd, new HistoriesElement(sentence, histories.NormalizeScore()));
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    cerr << "FetchBatch2=" << i << " " << batchInd << endl;
 
-    nextBatchInd = batchInd + 1;
+    // histories
+    histories.Set(batchInd, new HistoriesElement(sentence, histories.NormalizeScore()));
+
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    cerr << "FetchBatch3" << endl;
+
+    ++batchInd;
   }
 
   size_t maxLength =  histories.MaxLength();
