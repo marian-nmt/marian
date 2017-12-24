@@ -323,8 +323,7 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   UpdateSentenceLengths(d_newSentenceLengths, d_newBatchIds, sentenceLengths);
 
   // source context
-  ResizeMatrix(sourceContext, 0, maxLength);
-  ResizeMatrix(sourceContext, 3, histories.GetNumActive());
+  ResizeMatrix(sourceContext, {0, maxLength, 3, histories.GetNumActive()});
 
   AddNewData(sourceContext, newBatchIds, newSentences);
 

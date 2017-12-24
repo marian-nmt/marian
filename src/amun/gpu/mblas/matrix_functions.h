@@ -473,22 +473,25 @@ void CopyMatrix(TMatrix<T> &out, const TMatrix<T> &in)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-void ResizeMatrix(TMatrix<T> &matrix,
-                    uint whichDim,
-                    uint newSize)
+void ResizeMatrix(TMatrix<T> &matrix, const std::vector<size_t> args)
 {
-  //if (newSize > matrix.dim(whichDim)) {
-    thread_local TMatrix<T> out;
-    out.NewSize(whichDim == 0 ? newSize : matrix.dim(0),
-                whichDim == 1 ? newSize : matrix.dim(1),
-                whichDim == 2 ? newSize : matrix.dim(2),
-                whichDim == 3 ? newSize : matrix.dim(3)
-    );
+  thread_local TMatrix<T> out;
 
-    //CopyMatrix(out, matrix);
+  size_t shape[SHAPE_SIZE];
+  shape[0] = matrix.dim(0);
+  shape[1] = matrix.dim(1);
+  shape[2] = matrix.dim(2);
+  shape[3] = matrix.dim(3);
 
-    out.swap(matrix);
-  //}
+  for (size_t i = 0; i < args.size(); i += 2) {
+    shape[ args[i] ] = args[i+1];
+
+  }
+
+  out.NewSize(shape[0], shape[1], shape[2], shape[3]);
+  //CopyMatrix(out, matrix);
+
+  out.swap(matrix);
 
 }
 
