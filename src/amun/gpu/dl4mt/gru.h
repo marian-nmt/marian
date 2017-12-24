@@ -153,6 +153,8 @@ class FastGRU: public Cell {
                       const CellState& State,
                       const mblas::Matrix& Context) const {
       using namespace mblas;
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "GetNextState1" << std::endl;
 
       //std::cerr << std::endl;
       //std::cerr << "1RUH_=" << RUH_.Debug(1) << std::endl;
@@ -160,26 +162,38 @@ class FastGRU: public Cell {
       //std::cerr << "WWx_" << WWx_.Debug(1) << std::endl;
 
       Prod(RUH_, Context, WWx_);
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "GetNextState2" << std::endl;
 
       //std::cerr << "2RUH_=" << RUH_.Debug(1) << std::endl;
 
       if (w_.Gamma_1_->size()) {
         Normalization(RUH_, RUH_, *w_.Gamma_1_, 1e-9);
       }
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "GetNextState3" << std::endl;
 
+      std::cerr << "State=" << State.output->Debug(0) << std::endl;
+      std::cerr << "UUx_=" << UUx_.Debug(0) << std::endl;
       Prod(Temp_, *(State.output), UUx_);
-      //std::cerr << "State=" << State.Debug(1) << std::endl;
-      //std::cerr << "UUx_" << UUx_.Debug(1) << std::endl;
-      //std::cerr << "Temp_=" << Temp_.Debug(1) << std::endl;
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "GetNextState4" << std::endl;
 
       if (w_.Gamma_2_->size()) {
         Normalization(Temp_, Temp_, *w_.Gamma_2_, 1e-9);
       }
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "GetNextState5" << std::endl;
 
       ElementwiseOps(*(NextState.output), *(State.output), RUH_, Temp_);
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "GetNextState6" << std::endl;
+
       if(State.cell->size() > 0) {
         Swap(*(NextState.cell), *(State.cell));
       }
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "GetNextState7" << std::endl;
     }
 
 
