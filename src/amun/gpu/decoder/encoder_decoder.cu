@@ -288,9 +288,6 @@ void EncoderDecoder::FetchBatch(Histories &histories,
     return;
   }
 
-  const EncOutPtr &encOut = newSentences.front().GetEncOut();
-  assert(encOut);
-
   vector<uint> newBatchIds(newSentences.size());
   vector<uint> newSentenceLengths(newSentences.size());
   vector<uint> newSentenceOffsets(newSentences.size());
