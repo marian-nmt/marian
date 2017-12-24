@@ -172,8 +172,14 @@ void EncoderDecoder::DecodeAsyncInternal()
   while (hasSentences && histories.GetNumActive()) {
     boost::timer::cpu_timer timerStep;
 
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    cerr << "DecodeAsyncInternal1" << endl;
+
     const EDState& edstate = state->get<EDState>();
     EDState& ednextState = nextState->get<EDState>();
+
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    cerr << "DecodeAsyncInternal2" << endl;
 
     decoder_->Decode(ednextState.GetStates(),
                      edstate.GetStates(),
@@ -184,18 +190,32 @@ void EncoderDecoder::DecodeAsyncInternal()
                      SCU,
                      sentenceLengths);
 
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    cerr << "DecodeAsyncInternal3" << endl;
+
     histories.SetNewBeamSize(maxBeamSize);
+
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    cerr << "DecodeAsyncInternal4" << endl;
 
     unsigned numPrevHyps = prevHyps.size();
     size_t survivors = CalcBeam(search_.GetBestHyps(), histories, prevHyps, *state, *nextState, search_.GetFilterIndices());
+
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    cerr << "DecodeAsyncInternal5" << endl;
 
     if (survivors == 0) {
       hasSentences = FetchBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
     }
 
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    cerr << "DecodeAsyncInternal6" << endl;
+
     LOG(progress)->info("  Step {} took {} sentences {} prevHypos {} survivors {}", step++, timerStep.format(5, "%w"), histories.GetNumActive(), numPrevHyps, survivors);
   }
 
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "DecodeAsyncInternal7" << endl;
 }
 
 bool EncoderDecoder::InitBatch(Histories &histories,
@@ -348,12 +368,12 @@ bool EncoderDecoder::FetchBatch(Histories &histories,
   }
 
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "HH1" << endl;
+  cerr << "FetchBatch1" << endl;
 
   BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, state, SCU);
 
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "HH2" << endl;
+  cerr << "FetchBatch1" << endl;
 
   return true;
 }
