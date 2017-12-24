@@ -523,12 +523,17 @@ class Decoder {
                                  const mblas::Vector<uint> &sentenceLengths)
 
     {
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "HH1" << std::endl;
+
       alignment_.GetAlignedSourceContext(AlignedSourceContext,
                                         HiddenState,
                                         beamSizes,
                                         SourceContext,
                                         SCU,
                                         sentenceLengths);
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "HH2" << std::endl;
     }
 
     void GetNextState(CellState& State,
