@@ -1455,12 +1455,15 @@ __global__
 void gAddNewData(mblas::MatrixWrapper<float> dest,
                 const mblas::MatrixWrapper<float> source,
                 size_t batchId,
-                size_t newSentenceOffset)
+                size_t newSentenceOffset,
+                size_t size)
 {
-  for (size_t a = 0; a < dest.dim(0); ++a) {
-    for (size_t b = 0; b < dest.dim(1); ++b) {
-      dest(a, b, 0, batchId) = source(a, b, 0, newSentenceOffset);
-    }
+  int id = threadIdx.x + blockIdx.x * blockDim.x;
+  if (id < size) {
+    size_t dim0 = id / dest.dim(1);
+    size_t dim1 = id % dest.dim(1);
+
+    dest(dim0, dim1, 0, batchId) = source(dim0, dim1, 0, newSentenceOffset);
   }
 }
 
@@ -1486,10 +1489,14 @@ void AddNewData(mblas::Matrix &sourceContext,
     assert(sourceContext.dim(1) == newSourceContext.dim(1));
     assert(sourceContext.dim(2) == newSourceContext.dim(2) == 1);
 
+    size_t size = sourceContext.dim(0) * sourceContext.dim(1);
+    uint threads = std::min((uint) MAX_THREADS, (uint)size);
+    uint blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
+
     mblas::MatrixWrapper<float> dest(sourceContext);
     const mblas::MatrixWrapper<float> source(newSourceContext);
 
-    gAddNewData<<<1,1, 0, CudaStreamHandler::GetStream()>>>(dest, source, batchId, newSentenceOffset);
+    gAddNewData<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(dest, source, batchId, newSentenceOffset, size);
   }
 
   PAUSE_TIMER("AddNewData");

@@ -325,7 +325,6 @@ bool EncoderDecoder::FetchBatch(Histories &histories,
   // update gpu data
   mblas::Vector<uint> d_newBatchIds(newBatchIds);
   mblas::Vector<uint> d_newSentenceLengths(newSentenceLengths);
-  mblas::Vector<uint> d_newSentenceOffsets(newSentenceOffsets);
 
   UpdateSentenceLengths(d_newSentenceLengths, d_newBatchIds, sentenceLengths);
 
