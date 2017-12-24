@@ -72,6 +72,10 @@ class Decoder {
         {
           using namespace mblas;
 
+          std::cerr << "batchSize=" << batchSize << std::endl;
+          HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+          std::cerr << "InitializeState1=" << std::endl;
+
           CellLength cellLength = gru_->GetStateLength();
           if (cellLength.cell > 0) {
             State.cell->NewSize(batchSize, cellLength.cell);
@@ -81,8 +85,16 @@ class Decoder {
           thread_local mblas::Matrix Temp2;
           Temp2.NewSize(batchSize, SourceContext.dim(1), 1, 1);
 
+          HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+          std::cerr << "InitializeState2=" << std::endl;
+
           Mean(Temp2, SourceContext, sentenceLengths);
+          HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+          std::cerr << "InitializeState3=" << std::endl;
+
           Prod(*(State.output), Temp2, *w_.Wi_);
+          HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+          std::cerr << "InitializeState4=" << std::endl;
 
           if (w_.Gamma_->size()) {
             Normalization(*(State.output), *(State.output), *w_.Gamma_, *w_.Bi_, 1e-9);
@@ -436,8 +448,15 @@ class Decoder {
                     const mblas::Vector<uint> &sentenceLengths,
                     mblas::Matrix& SCU) const
     {
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "EmptyState1=" << std::endl;
       rnn1_.InitializeState(State, batchSize, SourceContext, sentenceLengths);
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "EmptyState2=" << std::endl;
+
       alignment_.Init(SourceContext, SCU);
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "EmptyState3=" << std::endl;
     }
 
     void EmptyEmbedding(mblas::Matrix& Embedding, size_t batchSize) const

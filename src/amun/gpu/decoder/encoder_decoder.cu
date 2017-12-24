@@ -367,6 +367,8 @@ bool EncoderDecoder::FetchBatch(Histories &histories,
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   cerr << "FetchBatch7=" << endl;
 
+  ResizeMatrix(sourceContext, 3, histories.GetNumActive());
+
   for (size_t i = 0; i < newSentences.size(); ++i) {
     HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     cerr << "FetchBatch8=" << endl;
@@ -404,8 +406,15 @@ void EncoderDecoder::BeginSentenceState(size_t batchSize,
   //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();
 
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "BeginSentenceState1=" << endl;
   decoder_->EmptyState(edState.GetStates(), batchSize, sourceContext, sentenceLengths, SCU);
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "BeginSentenceState2=" << endl;
+
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "BeginSentenceState3=" << endl;
   //PAUSE_TIMER("BeginSentenceState");
 }
 
