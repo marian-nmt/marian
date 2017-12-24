@@ -1,4 +1,5 @@
 #pragma once
+#include <sstream>
 #include "matrix.h"
 
 namespace amunmt {

@@ -1,4 +1,5 @@
 #pragma once
+#include <sstream>
 #include "matrix.h"
 #include "gpu/mblas/vector.h"
 
@@ -65,6 +66,14 @@ public:
   {
     assert(i < size());
     return data()[i];
+  }
+
+  std::string Debug() const
+  {
+    std::stringstream strm;
+    strm << "size_=" << size_;
+
+    return strm.str();
   }
 
 protected:

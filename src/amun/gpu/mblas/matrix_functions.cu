@@ -1366,6 +1366,12 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
 
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   cerr << "LogSoftmaxAndNBest1" << endl;
+  cerr << "hypo2BeamSizeWrap=" << hypo2BeamSizeWrap.Debug() << endl;
+  cerr << "batch2HypoWrap=" << batch2HypoWrap.Debug() << endl;
+  cerr << "hypo2CandidateWrap=" << hypo2CandidateWrap.Debug() << endl;
+  cerr << "isFirstsWrap=" << isFirstsWrap.Debug() << endl;
+  cerr << "beamSizeSum=" << beamSizeSum << endl;
+  cerr << "beamSizesWrap=" << beamSizesWrap.Debug() << endl;
 
   //BEGIN_TIMER("gBeamSizeInit");
   gBeamSizeInit<<<1, 1, 0, CudaStreamHandler::GetStream()>>>
