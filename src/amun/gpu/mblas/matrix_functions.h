@@ -476,7 +476,7 @@ void ResizeMatrix(TMatrix<T> &matrix,
                     uint whichDim,
                     uint newSize)
 {
-  if (newSize > matrix.dim(whichDim)) {
+  //if (newSize > matrix.dim(whichDim)) {
     thread_local TMatrix<T> out;
     out.NewSize(whichDim == 0 ? newSize : matrix.dim(0),
                 whichDim == 1 ? newSize : matrix.dim(1),
@@ -487,7 +487,7 @@ void ResizeMatrix(TMatrix<T> &matrix,
     CopyMatrix(out, matrix);
 
     out.swap(matrix);
-  }
+  //}
 
 }
 

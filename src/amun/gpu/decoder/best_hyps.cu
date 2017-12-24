@@ -142,8 +142,6 @@ void  BestHyps::CalcBeam(
 {
   BEGIN_TIMER("CalcBeam");
   using namespace mblas;
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "BestHyps::CalcBeam1" << endl;
 
   mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorer.GetProbs());
 
@@ -153,28 +151,19 @@ void  BestHyps::CalcBeam(
       vCosts.push_back(h->GetCost());
     }
   }
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "BestHyps::CalcBeam2" << endl;
 
   mblas::copy(vCosts.data(),
               vCosts.size(),
               costs_.data(),
               cudaMemcpyHostToDevice);
   //mblas::copy(vCosts.begin(), vCosts.end(), costs_.begin());
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "BestHyps::CalcBeam3" << endl;
 
   size_t beamSizeSum = beamSizes.Sum();;
-
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "BestHyps::CalcBeam4" << endl;
 
   std::vector<float> bestCosts;
   std::vector<unsigned> bestKeys;
 
   if (god_.UseFusedSoftmax()) {
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    cerr << "BestHyps::CalcBeam5" << endl;
     const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorer.GetBias());
     mblas::Vector<NthOutBatch> &nBest = *static_cast<mblas::Vector<NthOutBatch>*>(scorer.GetNBest());
     nBest.newSize(beamSizeSum);
@@ -185,12 +174,8 @@ void  BestHyps::CalcBeam(
     //std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
 
     FindBests(beamSizes, Probs, nBest, bestCosts, bestKeys);
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    cerr << "BestHyps::CalcBeam6" << endl;
   }
   else {
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    cerr << "BestHyps::CalcBeam7" << endl;
     BroadcastVecColumn(weights_.at(scorer.GetName()) * _1 + _2, Probs, costs_);
 
     if (forbidUNK_) {
@@ -198,20 +183,12 @@ void  BestHyps::CalcBeam(
     }
 
     FindBests(beamSizes, Probs, bestCosts, bestKeys);
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    cerr << "BestHyps::CalcBeam8" << endl;
   }
-
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "BestHyps::CalcBeam9" << endl;
 
   std::vector<std::vector<float>> breakDowns;
   if (god_.ReturnNBestList()) {
       breakDowns.push_back(bestCosts);
   }
-
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "BestHyps::CalcBeam10" << endl;
 
   std::map<size_t, size_t> batchMap;
   size_t tmp = 0;
@@ -221,28 +198,14 @@ void  BestHyps::CalcBeam(
     }
   }
 
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "BestHyps::CalcBeam11" << endl;
-
   for (size_t i = 0; i < beamSizeSum; i++) {
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    cerr << "BestHyps::CalcBeam12" << endl;
-
     size_t wordIndex = bestKeys[i] % Probs.dim(1);
     if (isInputFiltered_) {
       wordIndex = filterIndices[wordIndex];
     }
 
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    cerr << "BestHyps::CalcBeam12.1" << endl;
-
     size_t hypIndex  = bestKeys[i] / Probs.dim(1);
     float cost = bestCosts[i];
-
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    cerr << "BestHyps::CalcBeam12.2" << endl;
-    cerr << "prevHyps=" << prevHyps.size() << endl;
-    cerr << "hypIndex=" << hypIndex << endl;
 
     HypothesisPtr hyp;
     if (returnAttentionWeights_) {
@@ -251,9 +214,6 @@ void  BestHyps::CalcBeam(
     } else {
       hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
     }
-
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    cerr << "BestHyps::CalcBeam12.3" << endl;
 
     //cerr << "god_.ReturnNBestList()=" << god_.ReturnNBestList() << endl;
     if(god_.ReturnNBestList()) {
@@ -264,20 +224,8 @@ void  BestHyps::CalcBeam(
       hyp->GetCostBreakdown()[0] /= weights_.at(scorer.GetName());
     }
 
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    cerr << "BestHyps::CalcBeam12.4" << endl;
-
     beams[batchMap[i]].push_back(hyp);
-
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    cerr << "BestHyps::CalcBeam12.5" << endl;
-
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    cerr << "BestHyps::CalcBeam13" << endl;
   }
-
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "BestHyps::CalcBeam14" << endl;
 
   PAUSE_TIMER("CalcBeam");
 }

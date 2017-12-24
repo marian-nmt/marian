@@ -1472,6 +1472,9 @@ void AddNewData(mblas::Matrix &sourceContext,
                 size_t batchId,
                 size_t newSentenceOffset)
 {
+  //cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
+  //cerr << "newSourceContext=" << newSourceContext.Debug(0) << endl;
+
   assert(batchId < sourceContext.dim(3));
   assert(newSentenceOffset < newSourceContext.dim(3));
   assert(sourceContext.dim(0) == newSourceContext.dim(0));
