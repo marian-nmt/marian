@@ -166,10 +166,10 @@ void EncoderDecoder::DecodeAsyncInternal()
   state.reset(NewState());
   nextState.reset(NewState());
 
-  bool hasSentences = InitBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
+  InitBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
 
   unsigned step = 0;
-  while (hasSentences && histories.GetNumActive()) {
+  while (histories.GetNumActive()) {
     boost::timer::cpu_timer timerStep;
 
     const EDState& edstate = state->get<EDState>();
@@ -191,14 +191,14 @@ void EncoderDecoder::DecodeAsyncInternal()
     size_t survivors = CalcBeam(search_.GetBestHyps(), histories, prevHyps, *state, *nextState, search_.GetFilterIndices());
 
     if (survivors == 0) {
-      hasSentences = FetchBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
+      FetchBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
     }
 
     LOG(progress)->info("  Step {} took {} sentences {} prevHypos {} survivors {}", step++, timerStep.format(5, "%w"), histories.GetNumActive(), numPrevHyps, survivors);
   }
 }
 
-bool EncoderDecoder::InitBatch(Histories &histories,
+void EncoderDecoder::InitBatch(Histories &histories,
                                 mblas::Vector<uint> &sentenceLengths,
                                 mblas::Matrix &sourceContext,
                                 mblas::Matrix &SCU,
@@ -214,7 +214,7 @@ bool EncoderDecoder::InitBatch(Histories &histories,
   //vector<unsigned> batchIds = AddToBatch(newSentences, sentences, histories, sentenceLengths, sourceContext);
 
   if (newSentences.size() == 0) {
-    return false;
+    return;
   }
 
   const EncOutPtr &encOut = newSentences.front().GetEncOut();
@@ -242,16 +242,13 @@ bool EncoderDecoder::InitBatch(Histories &histories,
   sourceContext.NewSize(origSourceContext.dim(0), origSourceContext.dim(1), origSourceContext.dim(2), origSourceContext.dim(3));
   mblas::CopyMatrix(sourceContext, origSourceContext);
 
-  cerr << "sentenceLengths=" << sentenceLengths.Debug(0) << endl;
-  cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
-
   histories.Init(newSentences);
 
   BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, state, SCU);
 
   prevHyps = histories.GetFirstHyps();
 
-  return true;
+  return;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -273,7 +270,7 @@ size_t FindNextEmptyIndex(size_t nextBatchInd,
 
 ////////////////////////////////////////////////////////////////////////
 
-bool EncoderDecoder::FetchBatch(Histories &histories,
+void EncoderDecoder::FetchBatch(Histories &histories,
                                 mblas::Vector<uint> &sentenceLengths,
                                 mblas::Matrix &sourceContext,
                                 mblas::Matrix &SCU,
@@ -288,7 +285,7 @@ bool EncoderDecoder::FetchBatch(Histories &histories,
   //vector<unsigned> batchIds = AddToBatch(newSentences, sentences, histories, sentenceLengths, sourceContext);
 
   if (newSentences.size() == 0) {
-    return false;
+    return;
   }
 
   const EncOutPtr &encOut = newSentences.front().GetEncOut();
@@ -338,7 +335,7 @@ bool EncoderDecoder::FetchBatch(Histories &histories,
 
   prevHyps = histories.GetFirstHyps();
 
-  return true;
+  return;
 }
 
 void EncoderDecoder::BeginSentenceState(size_t batchSize,

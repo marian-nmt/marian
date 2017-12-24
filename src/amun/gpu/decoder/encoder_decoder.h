@@ -77,14 +77,14 @@ class EncoderDecoder : public Scorer {
     void DecodeAsyncInternal();
     void DecodeAsyncInternal(EncOutPtr encOut);
 
-    bool InitBatch(Histories &histories,
+    void InitBatch(Histories &histories,
                     mblas::Vector<uint> &sentenceLengths,
                     mblas::Matrix &sourceContext,
                     mblas::Matrix &SCU,
                     State &state,
                     Hypotheses &prevHyps);
 
-    bool FetchBatch(Histories &histories,
+    void FetchBatch(Histories &histories,
                     mblas::Vector<uint> &sentenceLengths,
                     mblas::Matrix &sourceContext,
                     mblas::Matrix &SCU,
