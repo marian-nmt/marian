@@ -472,7 +472,7 @@ void CopyMatrix(TMatrix<T> &out, const TMatrix<T> &in)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-void EnlargeMatrix(TMatrix<T> &matrix,
+void ResizeMatrix(TMatrix<T> &matrix,
                     uint whichDim,
                     uint newSize)
 {
@@ -490,6 +490,13 @@ void EnlargeMatrix(TMatrix<T> &matrix,
   }
 
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void AddNewData(mblas::Matrix &sourceContext,
+                const mblas::Matrix &newSourceContext,
+                size_t batchId,
+                size_t newSentenceOffset);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

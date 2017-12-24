@@ -42,13 +42,17 @@ class BufferOutput
 public:
   BufferOutput(EncOutPtr vencOut, size_t vsentenceInd);
 
-  const SentencePtr &GetSentence() const;
   const EncOutPtr &GetEncOut() const
   { return encOut_; }
 
+  size_t GetSentenceOffset() const
+  { return sentenceOffset_; }
+
+  const SentencePtr &GetSentence() const;
+
 protected:
   EncOutPtr encOut_;
-  size_t sentenceInd_; // index of the sentence we're translation within encOut.sentences
+  size_t sentenceOffset_; // index of the sentence we're translation within encOut.sentences
 
 };
 

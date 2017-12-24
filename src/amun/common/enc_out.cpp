@@ -23,15 +23,15 @@ EncOut::~EncOut()
 
 /////////////////////////////////////////////////////////////////////////////
 
-BufferOutput::BufferOutput(EncOutPtr vencOut, size_t vsentenceInd)
+BufferOutput::BufferOutput(EncOutPtr vencOut, size_t vSentenceOffset)
 :encOut_(vencOut)
-,sentenceInd_(vsentenceInd)
+,sentenceOffset_(vSentenceOffset)
 {}
 
 const SentencePtr &BufferOutput::GetSentence() const
 {
   const Sentences &sentences = encOut_->GetSentences();
-  const SentencePtr &sentence = sentences.Get(sentenceInd_);
+  const SentencePtr &sentence = sentences.Get(sentenceOffset_);
   return sentence;
 }
 

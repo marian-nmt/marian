@@ -56,6 +56,10 @@ void Mean(Matrix& Out,
           const Matrix& In,
           const mblas::Vector<uint> &sentenceLengths)
 {
+  cerr << "Mean Out=" << Out.Debug(0) << endl;
+  cerr << "Mean In=" << In.Debug(0) << endl;
+  cerr << "Mean sentenceLengths=" << sentenceLengths.Debug(0) << endl;
+
   assert(Out.dim(2) == 1);
   assert(Out.dim(3) == 1);
   assert(Out.dim(0) == In.dim(3));
@@ -1449,6 +1453,36 @@ void UpdateSentenceLengths(const mblas::Vector<uint> &newSentenceLengths,
   gUpdateSentenceLengths<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(newSentenceLengths, newBatchIds, sentenceLengths);
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+__global__
+void gAddNewData(mblas::MatrixWrapper<float> dest,
+                mblas::MatrixWrapper<float> source,
+                size_t batchId,
+                size_t newSentenceOffset)
+{
+  for (size_t a = 0; a < dest.dim(0); ++a) {
+    for (size_t b = 0; b < dest.dim(1); ++b) {
+      dest(a, b, 0, batchId) = source(a, b, 0, newSentenceOffset);
+    }
+  }
+}
+
+void AddNewData(mblas::Matrix &sourceContext,
+                const mblas::Matrix &newSourceContext,
+                size_t batchId,
+                size_t newSentenceOffset)
+{
+  assert(sourceContext.dim(0) == newSourceContext.dim(0));
+  assert(sourceContext.dim(1) == newSourceContext.dim(1));
+  assert(sourceContext.dim(2) == newSourceContext.dim(2) == 1);
+
+  mblas::MatrixWrapper<float> dest(sourceContext);
+  const mblas::MatrixWrapper<float> source(newSourceContext);
+
+  gAddNewData<<<1,1>>>(dest, source, batchId, newSentenceOffset);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void TestMemCpy()
 {
