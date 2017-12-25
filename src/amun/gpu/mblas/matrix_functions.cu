@@ -882,6 +882,7 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSizeWrap,
     bool isFirst = isFirstsWrap[batchInd];
     if (beamSize) {
       if (isFirst) {
+        printf("a=%i hypo2BeamSizeWrap=%i \n", a, hypo2BeamSizeWrap.size());
         assert(a < hypo2BeamSizeWrap.size());
         assert(a < hypo2CandidateWrap.size());
         hypo2BeamSizeWrap[a] = beamSize;
@@ -1407,8 +1408,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
      hypo2CandidateWrap);
   //PAUSE_TIMER("gLogSoftMax");
 
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  //cerr << "step2" << endl;
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "LogSoftmaxAndNBest3" << endl;
 
   //BEGIN_TIMER("gNBestPerBatch");
   gNBestPerBatch<<<blocks, 1, 0, CudaStreamHandler::GetStream()>>>

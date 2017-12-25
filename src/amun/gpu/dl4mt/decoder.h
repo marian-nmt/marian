@@ -383,15 +383,11 @@ class Decoder {
                 const mblas::Matrix& SCU,
                 const mblas::Vector<uint> &sentenceLengths)
     {
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      std::cerr << "Decode1" << std::endl;
       //BEGIN_TIMER("Decode");
 
       //BEGIN_TIMER("GetHiddenState");
 
       GetHiddenState(HiddenState_, State, Embeddings);
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      std::cerr << "Decode2" << std::endl;
 
       //HiddenState_.ReduceDimensions();
       //std::std::cerr << "HiddenState_=" << HiddenState_.Debug(1) << std::std::endl;
@@ -404,22 +400,16 @@ class Decoder {
                               SourceContext,
                               SCU,
                               sentenceLengths);
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      std::cerr << "Decode3" << std::endl;
       //std::std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::std::endl;
       //PAUSE_TIMER("GetAlignedSourceContext");
 
       //BEGIN_TIMER("GetNextState");
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      std::cerr << "Decode4" << std::endl;
       //std::std::cerr << "NextState=" << NextState.Debug(1) << std::std::endl;
       //PAUSE_TIMER("GetNextState");
 
       //BEGIN_TIMER("GetProbs");
       GetProbs(NextState, Embeddings, AlignedSourceContext_, useFusedSoftmax);
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      std::cerr << "Decode5" << std::endl;
       //std::cerr << "Probs_=" << Probs_.Debug(1) << std::endl;
       //PAUSE_TIMER("GetProbs");
 
@@ -491,17 +481,12 @@ class Decoder {
                                  const mblas::Vector<uint> &sentenceLengths)
 
     {
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      std::cerr << "HH1" << std::endl;
-
       alignment_.GetAlignedSourceContext(AlignedSourceContext,
                                         HiddenState,
                                         beamSizes,
                                         SourceContext,
                                         SCU,
                                         sentenceLengths);
-      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      std::cerr << "HH2" << std::endl;
     }
 
     void GetNextState(CellState& State,
