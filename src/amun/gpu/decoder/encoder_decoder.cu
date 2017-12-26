@@ -328,6 +328,8 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   }
   cerr << endl;
   */
+  cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
+
   // update gpu data
   mblas::Vector<uint> d_newBatchIds(newBatchIds);
   mblas::Vector<uint> d_newSentenceLengths(newSentenceLengths);
@@ -339,7 +341,7 @@ void EncoderDecoder::FetchBatch(Histories &histories,
 
   AddNewData(sourceContext, newBatchIds, newSentences);
 
-  BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, state, SCU);
+  BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, state, SCU, newBatchIds, d_newBatchIds);
 
   prevHyps = histories.GetFirstHyps();
 
@@ -360,6 +362,23 @@ void EncoderDecoder::BeginSentenceState(size_t batchSize,
   decoder_->EmptyState(edState.GetStates(), batchSize, sourceContext, sentenceLengths, SCU);
 
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
+  //PAUSE_TIMER("BeginSentenceState");
+}
+
+void EncoderDecoder::BeginSentenceState(size_t batchSize,
+                                        const mblas::Matrix &sourceContext,
+                                        const mblas::Vector<uint> &sentenceLengths,
+                                        State& state,
+                                        mblas::Matrix& SCU,
+                                        const std::vector<uint> &newBatchIds,
+                                        const mblas::Vector<uint> &d_newBatchIds) const
+{
+  //BEGIN_TIMER("BeginSentenceState");
+  EDState& edState = state.get<EDState>();
+
+  decoder_->EmptyState(edState.GetStates(), batchSize, sourceContext, sentenceLengths, SCU, newBatchIds, d_newBatchIds);
+
+  decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize, newBatchIds, d_newBatchIds);
   //PAUSE_TIMER("BeginSentenceState");
 }
 

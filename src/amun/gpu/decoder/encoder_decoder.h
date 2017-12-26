@@ -97,6 +97,14 @@ class EncoderDecoder : public Scorer {
                             State& state,
                             mblas::Matrix& SCU) const;
 
+    void BeginSentenceState(size_t batchSize,
+                            const mblas::Matrix &sourceContext,
+                            const mblas::Vector<uint> &sentenceLengths,
+                            State& state,
+                            mblas::Matrix& SCU,
+                            const std::vector<uint> &newBatchIds,
+                            const mblas::Vector<uint> &d_newBatchIds) const;
+
     size_t CalcBeam(BestHypsBase &bestHyps,
         Histories& histories,
                           Hypotheses& prevHyps,

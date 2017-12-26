@@ -430,7 +430,28 @@ class Decoder {
       alignment_.Init(SourceContext, SCU);
     }
 
+    void EmptyState(CellState& State,
+                    size_t batchSize,
+                    const mblas::Matrix &SourceContext,
+                    const mblas::Vector<uint> &sentenceLengths,
+                    mblas::Matrix& SCU,
+                    const std::vector<uint> &newBatchIds,
+                    const mblas::Vector<uint> &d_newBatchIds) const
+    {
+      rnn1_.InitializeState(State, batchSize, SourceContext, sentenceLengths);
+      alignment_.Init(SourceContext, SCU);
+    }
+
     void EmptyEmbedding(mblas::Matrix& Embedding, size_t batchSize) const
+    {
+      Embedding.NewSize(batchSize, embeddings_.GetCols());
+      mblas::Fill(Embedding, 0);
+    }
+
+    void EmptyEmbedding(mblas::Matrix& Embedding,
+                        size_t batchSize,
+                        const std::vector<uint> &newBatchIds,
+                        const mblas::Vector<uint> &d_newBatchIds) const
     {
       Embedding.NewSize(batchSize, embeddings_.GetCols());
       mblas::Fill(Embedding, 0);
