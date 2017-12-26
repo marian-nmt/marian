@@ -859,55 +859,55 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps
 #define HIGHEST_FLOAT +999999999999
 
 __global__
-void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSizeWrap,
-                    VectorWrapper<uint> batch2HypoWrap,
-                    VectorWrapper<uint> hypo2CandidateWrap,
-                    VectorWrapper<char> isFirstsWrap,
+void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSize,
+                    VectorWrapper<uint> batch2Hypo,
+                    VectorWrapper<uint> hypo2Candidate,
+                    VectorWrapper<char> isFirsts,
                     uint beamSizeSum,
-                    const VectorWrapper<unsigned> beamSizesWrap)
+                    const VectorWrapper<unsigned> beamSizes)
 {
   uint hypoInd = 0;
   uint candidateInd = 0;
 
   uint a = 0, b = 0;
-  //printf("beamSizesWrap.size()=%u \n", beamSizesWrap.size());
-  for (size_t batchInd = 0; batchInd < beamSizesWrap.size(); ++batchInd) {
-    uint beamSize = beamSizesWrap[batchInd];
+  //printf("beamSizes.size()=%u \n", beamSizes.size());
+  for (size_t batchInd = 0; batchInd < beamSizes.size(); ++batchInd) {
+    uint beamSize = beamSizes[batchInd];
     /*
     printf("batchInd=%u ", batchInd);
     printf("beamSize=%u ", beamSize);
     printf("a=%u ", a);
     printf("b=%u \n", b);
     */
-    bool isFirst = isFirstsWrap[batchInd];
+    bool isFirst = isFirsts[batchInd];
     if (beamSize) {
       if (isFirst) {
-        //printf("a=%i hypo2BeamSizeWrap=%i \n", a, hypo2BeamSizeWrap.size());
-        assert(a < hypo2BeamSizeWrap.size());
-        assert(a < hypo2CandidateWrap.size());
-        hypo2BeamSizeWrap[a] = beamSize;
-        hypo2CandidateWrap[a] = candidateInd;
+        //printf("a=%i hypo2BeamSize=%i \n", a, hypo2BeamSize.size());
+        assert(a < hypo2BeamSize.size());
+        assert(a < hypo2Candidate.size());
+        hypo2BeamSize[a] = beamSize;
+        hypo2Candidate[a] = candidateInd;
         ++a;
 
-        assert(b < batch2HypoWrap.size());
-        batch2HypoWrap[b] = batchInd;
+        assert(b < batch2Hypo.size());
+        batch2Hypo[b] = batchInd;
         ++b;
 
         candidateInd += beamSize;
       }
       else {
         for (size_t j = 0; j < beamSize; ++j) {
-          assert(a < hypo2BeamSizeWrap.size());
-          assert(a < hypo2CandidateWrap.size());
-          hypo2BeamSizeWrap[a] = beamSize;
-          hypo2CandidateWrap[a] = candidateInd;
+          assert(a < hypo2BeamSize.size());
+          assert(a < hypo2Candidate.size());
+          hypo2BeamSize[a] = beamSize;
+          hypo2Candidate[a] = candidateInd;
           ++a;
 
           candidateInd += beamSize;
         }
 
-        assert(b < batch2HypoWrap.size());
-        batch2HypoWrap[b] = hypoInd;
+        assert(b < batch2Hypo.size());
+        batch2Hypo[b] = hypoInd;
         ++b;
       }
 
