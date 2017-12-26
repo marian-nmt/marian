@@ -173,12 +173,14 @@ void EncoderDecoder::DecodeAsyncInternal()
     boost::timer::cpu_timer timerStep;
     HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     cerr << "DecodeAsyncInternal1" << endl;
+    std::cerr << "histories1=" << histories.Debug(1) << std::endl;
 
     const EDState& edstate = state->get<EDState>();
     EDState& ednextState = nextState->get<EDState>();
 
     HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     cerr << "DecodeAsyncInternal2" << endl;
+    std::cerr << "histories2=" << histories.Debug(1) << std::endl;
     decoder_->Decode(ednextState.GetStates(),
                      edstate.GetStates(),
                      edstate.GetEmbeddings(),
@@ -189,27 +191,34 @@ void EncoderDecoder::DecodeAsyncInternal()
                      sentenceLengths);
     HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     cerr << "DecodeAsyncInternal3" << endl;
+    std::cerr << "histories3=" << histories.Debug(1) << std::endl;
 
     histories.SetNewBeamSize(maxBeamSize);
     HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     cerr << "DecodeAsyncInternal4" << endl;
+    std::cerr << "histories4=" << histories.Debug(1) << std::endl;
 
     unsigned numPrevHyps = prevHyps.size();
     size_t survivors = CalcBeam(search_.GetBestHyps(), histories, prevHyps, *state, *nextState, search_.GetFilterIndices());
     HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     cerr << "DecodeAsyncInternal5" << endl;
+    std::cerr << "histories5=" << histories.Debug(1) << std::endl;
 
     //if (survivors == 0) {
     if (survivors < 10) {
       HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       cerr << "DecodeAsyncInternal6" << endl;
+      std::cerr << "histories6=" << histories.Debug(1) << std::endl;
+
       FetchBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
       HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       cerr << "DecodeAsyncInternal7" << endl;
+      std::cerr << "histories7=" << histories.Debug(1) << std::endl;
     }
 
     HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     cerr << "DecodeAsyncInternal8" << endl;
+    std::cerr << "histories8=" << histories.Debug(1) << std::endl;
 
     LOG(progress)->info("  Step {} took {} sentences {} prevHypos {} survivors {}", step++, timerStep.format(5, "%w"), histories.GetNumActive(), numPrevHyps, survivors);
   }

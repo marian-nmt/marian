@@ -200,6 +200,9 @@ std::string Histories::Debug(size_t verbosity) const
         //strm << " (" << ele.sentenceInd << "," << ele.size << ")";
         strm << ele->GetBeamSize() << " ";
       }
+      else {
+        strm << "NULL ";
+      }
     }
   }
 
