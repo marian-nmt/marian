@@ -171,10 +171,14 @@ void EncoderDecoder::DecodeAsyncInternal()
   unsigned step = 0;
   while (histories.GetNumActive()) {
     boost::timer::cpu_timer timerStep;
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    cerr << "DecodeAsyncInternal1" << endl;
 
     const EDState& edstate = state->get<EDState>();
     EDState& ednextState = nextState->get<EDState>();
 
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    cerr << "DecodeAsyncInternal2" << endl;
     decoder_->Decode(ednextState.GetStates(),
                      edstate.GetStates(),
                      edstate.GetEmbeddings(),
@@ -183,16 +187,29 @@ void EncoderDecoder::DecodeAsyncInternal()
                      sourceContext,
                      SCU,
                      sentenceLengths);
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    cerr << "DecodeAsyncInternal3" << endl;
 
     histories.SetNewBeamSize(maxBeamSize);
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    cerr << "DecodeAsyncInternal4" << endl;
 
     unsigned numPrevHyps = prevHyps.size();
     size_t survivors = CalcBeam(search_.GetBestHyps(), histories, prevHyps, *state, *nextState, search_.GetFilterIndices());
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    cerr << "DecodeAsyncInternal5" << endl;
 
     //if (survivors == 0) {
     if (survivors < 10) {
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      cerr << "DecodeAsyncInternal6" << endl;
       FetchBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      cerr << "DecodeAsyncInternal7" << endl;
     }
+
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    cerr << "DecodeAsyncInternal8" << endl;
 
     LOG(progress)->info("  Step {} took {} sentences {} prevHypos {} survivors {}", step++, timerStep.format(5, "%w"), histories.GetNumActive(), numPrevHyps, survivors);
   }
@@ -320,7 +337,7 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   }
 
   size_t maxLength =  histories.MaxLength();
-
+  cerr << "maxLength=" << maxLength << endl;
   /*
   cerr << "histories=";
   for (size_t i = 0; i < histories.size(); ++i) {

@@ -882,7 +882,7 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSizeWrap,
     bool isFirst = isFirstsWrap[batchInd];
     if (beamSize) {
       if (isFirst) {
-        printf("a=%i hypo2BeamSizeWrap=%i \n", a, hypo2BeamSizeWrap.size());
+        //printf("a=%i hypo2BeamSizeWrap=%i \n", a, hypo2BeamSizeWrap.size());
         assert(a < hypo2BeamSizeWrap.size());
         assert(a < hypo2CandidateWrap.size());
         hypo2BeamSizeWrap[a] = beamSize;
@@ -1484,8 +1484,8 @@ void gAddNewData(mblas::MatrixWrapper<float> dest,
 {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < size) {
-    size_t dim0 = id / dest.dim(1);
-    size_t dim1 = id % dest.dim(1);
+    size_t dim0 = id / source.dim(1);
+    size_t dim1 = id % source.dim(1);
 
     dest(dim0, dim1, 0, batchId) = source(dim0, dim1, 0, newSentenceOffset);
   }
@@ -1496,32 +1496,38 @@ void AddNewData(mblas::Matrix &sourceContext,
                 const std::vector<BufferOutput> &newSentences)
 {
   BEGIN_TIMER("AddNewData");
-  //cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
+  cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
 
   for (size_t i = 0; i < newSentences.size(); ++i) {
     const BufferOutput &eleSent = newSentences[i];
     const EncOutPtr &encOut = eleSent.GetEncOut();
     const mblas::Matrix &newSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
-    //cerr << "newSourceContext=" << newSourceContext.Debug(0) << endl;
+    cerr << "newSourceContext=" << newSourceContext.Debug(0) << endl;
 
     size_t batchId = newBatchIds[i];
     size_t newSentenceOffset = eleSent.GetSentenceOffset();
 
     assert(batchId < sourceContext.dim(3));
     assert(newSentenceOffset < newSourceContext.dim(3));
-    assert(sourceContext.dim(0) == newSourceContext.dim(0));
+    assert(sourceContext.dim(0) >= newSourceContext.dim(0));
     assert(sourceContext.dim(1) == newSourceContext.dim(1));
     assert(sourceContext.dim(2) == newSourceContext.dim(2) == 1);
 
-    size_t size = sourceContext.dim(0) * sourceContext.dim(1);
+    size_t size = newSourceContext.dim(0) * newSourceContext.dim(1);
     uint threads = std::min((uint) MAX_THREADS, (uint)size);
     uint blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
 
     mblas::MatrixWrapper<float> dest(sourceContext);
     const mblas::MatrixWrapper<float> source(newSourceContext);
 
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    std::cerr << "AddNewData1" << std::endl;
     gAddNewData<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(dest, source, batchId, newSentenceOffset, size);
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    std::cerr << "AddNewData2" << std::endl;
   }
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  std::cerr << "AddNewData3" << std::endl;
 
   PAUSE_TIMER("AddNewData");
 }
