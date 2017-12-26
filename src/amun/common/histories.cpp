@@ -190,22 +190,19 @@ std::string Histories::Debug(size_t verbosity) const
 {
   stringstream strm;
 
-  strm << " coll_=" << coll_.size();
-  //strm << "total_=" << total_;
-  //strm << " maxLength_=" << maxLength_;
+  strm << " size=" << coll_.size() << " ";
 
-  /*
   if (verbosity) {
-    uint sum = 0;
+    strm << "beamsize=";
     for (size_t i = 0; i < coll_.size(); ++i) {
-      const HistoriesElement &ele = coll_[i];
-      strm << " (" << ele.sentenceInd << "," << ele.size << ")";
-
-      sum += ele.size;
+      const HistoriesElementPtr &ele = coll_[i];
+      if (ele) {
+        //strm << " (" << ele.sentenceInd << "," << ele.size << ")";
+        strm << ele->GetBeamSize() << " ";
+      }
     }
-    assert(sum == total_);
   }
-  */
+
   return strm.str();
 }
 

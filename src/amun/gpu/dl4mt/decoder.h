@@ -186,6 +186,7 @@ class Decoder {
           std::cerr << "histories=" << Debug(histories, 2) << std::endl;
           std::cerr << "maxLength=" << SourceContext.dim(0) << " " << maxLength << std::endl;
           */
+          std::cerr << "histories=" << histories.Debug(1) << std::endl;
 
           HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           std::cerr << "GetAlignedSourceContext2" << std::endl;
