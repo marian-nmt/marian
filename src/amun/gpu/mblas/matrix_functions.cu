@@ -1502,7 +1502,7 @@ void AddNewData(mblas::Matrix &sourceContext,
     const BufferOutput &eleSent = newSentences[i];
     const EncOutPtr &encOut = eleSent.GetEncOut();
     const mblas::Matrix &newSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
-    cerr << "newSourceContext=" << newSourceContext.Debug(0) << endl;
+    //cerr << "newSourceContext=" << newSourceContext.Debug(0) << endl;
 
     size_t batchId = newBatchIds[i];
     size_t newSentenceOffset = eleSent.GetSentenceOffset();
@@ -1520,14 +1520,8 @@ void AddNewData(mblas::Matrix &sourceContext,
     mblas::MatrixWrapper<float> dest(sourceContext);
     const mblas::MatrixWrapper<float> source(newSourceContext);
 
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    std::cerr << "AddNewData1" << std::endl;
     gAddNewData<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(dest, source, batchId, newSentenceOffset, size);
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    std::cerr << "AddNewData2" << std::endl;
   }
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  std::cerr << "AddNewData3" << std::endl;
 
   PAUSE_TIMER("AddNewData");
 }
