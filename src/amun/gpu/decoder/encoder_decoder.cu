@@ -282,6 +282,7 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
 
   size_t numSentToGet = god_.Get<uint>("mini-batch") - histories.GetNumActive();
+  cerr << "histories.GetNumActive()=" << histories.GetNumActive() << endl;
 
   std::vector<BufferOutput> newSentences;
   encDecBuffer_.Get(numSentToGet, newSentences);
@@ -320,6 +321,13 @@ void EncoderDecoder::FetchBatch(Histories &histories,
 
   size_t maxLength =  histories.MaxLength();
 
+  /*
+  cerr << "histories=";
+  for (size_t i = 0; i < histories.size(); ++i) {
+    cerr << histories.Get(i)->IsFirst() << " ";
+  }
+  cerr << endl;
+  */
   // update gpu data
   mblas::Vector<uint> d_newBatchIds(newBatchIds);
   mblas::Vector<uint> d_newSentenceLengths(newSentenceLengths);

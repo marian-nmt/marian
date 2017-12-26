@@ -83,7 +83,7 @@ public:
   void SetNewBeamSize(unsigned val);
 
   std::vector<unsigned> GetBeamSizes() const;
-  std::vector<char> GetIsFirsts() const;
+  std::vector<char> IsFirsts() const;
 
   Hypotheses Add(const God &god, const HypothesesBatch& beams);
   Hypotheses GetFirstHyps();
