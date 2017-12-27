@@ -29,7 +29,6 @@ class BestHypsBase
         const Hypotheses& prevHyps,
         Scorer &scorer,
         const Words& filterIndices,
-        HypothesesBatch& beams,
         Histories& beamSizes) = 0;
 
   protected:

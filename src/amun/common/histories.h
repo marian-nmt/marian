@@ -92,7 +92,7 @@ public:
   std::vector<unsigned> GetBeamSizes() const;
   std::vector<char> IsFirsts() const;
 
-  Hypotheses Add(const God &god, const HypothesesBatch& beams);
+  Hypotheses Add(const God &god);
   Hypotheses GetFirstHyps();
   void OutputAll(const God &god);
 

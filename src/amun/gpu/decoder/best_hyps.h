@@ -36,7 +36,6 @@ class BestHyps : public BestHypsBase
         const Hypotheses& prevHyps,
         Scorer &scorer,
         const Words& filterIndices,
-        HypothesesBatch& beams,
         Histories& histories);
 
   private:

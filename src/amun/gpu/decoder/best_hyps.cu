@@ -137,7 +137,6 @@ void  BestHyps::CalcBeam(
     const Hypotheses& prevHyps,
     Scorer &scorer,
     const Words& filterIndices,
-    HypothesesBatch& beams,
     Histories& histories)
 {
   BEGIN_TIMER("CalcBeam");
@@ -226,8 +225,6 @@ void  BestHyps::CalcBeam(
 
     size_t batchInd = batchMap[i];
     //cerr << "batchInd=" << batchInd << endl;
-    beams[batchInd].push_back(hyp);
-
     HistoriesElementPtr &ele = histories.Get(batchInd);
     assert(ele);
     ele->GetHypotheses().push_back(hyp);

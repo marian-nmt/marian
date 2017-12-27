@@ -414,14 +414,8 @@ size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
                       const Words &filterIndices)
 {
   size_t batchSize = histories.size();
-  HypothesesBatch beams(batchSize);
-  bestHyps.CalcBeam(prevHyps, *this, filterIndices, beams, histories);
-
-  //cerr << "beams=" << beams.size() << endl;
-  assert(beams.size() == histories.size());
-  assert(beams.size() == batchSize);
-
-  Hypotheses survivors = histories.Add(god_, beams);
+  bestHyps.CalcBeam(prevHyps, *this, filterIndices, histories);
+  Hypotheses survivors = histories.Add(god_);
 
   if (survivors.size() == 0) {
     return 0;
