@@ -414,6 +414,7 @@ size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
                       const Words &filterIndices)
 {
   size_t batchSize = histories.size();
+  histories.StartCalcBeam();
   bestHyps.CalcBeam(prevHyps, *this, filterIndices, histories);
   Hypotheses survivors = histories.Add(god_);
 

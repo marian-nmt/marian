@@ -44,6 +44,8 @@ public:
 
   bool IsFirst() const;
 
+  void StartCalcBeam();
+
 protected:
   unsigned beamSize_;  // beam size 0..beam
   History history_;
@@ -95,6 +97,8 @@ public:
   Hypotheses Add(const God &god);
   Hypotheses GetFirstHyps();
   void OutputAll(const God &god);
+
+  void StartCalcBeam();
 
   virtual std::string Debug(size_t verbosity = 1) const;
 

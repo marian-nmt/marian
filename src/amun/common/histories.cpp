@@ -21,7 +21,6 @@ void HistoriesElement::Add(Hypotheses &survivors)
   assert(beamSize_ >= numEOS);
   beamSize_ -= numEOS;
 
-  hypos_.clear();
 }
 
 void HistoriesElement::SetNewBeamSize(unsigned val)
@@ -34,6 +33,11 @@ void HistoriesElement::SetNewBeamSize(unsigned val)
 bool HistoriesElement::IsFirst() const
 {
   return history_.size() == 1;
+}
+
+void HistoriesElement::StartCalcBeam()
+{
+  hypos_.clear();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -157,6 +161,17 @@ Hypotheses Histories::Add(const God &god)
   }
 
   return survivors;
+}
+
+void Histories::StartCalcBeam()
+{
+  for (size_t i = 0; i < size(); ++i) {
+    HistoriesElementPtr &ele = Get(i);
+
+    if (ele) {
+      ele->StartCalcBeam();
+    }
+  }
 }
 
 Hypotheses Histories::GetFirstHyps()
