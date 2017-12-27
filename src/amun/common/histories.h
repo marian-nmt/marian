@@ -40,7 +40,7 @@ public:
   Hypotheses &GetHypotheses()
   { return hypos_; }
 
-  void Add(Hypotheses &survivors);
+  void Add();
 
   bool IsFirst() const;
 

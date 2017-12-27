@@ -17,9 +17,9 @@ History::History(const Sentence &sentence, bool normalizeScore, size_t maxLength
   history_.push_back({HypothesisPtr(new Hypothesis(sentence))});
 }
 
-Hypotheses History::Add(const Hypotheses& beam, Hypotheses &survivors)
+Hypotheses History::Add(const Hypotheses& beam)
 {
-  Hypotheses ret;
+  Hypotheses survivors;
   unsigned numEOS = 0;
   for (size_t j = 0; j < beam.size(); ++j) {
     const HypothesisPtr &hypo = beam[j];
@@ -30,12 +30,11 @@ Hypotheses History::Add(const Hypotheses& beam, Hypotheses &survivors)
     }
     else {
       survivors.push_back(hypo);
-      ret.push_back(hypo);
     }
   }
   history_.push_back(beam);
 
-  return ret;
+  return survivors;
 }
 
 NBestList History::NBest(size_t n) const
