@@ -15,11 +15,13 @@ HistoriesElement::HistoriesElement(const SentencePtr &sentence, bool normalizeSc
 ,sentence_(sentence)
 {}
 
-void HistoriesElement::Add(const Hypotheses &hypos, Hypotheses &survivors)
+void HistoriesElement::Add(Hypotheses &survivors)
 {
-  unsigned numEOS = history_.Add(hypos, survivors);
+  unsigned numEOS = history_.Add(hypos_, survivors);
   assert(beamSize_ >= numEOS);
   beamSize_ -= numEOS;
+
+  hypos_.clear();
 }
 
 void HistoriesElement::SetNewBeamSize(unsigned val)
@@ -141,7 +143,7 @@ Hypotheses Histories::Add(const God &god)
           << coll_[i]->GetBeamSize()
           << endl;
       */
-      ele->Add(hypos, survivors);
+      ele->Add(survivors);
       unsigned beamSize = ele->GetBeamSize();
 
       if (beamSize == 0) {
@@ -150,9 +152,6 @@ Hypotheses Histories::Add(const God &god)
 
         assert(active_);
         --active_;
-      }
-      else {
-        hypos.clear();
       }
     }
   }
