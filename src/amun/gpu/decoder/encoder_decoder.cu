@@ -208,8 +208,8 @@ void EncoderDecoder::DecodeAsyncInternal()
       AssembleBeamState(*nextState, prevHyps, *state);
     }
 
-    if (survivors == 0) {
-    //if (survivors < 10) {
+    //if (survivors == 0) {
+    if (survivors < 10) {
       HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       cerr << "DecodeAsyncInternal6" << endl;
       std::cerr << "histories6=" << histories.Debug(1) << std::endl;
