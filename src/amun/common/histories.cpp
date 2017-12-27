@@ -17,7 +17,9 @@ HistoriesElement::HistoriesElement(const SentencePtr &sentence, bool normalizeSc
 
 void HistoriesElement::Add(Hypotheses &survivors)
 {
-  unsigned numEOS = history_.Add(hypos_, survivors);
+  Hypotheses s = history_.Add(hypos_, survivors);
+  unsigned numEOS = hypos_.size() - s.size();
+  hypos_ = s;
   assert(beamSize_ >= numEOS);
   beamSize_ -= numEOS;
 
