@@ -131,25 +131,32 @@ Hypotheses Histories::Add(const God &god, const HypothesesBatch& beams)
   Hypotheses survivors;
 
   for (size_t i = 0; i < size(); ++i) {
-    const Hypotheses &hypos = beams[i];
-    /*
-    cerr << "hypos="
-        << hypos.size() << " "
-        << coll_[i]->GetBeamSize()
-        << endl;
-    */
-    if (hypos.size()) {
-      std::shared_ptr<HistoriesElement> &ele = coll_[i];
-      assert(ele);
-      ele->Add(hypos, survivors);
-      unsigned beamSize = ele->GetBeamSize();
+    HistoriesElementPtr &ele = Get(i);
 
-      if (beamSize == 0) {
-        ele->GetHistory().Output(god);
-        ele.reset();
+    if (ele) {
+      Hypotheses &hypos = ele->GetHypotheses();
+      /*
+      cerr << "hypos="
+          << hypos.size() << " "
+          << coll_[i]->GetBeamSize()
+          << endl;
+      */
+      if (hypos.size()) {
+        std::shared_ptr<HistoriesElement> &ele = coll_[i];
+        assert(ele);
+        ele->Add(hypos, survivors);
+        unsigned beamSize = ele->GetBeamSize();
 
-        assert(active_);
-        --active_;
+        if (beamSize == 0) {
+          ele->GetHistory().Output(god);
+          ele.reset();
+
+          assert(active_);
+          --active_;
+        }
+        else {
+          hypos.clear();
+        }
       }
     }
   }
