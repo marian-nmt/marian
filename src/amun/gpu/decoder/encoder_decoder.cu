@@ -455,11 +455,14 @@ void EncoderDecoder::AssembleBeamState(const State& state,
               beamStateIds.size(),
               indices.data(),
               cudaMemcpyHostToDevice);
-  cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
-  cerr << "indices=" << indices.Debug(2) << endl;
 
   CellState& outstates = edNextState.GetStates();
   const CellState& instates = edState.GetStates();
+
+  cerr << "outstates.output=" << outstates.output->Debug(0) << endl;
+  cerr << "instates.output=" << instates.output->Debug(0) << endl;
+  cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
+  //cerr << "indices=" << indices.Debug(2) << endl;
 
   mblas::Assemble(*(outstates.output), *(instates.output), indices);
   if (instates.cell->size() > 0) {

@@ -192,9 +192,9 @@ class Decoder {
           //std::cerr << "GetAlignedSourceContext2" << std::endl;
           std::vector<uint> batchMapping(HiddenState.output->dim(0));
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          std::cerr << "GetAlignedSourceContext3=" << std::endl;
-          std::cerr << "batchMapping=" << batchMapping.size() << std::endl;
-          std::cerr << "HiddenState.output=" << HiddenState.output->Debug() << std::endl;
+          //std::cerr << "GetAlignedSourceContext3=" << std::endl;
+          //std::cerr << "batchMapping=" << batchMapping.size() << std::endl;
+          //std::cerr << "HiddenState.output=" << HiddenState.output->Debug() << std::endl;
 
           size_t k = 0;
           for (size_t i = 0; i < histories.size(); ++i) {
@@ -203,8 +203,8 @@ class Decoder {
               batchMapping.at(k++) = i;
             }
           }
-          HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          std::cerr << "GetAlignedSourceContext4" << std::endl;
+          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+          //std::cerr << "GetAlignedSourceContext4" << std::endl;
 
           dBatchMapping_.newSize(batchMapping.size());
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
