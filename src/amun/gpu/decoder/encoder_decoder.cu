@@ -308,7 +308,7 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
 
   size_t numSentToGet = god_.Get<uint>("mini-batch") - histories.GetNumActive();
-  cerr << "histories.GetNumActive()=" << histories.GetNumActive() << endl;
+  //cerr << "histories.GetNumActive()=" << histories.GetNumActive() << endl;
 
   std::vector<BufferOutput> newSentences;
   encDecBuffer_.Get(numSentToGet, newSentences);
@@ -346,15 +346,8 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   }
 
   size_t maxLength =  histories.MaxLength();
-  cerr << "maxLength=" << maxLength << endl;
-  /*
-  cerr << "histories=";
-  for (size_t i = 0; i < histories.size(); ++i) {
-    cerr << histories.Get(i)->IsFirst() << " ";
-  }
-  cerr << endl;
-  */
-  cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
+  //cerr << "maxLength=" << maxLength << endl;
+  //cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
 
   // update gpu data
   mblas::Vector<uint> d_newBatchIds(newBatchIds);
@@ -462,7 +455,8 @@ void EncoderDecoder::AssembleBeamState(const State& state,
               beamStateIds.size(),
               indices.data(),
               cudaMemcpyHostToDevice);
-  //cerr << "indices=" << mblas::Debug(indices, 2) << endl;
+  cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
+  cerr << "indices=" << indices.Debug(2) << endl;
 
   CellState& outstates = edNextState.GetStates();
   const CellState& instates = edState.GetStates();

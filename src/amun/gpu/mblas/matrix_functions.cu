@@ -1496,7 +1496,7 @@ void AddNewData(mblas::Matrix &sourceContext,
                 const std::vector<BufferOutput> &newSentences)
 {
   BEGIN_TIMER("AddNewData");
-  cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
+  //cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
 
   for (size_t i = 0; i < newSentences.size(); ++i) {
     const BufferOutput &eleSent = newSentences[i];
