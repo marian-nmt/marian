@@ -224,7 +224,9 @@ void  BestHyps::CalcBeam(
       hyp->GetCostBreakdown()[0] /= weights_.at(scorer.GetName());
     }
 
-    beams[batchMap[i]].push_back(hyp);
+    size_t batchInd = batchMap[i];
+    //cerr << "batchInd=" << batchInd << endl;
+    beams[batchInd].push_back(hyp);
   }
 
   PAUSE_TIMER("CalcBeam");

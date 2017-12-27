@@ -1301,13 +1301,14 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 uint beamSizeSum)
 {
   //BEGIN_TIMER("LogSoftmax excl kernels");
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "LogSoftmaxAndNBest0" << endl;
+  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  //cerr << "LogSoftmaxAndNBest0" << endl;
 
   //cerr << "in=" << in.Debug(0) << endl;
   //cerr << "beamSizes=" << beamSizes.size() << endl;
 
   std::vector<char> isFirsts = beamSizes.IsFirsts();
+  /*
   cerr << "isFirsts=";
   for (size_t i = 0; i < isFirsts.size(); ++i) {
     cerr << (bool)isFirsts[i] << " ";
@@ -1319,7 +1320,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
     cerr << beamSizes.GetBeamSize(i) << " ";
   }
   cerr << endl;
-
+  */
   // create beam size vectors on GPU but exclude empty beams
   uint batchSize = 0;
   uint candidateInd = 0;
@@ -1378,6 +1379,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   int shared = sizeof(NthOutBatch) * threads * maxBeamSize
              + sizeof(float) * threads;
 
+  /*
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   cerr << "LogSoftmaxAndNBest1" << endl;
   cerr << "hypo2BeamSize=" << hypo2BeamSizeWrap.Debug() << endl;
@@ -1386,7 +1388,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   cerr << "isFirsts=" << isFirstsWrap.Debug() << endl;
   cerr << "beamSizeSum=" << beamSizeSum << endl;
   cerr << "beamSizes=" << beamSizesWrap.Debug() << endl;
-
+  */
   //BEGIN_TIMER("gBeamSizeInit");
   gBeamSizeInit<<<1, 1, 0, CudaStreamHandler::GetStream()>>>
     (hypo2BeamSizeWrap,
@@ -1398,8 +1400,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
     );
   //PAUSE_TIMER("gBeamSizeInit");
 
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "LogSoftmaxAndNBest2" << endl;
+  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  //cerr << "LogSoftmaxAndNBest2" << endl;
 
   /*
   cerr << "hypo2BeamSize=" << Debug(hypo2BeamSize, 2) << endl;
@@ -1420,8 +1422,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
      hypo2BeamSizeWrap,
      hypo2CandidateWrap);
   //PAUSE_TIMER("gLogSoftMax");
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "LogSoftmaxAndNBest3" << endl;
+  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  //cerr << "LogSoftmaxAndNBest3" << endl;
 
   //BEGIN_TIMER("gNBestPerBatch");
   gNBestPerBatch<<<blocks, 1, 0, CudaStreamHandler::GetStream()>>>
@@ -1436,8 +1438,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
      batch2HypoWrap,
      hypo2CandidateWrap);
   //PAUSE_TIMER("gNBestPerBatch");
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "LogSoftmaxAndNBest4" << endl;
+  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  //cerr << "LogSoftmaxAndNBest4" << endl;
 
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "step3" << endl;
