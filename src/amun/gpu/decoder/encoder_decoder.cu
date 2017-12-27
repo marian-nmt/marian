@@ -443,8 +443,8 @@ void EncoderDecoder::AssembleBeamState(const State& state,
      beamWords.push_back(h->GetWord());
      beamStateIds.push_back(h->GetPrevStateIndex());
   }
-  //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
-  //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
+  cerr << "beamWords=" << Debug(beamWords, 2) << endl;
+  cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
 
   const EDState& edState = state.get<EDState>();
   EDState& edNextState = nextState.get<EDState>();
@@ -462,9 +462,9 @@ void EncoderDecoder::AssembleBeamState(const State& state,
   CellState& outstates = edNextState.GetStates();
   const CellState& instates = edState.GetStates();
 
-  cerr << "outstates.output=" << outstates.output->Debug(0) << endl;
-  cerr << "instates.output=" << instates.output->Debug(0) << endl;
-  cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
+  //cerr << "outstates.output=" << outstates.output->Debug(0) << endl;
+  //cerr << "instates.output=" << instates.output->Debug(0) << endl;
+  //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
   //cerr << "indices=" << indices.Debug(2) << endl;
 
   mblas::Assemble(*(outstates.output), *(instates.output), indices);
@@ -487,12 +487,24 @@ void EncoderDecoder::AssembleBeamState(const Histories& histories,
   //BEGIN_TIMER("AssembleBeamState");
   std::vector<uint> beamWords;
   std::vector<uint> beamStateIds;
-  for (const HypothesisPtr &h : beam) {
-     beamWords.push_back(h->GetWord());
-     beamStateIds.push_back(h->GetPrevStateIndex());
+
+  for (size_t i = 0; i < histories.size(); ++i) {
+    const HistoriesElementPtr &ele = histories.Get(i);
+    if (ele) {
+      beamWords.push_back(0);
+      beamStateIds.push_back(5);
+    }
+    else {
+      for (const HypothesisPtr &h : beam) {
+         beamWords.push_back(h->GetWord());
+         beamStateIds.push_back(h->GetPrevStateIndex());
+      }
+
+    }
   }
-  //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
-  //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
+
+  cerr << "beamWords=" << Debug(beamWords, 2) << endl;
+  cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
 
   const EDState& edState = state.get<EDState>();
   EDState& edNextState = nextState.get<EDState>();
