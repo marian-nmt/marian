@@ -204,12 +204,10 @@ void EncoderDecoder::DecodeAsyncInternal()
     cerr << "DecodeAsyncInternal5" << endl;
     std::cerr << "histories5=" << histories.Debug(1) << std::endl;
 
-    if (survivors) {
-      AssembleBeamState(*nextState, prevHyps, *state);
-    }
-
     //if (survivors == 0) {
     if (survivors < 10) {
+      AssembleBeamState(histories, *nextState, prevHyps, *state);
+
       HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       cerr << "DecodeAsyncInternal6" << endl;
       std::cerr << "histories6=" << histories.Debug(1) << std::endl;
@@ -218,6 +216,9 @@ void EncoderDecoder::DecodeAsyncInternal()
       HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       cerr << "DecodeAsyncInternal7" << endl;
       std::cerr << "histories7=" << histories.Debug(1) << std::endl;
+    }
+    else {
+      AssembleBeamState(*nextState, prevHyps, *state);
     }
 
     HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
@@ -434,6 +435,54 @@ size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
 void EncoderDecoder::AssembleBeamState(const State& state,
                                const Hypotheses& beam,
                                State& nextState) const
+{
+  //BEGIN_TIMER("AssembleBeamState");
+  std::vector<uint> beamWords;
+  std::vector<uint> beamStateIds;
+  for (const HypothesisPtr &h : beam) {
+     beamWords.push_back(h->GetWord());
+     beamStateIds.push_back(h->GetPrevStateIndex());
+  }
+  //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
+  //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
+
+  const EDState& edState = state.get<EDState>();
+  EDState& edNextState = nextState.get<EDState>();
+
+  thread_local mblas::Vector<uint> indices;
+  indices.newSize(beamStateIds.size());
+  //mblas::Vector<uint> indices(beamStateIds.size());
+  //cerr << "indices=" << indices.Debug(2) << endl;
+
+  mblas::copy(beamStateIds.data(),
+              beamStateIds.size(),
+              indices.data(),
+              cudaMemcpyHostToDevice);
+
+  CellState& outstates = edNextState.GetStates();
+  const CellState& instates = edState.GetStates();
+
+  cerr << "outstates.output=" << outstates.output->Debug(0) << endl;
+  cerr << "instates.output=" << instates.output->Debug(0) << endl;
+  cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
+  //cerr << "indices=" << indices.Debug(2) << endl;
+
+  mblas::Assemble(*(outstates.output), *(instates.output), indices);
+  if (instates.cell->size() > 0) {
+    mblas::Assemble(*(outstates.cell), *(instates.cell), indices);
+  }
+  //cerr << "edNextState.GetStates()=" << edNextState.GetStates().Debug(1) << endl;
+
+  //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
+  decoder_->Lookup(edNextState.GetEmbeddings(), beamWords);
+  //cerr << "edNextState.GetEmbeddings()=" << edNextState.GetEmbeddings().Debug(1) << endl;
+  //PAUSE_TIMER("AssembleBeamState");
+}
+
+void EncoderDecoder::AssembleBeamState(const Histories& histories,
+                                        const State& state,
+                                        const Hypotheses& beam,
+                                        State& nextState) const
 {
   //BEGIN_TIMER("AssembleBeamState");
   std::vector<uint> beamWords;

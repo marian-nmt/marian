@@ -106,12 +106,16 @@ class EncoderDecoder : public Scorer {
                             const mblas::Vector<uint> &d_newBatchIds) const;
 
     size_t CalcBeam(BestHypsBase &bestHyps,
-        Histories& histories,
-                          Hypotheses& prevHyps,
-                          State& state,
-                          State& nextState,
-                          const Words &filterIndices);
+                    Histories& histories,
+                    Hypotheses& prevHyps,
+                    State& state,
+                    State& nextState,
+                    const Words &filterIndices);
 
+    void AssembleBeamState(const Histories& histories,
+                           const State& state,
+                           const Hypotheses& beam,
+                           State& nextState) const;
 };
 
 }
