@@ -34,6 +34,12 @@ public:
   const SentencePtr &GetSentence() const
   { return sentence_; }
 
+  const Hypotheses &GetHypotheses() const
+  { return hypos_; }
+
+  Hypotheses &GetHypotheses()
+  { return hypos_; }
+
   void Add(const Hypotheses &hypos, Hypotheses &survivors);
 
   bool IsFirst() const;
@@ -42,6 +48,7 @@ protected:
   unsigned beamSize_;  // beam size 0..beam
   History history_;
   SentencePtr sentence_;
+  Hypotheses hypos_;
 
 };
 

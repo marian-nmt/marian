@@ -28,22 +28,22 @@ void BestHyps::DisAllowUNK(mblas::Matrix& Prob) {
   SetColumn(Prob, UNK_ID, std::numeric_limits<float>::lowest());
 }
 
-void BestHyps::FindBests(const Histories& beamSizes,
+void BestHyps::FindBests(const Histories& histories,
                           mblas::Matrix& Probs,
                           std::vector<float>& outCosts,
                           std::vector<unsigned>& outKeys)
 {
-  nthElement_->getNBestList(beamSizes, Probs, outCosts, outKeys);
+  nthElement_->getNBestList(histories, Probs, outCosts, outKeys);
 }
 
 // fast fused softmax and nth_element
-void BestHyps::FindBests(const Histories& beamSizes,
+void BestHyps::FindBests(const Histories& histories,
                         mblas::Matrix& Probs,
                         mblas::Vector<NthOutBatch> &nBest,
                         std::vector<float>& outCosts,
                         std::vector<unsigned>& outKeys)
 {
-  getNBestList(beamSizes, Probs, nBest, outCosts, outKeys);
+  getNBestList(histories, Probs, nBest, outCosts, outKeys);
 }
 
 std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPtr>& scorers,
@@ -72,7 +72,7 @@ std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPt
 }
 
 //////////////////////////////////////////////////////////////////////////
-void BestHyps::getNBestList(const Histories& beamSizes,
+void BestHyps::getNBestList(const Histories& histories,
                   mblas::Matrix& Probs,
                   mblas::Vector<NthOutBatch> &nBest,
                   std::vector<float>& outCosts,
@@ -138,7 +138,7 @@ void  BestHyps::CalcBeam(
     Scorer &scorer,
     const Words& filterIndices,
     HypothesesBatch& beams,
-    Histories& beamSizes)
+    Histories& histories)
 {
   BEGIN_TIMER("CalcBeam");
   using namespace mblas;
@@ -158,7 +158,7 @@ void  BestHyps::CalcBeam(
               cudaMemcpyHostToDevice);
   //mblas::copy(vCosts.begin(), vCosts.end(), costs_.begin());
 
-  size_t beamSizeSum = beamSizes.Sum();;
+  size_t beamSizeSum = histories.Sum();;
 
   std::vector<float> bestCosts;
   std::vector<unsigned> bestKeys;
@@ -169,11 +169,11 @@ void  BestHyps::CalcBeam(
     nBest.newSize(beamSizeSum);
 
     BEGIN_TIMER("GetProbs.LogSoftmaxAndNBest");
-    mblas::LogSoftmaxAndNBest(nBest, Probs, b4, costs_, forbidUNK_, maxBeamSize_, beamSizes, beamSizeSum);
+    mblas::LogSoftmaxAndNBest(nBest, Probs, b4, costs_, forbidUNK_, maxBeamSize_, histories, beamSizeSum);
     PAUSE_TIMER("GetProbs.LogSoftmaxAndNBest");
     //std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
 
-    FindBests(beamSizes, Probs, nBest, bestCosts, bestKeys);
+    FindBests(histories, Probs, nBest, bestCosts, bestKeys);
   }
   else {
     BroadcastVecColumn(weights_.at(scorer.GetName()) * _1 + _2, Probs, costs_);
@@ -182,7 +182,7 @@ void  BestHyps::CalcBeam(
       DisAllowUNK(Probs);
     }
 
-    FindBests(beamSizes, Probs, bestCosts, bestKeys);
+    FindBests(histories, Probs, bestCosts, bestKeys);
   }
 
   std::vector<std::vector<float>> breakDowns;
@@ -192,8 +192,8 @@ void  BestHyps::CalcBeam(
 
   std::map<size_t, size_t> batchMap;
   size_t tmp = 0;
-  for (size_t batchID = 0; batchID < beamSizes.size(); ++batchID) {
-    for (size_t t = 0; t < beamSizes.GetBeamSize(batchID); ++t) {
+  for (size_t batchID = 0; batchID < histories.size(); ++batchID) {
+    for (size_t t = 0; t < histories.GetBeamSize(batchID); ++t) {
       batchMap[tmp++] = batchID;
     }
   }
@@ -227,6 +227,7 @@ void  BestHyps::CalcBeam(
     size_t batchInd = batchMap[i];
     //cerr << "batchInd=" << batchInd << endl;
     beams[batchInd].push_back(hyp);
+    histories.Get(batchInd)->GetHypotheses().push_back(hyp);
   }
 
   PAUSE_TIMER("CalcBeam");
