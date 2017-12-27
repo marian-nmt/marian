@@ -199,8 +199,9 @@ class Decoder {
           size_t k = 0;
           for (size_t i = 0; i < histories.size(); ++i) {
             for (size_t j = 0; j < histories.GetBeamSize(i); ++j) {
-              std::cerr << "k=" << k << std::endl;
-              batchMapping.at(k++) = i;
+              //std::cerr << "k=" << k << std::endl;
+              assert(k < batchMapping.size());
+              batchMapping[k++] = i;
             }
           }
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));

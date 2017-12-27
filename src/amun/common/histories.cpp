@@ -198,7 +198,9 @@ std::string Histories::Debug(size_t verbosity) const
       const HistoriesElementPtr &ele = coll_[i];
       if (ele) {
         //strm << " (" << ele.sentenceInd << "," << ele.size << ")";
-        strm << ele->GetBeamSize() << " ";
+        strm << "(sent="
+              << ele->GetSentence()->GetLineNum() << " "
+              <<  ele->GetBeamSize() << ") ";
       }
       else {
         strm << "NULL ";
