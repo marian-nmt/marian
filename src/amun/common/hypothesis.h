@@ -11,7 +11,6 @@ class Sentence;
 class Hypothesis;
 using HypothesisPtr = std::shared_ptr<Hypothesis>;
 using Hypotheses = std::vector<HypothesisPtr>;
-using HypothesesBatch = std::vector<Hypotheses>;
 
 class Hypothesis {
   public:

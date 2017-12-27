@@ -54,7 +54,7 @@ class History {
     void Output(const God &god, std::ostream& out) const;
 
   private:
-    HypothesesBatch history_;
+    std::vector<Hypotheses> history_;
     std::priority_queue<HypothesisCoord> topHyps_;
     bool normalize_;
     size_t lineNo_;
