@@ -214,7 +214,7 @@ void EncoderDecoder::DecodeAsyncInternal()
       cerr << "DecodeAsyncInternal6" << endl;
       std::cerr << "histories6=" << histories.Debug(1) << std::endl;
 
-      InitBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
+      FetchBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
       HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       cerr << "DecodeAsyncInternal7" << endl;
       std::cerr << "histories7=" << histories.Debug(1) << std::endl;
