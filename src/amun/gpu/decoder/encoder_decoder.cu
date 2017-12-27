@@ -204,13 +204,17 @@ void EncoderDecoder::DecodeAsyncInternal()
     cerr << "DecodeAsyncInternal5" << endl;
     std::cerr << "histories5=" << histories.Debug(1) << std::endl;
 
-    //if (survivors == 0) {
-    if (survivors < 10) {
+    if (survivors) {
+      AssembleBeamState(*nextState, prevHyps, *state);
+    }
+
+    if (survivors == 0) {
+    //if (survivors < 10) {
       HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       cerr << "DecodeAsyncInternal6" << endl;
       std::cerr << "histories6=" << histories.Debug(1) << std::endl;
 
-      FetchBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
+      InitBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
       HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       cerr << "DecodeAsyncInternal7" << endl;
       std::cerr << "histories7=" << histories.Debug(1) << std::endl;
@@ -421,8 +425,6 @@ size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
   if (survivors.size() == 0) {
     return 0;
   }
-
-  AssembleBeamState(nextState, survivors, state);
 
   //cerr << "survivors=" << survivors.size() << endl;
   prevHyps.swap(survivors);
