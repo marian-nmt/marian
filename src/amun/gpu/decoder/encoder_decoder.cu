@@ -218,7 +218,7 @@ void EncoderDecoder::DecodeAsyncInternal()
       //std::cerr << "histories7=" << histories.Debug(1) << std::endl;
     }
     else {
-      AssembleBeamState(*nextState, prevHyps, *state);
+      AssembleBeamState(histories, *nextState, *state);
     }
 
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
@@ -431,12 +431,25 @@ void EncoderDecoder::AssembleBeamState(const State& state,
                                const Hypotheses& beam,
                                State& nextState) const
 {
+  assert(false);
+}
+
+void EncoderDecoder::AssembleBeamState(const Histories& histories,
+                                        const State& state,
+                                        State& nextState) const
+{
   //BEGIN_TIMER("AssembleBeamState");
   std::vector<uint> beamWords;
   std::vector<uint> beamStateIds;
-  for (const HypothesisPtr &h : beam) {
-     beamWords.push_back(h->GetWord());
-     beamStateIds.push_back(h->GetPrevStateIndex());
+  for (size_t i = 0; i < histories.size(); ++i) {
+    const HistoriesElementPtr &ele = histories.Get(i);
+    if (ele) {
+      const Hypotheses &beam = ele->GetHypotheses();
+      for (const HypothesisPtr &h : beam) {
+         beamWords.push_back(h->GetWord());
+         beamStateIds.push_back(h->GetPrevStateIndex());
+      }
+    }
   }
   //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
   //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
@@ -460,66 +473,6 @@ void EncoderDecoder::AssembleBeamState(const State& state,
   //cerr << "outstates.output=" << outstates.output->Debug(0) << endl;
   //cerr << "instates.output=" << instates.output->Debug(0) << endl;
   //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
-  //cerr << "indices=" << indices.Debug(2) << endl;
-
-  mblas::Assemble(*(outstates.output), *(instates.output), indices);
-  if (instates.cell->size() > 0) {
-    mblas::Assemble(*(outstates.cell), *(instates.cell), indices);
-  }
-  //cerr << "edNextState.GetStates()=" << edNextState.GetStates().Debug(1) << endl;
-
-  //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
-  decoder_->Lookup(edNextState.GetEmbeddings(), beamWords);
-  //cerr << "edNextState.GetEmbeddings()=" << edNextState.GetEmbeddings().Debug(1) << endl;
-  //PAUSE_TIMER("AssembleBeamState");
-}
-
-void EncoderDecoder::AssembleBeamState(const Histories& histories,
-                                        const State& state,
-                                        const Hypotheses& beam,
-                                        State& nextState) const
-{
-  //BEGIN_TIMER("AssembleBeamState");
-  std::vector<uint> beamWords;
-  std::vector<uint> beamStateIds;
-
-  for (size_t i = 0; i < histories.size(); ++i) {
-    const HistoriesElementPtr &ele = histories.Get(i);
-    if (ele) {
-      beamWords.push_back(0);
-      beamStateIds.push_back(5);
-    }
-    else {
-      for (const HypothesisPtr &h : beam) {
-         beamWords.push_back(h->GetWord());
-         beamStateIds.push_back(h->GetPrevStateIndex());
-      }
-
-    }
-  }
-
-  cerr << "beamWords=" << Debug(beamWords, 2) << endl;
-  cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
-
-  const EDState& edState = state.get<EDState>();
-  EDState& edNextState = nextState.get<EDState>();
-
-  thread_local mblas::Vector<uint> indices;
-  indices.newSize(beamStateIds.size());
-  //mblas::Vector<uint> indices(beamStateIds.size());
-  //cerr << "indices=" << indices.Debug(2) << endl;
-
-  mblas::copy(beamStateIds.data(),
-              beamStateIds.size(),
-              indices.data(),
-              cudaMemcpyHostToDevice);
-
-  CellState& outstates = edNextState.GetStates();
-  const CellState& instates = edState.GetStates();
-
-  cerr << "outstates.output=" << outstates.output->Debug(0) << endl;
-  cerr << "instates.output=" << instates.output->Debug(0) << endl;
-  cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
   //cerr << "indices=" << indices.Debug(2) << endl;
 
   mblas::Assemble(*(outstates.output), *(instates.output), indices);

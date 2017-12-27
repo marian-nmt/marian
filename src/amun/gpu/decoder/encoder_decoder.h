@@ -114,7 +114,6 @@ class EncoderDecoder : public Scorer {
 
     void AssembleBeamState(const Histories& histories,
                            const State& state,
-                           const Hypotheses& beam,
                            State& nextState) const;
 };
 
