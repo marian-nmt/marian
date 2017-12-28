@@ -161,13 +161,12 @@ void EncoderDecoder::DecodeAsyncInternal()
   mblas::Vector<uint> sentenceLengths;
   mblas::Matrix sourceContext, SCU;
   StatePtr state, nextState;
-  Hypotheses prevHyps;
 
   state.reset(NewState());
   nextState.reset(NewState());
 
   //cerr << "prevHyps1=" << prevHyps.size() << endl;
-  InitBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
+  InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
   //cerr << "prevHyps2=" << prevHyps.size() << endl;
 
   unsigned step = 0;
@@ -200,13 +199,12 @@ void EncoderDecoder::DecodeAsyncInternal()
     //cerr << "DecodeAsyncInternal4" << endl;
     //std::cerr << "histories4=" << histories.Debug(1) << std::endl;
 
-    unsigned numPrevHyps = prevHyps.size();
-    size_t survivors = CalcBeam(search_.GetBestHyps(), histories, prevHyps, *state, *nextState, search_.GetFilterIndices());
+    CalcBeam(search_.GetBestHyps(), histories, *state, *nextState, search_.GetFilterIndices());
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal5" << endl;
     //std::cerr << "histories5=" << histories.Debug(1) << std::endl;
 
-    if (survivors == 0) {
+    if (histories.GetNumActive() == 0) {
     //if (survivors < 10) {
       //AssembleBeamState(histories, *nextState, prevHyps, *state);
 
@@ -214,7 +212,7 @@ void EncoderDecoder::DecodeAsyncInternal()
       //cerr << "DecodeAsyncInternal6" << endl;
       //std::cerr << "histories6=" << histories.Debug(1) << std::endl;
 
-      InitBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
+      InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal7" << endl;
       //std::cerr << "histories7=" << histories.Debug(1) << std::endl;
@@ -227,7 +225,7 @@ void EncoderDecoder::DecodeAsyncInternal()
     //cerr << "DecodeAsyncInternal8" << endl;
     //std::cerr << "histories8=" << histories.Debug(1) << std::endl;
 
-    LOG(progress)->info("  Step {} took {} sentences {} prevHypos {} survivors {}", step++, timerStep.format(5, "%w"), histories.GetNumActive(), numPrevHyps, survivors);
+    LOG(progress)->info("  Step {} took {} sentences {}", step++, timerStep.format(5, "%w"), histories.GetNumActive());
   }
 }
 
@@ -235,8 +233,7 @@ void EncoderDecoder::InitBatch(Histories &histories,
                                 mblas::Vector<uint> &sentenceLengths,
                                 mblas::Matrix &sourceContext,
                                 mblas::Matrix &SCU,
-                                State &state,
-                                Hypotheses &prevHyps)
+                                State &state)
 {
   ///*
   uint miniBatch = god_.Get<uint>("mini-batch");
@@ -278,8 +275,6 @@ void EncoderDecoder::InitBatch(Histories &histories,
   histories.Init(newSentences);
 
   BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, state, SCU);
-
-  prevHyps = histories.GetFirstHyps();
 
   return;
 }
@@ -408,32 +403,25 @@ void EncoderDecoder::BeginSentenceState(size_t batchSize,
   //PAUSE_TIMER("BeginSentenceState");
 }
 
-size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
+void EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
                       Histories& histories,
-                      Hypotheses& prevHyps,
                       State& state,
                       State& nextState,
                       const Words &filterIndices)
 {
   //cerr << "CalcBeam1" << endl;
-  Hypotheses p = histories.GetSurvivors();
+  Hypotheses prevHypos = histories.GetSurvivors();
   //cerr << "CalcBeam2" << endl;
   //cerr << "p=" << p.size() << " " << prevHyps.size() << endl;
 
   histories.StartCalcBeam();
   //cerr << "CalcBeam3" << endl;
-  bestHyps.CalcBeam(p, *this, filterIndices, histories);
+  bestHyps.CalcBeam(prevHypos, *this, filterIndices, histories);
   //cerr << "CalcBeam4" << endl;
   Hypotheses survivors = histories.Add(god_);
   //cerr << "CalcBeam5" << endl;
 
-  if (survivors.size() == 0) {
-    return 0;
-  }
-
   //cerr << "survivors=" << survivors.size() << endl;
-  prevHyps.swap(survivors);
-  return prevHyps.size();
 }
 
 void EncoderDecoder::AssembleBeamState(const State& state,

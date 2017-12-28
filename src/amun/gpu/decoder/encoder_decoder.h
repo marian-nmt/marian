@@ -81,8 +81,7 @@ class EncoderDecoder : public Scorer {
                     mblas::Vector<uint> &sentenceLengths,
                     mblas::Matrix &sourceContext,
                     mblas::Matrix &SCU,
-                    State &state,
-                    Hypotheses &prevHyps);
+                    State &state);
 
     void FetchBatch(Histories &histories,
                     mblas::Vector<uint> &sentenceLengths,
@@ -105,9 +104,8 @@ class EncoderDecoder : public Scorer {
                             const std::vector<uint> &newBatchIds,
                             const mblas::Vector<uint> &d_newBatchIds) const;
 
-    size_t CalcBeam(BestHypsBase &bestHyps,
+    void CalcBeam(BestHypsBase &bestHyps,
                     Histories& histories,
-                    Hypotheses& prevHyps,
                     State& state,
                     State& nextState,
                     const Words &filterIndices);
