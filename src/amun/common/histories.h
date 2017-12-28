@@ -96,6 +96,8 @@ public:
 
   Hypotheses Add(const God &god);
   Hypotheses GetFirstHyps();
+  Hypotheses GetSurvivors() const;
+
   void OutputAll(const God &god);
 
   void StartCalcBeam();

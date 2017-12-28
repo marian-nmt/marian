@@ -166,7 +166,9 @@ void EncoderDecoder::DecodeAsyncInternal()
   state.reset(NewState());
   nextState.reset(NewState());
 
+  //cerr << "prevHyps1=" << prevHyps.size() << endl;
   InitBatch(histories, sentenceLengths, sourceContext, SCU, *state, prevHyps);
+  //cerr << "prevHyps2=" << prevHyps.size() << endl;
 
   unsigned step = 0;
   while (histories.GetNumActive()) {
@@ -413,10 +415,17 @@ size_t EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
                       State& nextState,
                       const Words &filterIndices)
 {
-  size_t batchSize = histories.size();
+  //cerr << "CalcBeam1" << endl;
+  Hypotheses p = histories.GetSurvivors();
+  //cerr << "CalcBeam2" << endl;
+  //cerr << "p=" << p.size() << " " << prevHyps.size() << endl;
+
   histories.StartCalcBeam();
-  bestHyps.CalcBeam(prevHyps, *this, filterIndices, histories);
+  //cerr << "CalcBeam3" << endl;
+  bestHyps.CalcBeam(p, *this, filterIndices, histories);
+  //cerr << "CalcBeam4" << endl;
   Hypotheses survivors = histories.Add(god_);
+  //cerr << "CalcBeam5" << endl;
 
   if (survivors.size() == 0) {
     return 0;

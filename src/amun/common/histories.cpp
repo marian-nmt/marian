@@ -13,7 +13,11 @@ HistoriesElement::HistoriesElement(const SentencePtr &sentence, bool normalizeSc
 :beamSize_(1)
 ,history_(*sentence, normalizeScore, 3 * sentence->size())
 ,sentence_(sentence)
-{}
+{
+  const Hypotheses &hypos = history_.front();
+  assert(hypos.size() == 1);
+  hypos_.push_back(hypos[0]);
+}
 
 void HistoriesElement::Add()
 {
@@ -191,6 +195,20 @@ Hypotheses Histories::GetFirstHyps()
       const Hypotheses &beam = history.front();
       HypothesisPtr hypo = beam[0];
       ret[i] = hypo;
+    }
+  }
+  return ret;
+}
+
+Hypotheses Histories::GetSurvivors() const
+{
+  Hypotheses ret;
+  for (size_t i = 0; i < coll_.size(); ++i) {
+    HistoriesElementPtr ele =  coll_[i];
+    if (ele) {
+      const Hypotheses &hypos = ele->GetHypotheses();
+      //ret.insert(ret.end(), hypos.begin(), hypos.end());
+      std::copy (hypos.begin(), hypos.end(), std::back_inserter(ret));
     }
   }
   return ret;
