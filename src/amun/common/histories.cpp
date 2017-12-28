@@ -185,21 +185,6 @@ void Histories::StartCalcBeam()
   }
 }
 
-Hypotheses Histories::GetFirstHyps()
-{
-  Hypotheses ret(coll_.size());
-  for (size_t i = 0; i < coll_.size(); ++i) {
-    HistoriesElementPtr ele =  coll_[i];
-    if (ele) {
-      const History &history = ele->GetHistory();
-      const Hypotheses &beam = history.front();
-      HypothesisPtr hypo = beam[0];
-      ret[i] = hypo;
-    }
-  }
-  return ret;
-}
-
 Hypotheses Histories::GetSurvivors() const
 {
   Hypotheses ret;

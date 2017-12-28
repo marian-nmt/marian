@@ -205,7 +205,7 @@ void EncoderDecoder::DecodeAsyncInternal()
     //std::cerr << "histories5=" << histories.Debug(1) << std::endl;
 
     if (histories.GetNumActive() == 0) {
-    //if (survivors < 10) {
+    //if (histories.GetNumActive() < 10) {
       //AssembleBeamState(histories, *nextState, prevHyps, *state);
 
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
