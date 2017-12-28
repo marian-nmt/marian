@@ -206,7 +206,7 @@ void EncoderDecoder::DecodeAsyncInternal()
 
     //if (histories.GetNumActive() == 0) {
     if (histories.GetNumActive() < 10) {
-      //AssembleBeamState(histories, *nextState, prevHyps, *state);
+      AssembleBeamState(histories, *nextState, *state);
 
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal6" << endl;
@@ -307,17 +307,21 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   boost::timer::cpu_timer timer;
 
   ///*
+  cerr << "FetchBatch1" << endl;
   size_t numSentToGet = god_.Get<uint>("mini-batch") - histories.GetNumActive();
+  cerr << "FetchBatch2" << endl;
    //cerr << "histories.GetNumActive()=" << histories.GetNumActive() << endl;
 
   std::vector<BufferOutput> newSentences;
   encDecBuffer_.Get(numSentToGet, newSentences);
+  cerr << "FetchBatch3=" << newSentences.size() << endl;
   //vector<unsigned> batchIds = AddToBatch(newSentences, sentences, histories, sentenceLengths, sourceContext);
 
   if (newSentences.size() == 0) {
     return;
   }
 
+  cerr << "FetchBatch4" << endl;
   vector<uint> newBatchIds(newSentences.size());
   vector<uint> newSentenceLengths(newSentences.size());
   vector<uint> newSentenceOffsets(newSentences.size());
