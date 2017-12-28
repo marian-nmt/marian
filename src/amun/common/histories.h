@@ -94,7 +94,7 @@ public:
   std::vector<unsigned> GetBeamSizes() const;
   std::vector<char> IsFirsts() const;
 
-  Hypotheses Add(const God &god);
+  void Add(const God &god);
   Hypotheses GetSurvivors() const;
 
   void OutputAll(const God &god);

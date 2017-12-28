@@ -138,15 +138,12 @@ void Histories::SetNewBeamSize(unsigned val)
 
 }
 
-Hypotheses Histories::Add(const God &god)
+void Histories::Add(const God &god)
 {
-  Hypotheses survivors;
-
   for (size_t i = 0; i < size(); ++i) {
     HistoriesElementPtr &ele = Get(i);
 
     if (ele) {
-      Hypotheses &hypos = ele->GetHypotheses();
       /*
       cerr << "hypos="
           << hypos.size() << " "
@@ -154,11 +151,6 @@ Hypotheses Histories::Add(const God &god)
           << endl;
       */
       ele->Add();
-      Hypotheses &s = ele->GetHypotheses();
-      for (size_t j = 0; j < s.size(); ++j) {
-        survivors.push_back(s[j]);
-      }
-
       unsigned beamSize = ele->GetBeamSize();
 
       if (beamSize == 0) {
@@ -171,7 +163,6 @@ Hypotheses Histories::Add(const God &god)
     }
   }
 
-  return survivors;
 }
 
 void Histories::StartCalcBeam()

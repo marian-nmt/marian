@@ -389,16 +389,13 @@ void EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
   //cerr << "CalcBeam1" << endl;
   Hypotheses prevHypos = histories.GetSurvivors();
   //cerr << "CalcBeam2" << endl;
-  //cerr << "p=" << p.size() << " " << prevHyps.size() << endl;
 
   histories.StartCalcBeam();
   //cerr << "CalcBeam3" << endl;
   bestHyps.CalcBeam(prevHypos, *this, filterIndices, histories);
   //cerr << "CalcBeam4" << endl;
-  Hypotheses survivors = histories.Add(god_);
+  histories.Add(god_);
   //cerr << "CalcBeam5" << endl;
-
-  //cerr << "survivors=" << survivors.size() << endl;
 }
 
 void EncoderDecoder::AssembleBeamState(const State& state,
