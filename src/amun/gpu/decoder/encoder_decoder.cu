@@ -204,15 +204,15 @@ void EncoderDecoder::DecodeAsyncInternal()
     //cerr << "DecodeAsyncInternal5" << endl;
     //std::cerr << "histories5=" << histories.Debug(1) << std::endl;
 
-    if (histories.GetNumActive() == 0) {
-    //if (histories.GetNumActive() < 10) {
+    //if (histories.GetNumActive() == 0) {
+    if (histories.GetNumActive() < 10) {
       //AssembleBeamState(histories, *nextState, prevHyps, *state);
 
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal6" << endl;
       //std::cerr << "histories6=" << histories.Debug(1) << std::endl;
 
-      InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
+      FetchBatch(histories, sentenceLengths, sourceContext, SCU, *state);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal7" << endl;
       //std::cerr << "histories7=" << histories.Debug(1) << std::endl;
@@ -304,48 +304,65 @@ void EncoderDecoder::FetchBatch(Histories &histories,
                                 mblas::Matrix &SCU,
                                 State &state)
 {
+  boost::timer::cpu_timer timer;
+
   ///*
-  uint miniBatch = god_.Get<uint>("mini-batch");
+  size_t numSentToGet = god_.Get<uint>("mini-batch") - histories.GetNumActive();
+   //cerr << "histories.GetNumActive()=" << histories.GetNumActive() << endl;
 
   std::vector<BufferOutput> newSentences;
-  encDecBuffer_.Get(miniBatch, newSentences);
-
+  encDecBuffer_.Get(numSentToGet, newSentences);
   //vector<unsigned> batchIds = AddToBatch(newSentences, sentences, histories, sentenceLengths, sourceContext);
 
   if (newSentences.size() == 0) {
     return;
   }
 
-  const EncOutPtr &encOut = newSentences.front().GetEncOut();
-  assert(encOut);
-  //*/
-  /*
-  EncOutPtr encOut = encDecBuffer_.Get();
-  assert(encOut);
+  vector<uint> newBatchIds(newSentences.size());
+  vector<uint> newSentenceLengths(newSentences.size());
+  vector<uint> newSentenceOffsets(newSentences.size());
 
-  sentences = encOut->GetSentences();
-  if (sentences.size() == 0) {
-      return false;
+  // update existing batch
+  size_t batchInd = 0;
+  for (size_t i = 0; i < newSentences.size(); ++i) {
+      const BufferOutput &eleSent = newSentences[i];
+      const SentencePtr &sentence = eleSent.GetSentence();
+
+      // work out offset in existing batch
+      FindNextEmptyIndex(batchInd, histories);
+      newBatchIds[i] = batchInd;
+
+      // sentence lengths
+      newSentenceLengths[i] = sentence->size();
+
+      // offsets
+      newSentenceOffsets[i] = eleSent.GetSentenceOffset();
+
+      // histories
+      histories.Set(batchInd, new HistoriesElement(sentence, histories.NormalizeScore()));
+
+      ++batchInd;
   }
-  */
 
-  //sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
-  sentenceLengths.newSize(encOut->Get<EncOutGPU>().GetSentenceLengths().size());
-  mblas::copy(encOut->Get<EncOutGPU>().GetSentenceLengths().data(),
-              sentenceLengths.size(),
-              sentenceLengths.data(),
-              cudaMemcpyDeviceToHost);
+  size_t maxLength =  histories.MaxLength();
+  //cerr << "maxLength=" << maxLength << endl;
+  //cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
 
-  //sourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
-  const mblas::Matrix &origSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
-  sourceContext.NewSize(origSourceContext.dim(0), origSourceContext.dim(1), origSourceContext.dim(2), origSourceContext.dim(3));
-  mblas::CopyMatrix(sourceContext, origSourceContext);
+  // update gpu data
+  mblas::Vector<uint> d_newBatchIds(newBatchIds);
+  mblas::Vector<uint> d_newSentenceLengths(newSentenceLengths);
 
-  histories.Init(newSentences);
+  UpdateSentenceLengths(d_newSentenceLengths, d_newBatchIds, sentenceLengths);
 
-  BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, state, SCU);
+  // source context
+  ResizeMatrix(sourceContext, {0, maxLength, 3, histories.GetNumActive()});
 
-  return;
+  AddNewData(sourceContext, newBatchIds, newSentences);
+
+  BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, state, SCU, newBatchIds, d_newBatchIds);
+
+  LOG(progress)->info("Fetch took {} new {} histories {}", timer.format(5, "%w"), newSentences.size(), histories.GetNumActive());
+
 }
 
 void EncoderDecoder::BeginSentenceState(size_t batchSize,
