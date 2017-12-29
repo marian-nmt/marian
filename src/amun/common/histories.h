@@ -68,7 +68,7 @@ public:
   size_t size() const
   { return coll_.size(); }
 
-  unsigned GetNumActive() const
+  unsigned NumActive() const
   { return active_; }
 
   bool NormalizeScore() const

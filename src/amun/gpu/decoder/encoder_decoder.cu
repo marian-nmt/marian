@@ -170,7 +170,7 @@ void EncoderDecoder::DecodeAsyncInternal()
   //cerr << "prevHyps2=" << prevHyps.size() << endl;
 
   unsigned step = 0;
-  while (histories.GetNumActive()) {
+  while (histories.NumActive()) {
     boost::timer::cpu_timer timerStep;
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal1" << endl;
@@ -204,8 +204,8 @@ void EncoderDecoder::DecodeAsyncInternal()
     //cerr << "DecodeAsyncInternal5" << endl;
     //std::cerr << "histories5=" << histories.Debug(1) << std::endl;
 
-    //if (histories.GetNumActive() == 0) {
-    if ((histories.size() - histories.GetNumActive()) > 0) {
+    //if (histories.NumActive() == 0) {
+    if ((histories.size() - histories.NumActive()) > 0) {
 
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal6" << endl;
@@ -225,7 +225,7 @@ void EncoderDecoder::DecodeAsyncInternal()
     //cerr << "DecodeAsyncInternal8" << endl;
     //std::cerr << "histories8=" << histories.Debug(1) << std::endl;
 
-    LOG(progress)->info("  Step {} took {} sentences {}", step++, timerStep.format(5, "%w"), histories.GetNumActive());
+    LOG(progress)->info("  Step {} took {} sentences {}", step++, timerStep.format(5, "%w"), histories.NumActive());
   }
 }
 
@@ -275,7 +275,7 @@ void EncoderDecoder::InitBatch(Histories &histories,
   histories.Init(newSentences);
   cerr << "histories=" << histories.Debug() << endl;
 
-  BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, state, SCU);
+  BeginSentenceState(histories.NumActive(), sourceContext, sentenceLengths, state, SCU);
 
   return;
 }
@@ -310,9 +310,9 @@ void EncoderDecoder::FetchBatch(Histories &histories,
 
   ///*
   cerr << "FetchBatch1" << endl;
-  size_t numSentToGet = god_.Get<uint>("mini-batch") - histories.GetNumActive();
+  size_t numSentToGet = god_.Get<uint>("mini-batch") - histories.NumActive();
   cerr << "FetchBatch2" << endl;
-  cerr << "histories.GetNumActive()=" << histories.GetNumActive() << endl;
+  cerr << "histories.NumActive()=" << histories.NumActive() << endl;
   cerr << "numSentToGet=" << numSentToGet << endl;
   cerr << "histories=" << histories.Debug() << endl;
 
@@ -355,7 +355,7 @@ void EncoderDecoder::FetchBatch(Histories &histories,
 
   size_t maxLength =  histories.MaxLength();
   cerr << "histories=" << histories.Debug() << endl;
-  cerr << "GetNumActive=" << histories.GetNumActive() << endl;
+  cerr << "NumActive=" << histories.NumActive() << endl;
   cerr << "maxLength=" << maxLength << endl;
   cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
 
@@ -371,16 +371,16 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   cerr << "FetchBatch8" << endl;
 
   // source context
-  ResizeMatrix(sourceContext, {0, maxLength, 3, histories.GetNumActive()});
+  ResizeMatrix(sourceContext, {0, maxLength, 3, histories.NumActive()});
   cerr << "FetchBatch9" << endl;
 
   AddNewData(sourceContext, newBatchIds, newSentences);
   cerr << "FetchBatch10" << endl;
 
-  BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, nextState, SCU, newBatchIds, d_newBatchIds);
+  BeginSentenceState(histories.NumActive(), sourceContext, sentenceLengths, nextState, SCU, newBatchIds, d_newBatchIds);
   cerr << "FetchBatch11" << endl;
 
-  LOG(progress)->info("Fetch took {} new {} histories {}", timer.format(5, "%w"), newSentences.size(), histories.GetNumActive());
+  LOG(progress)->info("Fetch took {} new {} histories {}", timer.format(5, "%w"), newSentences.size(), histories.NumActive());
 
 }
 
