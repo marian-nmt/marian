@@ -212,7 +212,7 @@ void EncoderDecoder::DecodeAsyncInternal()
       //cerr << "DecodeAsyncInternal6" << endl;
       //std::cerr << "histories6=" << histories.Debug(1) << std::endl;
 
-      FetchBatch(histories, sentenceLengths, sourceContext, SCU, *state);
+      FetchBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal7" << endl;
       //std::cerr << "histories7=" << histories.Debug(1) << std::endl;
@@ -302,7 +302,8 @@ void EncoderDecoder::FetchBatch(Histories &histories,
                                 mblas::Vector<uint> &sentenceLengths,
                                 mblas::Matrix &sourceContext,
                                 mblas::Matrix &SCU,
-                                State &state)
+                                State &nextState,
+                                const State &state)
 {
   boost::timer::cpu_timer timer;
 
@@ -317,9 +318,9 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   std::vector<BufferOutput> newSentences;
   encDecBuffer_.Get(numSentToGet, newSentences);
   cerr << "FetchBatch3=" << newSentences.size() << endl;
-  //vector<unsigned> batchIds = AddToBatch(newSentences, sentences, histories, sentenceLengths, sourceContext);
 
   if (newSentences.size() == 0) {
+    //AssembleBeamState(histories, state, nextState);
     return;
   }
 
@@ -349,6 +350,7 @@ void EncoderDecoder::FetchBatch(Histories &histories,
 
       ++batchInd;
   }
+  cerr << "FetchBatch5" << endl;
 
   size_t maxLength =  histories.MaxLength();
   cerr << "histories=" << histories.Debug() << endl;
@@ -359,15 +361,23 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   // update gpu data
   mblas::Vector<uint> d_newBatchIds(newBatchIds);
   mblas::Vector<uint> d_newSentenceLengths(newSentenceLengths);
+  cerr << "FetchBatch6" << endl;
+
+  AssembleBeamState(newBatchIds, d_newBatchIds, histories, state, nextState);
+  cerr << "FetchBatch7" << endl;
 
   UpdateSentenceLengths(d_newSentenceLengths, d_newBatchIds, sentenceLengths);
+  cerr << "FetchBatch8" << endl;
 
   // source context
   ResizeMatrix(sourceContext, {0, maxLength, 3, histories.GetNumActive()});
+  cerr << "FetchBatch9" << endl;
 
   AddNewData(sourceContext, newBatchIds, newSentences);
+  cerr << "FetchBatch10" << endl;
 
-  BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, state, SCU, newBatchIds, d_newBatchIds);
+  BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, nextState, SCU, newBatchIds, d_newBatchIds);
+  cerr << "FetchBatch11" << endl;
 
   LOG(progress)->info("Fetch took {} new {} histories {}", timer.format(5, "%w"), newSentences.size(), histories.GetNumActive());
 
@@ -481,6 +491,73 @@ void EncoderDecoder::AssembleBeamState(const Histories& histories,
   decoder_->Lookup(edNextState.GetEmbeddings(), beamWords);
   //cerr << "edNextState.GetEmbeddings()=" << edNextState.GetEmbeddings().Debug(1) << endl;
   //PAUSE_TIMER("AssembleBeamState");
+}
+
+void EncoderDecoder::AssembleBeamState(const std::vector<uint> newBatchIds,
+                                        const mblas::Vector<uint> &d_newBatchIds,
+                                        const Histories& histories,
+                                        const State& state,
+                                        State& nextState) const
+{
+  //BEGIN_TIMER("AssembleBeamState");
+  std::vector<uint> beamWords;
+  std::vector<uint> beamStateIds;
+  for (size_t i = 0; i < histories.size(); ++i) {
+    const HistoriesElementPtr &ele = histories.Get(i);
+    if (ele) {
+      const Hypotheses &beam = ele->GetHypotheses();
+      for (const HypothesisPtr &h : beam) {
+         beamWords.push_back(h->GetWord());
+         beamStateIds.push_back(h->GetPrevStateIndex());
+      }
+    }
+  }
+
+  cerr << "beamWords=" << Debug(beamWords, 2) << endl;
+  cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "AssembleBeamState1" << endl;
+
+  const EDState& edState = state.get<EDState>();
+  EDState& edNextState = nextState.get<EDState>();
+
+  thread_local mblas::Vector<uint> indices;
+  indices.newSize(beamStateIds.size());
+  //mblas::Vector<uint> indices(beamStateIds.size());
+  //cerr << "indices=" << indices.Debug(2) << endl;
+
+  mblas::copy(beamStateIds.data(),
+              beamStateIds.size(),
+              indices.data(),
+              cudaMemcpyHostToDevice);
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "AssembleBeamState2" << endl;
+
+  CellState& outstates = edNextState.GetStates();
+  const CellState& instates = edState.GetStates();
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "AssembleBeamState3" << endl;
+
+  //cerr << "outstates.output=" << outstates.output->Debug(0) << endl;
+  //cerr << "instates.output=" << instates.output->Debug(0) << endl;
+  //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
+  //cerr << "indices=" << indices.Debug(2) << endl;
+
+  mblas::Assemble(*(outstates.output), *(instates.output), indices);
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "AssembleBeamState4" << endl;
+
+  if (instates.cell->size() > 0) {
+    mblas::Assemble(*(outstates.cell), *(instates.cell), indices);
+  }
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "AssembleBeamState5" << endl;
+
+  decoder_->Lookup(edNextState.GetEmbeddings(), beamWords);
+  //cerr << "edNextState.GetEmbeddings()=" << edNextState.GetEmbeddings().Debug(1) << endl;
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "AssembleBeamState6" << endl;
+
 }
 
 }

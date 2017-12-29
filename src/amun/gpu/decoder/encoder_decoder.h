@@ -87,7 +87,8 @@ class EncoderDecoder : public Scorer {
                     mblas::Vector<uint> &sentenceLengths,
                     mblas::Matrix &sourceContext,
                     mblas::Matrix &SCU,
-                    State &state);
+                    State &nextState,
+                    const State &state);
 
     void BeginSentenceState(size_t batchSize,
                             const mblas::Matrix &sourceContext,
@@ -112,6 +113,13 @@ class EncoderDecoder : public Scorer {
     void AssembleBeamState(const Histories& histories,
                            const State& state,
                            State& nextState) const;
+
+    void AssembleBeamState(const std::vector<uint> newBatchIds,
+                            const mblas::Vector<uint> &d_newBatchIds,
+                            const Histories& histories,
+                            const State& state,
+                            State& nextState) const;
+
 };
 
 }
