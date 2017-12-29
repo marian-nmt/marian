@@ -430,10 +430,11 @@ class Decoder {
 
       //BEGIN_TIMER("GetHiddenState");
 
+      std::cerr << "1HiddenState_=" << HiddenState_.Debug(0) << std::endl;
       GetHiddenState(HiddenState_, State, Embeddings);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "Decode2" << std::endl;
-      std::cerr << "HiddenState_=" << HiddenState_.Debug(0) << std::endl;
+      std::cerr << "2HiddenState_=" << HiddenState_.Debug(0) << std::endl;
       std::cerr << "State=" << State.Debug(0) << std::endl;
       std::cerr << "Embeddings=" << Embeddings.Debug(0) << std::endl;
 
