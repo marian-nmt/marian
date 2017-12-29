@@ -197,7 +197,7 @@ public:
 
     if (verbosity) {
       T sum = Sum(data(), size());
-      strm << "sum=" << sum << std::flush;
+      strm << " sum=" << sum << std::flush;
 
       if (verbosity == 2) {
         const cudaStream_t& stream = CudaStreamHandler::GetStream();

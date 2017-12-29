@@ -1400,6 +1400,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
     );
   //PAUSE_TIMER("gBeamSizeInit");
 
+  cerr << "hypo2Candidate=" << hypo2Candidate.Debug(2) << endl;
+
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "LogSoftmaxAndNBest2" << endl;
 
