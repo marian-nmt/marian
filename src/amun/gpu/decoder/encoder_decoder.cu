@@ -349,8 +349,10 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   }
 
   size_t maxLength =  histories.MaxLength();
-  //cerr << "maxLength=" << maxLength << endl;
-  //cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
+  cerr << "histories=" << histories.Debug() << endl;
+  cerr << "GetNumActive=" << histories.GetNumActive() << endl;
+  cerr << "maxLength=" << maxLength << endl;
+  cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
 
   // update gpu data
   mblas::Vector<uint> d_newBatchIds(newBatchIds);

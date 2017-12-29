@@ -71,12 +71,16 @@ class Decoder {
                              const mblas::Vector<uint> &sentenceLengths) const
         {
           using namespace mblas;
+          std::cerr << "cell1=" << State.cell->Debug(0) << std::endl;
+          std::cerr << "output1=" << State.output->Debug(0) << std::endl;
 
           CellLength cellLength = gru_->GetStateLength();
           if (cellLength.cell > 0) {
             State.cell->NewSize(batchSize, cellLength.cell);
             mblas::Fill(*(State.cell), 0.0f);
           }
+          std::cerr << "cell2=" << State.cell->Debug(0) << std::endl;
+          std::cerr << "output2=" << State.output->Debug(0) << std::endl;
 
           thread_local mblas::Matrix Temp2;
           Temp2.NewSize(batchSize, SourceContext.dim(1), 1, 1);
@@ -91,6 +95,9 @@ class Decoder {
           } else {
             BroadcastVec(Tanh(_1 + _2), *(State.output), *w_.Bi_);
           }
+
+          std::cerr << "cell3=" << State.cell->Debug(0) << std::endl;
+          std::cerr << "output3=" << State.output->Debug(0) << std::endl;
         }
 
         void GetNextState(CellState& NextState,
@@ -193,8 +200,8 @@ class Decoder {
           std::vector<uint> batchMapping(HiddenState.output->dim(0));
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           //std::cerr << "GetAlignedSourceContext3=" << std::endl;
-          //std::cerr << "batchMapping=" << batchMapping.size() << std::endl;
-          //std::cerr << "HiddenState.output=" << HiddenState.output->Debug() << std::endl;
+          std::cerr << "batchMapping=" << batchMapping.size() << std::endl;
+          std::cerr << "HiddenState.output=" << HiddenState.output->Debug() << std::endl;
 
           size_t k = 0;
           for (size_t i = 0; i < histories.size(); ++i) {
