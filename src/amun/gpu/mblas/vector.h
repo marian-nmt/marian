@@ -78,28 +78,35 @@ public:
 
   Vector(const std::vector<T> &vec)
   :maxSize_(0)
+  ,data_(nullptr)
   {
     newSize(vec.size());
-    HANDLE_ERROR( cudaMemcpyAsync(data_, vec.data(), vec.size() * sizeof(T), cudaMemcpyHostToDevice, CudaStreamHandler::GetStream()) );
+
+    if (size()) {
+      HANDLE_ERROR( cudaMemcpyAsync(data_, vec.data(), vec.size() * sizeof(T), cudaMemcpyHostToDevice, CudaStreamHandler::GetStream()) );
+    }
   }
 
   explicit Vector(const Vector<T> &other)
   :maxSize_(other.size_)
   ,size_(other.size_)
+  ,data_(nullptr)
   {
-    HANDLE_ERROR( cudaMalloc(&data_, size_ * sizeof(T)) );
-    //std::cerr << "malloc data2:" << data_ << std::endl;
-    HANDLE_ERROR( cudaMemcpyAsync(
-        data_,
-        other.data_,
-        size_ * sizeof(T),
-        cudaMemcpyDeviceToDevice,
-        CudaStreamHandler::GetStream()) );
+    if (size()) {
+      HANDLE_ERROR( cudaMalloc(&data_, size_ * sizeof(T)) );
+      //std::cerr << "malloc data2:" << data_ << std::endl;
+      HANDLE_ERROR( cudaMemcpyAsync(
+          data_,
+          other.data_,
+          size_ * sizeof(T),
+          cudaMemcpyDeviceToDevice,
+          CudaStreamHandler::GetStream()) );
+    }
   }
 
   ~Vector()
   {
-    //std::cerr << "~Vector=" << this << std::endl;
+    std::cerr << "~Vector=" << maxSize_ << " " << this << std::endl;
     HANDLE_ERROR(cudaFree(data_));
   }
 
@@ -152,7 +159,9 @@ public:
 
   void reserve(size_t newSize)
   {
+    //std::cerr << "reserve1=" << newSize << std::endl;
     if (newSize > maxSize_) {
+      //std::cerr << "reserve2=" << newSize << std::endl;
       if (maxSize_) {
         HANDLE_ERROR(cudaFree(data_));
       }
@@ -161,6 +170,7 @@ public:
 
       maxSize_ = newSize;
     }
+    //std::cerr << "reserve3=" << newSize << std::endl;
   }
 
   void clear()

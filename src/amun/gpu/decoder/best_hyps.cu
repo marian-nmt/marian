@@ -73,7 +73,7 @@ std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPt
 
 //////////////////////////////////////////////////////////////////////////
 void BestHyps::getNBestList(const Histories& histories,
-                  mblas::Matrix& Probs,
+                  const mblas::Matrix& Probs,
                   mblas::Vector<NthOutBatch> &nBest,
                   std::vector<float>& outCosts,
                   std::vector<uint>& outKeys) const
@@ -143,6 +143,7 @@ void  BestHyps::CalcBeam(
   using namespace mblas;
 
   mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorer.GetProbs());
+  cerr << "Probs=" << Probs.Debug(0) << endl;
 
   std::vector<float> vCosts;
   for (const HypothesisPtr &h : prevHyps) {

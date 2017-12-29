@@ -17,6 +17,9 @@ struct CellState {
 
   std::unique_ptr<mblas::Matrix> output;
   std::unique_ptr<mblas::Matrix> cell;
+
+  std::string Debug(size_t verbosity = 1) const;
+
 };
 }
 }

@@ -117,8 +117,8 @@ class EncoderDecoder : public Scorer {
     void AssembleBeamState(const std::vector<uint> newBatchIds,
                             const mblas::Vector<uint> &d_newBatchIds,
                             const Histories& histories,
-                            const State& state,
-                            State& nextState) const;
+                            const State& inState,
+                            State& outState) const;
 
 };
 

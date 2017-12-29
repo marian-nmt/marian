@@ -71,16 +71,16 @@ class Decoder {
                              const mblas::Vector<uint> &sentenceLengths) const
         {
           using namespace mblas;
-          std::cerr << "cell1=" << State.cell->Debug(0) << std::endl;
-          std::cerr << "output1=" << State.output->Debug(0) << std::endl;
+          //std::cerr << "cell1=" << State.cell->Debug(0) << std::endl;
+          //std::cerr << "output1=" << State.output->Debug(0) << std::endl;
 
           CellLength cellLength = gru_->GetStateLength();
           if (cellLength.cell > 0) {
             State.cell->NewSize(batchSize, cellLength.cell);
             mblas::Fill(*(State.cell), 0.0f);
           }
-          std::cerr << "cell2=" << State.cell->Debug(0) << std::endl;
-          std::cerr << "output2=" << State.output->Debug(0) << std::endl;
+          //std::cerr << "cell2=" << State.cell->Debug(0) << std::endl;
+          //std::cerr << "output2=" << State.output->Debug(0) << std::endl;
 
           thread_local mblas::Matrix Temp2;
           Temp2.NewSize(batchSize, SourceContext.dim(1), 1, 1);
@@ -96,8 +96,8 @@ class Decoder {
             BroadcastVec(Tanh(_1 + _2), *(State.output), *w_.Bi_);
           }
 
-          std::cerr << "cell3=" << State.cell->Debug(0) << std::endl;
-          std::cerr << "output3=" << State.output->Debug(0) << std::endl;
+          //std::cerr << "cell3=" << State.cell->Debug(0) << std::endl;
+          //std::cerr << "output3=" << State.output->Debug(0) << std::endl;
         }
 
         void GetNextState(CellState& NextState,
@@ -200,8 +200,8 @@ class Decoder {
           std::vector<uint> batchMapping(HiddenState.output->dim(0));
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           //std::cerr << "GetAlignedSourceContext3=" << std::endl;
-          std::cerr << "batchMapping=" << batchMapping.size() << std::endl;
-          std::cerr << "HiddenState.output=" << HiddenState.output->Debug() << std::endl;
+          //std::cerr << "batchMapping=" << batchMapping.size() << std::endl;
+          //std::cerr << "HiddenState.output=" << HiddenState.output->Debug() << std::endl;
 
           size_t k = 0;
           for (size_t i = 0; i < histories.size(); ++i) {
@@ -309,6 +309,9 @@ class Decoder {
           //BEGIN_TIMER("GetProbs.Prod");
           Prod(/*h_[0],*/ T1_, *(State.output), *w_.W1_);
           //PAUSE_TIMER("GetProbs.Prod");
+          //std::cerr << "T1_=" << T1_.Debug(0) << std::endl;
+          //std::cerr << "State.output=" << State.output->Debug(0) << std::endl;
+          //std::cerr << "w_.W1_=" << w_.W1_->Debug(0) << std::endl;
 
           //BEGIN_TIMER("GetProbs.Normalization/BroadcastVec");
           if (w_.Gamma_1_->size()) {
@@ -427,9 +430,13 @@ class Decoder {
 
       //BEGIN_TIMER("GetHiddenState");
 
+      //std::cerr << "1HiddenState_=" << HiddenState_.Debug(0) << std::endl;
       GetHiddenState(HiddenState_, State, Embeddings);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "Decode2" << std::endl;
+      //std::cerr << "2HiddenState_=" << HiddenState_.Debug(0) << std::endl;
+      //std::cerr << "State=" << State.Debug(0) << std::endl;
+      //std::cerr << "Embeddings=" << Embeddings.Debug(0) << std::endl;
 
       //HiddenState_.ReduceDimensions();
       //std::std::cerr << "HiddenState_=" << HiddenState_.Debug(1) << std::std::endl;
@@ -578,7 +585,9 @@ class Decoder {
                   const mblas::Matrix& AlignedSourceContext,
                   bool useFusedSoftmax)
     {
+      //std::cerr << "Probs_1=" << Probs_.Debug(1) << std::endl;
       softmax_.GetProbs(Probs_, b4_, State, Embedding, AlignedSourceContext, useFusedSoftmax);
+      //std::cerr << "Probs_2=" << Probs_.Debug(1) << std::endl;
     }
 
     std::unique_ptr<Cell> InitHiddenCell(const Weights& model, const YAML::Node& config){

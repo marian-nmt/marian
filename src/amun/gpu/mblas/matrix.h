@@ -98,10 +98,11 @@ class TMatrix : public BaseMatrix {
     {
       std::stringstream strm;
       strm << BaseMatrix::Debug(verbosity) << " ";
+      /*
       strm << vec_.data() << " "
-          << vec_.size() << " "
           << vec_.maxSize() << " "
           << std::flush;
+      */
 
       if (verbosity) {
         strm << vec_.Debug(verbosity);
