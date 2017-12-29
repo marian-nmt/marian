@@ -176,50 +176,54 @@ void EncoderDecoder::DecodeAsyncInternal()
     //cerr << "DecodeAsyncInternal1" << endl;
     //std::cerr << "histories1=" << histories.Debug(1) << std::endl;
 
-    const EDState& edstate = state->get<EDState>();
-    EDState& ednextState = nextState->get<EDState>();
-
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal2" << endl;
     std::cerr << "histories2=" << histories.Debug(1) << std::endl;
-    decoder_->Decode(ednextState.GetStates(),
-                     edstate.GetStates(),
-                     edstate.GetEmbeddings(),
-                     histories,
-                     god_.UseFusedSoftmax(),
-                     sourceContext,
-                     SCU,
-                     sentenceLengths);
+    std::cerr << "nextState0=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
+    decoder_->Decode(nextState->get<EDState>().GetStates(),
+                    state->get<EDState>().GetStates(),
+                    state->get<EDState>().GetEmbeddings(),
+                    histories,
+                    god_.UseFusedSoftmax(),
+                    sourceContext,
+                    SCU,
+                    sentenceLengths);
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal3" << endl;
     //std::cerr << "histories3=" << histories.Debug(1) << std::endl;
+    std::cerr << "nextState1=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
     histories.SetNewBeamSize(maxBeamSize);
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal4" << endl;
     //std::cerr << "histories4=" << histories.Debug(1) << std::endl;
+    std::cerr << "nextState2=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
     CalcBeam(search_.GetBestHyps(), histories, *state, *nextState, search_.GetFilterIndices());
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal5" << endl;
     //std::cerr << "histories5=" << histories.Debug(1) << std::endl;
+    std::cerr << "nextState3=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
-    if (histories.GetNumActive() == 0) {
-    //if ((histories.size() - histories.GetNumActive()) > 0) {
+    //if (histories.GetNumActive() == 0) {
+    if ((histories.size() - histories.GetNumActive()) > 0) {
 
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal6" << endl;
       //std::cerr << "histories6=" << histories.Debug(1) << std::endl;
 
-      InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
-      //FetchBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
+      //InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
+      FetchBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal7" << endl;
       //std::cerr << "histories7=" << histories.Debug(1) << std::endl;
+      std::cerr << "nextState4=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
     }
     else {
       AssembleBeamState(histories, *nextState, *state);
+      std::cerr << "nextState5=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
     }
+    std::cerr << "nextState6=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal8" << endl;

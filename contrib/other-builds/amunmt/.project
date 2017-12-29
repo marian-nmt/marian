@@ -1496,6 +1496,26 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/decoder/encoder_decoder_state.h</locationURI>
 		</link>
 		<link>
+			<name>src/amun/gpu/dl4mt/cell.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/cell.cu</locationURI>
+		</link>
+		<link>
+			<name>src/amun/gpu/dl4mt/cell.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/cell.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/gpu/dl4mt/cellstate.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/cellstate.cu</locationURI>
+		</link>
+		<link>
+			<name>src/amun/gpu/dl4mt/cellstate.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/cellstate.h</locationURI>
+		</link>
+		<link>
 			<name>src/amun/gpu/dl4mt/decoder.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/decoder.h</locationURI>
