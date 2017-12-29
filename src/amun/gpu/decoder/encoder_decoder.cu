@@ -206,12 +206,12 @@ void EncoderDecoder::DecodeAsyncInternal()
 
     //if (histories.GetNumActive() == 0) {
     if ((histories.size() - histories.GetNumActive()) > 0) {
-      //AssembleBeamState(histories, *nextState, *state);
 
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal6" << endl;
       //std::cerr << "histories6=" << histories.Debug(1) << std::endl;
 
+      //InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
       FetchBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal7" << endl;
@@ -273,6 +273,7 @@ void EncoderDecoder::InitBatch(Histories &histories,
   mblas::CopyMatrix(sourceContext, origSourceContext);
 
   histories.Init(newSentences);
+  cerr << "histories=" << histories.Debug() << endl;
 
   BeginSentenceState(histories.GetNumActive(), sourceContext, sentenceLengths, state, SCU);
 

@@ -1347,19 +1347,19 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   mblas::Vector<uint> batch2Hypo(batchSize);
   mblas::Vector<NthOutBatch> nBestCandidates(candidateInd);
 
-  /*
+  ///*
   cerr << "in=" << in.Debug(0) << endl;
   cerr << "beamSizes=" << beamSizes.size() << endl;
   cerr << "beamSizeSum=" << beamSizeSum << endl;
   cerr << "batchSize=" << batchSize << endl;
   cerr << "candidateInd=" << candidateInd << endl;
-  cerr << "hypo2BeamSize=" << Debug(hypo2BeamSize, 0) << endl;
-  cerr << "hypo2Candidate=" << Debug(hypo2Candidate, 0) << endl;
-  cerr << "batch2Hypo=" << Debug(batch2Hypo, 0) << endl;
-  cerr << "nBest=" << Debug(nBest, 0) << endl;
-  cerr << "nBestCandidates=" << Debug(nBestCandidates, 0) << endl;
+  cerr << "hypo2BeamSize=" << hypo2BeamSize.Debug(0) << endl;
+  cerr << "hypo2Candidate=" << hypo2Candidate.Debug(0) << endl;
+  cerr << "batch2Hypo=" << batch2Hypo.Debug(0) << endl;
+  cerr << "nBest=" << nBest.Debug(0) << endl;
+  cerr << "nBestCandidates=" << nBestCandidates.Debug(0) << endl;
   cerr << endl;
-  */
+  //*/
   MatrixWrapper<float> inWrap(in);
   MatrixWrapper<float> b4Wrap(b4);
   VectorWrapper<uint> hypo2BeamSizeWrap(hypo2BeamSize);
