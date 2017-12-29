@@ -181,7 +181,7 @@ void EncoderDecoder::DecodeAsyncInternal()
 
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal2" << endl;
-    //std::cerr << "histories2=" << histories.Debug(1) << std::endl;
+    std::cerr << "histories2=" << histories.Debug(1) << std::endl;
     decoder_->Decode(ednextState.GetStates(),
                      edstate.GetStates(),
                      edstate.GetEmbeddings(),
@@ -197,22 +197,22 @@ void EncoderDecoder::DecodeAsyncInternal()
     histories.SetNewBeamSize(maxBeamSize);
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal4" << endl;
-    std::cerr << "histories4=" << histories.Debug(1) << std::endl;
+    //std::cerr << "histories4=" << histories.Debug(1) << std::endl;
 
     CalcBeam(search_.GetBestHyps(), histories, *state, *nextState, search_.GetFilterIndices());
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal5" << endl;
     //std::cerr << "histories5=" << histories.Debug(1) << std::endl;
 
-    //if (histories.GetNumActive() == 0) {
-    if ((histories.size() - histories.GetNumActive()) > 0) {
+    if (histories.GetNumActive() == 0) {
+    //if ((histories.size() - histories.GetNumActive()) > 0) {
 
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal6" << endl;
       //std::cerr << "histories6=" << histories.Debug(1) << std::endl;
 
-      //InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
-      FetchBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
+      InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
+      //FetchBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal7" << endl;
       //std::cerr << "histories7=" << histories.Debug(1) << std::endl;

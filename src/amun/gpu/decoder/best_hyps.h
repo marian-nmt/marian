@@ -52,7 +52,7 @@ class BestHyps : public BestHypsBase
                    std::vector<unsigned>& outKeys);
 
     void getNBestList(const Histories& histories,
-                      mblas::Matrix& Probs,
+                      const mblas::Matrix& Probs,
                       mblas::Vector<NthOutBatch> &nBest,
                       std::vector<float>& outCosts,
                       std::vector<uint>& outKeys) const;

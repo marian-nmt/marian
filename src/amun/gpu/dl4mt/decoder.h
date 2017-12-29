@@ -578,7 +578,9 @@ class Decoder {
                   const mblas::Matrix& AlignedSourceContext,
                   bool useFusedSoftmax)
     {
+      //std::cerr << "Probs_1=" << Probs_.Debug(1) << std::endl;
       softmax_.GetProbs(Probs_, b4_, State, Embedding, AlignedSourceContext, useFusedSoftmax);
+      //std::cerr << "Probs_2=" << Probs_.Debug(1) << std::endl;
     }
 
     std::unique_ptr<Cell> InitHiddenCell(const Weights& model, const YAML::Node& config){
