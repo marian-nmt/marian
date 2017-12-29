@@ -1084,8 +1084,8 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidates,
     uint candidateInd = hypo2Candidate[hypoInd];
     for (uint i = 0; i < beamSize; ++i) {
       const NthOutBatch &curr = nBestMatrix(0, i, 0, 0);
-      //printf("vocabInd=%u \n", best.vocabInd);
 
+      printf("candidateInd=%u nBestCandidates=%u \n", candidateInd, nBestCandidates.size());
       assert(candidateInd + i < nBestCandidates.size());
       nBestCandidates[candidateInd + i] = curr;
     }

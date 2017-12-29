@@ -17,38 +17,6 @@ namespace mblas {
 
 using namespace thrust::placeholders;
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-template<typename T>
-__global__ void gSum(const T *data, size_t count, T &ret)
-{
-  ret = 0;
-  for (size_t i = 0; i < count; ++i) {
-    ret += data[i];
-  }
-}
-
-template<typename T>
-T Sum(const T *data, size_t count)
-{
-  T ret;
-  T *d_ret;
-  HANDLE_ERROR( cudaMalloc(&d_ret, sizeof(T)) );
-
-  const cudaStream_t stream = CudaStreamHandler::GetStream();
-
-  HANDLE_ERROR( cudaStreamSynchronize(stream));
-  gSum<<<1, 1, 0, stream>>>(data, count, *d_ret);
-  HANDLE_ERROR( cudaMemcpyAsync(&ret, d_ret, sizeof(T), cudaMemcpyDeviceToHost, stream) );
-
-  HANDLE_ERROR( cudaStreamSynchronize(stream));
-  HANDLE_ERROR(cudaFree(d_ret));
-
-  return ret;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
 template <typename T>
 class TMatrix : public BaseMatrix {
   public:
@@ -136,25 +104,7 @@ class TMatrix : public BaseMatrix {
           << std::flush;
 
       if (verbosity) {
-        T sum = Sum(data(), size());
-        strm << "sum=" << sum << std::flush;
-
-        if (verbosity == 2) {
-          const cudaStream_t& stream = CudaStreamHandler::GetStream();
-          T h_data[size()];
-
-          HANDLE_ERROR( cudaMemcpyAsync(
-              &h_data,
-              vec_.data(),
-              size() * sizeof(T),
-              cudaMemcpyDeviceToHost,
-              stream) );
-          HANDLE_ERROR( cudaStreamSynchronize(stream) );
-
-          for (size_t i = 0; i < size(); ++i) {
-            strm << " " << h_data[i];
-          }
-        }
+        strm << vec_.Debug(verbosity);
       }
 
       return strm.str();
