@@ -106,7 +106,7 @@ public:
 
   ~Vector()
   {
-    std::cerr << "~Vector=" << maxSize_ << " " << this << std::endl;
+    //std::cerr << "~Vector=" << maxSize_ << " " << this << std::endl;
     HANDLE_ERROR(cudaFree(data_));
   }
 
