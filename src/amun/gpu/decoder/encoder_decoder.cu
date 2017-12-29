@@ -179,7 +179,8 @@ void EncoderDecoder::DecodeAsyncInternal()
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal2" << endl;
     std::cerr << "histories2=" << histories.Debug(1) << std::endl;
-    std::cerr << "nextState0=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
+    //std::cerr << "state0=" << state->Debug(0) << std::endl;
+    //std::cerr << "nextState0=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
     decoder_->Decode(nextState->get<EDState>().GetStates(),
                     state->get<EDState>().GetStates(),
                     state->get<EDState>().GetEmbeddings(),
@@ -191,19 +192,22 @@ void EncoderDecoder::DecodeAsyncInternal()
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal3" << endl;
     //std::cerr << "histories3=" << histories.Debug(1) << std::endl;
-    std::cerr << "nextState1=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
+    //std::cerr << "state1=" << state->Debug(0) << std::endl;
+    //std::cerr << "nextState1=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
     histories.SetNewBeamSize(maxBeamSize);
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal4" << endl;
     //std::cerr << "histories4=" << histories.Debug(1) << std::endl;
-    std::cerr << "nextState2=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
+    //std::cerr << "state2=" << state->Debug(0) << std::endl;
+    //std::cerr << "nextState2=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
     CalcBeam(search_.GetBestHyps(), histories, *state, *nextState, search_.GetFilterIndices());
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal5" << endl;
     //std::cerr << "histories5=" << histories.Debug(1) << std::endl;
-    std::cerr << "nextState3=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
+    //std::cerr << "state3=" << state->Debug(0) << std::endl;
+    //std::cerr << "nextState3=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
     //if (histories.GetNumActive() == 0) {
     if ((histories.size() - histories.GetNumActive()) > 0) {
@@ -217,13 +221,16 @@ void EncoderDecoder::DecodeAsyncInternal()
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal7" << endl;
       //std::cerr << "histories7=" << histories.Debug(1) << std::endl;
-      std::cerr << "nextState4=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
+      //std::cerr << "state4=" << state->Debug(0) << std::endl;
+      //std::cerr << "nextState4=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
     }
     else {
       AssembleBeamState(histories, *nextState, *state);
-      std::cerr << "nextState5=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
+      //std::cerr << "state5=" << state->Debug(0) << std::endl;
+      //std::cerr << "nextState5=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
     }
-    std::cerr << "nextState6=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
+    //std::cerr << "state6=" << state->Debug(0) << std::endl;
+    //std::cerr << "nextState6=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal8" << endl;
@@ -316,7 +323,6 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   size_t numSentToGet = god_.Get<uint>("mini-batch") - histories.GetNumActive();
   /*
   cerr << "FetchBatch2" << endl;
-  cerr << "histories.GetNumActive()=" << histories.GetNumActive() << endl;
   cerr << "numSentToGet=" << numSentToGet << endl;
   cerr << "histories=" << histories.Debug() << endl;
   */
@@ -360,7 +366,6 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   size_t maxLength =  histories.MaxLength();
   /*
   cerr << "histories=" << histories.Debug() << endl;
-  cerr << "GetNumActive=" << histories.GetNumActive() << endl;
   cerr << "maxLength=" << maxLength << endl;
   cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
   */
@@ -447,8 +452,8 @@ void EncoderDecoder::AssembleBeamState(const State& state,
 }
 
 void EncoderDecoder::AssembleBeamState(const Histories& histories,
-                                        const State& state,
-                                        State& nextState) const
+                                        const State& inState,
+                                        State& outState) const
 {
   //BEGIN_TIMER("AssembleBeamState");
   std::vector<uint> beamWords;
@@ -466,8 +471,8 @@ void EncoderDecoder::AssembleBeamState(const Histories& histories,
   //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
   //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
 
-  const EDState& edState = state.get<EDState>();
-  EDState& edNextState = nextState.get<EDState>();
+  const EDState& edInState = inState.get<EDState>();
+  EDState& edOutState = outState.get<EDState>();
 
   thread_local mblas::Vector<uint> indices;
   indices.newSize(beamStateIds.size());
@@ -479,31 +484,31 @@ void EncoderDecoder::AssembleBeamState(const Histories& histories,
               indices.data(),
               cudaMemcpyHostToDevice);
 
-  CellState& outstates = edNextState.GetStates();
-  const CellState& instates = edState.GetStates();
+  CellState& cellOutStates = edOutState.GetStates();
+  const CellState& cellInstates = edInState.GetStates();
 
-  //cerr << "outstates.output=" << outstates.output->Debug(0) << endl;
-  //cerr << "instates.output=" << instates.output->Debug(0) << endl;
+  //cerr << "cellOutStates.output=" << cellOutStates.output->Debug(0) << endl;
+  //cerr << "cellInstates.output=" << cellInstates.output->Debug(0) << endl;
   //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
   //cerr << "indices=" << indices.Debug(2) << endl;
 
-  mblas::Assemble(*(outstates.output), *(instates.output), indices);
-  if (instates.cell->size() > 0) {
-    mblas::Assemble(*(outstates.cell), *(instates.cell), indices);
+  mblas::Assemble(*(cellOutStates.output), *(cellInstates.output), indices);
+  if (cellInstates.cell->size() > 0) {
+    mblas::Assemble(*(cellOutStates.cell), *(cellInstates.cell), indices);
   }
-  //cerr << "edNextState.GetStates()=" << edNextState.GetStates().Debug(1) << endl;
+  //cerr << "edOutState.GetStates()=" << edOutState.GetStates().Debug(1) << endl;
 
   //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
-  decoder_->Lookup(edNextState.GetEmbeddings(), beamWords);
-  //cerr << "edNextState.GetEmbeddings()=" << edNextState.GetEmbeddings().Debug(1) << endl;
+  decoder_->Lookup(edOutState.GetEmbeddings(), beamWords);
+  //cerr << "edOutState.GetEmbeddings()=" << edOutState.GetEmbeddings().Debug(1) << endl;
   //PAUSE_TIMER("AssembleBeamState");
 }
 
 void EncoderDecoder::AssembleBeamState(const std::vector<uint> newBatchIds,
                                         const mblas::Vector<uint> &d_newBatchIds,
                                         const Histories& histories,
-                                        const State& state,
-                                        State& nextState) const
+                                        const State& inState,
+                                        State& outState) const
 {
   //BEGIN_TIMER("AssembleBeamState");
   std::vector<uint> beamWords;
@@ -519,13 +524,13 @@ void EncoderDecoder::AssembleBeamState(const std::vector<uint> newBatchIds,
     }
   }
 
-  //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
-  //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
+  cerr << "beamWords=" << Debug(beamWords, 2) << endl;
+  cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "AssembleBeamState1" << endl;
 
-  const EDState& edState = state.get<EDState>();
-  EDState& edNextState = nextState.get<EDState>();
+  const EDState& edInState = inState.get<EDState>();
+  EDState& edOutState = outState.get<EDState>();
 
   thread_local mblas::Vector<uint> indices;
   indices.newSize(beamStateIds.size());
@@ -539,28 +544,29 @@ void EncoderDecoder::AssembleBeamState(const std::vector<uint> newBatchIds,
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "AssembleBeamState2" << endl;
 
-  CellState& outstates = edNextState.GetStates();
-  const CellState& instates = edState.GetStates();
+  CellState& cellOutStates = edOutState.GetStates();
+  const CellState& cellInstates = edInState.GetStates();
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "AssembleBeamState3" << endl;
 
-  //cerr << "outstates.output=" << outstates.output->Debug(0) << endl;
-  //cerr << "instates.output=" << instates.output->Debug(0) << endl;
+  cerr << "cellOutStates1=" << cellOutStates.Debug(0) << endl;
+  //cerr << "cellInstates.output=" << cellInstates.output->Debug(0) << endl;
   //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
   //cerr << "indices=" << indices.Debug(2) << endl;
 
-  mblas::Assemble(*(outstates.output), *(instates.output), indices);
+  mblas::Assemble(*(cellOutStates.output), *(cellInstates.output), indices);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "AssembleBeamState4" << endl;
+  cerr << "cellOutStates2=" << cellOutStates.Debug(0) << endl;
 
-  if (instates.cell->size() > 0) {
-    mblas::Assemble(*(outstates.cell), *(instates.cell), indices);
+  if (cellInstates.cell->size() > 0) {
+    mblas::Assemble(*(cellOutStates.cell), *(cellInstates.cell), indices);
   }
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "AssembleBeamState5" << endl;
 
-  decoder_->Lookup(edNextState.GetEmbeddings(), beamWords);
-  //cerr << "edNextState.GetEmbeddings()=" << edNextState.GetEmbeddings().Debug(1) << endl;
+  decoder_->Lookup(edOutState.GetEmbeddings(), beamWords);
+  //cerr << ".GetEmbeddings()=" << .GetEmbeddings().Debug(1) << endl;
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "AssembleBeamState6" << endl;
 

@@ -11,8 +11,7 @@ namespace GPU {
 std::string EncoderDecoderState::Debug(size_t verbosity) const
 {
   stringstream strm;
-  strm << "states_.output=" << states_.output->Debug(verbosity);
-  strm << " states_.cell=" << (states_.cell == NULL ? "NULL" : states_.cell->Debug(verbosity));
+  strm << "states_=" << states_.Debug(verbosity);
   strm << " embeddings_=" << embeddings_.Debug(verbosity);
   return strm.str();
 }

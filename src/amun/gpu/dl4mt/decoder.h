@@ -309,9 +309,9 @@ class Decoder {
           //BEGIN_TIMER("GetProbs.Prod");
           Prod(/*h_[0],*/ T1_, *(State.output), *w_.W1_);
           //PAUSE_TIMER("GetProbs.Prod");
-          std::cerr << "T1_=" << T1_.Debug(0) << std::endl;
-          std::cerr << "State.output=" << State.output->Debug(0) << std::endl;
-          std::cerr << "w_.W1_=" << w_.W1_->Debug(0) << std::endl;
+          //std::cerr << "T1_=" << T1_.Debug(0) << std::endl;
+          //std::cerr << "State.output=" << State.output->Debug(0) << std::endl;
+          //std::cerr << "w_.W1_=" << w_.W1_->Debug(0) << std::endl;
 
           //BEGIN_TIMER("GetProbs.Normalization/BroadcastVec");
           if (w_.Gamma_1_->size()) {
@@ -430,13 +430,13 @@ class Decoder {
 
       //BEGIN_TIMER("GetHiddenState");
 
-      std::cerr << "1HiddenState_=" << HiddenState_.Debug(0) << std::endl;
+      //std::cerr << "1HiddenState_=" << HiddenState_.Debug(0) << std::endl;
       GetHiddenState(HiddenState_, State, Embeddings);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "Decode2" << std::endl;
-      std::cerr << "2HiddenState_=" << HiddenState_.Debug(0) << std::endl;
-      std::cerr << "State=" << State.Debug(0) << std::endl;
-      std::cerr << "Embeddings=" << Embeddings.Debug(0) << std::endl;
+      //std::cerr << "2HiddenState_=" << HiddenState_.Debug(0) << std::endl;
+      //std::cerr << "State=" << State.Debug(0) << std::endl;
+      //std::cerr << "Embeddings=" << Embeddings.Debug(0) << std::endl;
 
       //HiddenState_.ReduceDimensions();
       //std::std::cerr << "HiddenState_=" << HiddenState_.Debug(1) << std::std::endl;
