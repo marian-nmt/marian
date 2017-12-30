@@ -161,9 +161,9 @@ void  BestHyps::CalcBeam(
   cerr << "CalcBeam3" << endl;
   cerr << "histories=" << histories.Debug() << endl;
 
-  size_t beamSizeSum = histories.GetTotalBeamSize();
+  size_t numHypos = histories.GetTotalBeamSize();
   cerr << "CalcBeam4" << endl;
-  cerr << "beamSizeSum=" << beamSizeSum << endl;
+  cerr << "numHypos=" << numHypos << endl;
 
   std::vector<float> bestCosts;
   std::vector<unsigned> bestKeys;
@@ -172,10 +172,10 @@ void  BestHyps::CalcBeam(
     cerr << "CalcBeam5" << endl;
     const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorer.GetBias());
     mblas::Vector<NthOutBatch> &nBest = *static_cast<mblas::Vector<NthOutBatch>*>(scorer.GetNBest());
-    nBest.newSize(beamSizeSum);
+    nBest.newSize(numHypos);
 
     BEGIN_TIMER("GetProbs.LogSoftmaxAndNBest");
-    mblas::LogSoftmaxAndNBest(nBest, Probs, b4, costs_, forbidUNK_, maxBeamSize_, histories, beamSizeSum);
+    mblas::LogSoftmaxAndNBest(nBest, Probs, b4, costs_, forbidUNK_, maxBeamSize_, histories, numHypos);
     PAUSE_TIMER("GetProbs.LogSoftmaxAndNBest");
     //std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
 
@@ -198,16 +198,10 @@ void  BestHyps::CalcBeam(
   }
   cerr << "CalcBeam7" << endl;
 
-  std::map<size_t, size_t> batchMap;
-  size_t tmp = 0;
-  for (size_t batchID = 0; batchID < histories.size(); ++batchID) {
-    for (size_t t = 0; t < histories.GetBeamSize(batchID); ++t) {
-      batchMap[tmp++] = batchID;
-    }
-  }
+  std::vector<size_t> batchMap = histories.Hypo2Batch();
   cerr << "CalcBeam8" << endl;
 
-  for (size_t i = 0; i < beamSizeSum; i++) {
+  for (size_t i = 0; i < numHypos; i++) {
     size_t wordIndex = bestKeys[i] % Probs.dim(1);
     if (isInputFiltered_) {
       wordIndex = filterIndices[wordIndex];

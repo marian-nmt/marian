@@ -1298,7 +1298,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 bool forbidUNK,
                 uint maxBeamSize,
                 const Histories& beamSizes,
-                uint beamSizeSum)
+                size_t beamSizeSum)
 {
   //BEGIN_TIMER("LogSoftmax excl kernels");
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));

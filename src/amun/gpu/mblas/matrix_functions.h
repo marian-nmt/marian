@@ -423,7 +423,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 bool forbidUNK,
                 uint maxBeamSize,
                 const Histories& beamSizes,
-                uint beamSizeSum);
+                size_t beamSizeSum);
 
 void UpdateSentenceLengths(const mblas::Vector<uint> &newSentenceLengths,
                           const mblas::Vector<uint> &newBatchIds,
