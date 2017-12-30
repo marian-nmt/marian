@@ -199,9 +199,9 @@ Hypotheses Histories::GetSurvivors() const
   return ret;
 }
 
-std::vector<uint> Histories::Hypo2Batch() const
+std::vector<size_t> Histories::Hypo2Batch() const
 {
-  std::vector<uint> ret;
+  std::vector<size_t> ret;
   for (size_t i = 0; i < coll_.size(); ++i) {
     const HistoriesElementPtr &ele = coll_[i];
     if (ele) {

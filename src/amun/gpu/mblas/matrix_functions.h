@@ -85,7 +85,7 @@ void Mean(Matrix& Out,
           const Matrix& In,
           const mblas::Vector<uint> &sentenceLengths);
 
-void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Vector<uint>& mapping);
+void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Vector<size_t>& hypo2Batch);
 
 Matrix& Transpose(Matrix& Out, const Matrix& In);
 
@@ -126,7 +126,7 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transB = false);
 
 Matrix& Softmax(Matrix& Out,
-                const mblas::Vector<uint>& batchIds,
+                const mblas::Vector<size_t>& hypo2Batch,
                 const mblas::Vector<uint> &sentenceLengths,
                 size_t batchSize);
 
@@ -137,7 +137,7 @@ __global__ void gBroadcast(Functor functor,
                            MatrixWrapper<float> outWrap,
                            const MatrixWrapper<float> in1Wrap,
                            const MatrixWrapper<float> in2Wrap,
-                           const VectorWrapper<uint> batchMappingWrap)
+                           const VectorWrapper<size_t> hypo2Batch)
 {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < outWrap.size()) {
@@ -159,7 +159,7 @@ __global__ void gBroadcast(Functor functor,
     uint beamIdx = row / srcSize;
     uint srcId = row % srcSize;
 
-    uint batchIdx = batchMappingWrap[ beamIdx ];
+    uint batchIdx = hypo2Batch[ beamIdx ];
 
 
     outWrap[id] = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
@@ -176,7 +176,7 @@ Matrix& Broadcast(Functor functor,
                   Matrix& out,
                   const Matrix& in1,
                   const Matrix& in2,
-                  const mblas::Vector<uint>& batchMapping,
+                  const mblas::Vector<size_t>& hypo2Batch,
                   size_t srcSize)
 {
   BEGIN_TIMER("Broadcast");
@@ -190,7 +190,7 @@ Matrix& Broadcast(Functor functor,
   MatrixWrapper<float> outWrap(out);
   const MatrixWrapper<float> in1Wrap(in1);
   const MatrixWrapper<float> in2Wrap(in2);
-  const VectorWrapper<uint> batchMappingWrap(batchMapping);
+  const VectorWrapper<size_t> hypo2BatchWrap(hypo2Batch);
 
   uint size = out.size();
   uint threads = std::min((uint) MAX_THREADS, (uint)size);
@@ -208,7 +208,7 @@ Matrix& Broadcast(Functor functor,
   std::cerr << std::endl;
   */
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (functor, outWrap, in1Wrap, in2Wrap, batchMappingWrap);
+    (functor, outWrap, in1Wrap, in2Wrap, hypo2BatchWrap);
 
   HANDLE_ERROR(cudaDeviceSynchronize());
 

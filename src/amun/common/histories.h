@@ -98,7 +98,7 @@ public:
   void Add(const God &god);
   Hypotheses GetSurvivors() const;
 
-  std::vector<uint> Hypo2Batch() const;
+  std::vector<size_t> Hypo2Batch() const;
 
   void OutputAll(const God &god);
 

@@ -85,7 +85,7 @@ void Mean(Matrix& Out,
 __global__ void gWeightedMean(MatrixWrapper<float> out,
                               const MatrixWrapper<float> weights,
                               const MatrixWrapper<float> in,
-                              const VectorWrapper<uint> mapping
+                              const VectorWrapper<size_t> hypo2Batch
                               )
 {
   int numHypos = weights.dim(0);
@@ -95,7 +95,7 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < numHypos * states) {
     int hypoInd = id / states;
-    int batchInd = mapping[hypoInd];
+    int batchInd = hypo2Batch[hypoInd];
     int stateInd = id % states;
     //printf("hypoInd=%d batchInd=%d stateInd=%d \n", hypoInd, batchInd, stateInd);
 
@@ -108,7 +108,7 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
   }
 }
 
-void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Vector<uint>& mapping)
+void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Vector<size_t>& hypo2Batch)
 {
   int numHypos = Weights.dim(0);
   int states = In.dim(1);
@@ -118,14 +118,14 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mbl
   MatrixWrapper<float> outWrap(Out);
   MatrixWrapper<float> weightsWrap(Weights);
   MatrixWrapper<float> inWrap(In);
-  VectorWrapper<uint> mappingWrap(mapping);
+  VectorWrapper<size_t> hypo2BatchWrap(hypo2Batch);
 
   uint size = Out.size();
   uint nThreads = std::min((uint) MAX_THREADS, (uint)size);
   uint nBlocks =  (size / nThreads) + ((size % nThreads == 0) ?  0 : 1);
 
   gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
-    (outWrap, weightsWrap, inWrap, mappingWrap);
+    (outWrap, weightsWrap, inWrap, hypo2BatchWrap);
   /*
   cerr << "nBlocks=" << nBlocks << endl;
 
@@ -429,7 +429,7 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
 }
 
 __global__ void gSoftMax(MatrixWrapper<float> out,
-                         const VectorWrapper<uint> batchIdsWrap,
+                         const VectorWrapper<size_t> hypo2BatchWrap,
                          const VectorWrapper<uint> sentenceLengthsWrap,
                          uint shareSize)
 {
@@ -449,7 +449,7 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
       if (srcPos < maxLength) {
         float value = out(hypoInd, srcPos, 0, 0);
 
-        int batch = batchIdsWrap[hypoInd];
+        int batch = hypo2BatchWrap[hypoInd];
         value *= srcPos < sentenceLengthsWrap[batch] ? 1 : 0;
         if (value > _max[origSrcPos]) {
           _max[origSrcPos] = value;
@@ -481,7 +481,7 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
       if (srcPos < maxLength) {
         out(hypoInd, srcPos, 0, 0) = __expf(out(hypoInd, srcPos, 0, 0) - max);
 
-        int batch = batchIdsWrap[hypoInd];
+        int batch = hypo2BatchWrap[hypoInd];
         out(hypoInd, srcPos, 0, 0) *= srcPos < sentenceLengthsWrap[batch] ? 1 : 0; // sentencesMappingWrap(srcPos, batch, 0, 0);
         _sum[origSrcPos] += out(hypoInd, srcPos, 0, 0);
       }
@@ -514,14 +514,14 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
 }
 
 Matrix& Softmax(Matrix& Out,
-                const mblas::Vector<uint>& batchIds,
+                const mblas::Vector<size_t>& hypo2Batch,
                 const mblas::Vector<uint> &sentenceLengths,
                 size_t batchSize)
 {
   size_t maxLength = Out.dim(1);
 
   MatrixWrapper<float> outWrap(Out);
-  const VectorWrapper<uint> batchIdsWrap(batchIds);
+  const VectorWrapper<size_t> hypo2BatchWrap(hypo2Batch);
   const VectorWrapper<uint> sentenceLengthsWrap(sentenceLengths);
 
   int blocks = batchSize;
@@ -529,7 +529,7 @@ Matrix& Softmax(Matrix& Out,
   int shared = sizeof(float) * threads;
 
   gSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
-    (outWrap, batchIdsWrap, sentenceLengthsWrap, threads);
+    (outWrap, hypo2BatchWrap, sentenceLengthsWrap, threads);
 
   return Out;
 }

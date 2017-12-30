@@ -201,7 +201,7 @@ class Decoder {
 
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           //std::cerr << "GetAlignedSourceContext2" << std::endl;
-          std::vector<uint> hypo2Batch = histories.Hypo2Batch();
+          std::vector<size_t> hypo2Batch = histories.Hypo2Batch();
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           //std::cerr << "GetAlignedSourceContext3=" << std::endl;
           //std::cerr << "hypo2Sentence=" << Debug(hypo2Batch, 2) << std::endl;
@@ -267,7 +267,7 @@ class Decoder {
       private:
         const Weights& w_;
 
-        mblas::Vector<uint> dHypo2Batch_;
+        mblas::Vector<size_t> dHypo2Batch_;
 
         mblas::Matrix Temp1_;
         mblas::Matrix Temp2_;
