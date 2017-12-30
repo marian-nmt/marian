@@ -455,7 +455,7 @@ void EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
   //cerr << "CalcBeam1" << endl;
   Hypotheses prevHypos = histories.GetSurvivors();
   //cerr << "CalcBeam2" << endl;
-  cerr << "histories=" << histories.Debug() << endl;
+  cerr << "1histories=" << histories.Debug() << endl;
   cerr << "prevHypos=" << prevHypos.size() << endl;
 
   histories.StartCalcBeam();

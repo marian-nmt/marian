@@ -160,7 +160,7 @@ void  BestHyps::CalcBeam(
               cudaMemcpyHostToDevice);
   //mblas::copy(vCosts.begin(), vCosts.end(), costs_.begin());
   //cerr << "CalcBeam3" << endl;
-  cerr << "histories=" << histories.Debug() << endl;
+  //cerr << "2histories=" << histories.Debug() << endl;
 
   size_t numHypos = histories.GetTotalBeamSize();
   //cerr << "CalcBeam4" << endl;
