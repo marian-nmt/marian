@@ -190,7 +190,7 @@ class Decoder {
           uint maxLength = SourceContext.dim(0);
           uint batchSize = SourceContext.dim(3);
           //std::cerr << "batchSize=" << batchSize << std::endl;
-          //std::cerr << "HiddenState=" << HiddenState.Debug(0) << std::endl;
+          std::cerr << "HiddenState=" << HiddenState.Debug(0) << std::endl;
           //uint maxLength = GetMaxLength(h_sentenceLengths, histories);
           /*
           std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
