@@ -90,7 +90,7 @@ class EncoderDecoder : public Scorer {
                     State &nextState,
                     State &state);
 
-    void BeginSentenceState(size_t batchSize,
+    void BeginSentenceState(const Histories& histories,
                             const mblas::Matrix &sourceContext,
                             const mblas::Vector<uint> &sentenceLengths,
                             State& state,

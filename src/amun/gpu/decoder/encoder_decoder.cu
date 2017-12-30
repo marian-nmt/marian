@@ -289,7 +289,7 @@ void EncoderDecoder::InitBatch(Histories &histories,
   //cerr << "histories=" << histories.Debug() << endl;
 
   //cerr << "SCU1=" << SCU.Debug(0) << endl;
-  BeginSentenceState(histories.NumActive(), sourceContext, sentenceLengths, state, SCU);
+  BeginSentenceState(histories, sourceContext, sentenceLengths, state, SCU);
   //cerr << "SCU2=" << SCU.Debug(0) << endl;
 
   return;
@@ -406,7 +406,7 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   cerr << endl;
 }
 
-void EncoderDecoder::BeginSentenceState(size_t batchSize,
+void EncoderDecoder::BeginSentenceState(const Histories& histories,
                                         const mblas::Matrix &sourceContext,
                                         const mblas::Vector<uint> &sentenceLengths,
                                         State& state,
@@ -414,8 +414,9 @@ void EncoderDecoder::BeginSentenceState(size_t batchSize,
 {
   //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();
+  size_t batchSize = histories.NumActive();
 
-  decoder_->EmptyState(edState.GetStates(), batchSize, sourceContext, sentenceLengths, SCU);
+  decoder_->EmptyState(edState.GetStates(), histories, sourceContext, sentenceLengths, SCU);
 
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
   //PAUSE_TIMER("BeginSentenceState");
@@ -433,7 +434,7 @@ void EncoderDecoder::BeginSentenceState(const Histories& histories,
   EDState& edState = state.get<EDState>();
   size_t batchSize = histories.NumActive();
 
-  decoder_->EmptyState(edState.GetStates(), batchSize, sourceContext, sentenceLengths, SCU, newBatchIds, d_newBatchIds);
+  decoder_->EmptyState(edState.GetStates(), histories, sourceContext, sentenceLengths, SCU, newBatchIds, d_newBatchIds);
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), histories.GetTotalBeamSize(), newBatchIds, d_newBatchIds);
   //PAUSE_TIMER("BeginSentenceState");
 }

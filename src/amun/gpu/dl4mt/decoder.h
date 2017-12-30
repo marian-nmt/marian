@@ -66,24 +66,26 @@ class Decoder {
         {}
 
         void InitializeState(CellState& State,
-                             const size_t batchSize,
+                             const Histories& histories,
                              const mblas::Matrix &SourceContext,
                              const mblas::Vector<uint> &sentenceLengths) const
         {
           using namespace mblas;
           //std::cerr << "cell1=" << State.cell->Debug(0) << std::endl;
           //std::cerr << "output1=" << State.output->Debug(0) << std::endl;
+          //size_t batchSize = histories.NumActive();
+          size_t numHypos = histories.GetTotalBeamSize();
 
           CellLength cellLength = gru_->GetStateLength();
           if (cellLength.cell > 0) {
-            State.cell->NewSize(batchSize, cellLength.cell);
+            State.cell->NewSize(numHypos, cellLength.cell);
             mblas::Fill(*(State.cell), 0.0f);
           }
           //std::cerr << "cell2=" << State.cell->Debug(0) << std::endl;
           //std::cerr << "output2=" << State.output->Debug(0) << std::endl;
 
           thread_local mblas::Matrix Temp2;
-          Temp2.NewSize(batchSize, SourceContext.dim(1), 1, 1);
+          Temp2.NewSize(numHypos, SourceContext.dim(1), 1, 1);
 
           Mean(Temp2, SourceContext, sentenceLengths);
 
@@ -470,24 +472,24 @@ class Decoder {
     }
 
     void EmptyState(CellState& State,
-                    size_t batchSize,
+                    const Histories& histories,
                     const mblas::Matrix &SourceContext,
                     const mblas::Vector<uint> &sentenceLengths,
                     mblas::Matrix& SCU) const
     {
-      rnn1_.InitializeState(State, batchSize, SourceContext, sentenceLengths);
+      rnn1_.InitializeState(State, histories, SourceContext, sentenceLengths);
       alignment_.Init(SourceContext, SCU);
     }
 
     void EmptyState(CellState& State,
-                    size_t batchSize,
+                    const Histories& histories,
                     const mblas::Matrix &SourceContext,
                     const mblas::Vector<uint> &sentenceLengths,
                     mblas::Matrix& SCU,
                     const std::vector<uint> &newBatchIds,
                     const mblas::Vector<uint> &d_newBatchIds) const
     {
-      rnn1_.InitializeState(State, batchSize, SourceContext, sentenceLengths);
+      rnn1_.InitializeState(State, histories, SourceContext, sentenceLengths);
       alignment_.Init(SourceContext, SCU);
     }
 
