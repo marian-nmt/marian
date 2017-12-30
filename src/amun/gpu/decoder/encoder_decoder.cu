@@ -181,6 +181,8 @@ void EncoderDecoder::DecodeAsyncInternal()
     std::cerr << "histories2=" << histories.Debug(1) << std::endl;
     //std::cerr << "state0=" << state->Debug(0) << std::endl;
     //std::cerr << "nextState0=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
+    std::cerr << "embeddings=" << state->get<EDState>().GetEmbeddings().Debug(0) << std::endl;
+
     decoder_->Decode(nextState->get<EDState>().GetStates(),
                     state->get<EDState>().GetStates(),
                     state->get<EDState>().GetEmbeddings(),
@@ -396,7 +398,7 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "FetchBatch10" << endl;
 
-  BeginSentenceState(histories.NumActive(), sourceContext, sentenceLengths, nextState, SCU, newBatchIds, d_newBatchIds);
+  BeginSentenceState(histories, sourceContext, sentenceLengths, nextState, SCU, newBatchIds, d_newBatchIds);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "FetchBatch11" << endl;
 
@@ -419,7 +421,7 @@ void EncoderDecoder::BeginSentenceState(size_t batchSize,
   //PAUSE_TIMER("BeginSentenceState");
 }
 
-void EncoderDecoder::BeginSentenceState(size_t batchSize,
+void EncoderDecoder::BeginSentenceState(const Histories& histories,
                                         const mblas::Matrix &sourceContext,
                                         const mblas::Vector<uint> &sentenceLengths,
                                         State& state,
@@ -430,10 +432,18 @@ void EncoderDecoder::BeginSentenceState(size_t batchSize,
   //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();
 
+  size_t batchSize = histories.NumActive();
+
   decoder_->EmptyState(edState.GetStates(), batchSize, sourceContext, sentenceLengths, SCU, newBatchIds, d_newBatchIds);
 
-  decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize, newBatchIds, d_newBatchIds);
+  std::cerr << "histories=" << histories.Debug(1) << std::endl;
+  cerr << "batchSize=" << batchSize << endl;
+  cerr << "newBatchIds=" << Debug(newBatchIds,2) << endl;
+  std::cerr << "1Embeddings=" << edState.GetEmbeddings().Debug(0) << std::endl;
+
+  decoder_->EmptyEmbedding(edState.GetEmbeddings(), histories.GetTotalBeamSize(), newBatchIds, d_newBatchIds);
   //PAUSE_TIMER("BeginSentenceState");
+  std::cerr << "2Embeddings=" << edState.GetEmbeddings().Debug(0) << std::endl;
 }
 
 void EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,

@@ -205,7 +205,7 @@ class Decoder {
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           //std::cerr << "GetAlignedSourceContext3=" << std::endl;
           //std::cerr << "batchMapping=" << batchMapping.size() << std::endl;
-          //std::cerr << "HiddenState.output=" << HiddenState.output->Debug() << std::endl;
+          std::cerr << "HiddenState.output=" << HiddenState.output->Debug() << std::endl;
 
           size_t k = 0;
           for (size_t i = 0; i < histories.size(); ++i) {
@@ -435,6 +435,8 @@ class Decoder {
       //BEGIN_TIMER("GetHiddenState");
 
       //std::cerr << "1HiddenState_=" << HiddenState_.Debug(0) << std::endl;
+      //std::cerr << "State=" << State.Debug(0) << std::endl;
+      //std::cerr << "Embeddings=" << Embeddings.Debug(0) << std::endl;
       GetHiddenState(HiddenState_, State, Embeddings);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "Decode2" << std::endl;
@@ -508,11 +510,11 @@ class Decoder {
     }
 
     void EmptyEmbedding(mblas::Matrix& Embedding,
-                        size_t batchSize,
+                        size_t totalBeamSize,
                         const std::vector<uint> &newBatchIds,
                         const mblas::Vector<uint> &d_newBatchIds) const
     {
-      Embedding.NewSize(batchSize, embeddings_.GetCols());
+      Embedding.NewSize(totalBeamSize, embeddings_.GetCols());
       mblas::Fill(Embedding, 0);
     }
 

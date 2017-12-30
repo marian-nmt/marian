@@ -154,10 +154,9 @@ class FastGRU: public Cell {
                       const mblas::Matrix& Context) const {
       using namespace mblas;
 
-      //std::cerr << std::endl;
-      //std::cerr << "1RUH_=" << RUH_.Debug(1) << std::endl;
+      //std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
+      //std::cerr << "State=" << State.Debug(1) << std::endl;
       //std::cerr << "Context=" << Context.Debug(1) << std::endl;
-      //std::cerr << "WWx_" << WWx_.Debug(1) << std::endl;
 
       Prod(RUH_, Context, WWx_);
 

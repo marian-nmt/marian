@@ -92,6 +92,7 @@ public:
   void SetNewBeamSize(unsigned val);
 
   std::vector<unsigned> GetBeamSizes() const;
+  size_t GetTotalBeamSize() const;
   std::vector<char> IsFirsts() const;
 
   void Add(const God &god);

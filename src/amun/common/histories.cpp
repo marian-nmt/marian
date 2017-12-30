@@ -119,6 +119,15 @@ std::vector<unsigned> Histories::GetBeamSizes() const
   return ret;
 }
 
+size_t Histories::GetTotalBeamSize() const
+{
+  size_t ret = 0;
+  for (size_t i = 0; i < size(); ++i) {
+    ret += GetBeamSize(i);
+  }
+  return ret;
+}
+
 std::vector<char> Histories::IsFirsts() const
 {
   std::vector<char> ret(size());
