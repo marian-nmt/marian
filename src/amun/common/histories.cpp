@@ -199,6 +199,21 @@ Hypotheses Histories::GetSurvivors() const
   return ret;
 }
 
+std::vector<uint> Histories::Hypo2Batch() const
+{
+  std::vector<uint> ret;
+  for (size_t i = 0; i < coll_.size(); ++i) {
+    const HistoriesElementPtr &ele = coll_[i];
+    if (ele) {
+      for (size_t j = 0; j < ele->GetBeamSize(); ++j) {
+        ret.push_back(i);
+      }
+    }
+  }
+
+  return ret;
+}
+
 void Histories::OutputAll(const God &god)
 {
   for (size_t i = 0; i < coll_.size(); ++i) {
@@ -225,7 +240,7 @@ std::string Histories::Debug(size_t verbosity) const
       const HistoriesElementPtr &ele = coll_[i];
       if (ele) {
         //strm << " (" << ele.sentenceInd << "," << ele.size << ")";
-        strm << "(sent="
+        strm << "(" << i << ", sent="
               << ele->GetSentence()->GetLineNum() << " "
               <<  ele->GetBeamSize() << ") ";
       }

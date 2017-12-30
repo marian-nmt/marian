@@ -178,10 +178,10 @@ void EncoderDecoder::DecodeAsyncInternal()
 
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal2" << endl;
-    std::cerr << "histories2=" << histories.Debug(1) << std::endl;
+    //std::cerr << "histories2=" << histories.Debug(1) << std::endl;
     //std::cerr << "state0=" << state->Debug(0) << std::endl;
     //std::cerr << "nextState0=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
-    std::cerr << "embeddings=" << state->get<EDState>().GetEmbeddings().Debug(0) << std::endl;
+    //std::cerr << "embeddings=" << state->get<EDState>().GetEmbeddings().Debug(0) << std::endl;
 
     decoder_->Decode(nextState->get<EDState>().GetStates(),
                     state->get<EDState>().GetStates(),
