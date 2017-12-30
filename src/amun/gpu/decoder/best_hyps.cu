@@ -145,6 +145,7 @@ void  BestHyps::CalcBeam(
   cerr << "CalcBeam1" << endl;
   mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorer.GetProbs());
   cerr << "Probs=" << Probs.Debug(0) << endl;
+  cerr << "prevHyps=" << prevHyps.size() << endl;
 
   std::vector<float> vCosts;
   for (const HypothesisPtr &h : prevHyps) {
@@ -202,13 +203,18 @@ void  BestHyps::CalcBeam(
   cerr << "CalcBeam8" << endl;
 
   for (size_t i = 0; i < numHypos; i++) {
+    cerr << "CalcBeam9=" << i << endl;
     size_t wordIndex = bestKeys[i] % Probs.dim(1);
     if (isInputFiltered_) {
       wordIndex = filterIndices[wordIndex];
     }
+    cerr << "CalcBeam10=" << i << endl;
 
     size_t hypIndex  = bestKeys[i] / Probs.dim(1);
     float cost = bestCosts[i];
+    cerr << "CalcBeam11=" << i << endl;
+    cerr << "bestKeys[i]=" << bestKeys[i] << endl;
+    cerr << "hypIndex=" << hypIndex << endl;
 
     HypothesisPtr hyp;
     if (returnAttentionWeights_) {
@@ -217,7 +223,7 @@ void  BestHyps::CalcBeam(
     } else {
       hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
     }
-    cerr << "CalcBeam9" << endl;
+    cerr << "CalcBeam12=" << i << endl;
 
     //cerr << "god_.ReturnNBestList()=" << god_.ReturnNBestList() << endl;
     if(god_.ReturnNBestList()) {
@@ -227,14 +233,18 @@ void  BestHyps::CalcBeam(
       hyp->GetCostBreakdown()[0] -= sum;
       hyp->GetCostBreakdown()[0] /= weights_.at(scorer.GetName());
     }
+    cerr << "CalcBeam13=" << i << endl;
 
     size_t batchInd = batchMap[i];
+    cerr << "CalcBeam14=" << i << endl;
     //cerr << "batchInd=" << batchInd << endl;
     HistoriesElementPtr &ele = histories.Get(batchInd);
+    cerr << "CalcBeam15=" << i << endl;
     assert(ele);
     ele->GetHypotheses().push_back(hyp);
+    cerr << "CalcBeam16=" << i << endl;
   }
-  cerr << "CalcBeam10" << endl;
+  cerr << "CalcBeam17" << endl;
 
   PAUSE_TIMER("CalcBeam");
 }
