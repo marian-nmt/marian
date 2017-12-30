@@ -68,13 +68,17 @@ class Decoder {
         void InitializeState(CellState& State,
                              const Histories& histories,
                              const mblas::Matrix &SourceContext,
-                             const mblas::Vector<uint> &sentenceLengths) const
+                             const mblas::Vector<uint> &sentenceLengths,
+                             bool topUp) const
         {
           using namespace mblas;
+          HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+          std::cerr << "InitializeState1" << std::endl;
+
           //std::cerr << "cell1=" << State.cell->Debug(0) << std::endl;
           //std::cerr << "output1=" << State.output->Debug(0) << std::endl;
-          //size_t batchSize = histories.NumActive();
           size_t numHypos = histories.GetTotalBeamSize();
+          std::cerr << "numHypos=" << numHypos << std::endl;
 
           CellLength cellLength = gru_->GetStateLength();
           if (cellLength.cell > 0) {
@@ -87,7 +91,13 @@ class Decoder {
           thread_local mblas::Matrix Temp2;
           Temp2.NewSize(numHypos, SourceContext.dim(1), 1, 1);
 
-          Mean(Temp2, SourceContext, sentenceLengths);
+          std::cerr << "Temp2=" << Temp2.Debug(0) << std::endl;
+          std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
+          std::cerr << "sentenceLengths=" << sentenceLengths.Debug(0) << std::endl;
+
+          if (!topUp) {
+            Mean(Temp2, SourceContext, sentenceLengths);
+          }
 
           Prod(*(State.output), Temp2, *w_.Wi_);
 
@@ -477,7 +487,7 @@ class Decoder {
                     const mblas::Vector<uint> &sentenceLengths,
                     mblas::Matrix& SCU) const
     {
-      rnn1_.InitializeState(State, histories, SourceContext, sentenceLengths);
+      rnn1_.InitializeState(State, histories, SourceContext, sentenceLengths, false);
       alignment_.Init(SourceContext, SCU);
     }
 
@@ -489,8 +499,16 @@ class Decoder {
                     const std::vector<uint> &newBatchIds,
                     const mblas::Vector<uint> &d_newBatchIds) const
     {
-      rnn1_.InitializeState(State, histories, SourceContext, sentenceLengths);
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "EmptyState1" << std::endl;
+
+      rnn1_.InitializeState(State, histories, SourceContext, sentenceLengths, true);
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "EmptyState2" << std::endl;
+
       alignment_.Init(SourceContext, SCU);
+      HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+      std::cerr << "EmptyState3" << std::endl;
     }
 
     void EmptyEmbedding(mblas::Matrix& Embedding, size_t batchSize) const
