@@ -142,6 +142,7 @@ void  BestHyps::CalcBeam(
   BEGIN_TIMER("CalcBeam");
   using namespace mblas;
 
+  cerr << "CalcBeam1" << endl;
   mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorer.GetProbs());
   cerr << "Probs=" << Probs.Debug(0) << endl;
 
@@ -150,19 +151,25 @@ void  BestHyps::CalcBeam(
     assert(h);
     vCosts.push_back(h->GetCost());
   }
+  cerr << "CalcBeam2" << endl;
 
   mblas::copy(vCosts.data(),
               vCosts.size(),
               costs_.data(),
               cudaMemcpyHostToDevice);
   //mblas::copy(vCosts.begin(), vCosts.end(), costs_.begin());
+  cerr << "CalcBeam3" << endl;
+  cerr << "histories=" << histories.Debug() << endl;
 
   size_t beamSizeSum = histories.GetTotalBeamSize();
+  cerr << "CalcBeam4" << endl;
+  cerr << "beamSizeSum=" << beamSizeSum << endl;
 
   std::vector<float> bestCosts;
   std::vector<unsigned> bestKeys;
 
   if (god_.UseFusedSoftmax()) {
+    cerr << "CalcBeam5" << endl;
     const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorer.GetBias());
     mblas::Vector<NthOutBatch> &nBest = *static_cast<mblas::Vector<NthOutBatch>*>(scorer.GetNBest());
     nBest.newSize(beamSizeSum);
@@ -183,11 +190,13 @@ void  BestHyps::CalcBeam(
 
     FindBests(histories, Probs, bestCosts, bestKeys);
   }
+  cerr << "CalcBeam6" << endl;
 
   std::vector<std::vector<float>> breakDowns;
   if (god_.ReturnNBestList()) {
       breakDowns.push_back(bestCosts);
   }
+  cerr << "CalcBeam7" << endl;
 
   std::map<size_t, size_t> batchMap;
   size_t tmp = 0;
@@ -196,6 +205,7 @@ void  BestHyps::CalcBeam(
       batchMap[tmp++] = batchID;
     }
   }
+  cerr << "CalcBeam8" << endl;
 
   for (size_t i = 0; i < beamSizeSum; i++) {
     size_t wordIndex = bestKeys[i] % Probs.dim(1);
@@ -213,6 +223,7 @@ void  BestHyps::CalcBeam(
     } else {
       hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
     }
+    cerr << "CalcBeam9" << endl;
 
     //cerr << "god_.ReturnNBestList()=" << god_.ReturnNBestList() << endl;
     if(god_.ReturnNBestList()) {
@@ -229,6 +240,7 @@ void  BestHyps::CalcBeam(
     assert(ele);
     ele->GetHypotheses().push_back(hyp);
   }
+  cerr << "CalcBeam10" << endl;
 
   PAUSE_TIMER("CalcBeam");
 }
