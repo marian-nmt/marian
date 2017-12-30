@@ -83,16 +83,6 @@ bool Histories::Empty(size_t ind) const
   return coll_[ind] == nullptr;
 }
 
-size_t Histories::Sum() const
-{
-  size_t ret = 0;
-  for (size_t i = 0; i < coll_.size(); ++i) {
-    ret += GetBeamSize(i);
-  }
-
-  return ret;
-}
-
 size_t Histories::MaxLength() const
 {
   size_t ret = 0;
@@ -240,9 +230,9 @@ std::string Histories::Debug(size_t verbosity) const
       const HistoriesElementPtr &ele = coll_[i];
       if (ele) {
         //strm << " (" << ele.sentenceInd << "," << ele.size << ")";
-        strm << "(" << i << ", sent="
-              << ele->GetSentence()->GetLineNum() << " "
-              <<  ele->GetBeamSize() << ") ";
+        strm << "(" << i
+              << ",sent=" << ele->GetSentence()->GetLineNum()
+              << ",beam=" << ele->GetBeamSize() << ") ";
       }
       else {
         strm << "NULL ";

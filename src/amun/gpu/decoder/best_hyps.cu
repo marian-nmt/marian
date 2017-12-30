@@ -157,7 +157,7 @@ void  BestHyps::CalcBeam(
               cudaMemcpyHostToDevice);
   //mblas::copy(vCosts.begin(), vCosts.end(), costs_.begin());
 
-  size_t beamSizeSum = histories.Sum();;
+  size_t beamSizeSum = histories.GetTotalBeamSize();
 
   std::vector<float> bestCosts;
   std::vector<unsigned> bestKeys;

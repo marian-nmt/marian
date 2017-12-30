@@ -62,6 +62,8 @@ class Histories
 {
 public:
   Histories(bool normalizeScore);
+  Histories() = delete;
+  Histories(const Histories&) = delete;
 
   void Init(const std::vector<BufferOutput> &newSentences);
 
@@ -84,8 +86,6 @@ public:
 
   size_t GetBeamSize(size_t ind) const;
   bool Empty(size_t ind) const;
-
-  size_t Sum() const;
 
   size_t MaxLength() const;
 
