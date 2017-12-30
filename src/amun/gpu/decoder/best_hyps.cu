@@ -142,7 +142,7 @@ void  BestHyps::CalcBeam(
   BEGIN_TIMER("CalcBeam");
   using namespace mblas;
 
-  cerr << "CalcBeam1" << endl;
+  //cerr << "CalcBeam1" << endl;
   mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorer.GetProbs());
   cerr << "Probs=" << Probs.Debug(0) << endl;
   cerr << "prevHyps=" << prevHyps.size() << endl;
@@ -152,18 +152,18 @@ void  BestHyps::CalcBeam(
     assert(h);
     vCosts.push_back(h->GetCost());
   }
-  cerr << "CalcBeam2" << endl;
+  //cerr << "CalcBeam2" << endl;
 
   mblas::copy(vCosts.data(),
               vCosts.size(),
               costs_.data(),
               cudaMemcpyHostToDevice);
   //mblas::copy(vCosts.begin(), vCosts.end(), costs_.begin());
-  cerr << "CalcBeam3" << endl;
+  //cerr << "CalcBeam3" << endl;
   cerr << "histories=" << histories.Debug() << endl;
 
   size_t numHypos = histories.GetTotalBeamSize();
-  cerr << "CalcBeam4" << endl;
+  //cerr << "CalcBeam4" << endl;
   cerr << "numHypos=" << numHypos << endl;
 
   std::vector<float> bestCosts;
@@ -191,24 +191,24 @@ void  BestHyps::CalcBeam(
 
     FindBests(histories, Probs, bestCosts, bestKeys);
   }
-  cerr << "CalcBeam6" << endl;
+  //cerr << "CalcBeam6" << endl;
 
   std::vector<std::vector<float>> breakDowns;
   if (god_.ReturnNBestList()) {
       breakDowns.push_back(bestCosts);
   }
-  cerr << "CalcBeam7" << endl;
+  //cerr << "CalcBeam7" << endl;
 
   std::vector<size_t> batchMap = histories.Hypo2Batch();
-  cerr << "CalcBeam8" << endl;
+  //cerr << "CalcBeam8" << endl;
 
   for (size_t i = 0; i < numHypos; i++) {
-    cerr << "CalcBeam9=" << i << endl;
+    //cerr << "CalcBeam9=" << i << endl;
     size_t wordIndex = bestKeys[i] % Probs.dim(1);
     if (isInputFiltered_) {
       wordIndex = filterIndices[wordIndex];
     }
-    cerr << "CalcBeam10=" << i << endl;
+    //cerr << "CalcBeam10=" << i << endl;
 
     size_t hypIndex  = bestKeys[i] / Probs.dim(1);
     float cost = bestCosts[i];
@@ -233,18 +233,18 @@ void  BestHyps::CalcBeam(
       hyp->GetCostBreakdown()[0] -= sum;
       hyp->GetCostBreakdown()[0] /= weights_.at(scorer.GetName());
     }
-    cerr << "CalcBeam13=" << i << endl;
+    //cerr << "CalcBeam13=" << i << endl;
 
     size_t batchInd = batchMap[i];
-    cerr << "CalcBeam14=" << i << endl;
+    //cerr << "CalcBeam14=" << i << endl;
     //cerr << "batchInd=" << batchInd << endl;
     HistoriesElementPtr &ele = histories.Get(batchInd);
-    cerr << "CalcBeam15=" << i << endl;
+    //cerr << "CalcBeam15=" << i << endl;
     assert(ele);
     ele->GetHypotheses().push_back(hyp);
-    cerr << "CalcBeam16=" << i << endl;
+    //cerr << "CalcBeam16=" << i << endl;
   }
-  cerr << "CalcBeam17" << endl;
+  //cerr << "CalcBeam17" << endl;
 
   PAUSE_TIMER("CalcBeam");
 }
