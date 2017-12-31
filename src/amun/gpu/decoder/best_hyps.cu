@@ -78,7 +78,9 @@ void BestHyps::getNBestList(const Histories& histories,
                   std::vector<float>& outCosts,
                   std::vector<uint>& outKeys) const
 {
+  //cerr << "2outKeys=" << Debug(outKeys, 2) << endl;
   GetPairs(nBest, outKeys, outCosts);
+  //cerr << "3outKeys=" << Debug(outKeys, 2) << endl;
   assert(outCosts.size() == outKeys.size());
 
   /*
@@ -101,6 +103,7 @@ void BestHyps::GetPairs(mblas::Vector<NthOutBatch> &nBest,
 
   std::vector<NthOutBatch> hostVec(nBest.size());
   mblas::copy(nBest.data(), nBest.size(), hostVec.data(), cudaMemcpyDeviceToHost);
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
 
   for (size_t i = 0; i < nBest.size(); ++i) {
     outKeys[i] = hostVec[i].ind;
@@ -144,9 +147,9 @@ void  BestHyps::CalcBeam(
 
   //cerr << "CalcBeam1" << endl;
   mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorer.GetProbs());
-  cerr << "Probs=" << Probs.Debug(0) << endl;
-  cerr << "prevHyps=" << prevHyps.size() << endl;
-  cerr << "2histories=" << histories.Debug() << endl;
+  //cerr << "Probs=" << Probs.Debug(0) << endl;
+  //cerr << "prevHyps=" << prevHyps.size() << endl;
+  //cerr << "2histories=" << histories.Debug() << endl;
 
   std::vector<float> vCosts;
   for (const HypothesisPtr &h : prevHyps) {
@@ -192,7 +195,7 @@ void  BestHyps::CalcBeam(
     FindBests(histories, Probs, bestCosts, bestKeys);
   }
   //cerr << "CalcBeam6" << endl;
-  cerr << "bestKeys=" << Debug(bestKeys, 2) << endl;
+  //cerr << "bestKeys=" << Debug(bestKeys, 2) << endl;
 
   std::vector<std::vector<float>> breakDowns;
   if (god_.ReturnNBestList()) {
@@ -202,7 +205,7 @@ void  BestHyps::CalcBeam(
 
   std::vector<size_t> batchMap = histories.Hypo2Batch();
   //cerr << "CalcBeam8" << endl;
-  cerr << "batchMap=" << Debug(batchMap, 2) << endl;
+  //cerr << "batchMap=" << Debug(batchMap, 2) << endl;
 
   for (size_t i = 0; i < numHypos; i++) {
     //cerr << "CalcBeam9=" << i << endl;
