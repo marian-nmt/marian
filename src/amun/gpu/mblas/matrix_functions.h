@@ -72,6 +72,30 @@ std::string Debug(const std::vector<T> &vec, size_t verbosity = 1)
   return strm.str();
 }
 
+template<>
+inline std::string Debug(const std::vector<char> &vec, size_t verbosity)
+{
+  std::stringstream strm;
+
+  strm << "size=" << vec.size();
+
+  if (verbosity) {
+    size_t sum(0);
+    for (size_t i = 0; i < vec.size(); ++i) {
+      sum += vec[i] ? 1 : 0;
+    }
+    strm << " sum=" << sum;
+  }
+
+  if (verbosity == 2) {
+    for (size_t i = 0; i < vec.size(); ++i) {
+      strm << " " << (vec[i] ? 1 : 0);
+    }
+  }
+
+  return strm.str();
+}
+
 template<typename T>
 void copy(const T *in, size_t count, T *out,  cudaMemcpyKind kind) {
   HANDLE_ERROR( cudaMemcpyAsync(out, in, count * sizeof(T), kind, CudaStreamHandler::GetStream()) );
@@ -420,10 +444,9 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 const Matrix& in,
                 const Matrix& b4,
                 const mblas::Vector<float> &costs,
-                const Histories& beamSizes,
+                const Histories& histories,
                 bool forbidUNK,
-                uint maxBeamSize,
-                size_t beamSizeSum);
+                uint maxBeamSize);
 
 void UpdateSentenceLengths(const mblas::Vector<uint> &newSentenceLengths,
                           const mblas::Vector<uint> &newBatchIds,
