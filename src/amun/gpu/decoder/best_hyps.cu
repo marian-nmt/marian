@@ -146,6 +146,7 @@ void  BestHyps::CalcBeam(
   mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorer.GetProbs());
   cerr << "Probs=" << Probs.Debug(0) << endl;
   cerr << "prevHyps=" << prevHyps.size() << endl;
+  cerr << "2histories=" << histories.Debug() << endl;
 
   std::vector<float> vCosts;
   for (const HypothesisPtr &h : prevHyps) {
@@ -160,17 +161,16 @@ void  BestHyps::CalcBeam(
               cudaMemcpyHostToDevice);
   //mblas::copy(vCosts.begin(), vCosts.end(), costs_.begin());
   //cerr << "CalcBeam3" << endl;
-  //cerr << "2histories=" << histories.Debug() << endl;
 
   size_t numHypos = histories.GetTotalBeamSize();
   //cerr << "CalcBeam4" << endl;
-  cerr << "numHypos=" << numHypos << endl;
+  //cerr << "numHypos=" << numHypos << endl;
 
   std::vector<float> bestCosts;
   std::vector<unsigned> bestKeys;
 
   if (god_.UseFusedSoftmax()) {
-    cerr << "CalcBeam5" << endl;
+    //cerr << "CalcBeam5" << endl;
     const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorer.GetBias());
     mblas::Vector<NthOutBatch> &nBest = *static_cast<mblas::Vector<NthOutBatch>*>(scorer.GetNBest());
     nBest.newSize(numHypos);
@@ -192,6 +192,7 @@ void  BestHyps::CalcBeam(
     FindBests(histories, Probs, bestCosts, bestKeys);
   }
   //cerr << "CalcBeam6" << endl;
+  cerr << "bestKeys=" << Debug(bestKeys, 2) << endl;
 
   std::vector<std::vector<float>> breakDowns;
   if (god_.ReturnNBestList()) {
@@ -201,6 +202,7 @@ void  BestHyps::CalcBeam(
 
   std::vector<size_t> batchMap = histories.Hypo2Batch();
   //cerr << "CalcBeam8" << endl;
+  cerr << "batchMap=" << Debug(batchMap, 2) << endl;
 
   for (size_t i = 0; i < numHypos; i++) {
     //cerr << "CalcBeam9=" << i << endl;
@@ -212,18 +214,20 @@ void  BestHyps::CalcBeam(
 
     size_t hypIndex  = bestKeys[i] / Probs.dim(1);
     float cost = bestCosts[i];
-    cerr << "CalcBeam11=" << i << endl;
-    cerr << "bestKeys[i]=" << bestKeys[i] << endl;
-    cerr << "hypIndex=" << hypIndex << endl;
+    //cerr << "CalcBeam11=" << i << endl;
+    //cerr << "bestKeys[i]=" << bestKeys[i] << endl;
+    //cerr << "hypIndex=" << hypIndex << endl;
 
+    assert(hypIndex < prevHyps.size());
+    const HypothesisPtr &prevHyp = prevHyps[hypIndex];
     HypothesisPtr hyp;
     if (returnAttentionWeights_) {
-      hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost,
+      hyp.reset(new Hypothesis(prevHyp, wordIndex, hypIndex, cost,
                                GetAlignments(scorer, hypIndex)));
     } else {
-      hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
+      hyp.reset(new Hypothesis(prevHyp, wordIndex, hypIndex, cost));
     }
-    cerr << "CalcBeam12=" << i << endl;
+    //cerr << "CalcBeam12=" << i << endl;
 
     //cerr << "god_.ReturnNBestList()=" << god_.ReturnNBestList() << endl;
     if(god_.ReturnNBestList()) {
