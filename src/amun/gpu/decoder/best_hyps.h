@@ -46,7 +46,7 @@ class BestHyps : public BestHypsBase
 
     // fast fused softmax and nth_element
     void FindBests(const Histories& histories,
-                   mblas::Matrix& Probs,
+                   const mblas::Matrix& Probs,
                    mblas::Vector<NthOutBatch> &nBest,
                    std::vector<float>& outCosts,
                    std::vector<unsigned>& outKeys);
