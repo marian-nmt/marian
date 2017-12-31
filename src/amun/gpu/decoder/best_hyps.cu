@@ -148,7 +148,7 @@ void  BestHyps::CalcBeam(
   //cerr << "CalcBeam1" << endl;
   mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorer.GetProbs());
   //cerr << "Probs=" << Probs.Debug(0) << endl;
-  cerr << "prevHyps=" << prevHyps.size() << endl;
+  //cerr << "prevHyps=" << prevHyps.size() << endl;
   //cerr << "2histories=" << histories.Debug() << endl;
 
   std::vector<float> vCosts;
@@ -173,11 +173,11 @@ void  BestHyps::CalcBeam(
   std::vector<unsigned> bestKeys;
 
   if (god_.UseFusedSoftmax()) {
-    cerr << "CalcBeam5" << endl;
+    //cerr << "CalcBeam5" << endl;
     const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorer.GetBias());
     mblas::Vector<NthOutBatch> &nBest = *static_cast<mblas::Vector<NthOutBatch>*>(scorer.GetNBest());
     nBest.newSize(numHypos);
-
+    /*
     std::cerr << "Probs=" << Probs.Debug(0) << std::endl;
     std::cerr << "b4=" << b4.Debug(0) << std::endl;
     std::cerr << "costs_=" << costs_.Debug(0) << std::endl;
@@ -185,11 +185,11 @@ void  BestHyps::CalcBeam(
     std::cerr << "forbidUNK_=" << forbidUNK_ << std::endl;
     std::cerr << "maxBeamSize_=" << maxBeamSize_ << std::endl;
     std::cerr << "numHypos=" << numHypos << std::endl;
-
+    */
     BEGIN_TIMER("GetProbs.LogSoftmaxAndNBest");
     mblas::LogSoftmaxAndNBest(nBest, Probs, b4, costs_, histories, forbidUNK_, maxBeamSize_);
     PAUSE_TIMER("GetProbs.LogSoftmaxAndNBest");
-    cerr << "nBest=" << nBest.Debug(2) << endl;
+    //cerr << "nBest=" << nBest.Debug(2) << endl;
 
     FindBests(histories, Probs, nBest, bestCosts, bestKeys);
   }
@@ -203,7 +203,7 @@ void  BestHyps::CalcBeam(
     FindBests(histories, Probs, bestCosts, bestKeys);
   }
   //cerr << "CalcBeam6" << endl;
-  cerr << "bestKeys=" << Debug(bestKeys, 2) << endl;
+  //cerr << "bestKeys=" << Debug(bestKeys, 2) << endl;
 
   std::vector<std::vector<float>> breakDowns;
   if (god_.ReturnNBestList()) {
@@ -216,7 +216,7 @@ void  BestHyps::CalcBeam(
   //cerr << "batchMap=" << Debug(batchMap, 2) << endl;
 
   for (size_t i = 0; i < numHypos; i++) {
-    cerr << "CalcBeam9=" << i << endl;
+    //cerr << "CalcBeam9=" << i << endl;
     size_t wordIndex = bestKeys[i] % Probs.dim(1);
     if (isInputFiltered_) {
       wordIndex = filterIndices[wordIndex];
@@ -227,7 +227,7 @@ void  BestHyps::CalcBeam(
     float cost = bestCosts[i];
     //cerr << "CalcBeam11=" << i << endl;
     //cerr << "bestKeys[i]=" << bestKeys[i] << endl;
-    cerr << "hypIndex=" << hypIndex << endl;
+    //cerr << "hypIndex=" << hypIndex << endl;
 
     assert(hypIndex < prevHyps.size());
     const HypothesisPtr &prevHyp = prevHyps[hypIndex];

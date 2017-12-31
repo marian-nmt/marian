@@ -211,14 +211,14 @@ void EncoderDecoder::DecodeAsyncInternal()
     //std::cerr << "state3=" << state->Debug(0) << std::endl;
     //std::cerr << "nextState3=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
-    //if (histories.NumActive() == 0) {
-    if ((histories.size() - histories.NumActive()) > 0) {
+    if (histories.NumActive() == 0) {
+    //if ((histories.size() - histories.NumActive()) > 0) {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal6" << endl;
       //std::cerr << "histories6=" << histories.Debug(1) << std::endl;
 
-      //InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
-      FetchBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
+      InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
+      //FetchBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal7" << endl;
       //std::cerr << "histories7=" << histories.Debug(1) << std::endl;
@@ -522,19 +522,19 @@ void EncoderDecoder::AssembleBeamState(const Histories& histories,
   //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
   //cerr << "indices=" << indices.Debug(2) << endl;
 
-  cerr << "histories=" << histories.Debug() << endl;
-  cerr << "outState1=" << outState.Debug(0) << endl;
+  //cerr << "histories=" << histories.Debug() << endl;
+  //cerr << "outState1=" << outState.Debug(0) << endl;
   mblas::Assemble(*(cellOutStates.output), *(cellInstates.output), indices);
   if (cellInstates.cell->size() > 0) {
     mblas::Assemble(*(cellOutStates.cell), *(cellInstates.cell), indices);
   }
   //cerr << "edOutState.GetStates()=" << edOutState.GetStates().Debug(1) << endl;
-  cerr << "outState2=" << outState.Debug(0) << endl;
+  //cerr << "outState2=" << outState.Debug(0) << endl;
 
   //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
   decoder_->Lookup(edOutState.GetEmbeddings(), beamWords);
   //cerr << "edOutState.GetEmbeddings()=" << edOutState.GetEmbeddings().Debug(1) << endl;
-  cerr << "outState3=" << outState.Debug(0) << endl;
+  //cerr << "outState3=" << outState.Debug(0) << endl;
   //PAUSE_TIMER("AssembleBeamState");
 }
 

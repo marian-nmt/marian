@@ -1303,10 +1303,10 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   //cerr << "LogSoftmaxAndNBest0" << endl;
 
   //cerr << "in=" << in.Debug(0) << endl;
-  cerr << "histories=" << histories.size() << endl;
+  //cerr << "histories=" << histories.Debug(1) << endl;
 
   std::vector<char> isFirsts = histories.IsFirsts();
-  cerr << "isFirsts=" << Debug(isFirsts, 2) << endl;
+  //cerr << "isFirsts=" << Debug(isFirsts, 2) << endl;
 
   // create beam size vectors on GPU but exclude empty beams
   uint batchSize = 0;

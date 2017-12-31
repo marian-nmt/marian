@@ -78,7 +78,7 @@ class Decoder {
           //std::cerr << "cell1=" << State.cell->Debug(0) << std::endl;
           //std::cerr << "output1=" << State.output->Debug(0) << std::endl;
           size_t numHypos = histories.GetTotalBeamSize();
-          std::cerr << "numHypos=" << numHypos << std::endl;
+          //std::cerr << "numHypos=" << numHypos << std::endl;
 
           CellLength cellLength = gru_->GetStateLength();
           if (cellLength.cell > 0) {
