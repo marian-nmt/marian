@@ -73,7 +73,7 @@ class Decoder {
         {
           using namespace mblas;
           HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          std::cerr << "InitializeState1" << std::endl;
+          //std::cerr << "InitializeState1" << std::endl;
 
           //std::cerr << "cell1=" << State.cell->Debug(0) << std::endl;
           //std::cerr << "output1=" << State.output->Debug(0) << std::endl;

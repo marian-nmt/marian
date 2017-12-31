@@ -1306,10 +1306,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   //cerr << "histories=" << histories.Debug(1) << endl;
 
   std::vector<char> isFirsts = histories.IsFirsts();
-  cerr << "isFirsts=" << Debug(isFirsts, 2) << endl;
 
   // create beam size vectors on GPU but exclude empty beams
-  uint batchSize = 0;
   uint candidateInd = 0;
   for (size_t batchInd = 0; batchInd < histories.size(); ++batchInd) {
     uint beamSize = histories.GetBeamSize(batchInd);
@@ -1322,10 +1320,11 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
       else {
         candidateInd += beamSize * beamSize;
       }
-
-      ++batchSize;
     }
   }
+
+  uint batchSize = histories.NumActive();
+  uint numHypos = histories.GetTotalBeamSize();
 
   mblas::Vector<char> d_isFirsts(isFirsts);
   mblas::Vector<unsigned> d_beamSizes(histories.GetBeamSizes());
@@ -1352,7 +1351,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   int threads = std::min(MAX_THREADS, (int)in.dim(1));
   int shared = sizeof(NthOutBatch) * threads * maxBeamSize
              + sizeof(float) * threads;
-  cerr << "LogSoftmaxAndNBest1" << endl;
+  //cerr << "LogSoftmaxAndNBest1" << endl;
 
   //BEGIN_TIMER("gBeamSizeInit");
   gBeamSizeInit<<<1, 1, 0, CudaStreamHandler::GetStream()>>>
@@ -1363,8 +1362,10 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
     beamSizesWrap
     );
   //PAUSE_TIMER("gBeamSizeInit");
-
+  /*
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "numHypos=" << numHypos << endl;
+  cerr << "isFirsts=" << Debug(isFirsts, 2) << endl;
   cerr << "in=" << in.Debug(0) << endl;
   cerr << "histories=" << histories.Debug(2) << endl;
   cerr << "batchSize=" << batchSize << endl;
@@ -1375,22 +1376,10 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   cerr << "nBest=" << nBest.Debug(2) << endl;
   cerr << "nBestCandidates=" << nBestCandidates.Debug(2) << endl;
   cerr << endl;
-
-
-  //cerr << "hypo2Candidate=" << hypo2Candidate.Debug(2) << endl;
+  */
 
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "LogSoftmaxAndNBest2" << endl;
-
-  /*
-  cerr << "hypo2BeamSize=" << Debug(hypo2BeamSize, 2) << endl;
-  cerr << "hypo2Candidate=" << Debug(hypo2Candidate, 2) << endl;
-  cerr << "batch2Hypo=" << Debug(batch2Hypo, 2) << endl;
-  cerr << endl;
-  */
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  //cerr << "step1" << endl;
-
   //BEGIN_TIMER("gLogSoftMax");
   gLogSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
     (nBestCandidatesWrap,
