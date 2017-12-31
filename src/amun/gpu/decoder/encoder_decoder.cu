@@ -334,7 +334,7 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   encDecBuffer_.Get(numSentToGet, newSentences);
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   cerr << "FetchBatch3" << endl;
-  //cerr << "newSentences=" << newSentences.size() << endl;
+  cerr << "newSentences=" << newSentences.size() << endl;
 
   vector<uint> newBatchIds(newSentences.size());
   vector<uint> newSentenceLengths(newSentences.size());
@@ -369,6 +369,10 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   }
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   cerr << "FetchBatch5" << endl;
+
+  if (histories.NumActive() == 0) {
+    return;
+  }
 
   size_t maxLength =  histories.MaxLength();
   //cerr << "maxLength=" << maxLength << endl;
