@@ -420,9 +420,9 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 const Matrix& in,
                 const Matrix& b4,
                 const mblas::Vector<float> &costs,
+                const Histories& beamSizes,
                 bool forbidUNK,
                 uint maxBeamSize,
-                const Histories& beamSizes,
                 size_t beamSizeSum);
 
 void UpdateSentenceLengths(const mblas::Vector<uint> &newSentenceLengths,

@@ -179,10 +179,17 @@ void  BestHyps::CalcBeam(
     nBest.newSize(numHypos);
 
     std::cerr << "Probs=" << Probs.Debug(0) << std::endl;
+    std::cerr << "b4=" << b4.Debug(0) << std::endl;
+    std::cerr << "costs_=" << costs_.Debug(0) << std::endl;
+    std::cerr << "histories=" << histories.Debug(1) << std::endl;
+    std::cerr << "forbidUNK_=" << forbidUNK_ << std::endl;
+    std::cerr << "maxBeamSize_=" << maxBeamSize_ << std::endl;
+    std::cerr << "numHypos=" << numHypos << std::endl;
 
     BEGIN_TIMER("GetProbs.LogSoftmaxAndNBest");
-    mblas::LogSoftmaxAndNBest(nBest, Probs, b4, costs_, forbidUNK_, maxBeamSize_, histories, numHypos);
+    mblas::LogSoftmaxAndNBest(nBest, Probs, b4, costs_, histories, forbidUNK_, maxBeamSize_, numHypos);
     PAUSE_TIMER("GetProbs.LogSoftmaxAndNBest");
+    cerr << "nBest=" << nBest.Debug(2) << endl;
 
     FindBests(histories, Probs, nBest, bestCosts, bestKeys);
   }

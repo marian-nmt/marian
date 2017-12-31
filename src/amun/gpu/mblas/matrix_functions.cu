@@ -1295,9 +1295,9 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 const Matrix& in,
                 const Matrix& b4,
                 const mblas::Vector<float> &costs,
+                const Histories& beamSizes,
                 bool forbidUNK,
                 uint maxBeamSize,
-                const Histories& beamSizes,
                 size_t beamSizeSum)
 {
   //BEGIN_TIMER("LogSoftmax excl kernels");
