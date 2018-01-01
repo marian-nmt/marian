@@ -1,6 +1,7 @@
 #pragma once
 #include <sstream>
 #include "matrix.h"
+#include "vector_wrapper.h"
 
 namespace amunmt {
 namespace GPU {
@@ -193,6 +194,13 @@ public:
 
     assert(ind < size());
     return ind;
+  }
+
+  VectorWrapper<T> Row(size_t row)
+  {
+    T &ele = (*this)(row, 0, 0, 0);
+    VectorWrapper<T> ret(&ele, dim(1));
+    return ret;
   }
 
   std::string Debug() const

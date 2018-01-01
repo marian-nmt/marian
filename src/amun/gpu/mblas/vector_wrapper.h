@@ -68,6 +68,13 @@ public:
     return data()[i];
   }
 
+  VectorWrapper Offset(size_t offset)
+  {
+    T &ele = (*this)[offset];
+    VectorWrapper<T> ret(&ele, size_ - offset);
+    return ret;
+  }
+
   std::string Debug() const
   {
     std::stringstream strm;
