@@ -866,28 +866,28 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSize,
                     VectorWrapper<char> isFirsts,
                     const VectorWrapper<unsigned> beamSizes)
 {
-  uint hypoInd = 0;
+  uint nextHypoInd = 0;
   uint candidateInd = 0;
 
-  uint a = 0, activeBatchInd = 0;
+  uint hypoInd = 0, activeBatchInd = 0;
   //printf("beamSizes.size()=%u \n", beamSizes.size());
   for (size_t batchInd = 0; batchInd < beamSizes.size(); ++batchInd) {
     uint beamSize = beamSizes[batchInd];
     /*
     printf("batchInd=%u ", batchInd);
     printf("beamSize=%u ", beamSize);
-    printf("a=%u ", a);
+    printf("hypoInd=%u ", hypoInd);
     printf("activeBatchInd=%u \n", activeBatchInd);
     */
     bool isFirst = isFirsts[batchInd];
     if (beamSize) {
       if (isFirst) {
-        //printf("a=%i hypo2BeamSize=%i \n", a, hypo2BeamSize.size());
-        assert(a < hypo2BeamSize.size());
-        assert(a < hypo2Candidate.size());
-        hypo2BeamSize[a] = beamSize;
-        hypo2Candidate[a] = candidateInd;
-        ++a;
+        //printf("hypoInd=%i hypo2BeamSize=%i \n", hypoInd, hypo2BeamSize.size());
+        assert(hypoInd < hypo2BeamSize.size());
+        assert(hypoInd < hypo2Candidate.size());
+        hypo2BeamSize[hypoInd] = beamSize;
+        hypo2Candidate[hypoInd] = candidateInd;
+        ++hypoInd;
 
         assert(activeBatchInd < activeBatch2Hypo.size());
         activeBatch2Hypo[activeBatchInd] = batchInd;
@@ -897,25 +897,25 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSize,
       }
       else {
         for (size_t j = 0; j < beamSize; ++j) {
-          assert(a < hypo2BeamSize.size());
-          assert(a < hypo2Candidate.size());
-          hypo2BeamSize[a] = beamSize;
-          hypo2Candidate[a] = candidateInd;
-          ++a;
+          assert(hypoInd < hypo2BeamSize.size());
+          assert(hypoInd < hypo2Candidate.size());
+          hypo2BeamSize[hypoInd] = beamSize;
+          hypo2Candidate[hypoInd] = candidateInd;
+          ++hypoInd;
 
           candidateInd += beamSize;
         }
 
         assert(activeBatchInd < activeBatch2Hypo.size());
-        activeBatch2Hypo[activeBatchInd] = hypoInd;
+        activeBatch2Hypo[activeBatchInd] = nextHypoInd;
         ++activeBatchInd;
       }
 
-      hypoInd += beamSize;
+      nextHypoInd += beamSize;
     }
   }
 
-  printf("a=%i \n", a);
+  printf("hypoInd=%i \n", hypoInd);
   //printf("activeBatchInd=%i \n", activeBatchInd);
 }
 
@@ -1343,7 +1343,6 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   cerr << "numNextHypos=" << numNextHypos << endl;
   cerr << "isFirsts=" << Debug(isFirsts, 2) << endl;
   cerr << "in=" << in.Debug(0) << endl;
-  cerr << "histories=" << histories.Debug(2) << endl;
   cerr << "activeBatchSize=" << activeBatchSize << endl;
   cerr << "candidateInd=" << candidateInd << endl;
   cerr << "hypo2BeamSize=" << hypo2BeamSize.Debug(2) << endl;
@@ -1351,6 +1350,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   cerr << "nBest=" << nBest.Debug(2) << endl;
   cerr << "nBestCandidates=" << nBestCandidates.Debug(2) << endl;
   */
+  cerr << "histories=" << histories.Debug(2) << endl;
   cerr << "activeBatch2Hypo=" << activeBatch2Hypo.Debug(2) << endl;
   cerr << endl;
 
