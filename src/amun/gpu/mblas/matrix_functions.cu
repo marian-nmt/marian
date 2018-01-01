@@ -1232,16 +1232,9 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBest,
     assert(hypoInd < hypo2Candidate.size());
     uint candidateInd = hypo2Candidate[hypoInd];
     for (uint i = 0; i < beamSize; ++i) {
-      float prevCost;
-      if (isFirst) {
-        assert(batchInd < costs.size());
-        prevCost = costs[batchInd];
-      }
-      else {
-        //printf("prevHypoInd=%, candidateInd=%d \n", prevHypoInd, candidateInd);
-        assert(hypoInd < costs.size());
-        prevCost = costs[hypoInd];
-      }
+      //printf("prevHypoInd=%, candidateInd=%d \n", prevHypoInd, candidateInd);
+      assert(hypoInd < costs.size());
+      float prevCost = costs[hypoInd];
 
       assert((nextHypoInd + i) < nBest.size());
       assert(candidateInd + i < nBestCandidates.size());
