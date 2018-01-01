@@ -1224,16 +1224,8 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBest,
     uint beamSize = hypo2BeamSize[hypoInd];
     assert(beamSize);
 
-    uint nextHypoInd;
-
+    uint nextHypoInd = hypo2NextHypo[hypoInd];
     bool isFirst = isFirsts[batchInd];
-
-    if (isFirst) {
-      nextHypoInd = batchInd * beamSize;
-    }
-    else {
-      nextHypoInd = hypoInd;
-    }
 
     // candiate from 1st hypo
     float minScore = HIGHEST_FLOAT;
