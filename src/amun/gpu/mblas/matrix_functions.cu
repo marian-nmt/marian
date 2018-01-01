@@ -1208,7 +1208,8 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBest,
                         VectorWrapper<char> isFirsts,
                         const VectorWrapper<uint> hypo2BeamSize,
                         const VectorWrapper<uint> activeBatch2Hypo,
-                        const VectorWrapper<uint> hypo2Candidate)
+                        const VectorWrapper<uint> hypo2Candidate,
+                        const VectorWrapper<uint> hypo2NextHypo)
 {
   //uint rows = in.dim(0);
   uint activeBatchSize = activeBatch2Hypo.size();
@@ -1389,7 +1390,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
      d_isFirsts,
      hypo2BeamSize,
      activeBatch2Hypo,
-     hypo2Candidate);
+     hypo2Candidate,
+     hypo2NextHypo);
   //PAUSE_TIMER("gNBestPerBatch");
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "LogSoftmaxAndNBest4" << endl;
