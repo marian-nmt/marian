@@ -148,7 +148,7 @@ void  BestHyps::CalcBeam(
   //cerr << "CalcBeam1" << endl;
   mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorer.GetProbs());
   //cerr << "Probs=" << Probs.Debug(0) << endl;
-  //cerr << "prevHyps=" << prevHyps.size() << endl;
+  cerr << "prevHyps=" << prevHyps.size() << endl;
   //cerr << "2histories=" << histories.Debug() << endl;
 
   std::vector<float> vCosts;
@@ -203,7 +203,7 @@ void  BestHyps::CalcBeam(
     FindBests(histories, Probs, bestCosts, bestKeys);
   }
   //cerr << "CalcBeam6" << endl;
-  //cerr << "bestKeys=" << Debug(bestKeys, 2) << endl;
+  cerr << "bestKeys=" << Debug(bestKeys, 2) << endl;
 
   std::vector<std::vector<float>> breakDowns;
   if (god_.ReturnNBestList()) {
@@ -227,8 +227,8 @@ void  BestHyps::CalcBeam(
     float cost = bestCosts[i];
     //cerr << "CalcBeam11=" << i << endl;
     //cerr << "bestKeys[i]=" << bestKeys[i] << endl;
-    cerr << "hypIndex=" << hypIndex << endl;
-    cerr << "prevHyps=" << prevHyps.size() << endl;
+    //cerr << "hypIndex=" << hypIndex << endl;
+    //cerr << "prevHyps=" << prevHyps.size() << endl;
 
     assert(hypIndex < prevHyps.size());
     const HypothesisPtr &prevHyp = prevHyps[hypIndex];
