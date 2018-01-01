@@ -227,7 +227,8 @@ void  BestHyps::CalcBeam(
     float cost = bestCosts[i];
     //cerr << "CalcBeam11=" << i << endl;
     //cerr << "bestKeys[i]=" << bestKeys[i] << endl;
-    //cerr << "hypIndex=" << hypIndex << endl;
+    cerr << "hypIndex=" << hypIndex << endl;
+    cerr << "prevHyps=" << prevHyps.size() << endl;
 
     assert(hypIndex < prevHyps.size());
     const HypothesisPtr &prevHyp = prevHyps[hypIndex];
