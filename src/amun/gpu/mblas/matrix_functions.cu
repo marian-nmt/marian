@@ -860,7 +860,7 @@ void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps
 
 __global__
 void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSize,
-                    VectorWrapper<uint> batch2Hypo,
+                    VectorWrapper<uint> activeBatch2Hypo,
                     VectorWrapper<uint> hypo2Candidate,
                     VectorWrapper<uint> hypo2NextHypo,
                     VectorWrapper<char> isFirsts,
@@ -889,8 +889,8 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSize,
         hypo2Candidate[a] = candidateInd;
         ++a;
 
-        assert(activeBatchInd < batch2Hypo.size());
-        batch2Hypo[activeBatchInd] = batchInd;
+        assert(activeBatchInd < activeBatch2Hypo.size());
+        activeBatch2Hypo[activeBatchInd] = batchInd;
         ++activeBatchInd;
 
         candidateInd += beamSize;
@@ -906,8 +906,8 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSize,
           candidateInd += beamSize;
         }
 
-        assert(activeBatchInd < batch2Hypo.size());
-        batch2Hypo[activeBatchInd] = hypoInd;
+        assert(activeBatchInd < activeBatch2Hypo.size());
+        activeBatch2Hypo[activeBatchInd] = hypoInd;
         ++activeBatchInd;
       }
 
@@ -915,7 +915,7 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSize,
     }
   }
 
-  //printf("a=%i \n", a);
+  printf("a=%i \n", a);
   //printf("activeBatchInd=%i \n", activeBatchInd);
 }
 
@@ -1205,19 +1205,19 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBest,
                         bool forbidUNK,
                         VectorWrapper<char> isFirsts,
                         const VectorWrapper<uint> hypo2BeamSize,
-                        const VectorWrapper<uint> batch2Hypo,
+                        const VectorWrapper<uint> activeBatch2Hypo,
                         const VectorWrapper<uint> hypo2Candidate)
 {
   //uint rows = in.dim(0);
-  uint batchSize = batch2Hypo.size();
+  uint activeBatchSize = activeBatch2Hypo.size();
 
   uint batchInd =  blockIdx.x;
-  while (batchInd < batchSize) {
-    assert(batchInd < batch2Hypo.size());
+  while (batchInd < activeBatchSize) {
+    assert(batchInd < activeBatch2Hypo.size());
     assert(batchInd < hypo2BeamSize.size());
     assert(batchInd < nBest.size());
 
-    uint hypoInd = batch2Hypo[batchInd];
+    uint hypoInd = activeBatch2Hypo[batchInd];
     uint beamSize = hypo2BeamSize[hypoInd];
     assert(beamSize);
 
@@ -1312,7 +1312,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
 
   // create beam size vectors on GPU but exclude empty beams
   uint candidateInd = histories.NumCandidates();
-  uint batchSize = histories.NumActive();
+  uint activeBatchSize = histories.NumActive();
   uint numHypos = in.dim(0);
   uint numNextHypos = histories.GetTotalBeamSize();
 
@@ -1321,7 +1321,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   mblas::Vector<uint> hypo2BeamSize(numHypos);
   mblas::Vector<uint> hypo2Candidate(numHypos);
   mblas::Vector<uint> hypo2NextHypo(numHypos);
-  mblas::Vector<uint> batch2Hypo(batchSize);
+  mblas::Vector<uint> activeBatch2Hypo(activeBatchSize);
   mblas::Vector<NthOutBatch> nBestCandidates(candidateInd);
   //PAUSE_TIMER("LogSoftmax excl kernels");
 
@@ -1330,29 +1330,29 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   //BEGIN_TIMER("gBeamSizeInit");
   gBeamSizeInit<<<1, 1, 0, CudaStreamHandler::GetStream()>>>
     (hypo2BeamSize,
-    batch2Hypo,
+    activeBatch2Hypo,
     hypo2Candidate,
     hypo2NextHypo,
     d_isFirsts,
     d_beamSizes
     );
   //PAUSE_TIMER("gBeamSizeInit");
-  /*
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  /*
   cerr << "numHypos=" << numHypos << endl;
   cerr << "numNextHypos=" << numNextHypos << endl;
   cerr << "isFirsts=" << Debug(isFirsts, 2) << endl;
   cerr << "in=" << in.Debug(0) << endl;
   cerr << "histories=" << histories.Debug(2) << endl;
-  cerr << "batchSize=" << batchSize << endl;
+  cerr << "activeBatchSize=" << activeBatchSize << endl;
   cerr << "candidateInd=" << candidateInd << endl;
   cerr << "hypo2BeamSize=" << hypo2BeamSize.Debug(2) << endl;
   cerr << "hypo2Candidate=" << hypo2Candidate.Debug(2) << endl;
-  cerr << "batch2Hypo=" << batch2Hypo.Debug(2) << endl;
   cerr << "nBest=" << nBest.Debug(2) << endl;
   cerr << "nBestCandidates=" << nBestCandidates.Debug(2) << endl;
-  cerr << endl;
   */
+  cerr << "activeBatch2Hypo=" << activeBatch2Hypo.Debug(2) << endl;
+  cerr << endl;
 
   int blocks = std::min(MAX_BLOCKS, (int)numHypos);
   int threads = std::min(MAX_THREADS, (int)in.dim(1));
@@ -1373,7 +1373,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "LogSoftmaxAndNBest3" << endl;
 
-  blocks = std::min(MAX_BLOCKS, (int)batchSize);
+  blocks = std::min(MAX_BLOCKS, (int)activeBatchSize);
 
   //BEGIN_TIMER("gNBestPerBatch");
   gNBestPerBatch<<<blocks, 1, 0, CudaStreamHandler::GetStream()>>>
@@ -1385,7 +1385,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
      forbidUNK,
      d_isFirsts,
      hypo2BeamSize,
-     batch2Hypo,
+     activeBatch2Hypo,
      hypo2Candidate);
   //PAUSE_TIMER("gNBestPerBatch");
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
