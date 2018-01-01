@@ -887,6 +887,7 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSize,
         assert(hypoInd < hypo2Candidate.size());
         hypo2BeamSize[hypoInd] = beamSize;
         hypo2Candidate[hypoInd] = candidateInd;
+        hypo2NextHypo[hypoInd] = nextHypoInd;
         ++hypoInd;
 
         assert(activeBatchInd < activeBatch2Hypo.size());
@@ -901,6 +902,7 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSize,
           assert(hypoInd < hypo2Candidate.size());
           hypo2BeamSize[hypoInd] = beamSize;
           hypo2Candidate[hypoInd] = candidateInd;
+          hypo2NextHypo[hypoInd] = nextHypoInd;
           ++hypoInd;
 
           candidateInd += beamSize;
@@ -915,7 +917,7 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSize,
     }
   }
 
-  printf("hypoInd=%i \n", hypoInd);
+  //printf("hypoInd=%i \n", hypoInd);
   //printf("activeBatchInd=%i \n", activeBatchInd);
 }
 
@@ -1349,10 +1351,11 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   cerr << "hypo2Candidate=" << hypo2Candidate.Debug(2) << endl;
   cerr << "nBest=" << nBest.Debug(2) << endl;
   cerr << "nBestCandidates=" << nBestCandidates.Debug(2) << endl;
-  */
   cerr << "histories=" << histories.Debug(2) << endl;
   cerr << "activeBatch2Hypo=" << activeBatch2Hypo.Debug(2) << endl;
+  cerr << "hypo2NextHypo=" << hypo2NextHypo.Debug(2) << endl;
   cerr << endl;
+  */
 
   int blocks = std::min(MAX_BLOCKS, (int)numHypos);
   int threads = std::min(MAX_THREADS, (int)in.dim(1));
