@@ -93,6 +93,7 @@ public:
 
   std::vector<unsigned> GetBeamSizes() const;
   size_t GetTotalBeamSize() const;
+  size_t NumCandidates() const;
   std::vector<char> IsFirsts() const;
 
   void Add(const God &god);

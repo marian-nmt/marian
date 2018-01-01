@@ -118,6 +118,24 @@ size_t Histories::GetTotalBeamSize() const
   return ret;
 }
 
+size_t Histories::NumCandidates() const
+{
+  size_t ret = 0;
+  for (size_t i = 0; i < size(); ++i) {
+    const HistoriesElementPtr &ele = coll_[i];
+    if (ele) {
+      size_t beamSize = ele->GetBeamSize();
+      if (ele->IsFirst()) {
+        ret += beamSize;
+      }
+      else {
+        ret += beamSize * beamSize;
+      }
+    }
+  }
+  return ret;
+}
+
 std::vector<char> Histories::IsFirsts() const
 {
   std::vector<char> ret(size());
