@@ -1323,10 +1323,6 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   mblas::Vector<NthOutBatch> nBestCandidates(candidateInd);
   //PAUSE_TIMER("LogSoftmax excl kernels");
 
-  int blocks = std::min(MAX_BLOCKS, (int)numHypos);
-  int threads = std::min(MAX_THREADS, (int)in.dim(1));
-  int shared = sizeof(NthOutBatch) * threads * maxBeamSize
-             + sizeof(float) * threads;
   //cerr << "LogSoftmaxAndNBest1" << endl;
 
   //BEGIN_TIMER("gBeamSizeInit");
@@ -1341,6 +1337,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   //PAUSE_TIMER("gBeamSizeInit");
   /*
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "numHypos=" << numHypos << endl;
   cerr << "numNextHypos=" << numNextHypos << endl;
   cerr << "isFirsts=" << Debug(isFirsts, 2) << endl;
   cerr << "in=" << in.Debug(0) << endl;
@@ -1354,6 +1351,11 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   cerr << "nBestCandidates=" << nBestCandidates.Debug(2) << endl;
   cerr << endl;
   */
+
+  int blocks = std::min(MAX_BLOCKS, (int)numHypos);
+  int threads = std::min(MAX_THREADS, (int)in.dim(1));
+  int shared = sizeof(NthOutBatch) * threads * maxBeamSize
+             + sizeof(float) * threads;
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "LogSoftmaxAndNBest2" << endl;
   //BEGIN_TIMER("gLogSoftMax");
@@ -1368,6 +1370,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   //PAUSE_TIMER("gLogSoftMax");
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "LogSoftmaxAndNBest3" << endl;
+
+  blocks = std::min(MAX_BLOCKS, (int)batchSize);
 
   //BEGIN_TIMER("gNBestPerBatch");
   gNBestPerBatch<<<blocks, 1, 0, CudaStreamHandler::GetStream()>>>
