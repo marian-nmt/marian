@@ -1239,7 +1239,7 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBest,
       assert((nextHypoInd + i) < nBest.size());
       assert(candidateInd + i < nBestCandidates.size());
       nBest[nextHypoInd + i] = nBestCandidates[candidateInd + i];
-      printf("HH1 nextHypoInd=%i candidateInd=%i i=%i hypoInd=%i \n", nextHypoInd, candidateInd, i, nBest[nextHypoInd + i].hypoInd);
+      //printf("HH1 nextHypoInd=%i candidateInd=%i i=%i hypoInd=%i \n", nextHypoInd, candidateInd, i, nBest[nextHypoInd + i].hypoInd);
 
       float &score = nBest[nextHypoInd + i].score;
       score += prevCost;
@@ -1278,7 +1278,7 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBest,
 
     batchInd += gridDim.x;
   }
-  printf("\n");
+  //printf("\n");
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1363,7 +1363,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   //PAUSE_TIMER("gLogSoftMax");
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "LogSoftmaxAndNBest3" << endl;
-  cerr << "nBestCandidates=" << nBestCandidates.Debug(2) << endl;
+  //cerr << "nBestCandidates=" << nBestCandidates.Debug(2) << endl;
 
   blocks = 1; // std::min(MAX_BLOCKS, (int)activeBatchSize);
 

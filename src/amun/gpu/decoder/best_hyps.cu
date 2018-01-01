@@ -148,7 +148,7 @@ void  BestHyps::CalcBeam(
   //cerr << "CalcBeam1" << endl;
   mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorer.GetProbs());
   //cerr << "Probs=" << Probs.Debug(0) << endl;
-  cerr << "prevHyps=" << prevHyps.size() << endl;
+  //cerr << "prevHyps=" << prevHyps.size() << endl;
   //cerr << "2histories=" << histories.Debug() << endl;
 
   std::vector<float> vCosts;
@@ -189,7 +189,7 @@ void  BestHyps::CalcBeam(
     BEGIN_TIMER("GetProbs.LogSoftmaxAndNBest");
     mblas::LogSoftmaxAndNBest(nBest, Probs, b4, costs_, histories, forbidUNK_, maxBeamSize_);
     PAUSE_TIMER("GetProbs.LogSoftmaxAndNBest");
-    cerr << "nBest=" << nBest.Debug(2) << endl;
+    //cerr << "nBest=" << nBest.Debug(2) << endl;
 
     FindBests(histories, Probs, nBest, bestCosts, bestKeys);
   }
@@ -203,7 +203,7 @@ void  BestHyps::CalcBeam(
     FindBests(histories, Probs, bestCosts, bestKeys);
   }
   //cerr << "CalcBeam6" << endl;
-  cerr << "bestKeys=" << Debug(bestKeys, 2) << endl;
+  //cerr << "bestKeys=" << Debug(bestKeys, 2) << endl;
 
   std::vector<std::vector<float>> breakDowns;
   if (god_.ReturnNBestList()) {
