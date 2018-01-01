@@ -381,15 +381,15 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   // update gpu data
   mblas::Vector<uint> d_newBatchIds(newBatchIds);
   mblas::Vector<uint> d_newSentenceLengths(newSentenceLengths);
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "FetchBatch6" << endl;
-  cerr << "histories=" << histories.Debug() << endl;
-  cerr << "1state=" << state.Debug(0) << endl;
+  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  //cerr << "FetchBatch6" << endl;
+  //cerr << "histories=" << histories.Debug() << endl;
+  //cerr << "1state=" << state.Debug(0) << endl;
 
   AssembleBeamState(newBatchIds, d_newBatchIds, histories, nextState, state);
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "FetchBatch7" << endl;
-  cerr << "2state=" << state.Debug(0) << endl;
+  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  //cerr << "FetchBatch7" << endl;
+  //cerr << "2state=" << state.Debug(0) << endl;
 
   UpdateSentenceLengths(d_newSentenceLengths, d_newBatchIds, sentenceLengths);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
@@ -397,12 +397,12 @@ void EncoderDecoder::FetchBatch(Histories &histories,
 
   // source context
   ResizeMatrix(sourceContext, {0, maxLength, 3, histories.NumActive()});
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "FetchBatch9" << endl;
+  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  //cerr << "FetchBatch9" << endl;
 
   AddNewData(sourceContext, newBatchIds, newSentences);
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "FetchBatch10" << endl;
+  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  //cerr << "FetchBatch10" << endl;
 
   BeginSentenceState(histories, sourceContext, sentenceLengths, state, SCU, newBatchIds, d_newBatchIds);
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));

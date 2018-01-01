@@ -189,7 +189,7 @@ void  BestHyps::CalcBeam(
     BEGIN_TIMER("GetProbs.LogSoftmaxAndNBest");
     mblas::LogSoftmaxAndNBest(nBest, Probs, b4, costs_, histories, forbidUNK_, maxBeamSize_);
     PAUSE_TIMER("GetProbs.LogSoftmaxAndNBest");
-    //cerr << "nBest=" << nBest.Debug(2) << endl;
+    cerr << "nBest=" << nBest.Debug(2) << endl;
 
     FindBests(histories, Probs, nBest, bestCosts, bestKeys);
   }
