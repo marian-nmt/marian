@@ -869,7 +869,7 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSize,
   uint hypoInd = 0;
   uint candidateInd = 0;
 
-  uint a = 0, b = 0;
+  uint a = 0, activeBatchInd = 0;
   //printf("beamSizes.size()=%u \n", beamSizes.size());
   for (size_t batchInd = 0; batchInd < beamSizes.size(); ++batchInd) {
     uint beamSize = beamSizes[batchInd];
@@ -877,7 +877,7 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSize,
     printf("batchInd=%u ", batchInd);
     printf("beamSize=%u ", beamSize);
     printf("a=%u ", a);
-    printf("b=%u \n", b);
+    printf("activeBatchInd=%u \n", activeBatchInd);
     */
     bool isFirst = isFirsts[batchInd];
     if (beamSize) {
@@ -889,9 +889,9 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSize,
         hypo2Candidate[a] = candidateInd;
         ++a;
 
-        assert(b < batch2Hypo.size());
-        batch2Hypo[b] = batchInd;
-        ++b;
+        assert(activeBatchInd < batch2Hypo.size());
+        batch2Hypo[activeBatchInd] = batchInd;
+        ++activeBatchInd;
 
         candidateInd += beamSize;
       }
@@ -906,15 +906,17 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSize,
           candidateInd += beamSize;
         }
 
-        assert(b < batch2Hypo.size());
-        batch2Hypo[b] = hypoInd;
-        ++b;
+        assert(activeBatchInd < batch2Hypo.size());
+        batch2Hypo[activeBatchInd] = hypoInd;
+        ++activeBatchInd;
       }
 
       hypoInd += beamSize;
     }
   }
 
+  //printf("a=%i \n", a);
+  //printf("activeBatchInd=%i \n", activeBatchInd);
 }
 
 __device__
