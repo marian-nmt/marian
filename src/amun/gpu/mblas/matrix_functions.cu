@@ -975,7 +975,7 @@ void MergeElement(float &minScore,
     if (!found && minScore == currEle.score) {
       currEle = ele;
       if (blockIdx.x == 1) {
-        printf("HH2 hypoInd=%i vocabInd=%i \n", ele.hypoInd, ele.vocabInd);
+        //printf("HH2 hypoInd=%i vocabInd=%i \n", ele.hypoInd, ele.vocabInd);
       }
       found = true;
     }
@@ -1213,7 +1213,7 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBest,
                         const VectorWrapper<uint> hypo2Candidate,
                         const VectorWrapper<uint> hypo2NextHypo)
 {
-  printf("start gNBestPerBatch\n");
+  //printf("start gNBestPerBatch\n");
   //uint rows = in.dim(0);
   uint activeBatchSize = activeBatch2Hypo.size();
 
@@ -1245,7 +1245,7 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBest,
       nBest[nextHypoInd + i] = candidate;
 
       if (batchInd == 1) {
-        printf("HH1 nextHypoInd=%i candidateInd=%i i=%i hypoInd=%i beamSize=%i \n", nextHypoInd, candidateInd, i, candidate.hypoInd, beamSize);
+        //printf("HH1 nextHypoInd=%i candidateInd=%i i=%i hypoInd=%i beamSize=%i \n", nextHypoInd, candidateInd, i, candidate.hypoInd, beamSize);
       }
 
       float &score = nBest[nextHypoInd + i].score;
@@ -1285,7 +1285,7 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBest,
 
     batchInd += gridDim.x;
   }
-  printf("end gNBestPerBatch\n");
+  //printf("end gNBestPerBatch\n");
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1303,8 +1303,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   //cerr << "LogSoftmaxAndNBest0" << endl;
 
   //cerr << "in=" << in.Debug(0) << endl;
-  cerr << "histories=" << histories.Debug(1) << endl;
-  cout << "histories=" << histories.Debug(1) << endl;
+  //cerr << "histories=" << histories.Debug(1) << endl;
+  //cout << "histories=" << histories.Debug(1) << endl;
 
   std::vector<char> isFirsts = histories.IsFirsts();
 
@@ -1371,15 +1371,16 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   //PAUSE_TIMER("gLogSoftMax");
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "LogSoftmaxAndNBest3" << endl;
+
+  blocks = std::min(MAX_BLOCKS, (int)activeBatchSize);
+  /*
   cerr << "nBestCandidates=" << nBestCandidates.Debug(2) << endl;
-
-  blocks = 1; // std::min(MAX_BLOCKS, (int)activeBatchSize);
-
   cerr << "d_isFirsts=" << d_isFirsts.Debug(2) << endl;
   cerr << "activeBatch2Hypo=" << activeBatch2Hypo.Debug(2) << endl;
   cerr << "hypo2NextHypo=" << hypo2NextHypo.Debug(2) << endl;
   cerr << "hypo2BeamSize=" << hypo2BeamSize.Debug(2) << endl;
   cerr << "1nBest=" << nBest.Debug(2) << endl;
+  */
   //BEGIN_TIMER("gNBestPerBatch");
   gNBestPerBatch<<<blocks, 1, 0, CudaStreamHandler::GetStream()>>>
     (nBest,
@@ -1396,7 +1397,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   //PAUSE_TIMER("gNBestPerBatch");
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "LogSoftmaxAndNBest4" << endl;
-  cerr << "2nBest=" << nBest.Debug(2) << endl;
+  //cerr << "2nBest=" << nBest.Debug(2) << endl;
 
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "step3" << endl;
