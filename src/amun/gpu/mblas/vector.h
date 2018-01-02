@@ -249,11 +249,11 @@ template<>
 inline std::string Vector<char>::Debug(size_t verbosity) const
 {
   std::stringstream strm;
-  strm << "CHAR size=" << size_; // maxSize_ << " " <<
+  strm << "size=" << size_; // maxSize_ << " " <<
 
   if (verbosity) {
     size_t sum = Sum(data(), size());
-    strm << "CHAR sum=" << sum << std::flush;
+    strm << "sum=" << sum << std::flush;
 
     if (verbosity == 2) {
       const cudaStream_t& stream = CudaStreamHandler::GetStream();
