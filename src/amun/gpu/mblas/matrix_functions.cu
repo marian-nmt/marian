@@ -938,8 +938,7 @@ float GetMaxScore(const MatrixWrapper<NthOutBatch> &nBestMatrix)
 __device__
 void AddElement(float &minScore,
     uint &i,
-    MatrixWrapper<NthOutBatch> &nBestMatrix,
-    size_t row,
+    VectorWrapper<NthOutBatch> &row,
     bool forbidUNK,
     uint vocabInd,
     const NthOutBatch &ele)
@@ -947,11 +946,11 @@ void AddElement(float &minScore,
   const float score = ele.score;
 
   if (forbidUNK && vocabInd == UNK_ID) {
-    nBestMatrix(row, i, 0, 0).score = LOWEST_FLOAT;
+    row[i].score = LOWEST_FLOAT;
     minScore = LOWEST_FLOAT;
   }
   else {
-    nBestMatrix(row, i, 0, 0) = ele;
+    row[i] = ele;
 
     if (score < minScore) {
       minScore = score;
@@ -1028,7 +1027,7 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidates,
 
   void *ptrOffset = _sharePtr + sizeof(float) * blockDim.x;
   MatrixWrapper<NthOutBatch> nBestMatrix((NthOutBatch*)ptrOffset, blockDim.x, maxBeamSize, 1, 1);
-  size_t row = threadIdx.x;
+  VectorWrapper<NthOutBatch> row = nBestMatrix.Row(threadIdx.x);
   NthOutBatch *arr = &nBestMatrix(threadIdx.x, 0, 0, 0);
 
   uint vocabSize = in.dim(1);
@@ -1047,7 +1046,7 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidates,
     uint arrInd = hypoInd * vocabSize + vocabInd;
     NthOutBatch ele(arrInd, score, hypoInd, vocabInd);
 
-    AddElement(minScore, i, nBestMatrix, row, forbidUNK, vocabInd, ele);
+    AddElement(minScore, i, row, forbidUNK, vocabInd, ele);
 
     vocabInd += blockDim.x;
   }

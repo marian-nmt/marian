@@ -196,6 +196,7 @@ public:
     return ind;
   }
 
+  __device__
   VectorWrapper<T> Row(size_t row)
   {
     T &ele = (*this)(row, 0, 0, 0);

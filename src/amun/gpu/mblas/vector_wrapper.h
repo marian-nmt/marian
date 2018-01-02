@@ -68,7 +68,8 @@ public:
     return data()[i];
   }
 
-  VectorWrapper Offset(size_t offset)
+  __device__
+  VectorWrapper<T> Offset(size_t offset)
   {
     T &ele = (*this)[offset];
     VectorWrapper<T> ret(&ele, size_ - offset);
