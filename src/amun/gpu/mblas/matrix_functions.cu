@@ -1365,7 +1365,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   //cerr << "LogSoftmaxAndNBest3" << endl;
   //cerr << "nBestCandidates=" << nBestCandidates.Debug(2) << endl;
 
-  blocks = 1; // std::min(MAX_BLOCKS, (int)activeBatchSize);
+  blocks = std::min(MAX_BLOCKS, (int)activeBatchSize);
 
   //BEGIN_TIMER("gNBestPerBatch");
   gNBestPerBatch<<<blocks, 1, 0, CudaStreamHandler::GetStream()>>>
