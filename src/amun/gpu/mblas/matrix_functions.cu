@@ -964,9 +964,6 @@ void MergeElement(float &minScore,
     NthOutBatch &currEle = vec[i];
     if (!found && minScore == currEle.score) {
       currEle = ele;
-      if (blockIdx.x == 1) {
-        //printf("HH2 hypoInd=%i vocabInd=%i \n", ele.hypoInd, ele.vocabInd);
-      }
       found = true;
     }
 
@@ -1234,10 +1231,6 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBest,
       const NthOutBatch &candidate = nBestCandidates[candidateInd + i];
       nBest[nextHypoInd + i] = candidate;
 
-      if (batchInd == 1) {
-        //printf("HH1 nextHypoInd=%i candidateInd=%i i=%i hypoInd=%i beamSize=%i \n", nextHypoInd, candidateInd, i, candidate.hypoInd, beamSize);
-      }
-
       float &score = nBest[nextHypoInd + i].score;
       score += prevCost;
 
@@ -1248,6 +1241,9 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBest,
 
     // candidates from other previous hypos
     if (!isFirst) {
+      assert(nextHypoInd < nBest.size());
+      VectorWrapper<NthOutBatch> offset = nBest.Offset(nextHypoInd);
+
       for (uint hypoOffset = 1; hypoOffset < beamSize; ++hypoOffset) {
         //printf("hypoInd=%d \n", (hypoInd + hypoOffset));
 
@@ -1262,9 +1258,6 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBest,
           assert((candidateInd + candidateOffset) < nBestCandidates.size());
           NthOutBatch &candidate = nBestCandidates[candidateInd + candidateOffset];
           candidate.score += prevCost;
-
-          assert(nextHypoInd < nBest.size());
-          VectorWrapper<NthOutBatch> offset = nBest.Offset(nextHypoInd);
 
           if (candidate.score > minScore) {
             MergeElement(minScore, offset, beamSize, candidate);
