@@ -185,13 +185,13 @@ __global__ void gBroadcast(Functor functor,
 
     uint batchIdx = hypo2Batch[ beamIdx ];
 
-
-    outWrap[id] = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
-                          in2Wrap[beamIdx * cols + stateIdx]);
+    assert(batchIdx < in1Wrap.dim(3));
+    //outWrap[id] = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
+    //                      in2Wrap[beamIdx * cols + stateIdx]);
     //outWrap[id] = functor(in1Wrap(indices[0], indices[1], 0, batchIdx),
     //                      in2Wrap(indices[2], indices[1], 0, 0));
-    //outWrap(srcId, stateIdx, beamIdx, 0) = functor(in1Wrap(srcId, stateIdx, 0, batchIdx),
-    //                                              in2Wrap(beamIdx, stateIdx, 0, 0));
+    outWrap(srcId, stateIdx, beamIdx, 0) = functor(in1Wrap(srcId, stateIdx, 0, batchIdx),
+                                                  in2Wrap(beamIdx, stateIdx, 0, 0));
   }
 }
 
@@ -219,18 +219,17 @@ Matrix& Broadcast(Functor functor,
   uint size = out.size();
   uint threads = std::min((uint) MAX_THREADS, (uint)size);
   uint blocks  = (size / threads) + ((size % threads == 0) ?  0 : 1);
-  /*
+
   std::cerr << "size=" << size << std::endl;
   std::cerr << "nBlocks=" << blocks << std::endl;
   std::cerr << "nThreads=" << threads << std::endl;
   std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
   std::cerr << "in1Wrap=" << in1Wrap.Debug() << std::endl;
   std::cerr << "in2Wrap=" << in2Wrap.Debug() << std::endl;
-  std::cerr << "batchMapping=" << batchMapping.Debug() << std::endl;
   std::cerr << "srcSize=" << srcSize << std::endl;
   std::cerr << "sumOfBeamSizes=" << sumOfBeamSizes << std::endl;
   std::cerr << std::endl;
-  */
+
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (functor, outWrap, in1Wrap, in2Wrap, hypo2BatchWrap);
 
