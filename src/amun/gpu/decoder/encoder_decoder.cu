@@ -323,7 +323,7 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   boost::timer::cpu_timer timer;
 
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  //cerr << "FetchBatch1" << endl;
+  cerr << "FetchBatch1" << endl;
   size_t numSentToGet = god_.Get<uint>("mini-batch") - histories.NumActive();
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "FetchBatch2" << endl;

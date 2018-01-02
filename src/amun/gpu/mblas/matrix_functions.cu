@@ -938,7 +938,7 @@ float GetMaxScore(const MatrixWrapper<NthOutBatch> &nBestMatrix)
 __device__
 void AddElement(float &minScore,
     uint &i,
-    VectorWrapper<NthOutBatch> &row,
+    VectorWrapper<NthOutBatch> &vec,
     bool forbidUNK,
     uint vocabInd,
     const NthOutBatch &ele)
@@ -946,11 +946,11 @@ void AddElement(float &minScore,
   const float score = ele.score;
 
   if (forbidUNK && vocabInd == UNK_ID) {
-    row[i].score = LOWEST_FLOAT;
+    vec[i].score = LOWEST_FLOAT;
     minScore = LOWEST_FLOAT;
   }
   else {
-    row[i] = ele;
+    vec[i] = ele;
 
     if (score < minScore) {
       minScore = score;
@@ -963,16 +963,16 @@ void AddElement(float &minScore,
 
 __device__
 void MergeElement(float &minScore,
-                  VectorWrapper<NthOutBatch> &row,
+                  VectorWrapper<NthOutBatch> &vec,
                   uint arrSize,
                   const NthOutBatch &ele)
 {
-  assert(arrSize <= row.size());
+  assert(arrSize <= vec.size());
 
   float newMinScore = HIGHEST_FLOAT;
   bool found = false;
   for (uint i = 0; i < arrSize; ++i) {
-    NthOutBatch &currEle = row[i];
+    NthOutBatch &currEle = vec[i];
     if (!found && minScore == currEle.score) {
       currEle = ele;
       found = true;
@@ -1238,8 +1238,9 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBest,
 
       assert((nextHypoInd + i) < nBest.size());
       assert(candidateInd + i < nBestCandidates.size());
-      nBest[nextHypoInd + i] = nBestCandidates[candidateInd + i];
-      //printf("HH1 nextHypoInd=%i candidateInd=%i i=%i hypoInd=%i \n", nextHypoInd, candidateInd, i, nBest[nextHypoInd + i].hypoInd);
+      const NthOutBatch &candidate = nBestCandidates[candidateInd + i];
+      nBest[nextHypoInd + i] = candidate;
+      printf("HH1 nextHypoInd=%i candidateInd=%i i=%i hypoInd=%i \n", nextHypoInd, candidateInd, i, nBest[nextHypoInd + i].hypoInd);
 
       float &score = nBest[nextHypoInd + i].score;
       score += prevCost;
@@ -1278,7 +1279,7 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBest,
 
     batchInd += gridDim.x;
   }
-  //printf("\n");
+  printf("\n");
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1296,7 +1297,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   //cerr << "LogSoftmaxAndNBest0" << endl;
 
   //cerr << "in=" << in.Debug(0) << endl;
-  //cerr << "histories=" << histories.Debug(1) << endl;
+  cerr << "histories=" << histories.Debug(1) << endl;
 
   std::vector<char> isFirsts = histories.IsFirsts();
 
@@ -1363,9 +1364,9 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   //PAUSE_TIMER("gLogSoftMax");
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "LogSoftmaxAndNBest3" << endl;
-  //cerr << "nBestCandidates=" << nBestCandidates.Debug(2) << endl;
+  cerr << "nBestCandidates=" << nBestCandidates.Debug(2) << endl;
 
-  blocks = std::min(MAX_BLOCKS, (int)activeBatchSize);
+  blocks = 1; // std::min(MAX_BLOCKS, (int)activeBatchSize);
 
   //BEGIN_TIMER("gNBestPerBatch");
   gNBestPerBatch<<<blocks, 1, 0, CudaStreamHandler::GetStream()>>>
@@ -1383,6 +1384,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   //PAUSE_TIMER("gNBestPerBatch");
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "LogSoftmaxAndNBest4" << endl;
+  cerr << "nBest=" << nBest.Debug(2) << endl;
 
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "step3" << endl;
