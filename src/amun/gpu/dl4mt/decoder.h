@@ -168,6 +168,15 @@ class Decoder {
           }
         }
 
+        void Init(const mblas::Matrix& SourceContext,
+                  mblas::Matrix& SCU,
+                  const std::vector<uint> &newBatchIds,
+                  const mblas::Vector<uint> &d_newBatchIds) const
+        {
+          using namespace mblas;
+          // TODO
+        }
+
         uint GetMaxLength(const std::vector<uint>& h_sentenceLengths, const std::vector<uint>& beamSizes) const
         {
           assert(h_sentenceLengths.size() == beamSizes.size());
@@ -506,7 +515,7 @@ class Decoder {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState2" << std::endl;
 
-      alignment_.Init(SourceContext, SCU);
+      alignment_.Init(SourceContext, SCU, newBatchIds, d_newBatchIds);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState3" << std::endl;
     }

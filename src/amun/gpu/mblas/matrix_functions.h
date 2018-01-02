@@ -185,6 +185,9 @@ __global__ void gBroadcast(Functor functor,
 
     uint batchIdx = hypo2Batch[ beamIdx ];
 
+    assert(srcId < out.dim(0));
+    assert(srcId < in1.dim(0));
+    assert(beamIdx < in2.dim(0));
     assert(batchIdx < in1.dim(3));
     //outWrap[id] = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
     //                      in2Wrap[beamIdx * cols + stateIdx]);
