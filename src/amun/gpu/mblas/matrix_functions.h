@@ -217,7 +217,7 @@ Matrix& Broadcast(Functor functor,
   uint size = out.size();
   uint threads = std::min((uint) MAX_THREADS, (uint)size);
   uint blocks  = (size / threads) + ((size % threads == 0) ?  0 : 1);
-
+  /*
   std::cerr << "size=" << size << std::endl;
   std::cerr << "nBlocks=" << blocks << std::endl;
   std::cerr << "nThreads=" << threads << std::endl;
@@ -227,7 +227,7 @@ Matrix& Broadcast(Functor functor,
   std::cerr << "srcSize=" << srcSize << std::endl;
   std::cerr << "sumOfBeamSizes=" << sumOfBeamSizes << std::endl;
   std::cerr << std::endl;
-
+  */
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (functor, out, in1, in2, hypo2Batch);
 

@@ -123,7 +123,7 @@ void WeightedMean(Matrix& out,const Matrix& weights, const Matrix& in, const mbl
   cerr << "Out=" << out.Debug(0) << endl;
   cerr << "Weights=" << weights.Debug(0) << endl;
   cerr << "In=" << in.Debug(0) << endl;
-  cerr << "In=" << hypo2Batch.Debug(0) << endl;
+  cerr << "hypo2Batch=" << hypo2Batch.Debug(1) << endl;
   cerr << endl << endl;
 
   gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
