@@ -108,36 +108,26 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
   }
 }
 
-void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Vector<size_t>& hypo2Batch)
+void WeightedMean(Matrix& out,const Matrix& weights, const Matrix& in, const mblas::Vector<size_t>& hypo2Batch)
 {
-  int numHypos = Weights.dim(0);
-  int states = In.dim(1);
+  int numHypos = weights.dim(0);
+  int states = in.dim(1);
 
-  Out.NewSize(numHypos, states);
+  out.NewSize(numHypos, states);
 
-  MatrixWrapper<float> outWrap(Out);
-  MatrixWrapper<float> weightsWrap(Weights);
-  MatrixWrapper<float> inWrap(In);
-  VectorWrapper<size_t> hypo2BatchWrap(hypo2Batch);
-
-  uint size = Out.size();
+  uint size = out.size();
   uint nThreads = std::min((uint) MAX_THREADS, (uint)size);
   uint nBlocks =  (size / nThreads) + ((size % nThreads == 0) ?  0 : 1);
 
-  gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
-    (outWrap, weightsWrap, inWrap, hypo2BatchWrap);
-  /*
   cerr << "nBlocks=" << nBlocks << endl;
-
-  cerr << "Out=" << outWrap.Debug() << endl;
-  cerr << "Weights=" << weightsWrap.Debug() << endl;
-  cerr << "In=" << inWrap.Debug() << endl;
-  cerr << "mapping=" << mapping.size() << endl;
-  for (size_t i = 0; i < mapping.size(); ++i) {
-    cerr << mapping[i] << " ";
-  }
+  cerr << "Out=" << out.Debug(0) << endl;
+  cerr << "Weights=" << weights.Debug(0) << endl;
+  cerr << "In=" << in.Debug(0) << endl;
+  cerr << "In=" << hypo2Batch.Debug(0) << endl;
   cerr << endl << endl;
-  */
+
+  gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
+    (out, weights, in, hypo2Batch);
 }
 
 Matrix& Transpose(Matrix& Out, const Matrix& In) {
