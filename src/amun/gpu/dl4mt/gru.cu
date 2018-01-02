@@ -21,29 +21,29 @@ __global__ void gElementwiseOps(mblas::MatrixWrapper<float> outWrap,
   for(int tid = 0; tid < cols; tid += blockDim.x) {
     int i = tid + threadIdx.x;
     if(i < cols) {
-      float ev1 = expf(-(ruhWrap(blockIdx.x, i, 0, 0)
+      float ev1 = expf(-(ruhWrap(blockIdx.x, i)
                          + bWrap[i]
-                         + tempWrap(blockIdx.x, i, 0, 0)
+                         + tempWrap(blockIdx.x, i)
                         )
                       );
       float r = 1.0f / (1.0f + ev1);
 
       int k = i + cols;
-      float ev2 = expf(-(ruhWrap(blockIdx.x, k, 0, 0)
+      float ev2 = expf(-(ruhWrap(blockIdx.x, k)
                          + bWrap[k]
-                         + tempWrap(blockIdx.x, k, 0, 0)
+                         + tempWrap(blockIdx.x, k)
                         )
                       );
       float u = 1.0f / (1.0f + ev2);
 
-      float hv = ruhWrap(blockIdx.x, 2*cols + i, 0, 0)
+      float hv = ruhWrap(blockIdx.x, 2*cols + i)
                + bx1Wrap[i];
 
-      float t2v = tempWrap(blockIdx.x, 2*cols + i, 0, 0)
+      float t2v = tempWrap(blockIdx.x, 2*cols + i)
                 + bx2Wrap[i];
 
       hv = tanhf(hv + r * t2v);
-      outWrap(blockIdx.x, i, 0, 0) = (1.0f - u) * hv + u * stateWrap(blockIdx.x, i, 0, 0);
+      outWrap(blockIdx.x, i) = (1.0f - u) * hv + u * stateWrap(blockIdx.x, i);
     }
   }
 }

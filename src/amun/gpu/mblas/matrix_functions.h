@@ -193,8 +193,8 @@ __global__ void gBroadcast(Functor functor,
     //                      in2[beamIdx * cols + stateIdx]);
     //out[id] = functor(in1(indices[0], indices[1], 0, batchIdx),
     //                      in2(indices[2], indices[1], 0, 0));
-    out(srcId, stateIdx, beamIdx, 0) = functor(in1(srcId, stateIdx, 0, batchIdx),
-                                                  in2(beamIdx, stateIdx, 0, 0));
+    out(srcId, stateIdx, beamIdx) = functor(in1(srcId, stateIdx, 0, batchIdx),
+                                                  in2(beamIdx, stateIdx));
   }
 }
 
@@ -257,7 +257,7 @@ __global__ void gBroadcastVecColumn(Functor functor,
   int noColumn = threadIdx.x + blockDim.x * blockIdx.x;
   if (noColumn < cols) {
     for (int noRow = 0; noRow < rows; ++noRow) {
-      float &val = outWrap(noRow, noColumn, 0, 0);
+      float &val = outWrap(noRow, noColumn);
       val = functor(val, sdata[noRow]);
     }
   }
@@ -290,7 +290,7 @@ __global__ void gBroadcastVec(Functor functor,
 
   int noColumn = threadIdx.x + blockDim.x * blockIdx.x;
   if (noColumn < cols) {
-    float vecValue = inWrap(0, noColumn, 0, 0);
+    float vecValue = inWrap(0, noColumn);
 
     for (int dim0 = 0; dim0 < outWrap.dim(0); ++dim0) {
       for (int dim2 = 0; dim2 < outWrap.dim(2); ++dim2) {

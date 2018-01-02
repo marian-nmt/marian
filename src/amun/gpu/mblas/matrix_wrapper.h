@@ -147,6 +147,8 @@ public:
     return data()[i];
   }
 
+  // operator()
+  // 4
   __device__
   const T &operator()(uint a, uint b, uint c, uint d) const
   {
@@ -159,6 +161,116 @@ public:
   {
     uint id = indices2Id(a, b, c, d);
     return data()[id];
+  }
+
+  // 3
+  __device__
+  const T &operator()(uint a, uint b, uint c) const
+  {
+    uint id = indices2Id(a, b, c);
+    return data()[id];
+  }
+
+  __device__
+  T &operator()(uint a, uint b, uint c)
+  {
+    uint id = indices2Id(a, b, c);
+    return data()[id];
+  }
+
+  // 2
+  __device__
+  const T &operator()(uint a, uint b) const
+  {
+    uint id = indices2Id(a, b);
+    return data()[id];
+  }
+
+  __device__
+  T &operator()(uint a, uint b)
+  {
+    uint id = indices2Id(a, b);
+    return data()[id];
+  }
+
+  // 1
+  __device__
+  const T &operator()(uint a) const
+  {
+    uint id = indices2Id(a);
+    return data()[id];
+  }
+
+  __device__
+  T &operator()(uint a)
+  {
+    uint id = indices2Id(a);
+    return data()[id];
+  }
+
+  // indices2Id
+  // 4
+  __device__ __host__
+  uint indices2Id(uint a, uint b, uint c, uint d) const
+  {
+    assert(a < dim(0));
+    assert(b < dim(1));
+    assert(c < dim(2));
+    assert(d < dim(3));
+
+    uint ind = 0;
+    ind += a * stride(0);
+    ind += b * stride(1);
+    ind += c * stride(2);
+    ind += d * stride(3);
+
+    assert(ind < size());
+    return ind;
+  }
+
+  // 3
+  __device__ __host__
+  uint indices2Id(uint a, uint b, uint c) const
+  {
+    assert(a < dim(0));
+    assert(b < dim(1));
+    assert(c < dim(2));
+
+    uint ind = 0;
+    ind += a * stride(0);
+    ind += b * stride(1);
+    ind += c * stride(2);
+
+    assert(ind < size());
+    return ind;
+  }
+
+  // 2
+  __device__ __host__
+  uint indices2Id(uint a, uint b) const
+  {
+    assert(a < dim(0));
+    assert(b < dim(1));
+
+    uint ind = 0;
+    ind += a * stride(0);
+    ind += b * stride(1);
+
+    assert(ind < size());
+    return ind;
+  }
+
+  // 1
+  __device__ __host__
+  uint indices2Id(uint a) const
+  {
+    assert(a < dim(0));
+
+    uint ind = 0;
+    ind += a * stride(0);
+
+    assert(ind < size());
+    return ind;
   }
 
   __device__ __host__
@@ -178,28 +290,10 @@ public:
     out[1] = id / stride(1);
   }
 
-  __device__ __host__
-  uint indices2Id(uint a, uint b, uint c, uint d) const
-  {
-    assert(a < dim(0));
-    assert(b < dim(1));
-    assert(c < dim(2));
-    assert(d < dim(3));
-
-    uint ind = 0;
-    ind += a * stride(0);
-    ind += b * stride(1);
-    ind += c * stride(2);
-    ind += d * stride(3);
-
-    assert(ind < size());
-    return ind;
-  }
-
   __device__
   VectorWrapper<T> Row(size_t row)
   {
-    T &ele = (*this)(row, 0, 0, 0);
+    T &ele = (*this)(row);
     VectorWrapper<T> ret(&ele, dim(1));
     return ret;
   }
