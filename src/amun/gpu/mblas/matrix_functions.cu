@@ -987,7 +987,7 @@ void MergeElement(float &minScore,
 
 __device__
 void MergeElement(float &minScore,
-                  NthOutBatch *arr,
+                  VectorWrapper<NthOutBatch> &row,
                   uint arrSize,
                   const NthOutBatch &ele,
                   bool forbidUNK,
@@ -998,7 +998,7 @@ void MergeElement(float &minScore,
   }
   else if (ele.score > minScore) {
     // replace element with min score
-    MergeElement(minScore, arr, arrSize, ele);
+    MergeElement(minScore, row.data(), arrSize, ele);
 
     /*
     printf("arrInd=%d ind=%d vocabId=%d \n",
@@ -1057,7 +1057,7 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidates,
     uint arrInd = hypoInd * vocabSize + vocabInd;
     NthOutBatch ele(arrInd, score, hypoInd, vocabInd);
 
-    MergeElement(minScore, arr, beamSize, ele, forbidUNK, vocabInd);
+    MergeElement(minScore, row, beamSize, ele, forbidUNK, vocabInd);
 
     vocabInd += blockDim.x;
   } // while (vocabInd < vocabSize) {
