@@ -6,7 +6,11 @@
  *      Author: hieu
  */
 
+#include <cassert>
+#include <sstream>
+#include <vector>
 #include "gpu/types-gpu.h"
+#include "gpu/mblas/handles.h"
 
 namespace amunmt {
 namespace GPU {
@@ -200,43 +204,77 @@ public:
     return *this;
   }
 
-  virtual std::string Debug(size_t verbosity = 1) const
-  {
-    std::stringstream strm;
-    strm << "size=" << size_; // maxSize_ << " " <<
-
-    if (verbosity) {
-      T sum = Sum(data(), size());
-      strm << " sum=" << sum << std::flush;
-
-      if (verbosity == 2) {
-        const cudaStream_t& stream = CudaStreamHandler::GetStream();
-        T h_data[size()];
-
-        HANDLE_ERROR( cudaMemcpyAsync(
-            &h_data,
-            data_,
-            size() * sizeof(T),
-            cudaMemcpyDeviceToHost,
-            stream) );
-        HANDLE_ERROR( cudaStreamSynchronize(stream) );
-
-        for (size_t i = 0; i < size(); ++i) {
-          strm << " " << h_data[i];
-        }
-      }
-    }
-
-    return strm.str();
-  }
+  virtual std::string Debug(size_t verbosity = 1) const;
 
 protected:
   size_t size_, maxSize_;
   T *data_;
 
 
-
 };
+
+////////////////////////////////////////////////////////////////////////////////
+template<typename T>
+inline std::string Vector<T>::Debug(size_t verbosity) const
+{
+  std::stringstream strm;
+  strm << "size=" << size_; // maxSize_ << " " <<
+
+  if (verbosity) {
+    T sum = Sum(data(), size());
+    strm << " sum=" << sum << std::flush;
+
+    if (verbosity == 2) {
+      const cudaStream_t& stream = CudaStreamHandler::GetStream();
+      T h_data[size()];
+
+      HANDLE_ERROR( cudaMemcpyAsync(
+          &h_data,
+          data_,
+          size() * sizeof(T),
+          cudaMemcpyDeviceToHost,
+          stream) );
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
+
+      for (size_t i = 0; i < size(); ++i) {
+        strm << " " << h_data[i];
+      }
+    }
+  }
+
+  return strm.str();
+}
+
+template<>
+inline std::string Vector<char>::Debug(size_t verbosity) const
+{
+  std::stringstream strm;
+  strm << "CHAR size=" << size_; // maxSize_ << " " <<
+
+  if (verbosity) {
+    size_t sum = Sum(data(), size());
+    strm << "CHAR sum=" << sum << std::flush;
+
+    if (verbosity == 2) {
+      const cudaStream_t& stream = CudaStreamHandler::GetStream();
+      char h_data[size()];
+
+      HANDLE_ERROR( cudaMemcpyAsync(
+          &h_data,
+          data_,
+          size() * sizeof(char),
+          cudaMemcpyDeviceToHost,
+          stream) );
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
+
+      for (size_t i = 0; i < size(); ++i) {
+        strm << " " << (bool) h_data[i];
+      }
+    }
+  }
+
+  return strm.str();
+}
 
 }
 }

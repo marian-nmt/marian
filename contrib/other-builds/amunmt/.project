@@ -1616,6 +1616,11 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/thrust_functions.h</locationURI>
 		</link>
 		<link>
+			<name>src/amun/gpu/mblas/vector.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/vector.cu</locationURI>
+		</link>
+		<link>
 			<name>src/amun/gpu/mblas/vector.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/vector.h</locationURI>
