@@ -885,18 +885,20 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSize,
         //printf("hypoInd=%i hypo2BeamSize=%i \n", hypoInd, hypo2BeamSize.size());
         assert(hypoInd < hypo2BeamSize.size());
         assert(hypoInd < hypo2Candidate.size());
+        assert(activeBatchInd < activeBatch2Hypo.size());
+        activeBatch2Hypo[activeBatchInd] = hypoInd;
         hypo2BeamSize[hypoInd] = beamSize;
         hypo2Candidate[hypoInd] = candidateInd;
         hypo2NextHypo[hypoInd] = nextHypoInd;
+
+
         ++hypoInd;
-
-        assert(activeBatchInd < activeBatch2Hypo.size());
-        activeBatch2Hypo[activeBatchInd] = batchInd;
-        ++activeBatchInd;
-
         candidateInd += beamSize;
       }
       else {
+        assert(activeBatchInd < activeBatch2Hypo.size());
+        activeBatch2Hypo[activeBatchInd] = hypoInd;
+
         for (size_t j = 0; j < beamSize; ++j) {
           assert(hypoInd < hypo2BeamSize.size());
           assert(hypoInd < hypo2Candidate.size());
@@ -907,12 +909,9 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSize,
 
           candidateInd += beamSize;
         }
-
-        assert(activeBatchInd < activeBatch2Hypo.size());
-        activeBatch2Hypo[activeBatchInd] = nextHypoInd;
-        ++activeBatchInd;
       }
 
+      ++activeBatchInd;
       nextHypoInd += beamSize;
     }
   }
