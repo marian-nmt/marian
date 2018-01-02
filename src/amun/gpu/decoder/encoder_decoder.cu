@@ -402,12 +402,10 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "FetchBatch10" << endl;
 
-  cerr << "SCU1=" << SCU.Debug(0) << endl;
   BeginSentenceState(histories, sourceContext, sentenceLengths, state, SCU, newBatchIds, d_newBatchIds);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "FetchBatch11" << endl;
   //cerr << "histories new=" << histories.Debug() << endl;
-  cerr << "SCU2=" << SCU.Debug(0) << endl;
 
   LOG(progress)->info("Fetch took {} new {} histories {}", timer.format(5, "%w"), newSentences.size(), histories.NumActive());
   cerr << endl;
