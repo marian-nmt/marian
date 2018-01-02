@@ -963,14 +963,16 @@ void AddElement(float &minScore,
 
 __device__
 void MergeElement(float &minScore,
-                  NthOutBatch *arr,
+                  VectorWrapper<NthOutBatch> &row,
                   uint arrSize,
                   const NthOutBatch &ele)
 {
+  assert(arrSize <= row.size());
+
   float newMinScore = HIGHEST_FLOAT;
   bool found = false;
   for (uint i = 0; i < arrSize; ++i) {
-    NthOutBatch &currEle = arr[i];
+    NthOutBatch &currEle = row[i];
     if (!found && minScore == currEle.score) {
       currEle = ele;
       found = true;
@@ -998,7 +1000,7 @@ void MergeElement(float &minScore,
   }
   else if (ele.score > minScore) {
     // replace element with min score
-    MergeElement(minScore, row.data(), arrSize, ele);
+    MergeElement(minScore, row, arrSize, ele);
 
     /*
     printf("arrInd=%d ind=%d vocabId=%d \n",
@@ -1028,7 +1030,6 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidates,
   void *ptrOffset = _sharePtr + sizeof(float) * blockDim.x;
   MatrixWrapper<NthOutBatch> nBestMatrix((NthOutBatch*)ptrOffset, blockDim.x, maxBeamSize, 1, 1);
   VectorWrapper<NthOutBatch> row = nBestMatrix.Row(threadIdx.x);
-  NthOutBatch *arr = &nBestMatrix(threadIdx.x, 0, 0, 0);
 
   uint vocabSize = in.dim(1);
 
@@ -1068,12 +1069,10 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidates,
     __syncthreads();
     int skip = (len + 1) >> 1;
     if (threadIdx.x < (len >> 1)) {
-      NthOutBatch *dest = &nBestMatrix(threadIdx.x, 0, 0, 0);
-
       for (uint i = 0; i < beamSize; ++i) {
         const NthOutBatch &ele = nBestMatrix(threadIdx.x + skip, i, 0, 0);
         if (ele.score > minScore) {
-          MergeElement(minScore, dest, beamSize, ele);
+          MergeElement(minScore, row, beamSize, ele);
         }
       }
     }
@@ -1268,10 +1267,10 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBest,
           candidate.score += prevCost;
 
           assert(nextHypoInd < nBest.size());
-          NthOutBatch *arr = &nBest[nextHypoInd];
+          VectorWrapper<NthOutBatch> offset = nBest.Offset(nextHypoInd);
 
           if (candidate.score > minScore) {
-            MergeElement(minScore, arr, beamSize, candidate);
+            MergeElement(minScore, offset, beamSize, candidate);
           }
         }
       }
