@@ -394,11 +394,11 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   //cerr << "FetchBatch8" << endl;
 
   // source context
-  cerr << "1sourceContext=" << sourceContext.Debug() << endl;
+  //cerr << "1sourceContext=" << sourceContext.Debug() << endl;
   ResizeMatrix(sourceContext, {0, maxLength});
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "FetchBatch9" << endl;
-  cerr << "2sourceContext=" << sourceContext.Debug() << endl;
+  //cerr << "2sourceContext=" << sourceContext.Debug() << endl;
 
   AddNewData(sourceContext, newBatchIds, newSentences);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));

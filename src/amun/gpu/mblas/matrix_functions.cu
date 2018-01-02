@@ -118,14 +118,14 @@ void WeightedMean(Matrix& out,const Matrix& weights, const Matrix& in, const mbl
   uint size = out.size();
   uint nThreads = std::min((uint) MAX_THREADS, (uint)size);
   uint nBlocks =  (size / nThreads) + ((size % nThreads == 0) ?  0 : 1);
-
+  /*
   cerr << "nBlocks=" << nBlocks << endl;
   cerr << "Out=" << out.Debug(0) << endl;
   cerr << "Weights=" << weights.Debug(0) << endl;
   cerr << "In=" << in.Debug(0) << endl;
   cerr << "hypo2Batch=" << hypo2Batch.Debug(1) << endl;
   cerr << endl << endl;
-
+  */
   gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (out, weights, in, hypo2Batch);
 }
@@ -1452,14 +1452,14 @@ void AddNewData(mblas::Matrix &sourceContext,
     const BufferOutput &eleSent = newSentences[i];
     const EncOutPtr &encOut = eleSent.GetEncOut();
     const mblas::Matrix &newSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
-    //cerr << "newSourceContext=" << newSourceContext.Debug(0) << endl;
+    cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
+    cerr << "newSourceContext=" << newSourceContext.Debug(0) << endl;
 
     size_t batchId = newBatchIds[i];
     size_t newSentenceOffset = eleSent.GetSentenceOffset();
 
     assert(batchId < sourceContext.dim(3));
     assert(newSentenceOffset < newSourceContext.dim(3));
-    assert(sourceContext.dim(0) >= newSourceContext.dim(0));
     assert(sourceContext.dim(1) == newSourceContext.dim(1));
     assert(sourceContext.dim(2) == newSourceContext.dim(2) == 1);
 
@@ -1470,7 +1470,8 @@ void AddNewData(mblas::Matrix &sourceContext,
     mblas::MatrixWrapper<float> dest(sourceContext);
     const mblas::MatrixWrapper<float> source(newSourceContext);
 
-    gAddNewData<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(dest, source, batchId, newSentenceOffset, size);
+    // TODO
+    //gAddNewData<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(dest, source, batchId, newSentenceOffset, size);
   }
 
   PAUSE_TIMER("AddNewData");

@@ -174,12 +174,13 @@ class Decoder {
                   const mblas::Vector<uint> &d_newBatchIds) const
         {
           using namespace mblas;
+          /*
           std::cerr << "SCU1=" << SCU.Debug(0) << std::endl;
           std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
           std::cerr << "w_.U_=" << w_.U_->Debug(0) << std::endl;
-
+          */
           SCU.NewSize(SourceContext.dim(0), SCU.dim(1), SCU.dim(2), SCU.dim(3));
-          std::cerr << "SCU2=" << SCU.Debug(0) << std::endl;
+          //std::cerr << "SCU2=" << SCU.Debug(0) << std::endl;
 
           // TODO
 
@@ -226,7 +227,7 @@ class Decoder {
           std::cerr << "histories=" << Debug(histories, 2) << std::endl;
           std::cerr << "maxLength=" << SourceContext.dim(0) << " " << maxLength << std::endl;
           */
-          std::cerr << "histories=" << histories.Debug(1) << std::endl;
+          //std::cerr << "histories=" << histories.Debug(1) << std::endl;
 
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           //std::cerr << "GetAlignedSourceContext2" << std::endl;
@@ -255,32 +256,32 @@ class Decoder {
 
           Prod(/*h_[1],*/ Temp2_, *(HiddenState.output), *w_.W_);
           //std::cerr << "1Temp2_=" << Temp2_.Debug() << std::endl;
-          HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          std::cerr << "GetAlignedSourceContext7" << std::endl;
+          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+          //std::cerr << "GetAlignedSourceContext7" << std::endl;
 
           if (w_.Gamma_2_->size()) {
             Normalization(Temp2_, Temp2_, *w_.Gamma_2_, 1e-9);
           } else {
             BroadcastVec(_1 + _2, Temp2_, *w_.B_/*, s_[1]*/);
           }
-          HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          std::cerr << "GetAlignedSourceContext8" << std::endl;
+          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+          //std::cerr << "GetAlignedSourceContext8" << std::endl;
 
           Broadcast(Tanh(_1 + _2), Temp1_, SCU, Temp2_, dHypo2Batch_, maxLength);
-          HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          std::cerr << "GetAlignedSourceContext9" << std::endl;
+          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+          //std::cerr << "GetAlignedSourceContext9" << std::endl;
 
           Prod(A_, *w_.V_, Temp1_, true);
-          HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          std::cerr << "GetAlignedSourceContext10" << std::endl;
+          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+          //std::cerr << "GetAlignedSourceContext10" << std::endl;
 
           mblas::Softmax(A_, dHypo2Batch_, sentenceLengths, batchSize);
-          HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          std::cerr << "GetAlignedSourceContext11" << std::endl;
+          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+          //std::cerr << "GetAlignedSourceContext11" << std::endl;
 
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dHypo2Batch_);
-          HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          std::cerr << "GetAlignedSourceContext12" << std::endl;
+          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+          //std::cerr << "GetAlignedSourceContext12" << std::endl;
 
           PAUSE_TIMER("GetAlignedSourceContext");
         }
