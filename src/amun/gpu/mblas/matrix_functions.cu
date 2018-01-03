@@ -282,7 +282,20 @@ Matrix& CopyRows(Matrix& Out,
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const mblas::Vector<unsigned>& indices) {
+                 const mblas::Vector<unsigned>& indices)
+{
+  Out.NewSize(indices.size(), In.dim(1));
+  //cerr << "Assemble=" << Out.Debug() << " " << In.Debug() << indices.size() << endl;
+
+  CopyRows(Out, In, indices);
+  return Out;
+}
+
+Matrix& AssembleTopup(Matrix& Out,
+                 const Matrix& In,
+                 const mblas::Vector<unsigned>& indices,
+                 const Histories& histories)
+{
   Out.NewSize(indices.size(), In.dim(1));
   //cerr << "Assemble=" << Out.Debug() << " " << In.Debug() << indices.size() << endl;
 
@@ -1389,7 +1402,7 @@ void gUpdateSentenceLengths(const VectorWrapper<unsigned> newSentenceLengths,
                             const VectorWrapper<unsigned> newBatchIds,
                             VectorWrapper<unsigned> sentenceLengths)
 {
-  unsigned id =  threadIdx.x; // index of previous hypo
+  unsigned id =  threadIdx.x;
   while (id < newSentenceLengths.size()) {
     unsigned sentenceLength = newSentenceLengths[id];
     unsigned batchId = newBatchIds[id];

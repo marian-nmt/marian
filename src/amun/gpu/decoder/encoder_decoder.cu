@@ -211,14 +211,14 @@ void EncoderDecoder::DecodeAsyncInternal()
     //std::cerr << "state3=" << state->Debug(0) << std::endl;
     //std::cerr << "nextState3=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
-    if (histories.NumActive() == 0) {
-    //if ((histories.size() - histories.NumActive()) > 0) {
+    //if (histories.NumActive() == 0) {
+    if ((histories.size() - histories.NumActive()) > 0) {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal6" << endl;
       //std::cerr << "histories6=" << histories.Debug(1) << std::endl;
 
-      InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
-      //TopupBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
+      //InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
+      TopupBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal7" << endl;
       //std::cerr << "histories7=" << histories.Debug(1) << std::endl;
@@ -307,7 +307,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch2" << endl;
   //cerr << "numSentToGet=" << numSentToGet << endl;
-  cerr << "histories orig=" << histories.Debug() << endl;
+  //cerr << "histories orig=" << histories.Debug() << endl;
 
   std::vector<BufferOutput> newSentences;
   encDecBuffer_.Get(numSentToGet, newSentences);
@@ -333,6 +333,8 @@ void EncoderDecoder::TopupBatch(Histories &histories,
     return;
   }
 
+  cerr << "histories=" << histories.Debug() << endl;
+
   const vector<unsigned> &newBatchIds = histories.GetNewBatchIds();
   const vector<unsigned> &newSentenceLengths = histories.GetNewSentenceLengths();;
 
@@ -347,24 +349,24 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch6" << endl;
   //cerr << "histories=" << histories.Debug() << endl;
-  //cerr << "1state=" << state.Debug(0) << endl;
 
   // histories is const from here on
 
+  cerr << "1state=" << state.Debug(0) << endl;
   AssembleBeamStateTopup(histories, nextState, state);
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch7" << endl;
-  //cerr << "2state=" << state.Debug(0) << endl;
+  cerr << "2state=" << state.Debug(0) << endl;
 
   UpdateSentenceLengths(histories, sentenceLengths);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch8" << endl;
 
   // source context
-  cerr << "1sourceContext=" << sourceContext.Debug() << endl;
+  //cerr << "1sourceContext=" << sourceContext.Debug() << endl;
   ResizeMatrix(sourceContext, {0, maxLength});
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "2sourceContext=" << sourceContext.Debug() << endl;
+  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  //cerr << "2sourceContext=" << sourceContext.Debug() << endl;
   //cerr << "TopupBatch9" << endl;
 
   AddNewData(sourceContext, newBatchIds, newSentences);
@@ -374,7 +376,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   BeginSentenceStateTopup(histories, sourceContext, sentenceLengths, state, SCU);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch11" << endl;
-  cerr << "histories new=" << histories.Debug() << endl;
+  //cerr << "histories new=" << histories.Debug() << endl;
 
   LOG(progress)->info("Topup took {} new {} histories {}", timer.format(5, "%w"), newSentences.size(), histories.NumActive());
   cerr << endl;
@@ -530,19 +532,19 @@ void EncoderDecoder::AssembleBeamStateTopup(const Histories& histories,
 
   //cerr << "histories=" << histories.Debug() << endl;
   //cerr << "outState1=" << outState.Debug(0) << endl;
-  mblas::Assemble(*(cellOutStates.output), *(cellInstates.output), indices);
+  mblas::AssembleTopup(*(cellOutStates.output), *(cellInstates.output), indices, histories);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "AssembleBeamState4" << endl;
   //cerr << "cellOutStates2=" << cellOutStates.Debug(0) << endl;
 
   if (cellInstates.cell->size() > 0) {
-    mblas::Assemble(*(cellOutStates.cell), *(cellInstates.cell), indices);
+    mblas::AssembleTopup(*(cellOutStates.cell), *(cellInstates.cell), indices, histories);
   }
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "AssembleBeamState5" << endl;
   //cerr << "outState2=" << outState.Debug(0) << endl;
 
-  decoder_->Lookup(edOutState.GetEmbeddings(), beamWords);
+  decoder_->LookupTopup(edOutState.GetEmbeddings(), beamWords, histories);
   //cerr << "outState3=" << outState.Debug(0) << endl;
   //cerr << ".GetEmbeddings()=" << .GetEmbeddings().Debug(1) << endl;
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));

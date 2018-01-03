@@ -4,6 +4,7 @@
 #include "sentences.h"
 #include "history.h"
 #include "enc_out.h"
+#include "utils.h"
 
 using namespace std;
 
@@ -278,12 +279,16 @@ std::string Histories::Debug(size_t verbosity) const
         //strm << " (" << ele.sentenceInd << "," << ele.size << ")";
         strm << "(" << i
               << ",sent=" << ele->GetSentence()->GetLineNum()
-              << ",beam=" << ele->GetBeamSize() << ") ";
+              << ",len=" << ele->GetSentence()->size()
+              << ",beam=" << ele->GetBeamSize()
+              << ") ";
       }
       else {
         strm << "NULL ";
       }
     }
+
+    strm << "newBatchIds_=" << amunmt::Debug(newBatchIds_, 2);
   }
 
   return strm.str();

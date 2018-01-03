@@ -530,6 +530,14 @@ class Decoder {
       embeddings_.Lookup(Embedding, w);
     }
 
+    void LookupTopup(mblas::Matrix& Embedding,
+                const std::vector<unsigned>& w,
+                const Histories &histories)
+    {
+      // TODO
+      embeddings_.Lookup(Embedding, w);
+    }
+
     void Filter(const std::vector<unsigned>& ids) {
       softmax_.Filter(ids);
     }
