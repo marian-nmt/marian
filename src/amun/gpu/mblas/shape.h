@@ -33,6 +33,7 @@ public:
     }
   }
 
+  __device__ __host__
   Shape(unsigned a, unsigned b, unsigned c, unsigned d)
   {
     dim_[0] = a;

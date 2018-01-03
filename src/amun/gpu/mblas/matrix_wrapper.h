@@ -13,6 +13,7 @@ class MatrixWrapper
 {
 public:
   MatrixWrapper()
+  :shape_()
   {
     dim_[0] = 0;
     dim_[1] = 0;
@@ -24,12 +25,13 @@ public:
     dataConst_ = nullptr;
   }
 
-  MatrixWrapper(const TMatrix<T> &other, bool colMajor = true)
+  MatrixWrapper(const TMatrix<T> &matrix, bool colMajor = true)
+  :shape_(matrix.dim(0), matrix.dim(1), matrix.dim(2), matrix.dim(3))
   {
-    dim_[0] = other.dim(0);
-    dim_[1] = other.dim(1);
-    dim_[2] = other.dim(2);
-    dim_[3] = other.dim(3);
+    dim_[0] = matrix.dim(0);
+    dim_[1] = matrix.dim(1);
+    dim_[2] = matrix.dim(2);
+    dim_[3] = matrix.dim(3);
 
     if (colMajor) {
       updateStrides();
@@ -39,15 +41,16 @@ public:
     }
 
     data_ = nullptr;
-    dataConst_ = other.data();
+    dataConst_ = matrix.data();
   }
 
-  MatrixWrapper(TMatrix<T> &other, bool colMajor = true)
+  MatrixWrapper(TMatrix<T> &matrix, bool colMajor = true)
+  :shape_(matrix.dim(0), matrix.dim(1), matrix.dim(2), matrix.dim(3))
   {
-    dim_[0] = other.dim(0);
-    dim_[1] = other.dim(1);
-    dim_[2] = other.dim(2);
-    dim_[3] = other.dim(3);
+    dim_[0] = matrix.dim(0);
+    dim_[1] = matrix.dim(1);
+    dim_[2] = matrix.dim(2);
+    dim_[3] = matrix.dim(3);
 
     if (colMajor) {
       updateStrides();
@@ -56,11 +59,12 @@ public:
       updateStridesRowMajor();
     }
 
-    data_ = other.data();
+    data_ = matrix.data();
     dataConst_ = data_;
   }
 
   MatrixWrapper(unsigned a, unsigned b, unsigned c, unsigned d)
+  :shape_(a, b, c, d)
   { // test constructor
     dim_[0] = a;
     dim_[1] = b;
@@ -71,6 +75,7 @@ public:
 
   __device__
   MatrixWrapper(T *ptr, unsigned a, unsigned b, unsigned c, unsigned d)
+  :shape_(a, b, c, d)
   {
     dim_[0] = a;
     dim_[1] = b;
@@ -81,6 +86,9 @@ public:
     data_ = ptr;
     dataConst_ = ptr;
   }
+
+  const Shape &GetShape() const
+  { return shape_; }
 
   __device__ __host__
   unsigned dim(unsigned i) const
@@ -321,6 +329,7 @@ protected:
   unsigned dim_[SHAPE_SIZE];
   unsigned stride_[SHAPE_SIZE];
   unsigned size_;
+  Shape shape_;
 
   T *data_;
   const T *dataConst_;
