@@ -168,10 +168,9 @@ class Decoder {
           }
         }
 
-        void Init(const mblas::Matrix& SourceContext,
-                  mblas::Matrix& SCU,
-                  const std::vector<unsigned> &newBatchIds,
-                  const mblas::Vector<unsigned> &d_newBatchIds) const
+        void InitTopup(const Histories& histories,
+                  const mblas::Matrix& SourceContext,
+                  mblas::Matrix& SCU) const
         {
           using namespace mblas;
           /*
@@ -494,13 +493,11 @@ class Decoder {
       alignment_.Init(SourceContext, SCU);
     }
 
-    void EmptyState(CellState& State,
+    void EmptyStateTopup(CellState& State,
                     const Histories& histories,
                     const mblas::Matrix &SourceContext,
                     const mblas::Vector<unsigned> &sentenceLengths,
-                    mblas::Matrix& SCU,
-                    const std::vector<unsigned> &newBatchIds,
-                    const mblas::Vector<unsigned> &d_newBatchIds) const
+                    mblas::Matrix& SCU) const
     {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState1" << std::endl;
@@ -509,7 +506,7 @@ class Decoder {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState2" << std::endl;
 
-      alignment_.Init(SourceContext, SCU, newBatchIds, d_newBatchIds);
+      alignment_.InitTopup(histories, SourceContext, SCU);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState3" << std::endl;
     }
@@ -520,13 +517,12 @@ class Decoder {
       mblas::Fill(Embedding, 0);
     }
 
-    void EmptyEmbedding(mblas::Matrix& Embedding,
-                        unsigned totalBeamSize,
-                        const std::vector<unsigned> &newBatchIds,
-                        const mblas::Vector<unsigned> &d_newBatchIds) const
+    void EmptyEmbeddingTopup(mblas::Matrix& Embedding,
+                        unsigned totalBeamSize) const
     {
       Embedding.NewSize(totalBeamSize, embeddings_.GetCols());
       mblas::Fill(Embedding, 0);
+      // TODO
     }
 
     void Lookup(mblas::Matrix& Embedding,

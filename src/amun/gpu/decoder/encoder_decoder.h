@@ -96,9 +96,7 @@ class EncoderDecoder : public Scorer {
                             const mblas::Matrix &sourceContext,
                             const mblas::Vector<unsigned> &sentenceLengths,
                             State& state,
-                            mblas::Matrix& SCU,
-                            const std::vector<unsigned> &newBatchIds,
-                            const mblas::Vector<unsigned> &d_newBatchIds) const;
+                            mblas::Matrix& SCU) const;
 
     void CalcBeam(BestHypsBase &bestHyps,
                     Histories& histories,
