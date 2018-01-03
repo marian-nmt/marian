@@ -7,24 +7,24 @@
 
 namespace amunmt {
 
-const size_t SHAPE_SIZE = 4;
+const unsigned SHAPE_SIZE = 4;
 
 class BaseMatrix {
   public:
 	BaseMatrix() {}
     virtual ~BaseMatrix() {}
 
-    virtual size_t dim(size_t i) const = 0;
+    virtual unsigned dim(unsigned i) const = 0;
 
-    virtual size_t size() const;
+    virtual unsigned size() const;
 
     bool empty() const {
       return size() == 0;
     }
 
-    virtual void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1) = 0;
+    virtual void Resize(unsigned rows, unsigned cols, unsigned beam = 1, unsigned batches = 1) = 0;
 
-    virtual std::string Debug(size_t verbosity = 1) const;
+    virtual std::string Debug(unsigned verbosity = 1) const;
 };
 
 }
