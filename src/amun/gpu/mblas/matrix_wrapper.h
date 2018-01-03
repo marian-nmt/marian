@@ -2,6 +2,7 @@
 #include <sstream>
 #include "matrix.h"
 #include "vector_wrapper.h"
+#include "shape.h"
 
 namespace amunmt {
 namespace GPU {
@@ -23,12 +24,12 @@ public:
     dataConst_ = nullptr;
   }
 
-  MatrixWrapper(const TMatrix<T> &matrix, bool colMajor = true)
+  MatrixWrapper(const TMatrix<T> &other, bool colMajor = true)
   {
-    dim_[0] = matrix.dim(0);
-    dim_[1] = matrix.dim(1);
-    dim_[2] = matrix.dim(2);
-    dim_[3] = matrix.dim(3);
+    dim_[0] = other.dim(0);
+    dim_[1] = other.dim(1);
+    dim_[2] = other.dim(2);
+    dim_[3] = other.dim(3);
 
     if (colMajor) {
       updateStrides();
@@ -38,15 +39,15 @@ public:
     }
 
     data_ = nullptr;
-    dataConst_ = matrix.data();
+    dataConst_ = other.data();
   }
 
-  MatrixWrapper(TMatrix<T> &matrix, bool colMajor = true)
+  MatrixWrapper(TMatrix<T> &other, bool colMajor = true)
   {
-    dim_[0] = matrix.dim(0);
-    dim_[1] = matrix.dim(1);
-    dim_[2] = matrix.dim(2);
-    dim_[3] = matrix.dim(3);
+    dim_[0] = other.dim(0);
+    dim_[1] = other.dim(1);
+    dim_[2] = other.dim(2);
+    dim_[3] = other.dim(3);
 
     if (colMajor) {
       updateStrides();
@@ -55,7 +56,7 @@ public:
       updateStridesRowMajor();
     }
 
-    data_ = matrix.data();
+    data_ = other.data();
     dataConst_ = data_;
   }
 

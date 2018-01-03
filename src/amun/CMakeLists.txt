@@ -96,6 +96,7 @@ cuda_add_executable(
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
   gpu/mblas/nth_element_kernels.cu
+  gpu/mblas/shape.cu
   gpu/mblas/vector.cu
   gpu/npz_converter.cu
   gpu/types-gpu.cu
@@ -121,6 +122,7 @@ cuda_add_library(python SHARED
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
   gpu/mblas/nth_element_kernels.cu
+  gpu/mblas/shape.cu
   gpu/mblas/vector.cu
   gpu/dl4mt/cell.cu
   gpu/dl4mt/cellstate.cu
@@ -154,6 +156,7 @@ cuda_add_library(mosesplugin STATIC
   gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
   gpu/mblas/nth_element_kernels.cu
+  gpu/mblas/shape.cu
   gpu/mblas/vector.cu
   gpu/dl4mt/cell.cu
   gpu/dl4mt/cellstate.cu

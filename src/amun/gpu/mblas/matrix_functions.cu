@@ -1418,12 +1418,11 @@ void UpdateSentenceLengths(const Histories &histories,
   int blocks = 1;
   int threads = std::min(MAX_THREADS, (int) newSentenceLengths.size());
 
-  cerr << "1sentenceLengths=" << sentenceLengths.Debug(2) << endl;
+  //cerr << "1sentenceLengths=" << sentenceLengths.Debug(2) << endl;
   gUpdateSentenceLengths<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(d_newSentenceLengths, d_newBatchIds, sentenceLengths);
 
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "2sentenceLengths=" << sentenceLengths.Debug(2) << endl;
-
+  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  //cerr << "2sentenceLengths=" << sentenceLengths.Debug(2) << endl;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////

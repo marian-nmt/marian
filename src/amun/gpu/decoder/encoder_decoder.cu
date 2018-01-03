@@ -217,8 +217,8 @@ void EncoderDecoder::DecodeAsyncInternal()
       //cerr << "DecodeAsyncInternal6" << endl;
       //std::cerr << "histories6=" << histories.Debug(1) << std::endl;
 
-      //InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
-      TopupBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
+      InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
+      //TopupBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal7" << endl;
       //std::cerr << "histories7=" << histories.Debug(1) << std::endl;
@@ -361,11 +361,11 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   //cerr << "TopupBatch8" << endl;
 
   // source context
-  //cerr << "1sourceContext=" << sourceContext.Debug() << endl;
+  cerr << "1sourceContext=" << sourceContext.Debug() << endl;
   ResizeMatrix(sourceContext, {0, maxLength});
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "2sourceContext=" << sourceContext.Debug() << endl;
   //cerr << "TopupBatch9" << endl;
-  //cerr << "2sourceContext=" << sourceContext.Debug() << endl;
 
   AddNewData(sourceContext, newBatchIds, newSentences);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
