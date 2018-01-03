@@ -78,13 +78,13 @@ class EncoderDecoder : public Scorer {
     void DecodeAsyncInternal(EncOutPtr encOut);
 
     void InitBatch(Histories &histories,
-                    mblas::Vector<uint> &sentenceLengths,
+                    mblas::Vector<unsigned> &sentenceLengths,
                     mblas::Matrix &sourceContext,
                     mblas::Matrix &SCU,
                     State &state);
 
     void FetchBatch(Histories &histories,
-                    mblas::Vector<uint> &sentenceLengths,
+                    mblas::Vector<unsigned> &sentenceLengths,
                     mblas::Matrix &sourceContext,
                     mblas::Matrix &SCU,
                     State &nextState,
@@ -92,17 +92,17 @@ class EncoderDecoder : public Scorer {
 
     void BeginSentenceState(const Histories& histories,
                             const mblas::Matrix &sourceContext,
-                            const mblas::Vector<uint> &sentenceLengths,
+                            const mblas::Vector<unsigned> &sentenceLengths,
                             State& state,
                             mblas::Matrix& SCU) const;
 
     void BeginSentenceState(const Histories& histories,
                             const mblas::Matrix &sourceContext,
-                            const mblas::Vector<uint> &sentenceLengths,
+                            const mblas::Vector<unsigned> &sentenceLengths,
                             State& state,
                             mblas::Matrix& SCU,
                             const std::vector<uint> &newBatchIds,
-                            const mblas::Vector<uint> &d_newBatchIds) const;
+                            const mblas::Vector<unsigned> &d_newBatchIds) const;
 
     void CalcBeam(BestHypsBase &bestHyps,
                     Histories& histories,
@@ -114,8 +114,8 @@ class EncoderDecoder : public Scorer {
                            const State& state,
                            State& nextState) const;
 
-    void AssembleBeamState(const std::vector<uint> newBatchIds,
-                            const mblas::Vector<uint> &d_newBatchIds,
+    void AssembleBeamState(const std::vector<unsigned> newBatchIds,
+                            const mblas::Vector<unsigned> &d_newBatchIds,
                             const Histories& histories,
                             const State& inState,
                             State& outState) const;

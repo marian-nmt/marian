@@ -58,7 +58,7 @@ void Encoder::Encode(EncOutPtr encOut, size_t tab)
 {
   const Sentences& sentences = encOut->GetSentences();
   mblas::Matrix& context = encOut->Get<EncOutGPU>().GetSourceContext();
-  const mblas::Vector<uint> &sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
+  const mblas::Vector<unsigned> &sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
 
   size_t maxSentenceLength = encOut->GetSentences().GetMaxLength();
 

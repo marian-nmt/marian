@@ -158,7 +158,7 @@ void EncoderDecoder::DecodeAsyncInternal()
 
   Histories histories(search_.NormalizeScore());
 
-  mblas::Vector<uint> sentenceLengths;
+  mblas::Vector<unsigned> sentenceLengths;
   mblas::Matrix sourceContext, SCU;
   StatePtr state, nextState;
 
@@ -242,7 +242,7 @@ void EncoderDecoder::DecodeAsyncInternal()
 }
 
 void EncoderDecoder::InitBatch(Histories &histories,
-                                mblas::Vector<uint> &sentenceLengths,
+                                mblas::Vector<unsigned> &sentenceLengths,
                                 mblas::Matrix &sourceContext,
                                 mblas::Matrix &SCU,
                                 State &state)
@@ -312,7 +312,7 @@ void FindNextEmptyIndex(size_t &batchInd,
 ////////////////////////////////////////////////////////////////////////
 
 void EncoderDecoder::FetchBatch(Histories &histories,
-                                mblas::Vector<uint> &sentenceLengths,
+                                mblas::Vector<unsigned> &sentenceLengths,
                                 mblas::Matrix &sourceContext,
                                 mblas::Matrix &SCU,
                                 State &nextState,
@@ -377,8 +377,8 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   //cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
 
   // update gpu data
-  mblas::Vector<uint> d_newBatchIds(newBatchIds);
-  mblas::Vector<uint> d_newSentenceLengths(newSentenceLengths);
+  mblas::Vector<unsigned> d_newBatchIds(newBatchIds);
+  mblas::Vector<unsigned> d_newSentenceLengths(newSentenceLengths);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "FetchBatch6" << endl;
   //cerr << "histories=" << histories.Debug() << endl;
@@ -415,7 +415,7 @@ void EncoderDecoder::FetchBatch(Histories &histories,
 
 void EncoderDecoder::BeginSentenceState(const Histories& histories,
                                         const mblas::Matrix &sourceContext,
-                                        const mblas::Vector<uint> &sentenceLengths,
+                                        const mblas::Vector<unsigned> &sentenceLengths,
                                         State& state,
                                         mblas::Matrix& SCU) const
 {
@@ -431,11 +431,11 @@ void EncoderDecoder::BeginSentenceState(const Histories& histories,
 
 void EncoderDecoder::BeginSentenceState(const Histories& histories,
                                         const mblas::Matrix &sourceContext,
-                                        const mblas::Vector<uint> &sentenceLengths,
+                                        const mblas::Vector<unsigned> &sentenceLengths,
                                         State& state,
                                         mblas::Matrix& SCU,
                                         const std::vector<uint> &newBatchIds,
-                                        const mblas::Vector<uint> &d_newBatchIds) const
+                                        const mblas::Vector<unsigned> &d_newBatchIds) const
 {
   //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();
@@ -504,9 +504,8 @@ void EncoderDecoder::AssembleBeamState(const Histories& histories,
   const EDState& edInState = inState.get<EDState>();
   EDState& edOutState = outState.get<EDState>();
 
-  thread_local mblas::Vector<uint> indices;
+  thread_local mblas::Vector<unsigned> indices;
   indices.newSize(beamStateIds.size());
-  //mblas::Vector<uint> indices(beamStateIds.size());
   //cerr << "indices=" << indices.Debug(2) << endl;
 
   mblas::copy(beamStateIds.data(),
@@ -538,8 +537,8 @@ void EncoderDecoder::AssembleBeamState(const Histories& histories,
   //PAUSE_TIMER("AssembleBeamState");
 }
 
-void EncoderDecoder::AssembleBeamState(const std::vector<uint> newBatchIds,
-                                        const mblas::Vector<uint> &d_newBatchIds,
+void EncoderDecoder::AssembleBeamState(const std::vector<unsigned> newBatchIds,
+                                        const mblas::Vector<unsigned> &d_newBatchIds,
                                         const Histories& histories,
                                         const State& inState,
                                         State& outState) const
@@ -566,9 +565,8 @@ void EncoderDecoder::AssembleBeamState(const std::vector<uint> newBatchIds,
   const EDState& edInState = inState.get<EDState>();
   EDState& edOutState = outState.get<EDState>();
 
-  thread_local mblas::Vector<uint> indices;
+  thread_local mblas::Vector<unsigned> indices;
   indices.newSize(beamStateIds.size());
-  //mblas::Vector<uint> indices(beamStateIds.size());
   //cerr << "indices=" << indices.Debug(2) << endl;
 
   mblas::copy(beamStateIds.data(),

@@ -18,12 +18,12 @@ public:
   const mblas::Matrix &GetSourceContext() const
   { return sourceContext_; }
 
-  const mblas::Vector<uint> &GetSentenceLengths() const
+  const mblas::Vector<unsigned> &GetSentenceLengths() const
   { return sentenceLengths_; }
 
 protected:
   mblas::Matrix sourceContext_;
-  mblas::Vector<uint> sentenceLengths_;
+  mblas::Vector<unsigned> sentenceLengths_;
 
 };
 

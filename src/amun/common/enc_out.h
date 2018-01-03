@@ -19,16 +19,16 @@ public:
   const Sentences &GetSentences() const
   { return *sentences_; }
 
-  std::vector<uint> &GetSentenceLengthsHost()
+  std::vector<unsigned> &GetSentenceLengthsHost()
   { return h_sentenceLengths_; }
 
-  const std::vector<uint> &GetSentenceLengthsHost() const
+  const std::vector<unsigned> &GetSentenceLengthsHost() const
   { return h_sentenceLengths_; }
 
 
 protected:
   SentencesPtr sentences_;
-  std::vector<uint> h_sentenceLengths_;
+  std::vector<unsigned> h_sentenceLengths_;
 
 };
 

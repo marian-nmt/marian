@@ -52,7 +52,7 @@ class Encoder {
           /* std::vector<HostVector<uint>>::iterator wit = knownWords.begin(); */
           for (size_t i = 0; i < knownWords.size(); i++) {
             const std::vector<uint>& factorWords = knownWords.at(i);
-            mblas::Vector<uint> dKnownWords(factorWords);
+            mblas::Vector<unsigned> dKnownWords(factorWords);
 
             const std::shared_ptr<mblas::Matrix>& Emb = w_.Es_.at(i);
             mblas::Matrix factorRow;
@@ -110,7 +110,7 @@ class Encoder {
         template <class It>
         void Encode(It it, It end, mblas::Matrix& Context,
                     size_t batchSize, bool invert,
-                    const mblas::Vector<uint> *sentenceLengths=nullptr)
+                    const mblas::Vector<unsigned> *sentenceLengths=nullptr)
         {
           InitializeState(batchSize);
 
