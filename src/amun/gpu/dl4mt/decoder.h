@@ -186,21 +186,6 @@ class Decoder {
 
         }
 
-        uint GetMaxLength(const std::vector<uint>& h_sentenceLengths, const std::vector<uint>& beamSizes) const
-        {
-          assert(h_sentenceLengths.size() == beamSizes.size());
-
-          uint ret = 0;
-          for (size_t i = 0; i < beamSizes.size(); ++i) {
-            if (beamSizes[i]) {
-              if (ret < h_sentenceLengths[i]) {
-                ret = h_sentenceLengths[i];
-              }
-            }
-          }
-          return ret;
-        }
-
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                      const CellState& HiddenState,
                                      const Histories& histories,
