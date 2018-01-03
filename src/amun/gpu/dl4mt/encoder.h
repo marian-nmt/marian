@@ -31,10 +31,10 @@ class Encoder {
         void Lookup(mblas::Matrix& Row, const std::vector<std::vector<Word>>& words) {
           std::vector<std::vector<unsigned>> knownWords(w_.Es_.size(),
                                                     std::vector<unsigned>(words.size(), 1));
-          size_t factorCount = w_.Es_.size();
-          for (size_t i = 0; i < words.size(); ++i) {
+          unsigned factorCount = w_.Es_.size();
+          for (unsigned i = 0; i < words.size(); ++i) {
             const std::vector<Word>& factors = words[i];
-            for (size_t factorIdx = 0; factorIdx < factors.size(); ++factorIdx) {
+            for (unsigned factorIdx = 0; factorIdx < factors.size(); ++factorIdx) {
               const Word& factor = factors[factorIdx];
               const std::shared_ptr<mblas::Matrix>& Emb = w_.Es_.at(factorIdx);
 
@@ -46,11 +46,11 @@ class Encoder {
           /* HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); */
           /* std::cerr << "Embeddings::Lookup1" << std::endl; */
 
-          size_t wordCount = words.size() / factorCount;
+          unsigned wordCount = words.size() / factorCount;
           //Row.NewSize(0, wordCount);
           /* std::vector<std::shared_ptr<mblas::Matrix>>::iterator eit = w_.Es_.begin(); */
           /* std::vector<HostVector<unsigned>>::iterator wit = knownWords.begin(); */
-          for (size_t i = 0; i < knownWords.size(); i++) {
+          for (unsigned i = 0; i < knownWords.size(); i++) {
             const std::vector<unsigned>& factorWords = knownWords.at(i);
             mblas::Vector<unsigned> dKnownWords(factorWords);
 
@@ -76,7 +76,7 @@ class Encoder {
           //std::cerr << "Row3=" << Row.Debug(1) << std::endl;
         }
 
-        size_t FactorCount() {
+        unsigned FactorCount() {
           return w_.Es_.size();
         }
 
@@ -91,7 +91,7 @@ class Encoder {
         RNN(std::unique_ptr<Cell> cell)
           : gru_(std::move(cell)) {}
 
-        void InitializeState(size_t batchSize = 1) {
+        void InitializeState(unsigned batchSize = 1) {
           CellLength cellLength = gru_->GetStateLength();
           if (cellLength.cell > 0) {
             State_.cell->NewSize(batchSize, cellLength.cell);
@@ -109,15 +109,15 @@ class Encoder {
 
         template <class It>
         void Encode(It it, It end, mblas::Matrix& Context,
-                    size_t batchSize, bool invert,
+                    unsigned batchSize, bool invert,
                     const mblas::Vector<unsigned> *sentenceLengths=nullptr)
         {
           InitializeState(batchSize);
 
           CellState prevState(std::unique_ptr<mblas::Matrix>(new mblas::Matrix(*(State_.cell))),
                               std::unique_ptr<mblas::Matrix>(new mblas::Matrix(*(State_.output))));
-          size_t n = std::distance(it, end);
-          size_t i = 0;
+          unsigned n = std::distance(it, end);
+          unsigned i = 0;
 
           while(it != end) {
             GetNextState(State_, prevState, *it++);
@@ -164,7 +164,7 @@ class Encoder {
   public:
     Encoder(const Weights& model, const YAML::Node& config);
 
-    void Encode(EncOutPtr encOut, size_t tab);
+    void Encode(EncOutPtr encOut, unsigned tab);
 
   private:
     std::unique_ptr<Cell> InitForwardCell(const Weights& model, const YAML::Node& config);

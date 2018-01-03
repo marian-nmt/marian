@@ -41,11 +41,11 @@ class Decoder {
           Assemble(Rows, *w_.E_, indices_);
         }
 
-        size_t GetCols() const {
+        unsigned GetCols() const {
           return w_.E_->dim(1);
         }
 
-        size_t GetRows() const {
+        unsigned GetRows() const {
           return w_.E_->dim(0);
         }
 
@@ -77,7 +77,7 @@ class Decoder {
 
           //std::cerr << "cell1=" << State.cell->Debug(0) << std::endl;
           //std::cerr << "output1=" << State.output->Debug(0) << std::endl;
-          size_t numHypos = histories.GetTotalBeamSize();
+          unsigned numHypos = histories.GetTotalBeamSize();
           //std::cerr << "numHypos=" << numHypos << std::endl;
 
           CellLength cellLength = gru_->GetStateLength();
@@ -149,7 +149,7 @@ class Decoder {
       public:
         Alignment(const God &god, const Weights& model)
           : w_(model)
-          , dHypo2Batch_(god.Get<size_t>("mini-batch") * god.Get<size_t>("beam-size"), 0)
+          , dHypo2Batch_(god.Get<unsigned>("mini-batch") * god.Get<unsigned>("beam-size"), 0)
         {}
 
         void Init(const mblas::Matrix& SourceContext,
@@ -514,14 +514,14 @@ class Decoder {
       //std::cerr << "EmptyState3" << std::endl;
     }
 
-    void EmptyEmbedding(mblas::Matrix& Embedding, size_t batchSize) const
+    void EmptyEmbedding(mblas::Matrix& Embedding, unsigned batchSize) const
     {
       Embedding.NewSize(batchSize, embeddings_.GetCols());
       mblas::Fill(Embedding, 0);
     }
 
     void EmptyEmbedding(mblas::Matrix& Embedding,
-                        size_t totalBeamSize,
+                        unsigned totalBeamSize,
                         const std::vector<unsigned> &newBatchIds,
                         const mblas::Vector<unsigned> &d_newBatchIds) const
     {
@@ -542,7 +542,7 @@ class Decoder {
       alignment_.GetAttention(Attention);
     }
 
-    size_t GetVocabSize() const {
+    unsigned GetVocabSize() const {
       return embeddings_.GetRows();
     }
 

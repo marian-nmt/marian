@@ -13,7 +13,7 @@ class NpzConverter {
         NpyMatrixWrapper(const cnpy::NpyArray& npy)
         : npy_(npy) {}
 
-        size_t size() const {
+        unsigned size() const {
           return size1() * size2();
         }
 
@@ -21,15 +21,15 @@ class NpzConverter {
           return (float*)npy_.data;
         }
 
-        float operator()(size_t i, size_t j) const {
+        float operator()(unsigned i, unsigned j) const {
           return ((float*)npy_.data)[i * size2() + j];
         }
 
-        size_t size1() const {
+        unsigned size1() const {
           return npy_.shape[0];
         }
 
-        size_t size2() const {
+        unsigned size2() const {
           if(npy_.shape.size() == 1)
             return 1;
           else

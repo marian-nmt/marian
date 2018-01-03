@@ -24,10 +24,10 @@ void NpzConverter::Destruct() {
 }
 
 template<typename T>
-T Debug(const T *data, size_t size)
+T Debug(const T *data, unsigned size)
 {
   T sum = 0;
-  for (size_t i = 0; i < size; ++i) {
+  for (unsigned i = 0; i < size; ++i) {
     sum += data[i];
   }
   return sum;
@@ -41,7 +41,7 @@ std::shared_ptr<mblas::Matrix> NpzConverter::get(const std::string& key, bool ma
   auto it = model_.find(key);
   if(it != model_.end()) {
     NpyMatrixWrapper np(it->second);
-    size_t size = np.size();
+    unsigned size = np.size();
 
     mblas::Matrix *matrix = new mblas::Matrix(np.size1(), np.size2(), 1, 1);
     mblas::copy(np.data(), size, matrix->data(), cudaMemcpyHostToDevice);

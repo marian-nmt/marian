@@ -22,7 +22,7 @@ class SlowGRU: public Cell {
 
       //std::cerr << std::endl;
 
-      const size_t cols = GetStateLength();
+      const unsigned cols = GetStateLength();
 
       // @TODO: Optimization
       // @TODO: Launch streams to perform GEMMs in parallel
@@ -215,8 +215,8 @@ class FastGRU: public Cell {
       std::cerr << "bx2Wrap=" << bx2Wrap.Debug() << std::endl;
       std::cerr << "\n";
       */
-      const size_t cols = State.dim(1);
-      const size_t rows = State.dim(0);
+      const unsigned cols = State.dim(1);
+      const unsigned rows = State.dim(0);
 
       int threads = std::min(MAX_THREADS, (int)cols);
       int blocks  = rows;

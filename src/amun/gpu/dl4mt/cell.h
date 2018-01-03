@@ -9,9 +9,9 @@ namespace GPU {
 
 struct CellLength {
   CellLength() = default;
-  CellLength(size_t cell, size_t output): cell(cell), output(output){}
-  size_t output;
-  size_t cell;
+  CellLength(unsigned cell, unsigned output): cell(cell), output(output){}
+  unsigned output;
+  unsigned cell;
 };
 
 class Cell {

@@ -42,11 +42,11 @@ std::unique_ptr<Cell> Encoder::InitBackwardCell(const Weights& model, const YAML
   return unique_ptr<Cell>(nullptr);
 }
 
-std::vector<std::vector<FactWord>> GetBatchInput(const Sentences& source, size_t tab, size_t maxLen) {
+std::vector<std::vector<FactWord>> GetBatchInput(const Sentences& source, unsigned tab, unsigned maxLen) {
   std::vector<std::vector<FactWord>> matrix(maxLen, std::vector<FactWord>(source.size()));
 
-  for (size_t batchIdx = 0; batchIdx < source.size(); ++batchIdx) {
-    for (size_t wordIdx = 0; wordIdx < source.Get(batchIdx)->GetFactors(tab).size(); ++wordIdx) {
+  for (unsigned batchIdx = 0; batchIdx < source.size(); ++batchIdx) {
+    for (unsigned wordIdx = 0; wordIdx < source.Get(batchIdx)->GetFactors(tab).size(); ++wordIdx) {
         matrix[wordIdx][batchIdx] = source.Get(batchIdx)->GetFactors(tab)[wordIdx];
     }
   }
@@ -54,13 +54,13 @@ std::vector<std::vector<FactWord>> GetBatchInput(const Sentences& source, size_t
   return matrix;
 }
 
-void Encoder::Encode(EncOutPtr encOut, size_t tab)
+void Encoder::Encode(EncOutPtr encOut, unsigned tab)
 {
   const Sentences& sentences = encOut->GetSentences();
   mblas::Matrix& context = encOut->Get<EncOutGPU>().GetSourceContext();
   const mblas::Vector<unsigned> &sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
 
-  size_t maxSentenceLength = encOut->GetSentences().GetMaxLength();
+  unsigned maxSentenceLength = encOut->GetSentences().GetMaxLength();
 
   //cerr << "GetContext1=" << context.Debug(1) << endl;
   context.NewSize(maxSentenceLength,
@@ -71,7 +71,7 @@ void Encoder::Encode(EncOutPtr encOut, size_t tab)
 
   auto input = GetBatchInput(sentences, tab, maxSentenceLength);
 
-  for (size_t i = 0; i < input.size(); ++i) {
+  for (unsigned i = 0; i < input.size(); ++i) {
     if (i >= embeddedWords_.size()) {
       embeddedWords_.emplace_back();
     }
