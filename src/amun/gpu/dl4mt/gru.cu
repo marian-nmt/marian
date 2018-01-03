@@ -13,10 +13,10 @@ __global__ void gElementwiseOps(mblas::MatrixWrapper<float> outWrap,
                                 const mblas::MatrixWrapper<float> bx1Wrap,
                                 const mblas::MatrixWrapper<float> bx2Wrap)
 {
-  const unsigned rows = stateWrap.dim(0);
-  const unsigned cols = stateWrap.dim(1);
+  const unsigned rows = stateWrap.GetShape().dim(0);
+  const unsigned cols = stateWrap.GetShape().dim(1);
   assert(blockIdx.x < rows);
-  assert(ruhWrap.dim(1) == cols * 3);
+  assert(ruhWrap.GetShape().dim(1) == cols * 3);
 
   for(int tid = 0; tid < cols; tid += blockDim.x) {
     int i = tid + threadIdx.x;

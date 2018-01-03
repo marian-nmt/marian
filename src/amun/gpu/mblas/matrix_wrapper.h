@@ -87,18 +87,9 @@ public:
     dataConst_ = ptr;
   }
 
+  __device__ __host__
   const Shape &GetShape() const
   { return shape_; }
-
-  __device__ __host__
-  unsigned dim(unsigned i) const
-  {  return dim_[i]; }
-
-  __device__ __host__
-  unsigned size() const
-  {
-    return size_;
-  }
 
   __device__ __host__
   unsigned stride(unsigned i) const
@@ -145,14 +136,12 @@ public:
   __device__
   const T &operator[](unsigned i) const
   {
-    assert(i < size());
     return data()[i];
   }
 
   __device__
   T &operator[](unsigned i)
   {
-    assert(i < size());
     return data()[i];
   }
 
@@ -222,18 +211,12 @@ public:
   __device__ __host__
   unsigned indices2Id(unsigned a, unsigned b, unsigned c, unsigned d) const
   {
-    assert(a < dim(0));
-    assert(b < dim(1));
-    assert(c < dim(2));
-    assert(d < dim(3));
-
     unsigned ind = 0;
     ind += a * stride(0);
     ind += b * stride(1);
     ind += c * stride(2);
     ind += d * stride(3);
 
-    assert(ind < size());
     return ind;
   }
 
@@ -241,16 +224,11 @@ public:
   __device__ __host__
   unsigned indices2Id(unsigned a, unsigned b, unsigned c) const
   {
-    assert(a < dim(0));
-    assert(b < dim(1));
-    assert(c < dim(2));
-
     unsigned ind = 0;
     ind += a * stride(0);
     ind += b * stride(1);
     ind += c * stride(2);
 
-    assert(ind < size());
     return ind;
   }
 
@@ -258,14 +236,10 @@ public:
   __device__ __host__
   unsigned indices2Id(unsigned a, unsigned b) const
   {
-    assert(a < dim(0));
-    assert(b < dim(1));
-
     unsigned ind = 0;
     ind += a * stride(0);
     ind += b * stride(1);
 
-    assert(ind < size());
     return ind;
   }
 
@@ -273,19 +247,15 @@ public:
   __device__ __host__
   unsigned indices2Id(unsigned a) const
   {
-    assert(a < dim(0));
-
     unsigned ind = 0;
     ind += a * stride(0);
 
-    assert(ind < size());
     return ind;
   }
 
   __device__ __host__
   void id2Indices(unsigned id, unsigned *out) const
   {
-    assert(id < size());
 
     out[3] = id / stride(3);
     id = id % stride(3);
@@ -303,7 +273,7 @@ public:
   VectorWrapper<T> Row(unsigned row)
   {
     T &ele = (*this)(row);
-    VectorWrapper<T> ret(&ele, dim(1));
+    VectorWrapper<T> ret(&ele, shape_.dim(1));
     return ret;
   }
 
@@ -344,7 +314,7 @@ inline void testidToMatrixInd()
 
   std::cerr << "matrix=" << matrix.Debug() << std::endl;
 
-  for (unsigned i = 0; i < matrix.size(); ++i) {
+  for (unsigned i = 0; i < matrix.GetShape().size(); ++i) {
     unsigned dim[SHAPE_SIZE];
     matrix.id2Indices(i, dim);
 

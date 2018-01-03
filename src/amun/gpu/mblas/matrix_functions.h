@@ -164,7 +164,7 @@ __global__ void gBroadcast(Functor functor,
                            const VectorWrapper<unsigned> hypo2Batch)
 {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
-  if (id < out.size()) {
+  if (id < out.GetShape().size()) {
     /*
     unsigned indices[SHAPE_SIZE];
     outWrap.id2Indices(id, indices);
@@ -175,8 +175,8 @@ __global__ void gBroadcast(Functor functor,
     //assert(0 == indices[3]);
     */
 
-    unsigned cols  = in1.dim(1);
-    unsigned srcSize = out.dim(0);
+    unsigned cols  = in1.GetShape().dim(1);
+    unsigned srcSize = out.GetShape().dim(0);
 
     unsigned row = id / cols;
     unsigned stateIdx = id % cols;
@@ -185,10 +185,10 @@ __global__ void gBroadcast(Functor functor,
 
     unsigned batchIdx = hypo2Batch[ beamIdx ];
 
-    assert(srcId < out.dim(0));
-    assert(srcId < in1.dim(0));
-    assert(beamIdx < in2.dim(0));
-    assert(batchIdx < in1.dim(3));
+    assert(srcId < out.GetShape().dim(0));
+    assert(srcId < in1.GetShape().dim(0));
+    assert(beamIdx < in2.GetShape().dim(0));
+    assert(batchIdx < in1.GetShape().dim(3));
     //out[id] = functor(in1[(batchIdx * srcSize + srcId) * cols + stateIdx],
     //                      in2[beamIdx * cols + stateIdx]);
     //out[id] = functor(in1(indices[0], indices[1], 0, batchIdx),
@@ -243,8 +243,8 @@ __global__ void gBroadcastVecColumn(Functor functor,
                                     const VectorWrapper<float> inWrap) {
   extern __shared__ float sdataOrig[];
 
-  unsigned rows  = outWrap.dim(0);
-  unsigned cols = outWrap.dim(1);
+  unsigned rows  = outWrap.GetShape().dim(0);
+  unsigned cols = outWrap.GetShape().dim(1);
 
   VectorWrapper<float> sdata(sdataOrig, rows);
 
@@ -286,15 +286,15 @@ __global__ void gBroadcastVec(Functor functor,
                               MatrixWrapper<float> outWrap,
                               const MatrixWrapper<float> inWrap)
 {
-  unsigned cols = outWrap.dim(1);
+  unsigned cols = outWrap.GetShape().dim(1);
 
   int noColumn = threadIdx.x + blockDim.x * blockIdx.x;
   if (noColumn < cols) {
     float vecValue = inWrap(0, noColumn);
 
-    for (int dim0 = 0; dim0 < outWrap.dim(0); ++dim0) {
-      for (int dim2 = 0; dim2 < outWrap.dim(2); ++dim2) {
-        for (int dim3 = 0; dim3 < outWrap.dim(3); ++dim3) {
+    for (int dim0 = 0; dim0 < outWrap.GetShape().dim(0); ++dim0) {
+      for (int dim2 = 0; dim2 < outWrap.GetShape().dim(2); ++dim2) {
+        for (int dim3 = 0; dim3 < outWrap.GetShape().dim(3); ++dim3) {
           float &val = outWrap(dim0, noColumn, dim2, dim3);
           val = functor(val, vecValue);
         }
@@ -330,7 +330,7 @@ __global__ void gElement(Functor functor,
                          MatrixWrapper<float> outWrap)
 {
   unsigned ind = blockIdx.x * blockDim.x + threadIdx.x;
-  if (ind < outWrap.size()) {
+  if (ind < outWrap.GetShape().size()) {
     outWrap[ind] = functor(outWrap[ind]);
   }
 }
@@ -358,7 +358,7 @@ __global__ void gElement(Functor functor,
                          const MatrixWrapper<float> inWrap)
 {
   unsigned ind = blockIdx.x * blockDim.x + threadIdx.x;
-  if (ind < outWrap.size()) {
+  if (ind < outWrap.GetShape().size()) {
     outWrap[ind] = functor(outWrap[ind], inWrap[ind]);
   }
 }
@@ -390,7 +390,7 @@ __global__ void gElement(Functor functor,
                          const MatrixWrapper<float> in2Wrap)
 {
   unsigned ind = blockIdx.x * blockDim.x + threadIdx.x;
-  if (ind < outWrap.size()) {
+  if (ind < outWrap.GetShape().size()) {
     outWrap[ind] = functor(outWrap[ind], in1Wrap[ind], in2Wrap[ind]);
   }
 }
@@ -454,7 +454,7 @@ __global__ void gCopyMatrix(MatrixWrapper<T> out,
                                 const MatrixWrapper<T> in)
 {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
-  if (id < in.size()) {
+  if (id < in.GetShape().size()) {
     unsigned indices[SHAPE_SIZE];
     in.id2Indices(id, indices);
 

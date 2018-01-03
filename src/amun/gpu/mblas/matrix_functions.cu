@@ -29,7 +29,7 @@ __global__ void gMean(MatrixWrapper<float> out,
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   //printf("id = %d in = %lu %lu %lu %lu = %lu %lu \n", id, in.dim(0), in.dim(1), in.dim(2), in.dim(3), in.size(), sizeof(in));
 
-  if (id < out.size()) {
+  if (id < out.GetShape().size()) {
     unsigned indices[SHAPE_SIZE];
     out.id2Indices(id, indices);
     //printf("%d -> %lu %lu %lu %lu \n", id, indices[0], indices[1], indices[2], indices[3]);
@@ -39,7 +39,7 @@ __global__ void gMean(MatrixWrapper<float> out,
 
     float sum = 0.0f;
     int counter = 0;
-    for (unsigned row = 0; row < in.dim(0); ++row) {
+    for (unsigned row = 0; row < in.GetShape().dim(0); ++row) {
       bool isWord = row < sentenceLengths[batch];
       //printf("batch=%lu startMapInd=%lu  mapOffset=%lu -> %d \n", batch, startMapInd, mapOffset, isWord);
       if (isWord) {
@@ -66,19 +66,16 @@ void Mean(Matrix& Out,
   unsigned batchNum = Out.dim(0) * Out.dim(2) * Out.dim(3);
   unsigned stateLength = Out.dim(1);
   unsigned sentenceLength = (In.dim(0) * In.dim(2) * In.dim(3)) / batchNum;
-
-  MatrixWrapper<float> outWrap(Out);
-  MatrixWrapper<float> inWrap(In);
-  //cerr << "outWrap=" << outWrap.Debug() << endl;
+  //cerr << "Out=" << Out.Debug() << endl;
 
   VectorWrapper<unsigned> sentenceLengthsWrap(sentenceLengths);
 
-  unsigned size = outWrap.size();
+  unsigned size = Out.size();
   unsigned threads = std::min((unsigned)MAX_THREADS, size);
   unsigned blocks =  (size / threads) + ((size % threads == 0) ?  0 : 1);
 
   gMean<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (outWrap, inWrap, sentenceLengthsWrap);
+    (Out, In, sentenceLengthsWrap);
 
 }
 
@@ -88,9 +85,9 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
                               const VectorWrapper<unsigned> hypo2Batch
                               )
 {
-  int numHypos = weights.dim(0);
-  int states = in.dim(1);
-  int srcLen = weights.dim(1);
+  int numHypos = weights.GetShape().dim(0);
+  int states = in.GetShape().dim(1);
+  int srcLen = weights.GetShape().dim(1);
 
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < numHypos * states) {
@@ -173,12 +170,12 @@ __global__ void gPasteRows(MatrixWrapper<float> out,
                           const MatrixWrapper<float> in,
                           int rowNo, int colNo)
 {
-  int inRows = in.dim(0);
-  int inCols = in.dim(1);
+  int inRows = in.GetShape().dim(0);
+  int inCols = in.GetShape().dim(1);
 
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < inRows * inCols) {
-    int outCols = out.dim(1);
+    int outCols = out.GetShape().dim(1);
 
     int inRow = id / inCols;
     int inCol = id % inCols;
@@ -233,7 +230,7 @@ __global__ void gCopyRows(MatrixWrapper<float> out,
 {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
 
-  if (id < out.size()) {
+  if (id < out.GetShape().size()) {
 	  unsigned dim[SHAPE_SIZE];
 	  out.id2Indices(id, dim);
 
@@ -302,7 +299,7 @@ __global__ void gSlice(MatrixWrapper<float> out,
   unsigned inCol = threadIdx.x + dim * n;
   unsigned outCol = threadIdx.x;
 
-  while (outCol < out.dim(1)) {
+  while (outCol < out.GetShape().dim(1)) {
     out(row, outCol) = in(row, inCol);
 
     inCol += blockDim.x;
@@ -425,8 +422,8 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
 {
   extern __shared__ float _share[];
 
-  unsigned numHypos = out.dim(0);
-  unsigned maxLength = out.dim(1);
+  unsigned numHypos = out.GetShape().dim(0);
+  unsigned maxLength = out.GetShape().dim(1);
 
   int hypoInd =  blockIdx.x;
   int origSrcPos = threadIdx.x;
@@ -528,8 +525,8 @@ __global__ void gLogSoftMax(MatrixWrapper<float> out, unsigned shareSize)
 {
   extern __shared__ float _share[];
 
-  unsigned rows = out.dim(0);
-  unsigned cols = out.dim(1);
+  unsigned rows = out.GetShape().dim(0);
+  unsigned cols = out.GetShape().dim(1);
 
   int rowIdx =  blockIdx.x;
 
@@ -619,7 +616,7 @@ Matrix& LogSoftmax(Matrix& Out)
 }
 
 __global__ void gSetColumn(MatrixWrapper<float> in, int noColumn, float value) {
-  int n_rows = in.dim(0);
+  int n_rows = in.GetShape().dim(0);
 
   int rowNumber = threadIdx.x  + blockDim.x * blockIdx.x;
 
@@ -641,7 +638,7 @@ void SetColumn(Matrix& In, int noColumn, float value) {
 
 __global__ void gFill(MatrixWrapper<float> in, float val) {
   int index = threadIdx.x + blockDim.x * blockIdx.x;
-  if (index < in.size()) {
+  if (index < in.GetShape().size()) {
     in[index] = val;
   }
 }
@@ -670,8 +667,8 @@ void gMapMatrix(MatrixWrapper<float> in,
                 int i)
 {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid < in.size()) {
-    int numCols = in.dim(1);
+  if (tid < in.GetShape().size()) {
+    int numCols = in.GetShape().dim(1);
     int batchIdx = tid / numCols;
     int col = tid % numCols;
 
@@ -729,11 +726,11 @@ __global__ void gLNormalization(MatrixWrapper<float> out,
   //printf("blockDim.x=%d gridDim.x=%d \n", blockDim.x, gridDim.x);
   // blockDim.x=512 gridDim.x=1
 
-  int cols = in.dim(1);
+  int cols = in.GetShape().dim(1);
 
-  assert(blockIdx.x < in.dim(0));
-  assert(blockIdx.y < in.dim(2));
-  assert(blockIdx.z < in.dim(3));
+  assert(blockIdx.x < in.GetShape().dim(0));
+  assert(blockIdx.y < in.GetShape().dim(2));
+  assert(blockIdx.z < in.GetShape().dim(3));
 
   float* _sum = _share + blockDim.x;
   _sum[threadIdx.x] = 0.0f;
@@ -785,7 +782,7 @@ __global__ void gLNormalization(MatrixWrapper<float> out,
     int id = tid + threadIdx.x;
     if(id < cols) {
       float &val = out(blockIdx.x, id, blockIdx.y, blockIdx.z);
-      if (betaWrap.size()) {
+      if (betaWrap.GetShape().size()) {
         val = alphaWrap[id] * (val / sigma) + betaWrap[id];
       } else {
         val = alphaWrap[id] * (val / sigma);
@@ -914,7 +911,7 @@ __device__
 float GetMaxScore(const MatrixWrapper<NthOutBatch> &nBestMatrix)
 {
   float ret = LOWEST_FLOAT;
-  for (unsigned i = 0; i < nBestMatrix.dim(1); ++i) {
+  for (unsigned i = 0; i < nBestMatrix.GetShape().dim(1); ++i) {
       const NthOutBatch &curr = nBestMatrix[i];
       if (curr.score > ret) {
         ret = curr.score;
@@ -1020,7 +1017,7 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidates,
   MatrixWrapper<NthOutBatch> nBestMatrix((NthOutBatch*)ptrOffset, blockDim.x, maxBeamSize, 1, 1);
   VectorWrapper<NthOutBatch> row = nBestMatrix.Row(threadIdx.x);
 
-  unsigned vocabSize = in.dim(1);
+  unsigned vocabSize = in.GetShape().dim(1);
 
   assert(hypoInd < hypo2BeamSize.size());
   unsigned beamSize = hypo2BeamSize[hypoInd];
@@ -1103,7 +1100,7 @@ void SumAndLogSoftMax(VectorWrapper<NthOutBatch> &nBestCandidates,
   extern __shared__ float _share[];
   VectorWrapper<float> _sum(_share, blockDim.x);
 
-  unsigned vocabSize = in.dim(1);
+  unsigned vocabSize = in.GetShape().dim(1);
 
   // calc sum
   _sum[threadIdx.x] = 0.0f;
@@ -1153,8 +1150,8 @@ __global__ void gLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidates,
                         const VectorWrapper<unsigned> hypo2BeamSize,
                         const VectorWrapper<unsigned> hypo2Candidate)
 {
-  unsigned hypos = in.dim(0);
-  unsigned vocabSize = in.dim(1);
+  unsigned hypos = in.GetShape().dim(0);
+  unsigned vocabSize = in.GetShape().dim(1);
 
   unsigned hypoInd =  blockIdx.x; // index of previous hypo
   while (hypoInd < hypos) {
@@ -1201,7 +1198,7 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBest,
                         const VectorWrapper<unsigned> hypo2NextHypo)
 {
   //printf("start gNBestPerBatch\n");
-  //unsigned rows = in.dim(0);
+  //unsigned rows = in.GetShape().dim(0);
   unsigned activeBatchSize = activeBatch2Hypo.size();
 
   unsigned batchInd =  blockIdx.x;
@@ -1435,8 +1432,8 @@ void gAddNewData(mblas::MatrixWrapper<float> dest,
 {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < size) {
-    unsigned dim0 = id / source.dim(1);
-    unsigned dim1 = id % source.dim(1);
+    unsigned dim0 = id / source.GetShape().dim(1);
+    unsigned dim1 = id % source.GetShape().dim(1);
 
     dest(dim0, dim1, 0, batchId) = source(dim0, dim1, 0, newSentenceOffset);
   }
