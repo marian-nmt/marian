@@ -63,10 +63,10 @@ class BestHyps : public BestHypsBase
 
 
     std::vector<SoftAlignmentPtr> GetAlignments(const std::vector<ScorerPtr>& scorers,
-                                                size_t hypIndex);
+                                                unsigned hypIndex);
 
     std::vector<SoftAlignmentPtr> GetAlignments(Scorer &scorer,
-                                                size_t hypIndex);
+                                                unsigned hypIndex);
 
 };
 

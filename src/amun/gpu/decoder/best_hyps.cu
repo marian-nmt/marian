@@ -9,12 +9,12 @@ namespace GPU {
 
 BestHyps::BestHyps(const God &god)
       : BestHypsBase(god),
-        keys_(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
-        costs_(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
+        keys_(god.Get<unsigned>("beam-size") * god.Get<unsigned>("mini-batch")),
+        costs_(god.Get<unsigned>("beam-size") * god.Get<unsigned>("mini-batch")),
         maxBeamSize_(god.Get<unsigned>("beam-size"))
 {
   if (!god_.UseFusedSoftmax()) {
-    NthElement *obj = new NthElement(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch"));
+    NthElement *obj = new NthElement(god.Get<unsigned>("beam-size"), god.Get<unsigned>("mini-batch"));
     nthElement_.reset(obj);
   }
 }
@@ -47,13 +47,13 @@ void BestHyps::FindBests(const Histories& histories,
 }
 
 std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPtr>& scorers,
-                                            size_t hypIndex)
+                                            unsigned hypIndex)
 {
   std::vector<SoftAlignmentPtr> alignments;
   for (auto& scorer : scorers) {
     if (GPU::EncoderDecoder* encdec = dynamic_cast<GPU::EncoderDecoder*>(scorer.get())) {
       const mblas::Matrix &attention = encdec->GetAttention();
-      size_t attLength = attention.dim(1);
+      unsigned attLength = attention.dim(1);
 
       SoftAlignment *softAlignment = new SoftAlignment(attLength);
       mblas::copy(
@@ -85,7 +85,7 @@ void BestHyps::getNBestList(const Histories& histories,
 
   /*
   cerr << "outCosts/outKeys=";
-  for (size_t i = 0; i < outKeys.size(); ++i) {
+  for (unsigned i = 0; i < outKeys.size(); ++i) {
     cerr << "(" << outCosts[i] << "," << outKeys[i] << ") ";
   }
   cerr << endl;
@@ -105,7 +105,7 @@ void BestHyps::GetPairs(mblas::Vector<NthOutBatch> &nBest,
   mblas::copy(nBest.data(), nBest.size(), hostVec.data(), cudaMemcpyDeviceToHost);
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
 
-  for (size_t i = 0; i < nBest.size(); ++i) {
+  for (unsigned i = 0; i < nBest.size(); ++i) {
     outKeys[i] = hostVec[i].ind;
     outValues[i] = hostVec[i].score;
   }
@@ -114,12 +114,12 @@ void BestHyps::GetPairs(mblas::Vector<NthOutBatch> &nBest,
 /////////////////////////////////////////////////////////////////////////////////////
 // const-batch2
 std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(Scorer &scorer,
-                                            size_t hypIndex)
+                                            unsigned hypIndex)
 {
   std::vector<SoftAlignmentPtr> alignments;
   GPU::EncoderDecoder &encdec = static_cast<GPU::EncoderDecoder&>(scorer);
   const mblas::Matrix &attention = encdec.GetAttention();
-  size_t attLength = attention.dim(1);
+  unsigned attLength = attention.dim(1);
 
   SoftAlignment *softAlignment = new SoftAlignment(attLength);
   mblas::copy(
@@ -165,7 +165,7 @@ void  BestHyps::CalcBeam(
   //mblas::copy(vCosts.begin(), vCosts.end(), costs_.begin());
   //cerr << "CalcBeam3" << endl;
 
-  size_t numHypos = histories.GetTotalBeamSize();
+  unsigned numHypos = histories.GetTotalBeamSize();
   //cerr << "CalcBeam4" << endl;
   //cerr << "numHypos=" << numHypos << endl;
 
@@ -215,15 +215,15 @@ void  BestHyps::CalcBeam(
   //cerr << "CalcBeam8" << endl;
   //cerr << "batchMap=" << Debug(batchMap, 2) << endl;
 
-  for (size_t i = 0; i < numHypos; i++) {
+  for (unsigned i = 0; i < numHypos; i++) {
     //cerr << "CalcBeam9=" << i << endl;
-    size_t wordIndex = bestKeys[i] % Probs.dim(1);
+    unsigned wordIndex = bestKeys[i] % Probs.dim(1);
     if (isInputFiltered_) {
       wordIndex = filterIndices[wordIndex];
     }
     //cerr << "CalcBeam10=" << i << endl;
 
-    size_t hypIndex  = bestKeys[i] / Probs.dim(1);
+    unsigned hypIndex  = bestKeys[i] / Probs.dim(1);
     float cost = bestCosts[i];
     //cerr << "CalcBeam11=" << i << endl;
     //cerr << "bestKeys[i]=" << bestKeys[i] << endl;
@@ -251,7 +251,7 @@ void  BestHyps::CalcBeam(
     }
     //cerr << "CalcBeam13=" << i << endl;
 
-    size_t batchInd = batchMap[i];
+    unsigned batchInd = batchMap[i];
     //cerr << "CalcBeam14=" << i << endl;
     //cerr << "batchInd=" << batchInd << endl;
     HistoriesElementPtr &ele = histories.Get(batchInd);

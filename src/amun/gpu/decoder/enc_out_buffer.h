@@ -13,16 +13,16 @@ public:
 
   void Add(EncOutPtr obj);
 
-  void Get(size_t num, std::vector<BufferOutput> &ret);
+  void Get(unsigned num, std::vector<BufferOutput> &ret);
 
-  size_t size() const
+  unsigned size() const
   { return buffer_.size(); }
 
 protected:
   Buffer<EncOutPtr> buffer_;
 
   EncOutPtr unfinishedEncOutPtr_;
-  size_t unfinishedInd_;
+  unsigned unfinishedInd_;
 
   EncOutPtr Get();
 };

@@ -37,7 +37,7 @@ public:
     :size_(maxSize)
     {}
 
-    size_t size() const
+    unsigned size() const
     { return buffer_.size(); }
 
 private:
