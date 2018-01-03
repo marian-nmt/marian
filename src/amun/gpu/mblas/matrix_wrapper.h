@@ -105,7 +105,6 @@ public:
     stride_[2] = dim_[0] * dim_[1];
     stride_[3] = dim_[0] * dim_[1] * dim_[2];
 
-    size_ = stride_[3] * dim_[3];
   }
 
   __device__ __host__
@@ -116,7 +115,6 @@ public:
     stride_[2] = dim_[0] * dim_[1];
     stride_[3] = dim_[0] * dim_[1] * dim_[2];
 
-    size_ = stride_[3] * dim_[3];
   }
 
   __device__
@@ -238,7 +236,6 @@ public:
     for (unsigned i = 0; i < SHAPE_SIZE; ++i) {
       strm << dim_[i] << " ";
     }
-    strm << "=" << size_;
 
     strm << " stride=";
     for (unsigned i = 0; i < SHAPE_SIZE; ++i) {
@@ -251,7 +248,6 @@ public:
 protected:
   unsigned dim_[SHAPE_SIZE];
   unsigned stride_[SHAPE_SIZE];
-  unsigned size_;
   Shape shape_;
 
   T *data_;
