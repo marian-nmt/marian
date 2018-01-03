@@ -372,7 +372,7 @@ void EncoderDecoder::FetchBatch(Histories &histories,
     return;
   }
 
-  size_t maxLength =  histories.MaxLength();
+  unsigned maxLength =  histories.MaxLength();
   //cerr << "maxLength=" << maxLength << endl;
   //cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
 

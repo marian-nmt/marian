@@ -25,7 +25,7 @@ namespace GPU {
 namespace mblas {
 
 template<typename T>
-std::string Debug(const mblas::Vector<T> &vec, size_t verbosity = 1)
+std::string Debug(const mblas::Vector<T> &vec, unsigned verbosity = 1)
 {
   std::stringstream strm;
 
@@ -33,14 +33,14 @@ std::string Debug(const mblas::Vector<T> &vec, size_t verbosity = 1)
 
   if (verbosity) {
     T sum(0);
-    for (size_t i = 0; i < vec.size(); ++i) {
+    for (unsigned i = 0; i < vec.size(); ++i) {
       sum += vec[i];
     }
     strm << " sum=" << sum;
   }
 
   if (verbosity == 2) {
-    for (size_t i = 0; i < vec.size(); ++i) {
+    for (unsigned i = 0; i < vec.size(); ++i) {
       strm << " " << vec[i];
     }
   }
@@ -49,7 +49,7 @@ std::string Debug(const mblas::Vector<T> &vec, size_t verbosity = 1)
 }
 
 template<typename T>
-std::string Debug(const std::vector<T> &vec, size_t verbosity = 1)
+std::string Debug(const std::vector<T> &vec, unsigned verbosity = 1)
 {
   std::stringstream strm;
 
@@ -57,14 +57,14 @@ std::string Debug(const std::vector<T> &vec, size_t verbosity = 1)
 
   if (verbosity) {
     T sum(0);
-    for (size_t i = 0; i < vec.size(); ++i) {
+    for (unsigned i = 0; i < vec.size(); ++i) {
       sum += vec[i];
     }
     strm << " sum=" << sum;
   }
 
   if (verbosity == 2) {
-    for (size_t i = 0; i < vec.size(); ++i) {
+    for (unsigned i = 0; i < vec.size(); ++i) {
       strm << " " << vec[i];
     }
   }
@@ -73,22 +73,22 @@ std::string Debug(const std::vector<T> &vec, size_t verbosity = 1)
 }
 
 template<>
-inline std::string Debug(const std::vector<char> &vec, size_t verbosity)
+inline std::string Debug(const std::vector<char> &vec, unsigned verbosity)
 {
   std::stringstream strm;
 
   strm << "size=" << vec.size();
 
   if (verbosity) {
-    size_t sum(0);
-    for (size_t i = 0; i < vec.size(); ++i) {
+    unsigned sum(0);
+    for (unsigned i = 0; i < vec.size(); ++i) {
       sum += vec[i] ? 1 : 0;
     }
     strm << " sum=" << sum;
   }
 
   if (verbosity == 2) {
-    for (size_t i = 0; i < vec.size(); ++i) {
+    for (unsigned i = 0; i < vec.size(); ++i) {
       strm << " " << (vec[i] ? 1 : 0);
     }
   }
@@ -97,7 +97,7 @@ inline std::string Debug(const std::vector<char> &vec, size_t verbosity)
 }
 
 template<typename T>
-void copy(const T *in, size_t count, T *out,  cudaMemcpyKind kind) {
+void copy(const T *in, unsigned count, T *out,  cudaMemcpyKind kind) {
   HANDLE_ERROR( cudaMemcpyAsync(out, in, count * sizeof(T), kind, CudaStreamHandler::GetStream()) );
 }
 
@@ -119,20 +119,20 @@ Matrix& Copy(Matrix& Out, const Matrix& In);
 
 Matrix& PasteRow(Matrix& Out,
                  const Matrix& In,
-                 const size_t r = 0,
-                 const size_t c = 0);
-void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo=0);
+                 const unsigned r = 0,
+                 const unsigned c = 0);
+void PasteRows(Matrix& Out, const Matrix& In, const unsigned rowNo, unsigned colNo=0);
 
 Matrix& CopyRow(Matrix& Out,
                 const Matrix& In,
-                const size_t r = 0,
-                const size_t c = 0);
+                const unsigned r = 0,
+                const unsigned c = 0);
 
 Matrix& Concat(Matrix& Out, const Matrix& In);
 
 void MapMatrix(Matrix& state,
               const mblas::Vector<unsigned> &sentenceLengths,
-              size_t i);
+              unsigned i);
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
@@ -144,7 +144,7 @@ Matrix& Assemble(Matrix& Out,
 
 Matrix& Slice(Matrix& Out,
               const Matrix& In,
-              size_t n, size_t dim);
+              unsigned n, unsigned dim);
 
 Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transB = false);
@@ -152,7 +152,7 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
 Matrix& Softmax(Matrix& Out,
                 const mblas::Vector<unsigned>& hypo2Batch,
                 const mblas::Vector<unsigned> &sentenceLengths,
-                size_t batchSize);
+                unsigned batchSize);
 
 Matrix& LogSoftmax(Matrix& Out);
 
@@ -204,13 +204,13 @@ Matrix& Broadcast(Functor functor,
                   const Matrix& in1,
                   const Matrix& in2,
                   const mblas::Vector<unsigned>& hypo2Batch,
-                  size_t srcSize)
+                  unsigned srcSize)
 {
   BEGIN_TIMER("Broadcast");
-  size_t sumOfBeamSizes = in2.dim(0);
+  unsigned sumOfBeamSizes = in2.dim(0);
 
-  //size_t rows = srcSize * sumOfBeamSizes;
-  size_t cols  = in1.dim(1);
+  //unsigned rows = srcSize * sumOfBeamSizes;
+  unsigned cols  = in1.dim(1);
 
   out.NewSize(srcSize, cols, sumOfBeamSizes);
 
@@ -243,8 +243,8 @@ __global__ void gBroadcastVecColumn(Functor functor,
                                     const VectorWrapper<float> inWrap) {
   extern __shared__ float sdataOrig[];
 
-  size_t rows  = outWrap.dim(0);
-  size_t cols = outWrap.dim(1);
+  unsigned rows  = outWrap.dim(0);
+  unsigned cols = outWrap.dim(1);
 
   VectorWrapper<float> sdata(sdataOrig, rows);
 
@@ -266,8 +266,8 @@ __global__ void gBroadcastVecColumn(Functor functor,
 template <class Functor>
 Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const mblas::Vector<float>& In)
 {
-  size_t rows  = Out.dim(0);
-  size_t cols = Out.dim(1);
+  unsigned rows  = Out.dim(0);
+  unsigned cols = Out.dim(1);
 
   MatrixWrapper<float> outWrap(Out);
   const VectorWrapper<float> inWrap(In);
@@ -286,7 +286,7 @@ __global__ void gBroadcastVec(Functor functor,
                               MatrixWrapper<float> outWrap,
                               const MatrixWrapper<float> inWrap)
 {
-  size_t cols = outWrap.dim(1);
+  unsigned cols = outWrap.dim(1);
 
   int noColumn = threadIdx.x + blockDim.x * blockIdx.x;
   if (noColumn < cols) {
@@ -310,7 +310,7 @@ Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In)
   //std::cerr << "Out=" << Out.Debug() << std::endl;
   //std::cerr << "In=" << In.Debug() << std::endl;
 
-  size_t cols = Out.dim(1);
+  unsigned cols = Out.dim(1);
 
   MatrixWrapper<float> outWrap(Out);
   const MatrixWrapper<float> inWrap(In);
@@ -329,7 +329,7 @@ template <class Functor>
 __global__ void gElement(Functor functor,
                          MatrixWrapper<float> outWrap)
 {
-  size_t ind = blockIdx.x * blockDim.x + threadIdx.x;
+  unsigned ind = blockIdx.x * blockDim.x + threadIdx.x;
   if (ind < outWrap.size()) {
     outWrap[ind] = functor(outWrap[ind]);
   }
@@ -357,7 +357,7 @@ __global__ void gElement(Functor functor,
                          MatrixWrapper<float> outWrap,
                          const MatrixWrapper<float> inWrap)
 {
-  size_t ind = blockIdx.x * blockDim.x + threadIdx.x;
+  unsigned ind = blockIdx.x * blockDim.x + threadIdx.x;
   if (ind < outWrap.size()) {
     outWrap[ind] = functor(outWrap[ind], inWrap[ind]);
   }
@@ -389,7 +389,7 @@ __global__ void gElement(Functor functor,
                          const MatrixWrapper<float> in1Wrap,
                          const MatrixWrapper<float> in2Wrap)
 {
-  size_t ind = blockIdx.x * blockDim.x + threadIdx.x;
+  unsigned ind = blockIdx.x * blockDim.x + threadIdx.x;
   if (ind < outWrap.size()) {
     outWrap[ind] = functor(outWrap[ind], in1Wrap[ind], in2Wrap[ind]);
   }
@@ -493,17 +493,17 @@ void CopyMatrix(TMatrix<T> &out, const TMatrix<T> &in)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-void ResizeMatrix(TMatrix<T> &matrix, const std::vector<size_t> args)
+void ResizeMatrix(TMatrix<T> &matrix, const std::vector<unsigned> args)
 {
   thread_local TMatrix<T> out;
 
-  size_t shape[SHAPE_SIZE];
+  unsigned shape[SHAPE_SIZE];
   shape[0] = matrix.dim(0);
   shape[1] = matrix.dim(1);
   shape[2] = matrix.dim(2);
   shape[3] = matrix.dim(3);
 
-  for (size_t i = 0; i < args.size(); i += 2) {
+  for (unsigned i = 0; i < args.size(); i += 2) {
     shape[ args[i] ] = args[i+1];
 
   }
@@ -524,7 +524,7 @@ void AddNewData(mblas::Matrix &sourceContext,
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-void TestMemCpy(size_t size, const T *data1)
+void TestMemCpy(unsigned size, const T *data1)
 {
   using namespace std;
 
@@ -547,7 +547,7 @@ void TestMemCpy(size_t size, const T *data1)
 
   cerr << "h_vec2=";
   T sum = 0;
-  for (size_t i = 0; i < size; ++i) {
+  for (unsigned i = 0; i < size; ++i) {
     //cerr << h_vec2[i] << " ";
     sum += h_vec2[i];
   }

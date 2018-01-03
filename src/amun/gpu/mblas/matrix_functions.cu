@@ -34,12 +34,12 @@ __global__ void gMean(MatrixWrapper<float> out,
     out.id2Indices(id, indices);
     //printf("%d -> %lu %lu %lu %lu \n", id, indices[0], indices[1], indices[2], indices[3]);
 
-    size_t batch = indices[0];
-    size_t state = indices[1];
+    unsigned batch = indices[0];
+    unsigned state = indices[1];
 
     float sum = 0.0f;
     int counter = 0;
-    for (size_t row = 0; row < in.dim(0); ++row) {
+    for (unsigned row = 0; row < in.dim(0); ++row) {
       bool isWord = row < sentenceLengths[batch];
       //printf("batch=%lu startMapInd=%lu  mapOffset=%lu -> %d \n", batch, startMapInd, mapOffset, isWord);
       if (isWord) {
@@ -63,9 +63,9 @@ void Mean(Matrix& Out,
   assert(Out.dim(1) == In.dim(1));
 
   // mean of each ROW
-  size_t batchNum = Out.dim(0) * Out.dim(2) * Out.dim(3);
-  size_t stateLength = Out.dim(1);
-  size_t sentenceLength = (In.dim(0) * In.dim(2) * In.dim(3)) / batchNum;
+  unsigned batchNum = Out.dim(0) * Out.dim(2) * Out.dim(3);
+  unsigned stateLength = Out.dim(1);
+  unsigned sentenceLength = (In.dim(0) * In.dim(2) * In.dim(3)) / batchNum;
 
   MatrixWrapper<float> outWrap(Out);
   MatrixWrapper<float> inWrap(In);
@@ -131,8 +131,8 @@ void WeightedMean(Matrix& out,const Matrix& weights, const Matrix& in, const mbl
 }
 
 Matrix& Transpose(Matrix& Out, const Matrix& In) {
-  size_t m = In.dim(0);
-  size_t n = In.dim(1);
+  unsigned m = In.dim(0);
+  unsigned n = In.dim(1);
 
   Out.NewSize(n, m);
 
@@ -153,7 +153,7 @@ Matrix& Transpose(Matrix& Out) {
 }
 
 Matrix& Concat(Matrix& Out, const Matrix& In) {
-  size_t oldSize = Out.size();
+  unsigned oldSize = Out.size();
   Out.Resize(Out.dim(0) + In.dim(0), Out.dim(1));
 
   mblas::copy(In.data(), In.size(), Out.data() + oldSize, cudaMemcpyDeviceToDevice);
@@ -188,7 +188,7 @@ __global__ void gPasteRows(MatrixWrapper<float> out,
   }
 }
 
-void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo)
+void PasteRows(Matrix& Out, const Matrix& In, const unsigned rowNo, unsigned colNo)
 {
   MatrixWrapper<float> outWrap(Out);
   MatrixWrapper<float> inWrap(In);
@@ -204,9 +204,9 @@ void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo)
 
 Matrix& PasteRow(Matrix& Out,
                  const Matrix& In,
-                 const size_t r, const size_t c)
+                 const unsigned r, const unsigned c)
 {
-  size_t start = r * Out.dim(1) + c;
+  unsigned start = r * Out.dim(1) + c;
 
   mblas::copy(In.data(), In.size(), Out.data() + start, cudaMemcpyDeviceToDevice);
 
@@ -215,11 +215,11 @@ Matrix& PasteRow(Matrix& Out,
 
 Matrix& CopyRow(Matrix& Out,
                 const Matrix& In,
-                const size_t r, const size_t c) {
-  size_t length = In.dim(1) - c;
+                const unsigned r, const unsigned c) {
+  unsigned length = In.dim(1) - c;
   Out.NewSize(1, length);
-  size_t start = r * In.dim(1) + c;
-  //size_t end   = start + length;
+  unsigned start = r * In.dim(1) + c;
+  //unsigned end   = start + length;
 
   //mblas::copy(In.begin() + start, In.begin() + end, Out.begin());
   mblas::copy(In.data() + start, length , Out.data(), cudaMemcpyDeviceToDevice);
@@ -237,8 +237,8 @@ __global__ void gCopyRows(MatrixWrapper<float> out,
 	  uint dim[SHAPE_SIZE];
 	  out.id2Indices(id, dim);
 
-	  size_t indicesInd = dim[0];
-	  size_t inRow =indicesWrap[indicesInd];
+	  unsigned indicesInd = dim[0];
+	  unsigned inRow =indicesWrap[indicesInd];
 
       out(indicesInd, dim[1]) = in(inRow, dim[1]);
 
@@ -264,9 +264,9 @@ Matrix& CopyRows(Matrix& Out,
   cerr << endl;
   */
 
-  size_t size = Out.size();
+  unsigned size = Out.size();
 
-  size_t numPairs = indices.size();
+  unsigned numPairs = indices.size();
 
   MatrixWrapper<float> outWrap(Out);
   const MatrixWrapper<float> inWrap(In);
@@ -295,12 +295,12 @@ Matrix& Assemble(Matrix& Out,
 
 __global__ void gSlice(MatrixWrapper<float> out,
                       const MatrixWrapper<float> in,
-                       size_t n, size_t dim)
+                       unsigned n, unsigned dim)
 {
-  size_t row = blockIdx.x;
+  unsigned row = blockIdx.x;
 
-  size_t inCol = threadIdx.x + dim * n;
-  size_t outCol = threadIdx.x;
+  unsigned inCol = threadIdx.x + dim * n;
+  unsigned outCol = threadIdx.x;
 
   while (outCol < out.dim(1)) {
     out(row, outCol) = in(row, inCol);
@@ -313,7 +313,7 @@ __global__ void gSlice(MatrixWrapper<float> out,
 
 Matrix& Slice(Matrix& Out,
               const Matrix& In,
-              size_t n, size_t dim)
+              unsigned n, unsigned dim)
 {
   assert(In.dim(2) == 1);
   assert(In.dim(3) == 1);
@@ -347,10 +347,10 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   Matrix::value_type alpha = 1.0;
   Matrix::value_type beta = 0.0;
 
-  size_t m = A.dim(0) * A.dim(2) * A.dim(3);
-  size_t k = A.dim(1);
-  size_t mOut = A.dim(0);
-  size_t kOut = A.dim(1);
+  unsigned m = A.dim(0) * A.dim(2) * A.dim(3);
+  unsigned k = A.dim(1);
+  unsigned mOut = A.dim(0);
+  unsigned kOut = A.dim(1);
 
   /*
   if(transA) {
@@ -358,10 +358,10 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
     std::swap(mOut, kOut);
   }
   */
-  size_t l = B.dim(0) * B.dim(2) * B.dim(3);
-  size_t n = B.dim(1);
-  size_t lOut = B.dim(0);
-  size_t nOut = B.dim(1);
+  unsigned l = B.dim(0) * B.dim(2) * B.dim(3);
+  unsigned n = B.dim(1);
+  unsigned lOut = B.dim(0);
+  unsigned nOut = B.dim(1);
   if(transB) {
     std::swap(l, n);
     std::swap(lOut, nOut);
@@ -369,11 +369,11 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
 
   assert(k == l);
 
-  size_t lda = A.dim(1);
-  size_t ldb = B.dim(1);
-  size_t ldc = transB ? B.dim(0) * B.dim(2) * B.dim(3) : B.dim(1);
+  unsigned lda = A.dim(1);
+  unsigned ldb = B.dim(1);
+  unsigned ldc = transB ? B.dim(0) * B.dim(2) * B.dim(3) : B.dim(1);
 
-  size_t dim2 = A.dim(2);
+  unsigned dim2 = A.dim(2);
   if (transB) {
     // for GetAlignedSourceContext()
     assert((A.dim(2) == A.dim(3) == 1));
@@ -425,8 +425,8 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
 {
   extern __shared__ float _share[];
 
-  size_t numHypos = out.dim(0);
-  size_t maxLength = out.dim(1);
+  unsigned numHypos = out.dim(0);
+  unsigned maxLength = out.dim(1);
 
   int hypoInd =  blockIdx.x;
   int origSrcPos = threadIdx.x;
@@ -506,9 +506,9 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
 Matrix& Softmax(Matrix& Out,
                 const mblas::Vector<unsigned>& hypo2Batch,
                 const mblas::Vector<unsigned> &sentenceLengths,
-                size_t batchSize)
+                unsigned batchSize)
 {
-  size_t maxLength = Out.dim(1);
+  unsigned maxLength = Out.dim(1);
 
   MatrixWrapper<float> outWrap(Out);
   const VectorWrapper<unsigned> hypo2BatchWrap(hypo2Batch);
@@ -528,8 +528,8 @@ __global__ void gLogSoftMax(MatrixWrapper<float> out, uint shareSize)
 {
   extern __shared__ float _share[];
 
-  size_t rows = out.dim(0);
-  size_t cols = out.dim(1);
+  unsigned rows = out.dim(0);
+  unsigned cols = out.dim(1);
 
   int rowIdx =  blockIdx.x;
 
@@ -647,7 +647,7 @@ __global__ void gFill(MatrixWrapper<float> in, float val) {
 }
 
 void Fill(Matrix& In, float value) {
-  size_t size = In.size();
+  unsigned size = In.size();
 
   if (value) {
     int nThreads = std::min(MAX_THREADS, (int)size);
@@ -682,7 +682,7 @@ void gMapMatrix(MatrixWrapper<float> in,
 
 void MapMatrix(Matrix& state,
               const mblas::Vector<unsigned> &sentenceLengths,
-              size_t i)
+              unsigned i)
 {
   // blank out rows in the state matrix where the word position i does not exist
   // mapping is a concatenated array of 1 & 0 of each sentence in the batch to say whether word exists or not.
@@ -861,7 +861,7 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSize,
 
   uint hypoInd = 0, activeBatchInd = 0;
   //printf("beamSizes.size()=%u \n", beamSizes.size());
-  for (size_t batchInd = 0; batchInd < beamSizes.size(); ++batchInd) {
+  for (unsigned batchInd = 0; batchInd < beamSizes.size(); ++batchInd) {
     uint beamSize = beamSizes[batchInd];
     /*
     printf("batchInd=%u ", batchInd);
@@ -889,7 +889,7 @@ void gBeamSizeInit(VectorWrapper<uint> hypo2BeamSize,
         assert(activeBatchInd < activeBatch2Hypo.size());
         activeBatch2Hypo[activeBatchInd] = hypoInd;
 
-        for (size_t j = 0; j < beamSize; ++j) {
+        for (unsigned j = 0; j < beamSize; ++j) {
           assert(hypoInd < hypo2BeamSize.size());
           assert(hypoInd < hypo2Candidate.size());
           hypo2BeamSize[hypoInd] = beamSize;
@@ -1103,7 +1103,7 @@ void SumAndLogSoftMax(VectorWrapper<NthOutBatch> &nBestCandidates,
   extern __shared__ float _share[];
   VectorWrapper<float> _sum(_share, blockDim.x);
 
-  size_t vocabSize = in.dim(1);
+  unsigned vocabSize = in.dim(1);
 
   // calc sum
   _sum[threadIdx.x] = 0.0f;
@@ -1421,14 +1421,14 @@ void UpdateSentenceLengths(const mblas::Vector<unsigned> &newSentenceLengths,
 __global__
 void gAddNewData(mblas::MatrixWrapper<float> dest,
                 const mblas::MatrixWrapper<float> source,
-                size_t batchId,
-                size_t newSentenceOffset,
-                size_t size)
+                unsigned batchId,
+                unsigned newSentenceOffset,
+                unsigned size)
 {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < size) {
-    size_t dim0 = id / source.dim(1);
-    size_t dim1 = id % source.dim(1);
+    unsigned dim0 = id / source.dim(1);
+    unsigned dim1 = id % source.dim(1);
 
     dest(dim0, dim1, 0, batchId) = source(dim0, dim1, 0, newSentenceOffset);
   }
@@ -1441,22 +1441,22 @@ void AddNewData(mblas::Matrix &sourceContext,
   BEGIN_TIMER("AddNewData");
   //cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
 
-  for (size_t i = 0; i < newSentences.size(); ++i) {
+  for (unsigned i = 0; i < newSentences.size(); ++i) {
     const BufferOutput &eleSent = newSentences[i];
     const EncOutPtr &encOut = eleSent.GetEncOut();
     const mblas::Matrix &newSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
     cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
     cerr << "newSourceContext=" << newSourceContext.Debug(0) << endl;
 
-    size_t batchId = newBatchIds[i];
-    size_t newSentenceOffset = eleSent.GetSentenceOffset();
+    unsigned batchId = newBatchIds[i];
+    unsigned newSentenceOffset = eleSent.GetSentenceOffset();
 
     assert(batchId < sourceContext.dim(3));
     assert(newSentenceOffset < newSourceContext.dim(3));
     assert(sourceContext.dim(1) == newSourceContext.dim(1));
     assert(sourceContext.dim(2) == newSourceContext.dim(2) == 1);
 
-    //size_t size = newSourceContext.dim(0) * newSourceContext.dim(1);
+    //unsigned size = newSourceContext.dim(0) * newSourceContext.dim(1);
     //uint threads = std::min((uint) MAX_THREADS, (uint)size);
     //uint blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
 
@@ -1478,9 +1478,9 @@ void TestMemCpy()
 
   cerr << "Starting" << endl;
 
-  size_t NUM = 10;
+  unsigned NUM = 10;
   vector<float> h_vec1(NUM);
-  for (size_t i = 0; i < NUM; ++i) {
+  for (unsigned i = 0; i < NUM; ++i) {
     h_vec1[i] = i * 3;
   }
 
