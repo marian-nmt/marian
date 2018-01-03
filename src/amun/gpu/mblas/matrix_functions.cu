@@ -1456,9 +1456,9 @@ void AddNewData(mblas::Matrix &sourceContext,
     assert(sourceContext.dim(1) == newSourceContext.dim(1));
     assert(sourceContext.dim(2) == newSourceContext.dim(2) == 1);
 
-    size_t size = newSourceContext.dim(0) * newSourceContext.dim(1);
-    uint threads = std::min((uint) MAX_THREADS, (uint)size);
-    uint blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
+    //size_t size = newSourceContext.dim(0) * newSourceContext.dim(1);
+    //uint threads = std::min((uint) MAX_THREADS, (uint)size);
+    //uint blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
 
     mblas::MatrixWrapper<float> dest(sourceContext);
     const mblas::MatrixWrapper<float> source(newSourceContext);
