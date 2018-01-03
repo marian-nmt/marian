@@ -451,12 +451,13 @@ void UpdateSentenceLengths(const Histories &histories,
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename T>
 __global__ void gCopyMatrix(MatrixWrapper<T> out,
-                                const MatrixWrapper<T> in)
+                            const MatrixWrapper<T> in,
+                            mblas::Shape smallestShape)
 {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
-  if (id < in.GetShape().size()) {
+  if (id < smallestShape.size()) {
     unsigned indices[SHAPE_SIZE];
-    in.GetShape().id2Indices(id, indices);
+    smallestShape.id2Indices(id, indices);
 
     out(indices[0], indices[1], indices[2], indices[3])
       = in(indices[0], indices[1], indices[2], indices[3]);
@@ -472,21 +473,20 @@ void CopyMatrix(TMatrix<T> &out, const TMatrix<T> &in)
   }
   //cerr << "out=" << out.Debug(0) << endl;
   //cerr << "in=" << in.Debug(0) << endl;
+  mblas::Shape smallestShape(std::min(out.dim(0), in.dim(0)),
+                      std::min(out.dim(1), in.dim(1)),
+                      std::min(out.dim(2), in.dim(2)),
+                      std::min(out.dim(3), in.dim(3)));
 
-  assert(out.dim(0) >= in.dim(0));
-  assert(out.dim(1) >= in.dim(1));
-  assert(out.dim(2) >= in.dim(2));
-  assert(out.dim(3) >= in.dim(3));
-
-  unsigned size = in.size();
+  unsigned size = smallestShape.size();
   unsigned threads = std::min(size, (unsigned) MAX_THREADS);
   unsigned blocks  = (size / threads) + 1;
 
-  const cudaStream_t &stream = CudaStreamHandler::GetStream();
   MatrixWrapper<T> outWrap(out);
   const MatrixWrapper<T> inWrap(in);
+  const cudaStream_t &stream = CudaStreamHandler::GetStream();
 
-  gCopyMatrix<<<blocks, threads, 0, stream>>>(outWrap, inWrap);
+  gCopyMatrix<<<blocks, threads, 0, stream>>>(outWrap, inWrap, smallestShape);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -508,7 +508,7 @@ void ResizeMatrix(TMatrix<T> &matrix, const std::vector<unsigned> args)
   }
 
   out.NewSize(shape[0], shape[1], shape[2], shape[3]);
-  //CopyMatrix(out, matrix);
+  CopyMatrix(out, matrix);
 
   out.swap(matrix);
 

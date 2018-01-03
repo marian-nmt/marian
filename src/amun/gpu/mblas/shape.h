@@ -19,19 +19,19 @@ public:
     updateStrides();
   }
 
-  Shape(const Shape &other, bool colMajor = true)
+  __device__ __host__
+  Shape(const Shape &other)
+  :size_(other.size_)
   {
     dim_[0] = other.dim(0);
     dim_[1] = other.dim(1);
     dim_[2] = other.dim(2);
     dim_[3] = other.dim(3);
 
-    if (colMajor) {
-      updateStrides();
-    }
-    else {
-      updateStridesRowMajor();
-    }
+    stride_[0] = other.stride(0);
+    stride_[1] = other.stride(1);
+    stride_[2] = other.stride(2);
+    stride_[3] = other.stride(3);
   }
 
   __device__ __host__
