@@ -51,7 +51,7 @@ class Decoder {
 
       private:
         const Weights& w_;
-        mblas::Vector<uint> indices_;
+        mblas::Vector<unsigned> indices_;
 
         Embeddings(const Embeddings&) = delete;
     };
@@ -68,7 +68,7 @@ class Decoder {
         void InitializeState(CellState& State,
                              const Histories& histories,
                              const mblas::Matrix &SourceContext,
-                             const mblas::Vector<uint> &sentenceLengths,
+                             const mblas::Vector<unsigned> &sentenceLengths,
                              bool topUp) const
         {
           using namespace mblas;
@@ -171,7 +171,7 @@ class Decoder {
         void Init(const mblas::Matrix& SourceContext,
                   mblas::Matrix& SCU,
                   const std::vector<uint> &newBatchIds,
-                  const mblas::Vector<uint> &d_newBatchIds) const
+                  const mblas::Vector<unsigned> &d_newBatchIds) const
         {
           using namespace mblas;
           /*
@@ -403,7 +403,7 @@ class Decoder {
           filtered_ = true;
           using namespace mblas;
 
-          mblas::Vector<uint> d_ids(ids);
+          mblas::Vector<unsigned> d_ids(ids);
           Assemble(FilteredW4_, TempW4, d_ids);
           Assemble(FilteredB4_, TempB4, d_ids);
 
@@ -502,7 +502,7 @@ class Decoder {
     void EmptyState(CellState& State,
                     const Histories& histories,
                     const mblas::Matrix &SourceContext,
-                    const mblas::Vector<uint> &sentenceLengths,
+                    const mblas::Vector<unsigned> &sentenceLengths,
                     mblas::Matrix& SCU) const
     {
       rnn1_.InitializeState(State, histories, SourceContext, sentenceLengths, false);
@@ -512,10 +512,10 @@ class Decoder {
     void EmptyState(CellState& State,
                     const Histories& histories,
                     const mblas::Matrix &SourceContext,
-                    const mblas::Vector<uint> &sentenceLengths,
+                    const mblas::Vector<unsigned> &sentenceLengths,
                     mblas::Matrix& SCU,
                     const std::vector<uint> &newBatchIds,
-                    const mblas::Vector<uint> &d_newBatchIds) const
+                    const mblas::Vector<unsigned> &d_newBatchIds) const
     {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState1" << std::endl;
@@ -538,7 +538,7 @@ class Decoder {
     void EmptyEmbedding(mblas::Matrix& Embedding,
                         size_t totalBeamSize,
                         const std::vector<uint> &newBatchIds,
-                        const mblas::Vector<uint> &d_newBatchIds) const
+                        const mblas::Vector<unsigned> &d_newBatchIds) const
     {
       Embedding.NewSize(totalBeamSize, embeddings_.GetCols());
       mblas::Fill(Embedding, 0);
