@@ -59,7 +59,7 @@ class Scorer {
 
     virtual void Encode(const SentencesPtr &sources) = 0;
 
-    virtual void Filter(const std::vector<uint>&) = 0;
+    virtual void Filter(const std::vector<unsigned>&) = 0;
 
     virtual State* NewState() const = 0;
 

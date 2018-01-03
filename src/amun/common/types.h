@@ -7,11 +7,11 @@
 
 namespace amunmt {
 
-typedef uint Factor;
+typedef unsigned Factor;
 typedef std::vector<Factor> FactWord;
 typedef std::vector<FactWord> FactWords;
 
-typedef uint Word;
+typedef unsigned Word;
 typedef std::vector<Word> Words;
 
 const Word EOS_ID = 0;
