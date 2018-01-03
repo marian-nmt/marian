@@ -9,7 +9,7 @@ EncoderDecoderState::EncoderDecoderState()
 {
 }
 
-std::string EncoderDecoderState::Debug(size_t verbosity) const
+std::string EncoderDecoderState::Debug(unsigned verbosity) const
 {
 	return CPU::mblas::Debug(states_);
 }

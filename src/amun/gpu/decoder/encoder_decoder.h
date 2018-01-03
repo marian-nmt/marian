@@ -33,7 +33,7 @@ class EncoderDecoder : public Scorer {
     EncoderDecoder(const God &god,
                    const std::string& name,
                    const YAML::Node& config,
-                   size_t tab,
+                   unsigned tab,
                    const Weights& model,
                    const Search &search);
 
@@ -55,7 +55,7 @@ class EncoderDecoder : public Scorer {
     virtual void *GetNBest();
     virtual const BaseMatrix *GetBias() const;
 
-    size_t GetVocabSize() const;
+    unsigned GetVocabSize() const;
 
     void Filter(const std::vector<unsigned>& filterIds);
 

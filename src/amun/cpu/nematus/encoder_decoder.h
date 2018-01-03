@@ -25,7 +25,7 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
     EncoderDecoder(const God &god,
     			   const std::string& name,
                    const YAML::Node& config,
-                   size_t tab,
+                   unsigned tab,
                    const Nematus::Weights& model,
                    const Search &search);
 
@@ -34,7 +34,7 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
                         State& out,
                         const std::vector<unsigned>& beamSizes);
 
-    virtual void BeginSentenceState(EncOutPtr encOut, State& state, size_t batchSize);
+    virtual void BeginSentenceState(EncOutPtr encOut, State& state, unsigned batchSize);
 
     virtual void Encode(const SentencesPtr &sources);
 
@@ -45,7 +45,7 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
     void GetAttention(mblas::Matrix& Attention);
     mblas::Matrix& GetAttention();
 
-    size_t GetVocabSize() const;
+    unsigned GetVocabSize() const;
 
     BaseMatrix& GetProbs();
 

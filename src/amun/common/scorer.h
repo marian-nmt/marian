@@ -39,7 +39,7 @@ class State {
       return static_cast<const T&>(*this);;
     }
 
-    virtual std::string Debug(size_t verbosity = 1) const = 0;
+    virtual std::string Debug(unsigned verbosity = 1) const = 0;
 
 };
 
@@ -50,7 +50,7 @@ class Scorer {
   public:
     Scorer(const God &god,
            const std::string& name,
-           const YAML::Node& config, size_t tab,
+           const YAML::Node& config, unsigned tab,
            const Search &search);
 
     virtual ~Scorer();
@@ -63,7 +63,7 @@ class Scorer {
 
     virtual State* NewState() const = 0;
 
-    virtual size_t GetVocabSize() const = 0;
+    virtual unsigned GetVocabSize() const = 0;
 
     virtual void CleanAfterTranslation() {}
 
@@ -80,13 +80,13 @@ class Scorer {
     const Search &search_;
     const std::string& name_;
     const YAML::Node& config_;
-    size_t tab_;
+    unsigned tab_;
 };
 
 class SourceIndependentScorer : public Scorer {
   public:
     SourceIndependentScorer(const God &god, const std::string& name,
-                            const YAML::Node& config, size_t,
+                            const YAML::Node& config, unsigned,
                             const Search &search)
     : Scorer(god, name, config, 0, search) {}
 

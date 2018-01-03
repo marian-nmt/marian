@@ -13,7 +13,7 @@ class EncoderDecoderState : public State {
 	EncoderDecoderState(const EncoderDecoderState&) = delete;
 	EncoderDecoderState() {}
 
-    virtual std::string Debug(size_t verbosity = 1) const;
+    virtual std::string Debug(unsigned verbosity = 1) const;
 
     CellState& GetStates();
     mblas::Matrix& GetEmbeddings();
