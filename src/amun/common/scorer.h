@@ -55,8 +55,6 @@ class Scorer {
 
     virtual ~Scorer();
 
-    virtual void AssembleBeamState(const State& in, const Hypotheses& beam, State& out) const = 0;
-
     virtual void Encode(const SentencesPtr &sources) = 0;
 
     virtual void Filter(const std::vector<unsigned>&) = 0;

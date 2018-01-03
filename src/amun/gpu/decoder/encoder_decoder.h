@@ -41,10 +41,6 @@ class EncoderDecoder : public Scorer {
 
     virtual void Encode(const SentencesPtr &source);
 
-    virtual void AssembleBeamState(const State& state,
-                                   const Hypotheses& beam,
-                                   State& nextState) const;
-
     virtual State* NewState() const;
 
     void GetAttention(mblas::Matrix& Attention);

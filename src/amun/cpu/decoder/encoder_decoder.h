@@ -38,22 +38,6 @@ class CPUEncoderDecoderBase : public Scorer {
       return nullptr;
     }
 
-    virtual bool CalcBeam(BestHypsBase &bestHyps,
-                          std::shared_ptr<Histories>& histories,
-                          std::vector<unsigned>& beamSizes,
-                          Hypotheses& prevHyps,
-                          State& state,
-                          State& nextState,
-                          const Words &filterIndices)
-    {
-      assert(false);
-    }
-
-    virtual void Translate(SentencesPtr sentences)
-    {
-      assert(false);
-    }
-
   protected:
     mblas::Matrix SourceContext_;
 };

@@ -474,13 +474,6 @@ void EncoderDecoder::CalcBeam(BestHypsBase &bestHyps,
   //cerr << "CalcBeam5" << endl;
 }
 
-void EncoderDecoder::AssembleBeamState(const State& state,
-                               const Hypotheses& beam,
-                               State& nextState) const
-{
-  assert(false);
-}
-
 void EncoderDecoder::AssembleBeamState(const Histories& histories,
                                         const State& inState,
                                         State& outState) const
