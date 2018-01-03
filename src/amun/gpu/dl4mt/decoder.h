@@ -206,7 +206,7 @@ class Decoder {
                                      const Histories& histories,
                                      const mblas::Matrix& SourceContext,
                                      const mblas::Matrix& SCU,
-                                     const mblas::Vector<uint> &sentenceLengths)
+                                     const mblas::Vector<unsigned> &sentenceLengths)
         {
           // mapping = 1/0 whether each position, in each sentence in the batch is actually a valid word
           // hypo2Batch = which sentence is each element in the batch. eg 0 0 1 2 2 2 = first 2 belongs to sent0, 3rd is sent1, 4th and 5th is sent2
@@ -231,7 +231,7 @@ class Decoder {
 
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           //std::cerr << "GetAlignedSourceContext2" << std::endl;
-          std::vector<size_t> hypo2Batch = histories.Hypo2Batch();
+          std::vector<unsigned> hypo2Batch = histories.Hypo2Batch();
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           //std::cerr << "GetAlignedSourceContext3=" << std::endl;
           //std::cerr << "hypo2Sentence=" << Debug(hypo2Batch, 2) << std::endl;
@@ -297,7 +297,7 @@ class Decoder {
       private:
         const Weights& w_;
 
-        mblas::Vector<size_t> dHypo2Batch_;
+        mblas::Vector<unsigned> dHypo2Batch_;
 
         mblas::Matrix Temp1_;
         mblas::Matrix Temp2_;
@@ -444,7 +444,7 @@ class Decoder {
                 bool useFusedSoftmax,
                 const mblas::Matrix& SourceContext,
                 const mblas::Matrix& SCU,
-                const mblas::Vector<uint> &sentenceLengths)
+                const mblas::Vector<unsigned> &sentenceLengths)
     {
       //BEGIN_TIMER("Decode");
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
@@ -586,7 +586,7 @@ class Decoder {
                                  const Histories& histories,
                                  const mblas::Matrix& SourceContext,
                                  const mblas::Matrix& SCU,
-                                 const mblas::Vector<uint> &sentenceLengths)
+                                 const mblas::Vector<unsigned> &sentenceLengths)
 
     {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));

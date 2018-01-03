@@ -107,9 +107,9 @@ Matrix& Swap(Matrix& Out, Matrix& In);
 
 void Mean(Matrix& Out,
           const Matrix& In,
-          const mblas::Vector<uint> &sentenceLengths);
+          const mblas::Vector<unsigned> &sentenceLengths);
 
-void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Vector<size_t>& hypo2Batch);
+void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Vector<unsigned>& hypo2Batch);
 
 Matrix& Transpose(Matrix& Out, const Matrix& In);
 
@@ -131,16 +131,16 @@ Matrix& CopyRow(Matrix& Out,
 Matrix& Concat(Matrix& Out, const Matrix& In);
 
 void MapMatrix(Matrix& state,
-              const mblas::Vector<uint> &sentenceLengths,
+              const mblas::Vector<unsigned> &sentenceLengths,
               size_t i);
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
-                 const mblas::Vector<uint>& indices);
+                 const mblas::Vector<unsigned>& indices);
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const mblas::Vector<uint>& indices);
+                 const mblas::Vector<unsigned>& indices);
 
 Matrix& Slice(Matrix& Out,
               const Matrix& In,
@@ -150,8 +150,8 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transB = false);
 
 Matrix& Softmax(Matrix& Out,
-                const mblas::Vector<size_t>& hypo2Batch,
-                const mblas::Vector<uint> &sentenceLengths,
+                const mblas::Vector<unsigned>& hypo2Batch,
+                const mblas::Vector<unsigned> &sentenceLengths,
                 size_t batchSize);
 
 Matrix& LogSoftmax(Matrix& Out);
@@ -161,7 +161,7 @@ __global__ void gBroadcast(Functor functor,
                            MatrixWrapper<float> out,
                            const MatrixWrapper<float> in1,
                            const MatrixWrapper<float> in2,
-                           const VectorWrapper<size_t> hypo2Batch)
+                           const VectorWrapper<unsigned> hypo2Batch)
 {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < out.size()) {
@@ -203,7 +203,7 @@ Matrix& Broadcast(Functor functor,
                   Matrix& out,
                   const Matrix& in1,
                   const Matrix& in2,
-                  const mblas::Vector<size_t>& hypo2Batch,
+                  const mblas::Vector<unsigned>& hypo2Batch,
                   size_t srcSize)
 {
   BEGIN_TIMER("Broadcast");
@@ -445,9 +445,9 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 bool forbidUNK,
                 uint maxBeamSize);
 
-void UpdateSentenceLengths(const mblas::Vector<uint> &newSentenceLengths,
-                          const mblas::Vector<uint> &newBatchIds,
-                          mblas::Vector<uint> &sentenceLengths);
+void UpdateSentenceLengths(const mblas::Vector<unsigned> &newSentenceLengths,
+                          const mblas::Vector<unsigned> &newBatchIds,
+                          mblas::Vector<unsigned> &sentenceLengths);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename T>

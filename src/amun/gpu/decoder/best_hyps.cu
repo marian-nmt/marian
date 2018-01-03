@@ -211,7 +211,7 @@ void  BestHyps::CalcBeam(
   }
   //cerr << "CalcBeam7" << endl;
 
-  std::vector<size_t> batchMap = histories.Hypo2Batch();
+  std::vector<unsigned> batchMap = histories.Hypo2Batch();
   //cerr << "CalcBeam8" << endl;
   //cerr << "batchMap=" << Debug(batchMap, 2) << endl;
 

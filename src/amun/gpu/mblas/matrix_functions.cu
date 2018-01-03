@@ -55,7 +55,7 @@ __global__ void gMean(MatrixWrapper<float> out,
 
 void Mean(Matrix& Out,
           const Matrix& In,
-          const mblas::Vector<uint> &sentenceLengths)
+          const mblas::Vector<unsigned> &sentenceLengths)
 {
   assert(Out.dim(2) == 1);
   assert(Out.dim(3) == 1);
@@ -85,7 +85,7 @@ void Mean(Matrix& Out,
 __global__ void gWeightedMean(MatrixWrapper<float> out,
                               const MatrixWrapper<float> weights,
                               const MatrixWrapper<float> in,
-                              const VectorWrapper<size_t> hypo2Batch
+                              const VectorWrapper<unsigned> hypo2Batch
                               )
 {
   int numHypos = weights.dim(0);
@@ -108,7 +108,7 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
   }
 }
 
-void WeightedMean(Matrix& out,const Matrix& weights, const Matrix& in, const mblas::Vector<size_t>& hypo2Batch)
+void WeightedMean(Matrix& out,const Matrix& weights, const Matrix& in, const mblas::Vector<unsigned>& hypo2Batch)
 {
   int numHypos = weights.dim(0);
   int states = in.dim(1);
@@ -247,7 +247,7 @@ __global__ void gCopyRows(MatrixWrapper<float> out,
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
-                 const mblas::Vector<uint>& indices)
+                 const mblas::Vector<unsigned>& indices)
 {
   assert(In.dim(1) == Out.dim(1));
   assert(Out.dim(0) == indices.size());
@@ -285,7 +285,7 @@ Matrix& CopyRows(Matrix& Out,
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const mblas::Vector<uint>& indices) {
+                 const mblas::Vector<unsigned>& indices) {
   Out.NewSize(indices.size(), In.dim(1));
   //cerr << "Assemble=" << Out.Debug() << " " << In.Debug() << indices.size() << endl;
 
@@ -419,8 +419,8 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
 }
 
 __global__ void gSoftMax(MatrixWrapper<float> out,
-                         const VectorWrapper<size_t> hypo2BatchWrap,
-                         const VectorWrapper<uint> sentenceLengthsWrap,
+                         const VectorWrapper<unsigned> hypo2BatchWrap,
+                         const VectorWrapper<unsigned> sentenceLengthsWrap,
                          uint shareSize)
 {
   extern __shared__ float _share[];
@@ -504,15 +504,15 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
 }
 
 Matrix& Softmax(Matrix& Out,
-                const mblas::Vector<size_t>& hypo2Batch,
-                const mblas::Vector<uint> &sentenceLengths,
+                const mblas::Vector<unsigned>& hypo2Batch,
+                const mblas::Vector<unsigned> &sentenceLengths,
                 size_t batchSize)
 {
   size_t maxLength = Out.dim(1);
 
   MatrixWrapper<float> outWrap(Out);
-  const VectorWrapper<size_t> hypo2BatchWrap(hypo2Batch);
-  const VectorWrapper<uint> sentenceLengthsWrap(sentenceLengths);
+  const VectorWrapper<unsigned> hypo2BatchWrap(hypo2Batch);
+  const VectorWrapper<unsigned> sentenceLengthsWrap(sentenceLengths);
 
   int blocks = batchSize;
   int threads = std::min(MAX_THREADS, (int)maxLength);
@@ -681,7 +681,7 @@ void gMapMatrix(MatrixWrapper<float> in,
 }
 
 void MapMatrix(Matrix& state,
-              const mblas::Vector<uint> &sentenceLengths,
+              const mblas::Vector<unsigned> &sentenceLengths,
               size_t i)
 {
   // blank out rows in the state matrix where the word position i does not exist
@@ -1299,10 +1299,10 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
 
   mblas::Vector<char> d_isFirsts(isFirsts);
   mblas::Vector<unsigned> d_beamSizes(histories.GetBeamSizes());
-  mblas::Vector<uint> hypo2BeamSize(numHypos);
-  mblas::Vector<uint> hypo2Candidate(numHypos);
-  mblas::Vector<uint> hypo2NextHypo(numHypos);
-  mblas::Vector<uint> activeBatch2Hypo(activeBatchSize);
+  mblas::Vector<unsigned> hypo2BeamSize(numHypos);
+  mblas::Vector<unsigned> hypo2Candidate(numHypos);
+  mblas::Vector<unsigned> hypo2NextHypo(numHypos);
+  mblas::Vector<unsigned> activeBatch2Hypo(activeBatchSize);
   mblas::Vector<NthOutBatch> nBestCandidates(candidateInd);
   //PAUSE_TIMER("LogSoftmax excl kernels");
 
@@ -1404,9 +1404,9 @@ void gUpdateSentenceLengths(const VectorWrapper<uint> newSentenceLengths,
   }
 }
 
-void UpdateSentenceLengths(const mblas::Vector<uint> &newSentenceLengths,
-                          const mblas::Vector<uint> &newBatchIds,
-                          mblas::Vector<uint> &sentenceLengths)
+void UpdateSentenceLengths(const mblas::Vector<unsigned> &newSentenceLengths,
+                          const mblas::Vector<unsigned> &newBatchIds,
+                          mblas::Vector<unsigned> &sentenceLengths)
 {
   assert(newSentenceLengths.size() == newBatchIds.size());
   assert(newSentenceLengths.size() <= sentenceLengths.size());
