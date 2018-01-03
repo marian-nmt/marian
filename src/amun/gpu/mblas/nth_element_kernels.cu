@@ -9,7 +9,7 @@ namespace GPU {
 #define SHARED_SIZE 512
 
 __device__
-void UnrollMaxArgLoop(uint n, uint max, uint tid, float *sdata, uint *indices)
+void UnrollMaxArgLoop(unsigned n, unsigned max, unsigned tid, float *sdata, unsigned *indices)
 {
   if (tid < (n) && tid + (n) < ( max ) ) {
     if (sdata[tid + ( n ) ] > sdata[tid]) {
@@ -21,18 +21,18 @@ void UnrollMaxArgLoop(uint n, uint max, uint tid, float *sdata, uint *indices)
 
 __global__ void gMaxElement(mblas::VectorWrapper<NthOut> out,
                             const mblas::MatrixWrapper<float> probsWrap,
-                            const mblas::VectorWrapper<uint> batchPositionWrap,
-                            uint numBatches) {
+                            const mblas::VectorWrapper<unsigned> batchPositionWrap,
+                            unsigned numBatches) {
   extern __shared__ float sdata[];
-  __shared__ uint indices[SHARED_SIZE];
+  __shared__ unsigned indices[SHARED_SIZE];
 
-  uint tid = threadIdx.x;
+  unsigned tid = threadIdx.x;
 
-  for (uint batchIdx = 0; batchIdx < numBatches; ++batchIdx) {
-    uint begin = batchPositionWrap[batchIdx];
-    uint end = batchPositionWrap[batchIdx + 1];
+  for (unsigned batchIdx = 0; batchIdx < numBatches; ++batchIdx) {
+    unsigned begin = batchPositionWrap[batchIdx];
+    unsigned end = batchPositionWrap[batchIdx + 1];
 
-    uint i = begin + blockIdx.x * (blockDim.x * 2) + tid;
+    unsigned i = begin + blockIdx.x * (blockDim.x * 2) + tid;
 
     sdata[tid] = -3.40282e+38f;
 
@@ -73,7 +73,7 @@ __global__ void gMaxElement(mblas::VectorWrapper<NthOut> out,
 
     __syncthreads();
 
-    for (uint s = (blockDim.x >> 1); s > 32; s >>= 1) {
+    for (unsigned s = (blockDim.x >> 1); s > 32; s >>= 1) {
       if (tid < s && tid + s < end) {
         if (sdata[tid + s] > sdata[tid]) {
           sdata[tid] = sdata[tid + s];
@@ -100,24 +100,24 @@ __global__ void gMaxElement(mblas::VectorWrapper<NthOut> out,
 __global__ void gMaxElementUpdate(mblas::VectorWrapper<NthOut> out,
                                   mblas::MatrixWrapper<float> probsWrap,
                                   mblas::VectorWrapper<NthOut> resWrap,
-                                  const mblas::VectorWrapper<uint> batchPositionWrap,
-                                  const mblas::VectorWrapper<uint> cumBeamSizesWrap,
-                                  uint numBlocks) {
+                                  const mblas::VectorWrapper<unsigned> batchPositionWrap,
+                                  const mblas::VectorWrapper<unsigned> cumBeamSizesWrap,
+                                  unsigned numBlocks) {
   extern __shared__ float sdata[];
-  __shared__ uint indices[SHARED_SIZE];
+  __shared__ unsigned indices[SHARED_SIZE];
   __shared__ float bestBinCost;
-  __shared__ uint bestBinCostIdx;
+  __shared__ unsigned bestBinCostIdx;
 
-  const uint tid = threadIdx.x;
-  const uint batchIdx = blockIdx.x;
-  const uint N = batchPositionWrap[batchIdx + 1] - batchPositionWrap[batchIdx];
-  uint num_bins = uint(N / (2 * SHARED_SIZE)) + uint(N % (2 * SHARED_SIZE) != 0);
+  const unsigned tid = threadIdx.x;
+  const unsigned batchIdx = blockIdx.x;
+  const unsigned N = batchPositionWrap[batchIdx + 1] - batchPositionWrap[batchIdx];
+  unsigned num_bins = unsigned(N / (2 * SHARED_SIZE)) + unsigned(N % (2 * SHARED_SIZE) != 0);
   //if (num_bins > 500) {
   //  num_bins = 500;
   //}
 
-  for (uint pos = cumBeamSizesWrap[batchIdx]; pos < cumBeamSizesWrap[batchIdx + 1]; ++pos) {
-    uint i = tid;
+  for (unsigned pos = cumBeamSizesWrap[batchIdx]; pos < cumBeamSizesWrap[batchIdx + 1]; ++pos) {
+    unsigned i = tid;
 
     sdata[tid] = -3.40282e+38f;
 
@@ -158,7 +158,7 @@ __global__ void gMaxElementUpdate(mblas::VectorWrapper<NthOut> out,
 
     __syncthreads();
 
-    for (uint s = (blockDim.x >> 1); s > 32; s >>= 1) {
+    for (unsigned s = (blockDim.x >> 1); s > 32; s >>= 1) {
       if (tid < s && tid + s < num_bins) {
         if (sdata[tid + s] > sdata[tid]) {
           sdata[tid] = sdata[tid + s];
@@ -188,7 +188,7 @@ __global__ void gMaxElementUpdate(mblas::VectorWrapper<NthOut> out,
     __syncthreads();
 
     i = batchPositionWrap[batchIdx] + (bestBinCostIdx - batchIdx * numBlocks) * (blockDim.x * 2) + tid;
-    const uint dist = num_bins * 2 * blockDim.x;
+    const unsigned dist = num_bins * 2 * blockDim.x;
 
     sdata[tid] = -3.40282e+38f;
 
@@ -229,7 +229,7 @@ __global__ void gMaxElementUpdate(mblas::VectorWrapper<NthOut> out,
 
     __syncthreads();
 
-    for (uint s = (blockDim.x >> 1); s > 32; s >>= 1) {
+    for (unsigned s = (blockDim.x >> 1); s > 32; s >>= 1) {
       if (tid < s && tid + s < batchPositionWrap[batchIdx + 1]) {
         if (sdata[tid + s] > sdata[tid]) {
           sdata[tid] = sdata[tid + s];
@@ -255,11 +255,11 @@ __global__ void gMaxElementUpdate(mblas::VectorWrapper<NthOut> out,
 
 __global__ void gGetValueByKey(mblas::MatrixWrapper<float> out,
                               const   mblas::MatrixWrapper<float> in,
-                              uint* indices, uint n)
+                              unsigned* indices, unsigned n)
 {
-  uint tid = threadIdx.x  + blockDim.x * blockIdx.x;
+  unsigned tid = threadIdx.x  + blockDim.x * blockIdx.x;
   if (tid < n) {
-    uint index = indices[tid];
+    unsigned index = indices[tid];
     out[tid] = in[index];
   }
 }

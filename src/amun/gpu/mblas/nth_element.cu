@@ -11,7 +11,7 @@ using namespace std;
 namespace amunmt {
 namespace GPU {
 
-NthElement::NthElement(uint maxBeamSize, uint maxBatchSize)
+NthElement::NthElement(unsigned maxBeamSize, unsigned maxBatchSize)
 : d_breakdown(maxBeamSize)
 , maxBeamSize_(maxBeamSize)
 , maxBatchSize_(maxBatchSize)
@@ -31,7 +31,7 @@ NthElement::~NthElement()
 }
 
 void NthElement::getNBestList(const Histories& beamSizes, mblas::Matrix& Probs,
-                  std::vector<float>& outCosts, std::vector<uint>& outKeys) {
+                  std::vector<float>& outCosts, std::vector<unsigned>& outKeys) {
   /*
   cerr << "beamSizes=" << beamSizes.size() << endl;
   cerr << Debug(beamSizes, 2) << endl;
@@ -41,19 +41,19 @@ void NthElement::getNBestList(const Histories& beamSizes, mblas::Matrix& Probs,
   cerr << "isFirst=" << isFirst << endl;
   cerr << endl;
   */
-  std::vector<uint> cummulatedBeamSizes(beamSizes.size() + 1);
-  std::vector<uint> batchFirstElementIdxs(beamSizes.size() + 1);
+  std::vector<unsigned> cummulatedBeamSizes(beamSizes.size() + 1);
+  std::vector<unsigned> batchFirstElementIdxs(beamSizes.size() + 1);
   cummulatedBeamSizes[0] = 0;
   batchFirstElementIdxs[0] = 0;
 
-  const uint vocabSize = Probs.dim(1);
-  for (uint i = 0; i < beamSizes.size(); ++i) {
+  const unsigned vocabSize = Probs.dim(1);
+  for (unsigned i = 0; i < beamSizes.size(); ++i) {
     const HistoriesElementPtr &ele = beamSizes.Get(i);
 
     if (ele) {
       cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i] + ele->GetBeamSize();
 
-      uint batchIncr = (ele->IsFirst() ? 1 : ele->GetBeamSize()) * vocabSize;
+      unsigned batchIncr = (ele->IsFirst() ? 1 : ele->GetBeamSize()) * vocabSize;
       batchFirstElementIdxs[i + 1] = batchFirstElementIdxs[i] + batchIncr;
 
       //cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i] + beamSizes.GetBeamSize(i);
@@ -65,7 +65,7 @@ void NthElement::getNBestList(const Histories& beamSizes, mblas::Matrix& Probs,
     }
   }
 
-  uint numHypos = cummulatedBeamSizes.back();
+  unsigned numHypos = cummulatedBeamSizes.back();
   d_res.newSize(numHypos);
   h_res.resize(numHypos);
 
@@ -88,12 +88,12 @@ void NthElement::getNBestList(const Histories& beamSizes, mblas::Matrix& Probs,
 }
 
 void NthElement::getNBestList(mblas::Matrix &probs,
-                              const std::vector<uint>& batchFirstElementIdxs,
-                              const std::vector<uint>& cummulatedBeamSizes)
+                              const std::vector<unsigned>& batchFirstElementIdxs,
+                              const std::vector<unsigned>& cummulatedBeamSizes)
 {
-  const uint vocabSize = probs.dim(1);
-  const uint numBlocks = uint(maxBeamSize_ * vocabSize / (2 * BLOCK_SIZE)) + uint(maxBeamSize_ * vocabSize % (2 * BLOCK_SIZE) != 0);
-  const uint numBatches = batchFirstElementIdxs.size() - 1;
+  const unsigned vocabSize = probs.dim(1);
+  const unsigned numBlocks = unsigned(maxBeamSize_ * vocabSize / (2 * BLOCK_SIZE)) + unsigned(maxBeamSize_ * vocabSize % (2 * BLOCK_SIZE) != 0);
+  const unsigned numBatches = batchFirstElementIdxs.size() - 1;
 
   d_out.newSize(maxBatchSize_ * numBlocks);
 
@@ -113,9 +113,9 @@ void NthElement::getNBestList(mblas::Matrix &probs,
 
   mblas::VectorWrapper<NthOut> outWrap(d_out);
   mblas::MatrixWrapper<float> probsWrap(probs);
-  mblas::VectorWrapper<uint> batchPositionWrap(d_batchPosition);
+  mblas::VectorWrapper<unsigned> batchPositionWrap(d_batchPosition);
   mblas::VectorWrapper<NthOut> resWrap(d_res);
-  mblas::VectorWrapper<uint> cumBeamSizesWrap(d_cumBeamSizes);
+  mblas::VectorWrapper<unsigned> cumBeamSizesWrap(d_cumBeamSizes);
 
   gMaxElement<<<numBlocks, BLOCK_SIZE, BLOCK_SIZE * sizeof(float), mblas::CudaStreamHandler::GetStream()>>>
     (outWrap, probsWrap, batchPositionWrap, numBatches);
@@ -150,14 +150,14 @@ void NthElement::getNBestList(mblas::Matrix &probs,
   */
 }
 
-void NthElement::GetPairs(uint number,
-                    std::vector<uint>& outKeys,
+void NthElement::GetPairs(unsigned number,
+                    std::vector<unsigned>& outKeys,
                     std::vector<float>& outValues)
 {
   mblas::copy(d_res.data(), d_res.size(), h_res.data(), cudaMemcpyDeviceToHost);
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()) );
 
-  for (uint i = 0; i < number; ++i) {
+  for (unsigned i = 0; i < number; ++i) {
     outKeys.push_back(h_res[i].ind);
     outValues.push_back(h_res[i].score);
   }

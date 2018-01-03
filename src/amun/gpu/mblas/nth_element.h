@@ -19,23 +19,23 @@ class NthElement {
   public:
     NthElement() = delete;
     NthElement(const NthElement &copy) = delete;
-    NthElement(uint maxBeamSize, uint maxBatchSize);
+    NthElement(unsigned maxBeamSize, unsigned maxBatchSize);
     virtual ~NthElement();
 
     // standard nth_element
     void getNBestList(const Histories& beamSizes,
                       mblas::Matrix& Probs,
                       std::vector<float>& outCosts,
-                      std::vector<uint>& outKeys);
+                      std::vector<unsigned>& outKeys);
 
-    void GetPairs(uint number,
-                  std::vector<uint>& outKeys,
+    void GetPairs(unsigned number,
+                  std::vector<unsigned>& outKeys,
                   std::vector<float>& outValues);
 
     void getValueByKey(std::vector<float>& out, const mblas::Matrix &d_in) const;
 
   private:
-    const uint BLOCK_SIZE = 512;
+    const unsigned BLOCK_SIZE = 512;
 
     mblas::Vector<NthOut> d_out;
 
@@ -43,14 +43,14 @@ class NthElement {
     std::vector<NthOut> h_res;
 
     mblas::Vector<float> d_breakdown;
-    mblas::Vector<uint> d_batchPosition;
-    mblas::Vector<uint> d_cumBeamSizes;
+    mblas::Vector<unsigned> d_batchPosition;
+    mblas::Vector<unsigned> d_cumBeamSizes;
 
-    uint maxBeamSize_, maxBatchSize_;
+    unsigned maxBeamSize_, maxBatchSize_;
 
     void getNBestList(mblas::Matrix &probs,
-                      const std::vector<uint>& batchFirstElementIdxs,
-                      const std::vector<uint>& cummulatedBeamSizes);
+                      const std::vector<unsigned>& batchFirstElementIdxs,
+                      const std::vector<unsigned>& cummulatedBeamSizes);
 
 
 };
