@@ -211,8 +211,8 @@ void EncoderDecoder::DecodeAsyncInternal()
     //std::cerr << "state3=" << state->Debug(0) << std::endl;
     //std::cerr << "nextState3=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
-    //if (histories.NumActive() == 0) {
-    if ((histories.size() - histories.NumActive()) > 0) {
+    if (histories.NumActive() == 0) {
+    //if ((histories.size() - histories.NumActive()) > 0) {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal6" << endl;
       //std::cerr << "histories6=" << histories.Debug(1) << std::endl;
@@ -291,25 +291,6 @@ void EncoderDecoder::InitBatch(Histories &histories,
 
   return;
 }
-
-//////////////////////////////////////////////////////////////////////
-//helper fn
-void FindNextEmptyIndex(unsigned &batchInd,
-                        Histories &histories)
-{
-  while(batchInd < histories.size()) {
-    const HistoriesElementPtr &ele = histories.Get(batchInd);
-    if (ele == nullptr) {
-      return;
-    }
-    ++batchInd;
-  }
-
-  assert(false);
-  batchInd = 9999999;
-}
-
-////////////////////////////////////////////////////////////////////////
 
 void EncoderDecoder::TopupBatch(Histories &histories,
                                 mblas::Vector<unsigned> &sentenceLengths,
