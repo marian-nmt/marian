@@ -26,7 +26,7 @@ public:
   }
 
   MatrixWrapper(const TMatrix<T> &matrix, bool colMajor = true)
-  :shape_(matrix.dim(0), matrix.dim(1), matrix.dim(2), matrix.dim(3))
+  :shape_(matrix.dim(0), matrix.dim(1), matrix.dim(2), matrix.dim(3), colMajor)
   {
     dim_[0] = matrix.dim(0);
     dim_[1] = matrix.dim(1);
@@ -45,7 +45,7 @@ public:
   }
 
   MatrixWrapper(TMatrix<T> &matrix, bool colMajor = true)
-  :shape_(matrix.dim(0), matrix.dim(1), matrix.dim(2), matrix.dim(3))
+  :shape_(matrix.dim(0), matrix.dim(1), matrix.dim(2), matrix.dim(3), colMajor)
   {
     dim_[0] = matrix.dim(0);
     dim_[1] = matrix.dim(1);

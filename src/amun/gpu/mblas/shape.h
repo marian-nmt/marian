@@ -34,13 +34,19 @@ public:
   }
 
   __device__ __host__
-  Shape(unsigned a, unsigned b, unsigned c, unsigned d)
+  Shape(unsigned a, unsigned b, unsigned c, unsigned d, bool colMajor = true)
   {
     dim_[0] = a;
     dim_[1] = b;
     dim_[2] = c;
     dim_[3] = d;
-    updateStrides();
+
+    if (colMajor) {
+      updateStrides();
+    }
+    else {
+      updateStridesRowMajor();
+    }
   }
 
   __device__ __host__
