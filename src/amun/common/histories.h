@@ -118,7 +118,7 @@ public:
   const std::vector<unsigned> &GetNewBatchIds() const
   { return newBatchIds_; }
 
-  std::vector<unsigned> GetNewSentenceLengths() const;
+  const std::vector<unsigned> &GetNewSentenceLengths() const;
 
 protected:
   bool normalizeScore_;
@@ -128,6 +128,7 @@ protected:
   // topup
   std::vector<unsigned> newBatchIds_;
   unsigned nextBatchInd_;
+  mutable std::vector<unsigned> newSentenceLengths_;
 
   unsigned FindNextEmptyIndex();
 

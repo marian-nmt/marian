@@ -1404,17 +1404,26 @@ void gUpdateSentenceLengths(const VectorWrapper<unsigned> newSentenceLengths,
   }
 }
 
-void UpdateSentenceLengths(const mblas::Vector<unsigned> &newSentenceLengths,
-                          const mblas::Vector<unsigned> &newBatchIds,
+void UpdateSentenceLengths(const Histories &histories,
                           mblas::Vector<unsigned> &sentenceLengths)
 {
+  const vector<unsigned> &newBatchIds = histories.GetNewBatchIds();
+  const vector<unsigned> &newSentenceLengths = histories.GetNewSentenceLengths();;
+  mblas::Vector<unsigned> d_newBatchIds(newBatchIds);
+  mblas::Vector<unsigned> d_newSentenceLengths(newSentenceLengths);
+
   assert(newSentenceLengths.size() == newBatchIds.size());
   assert(newSentenceLengths.size() <= sentenceLengths.size());
 
   int blocks = 1;
   int threads = std::min(MAX_THREADS, (int) newSentenceLengths.size());
 
-  gUpdateSentenceLengths<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(newSentenceLengths, newBatchIds, sentenceLengths);
+  cerr << "1sentenceLengths=" << sentenceLengths.Debug(2) << endl;
+  gUpdateSentenceLengths<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(d_newSentenceLengths, d_newBatchIds, sentenceLengths);
+
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "2sentenceLengths=" << sentenceLengths.Debug(2) << endl;
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////

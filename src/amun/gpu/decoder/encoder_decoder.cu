@@ -334,7 +334,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   }
 
   const vector<unsigned> &newBatchIds = histories.GetNewBatchIds();
-  vector<unsigned> newSentenceLengths = histories.GetNewSentenceLengths();;
+  const vector<unsigned> &newSentenceLengths = histories.GetNewSentenceLengths();;
 
   mblas::Vector<unsigned> d_newBatchIds(newBatchIds);
   mblas::Vector<unsigned> d_newSentenceLengths(newSentenceLengths);
@@ -356,7 +356,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   //cerr << "TopupBatch7" << endl;
   //cerr << "2state=" << state.Debug(0) << endl;
 
-  UpdateSentenceLengths(d_newSentenceLengths, d_newBatchIds, sentenceLengths);
+  UpdateSentenceLengths(histories, sentenceLengths);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch8" << endl;
 
