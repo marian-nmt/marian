@@ -278,6 +278,7 @@ std::string Histories::Debug(size_t verbosity) const
       if (ele) {
         //strm << " (" << ele.sentenceInd << "," << ele.size << ")";
         strm << "(" << i
+              << (ele->IsFirst() ? ",first" : "")
               << ",sent=" << ele->GetSentence()->GetLineNum()
               << ",len=" << ele->GetSentence()->size()
               << ",beam=" << ele->GetBeamSize()
