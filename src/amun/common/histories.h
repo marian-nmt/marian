@@ -18,6 +18,30 @@ using Hypotheses = std::vector<HypothesisPtr>;
 using HypothesesBatch = std::vector<Hypotheses>;
 
 
+//////////////////////////////////////////////////////////////////////////////////////////
+struct Pair
+{
+  unsigned prevInd, nextInd;
+
+  Pair() {}
+  Pair(int) {}
+
+  Pair& operator+=(const Pair& rhs)
+  {
+    return *this;
+  }
+
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+inline std::ostream& operator<<(std::ostream &out, const Pair &obj)
+{
+  out << "(" << obj.prevInd << "," << obj.nextInd << ")";
+  return out;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
 class HistoriesElement
 {
 public:
@@ -119,6 +143,8 @@ public:
   { return newBatchIds_; }
 
   const std::vector<unsigned> &GetNewSentenceLengths() const;
+
+  void BatchIds(std::vector<Pair> &newBatch, std::vector<Pair> &oldBatch) const;
 
 protected:
   bool normalizeScore_;

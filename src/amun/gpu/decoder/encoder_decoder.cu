@@ -362,11 +362,17 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch8" << endl;
 
+  std::vector<Pair> newBatch;
+  std::vector<Pair> oldBatch;
+  histories.BatchIds(newBatch, oldBatch);
+  cerr << "newBatch=" << Debug(newBatch, 2) << endl;
+  cerr << "oldBatch=" << Debug(oldBatch, 2) << endl;
+
   // source context
-  //cerr << "1sourceContext=" << sourceContext.Debug() << endl;
+  cerr << "1sourceContext=" << sourceContext.Debug() << endl;
   ResizeMatrix(sourceContext, {0, maxLength}, histories);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  //cerr << "2sourceContext=" << sourceContext.Debug() << endl;
+  cerr << "2sourceContext=" << sourceContext.Debug() << endl;
   //cerr << "TopupBatch9" << endl;
 
   AddNewData(sourceContext, newBatchIds, newSentences);
