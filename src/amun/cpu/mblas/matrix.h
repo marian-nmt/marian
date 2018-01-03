@@ -284,7 +284,7 @@ MT Concat(const MT1& m1, const MT2& m2) {
 
 template <bool byRow, class MT, class MT1>
 MT Assemble(const MT1& in,
-            const std::vector<uint>& indices) {
+            const std::vector<unsigned>& indices) {
   MT out;
   if(byRow) {
     size_t rows = indices.size();

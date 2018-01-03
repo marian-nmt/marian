@@ -25,7 +25,7 @@ public:
                  const OpenCLInfo &openCLInfo);
 
   virtual void Decode(const State& in,
-                     State& out, const std::vector<uint>& beamSizes);
+                     State& out, const std::vector<unsigned>& beamSizes);
 
   virtual void BeginSentenceState(State& state, size_t batchSize=1);
 
@@ -35,7 +35,7 @@ public:
 
   virtual void Encode(const Sentences& sources);
 
-  virtual void Filter(const std::vector<uint>&);
+  virtual void Filter(const std::vector<unsigned>&);
 
   virtual State* NewState() const;
 
@@ -49,7 +49,7 @@ protected:
 
   std::unique_ptr<Encoder> encoder_;
   std::unique_ptr<Decoder> decoder_;
-  Array<uint> indices_;
+  Array<unsigned> indices_;
   Array<int> batchMapping_;
     // set in Encoder::GetContext() to length (maxSentenceLength * batchSize). 1 if it's a word, 0 otherwise
 

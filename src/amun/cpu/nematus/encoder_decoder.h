@@ -32,7 +32,7 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
     virtual void Decode(EncOutPtr encOut,
                         const State& in,
                         State& out,
-                        const std::vector<uint>& beamSizes);
+                        const std::vector<unsigned>& beamSizes);
 
     virtual void BeginSentenceState(EncOutPtr encOut, State& state, size_t batchSize);
 
@@ -49,7 +49,7 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
 
     BaseMatrix& GetProbs();
 
-    void Filter(const std::vector<uint>& filterIds);
+    void Filter(const std::vector<unsigned>& filterIds);
 
   protected:
     const Nematus::Weights& model_;

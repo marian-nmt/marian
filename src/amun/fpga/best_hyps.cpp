@@ -28,7 +28,7 @@ void BestHyps::DisAllowUNK(mblas::Matrix& Prob)
   SetColumn(Prob, UNK_ID, std::numeric_limits<float>::lowest());
 }
 
-void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+void BestHyps::FindBests(const std::vector<unsigned>& beamSizes, mblas::Matrix& Probs,
                std::vector<float>& outCosts,
                std::vector<unsigned>& outKeys,
                const bool isFirst)
@@ -41,7 +41,7 @@ void BestHyps::CalcBeam(
     const std::vector<ScorerPtr>& scorers,
     const Words& filterIndices,
     std::vector<Beam>& beams,
-    std::vector<uint>& beamSizes
+    std::vector<unsigned>& beamSizes
     )
 {
   /*

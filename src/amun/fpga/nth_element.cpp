@@ -17,7 +17,7 @@ NthElement::NthElement(const OpenCLInfo &openCLInfo, size_t maxBeamSize, size_t 
 
 }
 
-void NthElement::getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+void NthElement::getNBestList(const std::vector<unsigned>& beamSizes, mblas::Matrix& Probs,
                   std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
                   const bool isFirst)
 {
@@ -30,8 +30,8 @@ void NthElement::getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix&
   }
   //cerr << "totalBeamSize=" << totalBeamSize << endl;
 
-  std::vector<uint> cummulatedBeamSizes(beamSizes.size() + 1);
-  std::vector<uint> batchFirstElementIdxs(beamSizes.size() + 1);
+  std::vector<unsigned> cummulatedBeamSizes(beamSizes.size() + 1);
+  std::vector<unsigned> batchFirstElementIdxs(beamSizes.size() + 1);
   cummulatedBeamSizes[0] = 0;
   batchFirstElementIdxs[0] = 0;
 
@@ -42,8 +42,8 @@ void NthElement::getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix&
     batchFirstElementIdxs[i + 1] = ((isFirst) ? (i + 1) : cummulatedBeamSizes[i + 1]) * vocabSize;
   }
 
-  Array<uint> d_cummulatedBeamSizes(openCLInfo, cummulatedBeamSizes);
-  Array<uint> d_batchFirstElementIdxs(openCLInfo, batchFirstElementIdxs);
+  Array<unsigned> d_cummulatedBeamSizes(openCLInfo, cummulatedBeamSizes);
+  Array<unsigned> d_batchFirstElementIdxs(openCLInfo, batchFirstElementIdxs);
 
   //cerr << "Probs=" << Probs.Debug() << endl;
   //assert(Probs.dim(0) == totalBeamSize);
@@ -54,9 +54,9 @@ void NthElement::getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix&
   //cerr << "maxBatchSize_=" << maxBatchSize_ << endl;
 
   // create device vector of beamSizes
-  vector<uint> beamSizesUint(beamSizes.size());
+  vector<unsigned> beamSizesUint(beamSizes.size());
   std::copy(beamSizes.begin(), beamSizes.end(), beamSizesUint.begin());
-  Array<uint> d_beamSizesUint(openCLInfo, beamSizesUint);
+  Array<unsigned> d_beamSizesUint(openCLInfo, beamSizesUint);
 
   //cerr << endl;
   //cerr << "Probs=" << Probs.Debug(1) << endl;

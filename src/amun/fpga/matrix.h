@@ -21,13 +21,13 @@ public:
   virtual size_t size() const
   { return arr_.size(); }
 
-  const uint &sizeUInt() const
+  const unsigned &sizeUInt() const
   { return arr_.sizeUInt(); }
 
   virtual size_t dim(size_t i) const
   { return dims_[i]; }
 
-  const uint &dimUInt(size_t i) const
+  const unsigned &dimUInt(size_t i) const
   { return dims_[i]; }
 
   virtual void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1);
@@ -49,7 +49,7 @@ public:
   void Set(const float *data);
 
 protected:
-  uint dims_[SHAPE_SIZE];
+  unsigned dims_[SHAPE_SIZE];
   Array<float> arr_;
 
 };

@@ -22,10 +22,10 @@ class Decoder {
     , indices_(openCLInfo)
     {}
 
-    void Lookup(mblas::Matrix& Rows, const std::vector<uint>& ids)
+    void Lookup(mblas::Matrix& Rows, const std::vector<unsigned>& ids)
     {
       using namespace mblas;
-      std::vector<uint> tids = ids;
+      std::vector<unsigned> tids = ids;
       for(auto&& id : tids)
         if(id >= w_.E_.dim(0))
           id = 1;
@@ -46,7 +46,7 @@ class Decoder {
 
   private:
     const Weights& w_;
-    Array<uint> indices_;
+    Array<unsigned> indices_;
 
   };
 
@@ -153,7 +153,7 @@ class Decoder {
                                  const mblas::Matrix& HiddenState,
                                  const mblas::Matrix& SourceContext,
                                  const Array<int>& mapping,
-                                 const std::vector<uint>& beamSizes)
+                                 const std::vector<unsigned>& beamSizes)
     {
       // mapping = 1/0 whether each position, in each sentence in the batch is actually a valid word
       // batchMapping = which sentence is each element in the batch. eg 0 0 1 2 2 2 = first 2 belongs to sent0, 3rd is sent1, 4th and 5th is sent2
@@ -337,7 +337,7 @@ public:
                 const mblas::Matrix& Embeddings,
                 const mblas::Matrix& SourceContext,
                 const Array<int>& mapping,
-                const std::vector<uint>& beamSizes);
+                const std::vector<unsigned>& beamSizes);
 
   void GetHiddenState(mblas::Matrix& HiddenState,
                       const mblas::Matrix& PrevState,
@@ -347,7 +347,7 @@ public:
                                 const mblas::Matrix& HiddenState,
                                 const mblas::Matrix& SourceContext,
                                 const Array<int>& mapping,
-                                const std::vector<uint>& beamSizes);
+                                const std::vector<unsigned>& beamSizes);
 
   void GetNextState(mblas::Matrix& State,
                     const mblas::Matrix& HiddenState,
@@ -358,7 +358,7 @@ public:
                 const mblas::Matrix& AlignedSourceContext);
 
   void Lookup(mblas::Matrix& Embedding,
-              const std::vector<uint>& w);
+              const std::vector<unsigned>& w);
 
 private:
   mblas::Matrix HiddenState_;

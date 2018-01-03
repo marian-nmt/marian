@@ -87,7 +87,7 @@ class Encoder {
       backwardRnn_(model.encBackwardGRU_)
     {}
     
-    void Encode(const std::vector<uint>& words,
+    void Encode(const std::vector<unsigned>& words,
                     mblas::Matrix& context);
     
   private:

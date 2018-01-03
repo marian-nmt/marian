@@ -19,14 +19,14 @@ class Encoder {
 
     void Lookup(const OpenCLInfo &openCLInfo, mblas::Matrix& Row, const Words& words)
     {
-      std::vector<uint> knownWords(words.size(), 1);
+      std::vector<unsigned> knownWords(words.size(), 1);
       for (size_t i = 0; i < words.size(); ++i) {
         if (words[i] < w_.E_.dim(0)) {
           knownWords[i] = words[i];
         }
       }
 
-      Array<uint> dKnownWords(openCLInfo, knownWords);
+      Array<unsigned> dKnownWords(openCLInfo, knownWords);
 
       /*
       std::cerr << "dKnownWords=" << dKnownWords.Debug(1) << " std::vector=" << mblas::Sum(knownWords) << ": ";

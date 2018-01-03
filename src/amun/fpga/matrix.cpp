@@ -19,7 +19,7 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo)
 }
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero)
-:dims_{(uint)rows, (uint)cols, 1, 1}
+:dims_{(unsigned)rows, (unsigned)cols, 1, 1}
 ,arr_(openCLInfo, rows * cols)
 {
   if (zero) {
@@ -29,7 +29,7 @@ Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero
 }
 
 Matrix::Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, float *val)
-:dims_{(uint)rows, (uint)cols, 1, 1}
+:dims_{(unsigned)rows, (unsigned)cols, 1, 1}
 ,arr_(openCLInfo, rows * cols, val)
 {
 }

@@ -31,7 +31,7 @@ EncoderDecoder::EncoderDecoder(const God &god,
 void EncoderDecoder::Decode(EncOutPtr encOut,
                             const State& in,
                             State& out,
-                            const std::vector<uint>&)
+                            const std::vector<unsigned>&)
 {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
@@ -58,8 +58,8 @@ void EncoderDecoder::AssembleBeamState(const State& in,
                                        const Hypotheses& beam,
                                        State& out) const
 {
-  std::vector<uint> beamWords;
-  std::vector<uint> beamStateIds;
+  std::vector<unsigned> beamWords;
+  std::vector<unsigned> beamStateIds;
   for(auto h : beam) {
       beamWords.push_back(h->GetWord());
       beamStateIds.push_back(h->GetPrevStateIndex());
@@ -88,7 +88,7 @@ size_t EncoderDecoder::GetVocabSize() const {
 }
 
 
-void EncoderDecoder::Filter(const std::vector<uint>& filterIds) {
+void EncoderDecoder::Filter(const std::vector<unsigned>& filterIds) {
   decoder_->Filter(filterIds);
 }
 

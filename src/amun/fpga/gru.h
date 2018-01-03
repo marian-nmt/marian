@@ -186,8 +186,8 @@ public:
                       const mblas::Matrix& RUH,
                       const mblas::Matrix& Temp) const
   {
-    const uint rows = State.dim(0) * State.dim(2) * State.dim(3);
-    const uint cols = State.dim(1);
+    const unsigned rows = State.dim(0) * State.dim(2) * State.dim(3);
+    const unsigned cols = State.dim(1);
 
     NextState.Resize(State.dim(0) * State.dim(3), cols, State.dim(2), 1);
     //std::cerr << "NextState=" << NextState.Debug() << std::endl;

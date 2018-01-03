@@ -19,13 +19,13 @@ class Matrix;
 float SumFloat(
     const OpenCLInfo &openCLInfo,
     const cl_mem &mem,
-    uint size
+    unsigned size
     );
 
-uint SumUInt(
+unsigned SumUInt(
     const OpenCLInfo &openCLInfo,
     const cl_mem &mem,
-    uint size
+    unsigned size
     );
 
 Matrix& Copy(Matrix& Out, const Matrix& In);
@@ -33,12 +33,12 @@ Matrix& Copy(Matrix& Out, const Matrix& In);
 Matrix& CopyRows(
 		 Matrix& Out,
 		 const Matrix& In,
-		 const Array<uint>& indices);
+		 const Array<unsigned>& indices);
 
 Matrix& Assemble(
 		Matrix& Out,
 		 const Matrix& In,
-		 const Array<uint>& indices);
+		 const Array<unsigned>& indices);
 
 void Fill(
     Matrix& In,
@@ -63,8 +63,8 @@ void ElementwiseOps(mblas::Matrix& NextState,
                     const mblas::Matrix& B,
                     const mblas::Matrix& Bx1,
                     const mblas::Matrix& Bx2,
-                    const uint &rows,
-                    const uint &cols);
+                    const unsigned &rows,
+                    const unsigned &cols);
 
 Matrix& ElementLogit(Matrix& Out, const Matrix& In);
 
@@ -87,7 +87,7 @@ Matrix& BroadcastVecColumnAddWeighted(Matrix& Out, float weight, const Array<flo
 
 Matrix& Slice(Matrix& Out,
               const Matrix& In,
-              uint n, uint dim);
+              unsigned n, unsigned dim);
 
 void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo=0, size_t sparse=1);
 
@@ -115,10 +115,10 @@ void NthElement(
     Array<float>& d_out,
     Array<unsigned> &d_ind,
     const mblas::Matrix &Probs,
-    const Array<uint> &beamSizes,
+    const Array<unsigned> &beamSizes,
     size_t maxBatchSize,
-    const Array<uint> &d_cummulatedBeamSizes,
-    const Array<uint> &d_batchFirstElementIdxs);
+    const Array<unsigned> &d_cummulatedBeamSizes,
+    const Array<unsigned> &d_batchFirstElementIdxs);
 
 
 } // namespace mblas {

@@ -74,7 +74,7 @@ void CallOpenCL(
 float SumFloat(
     const OpenCLInfo &openCLInfo,
     const cl_mem &mem,
-    uint size)
+    unsigned size)
 {
   cl_int err;
   cl_mem output = clCreateBuffer(openCLInfo.context, CL_MEM_WRITE_ONLY, sizeof(float), NULL, &err);
@@ -91,13 +91,13 @@ float SumFloat(
   return results;
 }
 
-uint SumUInt(
+unsigned SumUInt(
     const OpenCLInfo &openCLInfo,
     const cl_mem &mem,
-    uint size)
+    unsigned size)
 {
   cl_int err;
-  cl_mem output = clCreateBuffer(openCLInfo.context, CL_MEM_WRITE_ONLY, sizeof(uint), NULL, &err);
+  cl_mem output = clCreateBuffer(openCLInfo.context, CL_MEM_WRITE_ONLY, sizeof(unsigned), NULL, &err);
   CheckError(err);
   assert(output);
 
@@ -106,8 +106,8 @@ uint SumUInt(
 
   // Read back the results from the device to verify the output
   //
-  uint results;
-  CheckError( clEnqueueReadBuffer( openCLInfo.commands, output, CL_TRUE, 0, sizeof(uint), &results, 0, NULL, NULL ) );
+  unsigned results;
+  CheckError( clEnqueueReadBuffer( openCLInfo.commands, output, CL_TRUE, 0, sizeof(unsigned), &results, 0, NULL, NULL ) );
   return results;
 }
 
@@ -125,7 +125,7 @@ Matrix& Copy(Matrix& Out, const Matrix& In)
 Matrix& CopyRows(
 	Matrix& Out,
 	const Matrix& In,
-	const Array<uint>& indices)
+	const Array<unsigned>& indices)
 {
   //cerr << "Out=" << Out.Debug() << endl;
   //cerr << "indices=" << indices.Debug() << endl;
@@ -144,7 +144,7 @@ Matrix& CopyRows(
 Matrix& Assemble(
 		Matrix& Out,
 		 const Matrix& In,
-		 const Array<uint>& indices)
+		 const Array<unsigned>& indices)
 {
   //cerr << "indices=" << indices.Debug(true) << endl;
   const OpenCLInfo &openCLInfo = In.GetOpenCLInfo();
@@ -216,10 +216,10 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
   //cerr << "C=" << C.Debug(1) << endl;
 
   // Set the arguments to our compute kernel
-  uint rowsA = A.dimUInt(0) * A.dimUInt(2) * A.dimUInt(3);
-  uint colsA = A.dimUInt(1);
-  uint rowsB = B.dimUInt(0) * B.dimUInt(2) * B.dimUInt(3);
-  uint colsB = B.dimUInt(1);
+  unsigned rowsA = A.dimUInt(0) * A.dimUInt(2) * A.dimUInt(3);
+  unsigned colsA = A.dimUInt(1);
+  unsigned rowsB = B.dimUInt(0) * B.dimUInt(2) * B.dimUInt(3);
+  unsigned colsB = B.dimUInt(1);
 
   CallOpenCL("kernels/matrix_functions.cl", "prod", openCLInfo,
       C.data(),
@@ -240,8 +240,8 @@ void ElementwiseOps(mblas::Matrix& NextState,
                     const mblas::Matrix& B,
                     const mblas::Matrix& Bx1,
                     const mblas::Matrix& Bx2,
-                    const uint &rows,
-                    const uint &cols)
+                    const unsigned &rows,
+                    const unsigned &cols)
 {
   const OpenCLInfo &openCLInfo = NextState.GetOpenCLInfo();
 
@@ -263,8 +263,8 @@ Matrix& ElementLogit(Matrix& Out, const Matrix& In)
 {
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
 
-  uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
-  uint cols = Out.dimUInt(1);
+  unsigned rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
+  unsigned cols = Out.dimUInt(1);
 
   CallOpenCL("kernels/matrix_functions.cl", "gLogit", openCLInfo,
       Out.data(), In.data(), rows, cols);
@@ -276,8 +276,8 @@ Matrix& ElementTanh(Matrix& Out, const Matrix& In1, const Matrix& In2)
 {
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
 
-  uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
-  uint cols = Out.dimUInt(1);
+  unsigned rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
+  unsigned cols = Out.dimUInt(1);
 
   CallOpenCL("kernels/matrix_functions.cl", "gElementTanh", openCLInfo,
       Out.data(), In1.data(), In2.data(), rows, cols);
@@ -289,8 +289,8 @@ Matrix& ElementTanh2(Matrix& Out, const Matrix& In1, const Matrix& In2)
 {
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
 
-  uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
-  uint cols = Out.dimUInt(1);
+  unsigned rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
+  unsigned cols = Out.dimUInt(1);
 
   CallOpenCL("kernels/matrix_functions.cl", "gElementTanh2", openCLInfo,
       Out.data(), In1.data(), In2.data(), rows, cols);
@@ -302,8 +302,8 @@ Matrix& ElementWhatever(Matrix& Out, const Matrix& In1, const Matrix& In2)
 {
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
 
-  uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
-  uint cols = Out.dimUInt(1);
+  unsigned rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
+  unsigned cols = Out.dimUInt(1);
 
   CallOpenCL("kernels/matrix_functions.cl", "gElementWhatever", openCLInfo,
       Out.data(), In1.data(), In2.data(), rows, cols);
@@ -315,8 +315,8 @@ Matrix& ElementAddWeighted(Matrix& Out, float weight, const Matrix& In)
 {
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
 
-  uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
-  uint cols = Out.dimUInt(1);
+  unsigned rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
+  unsigned cols = Out.dimUInt(1);
 
   CallOpenCL("kernels/matrix_functions.cl", "gElementAddWeighted", openCLInfo,
       Out.data(), In.data(), rows, cols);
@@ -328,8 +328,8 @@ Matrix& BroadcastVecAdd(Matrix& Out, const Matrix& In)
 {
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
 
-  uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
-  uint cols = Out.dimUInt(1);
+  unsigned rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
+  unsigned cols = Out.dimUInt(1);
 
   CallOpenCL("kernels/matrix_functions.cl", "gBroadcastVecAdd", openCLInfo,
       Out.data(), In.data(), rows, cols);
@@ -342,8 +342,8 @@ Matrix& BroadcastVecTanh(Matrix& Out, const Matrix& In)
 {
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
 
-  uint rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
-  uint cols = Out.dimUInt(1);
+  unsigned rows  = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
+  unsigned cols = Out.dimUInt(1);
 
   CallOpenCL("kernels/matrix_functions.cl", "gBroadcastVecTanh", openCLInfo,
       Out.data(), In.data(), rows, cols);
@@ -357,7 +357,7 @@ Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapp
   size_t sumOfBeamSizes = In.dim(0);
 
   //size_t rows = srcSize * sumOfBeamSizes;
-  uint cols  = Out.dim(1);
+  unsigned cols  = Out.dim(1);
 
   thread_local static Matrix Temp(openCLInfo);
   Temp.Resize(sumOfBeamSizes, cols, srcSize);
@@ -366,7 +366,7 @@ Matrix& BroadcastTanh(Matrix& Out, const Matrix& In, const Array<int>& batchMapp
       Temp.data(),
       Out.data(),
       In.data(),
-      (uint) srcSize,
+      (unsigned) srcSize,
       cols,
       batchMapping.data(),
       batchMapping.sizeUInt(),
@@ -397,7 +397,7 @@ Matrix& BroadcastVecColumnAddWeighted(Matrix& Out, float weight, const Array<flo
 
 Matrix& Slice(Matrix& Out,
               const Matrix& In,
-              uint n, uint dim)
+              unsigned n, unsigned dim)
 {
   Out.Resize(In.dim(0), dim);
 
@@ -418,8 +418,8 @@ Matrix& Slice(Matrix& Out,
 void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, size_t sparse)
 {
   /*
-  uint nColumns = In.dim(1);
-  uint nRows = In.dim(0);
+  unsigned nColumns = In.dim(1);
+  unsigned nRows = In.dim(0);
   cerr << "1Out=" << Out.Debug(1) << endl;
   cerr << "In=" << In.Debug(1) << endl;
   cerr << "rowNo=" << rowNo << endl;
@@ -430,13 +430,13 @@ void PasteRows(Matrix& Out, const Matrix& In, const size_t rowNo, size_t colNo, 
 
   CallOpenCL("kernels/matrix_functions.cl", "gPasteRows", openCLInfo,
       Out.data(),
-      (uint) rowNo,
+      (unsigned) rowNo,
       Out.dimUInt(1),
       In.data(),
       In.dimUInt(0),
       In.dimUInt(1),
-      (uint) colNo,
-      (uint) sparse
+      (unsigned) colNo,
+      (unsigned) sparse
       );
 }
 
@@ -446,8 +446,8 @@ void MapMatrix(Matrix& state, const Array<int>& mapping, size_t i)
   // blank out rows in the state matrix where the word position i does not exist
   // mapping is a concatenated array of 1 & 0 of each sentence in the batch to say whether word exists or not.
 
-  uint batchSize = state.dim(0);
-  uint sentenceLength = mapping.sizeUInt() / batchSize;
+  unsigned batchSize = state.dim(0);
+  unsigned sentenceLength = mapping.sizeUInt() / batchSize;
 
   const OpenCLInfo &openCLInfo = state.GetOpenCLInfo();
 
@@ -457,15 +457,15 @@ void MapMatrix(Matrix& state, const Array<int>& mapping, size_t i)
       state.dimUInt(1),
       sentenceLength,
       mapping.data(),
-      (uint) i
+      (unsigned) i
       );
 }
 
 void Mean(Matrix& Out, const Matrix& In, const Array<int>& mapping)
 {
-  uint batchNum = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
-  uint sentenceLength = (In.dimUInt(0) * In.dimUInt(2) * In.dimUInt(3)) / batchNum;
-  uint stateLength = Out.dimUInt(1);
+  unsigned batchNum = Out.dimUInt(0) * Out.dimUInt(2) * Out.dimUInt(3);
+  unsigned sentenceLength = (In.dimUInt(0) * In.dimUInt(2) * In.dimUInt(3)) / batchNum;
+  unsigned stateLength = Out.dimUInt(1);
   //cerr << "batchNum=" << batchNum << " sentenceLength=" << sentenceLength << " stateLength=" << stateLength << endl;
 
   const OpenCLInfo &openCLInfo = Out.GetOpenCLInfo();
@@ -490,7 +490,7 @@ Matrix& Softmax(Matrix& Out, const Array<int>& batchIds, const Array<int>& srcMa
       batchIds.data(),
       batchIds.sizeUInt(),
       srcMapping.data(),
-      (uint) srcSize);
+      (unsigned) srcSize);
 
   return Out;
 }
@@ -509,9 +509,9 @@ Matrix& LogSoftmax(Matrix& Out)
 
 void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const Array<int>& mapping)
 {
-  uint numRows = Weights.dimUInt(0);
-  uint numCols = In.dimUInt(1);
-  uint weightsCols = Weights.dimUInt(1);
+  unsigned numRows = Weights.dimUInt(0);
+  unsigned numCols = In.dimUInt(1);
+  unsigned weightsCols = Weights.dimUInt(1);
   //cerr << "WeightedMean=" << numRows << " " << numCols << " " << weightsCols << endl;
 
   Out.Resize(numRows, numCols);
@@ -555,10 +555,10 @@ void NthElement(
     Array<float>& d_out,
     Array<unsigned> &d_ind,
     const mblas::Matrix &Probs,
-    const Array<uint> &beamSizes,
+    const Array<unsigned> &beamSizes,
     size_t maxBatchSize,
-    const Array<uint> &d_cummulatedBeamSizes,
-    const Array<uint> &d_batchFirstElementIdxs)
+    const Array<unsigned> &d_cummulatedBeamSizes,
+    const Array<unsigned> &d_batchFirstElementIdxs)
 {
   const OpenCLInfo &openCLInfo = d_out.GetOpenCLInfo();
 
@@ -570,7 +570,7 @@ void NthElement(
       beamSizes.sizeUInt(),
       d_cummulatedBeamSizes.data(),
       d_batchFirstElementIdxs.data(),
-      (uint) maxBatchSize,
+      (unsigned) maxBatchSize,
       d_out.data(),
       d_ind.data());
 }

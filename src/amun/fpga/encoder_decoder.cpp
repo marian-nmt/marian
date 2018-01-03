@@ -50,7 +50,7 @@ void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize)
 }
 
 void EncoderDecoder::Decode(const State& in,
-                   State& out, const std::vector<uint>& beamSizes)
+                   State& out, const std::vector<unsigned>& beamSizes)
 {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
@@ -67,8 +67,8 @@ void EncoderDecoder::AssembleBeamState(const State& in,
                                const Beam& beam,
                                State& out)
 {
-  std::vector<uint> beamWords;
-  std::vector<uint> beamStateIds;
+  std::vector<unsigned> beamWords;
+  std::vector<unsigned> beamStateIds;
   for (const HypothesisPtr &h : beam) {
      beamWords.push_back(h->GetWord());
      beamStateIds.push_back(h->GetPrevStateIndex());
@@ -91,7 +91,7 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   //cerr << "edOut.GetEmbeddings()=" << edOut.GetEmbeddings().Debug(1) << endl;
 }
 
-void EncoderDecoder::Filter(const std::vector<uint>&)
+void EncoderDecoder::Filter(const std::vector<unsigned>&)
 {
 
 }

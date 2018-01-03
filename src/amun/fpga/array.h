@@ -65,7 +65,7 @@ public:
   size_t size() const
   { return size_; }
 
-  const uint &sizeUInt() const
+  const unsigned &sizeUInt() const
   { return size_; }
 
   const cl_mem &data() const
@@ -143,8 +143,8 @@ public:
 
     if (size_ && verbosity) {
       // sum
-      if (typeid(T) == typeid(uint)) {
-        uint sum = mblas::SumUInt(openCLInfo_, mem_, size_);
+      if (typeid(T) == typeid(unsigned)) {
+        unsigned sum = mblas::SumUInt(openCLInfo_, mem_, size_);
         strm << " sum=" << sum << std::flush;
       }
       else if (typeid(T) == typeid(float)) {
@@ -172,8 +172,8 @@ public:
 protected:
   const OpenCLInfo &openCLInfo_;
 
-  uint size_;
-  uint arrSize_;
+  unsigned size_;
+  unsigned arrSize_;
   cl_mem mem_;
 
 };
