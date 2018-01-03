@@ -15,11 +15,6 @@ public:
   MatrixWrapper()
   :shape_()
   {
-    dim_[0] = 0;
-    dim_[1] = 0;
-    dim_[2] = 0;
-    dim_[3] = 0;
-
     data_ = nullptr;
     dataConst_ = nullptr;
   }
@@ -27,11 +22,6 @@ public:
   MatrixWrapper(const TMatrix<T> &matrix, bool colMajor = true)
   :shape_(matrix.dim(0), matrix.dim(1), matrix.dim(2), matrix.dim(3), colMajor)
   {
-    dim_[0] = matrix.dim(0);
-    dim_[1] = matrix.dim(1);
-    dim_[2] = matrix.dim(2);
-    dim_[3] = matrix.dim(3);
-
     data_ = nullptr;
     dataConst_ = matrix.data();
   }
@@ -39,11 +29,6 @@ public:
   MatrixWrapper(TMatrix<T> &matrix, bool colMajor = true)
   :shape_(matrix.dim(0), matrix.dim(1), matrix.dim(2), matrix.dim(3), colMajor)
   {
-    dim_[0] = matrix.dim(0);
-    dim_[1] = matrix.dim(1);
-    dim_[2] = matrix.dim(2);
-    dim_[3] = matrix.dim(3);
-
     data_ = matrix.data();
     dataConst_ = data_;
   }
@@ -51,21 +36,12 @@ public:
   MatrixWrapper(unsigned a, unsigned b, unsigned c, unsigned d)
   :shape_(a, b, c, d)
   { // test constructor
-    dim_[0] = a;
-    dim_[1] = b;
-    dim_[2] = c;
-    dim_[3] = d;
   }
 
   __device__
   MatrixWrapper(T *ptr, unsigned a, unsigned b, unsigned c, unsigned d)
   :shape_(a, b, c, d)
   {
-    dim_[0] = a;
-    dim_[1] = b;
-    dim_[2] = c;
-    dim_[3] = d;
-
     data_ = ptr;
     dataConst_ = ptr;
   }
@@ -178,7 +154,6 @@ public:
   }
 
 protected:
-  unsigned dim_[SHAPE_SIZE];
   Shape shape_;
 
   T *data_;
