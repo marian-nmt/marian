@@ -352,11 +352,11 @@ void EncoderDecoder::TopupBatch(Histories &histories,
 
   // histories is const from here on
 
-  cerr << "1state=" << state.Debug(0) << endl;
+  //cerr << "1state=" << state.Debug(0) << endl;
   AssembleBeamStateTopup(histories, nextState, state);
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch7" << endl;
-  cerr << "2state=" << state.Debug(0) << endl;
+  //cerr << "2state=" << state.Debug(0) << endl;
 
   UpdateSentenceLengths(histories, sentenceLengths);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
