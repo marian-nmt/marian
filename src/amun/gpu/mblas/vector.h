@@ -19,16 +19,16 @@ namespace mblas {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-__global__ void gSum(const T *data, size_t count, T &ret)
+__global__ void gSum(const T *data, unsigned count, T &ret)
 {
   ret = 0;
-  for (size_t i = 0; i < count; ++i) {
+  for (unsigned i = 0; i < count; ++i) {
     ret += data[i];
   }
 }
 
 template<typename T>
-T Sum(const T *data, size_t count)
+T Sum(const T *data, unsigned count)
 {
   T ret;
   T *d_ret;
@@ -59,14 +59,14 @@ public:
   {
   }
 
-  Vector(size_t size)
+  Vector(unsigned size)
   :maxSize_(0)
   ,data_(nullptr)
   {
     newSize(size);
   }
 
-  Vector(size_t size, const T &val)
+  Vector(unsigned size, const T &val)
   :maxSize_(0)
   ,data_(nullptr)
   {
@@ -114,10 +114,10 @@ public:
     HANDLE_ERROR(cudaFree(data_));
   }
 
-  size_t size() const
+  unsigned size() const
   { return size_; }
 
-  size_t maxSize() const
+  unsigned maxSize() const
   { return maxSize_; }
 
   T *data()
@@ -126,7 +126,7 @@ public:
   const T *data() const
   { return data_; }
 
-  void resize(size_t newSize)
+  void resize(unsigned newSize)
   {
     if (newSize > maxSize_) {
       T *newData;
@@ -155,13 +155,13 @@ public:
     size_ = newSize;
   }
 
-  void newSize(size_t newSize)
+  void newSize(unsigned newSize)
   {
     reserve(newSize);
     size_ = newSize;
   }
 
-  void reserve(size_t newSize)
+  void reserve(unsigned newSize)
   {
     //std::cerr << "reserve1=" << newSize << std::endl;
     if (newSize > maxSize_) {
@@ -204,10 +204,10 @@ public:
     return *this;
   }
 
-  virtual std::string Debug(size_t verbosity = 1) const;
+  virtual std::string Debug(unsigned verbosity = 1) const;
 
 protected:
-  size_t size_, maxSize_;
+  unsigned size_, maxSize_;
   T *data_;
 
 
@@ -215,7 +215,7 @@ protected:
 
 ////////////////////////////////////////////////////////////////////////////////
 template<typename T>
-inline std::string Vector<T>::Debug(size_t verbosity) const
+inline std::string Vector<T>::Debug(unsigned verbosity) const
 {
   std::stringstream strm;
   strm << "size=" << size_; // maxSize_ << " " <<
@@ -236,7 +236,7 @@ inline std::string Vector<T>::Debug(size_t verbosity) const
           stream) );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
 
-      for (size_t i = 0; i < size(); ++i) {
+      for (unsigned i = 0; i < size(); ++i) {
         strm << " " << h_data[i];
       }
     }
@@ -246,13 +246,13 @@ inline std::string Vector<T>::Debug(size_t verbosity) const
 }
 
 template<>
-inline std::string Vector<char>::Debug(size_t verbosity) const
+inline std::string Vector<char>::Debug(unsigned verbosity) const
 {
   std::stringstream strm;
   strm << "size=" << size_; // maxSize_ << " " <<
 
   if (verbosity) {
-    size_t sum = Sum(data(), size());
+    unsigned sum = Sum(data(), size());
     strm << "sum=" << sum << std::flush;
 
     if (verbosity == 2) {
@@ -267,7 +267,7 @@ inline std::string Vector<char>::Debug(size_t verbosity) const
           stream) );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
 
-      for (size_t i = 0; i < size(); ++i) {
+      for (unsigned i = 0; i < size(); ++i) {
         strm << " " << (bool) h_data[i];
       }
     }
