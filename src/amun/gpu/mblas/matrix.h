@@ -37,7 +37,7 @@ class TMatrix : public BaseMatrix {
       dim_[2] = c;
       dim_[3] = d;
 
-      uint newSize = rows * cols * c * d;
+      unsigned newSize = rows * cols * c * d;
       vec_.newSize(newSize);
 
       if (zero) {

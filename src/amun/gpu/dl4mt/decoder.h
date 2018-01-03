@@ -25,9 +25,9 @@ class Decoder {
         : w_(model)
         {}
 
-        void Lookup(mblas::Matrix& Rows, const std::vector<uint>& ids) {
+        void Lookup(mblas::Matrix& Rows, const std::vector<unsigned>& ids) {
           using namespace mblas;
-          std::vector<uint> tids = ids;
+          std::vector<unsigned> tids = ids;
           for(auto&& id : tids)
             if(id >= w_.E_->dim(0))
               id = 1;
@@ -170,7 +170,7 @@ class Decoder {
 
         void Init(const mblas::Matrix& SourceContext,
                   mblas::Matrix& SCU,
-                  const std::vector<uint> &newBatchIds,
+                  const std::vector<unsigned> &newBatchIds,
                   const mblas::Vector<unsigned> &d_newBatchIds) const
         {
           using namespace mblas;
@@ -202,11 +202,11 @@ class Decoder {
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           //std::cerr << "GetAlignedSourceContext1" << std::endl;
 
-          uint maxLength = SourceContext.dim(0);
-          uint batchSize = SourceContext.dim(3);
+          unsigned maxLength = SourceContext.dim(0);
+          unsigned batchSize = SourceContext.dim(3);
           //std::cerr << "batchSize=" << batchSize << std::endl;
           //std::cerr << "HiddenState=" << HiddenState.Debug(0) << std::endl;
-          //uint maxLength = GetMaxLength(h_sentenceLengths, histories);
+          //unsigned maxLength = GetMaxLength(h_sentenceLengths, histories);
           /*
           std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
           std::cerr << "histories=" << Debug(histories, 2) << std::endl;
@@ -384,7 +384,7 @@ class Decoder {
           }
         }
 
-        void Filter(const std::vector<uint>& ids) {
+        void Filter(const std::vector<unsigned>& ids) {
           filtered_ = true;
           using namespace mblas;
 
@@ -499,7 +499,7 @@ class Decoder {
                     const mblas::Matrix &SourceContext,
                     const mblas::Vector<unsigned> &sentenceLengths,
                     mblas::Matrix& SCU,
-                    const std::vector<uint> &newBatchIds,
+                    const std::vector<unsigned> &newBatchIds,
                     const mblas::Vector<unsigned> &d_newBatchIds) const
     {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
@@ -522,7 +522,7 @@ class Decoder {
 
     void EmptyEmbedding(mblas::Matrix& Embedding,
                         size_t totalBeamSize,
-                        const std::vector<uint> &newBatchIds,
+                        const std::vector<unsigned> &newBatchIds,
                         const mblas::Vector<unsigned> &d_newBatchIds) const
     {
       Embedding.NewSize(totalBeamSize, embeddings_.GetCols());
@@ -530,11 +530,11 @@ class Decoder {
     }
 
     void Lookup(mblas::Matrix& Embedding,
-                const std::vector<uint>& w) {
+                const std::vector<unsigned>& w) {
       embeddings_.Lookup(Embedding, w);
     }
 
-    void Filter(const std::vector<uint>& ids) {
+    void Filter(const std::vector<unsigned>& ids) {
       softmax_.Filter(ids);
     }
 

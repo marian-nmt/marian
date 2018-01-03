@@ -42,7 +42,7 @@ class BestHyps : public BestHypsBase
     std::unique_ptr<NthElement> nthElement_;
     mblas::Vector<unsigned> keys_;
     mblas::Vector<float> costs_;
-    uint maxBeamSize_;
+    unsigned maxBeamSize_;
 
     // fast fused softmax and nth_element
     void FindBests(const Histories& histories,
@@ -55,10 +55,10 @@ class BestHyps : public BestHypsBase
                       const mblas::Matrix& Probs,
                       mblas::Vector<NthOutBatch> &nBest,
                       std::vector<float>& outCosts,
-                      std::vector<uint>& outKeys) const;
+                      std::vector<unsigned>& outKeys) const;
 
     void GetPairs(mblas::Vector<NthOutBatch> &nBest,
-                  std::vector<uint>& outKeys,
+                  std::vector<unsigned>& outKeys,
                   std::vector<float>& outValues) const;
 
 

@@ -57,7 +57,7 @@ class EncoderDecoder : public Scorer {
 
     size_t GetVocabSize() const;
 
-    void Filter(const std::vector<uint>& filterIds);
+    void Filter(const std::vector<unsigned>& filterIds);
 
 
   private:
@@ -101,7 +101,7 @@ class EncoderDecoder : public Scorer {
                             const mblas::Vector<unsigned> &sentenceLengths,
                             State& state,
                             mblas::Matrix& SCU,
-                            const std::vector<uint> &newBatchIds,
+                            const std::vector<unsigned> &newBatchIds,
                             const mblas::Vector<unsigned> &d_newBatchIds) const;
 
     void CalcBeam(BestHypsBase &bestHyps,

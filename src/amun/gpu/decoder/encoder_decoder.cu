@@ -117,7 +117,7 @@ size_t EncoderDecoder::GetVocabSize() const {
   return decoder_->GetVocabSize();
 }
 
-void EncoderDecoder::Filter(const std::vector<uint>& filterIds) {
+void EncoderDecoder::Filter(const std::vector<unsigned>& filterIds) {
   decoder_->Filter(filterIds);
 }
 
@@ -153,8 +153,8 @@ void EncoderDecoder::DecodeAsync()
 
 void EncoderDecoder::DecodeAsyncInternal()
 {
-  uint maxBeamSize = god_.Get<uint>("beam-size");
-  uint miniBatch = god_.Get<uint>("mini-batch");
+  unsigned maxBeamSize = god_.Get<unsigned>("beam-size");
+  unsigned miniBatch = god_.Get<unsigned>("mini-batch");
 
   Histories histories(search_.NormalizeScore());
 
@@ -248,7 +248,7 @@ void EncoderDecoder::InitBatch(Histories &histories,
                                 State &state)
 {
   ///*
-  uint miniBatch = god_.Get<uint>("mini-batch");
+  unsigned miniBatch = god_.Get<unsigned>("mini-batch");
 
   std::vector<BufferOutput> newSentences;
   encDecBuffer_.Get(miniBatch, newSentences);
@@ -322,7 +322,7 @@ void EncoderDecoder::FetchBatch(Histories &histories,
 
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   cerr << "FetchBatch1" << endl;
-  size_t numSentToGet = god_.Get<uint>("mini-batch") - histories.NumActive();
+  size_t numSentToGet = god_.Get<unsigned>("mini-batch") - histories.NumActive();
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "FetchBatch2" << endl;
   //cerr << "numSentToGet=" << numSentToGet << endl;
@@ -334,9 +334,9 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   //cerr << "FetchBatch3" << endl;
   //cerr << "newSentences=" << newSentences.size() << endl;
 
-  vector<uint> newBatchIds(newSentences.size());
-  vector<uint> newSentenceLengths(newSentences.size());
-  vector<uint> newSentenceOffsets(newSentences.size());
+  vector<unsigned> newBatchIds(newSentences.size());
+  vector<unsigned> newSentenceLengths(newSentences.size());
+  vector<unsigned> newSentenceOffsets(newSentences.size());
 
   // update existing batch
   size_t batchInd = 0;
@@ -434,7 +434,7 @@ void EncoderDecoder::BeginSentenceState(const Histories& histories,
                                         const mblas::Vector<unsigned> &sentenceLengths,
                                         State& state,
                                         mblas::Matrix& SCU,
-                                        const std::vector<uint> &newBatchIds,
+                                        const std::vector<unsigned> &newBatchIds,
                                         const mblas::Vector<unsigned> &d_newBatchIds) const
 {
   //BEGIN_TIMER("BeginSentenceState");
@@ -486,8 +486,8 @@ void EncoderDecoder::AssembleBeamState(const Histories& histories,
                                         State& outState) const
 {
   //BEGIN_TIMER("AssembleBeamState");
-  std::vector<uint> beamWords;
-  std::vector<uint> beamStateIds;
+  std::vector<unsigned> beamWords;
+  std::vector<unsigned> beamStateIds;
   for (size_t i = 0; i < histories.size(); ++i) {
     const HistoriesElementPtr &ele = histories.Get(i);
     if (ele) {
@@ -544,8 +544,8 @@ void EncoderDecoder::AssembleBeamState(const std::vector<unsigned> newBatchIds,
                                         State& outState) const
 {
   //BEGIN_TIMER("AssembleBeamState");
-  std::vector<uint> beamWords;
-  std::vector<uint> beamStateIds;
+  std::vector<unsigned> beamWords;
+  std::vector<unsigned> beamStateIds;
   for (size_t i = 0; i < histories.size(); ++i) {
     const HistoriesElementPtr &ele = histories.Get(i);
     if (ele) {

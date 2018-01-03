@@ -29,8 +29,8 @@ class Encoder {
         {}
 
         void Lookup(mblas::Matrix& Row, const std::vector<std::vector<Word>>& words) {
-          std::vector<std::vector<uint>> knownWords(w_.Es_.size(),
-                                                    std::vector<uint>(words.size(), 1));
+          std::vector<std::vector<unsigned>> knownWords(w_.Es_.size(),
+                                                    std::vector<unsigned>(words.size(), 1));
           size_t factorCount = w_.Es_.size();
           for (size_t i = 0; i < words.size(); ++i) {
             const std::vector<Word>& factors = words[i];
@@ -49,9 +49,9 @@ class Encoder {
           size_t wordCount = words.size() / factorCount;
           //Row.NewSize(0, wordCount);
           /* std::vector<std::shared_ptr<mblas::Matrix>>::iterator eit = w_.Es_.begin(); */
-          /* std::vector<HostVector<uint>>::iterator wit = knownWords.begin(); */
+          /* std::vector<HostVector<unsigned>>::iterator wit = knownWords.begin(); */
           for (size_t i = 0; i < knownWords.size(); i++) {
-            const std::vector<uint>& factorWords = knownWords.at(i);
+            const std::vector<unsigned>& factorWords = knownWords.at(i);
             mblas::Vector<unsigned> dKnownWords(factorWords);
 
             const std::shared_ptr<mblas::Matrix>& Emb = w_.Es_.at(i);

@@ -11,7 +11,7 @@ BestHyps::BestHyps(const God &god)
       : BestHypsBase(god),
         keys_(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
         costs_(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
-        maxBeamSize_(god.Get<uint>("beam-size"))
+        maxBeamSize_(god.Get<unsigned>("beam-size"))
 {
   if (!god_.UseFusedSoftmax()) {
     NthElement *obj = new NthElement(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch"));
@@ -76,7 +76,7 @@ void BestHyps::getNBestList(const Histories& histories,
                   const mblas::Matrix& Probs,
                   mblas::Vector<NthOutBatch> &nBest,
                   std::vector<float>& outCosts,
-                  std::vector<uint>& outKeys) const
+                  std::vector<unsigned>& outKeys) const
 {
   //cerr << "2outKeys=" << Debug(outKeys, 2) << endl;
   GetPairs(nBest, outKeys, outCosts);
@@ -94,7 +94,7 @@ void BestHyps::getNBestList(const Histories& histories,
 }
 
 void BestHyps::GetPairs(mblas::Vector<NthOutBatch> &nBest,
-              std::vector<uint>& outKeys,
+              std::vector<unsigned>& outKeys,
               std::vector<float>& outValues) const
 {
   //cerr << "top=" << top2.size() << " nBest=" << nBest.size() << endl;
