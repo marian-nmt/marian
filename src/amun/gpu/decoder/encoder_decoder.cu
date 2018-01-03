@@ -211,14 +211,14 @@ void EncoderDecoder::DecodeAsyncInternal()
     //std::cerr << "state3=" << state->Debug(0) << std::endl;
     //std::cerr << "nextState3=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
-    if (histories.NumActive() == 0) {
-    //if ((histories.size() - histories.NumActive()) > 0) {
+    //if (histories.NumActive() == 0) {
+    if ((histories.size() - histories.NumActive()) > 0) {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal6" << endl;
       //std::cerr << "histories6=" << histories.Debug(1) << std::endl;
 
-      InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
-      //FetchBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
+      //InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
+      FetchBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal7" << endl;
       //std::cerr << "histories7=" << histories.Debug(1) << std::endl;
@@ -326,7 +326,7 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "FetchBatch2" << endl;
   //cerr << "numSentToGet=" << numSentToGet << endl;
-  //cerr << "histories orig=" << histories.Debug() << endl;
+  cerr << "histories orig=" << histories.Debug() << endl;
 
   std::vector<BufferOutput> newSentences;
   encDecBuffer_.Get(numSentToGet, newSentences);
@@ -334,36 +334,16 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   //cerr << "FetchBatch3" << endl;
   //cerr << "newSentences=" << newSentences.size() << endl;
 
-  vector<unsigned> newBatchIds(newSentences.size());
-  vector<unsigned> newSentenceLengths(newSentences.size());
-  vector<unsigned> newSentenceOffsets(newSentences.size());
+  histories.StartTopup();
 
   // update existing batch
-  unsigned batchInd = 0;
   for (unsigned i = 0; i < newSentences.size(); ++i) {
     //cerr << "FetchBatch4" << endl;
     const BufferOutput &eleSent = newSentences[i];
     const SentencePtr &sentence = eleSent.GetSentence();
 
-    // work out offset in existing batch
-    FindNextEmptyIndex(batchInd, histories);
-    //cerr << "batchInd=" << batchInd << endl;
+    histories.Topup(new HistoriesElement(sentence, histories.NormalizeScore()));
 
-    assert(i < newBatchIds.size());
-    newBatchIds[i] = batchInd;
-
-    // sentence lengths
-    assert(i < newSentenceLengths.size());
-    newSentenceLengths[i] = sentence->size();
-
-    // offsets
-    assert(i < newSentenceOffsets.size());
-    newSentenceOffsets[i] = eleSent.GetSentenceOffset();
-
-    // histories
-    histories.Set(batchInd, new HistoriesElement(sentence, histories.NormalizeScore()));
-
-    ++batchInd;
   }
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "FetchBatch5" << endl;
@@ -372,13 +352,17 @@ void EncoderDecoder::FetchBatch(Histories &histories,
     return;
   }
 
-  unsigned maxLength =  histories.MaxLength();
-  //cerr << "maxLength=" << maxLength << endl;
-  //cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
+  const vector<unsigned> &newBatchIds = histories.GetNewBatchIds();
+  vector<unsigned> newSentenceLengths = histories.GetNewSentenceLengths();;
 
-  // update gpu data
   mblas::Vector<unsigned> d_newBatchIds(newBatchIds);
   mblas::Vector<unsigned> d_newSentenceLengths(newSentenceLengths);
+
+  unsigned maxLength =  histories.MaxLength();
+  cerr << "maxLength=" << maxLength << endl;
+  cerr << "newSentenceLengths=" << Debug(newSentenceLengths, 2) << endl;
+  cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
+
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "FetchBatch6" << endl;
   //cerr << "histories=" << histories.Debug() << endl;
@@ -407,7 +391,7 @@ void EncoderDecoder::FetchBatch(Histories &histories,
   BeginSentenceState(histories, sourceContext, sentenceLengths, state, SCU, newBatchIds, d_newBatchIds);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "FetchBatch11" << endl;
-  //cerr << "histories new=" << histories.Debug() << endl;
+  cerr << "histories new=" << histories.Debug() << endl;
 
   LOG(progress)->info("Fetch took {} new {} histories {}", timer.format(5, "%w"), newSentences.size(), histories.NumActive());
   cerr << endl;

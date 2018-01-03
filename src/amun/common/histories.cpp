@@ -289,4 +289,49 @@ std::string Histories::Debug(size_t verbosity) const
   return strm.str();
 }
 
+void Histories::StartTopup()
+{
+  newBatchIds_.clear();
+  nextBatchInd_ = 0;
+}
+
+void Histories::Topup(HistoriesElement *val)
+{
+  unsigned ind = FindNextEmptyIndex();
+  Set(ind, val);
+  newBatchIds_.push_back(ind);
+}
+
+std::vector<unsigned> Histories::GetNewSentenceLengths() const
+{
+  std::vector<unsigned> ret(newBatchIds_.size());
+  for (size_t i = 0; i < newBatchIds_.size(); ++i) {
+    unsigned ind = newBatchIds_[i];
+    const HistoriesElementPtr &ele = Get(ind);
+    assert(ele);
+    const SentencePtr &sent = ele->GetSentence();
+    assert(sent);
+
+    ret[i] = sent->size();
+  }
+
+  return ret;
+}
+
+unsigned Histories::FindNextEmptyIndex()
+{
+  while(nextBatchInd_ < size()) {
+    const HistoriesElementPtr &ele = Get(nextBatchInd_);
+    if (ele == nullptr) {
+      return nextBatchInd_++;
+    }
+    else {
+      ++nextBatchInd_;
+    }
+  }
+
+  assert(false);
+  return 9999999;;
+}
+
 }

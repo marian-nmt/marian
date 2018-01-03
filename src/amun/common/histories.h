@@ -110,10 +110,27 @@ public:
 
   virtual std::string Debug(size_t verbosity = 1) const;
 
+  // topup
+  void StartTopup();
+
+  void Topup(HistoriesElement *val);
+
+  const std::vector<unsigned> &GetNewBatchIds() const
+  { return newBatchIds_; }
+
+  std::vector<unsigned> GetNewSentenceLengths() const;
+
 protected:
   bool normalizeScore_;
   std::vector<HistoriesElementPtr> coll_;
   unsigned active_;
+
+  // topup
+  std::vector<unsigned> newBatchIds_;
+  unsigned nextBatchInd_;
+
+  unsigned FindNextEmptyIndex();
+
 };
 
 }
