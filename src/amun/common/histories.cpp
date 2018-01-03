@@ -207,6 +207,34 @@ Hypotheses Histories::GetSurvivors() const
   return ret;
 }
 
+std::vector<unsigned> Histories::GetWords() const
+{
+  Hypotheses survivors = GetSurvivors();
+  std::vector<unsigned> ret(survivors.size());
+
+  for (size_t i = 0; i < survivors.size(); ++i) {
+    const HypothesisPtr &hypo = survivors[i];
+    unsigned word = hypo->GetWord();
+    ret[i] = word;
+  }
+
+  return ret;
+}
+
+std::vector<unsigned> Histories::GetPrevStateIndices() const
+{
+  Hypotheses survivors = GetSurvivors();
+  std::vector<unsigned> ret(survivors.size());
+
+  for (size_t i = 0; i < survivors.size(); ++i) {
+    const HypothesisPtr &hypo = survivors[i];
+    unsigned word = hypo->GetPrevStateIndex();
+    ret[i] = word;
+  }
+
+  return ret;
+}
+
 std::vector<unsigned> Histories::Hypo2Batch() const
 {
   std::vector<unsigned> ret;

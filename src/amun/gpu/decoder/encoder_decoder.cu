@@ -479,20 +479,15 @@ void EncoderDecoder::AssembleBeamState(const Histories& histories,
                                         State& outState) const
 {
   //BEGIN_TIMER("AssembleBeamState");
-  std::vector<unsigned> beamWords;
-  std::vector<unsigned> beamStateIds;
-  for (unsigned i = 0; i < histories.size(); ++i) {
-    const HistoriesElementPtr &ele = histories.Get(i);
-    if (ele) {
-      const Hypotheses &beam = ele->GetHypotheses();
-      for (const HypothesisPtr &h : beam) {
-         beamWords.push_back(h->GetWord());
-         beamStateIds.push_back(h->GetPrevStateIndex());
-      }
-    }
-  }
-  //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
-  //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
+  std::vector<unsigned> beamWords = histories.GetWords();
+  std::vector<unsigned> beamStateIds = histories.GetPrevStateIndices();
+  /*
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "AssembleBeamState1" << endl;
+  cerr << "histories=" << histories.Debug(2) << endl;
+  cerr << "beamWords=" << Debug(beamWords, 2) << endl;
+  cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
+  */
 
   const EDState& edInState = inState.get<EDState>();
   EDState& edOutState = outState.get<EDState>();
@@ -537,23 +532,15 @@ void EncoderDecoder::AssembleBeamState(const std::vector<unsigned> newBatchIds,
                                         State& outState) const
 {
   //BEGIN_TIMER("AssembleBeamState");
-  std::vector<unsigned> beamWords;
-  std::vector<unsigned> beamStateIds;
-  for (unsigned i = 0; i < histories.size(); ++i) {
-    const HistoriesElementPtr &ele = histories.Get(i);
-    if (ele) {
-      const Hypotheses &beam = ele->GetHypotheses();
-      for (const HypothesisPtr &h : beam) {
-         beamWords.push_back(h->GetWord());
-         beamStateIds.push_back(h->GetPrevStateIndex());
-      }
-    }
-  }
-
-  //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
-  //cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  //cerr << "AssembleBeamState1" << endl;
+  std::vector<unsigned> beamWords = histories.GetWords();
+  std::vector<unsigned> beamStateIds = histories.GetPrevStateIndices();
+  /*
+  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  cerr << "AssembleBeamState1" << endl;
+  cerr << "histories=" << histories.Debug(2) << endl;
+  cerr << "beamWords=" << Debug(beamWords, 2) << endl;
+  cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
+  */
 
   const EDState& edInState = inState.get<EDState>();
   EDState& edOutState = outState.get<EDState>();

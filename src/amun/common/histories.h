@@ -97,7 +97,10 @@ public:
   std::vector<char> IsFirsts() const;
 
   void Add(const God &god);
+
   Hypotheses GetSurvivors() const;
+  std::vector<unsigned> GetWords() const;
+  std::vector<unsigned> GetPrevStateIndices() const;
 
   std::vector<unsigned> Hypo2Batch() const;
 
