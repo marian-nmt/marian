@@ -449,7 +449,9 @@ void CopyMatrix(TMatrix<T> &out, const TMatrix<T> &in)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-void ResizeMatrix(TMatrix<T> &matrix, const std::vector<unsigned> args)
+void ResizeMatrix(TMatrix<T> &matrix,
+                  const std::vector<unsigned> &args,
+                  const Histories &histories)
 {
   thread_local TMatrix<T> out;
 

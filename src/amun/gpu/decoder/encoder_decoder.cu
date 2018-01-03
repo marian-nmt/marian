@@ -364,7 +364,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
 
   // source context
   //cerr << "1sourceContext=" << sourceContext.Debug() << endl;
-  ResizeMatrix(sourceContext, {0, maxLength});
+  ResizeMatrix(sourceContext, {0, maxLength}, histories);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "2sourceContext=" << sourceContext.Debug() << endl;
   //cerr << "TopupBatch9" << endl;
