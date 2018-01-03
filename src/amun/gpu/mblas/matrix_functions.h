@@ -166,24 +166,24 @@ __global__ void gBroadcast(Functor functor,
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < out.size()) {
     /*
-    uint indices[SHAPE_SIZE];
+    unsigned indices[SHAPE_SIZE];
     outWrap.id2Indices(id, indices);
 
-    uint srcId = indices[0];
-    uint stateIdx = indices[1];
-    uint beamIdx = indices[2];
+    unsigned srcId = indices[0];
+    unsigned stateIdx = indices[1];
+    unsigned beamIdx = indices[2];
     //assert(0 == indices[3]);
     */
 
-    uint cols  = in1.dim(1);
-    uint srcSize = out.dim(0);
+    unsigned cols  = in1.dim(1);
+    unsigned srcSize = out.dim(0);
 
-    uint row = id / cols;
-    uint stateIdx = id % cols;
-    uint beamIdx = row / srcSize;
-    uint srcId = row % srcSize;
+    unsigned row = id / cols;
+    unsigned stateIdx = id % cols;
+    unsigned beamIdx = row / srcSize;
+    unsigned srcId = row % srcSize;
 
-    uint batchIdx = hypo2Batch[ beamIdx ];
+    unsigned batchIdx = hypo2Batch[ beamIdx ];
 
     assert(srcId < out.dim(0));
     assert(srcId < in1.dim(0));
@@ -214,9 +214,9 @@ Matrix& Broadcast(Functor functor,
 
   out.NewSize(srcSize, cols, sumOfBeamSizes);
 
-  uint size = out.size();
-  uint threads = std::min((uint) MAX_THREADS, (uint)size);
-  uint blocks  = (size / threads) + ((size % threads == 0) ?  0 : 1);
+  unsigned size = out.size();
+  unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+  unsigned blocks  = (size / threads) + ((size % threads == 0) ?  0 : 1);
   /*
   std::cerr << "size=" << size << std::endl;
   std::cerr << "nBlocks=" << blocks << std::endl;
@@ -339,9 +339,9 @@ template <class Functor>
 Matrix& Element(Functor functor,
                 Matrix& Out)
 {
-  uint size = Out.size();
-  uint threads = std::min((uint) MAX_THREADS, (uint)size);
-  uint blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
+  unsigned size = Out.size();
+  unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+  unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
   MatrixWrapper<float> outWrap(Out);
@@ -369,9 +369,9 @@ Matrix& Element(Functor functor,
 {
   assert(Out.size() == In.size());
 
-  uint size = Out.size();
-  uint threads = std::min((uint) MAX_THREADS, (uint)size);
-  uint blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
+  unsigned size = Out.size();
+  unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+  unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
   MatrixWrapper<float> outWrap(Out);
@@ -406,9 +406,9 @@ Matrix& Element(Functor functor,
   assert(Out.size() == In1.size());
   assert(Out.size() == In2.size());
 
-  uint size = Out.size();
-  uint threads = std::min((uint) MAX_THREADS, (uint)size);
-  uint blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
+  unsigned size = Out.size();
+  unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+  unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
   //std::cerr << "Element3=" << Out.Debug(0) << std::endl;
@@ -443,7 +443,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 const mblas::Vector<float> &costs,
                 const Histories& histories,
                 bool forbidUNK,
-                uint maxBeamSize);
+                unsigned maxBeamSize);
 
 void UpdateSentenceLengths(const mblas::Vector<unsigned> &newSentenceLengths,
                           const mblas::Vector<unsigned> &newBatchIds,
@@ -456,7 +456,7 @@ __global__ void gCopyMatrix(MatrixWrapper<T> out,
 {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < in.size()) {
-    uint indices[SHAPE_SIZE];
+    unsigned indices[SHAPE_SIZE];
     in.id2Indices(id, indices);
 
     out(indices[0], indices[1], indices[2], indices[3])
@@ -479,9 +479,9 @@ void CopyMatrix(TMatrix<T> &out, const TMatrix<T> &in)
   assert(out.dim(2) >= in.dim(2));
   assert(out.dim(3) >= in.dim(3));
 
-  uint size = in.size();
-  uint threads = std::min(size, (uint) MAX_THREADS);
-  uint blocks  = (size / threads) + 1;
+  unsigned size = in.size();
+  unsigned threads = std::min(size, (unsigned) MAX_THREADS);
+  unsigned blocks  = (size / threads) + 1;
 
   const cudaStream_t &stream = CudaStreamHandler::GetStream();
   MatrixWrapper<T> outWrap(out);
@@ -518,7 +518,7 @@ void ResizeMatrix(TMatrix<T> &matrix, const std::vector<unsigned> args)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void AddNewData(mblas::Matrix &sourceContext,
-                const std::vector<uint> &newBatchIds,
+                const std::vector<unsigned> &newBatchIds,
                 const std::vector<BufferOutput> &newSentences);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
