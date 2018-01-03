@@ -150,14 +150,14 @@ public:
   __device__
   const T &operator()(unsigned a, unsigned b, unsigned c, unsigned d) const
   {
-    unsigned id = indices2Id(a, b, c, d);
+    unsigned id = shape_.indices2Id(a, b, c, d);
     return data()[id];
   }
 
   __device__
   T &operator()(unsigned a, unsigned b, unsigned c, unsigned d)
   {
-    unsigned id = indices2Id(a, b, c, d);
+    unsigned id = shape_.indices2Id(a, b, c, d);
     return data()[id];
   }
 
@@ -165,14 +165,14 @@ public:
   __device__
   const T &operator()(unsigned a, unsigned b, unsigned c) const
   {
-    unsigned id = indices2Id(a, b, c);
+    unsigned id = shape_.indices2Id(a, b, c);
     return data()[id];
   }
 
   __device__
   T &operator()(unsigned a, unsigned b, unsigned c)
   {
-    unsigned id = indices2Id(a, b, c);
+    unsigned id = shape_.indices2Id(a, b, c);
     return data()[id];
   }
 
@@ -180,14 +180,14 @@ public:
   __device__
   const T &operator()(unsigned a, unsigned b) const
   {
-    unsigned id = indices2Id(a, b);
+    unsigned id = shape_.indices2Id(a, b);
     return data()[id];
   }
 
   __device__
   T &operator()(unsigned a, unsigned b)
   {
-    unsigned id = indices2Id(a, b);
+    unsigned id = shape_.indices2Id(a, b);
     return data()[id];
   }
 
@@ -195,62 +195,15 @@ public:
   __device__
   const T &operator()(unsigned a) const
   {
-    unsigned id = indices2Id(a);
+    unsigned id = shape_.indices2Id(a);
     return data()[id];
   }
 
   __device__
   T &operator()(unsigned a)
   {
-    unsigned id = indices2Id(a);
+    unsigned id = shape_.indices2Id(a);
     return data()[id];
-  }
-
-  // indices2Id
-  // 4
-  __device__ __host__
-  unsigned indices2Id(unsigned a, unsigned b, unsigned c, unsigned d) const
-  {
-    unsigned ind = 0;
-    ind += a * stride(0);
-    ind += b * stride(1);
-    ind += c * stride(2);
-    ind += d * stride(3);
-
-    return ind;
-  }
-
-  // 3
-  __device__ __host__
-  unsigned indices2Id(unsigned a, unsigned b, unsigned c) const
-  {
-    unsigned ind = 0;
-    ind += a * stride(0);
-    ind += b * stride(1);
-    ind += c * stride(2);
-
-    return ind;
-  }
-
-  // 2
-  __device__ __host__
-  unsigned indices2Id(unsigned a, unsigned b) const
-  {
-    unsigned ind = 0;
-    ind += a * stride(0);
-    ind += b * stride(1);
-
-    return ind;
-  }
-
-  // 1
-  __device__ __host__
-  unsigned indices2Id(unsigned a) const
-  {
-    unsigned ind = 0;
-    ind += a * stride(0);
-
-    return ind;
   }
 
   __device__ __host__
@@ -323,7 +276,7 @@ inline void testidToMatrixInd()
       std::cerr << " " << dim[j];
     }
 
-    std::cerr << " = " << matrix.indices2Id(dim[0], dim[1], dim[2], dim[3]);
+    std::cerr << " = " << matrix.GetShape().indices2Id(dim[0], dim[1], dim[2], dim[3]);
     std::cerr << std::endl;
   }
 }
