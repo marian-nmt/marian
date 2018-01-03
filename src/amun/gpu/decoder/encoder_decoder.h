@@ -79,7 +79,7 @@ class EncoderDecoder : public Scorer {
                     mblas::Matrix &SCU,
                     State &state);
 
-    void FetchBatch(Histories &histories,
+    void TopupBatch(Histories &histories,
                     mblas::Vector<unsigned> &sentenceLengths,
                     mblas::Matrix &sourceContext,
                     mblas::Matrix &SCU,
@@ -92,7 +92,7 @@ class EncoderDecoder : public Scorer {
                             State& state,
                             mblas::Matrix& SCU) const;
 
-    void BeginSentenceState(const Histories& histories,
+    void BeginSentenceStateTopup(const Histories& histories,
                             const mblas::Matrix &sourceContext,
                             const mblas::Vector<unsigned> &sentenceLengths,
                             State& state,
@@ -110,9 +110,7 @@ class EncoderDecoder : public Scorer {
                            const State& state,
                            State& nextState) const;
 
-    void AssembleBeamState(const std::vector<unsigned> newBatchIds,
-                            const mblas::Vector<unsigned> &d_newBatchIds,
-                            const Histories& histories,
+    void AssembleBeamStateTopup(const Histories& histories,
                             const State& inState,
                             State& outState) const;
 
