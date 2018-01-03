@@ -456,7 +456,7 @@ __global__ void gCopyMatrix(MatrixWrapper<T> out,
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < in.GetShape().size()) {
     unsigned indices[SHAPE_SIZE];
-    in.id2Indices(id, indices);
+    in.GetShape().id2Indices(id, indices);
 
     out(indices[0], indices[1], indices[2], indices[3])
       = in(indices[0], indices[1], indices[2], indices[3]);

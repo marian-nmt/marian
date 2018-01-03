@@ -204,22 +204,6 @@ public:
     return data()[id];
   }
 
-  __device__ __host__
-  void id2Indices(unsigned id, unsigned *out) const
-  {
-
-    out[3] = id / stride(3);
-    id = id % stride(3);
-
-    out[2] = id / stride(2);
-    id = id % stride(2);
-
-    out[0] = id / stride(0);
-    id = id % stride(0);
-
-    out[1] = id / stride(1);
-  }
-
   __device__
   VectorWrapper<T> Row(unsigned row)
   {
@@ -231,16 +215,7 @@ public:
   std::string Debug() const
   {
     std::stringstream strm;
-
-    strm << "dim=";
-    for (unsigned i = 0; i < SHAPE_SIZE; ++i) {
-      strm << dim_[i] << " ";
-    }
-
-    strm << " stride=";
-    for (unsigned i = 0; i < SHAPE_SIZE; ++i) {
-      strm << stride(i) << " ";
-    }
+    strm << shape_.Debug();
 
     return strm.str();
   }
@@ -265,7 +240,7 @@ inline void testidToMatrixInd()
 
   for (unsigned i = 0; i < matrix.GetShape().size(); ++i) {
     unsigned dim[SHAPE_SIZE];
-    matrix.id2Indices(i, dim);
+    matrix.GetShape().id2Indices(i, dim);
 
     std::cerr << i << "=";
     for (unsigned j = 0; j < SHAPE_SIZE; ++j) {

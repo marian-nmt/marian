@@ -31,7 +31,7 @@ __global__ void gMean(MatrixWrapper<float> out,
 
   if (id < out.GetShape().size()) {
     unsigned indices[SHAPE_SIZE];
-    out.id2Indices(id, indices);
+    out.GetShape().id2Indices(id, indices);
     //printf("%d -> %lu %lu %lu %lu \n", id, indices[0], indices[1], indices[2], indices[3]);
 
     unsigned batch = indices[0];
@@ -232,7 +232,7 @@ __global__ void gCopyRows(MatrixWrapper<float> out,
 
   if (id < out.GetShape().size()) {
 	  unsigned dim[SHAPE_SIZE];
-	  out.id2Indices(id, dim);
+	  out.GetShape().id2Indices(id, dim);
 
 	  unsigned indicesInd = dim[0];
 	  unsigned inRow =indicesWrap[indicesInd];

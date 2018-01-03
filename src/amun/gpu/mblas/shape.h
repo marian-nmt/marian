@@ -1,4 +1,5 @@
 #pragma once
+#include <sstream>
 #include <cassert>
 #include "common/base_matrix.h"
 
@@ -168,6 +169,24 @@ public:
 
     out[1] = id / stride(1);
   }
+
+  std::string Debug() const
+  {
+    std::stringstream strm;
+
+    strm << "dim=";
+    for (unsigned i = 0; i < SHAPE_SIZE; ++i) {
+      strm << dim_[i] << " ";
+    }
+
+    strm << " stride=";
+    for (unsigned i = 0; i < SHAPE_SIZE; ++i) {
+      strm << stride(i) << " ";
+    }
+
+    return strm.str();
+  }
+
 
 protected:
   unsigned dim_[SHAPE_SIZE];
