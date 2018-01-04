@@ -83,6 +83,7 @@ void EncoderDecoder::Encode(const SentencesPtr &source) {
     EncOutGPU &encOutGPU = encOut->Get<EncOutGPU>();
     //auto aligner = decoder_->GetAligner();
     decoder_->GetAligner().Init(encOutGPU.GetSourceContext(), encOutGPU.GetSCU());
+    //decoder_->GetHiddenRNN().InitializeState();
   }
 
   encDecBuffer_.Add(encOut);

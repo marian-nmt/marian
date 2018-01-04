@@ -1,7 +1,8 @@
 #pragma once
 
-#include "../mblas/matrix.h"
 #include "common/enc_out.h"
+#include "../mblas/matrix.h"
+#include "../dl4mt/cellstate.h"
 
 namespace amunmt {
 namespace GPU {
@@ -27,9 +28,16 @@ public:
   const mblas::Matrix &GetSCU() const
   { return SCU_; }
 
+  CellState &GetCellState()
+  { return state_; }
+
+  const CellState &GetCellState() const
+  { return state_; }
+
 protected:
   mblas::Matrix sourceContext_, SCU_;
   mblas::Vector<unsigned> sentenceLengths_;
+  CellState state_;
 
 };
 

@@ -68,8 +68,7 @@ private:
         void InitializeState(CellState& State,
                              const Histories& histories,
                              const mblas::Matrix &SourceContext,
-                             const mblas::Vector<unsigned> &sentenceLengths,
-                             bool topUp) const
+                             const mblas::Vector<unsigned> &sentenceLengths) const
         {
           using namespace mblas;
           HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
@@ -95,9 +94,7 @@ private:
           //std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
           //std::cerr << "sentenceLengths=" << sentenceLengths.Debug(0) << std::endl;
 
-          if (!topUp) {
-            Mean(Temp2, SourceContext, sentenceLengths);
-          }
+          Mean(Temp2, SourceContext, sentenceLengths);
 
           Prod(*(State.output), Temp2, *w_.Wi_);
 
@@ -495,7 +492,7 @@ private:
                     const mblas::Vector<unsigned> &sentenceLengths,
                     mblas::Matrix& SCU) const
     {
-      rnn1_.InitializeState(State, histories, SourceContext, sentenceLengths, false);
+      rnn1_.InitializeState(State, histories, SourceContext, sentenceLengths);
       //alignment_.Init(SourceContext, SCU);
     }
 
@@ -511,7 +508,7 @@ private:
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState1" << std::endl;
 
-      rnn1_.InitializeState(State, histories, SourceContext, sentenceLengths, true);
+      rnn1_.InitializeState(State, histories, SourceContext, sentenceLengths);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState2" << std::endl;
 
@@ -573,6 +570,9 @@ private:
 
     Alignment<Weights::DecAlignment> &GetAligner()
     { return alignment_; }
+
+    RNNHidden<Weights::DecInit> &GetHiddenRNN()
+    { return rnn1_; }
 
   private:
 
