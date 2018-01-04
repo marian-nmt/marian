@@ -115,8 +115,6 @@ public:
 
   void Topup(HistoriesElement *val);
 
-  const std::vector<unsigned> &GetNewSentenceLengths() const;
-
   void BatchIds(std::vector<unsigned> &newBatch,
                 std::vector<unsigned> &oldBatch,
                 std::vector<unsigned> &newSentenceLengths) const;
@@ -129,7 +127,6 @@ protected:
   // topup
   std::vector<unsigned> newBatchIds_;
   unsigned nextBatchInd_;
-  mutable std::vector<unsigned> newSentenceLengths_;
 
   unsigned FindNextEmptyIndex();
 
