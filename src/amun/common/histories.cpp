@@ -342,13 +342,18 @@ unsigned Histories::FindNextEmptyIndex()
   return 9999999;;
 }
 
-void Histories::BatchIds(std::vector<unsigned> &newBatch, std::vector<unsigned> &oldBatch) const
+void Histories::BatchIds(std::vector<unsigned> &newBatch,
+                        std::vector<unsigned> &oldBatch,
+                        std::vector<unsigned> &newSentenceLengths) const
 {
   for (unsigned ind = 0; ind < size(); ++ind) {
     const HistoriesElementPtr &ele = Get(ind);
     if (ele) {
+      const SentencePtr &sent = ele->GetSentence();
+
       if (ele->IsFirst()) {
         newBatch.push_back(ind);
+        newSentenceLengths.push_back(sent->size());
       }
       else {
         oldBatch.push_back(ind);

@@ -360,22 +360,21 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   //cerr << "2state=" << state.Debug(0) << endl;
 
   if (newSentences.size()) {
-    std::vector<unsigned> newBatchIds, oldBatchIds;
-    histories.BatchIds(newBatchIds, oldBatchIds);
+    std::vector<unsigned> newBatchIds, oldBatchIds, newSentenceLengths;
+    histories.BatchIds(newBatchIds, oldBatchIds, newSentenceLengths);
 
     mblas::Vector<unsigned> d_newBatchIds(newBatchIds);
     mblas::Vector<unsigned> d_oldBatchIds(oldBatchIds);
+    mblas::Vector<unsigned> d_newSentenceLengths(newSentenceLengths);
     cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
     cerr << "oldBatchIds=" << Debug(oldBatchIds, 2) << endl;
+    //cerr << "newSentenceLengths=" << Debug(newSentenceLengths, 2) << endl;
 
     std::vector<unsigned> d_newHypoIds;
     mblas::Vector<unsigned> d_oldHypoIds;
 
     unsigned maxLength =  histories.MaxLength();
-    const vector<unsigned> &newSentenceLengths = histories.GetNewSentenceLengths();;
-    mblas::Vector<unsigned> d_newSentenceLengths(newSentenceLengths);
     cerr << "maxLength=" << maxLength << endl;
-    //cerr << "newSentenceLengths=" << Debug(newSentenceLengths, 2) << endl;
 
     UpdateSentenceLengths(d_newBatchIds, d_newSentenceLengths, sentenceLengths);
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));

@@ -115,12 +115,11 @@ public:
 
   void Topup(HistoriesElement *val);
 
-  const std::vector<unsigned> &GetNewBatchIds() const
-  { return newBatchIds_; }
-
   const std::vector<unsigned> &GetNewSentenceLengths() const;
 
-  void BatchIds(std::vector<unsigned> &newBatch, std::vector<unsigned> &oldBatch) const;
+  void BatchIds(std::vector<unsigned> &newBatch,
+                std::vector<unsigned> &oldBatch,
+                std::vector<unsigned> &newSentenceLengths) const;
 
 protected:
   bool normalizeScore_;
