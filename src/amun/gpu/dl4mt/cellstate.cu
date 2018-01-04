@@ -10,7 +10,7 @@ std::string CellState::Debug(unsigned verbosity) const
 {
   std::stringstream strm;
 
-  strm << "output=" << output->Debug(0) << " cell=" << cell->Debug(0);
+  strm << "output=" << output->Debug(verbosity) << " cell=" << cell->Debug(verbosity);
 
   return strm.str();
 }
