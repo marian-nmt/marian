@@ -146,12 +146,12 @@ __global__ void gBroadcast(Functor functor,
     assert(srcId < in1.GetShape().dim(0));
     assert(beamIdx < in2.GetShape().dim(0));
     assert(batchIdx < in1.GetShape().dim(3));
-    //out[id] = functor(in1[(batchIdx * srcSize + srcId) * cols + stateIdx],
-    //                      in2[beamIdx * cols + stateIdx]);
+    out[id] = functor(in1[(batchIdx * srcSize + srcId) * cols + stateIdx],
+                          in2[beamIdx * cols + stateIdx]);
     //out[id] = functor(in1(indices[0], indices[1], 0, batchIdx),
     //                      in2(indices[2], indices[1], 0, 0));
-    out(srcId, stateIdx, beamIdx) = functor(in1(srcId, stateIdx, 0, batchIdx),
-                                                  in2(beamIdx, stateIdx));
+    //out(srcId, stateIdx, beamIdx) = functor(in1(srcId, stateIdx, 0, batchIdx),
+    //                                              in2(beamIdx, stateIdx));
   }
 }
 
