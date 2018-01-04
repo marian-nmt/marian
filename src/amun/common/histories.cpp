@@ -288,8 +288,6 @@ std::string Histories::Debug(size_t verbosity) const
         strm << "NULL ";
       }
     }
-
-    strm << "newBatchIds_=" << amunmt::Debug(newBatchIds_, 2);
   }
 
   return strm.str();
@@ -297,7 +295,6 @@ std::string Histories::Debug(size_t verbosity) const
 
 void Histories::StartTopup()
 {
-  newBatchIds_.clear();
   nextBatchInd_ = 0;
 }
 
@@ -305,7 +302,6 @@ void Histories::Topup(HistoriesElement *val)
 {
   unsigned ind = FindNextEmptyIndex();
   Set(ind, val);
-  newBatchIds_.push_back(ind);
 }
 
 
