@@ -1415,14 +1415,13 @@ void gUpdateSentenceLengths(const VectorWrapper<unsigned> newSentenceLengths,
 }
 
 void UpdateSentenceLengths(const Histories &histories,
+                          const mblas::Vector<unsigned> &d_newBatchIds,
                           mblas::Vector<unsigned> &sentenceLengths)
 {
-  const vector<unsigned> &newBatchIds = histories.GetNewBatchIds();
   const vector<unsigned> &newSentenceLengths = histories.GetNewSentenceLengths();;
-  mblas::Vector<unsigned> d_newBatchIds(newBatchIds);
   mblas::Vector<unsigned> d_newSentenceLengths(newSentenceLengths);
 
-  assert(newSentenceLengths.size() == newBatchIds.size());
+  assert(newSentenceLengths.size() == d_newBatchIds.size());
   assert(newSentenceLengths.size() <= sentenceLengths.size());
 
   int blocks = 1;
