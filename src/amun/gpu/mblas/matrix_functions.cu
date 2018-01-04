@@ -1452,40 +1452,76 @@ void gAddNewData(mblas::MatrixWrapper<float> dest,
   }
 }
 
-void AddNewData(mblas::Matrix &sourceContext,
+void AddNewSourceContext(mblas::Matrix &matrix,
                 const vector<unsigned> &newBatchIds,
                 const std::vector<BufferOutput> &newSentences)
 {
-  BEGIN_TIMER("AddNewData");
+  BEGIN_TIMER("AddNewSourceContext");
   //cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
 
   for (unsigned i = 0; i < newSentences.size(); ++i) {
     const BufferOutput &eleSent = newSentences[i];
     const EncOutPtr &encOut = eleSent.GetEncOut();
-    const mblas::Matrix &newSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
+    const mblas::Matrix &newMatrix = encOut->Get<EncOutGPU>().GetSourceContext();
     //cerr << "sourceContext=" << sourceContext.Debug(1) << endl;
-    //cerr << "newSourceContext=" << newSourceContext.Debug(1) << endl;
+    //cerr << "newMatrix=" << newMatrix.Debug(1) << endl;
 
     unsigned batchId = newBatchIds[i];
     unsigned newSentenceOffset = eleSent.GetSentenceOffset();
     //cerr << "batchId=" << batchId << endl;
     //cerr << "newSentenceOffset=" << newSentenceOffset << endl;
 
-    assert(batchId < sourceContext.dim(3));
-    assert(newSentenceOffset < newSourceContext.dim(3));
-    assert(sourceContext.dim(0) >= newSourceContext.dim(0));
-    assert(sourceContext.dim(1) == newSourceContext.dim(1));
-    assert(sourceContext.dim(2) == newSourceContext.dim(2) == 1);
+    assert(batchId < matrix.dim(3));
+    assert(newSentenceOffset < newMatrix.dim(3));
+    assert(matrix.dim(0) >= newMatrix.dim(0));
+    assert(matrix.dim(1) == newMatrix.dim(1));
+    assert(matrix.dim(2) == newMatrix.dim(2) == 1);
 
-    unsigned size = newSourceContext.dim(0) * newSourceContext.dim(1);
+    unsigned size = newMatrix.dim(0) * newMatrix.dim(1);
     unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
     unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
 
-    gAddNewData<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(sourceContext, newSourceContext, batchId, newSentenceOffset, size);
+    gAddNewData<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(matrix, newMatrix, batchId, newSentenceOffset, size);
   }
 
-  PAUSE_TIMER("AddNewData");
+  PAUSE_TIMER("AddNewSourceContext");
 }
+
+void AddNewSCU(mblas::Matrix &matrix,
+                const vector<unsigned> &newBatchIds,
+                const std::vector<BufferOutput> &newSentences)
+{
+  BEGIN_TIMER("AddNewSCU");
+  //cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
+
+  for (unsigned i = 0; i < newSentences.size(); ++i) {
+    const BufferOutput &eleSent = newSentences[i];
+    const EncOutPtr &encOut = eleSent.GetEncOut();
+    const mblas::Matrix &newMatrix = encOut->Get<EncOutGPU>().GetSCU();
+    //cerr << "sourceContext=" << sourceContext.Debug(1) << endl;
+    //cerr << "newMatrix=" << newMatrix.Debug(1) << endl;
+
+    unsigned batchId = newBatchIds[i];
+    unsigned newSentenceOffset = eleSent.GetSentenceOffset();
+    //cerr << "batchId=" << batchId << endl;
+    //cerr << "newSentenceOffset=" << newSentenceOffset << endl;
+
+    assert(batchId < matrix.dim(3));
+    assert(newSentenceOffset < newMatrix.dim(3));
+    assert(matrix.dim(0) >= newMatrix.dim(0));
+    assert(matrix.dim(1) == newMatrix.dim(1));
+    assert(matrix.dim(2) == newMatrix.dim(2) == 1);
+
+    unsigned size = newMatrix.dim(0) * newMatrix.dim(1);
+    unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+    unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
+
+    gAddNewData<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(matrix, newMatrix, batchId, newSentenceOffset, size);
+  }
+
+  PAUSE_TIMER("AddNewSCU");
+}
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -479,7 +479,11 @@ void ResizeMatrix3(TMatrix<T> &matrix,
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void AddNewData(mblas::Matrix &sourceContext,
+void AddNewSourceContext(mblas::Matrix &matrix,
+                const std::vector<unsigned> &newBatchIds,
+                const std::vector<BufferOutput> &newSentences);
+
+void AddNewSCU(mblas::Matrix &matrix,
                 const std::vector<unsigned> &newBatchIds,
                 const std::vector<BufferOutput> &newSentences);
 

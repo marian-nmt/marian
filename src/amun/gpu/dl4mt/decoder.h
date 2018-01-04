@@ -171,7 +171,10 @@ private:
         void InitTopup(const Histories& histories,
                   const mblas::Matrix& SourceContext,
                   mblas::Matrix& SCU,
-                  const mblas::Vector<unsigned> &d_oldBatchIds) const
+                  const std::vector<BufferOutput> &newSentences,
+                  const mblas::Vector<unsigned> &d_oldBatchIds,
+                  const std::vector<unsigned> &newBatchIds
+                  ) const
         {
           using namespace mblas;
           /*
@@ -184,7 +187,7 @@ private:
           ResizeMatrix3(SCU, {0, maxLength}, d_oldBatchIds);
           //std::cerr << "SCU2=" << SCU.Debug(0) << std::endl;
 
-          // TODO
+          AddNewSCU(SCU, newBatchIds, newSentences);
 
         }
 
@@ -501,7 +504,9 @@ private:
                     const mblas::Matrix &SourceContext,
                     const mblas::Vector<unsigned> &sentenceLengths,
                     mblas::Matrix& SCU,
-                    const mblas::Vector<unsigned> &d_oldBatchIds) const
+                    const std::vector<BufferOutput> &newSentences,
+                    const mblas::Vector<unsigned> &d_oldBatchIds,
+                    const std::vector<unsigned> &newBatchIds) const
     {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState1" << std::endl;
@@ -510,7 +515,7 @@ private:
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState2" << std::endl;
 
-      alignment_.InitTopup(histories, SourceContext, SCU, d_oldBatchIds);
+      alignment_.InitTopup(histories, SourceContext, SCU, newSentences, d_oldBatchIds, newBatchIds);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState3" << std::endl;
     }
