@@ -120,7 +120,7 @@ __global__ void gBroadcast(Functor functor,
                            const MatrixWrapper<float> in2,
                            const VectorWrapper<unsigned> hypo2Batch)
 {
-  int id = threadIdx.x + blockIdx.x * blockDim.x;
+  unsigned id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < out.GetShape().size()) {
     /*
     unsigned indices[SHAPE_SIZE];
@@ -206,14 +206,14 @@ __global__ void gBroadcastVecColumn(Functor functor,
   VectorWrapper<float> sdata(sdataOrig, rows);
 
   if (threadIdx.x == 0) {
-    for (int i = 0; i < rows; ++i)
+    for (unsigned i = 0; i < rows; ++i)
       sdata[i] = inWrap[i];
   }
   __syncthreads();
 
-  int noColumn = threadIdx.x + blockDim.x * blockIdx.x;
+  unsigned noColumn = threadIdx.x + blockDim.x * blockIdx.x;
   if (noColumn < cols) {
-    for (int noRow = 0; noRow < rows; ++noRow) {
+    for (unsigned noRow = 0; noRow < rows; ++noRow) {
       float &val = outWrap(noRow, noColumn);
       val = functor(val, sdata[noRow]);
     }
@@ -230,7 +230,7 @@ Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const mblas::Vector<flo
   const VectorWrapper<float> inWrap(In);
 
   unsigned threads = std::min(MAX_THREADS, cols);
-  int blocks  = cols / threads  + ((cols % threads == 0) ?  0 : 1);
+  unsigned blocks  = cols / threads  + ((cols % threads == 0) ?  0 : 1);
 
   gBroadcastVecColumn<<<blocks, threads, rows * sizeof(float), CudaStreamHandler::GetStream()>>>
     (functor, outWrap, inWrap);
@@ -245,13 +245,13 @@ __global__ void gBroadcastVec(Functor functor,
 {
   unsigned cols = outWrap.GetShape().dim(1);
 
-  int noColumn = threadIdx.x + blockDim.x * blockIdx.x;
+  unsigned noColumn = threadIdx.x + blockDim.x * blockIdx.x;
   if (noColumn < cols) {
     float vecValue = inWrap(0, noColumn);
 
-    for (int dim0 = 0; dim0 < outWrap.GetShape().dim(0); ++dim0) {
-      for (int dim2 = 0; dim2 < outWrap.GetShape().dim(2); ++dim2) {
-        for (int dim3 = 0; dim3 < outWrap.GetShape().dim(3); ++dim3) {
+    for (unsigned dim0 = 0; dim0 < outWrap.GetShape().dim(0); ++dim0) {
+      for (unsigned dim2 = 0; dim2 < outWrap.GetShape().dim(2); ++dim2) {
+        for (unsigned dim3 = 0; dim3 < outWrap.GetShape().dim(3); ++dim3) {
           float &val = outWrap(dim0, noColumn, dim2, dim3);
           val = functor(val, vecValue);
         }
@@ -273,7 +273,7 @@ Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In)
   const MatrixWrapper<float> inWrap(In);
 
   unsigned threads = std::min(MAX_THREADS, cols);
-  int blocks  = cols / threads  + ((cols % threads == 0) ?  0 : 1);
+  unsigned blocks  = cols / threads  + ((cols % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
   gBroadcastVec<<<blocks, threads, 0, stream>>>
@@ -387,7 +387,7 @@ Matrix& Element(Functor functor,
   return Out;
 }
 
-void SetColumn(Matrix& In, int noColumn, float value);
+void SetColumn(Matrix& In, unsigned noColumn, float value);
 
 void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, const Matrix& beta,
                    float eps);
@@ -413,7 +413,7 @@ __global__ void gCopyMatrix3(MatrixWrapper<T> out,
                             const mblas::Shape smallestShape,
                             const VectorWrapper<unsigned> d_oldBatchIds)
 {
-  int id = threadIdx.x + blockIdx.x * blockDim.x;
+  unsigned id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < smallestShape.size()) {
     unsigned indices[SHAPE_SIZE];
     smallestShape.id2Indices(id, indices);

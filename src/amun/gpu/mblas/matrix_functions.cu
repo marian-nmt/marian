@@ -26,7 +26,7 @@ __global__ void gMean(MatrixWrapper<float> out,
   // in = max sentence length * states * 1 * batches
   // mapping = max length * batches
 
-  int id = threadIdx.x + blockIdx.x * blockDim.x;
+  unsigned id = threadIdx.x + blockIdx.x * blockDim.x;
   //printf("id = %d in = %lu %lu %lu %lu = %lu %lu \n", id, in.dim(0), in.dim(1), in.dim(2), in.dim(3), in.size(), sizeof(in));
 
   if (id < out.GetShape().size()) {
@@ -38,7 +38,7 @@ __global__ void gMean(MatrixWrapper<float> out,
     unsigned state = indices[1];
 
     float sum = 0.0f;
-    int counter = 0;
+    unsigned counter = 0;
     for (unsigned row = 0; row < in.GetShape().dim(0); ++row) {
       bool isWord = row < sentenceLengths[batch];
       //printf("batch=%lu startMapInd=%lu  mapOffset=%lu -> %d \n", batch, startMapInd, mapOffset, isWord);
@@ -85,15 +85,15 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
                               const VectorWrapper<unsigned> hypo2Batch
                               )
 {
-  int numHypos = weights.GetShape().dim(0);
-  int states = in.GetShape().dim(1);
-  int srcLen = weights.GetShape().dim(1);
+  unsigned numHypos = weights.GetShape().dim(0);
+  unsigned states = in.GetShape().dim(1);
+  unsigned srcLen = weights.GetShape().dim(1);
 
-  int id = threadIdx.x + blockIdx.x * blockDim.x;
+  unsigned id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < numHypos * states) {
-    int hypoInd = id / states;
-    int batchInd = hypo2Batch[hypoInd];
-    int stateInd = id % states;
+    unsigned hypoInd = id / states;
+    unsigned batchInd = hypo2Batch[hypoInd];
+    unsigned stateInd = id % states;
     //printf("hypoInd=%d batchInd=%d stateInd=%d \n", hypoInd, batchInd, stateInd);
 
     float sum = 0.0f;
@@ -107,8 +107,8 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
 
 void WeightedMean(Matrix& out,const Matrix& weights, const Matrix& in, const mblas::Vector<unsigned>& hypo2Batch)
 {
-  int numHypos = weights.dim(0);
-  int states = in.dim(1);
+  unsigned numHypos = weights.dim(0);
+  unsigned states = in.dim(1);
 
   out.NewSize(numHypos, states);
 
@@ -168,17 +168,17 @@ Matrix& Copy(Matrix& Out, const Matrix& In) {
 
 __global__ void gPasteRows(MatrixWrapper<float> out,
                           const MatrixWrapper<float> in,
-                          int rowNo, int colNo)
+                          unsigned rowNo, unsigned colNo)
 {
-  int inRows = in.GetShape().dim(0);
-  int inCols = in.GetShape().dim(1);
+  unsigned inRows = in.GetShape().dim(0);
+  unsigned inCols = in.GetShape().dim(1);
 
-  int id = threadIdx.x + blockIdx.x * blockDim.x;
+  unsigned id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < inRows * inCols) {
-    int outCols = out.GetShape().dim(1);
+    unsigned outCols = out.GetShape().dim(1);
 
-    int inRow = id / inCols;
-    int inCol = id % inCols;
+    unsigned inRow = id / inCols;
+    unsigned inCol = id % inCols;
 
     //out[outID] = in[id];
     out(rowNo, inCol + colNo, 0, inRow) = in(inRow, inCol);
@@ -228,7 +228,7 @@ __global__ void gCopyRows(MatrixWrapper<float> out,
                           const MatrixWrapper<float> in,
                           const VectorWrapper<unsigned> indicesWrap)
 {
-  int id = threadIdx.x + blockIdx.x * blockDim.x;
+  unsigned id = threadIdx.x + blockIdx.x * blockDim.x;
 
   if (id < out.GetShape().size()) {
 	  unsigned dim[SHAPE_SIZE];
@@ -438,18 +438,18 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
   unsigned numHypos = out.GetShape().dim(0);
   unsigned maxLength = out.GetShape().dim(1);
 
-  int hypoInd =  blockIdx.x;
-  int origSrcPos = threadIdx.x;
+  unsigned hypoInd =  blockIdx.x;
+  unsigned origSrcPos = threadIdx.x;
 
   while (hypoInd < numHypos) {
     VectorWrapper<float> _max(_share, shareSize);
     _max[origSrcPos] = out(hypoInd, origSrcPos);
-    for (int tid = 0; tid < maxLength; tid += blockDim.x) {
-      int srcPos = tid + origSrcPos;
+    for (unsigned tid = 0; tid < maxLength; tid += blockDim.x) {
+      unsigned srcPos = tid + origSrcPos;
       if (srcPos < maxLength) {
         float value = out(hypoInd, srcPos);
 
-        int batch = hypo2BatchWrap[hypoInd];
+        unsigned batch = hypo2BatchWrap[hypoInd];
         value *= srcPos < sentenceLengthsWrap[batch] ? 1 : 0;
         if (value > _max[origSrcPos]) {
           _max[origSrcPos] = value;
@@ -457,11 +457,11 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
       }
     }
 
-    int len = blockDim.x;
+    unsigned len = blockDim.x;
     while (len != 1) {
       __syncthreads();
 
-      int skip = (len + 1) >> 1;
+      unsigned skip = (len + 1) >> 1;
       if (origSrcPos < (len >> 1)) {
         if(_max[origSrcPos + skip] > _max[origSrcPos])
           _max[origSrcPos] = _max[origSrcPos + skip];
@@ -476,12 +476,12 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
     VectorWrapper<float> _sum(_share, shareSize);
 
     _sum[origSrcPos] = 0.0f;
-    for (int tid = 0; tid < maxLength; tid += blockDim.x) {
-      int srcPos = tid + origSrcPos;
+    for (unsigned tid = 0; tid < maxLength; tid += blockDim.x) {
+      unsigned srcPos = tid + origSrcPos;
       if (srcPos < maxLength) {
         out(hypoInd, srcPos) = __expf(out(hypoInd, srcPos) - max);
 
-        int batch = hypo2BatchWrap[hypoInd];
+        unsigned batch = hypo2BatchWrap[hypoInd];
         out(hypoInd, srcPos) *= srcPos < sentenceLengthsWrap[batch] ? 1 : 0; // sentencesMappingWrap(srcPos, batch, 0, 0);
         _sum[origSrcPos] += out(hypoInd, srcPos);
       }
@@ -493,7 +493,7 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
     while (len != 1) {
       __syncthreads();
 
-      int skip = (len + 1) >> 1;
+      unsigned skip = (len + 1) >> 1;
       if (origSrcPos < (len >> 1)) {
         _sum[origSrcPos] += _sum[origSrcPos + skip];
       }
@@ -502,8 +502,8 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
 
     __syncthreads();
 
-    for (int tid = 0; tid < maxLength; tid += blockDim.x) {
-      int srcPos = tid + origSrcPos;
+    for (unsigned tid = 0; tid < maxLength; tid += blockDim.x) {
+      unsigned srcPos = tid + origSrcPos;
       if (srcPos < maxLength) {
         out(hypoInd, srcPos) /= _sum[0];
       }
@@ -524,9 +524,9 @@ Matrix& Softmax(Matrix& Out,
   const VectorWrapper<unsigned> hypo2BatchWrap(hypo2Batch);
   const VectorWrapper<unsigned> sentenceLengthsWrap(sentenceLengths);
 
-  int blocks = batchSize;
-  int threads = std::min(MAX_THREADS, maxLength);
-  int shared = sizeof(float) * threads;
+  unsigned blocks = batchSize;
+  unsigned threads = std::min(MAX_THREADS, maxLength);
+  unsigned shared = sizeof(float) * threads;
 
   gSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
     (outWrap, hypo2BatchWrap, sentenceLengthsWrap, threads);
@@ -541,15 +541,15 @@ __global__ void gLogSoftMax(MatrixWrapper<float> out, unsigned shareSize)
   unsigned rows = out.GetShape().dim(0);
   unsigned cols = out.GetShape().dim(1);
 
-  int rowIdx =  blockIdx.x;
+  unsigned rowIdx =  blockIdx.x;
 
   while (rowIdx < rows) {
     //float* _max = _share;
     VectorWrapper<float> _max(_share, shareSize);
 
     _max[threadIdx.x] = out(rowIdx, threadIdx.x);
-    for (int tid = 0; tid < cols; tid += blockDim.x) {
-      int id = tid + threadIdx.x;
+    for (unsigned tid = 0; tid < cols; tid += blockDim.x) {
+      unsigned id = tid + threadIdx.x;
       if (id < cols) {
         const float &val = out(rowIdx, id);
         if (val > _max[threadIdx.x]) {
@@ -558,11 +558,11 @@ __global__ void gLogSoftMax(MatrixWrapper<float> out, unsigned shareSize)
       }
     }
 
-    int len = blockDim.x;
+    unsigned len = blockDim.x;
     while (len != 1) {
       __syncthreads();
 
-      int skip = (len + 1) >> 1;
+      unsigned skip = (len + 1) >> 1;
       if (threadIdx.x < (len >> 1)) {
         if(_max[threadIdx.x + skip] > _max[threadIdx.x])
           _max[threadIdx.x] = _max[threadIdx.x + skip];
@@ -577,8 +577,8 @@ __global__ void gLogSoftMax(MatrixWrapper<float> out, unsigned shareSize)
     VectorWrapper<float> _sum(_share, shareSize);
 
     _sum[threadIdx.x] = 0.0f;
-    for (int tid = 0; tid < cols; tid += blockDim.x) {
-      int id = tid + threadIdx.x;
+    for (unsigned tid = 0; tid < cols; tid += blockDim.x) {
+      unsigned id = tid + threadIdx.x;
       if (id < cols) {
         //row[id] = exp(row[id] - max);
         float &val = out(rowIdx, id);
@@ -591,7 +591,7 @@ __global__ void gLogSoftMax(MatrixWrapper<float> out, unsigned shareSize)
     while (len != 1) {
       __syncthreads();
 
-      int skip = (len + 1) >> 1;
+      unsigned skip = (len + 1) >> 1;
       if (threadIdx.x < (len >> 1)) {
         _sum[threadIdx.x] += _sum[threadIdx.x + skip];
       }
@@ -600,8 +600,8 @@ __global__ void gLogSoftMax(MatrixWrapper<float> out, unsigned shareSize)
 
     __syncthreads();
 
-    for (int tid = 0; tid < cols; tid += blockDim.x) {
-      int id = tid + threadIdx.x;
+    for (unsigned tid = 0; tid < cols; tid += blockDim.x) {
+      unsigned id = tid + threadIdx.x;
       if (id < cols) {
         //row[id] = log(row[id]/_sum[0]);
         float &val = out(rowIdx, id);
@@ -628,17 +628,17 @@ Matrix& LogSoftmax(Matrix& Out)
   return Out;
 }
 
-__global__ void gSetColumn(MatrixWrapper<float> in, int noColumn, float value) {
-  int n_rows = in.GetShape().dim(0);
+__global__ void gSetColumn(MatrixWrapper<float> in, unsigned noColumn, float value) {
+  unsigned n_rows = in.GetShape().dim(0);
 
-  int rowNumber = threadIdx.x  + blockDim.x * blockIdx.x;
+  unsigned rowNumber = threadIdx.x  + blockDim.x * blockIdx.x;
 
   if (rowNumber < n_rows) {
     in(rowNumber, noColumn) = value;
   }
 }
 
-void SetColumn(Matrix& In, int noColumn, float value) {
+void SetColumn(Matrix& In, unsigned noColumn, float value) {
   unsigned nRows = In.dim(0);
   unsigned nBlocks = nRows / MAX_THREADS + ((nRows % MAX_THREADS == 0) ?  0 : 1);
   unsigned nThreads = std::min(MAX_THREADS, nRows);
@@ -650,7 +650,7 @@ void SetColumn(Matrix& In, int noColumn, float value) {
 }
 
 __global__ void gFill(MatrixWrapper<float> in, float val) {
-  int index = threadIdx.x + blockDim.x * blockIdx.x;
+  unsigned index = threadIdx.x + blockDim.x * blockIdx.x;
   if (index < in.GetShape().size()) {
     in[index] = val;
   }
@@ -677,13 +677,13 @@ void Fill(Matrix& In, float value) {
 __global__
 void gMapMatrix(MatrixWrapper<float> in,
                 const VectorWrapper<unsigned> sentenceLengthsWrap,
-                int i)
+                unsigned i)
 {
-  int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  unsigned tid = threadIdx.x + blockIdx.x * blockDim.x;
   if (tid < in.GetShape().size()) {
-    int numCols = in.GetShape().dim(1);
-    int batchIdx = tid / numCols;
-    int col = tid % numCols;
+    unsigned numCols = in.GetShape().dim(1);
+    unsigned batchIdx = tid / numCols;
+    unsigned col = tid % numCols;
 
     //in[tid] *= mappingWrap(i, batchIdx, 0, 0);
     in(batchIdx, col) *= (i < sentenceLengthsWrap[batchIdx] ? 1 : 0);
@@ -739,7 +739,7 @@ __global__ void gLNormalization(MatrixWrapper<float> out,
   //printf("blockDim.x=%d gridDim.x=%d \n", blockDim.x, gridDim.x);
   // blockDim.x=512 gridDim.x=1
 
-  int cols = in.GetShape().dim(1);
+  unsigned cols = in.GetShape().dim(1);
 
   assert(blockIdx.x < in.GetShape().dim(0));
   assert(blockIdx.y < in.GetShape().dim(2));
@@ -747,17 +747,17 @@ __global__ void gLNormalization(MatrixWrapper<float> out,
 
   float* _sum = _share + blockDim.x;
   _sum[threadIdx.x] = 0.0f;
-  for (int tid = 0; tid < cols; tid += blockDim.x) {
-    int id = tid + threadIdx.x;
+  for (unsigned tid = 0; tid < cols; tid += blockDim.x) {
+    unsigned id = tid + threadIdx.x;
     if (id < cols) {
       _sum[threadIdx.x] += in(blockIdx.x, id, blockIdx.y, blockIdx.z);
     }
   }
   __syncthreads();
-  int len = blockDim.x;
+  unsigned len = blockDim.x;
   while(len != 1) {
     __syncthreads();
-    int skip = (len + 1) >> 1;
+    unsigned skip = (len + 1) >> 1;
     if (threadIdx.x < (len >> 1)) {
       _sum[threadIdx.x] += _sum[threadIdx.x + skip];
     }
@@ -770,8 +770,8 @@ __global__ void gLNormalization(MatrixWrapper<float> out,
   float* _sqSum = _share + blockDim.x;
 
   _sqSum[threadIdx.x] = 0.0;
-  for (int tid = 0; tid < cols; tid += blockDim.x) {
-    int id = tid + threadIdx.x;
+  for (unsigned tid = 0; tid < cols; tid += blockDim.x) {
+    unsigned id = tid + threadIdx.x;
     if(id < cols) {
       float ex = in(blockIdx.x, id, blockIdx.y, blockIdx.z) - mean;
       out(blockIdx.x, id, blockIdx.y, blockIdx.z) = ex;
@@ -782,7 +782,7 @@ __global__ void gLNormalization(MatrixWrapper<float> out,
   len = blockDim.x;
   while(len != 1) {
     __syncthreads();
-    int skip = (len + 1) >> 1;
+    unsigned skip = (len + 1) >> 1;
     if(threadIdx.x < (len >> 1))
       _sqSum[threadIdx.x] += _sqSum[threadIdx.x + skip];
     len = (len + 1) >> 1;
@@ -791,8 +791,8 @@ __global__ void gLNormalization(MatrixWrapper<float> out,
   float sigma = sqrtf(eps + (_sqSum[0] / cols));
   __syncthreads();
 
-  for (int tid = 0; tid < cols; tid += blockDim.x) {
-    int id = tid + threadIdx.x;
+  for (unsigned tid = 0; tid < cols; tid += blockDim.x) {
+    unsigned id = tid + threadIdx.x;
     if(id < cols) {
       float &val = out(blockIdx.x, id, blockIdx.y, blockIdx.z);
       if (betaWrap.GetShape().size()) {
@@ -1063,10 +1063,10 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidates,
   } // while (vocabInd < vocabSize) {
 
   // merge nbest from different threads
-  int len = blockDim.x;
+  unsigned len = blockDim.x;
   while (len != 1) {
     __syncthreads();
-    int skip = (len + 1) >> 1;
+    unsigned skip = (len + 1) >> 1;
     if (threadIdx.x < (len >> 1)) {
       for (unsigned i = 0; i < beamSize; ++i) {
         const NthOutBatch &ele = nBestMatrix(threadIdx.x + skip, i);
@@ -1117,18 +1117,18 @@ void SumAndLogSoftMax(VectorWrapper<NthOutBatch> &nBestCandidates,
 
   // calc sum
   _sum[threadIdx.x] = 0.0f;
-  for (int id = threadIdx.x; id < vocabSize; id += blockDim.x) {
+  for (unsigned id = threadIdx.x; id < vocabSize; id += blockDim.x) {
     //row[id] = exp(row[id] - max);
     float val = in(hypoInd, id) + b4(0, id);
     val = __expf(val - topScore);
     _sum[threadIdx.x] += val;
   }
 
-  int len = blockDim.x;
+  unsigned len = blockDim.x;
   while (len != 1) {
     __syncthreads();
 
-    int skip = (len + 1) >> 1;
+    unsigned skip = (len + 1) >> 1;
     if (threadIdx.x < (len >> 1)) {
       _sum[threadIdx.x] += _sum[threadIdx.x + skip];
     }
@@ -1439,7 +1439,7 @@ void gAddNewData(mblas::MatrixWrapper<float> dest,
                 unsigned newSentenceOffset,
                 unsigned size)
 {
-  int id = threadIdx.x + blockIdx.x * blockDim.x;
+  unsigned id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < size) {
     unsigned dim0 = id / source.GetShape().dim(1);
     unsigned dim1 = id % source.GetShape().dim(1);
