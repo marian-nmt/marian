@@ -347,7 +347,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   const vector<unsigned> &newSentenceLengths = histories.GetNewSentenceLengths();;
   mblas::Vector<unsigned> d_newSentenceLengths(newSentenceLengths);
   cerr << "maxLength=" << maxLength << endl;
-  cerr << "newSentenceLengths=" << Debug(newSentenceLengths, 2) << endl;
+  //cerr << "newSentenceLengths=" << Debug(newSentenceLengths, 2) << endl;
 
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch6" << endl;
@@ -367,21 +367,23 @@ void EncoderDecoder::TopupBatch(Histories &histories,
     //cerr << "TopupBatch8" << endl;
 
     // source context
-    cerr << "1sourceContext=" << sourceContext.Debug() << endl;
+    //cerr << "1sourceContext=" << sourceContext.Debug() << endl;
     ResizeMatrix3(sourceContext, {0, maxLength}, d_oldBatchIds);
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    cerr << "2sourceContext=" << sourceContext.Debug() << endl;
+    //cerr << "2sourceContext=" << sourceContext.Debug() << endl;
     //cerr << "TopupBatch9" << endl;
 
     AddNewData(sourceContext, newBatchIds, newSentences);
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "TopupBatch10" << endl;
-    cerr << "3sourceContext=" << sourceContext.Debug() << endl;
+    //cerr << "3sourceContext=" << sourceContext.Debug() << endl;
 
-    BeginSentenceStateTopup(histories, sourceContext, sentenceLengths, state, SCU);
+    cerr << "1SCU=" << SCU.Debug() << endl;
+    BeginSentenceStateTopup(histories, sourceContext, sentenceLengths, state, SCU, d_oldBatchIds);
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "TopupBatch11" << endl;
     //cerr << "histories new=" << histories.Debug() << endl;
+    cerr << "2SCU=" << SCU.Debug() << endl;
   }
 
   LOG(progress)->info("Topup took {} new {} histories {}", timer.format(5, "%w"), newSentences.size(), histories.NumActive());
@@ -407,7 +409,8 @@ void EncoderDecoder::BeginSentenceStateTopup(const Histories& histories,
                                         const mblas::Matrix &sourceContext,
                                         const mblas::Vector<unsigned> &sentenceLengths,
                                         State& state,
-                                        mblas::Matrix& SCU) const
+                                        mblas::Matrix& SCU,
+                                        const mblas::Vector<unsigned> &d_oldBatchIds) const
 {
   //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();
@@ -416,7 +419,7 @@ void EncoderDecoder::BeginSentenceStateTopup(const Histories& histories,
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "BeginSentenceState1" << endl;
 
-  decoder_->EmptyStateTopup(edState.GetStates(), histories, sourceContext, sentenceLengths, SCU);
+  decoder_->EmptyStateTopup(edState.GetStates(), histories, sourceContext, sentenceLengths, SCU, d_oldBatchIds);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "BeginSentenceState2" << endl;
 

@@ -170,7 +170,8 @@ class Decoder {
 
         void InitTopup(const Histories& histories,
                   const mblas::Matrix& SourceContext,
-                  mblas::Matrix& SCU) const
+                  mblas::Matrix& SCU,
+                  const mblas::Vector<unsigned> &d_oldBatchIds) const
         {
           using namespace mblas;
           /*
@@ -178,7 +179,9 @@ class Decoder {
           std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
           std::cerr << "w_.U_=" << w_.U_->Debug(0) << std::endl;
           */
-          SCU.NewSize(SourceContext.dim(0), SCU.dim(1), SCU.dim(2), SCU.dim(3));
+          unsigned maxLength = maxLength = SourceContext.dim(0);
+          //SCU.NewSize(SourceContext.dim(0), SCU.dim(1), SCU.dim(2), SCU.dim(3));
+          ResizeMatrix3(SCU, {0, maxLength}, d_oldBatchIds);
           //std::cerr << "SCU2=" << SCU.Debug(0) << std::endl;
 
           // TODO
@@ -497,7 +500,8 @@ class Decoder {
                     const Histories& histories,
                     const mblas::Matrix &SourceContext,
                     const mblas::Vector<unsigned> &sentenceLengths,
-                    mblas::Matrix& SCU) const
+                    mblas::Matrix& SCU,
+                    const mblas::Vector<unsigned> &d_oldBatchIds) const
     {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState1" << std::endl;
@@ -506,7 +510,7 @@ class Decoder {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState2" << std::endl;
 
-      alignment_.InitTopup(histories, SourceContext, SCU);
+      alignment_.InitTopup(histories, SourceContext, SCU, d_oldBatchIds);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState3" << std::endl;
     }
