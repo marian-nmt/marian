@@ -282,7 +282,7 @@ void EncoderDecoder::InitBatch(Histories &histories,
   //sourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
   const mblas::Matrix &origSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
   sourceContext.NewSize(origSourceContext.dim(0), origSourceContext.dim(1), origSourceContext.dim(2), origSourceContext.dim(3));
-  mblas::CopyMatrix(sourceContext, origSourceContext);
+  sourceContext = origSourceContext;
 
   histories.Init(newSentences);
   //cerr << "histories=" << histories.Debug() << endl;
@@ -367,7 +367,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
 
   // source context
   cerr << "1sourceContext=" << sourceContext.Debug() << endl;
-  ResizeMatrix(sourceContext, {0, maxLength}, histories);
+  ResizeMatrix3(sourceContext, {0, maxLength}, d_oldBatchIds);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   cerr << "2sourceContext=" << sourceContext.Debug() << endl;
   //cerr << "TopupBatch9" << endl;

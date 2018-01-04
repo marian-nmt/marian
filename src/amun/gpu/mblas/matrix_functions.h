@@ -407,23 +407,28 @@ void UpdateSentenceLengths(const Histories &histories,
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename T>
-__global__ void gCopyMatrix(MatrixWrapper<T> out,
+__global__ void gCopyMatrix3(MatrixWrapper<T> out,
                             const MatrixWrapper<T> in,
-                            mblas::Shape smallestShape)
+                            const mblas::Shape smallestShape,
+                            const VectorWrapper<unsigned> d_oldBatchIds)
 {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < smallestShape.size()) {
     unsigned indices[SHAPE_SIZE];
     smallestShape.id2Indices(id, indices);
 
-    out(indices[0], indices[1], indices[2], indices[3])
-      = in(indices[0], indices[1], indices[2], indices[3]);
+    unsigned batchId = d_oldBatchIds[indices[3]];
+
+    out(indices[0], indices[1], indices[2], batchId)
+      = in(indices[0], indices[1], indices[2], batchId);
   }
 
 }
 
 template<typename T>
-void CopyMatrix(TMatrix<T> &out, const TMatrix<T> &in)
+void CopyMatrix3(TMatrix<T> &out,
+                const TMatrix<T> &in,
+                const mblas::Vector<unsigned> &d_oldBatchIds)
 {
   if (in.size() == 0 && out.size() == 0) {
     return;
@@ -433,7 +438,7 @@ void CopyMatrix(TMatrix<T> &out, const TMatrix<T> &in)
   mblas::Shape smallestShape(std::min(out.dim(0), in.dim(0)),
                       std::min(out.dim(1), in.dim(1)),
                       std::min(out.dim(2), in.dim(2)),
-                      std::min(out.dim(3), in.dim(3)));
+                      d_oldBatchIds.size());
 
   unsigned size = smallestShape.size();
   unsigned threads = std::min(size, (unsigned) MAX_THREADS);
@@ -441,17 +446,16 @@ void CopyMatrix(TMatrix<T> &out, const TMatrix<T> &in)
 
   MatrixWrapper<T> outWrap(out);
   const MatrixWrapper<T> inWrap(in);
-  const cudaStream_t &stream = CudaStreamHandler::GetStream();
 
-  gCopyMatrix<<<blocks, threads, 0, stream>>>(outWrap, inWrap, smallestShape);
+  gCopyMatrix3<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(outWrap, inWrap, smallestShape, d_oldBatchIds);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-void ResizeMatrix(TMatrix<T> &matrix,
+void ResizeMatrix3(TMatrix<T> &matrix,
                   const std::vector<unsigned> &args,
-                  const Histories &histories)
+                  const mblas::Vector<unsigned> &d_oldBatchIds)
 {
   thread_local TMatrix<T> out;
 
@@ -467,7 +471,7 @@ void ResizeMatrix(TMatrix<T> &matrix,
   }
 
   out.NewSize(shape[0], shape[1], shape[2], shape[3]);
-  CopyMatrix(out, matrix);
+  CopyMatrix3(out, matrix, d_oldBatchIds);
 
   out.swap(matrix);
 
