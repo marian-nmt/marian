@@ -51,17 +51,17 @@ public:
   }
 
   __device__ __host__
-  unsigned dim(unsigned i) const
+  inline unsigned dim(unsigned i) const
   {  return dim_[i]; }
 
   __device__ __host__
-  unsigned size() const
+  inline unsigned size() const
   {
     return size_;
   }
 
   __device__ __host__
-  unsigned stride(unsigned i) const
+  inline unsigned stride(unsigned i) const
   {
     return stride_[i];
   }
@@ -91,18 +91,18 @@ public:
   // indices2Id
   // 4
   __device__ __host__
-  unsigned indices2Id(unsigned a, unsigned b, unsigned c, unsigned d) const
+  inline unsigned indices2Id(unsigned a, unsigned b, unsigned c, unsigned d) const
   {
     assert(a < dim(0));
     assert(b < dim(1));
     assert(c < dim(2));
     assert(d < dim(3));
 
-    unsigned ind = 0;
-    ind += a * stride(0);
-    ind += b * stride(1);
-    ind += c * stride(2);
-    ind += d * stride(3);
+    unsigned ind =
+            a * stride(0)
+          + b * stride(1)
+          + c * stride(2)
+          + d * stride(3);
 
     assert(ind < size());
     return ind;
@@ -110,16 +110,16 @@ public:
 
   // 3
   __device__ __host__
-  unsigned indices2Id(unsigned a, unsigned b, unsigned c) const
+  inline unsigned indices2Id(unsigned a, unsigned b, unsigned c) const
   {
     assert(a < dim(0));
     assert(b < dim(1));
     assert(c < dim(2));
 
-    unsigned ind = 0;
-    ind += a * stride(0);
-    ind += b * stride(1);
-    ind += c * stride(2);
+    unsigned ind =
+            a * stride(0)
+          + b * stride(1)
+          + c * stride(2);
 
     assert(ind < size());
     return ind;
@@ -127,14 +127,14 @@ public:
 
   // 2
   __device__ __host__
-  unsigned indices2Id(unsigned a, unsigned b) const
+  inline unsigned indices2Id(unsigned a, unsigned b) const
   {
     assert(a < dim(0));
     assert(b < dim(1));
 
-    unsigned ind = 0;
-    ind += a * stride(0);
-    ind += b * stride(1);
+    unsigned ind =
+            a * stride(0)
+          + b * stride(1);
 
     assert(ind < size());
     return ind;
@@ -142,19 +142,19 @@ public:
 
   // 1
   __device__ __host__
-  unsigned indices2Id(unsigned a) const
+  inline unsigned indices2Id(unsigned a) const
   {
     assert(a < dim(0));
 
-    unsigned ind = 0;
-    ind += a * stride(0);
+    unsigned ind =
+          a * stride(0);
 
     assert(ind < size());
     return ind;
   }
 
   __device__ __host__
-  void id2Indices(unsigned id, unsigned *out) const
+  inline void id2Indices(unsigned id, unsigned *out) const
   {
     assert(id < size());
 

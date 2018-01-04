@@ -51,14 +51,14 @@ public:
   { return shape_; }
 
   __device__
-  T* data()
+  inline T* data()
   {
     assert(data_);
     return data_;
   }
 
   __device__
-  const T* data() const
+  inline const T* data() const
   {
     assert(dataConst_);
     return dataConst_;
@@ -71,7 +71,7 @@ public:
   }
 
   __device__
-  T &operator[](unsigned i)
+  inline T &operator[](unsigned i)
   {
     return data()[i];
   }
@@ -79,14 +79,14 @@ public:
   // operator()
   // 4
   __device__
-  const T &operator()(unsigned a, unsigned b, unsigned c, unsigned d) const
+  inline const T &operator()(unsigned a, unsigned b, unsigned c, unsigned d) const
   {
     unsigned id = shape_.indices2Id(a, b, c, d);
     return data()[id];
   }
 
   __device__
-  T &operator()(unsigned a, unsigned b, unsigned c, unsigned d)
+  inline T &operator()(unsigned a, unsigned b, unsigned c, unsigned d)
   {
     unsigned id = shape_.indices2Id(a, b, c, d);
     return data()[id];
@@ -94,14 +94,14 @@ public:
 
   // 3
   __device__
-  const T &operator()(unsigned a, unsigned b, unsigned c) const
+  inline const T &operator()(unsigned a, unsigned b, unsigned c) const
   {
     unsigned id = shape_.indices2Id(a, b, c);
     return data()[id];
   }
 
   __device__
-  T &operator()(unsigned a, unsigned b, unsigned c)
+  inline T &operator()(unsigned a, unsigned b, unsigned c)
   {
     unsigned id = shape_.indices2Id(a, b, c);
     return data()[id];
@@ -109,14 +109,14 @@ public:
 
   // 2
   __device__
-  const T &operator()(unsigned a, unsigned b) const
+  inline const T &operator()(unsigned a, unsigned b) const
   {
     unsigned id = shape_.indices2Id(a, b);
     return data()[id];
   }
 
   __device__
-  T &operator()(unsigned a, unsigned b)
+  inline T &operator()(unsigned a, unsigned b)
   {
     unsigned id = shape_.indices2Id(a, b);
     return data()[id];
@@ -124,14 +124,14 @@ public:
 
   // 1
   __device__
-  const T &operator()(unsigned a) const
+  inline const T &operator()(unsigned a) const
   {
     unsigned id = shape_.indices2Id(a);
     return data()[id];
   }
 
   __device__
-  T &operator()(unsigned a)
+  inline T &operator()(unsigned a)
   {
     unsigned id = shape_.indices2Id(a);
     return data()[id];
