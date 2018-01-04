@@ -218,7 +218,7 @@ class FastGRU: public Cell {
       const unsigned cols = State.dim(1);
       const unsigned rows = State.dim(0);
 
-      int threads = std::min(MAX_THREADS, (int)cols);
+      int threads = std::min(MAX_THREADS, cols);
       int blocks  = rows;
 
       gElementwiseOps<<<blocks, threads, 0, mblas::CudaStreamHandler::GetStream()>>>

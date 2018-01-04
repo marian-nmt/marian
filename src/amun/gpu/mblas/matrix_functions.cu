@@ -71,7 +71,7 @@ void Mean(Matrix& Out,
   VectorWrapper<unsigned> sentenceLengthsWrap(sentenceLengths);
 
   unsigned size = Out.size();
-  unsigned threads = std::min((unsigned)MAX_THREADS, size);
+  unsigned threads = std::min(MAX_THREADS, size);
   unsigned blocks =  (size / threads) + ((size % threads == 0) ?  0 : 1);
 
   gMean<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
@@ -113,7 +113,7 @@ void WeightedMean(Matrix& out,const Matrix& weights, const Matrix& in, const mbl
   out.NewSize(numHypos, states);
 
   unsigned size = out.size();
-  unsigned nThreads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+  unsigned nThreads = std::min(MAX_THREADS, size);
   unsigned nBlocks =  (size / nThreads) + ((size % nThreads == 0) ?  0 : 1);
   /*
   cerr << "nBlocks=" << nBlocks << endl;
@@ -191,7 +191,7 @@ void PasteRows(Matrix& Out, const Matrix& In, const unsigned rowNo, unsigned col
   MatrixWrapper<float> inWrap(In);
 
   unsigned size = In.size();
-  unsigned nThreads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+  unsigned nThreads = std::min(MAX_THREADS, size);
   unsigned nBlocks =  (size / nThreads) + ((size % nThreads == 0) ?  0 : 1);
 
   gPasteRows<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
@@ -270,7 +270,7 @@ Matrix& CopyRows(Matrix& Out,
   const VectorWrapper<unsigned> indicesWrap(indices);
   //cerr << "size=" << size << endl;
 
-  unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+  unsigned threads = std::min(MAX_THREADS, size);
   unsigned blocks = size / threads + ((size % threads == 0) ?  0 : 1);
 
   gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
@@ -341,7 +341,7 @@ Matrix& Slice(Matrix& Out,
   cerr << endl;
   */
 
-  unsigned threads = std::min((unsigned)MAX_THREADS, (unsigned)dim);
+  unsigned threads = std::min(MAX_THREADS, dim);
   unsigned blocks = In.dim(0);
 
   gSlice<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
@@ -525,7 +525,7 @@ Matrix& Softmax(Matrix& Out,
   const VectorWrapper<unsigned> sentenceLengthsWrap(sentenceLengths);
 
   int blocks = batchSize;
-  int threads = std::min(MAX_THREADS, (int)maxLength);
+  int threads = std::min(MAX_THREADS, maxLength);
   int shared = sizeof(float) * threads;
 
   gSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
@@ -618,9 +618,9 @@ Matrix& LogSoftmax(Matrix& Out)
 {
   MatrixWrapper<float> outWrap(Out);
 
-  int blocks = std::min(MAX_BLOCKS, (int)Out.dim(0));
-  int threads = std::min(MAX_THREADS, (int)Out.dim(1));
-  int shared = sizeof(float) * threads;
+  unsigned blocks = std::min(MAX_BLOCKS, Out.dim(0));
+  unsigned threads = std::min(MAX_THREADS, Out.dim(1));
+  unsigned shared = sizeof(float) * threads;
 
   gLogSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
     (Out, threads);
@@ -639,9 +639,9 @@ __global__ void gSetColumn(MatrixWrapper<float> in, int noColumn, float value) {
 }
 
 void SetColumn(Matrix& In, int noColumn, float value) {
-  int nRows = In.dim(0);
-  int nBlocks = nRows / MAX_THREADS + ((nRows % MAX_THREADS == 0) ?  0 : 1);
-  int nThreads = std::min(MAX_THREADS, nRows);
+  unsigned nRows = In.dim(0);
+  unsigned nBlocks = nRows / MAX_THREADS + ((nRows % MAX_THREADS == 0) ?  0 : 1);
+  unsigned nThreads = std::min(MAX_THREADS, nRows);
 
   MatrixWrapper<float> inWrap(In);
 
@@ -660,8 +660,8 @@ void Fill(Matrix& In, float value) {
   unsigned size = In.size();
 
   if (value) {
-    int nThreads = std::min(MAX_THREADS, (int)size);
-    int nBlocks = (size / nThreads) + ((size % nThreads == 0) ? 0 : 1);
+    unsigned nThreads = std::min(MAX_THREADS, size);
+    unsigned nBlocks = (size / nThreads) + ((size % nThreads == 0) ? 0 : 1);
 
     MatrixWrapper<float> inWrap(In);
 
@@ -697,11 +697,11 @@ void MapMatrix(Matrix& state,
   // blank out rows in the state matrix where the word position i does not exist
   // mapping is a concatenated array of 1 & 0 of each sentence in the batch to say whether word exists or not.
 
-  int batchSize = state.dim(0);
-  int stateLength = state.dim(1);
+  unsigned batchSize = state.dim(0);
+  unsigned stateLength = state.dim(1);
 
-  int numThreads = std::min((int)state.size(), MAX_THREADS);
-  int numBlocks = (state.size() / numThreads) + ((state.size() % numThreads == 0) ? 0 : 1);
+  unsigned numThreads = std::min(state.size(), MAX_THREADS);
+  unsigned numBlocks = (state.size() / numThreads) + ((state.size() % numThreads == 0) ? 0 : 1);
 
   MatrixWrapper<float> stateWrap(state);
   VectorWrapper<unsigned> sentenceLengthsWrap(sentenceLengths);
@@ -817,9 +817,9 @@ void Normalization(Matrix &out,
 
   //out.Reshape(in.dim(0), in.dim(1), in.dim(2), in.dim(3));
 
-  int numThreads = std::min((unsigned) in.dim(1), (unsigned) MAX_THREADS);
+  unsigned numThreads = std::min(in.dim(1), MAX_THREADS);
   dim3 numBlocks(in.dim(0), in.dim(2), in.dim(3));
-  int shared = numThreads * sizeof(float) * 2;
+  unsigned shared = numThreads * sizeof(float) * 2;
 
   MatrixWrapper<float> outWrap(out);
   const MatrixWrapper<float> inWrap(in);
@@ -1346,9 +1346,9 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   cerr << endl;
   */
 
-  int blocks = std::min(MAX_BLOCKS, (int)numHypos);
-  int threads = std::min(MAX_THREADS, (int)in.dim(1));
-  int shared = sizeof(NthOutBatch) * threads * maxBeamSize
+  unsigned blocks = std::min(MAX_BLOCKS, numHypos);
+  unsigned threads = std::min(MAX_THREADS, in.dim(1));
+  unsigned shared = sizeof(NthOutBatch) * threads * maxBeamSize
              + sizeof(float) * threads;
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "LogSoftmaxAndNBest2" << endl;
@@ -1365,7 +1365,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "LogSoftmaxAndNBest3" << endl;
 
-  blocks = std::min(MAX_BLOCKS, (int)activeBatchSize);
+  blocks = std::min(MAX_BLOCKS, activeBatchSize);
   /*
   cerr << "nBestCandidates=" << nBestCandidates.Debug(2) << endl;
   cerr << "d_isFirsts=" << d_isFirsts.Debug(2) << endl;
@@ -1421,8 +1421,8 @@ void UpdateSentenceLengths(const mblas::Vector<unsigned> &d_newBatchIds,
   assert(d_newSentenceLengths.size() == d_newBatchIds.size());
   assert(d_newSentenceLengths.size() <= sentenceLengths.size());
 
-  int blocks = 1;
-  int threads = std::min(MAX_THREADS, (int) d_newSentenceLengths.size());
+  unsigned blocks = 1;
+  unsigned threads = std::min(MAX_THREADS, d_newSentenceLengths.size());
 
   //cerr << "1sentenceLengths=" << sentenceLengths.Debug(2) << endl;
   gUpdateSentenceLengths<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(d_newSentenceLengths, d_newBatchIds, sentenceLengths);
@@ -1474,7 +1474,7 @@ void AddNewSourceContext(mblas::Matrix &matrix,
     assert(matrix.dim(2) == newMatrix.dim(2) == 1);
 
     unsigned size = newMatrix.dim(0) * newMatrix.dim(1);
-    unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+    unsigned threads = std::min(MAX_THREADS, size);
     unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
 
     gAddNewData<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(matrix, newMatrix, batchId, newSentenceOffset, size);
@@ -1509,7 +1509,7 @@ void AddNewSCU(mblas::Matrix &matrix,
     assert(matrix.dim(2) == newMatrix.dim(2) == 1);
 
     unsigned size = newMatrix.dim(0) * newMatrix.dim(1);
-    unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+    unsigned threads = std::min(MAX_THREADS, size);
     unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
 
     gAddNewData<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(matrix, newMatrix, batchId, newSentenceOffset, size);

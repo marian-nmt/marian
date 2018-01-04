@@ -1,7 +1,7 @@
 #pragma once
 
-#define MAX_THREADS 512
-#define MAX_BLOCKS 65535
+const unsigned MAX_THREADS = 512;
+const unsigned MAX_BLOCKS = 65535;
 
 #include <cmath>
 #include <cublas_v2.h>
@@ -172,7 +172,7 @@ Matrix& Broadcast(Functor functor,
   out.NewSize(srcSize, cols, sumOfBeamSizes);
 
   unsigned size = out.size();
-  unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+  unsigned threads = std::min(MAX_THREADS, size);
   unsigned blocks  = (size / threads) + ((size % threads == 0) ?  0 : 1);
   /*
   std::cerr << "size=" << size << std::endl;
@@ -229,7 +229,7 @@ Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const mblas::Vector<flo
   MatrixWrapper<float> outWrap(Out);
   const VectorWrapper<float> inWrap(In);
 
-  int threads = std::min(MAX_THREADS, (int)cols);
+  unsigned threads = std::min(MAX_THREADS, cols);
   int blocks  = cols / threads  + ((cols % threads == 0) ?  0 : 1);
 
   gBroadcastVecColumn<<<blocks, threads, rows * sizeof(float), CudaStreamHandler::GetStream()>>>
@@ -272,7 +272,7 @@ Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In)
   MatrixWrapper<float> outWrap(Out);
   const MatrixWrapper<float> inWrap(In);
 
-  int threads = std::min(MAX_THREADS, (int)cols);
+  unsigned threads = std::min(MAX_THREADS, cols);
   int blocks  = cols / threads  + ((cols % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
@@ -297,7 +297,7 @@ Matrix& Element(Functor functor,
                 Matrix& Out)
 {
   unsigned size = Out.size();
-  unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+  unsigned threads = std::min(MAX_THREADS, size);
   unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
@@ -327,7 +327,7 @@ Matrix& Element(Functor functor,
   assert(Out.size() == In.size());
 
   unsigned size = Out.size();
-  unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+  unsigned threads = std::min(MAX_THREADS, size);
   unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
@@ -364,7 +364,7 @@ Matrix& Element(Functor functor,
   assert(Out.size() == In2.size());
 
   unsigned size = Out.size();
-  unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+  unsigned threads = std::min(MAX_THREADS, size);
   unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
@@ -442,7 +442,7 @@ void CopyMatrix3(TMatrix<T> &out,
                       d_oldBatchIds.size());
 
   unsigned size = smallestShape.size();
-  unsigned threads = std::min(size, (unsigned) MAX_THREADS);
+  unsigned threads = std::min(size, MAX_THREADS);
   unsigned blocks  = (size / threads) + 1;
 
   MatrixWrapper<T> outWrap(out);
