@@ -35,19 +35,14 @@ public:
   }
 
   __device__ __host__
-  Shape(unsigned a, unsigned b, unsigned c, unsigned d, bool colMajor = true)
+  Shape(unsigned a, unsigned b, unsigned c, unsigned d)
   {
     dim_[0] = a;
     dim_[1] = b;
     dim_[2] = c;
     dim_[3] = d;
 
-    if (colMajor) {
-      updateStrides();
-    }
-    else {
-      updateStridesRowMajor();
-    }
+    updateStrides();
   }
 
   __device__ __host__
@@ -71,17 +66,6 @@ public:
   {
     stride_[0] = dim_[1];
     stride_[1] = 1;
-    stride_[2] = dim_[0] * dim_[1];
-    stride_[3] = dim_[0] * dim_[1] * dim_[2];
-
-    size_ = stride_[3] * dim_[3];
-  }
-
-  __device__ __host__
-  void updateStridesRowMajor()
-  {
-    stride_[0] = 1;
-    stride_[1] = dim_[0];
     stride_[2] = dim_[0] * dim_[1];
     stride_[3] = dim_[0] * dim_[1] * dim_[2];
 

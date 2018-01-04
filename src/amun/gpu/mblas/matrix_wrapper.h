@@ -19,15 +19,15 @@ public:
     dataConst_ = nullptr;
   }
 
-  MatrixWrapper(const TMatrix<T> &matrix, bool colMajor = true)
-  :shape_(matrix.dim(0), matrix.dim(1), matrix.dim(2), matrix.dim(3), colMajor)
+  MatrixWrapper(const TMatrix<T> &matrix)
+  :shape_(matrix.dim(0), matrix.dim(1), matrix.dim(2), matrix.dim(3))
   {
     data_ = nullptr;
     dataConst_ = matrix.data();
   }
 
-  MatrixWrapper(TMatrix<T> &matrix, bool colMajor = true)
-  :shape_(matrix.dim(0), matrix.dim(1), matrix.dim(2), matrix.dim(3), colMajor)
+  MatrixWrapper(TMatrix<T> &matrix)
+  :shape_(matrix.dim(0), matrix.dim(1), matrix.dim(2), matrix.dim(3))
   {
     data_ = matrix.data();
     dataConst_ = data_;
