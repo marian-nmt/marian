@@ -83,7 +83,10 @@ void EncoderDecoder::Encode(const SentencesPtr &source) {
     EncOutGPU &encOutGPU = encOut->Get<EncOutGPU>();
     //auto aligner = decoder_->GetAligner();
     decoder_->GetAligner().Init(encOutGPU.GetSourceContext(), encOutGPU.GetSCU());
-    //decoder_->GetHiddenRNN().InitializeState();
+    decoder_->GetHiddenRNN().InitializeState(encOutGPU.GetCellState(),
+                                            encOutGPU.GetSourceContext(),
+                                            encOutGPU.GetSentences().size(),
+                                            encOutGPU.GetSentenceLengths());
   }
 
   encDecBuffer_.Add(encOut);
@@ -216,14 +219,14 @@ void EncoderDecoder::DecodeAsyncInternal()
     //std::cerr << "state3=" << state->Debug(0) << std::endl;
     //std::cerr << "nextState3=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
-    //if (histories.NumActive() == 0) {
-    if ((histories.size() - histories.NumActive()) > 0) {
+    if (histories.NumActive() == 0) {
+    //if ((histories.size() - histories.NumActive()) > 0) {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal6" << endl;
       //std::cerr << "histories6=" << histories.Debug(1) << std::endl;
 
-      //InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
-      TopupBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
+      InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
+      //TopupBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal7" << endl;
       //std::cerr << "histories7=" << histories.Debug(1) << std::endl;
@@ -288,6 +291,11 @@ void EncoderDecoder::InitBatch(Histories &histories,
 
   sourceContext.swap(encOutGPU.GetSourceContext());
   SCU.swap(encOutGPU.GetSCU());
+
+  CellState& cellState = state.get<EDState>().GetStates();
+  CellState& origCellState = encOutGPU.GetCellState();
+  cellState.output->swap(*origCellState.output);
+  cellState.cell->swap(*origCellState.cell);
 
   histories.Init(newSentences);
   //cerr << "histories=" << histories.Debug() << endl;
@@ -403,8 +411,6 @@ void EncoderDecoder::BeginSentenceState(const Histories& histories,
 {
   //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();
-
-  decoder_->EmptyState(edState.GetStates(), histories, sourceContext, sentenceLengths, SCU);
 
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), histories.NumActive());
   //PAUSE_TIMER("BeginSentenceState");

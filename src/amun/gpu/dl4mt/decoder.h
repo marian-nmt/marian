@@ -66,37 +66,44 @@ private:
         {}
 
         void InitializeState(CellState& State,
-                             const Histories& histories,
                              const mblas::Matrix &SourceContext,
+                             unsigned batchSize,
                              const mblas::Vector<unsigned> &sentenceLengths) const
         {
           using namespace mblas;
-          HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           //std::cerr << "InitializeState1" << std::endl;
 
           //std::cerr << "cell1=" << State.cell->Debug(0) << std::endl;
           //std::cerr << "output1=" << State.output->Debug(0) << std::endl;
-          unsigned numHypos = histories.GetTotalBeamSize();
           //std::cerr << "numHypos=" << numHypos << std::endl;
 
           CellLength cellLength = gru_->GetStateLength();
           if (cellLength.cell > 0) {
-            State.cell->NewSize(numHypos, cellLength.cell);
+            State.cell->NewSize(batchSize, cellLength.cell);
             mblas::Fill(*(State.cell), 0.0f);
           }
+          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+          //std::cerr << "InitializeState2" << std::endl;
           //std::cerr << "cell2=" << State.cell->Debug(0) << std::endl;
           //std::cerr << "output2=" << State.output->Debug(0) << std::endl;
 
           thread_local mblas::Matrix Temp2;
-          Temp2.NewSize(numHypos, SourceContext.dim(1), 1, 1);
+          Temp2.NewSize(batchSize, SourceContext.dim(1), 1, 1);
+          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+          //std::cerr << "InitializeState3" << std::endl;
 
           //std::cerr << "Temp2=" << Temp2.Debug(0) << std::endl;
           //std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
           //std::cerr << "sentenceLengths=" << sentenceLengths.Debug(0) << std::endl;
 
           Mean(Temp2, SourceContext, sentenceLengths);
+          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+          //std::cerr << "InitializeState4" << std::endl;
 
           Prod(*(State.output), Temp2, *w_.Wi_);
+          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+          //std::cerr << "InitializeState5" << std::endl;
 
           if (w_.Gamma_->size()) {
             Normalization(*(State.output), *(State.output), *w_.Gamma_, *w_.Bi_, 1e-9);
@@ -104,6 +111,8 @@ private:
           } else {
             BroadcastVec(Tanh(_1 + _2), *(State.output), *w_.Bi_);
           }
+          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+          //std::cerr << "InitializeState6" << std::endl;
 
           //std::cerr << "cell3=" << State.cell->Debug(0) << std::endl;
           //std::cerr << "output3=" << State.output->Debug(0) << std::endl;
@@ -486,16 +495,6 @@ private:
       return Probs_;
     }
 
-    void EmptyState(CellState& State,
-                    const Histories& histories,
-                    const mblas::Matrix &SourceContext,
-                    const mblas::Vector<unsigned> &sentenceLengths,
-                    mblas::Matrix& SCU) const
-    {
-      rnn1_.InitializeState(State, histories, SourceContext, sentenceLengths);
-      //alignment_.Init(SourceContext, SCU);
-    }
-
     void EmptyStateTopup(CellState& State,
                     const Histories& histories,
                     const mblas::Matrix &SourceContext,
@@ -508,7 +507,8 @@ private:
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState1" << std::endl;
 
-      rnn1_.InitializeState(State, histories, SourceContext, sentenceLengths);
+      //unsigned batchSize = histories.GetTotalBeamSize();
+      //rnn1_.InitializeState(State, SourceContext, batchSize, sentenceLengths);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState2" << std::endl;
 
