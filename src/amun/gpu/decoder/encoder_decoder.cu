@@ -80,7 +80,6 @@ void EncoderDecoder::Encode(const SentencesPtr &source) {
   if (source->size()) {
     encoder_->Encode(encOut, tab_);
 
-    // TODO calc SCU
     EncOutGPU &encOutGPU = encOut->Get<EncOutGPU>();
     //auto aligner = decoder_->GetAligner();
     decoder_->GetAligner().Init(encOutGPU.GetSourceContext(), encOutGPU.GetSCU());
@@ -216,14 +215,14 @@ void EncoderDecoder::DecodeAsyncInternal()
     //std::cerr << "state3=" << state->Debug(0) << std::endl;
     //std::cerr << "nextState3=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
-    //if (histories.NumActive() == 0) {
-    if ((histories.size() - histories.NumActive()) > 0) {
+    if (histories.NumActive() == 0) {
+    //if ((histories.size() - histories.NumActive()) > 0) {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal6" << endl;
       //std::cerr << "histories6=" << histories.Debug(1) << std::endl;
 
-      //InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
-      TopupBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
+      InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
+      //TopupBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal7" << endl;
       //std::cerr << "histories7=" << histories.Debug(1) << std::endl;
@@ -284,10 +283,10 @@ void EncoderDecoder::InitBatch(Histories &histories,
               sentenceLengths.data(),
               cudaMemcpyDeviceToHost);
 
-  //sourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
-  const mblas::Matrix &origSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
-  sourceContext.NewSize(origSourceContext.dim(0), origSourceContext.dim(1), origSourceContext.dim(2), origSourceContext.dim(3));
-  sourceContext = origSourceContext;
+  EncOutGPU &encOutGPU = encOut->Get<EncOutGPU>();
+
+  sourceContext.swap(encOutGPU.GetSourceContext());
+  SCU.swap(encOutGPU.GetSCU());
 
   histories.Init(newSentences);
   //cerr << "histories=" << histories.Debug() << endl;

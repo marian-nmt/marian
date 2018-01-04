@@ -493,7 +493,7 @@ private:
                     mblas::Matrix& SCU) const
     {
       rnn1_.InitializeState(State, histories, SourceContext, sentenceLengths, false);
-      alignment_.Init(SourceContext, SCU);
+      //alignment_.Init(SourceContext, SCU);
     }
 
     void EmptyStateTopup(CellState& State,
