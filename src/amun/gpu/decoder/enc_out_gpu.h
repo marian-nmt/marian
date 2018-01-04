@@ -21,8 +21,14 @@ public:
   const mblas::Vector<unsigned> &GetSentenceLengths() const
   { return sentenceLengths_; }
 
+  mblas::Matrix &GetSCU()
+  { return SCU_; }
+
+  const mblas::Matrix &GetSCU() const
+  { return SCU_; }
+
 protected:
-  mblas::Matrix sourceContext_;
+  mblas::Matrix sourceContext_, SCU_;
   mblas::Vector<unsigned> sentenceLengths_;
 
 };

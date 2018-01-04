@@ -17,7 +17,7 @@ namespace amunmt {
 namespace GPU {
 
 class Decoder {
-  private:
+private:
     template <class Weights>
     class Embeddings {
       public:
@@ -565,6 +565,9 @@ class Decoder {
     const mblas::Matrix *GetBias() const {
       return b4_.get();
     }
+
+    Alignment<Weights::DecAlignment> &GetAligner()
+    { return alignment_; }
 
   private:
 

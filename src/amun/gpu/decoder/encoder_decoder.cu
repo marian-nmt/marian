@@ -79,6 +79,11 @@ void EncoderDecoder::Encode(const SentencesPtr &source) {
 
   if (source->size()) {
     encoder_->Encode(encOut, tab_);
+
+    // TODO calc SCU
+    EncOutGPU &encOutGPU = encOut->Get<EncOutGPU>();
+    //auto aligner = decoder_->GetAligner();
+    decoder_->GetAligner().Init(encOutGPU.GetSourceContext(), encOutGPU.GetSCU());
   }
 
   encDecBuffer_.Add(encOut);
