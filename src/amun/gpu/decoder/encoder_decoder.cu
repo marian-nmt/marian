@@ -335,16 +335,19 @@ void EncoderDecoder::TopupBatch(Histories &histories,
 
   cerr << "histories=" << histories.Debug() << endl;
 
-  const vector<unsigned> &newBatchIds = histories.GetNewBatchIds();
-  const vector<unsigned> &newSentenceLengths = histories.GetNewSentenceLengths();;
+  std::vector<unsigned> newBatchIds, oldBatchIds;
+  histories.BatchIds(newBatchIds, oldBatchIds);
 
   mblas::Vector<unsigned> d_newBatchIds(newBatchIds);
-  mblas::Vector<unsigned> d_newSentenceLengths(newSentenceLengths);
+  mblas::Vector<unsigned> d_oldBatchIds(oldBatchIds);
+  cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
+  cerr << "oldBatchIds=" << Debug(oldBatchIds, 2) << endl;
 
   unsigned maxLength =  histories.MaxLength();
+  const vector<unsigned> &newSentenceLengths = histories.GetNewSentenceLengths();;
+  mblas::Vector<unsigned> d_newSentenceLengths(newSentenceLengths);
   cerr << "maxLength=" << maxLength << endl;
   cerr << "newSentenceLengths=" << Debug(newSentenceLengths, 2) << endl;
-  cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
 
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch6" << endl;
@@ -361,12 +364,6 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   UpdateSentenceLengths(histories, sentenceLengths);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch8" << endl;
-
-  std::vector<Pair> newBatch;
-  std::vector<Pair> oldBatch;
-  histories.BatchIds(newBatch, oldBatch);
-  cerr << "newBatch=" << Debug(newBatch, 2) << endl;
-  cerr << "oldBatch=" << Debug(oldBatch, 2) << endl;
 
   // source context
   cerr << "1sourceContext=" << sourceContext.Debug() << endl;
