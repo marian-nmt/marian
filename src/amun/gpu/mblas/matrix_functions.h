@@ -124,14 +124,14 @@ __global__ void gBroadcast(Functor functor,
   if (id < out.GetShape().size()) {
     /*
     unsigned indices[SHAPE_SIZE];
-    outWrap.id2Indices(id, indices);
+    out.GetShape().id2Indices(id, indices);
 
     unsigned srcId = indices[0];
     unsigned stateIdx = indices[1];
     unsigned beamIdx = indices[2];
     //assert(0 == indices[3]);
     */
-
+    ///*
     unsigned cols  = in1.GetShape().dim(1);
     unsigned srcSize = out.GetShape().dim(0);
 
@@ -139,19 +139,19 @@ __global__ void gBroadcast(Functor functor,
     unsigned stateIdx = id % cols;
     unsigned beamIdx = row / srcSize;
     unsigned srcId = row % srcSize;
-
+    //*/
     unsigned batchIdx = hypo2Batch[ beamIdx ];
 
     assert(srcId < out.GetShape().dim(0));
     assert(srcId < in1.GetShape().dim(0));
     assert(beamIdx < in2.GetShape().dim(0));
     assert(batchIdx < in1.GetShape().dim(3));
-    out[id] = functor(in1[(batchIdx * srcSize + srcId) * cols + stateIdx],
-                          in2[beamIdx * cols + stateIdx]);
+    //out[id] = functor(in1[(batchIdx * srcSize + srcId) * cols + stateIdx],
+    //                      in2[beamIdx * cols + stateIdx]);
     //out[id] = functor(in1(indices[0], indices[1], 0, batchIdx),
     //                      in2(indices[2], indices[1], 0, 0));
-    //out(srcId, stateIdx, beamIdx) = functor(in1(srcId, stateIdx, 0, batchIdx),
-    //                                              in2(beamIdx, stateIdx));
+    out(srcId, stateIdx, beamIdx) = functor(in1(srcId, stateIdx, 0, batchIdx),
+                                                  in2(beamIdx, stateIdx));
   }
 }
 
