@@ -351,7 +351,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
 
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch6" << endl;
-  //cerr << "histories=" << histories.Debug() << endl;
+  cerr << "histories=" << histories.Debug() << endl;
 
   //cerr << "1state=" << state.Debug(0) << endl;
   AssembleBeamStateTopup(histories, nextState, state);
@@ -360,18 +360,20 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   //cerr << "2state=" << state.Debug(0) << endl;
 
   if (newSentences.size()) {
-    std::vector<unsigned> newBatchIds, oldBatchIds, newSentenceLengths;
-    histories.BatchIds(newBatchIds, oldBatchIds, newSentenceLengths);
+    std::vector<unsigned> newBatchIds, oldBatchIds, newSentenceLengths, newHypoIds, oldHypoIds;
+    histories.BatchIds(newBatchIds, oldBatchIds, newSentenceLengths, newHypoIds, oldHypoIds);
 
     mblas::Vector<unsigned> d_newBatchIds(newBatchIds);
     mblas::Vector<unsigned> d_oldBatchIds(oldBatchIds);
     mblas::Vector<unsigned> d_newSentenceLengths(newSentenceLengths);
+    //mblas::Vector<unsigned> d_newHypoIds(newHypoIds);
+    mblas::Vector<unsigned> d_oldHypoIds(oldHypoIds);
+
     cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
     cerr << "oldBatchIds=" << Debug(oldBatchIds, 2) << endl;
+    cerr << "newHypoIds=" << Debug(newHypoIds, 2) << endl;
+    cerr << "oldHypoIds=" << Debug(oldHypoIds, 2) << endl;
     //cerr << "newSentenceLengths=" << Debug(newSentenceLengths, 2) << endl;
-
-    std::vector<unsigned> d_newHypoIds;
-    mblas::Vector<unsigned> d_oldHypoIds;
 
     unsigned maxLength =  histories.MaxLength();
     cerr << "maxLength=" << maxLength << endl;
@@ -393,7 +395,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
     //cerr << "3sourceContext=" << sourceContext.Debug() << endl;
 
     //cerr << "1SCU=" << SCU.Debug() << endl;
-    BeginSentenceStateTopup(histories, sourceContext, sentenceLengths, state, SCU, newSentences, d_oldBatchIds, newBatchIds, d_oldHypoIds, d_newHypoIds);
+    BeginSentenceStateTopup(histories, sourceContext, sentenceLengths, state, SCU, newSentences, d_oldBatchIds, newBatchIds, d_oldHypoIds, newHypoIds);
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "TopupBatch11" << endl;
     //cerr << "histories new=" << histories.Debug() << endl;

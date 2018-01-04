@@ -278,7 +278,7 @@ std::string Histories::Debug(size_t verbosity) const
       if (ele) {
         //strm << " (" << ele.sentenceInd << "," << ele.size << ")";
         strm << "(" << i
-              << (ele->IsFirst() ? ",first" : "")
+              << (ele->IsFirst() ? ",FIRST" : "")
               << ",sent=" << ele->GetSentence()->GetLineNum()
               << ",len=" << ele->GetSentence()->size()
               << ",beam=" << ele->GetBeamSize()
@@ -321,21 +321,32 @@ unsigned Histories::FindNextEmptyIndex()
   return 9999999;;
 }
 
-void Histories::BatchIds(std::vector<unsigned> &newBatch,
-                        std::vector<unsigned> &oldBatch,
-                        std::vector<unsigned> &newSentenceLengths) const
-{
+void Histories::BatchIds(std::vector<unsigned> &newBatchIds,
+                        std::vector<unsigned> &oldBatchIds,
+                        std::vector<unsigned> &newSentenceLengths,
+                        std::vector<unsigned> &newHypoIds,
+                        std::vector<unsigned> &oldHypoIds) const
+{;
+  unsigned hypoInd = 0;
   for (unsigned ind = 0; ind < size(); ++ind) {
     const HistoriesElementPtr &ele = Get(ind);
     if (ele) {
       const SentencePtr &sent = ele->GetSentence();
 
       if (ele->IsFirst()) {
-        newBatch.push_back(ind);
+        newBatchIds.push_back(ind);
         newSentenceLengths.push_back(sent->size());
+
+        assert(ele->GetBeamSize() == 1);
+        newHypoIds.push_back(hypoInd);
       }
       else {
-        oldBatch.push_back(ind);
+        oldBatchIds.push_back(ind);
+
+        for (unsigned b = 0; b < ele->GetBeamSize(); ++b) {
+          oldHypoIds.push_back(hypoInd);
+          ++hypoInd;
+        }
       }
     }
   }

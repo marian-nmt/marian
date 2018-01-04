@@ -115,9 +115,11 @@ public:
 
   void Topup(HistoriesElement *val);
 
-  void BatchIds(std::vector<unsigned> &newBatch,
-                std::vector<unsigned> &oldBatch,
-                std::vector<unsigned> &newSentenceLengths) const;
+  void BatchIds(std::vector<unsigned> &newBatchIds,
+                std::vector<unsigned> &oldBatchIds,
+                std::vector<unsigned> &newSentenceLengths,
+                std::vector<unsigned> &newHypoIds,
+                std::vector<unsigned> &oldHypoIds) const;
 
 protected:
   bool normalizeScore_;
