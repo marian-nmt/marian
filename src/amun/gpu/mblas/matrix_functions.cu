@@ -1463,28 +1463,25 @@ void AddNewData(mblas::Matrix &sourceContext,
     const BufferOutput &eleSent = newSentences[i];
     const EncOutPtr &encOut = eleSent.GetEncOut();
     const mblas::Matrix &newSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
-    cerr << "sourceContext=" << sourceContext.Debug(1) << endl;
-    cerr << "newSourceContext=" << newSourceContext.Debug(1) << endl;
+    //cerr << "sourceContext=" << sourceContext.Debug(1) << endl;
+    //cerr << "newSourceContext=" << newSourceContext.Debug(1) << endl;
 
     unsigned batchId = newBatchIds[i];
     unsigned newSentenceOffset = eleSent.GetSentenceOffset();
-    cerr << "batchId=" << batchId << endl;
-    cerr << "newSentenceOffset=" << newSentenceOffset << endl;
+    //cerr << "batchId=" << batchId << endl;
+    //cerr << "newSentenceOffset=" << newSentenceOffset << endl;
 
     assert(batchId < sourceContext.dim(3));
     assert(newSentenceOffset < newSourceContext.dim(3));
+    assert(sourceContext.dim(0) >= newSourceContext.dim(0));
     assert(sourceContext.dim(1) == newSourceContext.dim(1));
     assert(sourceContext.dim(2) == newSourceContext.dim(2) == 1);
 
-    //unsigned size = newSourceContext.dim(0) * newSourceContext.dim(1);
-    //unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
-    //unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
+    unsigned size = newSourceContext.dim(0) * newSourceContext.dim(1);
+    unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+    unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
 
-    mblas::MatrixWrapper<float> dest(sourceContext);
-    const mblas::MatrixWrapper<float> source(newSourceContext);
-
-    // TODO
-    //gAddNewData<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(dest, source, batchId, newSentenceOffset, size);
+    gAddNewData<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(sourceContext, newSourceContext, batchId, newSentenceOffset, size);
   }
 
   PAUSE_TIMER("AddNewData");
