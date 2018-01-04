@@ -35,34 +35,34 @@ public:
   }
 
   __device__ __host__
-  unsigned size() const
+  inline unsigned size() const
   {
     return size_;
   }
 
   __device__
-  T* data()
+  inline T* data()
   {
     assert(data_);
     return data_;
   }
 
   __device__
-  const T* data() const
+  inline const T* data() const
   {
     assert(dataConst_);
     return dataConst_;
   }
 
   __device__
-  const T &operator[](unsigned i) const
+  inline const T &operator[](unsigned i) const
   {
     assert(i < size());
     return data()[i];
   }
 
   __device__
-  T &operator[](unsigned i)
+  inline T &operator[](unsigned i)
   {
     assert(i < size());
     return data()[i];
