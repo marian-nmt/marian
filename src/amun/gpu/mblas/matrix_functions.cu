@@ -1463,11 +1463,13 @@ void AddNewData(mblas::Matrix &sourceContext,
     const BufferOutput &eleSent = newSentences[i];
     const EncOutPtr &encOut = eleSent.GetEncOut();
     const mblas::Matrix &newSourceContext = encOut->Get<EncOutGPU>().GetSourceContext();
-    cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
-    cerr << "newSourceContext=" << newSourceContext.Debug(0) << endl;
+    cerr << "sourceContext=" << sourceContext.Debug(1) << endl;
+    cerr << "newSourceContext=" << newSourceContext.Debug(1) << endl;
 
     unsigned batchId = newBatchIds[i];
     unsigned newSentenceOffset = eleSent.GetSentenceOffset();
+    cerr << "batchId=" << batchId << endl;
+    cerr << "newSentenceOffset=" << newSentenceOffset << endl;
 
     assert(batchId < sourceContext.dim(3));
     assert(newSentenceOffset < newSourceContext.dim(3));
