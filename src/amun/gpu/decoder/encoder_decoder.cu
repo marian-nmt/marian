@@ -361,25 +361,27 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   //cerr << "TopupBatch7" << endl;
   //cerr << "2state=" << state.Debug(0) << endl;
 
-  UpdateSentenceLengths(histories, sentenceLengths);
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  //cerr << "TopupBatch8" << endl;
+  if (newSentences.size()) {
+    UpdateSentenceLengths(histories, sentenceLengths);
+    //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    //cerr << "TopupBatch8" << endl;
 
-  // source context
-  cerr << "1sourceContext=" << sourceContext.Debug() << endl;
-  ResizeMatrix3(sourceContext, {0, maxLength}, d_oldBatchIds);
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "2sourceContext=" << sourceContext.Debug() << endl;
-  //cerr << "TopupBatch9" << endl;
+    // source context
+    cerr << "1sourceContext=" << sourceContext.Debug() << endl;
+    ResizeMatrix3(sourceContext, {0, maxLength}, d_oldBatchIds);
+    //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    cerr << "2sourceContext=" << sourceContext.Debug() << endl;
+    //cerr << "TopupBatch9" << endl;
 
-  AddNewData(sourceContext, newBatchIds, newSentences);
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  //cerr << "TopupBatch10" << endl;
+    AddNewData(sourceContext, newBatchIds, newSentences);
+    //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    //cerr << "TopupBatch10" << endl;
 
-  BeginSentenceStateTopup(histories, sourceContext, sentenceLengths, state, SCU);
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  //cerr << "TopupBatch11" << endl;
-  //cerr << "histories new=" << histories.Debug() << endl;
+    BeginSentenceStateTopup(histories, sourceContext, sentenceLengths, state, SCU);
+    //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    //cerr << "TopupBatch11" << endl;
+    //cerr << "histories new=" << histories.Debug() << endl;
+  }
 
   LOG(progress)->info("Topup took {} new {} histories {}", timer.format(5, "%w"), newSentences.size(), histories.NumActive());
   cerr << endl;
