@@ -118,6 +118,16 @@ private:
           //std::cerr << "output3=" << State.output->Debug(0) << std::endl;
         }
 
+        void InitializeStateTopup(CellState& State,
+                                  const Histories &histories,
+                                  const std::vector<BufferOutput> &newSentences,
+                                  const mblas::Vector<unsigned> &oldHypoIds,
+                                  const std::vector<unsigned> &newHypoIds) const
+        {
+          // TODO
+
+        }
+
         void GetNextState(CellState& NextState,
                           const CellState& State,
                           const mblas::Matrix& Context) const
@@ -502,13 +512,15 @@ private:
                     mblas::Matrix& SCU,
                     const std::vector<BufferOutput> &newSentences,
                     const mblas::Vector<unsigned> &d_oldBatchIds,
-                    const std::vector<unsigned> &newBatchIds) const
+                    const std::vector<unsigned> &newBatchIds,
+                    const mblas::Vector<unsigned> &oldHypoIds,
+                    const std::vector<unsigned> &newHypoIds) const
     {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState1" << std::endl;
 
       //unsigned batchSize = histories.GetTotalBeamSize();
-      //rnn1_.InitializeState(State, SourceContext, batchSize, sentenceLengths);
+      rnn1_.InitializeStateTopup(State, histories, newSentences, oldHypoIds, newHypoIds);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState2" << std::endl;
 
