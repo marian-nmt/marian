@@ -377,7 +377,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
     cerr << "maxLength=" << maxLength << endl;
     //cerr << "newSentenceLengths=" << Debug(newSentenceLengths, 2) << endl;
 
-    UpdateSentenceLengths(histories, d_newBatchIds, sentenceLengths);
+    UpdateSentenceLengths(d_newBatchIds, d_newSentenceLengths, sentenceLengths);
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "TopupBatch8" << endl;
 

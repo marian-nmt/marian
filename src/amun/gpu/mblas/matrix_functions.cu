@@ -1414,18 +1414,15 @@ void gUpdateSentenceLengths(const VectorWrapper<unsigned> newSentenceLengths,
   }
 }
 
-void UpdateSentenceLengths(const Histories &histories,
-                          const mblas::Vector<unsigned> &d_newBatchIds,
+void UpdateSentenceLengths(const mblas::Vector<unsigned> &d_newBatchIds,
+                          const mblas::Vector<unsigned> &d_newSentenceLengths,
                           mblas::Vector<unsigned> &sentenceLengths)
 {
-  const vector<unsigned> &newSentenceLengths = histories.GetNewSentenceLengths();;
-  mblas::Vector<unsigned> d_newSentenceLengths(newSentenceLengths);
-
-  assert(newSentenceLengths.size() == d_newBatchIds.size());
-  assert(newSentenceLengths.size() <= sentenceLengths.size());
+  assert(d_newSentenceLengths.size() == d_newBatchIds.size());
+  assert(d_newSentenceLengths.size() <= sentenceLengths.size());
 
   int blocks = 1;
-  int threads = std::min(MAX_THREADS, (int) newSentenceLengths.size());
+  int threads = std::min(MAX_THREADS, (int) d_newSentenceLengths.size());
 
   //cerr << "1sentenceLengths=" << sentenceLengths.Debug(2) << endl;
   gUpdateSentenceLengths<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(d_newSentenceLengths, d_newBatchIds, sentenceLengths);
