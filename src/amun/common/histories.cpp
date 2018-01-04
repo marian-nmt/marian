@@ -297,7 +297,6 @@ std::string Histories::Debug(size_t verbosity) const
 
 void Histories::StartTopup()
 {
-  newSentenceLengths_.clear();
   newBatchIds_.clear();
   nextBatchInd_ = 0;
 }
@@ -309,22 +308,6 @@ void Histories::Topup(HistoriesElement *val)
   newBatchIds_.push_back(ind);
 }
 
-const std::vector<unsigned> &Histories::GetNewSentenceLengths() const
-{
-  if (newSentenceLengths_.size() == 0) {
-    newSentenceLengths_.resize(newBatchIds_.size());
-    for (size_t i = 0; i < newBatchIds_.size(); ++i) {
-      unsigned ind = newBatchIds_[i];
-      const HistoriesElementPtr &ele = Get(ind);
-      assert(ele);
-      const SentencePtr &sent = ele->GetSentence();
-      assert(sent);
-
-      newSentenceLengths_[i] = sent->size();
-    }
-  }
-  return newSentenceLengths_;
-}
 
 unsigned Histories::FindNextEmptyIndex()
 {
