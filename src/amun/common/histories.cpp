@@ -210,17 +210,22 @@ Hypotheses Histories::GetSurvivors() const
 
 void Histories::AssembleInfo(std::vector<unsigned> &words, std::vector<unsigned> &prevStateIds) const
 {
-  Hypotheses survivors = GetSurvivors();
+  for (size_t i = 0; i < coll_.size(); ++i) {
+    HistoriesElementPtr ele =  coll_[i];
+    if (ele) {
+      const Hypotheses &hypos = ele->GetHypotheses();
+      unsigned beamSize = ele->GetBeamSize();
+      for (size_t j = 0; j < beamSize; ++j) {
+        const HypothesisPtr &hypo = hypos[j];
 
-  for (size_t i = 0; i < survivors.size(); ++i) {
-    const HypothesisPtr &hypo = survivors[i];
-    unsigned word = hypo->GetWord();
-    unsigned prevStateInd = hypo->GetPrevStateIndex();
+        unsigned word = hypo->GetWord();
+        unsigned prevStateInd = hypo->GetPrevStateIndex();
 
-    words.push_back(word);
-    prevStateIds.push_back(prevStateInd);
+        words.push_back(word);
+        prevStateIds.push_back(prevStateInd);
+      }
+    }
   }
-
 }
 
 std::vector<unsigned> Histories::Hypo2Batch() const
