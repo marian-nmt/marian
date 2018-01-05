@@ -586,7 +586,7 @@ void EncoderDecoder::AssembleBeamStateTopup(const Histories& histories,
   //cerr << "AssembleBeamState5" << endl;
   //cerr << "outState2=" << outState.Debug(0) << endl;
 
-  decoder_->LookupTopup(edOutState.GetEmbeddings(), beamWords, histories);
+  decoder_->LookupTopup(edOutState.GetEmbeddings(), beamWords, histories, d_oldHypoIds);
   //cerr << "outState3=" << outState.Debug(0) << endl;
   //cerr << ".GetEmbeddings()=" << .GetEmbeddings().Debug(1) << endl;
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));

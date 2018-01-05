@@ -25,8 +25,30 @@ private:
         : w_(model)
         {}
 
-        void Lookup(mblas::Matrix& Rows, const std::vector<unsigned>& ids) {
+        void Lookup(mblas::Matrix& Rows, const std::vector<unsigned>& ids)
+        {
           using namespace mblas;
+          std::vector<unsigned> tids = ids;
+          for(auto&& id : tids)
+            if(id >= w_.E_->dim(0))
+              id = 1;
+          indices_.newSize(tids.size());
+
+          mblas::copy(tids.data(),
+              tids.size(),
+              indices_.data(),
+              cudaMemcpyHostToDevice);
+
+          Assemble(Rows, *w_.E_, indices_);
+        }
+
+        void LookupTopup(mblas::Matrix& Rows, const std::vector<unsigned>& ids, const mblas::Vector<unsigned> &d_oldHypoIds)
+        {
+          using namespace mblas;
+          std::cerr << "ids=" << amunmt::Debug(ids, 2) << std::endl;
+          std::cerr << "d_oldHypoIds=" << d_oldHypoIds.Debug(2) << std::endl;
+          std::cerr << "Rows=" << Rows.Debug(0) << std::endl;
+
           std::vector<unsigned> tids = ids;
           for(auto&& id : tids)
             if(id >= w_.E_->dim(0))
@@ -550,10 +572,11 @@ private:
 
     void LookupTopup(mblas::Matrix& Embedding,
                 const std::vector<unsigned>& w,
-                const Histories &histories)
+                const Histories &histories,
+                const mblas::Vector<unsigned> &d_oldHypoIds)
     {
       // TODO
-      embeddings_.Lookup(Embedding, w);
+      embeddings_.LookupTopup(Embedding, w, d_oldHypoIds);
     }
 
     void Filter(const std::vector<unsigned>& ids) {
