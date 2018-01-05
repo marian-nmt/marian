@@ -1487,7 +1487,7 @@ void UpdateSentenceLengths(const mblas::Vector<unsigned> &d_newBatchIds,
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 __global__
-void gAddNewData(mblas::MatrixWrapper<float> dest,
+void gAddNewData3(mblas::MatrixWrapper<float> dest,
                 const mblas::MatrixWrapper<float> source,
                 unsigned batchId,
                 unsigned newSentenceOffset,
@@ -1531,7 +1531,7 @@ void AddNewSourceContext(mblas::Matrix &matrix,
     unsigned threads = std::min(MAX_THREADS, size);
     unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
 
-    gAddNewData<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(matrix, newMatrix, batchId, newSentenceOffset, size);
+    gAddNewData3<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(matrix, newMatrix, batchId, newSentenceOffset, size);
   }
 
   PAUSE_TIMER("AddNewSourceContext");
@@ -1566,30 +1566,42 @@ void AddNewSCU(mblas::Matrix &matrix,
     unsigned threads = std::min(MAX_THREADS, size);
     unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
 
-    gAddNewData<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(matrix, newMatrix, batchId, newSentenceOffset, size);
+    gAddNewData3<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(matrix, newMatrix, batchId, newSentenceOffset, size);
   }
 
   PAUSE_TIMER("AddNewSCU");
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
+__global__
+void gAddNewData0(mblas::MatrixWrapper<float> dest,
+                const mblas::MatrixWrapper<float> source,
+                unsigned batchId,
+                unsigned newSentenceOffset)
+{
+  unsigned id = threadIdx.x + blockIdx.x * blockDim.x;
+  if (id < dest.GetShape().dim(1)) {
+    dest(batchId, id, 0, 0) = source(newSentenceOffset, id, 0, 0);
+  }
+}
+
 void AddNewStates(mblas::Matrix& matrix,
                   const mblas::Matrix &newMatrix,
                   unsigned hypoId,
                   unsigned newSentenceOffset,
                   const CellState &newState)
 {
-  assert(hypoId < matrix.dim(3));
-  assert(newSentenceOffset < newMatrix.dim(3));
-  assert(matrix.dim(0) >= newMatrix.dim(0));
+  assert(hypoId < matrix.dim(0));
+  assert(newSentenceOffset < newMatrix.dim(0));
   assert(matrix.dim(1) == newMatrix.dim(1));
   assert(matrix.dim(2) == newMatrix.dim(2) == 1);
+  assert(matrix.dim(3) == newMatrix.dim(3) == 1);
 
-  unsigned size = newMatrix.dim(0) * newMatrix.dim(1);
+  unsigned size = newMatrix.dim(1);
   unsigned threads = std::min(MAX_THREADS, size);
   unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
 
-  gAddNewData<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(matrix, newMatrix, hypoId, newSentenceOffset, size);
+  gAddNewData0<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(matrix, newMatrix, hypoId, newSentenceOffset);
 
 }
 
@@ -1598,19 +1610,19 @@ void AddNewStates(CellState& State,
                 const std::vector<BufferOutput> &newSentences)
 {
   BEGIN_TIMER("AddNewStates");
-  cerr << "State=" << State.Debug(0) << endl;
-  cerr << "newHypoIds=" << amunmt::Debug(newHypoIds, 2) << endl;
+  //cerr << "State=" << State.Debug(0) << endl;
+  //cerr << "newHypoIds=" << amunmt::Debug(newHypoIds, 2) << endl;
 
   for (unsigned i = 0; i < newSentences.size(); ++i) {
     const BufferOutput &eleSent = newSentences[i];
     const EncOutPtr &encOut = eleSent.GetEncOut();
     const CellState &newState = encOut->Get<EncOutGPU>().GetCellState();
-    cerr << "newState=" << newState.Debug(1) << endl;
+    //cerr << "newState=" << newState.Debug(1) << endl;
 
     unsigned hypoId = newHypoIds[i];
     unsigned newSentenceOffset = eleSent.GetSentenceOffset();
-    cerr << "hypoId=" << hypoId << endl;
-    cerr << "newSentenceOffset=" << newSentenceOffset << endl;
+    //cerr << "hypoId=" << hypoId << endl;
+    //cerr << "newSentenceOffset=" << newSentenceOffset << endl;
 
     AddNewStates(*State.output, *newState.output, hypoId, newSentenceOffset, newState);
   }
