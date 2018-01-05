@@ -294,9 +294,10 @@ Matrix& Assemble(Matrix& Out,
 Matrix& AssembleTopup(Matrix& Out,
                  const Matrix& In,
                  const mblas::Vector<unsigned>& indices,
+                 unsigned numHypos,
                  const mblas::Vector<unsigned> &d_oldHypoIds)
 {
-  Out.NewSize(indices.size(), In.dim(1));
+  Out.NewSize(numHypos, In.dim(1));
   //cerr << "Assemble=" << Out.Debug() << " " << In.Debug() << indices.size() << endl;
 
   CopyRows(Out, In, indices);

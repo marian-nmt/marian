@@ -99,8 +99,8 @@ public:
   void Add(const God &god);
 
   Hypotheses GetSurvivors() const;
-  std::vector<unsigned> GetWords() const;
-  std::vector<unsigned> GetPrevStateIndices() const;
+
+  void AssembleInfo(std::vector<unsigned> &words, std::vector<unsigned> &prevStateIds) const;
 
   std::vector<unsigned> Hypo2Batch() const;
 

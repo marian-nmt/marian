@@ -484,8 +484,8 @@ void EncoderDecoder::AssembleBeamState(const Histories& histories,
                                         State& outState) const
 {
   //BEGIN_TIMER("AssembleBeamState");
-  std::vector<unsigned> beamWords = histories.GetWords();
-  std::vector<unsigned> beamStateIds = histories.GetPrevStateIndices();
+  std::vector<unsigned> beamWords, beamStateIds;
+  histories.AssembleInfo(beamWords, beamStateIds);
   /*
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   cerr << "AssembleBeamState1" << endl;
@@ -536,8 +536,8 @@ void EncoderDecoder::AssembleBeamStateTopup(const Histories& histories,
                                         State& outState) const
 {
   //BEGIN_TIMER("AssembleBeamState");
-  std::vector<unsigned> beamWords = histories.GetWords();
-  std::vector<unsigned> beamStateIds = histories.GetPrevStateIndices();
+  std::vector<unsigned> beamWords, beamStateIds;
+  histories.AssembleInfo(beamWords, beamStateIds);
   /*
   HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   cerr << "AssembleBeamState1" << endl;
@@ -545,6 +545,10 @@ void EncoderDecoder::AssembleBeamStateTopup(const Histories& histories,
   */
   cerr << "beamWords=" << Debug(beamWords, 2) << endl;
   cerr << "beamStateIds=" << Debug(beamStateIds, 2) << endl;
+
+  unsigned numHypos = histories.GetTotalBeamSize();
+  assert(numHypos == beamWords.size());
+  assert(numHypos == beamStateIds.size());
 
   const EDState& edInState = inState.get<EDState>();
   EDState& edOutState = outState.get<EDState>();
@@ -572,13 +576,13 @@ void EncoderDecoder::AssembleBeamStateTopup(const Histories& histories,
 
   //cerr << "histories=" << histories.Debug() << endl;
   //cerr << "outState1=" << outState.Debug(0) << endl;
-  mblas::AssembleTopup(*(cellOutStates.output), *(cellInstates.output), indices, d_oldHypoIds);
+  mblas::AssembleTopup(*(cellOutStates.output), *(cellInstates.output), indices, numHypos, d_oldHypoIds);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "AssembleBeamState4" << endl;
   //cerr << "cellOutStates2=" << cellOutStates.Debug(0) << endl;
 
   if (cellInstates.cell->size() > 0) {
-    mblas::AssembleTopup(*(cellOutStates.cell), *(cellInstates.cell), indices, d_oldHypoIds);
+    mblas::AssembleTopup(*(cellOutStates.cell), *(cellInstates.cell), indices, numHypos, d_oldHypoIds);
   }
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "AssembleBeamState5" << endl;

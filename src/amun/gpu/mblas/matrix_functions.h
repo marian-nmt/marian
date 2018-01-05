@@ -97,6 +97,7 @@ Matrix& Assemble(Matrix& Out,
 Matrix& AssembleTopup(Matrix& Out,
                  const Matrix& In,
                  const mblas::Vector<unsigned>& indices,
+                 unsigned numHypos,
                  const mblas::Vector<unsigned> &d_oldHypoIds);
 
 Matrix& Slice(Matrix& Out,
