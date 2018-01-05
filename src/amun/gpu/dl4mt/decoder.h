@@ -49,7 +49,8 @@ private:
           using namespace mblas;
           std::cerr << "ids=" << amunmt::Debug(ids, 2) << std::endl;
           std::cerr << "d_oldHypoIds=" << d_oldHypoIds.Debug(2) << std::endl;
-          std::cerr << "Rows=" << Rows.Debug(0) << std::endl;
+
+          assert(ids.size() == d_oldHypoIds.size());
 
           std::vector<unsigned> tids = ids;
           for(unsigned &id : tids) {
@@ -65,6 +66,8 @@ private:
               cudaMemcpyHostToDevice);
 
           Assemble(Rows, *w_.E_, indices_);
+
+          std::cerr << "Rows=" << Rows.Debug(0) << std::endl;
         }
 
         unsigned GetCols() const {
