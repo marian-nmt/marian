@@ -315,7 +315,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   boost::timer::cpu_timer timer;
 
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  cerr << "TopupBatch1" << endl;
+  //cerr << "TopupBatch1" << endl;
   unsigned numSentToGet = god_.Get<unsigned>("mini-batch") - histories.NumActive();
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch2" << endl;

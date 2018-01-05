@@ -1507,14 +1507,15 @@ void AddNewSourceContext(mblas::Matrix &matrix,
                 const std::vector<BufferOutput> &newSentences)
 {
   BEGIN_TIMER("AddNewSourceContext");
-  //cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
+  cerr << "matrix=" << matrix.Debug(0) << endl;
+  cerr << "newBatchIds=" << amunmt::Debug(newBatchIds, 2) << endl;
 
   for (unsigned i = 0; i < newSentences.size(); ++i) {
     const BufferOutput &eleSent = newSentences[i];
     const EncOutPtr &encOut = eleSent.GetEncOut();
     const mblas::Matrix &newMatrix = encOut->Get<EncOutGPU>().GetSourceContext();
     //cerr << "sourceContext=" << sourceContext.Debug(1) << endl;
-    //cerr << "newMatrix=" << newMatrix.Debug(1) << endl;
+    cerr << "newMatrix=" << newMatrix.Debug(1) << endl;
 
     unsigned batchId = newBatchIds[i];
     unsigned newSentenceOffset = eleSent.GetSentenceOffset();
