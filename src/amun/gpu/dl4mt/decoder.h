@@ -124,7 +124,7 @@ private:
                                   const mblas::Vector<unsigned> &oldHypoIds,
                                   const std::vector<unsigned> &newHypoIds) const
         {
-          AddNewStates(*State.output, newHypoIds, newSentences);
+          mblas::AddNewStates(State, newHypoIds, newSentences);
 
         }
 

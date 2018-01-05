@@ -1,7 +1,9 @@
 #include "common/histories.h"
+#include "common/utils.h"
 #include "gpu/mblas/matrix_functions.h"
 #include "gpu/mblas/handles.h"
 #include "gpu/decoder/enc_out_gpu.h"
+#include "gpu/dl4mt/cellstate.h"
 
 using namespace std;
 
@@ -1570,36 +1572,47 @@ void AddNewSCU(mblas::Matrix &matrix,
   PAUSE_TIMER("AddNewSCU");
 }
 
-void AddNewStates(mblas::Matrix &matrix,
+//////////////////////////////////////////////////////////////////////////////////////////
+void AddNewStates(mblas::Matrix& matrix,
+                  const mblas::Matrix &newMatrix,
+                  unsigned hypoId,
+                  unsigned newSentenceOffset,
+                  const CellState &newState)
+{
+  assert(hypoId < matrix.dim(3));
+  assert(newSentenceOffset < newMatrix.dim(3));
+  assert(matrix.dim(0) >= newMatrix.dim(0));
+  assert(matrix.dim(1) == newMatrix.dim(1));
+  assert(matrix.dim(2) == newMatrix.dim(2) == 1);
+
+  unsigned size = newMatrix.dim(0) * newMatrix.dim(1);
+  unsigned threads = std::min(MAX_THREADS, size);
+  unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
+
+  gAddNewData<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(matrix, newMatrix, hypoId, newSentenceOffset, size);
+
+}
+
+void AddNewStates(CellState& State,
                 const std::vector<unsigned> &newHypoIds,
                 const std::vector<BufferOutput> &newSentences)
 {
   BEGIN_TIMER("AddNewStates");
-  //cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
+  cerr << "State=" << State.Debug(0) << endl;
+  cerr << "newHypoIds=" << amunmt::Debug(newHypoIds, 2) << endl;
 
   for (unsigned i = 0; i < newSentences.size(); ++i) {
     const BufferOutput &eleSent = newSentences[i];
     const EncOutPtr &encOut = eleSent.GetEncOut();
-    const mblas::Matrix &newMatrix = encOut->Get<EncOutGPU>().GetSCU();
-    //cerr << "sourceContext=" << sourceContext.Debug(1) << endl;
-    //cerr << "newMatrix=" << newMatrix.Debug(1) << endl;
+    const CellState &newState = encOut->Get<EncOutGPU>().GetCellState();
+    cerr << "newState=" << newState.Debug(1) << endl;
 
-    unsigned batchId = newHypoIds[i];
+    unsigned hypoId = newHypoIds[i];
     unsigned newSentenceOffset = eleSent.GetSentenceOffset();
-    //cerr << "batchId=" << batchId << endl;
-    //cerr << "newSentenceOffset=" << newSentenceOffset << endl;
+    cerr << "hypoId=" << hypoId << endl;
+    cerr << "newSentenceOffset=" << newSentenceOffset << endl;
 
-    assert(batchId < matrix.dim(3));
-    assert(newSentenceOffset < newMatrix.dim(3));
-    assert(matrix.dim(0) >= newMatrix.dim(0));
-    assert(matrix.dim(1) == newMatrix.dim(1));
-    assert(matrix.dim(2) == newMatrix.dim(2) == 1);
-
-    unsigned size = newMatrix.dim(0) * newMatrix.dim(1);
-    unsigned threads = std::min(MAX_THREADS, size);
-    unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
-
-    gAddNewData<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(matrix, newMatrix, batchId, newSentenceOffset, size);
+    AddNewStates(*State.output, *newState.output, hypoId, newSentenceOffset, newState);
   }
 
   PAUSE_TIMER("AddNewStates");

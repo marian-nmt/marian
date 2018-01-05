@@ -22,6 +22,9 @@ class Histories;
 class BufferOutput;
 
 namespace GPU {
+
+class CellState;
+
 namespace mblas {
 
 template<typename T>
@@ -494,7 +497,7 @@ void AddNewSCU(mblas::Matrix &matrix,
                 const std::vector<unsigned> &newBatchIds,
                 const std::vector<BufferOutput> &newSentences);
 
-void AddNewStates(mblas::Matrix &matrix,
+void AddNewStates(CellState& State,
                 const std::vector<unsigned> &newHypoIds,
                 const std::vector<BufferOutput> &newSentences);
 

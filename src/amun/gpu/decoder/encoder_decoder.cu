@@ -362,10 +362,10 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   //mblas::Vector<unsigned> d_newHypoIds(newHypoIds);
   mblas::Vector<unsigned> d_oldHypoIds(oldHypoIds);
 
-  cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
-  cerr << "oldBatchIds=" << Debug(oldBatchIds, 2) << endl;
-  cerr << "newHypoIds=" << Debug(newHypoIds, 2) << endl;
-  cerr << "oldHypoIds=" << Debug(oldHypoIds, 2) << endl;
+  //cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
+  //cerr << "oldBatchIds=" << Debug(oldBatchIds, 2) << endl;
+  //cerr << "newHypoIds=" << Debug(newHypoIds, 2) << endl;
+  //cerr << "oldHypoIds=" << Debug(oldHypoIds, 2) << endl;
   //cerr << "newSentenceLengths=" << Debug(newSentenceLengths, 2) << endl;
 
   //cerr << "4state=" << state.Debug() << endl;
