@@ -86,17 +86,17 @@ void MapMatrix(Matrix& state,
               const mblas::Vector<unsigned> &sentenceLengths,
               unsigned i);
 
-Matrix& CopyRows(Matrix& Out,
-                 const Matrix& In,
-                 const mblas::Vector<unsigned>& indices);
+Matrix& CopyRows(Matrix& out,
+                 const Matrix& in,
+                 const mblas::Vector<unsigned>& inRows);
 
-Matrix& Assemble(Matrix& Out,
-                 const Matrix& In,
-                 const mblas::Vector<unsigned>& indices);
+Matrix& Assemble(Matrix& out,
+                 const Matrix& in,
+                 const mblas::Vector<unsigned>& inRows);
 
-Matrix& AssembleTopup(Matrix& Out,
-                 const Matrix& In,
-                 const mblas::Vector<unsigned>& indices,
+Matrix& AssembleTopup(Matrix& out,
+                 const Matrix& in,
+                 const mblas::Vector<unsigned>& inRows,
                  unsigned numHypos,
                  const mblas::Vector<unsigned> &d_oldHypoIds);
 

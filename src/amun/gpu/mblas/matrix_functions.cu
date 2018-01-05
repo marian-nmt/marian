@@ -226,7 +226,7 @@ Matrix& CopyRow(Matrix& Out,
 
 __global__ void gCopyRows(MatrixWrapper<float> out,
                           const MatrixWrapper<float> in,
-                          const VectorWrapper<unsigned> indicesWrap)
+                          const VectorWrapper<unsigned> inRows)
 {
   unsigned id = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -235,73 +235,68 @@ __global__ void gCopyRows(MatrixWrapper<float> out,
 	  out.GetShape().id2Indices(id, dim);
 
 	  unsigned indicesInd = dim[0];
-	  unsigned inRow =indicesWrap[indicesInd];
+	  unsigned inRow =inRows[indicesInd];
 
       out(indicesInd, dim[1]) = in(inRow, dim[1]);
 
   }
 }
 
-Matrix& CopyRows(Matrix& Out,
+Matrix& CopyRows(Matrix& out,
                  const Matrix& In,
-                 const mblas::Vector<unsigned>& indices)
+                 const mblas::Vector<unsigned>& inRows)
 {
-  assert(In.dim(1) == Out.dim(1));
-  assert(Out.dim(0) == indices.size());
+  assert(In.dim(1) == out.dim(1));
+  assert(out.dim(0) == inRows.size());
 
   assert(In.dim(2) == 1);
   assert(In.dim(3) == 1);
-  assert(Out.dim(2) == 1);
-  assert(Out.dim(3) == 1);
+  assert(out.dim(2) == 1);
+  assert(out.dim(3) == 1);
 
   /*
-  cerr << "Out=" << Out.Debug(0) << endl;
+  cerr << "out=" << out.Debug(0) << endl;
   cerr << "In=" << In.Debug(0) << endl;
   cerr << "indices=" << Debug(indices, 2) << endl;
   cerr << endl;
   */
 
-  unsigned size = Out.size();
-
-  unsigned numPairs = indices.size();
-
-  MatrixWrapper<float> outWrap(Out);
-  const MatrixWrapper<float> inWrap(In);
-  const VectorWrapper<unsigned> indicesWrap(indices);
+  unsigned size = out.size();
+  unsigned numPairs = inRows.size();
   //cerr << "size=" << size << endl;
 
   unsigned threads = std::min(MAX_THREADS, size);
   unsigned blocks = size / threads + ((size % threads == 0) ?  0 : 1);
 
   gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (outWrap, inWrap, indicesWrap);
+    (out, In, inRows);
 
-  return Out;
+  return out;
 }
 
 
-Matrix& Assemble(Matrix& Out,
+Matrix& Assemble(Matrix& out,
                  const Matrix& In,
-                 const mblas::Vector<unsigned>& indices)
+                 const mblas::Vector<unsigned>& inRows)
 {
-  Out.NewSize(indices.size(), In.dim(1));
-  //cerr << "Assemble=" << Out.Debug() << " " << In.Debug() << indices.size() << endl;
+  out.NewSize(inRows.size(), In.dim(1));
+  //cerr << "Assemble=" << out.Debug() << " " << In.Debug() << indices.size() << endl;
 
-  CopyRows(Out, In, indices);
-  return Out;
+  CopyRows(out, In, inRows);
+  return out;
 }
 
-Matrix& AssembleTopup(Matrix& Out,
+Matrix& AssembleTopup(Matrix& out,
                  const Matrix& In,
-                 const mblas::Vector<unsigned>& indices,
+                 const mblas::Vector<unsigned>& inRows,
                  unsigned numHypos,
                  const mblas::Vector<unsigned> &d_oldHypoIds)
 {
-  Out.NewSize(numHypos, In.dim(1));
-  //cerr << "Assemble=" << Out.Debug() << " " << In.Debug() << indices.size() << endl;
+  out.NewSize(numHypos, In.dim(1));
+  //cerr << "Assemble=" << out.Debug() << " " << In.Debug() << indices.size() << endl;
 
-  CopyRows(Out, In, indices);
-  return Out;
+  CopyRows(out, In, inRows);
+  return out;
 }
 
 __global__ void gSlice(MatrixWrapper<float> out,

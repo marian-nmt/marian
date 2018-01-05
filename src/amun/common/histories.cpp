@@ -212,7 +212,7 @@ void Histories::AssembleInfo(std::vector<unsigned> &words, std::vector<unsigned>
 {
   for (size_t i = 0; i < coll_.size(); ++i) {
     HistoriesElementPtr ele =  coll_[i];
-    if (ele) {
+    if (ele && !ele->IsFirst()) {
       const Hypotheses &hypos = ele->GetHypotheses();
       unsigned beamSize = ele->GetBeamSize();
       for (size_t j = 0; j < beamSize; ++j) {
