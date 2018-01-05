@@ -1491,12 +1491,12 @@ void gAddNewData3(mblas::MatrixWrapper<float> dest,
                 const mblas::MatrixWrapper<float> source,
                 unsigned batchId,
                 unsigned newSentenceOffset,
-                unsigned size)
+                const Shape shape)
 {
   unsigned id = threadIdx.x + blockIdx.x * blockDim.x;
-  if (id < size) {
-    unsigned dim0 = id / source.GetShape().dim(1);
-    unsigned dim1 = id % source.GetShape().dim(1);
+  if (id < shape.size()) {
+    unsigned dim0 = id / shape.dim(1);
+    unsigned dim1 = id % shape.dim(1);
 
     dest(dim0, dim1, 0, batchId) = source(dim0, dim1, 0, newSentenceOffset);
   }
@@ -1519,20 +1519,24 @@ void AddNewSourceContext(mblas::Matrix &matrix,
 
     unsigned batchId = newBatchIds[i];
     unsigned newSentenceOffset = eleSent.GetSentenceOffset();
+    const SentencePtr &sent = encOut->GetSentences().Get(newSentenceOffset);
+    unsigned sentLength = sent->size();
     //cerr << "batchId=" << batchId << endl;
     //cerr << "newSentenceOffset=" << newSentenceOffset << endl;
 
+    Shape shape(sentLength, newMatrix.dim(1), 1, 1);
+
     assert(batchId < matrix.dim(3));
     assert(newSentenceOffset < newMatrix.dim(3));
-    assert(matrix.dim(0) >= newMatrix.dim(0));
+    //assert(matrix.dim(0) >= newMatrix.dim(0));
     assert(matrix.dim(1) == newMatrix.dim(1));
     assert(matrix.dim(2) == newMatrix.dim(2) == 1);
 
-    unsigned size = newMatrix.dim(0) * newMatrix.dim(1);
+    unsigned size = shape.size();
     unsigned threads = std::min(MAX_THREADS, size);
     unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
 
-    gAddNewData3<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(matrix, newMatrix, batchId, newSentenceOffset, size);
+    gAddNewData3<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(matrix, newMatrix, batchId, newSentenceOffset, shape);
   }
 
   PAUSE_TIMER("AddNewSourceContext");
@@ -1554,20 +1558,24 @@ void AddNewSCU(mblas::Matrix &matrix,
 
     unsigned batchId = newBatchIds[i];
     unsigned newSentenceOffset = eleSent.GetSentenceOffset();
+    const SentencePtr &sent = encOut->GetSentences().Get(newSentenceOffset);
+    unsigned sentLength = sent->size();
     //cerr << "batchId=" << batchId << endl;
     //cerr << "newSentenceOffset=" << newSentenceOffset << endl;
 
+    Shape shape(sentLength, newMatrix.dim(1), 1, 1);
+
     assert(batchId < matrix.dim(3));
     assert(newSentenceOffset < newMatrix.dim(3));
-    assert(matrix.dim(0) >= newMatrix.dim(0));
+    //assert(matrix.dim(0) >= newMatrix.dim(0));
     assert(matrix.dim(1) == newMatrix.dim(1));
     assert(matrix.dim(2) == newMatrix.dim(2) == 1);
 
-    unsigned size = newMatrix.dim(0) * newMatrix.dim(1);
+    unsigned size = shape.size();
     unsigned threads = std::min(MAX_THREADS, size);
     unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
 
-    gAddNewData3<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(matrix, newMatrix, batchId, newSentenceOffset, size);
+    gAddNewData3<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(matrix, newMatrix, batchId, newSentenceOffset, shape);
   }
 
   PAUSE_TIMER("AddNewSCU");
