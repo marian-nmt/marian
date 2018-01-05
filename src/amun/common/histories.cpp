@@ -339,6 +339,7 @@ void Histories::BatchIds(std::vector<unsigned> &newBatchIds,
 
         assert(ele->GetBeamSize() == 1);
         newHypoIds.push_back(hypoInd);
+        ++hypoInd;
       }
       else {
         oldBatchIds.push_back(ind);

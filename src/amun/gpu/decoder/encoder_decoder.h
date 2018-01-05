@@ -115,6 +115,7 @@ class EncoderDecoder : public Scorer {
 
     void AssembleBeamStateTopup(const Histories& histories,
                             const State& inState,
+                            const mblas::Vector<unsigned> &d_oldHypoIds,
                             State& outState) const;
 
 };
