@@ -29,9 +29,11 @@ private:
         {
           using namespace mblas;
           std::vector<unsigned> tids = ids;
-          for(auto&& id : tids)
-            if(id >= w_.E_->dim(0))
+          for(unsigned &id : tids) {
+            if(id >= w_.E_->dim(0)) {
               id = 1;
+            }
+          }
           indices_.newSize(tids.size());
 
           mblas::copy(tids.data(),
@@ -50,9 +52,11 @@ private:
           std::cerr << "Rows=" << Rows.Debug(0) << std::endl;
 
           std::vector<unsigned> tids = ids;
-          for(auto&& id : tids)
-            if(id >= w_.E_->dim(0))
+          for(unsigned &id : tids) {
+            if(id >= w_.E_->dim(0)) {
               id = 1;
+            }
+          }
           indices_.newSize(tids.size());
 
           mblas::copy(tids.data(),
