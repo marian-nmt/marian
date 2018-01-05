@@ -237,29 +237,28 @@ __global__ void gCopyRows(MatrixWrapper<float> out,
 	  unsigned indicesInd = dim[0];
 	  unsigned inRow =inRows[indicesInd];
 
-      out(indicesInd, dim[1]) = in(inRow, dim[1]);
+    out(indicesInd, dim[1]) = in(inRow, dim[1]);
 
   }
 }
 
 Matrix& CopyRows(Matrix& out,
-                 const Matrix& In,
+                 const Matrix& in,
                  const mblas::Vector<unsigned>& inRows)
 {
-  assert(In.dim(1) == out.dim(1));
-  assert(out.dim(0) == inRows.size());
-
-  assert(In.dim(2) == 1);
-  assert(In.dim(3) == 1);
-  assert(out.dim(2) == 1);
-  assert(out.dim(3) == 1);
-
   /*
   cerr << "out=" << out.Debug(0) << endl;
-  cerr << "In=" << In.Debug(0) << endl;
-  cerr << "indices=" << Debug(indices, 2) << endl;
+  cerr << "in=" << in.Debug(0) << endl;
+  cerr << "inRows=" << inRows.Debug(2) << endl;
   cerr << endl;
   */
+  assert(in.dim(1) == out.dim(1));
+  assert(out.dim(0) == inRows.size());
+
+  assert(in.dim(2) == 1);
+  assert(in.dim(3) == 1);
+  assert(out.dim(2) == 1);
+  assert(out.dim(3) == 1);
 
   unsigned size = out.size();
   unsigned numPairs = inRows.size();
@@ -269,33 +268,90 @@ Matrix& CopyRows(Matrix& out,
   unsigned blocks = size / threads + ((size % threads == 0) ?  0 : 1);
 
   gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
-    (out, In, inRows);
+    (out, in, inRows);
 
   return out;
+}
+
+__global__ void gCopyRows(MatrixWrapper<float> out,
+                          const MatrixWrapper<float> in,
+                          const VectorWrapper<unsigned> inRows,
+                          const VectorWrapper<unsigned> outRows,
+                          const Shape shape)
+{
+  unsigned id = threadIdx.x + blockIdx.x * blockDim.x;
+
+  if (id < shape.size()) {
+    unsigned dim[SHAPE_SIZE];
+    shape.id2Indices(id, dim);
+
+    unsigned indicesInd = dim[0];
+    unsigned inRow  = inRows[indicesInd];
+    unsigned outRow = outRows[indicesInd];
+
+    out(outRow, dim[1]) = in(inRow, dim[1]);
+
+  }
+}
+
+Matrix& CopyRows(Matrix& out,
+                 const Matrix& in,
+                 const mblas::Vector<unsigned>& inRows,
+                 const mblas::Vector<unsigned>& outRows)
+{
+  /*
+  cerr << "out=" << out.Debug(0) << endl;
+  cerr << "in=" << in.Debug(0) << endl;
+  cerr << "inRows=" << inRows.Debug(2) << endl;
+  cerr << "outRows=" << outRows.Debug(2) << endl;
+  cerr << endl;
+  */
+  assert(inRows.size() == outRows.size());
+  assert(in.dim(0) >= inRows.size());
+  assert(out.dim(0) >= inRows.size());
+
+  assert(in.dim(1) == out.dim(1));
+  assert(in.dim(2) == 1);
+  assert(in.dim(3) == 1);
+  assert(out.dim(2) == 1);
+  assert(out.dim(3) == 1);
+
+  Shape shape(inRows.size(), out.dim(1), 1, 1);
+  unsigned size = shape.size();
+  //cerr << "size=" << size << endl;
+
+  unsigned threads = std::min(MAX_THREADS, size);
+  unsigned blocks = size / threads + ((size % threads == 0) ?  0 : 1);
+
+  gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
+    (out, in, inRows, outRows, shape);
+
+  return out;
+
 }
 
 
 Matrix& Assemble(Matrix& out,
-                 const Matrix& In,
+                 const Matrix& in,
                  const mblas::Vector<unsigned>& inRows)
 {
-  out.NewSize(inRows.size(), In.dim(1));
-  //cerr << "Assemble=" << out.Debug() << " " << In.Debug() << indices.size() << endl;
+  out.NewSize(inRows.size(), in.dim(1));
+  //cerr << "Assemble=" << out.Debug() << " " << in.Debug() << indices.size() << endl;
 
-  CopyRows(out, In, inRows);
+  CopyRows(out, in, inRows);
   return out;
 }
 
 Matrix& AssembleTopup(Matrix& out,
-                 const Matrix& In,
+                 const Matrix& in,
                  const mblas::Vector<unsigned>& inRows,
                  unsigned numHypos,
-                 const mblas::Vector<unsigned> &d_oldHypoIds)
+                 const mblas::Vector<unsigned> &outRows)
 {
-  out.NewSize(numHypos, In.dim(1));
-  //cerr << "Assemble=" << out.Debug() << " " << In.Debug() << indices.size() << endl;
+  out.NewSize(numHypos, in.dim(1));
+  //cerr << "Assemble=" << out.Debug() << " " << in.Debug() << indices.size() << endl;
 
-  CopyRows(out, In, inRows);
+  CopyRows(out, in, inRows, outRows);
   return out;
 }
 

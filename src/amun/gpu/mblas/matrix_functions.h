@@ -90,6 +90,11 @@ Matrix& CopyRows(Matrix& out,
                  const Matrix& in,
                  const mblas::Vector<unsigned>& inRows);
 
+Matrix& CopyRows(Matrix& out,
+                 const Matrix& in,
+                 const mblas::Vector<unsigned>& inRows,
+                 const mblas::Vector<unsigned>& outRows);
+
 Matrix& Assemble(Matrix& out,
                  const Matrix& in,
                  const mblas::Vector<unsigned>& inRows);
@@ -98,7 +103,7 @@ Matrix& AssembleTopup(Matrix& out,
                  const Matrix& in,
                  const mblas::Vector<unsigned>& inRows,
                  unsigned numHypos,
-                 const mblas::Vector<unsigned> &d_oldHypoIds);
+                 const mblas::Vector<unsigned> &outRows);
 
 Matrix& Slice(Matrix& Out,
               const Matrix& In,
