@@ -320,7 +320,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch2" << endl;
   //cerr << "numSentToGet=" << numSentToGet << endl;
-  //cerr << "histories orig=" << histories.Debug() << endl;
+  cerr << "histories orig=" << histories.Debug() << endl;
 
   std::vector<BufferOutput> newSentences;
   encDecBuffer_.Get(numSentToGet, newSentences);
@@ -347,7 +347,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   }
 
   // histories is const from here on
-  //cerr << "histories=" << histories.Debug() << endl;
+  cerr << "histories=" << histories.Debug() << endl;
 
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch6" << endl;

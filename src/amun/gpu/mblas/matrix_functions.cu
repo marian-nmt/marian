@@ -301,15 +301,15 @@ Matrix& CopyRows(Matrix& out,
                  const mblas::Vector<unsigned>& inRows,
                  const mblas::Vector<unsigned>& outRows)
 {
-
+  /*
   cerr << "out=" << out.Debug(0) << endl;
   cerr << "in=" << in.Debug(0) << endl;
-  cerr << "inRows=" << inRows.Debug(0) << endl;
+  cerr << "inRows=" << inRows.Debug(2) << endl;
   cerr << "outRows=" << outRows.Debug(0) << endl;
   cerr << endl;
-
+  */
   assert(inRows.size() == outRows.size());
-  assert(in.dim(0) >= inRows.size());
+  //assert(in.dim(0) >= inRows.size());
   assert(out.dim(0) >= inRows.size());
 
   assert(in.dim(1) == out.dim(1));
