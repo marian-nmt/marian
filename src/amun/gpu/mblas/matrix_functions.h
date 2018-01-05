@@ -494,6 +494,10 @@ void AddNewSCU(mblas::Matrix &matrix,
                 const std::vector<unsigned> &newBatchIds,
                 const std::vector<BufferOutput> &newSentences);
 
+void AddNewStates(mblas::Matrix &matrix,
+                const std::vector<unsigned> &newHypoIds,
+                const std::vector<BufferOutput> &newSentences);
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
