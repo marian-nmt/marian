@@ -301,13 +301,13 @@ Matrix& CopyRows(Matrix& out,
                  const mblas::Vector<unsigned>& inRows,
                  const mblas::Vector<unsigned>& outRows)
 {
-  /*
+
   cerr << "out=" << out.Debug(0) << endl;
   cerr << "in=" << in.Debug(0) << endl;
-  cerr << "inRows=" << inRows.Debug(2) << endl;
-  cerr << "outRows=" << outRows.Debug(2) << endl;
+  cerr << "inRows=" << inRows.Debug(0) << endl;
+  cerr << "outRows=" << outRows.Debug(0) << endl;
   cerr << endl;
-  */
+
   assert(inRows.size() == outRows.size());
   assert(in.dim(0) >= inRows.size());
   assert(out.dim(0) >= inRows.size());
@@ -1507,15 +1507,15 @@ void AddNewSourceContext(mblas::Matrix &matrix,
                 const std::vector<BufferOutput> &newSentences)
 {
   BEGIN_TIMER("AddNewSourceContext");
-  cerr << "matrix=" << matrix.Debug(0) << endl;
-  cerr << "newBatchIds=" << amunmt::Debug(newBatchIds, 2) << endl;
+  //cerr << "matrix=" << matrix.Debug(0) << endl;
+  //cerr << "newBatchIds=" << amunmt::Debug(newBatchIds, 2) << endl;
 
   for (unsigned i = 0; i < newSentences.size(); ++i) {
     const BufferOutput &eleSent = newSentences[i];
     const EncOutPtr &encOut = eleSent.GetEncOut();
     const mblas::Matrix &newMatrix = encOut->Get<EncOutGPU>().GetSourceContext();
     //cerr << "sourceContext=" << sourceContext.Debug(1) << endl;
-    cerr << "newMatrix=" << newMatrix.Debug(1) << endl;
+    //cerr << "newMatrix=" << newMatrix.Debug(1) << endl;
 
     unsigned batchId = newBatchIds[i];
     unsigned newSentenceOffset = eleSent.GetSentenceOffset();
