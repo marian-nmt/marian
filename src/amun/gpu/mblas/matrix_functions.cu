@@ -294,7 +294,7 @@ Matrix& Assemble(Matrix& Out,
 Matrix& AssembleTopup(Matrix& Out,
                  const Matrix& In,
                  const mblas::Vector<unsigned>& indices,
-                 const Histories& histories)
+                 const mblas::Vector<unsigned> &d_oldHypoIds)
 {
   Out.NewSize(indices.size(), In.dim(1));
   //cerr << "Assemble=" << Out.Debug() << " " << In.Debug() << indices.size() << endl;

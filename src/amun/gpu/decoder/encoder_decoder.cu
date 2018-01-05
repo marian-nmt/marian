@@ -572,13 +572,13 @@ void EncoderDecoder::AssembleBeamStateTopup(const Histories& histories,
 
   //cerr << "histories=" << histories.Debug() << endl;
   //cerr << "outState1=" << outState.Debug(0) << endl;
-  mblas::AssembleTopup(*(cellOutStates.output), *(cellInstates.output), indices, histories);
+  mblas::AssembleTopup(*(cellOutStates.output), *(cellInstates.output), indices, d_oldHypoIds);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "AssembleBeamState4" << endl;
   //cerr << "cellOutStates2=" << cellOutStates.Debug(0) << endl;
 
   if (cellInstates.cell->size() > 0) {
-    mblas::AssembleTopup(*(cellOutStates.cell), *(cellInstates.cell), indices, histories);
+    mblas::AssembleTopup(*(cellOutStates.cell), *(cellInstates.cell), indices, d_oldHypoIds);
   }
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "AssembleBeamState5" << endl;
