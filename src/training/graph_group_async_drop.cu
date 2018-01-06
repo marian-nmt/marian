@@ -114,7 +114,7 @@ void AsyncGraphGroupDrop::pushGradients(Tensor newGrads,
           }
 
           if(movingAvg_)
-            AsyncGraphGroup::updateMovingAverage(
+            updateMovingAverage(
                 paramsAvg_[idx], params_[idx], scheduler_->numberOfBatches());
 
         },
