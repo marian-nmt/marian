@@ -182,7 +182,7 @@ void EncoderDecoder::DecodeAsyncInternal()
     boost::timer::cpu_timer timerStep;
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal1" << endl;
-    //std::cerr << "histories1=" << histories.Debug(1) << std::endl;
+    std::cerr << "histories=" << histories.Debug(1) << std::endl;
 
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal2" << endl;
@@ -219,8 +219,9 @@ void EncoderDecoder::DecodeAsyncInternal()
     //std::cerr << "state3=" << state->Debug(0) << std::endl;
     //std::cerr << "nextState3=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
-    //if (histories.NumActive() == 0) {
-    if ((histories.size() - histories.NumActive()) > 0) {
+    //if (histories.NumActive() < 1) {
+    //if ((histories.size() - histories.NumActive()) > 0) {
+    if (histories.NumActive() < 128) {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal6" << endl;
       //std::cerr << "histories6=" << histories.Debug(1) << std::endl;

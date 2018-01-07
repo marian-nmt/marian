@@ -261,10 +261,15 @@ std::string Histories::Debug(size_t verbosity) const
 {
   stringstream strm;
 
-  strm << " size=" << coll_.size() << " ";
+  strm << " size=" << coll_.size();
 
-  if (verbosity) {
-    strm << "beamsize=";
+  if (verbosity == 1) {
+    strm << " numActive=" << NumActive()
+         << " numHypos=" << GetTotalBeamSize();
+  }
+
+  if (verbosity == 2) {
+    strm << " beamsize=";
     for (size_t i = 0; i < coll_.size(); ++i) {
       const HistoriesElementPtr &ele = coll_[i];
       if (ele) {
