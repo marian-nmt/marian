@@ -44,7 +44,10 @@ private:
           Assemble(Rows, *w_.E_, indices_);
         }
 
-        void LookupTopup(mblas::Matrix& Rows, const std::vector<unsigned>& ids, const mblas::Vector<unsigned> &d_oldHypoIds)
+        void LookupTopup(mblas::Matrix& Rows,
+                        const std::vector<unsigned>& ids,
+                        const mblas::Vector<unsigned> &d_oldHypoIds,
+                        unsigned numHypos)
         {
           using namespace mblas;
           std::cerr << "ids=" << amunmt::Debug(ids, 2) << std::endl;
@@ -65,7 +68,7 @@ private:
               indices_.data(),
               cudaMemcpyHostToDevice);
 
-          Assemble(Rows, *w_.E_, indices_);
+          AssembleTopup(Rows, *w_.E_, indices_, numHypos, d_oldHypoIds);
 
           std::cerr << "Rows=" << Rows.Debug(0) << std::endl;
         }
@@ -582,8 +585,7 @@ private:
                 const Histories &histories,
                 const mblas::Vector<unsigned> &d_oldHypoIds)
     {
-      // TODO
-      embeddings_.LookupTopup(Embedding, w, d_oldHypoIds);
+      embeddings_.LookupTopup(Embedding, w, d_oldHypoIds, histories.GetTotalBeamSize());
     }
 
     void Filter(const std::vector<unsigned>& ids) {

@@ -368,11 +368,11 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   //cerr << "oldHypoIds=" << Debug(oldHypoIds, 2) << endl;
   //cerr << "newSentenceLengths=" << Debug(newSentenceLengths, 2) << endl;
 
-  //cerr << "4state=" << state.Debug() << endl;
+  cerr << "4state=" << state.Debug() << endl;
   AssembleBeamStateTopup(histories, nextState, oldHypoIds, state);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch7" << endl;
-  //cerr << "5state=" << state.Debug() << endl;
+  cerr << "5state=" << state.Debug() << endl;
 
   if (newSentences.size()) {
     unsigned maxLength =  histories.MaxLength();
@@ -400,6 +400,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
     //cerr << "TopupBatch11" << endl;
     //cerr << "histories new=" << histories.Debug() << endl;
     //cerr << "2SCU=" << SCU.Debug() << endl;
+    cerr << "6state=" << state.Debug() << endl;
   }
 
   LOG(progress)->info("Topup took {} new {} histories {}", timer.format(5, "%w"), newSentences.size(), histories.NumActive());
