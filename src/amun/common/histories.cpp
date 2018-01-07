@@ -257,6 +257,18 @@ void Histories::OutputAll(const God &god)
   active_ = 0;
 }
 
+unsigned Histories::NumFirsts() const
+{
+  unsigned ret = 0;
+  for (size_t i = 0; i < coll_.size(); ++i) {
+    HistoriesElementPtr ele =  coll_[i];
+    if (ele && ele->IsFirst()) {
+      ++ret;
+    }
+  }
+  return ret;
+}
+
 std::string Histories::Debug(size_t verbosity) const
 {
   stringstream strm;
@@ -265,7 +277,8 @@ std::string Histories::Debug(size_t verbosity) const
 
   if (verbosity == 1) {
     strm << " numActive=" << NumActive()
-         << " numHypos=" << GetTotalBeamSize();
+         << " numHypos=" << GetTotalBeamSize()
+         << " numFirsts=" << NumFirsts();
   }
 
   if (verbosity == 2) {

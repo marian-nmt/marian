@@ -73,6 +73,8 @@ public:
   unsigned NumActive() const
   { return active_; }
 
+  unsigned NumFirsts() const;
+
   bool NormalizeScore() const
   { return normalizeScore_; }
 
