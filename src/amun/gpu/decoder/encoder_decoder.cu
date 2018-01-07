@@ -313,6 +313,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
                                 State &nextState,
                                 State &state)
 {
+  BEGIN_TIMER("TopupBatch");
   boost::timer::cpu_timer timer;
 
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
@@ -344,6 +345,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   //cerr << "TopupBatch5" << endl;
 
   if (histories.NumActive() == 0) {
+    PAUSE_TIMER("TopupBatch");
     return;
   }
 
@@ -406,6 +408,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
 
   //LOG(progress)->info("Topup took {} new {} histories {}", timer.format(5, "%w"), newSentences.size(), histories.NumActive());
   //cerr << endl;
+  PAUSE_TIMER("TopupBatch");
 }
 
 void EncoderDecoder::BeginSentenceState(const Histories& histories,

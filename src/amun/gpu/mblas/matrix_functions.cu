@@ -1538,7 +1538,7 @@ void AddNewSourceContext(mblas::Matrix &matrix,
                 const vector<unsigned> &newBatchIds,
                 const std::vector<BufferOutput> &newSentences)
 {
-  BEGIN_TIMER("AddNewSourceContext");
+  //BEGIN_TIMER("AddNewSourceContext");
   //cerr << "matrix=" << matrix.Debug(0) << endl;
   //cerr << "newBatchIds=" << amunmt::Debug(newBatchIds, 2) << endl;
 
@@ -1571,14 +1571,14 @@ void AddNewSourceContext(mblas::Matrix &matrix,
     gAddNewData3<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(matrix, newMatrix, batchId, newSentenceOffset, shape);
   }
 
-  PAUSE_TIMER("AddNewSourceContext");
+  //PAUSE_TIMER("AddNewSourceContext");
 }
 
 void AddNewSCU(mblas::Matrix &matrix,
                 const vector<unsigned> &newBatchIds,
                 const std::vector<BufferOutput> &newSentences)
 {
-  BEGIN_TIMER("AddNewSCU");
+  //BEGIN_TIMER("AddNewSCU");
   //cerr << "sourceContext=" << sourceContext.Debug(0) << endl;
 
   for (unsigned i = 0; i < newSentences.size(); ++i) {
@@ -1610,7 +1610,7 @@ void AddNewSCU(mblas::Matrix &matrix,
     gAddNewData3<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(matrix, newMatrix, batchId, newSentenceOffset, shape);
   }
 
-  PAUSE_TIMER("AddNewSCU");
+  //PAUSE_TIMER("AddNewSCU");
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -1650,7 +1650,7 @@ void AddNewStates(CellState& State,
                 const std::vector<unsigned> &newHypoIds,
                 const std::vector<BufferOutput> &newSentences)
 {
-  BEGIN_TIMER("AddNewStates");
+  //BEGIN_TIMER("AddNewStates");
   //cerr << "State=" << State.Debug(0) << endl;
   //cerr << "newHypoIds=" << amunmt::Debug(newHypoIds, 2) << endl;
 
@@ -1668,7 +1668,7 @@ void AddNewStates(CellState& State,
     AddNewStates(*State.output, *newState.output, hypoId, newSentenceOffset, newState);
   }
 
-  PAUSE_TIMER("AddNewStates");
+  //PAUSE_TIMER("AddNewStates");
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
