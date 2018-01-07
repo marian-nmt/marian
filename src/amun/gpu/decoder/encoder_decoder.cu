@@ -78,6 +78,7 @@ void EncoderDecoder::Encode(const SentencesPtr &source) {
   EncOutPtr encOut(new EncOutGPU(source));
 
   if (source->size()) {
+    BEGIN_TIMER("Encode.Calc");
     encoder_->Encode(encOut, tab_);
 
     EncOutGPU &encOutGPU = encOut->Get<EncOutGPU>();
@@ -87,6 +88,7 @@ void EncoderDecoder::Encode(const SentencesPtr &source) {
                                             encOutGPU.GetSourceContext(),
                                             encOutGPU.GetSentences().size(),
                                             encOutGPU.GetSentenceLengths());
+    PAUSE_TIMER("Encode.Calc");
   }
 
   encDecBuffer_.Add(encOut);
@@ -224,9 +226,8 @@ void EncoderDecoder::DecodeAsyncInternal()
     //std::cerr << "state3=" << state->Debug(0) << std::endl;
     //std::cerr << "nextState3=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
-    //if (histories.NumActive() < 1) {
-    if ((histories.size() - histories.NumActive()) > 0) {
-    //if (histories.NumActive() < 128) {
+    //if (histories.NumActive() < 8) {
+    if (histories.NumInactive() > 0) {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal6" << endl;
       //std::cerr << "histories6=" << histories.Debug(1) << std::endl;

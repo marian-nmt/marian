@@ -310,11 +310,15 @@ private:
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           //std::cerr << "GetAlignedSourceContext10" << std::endl;
 
+          BEGIN_TIMER("Softmax");
           mblas::Softmax(A_, dHypo2Batch_, sentenceLengths, batchSize);
+          PAUSE_TIMER("Softmax");
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           //std::cerr << "GetAlignedSourceContext11" << std::endl;
 
+          BEGIN_TIMER("WeightedMean");
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dHypo2Batch_);
+          PAUSE_TIMER("WeightedMean");
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           //std::cerr << "GetAlignedSourceContext12" << std::endl;
 
