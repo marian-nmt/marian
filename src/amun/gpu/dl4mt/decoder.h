@@ -50,8 +50,8 @@ private:
                         unsigned numHypos)
         {
           using namespace mblas;
-          std::cerr << "ids=" << amunmt::Debug(ids, 2) << std::endl;
-          std::cerr << "d_oldHypoIds=" << d_oldHypoIds.Debug(2) << std::endl;
+          //std::cerr << "ids=" << amunmt::Debug(ids, 2) << std::endl;
+          //std::cerr << "d_oldHypoIds=" << d_oldHypoIds.Debug(2) << std::endl;
 
           assert(ids.size() == d_oldHypoIds.size());
 
@@ -70,7 +70,7 @@ private:
 
           AssembleTopup(Rows, *w_.E_, indices_, numHypos, d_oldHypoIds);
 
-          std::cerr << "Rows=" << Rows.Debug(0) << std::endl;
+          //std::cerr << "Rows=" << Rows.Debug(0) << std::endl;
         }
 
         unsigned GetCols() const {
@@ -568,11 +568,11 @@ private:
     }
 
     void EmptyEmbeddingTopup(mblas::Matrix& Embedding,
-                        unsigned totalBeamSize) const
+                            unsigned totalBeamSize,
+                            const mblas::Vector<unsigned> &d_newHypoIds) const
     {
-      Embedding.NewSize(totalBeamSize, embeddings_.GetCols());
-      mblas::Fill(Embedding, 0);
-      // TODO
+      //Embedding.NewSize(totalBeamSize, embeddings_.GetCols());
+      mblas::Fill0(Embedding, 0, d_newHypoIds);
     }
 
     void Lookup(mblas::Matrix& Embedding,

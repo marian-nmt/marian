@@ -320,7 +320,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch2" << endl;
   //cerr << "numSentToGet=" << numSentToGet << endl;
-  cerr << "histories orig=" << histories.Debug() << endl;
+  //cerr << "histories orig=" << histories.Debug() << endl;
 
   std::vector<BufferOutput> newSentences;
   encDecBuffer_.Get(numSentToGet, newSentences);
@@ -347,7 +347,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   }
 
   // histories is const from here on
-  cerr << "histories=" << histories.Debug() << endl;
+  //cerr << "histories=" << histories.Debug() << endl;
 
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch6" << endl;
@@ -359,7 +359,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   mblas::Vector<unsigned> d_newBatchIds(newBatchIds);
   mblas::Vector<unsigned> d_oldBatchIds(oldBatchIds);
   mblas::Vector<unsigned> d_newSentenceLengths(newSentenceLengths);
-  //mblas::Vector<unsigned> d_newHypoIds(newHypoIds);
+  mblas::Vector<unsigned> d_newHypoIds(newHypoIds);
   mblas::Vector<unsigned> d_oldHypoIds(oldHypoIds);
 
   //cerr << "newBatchIds=" << Debug(newBatchIds, 2) << endl;
@@ -368,11 +368,11 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   //cerr << "oldHypoIds=" << Debug(oldHypoIds, 2) << endl;
   //cerr << "newSentenceLengths=" << Debug(newSentenceLengths, 2) << endl;
 
-  cerr << "4state=" << state.Debug() << endl;
+  //cerr << "4state=" << state.Debug() << endl;
   AssembleBeamStateTopup(histories, nextState, oldHypoIds, state);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch7" << endl;
-  cerr << "5state=" << state.Debug() << endl;
+  //cerr << "5state=" << state.Debug() << endl;
 
   if (newSentences.size()) {
     unsigned maxLength =  histories.MaxLength();
@@ -395,16 +395,16 @@ void EncoderDecoder::TopupBatch(Histories &histories,
     //cerr << "3sourceContext=" << sourceContext.Debug() << endl;
 
     //cerr << "1SCU=" << SCU.Debug() << endl;
-    BeginSentenceStateTopup(histories, sourceContext, sentenceLengths, state, SCU, newSentences, d_oldBatchIds, newBatchIds, d_oldHypoIds, newHypoIds);
+    BeginSentenceStateTopup(histories, sourceContext, sentenceLengths, state, SCU, newSentences, d_oldBatchIds, newBatchIds, d_oldHypoIds, newHypoIds, d_newHypoIds);
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "TopupBatch11" << endl;
     //cerr << "histories new=" << histories.Debug() << endl;
     //cerr << "2SCU=" << SCU.Debug() << endl;
-    cerr << "6state=" << state.Debug() << endl;
+    //cerr << "6state=" << state.Debug() << endl;
   }
 
-  LOG(progress)->info("Topup took {} new {} histories {}", timer.format(5, "%w"), newSentences.size(), histories.NumActive());
-  cerr << endl;
+  //LOG(progress)->info("Topup took {} new {} histories {}", timer.format(5, "%w"), newSentences.size(), histories.NumActive());
+  //cerr << endl;
 }
 
 void EncoderDecoder::BeginSentenceState(const Histories& histories,
@@ -429,7 +429,8 @@ void EncoderDecoder::BeginSentenceStateTopup(const Histories& histories,
                                         const mblas::Vector<unsigned> &d_oldBatchIds,
                                         const std::vector<unsigned> &newBatchIds,
                                         const mblas::Vector<unsigned> &oldHypoIds,
-                                        const std::vector<unsigned> &newHypoIds) const
+                                        const std::vector<unsigned> &newHypoIds,
+                                        const mblas::Vector<unsigned> &d_newHypoIds) const
 {
   //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();
@@ -453,7 +454,7 @@ void EncoderDecoder::BeginSentenceStateTopup(const Histories& histories,
   //cerr << "BeginSentenceState2" << endl;
   //cerr << "2state=" << state.Debug() << endl;
 
-  decoder_->EmptyEmbeddingTopup(edState.GetEmbeddings(), histories.GetTotalBeamSize());
+  decoder_->EmptyEmbeddingTopup(edState.GetEmbeddings(), histories.GetTotalBeamSize(), d_newHypoIds);
   //PAUSE_TIMER("BeginSentenceState");
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "BeginSentenceState3" << endl;

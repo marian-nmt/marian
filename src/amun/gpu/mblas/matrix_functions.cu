@@ -703,6 +703,7 @@ void SetColumn(Matrix& In, unsigned noColumn, float value) {
     (inWrap, noColumn, value);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 __global__ void gFill(MatrixWrapper<float> in, float val) {
   unsigned index = threadIdx.x + blockDim.x * blockIdx.x;
   if (index < in.GetShape().size()) {
@@ -725,8 +726,39 @@ void Fill(Matrix& In, float value) {
   else {
     HANDLE_ERROR(cudaMemsetAsync(In.data(), 0, size * sizeof(float), CudaStreamHandler::GetStream()));
   }
-
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+__global__ void gFill0(MatrixWrapper<float> in,
+                      float val,
+                      const mblas::VectorWrapper<unsigned> d_newHypoIds,
+                      const Shape shape)
+{
+  unsigned id = threadIdx.x + blockDim.x * blockIdx.x;
+  if (id < shape.size()) {
+    unsigned dim[SHAPE_SIZE];
+    shape.id2Indices(id, dim);
+
+    unsigned hypoInd = d_newHypoIds[dim[0]];
+    in(hypoInd, dim[1]) = val;
+  }
+}
+
+void Fill0(Matrix& in, float value, const mblas::Vector<unsigned> &d_newHypoIds)
+{
+  //cerr << "in=" << in.Debug(0) << endl;
+  //cerr << "d_newHypoIds=" << d_newHypoIds.Debug(2) << endl;
+
+  Shape shape(d_newHypoIds.size(), in.dim(1), 1, 1);
+  unsigned size = shape.size();
+
+  unsigned nThreads = std::min(MAX_THREADS, size);
+  unsigned nBlocks = (size / nThreads) + ((size % nThreads == 0) ? 0 : 1);
+
+  gFill0<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
+    (in, value, d_newHypoIds, shape);
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 __global__
 void gMapMatrix(MatrixWrapper<float> in,

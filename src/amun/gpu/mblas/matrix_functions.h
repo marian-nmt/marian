@@ -57,6 +57,7 @@ void copy(const T *in, unsigned count, T *out,  cudaMemcpyKind kind) {
 }
 
 void Fill(Matrix& In, float value=0.0f);
+void Fill0(Matrix& in, float value, const mblas::Vector<unsigned> &d_newHypoIds);
 
 Matrix& Swap(Matrix& Out, Matrix& In);
 
