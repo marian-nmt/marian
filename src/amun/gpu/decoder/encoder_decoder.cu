@@ -398,7 +398,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
     //cerr << "3sourceContext=" << sourceContext.Debug() << endl;
 
     //cerr << "1SCU=" << SCU.Debug() << endl;
-    BeginSentenceStateTopup(histories, sourceContext, sentenceLengths, state, SCU, newSentences, d_oldBatchIds, newBatchIds, d_oldHypoIds, newHypoIds, d_newHypoIds);
+    BeginSentenceStateTopup(histories, sourceContext, state, SCU, newSentences, d_oldBatchIds, newBatchIds, newHypoIds, d_newHypoIds);
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "TopupBatch11" << endl;
     //cerr << "histories new=" << histories.Debug() << endl;
@@ -426,13 +426,11 @@ void EncoderDecoder::BeginSentenceState(const Histories& histories,
 
 void EncoderDecoder::BeginSentenceStateTopup(const Histories& histories,
                                         const mblas::Matrix &sourceContext,
-                                        const mblas::Vector<unsigned> &sentenceLengths,
                                         State& state,
                                         mblas::Matrix& SCU,
                                         const std::vector<BufferOutput> &newSentences,
                                         const mblas::Vector<unsigned> &d_oldBatchIds,
                                         const std::vector<unsigned> &newBatchIds,
-                                        const mblas::Vector<unsigned> &oldHypoIds,
                                         const std::vector<unsigned> &newHypoIds,
                                         const mblas::Vector<unsigned> &d_newHypoIds) const
 {

@@ -94,13 +94,11 @@ class EncoderDecoder : public Scorer {
 
     void BeginSentenceStateTopup(const Histories& histories,
                             const mblas::Matrix &sourceContext,
-                            const mblas::Vector<unsigned> &sentenceLengths,
                             State& state,
                             mblas::Matrix& SCU,
                             const std::vector<BufferOutput> &newSentences,
                             const mblas::Vector<unsigned> &d_oldBatchIds,
                             const std::vector<unsigned> &newBatchIds,
-                            const mblas::Vector<unsigned> &oldHypoIds,
                             const std::vector<unsigned> &newHypoIds,
                             const mblas::Vector<unsigned> &d_newHypoIds) const;
 
