@@ -189,7 +189,7 @@ void EncoderDecoder::DecodeAsyncInternal()
     boost::timer::cpu_timer timerStep;
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal1" << endl;
-    std::cerr << "histories=" << histories.Debug(1) << std::endl;
+    //std::cerr << "histories=" << histories.Debug(1) << std::endl;
 
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal2" << endl;
@@ -411,12 +411,13 @@ void EncoderDecoder::TopupBatch(Histories &histories,
     //cerr << "2SCU=" << SCU.Debug() << endl;
     //cerr << "6state=" << state.Debug() << endl;
 
+    /*
     for (unsigned i = 0; i < newSentences.size(); ++i) {
       //cerr << "TopupBatch12" << endl;
       BufferOutput &eleSent = newSentences[i];
       eleSent.Release();
     }
-
+    */
   }
 
   //LOG(progress)->info("Topup took {} new {} histories {}", timer.format(5, "%w"), newSentences.size(), histories.NumActive());
