@@ -445,14 +445,11 @@ void EncoderDecoder::BeginSentenceStateTopup(const Histories& histories,
 
   //cerr << "1state=" << state.Debug() << endl;
   decoder_->EmptyStateTopup(edState.GetStates(),
-                            histories,
                             sourceContext,
-                            sentenceLengths,
                             SCU,
                             newSentences,
                             d_oldBatchIds,
                             newBatchIds,
-                            oldHypoIds,
                             newHypoIds);
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "BeginSentenceState2" << endl;

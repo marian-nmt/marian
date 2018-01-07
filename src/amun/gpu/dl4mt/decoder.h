@@ -151,9 +151,7 @@ private:
         }
 
         void InitializeStateTopup(CellState& State,
-                                  const Histories &histories,
                                   const std::vector<BufferOutput> &newSentences,
-                                  const mblas::Vector<unsigned> &oldHypoIds,
                                   const std::vector<unsigned> &newHypoIds) const
         {
           mblas::AddNewStates(State, newHypoIds, newSentences);
@@ -216,8 +214,7 @@ private:
           }
         }
 
-        void InitTopup(const Histories& histories,
-                  const mblas::Matrix& SourceContext,
+        void InitTopup(const mblas::Matrix& SourceContext,
                   mblas::Matrix& SCU,
                   const std::vector<BufferOutput> &newSentences,
                   const mblas::Vector<unsigned> &d_oldBatchIds,
@@ -538,25 +535,22 @@ private:
     }
 
     void EmptyStateTopup(CellState& State,
-                    const Histories& histories,
                     const mblas::Matrix &SourceContext,
-                    const mblas::Vector<unsigned> &sentenceLengths,
                     mblas::Matrix& SCU,
                     const std::vector<BufferOutput> &newSentences,
                     const mblas::Vector<unsigned> &d_oldBatchIds,
                     const std::vector<unsigned> &newBatchIds,
-                    const mblas::Vector<unsigned> &oldHypoIds,
                     const std::vector<unsigned> &newHypoIds) const
     {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState1" << std::endl;
 
       //unsigned batchSize = histories.GetTotalBeamSize();
-      rnn1_.InitializeStateTopup(State, histories, newSentences, oldHypoIds, newHypoIds);
+      rnn1_.InitializeStateTopup(State, newSentences, newHypoIds);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState2" << std::endl;
 
-      alignment_.InitTopup(histories, SourceContext, SCU, newSentences, d_oldBatchIds, newBatchIds);
+      alignment_.InitTopup(SourceContext, SCU, newSentences, d_oldBatchIds, newBatchIds);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //std::cerr << "EmptyState3" << std::endl;
     }
