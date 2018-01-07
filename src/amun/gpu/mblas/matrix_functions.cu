@@ -405,7 +405,7 @@ Matrix& Slice(Matrix& Out,
 
 Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B, bool transB)
 {
-  BEGIN_TIMER("Prod");
+  //BEGIN_TIMER("Prod");
   assert((A.dim(2) == A.dim(3) == 1) || (B.dim(2) == B.dim(3) == 1));
 
   Matrix::value_type alpha = 1.0;
@@ -465,7 +465,7 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
                       A.data(), lda,
                       &beta,
                       C.data(), ldc));
-  PAUSE_TIMER("Prod");
+  //PAUSE_TIMER("Prod");
   return C;
 }
 
