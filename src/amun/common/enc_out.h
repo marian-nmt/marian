@@ -50,6 +50,11 @@ public:
 
   const SentencePtr &GetSentence() const;
 
+  void Release()
+  {
+    encOut_.reset();
+  }
+
 protected:
   EncOutPtr encOut_;
   size_t sentenceOffset_; // index of the sentence we're translation within encOut.sentences

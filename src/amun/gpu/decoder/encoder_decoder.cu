@@ -162,7 +162,12 @@ void EncoderDecoder::DecodeAsync()
 void EncoderDecoder::DecodeAsyncInternal()
 {
   unsigned maxBeamSize = god_.Get<unsigned>("beam-size");
+
   unsigned miniBatch = god_.Get<unsigned>("mini-batch");
+  unsigned decodingBatch = god_.Get<unsigned>("decoding-mini-batch");
+  if (decodingBatch) {
+    miniBatch = decodingBatch;
+  }
 
   Histories histories(search_.NormalizeScore());
 
@@ -404,6 +409,13 @@ void EncoderDecoder::TopupBatch(Histories &histories,
     //cerr << "histories new=" << histories.Debug() << endl;
     //cerr << "2SCU=" << SCU.Debug() << endl;
     //cerr << "6state=" << state.Debug() << endl;
+
+    for (unsigned i = 0; i < newSentences.size(); ++i) {
+      //cerr << "TopupBatch12" << endl;
+      BufferOutput &eleSent = newSentences[i];
+      eleSent.Release();
+    }
+
   }
 
   //LOG(progress)->info("Topup took {} new {} histories {}", timer.format(5, "%w"), newSentences.size(), histories.NumActive());
