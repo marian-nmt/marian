@@ -59,8 +59,14 @@ void gpu_blas_mmul(const float *A,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void testBatchMultiply(int batchSize, int numIter) 
+void testBatchMultiply(int batchSize, int numIter, cublasMath_t mathMode) 
 {
+  cublasStatus_t stat = cublasSetMathMode(handle, mathMode);
+  if (stat != CUBLAS_STATUS_SUCCESS) {
+    printf ("cublasSetMathMode failed\n");
+    abort();
+  }
+
   // Allocate 3 arrays on CPU
   int nr_rows_A, nr_cols_A, nr_rows_B, nr_cols_B, nr_rows_C, nr_cols_C;
 
@@ -94,7 +100,9 @@ void testBatchMultiply(int batchSize, int numIter)
   cudaStreamSynchronize(stream);
   end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end-start;
-  std::cout << "batchSize=" << batchSize << " time: " << elapsed_seconds.count() << endl;
+  std::cout << "batchSize=" << batchSize 
+            << " mathMode=" << mathMode
+            << " time: " << elapsed_seconds.count() << endl;
  
   //Free GPU memory
   cudaFree(d_A);
@@ -125,7 +133,8 @@ int main()
   }
 
   for (int batchSize = 640; batchSize > 0; --batchSize) {
-    testBatchMultiply(batchSize, 2000);
+    testBatchMultiply(batchSize, 2000, CUBLAS_DEFAULT_MATH);
+    testBatchMultiply(batchSize, 2000, CUBLAS_TENSOR_OP_MATH);
   }
 
   cublasDestroy(handle);
