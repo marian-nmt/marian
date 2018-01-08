@@ -215,7 +215,7 @@ void EncoderDecoder::DecodeAsyncInternal()
     histories.SetNewBeamSize(maxBeamSize);
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal4" << endl;
-    //std::cerr << "histories4=" << histories.Debug(1) << std::endl;
+    std::cerr << "histories4=" << histories.Debug(1) << std::endl;
     //std::cerr << "state2=" << state->Debug(0) << std::endl;
     //std::cerr << "nextState2=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
@@ -252,7 +252,7 @@ void EncoderDecoder::DecodeAsyncInternal()
     //cerr << "DecodeAsyncInternal8" << endl;
     //std::cerr << "histories8=" << histories.Debug(1) << std::endl;
 
-    LOG(progress)->info("  Step {} took {} sentences {}", step++, timerStep.format(5, "%w"), histories.NumActive());
+    //LOG(progress)->info("  Step {} took {} sentences {} hypos {}", step++, timerStep.format(5, "%w"), histories.NumActive(), histories.GetTotalBeamSize());
   }
 }
 
@@ -609,9 +609,50 @@ void EncoderDecoder::AssembleBeamStateTopup(const Histories& histories,
 
 unsigned EncoderDecoder::SentencesToGet(const Histories& histories)
 {
+  ///*
   unsigned ret = god_.Get<unsigned>("mini-batch") - histories.NumActive();
-
   return ret;
+  //*/
+  /*
+  BEGIN_TIMER("SentencesToGet");
+
+  const unsigned MIN_ACTIVE = 80;
+
+  unsigned beamSize = god_.Get<unsigned>("beam-size");
+  unsigned numHypos = histories.GetTotalBeamSize();
+
+  unsigned start = std::max(MIN_ACTIVE, histories.NumActive());
+
+  unsigned okNum = 0;
+  unsigned currSize = start;
+  for (; currSize < histories.size(); ++currSize) {
+    unsigned numNewSent = currSize - histories.NumActive();
+    unsigned numNewHypos = numNewSent * beamSize;
+    if ((numHypos + numNewHypos) % 8 == 0) {
+      if ((histories.NumActive() + numNewSent) % 8 == 0) {
+        PAUSE_TIMER("SentencesToGet");
+        return numNewSent;
+      }
+      else if (okNum == 0) {
+        okNum = currSize;
+      }
+    }
+  }
+
+  unsigned ret;
+  if (okNum) {
+    ret = okNum - histories.NumActive();
+  }
+  else if (histories.NumActive() < MIN_ACTIVE) {
+    ret = MIN_ACTIVE - histories.NumActive();
+  }
+  else {
+    ret = 0;
+  }
+
+  PAUSE_TIMER("SentencesToGet");
+  return ret;
+  */
 }
 
 }
