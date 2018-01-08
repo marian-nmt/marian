@@ -616,9 +616,9 @@ unsigned EncoderDecoder::SentencesToGet(const Histories& histories)
   ///*
   BEGIN_TIMER("SentencesToGet");
 
-  const unsigned MIN_ACTIVE = 120;
-
   unsigned beamSize = god_.Get<unsigned>("beam-size");
+  unsigned minActive = beamSize - 8;
+
   unsigned numHypos = histories.GetTotalBeamSize();
 
   unsigned start = std::max(MIN_ACTIVE, histories.NumActive());
