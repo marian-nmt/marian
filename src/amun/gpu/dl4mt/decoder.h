@@ -423,6 +423,9 @@ private:
           Probs.NewSize(T1_.dim(0), w4->dim(1));
           //PAUSE_TIMER("GetProbs.NewSize");
 
+          std::cerr << "Probs=" << Probs.Debug(0) << std::endl;
+          std::cerr << "T1_=" << T1_.Debug(0) << std::endl;
+          std::cerr << "w4=" << w4->Debug(0) << std::endl;
           BEGIN_TIMER("GetProbs.Prod4");
           Prod(Probs, T1_, *w4);
           PAUSE_TIMER("GetProbs.Prod4");

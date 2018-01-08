@@ -2,7 +2,10 @@
 
 .secondary:
 
-all: gemm_fp16 gemm_normal memcpy_sm50 memcpy_sm35
+all: multiply gemm_fp16 gemm_normal memcpy_sm50 memcpy_sm35
+
+multiply: multiply.cu
+	nvcc $< -arch sm_61 -lcublas -lcurand -o $@ --std=c++11
 
 gemm_fp16: fp16gemm.cu
 	nvcc $< -arch sm_61 -lcublas -lcurand -o $@ --std=c++11
