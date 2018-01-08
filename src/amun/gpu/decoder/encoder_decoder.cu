@@ -621,7 +621,7 @@ unsigned EncoderDecoder::SentencesToGet(const Histories& histories)
 
   unsigned numHypos = histories.GetTotalBeamSize();
 
-  unsigned start = std::max(MIN_ACTIVE, histories.NumActive());
+  unsigned start = std::max(minActive, histories.NumActive());
 
   unsigned okNum = 0;
   for (unsigned currSize = start; currSize <= histories.size(); ++currSize) {
@@ -641,8 +641,8 @@ unsigned EncoderDecoder::SentencesToGet(const Histories& histories)
   if (okNum) {
     ret = okNum - histories.NumActive();
   }
-  else if (histories.NumActive() < MIN_ACTIVE) {
-    ret = MIN_ACTIVE - histories.NumActive();
+  else if (histories.NumActive() < minActive) {
+    ret = minActive - histories.NumActive();
   }
   else {
     ret = 0;
