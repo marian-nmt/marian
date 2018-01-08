@@ -80,6 +80,7 @@ class EncoderDecoder : public Scorer {
                     State &state);
 
     void TopupBatch(Histories &histories,
+                    unsigned numSentToGet,
                     mblas::Vector<unsigned> &sentenceLengths,
                     mblas::Matrix &sourceContext,
                     mblas::Matrix &SCU,
@@ -116,6 +117,8 @@ class EncoderDecoder : public Scorer {
                             const State& inState,
                             const mblas::Vector<unsigned> &d_oldHypoIds,
                             State& outState) const;
+
+    unsigned SentencesToGet(const Histories& histories);
 
 };
 

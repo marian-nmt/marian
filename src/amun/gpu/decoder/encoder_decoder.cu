@@ -227,13 +227,13 @@ void EncoderDecoder::DecodeAsyncInternal()
     //std::cerr << "nextState3=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
     //if (histories.NumActive() < 8) {
-    if (histories.NumInactive() > 0) {
+    if (unsigned numSentToGet = SentencesToGet(histories)) {
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal6" << endl;
       //std::cerr << "histories6=" << histories.Debug(1) << std::endl;
 
       //InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
-      TopupBatch(histories, sentenceLengths, sourceContext, SCU, *nextState, *state);
+      TopupBatch(histories, numSentToGet, sentenceLengths, sourceContext, SCU, *nextState, *state);
       //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
       //cerr << "DecodeAsyncInternal7" << endl;
       //std::cerr << "histories7=" << histories.Debug(1) << std::endl;
@@ -313,6 +313,7 @@ void EncoderDecoder::InitBatch(Histories &histories,
 }
 
 void EncoderDecoder::TopupBatch(Histories &histories,
+                                unsigned numSentToGet,
                                 mblas::Vector<unsigned> &sentenceLengths,
                                 mblas::Matrix &sourceContext,
                                 mblas::Matrix &SCU,
@@ -322,9 +323,6 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   BEGIN_TIMER("TopupBatch");
   boost::timer::cpu_timer timer;
 
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  //cerr << "TopupBatch1" << endl;
-  unsigned numSentToGet = god_.Get<unsigned>("mini-batch") - histories.NumActive();
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "TopupBatch2" << endl;
   //cerr << "numSentToGet=" << numSentToGet << endl;
@@ -607,6 +605,13 @@ void EncoderDecoder::AssembleBeamStateTopup(const Histories& histories,
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   //cerr << "AssembleBeamState6" << endl;
 
+}
+
+unsigned EncoderDecoder::SentencesToGet(const Histories& histories)
+{
+  unsigned ret = god_.Get<unsigned>("mini-batch") - histories.NumActive();
+
+  return ret;
 }
 
 }
