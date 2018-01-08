@@ -215,7 +215,7 @@ void EncoderDecoder::DecodeAsyncInternal()
     histories.SetNewBeamSize(maxBeamSize);
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "DecodeAsyncInternal4" << endl;
-    std::cerr << "histories4=" << histories.Debug(1) << std::endl;
+    //std::cerr << "histories4=" << histories.Debug(1) << std::endl;
     //std::cerr << "state2=" << state->Debug(0) << std::endl;
     //std::cerr << "nextState2=" << nextState->get<EDState>().GetStates().output->Debug(0) << std::endl;
 
@@ -252,7 +252,7 @@ void EncoderDecoder::DecodeAsyncInternal()
     //cerr << "DecodeAsyncInternal8" << endl;
     //std::cerr << "histories8=" << histories.Debug(1) << std::endl;
 
-    //LOG(progress)->info("  Step {} took {} sentences {} hypos {}", step++, timerStep.format(5, "%w"), histories.NumActive(), histories.GetTotalBeamSize());
+    LOG(progress)->info("  Step {} took {} sentences {} hypos {}", step++, timerStep.format(5, "%w"), histories.NumActive(), histories.GetTotalBeamSize());
   }
 }
 
@@ -609,14 +609,14 @@ void EncoderDecoder::AssembleBeamStateTopup(const Histories& histories,
 
 unsigned EncoderDecoder::SentencesToGet(const Histories& histories)
 {
-  ///*
+  /*
   unsigned ret = god_.Get<unsigned>("mini-batch") - histories.NumActive();
   return ret;
-  //*/
-  /*
+  */
+  ///*
   BEGIN_TIMER("SentencesToGet");
 
-  const unsigned MIN_ACTIVE = 80;
+  const unsigned MIN_ACTIVE = 119;
 
   unsigned beamSize = god_.Get<unsigned>("beam-size");
   unsigned numHypos = histories.GetTotalBeamSize();
@@ -627,7 +627,7 @@ unsigned EncoderDecoder::SentencesToGet(const Histories& histories)
   unsigned currSize = start;
   for (; currSize < histories.size(); ++currSize) {
     unsigned numNewSent = currSize - histories.NumActive();
-    unsigned numNewHypos = numNewSent * beamSize;
+    unsigned numNewHypos = numNewSent;
     if ((numHypos + numNewHypos) % 8 == 0) {
       if ((histories.NumActive() + numNewSent) % 8 == 0) {
         PAUSE_TIMER("SentencesToGet");
@@ -652,7 +652,7 @@ unsigned EncoderDecoder::SentencesToGet(const Histories& histories)
 
   PAUSE_TIMER("SentencesToGet");
   return ret;
-  */
+  //*/
 }
 
 }
