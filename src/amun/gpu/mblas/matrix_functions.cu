@@ -1414,7 +1414,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
     d_beamSizes
     );
   //PAUSE_TIMER("gBeamSizeInit");
-  HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
   /*
   cerr << "numHypos=" << numHypos << endl;
   cerr << "numNextHypos=" << numNextHypos << endl;
