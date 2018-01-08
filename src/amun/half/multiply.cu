@@ -125,7 +125,7 @@ int main()
   }
 
   for (int batchSize = 640; batchSize > 0; --batchSize) {
-    testBatchMultiply(batchSize, 2000);
+    testBatchMultiply(batchSize, 10000);
   }
 
   cublasDestroy(handle);
