@@ -154,11 +154,7 @@ class FastGRU: public Cell {
                       const mblas::Matrix& Context) const {
       using namespace mblas;
 
-      //std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
-      //std::cerr << "State=" << State.Debug(1) << std::endl;
-      //std::cerr << "Context=" << Context.Debug(1) << std::endl;
-
-      Prod(RUH_, Context, WWx_);
+      TIME_CMD("Prod8", Prod(RUH_, Context, WWx_));
 
       //std::cerr << "2RUH_=" << RUH_.Debug(1) << std::endl;
 
@@ -166,7 +162,10 @@ class FastGRU: public Cell {
         Normalization(RUH_, RUH_, *w_.Gamma_1_, 1e-9);
       }
 
-      Prod(Temp_, *(State.output), UUx_);
+      //std::cerr << "Temp_=" << Temp_.Debug(0) << " "; //std::endl;
+      //std::cerr << "State.output=" << State.output->Debug(0) << " "; // std::endl;
+      //std::cerr << "UUx_=" << UUx_.Debug(0) << std::endl;
+      TIME_CMD("Prod9", Prod(Temp_, *(State.output), UUx_));
 
       if (w_.Gamma_2_->size()) {
         Normalization(Temp_, Temp_, *w_.Gamma_2_, 1e-9);

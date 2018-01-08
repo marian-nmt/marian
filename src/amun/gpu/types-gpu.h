@@ -28,6 +28,8 @@ extern std::unordered_map<std::string, boost::timer::cpu_timer> timers;
 #define PAUSE_TIMER(str) { HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); \
 							timers[str].stop(); }
 
+//#define TIME_CMD(str, cmd) {BEGIN_TIMER(str); cmd; PAUSE_TIMER(str);}
+#define TIME_CMD(str, cmd) {cmd;}
 
 }
 }

@@ -133,7 +133,7 @@ private:
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           //std::cerr << "InitializeState4" << std::endl;
 
-          Prod(*(State.output), Temp2, *w_.Wi_);
+          TIME_CMD("Prod1", Prod(*(State.output), Temp2, *w_.Wi_));
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           //std::cerr << "InitializeState5" << std::endl;
 
@@ -203,7 +203,7 @@ private:
         {
           using namespace mblas;
 
-          Prod(/*h_[0],*/ SCU, SourceContext, *w_.U_);
+          TIME_CMD("Prod2", Prod(/*h_[0],*/ SCU, SourceContext, *w_.U_));
           /*
           std::cerr << "SCU=" << SCU.Debug(0) << std::endl;
           std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
@@ -289,7 +289,7 @@ private:
           std::cerr << "sentenceLengths=" << sentenceLengths.Debug(2) << std::endl;
           */
 
-          Prod(/*h_[1],*/ Temp2_, *(HiddenState.output), *w_.W_);
+          TIME_CMD("Prod3", Prod(/*h_[1],*/ Temp2_, *(HiddenState.output), *w_.W_));
           //std::cerr << "1Temp2_=" << Temp2_.Debug() << std::endl;
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           //std::cerr << "GetAlignedSourceContext7" << std::endl;
@@ -306,7 +306,7 @@ private:
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           //std::cerr << "GetAlignedSourceContext9" << std::endl;
 
-          Prod(A_, *w_.V_, Temp1_, true);
+          TIME_CMD("Prod4", Prod(A_, *w_.V_, Temp1_, true));
           //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
           //std::cerr << "GetAlignedSourceContext10" << std::endl;
 
@@ -368,7 +368,7 @@ private:
           using namespace mblas;
 
           //BEGIN_TIMER("GetProbs.Prod");
-          Prod(/*h_[0],*/ T1_, *(State.output), *w_.W1_);
+          TIME_CMD("Prod5", Prod(/*h_[0],*/ T1_, *(State.output), *w_.W1_));
           //PAUSE_TIMER("GetProbs.Prod");
           //std::cerr << "T1_=" << T1_.Debug(0) << std::endl;
           //std::cerr << "State.output=" << State.output->Debug(0) << std::endl;
@@ -383,7 +383,7 @@ private:
           //PAUSE_TIMER("GetProbs.Normalization/BroadcastVec");
 
           //BEGIN_TIMER("GetProbs.Prod2");
-          Prod(/*h_[1],*/ T2_, Embedding, *w_.W2_);
+          TIME_CMD("Prod6", Prod(/*h_[1],*/ T2_, Embedding, *w_.W2_));
           //PAUSE_TIMER("GetProbs.Prod2");
 
           //BEGIN_TIMER("GetProbs.Normalization/BroadcastVec2");
@@ -395,7 +395,7 @@ private:
           //PAUSE_TIMER("GetProbs.Normalization/BroadcastVec2");
 
           //BEGIN_TIMER("GetProbs.Prod3");
-          Prod(/*h_[2],*/ T3_, AlignedSourceContext, *w_.W3_);
+          TIME_CMD("Prod7", Prod(/*h_[2],*/ T3_, AlignedSourceContext, *w_.W3_));
           //PAUSE_TIMER("GetProbs.Prod3");
 
           //BEGIN_TIMER("GetProbs.Normalization/BroadcastVec3");
