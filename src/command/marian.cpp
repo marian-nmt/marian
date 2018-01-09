@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
   if(devices.size() > 1) {
     if(options->get<bool>("sync-sgd"))
       New<Train<SyncGraphGroup>>(options)->run();
-    else if(options->get<float>("gradient-dropping") > 0.0)
+    else if(options->get<float>("grad-dropping-rate") > 0.0)
       New<Train<AsyncGraphGroupDrop>>(options)->run();
     else
       New<Train<AsyncGraphGroup>>(options)->run();

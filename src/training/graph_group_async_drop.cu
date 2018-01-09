@@ -33,7 +33,7 @@ void AsyncGraphGroupDrop::fetchParams(Tensor oldParams,
           std::lock_guard<std::mutex> guard(shardSync_[idx]);
 
           // normal fetch
-          if(fetchStep_[device_id] < FETCH_WARMUP
+          if(fetchStep_[device_id] <= dropping_warmup
              || &params == &paramsAvg_) {  // Do not use sparse fetch when
                                            // fetching from paramsAvg
             oldParams->subtensor(pos, params[idx]->size())
@@ -54,7 +54,8 @@ void AsyncGraphGroupDrop::fetchParams(Tensor oldParams,
 
           // get sparse delta
           fetchDropper[device_id][idx]->dropGraph(
-              paramsDelta_[idx], fetchSparseGradient_[idx], droping_rate);
+              paramsDelta_[idx], fetchSparseGradient_[idx],
+              droping_rate, dropping_momentum);
 
           // move sparse delta
           fetchShardedSparseGradient_[device_id][idx]->copyFrom(
@@ -77,14 +78,16 @@ void AsyncGraphGroupDrop::fetchParams(Tensor oldParams,
 void AsyncGraphGroupDrop::pushGradients(Tensor newGrads,
                                         size_t batch_words,
                                         int device_id) {
-  if(pushStep_[device_id]++ < PUSH_WARMUP) {
+  if(pushStep_[device_id]++ <= dropping_warmup) {
+    std::cout<<"WARMUP"<<std::endl;
     AsyncGraphGroup::pushGradients(newGrads, batch_words, device_id);
     return;
   }
 
   // get the sparse gradient
   pushDropper_[device_id]->dropGraph(
-      newGrads, pushSparseGradient_[device_id], droping_rate);
+      newGrads, pushSparseGradient_[device_id], 
+      droping_rate, dropping_momentum);
 
   SparseTensor newSparseGrads = pushSparseGradient_[device_id];
   // add instead of copy?
