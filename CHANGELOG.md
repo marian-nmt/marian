@@ -7,26 +7,33 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+- CMake option `-DCOMPILE_SERVER=ON`
+
+### Fixed
+- Fixed marian-server compilation with Boost 1.66
+
 ## [1.1.3] - 2017-12-06
 
 ### Added
 - Added back gradient-dropping
 
 ### Fixed
-- Fixed parameters initializaiton for `--tied-embeddings` during translaton
+- Fixed parameters initialization for `--tied-embeddings` during translation
 
 ## [1.1.2] - 2017-12-05
 
 ### Fixed
 - Fixed ensembling with language model and batched decoding
-- Fixed attention reduction kernel with large matrices (added missing syncthreads()),
-  which should fix stability with large batches and beam-size during batched decoding.
+- Fixed attention reduction kernel with large matrices (added missing
+  `syncthreads()`), which should fix stability with large batches and beam-size
+  during batched decoding.
 
 ## [1.1.1] - 2017-11-30
 
 ### Added
-- Option --max-length-crop to be used together with --max-length N to crop 
-sentences to length N rather than omitting them.
+- Option `--max-length-crop` to be used together with `--max-length N` to crop
+  sentences to length N rather than omitting them.
 - Experimental model with convolution over input characters
 
 ### Fixed
@@ -53,8 +60,8 @@ sentences to length N rather than omitting them.
 - Cyclic learning rate warmup
 - More options for learning rate decay, including: optimizer history reset,
   repeated warmup
-- Continuous inverted square root decay of learning (`--lr-decay-inv-sqrt`) rate
-  based on number of updates
+- Continuous inverted square root decay of learning (`--lr-decay-inv-sqrt`)
+  rate based on number of updates
 - Exposed optimizer parameters (e.g. momentum etc. for Adam)
 - Version of deep RNN-based models compatible with Nematus (`--type nematus`)
 - Synchronous SGD training for multi-gpu (enable with `--sync-sgd`)
@@ -62,7 +69,7 @@ sentences to length N rather than omitting them.
   currently only available through the C++ API
 - Option `--quiet` to suppress output to stderr
 - Option to choose different variants of optimization criterion: mean
-  cross-entropy, perplexity, cross-entopry sum
+  cross-entropy, perplexity, cross-entropy sum
 - In-process translation for validation, uses the same memory as training
 - Label Smoothing
 - CHANGELOG.md
@@ -72,8 +79,7 @@ sentences to length N rather than omitting them.
 
 ### Changed
 - Changed shape organization to follow numpy.
-- Changed option `--moving-average` to `--exponential-smoothing` and inverted
-  formula to `s_t = (1 - \alpha) * s_{t-1} + \alpha * x_t`, `\alpha` is now
+- Changed option `--moving-average` to `--exponential-smoothing` and inverted formula to `s_t = (1 - \alpha) * s_{t-1} + \alpha * x_t`, `\alpha` is now
   `1-e4` by default
 - Got rid of thrust for compile-time mathematical expressions
 - Changed boolean option `--normalize` to `--normalize [arg=1] (=0)`. New
