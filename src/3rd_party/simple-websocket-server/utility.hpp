@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2014-2016 Ole Christian Eidheim
+ * Copyright (c) 2014-2017 Ole Christian Eidheim
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@
 #ifndef SIMPLE_WEB_UTILITY_HPP
 #define SIMPLE_WEB_UTILITY_HPP
 
-#include "3rd_party/simple-websocket-server/status_code.hpp"
+#include "status_code.hpp"
 #include <atomic>
 #include <iostream>
 #include <memory>
@@ -48,8 +48,8 @@ namespace SimpleWeb {
   // Based on https://stackoverflow.com/questions/2590677/how-do-i-combine-hash-values-in-c0x/2595226#2595226
   class CaseInsensitiveHash {
   public:
-    size_t operator()(const std::string &str) const noexcept {
-      size_t h = 0;
+    std::size_t operator()(const std::string &str) const noexcept {
+      std::size_t h = 0;
       std::hash<int> hash;
       for(auto c : str)
         h ^= hash(tolower(c)) + 0x9e3779b9 + (h << 6) + (h >> 2);
@@ -57,7 +57,7 @@ namespace SimpleWeb {
     }
   };
 
-  typedef std::unordered_multimap<std::string, std::string, CaseInsensitiveHash, CaseInsensitiveEqual> CaseInsensitiveMultimap;
+  using CaseInsensitiveMultimap = std::unordered_multimap<std::string, std::string, CaseInsensitiveHash, CaseInsensitiveEqual>;
 
   /// Percent encoding and decoding
   class Percent {
@@ -86,7 +86,7 @@ namespace SimpleWeb {
       std::string result;
       result.reserve(value.size() / 3 + (value.size() % 3)); // Minimum size of result
 
-      for(size_t i = 0; i < value.size(); ++i) {
+      for(std::size_t i = 0; i < value.size(); ++i) {
         auto &chr = value[i];
         if(chr == '%' && i + 2 < value.size()) {
           auto hex = value.substr(i + 1, 2);
@@ -127,10 +127,10 @@ namespace SimpleWeb {
       if(query_string.empty())
         return result;
 
-      size_t name_pos = 0;
+      std::size_t name_pos = 0;
       auto name_end_pos = std::string::npos;
       auto value_pos = std::string::npos;
-      for(size_t c = 0; c < query_string.size(); ++c) {
+      for(std::size_t c = 0; c < query_string.size(); ++c) {
         if(query_string[c] == '&') {
           auto name = query_string.substr(name_pos, (name_end_pos == std::string::npos ? c : name_end_pos) - name_pos);
           if(!name.empty()) {
@@ -158,6 +158,86 @@ namespace SimpleWeb {
     }
   };
 
+  class HttpHeader {
+  public:
+    /// Parse header fields
+    static CaseInsensitiveMultimap parse(std::istream &stream) noexcept {
+      CaseInsensitiveMultimap result;
+      std::string line;
+      getline(stream, line);
+      std::size_t param_end;
+      while((param_end = line.find(':')) != std::string::npos) {
+        std::size_t value_start = param_end + 1;
+        if(value_start < line.size()) {
+          if(line[value_start] == ' ')
+            value_start++;
+          if(value_start < line.size())
+            result.emplace(line.substr(0, param_end), line.substr(value_start, line.size() - value_start - 1));
+        }
+
+        getline(stream, line);
+      }
+      return result;
+    }
+
+    class FieldValue {
+    public:
+      class SemicolonSeparatedAttributes {
+      public:
+        /// Parse Set-Cookie or Content-Disposition header field value. Attribute values are percent-decoded.
+        static CaseInsensitiveMultimap parse(const std::string &str) {
+          CaseInsensitiveMultimap result;
+
+          std::size_t name_start_pos = std::string::npos;
+          std::size_t name_end_pos = std::string::npos;
+          std::size_t value_start_pos = std::string::npos;
+          for(std::size_t c = 0; c < str.size(); ++c) {
+            if(name_start_pos == std::string::npos) {
+              if(str[c] != ' ' && str[c] != ';')
+                name_start_pos = c;
+            }
+            else {
+              if(name_end_pos == std::string::npos) {
+                if(str[c] == ';') {
+                  result.emplace(str.substr(name_start_pos, c - name_start_pos), std::string());
+                  name_start_pos = std::string::npos;
+                }
+                else if(str[c] == '=')
+                  name_end_pos = c;
+              }
+              else {
+                if(value_start_pos == std::string::npos) {
+                  if(str[c] == '"' && c + 1 < str.size())
+                    value_start_pos = c + 1;
+                  else
+                    value_start_pos = c;
+                }
+                else if(str[c] == '"' || str[c] == ';') {
+                  result.emplace(str.substr(name_start_pos, name_end_pos - name_start_pos), Percent::decode(str.substr(value_start_pos, c - value_start_pos)));
+                  name_start_pos = std::string::npos;
+                  name_end_pos = std::string::npos;
+                  value_start_pos = std::string::npos;
+                }
+              }
+            }
+          }
+          if(name_start_pos != std::string::npos) {
+            if(name_end_pos == std::string::npos)
+              result.emplace(str.substr(name_start_pos), std::string());
+            else if(value_start_pos != std::string::npos) {
+              if(str.back() == '"')
+                result.emplace(str.substr(name_start_pos, name_end_pos - name_start_pos), Percent::decode(str.substr(value_start_pos, str.size() - 1)));
+              else
+                result.emplace(str.substr(name_start_pos, name_end_pos - name_start_pos), Percent::decode(str.substr(value_start_pos)));
+            }
+          }
+
+          return result;
+        }
+      };
+    };
+  }; // namespace SimpleWeb
+
   class RequestMessage {
   public:
     /// Parse request line and header fields
@@ -165,13 +245,13 @@ namespace SimpleWeb {
       header.clear();
       std::string line;
       getline(stream, line);
-      size_t method_end;
+      std::size_t method_end;
       if((method_end = line.find(' ')) != std::string::npos) {
         method = line.substr(0, method_end);
 
-        size_t query_start = std::string::npos;
-        size_t path_and_query_string_end = std::string::npos;
-        for(size_t i = method_end + 1; i < line.size(); ++i) {
+        std::size_t query_start = std::string::npos;
+        std::size_t path_and_query_string_end = std::string::npos;
+        for(std::size_t i = method_end + 1; i < line.size(); ++i) {
           if(line[i] == '?' && (i + 1) < line.size())
             query_start = i + 1;
           else if(line[i] == ' ') {
@@ -187,7 +267,7 @@ namespace SimpleWeb {
           else
             path = line.substr(method_end + 1, path_and_query_string_end - method_end - 1);
 
-          size_t protocol_end;
+          std::size_t protocol_end;
           if((protocol_end = line.find('/', path_and_query_string_end + 1)) != std::string::npos) {
             if(line.compare(path_and_query_string_end + 1, protocol_end - path_and_query_string_end - 1, "HTTP") != 0)
               return false;
@@ -196,19 +276,7 @@ namespace SimpleWeb {
           else
             return false;
 
-          getline(stream, line);
-          size_t param_end;
-          while((param_end = line.find(':')) != std::string::npos) {
-            size_t value_start = param_end + 1;
-            if(value_start < line.size()) {
-              if(line[value_start] == ' ')
-                value_start++;
-              if(value_start < line.size())
-                header.emplace(line.substr(0, param_end), line.substr(value_start, line.size() - value_start - 1));
-            }
-
-            getline(stream, line);
-          }
+          header = HttpHeader::parse(stream);
         }
         else
           return false;
@@ -226,7 +294,7 @@ namespace SimpleWeb {
       header.clear();
       std::string line;
       getline(stream, line);
-      size_t version_end = line.find(' ');
+      std::size_t version_end = line.find(' ');
       if(version_end != std::string::npos) {
         if(5 < line.size())
           version = line.substr(5, version_end - 5);
@@ -237,19 +305,7 @@ namespace SimpleWeb {
         else
           return false;
 
-        getline(stream, line);
-        size_t param_end;
-        while((param_end = line.find(':')) != std::string::npos) {
-          size_t value_start = param_end + 1;
-          if((value_start) < line.size()) {
-            if(line[value_start] == ' ')
-              value_start++;
-            if(value_start < line.size())
-              header.insert(std::make_pair(line.substr(0, param_end), line.substr(value_start, line.size() - value_start - 1)));
-          }
-
-          getline(stream, line);
-        }
+        header = HttpHeader::parse(stream);
       }
       else
         return false;
