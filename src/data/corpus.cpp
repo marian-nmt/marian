@@ -51,7 +51,7 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
 
   std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
 
-  if(training) {
+  if(training) { // training or scoring
     std::vector<Vocab> vocabs;
 
     if(vocabPaths.empty()) {

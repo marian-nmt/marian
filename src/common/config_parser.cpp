@@ -134,7 +134,10 @@ bool ConfigParser::has(const std::string& key) const {
 }
 
 void ConfigParser::validateOptions() const {
-  //UTIL_THROW_IF2(!has("vocabs"), "No vocabularies provided");
+  if(mode_ == ConfigMode::translating) {
+    UTIL_THROW_IF2(!has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
+        "Translating, but vocabularies are not given!");
+  }
 
   if(mode_ == ConfigMode::translating) {
     return;
@@ -154,6 +157,11 @@ void ConfigParser::validateOptions() const {
                  != get<std::vector<std::string>>("train-sets").size(),
       "There should be as many files with embedding vectors as "
       "training sets");
+
+  if(mode_ == ConfigMode::rescoring) {
+    UTIL_THROW_IF2(!has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
+        "Scoring, but vocabularies are not given!");
+  }
 
   if(mode_ == ConfigMode::rescoring)
     return;
