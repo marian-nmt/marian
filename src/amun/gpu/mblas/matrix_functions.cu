@@ -321,20 +321,19 @@ Matrix& CopyRows(Matrix& out,
   if (inRows.size()) {
     Shape shape(inRows.size(), out.dim(1), 1, 1);
     unsigned size = shape.size();
-    cerr << "size=" << size << endl;
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    cerr << "CopyRows1" << endl;
+    //cerr << "size=" << size << endl;
+    //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    //cerr << "CopyRows1" << endl;
 
     unsigned threads = std::min(MAX_THREADS, size);
     unsigned blocks = size / threads + ((size % threads == 0) ?  0 : 1);
-
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    cerr << "CopyRows2" << endl;
+    //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    //cerr << "CopyRows2" << endl;
 
     gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
       (out, in, inRows, outRows, shape);
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    cerr << "CopyRows3" << endl;
+    //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    //cerr << "CopyRows3" << endl;
   }
 
   return out;

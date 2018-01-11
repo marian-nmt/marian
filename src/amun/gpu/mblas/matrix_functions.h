@@ -444,6 +444,11 @@ void CopyMatrix3(TMatrix<T> &out,
   if (in.size() == 0 && out.size() == 0) {
     return;
   }
+
+  if (d_oldBatchIds.size() == 0) {
+    return;
+  }
+
   //cerr << "out=" << out.Debug(0) << endl;
   //cerr << "in=" << in.Debug(0) << endl;
   mblas::Shape smallestShape(std::min(out.dim(0), in.dim(0)),

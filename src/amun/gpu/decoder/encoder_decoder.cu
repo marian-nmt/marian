@@ -386,15 +386,16 @@ void EncoderDecoder::TopupBatch(Histories &histories,
     //cerr << "maxLength=" << maxLength << endl;
 
     UpdateSentenceLengths(d_newBatchIds, d_newSentenceLengths, sentenceLengths);
-    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    cerr << "TopupBatch8" << endl;
+    //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    //cerr << "TopupBatch8" << endl;
 
     // source context
-    cerr << "1sourceContext=" << sourceContext.Debug() << endl;
+    //cerr << "sourceContext=" << sourceContext.Debug() << endl;
+    //cerr << "d_oldBatchIds=" << d_oldBatchIds.Debug() << endl;
     ResizeMatrix3(sourceContext, {0, maxLength}, d_oldBatchIds);
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    //cerr << "2sourceContext=" << sourceContext.Debug() << endl;
     //cerr << "TopupBatch9" << endl;
+    //cerr << "2sourceContext=" << sourceContext.Debug() << endl;
 
     AddNewSourceContext(sourceContext, newBatchIds, newSentences);
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
@@ -405,6 +406,7 @@ void EncoderDecoder::TopupBatch(Histories &histories,
     BeginSentenceStateTopup(histories, sourceContext, state, SCU, newSentences, d_oldBatchIds, newBatchIds, newHypoIds, d_newHypoIds);
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "TopupBatch11" << endl;
+    //cerr << "4sourceContext=" << sourceContext.Debug() << endl;
     //cerr << "histories new=" << histories.Debug() << endl;
     //cerr << "2SCU=" << SCU.Debug() << endl;
     //cerr << "6state=" << state.Debug() << endl;
