@@ -386,11 +386,11 @@ void EncoderDecoder::TopupBatch(Histories &histories,
     //cerr << "maxLength=" << maxLength << endl;
 
     UpdateSentenceLengths(d_newBatchIds, d_newSentenceLengths, sentenceLengths);
-    //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    //cerr << "TopupBatch8" << endl;
+    HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
+    cerr << "TopupBatch8" << endl;
 
     // source context
-    //cerr << "1sourceContext=" << sourceContext.Debug() << endl;
+    cerr << "1sourceContext=" << sourceContext.Debug() << endl;
     ResizeMatrix3(sourceContext, {0, maxLength}, d_oldBatchIds);
     //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
     //cerr << "2sourceContext=" << sourceContext.Debug() << endl;
