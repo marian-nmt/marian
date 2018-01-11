@@ -32,7 +32,7 @@ if __name__ == "__main__":
     batch = ""
     for line in sys.stdin:
         count += 1
-        batch += line
+        batch += line.decode('utf-8') if sys.version_info < (3, 0) else line
         if count == args.batch_size:
             translate(batch, port=args.port)
             count = 0
