@@ -46,9 +46,10 @@ class Encoder {
 
           unsigned wordCount = words.size() / factorCount;
 
+          mblas::Vector<unsigned> dKnownWords;
           for (unsigned i = 0; i < knownWords.size(); i++) {
             const std::vector<unsigned>& factorWords = knownWords.at(i);
-            mblas::Vector<unsigned> dKnownWords(factorWords);
+            dKnownWords.copyFrom(factorWords);
 
             const std::shared_ptr<mblas::Matrix>& Emb = w_.Es_.at(i);
             mblas::Matrix factorRow;

@@ -293,11 +293,13 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   std::vector<unsigned> newBatchIds, oldBatchIds, newSentenceLengths, newHypoIds, oldHypoIds;
   histories.BatchIds(newBatchIds, oldBatchIds, newSentenceLengths, newHypoIds, oldHypoIds);
 
-  mblas::Vector<unsigned> d_newBatchIds(newBatchIds);
-  mblas::Vector<unsigned> d_oldBatchIds(oldBatchIds);
-  mblas::Vector<unsigned> d_newSentenceLengths(newSentenceLengths);
-  mblas::Vector<unsigned> d_newHypoIds(newHypoIds);
-  mblas::Vector<unsigned> d_oldHypoIds(oldHypoIds);
+  thread_local mblas::Vector<unsigned> d_newBatchIds, d_oldBatchIds, d_newSentenceLengths, d_newHypoIds, d_oldHypoIds;
+  d_newBatchIds.copyFrom(newBatchIds);
+  d_oldBatchIds.copyFrom(oldBatchIds);
+  d_newSentenceLengths.copyFrom(newSentenceLengths);
+  d_newHypoIds.copyFrom(newHypoIds);
+  d_oldHypoIds.copyFrom(oldHypoIds);
+
 
   AssembleBeamStateTopup(histories, nextState, oldHypoIds, state);
 
@@ -410,12 +412,7 @@ void EncoderDecoder::AssembleBeamStateTopup(const Histories& histories,
   EDState& edOutState = outState.get<EDState>();
 
   thread_local mblas::Vector<unsigned> indices;
-  indices.newSize(beamStateIds.size());
-
-  mblas::copy(beamStateIds.data(),
-              beamStateIds.size(),
-              indices.data(),
-              cudaMemcpyHostToDevice);
+  indices.copyFrom(beamStateIds);
 
   CellState& cellOutStates = edOutState.GetStates();
   const CellState& cellInstates = edInState.GetStates();
