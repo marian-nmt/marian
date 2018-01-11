@@ -137,9 +137,13 @@ void ConfigParser::validateOptions() const {
   if(mode_ == ConfigMode::translating) {
     UTIL_THROW_IF2(!has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
         "Translating, but vocabularies are not given!");
-  }
 
-  if(mode_ == ConfigMode::translating) {
+    for(const auto& modelFile : get<std::vector<std::string>>("models")) {
+      boost::filesystem::path modelPath(modelFile);
+      UTIL_THROW_IF2(!boost::filesystem::exists(modelPath),
+          "Model file does not exist: " + modelFile);
+    }
+
     return;
   }
 
@@ -158,15 +162,18 @@ void ConfigParser::validateOptions() const {
       "There should be as many files with embedding vectors as "
       "training sets");
 
+  boost::filesystem::path modelPath(get<std::string>("model"));
+
   if(mode_ == ConfigMode::rescoring) {
+    UTIL_THROW_IF2(!boost::filesystem::exists(modelPath),
+        "Model file does not exist: " + modelPath.string());
+
     UTIL_THROW_IF2(!has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
         "Scoring, but vocabularies are not given!");
+
+    return;
   }
 
-  if(mode_ == ConfigMode::rescoring)
-    return;
-
-  boost::filesystem::path modelPath(get<std::string>("model"));
   auto modelDir = modelPath.parent_path();
   if(modelDir.empty())
     modelDir = boost::filesystem::current_path();
@@ -833,18 +840,6 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("n-best", bool);
   }
 
-  if(doValidate) {
-    try {
-      validateOptions();
-    } catch(util::Exception& e) {
-      std::cerr << "Error: " << e.what() << std::endl << std::endl;
-
-      std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
-      std::cerr << cmdline_options_ << std::endl;
-      exit(1);
-    }
-  }
-
   SET_OPTION("workspace", size_t);
   SET_OPTION("log-level", std::string);
   SET_OPTION("quiet", bool);
@@ -876,6 +871,18 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   if(get<bool>("relative-paths") && !vm_["dump-config"].as<bool>())
     ProcessPaths(
         config_, boost::filesystem::path{configPath}.parent_path(), false);
+
+  if(doValidate) {
+    try {
+      validateOptions();
+    } catch(util::Exception& e) {
+      std::cerr << "Error: " << e.what() << std::endl << std::endl;
+
+      std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
+      std::cerr << cmdline_options_ << std::endl;
+      exit(1);
+    }
+  }
 
   if(vm_["dump-config"].as<bool>()) {
     YAML::Emitter emit;
