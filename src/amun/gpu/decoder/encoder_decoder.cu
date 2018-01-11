@@ -202,8 +202,10 @@ void EncoderDecoder::DecodeAsyncInternal()
 
     //if (histories.NumActive() < 8) {
     if (unsigned numSentToGet = SentencesToGet(histories)) {
+      BEGIN_TIMER("TopupBatch.outer");
       //InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
       TopupBatch(histories, numSentToGet, sentenceLengths, sourceContext, SCU, *nextState, *state);
+      PAUSE_TIMER("TopupBatch.outer");
     }
     else {
       AssembleBeamState(histories, *nextState, *state);

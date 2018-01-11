@@ -84,11 +84,7 @@ public:
   :maxSize_(0)
   ,data_(nullptr)
   {
-    newSize(vec.size());
-
-    if (size()) {
-      HANDLE_ERROR( cudaMemcpyAsync(data_, vec.data(), vec.size() * sizeof(T), cudaMemcpyHostToDevice, CudaStreamHandler::GetStream()) );
-    }
+    copyFrom(vec);
   }
 
   explicit Vector(const Vector<T> &other)
@@ -177,6 +173,15 @@ public:
     //std::cerr << "reserve3=" << newSize << std::endl;
   }
 
+  void copyFrom(const std::vector<T> &vec)
+  {
+    newSize(vec.size());
+
+    if (size()) {
+      HANDLE_ERROR( cudaMemcpyAsync(data_, vec.data(), vec.size() * sizeof(T), cudaMemcpyHostToDevice, CudaStreamHandler::GetStream()) );
+    }
+  }
+
   void clear()
   {
     size_ = 0;
@@ -187,21 +192,6 @@ public:
     std::swap(size_, other.size_);
     std::swap(maxSize_, other.maxSize_);
     std::swap(data_, other.data_);
-  }
-
-  Vector& operator=(const Vector& other)
-  {
-    if (this != &other) {
-      newSize(other.size());
-
-      HANDLE_ERROR( cudaMemcpyAsync(
-          data_,
-          other.data_,
-          size_ * sizeof(T),
-          cudaMemcpyDeviceToDevice,
-          CudaStreamHandler::GetStream()) );
-    }
-    return *this;
   }
 
   virtual std::string Debug(unsigned verbosity = 1) const;
