@@ -103,39 +103,19 @@ private:
                              const mblas::Vector<unsigned> &sentenceLengths) const
         {
           using namespace mblas;
-          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          //std::cerr << "InitializeState1" << std::endl;
-
-          //std::cerr << "cell1=" << State.cell->Debug(0) << std::endl;
-          //std::cerr << "output1=" << State.output->Debug(0) << std::endl;
-          //std::cerr << "numHypos=" << numHypos << std::endl;
 
           CellLength cellLength = gru_->GetStateLength();
           if (cellLength.cell > 0) {
             State.cell->NewSize(batchSize, cellLength.cell);
             mblas::Fill(*(State.cell), 0.0f);
           }
-          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          //std::cerr << "InitializeState2" << std::endl;
-          //std::cerr << "cell2=" << State.cell->Debug(0) << std::endl;
-          //std::cerr << "output2=" << State.output->Debug(0) << std::endl;
 
           thread_local mblas::Matrix Temp2;
           Temp2.NewSize(batchSize, SourceContext.dim(1), 1, 1);
-          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          //std::cerr << "InitializeState3" << std::endl;
-
-          //std::cerr << "Temp2=" << Temp2.Debug(0) << std::endl;
-          //std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
-          //std::cerr << "sentenceLengths=" << sentenceLengths.Debug(0) << std::endl;
 
           Mean(Temp2, SourceContext, sentenceLengths);
-          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          //std::cerr << "InitializeState4" << std::endl;
 
           TIME_CMD("Prod1", Prod(*(State.output), Temp2, *w_.Wi_));
-          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          //std::cerr << "InitializeState5" << std::endl;
 
           if (w_.Gamma_->size()) {
             Normalization(*(State.output), *(State.output), *w_.Gamma_, *w_.Bi_, 1e-9);
@@ -143,11 +123,6 @@ private:
           } else {
             BroadcastVec(Tanh(_1 + _2), *(State.output), *w_.Bi_);
           }
-          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          //std::cerr << "InitializeState6" << std::endl;
-
-          //std::cerr << "cell3=" << State.cell->Debug(0) << std::endl;
-          //std::cerr << "output3=" << State.output->Debug(0) << std::endl;
         }
 
         void InitializeStateTopup(CellState& State,
@@ -204,11 +179,6 @@ private:
           using namespace mblas;
 
           TIME_CMD("Prod2", Prod(/*h_[0],*/ SCU, SourceContext, *w_.U_));
-          /*
-          std::cerr << "SCU=" << SCU.Debug(0) << std::endl;
-          std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
-          std::cerr << "w_.U_=" << w_.U_->Debug(0) << std::endl;
-          */
           if (w_.Gamma_1_->size()) {
             Normalization(SCU, SCU, *w_.Gamma_1_, *w_.B_, 1e-9);
           }
@@ -222,18 +192,10 @@ private:
                   ) const
         {
           using namespace mblas;
-          /*
-          std::cerr << "SCU1=" << SCU.Debug(0) << std::endl;
-          std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
-          std::cerr << "w_.U_=" << w_.U_->Debug(0) << std::endl;
-          */
+
           unsigned maxLength = maxLength = SourceContext.dim(0);
-          //SCU.NewSize(SourceContext.dim(0), SCU.dim(1), SCU.dim(2), SCU.dim(3));
           ResizeMatrix3(SCU, {0, maxLength}, d_oldBatchIds);
-          //std::cerr << "SCU2=" << SCU.Debug(0) << std::endl;
-
           AddNewSCU(SCU, newBatchIds, newSentences);
-
         }
 
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
@@ -249,78 +211,37 @@ private:
 
           using namespace mblas;
           BEGIN_TIMER("GetAlignedSourceContext");
-          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          //std::cerr << "GetAlignedSourceContext1" << std::endl;
 
           unsigned maxLength = SourceContext.dim(0);
           unsigned batchSize = SourceContext.dim(3);
-          //std::cerr << "batchSize=" << batchSize << std::endl;
-          //std::cerr << "HiddenState=" << HiddenState.Debug(0) << std::endl;
-          //unsigned maxLength = GetMaxLength(h_sentenceLengths, histories);
-          /*
-          std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
-          std::cerr << "histories=" << Debug(histories, 2) << std::endl;
-          std::cerr << "maxLength=" << SourceContext.dim(0) << " " << maxLength << std::endl;
-          */
-          //std::cerr << "histories=" << histories.Debug(1) << std::endl;
 
-          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          //std::cerr << "GetAlignedSourceContext2" << std::endl;
           std::vector<unsigned> hypo2Batch = histories.Hypo2Batch();
-          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          //std::cerr << "GetAlignedSourceContext3=" << std::endl;
-          //std::cerr << "hypo2Sentence=" << Debug(hypo2Batch, 2) << std::endl;
-
           dHypo2Batch_.newSize(hypo2Batch.size());
-          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          //std::cerr << "GetAlignedSourceContext5" << std::endl;
 
           mblas::copy(hypo2Batch.data(),
               hypo2Batch.size(),
               dHypo2Batch_.data(),
               cudaMemcpyHostToDevice);
-          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          //std::cerr << "GetAlignedSourceContext6" << std::endl;
-
-          /*
-          std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
-          std::cerr << "AlignedSourceContext=" << AlignedSourceContext.Debug(0) << std::endl;
-          std::cerr << "A_=" << A_.Debug(0) << std::endl;
-          std::cerr << "sentenceLengths=" << sentenceLengths.Debug(2) << std::endl;
-          */
 
           TIME_CMD("Prod3", Prod(/*h_[1],*/ Temp2_, *(HiddenState.output), *w_.W_));
-          //std::cerr << "1Temp2_=" << Temp2_.Debug() << std::endl;
-          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          //std::cerr << "GetAlignedSourceContext7" << std::endl;
 
           if (w_.Gamma_2_->size()) {
             Normalization(Temp2_, Temp2_, *w_.Gamma_2_, 1e-9);
           } else {
             BroadcastVec(_1 + _2, Temp2_, *w_.B_/*, s_[1]*/);
           }
-          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          //std::cerr << "GetAlignedSourceContext8" << std::endl;
 
           Broadcast(Tanh(_1 + _2), Temp1_, SCU, Temp2_, dHypo2Batch_, maxLength);
-          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          //std::cerr << "GetAlignedSourceContext9" << std::endl;
 
           TIME_CMD("Prod4", Prod(A_, *w_.V_, Temp1_, true));
-          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          //std::cerr << "GetAlignedSourceContext10" << std::endl;
 
           BEGIN_TIMER("Softmax");
           mblas::Softmax(A_, dHypo2Batch_, sentenceLengths, batchSize);
           PAUSE_TIMER("Softmax");
-          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          //std::cerr << "GetAlignedSourceContext11" << std::endl;
 
           BEGIN_TIMER("WeightedMean");
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dHypo2Batch_);
           PAUSE_TIMER("WeightedMean");
-          //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-          //std::cerr << "GetAlignedSourceContext12" << std::endl;
 
           PAUSE_TIMER("GetAlignedSourceContext");
         }
@@ -370,9 +291,6 @@ private:
           //BEGIN_TIMER("GetProbs.Prod");
           TIME_CMD("Prod5", Prod(/*h_[0],*/ T1_, *(State.output), *w_.W1_));
           //PAUSE_TIMER("GetProbs.Prod");
-          //std::cerr << "T1_=" << T1_.Debug(0) << std::endl;
-          //std::cerr << "State.output=" << State.output->Debug(0) << std::endl;
-          //std::cerr << "w_.W1_=" << w_.W1_->Debug(0) << std::endl;
 
           //BEGIN_TIMER("GetProbs.Normalization/BroadcastVec");
           if (w_.Gamma_1_->size()) {
@@ -423,11 +341,6 @@ private:
           Probs.NewSize(T1_.dim(0), w4->dim(1));
           //PAUSE_TIMER("GetProbs.NewSize");
 
-          /*
-          std::cerr << "\t Probs=" << Probs.Debug(0) << " "; // << std::endl;
-          std::cerr << "T1_=" << T1_.Debug(0) << " "; // << std::endl;
-          std::cerr << "w4=" << w4->Debug(0) << std::endl;
-          */
           BEGIN_TIMER("GetProbs.Prod4");
           Prod(Probs, T1_, *w4);
           PAUSE_TIMER("GetProbs.Prod4");
@@ -491,50 +404,16 @@ private:
                 const mblas::Vector<unsigned> &sentenceLengths)
     {
       //BEGIN_TIMER("Decode");
-      //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      //std::cerr << "Decode1" << std::endl;
 
-      //BEGIN_TIMER("GetHiddenState");
-
-      //std::cerr << "1HiddenState_=" << HiddenState_.Debug(0) << std::endl;
-      //std::cerr << "State=" << State.Debug(0) << std::endl;
-      //std::cerr << "Embeddings=" << Embeddings.Debug(0) << std::endl;
       GetHiddenState(HiddenState_, State, Embeddings);
-      //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      //std::cerr << "Decode2" << std::endl;
-      //std::cerr << "2HiddenState_=" << HiddenState_.Debug(0) << std::endl;
-      //std::cerr << "State=" << State.Debug(0) << std::endl;
-      //std::cerr << "Embeddings=" << Embeddings.Debug(0) << std::endl;
-
-      //HiddenState_.ReduceDimensions();
-      //std::std::cerr << "HiddenState_=" << HiddenState_.Debug(1) << std::std::endl;
-      //PAUSE_TIMER("GetHiddenState");
-
-      //BEGIN_TIMER("GetAlignedSourceContext");
       GetAlignedSourceContext(AlignedSourceContext_,
                               HiddenState_,
                               histories,
                               SourceContext,
                               SCU,
                               sentenceLengths);
-      //std::std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::std::endl;
-      //PAUSE_TIMER("GetAlignedSourceContext");
-      //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      //std::cerr << "Decode3" << std::endl;
-
-      //BEGIN_TIMER("GetNextState");
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
-      //std::std::cerr << "NextState=" << NextState.Debug(1) << std::std::endl;
-      //PAUSE_TIMER("GetNextState");
-      //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      //std::cerr << "Decode4" << std::endl;
-
-      //BEGIN_TIMER("GetProbs");
       GetProbs(NextState, Embeddings, AlignedSourceContext_, useFusedSoftmax);
-      //std::cerr << "Probs_=" << Probs_.Debug(1) << std::endl;
-      //PAUSE_TIMER("GetProbs");
-      //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      //std::cerr << "Decode5" << std::endl;
 
       //PAUSE_TIMER("Decode");
     }
@@ -551,17 +430,8 @@ private:
                     const std::vector<unsigned> &newBatchIds,
                     const std::vector<unsigned> &newHypoIds) const
     {
-      //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      //std::cerr << "EmptyState1" << std::endl;
-
-      //unsigned batchSize = histories.GetTotalBeamSize();
       rnn1_.InitializeStateTopup(State, newSentences, newHypoIds);
-      //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      //std::cerr << "EmptyState2" << std::endl;
-
       alignment_.InitTopup(SourceContext, SCU, newSentences, d_oldBatchIds, newBatchIds);
-      //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      //std::cerr << "EmptyState3" << std::endl;
     }
 
     void EmptyEmbedding(mblas::Matrix& Embedding, unsigned batchSize) const
@@ -574,7 +444,6 @@ private:
                             unsigned totalBeamSize,
                             const mblas::Vector<unsigned> &d_newHypoIds) const
     {
-      //Embedding.NewSize(totalBeamSize, embeddings_.GetCols());
       mblas::Fill0(Embedding, 0, d_newHypoIds);
     }
 
@@ -637,18 +506,12 @@ private:
                                  const mblas::Vector<unsigned> &sentenceLengths)
 
     {
-      //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      //std::cerr << "1GetAlignedSourceContext1" << std::endl;
-
       alignment_.GetAlignedSourceContext(AlignedSourceContext,
                                         HiddenState,
                                         histories,
                                         SourceContext,
                                         SCU,
                                         sentenceLengths);
-
-      //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-      //std::cerr << "1GetAlignedSourceContext2" << std::endl;
 
     }
 
@@ -665,9 +528,7 @@ private:
                   const mblas::Matrix& AlignedSourceContext,
                   bool useFusedSoftmax)
     {
-      //std::cerr << "Probs_1=" << Probs_.Debug(1) << std::endl;
       softmax_.GetProbs(Probs_, b4_, State, Embedding, AlignedSourceContext, useFusedSoftmax);
-      //std::cerr << "Probs_2=" << Probs_.Debug(1) << std::endl;
     }
 
     std::unique_ptr<Cell> InitHiddenCell(const Weights& model, const YAML::Node& config){

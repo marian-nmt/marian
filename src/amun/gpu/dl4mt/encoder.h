@@ -43,13 +43,9 @@ class Encoder {
               }
             }
           }
-          /* HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); */
-          /* std::cerr << "Embeddings::Lookup1" << std::endl; */
 
           unsigned wordCount = words.size() / factorCount;
-          //Row.NewSize(0, wordCount);
-          /* std::vector<std::shared_ptr<mblas::Matrix>>::iterator eit = w_.Es_.begin(); */
-          /* std::vector<HostVector<unsigned>>::iterator wit = knownWords.begin(); */
+
           for (unsigned i = 0; i < knownWords.size(); i++) {
             const std::vector<unsigned>& factorWords = knownWords.at(i);
             mblas::Vector<unsigned> dKnownWords(factorWords);
@@ -71,9 +67,6 @@ class Encoder {
           }
           mblas::Transpose(Row);
 
-          /* Row.NewSize(words.size(), w_.E_->dim(1)); */
-          /* mblas::Assemble(Row, *w_.E_, dKnownWords); */
-          //std::cerr << "Row3=" << Row.Debug(1) << std::endl;
         }
 
         unsigned FactorCount() {
@@ -126,21 +119,15 @@ class Encoder {
             if(invert) {
               assert(sentenceLengths);
 
-              //std::cerr << "1State_=" << State_.Debug(1) << std::endl;
-              //std::cerr << "mapping=" << mblas::Debug(*mapping) << std::endl;
-              //mblas::MapMatrix(*(State_.cell), *sentencesMask, n - i - 1);
               mblas::MapMatrix(*(State_.output), *sentenceLengths, n - i - 1);
               if (State_.cell->size()) {
                 mblas::MapMatrix(*(State_.cell), *sentenceLengths, n - i - 1);
               }
-              //std::cerr << "2State_=" << State_.Debug(1) << std::endl;
 
               mblas::PasteRows(Context, *(State_.output), (n - i - 1), gru_->GetStateLength().output);
             }
             else {
-              //std::cerr << "1Context=" << Context.Debug(1) << std::endl;
               mblas::PasteRows(Context, *(State_.output), i, 0);
-              //std::cerr << "2Context=" << Context.Debug(1) << std::endl;
             }
 
             if (State_.cell->size() > 0) {

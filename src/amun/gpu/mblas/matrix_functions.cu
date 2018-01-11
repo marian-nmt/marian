@@ -321,19 +321,11 @@ Matrix& CopyRows(Matrix& out,
   if (inRows.size()) {
     Shape shape(inRows.size(), out.dim(1), 1, 1);
     unsigned size = shape.size();
-    //cerr << "size=" << size << endl;
-    //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    //cerr << "CopyRows1" << endl;
-
     unsigned threads = std::min(MAX_THREADS, size);
     unsigned blocks = size / threads + ((size % threads == 0) ?  0 : 1);
-    //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    //cerr << "CopyRows2" << endl;
 
     gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
       (out, in, inRows, outRows, shape);
-    //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-    //cerr << "CopyRows3" << endl;
   }
 
   return out;
@@ -346,7 +338,6 @@ Matrix& Assemble(Matrix& out,
                  const mblas::Vector<unsigned>& inRows)
 {
   out.NewSize(inRows.size(), in.dim(1));
-  //cerr << "Assemble=" << out.Debug() << " " << in.Debug() << indices.size() << endl;
 
   CopyRows(out, in, inRows);
   return out;
@@ -1386,12 +1377,6 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 unsigned maxBeamSize)
 {
   //BEGIN_TIMER("LogSoftmax excl kernels");
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  //cerr << "LogSoftmaxAndNBest0" << endl;
-
-  //cerr << "in=" << in.Debug(0) << endl;
-  //cerr << "histories=" << histories.Debug(1) << endl;
-  //cout << "histories=" << histories.Debug(1) << endl;
 
   std::vector<char> isFirsts = histories.IsFirsts();
 
@@ -1410,8 +1395,6 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   mblas::Vector<NthOutBatch> nBestCandidates(candidateInd);
   //PAUSE_TIMER("LogSoftmax excl kernels");
 
-  //cerr << "LogSoftmaxAndNBest1" << endl;
-
   //BEGIN_TIMER("gBeamSizeInit");
   gBeamSizeInit<<<1, 1, 0, CudaStreamHandler::GetStream()>>>
     (hypo2BeamSize,
@@ -1422,30 +1405,12 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
     d_beamSizes
     );
   //PAUSE_TIMER("gBeamSizeInit");
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  /*
-  cerr << "numHypos=" << numHypos << endl;
-  cerr << "numNextHypos=" << numNextHypos << endl;
-  cerr << "isFirsts=" << Debug(isFirsts, 2) << endl;
-  cerr << "in=" << in.Debug(0) << endl;
-  cerr << "activeBatchSize=" << activeBatchSize << endl;
-  cerr << "candidateInd=" << candidateInd << endl;
-  cerr << "hypo2BeamSize=" << hypo2BeamSize.Debug(2) << endl;
-  cerr << "hypo2Candidate=" << hypo2Candidate.Debug(2) << endl;
-  cerr << "nBest=" << nBest.Debug(2) << endl;
-  cerr << "nBestCandidates=" << nBestCandidates.Debug(2) << endl;
-  cerr << "histories=" << histories.Debug(2) << endl;
-  cerr << "activeBatch2Hypo=" << activeBatch2Hypo.Debug(2) << endl;
-  cerr << "hypo2NextHypo=" << hypo2NextHypo.Debug(2) << endl;
-  cerr << endl;
-  */
 
   unsigned blocks = std::min(MAX_BLOCKS, numHypos);
   unsigned threads = std::min(MAX_THREADS, in.dim(1));
   unsigned shared = sizeof(NthOutBatch) * threads * maxBeamSize
              + sizeof(float) * threads;
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  //cerr << "LogSoftmaxAndNBest2" << endl;
+
   //BEGIN_TIMER("gLogSoftMax");
   gLogSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
     (nBestCandidates,
@@ -1456,8 +1421,6 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
      hypo2BeamSize,
      hypo2Candidate);
   //PAUSE_TIMER("gLogSoftMax");
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  //cerr << "LogSoftmaxAndNBest3" << endl;
 
   blocks = std::min(MAX_BLOCKS, activeBatchSize);
   /*
@@ -1482,13 +1445,6 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
      hypo2Candidate,
      hypo2NextHypo);
   //PAUSE_TIMER("gNBestPerBatch");
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  //cerr << "LogSoftmaxAndNBest4" << endl;
-  //cerr << "2nBest=" << nBest.Debug(2) << endl;
-
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  //cerr << "step3" << endl;
-  //cerr << "3costs=" << Debug(costs, 0) << endl;
 }
 
 __global__
@@ -1518,11 +1474,7 @@ void UpdateSentenceLengths(const mblas::Vector<unsigned> &d_newBatchIds,
   unsigned blocks = 1;
   unsigned threads = std::min(MAX_THREADS, d_newSentenceLengths.size());
 
-  //cerr << "1sentenceLengths=" << sentenceLengths.Debug(2) << endl;
   gUpdateSentenceLengths<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>(d_newSentenceLengths, d_newBatchIds, sentenceLengths);
-
-  //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
-  //cerr << "2sentenceLengths=" << sentenceLengths.Debug(2) << endl;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////

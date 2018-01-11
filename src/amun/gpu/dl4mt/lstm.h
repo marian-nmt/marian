@@ -20,9 +20,6 @@ class SlowLSTM: public Cell {
                       const mblas::Matrix& Context) const {
       using namespace mblas;
 
-      /* HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); */
-      /* std::cerr << "SlowLSTM::GetNextState1" << std::endl; */
-
       const unsigned cols = GetStateLength().output;
 
       // transform context for use with gates
