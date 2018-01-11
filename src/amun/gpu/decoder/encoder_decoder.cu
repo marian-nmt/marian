@@ -379,12 +379,7 @@ void EncoderDecoder::AssembleBeamState(const Histories& histories,
   EDState& edOutState = outState.get<EDState>();
 
   thread_local mblas::Vector<unsigned> indices;
-  indices.newSize(beamStateIds.size());
-
-  mblas::copy(beamStateIds.data(),
-              beamStateIds.size(),
-              indices.data(),
-              cudaMemcpyHostToDevice);
+  indices.copyFrom(beamStateIds);
 
   CellState& cellOutStates = edOutState.GetStates();
   const CellState& cellInstates = edInState.GetStates();

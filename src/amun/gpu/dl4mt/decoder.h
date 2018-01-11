@@ -34,12 +34,7 @@ private:
               id = 1;
             }
           }
-          indices_.newSize(tids.size());
-
-          mblas::copy(tids.data(),
-              tids.size(),
-              indices_.data(),
-              cudaMemcpyHostToDevice);
+          indices_.copyFrom(tids);
 
           Assemble(Rows, *w_.E_, indices_);
         }
@@ -61,12 +56,7 @@ private:
               id = 1;
             }
           }
-          indices_.newSize(tids.size());
-
-          mblas::copy(tids.data(),
-              tids.size(),
-              indices_.data(),
-              cudaMemcpyHostToDevice);
+          indices_.copyFrom(tids);
 
           AssembleTopup(Rows, *w_.E_, indices_, numHypos, d_oldHypoIds);
 
@@ -216,12 +206,7 @@ private:
           unsigned batchSize = SourceContext.dim(3);
 
           std::vector<unsigned> hypo2Batch = histories.Hypo2Batch();
-          dHypo2Batch_.newSize(hypo2Batch.size());
-
-          mblas::copy(hypo2Batch.data(),
-              hypo2Batch.size(),
-              dHypo2Batch_.data(),
-              cudaMemcpyHostToDevice);
+          dHypo2Batch_.copyFrom(hypo2Batch);
 
           TIME_CMD("Prod3", Prod(/*h_[1],*/ Temp2_, *(HiddenState.output), *w_.W_));
 
