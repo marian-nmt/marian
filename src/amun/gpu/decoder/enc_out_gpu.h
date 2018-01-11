@@ -19,6 +19,9 @@ public:
   const mblas::Matrix &GetSourceContext() const
   { return sourceContext_; }
 
+  mblas::Vector<unsigned> &GetSentenceLengths()
+  { return sentenceLengths_; }
+
   const mblas::Vector<unsigned> &GetSentenceLengths() const
   { return sentenceLengths_; }
 

@@ -235,15 +235,9 @@ void EncoderDecoder::InitBatch(Histories &histories,
   const EncOutPtr &encOut = newSentences.front().GetEncOut();
   assert(encOut);
 
-  //sentenceLengths = encOut->Get<EncOutGPU>().GetSentenceLengths();
-  sentenceLengths.newSize(encOut->Get<EncOutGPU>().GetSentenceLengths().size());
-  mblas::copy(encOut->Get<EncOutGPU>().GetSentenceLengths().data(),
-              sentenceLengths.size(),
-              sentenceLengths.data(),
-              cudaMemcpyDeviceToHost);
-
   EncOutGPU &encOutGPU = encOut->Get<EncOutGPU>();
 
+  sentenceLengths.swap(encOutGPU.GetSentenceLengths());
   sourceContext.swap(encOutGPU.GetSourceContext());
   SCU.swap(encOutGPU.GetSCU());
 
