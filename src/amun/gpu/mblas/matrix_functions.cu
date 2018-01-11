@@ -1376,6 +1376,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 bool forbidUNK,
                 unsigned maxBeamSize)
 {
+  BEGIN_TIMER("LogSoftmax");
   //BEGIN_TIMER("LogSoftmax excl kernels");
 
   std::vector<char> isFirsts = histories.IsFirsts();
@@ -1445,6 +1446,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
      hypo2Candidate,
      hypo2NextHypo);
   //PAUSE_TIMER("gNBestPerBatch");
+  PAUSE_TIMER("LogSoftmax");
 }
 
 __global__
