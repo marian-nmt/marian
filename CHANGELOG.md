@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Version number saved in the model file
 - CMake option `-DCOMPILE_SERVER=ON`
 
 ### Fixed
