@@ -70,6 +70,9 @@ public:
       }
     }
     log();
+
+    if(has("version"))
+      LOG(info, "[config] Model created with Marian {}", get("version").as<std::string>());
   }
 
   Config(const Config& other) : config_(YAML::Clone(other.config_)) {}

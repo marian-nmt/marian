@@ -211,9 +211,8 @@ private:
 
           auto encState = state->getEncoderStates()[k];
 
-          baseCell.push_back(rnn::attention(graph)  //
-                             ("prefix", attPrefix)  //
-                                 .set_state(encState));
+          baseCell.push_back(
+              rnn::attention(graph)("prefix", attPrefix).set_state(encState));
         }
       }
     }
@@ -355,7 +354,7 @@ public:
       logits = output->apply(embeddings, decoderContext, alignedContext);
     else
       logits = output->apply(embeddings, decoderContext);
-      
+
     // return unormalized(!) probabilities
     return New<DecoderState>(decoderStates, logits, state->getEncoderStates());
   }
