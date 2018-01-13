@@ -255,6 +255,12 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
     model.add_options()
       ("model,m", po::value<std::string>()->default_value("model.npz"),
       "Path prefix for model to be saved/resumed");
+
+    if(mode_ == ConfigMode::training) {
+      model.add_options()
+        ("pretrained-model", po::value<std::string>(),
+        "Path prefix for pre-trained model to initialize model weights");
+    }
   }
 
   model.add_options()
@@ -692,6 +698,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION_NONDEFAULT("models", std::vector<std::string>);
   } else {
     SET_OPTION("model", std::string);
+    if(mode_ == ConfigMode::training)
+      SET_OPTION_NONDEFAULT("pretrained-model", std::string);
   }
 
   if(!vm_["vocabs"].empty()) {

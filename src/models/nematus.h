@@ -23,7 +23,9 @@ public:
              "than gru-nematus, use --type s2s");
   }
 
-  void load(Ptr<ExpressionGraph> graph, const std::string& name) {
+  void load(Ptr<ExpressionGraph> graph,
+            const std::string& name,
+            bool markedReloaded = true) {
     using namespace keywords;
 
     LOG(info, "Loading model from {}", name);

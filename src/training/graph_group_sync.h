@@ -57,13 +57,21 @@ public:
 
   void load() {
     if(!options_->get<bool>("no-reload")) {
-      std::string init = options_->get<std::string>("model");
-      if(boost::filesystem::exists(init)) {
+      std::string name = options_->get<std::string>("model");
+      if(boost::filesystem::exists(name)) {
         size_t i = 0;
         if(scheduler_)
-          scheduler_->load(init);
+          scheduler_->load(name);
         for(auto graph : graphs_)
-          builders_[i++]->load(graph, init);
+          builders_[i++]->load(graph, name);
+      } else if(options_->has("pretrained-model")) {
+        std::string init = options_->get<std::string>("pretrained-model");
+        LOG(info,
+            "Initialize model weights with the pre-trained model {}",
+            init);
+        size_t i = 0;
+        for(auto graph : graphs_)
+          builders_[i++]->load(graph, init, false);
       }
     }
   }
