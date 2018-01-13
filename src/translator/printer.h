@@ -14,9 +14,12 @@ void Printer(Ptr<Config> options,
              Ptr<History> history,
              OStream& best1,
              OStream& bestn) {
+  
+  bool reverse = options->get<bool>("right-left");
+
   if(options->has("n-best") && options->get<bool>("n-best")) {
     const auto& nbl = history->NBest(options->get<size_t>("beam-size"));
-
+      
     for(size_t i = 0; i < nbl.size(); ++i) {
       const auto& result = nbl[i];
       const auto& words = std::get<0>(result);
@@ -24,7 +27,7 @@ void Printer(Ptr<Config> options,
 
       float realCost = std::get<2>(result);
 
-      std::string translation = Join((*vocab)(words));
+      std::string translation = Join((*vocab)(words), " ", reverse);
 
       bestn << history->GetLineNum() << " ||| " << translation << " |||";
 
@@ -46,7 +49,9 @@ void Printer(Ptr<Config> options,
   }
 
   auto bestTranslation = history->Top();
-  std::string translation = Join((*vocab)(std::get<0>(bestTranslation)));
+      
+  std::string translation = Join((*vocab)(std::get<0>(bestTranslation)),
+                                 " ", reverse);
   best1 << translation << std::flush;
 }
 }

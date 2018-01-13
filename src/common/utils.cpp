@@ -30,14 +30,25 @@ void Split(const std::string& line,
     pieces.push_back(token);
 }
 
-std::string Join(const std::vector<std::string>& words, const std::string del) {
+std::string Join(const std::vector<std::string>& words,
+                 const std::string& del,
+                 bool reverse) {
   std::stringstream ss;
   if(words.empty()) {
     return "";
   }
-  ss << words[0];
-  for(size_t i = 1; i < words.size(); ++i) {
-    ss << del << words[i];
+  
+  if(reverse) {
+    for(size_t i = words.size() - 1; i > 0; --i) {
+      ss << words[i] << del;
+    }
+    ss << words[0];
+  }
+  else {
+    ss << words[0];
+    for(size_t i = 1; i < words.size(); ++i) {
+      ss << del << words[i];
+    }
   }
   return ss.str();
 }

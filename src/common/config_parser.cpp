@@ -298,6 +298,8 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Use skip connections (s2s)")
     ("layer-normalization", po::value<bool>()->zero_tokens()->default_value(false),
      "Enable layer normalization")
+    ("right-left", po::value<bool>()->zero_tokens()->default_value(false),
+     "Train right-to-left model")
     ("best-deep", po::value<bool>()->zero_tokens()->default_value(false),
      "Use Edinburgh deep RNN configuration (s2s)")
     ("special-vocab", po::value<std::vector<size_t>>()->multitoken(),
@@ -731,6 +733,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("tied-embeddings-src", bool);
   SET_OPTION("tied-embeddings-all", bool);
   SET_OPTION("layer-normalization", bool);
+  SET_OPTION("right-left", bool);
   SET_OPTION("transformer-heads", int);
   SET_OPTION("transformer-preprocess", std::string);
   SET_OPTION("transformer-postprocess", std::string);

@@ -32,6 +32,7 @@ Corpus::Corpus(Ptr<Config> options, bool translate)
     : options_(options),
       maxLength_(options_->get<size_t>("max-length")),
       maxLengthCrop_(options_->get<bool>("max-length-crop")),
+      rightLeft_(options_->get<bool>("right-left")),
       g_(Config::seed) {
   bool training = !translate;
 
@@ -137,7 +138,8 @@ Corpus::Corpus(std::vector<std::string> paths,
       options_(options),
       vocabs_(vocabs),
       maxLength_(maxLength ? maxLength : options_->get<size_t>("max-length")),
-      maxLengthCrop_(options_->get<bool>("max-length-crop")) {
+      maxLengthCrop_(options_->get<bool>("max-length-crop")),
+      rightLeft_(options_->get<bool>("right-left")) {
   ABORT_IF(paths_.size() != vocabs_.size(),
            "Number of corpus files and vocab files does not agree");
 
@@ -170,6 +172,9 @@ SentenceTuple Corpus::next() {
           words.resize(maxLength_);
           words.back() = 0;
         }
+        
+        if(rightLeft_)
+          std::reverse(words.begin(), words.end() - 1);
 
         tup.push_back(words);
       }

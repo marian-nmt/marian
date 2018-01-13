@@ -10,6 +10,7 @@ void Split(const std::string& line,
            const std::string del = " ");
 
 std::string Join(const std::vector<std::string>& words,
-                 const std::string del = " ");
+                 const std::string& del = " ",
+                 bool reverse = false);
 
 std::string Exec(const std::string& cmd);
