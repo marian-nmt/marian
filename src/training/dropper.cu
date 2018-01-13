@@ -13,27 +13,30 @@ namespace marian {
 
 __global__ void grad_drop(float* data,
                           float* tmp,
-                          float* errors,
+                          float* residual,
+                          float* velocity,
                           float cut_off,
                           int max_size) {
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
   if(idx >= max_size)
     return;
-  if(std::abs(data[idx]) <= cut_off) {
-    errors[idx] = data[idx];
-    data[idx] = 0;
-    tmp[idx] = 0;
-  } else {
-    errors[idx] = 0;
-    tmp[idx] = 1;
-  }
+
+  bool mask = std::abs(data[idx]) > cut_off;
+
+  residual[idx] = data[idx] * !mask; //store residual
+  velocity[idx] = velocity[idx] * !mask; //momentum factor masking
+  data[idx] = data[idx] * mask; //send
+  tmp[idx] = 1 * mask;
+  
 }
 
-__global__ void grad_add_error(float* data, float* errors, int max_size) {
+__global__ void grad_add_error(float* data, float* residual, float* velocity, float m, int max_size) {
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
   if(idx >= max_size)
     return;
-  data[idx] += errors[idx];
+  // momentum correction
+  velocity[idx] = m * velocity[idx] + data[idx];
+  data[idx] = velocity[idx] + residual[idx];
 }
 
 __global__ void full_abs(float* data, int max_size) {
@@ -76,22 +79,24 @@ __global__ void randomSampling(float* originalData,
   data[idx] = abs(originalData[idx * scale]);
 }
 
-void GradientDropBase::grad_drop_do(float* data,
-                                    float* errors,
+void GradientDropBase::grad_drop_do(float* grads,
+                                    float* residual,
+                                    float* velocity,
                                     float* tmp,
                                     int len,
-                                    float rate) {
+                                    float rate,
+                                    float m) {
   int threads = 512;
   int blocks = 1 + len / threads;
   cudaSetDevice(_device);
 
-  grad_add_error<<<blocks, threads>>>(data, errors, len);
+  grad_add_error<<<blocks, threads>>>(grads, residual, velocity, m, len);
   // full sort
   // int sortSize = len;
   int sortSize = min(100000, len);
   int blocksSample = 1 + sortSize / threads;
   randomSampling<<<blocksSample, threads>>>(
-      data, tmp, sortSize, len / sortSize, len);
+      grads, tmp, sortSize, len / sortSize, len);
 
   thrust::device_ptr<float> dev_data_ptr(tmp);
   thrust::sort(dev_data_ptr, dev_data_ptr + sortSize);
@@ -99,27 +104,30 @@ void GradientDropBase::grad_drop_do(float* data,
   int cut_index = std::max(0, (int)(sortSize * rate) - 1);
   cudaMemcpy(&cut_off, tmp + cut_index, sizeof(float), cudaMemcpyDeviceToHost);
 
-  grad_drop<<<blocks, threads>>>(data, tmp, errors, cut_off, len);
+  grad_drop<<<blocks, threads>>>(grads, tmp, residual, velocity, cut_off, len);
 }
 
 void GradientDropBase::dropGraph(Tensor t,
                                  SparseTensor destination,
-                                 double rate) {
+                                 double rate,
+                                 double momentum) {
   cudaSetDevice(t->getDevice());
-  if(!feedback) {
+  if(!residual) {
     _device = t->getDevice();
-    CUDA_CHECK(cudaMalloc(&feedback, sizeof(float) * t->size()));
+    CUDA_CHECK(cudaMalloc(&residual, sizeof(float) * t->size()));
     CUDA_CHECK(cudaMalloc(&temp_d, sizeof(float) * t->size()));
-    cudaMemset(feedback, 0, sizeof(float) * t->size());
-    cudaMemset(temp_d, 0, sizeof(float) * t->size());
+    CUDA_CHECK(cudaMalloc(&velocity, sizeof(float) * t->size()));
 
+    cudaMemset(residual, 0, sizeof(float) * t->size());
+    cudaMemset(temp_d, 0, sizeof(float) * t->size());
+    cudaMemset(velocity, 0, sizeof(float) * t->size());
     step = 0;
   }
 
   // drop the gradients in t->data(). Also fills in feedback with the
   // propagated error fills temp_d with binary flag. 0 means that gradient in
   // that position is dropped, 1 otherwise
-  grad_drop_do(t->data(), feedback, temp_d, t->size(), rate);
+  grad_drop_do(t->data(), residual, velocity, temp_d, t->size(), rate, momentum);
 
   // do inclusive sum on temp_d, to obtain the sparse matrix location of
   // non-dropped gradients

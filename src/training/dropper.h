@@ -5,20 +5,23 @@
 namespace marian {
 
 class GradientDropBase {
-  float* feedback;
+  float* residual;
+  float* velocity;
   float* temp_d;
   float cut_off;
   int step;
   int _device;
 
-  void grad_drop_do(float* data,
-                    float* errors,
+  void grad_drop_do(float* grads,
+                    float* residual,
+                    float* velocity,
                     float* tmp,
                     int len,
-                    float rate);
+                    float rate,
+                    float m);
 
 public:
-  void dropGraph(Tensor t, SparseTensor destination, double rate = 0.99);
+  void dropGraph(Tensor t, SparseTensor destination, double rate = 0.99, double momentum = 0.0);
 };
 
 typedef Ptr<GradientDropBase> GradientDrop;
