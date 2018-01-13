@@ -10,7 +10,10 @@ namespace models {
 
 class ModelBase {
 public:
-  virtual void load(Ptr<ExpressionGraph>, const std::string&) = 0;
+  virtual void load(Ptr<ExpressionGraph>,
+                    const std::string&,
+                    bool markReloaded = true)
+      = 0;
 
   virtual void save(Ptr<ExpressionGraph>,
                     const std::string&,

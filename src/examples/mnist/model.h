@@ -31,7 +31,7 @@ public:
     return construct(graph, batch, inference_);
   }
 
-  void load(Ptr<ExpressionGraph> graph, const std::string& name) {
+  void load(Ptr<ExpressionGraph> graph, const std::string& name, bool) {
     LOG(critical, "Loading MNIST model is not supported");
   }
 
