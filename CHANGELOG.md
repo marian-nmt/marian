@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Option `--pretrained-model` to be used for network weights initialization
+  with a pretrained model
 - Version number saved in the model file
 - CMake option `-DCOMPILE_SERVER=ON`
 
