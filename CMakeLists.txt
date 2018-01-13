@@ -86,6 +86,7 @@ if(COMPILE_SERVER)
     set(EXT_LIBS ${EXT_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
   else(OpenSSL_FOUND)
     message(WARNING "Cannot find OpenSSL library. Not compiling server.")
+    set(COMPILE_SERVER "off")
   endif(OpenSSL_FOUND)
 endif(COMPILE_SERVER)
 
