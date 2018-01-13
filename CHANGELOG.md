@@ -7,14 +7,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.2.0] - 2018-01-13
+
 ### Added
 - Option `--pretrained-model` to be used for network weights initialization
   with a pretrained model
 - Version number saved in the model file
 - CMake option `-DCOMPILE_SERVER=ON`
+- Right-to-left training, scoring, decoding with `--right-left`
 
 ### Fixed
 - Fixed marian-server compilation with Boost 1.66
+- Fixed compilation on g++-4.8.4
+- Fixed compilation without marian-server if openssl is not available
 
 ## [1.1.3] - 2017-12-06
 
