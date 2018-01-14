@@ -29,7 +29,7 @@ class EncoderDecoder : public Scorer {
     EncoderDecoder(const God &god,
     			   const std::string& name,
                    const YAML::Node& config,
-                   size_t tab,
+                   unsigned tab,
                    const Weights& model);
 
     virtual ~EncoderDecoder();
@@ -38,7 +38,7 @@ class EncoderDecoder : public Scorer {
 
     virtual State* NewState() const;
 
-    virtual void BeginSentenceState(State& state, size_t batchSize=1);
+    virtual void BeginSentenceState(State& state, unsigned batchSize=1);
 
     virtual void Encode(const Sentences& source);
 
@@ -54,7 +54,7 @@ class EncoderDecoder : public Scorer {
     virtual void *GetNBest();
     virtual const BaseMatrix *GetBias() const;
 
-    size_t GetVocabSize() const;
+    unsigned GetVocabSize() const;
 
     void Filter(const std::vector<uint>& filterIds);
 

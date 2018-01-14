@@ -28,7 +28,7 @@ class State {
       return static_cast<const T&>(*this);;
     }
 
-    virtual std::string Debug(size_t verbosity = 1) const = 0;
+    virtual std::string Debug(unsigned verbosity = 1) const = 0;
 
 };
 
@@ -39,13 +39,13 @@ class Scorer {
   public:
     Scorer(const God &god,
            const std::string& name,
-           const YAML::Node& config, size_t tab);
+           const YAML::Node& config, unsigned tab);
 
     virtual ~Scorer() {}
 
     virtual void Decode(const State& in, State& out, const std::vector<uint>& beamSizes) = 0;
 
-    virtual void BeginSentenceState(State& state, size_t batchSize = 1) = 0;
+    virtual void BeginSentenceState(State& state, unsigned batchSize = 1) = 0;
 
     virtual void AssembleBeamState(const State& in, const Beam& beam, State& out) = 0;
 
@@ -55,7 +55,7 @@ class Scorer {
 
     virtual State* NewState() const = 0;
 
-    virtual size_t GetVocabSize() const = 0;
+    virtual unsigned GetVocabSize() const = 0;
 
     virtual void CleanAfterTranslation() {}
 
@@ -71,13 +71,13 @@ class Scorer {
     const God &god_;
     const std::string& name_;
     const YAML::Node& config_;
-    size_t tab_;
+    unsigned tab_;
 };
 
 class SourceIndependentScorer : public Scorer {
   public:
     SourceIndependentScorer(const God &god, const std::string& name,
-                            const YAML::Node& config, size_t)
+                            const YAML::Node& config, unsigned)
     : Scorer(god, name, config, 0) {}
 
     virtual ~SourceIndependentScorer() {}

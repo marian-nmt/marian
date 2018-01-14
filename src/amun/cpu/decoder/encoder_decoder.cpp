@@ -15,7 +15,7 @@ CPUEncoderDecoderBase::CPUEncoderDecoderBase(
 	const God &god,
     const std::string& name,
     const YAML::Node& config,
-    size_t tab)
+    unsigned tab)
   : Scorer(god, name, config, tab)
 {}
 

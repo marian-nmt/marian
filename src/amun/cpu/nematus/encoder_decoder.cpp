@@ -20,7 +20,7 @@ using EDState = EncoderDecoderState;
 EncoderDecoder::EncoderDecoder(const God &god,
 							   const std::string& name,
                                const YAML::Node& config,
-                               size_t tab,
+                               unsigned tab,
                                const Nematus::Weights& model)
   : CPUEncoderDecoderBase(god, name, config, tab),
     model_(model),
@@ -38,7 +38,7 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
 }
 
 
-void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
+void EncoderDecoder::BeginSentenceState(State& state, unsigned batchSize) {
   EDState& edState = state.get<EDState>();
   decoder_->EmptyState(edState.GetStates(), SourceContext_, batchSize);
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
@@ -79,7 +79,7 @@ mblas::Matrix& EncoderDecoder::GetAttention() {
 }
 
 
-size_t EncoderDecoder::GetVocabSize() const {
+unsigned EncoderDecoder::GetVocabSize() const {
   return decoder_->GetVocabSize();
 }
 

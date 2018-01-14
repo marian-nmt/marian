@@ -22,13 +22,13 @@ EncoderDecoder::EncoderDecoder(
 		const God &god,
 		const std::string& name,
         const YAML::Node& config,
-        size_t tab,
+        unsigned tab,
         const Weights& model)
   : Scorer(god, name, config, tab),
     model_(model),
     encoder_(new Encoder(model_, config)),
     decoder_(new Decoder(god, model_, config)),
-    indices_(god.Get<size_t>("beam-size")),
+    indices_(god.Get<unsigned>("beam-size")),
     SourceContext_(new mblas::Matrix())
 {
   BEGIN_TIMER("EncoderDecoder");
@@ -88,7 +88,7 @@ void EncoderDecoder::Encode(const Sentences& source) {
   PAUSE_TIMER("Encode");
 }
 
-void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
+void EncoderDecoder::BeginSentenceState(State& state, unsigned batchSize) {
   //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();
   decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, sentenceLengths_);
@@ -158,7 +158,7 @@ mblas::Matrix& EncoderDecoder::GetAttention() {
   return decoder_->GetAttention();
 }
 
-size_t EncoderDecoder::GetVocabSize() const {
+unsigned EncoderDecoder::GetVocabSize() const {
   return decoder_->GetVocabSize();
 }
 
