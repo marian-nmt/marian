@@ -18,19 +18,13 @@ protected:
     static thread_local CudaStreamHandler instance_;
     cudaStream_t stream_;
 
-    CudaStreamHandler()
-    {
-      HANDLE_ERROR( cudaStreamCreate(&stream_));
-      // cudaStreamCreateWithFlags(stream_.get(), cudaStreamNonBlocking);
-    }
-
+    CudaStreamHandler();
     CudaStreamHandler(const CudaStreamHandler&) = delete;
+    virtual ~CudaStreamHandler();
 
-    virtual ~CudaStreamHandler() {
-      HANDLE_ERROR(cudaStreamDestroy(stream_));
-    }
 };
 
+/////////////////////////////////////////////////////////////////////////////////////////
 
 class CublasHandler
 {
@@ -40,25 +34,8 @@ class CublasHandler
     }
 
   private:
-    CublasHandler()
-    {
-      cublasStatus_t stat;
-      stat = cublasCreate(&handle_);
-      if (stat != CUBLAS_STATUS_SUCCESS) {
-		  printf ("cublasCreate initialization failed\n");
-		  abort();
-      }
-
-      stat = cublasSetStream(handle_, CudaStreamHandler::GetStream());
-      if (stat != CUBLAS_STATUS_SUCCESS) {
-		  printf ("cublasSetStream initialization failed\n");
-		  abort();
-      }
-    }
-
-    ~CublasHandler() {
-      cublasDestroy(handle_);
-    }
+    CublasHandler();
+    ~CublasHandler();
 
     static thread_local CublasHandler instance_;
     cublasHandle_t handle_;
