@@ -13,19 +13,19 @@ class Vocab;
 
 class Filter {
   public:
-    Filter(const size_t numFirstWords=10000);
+    Filter(const unsigned numFirstWords=10000);
 
     Filter(const Vocab& srcVocab,
            const Vocab& trgVocab,
            const std::string& path,
-           const size_t numFirstWords=10000,
-           const size_t maxNumTranslation=1000);
+           const unsigned numFirstWords=10000,
+           const unsigned maxNumTranslation=1000);
 
     template<class T>
-    Words GetFilteredVocab(const T& srcWords, const size_t maxVocabSize) const {
+    Words GetFilteredVocab(const T& srcWords, const unsigned maxVocabSize) const {
       std::set<Word> filtered;
 
-      for(size_t i = 0; i < std::min(numFirstWords_, maxVocabSize); ++i) {
+      for(unsigned i = 0; i < std::min(numFirstWords_, maxVocabSize); ++i) {
         filtered.insert(i);
       }
 
@@ -42,18 +42,18 @@ class Filter {
       return output;
     }
 
-    size_t GetNumFirstWords() const;
+    unsigned GetNumFirstWords() const;
 
-    void SetNumFirstWords(size_t numFirstWords);
+    void SetNumFirstWords(unsigned numFirstWords);
 
     static std::vector<Words> ParseAlignmentFile(const Vocab& srcVocab,
                                                  const Vocab& trgVocab,
                                                  const std::string& path,
-                                                 const size_t maxNumTranslation,
-                                                 const size_t numNFirst);
+                                                 const unsigned maxNumTranslation,
+                                                 const unsigned numNFirst);
 
   private:
-    size_t numFirstWords_;
+    unsigned numFirstWords_;
     const std::vector<Words> mapper_;
 };
 

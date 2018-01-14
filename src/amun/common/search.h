@@ -38,7 +38,7 @@ class Search {
     DeviceInfo deviceInfo_;
     std::vector<ScorerPtr> scorers_;
     std::shared_ptr<const Filter> filter_;
-    const size_t maxBeamSize_;
+    const unsigned maxBeamSize_;
     bool normalizeScore_;
     Words filterIndices_;
     BestHypsBasePtr bestHyps_;

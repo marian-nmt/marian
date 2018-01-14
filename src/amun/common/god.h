@@ -52,8 +52,8 @@ class God {
       return config_.Get(key);
     }
 
-    Vocab& GetSourceVocab(size_t tab = 0, size_t factor = 0) const;
-    FactorVocab& GetSourceVocabs(size_t tab=0) const;
+    Vocab& GetSourceVocab(unsigned tab = 0, unsigned factor = 0) const;
+    FactorVocab& GetSourceVocabs(unsigned tab=0) const;
     Vocab& GetTargetVocab() const;
 
     std::istream& GetInputStream() const;
@@ -68,8 +68,8 @@ class God {
     const std::map<std::string, float>& GetScorerWeights() const;
 
     std::vector<std::vector<std::string>> Preprocess
-      (size_t i, const std::vector<std::vector<std::string>>& input) const;
-    std::vector<std::string> Preprocess(size_t i, const std::vector<std::string>& input) const;
+      (unsigned i, const std::vector<std::vector<std::string>>& input) const;
+    std::vector<std::string> Preprocess(unsigned i, const std::vector<std::string>& input) const;
     std::vector<std::string> Postprocess(const std::vector<std::string>& input) const;
 
 
@@ -78,7 +78,7 @@ class God {
     DeviceInfo GetNextDevice() const;
     Search &GetSearch() const;
 
-    size_t GetTotalThreads() const;
+    unsigned GetTotalThreads() const;
     ThreadPool &GetThreadPool()
     { return *pool_; }
 
@@ -115,7 +115,7 @@ class God {
     mutable std::unique_ptr<InputFileStream> inputStream_;
     mutable OutputCollector outputCollector_;
 
-    mutable size_t threadIncr_;
+    mutable unsigned threadIncr_;
     mutable boost::shared_mutex accessLock_;
 
     std::unique_ptr<ThreadPool> pool_;

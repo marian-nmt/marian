@@ -32,8 +32,8 @@ struct DeviceInfo
   friend std::ostream& operator<<(std::ostream& out, const DeviceInfo& obj);
 
   DeviceType deviceType;
-  size_t threadInd;
-  size_t deviceId;
+  unsigned threadInd;
+  unsigned deviceId;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////

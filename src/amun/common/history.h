@@ -17,19 +17,19 @@ class History {
         return cost < hc.cost;
       }
 
-      size_t i;
-      size_t j;
+      unsigned i;
+      unsigned j;
       float cost;
     };
 
     History(const History&) = delete;
 
   public:
-    History(const Sentence &sentence, bool normalizeScore, size_t maxLength);
+    History(const Sentence &sentence, bool normalizeScore, unsigned maxLength);
 
     void Add(const Beam& beam);
 
-    size_t size() const {
+    unsigned size() const {
       return history_.size();
     }
 
@@ -37,21 +37,21 @@ class History {
       return history_.front();
     }
 
-    NBestList NBest(size_t n) const;
+    NBestList NBest(unsigned n) const;
 
     Result Top() const {
       return NBest(1)[0];
     }
 
-    size_t GetLineNum() const
+    unsigned GetLineNum() const
     { return lineNo_; }
 
   private:
     std::vector<Beam> history_;
     std::priority_queue<HypothesisCoord> topHyps_;
     bool normalize_;
-    size_t lineNo_;
-    size_t maxLength_;
+    unsigned lineNo_;
+    unsigned maxLength_;
 };
 
 

@@ -12,7 +12,7 @@ class Vocab {
   public:
     Vocab(const std::string& path);
 
-    size_t operator[](const std::string& word) const;
+    unsigned operator[](const std::string& word) const;
 
     Words operator()(const std::vector<std::string>& lineTokens, bool addEOS = true) const;
 
@@ -20,12 +20,12 @@ class Vocab {
 
     std::vector<std::string> operator()(const Words& sentence, bool ignoreEOS = true) const;
 
-    const std::string& operator[](size_t id) const;
+    const std::string& operator[](unsigned id) const;
 
-    size_t size() const;
+    unsigned size() const;
 
   private:
-    typedef std::map<std::string, size_t> Str2Id;
+    typedef std::map<std::string, unsigned> Str2Id;
     Str2Id str2id_;
 
     typedef std::vector<std::string> Id2Str;

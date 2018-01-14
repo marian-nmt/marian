@@ -8,16 +8,16 @@ class Histories {
     Histories() {} // for all histories in translation task
     Histories(const Sentences& sentences, bool normalizeScore);
 
-    std::shared_ptr<History> at(size_t id) const {
+    std::shared_ptr<History> at(unsigned id) const {
       return coll_.at(id);
     }
 
-    size_t size() const {
+    unsigned size() const {
       return coll_.size();
     }
 
     void Add(const Beams& beams) {
-      for (size_t i = 0; i < size(); ++i) {
+      for (unsigned i = 0; i < size(); ++i) {
         if (!beams[i].empty()) {
           coll_[i]->Add(beams[i]);
         }

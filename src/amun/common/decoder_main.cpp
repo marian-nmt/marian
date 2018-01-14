@@ -27,8 +27,8 @@ int main(int argc, char* argv[])
   boost::timer::cpu_timer timer;
 
 
-  size_t miniSize = (god.Get<size_t>("cpu-threads") == 0) ? god.Get<size_t>("mini-batch") : 1;
-  size_t maxiSize = (god.Get<size_t>("cpu-threads") == 0) ? god.Get<size_t>("maxi-batch") : 1;
+  unsigned miniSize = (god.Get<unsigned>("cpu-threads") == 0) ? god.Get<unsigned>("mini-batch") : 1;
+  unsigned maxiSize = (god.Get<unsigned>("cpu-threads") == 0) ? god.Get<unsigned>("maxi-batch") : 1;
   int miniWords = god.Get<int>("mini-batch-words");
 
   LOG(info)->info("Reading input");
@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
   SentencesPtr maxiBatch(new Sentences());
 
   std::string line;
-  std::size_t lineNum = 0;
+  unsigned lineNum = 0;
 
   while (std::getline(god.GetInputStream(), line)) {
     maxiBatch->push_back(SentencePtr(new Sentence(god, lineNum++, line)));

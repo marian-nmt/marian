@@ -65,7 +65,7 @@ void ProcessPaths(YAML::Node& node, const boost::filesystem::path& configPath, b
 }
 
 void OverwriteModels(YAML::Node& config, std::vector<std::string>& modelPaths) {
-  for(size_t i = 0; i < modelPaths.size(); ++i) {
+  for(unsigned i = 0; i < modelPaths.size(); ++i) {
     std::stringstream name;
     name << "F" << i;
     config["scorers"][name.str()]["type"] = "Nematus";
@@ -153,7 +153,7 @@ void LoadWeights(YAML::Node& config, const std::string& path) {
   InputFileStream fweights(path);
   std::string name;
   float weight;
-  size_t i = 0;
+  unsigned i = 0;
   while(fweights >> name >> weight) {
     if(name.back() == '=')
       name.pop_back();
@@ -164,7 +164,7 @@ void LoadWeights(YAML::Node& config, const std::string& path) {
 }
 
 
-void Config::AddOptions(size_t argc, char** argv) {
+void Config::AddOptions(unsigned argc, char** argv) {
   namespace po = boost::program_options;
   po::options_description general("General options");
 
@@ -175,7 +175,7 @@ void Config::AddOptions(size_t argc, char** argv) {
   std::vector<std::string> bpePaths;
   bool debpe;
 
-  std::vector<size_t> devices, fpgaDevices;
+  std::vector<unsigned> devices, fpgaDevices;
 
   general.add_options()
     ("config,c", po::value(&configPath),
@@ -194,36 +194,36 @@ void Config::AddOptions(size_t argc, char** argv) {
     ("no-debpe", po::value(&debpe)->zero_tokens()->default_value(false),
      "Providing bpe is on, turn off deBPE of the output.")
 #ifdef CUDA
-    ("devices,d", po::value(&devices)->multitoken()->default_value(std::vector<size_t>(1, 0), "0"),
+    ("devices,d", po::value(&devices)->multitoken()->default_value(std::vector<unsigned>(1, 0), "0"),
      "CUDA device(s) to use, set to 0 by default, "
      "e.g. set to 0 1 to use gpu0 and gpu1. "
      "Implicitly sets minimal number of threads to number of devices.")
-    ("gpu-threads", po::value<size_t>()->default_value(1),
+    ("gpu-threads", po::value<unsigned>()->default_value(1),
      "Number of threads on a single GPU.")
 #endif
 
 #ifdef HAS_CPU
   #ifdef CUDA
-    ("cpu-threads", po::value<size_t>()->default_value(0),
+    ("cpu-threads", po::value<unsigned>()->default_value(0),
      "Number of threads on the CPU.")
   #else
-     ("cpu-threads", po::value<size_t>()->default_value(1),
+     ("cpu-threads", po::value<unsigned>()->default_value(1),
       "Number of threads on the CPU.")
   #endif
 #endif
 
 #ifdef HAS_FPGA
-    ("fpga-threads", po::value<size_t>()->default_value(0),
+    ("fpga-threads", po::value<unsigned>()->default_value(0),
      "Number of threads on the FPGA.")
-    ("fpga-devices", po::value(&fpgaDevices)->multitoken()->default_value(std::vector<size_t>(1, 0), "0"),
+    ("fpga-devices", po::value(&fpgaDevices)->multitoken()->default_value(std::vector<unsigned>(1, 0), "0"),
      "FPGA device(s) to use, set to 0 by default, "
         "e.g. set to 0 1 to use fpga0 and fpga1. "
         "Implicitly sets minimal number of threads to number of devices.")
 #endif
 
-    ("mini-batch", po::value<size_t>()->default_value(1),
+    ("mini-batch", po::value<unsigned>()->default_value(1),
      "Number of sentences in mini batch.")
-    ("maxi-batch", po::value<size_t>()->default_value(1),
+    ("maxi-batch", po::value<unsigned>()->default_value(1),
       "Number of sentences in maxi batch.")
     ("mini-batch-words", po::value<int>()->default_value(0),
       "Set mini-batch size based on words instead of sentences.")
@@ -239,7 +239,7 @@ void Config::AddOptions(size_t argc, char** argv) {
      "If true, return soft alignment.")
     ("return-nematus-alignment", po::value<bool>()->zero_tokens()->default_value(false),
      "If true, return Nematus style soft alignment.")
-    ("max-length", po::value<size_t>()->default_value(500),
+    ("max-length", po::value<unsigned>()->default_value(500),
       "Maximum length of input sentences. Anything above this is truncated. 0=no max length")
     ("version,v", po::value<bool>()->zero_tokens()->default_value(false),
      "Print version.")
@@ -253,7 +253,7 @@ void Config::AddOptions(size_t argc, char** argv) {
 
   po::options_description search("Search options");
   search.add_options()
-    ("beam-size,b", po::value<size_t>()->default_value(12),
+    ("beam-size,b", po::value<unsigned>()->default_value(12),
      "Decoding beam-size")
     ("normalize,n", po::value<bool>()->zero_tokens()->default_value(false),
      "Normalize scores by translation length after decoding")
@@ -316,21 +316,21 @@ void Config::AddOptions(size_t argc, char** argv) {
   SET_OPTION("softmax-filter", std::vector<std::string>);
   SET_OPTION("allow-unk", bool);
   SET_OPTION("no-debpe", bool);
-  SET_OPTION("beam-size", size_t);
-  SET_OPTION("mini-batch", size_t);
-  SET_OPTION("maxi-batch", size_t);
+  SET_OPTION("beam-size", unsigned);
+  SET_OPTION("mini-batch", unsigned);
+  SET_OPTION("maxi-batch", unsigned);
   SET_OPTION("mini-batch-words", int);
-  SET_OPTION("max-length", size_t);
+  SET_OPTION("max-length", unsigned);
 #ifdef CUDA
-  SET_OPTION("gpu-threads", size_t);
-  SET_OPTION("devices", std::vector<size_t>);
+  SET_OPTION("gpu-threads", unsigned);
+  SET_OPTION("devices", std::vector<unsigned>);
 #endif
 #ifdef HAS_CPU
-  SET_OPTION("cpu-threads", size_t);
+  SET_OPTION("cpu-threads", unsigned);
 #endif
 #ifdef HAS_FPGA
-  SET_OPTION("fpga-threads", size_t);
-  SET_OPTION("fpga-devices", std::vector<size_t>);
+  SET_OPTION("fpga-threads", unsigned);
+  SET_OPTION("fpga-devices", std::vector<unsigned>);
 #endif
   SET_OPTION("show-weights", bool);
   SET_OPTION_NONDEFAULT("load-weights", std::string);

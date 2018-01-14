@@ -18,13 +18,13 @@ using namespace std;
 
 namespace amunmt {
 
-Filter::Filter(const size_t numFirstWords) : numFirstWords_(numFirstWords) {}
+Filter::Filter(const unsigned numFirstWords) : numFirstWords_(numFirstWords) {}
 
 Filter::Filter(const Vocab& srcVocab,
                const Vocab& trgVocab,
                const std::string& path,
-               const size_t numFirstWords,
-               const size_t maxNumTranslation)
+               const unsigned numFirstWords,
+               const unsigned maxNumTranslation)
   : numFirstWords_(numFirstWords),
     mapper_(ParseAlignmentFile(srcVocab,
                                trgVocab,
@@ -35,13 +35,13 @@ Filter::Filter(const Vocab& srcVocab,
 std::vector<Words> Filter::ParseAlignmentFile(const Vocab& srcVocab,
                                               const Vocab& trgVocab,
                                               const std::string& path,
-                                              const size_t maxNumTranslation,
-                                              const size_t numNFirst) {
+                                              const unsigned maxNumTranslation,
+                                              const unsigned numNFirst) {
   std::map<Word, std::vector<std::pair<Word, float>>> mapper;
   std::ifstream filterFile(path);
   std::string line;
   std::string delimiter = "";
-  size_t srcIndex, trgIndex;
+  unsigned srcIndex, trgIndex;
   while (std::getline(filterFile, line)) {
     if (delimiter ==  "") {
        if (line.find("\t", 0) != std::string::npos) {
@@ -70,13 +70,13 @@ std::vector<Words> Filter::ParseAlignmentFile(const Vocab& srcVocab,
     }
   }
   std::vector<Words> vecMapper(srcVocab.size());
-  for (size_t i = 0; i < srcVocab.size(); ++i) {
+  for (unsigned i = 0; i < srcVocab.size(); ++i) {
     if (mapper.find(i) != mapper.end()) {
       std::sort(mapper[i].begin(), mapper[i].end(),
           [](const std::pair<Word, float>& left,
             const std::pair<Word, float>& right) {
             return left.second > right.second; });
-      for (size_t j = 0; j < std::min(mapper[i].size(), maxNumTranslation); ++j) {
+      for (unsigned j = 0; j < std::min((unsigned) mapper[i].size(), maxNumTranslation); ++j) {
         if (mapper[i][j].first >= numNFirst) {
           vecMapper[i].push_back(mapper[i][j].first);
         }
@@ -88,15 +88,15 @@ std::vector<Words> Filter::ParseAlignmentFile(const Vocab& srcVocab,
   return vecMapper;
 }
 
-// Words Filter::GetFilteredVocab(const Words& srcWords, const size_t maxVocabSize) const {
+// Words Filter::GetFilteredVocab(const Words& srcWords, const unsigned maxVocabSize) const {
   // std::set<Word> filtered;
 
-  // for(size_t i = 0; i < std::min(numFirstWords_, maxVocabSize); ++i) {
+  // for(unsigned i = 0; i < std::min(numFirstWords_, maxVocabSize); ++i) {
     // filtered.insert(i);
   // }
 
   // for (const auto& srcWord : srcWords) {
-    // size_t licz = 0;
+    // unsigned licz = 0;
     // for (const auto& trgWord : mapper_[srcWord]) {
       // if (trgWord < maxVocabSize) {
         // ++licz;
@@ -114,11 +114,11 @@ std::vector<Words> Filter::ParseAlignmentFile(const Vocab& srcVocab,
   // return output;
 // }
 
-size_t Filter::GetNumFirstWords() const {
+unsigned Filter::GetNumFirstWords() const {
   return numFirstWords_;
 }
 
-void Filter::SetNumFirstWords(const size_t numFirstWords) {
+void Filter::SetNumFirstWords(const unsigned numFirstWords) {
   numFirstWords_ = numFirstWords;
 }
 

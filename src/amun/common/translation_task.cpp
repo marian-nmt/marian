@@ -20,9 +20,9 @@ void TranslationTaskAndOutput(const God &god, std::shared_ptr<Sentences> sentenc
 
   std::shared_ptr<Histories> histories = TranslationTask(god, sentences);
 
-  for (size_t i = 0; i < histories->size(); ++i) {
+  for (unsigned i = 0; i < histories->size(); ++i) {
     const History &history = *histories->at(i);
-    size_t lineNum = history.GetLineNum();
+    unsigned lineNum = history.GetLineNum();
     const Sentence &sentence = sentences->Get(0);
 
     std::stringstream strm;

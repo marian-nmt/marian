@@ -20,7 +20,7 @@ Search::Search(const God &god)
   : deviceInfo_(god.GetNextDevice()),
     scorers_(god.GetScorers(deviceInfo_)),
     filter_(god.GetFilter()),
-    maxBeamSize_(god.Get<size_t>("beam-size")),
+    maxBeamSize_(god.Get<unsigned>("beam-size")),
     normalizeScore_(god.Get<bool>("normalize")),
     bestHyps_(god.GetBestHyps(deviceInfo_))
 {}
@@ -55,8 +55,8 @@ std::shared_ptr<Histories> Search::Translate(const Sentences& sentences) {
   std::shared_ptr<Histories> histories(new Histories(sentences, normalizeScore_));
   Beam prevHyps = histories->GetFirstHyps();
 
-  for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
-    for (size_t i = 0; i < scorers_.size(); i++) {
+  for (unsigned decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
+    for (unsigned i = 0; i < scorers_.size(); i++) {
       scorers_[i]->Decode(*states[i], *nextStates[i], beamSizes);
     }
 
@@ -97,13 +97,13 @@ bool Search::CalcBeam(
     States& states,
     States& nextStates)
 {
-    size_t batchSize = beamSizes.size();
+    unsigned batchSize = beamSizes.size();
     Beams beams(batchSize);
     bestHyps_->CalcBeam(prevHyps, scorers_, filterIndices_, beams, beamSizes);
     histories->Add(beams);
 
     Beam survivors;
-    for (size_t batchId = 0; batchId < batchSize; ++batchId) {
+    for (unsigned batchId = 0; batchId < batchSize; ++batchId) {
       for (auto& h : beams[batchId]) {
         if (h->GetWord() != EOS_ID) {
           survivors.push_back(h);
@@ -117,7 +117,7 @@ bool Search::CalcBeam(
       return false;
     }
 
-    for (size_t i = 0; i < scorers_.size(); i++) {
+    for (unsigned i = 0; i < scorers_.size(); i++) {
       scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *states[i]);
     }
 
@@ -136,9 +136,9 @@ States Search::NewStates() const {
 }
 
 void Search::FilterTargetVocab(const Sentences& sentences) {
-  size_t vocabSize = scorers_[0]->GetVocabSize();
+  unsigned vocabSize = scorers_[0]->GetVocabSize();
   std::set<Word> srcWords;
-  for (size_t i = 0; i < sentences.size(); ++i) {
+  for (unsigned i = 0; i < sentences.size(); ++i) {
     const Sentence& sentence = sentences.Get(i);
     for (const auto& srcWord : sentence.GetWords()) {
       srcWords.insert(srcWord);

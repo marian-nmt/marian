@@ -14,11 +14,11 @@
 
 namespace amunmt {
 
-std::vector<size_t> GetAlignment(const HypothesisPtr& hypothesis);
+std::vector<unsigned> GetAlignment(const HypothesisPtr& hypothesis);
 
-std::string GetAlignmentString(const std::vector<size_t>& alignment);
+std::string GetAlignmentString(const std::vector<unsigned>& alignment);
 std::string GetSoftAlignmentString(const HypothesisPtr& hypothesis);
-std::string GetNematusAlignmentString(const HypothesisPtr& hypothesis, std::string best, std::string source, size_t linenum);
+std::string GetNematusAlignmentString(const HypothesisPtr& hypothesis, std::string best, std::string source, unsigned linenum);
 
 template <class OStream>
 void Printer(const God &god, const History& history, OStream& out, const Sentence& sentence) { 
@@ -41,11 +41,11 @@ void Printer(const God &god, const History& history, OStream& out, const Sentenc
 
   if (god.Get<bool>("n-best")) {
     std::vector<std::string> scorerNames = god.GetScorerNames();
-    const NBestList &nbl = history.NBest(god.Get<size_t>("beam-size"));
+    const NBestList &nbl = history.NBest(god.Get<unsigned>("beam-size"));
     if (god.Get<bool>("wipo")) {
       out << "OUT: " << nbl.size() << std::endl;
     }
-    for (size_t i = 0; i < nbl.size(); ++i) {
+    for (unsigned i = 0; i < nbl.size(); ++i) {
       const Result& result = nbl[i];
       const Words &words = result.first;
       const HypothesisPtr &hypo = result.second;
@@ -60,7 +60,7 @@ void Printer(const God &god, const History& history, OStream& out, const Sentenc
       out << history.GetLineNum() << " ||| " << translation << " |||";
 
       //std::cerr << "hypo->GetCostBreakdown().size()=" << hypo->GetCostBreakdown().size() << std::endl;
-      for(size_t j = 0; j < hypo->GetCostBreakdown().size(); ++j) {
+      for(unsigned j = 0; j < hypo->GetCostBreakdown().size(); ++j) {
         out << " " << scorerNames[j] << "= " << std::setprecision(3) << std::fixed << hypo->GetCostBreakdown()[j];
       }
 
@@ -84,7 +84,7 @@ void Printer(const God &god, const History& history, OStream& out, const Sentenc
 
 template <class OStream>
 void Printer(const God &god, const Histories& histories, OStream& out, const Sentence& sentence) {
-  for (size_t i = 0; i < histories.size(); ++i) {
+  for (unsigned i = 0; i < histories.size(); ++i) {
     const History& history = *histories.at(i).get();
     Printer(god, history, out, sentence);
   }

@@ -5,7 +5,7 @@ using namespace std;
 
 namespace amunmt {
 
-History::History(const Sentence &sentence, bool normalizeScore, size_t maxLength)
+History::History(const Sentence &sentence, bool normalizeScore, unsigned maxLength)
   : normalize_(normalizeScore),
     lineNo_(sentence.GetLineNum()),
    maxLength_(maxLength)
@@ -15,16 +15,16 @@ History::History(const Sentence &sentence, bool normalizeScore, size_t maxLength
 
 void History::Add(const Beam& beam) {
   if (beam.back()->GetPrevHyp() != nullptr) {
-    for (size_t j = 0; j < beam.size(); ++j)
+    for (unsigned j = 0; j < beam.size(); ++j)
       if(beam[j]->GetWord() == EOS_ID || size() == maxLength_ ) {
         float cost = normalize_ ? beam[j]->GetCost() / history_.size() : beam[j]->GetCost();
-        topHyps_.push({ history_.size(), j, cost });
+        topHyps_.push({ (unsigned)history_.size(), j, cost });
       }
   }
   history_.push_back(beam);
 }
 
-NBestList History::NBest(size_t n) const
+NBestList History::NBest(unsigned n) const
 {
   NBestList nbest;
   auto topHypsCopy = topHyps_;
@@ -32,8 +32,8 @@ NBestList History::NBest(size_t n) const
     auto bestHypCoord = topHypsCopy.top();
     topHypsCopy.pop();
 
-    size_t start = bestHypCoord.i;
-    size_t j  = bestHypCoord.j;
+    unsigned start = bestHypCoord.i;
+    unsigned j  = bestHypCoord.j;
 
     Words targetWords;
     HypothesisPtr bestHyp = history_[start][j];
