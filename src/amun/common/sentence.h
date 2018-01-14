@@ -13,7 +13,7 @@ class Sentence {
 
     Sentence(const God &god, unsigned vLineNum, const std::string& line);
     Sentence(const God &god, unsigned vLineNum, const std::vector<std::string>& words);
-		Sentence(God &god, unsigned lineNum, const std::vector<uint>& words);
+		Sentence(God &god, unsigned lineNum, const std::vector<unsigned>& words);
 
     const Words& GetWords(unsigned index = 0) const;
     const FactWords& GetFactors(unsigned index = 0) const;

@@ -54,7 +54,7 @@ Sentence::Sentence(const God &god, unsigned lineNum, const std::vector<std::stri
     FillDummyFactors(words_.back());
 }
 
-Sentence::Sentence(God&, unsigned lineNum, const std::vector<uint>& words)
+Sentence::Sentence(God&, unsigned lineNum, const std::vector<unsigned>& words)
   : lineNum_(lineNum) {
     words_.push_back(words);
     // fill in the factors as well so that there aren't any surprises

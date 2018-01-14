@@ -50,7 +50,7 @@ std::shared_ptr<Histories> Search::Translate(const Sentences& sentences) {
 
   States states = Encode(sentences);
   States nextStates = NewStates();
-  std::vector<uint> beamSizes(sentences.size(), 1);
+  std::vector<unsigned> beamSizes(sentences.size(), 1);
 
   std::shared_ptr<Histories> histories(new Histories(sentences, normalizeScore_));
   Beam prevHyps = histories->GetFirstHyps();
@@ -92,7 +92,7 @@ States Search::Encode(const Sentences& sentences) {
 
 bool Search::CalcBeam(
     std::shared_ptr<Histories>& histories,
-    std::vector<uint>& beamSizes,
+    std::vector<unsigned>& beamSizes,
     Beam& prevHyps,
     States& states,
     States& nextStates)

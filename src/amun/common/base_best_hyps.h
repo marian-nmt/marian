@@ -23,7 +23,7 @@ class BestHypsBase
         const std::vector<ScorerPtr>& scorers,
         const Words& filterIndices,
         std::vector<Beam>& beams,
-        std::vector<uint>& beamSizes) = 0;
+        std::vector<unsigned>& beamSizes) = 0;
 
   protected:
     const God &god_;
