@@ -19,10 +19,10 @@ EncoderDecoderLoader::EncoderDecoderLoader(const std::string name,
 
 void EncoderDecoderLoader::Load(const God &god) {
   std::string path = Get<std::string>("path");
-  std::vector<size_t> devices = god.Get<std::vector<size_t>>("devices");
+  std::vector<unsigned> devices = god.Get<std::vector<unsigned>>("devices");
 
-  size_t maxDeviceId = 0;
-  for (size_t i = 0; i < devices.size(); ++i) {
+  unsigned maxDeviceId = 0;
+  for (unsigned i = 0; i < devices.size(); ++i) {
     if (devices[i] > maxDeviceId) {
       maxDeviceId = devices[i];
     }
@@ -42,7 +42,7 @@ void EncoderDecoderLoader::Load(const God &god) {
 
 EncoderDecoderLoader::~EncoderDecoderLoader()
 {
-  for (size_t d = 0; d < weights_.size(); ++d) {
+  for (unsigned d = 0; d < weights_.size(); ++d) {
     const Weights *weights = weights_[d].get();
     if (weights) {
       HANDLE_ERROR(cudaSetDevice(d));
@@ -52,10 +52,10 @@ EncoderDecoderLoader::~EncoderDecoderLoader()
 }
 
 ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo &deviceInfo) const {
-  size_t d = deviceInfo.deviceId;
+  unsigned d = deviceInfo.deviceId;
 
   HANDLE_ERROR(cudaSetDevice(d));
-  size_t tab = Has("tab") ? Get<size_t>("tab") : 0;
+  unsigned tab = Has("tab") ? Get<unsigned>("tab") : 0;
   return ScorerPtr(new EncoderDecoder(god, name_, config_,
                                       tab, *weights_[d]));
 }
