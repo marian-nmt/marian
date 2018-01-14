@@ -232,7 +232,7 @@ __global__ void gBroadcastVecColumn(Functor functor,
   int noColumn = threadIdx.x + blockDim.x * blockIdx.x;
   if (noColumn < cols) {
     for (int noRow = 0; noRow < rows; ++noRow) {
-      float &val = outWrap(noRow, noColumn, 0, 0);
+      float &val = outWrap(noRow, noColumn);
       val = functor(val, sdata[noRow]);
     }
   }
@@ -265,7 +265,7 @@ __global__ void gBroadcastVec(Functor functor,
 
   int noColumn = threadIdx.x + blockDim.x * blockIdx.x;
   if (noColumn < cols) {
-    float vecValue = inWrap(0, noColumn, 0, 0);
+    float vecValue = inWrap(0, noColumn);
 
     for (int dim0 = 0; dim0 < outWrap.dim(0); ++dim0) {
       for (int dim2 = 0; dim2 < outWrap.dim(2); ++dim2) {

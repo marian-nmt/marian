@@ -145,17 +145,64 @@ public:
     return data()[i];
   }
 
+  // operator()
+  // 4
   __device__
-  const T &operator()(unsigned a, unsigned b, unsigned c, unsigned d) const
+  inline const T &operator()(unsigned a, unsigned b, unsigned c, unsigned d) const
   {
     unsigned id = indices2Id(a, b, c, d);
     return data()[id];
   }
 
   __device__
-  T &operator()(unsigned a, unsigned b, unsigned c, unsigned d)
+  inline T &operator()(unsigned a, unsigned b, unsigned c, unsigned d)
   {
     unsigned id = indices2Id(a, b, c, d);
+    return data()[id];
+  }
+
+  // 3
+  __device__
+  inline const T &operator()(unsigned a, unsigned b, unsigned c) const
+  {
+    unsigned id = indices2Id(a, b, c);
+    return data()[id];
+  }
+
+  __device__
+  inline T &operator()(unsigned a, unsigned b, unsigned c)
+  {
+    unsigned id = indices2Id(a, b, c);
+    return data()[id];
+  }
+
+  // 2
+  __device__
+  inline const T &operator()(unsigned a, unsigned b) const
+  {
+    unsigned id = indices2Id(a, b);
+    return data()[id];
+  }
+
+  __device__
+  inline T &operator()(unsigned a, unsigned b)
+  {
+    unsigned id = indices2Id(a, b);
+    return data()[id];
+  }
+
+  // 1
+  __device__
+  inline const T &operator()(unsigned a) const
+  {
+    unsigned id = indices2Id(a);
+    return data()[id];
+  }
+
+  __device__
+  inline T &operator()(unsigned a)
+  {
+    unsigned id = indices2Id(a);
     return data()[id];
   }
 
@@ -176,19 +223,66 @@ public:
     out[1] = id / stride(1);
   }
 
+  // indices2Id
+  // 4
   __device__ __host__
-  unsigned indices2Id(unsigned a, unsigned b, unsigned c, unsigned d) const
+  inline unsigned indices2Id(unsigned a, unsigned b, unsigned c, unsigned d) const
   {
     assert(a < dim(0));
     assert(b < dim(1));
     assert(c < dim(2));
     assert(d < dim(3));
 
-    unsigned ind = 0;
-    ind += a * stride(0);
-    ind += b * stride(1);
-    ind += c * stride(2);
-    ind += d * stride(3);
+    unsigned ind =
+            a * stride(0)
+          + b * stride(1)
+          + c * stride(2)
+          + d * stride(3);
+
+    assert(ind < size());
+    return ind;
+  }
+
+  // 3
+  __device__ __host__
+  inline unsigned indices2Id(unsigned a, unsigned b, unsigned c) const
+  {
+    assert(a < dim(0));
+    assert(b < dim(1));
+    assert(c < dim(2));
+
+    unsigned ind =
+            a * stride(0)
+          + b * stride(1)
+          + c * stride(2);
+
+    assert(ind < size());
+    return ind;
+  }
+
+  // 2
+  __device__ __host__
+  inline unsigned indices2Id(unsigned a, unsigned b) const
+  {
+    assert(a < dim(0));
+    assert(b < dim(1));
+
+    unsigned ind =
+            a * stride(0)
+          + b * stride(1);
+
+    assert(ind < size());
+    return ind;
+  }
+
+  // 1
+  __device__ __host__
+  inline unsigned indices2Id(unsigned a) const
+  {
+    assert(a < dim(0));
+
+    unsigned ind =
+          a * stride(0);
 
     assert(ind < size());
     return ind;

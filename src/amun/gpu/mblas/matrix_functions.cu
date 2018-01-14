@@ -99,7 +99,7 @@ __global__ void gWeightedMean(MatrixWrapper<float> out,
 
     float sum = 0.0f;
     for (unsigned i = 0; i < srcLen; ++i) {
-      sum += weights(hypoInd, i, 0, 0) * in(i, stateInd, 0, batchInd);
+      sum += weights(hypoInd, i) * in(i, stateInd, 0, batchInd);
     }
 
     out[id] = sum;
@@ -192,7 +192,7 @@ __global__ void gPasteRows(MatrixWrapper<float> out,
     int inCol = id % inCols;
 
     //out[outID] = in[id];
-    out(rowNo, inCol + colNo, 0, inRow) = in(inRow, inCol, 0, 0);
+    out(rowNo, inCol + colNo, 0, inRow) = in(inRow, inCol);
   }
 }
 
@@ -248,7 +248,7 @@ __global__ void gCopyRows(MatrixWrapper<float> out,
 	  unsigned indicesInd = dim[0];
 	  unsigned inRow =indicesWrap[indicesInd];
 
-      out(indicesInd, dim[1], 0, 0) = in(inRow, dim[1], 0, 0);
+      out(indicesInd, dim[1]) = in(inRow, dim[1]);
 
   }
 }
@@ -311,7 +311,7 @@ __global__ void gSlice(MatrixWrapper<float> out,
   unsigned outCol = threadIdx.x;
 
   while (outCol < out.dim(1)) {
-    out(row, outCol, 0, 0) = in(row, inCol, 0, 0);
+    out(row, outCol) = in(row, inCol);
 
     inCol += blockDim.x;
     outCol += blockDim.x;
@@ -441,11 +441,11 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
 
   while (hypoInd < numHypos) {
     VectorWrapper<float> _max(_share, shareSize);
-    _max[origSrcPos] = out(hypoInd, origSrcPos, 0, 0);
+    _max[origSrcPos] = out(hypoInd, origSrcPos);
     for (int tid = 0; tid < maxLength; tid += blockDim.x) {
       int srcPos = tid + origSrcPos;
       if (srcPos < maxLength) {
-        float value = out(hypoInd, srcPos, 0, 0);
+        float value = out(hypoInd, srcPos);
 
         int batch = batchIdsWrap[hypoInd];
         value *= srcPos < sentenceLengthsWrap[batch] ? 1 : 0;
@@ -477,11 +477,11 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
     for (int tid = 0; tid < maxLength; tid += blockDim.x) {
       int srcPos = tid + origSrcPos;
       if (srcPos < maxLength) {
-        out(hypoInd, srcPos, 0, 0) = __expf(out(hypoInd, srcPos, 0, 0) - max);
+        out(hypoInd, srcPos) = __expf(out(hypoInd, srcPos) - max);
 
         int batch = batchIdsWrap[hypoInd];
-        out(hypoInd, srcPos, 0, 0) *= srcPos < sentenceLengthsWrap[batch] ? 1 : 0; // sentencesMappingWrap(srcPos, batch, 0, 0);
-        _sum[origSrcPos] += out(hypoInd, srcPos, 0, 0);
+        out(hypoInd, srcPos) *= srcPos < sentenceLengthsWrap[batch] ? 1 : 0; // sentencesMappingWrap(srcPos, batch, 0, 0);
+        _sum[origSrcPos] += out(hypoInd, srcPos);
       }
     }
 
@@ -503,7 +503,7 @@ __global__ void gSoftMax(MatrixWrapper<float> out,
     for (int tid = 0; tid < maxLength; tid += blockDim.x) {
       int srcPos = tid + origSrcPos;
       if (srcPos < maxLength) {
-        out(hypoInd, srcPos, 0, 0) /= _sum[0];
+        out(hypoInd, srcPos) /= _sum[0];
       }
     }
     __syncthreads();
@@ -545,11 +545,11 @@ __global__ void gLogSoftMax(MatrixWrapper<float> out, unsigned shareSize)
     //float* _max = _share;
     VectorWrapper<float> _max(_share, shareSize);
 
-    _max[threadIdx.x] = out(rowIdx, threadIdx.x, 0, 0);
+    _max[threadIdx.x] = out(rowIdx, threadIdx.x);
     for (int tid = 0; tid < cols; tid += blockDim.x) {
       int id = tid + threadIdx.x;
       if (id < cols) {
-        const float &val = out(rowIdx, id, 0, 0);
+        const float &val = out(rowIdx, id);
         if (val > _max[threadIdx.x]) {
           _max[threadIdx.x] = val;
         }
@@ -579,7 +579,7 @@ __global__ void gLogSoftMax(MatrixWrapper<float> out, unsigned shareSize)
       int id = tid + threadIdx.x;
       if (id < cols) {
         //row[id] = exp(row[id] - max);
-        float &val = out(rowIdx, id, 0, 0);
+        float &val = out(rowIdx, id);
         val = __expf(val - max);
         _sum[threadIdx.x] += val;
       }
@@ -602,7 +602,7 @@ __global__ void gLogSoftMax(MatrixWrapper<float> out, unsigned shareSize)
       int id = tid + threadIdx.x;
       if (id < cols) {
         //row[id] = log(row[id]/_sum[0]);
-        float &val = out(rowIdx, id, 0, 0);
+        float &val = out(rowIdx, id);
         val = __logf(val /_sum[0]);
       }
     }
@@ -632,7 +632,7 @@ __global__ void gSetColumn(MatrixWrapper<float> in, int noColumn, float value) {
   int rowNumber = threadIdx.x  + blockDim.x * blockIdx.x;
 
   if (rowNumber < n_rows) {
-    in(rowNumber, noColumn, 0, 0) = value;
+    in(rowNumber, noColumn) = value;
   }
 }
 
@@ -684,7 +684,7 @@ void gMapMatrix(MatrixWrapper<float> in,
     int col = tid % numCols;
 
     //in[tid] *= mappingWrap(i, batchIdx, 0, 0);
-    in(batchIdx, col, 0, 0) *= (i < sentenceLengthsWrap[batchIdx] ? 1 : 0);
+    in(batchIdx, col) *= (i < sentenceLengthsWrap[batchIdx] ? 1 : 0);
   }
 }
 
@@ -1020,7 +1020,7 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
 
   void *ptrOffset = _sharePtr + sizeof(float) * blockDim.x;
   MatrixWrapper<NthOutBatch> nBestMatrix((NthOutBatch*)ptrOffset, blockDim.x, maxBeamSize, 1, 1);
-  NthOutBatch *arr = &nBestMatrix(threadIdx.x, 0, 0, 0);
+  NthOutBatch *arr = &nBestMatrix(threadIdx.x);
 
   unsigned vocabSize = in.dim(1);
 
@@ -1033,7 +1033,7 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
   unsigned vocabInd = threadIdx.x;
   unsigned i = 0;
   while (vocabInd < vocabSize && i < beamSize) {
-    const float score = in(hypoInd, vocabInd, 0, 0) + b4Wrap(0, vocabInd, 0, 0);
+    const float score = in(hypoInd, vocabInd) + b4Wrap(0, vocabInd);
 
     unsigned arrInd = hypoInd * vocabSize + vocabInd;
     NthOutBatch ele(arrInd, score, hypoInd, vocabInd);
@@ -1045,7 +1045,7 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
 
   // MAIN LOOP
   while (vocabInd < vocabSize) {
-    const float score = in(hypoInd, vocabInd, 0, 0) + b4Wrap(0, vocabInd, 0, 0);
+    const float score = in(hypoInd, vocabInd) + b4Wrap(0, vocabInd);
     unsigned arrInd = hypoInd * vocabSize + vocabInd;
     NthOutBatch ele(arrInd, score, hypoInd, vocabInd);
 
@@ -1060,10 +1060,10 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
     __syncthreads();
     int skip = (len + 1) >> 1;
     if (threadIdx.x < (len >> 1)) {
-      NthOutBatch *dest = &nBestMatrix(threadIdx.x, 0, 0, 0);
+      NthOutBatch *dest = &nBestMatrix(threadIdx.x);
 
       for (unsigned i = 0; i < beamSize; ++i) {
-        const NthOutBatch &ele = nBestMatrix(threadIdx.x + skip, i, 0, 0);
+        const NthOutBatch &ele = nBestMatrix(threadIdx.x + skip, i);
         if (ele.score > minScore) {
           MergeElement(minScore, dest, beamSize, ele);
         }
@@ -1080,7 +1080,7 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
     assert(hypoInd < hypo2CandidateWrap.size());
     unsigned candidateInd = hypo2CandidateWrap[hypoInd];
     for (unsigned i = 0; i < beamSize; ++i) {
-      const NthOutBatch &curr = nBestMatrix(0, i, 0, 0);
+      const NthOutBatch &curr = nBestMatrix(0, i);
       //printf("vocabInd=%u \n", best.vocabInd);
 
       assert(candidateInd + i < nBestCandidatesWrap.size());
@@ -1113,7 +1113,7 @@ void SumAndLogSoftMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
   _sum[threadIdx.x] = 0.0f;
   for (int id = threadIdx.x; id < vocabSize; id += blockDim.x) {
     //row[id] = exp(row[id] - max);
-    float val = in(hypoInd, id, 0, 0) + b4Wrap(0, id, 0, 0);
+    float val = in(hypoInd, id) + b4Wrap(0, id);
     val = __expf(val - topScore);
     _sum[threadIdx.x] += val;
   }
