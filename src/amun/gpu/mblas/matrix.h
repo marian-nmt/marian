@@ -20,16 +20,16 @@ using namespace thrust::placeholders;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-__global__ void gSum(const T *data, size_t count, T &ret)
+__global__ void gSum(const T *data, unsigned count, T &ret)
 {
   ret = 0;
-  for (size_t i = 0; i < count; ++i) {
+  for (unsigned i = 0; i < count; ++i) {
     ret += data[i];
   }
 }
 
 template<typename T>
-T Sum(const T *data, size_t count)
+T Sum(const T *data, unsigned count)
 {
   T ret;
   T *d_ret;
@@ -62,7 +62,7 @@ class TMatrix : public BaseMatrix {
       dim_[3] = 0;
     }
 
-    TMatrix(size_t rows, size_t cols, size_t c, size_t d, bool zero = false)
+    TMatrix(unsigned rows, unsigned cols, unsigned c, unsigned d, bool zero = false)
     {
       dim_[0] = rows;
       dim_[1] = cols;
@@ -96,18 +96,18 @@ class TMatrix : public BaseMatrix {
     {
     }
 
-    virtual size_t size() const
+    virtual unsigned size() const
     {
       return vec_.size();
     }
 
-    virtual size_t dim(size_t i) const
+    virtual unsigned dim(unsigned i) const
     {
       return dim_[i];
     }
 
-    void Resize(size_t rows, size_t cols, size_t c = 1, size_t d = 1) {
-      size_t newSize = cols * rows * c * d;
+    void Resize(unsigned rows, unsigned cols, unsigned c = 1, unsigned d = 1) {
+      unsigned newSize = cols * rows * c * d;
       vec_.resize(newSize);
 
       dim_[0] = rows;
@@ -116,8 +116,8 @@ class TMatrix : public BaseMatrix {
       dim_[3] = d;
     }
 
-    void NewSize(size_t rows, size_t cols, size_t c = 1, size_t d = 1) {
-      size_t newSize = cols * rows * c * d;
+    void NewSize(unsigned rows, unsigned cols, unsigned c = 1, unsigned d = 1) {
+      unsigned newSize = cols * rows * c * d;
       vec_.newSize(newSize);
 
       dim_[0] = rows;
@@ -126,7 +126,7 @@ class TMatrix : public BaseMatrix {
       dim_[3] = d;
     }
 
-    virtual std::string Debug(size_t verbosity = 1) const
+    virtual std::string Debug(unsigned verbosity = 1) const
     {
       std::stringstream strm;
       strm << BaseMatrix::Debug(verbosity) << " ";
@@ -151,7 +151,7 @@ class TMatrix : public BaseMatrix {
               stream) );
           HANDLE_ERROR( cudaStreamSynchronize(stream) );
 
-          for (size_t i = 0; i < size(); ++i) {
+          for (unsigned i = 0; i < size(); ++i) {
             strm << " " << h_data[i];
           }
         }
@@ -175,7 +175,7 @@ class TMatrix : public BaseMatrix {
     }
 
   private:
-    size_t dim_[SHAPE_SIZE];
+    unsigned dim_[SHAPE_SIZE];
     Vector<T> vec_;
 };
 

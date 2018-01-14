@@ -28,7 +28,7 @@ public:
     : Parent()
   {}
 
-  Matrix(size_t rows, size_t cols)
+  Matrix(unsigned rows, unsigned cols)
     : Parent(rows, cols)
   {}
 
@@ -37,7 +37,7 @@ public:
     return Parent::operator=(other);
   }
 
-  virtual size_t dim(size_t i) const
+  virtual unsigned dim(unsigned i) const
   {
   	switch (i) {
   	case 0: return Parent::rows();
@@ -49,7 +49,7 @@ public:
   	}
   }
 
-  virtual void Resize(size_t rows, size_t cols, size_t beam = 1, size_t batches = 1)
+  virtual void Resize(unsigned rows, unsigned cols, unsigned beam = 1, unsigned batches = 1)
   {
     amunmt_UTIL_THROW2("Not implemented");
   }
@@ -73,7 +73,7 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
 
     BlazeMatrix() {}
 
-    BlazeMatrix(size_t rows, size_t columns, value_type val = 0)
+    BlazeMatrix(unsigned rows, unsigned columns, value_type val = 0)
      : data_(rows * columns, val) {
        BlazeBase temp(data_.data(), rows, columns);
        std::swap(temp, *(BlazeBase*)this);
@@ -87,7 +87,7 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
        std::swap(temp, *(BlazeBase*)this);
     }
 
-    virtual size_t dim(size_t i) const
+    virtual unsigned dim(unsigned i) const
     {
     	switch (i) {
     	case 0: return BlazeBase::rows();
@@ -99,7 +99,7 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
     	}
     }
 
-    virtual void Resize(size_t rows, size_t columns, size_t beam = 1, size_t batches = 1)
+    virtual void Resize(unsigned rows, unsigned columns, unsigned beam = 1, unsigned batches = 1)
     {
       assert(beam == 1);
       assert(batches == 1);
@@ -142,7 +142,7 @@ class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unal
       return data_.end();
     }
 
-    size_t size() const {
+    unsigned size() const {
       return data_.size();
     }
 
@@ -164,7 +164,7 @@ class ArrayMatrix : public BlazeMatrix<float, blaze::rowMajor>
       :Parent()
     {}
 
-    ArrayMatrix(size_t rows, size_t columns, value_type val = 0)
+    ArrayMatrix(unsigned rows, unsigned columns, value_type val = 0)
       : Parent(rows, columns, val)
     {}
 
@@ -181,9 +181,9 @@ std::string Debug(const M& m)
 {
   std::stringstream strm;
   strm << m.rows() << "x" << m.columns() << ":"; // ":\n";
-  for (size_t row = 0; row < m.rows(); ++row) {
+  for (unsigned row = 0; row < m.rows(); ++row) {
 	  float rowSum = 0;
-	  for (size_t col = 0; col < m.columns(); ++col) {
+	  for (unsigned col = 0; col < m.columns(); ++col) {
 		  //strm << m(row, col) << " ";
 		  rowSum += m(row, col);
 	  }
@@ -196,12 +196,12 @@ std::string Debug(const M& m)
 template <bool byRow, class MT, class VT>
 MT& AddBiasVector(MT& m, const VT& b) {
   if(byRow) {
-    for(size_t i = 0; i < m.rows(); ++i)
+    for(unsigned i = 0; i < m.rows(); ++i)
       // @TODO: replace this with row vector
       blaze::row(m, i) += blaze::row(b, 0);
   }
   else {
-    for(size_t i = 0; i < m.columns(); ++i)
+    for(unsigned i = 0; i < m.columns(); ++i)
       // @TODO: replace this with row vector
       blaze::column(m, i) += blaze::column(b, 0);
   }
@@ -211,14 +211,14 @@ MT& AddBiasVector(MT& m, const VT& b) {
 //Matrix& Swap(Matrix& Out, Matrix& In);
 
 template <class MT>
-void Reshape(MT& m, size_t rows, size_t cols) {
+void Reshape(MT& m, unsigned rows, unsigned cols) {
   assert(rows * cols == m.rows() * m.columns());
   MT temp(rows, cols);
-  for(size_t i = 0; i < m.rows(); ++i) {
-    for(size_t j = 0; j < m.columns(); ++j) {
-      size_t k = i * m.columns() + j;
-      size_t i2 = k / cols;
-      size_t j2 = k % cols;
+  for(unsigned i = 0; i < m.rows(); ++i) {
+    for(unsigned j = 0; j < m.columns(); ++j) {
+      unsigned k = i * m.columns() + j;
+      unsigned i2 = k / cols;
+      unsigned j2 = k % cols;
       temp(i2, j2) = m(i, j);
     }
   }
@@ -229,27 +229,27 @@ template <bool byRow, class MT, class MT1>
 MT Mean(const MT1& in) {
   MT out;
   if(byRow) {
-    size_t rows = in.rows();
-    size_t cols = in.columns();
+    unsigned rows = in.rows();
+    unsigned cols = in.columns();
     out.resize(1, cols);
     blaze::row(out, 0) = blaze::row(in, 0);
-    for(size_t i = 1; i < rows; ++i)
+    for(unsigned i = 1; i < rows; ++i)
       blaze::row(out, 0) += blaze::row(in, i);
     out *= 1.0f / rows;
   }
   else {
-    size_t rows = in.rows();
-    size_t cols = in.columns();
+    unsigned rows = in.rows();
+    unsigned cols = in.columns();
     out.resize(rows, 1);
     blaze::column(out, 0) = blaze::column(in, 0);
-    for(size_t i = 1; i < cols; ++i)
+    for(unsigned i = 1; i < cols; ++i)
       blaze::column(out, 0) += blaze::column(in, i);
     out *= 1.0f / cols;
   }
   return std::move(out);
 }
 
-typedef std::pair<size_t, size_t> RowPair;
+typedef std::pair<unsigned, unsigned> RowPair;
 typedef std::vector<RowPair> RowPairs;
 typedef std::vector<RowPair> DeviceRowPairs;
 
@@ -261,22 +261,22 @@ MT Concat(const MT1& m1, const MT2& m2) {
   MT out = m1;
   if(byRow) {
     assert(m1.columns() == m2.columns());
-    size_t rows1 = m1.rows();
-    size_t rows2 = m2.rows();
-    size_t rows = rows1 + rows2;
-    size_t cols = m1.columns();
+    unsigned rows1 = m1.rows();
+    unsigned rows2 = m2.rows();
+    unsigned rows = rows1 + rows2;
+    unsigned cols = m1.columns();
     out.resize(rows, cols);
-    for(size_t i = 0; i < rows2; ++i)
+    for(unsigned i = 0; i < rows2; ++i)
       blaze::row(out, rows1 + i) = blaze::row(m2, i);
   }
   else {
     assert(m1.rows() == m2.rows());
-    size_t cols1 = m1.columns();
-    size_t cols2 = m2.columns();
-    size_t cols = cols1 + cols2;
-    size_t rows = m1.rows();
+    unsigned cols1 = m1.columns();
+    unsigned cols2 = m2.columns();
+    unsigned cols = cols1 + cols2;
+    unsigned rows = m1.rows();
     out.resize(rows, cols);
-    for(size_t i = 0; i < cols2; ++i)
+    for(unsigned i = 0; i < cols2; ++i)
       blaze::column(out, cols1 + i) = blaze::column(m2, i);
   }
   return std::move(out);
@@ -287,17 +287,17 @@ MT Assemble(const MT1& in,
             const std::vector<uint>& indices) {
   MT out;
   if(byRow) {
-    size_t rows = indices.size();
-    size_t cols = in.columns();
+    unsigned rows = indices.size();
+    unsigned cols = in.columns();
     out.resize(rows, cols);
-    for(size_t i = 0; i < rows; ++i)
+    for(unsigned i = 0; i < rows; ++i)
       blaze::row(out, i) = blaze::row(in, indices[i]);
   }
   else {
-    size_t rows = in.rows();
-    size_t cols = indices.size();
+    unsigned rows = in.rows();
+    unsigned cols = indices.size();
     out.resize(rows, cols);
-    for(size_t i = 0; i < cols; ++i)
+    for(unsigned i = 0; i < cols; ++i)
       blaze::column(out, i) = blaze::column(in, indices[i]);
   }
   return std::move(out);
@@ -305,8 +305,8 @@ MT Assemble(const MT1& in,
 
 template <class MT>
 void SafeSoftmax(MT& Out) {
-  size_t rows = Out.rows();
-  size_t cols = Out.columns();
+  unsigned rows = Out.rows();
+  unsigned cols = Out.columns();
   float sum[rows];
   for (int j = 0; j < rows; ++j) {
     float maxRowValue = 0.0f;
@@ -326,8 +326,8 @@ void SafeSoftmax(MT& Out) {
 
 template <class MT>
 void LogSoftmax(MT& Out) {
-  size_t rows = Out.rows();
-  size_t cols = Out.columns();
+  unsigned rows = Out.rows();
+  unsigned cols = Out.columns();
   float sum[rows];
   for (int j = 0; j < rows; ++j) {
     sum[j] = 0;
@@ -342,8 +342,8 @@ void LogSoftmax(MT& Out) {
 
 template <class MT>
 void Softmax(MT& Out) {
-  size_t rows = Out.rows();
-  size_t cols = Out.columns();
+  unsigned rows = Out.rows();
+  unsigned cols = Out.columns();
   float sum[rows];
   for (int j = 0; j < rows; ++j) {
     float maxRowValue = 0.0f;
@@ -365,16 +365,16 @@ void Softmax(MT& Out) {
 
 template <class MT, class Functor, class MT1, class MT2>
 MT Broadcast(const Functor& functor, const MT1& m1, const MT2& m2) {
-  size_t rows1 = m1.rows();
-  size_t rows2 = m2.rows();
+  unsigned rows1 = m1.rows();
+  unsigned rows2 = m2.rows();
 
-  size_t rows = rows1 * rows2;
-  size_t cols = m1.columns();
+  unsigned rows = rows1 * rows2;
+  unsigned cols = m1.columns();
 
   MT out(rows, cols);
   for (int j = 0; j < rows; ++j) {
-    size_t r1 = j % rows1;
-    size_t r2 = j / rows1;
+    unsigned r1 = j % rows1;
+    unsigned r2 = j / rows1;
 
     blaze::row(out, j) =
       blaze::forEach(blaze::row(m1, r1) + blaze::row(m2, r2),
@@ -388,8 +388,8 @@ void LayerNormalization(MT& in, const MT& gamma, const MT& beta, float eps=1e-5f
   eps=1e-5f;
   // std::cerr << "LAYER NORM" << std::endl;
   // std::cerr << std::endl;
-  size_t rows = in.rows();
-  size_t cols = in.columns();
+  unsigned rows = in.rows();
+  unsigned cols = in.columns();
 
   for (int j = 0; j < rows; ++j) {
     // std::cerr << "PRE ";
@@ -434,8 +434,8 @@ void LayerNormalization(MT& in, const MT& gamma, const MT& beta, float eps=1e-5f
 
 template<class MT>
 void LayerNormalization(MT& in, const MT& gamma, float eps=1e-9) {
-  size_t rows = in.rows();
-  size_t cols = in.columns();
+  unsigned rows = in.rows();
+  unsigned cols = in.columns();
 
   for (int j = 0; j < rows; ++j) {
     float sum = 0.0f;
