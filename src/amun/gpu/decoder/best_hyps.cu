@@ -7,12 +7,12 @@ namespace GPU {
 
 BestHyps::BestHyps(const God &god)
       : BestHypsBase(god),
-        keys_(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
-        costs_(god.Get<size_t>("beam-size") * god.Get<size_t>("mini-batch")),
+        keys_(god.Get<unsigned>("beam-size") * god.Get<unsigned>("mini-batch")),
+        costs_(god.Get<unsigned>("beam-size") * god.Get<unsigned>("mini-batch")),
         maxBeamSize_(god.Get<uint>("beam-size"))
 {
   if (!god_.UseFusedSoftmax()) {
-    NthElement *obj = new NthElement(god.Get<size_t>("beam-size"), god.Get<size_t>("mini-batch"));
+    NthElement *obj = new NthElement(god.Get<unsigned>("beam-size"), god.Get<unsigned>("mini-batch"));
     nthElement_.reset(obj);
   }
 }
@@ -40,13 +40,13 @@ void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Prob
 }
 
 std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPtr>& scorers,
-                                            size_t hypIndex)
+                                            unsigned hypIndex)
 {
   std::vector<SoftAlignmentPtr> alignments;
   for (auto& scorer : scorers) {
     if (GPU::EncoderDecoder* encdec = dynamic_cast<GPU::EncoderDecoder*>(scorer.get())) {
       const mblas::Matrix &attention = encdec->GetAttention();
-      size_t attLength = attention.dim(1);
+      unsigned attLength = attention.dim(1);
 
       SoftAlignment *softAlignment = new SoftAlignment(attLength);
       mblas::copy(
@@ -89,7 +89,7 @@ void  BestHyps::CalcBeam(
               cudaMemcpyHostToDevice);
   //mblas::copy(vCosts.begin(), vCosts.end(), costs_.begin());
 
-  size_t beamSizeSum = std::accumulate(beamSizes.begin(), beamSizes.end(), 0);
+  unsigned beamSizeSum = std::accumulate(beamSizes.begin(), beamSizes.end(), 0);
 
   std::vector<float> bestCosts;
   std::vector<unsigned> bestKeys;
@@ -111,7 +111,7 @@ void  BestHyps::CalcBeam(
   else {
     BroadcastVecColumn(weights_.at(scorers[0]->GetName()) * _1 + _2, Probs, costs_);
 
-    for (size_t i = 1; i < scorers.size(); ++i) {
+    for (unsigned i = 1; i < scorers.size(); ++i) {
       mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
 
       Element(_1 + weights_.at(scorers[i]->GetName()) * _2, Probs, currProbs);
@@ -127,7 +127,7 @@ void  BestHyps::CalcBeam(
   std::vector<std::vector<float>> breakDowns;
   if (god_.ReturnNBestList()) {
       breakDowns.push_back(bestCosts);
-      for (size_t i = 1; i < scorers.size(); ++i) {
+      for (unsigned i = 1; i < scorers.size(); ++i) {
         std::vector<float> modelCosts(beamSizeSum);
         mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
 
@@ -136,21 +136,21 @@ void  BestHyps::CalcBeam(
       }
   }
 
-  std::map<size_t, size_t> batchMap;
-  size_t tmp = 0;
-  for (size_t batchID = 0; batchID < beamSizes.size(); ++batchID) {
-    for (size_t t = 0; t < beamSizes[batchID]; ++t) {
+  std::map<unsigned, unsigned> batchMap;
+  unsigned tmp = 0;
+  for (unsigned batchID = 0; batchID < beamSizes.size(); ++batchID) {
+    for (unsigned t = 0; t < beamSizes[batchID]; ++t) {
       batchMap[tmp++] = batchID;
     }
   }
 
-  for (size_t i = 0; i < beamSizeSum; i++) {
-    size_t wordIndex = bestKeys[i] % Probs.dim(1);
+  for (unsigned i = 0; i < beamSizeSum; i++) {
+    unsigned wordIndex = bestKeys[i] % Probs.dim(1);
     if (isInputFiltered_) {
       wordIndex = filterIndices[wordIndex];
     }
 
-    size_t hypIndex  = bestKeys[i] / Probs.dim(1);
+    unsigned hypIndex  = bestKeys[i] / Probs.dim(1);
     float cost = bestCosts[i];
 
     HypothesisPtr hyp;
@@ -165,7 +165,7 @@ void  BestHyps::CalcBeam(
     if(god_.ReturnNBestList()) {
       hyp->GetCostBreakdown().resize(scorers.size());
       float sum = 0;
-      for (size_t j = 0; j < scorers.size(); ++j) {
+      for (unsigned j = 0; j < scorers.size(); ++j) {
         if (j == 0)
           hyp->GetCostBreakdown()[0] = breakDowns[0][i];
         else {
@@ -202,7 +202,7 @@ void BestHyps::getNBestList(const std::vector<uint>& beamSizes,
 
   /*
   cerr << "outCosts/outKeys=";
-  for (size_t i = 0; i < outKeys.size(); ++i) {
+  for (unsigned i = 0; i < outKeys.size(); ++i) {
     cerr << "(" << outCosts[i] << "," << outKeys[i] << ") ";
   }
   cerr << endl;
@@ -221,7 +221,7 @@ void BestHyps::GetPairs(mblas::Vector<NthOutBatch> &nBest,
   std::vector<NthOutBatch> hostVec(nBest.size());
   mblas::copy(nBest.data(), nBest.size(), hostVec.data(), cudaMemcpyDeviceToHost);
 
-  for (size_t i = 0; i < nBest.size(); ++i) {
+  for (unsigned i = 0; i < nBest.size(); ++i) {
     outKeys[i] = hostVec[i].ind;
     outValues[i] = hostVec[i].score;
   }

@@ -32,7 +32,7 @@ class BestHyps : public BestHypsBase
                    const bool isFirst);
 
     std::vector<SoftAlignmentPtr> GetAlignments(const std::vector<ScorerPtr>& scorers,
-                                                size_t hypIndex);
+                                                unsigned hypIndex);
 
     void CalcBeam(
         const Beam& prevHyps,
