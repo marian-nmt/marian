@@ -33,7 +33,7 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
     virtual void Decode(
         const State& in,
         State& out,
-        const std::vector<uint>& beamSizes);
+        const std::vector<unsigned>& beamSizes);
 
     virtual void BeginSentenceState(State& state, unsigned batchSize);
 
@@ -50,7 +50,7 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
 
     BaseMatrix& GetProbs();
 
-    void Filter(const std::vector<uint>& filterIds);
+    void Filter(const std::vector<unsigned>& filterIds);
 
   protected:
     const Weights& model_;

@@ -57,7 +57,7 @@ public:
     dataConst_ = data_;
   }
 
-  MatrixWrapper(uint a, uint b, uint c, uint d)
+  MatrixWrapper(unsigned a, unsigned b, unsigned c, unsigned d)
   { // test constructor
     dim_[0] = a;
     dim_[1] = b;
@@ -67,7 +67,7 @@ public:
   }
 
   __device__
-  MatrixWrapper(T *ptr, uint a, uint b, uint c, uint d)
+  MatrixWrapper(T *ptr, unsigned a, unsigned b, unsigned c, unsigned d)
   {
     dim_[0] = a;
     dim_[1] = b;
@@ -80,17 +80,17 @@ public:
   }
 
   __device__ __host__
-  uint dim(uint i) const
+  unsigned dim(unsigned i) const
   {  return dim_[i]; }
 
   __device__ __host__
-  uint size() const
+  unsigned size() const
   {
     return size_;
   }
 
   __device__ __host__
-  uint stride(uint i) const
+  unsigned stride(unsigned i) const
   {
     return stride_[i];
   }
@@ -132,35 +132,35 @@ public:
   }
 
   __device__
-  const T &operator[](uint i) const
+  const T &operator[](unsigned i) const
   {
     assert(i < size());
     return data()[i];
   }
 
   __device__
-  T &operator[](uint i)
+  T &operator[](unsigned i)
   {
     assert(i < size());
     return data()[i];
   }
 
   __device__
-  const T &operator()(uint a, uint b, uint c, uint d) const
+  const T &operator()(unsigned a, unsigned b, unsigned c, unsigned d) const
   {
-    uint id = indices2Id(a, b, c, d);
+    unsigned id = indices2Id(a, b, c, d);
     return data()[id];
   }
 
   __device__
-  T &operator()(uint a, uint b, uint c, uint d)
+  T &operator()(unsigned a, unsigned b, unsigned c, unsigned d)
   {
-    uint id = indices2Id(a, b, c, d);
+    unsigned id = indices2Id(a, b, c, d);
     return data()[id];
   }
 
   __device__ __host__
-  void id2Indices(uint id, uint *out) const
+  void id2Indices(unsigned id, unsigned *out) const
   {
     assert(id < size());
 
@@ -177,14 +177,14 @@ public:
   }
 
   __device__ __host__
-  uint indices2Id(uint a, uint b, uint c, uint d) const
+  unsigned indices2Id(unsigned a, unsigned b, unsigned c, unsigned d) const
   {
     assert(a < dim(0));
     assert(b < dim(1));
     assert(c < dim(2));
     assert(d < dim(3));
 
-    uint ind = 0;
+    unsigned ind = 0;
     ind += a * stride(0);
     ind += b * stride(1);
     ind += c * stride(2);
@@ -199,13 +199,13 @@ public:
     std::stringstream strm;
 
     strm << "dim=";
-    for (uint i = 0; i < SHAPE_SIZE; ++i) {
+    for (unsigned i = 0; i < SHAPE_SIZE; ++i) {
       strm << dim_[i] << " ";
     }
     strm << "=" << size_;
 
     strm << " stride=";
-    for (uint i = 0; i < SHAPE_SIZE; ++i) {
+    for (unsigned i = 0; i < SHAPE_SIZE; ++i) {
       strm << stride(i) << " ";
     }
 
@@ -213,9 +213,9 @@ public:
   }
 
 protected:
-  uint dim_[SHAPE_SIZE];
-  uint stride_[SHAPE_SIZE];
-  uint size_;
+  unsigned dim_[SHAPE_SIZE];
+  unsigned stride_[SHAPE_SIZE];
+  unsigned size_;
 
   T *data_;
   const T *dataConst_;
@@ -230,12 +230,12 @@ inline void testidToMatrixInd()
 
   std::cerr << "matrix=" << matrix.Debug() << std::endl;
 
-  for (uint i = 0; i < matrix.size(); ++i) {
-    uint dim[SHAPE_SIZE];
+  for (unsigned i = 0; i < matrix.size(); ++i) {
+    unsigned dim[SHAPE_SIZE];
     matrix.id2Indices(i, dim);
 
     std::cerr << i << "=";
-    for (uint j = 0; j < SHAPE_SIZE; ++j) {
+    for (unsigned j = 0; j < SHAPE_SIZE; ++j) {
       std::cerr << " " << dim[j];
     }
 

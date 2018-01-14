@@ -8,20 +8,20 @@ namespace GPU {
 
 struct NthOut
 {
-  uint ind;
+  unsigned ind;
   float score;
 
   __device__ __host__
   NthOut() {}
 
   __device__ __host__
-  NthOut(uint init)
+  NthOut(unsigned init)
   :ind(init)
   ,score(init)
   {}
 
   __device__ __host__
-  NthOut(uint &vInd, float vScore)
+  NthOut(unsigned &vInd, float vScore)
   :ind(vInd)
   ,score(vScore)
   {}
@@ -39,10 +39,10 @@ struct NthOut
 
 struct NthOutBatch
 {
-  uint ind;
+  unsigned ind;
   float score;
-  //uint hypoInd;
-  //uint vocabInd;
+  //unsigned hypoInd;
+  //unsigned vocabInd;
 
   __device__ __host__
   NthOutBatch(const float& rhs)
@@ -59,7 +59,7 @@ struct NthOutBatch
   NthOutBatch() {}
 
   __device__ __host__
-  NthOutBatch(uint vInd, float vScore, uint vHypoInd, uint vVocabInd)
+  NthOutBatch(unsigned vInd, float vScore, unsigned vHypoInd, unsigned vVocabInd)
   :ind(vInd)
   ,score(vScore)
   //,hypoInd(vHypoInd)
@@ -112,19 +112,19 @@ inline std::ostream& operator<<(std::ostream &out, const NthOutBatch &obj)
 
 __global__ void gMaxElement(mblas::VectorWrapper<NthOut> out,
                             const mblas::MatrixWrapper<float> probsWrap,
-                            const mblas::VectorWrapper<uint> batchPositionWrap,
-                            uint numBatches);
+                            const mblas::VectorWrapper<unsigned> batchPositionWrap,
+                            unsigned numBatches);
 
 __global__ void gMaxElementUpdate(mblas::VectorWrapper<NthOut> out,
                                   mblas::MatrixWrapper<float> probsWrap,
                                   mblas::VectorWrapper<NthOut> resWrap,
-                                  const mblas::VectorWrapper<uint> batchPositionWrap,
-                                  const mblas::VectorWrapper<uint> cumBeamSizesWrap,
-                                  uint numBlocks);
+                                  const mblas::VectorWrapper<unsigned> batchPositionWrap,
+                                  const mblas::VectorWrapper<unsigned> cumBeamSizesWrap,
+                                  unsigned numBlocks);
 
 __global__ void gGetValueByKey(mblas::MatrixWrapper<float> out,
                               const   mblas::MatrixWrapper<float> in,
-                              uint* indices, uint n);
+                              unsigned* indices, unsigned n);
 
 }
 }

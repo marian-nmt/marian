@@ -79,9 +79,9 @@ Matrix& Swap(Matrix& Out, Matrix& In);
 
 void Mean(Matrix& Out,
           const Matrix& In,
-          const mblas::Vector<uint> &sentenceLengths);
+          const mblas::Vector<unsigned> &sentenceLengths);
 
-void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Vector<uint>& mapping);
+void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Vector<unsigned>& mapping);
 
 Matrix& Transpose(Matrix& Out, const Matrix& In);
 
@@ -103,16 +103,16 @@ Matrix& CopyRow(Matrix& Out,
 Matrix& Concat(Matrix& Out, const Matrix& In);
 
 void MapMatrix(Matrix& state,
-              const mblas::Vector<uint> &sentenceLengths,
+              const mblas::Vector<unsigned> &sentenceLengths,
               unsigned i);
 
 Matrix& CopyRows(Matrix& Out,
                  const Matrix& In,
-                 const mblas::Vector<uint>& indices);
+                 const mblas::Vector<unsigned>& indices);
 
 Matrix& Assemble(Matrix& Out,
                  const Matrix& In,
-                 const mblas::Vector<uint>& indices);
+                 const mblas::Vector<unsigned>& indices);
 
 Matrix& Slice(Matrix& Out,
               const Matrix& In,
@@ -122,8 +122,8 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
              bool transB = false);
 
 Matrix& Softmax(Matrix& Out,
-                const mblas::Vector<uint>& batchIds,
-                const mblas::Vector<uint> &sentenceLengths,
+                const mblas::Vector<unsigned>& batchIds,
+                const mblas::Vector<unsigned> &sentenceLengths,
                 unsigned batchSize);
 
 Matrix& LogSoftmax(Matrix& Out);
@@ -133,29 +133,29 @@ __global__ void gBroadcast(Functor functor,
                            MatrixWrapper<float> outWrap,
                            const MatrixWrapper<float> in1Wrap,
                            const MatrixWrapper<float> in2Wrap,
-                           const VectorWrapper<uint> batchMappingWrap)
+                           const VectorWrapper<unsigned> batchMappingWrap)
 {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   if (id < outWrap.size()) {
     /*
-    uint indices[SHAPE_SIZE];
+    unsigned indices[SHAPE_SIZE];
     outWrap.id2Indices(id, indices);
 
-    uint srcId = indices[0];
-    uint stateIdx = indices[1];
-    uint beamIdx = indices[2];
+    unsigned srcId = indices[0];
+    unsigned stateIdx = indices[1];
+    unsigned beamIdx = indices[2];
     //assert(0 == indices[3]);
     */
 
-    uint cols  = in1Wrap.dim(1);
-    uint srcSize = outWrap.dim(0);
+    unsigned cols  = in1Wrap.dim(1);
+    unsigned srcSize = outWrap.dim(0);
 
-    uint row = id / cols;
-    uint stateIdx = id % cols;
-    uint beamIdx = row / srcSize;
-    uint srcId = row % srcSize;
+    unsigned row = id / cols;
+    unsigned stateIdx = id % cols;
+    unsigned beamIdx = row / srcSize;
+    unsigned srcId = row % srcSize;
 
-    uint batchIdx = batchMappingWrap[ beamIdx ];
+    unsigned batchIdx = batchMappingWrap[ beamIdx ];
 
 
     outWrap[id] = functor(in1Wrap[(batchIdx * srcSize + srcId) * cols + stateIdx],
@@ -172,7 +172,7 @@ Matrix& Broadcast(Functor functor,
                   Matrix& out,
                   const Matrix& in1,
                   const Matrix& in2,
-                  const mblas::Vector<uint>& batchMapping,
+                  const mblas::Vector<unsigned>& batchMapping,
                   unsigned srcSize)
 {
   BEGIN_TIMER("Broadcast");
@@ -186,11 +186,11 @@ Matrix& Broadcast(Functor functor,
   MatrixWrapper<float> outWrap(out);
   const MatrixWrapper<float> in1Wrap(in1);
   const MatrixWrapper<float> in2Wrap(in2);
-  const VectorWrapper<uint> batchMappingWrap(batchMapping);
+  const VectorWrapper<unsigned> batchMappingWrap(batchMapping);
 
-  uint size = out.size();
-  uint threads = std::min((uint) MAX_THREADS, (uint)size);
-  uint blocks  = (size / threads) + ((size % threads == 0) ?  0 : 1);
+  unsigned size = out.size();
+  unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+  unsigned blocks  = (size / threads) + ((size % threads == 0) ?  0 : 1);
 
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (functor, outWrap, in1Wrap, in2Wrap, batchMappingWrap);
@@ -314,9 +314,9 @@ template <class Functor>
 Matrix& Element(Functor functor,
                 Matrix& Out)
 {
-  uint size = Out.size();
-  uint threads = std::min((uint) MAX_THREADS, (uint)size);
-  uint blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
+  unsigned size = Out.size();
+  unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+  unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
   MatrixWrapper<float> outWrap(Out);
@@ -344,9 +344,9 @@ Matrix& Element(Functor functor,
 {
   assert(Out.size() == In.size());
 
-  uint size = Out.size();
-  uint threads = std::min((uint) MAX_THREADS, (uint)size);
-  uint blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
+  unsigned size = Out.size();
+  unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+  unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
   MatrixWrapper<float> outWrap(Out);
@@ -381,9 +381,9 @@ Matrix& Element(Functor functor,
   assert(Out.size() == In1.size());
   assert(Out.size() == In2.size());
 
-  uint size = Out.size();
-  uint threads = std::min((uint) MAX_THREADS, (uint)size);
-  uint blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
+  unsigned size = Out.size();
+  unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
+  unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
   //std::cerr << "Element3=" << Out.Debug(0) << std::endl;
@@ -417,9 +417,9 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 const Matrix& b4,
                 const mblas::Vector<float> &costs,
                 bool forbidUNK,
-                uint maxBeamSize,
-                const std::vector<uint>& beamSizes,
-                uint beamSizeSum,
+                unsigned maxBeamSize,
+                const std::vector<unsigned>& beamSizes,
+                unsigned beamSizeSum,
                 bool isFirst);
 
 template<typename T>

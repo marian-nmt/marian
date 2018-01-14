@@ -6,7 +6,7 @@ namespace amunmt {
 namespace CPU {
 namespace Nematus {
 
-void Encoder::GetContext(const std::vector<uint>& words, mblas::Matrix& context) {
+void Encoder::GetContext(const std::vector<unsigned>& words, mblas::Matrix& context) {
   std::vector<mblas::Matrix> embeddedWords;
 
   context.resize(words.size(),

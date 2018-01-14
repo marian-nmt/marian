@@ -26,7 +26,7 @@ public:
   }
 
   __device__
-  VectorWrapper(T *ptr, uint size)
+  VectorWrapper(T *ptr, unsigned size)
   {
     size_ = size;
     data_ = ptr;
@@ -34,7 +34,7 @@ public:
   }
 
   __device__ __host__
-  uint size() const
+  unsigned size() const
   {
     return size_;
   }
@@ -54,21 +54,21 @@ public:
   }
 
   __device__
-  const T &operator[](uint i) const
+  const T &operator[](unsigned i) const
   {
     assert(i < size());
     return data()[i];
   }
 
   __device__
-  T &operator[](uint i)
+  T &operator[](unsigned i)
   {
     assert(i < size());
     return data()[i];
   }
 
 protected:
-  uint size_;
+  unsigned size_;
 
   T *data_;
   const T *dataConst_;

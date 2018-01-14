@@ -24,9 +24,9 @@ class Decoder {
         : w_(model)
         {}
 
-        void Lookup(mblas::Matrix& Rows, const std::vector<uint>& ids) {
+        void Lookup(mblas::Matrix& Rows, const std::vector<unsigned>& ids) {
           using namespace mblas;
-          std::vector<uint> tids = ids;
+          std::vector<unsigned> tids = ids;
           for(auto&& id : tids)
             if(id >= w_.E_->dim(0))
               id = 1;
@@ -50,7 +50,7 @@ class Decoder {
 
       private:
         const Weights& w_;
-        mblas::Vector<uint> indices_;
+        mblas::Vector<unsigned> indices_;
 
         Embeddings(const Embeddings&) = delete;
     };
@@ -67,7 +67,7 @@ class Decoder {
         void InitializeState(CellState& State,
                              const mblas::Matrix& SourceContext,
                              const unsigned batchSize,
-                             const mblas::Vector<uint> &sentenceLengths)
+                             const mblas::Vector<unsigned> &sentenceLengths)
         {
           using namespace mblas;
 
@@ -153,11 +153,11 @@ class Decoder {
           }
         }
 
-        uint GetMaxLength(const std::vector<uint>& h_sentenceLengths, const std::vector<uint>& beamSizes) const
+        unsigned GetMaxLength(const std::vector<unsigned>& h_sentenceLengths, const std::vector<unsigned>& beamSizes) const
         {
           assert(h_sentenceLengths.size() == beamSizes.size());
 
-          uint ret = 0;
+          unsigned ret = 0;
           for (unsigned i = 0; i < beamSizes.size(); ++i) {
             if (beamSizes[i]) {
               if (ret < h_sentenceLengths[i]) {
@@ -171,9 +171,9 @@ class Decoder {
         void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                      const CellState& HiddenState,
                                      const mblas::Matrix& SourceContext,
-                                     const std::vector<uint>& h_sentenceLengths,
-                                     const mblas::Vector<uint> &sentenceLengths,
-                                     const std::vector<uint>& beamSizes)
+                                     const std::vector<unsigned>& h_sentenceLengths,
+                                     const mblas::Vector<unsigned> &sentenceLengths,
+                                     const std::vector<unsigned>& beamSizes)
         {
           // mapping = 1/0 whether each position, in each sentence in the batch is actually a valid word
           // batchMapping = which sentence is each element in the batch. eg 0 0 1 2 2 2 = first 2 belongs to sent0, 3rd is sent1, 4th and 5th is sent2
@@ -182,18 +182,18 @@ class Decoder {
           using namespace mblas;
           BEGIN_TIMER("GetAlignedSourceContext");
 
-          uint maxLength = SourceContext.dim(0);
-          uint batchSize = SourceContext.dim(3);
+          unsigned maxLength = SourceContext.dim(0);
+          unsigned batchSize = SourceContext.dim(3);
           //std::cerr << "batchSize=" << batchSize << std::endl;
           //std::cerr << "HiddenState=" << HiddenState.Debug(0) << std::endl;
-          //uint maxLength = GetMaxLength(h_sentenceLengths, beamSizes);
+          //unsigned maxLength = GetMaxLength(h_sentenceLengths, beamSizes);
           /*
           std::cerr << "SourceContext=" << SourceContext.Debug(0) << std::endl;
           std::cerr << "beamSizes=" << Debug(beamSizes, 2) << std::endl;
           std::cerr << "maxLength=" << SourceContext.dim(0) << " " << maxLength << std::endl;
           */
 
-          std::vector<uint> batchMapping(HiddenState.output->dim(0));
+          std::vector<unsigned> batchMapping(HiddenState.output->dim(0));
           unsigned k = 0;
           for (unsigned i = 0; i < beamSizes.size(); ++i) {
             for (unsigned j = 0; j < beamSizes[i]; ++j) {
@@ -256,7 +256,7 @@ class Decoder {
       private:
         const Weights& w_;
 
-        mblas::Vector<uint> dBatchMapping_;
+        mblas::Vector<unsigned> dBatchMapping_;
 
         mblas::Matrix SCU_;
         mblas::Matrix Temp1_;
@@ -356,11 +356,11 @@ class Decoder {
           }
         }
 
-        void Filter(const std::vector<uint>& ids) {
+        void Filter(const std::vector<unsigned>& ids) {
           filtered_ = true;
           using namespace mblas;
 
-          mblas::Vector<uint> d_ids(ids);
+          mblas::Vector<unsigned> d_ids(ids);
           Assemble(FilteredW4_, TempW4, d_ids);
           Assemble(FilteredB4_, TempB4, d_ids);
 
@@ -398,9 +398,9 @@ class Decoder {
                   const CellState& State,
                   const mblas::Matrix& Embeddings,
                   const mblas::Matrix& SourceContext,
-                  const std::vector<uint>& h_sentenceLengths,
-                  const mblas::Vector<uint> &sentenceLengths,
-                  const std::vector<uint>& beamSizes,
+                  const std::vector<unsigned>& h_sentenceLengths,
+                  const mblas::Vector<unsigned> &sentenceLengths,
+                  const std::vector<unsigned>& beamSizes,
                   bool useFusedSoftmax)
     {
       //BEGIN_TIMER("Decode");
@@ -443,7 +443,7 @@ class Decoder {
     void EmptyState(CellState& State,
                     const mblas::Matrix& SourceContext,
                     unsigned batchSize,
-                    const mblas::Vector<uint> &sentenceLengths)
+                    const mblas::Vector<unsigned> &sentenceLengths)
     {
       rnn1_.InitializeState(State, SourceContext, batchSize, sentenceLengths);
       alignment_.Init(SourceContext);
@@ -455,11 +455,11 @@ class Decoder {
     }
 
     void Lookup(mblas::Matrix& Embedding,
-                const std::vector<uint>& w) {
+                const std::vector<unsigned>& w) {
       embeddings_.Lookup(Embedding, w);
     }
 
-    void Filter(const std::vector<uint>& ids) {
+    void Filter(const std::vector<unsigned>& ids) {
       softmax_.Filter(ids);
     }
 
@@ -494,9 +494,9 @@ class Decoder {
     void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
                                   const CellState& HiddenState,
                                   const mblas::Matrix& SourceContext,
-                                  const std::vector<uint>& h_sentenceLengths,
-                                  const mblas::Vector<uint> &sentenceLengths,
-                                  const std::vector<uint>& beamSizes)
+                                  const std::vector<unsigned>& h_sentenceLengths,
+                                  const mblas::Vector<unsigned> &sentenceLengths,
+                                  const std::vector<unsigned>& beamSizes)
     {
       alignment_.GetAlignedSourceContext(AlignedSourceContext,
                                         HiddenState,

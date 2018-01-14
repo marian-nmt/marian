@@ -97,7 +97,7 @@ class Encoder {
         backwardRnn_(model.encBackwardGRU_, model.encBackwardTransition_)
     {}
 
-    void GetContext(const std::vector<uint>& words,
+    void GetContext(const std::vector<unsigned>& words,
                     mblas::Matrix& context);
 
   private:

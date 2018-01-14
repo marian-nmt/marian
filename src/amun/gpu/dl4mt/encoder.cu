@@ -65,8 +65,8 @@ std::vector<std::vector<FactWord>> GetBatchInput(const Sentences& source, unsign
 void Encoder::Encode(const Sentences& source,
                       unsigned tab,
                       mblas::Matrix& context,
-                      std::vector<uint> &h_sentenceLengths,
-                      mblas::Vector<uint> &sentenceLengths)
+                      std::vector<unsigned> &h_sentenceLengths,
+                      mblas::Vector<unsigned> &sentenceLengths)
 {
   unsigned maxSentenceLength = GetMaxLength(source, tab);
 

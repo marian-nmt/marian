@@ -6,7 +6,7 @@ namespace amunmt {
 namespace CPU {
 namespace dl4mt {
 
-void Encoder::Encode(const std::vector<uint>& words,
+void Encoder::Encode(const std::vector<unsigned>& words,
 				mblas::Matrix& context) {
   std::vector<mblas::Matrix> embeddedWords;
 

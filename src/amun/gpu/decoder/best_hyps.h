@@ -26,7 +26,7 @@ class BestHyps : public BestHypsBase
     void DisAllowUNK(mblas::Matrix& Prob);
 
     // standard nth_element
-    void FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+    void FindBests(const std::vector<unsigned>& beamSizes, mblas::Matrix& Probs,
                    std::vector<float>& outCosts,
                    std::vector<unsigned>& outKeys,
                    const bool isFirst);
@@ -39,30 +39,30 @@ class BestHyps : public BestHypsBase
         const std::vector<ScorerPtr>& scorers,
         const Words& filterIndices,
         std::vector<Beam>& beams,
-        std::vector<uint>& beamSizes);
+        std::vector<unsigned>& beamSizes);
 
   private:
     std::unique_ptr<NthElement> nthElement_;
     mblas::Vector<unsigned> keys_;
     mblas::Vector<float> costs_;
-    uint maxBeamSize_;
+    unsigned maxBeamSize_;
 
     // fast fused softmax and nth_element
-    void FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+    void FindBests(const std::vector<unsigned>& beamSizes, mblas::Matrix& Probs,
     		mblas::Vector<NthOutBatch> &nBest,
                    std::vector<float>& outCosts,
                    std::vector<unsigned>& outKeys,
                    const bool isFirst);
 
-    void getNBestList(const std::vector<uint>& beamSizes,
+    void getNBestList(const std::vector<unsigned>& beamSizes,
                       mblas::Matrix& Probs,
                       mblas::Vector<NthOutBatch> &nBest,
                       std::vector<float>& outCosts,
-                      std::vector<uint>& outKeys,
+                      std::vector<unsigned>& outKeys,
                       const bool isFirst=false) const;
 
     void GetPairs(mblas::Vector<NthOutBatch> &nBest,
-                  std::vector<uint>& outKeys,
+                  std::vector<unsigned>& outKeys,
                   std::vector<float>& outValues) const;
 
 };

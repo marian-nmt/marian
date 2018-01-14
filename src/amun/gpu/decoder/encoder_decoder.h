@@ -34,7 +34,7 @@ class EncoderDecoder : public Scorer {
 
     virtual ~EncoderDecoder();
 
-    virtual void Decode(const State& in, State& out, const std::vector<uint>& beamSizes);
+    virtual void Decode(const State& in, State& out, const std::vector<unsigned>& beamSizes);
 
     virtual State* NewState() const;
 
@@ -56,15 +56,15 @@ class EncoderDecoder : public Scorer {
 
     unsigned GetVocabSize() const;
 
-    void Filter(const std::vector<uint>& filterIds);
+    void Filter(const std::vector<unsigned>& filterIds);
 
   private:
     const Weights& model_;
     std::unique_ptr<Encoder> encoder_;
     std::unique_ptr<Decoder> decoder_;
-    mblas::Vector<uint> indices_;
-    std::vector<uint> h_sentenceLengths_;
-    mblas::Vector<uint> sentenceLengths_;
+    mblas::Vector<unsigned> indices_;
+    std::vector<unsigned> h_sentenceLengths_;
+    mblas::Vector<unsigned> sentenceLengths_;
       // set in Encoder::GetContext() to length (maxSentenceLength * batchSize). 1 if it's a word, 0 otherwise
 
     std::unique_ptr<mblas::Matrix> SourceContext_;

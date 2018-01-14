@@ -29,8 +29,8 @@ class Encoder {
         {}
 
         void Lookup(mblas::Matrix& Row, const std::vector<std::vector<Word>>& words) {
-          std::vector<std::vector<uint>> knownWords(w_.Es_.size(),
-                                                    std::vector<uint>(words.size(), 1));
+          std::vector<std::vector<unsigned>> knownWords(w_.Es_.size(),
+                                                    std::vector<unsigned>(words.size(), 1));
           unsigned factorCount = w_.Es_.size();
           for (unsigned i = 0; i < words.size(); ++i) {
             const std::vector<Word>& factors = words[i];
@@ -49,10 +49,10 @@ class Encoder {
           unsigned wordCount = words.size() / factorCount;
           //Row.NewSize(0, wordCount);
           /* std::vector<std::shared_ptr<mblas::Matrix>>::iterator eit = w_.Es_.begin(); */
-          /* std::vector<HostVector<uint>>::iterator wit = knownWords.begin(); */
+          /* std::vector<HostVector<unsigned>>::iterator wit = knownWords.begin(); */
           for (unsigned i = 0; i < knownWords.size(); i++) {
-            const std::vector<uint>& factorWords = knownWords.at(i);
-            mblas::Vector<uint> dKnownWords(factorWords);
+            const std::vector<unsigned>& factorWords = knownWords.at(i);
+            mblas::Vector<unsigned> dKnownWords(factorWords);
 
             const std::shared_ptr<mblas::Matrix>& Emb = w_.Es_.at(i);
             mblas::Matrix factorRow;
@@ -110,7 +110,7 @@ class Encoder {
         template <class It>
         void Encode(It it, It end, mblas::Matrix& Context,
                     unsigned batchSize, bool invert,
-                    const mblas::Vector<uint> *sentenceLengths=nullptr)
+                    const mblas::Vector<unsigned> *sentenceLengths=nullptr)
         {
           InitializeState(batchSize);
 
@@ -167,8 +167,8 @@ class Encoder {
     void Encode(const Sentences& words,
                 unsigned tab,
                 mblas::Matrix& context,
-                std::vector<uint> &h_sentenceLengths,
-                mblas::Vector<uint> &sentenceLengths);
+                std::vector<unsigned> &h_sentenceLengths,
+                mblas::Vector<unsigned> &sentenceLengths);
 
   private:
     std::unique_ptr<Cell> InitForwardCell(const Weights& model, const YAML::Node& config);

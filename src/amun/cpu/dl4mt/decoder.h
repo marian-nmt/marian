@@ -18,9 +18,9 @@ class Decoder {
         : w_(model)
         {}
 
-        void Lookup(mblas::Matrix& Rows, const std::vector<uint>& ids) {
+        void Lookup(mblas::Matrix& Rows, const std::vector<unsigned>& ids) {
           using namespace mblas;
-          std::vector<uint> tids = ids;
+          std::vector<unsigned> tids = ids;
           for(auto&& id : tids)
             if(id >= w_.E_.rows())
               id = 1;
@@ -209,7 +209,7 @@ class Decoder {
           LogSoftmax(Probs);
         }
 
-        void Filter(const std::vector<uint>& ids) {
+        void Filter(const std::vector<unsigned>& ids) {
           filtered_ = true;
           using namespace mblas;
           FilteredW4_ = Assemble<byColumn, Matrix>(w_.W4_, ids);
@@ -265,11 +265,11 @@ class Decoder {
     }
 
     void Lookup(mblas::Matrix& Embedding,
-                const std::vector<uint>& w) {
+                const std::vector<unsigned>& w) {
       embeddings_.Lookup(Embedding, w);
     }
 
-    void Filter(const std::vector<uint>& ids) {
+    void Filter(const std::vector<unsigned>& ids) {
       softmax_.Filter(ids);
     }
 

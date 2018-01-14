@@ -61,7 +61,7 @@ EncoderDecoder::~EncoderDecoder()
 
 }
 
-void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>& beamSizes) {
+void EncoderDecoder::Decode(const State& in, State& out, const std::vector<unsigned>& beamSizes) {
   BEGIN_TIMER("Decode");
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
@@ -102,8 +102,8 @@ void EncoderDecoder::AssembleBeamState(const State& in,
                                const Beam& beam,
                                State& out) {
   //BEGIN_TIMER("AssembleBeamState");
-  std::vector<uint> beamWords;
-  std::vector<uint> beamStateIds;
+  std::vector<unsigned> beamWords;
+  std::vector<unsigned> beamStateIds;
   for (const HypothesisPtr &h : beam) {
      beamWords.push_back(h->GetWord());
      beamStateIds.push_back(h->GetPrevStateIndex());
@@ -162,7 +162,7 @@ unsigned EncoderDecoder::GetVocabSize() const {
   return decoder_->GetVocabSize();
 }
 
-void EncoderDecoder::Filter(const std::vector<uint>& filterIds) {
+void EncoderDecoder::Filter(const std::vector<unsigned>& filterIds) {
   decoder_->Filter(filterIds);
 }
 

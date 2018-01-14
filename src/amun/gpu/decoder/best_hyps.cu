@@ -9,7 +9,7 @@ BestHyps::BestHyps(const God &god)
       : BestHypsBase(god),
         keys_(god.Get<unsigned>("beam-size") * god.Get<unsigned>("mini-batch")),
         costs_(god.Get<unsigned>("beam-size") * god.Get<unsigned>("mini-batch")),
-        maxBeamSize_(god.Get<uint>("beam-size"))
+        maxBeamSize_(god.Get<unsigned>("beam-size"))
 {
   if (!god_.UseFusedSoftmax()) {
     NthElement *obj = new NthElement(god.Get<unsigned>("beam-size"), god.Get<unsigned>("mini-batch"));
@@ -21,7 +21,7 @@ void BestHyps::DisAllowUNK(mblas::Matrix& Prob) {
   SetColumn(Prob, UNK_ID, std::numeric_limits<float>::lowest());
 }
 
-void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+void BestHyps::FindBests(const std::vector<unsigned>& beamSizes, mblas::Matrix& Probs,
                std::vector<float>& outCosts,
                std::vector<unsigned>& outKeys,
                const bool isFirst)
@@ -30,7 +30,7 @@ void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Prob
 }
 
 // fast fused softmax and nth_element
-void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+void BestHyps::FindBests(const std::vector<unsigned>& beamSizes, mblas::Matrix& Probs,
                mblas::Vector<NthOutBatch> &nBest,
                std::vector<float>& outCosts,
                std::vector<unsigned>& outKeys,
@@ -70,7 +70,7 @@ void  BestHyps::CalcBeam(
     const std::vector<ScorerPtr>& scorers,
     const Words& filterIndices,
     std::vector<Beam>& beams,
-    std::vector<uint>& beamSizes)
+    std::vector<unsigned>& beamSizes)
 {
   BEGIN_TIMER("CalcBeam");
 
@@ -190,11 +190,11 @@ void  BestHyps::CalcBeam(
 }
 
 //////////////////////////////////////////////////////////////////////////
-void BestHyps::getNBestList(const std::vector<uint>& beamSizes,
+void BestHyps::getNBestList(const std::vector<unsigned>& beamSizes,
                   mblas::Matrix& Probs,
                   mblas::Vector<NthOutBatch> &nBest,
                   std::vector<float>& outCosts,
-                  std::vector<uint>& outKeys,
+                  std::vector<unsigned>& outKeys,
                   const bool isFirst) const
 {
   GetPairs(nBest, outKeys, outCosts);
@@ -211,7 +211,7 @@ void BestHyps::getNBestList(const std::vector<uint>& beamSizes,
 }
 
 void BestHyps::GetPairs(mblas::Vector<NthOutBatch> &nBest,
-              std::vector<uint>& outKeys,
+              std::vector<unsigned>& outKeys,
               std::vector<float>& outValues) const
 {
   //cerr << "top=" << top2.size() << " nBest=" << nBest.size() << endl;
