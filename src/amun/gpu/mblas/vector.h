@@ -23,14 +23,14 @@ public:
   {
   }
 
-  Vector(size_t size)
+  Vector(unsigned size)
   :maxSize_(0)
   ,data_(nullptr)
   {
     newSize(size);
   }
 
-  Vector(size_t size, const T &val)
+  Vector(unsigned size, const T &val)
   :maxSize_(0)
   ,data_(nullptr)
   {
@@ -71,10 +71,10 @@ public:
     HANDLE_ERROR(cudaFree(data_));
   }
 
-  size_t size() const
+  unsigned size() const
   { return size_; }
 
-  size_t maxSize() const
+  unsigned maxSize() const
   { return maxSize_; }
 
   T *data()
@@ -83,7 +83,7 @@ public:
   const T *data() const
   { return data_; }
 
-  void resize(size_t newSize)
+  void resize(unsigned newSize)
   {
     if (newSize > maxSize_) {
       T *newData;
@@ -112,13 +112,13 @@ public:
     size_ = newSize;
   }
 
-  void newSize(size_t newSize)
+  void newSize(unsigned newSize)
   {
     reserve(newSize);
     size_ = newSize;
   }
 
-  void reserve(size_t newSize)
+  void reserve(unsigned newSize)
   {
     if (newSize > maxSize_) {
       if (maxSize_) {
@@ -143,7 +143,7 @@ public:
     std::swap(data_, other.data_);
   }
 
-  virtual std::string Debug(size_t verbosity = 1) const
+  virtual std::string Debug(unsigned verbosity = 1) const
   {
     std::stringstream strm;
     strm << size_; // maxSize_ << " " <<
@@ -152,7 +152,7 @@ public:
   }
 
 protected:
-  size_t size_, maxSize_;
+  unsigned size_, maxSize_;
   T *data_;
 
 
