@@ -161,11 +161,11 @@ Weights::DecSoftmax::DecSoftmax(const NpzConverter& model)
 {}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Weights::Weights(const std::string& npzFile, const YAML::Node& config,  size_t device)
+Weights::Weights(const std::string& npzFile, const YAML::Node& config,  unsigned device)
 : Weights(NpzConverter(npzFile), config, device)
 {}
 
-Weights::Weights(const NpzConverter& model, const YAML::Node& config, size_t device)
+Weights::Weights(const NpzConverter& model, const YAML::Node& config, unsigned device)
 : encEmbeddings_(model),
   decEmbeddings_(model),
   decInit_(model),

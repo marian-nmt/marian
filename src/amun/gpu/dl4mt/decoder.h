@@ -40,11 +40,11 @@ class Decoder {
           Assemble(Rows, *w_.E_, indices_);
         }
 
-        size_t GetCols() {
+        unsigned GetCols() {
           return w_.E_->dim(1);
         }
 
-        size_t GetRows() const {
+        unsigned GetRows() const {
           return w_.E_->dim(0);
         }
 
@@ -66,7 +66,7 @@ class Decoder {
 
         void InitializeState(CellState& State,
                              const mblas::Matrix& SourceContext,
-                             const size_t batchSize,
+                             const unsigned batchSize,
                              const mblas::Vector<uint> &sentenceLengths)
         {
           using namespace mblas;
@@ -139,7 +139,7 @@ class Decoder {
       public:
         Alignment(const God &god, const Weights& model)
           : w_(model)
-          , dBatchMapping_(god.Get<size_t>("mini-batch") * god.Get<size_t>("beam-size"), 0)
+          , dBatchMapping_(god.Get<unsigned>("mini-batch") * god.Get<unsigned>("beam-size"), 0)
         {}
 
         void Init(const mblas::Matrix& SourceContext) {
@@ -158,7 +158,7 @@ class Decoder {
           assert(h_sentenceLengths.size() == beamSizes.size());
 
           uint ret = 0;
-          for (size_t i = 0; i < beamSizes.size(); ++i) {
+          for (unsigned i = 0; i < beamSizes.size(); ++i) {
             if (beamSizes[i]) {
               if (ret < h_sentenceLengths[i]) {
                 ret = h_sentenceLengths[i];
@@ -194,9 +194,9 @@ class Decoder {
           */
 
           std::vector<uint> batchMapping(HiddenState.output->dim(0));
-          size_t k = 0;
-          for (size_t i = 0; i < beamSizes.size(); ++i) {
-            for (size_t j = 0; j < beamSizes[i]; ++j) {
+          unsigned k = 0;
+          for (unsigned i = 0; i < beamSizes.size(); ++i) {
+            for (unsigned j = 0; j < beamSizes[i]; ++j) {
               batchMapping[k++] = i;
             }
           }
@@ -442,14 +442,14 @@ class Decoder {
 
     void EmptyState(CellState& State,
                     const mblas::Matrix& SourceContext,
-                    size_t batchSize,
+                    unsigned batchSize,
                     const mblas::Vector<uint> &sentenceLengths)
     {
       rnn1_.InitializeState(State, SourceContext, batchSize, sentenceLengths);
       alignment_.Init(SourceContext);
     }
 
-    void EmptyEmbedding(mblas::Matrix& Embedding, size_t batchSize = 1) {
+    void EmptyEmbedding(mblas::Matrix& Embedding, unsigned batchSize = 1) {
       Embedding.NewSize(batchSize, embeddings_.GetCols());
       mblas::Fill(Embedding, 0);
     }
@@ -467,7 +467,7 @@ class Decoder {
       alignment_.GetAttention(Attention);
     }
 
-    size_t GetVocabSize() const {
+    unsigned GetVocabSize() const {
       return embeddings_.GetRows();
     }
 

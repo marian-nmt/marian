@@ -41,20 +41,20 @@ std::unique_ptr<Cell> Encoder::InitBackwardCell(const Weights& model, const YAML
   return unique_ptr<Cell>(nullptr);
 }
 
-size_t GetMaxLength(const Sentences& source, size_t tab) {
-  size_t maxLength = source.Get(0).GetWords(tab).size();
-  for (size_t i = 0; i < source.size(); ++i) {
+unsigned GetMaxLength(const Sentences& source, unsigned tab) {
+  unsigned maxLength = source.Get(0).GetWords(tab).size();
+  for (unsigned i = 0; i < source.size(); ++i) {
     const Sentence &sentence = source.Get(i);
-    maxLength = std::max(maxLength, sentence.GetWords(tab).size());
+    maxLength = std::max(maxLength, (unsigned) sentence.GetWords(tab).size());
   }
   return maxLength;
 }
 
-std::vector<std::vector<FactWord>> GetBatchInput(const Sentences& source, size_t tab, size_t maxLen) {
+std::vector<std::vector<FactWord>> GetBatchInput(const Sentences& source, unsigned tab, unsigned maxLen) {
   std::vector<std::vector<FactWord>> matrix(maxLen, std::vector<FactWord>(source.size()));
 
-  for (size_t batchIdx = 0; batchIdx < source.size(); ++batchIdx) {
-    for (size_t wordIdx = 0; wordIdx < source.Get(batchIdx).GetFactors(tab).size(); ++wordIdx) {
+  for (unsigned batchIdx = 0; batchIdx < source.size(); ++batchIdx) {
+    for (unsigned wordIdx = 0; wordIdx < source.Get(batchIdx).GetFactors(tab).size(); ++wordIdx) {
         matrix[wordIdx][batchIdx] = source.Get(batchIdx).GetFactors(tab)[wordIdx];
     }
   }
@@ -63,17 +63,17 @@ std::vector<std::vector<FactWord>> GetBatchInput(const Sentences& source, size_t
 }
 
 void Encoder::Encode(const Sentences& source,
-                      size_t tab,
+                      unsigned tab,
                       mblas::Matrix& context,
                       std::vector<uint> &h_sentenceLengths,
                       mblas::Vector<uint> &sentenceLengths)
 {
-  size_t maxSentenceLength = GetMaxLength(source, tab);
+  unsigned maxSentenceLength = GetMaxLength(source, tab);
 
   h_sentenceLengths.resize(source.size());
   sentenceLengths.newSize(source.size());
 
-  for (size_t i = 0; i < source.size(); ++i) {
+  for (unsigned i = 0; i < source.size(); ++i) {
     h_sentenceLengths[i] = source.Get(i).GetWords(tab).size();
   }
 
@@ -91,7 +91,7 @@ void Encoder::Encode(const Sentences& source,
 
   auto input = GetBatchInput(source, tab, maxSentenceLength);
 
-  for (size_t i = 0; i < input.size(); ++i) {
+  for (unsigned i = 0; i < input.size(); ++i) {
     if (i >= embeddedWords_.size()) {
       embeddedWords_.emplace_back();
     }

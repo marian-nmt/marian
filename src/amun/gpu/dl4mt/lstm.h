@@ -23,7 +23,7 @@ class SlowLSTM: public Cell {
       /* HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); */
       /* std::cerr << "SlowLSTM::GetNextState1" << std::endl; */
 
-      const size_t cols = GetStateLength().output;
+      const unsigned cols = GetStateLength().output;
 
       // transform context for use with gates
       Prod(FIO_, Context, *w_.W_);

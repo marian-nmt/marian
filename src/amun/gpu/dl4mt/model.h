@@ -230,13 +230,13 @@ struct Weights {
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  Weights(const std::string& npzFile, const YAML::Node& config,  size_t device);
+  Weights(const std::string& npzFile, const YAML::Node& config,  unsigned device);
 
-  Weights(const NpzConverter& model, const YAML::Node& config, size_t device);
+  Weights(const NpzConverter& model, const YAML::Node& config, unsigned device);
 
   Weights(const Weights&) = delete;
 
-  size_t GetDevice() {
+  unsigned GetDevice() {
     return device_;
   }
 
@@ -267,7 +267,7 @@ public:
   const DecAlignment decAlignment_;
   const DecSoftmax decSoftmax_;
 
-  const size_t device_;
+  const unsigned device_;
 };
 
 }
