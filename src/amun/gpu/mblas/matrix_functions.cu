@@ -1164,9 +1164,8 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidates,
 
   }
 
+  __syncthreads();
   if (threadIdx.x == 0) {
-    __syncthreads();
-
     // copy to output array
     assert(hypoInd < hypo2Candidate.size());
     unsigned candidateInd = hypo2Candidate[hypoInd];
@@ -1221,8 +1220,8 @@ void SumAndLogSoftMax(VectorWrapper<NthOutBatch> &nBestCandidates,
   }
 
   // apply partition and log to top
+  __syncthreads();      
   if (threadIdx.x == 0) {
-    __syncthreads();
     //printf("val=%f %f \n", in(rowIdx, ele.vocabId, 0, 0), val);
 
     // nbest
