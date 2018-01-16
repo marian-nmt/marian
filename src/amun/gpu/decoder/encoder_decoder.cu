@@ -420,7 +420,7 @@ unsigned EncoderDecoder::SentencesToGet(const Histories& histories)
   unsigned ret1 = histories.NumInactive();
   return ret1;
   */
-
+  ///*
   BEGIN_TIMER("SentencesToGet");
 
   unsigned minActive = (histories.size() > 8) ? histories.size() - 8 : 1;
@@ -457,6 +457,7 @@ unsigned EncoderDecoder::SentencesToGet(const Histories& histories)
 
   PAUSE_TIMER("SentencesToGet");
   return ret;
+  //*/
 }
 
 }
