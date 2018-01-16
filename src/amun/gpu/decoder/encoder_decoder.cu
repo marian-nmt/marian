@@ -76,8 +76,7 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<unsig
                      h_sentenceLengths_,
                      sentenceLengths_,
                      beamSizes,
-                     god_.UseFusedSoftmax(),
-                     god_.UseTensorCores());
+                     god_.UseFusedSoftmax());
 
   PAUSE_TIMER("Decode");
 }
