@@ -279,6 +279,17 @@ class Decoder {
           mblas::Transpose(TempB4, *w_.B4_);
         }
 
+        unsigned TensorCoreSize(unsigned origSize) {
+          unsigned remainder = origSize % 8;
+          if (remainder) {
+            unsigned add = 8 - remainder;
+            return origSize + add;
+          }
+          else {
+            return origSize;
+          }
+        }
+
         void GetProbs(mblas::Matrix& Probs,
             std::shared_ptr<mblas::Matrix> &b4,
                   const CellState& State,
@@ -325,8 +336,6 @@ class Decoder {
           }
           //PAUSE_TIMER("GetProbs.Normalization/BroadcastVec3");
 
-          std::cerr << "T2_=" << T2_.Debug(0) << std::endl;
-          std::cerr << "T3=" << T3_.Debug(0) << std::endl;
           //BEGIN_TIMER("GetProbs.Element");
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
           //PAUSE_TIMER("GetProbs.Element");
@@ -340,18 +349,36 @@ class Decoder {
             b4.reset(&FilteredB4_);
           }
 
-          //BEGIN_TIMER("GetProbs.NewSize");
-          Probs.NewSize(T1_.dim(0), w4->dim(1));
-          //PAUSE_TIMER("GetProbs.NewSize");
+          if (useTensorCores) {
+            unsigned numOrigHypos = T1_.dim(0);
+            unsigned numHypos = TensorCoreSize(numOrigHypos);
+            std::cerr << "numHypos=" << numOrigHypos << " " << numHypos << std::endl;
 
-          std::cerr << "Probs=" << Probs.Debug(0) << std::endl;
-          std::cerr << "T1_=" << T1_.Debug(0) << std::endl;
-          std::cerr << "w4=" << w4->Debug(0) << std::endl;
-          std::cerr << std::endl;
+            assert(T1_.dim(2) == 1);
+            assert(T1_.dim(3) == 1);
 
-          BEGIN_TIMER("GetProbs.Prod4");
-          Prod(Probs, T1_, *w4);
-          PAUSE_TIMER("GetProbs.Prod4");
+            BEGIN_TIMER("GetProbs.NewSize");
+            T1_.Resize(numHypos, T1_.dim(1));
+            PAUSE_TIMER("GetProbs.NewSize");
+
+            BEGIN_TIMER("GetProbs.Prod4");
+            Prod(Probs, T1_, *w4);
+            PAUSE_TIMER("GetProbs.Prod4");
+
+            std::cerr << "Probs=" << Probs.Debug(0) << std::endl;
+            std::cerr << "T1_=" << T1_.Debug(0) << std::endl;
+            std::cerr << "w4=" << w4->Debug(0) << std::endl;
+
+            Probs.Resize(numOrigHypos, w4->dim(1));
+
+            std::cerr << "2Probs=" << Probs.Debug(0) << std::endl;
+            std::cerr << std::endl;
+          }
+          else {
+            BEGIN_TIMER("GetProbs.Prod4.orig");
+            Prod(Probs, T1_, *w4);
+            PAUSE_TIMER("GetProbs.Prod4.orig");
+          }
 
           if (!useFusedSoftmax) {
             BEGIN_TIMER("GetProbs.BroadcastVec");
