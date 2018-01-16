@@ -21,37 +21,25 @@ public:
     dataConst_ = nullptr;
   }
 
-  MatrixWrapper(const TMatrix<T> &matrix, bool colMajor = true)
+  MatrixWrapper(const TMatrix<T> &matrix)
   {
     dim_[0] = matrix.dim(0);
     dim_[1] = matrix.dim(1);
     dim_[2] = matrix.dim(2);
     dim_[3] = matrix.dim(3);
-
-    if (colMajor) {
-      updateStrides();
-    }
-    else {
-      updateStridesRowMajor();
-    }
+    updateStrides();
 
     data_ = nullptr;
     dataConst_ = matrix.data();
   }
 
-  MatrixWrapper(TMatrix<T> &matrix, bool colMajor = true)
+  MatrixWrapper(TMatrix<T> &matrix)
   {
     dim_[0] = matrix.dim(0);
     dim_[1] = matrix.dim(1);
     dim_[2] = matrix.dim(2);
     dim_[3] = matrix.dim(3);
-
-    if (colMajor) {
-      updateStrides();
-    }
-    else {
-      updateStridesRowMajor();
-    }
+    updateStrides();
 
     data_ = matrix.data();
     dataConst_ = data_;
@@ -64,6 +52,9 @@ public:
     dim_[2] = c;
     dim_[3] = d;
     updateStrides();
+
+    data_ = nullptr;
+    dataConst_ = nullptr;
   }
 
   __device__
@@ -100,17 +91,6 @@ public:
   {
     stride_[0] = dim_[1];
     stride_[1] = 1;
-    stride_[2] = dim_[0] * dim_[1];
-    stride_[3] = dim_[0] * dim_[1] * dim_[2];
-
-    size_ = stride_[3] * dim_[3];
-  }
-
-  __device__ __host__
-  void updateStridesRowMajor()
-  {
-    stride_[0] = 1;
-    stride_[1] = dim_[0];
     stride_[2] = dim_[0] * dim_[1];
     stride_[3] = dim_[0] * dim_[1] * dim_[2];
 
