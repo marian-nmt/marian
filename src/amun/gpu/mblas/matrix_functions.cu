@@ -980,7 +980,6 @@ void MergeElement(float &minScore,
 
 __device__
 void MergeElement(float &minScore,
-                  NthOutBatch *arr,
                   VectorWrapper<NthOutBatch> &vec,
                   unsigned arrSize,
                   const NthOutBatch &ele,
@@ -1021,7 +1020,6 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
 
   void *ptrOffset = _sharePtr + sizeof(float) * blockDim.x;
   MatrixWrapper<NthOutBatch> nBestMatrix((NthOutBatch*)ptrOffset, blockDim.x, maxBeamSize, 1, 1);
-  NthOutBatch *arr = &nBestMatrix(threadIdx.x);
   VectorWrapper<NthOutBatch> row = nBestMatrix.Row(threadIdx.x);
 
   unsigned vocabSize = in.dim(1);
@@ -1051,7 +1049,7 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
     unsigned arrInd = hypoInd * vocabSize + vocabInd;
     NthOutBatch ele(arrInd, score, hypoInd, vocabInd);
 
-    MergeElement(minScore, arr, row, beamSize, ele, forbidUNK, vocabInd);
+    MergeElement(minScore, row, beamSize, ele, forbidUNK, vocabInd);
 
     vocabInd += blockDim.x;
   } // while (vocabInd < vocabSize) {
