@@ -178,6 +178,7 @@ void EncoderDecoder::SetTensorCore()
 {
 #if CUDA_VERSION >= 9000
   if (god_.UseTensorCores()) {
+    //cerr << "using tensor cores" << endl;
     cublasHandle_t handle = mblas::CublasHandler::GetHandle();
     cublasStatus_t stat = cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH);
     if (stat != CUBLAS_STATUS_SUCCESS) {

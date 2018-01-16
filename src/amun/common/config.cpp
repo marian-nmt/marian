@@ -201,7 +201,7 @@ void Config::AddOptions(unsigned argc, char** argv) {
     ("gpu-threads", po::value<unsigned>()->default_value(1),
      "Number of threads on a single GPU.")
     ("tensor-cores", po::value<bool>()->default_value(false),
-     "Resize matrices to be multiple of 8 for hardware-acceleration.")
+     "Use Tensor Cores, if available.")
 #endif
 
 #ifdef HAS_CPU
