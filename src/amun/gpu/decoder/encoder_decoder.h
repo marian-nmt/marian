@@ -70,6 +70,8 @@ class EncoderDecoder : public Scorer {
     std::unique_ptr<mblas::Matrix> SourceContext_;
 
     EncoderDecoder(const EncoderDecoder&) = delete;
+
+    void SetTensorCore();
 };
 
 }

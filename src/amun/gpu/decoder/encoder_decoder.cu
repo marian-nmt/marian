@@ -63,6 +63,9 @@ EncoderDecoder::~EncoderDecoder()
 
 void EncoderDecoder::Decode(const State& in, State& out, const std::vector<unsigned>& beamSizes) {
   BEGIN_TIMER("Decode");
+
+  SetTensorCore();
+
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
@@ -83,8 +86,12 @@ State* EncoderDecoder::NewState() const {
   return new EDState();
 }
 
-void EncoderDecoder::Encode(const Sentences& source) {
+void EncoderDecoder::Encode(const Sentences& source)
+{
   BEGIN_TIMER("Encode");
+
+  SetTensorCore();
+
   encoder_->Encode(source, tab_, *SourceContext_, h_sentenceLengths_, sentenceLengths_);
   //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
   PAUSE_TIMER("Encode");
@@ -168,6 +175,20 @@ void EncoderDecoder::Filter(const std::vector<unsigned>& filterIds) {
   decoder_->Filter(filterIds);
 }
 
+void EncoderDecoder::SetTensorCore()
+{
+#if CUDA_VERSION >= 9000
+  if (god_.UseTensorCores()) {
+    cublasHandle_t handle = mblas::CublasHandler::GetHandle();
+    cublasStatus_t stat = cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+      printf ("cublasSetMathMode failed\n");
+      abort();
+    }
+  }
+#endif
+
+}
 
 }
 }
