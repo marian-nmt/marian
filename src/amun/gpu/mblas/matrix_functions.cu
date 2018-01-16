@@ -956,14 +956,14 @@ void AddElement(float &minScore,
 
 __device__
 void MergeElement(float &minScore,
-                  NthOutBatch *arr,
+                  VectorWrapper<NthOutBatch> &vec,
                   unsigned arrSize,
                   const NthOutBatch &ele)
 {
   float newMinScore = HIGHEST_FLOAT;
   bool found = false;
   for (unsigned i = 0; i < arrSize; ++i) {
-    NthOutBatch &currEle = arr[i];
+    NthOutBatch &currEle = vec[i];
     if (!found && minScore == currEle.score) {
       currEle = ele;
       found = true;
@@ -981,6 +981,7 @@ void MergeElement(float &minScore,
 __device__
 void MergeElement(float &minScore,
                   NthOutBatch *arr,
+                  VectorWrapper<NthOutBatch> &vec,
                   unsigned arrSize,
                   const NthOutBatch &ele,
                   bool forbidUNK,
@@ -991,7 +992,7 @@ void MergeElement(float &minScore,
   }
   else if (ele.score > minScore) {
     // replace element with min score
-    MergeElement(minScore, arr, arrSize, ele);
+    MergeElement(minScore, vec, arrSize, ele);
 
     /*
     printf("arrInd=%d ind=%d vocabId=%d \n",
@@ -1050,7 +1051,7 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
     unsigned arrInd = hypoInd * vocabSize + vocabInd;
     NthOutBatch ele(arrInd, score, hypoInd, vocabInd);
 
-    MergeElement(minScore, arr, beamSize, ele, forbidUNK, vocabInd);
+    MergeElement(minScore, arr, row, beamSize, ele, forbidUNK, vocabInd);
 
     vocabInd += blockDim.x;
   } // while (vocabInd < vocabSize) {
@@ -1061,12 +1062,11 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
     __syncthreads();
     int skip = (len + 1) >> 1;
     if (threadIdx.x < (len >> 1)) {
-      NthOutBatch *dest = &nBestMatrix(threadIdx.x);
 
       for (unsigned i = 0; i < beamSize; ++i) {
         const NthOutBatch &ele = nBestMatrix(threadIdx.x + skip, i);
         if (ele.score > minScore) {
-          MergeElement(minScore, dest, beamSize, ele);
+          MergeElement(minScore, row, beamSize, ele);
         }
       }
     }
@@ -1253,6 +1253,9 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBestWrap,
 
     // candidates from other previous hypos
     if (!isFirst) {
+      assert(nextHypoInd < nBestWrap.size());
+      VectorWrapper<NthOutBatch> offset = nBestWrap.Offset(nextHypoInd);
+
       for (unsigned hypoOffset = 1; hypoOffset < beamSize; ++hypoOffset) {
         //printf("hypoInd=%d \n", (hypoInd + hypoOffset));
 
@@ -1272,7 +1275,7 @@ __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBestWrap,
           NthOutBatch *arr = &nBestWrap[nextHypoInd];
 
           if (candidate.score > minScore) {
-            MergeElement(minScore, arr, beamSize, candidate);
+            MergeElement(minScore, offset, beamSize, candidate);
           }
         }
       }

@@ -1,4 +1,5 @@
 #pragma once
+#include <sstream>
 #include "matrix.h"
 #include "gpu/mblas/vector.h"
 
@@ -65,6 +66,22 @@ public:
   {
     assert(i < size());
     return data()[i];
+  }
+
+  __device__
+  VectorWrapper<T> Offset(unsigned offset)
+  {
+    T &ele = (*this)[offset];
+    VectorWrapper<T> ret(&ele, size_ - offset);
+    return ret;
+  }
+
+  std::string Debug() const
+  {
+    std::stringstream strm;
+    strm << "size_=" << size_;
+
+    return strm.str();
   }
 
 protected:
