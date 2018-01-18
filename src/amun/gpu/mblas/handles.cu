@@ -29,16 +29,6 @@ CublasHandler::CublasHandler()
     abort();
   }
 
-#if CUDA_VERSION >= 9000
-  ///*
-  stat = cublasSetMathMode(handle_, CUBLAS_TENSOR_OP_MATH);
-  if (stat != CUBLAS_STATUS_SUCCESS) {
-    printf ("cublasSetMathMode failed\n");
-    abort();
-  }
-  //*/
-#endif
-
   stat = cublasSetStream(handle_, CudaStreamHandler::GetStream());
   if (stat != CUBLAS_STATUS_SUCCESS) {
     printf ("cublasSetStream initialization failed\n");
