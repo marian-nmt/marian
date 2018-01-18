@@ -227,10 +227,10 @@ void  BestHyps::CalcBeam(
     unsigned hypIndex  = bestKeys[i] / Probs.dim(1);
     float cost = bestCosts[i];
     //cerr << "CalcBeam11=" << i << endl;
-    cerr << "bestKeys=" << amunmt::Debug(bestKeys, 2) << endl;
-    cerr << "Probs=" << Probs.Debug(0) << endl;
-    cerr << "hypIndex=" << hypIndex << endl;
-    cerr << "prevHyps=" << prevHyps.size() << endl;
+    //cerr << "bestKeys=" << amunmt::Debug(bestKeys, 2) << endl;
+    //cerr << "Probs=" << Probs.Debug(0) << endl;
+    //cerr << "hypIndex=" << hypIndex << endl;
+    //cerr << "prevHyps=" << prevHyps.size() << endl;
 
     assert(hypIndex < prevHyps.size());
     const HypothesisPtr &prevHyp = prevHyps[hypIndex];
