@@ -88,6 +88,9 @@ class God {
     bool UseFusedSoftmax() const
     { return useFusedSoftmax_; }
 
+    bool UseTensorCores() const
+    { return useTensorCores_; }
+
   private:
     void LoadScorers();
     void LoadFiltering();
@@ -120,8 +123,7 @@ class God {
 
     std::unique_ptr<ThreadPool> pool_;
 
-    bool returnNBestList_;
-    bool useFusedSoftmax_;
+    bool returnNBestList_, useFusedSoftmax_, useTensorCores_;
 };
 
 }

@@ -101,6 +101,9 @@ God& God::Init(int argc, char** argv) {
   //useFusedSoftmax_ = false;
   //cerr << "useFusedSoftmax_=" << useFusedSoftmax_ << endl;
 
+  useTensorCores_ = Get<bool>("tensor-cores");
+  //cerr << "useTensorCores_=" << useTensorCores_ << endl;
+
   if (Has("input-file")) {
     LOG(info)->info("Reading from {}", Get<std::string>("input-file"));
     inputStream_.reset(new InputFileStream(Get<std::string>("input-file")));

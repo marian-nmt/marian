@@ -120,6 +120,8 @@ class EncoderDecoder : public Scorer {
 
     unsigned SentencesToGet(const Histories& histories);
 
+    void SetTensorCore();
+
 };
 
 }
