@@ -75,6 +75,8 @@ EncoderDecoder::~EncoderDecoder()
 void EncoderDecoder::Encode(const SentencesPtr &source) {
   BEGIN_TIMER("Encode");
 
+  SetTensorCore();
+
   EncOutPtr encOut(new EncOutGPU(source));
 
   if (source->size()) {
@@ -163,6 +165,8 @@ void EncoderDecoder::DecodeAsync()
 
 void EncoderDecoder::DecodeAsyncInternal()
 {
+  SetTensorCore();
+
   unsigned maxBeamSize = god_.Get<unsigned>("beam-size");
 
   unsigned miniBatch = god_.Get<unsigned>("mini-batch");
@@ -457,6 +461,22 @@ unsigned EncoderDecoder::SentencesToGet(const Histories& histories)
 
   PAUSE_TIMER("SentencesToGet");
   return ret;
+}
+
+void EncoderDecoder::SetTensorCore()
+{
+#if CUDA_VERSION >= 9000
+  if (god_.UseTensorCores()) {
+    //cerr << "using tensor cores" << endl;
+    cublasHandle_t handle = mblas::CublasHandler::GetHandle();
+    cublasStatus_t stat = cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+      printf ("cublasSetMathMode failed\n");
+      abort();
+    }
+  }
+#endif
+
 }
 
 }

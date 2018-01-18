@@ -200,6 +200,8 @@ void Config::AddOptions(size_t argc, char** argv) {
      "Implicitly sets minimal number of threads to number of devices.")
     ("gpu-threads", po::value<size_t>()->default_value(1),
      "Number of threads on a single GPU.")
+    ("tensor-cores", po::value<bool>()->default_value(false),
+      "Use Tensor Cores, if available.")
 #endif
 
 #ifdef HAS_CPU
@@ -333,6 +335,7 @@ void Config::AddOptions(size_t argc, char** argv) {
 #ifdef CUDA
   SET_OPTION("gpu-threads", size_t);
   SET_OPTION("devices", std::vector<size_t>);
+  SET_OPTION("tensor-cores", bool);
 #endif
 #ifdef HAS_CPU
   SET_OPTION("cpu-threads", size_t);
