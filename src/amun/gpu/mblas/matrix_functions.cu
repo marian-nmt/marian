@@ -1375,8 +1375,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 bool forbidUNK,
                 unsigned maxBeamSize)
 {
-  BEGIN_TIMER("LogSoftmax");
-  //BEGIN_TIMER("LogSoftmax excl kernels");
+  BEGIN_TIMER("LogSoftmaxAndNBest");
+  //BEGIN_TIMER("LogSoftmaxAndNBest excl kernels");
 
   std::vector<char> isFirsts = histories.IsFirsts();
 
@@ -1393,7 +1393,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   mblas::Vector<unsigned> hypo2NextHypo(numHypos);
   mblas::Vector<unsigned> activeBatch2Hypo(activeBatchSize);
   mblas::Vector<NthOutBatch> nBestCandidates(candidateInd);
-  //PAUSE_TIMER("LogSoftmax excl kernels");
+  //PAUSE_TIMER("LogSoftmaxAndNBest excl kernels");
 
   //BEGIN_TIMER("gBeamSizeInit");
   gBeamSizeInit<<<1, 1, 0, CudaStreamHandler::GetStream()>>>
@@ -1445,7 +1445,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
      hypo2Candidate,
      hypo2NextHypo);
   //PAUSE_TIMER("gNBestPerBatch");
-  PAUSE_TIMER("LogSoftmax");
+  PAUSE_TIMER("LogSoftmaxAndNBest");
 }
 
 __global__
