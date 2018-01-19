@@ -426,9 +426,8 @@ void EncoderDecoder::AssembleBeamStateTopup(const Histories& histories,
 unsigned EncoderDecoder::SentencesToGet(const Histories& histories)
 {
   ///*
-  if (histories.NumActive() < 256) {
-    unsigned ret1 = histories.NumInactive();
-    return ret1;
+  if (histories.size() < 8 || histories.NumActive() < histories.size() / 2) {
+    return histories.NumInactive();
   }
   else {
     return 0;
