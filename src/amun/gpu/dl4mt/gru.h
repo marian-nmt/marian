@@ -223,6 +223,7 @@ class FastGRU: public Cell {
       gElementwiseOps<<<blocks, threads, 0, mblas::CudaStreamHandler::GetStream()>>>
         (nextWrap, stateWrap, ruhWrap, tempWrap,
             bWrap, bx1Wrap, bx2Wrap);
+      HANDLE_ERROR(cudaGetLastError());
 
       //PAUSE_TIMER("ElementwiseOps");
 
