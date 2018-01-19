@@ -294,8 +294,10 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   }
 
   std::vector<unsigned> newBatchIds, oldBatchIds, newSentenceLengths, newHypoIds, oldHypoIds;
+  BEGIN_TIMER("TopupBatch.1");
   histories.BatchIds(newBatchIds, oldBatchIds, newSentenceLengths, newHypoIds, oldHypoIds);
-
+  PAUSE_TIMER("TopupBatch.1");
+  
   thread_local mblas::Vector<unsigned> d_newBatchIds, d_oldBatchIds, d_newSentenceLengths, d_newHypoIds, d_oldHypoIds;
   d_newBatchIds.copyFrom(newBatchIds);
   d_oldBatchIds.copyFrom(oldBatchIds);
@@ -304,15 +306,28 @@ void EncoderDecoder::TopupBatch(Histories &histories,
   d_oldHypoIds.copyFrom(oldHypoIds);
 
 
+  BEGIN_TIMER("TopupBatch.2");
   AssembleBeamStateTopup(histories, nextState, oldHypoIds, state);
-
+  PAUSE_TIMER("TopupBatch.2");
+  
   if (newSentences.size()) {
     unsigned maxLength =  histories.MaxLength();
 
+    BEGIN_TIMER("TopupBatch.3");
     UpdateSentenceLengths(d_newBatchIds, d_newSentenceLengths, sentenceLengths);
+    PAUSE_TIMER("TopupBatch.3");
+    
+    BEGIN_TIMER("TopupBatch.4");
     ResizeMatrix3(sourceContext, {0, maxLength}, d_oldBatchIds);
+    PAUSE_TIMER("TopupBatch.4");
+    
+    BEGIN_TIMER("TopupBatch.5");
     AddNewSourceContext(sourceContext, newBatchIds, newSentences);
+    PAUSE_TIMER("TopupBatch.5");
+    
+    BEGIN_TIMER("TopupBatch.6");
     BeginSentenceStateTopup(histories, sourceContext, state, SCU, newSentences, d_oldBatchIds, newBatchIds, newHypoIds, d_newHypoIds);
+    PAUSE_TIMER("TopupBatch.6");
   }
 
   //LOG(progress)->info("Topup took {} new {} histories {}", timer.format(5, "%w"), newSentences.size(), histories.NumActive());
@@ -425,6 +440,7 @@ void EncoderDecoder::AssembleBeamStateTopup(const Histories& histories,
 
 unsigned EncoderDecoder::SentencesToGet(const Histories& histories)
 {
+  //return histories.NumInactive(); 
   ///*
   if (histories.size() < 8 || histories.NumActive() < histories.size() / 2) {
     return histories.NumInactive();
