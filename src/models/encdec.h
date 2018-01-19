@@ -220,7 +220,7 @@ protected:
 
     decoder["mini-batch"] = opt<size_t>("valid-mini-batch");
     decoder["maxi-batch"] = opt<size_t>("valid-mini-batch") > 1 ? 100 : 1;
-    decoder["maxi-batch-sort"] = opt<size_t>("valid-mini-batch") > 1 ? "src" : "none";
+    decoder["maxi-batch-sort"] = opt<size_t>("valid-mini-batch") > 1 ? "trg" : "none";
 
     decoder["relative-paths"] = false;
 
