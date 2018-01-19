@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.2.1] - 2018-01-19
+
+### Fixed
+- Use valid-mini-batch size during validation with "translation" instead of mini-batch
+- Normalize gradients with multi-gpu synchronous SGD
+- Fix divergence between saved models and validated models in asynchronous SGD
+
 ## [1.2.0] - 2018-01-13
 
 ### Added
