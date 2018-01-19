@@ -194,6 +194,7 @@ Matrix& Broadcast(Functor functor,
 
   gBroadcast<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (functor, outWrap, in1Wrap, in2Wrap, batchMappingWrap);
+  HANDLE_ERROR(cudaGetLastError());
   /*
   std::cerr << "size=" << size << std::endl;
   std::cerr << "nBlocks=" << blocks << std::endl;
@@ -252,6 +253,7 @@ Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const mblas::Vector<flo
 
   gBroadcastVecColumn<<<blocks, threads, rows * sizeof(float), CudaStreamHandler::GetStream()>>>
     (functor, outWrap, inWrap);
+  HANDLE_ERROR(cudaGetLastError());
 
   return Out;
 }
@@ -296,6 +298,7 @@ Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In)
 
   gBroadcastVec<<<blocks, threads, 0, stream>>>
     (functor, outWrap, inWrap);
+  HANDLE_ERROR(cudaGetLastError());
 
   return Out;
 }
@@ -323,6 +326,7 @@ Matrix& Element(Functor functor,
 
   gElement<<<blocks, threads, 0, stream>>>
     (functor, outWrap);
+  HANDLE_ERROR(cudaGetLastError());
 
   return Out;
 }
@@ -354,6 +358,7 @@ Matrix& Element(Functor functor,
 
   gElement<<<blocks, threads, 0, stream>>>
     (functor, outWrap, inWrap);
+  HANDLE_ERROR(cudaGetLastError());
 
   return Out;
 }
@@ -397,6 +402,7 @@ Matrix& Element(Functor functor,
 
   gElement<<<blocks, threads, 0, stream>>>
     (functor, outWrap, in1Wrap, in2Wrap);
+  HANDLE_ERROR(cudaGetLastError());
 
   //HANDLE_ERROR( cudaPeekAtLastError() );
   //HANDLE_ERROR( cudaDeviceSynchronize() );

@@ -39,6 +39,8 @@ T Sum(const T *data, unsigned count)
 
   HANDLE_ERROR( cudaStreamSynchronize(stream));
   gSum<<<1, 1, 0, stream>>>(data, count, *d_ret);
+  HANDLE_ERROR(cudaGetLastError());
+
   HANDLE_ERROR( cudaMemcpyAsync(&ret, d_ret, sizeof(T), cudaMemcpyDeviceToHost, stream) );
 
   HANDLE_ERROR( cudaStreamSynchronize(stream));

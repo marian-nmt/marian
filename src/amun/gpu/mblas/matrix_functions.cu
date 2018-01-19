@@ -77,6 +77,7 @@ void Mean(Matrix& Out,
 
   gMean<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, sentenceLengthsWrap);
+  HANDLE_ERROR(cudaGetLastError());
 
 }
 
@@ -124,6 +125,7 @@ void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mbl
 
   gWeightedMean<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, weightsWrap, inWrap, mappingWrap);
+  HANDLE_ERROR(cudaGetLastError());
   /*
   cerr << "nBlocks=" << nBlocks << endl;
 
@@ -207,6 +209,7 @@ void PasteRows(Matrix& Out, const Matrix& In, const unsigned rowNo, unsigned col
 
   gPasteRows<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, rowNo, colNo);
+  HANDLE_ERROR(cudaGetLastError());
 
 }
 
@@ -286,6 +289,7 @@ Matrix& CopyRows(Matrix& Out,
 
   gCopyRows<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, indicesWrap);
+  HANDLE_ERROR(cudaGetLastError());
 
   return Out;
 }
@@ -344,6 +348,8 @@ Matrix& Slice(Matrix& Out,
 
   gSlice<<<blocks, threads, 0, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, n, dim);
+  HANDLE_ERROR(cudaGetLastError());
+
   return Out;
 }
 
@@ -528,6 +534,7 @@ Matrix& Softmax(Matrix& Out,
 
   gSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
     (outWrap, batchIdsWrap, sentenceLengthsWrap, threads);
+  HANDLE_ERROR(cudaGetLastError());
 
   return Out;
 }
@@ -622,6 +629,7 @@ Matrix& LogSoftmax(Matrix& Out)
 
   gLogSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
     (Out, threads);
+  HANDLE_ERROR(cudaGetLastError());
 
   return Out;
 }
@@ -645,6 +653,7 @@ void SetColumn(Matrix& In, int noColumn, float value) {
 
   gSetColumn<<<nBlocks, nThreads, 0, mblas::CudaStreamHandler::GetStream()>>>
     (inWrap, noColumn, value);
+  HANDLE_ERROR(cudaGetLastError());
 }
 
 __global__ void gFill(MatrixWrapper<float> in, float val) {
@@ -665,6 +674,7 @@ void Fill(Matrix& In, float value) {
 
     gFill<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
       (inWrap, value);
+    HANDLE_ERROR(cudaGetLastError());
   }
   else {
     HANDLE_ERROR(cudaMemsetAsync(In.data(), 0, size * sizeof(float), CudaStreamHandler::GetStream()));
@@ -706,6 +716,7 @@ void MapMatrix(Matrix& state,
 
   gMapMatrix<<<numBlocks, numThreads, 0, CudaStreamHandler::GetStream()>>>
     (stateWrap, sentenceLengthsWrap, i);
+  HANDLE_ERROR(cudaGetLastError());
 
   /*
   cerr << "nBlocks=" << numBlocks << endl;
@@ -826,6 +837,7 @@ void Normalization(Matrix &out,
 
   gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, alphaWrap, *betaWrap, eps);
+  HANDLE_ERROR(cudaGetLastError());
 
   /*
   //std::cerr << "nBlocks=" << numBlocks << std::endl;
@@ -1361,6 +1373,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
     beamSizeSum,
     beamSizesWrap
     );
+  HANDLE_ERROR(cudaGetLastError());
   //PAUSE_TIMER("gBeamSizeInit");
   
   /*
@@ -1385,6 +1398,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
      forbidUNK,
      hypo2BeamSizeWrap,
      hypo2CandidateWrap);
+  HANDLE_ERROR(cudaGetLastError());
   //PAUSE_TIMER("gLogSoftMax");
   
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
@@ -1402,6 +1416,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
      hypo2BeamSizeWrap,
      batch2HypoWrap,
      hypo2CandidateWrap);
+  HANDLE_ERROR(cudaGetLastError());
   //PAUSE_TIMER("gNBestPerBatch");
   
   //HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream()));
