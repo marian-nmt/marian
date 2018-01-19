@@ -223,14 +223,8 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
       scheduler_->update(cost, batch);
 
-      if(scheduler_->saving()) {
-        if(movingAvg_)
-          fetchParams(graph->params()->vals(), paramsAvg_, t_id);
-        this->save(graph);
-      }
-
-      if(scheduler_->validating()) {
-        // Wait with validation until all other threads are done with update.
+      if(scheduler_->saving() || scheduler_->validating()) {
+        // Wait with validation or saving until all other threads are done with update.
         // We want to reuse the graphs for validation, so they need to be in
         // a safe state.
         pool_.wait_for_others(lock);
@@ -238,9 +232,14 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
         if(movingAvg_)
           for(auto g : graphs_)
             fetchParams(g->params()->vals(), paramsAvg_, t_id);
-        scheduler_->validate(graphs_);
 
-        // Validation is done, tell other threads to continue work.
+        if(scheduler_->saving())
+          this->save(graph);
+
+        if(scheduler_->validating())
+          scheduler_->validate(graphs_);
+
+        // Validation or saving is done, tell other threads to continue work.
         pool_.notify_others();
       }
     }
