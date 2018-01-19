@@ -127,13 +127,14 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
       grads_[idx]->set(0);
       int size = params_[idx]->size();
       int i = 0;
+      float div = devices_.size(); // no. of GPUs
       for(auto graph : graphs_) {
         if(batches[i]->size() > 0) {
           auto subGrad = graph->params()->grads()->subtensor(pos, size);
           tmpTensors_[idx]->copyFrom(subGrad);
 
           using namespace functional;
-          Element(_1 = _1 + _2, grads_[idx], tmpTensors_[idx]);
+          Element(_1 = _1 + (_2 / div), grads_[idx], tmpTensors_[idx]);
         }
         i++;
       }
