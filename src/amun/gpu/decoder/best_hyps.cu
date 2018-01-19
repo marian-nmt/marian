@@ -215,6 +215,8 @@ void  BestHyps::CalcBeam(
   std::vector<unsigned> batchMap = histories.Hypo2Batch();
   //cerr << "CalcBeam8" << endl;
   //cerr << "batchMap=" << Debug(batchMap, 2) << endl;
+  cerr << "bestKeys=" << amunmt::Debug(bestKeys, 2) << endl;
+  cerr << "Probs=" << Probs.Debug(0) << endl;
 
   for (unsigned i = 0; i < numHypos; i++) {
     //cerr << "CalcBeam9=" << i << endl;
@@ -227,8 +229,6 @@ void  BestHyps::CalcBeam(
     unsigned hypIndex  = bestKeys[i] / Probs.dim(1);
     float cost = bestCosts[i];
     //cerr << "CalcBeam11=" << i << endl;
-    //cerr << "bestKeys=" << amunmt::Debug(bestKeys, 2) << endl;
-    //cerr << "Probs=" << Probs.Debug(0) << endl;
     //cerr << "hypIndex=" << hypIndex << endl;
     //cerr << "prevHyps=" << prevHyps.size() << endl;
 

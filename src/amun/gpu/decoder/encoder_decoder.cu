@@ -215,7 +215,12 @@ void EncoderDecoder::DecodeAsyncInternal()
       AssembleBeamState(histories, *nextState, *state);
     }
 
-    LOG(progress)->info("  Step {} took {} sentences {} hypos {}", step++, timerStep.format(5, "%w"), histories.NumActive(), histories.GetTotalBeamSize());
+    LOG(progress)->info("  Step {} took {} sentences {} hypos {} firsts {}",
+                        step++,
+                        timerStep.format(5, "%w"),
+                        histories.NumActive(),
+                        histories.GetTotalBeamSize(),
+                        histories.NumFirsts());
   }
 }
 
