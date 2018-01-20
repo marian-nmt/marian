@@ -192,7 +192,7 @@ Matrix& Broadcast(Functor functor,
   std::cerr << "srcSize=" << srcSize << " " << activeBatchMaxLength << std::endl;
   //std::cerr << std::endl;
 
-  Shape shape(srcSize, cols, sumOfBeamSizes, 1);
+  Shape shape(activeBatchMaxLength, cols, sumOfBeamSizes, 1);
   unsigned size = shape.size();
   unsigned threads = std::min(MAX_THREADS, size);
   unsigned blocks  = (size / threads) + ((size % threads == 0) ?  0 : 1);
