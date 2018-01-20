@@ -202,7 +202,6 @@ private:
           using namespace mblas;
           BEGIN_TIMER("GetAlignedSourceContext");
 
-          unsigned maxLength = SourceContext.dim(0);
           unsigned batchSize = SourceContext.dim(3);
 
           std::vector<unsigned> hypo2Batch = histories.Hypo2Batch();
@@ -216,9 +215,9 @@ private:
             BroadcastVec(_1 + _2, Temp2_, *w_.B_/*, s_[1]*/);
           }
 
-          Broadcast(Tanh(_1 + _2), Temp1_, SCU, Temp2_, dHypo2Batch_, maxLength);
+          Broadcast(Tanh(_1 + _2), Temp1_, SCU, Temp2_, dHypo2Batch_, histories.MaxLength());
 
-          TIME_CMD("Prod4", Prod(A_, *w_.V_, Temp1_, true));
+          Prod(A_, *w_.V_, Temp1_, true);
 
           BEGIN_TIMER("Softmax");
           mblas::Softmax(A_, dHypo2Batch_, sentenceLengths, batchSize);

@@ -171,15 +171,25 @@ Matrix& Broadcast(Functor functor,
                   const Matrix& in1,
                   const Matrix& in2,
                   const mblas::Vector<unsigned>& hypo2Batch,
-                  unsigned srcSize)
+                  unsigned activeBatchMaxLength)
 {
   BEGIN_TIMER("Broadcast");
+  unsigned srcSize = in1.dim(0);
   unsigned sumOfBeamSizes = in2.dim(0);
 
   //unsigned rows = srcSize * sumOfBeamSizes;
   unsigned cols  = in1.dim(1);
 
   out.NewSize(srcSize, cols, sumOfBeamSizes);
+
+  /*
+  std::cerr << "out=" << out.Debug(0) << std::endl;
+  std::cerr << "in1=" << in1.Debug(0) << std::endl;
+  std::cerr << "in2=" << in2.Debug(0) << std::endl;
+  std::cerr << "hypo2Batch=" << hypo2Batch.Debug(0) << std::endl;
+  */
+  std::cerr << "srcSize=" << srcSize << " " << activeBatchMaxLength << std::endl;
+  //std::cerr << std::endl;
 
   unsigned size = out.size();
   unsigned threads = std::min(MAX_THREADS, size);
