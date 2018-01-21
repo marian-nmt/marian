@@ -3,7 +3,8 @@
 #include <deque>
 #include <functional>
 #include <queue>
-
+#include <mutex>
+#include <condition_variable>
 #include <boost/timer/timer.hpp>
 
 #include "common/config.h"
@@ -37,6 +38,10 @@ private:
 
   std::mt19937 g_;
 
+  mutable std::mutex loadMutex_;
+  mutable std::condition_variable loadCondition_;
+  bool loadReady_{true};
+  
   void fillBatches(bool shuffle = true) {
     auto cmpSrc = [](const sample& a, const sample& b) {
       return a[0].size() < b[0].size();
@@ -67,6 +72,8 @@ private:
     int maxBatchSize = options_->get<int>("mini-batch");
     int maxSize = maxBatchSize * options_->get<int>("maxi-batch");
 
+    // consume data from corpus into maxi-batch (single sentences)
+    // sorted into specified order (due to queue)
     size_t sets = 0;
     while(current_ != data_->end() && maxiBatch->size() < maxSize) {
       maxiBatch->push(*current_);
@@ -78,7 +85,11 @@ private:
     int currentWords = 0;
     std::vector<size_t> lengths(sets, 0);
 
+    std::vector<BatchPtr> tempBatches;
+    
+    // while there are sentences in the queue
     while(!maxiBatch->empty()) {
+      // push item onto batch
       batchVector.push_back(maxiBatch->top());
       currentWords += batchVector.back()[0].size();
       maxiBatch->pop();
@@ -112,21 +123,33 @@ private:
         }
       }
 
+      // if batch has desired size create a real batch
       if(makeBatch) {
-        // std::cerr << "Creating batch" << std::endl;
-        bufferedBatches_.push_back(data_->toBatch(batchVector));
+        tempBatches.push_back(data_->toBatch(batchVector));
+        
+        // prepare for next batch
         batchVector.clear();
         currentWords = 0;
         lengths.clear();
         lengths.resize(sets, 0);
       }
     }
+    
+    // turn rest into batch
+    // set exclusive lock
     if(!batchVector.empty())
-      bufferedBatches_.push_back(data_->toBatch(batchVector));
+      tempBatches.push_back(data_->toBatch(batchVector));
 
     if(shuffle) {
-      std::shuffle(bufferedBatches_.begin(), bufferedBatches_.end(), g_);
+      // shuffle the batches
+      std::shuffle(tempBatches.begin(), tempBatches.end(), g_);
     }
+    
+    // put batches onto queue
+    // exclusive lock
+    std::unique_lock<std::mutex> lock(loadMutex_);
+    for(const auto& batch : tempBatches)
+      bufferedBatches_.push_back(batch);
   }
 
 public:
@@ -135,15 +158,47 @@ public:
                  Ptr<BatchStats> stats = nullptr)
       : data_(data), options_(options), stats_(stats), g_(Config::seed) {}
 
-  operator bool() const { return !bufferedBatches_.empty(); }
+  operator bool() const {
+    // wait if empty but loading
+    std::unique_lock<std::mutex> lock(loadMutex_);
+    loadCondition_.wait(lock, [this]{
+      return loadReady_ || !bufferedBatches_.empty();
+    });
+    
+    return !bufferedBatches_.empty();
+  }
 
   BatchPtr next() {
+    
+    {
+      std::unique_lock<std::mutex> lock(loadMutex_);
+      loadCondition_.wait(lock, [this]{
+        return loadReady_ || !bufferedBatches_.empty();
+      });
+    }
+    
     ABORT_IF(bufferedBatches_.empty(), "No batches to fetch, run prepare()");
     currentBatch_ = bufferedBatches_.front();
-    bufferedBatches_.pop_front();
 
-    if(bufferedBatches_.empty())
-      fillBatches();
+    if(loadReady_ && bufferedBatches_.size() <= options_->get<int>("maxi-batch") / 5) {
+      {
+        std::unique_lock<std::mutex> lock(loadMutex_);
+        loadReady_ = false;
+        loadCondition_.notify_all();
+      }
+            
+      auto detach = [this]() {
+        fillBatches();
+        std::unique_lock<std::mutex> lock(loadMutex_);
+        loadReady_ = true;
+        loadCondition_.notify_all();
+      };
+      
+      std::thread d(detach);
+    }
+
+    std::unique_lock<std::mutex> lock(loadMutex_);
+    bufferedBatches_.pop_front();
 
     return currentBatch_;
   }
