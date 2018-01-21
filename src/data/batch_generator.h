@@ -58,7 +58,7 @@ private:
 
     std::unique_ptr<sample_queue> maxiBatch;
 
-    if(options_->has("maxi-batch-sort")) {
+    if(shuffle && options_->has("maxi-batch-sort")) {
       if(options_->get<std::string>("maxi-batch-sort") == "src")
         maxiBatch.reset(new sample_queue(cmpSrc));
       else if(options_->get<std::string>("maxi-batch-sort") == "none")
@@ -172,6 +172,7 @@ public:
     
     {
       std::unique_lock<std::mutex> lock(loadMutex_);
+      
       loadCondition_.wait(lock, [this]{
         return loadReady_ || !bufferedBatches_.empty();
       });
@@ -195,11 +196,12 @@ public:
       };
       
       std::thread d(detach);
+      d.detach();
     }
 
     std::unique_lock<std::mutex> lock(loadMutex_);
     bufferedBatches_.pop_front();
-
+    
     return currentBatch_;
   }
 
