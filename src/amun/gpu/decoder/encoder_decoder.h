@@ -121,6 +121,7 @@ class EncoderDecoder : public Scorer {
     unsigned SentencesToGet(const Histories& histories);
 
     void SetTensorCore();
+    void BatchStats(const std::vector<unsigned> &activeCount);
 
 };
 

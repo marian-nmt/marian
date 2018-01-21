@@ -188,9 +188,13 @@ void EncoderDecoder::DecodeAsyncInternal()
   InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
   //cerr << "prevHyps2=" << prevHyps.size() << endl;
 
+  std::vector<unsigned> activeCount(histories.size(), 0);
+
   unsigned step = 0;
   while (histories.NumActive()) {
     boost::timer::cpu_timer timerStep;
+
+    ++activeCount[histories.NumActive()];
 
     decoder_->Decode(nextState->get<EDState>().GetStates(),
                     state->get<EDState>().GetStates(),
@@ -222,6 +226,8 @@ void EncoderDecoder::DecodeAsyncInternal()
                         histories.GetTotalBeamSize(),
                         histories.NumFirsts());
   }
+
+  BatchStats(activeCount);
 }
 
 void EncoderDecoder::InitBatch(Histories &histories,
@@ -502,6 +508,21 @@ void EncoderDecoder::SetTensorCore()
     }
   }
 #endif
+}
+
+void EncoderDecoder::BatchStats(const std::vector<unsigned> &activeCount)
+{
+  unsigned sum = 0;
+  for (size_t i = 0; i < activeCount.size(); ++i) {
+    sum += activeCount[i];
+  }
+
+  cerr << "batches: ";
+  for (size_t i = 0; i < activeCount.size(); ++i) {
+      cerr << ((float) activeCount[i] / (float) sum) << " ";
+  }
+  cerr << endl;
+
 
 }
 
