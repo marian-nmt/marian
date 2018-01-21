@@ -136,7 +136,6 @@ private:
     }
     
     // turn rest into batch
-    // set exclusive lock
     if(!batchVector.empty())
       tempBatches.push_back(data_->toBatch(batchVector));
 
@@ -170,8 +169,7 @@ public:
 
   BatchPtr next() {
     {
-      std::unique_lock<std::mutex> lock(loadMutex_);
-      
+      std::unique_lock<std::mutex> lock(loadMutex_); 
       loadCondition_.wait(lock, [this]{
         return loadReady_ || !bufferedBatches_.empty();
       });
