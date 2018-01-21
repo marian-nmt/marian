@@ -35,6 +35,8 @@ class Histories {
       return beam;
     }
 
+    unsigned NumActive() const;
+
   protected:
     std::vector<std::shared_ptr<History>> coll_;
     Histories(const Histories &) = delete;

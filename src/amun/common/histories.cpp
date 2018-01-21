@@ -40,5 +40,16 @@ void Histories::Append(const Histories &other)
   }
 }
 
+unsigned Histories::NumActive() const
+{
+  unsigned ret = 0;
+  for (size_t i = 0; i < coll_.size(); ++i) {
+    if (coll_[i]->front().size()) {
+      ++ret;
+    }
+  }
+  return ret;
+}
+
 
 }

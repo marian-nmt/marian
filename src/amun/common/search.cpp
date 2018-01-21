@@ -75,8 +75,8 @@ std::shared_ptr<Histories> Search::Translate(const Sentences& sentences) {
       break;
     }
 
-    //cerr << "beamSizes=" << beamSizes.size() << " " << prevHyps.size() << endl;
-    //++activeCount_[prevHyps.size()];
+    cerr << "beamSizes=" << beamSizes.size() << " " << histories->NumActive() << endl;
+    ++activeCount_[histories->NumActive()];
   }
 
   CleanAfterTranslation();
