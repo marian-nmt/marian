@@ -42,6 +42,9 @@ class Search {
     bool normalizeScore_;
     Words filterIndices_;
     BestHypsBasePtr bestHyps_;
+
+    std::vector<unsigned> activeCount_;
+    void BatchStats();
 };
 
 }
