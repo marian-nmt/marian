@@ -169,7 +169,6 @@ public:
   }
 
   BatchPtr next() {
-    
     {
       std::unique_lock<std::mutex> lock(loadMutex_);
       
@@ -187,16 +186,13 @@ public:
         loadReady_ = false;
         loadCondition_.notify_all();
       }
-            
-      auto detach = [this]() {
+      
+      std::thread([this]() {
         fillBatches();
         std::unique_lock<std::mutex> lock(loadMutex_);
         loadReady_ = true;
         loadCondition_.notify_all();
-      };
-      
-      std::thread d(detach);
-      d.detach();
+      }).detach();
     }
 
     std::unique_lock<std::mutex> lock(loadMutex_);
