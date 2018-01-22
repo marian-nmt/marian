@@ -500,7 +500,6 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       ->default_value(false),
      "Enable multi-node training through MPI")
     ("multi-node-overlap", po::value<bool>()
-      ->zero_tokens()
       ->default_value(true),
      "Overlap model computations with MPI communication")
   ;
