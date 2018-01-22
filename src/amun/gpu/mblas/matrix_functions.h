@@ -426,7 +426,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 unsigned maxBeamSize,
                 const std::vector<unsigned>& beamSizes,
                 unsigned beamSizeSum,
-                bool isFirst);
+                bool isFirst,
+                bool doSoftmax);
 
 template<typename T>
 void TestMemCpy(unsigned size, const T *data1)

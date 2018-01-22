@@ -1164,7 +1164,8 @@ __global__ void gLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
                         unsigned maxBeamSize,
                         bool forbidUNK,
                         const VectorWrapper<unsigned> hypo2BeamSizeWrap,
-                        const VectorWrapper<unsigned> hypo2CandidateWrap)
+                        const VectorWrapper<unsigned> hypo2CandidateWrap,
+                        bool doSoftmax)
 {
   unsigned hypos = in.dim(0);
   unsigned vocabSize = in.dim(1);
@@ -1184,16 +1185,16 @@ __global__ void gLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
             hypo2CandidateWrap);
 
     //__syncthreads();
-
-    SumAndLogSoftMax(nBestCandidatesWrap,
-                in,
-                b4Wrap,
-                hypoInd,
-                maxBeamSize,
-                topScore,
-                hypo2BeamSizeWrap,
-                hypo2CandidateWrap);
-
+    if (doSoftmax) {
+      SumAndLogSoftMax(nBestCandidatesWrap,
+                  in,
+                  b4Wrap,
+                  hypoInd,
+                  maxBeamSize,
+                  topScore,
+                  hypo2BeamSizeWrap,
+                  hypo2CandidateWrap);
+    }
 
     __syncthreads();
     hypoInd += gridDim.x;
@@ -1305,7 +1306,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 unsigned maxBeamSize,
                 const std::vector<unsigned>& beamSizes,
                 unsigned beamSizeSum,
-                bool isFirst)
+                bool isFirst,
+                bool doSoftmax)
 {
   //BEGIN_TIMER("LogSoftmax excl kernels");
   //cerr << "in=" << in.Debug(0) << endl;
@@ -1397,7 +1399,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
      maxBeamSize,
      forbidUNK,
      hypo2BeamSizeWrap,
-     hypo2CandidateWrap);
+     hypo2CandidateWrap,
+     doSoftmax);
   HANDLE_ERROR(cudaGetLastError());
   //PAUSE_TIMER("gLogSoftMax");
   
