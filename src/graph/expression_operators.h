@@ -69,6 +69,13 @@ Expr bdot(Expr a,
           bool transB = false,
           float scalar = 1.f);
 
+Expr affine(Expr a,
+            Expr b,
+            Expr c,
+            bool transA = false,
+            bool transB = false,
+            float scalar = 1.f);
+
 Expr transpose(Expr a);
 Expr transpose(Expr a, const std::vector<int>& axes);
 
@@ -103,7 +110,6 @@ Expr mean(Expr a, keywords::axis_k ax = 0);
 
 Expr cross_entropy(Expr a, Expr b);
 
-Expr affine(Expr a, Expr b, Expr c);
 
 Expr scalar_product(Expr a, Expr b, keywords::axis_k ax = 0);
 

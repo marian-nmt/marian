@@ -156,43 +156,130 @@ public:
   const std::string color() { return "orange"; }
 };
 
-struct AffineNodeOp : public NaryNodeOp {
-  AffineNodeOp(const std::vector<Expr>& nodes)
-      : NaryNodeOp(nodes, keywords::shape = newShape(nodes)) {}
+class AffineNodeOp : public NaryNodeOp {
+private:
+  bool transA_;
+  bool transB_;
+  float scalar_;
 
-  Shape newShape(const std::vector<Expr>& nodes) {
-    Shape shape1 = nodes[0]->shape();
-    Shape shape2 = nodes[1]->shape();
-    ABORT_IF(shape1[shape1.size() - 1] != shape2[shape2.size() - 2],
-              "matrix product requires dimensions to match");
-    shape1.set(shape1.size() - 1, shape2[shape2.size() - 1]);
-    return shape1;
+public:
+  AffineNodeOp(const std::vector<Expr>& nodes,
+               bool transA,
+               bool transB,
+               float scalar)
+      : NaryNodeOp(nodes, keywords::shape = newShape(nodes[0], nodes[1],
+                                                     transA, transB)),
+        transA_(transA),
+        transB_(transB),
+        scalar_(scalar){}
+
+  Shape newShape(Expr a, Expr b, bool transA, bool transB) {
+    auto shapeA = a->shape();
+    if(transA) {
+      shapeA.set(shapeA.size() - 2, a->shape()[shapeA.size() - 1]);
+      shapeA.set(shapeA.size() - 1, a->shape()[shapeA.size() - 2]);
+    }
+
+    auto shapeB = b->shape();
+    if(transB) {
+      shapeB.set(shapeB.size() - 2, b->shape()[shapeB.size() - 1]);
+      shapeB.set(shapeB.size() - 1, b->shape()[shapeB.size() - 2]);
+    }
+
+    Shape outShape = shapeA;
+    outShape.set(outShape.size() - 1, shapeB[shapeB.size() - 1]);
+    ABORT_IF(shapeA[shapeA.size() - 1] != shapeB[shapeB.size() - 2],
+             "matrix product requires dimensions to match");
+    return outShape;
   }
+
 
   NodeOps forwardOps() {
     using namespace functional;
-
     return {
-      NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
-                      ->getCublasHandle(),
-                  val_,
-                  child(0)->val(),
-                  child(1)->val(),
-                  false,
-                  false);
-             Add(_1, val_, child(2)->val());
-             )
+      NodeOp(Prod(
+        std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+        val_,
+        child(0)->val(),
+        child(1)->val(),
+        transA_,
+        transB_,
+        0.f,
+        scalar_);
+        Add(_1, val_, child(2)->val()))
     };
   }
 
   NodeOps backwardOps() {
+    // D is the adjoint, the matrix of derivatives
+    // df/dA += alpha * dot(D, op(B).T)
+    // df/dB += alpha * dot(op(A).T, D)
+    // beta set to 1.0 in gemm, C = alpha * dot(op(A), op(B)) + beta * C
+    // to sum gradients from different graph parts
     using namespace functional;
 
-    // D is the adjoint, the matrix of derivatives
-    // df/dA += D*B.T
-    // df/dB += A.T*D
-    // beta set to 1.0 in gemm, C = dot(A,B) + beta * C
-    // to sum gradients from different graph parts
+    if(!transA_ && transB_)
+      return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+                              ->getCublasHandle(),
+                          child(0)->grad(),
+                          adj_,
+                          child(1)->val(),
+                          false,
+                          false,
+                          1.0,
+                          scalar_)),
+              NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+                              ->getCublasHandle(),
+                          child(1)->grad(),
+                          adj_,
+                          child(0)->val(),
+                          true,
+                          false,
+                          1.0,
+                          scalar_)),
+              NodeOp(Add(_1, child(2)->grad(), adj_))};
+
+    if(transA_ && !transB_)
+      return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+                              ->getCublasHandle(),
+                          child(0)->grad(),
+                          child(1)->val(),
+                          adj_,
+                          false,
+                          true,
+                          1.0,
+                          scalar_)),
+              NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+                              ->getCublasHandle(),
+                          child(1)->grad(),
+                          child(0)->val(),
+                          adj_,
+                          false,
+                          false,
+                          1.0,
+                          scalar_)),
+              NodeOp(Add(_1, child(2)->grad(), adj_))};
+
+    if(transA_ && transB_)
+      return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+                              ->getCublasHandle(),
+                          child(0)->grad(),
+                          child(1)->val(),
+                          adj_,
+                          true,
+                          true,
+                          1.0,
+                          scalar_)),
+              NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+                              ->getCublasHandle(),
+                          child(1)->grad(),
+                          adj_,
+                          child(0)->val(),
+                          true,
+                          true,
+                          1.0,
+                          scalar_)),
+              NodeOp(Add(_1, child(2)->grad(), adj_))};
 
     return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
                             ->getCublasHandle(),
@@ -201,7 +288,8 @@ struct AffineNodeOp : public NaryNodeOp {
                         child(1)->val(),
                         false,
                         true,
-                        1.0)),
+                        1.0,
+                        scalar_)),
             NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
                             ->getCublasHandle(),
                         child(1)->grad(),
@@ -209,9 +297,9 @@ struct AffineNodeOp : public NaryNodeOp {
                         adj_,
                         true,
                         false,
-                        1.0)),
-            NodeOp(Add(_1, child(2)->grad(), adj_))
-            };
+                        1.0,
+                        scalar_)),
+            NodeOp(Add(_1, child(2)->grad(), adj_))};
   }
 
   const std::string type() { return "affine"; }
