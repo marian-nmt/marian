@@ -188,7 +188,7 @@ void EncoderDecoder::DecodeAsyncInternal()
   InitBatch(histories, sentenceLengths, sourceContext, SCU, *state);
   //cerr << "prevHyps2=" << prevHyps.size() << endl;
 
-  std::vector<unsigned> activeCount(histories.size(), 0);
+  std::vector<unsigned> activeCount(histories.size() + 1, 0);
 
   unsigned step = 0;
   while (histories.NumActive()) {
