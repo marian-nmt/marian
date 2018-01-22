@@ -229,6 +229,8 @@ void Config::AddOptions(unsigned argc, char** argv) {
       "Number of sentences in maxi batch.")
     ("mini-batch-words", po::value<int>()->default_value(0),
       "Set mini-batch size based on words instead of sentences.")
+    ("use-fused-softmax", po::value<bool>()->default_value(true),
+     "Use fused softmax/nth-element, if appropriate.")
     ("show-weights", po::value<bool>()->zero_tokens()->default_value(false),
      "Output used weights to stdout and exit")
     ("load-weights", po::value<std::string>(),
@@ -323,6 +325,7 @@ void Config::AddOptions(unsigned argc, char** argv) {
   SET_OPTION("maxi-batch", unsigned);
   SET_OPTION("mini-batch-words", int);
   SET_OPTION("max-length", unsigned);
+  SET_OPTION("use-fused-softmax", bool);
 #ifdef CUDA
   SET_OPTION("gpu-threads", unsigned);
   SET_OPTION("devices", std::vector<unsigned>);

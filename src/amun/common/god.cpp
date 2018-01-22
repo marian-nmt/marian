@@ -92,10 +92,16 @@ God& God::Init(int argc, char** argv) {
   LoadFiltering();
 
   returnNBestList_ = Get<bool>("n-best");
-  useFusedSoftmax_ = true;
-  if (gpuLoaders_.size() != 1 || // more than 1 scorer
-      God::Get<unsigned>("beam-size") > 11 // beam size affect shared mem alloc in gLogSoftMax()
-      ) {
+
+  if (Get<bool>("use-fused-softmax")) {
+    useFusedSoftmax_ = true;
+    if (gpuLoaders_.size() != 1 || // more than 1 scorer
+        God::Get<unsigned>("beam-size") > 11 // beam size affect shared mem alloc in gLogSoftMax()
+        ) {
+      useFusedSoftmax_ = false;
+    }
+  }
+  else {
     useFusedSoftmax_ = false;
   }
   //cerr << "useFusedSoftmax_=" << useFusedSoftmax_ << endl;
