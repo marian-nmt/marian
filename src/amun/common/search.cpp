@@ -75,7 +75,8 @@ std::shared_ptr<Histories> Search::Translate(const Sentences& sentences) {
       break;
     }
 
-    cerr << "beamSizes=" << beamSizes.size() << " " << histories->NumActive() << endl;
+    //cerr << "states0=" << states[0]->Debug(0) << endl;
+    //cerr << "beamSizes=" << beamSizes.size() << " " << histories->NumActive() << endl;
     ++activeCount_[histories->NumActive()];
   }
 
@@ -108,11 +109,14 @@ bool Search::CalcBeam(
     bestHyps_->CalcBeam(prevHyps, scorers_, filterIndices_, beams, beamSizes);
     histories->Add(beams);
 
+    histories->SetActive(false);
     Beam survivors;
     for (unsigned batchId = 0; batchId < batchSize; ++batchId) {
       for (auto& h : beams[batchId]) {
         if (h->GetWord() != EOS_ID) {
           survivors.push_back(h);
+
+          histories->SetActive(batchId, true);
         } else {
           --beamSizes[batchId];
         }

@@ -46,12 +46,16 @@ class History {
     unsigned GetLineNum() const
     { return lineNo_; }
 
+    void SetActive(bool active);
+    bool GetActive() const;
+
   private:
     std::vector<Beam> history_;
     std::priority_queue<HypothesisCoord> topHyps_;
     bool normalize_;
     unsigned lineNo_;
     unsigned maxLength_;
+    bool active_;
 };
 
 

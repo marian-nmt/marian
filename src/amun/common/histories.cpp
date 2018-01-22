@@ -40,11 +40,23 @@ void Histories::Append(const Histories &other)
   }
 }
 
+void Histories::SetActive(bool active)
+{
+  for (size_t i = 0; i < coll_.size(); ++i) {
+    SetActive(i, false);
+  }
+}
+
+void Histories::SetActive(unsigned id, bool active)
+{
+  coll_[id]->SetActive(active);
+}
+
 unsigned Histories::NumActive() const
 {
   unsigned ret = 0;
   for (size_t i = 0; i < coll_.size(); ++i) {
-    if (coll_[i]->front().size()) {
+    if (coll_[i]->GetActive()) {
       ++ret;
     }
   }

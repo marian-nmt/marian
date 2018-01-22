@@ -48,6 +48,15 @@ NBestList History::NBest(unsigned n) const
   return nbest;
 }
 
+void History::SetActive(bool active)
+{
+  active_ = active;
+}
+
+bool History::GetActive() const
+{
+  return active_;
+}
 
 }
 

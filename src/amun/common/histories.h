@@ -35,6 +35,8 @@ class Histories {
       return beam;
     }
 
+    void SetActive(bool active);
+    void SetActive(unsigned id, bool active);
     unsigned NumActive() const;
 
   protected:
