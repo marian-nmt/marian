@@ -58,7 +58,7 @@ private:
 
     std::unique_ptr<sample_queue> maxiBatch;
 
-    if(shuffle && options_->has("maxi-batch-sort")) {
+    if(options_->has("maxi-batch-sort")) {
       if(options_->get<std::string>("maxi-batch-sort") == "src")
         maxiBatch.reset(new sample_queue(cmpSrc));
       else if(options_->get<std::string>("maxi-batch-sort") == "none")
