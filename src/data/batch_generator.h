@@ -178,7 +178,7 @@ public:
     ABORT_IF(bufferedBatches_.empty(), "No batches to fetch, run prepare()");
     currentBatch_ = bufferedBatches_.front();
 
-    if(loadReady_ && bufferedBatches_.size() <= options_->get<int>("maxi-batch") / 5) {
+    if(loadReady_ && bufferedBatches_.size() <= std::max(options_->get<int>("maxi-batch") / 5, 1)) {
       {
         std::unique_lock<std::mutex> lock(loadMutex_);
         loadReady_ = false;
