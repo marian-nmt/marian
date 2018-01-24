@@ -43,6 +43,8 @@ public:
     }
   }
 
+  Example next() {}
+
 private:
   typedef unsigned char uchar;
 
