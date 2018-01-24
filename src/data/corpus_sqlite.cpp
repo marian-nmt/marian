@@ -5,24 +5,6 @@
 namespace marian {
 namespace data {
 
-CorpusSQLiteIterator::CorpusSQLiteIterator() : pos_(-1), tup_(0) {}
-
-CorpusSQLiteIterator::CorpusSQLiteIterator(CorpusSQLite& corpus)
-    : corpus_(&corpus), pos_(0), tup_(corpus_->next()) {}
-
-void CorpusSQLiteIterator::increment() {
-  tup_ = corpus_->next();
-  pos_++;
-}
-
-bool CorpusSQLiteIterator::equal(CorpusSQLiteIterator const& other) const {
-  return this->pos_ == other.pos_ || (this->tup_.empty() && other.tup_.empty());
-}
-
-const SentenceTuple& CorpusSQLiteIterator::dereference() const {
-  return tup_;
-}
-
 CorpusSQLite::CorpusSQLite(Ptr<Config> options, bool translate)
     : options_(options),
       maxLength_(options_->get<size_t>("max-length")),
@@ -148,9 +130,9 @@ CorpusSQLite::CorpusSQLite(std::vector<std::string> paths,
 }
 
 void CorpusSQLite::fillSQLite() {
-  db_.reset(new SQLite::Database("corpus.db", SQLite::OPEN_READWRITE|SQLite::OPEN_CREATE));
-  db_->exec("PRAGMA temp_store_directory = '/data1/marcinjd';");
-    
+  LOG(info, "[sqlite] Creating temporary database in {}", options_->get<std::string>("tempdir"));
+  db_.reset(new SQLite::Database("", SQLite::OPEN_READWRITE|SQLite::OPEN_CREATE));
+  db_->exec("PRAGMA temp_store_directory = '" + options_->get<std::string>("tempdir") + "';");  
   db_->exec("drop table if exists lines");
   
   std::string createStr = "create table lines (_id integer";
@@ -187,13 +169,14 @@ void CorpusSQLite::fillSQLite() {
       lines++;
       
       if(lines % 1000000 == 0) {
-          std::cerr << "[" << lines << "]" << std::endl;    
-          db_->exec("commit;");
-          db_->exec("begin;");
+        LOG(info, "[sqlite] Inserted {} lines", lines);
+        db_->exec("commit;");
+        db_->exec("begin;");
       }
   }
   db_->exec("commit;");
-  std::cerr << "creating index" << std::endl;    
+  LOG(info, "[sqlite] Inserted {} lines", lines);
+  LOG(info, "[sqlite] Creating primary index");
   db_->exec("create unique index idx_line on lines (_id);");
 }
 
@@ -234,6 +217,7 @@ SentenceTuple CorpusSQLite::next() {
 }
 
 void CorpusSQLite::shuffle() {
+  LOG(info, "[sqlite] Selecting shuffled data");
   select_.reset(new SQLite::Statement(*db_, "select * from lines order by random();"));
 }
 

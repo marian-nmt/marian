@@ -204,7 +204,9 @@ public:
   }
 };
 
-class Corpus;
+class CorpusIterator;
+
+typedef DatasetBase<SentenceTuple, CorpusIterator, CorpusBatch> CorpusBase;
 
 class CorpusIterator
     : public boost::iterator_facade<CorpusIterator,
@@ -212,7 +214,7 @@ class CorpusIterator
                                     boost::forward_traversal_tag> {
 public:
   CorpusIterator();
-  explicit CorpusIterator(Corpus& corpus);
+  explicit CorpusIterator(CorpusBase* corpus);
 
 private:
   friend class boost::iterator_core_access;
@@ -223,7 +225,7 @@ private:
 
   const SentenceTuple& dereference() const;
 
-  Corpus* corpus_;
+  CorpusBase* corpus_;
 
   long long int pos_;
   SentenceTuple tup_;
@@ -283,7 +285,7 @@ public:
   }
 };
 
-class Corpus : public DatasetBase<SentenceTuple, CorpusIterator, CorpusBatch> {
+class Corpus : public CorpusBase {
 private:
   Ptr<Config> options_;
 
@@ -325,7 +327,7 @@ public:
 
   void reset();
 
-  iterator begin() { return iterator(*this); }
+  iterator begin() { return iterator(this); }
 
   iterator end() { return iterator(); }
 

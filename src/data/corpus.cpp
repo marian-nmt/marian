@@ -12,8 +12,8 @@ typedef std::vector<WordMask> SentBatch;
 
 CorpusIterator::CorpusIterator() : pos_(-1), tup_(0) {}
 
-CorpusIterator::CorpusIterator(Corpus& corpus)
-    : corpus_(&corpus), pos_(0), tup_(corpus_->next()) {}
+CorpusIterator::CorpusIterator(CorpusBase* corpus)
+    : corpus_(corpus), pos_(0), tup_(corpus_->next()) {}
 
 void CorpusIterator::increment() {
   tup_ = corpus_->next();

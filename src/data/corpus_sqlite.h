@@ -20,32 +20,7 @@
 namespace marian {
 namespace data {
 
-class CorpusSQLite;
-
-class CorpusSQLiteIterator
-    : public boost::iterator_facade<CorpusSQLiteIterator,
-                                    SentenceTuple const,
-                                    boost::forward_traversal_tag> {
-public:
-  CorpusSQLiteIterator();
-  explicit CorpusSQLiteIterator(CorpusSQLite& corpus);
-
-private:
-  friend class boost::iterator_core_access;
-
-  void increment();
-
-  bool equal(CorpusSQLiteIterator const& other) const;
-
-  const SentenceTuple& dereference() const;
-
-  CorpusSQLite* corpus_;
-
-  long long int pos_;
-  SentenceTuple tup_;
-};
-
-class CorpusSQLite : public DatasetBase<SentenceTuple, CorpusSQLiteIterator, CorpusBatch> {
+class CorpusSQLite : public CorpusBase {
 private:
   Ptr<Config> options_;
 
@@ -55,8 +30,6 @@ private:
   bool maxLengthCrop_;
   bool rightLeft_;
 
-  std::mt19937 g_;
-  std::vector<size_t> ids_;
   size_t pos_{0};
   
   Ptr<WordAlignment> wordAlignment_;
@@ -89,7 +62,7 @@ public:
 
   void reset();
 
-  iterator begin() { return iterator(*this); }
+  iterator begin() { return iterator(this); }
 
   iterator end() { return iterator(); }
 

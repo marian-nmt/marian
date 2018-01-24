@@ -24,6 +24,8 @@ public:
   virtual Iterator begin() = 0;
   virtual Iterator end() = 0;
   virtual void shuffle() = 0;
+  
+  virtual Sample next() = 0;
 
   virtual batch_ptr toBatch(const std::vector<sample>&) = 0;
 

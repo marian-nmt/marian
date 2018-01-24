@@ -20,7 +20,12 @@ public:
   void run() {
     using namespace data;
 
-    auto dataset = New<CorpusSQLite>(options_);
+    Ptr<CorpusBase> dataset;
+    if(options_->get<bool>("sqlite"))
+      dataset = New<CorpusSQLite>(options_);
+    else
+      dataset = New<Corpus>(options_);
+      
     dataset->prepare();
 
     Ptr<BatchStats> stats;
@@ -37,7 +42,15 @@ public:
 
     if((options_->has("valid-sets") || options_->has("valid-script-path"))
        && options_->get<size_t>("valid-freq") > 0) {
-      for(auto validator : Validators(dataset->getVocabs(), options_))
+      
+      // @TODO: solve this with better polymorphism
+      std::vector<Ptr<Vocab>> vocabs;
+      if(options_->get<bool>("sqlite"))
+        vocabs = std::static_pointer_cast<CorpusSQLite>(dataset)->getVocabs();
+      else
+        vocabs = std::static_pointer_cast<Corpus>(dataset)->getVocabs();
+      
+      for(auto validator : Validators(vocabs, options_))
         scheduler->addValidator(validator);
     }
 
@@ -45,7 +58,7 @@ public:
     model->setScheduler(scheduler);
     model->load();
 
-    auto batchGenerator = New<BatchGenerator<CorpusSQLite>>(dataset, options_, stats);
+    auto batchGenerator = New<BatchGenerator<CorpusBase>>(dataset, options_, stats);
 
     scheduler->started();
     while(scheduler->keepGoing()) {

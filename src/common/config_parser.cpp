@@ -394,7 +394,9 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("no-shuffle", po::value<bool>()->zero_tokens()->default_value(false),
     "Skip shuffling of training data before each epoch")
     ("tempdir,T", po::value<std::string>()->default_value("/tmp"),
-      "Directory for temporary (shuffled) files")
+      "Directory for temporary (shuffled) files and database")
+    ("sqlite", po::value<bool>()->zero_tokens()->default_value(false),
+      "Use temporary disk-based sqlite3 database for training corpus storage")
     ("devices,d", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
@@ -776,7 +778,9 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("save-freq", size_t);
     SET_OPTION("no-shuffle", bool);
     SET_OPTION("tempdir", std::string);
-
+    SET_OPTION("sqlite", bool);
+  
+    
     SET_OPTION("optimizer", std::string);
     SET_OPTION_NONDEFAULT("optimizer-params", std::vector<float>);
     SET_OPTION("optimizer-delay", size_t);
