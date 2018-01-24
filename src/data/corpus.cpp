@@ -134,7 +134,7 @@ Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
                Ptr<Config> options,
                size_t maxLength)
-    : DatasetBase(paths),
+    : CorpusBase(paths),
       options_(options),
       vocabs_(vocabs),
       maxLength_(maxLength ? maxLength : options_->get<size_t>("max-length")),

@@ -206,7 +206,14 @@ public:
 
 class CorpusIterator;
 
-typedef DatasetBase<SentenceTuple, CorpusIterator, CorpusBatch> CorpusBase;
+class CorpusBase : public DatasetBase<SentenceTuple, CorpusIterator, CorpusBatch> {
+public:
+  
+  CorpusBase() : DatasetBase() {}
+  CorpusBase(std::vector<std::string> paths) : DatasetBase(paths) {}
+  
+  virtual std::vector<Ptr<Vocab>>& getVocabs() = 0;
+};
 
 class CorpusIterator
     : public boost::iterator_facade<CorpusIterator,

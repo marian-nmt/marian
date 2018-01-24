@@ -43,14 +43,7 @@ public:
     if((options_->has("valid-sets") || options_->has("valid-script-path"))
        && options_->get<size_t>("valid-freq") > 0) {
       
-      // @TODO: solve this with better polymorphism
-      std::vector<Ptr<Vocab>> vocabs;
-      if(options_->get<bool>("sqlite"))
-        vocabs = std::static_pointer_cast<CorpusSQLite>(dataset)->getVocabs();
-      else
-        vocabs = std::static_pointer_cast<Corpus>(dataset)->getVocabs();
-      
-      for(auto validator : Validators(vocabs, options_))
+      for(auto validator : Validators(dataset->getVocabs(), options_))
         scheduler->addValidator(validator);
     }
 
