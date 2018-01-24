@@ -3,7 +3,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} /usr/local/cuda-8.0/lib64)
 
 
-project(marian CXX)
+project(marian CXX C)
 
 # Custom CMake options
 option(COMPILE_EXAMPLES "Compile examples" OFF)

@@ -23,6 +23,7 @@ cuda_add_executable(dropout_test dropout_test.cu)
 #cuda_add_executable(marian_test marian_test.cu)
 cuda_add_executable(tensor_test tensor_test.cu)
 
+add_executable(sqlite_test sqlite_test.cpp)
 
 foreach(exec
         logger_test
@@ -31,6 +32,7 @@ foreach(exec
         #marian_test
         #bn_test
         tensor_test
+        sqlite_test
 )
     target_link_libraries(${exec} marian ${EXT_LIBS})
     cuda_add_cublas_to_target(${exec})

@@ -2,7 +2,7 @@
 
 #include "common/config.h"
 #include "data/batch_generator.h"
-#include "data/corpus.h"
+#include "data/corpus_sqlite.h"
 #include "models/model_task.h"
 #include "training/scheduler.h"
 #include "training/validator.h"
@@ -20,7 +20,7 @@ public:
   void run() {
     using namespace data;
 
-    auto dataset = New<Corpus>(options_);
+    auto dataset = New<CorpusSQLite>(options_);
     dataset->prepare();
 
     Ptr<BatchStats> stats;
@@ -45,7 +45,7 @@ public:
     model->setScheduler(scheduler);
     model->load();
 
-    auto batchGenerator = New<BatchGenerator<Corpus>>(dataset, options_, stats);
+    auto batchGenerator = New<BatchGenerator<CorpusSQLite>>(dataset, options_, stats);
 
     scheduler->started();
     while(scheduler->keepGoing()) {
