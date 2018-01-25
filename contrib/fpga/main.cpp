@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #ifdef __APPLE__
@@ -14,11 +15,19 @@ using namespace std;
 class Matrix
 {
 public:
-  Matrix(unsigned a, unsigned b, bool rowMajor)
+  Matrix(bool rowMajor, unsigned a, unsigned b)
   {
+    rowMajor_ = rowMajor;
     dim_[0] = a;
     dim_[1] = b;
-    rowMajor_ = rowMajor;
+    size_ = a * b;
+
+    if (rowMajor) {
+
+    }
+    else {
+
+    }
   }
 
   cl_mem &data()
@@ -30,10 +39,46 @@ public:
   bool isRowMajor() const
   { return rowMajor_; }
  
+  unsigned dim(unsigned i) const
+  { return dim_[i]; }
+
+  unsigned stride(unsigned i) const
+  {  return stride_[i]; }
+
+  unsigned size() const
+  { return size_; }
+
+
+  unsigned indices2Id(unsigned a, unsigned b) const
+  {
+    assert(a < dim(0));
+    assert(b < dim(1));
+  
+    unsigned ind =
+            a * stride(0)
+          + b * stride(1);
+    assert(ind < size());
+    return ind;
+  }
+
 protected:
-  unsigned dim_[2];
-  cl_mem mem_;
   bool rowMajor_;
+  unsigned dim_[2];
+  unsigned stride_[2];
+  unsigned size_;
+  cl_mem mem_;
+
+  void updateStridesRowMajor()
+  {
+    stride_[0] = 1;
+    stride_[1] = dim_[0];
+  }
+
+  void updateStridesColMajor()
+  {
+    stride_[0] = dim_[1];
+    stride_[1] = 1;
+  }
 
 };
 
@@ -53,10 +98,10 @@ int main()
   cl_kernel kernel = CreateKernel("kernels/OutputLayer.cl", "square", openCLInfo);
   cerr << "CreateKernel done" << endl;
 
-  Matrix W(85000, 512, true);
-  Matrix X(512, 640, true);
-  Matrix B(1, 85000, true);
-  Matrix Y(85000, 640, true);
+  Matrix W(true, 85000, 512);
+  Matrix X(true, 512, 640);
+  Matrix B(true, 1, 85000);
+  Matrix Y(true, 85000, 640);
 
   cerr << "Finished" << endl;
 }
