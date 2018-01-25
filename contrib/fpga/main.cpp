@@ -30,8 +30,16 @@ int main()
   Matrix B(openCLInfo, true, 1, 85000);
   Matrix Y(openCLInfo, true, 85000, 640);
 
-  vector<float> vec(85000*512, 3.3);
+  vector<float> vec;
+  
+  vec.resize(W.size(), 3.3);
   W.Set(vec.data(), vec.size());
+
+  vec.resize(X.size(), 21.2);
+  X.Set(vec.data(), vec.size());
+
+  vec.resize(B.size(), 9.3443);
+  B.Set(vec.data(), vec.size());
 
   cerr << "Finished" << endl;
 }
