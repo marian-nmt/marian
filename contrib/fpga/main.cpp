@@ -26,10 +26,10 @@ int main()
   cl_kernel kernel = CreateKernel("kernels/OutputLayer.cl", "OutputLayer_float", openCLInfo);
   cerr << "CreateKernel done" << endl;
 
-  Matrix W(openCLInfo, true, 85000, 512);
-  Matrix X(openCLInfo, true, 512, 640);
-  Matrix B(openCLInfo, true, 1, 85000);
-  Matrix Y(openCLInfo, true, 85000, 640);
+  Matrix<float> W(openCLInfo, true, 85000, 512);
+  Matrix<float> X(openCLInfo, true, 512, 640);
+  Matrix<float> B(openCLInfo, true, 1, 85000);
+  Matrix<float> Y(openCLInfo, true, 85000, 640);
 
   vector<float> vec;
   

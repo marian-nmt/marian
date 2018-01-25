@@ -2,6 +2,7 @@
 #include <cassert>
 #include "types-fpga.h"
 
+template<typename T>
 class Matrix
 {
 public:
@@ -14,7 +15,7 @@ public:
     size_ = a * b;
 
     cl_int err;
-    mem_ = clCreateBuffer(openCLInfo.context,  CL_MEM_READ_WRITE,  sizeof(float) * size(), NULL, &err);
+    mem_ = clCreateBuffer(openCLInfo.context,  CL_MEM_READ_WRITE,  sizeof(T) * size(), NULL, &err);
     CheckError(err);
   }
 
@@ -33,10 +34,10 @@ public:
   unsigned size() const
   { return size_; }
 
-  void Set(const float *arr, size_t count)
+  void Set(const T *arr, size_t count)
   {
     assert(count <= size_);
-    size_t bytes = count * sizeof(float);
+    size_t bytes = count * sizeof(T);
     CheckError( clEnqueueWriteBuffer(
                     openCLInfo_.commands,
                     mem_,
