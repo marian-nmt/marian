@@ -6,10 +6,10 @@
 #define LAYER_DIM 512 // assuming to be multiple of 16
 
 #define P 16 //should be multiple 16 for B loading logic to work
-#define TILECOUNT (VOCABSIZE / P); //VOCABSIZE will be a good multiple of P 
+#define TILECOUNT (VOCABSIZE / P) //VOCABSIZE will be a good multiple of P 
 
-#define WLOADTIME (P * LAYER_DIM) >> 4 //using float16
-#define BLOADTIME P >> 4 //using float16
+#define WLOADTIME ((P * LAYER_DIM) >> 4) //using float16
+#define BLOADTIME (P >> 4) //using float16
 
 __attribute__((max_global_work_dim(0)))
 __kernel void OutputLayer_float(
@@ -17,7 +17,7 @@ __kernel void OutputLayer_float(
 				__global float * restrict X,
 				__global float * restrict B,
 				__global float * restrict Y,
-				unsigned batchsize,
+				unsigned batchsize
                   )
 {
 #if EMULATOR == 1
@@ -53,7 +53,7 @@ __kernel void OutputLayer_float(
 			else {
 				#pragma unroll 
 				for (char u=0; u < 16; u++) {
-					Blocal[(wr_index*16+u]=temp_val[u]; // good for P as a multiple of 16
+					Blocal[wr_index*16+u]=temp_val[u]; // good for P as a multiple of 16
 				}		
 				wr_index++;
 			}
