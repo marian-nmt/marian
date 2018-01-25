@@ -30,3 +30,5 @@ struct OpenCLInfo
   cl_device_id device;
   cl_command_queue commands;
 };
+
+
