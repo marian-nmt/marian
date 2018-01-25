@@ -1,10 +1,12 @@
 #pragma once
+#include <cassert>
 #include "types-fpga.h"
 
 class Matrix
 {
 public:
   Matrix(const OpenCLInfo &openCLInfo, bool rowMajor, unsigned a, unsigned b)
+  :openCLInfo_(openCLInfo)
   {
     rowMajor_ = rowMajor;
     dim_[0] = a;
@@ -31,8 +33,25 @@ public:
   unsigned size() const
   { return size_; }
 
+  void Set(const float *arr, size_t count)
+  {
+    assert(count <= size_);
+    size_t bytes = count * sizeof(float);
+    CheckError( clEnqueueWriteBuffer(
+                    openCLInfo_.commands,
+                    mem_,
+                    CL_TRUE,
+                    0,
+                    bytes,
+                    arr,
+                    0,
+                    NULL,
+                    NULL) );
+    CheckError( clFinish(openCLInfo_.commands) );
+  }
 
 protected:
+  const OpenCLInfo &openCLInfo_;
   bool rowMajor_;
   unsigned dim_[2];
   unsigned size_;

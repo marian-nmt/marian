@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
+#include <vector>
 #include "types-fpga.h"
 #include "kernel.h"
 #include "matrix.h"
@@ -28,6 +29,9 @@ int main()
   Matrix X(openCLInfo, true, 512, 640);
   Matrix B(openCLInfo, true, 1, 85000);
   Matrix Y(openCLInfo, true, 85000, 640);
+
+  vector<float> vec(85000*512, 3.3);
+  W.Set(vec.data(), vec.size());
 
   cerr << "Finished" << endl;
 }
