@@ -348,6 +348,8 @@ class Decoder {
             b4.reset(&FilteredB4_);
           }
 
+          BEGIN_TIMER("OutputLayer");
+
           BEGIN_TIMER("GetProbs.Prod4");
           Prod(Probs, T1_, *w4);
           PAUSE_TIMER("GetProbs.Prod4");
@@ -361,6 +363,8 @@ class Decoder {
             mblas::LogSoftmax(Probs);
             PAUSE_TIMER("GetProbs.LogSoftMax");
           }
+
+          PAUSE_TIMER("OutputLayer");
         }
 
         void Filter(const std::vector<unsigned>& ids) {
