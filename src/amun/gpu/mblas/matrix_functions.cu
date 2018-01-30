@@ -402,6 +402,7 @@ Matrix& Prod(cublasHandle_t handle, Matrix& C, const Matrix& A, const Matrix& B,
   cerr << "B=" << B.Debug(0) << endl;
   cerr << "transB=" << transB << endl;
   cerr << m << " " << n << " " << k << endl;
+  cerr << lda << " " << ldb << " " << ldc << endl;
   cerr << endl;
   */
   bool transA = false;
