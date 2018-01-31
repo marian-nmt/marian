@@ -47,7 +47,6 @@ uint16_t guess_terminal_width(uint16_t max_width) {
 }
 
 void OutputYaml(const YAML::Node node, YAML::Emitter& out) {
-  // std::set<std::string> flow = { "devices" };
   std::set<std::string> sorter;
   switch(node.Type()) {
     case YAML::NodeType::Null: out << node; break;
@@ -66,8 +65,6 @@ void OutputYaml(const YAML::Node node, YAML::Emitter& out) {
         out << YAML::Key;
         out << key;
         out << YAML::Value;
-        // if(flow.count(key))
-        // out << YAML::Flow;
         OutputYaml(node[key], out);
       }
       out << YAML::EndMap;
@@ -787,8 +784,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("no-shuffle", bool);
     SET_OPTION("tempdir", std::string);
     SET_OPTION("sqlite", bool);
-  
-    
+
     SET_OPTION("optimizer", std::string);
     SET_OPTION_NONDEFAULT("optimizer-params", std::vector<float>);
     SET_OPTION("optimizer-delay", size_t);

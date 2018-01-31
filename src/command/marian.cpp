@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
   } else if(!useMultiNode) {
     New<Train<SingletonGraph>>(options)->run();
   } else {
-    LOG(info, "[BETA] Running multi-node training.");
+    LOG(warn, "[BETA] Running multi-node training");
     New<Train<MultiNodeGraphGroup>>(options)->run();
   }
 
@@ -36,12 +36,17 @@ int main(int argc, char** argv) {
 
 bool configureMPI(int argc, char** argv) {
   bool enable = false;
-  #if MPI_FOUND
+#if MPI_FOUND
   int provided_thread_mode = 0;
   MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided_thread_mode);
-  MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN); // Enable if occasional truncation errors
-  ABORT_IF(provided_thread_mode < MPI_THREAD_MULTIPLE, "Your version of MPI does not support multi-threaded communication.");
+  // Enable if occasional truncation errors
+  MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+
+  ABORT_IF(
+      provided_thread_mode < MPI_THREAD_MULTIPLE,
+      "Your version of MPI does not support multi-threaded communication.");
+
   enable = true;
-  #endif
+#endif
   return enable;
 }
