@@ -496,6 +496,14 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       ->zero_tokens()
       ->default_value(false),
      "Fix target embeddings. Affects all decoders")
+
+    ("multi-node", po::value<bool>()
+      ->zero_tokens()
+      ->default_value(false),
+     "Enable multi-node training through MPI")
+    ("multi-node-overlap", po::value<bool>()
+      ->default_value(true),
+     "Overlap model computations with MPI communication")
   ;
   // clang-format on
   desc.add(training);
@@ -819,6 +827,9 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("embedding-normalization", bool);
     SET_OPTION("embedding-fix-src", bool);
     SET_OPTION("embedding-fix-trg", bool);
+
+    SET_OPTION("multi-node", bool);
+    SET_OPTION("multi-node-overlap", bool);
   }
   if(mode_ == ConfigMode::rescoring) {
     SET_OPTION("no-reload", bool);
