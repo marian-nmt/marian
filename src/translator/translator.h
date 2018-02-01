@@ -32,7 +32,7 @@ public:
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
     trgVocab_->load(vocabs.back());
 
-    auto devices = options_->get<std::vector<int>>("devices");
+    auto devices = options_->get<std::vector<size_t>>("devices");
     ThreadPool threadPool(devices.size(), devices.size());
 
     scorers_.resize(devices.size());
@@ -59,7 +59,7 @@ public:
   void run() {
     data::BatchGenerator<data::Corpus> bg(corpus_, options_);
 
-    auto devices = options_->get<std::vector<int>>("devices");
+    auto devices = options_->get<std::vector<size_t>>("devices");
     ThreadPool threadPool(devices.size(), devices.size());
 
     size_t batchId = 0;

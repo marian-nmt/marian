@@ -222,7 +222,7 @@ private:
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
     amun["source-vocab"] = vocabs[0];
     amun["target-vocab"] = vocabs[1];
-    amun["devices"] = options_->get<std::vector<int>>("devices");
+    amun["devices"] = options_->get<std::vector<size_t>>("devices");
     amun["normalize"] = opt<float>("normalize") > 0;
     amun["beam-size"] = opt<size_t>("beam-size");
     amun["relative-paths"] = false;
