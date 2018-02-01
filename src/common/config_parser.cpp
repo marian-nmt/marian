@@ -211,12 +211,24 @@ void ConfigParser::validateOptions() const {
 
 void ConfigParser::validateDevices() const {
   std::string devices = Join(get<std::vector<std::string>>("devices"));
-  LOG(info, "DEVICES= '{}'", devices);
-  std::regex pattern("\\d+( \\d+)*");
+  Trim(devices);
 
-  UTIL_THROW_IF2(
-      !std::regex_match(devices, pattern),
-      "the argument '(" + devices + ")' for option '--devices' is invalid");
+  std::regex pattern;
+  std::string help;
+  if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
+    // valid strings: '0: 1 2', '0:1 2 1:2 3'
+    pattern = "( *\\d+ *: *\\d+( *\\d+)*)+";
+    help = "Supported format for multi-node setting: '0:0 1 2 3 1:0 1 2 3'";
+  } else {
+    // valid strings: '0', '0 1 2 3', '3 2 0 1'
+    pattern = "\\d+( *\\d+)*";
+    help = "Supported formats: '0 1 2 3'";
+  }
+
+  UTIL_THROW_IF2(!std::regex_match(devices, pattern),
+                 "the argument '(" + devices
+                     + ")' for option '--devices' is invalid. "
+                     + help);
 }
 
 void ConfigParser::addOptionsCommon(po::options_description& desc) {
@@ -940,20 +952,33 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     exit(0);
   }
 
-  processOptionDevices();
+  try {
+    processOptionDevices();
+  } catch(const std::invalid_argument& e) {
+    ABORT("Conversion of --devices option failed, please report a bug");
+  }
 }
 
 void ConfigParser::processOptionDevices() {
-  std::vector<std::string> devicesStr;
-  Split(Join(config_["devices"].as<std::vector<std::string>>()), devicesStr);
-
+  std::string devicesStr
+      = Join(config_["devices"].as<std::vector<std::string>>());
   std::vector<size_t> devices;
-  for(auto d : devicesStr) {
-    try {
-      devices.emplace_back(std::stoi(d));
-    } catch(const std::invalid_argument& e) {
-      ABORT("Conversion of --devices option failed, please report a bug");
+
+  if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
+    auto parts = Split(devicesStr, ":");
+    for(size_t i = 1; i < parts.size(); ++i) {
+      std::string part = parts[i];
+      Trim(part);
+      auto ds = Split(part, " ");
+      if(i < parts.size() - 1)
+        ds.pop_back();
+      devices.emplace_back(ds.size());
+      for(auto d : ds)
+        devices.emplace_back(std::stoi(d));
     }
+  } else {
+    for(auto d : Split(devicesStr))
+      devices.emplace_back(std::stoi(d));
   }
 
   config_["devices"] = devices;
