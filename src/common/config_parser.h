@@ -39,6 +39,7 @@ private:
   YAML::Node config_;
 
   bool has(const std::string& key) const;
+
   template <typename T>
   T get(const std::string& key) const {
     return config_[key].as<T>();
@@ -52,5 +53,8 @@ private:
   void addOptionsTranslate(boost::program_options::options_description&);
 
   void validateOptions() const;
+  void validateDevices() const;
+
+  void processOptionDevices();
 };
 }
