@@ -32,6 +32,13 @@ void Split(const std::string& line,
     pieces.push_back(token);
 }
 
+std::vector<std::string> Split(const std::string& line,
+                               const std::string del /*= " "*/) {
+  std::vector<std::string> pieces;
+  Split(line, pieces, del);
+  return pieces;
+}
+
 std::string Join(const std::vector<std::string>& words,
                  const std::string& del /*= " "*/,
                  bool reverse /*= false*/) {
