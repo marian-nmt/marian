@@ -64,6 +64,9 @@ public:
     if(mvAvg_)
       saveGraph = mvAvgGraph_;
 
+    if(final && scheduler_)
+      scheduler_->validate({saveGraph}, true);
+
     save(saveGraph, final);
   }
 
