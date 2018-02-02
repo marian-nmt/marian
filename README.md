@@ -34,8 +34,9 @@ See [CONTRIBUTING.md](https://github.com/marian-nmt/marian-dev/blob/master/CONTR
 The development of Marian received funding from the European Union's
 _Horizon 2020 Research and Innovation Programme_ under grant agreements
 688139 ([SUMMA](http://www.summa-project.eu); 2016-2019),
-645487 ([Modern MT](http://www.modernmt.eu); 2015-2017) and
+645487 ([Modern MT](http://www.modernmt.eu); 2015-2017),
 644333 ([TraMOOC](http://tramooc.eu/); 2015-2017),
+644402 ([HiML](http://www.himl.eu/); 2015-2017),
 the Amazon Academic Research Awards program, and
 the World Intellectual Property Organization.
 
