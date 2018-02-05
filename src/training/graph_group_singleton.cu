@@ -35,6 +35,8 @@ void SingletonGraph::execute(Ptr<data::Batch> batch) {
   }
 
   if(mvAvg_) {
+    ABORT_IF(!scheduler_, "Scheduler is required for exponential smoothing");
+
     if(!mvAvgGraph_) {
       mvAvgGraph_ = New<ExpressionGraph>();
       mvAvgGraph_->setDevice(graph_->getDevice());

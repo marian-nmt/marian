@@ -105,7 +105,12 @@ public:
     }
   }
 
-  void save(bool final = false) { save(graphs_[0], final); }
+  void save(bool final = false) {
+    if(final && scheduler_)
+      scheduler_->validate(graphs_, true);
+
+    save(graphs_[0], final);
+  }
 
   void save(Ptr<ExpressionGraph> graph, bool final = false) {
     int idx = 0;
