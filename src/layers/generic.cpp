@@ -6,7 +6,8 @@ Expr Cost(Expr logits,
           Expr indices,
           Expr mask,
           std::string costType,
-          float smoothing) {
+          float smoothing,
+          Expr weights) {
   using namespace keywords;
 
   auto ce = cross_entropy(logits, indices);
@@ -17,6 +18,9 @@ Expr Cost(Expr logits,
     ce = (1 - smoothing) * ce - smoothing * ceq;
   }
 
+  if(weights)
+    ce = weights * ce;
+
   if(mask)
     ce = ce * mask;
 
@@ -24,8 +28,8 @@ Expr Cost(Expr logits,
   if(costType == "ce-mean" || costType == "cross-entropy") {
     cost = mean(sum(ce, axis = -3), axis = -2);
   } else if(costType == "ce-mean-words") {
-    cost
-        = sum(sum(ce, axis = -3), axis = -2) / sum(sum(mask, axis = -3), axis = -2);
+    cost = sum(sum(ce, axis = -3), axis = -2)
+           / sum(sum(mask, axis = -3), axis = -2);
   } else if(costType == "ce-sum") {
     cost = sum(sum(ce, axis = -3), axis = -2);
   } else if(costType == "perplexity") {

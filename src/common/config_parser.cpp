@@ -478,6 +478,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
      "mse (mean square error), mult (multiplication)")
     ("guided-alignment-weight", po::value<double>()->default_value(1),
      "Weight for guided alignment cost")
+    ("sentence-weights", po::value<std::string>(),
+     "File with sentence weights")
 
     //("drop-rate", po::value<double>()->default_value(0),
     // "Gradient drop ratio (read: https://arxiv.org/abs/1704.05021)")
@@ -779,8 +781,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("no-shuffle", bool);
     SET_OPTION("tempdir", std::string);
     SET_OPTION("sqlite", bool);
-  
-    
+
     SET_OPTION("optimizer", std::string);
     SET_OPTION_NONDEFAULT("optimizer-params", std::vector<float>);
     SET_OPTION("optimizer-delay", size_t);
@@ -814,6 +815,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION_NONDEFAULT("guided-alignment", std::string);
     SET_OPTION("guided-alignment-cost", std::string);
     SET_OPTION("guided-alignment-weight", double);
+    SET_OPTION_NONDEFAULT("sentence-weights", std::string);
+
     // SET_OPTION("drop-rate", double);
     SET_OPTION_NONDEFAULT("embedding-vectors", std::vector<std::string>);
     SET_OPTION("embedding-normalization", bool);

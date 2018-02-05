@@ -349,7 +349,17 @@ public:
     std::string costType = opt<std::string>("cost-type");
     float ls = inference_ ? 0.f : opt<float>("label-smoothing");
 
-    auto cost = Cost(nextState->getProbs(), trgIdx, trgMask, costType, ls);
+    Expr weights;
+    if(options_->has("sentence-weights") && !inference_) {
+      int dimBatch = batch->size();
+      int trgWords = batch->back()->batchWidth();
+      weights = graph->constant(
+          {1, trgWords, dimBatch, 1},
+          keywords::init = inits::from_vector(batch->getSentenceWeights()));
+    }
+
+    auto cost
+        = Cost(nextState->getProbs(), trgIdx, trgMask, costType, ls, weights);
 
     if(options_->has("guided-alignment") && !inference_) {
       auto alignments = decoders_[0]->getAlignments();
@@ -384,8 +394,11 @@ public:
       std::vector<size_t> lengths(numFiles, i);
       bool fits = true;
       do {
-        auto batch = data::CorpusBatch::fakeBatch(
-            lengths, batchSize, options_->has("guided-alignment"));
+        auto batch
+            = data::CorpusBatch::fakeBatch(lengths,
+                                           batchSize,
+                                           options_->has("guided-alignment"),
+                                           options_->has("sentence-weights"));
         build(graph, batch);
         fits = graph->fits();
         if(fits)

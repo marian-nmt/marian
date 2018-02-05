@@ -108,6 +108,7 @@ class CorpusBatch : public Batch {
 private:
   std::vector<Ptr<SubBatch>> batches_;
   std::vector<float> guidedAlignment_;
+  std::vector<float> sentenceWeights_;
 
 public:
   CorpusBatch(const std::vector<Ptr<SubBatch>>& batches) : batches_(batches) {}
@@ -176,7 +177,8 @@ public:
 
   static Ptr<CorpusBatch> fakeBatch(std::vector<size_t>& lengths,
                                     size_t batchSize,
-                                    bool guidedAlignment = false) {
+                                    bool guidedAlignment = false,
+                                    bool sentenceWeights = false) {
     std::vector<Ptr<SubBatch>> batches;
 
     for(auto len : lengths) {
@@ -194,24 +196,33 @@ public:
       batch->setGuidedAlignment(guided);
     }
 
+    if(sentenceWeights) {
+      std::vector<float> weights(batchSize * lengths.back(), 0.f);
+      batch->setSentenceWeights(weights);
+    }
+
     return batch;
   }
 
   std::vector<float>& getGuidedAlignment() { return guidedAlignment_; }
-
   void setGuidedAlignment(const std::vector<float>& aln) {
     guidedAlignment_ = aln;
+  }
+
+  std::vector<float>& getSentenceWeights() { return sentenceWeights_; }
+  void setSentenceWeights(const std::vector<float>& aln) {
+    sentenceWeights_ = aln;
   }
 };
 
 class CorpusIterator;
 
-class CorpusBase : public DatasetBase<SentenceTuple, CorpusIterator, CorpusBatch> {
+class CorpusBase
+    : public DatasetBase<SentenceTuple, CorpusIterator, CorpusBatch> {
 public:
-  
   CorpusBase() : DatasetBase() {}
   CorpusBase(std::vector<std::string> paths) : DatasetBase(paths) {}
-  
+
   virtual std::vector<Ptr<Vocab>>& getVocabs() = 0;
 };
 
@@ -274,7 +285,6 @@ public:
   void guidedAlignment(Ptr<CorpusBatch> batch) {
     int srcWords = batch->front()->batchWidth();
     int trgWords = batch->back()->batchWidth();
-
     int dimBatch = batch->getSentenceIds().size();
     std::vector<float> guided(dimBatch * srcWords * trgWords, 0.f);
 
@@ -290,6 +300,47 @@ public:
     }
     batch->setGuidedAlignment(guided);
   }
+};
+
+class SentenceWeights {
+private:
+  std::vector<std::vector<float>> data_;
+
+public:
+  SentenceWeights(const std::string& fname) {
+    InputFileStream aStream(fname);
+    std::string line;
+
+    LOG(info, "[data] Loading weights from {}", fname);
+
+    while(std::getline((std::istream&)aStream, line)) {
+      data_.emplace_back();
+      std::vector<std::string> weights;
+      Split(line, weights, " ");
+      for(auto w : weights)
+        data_.back().emplace_back(std::stoi(w));
+    }
+
+    LOG(info, "[data] Done");
+  }
+
+  void weightsForBatch(Ptr<CorpusBatch> batch) {
+    int trgWords = batch->back()->batchWidth();
+    int dimBatch = batch->getSentenceIds().size();
+    std::vector<float> weights(dimBatch * trgWords, 1.f);
+
+    for(int b = 0; b < dimBatch; ++b) {
+      auto& sentWeights = data_[batch->getSentenceIds()[b]];
+      size_t i = 0;
+      for(auto& w : sentWeights) {
+        weights[b + i * dimBatch] = w;
+        ++i;
+      }
+    }
+
+    batch->setSentenceWeights(weights);
+  }
+
 };
 
 class Corpus : public CorpusBase {
@@ -308,6 +359,7 @@ private:
   size_t pos_{0};
 
   Ptr<WordAlignment> wordAlignment_;
+  Ptr<SentenceWeights> sentenceWeights_;
 
   void shuffleFiles(const std::vector<std::string>& paths);
 
@@ -381,15 +433,22 @@ public:
     if(options_->has("guided-alignment") && wordAlignment_)
       wordAlignment_->guidedAlignment(batch);
 
+    if(options_->has("sentence-weights") && sentenceWeights_)
+      sentenceWeights_->weightsForBatch(batch);
+
     return batch;
   }
 
   void prepare() {
     if(options_->has("guided-alignment"))
       setWordAlignment(options_->get<std::string>("guided-alignment"));
+    if(options_->has("sentence-weights"))
+      sentenceWeights_ = New<SentenceWeights>(
+          options_->get<std::string>("sentence-weights"));
   }
 
 private:
+  // @TODO: move to prepare()?
   void setWordAlignment(const std::string& path) {
     wordAlignment_ = New<WordAlignment>(path);
   }
