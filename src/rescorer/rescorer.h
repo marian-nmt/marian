@@ -90,43 +90,46 @@ public:
     size_t batchId = 0;
 
     std::mutex smutex;
-    ThreadPool pool(graphs_.size(), graphs_.size());
-
-    while(*batchGenerator) {
-      auto batch = batchGenerator->next();
-
-      auto task = [=, &sumCost, &sumWords, &sumSamples, &smutex](int id) {
-
-        thread_local Ptr<ExpressionGraph> graph;
-        thread_local Ptr<Model> builder;
-
-        if(!graph) {
-          graph = graphs_[id % graphs_.size()];
-          graph->getBackend()->setDevice(graph->getDevice());
-          builder = models_[id % graphs_.size()];
-        }
-
-        auto costNode = builder->build(graph, batch);
-        graph->forward();
-
-        std::vector<float> scores;
-        costNode->val()->get(scores);
-
-        std::unique_lock<std::mutex> lock(smutex);
-        for(auto s : scores)
-          sumCost += s;
-        sumWords += batch->back()->batchWords();
-        sumSamples += batch->size();
-
-        if(!summarize) {
-          for(size_t i = 0; i < batch->size(); ++i) {
-            output->Write(batch->getSentenceIds()[i], scores[i]);
+    
+    {
+      ThreadPool pool(graphs_.size(), graphs_.size());
+  
+      while(*batchGenerator) {
+        auto batch = batchGenerator->next();
+  
+        auto task = [=, &sumCost, &sumWords, &sumSamples, &smutex](int id) {
+  
+          thread_local Ptr<ExpressionGraph> graph;
+          thread_local Ptr<Model> builder;
+  
+          if(!graph) {
+            graph = graphs_[id % graphs_.size()];
+            graph->getBackend()->setDevice(graph->getDevice());
+            builder = models_[id % graphs_.size()];
           }
-        }
-      };
-
-      pool.enqueue(task, batchId % graphs_.size());
-      batchId++;
+  
+          auto costNode = builder->build(graph, batch);
+          graph->forward();
+  
+          std::vector<float> scores;
+          costNode->val()->get(scores);
+  
+          std::unique_lock<std::mutex> lock(smutex);
+          for(auto s : scores)
+            sumCost += s;
+          sumWords += batch->back()->batchWords();
+          sumSamples += batch->size();
+  
+          if(!summarize) {
+            for(size_t i = 0; i < batch->size(); ++i) {
+              output->Write(batch->getSentenceIds()[i], scores[i]);
+            }
+          }
+        };
+  
+        pool.enqueue(task, batchId % graphs_.size());
+        batchId++;
+      }
     }
 
     if(summarize) {
