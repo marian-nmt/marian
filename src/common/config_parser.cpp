@@ -281,15 +281,15 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
     ("enc-cell", po::value<std::string>()->default_value("gru"),
      "Type of RNN cell: gru, lstm, tanh (s2s)")
     ("enc-cell-depth", po::value<int>()->default_value(1),
-     "Number of tansitional cells in encoder layers (s2s)")
+     "Number of transitional cells in encoder layers (s2s)")
     ("enc-depth", po::value<int>()->default_value(1),
      "Number of encoder layers (s2s)")
     ("dec-cell", po::value<std::string>()->default_value("gru"),
      "Type of RNN cell: gru, lstm, tanh (s2s)")
     ("dec-cell-base-depth", po::value<int>()->default_value(2),
-     "Number of tansitional cells in first decoder layer (s2s)")
+     "Number of transitional cells in first decoder layer (s2s)")
     ("dec-cell-high-depth", po::value<int>()->default_value(1),
-     "Number of tansitional cells in next decoder layers (s2s)")
+     "Number of transitional cells in next decoder layers (s2s)")
     ("dec-depth", po::value<int>()->default_value(1),
      "Number of decoder layers (s2s)")
     //("dec-high-context", po::value<std::string>()->default_value("none"),
