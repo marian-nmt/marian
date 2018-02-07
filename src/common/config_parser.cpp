@@ -281,15 +281,15 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
     ("enc-cell", po::value<std::string>()->default_value("gru"),
      "Type of RNN cell: gru, lstm, tanh (s2s)")
     ("enc-cell-depth", po::value<int>()->default_value(1),
-     "Number of tansitional cells in encoder layers (s2s)")
+     "Number of transitional cells in encoder layers (s2s)")
     ("enc-depth", po::value<int>()->default_value(1),
      "Number of encoder layers (s2s)")
     ("dec-cell", po::value<std::string>()->default_value("gru"),
      "Type of RNN cell: gru, lstm, tanh (s2s)")
     ("dec-cell-base-depth", po::value<int>()->default_value(2),
-     "Number of tansitional cells in first decoder layer (s2s)")
+     "Number of transitional cells in first decoder layer (s2s)")
     ("dec-cell-high-depth", po::value<int>()->default_value(1),
-     "Number of tansitional cells in next decoder layers (s2s)")
+     "Number of transitional cells in next decoder layers (s2s)")
     ("dec-depth", po::value<int>()->default_value(1),
      "Number of decoder layers (s2s)")
     //("dec-high-context", po::value<std::string>()->default_value("none"),
@@ -395,8 +395,10 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     "Skip shuffling of training data before each epoch")
     ("tempdir,T", po::value<std::string>()->default_value("/tmp"),
       "Directory for temporary (shuffled) files and database")
-    ("sqlite", po::value<bool>()->zero_tokens()->default_value(false),
-      "Use temporary disk-based sqlite3 database for training corpus storage")
+    ("sqlite", po::value<std::string>()->default_value("")->implicit_value("temporary"),
+      "Use disk-based sqlite3 database for training corpus storage, default is temporary with path creates persistent storage")
+    ("sqlite-drop", po::value<bool>()->zero_tokens()->default_value(false),
+      "Drop existing tables in sqlite3 database")
     ("devices,d", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
@@ -710,8 +712,9 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION_NONDEFAULT("models", std::vector<std::string>);
   } else {
     SET_OPTION("model", std::string);
-    if(mode_ == ConfigMode::training)
+    if(mode_ == ConfigMode::training) {
       SET_OPTION_NONDEFAULT("pretrained-model", std::string);
+    }
   }
 
   if(!vm_["vocabs"].empty()) {
@@ -782,7 +785,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("save-freq", size_t);
     SET_OPTION("no-shuffle", bool);
     SET_OPTION("tempdir", std::string);
-    SET_OPTION("sqlite", bool);
+    SET_OPTION("sqlite", std::string);
+    SET_OPTION("sqlite-drop", bool);
 
     SET_OPTION("optimizer", std::string);
     SET_OPTION_NONDEFAULT("optimizer-params", std::vector<float>);

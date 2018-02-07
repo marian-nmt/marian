@@ -21,7 +21,7 @@ public:
     using namespace data;
 
     Ptr<CorpusBase> dataset;
-    if(options_->get<bool>("sqlite"))
+    if(!options_->get<std::string>("sqlite").empty())
       dataset = New<CorpusSQLite>(options_);
     else
       dataset = New<Corpus>(options_);
