@@ -441,16 +441,11 @@ public:
 
   void prepare() {
     if(options_->has("guided-alignment"))
-      setWordAlignment(options_->get<std::string>("guided-alignment"));
+      wordAlignment_
+          = New<WordAlignment>(options_->get<std::string>("guided-alignment"));
     if(options_->has("sentence-weights"))
       sentenceWeights_ = New<SentenceWeights>(
           options_->get<std::string>("sentence-weights"));
-  }
-
-private:
-  // @TODO: move to prepare()?
-  void setWordAlignment(const std::string& path) {
-    wordAlignment_ = New<WordAlignment>(path);
   }
 };
 }
