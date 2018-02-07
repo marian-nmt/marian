@@ -7,7 +7,8 @@ Expr Cost(Expr logits,
           Expr mask,
           std::string costType,
           float smoothing,
-          Expr weights) {
+          Expr weights,
+          bool sentenceWeighting) {
   using namespace keywords;
 
   auto ce = cross_entropy(logits, indices);
@@ -18,27 +19,30 @@ Expr Cost(Expr logits,
     ce = (1 - smoothing) * ce - smoothing * ceq;
   }
 
-  if(weights)
+  if(weights && !sentenceWeighting)
     ce = weights * ce;
 
   if(mask)
     ce = ce * mask;
 
+  auto costSum = sum(ce, axis = -3);
+
+  if(weights && sentenceWeighting)
+    costSum = weights * costSum;
+
   Expr cost;
   if(costType == "ce-mean" || costType == "cross-entropy") {
-    cost = mean(sum(ce, axis = -3), axis = -2);
+    cost = mean(costSum, axis = -2);
   } else if(costType == "ce-mean-words") {
-    cost = sum(sum(ce, axis = -3), axis = -2)
-           / sum(sum(mask, axis = -3), axis = -2);
+    cost = sum(costSum, axis = -2) / sum(sum(mask, axis = -3), axis = -2);
   } else if(costType == "ce-sum") {
-    cost = sum(sum(ce, axis = -3), axis = -2);
+    cost = sum(costSum, axis = -2);
   } else if(costType == "perplexity") {
-    cost = exp(sum(sum(ce, axis = -3), axis = -2)
-               / sum(sum(mask, axis = -3), axis = -2));
+    cost = exp(sum(costSum, axis = -2) / sum(sum(mask, axis = -3), axis = -2));
   } else if(costType == "ce-rescore") {
-    cost = -sum(ce, axis = -3);
+    cost = -costSum;
   } else {  // same as ce-mean
-    cost = mean(sum(ce, axis = -3), axis = -2);
+    cost = mean(costSum, axis = -2);
   }
 
   return cost;

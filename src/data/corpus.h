@@ -178,7 +178,9 @@ public:
   static Ptr<CorpusBatch> fakeBatch(std::vector<size_t>& lengths,
                                     size_t batchSize,
                                     bool guidedAlignment = false,
-                                    bool dataWeights = false) {
+                                    bool dataWeights = false,
+                                    // @TODO: is this needed here?
+                                    bool sentenceLevel = false) {
     std::vector<Ptr<SubBatch>> batches;
 
     for(auto len : lengths) {
@@ -197,7 +199,10 @@ public:
     }
 
     if(dataWeights) {
-      std::vector<float> weights(batchSize * lengths.back(), 0.f);
+      int weightsSize = batchSize;
+      if(!sentenceLevel)
+        weightsSize *= lengths.back();
+      std::vector<float> weights(weightsSize, 0.f);
       batch->setDataWeights(weights);
     }
 
@@ -305,9 +310,10 @@ public:
 class DataWeights {
 private:
   std::vector<std::vector<float>> data_;
+  bool sentLvl_;
 
 public:
-  DataWeights(const std::string& fname) {
+  DataWeights(const std::string& fname, bool sentLvl) : sentLvl_(sentLvl) {
     InputFileStream aStream(fname);
     std::string line;
 
@@ -325,22 +331,28 @@ public:
   }
 
   void weightsForBatch(Ptr<CorpusBatch> batch) {
-    int trgWords = batch->back()->batchWidth();
     int dimBatch = batch->getSentenceIds().size();
-    std::vector<float> weights(dimBatch * trgWords, 1.f);
+    int trgWords = batch->back()->batchWidth();
 
-    for(int b = 0; b < dimBatch; ++b) {
-      auto& sentWeights = data_[batch->getSentenceIds()[b]];
-      size_t i = 0;
-      for(auto& w : sentWeights) {
-        weights[b + i * dimBatch] = w;
-        ++i;
+    int s = sentLvl_ ? dimBatch : dimBatch * trgWords;
+    std::vector<float> weights(s, 1.f);
+
+    if(sentLvl_) {
+      for(int b = 0; b < dimBatch; ++b)
+        weights[b] = data_[batch->getSentenceIds()[b]].front();
+    } else {
+      for(int b = 0; b < dimBatch; ++b) {
+        auto& sentWeights = data_[batch->getSentenceIds()[b]];
+        size_t i = 0;
+        for(auto& w : sentWeights) {
+          weights[b + i * dimBatch] = w;
+          ++i;
+        }
       }
     }
 
     batch->setDataWeights(weights);
   }
-
 };
 
 class Corpus : public CorpusBase {
@@ -445,7 +457,8 @@ public:
           = New<WordAlignment>(options_->get<std::string>("guided-alignment"));
     if(options_->has("data-weighting"))
       dataWeights_ = New<DataWeights>(
-          options_->get<std::string>("data-weighting"));
+          options_->get<std::string>("data-weighting"),
+          options_->get<std::string>("data-weighting-type") == "sentence");
   }
 };
 }

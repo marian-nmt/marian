@@ -350,16 +350,25 @@ public:
     float ls = inference_ ? 0.f : opt<float>("label-smoothing");
 
     Expr weights;
+    bool sentenceWeighting
+        = options_->get<std::string>("data-weighting-type") == "sentence";
+
     if(options_->has("data-weighting") && !inference_) {
       int dimBatch = batch->size();
-      int trgWords = batch->back()->batchWidth();
+      int dimWords = sentenceWeighting ? 1 : batch->back()->batchWidth();
+
       weights = graph->constant(
-          {1, trgWords, dimBatch, 1},
+          {1, dimWords, dimBatch, 1},
           keywords::init = inits::from_vector(batch->getDataWeights()));
     }
 
-    auto cost
-        = Cost(nextState->getProbs(), trgIdx, trgMask, costType, ls, weights);
+    auto cost = Cost(nextState->getProbs(),
+                     trgIdx,
+                     trgMask,
+                     costType,
+                     ls,
+                     weights,
+                     sentenceWeighting);
 
     if(options_->has("guided-alignment") && !inference_) {
       auto alignments = decoders_[0]->getAlignments();
@@ -394,11 +403,13 @@ public:
       std::vector<size_t> lengths(numFiles, i);
       bool fits = true;
       do {
-        auto batch
-            = data::CorpusBatch::fakeBatch(lengths,
-                                           batchSize,
-                                           options_->has("guided-alignment"),
-                                           options_->has("data-weighting"));
+        auto batch = data::CorpusBatch::fakeBatch(
+            lengths,
+            batchSize,
+            options_->has("guided-alignment"),
+            options_->has("data-weighting"),
+            options_->get<std::string>("data-weighting-type") == "sentence");
+
         build(graph, batch);
         fits = graph->fits();
         if(fits)
