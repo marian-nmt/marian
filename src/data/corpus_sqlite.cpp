@@ -130,54 +130,85 @@ CorpusSQLite::CorpusSQLite(std::vector<std::string> paths,
 }
 
 void CorpusSQLite::fillSQLite() {
-  LOG(info, "[sqlite] Creating temporary database in {}", options_->get<std::string>("tempdir"));
-  db_.reset(new SQLite::Database("", SQLite::OPEN_READWRITE|SQLite::OPEN_CREATE));
-  db_->exec("PRAGMA temp_store_directory = '" + options_->get<std::string>("tempdir") + "';");  
-  db_->exec("drop table if exists lines");
   
-  std::string createStr = "create table lines (_id integer";
-  std::string insertStr = "insert into lines values (?";
-  for(int i = 0; i < files_.size(); ++i) {
-    createStr += ", line" + std::to_string(i) + " text";
-    insertStr += ", ?";
+  bool fill = false;
+  
+  if(options_->get<std::string>("sqlite") == "temporary") {
+    LOG(info, "[sqlite] Creating temporary database in {}", options_->get<std::string>("tempdir"));
+    db_.reset(new SQLite::Database("", SQLite::OPEN_READWRITE|SQLite::OPEN_CREATE));
+    db_->exec("PRAGMA temp_store_directory = '" + options_->get<std::string>("tempdir") + "';");
+    
+    fill = true;
   }
-  createStr += ");";
-  insertStr += ");";
-  
-  db_->exec(createStr);
-  
-  SQLite::Statement ps(*db_, insertStr);
-
-  int lines = 0;
-  bool cont = true;
-  
-  db_->exec("begin;");
-  while(cont) {
-      ps.bind(1, (int)lines);
+  else {
+    auto path = options_->get<std::string>("sqlite");
+    if(boost::filesystem::exists(path)) {
+      LOG(info, "[sqlite] Reusing persistent database {}", path);
+      db_.reset(new SQLite::Database(path, SQLite::OPEN_READWRITE));
+      db_->exec("PRAGMA temp_store_directory = '" + options_->get<std::string>("tempdir") + "';");
       
-      std::string line;
-      for(int i = 0; i < files_.size(); ++i) {
-        cont = cont && std::getline((std::istream&)*files_[i], line);
-        if(cont)
-          ps.bind(i + 2, line);
+      if(options_->get<bool>("sqlite-drop")) {
+        LOG(info, "[sqlite] Dropping previous data");  
+        db_->exec("drop table if exists lines");
+        fill = true;
       }
+    }
+    else {
+      LOG(info, "[sqlite] Creating persistent database {}", path);
+      db_.reset(new SQLite::Database(path, SQLite::OPEN_READWRITE|SQLite::OPEN_CREATE));
+      db_->exec("PRAGMA temp_store_directory = '" + options_->get<std::string>("tempdir") + "';");
       
-      if(cont) {
-        ps.exec();
-        ps.reset();
-      }
-      lines++;
-      
-      if(lines % 1000000 == 0) {
-        LOG(info, "[sqlite] Inserted {} lines", lines);
-        db_->exec("commit;");
-        db_->exec("begin;");
-      }
+      fill = true;
+    }
   }
-  db_->exec("commit;");
-  LOG(info, "[sqlite] Inserted {} lines", lines);
-  LOG(info, "[sqlite] Creating primary index");
-  db_->exec("create unique index idx_line on lines (_id);");
+  
+  if(fill) {
+    std::string createStr = "create table lines (_id integer";
+    std::string insertStr = "insert into lines values (?";
+    for(int i = 0; i < files_.size(); ++i) {
+      createStr += ", line" + std::to_string(i) + " text";
+      insertStr += ", ?";
+    }
+    createStr += ");";
+    insertStr += ");";
+    
+    db_->exec(createStr);
+    
+    SQLite::Statement ps(*db_, insertStr);
+  
+    int lines = 0;
+    int report = 1000000;
+    bool cont = true;
+    
+    db_->exec("begin;");
+    while(cont) {
+        ps.bind(1, (int)lines);
+        
+        std::string line;
+        for(int i = 0; i < files_.size(); ++i) {
+          cont = cont && std::getline((std::istream&)*files_[i], line);
+          if(cont)
+            ps.bind(i + 2, line);
+        }
+        
+        if(cont) {
+          ps.exec();
+          ps.reset();
+        }
+        lines++;
+        
+        if(lines % report == 0) {
+          LOG(info, "[sqlite] Inserted {} lines", lines);
+          db_->exec("commit;");
+          db_->exec("begin;");
+          report *= 2;
+        }
+    }
+    db_->exec("commit;");
+    LOG(info, "[sqlite] Inserted {} lines", lines);
+    LOG(info, "[sqlite] Creating primary index");
+    db_->exec("create unique index idx_line on lines (_id);");
+  }
 }
 
 SentenceTuple CorpusSQLite::next() {
