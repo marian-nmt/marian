@@ -478,8 +478,10 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
      "mse (mean square error), mult (multiplication)")
     ("guided-alignment-weight", po::value<double>()->default_value(1),
      "Weight for guided alignment cost")
-    ("sentence-weights", po::value<std::string>(),
-     "File with sentence weights")
+    ("data-weighting", po::value<std::string>(),
+     "File with sentence or word weights")
+    ("data-weighting-type", po::value<std::string>()->default_value("sentence"),
+     "Processing level for data weighting. Possible values: sentence, word")
 
     //("drop-rate", po::value<double>()->default_value(0),
     // "Gradient drop ratio (read: https://arxiv.org/abs/1704.05021)")
@@ -815,7 +817,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION_NONDEFAULT("guided-alignment", std::string);
     SET_OPTION("guided-alignment-cost", std::string);
     SET_OPTION("guided-alignment-weight", double);
-    SET_OPTION_NONDEFAULT("sentence-weights", std::string);
+    SET_OPTION_NONDEFAULT("data-weighting", std::string);
+    SET_OPTION("data-weighting-type", std::string);
 
     // SET_OPTION("drop-rate", double);
     SET_OPTION_NONDEFAULT("embedding-vectors", std::vector<std::string>);

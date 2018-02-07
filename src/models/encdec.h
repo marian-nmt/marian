@@ -350,12 +350,12 @@ public:
     float ls = inference_ ? 0.f : opt<float>("label-smoothing");
 
     Expr weights;
-    if(options_->has("sentence-weights") && !inference_) {
+    if(options_->has("data-weighting") && !inference_) {
       int dimBatch = batch->size();
       int trgWords = batch->back()->batchWidth();
       weights = graph->constant(
           {1, trgWords, dimBatch, 1},
-          keywords::init = inits::from_vector(batch->getSentenceWeights()));
+          keywords::init = inits::from_vector(batch->getDataWeights()));
     }
 
     auto cost
@@ -398,7 +398,7 @@ public:
             = data::CorpusBatch::fakeBatch(lengths,
                                            batchSize,
                                            options_->has("guided-alignment"),
-                                           options_->has("sentence-weights"));
+                                           options_->has("data-weighting"));
         build(graph, batch);
         fits = graph->fits();
         if(fits)

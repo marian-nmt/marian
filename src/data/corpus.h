@@ -108,7 +108,7 @@ class CorpusBatch : public Batch {
 private:
   std::vector<Ptr<SubBatch>> batches_;
   std::vector<float> guidedAlignment_;
-  std::vector<float> sentenceWeights_;
+  std::vector<float> dataWeights_;
 
 public:
   CorpusBatch(const std::vector<Ptr<SubBatch>>& batches) : batches_(batches) {}
@@ -178,7 +178,7 @@ public:
   static Ptr<CorpusBatch> fakeBatch(std::vector<size_t>& lengths,
                                     size_t batchSize,
                                     bool guidedAlignment = false,
-                                    bool sentenceWeights = false) {
+                                    bool dataWeights = false) {
     std::vector<Ptr<SubBatch>> batches;
 
     for(auto len : lengths) {
@@ -196,9 +196,9 @@ public:
       batch->setGuidedAlignment(guided);
     }
 
-    if(sentenceWeights) {
+    if(dataWeights) {
       std::vector<float> weights(batchSize * lengths.back(), 0.f);
-      batch->setSentenceWeights(weights);
+      batch->setDataWeights(weights);
     }
 
     return batch;
@@ -209,9 +209,9 @@ public:
     guidedAlignment_ = aln;
   }
 
-  std::vector<float>& getSentenceWeights() { return sentenceWeights_; }
-  void setSentenceWeights(const std::vector<float>& aln) {
-    sentenceWeights_ = aln;
+  std::vector<float>& getDataWeights() { return dataWeights_; }
+  void setDataWeights(const std::vector<float>& aln) {
+    dataWeights_ = aln;
   }
 };
 
@@ -302,12 +302,12 @@ public:
   }
 };
 
-class SentenceWeights {
+class DataWeights {
 private:
   std::vector<std::vector<float>> data_;
 
 public:
-  SentenceWeights(const std::string& fname) {
+  DataWeights(const std::string& fname) {
     InputFileStream aStream(fname);
     std::string line;
 
@@ -338,7 +338,7 @@ public:
       }
     }
 
-    batch->setSentenceWeights(weights);
+    batch->setDataWeights(weights);
   }
 
 };
@@ -359,7 +359,7 @@ private:
   size_t pos_{0};
 
   Ptr<WordAlignment> wordAlignment_;
-  Ptr<SentenceWeights> sentenceWeights_;
+  Ptr<DataWeights> dataWeights_;
 
   void shuffleFiles(const std::vector<std::string>& paths);
 
@@ -433,8 +433,8 @@ public:
     if(options_->has("guided-alignment") && wordAlignment_)
       wordAlignment_->guidedAlignment(batch);
 
-    if(options_->has("sentence-weights") && sentenceWeights_)
-      sentenceWeights_->weightsForBatch(batch);
+    if(options_->has("data-weighting") && dataWeights_)
+      dataWeights_->weightsForBatch(batch);
 
     return batch;
   }
@@ -443,9 +443,9 @@ public:
     if(options_->has("guided-alignment"))
       wordAlignment_
           = New<WordAlignment>(options_->get<std::string>("guided-alignment"));
-    if(options_->has("sentence-weights"))
-      sentenceWeights_ = New<SentenceWeights>(
-          options_->get<std::string>("sentence-weights"));
+    if(options_->has("data-weighting"))
+      dataWeights_ = New<DataWeights>(
+          options_->get<std::string>("data-weighting"));
   }
 };
 }
