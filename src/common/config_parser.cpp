@@ -395,7 +395,7 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     "Skip shuffling of training data before each epoch")
     ("tempdir,T", po::value<std::string>()->default_value("/tmp"),
       "Directory for temporary (shuffled) files and database")
-    ("sqlite", po::value<std::string>()->implicit_value("temporary"),
+    ("sqlite", po::value<std::string>()->default_value("")->implicit_value("temporary"),
       "Use disk-based sqlite3 database for training corpus storage, default is temporary with path creates persistent storage")
     ("sqlite-drop", po::value<bool>()->zero_tokens()->default_value(false),
       "Drop existing tables in sqlite3 database")
@@ -783,8 +783,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("tempdir", std::string);
     SET_OPTION("sqlite", std::string);
     SET_OPTION("sqlite-drop", bool);
-  
-    
+
     SET_OPTION("optimizer", std::string);
     SET_OPTION_NONDEFAULT("optimizer-params", std::vector<float>);
     SET_OPTION("optimizer-delay", size_t);
