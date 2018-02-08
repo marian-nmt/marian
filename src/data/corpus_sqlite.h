@@ -21,14 +21,6 @@ namespace data {
 
 class CorpusSQLite : public CorpusBase {
 private:
-  Ptr<Config> options_;
-
-  std::vector<UPtr<InputFileStream>> files_;
-  std::vector<Ptr<Vocab>> vocabs_;
-  size_t maxLength_;
-  bool maxLengthCrop_;
-  bool rightLeft_;
-
   size_t pos_{0};
 
   Ptr<WordAlignment> wordAlignment_;

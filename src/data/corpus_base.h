@@ -256,9 +256,23 @@ class CorpusBase
     : public DatasetBase<SentenceTuple, CorpusIterator, CorpusBatch> {
 public:
   CorpusBase() : DatasetBase() {}
-  CorpusBase(std::vector<std::string> paths) : DatasetBase(paths) {}
+  CorpusBase(Ptr<Config> options, bool translate = false);
+  CorpusBase(std::vector<std::string> paths,
+             std::vector<Ptr<Vocab>> vocabs,
+             Ptr<Config> options,
+             size_t maxLength);
 
   virtual std::vector<Ptr<Vocab>>& getVocabs() = 0;
+
+protected:
+  std::vector<UPtr<InputFileStream>> files_;
+  std::vector<Ptr<Vocab>> vocabs_;
+
+  Ptr<Config> options_;
+
+  size_t maxLength_;
+  bool maxLengthCrop_;
+  bool rightLeft_;
 };
 
 class CorpusIterator
