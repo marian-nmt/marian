@@ -350,10 +350,11 @@ public:
     float ls = inference_ ? 0.f : opt<float>("label-smoothing");
 
     Expr weights;
-    bool sentenceWeighting
-        = options_->get<std::string>("data-weighting-type") == "sentence";
+    bool sentenceWeighting = false;
 
     if(options_->has("data-weighting") && !inference_) {
+      sentenceWeighting
+          = options_->get<std::string>("data-weighting-type") == "sentence";
       int dimBatch = batch->size();
       int dimWords = sentenceWeighting ? 1 : batch->back()->batchWidth();
 
