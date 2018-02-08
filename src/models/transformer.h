@@ -637,7 +637,7 @@ public:
 
     //************************************************************************//
 
-    int dimTrgVoc = opt<std::vector<int>>("dim-vocabs").back();
+    int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
     auto layerOut = mlp::dense(graph)          //
         ("prefix", prefix_ + "_ff_logit_out")  //
