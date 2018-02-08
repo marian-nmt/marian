@@ -11,6 +11,7 @@
 #include "common/definitions.h"
 #include "common/file_stream.h"
 #include "common/options.h"
+#include "data/alignment.h"
 #include "data/batch.h"
 #include "data/dataset.h"
 #include "data/vocab.h"
@@ -31,6 +32,7 @@ private:
   size_t id_;
   std::vector<Words> tuple_;
   std::vector<float> weights_;
+  WordAlignment alignment_;
 
 public:
   /**
@@ -81,16 +83,15 @@ public:
   auto end() -> decltype(tuple_.end()) { return tuple_.end(); }
 
   /**
-   * @brief Set sentence weights.
-   */
-  void setWeights(const std::vector<float>& weights) { weights_ = weights; }
-
-  /**
    * @brief  Get sentence weights.
    *
    * For sentence-level weights the vector contains only one element.
    */
   const std::vector<float>& getWeights() const { return weights_; }
+  void setWeights(const std::vector<float>& weights) { weights_ = weights; }
+
+  const WordAlignment& getAlignment() const { return alignment_; }
+  void setAlignment(const WordAlignment& alignment) { alignment_ = alignment; }
 };
 
 /**
@@ -277,9 +278,9 @@ public:
     auto batch = New<CorpusBatch>(batches);
 
     if(options->has("guided-alignment")) {
-      std::vector<float> guided(batchSize * lengths.front() * lengths.back(),
-                                0.f);
-      batch->setGuidedAlignment(guided);
+      std::vector<float> alignment(batchSize * lengths.front() * lengths.back(),
+                                   0.f);
+      batch->setGuidedAlignment(alignment);
     }
 
     if(options->has("data-weighting")) {
@@ -299,7 +300,9 @@ public:
   }
 
   std::vector<float>& getDataWeights() { return dataWeights_; }
-  void setDataWeights(const std::vector<float>& aln) { dataWeights_ = aln; }
+  void setDataWeights(const std::vector<float>& weights) {
+    dataWeights_ = weights;
+  }
 };
 
 class CorpusIterator;
@@ -320,11 +323,13 @@ protected:
   std::vector<UPtr<InputFileStream>> files_;
   std::vector<Ptr<Vocab>> vocabs_;
 
+  size_t pos_{0};
+
   Ptr<Config> options_;
 
-  size_t maxLength_;
-  bool maxLengthCrop_;
-  bool rightLeft_;
+  size_t maxLength_{0};
+  bool maxLengthCrop_{false};
+  bool rightLeft_{false};
 };
 
 class CorpusIterator

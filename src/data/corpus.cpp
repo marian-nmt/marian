@@ -7,6 +7,14 @@ namespace data {
 
 Corpus::Corpus(Ptr<Config> options, bool translate /*= false*/)
     : CorpusBase(options, translate), g_(Config::seed) {
+  if(options_->has("guided-alignment")) {
+    auto path = options_->get<std::string>("guidedAlignment");
+    LOG(info, "[data] Using word alignments from file {}", path);
+
+    alignFileIdx_ = paths_.size();
+    paths_.emplace_back(path);
+    files_.emplace_back(new InputFileStream(path));
+  }
   if(options_->has("data-weighting")) {
     auto path = options_->get<std::string>("data-weighting");
     LOG(info, "[data] Using weights from file {}", path);
@@ -39,8 +47,7 @@ SentenceTuple Corpus::next() {
       std::string line;
 
       if(std::getline((std::istream&)*files_[i], line)) {
-        // add weights
-        if(i > 0 && i == weightFileIdx_) {
+        if(i > 0 && i == weightFileIdx_) { // add weights
           std::vector<std::string> elements;
           Split(line, elements, " ");
 
@@ -54,8 +61,10 @@ SentenceTuple Corpus::next() {
 
             tup.setWeights(weights);
           }
-          // add a sentence
-        } else {
+        } else if(i > 0 && i == alignFileIdx_) { // add alignments
+          auto align = WordAlignment(line);
+          tup.setAlignment(align);
+        } else { // add a sentence
           Words words = (*vocabs_[i])(line);
 
           if(words.empty())

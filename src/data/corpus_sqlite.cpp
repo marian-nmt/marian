@@ -7,6 +7,12 @@ namespace data {
 
 CorpusSQLite::CorpusSQLite(Ptr<Config> options, bool translate /*= false*/)
     : CorpusBase(options, translate) {
+  ABORT_IF(
+      options->has("guided-alignment"),
+      "Guided alignment is not supported by the SQLite data management");
+  ABORT_IF(
+      options->has("data-weighting"),
+      "Data weighting is not supported by the SQLite data management");
   fillSQLite();
 }
 
@@ -22,6 +28,7 @@ void CorpusSQLite::fillSQLite() {
   auto tempDir = options_->get<std::string>("tempdir");
   bool fill = false;
 
+  // create a temporary or persistent SQLite database
   if(options_->get<std::string>("sqlite") == "temporary") {
     LOG(info, "[sqlite] Creating temporary database in {}", tempDir);
 
@@ -55,6 +62,7 @@ void CorpusSQLite::fillSQLite() {
     }
   }
 
+  // populate tables with lines from text files
   if(fill) {
     std::string createStr = "create table lines (_id integer";
     std::string insertStr = "insert into lines values (?";

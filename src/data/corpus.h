@@ -25,16 +25,20 @@ private:
 
   std::mt19937 g_;
   std::vector<size_t> ids_;
-  size_t pos_{0};
-
-  Ptr<WordAlignment> wordAlignment_;
-
-  void shuffleFiles(const std::vector<std::string>& paths);
 
   /**
-   * @brief Index of the file with weights in paths_ and files_;
+   * @brief Index of the file with weights in paths_ and files_; zero means no
+   * weights file provided.
    */
   size_t weightFileIdx_{0};
+
+  /**
+   * @brief Index of the file with alignments in paths_ and files_; zero means
+   * no alignment file provided.
+   */
+  size_t alignFileIdx_{0};
+
+  void shuffleFiles(const std::vector<std::string>& paths);
 
 public:
   Corpus(Ptr<Config> options, bool translate = false);
@@ -49,7 +53,7 @@ public:
    *
    * A sentence tuple is skipped with no warning if any sentence in the tuple
    * (e.g. a source or target) is longer than the maximum allowed sentence
-   * length in words.
+   * length in words unless the option "max-length-crop" is provided.
    *
    * @return A tuple representing parallel sentences.
    */
@@ -103,13 +107,35 @@ public:
     auto batch = batch_ptr(new batch_type(subBatches));
     batch->setSentenceIds(sentenceIds);
 
-    if(options_->has("guided-alignment") && wordAlignment_)
-      wordAlignment_->guidedAlignment(batch);
-
+    if(options_->has("guided-alignment"))
+      addAlignmentsToBatch(batch, batchVector);
     if(options_->has("data-weighting"))
       addWeightsToBatch(batch, batchVector);
 
     return batch;
+  }
+
+  // @TODO: check if can be removed
+  void prepare() { }
+
+private:
+  void addAlignmentsToBatch(Ptr<CorpusBatch> batch,
+                            const std::vector<sample>& batchVector) {
+    int srcWords = batch->front()->batchWidth();
+    int trgWords = batch->back()->batchWidth();
+    int dimBatch = batch->getSentenceIds().size();
+    std::vector<float> aligns(dimBatch * srcWords * trgWords, 0.f);
+
+    for(int b = 0; b < dimBatch; ++b) {
+      for(auto p : batchVector[b].getAlignment()) {
+        int sid, tid;
+        std::tie(sid, tid) = p;
+
+        size_t idx = b + sid * dimBatch + tid * srcWords * dimBatch;
+        aligns[idx] = 1.f;
+      }
+    }
+    batch->setGuidedAlignment(aligns);
   }
 
   void addWeightsToBatch(Ptr<CorpusBatch> batch,
@@ -135,12 +161,6 @@ public:
     }
 
     batch->setDataWeights(weights);
-  }
-
-  void prepare() {
-    if(options_->has("guided-alignment"))
-      wordAlignment_
-          = New<WordAlignment>(options_->get<std::string>("guided-alignment"));
   }
 };
 }

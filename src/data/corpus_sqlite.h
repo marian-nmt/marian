@@ -23,10 +23,6 @@ namespace data {
 
 class CorpusSQLite : public CorpusBase {
 private:
-  size_t pos_{0};
-
-  Ptr<WordAlignment> wordAlignment_;
-
   UPtr<SQLite::Database> db_;
   UPtr<SQLite::Statement> select_;
 
@@ -45,7 +41,7 @@ public:
    *
    * A sentence tuple is skipped with no warning if any sentence in the tuple
    * (e.g. a source or target) is longer than the maximum allowed sentence
-   * length in words.
+   * length in words unless the option "max-length-crop" is provided.
    *
    * @return A tuple representing parallel sentences.
    */
@@ -99,21 +95,14 @@ public:
     auto batch = batch_ptr(new batch_type(subBatches));
     batch->setSentenceIds(sentenceIds);
 
-    if(options_->has("guided-alignment") && wordAlignment_)
-      wordAlignment_->guidedAlignment(batch);
+    // @TODO: restore guided alignment in CorpusSQLite
+    // if(options_->has("guided-alignment") && wordAlignment_)
+    // wordAlignment_->guidedAlignment(batch);
 
     return batch;
   }
 
-  void prepare() {
-    if(options_->has("guided-alignment"))
-      setWordAlignment(options_->get<std::string>("guided-alignment"));
-  }
-
-private:
-  void setWordAlignment(const std::string& path) {
-    wordAlignment_ = New<WordAlignment>(path);
-  }
+  void prepare() {}
 };
 }
 }
