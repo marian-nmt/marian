@@ -17,33 +17,62 @@
 namespace marian {
 namespace data {
 
+/**
+ * @brief A sentence tuple that stores all sources and target sentences for a
+ * specific "line" from a parallel corpus.
+ */
 class SentenceTuple {
 private:
   size_t id_;
   std::vector<Words> tuple_;
 
 public:
+  /**
+   * @brief Creates an empty tuple with the given Id.
+   */
   SentenceTuple(size_t id) : id_(id) {}
 
   ~SentenceTuple() { tuple_.clear(); }
 
+  /**
+   * @brief Returns the sentence's ID.
+   */
+  size_t getId() const { return id_; }
+
+  /**
+   * @brief Adds a new sentence at the end of the tuple.
+   *
+   * @param words A vector of word indexes.
+   */
   void push_back(const Words& words) { tuple_.push_back(words); }
 
+  /**
+   * @brief The size of the tuple, e.g. two for parallel data with a source and
+   * target sentences.
+   */
   size_t size() const { return tuple_.size(); }
 
+  /**
+   * @brief The i-th tuple sentence.
+   *
+   * @param i Tuple's index.
+   */
   Words& operator[](size_t i) { return tuple_[i]; }
+  const Words& operator[](size_t i) const { return tuple_[i]; }
 
+  /**
+   * @brief The last tuple sentence, i.e. the target sentence.
+   */
   Words& back() { return tuple_.back(); }
   const Words& back() const { return tuple_.back(); }
 
-  const Words& operator[](size_t i) const { return tuple_[i]; }
-
+  /**
+   * @brief Checks whether the tuple is empty.
+   */
   bool empty() const { return tuple_.empty(); }
 
   auto begin() -> decltype(tuple_.begin()) { return tuple_.begin(); }
   auto end() -> decltype(tuple_.end()) { return tuple_.end(); }
-
-  size_t getId() const { return id_; }
 };
 
 /**
