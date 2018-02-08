@@ -4,13 +4,15 @@
 #include <iostream>
 #include <random>
 
-#include <SQLiteCpp/SQLiteCpp.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/iterator/iterator_facade.hpp>
+
+#include <SQLiteCpp/SQLiteCpp.h>
 
 #include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
+#include "data/alignment.h"
 #include "data/batch.h"
 #include "data/corpus_base.h"
 #include "data/dataset.h"

@@ -405,12 +405,7 @@ public:
       std::vector<size_t> lengths(numFiles, i);
       bool fits = true;
       do {
-        auto batch = data::CorpusBatch::fakeBatch(
-            lengths,
-            batchSize,
-            options_->has("guided-alignment"),
-            options_->has("data-weighting"),
-            options_->get<std::string>("data-weighting-type") == "sentence");
+        auto batch = data::CorpusBatch::fakeBatch(lengths, batchSize, options_);
 
         build(graph, batch);
         fits = graph->fits();

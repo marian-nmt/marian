@@ -10,6 +10,7 @@
 #include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
+#include "common/options.h"
 #include "data/batch.h"
 #include "data/dataset.h"
 #include "data/vocab.h"
@@ -82,9 +83,7 @@ public:
   /**
    * @brief Set sentence weights.
    */
-  void setWeights(const std::vector<float>& weights) {
-    weights_ = weights;
-  }
+  void setWeights(const std::vector<float>& weights) { weights_ = weights; }
 
   /**
    * @brief  Get sentence weights.
@@ -253,12 +252,19 @@ public:
 
   size_t sets() const { return batches_.size(); }
 
+  /**
+   * @brief Creates a batch filled with fake data. Used to determine the size of
+   * the object.
+   *
+   * @param lengths List of subbatch sizes.
+   * @param batchSize Number of sentences in the batch.
+   * @param options Options with "guided-alignment" and "data-weighting".
+   *
+   * @return Fake batch of the same size as the real batch.
+   */
   static Ptr<CorpusBatch> fakeBatch(std::vector<size_t>& lengths,
                                     size_t batchSize,
-                                    bool guidedAlignment = false,
-                                    bool dataWeights = false,
-                                    // @TODO: is this needed here?
-                                    bool sentenceLevel = false) {
+                                    Ptr<Options> options) {
     std::vector<Ptr<SubBatch>> batches;
 
     for(auto len : lengths) {
@@ -270,15 +276,15 @@ public:
 
     auto batch = New<CorpusBatch>(batches);
 
-    if(guidedAlignment) {
+    if(options->has("guided-alignment")) {
       std::vector<float> guided(batchSize * lengths.front() * lengths.back(),
                                 0.f);
       batch->setGuidedAlignment(guided);
     }
 
-    if(dataWeights) {
+    if(options->has("data-weighting")) {
       int weightsSize = batchSize;
-      if(!sentenceLevel)
+      if(options->get<std::string>("data-weighting-type") != "sentence")
         weightsSize *= lengths.back();
       std::vector<float> weights(weightsSize, 0.f);
       batch->setDataWeights(weights);
@@ -293,9 +299,7 @@ public:
   }
 
   std::vector<float>& getDataWeights() { return dataWeights_; }
-  void setDataWeights(const std::vector<float>& aln) {
-    dataWeights_ = aln;
-  }
+  void setDataWeights(const std::vector<float>& aln) { dataWeights_ = aln; }
 };
 
 class CorpusIterator;
@@ -345,59 +349,5 @@ private:
   long long int pos_;
   SentenceTuple tup_;
 };
-
-class WordAlignment {
-private:
-  typedef std::pair<int, int> Point;
-  typedef std::vector<Point> Alignment;
-
-  std::vector<Alignment> data_;
-
-public:
-  WordAlignment(const std::string& fname) {
-    InputFileStream aStream(fname);
-    std::string line;
-    size_t c = 0;
-
-    LOG(info, "[data] Loading word alignment from {}", fname);
-
-    while(std::getline((std::istream&)aStream, line)) {
-      data_.emplace_back();
-      std::vector<std::string> atok = split(line, " -");
-      for(size_t i = 0; i < atok.size(); i += 2)
-        data_.back().emplace_back(std::stoi(atok[i]), std::stoi(atok[i + 1]));
-      c++;
-    }
-
-    LOG(info, "[data] Done");
-  }
-
-  std::vector<std::string> split(const std::string& input,
-                                 const std::string& chars) {
-    std::vector<std::string> output;
-    boost::split(output, input, boost::is_any_of(chars));
-    return output;
-  }
-
-  void guidedAlignment(Ptr<CorpusBatch> batch) {
-    int srcWords = batch->front()->batchWidth();
-    int trgWords = batch->back()->batchWidth();
-    int dimBatch = batch->getSentenceIds().size();
-    std::vector<float> guided(dimBatch * srcWords * trgWords, 0.f);
-
-    for(int b = 0; b < dimBatch; ++b) {
-      auto& alignment = data_[batch->getSentenceIds()[b]];
-      for(auto& p : alignment) {
-        int sid, tid;
-        std::tie(sid, tid) = p;
-
-        size_t idx = b + sid * dimBatch + tid * srcWords * dimBatch;
-        guided[idx] = 1.f;
-      }
-    }
-    batch->setGuidedAlignment(guided);
-  }
-};
-
 }
 }
