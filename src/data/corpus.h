@@ -46,6 +46,9 @@ public:
   size_t getId() const { return id_; }
 };
 
+/**
+ * @brief Batch of sentences represented as word indices with masking.
+ */
 class SubBatch {
 private:
   std::vector<Word> indices_;
@@ -56,6 +59,12 @@ private:
   size_t words_;
 
 public:
+  /**
+   * @brief Creates an empty subbatch of specified size.
+   *
+   * @param size Number of sentences
+   * @param width Number of words in the longest sentence
+   */
   SubBatch(int size, int width)
       : indices_(size * width, 0),
         mask_(size * width, 0),
@@ -63,11 +72,32 @@ public:
         width_(width),
         words_(0) {}
 
+  /**
+   * @brief Flat vector of word indices.
+   *
+   * The order of indices is \f$idx_{0,0}, idx_{0,1},\dots,idx_{0,s}, \dots,
+   * idx_{w,0},idx_{w,1},\dots,idx_{w,s}\f$, where \f$w\f$ is the number of
+   * words (width) and \f$s\f$ is the number of sentences (size).
+   */
   std::vector<Word>& indices() { return indices_; }
+  /**
+   * @brief Flat masking vector; 0 is used for masked words.
+   *
+   * @see indices()
+   */
   std::vector<float>& mask() { return mask_; }
 
+  /**
+   * @brief The number of sentences in the batch.
+   */
   size_t batchSize() { return size_; }
+  /**
+   * @brief The number of words in the longest sentence in the batch.
+   */
   size_t batchWidth() { return width_; };
+  /**
+   * @brief The total number of words in the batch, including masking.
+   */
   size_t batchWords() { return words_; }
 
   std::vector<Ptr<SubBatch>> split(size_t n) {
