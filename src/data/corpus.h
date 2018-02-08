@@ -27,9 +27,13 @@ private:
   size_t pos_{0};
 
   Ptr<WordAlignment> wordAlignment_;
-  Ptr<DataWeights> dataWeights_;
 
   void shuffleFiles(const std::vector<std::string>& paths);
+
+  /**
+   * @brief Index of the file with weights in paths_ and files_;
+   */
+  size_t weightFileIdx_{0};
 
 public:
   Corpus(Ptr<Config> options, bool translate = false);
@@ -101,20 +105,41 @@ public:
     if(options_->has("guided-alignment") && wordAlignment_)
       wordAlignment_->guidedAlignment(batch);
 
-    if(options_->has("data-weighting") && dataWeights_)
-      dataWeights_->weightsForBatch(batch);
+    if(options_->has("data-weighting"))
+      addWeightsToBatch(batch, batchVector);
 
     return batch;
+  }
+
+  void addWeightsToBatch(Ptr<CorpusBatch> batch,
+                         const std::vector<sample>& batchVector) {
+    int dimBatch = batch->getSentenceIds().size();
+    int trgWords = batch->back()->batchWidth();
+
+    auto sentenceLevel
+        = options_->get<std::string>("data-weighting-type") == "sentence";
+    int s = sentenceLevel ? dimBatch : dimBatch * trgWords;
+    std::vector<float> weights(s, 1.f);
+
+    for(int b = 0; b < dimBatch; ++b) {
+      if(sentenceLevel) {
+        weights[b] = batchVector[b].getWeights().front();
+      } else {
+        size_t i = 0;
+        for(auto& w : batchVector[b].getWeights()) {
+          weights[b + i * dimBatch] = w;
+          ++i;
+        }
+      }
+    }
+
+    batch->setDataWeights(weights);
   }
 
   void prepare() {
     if(options_->has("guided-alignment"))
       wordAlignment_
           = New<WordAlignment>(options_->get<std::string>("guided-alignment"));
-    if(options_->has("data-weighting"))
-      dataWeights_ = New<DataWeights>(
-          options_->get<std::string>("data-weighting"),
-          options_->get<std::string>("data-weighting-type") == "sentence");
   }
 };
 }

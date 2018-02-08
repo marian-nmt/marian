@@ -353,6 +353,7 @@ public:
     bool sentenceWeighting = false;
 
     if(options_->has("data-weighting") && !inference_) {
+      // @TODO: refactorize!
       sentenceWeighting
           = options_->get<std::string>("data-weighting-type") == "sentence";
       int dimBatch = batch->size();

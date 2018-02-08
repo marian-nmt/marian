@@ -20,11 +20,16 @@ namespace data {
 /**
  * @brief A sentence tuple that stores all sources and target sentences for a
  * specific "line" from a parallel corpus.
+ *
+ * Sentence tuples are used to store sentences read from external files and to
+ * be a basis for construction of marian::data::CorpusBatch objects. They are
+ * not a part of marian::data::CorpusBatch.
  */
 class SentenceTuple {
 private:
   size_t id_;
   std::vector<Words> tuple_;
+  std::vector<float> weights_;
 
 public:
   /**
@@ -73,6 +78,20 @@ public:
 
   auto begin() -> decltype(tuple_.begin()) { return tuple_.begin(); }
   auto end() -> decltype(tuple_.end()) { return tuple_.end(); }
+
+  /**
+   * @brief Set sentence weights.
+   */
+  void setWeights(const std::vector<float>& weights) {
+    weights_ = weights;
+  }
+
+  /**
+   * @brief  Get sentence weights.
+   *
+   * For sentence-level weights the vector contains only one element.
+   */
+  const std::vector<float>& getWeights() const { return weights_; }
 };
 
 /**
@@ -380,52 +399,5 @@ public:
   }
 };
 
-class DataWeights {
-private:
-  std::vector<std::vector<float>> data_;
-  bool sentLvl_;
-
-public:
-  DataWeights(const std::string& fname, bool sentLvl) : sentLvl_(sentLvl) {
-    InputFileStream aStream(fname);
-    std::string line;
-
-    LOG(info, "[data] Loading weights from {}", fname);
-
-    while(std::getline((std::istream&)aStream, line)) {
-      data_.emplace_back();
-      std::vector<std::string> weights;
-      Split(line, weights, " ");
-      for(auto w : weights)
-        data_.back().emplace_back(std::stoi(w));
-    }
-
-    LOG(info, "[data] Done");
-  }
-
-  void weightsForBatch(Ptr<CorpusBatch> batch) {
-    int dimBatch = batch->getSentenceIds().size();
-    int trgWords = batch->back()->batchWidth();
-
-    int s = sentLvl_ ? dimBatch : dimBatch * trgWords;
-    std::vector<float> weights(s, 1.f);
-
-    if(sentLvl_) {
-      for(int b = 0; b < dimBatch; ++b)
-        weights[b] = data_[batch->getSentenceIds()[b]].front();
-    } else {
-      for(int b = 0; b < dimBatch; ++b) {
-        auto& sentWeights = data_[batch->getSentenceIds()[b]];
-        size_t i = 0;
-        for(auto& w : sentWeights) {
-          weights[b + i * dimBatch] = w;
-          ++i;
-        }
-      }
-    }
-
-    batch->setDataWeights(weights);
-  }
-};
 }
 }

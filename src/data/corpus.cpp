@@ -6,7 +6,16 @@ namespace marian {
 namespace data {
 
 Corpus::Corpus(Ptr<Config> options, bool translate /*= false*/)
-    : CorpusBase(options, translate), g_(Config::seed) {}
+    : CorpusBase(options, translate), g_(Config::seed) {
+  if(options_->has("data-weighting")) {
+    auto path = options_->get<std::string>("data-weighting");
+    LOG(info, "[data] Using weights from file {}", path);
+
+    weightFileIdx_ = paths_.size();
+    paths_.emplace_back(path);
+    files_.emplace_back(new InputFileStream(path));
+  }
+}
 
 Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
@@ -28,26 +37,48 @@ SentenceTuple Corpus::next() {
     SentenceTuple tup(curId);
     for(size_t i = 0; i < files_.size(); ++i) {
       std::string line;
+
       if(std::getline((std::istream&)*files_[i], line)) {
-        Words words = (*vocabs_[i])(line);
+        // add weights
+        if(i > 0 && i == weightFileIdx_) {
+          std::vector<std::string> elements;
+          Split(line, elements, " ");
 
-        if(words.empty())
-          words.push_back(0);
+          if(!elements.empty()) {
+            std::vector<float> weights;
+            for(auto& e : elements)
+              weights.emplace_back(std::stof(e));
 
-        if(maxLengthCrop_ && words.size() > maxLength_) {
-          words.resize(maxLength_);
-          words.back() = 0;
+            if(rightLeft_)
+              std::reverse(weights.begin(), weights.end());
+
+            tup.setWeights(weights);
+          }
+          // add a sentence
+        } else {
+          Words words = (*vocabs_[i])(line);
+
+          if(words.empty())
+            words.push_back(0);
+
+          if(maxLengthCrop_ && words.size() > maxLength_) {
+            words.resize(maxLength_);
+            words.back() = 0;
+          }
+
+          if(rightLeft_)
+            std::reverse(words.begin(), words.end() - 1);
+
+          tup.push_back(words);
         }
-
-        if(rightLeft_)
-          std::reverse(words.begin(), words.end() - 1);
-
-        tup.push_back(words);
       }
     }
 
     // continue only if each input file has provided an example
-    cont = tup.size() == files_.size();
+    size_t expectedSize = files_.size();
+    if(weightFileIdx_ > 0)
+      expectedSize -= 1;
+    cont = tup.size() == expectedSize;
 
     // continue if all sentences are no longer than maximum allowed length
     if(cont && std::all_of(tup.begin(), tup.end(), [=](const Words& words) {
