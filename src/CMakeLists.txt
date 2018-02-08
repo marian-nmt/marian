@@ -2,7 +2,7 @@ add_subdirectory(3rd_party)
 
 include_directories(.)
 include_directories(3rd_party)
-include_directories(3rd_party/SQLiteCpp/include) 
+include_directories(3rd_party/SQLiteCpp/include)
 
 cuda_add_library(marian
   3rd_party/cnpy/cnpy.cpp
@@ -45,6 +45,7 @@ cuda_add_library(marian
   training/sparse_tensor.cu
   training/validator.cpp
   data/vocab.cpp
+  data/corpus_base.cpp
   data/corpus.cpp
   data/corpus_sqlite.cpp
   data/text_input.cpp

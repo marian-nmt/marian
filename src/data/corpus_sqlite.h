@@ -12,7 +12,7 @@
 #include "common/definitions.h"
 #include "common/file_stream.h"
 #include "data/batch.h"
-#include "data/corpus.h"
+#include "data/corpus_base.h"
 #include "data/dataset.h"
 #include "data/vocab.h"
 
