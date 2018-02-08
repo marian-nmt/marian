@@ -10,7 +10,6 @@ CorpusSQLite::CorpusSQLite(Ptr<Config> options, bool translate)
       maxLength_(options_->get<size_t>("max-length")),
       maxLengthCrop_(options_->get<bool>("max-length-crop")),
       rightLeft_(options_->get<bool>("right-left")) {
-
   bool training = !translate;
 
   if(training)
@@ -29,7 +28,7 @@ CorpusSQLite::CorpusSQLite(Ptr<Config> options, bool translate)
 
   std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
 
-  if(training) { // training or scoring
+  if(training) {  // training or scoring
     std::vector<Vocab> vocabs;
 
     if(vocabPaths.empty()) {
@@ -68,7 +67,8 @@ CorpusSQLite::CorpusSQLite(Ptr<Config> options, bool translate)
       }
     }
   } else {  // i.e., if translating
-    ABORT_IF(vocabPaths.empty(), "Translating, but vocabularies are not given!");
+    ABORT_IF(vocabPaths.empty(),
+             "Translating, but vocabularies are not given!");
 
     if(maxVocabs.size() < vocabPaths.size())
       maxVocabs.resize(paths_.size(), 0);
@@ -98,12 +98,14 @@ CorpusSQLite::CorpusSQLite(Ptr<Config> options, bool translate)
   if(training) {
     ABORT_IF(vocabs_.size() != files_.size(),
              "Number of corpus files ({}) and vocab files ({}) does not agree",
-             files_.size(), vocabs_.size());
-  }
-  else {
-    ABORT_IF(vocabs_.size() != files_.size(),
-             "Number of input files ({}) and input vocab files ({}) does not agree",
-             files_.size(), vocabs_.size());
+             files_.size(),
+             vocabs_.size());
+  } else {
+    ABORT_IF(
+        vocabs_.size() != files_.size(),
+        "Number of input files ({}) and input vocab files ({}) does not agree",
+        files_.size(),
+        vocabs_.size());
   }
 
   fillSQLite();
@@ -130,33 +132,37 @@ CorpusSQLite::CorpusSQLite(std::vector<std::string> paths,
 }
 
 void CorpusSQLite::fillSQLite() {
-
+  auto tempDir = options_->get<std::string>("tempdir");
   bool fill = false;
 
   if(options_->get<std::string>("sqlite") == "temporary") {
-    LOG(info, "[sqlite] Creating temporary database in {}", options_->get<std::string>("tempdir"));
-    db_.reset(new SQLite::Database("", SQLite::OPEN_READWRITE|SQLite::OPEN_CREATE));
-    db_->exec("PRAGMA temp_store_directory = '" + options_->get<std::string>("tempdir") + "';");
+    LOG(info, "[sqlite] Creating temporary database in {}", tempDir);
+
+    db_.reset(
+        new SQLite::Database("", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE));
+    db_->exec("PRAGMA temp_store_directory = '" + tempDir + "';");
 
     fill = true;
-  }
-  else {
+  } else {
     auto path = options_->get<std::string>("sqlite");
+
     if(boost::filesystem::exists(path)) {
       LOG(info, "[sqlite] Reusing persistent database {}", path);
+
       db_.reset(new SQLite::Database(path, SQLite::OPEN_READWRITE));
-      db_->exec("PRAGMA temp_store_directory = '" + options_->get<std::string>("tempdir") + "';");
+      db_->exec("PRAGMA temp_store_directory = '" + tempDir + "';");
 
       if(options_->get<bool>("sqlite-drop")) {
         LOG(info, "[sqlite] Dropping previous data");
         db_->exec("drop table if exists lines");
         fill = true;
       }
-    }
-    else {
+    } else {
       LOG(info, "[sqlite] Creating persistent database {}", path);
-      db_.reset(new SQLite::Database(path, SQLite::OPEN_READWRITE|SQLite::OPEN_CREATE));
-      db_->exec("PRAGMA temp_store_directory = '" + options_->get<std::string>("tempdir") + "';");
+
+      db_.reset(new SQLite::Database(
+          path, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE));
+      db_->exec("PRAGMA temp_store_directory = '" + tempDir + "';");
 
       fill = true;
     }
@@ -182,27 +188,27 @@ void CorpusSQLite::fillSQLite() {
 
     db_->exec("begin;");
     while(cont) {
-        ps.bind(1, (int)lines);
+      ps.bind(1, (int)lines);
 
-        std::string line;
-        for(int i = 0; i < files_.size(); ++i) {
-          cont = cont && std::getline((std::istream&)*files_[i], line);
-          if(cont)
-            ps.bind(i + 2, line);
-        }
+      std::string line;
+      for(int i = 0; i < files_.size(); ++i) {
+        cont = cont && std::getline((std::istream&)*files_[i], line);
+        if(cont)
+          ps.bind(i + 2, line);
+      }
 
-        if(cont) {
-          ps.exec();
-          ps.reset();
-        }
-        lines++;
+      if(cont) {
+        ps.exec();
+        ps.reset();
+      }
+      lines++;
 
-        if(lines % report == 0) {
-          LOG(info, "[sqlite] Inserted {} lines", lines);
-          db_->exec("commit;");
-          db_->exec("begin;");
-          report *= 2;
-        }
+      if(lines % report == 0) {
+        LOG(info, "[sqlite] Inserted {} lines", lines);
+        db_->exec("commit;");
+        db_->exec("begin;");
+        report *= 2;
+      }
     }
     db_->exec("commit;");
     LOG(info, "[sqlite] Inserted {} lines", lines);
@@ -217,7 +223,6 @@ SentenceTuple CorpusSQLite::next() {
     pos_++;
 
     // fill up the sentence tuple with sentences from all input files
-
     size_t curId = select_->getColumn(0).getInt();
     SentenceTuple tup(curId);
 
@@ -249,13 +254,14 @@ SentenceTuple CorpusSQLite::next() {
 
 void CorpusSQLite::shuffle() {
   LOG(info, "[sqlite] Selecting shuffled data");
-  select_.reset(new SQLite::Statement(*db_, "select * from lines order by random();"));
+  select_.reset(
+      new SQLite::Statement(*db_, "select * from lines order by random();"));
 }
 
 void CorpusSQLite::reset() {
   pos_ = 0;
-  select_.reset(new SQLite::Statement(*db_, "select * from lines order by _id;"));
+  select_.reset(
+      new SQLite::Statement(*db_, "select * from lines order by _id;"));
 }
-
 }
 }

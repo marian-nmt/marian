@@ -172,7 +172,7 @@ SentenceTuple Corpus::next() {
           words.resize(maxLength_);
           words.back() = 0;
         }
-        
+
         if(rightLeft_)
           std::reverse(words.begin(), words.end() - 1);
 

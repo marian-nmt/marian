@@ -4,6 +4,7 @@
 #include <iostream>
 #include <random>
 
+#include <SQLiteCpp/SQLiteCpp.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/iterator/iterator_facade.hpp>
 
@@ -11,11 +12,9 @@
 #include "common/definitions.h"
 #include "common/file_stream.h"
 #include "data/batch.h"
+#include "data/corpus.h"
 #include "data/dataset.h"
 #include "data/vocab.h"
-#include "data/corpus.h"
-
-#include <SQLiteCpp/SQLiteCpp.h>
 
 namespace marian {
 namespace data {
@@ -31,12 +30,12 @@ private:
   bool rightLeft_;
 
   size_t pos_{0};
-  
+
   Ptr<WordAlignment> wordAlignment_;
-  
+
   UPtr<SQLite::Database> db_;
   UPtr<SQLite::Statement> select_;
-  
+
   void fillSQLite();
 
 public:
