@@ -103,6 +103,8 @@ void CorpusSQLite::fillSQLite() {
     LOG(info, "[sqlite] Creating primary index");
     db_->exec("create unique index idx_line on lines (_id);");
   }
+
+  createRandomFunction();
 }
 
 SentenceTuple CorpusSQLite::next() {
@@ -136,8 +138,9 @@ SentenceTuple CorpusSQLite::next() {
 
 void CorpusSQLite::shuffle() {
   LOG(info, "[sqlite] Selecting shuffled data");
-  select_.reset(
-      new SQLite::Statement(*db_, "select * from lines order by random();"));
+  select_.reset(new SQLite::Statement(
+      *db_,
+      "select * from lines order by random_seed();"));
 }
 
 void CorpusSQLite::reset() {
