@@ -35,15 +35,6 @@ public:
                std::vector<Ptr<Vocab>> vocabs,
                Ptr<Config> options);
 
-  /**
-   * @brief Iterates sentence tuples in the corpus.
-   *
-   * A sentence tuple is skipped with no warning if any sentence in the tuple
-   * (e.g. a source or target) is longer than the maximum allowed sentence
-   * length in words unless the option "max-length-crop" is provided.
-   *
-   * @return A tuple representing parallel sentences.
-   */
   sample next();
 
   void shuffle();

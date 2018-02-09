@@ -271,7 +271,8 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
     ("dim-vocabs", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({0, 0}), "0 0"),
-     "Maximum items in vocabulary ordered by rank, 0 uses all items in the provided/created vocabulary file")
+     "Maximum items in vocabulary ordered by rank, 0 uses all items in the "
+     "provided/created vocabulary file")
     ("dim-emb", po::value<int>()->default_value(512),
      "Size of embedding vector")
     ("dim-rnn", po::value<int>()->default_value(1024),
@@ -378,7 +379,7 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "Paths to vocabulary files have to correspond to --train-sets. "
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
-      "If these files do not exists they are created")
+      "If these files do not exist they are created")
     ("max-length", po::value<size_t>()->default_value(50),
       "Maximum length of a sentence in a training sentence pair")
     ("max-length-crop", po::value<bool>()->zero_tokens()->default_value(false),
@@ -396,7 +397,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("tempdir,T", po::value<std::string>()->default_value("/tmp"),
       "Directory for temporary (shuffled) files and database")
     ("sqlite", po::value<std::string>()->default_value("")->implicit_value("temporary"),
-      "Use disk-based sqlite3 database for training corpus storage, default is temporary with path creates persistent storage")
+      "Use disk-based sqlite3 database for training corpus storage, default "
+      "is temporary with path creates persistent storage")
     ("sqlite-drop", po::value<bool>()->zero_tokens()->default_value(false),
       "Drop existing tables in sqlite3 database")
     ("devices,d", po::value<std::vector<int>>()
@@ -409,7 +411,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("mini-batch-words", po::value<int>()->default_value(0),
       "Set mini-batch size based on words instead of sentences")
     ("mini-batch-fit", po::value<bool>()->zero_tokens()->default_value(false),
-      "Determine mini-batch size automatically based on sentence-length to fit reserved memory")
+      "Determine mini-batch size automatically based on sentence-length to "
+      "fit reserved memory")
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
