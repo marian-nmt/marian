@@ -210,5 +210,49 @@ void CorpusBase::addWeightsToSentenceTuple(const std::string& line,
     tup.setWeights(weights);
   }
 }
+
+void CorpusBase::addAlignmentsToBatch(Ptr<CorpusBatch> batch,
+                                      const std::vector<sample>& batchVector) {
+  int srcWords = batch->front()->batchWidth();
+  int trgWords = batch->back()->batchWidth();
+  int dimBatch = batch->getSentenceIds().size();
+  std::vector<float> aligns(dimBatch * srcWords * trgWords, 0.f);
+
+  for(int b = 0; b < dimBatch; ++b) {
+    for(auto p : batchVector[b].getAlignment()) {
+      int sid, tid;
+      std::tie(sid, tid) = p;
+
+      size_t idx = b + sid * dimBatch + tid * srcWords * dimBatch;
+      aligns[idx] = 1.f;
+    }
+  }
+  batch->setGuidedAlignment(aligns);
+}
+
+void CorpusBase::addWeightsToBatch(Ptr<CorpusBatch> batch,
+                                   const std::vector<sample>& batchVector) {
+  int dimBatch = batch->getSentenceIds().size();
+  int trgWords = batch->back()->batchWidth();
+
+  auto sentenceLevel
+      = options_->get<std::string>("data-weighting-type") == "sentence";
+  int s = sentenceLevel ? dimBatch : dimBatch * trgWords;
+  std::vector<float> weights(s, 1.f);
+
+  for(int b = 0; b < dimBatch; ++b) {
+    if(sentenceLevel) {
+      weights[b] = batchVector[b].getWeights().front();
+    } else {
+      size_t i = 0;
+      for(auto& w : batchVector[b].getWeights()) {
+        weights[b + i * dimBatch] = w;
+        ++i;
+      }
+    }
+  }
+
+  batch->setDataWeights(weights);
+}
 }
 }

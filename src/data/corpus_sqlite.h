@@ -94,9 +94,10 @@ public:
     auto batch = batch_ptr(new batch_type(subBatches));
     batch->setSentenceIds(sentenceIds);
 
-    // @TODO: restore guided alignment in CorpusSQLite
-    // if(options_->has("guided-alignment") && wordAlignment_)
-    // wordAlignment_->guidedAlignment(batch);
+    if(options_->has("guided-alignment"))
+      addAlignmentsToBatch(batch, batchVector);
+    if(options_->has("data-weighting"))
+      addWeightsToBatch(batch, batchVector);
 
     return batch;
   }

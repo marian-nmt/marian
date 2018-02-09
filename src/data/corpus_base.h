@@ -213,11 +213,19 @@ public:
       for(size_t i = 0; i < sb->batchWidth(); i++) {
         std::cerr << "\t w: ";
         for(size_t j = 0; j < sb->batchSize(); j++) {
-          Word w = sb->indices()[i * sb->batchSize() + j];
+          size_t idx = i * sb->batchSize() + j;
+          Word w = sb->indices()[idx];
           std::cerr << w << " ";
         }
         std::cerr << std::endl;
       }
+    }
+
+    if(!dataWeights_.empty()) {
+      std::cerr << "weights: ";
+      for(auto w : dataWeights_)
+        std::cerr << w << " ";
+      std::cerr << std::endl;
     }
   }
 
@@ -363,6 +371,12 @@ protected:
    */
   void addWeightsToSentenceTuple(const std::string& line,
                                  SentenceTuple& tup) const;
+
+  void addAlignmentsToBatch(Ptr<CorpusBatch> batch,
+                            const std::vector<sample>& batchVector);
+
+  void addWeightsToBatch(Ptr<CorpusBatch> batch,
+                         const std::vector<sample>& batchVector);
 };
 
 class CorpusIterator

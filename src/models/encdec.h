@@ -353,7 +353,9 @@ public:
     bool sentenceWeighting = false;
 
     if(options_->has("data-weighting") && !inference_) {
-      // @TODO: refactorize!
+      ABORT_IF(batch->getDataWeights().empty(),
+               "Vector of weights is unexpectedly empty!");
+
       sentenceWeighting
           = options_->get<std::string>("data-weighting-type") == "sentence";
       int dimBatch = batch->size();
