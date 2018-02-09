@@ -325,6 +325,19 @@ protected:
 
   size_t pos_{0};
 
+  /**
+   * @brief Index of the file with weights in paths_ and files_; zero means no
+   * weights file provided.
+   */
+  size_t weightFileIdx_{0};
+
+  /**
+   * @brief Index of the file with alignments in paths_ and files_; zero means
+   * no alignment file provided.
+   */
+  size_t alignFileIdx_{0};
+
+
   Ptr<Config> options_;
 
   size_t maxLength_{0};

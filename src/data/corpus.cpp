@@ -6,24 +6,7 @@ namespace marian {
 namespace data {
 
 Corpus::Corpus(Ptr<Config> options, bool translate /*= false*/)
-    : CorpusBase(options, translate), g_(Config::seed) {
-  if(options_->has("guided-alignment")) {
-    auto path = options_->get<std::string>("guidedAlignment");
-    LOG(info, "[data] Using word alignments from file {}", path);
-
-    alignFileIdx_ = paths_.size();
-    paths_.emplace_back(path);
-    files_.emplace_back(new InputFileStream(path));
-  }
-  if(options_->has("data-weighting")) {
-    auto path = options_->get<std::string>("data-weighting");
-    LOG(info, "[data] Using weights from file {}", path);
-
-    weightFileIdx_ = paths_.size();
-    paths_.emplace_back(path);
-    files_.emplace_back(new InputFileStream(path));
-  }
-}
+    : CorpusBase(options, translate), g_(Config::seed) {}
 
 Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
@@ -48,8 +31,7 @@ SentenceTuple Corpus::next() {
 
       if(std::getline((std::istream&)*files_[i], line)) {
         if(i > 0 && i == weightFileIdx_) { // add weights
-          std::vector<std::string> elements;
-          Split(line, elements, " ");
+          auto elements = Split(line, " ");
 
           if(!elements.empty()) {
             std::vector<float> weights;
@@ -62,8 +44,13 @@ SentenceTuple Corpus::next() {
             tup.setWeights(weights);
           }
         } else if(i > 0 && i == alignFileIdx_) { // add alignments
+          ABORT_IF(rightLeft_,
+                   "Guided alignment and right-left model cannot be used "
+                   "together at the moment");
+
           auto align = WordAlignment(line);
           tup.setAlignment(align);
+
         } else { // add a sentence
           Words words = (*vocabs_[i])(line);
 

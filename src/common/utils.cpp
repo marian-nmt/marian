@@ -1,6 +1,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <boost/algorithm/string.hpp>
+
 #include "3rd_party/exception.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -11,7 +13,7 @@ void Trim(std::string& s) {
 
 void Split(const std::string& line,
            std::vector<std::string>& pieces,
-           const std::string del) {
+           const std::string del /*= " "*/) {
   size_t begin = 0;
   size_t pos = 0;
   std::string token;
@@ -30,21 +32,27 @@ void Split(const std::string& line,
     pieces.push_back(token);
 }
 
+std::vector<std::string> Split(const std::string& line,
+                               const std::string del /*= " "*/) {
+  std::vector<std::string> pieces;
+  Split(line, pieces, del);
+  return pieces;
+}
+
 std::string Join(const std::vector<std::string>& words,
-                 const std::string& del,
-                 bool reverse) {
+                 const std::string& del /*= " "*/,
+                 bool reverse /*= false*/) {
   std::stringstream ss;
   if(words.empty()) {
     return "";
   }
-  
+
   if(reverse) {
     for(size_t i = words.size() - 1; i > 0; --i) {
       ss << words[i] << del;
     }
     ss << words[0];
-  }
-  else {
+  } else {
     ss << words[0];
     for(size_t i = 1; i < words.size(); ++i) {
       ss << del << words[i];

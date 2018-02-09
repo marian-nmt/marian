@@ -149,6 +149,24 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate /*= false*/)
         files_.size(),
         vocabs_.size());
   }
+
+  // @TODO: check if files exist!
+  if(options_->has("guided-alignment")) {
+    auto path = options_->get<std::string>("guidedAlignment");
+    LOG(info, "[data] Using word alignments from file {}", path);
+
+    alignFileIdx_ = paths_.size();
+    paths_.emplace_back(path);
+    files_.emplace_back(new InputFileStream(path));
+  }
+  if(options_->has("data-weighting")) {
+    auto path = options_->get<std::string>("data-weighting");
+    LOG(info, "[data] Using weights from file {}", path);
+
+    weightFileIdx_ = paths_.size();
+    paths_.emplace_back(path);
+    files_.emplace_back(new InputFileStream(path));
+  }
 }
 }
 }

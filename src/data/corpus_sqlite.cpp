@@ -7,12 +7,6 @@ namespace data {
 
 CorpusSQLite::CorpusSQLite(Ptr<Config> options, bool translate /*= false*/)
     : CorpusBase(options, translate) {
-  ABORT_IF(
-      options->has("guided-alignment"),
-      "Guided alignment is not supported by the SQLite data management");
-  ABORT_IF(
-      options->has("data-weighting"),
-      "Data weighting is not supported by the SQLite data management");
   fillSQLite();
 }
 
@@ -122,21 +116,44 @@ SentenceTuple CorpusSQLite::next() {
     SentenceTuple tup(curId);
 
     for(size_t i = 0; i < files_.size(); ++i) {
-      std::string line;
-      Words words = (*vocabs_[i])(select_->getColumn(i + 1));
+      if(i > 0 && i == weightFileIdx_) {  // add weights
+        auto elements = Split(select_->getColumn(i + 1), " ");
 
-      if(words.empty())
-        words.push_back(0);
+        if(!elements.empty()) {
+          std::vector<float> weights;
+          for(auto& e : elements)
+            weights.emplace_back(std::stof(e));
 
-      if(maxLengthCrop_ && words.size() > maxLength_) {
-        words.resize(maxLength_);
-        words.back() = 0;
+          if(rightLeft_)
+            std::reverse(weights.begin(), weights.end());
+
+          tup.setWeights(weights);
+        }
+
+      } else if(i > 0 && i == alignFileIdx_) {  // add alignments
+        ABORT_IF(rightLeft_,
+                 "Guided alignment and right-left model cannot be used "
+                 "together at the moment");
+
+        auto align = WordAlignment(select_->getColumn(i + 1));
+        tup.setAlignment(align);
+
+      } else {  // add a sentence
+        Words words = (*vocabs_[i])(select_->getColumn(i + 1));
+
+        if(words.empty())
+          words.push_back(0);
+
+        if(maxLengthCrop_ && words.size() > maxLength_) {
+          words.resize(maxLength_);
+          words.back() = 0;
+        }
+
+        if(rightLeft_)
+          std::reverse(words.begin(), words.end() - 1);
+
+        tup.push_back(words);
       }
-
-      if(rightLeft_)
-        std::reverse(words.begin(), words.end() - 1);
-
-      tup.push_back(words);
     }
 
     if(std::all_of(tup.begin(), tup.end(), [=](const Words& words) {
