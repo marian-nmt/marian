@@ -33,8 +33,7 @@ public:
 
   CorpusSQLite(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
-               Ptr<Config> options,
-               size_t maxLength = 0);
+               Ptr<Config> options);
 
   /**
    * @brief Iterates sentence tuples in the corpus.
@@ -101,8 +100,6 @@ public:
 
     return batch;
   }
-
-  void prepare() {}
 };
 }
 }

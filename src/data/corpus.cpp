@@ -10,9 +10,8 @@ Corpus::Corpus(Ptr<Config> options, bool translate /*= false*/)
 
 Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
-               Ptr<Config> options,
-               size_t maxLength /*= 0*/)
-    : CorpusBase(paths, vocabs, options, maxLength) {}
+               Ptr<Config> options)
+    : CorpusBase(paths, vocabs, options) {}
 
 SentenceTuple Corpus::next() {
   bool cont = true;
@@ -30,49 +29,21 @@ SentenceTuple Corpus::next() {
       std::string line;
 
       if(std::getline((std::istream&)*files_[i], line)) {
-        if(i > 0 && i == weightFileIdx_) { // add weights
-          auto elements = Split(line, " ");
-
-          if(!elements.empty()) {
-            std::vector<float> weights;
-            for(auto& e : elements)
-              weights.emplace_back(std::stof(e));
-
-            if(rightLeft_)
-              std::reverse(weights.begin(), weights.end());
-
-            tup.setWeights(weights);
-          }
-        } else if(i > 0 && i == alignFileIdx_) { // add alignments
-          ABORT_IF(rightLeft_,
-                   "Guided alignment and right-left model cannot be used "
-                   "together at the moment");
-
-          auto align = WordAlignment(line);
-          tup.setAlignment(align);
-
-        } else { // add a sentence
-          Words words = (*vocabs_[i])(line);
-
-          if(words.empty())
-            words.push_back(0);
-
-          if(maxLengthCrop_ && words.size() > maxLength_) {
-            words.resize(maxLength_);
-            words.back() = 0;
-          }
-
-          if(rightLeft_)
-            std::reverse(words.begin(), words.end() - 1);
-
-          tup.push_back(words);
+        if(i > 0 && i == alignFileIdx_) {
+          addAlignmentToSentenceTuple(line, tup);
+        } else if(i > 0 && i == weightFileIdx_) {
+          addWeightsToSentenceTuple(line, tup);
+        } else {
+          addWordsToSentenceTuple(line, i, tup);
         }
       }
     }
 
-    // continue only if each input file has provided an example
+    // continue only if each input file provides an example
     size_t expectedSize = files_.size();
     if(weightFileIdx_ > 0)
+      expectedSize -= 1;
+    if(alignFileIdx_ > 0)
       expectedSize -= 1;
     cont = tup.size() == expectedSize;
 

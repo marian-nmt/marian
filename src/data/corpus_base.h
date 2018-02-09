@@ -311,11 +311,12 @@ class CorpusBase
     : public DatasetBase<SentenceTuple, CorpusIterator, CorpusBatch> {
 public:
   CorpusBase() : DatasetBase() {}
+
   CorpusBase(Ptr<Config> options, bool translate = false);
+
   CorpusBase(std::vector<std::string> paths,
              std::vector<Ptr<Vocab>> vocabs,
-             Ptr<Config> options,
-             size_t maxLength);
+             Ptr<Config> options);
 
   virtual std::vector<Ptr<Vocab>>& getVocabs() = 0;
 
@@ -324,6 +325,12 @@ protected:
   std::vector<Ptr<Vocab>> vocabs_;
 
   size_t pos_{0};
+
+  Ptr<Config> options_;
+
+  size_t maxLength_{0};
+  bool maxLengthCrop_{false};
+  bool rightLeft_{false};
 
   /**
    * @brief Index of the file with weights in paths_ and files_; zero means no
@@ -337,12 +344,25 @@ protected:
    */
   size_t alignFileIdx_{0};
 
-
-  Ptr<Config> options_;
-
-  size_t maxLength_{0};
-  bool maxLengthCrop_{false};
-  bool rightLeft_{false};
+  /**
+   * @brief Helper function converting a line of text into words using the i-th
+   * vocabulary and adding them to the sentence tuple.
+   */
+  void addWordsToSentenceTuple(const std::string& line,
+                               size_t i,
+                               SentenceTuple& tup) const;
+  /**
+   * @brief Helper function parsing a line with word alignments and adding them
+   * to the sentence tuple.
+   */
+  void addAlignmentToSentenceTuple(const std::string& line,
+                                   SentenceTuple& tup) const;
+  /**
+   * @brief Helper function parsing a line of weights and adding them to the
+   * sentence tuple.
+   */
+  void addWeightsToSentenceTuple(const std::string& line,
+                                 SentenceTuple& tup) const;
 };
 
 class CorpusIterator

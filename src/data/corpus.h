@@ -33,8 +33,7 @@ public:
 
   Corpus(std::vector<std::string> paths,
          std::vector<Ptr<Vocab>> vocabs,
-         Ptr<Config> options,
-         size_t maxLength = 0);
+         Ptr<Config> options);
 
   /**
    * @brief Iterates sentence tuples in the corpus.
@@ -102,9 +101,6 @@ public:
 
     return batch;
   }
-
-  // @TODO: check if can be removed
-  void prepare() { }
 
 private:
   void addAlignmentsToBatch(Ptr<CorpusBatch> batch,

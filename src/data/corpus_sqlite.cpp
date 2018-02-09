@@ -12,9 +12,8 @@ CorpusSQLite::CorpusSQLite(Ptr<Config> options, bool translate /*= false*/)
 
 CorpusSQLite::CorpusSQLite(std::vector<std::string> paths,
                            std::vector<Ptr<Vocab>> vocabs,
-                           Ptr<Config> options,
-                           size_t maxLength /*= 0*/)
-    : CorpusBase(paths, vocabs, options, maxLength) {
+                           Ptr<Config> options)
+    : CorpusBase(paths, vocabs, options) {
   fillSQLite();
 }
 
@@ -116,43 +115,14 @@ SentenceTuple CorpusSQLite::next() {
     SentenceTuple tup(curId);
 
     for(size_t i = 0; i < files_.size(); ++i) {
-      if(i > 0 && i == weightFileIdx_) {  // add weights
-        auto elements = Split(select_->getColumn(i + 1), " ");
+      auto line = select_->getColumn(i + 1);
 
-        if(!elements.empty()) {
-          std::vector<float> weights;
-          for(auto& e : elements)
-            weights.emplace_back(std::stof(e));
-
-          if(rightLeft_)
-            std::reverse(weights.begin(), weights.end());
-
-          tup.setWeights(weights);
-        }
-
-      } else if(i > 0 && i == alignFileIdx_) {  // add alignments
-        ABORT_IF(rightLeft_,
-                 "Guided alignment and right-left model cannot be used "
-                 "together at the moment");
-
-        auto align = WordAlignment(select_->getColumn(i + 1));
-        tup.setAlignment(align);
-
-      } else {  // add a sentence
-        Words words = (*vocabs_[i])(select_->getColumn(i + 1));
-
-        if(words.empty())
-          words.push_back(0);
-
-        if(maxLengthCrop_ && words.size() > maxLength_) {
-          words.resize(maxLength_);
-          words.back() = 0;
-        }
-
-        if(rightLeft_)
-          std::reverse(words.begin(), words.end() - 1);
-
-        tup.push_back(words);
+      if(i > 0 && i == alignFileIdx_) {
+        addAlignmentToSentenceTuple(line, tup);
+      } else if(i > 0 && i == weightFileIdx_) {
+        addWeightsToSentenceTuple(line, tup);
+      } else {
+        addWordsToSentenceTuple(line, i, tup);
       }
     }
 

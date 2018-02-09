@@ -28,15 +28,13 @@ const SentenceTuple& CorpusIterator::dereference() const {
   return tup_;
 }
 
-// @TODO: remove options_ from CorpusBase
 CorpusBase::CorpusBase(std::vector<std::string> paths,
                        std::vector<Ptr<Vocab>> vocabs,
-                       Ptr<Config> options,
-                       size_t maxLength)
+                       Ptr<Config> options)
     : DatasetBase(paths),
-      options_(options),
       vocabs_(vocabs),
-      maxLength_(maxLength ? maxLength : options_->get<size_t>("max-length")),
+      options_(options),
+      maxLength_(options_->get<size_t>("max-length")),
       maxLengthCrop_(options_->get<bool>("max-length-crop")),
       rightLeft_(options_->get<bool>("right-left")) {
   ABORT_IF(paths_.size() != vocabs_.size(),
@@ -108,7 +106,9 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate /*= false*/)
         vocabs_.emplace_back(vocab);
       }
     }
-  } else {  // i.e., if translating
+  }
+
+  if(translate) {
     ABORT_IF(vocabPaths.empty(),
              "Translating, but vocabularies are not given!");
 
@@ -137,35 +137,77 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate /*= false*/)
     }
   }
 
-  if(training) {
-    ABORT_IF(vocabs_.size() != files_.size(),
-             "Number of corpus files ({}) and vocab files ({}) does not agree",
-             files_.size(),
-             vocabs_.size());
-  } else {
-    ABORT_IF(
-        vocabs_.size() != files_.size(),
-        "Number of input files ({}) and input vocab files ({}) does not agree",
-        files_.size(),
-        vocabs_.size());
-  }
+  ABORT_IF(vocabs_.size() != files_.size(),
+           "Number of {} files ({}) and vocab files ({}) does not agree",
+           training ? "corpus" : "input",
+           files_.size(),
+           vocabs_.size());
 
-  // @TODO: check if files exist!
-  if(options_->has("guided-alignment")) {
-    auto path = options_->get<std::string>("guidedAlignment");
+  if(training && options_->has("guided-alignment")) {
+    auto path = options_->get<std::string>("guided-alignment");
+
+    ABORT_IF(!boost::filesystem::exists(path), "Alignment file does not exist");
     LOG(info, "[data] Using word alignments from file {}", path);
 
     alignFileIdx_ = paths_.size();
     paths_.emplace_back(path);
     files_.emplace_back(new InputFileStream(path));
   }
-  if(options_->has("data-weighting")) {
+
+  if(training && options_->has("data-weighting")) {
     auto path = options_->get<std::string>("data-weighting");
+
+    ABORT_IF(!boost::filesystem::exists(path), "Weight file does not exist");
     LOG(info, "[data] Using weights from file {}", path);
 
     weightFileIdx_ = paths_.size();
     paths_.emplace_back(path);
     files_.emplace_back(new InputFileStream(path));
+  }
+}
+
+void CorpusBase::addWordsToSentenceTuple(const std::string& line,
+                                         size_t i,
+                                         SentenceTuple& tup) const {
+  Words words = (*vocabs_[i])(line);
+
+  if(words.empty())
+    words.push_back(0);
+
+  if(maxLengthCrop_ && words.size() > maxLength_) {
+    words.resize(maxLength_);
+    words.back() = 0;
+  }
+
+  if(rightLeft_)
+    std::reverse(words.begin(), words.end() - 1);
+
+  tup.push_back(words);
+}
+
+void CorpusBase::addAlignmentToSentenceTuple(const std::string& line,
+                                             SentenceTuple& tup) const {
+  ABORT_IF(rightLeft_,
+           "Guided alignment and right-left model cannot be used "
+           "together at the moment");
+
+  auto align = WordAlignment(line);
+  tup.setAlignment(align);
+}
+
+void CorpusBase::addWeightsToSentenceTuple(const std::string& line,
+                                           SentenceTuple& tup) const {
+  auto elements = Split(line, " ");
+
+  if(!elements.empty()) {
+    std::vector<float> weights;
+    for(auto& e : elements)
+      weights.emplace_back(std::stof(e));
+
+    if(rightLeft_)
+      std::reverse(weights.begin(), weights.end());
+
+    tup.setWeights(weights);
   }
 }
 }
