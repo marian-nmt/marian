@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+- Data weighting with `--data-weighting` at sentence or word level
+- Persistent SQLite3 corpus storage with `--sqlite file.db`
+
 ## [1.3.1] - 2018-02-04
 
 ### Fixed
@@ -16,8 +20,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.3.0] - 2018-01-24
 
 ### Added
-- Added SQLite3 based corpus storage for on-disk shuffling etc. with `--sqlite`
-- Added asynchronous maxi-batch preloading
+- SQLite3 based corpus storage for on-disk shuffling etc. with `--sqlite`
+- Asynchronous maxi-batch preloading
 - Using transpose in SGEMM to tie embeddings in output layer
 
 ## [1.2.1] - 2018-01-19
