@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+
 ### Added
 - Data weighting with `--data-weighting` at sentence or word level
 - Persistent SQLite3 corpus storage with `--sqlite file.db`
+
+### Fixed
+- Deterministic data shuffling with specific seed for SQLite3 corpus storage
 
 ## [1.3.1] - 2018-02-04
 
