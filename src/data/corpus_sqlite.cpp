@@ -6,14 +6,14 @@ namespace marian {
 namespace data {
 
 CorpusSQLite::CorpusSQLite(Ptr<Config> options, bool translate /*= false*/)
-    : CorpusBase(options, translate) {
+    : CorpusBase(options, translate), seed_(Config::seed) {
   fillSQLite();
 }
 
 CorpusSQLite::CorpusSQLite(std::vector<std::string> paths,
                            std::vector<Ptr<Vocab>> vocabs,
                            Ptr<Config> options)
-    : CorpusBase(paths, vocabs, options) {
+    : CorpusBase(paths, vocabs, options), seed_(Config::seed) {
   fillSQLite();
 }
 
@@ -140,7 +140,8 @@ void CorpusSQLite::shuffle() {
   LOG(info, "[sqlite] Selecting shuffled data");
   select_.reset(new SQLite::Statement(
       *db_,
-      "select * from lines order by random_seed();"));
+      "select * from lines order by random_seed(" + std::to_string(seed_)
+          + ");"));
 }
 
 void CorpusSQLite::reset() {

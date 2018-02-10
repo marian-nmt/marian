@@ -22,8 +22,15 @@
 static void SQLiteRandomSeed(sqlite3_context* context,
                              int argc,
                              sqlite3_value** argv) {
-    const int result = std::rand();
+  if(argc == 1 && sqlite3_value_type(argv[0]) == SQLITE_INTEGER) {
+    const int seed = sqlite3_value_int(argv[0]);
+    static std::default_random_engine eng(seed);
+    std::uniform_int_distribution<> unif;
+    const int result = unif(eng);
     sqlite3_result_int(context, result);
+  } else {
+    sqlite3_result_error(context, "Invalid", 0);
+  }
 }
 
 namespace marian {
@@ -35,6 +42,8 @@ private:
   UPtr<SQLite::Statement> select_;
 
   void fillSQLite();
+
+  size_t seed_;
 
 public:
   CorpusSQLite(Ptr<Config> options, bool translate = false);
@@ -103,10 +112,9 @@ public:
 
 private:
   void createRandomFunction() {
-    std::srand(Config::seed);
     sqlite3_create_function(db_->getHandle(),
                             "random_seed",
-                            0,
+                            1,
                             SQLITE_UTF8,
                             NULL,
                             &SQLiteRandomSeed,
