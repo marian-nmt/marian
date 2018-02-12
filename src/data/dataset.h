@@ -86,6 +86,13 @@ public:
   Data& labels() { return inputs_.back().data(); }
 
   size_t size() const { return inputs_.front().shape()[0]; }
+
+  void setGuidedAlignment(const std::vector<float>&) {
+    ABORT("Guided alignment in DataBatch is not implemented");
+  }
+  void setDataWeights(const std::vector<float>&) {
+    ABORT("Data weighting in DataBatch is not implemented");
+  }
 };
 
 class Dataset : public DatasetBase<Example, ExampleIterator, DataBatch> {

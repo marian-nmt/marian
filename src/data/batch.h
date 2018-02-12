@@ -18,6 +18,9 @@ public:
   const std::vector<size_t>& getSentenceIds() const { return sentenceIds_; }
   void setSentenceIds(const std::vector<size_t>& ids) { sentenceIds_ = ids; }
 
+  virtual void setGuidedAlignment(const std::vector<float>&) = 0;
+  virtual void setDataWeights(const std::vector<float>&) = 0;
+
 protected:
   std::vector<size_t> sentenceIds_;
 };

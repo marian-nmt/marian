@@ -293,19 +293,20 @@ public:
    * @see marian::data::SubBatch::split(size_t n)
    */
   std::vector<Ptr<Batch>> split(size_t n) {
-    std::vector<Ptr<Batch>> splits;
-
+    // split each subbatch separately
     std::vector<std::vector<Ptr<SubBatch>>> subs(n);
-
     for(auto subBatch : batches_) {
       size_t i = 0;
       for(auto splitSubBatch : subBatch->split(n))
         subs[i++].push_back(splitSubBatch);
     }
 
+    // create batches from splitted subbatches
+    std::vector<Ptr<Batch>> splits;
     for(auto subBatches : subs)
       splits.push_back(New<CorpusBatch>(subBatches));
 
+    // set sentence indices in splitted batches
     size_t pos = 0;
     for(auto split : splits) {
       std::vector<size_t> ids;
@@ -313,6 +314,30 @@ public:
         ids.push_back(sentenceIds_[i]);
       split->setSentenceIds(ids);
       pos += split->size();
+    }
+
+    // restore word alignments in splitted batches
+    pos = 0;
+    if(!guidedAlignment_.empty()) {
+      for(auto split : splits) {
+        std::vector<float> aln;
+        for(int i = pos; i < pos + split->size(); ++i)
+          aln.push_back(guidedAlignment_[i]);
+        split->setGuidedAlignment(aln);
+        pos += split->size();
+      }
+    }
+
+    // restore data weights in splitted batches
+    pos = 0;
+    if(!dataWeights_.empty()) {
+      for(auto split : splits) {
+        std::vector<float> ws;
+        for(int i = pos; i < pos + split->size(); ++i)
+          ws.push_back(dataWeights_[i]);
+        split->setDataWeights(ws);
+        pos += split->size();
+      }
     }
 
     return splits;
