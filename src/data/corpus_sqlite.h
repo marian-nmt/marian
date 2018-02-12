@@ -102,9 +102,9 @@ public:
     auto batch = batch_ptr(new batch_type(subBatches));
     batch->setSentenceIds(sentenceIds);
 
-    if(options_->has("guided-alignment"))
+    if(options_->has("guided-alignment") && alignFileIdx_)
       addAlignmentsToBatch(batch, batchVector);
-    if(options_->has("data-weighting"))
+    if(options_->has("data-weighting") && weightFileIdx_)
       addWeightsToBatch(batch, batchVector);
 
     return batch;
