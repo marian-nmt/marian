@@ -148,6 +148,15 @@ public:
    */
   size_t batchWords() { return words_; }
 
+  /**
+   * @brief Splits the subbatch into subbatches of equal size.
+   *
+   * @param n Number of splits
+   *
+   * @return Vector of pointers to new subbatches.
+   *
+   * @see marian::data::Batch::split(size_t n)
+   */
   std::vector<Ptr<SubBatch>> split(size_t n) {
     std::vector<Ptr<SubBatch>> splits;
 
@@ -165,6 +174,7 @@ public:
         for(int i = 0; i < __size__; ++i) {
           sb->indices()[j * __size__ + i] = indices_[j * size_ + pos + i];
           sb->mask()[j * __size__ + i] = mask_[j * size_ + pos + i];
+
           if(mask_[j * size_ + pos + i] != 0)
             __words__++;
         }
@@ -182,6 +192,10 @@ public:
   void setWords(size_t words) { words_ = words; }
 };
 
+/**
+ * @brief Batch of source and target sentences with additional information,
+ * such as guided alignments and sentence or word-leve weighting.
+ */
 class CorpusBatch : public Batch {
 private:
   std::vector<Ptr<SubBatch>> batches_;
@@ -191,74 +205,41 @@ private:
 public:
   CorpusBatch(const std::vector<Ptr<SubBatch>>& batches) : batches_(batches) {}
 
+  /**
+   * @brief Access i-th subbatch storing a source or target sentence.
+   *
+   * The order of subbatches is: 1st source sentence, 2nd source sentence, ...,
+   * target sentence.
+   *
+   * @param i position of the element to return
+   *
+   * @return Pointer to the requested element.
+   */
   Ptr<SubBatch> operator[](size_t i) const { return batches_[i]; }
 
+  /**
+   * @brief Access the first subbatch, i.e. the source sentence.
+   */
   Ptr<SubBatch> front() { return batches_.front(); }
 
+  /**
+   * @brief Access the last subbatch, i.e. the target sentence.
+   */
   Ptr<SubBatch> back() { return batches_.back(); }
 
-  void debug() {
-    std::cerr << "batches: " << sets() << std::endl;
-
-    if(!sentenceIds_.empty()) {
-      std::cerr << "indexes: ";
-      for(auto id : sentenceIds_)
-        std::cerr << id << " ";
-      std::cerr << std::endl;
-    }
-
-    size_t b = 0;
-    for(auto sb : batches_) {
-      std::cerr << "batch " << b++ << ": " << std::endl;
-      for(size_t i = 0; i < sb->batchWidth(); i++) {
-        std::cerr << "\t w: ";
-        for(size_t j = 0; j < sb->batchSize(); j++) {
-          size_t idx = i * sb->batchSize() + j;
-          Word w = sb->indices()[idx];
-          std::cerr << w << " ";
-        }
-        std::cerr << std::endl;
-      }
-    }
-
-    if(!dataWeights_.empty()) {
-      std::cerr << "weights: ";
-      for(auto w : dataWeights_)
-        std::cerr << w << " ";
-      std::cerr << std::endl;
-    }
-  }
-
-  std::vector<Ptr<Batch>> split(size_t n) {
-    std::vector<Ptr<Batch>> splits;
-
-    std::vector<std::vector<Ptr<SubBatch>>> subs(n);
-
-    for(auto subBatch : batches_) {
-      size_t i = 0;
-      for(auto splitSubBatch : subBatch->split(n))
-        subs[i++].push_back(splitSubBatch);
-    }
-
-    for(auto subBatches : subs)
-      splits.push_back(New<CorpusBatch>(subBatches));
-
-    size_t pos = 0;
-    for(auto split : splits) {
-      std::vector<size_t> ids;
-      for(int i = pos; i < pos + split->size(); ++i)
-        ids.push_back(sentenceIds_[i]);
-      split->setSentenceIds(ids);
-      pos += split->size();
-    }
-
-    return splits;
-  }
-
+  /**
+   * @brief The number of sentences in the batch.
+   */
   size_t size() const { return batches_[0]->batchSize(); }
 
+  /**
+   * @brief The number of words for the longest sentence in the batch plus one.
+   */
   size_t words() const { return batches_[0]->batchWords(); }
 
+  /**
+   * @brief The number of source and targets.
+   */
   size_t sets() const { return batches_.size(); }
 
   /**
@@ -302,6 +283,41 @@ public:
     return batch;
   }
 
+  /**
+   * @brief Splits the batch into batches of equal size.
+   *
+   * @param n number of splits
+   *
+   * @return Vector of pointers to new batches.
+   *
+   * @see marian::data::SubBatch::split(size_t n)
+   */
+  std::vector<Ptr<Batch>> split(size_t n) {
+    std::vector<Ptr<Batch>> splits;
+
+    std::vector<std::vector<Ptr<SubBatch>>> subs(n);
+
+    for(auto subBatch : batches_) {
+      size_t i = 0;
+      for(auto splitSubBatch : subBatch->split(n))
+        subs[i++].push_back(splitSubBatch);
+    }
+
+    for(auto subBatches : subs)
+      splits.push_back(New<CorpusBatch>(subBatches));
+
+    size_t pos = 0;
+    for(auto split : splits) {
+      std::vector<size_t> ids;
+      for(int i = pos; i < pos + split->size(); ++i)
+        ids.push_back(sentenceIds_[i]);
+      split->setSentenceIds(ids);
+      pos += split->size();
+    }
+
+    return splits;
+  }
+
   std::vector<float>& getGuidedAlignment() { return guidedAlignment_; }
   void setGuidedAlignment(const std::vector<float>& aln) {
     guidedAlignment_ = aln;
@@ -311,6 +327,42 @@ public:
   void setDataWeights(const std::vector<float>& weights) {
     dataWeights_ = weights;
   }
+
+  /**
+   * @brief Prints the batch in a readable on stderr form for debugging.
+   */
+  void debug() {
+    std::cerr << "batches: " << sets() << std::endl;
+
+    if(!sentenceIds_.empty()) {
+      std::cerr << "indexes: ";
+      for(auto id : sentenceIds_)
+        std::cerr << id << " ";
+      std::cerr << std::endl;
+    }
+
+    size_t b = 0;
+    for(auto sb : batches_) {
+      std::cerr << "batch " << b++ << ": " << std::endl;
+      for(size_t i = 0; i < sb->batchWidth(); i++) {
+        std::cerr << "\t w: ";
+        for(size_t j = 0; j < sb->batchSize(); j++) {
+          size_t idx = i * sb->batchSize() + j;
+          Word w = sb->indices()[idx];
+          std::cerr << w << " ";
+        }
+        std::cerr << std::endl;
+      }
+    }
+
+    if(!dataWeights_.empty()) {
+      std::cerr << "weights: ";
+      for(auto w : dataWeights_)
+        std::cerr << w << " ";
+      std::cerr << std::endl;
+    }
+  }
+
 };
 
 class CorpusIterator;
