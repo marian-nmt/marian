@@ -316,27 +316,24 @@ public:
       pos += split->size();
     }
 
-    // restore word alignments in splitted batches
-    pos = 0;
-    if(!guidedAlignment_.empty()) {
-      for(auto split : splits) {
-        std::vector<float> aln;
-        for(int i = pos; i < pos + split->size(); ++i)
-          aln.push_back(guidedAlignment_[i]);
-        split->setGuidedAlignment(aln);
-        pos += split->size();
-      }
-    }
+    // @TODO: restore word alignments in splitted batches
+    ABORT_IF(
+        !guidedAlignment_.empty(),
+        "Guided alignment with synchronous SGD is temporarily not supported");
 
     // restore data weights in splitted batches
     pos = 0;
     if(!dataWeights_.empty()) {
+      size_t width = batches_.back()->batchWidth();
+      if(dataWeights_.size() == size()) // i.e. sentence-level weighting
+        width = 1;
+
       for(auto split : splits) {
         std::vector<float> ws;
-        for(int i = pos; i < pos + split->size(); ++i)
+        for(int i = pos; i < pos + split->size() * width; ++i)
           ws.push_back(dataWeights_[i]);
         split->setDataWeights(ws);
-        pos += split->size();
+        pos += split->size() * width;
       }
     }
 

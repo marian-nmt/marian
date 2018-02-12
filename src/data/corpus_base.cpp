@@ -237,8 +237,8 @@ void CorpusBase::addWeightsToBatch(Ptr<CorpusBatch> batch,
 
   auto sentenceLevel
       = options_->get<std::string>("data-weighting-type") == "sentence";
-  int s = sentenceLevel ? dimBatch : dimBatch * trgWords;
-  std::vector<float> weights(s, 1.f);
+  size_t size = sentenceLevel ? dimBatch : dimBatch * trgWords;
+  std::vector<float> weights(size, 1.f);
 
   for(int b = 0; b < dimBatch; ++b) {
     if(sentenceLevel) {
