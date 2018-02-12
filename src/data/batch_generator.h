@@ -44,11 +44,19 @@ private:
   
   void fillBatches(bool shuffle = true) {
     auto cmpSrc = [](const sample& a, const sample& b) {
-      return a[0].size() < b[0].size();
+      typedef decltype(a[0]) Item;
+      auto cmp = [](const Item& sa, const Item& sb) {
+        return sa.size() < sb.size();
+      };
+      return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end(), cmp);
     };
 
     auto cmpTrg = [](const sample& a, const sample& b) {
-      return a.back().size() < b.back().size();
+      typedef decltype(a[0]) Item;
+      auto cmp = [](const Item& sa, const Item& sb) {
+        return sa.size() < sb.size();
+      };
+      return std::lexicographical_compare(a.rbegin(), a.rend(), b.rbegin(), b.rend(), cmp);
     };
 
     auto cmpNone = [](const sample& a, const sample& b) { return &a < &b; };

@@ -232,7 +232,7 @@ void CorpusBase::addAlignmentsToBatch(Ptr<CorpusBatch> batch,
 
 void CorpusBase::addWeightsToBatch(Ptr<CorpusBatch> batch,
                                    const std::vector<sample>& batchVector) {
-  int dimBatch = batch->getSentenceIds().size();
+  int dimBatch = batch->size();
   int trgWords = batch->back()->batchWidth();
 
   auto sentenceLevel

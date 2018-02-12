@@ -79,8 +79,11 @@ public:
    */
   bool empty() const { return tuple_.empty(); }
 
-  auto begin() -> decltype(tuple_.begin()) { return tuple_.begin(); }
-  auto end() -> decltype(tuple_.end()) { return tuple_.end(); }
+  auto begin() const -> decltype(tuple_.begin()) { return tuple_.begin(); }
+  auto end() const -> decltype(tuple_.end()) { return tuple_.end(); }
+  
+  auto rbegin() const -> decltype(tuple_.rbegin()) { return tuple_.rbegin(); }
+  auto rend() const -> decltype(tuple_.rend()) { return tuple_.rend(); }
 
   /**
    * @brief  Get sentence weights.
@@ -276,7 +279,7 @@ public:
       int weightsSize = batchSize;
       if(options->get<std::string>("data-weighting-type") != "sentence")
         weightsSize *= lengths.back();
-      std::vector<float> weights(weightsSize, 0.f);
+      std::vector<float> weights(weightsSize, 1.f);
       batch->setDataWeights(weights);
     }
 
@@ -316,9 +319,13 @@ public:
       pos += split->size();
     }
 
-    // restore word alignments in splitted batches
+    // restore word alignments in split batches
+    // MJD: this is surely wrong
     pos = 0;
     if(!guidedAlignment_.empty()) {
+      ABORT("Incorrect implementation");
+      // this needs to be split according to words and on the batch dimension,
+      // i.e. the innermost dimension. See below for word-based weights. 
       for(auto split : splits) {
         std::vector<float> aln;
         for(int i = pos; i < pos + split->size(); ++i)
@@ -328,13 +335,27 @@ public:
       }
     }
 
-    // restore data weights in splitted batches
+    // restore data weights in split batches
     pos = 0;
     if(!dataWeights_.empty()) {
+      size_t oldSize = size();
+      
+      size_t width = 1;
+      // There are more weights than sentences, i.e. these are word weights.
+      if(dataWeights_.size() != oldSize)
+        width = batches_.back()->batchWidth();
+        
       for(auto split : splits) {
-        std::vector<float> ws;
-        for(int i = pos; i < pos + split->size(); ++i)
-          ws.push_back(dataWeights_[i]);
+        std::vector<float> ws(width * split->size(), 1.0f);
+        
+        // this needs to be split along the batch dimension
+        // which is here the innermost dimension.
+        // Seems to work for sentence-based weights, too. 
+        for(int j = 0; j < width; ++j) {
+          for(int i = 0; i < split->size(); ++i) {
+            ws[j * split->size() + i] = dataWeights_[j * oldSize + i + pos];
+          }
+        }
         split->setDataWeights(ws);
         pos += split->size();
       }

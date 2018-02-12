@@ -7,29 +7,25 @@ Expr Cost(Expr logits,
           Expr mask,
           std::string costType,
           float smoothing,
-          Expr weights,
-          bool sentenceWeighting) {
+          Expr weights) {
   using namespace keywords;
 
   auto ce = cross_entropy(logits, indices);
 
+  if(weights)
+    ce = weights * ce;
+  
   if(smoothing > 0) {
     // @TODO: add this to CE kernels instead
     auto ceq = mean(logsoftmax(logits), axis = -1);
     ce = (1 - smoothing) * ce - smoothing * ceq;
   }
 
-  if(weights && !sentenceWeighting)
-    ce = weights * ce;
-
   if(mask)
     ce = ce * mask;
 
   auto costSum = sum(ce, axis = -3);
-
-  if(weights && sentenceWeighting)
-    costSum = weights * costSum;
-
+  
   Expr cost;
   if(costType == "ce-mean" || costType == "cross-entropy") {
     cost = mean(costSum, axis = -2);

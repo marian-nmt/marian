@@ -371,8 +371,7 @@ public:
                      trgMask,
                      costType,
                      ls,
-                     weights,
-                     sentenceWeighting);
+                     weights);
 
     if(options_->has("guided-alignment") && !inference_) {
       auto alignments = decoders_[0]->getAlignments();
