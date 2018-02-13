@@ -348,7 +348,7 @@ public:
           }
         }
         split->setDataWeights(ws);
-        pos += split->size() * width;
+        pos += split->size();
       }
     }
 
