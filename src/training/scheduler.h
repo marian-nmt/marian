@@ -157,16 +157,13 @@ public:
     std::string nameYaml = name + ".yml";
     if(boost::filesystem::exists(nameYaml)) {
       YAML::Node config = YAML::LoadFile(nameYaml);
-      state_->epochs = config["progress"]["epochs"].as<size_t>();
-      state_->batches = config["progress"]["batches"].as<size_t>();
+      state_->load(config);
     }
   }
 
   void save(const std::string& name) {
     YAML::Node config = options_->get();
-    config["progress"]["epochs"] = state_->epochs;
-    config["progress"]["batches"] = state_->batches;
-
+    state_->save(config);
     std::string nameYaml = name + ".yml";
     std::ofstream fout(nameYaml);
     fout << config;
