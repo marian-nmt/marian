@@ -43,8 +43,7 @@ private:
   bool loadReady_{true};
   
   void fillBatches(bool shuffle = true) {
-    typedef typename sample::item_type Item;
-    
+    typedef typename sample::value_type Item;
     auto itemCmp = [](const Item& sa, const Item& sb) {
       return sa.size() < sb.size();
     };

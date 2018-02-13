@@ -35,7 +35,7 @@ private:
   WordAlignment alignment_;
 
 public:
-  typedef Words item_type;
+  typedef Words value_type;
   
   /**
    * @brief Creates an empty tuple with the given Id.
