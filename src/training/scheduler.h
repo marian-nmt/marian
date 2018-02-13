@@ -8,8 +8,6 @@ namespace marian {
 
 class Scheduler : public TrainingObserver {
 private:
-  YAML::Node progress;
-
   Ptr<Config> options_;
   std::vector<Ptr<ValidatorBase>> validators_;
   bool validated_{false};
