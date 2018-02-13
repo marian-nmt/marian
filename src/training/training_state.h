@@ -17,13 +17,20 @@ public:
 
 class TrainingState {
 public:
-  int epochs{1};
-  int batches{0};
-  int stalled{0};
-  int maxStalled{0};
-  int warmupStart{0};
+  size_t epochs{1};
+  size_t batches{0};
+  size_t samples{0};
+
+  size_t stalled{0};
+  size_t maxStalled{0};
+  size_t warmupStart{0};
+
   float eta;
   float factor{1.f};
+
+  float costSum{0};
+  size_t samplesDisp{0};
+  size_t wordsDisp{0};
   bool reset{false};
 
   TrainingState(float learnRate) : eta(learnRate) {}
@@ -55,22 +62,36 @@ public:
   void load(const YAML::Node& config) {
     epochs = config["progress"]["epochs"].as<size_t>();
     batches = config["progress"]["batches"].as<size_t>();
+    samples = config["progress"]["samples"].as<size_t>();
+
     stalled = config["progress"]["stalled"].as<size_t>();
     maxStalled = config["progress"]["stalled-max"].as<size_t>();
     warmupStart = config["progress"]["warmup-start"].as<size_t>();
+
     eta = config["progress"]["eta"].as<float>();
     factor = config["progress"]["eta-factor"].as<float>();
+
+    costSum = config["progress"]["cost-sum"].as<float>();
+    samplesDisp = config["progress"]["disp-samples"].as<size_t>();
+    wordsDisp = config["progress"]["disp-words"].as<size_t>();
     reset = config["progress"]["reset"].as<bool>();
   }
 
   void save(YAML::Node& config) {
     config["progress"]["epochs"] = epochs;
     config["progress"]["batches"] = batches;
+    config["progress"]["samples"] = samples;
+
     config["progress"]["stalled"] = stalled;
     config["progress"]["stalled-max"] = maxStalled;
     config["progress"]["warmup-start"] = warmupStart;
+
     config["progress"]["eta"] = eta;
     config["progress"]["eta-factor"] = factor;
+
+    config["progress"]["cost-sum"] = costSum;
+    config["progress"]["disp-samples"] = samplesDisp;
+    config["progress"]["disp-words"] = wordsDisp;
     config["progress"]["reset"] = reset;
   }
 

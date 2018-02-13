@@ -12,11 +12,6 @@ private:
   std::vector<Ptr<ValidatorBase>> validators_;
   bool validated_{false};
 
-  float costSum{0};
-  size_t samples{0};
-  size_t samplesDisp{0};
-  size_t wordsDisp{0};
-
   bool first_{true};
 
   Ptr<TrainingState> state_;
@@ -48,10 +43,10 @@ public:
   }
 
   void increaseEpoch() {
-    LOG(info, "Seen {} samples", samples);
+    LOG(info, "Seen {} samples", state_->samples);
 
     state_->newEpoch();
-    samples = 0;
+    state_->samples = 0;
 
     LOG(info, "Starting epoch {}", state_->epochs);
   }
@@ -115,10 +110,10 @@ public:
   }
 
   void update(float cost, Ptr<data::Batch> batch) {
-    costSum += cost * batch->size();
-    samples += batch->size();
-    samplesDisp += batch->size();
-    wordsDisp += batch->words();
+    state_->costSum += cost * batch->size();
+    state_->samples += batch->size();
+    state_->samplesDisp += batch->size();
+    state_->wordsDisp += batch->words();
     state_->newBatch();
 
     if(state_->batches % options_->get<size_t>("disp-freq") == 0) {
@@ -128,10 +123,10 @@ public:
             "words/s : L.r. {:.4e}",
             state_->epochs,
             state_->batches,
-            samples,
-            costSum / samplesDisp,
+            state_->samples,
+            state_->costSum / state_->samplesDisp,
             timer.format(2, "%ws"),
-            wordsDisp / std::stof(timer.format(5, "%w")),
+            state_->wordsDisp / std::stof(timer.format(5, "%w")),
             state_->eta);
       } else {
         LOG(info,
@@ -139,15 +134,15 @@ public:
             "words/s",
             state_->epochs,
             state_->batches,
-            samples,
-            costSum / samplesDisp,
+            state_->samples,
+            state_->costSum / state_->samplesDisp,
             timer.format(2, "%ws"),
-            wordsDisp / std::stof(timer.format(5, "%w")));
+            state_->wordsDisp / std::stof(timer.format(5, "%w")));
       }
       timer.start();
-      costSum = 0;
-      wordsDisp = 0;
-      samplesDisp = 0;
+      state_->costSum = 0;
+      state_->wordsDisp = 0;
+      state_->samplesDisp = 0;
     }
 
     validated_ = false;
