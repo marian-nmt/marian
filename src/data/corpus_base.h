@@ -35,6 +35,8 @@ private:
   WordAlignment alignment_;
 
 public:
+  typedef Words item_type;
+  
   /**
    * @brief Creates an empty tuple with the given Id.
    */
@@ -350,7 +352,7 @@ public:
         
         // this needs to be split along the batch dimension
         // which is here the innermost dimension.
-        // Seems to work for sentence-based weights, too. 
+        // Should work for sentence-based weights, too. 
         for(int j = 0; j < width; ++j) {
           for(int i = 0; i < split->size(); ++i) {
             ws[j * split->size() + i] = dataWeights_[j * oldSize + i + pos];
