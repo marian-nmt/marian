@@ -20,11 +20,7 @@ cuda_add_library(marian
   kernels/cudnn_wrappers.cu
 #  kernels/sparse.cu
   layers/param_initializers.cu
-  layers/generic.cpp
-  layers/guided_alignment.cpp
   layers/convolution.cu
-  models/model_factory.cpp
-  rnn/attention.cu
   rnn/cells.cu
   optimizers/clippers.cu
   optimizers/optimizers.cu
@@ -32,6 +28,8 @@ cuda_add_library(marian
   common/logging.cpp
   common/config.cpp
   common/config_parser.cpp
+  models/model_factory.cpp
+  models/attention.cu
   translator/history.cpp
   translator/output_collector.cpp
   translator/nth_element.cu

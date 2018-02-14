@@ -1,9 +1,9 @@
 #pragma once
 
+#include "marian.h"
+
 #include <iostream>
 #include <vector>
-
-#include "marian.h"
 
 namespace marian {
 namespace rnn {

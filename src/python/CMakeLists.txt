@@ -13,7 +13,7 @@ cuda_add_library(pymarian SHARED
   ../kernels/dropout.cu
   ../kernels/sparse.cu
   #../layers/param_initializers.cu
-  ../rnn/attention.cu
+  ../models/attention.cu
   ../rnn/cells.cu
   #../optimizers/clippers.cu
   #../optimizers/optimizers.cu

@@ -2,7 +2,8 @@
 
 #include "marian.h"
 #include "layers/generic.h"
-#include "rnn/constructors.h"
+#include "rnn/types.h"
+#include "constructors.h"
 
 namespace marian {
 
@@ -161,7 +162,7 @@ public:
           if(state->getEncoderStates().size() > 1)
             prefix += "_att" + std::to_string(i + 1);
 
-          attCell.push_back(rnn::attention(graph)  //
+          attCell.push_back(models::attention(graph)  //
                             ("prefix", prefix)     //
                                 .set_state(state->getEncoderStates()[i]));
         }
@@ -203,7 +204,7 @@ public:
         auto att = rnn_->at(0)
                        ->as<rnn::StackedCell>()
                        ->at(k + 1)
-                       ->as<rnn::Attention>();
+                       ->as<models::Attention>();
         alignedContexts.push_back(att->getContext());
       }
 
@@ -225,7 +226,7 @@ public:
   }
 
   const std::vector<Expr> getAlignments() {
-    auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
+    auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(1)->as<models::Attention>();
     return att->getAlignments();
   }
 
