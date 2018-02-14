@@ -2,6 +2,7 @@
 
 namespace marian {
 
+#if 0 // moved to header
 Expr Cost(Expr logits,
           Expr indices,
           Expr mask,
@@ -43,4 +44,5 @@ Expr Cost(Expr logits,
 
   return cost;
 }
+#endif
 }

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "marian.h"
+#include "../layers/generic.h"
+#include "states.h"
 
 namespace marian {
 
@@ -21,12 +23,21 @@ protected:
     int dimEmb = srcEmbeddings->shape()[-1];
     int dimWords = subBatch->batchWidth();
 
-    auto graph = srcEmbeddings->graph();
-    auto chosenEmbeddings = rows(srcEmbeddings, subBatch->indices());
+    auto chosenEmbeddings =
+#ifdef CNTK_BACKEND
+        /*if*/ (subBatch->oneHot()) ?  // CNTK-specific: CNTK corpus data is stored differently.
+            rows(srcEmbeddings, subBatch->oneHot())
+        /*else*/ :
+#endif
+            rows(srcEmbeddings, subBatch->indices());
 
     auto batchEmbeddings
         = reshape(chosenEmbeddings, {dimWords, dimBatch, dimEmb});
-    auto batchMask = graph->constant(
+#ifdef CNTK_BACKEND
+    auto batchMask = constant(
+#else
+    auto batchMask = srcEmbeddings->graph()->constant(
+#endif
         {dimWords, dimBatch, 1}, init = inits::from_vector(subBatch->mask()));
 
     return std::make_tuple(batchEmbeddings, batchMask);
@@ -103,7 +114,13 @@ public:
     int dimBatch = subBatch->batchSize();
     int dimWords = subBatch->batchWidth();
 
-    auto chosenEmbeddings = rows(yEmb, subBatch->indices());
+    auto chosenEmbeddings =
+#ifdef CNTK_BACKEND
+        /*if*/ (subBatch->oneHot()) ?  // CNTK-specific: CNTK corpus data is stored differently.
+            rows(yEmb, subBatch->oneHot())
+        /*else*/ :
+#endif
+            rows(yEmb, subBatch->indices());
 
     auto y
         = reshape(chosenEmbeddings, {dimWords, dimBatch, opt<int>("dim-emb")});
@@ -198,6 +215,7 @@ protected:
 
   std::vector<std::string> modelFeatures_;
 
+#ifndef CNTK_BACKEND
   void saveModelParameters(const std::string& name) {
     YAML::Node modelParams;
     for(auto& key : modelFeatures_)
@@ -227,6 +245,7 @@ protected:
     OutputFileStream out(name + ".decoder.yml");
     (std::ostream&)out << decoder;
   }
+#endif
 
 public:
   typedef data::Corpus dataset_type;
@@ -272,6 +291,7 @@ public:
 
   void push_back(Ptr<DecoderBase> decoder) { decoders_.push_back(decoder); }
 
+#ifndef CNTK_BACKEND
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
                     bool markedReloaded = true) {
@@ -288,6 +308,7 @@ public:
     if(saveTranslatorConfig)
       createDecoderConfig(name);
   }
+#endif
 
   virtual void clear(Ptr<ExpressionGraph> graph) {
     graph->clear();
@@ -391,6 +412,7 @@ public:
     return build(graph, corpusBatch, clearGraph);
   }
 
+#ifndef CNTK_BACKEND
   Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph,
                                      size_t multiplier = 1) {
     auto stats = New<data::BatchStats>();
@@ -417,6 +439,7 @@ public:
     }
     return stats;
   }
+#endif
 
   template <typename T>
   T opt(const std::string& key) {

@@ -13,10 +13,14 @@
 #include "graph/expression_graph.h"
 #include "graph/expression_operators.h"
 
+#include "optimizers/optimizers.h"
+
+#include "layers/param_initializers.h" // TODO: Can we move this into backend?
+
+// TODO: The following are front-end includes that should not be included here.
 #include "layers/constructors.h"
 #include "layers/generic.h"
 #include "layers/guided_alignment.h"
-#include "layers/param_initializers.h"
 
 #include "models/model_base.h"
 #include "models/states.h"
@@ -25,6 +29,4 @@
 #include "rnn/attention.h"
 #include "rnn/constructors.h"
 #include "rnn/rnn.h"
-
-#include "optimizers/optimizers.h"
 // clang-format on
