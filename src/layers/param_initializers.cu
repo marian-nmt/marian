@@ -37,6 +37,8 @@ void ones(Tensor t) {
   t->set(1.0f);
 }
 
+typedef std::function<void(Tensor)> ParameterInitializer;
+
 std::function<void(Tensor)> from_value(float v) {
   return [v](Tensor t) { t->set(v); };
 }

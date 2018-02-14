@@ -5,7 +5,7 @@
 //#include "common/options.h"
 //#include "graph/expression_graph.h"
 //#include "graph/expression_operators.h"
-//#include "layers/factory.h"
+#include "layers/factory.h"
 //#include "layers/param_initializers.h"
 
 namespace marian {
@@ -213,8 +213,7 @@ struct EmbeddingFactory : public Factory {
 
     bool fixed = opt<bool>("fixed", false);
 
-    //std::function<void(Tensor)> initFunc = inits::glorot_uniform;
-    auto initFunc = inits::glorot_uniform;
+    inits::ParameterInitializer initFunc = inits::glorot_uniform;
     if(options_->has("embFile")) {
       std::string file = opt<std::string>("embFile");
       if(!file.empty()) {

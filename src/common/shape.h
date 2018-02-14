@@ -6,7 +6,7 @@
 #include <sstream>
 #include <vector>
 
-//#include "common/logging.h"
+#include "common/logging.h"
 
 namespace marian {
 

@@ -11,6 +11,8 @@ namespace marian {
 
 namespace inits {
 
+typedef std::function<void(Tensor)> ParameterInitializer;
+
 float xor128();
 
 // Use a constant seed for deterministic behaviour.
