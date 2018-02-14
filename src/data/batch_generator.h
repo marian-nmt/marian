@@ -43,12 +43,17 @@ private:
   bool loadReady_{true};
   
   void fillBatches(bool shuffle = true) {
-    auto cmpSrc = [](const sample& a, const sample& b) {
-      return a[0].size() < b[0].size();
+    typedef typename sample::value_type Item;
+    auto itemCmp = [](const Item& sa, const Item& sb) {
+      return sa.size() < sb.size();
+    };
+    
+    auto cmpSrc = [itemCmp](const sample& a, const sample& b) {
+      return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end(), itemCmp);
     };
 
-    auto cmpTrg = [](const sample& a, const sample& b) {
-      return a.back().size() < b.back().size();
+    auto cmpTrg = [itemCmp](const sample& a, const sample& b) {
+      return std::lexicographical_compare(a.rbegin(), a.rend(), b.rbegin(), b.rend(), itemCmp);
     };
 
     auto cmpNone = [](const sample& a, const sample& b) { return &a < &b; };

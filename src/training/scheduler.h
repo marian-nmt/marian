@@ -12,6 +12,7 @@ private:
 
   Ptr<Config> options_;
   std::vector<Ptr<ValidatorBase>> validators_;
+  bool validated_{false};
 
   float costSum{0};
   size_t samples{0};
@@ -73,8 +74,9 @@ public:
     return (state_->batches % options_->get<size_t>("save-freq") == 0);
   }
 
-  void validate(const std::vector<Ptr<ExpressionGraph>>& graphs) {
-    if(state_->batches % options_->get<size_t>("valid-freq") != 0)
+  void validate(const std::vector<Ptr<ExpressionGraph>>& graphs, bool final = false) {
+    if(validated_ || (state_->batches % options_->get<size_t>("valid-freq") != 0
+                      && !final))
       return;
 
     bool firstValidator = true;
@@ -103,6 +105,8 @@ public:
         state_->newStalled(validator->stalled());
       firstValidator = false;
     }
+
+    validated_ = true;
   }
 
   size_t stalled() {
@@ -147,6 +151,8 @@ public:
       wordsDisp = 0;
       samplesDisp = 0;
     }
+
+    validated_ = false;
   }
 
   void load(const std::string& name) {

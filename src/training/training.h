@@ -21,11 +21,11 @@ public:
     using namespace data;
 
     Ptr<CorpusBase> dataset;
-    if(options_->get<bool>("sqlite"))
+    if(!options_->get<std::string>("sqlite").empty())
       dataset = New<CorpusSQLite>(options_);
     else
       dataset = New<Corpus>(options_);
-      
+
     dataset->prepare();
 
     Ptr<BatchStats> stats;
@@ -42,7 +42,7 @@ public:
 
     if((options_->has("valid-sets") || options_->has("valid-script-path"))
        && options_->get<size_t>("valid-freq") > 0) {
-      
+
       for(auto validator : Validators(dataset->getVocabs(), options_))
         scheduler->addValidator(validator);
     }

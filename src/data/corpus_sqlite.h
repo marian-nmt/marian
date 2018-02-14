@@ -10,52 +10,48 @@
 #include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
+#include "data/alignment.h"
 #include "data/batch.h"
+#include "data/corpus_base.h"
 #include "data/dataset.h"
 #include "data/vocab.h"
-#include "data/corpus.h"
 
 #include <SQLiteCpp/SQLiteCpp.h>
+#include <SQLiteCpp/sqlite3/sqlite3.h>
+
+static void SQLiteRandomSeed(sqlite3_context* context,
+                             int argc,
+                             sqlite3_value** argv) {
+  if(argc == 1 && sqlite3_value_type(argv[0]) == SQLITE_INTEGER) {
+    const int seed = sqlite3_value_int(argv[0]);
+    static std::default_random_engine eng(seed);
+    std::uniform_int_distribution<> unif;
+    const int result = unif(eng);
+    sqlite3_result_int(context, result);
+  } else {
+    sqlite3_result_error(context, "Invalid", 0);
+  }
+}
 
 namespace marian {
 namespace data {
 
 class CorpusSQLite : public CorpusBase {
 private:
-  Ptr<Config> options_;
-
-  std::vector<UPtr<InputFileStream>> files_;
-  std::vector<Ptr<Vocab>> vocabs_;
-  size_t maxLength_;
-  bool maxLengthCrop_;
-  bool rightLeft_;
-
-  size_t pos_{0};
-  
-  Ptr<WordAlignment> wordAlignment_;
-  
   UPtr<SQLite::Database> db_;
   UPtr<SQLite::Statement> select_;
-  
+
   void fillSQLite();
+
+  size_t seed_;
 
 public:
   CorpusSQLite(Ptr<Config> options, bool translate = false);
 
   CorpusSQLite(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
-               Ptr<Config> options,
-               size_t maxLength = 0);
+               Ptr<Config> options);
 
-  /**
-   * @brief Iterates sentence tuples in the corpus.
-   *
-   * A sentence tuple is skipped with no warning if any sentence in the tuple
-   * (e.g. a source or target) is longer than the maximum allowed sentence
-   * length in words.
-   *
-   * @return A tuple representing parallel sentences.
-   */
   sample next();
 
   void shuffle();
@@ -106,20 +102,24 @@ public:
     auto batch = batch_ptr(new batch_type(subBatches));
     batch->setSentenceIds(sentenceIds);
 
-    if(options_->has("guided-alignment") && wordAlignment_)
-      wordAlignment_->guidedAlignment(batch);
+    if(options_->has("guided-alignment") && alignFileIdx_)
+      addAlignmentsToBatch(batch, batchVector);
+    if(options_->has("data-weighting") && weightFileIdx_)
+      addWeightsToBatch(batch, batchVector);
 
     return batch;
   }
 
-  void prepare() {
-    if(options_->has("guided-alignment"))
-      setWordAlignment(options_->get<std::string>("guided-alignment"));
-  }
-
 private:
-  void setWordAlignment(const std::string& path) {
-    wordAlignment_ = New<WordAlignment>(path);
+  void createRandomFunction() {
+    sqlite3_create_function(db_->getHandle(),
+                            "random_seed",
+                            1,
+                            SQLITE_UTF8,
+                            NULL,
+                            &SQLiteRandomSeed,
+                            NULL,
+                            NULL);
   }
 };
 }

@@ -7,11 +7,25 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+
+### Added
+- Data weighting with `--data-weighting` at sentence or word level
+- Persistent SQLite3 corpus storage with `--sqlite file.db`
+
+### Fixed
+- Deterministic data shuffling with specific seed for SQLite3 corpus storage
+
+## [1.3.1] - 2018-02-04
+
+### Fixed
+- Fixed missing final validation when done with training
+- Fixed differing summaries for marian-scorer when used with multiple GPUs
+
 ## [1.3.0] - 2018-01-24
 
 ### Added
-- Added SQLite3 based corpus storage for on-disk shuffling etc. with `--sqlite`
-- Added asynchronous maxi-batch preloading
+- SQLite3 based corpus storage for on-disk shuffling etc. with `--sqlite`
+- Asynchronous maxi-batch preloading
 - Using transpose in SGEMM to tie embeddings in output layer
 
 ## [1.2.1] - 2018-01-19

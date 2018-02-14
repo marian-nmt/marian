@@ -292,7 +292,8 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
     ("dim-vocabs", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({0, 0}), "0 0"),
-     "Maximum items in vocabulary ordered by rank, 0 uses all items in the provided/created vocabulary file")
+     "Maximum items in vocabulary ordered by rank, 0 uses all items in the "
+     "provided/created vocabulary file")
     ("dim-emb", po::value<int>()->default_value(512),
      "Size of embedding vector")
     ("dim-rnn", po::value<int>()->default_value(1024),
@@ -302,15 +303,15 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
     ("enc-cell", po::value<std::string>()->default_value("gru"),
      "Type of RNN cell: gru, lstm, tanh (s2s)")
     ("enc-cell-depth", po::value<int>()->default_value(1),
-     "Number of tansitional cells in encoder layers (s2s)")
+     "Number of transitional cells in encoder layers (s2s)")
     ("enc-depth", po::value<int>()->default_value(1),
      "Number of encoder layers (s2s)")
     ("dec-cell", po::value<std::string>()->default_value("gru"),
      "Type of RNN cell: gru, lstm, tanh (s2s)")
     ("dec-cell-base-depth", po::value<int>()->default_value(2),
-     "Number of tansitional cells in first decoder layer (s2s)")
+     "Number of transitional cells in first decoder layer (s2s)")
     ("dec-cell-high-depth", po::value<int>()->default_value(1),
-     "Number of tansitional cells in next decoder layers (s2s)")
+     "Number of transitional cells in next decoder layers (s2s)")
     ("dec-depth", po::value<int>()->default_value(1),
      "Number of decoder layers (s2s)")
     //("dec-high-context", po::value<std::string>()->default_value("none"),
@@ -399,7 +400,7 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "Paths to vocabulary files have to correspond to --train-sets. "
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
-      "If these files do not exists they are created")
+      "If these files do not exist they are created")
     ("max-length", po::value<size_t>()->default_value(50),
       "Maximum length of a sentence in a training sentence pair")
     ("max-length-crop", po::value<bool>()->zero_tokens()->default_value(false),
@@ -416,8 +417,11 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     "Skip shuffling of training data before each epoch")
     ("tempdir,T", po::value<std::string>()->default_value("/tmp"),
       "Directory for temporary (shuffled) files and database")
-    ("sqlite", po::value<bool>()->zero_tokens()->default_value(false),
-      "Use temporary disk-based sqlite3 database for training corpus storage")
+    ("sqlite", po::value<std::string>()->default_value("")->implicit_value("temporary"),
+      "Use disk-based sqlite3 database for training corpus storage, default "
+      "is temporary with path creates persistent storage")
+    ("sqlite-drop", po::value<bool>()->zero_tokens()->default_value(false),
+      "Drop existing tables in sqlite3 database")
     ("devices,d", po::value<std::vector<std::string>>()
       ->multitoken()
       ->default_value(std::vector<std::string>({"0"}), "0"),
@@ -428,7 +432,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("mini-batch-words", po::value<int>()->default_value(0),
       "Set mini-batch size based on words instead of sentences")
     ("mini-batch-fit", po::value<bool>()->zero_tokens()->default_value(false),
-      "Determine mini-batch size automatically based on sentence-length to fit reserved memory")
+      "Determine mini-batch size automatically based on sentence-length to "
+      "fit reserved memory")
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
@@ -499,6 +504,10 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
      "mse (mean square error), mult (multiplication)")
     ("guided-alignment-weight", po::value<double>()->default_value(1),
      "Weight for guided alignment cost")
+    ("data-weighting", po::value<std::string>(),
+     "File with sentence or word weights")
+    ("data-weighting-type", po::value<std::string>()->default_value("sentence"),
+     "Processing level for data weighting. Possible values: sentence, word")
 
     //("drop-rate", po::value<double>()->default_value(0),
     // "Gradient drop ratio (read: https://arxiv.org/abs/1704.05021)")
@@ -739,8 +748,9 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION_NONDEFAULT("models", std::vector<std::string>);
   } else {
     SET_OPTION("model", std::string);
-    if(mode_ == ConfigMode::training)
+    if(mode_ == ConfigMode::training) {
       SET_OPTION_NONDEFAULT("pretrained-model", std::string);
+    }
   }
 
   if(!vm_["vocabs"].empty()) {
@@ -811,7 +821,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("save-freq", size_t);
     SET_OPTION("no-shuffle", bool);
     SET_OPTION("tempdir", std::string);
-    SET_OPTION("sqlite", bool);
+    SET_OPTION("sqlite", std::string);
+    SET_OPTION("sqlite-drop", bool);
 
     SET_OPTION("optimizer", std::string);
     SET_OPTION_NONDEFAULT("optimizer-params", std::vector<float>);
@@ -846,6 +857,9 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION_NONDEFAULT("guided-alignment", std::string);
     SET_OPTION("guided-alignment-cost", std::string);
     SET_OPTION("guided-alignment-weight", double);
+    SET_OPTION_NONDEFAULT("data-weighting", std::string);
+    SET_OPTION("data-weighting-type", std::string);
+
     // SET_OPTION("drop-rate", double);
     SET_OPTION_NONDEFAULT("embedding-vectors", std::vector<std::string>);
     SET_OPTION("embedding-normalization", bool);
