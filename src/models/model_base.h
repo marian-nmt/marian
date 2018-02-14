@@ -3,9 +3,6 @@
 #include "marian.h"
 #include <string>
 
-//#include "data/batch.h"
-//#include "graph/expression_graph.h"
-
 namespace marian {
 namespace models {
 

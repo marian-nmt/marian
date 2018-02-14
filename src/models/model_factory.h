@@ -1,7 +1,6 @@
 #pragma once
 
 #include "marian.h"
-//#include "common/definitions.h"
 #include "layers/factory.h"
 #include "encdec.h"
 

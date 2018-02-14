@@ -1,9 +1,6 @@
 #pragma once
 
 #include "marian.h"
-//#include "common/definitions.h"
-//#include "graph/expression_graph.h"
-//#include "graph/expression_operators.h"
 #include "layers/generic.h"
 #include "rnn/rnn.h"
 

@@ -1,14 +1,15 @@
-
-#include <stdint.h>
-#include <algorithm>
-#include <iterator>
-#include <random>
+// TODO: move to backend, into graph/
 
 #include "kernels/cuda_helpers.h"
 #include "kernels/tensor_operators.h"
 #include "layers/param_initializers.h"
 #include "layers/word2vec_reader.h"
 #include "svd/svd.h"
+
+#include <stdint.h>
+#include <algorithm>
+#include <iterator>
+#include <random>
 
 namespace marian {
 
