@@ -1,7 +1,7 @@
 #pragma once
 
 #include "marian.h"
-#include "../layers/generic.h"
+#include "layers/generic.h"
 #include "states.h"
 
 namespace marian {
@@ -215,9 +215,8 @@ protected:
 
   std::vector<std::string> modelFeatures_;
 
-#ifndef CNTK_BACKEND
   void saveModelParameters(const std::string& name) {
-    YAML::Node modelParams;
+    Config::YamlNode modelParams;
     for(auto& key : modelFeatures_)
       modelParams[key] = options_->getOptions()[key];
 
@@ -230,7 +229,7 @@ protected:
   }
 
   virtual void createDecoderConfig(const std::string& name) {
-    YAML::Node decoder;
+    Config::YamlNode decoder;
     decoder["models"] = std::vector<std::string>({name});
     decoder["vocabs"] = options_->get<std::vector<std::string>>("vocabs");
     decoder["normalize"] = opt<float>("normalize");
@@ -245,7 +244,6 @@ protected:
     OutputFileStream out(name + ".decoder.yml");
     (std::ostream&)out << decoder;
   }
-#endif
 
 public:
   typedef data::Corpus dataset_type;
@@ -291,7 +289,6 @@ public:
 
   void push_back(Ptr<DecoderBase> decoder) { decoders_.push_back(decoder); }
 
-#ifndef CNTK_BACKEND
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
                     bool markedReloaded = true) {
@@ -308,7 +305,6 @@ public:
     if(saveTranslatorConfig)
       createDecoderConfig(name);
   }
-#endif
 
   virtual void clear(Ptr<ExpressionGraph> graph) {
     graph->clear();
@@ -412,7 +408,6 @@ public:
     return build(graph, corpusBatch, clearGraph);
   }
 
-#ifndef CNTK_BACKEND
   Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph,
                                      size_t multiplier = 1) {
     auto stats = New<data::BatchStats>();
@@ -439,7 +434,6 @@ public:
     }
     return stats;
   }
-#endif
 
   template <typename T>
   T opt(const std::string& key) {

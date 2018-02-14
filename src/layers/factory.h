@@ -53,7 +53,7 @@ public:
     return *this;
   }
 
-  Accumulator& operator()(YAML::Node yaml) {
+  Accumulator& operator()(Config::YamlNode yaml) {
     Factory::getOptions()->merge(yaml);
     return *this;
   }
