@@ -38,6 +38,9 @@ public:
 
   void setParams(const std::vector<float>& params) { parseParams(params); }
 
+  virtual void load(const std::string& name, size_t device) { }
+  virtual void save(const std::string& name) { }
+
 protected:
   virtual void updateImpl(Tensor params, Tensor grads) = 0;
   virtual void parseParams(const std::vector<float>& params) = 0;
@@ -106,7 +109,74 @@ public:
   Adam(float eta, Ptr<ClipperBase> clipper = nullptr)
       : OptimizerBase(eta, clipper), t_(0) {}
 
+  void load(const std::string& name, size_t device) {
+    if(!boost::filesystem::exists(name))
+      return;
+
+    LOG(info, "Loading Adam parameters from {}", name);
+
+    auto numpy = cnpy::npz_load(name);
+    for(auto it : numpy) {
+      auto name = it.first;
+      cnpy::NpyArray& np = it.second;
+
+      // get the size of mt_ and vt_
+      int size = 1;
+      for(size_t i = 0; i < np.shape.size(); ++i)
+        size *= np.shape[i];
+
+      // reserve memory for momentums
+      if(!mt_ || !vt_) {
+        if(!alloc_)
+          alloc_ = New<TensorAllocator>(device);
+
+        alloc_->reserveExact(2 * size);
+        alloc_->allocate(mt_, {1, size});
+        alloc_->allocate(vt_, {1, size});
+      }
+
+      // extract data into a vector
+      std::vector<float> npv(size);
+      std::copy((float*)np.data, (float*)np.data + size, npv.begin());
+
+      // set tensors
+      if(name == "mt_")
+        mt_->set(npv);
+      if(name == "vt_")
+        vt_->set(npv);
+    }
+  }
+
+  void save(const std::string& name) {
+    LOG(info, "Saving Adam parameters to {}", name);
+
+    // the shape is the same for mt_ and vt_
+    unsigned dim = mt_->shape().size();
+    unsigned* shape = new unsigned[dim];
+    for(int i = 0; i < dim; ++i)
+      shape[i] = mt_->shape()[i];
+
+    std::vector<float> vMt;
+    mt_->get(vMt);
+    cnpy::npz_save(name, "mt_", vMt.data(), shape, dim, "w");
+
+    std::vector<float> vVt;
+    vt_->get(vVt);
+    cnpy::npz_save(name, "vt_", vVt.data(), shape, dim, "a");
+
+    delete[] shape;
+  }
+
 private:
+  float beta1_ = 0.9;
+  float beta2_ = 0.999;
+  float eps_ = 1e-8;
+  size_t t_;
+
+  Ptr<TensorAllocator> alloc_;
+  Tensor mt_;
+  Tensor vt_;
+
   void updateImpl(Tensor params, Tensor grads);
 
   virtual void actAfterEpoch(TrainingState& state) {
@@ -127,7 +197,6 @@ private:
       resetStats();
   }
 
-private:
   void resetStats();
 
   virtual void parseParams(const std::vector<float>& params) {
@@ -138,15 +207,6 @@ private:
     if(params.size() > 2)
       eps_ = params[2];
   }
-
-  float beta1_ = 0.9;
-  float beta2_ = 0.999;
-  float eps_ = 1e-8;
-  size_t t_;
-
-  Ptr<TensorAllocator> alloc_;
-  Tensor mt_;
-  Tensor vt_;
 };
 
 template <class Algorithm>

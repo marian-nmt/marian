@@ -56,6 +56,8 @@ public:
             init);
         builder_->load(graph_, init, false);
       }
+
+      opt_->load(name + ".optimizer.npz", graph_->getDevice());
     }
   }
 
@@ -71,15 +73,13 @@ public:
   }
 
   void save(Ptr<ExpressionGraph> graph, bool final = false) {
-    if(options_->get<bool>("overwrite")) {
-      std::string name = options_->get<std::string>("model");
+    std::string name = options_->get<std::string>("model");
 
+    if(options_->get<bool>("overwrite")) {
       builder_->save(graph_, name, true);
       if(scheduler_)
         scheduler_->save(name);
     } else {
-      std::string name = options_->get<std::string>("model");
-
       if(!final) {
         std::string numberOfBatches
             = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
@@ -94,6 +94,8 @@ public:
       if(scheduler_)
         scheduler_->save(name);
     }
+
+    opt_->save(name + ".optimizer.npz");
   }
 
   Ptr<data::BatchStats> collectStats() {
