@@ -1,9 +1,10 @@
 #pragma once
 
-#include "common/definitions.h"
-#include "graph/expression_graph.h"
-#include "graph/expression_operators.h"
-#include "models/states.h"
+#include "marian.h"
+//#include "common/definitions.h"
+//#include "graph/expression_graph.h"
+//#include "graph/expression_operators.h"
+#include "models/states.h" // TODO: clean up dependency--which one is higher in hierarchy, rnn/ or models/?
 
 #include "rnn/types.h"
 

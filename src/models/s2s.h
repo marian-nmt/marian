@@ -1,6 +1,8 @@
 #pragma once
 
 #include "marian.h"
+#include "layers/constructors.h"
+#include "rnn/constructors.h"
 
 namespace marian {
 
@@ -153,7 +155,7 @@ public:
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask;
     std::tie(batchEmbeddings, batchMask)
-        = EncoderBase::lookup(embeddings, batch);
+        = EncoderBase::lookup(graph, embeddings, batch);
 
     // apply dropout over source words
     float dropProb = inference_ ? 0 : opt<float>("dropout-src");

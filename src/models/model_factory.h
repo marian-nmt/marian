@@ -2,7 +2,7 @@
 
 #include "marian.h"
 //#include "common/definitions.h"
-//#include "layers/factory.h"
+#include "layers/factory.h"
 #include "encdec.h"
 
 namespace marian {

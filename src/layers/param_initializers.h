@@ -1,11 +1,11 @@
 #pragma once
 
-#include <functional>
-#include <random>
-
 #include "cnpy/cnpy.h"
 #include "common/config.h"
 #include "tensors/tensor.h"
+
+#include <functional>
+#include <random>
 
 namespace marian {
 

@@ -1,7 +1,9 @@
 #pragma once
 
+#include "marian.h"
 #include "layers/factory.h"
 #include "rnn/rnn.h"
+#include "rnn/attention.h"
 
 namespace marian {
 namespace rnn {
@@ -132,6 +134,7 @@ public:
 
 typedef Accumulator<StackedCellFactory> stacked_cell;
 
+// TODO: move attention and this factory to models/
 class AttentionFactory : public InputFactory {
 protected:
   Ptr<EncoderState> state_;

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "marian.h"
-#include "../layers/factory.h"
-#include "../layers/constructors.h"
+#include "layers/factory.h"
+#include "layers/constructors.h"
 #include "model_base.h"
 #include "model_factory.h"
 #include "encdec.h"
@@ -399,7 +399,7 @@ public:
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask;
     std::tie(batchEmbeddings, batchMask)
-        = EncoderBase::lookup(embeddings, batch);
+        = EncoderBase::lookup(graph, embeddings, batch);
 
     // apply dropout over source words
     float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");

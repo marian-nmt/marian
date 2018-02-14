@@ -2,6 +2,8 @@
 
 #include "marian.h"
 #include "layers/generic.h"
+#include "layers/guided_alignment.h"
+#include "model_base.h"
 #include "states.h"
 
 namespace marian {
@@ -13,7 +15,8 @@ protected:
   bool inference_{false};
   size_t batchIndex_{0};
 
-  virtual std::tuple<Expr, Expr> lookup(Expr srcEmbeddings,
+  virtual std::tuple<Expr, Expr> lookup(Ptr<ExpressionGraph> graph,
+                                        Expr srcEmbeddings,
                                         Ptr<data::CorpusBatch> batch) {
     using namespace keywords;
 
@@ -33,11 +36,7 @@ protected:
 
     auto batchEmbeddings
         = reshape(chosenEmbeddings, {dimWords, dimBatch, dimEmb});
-#ifdef CNTK_BACKEND
-    auto batchMask = constant(
-#else
-    auto batchMask = srcEmbeddings->graph()->constant(
-#endif
+    auto batchMask = graph->constant(
         {dimWords, dimBatch, 1}, init = inits::from_vector(subBatch->mask()));
 
     return std::make_tuple(batchEmbeddings, batchMask);

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "marian.h"
+#include "layers/generic.h"
+#include "rnn/constructors.h"
 
 namespace marian {
 

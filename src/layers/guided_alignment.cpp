@@ -4,6 +4,7 @@
 
 namespace marian {
 
+#if 0 // moved to header
 Expr guidedAlignmentCost(Ptr<ExpressionGraph> graph,
                          Ptr<data::CorpusBatch> batch,
                          Ptr<Options> options,
@@ -36,4 +37,5 @@ Expr guidedAlignmentCost(Ptr<ExpressionGraph> graph,
   float guidedScalar = options->get<float>("guided-alignment-weight");
   return guidedScalar * alnCost;
 }
+#endif
 }
