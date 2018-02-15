@@ -49,6 +49,7 @@ public:
         if(scheduler_)
           scheduler_->load(name);
         builder_->load(graph_, name);
+        opt_->load(name + ".optimizer.npz", graph_->getDevice());
       } else if(options_->has("pretrained-model")) {
         std::string init = options_->get<std::string>("pretrained-model");
         LOG(info,
@@ -56,8 +57,6 @@ public:
             init);
         builder_->load(graph_, init, false);
       }
-
-      opt_->load(name + ".optimizer.npz", graph_->getDevice());
     }
   }
 
