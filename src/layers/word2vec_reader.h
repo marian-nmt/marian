@@ -2,7 +2,6 @@
 
 #include "3rd_party/exception.h"
 #include "marian.h"
-#include "layers/param_initializers.h"
 
 #include <fstream>
 #include <string>

@@ -4,27 +4,24 @@
 #include <map>
 #include <unordered_set>
 
-#include "3rd_party/cnpy/cnpy.h"
-#include "3rd_party/threadpool.h"
 #include "common/config.h"
 #include "common/definitions.h"
-#include "data/batch_generator.h"
+
+#include "tensors/tensor_allocator.h"
+
 #include "graph/backend.h"
+#include "graph/parameters.h"
 #include "graph/chainable.h"
 #include "graph/node_operators.h"
-#include "graph/parameters.h"
-#include "layers/param_initializers.h"
-#include "tensors/tensor_allocator.h"
+#include "graph/node_initializers.h"
+
+#include "3rd_party/cnpy/cnpy.h"
 
 namespace marian {
 
 template <class T, typename... Args>
 Expr Expression(Args&&... args);
 
-/**
- * @brief Represents a computation graph of expressions, over which algorithmic
- * differentiation may be performed.
- */
 class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 private:
   size_t count_{0};
@@ -36,7 +33,6 @@ private:
   Ptr<Parameters> params_;
   Ptr<TensorAllocator> tensors_;
 
-  size_t device_;
   Ptr<Backend> backend_;
 
   std::unordered_map<size_t, std::vector<WExpr>> hashMap_;
@@ -66,11 +62,10 @@ public:
     params_->clear();
   }
 
-  void setDevice(size_t device = 0);
-  size_t getDevice() { return device_; }
-
+  void setDevice(DeviceId deviceId = {0, DeviceType::gpu});
+  DeviceId getDevice() { return backend_->getDevice(); }
   Ptr<Backend> getBackend() { return backend_; }
-
+  
   void switchParams(const std::string& newNamespace) {
     namespace_ = newNamespace;
   }
@@ -115,22 +110,6 @@ public:
     return true;
   }
 
-  /**
-   * @brief Perform the forward pass of algorithmic differentiation (AD) on this
-   * graph.
-   *
-   * This pass traverses the nodes of this graph in the order they were
-   * created; as each node is traversed, its <code>allocate()</code> method is
-   * called.
-   *
-   * Once allocation is complete for all nodes, this pass again traverses the
-   * nodes, in creation order; as each node is traversed, its
-   * <code>forward()</code> method is called.
-   *
-   * After this method has successfully completed, it is guaranteed that all
-   * node allocation has been completed, and that all forward pass computations
-   * have been performed.
-   */
   void forward() {
     params_->allocateForward();
     forwardNext();
@@ -161,22 +140,6 @@ public:
     }
   }
 
-  /**
-   * @brief Perform the backward pass of algorithmic differentiation (AD) on
-   * this graph.
-   *
-   * This pass traverses the nodes of this graph in reverse of the order they
-   * were created;
-   *    as each node is traversed, its <code>set_zero_adjoint()</code> method is
-   * called.
-   *
-   * Once this has been performed for all nodes, this pass again traverses the
-   * nodes, again in reverse creation order;
-   *    as each node is traversed, its <code>backward()</code> method is called.
-   *
-   * After this method has successfully completed,
-   *    and that all backward pass computations have been performed.
-   */
   void backward() {
     ABORT_IF(topNodes_.size() > 1,
              "There are more than one top most node for backward step");
@@ -214,16 +177,6 @@ public:
     }
   }
 
-  /**
-   * @brief Returns a string representing this expression graph in
-   * <code>graphviz</code> notation.
-   *
-   * This string can be used by <code>graphviz</code> tools to visualize the
-   * expression graph.
-   *
-   * @return a string representing this expression graph in
-   * <code>graphviz</code> notation
-   */
   std::string graphviz() {
     std::stringstream ss;
     ss << "digraph ExpressionGraph {" << std::endl;
@@ -247,19 +200,6 @@ public:
     dot.close();
   }
 
-  /*********************************************************/
-
-  /**
-   * @brief Constructs a new node representing a parameter in an expression
-   * graph.
-   *
-   * This method records the parameter node in a list of parameter nodes, but
-   * does not attach the new parameter node to any existing expression graph.
-   *
-   * @param args           XXX Marcin, what are args here?
-   *
-   * @return a newly constructed parameter node
-   */
   template <typename... Args>
   Expr param(std::string name, Shape shape, Args... args) {
     if(!namespace_.empty())
@@ -298,49 +238,18 @@ public:
     return p;
   }
 
-  /**
-   * @brief Constructs a new node representing a constant in an expression
-   * graph.
-   *
-   * This method does not attach the new constant node to any existing
-   * expression graph.
-   *
-   * @return a newly constructed constant node
-   */
   template <typename... Args>
   Expr constant(Shape shape, Args... args) {
     return Expression<ConstantNode>(
         shared_from_this(), keywords::shape = shape, args...);
   }
 
-  /**
-   * @brief Constructs a new node representing a constant (with value 1) in an
-   * expression graph.
-   *
-   * This method does not attach the new constant node to any existing
-   * expression graph.
-   *
-   * @param args           XXX Marcin, what are args here?
-   *
-   * @return a newly constructed constant node
-   */
   template <typename... Args>
   Expr ones(Args... args) {
     return Expression<ConstantNode>(
         shared_from_this(), keywords::init = inits::ones, args...);
   }
 
-  /**
-   * @brief Constructs a new node representing a constant (with value 0) in an
-   * expression graph.
-   *
-   * This method does not attach the new constant node to any existing
-   * expression graph.
-   *
-   * @param args           XXX Marcin, what are args here?
-   *
-   * @return a newly constructed constant node
-   */
   template <typename... Args>
   Expr zeros(Args... args) {
     return Expression<ConstantNode>(
@@ -349,22 +258,6 @@ public:
 
   Expr dropout(float prob, Shape shape);
 
-  Expr gaussian(float mean, float stddev, Shape shape);
-
-  /*********************************************************/
-
-  /**
-   * @brief Returns the first item in the list with the specified name, if such
-   * an item exists.
-   *
-   * If no item with the specified name is found in the graph, this method
-   * throws an exception.
-   *
-   * @param name Name of the desired expression node
-   *
-   * @return the first item in the list with the specified name, if such an item
-   * exists
-   */
   Expr get(std::string name) {
     if(!namespace_.empty())
       name = namespace_ + "::" + name;
@@ -375,16 +268,9 @@ public:
     return Expr();
   }
 
-  /**
-   * @brief Gets the list of all parameter nodes of this expression graph
-   *
-   * @return the list of all parameter nodes of this expression graph
-   */
   Ptr<Parameters>& params() { return params_; }
 
   Expr add(Expr node) {
-    // size_t group = 0;
-
     size_t hash = node->hash();
     auto it = hashMap_.find(hash);
     if(it != hashMap_.end()) {
@@ -476,7 +362,6 @@ public:
 
     std::string mode = "w";
 
-    backend_->setDevice(getDevice());
     for(auto p : params()->getMap()) {
       std::string pName = p.first;
 
@@ -504,8 +389,6 @@ public:
 
 template <class T, typename... Args>
 Expr Expression(Args&&... args) {
-  // @TODO check hash, if exists do not add and return
-  // cached node to minimize calculations
   auto e = Expr(new T(std::forward<Args>(args)...));
   return e->graph()->add(e);
 }

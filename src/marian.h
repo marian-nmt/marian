@@ -12,10 +12,10 @@
 
 #include "graph/expression_graph.h"
 #include "graph/expression_operators.h"
+#include "graph/node_initializers.h"
 
 #include "optimizers/optimizers.h"
 
-#include "layers/param_initializers.h" // TODO: move this into graph/
 
 // TODO: The following are front-end includes that should not be included here.
 //#include "layers/constructors.h"

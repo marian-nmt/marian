@@ -5,7 +5,7 @@
 
 namespace marian {
 
-namespace models {
+namespace rnn {
 
 struct AttentionNodeOp : public NaryNodeOp {
   AttentionNodeOp(const std::vector<Expr>& nodes)

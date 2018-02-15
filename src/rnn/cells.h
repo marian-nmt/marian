@@ -2,7 +2,7 @@
 
 #include "marian.h"
 #include "layers/generic.h"
-#include "rnn/rnn.h"
+#include "rnn/types.h"
 
 #include <algorithm>
 #include <chrono>

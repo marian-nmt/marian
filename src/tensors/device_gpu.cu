@@ -1,13 +1,13 @@
-#include "tensors/device_gpu.h"
-
 #include <cuda.h>
 #include <iostream>
+
+#include "tensors/device_gpu.h"
 #include "kernels/cuda_helpers.h"
 
 namespace marian {
 
 DeviceGPU::~DeviceGPU() {
-  cudaSetDevice(device_);
+  cudaSetDevice(deviceId_.no);
   if(data_) {
     CUDA_CHECK(cudaFree(data_));
   }
@@ -16,7 +16,7 @@ DeviceGPU::~DeviceGPU() {
 
 void DeviceGPU::reserve(size_t size) {
   size = align(size);
-  cudaSetDevice(device_);
+  cudaSetDevice(deviceId_.no);
 
   ABORT_IF(size < size_, "New size must be larger than old size");
 

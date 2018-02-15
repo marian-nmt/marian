@@ -74,8 +74,6 @@ public:
       for(auto& kv : nameMap_)
         nameMapRev_.insert({kv.second, kv.first});
 
-    graph->getBackend()->setDevice(graph->getDevice());
-
     for(auto p : graph->params()->getMap()) {
       std::vector<float> v;
       p.second->val() >> v;

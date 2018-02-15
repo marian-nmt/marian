@@ -3,7 +3,7 @@
 #include "marian.h"
 #include "layers/generic.h"
 #include "rnn/types.h"
-#include "constructors.h"
+#include "rnn/attention_constructors.h"
 
 #include <numeric>
 
@@ -164,7 +164,7 @@ public:
           if(state->getEncoderStates().size() > 1)
             prefix += "_att" + std::to_string(i + 1);
 
-          attCell.push_back(models::attention(graph)  //
+          attCell.push_back(rnn::attention(graph)  //
                             ("prefix", prefix)     //
                                 .set_state(state->getEncoderStates()[i]));
         }
@@ -206,7 +206,7 @@ public:
         auto att = rnn_->at(0)
                        ->as<rnn::StackedCell>()
                        ->at(k + 1)
-                       ->as<models::Attention>();
+                       ->as<rnn::Attention>();
         alignedContexts.push_back(att->getContext());
       }
 
@@ -228,7 +228,7 @@ public:
   }
 
   const std::vector<Expr> getAlignments() {
-    auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(1)->as<models::Attention>();
+    auto att = rnn_->at(0)->as<rnn::StackedCell>()->at(1)->as<rnn::Attention>();
     return att->getAlignments();
   }
 

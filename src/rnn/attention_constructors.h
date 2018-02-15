@@ -4,19 +4,19 @@
 #include "layers/factory.h"
 #include "rnn/types.h"
 #include "rnn/constructors.h"
-#include "attention.h"
+#include "rnn/attention.h"
 
 namespace marian {
-namespace models {
+namespace rnn {
 
-class AttentionFactory : public rnn::InputFactory {
+class AttentionFactory : public InputFactory {
 protected:
   Ptr<EncoderState> state_;
 
 public:
   AttentionFactory(Ptr<ExpressionGraph> graph) : InputFactory(graph) {}
 
-  Ptr<rnn::CellInput> construct() {
+  Ptr<CellInput> construct() {
     ABORT_IF(!state_, "EncoderState not set");
     return New<Attention>(graph_, options_, state_);
   }

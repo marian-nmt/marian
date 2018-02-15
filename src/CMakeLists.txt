@@ -8,18 +8,18 @@ cuda_add_library(marian
   3rd_party/cnpy/cnpy.cpp
   3rd_party/exception.cpp
   3rd_party/svd/svd.cpp
-  graph/expression_graph.cu
+  graph/expression_graph.cpp
   graph/expression_operators.cu
   graph/node.cu
   graph/node_operators.cu
+  graph/node_initializers.cu
   tensors/tensor.cu
   tensors/device_gpu.cu
   tensors/memory_piece.cu
   kernels/tensor_operators.cu
-  kernels/dropout.cu
   kernels/cudnn_wrappers.cu
-#  kernels/sparse.cu
-  layers/param_initializers.cu
+  backend/gpu/dropout.cu
+  backend/cpu/dropout.cpp
   layers/convolution.cu
   rnn/cells.cu
   optimizers/clippers.cu
@@ -29,7 +29,7 @@ cuda_add_library(marian
   common/config.cpp
   common/config_parser.cpp
   models/model_factory.cpp
-  models/attention.cu
+  rnn/attention.cu
   translator/history.cpp
   translator/output_collector.cpp
   translator/nth_element.cu

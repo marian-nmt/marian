@@ -426,6 +426,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<std::string>({"0"}), "0"),
       "GPU ID(s) to use for training")
+    ("cpu", po::value<bool>()->zero_tokens()->default_value(false),
+      "Use CPU-based training or decoding")
 
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
@@ -612,6 +614,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<std::string>({"0"}), "0"),
       "GPUs to use for translating")
+    ("cpu", po::value<bool>()->zero_tokens()->default_value(false),
+      "Use CPU-based decoding")
     ("mini-batch", po::value<int>()->default_value(1),
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(1),
@@ -656,6 +660,8 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<std::string>({"0"}), "0"),
       "GPUs to use for training")
+    ("cpu", po::value<bool>()->zero_tokens()->default_value(false),
+      "Use CPU-based scoring")
 
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
@@ -921,6 +927,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("seed", size_t);
   SET_OPTION("relative-paths", bool);
   SET_OPTION("devices", std::vector<std::string>);
+  SET_OPTION("cpu", bool);
 
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);

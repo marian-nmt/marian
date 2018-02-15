@@ -20,8 +20,8 @@ private:
   Ptr<Allocator<DeviceGPU>> allocator_;
 
 public:
-  TensorAllocator(size_t device)
-      : allocator_(New<Allocator<DeviceGPU>>(device, 0, GROW, ALIGN)) {}
+  TensorAllocator(DeviceId deviceId)
+      : allocator_(New<Allocator<DeviceGPU>>(deviceId, 0, GROW, ALIGN)) {}
 
   ~TensorAllocator() { clear(); }
 

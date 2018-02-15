@@ -3,7 +3,7 @@
 #include "marian.h"
 #include "layers/constructors.h"
 #include "rnn/constructors.h"
-#include "constructors.h"
+#include "rnn/attention_constructors.h"
 
 namespace marian {
 
@@ -215,7 +215,7 @@ private:
           auto encState = state->getEncoderStates()[k];
 
           baseCell.push_back(
-              models::attention(graph)("prefix", attPrefix).set_state(encState));
+              rnn::attention(graph)("prefix", attPrefix).set_state(encState));
         }
       }
     }
@@ -313,7 +313,7 @@ public:
       auto att = rnn_->at(0)
                      ->as<rnn::StackedCell>()
                      ->at(k + 1)
-                     ->as<models::Attention>();
+                     ->as<rnn::Attention>();
       alignedContexts.push_back(att->getContext());
     }
 
@@ -365,7 +365,7 @@ public:
   // helper function for guided alignment
   virtual const std::vector<Expr> getAlignments(int i = 0) {
     auto att
-        = rnn_->at(0)->as<rnn::StackedCell>()->at(i + 1)->as<models::Attention>();
+        = rnn_->at(0)->as<rnn::StackedCell>()->at(i + 1)->as<rnn::Attention>();
     return att->getAlignments();
   }
 

@@ -2,9 +2,10 @@
 
 #include "kernels/cuda_helpers.h"
 #include "kernels/tensor_operators.h"
-#include "layers/param_initializers.h"
+#include "graph/node_initializers.h"
+
+#include "3rd_party/svd/svd.h"
 #include "layers/word2vec_reader.h"
-#include "svd/svd.h"
 
 #include <stdint.h>
 #include <algorithm>
@@ -139,6 +140,7 @@ std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np) {
   return [npv](Tensor t) { t->set(npv); };
 }
 
+// move this somewhere else
 std::function<void(Tensor)> from_word2vec(const std::string& file,
                                           int dimVoc,
                                           int dimEmb,

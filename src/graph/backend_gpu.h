@@ -17,13 +17,15 @@
 
 namespace marian {
 
-class BackendGPU : public Backend {
+class BackendGPU : public Backend {  
 public:
-  void setDevice(size_t device) { cudaSetDevice(device); }
+  BackendGPU(DeviceId deviceId, size_t seed) : Backend(deviceId, seed) {
+    setDevice();
+    setHandles();
+  }
 
-  void setHandles(size_t device, size_t seed) {
-    cublasHandle_ = create_handle(device);
-    curandGenerator_ = createCurandGenerator(device, Config::seed);
+  void setDevice() {
+    cudaSetDevice(deviceId_.no);
   }
 
   cublasHandle_t getCublasHandle() { return cublasHandle_; }
@@ -34,11 +36,18 @@ private:
   cublasHandle_t cublasHandle_;
   curandGenerator_t curandGenerator_;
 
-  curandGenerator_t createCurandGenerator(size_t device, size_t seed) {
-    cudaSetDevice(device);
+  
+  void setHandles() {
+    cublasHandle_ = create_handle();
+    curandGenerator_ = createCurandGenerator();
+  }
+
+  
+  curandGenerator_t createCurandGenerator() {
+    cudaSetDevice(deviceId_.no);
     curandGenerator_t generator;
     CURAND_CALL(curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_DEFAULT));
-    CURAND_CALL(curandSetPseudoRandomGeneratorSeed(generator, seed));
+    CURAND_CALL(curandSetPseudoRandomGeneratorSeed(generator, seed_));
 
     // cudaStream_t stream = 0;
     // CURAND_CALL(curandSetStream(generator, stream));
@@ -46,8 +55,8 @@ private:
     return generator;
   }
 
-  cublasHandle_t create_handle(size_t device) {
-    cudaSetDevice(device);
+  cublasHandle_t create_handle() {
+    cudaSetDevice(deviceId_.no);
     cublasHandle_t cublasHandle;
     cublasCreate(&cublasHandle);
     return cublasHandle;

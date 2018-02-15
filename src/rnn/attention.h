@@ -1,16 +1,16 @@
 #pragma once
 
 #include "marian.h"
-#include "states.h"
 #include "rnn/types.h"
+#include "models/states.h"
 
 namespace marian {
 
-namespace models {
+namespace rnn {
 
 Expr attOps(Expr va, Expr context, Expr state);
 
-class GlobalAttention : public rnn::CellInput {
+class GlobalAttention : public CellInput {
 private:
   Expr Wa_, ba_, Ua_, va_;
 
@@ -114,7 +114,7 @@ public:
     }
   }
 
-  Expr apply(rnn::State state) {
+  Expr apply(State state) {
     using namespace keywords;
     auto recState = state.output;
 

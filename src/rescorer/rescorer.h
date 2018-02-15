@@ -47,7 +47,7 @@ public:
     auto devices = options_->get<std::vector<size_t>>("devices");
     for(auto device : devices) {
       auto graph = New<ExpressionGraph>(true);
-      graph->setDevice(device);
+      graph->setDevice({device, DeviceType::gpu});
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
     }
@@ -104,7 +104,6 @@ public:
   
           if(!graph) {
             graph = graphs_[id % graphs_.size()];
-            graph->getBackend()->setDevice(graph->getDevice());
             builder = models_[id % graphs_.size()];
           }
   

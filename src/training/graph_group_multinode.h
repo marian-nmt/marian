@@ -217,7 +217,7 @@ protected:
   /**
    * Allocate new tensor on given GPU and store allocator.
    */
-  Tensor newTensor(int size, int device);
+  Tensor newTensor(int size, DeviceId deviceId);
 
   /**
    * Setup training environment and launch server thread and (if enabled) client
@@ -389,7 +389,7 @@ public:
     // Create builders and graphs for clients.
     for(int i = 0; i < devices_.size(); i++) {
       clientGraphs_.push_back(New<ExpressionGraph>());
-      clientGraphs_[i]->setDevice(devices_[i]);
+      clientGraphs_[i]->setDevice({devices_[i], DeviceType::gpu});
       clientGraphs_[i]->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       clientBuilders_.push_back(models::from_config(options_));
     }
