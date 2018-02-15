@@ -1,11 +1,8 @@
 
-#include <cuda.h>
-#include <thrust/device_ptr.h>
-#include <thrust/device_vector.h>
+#include "tensors/tensor.h"
 
 #include "kernels/cuda_helpers.h"
 #include "kernels/tensor_operators.h"
-#include "tensors/tensor.h"
 
 namespace marian {
 
