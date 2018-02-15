@@ -17,10 +17,9 @@ cuda_add_library(marian
   tensors/device_gpu.cu
   tensors/memory_piece.cu
   kernels/tensor_operators.cu
-  kernels/dropout.cu
   kernels/cudnn_wrappers.cu
-  backend/dispatch.cu
-  backend/dispatch.cpp
+  backend/gpu/dropout.cu
+  backend/cpu/dropout.cpp
   layers/generic.cpp
   layers/guided_alignment.cpp
   layers/convolution.cu
