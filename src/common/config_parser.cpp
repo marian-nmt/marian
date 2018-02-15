@@ -2,6 +2,8 @@
 #include <boost/algorithm/string.hpp>
 #include <set>
 #include <string>
+#include <regex>
+#include <stdexcept>
 
 #include "3rd_party/cnpy/cnpy.h"
 #include "common/config.h"
@@ -47,7 +49,6 @@ uint16_t guess_terminal_width(uint16_t max_width) {
 }
 
 void OutputYaml(const YAML::Node node, YAML::Emitter& out) {
-  // std::set<std::string> flow = { "devices" };
   std::set<std::string> sorter;
   switch(node.Type()) {
     case YAML::NodeType::Null: out << node; break;
@@ -66,8 +67,6 @@ void OutputYaml(const YAML::Node node, YAML::Emitter& out) {
         out << YAML::Key;
         out << key;
         out << YAML::Value;
-        // if(flow.count(key))
-        // out << YAML::Flow;
         OutputYaml(node[key], out);
       }
       out << YAML::EndMap;
@@ -208,6 +207,28 @@ void ConfigParser::validateOptions() const {
           && get<std::vector<size_t>>("lr-decay-start").size() != 1,
       "Single decay strategies require only one value specified with "
       "--lr-decay-start option");
+}
+
+void ConfigParser::validateDevices() const {
+  std::string devices = Join(get<std::vector<std::string>>("devices"));
+  Trim(devices);
+
+  std::regex pattern;
+  std::string help;
+  if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
+    // valid strings: '0: 1 2', '0:1 2 1:2 3'
+    pattern = "( *\\d+ *: *\\d+( *\\d+)*)+";
+    help = "Supported format for multi-node setting: '0:0 1 2 3 1:0 1 2 3'";
+  } else {
+    // valid strings: '0', '0 1 2 3', '3 2 0 1'
+    pattern = "\\d+( *\\d+)*";
+    help = "Supported formats: '0 1 2 3'";
+  }
+
+  UTIL_THROW_IF2(!std::regex_match(devices, pattern),
+                 "the argument '(" + devices
+                     + ")' for option '--devices' is invalid. "
+                     + help);
 }
 
 void ConfigParser::addOptionsCommon(po::options_description& desc) {
@@ -401,10 +422,10 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "is temporary with path creates persistent storage")
     ("sqlite-drop", po::value<bool>()->zero_tokens()->default_value(false),
       "Drop existing tables in sqlite3 database")
-    ("devices,d", po::value<std::vector<int>>()
+    ("devices,d", po::value<std::vector<std::string>>()
       ->multitoken()
-      ->default_value(std::vector<int>({0}), "0"),
-      "GPUs to use for training. Asynchronous SGD is used with multiple devices")
+      ->default_value(std::vector<std::string>({"0"}), "0"),
+      "GPU ID(s) to use for training")
 
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
@@ -505,6 +526,14 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       ->zero_tokens()
       ->default_value(false),
      "Fix target embeddings. Affects all decoders")
+
+    ("multi-node", po::value<bool>()
+      ->zero_tokens()
+      ->default_value(false),
+     "Enable multi-node training through MPI")
+    ("multi-node-overlap", po::value<bool>()
+      ->default_value(true),
+     "Overlap model computations with MPI communication")
   ;
   // clang-format on
   desc.add(training);
@@ -579,9 +608,9 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Maximum length of a sentence in a training sentence pair")
     ("max-length-crop", po::value<bool>()->zero_tokens()->default_value(false),
       "Crop a sentence to max-length instead of ommitting it if longer than max-length")
-    ("devices,d", po::value<std::vector<int>>()
+    ("devices,d", po::value<std::vector<std::string>>()
       ->multitoken()
-      ->default_value(std::vector<int>({0}), "0"),
+      ->default_value(std::vector<std::string>({"0"}), "0"),
       "GPUs to use for translating")
     ("mini-batch", po::value<int>()->default_value(1),
       "Size of mini-batch used during update")
@@ -623,10 +652,10 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       "Maximum length of a sentence in a training sentence pair")
     ("max-length-crop", po::value<bool>()->zero_tokens()->default_value(false),
       "Crop a sentence to max-length instead of ommitting it if longer than max-length")
-    ("devices,d", po::value<std::vector<int>>()
+    ("devices,d", po::value<std::vector<std::string>>()
       ->multitoken()
-      ->default_value(std::vector<int>({0}), "0"),
-      "GPUs to use for training. Asynchronous SGD is used with multiple devices")
+      ->default_value(std::vector<std::string>({"0"}), "0"),
+      "GPUs to use for training")
 
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
@@ -679,6 +708,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     exit(0);
   }
 
+  // @TODO: move to validateOptions()
   if(mode_ == ConfigMode::translating) {
     if(vm_.count("models") == 0 && vm_.count("config") == 0) {
       std::cerr << "Error: you need to provide at least one model file or a "
@@ -697,14 +727,17 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     exit(0);
   }
 
+  bool loadConfig = vm_.count("config");
+  bool reloadConfig
+      = (mode_ == ConfigMode::training)
+        && boost::filesystem::exists(vm_["model"].as<std::string>() + ".yml")
+        && !vm_["no-reload"].as<bool>();
   std::string configPath;
-  if(vm_.count("config")) {
+
+  if(loadConfig) {
     configPath = vm_["config"].as<std::string>();
     config_ = YAML::Load(InputFileStream(configPath));
-  } else if((mode_ == ConfigMode::training)
-            && boost::filesystem::exists(vm_["model"].as<std::string>()
-                                         + ".yml")
-            && !vm_["no-reload"].as<bool>()) {
+  } else if(reloadConfig) {
     configPath = vm_["model"].as<std::string>() + ".yml";
     config_ = YAML::Load(InputFileStream(configPath));
   }
@@ -832,7 +865,11 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("embedding-normalization", bool);
     SET_OPTION("embedding-fix-src", bool);
     SET_OPTION("embedding-fix-trg", bool);
+
+    SET_OPTION("multi-node", bool);
+    SET_OPTION("multi-node-overlap", bool);
   }
+
   if(mode_ == ConfigMode::rescoring) {
     SET_OPTION("no-reload", bool);
     if(!vm_["train-sets"].empty()) {
@@ -842,6 +879,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("mini-batch-fit", bool);
     SET_OPTION_NONDEFAULT("summary", std::string);
   }
+
   if(mode_ == ConfigMode::translating) {
     SET_OPTION("input", std::vector<std::string>);
     SET_OPTION("beam-size", size_t);
@@ -853,6 +891,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
 
   /** valid **/
+
   if(mode_ == ConfigMode::training) {
     if(!vm_["valid-sets"].empty()) {
       config_["valid-sets"] = vm_["valid-sets"].as<std::vector<std::string>>();
@@ -881,7 +920,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION_NONDEFAULT("log", std::string);
   SET_OPTION("seed", size_t);
   SET_OPTION("relative-paths", bool);
-  SET_OPTION("devices", std::vector<int>);
+  SET_OPTION("devices", std::vector<std::string>);
+
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
 
@@ -909,6 +949,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   if(doValidate) {
     try {
       validateOptions();
+      validateDevices();
     } catch(util::Exception& e) {
       std::cerr << "Error: " << e.what() << std::endl << std::endl;
 
@@ -924,6 +965,37 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     std::cout << emit.c_str() << std::endl;
     exit(0);
   }
+
+  try {
+    processOptionDevices();
+  } catch(const std::invalid_argument& e) {
+    ABORT("Conversion of --devices option failed, please report a bug");
+  }
+}
+
+void ConfigParser::processOptionDevices() {
+  std::string devicesStr
+      = Join(config_["devices"].as<std::vector<std::string>>());
+  std::vector<size_t> devices;
+
+  if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
+    auto parts = Split(devicesStr, ":");
+    for(size_t i = 1; i < parts.size(); ++i) {
+      std::string part = parts[i];
+      Trim(part);
+      auto ds = Split(part, " ");
+      if(i < parts.size() - 1)
+        ds.pop_back();
+      devices.emplace_back(ds.size());
+      for(auto d : ds)
+        devices.emplace_back(std::stoi(d));
+    }
+  } else {
+    for(auto d : Split(devicesStr))
+      devices.emplace_back(std::stoi(d));
+  }
+
+  config_["devices"] = devices;
 }
 
 YAML::Node ConfigParser::getConfig() const {

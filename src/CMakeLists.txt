@@ -40,6 +40,7 @@ cuda_add_library(marian
   training/graph_group_async_drop.cu
   training/graph_group_sync.cu
   training/graph_group_singleton.cu
+  training/graph_group_multinode.cu
   training/sparse_tensor.cu
   training/validator.cpp
   data/vocab.cpp
