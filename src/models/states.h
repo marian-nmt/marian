@@ -22,7 +22,7 @@ public:
   virtual Expr getMask() { return mask_; }
 
   virtual const std::vector<size_t>& getSourceWords() {
-    return batch_->front()->indices();
+    return batch_->front()->data();
   }
 };
 

@@ -26,7 +26,7 @@ protected:
     int dimEmb = srcEmbeddings->shape()[-1];
     int dimWords = subBatch->batchWidth();
 
-    auto chosenEmbeddings = rows(srcEmbeddings, subBatch->indices());
+    auto chosenEmbeddings = rows(srcEmbeddings, subBatch->data());
 
     auto batchEmbeddings
         = reshape(chosenEmbeddings, {dimWords, dimBatch, dimEmb});
@@ -107,7 +107,7 @@ public:
     int dimBatch = subBatch->batchSize();
     int dimWords = subBatch->batchWidth();
 
-    auto chosenEmbeddings = rows(yEmb, subBatch->indices());
+    auto chosenEmbeddings = rows(yEmb, subBatch->data());
 
     auto y
         = reshape(chosenEmbeddings, {dimWords, dimBatch, opt<int>("dim-emb")});
@@ -115,15 +115,15 @@ public:
     auto yMask = graph->constant({dimWords, dimBatch, 1},
                                  init = inits::from_vector(subBatch->mask()));
 
-    auto yIdx = graph->constant({(int)subBatch->indices().size(), 1},
-                                init = inits::from_vector(subBatch->indices()));
+    auto yData = graph->constant({(int)subBatch->data().size(), 1},
+                                 init = inits::from_vector(subBatch->data()));
 
     auto yShifted = shift(y, {1, 0, 0});
 
     state->setTargetEmbeddings(yShifted);
     state->setTargetMask(yMask);
 
-    return std::make_tuple(yMask, yIdx);
+    return std::make_tuple(yMask, yData);
   }
 
   virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
