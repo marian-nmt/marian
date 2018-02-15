@@ -14,8 +14,8 @@ cuda_add_library(marian
   graph/node_operators.cu
   graph/node_initializers.cu
   tensors/tensor.cu
-  tensors/device_gpu.cu
-  tensors/memory_piece.cu
+  tensors/device.cu
+  tensors/device.cpp
   kernels/tensor_operators.cu
   kernels/cudnn_wrappers.cu
   backend/gpu/dropout.cu

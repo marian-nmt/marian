@@ -5,55 +5,11 @@
 
 #include "3rd_party/exception.h"
 #include "tensors/allocator.h"
-#include "tensors/device_gpu.h"
-
-class DeviceCPU {
-private:
-  uint8_t* data_;
-  size_t size_;
-  size_t alignment_;
-
-public:
-  DeviceCPU(size_t device, size_t alignment = 256)
-   : data_(0), size_(0), alignment_(alignment) {}
-
-  ~DeviceCPU() { delete[] data_; }
-
-  size_t align(size_t size) {
-    return ceil(size / (float)alignment_) * alignment_;
-  }
-
-  void reserve(size_t size) {
-    size = align(size);
-    ABORT_IF(size < size_, "New size must be larger than old size");
-
-    if(data_) {
-      // Allocate memory by going through host memory
-      uint8_t *temp = new uint8_t[size_];
-      std::copy(data_, data_ + size_, temp);
-      std::fill(data_, data_ + size_, 0);
-      delete[] data_;
-      data_ = new uint8_t[size];
-      std::copy(temp, temp + size_, data_);
-      delete[] temp;
-    } else {
-      data_ = new uint8_t[size];
-    }
-
-    size_ = size;
-  }
-
-  uint8_t* data() { return data_; }
-
-  size_t size() { return size_; }
-
-  size_t getDevice() { return 0; }
-};
 
 int main(int argc, char** argv) {
   using namespace marian;
 
-  auto a = New<Allocator<DeviceGPU>>({0, DeviceType::gpu}, 0, 30000, 256);
+  auto a = New<Allocator>({0, DeviceType::gpu}, 0, 30000, 256);
   std::cerr << "Size: " << a->size() << std::endl;
 
   auto mem1 = a->alloc<int>(100000);

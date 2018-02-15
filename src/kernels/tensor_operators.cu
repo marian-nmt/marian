@@ -879,7 +879,7 @@ __global__ void gInsert(float* out,
   }
 }
 
-void Select(Ptr<Allocator<DeviceGPU>> allocator,
+void Select(Ptr<Allocator> allocator,
             Tensor out,
             const Tensor in,
             int axis,
@@ -892,8 +892,8 @@ void Select(Ptr<Allocator<DeviceGPU>> allocator,
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
   auto mp_indices = allocator->alloc<size_t>(indices.size());
-  mp_indices->insert(indices.data(), indices.size());
-
+  CudaCopy(indices.data(), indices.data() + indices.size(), mp_indices->data());
+  
   int axisGPU = axis + gpu::Shape::size() - out->shape().size();
   gSelect<<<blocks, threads>>>(out->data(),
                                out->shape(),
@@ -905,7 +905,7 @@ void Select(Ptr<Allocator<DeviceGPU>> allocator,
   allocator->free(mp_indices);
 }
 
-void Insert(Ptr<Allocator<DeviceGPU>> allocator,
+void Insert(Ptr<Allocator> allocator,
             Tensor out,
             const Tensor in,
             int axis,
@@ -918,8 +918,8 @@ void Insert(Ptr<Allocator<DeviceGPU>> allocator,
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
   auto mp_indices = allocator->alloc<size_t>(indices.size());
-  mp_indices->insert(indices.data(), indices.size());
-
+  CudaCopy(indices.data(), indices.data() + indices.size(), mp_indices->data());
+  
   int axisGPU = axis + gpu::Shape::size() - out->shape().size();
   gInsert<<<blocks, threads>>>(out->data(),
                                out->shape(),

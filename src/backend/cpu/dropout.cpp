@@ -1,5 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include <algorithm>
 
 #include "backend/dispatch.h"
 
@@ -8,6 +7,7 @@ namespace marian {
     
     void Dropout(Ptr<Backend> backend, Tensor tensor, float p) {
       ABORT("Not implemented");
+      std::fill(tensor->data(), tensor->data() + tensor->size(), p);
     }
     
   }

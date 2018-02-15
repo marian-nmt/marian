@@ -5,7 +5,6 @@
 
 #include "common/definitions.h"
 #include "tensors/allocator.h"
-#include "tensors/device_gpu.h"
 #include "tensors/tensor.h"
 
 namespace marian {
@@ -17,11 +16,11 @@ private:
   const size_t GROW = CHUNK * MBYTE;
   const size_t ALIGN = 256;
 
-  Ptr<Allocator<DeviceGPU>> allocator_;
+  Ptr<Allocator> allocator_;
 
 public:
   TensorAllocator(DeviceId deviceId)
-      : allocator_(New<Allocator<DeviceGPU>>(deviceId, 0, GROW, ALIGN)) {}
+      : allocator_(New<Allocator>(deviceId, 0, GROW, ALIGN)) {}
 
   ~TensorAllocator() { clear(); }
 
@@ -73,6 +72,6 @@ public:
 
   size_t size() { return allocator_->size() / sizeof(float); }
 
-  Ptr<Allocator<DeviceGPU>> allocator() { return allocator_; }
+  Ptr<Allocator> allocator() { return allocator_; }
 };
 }

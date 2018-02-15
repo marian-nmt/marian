@@ -306,7 +306,7 @@ public:
       tensors_->free(t);
   }
 
-  Ptr<Allocator<DeviceGPU>> allocator() { return tensors_->allocator(); }
+  Ptr<Allocator> allocator() { return tensors_->allocator(); }
 
   void clear() {
     // clear everything apart from parameters

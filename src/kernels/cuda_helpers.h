@@ -17,6 +17,12 @@ inline void gpuAssert(cudaError_t code,
   }
 }
 
+template <typename T, typename D>
+void CudaCopy(const T* start, const T* end, D* dest) {
+  CUDA_CHECK(cudaMemcpy((void*)dest, (void*)start, (end - start) * sizeof(T),
+             cudaMemcpyDefault));
+}
+
 #define CUSPARSE_CHECK(x)                               \
   {                                                     \
     cusparseStatus_t _c = x;                            \
