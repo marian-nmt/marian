@@ -58,12 +58,16 @@ public:
   void load() {
     if(!options_->get<bool>("no-reload")) {
       std::string name = options_->get<std::string>("model");
+
       if(boost::filesystem::exists(name)) {
         size_t i = 0;
         if(scheduler_)
           scheduler_->load(name);
         for(auto graph : graphs_)
           builders_[i++]->load(graph, name);
+
+        shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, devices_);
+
       } else if(options_->has("pretrained-model")) {
         std::string init = options_->get<std::string>("pretrained-model");
         LOG(info,
@@ -95,15 +99,13 @@ public:
     if(movingAvg_)
       fetchParams(graphs_[idx]->params()->vals(), paramsAvg_);
 
-    if(options_->get<bool>("overwrite")) {
-      std::string name = options_->get<std::string>("model");
+    std::string name = options_->get<std::string>("model");
 
+    if(options_->get<bool>("overwrite")) {
       builders_[idx]->save(graphs_[idx], name, true);
       if(scheduler_)
         scheduler_->save(name);
     } else {
-      std::string name = options_->get<std::string>("model");
-
       if(!final) {
         std::string numberOfBatches
             = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
@@ -121,6 +123,8 @@ public:
 
     if(movingAvg_)
       fetchParams(graphs_[idx]->params()->vals(), params_);
+
+    shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_, devices_);
   }
 
   Ptr<data::BatchStats> collectStats() {
