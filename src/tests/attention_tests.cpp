@@ -2,7 +2,7 @@
 #include "marian.h"
 
 #include "rnn/rnn.h"
-#include "models/attention.h"
+#include "rnn/attention.h"
 
 using namespace marian;
 
