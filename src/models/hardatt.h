@@ -5,6 +5,8 @@
 #include "rnn/types.h"
 #include "constructors.h"
 
+#include <numeric>
+
 namespace marian {
 
 class DecoderStateHardAtt : public DecoderState {
@@ -87,7 +89,7 @@ public:
                      .push_back(mlp::dense(graph)                  //
                                 ("prefix", prefix_ + "_ff_state")  //
                                 ("dim", opt<int>("dim-rnn"))       //
-                                ("activation", mlp::act::tanh)     //
+                                ("activation", (int)mlp::act::tanh)//
                                 ("layer-normalization",
                                  opt<bool>("layer-normalization")));
       start = mlp->apply(meanContexts);
@@ -190,7 +192,7 @@ public:
                    .push_back(mlp::dense(graph)                     //
                               ("prefix", prefix_ + "_ff_logit_l1")  //
                               ("dim", dimTrgEmb)                    //
-                              ("activation", mlp::act::tanh)        //
+                              ("activation", (int)mlp::act::tanh)   //
                               ("layer-normalization", layerNorm))   //
                    .push_back(mlp::dense(graph)                     //
                               ("prefix", prefix_ + "_ff_logit_l2")  //
