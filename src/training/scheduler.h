@@ -56,6 +56,7 @@ public:
 
   void addValidator(Ptr<ValidatorBase> validator) {
     validators_.push_back(validator);
+    registerTrainingObserver(validators_.back());
   }
 
   bool validating() {
@@ -79,19 +80,21 @@ public:
 
       size_t stalledPrev = validator->stalled();
       float value = validator->validate(graphs);
-      if(validator->stalled() > 0)
+      if(validator->stalled() > 0) {
         LOG_VALID(info,
                   "{} : {} : {} : stalled {} times",
                   state_->batches,
                   validator->type(),
                   value,
                   validator->stalled());
-      else
+      } else {
         LOG_VALID(info,
                   "{} : {} : {} : new best",
                   state_->batches,
                   validator->type(),
                   value);
+        state_->validBest = value;
+      }
 
       // notify training observers if the first validator did not improve
       if(firstValidator && validator->stalled() > stalledPrev)
@@ -154,6 +157,7 @@ public:
       YAML::Node config = YAML::LoadFile(nameYaml);
       state_->load(config);
     }
+    state_->newLoad();
   }
 
   void save(const std::string& name) {

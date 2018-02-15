@@ -10,9 +10,10 @@ class TrainingState;
 
 class TrainingObserver {
 public:
-  virtual void actAfterEpoch(TrainingState& state) = 0;
+  virtual void actAfterEpoch(TrainingState& state) {};
   virtual void actAfterBatches(TrainingState& state) {}
   virtual void actAfterStalled(TrainingState& state) {}
+  virtual void actAfterLoaded(TrainingState& state) {}
 };
 
 class TrainingState {
@@ -31,6 +32,9 @@ public:
   float costSum{0};
   size_t samplesDisp{0};
   size_t wordsDisp{0};
+  // Last best validation score
+  float validBest{0.f};
+  // Reset optimizer parameters
   bool reset{false};
 
   TrainingState(float learnRate) : eta(learnRate) {}
@@ -59,6 +63,11 @@ public:
       observer->actAfterStalled(*this);
   }
 
+  void newLoad() {
+    for(auto observer : observers_)
+      observer->actAfterLoaded(*this);
+  }
+
   void load(const YAML::Node& config) {
     epochs = config["progress"]["epochs"].as<size_t>();
     batches = config["progress"]["batches"].as<size_t>();
@@ -74,6 +83,7 @@ public:
     costSum = config["progress"]["cost-sum"].as<float>();
     samplesDisp = config["progress"]["disp-samples"].as<size_t>();
     wordsDisp = config["progress"]["disp-words"].as<size_t>();
+    validBest = config["progress"]["valid-best"].as<float>();
     reset = config["progress"]["reset"].as<bool>();
   }
 
@@ -92,6 +102,7 @@ public:
     config["progress"]["cost-sum"] = costSum;
     config["progress"]["disp-samples"] = samplesDisp;
     config["progress"]["disp-words"] = wordsDisp;
+    config["progress"]["valid-best"] = validBest;
     config["progress"]["reset"] = reset;
   }
 

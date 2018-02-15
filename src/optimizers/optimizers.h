@@ -35,6 +35,10 @@ public:
   virtual void actAfterEpoch(TrainingState& state) { eta_ = state.eta; }
   virtual void actAfterBatches(TrainingState& state) { eta_ = state.eta; }
   virtual void actAfterStalled(TrainingState& state) { eta_ = state.eta; }
+  virtual void actAfterLoaded(TrainingState& state) {
+    eta_ = state.eta;
+    multiplyFactor_ = state.factor;
+  }
 
   void setParams(const std::vector<float>& params) { parseParams(params); }
 
