@@ -2,9 +2,9 @@
 
 #include "training/graph_group_async.h"
 #include "training/graph_group_async_drop.h"
+#include "training/graph_group_multinode.h"
 #include "training/graph_group_singleton.h"
 #include "training/graph_group_sync.h"
-#include "training/graph_group_multinode.h"
 #include "training/training.h"
 
 bool configureMPI(int, char**);
@@ -15,20 +15,22 @@ int main(int argc, char** argv) {
   auto options = New<Config>(argc, argv);
   auto devices = options->get<std::vector<size_t>>("devices");
 
-  bool useMultiNode = options->get<bool>("multi-node") && configureMPI(argc, argv);
+  if(options->get<bool>("multi-node")) {
+    ABORT_IF(!configureMPI(argc, argv), "MPI not found.");
 
-  if(devices.size() > 1 && !useMultiNode) {
-    if(options->get<bool>("sync-sgd"))
-      New<Train<SyncGraphGroup>>(options)->run();
-    else if(options->get<float>("grad-dropping-rate") > 0.0)
-      New<Train<AsyncGraphGroupDrop>>(options)->run();
-    else
-      New<Train<AsyncGraphGroup>>(options)->run();
-  } else if(!useMultiNode) {
-    New<Train<SingletonGraph>>(options)->run();
-  } else {
-    LOG(warn, "[BETA] Running multi-node training");
+    LOG(warn, "[experimental] Running multi-node training");
     New<Train<MultiNodeGraphGroup>>(options)->run();
+  } else {
+    if(devices.size() == 1) {
+      New<Train<SingletonGraph>>(options)->run();
+    } else {
+      if(options->get<bool>("sync-sgd"))
+        New<Train<SyncGraphGroup>>(options)->run();
+      else if(options->get<float>("grad-dropping-rate") > 0.0)
+        New<Train<AsyncGraphGroupDrop>>(options)->run();
+      else
+        New<Train<AsyncGraphGroup>>(options)->run();
+    }
   }
 
   return 0;
