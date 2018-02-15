@@ -18,24 +18,34 @@ public:
 
 class TrainingState {
 public:
+  // Current epoch
   size_t epochs{1};
+  // The total number of batches
   size_t batches{0};
+  // The number of samples seen in this epoch
   size_t samples{0};
 
+  // The number of stalled validations
   size_t stalled{0};
+  // The largest number of stalled validations so far
   size_t maxStalled{0};
-  size_t warmupStart{0};
-
-  float eta;
-  float factor{1.f};
-
-  float costSum{0};
-  size_t samplesDisp{0};
-  size_t wordsDisp{0};
   // Last best validation score
   float validBest{0.f};
   // Reset optimizer parameters
   bool reset{false};
+
+  // Learning rate
+  float eta;
+  // Multiplication factor for learning rate
+  float factor{1.f};
+  size_t warmupStart{0};
+
+  // Sum of costs since last display
+  float costSum{0};
+  // Number of samples seen since last display
+  size_t samplesDisp{0};
+  // Number of words seen since last display
+  size_t wordsDisp{0};
 
   TrainingState(float learnRate) : eta(learnRate) {}
 
@@ -75,16 +85,16 @@ public:
 
     stalled = config["progress"]["stalled"].as<size_t>();
     maxStalled = config["progress"]["stalled-max"].as<size_t>();
-    warmupStart = config["progress"]["warmup-start"].as<size_t>();
+    validBest = config["progress"]["valid-best"].as<float>();
+    reset = config["progress"]["reset"].as<bool>();
 
     eta = config["progress"]["eta"].as<float>();
     factor = config["progress"]["eta-factor"].as<float>();
+    warmupStart = config["progress"]["warmup-start"].as<size_t>();
 
     costSum = config["progress"]["cost-sum"].as<float>();
     samplesDisp = config["progress"]["disp-samples"].as<size_t>();
     wordsDisp = config["progress"]["disp-words"].as<size_t>();
-    validBest = config["progress"]["valid-best"].as<float>();
-    reset = config["progress"]["reset"].as<bool>();
   }
 
   void save(YAML::Node& config) {
@@ -94,16 +104,16 @@ public:
 
     config["progress"]["stalled"] = stalled;
     config["progress"]["stalled-max"] = maxStalled;
-    config["progress"]["warmup-start"] = warmupStart;
+    config["progress"]["valid-best"] = validBest;
+    config["progress"]["reset"] = reset;
 
     config["progress"]["eta"] = eta;
     config["progress"]["eta-factor"] = factor;
+    config["progress"]["warmup-start"] = warmupStart;
 
     config["progress"]["cost-sum"] = costSum;
     config["progress"]["disp-samples"] = samplesDisp;
     config["progress"]["disp-words"] = wordsDisp;
-    config["progress"]["valid-best"] = validBest;
-    config["progress"]["reset"] = reset;
   }
 
 private:
