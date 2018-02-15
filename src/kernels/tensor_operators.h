@@ -50,7 +50,7 @@ __global__ void gElement(Functor functor,
 
 template <class Functor, class ...Tensors>
 void Element(Functor functor, Tensor out, Tensors ...tensors) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   constexpr size_t K = sizeof...(tensors) + 1;
   gpu::Array<gpu::Tensor<float>, K> gTensors = {out, tensors...};
@@ -209,7 +209,7 @@ void Add(Functor functor,
          float scale,
          Tensor out,
          Tensors... tensors) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   Shape full = Shape::broadcast({out, tensors...});
 

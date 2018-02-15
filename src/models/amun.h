@@ -177,8 +177,6 @@ public:
            {"encoder_bi_r_gamma1", "encoder_r_gamma1"},
            {"encoder_bi_r_gamma2", "encoder_r_gamma2"}};
 
-    graph->getBackend()->setDevice(graph->getDevice());
-
     unsigned shape[2];
     std::string mode = "w";
 

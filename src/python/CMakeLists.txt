@@ -3,7 +3,7 @@ cuda_add_library(pymarian SHARED
   ../3rd_party/cnpy/cnpy.cpp
   ../3rd_party/exception.cpp
   ../3rd_party/svd/svd.cpp
-  ../graph/expression_graph.cu
+  ../graph/expression_graph.cpp
   ../graph/expression_operators.cu
   ../graph/node.cu
   ../graph/node_operators.cu

@@ -1,6 +1,6 @@
 #include "layers/guided_alignment.h"
 #include "graph/expression_operators.h"
-#include "layers/param_initializers.h"
+#include "graph/node_initializers.h"
 
 namespace marian {
 

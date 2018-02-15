@@ -9,7 +9,7 @@
 #include "common/logging.h"
 #include "common/utils.h"
 #include "data/types.h"
-#include "layers/param_initializers.h"
+#include "graph/node_initializers.h"
 
 namespace marian {
 

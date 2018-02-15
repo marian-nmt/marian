@@ -4,8 +4,8 @@
 #include "common/options.h"
 #include "graph/expression_graph.h"
 #include "graph/expression_operators.h"
+#include "graph/node_initializers.h"
 #include "layers/factory.h"
-#include "layers/param_initializers.h"
 
 namespace marian {
 namespace mlp {

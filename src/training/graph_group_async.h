@@ -73,7 +73,7 @@ public:
         tau_{options_->get<size_t>("optimizer-delay")} {
     for(auto device : devices_) {
       auto graph = New<ExpressionGraph>();
-      graph->setDevice(device);
+      graph->setDevice({device, DeviceType::gpu});
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
       shardOpt_.push_back(Optimizer(options_));

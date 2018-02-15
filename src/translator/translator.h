@@ -41,7 +41,7 @@ public:
     for(size_t device : devices) {
       auto task = [&](size_t device, size_t id) {
         auto graph = New<ExpressionGraph>(true);
-        graph->setDevice(device);
+        graph->setDevice({device, DeviceType::gpu});
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_[id] = graph;
 
@@ -78,7 +78,6 @@ public:
 
         if(!graph) {
           graph = graphs_[id % devices.size()];
-          graph->getBackend()->setDevice(graph->getDevice());
           scorers = scorers_[id % devices.size()];
         }
 
@@ -136,7 +135,7 @@ public:
     // initialize scorers
     for(auto& device : devices_) {
       auto graph = New<ExpressionGraph>(true);
-      graph->setDevice(device);
+      graph->setDevice({device, DeviceType::gpu});
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
 
@@ -168,7 +167,6 @@ public:
 
           if(!graph) {
             graph = graphs_[id % devices_.size()];
-            graph->getBackend()->setDevice(graph->getDevice());
             scorers = scorers_[id % devices_.size()];
           }
 
