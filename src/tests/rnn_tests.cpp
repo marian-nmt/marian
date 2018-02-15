@@ -2,6 +2,7 @@
 #include "marian.h"
 
 #include "rnn/rnn.h"
+#include "rnn/constructors.h"
 
 using namespace marian;
 
