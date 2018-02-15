@@ -2,8 +2,7 @@
 #include "graph/backend_gpu.h"
 #include "graph/expression_graph.h"
 
-//#include "kernels/dropout.h"
-//#include "kernels/tensor_operators.h"
+#include "backend/dispatch.h"
 
 namespace marian {
 
@@ -20,18 +19,15 @@ void ExpressionGraph::setDevice(DeviceId deviceId) {
 }
 
 Expr ExpressionGraph::dropout(float prob, Shape shape) {
-  ABORT("Not implemented");
-  
-  //auto dropoutInit = [prob, this](Tensor t) {
-  //  Dropout(t, prob, std::static_pointer_cast<BackendGPU>(backend_)->getCurandGenerator());
-  //};
-  //
-  //return Expression<ConstantNode>(shared_from_this(),
-  //                                keywords::init = dropoutInit,
-  //                                keywords::shape = shape);
+  return Expression<ConstantNode>(shared_from_this(),
+                                  keywords::init = [prob, this](Tensor t) {
+                                    Dropout(backend_, t, prob);
+                                  },
+                                  keywords::shape = shape);
 }
 
 void ExpressionGraph::checkNan(Tensor t) {
+  ABORT_IF(throwNaN_, "Not implemented");
   //ABORT_IF(throwNaN_ && IsNan(t), "Tensor has NaN");
 }
 }
