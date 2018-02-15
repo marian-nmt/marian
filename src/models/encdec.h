@@ -26,13 +26,7 @@ protected:
     int dimEmb = srcEmbeddings->shape()[-1];
     int dimWords = subBatch->batchWidth();
 
-    auto chosenEmbeddings =
-#ifdef CNTK_BACKEND
-        /*if*/ (subBatch->oneHot()) ?  // CNTK-specific: CNTK corpus data is stored differently.
-            rows(srcEmbeddings, subBatch->oneHot())
-        /*else*/ :
-#endif
-            rows(srcEmbeddings, subBatch->indices());
+    auto chosenEmbeddings = rows(srcEmbeddings, subBatch->indices());
 
     auto batchEmbeddings
         = reshape(chosenEmbeddings, {dimWords, dimBatch, dimEmb});
@@ -113,13 +107,7 @@ public:
     int dimBatch = subBatch->batchSize();
     int dimWords = subBatch->batchWidth();
 
-    auto chosenEmbeddings =
-#ifdef CNTK_BACKEND
-        /*if*/ (subBatch->oneHot()) ?  // CNTK-specific: CNTK corpus data is stored differently.
-            rows(yEmb, subBatch->oneHot())
-        /*else*/ :
-#endif
-            rows(yEmb, subBatch->indices());
+    auto chosenEmbeddings = rows(yEmb, subBatch->indices());
 
     auto y
         = reshape(chosenEmbeddings, {dimWords, dimBatch, opt<int>("dim-emb")});
