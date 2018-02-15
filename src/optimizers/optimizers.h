@@ -126,70 +126,80 @@ public:
     if(!boost::filesystem::exists(name))
       return;
 
-    // @TODO: implement multi-gpu setting
-    if(opts.size() > 1)
-      return;
-
     LOG(info, "Loading Adam parameters from {}", name);
 
-    auto opt = std::dynamic_pointer_cast<Adam>(opts.front());
+    std::vector<float> vMt;
+    std::vector<float> vVt;
+    int totalSize;
 
     auto numpy = cnpy::npz_load(name);
     for(auto it : numpy) {
       auto name = it.first;
       cnpy::NpyArray& np = it.second;
 
-      // get the size of mt_ and vt_
-      int size = 1;
-      for(size_t i = 0; i < np.shape.size(); ++i)
-        size *= np.shape[i];
-
-      // reserve memory for momentums
-      if(!opt->mt_ || !opt->vt_) {
-        if(!opt->alloc_)
-          opt->alloc_ = New<TensorAllocator>(devices.front());
-
-        opt->alloc_->reserveExact(2 * size);
-        opt->alloc_->allocate(opt->mt_, {1, size});
-        opt->alloc_->allocate(opt->vt_, {1, size});
-      }
+      // get the size of mt_ and vt_, they are the same
+      totalSize = np.shape[1];
 
       // extract data into a vector
-      std::vector<float> npv(size);
-      std::copy((float*)np.data, (float*)np.data + size, npv.begin());
-
-      // set tensors
       if(name == "mt_")
-        opt->mt_->set(npv);
+        std::copy((float*)np.data, (float*)np.data + totalSize, vMt.begin());
       if(name == "vt_")
-        opt->vt_->set(npv);
+        std::copy((float*)np.data, (float*)np.data + totalSize, vVt.begin());
+    }
+
+    int partSize = ceil(totalSize / (float)devices.size());
+
+    size_t id = 0;
+    for(auto optBase : opts) {
+      auto opt = std::dynamic_pointer_cast<Adam>(optBase);
+
+      if(!opt->mt_ || !opt->vt_) {
+        if(!opt->alloc_)
+          opt->alloc_ = New<TensorAllocator>(devices[id]);
+
+        opt->alloc_->reserveExact(2 * partSize);
+        opt->alloc_->allocate(opt->mt_, {1, partSize});
+        opt->alloc_->allocate(opt->vt_, {1, partSize});
+      }
+
+      std::vector<float> tmpMt(vMt.begin() + id * partSize,
+                               vMt.begin() + (id + 1) * partSize);
+      opt->mt_->set(tmpMt);
+      std::vector<float> tmpVt(vVt.begin() + id * partSize,
+                               vVt.begin() + (id + 1) * partSize);
+      opt->mt_->set(tmpVt);
+
+      id++;
     }
   }
 
   void save(const std::string& name,
             std::vector<Ptr<OptimizerBase>> opts,
             std::vector<size_t> devices) {
-    // @TODO: implement multi-gpu setting
-    if(opts.size() > 1)
-      return;
-
     LOG(info, "Saving Adam parameters to {}", name);
 
-    auto opt = std::dynamic_pointer_cast<Adam>(opts.front());
+    std::vector<float> vMt;
+    std::vector<float> vVt;
+
+    for(auto optBase : opts) {
+      auto opt = std::dynamic_pointer_cast<Adam>(optBase);
+
+      std::vector<float> tmpMt;
+      opt->mt_->get(tmpMt);
+      vMt.insert(vMt.end(), tmpMt.begin(), tmpMt.end());
+
+      std::vector<float> tmpVt;
+      opt->vt_->get(tmpVt);
+      vVt.insert(vVt.end(), tmpVt.begin(), tmpVt.end());
+    }
 
     // the shape is the same for mt_ and vt_
-    unsigned dim = opt->mt_->shape().size();
-    unsigned* shape = new unsigned[dim];
-    for(int i = 0; i < dim; ++i)
-      shape[i] = opt->mt_->shape()[i];
+    unsigned* shape = new unsigned[2];
+    shape[0] = 1;
+    shape[1] = vMt.size();
 
-    std::vector<float> vMt;
-    opt->mt_->get(vMt);
-    cnpy::npz_save(name, "mt_", vMt.data(), shape, dim, "w");
-
-    std::vector<float> vVt;
-    opt->vt_->get(vVt);
-    cnpy::npz_save(name, "vt_", vVt.data(), shape, dim, "a");
+    cnpy::npz_save(name, "mt_", vMt.data(), shape, 2, "w");
+    cnpy::npz_save(name, "vt_", vVt.data(), shape, 2, "a");
 
     delete[] shape;
   }
