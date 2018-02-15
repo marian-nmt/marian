@@ -33,7 +33,7 @@ TEST_CASE("Model components, Attention", "[attention]") {
     Config::seed = 1234;
 
     auto graph = New<ExpressionGraph>();
-    graph->setDevice(0);
+    graph->setDevice({0, DeviceType::gpu});
     graph->reserveWorkspaceMB(16);
 
     std::vector<float> values;

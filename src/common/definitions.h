@@ -52,6 +52,12 @@ struct DeviceId {
     out << (deviceId.type == DeviceType::gpu ? "gpu" : "cpu") << deviceId.no;
     return out;
   }
+  
+  friend bool operator==(DeviceId id1, DeviceId id2) {
+    return id1.no == id2.no && id1.type == id2.type;
+  }
+  
+  
 };
 
 class TensorBase;
