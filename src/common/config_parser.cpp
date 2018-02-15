@@ -405,6 +405,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
       "GPUs to use for training. Asynchronous SGD is used with multiple devices")
+    ("cpu", po::value<bool>()->zero_tokens()->default_value(false),
+      "Use CPU-based training or decoding")
 
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
@@ -583,6 +585,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
       "GPUs to use for translating")
+    ("cpu", po::value<bool>()->zero_tokens()->default_value(false),
+      "Use CPU-based decoding")
     ("mini-batch", po::value<int>()->default_value(1),
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(1),
@@ -626,7 +630,9 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
     ("devices,d", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
-      "GPUs to use for training. Asynchronous SGD is used with multiple devices")
+      "GPUs to use for scoring.")
+    ("cpu", po::value<bool>()->zero_tokens()->default_value(false),
+      "Use CPU-based scoring")
 
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
@@ -882,6 +888,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("seed", size_t);
   SET_OPTION("relative-paths", bool);
   SET_OPTION("devices", std::vector<int>);
+  SET_OPTION("cpu", bool);
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
 

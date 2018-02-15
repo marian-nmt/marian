@@ -33,6 +33,11 @@ public:
     trgVocab_->load(vocabs.back());
 
     auto devices = options_->get<std::vector<int>>("devices");
+    
+    DeviceType type = DeviceType::gpu;
+    if(options_->get<bool>("cpu"))
+      type = DeviceType::cpu;
+    
     ThreadPool threadPool(devices.size(), devices.size());
 
     scorers_.resize(devices.size());
@@ -41,7 +46,7 @@ public:
     for(size_t device : devices) {
       auto task = [&](size_t device, size_t id) {
         auto graph = New<ExpressionGraph>(true);
-        graph->setDevice({device, DeviceType::gpu});
+        graph->setDevice({device, type});
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_[id] = graph;
 
@@ -132,10 +137,14 @@ public:
     }
     trgVocab_->load(vocabPaths.back());
 
+    DeviceType type = DeviceType::gpu;
+    if(options_->get<bool>("cpu"))
+      type = DeviceType::cpu;
+    
     // initialize scorers
     for(auto& device : devices_) {
       auto graph = New<ExpressionGraph>(true);
-      graph->setDevice({device, DeviceType::gpu});
+      graph->setDevice({device, type});
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
 
