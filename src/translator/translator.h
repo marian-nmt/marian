@@ -32,7 +32,7 @@ public:
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
     trgVocab_->load(vocabs.back());
 
-    auto devices = options_->get<std::vector<size_t>("devices");
+    auto devices = options_->get<std::vector<size_t>>("devices");
     
     DeviceType type = DeviceType::gpu;
     if(options_->get<bool>("cpu"))
