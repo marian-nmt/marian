@@ -110,7 +110,7 @@ private:
 
   SingleLayerRNN(Ptr<ExpressionGraph> graph, Ptr<Options> options)
       : BaseRNN(graph, options),
-        direction_(options->get<dir>("direction", dir::forward)) {}
+        direction_((dir)options->get<int>("direction", (int)dir::forward)) {}
 
 public:
   friend RNN;
