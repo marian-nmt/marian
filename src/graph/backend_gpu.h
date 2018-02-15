@@ -24,6 +24,10 @@ public:
     setHandles();
   }
 
+  void setDevice() {
+    cudaSetDevice(deviceId_.no);
+  }
+
   cublasHandle_t getCublasHandle() { return cublasHandle_; }
 
   curandGenerator_t getCurandGenerator() { return curandGenerator_; }
@@ -32,10 +36,7 @@ private:
   cublasHandle_t cublasHandle_;
   curandGenerator_t curandGenerator_;
 
-  void setDevice() {
-    cudaSetDevice(deviceId_.no);
-  }
-
+  
   void setHandles() {
     cublasHandle_ = create_handle();
     curandGenerator_ = createCurandGenerator();

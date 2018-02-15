@@ -10,12 +10,14 @@ ExpressionGraph::ExpressionGraph(bool inference)
     : inferenceOnly_(inference), backend_(nullptr) {}
 
 void ExpressionGraph::setDevice(DeviceId deviceId) {
-  backend_ = New<BackendGPU>(deviceId, Config::seed);
+  if(!backend_) {
+    backend_ = New<BackendGPU>(deviceId, Config::seed);
   
-  params_ = New<Parameters>();
-  params_->init(backend_->getDevice());
-
-  tensors_ = New<TensorAllocator>(backend_->getDevice());
+    params_ = New<Parameters>();
+    params_->init(backend_->getDevice());
+  
+    tensors_ = New<TensorAllocator>(backend_->getDevice());
+  }
 }
 
 Expr ExpressionGraph::dropout(float prob, Shape shape) {

@@ -14,6 +14,7 @@ public:
     : deviceId_(deviceId), seed_(seed) {}
   
   virtual DeviceId getDevice() { return deviceId_; };
+  virtual void setDevice() = 0;
 };
 
 }

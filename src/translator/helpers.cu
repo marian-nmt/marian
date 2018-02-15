@@ -21,6 +21,8 @@ __global__ void gSetColumn(float* d_in,
 }
 
 void SetColumn(Tensor in, size_t col, float value) {
+  cudaSetDevice(in->getDevice().no);
+  
   int nRows = in->shape().elements() / in->shape()[-1];
   int nColumns = in->shape()[-1];
 
