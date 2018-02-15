@@ -1,6 +1,10 @@
 #pragma once
 
 #include "marian.h"
+#include "layers/generic.h"
+#include "layers/guided_alignment.h"
+#include "model_base.h"
+#include "states.h"
 
 namespace marian {
 
@@ -11,7 +15,8 @@ protected:
   bool inference_{false};
   size_t batchIndex_{0};
 
-  virtual std::tuple<Expr, Expr> lookup(Expr srcEmbeddings,
+  virtual std::tuple<Expr, Expr> lookup(Ptr<ExpressionGraph> graph,
+                                        Expr srcEmbeddings,
                                         Ptr<data::CorpusBatch> batch) {
     using namespace keywords;
 
@@ -21,8 +26,7 @@ protected:
     int dimEmb = srcEmbeddings->shape()[-1];
     int dimWords = subBatch->batchWidth();
 
-    auto graph = srcEmbeddings->graph();
-    auto chosenEmbeddings = rows(srcEmbeddings, subBatch->indices());
+    auto chosenEmbeddings = rows(srcEmbeddings, subBatch->data());
 
     auto batchEmbeddings
         = reshape(chosenEmbeddings, {dimWords, dimBatch, dimEmb});
@@ -103,7 +107,7 @@ public:
     int dimBatch = subBatch->batchSize();
     int dimWords = subBatch->batchWidth();
 
-    auto chosenEmbeddings = rows(yEmb, subBatch->indices());
+    auto chosenEmbeddings = rows(yEmb, subBatch->data());
 
     auto y
         = reshape(chosenEmbeddings, {dimWords, dimBatch, opt<int>("dim-emb")});
@@ -111,15 +115,15 @@ public:
     auto yMask = graph->constant({dimWords, dimBatch, 1},
                                  init = inits::from_vector(subBatch->mask()));
 
-    auto yIdx = graph->constant({(int)subBatch->indices().size(), 1},
-                                init = inits::from_vector(subBatch->indices()));
+    auto yData = graph->constant({(int)subBatch->data().size(), 1},
+                                 init = inits::from_vector(subBatch->data()));
 
     auto yShifted = shift(y, {1, 0, 0});
 
     state->setTargetEmbeddings(yShifted);
     state->setTargetMask(yMask);
 
-    return std::make_tuple(yMask, yIdx);
+    return std::make_tuple(yMask, yData);
   }
 
   virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
@@ -199,7 +203,7 @@ protected:
   std::vector<std::string> modelFeatures_;
 
   void saveModelParameters(const std::string& name) {
-    YAML::Node modelParams;
+    Config::YamlNode modelParams;
     for(auto& key : modelFeatures_)
       modelParams[key] = options_->getOptions()[key];
 
@@ -212,7 +216,7 @@ protected:
   }
 
   virtual void createDecoderConfig(const std::string& name) {
-    YAML::Node decoder;
+    Config::YamlNode decoder;
     decoder["models"] = std::vector<std::string>({name});
     decoder["vocabs"] = options_->get<std::vector<std::string>>("vocabs");
     decoder["normalize"] = opt<float>("normalize");

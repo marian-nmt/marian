@@ -194,7 +194,7 @@ private:
   }
 
   void createAmunConfig(const std::string& name) {
-    YAML::Node amun;
+    Config::YamlNode amun;
     // Amun has only CPU decoder for deep Nematus models
     amun["cpu-threads"] = 16;
     amun["gpu-threads"] = 0;

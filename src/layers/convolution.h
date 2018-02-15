@@ -1,9 +1,9 @@
 #pragma once
 
-#include <string>
-
+#include "marian.h"
 #include "layers/generic.h"
-#include "graph/expression_graph.h"
+
+#include <string>
 
 namespace marian {
 

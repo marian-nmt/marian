@@ -1,8 +1,6 @@
 #pragma once
 
-#include "common/definitions.h"
-#include "data/corpus.h"
-#include "graph/expression_graph.h"
+#include "marian.h"
 #include "rnn/types.h"
 
 namespace marian {
@@ -24,7 +22,7 @@ public:
   virtual Expr getMask() { return mask_; }
 
   virtual const std::vector<size_t>& getSourceWords() {
-    return batch_->front()->indices();
+    return batch_->front()->data();
   }
 };
 

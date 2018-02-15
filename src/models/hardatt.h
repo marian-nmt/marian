@@ -1,6 +1,11 @@
 #pragma once
 
 #include "marian.h"
+#include "layers/generic.h"
+#include "rnn/types.h"
+#include "rnn/attention_constructors.h"
+
+#include <numeric>
 
 namespace marian {
 
@@ -39,7 +44,7 @@ public:
     auto attentionIdx = getAttentionIndices();
     int dimVoc = totalCosts->shape()[-1];
     for(int i = 0; i < attentionIdx.size(); i++) {
-      if(batch->front()->indices()[attentionIdx[i]] != 0) {
+      if(batch->front()->data()[attentionIdx[i]] != 0) {
         totalCosts->val()->set(i * dimVoc + EOS_ID,
                                std::numeric_limits<float>::lowest());
       } else {
@@ -84,7 +89,7 @@ public:
                      .push_back(mlp::dense(graph)                  //
                                 ("prefix", prefix_ + "_ff_state")  //
                                 ("dim", opt<int>("dim-rnn"))       //
-                                ("activation", mlp::act::tanh)     //
+                                ("activation", (int)mlp::act::tanh)//
                                 ("layer-normalization",
                                  opt<bool>("layer-normalization")));
       start = mlp->apply(meanContexts);
@@ -187,7 +192,7 @@ public:
                    .push_back(mlp::dense(graph)                     //
                               ("prefix", prefix_ + "_ff_logit_l1")  //
                               ("dim", dimTrgEmb)                    //
-                              ("activation", mlp::act::tanh)        //
+                              ("activation", (int)mlp::act::tanh)   //
                               ("layer-normalization", layerNorm))   //
                    .push_back(mlp::dense(graph)                     //
                               ("prefix", prefix_ + "_ff_logit_l2")  //
@@ -244,7 +249,7 @@ public:
 
     for(int i = 0; i < dimWords - 1; ++i) {
       for(int j = 0; j < dimBatch; ++j) {
-        size_t word = subBatch->indices()[i * dimBatch + j];
+        size_t word = subBatch->data()[i * dimBatch + j];
         if(specialSymbols_.count(word))
           currentPos[j] += dimBatch;
         attentionIndices.push_back(currentPos[j]);

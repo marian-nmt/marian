@@ -1,6 +1,8 @@
 #include "catch.hpp"
 #include "marian.h"
 
+#include "rnn/rnn.h"
+
 using namespace marian;
 
 TEST_CASE("Model components, RNN etc.", "[model]") {

@@ -216,7 +216,7 @@ public:
 
 private:
   void createAmunConfig(const std::string& name) {
-    YAML::Node amun;
+    Config::YamlNode amun;
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
     amun["source-vocab"] = vocabs[0];
     amun["target-vocab"] = vocabs[1];
