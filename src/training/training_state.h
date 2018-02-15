@@ -10,7 +10,7 @@ class TrainingState;
 
 class TrainingObserver {
 public:
-  virtual void actAfterEpoch(TrainingState& state) {};
+  virtual void actAfterEpoch(TrainingState& state) {}
   virtual void actAfterBatches(TrainingState& state) {}
   virtual void actAfterStalled(TrainingState& state) {}
   virtual void actAfterLoaded(TrainingState& state) {}

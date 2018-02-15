@@ -11,6 +11,9 @@
 
 namespace marian {
 
+/**
+ * Base class for optimizers.
+ */
 class OptimizerBase : public TrainingObserver {
 public:
   OptimizerBase(float eta, Ptr<ClipperBase> clipper = nullptr)
@@ -42,8 +45,12 @@ public:
 
   void setParams(const std::vector<float>& params) { parseParams(params); }
 
-  virtual void load(const std::string& name, size_t device) { }
-  virtual void save(const std::string& name) { }
+  virtual void load(const std::string& name,
+                    std::vector<Ptr<OptimizerBase>> opts,
+                    std::vector<size_t> devices) {}
+  virtual void save(const std::string& name,
+                    std::vector<Ptr<OptimizerBase>> opts,
+                    std::vector<size_t> devices) {}
 
 protected:
   virtual void updateImpl(Tensor params, Tensor grads) = 0;
@@ -113,11 +120,19 @@ public:
   Adam(float eta, Ptr<ClipperBase> clipper = nullptr)
       : OptimizerBase(eta, clipper), t_(0) {}
 
-  void load(const std::string& name, size_t device) {
+  void load(const std::string& name,
+            std::vector<Ptr<OptimizerBase>> opts,
+            std::vector<size_t> devices) {
     if(!boost::filesystem::exists(name))
       return;
 
+    // @TODO: implement multi-gpu setting
+    if(opts.size() > 1)
+      return;
+
     LOG(info, "Loading Adam parameters from {}", name);
+
+    auto opt = std::dynamic_pointer_cast<Adam>(opts.front());
 
     auto numpy = cnpy::npz_load(name);
     for(auto it : numpy) {
@@ -130,13 +145,13 @@ public:
         size *= np.shape[i];
 
       // reserve memory for momentums
-      if(!mt_ || !vt_) {
-        if(!alloc_)
-          alloc_ = New<TensorAllocator>(device);
+      if(!opt->mt_ || !opt->vt_) {
+        if(!opt->alloc_)
+          opt->alloc_ = New<TensorAllocator>(devices.front());
 
-        alloc_->reserveExact(2 * size);
-        alloc_->allocate(mt_, {1, size});
-        alloc_->allocate(vt_, {1, size});
+        opt->alloc_->reserveExact(2 * size);
+        opt->alloc_->allocate(opt->mt_, {1, size});
+        opt->alloc_->allocate(opt->vt_, {1, size});
       }
 
       // extract data into a vector
@@ -145,27 +160,35 @@ public:
 
       // set tensors
       if(name == "mt_")
-        mt_->set(npv);
+        opt->mt_->set(npv);
       if(name == "vt_")
-        vt_->set(npv);
+        opt->vt_->set(npv);
     }
   }
 
-  void save(const std::string& name) {
+  void save(const std::string& name,
+            std::vector<Ptr<OptimizerBase>> opts,
+            std::vector<size_t> devices) {
+    // @TODO: implement multi-gpu setting
+    if(opts.size() > 1)
+      return;
+
     LOG(info, "Saving Adam parameters to {}", name);
 
+    auto opt = std::dynamic_pointer_cast<Adam>(opts.front());
+
     // the shape is the same for mt_ and vt_
-    unsigned dim = mt_->shape().size();
+    unsigned dim = opt->mt_->shape().size();
     unsigned* shape = new unsigned[dim];
     for(int i = 0; i < dim; ++i)
-      shape[i] = mt_->shape()[i];
+      shape[i] = opt->mt_->shape()[i];
 
     std::vector<float> vMt;
-    mt_->get(vMt);
+    opt->mt_->get(vMt);
     cnpy::npz_save(name, "mt_", vMt.data(), shape, dim, "w");
 
     std::vector<float> vVt;
-    vt_->get(vVt);
+    opt->vt_->get(vVt);
     cnpy::npz_save(name, "vt_", vVt.data(), shape, dim, "a");
 
     delete[] shape;
