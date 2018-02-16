@@ -138,17 +138,21 @@ public:
       cnpy::NpyArray& np = it.second;
 
       // get the size of mt_ and vt_, they are the same
-      if(!totalSize) {
-        totalSize = np.shape[1];
-        vVt.resize(totalSize);
-        vMt.resize(totalSize);
-      }
+      totalSize = np.shape[1];
 
-      // extract data into a vector
-      if(name == "mt_")
+      // extract data into vectors
+      if(name == "adam_mt") {
+        vMt.resize(totalSize);
         std::copy((float*)np.data, (float*)np.data + totalSize, vMt.begin());
-      if(name == "vt_")
+      }
+      if(name == "adam_vt") {
+        vVt.resize(totalSize);
         std::copy((float*)np.data, (float*)np.data + totalSize, vVt.begin());
+      }
+    }
+
+    if(vMt.empty() || vVt.empty()) {
+      LOG(info, "[warn] Adam parameters not found in .npz file");
     }
 
     int partSize = ceil(totalSize / (float)devices.size());
@@ -202,8 +206,8 @@ public:
     shape[0] = 1;
     shape[1] = vMt.size();
 
-    cnpy::npz_save(name, "mt_", vMt.data(), shape, 2, "w");
-    cnpy::npz_save(name, "vt_", vVt.data(), shape, 2, "a");
+    cnpy::npz_save(name, "adam_mt", vMt.data(), shape, 2, "w");
+    cnpy::npz_save(name, "adam_vt", vVt.data(), shape, 2, "a");
 
     delete[] shape;
   }
