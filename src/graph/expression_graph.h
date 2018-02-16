@@ -8,8 +8,8 @@
 #include "common/definitions.h"
 
 #include "tensors/tensor_allocator.h"
+#include "tensors/backend.h"
 
-#include "graph/backend.h"
 #include "graph/parameters.h"
 #include "graph/chainable.h"
 #include "graph/node_operators.h"

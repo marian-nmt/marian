@@ -1,10 +1,11 @@
 #pragma once
 
-#include "graph/backend_gpu.h"
+#include "tensors/tensor.h"
+#include "tensors/gpu/backend.h"
+
 #include "graph/node.h"
 #include "kernels/sparse.h"
 #include "kernels/tensor_operators.h"
-#include "tensors/tensor.h"
 #include "functional/functional.h"
 #include "kernels/cudnn_wrappers.h"
 
