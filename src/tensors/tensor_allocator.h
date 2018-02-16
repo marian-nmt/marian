@@ -16,11 +16,13 @@ private:
   const size_t GROW = CHUNK * MBYTE;
   const size_t ALIGN = 256;
 
+  Ptr<Backend> backend_;
   Ptr<Allocator> allocator_;
 
 public:
-  TensorAllocator(DeviceId deviceId)
-      : allocator_(New<Allocator>(deviceId, 0, GROW, ALIGN)) {}
+  TensorAllocator(Ptr<Backend> backend)
+      : backend_(backend),
+        allocator_(New<Allocator>(backend_->getDevice(), 0, GROW, ALIGN)) {}
 
   ~TensorAllocator() { clear(); }
 
@@ -58,7 +60,7 @@ public:
     if(!t || t->shape() != shape) {
       int size = shape.elements();
       auto mem = allocator_->alloc<float>(size);
-      t = Tensor(new TensorBase(mem, shape, allocator_->getDevice()));
+      t = Tensor(new TensorBase(mem, shape, backend_));
     }
   }
 
@@ -67,7 +69,7 @@ public:
   Tensor asTensor() {
     auto mem = allocator_->memory();
     int size = mem->size() / sizeof(float);
-    return Tensor(new TensorBase(mem, {1, size}, allocator_->getDevice()));
+    return Tensor(new TensorBase(mem, {1, size}, backend_));
   }
 
   size_t size() { return allocator_->size() / sizeof(float); }

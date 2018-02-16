@@ -9,6 +9,7 @@
 #include "common/definitions.h"
 #include "common/shape.h"
 #include "tensors/memory_piece.h"
+#include "tensors/backend.h"
 
 namespace marian {
 
@@ -16,11 +17,11 @@ class TensorBase : public std::enable_shared_from_this<TensorBase> {
 private:
   Ptr<MemoryPiece> memory_;
   Shape shape_;
-  DeviceId deviceId_;
+  Ptr<Backend> backend_;
 
 public:
-  TensorBase(Ptr<MemoryPiece> memory, Shape shape, DeviceId deviceId)
-      : memory_(memory), shape_(shape), deviceId_(deviceId) {}
+  TensorBase(Ptr<MemoryPiece> memory, Shape shape, Ptr<Backend> backend)
+      : memory_(memory), shape_(shape), backend_(backend) {}
 
   ~TensorBase() {}
 
@@ -39,12 +40,13 @@ public:
     return get(0);
   }
 
-  DeviceId getDevice() { return deviceId_; }
+  Ptr<Backend> getBackend() { return backend_; }
+  DeviceId getDevice() { return backend_->getDevice(); }
 
   Tensor subtensor(int offset, int size) {
     auto mem = New<MemoryPiece>(memory_->data() + sizeof(float) * offset,
                                 sizeof(float) * size);
-    return Tensor(new TensorBase(mem, {1, size}, deviceId_));
+    return New<TensorBase>(mem, Shape{1, size}, backend_);
   }
 
   float get(size_t i);

@@ -12,7 +12,7 @@ void multiply(Ptr<CSR> C,
               const Ptr<CSR> B,
               bool transA,
               bool transB) {
-  cudaSetDevice(C->getDevice());
+  cudaSetDevice(backend_->getDevice().no);
   int nnzTotal;
   C->allocRowIndices(A->rows());
   CUSPARSE_CHECK(cusparseXcsrgemmNnz(
@@ -91,7 +91,7 @@ void multiply(Ptr<CSR> C,
 //}
 
 void LfaForward(Tensor out, Tensor logits, Tensor att, Ptr<CSR> sparseLf) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(backend_->getDevice().no);
 
   int batch = att->shape()[0];
   int srcWords = att->shape()[2];
@@ -150,7 +150,7 @@ __global__ void gCollapseAtt(float* out,
 }
 
 void CollapseAtt(Tensor out, Tensor in) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(backend_->getDevice().no);
   int nonzeros = out->shape().elements();
   int batch = out->shape()[0];
   int srcWords = out->shape()[2];

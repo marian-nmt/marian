@@ -16,7 +16,7 @@ __global__ void gFill(float *d_in, int size, float val) {
 }
 
 float TensorBase::get(size_t i) {
-  cudaSetDevice(deviceId_.no);
+  CUDA_CHECK(cudaSetDevice(backend_->getDevice().no));
   float temp;
   CUDA_CHECK(
       cudaMemcpy(&temp, data() + i, sizeof(float), cudaMemcpyDeviceToHost));
@@ -25,14 +25,14 @@ float TensorBase::get(size_t i) {
 }
 
 void TensorBase::set(size_t i, float value) {
-  cudaSetDevice(deviceId_.no);
+  CUDA_CHECK(cudaSetDevice(backend_->getDevice().no));
   CUDA_CHECK(
       cudaMemcpy(data() + i, &value, sizeof(float), cudaMemcpyHostToDevice));
   cudaStreamSynchronize(0);
 }
 
 void TensorBase::get(std::vector<float> &v) {
-  CUDA_CHECK(cudaSetDevice(deviceId_.no));
+  CUDA_CHECK(cudaSetDevice(backend_->getDevice().no));
   v.resize(size());
   CUDA_CHECK(cudaMemcpy(
       v.data(), data(), size() * sizeof(float), cudaMemcpyDeviceToHost));
@@ -40,7 +40,7 @@ void TensorBase::get(std::vector<float> &v) {
 }
 
 void TensorBase::set(float value) {
-  cudaSetDevice(deviceId_.no);
+  CUDA_CHECK(cudaSetDevice(backend_->getDevice().no));
   int threads = std::min(512, (int)size());
   int blocks = (size() / threads) + (size() % threads != 0);
   gFill<<<blocks, threads>>>(data(), size(), value);
@@ -48,7 +48,7 @@ void TensorBase::set(float value) {
 }
 
 void TensorBase::set(const std::vector<float> &v) {
-  CUDA_CHECK(cudaSetDevice(deviceId_.no));
+  CUDA_CHECK(cudaSetDevice(backend_->getDevice().no));
   CUDA_CHECK(cudaMemcpy(
       data(), v.data(), v.size() * sizeof(float), cudaMemcpyHostToDevice));
   cudaStreamSynchronize(0);
@@ -56,13 +56,13 @@ void TensorBase::set(const std::vector<float> &v) {
 
 void TensorBase::setSparse(const std::vector<size_t> &k,
                            const std::vector<float> &v) {
-  cudaSetDevice(deviceId_.no);
+  CUDA_CHECK(cudaSetDevice(backend_->getDevice().no));
   SetSparse(data(), k, v);
   cudaStreamSynchronize(0);
 }
 
 void TensorBase::copyFrom(Tensor in) {
-  cudaSetDevice(deviceId_.no);
+  CUDA_CHECK(cudaSetDevice(backend_->getDevice().no));
   CUDA_CHECK(cudaMemcpy(data(),
                         (float *)in->data(),
                         in->size() * sizeof(float),
@@ -74,7 +74,7 @@ std::string TensorBase::debug() {
   std::stringstream strm;
   assert(shape_.size());
   strm << shape_;
-  strm << " device=" << deviceId_;
+  strm << " device=" << backend_->getDevice();
   strm << " ptr=" << (size_t)memory_->data();
   strm << " bytes=" << memory_->size();
   strm << std::endl;

@@ -893,7 +893,7 @@ void Select(Ptr<Allocator> allocator,
 
   auto mp_indices = allocator->alloc<size_t>(indices.size());
   CudaCopy(indices.data(), indices.data() + indices.size(), mp_indices->data());
-  
+
   int axisGPU = axis + gpu::Shape::size() - out->shape().size();
   gSelect<<<blocks, threads>>>(out->data(),
                                out->shape(),
@@ -919,7 +919,7 @@ void Insert(Ptr<Allocator> allocator,
 
   auto mp_indices = allocator->alloc<size_t>(indices.size());
   CudaCopy(indices.data(), indices.data() + indices.size(), mp_indices->data());
-  
+
   int axisGPU = axis + gpu::Shape::size() - out->shape().size();
   gInsert<<<blocks, threads>>>(out->data(),
                                out->shape(),
@@ -1295,7 +1295,7 @@ float L2Norm(Tensor in) {
   uint8_t* data;
   cudaMalloc(&data, blocks * sizeof(float));
   Tensor out(new TensorBase(
-      New<MemoryPiece>(data, blocks * sizeof(float)), {1, blocks}, in->getDevice()));
+      New<MemoryPiece>(data, blocks * sizeof(float)), {1, blocks}, in->getBackend()));
 
   ReduceAll(_1 * _1, out, in);
   float dataCpu = sqrtf(out->get(0));

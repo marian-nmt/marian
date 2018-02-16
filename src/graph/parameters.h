@@ -20,9 +20,9 @@ private:
   Ptr<TensorAllocator> grads_;
 
 public:
-  void init(DeviceId deviceId) {
-    vals_ = New<TensorAllocator>(deviceId);
-    grads_ = New<TensorAllocator>(deviceId);
+  void init(Ptr<Backend> backend) {
+    vals_ = New<TensorAllocator>(backend);
+    grads_ = New<TensorAllocator>(backend);
   }
 
   auto begin() -> decltype(params_.begin()) { return params_.begin(); }

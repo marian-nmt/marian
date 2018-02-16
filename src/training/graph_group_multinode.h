@@ -217,7 +217,7 @@ protected:
   /**
    * Allocate new tensor on given GPU and store allocator.
    */
-  Tensor newTensor(int size, DeviceId deviceId);
+  Tensor newTensor(int size, Ptr<Backend> backend);
 
   /**
    * Setup training environment and launch server thread and (if enabled) client
