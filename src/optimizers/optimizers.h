@@ -130,7 +130,7 @@ public:
 
     std::vector<float> vMt;
     std::vector<float> vVt;
-    int totalSize;
+    size_t totalSize = 0;
 
     auto numpy = cnpy::npz_load(name);
     for(auto it : numpy) {
@@ -138,7 +138,11 @@ public:
       cnpy::NpyArray& np = it.second;
 
       // get the size of mt_ and vt_, they are the same
-      totalSize = np.shape[1];
+      if(!totalSize) {
+        totalSize = np.shape[1];
+        vVt.resize(totalSize);
+        vMt.resize(totalSize);
+      }
 
       // extract data into a vector
       if(name == "mt_")
