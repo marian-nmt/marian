@@ -90,10 +90,13 @@ public:
   }
 
   void setSparse(const std::vector<size_t> &k,
-                             const std::vector<float> &v) {
-    //CUDA_CHECK(cudaSetDevice(backend_->getDevice().no));
-    //SetSparse(data(), k, v);
-    //cudaStreamSynchronize(0);
+                 const std::vector<float> &v) {
+    if(backend_->getDevice().type == DeviceType::gpu) {
+      gpu::setSparse(backend_, k, v, data());
+    } else {
+      for(int i = 0; i < k.size(); ++i)
+        data()[k[i]] = v[i];
+    }
   }
 
   void copyFrom(Tensor in) {
