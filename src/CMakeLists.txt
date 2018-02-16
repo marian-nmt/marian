@@ -8,10 +8,11 @@ cuda_add_library(marian
   3rd_party/cnpy/cnpy.cpp
   3rd_party/exception.cpp
   3rd_party/svd/svd.cpp
-  tensors/tensor.cu
+#  tensors/tensor.cu
   tensors/device.cu
   tensors/device.cpp
   tensors/backend.cpp
+  tensors/gpu/algorithm.cu
   tensors/gpu/dropout.cu
   tensors/cpu/dropout.cpp
   kernels/tensor_operators.cu

@@ -892,7 +892,7 @@ void Select(Ptr<Allocator> allocator,
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
   auto mp_indices = allocator->alloc<size_t>(indices.size());
-  CudaCopy(indices.data(), indices.data() + indices.size(), mp_indices->data());
+  CudaCopy(indices.data(), indices.data() + indices.size(), mp_indices->data<size_t>());
 
   int axisGPU = axis + gpu::Shape::size() - out->shape().size();
   gSelect<<<blocks, threads>>>(out->data(),
@@ -918,7 +918,7 @@ void Insert(Ptr<Allocator> allocator,
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
   auto mp_indices = allocator->alloc<size_t>(indices.size());
-  CudaCopy(indices.data(), indices.data() + indices.size(), mp_indices->data());
+  CudaCopy(indices.data(), indices.data() + indices.size(), mp_indices->data<size_t>());
 
   int axisGPU = axis + gpu::Shape::size() - out->shape().size();
   gInsert<<<blocks, threads>>>(out->data(),
