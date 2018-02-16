@@ -36,6 +36,7 @@ public:
 
   virtual void actAfterLoaded(TrainingState& state) {
     lastBest_ = state.validBest;
+    stalled_ = state.stalled;
   }
 
 protected:

@@ -56,7 +56,9 @@ public:
 
   void addValidator(Ptr<ValidatorBase> validator) {
     validators_.push_back(validator);
-    registerTrainingObserver(validators_.back());
+    // stalled validations are computed with the first validator only
+    if(validators_.size() == 1)
+      registerTrainingObserver(validators_.front());
   }
 
   bool validating() {
@@ -93,7 +95,9 @@ public:
                   state_->batches,
                   validator->type(),
                   value);
-        state_->validBest = value;
+
+        if(firstValidator)
+          state_->validBest = value;
       }
 
       // notify training observers if the first validator did not improve
