@@ -66,7 +66,11 @@ public:
         for(auto graph : graphs_)
           builders_[i++]->load(graph, name);
 
-        shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, devices_);
+        // @TODO: probably we want to have the list of DeviceIds as an attribute
+        std::vector<DeviceId> devices;
+        for(auto graph : graphs_)
+          devices.push_back(graph->getDevice());
+        shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, devices);
 
       } else if(options_->has("pretrained-model")) {
         std::string init = options_->get<std::string>("pretrained-model");
@@ -124,7 +128,7 @@ public:
     if(movingAvg_)
       fetchParams(graphs_[idx]->params()->vals(), params_);
 
-    shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_, devices_);
+    shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_, {});
   }
 
   Ptr<data::BatchStats> collectStats() {

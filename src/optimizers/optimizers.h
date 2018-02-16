@@ -47,10 +47,10 @@ public:
 
   virtual void load(const std::string& name,
                     std::vector<Ptr<OptimizerBase>> opts,
-                    std::vector<size_t> devices) {}
+                    std::vector<DeviceId> devices) {}
   virtual void save(const std::string& name,
                     std::vector<Ptr<OptimizerBase>> opts,
-                    std::vector<size_t> devices) {}
+                    std::vector<DeviceId> devices) {}
 
 protected:
   virtual void updateImpl(Tensor params, Tensor grads) = 0;
@@ -122,7 +122,7 @@ public:
 
   void load(const std::string& name,
             std::vector<Ptr<OptimizerBase>> opts,
-            std::vector<size_t> devices) {
+            std::vector<DeviceId> devices) {
     if(!boost::filesystem::exists(name))
       return;
 
@@ -179,7 +179,7 @@ public:
 
   void save(const std::string& name,
             std::vector<Ptr<OptimizerBase>> opts,
-            std::vector<size_t> devices) {
+            std::vector<DeviceId> devices) {
     LOG(info, "Saving Adam parameters to {}", name);
 
     std::vector<float> vMt;
