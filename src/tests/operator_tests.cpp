@@ -9,7 +9,7 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
   auto floatApprox = [](float x, float y) { return x == Approx(y); };
 
   auto graph = New<ExpressionGraph>();
-  graph->setDevice(0);
+  graph->setDevice({0, DeviceType::gpu});
   graph->reserveWorkspaceMB(16);
 
   std::vector<float> vA({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});

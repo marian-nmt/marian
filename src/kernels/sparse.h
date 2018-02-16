@@ -1,8 +1,8 @@
 #pragma once
 #include <cusparse_v2.h>
 
+#include "common/definitions.h"
 #include "tensors/tensor.h"
-
 #include "kernels/cuda_helpers.h"
 
 namespace marian {
@@ -14,7 +14,7 @@ private:
   int nnz_{0};
   int rows_{0};
   int cols_{0};
-  size_t device_{0};
+  DeviceId deviceId_;
 
   cusparseHandle_t handle_{0};
   cusparseMatDescr_t descr_{0};
@@ -24,9 +24,9 @@ private:
   float* values_{0};
 
 public:
-  CSR(int rows, int cols, size_t device)
-      : rows_(rows), cols_(cols), device_(device) {
-    cudaSetDevice(device);
+  CSR(int rows, int cols, DeviceId deviceId)
+      : rows_(rows), cols_(cols), deviceId_(deviceId) {
+    cudaSetDevice(deviceId_.no);
     CUSPARSE_CHECK(cusparseCreate(&handle_));
     CUSPARSE_CHECK(cusparseCreateMatDescr(&descr_));
     CUSPARSE_CHECK(cusparseSetMatType(descr_, CUSPARSE_MATRIX_TYPE_GENERAL));
@@ -38,9 +38,9 @@ public:
       const std::vector<float>& values,
       const std::vector<int>& rowIndices,
       const std::vector<int>& colIndices,
-      size_t device)
-      : nnz_(values.size()), rows_(rows), cols_(cols), device_(device) {
-    cudaSetDevice(device);
+      DeviceId deviceId)
+      : nnz_(values.size()), rows_(rows), cols_(cols), deviceId_(deviceId) {
+    cudaSetDevice(deviceId_.no);
     CUSPARSE_CHECK(cusparseCreate(&handle_));
     CUSPARSE_CHECK(cusparseCreateMatDescr(&descr_));
     CUSPARSE_CHECK(cusparseSetMatType(descr_, CUSPARSE_MATRIX_TYPE_GENERAL));
@@ -73,8 +73,8 @@ public:
     CUDA_CHECK(cudaFree(cooRowIndices));
   }
 
-  CSR(Tensor dense) : device_(dense->getDevice()) {
-    cudaSetDevice(dense->getDevice());
+  CSR(Tensor dense) : deviceId_(dense->getDevice()) {
+    cudaSetDevice(deviceId_.no);
     rows_ = dense->shape()[0] * dense->shape()[2] * dense->shape()[3];
     cols_ = dense->shape()[1];
 
@@ -114,7 +114,7 @@ public:
   }
 
   ~CSR() {
-    cudaSetDevice(device_);
+    cudaSetDevice(deviceId_.no);
     if(values_)
       CUDA_CHECK(cudaFree(values_));
     if(rowIndices_)
@@ -129,7 +129,7 @@ public:
   }
 
   void toTensor(Tensor dense) {
-    cudaSetDevice(device_);
+    cudaSetDevice(deviceId_.no);
     ABORT_IF(dense->size() != rows_ * cols_, "Matrix sizes do not match");
 
     cusparseScsc2dense(handle_,
@@ -154,10 +154,10 @@ public:
   int* rowIndices() { return rowIndices_; }
   int* colIndices() { return colIndices_; }
 
-  size_t getDevice() { return device_; }
+  DeviceId getDevice() { return deviceId_; }
 
   void allocValues(int nnz = 0) {
-    cudaSetDevice(device_);
+    cudaSetDevice(deviceId_.no);
     if(nnz > 0)
       nnz_ = nnz;
     if(values_)
@@ -166,7 +166,7 @@ public:
   }
 
   void allocRowIndices(int rows = 0) {
-    cudaSetDevice(device_);
+    cudaSetDevice(deviceId_.no);
     if(rows > 0)
       rows_ = rows;
     if(rowIndices_)
@@ -175,7 +175,7 @@ public:
   }
 
   void allocColIndices(int nnz = 0) {
-    cudaSetDevice(device_);
+    cudaSetDevice(deviceId_.no);
     if(nnz > 0)
       nnz_ = nnz;
     if(colIndices_)
@@ -188,7 +188,7 @@ public:
     CUDA_CHECK(cudaMalloc(&buffer, sizeof(float) * rows() * cols()));
 
     auto mem = New<MemoryPiece>(buffer, sizeof(float) * rows() * cols());
-    Tensor tensor(new TensorBase(mem, {rows(), cols()}, device_));
+    Tensor tensor(new TensorBase(mem, {rows(), cols()}, deviceId_));
     toTensor(tensor);
     std::string temp = tensor->debug();
 

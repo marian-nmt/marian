@@ -6,6 +6,7 @@
 
 #include "common/config.h"
 #include "common/utils.h"
+#include "3rd_party/threadpool.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "graph/expression_graph.h"
@@ -151,7 +152,6 @@ protected:
 
           if(!graph) {
             graph = graphs[id % graphs.size()];
-            graph->getBackend()->setDevice(graph->getDevice());
           }
 
           builder->clear(graph);
@@ -306,7 +306,6 @@ public:
 
           if(!graph) {
             graph = graphs[id % graphs.size()];
-            graph->getBackend()->setDevice(graph->getDevice());
             scorer = scorers[id % graphs.size()];
           }
 

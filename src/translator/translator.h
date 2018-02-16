@@ -32,7 +32,12 @@ public:
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
     trgVocab_->load(vocabs.back());
 
-    auto devices = options_->get<std::vector<int>>("devices");
+    auto devices = options_->get<std::vector<size_t>>("devices");
+    
+    DeviceType type = DeviceType::gpu;
+    if(options_->get<bool>("cpu"))
+      type = DeviceType::cpu;
+    
     ThreadPool threadPool(devices.size(), devices.size());
 
     scorers_.resize(devices.size());
@@ -41,7 +46,7 @@ public:
     for(size_t device : devices) {
       auto task = [&](size_t device, size_t id) {
         auto graph = New<ExpressionGraph>(true);
-        graph->setDevice(device);
+        graph->setDevice({device, type});
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_[id] = graph;
 
@@ -59,7 +64,7 @@ public:
   void run() {
     data::BatchGenerator<data::Corpus> bg(corpus_, options_);
 
-    auto devices = options_->get<std::vector<int>>("devices");
+    auto devices = options_->get<std::vector<size_t>>("devices");
     ThreadPool threadPool(devices.size(), devices.size());
 
     size_t batchId = 0;
@@ -78,7 +83,6 @@ public:
 
         if(!graph) {
           graph = graphs_[id % devices.size()];
-          graph->getBackend()->setDevice(graph->getDevice());
           scorers = scorers_[id % devices.size()];
         }
 
@@ -133,10 +137,14 @@ public:
     }
     trgVocab_->load(vocabPaths.back());
 
+    DeviceType type = DeviceType::gpu;
+    if(options_->get<bool>("cpu"))
+      type = DeviceType::cpu;
+    
     // initialize scorers
     for(auto& device : devices_) {
       auto graph = New<ExpressionGraph>(true);
-      graph->setDevice(device);
+      graph->setDevice({device, type});
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
 
@@ -168,7 +176,6 @@ public:
 
           if(!graph) {
             graph = graphs_[id % devices_.size()];
-            graph->getBackend()->setDevice(graph->getDevice());
             scorers = scorers_[id % devices_.size()];
           }
 

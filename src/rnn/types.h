@@ -1,11 +1,9 @@
 #pragma once
 
+#include "marian.h"
+
 #include <iostream>
 #include <vector>
-
-#include "common/definitions.h"
-#include "common/options.h"
-#include "graph/expression_graph.h"
 
 namespace marian {
 namespace rnn {

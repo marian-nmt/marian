@@ -1,7 +1,6 @@
 #pragma once
 
-#include "common/options.h"
-#include "graph/expression_graph.h"
+#include "marian.h"
 
 namespace marian {
 
@@ -31,8 +30,9 @@ public:
   }
 };
 
-template <class Factory>
-class Accumulator : public Factory {
+template <class BaseFactory>
+class Accumulator : public BaseFactory {
+  typedef BaseFactory Factory;
 public:
   Accumulator() : Factory(nullptr) {}
   Accumulator(Ptr<ExpressionGraph> graph) : Factory(graph) {}
@@ -51,7 +51,7 @@ public:
     return *this;
   }
 
-  Accumulator& operator()(YAML::Node yaml) {
+  Accumulator& operator()(Config::YamlNode yaml) {
     Factory::getOptions()->merge(yaml);
     return *this;
   }

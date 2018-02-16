@@ -1,9 +1,7 @@
 #pragma once
 
+#include "marian.h"
 #include <string>
-
-#include "data/batch.h"
-#include "graph/expression_graph.h"
 
 namespace marian {
 namespace models {
@@ -14,7 +12,6 @@ public:
                     const std::string&,
                     bool markReloaded = true)
       = 0;
-
   virtual void save(Ptr<ExpressionGraph>,
                     const std::string&,
                     bool saveTranslatorConfig = false)

@@ -32,7 +32,7 @@ public:
     size_t device = options_->get<std::vector<size_t>>("devices")[0];
 
     graph_ = New<ExpressionGraph>();
-    graph_->setDevice(device);
+    graph_->setDevice({device, DeviceType::gpu});
     graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
     opt_ = Optimizer(options_);
 

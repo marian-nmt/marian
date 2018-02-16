@@ -1,15 +1,11 @@
 #pragma once
 
+#include "3rd_party/exception.h"
+#include "marian.h"
+
 #include <fstream>
 #include <string>
 #include <vector>
-
-#include "3rd_party/exception.h"
-#include "common/definitions.h"
-#include "common/logging.h"
-#include "common/utils.h"
-#include "data/types.h"
-#include "layers/param_initializers.h"
 
 namespace marian {
 

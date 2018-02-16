@@ -1,6 +1,9 @@
 #pragma once
 
 #include "marian.h"
+#include "layers/constructors.h"
+#include "rnn/constructors.h"
+#include "rnn/attention_constructors.h"
 
 namespace marian {
 
@@ -33,7 +36,7 @@ public:
 
     auto rnnFw = rnn::rnn(graph)                                   //
         ("type", opt<std::string>("enc-cell"))                     //
-        ("direction", forward)                                     //
+        ("direction", (int)forward)                                //
         ("dimInput", embeddings->shape()[-1])                      //
         ("dimState", opt<int>("dim-rnn"))                          //
         ("dropout", dropoutRnn)                                    //
@@ -59,7 +62,7 @@ public:
 
     auto rnnBw = rnn::rnn(graph)                                   //
         ("type", opt<std::string>("enc-cell"))                     //
-        ("direction", backward)                                    //
+        ("direction", (int)backward)                               //
         ("dimInput", embeddings->shape()[-1])                      //
         ("dimState", opt<int>("dim-rnn"))                          //
         ("dropout", dropoutRnn)                                    //
@@ -153,7 +156,7 @@ public:
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask;
     std::tie(batchEmbeddings, batchMask)
-        = EncoderBase::lookup(embeddings, batch);
+        = EncoderBase::lookup(graph, embeddings, batch);
 
     // apply dropout over source words
     float dropProb = inference_ ? 0 : opt<float>("dropout-src");
@@ -261,7 +264,7 @@ public:
           mlp::dense(graph)                                          //
           ("prefix", prefix_ + "_ff_state")                          //
           ("dim", opt<int>("dim-rnn"))                               //
-          ("activation", mlp::act::tanh)                             //
+          ("activation", (int)mlp::act::tanh)                        //
           ("layer-normalization", opt<bool>("layer-normalization"))  //
           ("nematus-normalization",
            options_->has("original-type")
@@ -324,7 +327,7 @@ public:
     auto layer1 = mlp::dense(graph)                                //
         ("prefix", prefix_ + "_ff_logit_l1")                       //
         ("dim", opt<int>("dim-emb"))                               //
-        ("activation", mlp::act::tanh)                             //
+        ("activation", (int)mlp::act::tanh)                        //
         ("layer-normalization", opt<bool>("layer-normalization"))  //
         ("nematus-normalization",
          options_->has("original-type")

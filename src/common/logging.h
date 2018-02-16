@@ -79,8 +79,8 @@ void checkedLog(std::string logger, std::string level, Args... args) {
   Logger log = spdlog::get(logger);
   if(!log) {
     if(level == "critical") {
-      auto stderr = stderrLogger("error", "Error: %v - aborting");
-      stderr->critical(args...);
+      auto errlog = stderrLogger("error", "Error: %v - aborting");
+      errlog->critical(args...);
     }
     return;
   }

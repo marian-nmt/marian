@@ -1,15 +1,18 @@
+// TODO: move to backend, into graph/
 #pragma once
-
-#include <functional>
-#include <random>
 
 #include "cnpy/cnpy.h"
 #include "common/config.h"
 #include "tensors/tensor.h"
 
+#include <functional>
+#include <random>
+
 namespace marian {
 
 namespace inits {
+
+typedef std::function<void(Tensor)> ParameterInitializer;
 
 float xor128();
 

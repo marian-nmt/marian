@@ -68,7 +68,7 @@ public:
 template <class Device>
 class Allocator {
 private:
-  Device device_{0};
+  Device device_;
   size_t available_{0};
   size_t step_{128 * 1024 * 1024};
   size_t alignment_{256};
@@ -141,8 +141,8 @@ private:
   }
 
 public:
-  Allocator(size_t deviceNo, size_t bytes, size_t step, size_t alignment = 256)
-      : device_(deviceNo, alignment),
+  Allocator(DeviceId deviceId, size_t bytes, size_t step, size_t alignment = 256)
+      : device_(deviceId, alignment),
         step_(step),
         available_(0),
         alignment_(alignment) {
@@ -222,6 +222,6 @@ public:
 
   size_t available() { return available_; }
 
-  size_t getDevice() { return device_.getDevice(); }
+  DeviceId getDevice() { return device_.getDevice(); }
 };
 }

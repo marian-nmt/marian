@@ -98,7 +98,7 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
       totalSize -= __size__;
 
       Tensor param;
-      Ptr<TensorAllocator> allocator = New<TensorAllocator>(device);
+      Ptr<TensorAllocator> allocator = New<TensorAllocator>(DeviceId{device, DeviceType::gpu});
       allocator->reserveExact(__size__ * sizeof(float));
       allocator->allocate(param, {1, __size__});
       paramsAlloc_.push_back(allocator);
@@ -116,7 +116,7 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
       int __size__ = min(shardSize_, totalSize);
       totalSize -= __size__;
       Tensor grad_;
-      Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(device);
+      Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(DeviceId{device, DeviceType::gpu});
 
       allocator_->reserveExact(__size__ * sizeof(float));
       allocator_->allocate(grad_, {1, __size__});
@@ -133,7 +133,7 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
         int __size__ = min(shardSize_, totalSize);
         totalSize -= __size__;
         Tensor paramAvg;
-        Ptr<TensorAllocator> allocator = New<TensorAllocator>(device);
+        Ptr<TensorAllocator> allocator = New<TensorAllocator>(DeviceId{device, DeviceType::gpu});
 
         allocator->reserveExact(__size__ * sizeof(float));
         allocator->allocate(paramAvg, {1, __size__});

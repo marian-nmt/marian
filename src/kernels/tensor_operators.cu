@@ -23,7 +23,7 @@ __device__ inline float stableLogit(float x) {
 }
 
 bool IsNan(Tensor in) {
-  //cudaSetDevice(in->getDevice());
+  //cudaSetDevice(in->getDevice().no);
   //thrust::device_ptr<float> begin = thrust::device_pointer_cast(in->data());
   //thrust::device_ptr<float> end
   //    = thrust::device_pointer_cast(in->data() + in->size());
@@ -33,7 +33,7 @@ bool IsNan(Tensor in) {
 }
 
 void ConcatCont(Tensor out, const std::vector<Tensor>& inputs, int axis) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
   int step = 1;
   for(int i = 0; i < axis; ++i)
     step *= out->shape()[i];
@@ -79,7 +79,7 @@ __global__ void gInsertCols(float* out,
 }
 
 void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   int rows = out->shape().elements() / out->shape().back();
 
@@ -110,7 +110,7 @@ void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax) {
 }
 
 void Split1(std::vector<Tensor>& outputs, const Tensor in) {
-  cudaSetDevice(in->getDevice());
+  cudaSetDevice(in->getDevice().no);
 
   size_t offset = 0;
   int rows = in->shape().elements() / in->shape().back();
@@ -131,7 +131,7 @@ void Split1(std::vector<Tensor>& outputs, const Tensor in) {
 }
 
 void SplitCont(std::vector<Tensor>& outputs, const Tensor in, int axis) {
-  cudaSetDevice(in->getDevice());
+  cudaSetDevice(in->getDevice().no);
 
   int step = 1;
   for(int i = 0; i < axis; ++i)
@@ -182,7 +182,7 @@ __global__ void gTransposeND(gpu::Tensor<float> out,
 }
 
 void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   gpu::Array<int, gpu::Shape::size()> axes;
   int diff = gpu::Shape::size() - vAxis.size();
@@ -298,7 +298,7 @@ __global__ void gSoftmax(float* out,
 }
 
 void Softmax(Tensor out, Tensor in, Tensor mask) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   size_t m = out->shape().elements() / out->shape().back();
   size_t k = out->shape().back();
@@ -386,7 +386,7 @@ __global__ void gLogSoftmax(float* out,
 }
 
 void LogSoftmax(Tensor out, Tensor in) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   size_t m = out->shape().elements() / out->shape().back();
   size_t k = out->shape().back();
@@ -445,7 +445,7 @@ __global__ void gSoftmaxGrad(float* grad,
 }
 
 void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
-  cudaSetDevice(adj->getDevice());
+  cudaSetDevice(adj->getDevice().no);
   // grad and val are both m-by-k matrices, passed as input.
   // A weighted average of each row of grad (according to the weights
   // specified in val) is computed and subtracted from Out.
@@ -502,7 +502,7 @@ __global__ void gLogSoftmaxGrad(float* grad,
 }
 
 void LogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
-  cudaSetDevice(adj->getDevice());
+  cudaSetDevice(adj->getDevice().no);
 
   // grad and val are both m-by-k matrices, passed as input.
   // A weighted average of each row of grad (according to the weights
@@ -548,7 +548,7 @@ void Prod(cublasHandle_t handle,
           bool transB,
           float beta,
           float scalar) {
-  cudaSetDevice(C->getDevice());
+  cudaSetDevice(C->getDevice().no);
   float alpha = scalar;
 
   size_t m = A->shape().elements() / A->shape().back();
@@ -601,7 +601,7 @@ void ProdBatched(cublasHandle_t handle,
                  bool transB,
                  float beta,
                  float scalar) {
-  cudaSetDevice(C->getDevice());
+  cudaSetDevice(C->getDevice().no);
   float alpha = scalar;
 
   size_t batchA = A->shape().elements() / (A->shape()[-1] * A->shape()[-2]);
@@ -677,7 +677,7 @@ __global__ void gCopyRows(float* out,
 }
 
 void CopyRows(Tensor out, const Tensor in, const std::vector<size_t>& indices) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   size_t cols = in->shape().back();
   size_t rowsToCopy = indices.size();
@@ -724,7 +724,7 @@ __global__ void gPasteRows(float* out,
 void PasteRows(Tensor out,
                const Tensor in,
                const std::vector<size_t>& indices) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   size_t cols = in->shape().back();
   size_t rowsToCopy = indices.size();
@@ -769,7 +769,7 @@ __global__ void gCopyCols(float* out,
 }
 
 void CopyCols(Tensor out, const Tensor in, const std::vector<size_t>& indices) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   size_t rows = in->shape().elements() / in->shape().back();
   size_t cols = in->shape().back();
@@ -816,7 +816,7 @@ __global__ void gPasteCols(float* out,
 void PasteCols(Tensor out,
                const Tensor in,
                const std::vector<size_t>& indices) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   size_t rows = in->shape().elements() / in->shape().back();
   size_t cols = in->shape().back();
@@ -884,7 +884,7 @@ void Select(Ptr<Allocator<DeviceGPU>> allocator,
             const Tensor in,
             int axis,
             const std::vector<size_t>& indices) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   int length = out->shape().elements();
 
@@ -910,7 +910,7 @@ void Insert(Ptr<Allocator<DeviceGPU>> allocator,
             const Tensor in,
             int axis,
             const std::vector<size_t>& indices) {
-  cudaSetDevice(in->getDevice());
+  cudaSetDevice(in->getDevice().no);
 
   int length = in->shape().elements();
 
@@ -975,7 +975,7 @@ __global__ void gGRUFastForward(float* out,
 }
 
 void GRUFastForward(Tensor out, std::vector<Tensor> inputs, bool final) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   int rows = out->shape().elements() / out->shape().back();
   int cols = out->shape().back();
@@ -1088,7 +1088,7 @@ void GRUFastBackward(std::vector<Tensor> outputs,
                      std::vector<Tensor> inputs,
                      Tensor adj,
                      bool final) {
-  cudaSetDevice(adj->getDevice());
+  cudaSetDevice(adj->getDevice().no);
 
   int rows = adj->shape().elements() / adj->shape().back();
   int cols = adj->shape().back();
@@ -1183,7 +1183,7 @@ __global__ void gCrossEntropyPick(float* out,
 }
 
 void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   int rows = in->shape().elements() / in->shape().back();
   int cols = in->shape().back();
@@ -1269,7 +1269,7 @@ __global__ void gCrossEntropyPickBackward(float* out,
 }
 
 void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   int rows = out->shape().elements() / out->shape().back();
   int cols = out->shape().back();
@@ -1286,7 +1286,7 @@ void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
 float L2Norm(Tensor in) {
   using namespace functional;
 
-  cudaSetDevice(in->getDevice());
+  cudaSetDevice(in->getDevice().no);
 
   int size = in->shape().elements();
   int threads = std::min(MAX_THREADS, size);
@@ -1352,7 +1352,7 @@ __global__ void gAtt(float* out,
 }
 
 void Att(Tensor out, Tensor va, Tensor context, Tensor state) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   size_t m = out->shape().elements() / out->shape().back();
   size_t k = context->shape()[-1];
@@ -1419,7 +1419,7 @@ void AttBack(Tensor gVa,
              Tensor context,
              Tensor state,
              Tensor adj) {
-  cudaSetDevice(adj->getDevice());
+  cudaSetDevice(adj->getDevice().no);
 
   size_t m = adj->shape().elements() / adj->shape().back();
 
@@ -1522,7 +1522,7 @@ void LayerNormalization(Tensor out,
                         Tensor gamma,
                         Tensor beta,
                         float eps) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   int rows = in->shape().elements() / in->shape().back();
   int cols = in->shape().back();
@@ -1651,7 +1651,7 @@ void LayerNormalizationGrad(Tensor gradX,
                             Tensor gamma,
                             Tensor beta,
                             float eps) {
-  cudaSetDevice(adj->getDevice());
+  cudaSetDevice(adj->getDevice().no);
   int rows = y->shape().elements() / y->shape().back();
   int cols = y->shape().back();
 
@@ -1696,7 +1696,7 @@ void Shift(Tensor out, Tensor in, Shape shift, bool invert) {
   if(invert)
     offset = -offset;
 
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   int length = out->shape().elements();
 
@@ -1785,7 +1785,7 @@ __global__ void gLSTMCellForward(float* out,
 }
 
 void LSTMCellForward(Tensor out, std::vector<Tensor> inputs) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   int rows = out->shape().elements() / out->shape().back();
   int cols = out->shape().back();
@@ -1834,7 +1834,7 @@ __global__ void gLSTMOutputForward(float* out,
 }
 
 void LSTMOutputForward(Tensor out, std::vector<Tensor> inputs) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   int rows = out->shape().elements() / out->shape().back();
   int cols = out->shape().back();
@@ -1930,7 +1930,7 @@ __global__ void gLSTMCellBackward(float* outCell,
 void LSTMCellBackward(std::vector<Tensor> outputs,
                       std::vector<Tensor> inputs,
                       Tensor adj) {
-  cudaSetDevice(adj->getDevice());
+  cudaSetDevice(adj->getDevice().no);
 
   int rows = adj->shape().elements() / adj->shape().back();
   int cols = adj->shape().back();
@@ -2008,7 +2008,7 @@ __global__ void gLSTMOutputBackward(float* outCell,
 void LSTMOutputBackward(std::vector<Tensor> outputs,
                         std::vector<Tensor> inputs,
                         Tensor adj) {
-  cudaSetDevice(adj->getDevice());
+  cudaSetDevice(adj->getDevice().no);
 
   int rows = adj->shape().elements() / adj->shape().back();
   int cols = adj->shape().back();
@@ -2048,7 +2048,7 @@ void HighwayForward(Tensor out,
                     const Tensor in1,
                     const Tensor in2,
                     const Tensor t) {
-  cudaSetDevice(out->getDevice());
+  cudaSetDevice(out->getDevice().no);
 
   int length = out->shape().elements();
 
@@ -2086,7 +2086,7 @@ void HighwayBackward(Tensor out1,
                      const Tensor in2,
                      const Tensor t,
                      const Tensor adj) {
-  cudaSetDevice(out1->getDevice());
+  cudaSetDevice(out1->getDevice().no);
 
   int length = out1->shape().elements();
 

@@ -83,7 +83,7 @@ int main() {
     auto graph = New<ExpressionGraph>();
 
     // Set general options
-    graph->setDevice(0);
+    graph->setDevice({0, DeviceType::gpu});
     graph->reserveWorkspaceMB(128);
 
     // Choose optimizer (Sgd, Adagrad, Adam) and initial learning rate

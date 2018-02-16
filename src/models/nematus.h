@@ -74,8 +74,6 @@ public:
       for(auto& kv : nameMap_)
         nameMapRev_.insert({kv.second, kv.first});
 
-    graph->getBackend()->setDevice(graph->getDevice());
-
     for(auto p : graph->params()->getMap()) {
       std::vector<float> v;
       p.second->val() >> v;
@@ -196,7 +194,7 @@ private:
   }
 
   void createAmunConfig(const std::string& name) {
-    YAML::Node amun;
+    Config::YamlNode amun;
     // Amun has only CPU decoder for deep Nematus models
     amun["cpu-threads"] = 16;
     amun["gpu-threads"] = 0;
@@ -206,7 +204,7 @@ private:
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
     amun["source-vocab"] = vocabs[0];
     amun["target-vocab"] = vocabs[1];
-    amun["devices"] = options_->get<std::vector<int>>("devices");
+    amun["devices"] = options_->get<std::vector<size_t>>("devices");
     amun["normalize"] = true;
     amun["beam-size"] = 5;
     amun["relative-paths"] = false;
