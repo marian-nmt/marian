@@ -6,7 +6,7 @@
 
 namespace marian {
 namespace gpu {
-  
+
   Device::~Device() {
     cudaSetDevice(deviceId_.no);
     if(data_) {
@@ -14,13 +14,13 @@ namespace gpu {
     }
     cudaDeviceSynchronize();
   }
-  
+
   void Device::reserve(size_t size) {
     size = align(size);
     cudaSetDevice(deviceId_.no);
-  
+
     ABORT_IF(size < size_, "New size must be larger than old size");
-  
+
     if(data_) {
       // Allocate memory by going through host memory
       uint8_t *temp = new uint8_t[size_];
@@ -32,9 +32,9 @@ namespace gpu {
     } else {
       CUDA_CHECK(cudaMalloc(&data_, size));
     }
-  
+
     size_ = size;
   }
-  
+
 }
 }
