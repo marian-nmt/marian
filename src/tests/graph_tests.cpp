@@ -7,16 +7,16 @@ using namespace marian;
 TEST_CASE("Graph device is set", "[graph]") {
   auto graph = New<ExpressionGraph>();
 
-  graph->setDevice(0);
-  REQUIRE(graph->getDevice() == 0);
-  graph->setDevice(1);
-  REQUIRE(graph->getDevice() == 1);
+  graph->setDevice({0, DeviceType::gpu});
+  
+  DeviceId testId{0, DeviceType::gpu};
+  REQUIRE(graph->getDevice() == testId);
 }
 
 TEST_CASE("Expression graph can be initialized with constant values",
           "[graph]") {
   auto graph = New<ExpressionGraph>();
-  graph->setDevice(0);
+  graph->setDevice({0, DeviceType::gpu});
   graph->reserveWorkspaceMB(4);
 
   std::vector<float> values;

@@ -1,11 +1,8 @@
 #pragma once
 
-#include "common/definitions.h"
-#include "graph/expression_graph.h"
-#include "graph/expression_operators.h"
-#include "models/states.h"
-
+#include "marian.h"
 #include "rnn/types.h"
+#include "models/states.h"
 
 namespace marian {
 

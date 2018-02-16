@@ -16,11 +16,11 @@ class TensorBase : public std::enable_shared_from_this<TensorBase> {
 private:
   Ptr<MemoryPiece> memory_;
   Shape shape_;
-  size_t device_;
+  DeviceId deviceId_;
 
 public:
-  TensorBase(Ptr<MemoryPiece> memory, Shape shape, size_t device)
-      : memory_(memory), shape_(shape), device_(device) {}
+  TensorBase(Ptr<MemoryPiece> memory, Shape shape, DeviceId deviceId)
+      : memory_(memory), shape_(shape), deviceId_(deviceId) {}
 
   ~TensorBase() {}
 
@@ -39,12 +39,12 @@ public:
     return get(0);
   }
 
-  size_t getDevice() { return device_; }
+  DeviceId getDevice() { return deviceId_; }
 
   Tensor subtensor(int offset, int size) {
     auto mem = New<MemoryPiece>(memory_->data() + sizeof(float) * offset,
                                 sizeof(float) * size);
-    return Tensor(new TensorBase(mem, {1, size}, device_));
+    return Tensor(new TensorBase(mem, {1, size}, deviceId_));
   }
 
   float get(size_t i);

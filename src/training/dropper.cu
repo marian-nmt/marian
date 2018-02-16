@@ -88,7 +88,7 @@ void GradientDropBase::grad_drop_do(float* grads,
                                     float m) {
   int threads = 512;
   int blocks = 1 + len / threads;
-  cudaSetDevice(_device);
+  cudaSetDevice(_deviceId.no);
 
   grad_add_error<<<blocks, threads>>>(grads, residual, velocity, m, len);
   // full sort
@@ -111,9 +111,9 @@ void GradientDropBase::dropGraph(Tensor t,
                                  SparseTensor destination,
                                  double rate,
                                  double momentum) {
-  cudaSetDevice(t->getDevice());
+  cudaSetDevice(t->getDevice().no);
   if(!residual) {
-    _device = t->getDevice();
+    _deviceId = t->getDevice();
     CUDA_CHECK(cudaMalloc(&residual, sizeof(float) * t->size()));
     CUDA_CHECK(cudaMalloc(&temp_d, sizeof(float) * t->size()));
     CUDA_CHECK(cudaMalloc(&velocity, sizeof(float) * t->size()));
@@ -143,7 +143,7 @@ void GradientDropBase::dropGraph(Tensor t,
 
   int threads = 512;
   int blocks = 1 + denseSize / threads;
-  cudaSetDevice(t->getDevice());
+  cudaSetDevice(t->getDevice().no);
   buildIndices<<<blocks, threads>>>(t->data(),
                                     temp_d,
                                     destination->data(),

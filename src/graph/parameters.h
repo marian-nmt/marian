@@ -6,6 +6,7 @@
 
 #include "common/definitions.h"
 #include "tensors/tensor_allocator.h"
+#include "graph/chainable.h"
 
 namespace marian {
 
@@ -19,9 +20,9 @@ private:
   Ptr<TensorAllocator> grads_;
 
 public:
-  void init(size_t device) {
-    vals_ = New<TensorAllocator>(device);
-    grads_ = New<TensorAllocator>(device);
+  void init(DeviceId deviceId) {
+    vals_ = New<TensorAllocator>(deviceId);
+    grads_ = New<TensorAllocator>(deviceId);
   }
 
   auto begin() -> decltype(params_.begin()) { return params_.begin(); }

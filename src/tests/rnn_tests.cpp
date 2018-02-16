@@ -1,6 +1,9 @@
 #include "catch.hpp"
 #include "marian.h"
 
+#include "rnn/rnn.h"
+#include "rnn/constructors.h"
+
 using namespace marian;
 
 TEST_CASE("Model components, RNN etc.", "[model]") {
@@ -33,7 +36,7 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
     Config::seed = 1234;
 
     auto graph = New<ExpressionGraph>();
-    graph->setDevice(0);
+    graph->setDevice({0, DeviceType::gpu});
     graph->reserveWorkspaceMB(16);
 
     std::vector<float> values;
@@ -71,7 +74,7 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
     Config::seed = 1234;
 
     auto graph = New<ExpressionGraph>();
-    graph->setDevice(0);
+    graph->setDevice({0, DeviceType::gpu});
     graph->reserveWorkspaceMB(16);
 
     std::vector<float> values;

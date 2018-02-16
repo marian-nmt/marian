@@ -177,8 +177,6 @@ public:
            {"encoder_bi_r_gamma1", "encoder_r_gamma1"},
            {"encoder_bi_r_gamma2", "encoder_r_gamma2"}};
 
-    graph->getBackend()->setDevice(graph->getDevice());
-
     unsigned shape[2];
     std::string mode = "w";
 
@@ -218,11 +216,11 @@ public:
 
 private:
   void createAmunConfig(const std::string& name) {
-    YAML::Node amun;
+    Config::YamlNode amun;
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
     amun["source-vocab"] = vocabs[0];
     amun["target-vocab"] = vocabs[1];
-    amun["devices"] = options_->get<std::vector<int>>("devices");
+    amun["devices"] = options_->get<std::vector<size_t>>("devices");
     amun["normalize"] = opt<float>("normalize") > 0;
     amun["beam-size"] = opt<size_t>("beam-size");
     amun["relative-paths"] = false;

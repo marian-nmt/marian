@@ -1,6 +1,11 @@
 #pragma once
 
 #include "marian.h"
+#include "layers/factory.h"
+#include "layers/constructors.h"
+#include "model_base.h"
+#include "model_factory.h"
+#include "encdec.h"
 
 namespace marian {
 
@@ -294,7 +299,7 @@ public:
     auto opsPre = options->get<std::string>("transformer-preprocess");
     auto output = PreProcess(graph, prefix + "_Wo", opsPre, input, dropProb);
 
-    int heads = options->get<float>("transformer-heads");
+    auto heads = options->get<int>("transformer-heads");
 
     // multi-head self-attention over previous input
     output = MultiHead(graph,
@@ -394,7 +399,7 @@ public:
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask;
     std::tie(batchEmbeddings, batchMask)
-        = EncoderBase::lookup(embeddings, batch);
+        = EncoderBase::lookup(graph, embeddings, batch);
 
     // apply dropout over source words
     float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");

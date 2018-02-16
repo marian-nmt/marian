@@ -53,7 +53,7 @@ public:
 int main(int argc, char** argv) {
   using namespace marian;
 
-  auto a = New<Allocator<DeviceGPU>>(0, 0, 30000, 256);
+  auto a = New<Allocator<DeviceGPU>>({0, DeviceType::gpu}, 0, 30000, 256);
   std::cerr << "Size: " << a->size() << std::endl;
 
   auto mem1 = a->alloc<int>(100000);

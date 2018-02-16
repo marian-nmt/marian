@@ -1,11 +1,7 @@
 #pragma once
 
-#include "common/definitions.h"
-#include "common/options.h"
-#include "graph/expression_graph.h"
-#include "graph/expression_operators.h"
+#include "marian.h"
 #include "layers/factory.h"
-#include "layers/param_initializers.h"
 
 namespace marian {
 namespace mlp {
@@ -65,7 +61,7 @@ public:
 
     auto layerNorm = opt<bool>("layer-normalization", false);
     auto nematusNorm = opt<bool>("nematus-normalization", false);
-    auto activation = opt<act>("activation", act::linear);
+    auto activation = (act)opt<int>("activation", (int)act::linear);
 
     auto g = graph_;
 
@@ -143,7 +139,7 @@ public:
 
     auto layerNorm = options_->get<bool>("layer-normalization", false);
     auto nematusNorm = opt<bool>("nematus-normalization", false);
-    auto activation = options_->get<act>("activation", act::linear);
+    auto activation = (act)options_->get<int>("activation", (int)act::linear);
 
     Expr W;
     bool transposeW = false;
@@ -212,7 +208,7 @@ struct EmbeddingFactory : public Factory {
 
     bool fixed = opt<bool>("fixed", false);
 
-    std::function<void(Tensor)> initFunc = inits::glorot_uniform;
+    inits::ParameterInitializer initFunc = inits::glorot_uniform;
     if(options_->has("embFile")) {
       std::string file = opt<std::string>("embFile");
       if(!file.empty()) {
@@ -230,10 +226,49 @@ struct EmbeddingFactory : public Factory {
 
 typedef Accumulator<EmbeddingFactory> embedding;
 
+static inline
 Expr Cost(Expr logits,
           Expr indices,
           Expr mask,
           std::string costType = "cross-entropy",
           float smoothing = 0,
-          Expr weights = nullptr);
+          Expr weights = nullptr) {
+  using namespace keywords;
+
+  auto ce = cross_entropy(logits, indices);
+
+  if(weights)
+    ce = weights * ce;
+  
+  if(smoothing > 0) {
+    // @TODO: add this to CE kernels instead
+    auto ceq = mean(logsoftmax(logits), axis = -1);
+    ce = (1 - smoothing) * ce - smoothing * ceq;
+  }
+
+  if(mask)
+    ce = ce * mask;
+
+  auto costSum = sum(ce, axis = -3);
+  
+  Expr cost;
+  // axes:
+  //  - time axis (words): -3
+  //  - batch axis (sentences): -2
+  if(costType == "ce-mean" || costType == "cross-entropy") { // sum over words; average over sentences
+    cost = mean(costSum, axis = -2);
+  } else if(costType == "ce-mean-words") { // average over target tokens
+    cost = sum(costSum, axis = -2) / sum(sum(mask, axis = -3), axis = -2);
+  } else if(costType == "ce-sum") { // sum over target tokens
+    cost = sum(costSum, axis = -2);
+  } else if(costType == "perplexity") { // ==exp('ce-mean-words')
+    cost = exp(sum(costSum, axis = -2) / sum(sum(mask, axis = -3), axis = -2));
+  } else if(costType == "ce-rescore") { // sum over words, keep batch axis
+    cost = -costSum;
+  } else {  // same as ce-mean
+    cost = mean(costSum, axis = -2);
+  }
+
+  return cost;
+}
 }

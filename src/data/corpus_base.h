@@ -132,11 +132,11 @@ public:
    * idx_{w,0},idx_{w,1},\dots,idx_{w,s}\f$, where \f$w\f$ is the number of
    * words (width) and \f$s\f$ is the number of sentences (size).
    */
-  std::vector<Word>& indices() { return indices_; }
+  std::vector<Word>& data() { return indices_; }
   /**
    * @brief Flat masking vector; 0 is used for masked words.
    *
-   * @see indices()
+   * @see data()
    */
   std::vector<float>& mask() { return mask_; }
 
@@ -177,7 +177,7 @@ public:
       size_t __words__ = 0;
       for(int j = 0; j < width_; ++j) {
         for(int i = 0; i < __size__; ++i) {
-          sb->indices()[j * __size__ + i] = indices_[j * size_ + pos + i];
+          sb->data()[j * __size__ + i] = indices_[j * size_ + pos + i];
           sb->mask()[j * __size__ + i] = mask_[j * size_ + pos + i];
 
           if(mask_[j * size_ + pos + i] != 0)
@@ -385,7 +385,7 @@ public:
         std::cerr << "\t w: ";
         for(size_t j = 0; j < sb->batchSize(); j++) {
           size_t idx = i * sb->batchSize() + j;
-          Word w = sb->indices()[idx];
+          Word w = sb->data()[idx];
           std::cerr << w << " ";
         }
         std::cerr << std::endl;

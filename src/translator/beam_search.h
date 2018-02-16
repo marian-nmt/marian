@@ -102,8 +102,9 @@ public:
     }
 
     size_t localBeamSize = beamSize_;
-    auto nth = New<NthElement>(localBeamSize, dimBatch);
-
+    
+    auto nth = New<NthElement>(localBeamSize, dimBatch, graph->getDevice());
+    
     Beams beams(dimBatch);
     for(auto& beam : beams)
       beam.resize(localBeamSize, New<Hypothesis>());
@@ -196,8 +197,9 @@ public:
       std::vector<float> outCosts;
 
       std::vector<size_t> beamSizes(dimBatch, localBeamSize);
+      
       nth->getNBestList(beamSizes, totalCosts->val(), outCosts, outKeys, first);
-
+      
       int dimTrgVoc = totalCosts->shape()[-1];
       beams = toHyps(outKeys, outCosts, dimTrgVoc, beams, states, localBeamSize, first);
 

@@ -8,9 +8,9 @@
 
 namespace marian {
 
-Tensor AsyncGraphGroupDrop::newTensor(int size, int device) {
+Tensor AsyncGraphGroupDrop::newTensor(int size, DeviceId deviceId) {
   Tensor t;
-  Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(device);
+  Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(deviceId);
   allocator_->reserveExact(size * sizeof(float));
   allocator_->allocate(t, {1, size});
   allocators.push_back(allocator_);
@@ -146,13 +146,13 @@ void AsyncGraphGroupDrop::init(Ptr<data::Batch> batch) {
       fetchStep_.push_back(0);
       pushStep_.push_back(0);
 
-      int device = devices_[i];
+      size_t device = devices_[i];
       // temporary tensor to compute parameter delta before fetching
-      paramsDelta_.push_back(newTensor(shardSize, device));
+      paramsDelta_.push_back(newTensor(shardSize, {device, DeviceType::gpu}));
 
       // tensors to store local params history
       for(int h_id = 0; h_id < devices_.size(); h_id++) {
-        Tensor tmp = newTensor(params_[i]->size(), device);
+        Tensor tmp = newTensor(params_[i]->size(), {device, DeviceType::gpu});
         tmp->copyFrom(params_[i]);
         paramsLocal_[h_id].push_back(tmp);
       }
@@ -168,17 +168,17 @@ void AsyncGraphGroupDrop::init(Ptr<data::Batch> batch) {
 
       // sparsetensor to store sparsified gradients per-device
       pushSparseGradient_.push_back(
-          SparseTensor(new SparseTensorBase(sparseCap, device)));
+          SparseTensor(new SparseTensorBase(sparseCap, {device, DeviceType::gpu})));
 
       pushShardedSparseGradient_.push_back(
-          SparseTensor(new SparseTensorBase(sparseCap, device)));
+          SparseTensor(new SparseTensorBase(sparseCap, {device, DeviceType::gpu})));
       fetchSparseGradient_.push_back(SparseTensor(
-          new SparseTensorBase(sparseCap / devices_.size(), device)));
+          new SparseTensorBase(sparseCap / devices_.size(), {device, DeviceType::gpu})));
 
       std::vector<SparseTensor> tmp;
       for(int i = 0; i < devices_.size(); i++)
         tmp.push_back(SparseTensor(
-            new SparseTensorBase(sparseCap / devices_.size(), device)));
+            new SparseTensorBase(sparseCap / devices_.size(), {device, DeviceType::gpu})));
       fetchShardedSparseGradient_.push_back(tmp);
     }
 

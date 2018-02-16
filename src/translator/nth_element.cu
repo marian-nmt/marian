@@ -265,13 +265,16 @@ __global__ void gGetValueByKey(float* d_in, float* d_out, int* indeces, int n) {
 }
 
 NthElement::NthElement(size_t maxBeamSize,
-                       size_t maxBatchSize /*, cudaStream_t stream*/)
-    : /*stream_(stream) ,*/
+                       size_t maxBatchSize,
+                       DeviceId deviceId)
+    : deviceId_(deviceId),
       NUM_BLOCKS(std::min(
           500,
           int(maxBeamSize* MAX_VOCAB_SIZE / (2 * BLOCK_SIZE))
               + int(maxBeamSize* MAX_VOCAB_SIZE % (2 * BLOCK_SIZE) != 0))) {
   // std::cerr << "NthElement::NthElement" << std::endl;
+
+  cudaSetDevice(deviceId_.no);
 
   CUDA_CHECK(
       cudaMalloc((void**)&d_ind, maxBatchSize * NUM_BLOCKS * sizeof(int)));
@@ -299,6 +302,8 @@ NthElement::NthElement(size_t maxBeamSize,
 }
 
 NthElement::~NthElement() {
+  cudaSetDevice(deviceId_.no);
+  
   CUDA_CHECK(cudaFree(d_ind));
   CUDA_CHECK(cudaFree(d_out));
   CUDA_CHECK(cudaFree(d_res_idx));
@@ -313,6 +318,7 @@ NthElement::~NthElement() {
 void NthElement::getNBestList(float* probs,
                               const std::vector<int>& batchFirstElementIdxs,
                               const std::vector<int>& cummulatedBeamSizes) {
+  cudaSetDevice(deviceId_.no);
   CUDA_CHECK(cudaMemcpyAsync(d_batchPosition,
                              batchFirstElementIdxs.data(),
                              batchFirstElementIdxs.size() * sizeof(int),
@@ -350,6 +356,8 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes,
                               std::vector<float>& outCosts,
                               std::vector<unsigned>& outKeys,
                               const bool isFirst) {
+  cudaSetDevice(deviceId_.no);
+
   std::vector<int> cummulatedBeamSizes(beamSizes.size() + 1, 0);
   std::vector<int> batchFirstElementIdxs(beamSizes.size() + 1, 0);
 
@@ -367,7 +375,8 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes,
 
 void NthElement::GetPairs(size_t number,
                           std::vector<unsigned>& outKeys,
-                          std::vector<float>& outValues) {
+                          std::vector<float>& outValues) {            
+  cudaSetDevice(deviceId_.no);
   CUDA_CHECK(cudaMemcpyAsync(h_res,
                              d_res,
                              number * sizeof(float),
@@ -389,6 +398,8 @@ void NthElement::GetPairs(size_t number,
 }
 
 void NthElement::getValueByKey(std::vector<float>& out, float* d_in) {
+  cudaSetDevice(deviceId_.no);
+
   gGetValueByKey<<<1, lastN, 0, /* stream_ */ 0>>>(
       d_in, d_breakdown, h_res_idx, lastN);
 

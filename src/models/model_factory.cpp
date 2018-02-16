@@ -1,12 +1,13 @@
+#include "marian.h"
 #include "models/model_factory.h"
 
-#include "hardatt.h"
-#include "models/amun.h"
-#include "models/model_base.h"
-#include "models/nematus.h"
 #include "models/s2s.h"
 #include "models/char_s2s.h"
 #include "models/transformer.h"
+#include "models/hardatt.h"
+#include "models/amun.h"
+#include "models/nematus.h"
+#include "models/encdec.h"
 
 #include "examples/mnist/model.h"
 #include "examples/mnist/model_lenet.h"

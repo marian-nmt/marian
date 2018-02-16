@@ -16,6 +16,8 @@ class Config {
 public:
   static size_t seed;
 
+  typedef YAML::Node YamlNode;
+
   Config(const std::string options,
          ConfigMode mode = ConfigMode::training,
          bool validate = false) {
