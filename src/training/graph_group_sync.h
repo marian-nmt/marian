@@ -128,7 +128,8 @@ public:
     if(movingAvg_)
       fetchParams(graphs_[idx]->params()->vals(), params_);
 
-    shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_, {});
+    size_t totalSize = graphs_[0]->params()->vals()->size();
+    shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_, totalSize);
   }
 
   Ptr<data::BatchStats> collectStats() {

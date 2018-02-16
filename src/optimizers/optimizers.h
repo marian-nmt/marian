@@ -2,6 +2,7 @@
 
 #include <map>
 #include <memory>
+#include <algorithm>
 
 #include "common/config.h"
 #include "graph/expression_graph.h"
@@ -50,7 +51,7 @@ public:
                     std::vector<DeviceId> devices) {}
   virtual void save(const std::string& name,
                     std::vector<Ptr<OptimizerBase>> opts,
-                    std::vector<DeviceId> devices) {}
+                    size_t totalSize) {}
 
 protected:
   virtual void updateImpl(Tensor params, Tensor grads) = 0;
@@ -153,28 +154,32 @@ public:
 
     if(vMt.empty() || vVt.empty()) {
       LOG(info, "[warn] Adam parameters not found in .npz file");
+      return;
     }
 
-    int partSize = ceil(totalSize / (float)devices.size());
+    size_t shardSize = ceil(totalSize / (float)devices.size());
 
     size_t id = 0;
     for(auto optBase : opts) {
       auto opt = std::dynamic_pointer_cast<Adam>(optBase);
 
+      int size = std::min(shardSize, totalSize);
+      totalSize -= size;
+
       if(!opt->mt_ || !opt->vt_) {
         if(!opt->alloc_)
           opt->alloc_ = New<TensorAllocator>(devices[id]);
 
-        opt->alloc_->reserveExact(2 * partSize);
-        opt->alloc_->allocate(opt->mt_, {1, partSize});
-        opt->alloc_->allocate(opt->vt_, {1, partSize});
+        // @TODO: should be '2 * sizeof(float) * size' ?
+        opt->alloc_->reserveExact(2 * size);
+        opt->alloc_->allocate(opt->mt_, {1, size});
+        opt->alloc_->allocate(opt->vt_, {1, size});
       }
 
-      std::vector<float> tmpMt(vMt.begin() + id * partSize,
-                               vMt.begin() + (id + 1) * partSize);
+      int shift = id * shardSize;
+      std::vector<float> tmpMt(vMt.begin() + shift, vMt.begin() + shift + size);
       opt->mt_->set(tmpMt);
-      std::vector<float> tmpVt(vVt.begin() + id * partSize,
-                               vVt.begin() + (id + 1) * partSize);
+      std::vector<float> tmpVt(vVt.begin() + shift, vVt.begin() + shift + size);
       opt->mt_->set(tmpVt);
 
       id++;
@@ -183,7 +188,7 @@ public:
 
   void save(const std::string& name,
             std::vector<Ptr<OptimizerBase>> opts,
-            std::vector<DeviceId> devices) {
+            size_t totalSize) {
     LOG(info, "Saving Adam parameters to {}", name);
 
     std::vector<float> vMt;
@@ -199,6 +204,12 @@ public:
       std::vector<float> tmpVt;
       opt->vt_->get(tmpVt);
       vVt.insert(vVt.end(), tmpVt.begin(), tmpVt.end());
+    }
+
+    // truncate to the real size
+    if(totalSize < vMt.size()) {
+      vMt.resize(totalSize);
+      vVt.resize(totalSize);
     }
 
     // the shape is the same for mt_ and vt_

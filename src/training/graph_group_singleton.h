@@ -95,7 +95,8 @@ public:
         scheduler_->save(name);
     }
 
-    opt_->save(name + ".optimizer.npz", {opt_}, {graph_->getDevice()});
+    size_t totalSize = graph_->params()->vals()->size();
+    opt_->save(name + ".optimizer.npz", {opt_}, totalSize);
   }
 
   Ptr<data::BatchStats> collectStats() {
