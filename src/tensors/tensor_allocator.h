@@ -42,11 +42,17 @@ public:
 
   void reserveExact(size_t bytes = 0) {
     size_t mbytes = bytes / MBYTE;
-    LOG(info,
-        "[memory] Reserving {} MB, device {}",
-        mbytes,
-        allocator_->getDevice());
-
+    if(mbytes == 0) {
+      LOG(info,
+          "[memory] Reserving {} B, device {}",
+          bytes,
+          allocator_->getDevice());
+    } else {
+      LOG(info,
+          "[memory] Reserving {} MB, device {}",
+          mbytes,
+          allocator_->getDevice());
+    }
     allocator_->reserve(bytes);
   }
 

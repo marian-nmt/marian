@@ -153,7 +153,8 @@ public:
 
   void reserve(size_t bytes) {
     bytes = align(bytes);
-    device_->reserve(bytes);
+    if(bytes > 0)
+      device_->reserve(bytes);
     clear();
   }
 

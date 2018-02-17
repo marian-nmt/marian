@@ -10,9 +10,9 @@ namespace marian {
 class Device {
 protected:
   DeviceId deviceId_;
-  
-  uint8_t* data_;
-  size_t size_;
+
+  uint8_t* data_{0};
+  size_t size_{0};
   size_t alignment_;
 
   size_t align(size_t size) {
@@ -39,9 +39,9 @@ namespace gpu {
     public:
       Device(DeviceId deviceId, size_t alignment = 256)
       : marian::Device(deviceId, alignment) {}
-      
+
       ~Device();
-      
+
       void reserve(size_t size);
   };
 }
@@ -51,9 +51,9 @@ namespace cpu {
     public:
       Device(DeviceId deviceId, size_t alignment = 256)
       : marian::Device(deviceId, alignment) {}
-      
+
       ~Device();
-      
+
       void reserve(size_t size);
   };
 }

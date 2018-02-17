@@ -19,7 +19,7 @@ namespace gpu {
     size = align(size);
     cudaSetDevice(deviceId_.no);
 
-    ABORT_IF(size < size_, "New size must be larger than old size");
+    ABORT_IF(size < size_ || size == 0, "New size must be larger than old size and larger than 0");
 
     if(data_) {
       // Allocate memory by going through host memory

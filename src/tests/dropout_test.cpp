@@ -12,8 +12,11 @@ using namespace keywords;
 int main(int argc, char** argv) {
   auto c = New<Config>(argc, argv);
 
+  auto type = c->get<bool>("cpu") ? DeviceType::cpu : DeviceType::gpu;
+  DeviceId deviceId{0, type};
+
   auto g = New<ExpressionGraph>();
-  g->setDevice({0, DeviceType::gpu});
+  g->setDevice(deviceId);
   g->reserveWorkspaceMB(512);
 
   for(int i = 0; i < 10; ++i) {
