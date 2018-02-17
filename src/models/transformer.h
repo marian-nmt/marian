@@ -183,7 +183,7 @@ public:
     // multiplicative attention with flattened softmax
     float scale = 1.0 / std::sqrt(dk); // scaling to avoid extreme values due to matrix multiplication
     auto z = bdot(q, k, false, true, scale); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: max length]
-    auto weights = softmax(z + mask);
+    auto weights = softmax(z + mask); // along axis = -1
 
     // optional dropout for attention weights
     float dropProb
