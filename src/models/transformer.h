@@ -215,9 +215,9 @@ public:
     // This projection may be important to allow multi-head attention to slice in directions.
     // But note that the subsequent MLP should be able to munge things together.
     // Without this, the multi-head split is always on the same embedding dimensions.
-    const auto noQKProjection = true;
+    const auto noQKProjection = false;
     static bool shouted = false;
-    if (!shouted)
+    if (noQKProjection && !shouted)
     {
       fprintf(stderr,"### noQKProjection mode\n"), fflush(stderr);
       shouted = true;
@@ -463,10 +463,10 @@ public:
     layerMask = transposedLogMask(layerMask); // [-4: batch size, -3: 1, -2: vector dim=1, -1: max length]
 
     // [fseide]
-    const auto crossLayerAttention = true;
+    const auto crossLayerAttention = false;
     std::vector<Expr> allLayersContexts;
     static bool shouted = false;
-    if (!shouted)
+    if (crossLayerAttention && !shouted)
     {
       fprintf(stderr,"### crossLayerAttention mode\n"), fflush(stderr);
       shouted = true;
