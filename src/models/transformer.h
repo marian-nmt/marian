@@ -428,6 +428,10 @@ public:
 
     layerMask = transposedLogMask(layerMask); // [-4: batch size, -3: 1, -2: vector dim=1, -1: max length]
 
+    // [fseide]
+    const auto crossLayerAttention = true;
+    std::vector<Expr> allLayersContexts;
+
     // apply encoder layers
     auto encDepth = opt<int>("enc-depth");
     for(int i = 1; i <= encDepth; ++i) {
@@ -445,6 +449,17 @@ public:
                        prefix_ + "_l" + std::to_string(i) + "_ffn",
                        layer,
                        inference_);
+
+      if (crossLayerAttention)
+          allLayersContexts.push_back(layer); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
+    }
+
+    // to do attention over all layers jointly, concatenate them all
+    // In Transformer, these tensors are sets, not sequences, so we can just concat them in "time" axis.
+    if (crossLayerAttention)
+    {
+        layer = concatenate(allLayersContexts, axis = -2);                  // [-4: beam depth, -3: batch size, -2: max length * N, -1: vector dim]
+        batchMask = repeat(batchMask, allLayersContexts.size(), axis = -3); // [-4: beam depth=1, -3: max length * N, -2: batch size, -1: vector dim=1]
     }
 
     // restore organization of batch and time steps. This is currently required
