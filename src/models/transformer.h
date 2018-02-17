@@ -211,10 +211,27 @@ public:
 
     int dimModel = q->shape()[-1];
 
+#if 1 // [fseide]
+    // This projection may be important to allow multi-head attention to slice in directions.
+    // But note that the subsequent MLP should be able to munge things together.
+    // Without this, the multi-head split is always on the same embedding dimensions.
+    const auto noQKProjection = true;
+    static bool shouted = false;
+    if (!shouted)
+    {
+      fprintf(stderr,"### noQKProjection mode\n"), fflush(stderr);
+      shouted = true;
+    }
+    auto Wq = noQKProjection ? Expr() : graph->param(
+        prefix + "_Wq", {dimModel, dimModel}, init = inits::glorot_uniform);
+    auto bq = noQKProjection ? Expr() : graph->param(prefix + "_bq", {1, dimModel}, init = inits::zeros);
+    auto qh = noQKProjection ? q : affine(q, Wq, bq);
+#else
     auto Wq = graph->param(
         prefix + "_Wq", {dimModel, dimModel}, init = inits::glorot_uniform);
     auto bq = graph->param(prefix + "_bq", {1, dimModel}, init = inits::zeros);
     auto qh = affine(q, Wq, bq);
+#endif
     qh = SplitHeads(qh, dimHeads); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
 
     std::vector<Expr> outputs;
@@ -223,6 +240,22 @@ public:
       if(i > 0)
         prefixProj += "_enc" + std::to_string(i + 1);
 
+#if 1 // [fseide]
+      auto Wk = noQKProjection ? Expr() : graph->param(prefixProj + "_Wk",
+                             {dimModel, dimModel},
+                             init = inits::glorot_uniform);
+      auto bk = noQKProjection ? Expr() : graph->param(
+          prefixProj + "_bk", {1, dimModel}, init = inits::zeros);
+
+      auto Wv = noQKProjection ? Expr() : graph->param(prefixProj + "_Wv",
+                             {dimModel, dimModel},
+                             init = inits::glorot_uniform);
+      auto bv = noQKProjection ? Expr() : graph->param(
+          prefixProj + "_bv", {1, dimModel}, init = inits::zeros);
+
+      auto kh = noQKProjection ? keys[i]   : affine(keys[i],   Wk, bk); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
+      auto vh = noQKProjection ? values[i] : affine(values[i], Wv, bv);
+#else
       auto Wk = graph->param(prefixProj + "_Wk",
                              {dimModel, dimModel},
                              init = inits::glorot_uniform);
@@ -237,6 +270,7 @@ public:
 
       auto kh = affine(keys[i], Wk, bk); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
       auto vh = affine(values[i], Wv, bv);
+#endif
 
       kh = SplitHeads(kh, dimHeads); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
       vh = SplitHeads(vh, dimHeads); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
@@ -431,6 +465,12 @@ public:
     // [fseide]
     const auto crossLayerAttention = true;
     std::vector<Expr> allLayersContexts;
+    static bool shouted = false;
+    if (!shouted)
+    {
+      fprintf(stderr,"### crossLayerAttention mode\n"), fflush(stderr);
+      shouted = true;
+    }
 
     // apply encoder layers
     auto encDepth = opt<int>("enc-depth");
