@@ -17,4 +17,6 @@ public:
   virtual void setDevice() = 0;
 };
 
+Ptr<Backend> BackendByDevice(DeviceId deviceId, size_t seed);
+
 }

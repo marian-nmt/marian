@@ -1,8 +1,7 @@
 #include <sstream>
-#include "graph/backend_gpu.h"
 #include "graph/expression_graph.h"
 
-#include "backend/dispatch.h"
+#include "tensors/dispatch.h"
 
 namespace marian {
 
@@ -11,19 +10,17 @@ ExpressionGraph::ExpressionGraph(bool inference)
 
 void ExpressionGraph::setDevice(DeviceId deviceId) {
   if(!backend_) {
-    backend_ = New<BackendGPU>(deviceId, Config::seed);
-  
+    backend_ = BackendByDevice(deviceId, Config::seed);
     params_ = New<Parameters>();
-    params_->init(backend_->getDevice());
-  
-    tensors_ = New<TensorAllocator>(backend_->getDevice());
+    params_->init(backend_);
+    tensors_ = New<TensorAllocator>(backend_);
   }
 }
 
 Expr ExpressionGraph::dropout(float prob, Shape shape) {
   return Expression<ConstantNode>(shared_from_this(),
                                   keywords::init = [prob, this](Tensor t) {
-                                    Dropout(backend_, t, prob);
+                                    Dropout(t, prob);
                                   },
                                   keywords::shape = shape);
 }

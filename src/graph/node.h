@@ -5,9 +5,10 @@
 #include <thread>
 
 #include "common/keywords.h"
-#include "graph/backend.h"
-#include "graph/chainable.h"
+#include "tensors/backend.h"
 #include "tensors/tensor.h"
+
+#include "graph/chainable.h"
 
 namespace marian {
 

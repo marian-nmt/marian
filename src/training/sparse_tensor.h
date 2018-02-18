@@ -10,15 +10,15 @@ class SparseTensorBase : public std::enable_shared_from_this<SparseTensorBase> {
   int* indices_;
   int size_;
   int capacity_;
-  DeviceId deviceId_;
+  Ptr<Backend> backend_;
 
   int* d_is_unsorted;
   int* gstart_;
   int* gend_;
 
 public:
-  SparseTensorBase(int capacity, DeviceId deviceId);
-  SparseTensorBase(float* data, int* indices, int size, DeviceId deviceId);
+  SparseTensorBase(int capacity, Ptr<Backend> backend);
+  SparseTensorBase(float* data, int* indices, int size, Ptr<Backend> backend);
 
   ~SparseTensorBase() {}
 
@@ -43,7 +43,7 @@ public:
   void scatterAdd(Tensor t, int offset = 0);
   std::shared_ptr<SparseTensorBase> subtensor(int pos, int size, int idx);
 
-  DeviceId getDevice();
+  Ptr<Backend> getBackend();
 
   void toDense(Tensor t, int offset);
 };

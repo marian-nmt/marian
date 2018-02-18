@@ -20,9 +20,9 @@ private:
   Ptr<TensorAllocator> grads_;
 
 public:
-  void init(DeviceId deviceId) {
-    vals_ = New<TensorAllocator>(deviceId);
-    grads_ = New<TensorAllocator>(deviceId);
+  void init(Ptr<Backend> backend) {
+    vals_ = New<TensorAllocator>(backend);
+    grads_ = New<TensorAllocator>(backend);
   }
 
   auto begin() -> decltype(params_.begin()) { return params_.begin(); }
@@ -57,7 +57,7 @@ public:
   }
 
   void allocateForward() {
-    if(vals_->size() == 0) {
+    if(!params_.empty() && vals_->size() == 0) {
       vals_->reserveExact(totalCapacity(vals_));
       for(auto p : params_)
         if(!p->val())
@@ -66,7 +66,7 @@ public:
   }
 
   void allocateBackward() {
-    if(grads_->size() == 0) {
+    if(!params_.empty() && grads_->size() == 0) {
       grads_->reserveExact(totalCapacity(grads_));
       for(auto p : params_)
         if(!p->grad())

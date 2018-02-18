@@ -2,10 +2,10 @@
 
 #include <thread>
 
-#include "graph/backend_gpu.h"
+#include "tensors/gpu/backend.h"
 #include "graph/node.h"
-#include "kernels/tensor_operators.h"
 #include "functional/functional.h"
+#include "kernels/tensor_operators.h"
 #include "kernels/cudnn_wrappers.h"
 
 namespace marian {
@@ -54,7 +54,7 @@ public:
   NodeOps forwardOps() {
     // C = alpha * dot(op(A), op(B))
     return {NodeOp(Prod(
-        std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+        std::static_pointer_cast<gpu::Backend>(getBackend())->getCublasHandle(),
         val_,
         child(0)->val(),
         child(1)->val(),
@@ -72,7 +72,7 @@ public:
     // to sum gradients from different graph parts
 
     if(!transA_ && transB_)
-      return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+      return {NodeOp(Prod(std::static_pointer_cast<gpu::Backend>(getBackend())
                               ->getCublasHandle(),
                           child(0)->grad(),
                           adj_,
@@ -81,7 +81,7 @@ public:
                           false,
                           1.0,
                           scalar_)),
-              NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+              NodeOp(Prod(std::static_pointer_cast<gpu::Backend>(getBackend())
                               ->getCublasHandle(),
                           child(1)->grad(),
                           adj_,
@@ -92,7 +92,7 @@ public:
                           scalar_))};
 
     if(transA_ && !transB_)
-      return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+      return {NodeOp(Prod(std::static_pointer_cast<gpu::Backend>(getBackend())
                               ->getCublasHandle(),
                           child(0)->grad(),
                           child(1)->val(),
@@ -101,7 +101,7 @@ public:
                           true,
                           1.0,
                           scalar_)),
-              NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+              NodeOp(Prod(std::static_pointer_cast<gpu::Backend>(getBackend())
                               ->getCublasHandle(),
                           child(1)->grad(),
                           child(0)->val(),
@@ -112,7 +112,7 @@ public:
                           scalar_))};
 
     if(transA_ && transB_)
-      return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+      return {NodeOp(Prod(std::static_pointer_cast<gpu::Backend>(getBackend())
                               ->getCublasHandle(),
                           child(0)->grad(),
                           child(1)->val(),
@@ -121,7 +121,7 @@ public:
                           true,
                           1.0,
                           scalar_)),
-              NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+              NodeOp(Prod(std::static_pointer_cast<gpu::Backend>(getBackend())
                               ->getCublasHandle(),
                           child(1)->grad(),
                           adj_,
@@ -131,7 +131,7 @@ public:
                           1.0,
                           scalar_))};
 
-    return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+    return {NodeOp(Prod(std::static_pointer_cast<gpu::Backend>(getBackend())
                             ->getCublasHandle(),
                         child(0)->grad(),
                         adj_,
@@ -140,7 +140,7 @@ public:
                         true,
                         1.0,
                         scalar_)),
-            NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+            NodeOp(Prod(std::static_pointer_cast<gpu::Backend>(getBackend())
                             ->getCublasHandle(),
                         child(1)->grad(),
                         child(0)->val(),
@@ -198,7 +198,7 @@ public:
     using namespace functional;
     return {
       NodeOp(Prod(
-        std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+        std::static_pointer_cast<gpu::Backend>(getBackend())->getCublasHandle(),
         val_,
         child(0)->val(),
         child(1)->val(),
@@ -219,7 +219,7 @@ public:
     using namespace functional;
 
     if(!transA_ && transB_)
-      return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+      return {NodeOp(Prod(std::static_pointer_cast<gpu::Backend>(getBackend())
                               ->getCublasHandle(),
                           child(0)->grad(),
                           adj_,
@@ -228,7 +228,7 @@ public:
                           false,
                           1.0,
                           scalar_)),
-              NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+              NodeOp(Prod(std::static_pointer_cast<gpu::Backend>(getBackend())
                               ->getCublasHandle(),
                           child(1)->grad(),
                           adj_,
@@ -240,7 +240,7 @@ public:
               NodeOp(Add(_1, child(2)->grad(), adj_))};
 
     if(transA_ && !transB_)
-      return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+      return {NodeOp(Prod(std::static_pointer_cast<gpu::Backend>(getBackend())
                               ->getCublasHandle(),
                           child(0)->grad(),
                           child(1)->val(),
@@ -249,7 +249,7 @@ public:
                           true,
                           1.0,
                           scalar_)),
-              NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+              NodeOp(Prod(std::static_pointer_cast<gpu::Backend>(getBackend())
                               ->getCublasHandle(),
                           child(1)->grad(),
                           child(0)->val(),
@@ -261,7 +261,7 @@ public:
               NodeOp(Add(_1, child(2)->grad(), adj_))};
 
     if(transA_ && transB_)
-      return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+      return {NodeOp(Prod(std::static_pointer_cast<gpu::Backend>(getBackend())
                               ->getCublasHandle(),
                           child(0)->grad(),
                           child(1)->val(),
@@ -270,7 +270,7 @@ public:
                           true,
                           1.0,
                           scalar_)),
-              NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+              NodeOp(Prod(std::static_pointer_cast<gpu::Backend>(getBackend())
                               ->getCublasHandle(),
                           child(1)->grad(),
                           adj_,
@@ -281,7 +281,7 @@ public:
                           scalar_)),
               NodeOp(Add(_1, child(2)->grad(), adj_))};
 
-    return {NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+    return {NodeOp(Prod(std::static_pointer_cast<gpu::Backend>(getBackend())
                             ->getCublasHandle(),
                         child(0)->grad(),
                         adj_,
@@ -290,7 +290,7 @@ public:
                         true,
                         1.0,
                         scalar_)),
-            NodeOp(Prod(std::static_pointer_cast<BackendGPU>(getBackend())
+            NodeOp(Prod(std::static_pointer_cast<gpu::Backend>(getBackend())
                             ->getCublasHandle(),
                         child(1)->grad(),
                         child(0)->val(),
@@ -350,7 +350,7 @@ public:
   NodeOps forwardOps() {
     // C = alpha * dot(op(A), op(B))
     return {NodeOp(ProdBatched(
-        std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
+        std::static_pointer_cast<gpu::Backend>(getBackend())->getCublasHandle(),
         val_,
         child(0)->val(),
         child(1)->val(),
@@ -369,7 +369,7 @@ public:
 
     if(!transA_ && transB_)
       return {
-          NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())
+          NodeOp(ProdBatched(std::static_pointer_cast<gpu::Backend>(getBackend())
                                  ->getCublasHandle(),
                              child(0)->grad(),
                              adj_,
@@ -378,7 +378,7 @@ public:
                              false,
                              1.0,
                              scalar_)),
-          NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())
+          NodeOp(ProdBatched(std::static_pointer_cast<gpu::Backend>(getBackend())
                                  ->getCublasHandle(),
                              child(1)->grad(),
                              adj_,
@@ -390,7 +390,7 @@ public:
 
     if(transA_ && !transB_)
       return {
-          NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())
+          NodeOp(ProdBatched(std::static_pointer_cast<gpu::Backend>(getBackend())
                                  ->getCublasHandle(),
                              child(0)->grad(),
                              child(1)->val(),
@@ -399,7 +399,7 @@ public:
                              true,
                              1.0,
                              scalar_)),
-          NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())
+          NodeOp(ProdBatched(std::static_pointer_cast<gpu::Backend>(getBackend())
                                  ->getCublasHandle(),
                              child(1)->grad(),
                              child(0)->val(),
@@ -411,7 +411,7 @@ public:
 
     if(transA_ && transB_)
       return {
-          NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())
+          NodeOp(ProdBatched(std::static_pointer_cast<gpu::Backend>(getBackend())
                                  ->getCublasHandle(),
                              child(0)->grad(),
                              child(1)->val(),
@@ -420,7 +420,7 @@ public:
                              true,
                              1.0,
                              scalar_)),
-          NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())
+          NodeOp(ProdBatched(std::static_pointer_cast<gpu::Backend>(getBackend())
                                  ->getCublasHandle(),
                              child(1)->grad(),
                              adj_,
@@ -431,7 +431,7 @@ public:
                              scalar_))};
 
     return {
-        NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())
+        NodeOp(ProdBatched(std::static_pointer_cast<gpu::Backend>(getBackend())
                                ->getCublasHandle(),
                            child(0)->grad(),
                            adj_,
@@ -440,7 +440,7 @@ public:
                            true,
                            1.0,
                            scalar_)),
-        NodeOp(ProdBatched(std::static_pointer_cast<BackendGPU>(getBackend())
+        NodeOp(ProdBatched(std::static_pointer_cast<gpu::Backend>(getBackend())
                                ->getCublasHandle(),
                            child(1)->grad(),
                            child(0)->val(),

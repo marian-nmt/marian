@@ -45,9 +45,9 @@ __global__ void gFindSubtensor(int* indices,
     resultEnd[0] = idx;
 }
 
-SparseTensorBase::SparseTensorBase(int capacity, DeviceId deviceId)
-: deviceId_(deviceId), capacity_(capacity) {
-  cudaSetDevice(deviceId_.no);
+SparseTensorBase::SparseTensorBase(int capacity, Ptr<Backend> backend)
+: backend_(backend), capacity_(capacity) {
+  cudaSetDevice(backend_->getDevice().no);
   CUDA_CHECK(cudaMalloc(&data_, sizeof(float) * capacity));
   CUDA_CHECK(cudaMalloc(&indices_, sizeof(int) * capacity));
 
@@ -58,8 +58,8 @@ SparseTensorBase::SparseTensorBase(int capacity, DeviceId deviceId)
 SparseTensorBase::SparseTensorBase(float* data,
                                    int* indices,
                                    int size,
-                                   DeviceId deviceId)
-: deviceId_(deviceId) {
+                                   Ptr<Backend> backend)
+: backend_(backend) {
   data_ = data;
   indices_ = indices;
   size_ = size;
@@ -93,7 +93,7 @@ void SparseTensorBase::copyFrom(float* data,
   size_ = size;
   if(size == 0)
     return;
-  cudaSetDevice(deviceId_.no);
+  cudaSetDevice(backend_->getDevice().no);
 
   cudaMemcpy(data_, data, size * sizeof(float), cudaMemcpyDefault);
   if(!data_only)
@@ -107,8 +107,8 @@ void SparseTensorBase::copyFrom(std::shared_ptr<SparseTensorBase> t,
   copyFrom(t->data(), t->indices(), t->size(), data_only);
 }
 
-DeviceId SparseTensorBase::getDevice() {
-  return deviceId_;
+Ptr<Backend> SparseTensorBase::getBackend() {
+  return backend_;
 }
 
 void SparseTensorBase::setSize(int size) {
@@ -117,7 +117,7 @@ void SparseTensorBase::setSize(int size) {
 
 // return the dense representation of this tensor
 void SparseTensorBase::toDense(Tensor t, int offset) {
-  cudaSetDevice(deviceId_.no);
+  cudaSetDevice(backend_->getDevice().no);
   int threads = 512;
   int blocks = 1 + size_ / threads;
   t->set(0);
@@ -127,7 +127,7 @@ void SparseTensorBase::toDense(Tensor t, int offset) {
 }
 
 void SparseTensorBase::scatterAdd(Tensor t, int offset) {
-  cudaSetDevice(deviceId_.no);
+  cudaSetDevice(backend_->getDevice().no);
   cudaStreamSynchronize(0);
   int threads = 512;
   int blocks = 1 + size_ / threads;
@@ -139,7 +139,7 @@ void SparseTensorBase::scatterAdd(Tensor t, int offset) {
 std::shared_ptr<SparseTensorBase> SparseTensorBase::subtensor(int pos,
                                                               int size,
                                                               int idx) {
-  cudaSetDevice(deviceId_.no);
+  cudaSetDevice(backend_->getDevice().no);
   cudaStreamSynchronize(0);
   int* start = gstart_ + idx;
   int* end = gend_ + idx;
@@ -165,6 +165,6 @@ std::shared_ptr<SparseTensorBase> SparseTensorBase::subtensor(int pos,
   int subtensorSize = std::max(0, endOffset - startOffset + 1);
   cudaStreamSynchronize(0);
   return std::shared_ptr<SparseTensorBase>(new SparseTensorBase(
-      data_ + startOffset, indices_ + startOffset, subtensorSize, deviceId_));
+      data_ + startOffset, indices_ + startOffset, subtensorSize, backend_));
 }
 }

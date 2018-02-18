@@ -13,7 +13,7 @@ void Sgd::updateImpl(Tensor params, Tensor grads) {
 
 void Adagrad::updateImpl(Tensor params, Tensor grads) {
   if(!alloc_)
-    alloc_ = New<TensorAllocator>(params->getDevice());
+    alloc_ = New<TensorAllocator>(params->getBackend());
 
   if(!gt_) {
     int elements = params->size();
@@ -42,7 +42,7 @@ void Adagrad::resetStats() {
 
 void Adam::updateImpl(Tensor params, Tensor grads) {
   if(!alloc_)
-    alloc_ = New<TensorAllocator>(params->getDevice());
+    alloc_ = New<TensorAllocator>(params->getBackend());
 
   if(!mt_) {
     int elements = params->size();

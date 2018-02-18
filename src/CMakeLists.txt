@@ -8,19 +8,22 @@ cuda_add_library(marian
   3rd_party/cnpy/cnpy.cpp
   3rd_party/exception.cpp
   3rd_party/svd/svd.cpp
-  graph/expression_graph.cpp
-  graph/expression_operators.cu
-  graph/node.cu
-  graph/node_operators.cu
-  graph/node_initializers.cu
-  tensors/tensor.cu
-  tensors/device_gpu.cu
-  tensors/memory_piece.cu
+#  tensors/tensor.cu
+  tensors/device.cu
+  tensors/device.cpp
+  tensors/backend.cpp
+  tensors/gpu/algorithm.cu
+  tensors/gpu/dropout.cu
+  tensors/cpu/dropout.cpp
   kernels/tensor_operators.cu
   kernels/cudnn_wrappers.cu
-  backend/gpu/dropout.cu
-  backend/cpu/dropout.cpp
+  graph/expression_graph.cpp
+  graph/expression_operators.cu
+  graph/node.cpp
+  graph/node_operators.cu
+  graph/node_initializers.cu
   layers/convolution.cu
+
   rnn/cells.cu
   optimizers/clippers.cu
   optimizers/optimizers.cu
@@ -91,7 +94,7 @@ endforeach(exec)
 #set_target_properties(align2steps PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 if(PYTHONLIBS_FOUND)
-  add_subdirectory(python)
+#  add_subdirectory(python)
 endif(PYTHONLIBS_FOUND)
 
 if(COMPILE_TESTS)

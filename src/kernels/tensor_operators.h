@@ -7,7 +7,6 @@
 #include "tensors/tensor.h"
 
 #include "tensors/allocator.h"
-#include "tensors/device_gpu.h"
 
 #include "gpu/shape.h"
 #include "gpu/tmp.h"
@@ -71,13 +70,13 @@ void Element(Functor functor, Tensor out, Tensors ...tensors) {
 
 void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis);
 
-void Select(Ptr<Allocator<DeviceGPU>> allocator,
+void Select(Ptr<Allocator> allocator,
             Tensor out,
             Tensor in,
             int axis,
             const std::vector<size_t>&);
 
-void Insert(Ptr<Allocator<DeviceGPU>> allocator,
+void Insert(Ptr<Allocator> allocator,
             Tensor out,
             Tensor in,
             int axis,

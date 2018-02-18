@@ -5,7 +5,7 @@
 #include <curand.h>
 
 #include "common/config.h"
-#include "graph/backend.h"
+#include "tensors/backend.h"
 
 #define CURAND_CALL(x)                                \
   do {                                                \
@@ -16,10 +16,11 @@
   } while(0)
 
 namespace marian {
+namespace gpu {
 
-class BackendGPU : public Backend {  
+class Backend : public marian::Backend {
 public:
-  BackendGPU(DeviceId deviceId, size_t seed) : Backend(deviceId, seed) {
+  Backend(DeviceId deviceId, size_t seed) : marian::Backend(deviceId, seed) {
     setDevice();
     setHandles();
   }
@@ -36,13 +37,13 @@ private:
   cublasHandle_t cublasHandle_;
   curandGenerator_t curandGenerator_;
 
-  
+
   void setHandles() {
     cublasHandle_ = create_handle();
     curandGenerator_ = createCurandGenerator();
   }
 
-  
+
   curandGenerator_t createCurandGenerator() {
     cudaSetDevice(deviceId_.no);
     curandGenerator_t generator;
@@ -62,4 +63,6 @@ private:
     return cublasHandle;
   }
 };
+
+}
 }

@@ -1,10 +1,11 @@
 #pragma once
 
-#include "graph/backend_gpu.h"
+#include "tensors/tensor.h"
+#include "tensors/gpu/backend.h"
+
 #include "graph/node.h"
 #include "kernels/sparse.h"
 #include "kernels/tensor_operators.h"
-#include "tensors/tensor.h"
 #include "functional/functional.h"
 #include "kernels/cudnn_wrappers.h"
 
@@ -210,21 +211,7 @@ struct TanhNodeOp : public NaryNodeOp {
   const std::string type() { return "tanh"; }
 };
 
-/**
- * Represents a <a
- * href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">rectified
- * linear</a> node in an expression graph.
- *
- * This node implements the activation function \f$ f(x) = \max(0, x) \f$ and
- * its derivative:
- * \f[
- *   f^\prime(x) =
- *   \begin{cases}
- *     0 & \text{if } x \leq 0 \\
- *     1 & \text{if } x > 0
- *   \end{cases}
- * \f]
- */
+
 struct ReLUNodeOp : public UnaryNodeOp {
   template <typename... Args>
   ReLUNodeOp(Args... args) : UnaryNodeOp(args...) {}
@@ -876,14 +863,14 @@ public:
   Tensor& val() {
     auto childVal = reshapee_->val();
     val_.reset(
-        new TensorBase(childVal->memory(), shape(), childVal->getDevice()));
+        new TensorBase(childVal->memory(), shape(), childVal->getBackend()));
     return val_;
   };
 
   Tensor& grad() {
     auto childGrad = reshapee_->grad();
     adj_.reset(
-        new TensorBase(childGrad->memory(), shape(), childGrad->getDevice()));
+        new TensorBase(childGrad->memory(), shape(), childGrad->getBackend()));
     return adj_;
   };
 
@@ -952,7 +939,7 @@ public:
     size_t offset = step_ * shape().elements() * sizeof(float);
     auto mem = New<MemoryPiece>(childVal->memory()->data() + offset,
                                 childVal->memory()->size());
-    val_.reset(new TensorBase(mem, shape(), childVal->getDevice()));
+    val_.reset(new TensorBase(mem, shape(), childVal->getBackend()));
     return val_;
   };
 
@@ -961,7 +948,7 @@ public:
     size_t offset = step_ * shape().elements() * sizeof(float);
     auto mem = New<MemoryPiece>(childGrad->memory()->data() + offset,
                                 childGrad->memory()->size());
-    adj_.reset(new TensorBase(mem, shape(), childGrad->getDevice()));
+    adj_.reset(new TensorBase(mem, shape(), childGrad->getBackend()));
     return adj_;
   };
 

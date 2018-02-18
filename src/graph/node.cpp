@@ -1,4 +1,4 @@
-#include "graph/backend_gpu.h"
+#include "tensors/backend.h"
 #include "graph/expression_graph.h"
 #include "graph/node.h"
 

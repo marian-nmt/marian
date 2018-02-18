@@ -19,9 +19,9 @@ void MultiNodeGraphGroup::setScheduler(Ptr<Scheduler> scheduler) {
 /**
  * Allocate new tensor on given GPU and store allocator.
  */
-Tensor MultiNodeGraphGroup::newTensor(int size, DeviceId deviceId) {
+Tensor MultiNodeGraphGroup::newTensor(int size, Ptr<Backend> backend) {
   Tensor t;
-  Ptr<TensorAllocator> allocator = New<TensorAllocator>(deviceId);
+  Ptr<TensorAllocator> allocator = New<TensorAllocator>(backend);
   allocator->reserveExact(size * sizeof(float));
   allocator->allocate(t, {1, size});
   allocators_.push_back(allocator);
@@ -148,14 +148,12 @@ void MultiNodeGraphGroup::initClientCommOverlapVars() {
 void MultiNodeGraphGroup::initClientCommOverlapGpuTensors() {
   size_t modelSize = clientGraphs_[0]->params()->vals()->size();
   for(int client = 0; client < devices_.size(); client++) {
-    DeviceId deviceId{devices_[client], DeviceType::gpu};
-    
     // Communication overlap buffer (for grads + params)
-    Tensor commOverlapBuffer = newTensor(modelSize, deviceId);
+    Tensor commOverlapBuffer = newTensor(modelSize, clientGraphs_[client]->getBackend());
     commOverlapBuffer->copyFrom(clientGraphs_[0]->params()->vals());
     clientCommOverlapBuffersGPU_.push_back(commOverlapBuffer);
     // Gradients local sum buffer
-    Tensor sumGrads = newTensor(modelSize, deviceId);
+    Tensor sumGrads = newTensor(modelSize, clientGraphs_[client]->getBackend());
     sumGrads->set(0);
     clientSummedGradsGPU.push_back(sumGrads);
     // Local optimizer to apply summed gradients
@@ -207,12 +205,11 @@ void MultiNodeGraphGroup::calculateShardSizes() {
 void MultiNodeGraphGroup::initShardGpuTensors() {
   size_t offset = 0;
   for(int shard = 0; shard < devices_.size(); shard++) {
-    DeviceId deviceId{devices_[shard], DeviceType::gpu};
-    Tensor gpuParams = newTensor(shardSizes_[shard], deviceId);
+    Tensor gpuParams = newTensor(shardSizes_[shard], clientGraphs_[shard]->getBackend());
     gpuParams->copyFrom(clientGraphs_[0]->params()->vals()->subtensor(
         offset, shardSizes_[shard]));
     shardParams_.push_back(gpuParams);
-    shardGrads_.push_back(newTensor(shardSizes_[shard], deviceId));
+    shardGrads_.push_back(newTensor(shardSizes_[shard], clientGraphs_[shard]->getBackend()));
   }
 }
 

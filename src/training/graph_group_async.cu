@@ -93,12 +93,12 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
 
     int pos = 0;
     // parameter sharding
-    for(auto device : devices_) {
+    for(auto graph : graphs_) {
       int __size__ = min(shardSize_, totalSize);
       totalSize -= __size__;
 
       Tensor param;
-      Ptr<TensorAllocator> allocator = New<TensorAllocator>(DeviceId{device, DeviceType::gpu});
+      Ptr<TensorAllocator> allocator = New<TensorAllocator>(graph->getBackend());
       allocator->reserveExact(__size__ * sizeof(float));
       allocator->allocate(param, {1, __size__});
       paramsAlloc_.push_back(allocator);
@@ -112,11 +112,11 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
   if(grads_.size() == 0) {
     int totalSize = graphs_[0]->params()->vals()->size();
 
-    for(auto device : devices_) {
+    for(auto graph : graphs_) {
       int __size__ = min(shardSize_, totalSize);
       totalSize -= __size__;
       Tensor grad_;
-      Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(DeviceId{device, DeviceType::gpu});
+      Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(graph->getBackend());
 
       allocator_->reserveExact(__size__ * sizeof(float));
       allocator_->allocate(grad_, {1, __size__});
@@ -129,11 +129,11 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
       int totalSize = graphs_[0]->params()->vals()->size();
 
       int i = 0;
-      for(auto device : devices_) {
+      for(auto graph : graphs_) {
         int __size__ = min(shardSize_, totalSize);
         totalSize -= __size__;
         Tensor paramAvg;
-        Ptr<TensorAllocator> allocator = New<TensorAllocator>(DeviceId{device, DeviceType::gpu});
+        Ptr<TensorAllocator> allocator = New<TensorAllocator>(graph->getBackend());
 
         allocator->reserveExact(__size__ * sizeof(float));
         allocator->allocate(paramAvg, {1, __size__});
@@ -187,7 +187,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
     Tensor gradients;
     if(tau_ > 1) {
       if(t == 0) {
-        accAlloc = New<TensorAllocator>(graph->getDevice());
+        accAlloc = New<TensorAllocator>(graph->getBackend());
         accAlloc->reserveExact(graph->params()->grads()->memory()->size());
         accAlloc->allocate(accGradients, graph->params()->grads()->shape());
         accGradients->set(0);
