@@ -170,8 +170,7 @@ public:
         if(!opt->alloc_)
           opt->alloc_ = New<TensorAllocator>(devices[id]);
 
-        // @TODO: should be '2 * sizeof(float) * size' ?
-        opt->alloc_->reserveExact(2 * size);
+        opt->alloc_->reserveExact(2 * sizeof(float) * size);
         opt->alloc_->allocate(opt->mt_, {1, size});
         opt->alloc_->allocate(opt->vt_, {1, size});
       }
