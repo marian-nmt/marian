@@ -92,9 +92,9 @@ public:
     factor = config["progress"]["eta-factor"].as<float>();
     warmupStart = config["progress"]["warmup-start"].as<size_t>();
 
-    costSum = config["progress"]["cost-sum"].as<float>();
-    samplesDisp = config["progress"]["disp-samples"].as<size_t>();
-    wordsDisp = config["progress"]["disp-words"].as<size_t>();
+    //costSum = config["progress"]["cost-sum"].as<float>();
+    //samplesDisp = config["progress"]["disp-samples"].as<size_t>();
+    //wordsDisp = config["progress"]["disp-words"].as<size_t>();
   }
 
   void save(YAML::Node& config) {
