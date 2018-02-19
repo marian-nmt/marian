@@ -37,12 +37,24 @@ public:
     updateImpl(params, grads);
   }
 
-  virtual void actAfterEpoch(TrainingState& state) { eta_ = state.eta; }
-  virtual void actAfterBatches(TrainingState& state) { eta_ = state.eta; }
-  virtual void actAfterStalled(TrainingState& state) { eta_ = state.eta; }
   virtual void actAfterLoaded(TrainingState& state) {
     eta_ = state.eta;
     multiplyFactor_ = state.factor;
+  }
+  virtual void actAfterEpoch(TrainingState& state) {
+    eta_ = state.eta;
+    if(state.reset)
+      resetStats();
+  }
+  virtual void actAfterBatches(TrainingState& state) {
+    eta_ = state.eta;
+    if(state.reset)
+      resetStats();
+  }
+  virtual void actAfterStalled(TrainingState& state) {
+    eta_ = state.eta;
+    if(state.reset)
+      resetStats();
   }
 
   void setParams(const std::vector<float>& params) { parseParams(params); }
@@ -57,6 +69,7 @@ public:
 protected:
   virtual void updateImpl(Tensor params, Tensor grads) = 0;
   virtual void parseParams(const std::vector<float>& params) = 0;
+  virtual void resetStats() = 0;
 
   // Learning rate
   float eta_;
@@ -75,6 +88,7 @@ private:
   void updateImpl(Tensor params, Tensor grads);
 
   virtual void parseParams(const std::vector<float>& params) {}
+  virtual void resetStats() {}
 };
 
 // @TODO: Add serialization for historic gradients and parameters
@@ -83,29 +97,11 @@ public:
   Adagrad(float eta, Ptr<ClipperBase> clipper = nullptr)
       : OptimizerBase(eta, clipper) {}
 
-  virtual void actAfterEpoch(TrainingState& state) {
-    OptimizerBase::actAfterEpoch(state);
-    if(state.reset)
-      resetStats();
-  }
-
-  virtual void actAfterBatches(TrainingState& state) {
-    OptimizerBase::actAfterBatches(state);
-    if(state.reset)
-      resetStats();
-  }
-
-  virtual void actAfterStalled(TrainingState& state) {
-    OptimizerBase::actAfterStalled(state);
-    if(state.reset)
-      resetStats();
-  }
-
 private:
   void updateImpl(Tensor params, Tensor grads);
   void resetStats();
 
-  virtual void parseParams(const std::vector<float>& params) {
+  void parseParams(const std::vector<float>& params) {
     if(params.size() > 0)
       eps_ = params[0];
   }
@@ -128,37 +124,10 @@ public:
   void save(const std::string& name,
             std::vector<Ptr<OptimizerBase>> opts,
             size_t totalSize);
+
 private:
-  float beta1_ = 0.9;
-  float beta2_ = 0.999;
-  float eps_ = 1e-8;
-  size_t t_;
-
-  Ptr<TensorAllocator> alloc_;
-  Tensor mt_;
-  Tensor vt_;
-
   void updateImpl(Tensor params, Tensor grads);
-
   void resetStats();
-
-  virtual void actAfterEpoch(TrainingState& state) {
-    OptimizerBase::actAfterEpoch(state);
-    if(state.reset)
-      resetStats();
-  }
-
-  virtual void actAfterBatches(TrainingState& state) {
-    OptimizerBase::actAfterBatches(state);
-    if(state.reset)
-      resetStats();
-  }
-
-  virtual void actAfterStalled(TrainingState& state) {
-    OptimizerBase::actAfterStalled(state);
-    if(state.reset)
-      resetStats();
-  }
 
   virtual void parseParams(const std::vector<float>& params) {
     if(params.size() > 0)
@@ -168,6 +137,15 @@ private:
     if(params.size() > 2)
       eps_ = params[2];
   }
+
+  float beta1_ = 0.9;
+  float beta2_ = 0.999;
+  float eps_ = 1e-8;
+  size_t t_;
+
+  Ptr<TensorAllocator> alloc_;
+  Tensor mt_;
+  Tensor vt_;
 };
 
 template <class Algorithm>

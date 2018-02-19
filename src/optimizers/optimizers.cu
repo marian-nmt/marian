@@ -72,10 +72,11 @@ void Adam::load(const std::string& name,
   }
 
   if(vMt.empty() || vVt.empty()) {
-    LOG(info, "[warn] Adam parameters not found in .npz file");
+    LOG(warn, "[warn] Adam parameters not found in .npz file");
     return;
   }
 
+  // get the size of params which should go
   size_t shardSize = ceil(totalSize / (float)backends.size());
 
   size_t id = 0;
@@ -85,16 +86,16 @@ void Adam::load(const std::string& name,
     int size = std::min(shardSize, totalSize);
     totalSize -= size;
 
-    if(!opt->mt_ || !opt->vt_) {
-      if(!opt->alloc_)
-        opt->alloc_ = New<TensorAllocator>(backends[id]);
+    if(!opt->alloc_)
+      opt->alloc_ = New<TensorAllocator>(backends[id]);
 
+    if(!opt->mt_ || !opt->vt_) {
       opt->alloc_->reserveExact(2 * sizeof(float) * size);
       opt->alloc_->allocate(opt->mt_, {1, size});
       opt->alloc_->allocate(opt->vt_, {1, size});
     }
 
-    int shift = id * shardSize;
+    size_t shift = id * shardSize;
     std::vector<float> tmpMt(vMt.begin() + shift, vMt.begin() + shift + size);
     opt->mt_->set(tmpMt);
     std::vector<float> tmpVt(vVt.begin() + shift, vVt.begin() + shift + size);
@@ -115,24 +116,15 @@ void Adam::save(const std::string& name,
   for(auto optBase : opts) {
     auto opt = std::dynamic_pointer_cast<Adam>(optBase);
 
-    std::vector<float> tmpMt;
-    opt->mt_->get(tmpMt);
-    vMt.insert(vMt.end(), tmpMt.begin(), tmpMt.end());
-
-    std::vector<float> tmpVt;
-    opt->vt_->get(tmpVt);
-    vVt.insert(vVt.end(), tmpVt.begin(), tmpVt.end());
-  }
-
-  // truncate to the real size
-  if(totalSize < vMt.size()) {
-    vMt.resize(totalSize);
-    vVt.resize(totalSize);
+    std::vector<float> tmp;
+    opt->mt_->get(tmp);
+    vMt.insert(vMt.end(), tmp.begin(), tmp.end());
+    opt->vt_->get(tmp);
+    vVt.insert(vVt.end(), tmp.begin(), tmp.end());
   }
 
   // the shape is the same for mt_ and vt_
   unsigned* shape = new unsigned[2];
-
   shape[0] = 1;
   shape[1] = vMt.size();
 
