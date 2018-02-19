@@ -7,6 +7,7 @@
 #include "common/config.h"
 #include "graph/expression_graph.h"
 #include "optimizers/clippers.h"
+#include "tensors/backend.h"
 #include "tensors/tensor.h"
 #include "training/training_state.h"
 
@@ -48,7 +49,7 @@ public:
 
   virtual void load(const std::string& name,
                     std::vector<Ptr<OptimizerBase>> opts,
-                    std::vector<DeviceId> devices) {}
+                    std::vector<Ptr<Backend>> backends) {}
   virtual void save(const std::string& name,
                     std::vector<Ptr<OptimizerBase>> opts,
                     size_t totalSize) {}
@@ -123,7 +124,7 @@ public:
 
   void load(const std::string& name,
             std::vector<Ptr<OptimizerBase>> opts,
-            std::vector<DeviceId> devices) {
+            std::vector<Ptr<Backend>> backends) {
     if(!boost::filesystem::exists(name))
       return;
 
@@ -157,7 +158,7 @@ public:
       return;
     }
 
-    size_t shardSize = ceil(totalSize / (float)devices.size());
+    size_t shardSize = ceil(totalSize / (float)backends.size());
 
     size_t id = 0;
     for(auto optBase : opts) {
@@ -168,7 +169,7 @@ public:
 
       if(!opt->mt_ || !opt->vt_) {
         if(!opt->alloc_)
-          opt->alloc_ = New<TensorAllocator>(devices[id]);
+          opt->alloc_ = New<TensorAllocator>(backends[id]);
 
         opt->alloc_->reserveExact(2 * sizeof(float) * size);
         opt->alloc_->allocate(opt->mt_, {1, size});

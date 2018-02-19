@@ -67,10 +67,10 @@ public:
           builders_[i++]->load(graph, name);
 
         // @TODO: probably we want to have the list of DeviceIds as an attribute
-        std::vector<DeviceId> devices;
+        std::vector<Ptr<Backend>> backends;
         for(auto graph : graphs_)
-          devices.push_back(graph->getDevice());
-        shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, devices);
+          backends.push_back(graph->getBackend());
+        shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends);
 
       } else if(options_->has("pretrained-model")) {
         std::string init = options_->get<std::string>("pretrained-model");
