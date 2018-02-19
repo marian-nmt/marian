@@ -124,105 +124,10 @@ public:
 
   void load(const std::string& name,
             std::vector<Ptr<OptimizerBase>> opts,
-            std::vector<Ptr<Backend>> backends) {
-    if(!boost::filesystem::exists(name))
-      return;
-
-    LOG(info, "Loading Adam parameters from {}", name);
-
-    std::vector<float> vMt;
-    std::vector<float> vVt;
-    size_t totalSize = 0;
-
-    auto numpy = cnpy::npz_load(name);
-    for(auto it : numpy) {
-      auto name = it.first;
-      cnpy::NpyArray& np = it.second;
-
-      // get the size of mt_ and vt_, they are the same
-      totalSize = np.shape[1];
-
-      // extract data into vectors
-      if(name == "adam_mt") {
-        vMt.resize(totalSize);
-        std::copy((float*)np.data, (float*)np.data + totalSize, vMt.begin());
-      }
-      if(name == "adam_vt") {
-        vVt.resize(totalSize);
-        std::copy((float*)np.data, (float*)np.data + totalSize, vVt.begin());
-      }
-    }
-
-    if(vMt.empty() || vVt.empty()) {
-      LOG(info, "[warn] Adam parameters not found in .npz file");
-      return;
-    }
-
-    size_t shardSize = ceil(totalSize / (float)backends.size());
-
-    size_t id = 0;
-    for(auto optBase : opts) {
-      auto opt = std::dynamic_pointer_cast<Adam>(optBase);
-
-      int size = std::min(shardSize, totalSize);
-      totalSize -= size;
-
-      if(!opt->mt_ || !opt->vt_) {
-        if(!opt->alloc_)
-          opt->alloc_ = New<TensorAllocator>(backends[id]);
-
-        opt->alloc_->reserveExact(2 * sizeof(float) * size);
-        opt->alloc_->allocate(opt->mt_, {1, size});
-        opt->alloc_->allocate(opt->vt_, {1, size});
-      }
-
-      int shift = id * shardSize;
-      std::vector<float> tmpMt(vMt.begin() + shift, vMt.begin() + shift + size);
-      opt->mt_->set(tmpMt);
-      std::vector<float> tmpVt(vVt.begin() + shift, vVt.begin() + shift + size);
-      opt->mt_->set(tmpVt);
-
-      id++;
-    }
-  }
-
+            std::vector<Ptr<Backend>> backends);
   void save(const std::string& name,
             std::vector<Ptr<OptimizerBase>> opts,
-            size_t totalSize) {
-    LOG(info, "Saving Adam parameters to {}", name);
-
-    std::vector<float> vMt;
-    std::vector<float> vVt;
-
-    for(auto optBase : opts) {
-      auto opt = std::dynamic_pointer_cast<Adam>(optBase);
-
-      std::vector<float> tmpMt;
-      opt->mt_->get(tmpMt);
-      vMt.insert(vMt.end(), tmpMt.begin(), tmpMt.end());
-
-      std::vector<float> tmpVt;
-      opt->vt_->get(tmpVt);
-      vVt.insert(vVt.end(), tmpVt.begin(), tmpVt.end());
-    }
-
-    // truncate to the real size
-    if(totalSize < vMt.size()) {
-      vMt.resize(totalSize);
-      vVt.resize(totalSize);
-    }
-
-    // the shape is the same for mt_ and vt_
-    unsigned* shape = new unsigned[2];
-    shape[0] = 1;
-    shape[1] = vMt.size();
-
-    cnpy::npz_save(name, "adam_mt", vMt.data(), shape, 2, "w");
-    cnpy::npz_save(name, "adam_vt", vVt.data(), shape, 2, "a");
-
-    delete[] shape;
-  }
-
+            size_t totalSize);
 private:
   float beta1_ = 0.9;
   float beta2_ = 0.999;
@@ -234,6 +139,8 @@ private:
   Tensor vt_;
 
   void updateImpl(Tensor params, Tensor grads);
+
+  void resetStats();
 
   virtual void actAfterEpoch(TrainingState& state) {
     OptimizerBase::actAfterEpoch(state);
@@ -252,8 +159,6 @@ private:
     if(state.reset)
       resetStats();
   }
-
-  void resetStats();
 
   virtual void parseParams(const std::vector<float>& params) {
     if(params.size() > 0)
