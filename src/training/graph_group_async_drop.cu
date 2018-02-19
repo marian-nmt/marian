@@ -134,7 +134,7 @@ void AsyncGraphGroupDrop::init(Ptr<data::Batch> batch) {
   // extra inits for gradient dropping
   if(drop_first) {
     int totalSize = graphs_[0]->params()->vals()->size();
-    int sparseCap = totalSize * 1.2 * (1.0 - 0.99);
+    int sparseCap = totalSize * 1.2 * (1.0 - droping_rate);
     int shardSize = ceil(totalSize / devices_.size());
 
     for(int i = 0; i < devices_.size(); i++)
@@ -174,12 +174,12 @@ void AsyncGraphGroupDrop::init(Ptr<data::Batch> batch) {
           new SparseTensorBase(sparseCap / devices_.size(), graphs_[i]->getBackend())));
 
       std::vector<SparseTensor> tmp;
-      for(int i = 0; i < devices_.size(); i++)
+      for(int j = 0; j < devices_.size(); j++)
         tmp.push_back(SparseTensor(
             new SparseTensorBase(sparseCap / devices_.size(), graphs_[i]->getBackend())));
       fetchShardedSparseGradient_.push_back(tmp);
-    }
 
+    }
     drop_first = false;
   }
 }
