@@ -79,6 +79,9 @@ protected:
   Ptr<ClipperBase> clipper_;
 };
 
+/**
+ * @brief Stochastic gradient descent optimizer.
+ */
 class Sgd : public OptimizerBase {
 public:
   Sgd(float eta, Ptr<ClipperBase> clipper = nullptr)
@@ -91,11 +94,22 @@ private:
   virtual void resetStats() {}
 };
 
-// @TODO: Add serialization for historic gradients and parameters
+/**
+ * @brief Adagrad optimizer
+ *
+ * http://www.jmlr.org/papers/volume12/duchi11a/duchi11a.pdf
+ */
 class Adagrad : public OptimizerBase {
 public:
   Adagrad(float eta, Ptr<ClipperBase> clipper = nullptr)
       : OptimizerBase(eta, clipper) {}
+
+  void load(const std::string& name,
+            std::vector<Ptr<OptimizerBase>> opts,
+            std::vector<Ptr<Backend>> backends);
+  void save(const std::string& name,
+            std::vector<Ptr<OptimizerBase>> opts,
+            size_t totalSize);
 
 private:
   void updateImpl(Tensor params, Tensor grads);
@@ -111,8 +125,11 @@ private:
   Tensor gt_;
 };
 
-// @TODO: Add serialization for historic gradients and parameters
-// https://arxiv.org/pdf/1412.6980v8.pdf
+/**
+ * @brief Adam optimizer
+ *
+ * https://arxiv.org/pdf/1412.6980v8.pdf
+ */
 class Adam : public OptimizerBase {
 public:
   Adam(float eta, Ptr<ClipperBase> clipper = nullptr)
