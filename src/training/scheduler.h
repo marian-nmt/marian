@@ -46,7 +46,6 @@ public:
     LOG(info, "Seen {} samples", state_->samples);
 
     state_->newEpoch();
-    state_->samples = 0;
 
     LOG(info, "Starting epoch {}", state_->epochs);
   }

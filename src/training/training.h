@@ -52,17 +52,28 @@ public:
     model->load();
 
     auto batchGenerator = New<BatchGenerator<CorpusBase>>(dataset, options_, stats);
+    auto shuffle = !options_->get<bool>("no-shuffle");
+    bool restored = options_->get<bool>("restore-corpus")
+                    && batchGenerator->restore(trainState, shuffle);
 
     scheduler->started();
     while(scheduler->keepGoing()) {
-      auto shuffle = !options_->get<bool>("no-shuffle");
-      batchGenerator->prepare(shuffle);
+      // @TODO: refactorize
+      trainState->seedBatch = batchGenerator->getRNG();
+      trainState->seedCorpus = dataset->getRNG();
+
+      if(!restored)
+        batchGenerator->prepare(shuffle);
+
       while(*batchGenerator && scheduler->keepGoing()) {
         auto batch = batchGenerator->next();
         model->update(batch);
       }
+
       if(scheduler->keepGoing())
         scheduler->increaseEpoch();
+
+      restored = false;
     }
     scheduler->finished();
     model->save(true);

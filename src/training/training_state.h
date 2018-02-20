@@ -22,6 +22,8 @@ public:
   size_t epochs{1};
   // The total number of batches
   size_t batches{0};
+  // The number of batches seen in this epoch
+  size_t batchesEpoch{0};
   // The number of samples seen in this epoch
   size_t samples{0};
 
@@ -47,6 +49,9 @@ public:
   // Number of words seen since last display
   size_t wordsDisp{0};
 
+  std::string seedBatch;
+  std::string seedCorpus;
+
   TrainingState(float learnRate) : eta(learnRate) {}
 
   void registerObserver(Ptr<TrainingObserver> observer) {
@@ -57,10 +62,13 @@ public:
     ++epochs;
     for(auto observer : observers_)
       observer->actAfterEpoch(*this);
+    samples = 0;
+    batchesEpoch = 0;
   }
 
   void newBatch() {
     ++batches;
+    ++batchesEpoch;
     for(auto observer : observers_)
       observer->actAfterBatches(*this);
   }
@@ -81,6 +89,7 @@ public:
   void load(const YAML::Node& config) {
     epochs = config["progress"]["epochs"].as<size_t>();
     batches = config["progress"]["batches"].as<size_t>();
+    batchesEpoch = config["progress"]["batches-epoch"].as<size_t>();
     samples = config["progress"]["samples"].as<size_t>();
 
     stalled = config["progress"]["stalled"].as<size_t>();
@@ -92,6 +101,9 @@ public:
     factor = config["progress"]["eta-factor"].as<float>();
     warmupStart = config["progress"]["warmup-start"].as<size_t>();
 
+    seedBatch = config["progress"]["seed-batch"].as<std::string>();
+    seedCorpus = config["progress"]["seed-corpus"].as<std::string>();
+
     //costSum = config["progress"]["cost-sum"].as<float>();
     //samplesDisp = config["progress"]["disp-samples"].as<size_t>();
     //wordsDisp = config["progress"]["disp-words"].as<size_t>();
@@ -100,6 +112,7 @@ public:
   void save(YAML::Node& config) {
     config["progress"]["epochs"] = epochs;
     config["progress"]["batches"] = batches;
+    config["progress"]["batches-epoch"] = batchesEpoch;
     config["progress"]["samples"] = samples;
 
     config["progress"]["stalled"] = stalled;
@@ -111,9 +124,12 @@ public:
     config["progress"]["eta-factor"] = factor;
     config["progress"]["warmup-start"] = warmupStart;
 
-    config["progress"]["cost-sum"] = costSum;
-    config["progress"]["disp-samples"] = samplesDisp;
-    config["progress"]["disp-words"] = wordsDisp;
+    config["progress"]["seed-batch"] = seedBatch;
+    config["progress"]["seed-corpus"] = seedCorpus;
+
+    // config["progress"]["cost-sum"] = costSum;
+    // config["progress"]["disp-samples"] = samplesDisp;
+    // config["progress"]["disp-words"] = wordsDisp;
   }
 
 private:

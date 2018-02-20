@@ -22,11 +22,11 @@ namespace data {
 class Corpus : public CorpusBase {
 private:
   std::vector<UPtr<TemporaryFile>> tempFiles_;
-
-  std::mt19937 g_;
   std::vector<size_t> ids_;
 
   void shuffleFiles(const std::vector<std::string>& paths);
+
+  std::mt19937 g_;
 
 public:
   Corpus(Ptr<Config> options, bool translate = false);
@@ -49,6 +49,8 @@ public:
   void shuffle();
 
   void reset();
+
+  void restore(Ptr<TrainingState>);
 
   iterator begin() { return iterator(this); }
 
@@ -101,6 +103,19 @@ public:
 
     return batch;
   }
+
+
+  std::string getRNG() {
+    std::ostringstream s;
+    s << g_;
+    return s.str();
+  }
+  void setRNG(std::string rng) {
+    std::istringstream iss(rng);
+    iss >> g_;
+  }
+
+
 };
 }
 }

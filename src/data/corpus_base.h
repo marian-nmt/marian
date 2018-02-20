@@ -417,6 +417,9 @@ public:
 
   virtual std::vector<Ptr<Vocab>>& getVocabs() = 0;
 
+  // @TODO: remove me!
+  virtual std::string getRNG() { return ""; }
+
 protected:
   std::vector<UPtr<InputFileStream>> files_;
   std::vector<Ptr<Vocab>> vocabs_;

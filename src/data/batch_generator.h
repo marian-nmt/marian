@@ -10,6 +10,7 @@
 #include "common/config.h"
 #include "data/batch_stats.h"
 #include "data/vocab.h"
+#include "training/training_state.h"
 
 namespace marian {
 
@@ -41,13 +42,13 @@ private:
   mutable std::mutex loadMutex_;
   mutable std::condition_variable loadCondition_;
   bool loadReady_{true};
-  
+
   void fillBatches(bool shuffle = true) {
     typedef typename sample::value_type Item;
     auto itemCmp = [](const Item& sa, const Item& sb) {
       return sa.size() < sb.size();
     };
-    
+
     auto cmpSrc = [itemCmp](const sample& a, const sample& b) {
       return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end(), itemCmp);
     };
@@ -91,7 +92,7 @@ private:
     std::vector<size_t> lengths(sets, 0);
 
     std::vector<BatchPtr> tempBatches;
-    
+
     // while there are sentences in the queue
     while(!maxiBatch->empty()) {
       // push item onto batch
@@ -131,7 +132,7 @@ private:
       // if batch has desired size create a real batch
       if(makeBatch) {
         tempBatches.push_back(data_->toBatch(batchVector));
-        
+
         // prepare for next batch
         batchVector.clear();
         currentWords = 0;
@@ -139,7 +140,7 @@ private:
         lengths.resize(sets, 0);
       }
     }
-    
+
     // turn rest into batch
     if(!batchVector.empty())
       tempBatches.push_back(data_->toBatch(batchVector));
@@ -148,7 +149,7 @@ private:
       // shuffle the batches
       std::shuffle(tempBatches.begin(), tempBatches.end(), g_);
     }
-    
+
     // put batches onto queue
     // exclusive lock
     std::unique_lock<std::mutex> lock(loadMutex_);
@@ -168,18 +169,18 @@ public:
     loadCondition_.wait(lock, [this]{
       return loadReady_ || !bufferedBatches_.empty();
     });
-    
+
     return !bufferedBatches_.empty();
   }
 
   BatchPtr next() {
     {
-      std::unique_lock<std::mutex> lock(loadMutex_); 
+      std::unique_lock<std::mutex> lock(loadMutex_);
       loadCondition_.wait(lock, [this]{
         return loadReady_ || !bufferedBatches_.empty();
       });
     }
-    
+
     ABORT_IF(bufferedBatches_.empty(), "No batches to fetch, run prepare()");
     currentBatch_ = bufferedBatches_.front();
 
@@ -189,7 +190,7 @@ public:
         loadReady_ = false;
         loadCondition_.notify_all();
       }
-      
+
       std::thread([this]() {
         fillBatches();
         std::unique_lock<std::mutex> lock(loadMutex_);
@@ -200,7 +201,7 @@ public:
 
     std::unique_lock<std::mutex> lock(loadMutex_);
     bufferedBatches_.pop_front();
-    
+
     return currentBatch_;
   }
 
@@ -211,6 +212,41 @@ public:
       data_->reset();
     current_ = data_->begin();
     fillBatches(shuffle);
+  }
+
+  /**
+   * @brief Restores the data set state.
+   */
+  bool restore(Ptr<TrainingState> state, bool shuffle) {
+    if(state->epochs == 1 && state->batchesEpoch == 0)
+      return false;
+
+    LOG(info,
+        "[data] Restoring the corpus state to epoch {}, batch {}",
+        state->epochs,
+        state->batches);
+
+    if(state->epochs > 1) {
+      data_->restore(state);
+      setRNG(state->seedBatch);
+    }
+
+    prepare(shuffle);
+    for(int i = 0; i < state->batchesEpoch; ++i)
+      next();
+
+    return true;
+  }
+
+  std::string getRNG() {
+    std::ostringstream s;
+    s << g_;
+    return s.str();
+  }
+
+  void setRNG(std::string rng) {
+    std::istringstream iss(rng);
+    iss >> g_;
   }
 };
 }

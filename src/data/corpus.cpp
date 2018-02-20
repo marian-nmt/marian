@@ -11,7 +11,7 @@ Corpus::Corpus(Ptr<Config> options, bool translate /*= false*/)
 Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
                Ptr<Config> options)
-    : CorpusBase(paths, vocabs, options) {}
+    : CorpusBase(paths, vocabs, options), g_(Config::seed) {}
 
 SentenceTuple Corpus::next() {
   bool cont = true;
@@ -70,6 +70,10 @@ void Corpus::reset() {
     else
       files_.emplace_back(new InputFileStream(path));
   }
+}
+
+void Corpus::restore(Ptr<TrainingState> ts) {
+  setRNG(ts->seedCorpus);
 }
 
 void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
