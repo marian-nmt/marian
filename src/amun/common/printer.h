@@ -55,7 +55,10 @@ void Printer(const God &god, const History& history, OStream& out, const Sentenc
       }
       std::string translation = Join(god.Postprocess(god.GetTargetVocab()(words)));
       if (god.Get<bool>("return-alignment")) {
-        translation += GetAlignmentString(GetAlignment(bestTranslation.second));
+        translation += GetAlignmentString(GetAlignment(hypo));
+      }
+      if (god.Get<bool>("return-soft-alignment")) {
+        translation += GetSoftAlignmentString(hypo);
       }
       out << history.GetLineNum() << " ||| " << translation << " |||";
 
