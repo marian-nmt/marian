@@ -667,10 +667,10 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       "Size of mini-batch used during update")
     ("mini-batch-words", po::value<int>()->default_value(0),
       "Set mini-batch size based on words instead of sentences")
-    ("mini-batch-fit", po::value<bool>()->zero_tokens()->default_value(false),
-      "Determine mini-batch size automatically based on sentence-length to fit reserved memory")
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
+    ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
+      "Sorting strategy for maxi-batch: trg (default) src none")
     ;
   // clang-format on
   desc.add(rescore);
@@ -882,7 +882,6 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
       config_["train-sets"] = vm_["train-sets"].as<std::vector<std::string>>();
     }
     SET_OPTION("mini-batch-words", int);
-    SET_OPTION("mini-batch-fit", bool);
     SET_OPTION_NONDEFAULT("summary", std::string);
   }
 
@@ -932,8 +931,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
 
-  if(mode_ == ConfigMode::training || mode_ == ConfigMode::translating)
-    SET_OPTION("maxi-batch-sort", std::string);
+  SET_OPTION("maxi-batch-sort", std::string);
   SET_OPTION("max-length", size_t);
   SET_OPTION("max-length-crop", bool);
 

@@ -101,6 +101,7 @@ void ProdBatched(marian::Tensor C,
   int offsetA = 0;
   int offsetB = 0;
   int offsetC = 0;
+  
   for(int i = 0; i < steps; ++i) {
     cblas_sgemm(
           CblasColMajor,
