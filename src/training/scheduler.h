@@ -44,9 +44,7 @@ public:
 
   void increaseEpoch() {
     LOG(info, "Seen {} samples", state_->samples);
-
     state_->newEpoch();
-
     LOG(info, "Starting epoch {}", state_->epochs);
   }
 
@@ -155,20 +153,19 @@ public:
   }
 
   void load(const std::string& name) {
-    std::string nameYaml = name + ".yml";
-    if(boost::filesystem::exists(nameYaml)) {
-      YAML::Node config = YAML::LoadFile(nameYaml);
-      state_->load(config);
-    }
+    std::string nameYaml = name + ".progress.yml";
+    if(boost::filesystem::exists(nameYaml))
+      state_->load(nameYaml);
+
     state_->newLoad();
   }
 
   void save(const std::string& name) {
     YAML::Node config = options_->get();
-    state_->save(config);
-    std::string nameYaml = name + ".yml";
-    std::ofstream fout(nameYaml);
+    std::ofstream fout(name + ".yml");
     fout << config;
+
+    state_->save(name + ".progress.yml");
   }
 
   size_t numberOfBatches() { return state_->batches; }

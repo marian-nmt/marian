@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fstream>
 #include <vector>
 
 #include "common/definitions.h"
@@ -49,7 +50,9 @@ public:
   // Number of words seen since last display
   size_t wordsDisp{0};
 
+  // The state of the random number generator from a batch generator
   std::string seedBatch;
+  // The state of the random number generator from a corpus
   std::string seedCorpus;
 
   TrainingState(float learnRate) : eta(learnRate) {}
@@ -86,50 +89,52 @@ public:
       observer->actAfterLoaded(*this);
   }
 
-  void load(const YAML::Node& config) {
-    epochs = config["progress"]["epochs"].as<size_t>();
-    batches = config["progress"]["batches"].as<size_t>();
-    batchesEpoch = config["progress"]["batches-epoch"].as<size_t>();
-    samples = config["progress"]["samples"].as<size_t>();
+  void load(const std::string& name) {
+    if(!boost::filesystem::exists(name))
+      return;
 
-    stalled = config["progress"]["stalled"].as<size_t>();
-    maxStalled = config["progress"]["stalled-max"].as<size_t>();
-    validBest = config["progress"]["valid-best"].as<float>();
-    reset = config["progress"]["reset"].as<bool>();
+    YAML::Node config = YAML::LoadFile(name);
 
-    eta = config["progress"]["eta"].as<float>();
-    factor = config["progress"]["eta-factor"].as<float>();
-    warmupStart = config["progress"]["warmup-start"].as<size_t>();
+    epochs = config["epochs"].as<size_t>();
+    batches = config["batches"].as<size_t>();
+    batchesEpoch = config["batches-epoch"].as<size_t>();
+    samples = config["samples"].as<size_t>();
 
-    seedBatch = config["progress"]["seed-batch"].as<std::string>();
-    seedCorpus = config["progress"]["seed-corpus"].as<std::string>();
+    stalled = config["stalled"].as<size_t>();
+    maxStalled = config["stalled-max"].as<size_t>();
+    validBest = config["valid-best"].as<float>();
+    reset = config["reset"].as<bool>();
 
-    //costSum = config["progress"]["cost-sum"].as<float>();
-    //samplesDisp = config["progress"]["disp-samples"].as<size_t>();
-    //wordsDisp = config["progress"]["disp-words"].as<size_t>();
+    eta = config["eta"].as<float>();
+    factor = config["eta-factor"].as<float>();
+    warmupStart = config["warmup-start"].as<size_t>();
+
+    seedBatch = config["seed-batch"].as<std::string>();
+    seedCorpus = config["seed-corpus"].as<std::string>();
   }
 
-  void save(YAML::Node& config) {
-    config["progress"]["epochs"] = epochs;
-    config["progress"]["batches"] = batches;
-    config["progress"]["batches-epoch"] = batchesEpoch;
-    config["progress"]["samples"] = samples;
+  void save(const std::string& name) {
+    std::ofstream fout(name);
+    YAML::Node config;
 
-    config["progress"]["stalled"] = stalled;
-    config["progress"]["stalled-max"] = maxStalled;
-    config["progress"]["valid-best"] = validBest;
-    config["progress"]["reset"] = reset;
+    config["epochs"] = epochs;
+    config["batches"] = batches;
+    config["batches-epoch"] = batchesEpoch;
+    config["samples"] = samples;
 
-    config["progress"]["eta"] = eta;
-    config["progress"]["eta-factor"] = factor;
-    config["progress"]["warmup-start"] = warmupStart;
+    config["stalled"] = stalled;
+    config["stalled-max"] = maxStalled;
+    config["valid-best"] = validBest;
+    config["reset"] = reset;
 
-    config["progress"]["seed-batch"] = seedBatch;
-    config["progress"]["seed-corpus"] = seedCorpus;
+    config["eta"] = eta;
+    config["eta-factor"] = factor;
+    config["warmup-start"] = warmupStart;
 
-    // config["progress"]["cost-sum"] = costSum;
-    // config["progress"]["disp-samples"] = samplesDisp;
-    // config["progress"]["disp-words"] = wordsDisp;
+    config["seed-batch"] = seedBatch;
+    config["seed-corpus"] = seedCorpus;
+
+    fout << config;
   }
 
 private:
