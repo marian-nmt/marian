@@ -157,6 +157,13 @@ public:
     if(boost::filesystem::exists(nameYaml))
       state_->load(nameYaml);
 
+    // @TODO: not sure if needed
+    if(!options_->get<bool>("restore-corpus")) {
+      state_->costSum = 0;
+      state_->samplesDisp = 0;
+      state_->wordsDisp = 0;
+    }
+
     state_->newLoad();
   }
 

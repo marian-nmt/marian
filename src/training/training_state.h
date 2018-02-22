@@ -109,6 +109,10 @@ public:
     factor = config["eta-factor"].as<float>();
     warmupStart = config["warmup-start"].as<size_t>();
 
+    costSum = config["cost-sum"].as<float>();
+    samplesDisp = config["disp-samples"].as<size_t>();
+    wordsDisp = config["disp-words"].as<size_t>();
+
     seedBatch = config["seed-batch"].as<std::string>();
     seedCorpus = config["seed-corpus"].as<std::string>();
   }
@@ -130,6 +134,10 @@ public:
     config["eta"] = eta;
     config["eta-factor"] = factor;
     config["warmup-start"] = warmupStart;
+
+    config["cost-sum"] = costSum;
+    config["disp-samples"] = samplesDisp;
+    config["disp-words"] = wordsDisp;
 
     config["seed-batch"] = seedBatch;
     config["seed-corpus"] = seedCorpus;
