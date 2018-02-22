@@ -25,9 +25,12 @@ public:
   typedef typename DataSet::sample sample;
   typedef std::vector<sample> samples;
 
-private:
+protected:
   Ptr<DataSet> data_;
   Ptr<Config> options_;
+  bool restored_{false};
+
+private:
   Ptr<BatchStats> stats_;
 
   int batchSize_{1};
@@ -213,9 +216,6 @@ public:
     fillBatches(shuffle);
   }
 
-  /**
-   * @brief Restores the data set state.
-   */
   bool restore(Ptr<TrainingState> state, bool shuffle) {
     if(state->epochs == 1 && state->batchesEpoch == 0)
       return false;
@@ -236,7 +236,20 @@ public:
 
     return true;
   }
+};
 
+class CorpusBatchGenerator : public BatchGenerator<CorpusBase>,
+                             public TrainingObserver {
+public:
+  CorpusBatchGenerator(Ptr<CorpusBase> data,
+                       Ptr<Config> options,
+                       Ptr<BatchStats> stats = nullptr)
+      : BatchGenerator(data, options, stats) {}
+
+  void actAfterEpoch(TrainingState& state) {
+    state.seedBatch = getRNGState();
+    state.seedCorpus = data_->getRNGState();
+  }
 };
 }
 }

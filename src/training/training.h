@@ -47,23 +47,23 @@ public:
         scheduler->addValidator(validator);
     }
 
+    auto batchGenerator = New<CorpusBatchGenerator>(dataset, options_, stats);
+    scheduler->registerTrainingObserver(batchGenerator);
+
     auto model = New<ModelWrapper>(options_);
     model->setScheduler(scheduler);
     model->load();
 
-    auto batchGenerator = New<BatchGenerator<CorpusBase>>(dataset, options_, stats);
+    // @TODO: shuffle_ as a private attribute in BG
     auto shuffle = !options_->get<bool>("no-shuffle");
     bool restored = options_->get<bool>("restore-corpus")
                     && batchGenerator->restore(trainState, shuffle);
 
     scheduler->started();
     while(scheduler->keepGoing()) {
-      // @TODO: refactorize
-      trainState->seedBatch = batchGenerator->getRNGState();
-      trainState->seedCorpus = dataset->getRNGState();
-
       if(!restored)
         batchGenerator->prepare(shuffle);
+      restored = false;
 
       while(*batchGenerator && scheduler->keepGoing()) {
         auto batch = batchGenerator->next();
@@ -72,8 +72,6 @@ public:
 
       if(scheduler->keepGoing())
         scheduler->increaseEpoch();
-
-      restored = false;
     }
     scheduler->finished();
     model->save(true);
