@@ -1,3 +1,8 @@
+/* All or part of this file was contributed by Intel under license:
+ *   Copyright (C) 2017-2018 Intel Corporation
+ *   SPDX-License-Identifier: MIT
+ */
+
 #include "gpu/shape.h"
 #include "gpu/tmp.h"
 #include "gpu/tensor.h"
