@@ -20,7 +20,7 @@ message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 
 
 # Set compilation flags
-set(CMAKE_CXX_FLAGS_RELEASE " -std=c++11 -O3 -Ofast -m64 -march=native -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
+set(CMAKE_CXX_FLAGS_RELEASE " -std=c++11 -O3 -Ofast -m64 -march=native -fopenmp -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
 set(CMAKE_CXX_FLAGS_DEBUG " -std=c++11 -g -O0 -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
 set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE} -g -pg")
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
@@ -65,13 +65,22 @@ endif(Tcmalloc_FOUND)
 #  add_definitions(-DMPI_FOUND=1)
 #endif(MPI_FOUND)
 
-# currently for normal (openblas) blas
-find_package(BLAS)
-if(BLAS_FOUND)
-  include_directories(${BLAS_INCLUDE_DIRS})
-  set(EXT_LIBS ${EXT_LIBS} ${BLAS_LIBRARIES})
-  add_definitions(-DBLAS_FOUND=1)
-endif(BLAS_FOUND)
+find_package(MKL)
+if(MKL_FOUND)
+  include_directories(${MKL_INCLUDE_DIR})
+  message(${MKL_INCLUDE_DIR})
+  set(EXT_LIBS ${EXT_LIBS} ${MKL_LIBRARIES})
+  add_definitions(-DBLAS_FOUND=1 -DMKL_FOUND=1)
+else(MKL_FOUND)
+  find_package(BLAS)
+  if(BLAS_FOUND)
+    include_directories(${BLAS_INCLUDE_DIR})
+    message(${BLAS_INCLUDE_DIR})
+    set(EXT_LIBS ${EXT_LIBS} ${BLAS_LIBRARIES})
+    add_definitions(-DBLAS_FOUND=1)
+  endif(BLAS_FOUND)
+endif(MKL_FOUND)
+
 
 find_package(ZLIB)
 if(ZLIB_FOUND)

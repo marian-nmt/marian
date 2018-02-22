@@ -274,8 +274,36 @@ void GRUFastBackward(std::vector<marian::Tensor> outputs,
   ABORT("Not implemented!");
 }
 
-void CrossEntropyPick(marian::Tensor out, marian::Tensor in, marian::Tensor pick) {
-  ABORT("Not implemented!");
+void CrossEntropyPick(marian::Tensor out_, marian::Tensor in_, marian::Tensor pick_) {
+  float* out = out_->data();
+  Shape& outShape = out_->shape();
+  const float* in = in_->data();
+  Shape& inShape = in_->shape();
+  float* pick = pick_->data();
+
+  int rows = inShape.elements() / inShape.back();
+  int cols = inShape.back();
+
+  #pragma omp parallel for
+  for (int j = 0; j < rows; ++j) {
+    const float* sp = in + j*cols;
+    float max = sp[0];
+    #pragma omp simd reduction(max:max)
+    for (int i = 1; i < cols; ++i) {
+      max = std::max(max, sp[i]);
+    }
+
+    float sum = 0.f;
+    #pragma omp simd reduction(+:sum)
+    for (int i = 0; i < cols; ++i) {
+      sum += std::exp(sp[i] - max);
+    }
+
+    // cross-entropy
+    int i = pick[j];
+    // This appears to be safe i.e. that i >= 0 && i < cols is known
+    out[j] = std::log(sum) - sp[i] + max;
+  }
 }
 
 void CrossEntropyPickBackward(marian::Tensor out, marian::Tensor adj, marian::Tensor a, marian::Tensor pick) {
@@ -387,8 +415,26 @@ void LayerNormalizationGrad(marian::Tensor gradX,
 }
 
 
-void Shift(marian::Tensor out, marian::Tensor in, marian::Shape shift, bool invert) {
-  ABORT("Not implemented!");
+void Shift(marian::Tensor out_, marian::Tensor in_, marian::Shape shift, bool invert) {
+  int offset = 0;
+  for(int i = 0; i < shift.size(); ++i)
+    offset += in_->shape().stride(i) * shift[i];
+
+  if(invert)
+    offset = -offset;
+
+  float* out = out_->data();
+  const float* in = in_->data();
+
+  int length = out_->shape().elements();
+  #pragma omp parallel for
+  for (int i = 0; i < length; ++i) {
+    if (i - offset < 0 || i - offset >= length) {
+      out[i] = 0.f;
+    } else {
+      out[i] = in[i - offset];
+    }
+  }
 }
 
 void SetSparse(float* out,

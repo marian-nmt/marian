@@ -1,8 +1,12 @@
 #include "tensors/gpu/prod.h"
 #include "tensors/gpu/backend.h"
 
-#if BLAS_FOUND
+#if MKL_FOUND
+#include <mkl.h>
+#else
+#if BLAS_FOUND 
 #include <cblas.h>
+#endif
 #endif
 
 namespace marian {
