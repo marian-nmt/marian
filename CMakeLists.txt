@@ -65,6 +65,14 @@ endif(Tcmalloc_FOUND)
 #  add_definitions(-DMPI_FOUND=1)
 #endif(MPI_FOUND)
 
+# currently for normal (openblas) blas
+find_package(BLAS)
+if(BLAS_FOUND)
+  include_directories(${BLAS_INCLUDE_DIRS})
+  set(EXT_LIBS ${EXT_LIBS} ${BLAS_LIBRARIES})
+  add_definitions(-DBLAS_FOUND=1)
+endif(BLAS_FOUND)
+
 find_package(ZLIB)
 if(ZLIB_FOUND)
   include_directories(${ZLIB_INCLUDE_DIRS})

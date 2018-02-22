@@ -1,5 +1,5 @@
 #include "graph/expression_operators.h"
-#include "kernels/sparse.h"
+//#include "kernels/sparse.h"
 #include "layers/constructors.h"
 
 #include "graph/node_operators.h"
@@ -333,81 +333,81 @@ Expr shift(Expr a, Shape shift) {
 //  return Expression<LexicalProbNodeOp>(logits, att, eps, lf);
 //}
 
-Expr avg_pooling(
-    Expr x,
-    int height,
-    int width,
-    int padHeight,
-    int padWidth,
-    int strideHeight,
-    int strideWidth) {
-  return Expression<PoolingOp>(x,
-      height,
-      width,
-      padHeight,
-      padWidth,
-      strideHeight,
-      strideWidth,
-      "avg");
-}
-
-Expr max_pooling(
-    Expr x,
-    int height,
-    int width,
-    int padHeight,
-    int padWidth,
-    int strideHeight,
-    int strideWidth)
-{
-  return Expression<PoolingOp>(x,
-      height,
-      width,
-      padHeight,
-      padWidth,
-      strideHeight,
-      strideWidth,
-      "max");
-}
-
-Expr convert2cudnnFormat(Expr x) {
-  int numWords = x->shape()[0];
-  int numExamples = x->shape()[1];
-  int embSize = x->shape()[2];
-
-  std::vector<size_t> newIndeces;
-  for (int b = 0; b < numExamples; ++b) {
-    for (int t = 0; t < numWords; ++t) {
-      newIndeces.push_back((t * numExamples) + b);
-    }
-  }
-
-  auto xRows = reshape(x, {x->shape()[0] * x ->shape()[1], x->shape()[2]});
-
-  Shape outShape({numExamples, 1, numWords, embSize});
-  return reshape(rows(xRows, newIndeces), outShape);
-}
-
-Expr convertFromcudnnFormat(Expr x) {
-  int batchDim = x->shape()[0];
-  int sentenceDim = x->shape()[2];
-  int embSize = x->shape()[3];
-
-  auto reshapedX = reshape(x, {batchDim * sentenceDim, embSize});
-
-  std::vector<size_t> newIndeces;
-  for (int t = 0; t < sentenceDim; ++t) {
-    for (int b = 0; b < batchDim; ++b) {
-      newIndeces.push_back(b * sentenceDim + t);
-    }
-  }
-
-  Shape shape({batchDim, sentenceDim, embSize});
-  return reshape(rows(reshapedX, newIndeces), shape);
-}
-
-Expr pooling_with_masking(Expr x, Expr mask, int width, bool isEven) {
-  return Expression<PoolingWithMaskingOp>(x, mask, width, isEven);
-}
+//Expr avg_pooling(
+//    Expr x,
+//    int height,
+//    int width,
+//    int padHeight,
+//    int padWidth,
+//    int strideHeight,
+//    int strideWidth) {
+//  return Expression<PoolingOp>(x,
+//      height,
+//      width,
+//      padHeight,
+//      padWidth,
+//      strideHeight,
+//      strideWidth,
+//      "avg");
+//}
+//
+//Expr max_pooling(
+//    Expr x,
+//    int height,
+//    int width,
+//    int padHeight,
+//    int padWidth,
+//    int strideHeight,
+//    int strideWidth)
+//{
+//  return Expression<PoolingOp>(x,
+//      height,
+//      width,
+//      padHeight,
+//      padWidth,
+//      strideHeight,
+//      strideWidth,
+//      "max");
+//}
+//
+//Expr convert2cudnnFormat(Expr x) {
+//  int numWords = x->shape()[0];
+//  int numExamples = x->shape()[1];
+//  int embSize = x->shape()[2];
+//
+//  std::vector<size_t> newIndeces;
+//  for (int b = 0; b < numExamples; ++b) {
+//    for (int t = 0; t < numWords; ++t) {
+//      newIndeces.push_back((t * numExamples) + b);
+//    }
+//  }
+//
+//  auto xRows = reshape(x, {x->shape()[0] * x ->shape()[1], x->shape()[2]});
+//
+//  Shape outShape({numExamples, 1, numWords, embSize});
+//  return reshape(rows(xRows, newIndeces), outShape);
+//}
+//
+//Expr convertFromcudnnFormat(Expr x) {
+//  int batchDim = x->shape()[0];
+//  int sentenceDim = x->shape()[2];
+//  int embSize = x->shape()[3];
+//
+//  auto reshapedX = reshape(x, {batchDim * sentenceDim, embSize});
+//
+//  std::vector<size_t> newIndeces;
+//  for (int t = 0; t < sentenceDim; ++t) {
+//    for (int b = 0; b < batchDim; ++b) {
+//      newIndeces.push_back(b * sentenceDim + t);
+//    }
+//  }
+//
+//  Shape shape({batchDim, sentenceDim, embSize});
+//  return reshape(rows(reshapedX, newIndeces), shape);
+//}
+//
+//Expr pooling_with_masking(Expr x, Expr mask, int width, bool isEven) {
+//  return Expression<PoolingWithMaskingOp>(x, mask, width, isEven);
+//}
 
 }

@@ -1,5 +1,6 @@
 #include "training/graph_group_multinode.h"
-#include "kernels/tensor_operators.h"
+#include "tensors/tensor_operators.h"
+#include "functional/functional.h"
 
 namespace marian {
 

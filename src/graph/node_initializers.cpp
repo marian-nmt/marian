@@ -1,7 +1,3 @@
-// TODO: move to backend, into graph/
-
-#include "kernels/cuda_helpers.h"
-#include "kernels/tensor_operators.h"
 #include "graph/node_initializers.h"
 
 #include "3rd_party/svd/svd.h"
@@ -145,16 +141,19 @@ std::function<void(Tensor)> from_word2vec(const std::string& file,
                                           int dimVoc,
                                           int dimEmb,
                                           bool normalize /*= false*/) {
-  using namespace functional;
-
   return [file, dimVoc, dimEmb, normalize](Tensor t) {
     auto embs = Word2VecReader().read(file, dimVoc, dimEmb);
-    t->set(embs);
+
     if(normalize) {
-      float l2Norm = L2Norm(t);
-      if(l2Norm != 0)
-        Element(_1 = _1 / l2Norm, t);
+      float norm = 0;
+      for(auto e : embs)
+        norm += e * e;
+      norm = std::sqrt(norm);
+      if(norm != 0)
+        for(auto& e : embs)
+          e = e / norm;
     }
+    t->set(embs);
   };
 }
 }

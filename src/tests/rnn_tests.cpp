@@ -6,8 +6,7 @@
 
 using namespace marian;
 
-TEST_CASE("Model components, RNN etc.", "[model]") {
-
+void tests(DeviceType type) {
   auto floatApprox = [](float x, float y) { return x == Approx(y).epsilon(0.01); };
 
   std::vector<size_t> vWords = {
@@ -36,7 +35,7 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
     Config::seed = 1234;
 
     auto graph = New<ExpressionGraph>();
-    graph->setDevice({0, DeviceType::gpu});
+    graph->setDevice({0, type});
     graph->reserveWorkspaceMB(16);
 
     std::vector<float> values;
@@ -74,7 +73,7 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
     Config::seed = 1234;
 
     auto graph = New<ExpressionGraph>();
-    graph->setDevice({0, DeviceType::gpu});
+    graph->setDevice({0, type});
     graph->reserveWorkspaceMB(16);
 
     std::vector<float> values;
@@ -278,4 +277,12 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
     //CHECK( std::equal(values.begin(), values.end(),
     //                  vContextSum3.begin(), floatApprox) );
   }
+}
+
+TEST_CASE("Model components, RNN etc. (gpu)", "[model]") {
+  tests(DeviceType::gpu);
+}
+
+TEST_CASE("Model components, RNN etc. (cpu)", "[model]") {
+  tests(DeviceType::cpu);
 }

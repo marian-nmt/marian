@@ -1,6 +1,6 @@
 #include "optimizers.h"
 
-#include "kernels/tensor_operators.h"
+#include "tensors/tensor_operators.h"
 #include "functional/functional.h"
 
 namespace marian {
@@ -8,7 +8,7 @@ void Sgd::updateImpl(Tensor params, Tensor grads) {
   using namespace functional;
   Element(_1 -= (multiplyFactor_ * eta_) * _2, params, grads);
 
-  cudaStreamSynchronize(0);
+  //cudaStreamSynchronize(0);
 }
 
 void Adagrad::updateImpl(Tensor params, Tensor grads) {
@@ -31,13 +31,13 @@ void Adagrad::updateImpl(Tensor params, Tensor grads) {
           gt_,
           grads);
 
-  cudaStreamSynchronize(0);
+  //cudaStreamSynchronize(0);
 }
 
 void Adagrad::resetStats() {
   if(gt_)
     gt_->set(0);
-  cudaStreamSynchronize(0);
+  //cudaStreamSynchronize(0);
 }
 
 void Adam::updateImpl(Tensor params, Tensor grads) {
@@ -69,7 +69,7 @@ void Adam::updateImpl(Tensor params, Tensor grads) {
           mt_,
           vt_);
 
-  cudaStreamSynchronize(0);
+  //cudaStreamSynchronize(0);
 }
 
 void Adam::resetStats() {
@@ -79,7 +79,7 @@ void Adam::resetStats() {
   if(vt_)
     vt_->set(0);
 
-  cudaStreamSynchronize(0);
+  //cudaStreamSynchronize(0);
 }
 
 Ptr<OptimizerBase> Optimizer(Ptr<Config> options) {

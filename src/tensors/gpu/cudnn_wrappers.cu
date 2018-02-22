@@ -1,4 +1,4 @@
-#include "kernels/cudnn_wrappers.h"
+#include "tensors/gpu/cudnn_wrappers.h"
 
 namespace marian {
 

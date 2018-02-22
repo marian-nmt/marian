@@ -1,7 +1,7 @@
 #include <sstream>
 #include "graph/expression_graph.h"
 
-#include "tensors/dispatch.h"
+#include "tensors/tensor_operators.h"
 
 namespace marian {
 

@@ -1,8 +1,7 @@
 #include <iostream>
 
 #include "translator/nth_element.h"
-
-#include "kernels/cuda_helpers.h"
+#include "tensors/gpu/cuda_helpers.h"
 
 namespace marian {
 
