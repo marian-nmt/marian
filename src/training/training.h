@@ -59,8 +59,8 @@ public:
     scheduler->started();
     while(scheduler->keepGoing()) {
       // @TODO: refactorize
-      trainState->seedBatch = batchGenerator->getRNG();
-      trainState->seedCorpus = dataset->getRNG();
+      trainState->seedBatch = batchGenerator->getRNGState();
+      trainState->seedCorpus = dataset->getRNGState();
 
       if(!restored)
         batchGenerator->prepare(shuffle);

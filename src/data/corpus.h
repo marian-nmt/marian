@@ -26,8 +26,6 @@ private:
 
   void shuffleFiles(const std::vector<std::string>& paths);
 
-  std::mt19937 g_;
-
 public:
   Corpus(Ptr<Config> options, bool translate = false);
 
@@ -103,19 +101,6 @@ public:
 
     return batch;
   }
-
-
-  std::string getRNG() {
-    std::ostringstream s;
-    s << g_;
-    return s.str();
-  }
-  void setRNG(std::string rng) {
-    std::istringstream iss(rng);
-    iss >> g_;
-  }
-
-
 };
 }
 }

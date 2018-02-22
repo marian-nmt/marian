@@ -9,6 +9,7 @@
 
 #include "common/config.h"
 #include "data/batch_stats.h"
+#include "data/rng_engine.h"
 #include "data/vocab.h"
 #include "training/training_state.h"
 
@@ -17,7 +18,7 @@ namespace marian {
 namespace data {
 
 template <class DataSet>
-class BatchGenerator {
+class BatchGenerator : public RNGEngine {
 public:
   typedef typename DataSet::batch_ptr BatchPtr;
 
@@ -36,8 +37,6 @@ private:
   size_t maxiBatchSize_;
   std::deque<BatchPtr> bufferedBatches_;
   BatchPtr currentBatch_;
-
-  std::mt19937 g_;
 
   mutable std::mutex loadMutex_;
   mutable std::condition_variable loadCondition_;
@@ -147,7 +146,7 @@ private:
 
     if(shuffle) {
       // shuffle the batches
-      std::shuffle(tempBatches.begin(), tempBatches.end(), g_);
+      std::shuffle(tempBatches.begin(), tempBatches.end(), eng_);
     }
 
     // put batches onto queue
@@ -161,7 +160,7 @@ public:
   BatchGenerator(Ptr<DataSet> data,
                  Ptr<Config> options,
                  Ptr<BatchStats> stats = nullptr)
-      : data_(data), options_(options), stats_(stats), g_(Config::seed) {}
+      : data_(data), options_(options), stats_(stats) {}
 
   operator bool() const {
     // wait if empty but loading
@@ -228,7 +227,7 @@ public:
 
     if(state->epochs > 1) {
       data_->restore(state);
-      setRNG(state->seedBatch);
+      setRNGState(state->seedBatch);
     }
 
     prepare(shuffle);
@@ -238,16 +237,6 @@ public:
     return true;
   }
 
-  std::string getRNG() {
-    std::ostringstream s;
-    s << g_;
-    return s.str();
-  }
-
-  void setRNG(std::string rng) {
-    std::istringstream iss(rng);
-    iss >> g_;
-  }
 };
 }
 }
