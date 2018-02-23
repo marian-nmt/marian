@@ -1,12 +1,13 @@
-#include <algorithm>
-#include <boost/algorithm/string.hpp>
-#include <set>
-#include <string>
-
 #include "3rd_party/cnpy/cnpy.h"
 #include "common/config.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
+
+#include <algorithm>
+#include <boost/algorithm/string.hpp>
+#include <set>
+#include <string>
+#include <regex>
 
 namespace marian {
 
@@ -51,10 +52,21 @@ void Config::loadModelParameters(const std::string& name) {
   override(config);
 }
 
+static std::string configInNpzPath(const std::string& fName, const std::string& varName)
+{
+#if 1
+  // In HDFS, we cannot augment an .npz file. So instead, we write the special node into a separate file.
+  if (varName == "special:model.yml")
+    return std::regex_replace(fName, std::regex(".npz$"), ".config.npz");
+  else
+#endif
+  return fName;
+}
+
 void Config::GetYamlFromNpz(YAML::Node& yaml,
                             const std::string& varName,
                             const std::string& fName) {
-  yaml = YAML::Load(cnpy::npz_load(fName, varName).data);
+  yaml = YAML::Load(cnpy::npz_load(configInNpzPath(fName, varName), varName).data);
 }
 
 void Config::AddYamlToNpz(const YAML::Node& yaml,
@@ -63,6 +75,7 @@ void Config::AddYamlToNpz(const YAML::Node& yaml,
   YAML::Emitter out;
   OutputYaml(yaml, out);
   unsigned shape = out.size() + 1;
-  cnpy::npz_save(fName, varName, out.c_str(), &shape, 1, "a");
+  auto pName = configInNpzPath(fName, varName);
+  cnpy::npz_save(pName, varName, out.c_str(), &shape, 1, pName == fName ? "a" : "w");
 }
 }
