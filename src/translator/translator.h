@@ -12,6 +12,16 @@
 #include "models/model_task.h"
 #include "translator/scorers.h"
 
+#if MKL_FOUND
+#include <omp.h>
+#include <mkl.h>
+#else
+#if BLAS_FOUND
+#include <omp.h>
+#endif
+#endif
+
+
 namespace marian {
 
 template <class Search>
@@ -33,11 +43,15 @@ public:
     trgVocab_->load(vocabs.back());
 
     auto devices = options_->get<std::vector<size_t>>("devices");
-    
+
     DeviceType type = DeviceType::gpu;
-    if(options_->get<bool>("cpu"))
+    if(options_->get<size_t>("cpu-threads") > 0) {
       type = DeviceType::cpu;
-    
+      devices.resize(options_->get<size_t>("cpu-threads"));
+      for(size_t i = 0; i < options_->get<size_t>("cpu-threads"); ++i)
+        devices[i] = i;
+    }
+
     ThreadPool threadPool(devices.size(), devices.size());
 
     scorers_.resize(devices.size());
@@ -64,7 +78,23 @@ public:
   void run() {
     data::BatchGenerator<data::Corpus> bg(corpus_, options_);
 
+    // @TODO: ugly
     auto devices = options_->get<std::vector<size_t>>("devices");
+    DeviceType type = DeviceType::gpu;
+    if(options_->get<size_t>("cpu-threads") > 0) {
+      type = DeviceType::cpu;
+      devices.resize(options_->get<size_t>("cpu-threads"));
+      for(size_t i = 0; i < options_->get<size_t>("cpu-threads"); ++i)
+        devices[i] = i;
+    }
+
+#ifdef BLAS_FOUND
+    //omp_set_num_threads(options_->get<size_t>("omp-threads"));
+#ifdef MKL_FOUND
+    mkl_set_num_threads(options_->get<size_t>("omp-threads"));
+#endif
+#endif
+
     ThreadPool threadPool(devices.size(), devices.size());
 
     size_t batchId = 0;
@@ -138,9 +168,13 @@ public:
     trgVocab_->load(vocabPaths.back());
 
     DeviceType type = DeviceType::gpu;
-    if(options_->get<bool>("cpu"))
+    if(options_->get<size_t>("cpu-threads") > 0) {
       type = DeviceType::cpu;
-    
+      devices_.resize(options_->get<size_t>("cpu-threads"));
+      for(size_t i = 0; i < options_->get<size_t>("cpu-threads"); ++i)
+        devices_[i] = i;
+    }
+
     // initialize scorers
     for(auto& device : devices_) {
       auto graph = New<ExpressionGraph>(true);

@@ -40,8 +40,11 @@ cuda_add_library(marian
   translator/history.cpp
   translator/output_collector.cpp
   translator/nth_element.cu
+  translator/nth_element.cpp
   translator/helpers.cu
+  translator/helpers.cpp
   translator/scorers.cpp
+
   training/dropper.cu
   training/graph_group_async.cu
   training/graph_group_async_drop.cu

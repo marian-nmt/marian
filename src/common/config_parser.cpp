@@ -5,6 +5,17 @@
 #include <regex>
 #include <stdexcept>
 
+#if MKL_FOUND
+#include <omp.h>
+#include <mkl.h>
+#else
+#if BLAS_FOUND
+#include <omp.h>
+#include <cblas.h>
+#endif
+#endif
+
+
 #include "3rd_party/cnpy/cnpy.h"
 #include "common/config.h"
 #include "common/config_parser.h"
@@ -426,8 +437,10 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<std::string>({"0"}), "0"),
       "GPU ID(s) to use for training")
-    ("cpu", po::value<bool>()->zero_tokens()->default_value(false),
-      "Use CPU-based training or decoding")
+    ("cpu-threads", po::value<size_t>()->default_value(0)->implicit_value(1),
+      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
+    ("omp-threads", po::value<size_t>()->default_value(1),
+      "Set number of OpenMP threads for each CPU-based thread")
 
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
@@ -614,8 +627,11 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<std::string>({"0"}), "0"),
       "GPUs to use for translating")
-    ("cpu", po::value<bool>()->zero_tokens()->default_value(false),
-      "Use CPU-based decoding")
+    ("cpu-threads", po::value<size_t>()->default_value(0)->implicit_value(1),
+      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
+    ("omp-threads", po::value<size_t>()->default_value(1),
+      "Set number of OpenMP threads for each CPU-based thread")
+
     ("mini-batch", po::value<int>()->default_value(1),
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(1),
@@ -660,8 +676,10 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<std::string>({"0"}), "0"),
       "GPUs to use for training")
-    ("cpu", po::value<bool>()->zero_tokens()->default_value(false),
-      "Use CPU-based scoring")
+    ("cpu-threads", po::value<size_t>()->default_value(0)->implicit_value(1),
+      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
+    ("omp-threads", po::value<size_t>()->default_value(1),
+      "Set number of OpenMP threads for each CPU-based thread")
 
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
@@ -926,7 +944,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("seed", size_t);
   SET_OPTION("relative-paths", bool);
   SET_OPTION("devices", std::vector<std::string>);
-  SET_OPTION("cpu", bool);
+  SET_OPTION("cpu-threads", size_t);
+  SET_OPTION("omp-threads", size_t);
 
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
@@ -976,6 +995,14 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   } catch(const std::invalid_argument& e) {
     ABORT("Conversion of --devices option failed, please report a bug");
   }
+
+  // @TODO: this should probably be in processOptionDevices()
+#ifdef BLAS_FOUND
+  //omp_set_num_threads(vm_["omp-threads"].as<size_t>());
+#ifdef MKL_FOUND
+  mkl_set_num_threads(vm_["omp-threads"].as<size_t>());
+#endif
+#endif
 }
 
 void ConfigParser::processOptionDevices() {
