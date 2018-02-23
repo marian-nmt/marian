@@ -629,8 +629,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "GPUs to use for translating")
     ("cpu-threads", po::value<size_t>()->default_value(0)->implicit_value(1),
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
-    ("omp-threads", po::value<size_t>()->default_value(1),
-      "Set number of OpenMP threads for each CPU-based thread")
+    //("omp-threads", po::value<size_t>()->default_value(1),
+    //  "Set number of OpenMP threads for each CPU-based thread")
 
     ("mini-batch", po::value<int>()->default_value(1),
       "Size of mini-batch used during update")
@@ -678,8 +678,8 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       "GPUs to use for training")
     ("cpu-threads", po::value<size_t>()->default_value(0)->implicit_value(1),
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
-    ("omp-threads", po::value<size_t>()->default_value(1),
-      "Set number of OpenMP threads for each CPU-based thread")
+    //("omp-threads", po::value<size_t>()->default_value(1),
+    //  "Set number of OpenMP threads for each CPU-based thread")
 
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
@@ -945,7 +945,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("relative-paths", bool);
   SET_OPTION("devices", std::vector<std::string>);
   SET_OPTION("cpu-threads", size_t);
-  SET_OPTION("omp-threads", size_t);
+  //SET_OPTION("omp-threads", size_t);
 
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
@@ -996,13 +996,13 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     ABORT("Conversion of --devices option failed, please report a bug");
   }
 
-  // @TODO: this should probably be in processOptionDevices()
-#ifdef BLAS_FOUND
-  //omp_set_num_threads(vm_["omp-threads"].as<size_t>());
-#ifdef MKL_FOUND
-  mkl_set_num_threads(vm_["omp-threads"].as<size_t>());
-#endif
-#endif
+//  // @TODO: this should probably be in processOptionDevices()
+//#ifdef BLAS_FOUND
+//  //omp_set_num_threads(vm_["omp-threads"].as<size_t>());
+//#ifdef MKL_FOUND
+//  mkl_set_num_threads(vm_["omp-threads"].as<size_t>());
+//#endif
+//#endif
 }
 
 void ConfigParser::processOptionDevices() {
