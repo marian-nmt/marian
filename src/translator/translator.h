@@ -12,16 +12,6 @@
 #include "models/model_task.h"
 #include "translator/scorers.h"
 
-#if MKL_FOUND
-#include <omp.h>
-#include <mkl.h>
-#else
-#if BLAS_FOUND
-#include <omp.h>
-#endif
-#endif
-
-
 namespace marian {
 
 template <class Search>
@@ -87,13 +77,6 @@ public:
       for(size_t i = 0; i < options_->get<size_t>("cpu-threads"); ++i)
         devices[i] = i;
     }
-
-#ifdef BLAS_FOUND
-    //omp_set_num_threads(options_->get<size_t>("omp-threads"));
-#ifdef MKL_FOUND
-    mkl_set_num_threads(options_->get<size_t>("omp-threads"));
-#endif
-#endif
 
     ThreadPool threadPool(devices.size(), devices.size());
 
