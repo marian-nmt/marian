@@ -117,35 +117,53 @@ public:
   }
 
   void update(float cost, Ptr<data::Batch> batch) {
-    costSum += cost * batch->size();
-    samples += batch->size();
-    samplesDisp += batch->size();
-    wordsDisp += batch->words();
+    auto batchSize = batch->size();
+    auto batchTargetWords = batch->words(-1);
+    // reconstruct sum cost
+    auto costType = options_->get<std::string>("cost-type");
+    cost *= // what was cost normalized with?
+      /*if*/ (costType == "ce-sum") ?
+        1
+      /*else if*/ : ((costType == "ce-mean-words") ?
+        batchTargetWords
+      /*else*/ :  // use ce-mean for all others (not correct for some)
+        batchSize);
+    // undo averaging over workers
+    cost *= options_->get<std::vector<size_t>>("devices").size();
+
+    costSum += cost;               // aggregate cost since last display
+    wordsDisp += batchTargetWords; // targets processed since last display
+    samples += batch->size();      // sentences processed in this epoch
+    samplesDisp += batch->size();  // (unused)
     state_->newBatch();
 
     if(state_->batches % options_->get<size_t>("disp-freq") == 0) {
       if(options_->get<bool>("lr-report")) {
         LOG(info,
-            "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
+            "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} * {} : Time {} : {:.2f} "
             "words/s : L.r. {:.4e}",
             state_->epochs,
             state_->batches,
             samples,
-            costSum / samplesDisp,
+            costSum / wordsDisp, wordsDisp, // cost per target word
             timer.format(2, "%ws"),
             wordsDisp / std::stof(timer.format(5, "%w")),
             state_->eta);
       } else {
         LOG(info,
-            "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
+            "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} * {} : Time {} : {:.2f} "
             "words/s",
             state_->epochs,
             state_->batches,
             samples,
-            costSum / samplesDisp,
+            costSum / wordsDisp, wordsDisp,
             timer.format(2, "%ws"),
             wordsDisp / std::stof(timer.format(5, "%w")));
       }
+#if 1 // progress heartbeat for MS-internal Philly compute cluster
+      if (getenv("PHILLY_JOB_ID")) // this environment variable exists when running on the cluster
+        printf("PROGRESS: %.2f%%\nerror: %.7f\n", (double)state_->epochs, costSum / wordsDisp), fflush(stdout);
+#endif
       timer.start();
       costSum = 0;
       wordsDisp = 0;
