@@ -45,7 +45,13 @@ public:
     corpus_->prepare();
 
     auto devices = options_->get<std::vector<size_t>>("devices");
-    auto type = options_->get<bool>("cpu") ? DeviceType::cpu : DeviceType::gpu;
+    auto type = DeviceType::gpu;
+    if(options_->get<size_t>("cpu-threads") > 0) {
+      type = DeviceType::cpu;
+      devices.resize(options_->get<size_t>("cpu-threads"));
+      for(int i = 0; i < devices.size(); ++i)
+        devices[i] = i;
+    }
 
     for(auto device : devices) {
       auto graph = New<ExpressionGraph>(true);
