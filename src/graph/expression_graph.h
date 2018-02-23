@@ -464,7 +464,6 @@ public:
   void save(const std::string& name) {
     LOG(info, "Saving model to {}", name);
 
-    backend_->setDevice(getDevice());
     const auto& paramsMap = params()->getMap();
     std::vector<NpzItem> allItems; allItems.reserve(paramsMap.size());
     for(auto p : paramsMap) {
