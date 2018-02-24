@@ -1313,11 +1313,9 @@ void AttBack(marian::Tensor gVa,
              marian::Tensor adj) {
   cudaSetDevice(adj->getDevice().no);
 
-  size_t m = adj->shape().elements() / adj->shape().back();
-
-  size_t dims = context->shape().size();
-  size_t k = context->shape()[dims - 1];
-  size_t n = context->shape()[dims - 2];
+  size_t m = adj->shape().elements() / adj->shape()[-1];
+  size_t k = context->shape()[-1];
+  size_t n = context->shape()[-2];
 
   int blocks = std::min(MAX_BLOCKS, (int)n);
   int threads = std::min(MAX_THREADS, (int)k);
@@ -1544,8 +1542,8 @@ void LayerNormalizationGrad(marian::Tensor gradX,
                             marian::Tensor beta,
                             float eps) {
   cudaSetDevice(adj->getDevice().no);
-  int rows = y->shape().elements() / y->shape().back();
-  int cols = y->shape().back();
+  int rows = y->shape().elements() / y->shape()[-1];
+  int cols = y->shape()[-1];
 
   int threads = std::min(MAX_THREADS, cols);
   int blocks = std::min(MAX_BLOCKS, rows);

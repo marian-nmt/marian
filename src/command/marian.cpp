@@ -14,6 +14,7 @@ int main(int argc, char** argv) {
 
   auto options = New<Config>(argc, argv);
   auto devices = options->get<std::vector<size_t>>("devices");
+  size_t cpuThreads = options->get<size_t>("cpu-threads");
 
   if(options->get<bool>("multi-node")) {
     ABORT_IF(!configureMPI(argc, argv), "MPI not found.");
@@ -21,7 +22,7 @@ int main(int argc, char** argv) {
     LOG(warn, "[experimental] Running multi-node training");
     New<Train<MultiNodeGraphGroup>>(options)->run();
   } else {
-    if(devices.size() == 1) {
+    if(devices.size() == 1 && cpuThreads < 2) {
       New<Train<SingletonGraph>>(options)->run();
     } else {
       if(options->get<bool>("sync-sgd"))

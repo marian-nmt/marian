@@ -6,11 +6,11 @@
 #include <stdexcept>
 
 #if MKL_FOUND
-#include <omp.h>
+//#include <omp.h>
 #include <mkl.h>
 #else
 #if BLAS_FOUND
-#include <omp.h>
+//#include <omp.h>
 #include <cblas.h>
 #endif
 #endif
@@ -439,8 +439,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "GPU ID(s) to use for training")
     ("cpu-threads", po::value<size_t>()->default_value(0)->implicit_value(1),
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
-    ("omp-threads", po::value<size_t>()->default_value(1),
-      "Set number of OpenMP threads for each CPU-based thread")
+    //("omp-threads", po::value<size_t>()->default_value(1),
+    //  "Set number of OpenMP threads for each CPU-based thread")
 
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
@@ -449,6 +449,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("mini-batch-fit", po::value<bool>()->zero_tokens()->default_value(false),
       "Determine mini-batch size automatically based on sentence-length to "
       "fit reserved memory")
+    ("mini-batch-fit-step", po::value<size_t>()->default_value(10),
+      "Step size for mini-batch-fit statistics")
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
@@ -855,6 +857,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("sync-sgd", bool);
     SET_OPTION("mini-batch-words", int);
     SET_OPTION("mini-batch-fit", bool);
+    SET_OPTION("mini-batch-fit-step", size_t);
 
     SET_OPTION("lr-decay", double);
     SET_OPTION("lr-decay-strategy", std::string);

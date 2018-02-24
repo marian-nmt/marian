@@ -31,8 +31,14 @@ public:
         mvDecay_{options_->get<float>("exponential-smoothing")} {
     size_t device = options_->get<std::vector<size_t>>("devices")[0];
 
+    DeviceType type = DeviceType::gpu;
+    if(options_->get<size_t>("cpu-threads") > 0) {
+      type = DeviceType::cpu;
+      device = 0;
+    }
+
     graph_ = New<ExpressionGraph>();
-    graph_->setDevice({device, DeviceType::gpu});
+    graph_->setDevice({device, type});
     graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
     opt_ = Optimizer(options_);
 

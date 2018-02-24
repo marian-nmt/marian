@@ -43,9 +43,18 @@ public:
         devices_{options_->get<std::vector<size_t>>("devices")},
         movingAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")} {
+
+    DeviceType type = DeviceType::gpu;
+    if(options_->get<size_t>("cpu-threads") > 0) {
+      type = DeviceType::cpu;
+      devices_.resize(options_->get<size_t>("cpu-threads"));
+      for(size_t i = 0; i < options_->get<size_t>("cpu-threads"); ++i)
+        devices_[i] = i;
+    }
+
     for(auto device : devices_) {
       auto graph = New<ExpressionGraph>();
-      graph->setDevice({device, DeviceType::gpu});
+      graph->setDevice({device, type});
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
       shardOpt_.push_back(Optimizer(options_));

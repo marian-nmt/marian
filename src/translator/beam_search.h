@@ -103,6 +103,7 @@ public:
 
     size_t localBeamSize = beamSize_;
 
+    // @TODO: unify this
     Ptr<NthElement> nth;
     if(graph->getDevice().type == DeviceType::gpu)
       nth = New<NthElementGPU>(localBeamSize, dimBatch, graph->getDevice());
