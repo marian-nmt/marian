@@ -44,7 +44,7 @@ public:
         corpus_(New<Corpus>(options_)) {
     corpus_->prepare();
 
-    auto devices = options_->get<std::vector<DeviceId>>("devices");
+    auto devices = options_->getDevices();
 
     for(auto device : devices) {
       auto graph = New<ExpressionGraph>(true);

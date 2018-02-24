@@ -65,7 +65,7 @@ protected:
 public:
   AsyncGraphGroup(Ptr<Config> options)
       : GraphGroup(options),
-        devices_{options_->get<std::vector<DeviceId>>("devices")},
+        devices_{options_->getDevices()},
         shardSync_(devices_.size()),
         movingAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")},

@@ -32,7 +32,7 @@ public:
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
     trgVocab_->load(vocabs.back());
 
-    auto devices = options_->get<std::vector<DeviceId>>("devices");
+    auto devices = options_->getDevices();
 
     ThreadPool threadPool(devices.size(), devices.size());
     scorers_.resize(devices.size());
@@ -60,7 +60,7 @@ public:
   void run() {
     data::BatchGenerator<data::Corpus> bg(corpus_, options_);
 
-    auto devices = options_->get<std::vector<DeviceId>>("devices");
+    auto devices = options_->getDevices();
     
     ThreadPool threadPool(devices.size(), devices.size());
 
@@ -118,7 +118,7 @@ public:
 
   TranslateServiceMultiGPU(Ptr<Config> options)
       : options_(options),
-        devices_(options_->get<std::vector<DeviceId>>("devices")),
+        devices_(options_->getDevices()),
         trgVocab_(New<Vocab>()) {
     init();
   }

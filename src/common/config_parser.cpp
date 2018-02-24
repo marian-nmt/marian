@@ -994,13 +994,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     exit(0);
   }
 
-  try {
-    processOptionDevices();
-  } catch(const std::invalid_argument& e) {
-    ABORT("Conversion of --devices option failed, please report a bug");
-  }
-
-//  // @TODO: this should probably be in processOptionDevices()
+// @TODO: this should probably be in processOptionDevices()
 //#ifdef BLAS_FOUND
 //  //omp_set_num_threads(vm_["omp-threads"].as<size_t>());
 //#ifdef MKL_FOUND
@@ -1009,38 +1003,46 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 //#endif
 }
 
-void ConfigParser::processOptionDevices() {
-  std::string devicesStr
-      = Join(config_["devices"].as<std::vector<std::string>>());
-      
+std::vector<DeviceId> ConfigParser::getDevices() {
   std::vector<DeviceId> devices;
 
-  if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
-    auto parts = Split(devicesStr, ":");
-    for(size_t i = 1; i < parts.size(); ++i) {
-      std::string part = parts[i];
-      Trim(part);
-      auto ds = Split(part, " ");
-      if(i < parts.size() - 1)
-        ds.pop_back();
-      
-      // does this make sense?
-      devices.push_back({ds.size(), DeviceType::gpu});
-      for(auto d : ds)
+  try {
+    
+    std::string devicesStr
+        = Join(config_["devices"].as<std::vector<std::string>>());
+        
+    
+    if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
+      auto parts = Split(devicesStr, ":");
+      for(size_t i = 1; i < parts.size(); ++i) {
+        std::string part = parts[i];
+        Trim(part);
+        auto ds = Split(part, " ");
+        if(i < parts.size() - 1)
+          ds.pop_back();
+        
+        // does this make sense?
+        devices.push_back({ds.size(), DeviceType::gpu});
+        for(auto d : ds)
+          devices.push_back({std::stoull(d), DeviceType::gpu});
+      }
+    } else {
+      for(auto d : Split(devicesStr))
         devices.push_back({std::stoull(d), DeviceType::gpu});
     }
-  } else {
-    for(auto d : Split(devicesStr))
-      devices.push_back({std::stoull(d), DeviceType::gpu});
-  }
-  
-  if(config_["cpu-threads"].as<size_t>() > 0) {
-    devices.clear();
-    for(size_t i = 0; i < config_["cpu-threads"].as<size_t>(); ++i)
+    
+    if(config_["cpu-threads"].as<size_t>() > 0) {
+      devices.clear();
+      for(size_t i = 0; i < config_["cpu-threads"].as<size_t>(); ++i)
       devices.push_back({i, DeviceType::cpu});
+    }
+    
+  }
+  catch(...) {
+    ABORT("Problem parsing devices, please report an issue on github");
   }
 
-  config_["devices"] = devices;
+  return devices;
 }
 
 YAML::Node ConfigParser::getConfig() const {

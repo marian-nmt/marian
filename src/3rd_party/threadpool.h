@@ -38,6 +38,8 @@ This source code has been modified to have optional bounded size.
 #include <functional>
 #include <stdexcept>
 
+#include "common/logging.h"
+
 namespace marian {
 
 class ThreadPool {
@@ -107,8 +109,16 @@ inline ThreadPool::ThreadPool(size_t threads, size_t in_bound)
                     this->tasks.pop();
                   }
                   this->bounded_condition.notify_one();
-
-                  task();
+                  
+                  try {
+                   task();
+                  }
+                  catch(const std::exception& e) {
+                    ABORT("Caught std::exception in sub-thread: {}", e.what());
+                  }
+                  catch(...) {
+                    ABORT("Caught unknown exception in sub-thread");                   
+                  }
               }
           }
       );

@@ -60,34 +60,6 @@ struct DeviceId {
   
 };
 
-}
-
-#include "3rd_party/yaml-cpp/yaml.h"
-
-namespace YAML {
-template <>
-struct convert<marian::DeviceId> {
-  static Node encode(const marian::DeviceId& rhs) {
-    Node node;
-    node.push_back(rhs.no);
-    node.push_back(static_cast<size_t>(rhs.type));
-    return node;
-  }
-
-  static bool decode(const Node& node, marian::DeviceId& rhs) {
-    if(!node.IsSequence() || node.size() != 2) {
-      return false;
-    }
-
-    rhs.no = node[0].as<size_t>();
-    rhs.type = static_cast<marian::DeviceType>(node[1].as<size_t>());
-    return true;
-  }
-};
-}
-
-namespace marian {
-
 class TensorBase;
 typedef Ptr<TensorBase> Tensor;
 
