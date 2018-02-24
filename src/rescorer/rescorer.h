@@ -44,18 +44,11 @@ public:
         corpus_(New<Corpus>(options_)) {
     corpus_->prepare();
 
-    auto devices = options_->get<std::vector<size_t>>("devices");
-    auto type = DeviceType::gpu;
-    if(options_->get<size_t>("cpu-threads") > 0) {
-      type = DeviceType::cpu;
-      devices.resize(options_->get<size_t>("cpu-threads"));
-      for(int i = 0; i < devices.size(); ++i)
-        devices[i] = i;
-    }
+    auto devices = options_->get<std::vector<DeviceId>>("devices");
 
     for(auto device : devices) {
       auto graph = New<ExpressionGraph>(true);
-      graph->setDevice({device, type});
+      graph->setDevice(device);
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
     }

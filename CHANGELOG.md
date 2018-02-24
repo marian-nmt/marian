@@ -12,9 +12,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Data weighting with `--data-weighting` at sentence or word level
 - Persistent SQLite3 corpus storage with `--sqlite file.db`
 - Experimental multi-node asynchronous training
+- Restoring optimizer and training parameters such as learning rate, validation
+  results, etc.
 
 ### Fixed
 - Deterministic data shuffling with specific seed for SQLite3 corpus storage
+
 
 ## [1.3.1] - 2018-02-04
 

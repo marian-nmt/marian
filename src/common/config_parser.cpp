@@ -17,6 +17,7 @@
 
 
 #include "3rd_party/cnpy/cnpy.h"
+#include "common/definitions.h"
 #include "common/config.h"
 #include "common/config_parser.h"
 #include "common/file_stream.h"
@@ -1011,7 +1012,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 void ConfigParser::processOptionDevices() {
   std::string devicesStr
       = Join(config_["devices"].as<std::vector<std::string>>());
-  std::vector<size_t> devices;
+      
+  std::vector<DeviceId> devices;
 
   if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
     auto parts = Split(devicesStr, ":");
@@ -1021,13 +1023,21 @@ void ConfigParser::processOptionDevices() {
       auto ds = Split(part, " ");
       if(i < parts.size() - 1)
         ds.pop_back();
-      devices.emplace_back(ds.size());
+      
+      // does this make sense?
+      devices.push_back({ds.size(), DeviceType::gpu});
       for(auto d : ds)
-        devices.emplace_back(std::stoi(d));
+        devices.push_back({std::stoull(d), DeviceType::gpu});
     }
   } else {
     for(auto d : Split(devicesStr))
-      devices.emplace_back(std::stoi(d));
+      devices.push_back({std::stoull(d), DeviceType::gpu});
+  }
+  
+  if(config_["cpu-threads"].as<size_t>() > 0) {
+    devices.clear();
+    for(size_t i = 0; i < config_["cpu-threads"].as<size_t>(); ++i)
+      devices.push_back({i, DeviceType::cpu});
   }
 
   config_["devices"] = devices;

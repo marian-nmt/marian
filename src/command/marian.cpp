@@ -13,16 +13,15 @@ int main(int argc, char** argv) {
   using namespace marian;
 
   auto options = New<Config>(argc, argv);
-  auto devices = options->get<std::vector<size_t>>("devices");
-  size_t cpuThreads = options->get<size_t>("cpu-threads");
-
+  auto devices = options->get<std::vector<DeviceId>>("devices");
+  
   if(options->get<bool>("multi-node")) {
     ABORT_IF(!configureMPI(argc, argv), "MPI not found.");
 
     LOG(warn, "[experimental] Running multi-node training");
     New<Train<MultiNodeGraphGroup>>(options)->run();
   } else {
-    if(devices.size() == 1 && cpuThreads < 2) {
+    if(devices.size() == 1) {
       New<Train<SingletonGraph>>(options)->run();
     } else {
       if(options->get<bool>("sync-sgd"))

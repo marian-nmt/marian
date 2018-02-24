@@ -2,15 +2,20 @@
 
 #include <map>
 #include <memory>
+#include <algorithm>
 
 #include "common/config.h"
 #include "graph/expression_graph.h"
 #include "optimizers/clippers.h"
+#include "tensors/backend.h"
 #include "tensors/tensor.h"
 #include "training/training_state.h"
 
 namespace marian {
 
+/**
+ * Base class for optimizers.
+ */
 class OptimizerBase : public TrainingObserver {
 public:
   OptimizerBase(float eta, Ptr<ClipperBase> clipper = nullptr)
@@ -32,15 +37,39 @@ public:
     updateImpl(params, grads);
   }
 
-  virtual void actAfterEpoch(TrainingState& state) { eta_ = state.eta; }
-  virtual void actAfterBatches(TrainingState& state) { eta_ = state.eta; }
-  virtual void actAfterStalled(TrainingState& state) { eta_ = state.eta; }
+  virtual void actAfterLoaded(TrainingState& state) {
+    eta_ = state.eta;
+    multiplyFactor_ = state.factor;
+  }
+  virtual void actAfterEpoch(TrainingState& state) {
+    eta_ = state.eta;
+    if(state.reset)
+      resetStats();
+  }
+  virtual void actAfterBatches(TrainingState& state) {
+    eta_ = state.eta;
+    if(state.reset)
+      resetStats();
+  }
+  virtual void actAfterStalled(TrainingState& state) {
+    eta_ = state.eta;
+    if(state.reset)
+      resetStats();
+  }
 
   void setParams(const std::vector<float>& params) { parseParams(params); }
+
+  virtual void load(const std::string& name,
+                    std::vector<Ptr<OptimizerBase>> opts,
+                    std::vector<Ptr<Backend>> backends) {}
+  virtual void save(const std::string& name,
+                    std::vector<Ptr<OptimizerBase>> opts,
+                    size_t totalSize) {}
 
 protected:
   virtual void updateImpl(Tensor params, Tensor grads) = 0;
   virtual void parseParams(const std::vector<float>& params) = 0;
+  virtual void resetStats() = 0;
 
   // Learning rate
   float eta_;
@@ -50,6 +79,9 @@ protected:
   Ptr<ClipperBase> clipper_;
 };
 
+/**
+ * @brief Stochastic gradient descent optimizer.
+ */
 class Sgd : public OptimizerBase {
 public:
   Sgd(float eta, Ptr<ClipperBase> clipper = nullptr)
@@ -59,37 +91,31 @@ private:
   void updateImpl(Tensor params, Tensor grads);
 
   virtual void parseParams(const std::vector<float>& params) {}
+  virtual void resetStats() {}
 };
 
-// @TODO: Add serialization for historic gradients and parameters
+/**
+ * @brief Adagrad optimizer
+ *
+ * http://www.jmlr.org/papers/volume12/duchi11a/duchi11a.pdf
+ */
 class Adagrad : public OptimizerBase {
 public:
   Adagrad(float eta, Ptr<ClipperBase> clipper = nullptr)
       : OptimizerBase(eta, clipper) {}
 
-  virtual void actAfterEpoch(TrainingState& state) {
-    OptimizerBase::actAfterEpoch(state);
-    if(state.reset)
-      resetStats();
-  }
-
-  virtual void actAfterBatches(TrainingState& state) {
-    OptimizerBase::actAfterBatches(state);
-    if(state.reset)
-      resetStats();
-  }
-
-  virtual void actAfterStalled(TrainingState& state) {
-    OptimizerBase::actAfterStalled(state);
-    if(state.reset)
-      resetStats();
-  }
+  void load(const std::string& name,
+            std::vector<Ptr<OptimizerBase>> opts,
+            std::vector<Ptr<Backend>> backends);
+  void save(const std::string& name,
+            std::vector<Ptr<OptimizerBase>> opts,
+            size_t totalSize);
 
 private:
   void updateImpl(Tensor params, Tensor grads);
   void resetStats();
 
-  virtual void parseParams(const std::vector<float>& params) {
+  void parseParams(const std::vector<float>& params) {
     if(params.size() > 0)
       eps_ = params[0];
   }
@@ -99,35 +125,25 @@ private:
   Tensor gt_;
 };
 
-// @TODO: Add serialization for historic gradients and parameters
-// https://arxiv.org/pdf/1412.6980v8.pdf
+/**
+ * @brief Adam optimizer
+ *
+ * https://arxiv.org/pdf/1412.6980v8.pdf
+ */
 class Adam : public OptimizerBase {
 public:
   Adam(float eta, Ptr<ClipperBase> clipper = nullptr)
       : OptimizerBase(eta, clipper), t_(0) {}
 
+  void load(const std::string& name,
+            std::vector<Ptr<OptimizerBase>> opts,
+            std::vector<Ptr<Backend>> backends);
+  void save(const std::string& name,
+            std::vector<Ptr<OptimizerBase>> opts,
+            size_t totalSize);
+
 private:
   void updateImpl(Tensor params, Tensor grads);
-
-  virtual void actAfterEpoch(TrainingState& state) {
-    OptimizerBase::actAfterEpoch(state);
-    if(state.reset)
-      resetStats();
-  }
-
-  virtual void actAfterBatches(TrainingState& state) {
-    OptimizerBase::actAfterBatches(state);
-    if(state.reset)
-      resetStats();
-  }
-
-  virtual void actAfterStalled(TrainingState& state) {
-    OptimizerBase::actAfterStalled(state);
-    if(state.reset)
-      resetStats();
-  }
-
-private:
   void resetStats();
 
   virtual void parseParams(const std::vector<float>& params) {

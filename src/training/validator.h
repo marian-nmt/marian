@@ -10,6 +10,7 @@
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "graph/expression_graph.h"
+#include "training/training_state.h"
 #include "translator/beam_search.h"
 #include "translator/history.h"
 #include "translator/output_collector.h"
@@ -21,7 +22,7 @@ namespace marian {
 /**
  * @brief Base class for validators
  */
-class ValidatorBase {
+class ValidatorBase : public TrainingObserver {
 public:
   ValidatorBase(bool lowerIsBetter)
       : lowerIsBetter_(lowerIsBetter),
@@ -32,6 +33,11 @@ public:
   virtual std::string type() = 0;
 
   size_t stalled() { return stalled_; }
+
+  virtual void actAfterLoaded(TrainingState& state) {
+    lastBest_ = state.validBest;
+    stalled_ = state.stalled;
+  }
 
 protected:
   bool lowerIsBetter_{true};

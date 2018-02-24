@@ -40,12 +40,13 @@ Ptr<T> New(Ptr<T> p) {
 
 namespace marian {
 
-enum class DeviceType { gpu = 0, cpu = 1 };
+enum class DeviceType : size_t { gpu = 0, cpu = 1 };
 
 struct DeviceId {
   size_t no{0};
   DeviceType type{DeviceType::gpu};
   
+  DeviceId() : no{0}, type{DeviceType::gpu} {}
   DeviceId(size_t no_, DeviceType type_) : no(no_), type(type_) {}
   
   friend std::ostream& operator<<(std::ostream& out, DeviceId deviceId) {
@@ -57,8 +58,35 @@ struct DeviceId {
     return id1.no == id2.no && id1.type == id2.type;
   }
   
-  
 };
+
+}
+
+#include "3rd_party/yaml-cpp/yaml.h"
+
+namespace YAML {
+template <>
+struct convert<marian::DeviceId> {
+  static Node encode(const marian::DeviceId& rhs) {
+    Node node;
+    node.push_back(rhs.no);
+    node.push_back(static_cast<size_t>(rhs.type));
+    return node;
+  }
+
+  static bool decode(const Node& node, marian::DeviceId& rhs) {
+    if(!node.IsSequence() || node.size() != 2) {
+      return false;
+    }
+
+    rhs.no = node[0].as<size_t>();
+    rhs.type = static_cast<marian::DeviceType>(node[1].as<size_t>());
+    return true;
+  }
+};
+}
+
+namespace marian {
 
 class TensorBase;
 typedef Ptr<TensorBase> Tensor;
