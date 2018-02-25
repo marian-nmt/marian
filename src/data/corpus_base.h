@@ -14,6 +14,7 @@
 #include "data/alignment.h"
 #include "data/batch.h"
 #include "data/dataset.h"
+#include "data/rng_engine.h"
 #include "data/vocab.h"
 
 namespace marian {
@@ -405,7 +406,8 @@ public:
 class CorpusIterator;
 
 class CorpusBase
-    : public DatasetBase<SentenceTuple, CorpusIterator, CorpusBatch> {
+    : public DatasetBase<SentenceTuple, CorpusIterator, CorpusBatch>,
+      public RNGEngine {
 public:
   CorpusBase() : DatasetBase() {}
 

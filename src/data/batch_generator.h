@@ -9,23 +9,28 @@
 
 #include "common/config.h"
 #include "data/batch_stats.h"
+#include "data/rng_engine.h"
 #include "data/vocab.h"
+#include "training/training_state.h"
 
 namespace marian {
 
 namespace data {
 
 template <class DataSet>
-class BatchGenerator {
+class BatchGenerator : public RNGEngine {
 public:
   typedef typename DataSet::batch_ptr BatchPtr;
 
   typedef typename DataSet::sample sample;
   typedef std::vector<sample> samples;
 
-private:
+protected:
   Ptr<DataSet> data_;
   Ptr<Config> options_;
+  bool restored_{false};
+
+private:
   Ptr<BatchStats> stats_;
 
   int batchSize_{1};
@@ -35,8 +40,6 @@ private:
   size_t maxiBatchSize_;
   std::deque<BatchPtr> bufferedBatches_;
   BatchPtr currentBatch_;
-
-  std::mt19937 g_;
 
   mutable std::mutex loadMutex_;
   mutable std::condition_variable loadCondition_;
@@ -146,7 +149,7 @@ private:
 
     if(shuffle) {
       // shuffle the batches
-      std::shuffle(tempBatches.begin(), tempBatches.end(), g_);
+      std::shuffle(tempBatches.begin(), tempBatches.end(), eng_);
     }
 
     // put batches onto queue
@@ -160,7 +163,7 @@ public:
   BatchGenerator(Ptr<DataSet> data,
                  Ptr<Config> options,
                  Ptr<BatchStats> stats = nullptr)
-      : data_(data), options_(options), stats_(stats), g_(Config::seed) {}
+      : data_(data), options_(options), stats_(stats) {}
 
   operator bool() const {
     // wait if empty but loading
@@ -211,6 +214,41 @@ public:
       data_->reset();
     current_ = data_->begin();
     fillBatches(shuffle);
+  }
+
+  bool restore(Ptr<TrainingState> state, bool shuffle) {
+    if(state->epochs == 1 && state->batchesEpoch == 0)
+      return false;
+
+    LOG(info,
+        "[data] Restoring the corpus state to epoch {}, batch {}",
+        state->epochs,
+        state->batches);
+
+    if(state->epochs > 1) {
+      data_->restore(state);
+      setRNGState(state->seedBatch);
+    }
+
+    prepare(shuffle);
+    for(int i = 0; i < state->batchesEpoch; ++i)
+      next();
+
+    return true;
+  }
+};
+
+class CorpusBatchGenerator : public BatchGenerator<CorpusBase>,
+                             public TrainingObserver {
+public:
+  CorpusBatchGenerator(Ptr<CorpusBase> data,
+                       Ptr<Config> options,
+                       Ptr<BatchStats> stats = nullptr)
+      : BatchGenerator(data, options, stats) {}
+
+  void actAfterEpoch(TrainingState& state) {
+    state.seedBatch = getRNGState();
+    state.seedCorpus = data_->getRNGState();
   }
 };
 }

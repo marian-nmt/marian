@@ -45,7 +45,7 @@ CorpusBase::CorpusBase(std::vector<std::string> paths,
   }
 }
 
-CorpusBase::CorpusBase(Ptr<Config> options, bool translate /*= false*/)
+CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
     : options_(options),
       maxLength_(options_->get<size_t>("max-length")),
       maxLengthCrop_(options_->get<bool>("max-length-crop")),

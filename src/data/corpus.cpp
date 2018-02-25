@@ -6,7 +6,7 @@ namespace marian {
 namespace data {
 
 Corpus::Corpus(Ptr<Config> options, bool translate /*= false*/)
-    : CorpusBase(options, translate), g_(Config::seed) {}
+    : CorpusBase(options, translate) {}
 
 Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
@@ -72,6 +72,10 @@ void Corpus::reset() {
   }
 }
 
+void Corpus::restore(Ptr<TrainingState> ts) {
+  setRNGState(ts->seedCorpus);
+}
+
 void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
   LOG(info, "[data] Shuffling files");
 
@@ -95,7 +99,7 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
   pos_ = 0;
   ids_.resize(corpus.size());
   std::iota(ids_.begin(), ids_.end(), 0);
-  std::shuffle(ids_.begin(), ids_.end(), g_);
+  std::shuffle(ids_.begin(), ids_.end(), eng_);
 
   tempFiles_.clear();
 

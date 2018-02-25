@@ -109,9 +109,6 @@ void CorpusSQLite::fillSQLite() {
 
 SentenceTuple CorpusSQLite::next() {
   while(select_->executeStep()) {
-    // get index of the current sentence
-    pos_++;
-
     // fill up the sentence tuple with sentences from all input files
     size_t curId = select_->getColumn(0).getInt();
     SentenceTuple tup(curId);
@@ -145,9 +142,18 @@ void CorpusSQLite::shuffle() {
 }
 
 void CorpusSQLite::reset() {
-  pos_ = 0;
   select_.reset(
       new SQLite::Statement(*db_, "select * from lines order by _id;"));
 }
+
+void CorpusSQLite::restore(Ptr<TrainingState> ts) {
+  for(size_t i = 0; i < ts->epochs - 1; ++i) {
+    shuffle();
+    // Required to execute the select statement from shuffle()
+    select_->executeStep();
+    reset();
+  }
+}
+
 }
 }
