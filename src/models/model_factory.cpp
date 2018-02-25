@@ -8,13 +8,13 @@
 #include "models/nematus.h"
 #include "models/encdec.h"
 
-#ifdef USE_CUDNN
+#ifdef CUDNN
 #include "models/char_s2s.h"
 #endif
 
 #ifdef COMPILE_EXAMPLES
 #include "examples/mnist/model.h"
-#ifdef USE_CUDNN
+#ifdef CUDNN
 #include "examples/mnist/model_lenet.h"
 #endif
 #endif
@@ -26,7 +26,7 @@ Ptr<EncoderBase> EncoderFactory::construct() {
   if(options_->get<std::string>("type") == "s2s")
     return New<EncoderS2S>(options_);
 
-#ifdef USE_CUDNN
+#ifdef CUDNN
   if(options_->get<std::string>("type") == "char-s2s")
     return New<CharS2SEncoder>(options_);
 #endif

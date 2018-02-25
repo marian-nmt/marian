@@ -209,5 +209,8 @@ namespace marian {
       return cpu::L2Norm(in);
     }
   }
-
+  
+  DISPATCH5(PoolingWithMaskingForward, marian::Tensor, marian::Tensor, marian::Tensor, int, bool)
+  DISPATCH6(PoolingWithMaskingBackward, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, int, bool)
+  
 }

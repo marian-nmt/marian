@@ -25,12 +25,11 @@ Expr Convolution::apply(Expr x) {
                             keywords::init=inits::zeros);
 
   std::vector<Expr> nodes = {x, kernel, bias};
-  ABORT("Temporarily not implemented");
-  //return Expression<ConvolutionOp>(nodes,
-  //                                 paddings.first,
-  //                                 paddings.second,
-  //                                 strides.first,
-  //                                 strides.second);
+  return Expression<ConvolutionOp>(nodes,
+                                   paddings.first,
+                                   paddings.second,
+                                   strides.first,
+                                   strides.second);
 }
 
 Expr Convolution::apply(const std::vector<Expr>&) {

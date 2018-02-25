@@ -5,6 +5,7 @@
 #include "graph/node.h"
 #include "functional/functional.h"
 #include "tensors/tensor_operators.h"
+#include "tensors/gpu/cudnn_wrappers.h"
 
 namespace marian {
 
@@ -743,46 +744,46 @@ struct HighwayNodeOp : public NaryNodeOp {
   const std::string type() { return "highway"; }
 };
 
-//class ConvolutionOp : public NaryNodeOp {
-//public:
-//  ConvolutionOp(
-//      const std::vector<Expr>& nodes,
-//      int hPad = 0,
-//      int wPad = 0,
-//      int hStride = 1,
-//      int wStride = 1)
-//    : NaryNodeOp(nodes),
-//      conv_(nodes[1]->shape(),
-//            nodes[2]->shape(),
-//            hPad,
-//            wPad,
-//            hStride,
-//            wStride) {
-//    conv_.getOutputShape(nodes[0]->shape(), shape_);
-//  }
-//
-//  NodeOps forwardOps() {
-//    return {NodeOp(conv_.forward(
-//          child(0)->val(),
-//          child(1)->val(),
-//          child(2)->val(),
-//          val_))};
-//  }
-//
-//  NodeOps backwardOps() {
-//    return {NodeOp(conv_.backward(
-//          child(0)->val(),
-//          child(0)->grad(),
-//          child(1)->val(),
-//          child(1)->grad(),
-//          child(2)->grad(),
-//          adj_))};
-//  }
-//
-//  const std::string type() { return "layer_convolution"; }
-//
-//protected:
-//  ConvolutionWrapper conv_;
-//};
+class ConvolutionOp : public NaryNodeOp {
+public:
+  ConvolutionOp(
+      const std::vector<Expr>& nodes,
+      int hPad = 0,
+      int wPad = 0,
+      int hStride = 1,
+      int wStride = 1)
+    : NaryNodeOp(nodes),
+      conv_(nodes[1]->shape(),
+            nodes[2]->shape(),
+            hPad,
+            wPad,
+            hStride,
+            wStride) {
+    conv_.getOutputShape(nodes[0]->shape(), shape_);
+  }
+
+  NodeOps forwardOps() {
+    return {NodeOp(conv_.forward(
+          child(0)->val(),
+          child(1)->val(),
+          child(2)->val(),
+          val_))};
+  }
+
+  NodeOps backwardOps() {
+    return {NodeOp(conv_.backward(
+          child(0)->val(),
+          child(0)->grad(),
+          child(1)->val(),
+          child(1)->grad(),
+          child(2)->grad(),
+          adj_))};
+  }
+
+  const std::string type() { return "layer_convolution"; }
+
+protected:
+  ConvolutionWrapper conv_;
+};
 
 }

@@ -33,9 +33,6 @@ protected:
 
     // Construct hidden layers
 
-    ABORT("TEMPORARY");
-
-    /*
     auto conv_1 = convolution(g)
                     ("prefix", "conv_1")
                     ("kernel-dims", std::make_pair(3,3))
@@ -102,7 +99,6 @@ protected:
       // Define a top-level node for inference
       return logsoftmax(last);
     }
-    */;
   }
 };
 }
