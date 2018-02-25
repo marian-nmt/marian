@@ -190,7 +190,7 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
   }
 #endif
 
-#ifdef USE_CUDNN
+#ifdef CUDNN
 #ifdef COMPILE_EXAMPLES
   if(type == "mnist-lenet") {
     return New<MnistLeNet>(options);

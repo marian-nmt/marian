@@ -58,12 +58,12 @@ else(Tcmalloc_FOUND)
   message(WARNING "Cannot find TCMalloc library. Continuing.")
 endif(Tcmalloc_FOUND)
 
-#find_package(MPI)
-#if(MPI_FOUND)
-#  include_directories(${MPI_INCLUDE_PATH})
-#  set(EXT_LIBS ${EXT_LIBS} ${MPI_LIBRARIES})
-#  add_definitions(-DMPI_FOUND=1)
-#endif(MPI_FOUND)
+find_package(MPI)
+if(MPI_FOUND)
+  include_directories(${MPI_INCLUDE_PATH})
+  set(EXT_LIBS ${EXT_LIBS} ${MPI_LIBRARIES})
+  add_definitions(-DMPI_FOUND=1)
+endif(MPI_FOUND)
 
 find_package(MKL)
 if(MKL_FOUND)
@@ -124,6 +124,9 @@ if(COMPILE_TESTS)
   enable_testing()
 endif(COMPILE_TESTS)
 
+if(COMPILE_EXAMPLES)
+  add_definitions(-DCOMPILE_EXAMPLES=1)
+endif(COMPILE_EXAMPLES)
 
 # Compile source files
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/common/version.h.in
