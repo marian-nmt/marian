@@ -46,27 +46,32 @@ else()
   set(COR_LIB "mkl_core")
 endif()
 
-find_path(MKL_INCLUDE_DIR NAMES mkl.h HINTS $ENV{MKLROOT}/include)
+set(INTEL_ROOT "/opt/intel" CACHE PATH "Folder contains intel libs")
+find_path(MKL_ROOT include/mkl.h PATHS $ENV{MKLROOT} ${INTEL_ROOT}/mkl
+                                   DOC "Folder contains MKL")
+
+find_path(MKL_INCLUDE_DIR NAMES mkl.h HINTS ${MKL_ROOT}/include)
+
 
 find_library(MKL_INTERFACE_LIBRARY
              NAMES ${INT_LIB}
-             PATHS $ENV{MKLROOT}/lib
-                   $ENV{MKLROOT}/lib/intel64
-                   $ENV{INTEL}/mkl/lib/intel64
+             PATHS ${MKL_ROOT}/lib
+                   ${MKL_ROOT}/lib/intel64
+                   ${INTEL_ROOT}/mkl/lib/intel64
              NO_DEFAULT_PATH)
 
 find_library(MKL_SEQUENTIAL_LAYER_LIBRARY
              NAMES ${SEQ_LIB}
-             PATHS $ENV{MKLROOT}/lib
-                   $ENV{MKLROOT}/lib/intel64
-                   $ENV{INTEL}/mkl/lib/intel64
+             PATHS ${MKL_ROOT}/lib
+                   ${MKL_ROOT}/lib/intel64
+                   ${INTEL_ROOT}/mkl/lib/intel64
              NO_DEFAULT_PATH)
 
 find_library(MKL_CORE_LIBRARY
              NAMES ${COR_LIB}
-             PATHS $ENV{MKLROOT}/lib
-                   $ENV{MKLROOT}/lib/intel64
-                   $ENV{INTEL}/mkl/lib/intel64
+             PATHS ${MKL_ROOT}/lib
+                   ${MKL_ROOT}/lib/intel64
+                   ${INTEL_ROOT}/mkl/lib/intel64
              NO_DEFAULT_PATH)
 
 set(MKL_INCLUDE_DIRS ${MKL_INCLUDE_DIR})
