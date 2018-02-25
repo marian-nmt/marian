@@ -113,6 +113,8 @@ TEST_CASE("Model components, Attention (gpu)", "[attention]") {
   tests(DeviceType::gpu);
 }
 
+#ifdef BLAS_FOUND
 TEST_CASE("Model components, Attention (cpu)", "[attention]") {
   tests(DeviceType::cpu);
 }
+#endif

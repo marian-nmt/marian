@@ -283,6 +283,8 @@ TEST_CASE("Model components, RNN etc. (gpu)", "[model]") {
   tests(DeviceType::gpu);
 }
 
+#ifdef BLAS_FOUND
 TEST_CASE("Model components, RNN etc. (cpu)", "[model]") {
   tests(DeviceType::cpu);
 }
+#endif

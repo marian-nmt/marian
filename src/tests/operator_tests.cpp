@@ -296,6 +296,8 @@ TEST_CASE("Expression graph supports basic math operations (gpu)", "[operator]")
   tests(DeviceType::gpu);
 }
 
+#ifdef BLAS_FOUND
 TEST_CASE("Expression graph supports basic math operations (cpu)", "[operator]") {
   tests(DeviceType::cpu);
 }
+#endif
