@@ -110,15 +110,7 @@ inline ThreadPool::ThreadPool(size_t threads, size_t in_bound)
                   }
                   this->bounded_condition.notify_one();
                   
-                  try {
-                   task();
-                  }
-                  catch(const std::exception& e) {
-                    ABORT("Caught std::exception in sub-thread: {}", e.what());
-                  }
-                  catch(...) {
-                    ABORT("Caught unknown exception in sub-thread");                   
-                  }
+                  task();
               }
           }
       );
@@ -144,7 +136,17 @@ auto ThreadPool::enqueue(F&& f, Args&&... args)
         throw std::runtime_error("enqueue on stopped ThreadPool");
       }
 
-      tasks.emplace([task](){ (*task)(); });
+      tasks.emplace([task](){
+        try {
+          (*task)();
+        }
+        catch(const std::exception& e) {
+          ABORT("Caught std::exception in sub-thread: {}", e.what());
+        }
+        catch(...) {
+          ABORT("Caught unknown exception in sub-thread");                   
+        }
+      });
   }
   condition.notify_one();
   return res;
