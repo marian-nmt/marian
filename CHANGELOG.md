@@ -14,9 +14,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Experimental multi-node asynchronous training
 - Restoring optimizer and training parameters such as learning rate, validation
   results, etc.
+- Experimental CPU training/translation with `--cpu-threads=N`
 
 ### Fixed
 - Deterministic data shuffling with specific seed for SQLite3 corpus storage
+- Mini-batch fitting with binary search for faster fitting
+- Better batch packing with due to sorting
 
 
 ## [1.3.1] - 2018-02-04

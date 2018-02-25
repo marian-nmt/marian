@@ -30,7 +30,7 @@ public:
 
     Ptr<BatchStats> stats;
     if(options_->get<bool>("mini-batch-fit")) {
-      LOG(info, "[batching] Collecting statistics for batch fitting");
+      LOG(info, "[batching] Collecting statistics for batch fitting with step size {}", options_->get<size_t>("mini-batch-fit-step"));
       // @TODO, better fake batch with vocabulary
       auto model = New<ModelWrapper>(options_);
       THREAD_GUARD(stats = model->collectStats());

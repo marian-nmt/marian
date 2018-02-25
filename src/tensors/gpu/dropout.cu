@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "tensors/dispatch.h"
+#include "tensors/tensor_operators.h"
 #include "tensors/gpu/backend.h"
 
 #define CUDA_CALL(x)                                  \
@@ -35,7 +35,7 @@ namespace marian {
       }
     }
 
-    void Dropout(Tensor tensor, float p) {
+    void Dropout(marian::Tensor tensor, float p) {
       auto gpuBackend = std::static_pointer_cast<gpu::Backend>(tensor->getBackend());
       curandGenerator_t gen = gpuBackend->getCurandGenerator();
       int n = tensor->size();

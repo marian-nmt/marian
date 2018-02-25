@@ -4,10 +4,11 @@
 #include "tensors/gpu/backend.h"
 
 #include "graph/node.h"
-#include "kernels/sparse.h"
-#include "kernels/tensor_operators.h"
+//#include "kernels/sparse.h"
+#include "tensors/tensor_operators.h"
 #include "functional/functional.h"
-#include "kernels/cudnn_wrappers.h"
+
+#include "tensors/gpu/cudnn_wrappers.h"
 
 
 namespace marian {
@@ -735,12 +736,12 @@ struct SelectNodeOp : public UnaryNodeOp {
 
   NodeOps forwardOps() {
     return {NodeOp(
-        Select(graph()->allocator(), val_, child(0)->val(), axis_, indices_))};
+        Select(val_, child(0)->val(), axis_, indices_, graph()->allocator()))};
   }
 
   NodeOps backwardOps() {
     return {NodeOp(
-        Insert(graph()->allocator(), child(0)->grad(), adj_, axis_, indices_))};
+        Insert(child(0)->grad(), adj_, axis_, indices_, graph()->allocator()))};
   }
 
   Shape newShape(Expr a, int axis, const std::vector<size_t>& indeces) {
@@ -985,7 +986,7 @@ struct ShiftNodeOp : public UnaryNodeOp {
       : UnaryNodeOp(a, keywords::shape = a->shape(), args...), shift_(shift) {}
 
   NodeOps forwardOps() {
-    return {NodeOp(Shift(val_, child(0)->val(), shift_))};
+    return {NodeOp(Shift(val_, child(0)->val(), shift_, false))};
   }
 
   NodeOps backwardOps() {

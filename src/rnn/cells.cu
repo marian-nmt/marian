@@ -1,7 +1,7 @@
 #include "rnn/cells.h"
 
 #include "graph/node_operators_binary.h"
-#include "kernels/tensor_operators.h"
+#include "tensors/tensor_operators.h"
 
 namespace marian {
 namespace rnn {

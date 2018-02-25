@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <random>
 
-#include "tensors/dispatch.h"
+#include "tensors/tensor_operators.h"
 #include "tensors/cpu/backend.h"
 
 namespace marian {

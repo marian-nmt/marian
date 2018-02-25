@@ -4,8 +4,8 @@
 #include <thrust/sort.h>
 #include <memory>
 
-#include "kernels/cuda_helpers.h"
-#include "kernels/tensor_operators.h"
+#include "tensors/tensor.h"
+#include "tensors/tensor_operators.h"
 #include "training/sparse_tensor.h"
 
 namespace marian {

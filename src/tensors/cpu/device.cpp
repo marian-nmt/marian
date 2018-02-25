@@ -1,11 +1,13 @@
 #include <iostream>
 #include "tensors/device.h"
 
+#include <stdlib.h>
+
 namespace marian {
 namespace cpu {
 
   Device::~Device() {
-    delete[] data_;
+    free(data_);
     data_ = nullptr;
     size_ = 0;
   }
@@ -15,12 +17,12 @@ namespace cpu {
     ABORT_IF(size < size_ || size == 0, "New size must be larger than old size and larger than 0");
 
     if(data_) {
-      uint8_t *temp = new uint8_t[size_];
+      uint8_t *temp = static_cast<uint8_t*>(aligned_alloc(alignment_, size));
       std::copy(data_, data_ + size_, temp);
-      delete[] data_;
+      free(data_);
       data_ = temp;
     } else {
-      data_ = new uint8_t[size];
+      data_ = static_cast<uint8_t*>(aligned_alloc(alignment_, size));
     }
     size_ = size;
   }

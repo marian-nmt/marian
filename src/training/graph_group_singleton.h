@@ -29,10 +29,10 @@ public:
       : GraphGroup(options),
         mvAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")} {
-    size_t device = options_->get<std::vector<size_t>>("devices")[0];
-
+          
+    auto deviceId = options_->getDevices()[0];
     graph_ = New<ExpressionGraph>();
-    graph_->setDevice({device, DeviceType::gpu});
+    graph_->setDevice(deviceId);
     graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
     opt_ = Optimizer(options_);
 

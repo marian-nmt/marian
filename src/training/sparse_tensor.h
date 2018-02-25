@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "common/definitions.h"
+#include "tensors/backend.h"
 
 namespace marian {
 class SparseTensorBase : public std::enable_shared_from_this<SparseTensorBase> {

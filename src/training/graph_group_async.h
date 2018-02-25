@@ -22,7 +22,7 @@ protected:
 
   std::vector<Ptr<models::ModelBase>> builders_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
-  std::vector<size_t> devices_;
+  std::vector<DeviceId> devices_;
 
   std::mutex sync_;
   std::vector<std::mutex> shardSync_;
@@ -44,7 +44,7 @@ protected:
   bool movingAvg_{false};
   float mvDecay_{1e-4};
 
-  ThreadPool pool_;
+  std::unique_ptr<ThreadPool> pool_;
 
   size_t tau_{1};
 
@@ -65,15 +65,17 @@ protected:
 public:
   AsyncGraphGroup(Ptr<Config> options)
       : GraphGroup(options),
-        devices_{options_->get<std::vector<size_t>>("devices")},
-        pool_{devices_.size(), devices_.size()},
-        shardSync_{devices_.size()},
+        devices_{options_->getDevices()},
+        shardSync_(devices_.size()),
         movingAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")},
         tau_{options_->get<size_t>("optimizer-delay")} {
+
+    pool_.reset(new ThreadPool(devices_.size(), devices_.size()));
+    
     for(auto device : devices_) {
       auto graph = New<ExpressionGraph>();
-      graph->setDevice({device, DeviceType::gpu});
+      graph->setDevice(device);
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
       shardOpt_.push_back(Optimizer(options_));

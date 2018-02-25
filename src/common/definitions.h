@@ -40,12 +40,13 @@ Ptr<T> New(Ptr<T> p) {
 
 namespace marian {
 
-enum class DeviceType { gpu = 0, cpu = 1 };
+enum class DeviceType : size_t { gpu = 0, cpu = 1 };
 
 struct DeviceId {
   size_t no{0};
   DeviceType type{DeviceType::gpu};
   
+  DeviceId() : no{0}, type{DeviceType::gpu} {}
   DeviceId(size_t no_, DeviceType type_) : no(no_), type(type_) {}
   
   friend std::ostream& operator<<(std::ostream& out, DeviceId deviceId) {
@@ -56,7 +57,6 @@ struct DeviceId {
   friend bool operator==(DeviceId id1, DeviceId id2) {
     return id1.no == id2.no && id1.type == id2.type;
   }
-  
   
 };
 

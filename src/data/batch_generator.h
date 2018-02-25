@@ -114,7 +114,7 @@ private:
 
       if(options_->has("mini-batch-fit")) {
         // Dynamic batching
-        if(stats_ && options_->get<bool>("mini-batch-fit")) {
+        if(stats_) {
           for(size_t i = 0; i < sets; ++i)
             if(batchVector.back()[i].size() > lengths[i])
               lengths[i] = batchVector.back()[i].size();

@@ -14,7 +14,7 @@ public:
 private:
   std::vector<Ptr<models::ModelBase>> builders_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
-  std::vector<size_t> devices_;
+  std::vector<DeviceId> devices_;
 
   std::vector<Tensor> params_;
   std::vector<Tensor> grads_;
@@ -40,12 +40,13 @@ private:
 public:
   SyncGraphGroup(Ptr<Config> options)
       : GraphGroup(options),
-        devices_{options_->get<std::vector<size_t>>("devices")},
+        devices_{options_->getDevices()},
         movingAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")} {
+
     for(auto device : devices_) {
       auto graph = New<ExpressionGraph>();
-      graph->setDevice({device, DeviceType::gpu});
+      graph->setDevice(device);
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
       shardOpt_.push_back(Optimizer(options_));

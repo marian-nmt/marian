@@ -399,25 +399,50 @@ public:
                                      size_t multiplier = 1) {
     auto stats = New<data::BatchStats>();
 
-    size_t step = 10;
-    size_t maxLength = opt<size_t>("max-length");
+    size_t numFiles = opt<std::vector<std::string>>("train-sets").size();
 
+    size_t first = opt<size_t>("mini-batch-fit-step");
+    size_t step = opt<size_t>("mini-batch-fit-step");
+
+    size_t maxLength = opt<size_t>("max-length");
     maxLength = std::ceil(maxLength / (float)step) * step;
 
-    size_t numFiles = opt<std::vector<std::string>>("train-sets").size();
+    size_t maxBatch = 512;
+    bool fits = true;
+    while(fits) {
+      std::vector<size_t> lengths(numFiles, first);
+      auto batch = data::CorpusBatch::fakeBatch(lengths, maxBatch, options_);
+      build(graph, batch);
+      fits = graph->fits();
+      if(fits)
+        maxBatch *= 2;
+    }
+
     for(size_t i = step; i <= maxLength; i += step) {
-      size_t batchSize = step;
+      size_t start = 1;
+      size_t end = maxBatch;
+
       std::vector<size_t> lengths(numFiles, i);
       bool fits = true;
-      do {
-        auto batch = data::CorpusBatch::fakeBatch(lengths, batchSize, options_);
 
+      do {
+        size_t current = (start + end) / 2;
+        //std::cerr << i << " " << current << std::endl;
+        auto batch = data::CorpusBatch::fakeBatch(lengths, current, options_);
         build(graph, batch);
         fits = graph->fits();
-        if(fits)
+
+        if(fits) {
           stats->add(batch, multiplier);
-        batchSize += step;
-      } while(fits);
+          start = current + 1;
+        }
+        else {
+          end = current - 1;
+        }
+      } while(end - start > step);
+      //} while(start <= end);
+
+      maxBatch = start;
     }
     return stats;
   }

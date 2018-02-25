@@ -2,7 +2,7 @@
 #include "training/graph_group_async_drop.h"
 
 #include "functional/functional.h"
-#include "kernels/tensor_operators.h"
+#include "tensors/tensor_operators.h"
 #include "training/dropper.h"
 #include "training/sparse_tensor.h"
 

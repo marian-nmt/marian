@@ -13,8 +13,8 @@ int main(int argc, char** argv) {
   using namespace marian;
 
   auto options = New<Config>(argc, argv);
-  auto devices = options->get<std::vector<size_t>>("devices");
-
+  auto devices = options->getDevices();
+  
   if(options->get<bool>("multi-node")) {
     ABORT_IF(!configureMPI(argc, argv), "MPI not found.");
 
