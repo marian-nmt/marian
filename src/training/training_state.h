@@ -56,6 +56,7 @@ public:
   std::string seedCorpus;
 
   bool loaded{false};
+  bool validated{false};
 
   TrainingState(float learnRate) : eta(learnRate) {}
 
@@ -74,6 +75,7 @@ public:
   void newBatch() {
     ++batches;
     ++batchesEpoch;
+    validated = false;
     for(auto observer : observers_)
       observer->actAfterBatches(*this);
   }

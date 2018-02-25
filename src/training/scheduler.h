@@ -10,7 +10,6 @@ class Scheduler : public TrainingObserver {
 private:
   Ptr<Config> options_;
   std::vector<Ptr<ValidatorBase>> validators_;
-  bool validated_{false};
 
   bool first_{true};
 
@@ -73,8 +72,9 @@ public:
   }
 
   void validate(const std::vector<Ptr<ExpressionGraph>>& graphs, bool final = false) {
-    if(validated_ || (state_->batches % options_->get<size_t>("valid-freq") != 0
-                      && !final))
+    if(state_->validated
+       || (state_->batches % options_->get<size_t>("valid-freq") != 0
+           && !final))
       return;
 
     bool firstValidator = true;
@@ -108,7 +108,7 @@ public:
       firstValidator = false;
     }
 
-    validated_ = true;
+    state_->validated = true;
   }
 
   size_t stalled() {
@@ -119,6 +119,8 @@ public:
   }
 
   void update(float cost, Ptr<data::Batch> batch) {
+    state_->validated = false;
+
     state_->costSum += cost * batch->size();
     state_->samples += batch->size();
     state_->samplesDisp += batch->size();
@@ -153,8 +155,6 @@ public:
       state_->wordsDisp = 0;
       state_->samplesDisp = 0;
     }
-
-    validated_ = false;
   }
 
   void load(const std::string& name) {
@@ -173,10 +173,11 @@ public:
   }
 
   void save(const std::string& name) {
+    // Save config options
     YAML::Node config = options_->get();
     std::ofstream fout(name + ".yml");
     fout << config;
-
+    // Save training progress
     state_->save(name + ".progress.yml");
   }
 
