@@ -55,6 +55,8 @@ public:
   // The state of the random number generator from a corpus
   std::string seedCorpus;
 
+  bool loaded{false};
+
   TrainingState(float learnRate) : eta(learnRate) {}
 
   void registerObserver(Ptr<TrainingObserver> observer) {
@@ -85,6 +87,7 @@ public:
   }
 
   void newLoad() {
+    loaded = true;
     for(auto observer : observers_)
       observer->actAfterLoaded(*this);
   }

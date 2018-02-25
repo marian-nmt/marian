@@ -26,8 +26,7 @@ class ValidatorBase : public TrainingObserver {
 public:
   ValidatorBase(bool lowerIsBetter)
       : lowerIsBetter_(lowerIsBetter),
-        lastBest_{lowerIsBetter_ ? std::numeric_limits<float>::max()
-                                 : std::numeric_limits<float>::lowest()} {}
+        lastBest_{initScore()} {}
 
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) = 0;
   virtual std::string type() = 0;
@@ -37,6 +36,11 @@ public:
   virtual void actAfterLoaded(TrainingState& state) {
     lastBest_ = state.validBest;
     stalled_ = state.stalled;
+  }
+
+  virtual float initScore() {
+    return lowerIsBetter_ ? std::numeric_limits<float>::max()
+                          : std::numeric_limits<float>::lowest();
   }
 
 protected:
