@@ -110,7 +110,12 @@ inline ThreadPool::ThreadPool(size_t threads, size_t in_bound)
                   }
                   this->bounded_condition.notify_one();
                   
-                  task();
+                  try{
+                    task();
+                  }
+                  catch(...) {
+                     ABORT("CAUGHT 1!");
+                  }
               }
           }
       );
@@ -123,9 +128,20 @@ auto ThreadPool::enqueue(F&& f, Args&&... args)
 {
   using return_type = typename std::result_of<F(Args...)>::type;
 
-  auto task = std::make_shared< std::packaged_task<return_type()> >(
-          std::bind(std::forward<F>(f), std::forward<Args>(args)...)
-      );
+  auto inner_task = std::bind(std::forward<F>(f), std::forward<Args>(args)...);
+  auto outer_task = [inner_task]() -> return_type {
+    try {
+      return inner_task();
+    }
+    catch(const std::exception& e) {
+      ABORT("Caught std::exception in sub-thread: {}", e.what());
+    }
+    catch(...) {
+      ABORT("Caught unknown exception in sub-thread");                   
+    }
+  };
+  
+  auto task = std::make_shared<std::packaged_task<return_type()>>(outer_task);
 
   std::future<return_type> res = task->get_future();
   {
@@ -137,15 +153,7 @@ auto ThreadPool::enqueue(F&& f, Args&&... args)
       }
 
       tasks.emplace([task](){
-        try {
           (*task)();
-        }
-        catch(const std::exception& e) {
-          ABORT("Caught std::exception in sub-thread: {}", e.what());
-        }
-        catch(...) {
-          ABORT("Caught unknown exception in sub-thread");                   
-        }
       });
   }
   condition.notify_one();

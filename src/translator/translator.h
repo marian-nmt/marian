@@ -84,6 +84,7 @@ public:
         }
 
         auto search = New<Search>(options_, scorers);
+
         auto histories = search->search(graph, batch);
 
         for(auto history : histories) {
