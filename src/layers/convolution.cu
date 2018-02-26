@@ -38,4 +38,3 @@ Expr Convolution::apply(const std::vector<Expr>&) {
 }
 
 }
-

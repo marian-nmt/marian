@@ -22,7 +22,7 @@ protected:
 
   std::vector<Ptr<models::ModelBase>> builders_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
-  std::vector<size_t> devices_;
+  std::vector<DeviceId> devices_;
 
   std::mutex sync_;
   std::vector<std::mutex> shardSync_;
@@ -44,7 +44,7 @@ protected:
   bool movingAvg_{false};
   float mvDecay_{1e-4};
 
-  ThreadPool pool_;
+  std::unique_ptr<ThreadPool> pool_;
 
   size_t tau_{1};
 
@@ -65,15 +65,17 @@ protected:
 public:
   AsyncGraphGroup(Ptr<Config> options)
       : GraphGroup(options),
-        devices_{options_->get<std::vector<size_t>>("devices")},
-        pool_{devices_.size(), devices_.size()},
-        shardSync_{devices_.size()},
+        devices_{options_->getDevices()},
+        shardSync_(devices_.size()),
         movingAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")},
         tau_{options_->get<size_t>("optimizer-delay")} {
+
+    pool_.reset(new ThreadPool(devices_.size(), devices_.size()));
+    
     for(auto device : devices_) {
       auto graph = New<ExpressionGraph>();
-      graph->setDevice({device, DeviceType::gpu});
+      graph->setDevice(device);
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
       shardOpt_.push_back(Optimizer(options_));
@@ -93,6 +95,13 @@ public:
         size_t i = 0;
         for(auto graph : graphs_)
           builders_[i++]->load(graph, name);
+
+        // @TODO: probably we want to have the list of DeviceIds as an attribute
+        std::vector<Ptr<Backend>> backends;
+        for(auto graph : graphs_)
+          backends.push_back(graph->getBackend());
+        shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends);
+
       } else if(options_->has("pretrained-model")) {
         std::string init = options_->get<std::string>("pretrained-model");
         LOG(info,
@@ -102,6 +111,7 @@ public:
         for(auto graph : graphs_)
           builders_[i++]->load(graph, init, false);
       }
+
     }
   }
 
@@ -121,15 +131,13 @@ public:
       }
     }
 
-    if(options_->get<bool>("overwrite")) {
-      std::string name = options_->get<std::string>("model");
+    std::string name = options_->get<std::string>("model");
 
+    if(options_->get<bool>("overwrite")) {
       builders_[idx]->save(graphs_[idx], name, true);
       if(scheduler_)
         scheduler_->save(name);
     } else {
-      std::string name = options_->get<std::string>("model");
-
       if(!final) {
         std::string numberOfBatches
             = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
@@ -144,6 +152,9 @@ public:
       if(scheduler_)
         scheduler_->save(name);
     }
+
+    size_t totalSize = graphs_[0]->params()->vals()->size();
+    shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_, totalSize);
   }
 
   Ptr<data::BatchStats> collectStats() {

@@ -8,20 +8,24 @@ cuda_add_library(marian
   3rd_party/cnpy/cnpy.cpp
   3rd_party/exception.cpp
   3rd_party/svd/svd.cpp
-#  tensors/tensor.cu
-  tensors/device.cu
-  tensors/device.cpp
+
   tensors/backend.cpp
+  tensors/gpu/device.cu
+  tensors/cpu/device.cpp
   tensors/gpu/algorithm.cu
   tensors/gpu/dropout.cu
   tensors/cpu/dropout.cpp
-  kernels/tensor_operators.cu
-  kernels/cudnn_wrappers.cu
+  tensors/gpu/prod.cu
+  tensors/cpu/prod.cpp
+  tensors/gpu/tensor_operators.cu
+  tensors/cpu/tensor_operators.cpp
+  tensors/gpu/cudnn_wrappers.cu
+
   graph/expression_graph.cpp
   graph/expression_operators.cu
   graph/node.cpp
   graph/node_operators.cu
-  graph/node_initializers.cu
+  graph/node_initializers.cpp
   layers/convolution.cu
 
   rnn/cells.cu
@@ -36,8 +40,11 @@ cuda_add_library(marian
   translator/history.cpp
   translator/output_collector.cpp
   translator/nth_element.cu
+  translator/nth_element.cpp
   translator/helpers.cu
+  translator/helpers.cpp
   translator/scorers.cpp
+
   training/dropper.cu
   training/graph_group_async.cu
   training/graph_group_async_drop.cu

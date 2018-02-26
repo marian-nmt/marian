@@ -12,15 +12,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Data weighting with `--data-weighting` at sentence or word level
 - Persistent SQLite3 corpus storage with `--sqlite file.db`
 - Experimental multi-node asynchronous training
+- Restoring optimizer and training parameters such as learning rate, validation
+  results, etc.
+- Experimental CPU training/translation with `--cpu-threads=N`
+- Restoring corpus iteration after training is restarted
 
 ### Fixed
 - Deterministic data shuffling with specific seed for SQLite3 corpus storage
+- Mini-batch fitting with binary search for faster fitting
+- Better batch packing with due to sorting
+
 
 ## [1.3.1] - 2018-02-04
 
 ### Fixed
-- Fixed missing final validation when done with training
-- Fixed differing summaries for marian-scorer when used with multiple GPUs
+- Missing final validation when done with training
+- Differing summaries for marian-scorer when used with multiple GPUs
 
 ## [1.3.0] - 2018-01-24
 

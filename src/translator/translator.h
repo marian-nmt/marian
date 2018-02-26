@@ -32,21 +32,17 @@ public:
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
     trgVocab_->load(vocabs.back());
 
-    auto devices = options_->get<std::vector<size_t>>("devices");
-    
-    DeviceType type = DeviceType::gpu;
-    if(options_->get<bool>("cpu"))
-      type = DeviceType::cpu;
-    
-    ThreadPool threadPool(devices.size(), devices.size());
+    auto devices = options_->getDevices();
 
+    ThreadPool threadPool(devices.size(), devices.size());
     scorers_.resize(devices.size());
     graphs_.resize(devices.size());
+    
     size_t id = 0;
-    for(size_t device : devices) {
-      auto task = [&](size_t device, size_t id) {
+    for(auto device : devices) {
+      auto task = [&](DeviceId device, size_t id) {
         auto graph = New<ExpressionGraph>(true);
-        graph->setDevice({device, type});
+        graph->setDevice(device);
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_[id] = graph;
 
@@ -64,7 +60,8 @@ public:
   void run() {
     data::BatchGenerator<data::Corpus> bg(corpus_, options_);
 
-    auto devices = options_->get<std::vector<size_t>>("devices");
+    auto devices = options_->getDevices();
+    
     ThreadPool threadPool(devices.size(), devices.size());
 
     size_t batchId = 0;
@@ -87,6 +84,7 @@ public:
         }
 
         auto search = New<Search>(options_, scorers);
+
         auto histories = search->search(graph, batch);
 
         for(auto history : histories) {
@@ -112,7 +110,7 @@ private:
   std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<std::vector<Ptr<Scorer>>> scorers_;
 
-  std::vector<size_t> devices_;
+  std::vector<DeviceId> devices_;
   std::vector<Ptr<Vocab>> srcVocabs_;
   Ptr<Vocab> trgVocab_;
 
@@ -121,7 +119,7 @@ public:
 
   TranslateServiceMultiGPU(Ptr<Config> options)
       : options_(options),
-        devices_(options_->get<std::vector<size_t>>("devices")),
+        devices_(options_->getDevices()),
         trgVocab_(New<Vocab>()) {
     init();
   }
@@ -137,14 +135,10 @@ public:
     }
     trgVocab_->load(vocabPaths.back());
 
-    DeviceType type = DeviceType::gpu;
-    if(options_->get<bool>("cpu"))
-      type = DeviceType::cpu;
-    
     // initialize scorers
-    for(auto& device : devices_) {
+    for(auto device : devices_) {
       auto graph = New<ExpressionGraph>(true);
-      graph->setDevice({device, type});
+      graph->setDevice(device);
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
 

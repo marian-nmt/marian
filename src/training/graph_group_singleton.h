@@ -29,10 +29,10 @@ public:
       : GraphGroup(options),
         mvAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")} {
-    size_t device = options_->get<std::vector<size_t>>("devices")[0];
-
+          
+    auto deviceId = options_->getDevices()[0];
     graph_ = New<ExpressionGraph>();
-    graph_->setDevice({device, DeviceType::gpu});
+    graph_->setDevice(deviceId);
     graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
     opt_ = Optimizer(options_);
 
@@ -49,6 +49,8 @@ public:
         if(scheduler_)
           scheduler_->load(name);
         builder_->load(graph_, name);
+
+        opt_->load(name + ".optimizer.npz", {opt_}, {graph_->getBackend()});
       } else if(options_->has("pretrained-model")) {
         std::string init = options_->get<std::string>("pretrained-model");
         LOG(info,
@@ -71,15 +73,13 @@ public:
   }
 
   void save(Ptr<ExpressionGraph> graph, bool final = false) {
-    if(options_->get<bool>("overwrite")) {
-      std::string name = options_->get<std::string>("model");
+    std::string name = options_->get<std::string>("model");
 
+    if(options_->get<bool>("overwrite")) {
       builder_->save(graph_, name, true);
       if(scheduler_)
         scheduler_->save(name);
     } else {
-      std::string name = options_->get<std::string>("model");
-
       if(!final) {
         std::string numberOfBatches
             = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
@@ -94,6 +94,9 @@ public:
       if(scheduler_)
         scheduler_->save(name);
     }
+
+    size_t totalSize = graph_->params()->vals()->size();
+    opt_->save(name + ".optimizer.npz", {opt_}, totalSize);
   }
 
   Ptr<data::BatchStats> collectStats() {

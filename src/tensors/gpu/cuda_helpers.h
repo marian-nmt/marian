@@ -4,8 +4,13 @@
 #include "3rd_party/exception.h"
 #include "common/logging.h"
 
+const float CUDA_FLT_MAX = 1.70141e+38;
+const int MAX_THREADS = 512;
+const int MAX_BLOCKS = 65535;
+
 #define CUDA_CHECK(ans) \
   { gpuAssert((ans), __FILE__, __LINE__); }
+
 
 inline void gpuAssert(cudaError_t code,
                       const char *file,

@@ -1,5 +1,6 @@
-#include "kernels/tensor_operators.h"
 #include "training/graph_group_sync.h"
+#include "tensors/tensor_operators.h"
+#include "functional/functional.h"
 
 namespace marian {
 
@@ -43,13 +44,19 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
   std::vector<Ptr<data::Batch>> batches = batch->split(devices_.size());
 
   if(first_) {
-    for(size_t i = 0; i < graphs_.size(); ++i) {
-      // takes care of thead_local stuff
-      THREAD_GUARD(builders_[i]->build(graphs_[i], batches[0]);
-                   graphs_[i]->forward(););
+    {
+      THREAD_GUARD(builders_[0]->build(graphs_[0], batches[0]);
+                   graphs_[0]->forward(););
 
-      if(i > 0)
-        graphs_[i]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
+      ThreadPool pool(graphs_.size() - 1, graphs_.size() - 1);
+      for(size_t i = 1; i < graphs_.size(); ++i) {
+        auto init = [&](size_t i) {
+          builders_[i]->build(graphs_[i], batches[0]);
+          graphs_[i]->forward();
+          graphs_[i]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
+        };
+        pool.enqueue(init, i);
+      }
     }
 
     if(params_.size() == 0) {

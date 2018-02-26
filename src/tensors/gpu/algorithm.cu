@@ -1,7 +1,7 @@
 #include "tensors/gpu/algorithm.h"
 
-#include "kernels/cuda_helpers.h"
-#include "kernels/tensor_operators.h"
+#include "tensors/tensor_operators.h"
+#include "tensors/gpu/cuda_helpers.h"
 
 namespace marian {
   namespace gpu {
@@ -34,7 +34,8 @@ namespace marian {
                    const std::vector<float>& values,
                    float* data) {
       CUDA_CHECK(cudaSetDevice(backend->getDevice().no));
-      SetSparse(data, keys, values);
+      ABORT("no SetSparse");
+      //gpu::SetSparse(data, keys, values);
       CUDA_CHECK(cudaStreamSynchronize(0));
     }
 

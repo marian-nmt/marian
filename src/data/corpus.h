@@ -22,8 +22,6 @@ namespace data {
 class Corpus : public CorpusBase {
 private:
   std::vector<UPtr<TemporaryFile>> tempFiles_;
-
-  std::mt19937 g_;
   std::vector<size_t> ids_;
 
   void shuffleFiles(const std::vector<std::string>& paths);
@@ -49,6 +47,8 @@ public:
   void shuffle();
 
   void reset();
+
+  void restore(Ptr<TrainingState>);
 
   iterator begin() { return iterator(this); }
 

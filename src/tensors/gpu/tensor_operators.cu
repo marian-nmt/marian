@@ -1,12 +1,17 @@
-#include <thrust/transform_reduce.h>
-#include "kernels/cuda_helpers.h"
-#include "kernels/tensor_operators.h"
+//#include <thrust/transform_reduce.h>
+
+#include "tensors/gpu/cuda_helpers.h"
+#include "tensors/tensor_operators.h"
+#include "tensors/gpu/backend.h"
+
+#include "gpu/tensor.h"
+#include "functional/functional.h"
 
 #include "3rd_party/reduce_all.h"
 
 namespace marian {
 
-#define CUDA_FLT_MAX 1.70141e+38
+namespace gpu {
 
 struct isnan_test {
   __host__ __device__ bool operator()(const float a) const { return isnan(a); }
@@ -22,7 +27,7 @@ __device__ inline float stableLogit(float x) {
   }
 }
 
-bool IsNan(Tensor in) {
+bool IsNan(marian::Tensor in) {
   //cudaSetDevice(in->getDevice().no);
   //thrust::device_ptr<float> begin = thrust::device_pointer_cast(in->data());
   //thrust::device_ptr<float> end
@@ -32,7 +37,7 @@ bool IsNan(Tensor in) {
   return false;
 }
 
-void ConcatCont(Tensor out, const std::vector<Tensor>& inputs, int axis) {
+void ConcatCont(marian::Tensor out, const std::vector<marian::Tensor>& inputs, int axis) {
   cudaSetDevice(out->getDevice().no);
   int step = 1;
   for(int i = 0; i < axis; ++i)
@@ -78,7 +83,7 @@ __global__ void gInsertCols(float* out,
   }
 }
 
-void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
+void Concatenate1(marian::Tensor out, const std::vector<marian::Tensor>& inputs) {
   cudaSetDevice(out->getDevice().no);
 
   int rows = out->shape().elements() / out->shape().back();
@@ -102,14 +107,14 @@ void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
   cudaStreamSynchronize(0);
 }
 
-void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax) {
+void Concatenate(marian::Tensor out, const std::vector<marian::Tensor>& inputs, int ax) {
   if(ax == out->shape().size() - 1)
     Concatenate1(out, inputs);
   else
     ConcatCont(out, inputs, ax);
 }
 
-void Split1(std::vector<Tensor>& outputs, const Tensor in) {
+void Split1(std::vector<marian::Tensor>& outputs, const marian::Tensor in) {
   cudaSetDevice(in->getDevice().no);
 
   size_t offset = 0;
@@ -130,7 +135,7 @@ void Split1(std::vector<Tensor>& outputs, const Tensor in) {
   cudaStreamSynchronize(0);
 }
 
-void SplitCont(std::vector<Tensor>& outputs, const Tensor in, int axis) {
+void SplitCont(std::vector<marian::Tensor>& outputs, const marian::Tensor in, int axis) {
   cudaSetDevice(in->getDevice().no);
 
   int step = 1;
@@ -154,7 +159,7 @@ void SplitCont(std::vector<Tensor>& outputs, const Tensor in, int axis) {
   cudaStreamSynchronize(0);
 }
 
-void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax) {
+void Deconcatenate(std::vector<marian::Tensor>& outputs, const marian::Tensor in, int ax) {
   if(ax == in->shape().size() - 1)
     Split1(outputs, in);
   else
@@ -181,7 +186,7 @@ __global__ void gTransposeND(gpu::Tensor<float> out,
   }
 }
 
-void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
+void TransposeND(marian::Tensor out, marian::Tensor in, const std::vector<int>& vAxis) {
   cudaSetDevice(out->getDevice().no);
 
   gpu::Array<int, gpu::Shape::size()> axes;
@@ -297,7 +302,7 @@ __global__ void gSoftmax(float* out,
   }
 }
 
-void Softmax(Tensor out, Tensor in, Tensor mask) {
+void Softmax(marian::Tensor out, marian::Tensor in, marian::Tensor mask) {
   cudaSetDevice(out->getDevice().no);
 
   size_t m = out->shape().elements() / out->shape().back();
@@ -385,7 +390,7 @@ __global__ void gLogSoftmax(float* out,
   }
 }
 
-void LogSoftmax(Tensor out, Tensor in) {
+void LogSoftmax(marian::Tensor out, marian::Tensor in) {
   cudaSetDevice(out->getDevice().no);
 
   size_t m = out->shape().elements() / out->shape().back();
@@ -444,7 +449,7 @@ __global__ void gSoftmaxGrad(float* grad,
   }
 }
 
-void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
+void SoftmaxGrad(marian::Tensor grad, marian::Tensor adj, marian::Tensor val) {
   cudaSetDevice(adj->getDevice().no);
   // grad and val are both m-by-k matrices, passed as input.
   // A weighted average of each row of grad (according to the weights
@@ -501,7 +506,7 @@ __global__ void gLogSoftmaxGrad(float* grad,
   }
 }
 
-void LogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
+void LogSoftmaxGrad(marian::Tensor grad, marian::Tensor adj, marian::Tensor val) {
   cudaSetDevice(adj->getDevice().no);
 
   // grad and val are both m-by-k matrices, passed as input.
@@ -540,119 +545,6 @@ __global__ void gArgmax(float* out,
 
 ///////////////////////////////////////////////////////
 
-void Prod(cublasHandle_t handle,
-          Tensor C,
-          const Tensor A,
-          const Tensor B,
-          bool transA,
-          bool transB,
-          float beta,
-          float scalar) {
-  cudaSetDevice(C->getDevice().no);
-  float alpha = scalar;
-
-  size_t m = A->shape().elements() / A->shape().back();
-  size_t k = A->shape().back();
-  if(transA)
-    std::swap(m, k);
-
-  size_t l = B->shape().elements() / B->shape().back();
-  size_t n = B->shape().back();
-  if(transB)
-    std::swap(l, n);
-
-  size_t lda = A->shape().back();
-  size_t ldb = B->shape().back();
-  size_t ldc = B->shape().back();
-
-  if(transB)
-    ldc = B->shape().elements() / B->shape().back();
-
-  cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
-  cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
-
-#if CUDA_VERSION >= 9000
-  //cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH);
-#endif
-  cublasSgemm(handle,
-              opB,
-              opA,
-              n,
-              m,
-              k,
-              &alpha,
-              B->data(),
-              ldb,
-              A->data(),
-              lda,
-              &beta,
-              C->data(),
-              ldc);
-#if CUDA_VERSION >= 9000
-  //cublasSetMathMode(handle, CUBLAS_DEFAULT_MATH);
-#endif
-}
-
-void ProdBatched(cublasHandle_t handle,
-                 Tensor C,
-                 const Tensor A,
-                 const Tensor B,
-                 bool transA,
-                 bool transB,
-                 float beta,
-                 float scalar) {
-  cudaSetDevice(C->getDevice().no);
-  float alpha = scalar;
-
-  size_t batchA = A->shape().elements() / (A->shape()[-1] * A->shape()[-2]);
-  size_t batchB = B->shape().elements() / (B->shape()[-1] * B->shape()[-2]);
-
-  size_t m = A->shape()[-2];
-  size_t k = A->shape()[-1];
-  if(transA)
-    std::swap(m, k);
-
-  size_t l = B->shape()[-2];
-  size_t n = B->shape()[-1];
-  if(transB)
-    std::swap(l, n);
-
-  size_t lda = A->shape()[-1];
-  size_t ldb = B->shape()[-1];
-  size_t ldc = B->shape()[-1];
-
-  if(transB)
-    ldc = B->shape()[-2];
-
-  cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
-  cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
-
-#if CUDA_VERSION >= 9000
-  //cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH);
-#endif
-  cublasSgemmStridedBatched(handle,
-                            opB,
-                            opA,
-                            n,
-                            m,
-                            k,
-                            &alpha,
-                            B->data(),
-                            ldb,
-                            batchB == 1 ? 0 : n * k,
-                            A->data(),
-                            lda,
-                            batchA == 1 ? 0 : m * k,
-                            &beta,
-                            C->data(),
-                            ldc,
-                            n * m,
-                            std::max(batchA, batchB));
-#if CUDA_VERSION >= 9000
-  //cublasSetMathMode(handle, CUBLAS_DEFAULT_MATH);
-#endif
-}
-
 __global__ void gCopyRows(float* out,
                           const float* in,
                           size_t cols,
@@ -676,7 +568,7 @@ __global__ void gCopyRows(float* out,
   }
 }
 
-void CopyRows(Tensor out, const Tensor in, const std::vector<size_t>& indices) {
+void CopyRows(marian::Tensor out, const marian::Tensor in, const std::vector<size_t>& indices) {
   cudaSetDevice(out->getDevice().no);
 
   size_t cols = in->shape().back();
@@ -721,8 +613,8 @@ __global__ void gPasteRows(float* out,
   }
 }
 
-void PasteRows(Tensor out,
-               const Tensor in,
+void PasteRows(marian::Tensor out,
+               const marian::Tensor in,
                const std::vector<size_t>& indices) {
   cudaSetDevice(out->getDevice().no);
 
@@ -768,7 +660,7 @@ __global__ void gCopyCols(float* out,
   }
 }
 
-void CopyCols(Tensor out, const Tensor in, const std::vector<size_t>& indices) {
+void CopyCols(marian::Tensor out, const marian::Tensor in, const std::vector<size_t>& indices) {
   cudaSetDevice(out->getDevice().no);
 
   size_t rows = in->shape().elements() / in->shape().back();
@@ -813,8 +705,8 @@ __global__ void gPasteCols(float* out,
   }
 }
 
-void PasteCols(Tensor out,
-               const Tensor in,
+void PasteCols(marian::Tensor out,
+               const marian::Tensor in,
                const std::vector<size_t>& indices) {
   cudaSetDevice(out->getDevice().no);
 
@@ -879,11 +771,11 @@ __global__ void gInsert(float* out,
   }
 }
 
-void Select(Ptr<Allocator> allocator,
-            Tensor out,
-            const Tensor in,
+void Select(marian::Tensor out,
+            const marian::Tensor in,
             int axis,
-            const std::vector<size_t>& indices) {
+            const std::vector<size_t>& indices,
+            Ptr<Allocator> allocator) {
   cudaSetDevice(out->getDevice().no);
 
   int length = out->shape().elements();
@@ -905,11 +797,11 @@ void Select(Ptr<Allocator> allocator,
   allocator->free(mp_indices);
 }
 
-void Insert(Ptr<Allocator> allocator,
-            Tensor out,
-            const Tensor in,
+void Insert(marian::Tensor out,
+            const marian::Tensor in,
             int axis,
-            const std::vector<size_t>& indices) {
+            const std::vector<size_t>& indices,
+            Ptr<Allocator> allocator) {
   cudaSetDevice(in->getDevice().no);
 
   int length = in->shape().elements();
@@ -974,7 +866,7 @@ __global__ void gGRUFastForward(float* out,
   }
 }
 
-void GRUFastForward(Tensor out, std::vector<Tensor> inputs, bool final) {
+void GRUFastForward(marian::Tensor out, std::vector<marian::Tensor> inputs, bool final) {
   cudaSetDevice(out->getDevice().no);
 
   int rows = out->shape().elements() / out->shape().back();
@@ -1084,9 +976,9 @@ __global__ void gGRUFastBackward(float* outState,
   }
 }
 
-void GRUFastBackward(std::vector<Tensor> outputs,
-                     std::vector<Tensor> inputs,
-                     Tensor adj,
+void GRUFastBackward(std::vector<marian::Tensor> outputs,
+                     std::vector<marian::Tensor> inputs,
+                     marian::Tensor adj,
                      bool final) {
   cudaSetDevice(adj->getDevice().no);
 
@@ -1182,7 +1074,7 @@ __global__ void gCrossEntropyPick(float* out,
   }
 }
 
-void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
+void CrossEntropyPick(marian::Tensor out, marian::Tensor in, marian::Tensor pick) {
   cudaSetDevice(out->getDevice().no);
 
   int rows = in->shape().elements() / in->shape().back();
@@ -1268,7 +1160,7 @@ __global__ void gCrossEntropyPickBackward(float* out,
   }
 }
 
-void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
+void CrossEntropyPickBackward(marian::Tensor out, marian::Tensor adj, marian::Tensor a, marian::Tensor pick) {
   cudaSetDevice(out->getDevice().no);
 
   int rows = out->shape().elements() / out->shape().back();
@@ -1283,7 +1175,7 @@ void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
 }
 
 
-float L2Norm(Tensor in) {
+float L2Norm(marian::Tensor in) {
   using namespace functional;
 
   cudaSetDevice(in->getDevice().no);
@@ -1294,7 +1186,7 @@ float L2Norm(Tensor in) {
 
   uint8_t* data;
   cudaMalloc(&data, blocks * sizeof(float));
-  Tensor out(new TensorBase(
+  marian::Tensor out(new TensorBase(
       New<MemoryPiece>(data, blocks * sizeof(float)), {1, blocks}, in->getBackend()));
 
   ReduceAll(_1 * _1, out, in);
@@ -1351,7 +1243,7 @@ __global__ void gAtt(float* out,
   }
 }
 
-void Att(Tensor out, Tensor va, Tensor context, Tensor state) {
+void Att(marian::Tensor out, marian::Tensor va, marian::Tensor context, marian::Tensor state) {
   cudaSetDevice(out->getDevice().no);
 
   size_t m = out->shape().elements() / out->shape().back();
@@ -1412,20 +1304,18 @@ __global__ void gAttBack(float* gVa,
   }
 }
 
-void AttBack(Tensor gVa,
-             Tensor gContext,
-             Tensor gState,
-             Tensor va,
-             Tensor context,
-             Tensor state,
-             Tensor adj) {
+void AttBack(marian::Tensor gVa,
+             marian::Tensor gContext,
+             marian::Tensor gState,
+             marian::Tensor va,
+             marian::Tensor context,
+             marian::Tensor state,
+             marian::Tensor adj) {
   cudaSetDevice(adj->getDevice().no);
 
-  size_t m = adj->shape().elements() / adj->shape().back();
-
-  size_t dims = context->shape().size();
-  size_t k = context->shape()[dims - 1];
-  size_t n = context->shape()[dims - 2];
+  size_t m = adj->shape().elements() / adj->shape()[-1];
+  size_t k = context->shape()[-1];
+  size_t n = context->shape()[-2];
 
   int blocks = std::min(MAX_BLOCKS, (int)n);
   int threads = std::min(MAX_THREADS, (int)k);
@@ -1517,10 +1407,10 @@ __global__ void gLNormalization(float* out,
   }
 }
 
-void LayerNormalization(Tensor out,
-                        Tensor in,
-                        Tensor gamma,
-                        Tensor beta,
+void LayerNormalization(marian::Tensor out,
+                        marian::Tensor in,
+                        marian::Tensor gamma,
+                        marian::Tensor beta,
                         float eps) {
   cudaSetDevice(out->getDevice().no);
 
@@ -1642,18 +1532,18 @@ __global__ void gLayerNormalizationGrad(float* gradX,
   }
 }
 
-void LayerNormalizationGrad(Tensor gradX,
-                            Tensor gradGamma,
-                            Tensor gradBeta,
-                            Tensor adj,
-                            Tensor y,
-                            Tensor x,
-                            Tensor gamma,
-                            Tensor beta,
+void LayerNormalizationGrad(marian::Tensor gradX,
+                            marian::Tensor gradGamma,
+                            marian::Tensor gradBeta,
+                            marian::Tensor adj,
+                            marian::Tensor y,
+                            marian::Tensor x,
+                            marian::Tensor gamma,
+                            marian::Tensor beta,
                             float eps) {
   cudaSetDevice(adj->getDevice().no);
-  int rows = y->shape().elements() / y->shape().back();
-  int cols = y->shape().back();
+  int rows = y->shape().elements() / y->shape()[-1];
+  int cols = y->shape()[-1];
 
   int threads = std::min(MAX_THREADS, cols);
   int blocks = std::min(MAX_BLOCKS, rows);
@@ -1685,9 +1575,9 @@ __global__ void gShift(float* out, const float* in, int length, int offset) {
   }
 }
 
-void Shift(Tensor out, Tensor in, Shape shift, bool invert) {
+void Shift(marian::Tensor out, marian::Tensor in, marian::Shape shift, bool invert) {
 
-  UTIL_THROW_IF2(in->shape().size() != shift.size(), "bad dimensions");
+  ABORT_IF(in->shape().size() != shift.size(), "bad dimensions");
 
   int offset = 0;
   for(int i = 0; i < shift.size(); ++i)
@@ -1784,7 +1674,7 @@ __global__ void gLSTMCellForward(float* out,
   }
 }
 
-void LSTMCellForward(Tensor out, std::vector<Tensor> inputs) {
+void LSTMCellForward(marian::Tensor out, std::vector<marian::Tensor> inputs) {
   cudaSetDevice(out->getDevice().no);
 
   int rows = out->shape().elements() / out->shape().back();
@@ -1833,7 +1723,7 @@ __global__ void gLSTMOutputForward(float* out,
   }
 }
 
-void LSTMOutputForward(Tensor out, std::vector<Tensor> inputs) {
+void LSTMOutputForward(marian::Tensor out, std::vector<marian::Tensor> inputs) {
   cudaSetDevice(out->getDevice().no);
 
   int rows = out->shape().elements() / out->shape().back();
@@ -1927,9 +1817,9 @@ __global__ void gLSTMCellBackward(float* outCell,
   }
 }
 
-void LSTMCellBackward(std::vector<Tensor> outputs,
-                      std::vector<Tensor> inputs,
-                      Tensor adj) {
+void LSTMCellBackward(std::vector<marian::Tensor> outputs,
+                      std::vector<marian::Tensor> inputs,
+                      marian::Tensor adj) {
   cudaSetDevice(adj->getDevice().no);
 
   int rows = adj->shape().elements() / adj->shape().back();
@@ -2005,9 +1895,9 @@ __global__ void gLSTMOutputBackward(float* outCell,
   }
 }
 
-void LSTMOutputBackward(std::vector<Tensor> outputs,
-                        std::vector<Tensor> inputs,
-                        Tensor adj) {
+void LSTMOutputBackward(std::vector<marian::Tensor> outputs,
+                        std::vector<marian::Tensor> inputs,
+                        marian::Tensor adj) {
   cudaSetDevice(adj->getDevice().no);
 
   int rows = adj->shape().elements() / adj->shape().back();
@@ -2044,10 +1934,10 @@ __global__ void gHighwayForward(float* out,
   }
 }
 
-void HighwayForward(Tensor out,
-                    const Tensor in1,
-                    const Tensor in2,
-                    const Tensor t) {
+void HighwayForward(marian::Tensor out,
+                    const marian::Tensor in1,
+                    const marian::Tensor in2,
+                    const marian::Tensor t) {
   cudaSetDevice(out->getDevice().no);
 
   int length = out->shape().elements();
@@ -2079,13 +1969,13 @@ __global__ void gHighwayBackward(float* out1,
   }
 }
 
-void HighwayBackward(Tensor out1,
-                     Tensor out2,
-                     Tensor outt,
-                     const Tensor in1,
-                     const Tensor in2,
-                     const Tensor t,
-                     const Tensor adj) {
+void HighwayBackward(marian::Tensor out1,
+                     marian::Tensor out2,
+                     marian::Tensor outt,
+                     const marian::Tensor in1,
+                     const marian::Tensor in2,
+                     const marian::Tensor t,
+                     const marian::Tensor adj) {
   cudaSetDevice(out1->getDevice().no);
 
   int length = out1->shape().elements();
@@ -2138,20 +2028,20 @@ __global__ void gMaxPoolingForward(float* out,
   out[rowId + (colId * outCols)] = currentMax;
 }
 
-void PoolingWithMaskingForward(Tensor out,
-                               Tensor in,
-                               Tensor mask,
+void PoolingWithMaskingForward(marian::Tensor out,
+                               marian::Tensor in,
+                               marian::Tensor mask,
                                int width,
                                bool isEven) {
   int n = out->shape().elements();
   int threads = std::min(n, MAX_THREADS);
   int blocks = n / threads + (n % threads != 0);
 
-  Shape& inShape = in->shape();
+  auto& inShape = in->shape();
   int inRows = inShape[0] * inShape[1];
   int inCols = inShape[2];
 
-  Shape& outShape = out->shape();
+  auto& outShape = out->shape();
   int outRows = outShape[2];
   int outCols = outShape[0] * outShape[1];
 
@@ -2203,21 +2093,21 @@ __global__ void gMaxPoolingBackward(float* adj,
   adjIn[(rowId * inCols) + (colId * width) + currentMaxIdx] += adj[rowId + (colId * adjCols)];
 }
 
-void PoolingWithMaskingBackward(Tensor adj,
-                                Tensor adjIn,
-                                Tensor in,
-                                Tensor mask,
+void PoolingWithMaskingBackward(marian::Tensor adj,
+                                marian::Tensor adjIn,
+                                marian::Tensor in,
+                                marian::Tensor mask,
                                 int width,
                                 bool isEven) {
   int n = adj->shape().elements();
   int threads = std::min(n, 512);
   int blocks = n / threads + (n % threads != 0);
 
-  Shape& inShape = in->shape();
+  auto& inShape = in->shape();
   int inRows = inShape[0] * inShape[1];
   int inCols = inShape[2];
 
-  Shape& adjShape = adj->shape();
+  auto& adjShape = adj->shape();
   int adjRows = adjShape[2];
   int adjCols = adjShape[0] * adjShape[1];
 
@@ -2232,4 +2122,5 @@ void PoolingWithMaskingBackward(Tensor adj,
       width, lastWidth);
 }
 
+}
 }  // namespace marian

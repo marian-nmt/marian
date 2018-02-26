@@ -1,5 +1,5 @@
 #include "graph/expression_operators.h"
-#include "kernels/sparse.h"
+//#include "kernels/sparse.h"
 #include "layers/constructors.h"
 
 #include "graph/node_operators.h"

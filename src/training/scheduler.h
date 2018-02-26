@@ -8,16 +8,8 @@ namespace marian {
 
 class Scheduler : public TrainingObserver {
 private:
-  YAML::Node progress;
-
   Ptr<Config> options_;
   std::vector<Ptr<ValidatorBase>> validators_;
-  bool validated_{false};
-
-  float costSum{0};
-  size_t samples{0};
-  size_t samplesDisp{0};
-  size_t wordsDisp{0};
 
   bool first_{true};
 
@@ -50,11 +42,8 @@ public:
   }
 
   void increaseEpoch() {
-    LOG(info, "Seen {} samples", samples);
-
+    LOG(info, "Seen {} samples", state_->samples);
     state_->newEpoch();
-    samples = 0;
-
     LOG(info, "Starting epoch {}", state_->epochs);
   }
 
@@ -63,6 +52,14 @@ public:
 
   void addValidator(Ptr<ValidatorBase> validator) {
     validators_.push_back(validator);
+    // stalled validations are computed with the first validator only
+    if(validators_.size() == 1) {
+      registerTrainingObserver(validators_.front());
+      // initialize the value of the very first validation score, which should
+      // be the worst possible
+      if(!state_->loaded)
+        state_->validBest = validators_.front()->initScore();
+    }
   }
 
   bool validating() {
@@ -75,8 +72,9 @@ public:
   }
 
   void validate(const std::vector<Ptr<ExpressionGraph>>& graphs, bool final = false) {
-    if(validated_ || (state_->batches % options_->get<size_t>("valid-freq") != 0
-                      && !final))
+    if(state_->validated
+       || (state_->batches % options_->get<size_t>("valid-freq") != 0
+           && !final))
       return;
 
     bool firstValidator = true;
@@ -86,19 +84,23 @@ public:
 
       size_t stalledPrev = validator->stalled();
       float value = validator->validate(graphs);
-      if(validator->stalled() > 0)
+      if(validator->stalled() > 0) {
         LOG_VALID(info,
                   "{} : {} : {} : stalled {} times",
                   state_->batches,
                   validator->type(),
                   value,
                   validator->stalled());
-      else
+      } else {
         LOG_VALID(info,
                   "{} : {} : {} : new best",
                   state_->batches,
                   validator->type(),
                   value);
+
+        if(firstValidator)
+          state_->validBest = value;
+      }
 
       // notify training observers if the first validator did not improve
       if(firstValidator && validator->stalled() > stalledPrev)
@@ -106,7 +108,7 @@ public:
       firstValidator = false;
     }
 
-    validated_ = true;
+    state_->validated = true;
   }
 
   size_t stalled() {
@@ -117,10 +119,12 @@ public:
   }
 
   void update(float cost, Ptr<data::Batch> batch) {
-    costSum += cost * batch->size();
-    samples += batch->size();
-    samplesDisp += batch->size();
-    wordsDisp += batch->words();
+    state_->validated = false;
+
+    state_->costSum += cost * batch->size();
+    state_->samples += batch->size();
+    state_->samplesDisp += batch->size();
+    state_->wordsDisp += batch->words();
     state_->newBatch();
 
     if(state_->batches % options_->get<size_t>("disp-freq") == 0) {
@@ -130,10 +134,10 @@ public:
             "words/s : L.r. {:.4e}",
             state_->epochs,
             state_->batches,
-            samples,
-            costSum / samplesDisp,
+            state_->samples,
+            state_->costSum / state_->samplesDisp,
             timer.format(2, "%ws"),
-            wordsDisp / std::stof(timer.format(5, "%w")),
+            state_->wordsDisp / std::stof(timer.format(5, "%w")),
             state_->eta);
       } else {
         LOG(info,
@@ -141,37 +145,40 @@ public:
             "words/s",
             state_->epochs,
             state_->batches,
-            samples,
-            costSum / samplesDisp,
+            state_->samples,
+            state_->costSum / state_->samplesDisp,
             timer.format(2, "%ws"),
-            wordsDisp / std::stof(timer.format(5, "%w")));
+            state_->wordsDisp / std::stof(timer.format(5, "%w")));
       }
       timer.start();
-      costSum = 0;
-      wordsDisp = 0;
-      samplesDisp = 0;
+      state_->costSum = 0;
+      state_->wordsDisp = 0;
+      state_->samplesDisp = 0;
     }
-
-    validated_ = false;
   }
 
   void load(const std::string& name) {
-    std::string nameYaml = name + ".yml";
-    if(boost::filesystem::exists(nameYaml)) {
-      YAML::Node config = YAML::LoadFile(nameYaml);
-      state_->epochs = config["progress"]["epochs"].as<size_t>();
-      state_->batches = config["progress"]["batches"].as<size_t>();
+    std::string nameYaml = name + ".progress.yml";
+    if(boost::filesystem::exists(nameYaml))
+      state_->load(nameYaml);
+
+    // @TODO: not sure if needed
+    if(!options_->get<bool>("restore-corpus")) {
+      state_->costSum = 0;
+      state_->samplesDisp = 0;
+      state_->wordsDisp = 0;
     }
+
+    state_->newLoad();
   }
 
   void save(const std::string& name) {
+    // Save config options
     YAML::Node config = options_->get();
-    config["progress"]["epochs"] = state_->epochs;
-    config["progress"]["batches"] = state_->batches;
-
-    std::string nameYaml = name + ".yml";
-    std::ofstream fout(nameYaml);
+    std::ofstream fout(name + ".yml");
     fout << config;
+    // Save training progress
+    state_->save(name + ".progress.yml");
   }
 
   size_t numberOfBatches() { return state_->batches; }

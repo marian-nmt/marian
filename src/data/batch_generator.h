@@ -9,23 +9,28 @@
 
 #include "common/config.h"
 #include "data/batch_stats.h"
+#include "data/rng_engine.h"
 #include "data/vocab.h"
+#include "training/training_state.h"
 
 namespace marian {
 
 namespace data {
 
 template <class DataSet>
-class BatchGenerator {
+class BatchGenerator : public RNGEngine {
 public:
   typedef typename DataSet::batch_ptr BatchPtr;
 
   typedef typename DataSet::sample sample;
   typedef std::vector<sample> samples;
 
-private:
+protected:
   Ptr<DataSet> data_;
   Ptr<Config> options_;
+  bool restored_{false};
+
+private:
   Ptr<BatchStats> stats_;
 
   int batchSize_{1};
@@ -36,18 +41,16 @@ private:
   std::deque<BatchPtr> bufferedBatches_;
   BatchPtr currentBatch_;
 
-  std::mt19937 g_;
-
   mutable std::mutex loadMutex_;
   mutable std::condition_variable loadCondition_;
   bool loadReady_{true};
-  
+
   void fillBatches(bool shuffle = true) {
     typedef typename sample::value_type Item;
     auto itemCmp = [](const Item& sa, const Item& sb) {
       return sa.size() < sb.size();
     };
-    
+
     auto cmpSrc = [itemCmp](const sample& a, const sample& b) {
       return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end(), itemCmp);
     };
@@ -91,7 +94,7 @@ private:
     std::vector<size_t> lengths(sets, 0);
 
     std::vector<BatchPtr> tempBatches;
-    
+
     // while there are sentences in the queue
     while(!maxiBatch->empty()) {
       // push item onto batch
@@ -111,7 +114,7 @@ private:
 
       if(options_->has("mini-batch-fit")) {
         // Dynamic batching
-        if(stats_ && options_->get<bool>("mini-batch-fit")) {
+        if(stats_) {
           for(size_t i = 0; i < sets; ++i)
             if(batchVector.back()[i].size() > lengths[i])
               lengths[i] = batchVector.back()[i].size();
@@ -131,7 +134,7 @@ private:
       // if batch has desired size create a real batch
       if(makeBatch) {
         tempBatches.push_back(data_->toBatch(batchVector));
-        
+
         // prepare for next batch
         batchVector.clear();
         currentWords = 0;
@@ -139,16 +142,16 @@ private:
         lengths.resize(sets, 0);
       }
     }
-    
+
     // turn rest into batch
     if(!batchVector.empty())
       tempBatches.push_back(data_->toBatch(batchVector));
 
     if(shuffle) {
       // shuffle the batches
-      std::shuffle(tempBatches.begin(), tempBatches.end(), g_);
+      std::shuffle(tempBatches.begin(), tempBatches.end(), eng_);
     }
-    
+
     // put batches onto queue
     // exclusive lock
     std::unique_lock<std::mutex> lock(loadMutex_);
@@ -160,7 +163,7 @@ public:
   BatchGenerator(Ptr<DataSet> data,
                  Ptr<Config> options,
                  Ptr<BatchStats> stats = nullptr)
-      : data_(data), options_(options), stats_(stats), g_(Config::seed) {}
+      : data_(data), options_(options), stats_(stats) {}
 
   operator bool() const {
     // wait if empty but loading
@@ -168,18 +171,18 @@ public:
     loadCondition_.wait(lock, [this]{
       return loadReady_ || !bufferedBatches_.empty();
     });
-    
+
     return !bufferedBatches_.empty();
   }
 
   BatchPtr next() {
     {
-      std::unique_lock<std::mutex> lock(loadMutex_); 
+      std::unique_lock<std::mutex> lock(loadMutex_);
       loadCondition_.wait(lock, [this]{
         return loadReady_ || !bufferedBatches_.empty();
       });
     }
-    
+
     ABORT_IF(bufferedBatches_.empty(), "No batches to fetch, run prepare()");
     currentBatch_ = bufferedBatches_.front();
 
@@ -189,7 +192,7 @@ public:
         loadReady_ = false;
         loadCondition_.notify_all();
       }
-      
+
       std::thread([this]() {
         fillBatches();
         std::unique_lock<std::mutex> lock(loadMutex_);
@@ -200,7 +203,7 @@ public:
 
     std::unique_lock<std::mutex> lock(loadMutex_);
     bufferedBatches_.pop_front();
-    
+
     return currentBatch_;
   }
 
@@ -211,6 +214,41 @@ public:
       data_->reset();
     current_ = data_->begin();
     fillBatches(shuffle);
+  }
+
+  bool restore(Ptr<TrainingState> state, bool shuffle) {
+    if(state->epochs == 1 && state->batchesEpoch == 0)
+      return false;
+
+    LOG(info,
+        "[data] Restoring the corpus state to epoch {}, batch {}",
+        state->epochs,
+        state->batches);
+
+    if(state->epochs > 1) {
+      data_->restore(state);
+      setRNGState(state->seedBatch);
+    }
+
+    prepare(shuffle);
+    for(int i = 0; i < state->batchesEpoch; ++i)
+      next();
+
+    return true;
+  }
+};
+
+class CorpusBatchGenerator : public BatchGenerator<CorpusBase>,
+                             public TrainingObserver {
+public:
+  CorpusBatchGenerator(Ptr<CorpusBase> data,
+                       Ptr<Config> options,
+                       Ptr<BatchStats> stats = nullptr)
+      : BatchGenerator(data, options, stats) {}
+
+  void actAfterEpoch(TrainingState& state) {
+    state.seedBatch = getRNGState();
+    state.seedCorpus = data_->getRNGState();
   }
 };
 }
