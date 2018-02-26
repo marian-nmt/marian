@@ -1,8 +1,8 @@
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
+#include <boost/regex.hpp>
 #include <set>
 #include <string>
-#include <regex>
 #include <stdexcept>
 
 #if MKL_FOUND
@@ -225,19 +225,19 @@ void ConfigParser::validateDevices() const {
   std::string devices = Join(get<std::vector<std::string>>("devices"));
   Trim(devices);
 
-  std::regex pattern;
+  boost::regex pattern;
   std::string help;
   if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
     // valid strings: '0: 1 2', '0:1 2 1:2 3'
-    pattern = "( *\\d+ *: *\\d+( *\\d+)*)+";
+    pattern = "( *[0-9]+ *: *[0-9]+( *[0-9]+)*)+";
     help = "Supported format for multi-node setting: '0:0 1 2 3 1:0 1 2 3'";
   } else {
     // valid strings: '0', '0 1 2 3', '3 2 0 1'
-    pattern = "\\d+( *\\d+)*";
+    pattern = "[0-9]+( *[0-9]+)*";
     help = "Supported formats: '0 1 2 3'";
   }
 
-  UTIL_THROW_IF2(!std::regex_match(devices, pattern),
+  UTIL_THROW_IF2(!boost::regex_match(devices, pattern),
                  "the argument '(" + devices
                      + ")' for option '--devices' is invalid. "
                      + help);

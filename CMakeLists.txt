@@ -93,7 +93,7 @@ else(ZLIB_FOUND)
   message(SEND_ERROR "Cannot find zlib.")
 endif(ZLIB_FOUND)
 
-set(BOOST_COMPONENTS system timer iostreams filesystem chrono program_options thread)
+set(BOOST_COMPONENTS system timer iostreams filesystem chrono program_options thread regex)
 
 find_package(PythonLibs 2.7)
 if(PYTHONLIBS_FOUND)
