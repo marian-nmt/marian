@@ -53,9 +53,10 @@ void AsyncGraphGroupDrop::fetchParams(Tensor oldParams,
           paramsLocal_[device_id][idx]->copyFrom(params[idx]);
 
           // get sparse delta
-          fetchDropper[device_id][idx]->dropGraph(
-              paramsDelta_[idx], fetchSparseGradient_[idx],
-              droping_rate, dropping_momentum);
+          fetchDropper[device_id][idx]->dropGraph(paramsDelta_[idx],
+                                                  fetchSparseGradient_[idx],
+                                                  droping_rate,
+                                                  dropping_momentum);
 
           // move sparse delta
           fetchShardedSparseGradient_[device_id][idx]->copyFrom(
@@ -84,9 +85,10 @@ void AsyncGraphGroupDrop::pushGradients(Tensor newGrads,
   }
 
   // get the sparse gradient
-  pushDropper_[device_id]->dropGraph(
-      newGrads, pushSparseGradient_[device_id],
-      droping_rate, dropping_momentum);
+  pushDropper_[device_id]->dropGraph(newGrads,
+                                     pushSparseGradient_[device_id],
+                                     droping_rate,
+                                     dropping_momentum);
 
   SparseTensor newSparseGrads = pushSparseGradient_[device_id];
   // add instead of copy?
@@ -165,20 +167,19 @@ void AsyncGraphGroupDrop::init(Ptr<data::Batch> batch) {
       fetchDropper.push_back(tmpDropper);
 
       // sparsetensor to store sparsified gradients per-device
-      pushSparseGradient_.push_back(
-          SparseTensor(new SparseTensorBase(sparseCap, graphs_[i]->getBackend())));
+      pushSparseGradient_.push_back(SparseTensor(
+          new SparseTensorBase(sparseCap, graphs_[i]->getBackend())));
 
-      pushShardedSparseGradient_.push_back(
-          SparseTensor(new SparseTensorBase(sparseCap, graphs_[i]->getBackend())));
-      fetchSparseGradient_.push_back(SparseTensor(
-          new SparseTensorBase(sparseCap / devices_.size(), graphs_[i]->getBackend())));
+      pushShardedSparseGradient_.push_back(SparseTensor(
+          new SparseTensorBase(sparseCap, graphs_[i]->getBackend())));
+      fetchSparseGradient_.push_back(SparseTensor(new SparseTensorBase(
+          sparseCap / devices_.size(), graphs_[i]->getBackend())));
 
       std::vector<SparseTensor> tmp;
       for(int j = 0; j < devices_.size(); j++)
-        tmp.push_back(SparseTensor(
-            new SparseTensorBase(sparseCap / devices_.size(), graphs_[i]->getBackend())));
+        tmp.push_back(SparseTensor(new SparseTensorBase(
+            sparseCap / devices_.size(), graphs_[i]->getBackend())));
       fetchShardedSparseGradient_.push_back(tmp);
-
     }
     drop_first = false;
   }
