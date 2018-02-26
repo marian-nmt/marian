@@ -16,8 +16,8 @@ Tensor& Swap(Tensor& Out, Tensor& In) {
   return Out;
 }
 
-__global__ void gMean(MatrixWrapper<float> out,
-                      const MatrixWrapper<float> in,
+__global__ void gMean(TensorWrapper<float> out,
+                      const TensorWrapper<float> in,
                       const VectorWrapper<unsigned> sentenceLengths)
 {
   // out = batches * states
@@ -65,8 +65,8 @@ void Mean(Tensor& Out,
   unsigned stateLength = Out.dim(1);
   unsigned sentenceLength = (In.dim(0) * In.dim(2) * In.dim(3)) / batchNum;
 
-  MatrixWrapper<float> outWrap(Out);
-  MatrixWrapper<float> inWrap(In);
+  TensorWrapper<float> outWrap(Out);
+  TensorWrapper<float> inWrap(In);
   //cerr << "outWrap=" << outWrap.Debug() << endl;
 
   VectorWrapper<unsigned> sentenceLengthsWrap(sentenceLengths);
@@ -81,9 +81,9 @@ void Mean(Tensor& Out,
 
 }
 
-__global__ void gWeightedMean(MatrixWrapper<float> out,
-                              const MatrixWrapper<float> weights,
-                              const MatrixWrapper<float> in,
+__global__ void gWeightedMean(TensorWrapper<float> out,
+                              const TensorWrapper<float> weights,
+                              const TensorWrapper<float> in,
                               const VectorWrapper<unsigned> mapping
                               )
 {
@@ -114,9 +114,9 @@ void WeightedMean(Tensor& Out,const Tensor& Weights, const Tensor& In, const mbl
 
   Out.NewSize(numHypos, states);
 
-  MatrixWrapper<float> outWrap(Out);
-  MatrixWrapper<float> weightsWrap(Weights);
-  MatrixWrapper<float> inWrap(In);
+  TensorWrapper<float> outWrap(Out);
+  TensorWrapper<float> weightsWrap(Weights);
+  TensorWrapper<float> inWrap(In);
   VectorWrapper<unsigned> mappingWrap(mapping);
 
   unsigned size = Out.size();
@@ -179,8 +179,8 @@ Tensor& Copy(Tensor& Out, const Tensor& In) {
   return Out;
 }
 
-__global__ void gPasteRows(MatrixWrapper<float> out,
-                          const MatrixWrapper<float> in,
+__global__ void gPasteRows(TensorWrapper<float> out,
+                          const TensorWrapper<float> in,
                           int rowNo, int colNo)
 {
   int inRows = in.dim(0);
@@ -200,8 +200,8 @@ __global__ void gPasteRows(MatrixWrapper<float> out,
 
 void PasteRows(Tensor& Out, const Tensor& In, const unsigned rowNo, unsigned colNo)
 {
-  MatrixWrapper<float> outWrap(Out);
-  MatrixWrapper<float> inWrap(In);
+  TensorWrapper<float> outWrap(Out);
+  TensorWrapper<float> inWrap(In);
 
   unsigned size = In.size();
   unsigned nThreads = std::min((unsigned) MAX_THREADS, (unsigned)size);
@@ -238,8 +238,8 @@ Tensor& CopyRow(Tensor& Out,
   return Out;
 }
 
-__global__ void gCopyRows(MatrixWrapper<float> out,
-                          const MatrixWrapper<float> in,
+__global__ void gCopyRows(TensorWrapper<float> out,
+                          const TensorWrapper<float> in,
                           const VectorWrapper<unsigned> indicesWrap)
 {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -279,8 +279,8 @@ Tensor& CopyRows(Tensor& Out,
 
   unsigned numPairs = indices.size();
 
-  MatrixWrapper<float> outWrap(Out);
-  const MatrixWrapper<float> inWrap(In);
+  TensorWrapper<float> outWrap(Out);
+  const TensorWrapper<float> inWrap(In);
   const VectorWrapper<unsigned> indicesWrap(indices);
   //cerr << "size=" << size << endl;
 
@@ -305,8 +305,8 @@ Tensor& Assemble(Tensor& Out,
   return Out;
 }
 
-__global__ void gSlice(MatrixWrapper<float> out,
-                      const MatrixWrapper<float> in,
+__global__ void gSlice(TensorWrapper<float> out,
+                      const TensorWrapper<float> in,
                        unsigned n, unsigned dim)
 {
   unsigned row = blockIdx.x;
@@ -332,8 +332,8 @@ Tensor& Slice(Tensor& Out,
 
   Out.NewSize(In.dim(0), dim);
 
-  MatrixWrapper<float> outWrap(Out);
-  const MatrixWrapper<float> inWrap(In);
+  TensorWrapper<float> outWrap(Out);
+  const TensorWrapper<float> inWrap(In);
 
   /*
   cerr << "outWrap=" << outWrap.Debug() << endl;
@@ -433,7 +433,7 @@ Tensor& Prod(Tensor& C, const Tensor& A, const Tensor& B,
   return ret;
 }
 
-__global__ void gSoftMax(MatrixWrapper<float> out,
+__global__ void gSoftMax(TensorWrapper<float> out,
                          const VectorWrapper<unsigned> batchIdsWrap,
                          const VectorWrapper<unsigned> sentenceLengthsWrap,
                          unsigned shareSize)
@@ -525,7 +525,7 @@ Tensor& Softmax(Tensor& Out,
 {
   unsigned maxLength = Out.dim(1);
 
-  MatrixWrapper<float> outWrap(Out);
+  TensorWrapper<float> outWrap(Out);
   const VectorWrapper<unsigned> batchIdsWrap(batchIds);
   const VectorWrapper<unsigned> sentenceLengthsWrap(sentenceLengths);
 
@@ -540,7 +540,7 @@ Tensor& Softmax(Tensor& Out,
   return Out;
 }
 
-__global__ void gLogSoftMax(MatrixWrapper<float> out, unsigned shareSize)
+__global__ void gLogSoftMax(TensorWrapper<float> out, unsigned shareSize)
 {
   extern __shared__ float _share[];
 
@@ -622,7 +622,7 @@ __global__ void gLogSoftMax(MatrixWrapper<float> out, unsigned shareSize)
 
 Tensor& LogSoftmax(Tensor& Out)
 {
-  MatrixWrapper<float> outWrap(Out);
+  TensorWrapper<float> outWrap(Out);
 
   int blocks = std::min(MAX_BLOCKS, (int)Out.dim(0));
   int threads = std::min(MAX_THREADS, (int)Out.dim(1));
@@ -635,7 +635,7 @@ Tensor& LogSoftmax(Tensor& Out)
   return Out;
 }
 
-__global__ void gSetColumn(MatrixWrapper<float> in, int noColumn, float value) {
+__global__ void gSetColumn(TensorWrapper<float> in, int noColumn, float value) {
   int n_rows = in.dim(0);
 
   int rowNumber = threadIdx.x  + blockDim.x * blockIdx.x;
@@ -650,14 +650,14 @@ void SetColumn(Tensor& In, int noColumn, float value) {
   int nBlocks = nRows / MAX_THREADS + ((nRows % MAX_THREADS == 0) ?  0 : 1);
   int nThreads = std::min(MAX_THREADS, nRows);
 
-  MatrixWrapper<float> inWrap(In);
+  TensorWrapper<float> inWrap(In);
 
   gSetColumn<<<nBlocks, nThreads, 0, mblas::CudaStreamHandler::GetStream()>>>
     (inWrap, noColumn, value);
   HANDLE_ERROR(cudaGetLastError());
 }
 
-__global__ void gFill(MatrixWrapper<float> in, float val) {
+__global__ void gFill(TensorWrapper<float> in, float val) {
   int index = threadIdx.x + blockDim.x * blockIdx.x;
   if (index < in.size()) {
     in[index] = val;
@@ -671,7 +671,7 @@ void Fill(Tensor& In, float value) {
     int nThreads = std::min(MAX_THREADS, (int)size);
     int nBlocks = (size / nThreads) + ((size % nThreads == 0) ? 0 : 1);
 
-    MatrixWrapper<float> inWrap(In);
+    TensorWrapper<float> inWrap(In);
 
     gFill<<<nBlocks, nThreads, 0, CudaStreamHandler::GetStream()>>>
       (inWrap, value);
@@ -684,7 +684,7 @@ void Fill(Tensor& In, float value) {
 }
 
 __global__
-void gMapMatrix(MatrixWrapper<float> in,
+void gMapMatrix(TensorWrapper<float> in,
                 const VectorWrapper<unsigned> sentenceLengthsWrap,
                 int i)
 {
@@ -712,7 +712,7 @@ void MapMatrix(Tensor& state,
   int numThreads = std::min((int)state.size(), MAX_THREADS);
   int numBlocks = (state.size() / numThreads) + ((state.size() % numThreads == 0) ? 0 : 1);
 
-  MatrixWrapper<float> stateWrap(state);
+  TensorWrapper<float> stateWrap(state);
   VectorWrapper<unsigned> sentenceLengthsWrap(sentenceLengths);
 
   gMapMatrix<<<numBlocks, numThreads, 0, CudaStreamHandler::GetStream()>>>
@@ -738,10 +738,10 @@ __device__ unsigned getIndex(const dim3 &dim, const dim3 &val)
 }
 
 
-__global__ void gLNormalization(MatrixWrapper<float> out,
-                                const MatrixWrapper<float> in,
-                                const MatrixWrapper<float> alphaWrap,
-                                const MatrixWrapper<float> betaWrap,
+__global__ void gLNormalization(TensorWrapper<float> out,
+                                const TensorWrapper<float> in,
+                                const TensorWrapper<float> alphaWrap,
+                                const TensorWrapper<float> betaWrap,
                                 float eps=0.00001)
 {
   extern __shared__ float _share[];
@@ -831,10 +831,10 @@ void Normalization(Tensor &out,
   dim3 numBlocks(in.dim(0), in.dim(2), in.dim(3));
   int shared = numThreads * sizeof(float) * 2;
 
-  MatrixWrapper<float> outWrap(out);
-  const MatrixWrapper<float> inWrap(in);
-  const MatrixWrapper<float> alphaWrap(alpha);
-  MatrixWrapper<float> *betaWrap = beta ? new MatrixWrapper<float>(*beta) : new MatrixWrapper<float>();
+  TensorWrapper<float> outWrap(out);
+  const TensorWrapper<float> inWrap(in);
+  const TensorWrapper<float> alphaWrap(alpha);
+  TensorWrapper<float> *betaWrap = beta ? new TensorWrapper<float>(*beta) : new TensorWrapper<float>();
 
   gLNormalization<<<numBlocks, numThreads, shared, CudaStreamHandler::GetStream()>>>
     (outWrap, inWrap, alphaWrap, *betaWrap, eps);
@@ -928,7 +928,7 @@ void gBeamSizeInit(VectorWrapper<unsigned> hypo2BeamSizeWrap,
 }
 
 __device__
-float GetMaxScore(const MatrixWrapper<NthOutBatch> &nBestMatrix)
+float GetMaxScore(const TensorWrapper<NthOutBatch> &nBestMatrix)
 {
   float ret = LOWEST_FLOAT;
   for (unsigned i = 0; i < nBestMatrix.dim(1); ++i) {
@@ -1018,8 +1018,8 @@ void MergeElement(float &minScore,
 __device__
 void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
               float &topScore,
-              const MatrixWrapper<float> &in,
-              const MatrixWrapper<float> &b4Wrap,
+              const TensorWrapper<float> &in,
+              const TensorWrapper<float> &b4Wrap,
               unsigned hypoInd,
               unsigned maxBeamSize,
               bool forbidUNK,
@@ -1029,10 +1029,10 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
   extern __shared__ char _sharePtr[];
 
   // placeholder for shared mem in subsequent function SumAndLogSoftMax
-  //MatrixWrapper<float> maxMatrix((float*)_sharePtr, blockDim.x, 1, 1, 1);
+  //TensorWrapper<float> maxMatrix((float*)_sharePtr, blockDim.x, 1, 1, 1);
 
   void *ptrOffset = _sharePtr + sizeof(float) * blockDim.x;
-  MatrixWrapper<NthOutBatch> nBestMatrix((NthOutBatch*)ptrOffset, blockDim.x, maxBeamSize, 1, 1);
+  TensorWrapper<NthOutBatch> nBestMatrix((NthOutBatch*)ptrOffset, blockDim.x, maxBeamSize, 1, 1);
   VectorWrapper<NthOutBatch> row = nBestMatrix.Row(threadIdx.x);
 
   unsigned vocabSize = in.dim(1);
@@ -1107,8 +1107,8 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 __device__
 void SumAndLogSoftMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
-                            const MatrixWrapper<float> &in,
-                            const MatrixWrapper<float> &b4Wrap,
+                            const TensorWrapper<float> &in,
+                            const TensorWrapper<float> &b4Wrap,
                             unsigned hypoInd,
                             unsigned maxBeamSize,
                             float topScore,
@@ -1160,8 +1160,8 @@ void SumAndLogSoftMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 __global__ void gLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
-                        const MatrixWrapper<float> in,
-                        const MatrixWrapper<float> b4Wrap,
+                        const TensorWrapper<float> in,
+                        const TensorWrapper<float> b4Wrap,
                         unsigned maxBeamSize,
                         bool forbidUNK,
                         const VectorWrapper<unsigned> hypo2BeamSizeWrap,
@@ -1205,7 +1205,7 @@ __global__ void gLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 __global__ void gNBestPerBatch(VectorWrapper<NthOutBatch> nBestWrap,
                         VectorWrapper<NthOutBatch> nBestCandidatesWrap,
-                        const MatrixWrapper<float> in,
+                        const TensorWrapper<float> in,
                         const VectorWrapper<float> costsWrap,
                         unsigned maxBeamSize,
                         bool forbidUNK,
@@ -1353,8 +1353,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   cerr << endl;
   */
 
-  MatrixWrapper<float> inWrap(in);
-  MatrixWrapper<float> b4Wrap(b4);
+  TensorWrapper<float> inWrap(in);
+  TensorWrapper<float> b4Wrap(b4);
   VectorWrapper<unsigned> hypo2BeamSizeWrap(hypo2BeamSize);
   VectorWrapper<unsigned> hypo2CandidateWrap(hypo2Candidate);
   VectorWrapper<unsigned> batch2HypoWrap(batch2Hypo);

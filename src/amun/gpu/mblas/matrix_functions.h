@@ -130,9 +130,9 @@ Tensor& LogSoftmax(Tensor& Out);
 
 template <class Functor>
 __global__ void gBroadcast(Functor functor,
-                           MatrixWrapper<float> outWrap,
-                           const MatrixWrapper<float> in1Wrap,
-                           const MatrixWrapper<float> in2Wrap,
+                           TensorWrapper<float> outWrap,
+                           const TensorWrapper<float> in1Wrap,
+                           const TensorWrapper<float> in2Wrap,
                            const VectorWrapper<unsigned> batchMappingWrap)
 {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -183,9 +183,9 @@ Tensor& Broadcast(Functor functor,
 
   out.NewSize(srcSize, cols, sumOfBeamSizes);
 
-  MatrixWrapper<float> outWrap(out);
-  const MatrixWrapper<float> in1Wrap(in1);
-  const MatrixWrapper<float> in2Wrap(in2);
+  TensorWrapper<float> outWrap(out);
+  const TensorWrapper<float> in1Wrap(in1);
+  const TensorWrapper<float> in2Wrap(in2);
   const VectorWrapper<unsigned> batchMappingWrap(batchMapping);
 
   unsigned size = out.size();
@@ -215,7 +215,7 @@ Tensor& Broadcast(Functor functor,
 
 template <class Functor>
 __global__ void gBroadcastVecColumn(Functor functor,
-                                    MatrixWrapper<float> outWrap,
+                                    TensorWrapper<float> outWrap,
                                     const VectorWrapper<float> inWrap) {
   extern __shared__ float sdataOrig[];
 
@@ -245,7 +245,7 @@ Tensor& BroadcastVecColumn(Functor functor, Tensor& Out, const mblas::Vector<flo
   unsigned rows  = Out.dim(0);
   unsigned cols = Out.dim(1);
 
-  MatrixWrapper<float> outWrap(Out);
+  TensorWrapper<float> outWrap(Out);
   const VectorWrapper<float> inWrap(In);
 
   int threads = std::min(MAX_THREADS, (int)cols);
@@ -260,8 +260,8 @@ Tensor& BroadcastVecColumn(Functor functor, Tensor& Out, const mblas::Vector<flo
 
 template <class Functor>
 __global__ void gBroadcastVec(Functor functor,
-                              MatrixWrapper<float> outWrap,
-                              const MatrixWrapper<float> inWrap)
+                              TensorWrapper<float> outWrap,
+                              const TensorWrapper<float> inWrap)
 {
   unsigned cols = outWrap.dim(1);
 
@@ -289,8 +289,8 @@ Tensor& BroadcastVec(Functor functor, Tensor& Out, const Tensor& In)
 
   unsigned cols = Out.dim(1);
 
-  MatrixWrapper<float> outWrap(Out);
-  const MatrixWrapper<float> inWrap(In);
+  TensorWrapper<float> outWrap(Out);
+  const TensorWrapper<float> inWrap(In);
 
   int threads = std::min(MAX_THREADS, (int)cols);
   int blocks  = cols / threads  + ((cols % threads == 0) ?  0 : 1);
@@ -305,7 +305,7 @@ Tensor& BroadcastVec(Functor functor, Tensor& Out, const Tensor& In)
 
 template <class Functor>
 __global__ void gElement(Functor functor,
-                         MatrixWrapper<float> outWrap)
+                         TensorWrapper<float> outWrap)
 {
   unsigned ind = blockIdx.x * blockDim.x + threadIdx.x;
   if (ind < outWrap.size()) {
@@ -322,7 +322,7 @@ Tensor& Element(Functor functor,
   unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
-  MatrixWrapper<float> outWrap(Out);
+  TensorWrapper<float> outWrap(Out);
 
   gElement<<<blocks, threads, 0, stream>>>
     (functor, outWrap);
@@ -333,8 +333,8 @@ Tensor& Element(Functor functor,
 
 template <class Functor>
 __global__ void gElement(Functor functor,
-                         MatrixWrapper<float> outWrap,
-                         const MatrixWrapper<float> inWrap)
+                         TensorWrapper<float> outWrap,
+                         const TensorWrapper<float> inWrap)
 {
   unsigned ind = blockIdx.x * blockDim.x + threadIdx.x;
   if (ind < outWrap.size()) {
@@ -353,8 +353,8 @@ Tensor& Element(Functor functor,
   unsigned blocks  = size / threads + ((size % threads == 0) ?  0 : 1);
   const cudaStream_t& stream = CudaStreamHandler::GetStream();
 
-  MatrixWrapper<float> outWrap(Out);
-  const MatrixWrapper<float> inWrap(In);
+  TensorWrapper<float> outWrap(Out);
+  const TensorWrapper<float> inWrap(In);
 
   gElement<<<blocks, threads, 0, stream>>>
     (functor, outWrap, inWrap);
@@ -365,9 +365,9 @@ Tensor& Element(Functor functor,
 
 template <class Functor>
 __global__ void gElement(Functor functor,
-                         MatrixWrapper<float> outWrap,
-                         const MatrixWrapper<float> in1Wrap,
-                         const MatrixWrapper<float> in2Wrap)
+                         TensorWrapper<float> outWrap,
+                         const TensorWrapper<float> in1Wrap,
+                         const TensorWrapper<float> in2Wrap)
 {
   unsigned ind = blockIdx.x * blockDim.x + threadIdx.x;
   if (ind < outWrap.size()) {
@@ -395,9 +395,9 @@ Tensor& Element(Functor functor,
   //std::cerr << "Element3=" << In1.Debug(0) << std::endl;
   //std::cerr << "Element3=" << In2.Debug(0) << std::endl;
   //std::cerr << std::endl;
-  MatrixWrapper<float> outWrap(Out);
-  const MatrixWrapper<float> in1Wrap(In1);
-  const MatrixWrapper<float> in2Wrap(In2);
+  TensorWrapper<float> outWrap(Out);
+  const TensorWrapper<float> in1Wrap(In1);
+  const TensorWrapper<float> in2Wrap(In2);
   //std::cerr << "outWrap=" << outWrap.Debug() << std::endl;
 
   gElement<<<blocks, threads, 0, stream>>>

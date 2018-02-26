@@ -102,13 +102,13 @@ class SlowGRU: public Cell {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-__global__ void gElementwiseOps(mblas::MatrixWrapper<float> outWrap,
-                                const mblas::MatrixWrapper<float> stateWrap,
-                                const mblas::MatrixWrapper<float> ruhWrap,
-                                const mblas::MatrixWrapper<float> tempWrap,
-                                const mblas::MatrixWrapper<float> bWrap,
-                                const mblas::MatrixWrapper<float> bx1Wrap,
-                                const mblas::MatrixWrapper<float> bx2Wrap);
+__global__ void gElementwiseOps(mblas::TensorWrapper<float> outWrap,
+                                const mblas::TensorWrapper<float> stateWrap,
+                                const mblas::TensorWrapper<float> ruhWrap,
+                                const mblas::TensorWrapper<float> tempWrap,
+                                const mblas::TensorWrapper<float> bWrap,
+                                const mblas::TensorWrapper<float> bx1Wrap,
+                                const mblas::TensorWrapper<float> bx2Wrap);
 
 template <class Weights>
 class FastGRU: public Cell {
@@ -200,13 +200,13 @@ class FastGRU: public Cell {
       NextState.NewSize(State.dim(0), State.dim(1), 1, 1);
       //std::cerr << "NextState=" << NextState.Debug() << std::endl;
 
-      mblas::MatrixWrapper<float> nextWrap(NextState);
-      const mblas::MatrixWrapper<float> stateWrap(State);
-      const mblas::MatrixWrapper<float> ruhWrap(RUH);
-      const mblas::MatrixWrapper<float> tempWrap(Temp);
-      const mblas::MatrixWrapper<float> bWrap(*w_.B_);
-      const mblas::MatrixWrapper<float> bx1Wrap(*w_.Bx1_);
-      const mblas::MatrixWrapper<float> bx2Wrap(*w_.Bx2_);
+      mblas::TensorWrapper<float> nextWrap(NextState);
+      const mblas::TensorWrapper<float> stateWrap(State);
+      const mblas::TensorWrapper<float> ruhWrap(RUH);
+      const mblas::TensorWrapper<float> tempWrap(Temp);
+      const mblas::TensorWrapper<float> bWrap(*w_.B_);
+      const mblas::TensorWrapper<float> bx1Wrap(*w_.Bx1_);
+      const mblas::TensorWrapper<float> bx2Wrap(*w_.Bx2_);
 
       /*
       std::cerr << "nextWrap=" << nextWrap.Debug() << std::endl;

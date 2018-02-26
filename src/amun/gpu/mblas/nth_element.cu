@@ -100,7 +100,7 @@ void NthElement::getNBestList(mblas::Tensor &probs,
               cudaMemcpyHostToDevice);
 
   mblas::VectorWrapper<NthOut> outWrap(d_out);
-  mblas::MatrixWrapper<float> probsWrap(probs);
+  mblas::TensorWrapper<float> probsWrap(probs);
   mblas::VectorWrapper<unsigned> batchPositionWrap(d_batchPosition);
   mblas::VectorWrapper<NthOut> resWrap(d_res);
   mblas::VectorWrapper<unsigned> cumBeamSizesWrap(d_cumBeamSizes);
@@ -161,7 +161,7 @@ void NthElement::getValueByKey(std::vector<float>& out, const mblas::Tensor &d_i
   out.resize(d_breakdown.size());
 
   //mblas::VectorWrapper<float> breakdownWrap(d_breakdown);
-  //const mblas::MatrixWrapper<float> inWrap(d_in);
+  //const mblas::TensorWrapper<float> inWrap(d_in);
   //gGetValueByKey<<<1, lastN_, 0, stream_>>>
   //  (breakdownWrap, inWrap, h_res_idx, lastN_);
   /*

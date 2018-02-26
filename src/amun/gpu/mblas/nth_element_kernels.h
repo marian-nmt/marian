@@ -111,19 +111,19 @@ inline std::ostream& operator<<(std::ostream &out, const NthOutBatch &obj)
 /////////////////////////////////////////////////////////////////////////////////////////
 
 __global__ void gMaxElement(mblas::VectorWrapper<NthOut> out,
-                            const mblas::MatrixWrapper<float> probsWrap,
+                            const mblas::TensorWrapper<float> probsWrap,
                             const mblas::VectorWrapper<unsigned> batchPositionWrap,
                             unsigned numBatches);
 
 __global__ void gMaxElementUpdate(mblas::VectorWrapper<NthOut> out,
-                                  mblas::MatrixWrapper<float> probsWrap,
+                                  mblas::TensorWrapper<float> probsWrap,
                                   mblas::VectorWrapper<NthOut> resWrap,
                                   const mblas::VectorWrapper<unsigned> batchPositionWrap,
                                   const mblas::VectorWrapper<unsigned> cumBeamSizesWrap,
                                   unsigned numBlocks);
 
-__global__ void gGetValueByKey(mblas::MatrixWrapper<float> out,
-                              const   mblas::MatrixWrapper<float> in,
+__global__ void gGetValueByKey(mblas::TensorWrapper<float> out,
+                              const   mblas::TensorWrapper<float> in,
                               unsigned* indices, unsigned n);
 
 }
