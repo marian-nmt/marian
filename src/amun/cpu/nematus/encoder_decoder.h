@@ -38,8 +38,8 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
                                    const Beam& beam,
                                    State& out);
 
-    void GetAttention(mblas::Matrix& Attention);
-    mblas::Matrix& GetAttention();
+    void GetAttention(mblas::Tensor& Attention);
+    mblas::Tensor& GetAttention();
 
     unsigned GetVocabSize() const;
 

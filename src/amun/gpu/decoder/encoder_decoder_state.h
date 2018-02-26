@@ -16,13 +16,13 @@ class EncoderDecoderState : public State {
     virtual std::string Debug(unsigned verbosity = 1) const;
 
     CellState& GetStates();
-    mblas::Matrix& GetEmbeddings();
+    mblas::Tensor& GetEmbeddings();
     const CellState& GetStates() const;
-    const mblas::Matrix& GetEmbeddings() const;
+    const mblas::Tensor& GetEmbeddings() const;
 
   private:
     CellState states_;
-    mblas::Matrix embeddings_;
+    mblas::Tensor embeddings_;
 };
 
 }

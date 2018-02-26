@@ -22,8 +22,8 @@ class CPUEncoderDecoderBase : public Scorer {
 
     virtual State* NewState() const;
 
-    virtual void GetAttention(mblas::Matrix& Attention) = 0;
-    virtual mblas::Matrix& GetAttention() = 0;
+    virtual void GetAttention(mblas::Tensor& Attention) = 0;
+    virtual mblas::Tensor& GetAttention() = 0;
 
     virtual void *GetNBest()
     {
@@ -38,7 +38,7 @@ class CPUEncoderDecoderBase : public Scorer {
     }
 
   protected:
-    mblas::Matrix SourceContext_;
+    mblas::Tensor SourceContext_;
 };
 
 

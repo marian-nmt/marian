@@ -46,9 +46,9 @@ class EncoderDecoder : public Scorer {
                                    const Beam& beam,
                                    State& out);
 
-    void GetAttention(mblas::Matrix& Attention);
+    void GetAttention(mblas::Tensor& Attention);
 
-    mblas::Matrix& GetAttention();
+    mblas::Tensor& GetAttention();
     virtual BaseTensor& GetProbs();
 
     virtual void *GetNBest();
@@ -67,7 +67,7 @@ class EncoderDecoder : public Scorer {
     mblas::Vector<unsigned> sentenceLengths_;
       // set in Encoder::GetContext() to length (maxSentenceLength * batchSize). 1 if it's a word, 0 otherwise
 
-    std::unique_ptr<mblas::Matrix> SourceContext_;
+    std::unique_ptr<mblas::Tensor> SourceContext_;
 
     EncoderDecoder(const EncoderDecoder&) = delete;
 

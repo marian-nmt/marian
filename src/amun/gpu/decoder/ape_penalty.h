@@ -55,7 +55,7 @@ class ApePenalty : public Scorer {
   private:
     std::vector<float> costs_;
     const SrcTrgMap& srcTrgMap_;
-    mblas::Matrix Probs_;
+    mblas::Tensor Probs_;
     const Penalties& penalties_;
 
 };

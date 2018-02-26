@@ -73,60 +73,60 @@ void copy(const T *in, unsigned count, T *out,  cudaMemcpyKind kind) {
   HANDLE_ERROR( cudaMemcpyAsync(out, in, count * sizeof(T), kind, CudaStreamHandler::GetStream()) );
 }
 
-void Fill(Matrix& In, float value=0.0f);
+void Fill(Tensor& In, float value=0.0f);
 
-Matrix& Swap(Matrix& Out, Matrix& In);
+Tensor& Swap(Tensor& Out, Tensor& In);
 
-void Mean(Matrix& Out,
-          const Matrix& In,
+void Mean(Tensor& Out,
+          const Tensor& In,
           const mblas::Vector<unsigned> &sentenceLengths);
 
-void WeightedMean(Matrix& Out,const Matrix& Weights, const Matrix& In, const mblas::Vector<unsigned>& mapping);
+void WeightedMean(Tensor& Out,const Tensor& Weights, const Tensor& In, const mblas::Vector<unsigned>& mapping);
 
-Matrix& Transpose(Matrix& Out, const Matrix& In);
+Tensor& Transpose(Tensor& Out, const Tensor& In);
 
-Matrix& Transpose(Matrix& Out);
+Tensor& Transpose(Tensor& Out);
 
-Matrix& Copy(Matrix& Out, const Matrix& In);
+Tensor& Copy(Tensor& Out, const Tensor& In);
 
-Matrix& PasteRow(Matrix& Out,
-                 const Matrix& In,
+Tensor& PasteRow(Tensor& Out,
+                 const Tensor& In,
                  const unsigned r = 0,
                  const unsigned c = 0);
-void PasteRows(Matrix& Out, const Matrix& In, const unsigned rowNo, unsigned colNo=0);
+void PasteRows(Tensor& Out, const Tensor& In, const unsigned rowNo, unsigned colNo=0);
 
-Matrix& CopyRow(Matrix& Out,
-                const Matrix& In,
+Tensor& CopyRow(Tensor& Out,
+                const Tensor& In,
                 const unsigned r = 0,
                 const unsigned c = 0);
 
-Matrix& Concat(Matrix& Out, const Matrix& In);
+Tensor& Concat(Tensor& Out, const Tensor& In);
 
-void MapMatrix(Matrix& state,
+void MapMatrix(Tensor& state,
               const mblas::Vector<unsigned> &sentenceLengths,
               unsigned i);
 
-Matrix& CopyRows(Matrix& Out,
-                 const Matrix& In,
+Tensor& CopyRows(Tensor& Out,
+                 const Tensor& In,
                  const mblas::Vector<unsigned>& indices);
 
-Matrix& Assemble(Matrix& Out,
-                 const Matrix& In,
+Tensor& Assemble(Tensor& Out,
+                 const Tensor& In,
                  const mblas::Vector<unsigned>& indices);
 
-Matrix& Slice(Matrix& Out,
-              const Matrix& In,
+Tensor& Slice(Tensor& Out,
+              const Tensor& In,
               unsigned n, unsigned dim);
 
-Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
+Tensor& Prod(Tensor& C, const Tensor& A, const Tensor& B,
              bool transB = false);
 
-Matrix& Softmax(Matrix& Out,
+Tensor& Softmax(Tensor& Out,
                 const mblas::Vector<unsigned>& batchIds,
                 const mblas::Vector<unsigned> &sentenceLengths,
                 unsigned batchSize);
 
-Matrix& LogSoftmax(Matrix& Out);
+Tensor& LogSoftmax(Tensor& Out);
 
 template <class Functor>
 __global__ void gBroadcast(Functor functor,
@@ -168,10 +168,10 @@ __global__ void gBroadcast(Functor functor,
 }
 
 template <class Functor>
-Matrix& Broadcast(Functor functor,
-                  Matrix& out,
-                  const Matrix& in1,
-                  const Matrix& in2,
+Tensor& Broadcast(Functor functor,
+                  Tensor& out,
+                  const Tensor& in1,
+                  const Tensor& in2,
                   const mblas::Vector<unsigned>& batchMapping,
                   unsigned srcSize)
 {
@@ -240,7 +240,7 @@ __global__ void gBroadcastVecColumn(Functor functor,
 }
 
 template <class Functor>
-Matrix& BroadcastVecColumn(Functor functor, Matrix& Out, const mblas::Vector<float>& In)
+Tensor& BroadcastVecColumn(Functor functor, Tensor& Out, const mblas::Vector<float>& In)
 {
   unsigned rows  = Out.dim(0);
   unsigned cols = Out.dim(1);
@@ -282,7 +282,7 @@ __global__ void gBroadcastVec(Functor functor,
 }
 
 template <class Functor>
-Matrix& BroadcastVec(Functor functor, Matrix& Out, const Matrix& In)
+Tensor& BroadcastVec(Functor functor, Tensor& Out, const Tensor& In)
 {
   //std::cerr << "Out=" << Out.Debug() << std::endl;
   //std::cerr << "In=" << In.Debug() << std::endl;
@@ -314,8 +314,8 @@ __global__ void gElement(Functor functor,
 }
 
 template <class Functor>
-Matrix& Element(Functor functor,
-                Matrix& Out)
+Tensor& Element(Functor functor,
+                Tensor& Out)
 {
   unsigned size = Out.size();
   unsigned threads = std::min((unsigned) MAX_THREADS, (unsigned)size);
@@ -343,8 +343,8 @@ __global__ void gElement(Functor functor,
 }
 
 template <class Functor>
-Matrix& Element(Functor functor,
-                Matrix& Out, const Matrix& In)
+Tensor& Element(Functor functor,
+                Tensor& Out, const Tensor& In)
 {
   assert(Out.size() == In.size());
 
@@ -376,8 +376,8 @@ __global__ void gElement(Functor functor,
 }
 
 template <class Functor>
-Matrix& Element(Functor functor,
-                Matrix& Out, const Matrix& In1, const Matrix& In2)
+Tensor& Element(Functor functor,
+                Tensor& Out, const Tensor& In1, const Tensor& In2)
 {
   //std::cerr << "Out=" << Out.Debug() << std::endl;
   //std::cerr << "In1=" << In1.Debug() << std::endl;
@@ -411,16 +411,16 @@ Matrix& Element(Functor functor,
   return Out;
 }
 
-void SetColumn(Matrix& In, int noColumn, float value);
+void SetColumn(Tensor& In, int noColumn, float value);
 
-void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, const Matrix& beta,
+void Normalization(Tensor& out, const Tensor& in, const Tensor& alpha, const Tensor& beta,
                    float eps);
 
-void Normalization(Matrix& out, const Matrix& in, const Matrix& alpha, float eps);
+void Normalization(Tensor& out, const Tensor& in, const Tensor& alpha, float eps);
 
 void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
-                const Matrix& in,
-                const Matrix& b4,
+                const Tensor& in,
+                const Tensor& b4,
                 const mblas::Vector<float> &costs,
                 bool forbidUNK,
                 unsigned maxBeamSize,

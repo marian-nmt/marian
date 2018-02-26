@@ -14,19 +14,19 @@ std::string EncoderDecoderState::Debug(unsigned verbosity) const
 	return CPU::mblas::Debug(states_);
 }
 
-CPU::mblas::Matrix& EncoderDecoderState::GetStates() {
+CPU::mblas::Tensor& EncoderDecoderState::GetStates() {
   return states_;
 }
 
-CPU::mblas::Matrix& EncoderDecoderState::GetEmbeddings() {
+CPU::mblas::Tensor& EncoderDecoderState::GetEmbeddings() {
   return embeddings_;
 }
 
-const CPU::mblas::Matrix& EncoderDecoderState::GetStates() const {
+const CPU::mblas::Tensor& EncoderDecoderState::GetStates() const {
   return states_;
 }
 
-const CPU::mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
+const CPU::mblas::Tensor& EncoderDecoderState::GetEmbeddings() const {
   return embeddings_;
 }
 

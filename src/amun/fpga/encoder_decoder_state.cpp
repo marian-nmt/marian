@@ -13,19 +13,19 @@ EncoderDecoderState::EncoderDecoderState(const OpenCLInfo &openCLInfo)
 
 }
 
-mblas::Matrix& EncoderDecoderState::GetStates() {
+mblas::Tensor& EncoderDecoderState::GetStates() {
   return states_;
 }
 
-const mblas::Matrix& EncoderDecoderState::GetStates() const {
+const mblas::Tensor& EncoderDecoderState::GetStates() const {
   return states_;
 }
 
-mblas::Matrix& EncoderDecoderState::GetEmbeddings() {
+mblas::Tensor& EncoderDecoderState::GetEmbeddings() {
   return embeddings_;
 }
 
-const mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
+const mblas::Tensor& EncoderDecoderState::GetEmbeddings() const {
   return embeddings_;
 }
 

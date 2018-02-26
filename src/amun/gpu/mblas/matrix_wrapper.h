@@ -22,7 +22,7 @@ public:
     dataConst_ = nullptr;
   }
 
-  MatrixWrapper(const TMatrix<T> &matrix)
+  MatrixWrapper(const TTensor<T> &matrix)
   {
     dim_[0] = matrix.dim(0);
     dim_[1] = matrix.dim(1);
@@ -34,7 +34,7 @@ public:
     dataConst_ = matrix.data();
   }
 
-  MatrixWrapper(TMatrix<T> &matrix)
+  MatrixWrapper(TTensor<T> &matrix)
   {
     dim_[0] = matrix.dim(0);
     dim_[1] = matrix.dim(1);

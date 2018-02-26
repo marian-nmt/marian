@@ -17,7 +17,7 @@ class SlowGRU: public Cell {
 
     virtual void GetNextState(CellState& NextState,
                       const CellState& State,
-                      const mblas::Matrix& Context) const {
+                      const mblas::Tensor& Context) const {
       using namespace mblas;
 
       //std::cerr << std::endl;
@@ -90,12 +90,12 @@ class SlowGRU: public Cell {
     const Weights& w_;
 
     // reused to avoid allocation
-    mutable mblas::Matrix RU_;
-    mutable mblas::Matrix R_;
-    mutable mblas::Matrix U_;
-    mutable mblas::Matrix H_;
-    mutable mblas::Matrix Temp1_;
-    mutable mblas::Matrix Temp2_;
+    mutable mblas::Tensor RU_;
+    mutable mblas::Tensor R_;
+    mutable mblas::Tensor U_;
+    mutable mblas::Tensor H_;
+    mutable mblas::Tensor Temp1_;
+    mutable mblas::Tensor Temp2_;
 
     SlowGRU(const SlowGRU&) = delete;
 };
@@ -129,7 +129,7 @@ class FastGRU: public Cell {
       //std::cerr << "w_.W_=" << w_.W_.Debug(1) << std::endl;
       //std::cerr << "1WWx_=" << WWx_.Debug(1) << std::endl;
 
-      Matrix WxT;
+      Tensor WxT;
       Transpose(WxT, *w_.Wx_);
       //std::cerr << "w_.Wx_=" << w_.Wx_.Debug(1) << std::endl;
       //std::cerr << "WxT=" << WxT.Debug(1) << std::endl;
@@ -141,7 +141,7 @@ class FastGRU: public Cell {
       //std::cerr << "3WWx_=" << WWx_.Debug(1) << std::endl;
 
       Transpose(UUx_, *w_.U_);
-      Matrix UxT;
+      Tensor UxT;
       Transpose(UxT, *w_.Ux_);
       Concat(UUx_, UxT);
       Transpose(UUx_);
@@ -151,7 +151,7 @@ class FastGRU: public Cell {
 
     virtual void GetNextState(CellState& NextState,
                       const CellState& State,
-                      const mblas::Matrix& Context) const {
+                      const mblas::Tensor& Context) const {
       using namespace mblas;
 
       //std::cerr << std::endl;
@@ -183,10 +183,10 @@ class FastGRU: public Cell {
     }
 
 
-    void ElementwiseOps(mblas::Matrix& NextState,
-                        const mblas::Matrix& State,
-                        const mblas::Matrix& RUH,
-                        const mblas::Matrix& Temp) const
+    void ElementwiseOps(mblas::Tensor& NextState,
+                        const mblas::Tensor& State,
+                        const mblas::Tensor& RUH,
+                        const mblas::Tensor& Temp) const
     {
       //BEGIN_TIMER("ElementwiseOps");
 
@@ -243,11 +243,11 @@ class FastGRU: public Cell {
     const Weights& w_;
 
     // reused to avoid allocation
-    mutable mblas::Matrix WWx_;
-    mutable mblas::Matrix UUx_;
+    mutable mblas::Tensor WWx_;
+    mutable mblas::Tensor UUx_;
 
-    mutable mblas::Matrix RUH_;
-    mutable mblas::Matrix Temp_;
+    mutable mblas::Tensor RUH_;
+    mutable mblas::Tensor Temp_;
 
     FastGRU(const FastGRU&) = delete;
 };

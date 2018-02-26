@@ -64,7 +64,7 @@ std::vector<std::vector<FactWord>> GetBatchInput(const Sentences& source, unsign
 
 void Encoder::Encode(const Sentences& source,
                       unsigned tab,
-                      mblas::Matrix& context,
+                      mblas::Tensor& context,
                       std::vector<unsigned> &h_sentenceLengths,
                       mblas::Vector<unsigned> &sentenceLengths)
 {

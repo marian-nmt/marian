@@ -3,8 +3,8 @@
 namespace amunmt {
 namespace FPGA {
 
-void Decoder::EmptyState(mblas::Matrix& State,
-                const mblas::Matrix& SourceContext,
+void Decoder::EmptyState(mblas::Tensor& State,
+                const mblas::Tensor& SourceContext,
                 size_t batchSize,
                 const Array<int>& batchMapping)
 {
@@ -12,15 +12,15 @@ void Decoder::EmptyState(mblas::Matrix& State,
   alignment_.Init(SourceContext);
 }
 
-void Decoder::EmptyEmbedding(mblas::Matrix& Embedding, size_t batchSize) {
+void Decoder::EmptyEmbedding(mblas::Tensor& Embedding, size_t batchSize) {
   Embedding.Resize(batchSize, embeddings_.GetCols());
   mblas::Fill(Embedding, 0);
 }
 
-void Decoder::Decode(mblas::Matrix& NextState,
-              const mblas::Matrix& State,
-              const mblas::Matrix& Embeddings,
-              const mblas::Matrix& SourceContext,
+void Decoder::Decode(mblas::Tensor& NextState,
+              const mblas::Tensor& State,
+              const mblas::Tensor& Embeddings,
+              const mblas::Tensor& SourceContext,
               const Array<int>& mapping,
               const std::vector<uint>& beamSizes)
 {
@@ -40,15 +40,15 @@ void Decoder::Decode(mblas::Matrix& NextState,
 
 }
 
-void Decoder::GetHiddenState(mblas::Matrix& HiddenState,
-                    const mblas::Matrix& PrevState,
-                    const mblas::Matrix& Embedding) {
+void Decoder::GetHiddenState(mblas::Tensor& HiddenState,
+                    const mblas::Tensor& PrevState,
+                    const mblas::Tensor& Embedding) {
   rnn1_.GetNextState(HiddenState, PrevState, Embedding);
 }
 
-void Decoder::GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
-                              const mblas::Matrix& HiddenState,
-                              const mblas::Matrix& SourceContext,
+void Decoder::GetAlignedSourceContext(mblas::Tensor& AlignedSourceContext,
+                              const mblas::Tensor& HiddenState,
+                              const mblas::Tensor& SourceContext,
                               const Array<int>& mapping,
                               const std::vector<uint>& beamSizes)
 {
@@ -57,21 +57,21 @@ void Decoder::GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
 
 }
 
-void Decoder::GetNextState(mblas::Matrix& State,
-                  const mblas::Matrix& HiddenState,
-                  const mblas::Matrix& AlignedSourceContext)
+void Decoder::GetNextState(mblas::Tensor& State,
+                  const mblas::Tensor& HiddenState,
+                  const mblas::Tensor& AlignedSourceContext)
 {
   rnn2_.GetNextState(State, HiddenState, AlignedSourceContext);
 }
 
-void Decoder::GetProbs(const mblas::Matrix& State,
-              const mblas::Matrix& Embedding,
-              const mblas::Matrix& AlignedSourceContext)
+void Decoder::GetProbs(const mblas::Tensor& State,
+              const mblas::Tensor& Embedding,
+              const mblas::Tensor& AlignedSourceContext)
 {
   softmax_.GetProbs(Probs_, State, Embedding, AlignedSourceContext);
 }
 
-void Decoder::Lookup(mblas::Matrix& Embedding,
+void Decoder::Lookup(mblas::Tensor& Embedding,
             const std::vector<uint>& w)
 {
   embeddings_.Lookup(Embedding, w);

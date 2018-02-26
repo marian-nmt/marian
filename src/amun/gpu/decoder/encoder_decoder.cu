@@ -29,7 +29,7 @@ EncoderDecoder::EncoderDecoder(
     encoder_(new Encoder(model_, config)),
     decoder_(new Decoder(god, model_, config)),
     indices_(god.Get<unsigned>("beam-size")),
-    SourceContext_(new mblas::Matrix())
+    SourceContext_(new mblas::Tensor())
 {
   BEGIN_TIMER("EncoderDecoder");
 }
@@ -144,7 +144,7 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   //PAUSE_TIMER("AssembleBeamState");
 }
 
-void EncoderDecoder::GetAttention(mblas::Matrix& Attention) {
+void EncoderDecoder::GetAttention(mblas::Tensor& Attention) {
   decoder_->GetAttention(Attention);
 }
 
@@ -162,7 +162,7 @@ const BaseTensor *EncoderDecoder::GetBias() const
   return decoder_->GetBias();
 }
 
-mblas::Matrix& EncoderDecoder::GetAttention() {
+mblas::Tensor& EncoderDecoder::GetAttention() {
   return decoder_->GetAttention();
 }
 

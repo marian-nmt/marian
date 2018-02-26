@@ -14,7 +14,7 @@ Transition::Transition(const Weights::Transition& model)
 }
 
 
-void Transition::GetNextState(mblas::Matrix& state) const
+void Transition::GetNextState(mblas::Tensor& state) const
 {
   if (layerNormalization_) {
     for (int i = 0; i < w_.size(); ++i) {
@@ -51,7 +51,7 @@ void Transition::GetNextState(mblas::Matrix& state) const
 }
 
 
-void Transition::ElementwiseOps(mblas::Matrix& state, int idx) const {
+void Transition::ElementwiseOps(mblas::Tensor& state, int idx) const {
   using namespace mblas;
   using namespace blaze;
 

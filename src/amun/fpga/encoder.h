@@ -17,7 +17,7 @@ class Encoder {
     : w_(model)
     {}
 
-    void Lookup(const OpenCLInfo &openCLInfo, mblas::Matrix& Row, const Words& words)
+    void Lookup(const OpenCLInfo &openCLInfo, mblas::Tensor& Row, const Words& words)
     {
       std::vector<uint> knownWords(words.size(), 1);
       for (size_t i = 0; i < words.size(); ++i) {
@@ -68,19 +68,19 @@ class Encoder {
       mblas::Fill(State_, 0.0f);
     }
 
-    void GetNextState(mblas::Matrix& NextState,
-                      const mblas::Matrix& State,
-                      const mblas::Matrix& Embd) {
+    void GetNextState(mblas::Tensor& NextState,
+                      const mblas::Tensor& State,
+                      const mblas::Tensor& Embd) {
       gru_.GetNextState(NextState, State, Embd);
     }
 
     template <class It>
-    void Encode(It it, It end, mblas::Matrix& Context, size_t batchSize, bool invert,
+    void Encode(It it, It end, mblas::Tensor& Context, size_t batchSize, bool invert,
                     const Array<int>* mapping=nullptr)
     {
       InitializeState(batchSize);
 
-      mblas::Matrix prevState(State_);
+      mblas::Tensor prevState(State_);
       //std::cerr << "State_=" << State_.Debug(1) << std::endl;
       //std::cerr << "prevState=" << prevState.Debug(1) << std::endl;
 
@@ -118,14 +118,14 @@ class Encoder {
 
       // Model matrices
       const GRU<Weights> gru_;
-      mblas::Matrix State_;
+      mblas::Tensor State_;
 
   };
 
 public:
   Encoder(const OpenCLInfo &openCLInfo, const Weights& model);
 
-  void Encode(const Sentences& source, size_t tab, mblas::Matrix& Context,
+  void Encode(const Sentences& source, size_t tab, mblas::Tensor& Context,
                 Array<int>& dMapping);
 
 protected:
@@ -134,8 +134,8 @@ protected:
   RNN<Weights::EncBackwardGRU> backwardRnn_;
 
   // reusing memory
-  std::vector<mblas::Matrix> embeddedWords_;
-  mblas::Matrix Context;
+  std::vector<mblas::Tensor> embeddedWords_;
+  mblas::Tensor Context;
 
   const OpenCLInfo &openCLInfo_;
 

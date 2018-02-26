@@ -18,7 +18,7 @@ class Cell {
   public:
     virtual void GetNextState(CellState& NextState,
                       const CellState& State,
-                      const mblas::Matrix& Context) const = 0;
+                      const mblas::Tensor& Context) const = 0;
 
     virtual CellLength GetStateLength() const = 0;
 };

@@ -29,7 +29,7 @@ NthElement::~NthElement()
   //cerr << "FOO2" << endl;
 }
 
-void NthElement::getNBestList(const std::vector<unsigned>& beamSizes, mblas::Matrix& Probs,
+void NthElement::getNBestList(const std::vector<unsigned>& beamSizes, mblas::Tensor& Probs,
                   std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
                   const bool isFirst) {
   /*
@@ -75,7 +75,7 @@ void NthElement::getNBestList(const std::vector<unsigned>& beamSizes, mblas::Mat
   //cerr << "outKeys=" << Debug(outKeys, 2) << endl;
 }
 
-void NthElement::getNBestList(mblas::Matrix &probs,
+void NthElement::getNBestList(mblas::Tensor &probs,
                               const std::vector<unsigned>& batchFirstElementIdxs,
                               const std::vector<unsigned>& cummulatedBeamSizes)
 {
@@ -153,7 +153,7 @@ void NthElement::GetPairs(unsigned number,
   }
 }
 
-void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_in) const
+void NthElement::getValueByKey(std::vector<float>& out, const mblas::Tensor &d_in) const
 {
   // need a model with multiple scorers to test this method
   assert(false);

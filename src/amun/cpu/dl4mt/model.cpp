@@ -25,7 +25,7 @@ Weights::GRU::GRU(const NpzConverter& model, const std::vector<std::string> &key
     Gamma_1_(model[keys.at(6)]),
     Gamma_2_(model[keys.at(7)])
 {
-    const_cast<mblas::Matrix&>(Bx2_) = 0.0f;
+    const_cast<mblas::Tensor&>(Bx2_) = 0.0f;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -47,7 +47,7 @@ Weights::DecGRU2::DecGRU2(const NpzConverter& model)
   Gamma_1_(model["decoder_cell2_gamma1"]),
   Gamma_2_(model["decoder_cell2_gamma2"])
 {
-    const_cast<mblas::Matrix&>(Bx1_) = 0.0f;
+    const_cast<mblas::Tensor&>(Bx1_) = 0.0f;
 }
 
 Weights::DecAttention::DecAttention(const NpzConverter& model)

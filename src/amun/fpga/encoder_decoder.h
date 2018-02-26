@@ -45,7 +45,7 @@ public:
 
 protected:
   const Weights& model_;
-  mblas::Matrix sourceContext_;
+  mblas::Tensor sourceContext_;
 
   std::unique_ptr<Encoder> encoder_;
   std::unique_ptr<Decoder> decoder_;
