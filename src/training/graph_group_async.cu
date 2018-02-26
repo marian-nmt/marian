@@ -253,4 +253,12 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
   pool_->enqueue(task, batch);
 }
+
+void AsyncGraphGroup::wait() {
+  {
+    std::unique_lock<std::mutex> lock(schedulerMutex_);
+    pool_->wait_for_others(lock);
+    pool_->notify_others();
+  }
+}
 }

@@ -72,7 +72,7 @@ public:
         tau_{options_->get<size_t>("optimizer-delay")} {
 
     pool_.reset(new ThreadPool(devices_.size(), devices_.size()));
-    
+
     for(auto device : devices_) {
       auto graph = New<ExpressionGraph>();
       graph->setDevice(device);
@@ -153,12 +153,14 @@ public:
         scheduler_->save(name);
     }
 
-    size_t totalSize = graphs_[0]->params()->vals()->size();
-    shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_, totalSize);
+    size_t totalSize = graphs_[idx]->params()->vals()->size();
+    shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_, totalSize);
   }
 
   Ptr<data::BatchStats> collectStats() {
     return builders_[0]->collectStats(graphs_[0]);
   }
+
+  void wait();
 };
 }
