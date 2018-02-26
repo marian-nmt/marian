@@ -78,7 +78,7 @@ void Matrix::Reshape2D()
 std::string Matrix::Debug(size_t verbosity) const
 {
   std::stringstream strm;
-  strm << BaseMatrix::Debug(verbosity) << " " << arr_.Debug(verbosity);
+  strm << BaseTensor::Debug(verbosity) << " " << arr_.Debug(verbosity);
   //cerr << "Debug1=" << strm.str() << endl;
 
   return strm.str();

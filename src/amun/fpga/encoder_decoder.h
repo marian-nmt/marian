@@ -41,7 +41,7 @@ public:
 
   virtual size_t GetVocabSize() const;
 
-  virtual BaseMatrix& GetProbs();
+  virtual BaseTensor& GetProbs();
 
 protected:
   const Weights& model_;

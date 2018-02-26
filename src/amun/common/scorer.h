@@ -68,9 +68,9 @@ class Scorer {
       return name_;
     }
 
-    virtual BaseMatrix& GetProbs() = 0;
+    virtual BaseTensor& GetProbs() = 0;
     virtual void *GetNBest() = 0; // hack - need to return matrix<NthOut> but NthOut contain cuda code
-    virtual const BaseMatrix *GetBias() const = 0;
+    virtual const BaseTensor *GetBias() const = 0;
 
   protected:
     const God &god_;

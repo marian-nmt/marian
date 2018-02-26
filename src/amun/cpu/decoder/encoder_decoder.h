@@ -31,7 +31,7 @@ class CPUEncoderDecoderBase : public Scorer {
       return nullptr;
     }
 
-    virtual const BaseMatrix *GetBias() const
+    virtual const BaseTensor *GetBias() const
     {
       assert(false);
       return nullptr;

@@ -49,10 +49,10 @@ class EncoderDecoder : public Scorer {
     void GetAttention(mblas::Matrix& Attention);
 
     mblas::Matrix& GetAttention();
-    virtual BaseMatrix& GetProbs();
+    virtual BaseTensor& GetProbs();
 
     virtual void *GetNBest();
-    virtual const BaseMatrix *GetBias() const;
+    virtual const BaseTensor *GetBias() const;
 
     unsigned GetVocabSize() const;
 

@@ -9,10 +9,10 @@ namespace amunmt {
 
 const unsigned SHAPE_SIZE = 4;
 
-class BaseMatrix {
+class BaseTensor {
   public:
-	BaseMatrix() {}
-    virtual ~BaseMatrix() {}
+	BaseTensor() {}
+    virtual ~BaseTensor() {}
 
     virtual unsigned dim(unsigned i) const = 0;
 

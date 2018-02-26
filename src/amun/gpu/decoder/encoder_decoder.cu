@@ -148,7 +148,7 @@ void EncoderDecoder::GetAttention(mblas::Matrix& Attention) {
   decoder_->GetAttention(Attention);
 }
 
-BaseMatrix& EncoderDecoder::GetProbs() {
+BaseTensor& EncoderDecoder::GetProbs() {
   return decoder_->GetProbs();
 }
 
@@ -157,7 +157,7 @@ void *EncoderDecoder::GetNBest()
   return &decoder_->GetNBest();
 }
 
-const BaseMatrix *EncoderDecoder::GetBias() const
+const BaseTensor *EncoderDecoder::GetBias() const
 {
   return decoder_->GetBias();
 }

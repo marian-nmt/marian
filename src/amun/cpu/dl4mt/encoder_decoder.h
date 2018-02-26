@@ -48,7 +48,7 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
 
     unsigned GetVocabSize() const;
 
-    BaseMatrix& GetProbs();
+    BaseTensor& GetProbs();
 
     void Filter(const std::vector<unsigned>& filterIds);
 

@@ -41,7 +41,7 @@ class Search {
     const unsigned maxBeamSize_;
     bool normalizeScore_;
     Words filterIndices_;
-    BestHypsBasePtr bestHyps_;
+    BaseBestHypsPtr bestHyps_;
 
     std::vector<unsigned> activeCount_;
     void BatchStats();

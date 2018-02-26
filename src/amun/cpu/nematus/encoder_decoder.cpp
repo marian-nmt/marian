@@ -89,7 +89,7 @@ void EncoderDecoder::Filter(const std::vector<unsigned>& filterIds) {
 }
 
 
-BaseMatrix& EncoderDecoder::GetProbs() {
+BaseTensor& EncoderDecoder::GetProbs() {
   return decoder_->GetProbs();
 }
 

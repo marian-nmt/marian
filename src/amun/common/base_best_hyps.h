@@ -32,6 +32,6 @@ class BaseBestHyps
 
 };
 
-typedef std::shared_ptr<BaseBestHyps> BestHypsBasePtr;
+typedef std::shared_ptr<BaseBestHyps> BaseBestHypsPtr;
 
 }

@@ -19,7 +19,7 @@ typedef blaze::DynamicVector<float, blaze::rowVector> Vector;
 typedef blaze::DynamicVector<float, blaze::columnVector> ColumnVector;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-class Matrix : public BaseMatrix, public blaze::DynamicMatrix<float, blaze::rowMajor>
+class Matrix : public BaseTensor, public blaze::DynamicMatrix<float, blaze::rowMajor>
 {
 public:
   typedef blaze::DynamicMatrix<float, blaze::rowMajor> Parent;
@@ -59,7 +59,7 @@ public:
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T, bool SO = blaze::rowMajor>
-class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unaligned,
+class BlazeMatrix : public BaseTensor, public blaze::CustomMatrix<T, blaze::unaligned,
                                              blaze::unpadded,
                                              blaze::rowMajor> {
   public:

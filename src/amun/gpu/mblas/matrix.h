@@ -52,7 +52,7 @@ T Sum(const T *data, unsigned count)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
-class TMatrix : public BaseMatrix {
+class TMatrix : public BaseTensor {
   public:
     typedef T value_type;
 
@@ -131,7 +131,7 @@ class TMatrix : public BaseMatrix {
     virtual std::string Debug(unsigned verbosity = 1) const
     {
       std::stringstream strm;
-      strm << BaseMatrix::Debug(verbosity) << " ";
+      strm << BaseTensor::Debug(verbosity) << " ";
       strm << vec_.data() << " "
           << vec_.size() << " "
           << vec_.maxSize() << " "
