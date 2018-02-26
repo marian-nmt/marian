@@ -10,6 +10,7 @@ option(COMPILE_EXAMPLES "Compile examples" OFF)
 option(COMPILE_TESTS "Compile tests" OFF)
 option(COMPILE_SERVER "Compile marian-server" ON)
 option(USE_CUDNN "Use CUDNN library" OFF)
+option(USE_MPI "Use MPI library" OFF)
 
 # Project versioning
 find_package(Git QUIET)
@@ -51,7 +52,6 @@ endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
 list(REMOVE_DUPLICATES CUDA_NVCC_FLAGS)
 set(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
-
 find_package(Tcmalloc)
 if(Tcmalloc_FOUND)
   include_directories(${Tcmalloc_INCLUDE_DIR})
@@ -60,12 +60,14 @@ else(Tcmalloc_FOUND)
   message(WARNING "Cannot find TCMalloc library. Continuing.")
 endif(Tcmalloc_FOUND)
 
-find_package(MPI)
+if(USE_MPI)
+find_package(MPI 2.0)
 if(MPI_FOUND)
   include_directories(${MPI_INCLUDE_PATH})
   set(EXT_LIBS ${EXT_LIBS} ${MPI_LIBRARIES})
   add_definitions(-DMPI_FOUND=1)
 endif(MPI_FOUND)
+endif(USE_MPI)
 
 find_package(MKL)
 if(MKL_FOUND)
