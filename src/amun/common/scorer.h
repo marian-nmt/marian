@@ -10,7 +10,12 @@
 
 namespace amunmt {
 
+class God;
 class Sentences;
+class Hypothesis;
+typedef std::shared_ptr<Hypothesis> HypothesisPtr;
+typedef std::vector<HypothesisPtr> Beam;
+
 
 class State {
   public:

@@ -6,7 +6,7 @@ namespace amunmt {
 namespace GPU {
 
 BestHyps::BestHyps(const God &god)
-      : BestHypsBase(god),
+      : BaseBestHyps(god),
         keys_(god.Get<unsigned>("beam-size") * god.Get<unsigned>("mini-batch")),
         costs_(god.Get<unsigned>("beam-size") * god.Get<unsigned>("mini-batch")),
         maxBeamSize_(god.Get<unsigned>("beam-size"))

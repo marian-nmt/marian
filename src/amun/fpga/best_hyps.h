@@ -7,7 +7,7 @@
 namespace amunmt {
 namespace FPGA {
 
-class BestHyps : public BestHypsBase
+class BestHyps : public BaseBestHyps
 {
 public:
   BestHyps(const God &god, const OpenCLInfo &openCLInfo);

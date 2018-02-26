@@ -22,11 +22,11 @@ struct ProbCompare {
   const float* data_;
 };
 
-class BestHyps : public BestHypsBase
+class BestHyps : public BaseBestHyps
 {
   public:
     BestHyps(const God &god)
-      : BestHypsBase(god)
+      : BaseBestHyps(god)
     {}
 
     void CalcBeam(

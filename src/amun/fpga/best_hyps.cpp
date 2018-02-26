@@ -10,7 +10,7 @@ namespace amunmt {
 namespace FPGA {
 
 BestHyps::BestHyps(const God &god, const OpenCLInfo &openCLInfo)
-: BestHypsBase(
+: BaseBestHyps(
     !god.Get<bool>("allow-unk"),
     god.Get<bool>("n-best"),
     god.Get<std::vector<std::string>>("softmax-filter").size(),

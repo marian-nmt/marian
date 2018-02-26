@@ -5,7 +5,7 @@ using namespace std;
 
 namespace amunmt {
 
-BestHypsBase::BestHypsBase(const God &god)
+BaseBestHyps::BaseBestHyps(const God &god)
 : god_(god),
   forbidUNK_(!god.Get<bool>("allow-unk")),
   isInputFiltered_(god.Get<std::vector<std::string>>("softmax-filter").size()),

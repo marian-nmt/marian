@@ -17,7 +17,7 @@
 namespace amunmt {
 namespace GPU {
 
-class BestHyps : public BestHypsBase
+class BestHyps : public BaseBestHyps
 {
   public:
     BestHyps(const BestHyps &copy) = delete;
