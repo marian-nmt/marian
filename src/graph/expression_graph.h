@@ -210,9 +210,9 @@ public:
     if(p) {
       // if yes add to tape and return
       ABORT_IF(shape != p->shape(),
-               "Requested shape for existing parameter '{}' does not match "
-               "original shape",
-               name);
+               "Requested shape {} for existing parameter '{}' does not match "
+               "original shape {}",
+               shape, name, p->shape());
 
       bool fixed = Get(keywords::fixed, false, args...);
       p->setTrainable(!fixed);
