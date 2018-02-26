@@ -23,20 +23,28 @@ __global__ void grad_drop(float* data,
 
   bool mask = std::abs(data[idx]) > cut_off;
 
-  residual[idx] = data[idx] * !mask; //store residual
-  velocity[idx] = velocity[idx] * !mask; //momentum factor masking
-  data[idx] = data[idx] * mask; //send
+  residual[idx] = data[idx] * !mask;  // store residual
+  if(velocity)
+    velocity[idx] = velocity[idx] * !mask;  // momentum factor masking
+  data[idx] = data[idx] * mask;             // send
   tmp[idx] = 1 * mask;
-  
 }
 
-__global__ void grad_add_error(float* data, float* residual, float* velocity, float m, int max_size) {
+__global__ void grad_add_error(float* data,
+                               float* residual,
+                               float* velocity,
+                               float m,
+                               int max_size) {
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
   if(idx >= max_size)
     return;
   // momentum correction
-  velocity[idx] = m * velocity[idx] + data[idx];
-  data[idx] = velocity[idx] + residual[idx];
+  if(velocity) {
+    velocity[idx] = m * velocity[idx] + data[idx];
+    data[idx] = velocity[idx] + residual[idx];
+  } else {
+    data[idx] = data[idx] + residual[idx];
+  }
 }
 
 __global__ void full_abs(float* data, int max_size) {
@@ -116,18 +124,21 @@ void GradientDropBase::dropGraph(Tensor t,
     _deviceId = t->getDevice();
     CUDA_CHECK(cudaMalloc(&residual, sizeof(float) * t->size()));
     CUDA_CHECK(cudaMalloc(&temp_d, sizeof(float) * t->size()));
-    CUDA_CHECK(cudaMalloc(&velocity, sizeof(float) * t->size()));
 
     cudaMemset(residual, 0, sizeof(float) * t->size());
     cudaMemset(temp_d, 0, sizeof(float) * t->size());
-    cudaMemset(velocity, 0, sizeof(float) * t->size());
     step = 0;
   }
 
+  if(!velocity && momentum > 0.0) {
+    CUDA_CHECK(cudaMalloc(&velocity, sizeof(float) * t->size()));
+    cudaMemset(velocity, 0, sizeof(float) * t->size());
+  }
   // drop the gradients in t->data(). Also fills in feedback with the
   // propagated error fills temp_d with binary flag. 0 means that gradient in
   // that position is dropped, 1 otherwise
-  grad_drop_do(t->data(), residual, velocity, temp_d, t->size(), rate, momentum);
+  grad_drop_do(
+      t->data(), residual, velocity, temp_d, t->size(), rate, momentum);
 
   // do inclusive sum on temp_d, to obtain the sparse matrix location of
   // non-dropped gradients
@@ -144,6 +155,7 @@ void GradientDropBase::dropGraph(Tensor t,
   int threads = 512;
   int blocks = 1 + denseSize / threads;
   cudaSetDevice(t->getDevice().no);
+  // std::cout<<sparseSize<<" / "<<destination->capacity()<<std::endl;
   buildIndices<<<blocks, threads>>>(t->data(),
                                     temp_d,
                                     destination->data(),

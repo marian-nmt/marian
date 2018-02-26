@@ -45,6 +45,6 @@ public:
       : AsyncGraphGroup(options),
         droping_rate{options->get<float>("grad-dropping-rate")},
         dropping_momentum{options->get<float>("grad-dropping-momentum")},
-        dropping_warmup{options->get<size_t>("grad-dropping-warmup")}{}
+        dropping_warmup{options->get<size_t>("grad-dropping-warmup")} {}
 };
 }
