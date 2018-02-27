@@ -141,10 +141,10 @@ cuda_add_library(mosesplugin STATIC
   gpu/decoder/encoder_decoder_loader.cu
   gpu/decoder/encoder_decoder_state.cu
   gpu/mblas/handles.cu
-  gpu/mblas/matrix.cu
-  gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
   gpu/mblas/nth_element_kernels.cu
+  gpu/mblas/tensor.cu
+  gpu/mblas/tensor_functions.cu
   gpu/dl4mt/encoder.cu
   gpu/dl4mt/gru.cu
   gpu/dl4mt/model.cu
