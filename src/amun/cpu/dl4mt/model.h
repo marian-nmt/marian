@@ -5,7 +5,7 @@
 #include <string>
 
 #include "cpu/npz_converter.h"
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 
 namespace amunmt {
 namespace CPU {

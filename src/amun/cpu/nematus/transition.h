@@ -1,6 +1,6 @@
 #pragma once
 
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 #include "model.h"
 
 namespace amunmt {

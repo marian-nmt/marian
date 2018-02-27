@@ -1,5 +1,5 @@
 #pragma once
-#include "common/base_matrix.h"
+#include "common/base_tensor.h"
 #include "types-fpga.h"
 #include "array.h"
 

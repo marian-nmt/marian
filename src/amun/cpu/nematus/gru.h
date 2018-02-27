@@ -1,5 +1,5 @@
 #pragma once
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 #include <iomanip>
 
 namespace amunmt {

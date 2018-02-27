@@ -7,7 +7,7 @@
 
 #include <blaze/Math.h>
 #include "phoenix_functions.h"
-#include "common/base_matrix.h"
+#include "common/base_tensor.h"
 #include "common/exception.h"
 
 namespace amunmt {

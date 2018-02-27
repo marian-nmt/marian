@@ -6,7 +6,7 @@
 #include <thrust/functional.h>
 
 #include "common/exception.h"
-#include "common/base_matrix.h"
+#include "common/base_tensor.h"
 #include "gpu/types-gpu.h"
 #include "handles.h"
 #include "vector.h"

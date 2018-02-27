@@ -7,7 +7,7 @@
 #include "common/sentences.h"
 
 #include "cpu/decoder/encoder_decoder_loader.h"
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 
 using namespace std;
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cnpy/cnpy.h"
-#include "mblas/matrix.h"
+#include "mblas/tensor.h"
 
 namespace amunmt {
 namespace CPU {

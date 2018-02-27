@@ -4,7 +4,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "cpu/decoder/encoder_decoder.h"
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 #include "cpu/dl4mt/model.h"
 #include "cpu/dl4mt/encoder.h"
 #include "cpu/dl4mt/decoder.h"

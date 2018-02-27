@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 #include "common/scorer.h"
 
 namespace amunmt {

@@ -1,5 +1,5 @@
 #include <boost/iterator/permutation_iterator.hpp>
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 #include "cpu/mblas/simd_math_prims.h"
 #include "common/god.h"
 #include "common/hypothesis.h"

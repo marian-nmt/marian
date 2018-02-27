@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../mblas/matrix.h"
+#include "../mblas/tensor.h"
 #include "model.h"
 #include "gru.h"
 #include "transition.h"

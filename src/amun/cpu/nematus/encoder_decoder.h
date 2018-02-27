@@ -8,7 +8,7 @@
 #include "cpu/nematus/decoder.h"
 #include "cpu/nematus/model.h"
 
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 
 namespace amunmt {
 

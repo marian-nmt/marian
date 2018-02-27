@@ -5,7 +5,7 @@
 #include "common/history.h"
 #include "common/histories.h"
 #include "common/filter.h"
-#include "common/base_matrix.h"
+#include "common/base_tensor.h"
 
 #ifdef CUDA
 #include <cuda.h>

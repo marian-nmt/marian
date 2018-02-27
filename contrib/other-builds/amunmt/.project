@@ -141,9 +141,9 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/base_matrix.cpp</locationURI>
 		</link>
 		<link>
-			<name>src/amun/common/base_matrix.h</name>
+			<name>src/amun/common/base_tensor.h</name>
 			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/base_matrix.h</locationURI>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/base_tensor.h</locationURI>
 		</link>
 		<link>
 			<name>src/amun/common/beam.cpp</name>
@@ -1341,16 +1341,6 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/dl4mt/model.h</locationURI>
 		</link>
 		<link>
-			<name>src/amun/cpu/mblas/matrix.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/mblas/matrix.cpp</locationURI>
-		</link>
-		<link>
-			<name>src/amun/cpu/mblas/matrix.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/mblas/matrix.h</locationURI>
-		</link>
-		<link>
 			<name>src/amun/cpu/mblas/phoenix_functions.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/mblas/phoenix_functions.cpp</locationURI>
@@ -1364,6 +1354,16 @@
 			<name>src/amun/cpu/mblas/simd_math_prims.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/mblas/simd_math_prims.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/cpu/mblas/tensor.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/mblas/tensor.cpp</locationURI>
+		</link>
+		<link>
+			<name>src/amun/cpu/mblas/tensor.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/mblas/tensor.h</locationURI>
 		</link>
 		<link>
 			<name>src/amun/cpu/nematus/decoder.h</name>

@@ -3,7 +3,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "common/scorer.h"
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 #include "cpu/decoder/encoder_decoder_state.h"
 
 namespace amunmt {

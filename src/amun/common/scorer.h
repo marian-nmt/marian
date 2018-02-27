@@ -5,7 +5,7 @@
 
 #include "common/hypothesis.h"
 #include "common/sentence.h"
-#include "common/base_matrix.h"
+#include "common/base_tensor.h"
 #include "yaml-cpp/node/node.h"
 
 namespace amunmt {

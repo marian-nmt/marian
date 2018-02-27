@@ -1,5 +1,5 @@
 #include <sstream>
-#include "base_matrix.h"
+#include "base_tensor.h"
 
 using namespace std;
 
