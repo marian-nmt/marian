@@ -1,6 +1,6 @@
 #include "npz_converter.h"
 #include "common/exception.h"
-#include "mblas/matrix_functions.h"
+#include "mblas/tensor_functions.h"
 
 using namespace std;
 

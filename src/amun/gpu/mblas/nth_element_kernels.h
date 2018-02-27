@@ -1,6 +1,6 @@
 #pragma once
 
-#include "matrix_wrapper.h"
+#include "tensor_wrapper.h"
 #include "vector_wrapper.h"
 
 namespace amunmt {
@@ -47,7 +47,7 @@ struct NthOutBatch
   __device__ __host__
   NthOutBatch(const float& rhs)
   {
-    // only to be used to init variable in matrix.h gSum
+    // only to be used to init variable in tensor.h gSum
     assert(rhs == 0.0f);
     ind = rhs;
     score = rhs;

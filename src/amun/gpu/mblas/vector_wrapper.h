@@ -1,6 +1,6 @@
 #pragma once
 #include <sstream>
-#include "matrix.h"
+#include "tensor.h"
 #include "gpu/mblas/vector.h"
 
 namespace amunmt {

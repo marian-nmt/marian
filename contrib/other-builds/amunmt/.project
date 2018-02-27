@@ -1586,31 +1586,6 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/handles.h</locationURI>
 		</link>
 		<link>
-			<name>src/amun/gpu/mblas/matrix.cu</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/matrix.cu</locationURI>
-		</link>
-		<link>
-			<name>src/amun/gpu/mblas/matrix.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/matrix.h</locationURI>
-		</link>
-		<link>
-			<name>src/amun/gpu/mblas/matrix_functions.cu</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/matrix_functions.cu</locationURI>
-		</link>
-		<link>
-			<name>src/amun/gpu/mblas/matrix_functions.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/matrix_functions.h</locationURI>
-		</link>
-		<link>
-			<name>src/amun/gpu/mblas/matrix_wrapper.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/matrix_wrapper.h</locationURI>
-		</link>
-		<link>
 			<name>src/amun/gpu/mblas/nth_element.cu</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/nth_element.cu</locationURI>
@@ -1629,6 +1604,31 @@
 			<name>src/amun/gpu/mblas/nth_element_kernels.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/nth_element_kernels.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/gpu/mblas/tensor.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/tensor.cu</locationURI>
+		</link>
+		<link>
+			<name>src/amun/gpu/mblas/tensor.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/tensor.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/gpu/mblas/tensor_functions.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/tensor_functions.cu</locationURI>
+		</link>
+		<link>
+			<name>src/amun/gpu/mblas/tensor_functions.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/tensor_functions.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/gpu/mblas/tensor_wrapper.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/mblas/tensor_wrapper.h</locationURI>
 		</link>
 		<link>
 			<name>src/amun/gpu/mblas/thrust_functions.h</name>

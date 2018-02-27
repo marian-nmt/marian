@@ -5,7 +5,7 @@
 #include "common/sentences.h"
 
 #include "encoder_decoder.h"
-#include "gpu/mblas/matrix_functions.h"
+#include "gpu/mblas/tensor_functions.h"
 #include "gpu/dl4mt/dl4mt.h"
 #include "gpu/decoder/encoder_decoder_state.h"
 #include "gpu/decoder/best_hyps.h"

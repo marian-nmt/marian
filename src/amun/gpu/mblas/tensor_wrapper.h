@@ -1,5 +1,5 @@
 #pragma once
-#include "matrix.h"
+#include "tensor.h"
 #include "vector_wrapper.h"
 
 namespace amunmt {

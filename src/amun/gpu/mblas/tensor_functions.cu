@@ -1,4 +1,4 @@
-#include "gpu/mblas/matrix_functions.h"
+#include "gpu/mblas/tensor_functions.h"
 #include "gpu/mblas/handles.h"
 
 using namespace std;

@@ -4,7 +4,7 @@
 #include <string>
 #include <yaml-cpp/yaml.h>
 
-#include "gpu/mblas/matrix.h"
+#include "gpu/mblas/tensor.h"
 #include "gpu/npz_converter.h"
 
 namespace amunmt {

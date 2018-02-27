@@ -1,9 +1,9 @@
 #include <iostream>
 #include "common/utils.h"
-#include "matrix_wrapper.h"
+#include "tensor_wrapper.h"
 #include "vector_wrapper.h"
 #include "nth_element.h"
-#include "matrix_functions.h"
+#include "tensor_functions.h"
 
 using namespace std;
 

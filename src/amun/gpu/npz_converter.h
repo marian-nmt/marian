@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cnpy/cnpy.h"
-#include "mblas/matrix_functions.h"
+#include "mblas/tensor_functions.h"
 
 namespace amunmt {
 namespace GPU {

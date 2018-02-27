@@ -2,7 +2,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "gpu/mblas/matrix_functions.h"
+#include "gpu/mblas/tensor_functions.h"
 #include "model.h"
 #include "gru.h"
 #include "common/sentence.h"

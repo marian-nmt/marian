@@ -8,7 +8,7 @@
 #include "common/base_best_hyps.h"
 #include "common/loader.h"
 
-#include "gpu/mblas/matrix.h"
+#include "gpu/mblas/tensor.h"
 
 namespace GPU {
 

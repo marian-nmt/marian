@@ -7,7 +7,7 @@
 #include "common/base_best_hyps.h"
 #include "common/threadpool.h"
 #include "gpu/types-gpu.h"
-#include "gpu/mblas/matrix.h"
+#include "gpu/mblas/tensor.h"
 #include "gpu/mblas/handles.h"
 #include "gpu/mblas/vector.h"
 

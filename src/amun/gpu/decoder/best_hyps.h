@@ -8,7 +8,7 @@
 #include "common/exception.h"
 #include "common/god.h"
 #include "common/utils.h"
-#include "gpu/mblas/matrix_functions.h"
+#include "gpu/mblas/tensor_functions.h"
 #include "gpu/mblas/nth_element.h"
 #include "gpu/mblas/vector.h"
 

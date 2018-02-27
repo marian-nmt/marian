@@ -10,8 +10,8 @@
 #include <iostream>
 
 #include "gpu/mblas/thrust_functions.h"
-#include "gpu/mblas/matrix.h"
-#include "gpu/mblas/matrix_wrapper.h"
+#include "gpu/mblas/tensor.h"
+#include "gpu/mblas/tensor_wrapper.h"
 #include "gpu/mblas/handles.h"
 #include "gpu/mblas/nth_element_kernels.h"
 #include "gpu/mblas/vector_wrapper.h"
