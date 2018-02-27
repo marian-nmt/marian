@@ -96,7 +96,7 @@ std::shared_ptr<mblas::Tensor> NpzConverter::getFirstOfMany(const std::vector<st
   return ret;
 
 }
-
+  
 
 }
 }
