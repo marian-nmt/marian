@@ -1,6 +1,6 @@
 #include "npz_converter.h"
 #include "common/exception.h"
-#include "mblas/matrix_functions.h"
+#include "mblas/tensor_functions.h"
 
 using namespace std;
 
@@ -33,17 +33,17 @@ T Debug(const T *data, unsigned size)
   return sum;
 }
 
-std::shared_ptr<mblas::Matrix> NpzConverter::get(const std::string& key, bool mandatory, bool transpose) const
+std::shared_ptr<mblas::Tensor> NpzConverter::get(const std::string& key, bool mandatory, bool transpose) const
 {
   //mblas::TestMemCpy();
 
-  std::shared_ptr<mblas::Matrix> ret;
+  std::shared_ptr<mblas::Tensor> ret;
   auto it = model_.find(key);
   if(it != model_.end()) {
     NpyMatrixWrapper np(it->second);
     unsigned size = np.size();
 
-    mblas::Matrix *matrix = new mblas::Matrix(np.size1(), np.size2(), 1, 1);
+    mblas::Tensor *matrix = new mblas::Tensor(np.size1(), np.size2(), 1, 1);
     mblas::copy(np.data(), size, matrix->data(), cudaMemcpyHostToDevice);
 
     if (transpose) {
@@ -53,12 +53,12 @@ std::shared_ptr<mblas::Matrix> NpzConverter::get(const std::string& key, bool ma
     ret.reset(matrix);
   }
   else if (mandatory) {
-    std::cerr << "Error: Matrix not found:" << key << std::endl;
+    std::cerr << "Error: Tensor not found:" << key << std::endl;
     //amunmt_UTIL_THROW2(strm.str()); //  << key << std::endl
     abort();
   }
   else {
-    mblas::Matrix *matrix = new mblas::Matrix();
+    mblas::Tensor *matrix = new mblas::Tensor();
     ret.reset(matrix);
   }
 
@@ -66,14 +66,14 @@ std::shared_ptr<mblas::Matrix> NpzConverter::get(const std::string& key, bool ma
   return ret;
 }
 
-std::shared_ptr<mblas::Matrix> NpzConverter::getFirstOfMany(const std::vector<std::pair<std::string, bool>> keys, bool mandatory) const
+std::shared_ptr<mblas::Tensor> NpzConverter::getFirstOfMany(const std::vector<std::pair<std::string, bool>> keys, bool mandatory) const
 {
-  std::shared_ptr<mblas::Matrix> ret;
+  std::shared_ptr<mblas::Tensor> ret;
   for (auto key : keys) {
     auto it = model_.find(key.first);
     if(it != model_.end()) {
       NpyMatrixWrapper np(it->second);
-      mblas::Matrix *matrix = new mblas::Matrix(np.size1(), np.size2(), 1, 1);
+      mblas::Tensor *matrix = new mblas::Tensor(np.size1(), np.size2(), 1, 1);
       mblas::copy(np.data(), np.size(), matrix->data(), cudaMemcpyHostToDevice);
 
       if (key.second) {
@@ -85,7 +85,7 @@ std::shared_ptr<mblas::Matrix> NpzConverter::getFirstOfMany(const std::vector<st
   }
 
   if (mandatory) {
-    std::cerr << "Error: Matrix not found:" << keys[0].first << std::endl;
+    std::cerr << "Error: Tensor not found:" << keys[0].first << std::endl;
     //amunmt_UTIL_THROW2(strm.str()); //  << key << std::endl
     abort();
   }

@@ -1,5 +1,5 @@
 #pragma once
-#include "matrix.h"
+#include "tensor.h"
 #include "vector_wrapper.h"
 
 namespace amunmt {
@@ -7,10 +7,10 @@ namespace GPU {
 namespace mblas {
 
 template <typename T>
-class MatrixWrapper
+class TensorWrapper
 {
 public:
-  MatrixWrapper()
+  TensorWrapper()
   {
     dim_[0] = 0;
     dim_[1] = 0;
@@ -22,7 +22,7 @@ public:
     dataConst_ = nullptr;
   }
 
-  MatrixWrapper(const TMatrix<T> &matrix)
+  TensorWrapper(const TTensor<T> &matrix)
   {
     dim_[0] = matrix.dim(0);
     dim_[1] = matrix.dim(1);
@@ -34,7 +34,7 @@ public:
     dataConst_ = matrix.data();
   }
 
-  MatrixWrapper(TMatrix<T> &matrix)
+  TensorWrapper(TTensor<T> &matrix)
   {
     dim_[0] = matrix.dim(0);
     dim_[1] = matrix.dim(1);
@@ -46,7 +46,7 @@ public:
     dataConst_ = data_;
   }
 
-  MatrixWrapper(unsigned a, unsigned b, unsigned c, unsigned d)
+  TensorWrapper(unsigned a, unsigned b, unsigned c, unsigned d)
   { // test constructor
     dim_[0] = a;
     dim_[1] = b;
@@ -59,7 +59,7 @@ public:
   }
 
   __device__
-  MatrixWrapper(T *ptr, unsigned a, unsigned b, unsigned c, unsigned d)
+  TensorWrapper(T *ptr, unsigned a, unsigned b, unsigned c, unsigned d)
   {
     dim_[0] = a;
     dim_[1] = b;
@@ -309,7 +309,7 @@ protected:
 
 inline void testidToMatrixInd()
 {
-  MatrixWrapper<float> matrix(2, 4, 3, 5);
+  TensorWrapper<float> matrix(2, 4, 3, 5);
 
   std::cerr << "matrix=" << matrix.Debug() << std::endl;
 

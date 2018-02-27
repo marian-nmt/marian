@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <cuda.h>
 
-#include "gpu/mblas/matrix.h"
+#include "gpu/mblas/tensor.h"
 #include "gpu/mblas/vector.h"
 #include "nth_element_kernels.h"
 
@@ -21,7 +21,7 @@ class NthElement {
 
     // standard nth_element
     void getNBestList(const std::vector<unsigned>& beamSizes,
-                      mblas::Matrix& Probs,
+                      mblas::Tensor& Probs,
                       std::vector<float>& outCosts,
                       std::vector<unsigned>& outKeys,
                       const bool isFirst=false);
@@ -30,7 +30,7 @@ class NthElement {
                   std::vector<unsigned>& outKeys,
                   std::vector<float>& outValues);
 
-    void getValueByKey(std::vector<float>& out, const mblas::Matrix &d_in) const;
+    void getValueByKey(std::vector<float>& out, const mblas::Tensor &d_in) const;
 
   private:
     const unsigned BLOCK_SIZE = 512;
@@ -46,7 +46,7 @@ class NthElement {
 
     unsigned maxBeamSize_, maxBatchSize_;
 
-    void getNBestList(mblas::Matrix &probs,
+    void getNBestList(mblas::Tensor &probs,
                       const std::vector<unsigned>& batchFirstElementIdxs,
                       const std::vector<unsigned>& cummulatedBeamSizes);
 

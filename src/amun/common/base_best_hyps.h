@@ -9,14 +9,12 @@
 
 namespace amunmt {
 
-class God;
-
-class BestHypsBase
+class BaseBestHyps
 {
   public:
-    BestHypsBase(const God &god);
+    BaseBestHyps(const God &god);
 
-    BestHypsBase(const BestHypsBase&) = delete;
+    BaseBestHyps(const BaseBestHyps&) = delete;
 
     virtual void CalcBeam(
         const Beam& prevHyps,
@@ -34,6 +32,6 @@ class BestHypsBase
 
 };
 
-typedef std::shared_ptr<BestHypsBase> BestHypsBasePtr;
+typedef std::shared_ptr<BaseBestHyps> BaseBestHypsPtr;
 
 }

@@ -21,7 +21,7 @@ CellState& EncoderDecoderState::GetStates() {
   return states_;
 }
 
-mblas::Matrix& EncoderDecoderState::GetEmbeddings() {
+mblas::Tensor& EncoderDecoderState::GetEmbeddings() {
   return embeddings_;
 }
 
@@ -29,7 +29,7 @@ const CellState& EncoderDecoderState::GetStates() const {
   return states_;
 }
 
-const mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
+const mblas::Tensor& EncoderDecoderState::GetEmbeddings() const {
   return embeddings_;
 }
 

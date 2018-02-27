@@ -270,7 +270,7 @@ std::vector<ScorerPtr> God::GetScorers(const DeviceInfo &deviceInfo) const {
   return scorers;
 }
 
-BestHypsBasePtr God::GetBestHyps(const DeviceInfo &deviceInfo) const {
+BaseBestHypsPtr God::GetBestHyps(const DeviceInfo &deviceInfo) const {
   if (deviceInfo.deviceType == CPUDevice) {
     return cpuLoaders_.begin()->second->GetBestHyps(*this, deviceInfo);
   }

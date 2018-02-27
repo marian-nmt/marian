@@ -20,7 +20,7 @@ void UnrollMaxArgLoop(unsigned n, unsigned max, unsigned tid, float *sdata, unsi
 }
 
 __global__ void gMaxElement(mblas::VectorWrapper<NthOut> out,
-                            const mblas::MatrixWrapper<float> probsWrap,
+                            const mblas::TensorWrapper<float> probsWrap,
                             const mblas::VectorWrapper<unsigned> batchPositionWrap,
                             unsigned numBatches) {
   extern __shared__ float sdata[];
@@ -98,7 +98,7 @@ __global__ void gMaxElement(mblas::VectorWrapper<NthOut> out,
 }
 
 __global__ void gMaxElementUpdate(mblas::VectorWrapper<NthOut> out,
-                                  mblas::MatrixWrapper<float> probsWrap,
+                                  mblas::TensorWrapper<float> probsWrap,
                                   mblas::VectorWrapper<NthOut> resWrap,
                                   const mblas::VectorWrapper<unsigned> batchPositionWrap,
                                   const mblas::VectorWrapper<unsigned> cumBeamSizesWrap,
@@ -253,8 +253,8 @@ __global__ void gMaxElementUpdate(mblas::VectorWrapper<NthOut> out,
   }
 }
 
-__global__ void gGetValueByKey(mblas::MatrixWrapper<float> out,
-                              const   mblas::MatrixWrapper<float> in,
+__global__ void gGetValueByKey(mblas::TensorWrapper<float> out,
+                              const   mblas::TensorWrapper<float> in,
                               unsigned* indices, unsigned n)
 {
   unsigned tid = threadIdx.x  + blockDim.x * blockIdx.x;

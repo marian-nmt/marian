@@ -1,4 +1,4 @@
-#include "matrix.h"
+#include "tensor.h"
 
 using namespace std;
 

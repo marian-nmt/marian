@@ -1,9 +1,9 @@
 #include <iostream>
 #include "common/utils.h"
-#include "matrix_wrapper.h"
+#include "tensor_wrapper.h"
 #include "vector_wrapper.h"
 #include "nth_element.h"
-#include "matrix_functions.h"
+#include "tensor_functions.h"
 
 using namespace std;
 
@@ -29,7 +29,7 @@ NthElement::~NthElement()
   //cerr << "FOO2" << endl;
 }
 
-void NthElement::getNBestList(const std::vector<unsigned>& beamSizes, mblas::Matrix& Probs,
+void NthElement::getNBestList(const std::vector<unsigned>& beamSizes, mblas::Tensor& Probs,
                   std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
                   const bool isFirst) {
   /*
@@ -75,7 +75,7 @@ void NthElement::getNBestList(const std::vector<unsigned>& beamSizes, mblas::Mat
   //cerr << "outKeys=" << Debug(outKeys, 2) << endl;
 }
 
-void NthElement::getNBestList(mblas::Matrix &probs,
+void NthElement::getNBestList(mblas::Tensor &probs,
                               const std::vector<unsigned>& batchFirstElementIdxs,
                               const std::vector<unsigned>& cummulatedBeamSizes)
 {
@@ -100,7 +100,7 @@ void NthElement::getNBestList(mblas::Matrix &probs,
               cudaMemcpyHostToDevice);
 
   mblas::VectorWrapper<NthOut> outWrap(d_out);
-  mblas::MatrixWrapper<float> probsWrap(probs);
+  mblas::TensorWrapper<float> probsWrap(probs);
   mblas::VectorWrapper<unsigned> batchPositionWrap(d_batchPosition);
   mblas::VectorWrapper<NthOut> resWrap(d_res);
   mblas::VectorWrapper<unsigned> cumBeamSizesWrap(d_cumBeamSizes);
@@ -153,7 +153,7 @@ void NthElement::GetPairs(unsigned number,
   }
 }
 
-void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_in) const
+void NthElement::getValueByKey(std::vector<float>& out, const mblas::Tensor &d_in) const
 {
   // need a model with multiple scorers to test this method
   assert(false);
@@ -161,7 +161,7 @@ void NthElement::getValueByKey(std::vector<float>& out, const mblas::Matrix &d_i
   out.resize(d_breakdown.size());
 
   //mblas::VectorWrapper<float> breakdownWrap(d_breakdown);
-  //const mblas::MatrixWrapper<float> inWrap(d_in);
+  //const mblas::TensorWrapper<float> inWrap(d_in);
   //gGetValueByKey<<<1, lastN_, 0, stream_>>>
   //  (breakdownWrap, inWrap, h_res_idx, lastN_);
   /*

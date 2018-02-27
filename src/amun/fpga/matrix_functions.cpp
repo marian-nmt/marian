@@ -233,13 +233,13 @@ Matrix& Prod(Matrix& C, const Matrix& A, const Matrix& B,
   return C;
 }
 
-void ElementwiseOps(mblas::Matrix& NextState,
-                    const mblas::Matrix& State,
-                    const mblas::Matrix& RUH,
-                    const mblas::Matrix& Temp,
-                    const mblas::Matrix& B,
-                    const mblas::Matrix& Bx1,
-                    const mblas::Matrix& Bx2,
+void ElementwiseOps(mblas::Tensor& NextState,
+                    const mblas::Tensor& State,
+                    const mblas::Tensor& RUH,
+                    const mblas::Tensor& Temp,
+                    const mblas::Tensor& B,
+                    const mblas::Tensor& Bx1,
+                    const mblas::Tensor& Bx2,
                     const uint &rows,
                     const uint &cols)
 {
@@ -536,7 +536,7 @@ void SetColumn(Matrix& In, int noColumn, float value)
 void MaxElement(
     Array<float> &d_out,
     const Array<int> &d_ind,
-    mblas::Matrix &d_in,
+    mblas::Tensor &d_in,
     int numBatches,
     const Array<int> &batchFirstElementIdxs)
 {
@@ -554,7 +554,7 @@ void MaxElement(
 void NthElement(
     Array<float>& d_out,
     Array<unsigned> &d_ind,
-    const mblas::Matrix &Probs,
+    const mblas::Tensor &Probs,
     const Array<uint> &beamSizes,
     size_t maxBatchSize,
     const Array<uint> &d_cummulatedBeamSizes,

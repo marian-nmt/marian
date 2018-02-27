@@ -3,7 +3,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "common/scorer.h"
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 #include "cpu/decoder/encoder_decoder_state.h"
 
 namespace amunmt {
@@ -22,8 +22,8 @@ class CPUEncoderDecoderBase : public Scorer {
 
     virtual State* NewState() const;
 
-    virtual void GetAttention(mblas::Matrix& Attention) = 0;
-    virtual mblas::Matrix& GetAttention() = 0;
+    virtual void GetAttention(mblas::Tensor& Attention) = 0;
+    virtual mblas::Tensor& GetAttention() = 0;
 
     virtual void *GetNBest()
     {
@@ -31,14 +31,14 @@ class CPUEncoderDecoderBase : public Scorer {
       return nullptr;
     }
 
-    virtual const BaseMatrix *GetBias() const
+    virtual const BaseTensor *GetBias() const
     {
       assert(false);
       return nullptr;
     }
 
   protected:
-    mblas::Matrix SourceContext_;
+    mblas::Tensor SourceContext_;
 };
 
 

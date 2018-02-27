@@ -18,7 +18,7 @@ public:
   virtual void Load(const God &god);
 
   virtual ScorerPtr NewScorer(const God &god, const DeviceInfo &deviceInfo) const;
-  virtual BestHypsBasePtr GetBestHyps(const God &god, const DeviceInfo &deviceInfo) const;
+  virtual BaseBestHypsPtr GetBestHyps(const God &god, const DeviceInfo &deviceInfo) const;
 
 
 protected:

@@ -6,7 +6,7 @@
 #include <thrust/functional.h>
 
 #include "common/exception.h"
-#include "common/base_matrix.h"
+#include "common/base_tensor.h"
 #include "gpu/types-gpu.h"
 #include "handles.h"
 #include "vector.h"
@@ -52,11 +52,11 @@ T Sum(const T *data, unsigned count)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
-class TMatrix : public BaseMatrix {
+class TTensor : public BaseTensor {
   public:
     typedef T value_type;
 
-    TMatrix()
+    TTensor()
     {
       dim_[0] = 0;
       dim_[1] = 0;
@@ -64,7 +64,7 @@ class TMatrix : public BaseMatrix {
       dim_[3] = 0;
     }
 
-    TMatrix(unsigned rows, unsigned cols, unsigned c, unsigned d, bool zero = false)
+    TTensor(unsigned rows, unsigned cols, unsigned c, unsigned d, bool zero = false)
     {
       dim_[0] = rows;
       dim_[1] = cols;
@@ -79,13 +79,13 @@ class TMatrix : public BaseMatrix {
       }
     }
 
-    TMatrix(TMatrix&& m)
-    : TMatrix()
+    TTensor(TTensor&& m)
+    : TTensor()
     {
       swap(m);
     }
 
-    TMatrix(const TMatrix& m)
+    TTensor(const TTensor& m)
     : vec_(m.vec_)
     {
       dim_[0] = m.dim_[0];
@@ -94,7 +94,7 @@ class TMatrix : public BaseMatrix {
       dim_[3] = m.dim_[3];
     }
 
-    ~TMatrix()
+    ~TTensor()
     {
     }
 
@@ -131,7 +131,7 @@ class TMatrix : public BaseMatrix {
     virtual std::string Debug(unsigned verbosity = 1) const
     {
       std::stringstream strm;
-      strm << BaseMatrix::Debug(verbosity) << " ";
+      strm << BaseTensor::Debug(verbosity) << " ";
       strm << vec_.data() << " "
           << vec_.size() << " "
           << vec_.maxSize() << " "
@@ -170,7 +170,7 @@ class TMatrix : public BaseMatrix {
       return vec_.data();
     }
 
-    void swap(TMatrix &other)
+    void swap(TTensor &other)
     {
       std::swap(dim_, other.dim_);
       vec_.swap(other.vec_);
@@ -181,8 +181,7 @@ class TMatrix : public BaseMatrix {
     Vector<T> vec_;
 };
 
-typedef TMatrix<float> Matrix;
-typedef TMatrix<unsigned> IMatrix;
+typedef TTensor<float> Tensor;
 
 
 }  // namespace mblas

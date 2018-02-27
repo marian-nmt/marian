@@ -106,7 +106,7 @@ unsigned EncoderDecoder::GetVocabSize() const
   return decoder_->GetVocabSize();
 }
 
-BaseMatrix& EncoderDecoder::GetProbs()
+BaseTensor& EncoderDecoder::GetProbs()
 {
   return decoder_->GetProbs();
 }

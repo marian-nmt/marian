@@ -7,14 +7,14 @@
 namespace amunmt {
 namespace FPGA {
 
-class BestHyps : public BestHypsBase
+class BestHyps : public BaseBestHyps
 {
 public:
   BestHyps(const God &god, const OpenCLInfo &openCLInfo);
 
-  void DisAllowUNK(mblas::Matrix& Prob);
+  void DisAllowUNK(mblas::Tensor& Prob);
 
-  void FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+  void FindBests(const std::vector<uint>& beamSizes, mblas::Tensor& Probs,
                  std::vector<float>& outCosts,
                  std::vector<unsigned>& outKeys,
                  const bool isFirst);

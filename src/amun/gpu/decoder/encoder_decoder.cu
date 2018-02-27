@@ -5,7 +5,7 @@
 #include "common/sentences.h"
 
 #include "encoder_decoder.h"
-#include "gpu/mblas/matrix_functions.h"
+#include "gpu/mblas/tensor_functions.h"
 #include "gpu/dl4mt/dl4mt.h"
 #include "gpu/decoder/encoder_decoder_state.h"
 #include "gpu/decoder/best_hyps.h"
@@ -29,7 +29,7 @@ EncoderDecoder::EncoderDecoder(
     encoder_(new Encoder(model_, config)),
     decoder_(new Decoder(god, model_, config)),
     indices_(god.Get<unsigned>("beam-size")),
-    SourceContext_(new mblas::Matrix())
+    SourceContext_(new mblas::Tensor())
 {
   BEGIN_TIMER("EncoderDecoder");
 }
@@ -144,11 +144,11 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   //PAUSE_TIMER("AssembleBeamState");
 }
 
-void EncoderDecoder::GetAttention(mblas::Matrix& Attention) {
+void EncoderDecoder::GetAttention(mblas::Tensor& Attention) {
   decoder_->GetAttention(Attention);
 }
 
-BaseMatrix& EncoderDecoder::GetProbs() {
+BaseTensor& EncoderDecoder::GetProbs() {
   return decoder_->GetProbs();
 }
 
@@ -157,12 +157,12 @@ void *EncoderDecoder::GetNBest()
   return &decoder_->GetNBest();
 }
 
-const BaseMatrix *EncoderDecoder::GetBias() const
+const BaseTensor *EncoderDecoder::GetBias() const
 {
   return decoder_->GetBias();
 }
 
-mblas::Matrix& EncoderDecoder::GetAttention() {
+mblas::Tensor& EncoderDecoder::GetAttention() {
   return decoder_->GetAttention();
 }
 

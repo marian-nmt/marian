@@ -15,7 +15,7 @@ public:
   NthElement(const NthElement &copy) = delete;
   NthElement(const OpenCLInfo &openCLInfo, size_t maxBeamSize, size_t maxBatchSize);
 
-  void getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+  void getNBestList(const std::vector<uint>& beamSizes, mblas::Tensor& Probs,
                     std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
                     const bool isFirst);
 

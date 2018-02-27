@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cnpy/cnpy.h"
-#include "mblas/matrix.h"
+#include "mblas/tensor.h"
 
 namespace amunmt {
 namespace CPU {
@@ -66,7 +66,7 @@ class NpzConverter {
       destructed_ = true;
     }
 
-    mblas::Matrix operator[](const std::string& key) const {
+    mblas::Tensor operator[](const std::string& key) const {
       BlazeWrapper matrix;
       auto it = model_.find(key);
       if(it != model_.end()) {
@@ -79,19 +79,19 @@ class NpzConverter {
         }
       }
 
-      mblas::Matrix ret;
+      mblas::Tensor ret;
       ret = matrix;
       return std::move(ret);
     }
 
-    mblas::Matrix getFirstOfMany(const std::vector<std::pair<std::string, bool>> keys) const {
+    mblas::Tensor getFirstOfMany(const std::vector<std::pair<std::string, bool>> keys) const {
       BlazeWrapper matrix;
       for (auto key : keys) {
         auto it = model_.find(key.first);
         if(it != model_.end()) {
           NpyMatrixWrapper np(it->second);
           matrix = BlazeWrapper(np.data(), np.size1(), np.size2());
-          mblas::Matrix ret;
+          mblas::Tensor ret;
           if (key.second) {
             const auto matrix2 = blaze::trans(matrix);
             ret = matrix2;
@@ -103,11 +103,11 @@ class NpzConverter {
       }
       std::cerr << "Matrix not found: " << keys[0].first << "\n";
 
-      mblas::Matrix ret;
+      mblas::Tensor ret;
       return std::move(ret);
     }
 
-    mblas::Matrix operator()(const std::string& key,
+    mblas::Tensor operator()(const std::string& key,
                                    bool transpose) const {
       BlazeWrapper matrix;
       auto it = model_.find(key);
@@ -117,7 +117,7 @@ class NpzConverter {
       } else {
           std::cerr << "Missing " << key << std::endl;
       }
-      mblas::Matrix ret;
+      mblas::Tensor ret;
       if (transpose) {
         const auto matrix2 = blaze::trans(matrix);
         ret = matrix2;

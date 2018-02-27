@@ -60,17 +60,17 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
-  edOut.GetStates() = mblas::Assemble<mblas::byRow, mblas::Matrix>(edIn.GetStates(), beamStateIds);
+  edOut.GetStates() = mblas::Assemble<mblas::byRow, mblas::Tensor>(edIn.GetStates(), beamStateIds);
   decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
 }
 
 
-void EncoderDecoder::GetAttention(mblas::Matrix& Attention) {
+void EncoderDecoder::GetAttention(mblas::Tensor& Attention) {
   decoder_->GetAttention(Attention);
 }
 
 
-mblas::Matrix& EncoderDecoder::GetAttention() {
+mblas::Tensor& EncoderDecoder::GetAttention() {
   return decoder_->GetAttention();
 }
 
@@ -85,7 +85,7 @@ void EncoderDecoder::Filter(const std::vector<unsigned>& filterIds) {
 }
 
 
-BaseMatrix& EncoderDecoder::GetProbs() {
+BaseTensor& EncoderDecoder::GetProbs() {
   return decoder_->GetProbs();
 }
 

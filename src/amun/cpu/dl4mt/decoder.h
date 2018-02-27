@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../mblas/matrix.h"
+#include "../mblas/tensor.h"
 #include "model.h"
 #include "gru.h"
 #include "common/god.h"
@@ -18,13 +18,13 @@ class Decoder {
         : w_(model)
         {}
 
-        void Lookup(mblas::Matrix& Rows, const std::vector<unsigned>& ids) {
+        void Lookup(mblas::Tensor& Rows, const std::vector<unsigned>& ids) {
           using namespace mblas;
           std::vector<unsigned> tids = ids;
           for(auto&& id : tids)
             if(id >= w_.E_.rows())
               id = 1;
-          Rows = Assemble<byRow, Matrix>(w_.E_, tids);
+          Rows = Assemble<byRow, Tensor>(w_.E_, tids);
         }
 
         size_t GetCols() {
@@ -46,14 +46,14 @@ class Decoder {
         RNNHidden(const Weights1& initModel, const Weights2& gruModel)
         : w_(initModel), gru_(gruModel) {}
 
-        void InitializeState(mblas::Matrix& State,
-                             const mblas::Matrix& SourceContext,
+        void InitializeState(mblas::Tensor& State,
+                             const mblas::Tensor& SourceContext,
                              const size_t batchSize = 1) {
           using namespace mblas;
 
           // Calculate mean of source context, rowwise
           // Repeat mean batchSize times by broadcasting
-          Temp1_ = Mean<byRow, Matrix>(SourceContext);
+          Temp1_ = Mean<byRow, Tensor>(SourceContext);
           Temp2_.resize(batchSize, SourceContext.columns());
           Temp2_ = 0.0f;
           AddBiasVector<byRow>(Temp2_, Temp1_);
@@ -69,9 +69,9 @@ class Decoder {
           State = blaze::forEach(State, Tanh());
         }
 
-        void GetNextState(mblas::Matrix& NextState,
-                          const mblas::Matrix& State,
-                          const mblas::Matrix& Context) {
+        void GetNextState(mblas::Tensor& NextState,
+                          const mblas::Tensor& State,
+                          const mblas::Tensor& Context) {
           gru_.GetNextState(NextState, State, Context);
         }
 
@@ -79,8 +79,8 @@ class Decoder {
         const Weights1& w_;
         const GRU<Weights2> gru_;
 
-        mblas::Matrix Temp1_;
-        mblas::Matrix Temp2_;
+        mblas::Tensor Temp1_;
+        mblas::Tensor Temp2_;
     };
 
     //////////////////////////////////////////////////////////////
@@ -90,9 +90,9 @@ class Decoder {
         RNNFinal(const Weights& model)
         : gru_(model) {}
 
-        void GetNextState(mblas::Matrix& NextState,
-                          const mblas::Matrix& State,
-                          const mblas::Matrix& Context) {
+        void GetNextState(mblas::Tensor& NextState,
+                          const mblas::Tensor& State,
+                          const mblas::Tensor& Context) {
           gru_.GetNextState(NextState, State, Context);
         }
 
@@ -110,7 +110,7 @@ class Decoder {
           V_ = blaze::trans(blaze::row(w_.V_, 0));
         }
 
-        void Init(const mblas::Matrix& SourceContext) {
+        void Init(const mblas::Tensor& SourceContext) {
           using namespace mblas;
           SCU_ = SourceContext * w_.U_;
           if (w_.Gamma_1_.rows()) {
@@ -119,9 +119,9 @@ class Decoder {
           AddBiasVector<byRow>(SCU_, w_.B_);
         }
 
-        void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
-                                     const mblas::Matrix& HiddenState,
-                                     const mblas::Matrix& SourceContext) {
+        void GetAlignedSourceContext(mblas::Tensor& AlignedSourceContext,
+                                     const mblas::Tensor& HiddenState,
+                                     const mblas::Tensor& SourceContext) {
           using namespace mblas;
 
           Temp2_ = HiddenState * w_.W_;
@@ -129,7 +129,7 @@ class Decoder {
             LayerNormalization(Temp2_, w_.Gamma_2_);
           }
 
-          Temp1_ = Broadcast<Matrix>(Tanh(), SCU_, Temp2_);
+          Temp1_ = Broadcast<Tensor>(Tanh(), SCU_, Temp2_);
 
           A_.resize(Temp1_.rows(), 1);
           blaze::column(A_, 0) = Temp1_ * V_;
@@ -145,21 +145,21 @@ class Decoder {
           AlignedSourceContext = A_ * SourceContext;
         }
 
-        void GetAttention(mblas::Matrix& Attention) {
+        void GetAttention(mblas::Tensor& Attention) {
           Attention = A_;
         }
 
-        mblas::Matrix& GetAttention() {
+        mblas::Tensor& GetAttention() {
           return A_;
         }
 
       private:
         const Weights& w_;
 
-        mblas::Matrix SCU_;
-        mblas::Matrix Temp1_;
-        mblas::Matrix Temp2_;
-        mblas::Matrix A_;
+        mblas::Tensor SCU_;
+        mblas::Tensor Temp1_;
+        mblas::Tensor Temp2_;
+        mblas::Tensor A_;
         mblas::ColumnVector V_;
     };
 
@@ -173,9 +173,9 @@ class Decoder {
         {}
 
         void GetProbs(mblas::ArrayMatrix& Probs,
-                  const mblas::Matrix& State,
-                  const mblas::Matrix& Embedding,
-                  const mblas::Matrix& AlignedSourceContext) {
+                  const mblas::Tensor& State,
+                  const mblas::Tensor& Embedding,
+                  const mblas::Tensor& AlignedSourceContext) {
           using namespace mblas;
 
 
@@ -212,20 +212,20 @@ class Decoder {
         void Filter(const std::vector<unsigned>& ids) {
           filtered_ = true;
           using namespace mblas;
-          FilteredW4_ = Assemble<byColumn, Matrix>(w_.W4_, ids);
-          FilteredB4_ = Assemble<byColumn, Matrix>(w_.B4_, ids);
+          FilteredW4_ = Assemble<byColumn, Tensor>(w_.W4_, ids);
+          FilteredB4_ = Assemble<byColumn, Tensor>(w_.B4_, ids);
         }
 
       private:
         const Weights& w_;
         bool filtered_;
 
-        mblas::Matrix FilteredW4_;
-        mblas::Matrix FilteredB4_;
+        mblas::Tensor FilteredW4_;
+        mblas::Tensor FilteredB4_;
 
-        mblas::Matrix T1_;
-        mblas::Matrix T2_;
-        mblas::Matrix T3_;
+        mblas::Tensor T1_;
+        mblas::Tensor T2_;
+        mblas::Tensor T3_;
     };
 
   public:
@@ -237,10 +237,10 @@ class Decoder {
       softmax_(model.decSoftmax_)
     {}
 
-    void Decode(mblas::Matrix& NextState,
-                  const mblas::Matrix& State,
-                  const mblas::Matrix& Embeddings,
-                  const mblas::Matrix& SourceContext) {
+    void Decode(mblas::Tensor& NextState,
+                  const mblas::Tensor& State,
+                  const mblas::Tensor& Embeddings,
+                  const mblas::Tensor& SourceContext) {
       GetHiddenState(HiddenState_, State, Embeddings);
       GetAlignedSourceContext(AlignedSourceContext_, HiddenState_, SourceContext);
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
@@ -251,20 +251,20 @@ class Decoder {
       return Probs_;
     }
 
-    void EmptyState(mblas::Matrix& State,
-                    const mblas::Matrix& SourceContext,
+    void EmptyState(mblas::Tensor& State,
+                    const mblas::Tensor& SourceContext,
                     size_t batchSize = 1) {
     	rnn1_.InitializeState(State, SourceContext, batchSize);
     	attention_.Init(SourceContext);
     }
 
-    void EmptyEmbedding(mblas::Matrix& Embedding,
+    void EmptyEmbedding(mblas::Tensor& Embedding,
                         size_t batchSize = 1) {
       Embedding.resize(batchSize, embeddings_.GetCols());
       Embedding = 0.0f;
     }
 
-    void Lookup(mblas::Matrix& Embedding,
+    void Lookup(mblas::Tensor& Embedding,
                 const std::vector<unsigned>& w) {
       embeddings_.Lookup(Embedding, w);
     }
@@ -273,11 +273,11 @@ class Decoder {
       softmax_.Filter(ids);
     }
 
-    void GetAttention(mblas::Matrix& attention) {
+    void GetAttention(mblas::Tensor& attention) {
     	attention_.GetAttention(attention);
     }
 
-    mblas::Matrix& GetAttention() {
+    mblas::Tensor& GetAttention() {
       return attention_.GetAttention();
     }
 
@@ -287,34 +287,34 @@ class Decoder {
 
   private:
 
-    void GetHiddenState(mblas::Matrix& HiddenState,
-                        const mblas::Matrix& PrevState,
-                        const mblas::Matrix& Embedding) {
+    void GetHiddenState(mblas::Tensor& HiddenState,
+                        const mblas::Tensor& PrevState,
+                        const mblas::Tensor& Embedding) {
       rnn1_.GetNextState(HiddenState, PrevState, Embedding);
     }
 
-    void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
-                                 const mblas::Matrix& HiddenState,
-                                 const mblas::Matrix& SourceContext) {
+    void GetAlignedSourceContext(mblas::Tensor& AlignedSourceContext,
+                                 const mblas::Tensor& HiddenState,
+                                 const mblas::Tensor& SourceContext) {
     	attention_.GetAlignedSourceContext(AlignedSourceContext, HiddenState, SourceContext);
     }
 
-    void GetNextState(mblas::Matrix& State,
-                      const mblas::Matrix& HiddenState,
-                      const mblas::Matrix& AlignedSourceContext) {
+    void GetNextState(mblas::Tensor& State,
+                      const mblas::Tensor& HiddenState,
+                      const mblas::Tensor& AlignedSourceContext) {
       rnn2_.GetNextState(State, HiddenState, AlignedSourceContext);
     }
 
 
-    void GetProbs(const mblas::Matrix& State,
-                  const mblas::Matrix& Embedding,
-                  const mblas::Matrix& AlignedSourceContext) {
+    void GetProbs(const mblas::Tensor& State,
+                  const mblas::Tensor& Embedding,
+                  const mblas::Tensor& AlignedSourceContext) {
       softmax_.GetProbs(Probs_, State, Embedding, AlignedSourceContext);
     }
 
   private:
-    mblas::Matrix HiddenState_;
-    mblas::Matrix AlignedSourceContext_;
+    mblas::Tensor HiddenState_;
+    mblas::Tensor AlignedSourceContext_;
     mblas::ArrayMatrix Probs_;
 
     Embeddings<Weights::Embeddings> embeddings_;

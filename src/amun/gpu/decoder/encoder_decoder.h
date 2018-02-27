@@ -7,7 +7,7 @@
 #include "common/base_best_hyps.h"
 #include "common/threadpool.h"
 #include "gpu/types-gpu.h"
-#include "gpu/mblas/matrix.h"
+#include "gpu/mblas/tensor.h"
 #include "gpu/mblas/handles.h"
 #include "gpu/mblas/vector.h"
 
@@ -46,13 +46,13 @@ class EncoderDecoder : public Scorer {
                                    const Beam& beam,
                                    State& out);
 
-    void GetAttention(mblas::Matrix& Attention);
+    void GetAttention(mblas::Tensor& Attention);
 
-    mblas::Matrix& GetAttention();
-    virtual BaseMatrix& GetProbs();
+    mblas::Tensor& GetAttention();
+    virtual BaseTensor& GetProbs();
 
     virtual void *GetNBest();
-    virtual const BaseMatrix *GetBias() const;
+    virtual const BaseTensor *GetBias() const;
 
     unsigned GetVocabSize() const;
 
@@ -67,7 +67,7 @@ class EncoderDecoder : public Scorer {
     mblas::Vector<unsigned> sentenceLengths_;
       // set in Encoder::GetContext() to length (maxSentenceLength * batchSize). 1 if it's a word, 0 otherwise
 
-    std::unique_ptr<mblas::Matrix> SourceContext_;
+    std::unique_ptr<mblas::Tensor> SourceContext_;
 
     EncoderDecoder(const EncoderDecoder&) = delete;
 

@@ -9,17 +9,10 @@ namespace amunmt {
 
 const unsigned SHAPE_SIZE = 4;
 
-class Hypothesis;
-typedef std::shared_ptr<Hypothesis> HypothesisPtr;
-typedef std::vector<HypothesisPtr> Beam;
-
-class Scorer;
-typedef std::shared_ptr<Scorer> ScorerPtr;
-
-class BaseMatrix {
+class BaseTensor {
   public:
-	BaseMatrix() {}
-    virtual ~BaseMatrix() {}
+	BaseTensor() {}
+    virtual ~BaseTensor() {}
 
     virtual unsigned dim(unsigned i) const = 0;
 

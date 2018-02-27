@@ -1,7 +1,7 @@
 #pragma once
 #include <boost/timer/timer.hpp>
-#include "gpu/mblas/matrix_functions.h"
-#include "gpu/mblas/matrix_wrapper.h"
+#include "gpu/mblas/tensor_functions.h"
+#include "gpu/mblas/tensor_wrapper.h"
 #include "gpu/mblas/handles.h"
 #include "gpu/dl4mt/cell.h"
 #include "cellstate.h"
@@ -17,7 +17,7 @@ class SlowGRU: public Cell {
 
     virtual void GetNextState(CellState& NextState,
                       const CellState& State,
-                      const mblas::Matrix& Context) const {
+                      const mblas::Tensor& Context) const {
       using namespace mblas;
 
       //std::cerr << std::endl;
@@ -90,25 +90,25 @@ class SlowGRU: public Cell {
     const Weights& w_;
 
     // reused to avoid allocation
-    mutable mblas::Matrix RU_;
-    mutable mblas::Matrix R_;
-    mutable mblas::Matrix U_;
-    mutable mblas::Matrix H_;
-    mutable mblas::Matrix Temp1_;
-    mutable mblas::Matrix Temp2_;
+    mutable mblas::Tensor RU_;
+    mutable mblas::Tensor R_;
+    mutable mblas::Tensor U_;
+    mutable mblas::Tensor H_;
+    mutable mblas::Tensor Temp1_;
+    mutable mblas::Tensor Temp2_;
 
     SlowGRU(const SlowGRU&) = delete;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-__global__ void gElementwiseOps(mblas::MatrixWrapper<float> outWrap,
-                                const mblas::MatrixWrapper<float> stateWrap,
-                                const mblas::MatrixWrapper<float> ruhWrap,
-                                const mblas::MatrixWrapper<float> tempWrap,
-                                const mblas::MatrixWrapper<float> bWrap,
-                                const mblas::MatrixWrapper<float> bx1Wrap,
-                                const mblas::MatrixWrapper<float> bx2Wrap);
+__global__ void gElementwiseOps(mblas::TensorWrapper<float> outWrap,
+                                const mblas::TensorWrapper<float> stateWrap,
+                                const mblas::TensorWrapper<float> ruhWrap,
+                                const mblas::TensorWrapper<float> tempWrap,
+                                const mblas::TensorWrapper<float> bWrap,
+                                const mblas::TensorWrapper<float> bx1Wrap,
+                                const mblas::TensorWrapper<float> bx2Wrap);
 
 template <class Weights>
 class FastGRU: public Cell {
@@ -129,7 +129,7 @@ class FastGRU: public Cell {
       //std::cerr << "w_.W_=" << w_.W_.Debug(1) << std::endl;
       //std::cerr << "1WWx_=" << WWx_.Debug(1) << std::endl;
 
-      Matrix WxT;
+      Tensor WxT;
       Transpose(WxT, *w_.Wx_);
       //std::cerr << "w_.Wx_=" << w_.Wx_.Debug(1) << std::endl;
       //std::cerr << "WxT=" << WxT.Debug(1) << std::endl;
@@ -141,7 +141,7 @@ class FastGRU: public Cell {
       //std::cerr << "3WWx_=" << WWx_.Debug(1) << std::endl;
 
       Transpose(UUx_, *w_.U_);
-      Matrix UxT;
+      Tensor UxT;
       Transpose(UxT, *w_.Ux_);
       Concat(UUx_, UxT);
       Transpose(UUx_);
@@ -151,7 +151,7 @@ class FastGRU: public Cell {
 
     virtual void GetNextState(CellState& NextState,
                       const CellState& State,
-                      const mblas::Matrix& Context) const {
+                      const mblas::Tensor& Context) const {
       using namespace mblas;
 
       //std::cerr << std::endl;
@@ -183,10 +183,10 @@ class FastGRU: public Cell {
     }
 
 
-    void ElementwiseOps(mblas::Matrix& NextState,
-                        const mblas::Matrix& State,
-                        const mblas::Matrix& RUH,
-                        const mblas::Matrix& Temp) const
+    void ElementwiseOps(mblas::Tensor& NextState,
+                        const mblas::Tensor& State,
+                        const mblas::Tensor& RUH,
+                        const mblas::Tensor& Temp) const
     {
       //BEGIN_TIMER("ElementwiseOps");
 
@@ -200,13 +200,13 @@ class FastGRU: public Cell {
       NextState.NewSize(State.dim(0), State.dim(1), 1, 1);
       //std::cerr << "NextState=" << NextState.Debug() << std::endl;
 
-      mblas::MatrixWrapper<float> nextWrap(NextState);
-      const mblas::MatrixWrapper<float> stateWrap(State);
-      const mblas::MatrixWrapper<float> ruhWrap(RUH);
-      const mblas::MatrixWrapper<float> tempWrap(Temp);
-      const mblas::MatrixWrapper<float> bWrap(*w_.B_);
-      const mblas::MatrixWrapper<float> bx1Wrap(*w_.Bx1_);
-      const mblas::MatrixWrapper<float> bx2Wrap(*w_.Bx2_);
+      mblas::TensorWrapper<float> nextWrap(NextState);
+      const mblas::TensorWrapper<float> stateWrap(State);
+      const mblas::TensorWrapper<float> ruhWrap(RUH);
+      const mblas::TensorWrapper<float> tempWrap(Temp);
+      const mblas::TensorWrapper<float> bWrap(*w_.B_);
+      const mblas::TensorWrapper<float> bx1Wrap(*w_.Bx1_);
+      const mblas::TensorWrapper<float> bx2Wrap(*w_.Bx2_);
 
       /*
       std::cerr << "nextWrap=" << nextWrap.Debug() << std::endl;
@@ -243,11 +243,11 @@ class FastGRU: public Cell {
     const Weights& w_;
 
     // reused to avoid allocation
-    mutable mblas::Matrix WWx_;
-    mutable mblas::Matrix UUx_;
+    mutable mblas::Tensor WWx_;
+    mutable mblas::Tensor UUx_;
 
-    mutable mblas::Matrix RUH_;
-    mutable mblas::Matrix Temp_;
+    mutable mblas::Tensor RUH_;
+    mutable mblas::Tensor Temp_;
 
     FastGRU(const FastGRU&) = delete;
 };

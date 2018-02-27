@@ -6,7 +6,7 @@
 #include "common/scorer.h"
 #include "common/god.h"
 #include "common/exception.h"
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 #include "cpu/decoder/encoder_decoder.h"
 
 namespace amunmt {
@@ -22,11 +22,11 @@ struct ProbCompare {
   const float* data_;
 };
 
-class BestHyps : public BestHypsBase
+class BestHyps : public BaseBestHyps
 {
   public:
     BestHyps(const God &god)
-      : BestHypsBase(god)
+      : BaseBestHyps(god)
     {}
 
     void CalcBeam(

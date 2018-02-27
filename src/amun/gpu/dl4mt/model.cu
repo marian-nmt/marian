@@ -11,7 +11,7 @@ namespace GPU {
 
   for(int i=1; true; i++) {
     std::string factorKey = "Wemb" + std::to_string(i);
-    std::shared_ptr<mblas::Matrix> factorEmb = model.get(factorKey, false);
+    std::shared_ptr<mblas::Tensor> factorEmb = model.get(factorKey, false);
     if (factorEmb->size() <= 0){
       break;
     }
@@ -26,7 +26,7 @@ Weights::EncForwardGRU::EncForwardGRU(const NpzConverter& model)
   U_(model.get("encoder_U", true)),
   Wx_(model.get("encoder_Wx", true)),
   Bx1_(model.get("encoder_bx", true, true)),
-  Bx2_(new mblas::Matrix(Bx1_->dim(0), Bx1_->dim(1), Bx1_->dim(2), Bx1_->dim(3), true)),
+  Bx2_(new mblas::Tensor(Bx1_->dim(0), Bx1_->dim(1), Bx1_->dim(2), Bx1_->dim(3), true)),
   Ux_(model.get("encoder_Ux", true)),
   Gamma_1_(model.get("encoder_gamma1", false)),
   Gamma_2_(model.get("encoder_gamma2", false))
@@ -63,7 +63,7 @@ Weights::EncBackwardGRU::EncBackwardGRU(const NpzConverter& model)
   U_(model.get("encoder_r_U", true)),
   Wx_(model.get("encoder_r_Wx", true)),
   Bx1_(model.get("encoder_r_bx", true, true)),
-  Bx2_(new mblas::Matrix( Bx1_->dim(0), Bx1_->dim(1), Bx1_->dim(2), Bx1_->dim(3), true)),
+  Bx2_(new mblas::Tensor( Bx1_->dim(0), Bx1_->dim(1), Bx1_->dim(2), Bx1_->dim(3), true)),
   Ux_(model.get("encoder_r_Ux", true)),
   Gamma_1_(model.get("encoder_r_gamma1", false)),
   Gamma_2_(model.get("encoder_r_gamma2", false))
@@ -89,7 +89,7 @@ Weights::DecGRU1::DecGRU1(const NpzConverter& model)
   U_(model.get("decoder_U", true)),
   Wx_(model.get("decoder_Wx", true)),
   Bx1_(model.get("decoder_bx", true, true)),
-  Bx2_(new mblas::Matrix(Bx1_->dim(0), Bx1_->dim(1), Bx1_->dim(2), Bx1_->dim(3), true)),
+  Bx2_(new mblas::Tensor(Bx1_->dim(0), Bx1_->dim(1), Bx1_->dim(2), Bx1_->dim(3), true)),
   Ux_(model.get("decoder_Ux", true)),
   Gamma_1_(model.get("decoder_cell1_gamma1", false)),
   Gamma_2_(model.get("decoder_cell1_gamma2", false))
@@ -102,7 +102,7 @@ Weights::DecGRU2::DecGRU2(const NpzConverter& model)
   U_(model.get("decoder_U_nl", true)),
   Wx_(model.get("decoder_Wcx", true)),
   Bx2_(model.get("decoder_bx_nl", true, true)),
-  Bx1_(new mblas::Matrix(Bx2_->dim(0), Bx2_->dim(1), Bx2_->dim(2), Bx2_->dim(3), true)),
+  Bx1_(new mblas::Tensor(Bx2_->dim(0), Bx2_->dim(1), Bx2_->dim(2), Bx2_->dim(3), true)),
   Ux_(model.get("decoder_Ux_nl", true)),
   Gamma_1_(model.get("decoder_cell2_gamma1", false)),
   Gamma_2_(model.get("decoder_cell2_gamma2", false))

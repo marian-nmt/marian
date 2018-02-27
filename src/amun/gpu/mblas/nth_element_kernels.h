@@ -1,6 +1,6 @@
 #pragma once
 
-#include "matrix_wrapper.h"
+#include "tensor_wrapper.h"
 #include "vector_wrapper.h"
 
 namespace amunmt {
@@ -47,7 +47,7 @@ struct NthOutBatch
   __device__ __host__
   NthOutBatch(const float& rhs)
   {
-    // only to be used to init variable in matrix.h gSum
+    // only to be used to init variable in tensor.h gSum
     assert(rhs == 0.0f);
     ind = rhs;
     score = rhs;
@@ -111,19 +111,19 @@ inline std::ostream& operator<<(std::ostream &out, const NthOutBatch &obj)
 /////////////////////////////////////////////////////////////////////////////////////////
 
 __global__ void gMaxElement(mblas::VectorWrapper<NthOut> out,
-                            const mblas::MatrixWrapper<float> probsWrap,
+                            const mblas::TensorWrapper<float> probsWrap,
                             const mblas::VectorWrapper<unsigned> batchPositionWrap,
                             unsigned numBatches);
 
 __global__ void gMaxElementUpdate(mblas::VectorWrapper<NthOut> out,
-                                  mblas::MatrixWrapper<float> probsWrap,
+                                  mblas::TensorWrapper<float> probsWrap,
                                   mblas::VectorWrapper<NthOut> resWrap,
                                   const mblas::VectorWrapper<unsigned> batchPositionWrap,
                                   const mblas::VectorWrapper<unsigned> cumBeamSizesWrap,
                                   unsigned numBlocks);
 
-__global__ void gGetValueByKey(mblas::MatrixWrapper<float> out,
-                              const   mblas::MatrixWrapper<float> in,
+__global__ void gGetValueByKey(mblas::TensorWrapper<float> out,
+                              const   mblas::TensorWrapper<float> in,
                               unsigned* indices, unsigned n);
 
 }

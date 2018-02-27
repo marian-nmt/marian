@@ -7,7 +7,7 @@
 
 #include <blaze/Math.h>
 #include "phoenix_functions.h"
-#include "common/base_matrix.h"
+#include "common/base_tensor.h"
 #include "common/exception.h"
 
 namespace amunmt {
@@ -19,16 +19,16 @@ typedef blaze::DynamicVector<float, blaze::rowVector> Vector;
 typedef blaze::DynamicVector<float, blaze::columnVector> ColumnVector;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-class Matrix : public BaseMatrix, public blaze::DynamicMatrix<float, blaze::rowMajor>
+class Tensor : public BaseTensor, public blaze::DynamicMatrix<float, blaze::rowMajor>
 {
 public:
   typedef blaze::DynamicMatrix<float, blaze::rowMajor> Parent;
 
-  Matrix()
+  Tensor()
     : Parent()
   {}
 
-  Matrix(unsigned rows, unsigned cols)
+  Tensor(unsigned rows, unsigned cols)
     : Parent(rows, cols)
   {}
 
@@ -59,7 +59,7 @@ public:
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T, bool SO = blaze::rowMajor>
-class BlazeMatrix : public BaseMatrix, public blaze::CustomMatrix<T, blaze::unaligned,
+class BlazeMatrix : public BaseTensor, public blaze::CustomMatrix<T, blaze::unaligned,
                                              blaze::unpadded,
                                              blaze::rowMajor> {
   public:
@@ -208,7 +208,7 @@ MT& AddBiasVector(MT& m, const VT& b) {
   return m;
 }
 
-//Matrix& Swap(Matrix& Out, Matrix& In);
+//Tensor& Swap(Tensor& Out, Tensor& In);
 
 template <class MT>
 void Reshape(MT& m, unsigned rows, unsigned cols) {

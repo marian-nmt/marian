@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cnpy/cnpy.h"
-#include "mblas/matrix_functions.h"
+#include "mblas/tensor_functions.h"
 
 namespace amunmt {
 namespace GPU {
@@ -46,8 +46,8 @@ class NpzConverter {
 
     void Destruct();
 
-    std::shared_ptr<mblas::Matrix> get(const std::string& key, bool mandatory, bool transpose = false) const;
-    std::shared_ptr<mblas::Matrix> getFirstOfMany(const std::vector<std::pair<std::string, bool>> keys, bool mandatory) const;
+    std::shared_ptr<mblas::Tensor> get(const std::string& key, bool mandatory, bool transpose = false) const;
+    std::shared_ptr<mblas::Tensor> getFirstOfMany(const std::vector<std::pair<std::string, bool>> keys, bool mandatory) const;
 
   private:
     cnpy::npz_t model_;

@@ -4,7 +4,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "cpu/decoder/encoder_decoder.h"
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 #include "cpu/dl4mt/model.h"
 #include "cpu/dl4mt/encoder.h"
 #include "cpu/dl4mt/decoder.h"
@@ -43,12 +43,12 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
                                    const Beam& beam,
                                    State& out);
 
-    void GetAttention(mblas::Matrix& Attention);
-    mblas::Matrix& GetAttention();
+    void GetAttention(mblas::Tensor& Attention);
+    mblas::Tensor& GetAttention();
 
     unsigned GetVocabSize() const;
 
-    BaseMatrix& GetProbs();
+    BaseTensor& GetProbs();
 
     void Filter(const std::vector<unsigned>& filterIds);
 

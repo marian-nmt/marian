@@ -6,7 +6,7 @@ namespace amunmt {
 namespace GPU {
 
 BestHyps::BestHyps(const God &god)
-      : BestHypsBase(god),
+      : BaseBestHyps(god),
         keys_(god.Get<unsigned>("beam-size") * god.Get<unsigned>("mini-batch")),
         costs_(god.Get<unsigned>("beam-size") * god.Get<unsigned>("mini-batch")),
         maxBeamSize_(god.Get<unsigned>("beam-size"))
@@ -17,11 +17,11 @@ BestHyps::BestHyps(const God &god)
   }
 }
 
-void BestHyps::DisAllowUNK(mblas::Matrix& Prob) {
+void BestHyps::DisAllowUNK(mblas::Tensor& Prob) {
   SetColumn(Prob, UNK_ID, std::numeric_limits<float>::lowest());
 }
 
-void BestHyps::FindBests(const std::vector<unsigned>& beamSizes, mblas::Matrix& Probs,
+void BestHyps::FindBests(const std::vector<unsigned>& beamSizes, mblas::Tensor& Probs,
                std::vector<float>& outCosts,
                std::vector<unsigned>& outKeys,
                const bool isFirst)
@@ -30,7 +30,7 @@ void BestHyps::FindBests(const std::vector<unsigned>& beamSizes, mblas::Matrix& 
 }
 
 // fast fused softmax and nth_element
-void BestHyps::FindBests(const std::vector<unsigned>& beamSizes, mblas::Matrix& Probs,
+void BestHyps::FindBests(const std::vector<unsigned>& beamSizes, mblas::Tensor& Probs,
                mblas::Vector<NthOutBatch> &nBest,
                std::vector<float>& outCosts,
                std::vector<unsigned>& outKeys,
@@ -45,7 +45,7 @@ std::vector<SoftAlignmentPtr> BestHyps::GetAlignments(const std::vector<ScorerPt
   std::vector<SoftAlignmentPtr> alignments;
   for (auto& scorer : scorers) {
     if (GPU::EncoderDecoder* encdec = dynamic_cast<GPU::EncoderDecoder*>(scorer.get())) {
-      const mblas::Matrix &attention = encdec->GetAttention();
+      const mblas::Tensor &attention = encdec->GetAttention();
       unsigned attLength = attention.dim(1);
 
       SoftAlignment *softAlignment = new SoftAlignment(attLength);
@@ -76,7 +76,7 @@ void  BestHyps::CalcBeam(
 
   using namespace mblas;
 
-  mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorers[0]->GetProbs());
+  mblas::Tensor& Probs = static_cast<mblas::Tensor&>(scorers[0]->GetProbs());
 
   std::vector<float> vCosts;
   for (auto& h : prevHyps) {
@@ -97,7 +97,7 @@ void  BestHyps::CalcBeam(
   const bool isFirst = (vCosts[0] == 0.0f) ? true : false;
 
   if (god_.UseFusedSoftmax()) {
-    const mblas::Matrix& b4 = *static_cast<const mblas::Matrix*>(scorers[0]->GetBias());
+    const mblas::Tensor& b4 = *static_cast<const mblas::Tensor*>(scorers[0]->GetBias());
     mblas::Vector<NthOutBatch> &nBest = *static_cast<mblas::Vector<NthOutBatch>*>(scorers[0]->GetNBest());
     nBest.newSize(beamSizeSum);
 
@@ -115,7 +115,7 @@ void  BestHyps::CalcBeam(
     BroadcastVecColumn(weights_.at(scorers[0]->GetName()) * _1 + _2, Probs, costs_);
 
     for (unsigned i = 1; i < scorers.size(); ++i) {
-      mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
+      mblas::Tensor &currProbs = static_cast<mblas::Tensor&>(scorers[i]->GetProbs());
 
       Element(_1 + weights_.at(scorers[i]->GetName()) * _2, Probs, currProbs);
     }
@@ -132,7 +132,7 @@ void  BestHyps::CalcBeam(
       breakDowns.push_back(bestCosts);
       for (unsigned i = 1; i < scorers.size(); ++i) {
         std::vector<float> modelCosts(beamSizeSum);
-        mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
+        mblas::Tensor &currProbs = static_cast<mblas::Tensor&>(scorers[i]->GetProbs());
 
         nthElement_->getValueByKey(modelCosts, currProbs);
         breakDowns.push_back(modelCosts);
@@ -194,7 +194,7 @@ void  BestHyps::CalcBeam(
 
 //////////////////////////////////////////////////////////////////////////
 void BestHyps::getNBestList(const std::vector<unsigned>& beamSizes,
-                  mblas::Matrix& Probs,
+                  mblas::Tensor& Probs,
                   mblas::Vector<NthOutBatch> &nBest,
                   std::vector<float>& outCosts,
                   std::vector<unsigned>& outKeys,

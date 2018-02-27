@@ -8,7 +8,7 @@
 #include "cpu/nematus/decoder.h"
 #include "cpu/nematus/model.h"
 
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 
 namespace amunmt {
 
@@ -38,12 +38,12 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
                                    const Beam& beam,
                                    State& out);
 
-    void GetAttention(mblas::Matrix& Attention);
-    mblas::Matrix& GetAttention();
+    void GetAttention(mblas::Tensor& Attention);
+    mblas::Tensor& GetAttention();
 
     unsigned GetVocabSize() const;
 
-    BaseMatrix& GetProbs();
+    BaseTensor& GetProbs();
 
     void Filter(const std::vector<unsigned>& filterIds);
 

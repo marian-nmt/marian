@@ -61,7 +61,7 @@ class God {
 
     std::shared_ptr<const Filter> GetFilter() const;
 
-    BestHypsBasePtr GetBestHyps(const DeviceInfo &deviceInfo) const;
+    BaseBestHypsPtr GetBestHyps(const DeviceInfo &deviceInfo) const;
 
     std::vector<ScorerPtr> GetScorers(const DeviceInfo &deviceInfo) const;
     std::vector<std::string> GetScorerNames() const;

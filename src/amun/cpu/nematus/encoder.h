@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../mblas/matrix.h"
+#include "../mblas/tensor.h"
 #include "model.h"
 #include "gru.h"
 #include "transition.h"
@@ -20,7 +20,7 @@ class Encoder {
         : w_(model)
         {}
 
-        void Lookup(mblas::Matrix& Row, size_t i) {
+        void Lookup(mblas::Tensor& Row, size_t i) {
 		  size_t len = w_.E_.columns();
           if(i < w_.E_.rows())
             Row = blaze::submatrix(w_.E_, i, 0, 1, len);
@@ -46,9 +46,9 @@ class Encoder {
           State_ = 0.0f;
         }
 
-        void GetNextState(mblas::Matrix& nextState,
-                          const mblas::Matrix& state,
-                          const mblas::Matrix& embd) {
+        void GetNextState(mblas::Tensor& nextState,
+                          const mblas::Tensor& state,
+                          const mblas::Tensor& embd) {
           gru_.GetNextState(nextState, state, embd);
           // std::cerr << "GRU: " << std::endl;
           // for (int i = 0; i < 10; ++i) std::cerr << nextState(0, i) << " ";
@@ -60,7 +60,7 @@ class Encoder {
         }
 
         template <class It>
-        void GetContext(It it, It end, mblas::Matrix& Context, bool invert) {
+        void GetContext(It it, It end, mblas::Tensor& Context, bool invert) {
           InitializeState();
 
           size_t n = std::distance(it, end);
@@ -86,7 +86,7 @@ class Encoder {
         const GRU<WeightsGRU> gru_;
         const Transition transition_;
 
-        mblas::Matrix State_;
+        mblas::Tensor State_;
     };
 
   /////////////////////////////////////////////////////////////////
@@ -98,7 +98,7 @@ class Encoder {
     {}
 
     void GetContext(const std::vector<unsigned>& words,
-                    mblas::Matrix& context);
+                    mblas::Tensor& context);
 
   private:
     Embeddings<Weights::Embeddings> embeddings_;

@@ -43,7 +43,7 @@ public:
       model_.destruct();
   }
 
-  mblas::Matrix GetMatrix(
+  mblas::Tensor GetMatrix(
       const OpenCLInfo &openCLInfo,
 		  const std::string& key,
 		  bool transpose = false) const;

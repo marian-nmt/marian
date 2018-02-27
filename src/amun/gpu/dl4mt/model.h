@@ -4,7 +4,7 @@
 #include <string>
 #include <yaml-cpp/yaml.h>
 
-#include "gpu/mblas/matrix.h"
+#include "gpu/mblas/tensor.h"
 #include "gpu/npz_converter.h"
 
 namespace amunmt {
@@ -19,7 +19,7 @@ struct Weights {
 
     // Embedding matrices for word factors. The first factor is the word
     // surface form. The rest are optional.
-    std::vector<std::shared_ptr<mblas::Matrix>> Es_;
+    std::vector<std::shared_ptr<mblas::Tensor>> Es_;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -27,15 +27,15 @@ struct Weights {
     EncForwardGRU(const EncForwardGRU&) = delete;
     EncForwardGRU(const NpzConverter& model);
 
-    const std::shared_ptr<mblas::Matrix> W_;
-    const std::shared_ptr<mblas::Matrix> B_;
-    const std::shared_ptr<mblas::Matrix> U_;
-    const std::shared_ptr<mblas::Matrix> Wx_;
-    const std::shared_ptr<mblas::Matrix> Bx1_;
-    const std::shared_ptr<mblas::Matrix> Bx2_;
-    const std::shared_ptr<mblas::Matrix> Ux_;
-    const std::shared_ptr<mblas::Matrix> Gamma_1_;
-    const std::shared_ptr<mblas::Matrix> Gamma_2_;
+    const std::shared_ptr<mblas::Tensor> W_;
+    const std::shared_ptr<mblas::Tensor> B_;
+    const std::shared_ptr<mblas::Tensor> U_;
+    const std::shared_ptr<mblas::Tensor> Wx_;
+    const std::shared_ptr<mblas::Tensor> Bx1_;
+    const std::shared_ptr<mblas::Tensor> Bx2_;
+    const std::shared_ptr<mblas::Tensor> Ux_;
+    const std::shared_ptr<mblas::Tensor> Gamma_1_;
+    const std::shared_ptr<mblas::Tensor> Gamma_2_;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -43,15 +43,15 @@ struct Weights {
     EncBackwardGRU(const EncBackwardGRU&) = delete;
     EncBackwardGRU(const NpzConverter& model);
 
-    const std::shared_ptr<mblas::Matrix> W_;
-    const std::shared_ptr<mblas::Matrix> B_;
-    const std::shared_ptr<mblas::Matrix> U_;
-    const std::shared_ptr<mblas::Matrix> Wx_;
-    const std::shared_ptr<mblas::Matrix> Bx1_;
-    const std::shared_ptr<mblas::Matrix> Bx2_;
-    const std::shared_ptr<mblas::Matrix> Ux_;
-    const std::shared_ptr<mblas::Matrix> Gamma_1_;
-    const std::shared_ptr<mblas::Matrix> Gamma_2_;
+    const std::shared_ptr<mblas::Tensor> W_;
+    const std::shared_ptr<mblas::Tensor> B_;
+    const std::shared_ptr<mblas::Tensor> U_;
+    const std::shared_ptr<mblas::Tensor> Wx_;
+    const std::shared_ptr<mblas::Tensor> Bx1_;
+    const std::shared_ptr<mblas::Tensor> Bx2_;
+    const std::shared_ptr<mblas::Tensor> Ux_;
+    const std::shared_ptr<mblas::Tensor> Gamma_1_;
+    const std::shared_ptr<mblas::Tensor> Gamma_2_;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -59,14 +59,14 @@ struct Weights {
     EncForwardLSTM(const EncForwardLSTM&) = delete;
     EncForwardLSTM(const NpzConverter& model);
 
-    const std::shared_ptr<mblas::Matrix> W_;
-    const std::shared_ptr<mblas::Matrix> B_;
-    const std::shared_ptr<mblas::Matrix> U_;
-    const std::shared_ptr<mblas::Matrix> Wx_;
-    const std::shared_ptr<mblas::Matrix> Bx_;
-    const std::shared_ptr<mblas::Matrix> Ux_;
-    const std::shared_ptr<mblas::Matrix> Gamma_1_;
-    const std::shared_ptr<mblas::Matrix> Gamma_2_;
+    const std::shared_ptr<mblas::Tensor> W_;
+    const std::shared_ptr<mblas::Tensor> B_;
+    const std::shared_ptr<mblas::Tensor> U_;
+    const std::shared_ptr<mblas::Tensor> Wx_;
+    const std::shared_ptr<mblas::Tensor> Bx_;
+    const std::shared_ptr<mblas::Tensor> Ux_;
+    const std::shared_ptr<mblas::Tensor> Gamma_1_;
+    const std::shared_ptr<mblas::Tensor> Gamma_2_;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -74,14 +74,14 @@ struct Weights {
     EncBackwardLSTM(const EncBackwardLSTM&) = delete;
     EncBackwardLSTM(const NpzConverter& model);
 
-    const std::shared_ptr<mblas::Matrix> W_;
-    const std::shared_ptr<mblas::Matrix> B_;
-    const std::shared_ptr<mblas::Matrix> U_;
-    const std::shared_ptr<mblas::Matrix> Wx_;
-    const std::shared_ptr<mblas::Matrix> Bx_;
-    const std::shared_ptr<mblas::Matrix> Ux_;
-    const std::shared_ptr<mblas::Matrix> Gamma_1_;
-    const std::shared_ptr<mblas::Matrix> Gamma_2_;
+    const std::shared_ptr<mblas::Tensor> W_;
+    const std::shared_ptr<mblas::Tensor> B_;
+    const std::shared_ptr<mblas::Tensor> U_;
+    const std::shared_ptr<mblas::Tensor> Wx_;
+    const std::shared_ptr<mblas::Tensor> Bx_;
+    const std::shared_ptr<mblas::Tensor> Ux_;
+    const std::shared_ptr<mblas::Tensor> Gamma_1_;
+    const std::shared_ptr<mblas::Tensor> Gamma_2_;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -90,7 +90,7 @@ struct Weights {
     DecEmbeddings(const DecEmbeddings&) = delete;
     DecEmbeddings(const NpzConverter& model);
 
-    const std::shared_ptr<mblas::Matrix> E_;
+    const std::shared_ptr<mblas::Tensor> E_;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -99,9 +99,9 @@ struct Weights {
     DecInit(const DecInit&) = delete;
     DecInit(const NpzConverter& model);
 
-    const std::shared_ptr<mblas::Matrix> Wi_;
-    const std::shared_ptr<mblas::Matrix> Bi_;
-    const std::shared_ptr<mblas::Matrix> Gamma_;
+    const std::shared_ptr<mblas::Tensor> Wi_;
+    const std::shared_ptr<mblas::Tensor> Bi_;
+    const std::shared_ptr<mblas::Tensor> Gamma_;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -110,15 +110,15 @@ struct Weights {
     DecGRU1(const DecGRU1&) = delete;
     DecGRU1(const NpzConverter& model);
 
-    const std::shared_ptr<mblas::Matrix> W_;
-    const std::shared_ptr<mblas::Matrix> B_;
-    const std::shared_ptr<mblas::Matrix> U_;
-    const std::shared_ptr<mblas::Matrix> Wx_;
-    const std::shared_ptr<mblas::Matrix> Bx1_;
-    const std::shared_ptr<mblas::Matrix> Bx2_;
-    const std::shared_ptr<mblas::Matrix> Ux_;
-    const std::shared_ptr<mblas::Matrix> Gamma_1_;
-    const std::shared_ptr<mblas::Matrix> Gamma_2_;
+    const std::shared_ptr<mblas::Tensor> W_;
+    const std::shared_ptr<mblas::Tensor> B_;
+    const std::shared_ptr<mblas::Tensor> U_;
+    const std::shared_ptr<mblas::Tensor> Wx_;
+    const std::shared_ptr<mblas::Tensor> Bx1_;
+    const std::shared_ptr<mblas::Tensor> Bx2_;
+    const std::shared_ptr<mblas::Tensor> Ux_;
+    const std::shared_ptr<mblas::Tensor> Gamma_1_;
+    const std::shared_ptr<mblas::Tensor> Gamma_2_;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -127,15 +127,15 @@ struct Weights {
     DecGRU2(const DecGRU2&) = delete;
     DecGRU2(const NpzConverter& model);
 
-    const std::shared_ptr<mblas::Matrix> W_;
-    const std::shared_ptr<mblas::Matrix> B_;
-    const std::shared_ptr<mblas::Matrix> U_;
-    const std::shared_ptr<mblas::Matrix> Wx_;
-    const std::shared_ptr<mblas::Matrix> Bx2_;
-    const std::shared_ptr<mblas::Matrix> Bx1_;
-    const std::shared_ptr<mblas::Matrix> Ux_;
-    const std::shared_ptr<mblas::Matrix> Gamma_1_;
-    const std::shared_ptr<mblas::Matrix> Gamma_2_;
+    const std::shared_ptr<mblas::Tensor> W_;
+    const std::shared_ptr<mblas::Tensor> B_;
+    const std::shared_ptr<mblas::Tensor> U_;
+    const std::shared_ptr<mblas::Tensor> Wx_;
+    const std::shared_ptr<mblas::Tensor> Bx2_;
+    const std::shared_ptr<mblas::Tensor> Bx1_;
+    const std::shared_ptr<mblas::Tensor> Ux_;
+    const std::shared_ptr<mblas::Tensor> Gamma_1_;
+    const std::shared_ptr<mblas::Tensor> Gamma_2_;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -144,14 +144,14 @@ struct Weights {
     DecLSTM1(const DecLSTM1&) = delete;
     DecLSTM1(const NpzConverter& model);
 
-    const std::shared_ptr<mblas::Matrix> W_;
-    const std::shared_ptr<mblas::Matrix> B_;
-    const std::shared_ptr<mblas::Matrix> U_;
-    const std::shared_ptr<mblas::Matrix> Wx_;
-    const std::shared_ptr<mblas::Matrix> Bx_;
-    const std::shared_ptr<mblas::Matrix> Ux_;
-    const std::shared_ptr<mblas::Matrix> Gamma_1_;
-    const std::shared_ptr<mblas::Matrix> Gamma_2_;
+    const std::shared_ptr<mblas::Tensor> W_;
+    const std::shared_ptr<mblas::Tensor> B_;
+    const std::shared_ptr<mblas::Tensor> U_;
+    const std::shared_ptr<mblas::Tensor> Wx_;
+    const std::shared_ptr<mblas::Tensor> Bx_;
+    const std::shared_ptr<mblas::Tensor> Ux_;
+    const std::shared_ptr<mblas::Tensor> Gamma_1_;
+    const std::shared_ptr<mblas::Tensor> Gamma_2_;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -160,14 +160,14 @@ struct Weights {
     DecLSTM2(const DecLSTM2&) = delete;
     DecLSTM2(const NpzConverter& model);
 
-    const std::shared_ptr<mblas::Matrix> W_;
-    const std::shared_ptr<mblas::Matrix> B_;
-    const std::shared_ptr<mblas::Matrix> U_;
-    const std::shared_ptr<mblas::Matrix> Wx_;
-    const std::shared_ptr<mblas::Matrix> Bx_;
-    const std::shared_ptr<mblas::Matrix> Ux_;
-    const std::shared_ptr<mblas::Matrix> Gamma_1_;
-    const std::shared_ptr<mblas::Matrix> Gamma_2_;
+    const std::shared_ptr<mblas::Tensor> W_;
+    const std::shared_ptr<mblas::Tensor> B_;
+    const std::shared_ptr<mblas::Tensor> U_;
+    const std::shared_ptr<mblas::Tensor> Wx_;
+    const std::shared_ptr<mblas::Tensor> Bx_;
+    const std::shared_ptr<mblas::Tensor> Ux_;
+    const std::shared_ptr<mblas::Tensor> Gamma_1_;
+    const std::shared_ptr<mblas::Tensor> Gamma_2_;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -184,10 +184,10 @@ struct Weights {
       Um_(model.get(p(prefix, "Um"), true)),
       Bmu_(model.get(p(prefix, "bmu"), true, true))
       {}
-    const std::shared_ptr<mblas::Matrix> Wm_;
-    const std::shared_ptr<mblas::Matrix> Bm_;
-    const std::shared_ptr<mblas::Matrix> Um_;
-    const std::shared_ptr<mblas::Matrix> Bmu_;
+    const std::shared_ptr<mblas::Tensor> Wm_;
+    const std::shared_ptr<mblas::Tensor> Bm_;
+    const std::shared_ptr<mblas::Tensor> Um_;
+    const std::shared_ptr<mblas::Tensor> Bmu_;
   private:
     std::string p(std::string prefix, std::string sufix){
       return prefix + "_" + sufix;
@@ -200,13 +200,13 @@ struct Weights {
     DecAlignment(const DecAlignment&) = delete;
     DecAlignment(const NpzConverter& model);
 
-    const std::shared_ptr<mblas::Matrix> V_;
-    const std::shared_ptr<mblas::Matrix> W_;
-    const std::shared_ptr<mblas::Matrix> B_;
-    const std::shared_ptr<mblas::Matrix> U_;
-    const std::shared_ptr<mblas::Matrix> C_;
-    const std::shared_ptr<mblas::Matrix> Gamma_1_;
-    const std::shared_ptr<mblas::Matrix> Gamma_2_;
+    const std::shared_ptr<mblas::Tensor> V_;
+    const std::shared_ptr<mblas::Tensor> W_;
+    const std::shared_ptr<mblas::Tensor> B_;
+    const std::shared_ptr<mblas::Tensor> U_;
+    const std::shared_ptr<mblas::Tensor> C_;
+    const std::shared_ptr<mblas::Tensor> Gamma_1_;
+    const std::shared_ptr<mblas::Tensor> Gamma_2_;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -215,17 +215,17 @@ struct Weights {
     DecSoftmax(const DecSoftmax&) = delete;
     DecSoftmax(const NpzConverter& model);
 
-    const std::shared_ptr<mblas::Matrix> W1_;
-    const std::shared_ptr<mblas::Matrix> B1_;
-    const std::shared_ptr<mblas::Matrix> W2_;
-    const std::shared_ptr<mblas::Matrix> B2_;
-    const std::shared_ptr<mblas::Matrix> W3_;
-    const std::shared_ptr<mblas::Matrix> B3_;
-    const std::shared_ptr<mblas::Matrix> W4_;
-    const std::shared_ptr<mblas::Matrix> B4_;
-    const std::shared_ptr<mblas::Matrix> Gamma_0_;
-    const std::shared_ptr<mblas::Matrix> Gamma_1_;
-    const std::shared_ptr<mblas::Matrix> Gamma_2_;
+    const std::shared_ptr<mblas::Tensor> W1_;
+    const std::shared_ptr<mblas::Tensor> B1_;
+    const std::shared_ptr<mblas::Tensor> W2_;
+    const std::shared_ptr<mblas::Tensor> B2_;
+    const std::shared_ptr<mblas::Tensor> W3_;
+    const std::shared_ptr<mblas::Tensor> B3_;
+    const std::shared_ptr<mblas::Tensor> W4_;
+    const std::shared_ptr<mblas::Tensor> B4_;
+    const std::shared_ptr<mblas::Tensor> Gamma_0_;
+    const std::shared_ptr<mblas::Tensor> Gamma_1_;
+    const std::shared_ptr<mblas::Tensor> Gamma_2_;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////

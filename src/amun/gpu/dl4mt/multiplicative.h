@@ -1,7 +1,7 @@
 #pragma once
 #include <boost/timer/timer.hpp>
-#include "gpu/mblas/matrix_functions.h"
-#include "gpu/mblas/matrix_wrapper.h"
+#include "gpu/mblas/tensor_functions.h"
+#include "gpu/mblas/tensor_wrapper.h"
 #include "gpu/mblas/handles.h"
 #include "gpu/dl4mt/cell.h"
 #include "cellstate.h"
@@ -19,7 +19,7 @@ class Multiplicative: public Cell {
     {}
     virtual void GetNextState(CellState& NextState,
                               const CellState& State,
-                              const mblas::Matrix& Context) const {
+                              const mblas::Tensor& Context) const {
       using namespace mblas;
       // TODO: the weight matrix naming probably is inconsistent
       /* HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); */
@@ -39,7 +39,7 @@ class Multiplicative: public Cell {
   private:
     CellType<InnerWeights> innerCell_;
     const Weights::MultWeights<InnerWeights>& w_;
-    mutable mblas::Matrix x_mult_;
+    mutable mblas::Tensor x_mult_;
     mutable CellState tempState_;
 };
 }

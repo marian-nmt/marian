@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 #include "common/scorer.h"
 
 namespace amunmt {
@@ -15,15 +15,15 @@ class EncoderDecoderState : public State {
 
     virtual std::string Debug(unsigned verbosity = 1) const;
 
-    CPU::mblas::Matrix& GetStates();
-    const CPU::mblas::Matrix& GetStates() const;
+    CPU::mblas::Tensor& GetStates();
+    const CPU::mblas::Tensor& GetStates() const;
 
-  	CPU::mblas::Matrix& GetEmbeddings();
-    const CPU::mblas::Matrix& GetEmbeddings() const;
+  	CPU::mblas::Tensor& GetEmbeddings();
+    const CPU::mblas::Tensor& GetEmbeddings() const;
 
   private:
-    CPU::mblas::Matrix states_;
-    CPU::mblas::Matrix embeddings_;
+    CPU::mblas::Tensor states_;
+    CPU::mblas::Tensor embeddings_;
 };
 
 }  // namespace CPU

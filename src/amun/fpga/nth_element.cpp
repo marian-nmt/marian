@@ -17,7 +17,7 @@ NthElement::NthElement(const OpenCLInfo &openCLInfo, size_t maxBeamSize, size_t 
 
 }
 
-void NthElement::getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+void NthElement::getNBestList(const std::vector<uint>& beamSizes, mblas::Tensor& Probs,
                   std::vector<float>& outCosts, std::vector<unsigned>& outKeys,
                   const bool isFirst)
 {

@@ -24,9 +24,9 @@ public:
     return w_.U_.dim(0);
   }
 
-  void GetNextState(mblas::Matrix& NextState,
-                    const mblas::Matrix& State,
-                    const mblas::Matrix& Context) const
+  void GetNextState(mblas::Tensor& NextState,
+                    const mblas::Tensor& State,
+                    const mblas::Tensor& Context) const
   {
     using namespace mblas;
 
@@ -92,13 +92,13 @@ protected:
   const Weights& w_;
 
   // reused to avoid allocation
-  mutable mblas::Matrix RU_;
-  mutable mblas::Matrix H_;
-  mutable mblas::Matrix R_;
-  mutable mblas::Matrix U_;
+  mutable mblas::Tensor RU_;
+  mutable mblas::Tensor H_;
+  mutable mblas::Tensor R_;
+  mutable mblas::Tensor U_;
 
-  mutable mblas::Matrix Temp1_;
-  mutable mblas::Matrix Temp2_;
+  mutable mblas::Tensor Temp1_;
+  mutable mblas::Tensor Temp2_;
 
 };
 
@@ -148,9 +148,9 @@ public:
     return w_.U_.dim(0);
   }
 
-  void GetNextState(mblas::Matrix& NextState,
-                    const mblas::Matrix& State,
-                    const mblas::Matrix& Context) const
+  void GetNextState(mblas::Tensor& NextState,
+                    const mblas::Tensor& State,
+                    const mblas::Tensor& Context) const
   {
     using namespace mblas;
 
@@ -181,10 +181,10 @@ public:
 
   }
 
-  void ElementwiseOps(mblas::Matrix& NextState,
-                      const mblas::Matrix& State,
-                      const mblas::Matrix& RUH,
-                      const mblas::Matrix& Temp) const
+  void ElementwiseOps(mblas::Tensor& NextState,
+                      const mblas::Tensor& State,
+                      const mblas::Tensor& RUH,
+                      const mblas::Tensor& Temp) const
   {
     const uint rows = State.dim(0) * State.dim(2) * State.dim(3);
     const uint cols = State.dim(1);
@@ -202,11 +202,11 @@ protected:
   const Weights& w_;
 
   // reused to avoid allocation
-  mutable mblas::Matrix WWx_;
-  mutable mblas::Matrix UUx_;
+  mutable mblas::Tensor WWx_;
+  mutable mblas::Tensor UUx_;
 
-  mutable mblas::Matrix RUH_;
-  mutable mblas::Matrix Temp_;
+  mutable mblas::Tensor RUH_;
+  mutable mblas::Tensor Temp_;
 
 };
 

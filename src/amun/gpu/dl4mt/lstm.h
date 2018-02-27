@@ -1,7 +1,7 @@
 #pragma once
 #include <boost/timer/timer.hpp>
-#include "gpu/mblas/matrix_functions.h"
-#include "gpu/mblas/matrix_wrapper.h"
+#include "gpu/mblas/tensor_functions.h"
+#include "gpu/mblas/tensor_wrapper.h"
 #include "gpu/mblas/handles.h"
 #include "gpu/dl4mt/cell.h"
 #include "cellstate.h"
@@ -17,7 +17,7 @@ class SlowLSTM: public Cell {
 
     virtual void GetNextState(CellState& NextState,
                       const CellState& State,
-                      const mblas::Matrix& Context) const {
+                      const mblas::Tensor& Context) const {
       using namespace mblas;
 
       /* HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); */
@@ -66,13 +66,13 @@ class SlowLSTM: public Cell {
     const Weights& w_;
 
     // reused to avoid allocation
-    mutable mblas::Matrix FIO_;
-    mutable mblas::Matrix F_;
-    mutable mblas::Matrix I_;
-    mutable mblas::Matrix O_;
-    mutable mblas::Matrix H_;
-    mutable mblas::Matrix Temp1_;
-    mutable mblas::Matrix Temp2_;
+    mutable mblas::Tensor FIO_;
+    mutable mblas::Tensor F_;
+    mutable mblas::Tensor I_;
+    mutable mblas::Tensor O_;
+    mutable mblas::Tensor H_;
+    mutable mblas::Tensor Temp1_;
+    mutable mblas::Tensor Temp2_;
 
     SlowLSTM(const SlowLSTM&) = delete;
 };

@@ -3,7 +3,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "gpu/mblas/vector.h"
-#include "gpu/mblas/matrix_functions.h"
+#include "gpu/mblas/tensor_functions.h"
 #include "model.h"
 #include "gru.h"
 #include "lstm.h"
@@ -24,7 +24,7 @@ class Decoder {
         : w_(model)
         {}
 
-        void Lookup(mblas::Matrix& Rows, const std::vector<unsigned>& ids) {
+        void Lookup(mblas::Tensor& Rows, const std::vector<unsigned>& ids) {
           using namespace mblas;
           std::vector<unsigned> tids = ids;
           for(auto&& id : tids)
@@ -65,7 +65,7 @@ class Decoder {
         {}
 
         void InitializeState(CellState& State,
-                             const mblas::Matrix& SourceContext,
+                             const mblas::Tensor& SourceContext,
                              const unsigned batchSize,
                              const mblas::Vector<unsigned> &sentenceLengths)
         {
@@ -104,7 +104,7 @@ class Decoder {
 
         void GetNextState(CellState& NextState,
                           const CellState& State,
-                          const mblas::Matrix& Context) {
+                          const mblas::Tensor& Context) {
           gru_->GetNextState(NextState, State, Context);
         }
 
@@ -112,7 +112,7 @@ class Decoder {
         const Weights& w_;
         std::unique_ptr<Cell> gru_;
 
-        mblas::Matrix Temp2_;
+        mblas::Tensor Temp2_;
 
         RNNHidden(const RNNHidden&) = delete;
     };
@@ -124,7 +124,7 @@ class Decoder {
 
         void GetNextState(CellState& NextState,
                           const CellState& State,
-                          const mblas::Matrix& Context) {
+                          const mblas::Tensor& Context) {
           gru_->GetNextState(NextState, State, Context);
         }
 
@@ -142,7 +142,7 @@ class Decoder {
           , dBatchMapping_(god.Get<unsigned>("mini-batch") * god.Get<unsigned>("beam-size"), 0)
         {}
 
-        void Init(const mblas::Matrix& SourceContext) {
+        void Init(const mblas::Tensor& SourceContext) {
           using namespace mblas;
 
           Prod(/*h_[0],*/ SCU_, SourceContext, *w_.U_);
@@ -168,9 +168,9 @@ class Decoder {
           return ret;
         }
 
-        void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
+        void GetAlignedSourceContext(mblas::Tensor& AlignedSourceContext,
                                      const CellState& HiddenState,
-                                     const mblas::Matrix& SourceContext,
+                                     const mblas::Tensor& SourceContext,
                                      const std::vector<unsigned>& h_sentenceLengths,
                                      const mblas::Vector<unsigned> &sentenceLengths,
                                      const std::vector<unsigned>& beamSizes)
@@ -245,11 +245,11 @@ class Decoder {
           PAUSE_TIMER("GetAlignedSourceContext");
         }
 
-        void GetAttention(mblas::Matrix& Attention) {
+        void GetAttention(mblas::Tensor& Attention) {
           mblas::Copy(Attention, A_);
         }
 
-        mblas::Matrix& GetAttention() {
+        mblas::Tensor& GetAttention() {
           return A_;
         }
 
@@ -258,13 +258,13 @@ class Decoder {
 
         mblas::Vector<unsigned> dBatchMapping_;
 
-        mblas::Matrix SCU_;
-        mblas::Matrix Temp1_;
-        mblas::Matrix Temp2_;
-        mblas::Matrix A_;
+        mblas::Tensor SCU_;
+        mblas::Tensor Temp1_;
+        mblas::Tensor Temp2_;
+        mblas::Tensor A_;
 
-        mblas::Matrix Ones_;
-        mblas::Matrix Sums_;
+        mblas::Tensor Ones_;
+        mblas::Tensor Sums_;
 
         Alignment(const Alignment&) = delete;
     };
@@ -290,11 +290,11 @@ class Decoder {
           }
         }
 
-        void GetProbs(mblas::Matrix& Probs,
-            std::shared_ptr<mblas::Matrix> &b4,
+        void GetProbs(mblas::Tensor& Probs,
+            std::shared_ptr<mblas::Tensor> &b4,
                   const CellState& State,
-                  const mblas::Matrix& Embedding,
-                  const mblas::Matrix& AlignedSourceContext,
+                  const mblas::Tensor& Embedding,
+                  const mblas::Tensor& AlignedSourceContext,
                   bool useFusedSoftmax)
         {
           using namespace mblas;
@@ -339,7 +339,7 @@ class Decoder {
           Element(Tanh(_1 + _2 + _3), T1_, T2_, T3_);
           //PAUSE_TIMER("GetProbs.Element");
 
-          std::shared_ptr<mblas::Matrix> w4;
+          std::shared_ptr<mblas::Tensor> w4;
           if(!filtered_) {
             w4 = w_.W4_;
             b4 = w_.B4_;
@@ -347,6 +347,8 @@ class Decoder {
             w4.reset(&FilteredW4_);
             b4.reset(&FilteredB4_);
           }
+
+          BEGIN_TIMER("OutputLayer");
 
           BEGIN_TIMER("GetProbs.Prod4");
           Prod(Probs, T1_, *w4);
@@ -361,6 +363,8 @@ class Decoder {
             mblas::LogSoftmax(Probs);
             PAUSE_TIMER("GetProbs.LogSoftMax");
           }
+
+          PAUSE_TIMER("OutputLayer");
         }
 
         void Filter(const std::vector<unsigned>& ids) {
@@ -379,15 +383,15 @@ class Decoder {
         const Weights& w_;
 
         bool filtered_;
-        mblas::Matrix FilteredW4_;
-        mblas::Matrix FilteredB4_;
+        mblas::Tensor FilteredW4_;
+        mblas::Tensor FilteredB4_;
 
-        mblas::Matrix T1_;
-        mblas::Matrix T2_;
-        mblas::Matrix T3_;
+        mblas::Tensor T1_;
+        mblas::Tensor T2_;
+        mblas::Tensor T3_;
 
-        mblas::Matrix TempW4;
-        mblas::Matrix TempB4;
+        mblas::Tensor TempW4;
+        mblas::Tensor TempB4;
 
         Softmax(const Softmax&) = delete;
     };
@@ -403,8 +407,8 @@ class Decoder {
 
     void Decode(CellState& NextState,
                   const CellState& State,
-                  const mblas::Matrix& Embeddings,
-                  const mblas::Matrix& SourceContext,
+                  const mblas::Tensor& Embeddings,
+                  const mblas::Tensor& SourceContext,
                   const std::vector<unsigned>& h_sentenceLengths,
                   const mblas::Vector<unsigned> &sentenceLengths,
                   const std::vector<unsigned>& beamSizes,
@@ -443,12 +447,12 @@ class Decoder {
       //PAUSE_TIMER("Decode");
     }
 
-    mblas::Matrix& GetProbs() {
+    mblas::Tensor& GetProbs() {
       return Probs_;
     }
 
     void EmptyState(CellState& State,
-                    const mblas::Matrix& SourceContext,
+                    const mblas::Tensor& SourceContext,
                     unsigned batchSize,
                     const mblas::Vector<unsigned> &sentenceLengths)
     {
@@ -456,12 +460,12 @@ class Decoder {
       alignment_.Init(SourceContext);
     }
 
-    void EmptyEmbedding(mblas::Matrix& Embedding, unsigned batchSize = 1) {
+    void EmptyEmbedding(mblas::Tensor& Embedding, unsigned batchSize = 1) {
       Embedding.NewSize(batchSize, embeddings_.GetCols());
       mblas::Fill(Embedding, 0);
     }
 
-    void Lookup(mblas::Matrix& Embedding,
+    void Lookup(mblas::Tensor& Embedding,
                 const std::vector<unsigned>& w) {
       embeddings_.Lookup(Embedding, w);
     }
@@ -470,7 +474,7 @@ class Decoder {
       softmax_.Filter(ids);
     }
 
-    void GetAttention(mblas::Matrix& Attention) {
+    void GetAttention(mblas::Tensor& Attention) {
       alignment_.GetAttention(Attention);
     }
 
@@ -478,7 +482,7 @@ class Decoder {
       return embeddings_.GetRows();
     }
 
-    mblas::Matrix& GetAttention() {
+    mblas::Tensor& GetAttention() {
       return alignment_.GetAttention();
     }
 
@@ -486,7 +490,7 @@ class Decoder {
       return nBest_;
     }
 
-    const mblas::Matrix *GetBias() const {
+    const mblas::Tensor *GetBias() const {
       return b4_.get();
     }
 
@@ -494,13 +498,13 @@ class Decoder {
 
     void GetHiddenState(CellState& HiddenState,
                         const CellState& PrevState,
-                        const mblas::Matrix& Embedding) {
+                        const mblas::Tensor& Embedding) {
       rnn1_.GetNextState(HiddenState, PrevState, Embedding);
     }
 
-    void GetAlignedSourceContext(mblas::Matrix& AlignedSourceContext,
+    void GetAlignedSourceContext(mblas::Tensor& AlignedSourceContext,
                                   const CellState& HiddenState,
-                                  const mblas::Matrix& SourceContext,
+                                  const mblas::Tensor& SourceContext,
                                   const std::vector<unsigned>& h_sentenceLengths,
                                   const mblas::Vector<unsigned> &sentenceLengths,
                                   const std::vector<unsigned>& beamSizes)
@@ -515,14 +519,14 @@ class Decoder {
 
     void GetNextState(CellState& State,
                       const CellState& HiddenState,
-                      const mblas::Matrix& AlignedSourceContext) {
+                      const mblas::Tensor& AlignedSourceContext) {
       rnn2_.GetNextState(State, HiddenState, AlignedSourceContext);
     }
 
 
     void GetProbs(const CellState& State,
-                  const mblas::Matrix& Embedding,
-                  const mblas::Matrix& AlignedSourceContext,
+                  const mblas::Tensor& Embedding,
+                  const mblas::Tensor& AlignedSourceContext,
                   bool useFusedSoftmax)
     {
       softmax_.GetProbs(Probs_, b4_, State, Embedding, AlignedSourceContext, useFusedSoftmax);
@@ -559,8 +563,8 @@ class Decoder {
 
   private:
     CellState HiddenState_;
-    mblas::Matrix AlignedSourceContext_;
-    mblas::Matrix Probs_;
+    mblas::Tensor AlignedSourceContext_;
+    mblas::Tensor Probs_;
 
     Embeddings<Weights::DecEmbeddings> embeddings_;
     RNNHidden<Weights::DecInit> rnn1_;
@@ -569,7 +573,7 @@ class Decoder {
     Softmax<Weights::DecSoftmax> softmax_;
 
     mblas::Vector<NthOutBatch> nBest_;
-    std::shared_ptr<mblas::Matrix> b4_;
+    std::shared_ptr<mblas::Tensor> b4_;
 
     Decoder(const Decoder&) = delete;
 };

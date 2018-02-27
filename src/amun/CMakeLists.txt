@@ -9,8 +9,8 @@ list(APPEND SOURCES "${CMAKE_CURRENT_BINARY_DIR}/common/git_version.cpp")
 
 
 add_library(cpumode OBJECT
-  cpu/mblas/matrix.cpp
   cpu/mblas/phoenix_functions.cpp
+  cpu/mblas/tensor.cpp
   cpu/decoder/encoder_decoder.cpp
   cpu/decoder/encoder_decoder_state.cpp
   cpu/decoder/encoder_decoder_loader.cpp
@@ -43,7 +43,6 @@ add_library(cpumode OBJECT
 add_library(libcommon OBJECT
   ${CMAKE_CURRENT_BINARY_DIR}/common/git_version.cpp
   common/base_best_hyps.cpp
-  common/base_matrix.cpp
   common/config.cpp
   common/exception.cpp
   common/filter.cpp
@@ -64,6 +63,7 @@ add_library(libcommon OBJECT
   common/utils.cpp
   common/vocab.cpp
   common/factor_vocab.cpp
+  common/base_tensor.cpp
   common/translation_task.cpp
 )
 
@@ -89,10 +89,10 @@ cuda_add_executable(
   gpu/dl4mt/gru.cu
   gpu/dl4mt/model.cu
   gpu/mblas/handles.cu
-  gpu/mblas/matrix.cu
-  gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
   gpu/mblas/nth_element_kernels.cu
+  gpu/mblas/tensor.cu
+  gpu/mblas/tensor_functions.cu
   gpu/npz_converter.cu
   gpu/types-gpu.cu
 
@@ -112,10 +112,10 @@ cuda_add_library(python SHARED
   gpu/decoder/encoder_decoder_loader.cu
   gpu/decoder/encoder_decoder_state.cu
   gpu/mblas/handles.cu
-  gpu/mblas/matrix.cu
-  gpu/mblas/matrix_functions.cu
   gpu/mblas/nth_element.cu
   gpu/mblas/nth_element_kernels.cu
+  gpu/mblas/tensor.cu
+  gpu/mblas/tensor_functions.cu
   gpu/dl4mt/encoder.cu
   gpu/dl4mt/gru.cu
   gpu/dl4mt/model.cu

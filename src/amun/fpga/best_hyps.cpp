@@ -10,7 +10,7 @@ namespace amunmt {
 namespace FPGA {
 
 BestHyps::BestHyps(const God &god, const OpenCLInfo &openCLInfo)
-: BestHypsBase(
+: BaseBestHyps(
     !god.Get<bool>("allow-unk"),
     god.Get<bool>("n-best"),
     god.Get<std::vector<std::string>>("softmax-filter").size(),
@@ -23,12 +23,12 @@ BestHyps::BestHyps(const God &god, const OpenCLInfo &openCLInfo)
   //std::cerr << "BestHyps::BestHyps" << std::endl;
 }
 
-void BestHyps::DisAllowUNK(mblas::Matrix& Prob)
+void BestHyps::DisAllowUNK(mblas::Tensor& Prob)
 {
   SetColumn(Prob, UNK_ID, std::numeric_limits<float>::lowest());
 }
 
-void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
+void BestHyps::FindBests(const std::vector<uint>& beamSizes, mblas::Tensor& Probs,
                std::vector<float>& outCosts,
                std::vector<unsigned>& outKeys,
                const bool isFirst)
@@ -47,7 +47,7 @@ void BestHyps::CalcBeam(
   /*
   using namespace mblas;
 
-  mblas::Matrix& Probs = static_cast<mblas::Matrix&>(scorers[0]->GetProbs());
+  mblas::Tensor& Probs = static_cast<mblas::Tensor&>(scorers[0]->GetProbs());
   //cerr << "Probs=" << Probs.Debug(1) << endl;
 
   std::vector<float> vCosts;
@@ -66,7 +66,7 @@ void BestHyps::CalcBeam(
   //std::cerr << "1Probs=" << Probs.Debug(1) << std::endl;
 
   for (size_t i = 1; i < scorers.size(); ++i) {
-    mblas::Matrix &currProbs = static_cast<mblas::Matrix&>(scorers[i]->GetProbs());
+    mblas::Tensor &currProbs = static_cast<mblas::Tensor&>(scorers[i]->GetProbs());
 
     float weight = weights_.at(scorers[0]->GetName());
     ElementAddWeighted(Probs, weight, currProbs);

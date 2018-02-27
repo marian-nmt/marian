@@ -2,7 +2,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "gpu/mblas/matrix_functions.h"
+#include "gpu/mblas/tensor_functions.h"
 #include "model.h"
 #include "gru.h"
 #include "common/sentence.h"
@@ -28,7 +28,7 @@ class Encoder {
         : w_(model)
         {}
 
-        void Lookup(mblas::Matrix& Row, const std::vector<std::vector<Word>>& words) {
+        void Lookup(mblas::Tensor& Row, const std::vector<std::vector<Word>>& words) {
           std::vector<std::vector<unsigned>> knownWords(w_.Es_.size(),
                                                     std::vector<unsigned>(words.size(), 1));
           unsigned factorCount = w_.Es_.size();
@@ -36,7 +36,7 @@ class Encoder {
             const std::vector<Word>& factors = words[i];
             for (unsigned factorIdx = 0; factorIdx < factors.size(); ++factorIdx) {
               const Word& factor = factors[factorIdx];
-              const std::shared_ptr<mblas::Matrix>& Emb = w_.Es_.at(factorIdx);
+              const std::shared_ptr<mblas::Tensor>& Emb = w_.Es_.at(factorIdx);
 
               if (factor < Emb->dim(0)) {
                 knownWords[factorIdx][i] = factor;
@@ -48,14 +48,14 @@ class Encoder {
 
           unsigned wordCount = words.size() / factorCount;
           //Row.NewSize(0, wordCount);
-          /* std::vector<std::shared_ptr<mblas::Matrix>>::iterator eit = w_.Es_.begin(); */
+          /* std::vector<std::shared_ptr<mblas::Tensor>>::iterator eit = w_.Es_.begin(); */
           /* std::vector<HostVector<unsigned>>::iterator wit = knownWords.begin(); */
           for (unsigned i = 0; i < knownWords.size(); i++) {
             const std::vector<unsigned>& factorWords = knownWords.at(i);
             mblas::Vector<unsigned> dKnownWords(factorWords);
 
-            const std::shared_ptr<mblas::Matrix>& Emb = w_.Es_.at(i);
-            mblas::Matrix factorRow;
+            const std::shared_ptr<mblas::Tensor>& Emb = w_.Es_.at(i);
+            mblas::Tensor factorRow;
             factorRow.NewSize(wordCount, Emb->dim(1));
             mblas::Assemble(factorRow, *Emb, dKnownWords);
             mblas::Transpose(factorRow);
@@ -103,19 +103,19 @@ class Encoder {
 
         void GetNextState(CellState& NextState,
                           const CellState& State,
-                          const mblas::Matrix& Embd) {
+                          const mblas::Tensor& Embd) {
           gru_->GetNextState(NextState, State, Embd);
         }
 
         template <class It>
-        void Encode(It it, It end, mblas::Matrix& Context,
+        void Encode(It it, It end, mblas::Tensor& Context,
                     unsigned batchSize, bool invert,
                     const mblas::Vector<unsigned> *sentenceLengths=nullptr)
         {
           InitializeState(batchSize);
 
-          CellState prevState(std::unique_ptr<mblas::Matrix>(new mblas::Matrix(*(State_.cell))),
-                              std::unique_ptr<mblas::Matrix>(new mblas::Matrix(*(State_.output))));
+          CellState prevState(std::unique_ptr<mblas::Tensor>(new mblas::Tensor(*(State_.cell))),
+                              std::unique_ptr<mblas::Tensor>(new mblas::Tensor(*(State_.output))));
           unsigned n = std::distance(it, end);
           unsigned i = 0;
 
@@ -166,7 +166,7 @@ class Encoder {
 
     void Encode(const Sentences& words,
                 unsigned tab,
-                mblas::Matrix& context,
+                mblas::Tensor& context,
                 std::vector<unsigned> &h_sentenceLengths,
                 mblas::Vector<unsigned> &sentenceLengths);
 
@@ -180,7 +180,7 @@ class Encoder {
     RNN backwardRnn_;
 
     // reusing memory
-    std::vector<mblas::Matrix> embeddedWords_;
+    std::vector<mblas::Tensor> embeddedWords_;
 
     Encoder(const Encoder&) = delete;
 };

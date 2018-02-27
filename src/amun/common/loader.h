@@ -29,7 +29,7 @@ class Loader {
     }
 
     virtual ScorerPtr NewScorer(const God &god, const DeviceInfo &deviceInfo) const = 0;
-    virtual BestHypsBasePtr GetBestHyps(const God &god, const DeviceInfo &deviceInfo) const = 0;
+    virtual BaseBestHypsPtr GetBestHyps(const God &god, const DeviceInfo &deviceInfo) const = 0;
 
     const std::string& GetName() const {
       return name_;
