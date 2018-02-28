@@ -611,7 +611,7 @@ using LSTM = FastLSTM;
 template <class CellType>
 class Multiplicative : public CellType {
 protected:
-  Expr Um_, Wm_, bm_;
+  Expr Um_, Wm_, bm_, bwm_;
   Expr gamma1m_, gamma2m_;
 
 public:
@@ -629,6 +629,8 @@ public:
                        keywords::init = inits::glorot_uniform);
     bm_ = graph->param(
         prefix + "_bm", {1, dimState}, keywords::init = inits::zeros);
+    bwm_ = graph->param(
+                       prefix + "_bwm", {1, dimState}, keywords::init = inits::zeros);
 
     if(CellType::layerNorm_) {
       gamma1m_ = graph->param(prefix + "_gamma1m",
@@ -651,7 +653,7 @@ public:
       input = inputs.front();
 
     auto xWs = CellType::applyInput({input});
-    auto xWm = dot(input, Wm_);
+    auto xWm = affine(input, Wm_, bwm_);
     if(CellType::layerNorm_)
       xWm = layer_norm(xWm, gamma1m_);
 
