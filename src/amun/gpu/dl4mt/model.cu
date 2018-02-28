@@ -1,6 +1,23 @@
 #include "model.h"
+#include "gpu/mblas/tensor_functions.h"
 
 using namespace std;
+
+namespace {
+  using namespace amunmt;
+  using namespace GPU;
+  using namespace mblas;
+  shared_ptr<Tensor> merge (shared_ptr<Tensor> m1, shared_ptr<Tensor> m2) {
+    if (m2->size()) {
+      Transpose(*m1);
+      Transpose(*m2);
+      Concat(*m1, *m2);
+      Transpose(*m1);
+      Transpose(*m2);
+    }
+    return m1;
+  }
+}
 
 namespace amunmt {
 namespace GPU {
@@ -34,24 +51,24 @@ Weights::EncForwardGRU::EncForwardGRU(const NpzConverter& model)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::EncForwardLSTM::EncForwardLSTM(const NpzConverter& model)
-: W_(model.get("encoder_W", true)),
-  B_(model.get("encoder_b", true, true)),
-  U_(model.get("encoder_U", true)),
-  Wx_(model.get("encoder_Wx", true)),
-  Bx_(model.get("encoder_bx", true, true)),
-  Ux_(model.get("encoder_Ux", true)),
+// matrix merging is done to be backwards-compatible with the original LSTM implementation in Amun
+// we now use the same format used in Marian
+// TODO: adapt to support Nematus LSTM models which use a similar format to Amun's original format
+: W_(merge(model.get("encoder_W", true), model.get("encoder_Wx", false))),
+  B_(merge(model.get("encoder_b", true, true), model.get("encoder_bx", false, true))),
+  U_(merge(model.get("encoder_U", true), model.get("encoder_Ux", false))),
   Gamma_1_(model.get("encoder_gamma1", false)),
   Gamma_2_(model.get("encoder_gamma2", false))
-{ }
+{}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::EncBackwardLSTM::EncBackwardLSTM(const NpzConverter& model)
-: W_(model.get("encoder_r_W", true)),
-  B_(model.get("encoder_r_b", true, true)),
-  U_(model.get("encoder_r_U", true)),
-  Wx_(model.get("encoder_r_Wx", true)),
-  Bx_(model.get("encoder_r_bx", true, true)),
-  Ux_(model.get("encoder_r_Ux", true)),
+// matrix merging is done to be backwards-compatible with the original LSTM implementation in Amun
+// we now use the same format used in Marian
+// TODO: adapt to support Nematus LSTM models which use a similar format to Amun's original format
+: W_(merge(model.get("encoder_r_W", true), model.get("encoder_r_Wx", false))),
+  B_(merge(model.get("encoder_r_b", true, true), model.get("encoder_r_bx", false, true))),
+  U_(merge(model.get("encoder_r_U", true), model.get("encoder_r_Ux", false))),
   Gamma_1_(model.get("encoder_r_gamma1", false)),
   Gamma_2_(model.get("encoder_r_gamma2", false))
 {}
@@ -110,24 +127,24 @@ Weights::DecGRU2::DecGRU2(const NpzConverter& model)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::DecLSTM1::DecLSTM1(const NpzConverter& model)
-: W_(model.get("decoder_W", true)),
-  B_(model.get("decoder_b", true, true)),
-  U_(model.get("decoder_U", true)),
-  Wx_(model.get("decoder_Wx", true)),
-  Bx_(model.get("decoder_bx", true, true)),
-  Ux_(model.get("decoder_Ux", true)),
+// matrix merging is done to be backwards-compatible with the original LSTM implementation in Amun
+// we now use the same format used in Marian
+// TODO: adapt to support Nematus LSTM models which use a similar format to Amun's original format
+: W_(merge(model.get("decoder_W", true), model.get("decoder_Wx", false))),
+  B_(merge(model.get("decoder_b", true, true), model.get("decoder_bx", false, true))),
+  U_(merge(model.get("decoder_U", true), model.get("decoder_Ux", false))),
   Gamma_1_(model.get("decoder_cell1_gamma1", false)),
   Gamma_2_(model.get("decoder_cell1_gamma2", false))
 {}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::DecLSTM2::DecLSTM2(const NpzConverter& model)
-: W_(model.get("decoder_Wc", true)),
-  B_(model.get("decoder_b_nl", true, true)),
-  U_(model.get("decoder_U_nl", true)),
-  Wx_(model.get("decoder_Wcx", true)),
-  Bx_(model.get("decoder_bx_nl", true, true)),
-  Ux_(model.get("decoder_Ux_nl", true)),
+// matrix merging is done to be backwards-compatible with the original LSTM implementation in Amun
+// we now use the same format used in Marian
+// TODO: adapt to support Nematus LSTM models which use a similar format to Amun's original format
+: W_(merge(model.get("decoder_Wc", true), model.get("decoder_Wcx", false))),
+  B_(merge(model.get("decoder_b_nl", true, true), model.get("decoder_bx_nl", false, true))),
+  U_(merge(model.get("decoder_U_nl", true), model.get("decoder_Ux_nl", false))),
   Gamma_1_(model.get("decoder_cell2_gamma1", false)),
   Gamma_2_(model.get("decoder_cell2_gamma2", false))
 {}
