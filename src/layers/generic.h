@@ -79,7 +79,7 @@ public:
       else {
         W = g->param(name + "_" + nameW,
                      {in->shape()[-1], dim},
-                     keywords::init = inits::glorot_uniform);
+                     inits::glorot_uniform);
       }
 
       Expr b;
@@ -88,7 +88,7 @@ public:
         b = tiedParams_[nameB];
       else
         b = g->param(
-            name + "_" + nameB, {1, dim}, keywords::init = inits::zeros);
+            name + "_" + nameB, {1, dim}, inits::zeros);
 
       params_.push_back(W);
       params_.push_back(b);
@@ -97,17 +97,17 @@ public:
         if(nematusNorm) {
           auto ln_s = g->param(name + "_ln_s" + std::to_string(i),
                                {1, dim},
-                               keywords::init = inits::from_value(1.f));
+                               inits::from_value(1.f));
           auto ln_b = g->param(name + "_ln_b" + std::to_string(i),
                                {1, dim},
-                               keywords::init = inits::zeros);
+                               inits::zeros);
 
           outputs.push_back(
               layer_norm(affine(in, W, b, false, transposeW), ln_s, ln_b, NEMATUS_LN_EPS));
         } else {
           auto gamma = g->param(name + "_gamma" + std::to_string(i),
                                 {1, dim},
-                                keywords::init = inits::from_value(1.0));
+                                inits::from_value(1.0));
 
           params_.push_back(gamma);
           outputs.push_back(layer_norm(dot(in, W, false, transposeW), gamma, b));
@@ -151,14 +151,14 @@ public:
     else {
       W = g->param(name + "_" + nameW,
                    {input->shape()[-1], dim},
-                   keywords::init = inits::glorot_uniform);
+                   inits::glorot_uniform);
     }
     Expr b;
     std::string nameB = "b";
     if(tiedParams_.count(nameB))
       b = tiedParams_[nameB];
     else
-      b = g->param(name + "_" + nameB, {1, dim}, keywords::init = inits::zeros);
+      b = g->param(name + "_" + nameB, {1, dim}, inits::zeros);
 
     params_ = {W, b};
 
@@ -166,15 +166,15 @@ public:
     if(layerNorm) {
       if(nematusNorm) {
         auto ln_s = g->param(
-            name + "_ln_s", {1, dim}, keywords::init = inits::from_value(1.f));
+            name + "_ln_s", {1, dim}, inits::from_value(1.f));
         auto ln_b
-            = g->param(name + "_ln_b", {1, dim}, keywords::init = inits::zeros);
+            = g->param(name + "_ln_b", {1, dim}, inits::zeros);
 
         out = layer_norm(affine(input, W, b, false, transposeW),
                          ln_s, ln_b, NEMATUS_LN_EPS);
       } else {
         auto gamma = g->param(
-            name + "_gamma", {1, dim}, keywords::init = inits::from_value(1.0));
+            name + "_gamma", {1, dim}, inits::from_value(1.0));
 
         params_.push_back(gamma);
         out = layer_norm(dot(input, W, false, transposeW), gamma, b);
@@ -219,8 +219,8 @@ struct EmbeddingFactory : public Factory {
 
     return graph_->param(name,
                          {dimVoc, dimEmb},
-                         keywords::init = initFunc,
-                         keywords::fixed = fixed);
+                         initFunc,
+                         fixed);
   }
 };
 
@@ -239,7 +239,7 @@ Expr Cost(Expr logits,
 
   if(weights)
     ce = weights * ce;
-  
+
   if(smoothing > 0) {
     // @TODO: add this to CE kernels instead
     auto ceq = mean(logsoftmax(logits), axis = -1);
@@ -250,7 +250,7 @@ Expr Cost(Expr logits,
     ce = ce * mask;
 
   auto costSum = sum(ce, axis = -3);
-  
+
   Expr cost;
   // axes:
   //  - time axis (words): -3

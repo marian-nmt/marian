@@ -133,7 +133,7 @@ public:
     p[2] = 0;
 
     penalties_ = graph->constant({1, dimVocab_},
-                                 keywords::init = inits::from_vector(p));
+                                 inits::from_vector(p));
     return New<WordPenaltyState>(dimVocab_, penalties_);
   }
 
@@ -169,7 +169,7 @@ public:
     p[2] = 0;
 
     penalties_ = graph->constant({1, dimVocab_},
-                                 keywords::init = inits::from_vector(p));
+                                 inits::from_vector(p));
     return New<WordPenaltyState>(dimVocab_, penalties_);
   }
 

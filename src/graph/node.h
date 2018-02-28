@@ -13,7 +13,6 @@
 namespace marian {
 
 class Node : public Chainable<Tensor>,
-             public keywords::Keywords,
              public std::enable_shared_from_this<Node> {
 protected:
   size_t id_{0};
@@ -33,11 +32,9 @@ protected:
   std::string debugMessage_;
 
 public:
-  template <typename... Args>
-  Node(Ptr<ExpressionGraph> graph, Args... args)
-      : Keywords(args...),
-        graph_(graph),
-        shape_(Get(keywords::shape, {1, 1, 1, 1})) {}
+  Node(Ptr<ExpressionGraph> graph, Shape shape)
+      : graph_(graph),
+        shape_(shape) {}
 
   virtual ~Node() {
     if(destroy_) {
@@ -143,12 +140,8 @@ public:
 struct NaryNodeOp : public Node {
   size_t hash_{0};
 
-  template <typename... Args>
-  NaryNodeOp(const std::vector<Expr>& nodes, Args... args)
-      : Node(nodes.front()->graph(),
-             keywords::shape
-             = keywords::Get(keywords::shape, nodes.front()->shape(), args...),
-             args...) {
+  NaryNodeOp(const std::vector<Expr>& nodes, Shape shape)
+      : Node(nodes.front()->graph(), shape) {
     children_.resize(nodes.size());
     for(int i = 0; i < nodes.size(); ++i)
       children_[i] = nodes[i];
@@ -157,6 +150,9 @@ struct NaryNodeOp : public Node {
         nodes.begin(), nodes.end(), [](Expr a) { return a->trainable(); }));
     remove_children_from_top_nodes();
   }
+
+  NaryNodeOp(const std::vector<Expr>& nodes)
+  : NaryNodeOp(nodes, nodes[0]->shape()) {}
 
   virtual ~NaryNodeOp() {}
 

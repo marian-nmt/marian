@@ -16,16 +16,13 @@ private:
   float scalar_;
 
 public:
-  template <typename... Args>
   DotNodeOp(Expr a,
             Expr b,
             bool transA,
             bool transB,
-            float scalar,
-            Args... args)
+            float scalar)
       : NaryNodeOp({a, b},
-                   keywords::shape = newShape(a, b, transA, transB),
-                   args...),
+                   newShape(a, b, transA, transB)),
         transA_(transA),
         transB_(transB),
         scalar_(scalar) {}
@@ -149,8 +146,7 @@ public:
                bool transA,
                bool transB,
                float scalar)
-      : NaryNodeOp(nodes, keywords::shape = newShape(nodes[0], nodes[1],
-                                                     transA, transB)),
+      : NaryNodeOp(nodes, newShape(nodes[0], nodes[1], transA, transB)),
         transA_(transA),
         transB_(transB),
         scalar_(scalar){}
@@ -278,16 +274,13 @@ private:
   float scalar_;
 
 public:
-  template <typename... Args>
   DotBatchedNodeOp(Expr a,
                    Expr b,
                    bool transA,
                    bool transB,
-                   float scalar,
-                   Args... args)
+                   float scalar)
       : NaryNodeOp({a, b},
-                   keywords::shape = newShape(a, b, transA, transB),
-                   args...),
+                   newShape(a, b, transA, transB)),
         transA_(transA),
         transB_(transB),
         scalar_(scalar) {}
@@ -407,7 +400,7 @@ public:
 struct ScalarProductNodeOp : public NaryNodeOp {
   template <typename... Args>
   ScalarProductNodeOp(Expr a, Expr b, Args... args)
-      : NaryNodeOp({a, b}, keywords::shape = newShape(a, b, args...), args...) {
+      : NaryNodeOp({a, b}, newShape(a, b, args...)) {
   }
 
   template <typename... Args>
@@ -440,9 +433,8 @@ struct ScalarProductNodeOp : public NaryNodeOp {
 };
 
 struct ElementBinaryNodeOp : public NaryNodeOp {
-  template <typename... Args>
-  ElementBinaryNodeOp(Expr a, Expr b, Args... args)
-      : NaryNodeOp({a, b}, keywords::shape = newShape(a, b), args...) {}
+  ElementBinaryNodeOp(Expr a, Expr b)
+      : NaryNodeOp({a, b}, newShape(a, b)) {}
 
   Shape newShape(Expr a, Expr b) {
     return Shape::broadcast({a, b});
@@ -452,8 +444,7 @@ struct ElementBinaryNodeOp : public NaryNodeOp {
 };
 
 struct PlusNodeOp : public ElementBinaryNodeOp {
-  template <typename... Args>
-  PlusNodeOp(Args... args) : ElementBinaryNodeOp(args...) {}
+  PlusNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
 
   NodeOps forwardOps() {
     using namespace functional;
@@ -473,8 +464,7 @@ struct PlusNodeOp : public ElementBinaryNodeOp {
 };
 
 struct MinusNodeOp : public ElementBinaryNodeOp {
-  template <typename... Args>
-  MinusNodeOp(Args... args) : ElementBinaryNodeOp(args...) {}
+  MinusNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
 
   NodeOps forwardOps() {
     using namespace functional;
@@ -494,8 +484,7 @@ struct MinusNodeOp : public ElementBinaryNodeOp {
 };
 
 struct MultNodeOp : public ElementBinaryNodeOp {
-  template <typename... Args>
-  MultNodeOp(Args... args) : ElementBinaryNodeOp(args...) {}
+  MultNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
 
   NodeOps forwardOps() {
     using namespace functional;
@@ -515,8 +504,7 @@ struct MultNodeOp : public ElementBinaryNodeOp {
 };
 
 struct DivNodeOp : public ElementBinaryNodeOp {
-  template <typename... Args>
-  DivNodeOp(Args... args) : ElementBinaryNodeOp(args...) {}
+  DivNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
 
   NodeOps forwardOps() {
     using namespace functional;
@@ -565,9 +553,8 @@ struct DivNodeOp : public ElementBinaryNodeOp {
 
 // Cross-entropy node. It computes -b*log(softmax(a)), summing rowwise.
 struct CrossEntropyNodeOp : public NaryNodeOp {
-  template <typename... Args>
-  CrossEntropyNodeOp(Expr a, Expr b, Args... args)
-      : NaryNodeOp({a, b}, keywords::shape = newShape(a), args...) {}
+  CrossEntropyNodeOp(Expr a, Expr b)
+      : NaryNodeOp({a, b}, newShape(a)) {}
 
   Shape newShape(Expr a) {
     Shape shape1 = a->shape();
@@ -591,10 +578,7 @@ struct CrossEntropyNodeOp : public NaryNodeOp {
 struct ConcatenateNodeOp : public NaryNodeOp {
   template <typename... Args>
   ConcatenateNodeOp(const std::vector<Expr>& nodes, Args... args)
-      : NaryNodeOp(nodes,
-                   keywords::shape
-                   = newShape(nodes, keywords::Get(keywords::axis, 0, args...)),
-                   args...) {}
+      : NaryNodeOp(nodes, newShape(nodes, keywords::Get(keywords::axis, 0, args...))) {}
 
   Shape newShape(const std::vector<Expr>& nodes, int ax) {
     Shape shape = nodes.back()->shape();

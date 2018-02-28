@@ -101,7 +101,7 @@ private:
     int dimBatch = input->shape()[-2];
     int dimState = cell_->getOptions()->get<int>("dimState");
 
-    auto output = graph->zeros(keywords::shape = {1, dimBatch, dimState});
+    auto output = graph->zeros({1, dimBatch, dimState});
     Expr cell = output;
     State startState{output, cell};
 

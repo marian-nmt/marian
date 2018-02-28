@@ -50,15 +50,15 @@ void Adagrad::load(const std::string& name,
   auto numpy = cnpy::npz_load(name);
   for(auto it : numpy) {
     auto name = it.first;
-    cnpy::NpyArray& np = it.second;
+    auto np = it.second;
 
     // get the size of gt_
-    totalSize = np.shape[1];
+    totalSize = np->shape[1];
 
     // extract data into vectors
     if(name == "adagrad_gt") {
       vGt.resize(totalSize);
-      std::copy((float*)np.data(), (float*)np.data() + totalSize, vGt.begin());
+      std::copy((float*)np->data(), (float*)np->data() + totalSize, vGt.begin());
     }
   }
 
@@ -174,19 +174,19 @@ void Adam::load(const std::string& name,
   auto numpy = cnpy::npz_load(name);
   for(auto it : numpy) {
     auto name = it.first;
-    cnpy::NpyArray& np = it.second;
+    auto np = it.second;
 
     // get the size of mt_ and vt_, they are the same
-    totalSize = np.shape[1];
+    totalSize = np->shape[1];
 
     // extract data into vectors
     if(name == "adam_mt") {
       vMt.resize(totalSize);
-      std::copy((float*)np.data(), (float*)np.data() + totalSize, vMt.begin());
+      std::copy((float*)np->data(), (float*)np->data() + totalSize, vMt.begin());
     }
     if(name == "adam_vt") {
       vVt.resize(totalSize);
-      std::copy((float*)np.data(), (float*)np.data() + totalSize, vVt.begin());
+      std::copy((float*)np->data(), (float*)np->data() + totalSize, vVt.begin());
     }
   }
 

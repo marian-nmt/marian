@@ -29,7 +29,7 @@ protected:
     auto features
         = std::static_pointer_cast<data::DataBatch>(batch)->features();
     auto x = g->constant({(int)batch->size(), 1, 28, 28},
-                         init = inits::from_vector(features));
+                         inits::from_vector(features));
 
     // Construct hidden layers
 
@@ -74,11 +74,11 @@ protected:
 
       // Construct a weight node for the outgoing connections from layer i
       weights.emplace_back(g->param(
-          "W" + std::to_string(i), {in, out}, init = inits::uniform()));
+          "W" + std::to_string(i), {in, out}, inits::uniform()));
 
       // Construct a bias node. These weights are initialized to zero
       biases.emplace_back(
-          g->param("b" + std::to_string(i), {1, out}, init = inits::zeros));
+          g->param("b" + std::to_string(i), {1, out}, inits::zeros));
     }
 
     // Perform matrix multiplication and addition for the last layer
@@ -91,7 +91,7 @@ protected:
       // labels
       auto labels = std::static_pointer_cast<data::DataBatch>(batch)->labels();
       auto y = g->constant({(int)batch->size(), 1},
-                           init = inits::from_vector(labels));
+                           inits::from_vector(labels));
 
       // Define a top-level node for training
       return mean(cross_entropy(last, y), axis = 0);

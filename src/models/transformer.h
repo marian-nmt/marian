@@ -35,7 +35,7 @@ public:
 
     // shared across batch entries
     auto signal = graph->constant({dimWords, 1, dimEmb},
-                                  init = inits::from_vector(vPos));
+                                  inits::from_vector(vPos));
     return input + signal;
   }
 
@@ -48,7 +48,7 @@ public:
       for(int j = 0; j <= i; ++j)
         vMask[i * length + j] = 1.f;
     return graph->constant({1, length, length},
-                           init = inits::from_vector(vMask));
+                           inits::from_vector(vMask));
   }
 
   Expr InverseMask(Expr mask) {
@@ -104,9 +104,9 @@ public:
       // layer normalization
       if(op == 'n') {
         auto scale = graph->param(
-            prefix + "_ln_scale_pre", {1, dimModel}, init = inits::ones);
+            prefix + "_ln_scale_pre", {1, dimModel}, inits::ones);
         auto bias = graph->param(
-            prefix + "_ln_bias_pre", {1, dimModel}, init = inits::zeros);
+            prefix + "_ln_bias_pre", {1, dimModel}, inits::zeros);
         output = layer_norm(output, scale, bias, 1e-6);
       }
     }
@@ -136,9 +136,9 @@ public:
       // highway connection
       if(op == 'h') {
         auto Wh = graph->param(
-            prefix + "_Wh", {dimModel, dimModel}, init = inits::glorot_uniform);
+            prefix + "_Wh", {dimModel, dimModel}, inits::glorot_uniform);
         auto bh
-            = graph->param(prefix + "_bh", {1, dimModel}, init = inits::zeros);
+            = graph->param(prefix + "_bh", {1, dimModel}, inits::zeros);
 
         auto t = affine(prevInput, Wh, bh);
         output = highway(output, prevInput, t);
@@ -146,9 +146,9 @@ public:
       // layer normalization
       if(op == 'n') {
         auto scale = graph->param(
-            prefix + "_ln_scale", {1, dimModel}, init = inits::ones);
+            prefix + "_ln_scale", {1, dimModel}, inits::ones);
         auto bias = graph->param(
-            prefix + "_ln_bias", {1, dimModel}, init = inits::zeros);
+            prefix + "_ln_bias", {1, dimModel}, inits::zeros);
         output = layer_norm(output, scale, bias, 1e-6);
       }
     }
@@ -211,8 +211,8 @@ public:
     int dimModel = q->shape()[-1];
 
     auto Wq = graph->param(
-        prefix + "_Wq", {dimModel, dimModel}, init = inits::glorot_uniform);
-    auto bq = graph->param(prefix + "_bq", {1, dimModel}, init = inits::zeros);
+        prefix + "_Wq", {dimModel, dimModel}, inits::glorot_uniform);
+    auto bq = graph->param(prefix + "_bq", {1, dimModel}, inits::zeros);
     auto qh = affine(q, Wq, bq);
     qh = SplitHeads(qh, dimHeads);
 
@@ -224,15 +224,15 @@ public:
 
       auto Wk = graph->param(prefixProj + "_Wk",
                              {dimModel, dimModel},
-                             init = inits::glorot_uniform);
+                             inits::glorot_uniform);
       auto bk = graph->param(
-          prefixProj + "_bk", {1, dimModel}, init = inits::zeros);
+          prefixProj + "_bk", {1, dimModel}, inits::zeros);
 
       auto Wv = graph->param(prefixProj + "_Wv",
                              {dimModel, dimModel},
-                             init = inits::glorot_uniform);
+                             inits::glorot_uniform);
       auto bv = graph->param(
-          prefixProj + "_bv", {1, dimModel}, init = inits::zeros);
+          prefixProj + "_bv", {1, dimModel}, inits::zeros);
 
       auto kh = affine(keys[i], Wk, bk);
       auto vh = affine(values[i], Wv, bv);
@@ -258,8 +258,8 @@ public:
     int dimAtt = output->shape()[-1];
 
     auto Wo = graph->param(
-        prefix + "_Wo", {dimAtt, dimOut}, init = inits::glorot_uniform);
-    auto bo = graph->param(prefix + "_bo", {1, dimOut}, init = inits::zeros);
+        prefix + "_Wo", {dimAtt, dimOut}, inits::glorot_uniform);
+    auto bo = graph->param(prefix + "_bo", {1, dimOut}, inits::zeros);
     output = affine(output, Wo, bo);
 
     return output;
@@ -336,12 +336,12 @@ public:
     int dimFfn = options->get<int>("transformer-dim-ffn");
 
     auto W1 = graph->param(
-        prefix + "_W1", {dimModel, dimFfn}, init = inits::glorot_uniform);
-    auto b1 = graph->param(prefix + "_b1", {1, dimFfn}, init = inits::zeros);
+        prefix + "_W1", {dimModel, dimFfn}, inits::glorot_uniform);
+    auto b1 = graph->param(prefix + "_b1", {1, dimFfn}, inits::zeros);
 
     auto W2 = graph->param(
-        prefix + "_W2", {dimFfn, dimModel}, init = inits::glorot_uniform);
-    auto b2 = graph->param(prefix + "_b2", {1, dimModel}, init = inits::zeros);
+        prefix + "_W2", {dimFfn, dimModel}, inits::glorot_uniform);
+    auto b2 = graph->param(prefix + "_b2", {1, dimModel}, inits::zeros);
 
     output = affine(output, W1, b1);
     output = swish(output);

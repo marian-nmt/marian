@@ -25,20 +25,20 @@ Expr buildIrisClassifier(Ptr<ExpressionGraph> graph,
 
   // Define the input layer
   auto x = graph->constant({N, NUM_FEATURES},
-                           init = inits::from_vector(inputData));
+                           inits::from_vector(inputData));
 
   // Define the hidden layer
-  auto W1 = graph->param("W1", {NUM_FEATURES, 5}, init = inits::uniform());
-  auto b1 = graph->param("b1", {1, 5}, init = inits::zeros);
+  auto W1 = graph->param("W1", {NUM_FEATURES, 5}, inits::uniform());
+  auto b1 = graph->param("b1", {1, 5}, inits::zeros);
   auto h = tanh(affine(x, W1, b1));
 
   // Define the output layer
-  auto W2 = graph->param("W2", {5, NUM_LABELS}, init = inits::uniform());
-  auto b2 = graph->param("b2", {1, NUM_LABELS}, init = inits::zeros);
+  auto W2 = graph->param("W2", {5, NUM_LABELS}, inits::uniform());
+  auto b2 = graph->param("b2", {1, NUM_LABELS}, inits::zeros);
   auto o = affine(h, W2, b2);
 
   if(train) {
-    auto y = graph->constant({N}, init = inits::from_vector(outputData));
+    auto y = graph->constant({N}, inits::from_vector(outputData));
     /* Define cross entropy cost on the output layer.
      * It can be also defined directly as:
      *   -mean(sum(logsoftmax(o) * y, axis=1), axis=0)

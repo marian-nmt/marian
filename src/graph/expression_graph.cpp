@@ -17,12 +17,12 @@ void ExpressionGraph::setDevice(DeviceId deviceId) {
   }
 }
 
-Expr ExpressionGraph::dropout(float prob, Shape shape) {
+Expr ExpressionGraph::dropout(float prob, const Shape& shape) {
   return Expression<ConstantNode>(shared_from_this(),
-                                  keywords::init = [prob, this](Tensor t) {
+                                  shape,
+                                  [prob, this](Tensor t) {
                                     Dropout(t, prob);
-                                  },
-                                  keywords::shape = shape);
+                                  });
 }
 
 void ExpressionGraph::checkNan(Tensor t) {

@@ -7,12 +7,11 @@
 namespace marian {
 
 struct ConstantNode : public Node {
-  template <typename... Args>
-  ConstantNode(Args... args)
-      : Node(args...),
-        init_(new NodeInitializer(Get(keywords::init, [](Tensor) {}))),
+  ConstantNode(Ptr<ExpressionGraph> graph, const Shape& shape, const NodeInitializer& init)
+      : Node(graph, shape),
+        init_(new NodeInitializer(init)),
         initialized_(false) {
-    ABORT_IF(!Has(keywords::shape), "Constant items require shape information");
+
     setTrainable(false);
   }
 
@@ -42,14 +41,11 @@ private:
 };
 
 struct ParamNode : public Node {
-  template <typename... Args>
-  ParamNode(Args... args)
-      : Node(args...),
-        init_(new NodeInitializer(Get(keywords::init, [](Tensor) {}))),
+  ParamNode(Ptr<ExpressionGraph> graph, const Shape& shape, const NodeInitializer& init, bool fixed = false)
+      : Node(graph, shape),
+        init_(new NodeInitializer(init)),
         initialized_(false) {
-    ABORT_IF(!Has(keywords::shape), "Param items require shape information");
 
-    bool fixed = Get(keywords::fixed, false);
     setTrainable(!fixed);
   }
 

@@ -51,15 +51,15 @@ public:
 
     Wa_ = graph->param(prefix + "_W_comb_att",
                        {dimDecState, dimEncState},
-                       keywords::init = inits::glorot_uniform);
+                       inits::glorot_uniform);
     Ua_ = graph->param(prefix + "_Wc_att",
                        {dimEncState, dimEncState},
-                       keywords::init = inits::glorot_uniform);
+                       inits::glorot_uniform);
     va_ = graph->param(prefix + "_U_att",
                        {dimEncState, 1},
-                       keywords::init = inits::glorot_uniform);
+                       inits::glorot_uniform);
     ba_ = graph->param(
-        prefix + "_b_att", {1, dimEncState}, keywords::init = inits::zeros);
+        prefix + "_b_att", {1, dimEncState}, inits::zeros);
 
     if(dropout_ > 0.0f) {
       dropMaskContext_ = graph->dropout(dropout_, {1, dimEncState});
@@ -75,17 +75,17 @@ public:
         // instead of gammaContext_
         Wc_att_lns_ = graph->param(prefix + "_Wc_att_lns",
                                    {1, dimEncState},
-                                   keywords::init = inits::from_value(1.f));
+                                   inits::from_value(1.f));
         Wc_att_lnb_ = graph->param(prefix + "_Wc_att_lnb",
                                    {1, dimEncState},
-                                   keywords::init = inits::zeros);
+                                   inits::zeros);
         // instead of gammaState_
         W_comb_att_lns_ = graph->param(prefix + "_W_comb_att_lns",
                                        {1, dimEncState},
-                                       keywords::init = inits::from_value(1.f));
+                                       inits::from_value(1.f));
         W_comb_att_lnb_ = graph->param(prefix + "_W_comb_att_lnb",
                                        {1, dimEncState},
-                                       keywords::init = inits::zeros);
+                                       inits::zeros);
 
         mappedContext_ = layer_norm(affine(contextDropped_, Ua_, ba_),
                                     Wc_att_lns_,
@@ -94,10 +94,10 @@ public:
       } else {
         gammaContext_ = graph->param(prefix + "_att_gamma1",
                                      {1, dimEncState},
-                                     keywords::init = inits::from_value(1.0));
+                                     inits::from_value(1.0));
         gammaState_ = graph->param(prefix + "_att_gamma2",
                                    {1, dimEncState},
-                                   keywords::init = inits::from_value(1.0));
+                                   inits::from_value(1.0));
 
         mappedContext_
             = layer_norm(dot(contextDropped_, Ua_), gammaContext_, ba_);
@@ -144,7 +144,7 @@ public:
 
     auto alignedSource
         = scalar_product(encState_->getAttended(), e, axis = -3);
-    
+
     contexts_.push_back(alignedSource);
     alignments_.push_back(e);
     return alignedSource;
