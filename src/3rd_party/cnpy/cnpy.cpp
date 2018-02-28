@@ -129,17 +129,18 @@ cnpy::NpyArray load_the_npy_file(FILE* fp) {
     unsigned int* shape;
     unsigned int ndims, word_size;
     bool fortran_order;
-    cnpy::parse_npy_header(fp,word_size,shape,ndims,fortran_order);
+    cnpy::parse_npy_header(fp, word_size, shape, ndims, fortran_order);
     unsigned long long size = 1; //long long so no overflow when multiplying by word_size
-    for(unsigned int i = 0;i < ndims;i++) size *= shape[i];
+    for(unsigned int i = 0; i < ndims; i++)
+        size *= shape[i];
 
     cnpy::NpyArray arr;
     arr.word_size = word_size;
-    arr.shape = std::vector<unsigned int>(shape,shape+ndims);
+    arr.shape = std::vector<unsigned int>(shape, shape+ndims);
     delete[] shape;
-    arr.data = new char[size*word_size];    
+    arr.resize(size*word_size);    
     arr.fortran_order = fortran_order;
-    size_t nread = fread(arr.data,word_size,size,fp);
+    size_t nread = fread(arr.data(), word_size, size,fp);
     if(nread != size)
         throw std::runtime_error("load_the_npy_file: failed fread");
     return arr;
@@ -170,7 +171,7 @@ cnpy::npz_t cnpy::npz_load(std::string fname) {
             throw std::runtime_error("npz_load: failed fread");
 
         //erase the lagging .npy        
-        varname.erase(varname.end()-4,varname.end());
+        varname.erase(varname.end()-4, varname.end());
 
         //read in the extra field
         unsigned short extra_field_len = *(unsigned short*) &local_header[28];

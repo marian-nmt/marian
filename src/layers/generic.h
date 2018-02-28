@@ -208,7 +208,7 @@ struct EmbeddingFactory : public Factory {
 
     bool fixed = opt<bool>("fixed", false);
 
-    inits::ParameterInitializer initFunc = inits::glorot_uniform;
+    NodeInitializer initFunc = inits::glorot_uniform;
     if(options_->has("embFile")) {
       std::string file = opt<std::string>("embFile");
       if(!file.empty()) {

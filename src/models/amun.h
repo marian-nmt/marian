@@ -41,9 +41,9 @@ public:
     using namespace keywords;
 
     LOG(info, "Loading model from {}", name);
-
+    
     auto numpy = cnpy::npz_load(name);
-
+    
     std::map<std::string, std::string> nameMap
         = {{"decoder_U", "decoder_cell1_U"},
            {"decoder_Ux", "decoder_cell1_Ux"},
@@ -91,20 +91,20 @@ public:
            {"encoder_r_bx", "encoder_bi_r_bx"},
            {"encoder_r_gamma1", "encoder_bi_r_gamma1"},
            {"encoder_r_gamma2", "encoder_bi_r_gamma2"}};
-
+    
     if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
       nameMap["Wemb"] = "Wemb";
-
+    
     graph->setReloaded(false);
-
+    
     for(auto it : numpy) {
       auto name = it.first;
-
+    
       if(name == "decoder_c_tt")
         continue;
       if(name.substr(0, 8) == "special:")
         continue;
-
+    
       Shape shape;
       if(numpy[name].shape.size() == 2) {
         shape.resize(2);
@@ -115,14 +115,14 @@ public:
         shape.set(0, 1);
         shape.set(1, numpy[name].shape[0]);
       }
-
+    
       std::string pName = name;
       if(nameMap.count(name))
         pName = nameMap[name];
-
+    
       graph->param(pName, shape, init = inits::from_numpy(numpy[name]));
     }
-
+    
     graph->setReloaded(true);
   }
 

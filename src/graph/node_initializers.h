@@ -10,9 +10,9 @@
 
 namespace marian {
 
-namespace inits {
+typedef std::function<void(Tensor)> NodeInitializer;
 
-typedef std::function<void(Tensor)> ParameterInitializer;
+namespace inits {
 
 float xor128();
 
@@ -23,9 +23,9 @@ void zeros(Tensor t);
 
 void ones(Tensor t);
 
-std::function<void(Tensor)> from_value(float v);
+NodeInitializer from_value(float v);
 
-std::function<void(Tensor)> diag(float val);
+NodeInitializer diag(float val);
 
 template <class Distribution>
 void distribution(std::vector<float>& vals, float a, float b) {
@@ -42,9 +42,9 @@ void distribution(Tensor t, float a, float b) {
   t << vals;
 }
 
-std::function<void(Tensor)> normal(float scale = 0.1, bool ortho = true);
+NodeInitializer normal(float scale = 0.1, bool ortho = true);
 
-std::function<void(Tensor)> uniform(float scale = 0.1);
+NodeInitializer uniform(float scale = 0.1);
 
 void ortho(Tensor t);
 
@@ -54,15 +54,15 @@ void xorshift(Tensor t);
 
 void glorot_normal(Tensor t);
 
-std::function<void(Tensor)> from_vector(const std::vector<float>& v);
-std::function<void(Tensor)> from_vector(const std::vector<size_t>& v);
+NodeInitializer from_vector(const std::vector<float>& v);
+NodeInitializer from_vector(const std::vector<size_t>& v);
 
-std::function<void(Tensor)> from_sparse_vector(
+NodeInitializer from_sparse_vector(
     std::pair<std::vector<size_t>, std::vector<float>>& v);
 
-std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np);
+NodeInitializer from_numpy(const cnpy::NpyArray& np);
 
-std::function<void(Tensor)> from_word2vec(const std::string& file,
+NodeInitializer from_word2vec(const std::string& file,
                                           int dimVoc,
                                           int dimEmb,
                                           bool normalize = false);

@@ -35,11 +35,11 @@ void ones(Tensor t) {
   t->set(1.0f);
 }
 
-std::function<void(Tensor)> from_value(float v) {
+NodeInitializer from_value(float v) {
   return [v](Tensor t) { t->set(v); };
 }
 
-std::function<void(Tensor)> diag(float val) {
+NodeInitializer diag(float val) {
   return [val](Tensor t) {
     if(t->shape()[0] == t->shape()[1] && t->shape()[2] == 1
        && t->shape()[3] == 1) {
@@ -51,13 +51,13 @@ std::function<void(Tensor)> diag(float val) {
   };
 }
 
-std::function<void(Tensor)> normal(float scale, bool ortho /*= true*/) {
+NodeInitializer normal(float scale, bool ortho /*= true*/) {
   return [scale](Tensor t) {
     distribution<std::normal_distribution<float>>(t, 0, scale);
   };
 }
 
-std::function<void(Tensor)> uniform(float scale) {
+NodeInitializer uniform(float scale) {
   return [scale](Tensor t) {
     distribution<std::uniform_real_distribution<float>>(t, -scale, scale);
   };
@@ -107,16 +107,19 @@ void ortho(Tensor t) {
   t->set(vec);
 }
 
-std::function<void(Tensor)> from_vector(const std::vector<float>& v) {
-  return [v](Tensor t) { t->set(v); };
+NodeInitializer from_vector(const std::vector<float>& v) {
+  auto vPtr = New<std::vector<float>>(v.begin(), v.end());
+  return [vPtr](Tensor t) {
+    t->set(vPtr->data(), vPtr->data() + vPtr->size()); 
+  };
 }
 
-std::function<void(Tensor)> from_vector(const std::vector<size_t>& v) {
+NodeInitializer from_vector(const std::vector<size_t>& v) {
   std::vector<float> vf(v.begin(), v.end());
   return from_vector(vf);
 }
 
-std::function<void(Tensor)> from_sparse_vector(
+NodeInitializer from_sparse_vector(
     std::pair<std::vector<size_t>, std::vector<float>>& v) {
   return [v](Tensor t) {
     t->set(1e-6);
@@ -124,20 +127,17 @@ std::function<void(Tensor)> from_sparse_vector(
   };
 }
 
-std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np) {
-  size_t size = 1;
-  for(size_t i = 0; i < np.shape.size(); ++i) {
-    size *= np.shape[i];
+NodeInitializer from_numpy(const cnpy::NpyArray& np) {
+  return [np](Tensor t) {
+    size_t size = 1;
+    for(size_t dim : np.shape)
+      size *= dim;
+    t->set((float*)np.data(), (float*)np.data() + size);
   };
-
-  std::vector<float> npv(size);
-  std::copy((float*)np.data, (float*)np.data + size, npv.begin());
-
-  return [npv](Tensor t) { t->set(npv); };
 }
 
 // move this somewhere else
-std::function<void(Tensor)> from_word2vec(const std::string& file,
+NodeInitializer from_word2vec(const std::string& file,
                                           int dimVoc,
                                           int dimEmb,
                                           bool normalize /*= false*/) {

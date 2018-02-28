@@ -15,25 +15,32 @@
 #include<cassert>
 #include<zlib.h>
 #include<map>
+#include <memory>
 
 namespace cnpy {
 
     struct NpyArray {
-        char* data;
+        std::shared_ptr<std::vector<char>> ptr;
         std::vector<unsigned int> shape;
-        unsigned int word_size;
-        bool fortran_order;
-        void destruct() {delete[] data;}
-    };
-    
-    struct npz_t : public std::map<std::string, NpyArray>
-    {
-        void destruct()
-        {
-            npz_t::iterator it = this->begin();
-            for(; it != this->end(); ++it) (*it).second.destruct();
+        unsigned int word_size{1};
+        bool fortran_order{0};
+        
+        NpyArray() : ptr{new std::vector<char>()} {}
+        
+        void resize(size_t n) {
+            return ptr->resize(n);
+        }
+        
+        char* data() {
+            return ptr->data();
+        }
+
+        const char* data() const {
+            return ptr->data();
         }
     };
+    
+    typedef std::map<std::string, NpyArray> npz_t;
 
     char BigEndianTest();
     char map_type(const std::type_info& t);

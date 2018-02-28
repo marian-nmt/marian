@@ -65,7 +65,7 @@ public:
   void setDevice(DeviceId deviceId = {0, DeviceType::gpu});
   DeviceId getDevice() { return backend_->getDevice(); }
   Ptr<Backend> getBackend() { return backend_; }
-  
+
   void switchParams(const std::string& newNamespace) {
     namespace_ = newNamespace;
   }
