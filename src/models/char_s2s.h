@@ -68,7 +68,7 @@ protected:
     }
     int dimWords = strided.size() / dimBatch;
     auto stridedMask = graph->constant({dimWords, dimBatch, 1},
-                                       keywords::init = inits::from_vector(strided));
+                                       inits::from_vector(strided));
     return stridedMask;
   }
 };

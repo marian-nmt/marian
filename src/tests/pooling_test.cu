@@ -42,13 +42,13 @@ int main(int argc, char** argv) {
   }
 
   auto x = graph->param("x", {dimBatch, dimWord, batchLength},
-                        keywords::init=inits::from_vector(embData));
+                        inits::from_vector(embData));
 
   auto xMask = graph->constant({dimBatch, 1, batchLength},
-                               keywords::init=inits::from_vector(embMask));
+                               inits::from_vector(embMask));
 
   // auto pooling = MaxPooling("pooling")(x, xMask);
-  // auto idx = graph->constant({elemNum, 1}, keywords::init=inits::zeros);
+  // auto idx = graph->constant({elemNum, 1}, inits::zeros);
   // auto ce = cross_entropy(pooling, idx);
   // auto cost = mean(sum(ce, keywords::axis=2), keywords::axis=0);
 
