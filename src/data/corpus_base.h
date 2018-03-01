@@ -244,6 +244,26 @@ public:
   size_t words() const { return batches_[0]->batchWords(); }
 
   /**
+   * @brief The width of the source mini-batch. Num words + padded?
+   */
+  size_t width() const { return batches_[0]->batchWidth(); }
+
+  /**
+   * @brief The number of sentences in the batch, target words.
+   */
+  size_t sizeTrg() const { return batches_.back()->batchSize(); }
+  
+  /**
+   * @brief The number of words for the longest sentence in the batch plus one.
+   */
+  size_t wordsTrg() const { return batches_.back()->batchWords(); };
+
+  /**
+   * @brief The width of the target mini-batch. Num words + padded?
+   */
+  size_t widthTrg() const { return batches_.back()->batchWidth(); };
+
+  /**
    * @brief The number of source and targets.
    */
   size_t sets() const { return batches_.size(); }
