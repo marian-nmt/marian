@@ -45,19 +45,19 @@ enum class DeviceType : size_t { gpu = 0, cpu = 1 };
 struct DeviceId {
   size_t no{0};
   DeviceType type{DeviceType::gpu};
-  
+
   DeviceId() : no{0}, type{DeviceType::gpu} {}
   DeviceId(size_t no_, DeviceType type_) : no(no_), type(type_) {}
-  
+
   friend std::ostream& operator<<(std::ostream& out, DeviceId deviceId) {
     out << (deviceId.type == DeviceType::gpu ? "gpu" : "cpu") << deviceId.no;
     return out;
   }
-  
+
   friend bool operator==(DeviceId id1, DeviceId id2) {
     return id1.no == id2.no && id1.type == id2.type;
   }
-  
+
 };
 
 class TensorBase;

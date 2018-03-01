@@ -139,7 +139,7 @@ public:
       if(first) {
         // no cost
         prevCosts = graph->constant({1, 1, 1, 1},
-                                    keywords::init = inits::from_value(0));
+                                    inits::from_value(0));
       } else {
         std::vector<float> beamCosts;
 
@@ -164,7 +164,7 @@ public:
 
         prevCosts
             = graph->constant({(int)localBeamSize, 1, dimBatch, 1},
-                              keywords::init = inits::from_vector(beamCosts));
+                              inits::from_vector(beamCosts));
       }
 
       //**********************************************************************

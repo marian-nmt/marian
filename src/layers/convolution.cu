@@ -18,11 +18,11 @@ Expr Convolution::apply(Expr x) {
                                kernelNum,
                                kernelDims.first,
                                kernelDims.second},
-                              keywords::init=inits::glorot_uniform);
+                               inits::glorot_uniform);
 
   auto bias = graph_->param(prefix + "_conv_bias",
                             {1, kernelNum, 1, 1},
-                            keywords::init=inits::zeros);
+                            inits::zeros);
 
   std::vector<Expr> nodes = {x, kernel, bias};
   return Expression<ConvolutionOp>(nodes,

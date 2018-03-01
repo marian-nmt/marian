@@ -9,9 +9,8 @@ namespace rnn {
 struct GRUFastNodeOp : public NaryNodeOp {
   bool final_;
 
-  template <typename... Args>
-  GRUFastNodeOp(const std::vector<Expr>& nodes, bool final, Args... args)
-      : NaryNodeOp(nodes, args...), final_(final) {}
+  GRUFastNodeOp(const std::vector<Expr>& nodes, bool final)
+      : NaryNodeOp(nodes), final_(final) {}
 
   NodeOps forwardOps() {
     std::vector<Tensor> inputs;
@@ -53,9 +52,8 @@ Expr gruOps(const std::vector<Expr>& nodes, bool final) {
 /******************************************************************************/
 
 struct LSTMCellNodeOp : public NaryNodeOp {
-  template <typename... Args>
-  LSTMCellNodeOp(const std::vector<Expr>& nodes, Args... args)
-      : NaryNodeOp(nodes, args...) {}
+  LSTMCellNodeOp(const std::vector<Expr>& nodes)
+      : NaryNodeOp(nodes) {}
 
   NodeOps forwardOps() {
     std::vector<Tensor> inputs;
@@ -91,9 +89,8 @@ struct LSTMCellNodeOp : public NaryNodeOp {
 };
 
 struct LSTMOutputNodeOp : public NaryNodeOp {
-  template <typename... Args>
-  LSTMOutputNodeOp(const std::vector<Expr>& nodes, Args... args)
-      : NaryNodeOp(nodes, args...) {}
+  LSTMOutputNodeOp(const std::vector<Expr>& nodes)
+      : NaryNodeOp(nodes) {}
 
   NodeOps forwardOps() {
     std::vector<Tensor> inputs;

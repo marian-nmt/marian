@@ -24,7 +24,7 @@ cuda_add_library(marian
   graph/expression_graph.cpp
   graph/expression_operators.cu
   graph/node.cpp
-  graph/node_operators.cu
+  graph/node_operators.cpp
   graph/node_initializers.cpp
   layers/convolution.cu
 

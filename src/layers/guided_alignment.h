@@ -17,7 +17,7 @@ Expr guidedAlignmentCost(Ptr<ExpressionGraph> graph,
 
   auto aln = graph->constant(
       {dimBatch, 1, dimSrc, dimTrg},
-      keywords::init = inits::from_vector(batch->getGuidedAlignment()));
+      inits::from_vector(batch->getGuidedAlignment()));
 
   std::string guidedCostType
       = options->get<std::string>("guided-alignment-cost");

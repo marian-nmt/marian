@@ -72,7 +72,7 @@ void xorshift(Tensor t) {
   std::vector<float> vals(t->size());
   for(auto&& v : vals)
     v = xor128();
-  t << vals;
+  t->set(vals);
 }
 
 void glorot_normal(Tensor t) {
@@ -110,7 +110,7 @@ void ortho(Tensor t) {
 NodeInitializer from_vector(const std::vector<float>& v) {
   auto vPtr = New<std::vector<float>>(v.begin(), v.end());
   return [vPtr](Tensor t) {
-    t->set(vPtr->data(), vPtr->data() + vPtr->size()); 
+    t->set(vPtr->data(), vPtr->data() + vPtr->size());
   };
 }
 
@@ -127,12 +127,12 @@ NodeInitializer from_sparse_vector(
   };
 }
 
-NodeInitializer from_numpy(const cnpy::NpyArray& np) {
+NodeInitializer from_numpy(const cnpy::NpyArrayPtr& np) {
   return [np](Tensor t) {
     size_t size = 1;
-    for(size_t dim : np.shape)
+    for(size_t dim : np->shape)
       size *= dim;
-    t->set((float*)np.data(), (float*)np.data() + size);
+    t->set((float*)np->data(), (float*)np->data() + size);
   };
 }
 
