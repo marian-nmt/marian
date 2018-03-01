@@ -62,9 +62,6 @@ struct Weights {
     const std::shared_ptr<mblas::Tensor> W_;
     const std::shared_ptr<mblas::Tensor> B_;
     const std::shared_ptr<mblas::Tensor> U_;
-    const std::shared_ptr<mblas::Tensor> Wx_;
-    const std::shared_ptr<mblas::Tensor> Bx_;
-    const std::shared_ptr<mblas::Tensor> Ux_;
     const std::shared_ptr<mblas::Tensor> Gamma_1_;
     const std::shared_ptr<mblas::Tensor> Gamma_2_;
   };
@@ -77,9 +74,6 @@ struct Weights {
     const std::shared_ptr<mblas::Tensor> W_;
     const std::shared_ptr<mblas::Tensor> B_;
     const std::shared_ptr<mblas::Tensor> U_;
-    const std::shared_ptr<mblas::Tensor> Wx_;
-    const std::shared_ptr<mblas::Tensor> Bx_;
-    const std::shared_ptr<mblas::Tensor> Ux_;
     const std::shared_ptr<mblas::Tensor> Gamma_1_;
     const std::shared_ptr<mblas::Tensor> Gamma_2_;
   };
@@ -147,9 +141,6 @@ struct Weights {
     const std::shared_ptr<mblas::Tensor> W_;
     const std::shared_ptr<mblas::Tensor> B_;
     const std::shared_ptr<mblas::Tensor> U_;
-    const std::shared_ptr<mblas::Tensor> Wx_;
-    const std::shared_ptr<mblas::Tensor> Bx_;
-    const std::shared_ptr<mblas::Tensor> Ux_;
     const std::shared_ptr<mblas::Tensor> Gamma_1_;
     const std::shared_ptr<mblas::Tensor> Gamma_2_;
   };
@@ -163,9 +154,6 @@ struct Weights {
     const std::shared_ptr<mblas::Tensor> W_;
     const std::shared_ptr<mblas::Tensor> B_;
     const std::shared_ptr<mblas::Tensor> U_;
-    const std::shared_ptr<mblas::Tensor> Wx_;
-    const std::shared_ptr<mblas::Tensor> Bx_;
-    const std::shared_ptr<mblas::Tensor> Ux_;
     const std::shared_ptr<mblas::Tensor> Gamma_1_;
     const std::shared_ptr<mblas::Tensor> Gamma_2_;
   };
