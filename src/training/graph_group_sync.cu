@@ -176,7 +176,9 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
   float cost = 0;
   for(auto c : costs)
     cost += c;
-  cost = cost / costs.size();
+  if (options_->get<std::string>("cost-type")  != "ce-sum") {
+    cost = cost / costs.size();
+  }
 
   if(scheduler_) {
     scheduler_->update(cost, batch);
