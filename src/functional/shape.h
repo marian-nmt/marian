@@ -5,13 +5,13 @@
 
 #include "common/shape.h"
 
-#include "gpu/array.h"
+#include "functional/array.h"
 
 namespace marian {
 
-namespace gpu {
+namespace functional {
 
-#define GPU_SHAPE_DIMS 4
+#define CONST_SHAPE_DIMS 4
 
 /**
  * @brief Represents the size of each dimension in a tensor.
@@ -41,7 +41,7 @@ struct ConstantShape {
     size_t filled = shape.size();
 
     ABORT_IF(filled > N,
-             "Recompile with GPU_SHAPE_DIMS >= " + std::to_string(filled));
+             "Recompile with CONST_SHAPE_DIMS >= " + std::to_string(filled));
 
     std::copy(shape.shape_.begin(), shape.shape_.end(), shape_.begin() + N - filled);
     if(N - filled)
@@ -127,7 +127,7 @@ struct ConstantShape {
   }
 };
 
-typedef ConstantShape<GPU_SHAPE_DIMS> Shape;
+typedef ConstantShape<CONST_SHAPE_DIMS> Shape;
 
 }
 

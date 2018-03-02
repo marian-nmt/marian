@@ -12,11 +12,11 @@ namespace cpu {
 
 template <size_t K, bool broadcast, class Functor>
 void gElement(Functor functor,
-              gpu::Array<gpu::Tensor<float>, K> tensors) {
+              functional::Array<functional::Tensor<float>, K> tensors) {
 
   int length = tensors[0].shape().elements();
-  gpu::Array<int, gpu::Shape::size()> dims;
-  gpu::Array<int, K> indices;
+  functional::Array<int, functional::Shape::size()> dims;
+  functional::Array<int, K> indices;
 
   #pragma omp parallel for simd
   for(int index = 0; index < length; ++index) {
@@ -26,14 +26,14 @@ void gElement(Functor functor,
       for(int i = 1; i < K; ++i)
         indices[i] = tensors[i].shape().bindex(dims);
     }
-    tensors[0][index] = gpu::apply(functor, tensors, indices);
+    tensors[0][index] = functional::apply(functor, tensors, indices);
   }
 }
 
 template <class Functor, class ...Tensors>
 void Element(Functor functor, marian::Tensor out, Tensors ...tensors) {
   constexpr size_t K = sizeof...(tensors) + 1;
-  gpu::Array<gpu::Tensor<float>, K> gTensors = {out, tensors...};
+  functional::Array<functional::Tensor<float>, K> gTensors = {out, tensors...};
 
   int length = gTensors[0].shape().elements();
 

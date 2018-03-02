@@ -1,20 +1,20 @@
 #pragma once
 
-#include "gpu/array.h"
-#include "gpu/shape.h"
+#include "functional/array.h"
+#include "functional/shape.h"
 #include "tensors/tensor.h"
 
 namespace marian {
-namespace gpu {
+namespace functional {
 
 template<typename T>
 struct Tensor {
   T* data_;
-  gpu::Shape shape_;
+  functional::Shape shape_;
 
   __HD__ Tensor() {}
 
-  __HD__ Tensor(T* ptr, const gpu::Shape& shape)
+  __HD__ Tensor(T* ptr, const functional::Shape& shape)
   : data_(ptr), shape_(shape) {}
 
   __H__ Tensor(marian::Tensor t)
@@ -23,11 +23,11 @@ struct Tensor {
   __HDI__ float& operator[](size_t i) { return data_[i]; }
   __HDI__ const float& operator[](size_t i) const { return data_[i]; }
 
-  __HDI__ float& operator[](const gpu::Array<int, gpu::Shape::size()>& indices) {
+  __HDI__ float& operator[](const functional::Array<int, functional::Shape::size()>& indices) {
     return data_[shape_.index(indices)];
   }
 
-  __HDI__ const float& operator[](const gpu::Array<int, gpu::Shape::size()>& indices) const {
+  __HDI__ const float& operator[](const functional::Array<int, functional::Shape::size()>& indices) const {
     return data_[shape_.index(indices)];
   }
 

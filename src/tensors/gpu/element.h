@@ -12,11 +12,11 @@ namespace gpu {
 #ifdef __CUDACC__
 template <size_t K, bool broadcast, class Functor>
 __global__ void gElement(Functor functor,
-                         gpu::Array<gpu::Tensor<float>, K> tensors) {
+                         functional::Array<functional::Tensor<float>, K> tensors) {
 
   int length = tensors[0].shape().elements();
-  gpu::Array<int, gpu::Shape::size()> dims;
-  gpu::Array<int, K> indices;
+  functional::Array<int, functional::Shape::size()> dims;
+  functional::Array<int, K> indices;
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
@@ -30,7 +30,7 @@ __global__ void gElement(Functor functor,
           indices[i] = tensors[i].shape().bindex(dims);
       }
 
-      tensors[0][index] = gpu::apply(functor, tensors, indices);
+      tensors[0][index] = functional::apply(functor, tensors, indices);
     }
   }
 }
@@ -42,7 +42,7 @@ void Element(Functor functor, marian::Tensor out, Tensors ...tensors) {
   cudaSetDevice(out->getDevice().no);
 
   constexpr size_t K = sizeof...(tensors) + 1;
-  gpu::Array<gpu::Tensor<float>, K> gTensors = {out, tensors...};
+  functional::Array<functional::Tensor<float>, K> gTensors = {out, tensors...};
 
   int length = gTensors[0].shape().elements();
   int threads = std::min(MAX_THREADS, length);

@@ -35,7 +35,7 @@ namespace marian {
       }
     }
 
-    void Dropout(marian::Tensor tensor, float p) {
+    void Dropout(Tensor tensor, float p) {
       auto gpuBackend = std::static_pointer_cast<gpu::Backend>(tensor->getBackend());
       curandGenerator_t gen = gpuBackend->getCurandGenerator();
       int n = tensor->size();

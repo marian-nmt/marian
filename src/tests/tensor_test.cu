@@ -2,7 +2,7 @@
 #include <type_traits>
 #include <typeinfo>
 
-#include "gpu/defs.h"
+#include "functional/defs.h"
 #include "functional/functional.h"
 #include "functional/floats.h"
 

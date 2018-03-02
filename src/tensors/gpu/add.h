@@ -3,10 +3,10 @@
  *   SPDX-License-Identifier: MIT
  */
 
-#include "gpu/shape.h"
-#include "gpu/tmp.h"
-#include "gpu/tensor.h"
 #include "functional/functional.h"
+#include "functional/shape.h"
+#include "functional/tmp.h"
+#include "functional/tensor.h"
 
 namespace marian {
 
@@ -15,9 +15,9 @@ namespace gpu {
 #ifdef __CUDACC__
 template <size_t K, class Functor>
 __global__ void gAddGeneric(Functor functor,
-                            const gpu::Shape full,
-                            gpu::Tensor<float> out,
-                            gpu::Array<gpu::Tensor<float>, K> ins,
+                            const functional::Shape full,
+                            functional::Tensor<float> out,
+                            functional::Array<functional::Tensor<float>, K> ins,
                             float scale = 1.0) {
 
   int outLength = out.shape().elements();
@@ -25,21 +25,21 @@ __global__ void gAddGeneric(Functor functor,
   for(int i = 0; i < K; ++i)
     same = same && outLength == ins[i].shape().elements();
 
-  constexpr size_t N = gpu::Shape::size();
-  gpu::Array<int, N> len;
+  constexpr size_t N = functional::Shape::size();
+  functional::Array<int, N> len;
   for(int i = 0; i < N; ++i)
     len[i] = full[i] / out.shape()[i];
 
-  gpu::Array<int, N> dims;
+  functional::Array<int, N> dims;
   for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < outLength) {
 
       if(same) {
-        out[index] += gpu::apply(functor, ins, index) * scale;
+        out[index] += functional::apply(functor, ins, index) * scale;
       } else {
         out.shape().dims(index, dims);
-        out[index] += gpu::loops(functor, ins, len, dims) * scale;
+        out[index] += functional::loops(functor, ins, len, dims) * scale;
       }
 
     }
@@ -48,17 +48,17 @@ __global__ void gAddGeneric(Functor functor,
 
 template <size_t K, class Functor>
 __global__ void gAddEqual(Functor functor,
-                          gpu::Tensor<float> out,
-                          gpu::Array<gpu::Tensor<float>, K> ins,
+                          functional::Tensor<float> out,
+                          functional::Array<functional::Tensor<float>, K> ins,
                           float scale,
                           bool broadcast) {
   int length = out.shape().elements();
-  gpu::Array<int, gpu::Shape::size()> dims;
+  functional::Array<int, functional::Shape::size()> dims;
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      gpu::Array<int, K> indices;
+      functional::Array<int, K> indices;
       indices.fill(index);
 
       if(broadcast) {
@@ -67,16 +67,16 @@ __global__ void gAddEqual(Functor functor,
           indices[i] = ins[i].shape().bindex(dims);
       }
 
-      out[index] += gpu::apply(functor, ins, indices) * scale;
+      out[index] += functional::apply(functor, ins, indices) * scale;
     }
   }
 }
 
 template <size_t K, class Functor>
 __global__ void gAddReduce(Functor functor,
-                           const gpu::Shape full,
-                           gpu::Tensor<float> out,
-                           gpu::Array<gpu::Tensor<float>, K> ins,
+                           const functional::Shape full,
+                           functional::Tensor<float> out,
+                           functional::Array<functional::Tensor<float>, K> ins,
                            float scale = 1.0) {
 
   int rows = full.elements() / full.back();
@@ -97,20 +97,20 @@ __global__ void gAddReduce(Functor functor,
         for(int tid = 0; tid < cols; tid += blockDim.x) {
           int id = tid + threadIdx.x;
           if(id < cols)
-            _sum[threadIdx.x] += gpu::apply(functor, ins, j * cols + id);
+            _sum[threadIdx.x] += functional::apply(functor, ins, j * cols + id);
         }
       } else {
-        gpu::Array<int, gpu::Shape::size()> dims;
+        functional::Array<int, functional::Shape::size()> dims;
         _sum[threadIdx.x] = 0;
 
         for(int tid = 0; tid < cols; tid += blockDim.x) {
           int id = tid + threadIdx.x;
           if(id < cols) {
             full.dims(j * cols + id, dims);
-            gpu::Array<int, K> indices;
+            functional::Array<int, K> indices;
             for(int i = 0; i < K; ++i)
               indices[i] = ins[i].shape().bindex(dims);
-            _sum[threadIdx.x] += gpu::apply(functor, ins, indices);
+            _sum[threadIdx.x] += functional::apply(functor, ins, indices);
           }
         }
       }
@@ -146,8 +146,8 @@ void Add(Functor functor,
 
   constexpr size_t K = sizeof...(Tensors);
 
-  gpu::Tensor<float> gOut = out;
-  gpu::Array<gpu::Tensor<float>, K> gIns = {tensors ...};
+  functional::Tensor<float> gOut = out;
+  functional::Array<functional::Tensor<float>, K> gIns = {tensors ...};
 
   if(full.back() != 1 && out->shape().back() == 1) {
     size_t m = full.elements() / length;

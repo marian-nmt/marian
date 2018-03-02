@@ -6,9 +6,9 @@
 
 #include "tensors/dispatch.h"
 
-#include "gpu/shape.h"
-#include "gpu/tmp.h"
-#include "gpu/tensor.h"
+#include "functional/shape.h"
+#include "functional/tmp.h"
+#include "functional/tensor.h"
 
 #include "tensors/gpu/element.h"
 #include "tensors/gpu/add.h"

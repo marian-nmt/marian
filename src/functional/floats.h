@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gpu/defs.h"
+#include "functional/defs.h"
 #include "functional/operands.h"
 
 namespace marian {

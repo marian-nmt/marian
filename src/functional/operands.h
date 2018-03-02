@@ -2,7 +2,7 @@
 
 #include <limits>
 #include <string>
-#include "gpu/defs.h"
+#include "functional/defs.h"
 
 namespace marian {
   namespace functional {

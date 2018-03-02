@@ -1,10 +1,10 @@
 #pragma once
 
-#include "gpu/defs.h"
+#include "functional/defs.h"
 
 namespace marian {
 
-namespace gpu {
+namespace functional {
 
 template <typename T, size_t N>
 struct Array {

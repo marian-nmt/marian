@@ -4,7 +4,7 @@
 #include "tensors/tensor_operators.h"
 #include "tensors/gpu/backend.h"
 
-#include "gpu/tensor.h"
+#include "functional/tensor.h"
 #include "functional/functional.h"
 
 #include "3rd_party/reduce_all.h"
@@ -27,7 +27,7 @@ __device__ inline float stableLogit(float x) {
   }
 }
 
-bool IsNan(marian::Tensor in) {
+bool IsNan(Tensor in) {
   //cudaSetDevice(in->getDevice().no);
   //thrust::device_ptr<float> begin = thrust::device_pointer_cast(in->data());
   //thrust::device_ptr<float> end
@@ -37,7 +37,7 @@ bool IsNan(marian::Tensor in) {
   return false;
 }
 
-void ConcatCont(marian::Tensor out, const std::vector<marian::Tensor>& inputs, int axis) {
+void ConcatCont(Tensor out, const std::vector<Tensor>& inputs, int axis) {
   cudaSetDevice(out->getDevice().no);
   int step = 1;
   for(int i = 0; i < axis; ++i)
@@ -83,7 +83,7 @@ __global__ void gInsertCols(float* out,
   }
 }
 
-void Concatenate1(marian::Tensor out, const std::vector<marian::Tensor>& inputs) {
+void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
   cudaSetDevice(out->getDevice().no);
 
   int rows = out->shape().elements() / out->shape().back();
@@ -107,14 +107,14 @@ void Concatenate1(marian::Tensor out, const std::vector<marian::Tensor>& inputs)
   cudaStreamSynchronize(0);
 }
 
-void Concatenate(marian::Tensor out, const std::vector<marian::Tensor>& inputs, int ax) {
+void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax) {
   if(ax == out->shape().size() - 1)
     Concatenate1(out, inputs);
   else
     ConcatCont(out, inputs, ax);
 }
 
-void Split1(std::vector<marian::Tensor>& outputs, const marian::Tensor in) {
+void Split1(std::vector<Tensor>& outputs, const Tensor in) {
   cudaSetDevice(in->getDevice().no);
 
   size_t offset = 0;
@@ -135,7 +135,7 @@ void Split1(std::vector<marian::Tensor>& outputs, const marian::Tensor in) {
   cudaStreamSynchronize(0);
 }
 
-void SplitCont(std::vector<marian::Tensor>& outputs, const marian::Tensor in, int axis) {
+void SplitCont(std::vector<Tensor>& outputs, const Tensor in, int axis) {
   cudaSetDevice(in->getDevice().no);
 
   int step = 1;
@@ -159,20 +159,20 @@ void SplitCont(std::vector<marian::Tensor>& outputs, const marian::Tensor in, in
   cudaStreamSynchronize(0);
 }
 
-void Deconcatenate(std::vector<marian::Tensor>& outputs, const marian::Tensor in, int ax) {
+void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax) {
   if(ax == in->shape().size() - 1)
     Split1(outputs, in);
   else
     SplitCont(outputs, in, ax);
 }
 
-__global__ void gTransposeND(gpu::Tensor<float> out,
-                             const gpu::Tensor<float> in,
-                             const gpu::Array<int, gpu::Shape::size()> permute) {
+__global__ void gTransposeND(functional::Tensor<float> out,
+                             const functional::Tensor<float> in,
+                             const functional::Array<int, functional::Shape::size()> permute) {
 
-  constexpr size_t N = gpu::Shape::size();
-  gpu::Array<int, N> oDims;
-  gpu::Array<int, N> pDims;
+  constexpr size_t N = functional::Shape::size();
+  functional::Array<int, N> oDims;
+  functional::Array<int, N> pDims;
 
   int length = out.shape().elements();
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
@@ -186,11 +186,11 @@ __global__ void gTransposeND(gpu::Tensor<float> out,
   }
 }
 
-void TransposeND(marian::Tensor out, marian::Tensor in, const std::vector<int>& vAxis) {
+void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   cudaSetDevice(out->getDevice().no);
 
-  gpu::Array<int, gpu::Shape::size()> axes;
-  int diff = gpu::Shape::size() - vAxis.size();
+  functional::Array<int, functional::Shape::size()> axes;
+  int diff = functional::Shape::size() - vAxis.size();
   for(int i = 0; i < axes.size(); ++i)
     if(i < diff)
       axes[i] = i;
@@ -205,15 +205,15 @@ void TransposeND(marian::Tensor out, marian::Tensor in, const std::vector<int>& 
 }
 
 __global__ void gSoftmax(float* out,
-                         gpu::Shape outShape,
+                         functional::Shape outShape,
                          const float* in,
                          const float* mask,
-                         const gpu::Shape maskShape) {
+                         const functional::Shape maskShape) {
   int rows = outShape.elements() / outShape.back();
   int cols = outShape.back();
 
   bool broadcast = outShape != maskShape;
-  gpu::Array<int, gpu::Shape::size()> dims;
+  functional::Array<int, functional::Shape::size()> dims;
 
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -302,7 +302,7 @@ __global__ void gSoftmax(float* out,
   }
 }
 
-void Softmax(marian::Tensor out, marian::Tensor in, marian::Tensor mask) {
+void Softmax(Tensor out, Tensor in, Tensor mask) {
   cudaSetDevice(out->getDevice().no);
 
   size_t m = out->shape().elements() / out->shape().back();
@@ -321,7 +321,7 @@ void Softmax(marian::Tensor out, marian::Tensor in, marian::Tensor mask) {
 }
 
 __global__ void gLogSoftmax(float* out,
-                            const gpu::Shape outShape,
+                            const functional::Shape outShape,
                             const float* in) {
   int rows = outShape.elements() / outShape.back();
   int cols = outShape.back();
@@ -390,7 +390,7 @@ __global__ void gLogSoftmax(float* out,
   }
 }
 
-void LogSoftmax(marian::Tensor out, marian::Tensor in) {
+void LogSoftmax(Tensor out, Tensor in) {
   cudaSetDevice(out->getDevice().no);
 
   size_t m = out->shape().elements() / out->shape().back();
@@ -449,7 +449,7 @@ __global__ void gSoftmaxGrad(float* grad,
   }
 }
 
-void SoftmaxGrad(marian::Tensor grad, marian::Tensor adj, marian::Tensor val) {
+void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
   cudaSetDevice(adj->getDevice().no);
   // grad and val are both m-by-k matrices, passed as input.
   // A weighted average of each row of grad (according to the weights
@@ -506,7 +506,7 @@ __global__ void gLogSoftmaxGrad(float* grad,
   }
 }
 
-void LogSoftmaxGrad(marian::Tensor grad, marian::Tensor adj, marian::Tensor val) {
+void LogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
   cudaSetDevice(adj->getDevice().no);
 
   // grad and val are both m-by-k matrices, passed as input.
@@ -568,7 +568,7 @@ __global__ void gCopyRows(float* out,
   }
 }
 
-void CopyRows(marian::Tensor out, const marian::Tensor in, const std::vector<size_t>& indices) {
+void CopyRows(Tensor out, const Tensor in, const std::vector<size_t>& indices) {
   cudaSetDevice(out->getDevice().no);
 
   size_t cols = in->shape().back();
@@ -613,8 +613,8 @@ __global__ void gPasteRows(float* out,
   }
 }
 
-void PasteRows(marian::Tensor out,
-               const marian::Tensor in,
+void PasteRows(Tensor out,
+               const Tensor in,
                const std::vector<size_t>& indices) {
   cudaSetDevice(out->getDevice().no);
 
@@ -660,7 +660,7 @@ __global__ void gCopyCols(float* out,
   }
 }
 
-void CopyCols(marian::Tensor out, const marian::Tensor in, const std::vector<size_t>& indices) {
+void CopyCols(Tensor out, const Tensor in, const std::vector<size_t>& indices) {
   cudaSetDevice(out->getDevice().no);
 
   size_t rows = in->shape().elements() / in->shape().back();
@@ -705,8 +705,8 @@ __global__ void gPasteCols(float* out,
   }
 }
 
-void PasteCols(marian::Tensor out,
-               const marian::Tensor in,
+void PasteCols(Tensor out,
+               const Tensor in,
                const std::vector<size_t>& indices) {
   cudaSetDevice(out->getDevice().no);
 
@@ -732,13 +732,13 @@ void PasteCols(marian::Tensor out,
 }
 
 __global__ void gSelect(float* out,
-                        gpu::Shape outShape,
+                        functional::Shape outShape,
                         const float* in,
-                        const gpu::Shape inShape,
+                        const functional::Shape inShape,
                         int axis,
                         size_t* d_indices) {
   int length = outShape.elements();
-  gpu::Array<int, gpu::Shape::size()> dims;
+  functional::Array<int, functional::Shape::size()> dims;
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
@@ -752,13 +752,13 @@ __global__ void gSelect(float* out,
 }
 
 __global__ void gInsert(float* out,
-                        gpu::Shape outShape,
+                        functional::Shape outShape,
                         const float* in,
-                        const gpu::Shape inShape,
+                        const functional::Shape inShape,
                         int axis,
                         size_t* d_indices) {
   int length = inShape.elements();
-  gpu::Array<int, gpu::Shape::size()> dims;
+  functional::Array<int, functional::Shape::size()> dims;
 
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
@@ -771,8 +771,8 @@ __global__ void gInsert(float* out,
   }
 }
 
-void Select(marian::Tensor out,
-            const marian::Tensor in,
+void Select(Tensor out,
+            const Tensor in,
             int axis,
             const std::vector<size_t>& indices,
             Ptr<Allocator> allocator) {
@@ -786,7 +786,7 @@ void Select(marian::Tensor out,
   auto mp_indices = allocator->alloc<size_t>(indices.size());
   CudaCopy(indices.data(), indices.data() + indices.size(), mp_indices->data<size_t>());
 
-  int axisGPU = axis + gpu::Shape::size() - out->shape().size();
+  int axisGPU = axis + functional::Shape::size() - out->shape().size();
   gSelect<<<blocks, threads>>>(out->data(),
                                out->shape(),
                                in->data(),
@@ -797,8 +797,8 @@ void Select(marian::Tensor out,
   allocator->free(mp_indices);
 }
 
-void Insert(marian::Tensor out,
-            const marian::Tensor in,
+void Insert(Tensor out,
+            const Tensor in,
             int axis,
             const std::vector<size_t>& indices,
             Ptr<Allocator> allocator) {
@@ -812,7 +812,7 @@ void Insert(marian::Tensor out,
   auto mp_indices = allocator->alloc<size_t>(indices.size());
   CudaCopy(indices.data(), indices.data() + indices.size(), mp_indices->data<size_t>());
 
-  int axisGPU = axis + gpu::Shape::size() - out->shape().size();
+  int axisGPU = axis + functional::Shape::size() - out->shape().size();
   gInsert<<<blocks, threads>>>(out->data(),
                                out->shape(),
                                in->data(),
@@ -866,7 +866,7 @@ __global__ void gGRUFastForward(float* out,
   }
 }
 
-void GRUFastForward(marian::Tensor out, std::vector<marian::Tensor> inputs, bool final) {
+void GRUFastForward(Tensor out, std::vector<Tensor> inputs, bool final) {
   cudaSetDevice(out->getDevice().no);
 
   int rows = out->shape().elements() / out->shape().back();
@@ -976,9 +976,9 @@ __global__ void gGRUFastBackward(float* outState,
   }
 }
 
-void GRUFastBackward(std::vector<marian::Tensor> outputs,
-                     std::vector<marian::Tensor> inputs,
-                     marian::Tensor adj,
+void GRUFastBackward(std::vector<Tensor> outputs,
+                     std::vector<Tensor> inputs,
+                     Tensor adj,
                      bool final) {
   cudaSetDevice(adj->getDevice().no);
 
@@ -1005,9 +1005,9 @@ void GRUFastBackward(std::vector<marian::Tensor> outputs,
 }
 
 __global__ void gCrossEntropyPick(float* out,
-                                  const gpu::Shape outShape,
+                                  const functional::Shape outShape,
                                   const float* in,
-                                  const gpu::Shape inShape,
+                                  const functional::Shape inShape,
                                   const float* pick) {
   int rows = inShape.elements() / inShape.back();
   int cols = inShape.back();
@@ -1074,7 +1074,7 @@ __global__ void gCrossEntropyPick(float* out,
   }
 }
 
-void CrossEntropyPick(marian::Tensor out, marian::Tensor in, marian::Tensor pick) {
+void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
   cudaSetDevice(out->getDevice().no);
 
   int rows = in->shape().elements() / in->shape().back();
@@ -1089,7 +1089,7 @@ void CrossEntropyPick(marian::Tensor out, marian::Tensor in, marian::Tensor pick
 }
 
 __global__ void gCrossEntropyPickBackward(float* out,
-                                          const gpu::Shape outShape,
+                                          const functional::Shape outShape,
                                           const float* adj,
                                           const float* in,
                                           const float* pick) {
@@ -1160,7 +1160,7 @@ __global__ void gCrossEntropyPickBackward(float* out,
   }
 }
 
-void CrossEntropyPickBackward(marian::Tensor out, marian::Tensor adj, marian::Tensor a, marian::Tensor pick) {
+void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
   cudaSetDevice(out->getDevice().no);
 
   int rows = out->shape().elements() / out->shape().back();
@@ -1175,8 +1175,7 @@ void CrossEntropyPickBackward(marian::Tensor out, marian::Tensor adj, marian::Te
 }
 
 
-float L2Norm(marian::Tensor in) {
-  using namespace functional;
+float L2Norm(Tensor in) {
 
   cudaSetDevice(in->getDevice().no);
 
@@ -1186,9 +1185,10 @@ float L2Norm(marian::Tensor in) {
 
   uint8_t* data;
   cudaMalloc(&data, blocks * sizeof(float));
-  marian::Tensor out(new TensorBase(
+  Tensor out(new TensorBase(
       New<MemoryPiece>(data, blocks * sizeof(float)), {1, blocks}, in->getBackend()));
 
+  using namespace functional;
   ReduceAll(_1 * _1, out, in);
   float dataCpu = sqrtf(out->get(0));
   out.reset();
@@ -1243,7 +1243,7 @@ __global__ void gAtt(float* out,
   }
 }
 
-void Att(marian::Tensor out, marian::Tensor va, marian::Tensor context, marian::Tensor state) {
+void Att(Tensor out, Tensor va, Tensor context, Tensor state) {
   cudaSetDevice(out->getDevice().no);
 
   size_t m = out->shape().elements() / out->shape().back();
@@ -1304,13 +1304,13 @@ __global__ void gAttBack(float* gVa,
   }
 }
 
-void AttBack(marian::Tensor gVa,
-             marian::Tensor gContext,
-             marian::Tensor gState,
-             marian::Tensor va,
-             marian::Tensor context,
-             marian::Tensor state,
-             marian::Tensor adj) {
+void AttBack(Tensor gVa,
+             Tensor gContext,
+             Tensor gState,
+             Tensor va,
+             Tensor context,
+             Tensor state,
+             Tensor adj) {
   cudaSetDevice(adj->getDevice().no);
 
   size_t m = adj->shape().elements() / adj->shape()[-1];
@@ -1407,10 +1407,10 @@ __global__ void gLNormalization(float* out,
   }
 }
 
-void LayerNormalization(marian::Tensor out,
-                        marian::Tensor in,
-                        marian::Tensor gamma,
-                        marian::Tensor beta,
+void LayerNormalization(Tensor out,
+                        Tensor in,
+                        Tensor gamma,
+                        Tensor beta,
                         float eps) {
   cudaSetDevice(out->getDevice().no);
 
@@ -1532,14 +1532,14 @@ __global__ void gLayerNormalizationGrad(float* gradX,
   }
 }
 
-void LayerNormalizationGrad(marian::Tensor gradX,
-                            marian::Tensor gradGamma,
-                            marian::Tensor gradBeta,
-                            marian::Tensor adj,
-                            marian::Tensor y,
-                            marian::Tensor x,
-                            marian::Tensor gamma,
-                            marian::Tensor beta,
+void LayerNormalizationGrad(Tensor gradX,
+                            Tensor gradGamma,
+                            Tensor gradBeta,
+                            Tensor adj,
+                            Tensor y,
+                            Tensor x,
+                            Tensor gamma,
+                            Tensor beta,
                             float eps) {
   cudaSetDevice(adj->getDevice().no);
   int rows = y->shape().elements() / y->shape()[-1];
@@ -1575,7 +1575,7 @@ __global__ void gShift(float* out, const float* in, int length, int offset) {
   }
 }
 
-void Shift(marian::Tensor out, marian::Tensor in, marian::Shape shift, bool invert) {
+void Shift(Tensor out, Tensor in, marian::Shape shift, bool invert) {
 
   ABORT_IF(in->shape().size() != shift.size(), "bad dimensions");
 
@@ -1674,7 +1674,7 @@ __global__ void gLSTMCellForward(float* out,
   }
 }
 
-void LSTMCellForward(marian::Tensor out, std::vector<marian::Tensor> inputs) {
+void LSTMCellForward(Tensor out, std::vector<Tensor> inputs) {
   cudaSetDevice(out->getDevice().no);
 
   int rows = out->shape().elements() / out->shape().back();
@@ -1723,7 +1723,7 @@ __global__ void gLSTMOutputForward(float* out,
   }
 }
 
-void LSTMOutputForward(marian::Tensor out, std::vector<marian::Tensor> inputs) {
+void LSTMOutputForward(Tensor out, std::vector<Tensor> inputs) {
   cudaSetDevice(out->getDevice().no);
 
   int rows = out->shape().elements() / out->shape().back();
@@ -1817,9 +1817,9 @@ __global__ void gLSTMCellBackward(float* outCell,
   }
 }
 
-void LSTMCellBackward(std::vector<marian::Tensor> outputs,
-                      std::vector<marian::Tensor> inputs,
-                      marian::Tensor adj) {
+void LSTMCellBackward(std::vector<Tensor> outputs,
+                      std::vector<Tensor> inputs,
+                      Tensor adj) {
   cudaSetDevice(adj->getDevice().no);
 
   int rows = adj->shape().elements() / adj->shape().back();
@@ -1895,9 +1895,9 @@ __global__ void gLSTMOutputBackward(float* outCell,
   }
 }
 
-void LSTMOutputBackward(std::vector<marian::Tensor> outputs,
-                        std::vector<marian::Tensor> inputs,
-                        marian::Tensor adj) {
+void LSTMOutputBackward(std::vector<Tensor> outputs,
+                        std::vector<Tensor> inputs,
+                        Tensor adj) {
   cudaSetDevice(adj->getDevice().no);
 
   int rows = adj->shape().elements() / adj->shape().back();
@@ -1934,10 +1934,10 @@ __global__ void gHighwayForward(float* out,
   }
 }
 
-void HighwayForward(marian::Tensor out,
-                    const marian::Tensor in1,
-                    const marian::Tensor in2,
-                    const marian::Tensor t) {
+void HighwayForward(Tensor out,
+                    const Tensor in1,
+                    const Tensor in2,
+                    const Tensor t) {
   cudaSetDevice(out->getDevice().no);
 
   int length = out->shape().elements();
@@ -1969,13 +1969,13 @@ __global__ void gHighwayBackward(float* out1,
   }
 }
 
-void HighwayBackward(marian::Tensor out1,
-                     marian::Tensor out2,
-                     marian::Tensor outt,
-                     const marian::Tensor in1,
-                     const marian::Tensor in2,
-                     const marian::Tensor t,
-                     const marian::Tensor adj) {
+void HighwayBackward(Tensor out1,
+                     Tensor out2,
+                     Tensor outt,
+                     const Tensor in1,
+                     const Tensor in2,
+                     const Tensor t,
+                     const Tensor adj) {
   cudaSetDevice(out1->getDevice().no);
 
   int length = out1->shape().elements();
@@ -2028,9 +2028,9 @@ __global__ void gMaxPoolingForward(float* out,
   out[rowId + (colId * outCols)] = currentMax;
 }
 
-void PoolingWithMaskingForward(marian::Tensor out,
-                               marian::Tensor in,
-                               marian::Tensor mask,
+void PoolingWithMaskingForward(Tensor out,
+                               Tensor in,
+                               Tensor mask,
                                int width,
                                bool isEven) {
   int n = out->shape().elements();
@@ -2093,10 +2093,10 @@ __global__ void gMaxPoolingBackward(float* adj,
   adjIn[(rowId * inCols) + (colId * width) + currentMaxIdx] += adj[rowId + (colId * adjCols)];
 }
 
-void PoolingWithMaskingBackward(marian::Tensor adj,
-                                marian::Tensor adjIn,
-                                marian::Tensor in,
-                                marian::Tensor mask,
+void PoolingWithMaskingBackward(Tensor adj,
+                                Tensor adjIn,
+                                Tensor in,
+                                Tensor mask,
                                 int width,
                                 bool isEven) {
   int n = adj->shape().elements();

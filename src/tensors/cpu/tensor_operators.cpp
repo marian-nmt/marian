@@ -6,8 +6,8 @@
 #include "tensors/tensor_operators.h"
 #include "tensors/cpu/backend.h"
 
-#include "gpu/tensor.h"
 #include "functional/functional.h"
+#include "functional/tensor.h"
 
 namespace marian {
 
@@ -126,8 +126,8 @@ void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax) {
 
 // @TODO: optimize this, currently it's quite horrible
 void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
-  gpu::Array<int, gpu::Shape::size()> permute;
-  int diff = gpu::Shape::size() - vAxis.size();
+  functional::Array<int, functional::Shape::size()> permute;
+  int diff = functional::Shape::size() - vAxis.size();
   for(int i = 0; i < permute.size(); ++i)
     if(i < diff)
       permute[i] = i;
@@ -136,11 +136,11 @@ void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 
   int length = out->shape().elements();
 
-  constexpr size_t N = gpu::Shape::size();
-  gpu::Array<int, N> oDims;
-  gpu::Array<int, N> pDims;
-  gpu::Tensor<float> gOut = out;
-  gpu::Tensor<float> gIn = in;
+  constexpr size_t N = functional::Shape::size();
+  functional::Array<int, N> oDims;
+  functional::Array<int, N> pDims;
+  functional::Tensor<float> gOut = out;
+  functional::Tensor<float> gIn = in;
 
   for(int index = 0; index < length; ++index) {
     gOut.shape().dims(index, oDims);
