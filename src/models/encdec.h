@@ -263,6 +263,7 @@ public:
     };
 
     modelFeatures_.push_back("transformer-heads");
+    modelFeatures_.push_back("transformer-heads-top");
     modelFeatures_.push_back("transformer-dim-ffn");
     modelFeatures_.push_back("transformer-preprocess");
     modelFeatures_.push_back("transformer-postprocess");
@@ -377,6 +378,20 @@ public:
                      costType,
                      ls,
                      weights);
+
+    // my strange experiment with P(s|s^)
+    auto extraCost = nextState->getExtraLoss();
+    if (extraCost)
+    {
+      float weight = 0.1;
+      static bool shouted = false;
+      if (!shouted)
+      {
+        shouted = true;
+        LOG(info, "interpolating extraCost at weight {}", weight);
+      }
+      cost = cost + weight * extraCost;
+    }
 
     if(options_->has("guided-alignment") && !inference_) {
       auto alignments = decoders_[0]->getAlignments();

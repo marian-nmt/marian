@@ -159,11 +159,11 @@ public:
   static Expr Attention(Ptr<ExpressionGraph> graph,
                         Ptr<Options> options,
                         std::string prefix,
-                        Expr q,              // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
-                        Expr k,              // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
-                        Expr v,              // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
+                        Expr q,              // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]
+                        Expr k,              // [-4: batch size, -3: num heads, -2: max src length, -1: split vector dim]
+                        Expr v,              // [-4: batch size, -3: num heads, -2: max src length, -1: split vector dim]
                         Expr mask = nullptr, // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
-                        bool inference = false) {
+                        bool inference = false, Expr* pExtraLoss = nullptr) {
     using namespace keywords;
 
     float dk = k->shape()[-1];
@@ -176,14 +176,50 @@ public:
     int dimBeamK = k->shape()[-4];
     int dimBeam = dimBeamQ / dimBeamK;
     if(dimBeam > 1) {
-      k = repeat(k, dimBeam, axis = -4); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
-      v = repeat(v, dimBeam, axis = -4); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
+      k = repeat(k, dimBeam, axis = -4); // [-4: beam depth * batch size, -3: num heads, -2: max src length, -1: split vector dim]
+      v = repeat(v, dimBeam, axis = -4); // [-4: beam depth * batch size, -3: num heads, -2: max src length, -1: split vector dim]
     }
 
     // multiplicative attention with flattened softmax
     float scale = 1.0 / std::sqrt(dk); // scaling to avoid extreme values due to matrix multiplication
-    auto z = bdot(q, k, false, true, scale); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: max length]
-    auto weights = softmax(z + mask); // along axis = -1
+    auto z = bdot(q, k, false, true, scale); // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
+    auto weights = softmax(z + mask); // along axis = -1 (src sequence axis)
+
+    // my strange experiment
+    auto heads = q->shape()[-3];
+    if (pExtraLoss && heads == 1)
+    {
+      auto Pst = weights; // P(s|t) : [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
+      ABORT_IF(heads != 1, "my strange experiment requires heads = 1, not {}", heads);
+      static bool shouted = false;
+      if (!shouted)
+      {
+        shouted = true;
+        LOG(info, "computing extraLoss");
+      }
+      // compute P(t|s), which is weights normalized along time axis [-2]
+      // Marian cannot taken softmax along other axes, so we must transpose
+      auto zm = z + mask;
+      auto zmT = transpose(zm, {0, 1, 3, 2}); // [-4: beam depth * batch size, -3: num heads, -2: max src length, -1: max tgt length]
+      auto Pts = softmax(zmT); // P(t|s); softmax is along original axis [-2] (tgt sequence axis) which is now [-1]
+      auto PtsT = transpose(Pts, {0, 1, 3, 2}); // P(t|s) : [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
+      auto prod = Pst * PtsT; // elementwise product [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
+      auto Pss = sum(prod, axis = -2); // elementwise product [-4: beam depth * batch size, -3: num heads (1), -2: 1, -1: max src length]
+      auto mulMask = exp(mask * 1e8);
+      auto logPss = log(Pss + 1e-8) * mulMask;
+      *pExtraLoss = -sum(sum(logPss, axis = -1), axis = -4);
+      static int n = 0;
+      if (n % 100 == 0 && graph->getDevice().no == 0)
+      {
+        //mulMask->debug("mulMask");
+        Pts->debug("Pts");
+        Pst->debug("Pst");
+        Pss->debug("Pss");
+        (*pExtraLoss)->debug("loss");
+      }
+      n++;
+      //weights = weights + 0 * sum(sum(Pss, axis = -1), axis = -4); // HACK: make sure it gets evaluated, so we get the debug message
+    }
 
     // optional dropout for attention weights
     float dropProb
@@ -206,7 +242,7 @@ public:
                         const std::vector<Expr> &keys,   // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
                         const std::vector<Expr> &values,
                         const std::vector<Expr> &masks,  // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
-                        bool inference = false) {
+                        bool inference = false, Expr* pExtraLoss = nullptr) {
     using namespace keywords;
 
     int dimModel = q->shape()[-1];
@@ -277,7 +313,7 @@ public:
 
       // apply multi-head attention to downscaled inputs
       auto output
-          = Attention(graph, options, prefix, qh, kh, vh, masks[i], inference); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
+          = Attention(graph, options, prefix, qh, kh, vh, masks[i], inference, pExtraLoss); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
 
       output = JoinHeads(output, q->shape()[-4]); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
       outputs.push_back(output);
@@ -306,7 +342,7 @@ public:
                              Expr keys,
                              Expr values,
                              Expr mask,
-                             bool inference = false) {
+                             bool inference = false, bool isTop = false, Expr* pExtraLoss = nullptr) {
     return LayerAttention(graph,
                           options,
                           prefix,
@@ -314,7 +350,7 @@ public:
                           std::vector<Expr>{keys},
                           std::vector<Expr>{values},
                           std::vector<Expr>{mask},
-                          inference);
+                          inference, isTop, pExtraLoss);
   }
 
   static Expr LayerAttention(Ptr<ExpressionGraph> graph,
@@ -324,7 +360,7 @@ public:
                              const std::vector<Expr> &keys,   // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
                              const std::vector<Expr> &values,
                              const std::vector<Expr> &masks,  // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
-                             bool inference = false) {
+                             bool inference = false, bool isTop = false, Expr* pExtraLoss = nullptr) {
     using namespace keywords;
 
     int dimModel = input->shape()[-1];
@@ -333,7 +369,23 @@ public:
     auto opsPre = options->get<std::string>("transformer-preprocess");
     auto output = PreProcess(graph, prefix + "_Wo", opsPre, input, dropProb);
 
+#if 1
+    bool hasTopHeads = isTop && options->has("transformer-heads-top");
+    auto heads = hasTopHeads ? options->get<int>("transformer-heads-top") : options->get<int>("transformer-heads");
+    if (isTop)
+    {
+      static bool shouted = false;
+      if (!shouted)
+      {
+        LOG(info, "top target-source-attentionheads = {}", heads);
+        shouted = true;
+      }
+    }
+    else
+      pExtraLoss = nullptr; // clear this if not top, to disable my strange experiment
+#else
     auto heads = options->get<int>("transformer-heads");
+#endif
 
     // multi-head self-attention over previous input
     output = MultiHead(graph,
@@ -345,7 +397,7 @@ public:
                        keys,
                        values,
                        masks,
-                       inference);
+                       inference, pExtraLoss);
 
     auto opsPost = options->get<std::string>("transformer-postprocess");
     output
@@ -519,6 +571,10 @@ public:
                    Expr probs,
                    std::vector<Ptr<EncoderState>> &encStates)
       : DecoderState(states, probs, encStates) {}
+  TransformerState(const rnn::States &states,
+                   Expr probs, Expr extraLoss,
+                   std::vector<Ptr<EncoderState>> &encStates)
+      : DecoderState(states, probs, extraLoss, encStates) {}
 
   virtual Ptr<DecoderState> select(const std::vector<size_t> &selIdx, int beamSize) {
     rnn::States selectedStates;
@@ -637,7 +693,10 @@ public:
     }
 
     // apply decoder layers
-    for(int i = 1; i <= opt<int>("dec-depth"); ++i) {
+    Expr extraLoss; // (my strange experiment)
+    auto decDepth = opt<int>("dec-depth");
+    for(int i = 1; i <= decDepth; ++i) {
+      auto isTop = i == decDepth;
       auto values = query;
       if(prevDecoderStates.size() > 0)
         values = concatenate({prevDecoderStates[i - 1].output, query}, axis = -2);
@@ -668,7 +727,7 @@ public:
                                encoderContexts,
                                encoderContexts,
                                encoderMasks,
-                               inference_);
+                               inference_, isTop, &extraLoss);
 
         } else if(comb == "stack") {
           for(int j = 0; j < encoderContexts.size(); ++j) { // multiple encoders are applied one after another
@@ -684,7 +743,7 @@ public:
                                    encoderContexts[j],
                                    encoderContexts[j],
                                    encoderMasks[j],
-                                   inference_);
+                                   inference_, isTop, &extraLoss);
           }
         } else {
           ABORT("Unknown value for transformer-multi-encoder: {}", comb);
@@ -722,6 +781,19 @@ public:
     Expr logits = output->apply(decoderContext);
 
     // return unormalized(!) probabilities
+#if 1 // (my strange experiment)
+    if (extraLoss)
+    {
+      static bool shouted = false;
+      if (!shouted)
+      {
+        shouted = true;
+        LOG(info, "got extraLoss, shape is {}", extraLoss->shape());
+      }
+      return New<TransformerState>(
+        decoderStates, logits, extraLoss, state->getEncoderStates());
+    }
+#endif
     return New<TransformerState>(
         decoderStates, logits, state->getEncoderStates());
   }

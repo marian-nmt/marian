@@ -35,6 +35,7 @@ protected:
   Expr probs_;
   bool singleStep_{false};
   rnn::States states_;
+  Expr extraLoss_; // for Frank's experiment
 
 public:
   DecoderState(const rnn::States& states,
@@ -42,11 +43,18 @@ public:
                std::vector<Ptr<EncoderState>>& encStates)
       : states_(states), probs_(probs), encStates_(encStates) {}
 
+  DecoderState(const rnn::States& states,
+               Expr probs, Expr extraLoss,
+               std::vector<Ptr<EncoderState>>& encStates)
+      : states_(states), probs_(probs), extraLoss_(extraLoss), encStates_(encStates) {}
+
   virtual std::vector<Ptr<EncoderState>>& getEncoderStates() {
     return encStates_;
   }
   virtual Expr getProbs() { return probs_; }
   virtual void setProbs(Expr probs) { probs_ = probs; }
+
+  virtual Expr getExtraLoss() { return extraLoss_; }
 
   virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx, int beamSize) {
     return New<DecoderState>(states_.select(selIdx, beamSize), probs_, encStates_);
