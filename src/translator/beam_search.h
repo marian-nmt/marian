@@ -97,7 +97,7 @@ public:
     Histories histories;
     for(int i = 0; i < dimBatch; ++i) {
       size_t sentId = batch->getSentenceIds()[i];
-      auto history = New<History>(sentId, options_->get<float>("normalize"));
+      auto history = New<History>(sentId, options_->get<float>("normalize"), options_->get<float>("word-penalty"));
       histories.push_back(history);
     }
 

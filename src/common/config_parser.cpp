@@ -580,6 +580,8 @@ void ConfigParser::addOptionsValid(po::options_description& desc) {
       "Beam size used during search with validating translator")
     ("normalize,n", po::value<float>()->default_value(0.f)->implicit_value(1.f),
       "Divide translation score by pow(translation length, arg) ")
+    ("word-penalty,n", po::value<float>()->default_value(0.f)->implicit_value(0.f),
+      "Subtract (arg * translation length) from translation score ")
     ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
       "Allow unknown words to appear in output")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
@@ -604,6 +606,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Beam size used during search")
     ("normalize,n", po::value<float>()->default_value(0.f)->implicit_value(1.f),
       "Divide translation score by pow(translation length, arg) ")
+    ("word-penalty,n", po::value<float>()->default_value(0.f)->implicit_value(0.f),
+      "Subtract (arg * translation length) from translation score ")
     ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
       "Allow unknown words to appear in output")
     ("max-length", po::value<size_t>()->default_value(1000),
@@ -890,6 +894,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("input", std::vector<std::string>);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("normalize", float);
+    SET_OPTION("word-penalty", float);
     SET_OPTION("allow-unk", bool);
     SET_OPTION("n-best", bool);
     SET_OPTION_NONDEFAULT("weights", std::vector<float>);
@@ -915,6 +920,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION_NONDEFAULT("valid-translation-output", std::string);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("normalize", float);
+    SET_OPTION("word-penalty", float);
     SET_OPTION("allow-unk", bool);
     SET_OPTION("n-best", bool);
   }
