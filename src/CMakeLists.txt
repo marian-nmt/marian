@@ -5,22 +5,34 @@ include_directories(3rd_party)
 include_directories(3rd_party/SQLiteCpp/include)
 
 cuda_add_library(marian
+  common/utils.cpp
+  common/logging.cpp
+  common/config.cpp
+  common/config_parser.cpp
+
+  data/vocab.cpp
+  data/corpus_base.cpp
+  data/corpus.cpp
+  data/corpus_sqlite.cpp
+  data/text_input.cpp
+
   3rd_party/cnpy/cnpy.cpp
   3rd_party/exception.cpp
   3rd_party/svd/svd.cpp
 
   tensors/backend.cpp
-  tensors/gpu/device.cu
   tensors/cpu/device.cpp
+  tensors/cpu/dropout.cpp
+  tensors/cpu/prod.cpp
+  tensors/cpu/tensor_operators.cpp
+
+  tensors/gpu/device.cu
   tensors/gpu/algorithm.cu
   tensors/gpu/dropout.cu
-  tensors/cpu/dropout.cpp
   tensors/gpu/prod.cu
   tensors/gpu/element.cu
   tensors/gpu/add.cu
-  tensors/cpu/prod.cpp
   tensors/gpu/tensor_operators.cu
-  tensors/cpu/tensor_operators.cpp
   tensors/gpu/cudnn_wrappers.cu
 
   graph/expression_graph.cpp
@@ -28,17 +40,17 @@ cuda_add_library(marian
   graph/node.cpp
   graph/node_operators.cpp
   graph/node_initializers.cpp
-  layers/convolution.cu
+
+  layers/convolution.cpp
 
   rnn/cells.cpp
+  rnn/attention.cpp
+
   optimizers/clippers.cpp
   optimizers/optimizers.cpp
-  common/utils.cpp
-  common/logging.cpp
-  common/config.cpp
-  common/config_parser.cpp
+
   models/model_factory.cpp
-  rnn/attention.cpp
+
   translator/history.cpp
   translator/output_collector.cpp
   translator/nth_element.cu
@@ -55,11 +67,7 @@ cuda_add_library(marian
   training/graph_group_multinode.cpp
   training/sparse_tensor.cu
   training/validator.cpp
-  data/vocab.cpp
-  data/corpus_base.cpp
-  data/corpus.cpp
-  data/corpus_sqlite.cpp
-  data/text_input.cpp
+
   rescorer/score_collector.cpp
   $<TARGET_OBJECTS:libyaml-cpp>
   $<TARGET_OBJECTS:SQLiteCpp>
