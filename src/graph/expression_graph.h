@@ -131,8 +131,11 @@ public:
 
       checkNan(v->val());
 
-      if(v->marked_for_debug()) {
-        std::cerr << "Debug: " << v->debug_message() << std::endl;
+#if 1 // #if 0 to always dump all
+      if(v->marked_for_debug())
+#endif
+      {
+        std::cerr << "Debug: " << v->debug_message() << " op=" << v->type() << std::endl;
         std::cerr << v->val()->debug() << std::endl;
       }
 
@@ -140,6 +143,21 @@ public:
         v->children().clear();
       nodesForward_.pop_front();
     }
+    //ABORT("done logging the first MB");
+
+#if 0 // hack to dump initial parameters to files, to be read from Dynamite
+    std::string dir = "/tmp/initval.";
+    std::vector<float> buf;
+    for (auto p : *params())
+    {
+        p->val()->get(buf);
+        auto path = dir + p->name() + ".float32";
+        LOG(info, "Saving {} init vals with shape {}: {}", buf.size(), p->val()->shape().toString(), path);
+        auto good = std::ofstream(path).write((const char*)buf.data(), sizeof(*buf.data()) * buf.size()).flush().good();
+        ABORT_IF (!good, "failed to write parameter {} with {} elements to {}", p->name(), buf.size(), path);
+    }
+    ABORT("done dumping parameters, see /tmp/*.float32");
+#endif
   }
 
   void backward() {
