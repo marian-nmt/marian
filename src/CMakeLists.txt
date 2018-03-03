@@ -4,7 +4,7 @@ include_directories(.)
 include_directories(3rd_party)
 include_directories(3rd_party/SQLiteCpp/include)
 
-cuda_add_library(marian
+add_library(marian STATIC
   common/utils.cpp
   common/logging.cpp
   common/config.cpp
@@ -26,14 +26,6 @@ cuda_add_library(marian
   tensors/cpu/prod.cpp
   tensors/cpu/tensor_operators.cpp
 
-  tensors/gpu/device.cu
-  tensors/gpu/algorithm.cu
-  tensors/gpu/dropout.cu
-  tensors/gpu/prod.cu
-  tensors/gpu/element.cu
-  tensors/gpu/add.cu
-  tensors/gpu/tensor_operators.cu
-  tensors/gpu/cudnn_wrappers.cu
 
   graph/expression_graph.cpp
   graph/expression_operators.cpp
@@ -53,26 +45,37 @@ cuda_add_library(marian
 
   translator/history.cpp
   translator/output_collector.cpp
-  translator/nth_element.cu
   translator/nth_element.cpp
-  translator/helpers.cu
   translator/helpers.cpp
   translator/scorers.cpp
 
-  training/dropper.cu
   training/graph_group_async.cpp
   training/graph_group_async_drop.cpp
   training/graph_group_sync.cpp
   training/graph_group_singleton.cpp
   training/graph_group_multinode.cpp
-  training/sparse_tensor.cu
   training/validator.cpp
 
   rescorer/score_collector.cpp
   $<TARGET_OBJECTS:libyaml-cpp>
-  $<TARGET_OBJECTS:SQLiteCpp>
-  STATIC
-)
+  $<TARGET_OBJECTS:SQLiteCpp>)
+
+if(CUDA_FOUND)
+cuda_add_library(marian_cuda
+  tensors/gpu/device.cu
+  tensors/gpu/algorithm.cu
+  tensors/gpu/dropout.cu
+  tensors/gpu/prod.cu
+  tensors/gpu/element.cu
+  tensors/gpu/add.cu
+  tensors/gpu/tensor_operators.cu
+  tensors/gpu/cudnn_wrappers.cu
+  translator/nth_element.cu
+  translator/helpers.cu
+  training/dropper.cu
+  training/sparse_tensor.cu
+  STATIC)
+endif(CUDA_FOUND)
 
 set_target_properties(marian PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set_target_properties(marian PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
@@ -99,7 +102,10 @@ endif(COMPILE_SERVER)
 
 foreach(exec ${EXECUTABLES})
   target_link_libraries(${exec} marian ${EXT_LIBS})
-  cuda_add_cublas_to_target(${exec})
+  if(CUDA_FOUND)
+    target_link_libraries(${exec} marian marian_cuda ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+    cuda_add_cublas_to_target(${exec})
+  endif(CUDA_FOUND)
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endforeach(exec)
 

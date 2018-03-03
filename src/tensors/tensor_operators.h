@@ -10,9 +10,11 @@
 #include "functional/tmp.h"
 #include "functional/tensor.h"
 
+#ifdef CUDA_FOUND
 #include "tensors/gpu/element.h"
 #include "tensors/gpu/add.h"
 #include "tensors/gpu/prod.h"
+#endif
 
 #include "tensors/cpu/element.h"
 #include "tensors/cpu/add.h"
@@ -21,9 +23,11 @@ namespace marian {
 
   template <class Functor, class ...Tensors>
   void Element(Functor functor, marian::Tensor out, Tensors ...tensors) {
+#ifdef CUDA_FOUND
     if(out->getBackend()->getDevice().type == DeviceType::gpu)
       gpu::Element(functor, out, tensors...);
     else
+#endif
       cpu::Element(functor, out, tensors...);
   }
 
@@ -32,9 +36,11 @@ namespace marian {
            float scale,
            marian::Tensor out,
            Tensors... tensors) {
+#ifdef CUDA_FOUND
     if(out->getBackend()->getDevice().type == DeviceType::gpu)
       gpu::Add(functor, scale, out, tensors...);
     else
+#endif
       cpu::Add(functor, scale, out, tensors...);
   }
 
@@ -81,21 +87,23 @@ namespace marian {
 
   DISPATCH3(Concatenate, marian::Tensor, const std::vector<marian::Tensor>&, int)
 
+#ifdef CUDA_FOUND
   namespace gpu {
     void Deconcatenate(std::vector<marian::Tensor>& outputs, const marian::Tensor in, int ax);
   }
+#endif
 
   namespace cpu {
     void Deconcatenate(std::vector<marian::Tensor>& outputs, const marian::Tensor in, int ax);
   }
 
   static inline void Deconcatenate(std::vector<marian::Tensor>& outputs, const marian::Tensor in, int ax) {
-    if(in->getBackend()->getDevice().type == DeviceType::gpu) {
+#ifdef CUDA_FOUND
+    if(in->getBackend()->getDevice().type == DeviceType::gpu)
       gpu::Deconcatenate(outputs, in, ax);
-    }
-    else {
+    else
+#endif
       cpu::Deconcatenate(outputs, in, ax);
-    }
   }
 
   DISPATCH5(LayerNormalization, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, float)
@@ -116,11 +124,13 @@ namespace marian {
   DISPATCH2(LSTMCellForward, marian::Tensor, std::vector<marian::Tensor>)
   DISPATCH2(LSTMOutputForward, marian::Tensor, std::vector<marian::Tensor>);
 
+#ifdef CUDA_FOUND
   namespace gpu {
     void LSTMCellBackward(std::vector<marian::Tensor> outputs,
                           std::vector<marian::Tensor> inputs,
                           marian::Tensor adj);
   }
+#endif
 
   namespace cpu {
     void LSTMCellBackward(std::vector<marian::Tensor> outputs,
@@ -131,19 +141,21 @@ namespace marian {
   static inline void LSTMCellBackward(std::vector<marian::Tensor> outputs,
                                       std::vector<marian::Tensor> inputs,
                                       marian::Tensor adj) {
-    if(adj->getBackend()->getDevice().type == DeviceType::gpu) {
+#ifdef CUDA_FOUND
+    if(adj->getBackend()->getDevice().type == DeviceType::gpu)
       gpu::LSTMCellBackward(outputs, inputs, adj);
-    }
-    else {
+    else
+#endif
       cpu::LSTMCellBackward(outputs, inputs, adj);
-    }
   }
 
+#ifdef CUDA_FOUND
   namespace gpu {
     void LSTMOutputBackward(std::vector<marian::Tensor> outputs,
                             std::vector<marian::Tensor> inputs,
                             marian::Tensor adj);
   }
+#endif
 
   namespace cpu {
     void LSTMOutputBackward(std::vector<marian::Tensor> outputs,
@@ -154,22 +166,24 @@ namespace marian {
   static inline void LSTMOutputBackward(std::vector<marian::Tensor> outputs,
                                         std::vector<marian::Tensor> inputs,
                                         marian::Tensor adj) {
-    if(adj->getBackend()->getDevice().type == DeviceType::gpu) {
+#ifdef CUDA_FOUND
+    if(adj->getBackend()->getDevice().type == DeviceType::gpu)
       gpu::LSTMOutputBackward(outputs, inputs, adj);
-    }
-    else {
+    else
+#endif
       cpu::LSTMOutputBackward(outputs, inputs, adj);
-    }
   }
 
   DISPATCH3(GRUFastForward, marian::Tensor, std::vector<marian::Tensor>, bool)
 
+#ifdef CUDA_FOUND
   namespace gpu {
     void GRUFastBackward(std::vector<marian::Tensor> outputs,
                          std::vector<marian::Tensor> inputs,
                          marian::Tensor adj,
                          bool final);
   }
+#endif
 
   namespace cpu {
     void GRUFastBackward(std::vector<marian::Tensor> outputs,
@@ -182,35 +196,37 @@ namespace marian {
                                      std::vector<marian::Tensor> inputs,
                                      marian::Tensor adj,
                                      bool final = false) {
-    if(adj->getBackend()->getDevice().type == DeviceType::gpu) {
+#ifdef CUDA_FOUND
+    if(adj->getBackend()->getDevice().type == DeviceType::gpu)
       gpu::GRUFastBackward(outputs, inputs, adj, final);
-    }
-    else {
+    else
+#endif
       cpu::GRUFastBackward(outputs, inputs, adj, final);
-    }
   }
 
   DISPATCH4(Att, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor)
   DISPATCH7(AttBack, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor)
 
+#ifdef CUDA_FOUND
   namespace gpu {
     float L2Norm(marian::Tensor in);
   }
+#endif
 
   namespace cpu {
     float L2Norm(marian::Tensor in);
   }
 
   static inline float L2Norm(marian::Tensor in) {
-    if(in->getBackend()->getDevice().type == DeviceType::gpu) {
+#ifdef CUDA_FOUND
+    if(in->getBackend()->getDevice().type == DeviceType::gpu)
       return gpu::L2Norm(in);
-    }
-    else {
+    else
+#endif
       return cpu::L2Norm(in);
-    }
   }
-  
+
   DISPATCH5(PoolingWithMaskingForward, marian::Tensor, marian::Tensor, marian::Tensor, int, bool)
   DISPATCH6(PoolingWithMaskingBackward, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, int, bool)
-  
+
 }

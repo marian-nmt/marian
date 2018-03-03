@@ -1,15 +1,13 @@
 #pragma once
 
 #include "tensors/tensor.h"
-#include "tensors/gpu/backend.h"
+#include "tensors/backend.h"
 
 #include "graph/node.h"
-//#include "kernels/sparse.h"
 #include "tensors/tensor_operators.h"
 #include "functional/functional.h"
 
-#include "tensors/gpu/cudnn_wrappers.h"
-
+//#include "tensors/gpu/cudnn_wrappers.h"
 
 namespace marian {
 

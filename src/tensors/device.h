@@ -59,10 +59,17 @@ namespace cpu {
 }
 
 static inline Ptr<Device> DispatchDevice(DeviceId deviceId, size_t alignment = 256) {
+#ifdef CUDA_FOUND
   if(deviceId.type == DeviceType::gpu)
     return New<gpu::Device>(deviceId, alignment);
   else
     return New<cpu::Device>(deviceId, alignment);
+#else
+  if(deviceId.type == DeviceType::gpu)
+    ABORT("CUDA support not compiled into marian");
+  else
+    return New<cpu::Device>(deviceId, alignment);
+#endif
 }
 
 }

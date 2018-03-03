@@ -38,18 +38,22 @@ void suppressUnk(Expr probs) {
   if(probs->val()->getBackend()->getDevice().type == DeviceType::cpu) {
     cpu::suppressUnk(probs);
   }
+#ifdef CUDA_FOUND
   else {
     gpu::suppressUnk(probs);
   }
+#endif
 }
 
 void suppressWord(Expr probs, Word id) {
   if(probs->val()->getBackend()->getDevice().type == DeviceType::cpu) {
     cpu::suppressWord(probs, id);
   }
+#ifdef CUDA_FOUND
   else {
     gpu::suppressWord(probs, id);
   }
+#endif
 }
 
 }

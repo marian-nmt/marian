@@ -1,5 +1,4 @@
 #include "graph/expression_operators.h"
-//#include "kernels/sparse.h"
 #include "layers/constructors.h"
 
 #include "graph/node_operators.h"
@@ -333,6 +332,8 @@ Expr shift(Expr a, Shape shift) {
 //  return Expression<LexicalProbNodeOp>(logits, att, eps, lf);
 //}
 
+#ifdef CUDA_FOUND
+
 Expr avg_pooling(
     Expr x,
     int height,
@@ -409,5 +410,7 @@ Expr convertFromcudnnFormat(Expr x) {
 Expr pooling_with_masking(Expr x, Expr mask, int width, bool isEven) {
   return Expression<PoolingWithMaskingOp>(x, mask, width, isEven);
 }
+
+#endif
 
 }

@@ -3,8 +3,8 @@
  *   SPDX-License-Identifier: MIT                                                                                                                                                            
  */  
 
-#include "tensors/gpu/prod.h"
-#include "tensors/gpu/backend.h"
+#include "tensors/tensor.h"
+#include "tensors/cpu/backend.h"
 
 #if MKL_FOUND
 #include <mkl.h>

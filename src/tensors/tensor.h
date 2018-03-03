@@ -11,7 +11,10 @@
 #include "tensors/backend.h"
 
 #include <algorithm>
+
+#ifdef CUDA_FOUND
 #include "tensors/gpu/algorithm.h"
+#endif
 
 namespace marian {
 
@@ -53,32 +56,40 @@ public:
 
   float get(size_t i) {
     float temp;
+#ifdef CUDA_FOUND
     if(backend_->getDevice().type == DeviceType::gpu)
       gpu::copy(backend_, data() + i, data() + i + 1, &temp);
     else
+#endif
       std::copy(data() + i, data() + i + 1, &temp);
     return temp;
   }
 
   void set(size_t i, float value) {
+#ifdef CUDA_FOUND
     if(backend_->getDevice().type == DeviceType::gpu)
       gpu::copy(backend_, &value, &value + 1, data() + i);
     else
+#endif
       std::copy(&value, &value + 1, data() + i);
   }
 
   void get(std::vector<float> &v) {
     v.resize(size());
+#ifdef CUDA_FOUND
     if(backend_->getDevice().type == DeviceType::gpu)
       gpu::copy(backend_, data(), data() + size(), v.data());
     else
+#endif
       std::copy(data(), data() + size(), v.data());
   }
 
   void set(const float* begin, const float* end) {
+#ifdef CUDA_FOUND
     if(backend_->getDevice().type == DeviceType::gpu)
       gpu::copy(backend_, begin, end, data());
     else
+#endif
       std::copy(begin, end, data());
   }
 
@@ -87,27 +98,32 @@ public:
   }
 
   void set(float value) {
+#ifdef CUDA_FOUND
     if(backend_->getDevice().type == DeviceType::gpu)
       gpu::fill(backend_, data(), data() + size(), value);
     else
+#endif
       std::fill(data(), data() + size(), value);
   }
 
   void setSparse(const std::vector<size_t> &k,
                  const std::vector<float> &v) {
-    if(backend_->getDevice().type == DeviceType::gpu) {
+#ifdef CUDA_FOUND
+    if(backend_->getDevice().type == DeviceType::gpu)
       gpu::setSparse(backend_, k, v, data());
-    } else {
+    else
+#endif
       for(int i = 0; i < k.size(); ++i)
         data()[k[i]] = v[i];
-    }
   }
 
   void copyFrom(Tensor in) {
+#ifdef CUDA_FOUND
     if(in->getBackend()->getDevice().type == DeviceType::gpu ||
        backend_->getDevice().type == DeviceType::gpu)
       gpu::copy(backend_, in->data(), in->data() + in->size(), data());
     else
+#endif
       std::copy(in->data(), in->data() + in->size(), data());
   }
 
