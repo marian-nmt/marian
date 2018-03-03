@@ -1,13 +1,16 @@
-#include <algorithm>
-#include <sstream>
-#include <unordered_map>
-#include <unordered_set>
-
 #include "3rd_party/exception.h"
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/logging.h"
 #include "common/utils.h"
 #include "data/vocab.h"
+
+#include <algorithm>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <unordered_map>
+#include <unordered_set>
+#include <regex>
 
 namespace marian {
 
@@ -79,18 +82,33 @@ int Vocab::loadOrCreate(const std::string& vocabPath,
 }
 
 int Vocab::load(const std::string& vocabPath, int max) {
-  LOG(info, "[data] Loading vocabulary from {}", vocabPath);
+  bool isYaml = std::regex_search(vocabPath, std::regex(".yml$"));
+  LOG(info, "[data] Loading vocabulary from {} file {}", isYaml ? "Yaml" : "text", vocabPath);
   ABORT_IF(!boost::filesystem::exists(vocabPath),
            "Vocabulary {} does not exits",
            vocabPath);
 
-  YAML::Node vocab = YAML::Load(InputFileStream(vocabPath));
+  std::map<std::string,Word> vocab;
+  if (isYaml) // read from Yaml file
+  {
+    YAML::Node vocabNode = YAML::Load(InputFileStream(vocabPath));
+    for(auto&& pair : vocabNode)
+      vocab.insert({ pair.first.as<std::string>(), pair.second.as<Word>() });
+  }
+  else // read from flat text file
+  {
+    std::ifstream in(vocabPath);
+    std::string line;
+    while (std::getline(in, line))
+      vocab.insert({ line, vocab.size() });
+    ABORT_IF(in.bad(), "Vocabulary file {} could not be read", vocabPath);
+  }
 
   std::unordered_set<Word> seenSpecial;
 
   for(auto&& pair : vocab) {
-    auto str = pair.first.as<std::string>();
-    auto id = pair.second.as<Word>();
+    auto str = pair.first;
+    auto id = pair.second;
 
     if(SPEC2SYM.count(str)) {
       seenSpecial.insert(id);
