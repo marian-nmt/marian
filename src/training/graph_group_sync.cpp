@@ -65,7 +65,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
       int pos = 0;
       for(auto graph : graphs_) {
-        int __size__ = min(shardSize_, totalSize);
+        int __size__ = std::min(shardSize_, totalSize);
 
         auto paramsAlloc = New<TensorAllocator>(graph->getBackend());
         paramsAllocs_.push_back(paramsAlloc);
@@ -91,7 +91,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
       int i = 0;
       for(auto graph : graphs_) {
-        int __size__ = min(shardSize_, totalSize);
+        int __size__ = std::min(shardSize_, totalSize);
         totalSize -= __size__;
         Tensor paramAvg;
         auto allocator = New<TensorAllocator>(graph->getBackend());

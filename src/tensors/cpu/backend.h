@@ -20,6 +20,8 @@ public:
 
   void setDevice() { }
 
+  void synchronize() {}
+
   std::default_random_engine& getRandomGenerator() {
     return gen_;
   }

@@ -7,6 +7,8 @@
 #include "tensors/tensor.h"
 #include "tensors/tensor_operators.h"
 #include "training/sparse_tensor.h"
+#include "tensors/gpu/cuda_helpers.h"
+
 
 namespace marian {
 

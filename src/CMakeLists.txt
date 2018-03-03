@@ -16,27 +16,29 @@ cuda_add_library(marian
   tensors/gpu/dropout.cu
   tensors/cpu/dropout.cpp
   tensors/gpu/prod.cu
+  tensors/gpu/element.cu
+  tensors/gpu/add.cu
   tensors/cpu/prod.cpp
   tensors/gpu/tensor_operators.cu
   tensors/cpu/tensor_operators.cpp
   tensors/gpu/cudnn_wrappers.cu
 
   graph/expression_graph.cpp
-  graph/expression_operators.cu
+  graph/expression_operators.cpp
   graph/node.cpp
   graph/node_operators.cpp
   graph/node_initializers.cpp
   layers/convolution.cu
 
-  rnn/cells.cu
-  optimizers/clippers.cu
-  optimizers/optimizers.cu
+  rnn/cells.cpp
+  optimizers/clippers.cpp
+  optimizers/optimizers.cpp
   common/utils.cpp
   common/logging.cpp
   common/config.cpp
   common/config_parser.cpp
   models/model_factory.cpp
-  rnn/attention.cu
+  rnn/attention.cpp
   translator/history.cpp
   translator/output_collector.cpp
   translator/nth_element.cu
@@ -46,11 +48,11 @@ cuda_add_library(marian
   translator/scorers.cpp
 
   training/dropper.cu
-  training/graph_group_async.cu
-  training/graph_group_async_drop.cu
-  training/graph_group_sync.cu
-  training/graph_group_singleton.cu
-  training/graph_group_multinode.cu
+  training/graph_group_async.cpp
+  training/graph_group_async_drop.cpp
+  training/graph_group_sync.cpp
+  training/graph_group_singleton.cpp
+  training/graph_group_multinode.cpp
   training/sparse_tensor.cu
   training/validator.cpp
   data/vocab.cpp

@@ -8,6 +8,8 @@ const float CUDA_FLT_MAX = 1.70141e+38;
 const int MAX_THREADS = 512;
 const int MAX_BLOCKS = 65535;
 
+#ifdef __CUDACC__
+
 #define CUDA_CHECK(ans) \
   { gpuAssert((ans), __FILE__, __LINE__); }
 
@@ -39,6 +41,8 @@ void CudaCopy(const T* start, const T* end, T* dest) {
       exit(-1);                                         \
     }                                                   \
   }
+
+#endif
 
 // void cusparseStatus(cusparseStatus_t status){
 //	switch(status){

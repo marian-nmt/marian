@@ -86,9 +86,9 @@ void MultiNodeGraphGroup::setupClients(Ptr<data::Batch> batch) {
 void MultiNodeGraphGroup::runBatchThroughClientGraphs(Ptr<data::Batch> batch) {
   for(int i = 0; i < devices_.size(); i++) {
     THREAD_GUARD(clientBuilders_[i]->build(clientGraphs_[i], batch);
-                 clientGraphs_[i]->forward(););
+                 clientGraphs_[i]->forward();
+                 clientGraphs_[i]->getBackend()->synchronize(););
   }
-  cudaStreamSynchronize(0);
 }
 
 /**
@@ -503,7 +503,7 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
     float cost = costNode->scalar();
     graph->backward();
 
-    cudaStreamSynchronize(0);
+    graph->getBackend()->synchronize();
 
     if(!clientCommOverlap) {
       synchronizeWithServerShards(graph->params()->grads(),
@@ -518,7 +518,8 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
       Element(functional::_1 = functional::_1 + functional::_2,
               clientSummedGradsGPU[my_id],
               graph->params()->grads());
-      cudaStreamSynchronize(0);
+      graph->getBackend()->synchronize();
+
       // Sum up word counts if batch flexible learning rate is enabled
       if(scaleLearningRate_) {
         clientSummedWordCounts_[my_id] += batch->words();

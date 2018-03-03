@@ -8,7 +8,7 @@ void Sgd::updateImpl(Tensor params, Tensor grads) {
   using namespace functional;
   Element(_1 -= (multiplyFactor_ * eta_) * _2, params, grads);
 
-  cudaStreamSynchronize(0);
+  params->getBackend()->synchronize();
 }
 
 // Aagrad
@@ -33,7 +33,7 @@ void Adagrad::updateImpl(Tensor params, Tensor grads) {
           gt_,
           grads);
 
-  cudaStreamSynchronize(0);
+  params->getBackend()->synchronize();
 }
 
 void Adagrad::load(const std::string& name,
@@ -91,7 +91,6 @@ void Adagrad::load(const std::string& name,
 
     id++;
   }
-  cudaStreamSynchronize(0);
 }
 
 void Adagrad::save(const std::string& name,
@@ -115,14 +114,11 @@ void Adagrad::save(const std::string& name,
   cnpy::npz_save(name, "adagrad_gt", vGt.data(), shape, 2, "w");
 
   delete[] shape;
-
-  cudaStreamSynchronize(0);
 }
 
 void Adagrad::resetStats() {
   if(gt_)
     gt_->set(0);
-  cudaStreamSynchronize(0);
 }
 
 // Adam
@@ -156,7 +152,7 @@ void Adam::updateImpl(Tensor params, Tensor grads) {
           mt_,
           vt_);
 
-  cudaStreamSynchronize(0);
+  params->getBackend()->synchronize();
 }
 
 void Adam::load(const std::string& name,
@@ -222,8 +218,6 @@ void Adam::load(const std::string& name,
 
     id++;
   }
-
-  cudaStreamSynchronize(0);
 }
 
 void Adam::save(const std::string& name,
@@ -253,8 +247,6 @@ void Adam::save(const std::string& name,
   cnpy::npz_save(name, "adam_vt", vVt.data(), shape, 2, "a");
 
   delete[] shape;
-
-  cudaStreamSynchronize(0);
 }
 
 void Adam::resetStats() {
@@ -263,8 +255,6 @@ void Adam::resetStats() {
 
   if(vt_)
     vt_->set(0);
-
-  cudaStreamSynchronize(0);
 }
 
 Ptr<OptimizerBase> Optimizer(Ptr<Config> options) {

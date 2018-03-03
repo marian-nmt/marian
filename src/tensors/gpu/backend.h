@@ -29,6 +29,10 @@ public:
     cudaSetDevice(deviceId_.no);
   }
 
+  void synchronize() {
+    cudaStreamSynchronize(0);
+  }
+
   cublasHandle_t getCublasHandle() { return cublasHandle_; }
 
   curandGenerator_t getCurandGenerator() { return curandGenerator_; }
