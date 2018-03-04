@@ -134,7 +134,14 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
       grads_[idx]->set(0);
       int size = params_[idx]->size();
       int i = 0;
+
       float div = devices_.size(); // no. of GPUs
+
+      // do not average gradients if cost type is sum.
+      if (options_->get<std::string>("cost-type")  == "ce-sum") {
+        div = 1;
+      }
+
       for(auto graph : graphs_) {
         if(batches[i]->size() > 0) {
           auto subGrad = graph->params()->grads()->subtensor(pos, size);
@@ -169,7 +176,9 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
   float cost = 0;
   for(auto c : costs)
     cost += c;
-  cost = cost / costs.size();
+  if (options_->get<std::string>("cost-type")  != "ce-sum") {
+    cost = cost / costs.size();
+  }
 
   if(scheduler_) {
     scheduler_->update(cost, batch);
