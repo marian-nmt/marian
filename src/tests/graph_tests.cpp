@@ -4,6 +4,7 @@
 
 using namespace marian;
 
+#ifdef CUDA_FOUND
 TEST_CASE("Graph device is set", "[graph]") {
   auto graph = New<ExpressionGraph>();
 
@@ -53,6 +54,7 @@ TEST_CASE("Expression graph can be initialized with constant values",
     REQUIRE(values == v);
   }
 }
+#endif
 
 TEST_CASE("Graph device is set (cpu)", "[graph]") {
   auto graph = New<ExpressionGraph>();

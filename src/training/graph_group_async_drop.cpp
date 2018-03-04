@@ -53,10 +53,10 @@ void AsyncGraphGroupDrop::fetchParams(Tensor oldParams,
           paramsLocal_[device_id][idx]->copyFrom(params[idx]);
 
           // get sparse delta
-          fetchDropper[device_id][idx]->dropGraph(paramsDelta_[idx],
-                                                  fetchSparseGradient_[idx],
-                                                  droping_rate,
-                                                  dropping_momentum);
+//          fetchDropper[device_id][idx]->dropGraph(paramsDelta_[idx],
+//                                                  fetchSparseGradient_[idx],
+//                                                  droping_rate,
+//                                                  dropping_momentum);
 
           // move sparse delta
           fetchShardedSparseGradient_[device_id][idx]->copyFrom(
@@ -85,10 +85,10 @@ void AsyncGraphGroupDrop::pushGradients(Tensor newGrads,
   }
 
   // get the sparse gradient
-  pushDropper_[device_id]->dropGraph(newGrads,
-                                     pushSparseGradient_[device_id],
-                                     droping_rate,
-                                     dropping_momentum);
+//  pushDropper_[device_id]->dropGraph(newGrads,
+//                                     pushSparseGradient_[device_id],
+//                                     droping_rate,
+//                                     dropping_momentum);
 
   SparseTensor newSparseGrads = pushSparseGradient_[device_id];
   // add instead of copy?

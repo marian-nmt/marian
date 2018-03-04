@@ -279,9 +279,11 @@ void tests(DeviceType type) {
   }
 }
 
+#ifdef CUDA_FOUND
 TEST_CASE("Model components, RNN etc. (gpu)", "[model]") {
   tests(DeviceType::gpu);
 }
+#endif
 
 #ifdef BLAS_FOUND
 TEST_CASE("Model components, RNN etc. (cpu)", "[model]") {

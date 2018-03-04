@@ -5,11 +5,16 @@
 
 namespace marian {
   namespace gpu {
-    void copy(Ptr<Backend> backend, const float* begin, const float* end, float* dest) {
+    template <typename T>
+    void copy(Ptr<Backend> backend, const T* begin, const T* end, T* dest) {
       CUDA_CHECK(cudaSetDevice(backend->getDevice().no));
       CudaCopy(begin, end, dest);
       CUDA_CHECK(cudaStreamSynchronize(0));
     }
+
+    template void copy<float>(Ptr<Backend> backend, const float* begin, const float* end, float* dest);
+    template void copy<int>(Ptr<Backend> backend, const int* begin, const int* end, int* dest);
+
 
     __global__ void gFill(float *d_in, int size, float val) {
       for(int bid = 0; bid < size; bid += blockDim.x * gridDim.x) {

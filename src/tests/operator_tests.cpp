@@ -292,9 +292,11 @@ void tests(DeviceType device) {
   }
 }
 
+#ifdef CUDA_FOUND
 TEST_CASE("Expression graph supports basic math operations (gpu)", "[operator]") {
   tests(DeviceType::gpu);
 }
+#endif
 
 #ifdef BLAS_FOUND
 TEST_CASE("Expression graph supports basic math operations (cpu)", "[operator]") {

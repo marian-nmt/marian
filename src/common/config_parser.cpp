@@ -440,11 +440,15 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<std::string>({"0"}), "0"),
       "GPU ID(s) to use for training")
+#ifdef CUDA_FOUND
     ("cpu-threads", po::value<size_t>()->default_value(0)->implicit_value(1),
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
     //("omp-threads", po::value<size_t>()->default_value(1),
     //  "Set number of OpenMP threads for each CPU-based thread")
-
+#else
+    ("cpu-threads", po::value<size_t>()->default_value(1),
+      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
+#endif
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
     ("mini-batch-words", po::value<int>()->default_value(0),
@@ -632,11 +636,15 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<std::string>({"0"}), "0"),
       "GPUs to use for translating")
+#ifdef CUDA_FOUND
     ("cpu-threads", po::value<size_t>()->default_value(0)->implicit_value(1),
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
     //("omp-threads", po::value<size_t>()->default_value(1),
     //  "Set number of OpenMP threads for each CPU-based thread")
-
+#else
+    ("cpu-threads", po::value<size_t>()->default_value(1),
+      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
+#endif
     ("mini-batch", po::value<int>()->default_value(1),
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(1),
@@ -681,11 +689,15 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<std::string>({"0"}), "0"),
       "GPUs to use for training")
+#ifdef CUDA_FOUND
     ("cpu-threads", po::value<size_t>()->default_value(0)->implicit_value(1),
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
     //("omp-threads", po::value<size_t>()->default_value(1),
     //  "Set number of OpenMP threads for each CPU-based thread")
-
+#else
+    ("cpu-threads", po::value<size_t>()->default_value(1),
+      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
+#endif
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
     ("mini-batch-words", po::value<int>()->default_value(0),
