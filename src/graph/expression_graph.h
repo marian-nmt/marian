@@ -143,7 +143,11 @@ public:
         v->children().clear();
       nodesForward_.pop_front();
     }
-    //ABORT("done logging the first MB");
+#if 0
+    static int cc = 0;
+    if (cc++ == 1000)
+      ABORT("done logging the first MB");
+#endif
 
 #if 0 // hack to dump initial parameters to files, to be read from Dynamite
     std::string dir = "/tmp/initval.";
