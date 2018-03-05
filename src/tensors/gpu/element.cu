@@ -56,7 +56,7 @@ void Element(Functor functor, Tensor out, Tensors ...tensors) {
     gElement<K, false><<<blocks, threads>>>(functor, gTensors);
 }
 
-#include "tensors/gpu/element_specializations.inc"
+#include "tensors/gpu/element.inc"
 
 
 }
