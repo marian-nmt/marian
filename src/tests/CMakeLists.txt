@@ -25,6 +25,8 @@ add_executable(dropout_test dropout_test.cpp)
 
 if(CUDA_FOUND)
 cuda_add_executable(pooling_test pooling_test.cu)
+target_link_libraries(pooling_test marian marian_cuda ${EXT_LIBS} Catch)
+cuda_add_cublas_to_target(pooling_test)
 endif(CUDA_FOUND)
 
 add_executable(sqlite_test sqlite_test.cpp)
@@ -33,9 +35,9 @@ foreach(exec
         dropout_test
         sqlite_test
     )
-    target_link_libraries(${exec} marian ${EXT_LIBS})
+    target_link_libraries(${exec} marian ${EXT_LIBS} Catch)
     if(CUDA_FOUND)
-      target_link_libraries(${exec} marian marian_cuda ${EXT_LIBS} Catch)
+      target_link_libraries(${exec} marian_cuda)
       cuda_add_cublas_to_target(${exec})
     endif(CUDA_FOUND)
 
