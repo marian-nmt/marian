@@ -18,6 +18,7 @@ private:
   size_t samples{0};
   size_t samplesDisp{0};
   size_t wordsDisp{0};
+  size_t totalWords{0};
 
   bool first_{true};
 
@@ -135,28 +136,31 @@ public:
     wordsDisp += batchTargetWords; // targets processed since last display
     samples += batch->size();      // sentences processed in this epoch
     samplesDisp += batch->size();  // (unused)
+    totalWords += batchTargetWords;// total words processed (note: presently not check-pointed)
     state_->newBatch();
 
     if(state_->batches % options_->get<size_t>("disp-freq") == 0) {
       if(options_->get<bool>("lr-report")) {
         LOG(info,
-            "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} * {} : Time {} : {:.2f} "
+            "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} * {} after {} : Time {} : {:.2f} "
             "words/s : L.r. {:.4e}",
             state_->epochs,
             state_->batches,
             samples,
             costSum / wordsDisp, wordsDisp, // cost per target word
+            totalWords,
             timer.format(2, "%ws"),
             wordsDisp / std::stof(timer.format(5, "%w")),
             state_->eta);
       } else {
         LOG(info,
-            "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} * {} : Time {} : {:.2f} "
+            "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} * {} after {} : Time {} : {:.2f} "
             "words/s",
             state_->epochs,
             state_->batches,
             samples,
             costSum / wordsDisp, wordsDisp,
+            totalWords,
             timer.format(2, "%ws"),
             wordsDisp / std::stof(timer.format(5, "%w")));
       }
