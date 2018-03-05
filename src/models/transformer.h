@@ -372,7 +372,7 @@ public:
 #if 1
     bool hasTopHeads = isTop && options->has("transformer-heads-top");
     auto heads = hasTopHeads ? options->get<int>("transformer-heads-top") : options->get<int>("transformer-heads");
-    if (isTop)
+    if (hasTopHeads)
     {
       static bool shouted = false;
       if (!shouted)
@@ -381,8 +381,8 @@ public:
         shouted = true;
       }
     }
-    else
-      pExtraLoss = nullptr; // clear this if not top, to disable my strange experiment
+    if (!hasTopHeads || heads != 1)
+      pExtraLoss = nullptr; // clear this if not my strange experiment
 #else
     auto heads = options->get<int>("transformer-heads");
 #endif
