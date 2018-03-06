@@ -582,7 +582,7 @@ void ConfigParser::addOptionsValid(po::options_description& desc) {
       "Beam size used during search with validating translator")
     ("normalize,n", po::value<float>()->default_value(0.f)->implicit_value(1.f),
       "Divide translation score by pow(translation length, arg) ")
-    ("word-penalty,n", po::value<float>()->default_value(0.f)->implicit_value(0.f),
+    ("word-penalty", po::value<float>()->default_value(0.f)->implicit_value(0.f),
       "Subtract (arg * translation length) from translation score ")
     ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
       "Allow unknown words to appear in output")
