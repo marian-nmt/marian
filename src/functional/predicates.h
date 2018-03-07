@@ -151,23 +151,23 @@ namespace marian {
     }\
     template <typename X, typename Z>\
     name<IsClass<X>, Capture, IsClass<Z>> name2(X x, Capture y, Z z) {\
-      return name2(x, y, z);\
+      return name<X, Capture, Z>(x, y, z);\
     }\
     template <typename Y, typename Z>\
     name<Capture, IsClass<Y>, IsClass<Z>> name2(Capture x, Y y, Z z) {\
-      return name2(x, y, z);\
+      return name<Capture, Y, Z>(x, y, z);\
     }\
     template <typename X>\
     name<IsClass<X>, Capture, Capture> name2(X x, Capture y, Capture z) {\
-      return name2(x, y, z);\
+      return name<X, Capture, Capture>(x, y, z);\
     }\
     template <typename Y>\
     name<Capture, IsClass<Y>, Capture> name2(Capture x, Y y, Capture z) {\
-      return name2(x, y, z);\
+      return name<Capture, Y, Capture>(x, y, z);\
     }\
     template <typename Z>\
     name<Capture, Capture, IsClass<Z>> name2(Capture x, Capture y, Z z) {\
-      return name2(x, y, z);\
+      return name<Capture, Capture, Z>(x, y, z);\
     }
 
     TERNARY(IfThenElse, if_then_else, x ? y : z);

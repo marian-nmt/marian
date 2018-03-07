@@ -29,5 +29,6 @@ template void Element<Assign<Var<1>, BinaryFunctor<elem::Mult, Assignee<2>, Assi
 template void Element<Assign<Var<1>, BinaryFunctor<elem::Minus, Assignee<2>, Assignee<3>>>, marian::Tensor, marian::Tensor>(Assign<Var<1>, BinaryFunctor<elem::Minus, Assignee<2>, Assignee<3>>>, marian::Tensor, marian::Tensor, marian::Tensor);
 template void Element<Assign<Var<1>, BinaryFunctor<elem::Plus, Assignee<2>, Assignee<3>>>, marian::Tensor, marian::Tensor>(Assign<Var<1>, BinaryFunctor<elem::Plus, Assignee<2>, Assignee<3>>>, marian::Tensor, marian::Tensor, marian::Tensor);
 template void Element<Assign<Var<1>, UnaryFunctor<elem::Neg, Assignee<2>>>, marian::Tensor>(Assign<Var<1>, UnaryFunctor<elem::Neg, Assignee<2>>>, marian::Tensor, marian::Tensor);
+template void Element<Assign<Var<1>, TernaryFunctor<elem::IfThenElse, BinaryFunctor<elem::Leq, UnaryFunctor<elem::Abs, Assignee<1>>, Capture>, Capture, Assignee<1>>>>(Assign<Var<1>, TernaryFunctor<elem::IfThenElse, BinaryFunctor<elem::Leq, UnaryFunctor<elem::Abs, Assignee<1>>, Capture>, Capture, Assignee<1>>>, marian::Tensor);
 
-
+template void marian::gpu::Element<marian::functional::Assign<marian::functional::Var<1>, marian::functional::BinaryFunctor<marian::functional::elem::Mult, marian::functional::Assignee<1>, marian::functional::Capture> >>(marian::functional::Assign<marian::functional::Var<1>, marian::functional::BinaryFunctor<marian::functional::elem::Mult, marian::functional::Assignee<1>, marian::functional::Capture> >, std::shared_ptr<marian::TensorBase>);
