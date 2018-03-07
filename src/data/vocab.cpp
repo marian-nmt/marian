@@ -122,7 +122,7 @@ public:
       : counter_(counter) {}
 
   bool operator()(const std::string& a, const std::string& b) const {
-    return counter_[a] > counter_[b];
+    return counter_[a] > counter_[b] || (counter_[a] == counter_[b] && a < b);
   }
 };
 
