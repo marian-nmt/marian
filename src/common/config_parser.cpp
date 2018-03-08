@@ -683,6 +683,10 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
       "If these files do not exists they are created")
+    ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
+      "Score n-best list instead of plain text corpus")
+    ("n-best-feature", po::value<std::string>()->default_value("Score"),
+      "Feature name to be inserted into n-best list")
     ("summary", po::value<std::string>()->implicit_value("cross-entropy"),
       "Only print total cost, possible values: cross-entropy (ce-mean), ce-mean-words, ce-sum, perplexity")
     ("max-length", po::value<size_t>()->default_value(1000),
@@ -925,6 +929,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
       config_["train-sets"] = vm_["train-sets"].as<std::vector<std::string>>();
     }
     SET_OPTION("mini-batch-words", int);
+    SET_OPTION("n-best", bool);
+    SET_OPTION("n-best-feature", std::string);
     SET_OPTION_NONDEFAULT("summary", std::string);
   }
 

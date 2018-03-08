@@ -15,7 +15,7 @@ namespace marian {
 class Config {
 public:
   static size_t seed;
-  
+
   typedef YAML::Node YamlNode;
 
   Config(const std::string options,
@@ -46,7 +46,7 @@ public:
     auto parser = ConfigParser(argc, argv, mode, validate);
     config_ = parser.getConfig();
     devices_ = parser.getDevices();
-    
+
     createLoggers(this);
 
     if(get<size_t>("seed") == 0)
@@ -92,6 +92,14 @@ public:
   }
 
   template <typename T>
+  T get(const std::string& key, const T& dflt) const {
+    if(has(key))
+      return config_[key].as<T>();
+    else
+      return dflt;
+  }
+
+  template <typename T>
   void set(const std::string& key, const T& value) {
     config_[key] = value;
   }
@@ -105,7 +113,7 @@ public:
   const std::vector<DeviceId>& getDevices() {
     return devices_;
   }
-  
+
   void save(const std::string& name) {
     OutputFileStream out(name);
     (std::ostream&)out << *this;

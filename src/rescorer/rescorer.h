@@ -42,7 +42,9 @@ private:
 public:
   Rescore(Ptr<Config> options)
       : options_(options),
-        corpus_(New<Corpus>(options_)) {
+        corpus_(options_->get<bool>("n-best") ?
+                std::static_pointer_cast<CorpusBase>(New<CorpusNBest>(options_)) :
+                std::static_pointer_cast<CorpusBase>(New<Corpus>(options_))) {
     corpus_->prepare();
 
     auto devices = options_->getDevices();
@@ -79,8 +81,9 @@ public:
     auto batchGenerator = New<BatchGenerator<CorpusBase>>(corpus_, options_);
     batchGenerator->prepare(false);
 
-    //auto output = New<ScoreCollectorNBest>(options_);
-    auto output = New<ScoreCollector<float>>();
+    Ptr<ScoreCollector> output = options_->get<bool>("n-best") ?
+      std::static_pointer_cast<ScoreCollector>(New<ScoreCollectorNBest>(options_)) :
+      New<ScoreCollector>();
 
     bool summarize = options_->has("summary");
     std::string summary
