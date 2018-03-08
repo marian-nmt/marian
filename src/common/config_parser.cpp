@@ -338,6 +338,8 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Number of head in top layer, multi-head attention (transformer)")
     ("transformer-dim-ffn", po::value<int>()->default_value(2048),
      "Size of position-wise feed-forward network (transformer)")
+    ("transformer-ffn-activation", po::value<std::string>()->default_value("swish"),
+     "Activation between filters: swish or relu (transformer)")
     ("transformer-preprocess", po::value<std::string>()->default_value(""),
      "Operation before each transformer layer: d = dropout, a = add, n = normalize")
     ("transformer-postprocess-emb", po::value<std::string>()->default_value("d"),
@@ -379,6 +381,8 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
        "Dropout between transformer layers (0 = no dropout)")
       ("transformer-dropout-attention", po::value<float>()->default_value(0),
        "Dropout for transformer attention (0 = no dropout)")
+      ("transformer-dropout-ffn", po::value<float>()->default_value(0),
+       "Dropout for transformer filter (0 = no dropout)")
     ;
   }
   // clang-format on
@@ -797,7 +801,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("transformer-postprocess", std::string);
   SET_OPTION("transformer-postprocess-emb", std::string);
   SET_OPTION("transformer-dim-ffn", int);
-  SET_OPTION("transformer-dim-ffn", int);
+  SET_OPTION("transformer-ffn-activation", std::string);
 
 #ifdef CUDNN
   SET_OPTION("char-stride", int);
@@ -822,7 +826,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 
     SET_OPTION("transformer-dropout", float);
     SET_OPTION("transformer-dropout-attention", float);
-
+    SET_OPTION("transformer-dropout-ffn", float);
+ 
     SET_OPTION("overwrite", bool);
     SET_OPTION("no-reload", bool);
     if(!vm_["train-sets"].empty()) {

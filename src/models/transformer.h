@@ -224,10 +224,8 @@ public:
     // optional dropout for attention weights
     float dropProb
         = inference ? 0 : options->get<float>("transformer-dropout-attention");
-    if(dropProb) {
-      auto dropMask = graph->dropout(dropProb, weights->shape());
-      weights = dropout(weights, mask = dropMask);
-    }
+    if(dropProb)
+      weights = dropout(weights, dropout_prob=dropProb);
 
     // apply attention weights to values
     return bdot(weights, v); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
@@ -371,7 +369,7 @@ public:
 
 #if 1
     bool hasTopHeads = isTop && options->has("transformer-heads-top");
-    auto heads = hasTopHeads ? options->get<int>("transformer-heads-top") : options->get<int>("transformer-heads");
+    auto heads = hasTopHeads ? options->get<int>("transformer-heads-top") : options->get<int>("transformer-heads"); 
     if (hasTopHeads)
     {
       static bool shouted = false;
@@ -430,7 +428,16 @@ public:
     auto b2 = graph->param(prefix + "_b2", {1, dimModel}, init = inits::zeros);
 
     output = affine(output, W1, b1);
-    output = swish(output);
+    if(options->get<std::string>("transformer-ffn-activation") == "relu")
+      output = relu(output);
+    else
+      output = swish(output);
+
+    float ffnDropProb
+        = inference ? 0 : options->get<float>("transformer-dropout-ffn");
+    if(ffnDropProb)
+      output = dropout(output, dropout_prob = ffnDropProb);
+
     output = affine(output, W2, b2);
 
     auto opsPost = options->get<std::string>("transformer-postprocess");
