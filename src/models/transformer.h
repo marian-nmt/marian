@@ -344,7 +344,18 @@ public:
     auto b2 = graph->param(prefix + "_b2", {1, dimModel}, inits::zeros);
 
     output = affine(output, W1, b1);
-    output = swish(output);
+    if(options->get<std::string>("transformer-ffn-activation") == "relu")
+      output = relu(output);
+    else
+      output = swish(output);
+
+    float ffnDropProb
+        = inference ? 0 : options->get<float>("transformer-dropout-ffn");
+    if(ffnDropProb) {
+      auto dropMask = graph->dropout(ffnDropProb, output->shape());
+      output = dropout(output, mask = dropMask);
+    }
+
     output = affine(output, W2, b2);
 
     auto opsPost = options->get<std::string>("transformer-postprocess");

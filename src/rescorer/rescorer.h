@@ -5,6 +5,7 @@
 #include "common/config.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
+#include "data/corpus_nbest.h"
 #include "models/model_task.h"
 #include "rescorer/score_collector.h"
 #include "training/scheduler.h"
@@ -34,7 +35,7 @@ template <class Model>
 class Rescore : public ModelTask {
 private:
   Ptr<Config> options_;
-  Ptr<Corpus> corpus_;
+  Ptr<CorpusBase> corpus_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<Ptr<Model>> models_;
 
@@ -75,10 +76,11 @@ public:
   void run() {
     LOG(info, "Scoring");
 
-    auto batchGenerator = New<BatchGenerator<Corpus>>(corpus_, options_);
+    auto batchGenerator = New<BatchGenerator<CorpusBase>>(corpus_, options_);
     batchGenerator->prepare(false);
 
-    auto output = New<ScoreCollector>();
+    //auto output = New<ScoreCollectorNBest>(options_);
+    auto output = New<ScoreCollector<float>>();
 
     bool summarize = options_->has("summary");
     std::string summary

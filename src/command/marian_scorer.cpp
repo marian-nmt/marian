@@ -2,7 +2,6 @@
 
 #include "models/model_task.h"
 #include "rescorer/rescorer.h"
-#include "training/graph_group.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
@@ -10,7 +9,6 @@ int main(int argc, char** argv) {
   auto options = New<Config>(argc, argv, ConfigMode::rescoring);
 
   boost::timer::cpu_timer timer;
-  // @TODO: support multi-gpu rescoring
   New<Rescore<Rescorer>>(options)->run();
   LOG(info, "Total time: {}", timer.format());
 

@@ -14,6 +14,7 @@ add_library(marian STATIC
   data/corpus_base.cpp
   data/corpus.cpp
   data/corpus_sqlite.cpp
+  data/corpus_nbest.cpp
   data/text_input.cpp
 
   3rd_party/cnpy/cnpy.cpp
@@ -55,7 +56,6 @@ add_library(marian STATIC
   training/graph_group_multinode.cpp
   training/validator.cpp
 
-  rescorer/score_collector.cpp
   $<TARGET_OBJECTS:libyaml-cpp>
   $<TARGET_OBJECTS:SQLiteCpp>)
 
