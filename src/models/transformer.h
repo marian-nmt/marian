@@ -370,6 +370,18 @@ public:
 #if 1
     bool hasTopHeads = isTop && options->has("transformer-heads-top");
     auto heads = hasTopHeads ? options->get<int>("transformer-heads-top") : options->get<int>("transformer-heads"); 
+#if 1 // BUGBUG: some models got screwed up
+    if (options->get<int>("transformer-heads") == 16 && heads == 8)
+    {
+      heads = 16; // I believe models that report this combination actually used 16 (have better decoding result)
+      static bool shouted = false;
+      if (!shouted)
+      {
+        LOG(info, "BUGBUG workaround: top target-source-attentionheads corrected back to {}", heads);
+        shouted = true;
+      }
+    }
+#endif
     if (hasTopHeads)
     {
       static bool shouted = false;
