@@ -91,15 +91,14 @@ protected:
       if(i == 0) {
         // Create a dropout node as the parent of x,
         //   and place that dropout node as the value of layers[0]
-        layers.emplace_back(dropout(x, dropout_prob = 0.2));
+        layers.emplace_back(dropout(x, 0.2));
       } else {
         // Multiply the matrix in layers[i-1] by the matrix in weights[i-1]
         // Take the result, and perform matrix addition on biases[i-1].
         // Wrap the result in rectified linear activation function,
         // and finally wrap that in a dropout node
         layers.emplace_back(
-            dropout(relu(affine(layers.back(), weights.back(), biases.back())),
-                    dropout_prob = 0.5));
+            dropout(relu(affine(layers.back(), weights.back(), biases.back())), 0.5));
       }
 
       // Construct a weight node for the outgoing connections from layer i

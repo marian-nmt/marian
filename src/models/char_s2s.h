@@ -24,8 +24,7 @@ public:
     float dropProb = inference_ ? 0 : opt<float>("dropout-src");
     if(dropProb) {
       int srcWords = batchEmbeddings->shape()[-3];
-      auto dropMask = graph->dropout(dropProb, {srcWords, 1, 1});
-      batchEmbeddings = dropout(batchEmbeddings, mask = dropMask);
+      batchEmbeddings = dropout(batchEmbeddings, dropProb, {srcWords, 1, 1});
     }
 
     int dimEmb = opt<int>("dim-emb");

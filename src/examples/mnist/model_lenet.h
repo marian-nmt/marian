@@ -51,7 +51,7 @@ protected:
         = reshape(pool,
                   {pool->shape()[0],
                    pool->shape()[1] * pool->shape()[2] * pool->shape()[3]});
-    auto drop1 = dropout(flatten, keywords::dropout_prob = 0.25);
+    auto drop1 = dropout(flatten, 0.25);
     std::vector<Expr> layers, weights, biases;
 
     for(size_t i = 0; i < dims.size() - 1; ++i) {
@@ -82,7 +82,7 @@ protected:
     }
 
     // Perform matrix multiplication and addition for the last layer
-    auto last = affine(dropout(layers.back(), keywords::dropout_prob = 0.5),
+    auto last = affine(dropout(layers.back(), 0.5),
                        weights.back(),
                        biases.back());
 
