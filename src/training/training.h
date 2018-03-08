@@ -37,7 +37,17 @@ public:
       LOG(info, "[batching] Done");
     }
 
+#if 1
+    auto initialLR = options_->get<float>("learn-rate");
+    size_t warmup = options_->get<size_t>("lr-warmup");
+    if(warmup > 0) {
+      initialLR = 0;
+      LOG(info, "initial LR set to 0 (BUGBUG workaround)");
+    }
+    auto trainState = New<TrainingState>(initialLR);
+#else
     auto trainState = New<TrainingState>(options_->get<float>("learn-rate"));
+#endif
     auto scheduler = New<Scheduler>(options_, trainState);
 
     if((options_->has("valid-sets") || options_->has("valid-script-path"))
