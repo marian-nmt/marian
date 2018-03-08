@@ -187,10 +187,9 @@ public:
     // optional dropout for attention weights
     float dropProb
         = inference ? 0 : options->get<float>("transformer-dropout-attention");
-    if(dropProb) {
-      auto dropMask = graph->dropout(dropProb, weights->shape());
-      weights = dropout(weights, mask = dropMask);
-    }
+
+    if(dropProb)
+      weights = dropout(weights, dropout_prob=dropProb);
 
     // apply attention weights to values
     return bdot(weights, v);
@@ -351,10 +350,8 @@ public:
 
     float ffnDropProb
         = inference ? 0 : options->get<float>("transformer-dropout-ffn");
-    if(ffnDropProb) {
-      auto dropMask = graph->dropout(ffnDropProb, output->shape());
-      output = dropout(output, mask = dropMask);
-    }
+    if(ffnDropProb)
+      output = dropout(output, dropout_prob = ffnDropProb);
 
     output = affine(output, W2, b2);
 
