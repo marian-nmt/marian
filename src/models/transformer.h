@@ -127,7 +127,7 @@ public:
       if(op == 'd' && dropProb > 0.0f) {
         output = dropout(output, dropProb, {output->shape()[-1]});
       }
-      // skip connection, moved behind layer normalization
+      // skip connection
       if(op == 'a') {
         output = output + prevInput;
       }
