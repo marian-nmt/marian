@@ -77,7 +77,7 @@ public:
       input = inputs.front();
 
     if(dropMaskX_)
-      input = dropout(input, keywords::mask = dropMaskX_);
+      input = dropout(input, dropMaskX_);
 
     auto xW = dot(input, W_);
 
@@ -92,7 +92,7 @@ public:
 
     auto stateDropped = recState;
     if(dropMaskS_)
-      stateDropped = dropout(recState, keywords::mask = dropMaskS_);
+      stateDropped = dropout(recState, dropMaskS_);
     auto sU = dot(stateDropped, U_);
     if(layerNorm_)
       sU = layer_norm(sU, gamma2_);
@@ -206,7 +206,7 @@ public:
       input = inputs[0];
 
     if(dropMaskX_)
-      input = dropout(input, keywords::mask = dropMaskX_);
+      input = dropout(input, dropMaskX_);
 
     auto xW = dot(input, W_);
     if(layerNorm_)
@@ -221,7 +221,7 @@ public:
     auto stateOrig = state.output;
     auto stateDropped = stateOrig;
     if(dropMaskS_)
-      stateDropped = dropout(stateOrig, keywords::mask = dropMaskS_);
+      stateDropped = dropout(stateOrig, dropMaskS_);
 
     auto sU = dot(stateDropped, U_);
     if(layerNorm_)
@@ -398,7 +398,7 @@ public:
       input = inputs[0];
 
     if(dropMaskX_)
-      input = dropout(input, keywords::mask = dropMaskX_);
+      input = dropout(input, dropMaskX_);
 
     Expr xW;
     if(layerNorm_) {
@@ -432,7 +432,7 @@ public:
     auto stateOrig = state.output;
     auto stateDropped = stateOrig;
     if(dropMaskS_)
-      stateDropped = dropout(stateOrig, keywords::mask = dropMaskS_);
+      stateDropped = dropout(stateOrig, dropMaskS_);
 
     Expr sU;
     if(layerNorm_) {
@@ -557,7 +557,7 @@ public:
       input = inputs.front();
 
     if(dropMaskX_)
-      input = dropout(input, keywords::mask = dropMaskX_);
+      input = dropout(input, dropMaskX_);
 
     auto xW = dot(input, W_);
 
@@ -575,7 +575,7 @@ public:
 
     auto recStateDropped = recState;
     if(dropMaskS_)
-      recStateDropped = dropout(recState, keywords::mask = dropMaskS_);
+      recStateDropped = dropout(recState, dropMaskS_);
 
     auto sU = dot(recStateDropped, U_);
 

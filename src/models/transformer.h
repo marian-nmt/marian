@@ -98,8 +98,7 @@ public:
     for(auto op : ops) {
       // dropout
       if(op == 'd' && dropProb > 0.0f) {
-        auto dropMask = graph->dropout(dropProb, output->shape());
-        output = dropout(output, mask = dropMask);
+        output = dropout(output, dropProb, {output->shape()[-1]});
       }
       // layer normalization
       if(op == 'n') {
@@ -126,8 +125,7 @@ public:
     for(auto op : ops) {
       // dropout
       if(op == 'd' && dropProb > 0.0f) {
-        auto dropMask = graph->dropout(dropProb, output->shape());
-        output = dropout(output, mask = dropMask);
+        output = dropout(output, dropProb, {output->shape()[-1]});
       }
       // skip connection, moved behind layer normalization
       if(op == 'a') {
@@ -189,7 +187,7 @@ public:
         = inference ? 0 : options->get<float>("transformer-dropout-attention");
 
     if(dropProb)
-      weights = dropout(weights, dropout_prob=dropProb);
+      weights = dropout(weights, dropProb);
 
     // apply attention weights to values
     return bdot(weights, v);
@@ -351,7 +349,7 @@ public:
     float ffnDropProb
         = inference ? 0 : options->get<float>("transformer-dropout-ffn");
     if(ffnDropProb)
-      output = dropout(output, dropout_prob = ffnDropProb);
+      output = dropout(output, ffnDropProb, {output->shape()[-1]});
 
     output = affine(output, W2, b2);
 
@@ -413,8 +411,7 @@ public:
     float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");
     if(dropoutSrc) {
       int srcWords = batchEmbeddings->shape()[-3];
-      auto dropMask = graph->dropout(dropoutSrc, {srcWords, 1, 1});
-      batchEmbeddings = dropout(batchEmbeddings, mask = dropMask);
+      batchEmbeddings = dropout(batchEmbeddings, dropoutSrc, {srcWords, 1, 1});
     }
 
     // according to paper embeddings are scaled by \sqrt(d_m)
@@ -516,8 +513,7 @@ public:
     float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
     if(dropoutTrg) {
       int trgWords = embeddings->shape()[-3];
-      auto trgWordDrop = graph->dropout(dropoutTrg, {trgWords, 1, 1});
-      embeddings = dropout(embeddings, mask = trgWordDrop);
+      embeddings = dropout(embeddings, dropoutTrg, {trgWords, 1, 1});
     }
 
     //************************************************************************//

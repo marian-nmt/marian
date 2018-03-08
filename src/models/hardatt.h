@@ -133,8 +133,7 @@ public:
     int dimBeam = trgEmbeddings->shape()[-4];
 
     if(dropoutTrg) {
-      auto trgWordDrop = graph->dropout(dropoutTrg, {dimTrgWords, dimBatch, 1});
-      trgEmbeddings = dropout(trgEmbeddings, mask = trgWordDrop);
+      trgEmbeddings = dropout(trgEmbeddings, dropoutTrg, {dimTrgWords, dimBatch, 1});
     }
 
     auto flatContext = reshape(context, {dimBatch * dimSrcWords, dimContext});

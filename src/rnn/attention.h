@@ -68,7 +68,7 @@ public:
 
     if(dropMaskContext_)
       contextDropped_
-          = dropout(contextDropped_, keywords::mask = dropMaskContext_);
+          = dropout(contextDropped_, dropMaskContext_);
 
     if(layerNorm_) {
       if(nematusNorm_) {
@@ -125,7 +125,7 @@ public:
       dimBeam = recState->shape()[-4];
 
     if(dropMaskState_)
-      recState = dropout(recState, keywords::mask = dropMaskState_);
+      recState = dropout(recState, dropMaskState_);
 
     auto mappedState = dot(recState, Wa_);
     if(layerNorm_)

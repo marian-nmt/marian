@@ -5,16 +5,11 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <algorithm>
 
 #include "common/logging.h"
 
 namespace marian {
-
-/**
- * @brief Represents the size of each dimension in a tensor.
- *
- * Note: this class currently is hard-coded to four dimensions.
- */
 
 struct Shape {
   public:
