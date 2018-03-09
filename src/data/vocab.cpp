@@ -114,7 +114,7 @@ int Vocab::load(const std::string& vocabPath, int max) {
       seenSpecial.insert(id);
     }
 
-    if(!max || id < (Word)max) {
+    if(!max || id < (Word)max) { // note: this requires ids to be sorted by frequency
       str2id_[str] = id;
       if(id >= id2str_.size())
         id2str_.resize(id + 1);
@@ -123,10 +123,27 @@ int Vocab::load(const std::string& vocabPath, int max) {
   }
   ABORT_IF(id2str_.empty(), "Empty vocabulary: ", vocabPath);
 
-  id2str_[EOS_ID] = EOS_STR;
-  id2str_[UNK_ID] = UNK_STR;
+  // </s> and <unk> are expected at specific positions
+  auto requireWord = [&](Word id, const std::string& str)
+  {
+    auto iter = str2id_.find(str);
+    if (iter != str2id_.end()) // word already in vocab: must be at right index, else fail
+    {
+      ABORT_IF(iter->second != id, "vocabulary entry '{}' is expected to have id {}", str, id);
+#if 0
+      return;
+#else
+      // some old config needs this patching for now
+      // BUGBUG: If another word already uses this id, then str2id_ for that will still exist.
+#endif
+    }
+    str2id_[str] = id;
+    id2str_[id] = str;
+  };
+  requireWord(EOS_ID, EOS_STR);
+  requireWord(UNK_ID, UNK_STR);
   for(auto id : seenSpecial)
-    id2str_[id] = SYM2SPEC.at(id);
+    requireWord(id, SYM2SPEC.at(id));
 
   return std::max((int)id2str_.size(), max);
 }
