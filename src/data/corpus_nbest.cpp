@@ -16,19 +16,19 @@ CorpusNBest::CorpusNBest(std::vector<std::string> paths,
 
 int numFromNbest(const std::string& line) {
   std::vector<std::string> fields;
-  Split(line, fields, " ||| ");
+  Split(line, fields, " ||| ", true);
   ABORT_IF(fields.size() < 4,
-           "To few fields ({}), is this a correct n-best list?",
-           fields.size());
+           "Too few fields ({}) in line \"{}\", is this a correct n-best list?",
+           fields.size(), line);
   return std::stoi(fields[0]);
 }
 
 std::string lineFromNbest(const std::string& line) {
   std::vector<std::string> fields;
-  Split(line, fields, " ||| ");
+  Split(line, fields, " ||| ", true);
   ABORT_IF(fields.size() < 4,
-           "To few fields ({}), is this a correct n-best list?",
-           fields.size());
+           "Too few fields ({}) in line \"{}\", is this a correct n-best list?",
+           fields.size(), line);
   return fields[1];
 }
 

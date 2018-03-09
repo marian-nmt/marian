@@ -7,10 +7,12 @@ void Trim(std::string& s);
 
 void Split(const std::string& line,
            std::vector<std::string>& pieces,
-           const std::string del = " ");
+           const std::string del = " ",
+           bool keepEmpty = false);
 
 std::vector<std::string> Split(const std::string& line,
-                               const std::string del = " ");
+                               const std::string del = " ",
+                               bool keepEmpty = false);
 
 std::string Join(const std::vector<std::string>& words,
                  const std::string& del = " ",

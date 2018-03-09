@@ -11,6 +11,7 @@ class TrainingState;
 
 class TrainingObserver {
 public:
+  virtual void init(TrainingState& state) {}
   virtual void actAfterEpoch(TrainingState& state) {}
   virtual void actAfterBatches(TrainingState& state) {}
   virtual void actAfterStalled(TrainingState& state) {}
@@ -62,6 +63,7 @@ public:
 
   void registerObserver(Ptr<TrainingObserver> observer) {
     observers_.push_back(observer);
+    observers_.back()->init(*this);
   }
 
   void newEpoch() {
