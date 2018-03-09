@@ -156,6 +156,8 @@ public:
     return output;
   }
 
+  // determine the multiplicative-attention probability and performs the associative lookup as well
+  // q, k, and v have already been split into multiple heads, undergone any desired linear transform.
   static Expr Attention(Ptr<ExpressionGraph> graph,
                         Ptr<Options> options,
                         std::string prefix,
@@ -163,7 +165,7 @@ public:
                         Expr k,              // [-4: batch size, -3: num heads, -2: max src length, -1: split vector dim]
                         Expr v,              // [-4: batch size, -3: num heads, -2: max src length, -1: split vector dim]
                         Expr mask = nullptr, // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
-                        bool inference = false, Expr* pExtraLoss = nullptr) {
+                        bool inference = false, Expr* pExtraLoss = nullptr, Expr* pSentEndProb = nullptr) {
     using namespace keywords;
 
     float dk = k->shape()[-1];
@@ -183,6 +185,34 @@ public:
     // multiplicative attention with flattened softmax
     float scale = 1.0 / std::sqrt(dk); // scaling to avoid extreme values due to matrix multiplication
     auto z = bdot(q, k, false, true, scale); // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
+
+    // relative position info comes in here
+    //  - add offset embedding to v (Eq. (3))
+    //  - add offset embedding to k (Eq. (4))
+    // offset embedding :=
+    //  - learned weights
+    //  - embeddingVectors[j-i]
+    //  - depends on index in both q and k/v, so must operate on dims of z, can't just add to k/v
+    //  - same dimension as v.shape[-1] and likewise k
+    //  - shared across the 8 heads
+    //  - j-i may be clipped, e.g. to max. +/-2 (N=5 vectors only)
+    //  - would a custom kernel be the easiest solution? Or a matrix product?
+    //  - src = tgt
+    //  - j = s, i = t
+    //  - t = sequence index into q       --note: confusing naming, since src=tgt (self-attention)
+    //  - s = sequence index into k and v
+    //  - N := max offset embeddings (e.g. 5)
+    // dimensions for z:
+    //  - z[b,h,t,s] += zp[b,h,t,s]
+    //  - zp[b,h,t,s] = f(q[b,h,t,.], a[s,t,.]) = q[b,h,t,.] a[s,t,.]'    --note: also the scale, left out for clarity
+    //  - qw[b,h,t,N] = q[b,h,t,.] @ w[N,.]'    --every q scored against every offset embedding
+    //  - now map this (select/shuffle). Can that be a sparse matrix product?
+    //  - zp[b,h,t,s] = qw[b,h,t,(s-t)]
+    // to figure out:
+    //  - how to create and pass around the offset embeddings (these are all static methods, not proper classes)
+    //     - 2 per layer
+    //  - how to shuffle (scatter) the weights
+
     auto weights = softmax(z + mask); // along axis = -1 (src sequence axis)
 
     // my strange experiment
@@ -227,6 +257,14 @@ public:
     if(dropProb)
       weights = dropout(weights, dropout_prob=dropProb);
 
+#if 1 // my strange experiment
+    if (pSentEndProb)
+    {
+      // pick out the sentence-end probability for each sequence
+      // Dang, how to do that? We don't have the length info. Now we need CNTK Dynamite...
+    }
+#endif
+
     // apply attention weights to values
     return bdot(weights, v); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
   }
@@ -240,7 +278,7 @@ public:
                         const std::vector<Expr> &keys,   // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
                         const std::vector<Expr> &values,
                         const std::vector<Expr> &masks,  // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
-                        bool inference = false, Expr* pExtraLoss = nullptr) {
+                        bool inference = false, Expr* pExtraLoss = nullptr, Expr* pSentEndProb = nullptr) {
     using namespace keywords;
 
     int dimModel = q->shape()[-1];
@@ -311,7 +349,7 @@ public:
 
       // apply multi-head attention to downscaled inputs
       auto output
-          = Attention(graph, options, prefix, qh, kh, vh, masks[i], inference, pExtraLoss); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
+          = Attention(graph, options, prefix, qh, kh, vh, masks[i], inference, pExtraLoss, pSentEndProb); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
 
       output = JoinHeads(output, q->shape()[-4]); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
       outputs.push_back(output);
@@ -340,7 +378,7 @@ public:
                              Expr keys,
                              Expr values,
                              Expr mask,
-                             bool inference = false, bool isTop = false, Expr* pExtraLoss = nullptr) {
+                             bool inference = false, bool isTop = false, Expr* pExtraLoss = nullptr, Expr* pSentEndProb = nullptr) {
     return LayerAttention(graph,
                           options,
                           prefix,
@@ -348,7 +386,7 @@ public:
                           std::vector<Expr>{keys},
                           std::vector<Expr>{values},
                           std::vector<Expr>{mask},
-                          inference, isTop, pExtraLoss);
+                          inference, isTop, pExtraLoss, pSentEndProb);
   }
 
   static Expr LayerAttention(Ptr<ExpressionGraph> graph,
@@ -358,7 +396,7 @@ public:
                              const std::vector<Expr> &keys,   // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
                              const std::vector<Expr> &values,
                              const std::vector<Expr> &masks,  // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
-                             bool inference = false, bool isTop = false, Expr* pExtraLoss = nullptr) {
+                             bool inference = false, bool isTop = false, Expr* pExtraLoss = nullptr, Expr* pSentEndProb = nullptr) {
     using namespace keywords;
 
     int dimModel = input->shape()[-1];
@@ -407,7 +445,7 @@ public:
                        keys,
                        values,
                        masks,
-                       inference, pExtraLoss);
+                       inference, pExtraLoss, pSentEndProb);
 
     auto opsPost = options->get<std::string>("transformer-postprocess");
     output
@@ -712,7 +750,7 @@ public:
     }
 
     // apply decoder layers
-    Expr extraLoss; // (my strange experiment)
+    Expr extraLoss, sentEndProb; // (my strange experiment)
     auto decDepth = opt<int>("dec-depth");
     for(int i = 1; i <= decDepth; ++i) {
       auto isTop = i == decDepth;
@@ -746,7 +784,7 @@ public:
                                encoderContexts,
                                encoderContexts,
                                encoderMasks,
-                               inference_, isTop, &extraLoss);
+                               inference_, isTop, &extraLoss, &sentEndProb);
 
         } else if(comb == "stack") {
           for(int j = 0; j < encoderContexts.size(); ++j) { // multiple encoders are applied one after another
@@ -762,7 +800,7 @@ public:
                                    encoderContexts[j],
                                    encoderContexts[j],
                                    encoderMasks[j],
-                                   inference_, isTop, &extraLoss);
+                                   inference_, isTop, &extraLoss, &sentEndProb);
           }
         } else {
           ABORT("Unknown value for transformer-multi-encoder: {}", comb);
@@ -796,6 +834,10 @@ public:
     // assemble layers into MLP and apply to embeddings, decoder context and
     // aligned source context
     auto output = mlp::mlp(graph).push_back(layerOut);
+
+#if 1
+    sentEndProb;  // do something with this
+#endif
 
     Expr logits = output->apply(decoderContext);
 
