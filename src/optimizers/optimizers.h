@@ -37,6 +37,10 @@ public:
     updateImpl(params, grads);
   }
 
+  virtual void init(TrainingState& state) {
+    eta_ = state.eta;
+    multiplyFactor_ = state.factor;
+  }
   virtual void actAfterLoaded(TrainingState& state) {
     eta_ = state.eta;
     multiplyFactor_ = state.factor;
