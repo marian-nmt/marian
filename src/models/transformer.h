@@ -98,7 +98,7 @@ public:
     for(auto op : ops) {
       // dropout
       if(op == 'd' && dropProb > 0.0f) {
-        output = dropout(output, dropProb, {output->shape()[-1]});
+        output = dropout(output, dropProb);
       }
       // layer normalization
       if(op == 'n') {
@@ -125,7 +125,7 @@ public:
     for(auto op : ops) {
       // dropout
       if(op == 'd' && dropProb > 0.0f) {
-        output = dropout(output, dropProb, {output->shape()[-1]});
+        output = dropout(output, dropProb);
       }
       // skip connection
       if(op == 'a') {
@@ -349,7 +349,7 @@ public:
     float ffnDropProb
         = inference ? 0 : options->get<float>("transformer-dropout-ffn");
     if(ffnDropProb)
-      output = dropout(output, ffnDropProb, {output->shape()[-1]});
+      output = dropout(output, ffnDropProb);
 
     output = affine(output, W2, b2);
 
