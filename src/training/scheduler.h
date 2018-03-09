@@ -17,9 +17,38 @@ private:
 
   boost::timer::cpu_timer timer;
 
+  float getLearningRate(TrainingState& state) {
+    float baselr = options_->get<float>("learn-rate");
+
+    float bno = state.batches - state.warmupStart;
+
+    size_t warmup = options_->get<size_t>("lr-warmup");
+    float mult1 = 1.f;
+    if(warmup > 0) {
+      mult1 = std::min(1.f, bno / (float)warmup);
+    }
+
+    size_t decayGoogle = options_->get<size_t>("lr-decay-inv-sqrt");
+    float mult2 = 1.f;
+    if(decayGoogle > 0) {
+      mult2 = std::min(
+          1.f, (float)(std::sqrt(decayGoogle) / std::sqrt(state.batches)));
+    }
+
+    baselr = baselr * mult1 * mult2;
+
+    float lrStart = options_->get<float>("lr-warmup-start-rate");
+    if(lrStart > 0)
+      baselr = baselr - lrStart * mult1 * mult2 + lrStart * mult2;
+
+    return baselr;
+  }
+
 public:
   Scheduler(Ptr<Config> options, Ptr<TrainingState> state)
-      : options_(options), state_(state) {}
+      : options_(options), state_(state) {
+    state_->eta = getLearningRate(*state);
+  }
 
   bool keepGoing() {
     // stop if it reached the maximum number of epochs
@@ -185,33 +214,6 @@ public:
 
   void registerTrainingObserver(Ptr<TrainingObserver> observer) {
     state_->registerObserver(observer);
-  }
-
-  float getLearningRate(TrainingState& state) {
-    float baselr = options_->get<float>("learn-rate");
-
-    float bno = state.batches - state.warmupStart;
-
-    size_t warmup = options_->get<size_t>("lr-warmup");
-    float mult1 = 1.f;
-    if(warmup > 0) {
-      mult1 = std::min(1.f, bno / (float)warmup);
-    }
-
-    size_t decayGoogle = options_->get<size_t>("lr-decay-inv-sqrt");
-    float mult2 = 1.f;
-    if(decayGoogle > 0) {
-      mult2 = std::min(
-          1.f, (float)(std::sqrt(decayGoogle) / std::sqrt(state.batches)));
-    }
-
-    baselr = baselr * mult1 * mult2;
-
-    float lrStart = options_->get<float>("lr-warmup-start-rate");
-    if(lrStart > 0)
-      baselr = baselr - lrStart * mult1 * mult2 + lrStart * mult2;
-
-    return baselr;
   }
 
   void actAfterEpoch(TrainingState& state) {
