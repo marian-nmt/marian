@@ -266,6 +266,7 @@ public:
     modelFeatures_.push_back("transformer-heads-top");
     modelFeatures_.push_back("transformer-dim-ffn");
     modelFeatures_.push_back("transformer-ffn-activation");
+    modelFeatures_.push_back("transformer-offset-embedding-range");
     modelFeatures_.push_back("transformer-preprocess");
     modelFeatures_.push_back("transformer-postprocess");
     modelFeatures_.push_back("transformer-postprocess-emb");

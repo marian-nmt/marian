@@ -340,6 +340,8 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Size of position-wise feed-forward network (transformer)")
     ("transformer-ffn-activation", po::value<std::string>()->default_value("swish"),
      "Activation between filters: swish or relu (transformer)")
+    ("transformer-offset-embedding-range", po::value<int>()->default_value(0),
+     "Clipping range of offset embedding, 0 to disable (transformer)")
     ("transformer-preprocess", po::value<std::string>()->default_value(""),
      "Operation before each transformer layer: d = dropout, a = add, n = normalize")
     ("transformer-postprocess-emb", po::value<std::string>()->default_value("d"),
@@ -802,6 +804,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("transformer-postprocess-emb", std::string);
   SET_OPTION("transformer-dim-ffn", int);
   SET_OPTION("transformer-ffn-activation", std::string);
+  SET_OPTION("transformer-offset-embedding-range", int);
 
 #ifdef CUDNN
   SET_OPTION("char-stride", int);
