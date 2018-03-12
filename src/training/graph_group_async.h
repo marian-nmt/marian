@@ -111,7 +111,6 @@ public:
         for(auto graph : graphs_)
           builders_[i++]->load(graph, init, false);
       }
-
     }
   }
 

@@ -431,6 +431,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "Save model file every  arg  updates")
     ("no-shuffle", po::value<bool>()->zero_tokens()->default_value(false),
       "Skip shuffling of training data before each epoch")
+    ("no-restore-corpus", po::value<bool>()->zero_tokens()->default_value(false),
+      "Skip restoring corpus state after training is restarted")
     ("tempdir,T", po::value<std::string>()->default_value("/tmp"),
       "Directory for temporary (shuffled) files and database")
     ("sqlite", po::value<std::string>()->default_value("")->implicit_value("temporary"),
@@ -438,8 +440,6 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "is temporary with path creates persistent storage")
     ("sqlite-drop", po::value<bool>()->zero_tokens()->default_value(false),
       "Drop existing tables in sqlite3 database")
-    ("restore-corpus,r", po::value<bool>()->zero_tokens()->default_value(false),
-      "Restore the corpus state for seamless training continuation")
     ("devices,d", po::value<std::vector<std::string>>()
       ->multitoken()
       ->default_value(std::vector<std::string>({"0"}), "0"),
@@ -871,10 +871,10 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("disp-freq", size_t);
     SET_OPTION("save-freq", size_t);
     SET_OPTION("no-shuffle", bool);
+    SET_OPTION("no-restore-corpus", bool);
     SET_OPTION("tempdir", std::string);
     SET_OPTION("sqlite", std::string);
     SET_OPTION("sqlite-drop", bool);
-    SET_OPTION("restore-corpus", bool);
 
     SET_OPTION("optimizer", std::string);
     SET_OPTION_NONDEFAULT("optimizer-params", std::vector<float>);
