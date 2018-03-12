@@ -42,9 +42,11 @@ private:
 public:
   Rescore(Ptr<Config> options)
       : options_(options),
-        corpus_(options_->get<bool>("n-best") ?
-                std::static_pointer_cast<CorpusBase>(New<CorpusNBest>(options_)) :
-                std::static_pointer_cast<CorpusBase>(New<Corpus>(options_))) {
+        corpus_(
+            options_->get<bool>("n-best")
+                ? std::static_pointer_cast<CorpusBase>(
+                      New<CorpusNBest>(options_))
+                : std::static_pointer_cast<CorpusBase>(New<Corpus>(options_))) {
     corpus_->prepare();
 
     auto devices = options_->getDevices();
@@ -66,12 +68,12 @@ public:
     models_.resize(graphs_.size());
     ThreadPool pool(graphs_.size(), graphs_.size());
     for(int i = 0; i < graphs_.size(); ++i) {
-
-      pool.enqueue([=](int j) {
-        models_[j] = New<Model>(temp);
-        models_[j]->load(graphs_[j], modelFile);
-      }, i);
-
+      pool.enqueue(
+          [=](int j) {
+            models_[j] = New<Model>(temp);
+            models_[j]->load(graphs_[j], modelFile);
+          },
+          i);
     }
   }
 
@@ -81,9 +83,10 @@ public:
     auto batchGenerator = New<BatchGenerator<CorpusBase>>(corpus_, options_);
     batchGenerator->prepare(false);
 
-    Ptr<ScoreCollector> output = options_->get<bool>("n-best") ?
-      std::static_pointer_cast<ScoreCollector>(New<ScoreCollectorNBest>(options_)) :
-      New<ScoreCollector>();
+    Ptr<ScoreCollector> output = options_->get<bool>("n-best")
+                                     ? std::static_pointer_cast<ScoreCollector>(
+                                           New<ScoreCollectorNBest>(options_))
+                                     : New<ScoreCollector>();
 
     bool summarize = options_->has("summary");
     std::string summary

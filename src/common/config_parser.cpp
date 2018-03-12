@@ -2,8 +2,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
 #include <set>
-#include <string>
 #include <stdexcept>
+#include <string>
 
 #if MKL_FOUND
 //#include <omp.h>
@@ -15,9 +15,9 @@
 #endif
 #endif
 
-
 #include "3rd_party/cnpy/cnpy.h"
 #include "common/definitions.h"
+
 #include "common/config.h"
 #include "common/config_parser.h"
 #include "common/file_stream.h"
@@ -146,13 +146,14 @@ bool ConfigParser::has(const std::string& key) const {
 
 void ConfigParser::validateOptions() const {
   if(mode_ == ConfigMode::translating) {
-    UTIL_THROW_IF2(!has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
+    UTIL_THROW_IF2(
+        !has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
         "Translating, but vocabularies are not given!");
 
     for(const auto& modelFile : get<std::vector<std::string>>("models")) {
       boost::filesystem::path modelPath(modelFile);
       UTIL_THROW_IF2(!boost::filesystem::exists(modelPath),
-          "Model file does not exist: " + modelFile);
+                     "Model file does not exist: " + modelFile);
     }
 
     return;
@@ -177,9 +178,10 @@ void ConfigParser::validateOptions() const {
 
   if(mode_ == ConfigMode::rescoring) {
     UTIL_THROW_IF2(!boost::filesystem::exists(modelPath),
-        "Model file does not exist: " + modelPath.string());
+                   "Model file does not exist: " + modelPath.string());
 
-    UTIL_THROW_IF2(!has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
+    UTIL_THROW_IF2(
+        !has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
         "Scoring, but vocabularies are not given!");
 
     return;
@@ -193,8 +195,9 @@ void ConfigParser::validateOptions() const {
       !modelDir.empty() && !boost::filesystem::is_directory(modelDir),
       "Model directory does not exist");
 
-  UTIL_THROW_IF2(!modelDir.empty() && !(boost::filesystem::status(modelDir).permissions()
-                 & boost::filesystem::owner_write),
+  UTIL_THROW_IF2(!modelDir.empty()
+                     && !(boost::filesystem::status(modelDir).permissions()
+                          & boost::filesystem::owner_write),
                  "No write permission in model directory");
 
   UTIL_THROW_IF2(
@@ -835,7 +838,6 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("transformer-dim-ffn", int);
   SET_OPTION("transformer-ffn-activation", std::string);
 
-
 #ifdef CUDNN
   SET_OPTION("char-stride", int);
   SET_OPTION("char-highway", int);
@@ -976,7 +978,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("relative-paths", bool);
   SET_OPTION("devices", std::vector<std::string>);
   SET_OPTION("cpu-threads", size_t);
-  //SET_OPTION("omp-threads", size_t);
+  // SET_OPTION("omp-threads", size_t);
 
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
@@ -1021,23 +1023,21 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     exit(0);
   }
 
-// @TODO: this should probably be in processOptionDevices()
-//#ifdef BLAS_FOUND
-//  //omp_set_num_threads(vm_["omp-threads"].as<size_t>());
-//#ifdef MKL_FOUND
-//  mkl_set_num_threads(vm_["omp-threads"].as<size_t>());
-//#endif
-//#endif
+  // @TODO: this should probably be in processOptionDevices()
+  //#ifdef BLAS_FOUND
+  //  //omp_set_num_threads(vm_["omp-threads"].as<size_t>());
+  //#ifdef MKL_FOUND
+  //  mkl_set_num_threads(vm_["omp-threads"].as<size_t>());
+  //#endif
+  //#endif
 }
 
 std::vector<DeviceId> ConfigParser::getDevices() {
   std::vector<DeviceId> devices;
 
   try {
-
     std::string devicesStr
         = Join(config_["devices"].as<std::vector<std::string>>());
-
 
     if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
       auto parts = Split(devicesStr, ":");
@@ -1061,11 +1061,10 @@ std::vector<DeviceId> ConfigParser::getDevices() {
     if(config_["cpu-threads"].as<size_t>() > 0) {
       devices.clear();
       for(size_t i = 0; i < config_["cpu-threads"].as<size_t>(); ++i)
-      devices.push_back({i, DeviceType::cpu});
+        devices.push_back({i, DeviceType::cpu});
     }
 
-  }
-  catch(...) {
+  } catch(...) {
     ABORT("Problem parsing devices, please report an issue on github");
   }
 

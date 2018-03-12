@@ -19,7 +19,6 @@
 #include <SQLiteCpp/SQLiteCpp.h>
 #include <SQLiteCpp/sqlite3/sqlite3.h>
 
-
 static void SQLiteRandomSeed(sqlite3_context* context,
                              int argc,
                              sqlite3_value** argv) {

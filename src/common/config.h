@@ -76,7 +76,9 @@ public:
     log();
 
     if(has("version"))
-      LOG(info, "[config] Model created with Marian {}", get("version").as<std::string>());
+      LOG(info,
+          "[config] Model created with Marian {}",
+          get("version").as<std::string>());
   }
 
   Config(const Config& other) : config_(YAML::Clone(other.config_)) {}
@@ -110,9 +112,7 @@ public:
   YAML::Node getModelParameters();
   void loadModelParameters(const std::string& name);
 
-  const std::vector<DeviceId>& getDevices() {
-    return devices_;
-  }
+  const std::vector<DeviceId>& getDevices() { return devices_; }
 
   void save(const std::string& name) {
     OutputFileStream out(name);

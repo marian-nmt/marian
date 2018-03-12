@@ -1,5 +1,5 @@
-#include <sstream>
 #include "graph/expression_graph.h"
+#include <sstream>
 
 #include "tensors/tensor_operators.h"
 
@@ -18,15 +18,12 @@ void ExpressionGraph::setDevice(DeviceId deviceId) {
 }
 
 Expr ExpressionGraph::dropout(float prob, const Shape& shape) {
-  return Expression<ConstantNode>(shared_from_this(),
-                                  shape,
-                                  [prob, this](Tensor t) {
-                                    Dropout(t, prob);
-                                  });
+  return Expression<ConstantNode>(
+      shared_from_this(), shape, [prob, this](Tensor t) { Dropout(t, prob); });
 }
 
 void ExpressionGraph::checkNan(Tensor t) {
   ABORT_IF(throwNaN_, "Not implemented");
-  //ABORT_IF(throwNaN_ && IsNan(t), "Tensor has NaN");
+  // ABORT_IF(throwNaN_ && IsNan(t), "Tensor has NaN");
 }
 }

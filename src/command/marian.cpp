@@ -10,7 +10,6 @@
 #include "training/graph_group_async_drop.h"
 #endif
 
-
 bool configureMPI(int, char**);
 
 int main(int argc, char** argv) {
@@ -18,7 +17,7 @@ int main(int argc, char** argv) {
 
   auto options = New<Config>(argc, argv);
   auto devices = options->getDevices();
-  
+
   if(options->get<bool>("multi-node")) {
     ABORT_IF(!configureMPI(argc, argv), "MPI not found.");
 

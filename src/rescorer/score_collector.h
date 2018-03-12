@@ -13,8 +13,7 @@ namespace marian {
 
 class ScoreCollector {
 public:
-  ScoreCollector()
-  : nextId_(0), outStrm_(new OutputFileStream(std::cout)) {};
+  ScoreCollector() : nextId_(0), outStrm_(new OutputFileStream(std::cout)){};
 
   virtual void Write(long id, const std::string& message) {
     boost::mutex::scoped_lock lock(mutex_);
@@ -52,9 +51,7 @@ public:
     }
   }
 
-  virtual void Write(long id, float value) {
-    Write(id, std::to_string(value));
-  }
+  virtual void Write(long id, float value) { Write(id, std::to_string(value)); }
 
 protected:
   long nextId_{0};
@@ -86,7 +83,9 @@ public:
 
   ScoreCollectorNBest(const ScoreCollectorNBest&) = delete;
 
-  std::string addToNBest(const std::string nbest, const std::string feature, float score) {
+  std::string addToNBest(const std::string nbest,
+                         const std::string feature,
+                         float score) {
     std::vector<std::string> fields;
     Split(nbest, fields, "|||");
     std::stringstream ss;
@@ -96,13 +95,15 @@ public:
   }
 
   virtual void Write(long id, float score) {
-
     std::string line;
     {
       boost::mutex::scoped_lock lock(mutex_);
       auto iter = buffer_.find(id);
       if(iter == buffer_.end()) {
-        ABORT_IF(lastRead_ >= id, "Entry {} < {} already read but not in buffer", id, lastRead_);
+        ABORT_IF(lastRead_ >= id,
+                 "Entry {} < {} already read but not in buffer",
+                 id,
+                 lastRead_);
         std::string line;
         while(lastRead_ < id && std::getline((std::istream&)*file_, line)) {
           lastRead_++;
@@ -116,6 +117,5 @@ public:
 
     ScoreCollector::Write(id, addToNBest(line, fname_, score));
   }
-
 };
 }

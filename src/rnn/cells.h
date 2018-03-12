@@ -43,8 +43,7 @@ public:
                         {dimInput, dimState},
                         inits::glorot_uniform);
 
-    b_ = graph->param(
-        prefix + "_b", {1, dimState}, inits::zeros);
+    b_ = graph->param(prefix + "_b", {1, dimState}, inits::zeros);
 
     if(dropout_ > 0.0f) {
       if(dimInput)
@@ -520,8 +519,7 @@ public:
                         {dimInput, 4 * dimState},
                         inits::glorot_uniform);
 
-    b_ = graph->param(
-        prefix + "_b", {1, 4 * dimState}, inits::zeros);
+    b_ = graph->param(prefix + "_b", {1, 4 * dimState}, inits::zeros);
 
     if(dropout_ > 0.0f) {
       if(dimInput)

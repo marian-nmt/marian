@@ -32,7 +32,5 @@ struct Array {
       data_[i] = val;
   }
 };
-
 }
-
 }

@@ -1,15 +1,15 @@
-/* All or part of this file was contributed by Intel under license:                                                                                                                          
- *   Copyright (C) 2017-2018 Intel Corporation                                                                                                                                               
- *   SPDX-License-Identifier: MIT                                                                                                                                                            
- */  
+/* All or part of this file was contributed by Intel under license:
+ *   Copyright (C) 2017-2018 Intel Corporation
+ *   SPDX-License-Identifier: MIT
+ */
 
-#include "tensors/tensor.h"
 #include "tensors/cpu/backend.h"
+#include "tensors/tensor.h"
 
 #if MKL_FOUND
 #include <mkl.h>
 #else
-#if BLAS_FOUND 
+#if BLAS_FOUND
 #include <cblas.h>
 #endif
 #endif
@@ -25,7 +25,6 @@ void Prod(marian::Tensor C,
           bool transB,
           float beta,
           float scalar) {
-
 #if BLAS_FOUND
   float alpha = scalar;
 
@@ -46,19 +45,20 @@ void Prod(marian::Tensor C,
   if(transB)
     ldc = B->shape().elements() / B->shape()[-1];
 
-  cblas_sgemm(
-        CblasColMajor,
-        transB ? CblasTrans : CblasNoTrans,
-        transA ? CblasTrans : CblasNoTrans,
-        n, m, k,
-        alpha,
-        B->data(),
-        ldb,
-        A->data(),
-        lda,
-        beta,
-        C->data(),
-        ldc);
+  cblas_sgemm(CblasColMajor,
+              transB ? CblasTrans : CblasNoTrans,
+              transA ? CblasTrans : CblasNoTrans,
+              n,
+              m,
+              k,
+              alpha,
+              B->data(),
+              ldb,
+              A->data(),
+              lda,
+              beta,
+              C->data(),
+              ldc);
 #else
   ABORT("Not implemented!");
 #endif
@@ -73,7 +73,7 @@ void ProdBatched(marian::Tensor C,
                  float scalar) {
 #if BLAS_FOUND
   float alpha = scalar;
-  
+
   size_t batchA = A->shape().elements() / (A->shape()[-1] * A->shape()[-2]);
   size_t batchB = B->shape().elements() / (B->shape()[-1] * B->shape()[-2]);
 
@@ -95,33 +95,34 @@ void ProdBatched(marian::Tensor C,
     ldc = B->shape()[-2];
 
   auto opA = transA ? CblasTrans : CblasNoTrans;
-  auto opB = transB ? CblasTrans : CblasNoTrans;  
-    
+  auto opB = transB ? CblasTrans : CblasNoTrans;
+
   auto strideB = batchB == 1 ? 0 : n * k;
   auto strideA = batchA == 1 ? 0 : m * k;
   auto strideC = n * m;
-  
+
   int steps = std::max(batchA, batchB);
-  
+
   int offsetA = 0;
   int offsetB = 0;
   int offsetC = 0;
-  
+
   for(int i = 0; i < steps; ++i) {
-    cblas_sgemm(
-          CblasColMajor,
-          opB,
-          opA,
-          n, m, k,
-          alpha,
-          B->data() + offsetB,
-          ldb,
-          A->data() + offsetA,
-          lda,
-          beta,
-          C->data() + offsetC,
-          ldc);
-    
+    cblas_sgemm(CblasColMajor,
+                opB,
+                opA,
+                n,
+                m,
+                k,
+                alpha,
+                B->data() + offsetB,
+                ldb,
+                A->data() + offsetA,
+                lda,
+                beta,
+                C->data() + offsetC,
+                ldc);
+
     offsetA += strideA;
     offsetB += strideB;
     offsetC += strideC;
@@ -130,6 +131,5 @@ void ProdBatched(marian::Tensor C,
   ABORT("Not implemented!");
 #endif
 }
-
 }
 }

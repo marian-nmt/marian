@@ -29,7 +29,6 @@ public:
       : GraphGroup(options),
         mvAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")} {
-
     auto deviceId = options_->getDevices()[0];
     graph_ = New<ExpressionGraph>();
     graph_->setDevice(deviceId);

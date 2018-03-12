@@ -1,8 +1,9 @@
 #pragma once
 
 #include "marian.h"
-#include "layers/factory.h"
+
 #include "encdec.h"
+#include "layers/factory.h"
 
 namespace marian {
 

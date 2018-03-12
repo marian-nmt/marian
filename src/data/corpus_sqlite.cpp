@@ -154,6 +154,5 @@ void CorpusSQLite::restore(Ptr<TrainingState> ts) {
     reset();
   }
 }
-
 }
 }

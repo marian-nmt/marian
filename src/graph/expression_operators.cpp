@@ -126,7 +126,6 @@ Expr repeat(Expr a, size_t repeats, keywords::axis_k ax) {
   return concatenate(std::vector<Expr>(repeats, a), ax);
 }
 
-
 Expr reshape(Expr a, Shape shape) {
   return Expression<ReshapeNodeOp>(a, shape);
 }
@@ -165,10 +164,7 @@ Expr flatten(Expr a) {
 }
 
 Expr flatten_2d(Expr a) {
-  Shape shape = {
-    a->shape().elements() / a->shape()[-1],
-    a->shape()[-1]
-  };
+  Shape shape = {a->shape().elements() / a->shape()[-1], a->shape()[-1]};
 
   return Expression<ReshapeNodeOp>(a, shape);
 }
@@ -232,17 +228,16 @@ Expr step(Expr a, int step, int axis) {
 }
 
 Expr cross_entropy(Expr a, Expr b) {
-  //auto sOrig = a->shape();
-  //auto sOut = a->shape();
-  //Shape sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
-  //sOut.set(1, 1);
-  //return reshape(Expression<CrossEntropyNodeOp>(reshape(a, sTemp), b), sOut);
+  // auto sOrig = a->shape();
+  // auto sOut = a->shape();
+  // Shape sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
+  // sOut.set(1, 1);
+  // return reshape(Expression<CrossEntropyNodeOp>(reshape(a, sTemp), b), sOut);
 
   return Expression<CrossEntropyNodeOp>(a, b);
 }
 
-Expr affine(Expr a, Expr b, Expr c,
-            bool transA, bool transB, float scalar) {
+Expr affine(Expr a, Expr b, Expr c, bool transA, bool transB, float scalar) {
   std::vector<Expr> nodes = {a, b, c};
   return Expression<AffineNodeOp>(nodes, transA, transB, scalar);
 }
@@ -299,6 +294,7 @@ Expr highway(Expr y, Expr x, Expr t) {
 }
 
 Expr highway(const std::string prefix, Expr x) {
+  // clang-format off
   size_t outDim = x->shape()[-1];
   auto g = mlp::dense(x->graph())
       ("prefix", prefix + "_highway_d1")
@@ -311,6 +307,7 @@ Expr highway(const std::string prefix, Expr x) {
       ("activation", mlp::act::ReLU)
       .construct()->apply(x);
   return (g * relued) + ((1 - g) * x);
+  // clang-format on
 }
 
 // Expr batch_norm(Expr x, Expr gamma, Expr beta) {
@@ -334,41 +331,26 @@ Expr shift(Expr a, Shape shift) {
 
 #ifdef CUDA_FOUND
 
-Expr avg_pooling(
-    Expr x,
-    int height,
-    int width,
-    int padHeight,
-    int padWidth,
-    int strideHeight,
-    int strideWidth) {
-  return Expression<PoolingOp>(x,
-      height,
-      width,
-      padHeight,
-      padWidth,
-      strideHeight,
-      strideWidth,
-      "avg");
+Expr avg_pooling(Expr x,
+                 int height,
+                 int width,
+                 int padHeight,
+                 int padWidth,
+                 int strideHeight,
+                 int strideWidth) {
+  return Expression<PoolingOp>(
+      x, height, width, padHeight, padWidth, strideHeight, strideWidth, "avg");
 }
 
-Expr max_pooling(
-    Expr x,
-    int height,
-    int width,
-    int padHeight,
-    int padWidth,
-    int strideHeight,
-    int strideWidth)
-{
-  return Expression<PoolingOp>(x,
-      height,
-      width,
-      padHeight,
-      padWidth,
-      strideHeight,
-      strideWidth,
-      "max");
+Expr max_pooling(Expr x,
+                 int height,
+                 int width,
+                 int padHeight,
+                 int padWidth,
+                 int strideHeight,
+                 int strideWidth) {
+  return Expression<PoolingOp>(
+      x, height, width, padHeight, padWidth, strideHeight, strideWidth, "max");
 }
 
 Expr convert2cudnnFormat(Expr x) {
@@ -377,13 +359,13 @@ Expr convert2cudnnFormat(Expr x) {
   int embSize = x->shape()[2];
 
   std::vector<size_t> newIndeces;
-  for (int b = 0; b < numExamples; ++b) {
-    for (int t = 0; t < numWords; ++t) {
+  for(int b = 0; b < numExamples; ++b) {
+    for(int t = 0; t < numWords; ++t) {
       newIndeces.push_back((t * numExamples) + b);
     }
   }
 
-  auto xRows = reshape(x, {x->shape()[0] * x ->shape()[1], x->shape()[2]});
+  auto xRows = reshape(x, {x->shape()[0] * x->shape()[1], x->shape()[2]});
 
   Shape outShape({numExamples, 1, numWords, embSize});
   return reshape(rows(xRows, newIndeces), outShape);
@@ -397,8 +379,8 @@ Expr convertFromcudnnFormat(Expr x) {
   auto reshapedX = reshape(x, {batchDim * sentenceDim, embSize});
 
   std::vector<size_t> newIndeces;
-  for (int t = 0; t < sentenceDim; ++t) {
-    for (int b = 0; b < batchDim; ++b) {
+  for(int t = 0; t < sentenceDim; ++t) {
+    for(int b = 0; b < batchDim; ++b) {
       newIndeces.push_back(b * sentenceDim + t);
     }
   }
@@ -412,5 +394,4 @@ Expr pooling_with_masking(Expr x, Expr mask, int width, bool isEven) {
 }
 
 #endif
-
 }

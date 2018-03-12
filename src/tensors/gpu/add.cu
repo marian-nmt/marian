@@ -9,8 +9,8 @@
 
 #include "functional/functional.h"
 #include "functional/shape.h"
-#include "functional/tmp.h"
 #include "functional/tensor.h"
+#include "functional/tmp.h"
 
 namespace marian {
 
@@ -22,7 +22,6 @@ __global__ void gAddGeneric(Functor functor,
                             functional::Tensor<float> out,
                             functional::Array<functional::Tensor<float>, K> ins,
                             float scale = 1.0) {
-
   int outLength = out.shape().elements();
   bool same = outLength == full.elements();
   for(int i = 0; i < K; ++i)
@@ -37,14 +36,12 @@ __global__ void gAddGeneric(Functor functor,
   for(int bid = 0; bid < outLength; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < outLength) {
-
       if(same) {
         out[index] += functional::apply(functor, ins, index) * scale;
       } else {
         out.shape().dims(index, dims);
         out[index] += functional::loops(functor, ins, len, dims) * scale;
       }
-
     }
   }
 }
@@ -81,7 +78,6 @@ __global__ void gAddReduce(Functor functor,
                            functional::Tensor<float> out,
                            functional::Array<functional::Tensor<float>, K> ins,
                            float scale = 1.0) {
-
   int rows = full.elements() / full.back();
   int cols = full.back();
 
@@ -133,12 +129,8 @@ __global__ void gAddReduce(Functor functor,
   }
 }
 
-template <class Functor, class ...Tensors>
-void Add(Functor functor,
-         float scale,
-         marian::Tensor out,
-         Tensors... tensors) {
-
+template <class Functor, class... Tensors>
+void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
   cudaSetDevice(out->getDevice().no);
 
   auto full = marian::Shape::broadcast({out, tensors...});
@@ -148,7 +140,7 @@ void Add(Functor functor,
   constexpr size_t K = sizeof...(Tensors);
 
   functional::Tensor<float> gOut = out;
-  functional::Array<functional::Tensor<float>, K> gIns = {tensors ...};
+  functional::Array<functional::Tensor<float>, K> gIns = {tensors...};
 
   if(full.back() != 1 && out->shape().back() == 1) {
     size_t m = full.elements() / length;
@@ -180,6 +172,5 @@ void Add(Functor functor,
 }
 
 #include "tensors/gpu/add.inc"
-
 }
 }

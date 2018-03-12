@@ -1,8 +1,8 @@
 #pragma once
 
+#include <algorithm>
 #include <map>
 #include <memory>
-#include <algorithm>
 
 #include "common/config.h"
 #include "graph/expression_graph.h"

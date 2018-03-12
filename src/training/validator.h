@@ -4,9 +4,9 @@
 #include <cstdlib>
 #include <limits>
 
+#include "3rd_party/threadpool.h"
 #include "common/config.h"
 #include "common/utils.h"
-#include "3rd_party/threadpool.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "graph/expression_graph.h"
@@ -25,8 +25,7 @@ namespace marian {
 class ValidatorBase : public TrainingObserver {
 public:
   ValidatorBase(bool lowerIsBetter)
-      : lowerIsBetter_(lowerIsBetter),
-        lastBest_{initScore()} {}
+      : lowerIsBetter_(lowerIsBetter), lastBest_{initScore()} {}
 
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) = 0;
   virtual std::string type() = 0;
@@ -98,7 +97,8 @@ protected:
                            Ptr<data::BatchGenerator<DataSet>>)
       = 0;
 
-  void updateStalled(const std::vector<Ptr<ExpressionGraph>>& graphs, float val) {
+  void updateStalled(const std::vector<Ptr<ExpressionGraph>>& graphs,
+                     float val) {
     if((lowerIsBetter_ && lastBest_ > val)
        || (!lowerIsBetter_ && lastBest_ < val)) {
       stalled_ = 0;
@@ -226,7 +226,6 @@ public:
   TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
       : Validator(vocabs, options, false),
         quiet_(options_->get<bool>("quiet-translation")) {
-
     Ptr<Options> opts = New<Options>();
     opts->merge(options);
     opts->set("inference", true);
@@ -314,7 +313,8 @@ public:
             scorer = scorers[id % graphs.size()];
           }
 
-          auto search = New<BeamSearch>(options_, std::vector<Ptr<Scorer>>{scorer});
+          auto search
+              = New<BeamSearch>(options_, std::vector<Ptr<Scorer>>{scorer});
           auto histories = search->search(graph, batch);
 
           for(auto history : histories) {

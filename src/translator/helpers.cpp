@@ -18,7 +18,7 @@ void SetColumn(Tensor in_, size_t col, float value) {
   int nColumns = in_->shape()[-1];
 
   float* in = in_->data();
-  for (int rowNumber = 0; rowNumber < nRows; ++rowNumber) {
+  for(int rowNumber = 0; rowNumber < nRows; ++rowNumber) {
     int index = col + rowNumber * nColumns;
     in[index] = value;
   }
@@ -31,7 +31,6 @@ void suppressUnk(Expr probs) {
 void suppressWord(Expr probs, Word id) {
   SetColumn(probs->val(), id, std::numeric_limits<float>::lowest());
 }
-
 }
 
 void suppressUnk(Expr probs) {
@@ -55,5 +54,4 @@ void suppressWord(Expr probs, Word id) {
   }
 #endif
 }
-
 }

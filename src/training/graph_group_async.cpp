@@ -104,7 +104,8 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
       totalSize -= __size__;
 
       Tensor param;
-      Ptr<TensorAllocator> allocator = New<TensorAllocator>(graph->getBackend());
+      Ptr<TensorAllocator> allocator
+          = New<TensorAllocator>(graph->getBackend());
       allocator->reserveExact(__size__ * sizeof(float));
       allocator->allocate(param, {1, __size__});
       paramsAlloc_.push_back(allocator);
@@ -122,7 +123,8 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
       int __size__ = std::min(shardSize_, totalSize);
       totalSize -= __size__;
       Tensor grad_;
-      Ptr<TensorAllocator> allocator_ = New<TensorAllocator>(graph->getBackend());
+      Ptr<TensorAllocator> allocator_
+          = New<TensorAllocator>(graph->getBackend());
 
       allocator_->reserveExact(__size__ * sizeof(float));
       allocator_->allocate(grad_, {1, __size__});
@@ -139,7 +141,8 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
         int __size__ = std::min(shardSize_, totalSize);
         totalSize -= __size__;
         Tensor paramAvg;
-        Ptr<TensorAllocator> allocator = New<TensorAllocator>(graph->getBackend());
+        Ptr<TensorAllocator> allocator
+            = New<TensorAllocator>(graph->getBackend());
 
         allocator->reserveExact(__size__ * sizeof(float));
         allocator->allocate(paramAvg, {1, __size__});
@@ -230,7 +233,8 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
       scheduler_->update(cost, batch);
 
       if(scheduler_->saving() || scheduler_->validating()) {
-        // Wait with validation or saving until all other threads are done with update.
+        // Wait with validation or saving until all other threads are done with
+        // update.
         // We want to reuse the graphs for validation, so they need to be in
         // a safe state.
         pool_->wait_for_others(lock);

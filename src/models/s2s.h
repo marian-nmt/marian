@@ -1,9 +1,10 @@
 #pragma once
 
 #include "marian.h"
+
 #include "layers/constructors.h"
-#include "rnn/constructors.h"
 #include "rnn/attention_constructors.h"
+#include "rnn/constructors.h"
 
 namespace marian {
 

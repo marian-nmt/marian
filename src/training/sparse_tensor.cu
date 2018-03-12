@@ -7,8 +7,8 @@
 #include "tensors/tensor.h"
 #include "tensors/tensor_operators.h"
 #include "training/sparse_tensor.h"
-#include "tensors/gpu/cuda_helpers.h"
 
+#include "tensors/gpu/cuda_helpers.h"
 
 namespace marian {
 
@@ -48,10 +48,10 @@ __global__ void gFindSubtensor(int* indices,
 }
 
 SparseTensorBase::SparseTensorBase(int capacity, Ptr<Backend> backend)
-: backend_(backend), capacity_(capacity) {
+    : backend_(backend), capacity_(capacity) {
   ABORT_IF(backend_->getDevice().type == DeviceType::cpu,
-          "Gradient dropping is currently not implemented for CPU usage");
-  
+           "Gradient dropping is currently not implemented for CPU usage");
+
   cudaSetDevice(backend_->getDevice().no);
   CUDA_CHECK(cudaMalloc(&data_, sizeof(float) * capacity));
   CUDA_CHECK(cudaMalloc(&indices_, sizeof(int) * capacity));
@@ -64,7 +64,7 @@ SparseTensorBase::SparseTensorBase(float* data,
                                    int* indices,
                                    int size,
                                    Ptr<Backend> backend)
-: backend_(backend) {
+    : backend_(backend) {
   data_ = data;
   indices_ = indices;
   size_ = size;
@@ -98,10 +98,10 @@ void SparseTensorBase::copyFrom(float* data,
   size_ = size;
   if(size == 0)
     return;
-  
+
   ABORT_IF(backend_->getDevice().type == DeviceType::cpu,
-          "Gradient dropping is currently not implemented for CPU usage");
-  
+           "Gradient dropping is currently not implemented for CPU usage");
+
   cudaSetDevice(backend_->getDevice().no);
 
   cudaMemcpy(data_, data, size * sizeof(float), cudaMemcpyDefault);
@@ -128,7 +128,7 @@ void SparseTensorBase::setSize(int size) {
 void SparseTensorBase::toDense(Tensor t, int offset) {
   ABORT_IF(backend_->getDevice().type == DeviceType::cpu,
            "Gradient dropping is currently not implemented for CPU usage");
-  
+
   cudaSetDevice(backend_->getDevice().no);
   int threads = 512;
   int blocks = 1 + size_ / threads;
@@ -152,8 +152,8 @@ std::shared_ptr<SparseTensorBase> SparseTensorBase::subtensor(int pos,
                                                               int size,
                                                               int idx) {
   ABORT_IF(backend_->getDevice().type == DeviceType::cpu,
-          "Gradient dropping is currently not implemented for CPU usage");
-  
+           "Gradient dropping is currently not implemented for CPU usage");
+
   cudaSetDevice(backend_->getDevice().no);
   cudaStreamSynchronize(0);
   int* start = gstart_ + idx;

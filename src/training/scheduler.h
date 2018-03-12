@@ -100,7 +100,8 @@ public:
     return (state_->batches % options_->get<size_t>("save-freq") == 0);
   }
 
-  void validate(const std::vector<Ptr<ExpressionGraph>>& graphs, bool final = false) {
+  void validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
+                bool final = false) {
     if(state_->validated
        || (state_->batches % options_->get<size_t>("valid-freq") != 0
            && !final))

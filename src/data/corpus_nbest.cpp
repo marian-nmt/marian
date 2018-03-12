@@ -1,7 +1,7 @@
 #include <random>
 
-#include "data/corpus_nbest.h"
 #include "common/utils.h"
+#include "data/corpus_nbest.h"
 
 namespace marian {
 namespace data {
@@ -10,8 +10,8 @@ CorpusNBest::CorpusNBest(Ptr<Config> options, bool translate /*= false*/)
     : CorpusBase(options, translate) {}
 
 CorpusNBest::CorpusNBest(std::vector<std::string> paths,
-               std::vector<Ptr<Vocab>> vocabs,
-               Ptr<Config> options)
+                         std::vector<Ptr<Vocab>> vocabs,
+                         Ptr<Config> options)
     : CorpusBase(paths, vocabs, options) {}
 
 int numFromNbest(const std::string& line) {
@@ -19,7 +19,8 @@ int numFromNbest(const std::string& line) {
   Split(line, fields, " ||| ", true);
   ABORT_IF(fields.size() < 4,
            "Too few fields ({}) in line \"{}\", is this a correct n-best list?",
-           fields.size(), line);
+           fields.size(),
+           line);
   return std::stoi(fields[0]);
 }
 
@@ -28,7 +29,8 @@ std::string lineFromNbest(const std::string& line) {
   Split(line, fields, " ||| ", true);
   ABORT_IF(fields.size() < 4,
            "Too few fields ({}) in line \"{}\", is this a correct n-best list?",
-           fields.size(), line);
+           fields.size(),
+           line);
   return fields[1];
 }
 
@@ -56,7 +58,8 @@ SentenceTuple CorpusNBest::next() {
       for(size_t i = 0; i < last; ++i) {
         if(curr_num > lastNum_) {
           ABORT_IF(!std::getline((std::istream&)*files_[i], lastLines_[i]),
-                  "Too few lines in input {}", i);
+                   "Too few lines in input {}",
+                   i);
         }
         addWordsToSentenceTuple(lastLines_[i], i, tup);
       }
@@ -90,6 +93,5 @@ void CorpusNBest::reset() {
       files_.emplace_back(new InputFileStream(path));
   }
 }
-
 }
 }

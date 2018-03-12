@@ -48,8 +48,10 @@ public:
   virtual Expr getProbs() { return probs_; }
   virtual void setProbs(Expr probs) { probs_ = probs; }
 
-  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx, int beamSize) {
-    return New<DecoderState>(states_.select(selIdx, beamSize), probs_, encStates_);
+  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
+                                   int beamSize) {
+    return New<DecoderState>(
+        states_.select(selIdx, beamSize), probs_, encStates_);
   }
 
   virtual const rnn::States& getStates() { return states_; }

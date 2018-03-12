@@ -65,5 +65,4 @@ void Config::AddYamlToNpz(const YAML::Node& yaml,
   unsigned shape = out.size() + 1;
   cnpy::npz_save(fName, varName, out.c_str(), &shape, 1, "a");
 }
-
 }

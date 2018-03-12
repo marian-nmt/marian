@@ -1,11 +1,12 @@
 #pragma once
 
 #include "marian.h"
-#include "layers/factory.h"
+
+#include "encdec.h"
 #include "layers/constructors.h"
+#include "layers/factory.h"
 #include "model_base.h"
 #include "model_factory.h"
-#include "encdec.h"
 
 namespace marian {
 
@@ -34,8 +35,8 @@ public:
     }
 
     // shared across batch entries
-    auto signal = graph->constant({dimWords, 1, dimEmb},
-                                  inits::from_vector(vPos));
+    auto signal
+        = graph->constant({dimWords, 1, dimEmb}, inits::from_vector(vPos));
     return input + signal;
   }
 
@@ -47,15 +48,14 @@ public:
     for(int i = 0; i < length; ++i)
       for(int j = 0; j <= i; ++j)
         vMask[i * length + j] = 1.f;
-    return graph->constant({1, length, length},
-                           inits::from_vector(vMask));
+    return graph->constant({1, length, length}, inits::from_vector(vMask));
   }
 
   Expr InverseMask(Expr mask) {
     // convert 0/1 mask to transformer style -inf mask
     auto ms = mask->shape();
     mask = (1 - mask) * -99999999.f;
-    return reshape(mask, {ms[-3], 1, ms[-2], ms[-1]}) ;
+    return reshape(mask, {ms[-3], 1, ms[-2], ms[-1]});
   }
 
   Expr SplitHeads(Expr input, int dimHeads) {
@@ -135,18 +135,17 @@ public:
       if(op == 'h') {
         auto Wh = graph->param(
             prefix + "_Wh", {dimModel, dimModel}, inits::glorot_uniform);
-        auto bh
-            = graph->param(prefix + "_bh", {1, dimModel}, inits::zeros);
+        auto bh = graph->param(prefix + "_bh", {1, dimModel}, inits::zeros);
 
         auto t = affine(prevInput, Wh, bh);
         output = highway(output, prevInput, t);
       }
       // layer normalization
       if(op == 'n') {
-        auto scale = graph->param(
-            prefix + "_ln_scale", {1, dimModel}, inits::ones);
-        auto bias = graph->param(
-            prefix + "_ln_bias", {1, dimModel}, inits::zeros);
+        auto scale
+            = graph->param(prefix + "_ln_scale", {1, dimModel}, inits::ones);
+        auto bias
+            = graph->param(prefix + "_ln_bias", {1, dimModel}, inits::zeros);
         output = layer_norm(output, scale, bias, 1e-6);
       }
     }
@@ -219,17 +218,13 @@ public:
       if(i > 0)
         prefixProj += "_enc" + std::to_string(i + 1);
 
-      auto Wk = graph->param(prefixProj + "_Wk",
-                             {dimModel, dimModel},
-                             inits::glorot_uniform);
-      auto bk = graph->param(
-          prefixProj + "_bk", {1, dimModel}, inits::zeros);
+      auto Wk = graph->param(
+          prefixProj + "_Wk", {dimModel, dimModel}, inits::glorot_uniform);
+      auto bk = graph->param(prefixProj + "_bk", {1, dimModel}, inits::zeros);
 
-      auto Wv = graph->param(prefixProj + "_Wv",
-                             {dimModel, dimModel},
-                             inits::glorot_uniform);
-      auto bv = graph->param(
-          prefixProj + "_bv", {1, dimModel}, inits::zeros);
+      auto Wv = graph->param(
+          prefixProj + "_Wv", {dimModel, dimModel}, inits::glorot_uniform);
+      auto bv = graph->param(prefixProj + "_bv", {1, dimModel}, inits::zeros);
 
       auto kh = affine(keys[i], Wk, bk);
       auto vh = affine(values[i], Wv, bv);
@@ -254,8 +249,8 @@ public:
 
     int dimAtt = output->shape()[-1];
 
-    auto Wo = graph->param(
-        prefix + "_Wo", {dimAtt, dimOut}, inits::glorot_uniform);
+    auto Wo
+        = graph->param(prefix + "_Wo", {dimAtt, dimOut}, inits::glorot_uniform);
     auto bo = graph->param(prefix + "_bo", {1, dimOut}, inits::zeros);
     output = affine(output, Wo, bo);
 
@@ -468,11 +463,12 @@ public:
                    std::vector<Ptr<EncoderState>> &encStates)
       : DecoderState(states, probs, encStates) {}
 
-  virtual Ptr<DecoderState> select(const std::vector<size_t> &selIdx, int beamSize) {
+  virtual Ptr<DecoderState> select(const std::vector<size_t> &selIdx,
+                                   int beamSize) {
     rnn::States selectedStates;
 
     int dimDepth = states_[0].output->shape()[-1];
-    int dimTime  = states_[0].output->shape()[-2];
+    int dimTime = states_[0].output->shape()[-2];
     int dimBatch = selIdx.size() / beamSize;
 
     std::vector<size_t> selIdx2;
@@ -553,7 +549,7 @@ public:
       decoderMask = reshape(TransposeTimeBatch(decoderMask),
                             {1, dimBatch, 1, dimTrgWords});
       selfMask = selfMask * decoderMask;
-      //if(dimBeam > 1)
+      // if(dimBeam > 1)
       //  selfMask = repeat(selfMask, dimBeam, axis = -4);
     }
 
@@ -586,7 +582,8 @@ public:
     for(int i = 1; i <= opt<int>("dec-depth"); ++i) {
       auto values = query;
       if(prevDecoderStates.size() > 0)
-        values = concatenate({prevDecoderStates[i - 1].output, query}, axis = -2);
+        values
+            = concatenate({prevDecoderStates[i - 1].output, query}, axis = -2);
 
       decoderStates.push_back({values, nullptr});
 

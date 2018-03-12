@@ -1,10 +1,11 @@
 #pragma once
 
 #include "marian.h"
+
 #include "layers/factory.h"
-#include "rnn/types.h"
-#include "rnn/constructors.h"
 #include "rnn/attention.h"
+#include "rnn/constructors.h"
+#include "rnn/types.h"
 
 namespace marian {
 namespace rnn {

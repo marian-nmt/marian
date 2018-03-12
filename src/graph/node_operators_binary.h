@@ -16,13 +16,8 @@ private:
   float scalar_;
 
 public:
-  DotNodeOp(Expr a,
-            Expr b,
-            bool transA,
-            bool transB,
-            float scalar)
-      : NaryNodeOp({a, b},
-                   newShape(a, b, transA, transB)),
+  DotNodeOp(Expr a, Expr b, bool transA, bool transB, float scalar)
+      : NaryNodeOp({a, b}, newShape(a, b, transA, transB)),
         transA_(transA),
         transB_(transB),
         scalar_(scalar) {}
@@ -49,14 +44,13 @@ public:
 
   NodeOps forwardOps() {
     // C = alpha * dot(op(A), op(B))
-    return {NodeOp(Prod(
-        val_,
-        child(0)->val(),
-        child(1)->val(),
-        transA_,
-        transB_,
-        0.f,
-        scalar_))};
+    return {NodeOp(Prod(val_,
+                        child(0)->val(),
+                        child(1)->val(),
+                        transA_,
+                        transB_,
+                        0.f,
+                        scalar_))};
   }
 
   NodeOps backwardOps() {
@@ -149,7 +143,7 @@ public:
       : NaryNodeOp(nodes, newShape(nodes[0], nodes[1], transA, transB)),
         transA_(transA),
         transB_(transB),
-        scalar_(scalar){}
+        scalar_(scalar) {}
 
   Shape newShape(Expr a, Expr b, bool transA, bool transB) {
     auto shapeA = a->shape();
@@ -171,19 +165,17 @@ public:
     return outShape;
   }
 
-
   NodeOps forwardOps() {
     using namespace functional;
     return {
-      NodeOp(Prod(
-        val_,
-        child(0)->val(),
-        child(1)->val(),
-        transA_,
-        transB_,
-        0.f,
-        scalar_);
-        Add(_1, val_, child(2)->val()))
+      NodeOp(Prod(val_,
+                  child(0)->val(),
+                  child(1)->val(),
+                  transA_,
+                  transB_,
+                  0.f,
+                  scalar_);
+             Add(_1, val_, child(2)->val()))
     };
   }
 
@@ -266,7 +258,6 @@ public:
   const std::string type() { return "affine"; }
 };
 
-
 class DotBatchedNodeOp : public NaryNodeOp {
 private:
   bool transA_;
@@ -274,13 +265,8 @@ private:
   float scalar_;
 
 public:
-  DotBatchedNodeOp(Expr a,
-                   Expr b,
-                   bool transA,
-                   bool transB,
-                   float scalar)
-      : NaryNodeOp({a, b},
-                   newShape(a, b, transA, transB)),
+  DotBatchedNodeOp(Expr a, Expr b, bool transA, bool transB, float scalar)
+      : NaryNodeOp({a, b}, newShape(a, b, transA, transB)),
         transA_(transA),
         transB_(transB),
         scalar_(scalar) {}
@@ -307,14 +293,13 @@ public:
 
   NodeOps forwardOps() {
     // C = alpha * dot(op(A), op(B))
-    return {NodeOp(ProdBatched(
-        val_,
-        child(0)->val(),
-        child(1)->val(),
-        transA_,
-        transB_,
-        0.f,
-        scalar_))};
+    return {NodeOp(ProdBatched(val_,
+                               child(0)->val(),
+                               child(1)->val(),
+                               transA_,
+                               transB_,
+                               0.f,
+                               scalar_))};
   }
 
   NodeOps backwardOps() {
@@ -325,71 +310,67 @@ public:
     // to sum gradients from different graph parts
 
     if(!transA_ && transB_)
-      return {
-          NodeOp(ProdBatched(child(0)->grad(),
-                             adj_,
-                             child(1)->val(),
-                             false,
-                             false,
-                             1.0,
-                             scalar_)),
-          NodeOp(ProdBatched(child(1)->grad(),
-                             adj_,
-                             child(0)->val(),
-                             true,
-                             false,
-                             1.0,
-                             scalar_))};
+      return {NodeOp(ProdBatched(child(0)->grad(),
+                                 adj_,
+                                 child(1)->val(),
+                                 false,
+                                 false,
+                                 1.0,
+                                 scalar_)),
+              NodeOp(ProdBatched(child(1)->grad(),
+                                 adj_,
+                                 child(0)->val(),
+                                 true,
+                                 false,
+                                 1.0,
+                                 scalar_))};
 
     if(transA_ && !transB_)
-      return {
-          NodeOp(ProdBatched(child(0)->grad(),
-                             child(1)->val(),
-                             adj_,
-                             false,
-                             true,
-                             1.0,
-                             scalar_)),
-          NodeOp(ProdBatched(child(1)->grad(),
-                             child(0)->val(),
-                             adj_,
-                             false,
-                             false,
-                             1.0,
-                             scalar_))};
+      return {NodeOp(ProdBatched(child(0)->grad(),
+                                 child(1)->val(),
+                                 adj_,
+                                 false,
+                                 true,
+                                 1.0,
+                                 scalar_)),
+              NodeOp(ProdBatched(child(1)->grad(),
+                                 child(0)->val(),
+                                 adj_,
+                                 false,
+                                 false,
+                                 1.0,
+                                 scalar_))};
 
     if(transA_ && transB_)
-      return {
-          NodeOp(ProdBatched(child(0)->grad(),
-                             child(1)->val(),
-                             adj_,
-                             true,
-                             true,
-                             1.0,
-                             scalar_)),
-          NodeOp(ProdBatched(child(1)->grad(),
-                             adj_,
-                             child(0)->val(),
-                             true,
-                             true,
-                             1.0,
-                             scalar_))};
+      return {NodeOp(ProdBatched(child(0)->grad(),
+                                 child(1)->val(),
+                                 adj_,
+                                 true,
+                                 true,
+                                 1.0,
+                                 scalar_)),
+              NodeOp(ProdBatched(child(1)->grad(),
+                                 adj_,
+                                 child(0)->val(),
+                                 true,
+                                 true,
+                                 1.0,
+                                 scalar_))};
 
-    return {
-        NodeOp(ProdBatched(child(0)->grad(),
-                           adj_,
-                           child(1)->val(),
-                           false,
-                           true,
-                           1.0,
-                           scalar_)),
-        NodeOp(ProdBatched(child(1)->grad(),
-                           child(0)->val(),
-                           adj_,
-                           true,
-                           false,
-                           1.0,
-                           scalar_))};
+    return {NodeOp(ProdBatched(child(0)->grad(),
+                               adj_,
+                               child(1)->val(),
+                               false,
+                               true,
+                               1.0,
+                               scalar_)),
+            NodeOp(ProdBatched(child(1)->grad(),
+                               child(0)->val(),
+                               adj_,
+                               true,
+                               false,
+                               1.0,
+                               scalar_))};
   }
 
   const std::string type() { return "•"; }
@@ -400,8 +381,7 @@ public:
 struct ScalarProductNodeOp : public NaryNodeOp {
   template <typename... Args>
   ScalarProductNodeOp(Expr a, Expr b, Args... args)
-      : NaryNodeOp({a, b}, newShape(a, b, args...)) {
-  }
+      : NaryNodeOp({a, b}, newShape(a, b, args...)) {}
 
   template <typename... Args>
   Shape newShape(Expr a, Expr b, Args... args) {
@@ -433,12 +413,9 @@ struct ScalarProductNodeOp : public NaryNodeOp {
 };
 
 struct ElementBinaryNodeOp : public NaryNodeOp {
-  ElementBinaryNodeOp(Expr a, Expr b)
-      : NaryNodeOp({a, b}, newShape(a, b)) {}
+  ElementBinaryNodeOp(Expr a, Expr b) : NaryNodeOp({a, b}, newShape(a, b)) {}
 
-  Shape newShape(Expr a, Expr b) {
-    return Shape::broadcast({a, b});
-  }
+  Shape newShape(Expr a, Expr b) { return Shape::broadcast({a, b}); }
 
   const std::string color() { return "yellow"; }
 };
@@ -553,8 +530,7 @@ struct DivNodeOp : public ElementBinaryNodeOp {
 
 // Cross-entropy node. It computes -b*log(softmax(a)), summing rowwise.
 struct CrossEntropyNodeOp : public NaryNodeOp {
-  CrossEntropyNodeOp(Expr a, Expr b)
-      : NaryNodeOp({a, b}, newShape(a)) {}
+  CrossEntropyNodeOp(Expr a, Expr b) : NaryNodeOp({a, b}, newShape(a)) {}
 
   Shape newShape(Expr a) {
     Shape shape1 = a->shape();
@@ -578,7 +554,9 @@ struct CrossEntropyNodeOp : public NaryNodeOp {
 struct ConcatenateNodeOp : public NaryNodeOp {
   template <typename... Args>
   ConcatenateNodeOp(const std::vector<Expr>& nodes, Args... args)
-      : NaryNodeOp(nodes, newShape(nodes, keywords::Get(keywords::axis, 0, args...))) {}
+      : NaryNodeOp(nodes,
+                   newShape(nodes, keywords::Get(keywords::axis, 0, args...))) {
+  }
 
   Shape newShape(const std::vector<Expr>& nodes, int ax) {
     Shape shape = nodes.back()->shape();
@@ -730,38 +708,33 @@ struct HighwayNodeOp : public NaryNodeOp {
 
 class ConvolutionOp : public NaryNodeOp {
 public:
-  ConvolutionOp(
-      const std::vector<Expr>& nodes,
-      int hPad = 0,
-      int wPad = 0,
-      int hStride = 1,
-      int wStride = 1)
-    : NaryNodeOp(nodes),
-      conv_(nodes[1]->shape(),
-            nodes[2]->shape(),
-            hPad,
-            wPad,
-            hStride,
-            wStride) {
+  ConvolutionOp(const std::vector<Expr>& nodes,
+                int hPad = 0,
+                int wPad = 0,
+                int hStride = 1,
+                int wStride = 1)
+      : NaryNodeOp(nodes),
+        conv_(nodes[1]->shape(),
+              nodes[2]->shape(),
+              hPad,
+              wPad,
+              hStride,
+              wStride) {
     conv_.getOutputShape(nodes[0]->shape(), shape_);
   }
 
   NodeOps forwardOps() {
     return {NodeOp(conv_.forward(
-          child(0)->val(),
-          child(1)->val(),
-          child(2)->val(),
-          val_))};
+        child(0)->val(), child(1)->val(), child(2)->val(), val_))};
   }
 
   NodeOps backwardOps() {
-    return {NodeOp(conv_.backward(
-          child(0)->val(),
-          child(0)->grad(),
-          child(1)->val(),
-          child(1)->grad(),
-          child(2)->grad(),
-          adj_))};
+    return {NodeOp(conv_.backward(child(0)->val(),
+                                  child(0)->grad(),
+                                  child(1)->val(),
+                                  child(1)->grad(),
+                                  child(2)->grad(),
+                                  adj_))};
   }
 
   const std::string type() { return "layer_convolution"; }
@@ -769,5 +742,4 @@ public:
 protected:
   ConvolutionWrapper conv_;
 };
-
 }

@@ -110,7 +110,6 @@ Expr mean(Expr a, keywords::axis_k ax = 0);
 
 Expr cross_entropy(Expr a, Expr b);
 
-
 Expr scalar_product(Expr a, Expr b, keywords::axis_k ax = 0);
 
 Expr weighted_average(Expr in, Expr weights, keywords::axis_k ax = 0);
@@ -161,6 +160,5 @@ Expr max_pooling(Expr x,
                  int strideHeight = 1,
                  int strideWidth = 1);
 
-Expr pooling_with_masking(Expr x, Expr mask, int width, bool isEven=false);
-
+Expr pooling_with_masking(Expr x, Expr mask, int width, bool isEven = false);
 }

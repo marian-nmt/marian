@@ -34,21 +34,20 @@ public:
                std::vector<Ptr<ScorerState>>& states,
                size_t beamSize,
                bool first) {
-
     Beams newBeams(beams.size());
     for(int i = 0; i < keys.size(); ++i) {
-      int embIdx  = keys[i] % vocabSize;
-      int beamIdx  = i / beamSize;
+      int embIdx = keys[i] % vocabSize;
+      int beamIdx = i / beamSize;
 
       if(newBeams[beamIdx].size() < beams[beamIdx].size()) {
         auto& beam = beams[beamIdx];
         auto& newBeam = newBeams[beamIdx];
 
         int hypIdx = keys[i] / vocabSize;
-        float cost  = costs[i];
+        float cost = costs[i];
 
-        int hypIdxTrans = (hypIdx / beamSize) +
-                          (hypIdx % beamSize) * beams.size();
+        int hypIdxTrans
+            = (hypIdx / beamSize) + (hypIdx % beamSize) * beams.size();
         if(first)
           hypIdxTrans = hypIdx;
 
@@ -78,7 +77,7 @@ public:
 
   Beams pruneBeam(const Beams& beams) {
     Beams newBeams;
-    for(auto beam: beams) {
+    for(auto beam : beams) {
       Beam newBeam;
       for(auto hyp : beam) {
         if(hyp->GetWord() > 0) {
@@ -90,9 +89,7 @@ public:
     return newBeams;
   }
 
-  Histories search(Ptr<ExpressionGraph> graph,
-                   Ptr<data::CorpusBatch> batch) {
-
+  Histories search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
     int dimBatch = batch->size();
     Histories histories;
     for(int i = 0; i < dimBatch; ++i) {
@@ -140,8 +137,7 @@ public:
       Expr prevCosts;
       if(first) {
         // no cost
-        prevCosts = graph->constant({1, 1, 1, 1},
-                                    inits::from_value(0));
+        prevCosts = graph->constant({1, 1, 1, 1}, inits::from_value(0));
       } else {
         std::vector<float> beamCosts;
 
@@ -155,8 +151,7 @@ public:
               hypIndices.push_back(hyp->GetPrevStateIndex());
               embIndices.push_back(hyp->GetWord());
               beamCosts.push_back(hyp->GetCost());
-            }
-            else {
+            } else {
               hypIndices.push_back(0);
               embIndices.push_back(0);
               beamCosts.push_back(-9999);
@@ -164,9 +159,8 @@ public:
           }
         }
 
-        prevCosts
-            = graph->constant({(int)localBeamSize, 1, dimBatch, 1},
-                              inits::from_vector(beamCosts));
+        prevCosts = graph->constant({(int)localBeamSize, 1, dimBatch, 1},
+                                    inits::from_vector(beamCosts));
       }
 
       //**********************************************************************
@@ -174,10 +168,12 @@ public:
       auto totalCosts = prevCosts;
 
       for(int i = 0; i < scorers_.size(); ++i) {
-        states[i] = scorers_[i]->step(graph, states[i], hypIndices, embIndices, dimBatch, localBeamSize);
+        states[i] = scorers_[i]->step(
+            graph, states[i], hypIndices, embIndices, dimBatch, localBeamSize);
 
         if(scorers_[i]->getWeight() != 1.f)
-          totalCosts = totalCosts + scorers_[i]->getWeight() * states[i]->getProbs();
+          totalCosts
+              = totalCosts + scorers_[i]->getWeight() * states[i]->getProbs();
         else
           totalCosts = totalCosts + states[i]->getProbs();
       }
@@ -207,12 +203,14 @@ public:
       nth->getNBestList(beamSizes, totalCosts->val(), outCosts, outKeys, first);
 
       int dimTrgVoc = totalCosts->shape()[-1];
-      beams = toHyps(outKeys, outCosts, dimTrgVoc, beams, states, localBeamSize, first);
+      beams = toHyps(
+          outKeys, outCosts, dimTrgVoc, beams, states, localBeamSize, first);
 
       auto prunedBeams = pruneBeam(beams);
       for(int i = 0; i < dimBatch; ++i) {
         if(!beams[i].empty()) {
-          final = final || histories[i]->size() >= 3 * batch->front()->batchWidth();
+          final = final
+                  || histories[i]->size() >= 3 * batch->front()->batchWidth();
           histories[i]->Add(beams[i], prunedBeams[i].empty() || final);
         }
       }
