@@ -86,6 +86,10 @@ std::string TensorBase::debug() {
   size_t totSize = shape_.elements();
   std::vector<float> values(totSize);
   get(values);
+#if 0
+  for (auto& v : values)
+    v *= 1000.0;
+#endif
 
   size_t dispCols = 5;
   strm << std::fixed << std::setprecision(8) << std::setfill(' ');

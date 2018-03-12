@@ -199,6 +199,13 @@ public:
 
       v->children().clear();
     }
+#if 0 // for debugging: dump all parameter gradients
+    for (const auto& v : *params_)
+    {
+      std::cerr << "Debug: " << v->debug_message() << " op=" << v->type() << " name=" << v->name() << std::endl;
+      std::cerr << v->grad()->debug() << std::endl;
+    }
+#endif
   }
 
   std::string graphviz() {

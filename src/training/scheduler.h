@@ -142,7 +142,8 @@ public:
     if(state_->batches % options_->get<size_t>("disp-freq") == 0) {
       if(options_->get<bool>("lr-report")) {
         LOG(info,
-            "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} * {} after {} : Time {} : {:.2f} "
+            // TODO: change Cost back to {:.2f}
+            "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} : {:.2f} "
             "words/s : L.r. {:.4e}",
             state_->epochs,
             state_->batches,
@@ -154,7 +155,7 @@ public:
             state_->eta);
       } else {
         LOG(info,
-            "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} * {} after {} : Time {} : {:.2f} "
+            "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} : {:.2f} "
             "words/s",
             state_->epochs,
             state_->batches,
