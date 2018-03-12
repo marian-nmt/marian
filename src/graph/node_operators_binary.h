@@ -2,10 +2,10 @@
 
 #include <thread>
 
-#include "graph/node.h"
 #include "functional/functional.h"
-#include "tensors/tensor_operators.h"
+#include "graph/node.h"
 #include "tensors/gpu/cudnn_wrappers.h"
+#include "tensors/tensor_operators.h"
 
 namespace marian {
 

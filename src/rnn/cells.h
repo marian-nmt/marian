@@ -158,10 +158,8 @@ public:
       W_ = concatenate({W, Wx}, keywords::axis = -1);
     }
 
-    auto b = graph->param(
-        prefix + "_b", {1, 2 * dimState}, inits::zeros);
-    auto bx = graph->param(
-        prefix + "_bx", {1, dimState}, inits::zeros);
+    auto b = graph->param(prefix + "_b", {1, 2 * dimState}, inits::zeros);
+    auto bx = graph->param(prefix + "_bx", {1, dimState}, inits::zeros);
     b_ = concatenate({b, bx}, keywords::axis = -1);
 
     // @TODO use this and adjust Amun model type saving and loading
@@ -325,10 +323,8 @@ public:
       }
     }
 
-    auto b = graph->param(
-        prefix + "_b", {1, 2 * dimState}, inits::zeros);
-    auto bx = graph->param(
-        prefix + "_bx", {1, dimState}, inits::zeros);
+    auto b = graph->param(prefix + "_b", {1, 2 * dimState}, inits::zeros);
+    auto bx = graph->param(prefix + "_bx", {1, dimState}, inits::zeros);
 
     if(layerNorm_) {
       b_ = b;
@@ -336,8 +332,7 @@ public:
 
       // in specific cases we need to pass bx to the kernel
       if(encoder_ && transition_) {
-        auto b0
-            = graph->constant({1, 2 * dimState}, inits::zeros);
+        auto b0 = graph->constant({1, 2 * dimState}, inits::zeros);
         bbx_ = concatenate({b0, bx}, keywords::axis = -1);
       } else {
         bbx_
@@ -793,8 +788,7 @@ public:
     auto Wf = graph->param(prefix + "_Wf",
                            {dimInput, dimState},
                            inits::glorot_uniform);
-    auto bf = graph->param(
-        prefix + "_bf", {1, dimState}, inits::zeros);
+    auto bf = graph->param(prefix + "_bf", {1, dimState}, inits::zeros);
 
     auto Ui = graph->param(prefix + "_Ui",
                            {dimState, dimState},
@@ -802,8 +796,7 @@ public:
     auto Wi = graph->param(prefix + "_Wi",
                            {dimInput, dimState},
                            inits::glorot_uniform);
-    auto bi = graph->param(
-        prefix + "_bi", {1, dimState}, inits::zeros);
+    auto bi = graph->param(prefix + "_bi", {1, dimState}, inits::zeros);
 
     auto Uc = graph->param(prefix + "_Uc",
                            {dimState, dimState},
@@ -811,8 +804,7 @@ public:
     auto Wc = graph->param(prefix + "_Wc",
                            {dimInput, dimState},
                            inits::glorot_uniform);
-    auto bc = graph->param(
-        prefix + "_bc", {1, dimState}, inits::zeros);
+    auto bc = graph->param(prefix + "_bc", {1, dimState}, inits::zeros);
 
     auto Uo = graph->param(prefix + "_Uo",
                            {dimState, dimState},
@@ -820,8 +812,7 @@ public:
     auto Wo = graph->param(prefix + "_Wo",
                            {dimInput, dimState},
                            inits::glorot_uniform);
-    auto bo = graph->param(
-        prefix + "_bo", {1, dimState}, inits::zeros);
+    auto bo = graph->param(prefix + "_bo", {1, dimState}, inits::zeros);
 
     U_ = concatenate({Uf, Ui, Uc, Uo}, keywords::axis = -1);
     W_ = concatenate({Wf, Wi, Wc, Wo}, keywords::axis = -1);

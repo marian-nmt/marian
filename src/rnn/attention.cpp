@@ -22,10 +22,8 @@ struct AttentionNodeOp : public NaryNodeOp {
   }
 
   NodeOps forwardOps() {
-    return {NodeOp(Att(val_,
-                       child(0)->val(),
-                       child(1)->val(),
-                       child(2)->val()))};
+    return {
+        NodeOp(Att(val_, child(0)->val(), child(1)->val(), child(2)->val()))};
   }
 
   NodeOps backwardOps() {

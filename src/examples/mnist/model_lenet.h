@@ -33,6 +33,7 @@ protected:
 
     // Construct hidden layers
 
+    // clang-format off
     auto conv_1 = convolution(g)
                     ("prefix", "conv_1")
                     ("kernel-dims", std::make_pair(3,3))
@@ -44,6 +45,8 @@ protected:
                     ("kernel-dims", std::make_pair(3,3))
                     ("kernel-num", 64)
                     .apply(conv_1);
+    // clang-format on
+
     auto relued = relu(conv_2);
     auto pool = max_pooling(relued, 2, 2, 1, 1, 1, 1);
 
@@ -73,8 +76,8 @@ protected:
       }
 
       // Construct a weight node for the outgoing connections from layer i
-      weights.emplace_back(g->param(
-          "W" + std::to_string(i), {in, out}, inits::uniform()));
+      weights.emplace_back(
+          g->param("W" + std::to_string(i), {in, out}, inits::uniform()));
 
       // Construct a bias node. These weights are initialized to zero
       biases.emplace_back(
@@ -82,16 +85,14 @@ protected:
     }
 
     // Perform matrix multiplication and addition for the last layer
-    auto last = affine(dropout(layers.back(), 0.5),
-                       weights.back(),
-                       biases.back());
+    auto last
+        = affine(dropout(layers.back(), 0.5), weights.back(), biases.back());
 
     if(!inference) {
       // Create an output layer of shape batchSize x 1 and populate it with
       // labels
       auto labels = std::static_pointer_cast<data::DataBatch>(batch)->labels();
-      auto y = g->constant({(int)batch->size(), 1},
-                           inits::from_vector(labels));
+      auto y = g->constant({(int)batch->size(), 1}, inits::from_vector(labels));
 
       // Define a top-level node for training
       return mean(cross_entropy(last, y), axis = 0);

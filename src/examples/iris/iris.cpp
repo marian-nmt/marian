@@ -24,8 +24,7 @@ Expr buildIrisClassifier(Ptr<ExpressionGraph> graph,
   graph->clear();
 
   // Define the input layer
-  auto x = graph->constant({N, NUM_FEATURES},
-                           inits::from_vector(inputData));
+  auto x = graph->constant({N, NUM_FEATURES}, inits::from_vector(inputData));
 
   // Define the hidden layer
   auto W1 = graph->param("W1", {NUM_FEATURES, 5}, inits::uniform());
