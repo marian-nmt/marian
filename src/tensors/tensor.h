@@ -7,8 +7,8 @@
 
 #include "common/definitions.h"
 #include "common/shape.h"
-#include "tensors/memory_piece.h"
 #include "tensors/backend.h"
+#include "tensors/memory_piece.h"
 
 #include <algorithm>
 

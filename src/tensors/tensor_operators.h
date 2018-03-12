@@ -1,23 +1,23 @@
 #pragma once
 
 #include "common/definitions.h"
-#include "tensors/tensor.h"
 #include "tensors/allocator.h"
+#include "tensors/tensor.h"
 
 #include "tensors/dispatch.h"
 
 #include "functional/shape.h"
-#include "functional/tmp.h"
 #include "functional/tensor.h"
+#include "functional/tmp.h"
 
 #ifdef CUDA_FOUND
-#include "tensors/gpu/element.h"
 #include "tensors/gpu/add.h"
+#include "tensors/gpu/element.h"
 #include "tensors/gpu/prod.h"
 #endif
 
-#include "tensors/cpu/element.h"
 #include "tensors/cpu/add.h"
+#include "tensors/cpu/element.h"
 
 namespace marian {
 

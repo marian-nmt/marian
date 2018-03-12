@@ -1,11 +1,11 @@
 //#include <thrust/transform_reduce.h>
 
-#include "tensors/gpu/cuda_helpers.h"
 #include "tensors/tensor_operators.h"
-#include "tensors/gpu/backend.h"
 
-#include "functional/tensor.h"
 #include "functional/functional.h"
+#include "functional/tensor.h"
+#include "tensors/gpu/backend.h"
+#include "tensors/gpu/cuda_helpers.h"
 
 #include "3rd_party/reduce_all.h"
 

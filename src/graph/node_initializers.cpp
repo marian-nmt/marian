@@ -1,5 +1,4 @@
 #include "graph/node_initializers.h"
-
 #include "3rd_party/svd/svd.h"
 #include "layers/word2vec_reader.h"
 

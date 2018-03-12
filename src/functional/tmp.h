@@ -1,8 +1,8 @@
 #pragma once
 
+#include "functional/array.h"
 #include "functional/defs.h"
 #include "functional/tensor.h"
-#include "functional/array.h"
 
 namespace marian {
 namespace functional {

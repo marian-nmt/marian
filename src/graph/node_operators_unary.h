@@ -1,11 +1,11 @@
 #pragma once
 
-#include "tensors/tensor.h"
 #include "tensors/backend.h"
+#include "tensors/tensor.h"
 
+#include "functional/functional.h"
 #include "graph/node.h"
 #include "tensors/tensor_operators.h"
-#include "functional/functional.h"
 
 //#include "tensors/gpu/cudnn_wrappers.h"
 

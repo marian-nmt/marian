@@ -1,7 +1,9 @@
 #include "tensors/gpu/algorithm.h"
 
+// clang-format off
 #include "tensors/tensor_operators.h"
 #include "tensors/gpu/cuda_helpers.h"
+// clang-format on
 
 namespace marian {
 namespace gpu {

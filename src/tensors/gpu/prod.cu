@@ -1,8 +1,10 @@
 
 #include <cublas_v2.h>
 
+// clang-format off
 #include "tensors/gpu/prod.h"
 #include "tensors/gpu/backend.h"
+// clang-format on
 
 namespace marian {
 

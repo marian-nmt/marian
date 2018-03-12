@@ -1,10 +1,10 @@
 #include "tensors/gpu/element.h"
 
-#include "tensors/gpu/cuda_helpers.h"
 #include "functional/array.h"
+#include "functional/functional.h"
 #include "functional/tensor.h"
 #include "functional/tmp.h"
-#include "functional/functional.h"
+#include "tensors/gpu/cuda_helpers.h"
 
 namespace marian {
 namespace gpu {

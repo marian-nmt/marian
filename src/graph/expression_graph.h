@@ -7,13 +7,13 @@
 #include "common/config.h"
 #include "common/definitions.h"
 
-#include "tensors/tensor_allocator.h"
 #include "tensors/backend.h"
+#include "tensors/tensor_allocator.h"
 
-#include "graph/parameters.h"
 #include "graph/chainable.h"
-#include "graph/node_operators.h"
 #include "graph/node_initializers.h"
+#include "graph/node_operators.h"
+#include "graph/parameters.h"
 
 #include "3rd_party/cnpy/cnpy.h"
 

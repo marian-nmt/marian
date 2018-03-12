@@ -3,8 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// clang-format off
 #include "tensors/tensor_operators.h"
 #include "tensors/gpu/backend.h"
+// clang-format on
 
 #define CUDA_CALL(x)                                  \
   do {                                                \

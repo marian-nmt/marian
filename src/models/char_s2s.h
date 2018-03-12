@@ -1,9 +1,9 @@
 #pragma once
 
 #include "marian.h"
-#include "models/s2s.h"
 
 #include "layers/convolution.h"
+#include "models/s2s.h"
 
 namespace marian {
 
