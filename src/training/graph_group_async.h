@@ -114,8 +114,13 @@ public:
   }
 
   void save(bool final = false) {
-    if(final && scheduler_)
+    if(final && scheduler_) {
+      if(movingAvg_)
+          for(auto g : graphs_)
+            fetchParams(g->params()->vals(), paramsAvg_, 0 /* safe? */);
+
       scheduler_->validate(graphs_, true);
+    }
 
     save(graphs_[0], final);
   }
