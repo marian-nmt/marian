@@ -35,6 +35,9 @@ public:
   size_t maxStalled{0};
   // Last best validation score
   float validBest{0.f};
+  std::string validator;
+  // List of validators
+  YAML::Node validators;
   // Reset optimizer parameters
   bool reset{false};
 
@@ -110,6 +113,8 @@ public:
     stalled = config["stalled"].as<size_t>();
     maxStalled = config["stalled-max"].as<size_t>();
     validBest = config["valid-best"].as<float>();
+    validator = config["validator"].as<std::string>();
+    validators = config["validators"];
     reset = config["reset"].as<bool>();
 
     eta = config["eta"].as<float>();
@@ -136,6 +141,8 @@ public:
     config["stalled"] = stalled;
     config["stalled-max"] = maxStalled;
     config["valid-best"] = validBest;
+    config["validator"] = validator;
+    config["validators"] = validators;
     config["reset"] = reset;
 
     config["eta"] = eta;
