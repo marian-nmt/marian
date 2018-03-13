@@ -218,7 +218,7 @@ public:
     auto B = q->shape()[-4];
     auto H = q->shape()[-3];
     auto T = q->shape()[-2];
-    auto S = k->shape()[-1];
+    auto S = k->shape()[-2];
     if (offsetEmbeddingRange)
     {
       ABORT_IF(S != T || B != k->shape()[-4] || !isSelf, "inconsistent dimensions in self-attention (offset embedding)??");
@@ -232,6 +232,7 @@ public:
       // project every q (across batch, beams, time steps) with all offset embeddings
       auto q2d = flatten_2d(q); // [-2: beam depth * batch size * num heads * max tgt length, -1: split vector dim] flatten out the vectors across all those dimensions into a single matrix
       q2d->debug("q2d");
+      // TODO: the flattening to matrix is not needed, actually.
       auto qWAk = dot(q2d, WAk, false, true, scale); // [-2: beam depth * batch size * num heads * max tgt length, -1: N]
       qWAk->debug("qWAk");
       // scatter qw[b,h,t,s] <- qw[b,h,t,clamp(s-t)]
