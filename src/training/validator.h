@@ -30,11 +30,12 @@ public:
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) = 0;
   virtual std::string type() = 0;
 
+  float lastBest() { return lastBest_; }
   size_t stalled() { return stalled_; }
 
   virtual void actAfterLoaded(TrainingState& state) {
-    lastBest_ = state.validBest;
-    stalled_ = state.stalled;
+    lastBest_ = state.validators[type()]["last-best"].as<float>();
+    stalled_ = state.validators[type()]["stalled"].as<size_t>();
   }
 
   virtual float initScore() {

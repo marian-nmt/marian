@@ -81,14 +81,14 @@ public:
 
   void addValidator(Ptr<ValidatorBase> validator) {
     validators_.push_back(validator);
-    // stalled validations are computed with the first validator only
-    if(validators_.size() == 1) {
-      registerTrainingObserver(validators_.front());
-      // initialize the value of the very first validation score, which should
-      // be the worst possible
-      if(!state_->loaded)
-        state_->validBest = validators_.front()->initScore();
+
+    registerTrainingObserver(validators_.front());
+    if(!state_->loaded) {
+      state_->validators[validator->type()]["last-best"] = validator->initScore();
+      state_->validators[validator->type()]["stalled"] = 0;
     }
+    if(validators_.size() == 1)
+      state_->validator = validator->type();
   }
 
   bool validating() {
@@ -131,6 +131,9 @@ public:
         if(firstValidator)
           state_->validBest = value;
       }
+
+      state_->validators[validator->type()]["last-best"] = validator->lastBest();
+      state_->validators[validator->type()]["stalled"] = validator->stalled();
 
       // notify training observers if the first validator did not improve
       if(firstValidator && validator->stalled() > stalledPrev)
