@@ -229,12 +229,14 @@ public:
         LOG(info, "offset embedding, range {}", offsetEmbeddingRange);
       }
       auto WAk = graph->param(prefix + "_WAk", {N, dk}, init = inits::glorot_uniform);  // [N, split vector dim]
+      //WAk->debug("WAk");
       // project every q (across batch, beams, time steps) with all offset embeddings
-      auto q2d = flatten_2d(q); // [-2: beam depth * batch size * num heads * max tgt length, -1: split vector dim] flatten out the vectors across all those dimensions into a single matrix
-      q2d->debug("q2d");
+      //auto q2d = flatten_2d(q); // [-2: beam depth * batch size * num heads * max tgt length, -1: split vector dim] flatten out the vectors across all those dimensions into a single matrix
+      //q->debug("q");
       // TODO: the flattening to matrix is not needed, actually.
-      auto qWAk = dot(q2d, WAk, false, true, scale); // [-2: beam depth * batch size * num heads * max tgt length, -1: N]
-      qWAk->debug("qWAk");
+      //                                          q : [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]
+      auto qWAk = dot(q, WAk, false, true, scale); // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: N]
+      //qWAk->debug("qWAk");
       // scatter qw[b,h,t,s] <- qw[b,h,t,clamp(s-t)]
       // Implemented as a batch matrix product. OK for small N, and OK anyway for qWAk (scalar).
       // For every t we need a NxS-dim matrix: [-4: 1,  -3: T, -2: S, -1: N]  1 for n == embedding index for (s-t)
@@ -244,8 +246,8 @@ public:
       // reshape back to:                      [-4: B,  -3: H, -2: T, -1: S]
       std::vector<float> offsetSelCpu(T * S * N, 0);
       auto locate = [&](size_t t, size_t s, size_t n) { return (t * S + s) * N + n; };
-      for (size_t t = 0; t < T; t++)
-        for (size_t s = 0; s < S; s++)
+      for (int t = 0; t < T; t++)
+        for (int s = 0; s < S; s++)
       {
         auto offset = s - t;
         auto n = offset + offsetEmbeddingRange; // convert to index
@@ -254,12 +256,12 @@ public:
       }
       offsetSel = graph->constant({1, T, S, N},       // [-4: 1,  -3: T, -2: S, -1: N]
                                   init = inits::from_vector(offsetSelCpu));
-      offsetSel->debug("offsetSel (initial)");
+      //offsetSel->debug("offsetSel (initial)");
       offsetSel = repeat(offsetSel, B*H, axis = -4);  // [-4: BH, -3, T: -2: S, -1: N]
       qWAk = reshape(qWAk, {B*H, T, N, 1});           // [-4: BH, -3: T, -2: N, -1: d=1]
       auto zk = bdot(offsetSel, qWAk);                // [-4: BH, -3: T, -2: S, -1: d=1]
       zk = reshape(zk, {B, H, T, S});
-      zk->debug("zk");
+      //zk->debug("zk");
       z = z + zk;
     }
 
@@ -323,15 +325,18 @@ public:
     if (offsetEmbeddingRange)
     {
       auto WAv = graph->param(prefix + "_WAv", {N, dk}, init = inits::glorot_uniform);  // [N, split vector dim]
+      //WAv->debug("WAv");
       // weights:          [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
       // reduce weights to [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: N]
-      // offsetSel:                                                   [-4: BH, -3, T: -2: S, -1: N]
-      auto weights1 = reshape(weights, {B*H, T, S, 1});            // [-4: BH, -3: T, -2: S, -1: 1]
-      auto offsetWeights = bdot(offsetSel, weights1, true, false); // [-4: BH, -3: T, -2: N, -1: 1]
+      // offsetSel:                                                   [BH, T: S, N]
+      auto weights1 = reshape(weights, {B*H, T, S, 1});            // [BH, T, S, 1]
+      //weights1->debug("weights1");
+      auto offsetWeights = bdot(offsetSel, weights1, true, false); // [BH, T, N, 1]
+      offsetWeights = reshape(offsetWeights, {B, H, T, N});        // [B,  H, T, N]
+      //offsetWeights->debug("offsetWeights");
       // sum over Wav's rows, weighted by offsetWeights. This is a matrix product.
-      offsetWeights = reshape(offsetWeights, {B * H * T, N}); // [BHT, N]
-      Expr offsetOutput = dot(offsetWeights, WAv);            // [BHT, dk]
-      offsetOutput = reshape(offsetOutput, {B, H, T, dk}); // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]
+      Expr offsetOutput = dot(offsetWeights, WAv);                 // [B, H, T, dk]
+      //offsetOutput = reshape(offsetOutput, {B, H, T, dk}); // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]
       output = output + offsetOutput; // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]
     }
 
