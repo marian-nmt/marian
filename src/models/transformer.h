@@ -319,22 +319,14 @@ public:
       // We use the mask.
       // mask : [-4: batch size,              -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
       // all  : [-4: beam depth * batch size, -3: num heads,             -2: max tgt length,         -1: max src length]
-      //auto logWeights = logsoftmax(zm);
       auto all = weights; // pSentEndProb gets assigned the respective last step's' value of this
       auto last = getLast(all, exp(mask * 1e8), /*axis=*/-1); // select last step [-4: beam depth * batch size, -3: num heads (1), -2: max tgt length, -1: 1]
       // somehow the log-odds version did not converge, some math bug
-      //auto logWeights = logsoftmax(zm);
-      //// log odds = log P - log (1-P). May be numerically more stable. log (0+min()) ~= -87
-      //auto logOdds = logWeights - log(1 - weights + std::numeric_limits<float>::min());
       // note: last's shape is compatible with 'output'
       if (n % 100 == 0 && graph->getDevice().no == 0)
       {
-        //mulMask->debug("mulMask");
-        //shiftedMulMask->debug("shiftedMulMask");
-        //lastMask->debug("lastMask");
         auto Pst = weights; // P(s|t) : [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
         Pst->debug("Pst");
-        //last->debug("last");
         last->debug("last");
       }
       *pSentEndProb = last; // [-4: beam depth * batch size, -3: num heads (1), -2: max tgt length, -1: 1]
@@ -963,25 +955,16 @@ public:
       //  - log P (y|...) = select (u_end, log odds(end|...), log softmax_noEnd(f(context_vector))
       //  - The context vector should ideally not look at the end position, but that requires renormalization.
       //    Maybe OK since this is a hack anyway.
-      // const Word EOS_ID = 0;
       auto Pend = sentEndProb;  // [-4: beam depth * batch size, -3: 1, -2: max tgt length, -1: 1]
       //Pend = exp(Pend); // it's actually log
       // TODO: ^^ actually log odds
       Pend = reshape(Pend, { query->shape()[-4], query->shape()[-3], query->shape()[-2], 1 }); // [-4: beam depth, -3: batch size, -2: max length, -1: 1]
       Pend = TransposeTimeBatch(Pend); // [-4: beam depth, -3: max length, -2: batch size, -1: 1]
-      //auto logOdds_EOS = Pend; // that's actually what it is  --TODO rename once it works
       std::vector<float> u_EOSCpu(dimTrgVoc, 0);
       u_EOSCpu[EOS_ID] = 1;
       auto u_EOS = graph->constant({1, 1, 1, dimTrgVoc}, // [-4: 1,          -3: 1,          -2: 1,          -1: vocab dim]
                                    init = inits::from_vector(u_EOSCpu));
-      //auto logits_EOS = log(Pend / (1-Pend));            // [-4: beam depth, -3: max length, -2: batch size, -1: 1]
       auto logits_notEOS = logits + -99999999.f * u_EOS; // [-4: beam depth, -3: max length, -2: batch size, -1: vocab dim]
-      //logits->debug("logits pre");
-      //logits_notEOS->debug("logits_notEOS");
-      //logits_EOS->debug("logits_EOS");
-      //u_EOS->debug("u_EOS");
-      //logits = u_EOS * logits_EOS + (1-u_EOS) * logsoftmax(logits_notEOS);
-      //logits = u_EOS * log(Pend) + (1-u_EOS) * (log(1 - Pend) + logsoftmax(logits_notEOS));
       logits = where(u_EOS,
                      log(Pend + std::numeric_limits<float>::min()) - log((1-Pend) + std::numeric_limits<float>::min()),
                      logsoftmax(logits_notEOS));
@@ -991,8 +974,6 @@ public:
       if (n % 100 == 0)
       {
         LOG(info, "snapshot {}", n);
-        //targetMask->debug("targetMask");
-        //logOdds_EOS->debug("logOdds_EOS");
         Pend->debug("Pend");
         logits->debug("logits");
       }
