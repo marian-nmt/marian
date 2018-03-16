@@ -304,7 +304,6 @@ public:
       }
       //weights = weights + 0 * sum(sum(Pss, axis = -1), axis = -4); // HACK: make sure it gets evaluated, so we get the debug message
     }
-    n++;
 
 #if 1 // my strange experiment
     if (pSentEndProb && heads == 1)
@@ -321,7 +320,7 @@ public:
       // all  : [-4: beam depth * batch size, -3: num heads,             -2: max tgt length,         -1: max src length]
       auto all = weights; // pSentEndProb gets assigned the respective last step's' value of this
       auto last = getLast(all, exp(mask * 1e8), /*axis=*/-1); // select last step [-4: beam depth * batch size, -3: num heads (1), -2: max tgt length, -1: 1]
-      // somehow the log-odds version did not converge, some math bug
+      // BUGBUG: If I return logsoftmax(zm) instead, and exponentiate later, it does not converge. There is a bug somewhere.
       // note: last's shape is compatible with 'output'
       if (n % 100 == 0 && graph->getDevice().no == 0)
       {
@@ -332,6 +331,8 @@ public:
       *pSentEndProb = last; // [-4: beam depth * batch size, -3: num heads (1), -2: max tgt length, -1: 1]
     }
 #endif
+    if (graph->getDevice().no == 0)
+      n++;
 
     // optional dropout for attention weights
     // TODO: Does this really make sense? We don't drop out the final softmax either...
@@ -956,8 +957,6 @@ public:
       //  - The context vector should ideally not look at the end position, but that requires renormalization.
       //    Maybe OK since this is a hack anyway.
       auto Pend = sentEndProb;  // [-4: beam depth * batch size, -3: 1, -2: max tgt length, -1: 1]
-      //Pend = exp(Pend); // it's actually log
-      // TODO: ^^ actually log odds
       Pend = reshape(Pend, { query->shape()[-4], query->shape()[-3], query->shape()[-2], 1 }); // [-4: beam depth, -3: batch size, -2: max length, -1: 1]
       Pend = TransposeTimeBatch(Pend); // [-4: beam depth, -3: max length, -2: batch size, -1: 1]
       std::vector<float> u_EOSCpu(dimTrgVoc, 0);
@@ -971,13 +970,14 @@ public:
       auto targetMask = atleast_4d(state->getTargetMask());      // [1, max length, batch size, 1]
       logits = logits * targetMask; // suppress tokens beyond end of target for good measure (not sure if still needed)
       static int n = 0;
-      if (n % 100 == 0)
+      if (n % 100 == 0 && graph->getDevice().no == 0)
       {
         LOG(info, "snapshot {}", n);
         Pend->debug("Pend");
         logits->debug("logits");
       }
-      n++;
+      if (graph->getDevice().no == 0)
+        n++;
     }
 #endif
 
