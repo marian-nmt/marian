@@ -1689,6 +1689,7 @@ void Shift(Tensor out, Tensor in, Shape shift, bool invert) {
 
   UTIL_THROW_IF2(in->shape().size() != shift.size(), "bad dimensions");
 
+  // BUGBUG: This can only shift along the first axis. Shifting, e.g., along the last axis cannot be implemented this way.
   int offset = 0;
   for(int i = 0; i < shift.size(); ++i)
     offset += in->shape().stride(i) * shift[i];
