@@ -221,7 +221,9 @@ public:
     auto S = k->shape()[-2];
     if (offsetEmbeddingRange)
     {
-      ABORT_IF(S != T || B != k->shape()[-4] || !isSelf, "inconsistent dimensions in self-attention (offset embedding)??");
+      // note: in decoding, T=1
+      ABORT_IF((T != S && T != 1) || B != k->shape()[-4] || !isSelf,
+               "inconsistent dimensions in self-attention S={} T={} B={} k[4]={} (offset embedding)??", S, T, B, k->shape()[-4]);
       static bool shouted = false;
       if (!shouted)
       {
@@ -249,7 +251,7 @@ public:
       for (int t = 0; t < T; t++)
         for (int s = 0; s < S; s++)
       {
-        auto offset = s - t;
+        auto offset = s - (t + S - T); // the (S-T) adjusts for the inference case which calls this once per output step
         auto n = offset + offsetEmbeddingRange; // convert to index
         n = n < 0 ? 0 : n > (N-1) ? (N-1) : n;  // clamp to range
         offsetSelCpu[locate(t, s, n)] = 1;
@@ -266,10 +268,12 @@ public:
     }
 
     // take softmax along src sequence axis (-1)
-    auto weights = softmax(z + mask); // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
+    auto zm = z + mask;
+    auto weights = softmax(zm); // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
 
     // my strange experiment
     auto heads = q->shape()[-3];
+    static int n = 0; // log counter
     if (pExtraLoss && heads == 1)
     {
       auto Pst = weights; // P(s|t) : [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
@@ -282,7 +286,6 @@ public:
       }
       // compute P(t|s), which is weights normalized along time axis [-2]
       // Marian cannot taken softmax along other axes, so we must transpose
-      auto zm = z + mask;
       auto zmT = transpose(zm, {0, 1, 3, 2}); // [-4: beam depth * batch size, -3: num heads, -2: max src length, -1: max tgt length]
       auto Pts = softmax(zmT); // P(t|s); softmax is along original axis [-2] (tgt sequence axis) which is now [-1]
       auto PtsT = transpose(Pts, {0, 1, 3, 2}); // P(t|s) : [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
@@ -291,7 +294,6 @@ public:
       auto mulMask = exp(mask * 1e8);
       auto logPss = log(Pss + 1e-8) * mulMask;
       *pExtraLoss = -sum(sum(logPss, axis = -1), axis = -4);
-      static int n = 0;
       if (n % 100 == 0 && graph->getDevice().no == 0)
       {
         //mulMask->debug("mulMask");
@@ -300,23 +302,51 @@ public:
         Pss->debug("Pss");
         (*pExtraLoss)->debug("loss");
       }
-      n++;
       //weights = weights + 0 * sum(sum(Pss, axis = -1), axis = -4); // HACK: make sure it gets evaluated, so we get the debug message
     }
+    n++;
+
+#if 1 // my strange experiment
+    if (pSentEndProb && heads == 1)
+    {
+      auto getLast = [](Expr x, Expr mulMask, int/*keywords::axis_k*/ ax) // get last of 'x' according to (multiplicative) element-wise mask, along axis 'ax'
+      {
+        auto lastMask = mulMask - delay(mulMask, -1, /*axis=*/ax/*source-time direction*/); // selector for last source position (11100 --> 00100)
+        return sum(x * lastMask, ax); // select last step [-4: beam depth * batch size, -3: num heads (1), -2: max tgt length, -1: 1]
+        // ^^ this is actually a bdot, but of two vectors, which current bdot() cannot do
+      };
+      // pick out the sentence-end probability for each sequence
+      // We use the mask.
+      // mask : [-4: batch size,              -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
+      // all  : [-4: beam depth * batch size, -3: num heads,             -2: max tgt length,         -1: max src length]
+      //auto logWeights = logsoftmax(zm);
+      auto all = weights; // pSentEndProb gets assigned the respective last step's' value of this
+      auto last = getLast(all, exp(mask * 1e8), /*axis=*/-1); // select last step [-4: beam depth * batch size, -3: num heads (1), -2: max tgt length, -1: 1]
+      // somehow the log-odds version did not converge, some math bug
+      //auto logWeights = logsoftmax(zm);
+      //// log odds = log P - log (1-P). May be numerically more stable. log (0+min()) ~= -87
+      //auto logOdds = logWeights - log(1 - weights + std::numeric_limits<float>::min());
+      // note: last's shape is compatible with 'output'
+      if (n % 100 == 0 && graph->getDevice().no == 0)
+      {
+        //mulMask->debug("mulMask");
+        //shiftedMulMask->debug("shiftedMulMask");
+        //lastMask->debug("lastMask");
+        auto Pst = weights; // P(s|t) : [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
+        Pst->debug("Pst");
+        //last->debug("last");
+        last->debug("last");
+      }
+      *pSentEndProb = last; // [-4: beam depth * batch size, -3: num heads (1), -2: max tgt length, -1: 1]
+    }
+#endif
 
     // optional dropout for attention weights
+    // TODO: Does this really make sense? We don't drop out the final softmax either...
     float dropProb
         = inference ? 0 : options->get<float>("transformer-dropout-attention");
     if(dropProb)
       weights = dropout(weights, dropout_prob=dropProb);
-
-#if 1 // my strange experiment
-    if (pSentEndProb)
-    {
-      // pick out the sentence-end probability for each sequence
-      // Dang, how to do that? We don't have the length info. Now we need CNTK Dynamite...
-    }
-#endif
 
     // apply attention weights to values
     auto output = bdot(weights, v);   // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]
@@ -424,7 +454,7 @@ public:
 
       // apply multi-head attention to downscaled inputs
       auto output
-          = Attention(graph, options, prefix, qh, kh, vh, masks[i], inference, pExtraLoss, pSentEndProb, isSelf); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
+          = Attention(graph, options, prefix, qh, kh, vh, masks[i], inference, pExtraLoss, pSentEndProb, isSelf); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
 
       output = JoinHeads(output, q->shape()[-4]); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
       outputs.push_back(output);
@@ -753,7 +783,7 @@ public:
     using namespace keywords;
 
     auto embeddings = state->getTargetEmbeddings(); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vector dim]
-    auto decoderMask = state->getTargetMask();
+    auto decoderMask = state->getTargetMask();      // [max length, batch size, 1]  --this is a hypothesis
 
     // dropout target words
     float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
@@ -794,11 +824,11 @@ public:
     rnn::States decoderStates;
     int dimTrgWords = query->shape()[-2];
     int dimBatch = query->shape()[-3];
-    auto selfMask = TriangleMask(graph, dimTrgWords);
+    auto selfMask = TriangleMask(graph, dimTrgWords);  // [ (1,) 1, max length, max length]
     if(decoderMask) {
-      decoderMask = atleast_nd(decoderMask, 4);
-      decoderMask = reshape(TransposeTimeBatch(decoderMask),
-                            {1, dimBatch, 1, dimTrgWords});
+      decoderMask = atleast_nd(decoderMask, 4);             // [ 1, max length, batch size, 1 ]
+      decoderMask = reshape(TransposeTimeBatch(decoderMask),// [ 1, batch size, max length, 1 ]
+                            {1, dimBatch, 1, dimTrgWords}); // [ 1, batch size, 1, max length ]
       selfMask = selfMask * decoderMask;
       //if(dimBeam > 1)
       //  selfMask = repeat(selfMask, dimBeam, axis = -4);
@@ -890,7 +920,7 @@ public:
         }
       }
 
-      query = LayerFFN(graph,
+      query = LayerFFN(graph, // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
                        options_,
                        prefix_ + "_l" + std::to_string(i) + "_ffn",
                        query,
@@ -918,11 +948,57 @@ public:
     // aligned source context
     auto output = mlp::mlp(graph).push_back(layerOut);
 
-#if 1
-    sentEndProb;  // do something with this
-#endif
+    Expr logits = output->apply(decoderContext); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
 
-    Expr logits = output->apply(decoderContext);
+#if 1
+    if (sentEndProb)
+    {
+      auto where = [](Expr selector, Expr oneVal, Expr zeroVal) // return oneVal where selector=1, else zeroVal. Cf. numpy.where(), cntk.element_select()
+      {
+        return selector * oneVal + (1-selector) * zeroVal;
+      };
+      // this mode:
+      //  - P(y|...) = select (u_end, P(end|...),(1-P(end|...)) * softmax_noEnd(f(context_vector))
+      //             ~ select (u_end, odds(end|...), softmax_noEnd(f(context_vector))
+      //  - log P (y|...) = select (u_end, log odds(end|...), log softmax_noEnd(f(context_vector))
+      //  - The context vector should ideally not look at the end position, but that requires renormalization.
+      //    Maybe OK since this is a hack anyway.
+      // const Word EOS_ID = 0;
+      auto Pend = sentEndProb;  // [-4: beam depth * batch size, -3: 1, -2: max tgt length, -1: 1]
+      //Pend = exp(Pend); // it's actually log
+      // TODO: ^^ actually log odds
+      Pend = reshape(Pend, { query->shape()[-4], query->shape()[-3], query->shape()[-2], 1 }); // [-4: beam depth, -3: batch size, -2: max length, -1: 1]
+      Pend = TransposeTimeBatch(Pend); // [-4: beam depth, -3: max length, -2: batch size, -1: 1]
+      //auto logOdds_EOS = Pend; // that's actually what it is  --TODO rename once it works
+      std::vector<float> u_EOSCpu(dimTrgVoc, 0);
+      u_EOSCpu[EOS_ID] = 1;
+      auto u_EOS = graph->constant({1, 1, 1, dimTrgVoc}, // [-4: 1,          -3: 1,          -2: 1,          -1: vocab dim]
+                                   init = inits::from_vector(u_EOSCpu));
+      //auto logits_EOS = log(Pend / (1-Pend));            // [-4: beam depth, -3: max length, -2: batch size, -1: 1]
+      auto logits_notEOS = logits + -99999999.f * u_EOS; // [-4: beam depth, -3: max length, -2: batch size, -1: vocab dim]
+      //logits->debug("logits pre");
+      //logits_notEOS->debug("logits_notEOS");
+      //logits_EOS->debug("logits_EOS");
+      //u_EOS->debug("u_EOS");
+      //logits = u_EOS * logits_EOS + (1-u_EOS) * logsoftmax(logits_notEOS);
+      //logits = u_EOS * log(Pend) + (1-u_EOS) * (log(1 - Pend) + logsoftmax(logits_notEOS));
+      logits = where(u_EOS,
+                     log(Pend + std::numeric_limits<float>::min()) - log((1-Pend) + std::numeric_limits<float>::min()),
+                     logsoftmax(logits_notEOS));
+      auto targetMask = atleast_4d(state->getTargetMask());      // [1, max length, batch size, 1]
+      logits = logits * targetMask; // suppress tokens beyond end of target for good measure (not sure if still needed)
+      static int n = 0;
+      if (n % 100 == 0)
+      {
+        LOG(info, "snapshot {}", n);
+        //targetMask->debug("targetMask");
+        //logOdds_EOS->debug("logOdds_EOS");
+        Pend->debug("Pend");
+        logits->debug("logits");
+      }
+      n++;
+    }
+#endif
 
     // return unormalized(!) probabilities
 #if 1 // (my strange experiment)
