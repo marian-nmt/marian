@@ -70,9 +70,9 @@ NodeInitializer from_sparse_vector(
 NodeInitializer from_numpy(const cnpy::NpyArrayPtr& np);
 
 NodeInitializer from_word2vec(const std::string& file,
-                                          int dimVoc,
-                                          int dimEmb,
-                                          bool normalize = false);
+                              int dimVoc,
+                              int dimEmb,
+                              bool normalize = false);
 }
 
 }  // namespace marian

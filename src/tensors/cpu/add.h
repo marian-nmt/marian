@@ -5,16 +5,15 @@
 
 #pragma once
 
-#include "tensors/tensor.h"
 #include "functional/functional.h"
 #include "functional/shape.h"
-#include "functional/tmp.h"
 #include "functional/tensor.h"
+#include "functional/tmp.h"
+#include "tensors/tensor.h"
 
 namespace marian {
 
 namespace cpu {
-
 
 template <size_t K, class Functor>
 void gAddGeneric(Functor functor,
@@ -22,7 +21,6 @@ void gAddGeneric(Functor functor,
                  functional::Tensor<float> out,
                  functional::Array<functional::Tensor<float>, K> ins,
                  float scale = 1.0) {
-
   int outLength = out.shape().elements();
   bool same = outLength == full.elements();
   for(int i = 0; i < K; ++i)
@@ -73,7 +71,6 @@ void gAddReduce(Functor functor,
                 functional::Tensor<float> out,
                 functional::Array<functional::Tensor<float>, K> ins,
                 float scale = 1.0) {
-
   int rows = full.elements() / full.back();
   int cols = full.back();
 
@@ -100,12 +97,8 @@ void gAddReduce(Functor functor,
   }
 }
 
-template <class Functor, class ...Tensors>
-void Add(Functor functor,
-         float scale,
-         marian::Tensor out,
-         Tensors... tensors) {
-
+template <class Functor, class... Tensors>
+void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
   auto full = marian::Shape::broadcast({out, tensors...});
 
   int length = out->shape().elements();
@@ -113,7 +106,7 @@ void Add(Functor functor,
   constexpr size_t K = sizeof...(Tensors);
 
   functional::Tensor<float> gOut = out;
-  functional::Array<functional::Tensor<float>, K> gIns = {tensors ...};
+  functional::Array<functional::Tensor<float>, K> gIns = {tensors...};
 
   if(full.back() != 1 && out->shape().back() == 1) {
     size_t m = full.elements() / length;
@@ -128,8 +121,5 @@ void Add(Functor functor,
     cpu::gAddGeneric(functor, full, gOut, gIns, scale);
   }
 }
-
-
 }
-
 }

@@ -6,11 +6,7 @@ namespace marian {
 
 namespace gpu {
 
-template <class Functor, class ...Tensors>
-void Add(Functor functor,
-         float scale,
-         marian::Tensor out,
-         Tensors... tensors);
-
+template <class Functor, class... Tensors>
+void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors);
 }
 }

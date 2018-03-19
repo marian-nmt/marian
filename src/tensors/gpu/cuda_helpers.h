@@ -13,9 +13,8 @@ const int MAX_BLOCKS = 65535;
 #define CUDA_CHECK(ans) \
   { gpuAssert((ans), __FILE__, __LINE__); }
 
-
 inline void gpuAssert(cudaError_t code,
-                      const char *file,
+                      const char* file,
                       int line,
                       bool abort = true) {
   if(code != cudaSuccess) {
@@ -26,8 +25,8 @@ inline void gpuAssert(cudaError_t code,
 
 template <typename T>
 void CudaCopy(const T* start, const T* end, T* dest) {
-  CUDA_CHECK(cudaMemcpy((void*)dest, (void*)start, (end - start) * sizeof(T),
-             cudaMemcpyDefault));
+  CUDA_CHECK(cudaMemcpy(
+      (void*)dest, (void*)start, (end - start) * sizeof(T), cudaMemcpyDefault));
 }
 
 #define CUSPARSE_CHECK(x)                               \

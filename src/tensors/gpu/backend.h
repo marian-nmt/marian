@@ -25,13 +25,9 @@ public:
     setHandles();
   }
 
-  void setDevice() {
-    cudaSetDevice(deviceId_.no);
-  }
+  void setDevice() { cudaSetDevice(deviceId_.no); }
 
-  void synchronize() {
-    cudaStreamSynchronize(0);
-  }
+  void synchronize() { cudaStreamSynchronize(0); }
 
   cublasHandle_t getCublasHandle() { return cublasHandle_; }
 
@@ -41,12 +37,10 @@ private:
   cublasHandle_t cublasHandle_;
   curandGenerator_t curandGenerator_;
 
-
   void setHandles() {
     cublasHandle_ = create_handle();
     curandGenerator_ = createCurandGenerator();
   }
-
 
   curandGenerator_t createCurandGenerator() {
     cudaSetDevice(deviceId_.no);
@@ -67,6 +61,5 @@ private:
     return cublasHandle;
   }
 };
-
 }
 }

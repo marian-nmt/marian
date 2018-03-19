@@ -1,7 +1,7 @@
 #include "clippers.h"
 
-#include "tensors/tensor_operators.h"
 #include "functional/functional.h"
+#include "tensors/tensor_operators.h"
 
 namespace marian {
 void Elementwise::clip(Tensor t) {
@@ -15,5 +15,4 @@ void Norm::clip(Tensor t) {
   if(l2Norm >= c_)
     Element(_1 = (c_ / l2Norm) * _1, t);
 }
-
 }

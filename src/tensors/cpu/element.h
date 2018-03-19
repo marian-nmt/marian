@@ -13,12 +13,11 @@ namespace cpu {
 template <size_t K, bool broadcast, class Functor>
 void gElement(Functor functor,
               functional::Array<functional::Tensor<float>, K> tensors) {
-
   int length = tensors[0].shape().elements();
   functional::Array<int, functional::Shape::size()> dims;
   functional::Array<int, K> indices;
 
-  #pragma omp parallel for simd
+#pragma omp parallel for simd
   for(int index = 0; index < length; ++index) {
     indices.fill(index);
     if(broadcast) {
@@ -30,8 +29,8 @@ void gElement(Functor functor,
   }
 }
 
-template <class Functor, class ...Tensors>
-void Element(Functor functor, marian::Tensor out, Tensors ...tensors) {
+template <class Functor, class... Tensors>
+void Element(Functor functor, marian::Tensor out, Tensors... tensors) {
   constexpr size_t K = sizeof...(tensors) + 1;
   functional::Array<functional::Tensor<float>, K> gTensors = {out, tensors...};
 
@@ -46,6 +45,5 @@ void Element(Functor functor, marian::Tensor out, Tensors ...tensors) {
   else
     cpu::gElement<K, false>(functor, gTensors);
 }
-
 }
 }

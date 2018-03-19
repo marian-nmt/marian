@@ -1,19 +1,18 @@
-
-
 #include "tensors/gpu/element.h"
-#include "tensors/gpu/cuda_helpers.h"
+
 #include "functional/array.h"
+#include "functional/functional.h"
 #include "functional/tensor.h"
 #include "functional/tmp.h"
-#include "functional/functional.h"
+#include "tensors/gpu/cuda_helpers.h"
 
 namespace marian {
 namespace gpu {
 
 template <size_t K, bool broadcast, class Functor>
-__global__ void gElement(Functor functor,
-                         functional::Array<functional::Tensor<float>, K> tensors) {
-
+__global__ void gElement(
+    Functor functor,
+    functional::Array<functional::Tensor<float>, K> tensors) {
   int length = tensors[0].shape().elements();
   functional::Array<int, functional::Shape::size()> dims;
   functional::Array<int, K> indices;
@@ -21,7 +20,6 @@ __global__ void gElement(Functor functor,
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-
       indices.fill(index);
 
       if(broadcast) {
@@ -35,8 +33,8 @@ __global__ void gElement(Functor functor,
   }
 }
 
-template <class Functor, class ...Tensors>
-void Element(Functor functor, Tensor out, Tensors ...tensors) {
+template <class Functor, class... Tensors>
+void Element(Functor functor, Tensor out, Tensors... tensors) {
   cudaSetDevice(out->getDevice().no);
 
   constexpr size_t K = sizeof...(tensors) + 1;
@@ -57,8 +55,5 @@ void Element(Functor functor, Tensor out, Tensors ...tensors) {
 }
 
 #include "tensors/gpu/element.inc"
-
-
 }
 }
-

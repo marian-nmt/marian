@@ -70,7 +70,6 @@ public:
         movingAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")},
         tau_{options_->get<size_t>("optimizer-delay")} {
-
     pool_.reset(new ThreadPool(devices_.size(), devices_.size()));
 
     for(auto device : devices_) {
@@ -111,13 +110,17 @@ public:
         for(auto graph : graphs_)
           builders_[i++]->load(graph, init, false);
       }
-
     }
   }
 
   void save(bool final = false) {
-    if(final && scheduler_)
+    if(final && scheduler_) {
+      if(movingAvg_)
+          for(auto g : graphs_)
+            fetchParams(g->params()->vals(), paramsAvg_, 0 /* safe? */);
+
       scheduler_->validate(graphs_, true);
+    }
 
     save(graphs_[0], final);
   }

@@ -17,7 +17,6 @@ namespace functional {
  * @brief Represents the size of each dimension in a tensor.
  */
 
-
 template <const int N>
 struct ConstantShape {
   Array<int, N> shape_;
@@ -32,10 +31,10 @@ struct ConstantShape {
   }
 
   __HD__ ConstantShape(const ConstantShape& shape)
-  : shape_(shape.shape_),
-    stride_(shape.stride_),
-    bstride_(shape.bstride_),
-    elements_(shape.elements_) {}
+      : shape_(shape.shape_),
+        stride_(shape.stride_),
+        bstride_(shape.bstride_),
+        elements_(shape.elements_) {}
 
   ConstantShape(const Shape& shape) {
     size_t filled = shape.size();
@@ -43,7 +42,8 @@ struct ConstantShape {
     ABORT_IF(filled > N,
              "Recompile with CONST_SHAPE_DIMS >= " + std::to_string(filled));
 
-    std::copy(shape.shape_.begin(), shape.shape_.end(), shape_.begin() + N - filled);
+    std::copy(
+        shape.shape_.begin(), shape.shape_.end(), shape_.begin() + N - filled);
     if(N - filled)
       std::fill_n(shape_.begin(), N - filled, 1);
     updateStrides();
@@ -51,7 +51,6 @@ struct ConstantShape {
   }
 
   __HDI__ void updateStrides() {
-
     stride_[N - 1] = 1;
     bstride_[N - 1] = shape_[N - 1] == 1 ? 0 : stride_[N - 1];
 
@@ -73,7 +72,6 @@ struct ConstantShape {
     updateElements();
   }
 
-
   __HDI__ int dim(int i) { return shape_[i]; }
 
   __HDI__ int dim(int i) const {
@@ -92,9 +90,7 @@ struct ConstantShape {
 
   __HDI__ static constexpr size_t size() { return N; }
 
-  __HDI__ int elements() const {
-    return elements_;
-  }
+  __HDI__ int elements() const { return elements_; }
 
   __HDI__ int index(const Array<int, N>& d) const {
     int i = 0;
@@ -113,7 +109,7 @@ struct ConstantShape {
   __HDI__ void dims(int i, Array<int, N>& d) const {
     for(int j = 0; j < N; ++j)
       d[j] = (i / stride_[j]) % shape_[j];
-    }
+  }
 
   __HDI__ bool operator==(const ConstantShape& other) const {
     for(int i = 0; i < N; ++i)
@@ -128,7 +124,5 @@ struct ConstantShape {
 };
 
 typedef ConstantShape<CONST_SHAPE_DIMS> Shape;
-
 }
-
 }

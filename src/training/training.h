@@ -45,7 +45,6 @@ public:
 
     if((options_->has("valid-sets") || options_->has("valid-script-path"))
        && options_->get<size_t>("valid-freq") > 0) {
-
       for(auto validator : Validators(dataset->getVocabs(), options_))
         scheduler->addValidator(validator);
     }
@@ -59,7 +58,7 @@ public:
 
     // @TODO: shuffle_ as a private attribute in BG
     auto shuffle = !options_->get<bool>("no-shuffle");
-    bool restored = options_->get<bool>("restore-corpus")
+    bool restored = !options_->get<bool>("no-restore-corpus")
                     && batchGenerator->restore(trainState, shuffle);
 
     scheduler->started();

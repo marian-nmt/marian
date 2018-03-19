@@ -15,17 +15,13 @@ private:
 
 public:
   Backend(DeviceId deviceId, size_t seed)
-  : marian::Backend(deviceId, seed),
-    gen_(seed_) {}
+      : marian::Backend(deviceId, seed), gen_(seed_) {}
 
-  void setDevice() { }
+  void setDevice() {}
 
   void synchronize() {}
 
-  std::default_random_engine& getRandomGenerator() {
-    return gen_;
-  }
+  std::default_random_engine& getRandomGenerator() { return gen_; }
 };
-
 }
 }

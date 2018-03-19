@@ -1,7 +1,7 @@
 #pragma once
 
-#include "marian.h"
 #include <string>
+#include "marian.h"
 
 namespace marian {
 namespace models {

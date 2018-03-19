@@ -16,5 +16,4 @@ Ptr<Backend> BackendByDevice(DeviceId deviceId, size_t seed) {
 #endif
     return New<cpu::Backend>(deviceId, seed);
 }
-
 }

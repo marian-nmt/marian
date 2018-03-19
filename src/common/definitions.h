@@ -1,10 +1,10 @@
 #pragma once
 
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
-#include <iostream>
 
 #include "common/logging.h"
 #include "shape.h"
@@ -57,7 +57,6 @@ struct DeviceId {
   friend bool operator==(DeviceId id1, DeviceId id2) {
     return id1.no == id2.no && id1.type == id2.type;
   }
-
 };
 
 class TensorBase;

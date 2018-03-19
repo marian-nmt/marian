@@ -1,8 +1,10 @@
 
 #include <cublas_v2.h>
 
+// clang-format off
 #include "tensors/gpu/prod.h"
 #include "tensors/gpu/backend.h"
+// clang-format on
 
 namespace marian {
 
@@ -38,10 +40,11 @@ void Prod(marian::Tensor C,
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
-  auto cublasHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())->getCublasHandle();
+  auto cublasHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
+                          ->getCublasHandle();
 
 #if CUDA_VERSION >= 9000
-  //cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
+// cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
 #endif
 
   cublasSgemm(cublasHandle,
@@ -59,7 +62,7 @@ void Prod(marian::Tensor C,
               C->data(),
               ldc);
 #if CUDA_VERSION >= 9000
-  //cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
+// cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
 #endif
 }
 
@@ -96,10 +99,11 @@ void ProdBatched(marian::Tensor C,
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
-  auto cublasHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())->getCublasHandle();
+  auto cublasHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
+                          ->getCublasHandle();
 
 #if CUDA_VERSION >= 9000
-  //cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
+// cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
 #endif
   cublasSgemmStridedBatched(cublasHandle,
                             opB,
@@ -120,10 +124,8 @@ void ProdBatched(marian::Tensor C,
                             n * m,
                             std::max(batchA, batchB));
 #if CUDA_VERSION >= 9000
-  //cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
+// cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
 #endif
 }
-
-
 }
 }

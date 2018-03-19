@@ -16,18 +16,21 @@ struct NthElement {
   virtual ~NthElement() {}
 
   virtual void getNBestList(float* probs,
-                    const std::vector<int>& batchFirstElementIdxs,
-                    const std::vector<int>& cummulatedBeamSizes) = 0;
+                            const std::vector<int>& batchFirstElementIdxs,
+                            const std::vector<int>& cummulatedBeamSizes)
+      = 0;
 
   virtual void getNBestList(const std::vector<size_t>& beamSizes,
-                    Tensor Probs,
-                    std::vector<float>& outCosts,
-                    std::vector<unsigned>& outKeys,
-                    const bool isFirst = false) = 0;
+                            Tensor Probs,
+                            std::vector<float>& outCosts,
+                            std::vector<unsigned>& outKeys,
+                            const bool isFirst = false)
+      = 0;
 
   virtual void GetPairs(size_t number,
-                std::vector<unsigned>& outKeys,
-                std::vector<float>& outValues) = 0;
+                        std::vector<unsigned>& outKeys,
+                        std::vector<float>& outValues)
+      = 0;
 
   virtual void getValueByKey(std::vector<float>& out, float* d_in) = 0;
 };
@@ -105,5 +108,4 @@ private:
   int* d_cumBeamSizes;
   size_t lastN;
 };
-
 }

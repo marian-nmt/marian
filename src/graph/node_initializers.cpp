@@ -1,5 +1,4 @@
 #include "graph/node_initializers.h"
-
 #include "3rd_party/svd/svd.h"
 #include "layers/word2vec_reader.h"
 
@@ -109,9 +108,8 @@ void ortho(Tensor t) {
 
 NodeInitializer from_vector(const std::vector<float>& v) {
   auto vPtr = New<std::vector<float>>(v.begin(), v.end());
-  return [vPtr](Tensor t) {
-    t->set(vPtr->data(), vPtr->data() + vPtr->size());
-  };
+  return
+      [vPtr](Tensor t) { t->set(vPtr->data(), vPtr->data() + vPtr->size()); };
 }
 
 NodeInitializer from_vector(const std::vector<size_t>& v) {
@@ -138,9 +136,9 @@ NodeInitializer from_numpy(const cnpy::NpyArrayPtr& np) {
 
 // move this somewhere else
 NodeInitializer from_word2vec(const std::string& file,
-                                          int dimVoc,
-                                          int dimEmb,
-                                          bool normalize /*= false*/) {
+                              int dimVoc,
+                              int dimEmb,
+                              bool normalize /*= false*/) {
   return [file, dimVoc, dimEmb, normalize](Tensor t) {
     auto embs = Word2VecReader().read(file, dimVoc, dimEmb);
 

@@ -2,8 +2,7 @@
 #include "graph/node_operators_binary.h"
 
 namespace marian {
-Convolution::Convolution(Ptr<ExpressionGraph> graph)
-  : Factory(graph) {}
+Convolution::Convolution(Ptr<ExpressionGraph> graph) : Factory(graph) {}
 
 Expr Convolution::apply(Expr x) {
   auto prefix = opt<std::string>("prefix");
@@ -13,28 +12,21 @@ Expr Convolution::apply(Expr x) {
   auto strides = opt<std::pair<int, int>>("strides", std::make_pair(1, 1));
 
   int layerIn = x->shape()[1];
-  auto kernel = graph_->param(prefix + "_conv_kernels",
-                              {layerIn,
-                               kernelNum,
-                               kernelDims.first,
-                               kernelDims.second},
-                               inits::glorot_uniform);
+  auto kernel
+      = graph_->param(prefix + "_conv_kernels",
+                      {layerIn, kernelNum, kernelDims.first, kernelDims.second},
+                      inits::glorot_uniform);
 
-  auto bias = graph_->param(prefix + "_conv_bias",
-                            {1, kernelNum, 1, 1},
-                            inits::zeros);
+  auto bias = graph_->param(
+      prefix + "_conv_bias", {1, kernelNum, 1, 1}, inits::zeros);
 
   std::vector<Expr> nodes = {x, kernel, bias};
-  return Expression<ConvolutionOp>(nodes,
-                                   paddings.first,
-                                   paddings.second,
-                                   strides.first,
-                                   strides.second);
+  return Expression<ConvolutionOp>(
+      nodes, paddings.first, paddings.second, strides.first, strides.second);
 }
 
 Expr Convolution::apply(const std::vector<Expr>&) {
   ABORT("Can't apply convolution on many inputs at once");
   return nullptr;
 }
-
 }

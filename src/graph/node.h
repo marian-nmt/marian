@@ -33,8 +33,7 @@ protected:
 
 public:
   Node(Ptr<ExpressionGraph> graph, Shape shape)
-      : graph_(graph),
-        shape_(shape) {}
+      : graph_(graph), shape_(shape) {}
 
   virtual ~Node() {
     if(destroy_) {
@@ -152,7 +151,7 @@ struct NaryNodeOp : public Node {
   }
 
   NaryNodeOp(const std::vector<Expr>& nodes)
-  : NaryNodeOp(nodes, nodes[0]->shape()) {}
+      : NaryNodeOp(nodes, nodes[0]->shape()) {}
 
   virtual ~NaryNodeOp() {}
 

@@ -18,21 +18,19 @@ struct State {
       cell = atleast_4d(cell);
 
     int dimDepth = output->shape()[-1];
-    int dimTime  = output->shape()[-3];
+    int dimTime = output->shape()[-3];
 
     int dimBatch = indices.size() / beamSize;
 
     if(cell) {
-      return State{
-          reshape(rows(flatten_2d(output), indices),
-                  {beamSize, dimTime, dimBatch, dimDepth}),
-          reshape(rows(flatten_2d(cell), indices),
-                  {beamSize, dimTime, dimBatch, dimDepth})};
+      return State{reshape(rows(flatten_2d(output), indices),
+                           {beamSize, dimTime, dimBatch, dimDepth}),
+                   reshape(rows(flatten_2d(cell), indices),
+                           {beamSize, dimTime, dimBatch, dimDepth})};
     } else {
-      return State{
-        reshape(rows(flatten_2d(output), indices),
-                {beamSize, dimTime, dimBatch, dimDepth}),
-        nullptr};
+      return State{reshape(rows(flatten_2d(output), indices),
+                           {beamSize, dimTime, dimBatch, dimDepth}),
+                   nullptr};
     }
   }
 };

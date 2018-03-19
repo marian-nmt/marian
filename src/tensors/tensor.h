@@ -7,8 +7,8 @@
 
 #include "common/definitions.h"
 #include "common/shape.h"
-#include "tensors/memory_piece.h"
 #include "tensors/backend.h"
+#include "tensors/memory_piece.h"
 
 #include <algorithm>
 
@@ -78,7 +78,7 @@ public:
 #endif
   }
 
-  void get(std::vector<float> &v) {
+  void get(std::vector<float>& v) {
     v.resize(size());
     if(backend_->getDevice().type == DeviceType::cpu) {
       std::copy(data(), data() + size(), v.data());
@@ -101,9 +101,7 @@ public:
 #endif
   }
 
-  void set(const std::vector<float> &v) {
-    set(v.data(), v.data() + v.size());
-  }
+  void set(const std::vector<float>& v) { set(v.data(), v.data() + v.size()); }
 
   void set(float value) {
     if(backend_->getDevice().type == DeviceType::cpu) {
@@ -116,8 +114,7 @@ public:
 #endif
   }
 
-  void setSparse(const std::vector<size_t> &k,
-                 const std::vector<float> &v) {
+  void setSparse(const std::vector<size_t>& k, const std::vector<float>& v) {
     if(backend_->getDevice().type == DeviceType::cpu) {
       for(int i = 0; i < k.size(); ++i)
         data()[k[i]] = v[i];
@@ -130,8 +127,8 @@ public:
   }
 
   void copyFrom(Tensor in) {
-    if(in->getBackend()->getDevice().type == DeviceType::cpu &&
-       backend_->getDevice().type == DeviceType::cpu) {
+    if(in->getBackend()->getDevice().type == DeviceType::cpu
+       && backend_->getDevice().type == DeviceType::cpu) {
       std::copy(in->data(), in->data() + in->size(), data());
     }
 #ifdef CUDA_FOUND
@@ -167,7 +164,6 @@ public:
         disp = disp && (dims[j] < dispCols || dims[j] >= shape()[j] - dispCols);
 
       if(disp) {
-
         if(dims.back() == 0) {
           bool par = true;
           std::vector<std::string> p;
@@ -182,9 +178,7 @@ public:
           strm << " ";
         }
 
-        strm << std::setw(12)
-             << values[i]
-             << " ";
+        strm << std::setw(12) << values[i] << " ";
 
         if(dims.back() + 1 == shape().back()) {
           for(int j = dims.size() - 1; j >= 0; --j) {
@@ -214,9 +208,7 @@ public:
     strm << std::endl;
     return strm.str();
   }
-
 };
 
 typedef std::shared_ptr<TensorBase> Tensor;
-
 }

@@ -4,20 +4,18 @@
 
 namespace marian {
 
-static inline
-Expr guidedAlignmentCost(Ptr<ExpressionGraph> graph,
-                         Ptr<data::CorpusBatch> batch,
-                         Ptr<Options> options,
-                         Expr att) {
+static inline Expr guidedAlignmentCost(Ptr<ExpressionGraph> graph,
+                                       Ptr<data::CorpusBatch> batch,
+                                       Ptr<Options> options,
+                                       Expr att) {
   using namespace keywords;
 
   int dimBatch = att->shape()[0];
   int dimSrc = att->shape()[2];
   int dimTrg = att->shape()[3];
 
-  auto aln = graph->constant(
-      {dimBatch, 1, dimSrc, dimTrg},
-      inits::from_vector(batch->getGuidedAlignment()));
+  auto aln = graph->constant({dimBatch, 1, dimSrc, dimTrg},
+                             inits::from_vector(batch->getGuidedAlignment()));
 
   std::string guidedCostType
       = options->get<std::string>("guided-alignment-cost");
