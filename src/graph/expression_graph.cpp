@@ -1,8 +1,7 @@
-#include <sstream>
-#include "graph/backend_gpu.h"
 #include "graph/expression_graph.h"
+#include <sstream>
 
-#include "backend/dispatch.h"
+#include "tensors/tensor_operators.h"
 
 namespace marian {
 
@@ -11,25 +10,20 @@ ExpressionGraph::ExpressionGraph(bool inference)
 
 void ExpressionGraph::setDevice(DeviceId deviceId) {
   if(!backend_) {
-    backend_ = New<BackendGPU>(deviceId, Config::seed);
-  
+    backend_ = BackendByDevice(deviceId, Config::seed);
     params_ = New<Parameters>();
-    params_->init(backend_->getDevice());
-  
-    tensors_ = New<TensorAllocator>(backend_->getDevice());
+    params_->init(backend_);
+    tensors_ = New<TensorAllocator>(backend_);
   }
 }
 
-Expr ExpressionGraph::dropout(float prob, Shape shape) {
-  return Expression<ConstantNode>(shared_from_this(),
-                                  keywords::init = [prob, this](Tensor t) {
-                                    Dropout(backend_, t, prob);
-                                  },
-                                  keywords::shape = shape);
+Expr ExpressionGraph::dropout(float prob, const Shape& shape) {
+  return Expression<ConstantNode>(
+      shared_from_this(), shape, [prob, this](Tensor t) { Dropout(t, prob); });
 }
 
 void ExpressionGraph::checkNan(Tensor t) {
   ABORT_IF(throwNaN_, "Not implemented");
-  //ABORT_IF(throwNaN_ && IsNan(t), "Tensor has NaN");
+  // ABORT_IF(throwNaN_ && IsNan(t), "Tensor has NaN");
 }
 }

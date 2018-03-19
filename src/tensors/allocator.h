@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "common/definitions.h"
+#include "tensors/device.h"
 #include "tensors/memory_piece.h"
 
 namespace marian {
@@ -65,10 +66,9 @@ public:
   Gap rest(size_t offset) const { return Gap(data_ + offset, size_ - offset); }
 };
 
-template <class Device>
 class Allocator {
 private:
-  Device device_;
+  Ptr<Device> device_;
   size_t available_{0};
   size_t step_{128 * 1024 * 1024};
   size_t alignment_{256};
@@ -83,23 +83,23 @@ private:
 
   void grow(size_t add) {
     add = align(add);
-    uint8_t* oldData = device_.data();
-    size_t oldSize = device_.size();
+    uint8_t* oldData = device_->data();
+    size_t oldSize = device_->size();
 
-    device_.reserve(oldSize + add);
+    device_->reserve(oldSize + add);
 
     std::set<Gap> oldGaps;
     gaps_.swap(oldGaps);
 
     for(auto gap : oldGaps)
-      gaps_.insert(
-          Gap(device_.data() + std::distance(oldData, gap.data()), gap.size()));
-    insertGap(Gap(device_.data() + oldSize, add));
+      gaps_.insert(Gap(device_->data() + std::distance(oldData, gap.data()),
+                       gap.size()));
+    insertGap(Gap(device_->data() + oldSize, add));
 
     std::unordered_map<uint8_t*, Ptr<MemoryPiece>> oldAllocated;
     allocated_.swap(oldAllocated);
     for(auto it : oldAllocated) {
-      uint8_t* newPtr = device_.data() + std::distance(oldData, it.first);
+      uint8_t* newPtr = device_->data() + std::distance(oldData, it.first);
       allocated_[newPtr] = oldAllocated[it.first];
       allocated_[newPtr]->setPtr(newPtr);
     }
@@ -141,8 +141,11 @@ private:
   }
 
 public:
-  Allocator(DeviceId deviceId, size_t bytes, size_t step, size_t alignment = 256)
-      : device_(deviceId, alignment),
+  Allocator(DeviceId deviceId,
+            size_t bytes,
+            size_t step,
+            size_t alignment = 256)
+      : device_(DispatchDevice(deviceId, alignment)),
         step_(step),
         available_(0),
         alignment_(alignment) {
@@ -153,7 +156,8 @@ public:
 
   void reserve(size_t bytes) {
     bytes = align(bytes);
-    device_.reserve(bytes);
+    if(bytes > 0)
+      device_->reserve(bytes);
     clear();
   }
 
@@ -211,17 +215,17 @@ public:
     available_ = 0;
     gaps_.clear();
     allocated_.clear();
-    insertGap({device_.data(), device_.size()}, false);
+    insertGap({device_->data(), device_->size()}, false);
   }
 
   Ptr<MemoryPiece> memory() {
-    return New<MemoryPiece>(device_.data(), device_.size());
+    return New<MemoryPiece>(device_->data(), device_->size());
   }
 
-  size_t size() { return device_.size(); }
+  size_t size() { return device_->size(); }
 
   size_t available() { return available_; }
 
-  DeviceId getDevice() { return device_.getDevice(); }
+  DeviceId getDevice() { return device_->getDevice(); }
 };
 }

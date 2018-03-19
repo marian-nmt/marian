@@ -28,7 +28,8 @@ public:
         if(beam[j]->GetWord() == 0 || last) {
           float cost = (beam[j]->GetCost() - WordPenalty(history_.size())) / LengthPenalty(history_.size());
           topHyps_.push({history_.size(), j, cost});
-          //std::cerr << "Add " << history_.size() << " " << j << " " << cost << std::endl;
+          // std::cerr << "Add " << history_.size() << " " << j << " " << cost
+          // << std::endl;
         }
     }
     history_.push_back(beam);
@@ -45,14 +46,14 @@ public:
 
       size_t start = bestHypCoord.i;
       size_t j = bestHypCoord.j;
-      //float c = bestHypCoord.cost;
-      //std::cerr << "h: " << start << " " << j << " " << c << std::endl;
+      // float c = bestHypCoord.cost;
+      // std::cerr << "h: " << start << " " << j << " " << c << std::endl;
 
       Words targetWords;
       Ptr<Hypothesis> bestHyp = history_[start][j];
       while(bestHyp->GetPrevHyp() != nullptr) {
         targetWords.push_back(bestHyp->GetWord());
-        //std::cerr << bestHyp->GetWord() << " " << bestHyp << std::endl;
+        // std::cerr << bestHyp->GetWord() << " " << bestHyp << std::endl;
         bestHyp = bestHyp->GetPrevHyp();
       }
 

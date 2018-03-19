@@ -30,7 +30,10 @@ public:
 
     Ptr<BatchStats> stats;
     if(options_->get<bool>("mini-batch-fit")) {
-      LOG(info, "[batching] Collecting statistics for batch fitting");
+      LOG(info,
+          "[batching] Collecting statistics for batch fitting with step size "
+          "{}",
+          options_->get<size_t>("mini-batch-fit-step"));
       // @TODO, better fake batch with vocabulary
       auto model = New<ModelWrapper>(options_);
       THREAD_GUARD(stats = model->collectStats());
@@ -52,29 +55,39 @@ public:
 
     if((options_->has("valid-sets") || options_->has("valid-script-path"))
        && options_->get<size_t>("valid-freq") > 0) {
-
       for(auto validator : Validators(dataset->getVocabs(), options_))
         scheduler->addValidator(validator);
     }
+
+    auto batchGenerator = New<CorpusBatchGenerator>(dataset, options_, stats);
+    scheduler->registerTrainingObserver(batchGenerator);
 
     auto model = New<ModelWrapper>(options_);
     model->setScheduler(scheduler);
     model->load();
 
-    auto batchGenerator = New<BatchGenerator<CorpusBase>>(dataset, options_, stats);
+    // @TODO: shuffle_ as a private attribute in BG
+    auto shuffle = !options_->get<bool>("no-shuffle");
+    bool restored = !options_->get<bool>("no-restore-corpus")
+                    && batchGenerator->restore(trainState, shuffle);
 
     scheduler->started();
     while(scheduler->keepGoing()) {
-      auto shuffle = !options_->get<bool>("no-shuffle");
-      batchGenerator->prepare(shuffle);
+      if(!restored)
+        batchGenerator->prepare(shuffle);
+      restored = false;
+
       while(*batchGenerator && scheduler->keepGoing()) {
         auto batch = batchGenerator->next();
         model->update(batch);
       }
+
       if(scheduler->keepGoing())
         scheduler->increaseEpoch();
     }
     scheduler->finished();
+
+    model->wait();
     model->save(true);
   }
 };

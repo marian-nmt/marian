@@ -8,10 +8,10 @@ cuda_add_library(pymarian SHARED
   ../graph/node.cu
   ../graph/node_operators.cu
   ../tensors/tensor.cu
-  ../tensors/device_gpu.cu
+  ../tensors/device.cpp
   ../kernels/tensor_operators.cu
-  ../backend/gpu/dropout.cu
-  ../backend/cpu/dropout.cpp
+  ../tensors/gpu/dropout.cu
+  ../tensors/cpu/dropout.cpp
   ../kernels/sparse.cu
   #../layers/param_initializers.cu
   ../rnn/attention.cu

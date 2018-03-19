@@ -66,7 +66,7 @@ static std::string configInNpzPath(const std::string& fName, const std::string& 
 void Config::GetYamlFromNpz(YAML::Node& yaml,
                             const std::string& varName,
                             const std::string& fName) {
-  yaml = YAML::Load(cnpy::npz_load(configInNpzPath(fName, varName), varName).data);
+  yaml = YAML::Load(cnpy::npz_load(configInNpzPath(fName, varName), varName)->data());
 }
 
 void Config::AddYamlToNpz(const YAML::Node& yaml,

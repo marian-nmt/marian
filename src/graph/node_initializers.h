@@ -10,9 +10,9 @@
 
 namespace marian {
 
-namespace inits {
+typedef std::function<void(Tensor)> NodeInitializer;
 
-typedef std::function<void(Tensor)> ParameterInitializer;
+namespace inits {
 
 float xor128();
 
@@ -23,28 +23,35 @@ void zeros(Tensor t);
 
 void ones(Tensor t);
 
-std::function<void(Tensor)> from_value(float v);
+NodeInitializer from_value(float v);
 
-std::function<void(Tensor)> diag(float val);
+NodeInitializer diag(float val);
 
-template <class Distribution>
-void distribution(std::vector<float>& vals, float a, float b) {
+template <class Distribution, class Iterator>
+void distribution(Iterator begin, Iterator end, float a, float b) {
   std::default_random_engine engine(Config::seed++);
   Distribution dist(a, b);
   auto gen = std::bind(dist, engine);
-  std::generate(begin(vals), end(vals), gen);
+  std::generate(begin, end, gen);
+}
+
+template <class Distribution>
+void distribution(std::vector<float>& vals, float a, float b) {
+  distribution<Distribution>(vals.begin(), vals.end(), a, b);
 }
 
 template <class Distribution>
 void distribution(Tensor t, float a, float b) {
   std::vector<float> vals(t->size());
-  distribution<Distribution>(vals, a, b);
-  t << vals;
+  distribution<Distribution>(vals.begin(), vals.end(), a, b);
+  t->set(vals);
 }
 
-std::function<void(Tensor)> normal(float scale = 0.1, bool ortho = true);
+NodeInitializer normal(float scale = 0.1, bool ortho = true);
 
-std::function<void(Tensor)> uniform(float scale = 0.1);
+NodeInitializer uniform(float scale = 0.1);
+
+static inline void dummy(Tensor t) {}
 
 void ortho(Tensor t);
 
@@ -54,18 +61,18 @@ void xorshift(Tensor t);
 
 void glorot_normal(Tensor t);
 
-std::function<void(Tensor)> from_vector(const std::vector<float>& v);
-std::function<void(Tensor)> from_vector(const std::vector<size_t>& v);
+NodeInitializer from_vector(const std::vector<float>& v);
+NodeInitializer from_vector(const std::vector<size_t>& v);
 
-std::function<void(Tensor)> from_sparse_vector(
+NodeInitializer from_sparse_vector(
     std::pair<std::vector<size_t>, std::vector<float>>& v);
 
-std::function<void(Tensor)> from_numpy(const cnpy::NpyArray& np);
+NodeInitializer from_numpy(const cnpy::NpyArrayPtr& np);
 
-std::function<void(Tensor)> from_word2vec(const std::string& file,
-                                          int dimVoc,
-                                          int dimEmb,
-                                          bool normalize = false);
+NodeInitializer from_word2vec(const std::string& file,
+                              int dimVoc,
+                              int dimEmb,
+                              bool normalize = false);
 }
 
 }  // namespace marian

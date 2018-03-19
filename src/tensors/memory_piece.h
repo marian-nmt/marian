@@ -34,13 +34,6 @@ public:
 
   void setPtr(uint8_t* data) { data_ = data; }
 
-  template <typename T>
-  void insert(T* ptr, size_t num) {
-    insert((uint8_t*)ptr, num * sizeof(T));
-  }
-
-  void insert(uint8_t* ptr, size_t num);
-
   friend std::ostream& operator<<(std::ostream& out, const MemoryPiece mp) {
     out << "MemoryPiece - ptr: " << std::hex << (size_t)mp.data() << std::dec
         << " size: " << mp.size();

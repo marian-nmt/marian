@@ -6,8 +6,7 @@
 
 using namespace marian;
 
-TEST_CASE("Model components, RNN etc.", "[model]") {
-
+void tests(DeviceType type) {
   auto floatApprox = [](float x, float y) { return x == Approx(y).epsilon(0.01); };
 
   std::vector<size_t> vWords = {
@@ -36,13 +35,13 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
     Config::seed = 1234;
 
     auto graph = New<ExpressionGraph>();
-    graph->setDevice({0, DeviceType::gpu});
+    graph->setDevice({0, type});
     graph->reserveWorkspaceMB(16);
 
     std::vector<float> values;
 
     auto input = graph->constant({4, 1, 4},
-                                 keywords::init=inits::glorot_uniform);
+                                 inits::glorot_uniform);
 
     auto rnn = rnn::rnn(graph)         //
           ("prefix", "rnntest")        //
@@ -74,7 +73,7 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
     Config::seed = 1234;
 
     auto graph = New<ExpressionGraph>();
-    graph->setDevice({0, DeviceType::gpu});
+    graph->setDevice({0, type});
     graph->reserveWorkspaceMB(16);
 
     std::vector<float> values;
@@ -193,11 +192,11 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
 
     auto emb = graph->param("Embeddings",
                             {128, dimEmb},
-                            keywords::init=inits::glorot_uniform);
+                            inits::glorot_uniform);
 
     auto input = reshape(rows(emb, vWords), {dimTime, dimBatch, dimEmb});
     auto mask = graph->constant({dimTime, dimBatch, 1},
-                                keywords::init=inits::from_vector(vMask));
+                                inits::from_vector(vMask));
 
     int dimRnn = 32;
     auto context1 = buildRnn("enc1", input, mask, dimRnn);
@@ -279,3 +278,15 @@ TEST_CASE("Model components, RNN etc.", "[model]") {
     //                  vContextSum3.begin(), floatApprox) );
   }
 }
+
+#ifdef CUDA_FOUND
+TEST_CASE("Model components, RNN etc. (gpu)", "[model]") {
+  tests(DeviceType::gpu);
+}
+#endif
+
+#ifdef BLAS_FOUND
+TEST_CASE("Model components, RNN etc. (cpu)", "[model]") {
+  tests(DeviceType::cpu);
+}
+#endif

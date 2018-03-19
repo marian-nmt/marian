@@ -1,11 +1,12 @@
 #pragma once
 
 #include "marian.h"
-#include "layers/factory.h"
+
+#include "encdec.h"
 #include "layers/constructors.h"
+#include "layers/factory.h"
 #include "model_base.h"
 #include "model_factory.h"
-#include "encdec.h"
 
 namespace marian {
 
@@ -35,8 +36,8 @@ public:
     }
 
     // shared across batch entries
-    auto signal = graph->constant({dimWords, 1, dimEmb},
-                                  init = inits::from_vector(vPos));
+    auto signal
+        = graph->constant({dimWords, 1, dimEmb}, inits::from_vector(vPos));
     return input + signal;
   }
 
@@ -48,15 +49,14 @@ public:
     for(int i = 0; i < length; ++i)
       for(int j = 0; j <= i; ++j)
         vMask[i * length + j] = 1.f;
-    return graph->constant({1, length, length},
-                           init = inits::from_vector(vMask));
+    return graph->constant({1, length, length}, inits::from_vector(vMask));
   }
 
   // convert multiplicative 1/0 mask to additive 0/-inf log mask, and transpose to match result of bdot() op in Attention()
   static Expr transposedLogMask(Expr mask) { // mask: [-4: beam depth=1, -3: batch size, -2: vector dim=1, -1: max length]
     auto ms = mask->shape();
     mask = (1 - mask) * -99999999.f;
-    return reshape(mask, {ms[-3], 1, ms[-2]/*1?*/, ms[-1]}); // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
+    return reshape(mask, {ms[-3], 1, ms[-2], ms[-1]}); // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
   }
 
   static Expr SplitHeads(Expr input, int dimHeads) {
@@ -99,15 +99,14 @@ public:
     for(auto op : ops) {
       // dropout
       if(op == 'd' && dropProb > 0.0f) {
-        auto dropMask = graph->dropout(dropProb, output->shape());
-        output = dropout(output, mask = dropMask);
+        output = dropout(output, dropProb);
       }
       // layer normalization
       if(op == 'n') {
         auto scale = graph->param(
-            prefix + "_ln_scale_pre", {1, dimModel}, init = inits::ones);
+            prefix + "_ln_scale_pre", {1, dimModel}, inits::ones);
         auto bias = graph->param(
-            prefix + "_ln_bias_pre", {1, dimModel}, init = inits::zeros);
+            prefix + "_ln_bias_pre", {1, dimModel}, inits::zeros);
         output = layer_norm(output, scale, bias, 1e-6);
       }
     }
@@ -127,29 +126,27 @@ public:
     for(auto op : ops) {
       // dropout
       if(op == 'd' && dropProb > 0.0f) {
-        auto dropMask = graph->dropout(dropProb, output->shape());
-        output = dropout(output, mask = dropMask);
+        output = dropout(output, dropProb);
       }
-      // skip connection, moved behind layer normalization
+      // skip connection
       if(op == 'a') {
         output = output + prevInput;
       }
       // highway connection
       if(op == 'h') {
         auto Wh = graph->param(
-            prefix + "_Wh", {dimModel, dimModel}, init = inits::glorot_uniform);
-        auto bh
-            = graph->param(prefix + "_bh", {1, dimModel}, init = inits::zeros);
+            prefix + "_Wh", {dimModel, dimModel}, inits::glorot_uniform);
+        auto bh = graph->param(prefix + "_bh", {1, dimModel}, inits::zeros);
 
         auto t = affine(prevInput, Wh, bh);
         output = highway(output, prevInput, t);
       }
       // layer normalization
       if(op == 'n') {
-        auto scale = graph->param(
-            prefix + "_ln_scale", {1, dimModel}, init = inits::ones);
-        auto bias = graph->param(
-            prefix + "_ln_bias", {1, dimModel}, init = inits::zeros);
+        auto scale
+            = graph->param(prefix + "_ln_scale", {1, dimModel}, inits::ones);
+        auto bias
+            = graph->param(prefix + "_ln_bias", {1, dimModel}, inits::zeros);
         output = layer_norm(output, scale, bias, 1e-6);
       }
     }
@@ -346,8 +343,9 @@ public:
     // TODO: Does this really make sense? We don't drop out the final softmax either...
     float dropProb
         = inference ? 0 : options->get<float>("transformer-dropout-attention");
+
     if(dropProb)
-      weights = dropout(weights, dropout_prob=dropProb);
+      weights = dropout(weights, dropProb);
 
     // apply attention weights to values
     auto output = bdot(weights, v);   // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]
@@ -406,8 +404,8 @@ public:
     auto qh = noQKProjection ? q : affine(q, Wq, bq);
 #else
     auto Wq = graph->param(
-        prefix + "_Wq", {dimModel, dimModel}, init = inits::glorot_uniform);
-    auto bq = graph->param(prefix + "_bq", {1, dimModel}, init = inits::zeros);
+        prefix + "_Wq", {dimModel, dimModel}, inits::glorot_uniform);
+    auto bq = graph->param(prefix + "_bq", {1, dimModel}, inits::zeros);
     auto qh = affine(q, Wq, bq);
 #endif
     qh = SplitHeads(qh, dimHeads); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
@@ -440,11 +438,9 @@ public:
       auto bk = graph->param(
           prefixProj + "_bk", {1, dimModel}, init = inits::zeros);
 
-      auto Wv = graph->param(prefixProj + "_Wv",
-                             {dimModel, dimModel},
-                             init = inits::glorot_uniform);
-      auto bv = graph->param(
-          prefixProj + "_bv", {1, dimModel}, init = inits::zeros);
+      auto Wv = graph->param(
+          prefixProj + "_Wv", {dimModel, dimModel}, inits::glorot_uniform);
+      auto bv = graph->param(prefixProj + "_bv", {1, dimModel}, inits::zeros);
 
       auto kh = affine(keys[i], Wk, bk); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
       auto vh = affine(values[i], Wv, bv);
@@ -469,9 +465,9 @@ public:
 
     int dimAtt = output->shape()[-1];
 
-    auto Wo = graph->param(
-        prefix + "_Wo", {dimAtt, dimOut}, init = inits::glorot_uniform);
-    auto bo = graph->param(prefix + "_bo", {1, dimOut}, init = inits::zeros);
+    auto Wo
+        = graph->param(prefix + "_Wo", {dimAtt, dimOut}, inits::glorot_uniform);
+    auto bo = graph->param(prefix + "_bo", {1, dimOut}, inits::zeros);
     output = affine(output, Wo, bo);
 
     return output;
@@ -580,12 +576,12 @@ public:
     int dimFfn = options->get<int>("transformer-dim-ffn");
 
     auto W1 = graph->param(
-        prefix + "_W1", {dimModel, dimFfn}, init = inits::glorot_uniform);
-    auto b1 = graph->param(prefix + "_b1", {1, dimFfn}, init = inits::zeros);
+        prefix + "_W1", {dimModel, dimFfn}, inits::glorot_uniform);
+    auto b1 = graph->param(prefix + "_b1", {1, dimFfn}, inits::zeros);
 
     auto W2 = graph->param(
-        prefix + "_W2", {dimFfn, dimModel}, init = inits::glorot_uniform);
-    auto b2 = graph->param(prefix + "_b2", {1, dimModel}, init = inits::zeros);
+        prefix + "_W2", {dimFfn, dimModel}, inits::glorot_uniform);
+    auto b2 = graph->param(prefix + "_b2", {1, dimModel}, inits::zeros);
 
     output = affine(output, W1, b1);
     if(options->get<std::string>("transformer-ffn-activation") == "relu")
@@ -596,7 +592,7 @@ public:
     float ffnDropProb
         = inference ? 0 : options->get<float>("transformer-dropout-ffn");
     if(ffnDropProb)
-      output = dropout(output, dropout_prob = ffnDropProb);
+      output = dropout(output, ffnDropProb);
 
     output = affine(output, W2, b2);
 
@@ -658,8 +654,7 @@ public:
     float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");
     if(dropoutSrc) {
       int srcWords = batchEmbeddings->shape()[-3];
-      auto dropMask = graph->dropout(dropoutSrc, {srcWords, 1, 1});
-      batchEmbeddings = dropout(batchEmbeddings, mask = dropMask);
+      batchEmbeddings = dropout(batchEmbeddings, dropoutSrc, {srcWords, 1, 1});
     }
 
     // according to paper embeddings are scaled up by \sqrt(d_m)
@@ -745,11 +740,12 @@ public:
                    std::vector<Ptr<EncoderState>> &encStates)
       : DecoderState(states, probs, extraLoss, encStates) {}
 
-  virtual Ptr<DecoderState> select(const std::vector<size_t> &selIdx, int beamSize) {
+  virtual Ptr<DecoderState> select(const std::vector<size_t> &selIdx,
+                                   int beamSize) {
     rnn::States selectedStates;
 
     int dimDepth = states_[0].output->shape()[-1];
-    int dimTime  = states_[0].output->shape()[-2];
+    int dimTime = states_[0].output->shape()[-2];
     int dimBatch = selIdx.size() / beamSize;
 
     std::vector<size_t> selIdx2;
@@ -790,8 +786,7 @@ public:
     float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
     if(dropoutTrg) {
       int trgWords = embeddings->shape()[-3];
-      auto trgWordDrop = graph->dropout(dropoutTrg, {trgWords, 1, 1});
-      embeddings = dropout(embeddings, mask = trgWordDrop);
+      embeddings = dropout(embeddings, dropoutTrg, {trgWords, 1, 1});
     }
 
     //************************************************************************//
@@ -831,7 +826,7 @@ public:
       decoderMask = reshape(TransposeTimeBatch(decoderMask),// [ 1, batch size, max length, 1 ]
                             {1, dimBatch, 1, dimTrgWords}); // [ 1, batch size, 1, max length ]
       selfMask = selfMask * decoderMask;
-      //if(dimBeam > 1)
+      // if(dimBeam > 1)
       //  selfMask = repeat(selfMask, dimBeam, axis = -4);
     }
 
@@ -868,7 +863,8 @@ public:
       auto isTop = i == decDepth;
       auto values = query;
       if(prevDecoderStates.size() > 0)
-        values = concatenate({prevDecoderStates[i - 1].output, query}, axis = -2);
+        values
+            = concatenate({prevDecoderStates[i - 1].output, query}, axis = -2);
 
       decoderStates.push_back({values, nullptr});
 

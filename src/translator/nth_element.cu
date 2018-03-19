@@ -1,8 +1,14 @@
+/* All or part of this file was contributed by Intel under license:
+ *   Copyright (C) 2017-2018 Intel Corporation
+ *   SPDX-License-Identifier: MIT
+ */
+
 #include <iostream>
 
 #include "translator/nth_element.h"
 
-#include "kernels/cuda_helpers.h"
+#include <cuda.h>
+#include "tensors/gpu/cuda_helpers.h"
 
 namespace marian {
 
@@ -264,9 +270,9 @@ __global__ void gGetValueByKey(float* d_in, float* d_out, int* indeces, int n) {
   }
 }
 
-NthElement::NthElement(size_t maxBeamSize,
-                       size_t maxBatchSize,
-                       DeviceId deviceId)
+NthElementGPU::NthElementGPU(size_t maxBeamSize,
+                             size_t maxBatchSize,
+                             DeviceId deviceId)
     : deviceId_(deviceId),
       NUM_BLOCKS(std::min(
           500,
@@ -301,9 +307,9 @@ NthElement::NthElement(size_t maxBeamSize,
       cudaMalloc((void**)&d_cumBeamSizes, (maxBatchSize + 1) * sizeof(int)));
 }
 
-NthElement::~NthElement() {
+NthElementGPU::~NthElementGPU() {
   cudaSetDevice(deviceId_.no);
-  
+
   CUDA_CHECK(cudaFree(d_ind));
   CUDA_CHECK(cudaFree(d_out));
   CUDA_CHECK(cudaFree(d_res_idx));
@@ -315,9 +321,9 @@ NthElement::~NthElement() {
   CUDA_CHECK(cudaFree(d_cumBeamSizes));
 }
 
-void NthElement::getNBestList(float* probs,
-                              const std::vector<int>& batchFirstElementIdxs,
-                              const std::vector<int>& cummulatedBeamSizes) {
+void NthElementGPU::getNBestList(float* probs,
+                                 const std::vector<int>& batchFirstElementIdxs,
+                                 const std::vector<int>& cummulatedBeamSizes) {
   cudaSetDevice(deviceId_.no);
   CUDA_CHECK(cudaMemcpyAsync(d_batchPosition,
                              batchFirstElementIdxs.data(),
@@ -351,11 +357,11 @@ void NthElement::getNBestList(float* probs,
                                          NUM_BLOCKS);
 }
 
-void NthElement::getNBestList(const std::vector<size_t>& beamSizes,
-                              Tensor Probs,
-                              std::vector<float>& outCosts,
-                              std::vector<unsigned>& outKeys,
-                              const bool isFirst) {
+void NthElementGPU::getNBestList(const std::vector<size_t>& beamSizes,
+                                 Tensor Probs,
+                                 std::vector<float>& outCosts,
+                                 std::vector<unsigned>& outKeys,
+                                 const bool isFirst) {
   cudaSetDevice(deviceId_.no);
 
   std::vector<int> cummulatedBeamSizes(beamSizes.size() + 1, 0);
@@ -373,9 +379,9 @@ void NthElement::getNBestList(const std::vector<size_t>& beamSizes,
   GetPairs(cummulatedBeamSizes.back(), outKeys, outCosts);
 }
 
-void NthElement::GetPairs(size_t number,
-                          std::vector<unsigned>& outKeys,
-                          std::vector<float>& outValues) {            
+void NthElementGPU::GetPairs(size_t number,
+                             std::vector<unsigned>& outKeys,
+                             std::vector<float>& outValues) {
   cudaSetDevice(deviceId_.no);
   CUDA_CHECK(cudaMemcpyAsync(h_res,
                              d_res,
@@ -397,7 +403,7 @@ void NthElement::GetPairs(size_t number,
   lastN = number;
 }
 
-void NthElement::getValueByKey(std::vector<float>& out, float* d_in) {
+void NthElementGPU::getValueByKey(std::vector<float>& out, float* d_in) {
   cudaSetDevice(deviceId_.no);
 
   gGetValueByKey<<<1, lastN, 0, /* stream_ */ 0>>>(

@@ -1,20 +1,20 @@
 #pragma once
 
-#include "graph/backend_gpu.h"
-#include "graph/node.h"
-#include "kernels/sparse.h"
-#include "kernels/tensor_operators.h"
+#include "tensors/backend.h"
 #include "tensors/tensor.h"
-#include "functional/functional.h"
-#include "kernels/cudnn_wrappers.h"
 
+#include "functional/functional.h"
+#include "graph/node.h"
+#include "tensors/tensor_operators.h"
+
+//#include "tensors/gpu/cudnn_wrappers.h"
 
 namespace marian {
 
 struct UnaryNodeOp : public NaryNodeOp {
-  template <typename... Args>
-  UnaryNodeOp(Expr a, Args... args)
-      : NaryNodeOp({a}, keywords::shape = a->shape(), args...) {}
+  UnaryNodeOp(Expr a, Shape shape) : NaryNodeOp({a}, shape) {}
+
+  UnaryNodeOp(Expr a) : NaryNodeOp({a}, a->shape()) {}
 
   const std::string color() { return "yellow"; }
 };
@@ -24,9 +24,7 @@ private:
   float scalar_{0};
 
 public:
-  template <typename... Args>
-  ScalarAddNodeOp(Expr a, float scalar, Args... args)
-      : UnaryNodeOp(a, args...), scalar_{scalar} {}
+  ScalarAddNodeOp(Expr a, float scalar) : UnaryNodeOp(a), scalar_{scalar} {}
 
   NodeOps forwardOps() {
     using namespace functional;
@@ -65,9 +63,7 @@ private:
   float scalar_{0};
 
 public:
-  template <typename... Args>
-  ScalarMultNodeOp(Expr a, float scalar, Args... args)
-      : UnaryNodeOp(a, args...), scalar_{scalar} {}
+  ScalarMultNodeOp(Expr a, float scalar) : UnaryNodeOp(a), scalar_{scalar} {}
 
   NodeOps forwardOps() {
     using namespace functional;
@@ -102,8 +98,7 @@ public:
 };
 
 struct LogitNodeOp : public UnaryNodeOp {
-  template <typename... Args>
-  LogitNodeOp(Args... args) : UnaryNodeOp(args...) {}
+  LogitNodeOp(Expr a) : UnaryNodeOp(a) {}
 
   NodeOps forwardOps() {
     using namespace functional;
@@ -162,7 +157,7 @@ struct LogitNodeOp : public UnaryNodeOp {
 
 struct TanhNodeOp : public NaryNodeOp {
   TanhNodeOp(const std::vector<Expr>& nodes)
-      : NaryNodeOp(nodes, keywords::shape = newShape(nodes)) {}
+      : NaryNodeOp(nodes, newShape(nodes)) {}
 
   Shape newShape(const std::vector<Expr>& nodes) {
     return Shape::broadcast(nodes);
@@ -210,24 +205,8 @@ struct TanhNodeOp : public NaryNodeOp {
   const std::string type() { return "tanh"; }
 };
 
-/**
- * Represents a <a
- * href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">rectified
- * linear</a> node in an expression graph.
- *
- * This node implements the activation function \f$ f(x) = \max(0, x) \f$ and
- * its derivative:
- * \f[
- *   f^\prime(x) =
- *   \begin{cases}
- *     0 & \text{if } x \leq 0 \\
- *     1 & \text{if } x > 0
- *   \end{cases}
- * \f]
- */
 struct ReLUNodeOp : public UnaryNodeOp {
-  template <typename... Args>
-  ReLUNodeOp(Args... args) : UnaryNodeOp(args...) {}
+  ReLUNodeOp(Expr a) : UnaryNodeOp(a) {}
 
   NodeOps forwardOps() {
     // f(x) = max(0, x)
@@ -277,9 +256,7 @@ struct ReLUNodeOp : public UnaryNodeOp {
  * \f]
  */
 struct PReLUNodeOp : public UnaryNodeOp {
-  template <typename... Args>
-  PReLUNodeOp(float alpha, Args... args)
-      : UnaryNodeOp(args...), alpha_(alpha) {}
+  PReLUNodeOp(float alpha, Expr a) : UnaryNodeOp(a), alpha_(alpha) {}
 
   NodeOps forwardOps() {
     using namespace functional;
@@ -328,8 +305,7 @@ private:
  *
  */
 struct SwishNodeOp : public UnaryNodeOp {
-  template <typename... Args>
-  SwishNodeOp(Args... args) : UnaryNodeOp(args...) {}
+  SwishNodeOp(Expr a) : UnaryNodeOp(a) {}
 
   NodeOps forwardOps() {
     using namespace functional;
@@ -350,14 +326,10 @@ struct SwishNodeOp : public UnaryNodeOp {
   const std::string type() { return "swish"; }
 };
 
-struct SoftmaxNodeOp : public NaryNodeOp {
-  template <typename... Args>
-  SoftmaxNodeOp(Expr a, Args... args)
-      : NaryNodeOp(a, args...), mask_(nullptr) {}
+struct SoftmaxNodeOp : public UnaryNodeOp {
+  SoftmaxNodeOp(Expr a) : UnaryNodeOp(a), mask_(nullptr) {}
 
-  template <typename... Args>
-  SoftmaxNodeOp(Expr a, Expr mask, Args... args)
-      : NaryNodeOp({a}, args...), mask_(mask) {}
+  SoftmaxNodeOp(Expr a, Expr mask) : UnaryNodeOp(a), mask_(mask) {}
 
   Expr mask_;
 
@@ -408,8 +380,7 @@ struct SoftmaxNodeOp : public NaryNodeOp {
 };
 
 struct LogSoftmaxNodeOp : public UnaryNodeOp {
-  template <typename... Args>
-  LogSoftmaxNodeOp(Args... args) : UnaryNodeOp(args...) {}
+  LogSoftmaxNodeOp(Expr a) : UnaryNodeOp(a) {}
 
   NodeOps forwardOps() { return {NodeOp(LogSoftmax(val_, child(0)->val()))}; }
 
@@ -427,17 +398,18 @@ struct SumNodeOp : public UnaryNodeOp {
   int ax_;
 
   template <typename... Args>
-  SumNodeOp(Expr a, Args... args)
-      : UnaryNodeOp(a, keywords::shape = newShape(a, args...), args...) {}
+  SumNodeOp(Expr a, Args... args) : UnaryNodeOp(a, newShape(a, args...)) {}
 
   NodeOps forwardOps() {
     using namespace functional;
 
-    return {NodeOp(Reduce(_1, val_, child(0)->val()))}; }
+    return {NodeOp(Reduce(_1, val_, child(0)->val()))};
+  }
 
   NodeOps backwardOps() {
     using namespace functional;
-    return {NodeOp(Add(_1, child(0)->grad(), adj_))}; }
+    return {NodeOp(Add(_1, child(0)->grad(), adj_))};
+  }
 
   template <class... Args>
   Shape newShape(Expr a, Args... args) {
@@ -476,8 +448,7 @@ struct MeanNodeOp : public UnaryNodeOp {
   int ax_;
 
   template <typename... Args>
-  MeanNodeOp(Expr a, Args... args)
-      : UnaryNodeOp(a, keywords::shape = newShape(a, args...), args...) {}
+  MeanNodeOp(Expr a, Args... args) : UnaryNodeOp(a, newShape(a, args...)) {}
 
   NodeOps forwardOps() {
     using namespace functional;
@@ -528,8 +499,7 @@ struct MeanNodeOp : public UnaryNodeOp {
 };
 
 struct LogNodeOp : public UnaryNodeOp {
-  template <typename... Args>
-  LogNodeOp(Args... args) : UnaryNodeOp(args...) {}
+  LogNodeOp(Expr a) : UnaryNodeOp(a) {}
 
   NodeOps forwardOps() {
     using namespace functional;
@@ -546,8 +516,7 @@ struct LogNodeOp : public UnaryNodeOp {
 };
 
 struct ExpNodeOp : public UnaryNodeOp {
-  template <typename... Args>
-  ExpNodeOp(Args... args) : UnaryNodeOp(args...) {}
+  ExpNodeOp(Expr a) : UnaryNodeOp(a) {}
 
   NodeOps forwardOps() {
     using namespace functional;
@@ -565,9 +534,7 @@ struct ExpNodeOp : public UnaryNodeOp {
 struct SqrtNodeOp : public UnaryNodeOp {
   float epsilon_;
 
-  template <typename... Args>
-  SqrtNodeOp(Expr a, float epsilon, Args... args)
-      : UnaryNodeOp(a, args...), epsilon_(epsilon) {}
+  SqrtNodeOp(Expr a, float epsilon) : UnaryNodeOp(a), epsilon_(epsilon) {}
 
   NodeOps forwardOps() {
     using namespace functional;
@@ -603,8 +570,7 @@ struct SqrtNodeOp : public UnaryNodeOp {
 };
 
 struct SquareNodeOp : public UnaryNodeOp {
-  template <typename... Args>
-  SquareNodeOp(Args... args) : UnaryNodeOp(args...) {}
+  SquareNodeOp(Expr a) : UnaryNodeOp(a) {}
 
   NodeOps forwardOps() {
     using namespace functional;
@@ -621,8 +587,7 @@ struct SquareNodeOp : public UnaryNodeOp {
 };
 
 struct NegNodeOp : public UnaryNodeOp {
-  template <typename... Args>
-  NegNodeOp(Args... args) : UnaryNodeOp(args...) {}
+  NegNodeOp(Expr a) : UnaryNodeOp(a) {}
 
   NodeOps forwardOps() {
     using namespace functional;
@@ -638,10 +603,8 @@ struct NegNodeOp : public UnaryNodeOp {
 };
 
 struct RowsNodeOp : public UnaryNodeOp {
-  template <typename... Args>
-  RowsNodeOp(Expr a, const std::vector<size_t>& indeces, Args... args)
-      : UnaryNodeOp(a, keywords::shape = newShape(a, indeces), args...),
-        indices_(indeces) {}
+  RowsNodeOp(Expr a, const std::vector<size_t>& indeces)
+      : UnaryNodeOp(a, newShape(a, indeces)), indices_(indeces) {}
 
   NodeOps forwardOps() {
     // @TODO: solve this with a tensor!
@@ -691,10 +654,8 @@ struct RowsNodeOp : public UnaryNodeOp {
 };
 
 struct ColsNodeOp : public UnaryNodeOp {
-  template <typename... Args>
-  ColsNodeOp(Expr a, const std::vector<size_t>& indeces, Args... args)
-      : UnaryNodeOp(a, keywords::shape = newShape(a, indeces), args...),
-        indices_(indeces) {}
+  ColsNodeOp(Expr a, const std::vector<size_t>& indeces)
+      : UnaryNodeOp(a, newShape(a, indeces)), indices_(indeces) {}
 
   NodeOps forwardOps() {
     // @TODO: solve this with a tensor!
@@ -743,17 +704,16 @@ struct ColsNodeOp : public UnaryNodeOp {
 
 struct SelectNodeOp : public UnaryNodeOp {
   SelectNodeOp(Expr a, int axis, const std::vector<size_t>& indeces)
-      : UnaryNodeOp(a, keywords::shape = newShape(a, axis, indeces)),
-        indices_(indeces) {}
+      : UnaryNodeOp(a, newShape(a, axis, indeces)), indices_(indeces) {}
 
   NodeOps forwardOps() {
     return {NodeOp(
-        Select(graph()->allocator(), val_, child(0)->val(), axis_, indices_))};
+        Select(val_, child(0)->val(), axis_, indices_, graph()->allocator()))};
   }
 
   NodeOps backwardOps() {
     return {NodeOp(
-        Insert(graph()->allocator(), child(0)->grad(), adj_, axis_, indices_))};
+        Insert(child(0)->grad(), adj_, axis_, indices_, graph()->allocator()))};
   }
 
   Shape newShape(Expr a, int axis, const std::vector<size_t>& indeces) {
@@ -799,8 +759,7 @@ struct TransposeNodeOp : public UnaryNodeOp {
   std::vector<int> axes_;
 
   TransposeNodeOp(Expr a, const std::vector<int>& axes)
-      : UnaryNodeOp(a, keywords::shape = newShape(a, axes)),
-        axes_{axes} {}
+      : UnaryNodeOp(a, newShape(a, axes)), axes_{axes} {}
 
   NodeOps forwardOps() {
     return {NodeOp(TransposeND(val_, child(0)->val(), axes_))};
@@ -815,7 +774,7 @@ struct TransposeNodeOp : public UnaryNodeOp {
     Shape shape = a->shape();
 
     ABORT_IF(shape.size() != axes.size(),
-            "Shape and transpose axes have different number of dimensions");
+             "Shape and transpose axes have different number of dimensions");
 
     for(int i = 0; i < shape.size(); ++i)
       shape.set(i, a->shape()[axes[i]]);
@@ -856,8 +815,7 @@ private:
 
 public:
   template <typename... Args>
-  ReshapeNodeOp(Expr a, Shape shape, Args... args)
-      : UnaryNodeOp(a, keywords::shape = shape, args...), reshapee_(a) {
+  ReshapeNodeOp(Expr a, Shape shape) : UnaryNodeOp(a, shape), reshapee_(a) {
     Node::destroy_ = false;
   }
 
@@ -876,14 +834,14 @@ public:
   Tensor& val() {
     auto childVal = reshapee_->val();
     val_.reset(
-        new TensorBase(childVal->memory(), shape(), childVal->getDevice()));
+        new TensorBase(childVal->memory(), shape(), childVal->getBackend()));
     return val_;
   };
 
   Tensor& grad() {
     auto childGrad = reshapee_->grad();
     adj_.reset(
-        new TensorBase(childGrad->memory(), shape(), childGrad->getDevice()));
+        new TensorBase(childGrad->memory(), shape(), childGrad->getBackend()));
     return adj_;
   };
 
@@ -921,9 +879,7 @@ private:
 
 public:
   StepNodeOp(Expr a, int step, int axis)
-      : UnaryNodeOp(a, keywords::shape = newShape(a, axis)),
-        stepNode_(a),
-        step_(step) {
+      : UnaryNodeOp(a, newShape(a, axis)), stepNode_(a), step_(step) {
     Node::destroy_ = false;
   }
 
@@ -952,7 +908,7 @@ public:
     size_t offset = step_ * shape().elements() * sizeof(float);
     auto mem = New<MemoryPiece>(childVal->memory()->data() + offset,
                                 childVal->memory()->size());
-    val_.reset(new TensorBase(mem, shape(), childVal->getDevice()));
+    val_.reset(new TensorBase(mem, shape(), childVal->getBackend()));
     return val_;
   };
 
@@ -961,7 +917,7 @@ public:
     size_t offset = step_ * shape().elements() * sizeof(float);
     auto mem = New<MemoryPiece>(childGrad->memory()->data() + offset,
                                 childGrad->memory()->size());
-    adj_.reset(new TensorBase(mem, shape(), childGrad->getDevice()));
+    adj_.reset(new TensorBase(mem, shape(), childGrad->getBackend()));
     return adj_;
   };
 
@@ -993,12 +949,11 @@ public:
 };
 
 struct ShiftNodeOp : public UnaryNodeOp {
-  template <typename... Args>
-  ShiftNodeOp(Expr a, Shape shift, Args... args)
-      : UnaryNodeOp(a, keywords::shape = a->shape(), args...), shift_(shift) {}
+  ShiftNodeOp(Expr a, Shape shift)
+      : UnaryNodeOp(a, a->shape()), shift_(shift) {}
 
   NodeOps forwardOps() {
-    return {NodeOp(Shift(val_, child(0)->val(), shift_))};
+    return {NodeOp(Shift(val_, child(0)->val(), shift_, false))};
   }
 
   NodeOps backwardOps() {
@@ -1084,67 +1039,54 @@ public:
                  padWidth,
                  strideHeight,
                  strideWidth,
-                 mode) {
-  }
+                 mode) {}
 
   NodeOps forwardOps() {
     return {NodeOp(pooling_.forward(child(0)->val(), val_))};
   }
 
   NodeOps backwardOps() {
-    return {NodeOp(pooling_.backward(
-          child(0)->val(),
-          child(0)->grad(),
-          val_,
-          adj_))};
+    return {NodeOp(
+        pooling_.backward(child(0)->val(), child(0)->grad(), val_, adj_))};
   }
 
   const std::string type() { return "layer_pooling"; }
-
 
 protected:
   PoolingWrapper pooling_;
 };
 
 class PoolingWithMaskingOp : public UnaryNodeOp {
-  public:
-    PoolingWithMaskingOp( Expr x, Expr mask, int width, bool isEven=false)
-      : UnaryNodeOp(x),
-        mask_(mask),
-        width_(width),
-        isEven_(isEven)
-    {
-      auto xShape = x->shape();
-      int dimBatch = xShape[0];
-      int dimWord = xShape[1];
-      int cols = (isEven_) ? xShape[2] - 1 : xShape[2];
-      int dimSentence = (cols / width_) + (cols % width_ != 0);
-      shape_ = {dimBatch, dimWord, dimSentence};
-    }
+public:
+  PoolingWithMaskingOp(Expr x, Expr mask, int width, bool isEven = false)
+      : UnaryNodeOp(x), mask_(mask), width_(width), isEven_(isEven) {
+    auto xShape = x->shape();
+    int dimBatch = xShape[0];
+    int dimWord = xShape[1];
+    int cols = (isEven_) ? xShape[2] - 1 : xShape[2];
+    int dimSentence = (cols / width_) + (cols % width_ != 0);
+    shape_ = {dimBatch, dimWord, dimSentence};
+  }
 
-    NodeOps forwardOps() {
-      return {NodeOp(PoolingWithMaskingForward(val_,
+  NodeOps forwardOps() {
+    return {NodeOp(PoolingWithMaskingForward(
+        val_, child(0)->val(), mask_->val(), width_, isEven_))};
+  }
+
+  NodeOps backwardOps() {
+    return {NodeOp(PoolingWithMaskingBackward(adj_,
+                                              child(0)->grad(),
                                               child(0)->val(),
                                               mask_->val(),
                                               width_,
                                               isEven_))};
-    }
+  }
 
-    NodeOps backwardOps() {
-      return {NodeOp(PoolingWithMaskingBackward(adj_,
-                                               child(0)->grad(),
-                                               child(0)->val(),
-                                               mask_->val(),
-                                               width_,
-                                               isEven_))};
-    }
+  const std::string type() { return "layer_pooling"; }
 
-    const std::string type() {return "layer_pooling";}
-
-  protected:
-    Expr mask_;
-    int width_;
-    bool isEven_;
+protected:
+  Expr mask_;
+  int width_;
+  bool isEven_;
 };
-
 }

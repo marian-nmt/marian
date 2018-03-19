@@ -106,21 +106,21 @@ public:
         continue;
 
       Shape shape;
-      if(numpy[name].shape.size() == 2) {
+      if(numpy[name]->shape.size() == 2) {
         shape.resize(2);
-        shape.set(0, numpy[name].shape[0]);
-        shape.set(1, numpy[name].shape[1]);
-      } else if(numpy[name].shape.size() == 1) {
+        shape.set(0, numpy[name]->shape[0]);
+        shape.set(1, numpy[name]->shape[1]);
+      } else if(numpy[name]->shape.size() == 1) {
         shape.resize(2);
         shape.set(0, 1);
-        shape.set(1, numpy[name].shape[0]);
+        shape.set(1, numpy[name]->shape[0]);
       }
 
       std::string pName = name;
       if(nameMap.count(name))
         pName = nameMap[name];
 
-      graph->param(pName, shape, init = inits::from_numpy(numpy[name]));
+      graph->param(pName, shape, inits::from_numpy(numpy[name]));
     }
 
     graph->setReloaded(true);
@@ -182,7 +182,7 @@ public:
 
     for(auto p : graph->params()->getMap()) {
       std::vector<float> v;
-      p.second->val() >> v;
+      p.second->val()->get(v);
 
       unsigned dim;
       if(p.second->shape()[0] == 1) {

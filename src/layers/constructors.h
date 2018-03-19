@@ -23,18 +23,18 @@ struct LayerFactory : public Factory {
     return as<Cast>() != nullptr;
   }
 
-  virtual Ptr<Layer> construct() = 0;  
+  virtual Ptr<Layer> construct() = 0;
 };
 
 class DenseFactory : public LayerFactory {
 protected:
-  //std::vector<std::pair<std::string, std::string>> tiedParams_;
+  // std::vector<std::pair<std::string, std::string>> tiedParams_;
   std::vector<std::pair<std::string, std::string>> tiedParamsTransposed_;
 
 public:
   DenseFactory(Ptr<ExpressionGraph> graph) : LayerFactory(graph) {}
 
-  //Accumulator<DenseFactory> tie(const std::string& param,
+  // Accumulator<DenseFactory> tie(const std::string& param,
   //                              const std::string& tied) {
   //  tiedParams_.push_back({param, tied});
   //  return Accumulator<DenseFactory>(*this);
@@ -48,21 +48,20 @@ public:
 
   Ptr<Layer> construct() {
     auto dense = New<Dense>(graph_, options_);
-    //for(auto& p : tiedParams_)
+    // for(auto& p : tiedParams_)
     //  dense->tie(p.first, p.second);
     for(auto& p : tiedParamsTransposed_)
       dense->tie_transposed(p.first, p.second);
     return dense;
   }
-  
+
   DenseFactory clone() {
     DenseFactory aClone(graph_);
     aClone.options_->merge(options_);
-    //aClone.tiedParams_ = tiedParams_;
+    // aClone.tiedParams_ = tiedParams_;
     aClone.tiedParamsTransposed_ = tiedParamsTransposed_;
     return aClone;
   }
-
 };
 
 typedef Accumulator<DenseFactory> dense;
@@ -95,7 +94,6 @@ public:
   }
 
   void push_back(Ptr<Layer> layer) { layers_.push_back(layer); }
-  
 };
 
 class MLPFactory : public Factory {
@@ -121,7 +119,7 @@ public:
     layers_.push_back(New<LF>(lf));
     return Accumulator<MLPFactory>(*this);
   }
-  
+
   MLPFactory clone() {
     MLPFactory aClone(graph_);
     aClone.options_->merge(options_);
@@ -129,7 +127,6 @@ public:
       aClone.push_back(lf->clone());
     return aClone;
   }
-
 };
 
 typedef Accumulator<MLPFactory> mlp;

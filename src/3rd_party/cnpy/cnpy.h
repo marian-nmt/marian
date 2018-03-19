@@ -15,25 +15,33 @@
 #include<cassert>
 #include<zlib.h>
 #include<map>
+#include <memory>
 
 namespace cnpy {
 
     struct NpyArray {
-        char* data;
+        std::vector<char> bytes;
         std::vector<unsigned int> shape;
-        unsigned int word_size;
-        bool fortran_order;
-        void destruct() {delete[] data;}
-    };
-    
-    struct npz_t : public std::map<std::string, NpyArray>
-    {
-        void destruct()
-        {
-            npz_t::iterator it = this->begin();
-            for(; it != this->end(); ++it) (*it).second.destruct();
+        unsigned int word_size{1};
+        bool fortran_order{0};
+
+        NpyArray() {}
+
+        void resize(size_t n) {
+            return bytes.resize(n);
+        }
+
+        char* data() {
+            return bytes.data();
+        }
+
+        const char* data() const {
+            return bytes.data();
         }
     };
+
+    typedef std::shared_ptr<NpyArray> NpyArrayPtr;
+    typedef std::map<std::string, NpyArrayPtr> npz_t;
 
     char BigEndianTest();
     char map_type(const std::type_info& t);
@@ -41,20 +49,20 @@ namespace cnpy {
     void parse_npy_header(FILE* fp,unsigned int& word_size, unsigned int*& shape, unsigned int& ndims, bool& fortran_order);
     void parse_zip_footer(FILE* fp, unsigned short& nrecs, unsigned int& global_header_size, unsigned int& global_header_offset);
     npz_t npz_load(std::string fname);
-    NpyArray npz_load(std::string fname, std::string varname);
-    NpyArray npy_load(std::string fname);
+    NpyArrayPtr npz_load(std::string fname, std::string varname);
+    NpyArrayPtr npy_load(std::string fname);
 
     template<typename T> std::vector<char>& operator+=(std::vector<char>& lhs, const T rhs) {
         //write in little endian
         for(char byte = 0; byte < sizeof(T); byte++) {
-            char val = *((char*)&rhs+byte); 
+            char val = *((char*)&rhs+byte);
             lhs.push_back(val);
         }
         return lhs;
     }
 
-    template<> std::vector<char>& operator+=(std::vector<char>& lhs, const std::string rhs); 
-    template<> std::vector<char>& operator+=(std::vector<char>& lhs, const char* rhs); 
+    template<> std::vector<char>& operator+=(std::vector<char>& lhs, const std::string rhs);
+    template<> std::vector<char>& operator+=(std::vector<char>& lhs, const char* rhs);
 
 
     template<typename T> std::string tostring(T i, int pad = 0, char padval = ' ') {
@@ -129,7 +137,7 @@ namespace cnpy {
         if(fp) {
             //zip file exists. we need to add a new npy file to it.
             //first read the footer. this gives us the offset and size of the global header
-            //then read and store the global header. 
+            //then read and store the global header.
             //below, we will write the the new data at the start of the global header then append the global header and footer below it
             unsigned int global_header_size;
             parse_zip_footer(fp,nrecs,global_header_size,global_header_offset);
@@ -195,7 +203,7 @@ namespace cnpy {
         footer += (unsigned int) (global_header_offset + nbytes + local_header.size()); //offset of start of global headers, since global header now starts after newly written array
         footer += (unsigned short) 0; //zip file comment length
 
-        //write everything      
+        //write everything
         fwrite(&local_header[0],sizeof(char),local_header.size(),fp);
         fwrite(&npy_header[0],sizeof(char),npy_header.size(),fp);
         fwrite(data,sizeof(T),nels,fp);
@@ -204,7 +212,7 @@ namespace cnpy {
         fclose(fp);
     }
 
-    template<typename T> std::vector<char> create_npy_header(const T* data, const unsigned int* shape, const unsigned int ndims) {  
+    template<typename T> std::vector<char> create_npy_header(const T* data, const unsigned int* shape, const unsigned int ndims) {
 
         std::vector<char> dict;
         dict += "{'descr': '";

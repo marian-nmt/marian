@@ -7,8 +7,7 @@
 
 using namespace marian;
 
-TEST_CASE("Model components, Attention", "[attention]") {
-
+void tests(DeviceType type) {
   auto floatApprox = [](float x, float y) { return x == Approx(y).epsilon(0.01); };
 
   std::vector<size_t> vWords = {
@@ -37,7 +36,7 @@ TEST_CASE("Model components, Attention", "[attention]") {
     Config::seed = 1234;
 
     auto graph = New<ExpressionGraph>();
-    graph->setDevice({0, DeviceType::gpu});
+    graph->setDevice({0, type});
     graph->reserveWorkspaceMB(16);
 
     std::vector<float> values;
@@ -48,11 +47,11 @@ TEST_CASE("Model components, Attention", "[attention]") {
 
     auto emb = graph->param("Embeddings",
                             {128, dimEmb},
-                            keywords::init=inits::glorot_uniform);
+                            inits::glorot_uniform);
 
     auto input = reshape(rows(emb, vWords), {dimTime, dimBatch, dimEmb});
     auto mask = graph->constant({dimTime, dimBatch, 1},
-                                keywords::init=inits::from_vector(vMask));
+                                inits::from_vector(vMask));
 
     auto rnn = rnn::rnn(graph)         //
           ("prefix", "rnntest")        //
@@ -77,7 +76,7 @@ TEST_CASE("Model components, Attention", "[attention]") {
                   [](){ static int n = -32; return n++ / 64.f; });
 
     rnn::State state({graph->constant({1, 1, 4, 16},
-                                     keywords::init=inits::from_vector(vState)),
+                                     inits::from_vector(vState)),
                       nullptr});
 
     auto aligned = att->apply(state);
@@ -109,3 +108,15 @@ TEST_CASE("Model components, Attention", "[attention]") {
                       vAligned.begin(), floatApprox) );
   }
 }
+
+#ifdef CUDA_FOUND
+TEST_CASE("Model components, Attention (gpu)", "[attention]") {
+  tests(DeviceType::gpu);
+}
+#endif
+
+#ifdef BLAS_FOUND
+TEST_CASE("Model components, Attention (cpu)", "[attention]") {
+  tests(DeviceType::cpu);
+}
+#endif

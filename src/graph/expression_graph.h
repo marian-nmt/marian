@@ -5,13 +5,13 @@
 #include "common/config.h"
 #include "common/definitions.h"
 
+#include "tensors/backend.h"
 #include "tensors/tensor_allocator.h"
 
-#include "graph/backend.h"
-#include "graph/parameters.h"
 #include "graph/chainable.h"
-#include "graph/node_operators.h"
 #include "graph/node_initializers.h"
+#include "graph/node_operators.h"
+#include "graph/parameters.h"
 
 #include "3rd_party/cnpy/cnpy.h"
 
@@ -67,7 +67,7 @@ public:
   void setDevice(DeviceId deviceId = {0, DeviceType::gpu});
   DeviceId getDevice() { return backend_->getDevice(); }
   Ptr<Backend> getBackend() { return backend_; }
-  
+
   void switchParams(const std::string& newNamespace) {
     namespace_ = newNamespace;
   }
@@ -79,7 +79,7 @@ public:
 
   void copyParams(Ptr<ExpressionGraph> graph) {
     for(auto p : *graph->params())
-      param(p->name(), p->shape());
+      param(p->name(), p->shape(), inits::dummy);
     params()->allocateForward();
     params()->vals()->copyFrom(graph->params()->vals());
   }
@@ -231,8 +231,11 @@ public:
     dot.close();
   }
 
-  template <typename... Args>
-  Expr param(std::string name, Shape shape, Args... args) {
+  Expr param(const std::string& pname,
+             const Shape& shape,
+             const NodeInitializer& init,
+             bool fixed = false) {
+    std::string name = pname;
     if(!namespace_.empty())
       name = namespace_ + "::" + name;
 
@@ -241,11 +244,12 @@ public:
     if(p) {
       // if yes add to tape and return
       ABORT_IF(shape != p->shape(),
-               "Requested shape for existing parameter '{}' does not match "
-               "original shape",
-               name);
+               "Requested shape {} for existing parameter '{}' does not match "
+               "original shape {}",
+               shape,
+               name,
+               p->shape());
 
-      bool fixed = Get(keywords::fixed, false, args...);
       p->setTrainable(!fixed);
       add(p);
       return p;
@@ -260,8 +264,7 @@ public:
     ABORT_IF(get(name), "Non-parameter with name '{}' already exists", name);
 
     // create parameter node (adds to tape)
-    p = Expression<ParamNode>(
-        shared_from_this(), keywords::shape = shape, args...);
+    p = Expression<ParamNode>(shared_from_this(), shape, init, fixed);
 
     // add to list of parameters
     p->set_name(name);
@@ -269,25 +272,19 @@ public:
     return p;
   }
 
-  template <typename... Args>
-  Expr constant(Shape shape, Args... args) {
-    return Expression<ConstantNode>(
-        shared_from_this(), keywords::shape = shape, args...);
+  Expr constant(const Shape& shape, const NodeInitializer& init) {
+    return Expression<ConstantNode>(shared_from_this(), shape, init);
   }
 
-  template <typename... Args>
-  Expr ones(Args... args) {
-    return Expression<ConstantNode>(
-        shared_from_this(), keywords::init = inits::ones, args...);
+  Expr ones(const Shape& shape) {
+    return Expression<ConstantNode>(shared_from_this(), shape, inits::ones);
   }
 
-  template <typename... Args>
-  Expr zeros(Args... args) {
-    return Expression<ConstantNode>(
-        shared_from_this(), keywords::init = inits::zeros, args...);
+  Expr zeros(const Shape& shape) {
+    return Expression<ConstantNode>(shared_from_this(), shape, inits::zeros);
   }
 
-  Expr dropout(float prob, Shape shape);
+  Expr dropout(float prob, const Shape& shape);
 
   Expr get(std::string name) {
     if(!namespace_.empty())
@@ -337,7 +334,7 @@ public:
       tensors_->free(t);
   }
 
-  Ptr<Allocator<DeviceGPU>> allocator() { return tensors_->allocator(); }
+  Ptr<Allocator> allocator() { return tensors_->allocator(); }
 
   void clear() {
     // clear everything apart from parameters
@@ -371,17 +368,17 @@ public:
         continue;
 
       Shape shape;
-      if(it.second.shape.size() == 1) {
+      if(it.second->shape.size() == 1) {
         shape.resize(2);
         shape.set(0, 1);
-        shape.set(1, it.second.shape[0]);
+        shape.set(1, it.second->shape[0]);
       } else {
-        shape.resize(it.second.shape.size());
-        for(int i = 0; i < it.second.shape.size(); ++i)
-          shape.set(i, it.second.shape[i]);
+        shape.resize(it.second->shape.size());
+        for(int i = 0; i < it.second->shape.size(); ++i)
+          shape.set(i, it.second->shape[i]);
       }
 
-      param(name, shape, init = inits::from_numpy(it.second));
+      param(name, shape, inits::from_numpy(it.second));
     }
 
     if(markReloaded)
@@ -529,7 +526,7 @@ public:
       }
 
       std::vector<float> v;
-      p.second->val() >> v;
+      p.second->val()->get(v);
       auto& pShape = p.second->shape();
 
       unsigned dim = pShape.size();

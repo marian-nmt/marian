@@ -8,200 +8,14 @@ namespace marian {
 
 class Scheduler : public TrainingObserver {
 private:
-  YAML::Node progress;
-
   Ptr<Config> options_;
   std::vector<Ptr<ValidatorBase>> validators_;
-  bool validated_{false};
-
-  float costSum{0};
-  size_t samples{0};
-  size_t samplesDisp{0};
-  size_t wordsDisp{0};
-  size_t totalWords{0};
 
   bool first_{true};
 
   Ptr<TrainingState> state_;
 
   boost::timer::cpu_timer timer;
-
-public:
-  Scheduler(Ptr<Config> options, Ptr<TrainingState> state)
-      : options_(options), state_(state) {}
-
-  bool keepGoing() {
-    // stop if it reached the maximum number of epochs
-    int stopAfterEpochs = options_->get<size_t>("after-epochs");
-    if(stopAfterEpochs > 0 && state_->epochs > stopAfterEpochs)
-      return false;
-
-    // stop if it reached the maximum number of batch updates
-    int stopAfterBatches = options_->get<size_t>("after-batches");
-    if(stopAfterBatches > 0 && state_->batches >= stopAfterBatches)
-      return false;
-
-    // stop if the first validator did not improve for a given number of checks
-    int stopAfterStalled = options_->get<size_t>("early-stopping");
-    if(stopAfterStalled > 0 && !validators_.empty()
-       && stalled() >= stopAfterStalled)
-      return false;
-
-    return true;
-  }
-
-  void increaseEpoch() {
-    LOG(info, "Seen {} samples", samples);
-
-    state_->newEpoch();
-    samples = 0;
-
-    LOG(info, "Starting epoch {}", state_->epochs);
-  }
-
-  void started() { LOG(info, "Training started"); }
-  void finished() { LOG(info, "Training finished"); }
-
-  void addValidator(Ptr<ValidatorBase> validator) {
-    validators_.push_back(validator);
-  }
-
-  bool validating() {
-    return (!validators_.empty()
-            && state_->batches % options_->get<size_t>("valid-freq") == 0);
-  }
-
-  bool saving() {
-    return (state_->batches % options_->get<size_t>("save-freq") == 0);
-  }
-
-  void validate(const std::vector<Ptr<ExpressionGraph>>& graphs, bool final = false) {
-    if(validated_ || (state_->batches % options_->get<size_t>("valid-freq") != 0
-                      && !final))
-      return;
-
-    bool firstValidator = true;
-    for(auto validator : validators_) {
-      if(!validator)
-        continue;
-
-      size_t stalledPrev = validator->stalled();
-      float value = validator->validate(graphs);
-      if(validator->stalled() > 0)
-        LOG_VALID(info,
-                  "{} : {} : {} : stalled {} times",
-                  state_->batches,
-                  validator->type(),
-                  value,
-                  validator->stalled());
-      else
-        LOG_VALID(info,
-                  "{} : {} : {} : new best",
-                  state_->batches,
-                  validator->type(),
-                  value);
-
-      // notify training observers if the first validator did not improve
-      if(firstValidator && validator->stalled() > stalledPrev)
-        state_->newStalled(validator->stalled());
-      firstValidator = false;
-    }
-
-    validated_ = true;
-  }
-
-  size_t stalled() {
-    if(!validators_.empty())
-      if(validators_[0])
-        return validators_[0]->stalled();
-    return 0;
-  }
-
-  void update(float cost, Ptr<data::Batch> batch) {
-    auto batchSize = batch->size();
-    auto batchTargetWords = batch->words(-1);
-    // reconstruct sum cost
-    auto costType = options_->get<std::string>("cost-type");
-    cost *= // what was cost normalized with?
-      /*if*/ (costType == "ce-sum") ?
-        1
-      /*else if*/ : ((costType == "ce-mean-words") ?
-        batchTargetWords
-      /*else*/ :  // use ce-mean for all others (not correct for some)
-        batchSize);
-    // undo averaging over workers
-    cost *= options_->get<std::vector<size_t>>("devices").size();
-
-    costSum += cost;               // aggregate cost since last display
-    wordsDisp += batchTargetWords; // targets processed since last display
-    samples += batch->size();      // sentences processed in this epoch
-    samplesDisp += batch->size();  // (unused)
-    totalWords += batchTargetWords;// total words processed (note: presently not check-pointed)
-    state_->newBatch();
-
-    if(state_->batches % options_->get<size_t>("disp-freq") == 0) {
-      if(options_->get<bool>("lr-report")) {
-        LOG(info,
-            // TODO: change Cost back to {:.2f}
-            "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} : {:.2f} "
-            "words/s : L.r. {:.4e}",
-            state_->epochs,
-            state_->batches,
-            samples,
-            costSum / wordsDisp, wordsDisp, // cost per target word
-            totalWords,
-            timer.format(2, "%ws"),
-            wordsDisp / std::stof(timer.format(5, "%w")),
-            state_->eta);
-      } else {
-        LOG(info,
-            "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} : {:.2f} "
-            "words/s",
-            state_->epochs,
-            state_->batches,
-            samples,
-            costSum / wordsDisp, wordsDisp,
-            totalWords,
-            timer.format(2, "%ws"),
-            wordsDisp / std::stof(timer.format(5, "%w")));
-      }
-#if 1 // progress heartbeat for MS-internal Philly compute cluster
-      if (getenv("PHILLY_JOB_ID")) // this environment variable exists when running on the cluster
-        printf("PROGRESS: %.2f%%\nerror: %.7f\n", (double)state_->epochs, costSum / wordsDisp), fflush(stdout);
-#endif
-      timer.start();
-      costSum = 0;
-      wordsDisp = 0;
-      samplesDisp = 0;
-    }
-
-    validated_ = false;
-  }
-
-  void load(const std::string& name) {
-    std::string nameYaml = name + ".yml";
-    if(boost::filesystem::exists(nameYaml)) {
-      YAML::Node config = YAML::LoadFile(nameYaml);
-      state_->epochs = config["progress"]["epochs"].as<size_t>();
-      state_->batches = config["progress"]["batches"].as<size_t>();
-    }
-  }
-
-  void save(const std::string& name) {
-    YAML::Node config = options_->get();
-    config["progress"]["epochs"] = state_->epochs;
-    config["progress"]["batches"] = state_->batches;
-
-    std::string nameYaml = name + ".yml";
-    std::ofstream fout(nameYaml);
-    fout << config;
-  }
-
-  size_t numberOfBatches() { return state_->batches; }
-
-  void registerTrainingObserver(Ptr<TrainingObserver> observer) {
-    state_->registerObserver(observer);
-  }
 
   float getLearningRate(TrainingState& state) {
     float baselr = options_->get<float>("learn-rate");
@@ -228,6 +42,204 @@ public:
       baselr = baselr - lrStart * mult1 * mult2 + lrStart * mult2;
 
     return baselr;
+  }
+
+public:
+  Scheduler(Ptr<Config> options, Ptr<TrainingState> state)
+      : options_(options), state_(state) {
+    state_->eta = getLearningRate(*state);
+  }
+
+  bool keepGoing() {
+    // stop if it reached the maximum number of epochs
+    int stopAfterEpochs = options_->get<size_t>("after-epochs");
+    if(stopAfterEpochs > 0 && state_->epochs > stopAfterEpochs)
+      return false;
+
+    // stop if it reached the maximum number of batch updates
+    int stopAfterBatches = options_->get<size_t>("after-batches");
+    if(stopAfterBatches > 0 && state_->batches >= stopAfterBatches)
+      return false;
+
+    // stop if the first validator did not improve for a given number of checks
+    int stopAfterStalled = options_->get<size_t>("early-stopping");
+    if(stopAfterStalled > 0 && !validators_.empty()
+       && stalled() >= stopAfterStalled)
+      return false;
+
+    return true;
+  }
+
+  void increaseEpoch() {
+    LOG(info, "Seen {} samples", state_->samples);
+    state_->newEpoch();
+    LOG(info, "Starting epoch {}", state_->epochs);
+  }
+
+  void started() { LOG(info, "Training started"); }
+  void finished() { LOG(info, "Training finished"); }
+
+  void addValidator(Ptr<ValidatorBase> validator) {
+    validators_.push_back(validator);
+
+    registerTrainingObserver(validators_.front());
+    if(!state_->loaded) {
+      state_->validators[validator->type()]["last-best"] = validator->initScore();
+      state_->validators[validator->type()]["stalled"] = 0;
+    }
+    if(validators_.size() == 1)
+      state_->validator = validator->type();
+  }
+
+  bool validating() {
+    return (!validators_.empty()
+            && state_->batches % options_->get<size_t>("valid-freq") == 0);
+  }
+
+  bool saving() {
+    return (state_->batches % options_->get<size_t>("save-freq") == 0);
+  }
+
+  void validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
+                bool final = false) {
+    if(state_->validated
+       || (state_->batches % options_->get<size_t>("valid-freq") != 0
+           && !final))
+      return;
+
+    bool firstValidator = true;
+    for(auto validator : validators_) {
+      if(!validator)
+        continue;
+
+      size_t stalledPrev = validator->stalled();
+      float value = validator->validate(graphs);
+      if(validator->stalled() > 0) {
+        LOG_VALID(info,
+                  "{} : {} : {} : stalled {} times",
+                  state_->batches,
+                  validator->type(),
+                  value,
+                  validator->stalled());
+      } else {
+        LOG_VALID(info,
+                  "{} : {} : {} : new best",
+                  state_->batches,
+                  validator->type(),
+                  value);
+
+        if(firstValidator)
+          state_->validBest = value;
+      }
+
+      state_->validators[validator->type()]["last-best"] = validator->lastBest();
+      state_->validators[validator->type()]["stalled"] = validator->stalled();
+
+      // notify training observers if the first validator did not improve
+      if(firstValidator && validator->stalled() > stalledPrev)
+        state_->newStalled(validator->stalled());
+      firstValidator = false;
+    }
+
+    state_->validated = true;
+  }
+
+  size_t stalled() {
+    if(!validators_.empty())
+      if(validators_[0])
+        return validators_[0]->stalled();
+    return 0;
+  }
+
+  void update(float cost, Ptr<data::Batch> batch) {
+    state_->validated = false;
+
+    auto batchSize = batch->size();
+    auto batchTargetWords = batch->words(-1);
+    // reconstruct sum cost
+    auto costType = options_->get<std::string>("cost-type");
+    cost *= // what was cost normalized with?
+      /*if*/ (costType == "ce-sum") ?
+        1
+      /*else if*/ : ((costType == "ce-mean-words") ?
+        batchTargetWords
+      /*else*/ :  // use ce-mean for all others (not correct for some)
+        batchSize);
+    // undo averaging over workers
+    cost *= options_->get<std::vector<size_t>>("devices").size();
+
+    state_->costSum += cost;               // aggregate cost since last display
+    state_->wordsDisp += batchTargetWords; // targets processed since last display
+    state_->samples += batch->size();      // sentences processed in this epoch
+    state_->samplesDisp += batch->size();  // (unused)
+    state_->totalWords += batchTargetWords;// total words processed (note: presently not check-pointed)
+    state_->newBatch();
+
+    if(state_->batches % options_->get<size_t>("disp-freq") == 0) {
+      if(options_->get<bool>("lr-report")) {
+        LOG(info,
+            // TODO: change Cost back to {:.2f}
+            "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} : {:.2f} "
+            "words/s : L.r. {:.4e}",
+            state_->epochs,
+            state_->batches,
+            state_->samples,
+            state_->costSum / state_->wordsDisp, state_->wordsDisp, // cost per target word
+            state_->totalWords,
+            timer.format(2, "%ws"),
+            state_->wordsDisp / std::stof(timer.format(5, "%w")),
+            state_->eta);
+      } else {
+        LOG(info,
+            "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} : {:.2f} "
+            "words/s",
+            state_->epochs,
+            state_->batches,
+            state_->samples,
+            state_->costSum / state_->wordsDisp, state_->wordsDisp,
+            state_->totalWords,
+            timer.format(2, "%ws"),
+            state_->wordsDisp / std::stof(timer.format(5, "%w")));
+      }
+#if 1 // progress heartbeat for MS-internal Philly compute cluster
+      if (getenv("PHILLY_JOB_ID")) // this environment variable exists when running on the cluster
+        printf("PROGRESS: %.2f%%\nerror: %.7f\n", (double)state_->epochs, costSum / wordsDisp), fflush(stdout);
+#endif
+      timer.start();
+      state_->costSum = 0;
+      state_->wordsDisp = 0;
+      state_->samplesDisp = 0;
+    }
+  }
+
+  void load(const std::string& name) {
+    std::string nameYaml = name + ".progress.yml";
+    if(boost::filesystem::exists(nameYaml))
+      state_->load(nameYaml);
+
+    if(options_->get<bool>("no-restore-corpus")) {
+      state_->samples = 0;
+      state_->costSum = 0;
+      state_->samplesDisp = 0;
+      state_->wordsDisp = 0;
+    }
+
+    state_->newLoad();
+  }
+
+  void save(const std::string& name) {
+    // Save config options
+    YAML::Node config = options_->get();
+    std::ofstream fout(name + ".yml");
+    fout << config;
+    // Save training progress
+    state_->save(name + ".progress.yml");
+  }
+
+  size_t numberOfBatches() { return state_->batches; }
+
+  void registerTrainingObserver(Ptr<TrainingObserver> observer) {
+    state_->registerObserver(observer);
   }
 
   void actAfterEpoch(TrainingState& state) {

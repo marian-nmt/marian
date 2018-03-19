@@ -4,77 +4,29 @@
 
 using namespace marian;
 
-TEST_CASE("Expression graph supports basic math operations", "[operator]") {
-
+void tests(DeviceType device) {
   auto floatApprox = [](float x, float y) { return x == Approx(y); };
 
   auto graph = New<ExpressionGraph>();
-  graph->setDevice({0, DeviceType::gpu});
+  graph->setDevice({0, device});
   graph->reserveWorkspaceMB(16);
 
   std::vector<float> vA({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
   std::vector<float> vB({1, 2, 3, 4, 5, 6});
   std::vector<float> values;
 
-  SECTION("dot product") {
-    graph->clear();
-    values.clear();
-    std::vector<float> vC({22, 28, 49, 64, 76, 100, 103, 136});
-
-    auto A = graph->param("A", {2, 2, 3}, keywords::init = inits::from_vector(vA));
-    auto B = graph->param("B", {3, 2}, keywords::init = inits::from_vector(vB));
-    auto C = dot(A, B);
-    graph->forward();
-
-    CHECK(C->shape() == Shape({2, 2, 2}));
-    C->val()->get(values);
-    CHECK(values == vC);
-  }
-
   SECTION("scalar multiplication") {
     graph->clear();
     values.clear();
     std::vector<float> vB2({2, 4, 6, 8, 10, 12});
 
-    auto B = graph->param("B", {3, 2}, keywords::init = inits::from_vector(vB));
+    auto B = graph->param("B", {3, 2}, inits::from_vector(vB));
     auto B2 = B * 2.0f;
     graph->forward();
 
     CHECK(B2->shape() == Shape({3, 2}));
     B2->val()->get(values);
     CHECK(values == vB2);
-  }
-
-  SECTION("softmax and logsoftmax") {
-    graph->clear();
-    values.clear();
-    std::vector<float> in({-.2, -.3, 4.5, 5.2, -10, 101.45, -100.05, 1.05e-5});
-
-    std::vector<float> smOut({ 0.52498f, 0.47502f, 0.33181f, 0.66819f,
-                               0.0f, 1.0f, 0.0f, 1.0f });
-
-    std::vector<float> lsmOut({ -0.6444f, -0.7444f, -1.10319f, -0.40319f,
-                                -111.45f, 0.0f, -100.05001f, 0.0f });
-
-    auto input = graph->constant({2, 2, 2}, keywords::init = inits::from_vector(in));
-
-    auto sm  = softmax(input);
-    auto lsm = logsoftmax(input);
-
-    graph->forward();
-
-    CHECK(sm->shape() == Shape({2, 2, 2}));
-    CHECK(lsm->shape() == Shape({2, 2, 2}));
-
-    sm->val()->get(values);
-
-    CHECK( std::equal(values.begin(), values.end(),
-                        smOut.begin(), floatApprox) );
-
-    lsm->val()->get(values);
-
-    CHECK( std::equal(values.begin(), values.end(),
-                        lsmOut.begin(), floatApprox) );
   }
 
   SECTION("elementwise binary operators with broadcasting") {
@@ -89,8 +41,8 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
     std::vector<float> vMult({0.5, -3.0, 1.5, -6.0});
     std::vector<float> vDiv({2.0f, -1.33333f, 6.0f, -2.66667f});
 
-    auto a = graph->constant({2, 2, 1}, keywords::init = inits::from_vector(vA));
-    auto b = graph->constant({2, 1}, keywords::init = inits::from_vector(vB));
+    auto a = graph->constant({2, 2, 1}, inits::from_vector(vA));
+    auto b = graph->constant({2, 1}, inits::from_vector(vB));
 
     auto add = a + b;
     auto minus = b - a;
@@ -130,7 +82,7 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
     std::vector<float> vT5({1, 2, 5, 6, 3, 4, 7, 8});
 
 
-    auto a = graph->constant({2, 4}, keywords::init = inits::from_vector(vA));
+    auto a = graph->constant({2, 4}, inits::from_vector(vA));
 
     auto t1 = transpose(a);
     auto t2 = transpose(t1);
@@ -163,6 +115,69 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
     CHECK( values == vT5 );
   }
 
+  SECTION("softmax and logsoftmax") {
+    graph->clear();
+    values.clear();
+    std::vector<float> in({-.2, -.3, 4.5, 5.2, -10, 101.45, -100.05, 1.05e-5});
+
+    std::vector<float> smOut({ 0.52498f, 0.47502f, 0.33181f, 0.66819f,
+                               0.0f, 1.0f, 0.0f, 1.0f });
+
+    std::vector<float> lsmOut({ -0.6444f, -0.7444f, -1.10319f, -0.40319f,
+                                -111.45f, 0.0f, -100.05001f, 0.0f });
+
+    auto input = graph->constant({2, 2, 2}, inits::from_vector(in));
+
+    auto sm  = softmax(input);
+    auto lsm = logsoftmax(input);
+
+    graph->forward();
+
+    CHECK(sm->shape() == Shape({2, 2, 2}));
+    CHECK(lsm->shape() == Shape({2, 2, 2}));
+
+    sm->val()->get(values);
+
+    CHECK( std::equal(values.begin(), values.end(),
+                        smOut.begin(), floatApprox) );
+
+    lsm->val()->get(values);
+
+    CHECK( std::equal(values.begin(), values.end(),
+                        lsmOut.begin(), floatApprox) );
+  }
+
+  SECTION("layer normalization") {
+    graph->clear();
+    values.clear();
+
+    Config::seed = 1234;
+
+    std::vector<float> vLn({
+      -1.20521, -0.321409, -0.0363369, 1.56296,
+      0.332987, -0.613398, -1.17766, 1.45807,
+      -0.731601, -0.187812, -0.766431, 1.68584,
+      -1.31923, -0.059028, 1.49732, -0.119065
+    });
+
+    auto a = graph->constant({2, 2, 4}, inits::glorot_uniform);
+
+    auto gamma = graph->param("gamma", {1, 4}, inits::ones);
+    auto beta = graph->param("beta", {1, 4}, inits::zeros);
+
+    auto ln = layer_norm(a, gamma, beta);
+
+    graph->forward();
+
+    CHECK(ln->shape() == Shape({2, 2, 4}));
+
+
+    ln->val()->get(values);
+    CHECK( std::equal(values.begin(), values.end(),
+                      vLn.begin(), floatApprox) );
+
+  }
+
   SECTION("reductions") {
     graph->clear();
     values.clear();
@@ -174,7 +189,7 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
     std::vector<float> vW({2.77778f, 6.77778f});
 
 
-    auto a = graph->constant({2, 4}, keywords::init = inits::from_vector(vA));
+    auto a = graph->constant({2, 4}, inits::from_vector(vA));
 
     auto s1 = sum(a, keywords::axis=0);
     auto s2 = sum(a, keywords::axis=1);
@@ -231,10 +246,10 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
                             3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
                             4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4});
 
-    auto in1 = graph->constant({1, 2, 2, 3}, keywords::init=inits::from_value(1));
-    auto in2 = graph->constant({1, 2, 2, 3}, keywords::init=inits::from_value(2));
-    auto in3 = graph->constant({1, 2, 2, 3}, keywords::init=inits::from_value(3));
-    auto in4 = graph->constant({1, 2, 2, 3}, keywords::init=inits::from_value(4));
+    auto in1 = graph->constant({1, 2, 2, 3}, inits::from_value(1));
+    auto in2 = graph->constant({1, 2, 2, 3}, inits::from_value(2));
+    auto in3 = graph->constant({1, 2, 2, 3}, inits::from_value(3));
+    auto in4 = graph->constant({1, 2, 2, 3}, inits::from_value(4));
 
     auto c1out1 = concatenate({in1, in2, in3, in4}, keywords::axis=2);
     auto c1out2 = concatenate({in1, in2, in3, in4}, keywords::axis=-1);
@@ -261,35 +276,30 @@ TEST_CASE("Expression graph supports basic math operations", "[operator]") {
     CHECK( values == vO4 );
   }
 
-  SECTION("layer normalization") {
+  SECTION("dot product") {
     graph->clear();
     values.clear();
+    std::vector<float> vC({22, 28, 49, 64, 76, 100, 103, 136});
 
-    Config::seed = 1234;
-
-    std::vector<float> vLn({
-      -1.20521, -0.321409, -0.0363369, 1.56296,
-      0.332987, -0.613398, -1.17766, 1.45807,
-      -0.731601, -0.187812, -0.766431, 1.68584,
-      -1.31923, -0.059028, 1.49732, -0.119065
-    });
-
-    auto a = graph->constant({2, 2, 4}, keywords::init=inits::glorot_uniform);
-
-    auto gamma = graph->param("gamma", {1, 4}, keywords::init=inits::ones);
-    auto beta = graph->param("beta", {1, 4}, keywords::init=inits::zeros);
-
-    auto ln = layer_norm(a, gamma, beta);
-
+    auto A = graph->param("A", {2, 2, 3}, inits::from_vector(vA));
+    auto B = graph->param("B", {3, 2}, inits::from_vector(vB));
+    auto C = dot(A, B);
     graph->forward();
 
-    CHECK(ln->shape() == Shape({2, 2, 4}));
-
-
-    ln->val()->get(values);
-    CHECK( std::equal(values.begin(), values.end(),
-                      vLn.begin(), floatApprox) );
-
+    CHECK(C->shape() == Shape({2, 2, 2}));
+    C->val()->get(values);
+    CHECK(values == vC);
   }
-
 }
+
+#ifdef CUDA_FOUND
+TEST_CASE("Expression graph supports basic math operations (gpu)", "[operator]") {
+  tests(DeviceType::gpu);
+}
+#endif
+
+#ifdef BLAS_FOUND
+TEST_CASE("Expression graph supports basic math operations (cpu)", "[operator]") {
+  tests(DeviceType::cpu);
+}
+#endif

@@ -58,6 +58,8 @@ public:
 
   void reset();
 
+  void restore(Ptr<TrainingState>);
+
   iterator begin() { return iterator(this); }
 
   iterator end() { return iterator(); }

@@ -13,29 +13,31 @@ void Trim(std::string& s) {
 
 void Split(const std::string& line,
            std::vector<std::string>& pieces,
-           const std::string del /*= " "*/) {
+           const std::string del /*= " "*/,
+           bool keepEmpty) {
   size_t begin = 0;
   size_t pos = 0;
   std::string token;
   while((pos = line.find(del, begin)) != std::string::npos) {
-    if(pos > begin) {
+    if(pos >= begin) {
       token = line.substr(begin, pos - begin);
-      if(token.size() > 0)
+      if(token.size() > 0 || keepEmpty)
         pieces.push_back(token);
     }
     begin = pos + del.size();
   }
-  if(pos > begin) {
+  if(pos >= begin) {
     token = line.substr(begin, pos - begin);
+    if(token.size() > 0 || keepEmpty)
+      pieces.push_back(token);
   }
-  if(token.size() > 0)
-    pieces.push_back(token);
 }
 
 std::vector<std::string> Split(const std::string& line,
-                               const std::string del /*= " "*/) {
+                               const std::string del /*= " "*/,
+                               bool keepEmpty) {
   std::vector<std::string> pieces;
-  Split(line, pieces, del);
+  Split(line, pieces, del, keepEmpty);
   return pieces;
 }
 

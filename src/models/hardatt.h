@@ -1,9 +1,10 @@
 #pragma once
 
 #include "marian.h"
+
 #include "layers/generic.h"
-#include "rnn/types.h"
 #include "rnn/attention_constructors.h"
+#include "rnn/types.h"
 
 #include <numeric>
 
@@ -21,13 +22,16 @@ public:
       : DecoderState(states, probs, encStates),
         attentionIndices_(attentionIndices) {}
 
-  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx, int beamSize) {
+  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
+                                   int beamSize) {
     std::vector<size_t> selectedAttentionIndices;
     for(auto i : selIdx)
       selectedAttentionIndices.push_back(attentionIndices_[i]);
 
-    return New<DecoderStateHardAtt>(
-        states_.select(selIdx, beamSize), probs_, encStates_, selectedAttentionIndices);
+    return New<DecoderStateHardAtt>(states_.select(selIdx, beamSize),
+                                    probs_,
+                                    encStates_,
+                                    selectedAttentionIndices);
   }
 
   virtual void setAttentionIndices(
@@ -85,11 +89,11 @@ public:
     Expr start;
     if(!meanContexts.empty()) {
       // apply single layer network to mean to map into decoder space
-      auto mlp = mlp::mlp(graph)                                   //
-                     .push_back(mlp::dense(graph)                  //
-                                ("prefix", prefix_ + "_ff_state")  //
-                                ("dim", opt<int>("dim-rnn"))       //
-                                ("activation", (int)mlp::act::tanh)//
+      auto mlp = mlp::mlp(graph)                                     //
+                     .push_back(mlp::dense(graph)                    //
+                                ("prefix", prefix_ + "_ff_state")    //
+                                ("dim", opt<int>("dim-rnn"))         //
+                                ("activation", (int)mlp::act::tanh)  //
                                 ("layer-normalization",
                                  opt<bool>("layer-normalization")));
       start = mlp->apply(meanContexts);
@@ -133,8 +137,8 @@ public:
     int dimBeam = trgEmbeddings->shape()[-4];
 
     if(dropoutTrg) {
-      auto trgWordDrop = graph->dropout(dropoutTrg, {dimTrgWords, dimBatch, 1});
-      trgEmbeddings = dropout(trgEmbeddings, mask = trgWordDrop);
+      trgEmbeddings
+          = dropout(trgEmbeddings, dropoutTrg, {dimTrgWords, dimBatch, 1});
     }
 
     auto flatContext = reshape(context, {dimBatch * dimSrcWords, dimContext});

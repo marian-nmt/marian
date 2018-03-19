@@ -1,9 +1,9 @@
 #pragma once
 
-#include "marian.h"
 #include "layers/generic.h"
-#include "rnn/types.h"
+#include "marian.h"
 #include "rnn/cells.h"
+#include "rnn/types.h"
 
 #include <algorithm>
 #include <chrono>
@@ -74,10 +74,9 @@ private:
         j = timeSteps - i - 1;
 
       std::vector<Expr> steps(xWs.size());
-      std::transform(xWs.begin(),
-                     xWs.end(),
-                     steps.begin(),
-                     [j](Expr e) { return step(e, j, -3); });
+      std::transform(xWs.begin(), xWs.end(), steps.begin(), [j](Expr e) {
+        return step(e, j, -3);
+      });
 
       if(mask)
         state = cell_->applyState(steps, state, step(mask, j, -3));
@@ -101,7 +100,7 @@ private:
     int dimBatch = input->shape()[-2];
     int dimState = cell_->getOptions()->get<int>("dimState");
 
-    auto output = graph->zeros(keywords::shape = {1, dimBatch, dimState});
+    auto output = graph->zeros({1, dimBatch, dimState});
     Expr cell = output;
     State startState{output, cell};
 

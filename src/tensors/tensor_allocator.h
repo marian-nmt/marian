@@ -5,7 +5,6 @@
 
 #include "common/definitions.h"
 #include "tensors/allocator.h"
-#include "tensors/device_gpu.h"
 #include "tensors/tensor.h"
 
 namespace marian {
@@ -17,11 +16,13 @@ private:
   const size_t GROW = CHUNK * MBYTE;
   const size_t ALIGN = 256;
 
-  Ptr<Allocator<DeviceGPU>> allocator_;
+  Ptr<Backend> backend_;
+  Ptr<Allocator> allocator_;
 
 public:
-  TensorAllocator(DeviceId deviceId)
-      : allocator_(New<Allocator<DeviceGPU>>(deviceId, 0, GROW, ALIGN)) {}
+  TensorAllocator(Ptr<Backend> backend)
+      : backend_(backend),
+        allocator_(New<Allocator>(backend_->getDevice(), 0, GROW, ALIGN)) {}
 
   ~TensorAllocator() { clear(); }
 
@@ -41,11 +42,17 @@ public:
 
   void reserveExact(size_t bytes = 0) {
     size_t mbytes = bytes / MBYTE;
-    LOG(info,
-        "[memory] Reserving {} MB, device {}",
-        mbytes,
-        allocator_->getDevice());
-
+    if(mbytes == 0) {
+      LOG(info,
+          "[memory] Reserving {} B, device {}",
+          bytes,
+          allocator_->getDevice());
+    } else {
+      LOG(info,
+          "[memory] Reserving {} MB, device {}",
+          mbytes,
+          allocator_->getDevice());
+    }
     allocator_->reserve(bytes);
   }
 
@@ -59,7 +66,7 @@ public:
     if(!t || t->shape() != shape) {
       int size = shape.elements();
       auto mem = allocator_->alloc<float>(size);
-      t = Tensor(new TensorBase(mem, shape, allocator_->getDevice()));
+      t = Tensor(new TensorBase(mem, shape, backend_));
     }
   }
 
@@ -68,11 +75,11 @@ public:
   Tensor asTensor() {
     auto mem = allocator_->memory();
     int size = mem->size() / sizeof(float);
-    return Tensor(new TensorBase(mem, {1, size}, allocator_->getDevice()));
+    return Tensor(new TensorBase(mem, {1, size}, backend_));
   }
 
   size_t size() { return allocator_->size() / sizeof(float); }
 
-  Ptr<Allocator<DeviceGPU>> allocator() { return allocator_; }
+  Ptr<Allocator> allocator() { return allocator_; }
 };
 }

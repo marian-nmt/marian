@@ -56,8 +56,10 @@ public:
 
   virtual Expr getExtraLoss() { return extraLoss_; }
 
-  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx, int beamSize) {
-    return New<DecoderState>(states_.select(selIdx, beamSize), probs_, encStates_);
+  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
+                                   int beamSize) {
+    return New<DecoderState>(
+        states_.select(selIdx, beamSize), probs_, encStates_);
   }
 
   virtual const rnn::States& getStates() { return states_; }

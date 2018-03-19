@@ -45,7 +45,7 @@ CorpusBase::CorpusBase(std::vector<std::string> paths,
   }
 }
 
-CorpusBase::CorpusBase(Ptr<Config> options, bool translate /*= false*/)
+CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
     : options_(options),
       maxLength_(options_->get<size_t>("max-length")),
       maxLengthCrop_(options_->get<bool>("max-length-crop")),
@@ -201,8 +201,11 @@ void CorpusBase::addWeightsToSentenceTuple(const std::string& line,
 
   if(!elements.empty()) {
     std::vector<float> weights;
-    for(auto& e : elements)
+    for(auto& e : elements) {
+      if(maxLengthCrop_ && weights.size() > maxLength_)
+        break;
       weights.emplace_back(std::stof(e));
+    }
 
     if(rightLeft_)
       std::reverse(weights.begin(), weights.end());

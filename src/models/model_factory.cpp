@@ -1,16 +1,24 @@
 #include "marian.h"
+
 #include "models/model_factory.h"
 
-#include "models/s2s.h"
-#include "models/char_s2s.h"
-#include "models/transformer.h"
-#include "models/hardatt.h"
 #include "models/amun.h"
-#include "models/nematus.h"
 #include "models/encdec.h"
+#include "models/hardatt.h"
+#include "models/nematus.h"
+#include "models/s2s.h"
+#include "models/transformer.h"
 
+#ifdef CUDNN
+#include "models/char_s2s.h"
+#endif
+
+#ifdef COMPILE_EXAMPLES
 #include "examples/mnist/model.h"
+#ifdef CUDNN
 #include "examples/mnist/model_lenet.h"
+#endif
+#endif
 
 namespace marian {
 namespace models {
@@ -18,8 +26,12 @@ namespace models {
 Ptr<EncoderBase> EncoderFactory::construct() {
   if(options_->get<std::string>("type") == "s2s")
     return New<EncoderS2S>(options_);
+
+#ifdef CUDNN
   if(options_->get<std::string>("type") == "char-s2s")
     return New<CharS2SEncoder>(options_);
+#endif
+
   if(options_->get<std::string>("type") == "transformer")
     return New<EncoderTransformer>(options_);
 
@@ -87,8 +99,10 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
   if(type == "lm") {
     auto idx = options->has("index") ? options->get<size_t>("index") : 0;
     std::vector<int> dimVocabs = options->get<std::vector<int>>("dim-vocabs");
-    if(idx > 0)
-      dimVocabs.resize(idx + 1, dimVocabs.back());
+    int vocab = dimVocabs[0];
+    dimVocabs.resize(idx + 1);
+    std::fill(dimVocabs.begin(), dimVocabs.end(), vocab);
+
     return models::encoder_decoder()(options)
         ("type", "s2s")
         ("original-type", type)
@@ -165,22 +179,33 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
 
   if(type == "lm-transformer") {
     auto idx = options->has("index") ? options->get<size_t>("index") : 0;
+    std::vector<int> dimVocabs = options->get<std::vector<int>>("dim-vocabs");
+    int vocab = dimVocabs[0];
+    dimVocabs.resize(idx + 1);
+    std::fill(dimVocabs.begin(), dimVocabs.end(), vocab);
+
     return models::encoder_decoder()(options)
         ("type", "transformer")
         ("original-type", type)
-            .push_back(models::decoder()("index", idx))
+            .push_back(models::decoder()
+                       ("index", idx)
+                       ("dim-vocabs", dimVocabs))
             .construct();
   }
 
+#ifdef COMPILE_EXAMPLES
   // @TODO: examples should be compiled optionally
   if(type == "mnist-ffnn") {
     return New<MnistFeedForwardNet>(options);
   }
+#endif
 
+#ifdef CUDNN
+#ifdef COMPILE_EXAMPLES
   if(type == "mnist-lenet") {
     return New<MnistLeNet>(options);
   }
-
+#endif
   if(type == "char-s2s") {
     return models::encoder_decoder()(options)
         ("original-type", type)
@@ -188,6 +213,7 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
             .push_back(models::decoder()("type", "s2s"))
             .construct();
   }
+#endif
 
   // clang-format on
   ABORT("Unknown model type: {}", type);

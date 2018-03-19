@@ -1,3 +1,8 @@
+/* All or part of this file was contributed by Intel under license:
+ *   Copyright (C) 2017-2018 Intel Corporation
+ *   SPDX-License-Identifier: MIT
+ */
+
 #include <cuda.h>
 #include <limits>
 
@@ -6,6 +11,8 @@
 #include "translator/helpers.h"
 
 namespace marian {
+
+namespace gpu {
 
 __global__ void gSetColumn(float* d_in,
                            size_t n_columns,
@@ -20,16 +27,14 @@ __global__ void gSetColumn(float* d_in,
   }
 }
 
-void SetColumn(Tensor in, size_t col, float value) {
-  cudaSetDevice(in->getDevice().no);
-  
-  int nRows = in->shape().elements() / in->shape()[-1];
-  int nColumns = in->shape()[-1];
+void SetColumn(Tensor in_, size_t col, float value) {
+  int nRows = in_->shape().elements() / in_->shape()[-1];
+  int nColumns = in_->shape()[-1];
 
   int nBlocks = nRows / 512 + ((nRows % 512 == 0) ? 0 : 1);
   int nThreads = std::min(512, nRows);
 
-  gSetColumn<<<nBlocks, nThreads>>>(in->data(), nColumns, nRows, col, value);
+  gSetColumn<<<nBlocks, nThreads>>>(in_->data(), nColumns, nRows, col, value);
 }
 
 void suppressUnk(Expr probs) {
@@ -38,5 +43,6 @@ void suppressUnk(Expr probs) {
 
 void suppressWord(Expr probs, Word id) {
   SetColumn(probs->val(), id, std::numeric_limits<float>::lowest());
+}
 }
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "marian.h"
+
 #include "layers/generic.h"
 #include "layers/guided_alignment.h"
 #include "model_base.h"
@@ -30,8 +31,8 @@ protected:
 
     auto batchEmbeddings
         = reshape(chosenEmbeddings, {dimWords, dimBatch, dimEmb});
-    auto batchMask = graph->constant(
-        {dimWords, dimBatch, 1}, init = inits::from_vector(subBatch->mask()));
+    auto batchMask = graph->constant({dimWords, dimBatch, 1},
+                                     inits::from_vector(subBatch->mask()));
 
     return std::make_tuple(batchEmbeddings, batchMask);
   }
@@ -113,10 +114,10 @@ public:
         = reshape(chosenEmbeddings, {dimWords, dimBatch, opt<int>("dim-emb")});
 
     auto yMask = graph->constant({dimWords, dimBatch, 1},
-                                 init = inits::from_vector(subBatch->mask()));
+                                 inits::from_vector(subBatch->mask()));
 
     auto yData = graph->constant({(int)subBatch->data().size(), 1},
-                                 init = inits::from_vector(subBatch->data()));
+                                 inits::from_vector(subBatch->data()));
 
     auto yShifted = shift(y, {1, 0, 0});
 
@@ -129,7 +130,8 @@ public:
   virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                 Ptr<DecoderState> state,
                                 const std::vector<size_t>& embIdx,
-                                int dimBatch, int dimBeam) {
+                                int dimBatch,
+                                int dimBeam) {
     using namespace keywords;
 
     int dimTrgEmb = opt<int>("dim-emb");
@@ -149,12 +151,10 @@ public:
 
     Expr selectedEmbs;
     if(embIdx.empty()) {
-      selectedEmbs = graph->constant({1, 1, dimBatch, dimTrgEmb},
-                                     init = inits::zeros);
+      selectedEmbs = graph->constant({1, 1, dimBatch, dimTrgEmb}, inits::zeros);
     } else {
       selectedEmbs = rows(yEmb, embIdx);
-      selectedEmbs
-          = reshape(selectedEmbs, {dimBeam, 1, dimBatch, dimTrgEmb});
+      selectedEmbs = reshape(selectedEmbs, {dimBeam, 1, dimBatch, dimTrgEmb});
     }
     state->setTargetEmbeddings(selectedEmbs);
   }
@@ -174,14 +174,16 @@ public:
   virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                 Ptr<DecoderState> state,
                                 const std::vector<size_t>&,
-                                int dimBatch, int beamSize)
+                                int dimBatch,
+                                int beamSize)
       = 0;
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState>,
                                  const std::vector<size_t>&,
                                  const std::vector<size_t>&,
-                                 int dimBatch, int beamSize)
+                                 int dimBatch,
+                                 int beamSize)
       = 0;
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
@@ -225,7 +227,8 @@ protected:
 
     decoder["mini-batch"] = opt<size_t>("valid-mini-batch");
     decoder["maxi-batch"] = opt<size_t>("valid-mini-batch") > 1 ? 100 : 1;
-    decoder["maxi-batch-sort"] = opt<size_t>("valid-mini-batch") > 1 ? "trg" : "none";
+    decoder["maxi-batch-sort"]
+        = opt<size_t>("valid-mini-batch") > 1 ? "trg" : "none";
 
     decoder["relative-paths"] = false;
 
@@ -323,8 +326,10 @@ public:
                                  Ptr<DecoderState> state,
                                  const std::vector<size_t>& hypIndices,
                                  const std::vector<size_t>& embIndices,
-                                 int dimBatch, int beamSize) {
-    auto selectedState = hypIndices.empty() ? state : state->select(hypIndices, beamSize);
+                                 int dimBatch,
+                                 int beamSize) {
+    auto selectedState
+        = hypIndices.empty() ? state : state->select(hypIndices, beamSize);
     selectEmbeddings(graph, selectedState, embIndices, dimBatch, beamSize);
     selectedState->setSingleStep(true);
     auto nextState = step(graph, selectedState);
@@ -335,7 +340,8 @@ public:
   virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
                                 Ptr<DecoderState> state,
                                 const std::vector<size_t>& embIdx,
-                                int dimBatch, int beamSize) {
+                                int dimBatch,
+                                int beamSize) {
     decoders_[0]->selectEmbeddings(graph, state, embIdx, dimBatch, beamSize);
   }
 
@@ -369,17 +375,12 @@ public:
       int dimBatch = batch->size();
       int dimWords = sentenceWeighting ? 1 : batch->back()->batchWidth();
 
-      weights = graph->constant(
-          {1, dimWords, dimBatch, 1},
-          keywords::init = inits::from_vector(batch->getDataWeights()));
+      weights = graph->constant({1, dimWords, dimBatch, 1},
+                                inits::from_vector(batch->getDataWeights()));
     }
 
-    auto cost = Cost(nextState->getProbs(),
-                     trgIdx,
-                     trgMask,
-                     costType,
-                     ls,
-                     weights);
+    auto cost
+        = Cost(nextState->getProbs(), trgIdx, trgMask, costType, ls, weights);
 
     // my strange experiment with P(s|s^)
     auto extraCost = nextState->getExtraLoss();
@@ -417,25 +418,49 @@ public:
                                      size_t multiplier = 1) {
     auto stats = New<data::BatchStats>();
 
-    size_t step = 10;
-    size_t maxLength = opt<size_t>("max-length");
+    size_t numFiles = opt<std::vector<std::string>>("train-sets").size();
 
+    size_t first = opt<size_t>("mini-batch-fit-step");
+    size_t step = opt<size_t>("mini-batch-fit-step");
+
+    size_t maxLength = opt<size_t>("max-length");
     maxLength = std::ceil(maxLength / (float)step) * step;
 
-    size_t numFiles = opt<std::vector<std::string>>("train-sets").size();
+    size_t maxBatch = 512;
+    bool fits = true;
+    while(fits) {
+      std::vector<size_t> lengths(numFiles, first);
+      auto batch = data::CorpusBatch::fakeBatch(lengths, maxBatch, options_);
+      build(graph, batch);
+      fits = graph->fits();
+      if(fits)
+        maxBatch *= 2;
+    }
+
     for(size_t i = step; i <= maxLength; i += step) {
-      size_t batchSize = step;
+      size_t start = 1;
+      size_t end = maxBatch;
+
       std::vector<size_t> lengths(numFiles, i);
       bool fits = true;
-      do {
-        auto batch = data::CorpusBatch::fakeBatch(lengths, batchSize, options_);
 
+      do {
+        size_t current = (start + end) / 2;
+        // std::cerr << i << " " << current << std::endl;
+        auto batch = data::CorpusBatch::fakeBatch(lengths, current, options_);
         build(graph, batch);
         fits = graph->fits();
-        if(fits)
+
+        if(fits) {
           stats->add(batch, multiplier);
-        batchSize += step;
-      } while(fits);
+          start = current + 1;
+        } else {
+          end = current - 1;
+        }
+      } while(end - start > step);
+      //} while(start <= end);
+
+      maxBatch = start;
     }
     return stats;
   }

@@ -32,6 +32,8 @@ public:
 
   virtual void save(bool = false) = 0;
 
+  virtual void wait(){};
+
   virtual void setScheduler(Ptr<Scheduler> scheduler) = 0;
 
   virtual Ptr<data::BatchStats> collectStats() = 0;

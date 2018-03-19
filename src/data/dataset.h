@@ -3,6 +3,7 @@
 #include "common/definitions.h"
 #include "data/batch.h"
 #include "data/vocab.h"
+#include "training/training_state.h"
 
 namespace marian {
 namespace data {
@@ -31,6 +32,7 @@ public:
 
   virtual void reset() {}
   virtual void prepare() {}
+  virtual void restore(Ptr<TrainingState>) {}
 };
 
 typedef std::vector<float> Data;

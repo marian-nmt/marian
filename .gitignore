@@ -39,6 +39,7 @@ src/common/version.h
 
 # CMake files
 build
+build-*
 
 # Examples
 examples/*/*.gz
