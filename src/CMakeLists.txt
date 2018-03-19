@@ -71,8 +71,8 @@ cuda_add_library(marian_cuda
   tensors/gpu/cudnn_wrappers.cu
   translator/nth_element.cu
   translator/helpers.cu
-  training/dropper.cu
-  training/sparse_tensor.cu
+  training/gradient_dropping/gpu/dropper.cu
+  training/gradient_dropping/gpu/sparse_algorithm.cu
   STATIC)
 endif(CUDA_FOUND)
 
