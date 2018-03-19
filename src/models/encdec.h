@@ -266,10 +266,8 @@ public:
     };
 
     modelFeatures_.push_back("transformer-heads");
-    modelFeatures_.push_back("transformer-heads-top");
     modelFeatures_.push_back("transformer-dim-ffn");
     modelFeatures_.push_back("transformer-ffn-activation");
-    modelFeatures_.push_back("transformer-offset-embedding-range");
     modelFeatures_.push_back("transformer-preprocess");
     modelFeatures_.push_back("transformer-postprocess");
     modelFeatures_.push_back("transformer-postprocess-emb");
@@ -381,20 +379,6 @@ public:
 
     auto cost
         = Cost(nextState->getProbs(), trgIdx, trgMask, costType, ls, weights);
-
-    // my strange experiment with P(s|s^)
-    auto extraCost = nextState->getExtraLoss();
-    if (extraCost)
-    {
-      float weight = 0.1;
-      static bool shouted = false;
-      if (!shouted)
-      {
-        shouted = true;
-        LOG(info, "interpolating extraCost at weight {}", weight);
-      }
-      cost = cost + weight * extraCost;
-    }
 
     if(options_->has("guided-alignment") && !inference_) {
       auto alignments = decoders_[0]->getAlignments();

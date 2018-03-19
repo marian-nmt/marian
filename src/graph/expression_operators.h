@@ -140,18 +140,6 @@ static inline Expr dropout(Expr x, float prob) {
 
 Expr shift(Expr, Shape);
 
-// delay 'x' by 'delayBy' steps along 'axis'. delayBy < 0 means access future value
-static inline
-Expr delay(Expr x, int delayBy = 1, int/*keywords::axis_k*/ axis = 0) // TODO: make this a real operator. Negative delayBy means look into future
-{
-  ABORT_IF(axis != -1, "delay currently hard-coded to support only axis=-1"); // this does not compile.
-#if 1
-  return transpose(shift(transpose(x, {3, 1, 2, 0}), {delayBy, 0, 0, 0}), {3, 1, 2, 0});
-#else
-  return shift(x, {0, 0, 0, delayBy});
-#endif
-};
-
 Expr convert2cudnnFormat(Expr x);
 
 Expr convertFromcudnnFormat(Expr x);

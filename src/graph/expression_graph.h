@@ -131,10 +131,7 @@ public:
 
       checkNan(v->val());
 
-#if 1 // #if 0 to always dump all
-      if(v->marked_for_debug())
-#endif
-      {
+      if(v->marked_for_debug()) {
         std::cerr << "Debug: " << v->debug_message() << " op=" << v->type() << std::endl;
         std::cerr << v->val()->debug() << std::endl;
       }
@@ -143,25 +140,6 @@ public:
         v->children().clear();
       nodesForward_.pop_front();
     }
-#if 0
-    static int cc = 0;
-    if (cc++ == 1000)
-      ABORT("done logging the first MB");
-#endif
-
-#if 0 // hack to dump initial parameters to files, to be read from Dynamite
-    std::string dir = "/tmp/initval.";
-    std::vector<float> buf;
-    for (auto p : *params())
-    {
-        p->val()->get(buf);
-        auto path = dir + p->name() + ".float32";
-        LOG(info, "Saving {} init vals with shape {}: {}", buf.size(), p->val()->shape().toString(), path);
-        auto good = std::ofstream(path).write((const char*)buf.data(), sizeof(*buf.data()) * buf.size()).flush().good();
-        ABORT_IF (!good, "failed to write parameter {} with {} elements to {}", p->name(), buf.size(), path);
-    }
-    ABORT("done dumping parameters, see /tmp/*.float32");
-#endif
   }
 
   void backward() {
@@ -199,13 +177,6 @@ public:
 
       v->children().clear();
     }
-#if 0 // for debugging: dump all parameter gradients
-    for (const auto& v : *params_)
-    {
-      std::cerr << "Debug: " << v->debug_message() << " op=" << v->type() << " name=" << v->name() << std::endl;
-      std::cerr << v->grad()->debug() << std::endl;
-    }
-#endif
   }
 
   std::string graphviz() {
@@ -385,7 +356,7 @@ public:
       setReloaded(true);
   }
 
-#if 1
+#if 1 // TODO: move to cnpz lib
     // function to save to .npz file in a single go. cnpy.h is not suitable as it seeks and overwrites, which won't work in HDFS
     struct NpzItem
     {

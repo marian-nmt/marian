@@ -162,8 +162,7 @@ public:
                         Expr k,              // [-4: batch size, -3: num heads, -2: max src length, -1: split vector dim]
                         Expr v,              // [-4: batch size, -3: num heads, -2: max src length, -1: split vector dim]
                         Expr mask = nullptr, // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
-                        bool inference = false, Expr* pExtraLoss = nullptr, Expr* pSentEndProb = nullptr,
-                        bool isSelf = false) {
+                        bool inference = false) {
     using namespace keywords;
 
     int dk = k->shape()[-1];
@@ -185,162 +184,11 @@ public:
     float scale = 1.0 / std::sqrt((float)dk); // scaling to avoid extreme values due to matrix multiplication
     auto z = bdot(q, k, false, true, scale); // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
 
-    // [Shaw et al.: Self-Attention with Relative Position Representations, https://arxiv.org/pdf/1803.02155.pdf]
-    // relative position info comes in here
-    //  - add offset embedding to v (Eq. (3))
-    //  - add offset embedding to k (Eq. (4))
-    // offset embedding :=
-    //  - learned weights
-    //  - embeddingVectors[j-i]
-    //  - depends on index in both q and k/v, so must operate on dims of z, can't just add to k/v
-    //  - same dimension as v.shape[-1] and likewise k
-    //  - shared across the 8 heads
-    //  - j-i may be clipped, e.g. to max. +/-2 (N=5 vectors only)
-    //  - would a custom kernel be the easiest solution? Or a matrix product?
-    //  - src = tgt
-    //  - j = s, i = t
-    //  - t = sequence index into q       --note: confusing naming, since src=tgt (self-attention)
-    //  - s = sequence index into k and v
-    //  - N := max offset embeddings (e.g. 5)
-    // dimensions for z:
-    //  - z[b,h,t,s] += zk[b,h,t,s]
-    //  - zk[b,h,t,s] = f(q[b,h,t,.], a[s,t,.]) = q[b,h,t,.] a[s,t,.]'    --note: also the scale, left out for clarity
-    //  - qw[b,h,t,N] = q[b,h,t,.] @ w[N,.]'                              --every q scored against every offset embedding
-    //  - now map this (select/shuffle). Can that be a sparse matrix product?
-    //  - zk[b,h,t,s] = qw[b,h,t,(s-t)]
-    auto offsetEmbeddingRange = isSelf ? options->get<int>("transformer-offset-embedding-range") : 0;
-    std::vector<size_t> offsetIndices;
-    Expr offsetSel; // selection-matrix batch [-4: 1,  -3: T, -2: S, -1: N]
-    auto N = offsetEmbeddingRange * 2 + 1; // we distinguish on each side at most 'offsetEmbeddingRange' positions, e.g. offsetEmbeddingRange == 2
-    auto B = q->shape()[-4];
-    auto H = q->shape()[-3];
-    auto T = q->shape()[-2];
-    auto S = k->shape()[-2];
-    if (offsetEmbeddingRange)
-    {
-      // note: in decoding, T=1
-      ABORT_IF((T != S && T != 1) || B != k->shape()[-4] || !isSelf,
-               "inconsistent dimensions in self-attention S={} T={} B={} k[4]={} (offset embedding)??", S, T, B, k->shape()[-4]);
-      static bool shouted = false;
-      if (!shouted)
-      {
-        shouted = true;
-        LOG(info, "offset embedding, range {}", offsetEmbeddingRange);
-      }
-      auto WAk = graph->param(prefix + "_WAk", {N, dk}, inits::glorot_uniform);  // [N, split vector dim]
-      //WAk->debug("WAk");
-      // project every q (across batch, beams, time steps) with all offset embeddings
-      //auto q2d = flatten_2d(q); // [-2: beam depth * batch size * num heads * max tgt length, -1: split vector dim] flatten out the vectors across all those dimensions into a single matrix
-      //q->debug("q");
-      // TODO: the flattening to matrix is not needed, actually.
-      //                                          q : [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]
-      auto qWAk = dot(q, WAk, false, true, scale); // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: N]
-      //qWAk->debug("qWAk");
-      // scatter qw[b,h,t,s] <- qw[b,h,t,clamp(s-t)]
-      // Implemented as a batch matrix product. OK for small N, and OK anyway for qWAk (scalar).
-      // For every t we need a NxS-dim matrix: [-4: 1,  -3: T, -2: S, -1: N]  1 for n == embedding index for (s-t)
-      // repeat x BH:                          [-4: BH, -3, T: -2: S, -1: N]  left factor
-      // and reshape qWAk to:                  [-4: BH, -3: T, -2: N, -1: d]  right factor, d = 1 for z (and d == dk later for v)
-      // resulting bdot shape is:              [-4: BH, -3: T, -2: S, -1: d]
-      // reshape back to:                      [-4: B,  -3: H, -2: T, -1: S]
-      std::vector<float> offsetSelCpu(T * S * N, 0);
-      auto locate = [&](size_t t, size_t s, size_t n) { return (t * S + s) * N + n; };
-      for (int t = 0; t < T; t++)
-        for (int s = 0; s < S; s++)
-      {
-        auto offset = s - (t + S - T); // the (S-T) adjusts for the inference case which calls this once per output step
-        auto n = offset + offsetEmbeddingRange; // convert to index
-        n = n < 0 ? 0 : n > (N-1) ? (N-1) : n;  // clamp to range
-        offsetSelCpu[locate(t, s, n)] = 1;
-      }
-      offsetSel = graph->constant({1, T, S, N},       // [-4: 1,  -3: T, -2: S, -1: N]
-                                  inits::from_vector(offsetSelCpu));
-      //offsetSel->debug("offsetSel (initial)");
-      offsetSel = repeat(offsetSel, B*H, axis = -4);  // [-4: BH, -3, T: -2: S, -1: N]
-      qWAk = reshape(qWAk, {B*H, T, N, 1});           // [-4: BH, -3: T, -2: N, -1: d=1]
-      auto zk = bdot(offsetSel, qWAk);                // [-4: BH, -3: T, -2: S, -1: d=1]
-      zk = reshape(zk, {B, H, T, S});
-      //zk->debug("zk");
-      z = z + zk;
-    }
-
     // take softmax along src sequence axis (-1)
     auto zm = z + mask;
     auto weights = softmax(zm); // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
 
-    // my strange experiment
-    auto heads = q->shape()[-3];
-    static int n = 0; // log counter
-    if (pExtraLoss && heads == 1)
-    {
-      auto Pst = weights; // P(s|t) : [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
-      ABORT_IF(heads != 1, "my strange experiment requires heads = 1, not {}", heads);
-      static bool shouted = false;
-      if (!shouted)
-      {
-        shouted = true;
-        LOG(info, "computing extraLoss");
-      }
-      // compute P(t|s), which is weights normalized along time axis [-2]
-      // Marian cannot taken softmax along other axes, so we must transpose
-      auto zmT = transpose(zm, {0, 1, 3, 2}); // [-4: beam depth * batch size, -3: num heads, -2: max src length, -1: max tgt length]
-      auto Pts = softmax(zmT); // P(t|s); softmax is along original axis [-2] (tgt sequence axis) which is now [-1]
-      auto PtsT = transpose(Pts, {0, 1, 3, 2}); // P(t|s) : [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
-      auto prod = Pst * PtsT; // elementwise product [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
-      auto Pss = sum(prod, axis = -2); // elementwise product [-4: beam depth * batch size, -3: num heads (1), -2: 1, -1: max src length]
-      auto mulMask = exp(mask * 1e8);
-      auto logPss = log(Pss + 1e-8) * mulMask;
-      *pExtraLoss = -sum(sum(logPss, axis = -1), axis = -4);
-      if (n % 100 == 0 && graph->getDevice().no == 0)
-      {
-        //mulMask->debug("mulMask");
-        Pts->debug("Pts");
-        Pst->debug("Pst");
-        Pss->debug("Pss");
-        (*pExtraLoss)->debug("loss");
-      }
-      //weights = weights + 0 * sum(sum(Pss, axis = -1), axis = -4); // HACK: make sure it gets evaluated, so we get the debug message
-    }
-
-#if 1 // my strange experiment
-    if (pSentEndProb && heads == 1)
-    {
-      static bool shouted = false;
-      if (!shouted)
-      {
-        shouted = true;
-        LOG(info, "sent-end prob model enabled");
-      }
-      auto getLast = [](Expr x, Expr mulMask, int/*keywords::axis_k*/ ax) // get last of 'x' according to (multiplicative) element-wise mask, along axis 'ax'
-      {
-        auto lastMask = mulMask - delay(mulMask, -1, /*axis=*/ax/*source-time direction*/); // selector for last source position (11100 --> 00100)
-        //mulMask->debug("getLast: mulMask");
-        //lastMask->debug("getLast: lastMask");
-        return sum(x * lastMask, ax); // select last step [-4: beam depth * batch size, -3: num heads (1), -2: max tgt length, -1: 1]
-        // ^^ this is actually a bdot, but of two vectors, which current bdot() cannot do
-      };
-      // pick out the sentence-end probability for each sequence
-      // We use the mask.
-      // mask : [-4: batch size,              -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
-      // all  : [-4: beam depth * batch size, -3: num heads,             -2: max tgt length,         -1: max src length]
-      auto all = weights; // pSentEndProb gets assigned the respective last step's' value of this
-      auto last = getLast(all, exp(mask * 1e8), /*axis=*/-1); // select last step [-4: beam depth * batch size, -3: num heads (1), -2: max tgt length, -1: 1]
-      // BUGBUG: If I return logsoftmax(zm) instead, and exponentiate later, it does not converge. There is a bug somewhere.
-      // note: last's shape is compatible with 'output'
-      if (n % 100 == 0 && graph->getDevice().no == 0)
-      {
-        auto Pst = weights; // P(s|t) : [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
-        Pst->debug("Pst");
-        last->debug("last");
-      }
-      *pSentEndProb = last; // [-4: beam depth * batch size, -3: num heads (1), -2: max tgt length, -1: 1]
-    }
-#endif
-    if (graph->getDevice().no == 0)
-      n++;
-
     // optional dropout for attention weights
-    // TODO: Does this really make sense? We don't drop out the final softmax either...
     float dropProb
         = inference ? 0 : options->get<float>("transformer-dropout-attention");
 
@@ -348,28 +196,7 @@ public:
       weights = dropout(weights, dropProb);
 
     // apply attention weights to values
-    auto output = bdot(weights, v);   // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]
-
-    // add in offset embeddings
-    if (offsetEmbeddingRange)
-    {
-      auto WAv = graph->param(prefix + "_WAv", {N, dk}, inits::glorot_uniform);  // [N, split vector dim]
-      //WAv->debug("WAv");
-      // weights:          [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
-      // reduce weights to [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: N]
-      // offsetSel:                                                   [BH, T: S, N]
-      auto weights1 = reshape(weights, {B*H, T, S, 1});            // [BH, T, S, 1]
-      //weights1->debug("weights1");
-      auto offsetWeights = bdot(offsetSel, weights1, true, false); // [BH, T, N, 1]
-      offsetWeights = reshape(offsetWeights, {B, H, T, N});        // [B,  H, T, N]
-      //offsetWeights->debug("offsetWeights");
-      // sum over Wav's rows, weighted by offsetWeights. This is a matrix product.
-      Expr offsetOutput = dot(offsetWeights, WAv);                 // [B, H, T, dk]
-      //offsetOutput = reshape(offsetOutput, {B, H, T, dk}); // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]
-      output = output + offsetOutput; // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]
-    }
-
-    return output;
+    return bdot(weights, v);   // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]
   }
 
   static Expr MultiHead(Ptr<ExpressionGraph> graph,
@@ -381,33 +208,15 @@ public:
                         const std::vector<Expr> &keys,   // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
                         const std::vector<Expr> &values,
                         const std::vector<Expr> &masks,  // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
-                        bool inference = false, Expr* pExtraLoss = nullptr, Expr* pSentEndProb = nullptr,
-                        bool isSelf = false) {
+                        bool inference = false) {
     using namespace keywords;
 
     int dimModel = q->shape()[-1];
 
-#if 1 // [fseide]
-    // This projection may be important to allow multi-head attention to slice in directions.
-    // But note that the subsequent MLP should be able to munge things together.
-    // Without this, the multi-head split is always on the same embedding dimensions.
-    const auto noQKProjection = false;
-    static bool shouted = false;
-    if (noQKProjection && !shouted)
-    {
-      fprintf(stderr,"### noQKProjection mode\n"), fflush(stderr);
-      shouted = true;
-    }
-    auto Wq = noQKProjection ? Expr() : graph->param(
-        prefix + "_Wq", {dimModel, dimModel}, inits::glorot_uniform);
-    auto bq = noQKProjection ? Expr() : graph->param(prefix + "_bq", {1, dimModel}, inits::zeros);
-    auto qh = noQKProjection ? q : affine(q, Wq, bq);
-#else
     auto Wq = graph->param(
         prefix + "_Wq", {dimModel, dimModel}, inits::glorot_uniform);
     auto bq = graph->param(prefix + "_bq", {1, dimModel}, inits::zeros);
     auto qh = affine(q, Wq, bq);
-#endif
     qh = SplitHeads(qh, dimHeads); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
 
     std::vector<Expr> outputs;
@@ -416,22 +225,6 @@ public:
       if(i > 0)
         prefixProj += "_enc" + std::to_string(i + 1);
 
-#if 1 // [fseide]
-      auto Wk = noQKProjection ? Expr() : graph->param(prefixProj + "_Wk",
-                             {dimModel, dimModel},
-                             inits::glorot_uniform);
-      auto bk = noQKProjection ? Expr() : graph->param(
-          prefixProj + "_bk", {1, dimModel}, inits::zeros);
-
-      auto Wv = noQKProjection ? Expr() : graph->param(prefixProj + "_Wv",
-                             {dimModel, dimModel},
-                             inits::glorot_uniform);
-      auto bv = noQKProjection ? Expr() : graph->param(
-          prefixProj + "_bv", {1, dimModel}, inits::zeros);
-
-      auto kh = noQKProjection ? keys[i]   : affine(keys[i],   Wk, bk); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
-      auto vh = noQKProjection ? values[i] : affine(values[i], Wv, bv);
-#else
       auto Wk = graph->param(prefixProj + "_Wk",
                              {dimModel, dimModel},
                              inits::glorot_uniform);
@@ -444,14 +237,13 @@ public:
 
       auto kh = affine(keys[i], Wk, bk); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
       auto vh = affine(values[i], Wv, bv);
-#endif
 
       kh = SplitHeads(kh, dimHeads); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
       vh = SplitHeads(vh, dimHeads); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
 
       // apply multi-head attention to downscaled inputs
       auto output
-          = Attention(graph, options, prefix, qh, kh, vh, masks[i], inference, pExtraLoss, pSentEndProb, isSelf); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
+          = Attention(graph, options, prefix, qh, kh, vh, masks[i], inference); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
 
       output = JoinHeads(output, q->shape()[-4]); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
       outputs.push_back(output);
@@ -480,8 +272,7 @@ public:
                              Expr keys,
                              Expr values,
                              Expr mask,
-                             bool inference = false, bool isTop = false, Expr* pExtraLoss = nullptr, Expr* pSentEndProb = nullptr,
-                             bool isSelf = false) {
+                             bool inference = false) {
     return LayerAttention(graph,
                           options,
                           prefix,
@@ -489,8 +280,7 @@ public:
                           std::vector<Expr>{keys},
                           std::vector<Expr>{values},
                           std::vector<Expr>{mask},
-                          inference, isTop, pExtraLoss, pSentEndProb,
-                          isSelf);
+                          inference);
   }
 
   static Expr LayerAttention(Ptr<ExpressionGraph> graph,
@@ -500,8 +290,7 @@ public:
                              const std::vector<Expr> &keys,   // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
                              const std::vector<Expr> &values,
                              const std::vector<Expr> &masks,  // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
-                             bool inference = false, bool isTop = false, Expr* pExtraLoss = nullptr, Expr* pSentEndProb = nullptr,
-                             bool isSelf = false) {
+                             bool inference = false) {
     using namespace keywords;
 
     int dimModel = input->shape()[-1];
@@ -510,35 +299,7 @@ public:
     auto opsPre = options->get<std::string>("transformer-preprocess");
     auto output = PreProcess(graph, prefix + "_Wo", opsPre, input, dropProb);
 
-#if 1
-    bool hasTopHeads = isTop && options->has("transformer-heads-top");
-    auto heads = hasTopHeads ? options->get<int>("transformer-heads-top") : options->get<int>("transformer-heads"); 
-#if 1 // BUGBUG: some models got screwed up
-    if (options->get<int>("transformer-heads") == 16 && heads == 8)
-    {
-      heads = 16; // I believe models that report this combination actually used 16 (have better decoding result)
-      static bool shouted = false;
-      if (!shouted)
-      {
-        LOG(info, "BUGBUG workaround: top target-source-attentionheads corrected back to {}", heads);
-        shouted = true;
-      }
-    }
-#endif
-    if (hasTopHeads)
-    {
-      static bool shouted = false;
-      if (!shouted)
-      {
-        LOG(info, "top target-source-attentionheads = {}", heads);
-        shouted = true;
-      }
-    }
-    if (!hasTopHeads || heads != 1)
-      pExtraLoss = nullptr; // clear this if not my strange experiment
-#else
     auto heads = options->get<int>("transformer-heads");
-#endif
 
     // multi-head self-attention over previous input
     output = MultiHead(graph,
@@ -550,8 +311,7 @@ public:
                        keys,
                        values,
                        masks,
-                       inference, pExtraLoss, pSentEndProb,
-                       isSelf);
+                       inference);
 
     auto opsPost = options->get<std::string>("transformer-postprocess");
     output
@@ -676,16 +436,6 @@ public:
 
     layerMask = transposedLogMask(layerMask); // [-4: batch size, -3: 1, -2: vector dim=1, -1: max length]
 
-    // [fseide]
-    const auto crossLayerAttention = false;
-    std::vector<Expr> allLayersContexts;
-    static bool shouted = false;
-    if (crossLayerAttention && !shouted)
-    {
-      fprintf(stderr,"### crossLayerAttention mode\n"), fflush(stderr);
-      shouted = true;
-    }
-
     // apply encoder layers
     auto encDepth = opt<int>("enc-depth");
     for(int i = 1; i <= encDepth; ++i) {
@@ -696,26 +446,13 @@ public:
                              layer,
                              layer,
                              layerMask,
-                             inference_,
-                             /*isTop=*/false, /*pExtraLoss=*/nullptr, /*pSentEndProb=*/nullptr,
-                             /*isSelf=*/true);
+                             inference_);
 
       layer = LayerFFN(graph,
                        options_,
                        prefix_ + "_l" + std::to_string(i) + "_ffn",
                        layer,
                        inference_);
-
-      if (crossLayerAttention)
-          allLayersContexts.push_back(layer); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
-    }
-
-    // to do attention over all layers jointly, concatenate them all
-    // In Transformer, these tensors are sets, not sequences, so we can just concat them in "time" axis.
-    if (crossLayerAttention)
-    {
-        layer = concatenate(allLayersContexts, axis = -2);                  // [-4: beam depth, -3: batch size, -2: max length * N, -1: vector dim]
-        batchMask = repeat(batchMask, allLayersContexts.size(), axis = -3); // [-4: beam depth=1, -3: max length * N, -2: batch size, -1: vector dim=1]
     }
 
     // restore organization of batch and time steps. This is currently required
@@ -735,10 +472,6 @@ public:
                    Expr probs,
                    std::vector<Ptr<EncoderState>> &encStates)
       : DecoderState(states, probs, encStates) {}
-  TransformerState(const rnn::States &states,
-                   Expr probs, Expr extraLoss,
-                   std::vector<Ptr<EncoderState>> &encStates)
-      : DecoderState(states, probs, extraLoss, encStates) {}
 
   virtual Ptr<DecoderState> select(const std::vector<size_t> &selIdx,
                                    int beamSize) {
@@ -767,7 +500,7 @@ class DecoderTransformer : public DecoderBase, public Transformer {
 public:
   DecoderTransformer(Ptr<Options> options) : DecoderBase(options) {}
 
-  virtual Ptr<DecoderState> startState( // TODO: const?
+  virtual Ptr<DecoderState> startState(
       Ptr<ExpressionGraph> graph,
       Ptr<data::CorpusBatch> batch,
       std::vector<Ptr<EncoderState>> &encStates) {
@@ -857,10 +590,8 @@ public:
     }
 
     // apply decoder layers
-    Expr extraLoss, sentEndProb; // (my strange experiment)
     auto decDepth = opt<int>("dec-depth");
     for(int i = 1; i <= decDepth; ++i) {
-      auto isTop = i == decDepth;
       auto values = query;
       if(prevDecoderStates.size() > 0)
         values
@@ -877,9 +608,7 @@ public:
                              values,
                              values,
                              selfMask,
-                             inference_,
-                             /*isTop=*/false, /*pExtraLoss=*/nullptr, /*pSentEndProb=*/nullptr,
-                             /*isSelf=*/true);
+                             inference_);
 
       // attention over encoder
       if(encoderContexts.size() > 0) {
@@ -894,7 +623,7 @@ public:
                                encoderContexts,
                                encoderContexts,
                                encoderMasks,
-                               inference_, isTop, nullptr/*&extraLoss*/, &sentEndProb);
+                               inference_);
 
         } else if(comb == "stack") {
           for(int j = 0; j < encoderContexts.size(); ++j) { // multiple encoders are applied one after another
@@ -910,7 +639,7 @@ public:
                                    encoderContexts[j],
                                    encoderContexts[j],
                                    encoderMasks[j],
-                                   inference_, isTop, nullptr/*&extraLoss*/, &sentEndProb);
+                                   inference_);
           }
         } else {
           ABORT("Unknown value for transformer-multi-encoder: {}", comb);
@@ -947,62 +676,7 @@ public:
 
     Expr logits = output->apply(decoderContext); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
 
-#if 1
-    if (sentEndProb)
-    {
-      auto where = [](Expr selector, Expr oneVal, Expr zeroVal) // return oneVal where selector=1, else zeroVal. Cf. numpy.where(), cntk.element_select()
-      {
-        return selector * oneVal + (1-selector) * zeroVal;
-      };
-      // this mode:
-      //  - P(y|...) = select (u_end, P(end|...),(1-P(end|...)) * softmax_noEnd(f(context_vector))
-      //             ~ select (u_end, odds(end|...), softmax_noEnd(f(context_vector))
-      //  - log P (y|...) = select (u_end, log odds(end|...), log softmax_noEnd(f(context_vector))
-      //  - The context vector should ideally not look at the end position, but that requires renormalization.
-      //    Maybe OK since this is a hack anyway.
-      auto Pend = sentEndProb;  // [-4: beam depth * batch size, -3: 1, -2: max tgt length, -1: 1]
-      Pend = reshape(Pend, { query->shape()[-4], query->shape()[-3], query->shape()[-2], 1 }); // [-4: beam depth, -3: batch size, -2: max length, -1: 1]
-      Pend = TransposeTimeBatch(Pend); // [-4: beam depth, -3: max length, -2: batch size, -1: 1]
-      std::vector<float> u_EOSCpu(dimTrgVoc, 0);
-      u_EOSCpu[EOS_ID] = 1;
-      auto u_EOS = graph->constant({1, 1, 1, dimTrgVoc}, // [-4: 1,          -3: 1,          -2: 1,          -1: vocab dim]
-                                   inits::from_vector(u_EOSCpu));
-      auto logits_notEOS = logits + -99999999.f * u_EOS; // [-4: beam depth, -3: max length, -2: batch size, -1: vocab dim]
-      logits = where(u_EOS,
-                     log(Pend + std::numeric_limits<float>::min()) - log((1-Pend) + std::numeric_limits<float>::min()),
-                     logsoftmax(logits_notEOS));
-      auto targetMask = state->getTargetMask();
-      if (targetMask)
-      {
-        targetMask = atleast_4d(targetMask);      // [1, max length, batch size, 1] --TODO: should works without this; try, then remove
-        logits = logits * targetMask; // suppress tokens beyond end of target for good measure (not sure if still needed)
-      }
-      static int n = 0;
-      if (n % 100 == 0 && graph->getDevice().no == 0)
-      {
-        LOG(info, "snapshot {}", n);
-        Pend->debug("Pend");
-        logits->debug("logits");
-      }
-      if (graph->getDevice().no == 0)
-        n++;
-    }
-#endif
-
     // return unormalized(!) probabilities
-#if 1 // (my strange experiment)
-    if (extraLoss)
-    {
-      static bool shouted = false;
-      if (!shouted)
-      {
-        shouted = true;
-        LOG(info, "got extraLoss, shape is {}", extraLoss->shape());
-      }
-      return New<TransformerState>(
-        decoderStates, logits, extraLoss, state->getEncoderStates());
-    }
-#endif
     return New<TransformerState>(
         decoderStates, logits, state->getEncoderStates());
   }
