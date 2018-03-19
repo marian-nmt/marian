@@ -501,7 +501,7 @@ public:
       }
 
       std::vector<float> v;
-      p.second->val() >> v;
+      p.second->val()->get(v);
 
       auto& pShape = p.second->shape();
       std::vector<unsigned int> shape(pShape.begin(), pShape.end());

@@ -203,7 +203,7 @@ public:
       }
 #if 1 // progress heartbeat for MS-internal Philly compute cluster
       if (getenv("PHILLY_JOB_ID")) // this environment variable exists when running on the cluster
-        printf("PROGRESS: %.2f%%\nerror: %.7f\n", (double)state_->epochs, costSum / wordsDisp), fflush(stdout);
+        printf("PROGRESS: %.2f%%\nerror: %.7f\n", (double)state_->epochs, state_->costSum / state_->wordsDisp), fflush(stdout);
 #endif
       timer.start();
       state_->costSum = 0;

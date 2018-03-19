@@ -227,7 +227,7 @@ public:
         shouted = true;
         LOG(info, "offset embedding, range {}", offsetEmbeddingRange);
       }
-      auto WAk = graph->param(prefix + "_WAk", {N, dk}, init = inits::glorot_uniform);  // [N, split vector dim]
+      auto WAk = graph->param(prefix + "_WAk", {N, dk}, inits::glorot_uniform);  // [N, split vector dim]
       //WAk->debug("WAk");
       // project every q (across batch, beams, time steps) with all offset embeddings
       //auto q2d = flatten_2d(q); // [-2: beam depth * batch size * num heads * max tgt length, -1: split vector dim] flatten out the vectors across all those dimensions into a single matrix
@@ -254,7 +254,7 @@ public:
         offsetSelCpu[locate(t, s, n)] = 1;
       }
       offsetSel = graph->constant({1, T, S, N},       // [-4: 1,  -3: T, -2: S, -1: N]
-                                  init = inits::from_vector(offsetSelCpu));
+                                  inits::from_vector(offsetSelCpu));
       //offsetSel->debug("offsetSel (initial)");
       offsetSel = repeat(offsetSel, B*H, axis = -4);  // [-4: BH, -3, T: -2: S, -1: N]
       qWAk = reshape(qWAk, {B*H, T, N, 1});           // [-4: BH, -3: T, -2: N, -1: d=1]
@@ -353,7 +353,7 @@ public:
     // add in offset embeddings
     if (offsetEmbeddingRange)
     {
-      auto WAv = graph->param(prefix + "_WAv", {N, dk}, init = inits::glorot_uniform);  // [N, split vector dim]
+      auto WAv = graph->param(prefix + "_WAv", {N, dk}, inits::glorot_uniform);  // [N, split vector dim]
       //WAv->debug("WAv");
       // weights:          [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
       // reduce weights to [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: N]
@@ -399,8 +399,8 @@ public:
       shouted = true;
     }
     auto Wq = noQKProjection ? Expr() : graph->param(
-        prefix + "_Wq", {dimModel, dimModel}, init = inits::glorot_uniform);
-    auto bq = noQKProjection ? Expr() : graph->param(prefix + "_bq", {1, dimModel}, init = inits::zeros);
+        prefix + "_Wq", {dimModel, dimModel}, inits::glorot_uniform);
+    auto bq = noQKProjection ? Expr() : graph->param(prefix + "_bq", {1, dimModel}, inits::zeros);
     auto qh = noQKProjection ? q : affine(q, Wq, bq);
 #else
     auto Wq = graph->param(
@@ -419,24 +419,24 @@ public:
 #if 1 // [fseide]
       auto Wk = noQKProjection ? Expr() : graph->param(prefixProj + "_Wk",
                              {dimModel, dimModel},
-                             init = inits::glorot_uniform);
+                             inits::glorot_uniform);
       auto bk = noQKProjection ? Expr() : graph->param(
-          prefixProj + "_bk", {1, dimModel}, init = inits::zeros);
+          prefixProj + "_bk", {1, dimModel}, inits::zeros);
 
       auto Wv = noQKProjection ? Expr() : graph->param(prefixProj + "_Wv",
                              {dimModel, dimModel},
-                             init = inits::glorot_uniform);
+                             inits::glorot_uniform);
       auto bv = noQKProjection ? Expr() : graph->param(
-          prefixProj + "_bv", {1, dimModel}, init = inits::zeros);
+          prefixProj + "_bv", {1, dimModel}, inits::zeros);
 
       auto kh = noQKProjection ? keys[i]   : affine(keys[i],   Wk, bk); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
       auto vh = noQKProjection ? values[i] : affine(values[i], Wv, bv);
 #else
       auto Wk = graph->param(prefixProj + "_Wk",
                              {dimModel, dimModel},
-                             init = inits::glorot_uniform);
+                             inits::glorot_uniform);
       auto bk = graph->param(
-          prefixProj + "_bk", {1, dimModel}, init = inits::zeros);
+          prefixProj + "_bk", {1, dimModel}, inits::zeros);
 
       auto Wv = graph->param(
           prefixProj + "_Wv", {dimModel, dimModel}, inits::glorot_uniform);
@@ -966,7 +966,7 @@ public:
       std::vector<float> u_EOSCpu(dimTrgVoc, 0);
       u_EOSCpu[EOS_ID] = 1;
       auto u_EOS = graph->constant({1, 1, 1, dimTrgVoc}, // [-4: 1,          -3: 1,          -2: 1,          -1: vocab dim]
-                                   init = inits::from_vector(u_EOSCpu));
+                                   inits::from_vector(u_EOSCpu));
       auto logits_notEOS = logits + -99999999.f * u_EOS; // [-4: beam depth, -3: max length, -2: batch size, -1: vocab dim]
       logits = where(u_EOS,
                      log(Pend + std::numeric_limits<float>::min()) - log((1-Pend) + std::numeric_limits<float>::min()),
