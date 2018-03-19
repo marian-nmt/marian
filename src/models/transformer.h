@@ -308,9 +308,17 @@ public:
 #if 1 // my strange experiment
     if (pSentEndProb && heads == 1)
     {
+      static bool shouted = false;
+      if (!shouted)
+      {
+        shouted = true;
+        LOG(info, "sent-end prob model enabled");
+      }
       auto getLast = [](Expr x, Expr mulMask, int/*keywords::axis_k*/ ax) // get last of 'x' according to (multiplicative) element-wise mask, along axis 'ax'
       {
         auto lastMask = mulMask - delay(mulMask, -1, /*axis=*/ax/*source-time direction*/); // selector for last source position (11100 --> 00100)
+        //mulMask->debug("getLast: mulMask");
+        //lastMask->debug("getLast: lastMask");
         return sum(x * lastMask, ax); // select last step [-4: beam depth * batch size, -3: num heads (1), -2: max tgt length, -1: 1]
         // ^^ this is actually a bdot, but of two vectors, which current bdot() cannot do
       };
@@ -890,7 +898,7 @@ public:
                                encoderContexts,
                                encoderContexts,
                                encoderMasks,
-                               inference_, isTop, &extraLoss, &sentEndProb);
+                               inference_, isTop, nullptr/*&extraLoss*/, &sentEndProb);
 
         } else if(comb == "stack") {
           for(int j = 0; j < encoderContexts.size(); ++j) { // multiple encoders are applied one after another
@@ -906,7 +914,7 @@ public:
                                    encoderContexts[j],
                                    encoderContexts[j],
                                    encoderMasks[j],
-                                   inference_, isTop, &extraLoss, &sentEndProb);
+                                   inference_, isTop, nullptr/*&extraLoss*/, &sentEndProb);
           }
         } else {
           ABORT("Unknown value for transformer-multi-encoder: {}", comb);
@@ -967,8 +975,12 @@ public:
       logits = where(u_EOS,
                      log(Pend + std::numeric_limits<float>::min()) - log((1-Pend) + std::numeric_limits<float>::min()),
                      logsoftmax(logits_notEOS));
-      auto targetMask = atleast_4d(state->getTargetMask());      // [1, max length, batch size, 1]
-      logits = logits * targetMask; // suppress tokens beyond end of target for good measure (not sure if still needed)
+      auto targetMask = state->getTargetMask();
+      if (targetMask)
+      {
+        targetMask = atleast_4d(targetMask);      // [1, max length, batch size, 1] --TODO: should works without this; try, then remove
+        logits = logits * targetMask; // suppress tokens beyond end of target for good measure (not sure if still needed)
+      }
       static int n = 0;
       if (n % 100 == 0 && graph->getDevice().no == 0)
       {
