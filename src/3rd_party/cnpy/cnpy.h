@@ -212,6 +212,111 @@ namespace cnpy {
         fclose(fp);
     }
 
+    // function to save to .npz file in a single go. cnpy.h is not suitable as it seeks and overwrites, which won't work in HDFS
+    struct NpzItem
+    {
+      std::string name;
+      std::vector<float> data;
+      std::vector<unsigned int> shape;
+    };
+
+    // adapted from cnpy::npz_save()
+    static inline
+    void npz_save_all(std::string zipname, const std::vector<NpzItem>& items)
+    {
+      using namespace cnpy;
+
+      unlink(zipname.c_str()); // when saving to HDFS, we cannot overwrite an existing file
+      FILE* fp = fopen(zipname.c_str(),"wb");
+      if (!fp)
+        throw std::runtime_error("Error opening .npz file for writing: " + zipname);
+
+      std::vector<char> global_header;
+      std::vector<char> local_header;
+      for (const auto& item : items)
+      {
+        auto fname = item.name;
+        //first, append a .npy to the fname
+        fname += ".npy";
+
+        typedef decltype(NpzItem::data)::value_type T;
+        const auto* data  = item.data.data();
+        const auto* shape = item.shape.data();
+        const unsigned int ndims = item.shape.size();
+        std::vector<char> npy_header = create_npy_header(data,shape,ndims);
+
+        unsigned long nels = 1;
+        for (int m=0; m<ndims; m++ ) nels *= shape[m];
+        int nbytes = nels*sizeof(T) + npy_header.size();
+
+        //get the CRC of the data to be added
+        unsigned int crc = crc32(0L,(unsigned char*)&npy_header[0],npy_header.size());
+        crc = crc32(crc,(unsigned char*)data,nels*sizeof(T));
+
+        //build the local header
+        local_header.clear();
+        local_header += "PK"; //first part of sig
+        local_header += (unsigned short) 0x0403; //second part of sig
+        local_header += (unsigned short) 20; //min version to extract
+        local_header += (unsigned short) 0; //general purpose bit flag
+        local_header += (unsigned short) 0; //compression method
+        local_header += (unsigned short) 0; //file last mod time
+        local_header += (unsigned short) 0;     //file last mod date
+        local_header += (unsigned int) crc; //crc
+        local_header += (unsigned int) nbytes; //compressed size
+        local_header += (unsigned int) nbytes; //uncompressed size
+        local_header += (unsigned short) fname.size(); //fname length
+        local_header += (unsigned short) 0; //extra field length
+        local_header += fname;
+
+        //write everything
+        unsigned int local_header_offset = ftell(fp); // this is where this local item will begin in the file. Tis gets stored in the corresponding global header.
+        fwrite(&local_header[0],sizeof(char),local_header.size(),fp);
+        fwrite(&npy_header[0],sizeof(char),npy_header.size(),fp);
+        fwrite(data,sizeof(T),nels,fp);
+
+        // append to global header
+        // A concatenation of global headers for all objects gets written to the end of the file.
+        global_header += "PK"; //first part of sig
+        global_header += (unsigned short) 0x0201; //second part of sig
+        global_header += (unsigned short) 20; //version made by
+        global_header.insert(global_header.end(),local_header.begin()+4,local_header.begin()+30);
+        global_header += (unsigned short) 0; //file comment length
+        global_header += (unsigned short) 0; //disk number where file starts
+        global_header += (unsigned short) 0; //internal file attributes
+        global_header += (unsigned int) 0; //external file attributes
+        global_header += (unsigned int) local_header_offset; //relative offset of local file header, since it begins where the global header used to begin
+        global_header += fname;
+      }
+
+      // write global headers
+      unsigned int global_header_offset = ftell(fp); // this is where the global headers get written to in the file
+      fwrite(&global_header[0],sizeof(char),global_header.size(),fp);
+
+      //build footer
+      unsigned short nrecs = items.size();
+      std::vector<char> footer;
+      footer += "PK"; //first part of sig
+      footer += (unsigned short) 0x0605; //second part of sig
+      footer += (unsigned short) 0; //number of this disk
+      footer += (unsigned short) 0; //disk where footer starts
+      footer += (unsigned short) nrecs; //number of records on this disk
+      footer += (unsigned short) nrecs; //total number of records
+      footer += (unsigned int) global_header.size(); //nbytes of global headers
+      footer += (unsigned int) global_header_offset; //offset of start of global headers
+      footer += (unsigned short) 0; //zip file comment length
+
+      // write footer
+      fwrite(&footer[0],sizeof(char),footer.size(),fp);
+
+      // close up
+      fflush(fp);
+      bool bad = ferror(fp);
+      fclose(fp);
+      if (bad)
+        throw std::runtime_error("Error writing to .npz file: " + zipname);
+    }
+
     template<typename T> std::vector<char> create_npy_header(const T* data, const unsigned int* shape, const unsigned int ndims) {
 
         std::vector<char> dict;
