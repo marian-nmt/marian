@@ -82,14 +82,14 @@ int Vocab::loadOrCreate(const std::string& vocabPath,
 }
 
 int Vocab::load(const std::string& vocabPath, int max) {
-  bool isYaml = std::regex_search(vocabPath, std::regex(".yml$")); // BUGBUG: Is .json also indicative of a Yaml file? Whats "\.{yml,json}$" in C++ regex?
-  LOG(info, "[data] Loading vocabulary from {} file {}", isYaml ? "Yaml" : "text", vocabPath);
+  bool isYaml = std::regex_search(vocabPath, std::regex("\\.(yml|json)$"));
+  LOG(info, "[data] Loading vocabulary from {} file {}", isYaml ? "Yaml/JSON" : "text", vocabPath);
   ABORT_IF(!boost::filesystem::exists(vocabPath),
-           "Vocabulary {} does not exits",
+           "Vocabulary file {} does not exits",
            vocabPath);
 
   std::map<std::string,Word> vocab;
-  if (isYaml) // read from Yaml file
+  if (isYaml) // read from Yaml (or JSON) file
   {
     YAML::Node vocabNode = YAML::Load(InputFileStream(vocabPath));
     for(auto&& pair : vocabNode)
