@@ -296,10 +296,13 @@ public:
                     bool saveTranslatorConfig = false) {
     // ignore config for now
     LOG(info, "Saving model weights and runtime parameters to {}", name);
-    auto allItems = graph->paramsAsNpzItems();                                      // model weights
-    Config::AddYamlToNpzItems(getModelParameters(), "special:model.yml", allItems); // model runtime parameters
-    cnpy::npz_save_all(name, allItems); // save both jointly
-    LOG(info, "Saved {} items.", allItems.size());
+    std::vector<cnpy::NpzItem> npzItems;
+    graph->save(npzItems);                          // model weights
+    Config::AddYamlToNpzItems(getModelParameters(), // model runtime parameters
+                              "special:model.yml",
+                              npzItems);
+    cnpy::npz_save(name, npzItems); // save both jointly
+    LOG(info, "Saved {} items.", npzItems.size());
 
     if(saveTranslatorConfig)
       createDecoderConfig(name);
