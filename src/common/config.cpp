@@ -52,30 +52,34 @@ void Config::loadModelParameters(const std::string& name) {
   override(config);
 }
 
-static std::string configInNpzPath(const std::string& fName, const std::string& varName)
-{
-#if 1
-  // In HDFS, we cannot augment an .npz file. So instead, we write the special node into a separate file.
-  if (varName == "special:model.yml")
-    return std::regex_replace(fName, std::regex(".npz$"), ".config.npz");
-  else
-#endif
-  return fName;
-}
-
 void Config::GetYamlFromNpz(YAML::Node& yaml,
                             const std::string& varName,
                             const std::string& fName) {
-  yaml = YAML::Load(cnpy::npz_load(configInNpzPath(fName, varName), varName)->data());
+  yaml = YAML::Load(cnpy::npz_load(fName, varName)->data());
+}
+
+// helper to serialize a YAML::Node to a Yaml string in a 0-terminated character vector
+static std::vector<char> asYamlCharVector(const YAML::Node node)
+{
+  YAML::Emitter out;
+  OutputYaml(node, out);
+  return std::vector<char>(out.c_str(), out.c_str() + out.size() + 1);
 }
 
 void Config::AddYamlToNpz(const YAML::Node& yaml,
                           const std::string& varName,
                           const std::string& fName) {
-  YAML::Emitter out;
-  OutputYaml(yaml, out);
-  unsigned shape = out.size() + 1;
-  auto pName = configInNpzPath(fName, varName);
-  cnpy::npz_save(pName, varName, out.c_str(), &shape, 1, pName == fName ? "a" : "w");
+  // YAML::Node's Yaml representation is saved as a 0-terminated char vector to the NPZ file
+  auto yamlCharVector = asYamlCharVector(yaml);
+  unsigned int shape = yamlCharVector.size() + 1;
+  cnpy::npz_save(fName, varName, yamlCharVector.data(), &shape, 1, "a");
+}
+
+// same as AddYamlToNpz() but adds to an in-memory NpzItem vector instead
+void Config::AddYamlToNpzItems(const YAML::Node& yaml,
+                               const std::string& varName,
+                               std::vector<cnpy::NpzItem>& allItems) {
+  auto yamlCharVector = asYamlCharVector(yaml);
+  allItems.emplace_back("special:model.yml", yamlCharVector, std::vector<unsigned int>{ (unsigned int)yamlCharVector.size() });
 }
 }

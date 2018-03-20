@@ -242,14 +242,13 @@ void Adam::save(const std::string& name,
   }
 
   // the shape is the same for mt_ and vt_
-  unsigned* shape = new unsigned[2];
-  shape[0] = 1;
-  shape[1] = vMt.size();
+  std::vector<unsigned int> shape{ 1, (unsigned int)vMt.size() };
 
-  cnpy::npz_save(name, "adam_mt", vMt.data(), shape, 2, "w");
-  cnpy::npz_save(name, "adam_vt", vVt.data(), shape, 2, "a");
-
-  delete[] shape;
+  cnpy::npz_save_all(name,
+                     {
+                       cnpy::NpzItem("adam_mt", vMt, shape),
+                       cnpy::NpzItem("adam_vt", vVt, shape)
+                     });
 }
 
 void Adam::resetStats() {

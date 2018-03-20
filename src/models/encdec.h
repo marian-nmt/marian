@@ -204,7 +204,7 @@ protected:
 
   std::vector<std::string> modelFeatures_;
 
-  void saveModelParameters(const std::string& name) {
+  Config::YamlNode getModelParameters() {
     Config::YamlNode modelParams;
     for(auto& key : modelFeatures_)
       modelParams[key] = options_->getOptions()[key];
@@ -213,8 +213,11 @@ protected:
       modelParams["type"] = options_->getOptions()["original-type"];
 
     modelParams["version"] = PROJECT_VERSION_FULL;
+    return modelParams;
+  }
 
-    Config::AddYamlToNpz(modelParams, "special:model.yml", name);
+  void saveModelParameters(const std::string& name) {
+    Config::AddYamlToNpz(getModelParameters(), "special:model.yml", name);
   }
 
   virtual void createDecoderConfig(const std::string& name) {
@@ -285,14 +288,18 @@ public:
                     const std::string& name,
                     bool markedReloaded = true) {
     graph->load(name, markedReloaded && !opt<bool>("ignore-model-config"));
+    // TODO: why not load runtime parameters here as well, for symmetry?
   }
 
   virtual void save(Ptr<ExpressionGraph> graph,
                     const std::string& name,
                     bool saveTranslatorConfig = false) {
     // ignore config for now
-    graph->save(name);
-    saveModelParameters(name);
+    LOG(info, "Saving model weights and runtime parameters to {}", name);
+    auto allItems = graph->paramsAsNpzItems();                                      // model weights
+    Config::AddYamlToNpzItems(getModelParameters(), "special:model.yml", allItems); // model runtime parameters
+    cnpy::npz_save_all(name, allItems); // save both jointly
+    LOG(info, "Saved {} items.", allItems.size());
 
     if(saveTranslatorConfig)
       createDecoderConfig(name);

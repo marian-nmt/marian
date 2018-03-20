@@ -213,11 +213,20 @@ namespace cnpy {
     }
 
     // function to save to .npz file in a single go. cnpy.h is not suitable as it seeks and overwrites, which won't work in HDFS
+    // TODO: We could merge this with NpyArray.
     struct NpzItem
     {
       std::string name;
       std::vector<float> data;
       std::vector<unsigned int> shape;
+      NpzItem(const std::string& name, const std::vector<float>& data, const std::vector<unsigned int>& shape) :
+        name(name), data(data), shape(shape)
+      {
+      }
+      NpzItem(const std::string& name, const std::vector<char>& data, const std::vector<unsigned int>& shape) :
+        name(name), shape(shape)
+      {
+      }
     };
 
     // adapted from cnpy::npz_save()

@@ -356,9 +356,9 @@ public:
       setReloaded(true);
   }
 
-  void save(const std::string& name) {
-    LOG(info, "Saving model to {}", name);
-
+  // convert all parameters into an array pf cnpy::NpzItem elements, for saving
+  std::vector<cnpy::NpzItem> paramsAsNpzItems()
+  {
     const auto& paramsMap = params()->getMap();
     std::vector<cnpy::NpzItem> allItems; allItems.reserve(paramsMap.size());
     for(auto p : paramsMap) {
@@ -377,6 +377,12 @@ public:
 
       allItems.emplace_back(cnpy::NpzItem{ std::move(pName), std::move(v), std::move(shape) });
     }
+    return allItems;
+  }
+
+  void save(const std::string& name) {
+    LOG(info, "Saving model to {}", name);
+    auto allItems = paramsAsNpzItems();
     cnpy::npz_save_all(name, allItems);
     LOG(info, "Saved {} items.", allItems.size());
   }
