@@ -128,15 +128,7 @@ int Vocab::load(const std::string& vocabPath, int max) {
   {
     auto iter = str2id_.find(str);
     if (iter != str2id_.end()) // word already in vocab: must be at right index, else fail
-    {
       ABORT_IF(iter->second != id, "vocabulary entry '{}' is expected to have id {}", str, id);
-#if 0
-      return;
-#else
-      // some old config needs this patching for now
-      // BUGBUG: If another word already uses this id, then str2id_ for that will still exist.
-#endif
-    }
     str2id_[str] = id;
     id2str_[id] = str;
   };
