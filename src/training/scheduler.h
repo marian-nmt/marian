@@ -166,38 +166,63 @@ public:
       /*else*/ :  // use ce-mean for all others (not correct for some)
         batchSize);
 
-    state_->costSum += cost;               // aggregate cost since last display
-    state_->wordsDisp += batchTargetWords; // targets processed since last display
-    state_->samples += batch->size();      // sentences processed in this epoch
-    state_->samplesDisp += batch->size();  // (unused)
-    state_->totalWords += batchTargetWords;// total words processed (note: presently not check-pointed)
+    state_->costSum     += cost;             // aggregate cost since last display
+    state_->wordsDisp   += batchTargetWords; // targets processed since last display
+    state_->samples     += batch->size();    // sentences processed in this epoch
+    state_->samplesDisp += batch->size();    // (unused)
+    state_->totalWords  += batchTargetWords; // total words processed (note: presently not check-pointed)
     state_->newBatch();
 
     if(state_->batches % options_->get<size_t>("disp-freq") == 0) {
-      if(options_->get<bool>("lr-report")) {
-        LOG(info,
-            // TODO: change Cost back to {:.2f}
-            "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} : {:.2f} "
-            "words/s : L.r. {:.4e}",
-            state_->epochs,
-            state_->batches,
-            state_->samples,
-            state_->costSum / state_->wordsDisp, state_->wordsDisp, // cost per target word
-            state_->totalWords,
-            timer.format(2, "%ws"),
-            state_->wordsDisp / std::stof(timer.format(5, "%w")),
-            state_->eta);
+      if(options_->get<bool>("disp-label-counts")) { // if true then show the number of labels (for update and aggregate)
+        if(options_->get<bool>("lr-report")) { // if true then show the learning rate
+          LOG(info,
+              // TODO: change Cost back to {:.2f}
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} : {:.2f} "
+              "words/s : L.r. {:.4e}",
+              state_->epochs,
+              state_->batches,
+              state_->samples,
+              state_->costSum / state_->wordsDisp, state_->wordsDisp, // cost per target word
+              state_->totalWords,
+              timer.format(2, "%ws"),
+              state_->wordsDisp / std::stof(timer.format(5, "%w")),
+              state_->eta);
+        } else {
+          LOG(info,
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} : {:.2f} "
+              "words/s",
+              state_->epochs,
+              state_->batches,
+              state_->samples,
+              state_->costSum / state_->wordsDisp, state_->wordsDisp,
+              state_->totalWords,
+              timer.format(2, "%ws"),
+              state_->wordsDisp / std::stof(timer.format(5, "%w")));
+        }
       } else {
-        LOG(info,
-            "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} : {:.2f} "
-            "words/s",
-            state_->epochs,
-            state_->batches,
-            state_->samples,
-            state_->costSum / state_->wordsDisp, state_->wordsDisp,
-            state_->totalWords,
-            timer.format(2, "%ws"),
-            state_->wordsDisp / std::stof(timer.format(5, "%w")));
+        if(options_->get<bool>("lr-report")) {
+          LOG(info,
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
+              "words/s : L.r. {:.4e}",
+              state_->epochs,
+              state_->batches,
+              state_->samples,
+              state_->costSum / state_->wordsDisp,
+              timer.format(2, "%ws"),
+              state_->wordsDisp / std::stof(timer.format(5, "%w")),
+              state_->eta);
+        } else {
+          LOG(info,
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
+              "words/s",
+              state_->epochs,
+              state_->batches,
+              state_->samples,
+              state_->costSum / state_->wordsDisp,
+              timer.format(2, "%ws"),
+              state_->wordsDisp / std::stof(timer.format(5, "%w")));
+        }
       }
 #if 1 // progress heartbeat for MS-internal Philly compute cluster
       if (getenv("PHILLY_JOB_ID")) // this environment variable exists when running on the cluster

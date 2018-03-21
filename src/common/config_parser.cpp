@@ -253,7 +253,7 @@ void ConfigParser::addOptionsCommon(po::options_description& desc) {
   // clang-format off
   general.add_options()
     ("config,c", po::value<std::vector<std::string>>()->multitoken(),
-     "Configuration file(s). If multiple, later override earlier.")
+     "Configuration file(s). If multiple, later overrides earlier.")
     ("workspace,w", po::value<size_t>()->default_value(defaultWorkspace),
       "Preallocate  arg  MB of work space")
     ("log", po::value<std::string>(),
@@ -348,7 +348,7 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
     ("tied-embeddings-all", po::value<bool>()->zero_tokens()->default_value(false),
      "Tie all embedding layers and output layer")
     ("transformer-heads", po::value<int>()->default_value(8),
-     "Number of head in multi-head attention (transformer)")
+     "Number of heads in multi-head attention (transformer)")
     ("transformer-dim-ffn", po::value<int>()->default_value(2048),
      "Size of position-wise feed-forward network (transformer)")
     ("transformer-ffn-activation", po::value<std::string>()->default_value("swish"),
@@ -430,6 +430,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "Finish after this many batch updates, 0 is infinity")
     ("disp-freq", po::value<size_t>()->default_value(1000),
       "Display information every  arg  updates")
+    ("disp-label-counts", po::value<bool>()->zero_tokens()->default_value(false),
+      "Display label counts when logging loss progress")
     ("save-freq", po::value<size_t>()->default_value(10000),
       "Save model file every  arg  updates")
     ("no-shuffle", po::value<bool>()->zero_tokens()->default_value(false),
@@ -879,6 +881,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("after-epochs", size_t);
     SET_OPTION("after-batches", size_t);
     SET_OPTION("disp-freq", size_t);
+    SET_OPTION("disp-label-counts", bool);
     SET_OPTION("save-freq", size_t);
     SET_OPTION("no-shuffle", bool);
     SET_OPTION("no-restore-corpus", bool);
