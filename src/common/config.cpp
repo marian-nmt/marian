@@ -80,6 +80,6 @@ void Config::AddYamlToNpzItems(const YAML::Node& yaml,
                                const std::string& varName,
                                std::vector<cnpy::NpzItem>& allItems) {
   auto yamlCharVector = asYamlCharVector(yaml);
-  allItems.emplace_back("special:model.yml", yamlCharVector, std::vector<unsigned int>{ (unsigned int)yamlCharVector.size() });
+  allItems.emplace_back(varName, yamlCharVector, std::vector<unsigned int>{ (unsigned int)yamlCharVector.size() });
 }
 }
