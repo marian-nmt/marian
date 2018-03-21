@@ -98,9 +98,10 @@ const std::set<std::string> PATHS = {"model",
                                      "valid-translation-output",
                                      "log"};
 
-void ProcessPaths(YAML::Node& node,
-                  const boost::filesystem::path& configPath,
-                  bool isPath) {
+// helper to implement relative-paths option
+static void ProcessPaths(YAML::Node& node,
+                         const boost::filesystem::path& configPath,
+                         bool isPath) {
   using namespace boost::filesystem;
 
   if(isPath) {
@@ -637,7 +638,7 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Beam size used during search")
     ("normalize,n", po::value<float>()->default_value(0.f)->implicit_value(1.f),
       "Divide translation score by pow(translation length, arg) ")
-    ("word-penalty,n", po::value<float>()->default_value(0.f)->implicit_value(0.f),
+    ("word-penalty", po::value<float>()->default_value(0.f)->implicit_value(0.f),
       "Subtract (arg * translation length) from translation score ")
     ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
       "Allow unknown words to appear in output")
@@ -790,18 +791,20 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
       = (mode_ == ConfigMode::training)
         && boost::filesystem::exists(vm_["model"].as<std::string>() + ".yml")
         && !vm_["no-reload"].as<bool>();
-  std::string configPath;
+  std::vector<std::string> configPaths;
 
   if(loadConfig) {
+    configPaths = vm_["config"].as<std::vector<std::string>>();
     config_ = YAML::Node();
-    for (const auto& configPath : vm_["config"].as<std::vector<std::string>>())
+    for (const auto& configPath : configPaths)
     {
       for(const auto& it : YAML::Load(InputFileStream(configPath))) // later file overrides
         config_[it.first.as<std::string>()] = it.second;
     }
   } else if(reloadConfig) {
-    configPath = vm_["model"].as<std::string>() + ".yml";
+    auto configPath = vm_["model"].as<std::string>() + ".yml";
     config_ = YAML::Load(InputFileStream(configPath));
+    configPaths = { configPath };
   }
 
   /** model **/
@@ -1012,9 +1015,13 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     config_["skip"] = true;
   }
 
-  if(get<bool>("relative-paths") && !vm_["dump-config"].as<bool>())
-    ProcessPaths(
-        config_, boost::filesystem::path{configPath}.parent_path(), false);
+  if(get<bool>("relative-paths") && !vm_["dump-config"].as<bool>()) {
+    auto configDir = boost::filesystem::path{configPaths.front()}.parent_path();
+    for (const auto& configPath : configPaths)
+      ABORT_IF(boost::filesystem::path{configPaths.front()}.parent_path() != configDir,
+               "relative-paths option requires all config files to be in the same directory");
+    ProcessPaths(config_, configDir, false);
+  }
 
   if(doValidate) {
     try {
