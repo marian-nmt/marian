@@ -252,8 +252,8 @@ void ConfigParser::addOptionsCommon(po::options_description& desc) {
   po::options_description general("General options", guess_terminal_width());
   // clang-format off
   general.add_options()
-    ("config,c", po::value<std::string>(),
-     "Configuration file")
+    ("config,c", po::value<std::vector<std::string>>()->multitoken(),
+     "Configuration file(s). If multiple, later override earlier.")
     ("workspace,w", po::value<size_t>()->default_value(defaultWorkspace),
       "Preallocate  arg  MB of work space")
     ("log", po::value<std::string>(),
@@ -791,8 +791,12 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   std::string configPath;
 
   if(loadConfig) {
-    configPath = vm_["config"].as<std::string>();
-    config_ = YAML::Load(InputFileStream(configPath));
+    config_ = YAML::Node();
+    for (const auto& configPath : vm_["config"].as<std::vector<std::string>>())
+    {
+      for(const auto& it : YAML::Load(InputFileStream(configPath))) // later file overrides
+        config_[it.first.as<std::string>()] = it.second;
+    }
   } else if(reloadConfig) {
     configPath = vm_["model"].as<std::string>() + ".yml";
     config_ = YAML::Load(InputFileStream(configPath));
