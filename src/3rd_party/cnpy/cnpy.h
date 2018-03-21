@@ -45,6 +45,7 @@ namespace cnpy {
 
     char BigEndianTest();
     char map_type(const std::type_info& t);
+    static inline std::vector<char> create_npy_header(char type, size_t word_size, const unsigned int* shape, const unsigned int ndims);
     template<typename T> std::vector<char> create_npy_header(const T* data, const unsigned int* shape, const unsigned int ndims);
     void parse_npy_header(FILE* fp,unsigned int& word_size, unsigned int*& shape, unsigned int& ndims, bool& fortran_order);
     void parse_zip_footer(FILE* fp, unsigned short& nrecs, unsigned int& global_header_size, unsigned int& global_header_offset);
@@ -217,11 +218,13 @@ namespace cnpy {
     struct NpzItem : public NpyArray
     {
         std::string name; //name of item in .npz file (without .npy)
+        char type;        //type of item
         template<typename T>
-        NpzItem(const std::string& name, const std::vector<T>& data, const std::vector<unsigned int>& dataShape) : name(name)
+        NpzItem(const std::string& name, const std::vector<T>& data, const std::vector<unsigned int>& dataShape) :
+            name(name), type(map_type(typeid(T)))
         {
             shape = dataShape;
-            word_size = sizeof(*data.data());
+            word_size = sizeof(T);
             bytes.resize(data.size() * word_size);
             auto* p = (const char*)data.data();
             std::copy(p, p + bytes.size(), bytes.begin());
@@ -247,9 +250,10 @@ namespace cnpy {
     
             const auto* data      = item.bytes.data();
             const auto* shape     = item.shape.data();
+            const auto  type      = item.type;
             const auto  word_size = item.word_size;
             const unsigned int ndims = item.shape.size();
-            std::vector<char> npy_header = create_npy_header(data,shape,ndims);
+            std::vector<char> npy_header = create_npy_header(type,word_size,shape,ndims);
     
             unsigned long nels = 1;
             for (int m=0; m<ndims; m++ ) nels *= shape[m];
@@ -323,13 +327,14 @@ namespace cnpy {
             throw std::runtime_error("npz_save: error writing file: " + zipname);
     }
 
-    template<typename T> std::vector<char> create_npy_header(const T* data, const unsigned int* shape, const unsigned int ndims) {
+    static inline
+    std::vector<char> create_npy_header(char type, size_t word_size, const unsigned int* shape, const unsigned int ndims) {
 
         std::vector<char> dict;
         dict += "{'descr': '";
         dict += BigEndianTest();
-        dict += map_type(typeid(T));
-        dict += tostring(sizeof(T));
+        dict += type;
+        dict += tostring(word_size);
         dict += "', 'fortran_order': False, 'shape': (";
         dict += tostring(shape[0]);
         for(int i = 1;i < ndims;i++) {
@@ -354,7 +359,9 @@ namespace cnpy {
         return header;
     }
 
-
+    template<typename T> std::vector<char> create_npy_header(const T*, const unsigned int* shape, const unsigned int ndims) {
+        return create_npy_header(map_type(typeid(T)), sizeof(T), shape, ndims);
+    }
 }
 
 #endif
