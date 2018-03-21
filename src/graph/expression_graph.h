@@ -359,8 +359,7 @@ public:
   // convert all parameters into an array pf cnpy::NpzItem elements, for saving
   void save(std::vector<cnpy::NpzItem>& npzItems)
   {
-    const auto& paramsMap = params()->getMap();
-    for(auto p : paramsMap) {
+    for(auto p : params()->getMap()) {
       std::string pName = p.first;
 
       if(!namespace_.empty()) {
@@ -374,7 +373,7 @@ public:
       auto& pShape = p.second->shape();
       std::vector<unsigned int> shape(pShape.begin(), pShape.end());
 
-      npzItems.emplace_back(cnpy::NpzItem{ std::move(pName), std::move(v), std::move(shape) });
+      npzItems.emplace_back(pName, v, shape);
     }
   }
 
