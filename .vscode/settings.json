@@ -39,6 +39,7 @@
         "system_error": "cpp",
         "thread": "cpp",
         "tuple": "cpp",
-        "type_traits": "cpp"
+        "type_traits": "cpp",
+        "algorithm": "cpp"
     }
 }

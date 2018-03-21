@@ -71,7 +71,7 @@ public:
   }
 
   void increaseEpoch() {
-    LOG(info, "Seen {} samples", state_->samples);
+    LOG(info, "Seen {} samples", state_->samplesEpoch);
     state_->newEpoch();
     LOG(info, "Starting epoch {}", state_->epochs);
   }
@@ -154,27 +154,30 @@ public:
   void update(float cost, Ptr<data::Batch> batch) {
     state_->validated = false;
 
-    auto batchSize = batch->size();
-    auto batchTargetWords = batch->words(-1);
-    // reconstruct sum cost
+    auto batchSize   = batch->size();    // number of sentences in batch
+    auto batchLabels = batch->words(-1); // number of target words in batch
+    // reconstruct sum cost, for displaying epoch-level averages instead of minibatch-level
     auto costType = options_->get<std::string>("cost-type");
-    cost *= // what was cost normalized with?
-      /*if*/ (costType == "ce-sum") ?
+    auto dispLabelCounts = options_->get<bool>("disp-label-counts"); // if true then show the number of labels (for update and aggregate)
+    auto count = // what was cost normalized with?
+      /*if*/ (!dispLabelCounts) ? // (back compat)
+        batchSize
+      /*else if*/ : (costType == "ce-sum") ?
         1
       /*else if*/ : ((costType == "ce-mean-words") ?
-        batchTargetWords
+        batchLabels
       /*else*/ :  // use ce-mean for all others (not correct for some)
         batchSize);
-
-    state_->costSum     += cost;             // aggregate cost since last display
-    state_->wordsDisp   += batchTargetWords; // targets processed since last display
-    state_->samples     += batch->size();    // sentences processed in this epoch
-    state_->samplesDisp += batch->size();    // (unused)
-    state_->totalWords  += batchTargetWords; // total words processed (note: presently not check-pointed)
+    cost *= count;
+    state_->costSum      += cost;        // aggregate cost since last display
+    state_->costCount    += count;       // number of samples/labels aggregated in costSum
+    state_->wordsDisp    += batchLabels; // target words processed since last display, for speed display
+    state_->samplesEpoch += batchSize;   // sentences processed in this epoch
+    state_->labelsTotal  += batchLabels; // total labels processed
     state_->newBatch();
 
     if(state_->batches % options_->get<size_t>("disp-freq") == 0) {
-      if(options_->get<bool>("disp-label-counts")) { // if true then show the number of labels (for update and aggregate)
+      if(dispLabelCounts) {
         if(options_->get<bool>("lr-report")) { // if true then show the learning rate
           LOG(info,
               // TODO: change Cost back to {:.2f}
@@ -182,9 +185,9 @@ public:
               "words/s : L.r. {:.4e}",
               state_->epochs,
               state_->batches,
-              state_->samples,
-              state_->costSum / state_->wordsDisp, state_->wordsDisp, // cost per target word
-              state_->totalWords,
+              state_->samplesEpoch,
+              state_->costSum / state_->costCount, state_->costCount, // show cost as "av * count"
+              state_->labelsTotal,
               timer.format(2, "%ws"),
               state_->wordsDisp / std::stof(timer.format(5, "%w")),
               state_->eta);
@@ -194,9 +197,9 @@ public:
               "words/s",
               state_->epochs,
               state_->batches,
-              state_->samples,
-              state_->costSum / state_->wordsDisp, state_->wordsDisp,
-              state_->totalWords,
+              state_->samplesEpoch,
+              state_->costSum / state_->costCount, state_->costCount,
+              state_->labelsTotal,
               timer.format(2, "%ws"),
               state_->wordsDisp / std::stof(timer.format(5, "%w")));
         }
@@ -207,8 +210,8 @@ public:
               "words/s : L.r. {:.4e}",
               state_->epochs,
               state_->batches,
-              state_->samples,
-              state_->costSum / state_->wordsDisp,
+              state_->samplesEpoch,
+              state_->costSum / state_->costCount,
               timer.format(2, "%ws"),
               state_->wordsDisp / std::stof(timer.format(5, "%w")),
               state_->eta);
@@ -218,20 +221,20 @@ public:
               "words/s",
               state_->epochs,
               state_->batches,
-              state_->samples,
-              state_->costSum / state_->wordsDisp,
+              state_->samplesEpoch,
+              state_->costSum / state_->costCount,
               timer.format(2, "%ws"),
               state_->wordsDisp / std::stof(timer.format(5, "%w")));
         }
       }
 #if 1 // progress heartbeat for MS-internal Philly compute cluster
       if (getenv("PHILLY_JOB_ID")) // this environment variable exists when running on the cluster
-        printf("PROGRESS: %.2f%%\nerror: %.7f\n", (double)state_->epochs, state_->costSum / state_->wordsDisp), fflush(stdout);
+        printf("PROGRESS: %.2f%%\nerror: %.7f\n", (double)state_->epochs, state_->costSum / state_->costCount), fflush(stdout);
 #endif
       timer.start();
       state_->costSum = 0;
+      state_->costCount = 0;
       state_->wordsDisp = 0;
-      state_->samplesDisp = 0;
     }
   }
 
@@ -241,9 +244,9 @@ public:
       state_->load(nameYaml);
 
     if(options_->get<bool>("no-restore-corpus")) {
-      state_->samples = 0;
+      state_->samplesEpoch = 0;
       state_->costSum = 0;
-      state_->samplesDisp = 0;
+      state_->costCount = 0;
       state_->wordsDisp = 0;
     }
 
