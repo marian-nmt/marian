@@ -165,8 +165,6 @@ public:
         batchTargetWords
       /*else*/ :  // use ce-mean for all others (not correct for some)
         batchSize);
-    // undo averaging over workers
-    cost *= options_->get<std::vector<size_t>>("devices").size();
 
     state_->costSum += cost;               // aggregate cost since last display
     state_->wordsDisp += batchTargetWords; // targets processed since last display
