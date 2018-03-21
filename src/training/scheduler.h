@@ -158,19 +158,21 @@ public:
     auto batchLabels = batch->words(-1); // number of target words in batch
     // reconstruct sum cost, for displaying epoch-level averages instead of minibatch-level
     auto costType = options_->get<std::string>("cost-type");
-    auto dispLabelCounts = options_->get<bool>("disp-label-counts"); // if true then show the number of labels (for update and aggregate)
-    auto count = // what was cost normalized with?
-      /*if*/ (!dispLabelCounts) ? // (back compat)
-        batchSize
-      /*else if*/ : (costType == "ce-sum") ?
-        1
-      /*else if*/ : ((costType == "ce-mean-words") ?
-        batchLabels
-      /*else*/ :  // use ce-mean for all others (not correct for some)
-        batchSize);
-    cost *= count;
-    state_->costSum      += cost;        // aggregate cost since last display
-    state_->costCount    += count;       // number of samples/labels aggregated in costSum
+    auto dispLabelCounts = options_->get<bool>("disp-label-counts"); // if true then show as "cost per label * number of labels"
+    if (dispLabelCounts) {
+      auto count = // what was cost normalized with originally?
+        /*if*/ (costType == "ce-sum") ?
+          1
+        /*else if*/ : ((costType == "ce-mean-words") ?
+          batchLabels
+        /*else*/ :  // all others: treat like ce-mean (not correct for some)
+          batchSize);
+      state_->costSum   += cost * count; // aggregate sum cost since last display
+      state_->costCount += batchLabels;  // cost gets normalized w.r.t. this in display
+    } else { // (back compat)
+      state_->costSum   += cost * batchSize;
+      state_->costCount += batchSize;
+    }
     state_->wordsDisp    += batchLabels; // target words processed since last display, for speed display
     state_->samplesEpoch += batchSize;   // sentences processed in this epoch
     state_->labelsTotal  += batchLabels; // total labels processed
