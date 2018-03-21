@@ -229,10 +229,9 @@ public:
               state_->wordsDisp / std::stof(timer.format(5, "%w")));
         }
       }
-#if 1 // progress heartbeat for MS-internal Philly compute cluster
+      // progress heartbeat for MS-internal Philly compute cluster
       if (getenv("PHILLY_JOB_ID")) // this environment variable exists when running on the cluster
         printf("PROGRESS: %.2f%%\nerror: %.7f\n", (double)state_->epochs, state_->costSum / state_->costCount), fflush(stdout);
-#endif
       timer.start();
       state_->costSum = 0;
       state_->costCount = 0;

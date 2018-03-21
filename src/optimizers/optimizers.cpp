@@ -108,13 +108,9 @@ void Adagrad::save(const std::string& name,
     vGt.insert(vGt.end(), tmp.begin(), tmp.end());
   }
 
-  unsigned* shape = new unsigned[2];
-  shape[0] = 1;
-  shape[1] = vGt.size();
+  unsigned int shape[2] = { 1, (unsigned int)vGt.size() };
 
   cnpy::npz_save(name, "adagrad_gt", vGt.data(), shape, 2, "w");
-
-  delete[] shape;
 }
 
 void Adagrad::resetStats() {
