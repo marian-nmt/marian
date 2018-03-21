@@ -63,7 +63,7 @@ static std::vector<char> asYamlCharVector(const YAML::Node node)
 {
   YAML::Emitter out;
   OutputYaml(node, out);
-  return std::vector<char>(out.c_str(), out.c_str() + out.size() + 1);
+  return std::vector<char>(out.c_str(), out.c_str() + strlen(out.c_str()) + 1);
 }
 
 void Config::AddYamlToNpz(const YAML::Node& yaml,
@@ -71,7 +71,7 @@ void Config::AddYamlToNpz(const YAML::Node& yaml,
                           const std::string& fName) {
   // YAML::Node's Yaml representation is saved as a 0-terminated char vector to the NPZ file
   auto yamlCharVector = asYamlCharVector(yaml);
-  unsigned int shape = yamlCharVector.size() + 1;
+  unsigned int shape = yamlCharVector.size();
   cnpy::npz_save(fName, varName, yamlCharVector.data(), &shape, 1, "a");
 }
 
