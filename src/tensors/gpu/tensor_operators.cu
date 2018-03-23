@@ -1573,6 +1573,7 @@ __global__ void gShift(float* out, const float* in, int length, int offset) {
 void Shift(Tensor out, Tensor in, marian::Shape shift, bool invert) {
   ABORT_IF(in->shape().size() != shift.size(), "bad dimensions");
 
+  // BUGBUG: This can only shift along the first axis. Shifting, e.g., along the last axis cannot be implemented this way.
   int offset = 0;
   for(int i = 0; i < shift.size(); ++i)
     offset += in->shape().stride(i) * shift[i];

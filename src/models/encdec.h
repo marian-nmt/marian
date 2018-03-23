@@ -204,7 +204,7 @@ protected:
 
   std::vector<std::string> modelFeatures_;
 
-  void saveModelParameters(const std::string& name) {
+  Config::YamlNode getModelParameters() {
     Config::YamlNode modelParams;
     for(auto& key : modelFeatures_)
       modelParams[key] = options_->getOptions()[key];
@@ -213,8 +213,11 @@ protected:
       modelParams["type"] = options_->getOptions()["original-type"];
 
     modelParams["version"] = PROJECT_VERSION_FULL;
+    return modelParams;
+  }
 
-    Config::AddYamlToNpz(modelParams, "special:model.yml", name);
+  void saveModelParameters(const std::string& name) {
+    Config::AddYamlToNpz(getModelParameters(), "special:model.yml", name);
   }
 
   virtual void createDecoderConfig(const std::string& name) {
@@ -222,6 +225,7 @@ protected:
     decoder["models"] = std::vector<std::string>({name});
     decoder["vocabs"] = options_->get<std::vector<std::string>>("vocabs");
     decoder["normalize"] = opt<float>("normalize");
+    decoder["word-penalty"] = opt<float>("word-penalty");
     decoder["beam-size"] = opt<size_t>("beam-size");
 
     decoder["mini-batch"] = opt<size_t>("valid-mini-batch");
@@ -284,14 +288,21 @@ public:
                     const std::string& name,
                     bool markedReloaded = true) {
     graph->load(name, markedReloaded && !opt<bool>("ignore-model-config"));
+    // TODO: why not load runtime parameters here as well, for symmetry?
   }
 
   virtual void save(Ptr<ExpressionGraph> graph,
                     const std::string& name,
                     bool saveTranslatorConfig = false) {
     // ignore config for now
-    graph->save(name);
-    saveModelParameters(name);
+    LOG(info, "Saving model weights and runtime parameters to {}", name);
+    std::vector<cnpy::NpzItem> npzItems;
+    graph->save(npzItems);                          // model weights
+    Config::AddYamlToNpzItems(getModelParameters(), // model runtime parameters
+                              "special:model.yml",
+                              npzItems);
+    cnpy::npz_save(name, npzItems); // save both jointly
+    LOG(info, "Saved {} items.", npzItems.size());
 
     if(saveTranslatorConfig)
       createDecoderConfig(name);

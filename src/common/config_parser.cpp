@@ -98,9 +98,10 @@ const std::set<std::string> PATHS = {"model",
                                      "valid-translation-output",
                                      "log"};
 
-void ProcessPaths(YAML::Node& node,
-                  const boost::filesystem::path& configPath,
-                  bool isPath) {
+// helper to implement relative-paths option
+static void ProcessPaths(YAML::Node& node,
+                         const boost::filesystem::path& configPath,
+                         bool isPath) {
   using namespace boost::filesystem;
 
   if(isPath) {
@@ -252,8 +253,8 @@ void ConfigParser::addOptionsCommon(po::options_description& desc) {
   po::options_description general("General options", guess_terminal_width());
   // clang-format off
   general.add_options()
-    ("config,c", po::value<std::string>(),
-     "Configuration file")
+    ("config,c", po::value<std::vector<std::string>>()->multitoken(),
+     "Configuration file(s). If multiple, later overrides earlier.")
     ("workspace,w", po::value<size_t>()->default_value(defaultWorkspace),
       "Preallocate  arg  MB of work space")
     ("log", po::value<std::string>(),
@@ -348,7 +349,7 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
     ("tied-embeddings-all", po::value<bool>()->zero_tokens()->default_value(false),
      "Tie all embedding layers and output layer")
     ("transformer-heads", po::value<int>()->default_value(8),
-     "Number of head in multi-head attention (transformer)")
+     "Number of heads in multi-head attention (transformer)")
     ("transformer-dim-ffn", po::value<int>()->default_value(2048),
      "Size of position-wise feed-forward network (transformer)")
     ("transformer-ffn-activation", po::value<std::string>()->default_value("swish"),
@@ -430,6 +431,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "Finish after this many batch updates, 0 is infinity")
     ("disp-freq", po::value<size_t>()->default_value(1000),
       "Display information every  arg  updates")
+    ("disp-label-counts", po::value<bool>()->zero_tokens()->default_value(false),
+      "Display label counts when logging loss progress")
     ("save-freq", po::value<size_t>()->default_value(10000),
       "Save model file every  arg  updates")
     ("no-shuffle", po::value<bool>()->zero_tokens()->default_value(false),
@@ -609,6 +612,8 @@ void ConfigParser::addOptionsValid(po::options_description& desc) {
       "Beam size used during search with validating translator")
     ("normalize,n", po::value<float>()->default_value(0.f)->implicit_value(1.f),
       "Divide translation score by pow(translation length, arg) ")
+    ("word-penalty", po::value<float>()->default_value(0.f)->implicit_value(0.f),
+      "Subtract (arg * translation length) from translation score ")
     ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
       "Allow unknown words to appear in output")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
@@ -633,6 +638,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Beam size used during search")
     ("normalize,n", po::value<float>()->default_value(0.f)->implicit_value(1.f),
       "Divide translation score by pow(translation length, arg) ")
+    ("word-penalty", po::value<float>()->default_value(0.f)->implicit_value(0.f),
+      "Subtract (arg * translation length) from translation score ")
     ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
       "Allow unknown words to appear in output")
     ("max-length", po::value<size_t>()->default_value(1000),
@@ -784,14 +791,20 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
       = (mode_ == ConfigMode::training)
         && boost::filesystem::exists(vm_["model"].as<std::string>() + ".yml")
         && !vm_["no-reload"].as<bool>();
-  std::string configPath;
+  std::vector<std::string> configPaths;
 
   if(loadConfig) {
-    configPath = vm_["config"].as<std::string>();
-    config_ = YAML::Load(InputFileStream(configPath));
+    configPaths = vm_["config"].as<std::vector<std::string>>();
+    config_ = YAML::Node();
+    for (const auto& configPath : configPaths)
+    {
+      for(const auto& it : YAML::Load(InputFileStream(configPath))) // later file overrides
+        config_[it.first.as<std::string>()] = it.second;
+    }
   } else if(reloadConfig) {
-    configPath = vm_["model"].as<std::string>() + ".yml";
+    auto configPath = vm_["model"].as<std::string>() + ".yml";
     config_ = YAML::Load(InputFileStream(configPath));
+    configPaths = { configPath };
   }
 
   /** model **/
@@ -862,7 +875,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("transformer-dropout", float);
     SET_OPTION("transformer-dropout-attention", float);
     SET_OPTION("transformer-dropout-ffn", float);
-
+ 
     SET_OPTION("overwrite", bool);
     SET_OPTION("no-reload", bool);
     if(!vm_["train-sets"].empty()) {
@@ -871,6 +884,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("after-epochs", size_t);
     SET_OPTION("after-batches", size_t);
     SET_OPTION("disp-freq", size_t);
+    SET_OPTION("disp-label-counts", bool);
     SET_OPTION("save-freq", size_t);
     SET_OPTION("no-shuffle", bool);
     SET_OPTION("no-restore-corpus", bool);
@@ -940,6 +954,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("input", std::vector<std::string>);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("normalize", float);
+    SET_OPTION("word-penalty", float);
     SET_OPTION("allow-unk", bool);
     SET_OPTION("n-best", bool);
     SET_OPTION_NONDEFAULT("weights", std::vector<float>);
@@ -965,6 +980,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION_NONDEFAULT("valid-translation-output", std::string);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("normalize", float);
+    SET_OPTION("word-penalty", float);
     SET_OPTION("allow-unk", bool);
     SET_OPTION("n-best", bool);
   }
@@ -999,9 +1015,13 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     config_["skip"] = true;
   }
 
-  if(get<bool>("relative-paths") && !vm_["dump-config"].as<bool>())
-    ProcessPaths(
-        config_, boost::filesystem::path{configPath}.parent_path(), false);
+  if(get<bool>("relative-paths") && !vm_["dump-config"].as<bool>()) {
+    auto configDir = boost::filesystem::path{configPaths.front()}.parent_path();
+    for (const auto& configPath : configPaths)
+      ABORT_IF(boost::filesystem::path{configPaths.front()}.parent_path() != configDir,
+               "relative-paths option requires all config files to be in the same directory");
+    ProcessPaths(config_, configDir, false);
+  }
 
   if(doValidate) {
     try {
