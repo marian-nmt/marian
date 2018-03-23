@@ -2,6 +2,7 @@
 
 #if MPI_FOUND
 #include "mpi.h"
+#include "cuda_runtime.h"
 #endif
 
 #include <condition_variable>
