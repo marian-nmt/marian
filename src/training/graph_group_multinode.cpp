@@ -512,7 +512,7 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
       synchronizeWithServerShards(graph->params()->grads(),
                                   graph->params()->vals(),
                                   my_id,
-                                  batch->words());
+                                  batch->wordsTrg());
     }
 
     // Overlapping computations with communication
@@ -525,7 +525,7 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
 
       // Sum up word counts if batch flexible learning rate is enabled
       if(scaleLearningRate_) {
-        clientSummedWordCounts_[my_id] += batch->words();
+        clientSummedWordCounts_[my_id] += batch->wordsTrg();
       }
 
       // If communication channel ready, swap graph's pointers with secondary
