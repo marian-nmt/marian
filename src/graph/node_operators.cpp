@@ -1,5 +1,5 @@
-#include "expression_graph.h"
 #include "node_operators.h"
+#include "expression_graph.h"
 
 namespace marian {
 

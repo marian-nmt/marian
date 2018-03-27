@@ -91,20 +91,19 @@ protected:
       if(i == 0) {
         // Create a dropout node as the parent of x,
         //   and place that dropout node as the value of layers[0]
-        layers.emplace_back(dropout(x, dropout_prob = 0.2));
+        layers.emplace_back(dropout(x, 0.2));
       } else {
         // Multiply the matrix in layers[i-1] by the matrix in weights[i-1]
         // Take the result, and perform matrix addition on biases[i-1].
         // Wrap the result in rectified linear activation function,
         // and finally wrap that in a dropout node
-        layers.emplace_back(
-            dropout(relu(affine(layers.back(), weights.back(), biases.back())),
-                    dropout_prob = 0.5));
+        layers.emplace_back(dropout(
+            relu(affine(layers.back(), weights.back(), biases.back())), 0.5));
       }
 
       // Construct a weight node for the outgoing connections from layer i
-      weights.emplace_back(g->param(
-          "W" + std::to_string(i), {in, out}, inits::uniform()));
+      weights.emplace_back(
+          g->param("W" + std::to_string(i), {in, out}, inits::uniform()));
 
       // Construct a bias node. These weights are initialized to zero
       biases.emplace_back(
@@ -118,8 +117,7 @@ protected:
       // Create an output layer of shape batchSize x 1 and populate it with
       // labels
       auto labels = std::static_pointer_cast<data::DataBatch>(batch)->labels();
-      auto y = g->constant({(int)batch->size(), 1},
-                           inits::from_vector(labels));
+      auto y = g->constant({(int)batch->size(), 1}, inits::from_vector(labels));
 
       // Define a top-level node for training
       return mean(cross_entropy(last, y), axis = 0);

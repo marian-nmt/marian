@@ -109,13 +109,7 @@ inline ThreadPool::ThreadPool(size_t threads, size_t in_bound)
                     this->tasks.pop();
                   }
                   this->bounded_condition.notify_one();
-                  
-                  try{
-                    task();
-                  }
-                  catch(...) {
-                     ABORT("CAUGHT 1!");
-                  }
+                  task();
               }
           }
       );
@@ -137,10 +131,10 @@ auto ThreadPool::enqueue(F&& f, Args&&... args)
       ABORT("Caught std::exception in sub-thread: {}", e.what());
     }
     catch(...) {
-      ABORT("Caught unknown exception in sub-thread");                   
+      ABORT("Caught unknown exception in sub-thread");
     }
   };
-  
+
   auto task = std::make_shared<std::packaged_task<return_type()>>(outer_task);
 
   std::future<return_type> res = task->get_future();

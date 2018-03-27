@@ -1,7 +1,7 @@
 #pragma once
 
-#include "marian.h"
 #include "layers/factory.h"
+#include "marian.h"
 #include "rnn/rnn.h"
 
 namespace marian {

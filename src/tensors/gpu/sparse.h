@@ -2,8 +2,8 @@
 #include <cusparse_v2.h>
 
 #include "common/definitions.h"
-#include "tensors/tensor.h"
 #include "kernels/cuda_helpers.h"
+#include "tensors/tensor.h"
 
 namespace marian {
 

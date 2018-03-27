@@ -43,7 +43,6 @@ public:
         devices_{options_->getDevices()},
         movingAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")} {
-
     for(auto device : devices_) {
       auto graph = New<ExpressionGraph>();
       graph->setDevice(device);
@@ -86,8 +85,17 @@ public:
   }
 
   void save(bool final = false) {
-    if(final && scheduler_)
+    if(final && scheduler_) {
+      if(movingAvg_)
+        for(auto graph : graphs_)
+          fetchParams(graph->params()->vals(), paramsAvg_);
+
       scheduler_->validate(graphs_, true);
+
+      if(movingAvg_)
+        for(auto graph : graphs_)
+          fetchParams(graph->params()->vals(), params_);
+    }
 
     save(graphs_[0], final);
   }

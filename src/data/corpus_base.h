@@ -420,7 +420,6 @@ public:
       std::cerr << std::endl;
     }
   }
-
 };
 
 class CorpusIterator;

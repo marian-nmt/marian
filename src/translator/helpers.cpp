@@ -18,7 +18,7 @@ void SetColumn(Tensor in_, size_t col, float value) {
   int nColumns = in_->shape()[-1];
 
   float* in = in_->data();
-  for (int rowNumber = 0; rowNumber < nRows; ++rowNumber) {
+  for(int rowNumber = 0; rowNumber < nRows; ++rowNumber) {
     int index = col + rowNumber * nColumns;
     in[index] = value;
   }
@@ -31,25 +31,27 @@ void suppressUnk(Expr probs) {
 void suppressWord(Expr probs, Word id) {
   SetColumn(probs->val(), id, std::numeric_limits<float>::lowest());
 }
-
 }
 
 void suppressUnk(Expr probs) {
   if(probs->val()->getBackend()->getDevice().type == DeviceType::cpu) {
     cpu::suppressUnk(probs);
   }
+#ifdef CUDA_FOUND
   else {
     gpu::suppressUnk(probs);
   }
+#endif
 }
 
 void suppressWord(Expr probs, Word id) {
   if(probs->val()->getBackend()->getDevice().type == DeviceType::cpu) {
     cpu::suppressWord(probs, id);
   }
+#ifdef CUDA_FOUND
   else {
     gpu::suppressWord(probs, id);
   }
+#endif
 }
-
 }

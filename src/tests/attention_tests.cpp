@@ -109,9 +109,11 @@ void tests(DeviceType type) {
   }
 }
 
+#ifdef CUDA_FOUND
 TEST_CASE("Model components, Attention (gpu)", "[attention]") {
   tests(DeviceType::gpu);
 }
+#endif
 
 #ifdef BLAS_FOUND
 TEST_CASE("Model components, Attention (cpu)", "[attention]") {

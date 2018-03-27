@@ -1,6 +1,6 @@
 #include "training/graph_group_multinode.h"
-#include "tensors/tensor_operators.h"
 #include "functional/functional.h"
+#include "tensors/tensor_operators.h"
 
 namespace marian {
 
@@ -86,9 +86,9 @@ void MultiNodeGraphGroup::setupClients(Ptr<data::Batch> batch) {
 void MultiNodeGraphGroup::runBatchThroughClientGraphs(Ptr<data::Batch> batch) {
   for(int i = 0; i < devices_.size(); i++) {
     THREAD_GUARD(clientBuilders_[i]->build(clientGraphs_[i], batch);
-                 clientGraphs_[i]->forward(););
+                 clientGraphs_[i]->forward();
+                 clientGraphs_[i]->getBackend()->synchronize(););
   }
-  cudaStreamSynchronize(0);
 }
 
 /**
@@ -150,7 +150,8 @@ void MultiNodeGraphGroup::initClientCommOverlapGpuTensors() {
   size_t modelSize = clientGraphs_[0]->params()->vals()->size();
   for(int client = 0; client < devices_.size(); client++) {
     // Communication overlap buffer (for grads + params)
-    Tensor commOverlapBuffer = newTensor(modelSize, clientGraphs_[client]->getBackend());
+    Tensor commOverlapBuffer
+        = newTensor(modelSize, clientGraphs_[client]->getBackend());
     commOverlapBuffer->copyFrom(clientGraphs_[0]->params()->vals());
     clientCommOverlapBuffersGPU_.push_back(commOverlapBuffer);
     // Gradients local sum buffer
@@ -206,11 +207,13 @@ void MultiNodeGraphGroup::calculateShardSizes() {
 void MultiNodeGraphGroup::initShardGpuTensors() {
   size_t offset = 0;
   for(int shard = 0; shard < devices_.size(); shard++) {
-    Tensor gpuParams = newTensor(shardSizes_[shard], clientGraphs_[shard]->getBackend());
+    Tensor gpuParams
+        = newTensor(shardSizes_[shard], clientGraphs_[shard]->getBackend());
     gpuParams->copyFrom(clientGraphs_[0]->params()->vals()->subtensor(
         offset, shardSizes_[shard]));
     shardParams_.push_back(gpuParams);
-    shardGrads_.push_back(newTensor(shardSizes_[shard], clientGraphs_[shard]->getBackend()));
+    shardGrads_.push_back(
+        newTensor(shardSizes_[shard], clientGraphs_[shard]->getBackend()));
   }
 }
 
@@ -503,7 +506,7 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
     float cost = costNode->scalar();
     graph->backward();
 
-    cudaStreamSynchronize(0);
+    graph->getBackend()->synchronize();
 
     if(!clientCommOverlap) {
       synchronizeWithServerShards(graph->params()->grads(),
@@ -518,7 +521,8 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
       Element(functional::_1 = functional::_1 + functional::_2,
               clientSummedGradsGPU[my_id],
               graph->params()->grads());
-      cudaStreamSynchronize(0);
+      graph->getBackend()->synchronize();
+
       // Sum up word counts if batch flexible learning rate is enabled
       if(scaleLearningRate_) {
         clientSummedWordCounts_[my_id] += batch->wordsTrg();

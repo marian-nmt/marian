@@ -23,7 +23,7 @@ public:
   Device(DeviceId deviceId, size_t alignment = 256)
       : deviceId_(deviceId), data_(0), size_(0), alignment_(alignment) {}
 
-  virtual ~Device() {};
+  virtual ~Device(){};
 
   virtual void reserve(size_t size) = 0;
 
@@ -35,34 +35,41 @@ public:
 };
 
 namespace gpu {
-  class Device : public marian::Device {
-    public:
-      Device(DeviceId deviceId, size_t alignment = 256)
+class Device : public marian::Device {
+public:
+  Device(DeviceId deviceId, size_t alignment = 256)
       : marian::Device(deviceId, alignment) {}
 
-      ~Device();
+  ~Device();
 
-      void reserve(size_t size);
-  };
+  void reserve(size_t size);
+};
 }
 
 namespace cpu {
-  class Device : public marian::Device {
-    public:
-      Device(DeviceId deviceId, size_t alignment = 256)
+class Device : public marian::Device {
+public:
+  Device(DeviceId deviceId, size_t alignment = 256)
       : marian::Device(deviceId, alignment) {}
 
-      ~Device();
+  ~Device();
 
-      void reserve(size_t size);
-  };
+  void reserve(size_t size);
+};
 }
 
-static inline Ptr<Device> DispatchDevice(DeviceId deviceId, size_t alignment = 256) {
+static inline Ptr<Device> DispatchDevice(DeviceId deviceId,
+                                         size_t alignment = 256) {
+#ifdef CUDA_FOUND
   if(deviceId.type == DeviceType::gpu)
     return New<gpu::Device>(deviceId, alignment);
   else
     return New<cpu::Device>(deviceId, alignment);
+#else
+  if(deviceId.type == DeviceType::gpu)
+    ABORT("CUDA support not compiled into marian");
+  else
+    return New<cpu::Device>(deviceId, alignment);
+#endif
 }
-
 }

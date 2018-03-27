@@ -122,7 +122,7 @@ public:
       : counter_(counter) {}
 
   bool operator()(const std::string& a, const std::string& b) const {
-    return counter_[a] > counter_[b];
+    return counter_[a] > counter_[b] || (counter_[a] == counter_[b] && a < b);
   }
 };
 
@@ -138,8 +138,9 @@ void Vocab::create(const std::string& vocabPath, const std::string& trainPath) {
            "Specified vocab directory {} does not exist",
            dir);
 
-  ABORT_IF(!dir.empty() && !(boost::filesystem::status(dir).permissions()
-           & boost::filesystem::owner_write),
+  ABORT_IF(!dir.empty()
+               && !(boost::filesystem::status(dir).permissions()
+                    & boost::filesystem::owner_write),
            "No write permission in vocab directory {}",
            dir);
 

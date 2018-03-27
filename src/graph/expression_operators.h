@@ -110,7 +110,6 @@ Expr mean(Expr a, keywords::axis_k ax = 0);
 
 Expr cross_entropy(Expr a, Expr b);
 
-
 Expr scalar_product(Expr a, Expr b, keywords::axis_k ax = 0);
 
 Expr weighted_average(Expr in, Expr weights, keywords::axis_k ax = 0);
@@ -125,17 +124,18 @@ Expr layer_norm(Expr x, Expr gamma, Expr beta = nullptr, float eps = 1e-9);
 Expr highway(Expr y, Expr x, Expr t);
 Expr highway(const std::string prefix, Expr x);
 
-template <typename... Args>
-Expr dropout(Expr x, Args... args) {
-  auto mask = Get(keywords::mask, nullptr, args...);
-  float dropout_prob = Get(keywords::dropout_prob, 0.0f, args...);
-
-  ABORT_IF(!mask && !dropout_prob, "Neither mask nor dropout prob given");
-  if(!mask) {
-    auto graph = x->graph();
-    mask = graph->dropout(dropout_prob, x->shape());
-  }
+static inline Expr dropout(Expr x, Expr mask) {
   return x * mask;
+}
+
+static inline Expr dropout(Expr x, float prob, Shape shape) {
+  auto graph = x->graph();
+  auto mask = graph->dropout(prob, shape);
+  return dropout(x, mask);
+}
+
+static inline Expr dropout(Expr x, float prob) {
+  return dropout(x, prob, x->shape());
 }
 
 Expr shift(Expr, Shape);
@@ -160,6 +160,5 @@ Expr max_pooling(Expr x,
                  int strideHeight = 1,
                  int strideWidth = 1);
 
-Expr pooling_with_masking(Expr x, Expr mask, int width, bool isEven=false);
-
+Expr pooling_with_masking(Expr x, Expr mask, int width, bool isEven = false);
 }

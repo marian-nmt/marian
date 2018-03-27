@@ -7,11 +7,12 @@
 namespace marian {
 
 struct ConstantNode : public Node {
-  ConstantNode(Ptr<ExpressionGraph> graph, const Shape& shape, const NodeInitializer& init)
+  ConstantNode(Ptr<ExpressionGraph> graph,
+               const Shape& shape,
+               const NodeInitializer& init)
       : Node(graph, shape),
         init_(new NodeInitializer(init)),
         initialized_(false) {
-
     setTrainable(false);
   }
 
@@ -41,11 +42,13 @@ private:
 };
 
 struct ParamNode : public Node {
-  ParamNode(Ptr<ExpressionGraph> graph, const Shape& shape, const NodeInitializer& init, bool fixed = false)
+  ParamNode(Ptr<ExpressionGraph> graph,
+            const Shape& shape,
+            const NodeInitializer& init,
+            bool fixed = false)
       : Node(graph, shape),
         init_(new NodeInitializer(init)),
         initialized_(false) {
-
     setTrainable(!fixed);
   }
 

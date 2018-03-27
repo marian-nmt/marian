@@ -2,8 +2,8 @@
 
 #include "training/graph_group_async.h"
 
-#include "training/dropper.h"
-#include "training/sparse_tensor.h"
+#include "training/gradient_dropping/dropper.h"
+#include "training/gradient_dropping/sparse_tensor.h"
 
 namespace marian {
 

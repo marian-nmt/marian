@@ -10,6 +10,7 @@ option(COMPILE_EXAMPLES "Compile examples" OFF)
 option(COMPILE_TESTS "Compile tests" OFF)
 option(COMPILE_SERVER "Compile marian-server" ON)
 option(COMPILE_CPU "Compile CPU version" ON)
+option(COMPILE_CUDA "Compile GPU version" ON)
 option(USE_CUDNN "Use CUDNN library" OFF)
 option(USE_MPI "Use MPI library" OFF)
 
@@ -20,14 +21,17 @@ include(GetVersionFromFile)
 message(STATUS "Project name: ${PROJECT_NAME}")
 message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 
-
 # Set compilation flags
-set(CMAKE_CXX_FLAGS_RELEASE " -std=c++11 -O3 -Ofast -m64  -march=native -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
-set(CMAKE_CXX_FLAGS_DEBUG " -std=c++11 -g -O0 -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
+set(CMAKE_CXX_FLAGS_RELEASE " -std=c++11 -O3 -Ofast -m64 -pthread -march=native -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
+set(CMAKE_CXX_FLAGS_DEBUG " -std=c++11 -g -O0 -pthread -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
 set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE} -g -pg")
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
 
 # Find packages
+
+set(EXT_LIBS ${EXT_LIBS} ${CMAKE_DL_LIBS})
+
+if(COMPILE_CUDA)
 find_package(CUDA "8.0" REQUIRED)
 if(CUDA_FOUND)
   set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY})
@@ -41,7 +45,15 @@ if(CUDA_FOUND)
       LIST(APPEND CUDA_NVCC_FLAGS -DCUDNN; )
     endif(CUDNN_FOUND)
   endif(USE_CUDNN)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCUDA_FOUND")
+  list(APPEND CUDA_NVCC_FLAGS -DCUDA_FOUND; )
+else(CUDA_FOUND)
+  message(WARNING "Cannot find CUDA compiling CPU version only")
 endif(CUDA_FOUND)
+
+else(COMPILE_CUDA)
+  message(WARNING "COMPILE_CUDA=off : Building only CPU version")
+endif(COMPILE_CUDA)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   list(APPEND CUDA_NVCC_FLAGS -std=c++11; --default-stream per-thread; -O0; -g; -Xcompiler '-fPIC'; -arch=sm_30; -gencode=arch=compute_30,code=sm_30; -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52; -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61; -gencode=arch=compute_61,code=compute_61 ;)

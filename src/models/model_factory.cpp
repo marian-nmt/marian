@@ -1,12 +1,13 @@
 #include "marian.h"
+
 #include "models/model_factory.h"
 
+#include "models/amun.h"
+#include "models/encdec.h"
+#include "models/hardatt.h"
+#include "models/nematus.h"
 #include "models/s2s.h"
 #include "models/transformer.h"
-#include "models/hardatt.h"
-#include "models/amun.h"
-#include "models/nematus.h"
-#include "models/encdec.h"
 
 #ifdef CUDNN
 #include "models/char_s2s.h"

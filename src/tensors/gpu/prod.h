@@ -21,6 +21,5 @@ void ProdBatched(marian::Tensor C,
                  bool transB,
                  float beta = 0,
                  float scalar = 1);
-
 }
 }

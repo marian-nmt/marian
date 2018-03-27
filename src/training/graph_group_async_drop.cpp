@@ -3,8 +3,8 @@
 
 #include "functional/functional.h"
 #include "tensors/tensor_operators.h"
-#include "training/dropper.h"
-#include "training/sparse_tensor.h"
+#include "training/gradient_dropping/dropper.h"
+#include "training/gradient_dropping/sparse_tensor.h"
 
 namespace marian {
 
@@ -102,7 +102,7 @@ void AsyncGraphGroupDrop::pushGradients(Tensor newGrads,
 
           // split to shard
           SparseTensor subGrad
-              = newSparseGrads->subtensor(pos, grads_[idx]->size(), idx);
+              = newSparseGrads->subtensor(pos, grads_[idx]->size());
 
           // send the sharded sparse tensor
           pushShardedSparseGradient_[idx]->copyFrom(subGrad);
@@ -136,7 +136,7 @@ void AsyncGraphGroupDrop::init(Ptr<data::Batch> batch) {
   // extra inits for gradient dropping
   if(drop_first) {
     int totalSize = graphs_[0]->params()->vals()->size();
-    int sparseCap = totalSize * 1.2 * (1.0 - droping_rate);
+    int sparseCap = totalSize * 1.5 * (1.0 - droping_rate);
     int shardSize = ceil(totalSize / devices_.size());
 
     for(int i = 0; i < devices_.size(); i++)
@@ -158,12 +158,12 @@ void AsyncGraphGroupDrop::init(Ptr<data::Batch> batch) {
       }
 
       // individual Gradient dropper per-device
-      pushDropper_.push_back(GradientDrop(new GradientDropBase()));
+      pushDropper_.push_back(PrepareGradientDrop(graphs_[i]->getDevice()));
 
       // N-dropper for fetch
       std::vector<GradientDrop> tmpDropper;
       for(auto device : devices_)
-        tmpDropper.push_back(GradientDrop(new GradientDropBase()));
+        tmpDropper.push_back(PrepareGradientDrop(graphs_[i]->getDevice()));
       fetchDropper.push_back(tmpDropper);
 
       // sparsetensor to store sparsified gradients per-device

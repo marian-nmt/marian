@@ -1,6 +1,6 @@
 #include "training/graph_group_sync.h"
-#include "tensors/tensor_operators.h"
 #include "functional/functional.h"
+#include "tensors/tensor_operators.h"
 
 namespace marian {
 
@@ -17,7 +17,8 @@ void SyncGraphGroup::updateMovingAverage(Tensor paramsAvg,
                                          Tensor params,
                                          size_t batches) {
   using namespace functional;
-  float decay = std::max(mvDecay_, 1.f - (float)(batches + 1) / (float)(batches + 10));
+  float decay
+      = std::max(mvDecay_, 1.f - (float)(batches + 1) / (float)(batches + 10));
   Element(_1 = ((1.f - decay) * _1) + (decay * _2), paramsAvg, params);
 }
 
@@ -65,7 +66,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
       int pos = 0;
       for(auto graph : graphs_) {
-        int __size__ = min(shardSize_, totalSize);
+        int __size__ = std::min(shardSize_, totalSize);
 
         auto paramsAlloc = New<TensorAllocator>(graph->getBackend());
         paramsAllocs_.push_back(paramsAlloc);
@@ -91,7 +92,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
       int i = 0;
       for(auto graph : graphs_) {
-        int __size__ = min(shardSize_, totalSize);
+        int __size__ = std::min(shardSize_, totalSize);
         totalSize -= __size__;
         Tensor paramAvg;
         auto allocator = New<TensorAllocator>(graph->getBackend());
@@ -134,7 +135,14 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
       grads_[idx]->set(0);
       int size = params_[idx]->size();
       int i = 0;
-      float div = devices_.size(); // no. of GPUs
+
+      float div = devices_.size();  // no. of GPUs
+
+      // do not average gradients if cost type is sum.
+      if(options_->get<std::string>("cost-type") == "ce-sum") {
+        div = 1;
+      }
+
       for(auto graph : graphs_) {
         if(batches[i]->size() > 0) {
           auto subGrad = graph->params()->grads()->subtensor(pos, size);
@@ -169,7 +177,9 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
   float cost = 0;
   for(auto c : costs)
     cost += c;
-  cost = cost / costs.size();
+  if(options_->get<std::string>("cost-type") != "ce-sum") {
+    cost = cost / costs.size();
+  }
 
   if(scheduler_) {
     scheduler_->update(cost, batch);

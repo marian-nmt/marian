@@ -1,11 +1,11 @@
 #pragma once
 
+#include <boost/timer/timer.hpp>
+#include <condition_variable>
 #include <deque>
 #include <functional>
-#include <queue>
 #include <mutex>
-#include <condition_variable>
-#include <boost/timer/timer.hpp>
+#include <queue>
 
 #include "common/config.h"
 #include "data/batch_stats.h"
@@ -47,16 +47,17 @@ private:
 
   void fillBatches(bool shuffle = true) {
     typedef typename sample::value_type Item;
-    auto itemCmp = [](const Item& sa, const Item& sb) {
-      return sa.size() < sb.size();
-    };
+    auto itemCmp
+        = [](const Item& sa, const Item& sb) { return sa.size() < sb.size(); };
 
     auto cmpSrc = [itemCmp](const sample& a, const sample& b) {
-      return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end(), itemCmp);
+      return std::lexicographical_compare(
+          a.begin(), a.end(), b.begin(), b.end(), itemCmp);
     };
 
     auto cmpTrg = [itemCmp](const sample& a, const sample& b) {
-      return std::lexicographical_compare(a.rbegin(), a.rend(), b.rbegin(), b.rend(), itemCmp);
+      return std::lexicographical_compare(
+          a.rbegin(), a.rend(), b.rbegin(), b.rend(), itemCmp);
     };
 
     auto cmpNone = [](const sample& a, const sample& b) { return &a < &b; };
@@ -168,9 +169,8 @@ public:
   operator bool() const {
     // wait if empty but loading
     std::unique_lock<std::mutex> lock(loadMutex_);
-    loadCondition_.wait(lock, [this]{
-      return loadReady_ || !bufferedBatches_.empty();
-    });
+    loadCondition_.wait(
+        lock, [this] { return loadReady_ || !bufferedBatches_.empty(); });
 
     return !bufferedBatches_.empty();
   }
@@ -178,15 +178,16 @@ public:
   BatchPtr next() {
     {
       std::unique_lock<std::mutex> lock(loadMutex_);
-      loadCondition_.wait(lock, [this]{
-        return loadReady_ || !bufferedBatches_.empty();
-      });
+      loadCondition_.wait(
+          lock, [this] { return loadReady_ || !bufferedBatches_.empty(); });
     }
 
     ABORT_IF(bufferedBatches_.empty(), "No batches to fetch, run prepare()");
     currentBatch_ = bufferedBatches_.front();
 
-    if(loadReady_ && bufferedBatches_.size() <= std::max(options_->get<int>("maxi-batch") / 5, 1)) {
+    if(loadReady_
+       && bufferedBatches_.size()
+              <= std::max(options_->get<int>("maxi-batch") / 5, 1)) {
       {
         std::unique_lock<std::mutex> lock(loadMutex_);
         loadReady_ = false;

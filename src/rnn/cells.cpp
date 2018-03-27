@@ -52,8 +52,7 @@ Expr gruOps(const std::vector<Expr>& nodes, bool final) {
 /******************************************************************************/
 
 struct LSTMCellNodeOp : public NaryNodeOp {
-  LSTMCellNodeOp(const std::vector<Expr>& nodes)
-      : NaryNodeOp(nodes) {}
+  LSTMCellNodeOp(const std::vector<Expr>& nodes) : NaryNodeOp(nodes) {}
 
   NodeOps forwardOps() {
     std::vector<Tensor> inputs;
@@ -89,8 +88,7 @@ struct LSTMCellNodeOp : public NaryNodeOp {
 };
 
 struct LSTMOutputNodeOp : public NaryNodeOp {
-  LSTMOutputNodeOp(const std::vector<Expr>& nodes)
-      : NaryNodeOp(nodes) {}
+  LSTMOutputNodeOp(const std::vector<Expr>& nodes) : NaryNodeOp(nodes) {}
 
   NodeOps forwardOps() {
     std::vector<Tensor> inputs;

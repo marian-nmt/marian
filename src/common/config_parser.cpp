@@ -2,8 +2,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
 #include <set>
-#include <string>
 #include <stdexcept>
+#include <string>
 
 #if MKL_FOUND
 //#include <omp.h>
@@ -15,9 +15,9 @@
 #endif
 #endif
 
-
 #include "3rd_party/cnpy/cnpy.h"
 #include "common/definitions.h"
+
 #include "common/config.h"
 #include "common/config_parser.h"
 #include "common/file_stream.h"
@@ -146,13 +146,14 @@ bool ConfigParser::has(const std::string& key) const {
 
 void ConfigParser::validateOptions() const {
   if(mode_ == ConfigMode::translating) {
-    UTIL_THROW_IF2(!has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
+    UTIL_THROW_IF2(
+        !has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
         "Translating, but vocabularies are not given!");
 
     for(const auto& modelFile : get<std::vector<std::string>>("models")) {
       boost::filesystem::path modelPath(modelFile);
       UTIL_THROW_IF2(!boost::filesystem::exists(modelPath),
-          "Model file does not exist: " + modelFile);
+                     "Model file does not exist: " + modelFile);
     }
 
     return;
@@ -177,9 +178,10 @@ void ConfigParser::validateOptions() const {
 
   if(mode_ == ConfigMode::rescoring) {
     UTIL_THROW_IF2(!boost::filesystem::exists(modelPath),
-        "Model file does not exist: " + modelPath.string());
+                   "Model file does not exist: " + modelPath.string());
 
-    UTIL_THROW_IF2(!has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
+    UTIL_THROW_IF2(
+        !has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
         "Scoring, but vocabularies are not given!");
 
     return;
@@ -193,8 +195,9 @@ void ConfigParser::validateOptions() const {
       !modelDir.empty() && !boost::filesystem::is_directory(modelDir),
       "Model directory does not exist");
 
-  UTIL_THROW_IF2(!modelDir.empty() && !(boost::filesystem::status(modelDir).permissions()
-                 & boost::filesystem::owner_write),
+  UTIL_THROW_IF2(!modelDir.empty()
+                     && !(boost::filesystem::status(modelDir).permissions()
+                          & boost::filesystem::owner_write),
                  "No write permission in model directory");
 
   UTIL_THROW_IF2(
@@ -348,6 +351,8 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Number of head in multi-head attention (transformer)")
     ("transformer-dim-ffn", po::value<int>()->default_value(2048),
      "Size of position-wise feed-forward network (transformer)")
+    ("transformer-ffn-activation", po::value<std::string>()->default_value("swish"),
+     "Activation between filters: swish or relu (transformer)")
     ("transformer-preprocess", po::value<std::string>()->default_value(""),
      "Operation before each transformer layer: d = dropout, a = add, n = normalize")
     ("transformer-postprocess-emb", po::value<std::string>()->default_value("d"),
@@ -389,6 +394,8 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
        "Dropout between transformer layers (0 = no dropout)")
       ("transformer-dropout-attention", po::value<float>()->default_value(0),
        "Dropout for transformer attention (0 = no dropout)")
+      ("transformer-dropout-ffn", po::value<float>()->default_value(0),
+       "Dropout for transformer filter (0 = no dropout)")
     ;
   }
   // clang-format on
@@ -427,6 +434,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "Save model file every  arg  updates")
     ("no-shuffle", po::value<bool>()->zero_tokens()->default_value(false),
       "Skip shuffling of training data before each epoch")
+    ("no-restore-corpus", po::value<bool>()->zero_tokens()->default_value(false),
+      "Skip restoring corpus state after training is restarted")
     ("tempdir,T", po::value<std::string>()->default_value("/tmp"),
       "Directory for temporary (shuffled) files and database")
     ("sqlite", po::value<std::string>()->default_value("")->implicit_value("temporary"),
@@ -434,17 +443,19 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "is temporary with path creates persistent storage")
     ("sqlite-drop", po::value<bool>()->zero_tokens()->default_value(false),
       "Drop existing tables in sqlite3 database")
-    ("restore-corpus,r", po::value<bool>()->zero_tokens()->default_value(false),
-      "Restore the corpus state for seamless training continuation")
     ("devices,d", po::value<std::vector<std::string>>()
       ->multitoken()
       ->default_value(std::vector<std::string>({"0"}), "0"),
       "GPU ID(s) to use for training")
+#ifdef CUDA_FOUND
     ("cpu-threads", po::value<size_t>()->default_value(0)->implicit_value(1),
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
     //("omp-threads", po::value<size_t>()->default_value(1),
     //  "Set number of OpenMP threads for each CPU-based thread")
-
+#else
+    ("cpu-threads", po::value<size_t>()->default_value(1),
+      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
+#endif
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
     ("mini-batch-words", po::value<int>()->default_value(0),
@@ -632,11 +643,15 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<std::string>({"0"}), "0"),
       "GPUs to use for translating")
+#ifdef CUDA_FOUND
     ("cpu-threads", po::value<size_t>()->default_value(0)->implicit_value(1),
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
     //("omp-threads", po::value<size_t>()->default_value(1),
     //  "Set number of OpenMP threads for each CPU-based thread")
-
+#else
+    ("cpu-threads", po::value<size_t>()->default_value(1),
+      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
+#endif
     ("mini-batch", po::value<int>()->default_value(1),
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(1),
@@ -671,6 +686,10 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
       "If these files do not exists they are created")
+    ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
+      "Score n-best list instead of plain text corpus")
+    ("n-best-feature", po::value<std::string>()->default_value("Score"),
+      "Feature name to be inserted into n-best list")
     ("summary", po::value<std::string>()->implicit_value("cross-entropy"),
       "Only print total cost, possible values: cross-entropy (ce-mean), ce-mean-words, ce-sum, perplexity")
     ("max-length", po::value<size_t>()->default_value(1000),
@@ -681,11 +700,15 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<std::string>({"0"}), "0"),
       "GPUs to use for training")
+#ifdef CUDA_FOUND
     ("cpu-threads", po::value<size_t>()->default_value(0)->implicit_value(1),
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
     //("omp-threads", po::value<size_t>()->default_value(1),
     //  "Set number of OpenMP threads for each CPU-based thread")
-
+#else
+    ("cpu-threads", po::value<size_t>()->default_value(1),
+      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
+#endif
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
     ("mini-batch-words", po::value<int>()->default_value(0),
@@ -813,7 +836,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("transformer-postprocess", std::string);
   SET_OPTION("transformer-postprocess-emb", std::string);
   SET_OPTION("transformer-dim-ffn", int);
-  SET_OPTION("transformer-dim-ffn", int);
+  SET_OPTION("transformer-ffn-activation", std::string);
 
 #ifdef CUDNN
   SET_OPTION("char-stride", int);
@@ -838,6 +861,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 
     SET_OPTION("transformer-dropout", float);
     SET_OPTION("transformer-dropout-attention", float);
+    SET_OPTION("transformer-dropout-ffn", float);
 
     SET_OPTION("overwrite", bool);
     SET_OPTION("no-reload", bool);
@@ -849,10 +873,10 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("disp-freq", size_t);
     SET_OPTION("save-freq", size_t);
     SET_OPTION("no-shuffle", bool);
+    SET_OPTION("no-restore-corpus", bool);
     SET_OPTION("tempdir", std::string);
     SET_OPTION("sqlite", std::string);
     SET_OPTION("sqlite-drop", bool);
-    SET_OPTION("restore-corpus", bool);
 
     SET_OPTION("optimizer", std::string);
     SET_OPTION_NONDEFAULT("optimizer-params", std::vector<float>);
@@ -907,6 +931,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
       config_["train-sets"] = vm_["train-sets"].as<std::vector<std::string>>();
     }
     SET_OPTION("mini-batch-words", int);
+    SET_OPTION("n-best", bool);
+    SET_OPTION("n-best-feature", std::string);
     SET_OPTION_NONDEFAULT("summary", std::string);
   }
 
@@ -952,7 +978,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("relative-paths", bool);
   SET_OPTION("devices", std::vector<std::string>);
   SET_OPTION("cpu-threads", size_t);
-  //SET_OPTION("omp-threads", size_t);
+  // SET_OPTION("omp-threads", size_t);
 
   SET_OPTION("mini-batch", int);
   SET_OPTION("maxi-batch", int);
@@ -997,24 +1023,22 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     exit(0);
   }
 
-// @TODO: this should probably be in processOptionDevices()
-//#ifdef BLAS_FOUND
-//  //omp_set_num_threads(vm_["omp-threads"].as<size_t>());
-//#ifdef MKL_FOUND
-//  mkl_set_num_threads(vm_["omp-threads"].as<size_t>());
-//#endif
-//#endif
+  // @TODO: this should probably be in processOptionDevices()
+  //#ifdef BLAS_FOUND
+  //  //omp_set_num_threads(vm_["omp-threads"].as<size_t>());
+  //#ifdef MKL_FOUND
+  //  mkl_set_num_threads(vm_["omp-threads"].as<size_t>());
+  //#endif
+  //#endif
 }
 
 std::vector<DeviceId> ConfigParser::getDevices() {
   std::vector<DeviceId> devices;
 
   try {
-    
     std::string devicesStr
         = Join(config_["devices"].as<std::vector<std::string>>());
-        
-    
+
     if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
       auto parts = Split(devicesStr, ":");
       for(size_t i = 1; i < parts.size(); ++i) {
@@ -1023,7 +1047,7 @@ std::vector<DeviceId> ConfigParser::getDevices() {
         auto ds = Split(part, " ");
         if(i < parts.size() - 1)
           ds.pop_back();
-        
+
         // does this make sense?
         devices.push_back({ds.size(), DeviceType::gpu});
         for(auto d : ds)
@@ -1033,15 +1057,14 @@ std::vector<DeviceId> ConfigParser::getDevices() {
       for(auto d : Split(devicesStr))
         devices.push_back({std::stoull(d), DeviceType::gpu});
     }
-    
+
     if(config_["cpu-threads"].as<size_t>() > 0) {
       devices.clear();
       for(size_t i = 0; i < config_["cpu-threads"].as<size_t>(); ++i)
-      devices.push_back({i, DeviceType::cpu});
+        devices.push_back({i, DeviceType::cpu});
     }
-    
-  }
-  catch(...) {
+
+  } catch(...) {
     ABORT("Problem parsing devices, please report an issue on github");
   }
 

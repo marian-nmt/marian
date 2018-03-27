@@ -1,8 +1,8 @@
 #pragma once
 
+#include <algorithm>
 #include <map>
 #include <memory>
-#include <algorithm>
 
 #include "common/config.h"
 #include "graph/expression_graph.h"
@@ -37,6 +37,10 @@ public:
     updateImpl(params, grads);
   }
 
+  virtual void init(TrainingState& state) {
+    eta_ = state.eta;
+    multiplyFactor_ = state.factor;
+  }
   virtual void actAfterLoaded(TrainingState& state) {
     eta_ = state.eta;
     multiplyFactor_ = state.factor;

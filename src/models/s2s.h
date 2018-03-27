@@ -1,9 +1,10 @@
 #pragma once
 
 #include "marian.h"
+
 #include "layers/constructors.h"
-#include "rnn/constructors.h"
 #include "rnn/attention_constructors.h"
+#include "rnn/constructors.h"
 
 namespace marian {
 
@@ -162,8 +163,7 @@ public:
     float dropProb = inference_ ? 0 : opt<float>("dropout-src");
     if(dropProb) {
       int srcWords = batchEmbeddings->shape()[-3];
-      auto dropMask = graph->dropout(dropProb, {srcWords, 1, 1});
-      batchEmbeddings = dropout(batchEmbeddings, mask = dropMask);
+      batchEmbeddings = dropout(batchEmbeddings, dropProb, {srcWords, 1, 1});
     }
 
     Expr context = applyEncoderRNN(
@@ -292,8 +292,7 @@ public:
     float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
     if(dropoutTrg) {
       int trgWords = embeddings->shape()[-3];
-      auto trgWordDrop = graph->dropout(dropoutTrg, {trgWords, 1, 1});
-      embeddings = dropout(embeddings, mask = trgWordDrop);
+      embeddings = dropout(embeddings, dropoutTrg, {trgWords, 1, 1});
     }
 
     if(!rnn_)

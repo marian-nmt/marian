@@ -1,11 +1,14 @@
 #include "marian.h"
 
 #include "training/graph_group_async.h"
-#include "training/graph_group_async_drop.h"
 #include "training/graph_group_multinode.h"
 #include "training/graph_group_singleton.h"
 #include "training/graph_group_sync.h"
 #include "training/training.h"
+
+#ifdef CUDA_FOUND
+#include "training/graph_group_async_drop.h"
+#endif
 
 bool configureMPI(int, char**);
 
@@ -14,7 +17,7 @@ int main(int argc, char** argv) {
 
   auto options = New<Config>(argc, argv);
   auto devices = options->getDevices();
-  
+
   if(options->get<bool>("multi-node")) {
     ABORT_IF(!configureMPI(argc, argv), "MPI not found.");
 
@@ -26,8 +29,10 @@ int main(int argc, char** argv) {
     } else {
       if(options->get<bool>("sync-sgd"))
         New<Train<SyncGraphGroup>>(options)->run();
+#ifdef CUDA_FOUND
       else if(options->get<float>("grad-dropping-rate") > 0.0)
         New<Train<AsyncGraphGroupDrop>>(options)->run();
+#endif
       else
         New<Train<AsyncGraphGroup>>(options)->run();
     }

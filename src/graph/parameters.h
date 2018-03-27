@@ -5,8 +5,8 @@
 #include <unordered_set>
 
 #include "common/definitions.h"
-#include "tensors/tensor_allocator.h"
 #include "graph/chainable.h"
+#include "tensors/tensor_allocator.h"
 
 namespace marian {
 

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "marian.h"
-#include "rnn/types.h"
 #include "models/states.h"
+#include "rnn/types.h"
 
 namespace marian {
 
@@ -52,14 +52,11 @@ public:
     Wa_ = graph->param(prefix + "_W_comb_att",
                        {dimDecState, dimEncState},
                        inits::glorot_uniform);
-    Ua_ = graph->param(prefix + "_Wc_att",
-                       {dimEncState, dimEncState},
-                       inits::glorot_uniform);
-    va_ = graph->param(prefix + "_U_att",
-                       {dimEncState, 1},
-                       inits::glorot_uniform);
-    ba_ = graph->param(
-        prefix + "_b_att", {1, dimEncState}, inits::zeros);
+    Ua_ = graph->param(
+        prefix + "_Wc_att", {dimEncState, dimEncState}, inits::glorot_uniform);
+    va_ = graph->param(
+        prefix + "_U_att", {dimEncState, 1}, inits::glorot_uniform);
+    ba_ = graph->param(prefix + "_b_att", {1, dimEncState}, inits::zeros);
 
     if(dropout_ > 0.0f) {
       dropMaskContext_ = graph->dropout(dropout_, {1, dimEncState});
@@ -67,37 +64,31 @@ public:
     }
 
     if(dropMaskContext_)
-      contextDropped_
-          = dropout(contextDropped_, keywords::mask = dropMaskContext_);
+      contextDropped_ = dropout(contextDropped_, dropMaskContext_);
 
     if(layerNorm_) {
       if(nematusNorm_) {
         // instead of gammaContext_
-        Wc_att_lns_ = graph->param(prefix + "_Wc_att_lns",
-                                   {1, dimEncState},
-                                   inits::from_value(1.f));
-        Wc_att_lnb_ = graph->param(prefix + "_Wc_att_lnb",
-                                   {1, dimEncState},
-                                   inits::zeros);
+        Wc_att_lns_ = graph->param(
+            prefix + "_Wc_att_lns", {1, dimEncState}, inits::from_value(1.f));
+        Wc_att_lnb_ = graph->param(
+            prefix + "_Wc_att_lnb", {1, dimEncState}, inits::zeros);
         // instead of gammaState_
         W_comb_att_lns_ = graph->param(prefix + "_W_comb_att_lns",
                                        {1, dimEncState},
                                        inits::from_value(1.f));
-        W_comb_att_lnb_ = graph->param(prefix + "_W_comb_att_lnb",
-                                       {1, dimEncState},
-                                       inits::zeros);
+        W_comb_att_lnb_ = graph->param(
+            prefix + "_W_comb_att_lnb", {1, dimEncState}, inits::zeros);
 
         mappedContext_ = layer_norm(affine(contextDropped_, Ua_, ba_),
                                     Wc_att_lns_,
                                     Wc_att_lnb_,
                                     NEMATUS_LN_EPS);
       } else {
-        gammaContext_ = graph->param(prefix + "_att_gamma1",
-                                     {1, dimEncState},
-                                     inits::from_value(1.0));
-        gammaState_ = graph->param(prefix + "_att_gamma2",
-                                   {1, dimEncState},
-                                   inits::from_value(1.0));
+        gammaContext_ = graph->param(
+            prefix + "_att_gamma1", {1, dimEncState}, inits::from_value(1.0));
+        gammaState_ = graph->param(
+            prefix + "_att_gamma2", {1, dimEncState}, inits::from_value(1.0));
 
         mappedContext_
             = layer_norm(dot(contextDropped_, Ua_), gammaContext_, ba_);
@@ -125,7 +116,7 @@ public:
       dimBeam = recState->shape()[-4];
 
     if(dropMaskState_)
-      recState = dropout(recState, keywords::mask = dropMaskState_);
+      recState = dropout(recState, dropMaskState_);
 
     auto mappedState = dot(recState, Wa_);
     if(layerNorm_)
@@ -142,8 +133,7 @@ public:
                      {dimBeam, srcWords, dimBatch, 1});
     // <- horrible
 
-    auto alignedSource
-        = scalar_product(encState_->getAttended(), e, axis = -3);
+    auto alignedSource = scalar_product(encState_->getAttended(), e, axis = -3);
 
     contexts_.push_back(alignedSource);
     alignments_.push_back(e);

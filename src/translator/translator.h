@@ -37,7 +37,7 @@ public:
     ThreadPool threadPool(devices.size(), devices.size());
     scorers_.resize(devices.size());
     graphs_.resize(devices.size());
-    
+
     size_t id = 0;
     for(auto device : devices) {
       auto task = [&](DeviceId device, size_t id) {
@@ -61,13 +61,13 @@ public:
     data::BatchGenerator<data::Corpus> bg(corpus_, options_);
 
     auto devices = options_->getDevices();
-    
+
     ThreadPool threadPool(devices.size(), devices.size());
 
     size_t batchId = 0;
     auto collector = New<OutputCollector>();
     if(options_->get<bool>("quiet-translation"))
-        collector->setPrintingStrategy(New<QuietPrinting>());
+      collector->setPrintingStrategy(New<QuietPrinting>());
 
     bg.prepare(false);
 

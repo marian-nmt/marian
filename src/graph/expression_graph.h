@@ -7,13 +7,13 @@
 #include "common/config.h"
 #include "common/definitions.h"
 
-#include "tensors/tensor_allocator.h"
 #include "tensors/backend.h"
+#include "tensors/tensor_allocator.h"
 
-#include "graph/parameters.h"
 #include "graph/chainable.h"
-#include "graph/node_operators.h"
 #include "graph/node_initializers.h"
+#include "graph/node_operators.h"
+#include "graph/parameters.h"
 
 #include "3rd_party/cnpy/cnpy.h"
 
@@ -215,7 +215,9 @@ public:
       ABORT_IF(shape != p->shape(),
                "Requested shape {} for existing parameter '{}' does not match "
                "original shape {}",
-               shape, name, p->shape());
+               shape,
+               name,
+               p->shape());
 
       p->setTrainable(!fixed);
       add(p);
@@ -239,10 +241,8 @@ public:
     return p;
   }
 
-  Expr constant(const Shape& shape,
-                const NodeInitializer& init) {
-    return Expression<ConstantNode>(
-        shared_from_this(), shape, init);
+  Expr constant(const Shape& shape, const NodeInitializer& init) {
+    return Expression<ConstantNode>(shared_from_this(), shape, init);
   }
 
   Expr ones(const Shape& shape) {
