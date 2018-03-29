@@ -30,6 +30,7 @@ private:
   std::vector<Ptr<TensorAllocator>> paramsAllocAvg_;
   bool movingAvg_{false};
   float mvDecay_{1e-4};
+  size_t delay_{1};
 
   void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches);
 
@@ -42,7 +43,8 @@ public:
       : GraphGroup(options),
         devices_{options_->getDevices()},
         movingAvg_{options_->get<float>("exponential-smoothing") > 0},
-        mvDecay_{options_->get<float>("exponential-smoothing")} {
+        mvDecay_{options_->get<float>("exponential-smoothing")},
+        delay_{options_->get<size_t>("optimizer-delay")} {
     for(auto device : devices_) {
       auto graph = New<ExpressionGraph>();
       graph->setDevice(device);
@@ -142,7 +144,7 @@ public:
   }
 
   Ptr<data::BatchStats> collectStats() {
-    return builders_[0]->collectStats(graphs_[0], devices_.size());
+    return builders_[0]->collectStats(graphs_[0], devices_.size() * delay_);
   }
 };
 }
