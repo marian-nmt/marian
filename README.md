@@ -37,7 +37,6 @@ _Horizon 2020 Research and Innovation Programme_ under grant agreements
 645487 ([Modern MT](http://www.modernmt.eu); 2015-2017),
 644333 ([TraMOOC](http://tramooc.eu/); 2015-2017),
 644402 ([HiML](http://www.himl.eu/); 2015-2017),
-
 the Amazon Academic Research Awards program,
 the World Intellectual Property Organization,
 and is based upon work supported in part by the Office of the Director of
