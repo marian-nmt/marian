@@ -146,7 +146,14 @@ public:
   virtual std::string Debug(unsigned verbosity = 1) const
   {
     std::stringstream strm;
-    strm << size_; // maxSize_ << " " <<
+    strm << size_ << " ";
+
+    if (verbosity == 2) {
+      for (unsigned i = 0; i < size_; ++i) {
+        const T &ele = data_[i];
+        strm << ele << " ";
+      }
+    }
 
     return strm.str();
   }
