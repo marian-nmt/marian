@@ -146,12 +146,22 @@ public:
   virtual std::string Debug(unsigned verbosity = 1) const
   {
     std::stringstream strm;
-    strm << size_ << " ";
+    strm << size_ << " " << std::flush;
 
     if (verbosity == 2) {
-      for (unsigned i = 0; i < size_; ++i) {
-        const T &ele = data_[i];
-        strm << ele << " ";
+      T h_data[size()];
+
+      const cudaStream_t& stream = CudaStreamHandler::GetStream();
+      HANDLE_ERROR( cudaMemcpyAsync(
+          &h_data,
+          data(),
+          size() * sizeof(T),
+          cudaMemcpyDeviceToHost,
+          stream) );
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
+
+      for (unsigned i = 0; i < size(); ++i) {
+        strm << " " << h_data[i];
       }
     }
 
