@@ -42,6 +42,7 @@ add_library(marian STATIC
   optimizers/optimizers.cpp
 
   models/model_factory.cpp
+  models/encdec.cpp
 
   translator/history.cpp
   translator/output_collector.cpp
