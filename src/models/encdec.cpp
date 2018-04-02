@@ -133,7 +133,6 @@ void EncoderDecoder::selectEmbeddings(Ptr<ExpressionGraph> graph,
 Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
                    Ptr<data::CorpusBatch> batch,
                    bool clearGraph) {
-  using namespace keywords;
 
   if(clearGraph)
     clear(graph);
@@ -171,7 +170,7 @@ Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
     auto alignments = decoders_[0]->getAlignments();
     ABORT_IF(alignments.empty(), "Model does not seem to support alignments");
 
-    auto att = concatenate(alignments, axis = 3);
+    auto att = concatenate(alignments, keywords::axis = 3);
     return cost + guidedAlignmentCost(graph, batch, options_, att);
   } else {
     return cost;
