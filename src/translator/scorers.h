@@ -59,7 +59,7 @@ public:
 
 class ScorerWrapper : public Scorer {
 private:
-  Ptr<EncoderDecoder> encdec_;
+  Ptr<EncoderDecoderBase> encdec_;
   std::string fname_;
 
 public:
@@ -68,7 +68,7 @@ public:
                 float weight,
                 const std::string& fname)
       : Scorer(name, weight),
-        encdec_(std::dynamic_pointer_cast<EncoderDecoder>(encdec)),
+        encdec_(std::static_pointer_cast<EncoderDecoderBase>(encdec)),
         fname_(fname) {}
 
   virtual void init(Ptr<ExpressionGraph> graph) {

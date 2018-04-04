@@ -2,8 +2,6 @@
 
 #include "marian.h"
 
-#include "layers/generic.h"
-#include "layers/guided_alignment.h"
 #include "model_base.h"
 #include "states.h"
 #include "encoder.h"
@@ -13,25 +11,36 @@ namespace marian {
 
 class EncoderDecoderBase : public models::ModelBase {
 public:
-  virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
-                                Ptr<DecoderState> state,
-                                const std::vector<size_t>&,
-                                int dimBatch,
-                                int beamSize)
-      = 0;
+  virtual void load(Ptr<ExpressionGraph> graph,
+                    const std::string& name,
+                    bool markedReloaded = true) = 0;
+
+  virtual void save(Ptr<ExpressionGraph> graph,
+                    const std::string& name,
+                    bool saveTranslatorConfig = false) = 0;
+
+  virtual void clear(Ptr<ExpressionGraph> graph) = 0;
+
+  virtual Expr build(Ptr<ExpressionGraph> graph,
+                     Ptr<data::Batch> batch,
+                     bool clearGraph = true) = 0;
+
+  virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
+                                       Ptr<data::CorpusBatch> batch) = 0;
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
-                                 Ptr<DecoderState>,
-                                 const std::vector<size_t>&,
-                                 const std::vector<size_t>&,
+                                 Ptr<DecoderState> state,
+                                 const std::vector<size_t>& hypIndices,
+                                 const std::vector<size_t>& embIndices,
                                  int dimBatch,
-                                 int beamSize)
-      = 0;
+                                 int beamSize) = 0;
 
-  virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
+  virtual Expr build(Ptr<ExpressionGraph> graph,
+                     Ptr<data::CorpusBatch> batch,
+                     bool clearGraph = true) = 0;
 
-  virtual std::vector<Ptr<EncoderBase>>& getEncoders() = 0;
-  virtual std::vector<Ptr<DecoderBase>>& getDecoders() = 0;
+  virtual Ptr<Options> getOptions() = 0;
+
 };
 
 class EncoderDecoder : public EncoderDecoderBase {
@@ -44,7 +53,7 @@ protected:
 
   bool inference_{false};
 
-  std::vector<std::string> modelFeatures_;
+  std::set<std::string> modelFeatures_;
 
   void saveModelParameters(const std::string& name);
 
@@ -55,13 +64,15 @@ public:
 
   EncoderDecoder(Ptr<Options> options);
 
-  std::vector<Ptr<EncoderBase>>& getEncoders() { return encoders_; }
+  virtual Ptr<Options> getOptions() { return options_; }
 
-  void push_back(Ptr<EncoderBase> encoder) { encoders_.push_back(encoder); }
+  std::vector<Ptr<EncoderBase>>& getEncoders();
 
-  std::vector<Ptr<DecoderBase>>& getDecoders() { return decoders_; }
+  void push_back(Ptr<EncoderBase> encoder);
 
-  void push_back(Ptr<DecoderBase> decoder) { decoders_.push_back(decoder); }
+  std::vector<Ptr<DecoderBase>>& getDecoders();
+
+  void push_back(Ptr<DecoderBase> decoder);
 
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
@@ -73,36 +84,6 @@ public:
 
   virtual void clear(Ptr<ExpressionGraph> graph);
 
-  virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
-                                       Ptr<data::CorpusBatch> batch);
-
-  virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
-                                 Ptr<DecoderState> state);
-
-  virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
-                                 Ptr<DecoderState> state,
-                                 const std::vector<size_t>& hypIndices,
-                                 const std::vector<size_t>& embIndices,
-                                 int dimBatch,
-                                 int beamSize);
-
-  virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
-                                Ptr<DecoderState> state,
-                                const std::vector<size_t>& embIdx,
-                                int dimBatch,
-                                int beamSize);
-
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::CorpusBatch> batch,
-                     bool clearGraph = true);
-
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::Batch> batch,
-                     bool clearGraph = true);
-
-  Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph,
-                                     size_t multiplier = 1);
-
   template <typename T>
   T opt(const std::string& key) {
     return options_->get<T>(key);
@@ -112,5 +93,32 @@ public:
   void set(std::string key, T value) {
     options_->set(key, value);
   }
+
+  /*********************************************************************/
+
+  virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
+                                       Ptr<data::CorpusBatch> batch);
+
+  virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
+                                 Ptr<DecoderState> state,
+                                 const std::vector<size_t>& hypIndices,
+                                 const std::vector<size_t>& embIndices,
+                                 int dimBatch,
+                                 int beamSize);
+
+  virtual Ptr<DecoderState> stepAll(Ptr<ExpressionGraph> graph,
+                                    Ptr<data::CorpusBatch> batch,
+                                    bool clearGraph = true);
+
+  virtual Expr build(Ptr<ExpressionGraph> graph,
+                     Ptr<data::CorpusBatch> batch,
+                     bool clearGraph = true);
+
+  virtual Expr build(Ptr<ExpressionGraph> graph,
+                     Ptr<data::Batch> batch,
+                     bool clearGraph = true);
+
 };
+
+
 }

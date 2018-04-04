@@ -63,8 +63,8 @@ protected:
   void execute(Ptr<data::Batch> batch);
 
 public:
-  AsyncGraphGroup(Ptr<Config> options)
-      : GraphGroup(options),
+  AsyncGraphGroup(Ptr<Config> config)
+      : GraphGroup(config),
         devices_{options_->getDevices()},
         shardSync_(devices_.size()),
         movingAvg_{options_->get<float>("exponential-smoothing") > 0},
@@ -78,7 +78,8 @@ public:
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
       shardOpt_.push_back(Optimizer(options_));
-      builders_.push_back(models::from_config(options_));
+
+      builders_.push_back(models::from_config(options_, models::usage::training));
     }
   }
 
@@ -161,7 +162,7 @@ public:
   }
 
   Ptr<data::BatchStats> collectStats() {
-    return builders_[0]->collectStats(graphs_[0]);
+    return GraphGroup::collectStats(graphs_[0], builders_[0]);
   }
 
   void wait();

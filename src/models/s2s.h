@@ -279,7 +279,7 @@ public:
     }
 
     rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
-    return New<DecoderState>(startStates, nullptr, encStates);
+    return New<DecoderState>(startStates, nullptr, encStates, batch);
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
@@ -326,7 +326,7 @@ public:
     auto layer1 = mlp::dense(graph)                                //
         ("prefix", prefix_ + "_ff_logit_l1")                       //
         ("dim", opt<int>("dim-emb"))                               //
-        ("activation", (int)mlp::act::tanh)                        //
+        ("activation", mlp::act::tanh)                             //
         ("layer-normalization", opt<bool>("layer-normalization"))  //
         ("nematus-normalization",
          options_->has("original-type")
@@ -358,7 +358,7 @@ public:
       logits = output->apply(embeddings, decoderContext);
 
     // return unormalized(!) probabilities
-    return New<DecoderState>(decoderStates, logits, state->getEncoderStates());
+    return New<DecoderState>(decoderStates, logits, state->getEncoderStates(), state->getBatch());
   }
 
   // helper function for guided alignment
@@ -368,6 +368,8 @@ public:
     return att->getAlignments();
   }
 
-  void clear() { rnn_ = nullptr; }
+  void clear() {
+    rnn_ = nullptr;
+  }
 };
 }

@@ -19,7 +19,7 @@ public:
     Ptr<Options> temp = New<Options>();
     temp->merge(options);
     temp->set("inference", true);
-    builder_ = models::from_options(temp);
+    builder_ = models::from_options(temp, models::usage::scoring);
   }
 
   virtual void keepBest(const std::vector<Ptr<ExpressionGraph>>& graphs) {

@@ -2,11 +2,14 @@
 
 #include "marian.h"
 
-#include "encdec.h"
+#include "models/encoder.h"
+#include "models/decoder.h"
+#include "models/states.h"
 #include "layers/constructors.h"
 #include "layers/factory.h"
-#include "model_base.h"
-#include "model_factory.h"
+
+//#include "models/model_base.h"
+//#include "models/model_factory.h"
 
 namespace marian {
 
@@ -460,8 +463,9 @@ class TransformerState : public DecoderState {
 public:
   TransformerState(const rnn::States &states,
                    Expr probs,
-                   std::vector<Ptr<EncoderState>> &encStates)
-      : DecoderState(states, probs, encStates) {}
+                   std::vector<Ptr<EncoderState>> &encStates,
+                   Ptr<data::CorpusBatch> batch)
+      : DecoderState(states, probs, encStates, batch) {}
 
   virtual Ptr<DecoderState> select(const std::vector<size_t> &selIdx,
                                    int beamSize) {
@@ -482,7 +486,7 @@ public:
       selectedStates.push_back({sel, nullptr});
     }
 
-    return New<TransformerState>(selectedStates, probs_, encStates_);
+    return New<TransformerState>(selectedStates, probs_, encStates_, batch_);
   }
 };
 
@@ -495,7 +499,7 @@ public:
       Ptr<data::CorpusBatch> batch,
       std::vector<Ptr<EncoderState>> &encStates) {
     rnn::States startStates;
-    return New<TransformerState>(startStates, nullptr, encStates);
+    return New<TransformerState>(startStates, nullptr, encStates, batch);
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
@@ -664,7 +668,7 @@ public:
 
     // return unormalized(!) probabilities
     return New<TransformerState>(
-        decoderStates, logits, state->getEncoderStates());
+        decoderStates, logits, state->getEncoderStates(), state->getBatch());
   }
 
   // helper function for guided alignment

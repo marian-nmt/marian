@@ -125,7 +125,7 @@ public:
     opts->merge(options);
     opts->set("inference", true);
     opts->set("cost-type", "ce-sum");
-    builder_ = models::from_options(opts);
+    builder_ = models::from_options(opts, models::usage::scoring);
   }
 
   std::string type() { return options_->get<std::string>("cost-type"); }
@@ -154,7 +154,7 @@ protected:
 
         auto task = [=, &cost, &samples, &words](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
-          thread_local auto builder = models::from_options(opts);
+          thread_local auto builder = models::from_options(opts, models::usage::scoring);
 
           if(!graph) {
             graph = graphs[id % graphs.size()];
@@ -193,7 +193,7 @@ public:
     Ptr<Options> opts = New<Options>();
     opts->merge(options);
     opts->set("inference", true);
-    builder_ = models::from_options(opts);
+    builder_ = models::from_options(opts, models::usage::raw);
 
     ABORT_IF(!options_->has("valid-script-path"),
              "valid-script metric but no script given");
@@ -230,7 +230,7 @@ public:
     Ptr<Options> opts = New<Options>();
     opts->merge(options);
     opts->set("inference", true);
-    builder_ = models::from_options(opts);
+    builder_ = models::from_options(opts, models::usage::translation);
 
     if(!options_->has("valid-script-path"))
       LOG_VALID(warn,
@@ -265,7 +265,7 @@ public:
 
     std::vector<Ptr<Scorer>> scorers;
     for(auto graph : graphs) {
-      auto builder = models::from_options(mopts);
+      auto builder = models::from_options(mopts, models::usage::translation);
       Ptr<Scorer> scorer = New<ScorerWrapper>(builder, "", 1.0f, model);
       scorers.push_back(scorer);
     }

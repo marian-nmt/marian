@@ -2,6 +2,7 @@
 
 #include "marian.h"
 #include "states.h"
+#include "layers/generic.h"
 
 namespace marian {
 
@@ -26,9 +27,9 @@ public:
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
 
-  virtual std::tuple<Expr, Expr> groundTruth(Ptr<DecoderState> state,
-                                             Ptr<ExpressionGraph> graph,
-                                             Ptr<data::CorpusBatch> batch) {
+  virtual void embeddingsFromBatch(Ptr<ExpressionGraph> graph,
+                                   Ptr<DecoderState> state,
+                                   Ptr<data::CorpusBatch> batch) {
     using namespace keywords;
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
@@ -73,15 +74,14 @@ public:
 
     state->setTargetEmbeddings(yShifted);
     state->setTargetMask(yMask);
-
-    return std::make_tuple(yMask, yData);
+    state->setTargetIndices(yData);
   }
 
-  virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
-                                Ptr<DecoderState> state,
-                                const std::vector<size_t>& embIdx,
-                                int dimBatch,
-                                int dimBeam) {
+  virtual void embeddingsFromPrediction(Ptr<ExpressionGraph> graph,
+                                        Ptr<DecoderState> state,
+                                        const std::vector<size_t>& embIdx,
+                                        int dimBatch,
+                                        int dimBeam) {
     using namespace keywords;
 
     int dimTrgEmb = opt<int>("dim-emb");

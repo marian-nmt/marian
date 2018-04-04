@@ -25,8 +25,8 @@ private:
   void execute(Ptr<data::Batch> batch);
 
 public:
-  SingletonGraph(Ptr<Config> options)
-      : GraphGroup(options),
+  SingletonGraph(Ptr<Config> config)
+      : GraphGroup(config),
         mvAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")} {
     auto deviceId = options_->getDevices()[0];
@@ -34,8 +34,7 @@ public:
     graph_->setDevice(deviceId);
     graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
     opt_ = Optimizer(options_);
-
-    builder_ = models::from_config(options_);
+    builder_ = models::from_config(options_, models::usage::training);
   }
 
   void update(Ptr<data::Batch> batch) { execute(batch); }
@@ -99,7 +98,7 @@ public:
   }
 
   Ptr<data::BatchStats> collectStats() {
-    return builder_->collectStats(graph_);
+    return GraphGroup::collectStats(graph_, builder_);
   }
 };
 }

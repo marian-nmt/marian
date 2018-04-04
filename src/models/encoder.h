@@ -1,6 +1,7 @@
 #pragma once
 
 #include "marian.h"
+#include "models/states.h"
 
 namespace marian {
 

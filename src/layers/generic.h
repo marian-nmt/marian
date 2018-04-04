@@ -62,7 +62,7 @@ public:
 
     auto layerNorm = opt<bool>("layer-normalization", false);
     auto nematusNorm = opt<bool>("nematus-normalization", false);
-    auto activation = (act)opt<int>("activation", (int)act::linear);
+    auto activation = opt<act>("activation", act::linear);
 
     auto g = graph_;
 

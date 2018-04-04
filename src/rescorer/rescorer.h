@@ -20,7 +20,7 @@ private:
   Ptr<models::ModelBase> builder_;
 
 public:
-  Rescorer(Ptr<Options> options) : builder_(models::from_options(options)) {}
+  Rescorer(Ptr<Options> options) : builder_(models::from_options(options, models::usage::scoring)) {}
 
   void load(Ptr<ExpressionGraph> graph, const std::string& modelFile) {
     builder_->load(graph, modelFile);
