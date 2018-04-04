@@ -291,6 +291,8 @@ public:
     }
 
     auto batch = New<CorpusBatch>(batches);
+    
+    if(!options) return batch;
 
     if(options->has("guided-alignment")) {
       std::vector<float> alignment(batchSize * lengths.front() * lengths.back(),
