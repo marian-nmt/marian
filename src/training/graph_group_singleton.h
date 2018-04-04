@@ -75,7 +75,7 @@ public:
     std::string name = options_->get<std::string>("model");
 
     if(options_->get<bool>("overwrite")) {
-      builder_->save(graph_, name, true);
+      builder_->save(graph, name, true);
       if(scheduler_)
         scheduler_->save(name);
     } else {
@@ -86,10 +86,10 @@ public:
         std::string nameOverwrite = name;
         nameOverwrite.replace(
             name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");
-        builder_->save(graph_, nameOverwrite);
+        builder_->save(graph, nameOverwrite);
       }
 
-      builder_->save(graph_, name, true);
+      builder_->save(graph, name, true);
       if(scheduler_)
         scheduler_->save(name);
     }
