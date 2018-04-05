@@ -323,7 +323,7 @@ public:
       alignedContext = alignedContexts[0];
 
     // construct deep output multi-layer network layer-wise
-    auto layer1 = mlp::dense(graph)                                //
+    auto hidden = mlp::dense(graph)                                //
         ("prefix", prefix_ + "_ff_logit_l1")                       //
         ("dim", opt<int>("dim-emb"))                               //
         ("activation", mlp::act::tanh)                             //
@@ -334,7 +334,7 @@ public:
 
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
-    auto layer2 = mlp::dense(graph)           //
+    auto final = mlp::output(graph)          //
         ("prefix", prefix_ + "_ff_logit_l2")  //
         ("dim", dimTrgVoc);
 
@@ -342,14 +342,17 @@ public:
       std::string tiedPrefix = prefix_ + "_Wemb";
       if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
         tiedPrefix = "Wemb";
-      layer2.tie_transposed("W", tiedPrefix);
+      final.tie_transposed("W", tiedPrefix);
     }
+
+    if(shortlist_)
+      final.set_shortlist(shortlist_);
 
     // assemble layers into MLP and apply to embeddings, decoder context and
     // aligned source context
     auto output = mlp::mlp(graph)         //
-                      .push_back(layer1)  //
-                      .push_back(layer2);
+                      .push_back(hidden)  //
+                      .push_back(final);
 
     Expr logits;
     if(alignedContext)

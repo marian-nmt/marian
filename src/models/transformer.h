@@ -649,7 +649,7 @@ public:
 
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
-    auto layerOut = mlp::dense(graph)          //
+    auto layerOut = mlp::output(graph)         //
         ("prefix", prefix_ + "_ff_logit_out")  //
         ("dim", dimTrgVoc);
 
@@ -659,6 +659,9 @@ public:
         tiedPrefix = "Wemb";
       layerOut.tie_transposed("W", tiedPrefix);
     }
+
+    if(shortlist_)
+      layerOut.set_shortlist(shortlist_);
 
     // assemble layers into MLP and apply to embeddings, decoder context and
     // aligned source context

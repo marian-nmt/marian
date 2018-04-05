@@ -188,6 +188,7 @@ public:
   virtual Ptr<Options> getOptions() {
     return encdec_->getOptions();
   };
+
 };
 
 static Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec, Ptr<Options> options) {

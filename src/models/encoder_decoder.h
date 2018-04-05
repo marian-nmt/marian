@@ -40,12 +40,13 @@ public:
                      bool clearGraph = true) = 0;
 
   virtual Ptr<Options> getOptions() = 0;
-
 };
 
 class EncoderDecoder : public EncoderDecoderBase {
 protected:
   Ptr<Options> options_;
+  Ptr<data::ShortlistGenerator> shortlistGenerator_;
+
   std::string prefix_;
 
   std::vector<Ptr<EncoderBase>> encoders_;

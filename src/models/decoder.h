@@ -2,6 +2,7 @@
 
 #include "marian.h"
 #include "states.h"
+#include "data/shortlist.h"
 #include "layers/generic.h"
 
 namespace marian {
@@ -12,6 +13,8 @@ protected:
   std::string prefix_{"decoder"};
   bool inference_{false};
   size_t batchIndex_{1};
+
+  Ptr<data::Shortlist> shortlist_;
 
 public:
   DecoderBase(Ptr<Options> options)
@@ -67,8 +70,15 @@ public:
     auto yMask = graph->constant({dimWords, dimBatch, 1},
                                  inits::from_vector(subBatch->mask()));
 
-    auto yData = graph->constant({(int)subBatch->data().size(), 1},
-                                 inits::from_vector(subBatch->data()));
+    Expr yData;
+    if(shortlist_) {
+      yData = graph->constant({(int)shortlist_->mappedIndices().size(), 1},
+                              inits::from_vector(shortlist_->mappedIndices()));
+    }
+    else {
+      yData = graph->constant({(int)subBatch->data().size(), 1},
+                              inits::from_vector(subBatch->data()));
+    }
 
     auto yShifted = shift(y, {1, 0, 0});
 
@@ -103,13 +113,22 @@ public:
     if(embIdx.empty()) {
       selectedEmbs = graph->constant({1, 1, dimBatch, dimTrgEmb}, inits::zeros);
     } else {
-      selectedEmbs = rows(yEmb, embIdx);
+      auto indices = embIdx;
+      if(shortlist_)
+        std::transform(indices.begin(), indices.end(), indices.begin(),
+                       [this](size_t i){ return shortlist_->reverseMap(i); });
+
+
+      selectedEmbs = rows(yEmb, indices);
       selectedEmbs = reshape(selectedEmbs, {dimBeam, 1, dimBatch, dimTrgEmb});
     }
     state->setTargetEmbeddings(selectedEmbs);
   }
 
   virtual const std::vector<Expr> getAlignments(int i = 0) { return {}; };
+
+  virtual Ptr<data::Shortlist> getShortlist() { return shortlist_; }
+  virtual void setShortlist(Ptr<data::Shortlist> shortlist) { shortlist_ = shortlist; }
 
   template <typename T>
   T opt(const std::string& key) {

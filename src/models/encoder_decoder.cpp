@@ -116,6 +116,10 @@ Ptr<DecoderState> EncoderDecoder::startState(Ptr<ExpressionGraph> graph,
   for(auto& encoder : encoders_)
     encoderStates.push_back(encoder->build(graph, batch));
 
+  // initialize shortlist here
+  if(shortlistGenerator_)
+    decoders_[0]->setShortlist(shortlistGenerator_->generate(batch));
+
   return decoders_[0]->startState(graph, batch, encoderStates);
 }
 
@@ -141,6 +145,7 @@ Ptr<DecoderState> EncoderDecoder::stepAll(Ptr<ExpressionGraph> graph,
   if(clearGraph)
     clear(graph);
 
+  // Required first step, also intializes shortlist
   auto state = startState(graph, batch);
 
   // Fill state with embeddings from batch (ground truth)
@@ -171,5 +176,3 @@ Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
 }
 
 }
-
-

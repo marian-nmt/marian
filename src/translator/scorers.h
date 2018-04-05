@@ -2,6 +2,7 @@
 
 #include "marian.h"
 #include "models/model_factory.h"
+#include "data/shortlist.h"
 
 namespace marian {
 
@@ -101,88 +102,88 @@ public:
   }
 };
 
-class WordPenaltyState : public ScorerState {
-private:
-  int dimVocab_;
-  Expr penalties_;
-
-public:
-  WordPenaltyState(int dimVocab, Expr penalties)
-      : dimVocab_(dimVocab), penalties_(penalties) {}
-
-  virtual Expr getProbs() { return penalties_; };
-
-  virtual float breakDown(size_t i) {
-    return getProbs()->val()->get(i % dimVocab_);
-  }
-};
-
-class WordPenalty : public Scorer {
-private:
-  int dimVocab_;
-  Expr penalties_;
-
-public:
-  WordPenalty(const std::string& name, float weight, int dimVocab)
-      : Scorer(name, weight), dimVocab_(dimVocab) {}
-
-  virtual void clear(Ptr<ExpressionGraph> graph) {}
-
-  virtual Ptr<ScorerState> startState(Ptr<ExpressionGraph> graph,
-                                      Ptr<data::CorpusBatch> batch) {
-    std::vector<float> p(dimVocab_, 1);
-    p[0] = 0;
-    p[2] = 0;
-
-    penalties_ = graph->constant({1, dimVocab_}, inits::from_vector(p));
-    return New<WordPenaltyState>(dimVocab_, penalties_);
-  }
-
-  virtual Ptr<ScorerState> step(Ptr<ExpressionGraph> graph,
-                                Ptr<ScorerState> state,
-                                const std::vector<size_t>& hypIndices,
-                                const std::vector<size_t>& embIndices,
-                                int dimBatch,
-                                int beamSize) {
-    return state;
-  }
-};
-
-class UnseenWordPenalty : public Scorer {
-private:
-  int batchIndex_;
-  int dimVocab_;
-  Expr penalties_;
-
-public:
-  UnseenWordPenalty(const std::string& name,
-                    float weight,
-                    int dimVocab,
-                    int batchIndex)
-      : Scorer(name, weight), dimVocab_(dimVocab), batchIndex_(batchIndex) {}
-
-  virtual void clear(Ptr<ExpressionGraph> graph) {}
-
-  virtual Ptr<ScorerState> startState(Ptr<ExpressionGraph> graph,
-                                      Ptr<data::CorpusBatch> batch) {
-    std::vector<float> p(dimVocab_, -1);
-    for(auto i : (*batch)[batchIndex_]->data())
-      p[i] = 0;
-    p[2] = 0;
-
-    penalties_ = graph->constant({1, dimVocab_}, inits::from_vector(p));
-    return New<WordPenaltyState>(dimVocab_, penalties_);
-  }
-
-  virtual Ptr<ScorerState> step(Ptr<ExpressionGraph> graph,
-                                Ptr<ScorerState> state,
-                                const std::vector<size_t>& hypIndices,
-                                const std::vector<size_t>& embIndices,
-                                int dimBatch,
-                                int beamSize) {
-    return state;
-  }
-};
+//class WordPenaltyState : public ScorerState {
+//private:
+//  int dimVocab_;
+//  Expr penalties_;
+//
+//public:
+//  WordPenaltyState(int dimVocab, Expr penalties)
+//      : dimVocab_(dimVocab), penalties_(penalties) {}
+//
+//  virtual Expr getProbs() { return penalties_; };
+//
+//  virtual float breakDown(size_t i) {
+//    return getProbs()->val()->get(i % dimVocab_);
+//  }
+//};
+//
+//class WordPenalty : public Scorer {
+//private:
+//  int dimVocab_;
+//  Expr penalties_;
+//
+//public:
+//  WordPenalty(const std::string& name, float weight, int dimVocab)
+//      : Scorer(name, weight), dimVocab_(dimVocab) {}
+//
+//  virtual void clear(Ptr<ExpressionGraph> graph) {}
+//
+//  virtual Ptr<ScorerState> startState(Ptr<ExpressionGraph> graph,
+//                                      Ptr<data::CorpusBatch> batch) {
+//    std::vector<float> p(dimVocab_, 1);
+//    p[0] = 0;
+//    p[2] = 0;
+//
+//    penalties_ = graph->constant({1, dimVocab_}, inits::from_vector(p));
+//    return New<WordPenaltyState>(dimVocab_, penalties_);
+//  }
+//
+//  virtual Ptr<ScorerState> step(Ptr<ExpressionGraph> graph,
+//                                Ptr<ScorerState> state,
+//                                const std::vector<size_t>& hypIndices,
+//                                const std::vector<size_t>& embIndices,
+//                                int dimBatch,
+//                                int beamSize) {
+//    return state;
+//  }
+//};
+//
+//class UnseenWordPenalty : public Scorer {
+//private:
+//  int batchIndex_;
+//  int dimVocab_;
+//  Expr penalties_;
+//
+//public:
+//  UnseenWordPenalty(const std::string& name,
+//                    float weight,
+//                    int dimVocab,
+//                    int batchIndex)
+//      : Scorer(name, weight), dimVocab_(dimVocab), batchIndex_(batchIndex) {}
+//
+//  virtual void clear(Ptr<ExpressionGraph> graph) {}
+//
+//  virtual Ptr<ScorerState> startState(Ptr<ExpressionGraph> graph,
+//                                      Ptr<data::CorpusBatch> batch) {
+//    std::vector<float> p(dimVocab_, -1);
+//    for(auto i : (*batch)[batchIndex_]->data())
+//      p[i] = 0;
+//    p[2] = 0;
+//
+//    penalties_ = graph->constant({1, dimVocab_}, inits::from_vector(p));
+//    return New<WordPenaltyState>(dimVocab_, penalties_);
+//  }
+//
+//  virtual Ptr<ScorerState> step(Ptr<ExpressionGraph> graph,
+//                                Ptr<ScorerState> state,
+//                                const std::vector<size_t>& hypIndices,
+//                                const std::vector<size_t>& embIndices,
+//                                int dimBatch,
+//                                int beamSize) {
+//    return state;
+//  }
+//};
 
 Ptr<Scorer> scorerByType(std::string fname,
                          float weight,
