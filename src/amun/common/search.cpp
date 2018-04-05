@@ -21,6 +21,7 @@ Search::Search(const God &god)
     scorers_(god.GetScorers(deviceInfo_)),
     filter_(god.GetFilter()),
     maxBeamSize_(god.Get<unsigned>("beam-size")),
+    maxLengthMult_(god.Get<unsigned>("max-length-multiple")),
     normalizeScore_(god.Get<bool>("normalize")),
     bestHyps_(god.GetBestHyps(deviceInfo_))
 {
@@ -51,14 +52,15 @@ std::shared_ptr<Histories> Search::Translate(const Sentences& sentences) {
     FilterTargetVocab(sentences);
   }
 
+
   States states = Encode(sentences);
   States nextStates = NewStates();
   std::vector<unsigned> beamSizes(sentences.size(), 1);
 
-  std::shared_ptr<Histories> histories(new Histories(sentences, normalizeScore_));
+  std::shared_ptr<Histories> histories(new Histories(sentences, normalizeScore_, maxLengthMult_));
   Beam prevHyps = histories->GetFirstHyps();
 
-  for (unsigned decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
+  for (unsigned decoderStep = 0; decoderStep < maxLengthMult_ * sentences.GetMaxLength(); ++decoderStep) {
     for (unsigned i = 0; i < scorers_.size(); i++) {
       scorers_[i]->Decode(*states[i], *nextStates[i], beamSizes);
     }
