@@ -40,6 +40,9 @@ public:
       = 0;
 
   virtual void init(Ptr<ExpressionGraph> graph) {}
+
+  virtual void setShortlistGenerator(Ptr<data::ShortlistGenerator> shortlistGenerator) {};
+  virtual Ptr<data::Shortlist> getShortlist() { return nullptr; };
 };
 
 class ScorerWrapperState : public ScorerState {
@@ -100,6 +103,14 @@ public:
     return New<ScorerWrapperState>(encdec_->step(
         graph, wrappedState, hypIndices, embIndices, dimBatch, beamSize));
   }
+
+  virtual void setShortlistGenerator(Ptr<data::ShortlistGenerator> shortlistGenerator) {
+    encdec_->setShortlistGenerator(shortlistGenerator);
+  };
+
+  virtual Ptr<data::Shortlist> getShortlist() {
+    return encdec_->getShortlist();
+  };
 };
 
 //class WordPenaltyState : public ScorerState {

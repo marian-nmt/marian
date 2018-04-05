@@ -117,6 +117,10 @@ private:
   std::map<std::string, Expr> tiedParams_;
   Ptr<data::Shortlist> shortlist_;
 
+  Expr W_;
+  Expr b_;
+  bool transposeW_{false};
+
 public:
   Output(Ptr<ExpressionGraph> graph, Ptr<Options> options)
       : Layer(graph, options) {}
@@ -130,34 +134,32 @@ public:
   }
 
   Expr apply(Expr input) {
-    auto g = graph_;
+    if(!W_) {
+      auto name = options_->get<std::string>("prefix");
+      auto dim = options_->get<int>("dim");
+      std::string nameW = "W";
 
-    auto name = options_->get<std::string>("prefix");
-    auto dim = options_->get<int>("dim");
+      if(tiedParams_.count(nameW)) {
+        transposeW_ = true;
+        W_ = tiedParams_[nameW];
+        if(shortlist_)
+          W_ = rows(W_, shortlist_->indices());
+      } else {
+        W_ = graph_->param(name + "_" + nameW,
+                          {input->shape()[-1], dim},
+                          inits::glorot_uniform);
+        if(shortlist_)
+          W_ = cols(W_, shortlist_->indices());
+      }
 
-    Expr W;
-    bool transposeW = false;
-    std::string nameW = "W";
-    if(tiedParams_.count(nameW)) {
-      transposeW = true;
-      W = tiedParams_[nameW];
+      b_ = graph_->param(name + "_b",
+                         {1, dim},
+                         inits::zeros);
       if(shortlist_)
-        W = rows(W, shortlist_->indices());
-    } else {
-      W = g->param(name + "_" + nameW,
-                   {input->shape()[-1], dim},
-                   inits::glorot_uniform);
-      if(shortlist_)
-        W = cols(W, shortlist_->indices());
+        b_ = cols(b_, shortlist_->indices());
     }
 
-    Expr b = g->param(name + "_b",
-                      {1, dim},
-                      inits::zeros);
-    if(shortlist_)
-      b = cols(b, shortlist_->indices());
-
-    return affine(input, W, b, false, transposeW);
+    return affine(input, W_, b_, false, transposeW_);
   }
 
   virtual Expr apply(const std::vector<Expr>& inputs) {

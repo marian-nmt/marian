@@ -40,6 +40,10 @@ public:
                      bool clearGraph = true) = 0;
 
   virtual Ptr<Options> getOptions() = 0;
+
+  virtual void setShortlistGenerator(Ptr<data::ShortlistGenerator> shortlistGenerator) = 0;
+
+  virtual Ptr<data::Shortlist> getShortlist() = 0;
 };
 
 class EncoderDecoder : public EncoderDecoderBase {
@@ -94,6 +98,14 @@ public:
   void set(std::string key, T value) {
     options_->set(key, value);
   }
+
+  virtual void setShortlistGenerator(Ptr<data::ShortlistGenerator> shortlistGenerator) {
+    shortlistGenerator_ = shortlistGenerator;
+  };
+
+  virtual Ptr<data::Shortlist> getShortlist() {
+    return decoders_[0]->getShortlist();
+  };
 
   /*********************************************************************/
 

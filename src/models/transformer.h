@@ -491,6 +491,9 @@ public:
 };
 
 class DecoderTransformer : public DecoderBase, public Transformer {
+protected:
+  Ptr<mlp::MLP> output_;
+
 public:
   DecoderTransformer(Ptr<Options> options) : DecoderBase(options) {}
 
@@ -647,27 +650,31 @@ public:
 
     //************************************************************************//
 
-    int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
+    if(!output_) {
+      int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
-    auto layerOut = mlp::output(graph)         //
-        ("prefix", prefix_ + "_ff_logit_out")  //
-        ("dim", dimTrgVoc);
+      auto layerOut = mlp::output(graph)         //
+          ("prefix", prefix_ + "_ff_logit_out")  //
+          ("dim", dimTrgVoc);
 
-    if(opt<bool>("tied-embeddings") || opt<bool>("tied-embeddings-all")) {
-      std::string tiedPrefix = prefix_ + "_Wemb";
-      if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
-        tiedPrefix = "Wemb";
-      layerOut.tie_transposed("W", tiedPrefix);
+      if(opt<bool>("tied-embeddings") || opt<bool>("tied-embeddings-all")) {
+        std::string tiedPrefix = prefix_ + "_Wemb";
+        if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
+          tiedPrefix = "Wemb";
+        layerOut.tie_transposed("W", tiedPrefix);
+      }
+
+      if(shortlist_)
+        layerOut.set_shortlist(shortlist_);
+
+      // assemble layers into MLP and apply to embeddings, decoder context and
+      // aligned source context
+      output_ = mlp::mlp(graph)       //
+                .push_back(layerOut)  //
+                .construct();
     }
 
-    if(shortlist_)
-      layerOut.set_shortlist(shortlist_);
-
-    // assemble layers into MLP and apply to embeddings, decoder context and
-    // aligned source context
-    auto output = mlp::mlp(graph).push_back(layerOut);
-
-    Expr logits = output->apply(decoderContext);
+    Expr logits = output_->apply(decoderContext);
 
     // return unormalized(!) probabilities
     return New<TransformerState>(
@@ -677,6 +684,8 @@ public:
   // helper function for guided alignment
   virtual const std::vector<Expr> getAlignments(int i = 0) { return {}; }
 
-  void clear() {}
+  void clear() {
+    output_ = nullptr;
+  }
 };
 }

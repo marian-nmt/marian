@@ -39,6 +39,10 @@ public:
       int embIdx = keys[i] % vocabSize;
       int beamIdx = i / beamSize;
 
+      auto shortlist = scorers_[0]->getShortlist();
+      if(shortlist)
+        embIdx = shortlist->reverseMap(embIdx);
+
       if(newBeams[beamIdx].size() < beams[beamIdx].size()) {
         auto& beam = beams[beamIdx];
         auto& newBeam = newBeams[beamIdx];

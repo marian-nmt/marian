@@ -179,7 +179,8 @@ public:
       shared_(shared) {
 
     std::vector<std::string> vals
-        = options_->get<std::vector<std::string>>("filter");
+        = options_->get<std::vector<std::string>>("shortlist");
+
 
     ABORT_IF(vals.empty(), "No path to filter path given");
     std::string fname = vals[0];
@@ -188,6 +189,9 @@ public:
     bestNum_ = vals.size() > 2 ? std::stoi(vals[2]) : 100;
     float threshold = vals.size() > 3 ? std::stof(vals[3]) : 0;
 
+    LOG(info, "[data] Loading lexical shortlist as {} {} {} {}",
+        fname, firstNum_, bestNum_, threshold);
+
     load(fname);
     prune(threshold);
   }
@@ -195,7 +199,7 @@ public:
   virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) {
 
     auto srcBatch = (*batch)[srcIdx_];
-    auto trgBatch = (*batch)[trgIdx_];
+    //auto trgBatch = (*batch)[trgIdx_];
 
     // add firstNum most frequent words
     std::unordered_set<Word> idxSet;
@@ -203,8 +207,8 @@ public:
       idxSet.insert(i);
 
     // add all words from ground truth
-    for(auto i : trgBatch->data())
-      idxSet.insert(i);
+    //for(auto i : trgBatch->data())
+    //  idxSet.insert(i);
 
     // collect unique words form source
     std::unordered_set<Word> srcSet;
@@ -233,10 +237,12 @@ public:
     }
 
     std::vector<Word> mapped;
-    for(auto i : trgBatch->data()) {
+    //for(auto i : trgBatch->data()) {
       // mapped postions for cross-entropy
-      mapped.push_back(pos[i]);
-    }
+      //mapped.push_back(pos[i]);
+    //}
+
+    //std::cerr << idx.size() << " " << mapped.size() << " " << reverseMap.size() << std::endl;
 
     return New<Shortlist>(idx, mapped, reverseMap);
   }

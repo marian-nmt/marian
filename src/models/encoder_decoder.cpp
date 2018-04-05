@@ -117,8 +117,10 @@ Ptr<DecoderState> EncoderDecoder::startState(Ptr<ExpressionGraph> graph,
     encoderStates.push_back(encoder->build(graph, batch));
 
   // initialize shortlist here
-  if(shortlistGenerator_)
-    decoders_[0]->setShortlist(shortlistGenerator_->generate(batch));
+  if(shortlistGenerator_) {
+    auto shortlist = shortlistGenerator_->generate(batch);
+    decoders_[0]->setShortlist(shortlist);
+  }
 
   return decoders_[0]->startState(graph, batch, encoderStates);
 }

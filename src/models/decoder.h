@@ -113,13 +113,7 @@ public:
     if(embIdx.empty()) {
       selectedEmbs = graph->constant({1, 1, dimBatch, dimTrgEmb}, inits::zeros);
     } else {
-      auto indices = embIdx;
-      if(shortlist_)
-        std::transform(indices.begin(), indices.end(), indices.begin(),
-                       [this](size_t i){ return shortlist_->reverseMap(i); });
-
-
-      selectedEmbs = rows(yEmb, indices);
+      selectedEmbs = rows(yEmb, embIdx);
       selectedEmbs = reshape(selectedEmbs, {dimBeam, 1, dimBatch, dimTrgEmb});
     }
     state->setTargetEmbeddings(selectedEmbs);

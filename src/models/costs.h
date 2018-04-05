@@ -189,6 +189,14 @@ public:
     return encdec_->getOptions();
   };
 
+  virtual void setShortlistGenerator(Ptr<data::ShortlistGenerator> shortlistGenerator) {
+    encdec_->setShortlistGenerator(shortlistGenerator);
+  };
+
+  virtual Ptr<data::Shortlist> getShortlist() {
+    return encdec_->getShortlist();
+  };
+
 };
 
 static Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec, Ptr<Options> options) {

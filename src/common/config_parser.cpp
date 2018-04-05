@@ -660,8 +660,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Sorting strategy for maxi-batch: none (default) src")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
       "Display n-best list")
-    //("lexical-table", po::value<std::string>(),
-    // "Path to lexical table")
+    ("shortlist", po::value<std::vector<std::string>>()->multitoken(),
+     "Use softmax shortlist: path first best prune")
     ("weights", po::value<std::vector<float>>()
       ->multitoken(),
       "Scorer weights")
@@ -943,6 +943,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("allow-unk", bool);
     SET_OPTION("n-best", bool);
     SET_OPTION_NONDEFAULT("weights", std::vector<float>);
+    SET_OPTION_NONDEFAULT("shortlist", std::vector<std::string>);
     SET_OPTION("port", size_t);
   }
 
