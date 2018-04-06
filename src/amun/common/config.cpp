@@ -229,27 +229,35 @@ void Config::AddOptions(unsigned argc, char** argv) {
       "Number of sentences in maxi batch.")
     ("mini-batch-words", po::value<int>()->default_value(0),
       "Set mini-batch size based on words instead of sentences.")
+
     ("use-fused-softmax", po::value<bool>()->default_value(true),
      "Use fused softmax/nth-element, if appropriate.")
-    ("show-weights", po::value<bool>()->zero_tokens()->default_value(false),
+
+     ("show-weights", po::value<bool>()->zero_tokens()->default_value(false),
      "Output used weights to stdout and exit")
     ("load-weights", po::value<std::string>(),
      "Load scorer weights from this file")
     ("wipo", po::value<bool>()->zero_tokens()->default_value(false),
      "Use WIPO specific n-best-list format and non-buffering single-threading")
-    ("return-alignment", po::value<bool>()->zero_tokens()->default_value(false),
+
+     ("return-alignment", po::value<bool>()->zero_tokens()->default_value(false),
      "If true, return alignment.")
     ("return-soft-alignment", po::value<bool>()->zero_tokens()->default_value(false),
      "If true, return soft alignment.")
     ("return-nematus-alignment", po::value<bool>()->zero_tokens()->default_value(false),
      "If true, return Nematus style soft alignment.")
-    ("max-length", po::value<unsigned>()->default_value(500),
+
+     ("max-length", po::value<unsigned>()->default_value(500),
       "Maximum length of input sentences. Anything above this is truncated. 0=no max length")
-    ("version,v", po::value<bool>()->zero_tokens()->default_value(false),
+     ("max-length-multiple", po::value<unsigned>()->default_value(3),
+      "Maximum length of output sentences as a multiple of input sentence")
+
+      ("version,v", po::value<bool>()->zero_tokens()->default_value(false),
      "Print version.")
     ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
      "Print this help message and exit")
-    ("log-progress",po::value<std::string>()->default_value("info")->implicit_value("info"),
+
+     ("log-progress",po::value<std::string>()->default_value("info")->implicit_value("info"),
      "Log level for progress logging to stderr (trace - debug - info - warn - err(or) - critical - off).")
     ("log-info",po::value<std::string>()->default_value("info")->implicit_value("info"),
      "Log level for informative messages to stderr (trace - debug - info - warn - err(or) - critical - off).")
@@ -324,7 +332,10 @@ void Config::AddOptions(unsigned argc, char** argv) {
   SET_OPTION("mini-batch", unsigned);
   SET_OPTION("maxi-batch", unsigned);
   SET_OPTION("mini-batch-words", int);
+
   SET_OPTION("max-length", unsigned);
+  SET_OPTION("max-length-multiple", unsigned);
+
   SET_OPTION("use-fused-softmax", bool);
 #ifdef CUDA
   SET_OPTION("gpu-threads", unsigned);

@@ -5,12 +5,12 @@ using namespace std;
 
 namespace amunmt {
 
-Histories::Histories(const Sentences& sentences, bool normalizeScore)
+Histories::Histories(const Sentences& sentences, bool normalizeScore, unsigned maxLengthMult)
  : coll_(sentences.size())
 {
   for (unsigned i = 0; i < sentences.size(); ++i) {
     const Sentence &sentence = sentences.Get(i);
-    History *history = new History(sentence, normalizeScore, 3 * sentence.size());
+    History *history = new History(sentence, normalizeScore, maxLengthMult * sentence.size());
     coll_[i].reset(history);
   }
 }

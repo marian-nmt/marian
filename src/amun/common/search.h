@@ -39,6 +39,7 @@ class Search {
     std::vector<ScorerPtr> scorers_;
     std::shared_ptr<const Filter> filter_;
     const unsigned maxBeamSize_;
+    const unsigned maxLengthMult_;
     bool normalizeScore_;
     Words filterIndices_;
     BaseBestHypsPtr bestHyps_;
