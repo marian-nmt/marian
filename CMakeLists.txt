@@ -110,7 +110,12 @@ set(BOOST_COMPONENTS system timer iostreams filesystem chrono program_options th
 
 find_package(PythonLibs 2.7)
 if(PYTHONLIBS_FOUND)
-  set(BOOST_COMPONENTS ${BOOST_COMPONENTS} python)
+  # Now relying on externally defined python boost component name, fallback if compiled standalone
+  if(NOT BOOST_PYTHON_VERSION_NAME)
+    set(BOOST_PYTHON_VERSION_NAME python)
+  endif(BOOST_PYTHON_VERSION_NAME)
+
+  set(BOOST_COMPONENTS ${BOOST_COMPONENTS} ${BOOST_PYTHON_VERSION_NAME})
   message(STATUS "Found Python")
   include_directories(${PYTHON_INCLUDE_DIRS})
   set(EXT_LIBS ${EXT_LIBS} ${PYTHON_LIBRARIES})
