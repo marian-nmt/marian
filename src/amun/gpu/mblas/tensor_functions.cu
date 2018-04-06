@@ -1311,6 +1311,12 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 bool doSoftmax)
 {
   //BEGIN_TIMER("LogSoftmax excl kernels");
+
+  bool safe = (maxBeamSize * MAX_THREADS) < in.dim(1);
+  if (!safe) {
+    cerr << "The target vocab size looks too small for the fused softmax function. If you experience a crash, add '--use-fused-softmax false' when running amun" << endl;
+  }
+
   //cerr << "in=" << in.Debug(0) << endl;
   //cerr << "beamSizes=" << beamSizes.size() << endl;
 
