@@ -15,10 +15,10 @@ namespace cpu {
 
 inline float stableLogit(float x) {
   if(x >= 0) {
-    float z = std::exp(-x);
+    float z = functional::expapprox(-x);
     return 1.0 / (1.0 + z);
   } else {
-    float z = std::exp(x);
+    float z = functional::expapprox(x);
     return z / (1.0 + z);
   }
 }
@@ -170,7 +170,7 @@ void Softmax(Tensor out_, Tensor in_, Tensor mask_) {
 
     float sum = 0.f;
     for(int i = 0; i < cols; ++i) {
-      float ex = !mask || mp[i] ? std::exp(sp[i] - max) : 0.f;
+      float ex = !mask || mp[i] ? functional::expapprox(sp[i] - max) : 0.f;
       so[i] = ex;
       sum += ex;
     }
@@ -200,13 +200,13 @@ void LogSoftmax(Tensor out_, Tensor in_) {
     float sum = 0.f;
     for(int i = 0; i < cols; ++i) {
       float sm = sp[i] - max;
-      float ex = std::exp(sm);
+      float ex = functional::expapprox(sm);
       so[i] = sm;
       sum += ex;
     }
 
     for(int i = 0; i < cols; ++i) {
-      so[i] -= std::log(sum);
+      so[i] -= functional::logapprox(sum);
     }
   }
 }
@@ -254,7 +254,7 @@ void LogSoftmaxGrad(Tensor grad_, Tensor adj_, Tensor val_) {
     }
 
     for(int i = 0; i < cols; ++i) {
-      gradRow[i] += adjRow[i] - sum * std::exp(valRow[i]);
+      gradRow[i] += adjRow[i] - sum * functional::expapprox(valRow[i]);
     }
   }
 }
