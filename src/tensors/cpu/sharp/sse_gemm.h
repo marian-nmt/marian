@@ -65,22 +65,26 @@
 
 namespace marian {
 
-static inline void Quantize(const float * input, __m128i * output, float quant_mult, int num_rows, int width) {
+static inline void Quantize(const float* input,
+                            __m128i* output,
+                            float quant_mult,
+                            int num_rows,
+                            int width) {
     assert(width % 8 == 0);
 
-    int num_input_chunks = width/8;
+    int num_input_chunks = width / 8;
 
     // Fill an SSE float with 4 copies of the quant mult
     __m128 sse_quant_mult = _mm_set_ps(quant_mult, quant_mult, quant_mult, quant_mult);
 
     for (int i = 0; i < num_rows; i++) {
-        const float * input_row = input + i*width;
-        __m128i * output_row = output + i*num_input_chunks;
+        const float* input_row = input + i * width;
+        __m128i* output_row = output + i * num_input_chunks;
         for (int j = 0; j < num_input_chunks; j++) {
-            const float * x = input_row + j*8;
+            const float* x = input_row + j * 8;
             // Process 8 floats at once, since each __m128i can contain 8 16-bit integers.
 
-            // Load floats floats into SSE registers.
+            // Load floats into SSE registers.
             __m128 f_0 = _mm_loadu_ps(x);
             __m128 f_1 = _mm_loadu_ps(x + 4);
 
@@ -105,7 +109,13 @@ static inline void Quantize(const float * input, __m128i * output, float quant_m
 //
 // B is typically a weight matrix, so it can be pre-processed offline, and therefore this transpose does not cost anything.
 // A is typically an activation minibatch matrix.
-static inline void SSE_MatrixMult(const __m128i * A, const __m128i * B, float * C, float unquant_mult, int num_A_rows, int num_B_rows, int width)
+static inline void SSE_MatrixMult(const __m128i* A,
+                                  const __m128i* B,
+                                  float* C,
+                                  float unquant_mult,
+                                  int num_A_rows,
+                                  int num_B_rows,
+                                  int width)
 {
     assert(width % 8 == 0);
 
@@ -128,13 +138,13 @@ static inline void SSE_MatrixMult(const __m128i * A, const __m128i * B, float * 
 
     int i = 0;
     for (; i < mult4; i += 4) {
-        const __m128i * A1_row = A + (i+0)*sse_width;
-        const __m128i * A2_row = A + (i+1)*sse_width;
-        const __m128i * A3_row = A + (i+2)*sse_width;
-        const __m128i * A4_row = A + (i+3)*sse_width;
+        const __m128i* A1_row = A + (i + 0) * sse_width;
+        const __m128i* A2_row = A + (i + 1) * sse_width;
+        const __m128i* A3_row = A + (i + 2) * sse_width;
+        const __m128i* A4_row = A + (i + 3) * sse_width;
 
         for (int j = 0; j < num_B_rows; j++) {
-            const __m128i * B_row = B + j*sse_width;
+            const __m128i* B_row = B + j * sse_width;
 
             __m128i sum1 = _mm_setzero_si128();
             __m128i sum2 = _mm_setzero_si128();
@@ -179,10 +189,10 @@ static inline void SSE_MatrixMult(const __m128i * A, const __m128i * B, float * 
             sum4 = _mm_hadd_epi32(sum4, sum4);
             sum4 = _mm_hadd_epi32(sum4, sum4);
 
-            float * C1 = C + (i+0)*num_B_rows + j;
-            float * C2 = C + (i+1)*num_B_rows + j;
-            float * C3 = C + (i+2)*num_B_rows + j;
-            float * C4 = C + (i+3)*num_B_rows + j;
+            float * C1 = C + (i + 0) * num_B_rows + j;
+            float * C2 = C + (i + 1) * num_B_rows + j;
+            float * C3 = C + (i + 2) * num_B_rows + j;
+            float * C4 = C + (i + 3) * num_B_rows + j;
 
             // Now that we have the full sum in each 32-bit register, we convert them to an integer with _mm_cvtepi32_ps
             // and take the first one with _mm_store_ss.
@@ -231,7 +241,7 @@ static inline void SSE_MatrixMult(const __m128i * A, const __m128i * B, float * 
             *(C1) *= unquant_mult;
         }
     }
-    if(rest == 2) {
+    else if(rest == 2) {
         const __m128i *A1_row = A + (i + 0) * sse_width;
         const __m128i *A2_row = A + (i + 1) * sse_width;
 
@@ -266,7 +276,7 @@ static inline void SSE_MatrixMult(const __m128i * A, const __m128i * B, float * 
             *(C2) *= unquant_mult;
         }
     }
-    if(rest == 3) {
+    else if(rest == 3) {
         const __m128i * A1_row = A + (i+0)*sse_width;
         const __m128i * A2_row = A + (i+1)*sse_width;
         const __m128i * A3_row = A + (i+2)*sse_width;
@@ -322,34 +332,13 @@ static void ProdInt(marian::Tensor C,
                     float beta,
                     float scalar) {
 
-    /**************************************************************************/
-
-    marian::Tensor tB;
-    bool freeTB = false;
-    if(!transB) {
-        freeTB = true;
-        size_t size = B->shape().elements();
-        uint8_t* mB = (uint8_t*)new float[size];
-        auto mp = New<MemoryPiece>(mB, size * sizeof(float));
-        tB = New<TensorBase>(mp, Shape{B->shape()[-1], B->shape()[-2]}, nullptr);
-        TransposeND(tB, B, {1, 0});
-    }
-    else {
-        tB = B;
-    }
-    int num_B_rows = tB->shape()[-2];
-    int width = tB->shape()[-1];
-    assert(width % 8 == 0);
-    __m128i *quant_B = new __m128i[num_B_rows * width / 8];
-
-    // We quantize with 10 bits of precision. This works well "universally".
-    // See the top of this file for more info on why.
     double quant_mult = pow(2.0, 10.0);
 
-    // The weight matrix should be quantized before starting decoding, since it is known beforehand.
-    Quantize(tB->data(), quant_B, (float)quant_mult, num_B_rows, width);
+    int num_B_rows = B->shape()[-2];
+    int width = B->shape()[-1];
 
-    /**************************************************************************/
+    __m128i* quant_B = B->data<__m128i>();
+    assert(width % 8 == 0);
 
     assert(transA == false);
     int num_A_rows = A->shape()[-2];
@@ -371,10 +360,8 @@ static void ProdInt(marian::Tensor C,
                    num_B_rows,
                    width);
 
-    delete[] quant_A;
-    delete[] quant_B;
+    std::cerr << C->debug() << std::endl;
 
-    if(freeTB)
-        delete[] tB->data();
+    delete[] quant_A;
 }
 }

@@ -116,8 +116,7 @@ public:
     strm << "shape=" << (*this)[0];
     for(int i = 1; i < size(); ++i)
       strm << "x" << (*this)[i];
-    strm << " size=" << elements() << " (" << elements() * sizeof(float)
-         << "B)";
+    strm << " size=" << elements();
     return strm.str();
   }
 

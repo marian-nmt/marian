@@ -53,11 +53,15 @@ void Prod(marian::Tensor C,
           bool transB,
           float beta,
           float scalar) {
-
-  if(beta == 0 && scalar == 1 && transA == 0 && C->shape()[-1] < 4096) {
+  if(B->type() == Type::int16) {
     ProdInt(C, A, B, transA, transB, beta, scalar);
     return;
   }
+
+  //if(transA == 0 && transB == 0 && B->shape()[-1] % 8 == 0) {
+  //  ProdInt(C, A, B, transA, transB, beta, scalar);
+  //  return;
+  //}
 
 #if BLAS_FOUND
   float alpha = scalar;

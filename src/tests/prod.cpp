@@ -15,6 +15,8 @@ int main(int argc, char** argv) {
     alloc->allocate(b, {256, 256});
     alloc->allocate(c, {14, 256});
 
+    std::cerr << c->type() << std::endl;
+
     std::vector<float> va;
     for(int i = 0; i < 14 * 256; ++i)
         va.push_back(i / 10000.f);
@@ -23,8 +25,10 @@ int main(int argc, char** argv) {
         vb.push_back(i / 10000.f);
 
     a->set(va);
+
     b->set(vb);
-    c->set(0);
+
+    c->set(0.f);
 
     Prod(c, a, b, false, false, 0, 1);
 
