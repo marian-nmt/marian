@@ -113,7 +113,7 @@ if(PYTHONLIBS_FOUND)
   # Now relying on externally defined python boost component name, fallback if compiled standalone
   if(NOT BOOST_PYTHON_VERSION_NAME)
     set(BOOST_PYTHON_VERSION_NAME python)
-  endif(BOOST_PYTHON_VERSION_NAME)
+  endif(NOT BOOST_PYTHON_VERSION_NAME)
 
   set(BOOST_COMPONENTS ${BOOST_COMPONENTS} ${BOOST_PYTHON_VERSION_NAME})
   message(STATUS "Found Python")
