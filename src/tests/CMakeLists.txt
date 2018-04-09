@@ -22,6 +22,7 @@ endforeach(test)
 # Testing apps
 add_executable(logger_test logger_test.cpp)
 add_executable(dropout_test dropout_test.cpp)
+add_executable(prod_test prod.cpp)
 
 if(CUDA_FOUND)
 cuda_add_executable(pooling_test pooling_test.cu)
@@ -34,6 +35,7 @@ foreach(exec
         logger_test
         dropout_test
         sqlite_test
+        prod_test
     )
     target_link_libraries(${exec} marian ${EXT_LIBS} Catch)
     if(CUDA_FOUND)
