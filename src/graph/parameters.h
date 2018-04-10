@@ -45,19 +45,7 @@ public:
   size_t totalCapacity(Ptr<TensorAllocator> alloc) {
     size_t sum = 0;
     for(auto p : params_) {
-
-      auto pp = std::dynamic_pointer_cast<ParamNode>(p);
-      /********************/
-      //pp->quantize_ = false;
-      /********************/
-      if(pp->quantize_) {
-        std::cerr << "Quantized Param capacity" << std::endl;
-        sum += alloc->capacity(p->shape(), Type::int16);
-      }
-      else {
-        sum += alloc->capacity(p->shape(), Type::float32);
-      }
-
+      sum += alloc->capacity(p->shape(), Type::float32);
     }
     return sum;
   }
@@ -71,20 +59,11 @@ public:
   void allocateForward() {
     if(!params_.empty() && vals_->size() == 0) {
       vals_->reserveExact(totalCapacity(vals_));
-      for(auto p : params_)
+      for(auto p : params_) {
         if(!p->val()) {
-          auto pp = std::dynamic_pointer_cast<ParamNode>(p);
-          /********************/
-          //pp->quantize_ = false;
-          /********************/
-          if(pp->quantize_) {
-            std::cerr << "Quantized Param alloc" << std::endl;
-            vals_->allocate(p->val(), p->shape(), Type::int16);
-          }
-          else {
-            vals_->allocate(p->val(), p->shape());
-          }
+          vals_->allocate(p->val(), p->shape());
         }
+      }
     }
   }
 
@@ -97,7 +76,7 @@ public:
     }
   }
 
-  void set_zero_adjoint() { grads()->set(0); }
+  void set_zero_adjoint() { grads()->set(0.f); }
 
   Tensor vals() { return vals_->asTensor(); }
 

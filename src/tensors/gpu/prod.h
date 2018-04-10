@@ -1,6 +1,8 @@
 #pragma once
 
 #include "tensors/tensor.h"
+#include "tensors/tensor_operators.h"
+#include "functional/functional.h"
 
 namespace marian {
 
@@ -21,10 +23,7 @@ void ProdWithBias(marian::Tensor C,
           bool transA,
           bool transB,
           float beta = 0,
-          float scalar = 1) {
-  Prod(C, A, B, transA, transB, beta, scalar);
-  Add(_1, C, bias);
-}
+          float scalar = 1);
 
 void ProdBatched(marian::Tensor C,
                  const marian::Tensor A,
