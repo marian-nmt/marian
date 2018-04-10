@@ -42,6 +42,9 @@ private:
 };
 
 struct ParamNode : public Node {
+  bool quantize_;
+  bool transpose_;
+
   ParamNode(Ptr<ExpressionGraph> graph,
             const Shape& shape,
             const NodeInitializer& init,
@@ -73,7 +76,14 @@ struct ParamNode : public Node {
 
   virtual bool equal(Expr node) { return name() == node->name(); }
 
+  virtual void mark_quantized(bool transposed) {
+    quantize_ = true;
+    transpose_ = !transposed;
+  }
+
 private:
+  void transposeAndQuantize();
+
   UPtr<NodeInitializer> init_;
   bool initialized_;
 };

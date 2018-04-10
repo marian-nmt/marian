@@ -20,7 +20,16 @@ public:
       : NaryNodeOp({a, b}, newShape(a, b, transA, transB)),
         transA_(transA),
         transB_(transB),
-        scalar_(scalar) {}
+        scalar_(scalar) {
+
+    if(b->type() == "param") {
+      if(a->graph()->getBackend()->getDevice().type == DeviceType::cpu) {
+        auto p = std::dynamic_pointer_cast<ParamNode>(b);
+        p->mark_quantized(transB);
+      }
+    }
+
+  }
 
   Shape newShape(Expr a, Expr b, bool transA, bool transB) {
     auto shapeA = a->shape();
@@ -143,7 +152,15 @@ public:
       : NaryNodeOp(nodes, newShape(nodes[0], nodes[1], transA, transB)),
         transA_(transA),
         transB_(transB),
-        scalar_(scalar) {}
+        scalar_(scalar) {
+
+    if(nodes[1]->type() == "param") {
+      if(nodes[1]->graph()->getBackend()->getDevice().type == DeviceType::cpu) {
+        auto p = std::dynamic_pointer_cast<ParamNode>(nodes[1]);
+        p->mark_quantized(transB);
+      }
+    }
+  }
 
   Shape newShape(Expr a, Expr b, bool transA, bool transB) {
     auto shapeA = a->shape();
@@ -168,14 +185,14 @@ public:
   NodeOps forwardOps() {
     using namespace functional;
     return {
-      NodeOp(Prod(val_,
-                  child(0)->val(),
-                  child(1)->val(),
-                  transA_,
-                  transB_,
-                  0.f,
-                  scalar_);
-             Add(_1, val_, child(2)->val()))
+      NodeOp(ProdWithBias(val_,
+                          child(0)->val(),
+                          child(1)->val(),
+                          child(2)->val(),
+                          transA_,
+                          transB_,
+                          0.f,
+                          scalar_))
     };
   }
 

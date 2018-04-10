@@ -45,7 +45,19 @@ public:
   size_t totalCapacity(Ptr<TensorAllocator> alloc) {
     size_t sum = 0;
     for(auto p : params_) {
-      sum += alloc->capacity(p->shape());
+
+      auto pp = std::dynamic_pointer_cast<ParamNode>(p);
+      /********************/
+      //pp->quantize_ = false;
+      /********************/
+      if(pp->quantize_) {
+        std::cerr << "Quantized Param capacity" << std::endl;
+        sum += alloc->capacity(p->shape(), Type::int16);
+      }
+      else {
+        sum += alloc->capacity(p->shape(), Type::float32);
+      }
+
     }
     return sum;
   }
@@ -60,8 +72,19 @@ public:
     if(!params_.empty() && vals_->size() == 0) {
       vals_->reserveExact(totalCapacity(vals_));
       for(auto p : params_)
-        if(!p->val())
-          vals_->allocate(p->val(), p->shape());
+        if(!p->val()) {
+          auto pp = std::dynamic_pointer_cast<ParamNode>(p);
+          /********************/
+          //pp->quantize_ = false;
+          /********************/
+          if(pp->quantize_) {
+            std::cerr << "Quantized Param alloc" << std::endl;
+            vals_->allocate(p->val(), p->shape(), Type::int16);
+          }
+          else {
+            vals_->allocate(p->val(), p->shape());
+          }
+        }
     }
   }
 
