@@ -189,10 +189,10 @@ static inline void SSE_MatrixMult(const __m128i* A,
             sum4 = _mm_hadd_epi32(sum4, sum4);
             sum4 = _mm_hadd_epi32(sum4, sum4);
 
-            float * C1 = C + (i + 0) * num_B_rows + j;
-            float * C2 = C + (i + 1) * num_B_rows + j;
-            float * C3 = C + (i + 2) * num_B_rows + j;
-            float * C4 = C + (i + 3) * num_B_rows + j;
+            float* C1 = C + (i + 0) * num_B_rows + j;
+            float* C2 = C + (i + 1) * num_B_rows + j;
+            float* C3 = C + (i + 2) * num_B_rows + j;
+            float* C4 = C + (i + 3) * num_B_rows + j;
 
             // Now that we have the full sum in each 32-bit register, we convert them to an integer with _mm_cvtepi32_ps
             // and take the first one with _mm_store_ss.
@@ -323,6 +323,7 @@ static inline void SSE_MatrixMult(const __m128i* A,
     }
 }
 
+
 // Program takes no input
 static void ProdInt(marian::Tensor C,
                     const marian::Tensor A,
@@ -359,6 +360,68 @@ static void ProdInt(marian::Tensor C,
                    num_A_rows,
                    num_B_rows,
                    width);
+
+    //std::cerr << C->debug() << std::endl;
+
+    delete[] quant_A;
+}
+
+static void SSE_AddBias(float* y, const float* x, const float* bias, int m, int n) {
+    for(int j = 0; j < m; ++j) {
+        int i = 0;
+        for (; i < n; i += 4) {
+            __m128 ai = _mm_loadu_ps(x + j * n + i);
+            __m128 bi = _mm_loadu_ps(bias + i);
+            __m128 yi = _mm_add_ps(ai, bi);
+            _mm_store_ps(y + j * n + i, yi);
+        }
+        for (; i < n; i++) {
+            y[j * n + i] = x[j * n + i] + bias[i];
+        }
+    }
+}
+
+
+static void ProdIntWithBias(marian::Tensor C,
+                            const marian::Tensor A,
+                            const marian::Tensor B,
+                            const marian::Tensor bias,
+                            bool transA,
+                            bool transB,
+                            float beta,
+                            float scalar) {
+
+    double quant_mult = pow(2.0, 10.0);
+
+    int width = B->shape()[-2];
+    int num_B_rows = B->shape()[-1];
+
+    __m128i* quant_B = B->data<__m128i>();
+    assert(width % 8 == 0);
+
+    assert(transA == false);
+    int num_A_rows = A->shape().elements() / A->shape()[-1];
+
+    // Each __m128i fits 8 16-bit integers, so we assume the width is a multiple of 8.
+    // We could pad with 0 in the general case.
+
+    __m128i *quant_A = new __m128i[num_A_rows * width / 8];
+    // The activation matrix must be quantized on-the-fly.
+    Quantize(A->data(), quant_A, (float)quant_mult, num_A_rows, width);
+
+    // If we quantize to n bits and then multiple the values together, the result will be quantized to n^2 bits.
+    // So we must divide by 1.0/(n^2) to get back the original value.
+    double unquant_mult = 1.0 / (quant_mult * quant_mult);
+
+    SSE_MatrixMult(quant_A,
+                   quant_B,
+                   C->data(),
+                   (float)unquant_mult,
+                   num_A_rows,
+                   num_B_rows,
+                   width);
+    SSE_AddBias(C->data(), C->data(), bias->data(), num_A_rows, num_B_rows);
+
 
     //std::cerr << C->debug() << std::endl;
 

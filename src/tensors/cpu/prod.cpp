@@ -58,11 +58,6 @@ void Prod(marian::Tensor C,
     return;
   }
 
-  //if(transA == 0 && transB == 0 && B->shape()[-1] % 8 == 0) {
-  //  ProdInt(C, A, B, transA, transB, beta, scalar);
-  //  return;
-  //}
-
 #if BLAS_FOUND
   float alpha = scalar;
 
@@ -164,5 +159,24 @@ void ProdBatched(marian::Tensor C,
   ABORT("Not implemented!");
 #endif
 }
+
+void ProdWithBias(marian::Tensor C,
+                  const marian::Tensor A,
+                  const marian::Tensor B,
+                  const marian::Tensor bias,
+                  bool transA,
+                  bool transB,
+                  float beta,
+                  float scalar) {
+
+  if(B->type() == Type::int16) {
+    ProdIntWithBias(C, A, B, bias, transA, transB, beta, scalar);
+  }
+  else {
+    cpu::Prod(C, A, B, transA, transB, beta, scalar);
+    Add(functional::_1, C, bias);
+  }
+}
+
 }
 }

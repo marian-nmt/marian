@@ -124,8 +124,30 @@ void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax) {
     SplitCont(outputs, in, ax);
 }
 
+void Transpose0213(Tensor out, Tensor in) {
+  int cols = in->shape()[-1];
+  int rows = in->shape().elements() / in->shape()[-1];
+
+  int r1 = in->shape()[-2];
+  int r2 = in->shape()[-3];
+
+  for(int j = 0; j < rows; j++) {
+    int dest = (j % r1) * r2 + j / r1;
+
+    const float* inRow = in->data() + j * cols;
+    float* outRow = out->data() + dest * cols;
+
+    std::copy(inRow, inRow + cols, outRow);
+  }
+}
+
 // @TODO: optimize this, currently it's quite horrible
 void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
+  if(vAxis == std::vector<int>({0, 2, 1, 3})) {
+    Transpose0213(out, in);
+    return;
+  }
+
   functional::Array<int, functional::Shape::size()> permute;
   int diff = functional::Shape::size() - vAxis.size();
   for(int i = 0; i < permute.size(); ++i)
