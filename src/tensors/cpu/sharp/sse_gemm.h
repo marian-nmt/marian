@@ -334,14 +334,14 @@ static void ProdInt(marian::Tensor C,
 
     double quant_mult = pow(2.0, 10.0);
 
-    int num_B_rows = B->shape()[-2];
-    int width = B->shape()[-1];
+    int width = B->shape()[-2];
+    int num_B_rows = B->shape()[-1];
 
     __m128i* quant_B = B->data<__m128i>();
     assert(width % 8 == 0);
 
     assert(transA == false);
-    int num_A_rows = A->shape()[-2];
+    int num_A_rows = A->shape().elements() / A->shape()[-1];
 
     // Each __m128i fits 8 16-bit integers, so we assume the width is a multiple of 8.
     // We could pad with 0 in the general case.
@@ -360,7 +360,7 @@ static void ProdInt(marian::Tensor C,
                    num_B_rows,
                    width);
 
-    std::cerr << C->debug() << std::endl;
+    //std::cerr << C->debug() << std::endl;
 
     delete[] quant_A;
 }

@@ -51,13 +51,13 @@ void Reduce(Functor functor,
             float scale,
             marian::Tensor out,
             Tensors... tensors) {
-  out->set(0);
+  out->set(0.f);
   Add(functor, scale, out, tensors...);
 }
 
 template <class Functor, class... Tensors>
 void Reduce(Functor functor, marian::Tensor out, Tensors... tensors) {
-  out->set(0);
+  out->set(0.f);
   Add(functor, out, tensors...);
 }
 
