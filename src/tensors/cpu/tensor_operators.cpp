@@ -130,24 +130,63 @@ void Transpose0213(Tensor out, Tensor in) {
 
   int r1 = in->shape()[-2];
   int r2 = in->shape()[-3];
+  int rest = rows / (r1 * r2);
 
-  for(int j = 0; j < rows; j++) {
-    int dest = (j % r1) * r2 + j / r1;
+  for(int k = 0; k < rest; ++k) {
+    int shift = k * r1 * r2;
+    for(int j = 0; j < r1 * r2; ++j) {
+      int src = j + shift;
+      int dst = j / r1 + (j % r1) * r2 + shift;
 
-    const float* inRow = in->data() + j * cols;
-    float* outRow = out->data() + dest * cols;
+      const float* inRow = in->data() + src * cols ;
+      float* outRow = out->data() + dst * cols;
 
-    std::copy(inRow, inRow + cols, outRow);
+      std::copy(inRow, inRow + cols, outRow);
+    }
+  }
+}
+
+inline void transpose4x4_SSE(const float *A, float *B, const int lda, const int ldb) {
+  __m128 row1 = _mm_load_ps(&A[0 * lda]);
+  __m128 row2 = _mm_load_ps(&A[1 * lda]);
+  __m128 row3 = _mm_load_ps(&A[2 * lda]);
+  __m128 row4 = _mm_load_ps(&A[3 * lda]);
+  _MM_TRANSPOSE4_PS(row1, row2, row3, row4);
+  _mm_store_ps(&B[0 * ldb], row1);
+  _mm_store_ps(&B[1 * ldb], row2);
+  _mm_store_ps(&B[2 * ldb], row3);
+  _mm_store_ps(&B[3 * ldb], row4);
+}
+
+// from https://stackoverflow.com/questions/16737298/what-is-the-fastest-way-to-transpose-a-matrix-in-c
+#define ROUND_UP(x, s) (((x)+((s)-1)) & -(s))
+
+void Transpose10(Tensor out, const Tensor in) {
+  const float* A = in->data();
+  float* B = out->data();
+
+  const int n = in->shape().elements() / in->shape()[-1];
+  const int m = in->shape()[-1];
+
+  const int block_size = 16;
+  int lda = ROUND_UP(m, block_size);
+  int ldb = ROUND_UP(n, block_size);
+
+  for(int i = 0; i < n; i += block_size) {
+    for(int j = 0; j < m; j += block_size) {
+      int max_i2 = i + block_size < n ? i + block_size : n;
+      int max_j2 = j + block_size < m ? j + block_size : m;
+      for(int i2 = i; i2 < max_i2; i2 += 4) {
+        for(int j2 = j; j2 < max_j2; j2 += 4) {
+          transpose4x4_SSE(&A[i2 * lda + j2], &B[j2 * ldb + i2], lda, ldb);
+        }
+      }
+    }
   }
 }
 
 // @TODO: optimize this, currently it's quite horrible
-void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
-  if(vAxis == std::vector<int>({0, 2, 1, 3})) {
-    Transpose0213(out, in);
-    return;
-  }
-
+void TransposeGeneric(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   functional::Array<int, functional::Shape::size()> permute;
   int diff = functional::Shape::size() - vAxis.size();
   for(int i = 0; i < permute.size(); ++i)
@@ -170,6 +209,15 @@ void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
       pDims[permute[i]] = oDims[i];
     gOut[index] = gIn[pDims];
   }
+}
+
+void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
+  if(vAxis == std::vector<int>({0, 2, 1, 3}))
+    Transpose0213(out, in);
+  else if(vAxis == std::vector<int>({1, 0}))
+    Transpose10(out, in);
+  else
+    TransposeGeneric(out, in, vAxis);
 }
 
 void Softmax(Tensor out_, Tensor in_, Tensor mask_) {

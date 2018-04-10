@@ -174,7 +174,11 @@ void ProdWithBias(marian::Tensor C,
   }
   else {
     cpu::Prod(C, A, B, transA, transB, beta, scalar);
-    Add(functional::_1, C, bias);
+    SSE_AddBias(C->data(),
+                C->data(),
+                bias->data(),
+                A->shape().elements() / A->shape()[-1],
+                B->shape()[-1]);
   }
 }
 

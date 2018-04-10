@@ -333,7 +333,7 @@ static void ProdInt(marian::Tensor C,
                     float beta,
                     float scalar) {
 
-    double quant_mult = pow(2.0, 10.0);
+    double quant_mult = pow(2.0, 12.0);
 
     int width = B->shape()[-2];
     int num_B_rows = B->shape()[-1];
