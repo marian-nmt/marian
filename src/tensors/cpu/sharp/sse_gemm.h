@@ -373,16 +373,16 @@ static void AddBias(marian::Tensor C, const marian::Tensor Bias) {
 
     int m = C->shape().elements() / C->shape()[-1];
     int n = C->shape()[-1];
+    int n4 = (n / 4) * 4;
 
     for(int j = 0; j < m; ++j) {
-        int i = 0;
-        for (; i < n; i += 4) {
+        for (int i = 0; i < n4; i += 4) {
             __m128 ai = _mm_loadu_ps(x + j * n + i);
             __m128 bi = _mm_loadu_ps(bias + i);
             __m128 yi = _mm_add_ps(ai, bi);
-            _mm_store_ps(y + j * n + i, yi);
+            _mm_storeu_ps(y + j * n + i, yi);
         }
-        for (; i < n; i++) {
+        for (int i = n4; i < n; i++) {
             y[j * n + i] = x[j * n + i] + bias[i];
         }
     }

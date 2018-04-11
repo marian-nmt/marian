@@ -6,9 +6,6 @@
 namespace marian {
 namespace functional {
 
-const float exp_cst1 = 2139095040.f;
-const float exp_cst2 = 0.f;
-
 template <typename Function, typename X>
 struct UnaryFunctor {
   X x;
@@ -82,7 +79,7 @@ struct BinaryFunctor {
 UNARY(Tanh, tanh, tanhf(x));
 UNARY(Sin, sin, sinf(x));
 UNARY(Cos, cos, cosf(x));
-UNARY(Tan, tan, tan(x));
+UNARY(Tan, tan, tanf(x));
 UNARY(Log, log, logf(x));
 UNARY(Exp, exp, expf(x));
 UNARY(Abs, abs, fabs(x));

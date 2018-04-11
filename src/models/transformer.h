@@ -451,7 +451,7 @@ public:
     // restore organization of batch and time steps. This is currently required
     // to make RNN-based decoders and beam search work with this. We are looking
     // into makeing this more natural.
-    auto context = layer; //TransposeTimeBatch(layer);
+    auto context = TransposeTimeBatch(layer);
 
     return New<EncoderState>(context, batchMask, batch);
   }
@@ -569,13 +569,13 @@ public:
       auto encoderContext = encoderState->getContext();
       auto encoderMask = encoderState->getMask();
 
-      //encoderContext = TransposeTimeBatch(encoderContext);
+      encoderContext = TransposeTimeBatch(encoderContext);
 
       int dimSrcWords = encoderContext->shape()[-2];
 
       int dims = encoderMask->shape().size();
       encoderMask = atleast_nd(encoderMask, 4);
-      encoderMask = reshape(encoderMask, //TransposeTimeBatch(encoderMask),
+      encoderMask = reshape(TransposeTimeBatch(encoderMask),
                             {1, dimBatch, 1, dimSrcWords});
       encoderMask = InverseMask(encoderMask);
       if(dimBeam > 1)
