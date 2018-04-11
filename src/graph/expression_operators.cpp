@@ -239,7 +239,7 @@ Expr cross_entropy(Expr a, Expr b) {
 
 Expr affine(Expr a, Expr b, Expr c, bool transA, bool transB, float scalar) {
   std::vector<Expr> nodes = {a, b, c};
-  return Expression<AffineNodeOp>(nodes, transA, transB, scalar);
+  return debug(Expression<AffineNodeOp>(nodes, transA, transB, scalar), "test");
 }
 
 Expr plus(const std::vector<Expr>&) {

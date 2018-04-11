@@ -31,6 +31,7 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
 
   modelFeatures_.insert("transformer-heads");
   modelFeatures_.insert("transformer-dim-ffn");
+  modelFeatures_.insert("transformer-ffn-depth");
   modelFeatures_.insert("transformer-ffn-activation");
   modelFeatures_.insert("transformer-preprocess");
   modelFeatures_.insert("transformer-postprocess");

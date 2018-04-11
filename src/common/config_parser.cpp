@@ -351,6 +351,8 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Number of head in multi-head attention (transformer)")
     ("transformer-dim-ffn", po::value<int>()->default_value(2048),
      "Size of position-wise feed-forward network (transformer)")
+    ("transformer-ffn-depth", po::value<int>()->default_value(1),
+     "Activation between filters: swish or relu (transformer)")
     ("transformer-ffn-activation", po::value<std::string>()->default_value("swish"),
      "Activation between filters: swish or relu (transformer)")
     ("transformer-preprocess", po::value<std::string>()->default_value(""),
@@ -836,6 +838,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("transformer-postprocess", std::string);
   SET_OPTION("transformer-postprocess-emb", std::string);
   SET_OPTION("transformer-dim-ffn", int);
+  SET_OPTION("transformer-ffn-depth", int);
   SET_OPTION("transformer-ffn-activation", std::string);
 
 #ifdef CUDNN

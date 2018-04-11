@@ -329,27 +329,36 @@ public:
     auto output = PreProcess(graph, prefix + "_ffn", opsPre, input, dropProb);
 
     int dimFfn = options->get<int>("transformer-dim-ffn");
-
-    auto W1 = graph->param(
-        prefix + "_W1", {dimModel, dimFfn}, inits::glorot_uniform);
-    auto b1 = graph->param(prefix + "_b1", {1, dimFfn}, inits::zeros);
-
-    auto W2 = graph->param(
-        prefix + "_W2", {dimFfn, dimModel}, inits::glorot_uniform);
-    auto b2 = graph->param(prefix + "_b2", {1, dimModel}, inits::zeros);
-
-    output = affine(output, W1, b1);
-    if(options->get<std::string>("transformer-ffn-activation") == "relu")
-      output = relu(output);
-    else
-      output = swish(output);
-
+    int depthFfn = options->get<int>("transformer-ffn-depth");
+    auto act = options->get<std::string>("transformer-ffn-activation");
     float ffnDropProb
-        = inference ? 0 : options->get<float>("transformer-dropout-ffn");
-    if(ffnDropProb)
-      output = dropout(output, ffnDropProb);
+      = inference ? 0 : options->get<float>("transformer-dropout-ffn");
 
-    output = affine(output, W2, b2);
+    ABORT_IF(depthFfn < 1, "Filter depth {} is smaller than 1", depthFfn);
+
+    int i = 1;
+    for(; i <= depthFfn; ++i) {
+      int dimFirst = i == 1 ? dimModel : dimFfn;
+      auto W = graph->param(
+          prefix + "_W" + std::to_string(i), {dimFirst, dimFfn}, inits::glorot_uniform);
+      auto b = graph->param(prefix + "_b" + std::to_string(i), {1, dimFfn}, inits::zeros);
+
+      output = affine(output, W, b);
+
+      if(act == "relu")
+        output = relu(output);
+      else
+        output = swish(output);
+
+      if(ffnDropProb)
+        output = dropout(output, ffnDropProb);
+    }
+
+    auto W = graph->param(
+        prefix + "_W" + std::to_string(i), {dimFfn, dimModel}, inits::glorot_uniform);
+    auto b = graph->param(prefix + "_b" + std::to_string(i), {1, dimModel}, inits::zeros);
+
+    output = affine(output, W, b);
 
     auto opsPost = options->get<std::string>("transformer-postprocess");
     output
