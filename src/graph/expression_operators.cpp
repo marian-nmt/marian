@@ -201,34 +201,34 @@ Expr weighted_average(Expr in, Expr weights, keywords::axis_k ax) {
   return p / s;
 }
 
-Expr dot(Expr a, Expr b, bool transA, bool transB, float scalar) {
+Expr dot(Expr a, Expr b, bool transA, bool transB, float scale) {
   auto device = a->graph()->getDevice().type;
   if(a->graph()->isOptimized() && device == DeviceType::cpu) {
     // dotInt16 computes A * B.T, hence the transpose for B to get A * B
     // if transA = false and transB = false.
     return cpu::int16::dot(cpu::int16::quantize(transA ? transpose(a) : a),
                            cpu::int16::quantize(transB ? b : transpose(b)),
-                           scalar);
+                           scale);
   }
   else {
-    return Expression<DotNodeOp>(a, b, transA, transB, scalar);
+    return Expression<DotNodeOp>(a, b, transA, transB, scale);
   }
 }
 
-Expr bdot(Expr a, Expr b, bool transA, bool transB, float scalar) {
-  return Expression<DotBatchedNodeOp>(a, b, transA, transB, scalar);
+Expr bdot(Expr a, Expr b, bool transA, bool transB, float scale) {
+  return Expression<DotBatchedNodeOp>(a, b, transA, transB, scale);
 }
 
-Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scalar) {
+Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
   auto device = a->graph()->getDevice().type;
   if(a->graph()->isOptimized() && device == DeviceType::cpu) {
     return cpu::int16::affine(cpu::int16::quantize(transA ? transpose(a) : a),
                               cpu::int16::quantize(transB ? b : transpose(b)),
-                              bias, scalar);
+                              bias, scale);
   }
   else {
     std::vector<Expr> nodes = {a, b, bias};
-    return Expression<AffineNodeOp>(nodes, transA, transB, scalar);
+    return Expression<AffineNodeOp>(nodes, transA, transB, scale);
   }
 }
 
