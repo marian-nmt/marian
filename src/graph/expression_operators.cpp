@@ -5,6 +5,8 @@
 #include "graph/node_operators_binary.h"
 #include "graph/node_operators_unary.h"
 
+#include "tensors/cpu/int16.h"
+
 namespace marian {
 
 Expr debug(Expr a, const std::string& message) {
@@ -200,11 +202,34 @@ Expr weighted_average(Expr in, Expr weights, keywords::axis_k ax) {
 }
 
 Expr dot(Expr a, Expr b, bool transA, bool transB, float scalar) {
-  return Expression<DotNodeOp>(a, b, transA, transB, scalar);
+  auto device = a->graph()->getDevice().type;
+  if(a->graph()->isOptimized() && device == DeviceType::cpu) {
+    // dotInt16 computes A * B.T, hence the transpose for B to get A * B
+    // if transA = false and transB = false.
+    return cpu::int16::dot(cpu::int16::quantize(transA ? transpose(a) : a),
+                           cpu::int16::quantize(transB ? b : transpose(b)),
+                           scalar);
+  }
+  else {
+    return Expression<DotNodeOp>(a, b, transA, transB, scalar);
+  }
 }
 
 Expr bdot(Expr a, Expr b, bool transA, bool transB, float scalar) {
   return Expression<DotBatchedNodeOp>(a, b, transA, transB, scalar);
+}
+
+Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scalar) {
+  auto device = a->graph()->getDevice().type;
+  if(a->graph()->isOptimized() && device == DeviceType::cpu) {
+    return cpu::int16::affine(cpu::int16::quantize(transA ? transpose(a) : a),
+                              cpu::int16::quantize(transB ? b : transpose(b)),
+                              bias, scalar);
+  }
+  else {
+    std::vector<Expr> nodes = {a, b, bias};
+    return Expression<AffineNodeOp>(nodes, transA, transB, scalar);
+  }
 }
 
 Expr transpose(Expr a) {
@@ -235,11 +260,6 @@ Expr cross_entropy(Expr a, Expr b) {
   // return reshape(Expression<CrossEntropyNodeOp>(reshape(a, sTemp), b), sOut);
 
   return Expression<CrossEntropyNodeOp>(a, b);
-}
-
-Expr affine(Expr a, Expr b, Expr c, bool transA, bool transB, float scalar) {
-  std::vector<Expr> nodes = {a, b, c};
-  return Expression<AffineNodeOp>(nodes, transA, transB, scalar);
 }
 
 Expr plus(const std::vector<Expr>&) {

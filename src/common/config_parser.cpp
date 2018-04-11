@@ -652,6 +652,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
     ("cpu-threads", po::value<size_t>()->default_value(1),
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
 #endif
+    ("optimize", po::value<bool>()->zero_tokens()->default_value(false),
+      "Optimize speed aggressively sacrificing memory or precision")
     ("mini-batch", po::value<int>()->default_value(1),
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(1),
@@ -945,6 +947,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION_NONDEFAULT("weights", std::vector<float>);
     SET_OPTION_NONDEFAULT("shortlist", std::vector<std::string>);
     SET_OPTION("port", size_t);
+    SET_OPTION("optimize", bool);
   }
 
   /** valid **/

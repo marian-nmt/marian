@@ -72,7 +72,9 @@ struct Chainable {
 
   // virtual const std::string& type() = 0;
   virtual Ptr<ExpressionGraph> graph() = 0;
+
   virtual const Shape& shape() = 0;
+  virtual const Type& value_type() = 0;
 
   virtual std::vector<Expr>& children() = 0;
   virtual Expr child(size_t) = 0;

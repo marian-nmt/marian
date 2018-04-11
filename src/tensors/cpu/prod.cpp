@@ -53,10 +53,6 @@ void Prod(marian::Tensor C,
           bool transB,
           float beta,
           float scalar) {
-  //if(B->type() == Type::int16) {
-  //  ProdInt(C, A, B, transA, transB, beta, scalar);
-  //  return;
-  //}
 
 #if BLAS_FOUND
   float alpha = scalar;
@@ -168,19 +164,8 @@ void ProdWithBias(marian::Tensor C,
                   bool transB,
                   float beta,
                   float scalar) {
-
-  //if(B->type() == Type::int16) {
-  //  ProdIntWithBias(C, A, B, bias, transA, transB, beta, scalar);
-  //}
-  //else {
-    cpu::Prod(C, A, B, transA, transB, beta, scalar);
-    //cpu::Add(functional::_1, 1.f, C, bias);
-    SSE_AddBias(C->data(),
-                C->data(),
-                bias->data(),
-                C->shape().elements() / C->shape()[-1],
-                C->shape()[-1]);
-  //}
+  cpu::Prod(C, A, B, transA, transB, beta, scalar);
+  cpu::int16::AddBias(C, bias);
 }
 
 }

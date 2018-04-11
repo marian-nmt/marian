@@ -7,7 +7,6 @@
 namespace marian {
 
 size_t ConstantNode::allocate() {
-  // @TODO params
   size_t elements = 0;
   if(!val_) {
     graph()->tensor(val_, shape_);
@@ -25,7 +24,6 @@ void ConstantNode::init() {
 }
 
 size_t ParamNode::allocate() {
-  // @TODO params
   size_t elements = 0;
   if(!val_) {
     graph()->tensor(val_, shape_);

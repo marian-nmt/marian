@@ -12,9 +12,11 @@
 namespace marian {
 
 struct UnaryNodeOp : public NaryNodeOp {
-  UnaryNodeOp(Expr a, Shape shape) : NaryNodeOp({a}, shape) {}
+  UnaryNodeOp(Expr a, Shape shape, Type value_type = Type::float32)
+  : NaryNodeOp({a}, shape, value_type) {}
 
-  UnaryNodeOp(Expr a) : NaryNodeOp({a}, a->shape()) {}
+  UnaryNodeOp(Expr a, Type value_type = Type::float32)
+  : NaryNodeOp({a}, a->shape(), value_type) {}
 
   const std::string color() { return "yellow"; }
 };

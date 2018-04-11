@@ -38,6 +38,8 @@ private:
   std::unordered_map<size_t, std::vector<WExpr>> hashMap_;
 
   bool inferenceOnly_{false};
+  bool optimized_{false};
+
   bool reloaded_{false};
   std::string namespace_;
 
@@ -53,9 +55,10 @@ public:
    *
    * Constructor should be used as New<ExpressionGraph>()
    */
-  ExpressionGraph(bool inference = false);
+  ExpressionGraph(bool inference = false, bool optimized = false);
 
   void setInference(bool inference) { inferenceOnly_ = inference; }
+  bool isInference() { return inferenceOnly_; }
 
   ~ExpressionGraph() {
     clear();
@@ -63,8 +66,13 @@ public:
   }
 
   void setDevice(DeviceId deviceId = {0, DeviceType::gpu});
+
   DeviceId getDevice() { return backend_->getDevice(); }
+
   Ptr<Backend> getBackend() { return backend_; }
+
+  void setOptimized(bool optimized) { optimized_ = optimized; }
+  bool isOptimized() { return (optimized_ && inferenceOnly_); }
 
   void switchParams(const std::string& newNamespace) {
     namespace_ = newNamespace;
