@@ -64,8 +64,12 @@ struct Chainable {
   virtual void init() = 0;
   virtual void init_dependent() {}
   virtual void set_zero_adjoint() {}
+
   virtual bool trainable() = 0;
   virtual void setTrainable(bool) = 0;
+
+  virtual bool memoize() = 0;
+  virtual void setMemoize(bool) = 0;
 
   virtual void setId(size_t) = 0;
   virtual size_t getId() = 0;

@@ -77,7 +77,7 @@ public:
     return {NodeOp(Add(scalar_ * _1, child(0)->grad(), adj_))};
   }
 
-  const std::string type() { return "scalar_add"; }
+  const std::string type() { return "scalar_mult"; }
 
   virtual size_t hash() {
     if(!hash_) {
@@ -605,8 +605,11 @@ struct NegNodeOp : public UnaryNodeOp {
 };
 
 struct RowsNodeOp : public UnaryNodeOp {
-  RowsNodeOp(Expr a, const std::vector<size_t>& indeces)
-      : UnaryNodeOp(a, newShape(a, indeces)), indices_(indeces) {}
+  RowsNodeOp(Expr a, const std::vector<size_t>& indices)
+      : UnaryNodeOp(a, newShape(a, indices)), indices_(indices) {
+    // @TODO: fix this by using int32 tensor for indices
+    setMemoize(false);
+  }
 
   NodeOps forwardOps() {
     // @TODO: solve this with a tensor!

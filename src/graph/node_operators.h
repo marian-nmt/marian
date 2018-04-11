@@ -45,16 +45,14 @@ struct ParamNode : public Node {
   ParamNode(Ptr<ExpressionGraph> graph,
             const Shape& shape,
             const NodeInitializer& init,
-            bool fixed = false)
-      : Node(graph, shape), // TODO: add value_type
-        init_(new NodeInitializer(init)),
-        initialized_(false) {
-    setTrainable(!fixed);
-  }
+            bool fixed = false);
 
   ~ParamNode() {}
 
-  virtual size_t allocate();
+  virtual size_t allocate() {
+    ABORT_IF(!val_, "Parameters should be allocated by their graph");
+    return 0;
+  }
 
   virtual void init();
 

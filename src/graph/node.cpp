@@ -7,7 +7,7 @@ namespace marian {
 size_t Node::allocate() {
   size_t elements = 0;
   if(!val_) {
-    graph()->tensor(val_, shape_, value_type_);
+    graph()->allocateForward(shared_from_this());
     elements = val_->shape().elements();
   }
   return elements;
@@ -24,14 +24,14 @@ void Node::free() {
 
 void Node::init_dependent() {
   if(!adj_) {
-    graph()->tensor(adj_, shape_, value_type_);
+    graph()->allocateBackward(shared_from_this());
     adj_->set(1.f);
   }
 }
 
 void Node::set_zero_adjoint() {
   if(!adj_) {
-    graph()->tensor(adj_, shape_, value_type_);
+    graph()->allocateBackward(shared_from_this());
     adj_->set(0.f);
   }
 }

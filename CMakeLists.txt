@@ -22,7 +22,7 @@ message(STATUS "Project name: ${PROJECT_NAME}")
 message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 
 # Set compilation flags
-set(CMAKE_CXX_FLAGS_RELEASE " -std=c++11 -msse4.2 -O3 -Ofast -m64 -pthread -march=native -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
+set(CMAKE_CXX_FLAGS_RELEASE " -std=c++11 -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free -msse4.2 -O3 -Ofast -m64 -pthread -march=native -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
 set(CMAKE_CXX_FLAGS_DEBUG " -std=c++11 -g -O0 -pthread -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
 set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE} -g -pg")
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})

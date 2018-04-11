@@ -65,33 +65,6 @@
 
 namespace marian {
 
-//void ParamNode::transposeAndQuantize() {
-//  Tensor temp;
-//  graph()->tensor(temp, shape_, Type::float32);
-//  (*init_)(temp);
-//
-//  if(transpose_) {
-//    Tensor temp2;
-//    graph()->tensor(temp2, Shape{shape_[-1], shape_[-2]}, Type::float32);
-//    TransposeND(temp2, temp, {1, 0});
-//    graph()->free(temp);
-//    temp = temp2;
-//  }
-//
-//  int num_rows = temp->shape()[-2];
-//  int width = temp->shape()[-1];
-//  double quant_mult = pow(2.0, 10.0);
-//  assert(width % 8 == 0);
-//
-//  Quantize(temp->data(),
-//           val_->data<__m128i>(),
-//           (float)quant_mult,
-//           num_rows,
-//           width);
-//
-//  graph()->free(temp);
-//}
-
 namespace cpu {
 namespace int16 {
 
@@ -247,16 +220,16 @@ static inline void SSE_MatrixMult(marian::Tensor C,
             // We can't have consecutive accesses of qA, qB, *and* C. But we access qA and qB a lot more so it makes
             // sense to do it this way.
             _mm_store_ss(C1, _mm_cvtepi32_ps(sum1));
-            *(C1) *= unquant_mult * scale;
+            *(C1) *= unquant_mult;
 
             _mm_store_ss(C2, _mm_cvtepi32_ps(sum2));
-            *(C2) *= unquant_mult * scale;
+            *(C2) *= unquant_mult;
 
             _mm_store_ss(C3, _mm_cvtepi32_ps(sum3));
-            *(C3) *= unquant_mult * scale;
+            *(C3) *= unquant_mult;
 
             _mm_store_ss(C4, _mm_cvtepi32_ps(sum4));
-            *(C4) *= unquant_mult * scale;
+            *(C4) *= unquant_mult;
         }
     }
     if(rest == 1) {
@@ -281,7 +254,7 @@ static inline void SSE_MatrixMult(marian::Tensor C,
             float * C1 = fC + (i + 0) * num_B_rows + j;
 
             _mm_store_ss(C1, _mm_cvtepi32_ps(sum1));
-            *(C1) *= unquant_mult * scale;
+            *(C1) *= unquant_mult;
         }
     }
     else if(rest == 2) {
@@ -313,10 +286,10 @@ static inline void SSE_MatrixMult(marian::Tensor C,
             float * C2 = fC + (i+1)*num_B_rows + j;
 
             _mm_store_ss(C1, _mm_cvtepi32_ps(sum1));
-            *(C1) *= unquant_mult * scale;
+            *(C1) *= unquant_mult;
 
             _mm_store_ss(C2, _mm_cvtepi32_ps(sum2));
-            *(C2) *= unquant_mult * scale;
+            *(C2) *= unquant_mult;
         }
     }
     else if(rest == 3) {
@@ -355,13 +328,13 @@ static inline void SSE_MatrixMult(marian::Tensor C,
             float * C3 = fC + (i+2)*num_B_rows + j;
 
             _mm_store_ss(C1, _mm_cvtepi32_ps(sum1));
-            *(C1) *= unquant_mult * scale;
+            *(C1) *= unquant_mult;
 
             _mm_store_ss(C2, _mm_cvtepi32_ps(sum2));
-            *(C2) *= unquant_mult * scale;
+            *(C2) *= unquant_mult;
 
             _mm_store_ss(C3, _mm_cvtepi32_ps(sum3));
-            *(C3) *= unquant_mult * scale;
+            *(C3) *= unquant_mult;
         }
     }
 }
@@ -392,6 +365,8 @@ static void ProdInt(marian::Tensor C,
                     const marian::Tensor A,
                     const marian::Tensor B,
                     float scale) {
+
+    ABORT_IF(scale != 1, "Scale other than 1 not supported");
 
     // @TODO: make this a parameter
     float quant_mult = pow(2.0, (float)BITS);

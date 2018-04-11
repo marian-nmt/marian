@@ -13,7 +13,7 @@ void ExpressionGraph::setDevice(DeviceId deviceId) {
     backend_ = BackendByDevice(deviceId, Config::seed);
     params_ = New<Parameters>();
     params_->init(backend_);
-    tensors_ = New<TensorAllocator>(backend_);
+    tensors_ = New<Tensors>(backend_);
   }
 }
 

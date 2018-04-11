@@ -19,6 +19,8 @@ protected:
   size_t edges_{0};
   bool trainable_{true};
   bool destroy_{true};
+  bool memoize_{false};
+
   std::vector<Expr> children_;
 
   Weak<ExpressionGraph> graph_;
@@ -67,6 +69,9 @@ public:
   virtual bool trainable() { return trainable_; }
 
   virtual void setTrainable(bool trainable) { trainable_ = trainable; }
+
+  virtual bool memoize() { return memoize_; };
+  virtual void setMemoize(bool memoize) { memoize_ = memoize; };
 
   virtual void setId(size_t id) { id_ = id; }
 
@@ -150,6 +155,11 @@ struct NaryNodeOp : public Node {
 
     setTrainable(std::any_of(
         nodes.begin(), nodes.end(), [](Expr a) { return a->trainable(); }));
+
+    // Node is to be memoized if all children are to be memoized.
+    setMemoize(std::all_of(
+        nodes.begin(), nodes.end(), [](Expr a) { return a->memoize(); }));
+
     remove_children_from_top_nodes();
   }
 
