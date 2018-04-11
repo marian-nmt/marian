@@ -337,7 +337,8 @@ public:
     ABORT_IF(depthFfn < 1, "Filter depth {} is smaller than 1", depthFfn);
 
     int i = 1;
-    for(; i <= depthFfn; ++i) {
+    int dimLast = dimModel;
+    for(; i < depthFfn; ++i) {
       int dimFirst = i == 1 ? dimModel : dimFfn;
       auto W = graph->param(
           prefix + "_W" + std::to_string(i), {dimFirst, dimFfn}, inits::glorot_uniform);
@@ -352,10 +353,12 @@ public:
 
       if(ffnDropProb)
         output = dropout(output, ffnDropProb);
+
+      dimLast = dimFfn;
     }
 
     auto W = graph->param(
-        prefix + "_W" + std::to_string(i), {dimFfn, dimModel}, inits::glorot_uniform);
+        prefix + "_W" + std::to_string(i), {dimLast, dimModel}, inits::glorot_uniform);
     auto b = graph->param(prefix + "_b" + std::to_string(i), {1, dimModel}, inits::zeros);
 
     output = affine(output, W, b);
