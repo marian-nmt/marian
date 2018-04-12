@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Wrapper that injects a binary's directory into $PATH and $LD_LIBRARY_PATH.
+# This allows to place .so files that a binary depends on right next to the binary.
+# This is useful when packaging up binaries for execution on a server, where the
+# dependencies are simple libraries that do not require installation, such as libboost*.so.
+
+set -eo pipefail
+
+export PATH=$(dirname $0):$PATH
+export LD_LIBRARY_PATH=$(dirname $0):$LD_LIBRARY_PATH
+
+"$@"

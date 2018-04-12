@@ -94,12 +94,12 @@ set_target_properties(marian_vocab PROPERTIES OUTPUT_NAME marian-vocab)
 set(EXECUTABLES ${EXECUTABLES} marian_train marian_decoder marian_scorer marian_vocab)
 
 # marian.zip
-# This combines marian, marian_decoder, and all the boost libraries in a single ZIP file for execution in MSFT internal tools FLO and Philly.
+# This combines marian, marian-decoder, marian-invoke-local, and all the boost libraries in a single ZIP file for execution in MSFT internal tools FLO and Philly.
 # Unfortunately, cmake does not seem to support full bash commands, so we must list all those dependencies here manually
 add_custom_command(
   OUTPUT "${CMAKE_BINARY_DIR}/marian.zip"
   COMMAND zip -v -0 -j "${CMAKE_BINARY_DIR}/marian.zip"
-    "${CMAKE_BINARY_DIR}/marian" "${CMAKE_BINARY_DIR}/marian-decoder"
+    "${CMAKE_BINARY_DIR}/marian" "${CMAKE_BINARY_DIR}/marian-decoder" "${CMAKE_BINARY_DIR}/marian-invoke-local" 
     /usr/local/boost-1.63.0/lib/libboost_system.so.1.63.0
     /usr/local/boost-1.63.0/lib/libboost_timer.so.1.63.0
     /usr/local/boost-1.63.0/lib/libboost_iostreams.so.1.63.0
@@ -109,6 +109,7 @@ add_custom_command(
     /usr/local/boost-1.63.0/lib/libboost_thread.so.1.63.0
     /usr/local/boost-1.63.0/lib/libboost_regex.so.1.63.0
     /usr/local/boost-1.63.0/lib/libboost_python.so.1.63.0
+    /usr/lib/x86_64-linux-gnu/libpython2.7.so.1.0
   DEPENDS marian marian_decoder)
 add_custom_target(marian.zip DEPENDS "${CMAKE_BINARY_DIR}/marian.zip")
 
