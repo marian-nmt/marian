@@ -221,6 +221,7 @@ Expr bdot(Expr a, Expr b, bool transA, bool transB, float scale) {
 
 Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
   auto device = a->graph()->getDevice().type;
+  int rows = a->shape().elements() / a->shape()[-1];
   if(a->graph()->isOptimized() && device == DeviceType::cpu) {
     return cpu::int16::affine(cpu::int16::quantize(transA ? transpose(a) : a),
                               cpu::int16::quantize(transB ? b : transpose(b)),
