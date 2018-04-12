@@ -58,15 +58,15 @@ public:
 
   void clear() { allocator_->clear(); }
 
-  size_t capacity(Shape shape) {
-    return allocator_->capacity<float>(shape.elements());
+  size_t capacity(Shape shape, Type type = Type::float32) {
+    return allocator_->capacity(shape.elements(), type);
   }
 
-  void allocate(Tensor& t, Shape shape) {
+  void allocate(Tensor& t, Shape shape, Type type = Type::float32) {
     if(!t || t->shape() != shape) {
       int size = shape.elements();
-      auto mem = allocator_->alloc<float>(size);
-      t = Tensor(new TensorBase(mem, shape, backend_));
+      auto mem = allocator_->alloc(size, type);
+      t = Tensor(new TensorBase(mem, shape, type, backend_));
     }
   }
 

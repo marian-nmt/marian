@@ -51,18 +51,19 @@ void Reduce(Functor functor,
             float scale,
             marian::Tensor out,
             Tensors... tensors) {
-  out->set(0);
+  out->set(0.f);
   Add(functor, scale, out, tensors...);
 }
 
 template <class Functor, class... Tensors>
 void Reduce(Functor functor, marian::Tensor out, Tensors... tensors) {
-  out->set(0);
+  out->set(0.f);
   Add(functor, out, tensors...);
 }
 
 // clang-format off
   DISPATCH7(Prod, marian::Tensor, const marian::Tensor, const marian::Tensor, bool, bool, float, float)
+  DISPATCH8(ProdWithBias, marian::Tensor, const marian::Tensor, const marian::Tensor, const marian::Tensor, bool, bool, float, float)
   DISPATCH7(ProdBatched, marian::Tensor, const marian::Tensor, const marian::Tensor, bool, bool, float, float)
 
   DISPATCH2(Dropout, marian::Tensor, float)
