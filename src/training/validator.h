@@ -23,6 +23,12 @@ namespace marian {
  * @brief Base class for validators
  */
 class ValidatorBase : public TrainingObserver {
+protected:
+  bool lowerIsBetter_{true};
+  float lastBest_;
+  size_t stalled_{0};
+  std::mutex mutex_;
+
 public:
   ValidatorBase(bool lowerIsBetter)
       : lowerIsBetter_(lowerIsBetter), lastBest_{initScore()} {}
@@ -33,21 +39,19 @@ public:
   float lastBest() { return lastBest_; }
   size_t stalled() { return stalled_; }
 
-  virtual void actAfterLoaded(TrainingState& state) {
-    lastBest_ = state.validators[type()]["last-best"].as<float>();
-    stalled_ = state.validators[type()]["stalled"].as<size_t>();
-  }
-
   virtual float initScore() {
     return lowerIsBetter_ ? std::numeric_limits<float>::max()
                           : std::numeric_limits<float>::lowest();
   }
 
-protected:
-  bool lowerIsBetter_{true};
-  float lastBest_;
-  size_t stalled_{0};
-  std::mutex mutex_;
+  virtual void actAfterLoaded(TrainingState& state) {
+    if(state.validators[type()]) {
+      lastBest_ = state.validators[type()]["last-best"].as<float>();
+      stalled_ = state.validators[type()]["stalled"].as<size_t>();
+    }
+  }
+
+
 };
 
 template <class DataSet>
