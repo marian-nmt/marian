@@ -35,6 +35,7 @@ struct ConstantNode : public Node {
   }
 
   virtual bool equal(Expr node) { return this == node.get(); }
+  virtual void record(Ptr<AutoTunerRecorder>, size_t, bool) {};
 
 private:
   UPtr<NodeInitializer> init_;
@@ -70,6 +71,8 @@ struct ParamNode : public Node {
   }
 
   virtual bool equal(Expr node) { return name() == node->name(); }
+
+  virtual void record(Ptr<AutoTunerRecorder>, size_t, bool) {};
 
 private:
   UPtr<NodeInitializer> init_;

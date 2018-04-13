@@ -5,6 +5,7 @@
 #include "graph/node_operators_binary.h"
 #include "graph/node_operators_unary.h"
 
+#include "graph/auto_tuner.h"
 #include "tensors/cpu/int16.h"
 
 namespace marian {
@@ -206,6 +207,7 @@ Expr dot(Expr a, Expr b, bool transA, bool transB, float scale) {
   if(a->graph()->isOptimized() && device == DeviceType::cpu) {
     // dotInt16 computes A * B.T, hence the transpose for B to get A * B
     // if transA = false and transB = false.
+
     return cpu::int16::dot(cpu::int16::quantize(transA ? transpose(a) : a),
                            cpu::int16::quantize(transB ? b : transpose(b)),
                            scale);
@@ -221,13 +223,74 @@ Expr bdot(Expr a, Expr b, bool transA, bool transB, float scale) {
 
 Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
   auto device = a->graph()->getDevice().type;
-  int rows = a->shape().elements() / a->shape()[-1];
   if(a->graph()->isOptimized() && device == DeviceType::cpu) {
-    return cpu::int16::affine(cpu::int16::quantize(transA ? transpose(a) : a),
-                              cpu::int16::quantize(transB ? b : transpose(b)),
-                              bias, scale);
+
+    bool autotune = true;
+    if(autotune) {
+
+      thread_local Ptr<AutoTuner<Expr>> tuner = New<AutoTuner<Expr>>();
+
+      // start with new set of algorithms
+      tuner->clear();
+
+      // lower precicion for shapes, reduces data sparsity
+      auto sh = [](Shape sh) {
+        for(int i = 0; i < sh.size(); ++i)
+          sh.set(i, sh[i] / 4);
+        return sh;
+      };
+
+      // create context for current call as hash
+      std::size_t hash = sh(a->shape()).hash();
+      boost::hash_combine(hash, sh(b->shape()).hash());
+      boost::hash_combine(hash, sh(bias->shape()).hash());
+      boost::hash_combine(hash, transA);
+      boost::hash_combine(hash, transB);
+
+      // add first algorithm variant (Int16)
+      size_t hash1 = hash;
+      boost::hash_combine(hash1, 1);
+      auto rec1 = [=](Expr e, bool stop = false) {
+        e->record(tuner, hash1, stop);
+        return e;
+      };
+      auto alg1 = [=]() {
+        return rec1(cpu::int16::affine(rec1(cpu::int16::quantize(transA ? rec1(transpose(a)) : a)),
+                                       cpu::int16::quantize(transB ? b : transpose(b)),
+                                       bias,
+                                       scale),
+                    true);
+      };
+      tuner->insert({hash1, alg1});
+
+      // add second algorithm variant (CBlas)
+      size_t hash2 = hash;
+      boost::hash_combine(hash2, 2);
+      auto rec2 = [=](Expr e, bool stop = false) {
+        e->record(tuner, hash2, stop);
+        return e;
+      };
+      auto alg2 = [=]() {
+        std::vector<Expr> nodes = {a, b, bias};
+        return rec2(Expression<AffineNodeOp>(nodes, transA, transB, scale),
+                    true);
+      };
+      tuner->insert({hash2, alg2});
+
+      // execute algorithm with autotuning
+      return tuner->run();
+
+    }
+    else {
+      // cpu int16 version
+      return cpu::int16::affine(cpu::int16::quantize(transA ? transpose(a) : a),
+                                cpu::int16::quantize(transB ? b : transpose(b)),
+                                bias,
+                                scale);
+    }
   }
   else {
+    // general version, MKL, CBlas or CUDA
     std::vector<Expr> nodes = {a, b, bias};
     return Expression<AffineNodeOp>(nodes, transA, transB, scale);
   }

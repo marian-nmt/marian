@@ -15,6 +15,8 @@ namespace marian {
 #define NodeOp(op) [=]() { op; }
 typedef std::vector<std::function<void()>> NodeOps;
 
+class AutoTunerRecorder;
+
 template <class DataType>
 class Chainable;
 /** @brief Defines a convenience type to represent a shared pointer to a
@@ -101,5 +103,7 @@ struct Chainable {
 
   virtual size_t hash() = 0;
   virtual bool equal(Expr) = 0;
+
+  virtual void record(Ptr<AutoTunerRecorder>, size_t, bool) = 0;
 };
 }

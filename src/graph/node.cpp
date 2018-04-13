@@ -1,6 +1,7 @@
 #include "graph/node.h"
 #include "graph/expression_graph.h"
 #include "tensors/backend.h"
+#include "graph/auto_tuner.h"
 
 namespace marian {
 
@@ -42,6 +43,33 @@ float Node::scalar() {
 
 Ptr<Backend> Node::getBackend() {
   return graph()->getBackend();
+}
+
+void Node::forward() {
+  if(recorder_)
+    recorder_->start(recorderHash_);
+
+  runForward(forwardOps());
+
+  if(recorder_)
+    recorder_->stop(recorderHash_, recorderStop_);
+
+}
+
+void Node::backward() {
+  if(recorder_)
+    recorder_->start(recorderHash_);
+
+  runBackward(backwardOps());
+
+  if(recorder_ && recorderStop_)
+    recorder_->stop(recorderHash_, recorderStop_);
+}
+
+void Node::record(Ptr<AutoTunerRecorder> recorder, size_t recorderHash, bool stop) {
+  recorder_ = recorder;
+  recorderHash_ = recorderHash;
+  recorderStop_ = stop;
 }
 
 void NaryNodeOp::remove_children_from_top_nodes() {

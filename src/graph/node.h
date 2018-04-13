@@ -35,6 +35,10 @@ protected:
   bool markedForDebug_{false};
   std::string debugMessage_;
 
+  Ptr<AutoTunerRecorder> recorder_;
+  size_t recorderHash_;
+  bool recorderStop_;
+
 public:
   Node(Ptr<ExpressionGraph> graph, Shape shape, Type value_type = Type::float32)
       : graph_(graph), shape_(shape), value_type_(value_type) {}
@@ -62,9 +66,9 @@ public:
         op();
   }
 
-  virtual void forward() { runForward(forwardOps()); }
+  virtual void forward();
 
-  virtual void backward() { runBackward(backwardOps()); }
+  virtual void backward();
 
   virtual bool trainable() { return trainable_; }
 
@@ -142,6 +146,8 @@ public:
   virtual Expr child(size_t i) { return children_[i]; }
 
   Ptr<Backend> getBackend();
+
+  void record(Ptr<AutoTunerRecorder>, size_t, bool);
 };
 
 struct NaryNodeOp : public Node {
