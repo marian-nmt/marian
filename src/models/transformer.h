@@ -252,10 +252,13 @@ public:
 
     int dimAtt = output->shape()[-1];
 
-    auto Wo
-        = graph->param(prefix + "_Wo", {dimAtt, dimOut}, inits::glorot_uniform);
-    auto bo = graph->param(prefix + "_bo", {1, dimOut}, inits::zeros);
-    output = affine(output, Wo, bo);
+    bool project = !options->get<bool>("transformer-no-projection");
+    if(project || dimAtt != dimOut) {
+      auto Wo
+          = graph->param(prefix + "_Wo", {dimAtt, dimOut}, inits::glorot_uniform);
+      auto bo = graph->param(prefix + "_bo", {1, dimOut}, inits::zeros);
+      output = affine(output, Wo, bo);
+    }
 
     return output;
   }

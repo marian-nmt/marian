@@ -347,10 +347,10 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Tie source and target embeddings")
     ("tied-embeddings-all", po::value<bool>()->zero_tokens()->default_value(false),
      "Tie all embedding layers and output layer")
-    ("transformer-heads", po::value<int>()->default_value(8),
-     "Number of head in multi-head attention (transformer)")
     ("transformer-dim-ffn", po::value<int>()->default_value(2048),
      "Size of position-wise feed-forward network (transformer)")
+    ("transformer-no-projection", po::value<bool>()->zero_tokens()->default_value(false),
+     "Omit linear projection after multi-head attention (transformer)")
     ("transformer-ffn-depth", po::value<int>()->default_value(2),
      "Activation between filters: swish or relu (transformer)")
     ("transformer-ffn-activation", po::value<std::string>()->default_value("swish"),
@@ -836,6 +836,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("layer-normalization", bool);
   SET_OPTION("right-left", bool);
   SET_OPTION("transformer-heads", int);
+  SET_OPTION("transformer-no-projection", bool);
   SET_OPTION("transformer-preprocess", std::string);
   SET_OPTION("transformer-postprocess", std::string);
   SET_OPTION("transformer-postprocess-emb", std::string);
