@@ -347,6 +347,8 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Tie source and target embeddings")
     ("tied-embeddings-all", po::value<bool>()->zero_tokens()->default_value(false),
      "Tie all embedding layers and output layer")
+    ("transformer-heads", po::value<int>()->default_value(8),
+     "Number of head in multi-head attention (transformer)")
     ("transformer-dim-ffn", po::value<int>()->default_value(2048),
      "Size of position-wise feed-forward network (transformer)")
     ("transformer-no-projection", po::value<bool>()->zero_tokens()->default_value(false),
