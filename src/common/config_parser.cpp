@@ -715,6 +715,8 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
     ("cpu-threads", po::value<size_t>()->default_value(1),
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
 #endif
+    ("optimize", po::value<bool>()->zero_tokens()->default_value(false),
+      "Optimize speed aggressively sacrificing memory or precision")
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
     ("mini-batch-words", po::value<int>()->default_value(0),
@@ -942,6 +944,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("n-best", bool);
     SET_OPTION("n-best-feature", std::string);
     SET_OPTION_NONDEFAULT("summary", std::string);
+    SET_OPTION("optimize", bool);
   }
 
   if(mode_ == ConfigMode::translating) {

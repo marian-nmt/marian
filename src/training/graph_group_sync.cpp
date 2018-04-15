@@ -88,7 +88,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> fullBatch) {
           paramsAlloc->allocate(tmp, {1, __size__});
           params_.push_back(param);
 
-          grad->set(0);
+          grad->set(0.f);
           grads_.push_back(grad);
 
           tmpTensors_.push_back(tmp);
@@ -165,7 +165,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> fullBatch) {
 
         if(update) {
           shardOpt_[idx]->update(params_[idx], grads_[idx]);
-          grads_[idx]->set(0);
+          grads_[idx]->set(0.f);
 
           if(movingAvg_)
             updateMovingAverage(

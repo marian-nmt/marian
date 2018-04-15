@@ -52,7 +52,7 @@ public:
     auto devices = options_->getDevices();
 
     for(auto device : devices) {
-      auto graph = New<ExpressionGraph>(true);
+      auto graph = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
       graph->setDevice(device);
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
