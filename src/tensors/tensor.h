@@ -168,10 +168,24 @@ public:
 
   template <typename T>
   void set(T value) {
-    ABORT_IF(!matchType<T>(type_),
-             "Requested type ({}) and underlying type ({}) do not match",
-             request<T>(),
-             type_);
+
+    if(!matchType<T>(type_)) {
+       switch(type_) {
+         case Type::float32: set<float>(value); break;
+         case Type::float64: set<double>(value); break;
+         case Type::int8:    set<int8_t>(value); break;
+         case Type::int16:   set<int16_t>(value); break;
+         case Type::int32:   set<int32_t>(value); break;
+         case Type::int64:   set<int64_t>(value); break;
+         case Type::uint8:   set<uint8_t>(value); break;
+         case Type::uint16:  set<uint16_t>(value); break;
+         case Type::uint32:  set<uint32_t>(value); break;
+         case Type::uint64:  set<uint64_t>(value); break;
+         default: ABORT("Requested type ({}) cannot be converted to underlying type ({})", 
+                        request<float>(), 
+                        type_);
+       }
+    }
 
     if(backend_->getDevice().type == DeviceType::cpu) {
       std::fill(data<T>(), data<T>() + size(), value);

@@ -49,7 +49,14 @@ void fill(Ptr<Backend> backend, T* begin, T* end, T value) {
   CUDA_CHECK(cudaStreamSynchronize(0));
 }
 
+template void fill<int8_t>(Ptr<Backend>, int8_t*, int8_t*, int8_t);
+template void fill<int16_t>(Ptr<Backend>, int16_t*, int16_t*, int16_t);
 template void fill<int32_t>(Ptr<Backend>, int32_t*, int32_t*, int32_t);
+template void fill<int64_t>(Ptr<Backend>, int64_t*, int64_t*, int64_t);
+template void fill<uint8_t>(Ptr<Backend>, uint8_t*, uint8_t*, uint8_t);
+template void fill<uint16_t>(Ptr<Backend>, uint16_t*, uint16_t*, uint16_t);
+template void fill<uint32_t>(Ptr<Backend>, uint32_t*, uint32_t*, uint32_t);
+template void fill<uint64_t>(Ptr<Backend>, uint64_t*, uint64_t*, uint64_t);
 
 template void fill<float>(Ptr<Backend>, float*, float*, float);
 template void fill<double>(Ptr<Backend>, double*, double*, double);
