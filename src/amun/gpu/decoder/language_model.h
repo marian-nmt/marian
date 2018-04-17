@@ -4,7 +4,7 @@
 
 #include "types.h"
 #include "scorer.h"
-#include "matrix.h"
+#include "tensor.h"
 #include "dl4mt.h"
 #include "threadpool.h"
 #include "kenlm.h"

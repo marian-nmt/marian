@@ -13,13 +13,13 @@ NpzConverter::NpzConverter(const std::string& file)
   cerr << "file=" << file << endl;
 }
 
-mblas::Matrix NpzConverter::GetMatrix(
+mblas::Tensor NpzConverter::GetMatrix(
     const OpenCLInfo &openCLInfo,
     const std::string& key,
     bool transpose
     ) const
 {
-  mblas::Matrix matrix(openCLInfo);
+  mblas::Tensor matrix(openCLInfo);
   //cerr << "key1=" << key << " " << matrix.Debug(1) << endl;
 
   cnpy::npz_t::const_iterator it = model_.find(key);

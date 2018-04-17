@@ -9,16 +9,16 @@ class EncoderDecoderState : public State {
 public:
   EncoderDecoderState(const OpenCLInfo &openCLInfo);
 
-  mblas::Matrix& GetStates();
-  mblas::Matrix& GetEmbeddings();
-  const mblas::Matrix& GetStates() const;
-  const mblas::Matrix& GetEmbeddings() const;
+  mblas::Tensor& GetStates();
+  mblas::Tensor& GetEmbeddings();
+  const mblas::Tensor& GetStates() const;
+  const mblas::Tensor& GetEmbeddings() const;
 
   virtual std::string Debug(size_t verbosity = 1) const;
 
 protected:
-  mblas::Matrix states_;
-  mblas::Matrix embeddings_;
+  mblas::Tensor states_;
+  mblas::Tensor embeddings_;
 
 };
 

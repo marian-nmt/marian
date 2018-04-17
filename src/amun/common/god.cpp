@@ -7,6 +7,7 @@
 
 #include "common/god.h"
 #include "common/vocab.h"
+#include "common/factor_vocab.h"
 #include "common/config.h"
 #include "common/threadpool.h"
 #include "common/file_stream.h"
@@ -25,8 +26,6 @@ using namespace std;
 
 namespace amunmt {
 
-std::unordered_map<std::string, boost::timer::cpu_timer> timers;
-
 God::God()
  : threadIncr_(0)
 {
@@ -35,14 +34,6 @@ God::God()
 God::~God()
 {
   Cleanup();
-
-  if (timers.size()) {
-    cerr << "timers:" << endl;
-    for (auto iter = timers.begin(); iter != timers.end(); ++iter) {
-      const boost::timer::cpu_timer &timer = iter->second;
-      cerr << iter->first << "=" << timer.format();
-    }
-  }
 }
 
 God& God::Init(const std::string& options) {
@@ -57,7 +48,7 @@ God& God::Init(const std::string& options) {
 }
 
 
-  
+
 God& God::Init(int argc, char** argv) {
 
   config_.AddOptions(argc, argv);
@@ -68,15 +59,22 @@ God& God::Init(int argc, char** argv) {
   progress_ = spdlog::stderr_logger_mt("progress");
   progress_->set_pattern("%v");
   set_loglevel(*progress_, config_.Get<string>("log-progress"));
-  
+
   config_.LogOptions();
 
   if (Get("source-vocab").IsSequence()) {
-    for (auto sourceVocabPath : Get<std::vector<std::string>>("source-vocab")) {
-      sourceVocabs_.emplace_back(new Vocab(sourceVocabPath));
+    YAML::Node tabVocabs = Get("source-vocab");
+    for (unsigned i = 0; i < tabVocabs.size(); i++) {
+      if (tabVocabs[i].IsSequence()) {
+        auto paths = tabVocabs[i].as<std::vector<std::string>>();
+        sourceVocabs_.emplace_back(FactorVocab(paths));
+      } else {
+        std::string path = tabVocabs[i].as<std::string>();
+        sourceVocabs_.emplace_back(FactorVocab(path));
+      }
     }
   } else {
-    sourceVocabs_.emplace_back(new Vocab(Get<std::string>("source-vocab")));
+    sourceVocabs_.emplace_back(FactorVocab(Get<std::string>("source-vocab")));
   }
   targetVocab_.reset(new Vocab(Get<std::string>("target-vocab")));
 
@@ -93,6 +91,26 @@ God& God::Init(int argc, char** argv) {
   LoadScorers();
   LoadFiltering();
 
+  returnNBestList_ = Get<bool>("n-best");
+
+  if (Get<bool>("use-fused-softmax")) {
+    useFusedSoftmax_ = true;
+    if (gpuLoaders_.size() != 1 || // more than 1 scorer
+        God::Get<unsigned>("beam-size") > 11 // beam size affect shared mem alloc in gLogSoftMax()
+        ) {
+      useFusedSoftmax_ = false;
+    }
+  }
+  else {
+    useFusedSoftmax_ = false;
+  }
+  //cerr << "useFusedSoftmax_=" << useFusedSoftmax_ << endl;
+
+#ifdef CUDA
+  useTensorCores_ = Get<bool>("tensor-cores");
+  cerr << "useTensorCores_=" << useTensorCores_ << endl;
+#endif
+
   if (Has("input-file")) {
     LOG(info)->info("Reading from {}", Get<std::string>("input-file"));
     inputStream_.reset(new InputFileStream(Get<std::string>("input-file")));
@@ -104,7 +122,7 @@ God& God::Init(int argc, char** argv) {
 
   LoadPrePostProcessing();
 
-  size_t totalThreads = GetTotalThreads();
+  unsigned totalThreads = GetTotalThreads();
   LOG(info)->info("Total number of threads: {}", totalThreads);
   amunmt_UTIL_THROW_IF2(totalThreads == 0, "Total number of threads is 0");
 
@@ -124,8 +142,8 @@ void God::Cleanup()
 void God::LoadScorers() {
   LOG(info)->info("Loading scorers...");
 #ifdef CUDA
-  size_t gpuThreads = God::Get<size_t>("gpu-threads");
-  auto devices = God::Get<std::vector<size_t>>("devices");
+  unsigned gpuThreads = God::Get<unsigned>("gpu-threads");
+  auto devices = God::Get<std::vector<unsigned>>("devices");
   if (gpuThreads > 0 && devices.size() > 0) {
     for (auto&& pair : config_.Get()["scorers"]) {
       std::string name = pair.first.as<std::string>();
@@ -134,7 +152,7 @@ void God::LoadScorers() {
   }
 #endif
 #ifdef HAS_CPU
-  size_t cpuThreads = God::Get<size_t>("cpu-threads");
+  unsigned cpuThreads = God::Get<unsigned>("cpu-threads");
   if (cpuThreads) {
     for (auto&& pair : config_.Get()["scorers"]) {
       std::string name = pair.first.as<std::string>();
@@ -143,7 +161,7 @@ void God::LoadScorers() {
   }
 #endif
 #ifdef HAS_FPGA
-  size_t fpgaThreads = God::Get<size_t>("fpga-threads");
+  unsigned fpgaThreads = God::Get<unsigned>("fpga-threads");
   if (fpgaThreads) {
     for (auto&& pair : config_.Get()["scorers"]) {
       std::string name = pair.first.as<std::string>();
@@ -161,21 +179,21 @@ void God::LoadFiltering() {
     LOG(info)->info("Reading target softmax filter file from {}", alignmentFile);
     Filter* filter = nullptr;
     if (filterOptions.size() >= 3) {
-      const size_t numNFirst = stoi(filterOptions[1]);
-      const size_t maxNumTranslation = stoi(filterOptions[2]);
-      filter = new Filter(GetSourceVocab(0),
+      const unsigned numNFirst = stoi(filterOptions[1]);
+      const unsigned maxNumTranslation = stoi(filterOptions[2]);
+      filter = new Filter(GetSourceVocab(0, 0),
                           GetTargetVocab(),
                           alignmentFile,
                           numNFirst,
                           maxNumTranslation);
     } else if (filterOptions.size() == 2) {
-      const size_t numNFirst = stoi(filterOptions[1]);
-      filter = new Filter(GetSourceVocab(0),
+      const unsigned numNFirst = stoi(filterOptions[1]);
+      filter = new Filter(GetSourceVocab(0, 0),
                           GetTargetVocab(),
                           alignmentFile,
                           numNFirst);
     } else {
-      filter = new Filter(GetSourceVocab(0),
+      filter = new Filter(GetSourceVocab(0, 0),
                           GetTargetVocab(),
                           alignmentFile);
     }
@@ -186,7 +204,7 @@ void God::LoadFiltering() {
 void God::LoadPrePostProcessing() {
   if (Has("bpe")) {
     if(Get("bpe").IsSequence()) {
-      size_t i = 0;
+      unsigned i = 0;
       for(auto bpePath : Get<std::vector<std::string>>("bpe")) {
         LOG(info)->info("using bpe: {}", bpePath);
         preprocessors_.push_back(std::vector<PreprocessorPtr>());
@@ -208,8 +226,12 @@ void God::LoadPrePostProcessing() {
   }
 }
 
-Vocab& God::GetSourceVocab(size_t i) const {
-  return *sourceVocabs_[i];
+Vocab& God::GetSourceVocab(unsigned tab, unsigned factor) const {
+  return sourceVocabs_[tab].GetVocab(factor);
+}
+
+FactorVocab& God::GetSourceVocabs(unsigned tab) const {
+  return sourceVocabs_[tab];
 }
 
 Vocab& God::GetTargetVocab() const {
@@ -250,7 +272,7 @@ std::vector<ScorerPtr> God::GetScorers(const DeviceInfo &deviceInfo) const {
   return scorers;
 }
 
-BestHypsBasePtr God::GetBestHyps(const DeviceInfo &deviceInfo) const {
+BaseBestHypsPtr God::GetBestHyps(const DeviceInfo &deviceInfo) const {
   if (deviceInfo.deviceType == CPUDevice) {
     return cpuLoaders_.begin()->second->GetBestHyps(*this, deviceInfo);
   }
@@ -281,7 +303,19 @@ const std::map<std::string, float>& God::GetScorerWeights() const {
   return weights_;
 }
 
-std::vector<std::string> God::Preprocess(size_t i, const std::vector<std::string>& input) const {
+std::vector<std::vector<std::string>> God::Preprocess (
+  unsigned i, const std::vector<std::vector<std::string>>& input
+) const {
+  std::vector<std::vector<std::string>> processed = input;
+  if (preprocessors_.size() >= i + 1) {
+    for (const auto& processor : preprocessors_[i]) {
+      processed = processor->Preprocess(processed);
+    }
+  }
+  return processed;
+}
+
+std::vector<std::string> God::Preprocess(unsigned i, const std::vector<std::string>& input) const {
   std::vector<std::string> processed = input;
   if (preprocessors_.size() >= i + 1) {
     for (const auto& processor : preprocessors_[i]) {
@@ -303,25 +337,25 @@ DeviceInfo God::GetNextDevice() const
 {
   DeviceInfo ret;
 
-  size_t cpuThreads = 0, gpuThreads = 0, fpgaThreads = 0;
-  std::vector<size_t> gpuDevices, fpgaDevices;
+  unsigned cpuThreads = 0, gpuThreads = 0, fpgaThreads = 0;
+  std::vector<unsigned> gpuDevices, fpgaDevices;
 
 #ifdef CUDA
-  gpuThreads = Get<size_t>("gpu-threads");
-  gpuDevices = Get<std::vector<size_t>>("devices");
+  gpuThreads = Get<unsigned>("gpu-threads");
+  gpuDevices = Get<std::vector<unsigned>>("devices");
 #endif
 
 #ifdef HAS_CPU
-  cpuThreads = God::Get<size_t>("cpu-threads");
+  cpuThreads = God::Get<unsigned>("cpu-threads");
 #endif
 
 #ifdef HAS_FPGA
-  fpgaThreads = Get<size_t>("fpga-threads");
-  fpgaDevices = Get<std::vector<size_t>>("fpga-devices");
+  fpgaThreads = Get<unsigned>("fpga-threads");
+  fpgaDevices = Get<std::vector<unsigned>>("fpga-devices");
 #endif
 
-  size_t totGPUThreads = gpuThreads * gpuDevices.size();
-  size_t totFPGAThreads = fpgaThreads * fpgaDevices.size();
+  unsigned totGPUThreads = gpuThreads * gpuDevices.size();
+  unsigned totFPGAThreads = fpgaThreads * fpgaDevices.size();
 
   // start locking
   boost::unique_lock<boost::shared_mutex> lock(accessLock_);
@@ -332,21 +366,21 @@ DeviceInfo God::GetNextDevice() const
   }
   else if (threadIncr_ < cpuThreads + totGPUThreads) {
     ret.deviceType = GPUDevice;
-    size_t threadIncr = threadIncr_ - cpuThreads;
+    unsigned threadIncr = threadIncr_ - cpuThreads;
 
     ret.threadInd = threadIncr / gpuDevices.size();
 
-    size_t deviceInd = threadIncr % gpuDevices.size();
+    unsigned deviceInd = threadIncr % gpuDevices.size();
     assert(deviceInd < gpuDevices.size());
     ret.deviceId = gpuDevices[deviceInd];
   }
   else if (threadIncr_ < cpuThreads + totGPUThreads + totFPGAThreads) {
     ret.deviceType = FPGADevice;
-    size_t threadIncr = threadIncr_ - cpuThreads - totGPUThreads;
+    unsigned threadIncr = threadIncr_ - cpuThreads - totGPUThreads;
 
     ret.threadInd = threadIncr / fpgaDevices.size();
 
-    size_t deviceInd = threadIncr % fpgaDevices.size();
+    unsigned deviceInd = threadIncr % fpgaDevices.size();
     assert(deviceInd < fpgaDevices.size());
     ret.deviceId = fpgaDevices[deviceInd];
   }
@@ -365,26 +399,26 @@ Search &God::GetSearch() const
   return obj;
 }
 
-size_t God::GetTotalThreads() const
+unsigned God::GetTotalThreads() const
 {
-  size_t totalThreads = 0;
+  unsigned totalThreads = 0;
 
 #ifdef CUDA
-  size_t gpuThreads = Get<size_t>("gpu-threads");
-  auto devices = Get<std::vector<size_t>>("devices");
+  unsigned gpuThreads = Get<unsigned>("gpu-threads");
+  auto devices = Get<std::vector<unsigned>>("devices");
   LOG(info)->info("Setting GPU thread count to {}", gpuThreads);
   totalThreads += gpuThreads * devices.size();
 #endif
 
 #ifdef HAS_CPU
-  size_t cpuThreads = Get<size_t>("cpu-threads");
+  unsigned cpuThreads = Get<unsigned>("cpu-threads");
   LOG(info->info("Setting CPU thread count to {}", cpuThreads));
   totalThreads += cpuThreads;
 #endif
 
 #ifdef HAS_FPGA
-  size_t fpgaThreads = Get<size_t>("fpga-threads");
-  auto fpgaDevices = Get<std::vector<size_t>>("fpga-devices");
+  unsigned fpgaThreads = Get<unsigned>("fpga-threads");
+  auto fpgaDevices = Get<std::vector<unsigned>>("fpga-devices");
   LOG(info->info("Setting FPGA thread count to {}", fpgaThreads));
   totalThreads += fpgaThreads * fpgaDevices.size();
 #endif

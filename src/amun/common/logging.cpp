@@ -1,5 +1,7 @@
 #include "logging.h"
 
+using namespace std;
+
 namespace amunmt {
 
 void set_loglevel(spdlog::logger& logger, std::string const level) {

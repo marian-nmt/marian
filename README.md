@@ -1,9 +1,10 @@
 
 # Marian
-[![Join the chat at https://gitter.im/amunmt/amunmt](https://badges.gitter.im/amunmt/amunmt.svg)](https://gitter.im/amunmt/amunmt?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 [![CUDABuild Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=amunmt_compilation_cuda)](http://vali.inf.ed.ac.uk/jenkins/job/amunmt_compilation_cuda/)
 [![CPU Build Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=amunmt_compilation_cpu)](http://vali.inf.ed.ac.uk/jenkins/job/amunmt_compilation_cpu/)
+[![Twitter](https://img.shields.io/twitter/follow/marian_nmt.svg?style=social&label=Follow)](https://twitter.com/intent/follow?screen_name=marian_nmt)
+
 
  <p>
   <b>Marian</b> (formerly known as AmuNMT) is an efficient Neural Machine Translation framework written
@@ -32,19 +33,14 @@
 
 If you use this, please cite:
 
-Marcin Junczys-Dowmunt, Tomasz Dwojak, Hieu Hoang (2016). Is Neural Machine
-Translation Ready for Deployment? A Case Study on 30 Translation Directions
-(https://arxiv.org/abs/1610.01108)
+Marcin Junczys-Dowmunt , Roman Grundkiewicz, Tomasz Dwojak, Hieu Hoang, Kenneth Heafield, Tom Neckermann, Frank Seide, Ulrich Germann, Alham Fikri Aji, Nikolay Bogoychev, André F. T. Martins, Alexandra Birch (2018). Marian: Fast Neural Machine Translation in C++ (https://arxiv.org/abs/1804.00344)
 
-    @InProceedings{junczys2016neural,
-      title     = {Is Neural Machine Translation Ready for Deployment? A Case Study
-                   on 30 Translation Directions},
-      author    = {Junczys-Dowmunt, Marcin and Dwojak, Tomasz and Hoang, Hieu},
-      booktitle = {Proceedings of the 9th International Workshop on Spoken Language
-      Translation (IWSLT)},
-      year      = {2016},
-      address   = {Seattle, WA},
-      url       = {http://workshop2016.iwslt.org/downloads/IWSLT_2016_paper_4.pdf}
+    @article{junczys2018marian,
+      title={Marian: Fast Neural Machine Translation in C++},
+      author={Marcin Junczys-Dowmunt and Roman Grundkiewicz and Tomasz Dwojak and Hieu Hoang and Kenneth Heafield and Tom Neckermann and Frank Seide and Ulrich Germann and Alham Fikri Aji and Nikolay Bogoychev and André F. T. Martins and Alexandra Birch},
+      journal={arXiv preprint arXiv:1804.00344},
+      url={https://arxiv.org/abs/1804.00344}
+      year={2018}
     }
 
 ## Website:
@@ -64,13 +60,13 @@ problems due to incompatibilities of the default g++ compiler and CUDA.
  * Boost 1.58 (default)
  * CUDA 8.0
 
-**Ubuntu 14.04 LTS (tested).** A newer CMake version than the default version is
+**Ubuntu 14.04 LTS.** A newer CMake version than the default version is
 required and can be installed from source.
 
  * CMake 3.5.1 (due to CUDA related bugs in earlier versions)
  * GCC/G++ 4.9
  * Boost 1.54
- * CUDA 7.5
+ * CUDA 8.0
 
 ### CPU version
 
@@ -193,11 +189,17 @@ Post-Editing](http://www.aclweb.org/anthology/W16-2378).
 
 ## Acknowledgements
 
-The development of Marian received funding from the European Union's Horizon 2020
-Research and Innovation Programme under grant agreements 688139
-(<a href="http://www.summa-project.eu">SUMMA</a>; 2016-2019) and 645487
-(<a href="http://www.modernmt.eu">Modern MT</a>; 2015-2017), the
-Amazon Academic Research Awards program, and the World Intellectual
-Property Organization.
+The development of Marian received funding from the European Union's
+_Horizon 2020 Research and Innovation Programme_ under grant agreements
+688139 ([SUMMA](http://www.summa-project.eu); 2016-2019),
+645487 ([Modern MT](http://www.modernmt.eu); 2015-2017),
+644333 ([TraMOOC](http://tramooc.eu/); 2015-2017),
+644402 ([HiML](http://www.himl.eu/); 2015-2017),
+the Amazon Academic Research Awards program,
+the World Intellectual Property Organization,
+and is based upon work supported in part by the Office of the Director of
+National Intelligence (ODNI), Intelligence Advanced Research Projects Activity
+(IARPA), via contract #FA8650-17-C-9117.
 
+This software contains source code provided by NVIDIA Corporation.
 

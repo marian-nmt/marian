@@ -8,7 +8,7 @@ set(CMAKE_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
-set(CMAKE_CXX_FLAGS_RELEASE "-std=c++14 -fPIC -O3 -Ofast -m64 -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread")
+set(CMAKE_CXX_FLAGS_RELEASE "-std=c++14 -fPIC -O3 -Ofast -m64 -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread -DNDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG "-std=c++14 -fPIC -g -O0 -m64  -march=native -funroll-loops -ffinite-math-only -Wno-unused-result -Wno-deprecated -pthread")
 set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE} -g -pg")
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
@@ -38,14 +38,14 @@ endif(FPGA)
 if(CUDA)
   find_package(CUDA)
   if(CUDA_FOUND)
-    LIST(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -std=c++11; -O3; -arch=sm_35; -lineinfo; --use_fast_math;)
+    LIST(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -std=c++11; -O3; -arch=sm_30; -gencode=arch=compute_30,code=sm_30; -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52; -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61; -gencode=arch=compute_61,code=compute_61 ; -lineinfo; --use_fast_math; -DNDEBUG; )
     # add_definitions(-DCUDA_API_PER_THREAD_DEFAULT_STREAM)
     add_definitions(-DCUDA)
     SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
     message("-- Compiling with CUDA support")
     
     if (MARIAN)
-      execute_process(COMMAND git submodule update --init --recursive --remote --no-fetch
+      execute_process(COMMAND git submodule update --init --recursive --no-fetch
                       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     endif(MARIAN)
 
@@ -72,7 +72,7 @@ if (UNIX AND NOT APPLE)
       set(BOOST_PYTHON_VERSION_NAME "python")
     endif(PYTHON_VERSION_NORMALIZED)
 
-    find_package(Boost COMPONENTS system filesystem program_options timer iostreams ${BOOST_PYTHON_VERSION_NAME} thread)
+    find_package(Boost COMPONENTS system filesystem program_options timer iostreams ${BOOST_PYTHON_VERSION_NAME} thread chrono)
 elseif (APPLE)
 
     # On macOS, boost-python component is named python if compiled against python2.7 or
@@ -83,7 +83,10 @@ elseif (APPLE)
       set(BOOST_PYTHON_VERSION_NAME "python")
     endif(NOT PYTHON_VERSION_NORMALIZED EQUAL 27)
 
-    find_package(Boost COMPONENTS system filesystem program_options timer iostreams ${BOOST_PYTHON_VERSION_NAME} thread)
+    # On macOS, python isn't able to load dylib libraries. Renaming them to .so solves this problem
+    set(CMAKE_SHARED_LIBRARY_SUFFIX ".so")
+
+    find_package(Boost COMPONENTS system filesystem program_options timer iostreams ${BOOST_PYTHON_VERSION_NAME} thread chrono)
 endif (UNIX AND NOT APPLE)
 
 if(Boost_FOUND)

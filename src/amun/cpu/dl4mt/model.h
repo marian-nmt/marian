@@ -5,7 +5,7 @@
 #include <string>
 
 #include "cpu/npz_converter.h"
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 
 namespace amunmt {
 namespace CPU {
@@ -19,21 +19,21 @@ struct Weights {
     Embeddings(const NpzConverter& model, const std::string &key);
     Embeddings(const NpzConverter& model, const std::vector<std::pair<std::string, bool>> keys);
 
-    const mblas::Matrix E_;
+    const mblas::Tensor E_;
   };
 
   struct GRU {
 	GRU(const NpzConverter& model, const std::vector<std::string> &keys);
 
-    const mblas::Matrix W_;
-    const mblas::Matrix B_;
-    const mblas::Matrix U_;
-    const mblas::Matrix Wx_;
-    const mblas::Matrix Bx1_;
-    const mblas::Matrix Bx2_;
-    const mblas::Matrix Ux_;
-    const mblas::Matrix Gamma_1_;
-    const mblas::Matrix Gamma_2_;
+    const mblas::Tensor W_;
+    const mblas::Tensor B_;
+    const mblas::Tensor U_;
+    const mblas::Tensor Wx_;
+    const mblas::Tensor Bx1_;
+    const mblas::Tensor Bx2_;
+    const mblas::Tensor Ux_;
+    const mblas::Tensor Gamma_1_;
+    const mblas::Tensor Gamma_2_;
   };
 
   //////////////////////////////////////////////////////////////////////////////
@@ -41,51 +41,51 @@ struct Weights {
   struct DecInit {
     DecInit(const NpzConverter& model);
 
-    const mblas::Matrix Wi_;
-    const mblas::Matrix Bi_;
-    const mblas::Matrix Gamma_;
+    const mblas::Tensor Wi_;
+    const mblas::Tensor Bi_;
+    const mblas::Tensor Gamma_;
   };
 
   struct DecGRU2 {
     DecGRU2(const NpzConverter& model);
 
-    const mblas::Matrix W_;
-    const mblas::Matrix B_;
-    const mblas::Matrix U_;
-    const mblas::Matrix Wx_;
-    const mblas::Matrix Bx2_;
-    const mblas::Matrix Bx1_;
-    const mblas::Matrix Ux_;
-    const mblas::Matrix Gamma_1_;
-    const mblas::Matrix Gamma_2_;
+    const mblas::Tensor W_;
+    const mblas::Tensor B_;
+    const mblas::Tensor U_;
+    const mblas::Tensor Wx_;
+    const mblas::Tensor Bx2_;
+    const mblas::Tensor Bx1_;
+    const mblas::Tensor Ux_;
+    const mblas::Tensor Gamma_1_;
+    const mblas::Tensor Gamma_2_;
   };
 
   struct DecAttention {
     DecAttention(const NpzConverter& model);
 
-    const mblas::Matrix V_;
-    const mblas::Matrix W_;
-    const mblas::Matrix B_;
-    const mblas::Matrix U_;
-    const mblas::Matrix C_;
-    const mblas::Matrix Gamma_1_;
-    const mblas::Matrix Gamma_2_;
+    const mblas::Tensor V_;
+    const mblas::Tensor W_;
+    const mblas::Tensor B_;
+    const mblas::Tensor U_;
+    const mblas::Tensor C_;
+    const mblas::Tensor Gamma_1_;
+    const mblas::Tensor Gamma_2_;
   };
 
   struct DecSoftmax {
     DecSoftmax(const NpzConverter& model);
 
-    const mblas::Matrix W1_;
-    const mblas::Matrix B1_;
-    const mblas::Matrix W2_;
-    const mblas::Matrix B2_;
-    const mblas::Matrix W3_;
-    const mblas::Matrix B3_;
-    const mblas::Matrix W4_;
-    const mblas::Matrix B4_;
-    const mblas::Matrix Gamma_0_;
-    const mblas::Matrix Gamma_1_;
-    const mblas::Matrix Gamma_2_;
+    const mblas::Tensor W1_;
+    const mblas::Tensor B1_;
+    const mblas::Tensor W2_;
+    const mblas::Tensor B2_;
+    const mblas::Tensor W3_;
+    const mblas::Tensor B3_;
+    const mblas::Tensor W4_;
+    const mblas::Tensor B4_;
+    const mblas::Tensor Gamma_0_;
+    const mblas::Tensor Gamma_1_;
+    const mblas::Tensor Gamma_2_;
   };
 
   //////////////////////////////////////////////////////////////////////////////

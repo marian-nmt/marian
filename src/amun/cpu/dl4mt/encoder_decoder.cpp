@@ -17,7 +17,7 @@ using EDState = EncoderDecoderState;
 EncoderDecoder::EncoderDecoder(const God &god,
 							   const std::string& name,
                                const YAML::Node& config,
-                               size_t tab,
+                               unsigned tab,
                                const dl4mt::Weights& model)
   : CPUEncoderDecoderBase(god, name, config, tab),
     model_(model),
@@ -26,7 +26,7 @@ EncoderDecoder::EncoderDecoder(const God &god,
 {}
 
 
-void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>&) {
+void EncoderDecoder::Decode(const State& in, State& out, const std::vector<unsigned>&) {
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
@@ -35,7 +35,7 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
 }
 
 
-void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
+void EncoderDecoder::BeginSentenceState(State& state, unsigned batchSize) {
   EDState& edState = state.get<EDState>();
   decoder_->EmptyState(edState.GetStates(), SourceContext_, batchSize);
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
@@ -43,15 +43,15 @@ void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
 
 
 void EncoderDecoder::Encode(const Sentences& sources) {
-  encoder_->Encode(sources.at(0)->GetWords(tab_), SourceContext_);
+  encoder_->Encode(sources.Get(0).GetWords(tab_), SourceContext_);
 }
 
 
 void EncoderDecoder::AssembleBeamState(const State& in,
                                        const Beam& beam,
                                        State& out) {
-  std::vector<size_t> beamWords;
-  std::vector<size_t> beamStateIds;
+  std::vector<unsigned> beamWords;
+  std::vector<unsigned> beamStateIds;
   for(auto h : beam) {
       beamWords.push_back(h->GetWord());
       beamStateIds.push_back(h->GetPrevStateIndex());
@@ -60,32 +60,32 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
-  edOut.GetStates() = mblas::Assemble<mblas::byRow, mblas::Matrix>(edIn.GetStates(), beamStateIds);
+  edOut.GetStates() = mblas::Assemble<mblas::byRow, mblas::Tensor>(edIn.GetStates(), beamStateIds);
   decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
 }
 
 
-void EncoderDecoder::GetAttention(mblas::Matrix& Attention) {
+void EncoderDecoder::GetAttention(mblas::Tensor& Attention) {
   decoder_->GetAttention(Attention);
 }
 
 
-mblas::Matrix& EncoderDecoder::GetAttention() {
+mblas::Tensor& EncoderDecoder::GetAttention() {
   return decoder_->GetAttention();
 }
 
 
-size_t EncoderDecoder::GetVocabSize() const {
+unsigned EncoderDecoder::GetVocabSize() const {
   return decoder_->GetVocabSize();
 }
 
 
-void EncoderDecoder::Filter(const std::vector<size_t>& filterIds) {
+void EncoderDecoder::Filter(const std::vector<unsigned>& filterIds) {
   decoder_->Filter(filterIds);
 }
 
 
-BaseMatrix& EncoderDecoder::GetProbs() {
+BaseTensor& EncoderDecoder::GetProbs() {
   return decoder_->GetProbs();
 }
 

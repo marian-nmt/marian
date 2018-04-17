@@ -28,7 +28,7 @@ class EncoderDecoderLoader : public Loader {
     virtual void Load(const God& god);
 
     virtual ScorerPtr NewScorer(const God &god, const DeviceInfo &deviceInfo) const;
-    BestHypsBasePtr GetBestHyps(const God &god, const DeviceInfo &deviceInfo) const;
+    BaseBestHypsPtr GetBestHyps(const God &god, const DeviceInfo &deviceInfo) const;
 
   private:
     std::vector<std::unique_ptr<dl4mt::Weights>> dl4mtModels_;

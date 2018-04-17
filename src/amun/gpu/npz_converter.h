@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cnpy/cnpy.h"
-#include "mblas/matrix_functions.h"
+#include "mblas/tensor_functions.h"
 
 namespace amunmt {
 namespace GPU {
@@ -13,7 +13,7 @@ class NpzConverter {
         NpyMatrixWrapper(const cnpy::NpyArray& npy)
         : npy_(npy) {}
 
-        size_t size() const {
+        unsigned size() const {
           return size1() * size2();
         }
 
@@ -21,15 +21,15 @@ class NpzConverter {
           return (float*)npy_.data;
         }
 
-        float operator()(size_t i, size_t j) const {
+        float operator()(unsigned i, unsigned j) const {
           return ((float*)npy_.data)[i * size2() + j];
         }
 
-        size_t size1() const {
+        unsigned size1() const {
           return npy_.shape[0];
         }
 
-        size_t size2() const {
+        unsigned size2() const {
           if(npy_.shape.size() == 1)
             return 1;
           else
@@ -46,8 +46,8 @@ class NpzConverter {
 
     void Destruct();
 
-    std::shared_ptr<mblas::Matrix> get(const std::string& key, bool mandatory, bool transpose = false) const;
-    std::shared_ptr<mblas::Matrix> getFirstOfMany(const std::vector<std::pair<std::string, bool>> keys, bool mandatory) const;
+    std::shared_ptr<mblas::Tensor> get(const std::string& key, bool mandatory, bool transpose = false) const;
+    std::shared_ptr<mblas::Tensor> getFirstOfMany(const std::vector<std::pair<std::string, bool>> keys, bool mandatory) const;
 
   private:
     cnpy::npz_t model_;

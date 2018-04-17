@@ -35,17 +35,17 @@ public:
 
   virtual void Encode(const Sentences& sources);
 
-  virtual void Filter(const std::vector<size_t>&);
+  virtual void Filter(const std::vector<uint>&);
 
   virtual State* NewState() const;
 
   virtual size_t GetVocabSize() const;
 
-  virtual BaseMatrix& GetProbs();
+  virtual BaseTensor& GetProbs();
 
 protected:
   const Weights& model_;
-  mblas::Matrix sourceContext_;
+  mblas::Tensor sourceContext_;
 
   std::unique_ptr<Encoder> encoder_;
   std::unique_ptr<Decoder> decoder_;

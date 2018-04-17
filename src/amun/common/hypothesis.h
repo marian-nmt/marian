@@ -1,48 +1,53 @@
 #pragma once
 #include <memory>
+#include <cassert>
 #include "common/types.h"
 #include "common/soft_alignment.h"
 
 namespace amunmt {
 
 class Hypothesis;
+class Sentence;
 
 typedef std::shared_ptr<Hypothesis> HypothesisPtr;
 
 class Hypothesis {
   public:
-    Hypothesis()
-     : prevHyp_(nullptr),
+    Hypothesis(const Sentence &sentence)
+    : sentence_(sentence),
+       prevHyp_(nullptr),
        prevIndex_(0),
        word_(0),
        cost_(0.0)
     {}
 
-    Hypothesis(const HypothesisPtr prevHyp, size_t word, size_t prevIndex, float cost)
-      : prevHyp_(prevHyp),
-        prevIndex_(prevIndex),
-        word_(word),
-        cost_(cost)
+    Hypothesis(const HypothesisPtr prevHyp, unsigned word, unsigned prevIndex, float cost)
+    : sentence_(prevHyp->sentence_),
+      prevHyp_(prevHyp),
+      prevIndex_(prevIndex),
+      word_(word),
+      cost_(cost)
     {}
 
-    Hypothesis(const HypothesisPtr prevHyp, size_t word, size_t prevIndex, float cost,
+    Hypothesis(const HypothesisPtr prevHyp, unsigned word, unsigned prevIndex, float cost,
                std::vector<SoftAlignmentPtr> alignment)
-      : prevHyp_(prevHyp),
-        prevIndex_(prevIndex),
-        word_(word),
-        cost_(cost),
-        alignments_(alignment)
+    : sentence_(prevHyp->sentence_),
+      prevHyp_(prevHyp),
+      prevIndex_(prevIndex),
+      word_(word),
+      cost_(cost),
+      alignments_(alignment)
     {}
 
     const HypothesisPtr GetPrevHyp() const {
       return prevHyp_;
     }
 
-    size_t GetWord() const {
+    unsigned GetWord() const {
       return word_;
     }
 
-    size_t GetPrevStateIndex() const {
+    unsigned GetPrevStateIndex() const {
       return prevIndex_;
     }
 
@@ -54,7 +59,8 @@ class Hypothesis {
       return costBreakdown_;
     }
 
-    SoftAlignmentPtr GetAlignment(size_t i) {
+    SoftAlignmentPtr GetAlignment(unsigned i) {
+      assert(i < alignments_.size());
       return alignments_[i];
     }
 
@@ -64,23 +70,20 @@ class Hypothesis {
 
   private:
     const HypothesisPtr prevHyp_;
-    const size_t prevIndex_;
-    const size_t word_;
+    const Sentence &sentence_;
+    const unsigned prevIndex_;
+    const unsigned word_;
     const float cost_;
     std::vector<SoftAlignmentPtr> alignments_;
 
     std::vector<float> costBreakdown_;
 };
 
-typedef std::vector<HypothesisPtr> Beam;
-typedef std::vector<Beam> Beams;
 typedef std::pair<Words, HypothesisPtr> Result;
 typedef std::vector<Result> NBestList;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-std::string Debug(const Beam &vec, size_t verbosity = 1);
-std::string Debug(const Beams &vec, size_t verbosity = 1);
 
 }
 

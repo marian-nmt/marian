@@ -8,7 +8,7 @@
 #include "common/base_best_hyps.h"
 #include "common/loader.h"
 
-#include "gpu/mblas/matrix.h"
+#include "gpu/mblas/tensor.h"
 
 namespace GPU {
 
@@ -55,7 +55,7 @@ class ApePenalty : public Scorer {
   private:
     std::vector<float> costs_;
     const SrcTrgMap& srcTrgMap_;
-    mblas::Matrix Probs_;
+    mblas::Tensor Probs_;
     const Penalties& penalties_;
 
 };

@@ -1,5 +1,5 @@
 #pragma once
-#include "common/base_matrix.h"
+#include "common/base_tensor.h"
 #include "types-fpga.h"
 #include "array.h"
 
@@ -7,7 +7,7 @@ namespace amunmt {
 namespace FPGA {
 namespace mblas {
 
-class Matrix : public BaseMatrix {
+class Matrix : public BaseTensor {
 public:
   Matrix(const OpenCLInfo &openCLInfo);
   Matrix(const OpenCLInfo &openCLInfo, size_t rows, size_t cols, bool zero = false);

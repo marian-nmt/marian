@@ -20,7 +20,7 @@ EncoderDecoder::EncoderDecoder(
         const God &god,
         const std::string& name,
         const YAML::Node& config,
-        size_t tab,
+        unsigned tab,
         const Weights& model,
         const OpenCLInfo &openCLInfo)
 :Scorer(god, name, config, tab)
@@ -41,7 +41,7 @@ void EncoderDecoder::Encode(const Sentences& sources)
   //cerr << "FPGA sourceContext_=" << sourceContext_.Debug(1) << endl;
 }
 
-void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize)
+void EncoderDecoder::BeginSentenceState(State& state, unsigned batchSize)
 {
   EDState& edState = state.get<EDState>();
   decoder_->EmptyState(edState.GetStates(), sourceContext_, batchSize, batchMapping_);
@@ -91,7 +91,7 @@ void EncoderDecoder::AssembleBeamState(const State& in,
   //cerr << "edOut.GetEmbeddings()=" << edOut.GetEmbeddings().Debug(1) << endl;
 }
 
-void EncoderDecoder::Filter(const std::vector<size_t>&)
+void EncoderDecoder::Filter(const std::vector<uint>&)
 {
 
 }
@@ -101,12 +101,12 @@ State* EncoderDecoder::NewState() const
   return new EncoderDecoderState(openCLInfo_);
 }
 
-size_t EncoderDecoder::GetVocabSize() const
+unsigned EncoderDecoder::GetVocabSize() const
 {
   return decoder_->GetVocabSize();
 }
 
-BaseMatrix& EncoderDecoder::GetProbs()
+BaseTensor& EncoderDecoder::GetProbs()
 {
   return decoder_->GetProbs();
 }

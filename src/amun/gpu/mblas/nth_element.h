@@ -2,85 +2,54 @@
 
 #include <vector>
 #include <algorithm>
-
 #include <cuda.h>
-#include "gpu/mblas/matrix.h"
+
+#include "gpu/mblas/tensor.h"
+#include "gpu/mblas/vector.h"
+#include "nth_element_kernels.h"
 
 namespace amunmt {
 namespace GPU {
 
-struct NthOut
-{
-  uint ind;
-  float score;
-
-  __device__ __host__
-  NthOut() {}
-
-  __device__ __host__
-  NthOut(uint init)
-  :ind(init)
-  ,score(init)
-  {}
-
-  __device__ __host__
-  NthOut(uint &vInd, float vScore)
-  :ind(vInd)
-  ,score(vScore)
-  {}
-
-  __device__ __host__
-  NthOut& operator+=(const NthOut& rhs)
-  {
-    ind += rhs.ind;
-    score += rhs.score;
-    return *this;
-  }
-};
-
-inline std::ostream& operator<<(std::ostream &out, const NthOut &obj)
-{
-  out << "(" << obj.ind << "," << obj.score << ")";
-  return out;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
 
 class NthElement {
   public:
     NthElement() = delete;
     NthElement(const NthElement &copy) = delete;
-    NthElement(uint maxBeamSize, uint maxBatchSize);
+    NthElement(unsigned maxBeamSize, unsigned maxBatchSize);
     virtual ~NthElement();
 
-    void getNBestList(const std::vector<uint>& beamSizes, mblas::Matrix& Probs,
-                      std::vector<float>& outCosts, std::vector<uint>& outKeys,
+    // standard nth_element
+    void getNBestList(const std::vector<unsigned>& beamSizes,
+                      mblas::Tensor& Probs,
+                      std::vector<float>& outCosts,
+                      std::vector<unsigned>& outKeys,
                       const bool isFirst=false);
 
-    void GetPairs(uint number,
-                  std::vector<uint>& outKeys,
+    void GetPairs(unsigned number,
+                  std::vector<unsigned>& outKeys,
                   std::vector<float>& outValues);
 
-    void getValueByKey(std::vector<float>& out, const mblas::Matrix &d_in) const;
+    void getValueByKey(std::vector<float>& out, const mblas::Tensor &d_in) const;
 
   private:
-    const uint BLOCK_SIZE = 512;
+    const unsigned BLOCK_SIZE = 512;
 
-    mblas::TMatrix<NthOut> d_out;
+    mblas::Vector<NthOut> d_out;
 
-    mblas::TMatrix<NthOut> d_res;
-    //HostVector<NthOut> h_res;
+    mblas::Vector<NthOut> d_res;
     std::vector<NthOut> h_res;
 
-    mblas::TMatrix<float> d_breakdown;
-    mblas::TMatrix<uint> d_batchPosition;
-    mblas::TMatrix<uint> d_cumBeamSizes;
+    mblas::Vector<float> d_breakdown;
+    mblas::Vector<unsigned> d_batchPosition;
+    mblas::Vector<unsigned> d_cumBeamSizes;
 
-    uint maxBeamSize_, maxBatchSize_;
+    unsigned maxBeamSize_, maxBatchSize_;
 
-    void getNBestList(mblas::Matrix &probs,
-                      const HostVector<uint>& batchFirstElementIdxs,
-                      const HostVector<uint>& cummulatedBeamSizes);
+    void getNBestList(mblas::Tensor &probs,
+                      const std::vector<unsigned>& batchFirstElementIdxs,
+                      const std::vector<unsigned>& cummulatedBeamSizes);
+
 
 };
 

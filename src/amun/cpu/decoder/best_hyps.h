@@ -6,7 +6,7 @@
 #include "common/scorer.h"
 #include "common/god.h"
 #include "common/exception.h"
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 #include "cpu/decoder/encoder_decoder.h"
 
 namespace amunmt {
@@ -22,16 +22,11 @@ struct ProbCompare {
   const float* data_;
 };
 
-class BestHyps : public BestHypsBase
+class BestHyps : public BaseBestHyps
 {
   public:
     BestHyps(const God &god)
-      : BestHypsBase(
-          !god.Get<bool>("allow-unk"),
-          god.Get<bool>("n-best"),
-          god.Get<std::vector<std::string>>("softmax-filter").size(),
-          god.Get<bool>("return-alignment") || god.Get<bool>("return-soft-alignment"),
-          god.GetScorerWeights())
+      : BaseBestHyps(god)
     {}
 
     void CalcBeam(
@@ -39,7 +34,7 @@ class BestHyps : public BestHypsBase
         const std::vector<ScorerPtr>& scorers,
         const Words& filterIndices,
         std::vector<Beam>& beams,
-        std::vector<uint>& beamSizes)
+        std::vector<unsigned>& beamSizes)
     {
       using namespace mblas;
 
@@ -83,7 +78,7 @@ class BestHyps : public BestHypsBase
       }
 
       std::vector<std::vector<float>> breakDowns;
-      if (returnNBestList_) {
+      if (god_.ReturnNBestList()) {
         breakDowns.push_back(bestCosts);
         for (auto& scorer : scorers) {
           std::vector<float> modelCosts(beamSize);
@@ -123,7 +118,7 @@ class BestHyps : public BestHypsBase
           hyp.reset(new Hypothesis(prevHyps[hypIndex], wordIndex, hypIndex, cost));
         }
 
-        if (returnNBestList_) {
+        if (god_.ReturnNBestList()) {
           hyp->GetCostBreakdown().resize(scorers.size());
           float sum = 0;
           for(size_t j = 0; j < scorers.size(); ++j) {

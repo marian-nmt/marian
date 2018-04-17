@@ -1,26 +1,28 @@
 #pragma once
 #include <boost/timer/timer.hpp>
-#include "gpu/mblas/matrix_functions.h"
-#include "gpu/mblas/matrix_wrapper.h"
+#include "gpu/mblas/tensor_functions.h"
+#include "gpu/mblas/tensor_wrapper.h"
 #include "gpu/mblas/handles.h"
+#include "gpu/dl4mt/cell.h"
+#include "cellstate.h"
 
 namespace amunmt {
 namespace GPU {
 
 template <class Weights>
-class SlowGRU {
+class SlowGRU: public Cell {
   public:
     SlowGRU(const Weights& model)
     : w_(model) {}
 
-    void GetNextState(mblas::Matrix& NextState,
-                      const mblas::Matrix& State,
-                      const mblas::Matrix& Context) const {
+    virtual void GetNextState(CellState& NextState,
+                      const CellState& State,
+                      const mblas::Tensor& Context) const {
       using namespace mblas;
 
       //std::cerr << std::endl;
 
-      const size_t cols = GetStateLength();
+      const unsigned cols = GetStateLength();
 
       // @TODO: Optimization
       // @TODO: Launch streams to perform GEMMs in parallel
@@ -30,8 +32,8 @@ class SlowGRU {
       // -----------------------------------------------------
 
       // @TODO: Join matrices and perform single GEMM --------
-      Prod(Temp1_, State, *w_.U_);
-      Prod(Temp2_, State, *w_.Ux_);
+      Prod(Temp1_, *(State.output), *w_.U_);
+      Prod(Temp2_, *(State.output), *w_.Ux_);
       //std::cerr << "Temp2_=" << Temp2_.Debug(1) << std::endl;
       // -----------------------------------------------------
 
@@ -69,15 +71,18 @@ class SlowGRU {
       //std::cerr << "1U_=" << U_.Debug(1) << std::endl;
       //std::cerr << "H_=" << H_.Debug(1) << std::endl;
       //std::cerr << "State=" << State.Debug(1) << std::endl;
-      Element((1.0 - _1) * _2 + _1 * _3, U_, H_, State);
+      Element((1.0 - _1) * _2 + _1 * _3, U_, H_, *(State.output));
       //std::cerr << "2U_=" << H_.Debug(1) << std::endl;
       // -----------------------------------------------------
 
-      Swap(NextState, U_);
+      Swap(*(NextState.output), U_);
+      if(State.cell->size() > 0) {
+        Swap(*(NextState.cell), *(State.cell));
+      }
     }
 
-    size_t GetStateLength() const {
-      return w_.U_->dim(0);
+    virtual CellLength GetStateLength() const {
+      return CellLength(0, w_.U_->dim(0));
     }
 
   private:
@@ -85,28 +90,28 @@ class SlowGRU {
     const Weights& w_;
 
     // reused to avoid allocation
-    mutable mblas::Matrix RU_;
-    mutable mblas::Matrix R_;
-    mutable mblas::Matrix U_;
-    mutable mblas::Matrix H_;
-    mutable mblas::Matrix Temp1_;
-    mutable mblas::Matrix Temp2_;
+    mutable mblas::Tensor RU_;
+    mutable mblas::Tensor R_;
+    mutable mblas::Tensor U_;
+    mutable mblas::Tensor H_;
+    mutable mblas::Tensor Temp1_;
+    mutable mblas::Tensor Temp2_;
 
     SlowGRU(const SlowGRU&) = delete;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-__global__ void gElementwiseOps(mblas::MatrixWrapper<float> outWrap,
-                                const mblas::MatrixWrapper<float> stateWrap,
-                                const mblas::MatrixWrapper<float> ruhWrap,
-                                const mblas::MatrixWrapper<float> tempWrap,
-                                const mblas::MatrixWrapper<float> bWrap,
-                                const mblas::MatrixWrapper<float> bx1Wrap,
-                                const mblas::MatrixWrapper<float> bx2Wrap);
+__global__ void gElementwiseOps(mblas::TensorWrapper<float> outWrap,
+                                const mblas::TensorWrapper<float> stateWrap,
+                                const mblas::TensorWrapper<float> ruhWrap,
+                                const mblas::TensorWrapper<float> tempWrap,
+                                const mblas::TensorWrapper<float> bWrap,
+                                const mblas::TensorWrapper<float> bx1Wrap,
+                                const mblas::TensorWrapper<float> bx2Wrap);
 
 template <class Weights>
-class FastGRU {
+class FastGRU: public Cell {
 
   public:
     FastGRU(const Weights& model)
@@ -124,7 +129,7 @@ class FastGRU {
       //std::cerr << "w_.W_=" << w_.W_.Debug(1) << std::endl;
       //std::cerr << "1WWx_=" << WWx_.Debug(1) << std::endl;
 
-      Matrix WxT;
+      Tensor WxT;
       Transpose(WxT, *w_.Wx_);
       //std::cerr << "w_.Wx_=" << w_.Wx_.Debug(1) << std::endl;
       //std::cerr << "WxT=" << WxT.Debug(1) << std::endl;
@@ -136,7 +141,7 @@ class FastGRU {
       //std::cerr << "3WWx_=" << WWx_.Debug(1) << std::endl;
 
       Transpose(UUx_, *w_.U_);
-      Matrix UxT;
+      Tensor UxT;
       Transpose(UxT, *w_.Ux_);
       Concat(UUx_, UxT);
       Transpose(UUx_);
@@ -144,9 +149,9 @@ class FastGRU {
       //std::cerr << std::endl;
     }
 
-    void GetNextState(mblas::Matrix& NextState,
-                      const mblas::Matrix& State,
-                      const mblas::Matrix& Context) const {
+    virtual void GetNextState(CellState& NextState,
+                      const CellState& State,
+                      const mblas::Tensor& Context) const {
       using namespace mblas;
 
       //std::cerr << std::endl;
@@ -162,7 +167,7 @@ class FastGRU {
         Normalization(RUH_, RUH_, *w_.Gamma_1_, 1e-9);
       }
 
-      Prod(Temp_, State, UUx_);
+      Prod(Temp_, *(State.output), UUx_);
       //std::cerr << "State=" << State.Debug(1) << std::endl;
       //std::cerr << "UUx_" << UUx_.Debug(1) << std::endl;
       //std::cerr << "Temp_=" << Temp_.Debug(1) << std::endl;
@@ -171,16 +176,19 @@ class FastGRU {
         Normalization(Temp_, Temp_, *w_.Gamma_2_, 1e-9);
       }
 
-      ElementwiseOps(NextState, State, RUH_, Temp_);
+      ElementwiseOps(*(NextState.output), *(State.output), RUH_, Temp_);
+      if(State.cell->size() > 0) {
+        Swap(*(NextState.cell), *(State.cell));
+      }
     }
 
 
-    void ElementwiseOps(mblas::Matrix& NextState,
-                        const mblas::Matrix& State,
-                        const mblas::Matrix& RUH,
-                        const mblas::Matrix& Temp) const
+    void ElementwiseOps(mblas::Tensor& NextState,
+                        const mblas::Tensor& State,
+                        const mblas::Tensor& RUH,
+                        const mblas::Tensor& Temp) const
     {
-      BEGIN_TIMER("ElementwiseOps");
+      //BEGIN_TIMER("ElementwiseOps");
 
       assert(State.dim(2) == 1);
       assert(State.dim(3) == 1);
@@ -192,13 +200,13 @@ class FastGRU {
       NextState.NewSize(State.dim(0), State.dim(1), 1, 1);
       //std::cerr << "NextState=" << NextState.Debug() << std::endl;
 
-      mblas::MatrixWrapper<float> nextWrap(NextState);
-      const mblas::MatrixWrapper<float> stateWrap(State);
-      const mblas::MatrixWrapper<float> ruhWrap(RUH);
-      const mblas::MatrixWrapper<float> tempWrap(Temp);
-      const mblas::MatrixWrapper<float> bWrap(*w_.B_);
-      const mblas::MatrixWrapper<float> bx1Wrap(*w_.Bx1_);
-      const mblas::MatrixWrapper<float> bx2Wrap(*w_.Bx2_);
+      mblas::TensorWrapper<float> nextWrap(NextState);
+      const mblas::TensorWrapper<float> stateWrap(State);
+      const mblas::TensorWrapper<float> ruhWrap(RUH);
+      const mblas::TensorWrapper<float> tempWrap(Temp);
+      const mblas::TensorWrapper<float> bWrap(*w_.B_);
+      const mblas::TensorWrapper<float> bx1Wrap(*w_.Bx1_);
+      const mblas::TensorWrapper<float> bx2Wrap(*w_.Bx2_);
 
       /*
       std::cerr << "nextWrap=" << nextWrap.Debug() << std::endl;
@@ -210,8 +218,8 @@ class FastGRU {
       std::cerr << "bx2Wrap=" << bx2Wrap.Debug() << std::endl;
       std::cerr << "\n";
       */
-      const size_t cols = State.dim(1);
-      const size_t rows = State.dim(0);
+      const unsigned cols = State.dim(1);
+      const unsigned rows = State.dim(0);
 
       int threads = std::min(MAX_THREADS, (int)cols);
       int blocks  = rows;
@@ -219,13 +227,14 @@ class FastGRU {
       gElementwiseOps<<<blocks, threads, 0, mblas::CudaStreamHandler::GetStream()>>>
         (nextWrap, stateWrap, ruhWrap, tempWrap,
             bWrap, bx1Wrap, bx2Wrap);
+      HANDLE_ERROR(cudaGetLastError());
 
-      PAUSE_TIMER("ElementwiseOps");
+      //PAUSE_TIMER("ElementwiseOps");
 
     }
 
-    size_t GetStateLength() const {
-      return w_.U_->dim(0);
+    virtual CellLength GetStateLength() const {
+      return CellLength(0, w_.U_->dim(0));
     }
 
 
@@ -234,11 +243,11 @@ class FastGRU {
     const Weights& w_;
 
     // reused to avoid allocation
-    mutable mblas::Matrix WWx_;
-    mutable mblas::Matrix UUx_;
+    mutable mblas::Tensor WWx_;
+    mutable mblas::Tensor UUx_;
 
-    mutable mblas::Matrix RUH_;
-    mutable mblas::Matrix Temp_;
+    mutable mblas::Tensor RUH_;
+    mutable mblas::Tensor Temp_;
 
     FastGRU(const FastGRU&) = delete;
 };

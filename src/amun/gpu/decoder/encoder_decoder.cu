@@ -5,32 +5,67 @@
 #include "common/sentences.h"
 
 #include "encoder_decoder.h"
-#include "gpu/mblas/matrix_functions.h"
+#include "gpu/mblas/tensor_functions.h"
 #include "gpu/dl4mt/dl4mt.h"
 #include "gpu/decoder/encoder_decoder_state.h"
 #include "gpu/decoder/best_hyps.h"
+#include "gpu/dl4mt/cellstate.h"
 
 using namespace std;
 
 namespace amunmt {
 namespace GPU {
 
+std::unordered_map<std::string, boost::timer::cpu_timer> timers;
+
 EncoderDecoder::EncoderDecoder(
 		const God &god,
 		const std::string& name,
         const YAML::Node& config,
-        size_t tab,
+        unsigned tab,
         const Weights& model)
   : Scorer(god, name, config, tab),
     model_(model),
-    encoder_(new Encoder(model_)),
-    decoder_(new Decoder(god, model_)),
-    indices_(god.Get<size_t>("beam-size")),
-    SourceContext_(new mblas::Matrix())
-{}
+    encoder_(new Encoder(model_, config)),
+    decoder_(new Decoder(god, model_, config)),
+    indices_(god.Get<unsigned>("beam-size")),
+    SourceContext_(new mblas::Tensor())
+{
+  BEGIN_TIMER("EncoderDecoder");
+}
 
-void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>& beamSizes) {
+EncoderDecoder::~EncoderDecoder()
+{
+  PAUSE_TIMER("EncoderDecoder");
+
+  if (timers.size()) {
+    boost::timer::nanosecond_type encDecWall = timers["EncoderDecoder"].elapsed().wall;
+
+    cerr << "timers:" << endl;
+    for (auto iter = timers.begin(); iter != timers.end(); ++iter) {
+      const boost::timer::cpu_timer &timer = iter->second;
+      boost::timer::cpu_times t = timer.elapsed();
+      boost::timer::nanosecond_type wallTime = t.wall;
+
+      int percent = (float) wallTime / (float) encDecWall * 100.0f;
+
+      cerr << iter->first << " ";
+
+      for (int i = 0; i < ((int)35 - (int)iter->first.size()); ++i) {
+        cerr << " ";
+      }
+
+      cerr << timer.format(2, "%w") << " (" << percent << ")" << endl;
+    }
+  }
+
+}
+
+void EncoderDecoder::Decode(const State& in, State& out, const std::vector<unsigned>& beamSizes) {
   BEGIN_TIMER("Decode");
+
+  SetTensorCore();
+
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
 
@@ -38,39 +73,45 @@ void EncoderDecoder::Decode(const State& in, State& out, const std::vector<uint>
                      edIn.GetStates(),
                      edIn.GetEmbeddings(),
                      *SourceContext_,
-                     sentencesMask_,
-                     beamSizes);
-  PAUSE_TIMER("Decode");
-}
+                     h_sentenceLengths_,
+                     sentenceLengths_,
+                     beamSizes,
+                     god_.UseFusedSoftmax());
 
-EncoderDecoder::~EncoderDecoder()
-{
+  PAUSE_TIMER("Decode");
 }
 
 State* EncoderDecoder::NewState() const {
   return new EDState();
 }
 
-void EncoderDecoder::Encode(const Sentences& source) {
-  BEGIN_TIMER("SetSource");
-  encoder_->Encode(source, tab_, *SourceContext_, sentencesMask_);
+void EncoderDecoder::Encode(const Sentences& source)
+{
+  BEGIN_TIMER("Encode");
+
+  SetTensorCore();
+
+  encoder_->Encode(source, tab_, *SourceContext_, h_sentenceLengths_, sentenceLengths_);
   //cerr << "GPU SourceContext_=" << SourceContext_.Debug(1) << endl;
-  PAUSE_TIMER("SetSource");
+  PAUSE_TIMER("Encode");
 }
 
-void EncoderDecoder::BeginSentenceState(State& state, size_t batchSize) {
+void EncoderDecoder::BeginSentenceState(State& state, unsigned batchSize) {
+  //BEGIN_TIMER("BeginSentenceState");
   EDState& edState = state.get<EDState>();
-  decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, sentencesMask_);
+  decoder_->EmptyState(edState.GetStates(), *SourceContext_, batchSize, sentenceLengths_);
 
   decoder_->EmptyEmbedding(edState.GetEmbeddings(), batchSize);
+  //PAUSE_TIMER("BeginSentenceState");
 }
 
 
 void EncoderDecoder::AssembleBeamState(const State& in,
                                const Beam& beam,
                                State& out) {
-  std::vector<size_t> beamWords;
-  std::vector<uint> beamStateIds;
+  //BEGIN_TIMER("AssembleBeamState");
+  std::vector<unsigned> beamWords;
+  std::vector<unsigned> beamStateIds;
   for (const HypothesisPtr &h : beam) {
      beamWords.push_back(h->GetWord());
      beamStateIds.push_back(h->GetPrevStateIndex());
@@ -80,43 +121,74 @@ void EncoderDecoder::AssembleBeamState(const State& in,
 
   const EDState& edIn = in.get<EDState>();
   EDState& edOut = out.get<EDState>();
-  indices_.resize(beamStateIds.size());
-  HostVector<uint> tmp = beamStateIds;
+  indices_.newSize(beamStateIds.size());
 
-  mblas::copy(thrust::raw_pointer_cast(tmp.data()),
+  mblas::copy(beamStateIds.data(),
       beamStateIds.size(),
-      thrust::raw_pointer_cast(indices_.data()),
+      indices_.data(),
       cudaMemcpyHostToDevice);
   //cerr << "indices_=" << mblas::Debug(indices_, 2) << endl;
 
-  mblas::Assemble(edOut.GetStates(), edIn.GetStates(), indices_);
+  CellState& outstates = edOut.GetStates();
+  const CellState& instates = edIn.GetStates();
+
+  mblas::Assemble(*(outstates.output), *(instates.output), indices_);
+  if (instates.cell->size() > 0) {
+    mblas::Assemble(*(outstates.cell), *(instates.cell), indices_);
+  }
   //cerr << "edOut.GetStates()=" << edOut.GetStates().Debug(1) << endl;
 
   //cerr << "beamWords=" << Debug(beamWords, 2) << endl;
   decoder_->Lookup(edOut.GetEmbeddings(), beamWords);
   //cerr << "edOut.GetEmbeddings()=" << edOut.GetEmbeddings().Debug(1) << endl;
+  //PAUSE_TIMER("AssembleBeamState");
 }
 
-void EncoderDecoder::GetAttention(mblas::Matrix& Attention) {
+void EncoderDecoder::GetAttention(mblas::Tensor& Attention) {
   decoder_->GetAttention(Attention);
 }
 
-BaseMatrix& EncoderDecoder::GetProbs() {
+BaseTensor& EncoderDecoder::GetProbs() {
   return decoder_->GetProbs();
 }
 
-mblas::Matrix& EncoderDecoder::GetAttention() {
+void *EncoderDecoder::GetNBest()
+{
+  return &decoder_->GetNBest();
+}
+
+const BaseTensor *EncoderDecoder::GetBias() const
+{
+  return decoder_->GetBias();
+}
+
+mblas::Tensor& EncoderDecoder::GetAttention() {
   return decoder_->GetAttention();
 }
 
-size_t EncoderDecoder::GetVocabSize() const {
+unsigned EncoderDecoder::GetVocabSize() const {
   return decoder_->GetVocabSize();
 }
 
-void EncoderDecoder::Filter(const std::vector<size_t>& filterIds) {
+void EncoderDecoder::Filter(const std::vector<unsigned>& filterIds) {
   decoder_->Filter(filterIds);
 }
 
+void EncoderDecoder::SetTensorCore()
+{
+#if CUDA_VERSION >= 9000
+  if (god_.UseTensorCores()) {
+    //cerr << "using tensor cores" << endl;
+    cublasHandle_t handle = mblas::CublasHandler::GetHandle();
+    cublasStatus_t stat = cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+      printf ("cublasSetMathMode failed\n");
+      abort();
+    }
+  }
+#endif
+
+}
 
 }
 }

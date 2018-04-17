@@ -7,8 +7,9 @@
 #include "common/base_best_hyps.h"
 #include "common/threadpool.h"
 #include "gpu/types-gpu.h"
-#include "gpu/mblas/matrix.h"
+#include "gpu/mblas/tensor.h"
 #include "gpu/mblas/handles.h"
+#include "gpu/mblas/vector.h"
 
 
 namespace amunmt {
@@ -28,16 +29,16 @@ class EncoderDecoder : public Scorer {
     EncoderDecoder(const God &god,
     			   const std::string& name,
                    const YAML::Node& config,
-                   size_t tab,
+                   unsigned tab,
                    const Weights& model);
 
     virtual ~EncoderDecoder();
 
-    virtual void Decode(const State& in, State& out, const std::vector<uint>& beamSizes);
+    virtual void Decode(const State& in, State& out, const std::vector<unsigned>& beamSizes);
 
     virtual State* NewState() const;
 
-    virtual void BeginSentenceState(State& state, size_t batchSize=1);
+    virtual void BeginSentenceState(State& state, unsigned batchSize=1);
 
     virtual void Encode(const Sentences& source);
 
@@ -45,26 +46,32 @@ class EncoderDecoder : public Scorer {
                                    const Beam& beam,
                                    State& out);
 
-    void GetAttention(mblas::Matrix& Attention);
+    void GetAttention(mblas::Tensor& Attention);
 
-    mblas::Matrix& GetAttention();
-    virtual BaseMatrix& GetProbs();
+    mblas::Tensor& GetAttention();
+    virtual BaseTensor& GetProbs();
 
-    size_t GetVocabSize() const;
+    virtual void *GetNBest();
+    virtual const BaseTensor *GetBias() const;
 
-    void Filter(const std::vector<size_t>& filterIds);
+    unsigned GetVocabSize() const;
+
+    void Filter(const std::vector<unsigned>& filterIds);
 
   private:
     const Weights& model_;
     std::unique_ptr<Encoder> encoder_;
     std::unique_ptr<Decoder> decoder_;
-    DeviceVector<uint> indices_;
-    mblas::IMatrix sentencesMask_;
+    mblas::Vector<unsigned> indices_;
+    std::vector<unsigned> h_sentenceLengths_;
+    mblas::Vector<unsigned> sentenceLengths_;
       // set in Encoder::GetContext() to length (maxSentenceLength * batchSize). 1 if it's a word, 0 otherwise
 
-    std::unique_ptr<mblas::Matrix> SourceContext_;
+    std::unique_ptr<mblas::Tensor> SourceContext_;
 
     EncoderDecoder(const EncoderDecoder&) = delete;
+
+    void SetTensorCore();
 };
 
 }

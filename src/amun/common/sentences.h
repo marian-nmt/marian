@@ -14,19 +14,20 @@ class Sentences {
 
     void push_back(SentencePtr sentence);
 
-    SentencePtr at(size_t id) const;
+    SentencePtr at(unsigned id) const;
+    const Sentence &Get(unsigned id) const;
 
-    size_t size() const;
+    unsigned size() const;
 
-    size_t GetMaxLength() const;
+    unsigned GetMaxLength() const;
 
     void SortByLength();
 
-    SentencesPtr NextMiniBatch(size_t batchsize, int batchWords);
+    SentencesPtr NextMiniBatch(unsigned batchsize, int batchWords);
 
   protected:
     std::vector<SentencePtr> coll_;
-    size_t maxLength_;
+    unsigned maxLength_;
 
     Sentences(const Sentences &) = delete;
 };

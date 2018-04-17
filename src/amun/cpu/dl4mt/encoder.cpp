@@ -6,16 +6,16 @@ namespace amunmt {
 namespace CPU {
 namespace dl4mt {
 
-void Encoder::Encode(const std::vector<size_t>& words,
-				mblas::Matrix& context) {
-  std::vector<mblas::Matrix> embeddedWords;
+void Encoder::Encode(const std::vector<unsigned>& words,
+				mblas::Tensor& context) {
+  std::vector<mblas::Tensor> embeddedWords;
 
   context.resize(words.size(),
 				 forwardRnn_.GetStateLength()
 				 + backwardRnn_.GetStateLength());
   for(auto& w : words) {
     embeddedWords.emplace_back();
-    mblas::Matrix &embed = embeddedWords.back();
+    mblas::Tensor &embed = embeddedWords.back();
     embeddings_.Lookup(embed, w);
     //cerr << "embed=" << embed.Debug(true) << endl;
   }

@@ -37,7 +37,7 @@ std::vector<std::vector<size_t>> GetBatchInput(const Sentences& source, size_t t
   return matrix;
 }
 
-void Encoder::Encode(const Sentences& source, size_t tab, mblas::Matrix& context,
+void Encoder::Encode(const Sentences& source, size_t tab, mblas::Tensor& context,
                         Array<int>& dMapping)
 {
   size_t maxSentenceLength = GetMaxLength(source, tab);

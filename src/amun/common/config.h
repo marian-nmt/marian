@@ -25,7 +25,7 @@ class Config {
     
     const YAML::Node& Get() const;
     
-    void AddOptions(size_t argc, char** argv);
+    void AddOptions(unsigned argc, char** argv);
     
     template <class OStream>
     friend OStream& operator<<(OStream& out, const Config& config) {

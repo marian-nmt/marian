@@ -43,8 +43,8 @@ ScorerPtr EncoderDecoderLoader::NewScorer(const God &god, const DeviceInfo&) con
                                              tab, *dl4mtModels_[0]));
 }
 
-BestHypsBasePtr EncoderDecoderLoader::GetBestHyps(const God &god, const DeviceInfo &deviceInfo) const {
-  return BestHypsBasePtr(new CPU::BestHyps(god));
+BaseBestHypsPtr EncoderDecoderLoader::GetBestHyps(const God &god, const DeviceInfo &deviceInfo) const {
+  return BaseBestHypsPtr(new CPU::BestHyps(god));
 }
 
 }

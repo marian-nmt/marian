@@ -5,12 +5,17 @@
 
 #include "common/hypothesis.h"
 #include "common/sentence.h"
-#include "common/base_matrix.h"
+#include "common/base_tensor.h"
 #include "yaml-cpp/node/node.h"
 
 namespace amunmt {
 
+class God;
 class Sentences;
+class Hypothesis;
+typedef std::shared_ptr<Hypothesis> HypothesisPtr;
+typedef std::vector<HypothesisPtr> Beam;
+
 
 class State {
   public:
@@ -28,7 +33,7 @@ class State {
       return static_cast<const T&>(*this);;
     }
 
-    virtual std::string Debug(size_t verbosity = 1) const = 0;
+    virtual std::string Debug(unsigned verbosity = 1) const = 0;
 
 };
 
@@ -39,42 +44,45 @@ class Scorer {
   public:
     Scorer(const God &god,
            const std::string& name,
-           const YAML::Node& config, size_t tab);
+           const YAML::Node& config, unsigned tab);
 
     virtual ~Scorer() {}
 
-    virtual void Decode(const State& in, State& out, const std::vector<uint>& beamSizes) = 0;
+    virtual void Decode(const State& in, State& out, const std::vector<unsigned>& beamSizes) = 0;
 
-    virtual void BeginSentenceState(State& state, size_t batchSize = 1) = 0;
+    virtual void BeginSentenceState(State& state, unsigned batchSize = 1) = 0;
 
     virtual void AssembleBeamState(const State& in, const Beam& beam, State& out) = 0;
 
     virtual void Encode(const Sentences& sources) = 0;
 
-    virtual void Filter(const std::vector<size_t>&) = 0;
+    virtual void Filter(const std::vector<unsigned>&) = 0;
 
     virtual State* NewState() const = 0;
 
-    virtual size_t GetVocabSize() const = 0;
+    virtual unsigned GetVocabSize() const = 0;
 
-    virtual void CleanUpAfterSentence() {}
+    virtual void CleanAfterTranslation() {}
 
     virtual const std::string& GetName() const {
       return name_;
     }
 
-    virtual BaseMatrix& GetProbs() = 0;
+    virtual BaseTensor& GetProbs() = 0;
+    virtual void *GetNBest() = 0; // hack - need to return matrix<NthOut> but NthOut contain cuda code
+    virtual const BaseTensor *GetBias() const = 0;
 
   protected:
+    const God &god_;
     const std::string& name_;
     const YAML::Node& config_;
-    size_t tab_;
+    unsigned tab_;
 };
 
 class SourceIndependentScorer : public Scorer {
   public:
     SourceIndependentScorer(const God &god, const std::string& name,
-                            const YAML::Node& config, size_t)
+                            const YAML::Node& config, unsigned)
     : Scorer(god, name, config, 0) {}
 
     virtual ~SourceIndependentScorer() {}

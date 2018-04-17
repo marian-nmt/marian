@@ -4,7 +4,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "cpu/decoder/encoder_decoder.h"
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 #include "cpu/dl4mt/model.h"
 #include "cpu/dl4mt/encoder.h"
 #include "cpu/dl4mt/decoder.h"
@@ -27,15 +27,15 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
     EncoderDecoder(const God &god,
     			   const std::string& name,
                    const YAML::Node& config,
-                   size_t tab,
+                   unsigned tab,
                    const Weights& model);
 
     virtual void Decode(
         const State& in,
         State& out,
-        const std::vector<uint>& beamSizes);
+        const std::vector<unsigned>& beamSizes);
 
-    virtual void BeginSentenceState(State& state, size_t batchSize);
+    virtual void BeginSentenceState(State& state, unsigned batchSize);
 
     virtual void Encode(const Sentences& sources);
 
@@ -43,14 +43,14 @@ class EncoderDecoder : public CPUEncoderDecoderBase {
                                    const Beam& beam,
                                    State& out);
 
-    void GetAttention(mblas::Matrix& Attention);
-    mblas::Matrix& GetAttention();
+    void GetAttention(mblas::Tensor& Attention);
+    mblas::Tensor& GetAttention();
 
-    size_t GetVocabSize() const;
+    unsigned GetVocabSize() const;
 
-    BaseMatrix& GetProbs();
+    BaseTensor& GetProbs();
 
-    void Filter(const std::vector<size_t>& filterIds);
+    void Filter(const std::vector<unsigned>& filterIds);
 
   protected:
     const Weights& model_;

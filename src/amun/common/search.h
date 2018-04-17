@@ -27,7 +27,7 @@ class Search {
 
     bool CalcBeam(
     		std::shared_ptr<Histories>& histories,
-    		std::vector<uint>& beamSizes,
+    		std::vector<unsigned>& beamSizes,
         Beam& prevHyps,
     		States& states,
     		States& nextStates);
@@ -38,10 +38,14 @@ class Search {
     DeviceInfo deviceInfo_;
     std::vector<ScorerPtr> scorers_;
     std::shared_ptr<const Filter> filter_;
-    const size_t maxBeamSize_;
+    const unsigned maxBeamSize_;
+    const unsigned maxLengthMult_;
     bool normalizeScore_;
     Words filterIndices_;
-    BestHypsBasePtr bestHyps_;
+    BaseBestHypsPtr bestHyps_;
+
+    std::vector<unsigned> activeCount_;
+    void BatchStats();
 };
 
 }

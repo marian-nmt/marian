@@ -1,5 +1,5 @@
 #pragma once
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 #include <iomanip>
 
 namespace amunmt {
@@ -13,15 +13,15 @@ class GRU {
         layerNormalization_(w_.W_lns_.rows())
     {
       if (!layerNormalization_) {
-        WWx_ = mblas::Concat<mblas::byColumn, mblas::Matrix>(w_.W_, w_.Wx_);
-        UUx_ = mblas::Concat<mblas::byColumn, mblas::Matrix>(w_.U_, w_.Ux_);
+        WWx_ = mblas::Concat<mblas::byColumn, mblas::Tensor>(w_.W_, w_.Wx_);
+        UUx_ = mblas::Concat<mblas::byColumn, mblas::Tensor>(w_.U_, w_.Ux_);
       }
     }
 
     void GetNextState(
-      mblas::Matrix& nextState,
-      const mblas::Matrix& state,
-      const mblas::Matrix& context) const
+      mblas::Tensor& nextState,
+      const mblas::Tensor& state,
+      const mblas::Tensor& context) const
     {
       // std::cerr << "Get next state" << std::endl;
       if (layerNormalization_) {
@@ -33,7 +33,7 @@ class GRU {
         mblas::AddBiasVector<mblas::byRow>(RUH_2_, w_.Bx1_);
         LayerNormalization(RUH_2_, w_.Wx_lns_, w_.Wx_lnb_);
 
-        RUH_ = mblas::Concat<mblas::byColumn, mblas::Matrix>(RUH_1_, RUH_2_);
+        RUH_ = mblas::Concat<mblas::byColumn, mblas::Tensor>(RUH_1_, RUH_2_);
 
         Temp_1_ = state * w_.U_;
         mblas::AddBiasVector<mblas::byRow>(Temp_1_, w_.Bx3_);
@@ -43,7 +43,7 @@ class GRU {
         mblas::AddBiasVector<mblas::byRow>(Temp_2_, w_.Bx2_);
         LayerNormalization(Temp_2_, w_.Ux_lns_, w_.Ux_lnb_);
 
-        Temp_ = mblas::Concat<mblas::byColumn, mblas::Matrix>(Temp_1_, Temp_2_);
+        Temp_ = mblas::Concat<mblas::byColumn, mblas::Tensor>(Temp_1_, Temp_2_);
 
         ElementwiseOpsLayerNorm(nextState, state);
 
@@ -54,7 +54,7 @@ class GRU {
       }
     }
 
-    void ElementwiseOps(mblas::Matrix& NextState, const mblas::Matrix& State) const {
+    void ElementwiseOps(mblas::Tensor& NextState, const mblas::Tensor& State) const {
       using namespace mblas;
       using namespace blaze;
 
@@ -88,7 +88,7 @@ class GRU {
       }
     }
 
-    void ElementwiseOpsLayerNorm(mblas::Matrix& NextState, const mblas::Matrix& State) const {
+    void ElementwiseOpsLayerNorm(mblas::Tensor& NextState, const mblas::Tensor& State) const {
       using namespace mblas;
       using namespace blaze;
 
@@ -129,21 +129,21 @@ class GRU {
   private:
     // Model matrices
     const Weights& w_;
-    mutable mblas::Matrix WWx_;
-    mutable mblas::Matrix UUx_;
-    mutable mblas::Matrix Wbbx_;
-    mutable mblas::Matrix lns_WWx_;
-    mutable mblas::Matrix lns_UUx_;
-    mutable mblas::Matrix lnb_WWx_;
-    mutable mblas::Matrix lnb_UUx_;
+    mutable mblas::Tensor WWx_;
+    mutable mblas::Tensor UUx_;
+    mutable mblas::Tensor Wbbx_;
+    mutable mblas::Tensor lns_WWx_;
+    mutable mblas::Tensor lns_UUx_;
+    mutable mblas::Tensor lnb_WWx_;
+    mutable mblas::Tensor lnb_UUx_;
 
     // reused to avoid allocation
-    mutable mblas::Matrix RUH_;
-    mutable mblas::Matrix RUH_1_;
-    mutable mblas::Matrix RUH_2_;
-    mutable mblas::Matrix Temp_;
-    mutable mblas::Matrix Temp_1_;
-    mutable mblas::Matrix Temp_2_;
+    mutable mblas::Tensor RUH_;
+    mutable mblas::Tensor RUH_1_;
+    mutable mblas::Tensor RUH_2_;
+    mutable mblas::Tensor Temp_;
+    mutable mblas::Tensor Temp_1_;
+    mutable mblas::Tensor Temp_2_;
 
     bool layerNormalization_;
 };

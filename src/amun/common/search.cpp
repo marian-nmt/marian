@@ -3,8 +3,14 @@
 #include "common/sentences.h"
 #include "common/god.h"
 #include "common/history.h"
+#include "common/histories.h"
 #include "common/filter.h"
-#include "common/base_matrix.h"
+#include "common/base_tensor.h"
+
+#ifdef CUDA
+#include <cuda.h>
+#include <cuda_runtime.h>
+#endif
 
 using namespace std;
 
@@ -14,13 +20,17 @@ Search::Search(const God &god)
   : deviceInfo_(god.GetNextDevice()),
     scorers_(god.GetScorers(deviceInfo_)),
     filter_(god.GetFilter()),
-    maxBeamSize_(god.Get<size_t>("beam-size")),
+    maxBeamSize_(god.Get<unsigned>("beam-size")),
+    maxLengthMult_(god.Get<unsigned>("max-length-multiple")),
     normalizeScore_(god.Get<bool>("normalize")),
     bestHyps_(god.GetBestHyps(deviceInfo_))
-{}
+{
+  activeCount_.resize(god.Get<unsigned>("mini-batch") + 1, 0);
+}
 
 
 Search::~Search() {
+  BatchStats();
 #ifdef CUDA
   if (deviceInfo_.deviceType == GPUDevice) {
     cudaSetDevice(deviceInfo_.deviceId);
@@ -31,7 +41,7 @@ Search::~Search() {
 void Search::CleanAfterTranslation()
 {
   for (auto scorer : scorers_) {
-    scorer->CleanUpAfterSentence();
+    scorer->CleanAfterTranslation();
   }
 }
 
@@ -42,15 +52,16 @@ std::shared_ptr<Histories> Search::Translate(const Sentences& sentences) {
     FilterTargetVocab(sentences);
   }
 
+
   States states = Encode(sentences);
   States nextStates = NewStates();
-  std::vector<uint> beamSizes(sentences.size(), 1);
+  std::vector<unsigned> beamSizes(sentences.size(), 1);
 
-  std::shared_ptr<Histories> histories(new Histories(sentences, normalizeScore_));
+  std::shared_ptr<Histories> histories(new Histories(sentences, normalizeScore_, maxLengthMult_));
   Beam prevHyps = histories->GetFirstHyps();
 
-  for (size_t decoderStep = 0; decoderStep < 3 * sentences.GetMaxLength(); ++decoderStep) {
-    for (size_t i = 0; i < scorers_.size(); i++) {
+  for (unsigned decoderStep = 0; decoderStep < maxLengthMult_ * sentences.GetMaxLength(); ++decoderStep) {
+    for (unsigned i = 0; i < scorers_.size(); i++) {
       scorers_[i]->Decode(*states[i], *nextStates[i], beamSizes);
     }
 
@@ -65,6 +76,10 @@ std::shared_ptr<Histories> Search::Translate(const Sentences& sentences) {
     if (!hasSurvivors) {
       break;
     }
+
+    //cerr << "states0=" << states[0]->Debug(0) << endl;
+    //cerr << "beamSizes=" << beamSizes.size() << " " << histories->NumActive() << endl;
+    ++activeCount_[histories->NumActive()];
   }
 
   CleanAfterTranslation();
@@ -86,21 +101,24 @@ States Search::Encode(const Sentences& sentences) {
 
 bool Search::CalcBeam(
     std::shared_ptr<Histories>& histories,
-    std::vector<uint>& beamSizes,
+    std::vector<unsigned>& beamSizes,
     Beam& prevHyps,
     States& states,
     States& nextStates)
 {
-    size_t batchSize = beamSizes.size();
+    unsigned batchSize = beamSizes.size();
     Beams beams(batchSize);
     bestHyps_->CalcBeam(prevHyps, scorers_, filterIndices_, beams, beamSizes);
     histories->Add(beams);
 
+    histories->SetActive(false);
     Beam survivors;
-    for (size_t batchId = 0; batchId < batchSize; ++batchId) {
+    for (unsigned batchId = 0; batchId < batchSize; ++batchId) {
       for (auto& h : beams[batchId]) {
         if (h->GetWord() != EOS_ID) {
           survivors.push_back(h);
+
+          histories->SetActive(batchId, true);
         } else {
           --beamSizes[batchId];
         }
@@ -111,10 +129,11 @@ bool Search::CalcBeam(
       return false;
     }
 
-    for (size_t i = 0; i < scorers_.size(); i++) {
+    for (unsigned i = 0; i < scorers_.size(); i++) {
       scorers_[i]->AssembleBeamState(*nextStates[i], survivors, *states[i]);
     }
 
+    //cerr << "survivors=" << survivors.size() << endl;
     prevHyps.swap(survivors);
     return true;
 }
@@ -129,10 +148,10 @@ States Search::NewStates() const {
 }
 
 void Search::FilterTargetVocab(const Sentences& sentences) {
-  size_t vocabSize = scorers_[0]->GetVocabSize();
+  unsigned vocabSize = scorers_[0]->GetVocabSize();
   std::set<Word> srcWords;
-  for (size_t i = 0; i < sentences.size(); ++i) {
-    const Sentence& sentence = *sentences.at(i);
+  for (unsigned i = 0; i < sentences.size(); ++i) {
+    const Sentence& sentence = sentences.Get(i);
     for (const auto& srcWord : sentence.GetWords()) {
       srcWords.insert(srcWord);
     }
@@ -144,6 +163,19 @@ void Search::FilterTargetVocab(const Sentences& sentences) {
   }
 }
 
+void Search::BatchStats()
+{
+  unsigned sum = 0;
+  for (size_t i = 0; i < activeCount_.size(); ++i) {
+    sum += activeCount_[i];
+  }
+
+  cerr << "batches: ";
+  for (size_t i = 0; i < activeCount_.size(); ++i) {
+      cerr << ((float) activeCount_[i] / (float) sum) << " ";
+  }
+  cerr << endl;
+}
 
 
 }

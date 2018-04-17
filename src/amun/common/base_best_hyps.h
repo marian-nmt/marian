@@ -9,40 +9,29 @@
 
 namespace amunmt {
 
-class BestHypsBase
+class BaseBestHyps
 {
   public:
-    BestHypsBase(
-        bool forbidUNK,
-        bool returnNBestList,
-        bool isInputFiltered,
-        bool returnAttentionWeights,
-        const std::map<std::string, float>& weights)
-    : forbidUNK_(forbidUNK),
-      returnNBestList_(returnNBestList),
-      isInputFiltered_(isInputFiltered),
-      returnAttentionWeights_(returnAttentionWeights),
-      weights_(weights)
-    {}
+    BaseBestHyps(const God &god);
 
-    BestHypsBase(const BestHypsBase&) = delete;
+    BaseBestHyps(const BaseBestHyps&) = delete;
 
     virtual void CalcBeam(
         const Beam& prevHyps,
         const std::vector<ScorerPtr>& scorers,
         const Words& filterIndices,
         std::vector<Beam>& beams,
-        std::vector<uint>& beamSizes) = 0;
+        std::vector<unsigned>& beamSizes) = 0;
 
   protected:
+    const God &god_;
     const bool forbidUNK_;
-    const bool returnNBestList_;
     const bool isInputFiltered_;
     const bool returnAttentionWeights_;
     const std::map<std::string, float> weights_;
 
 };
 
-typedef std::shared_ptr<BestHypsBase> BestHypsBasePtr;
+typedef std::shared_ptr<BaseBestHyps> BaseBestHypsPtr;
 
 }

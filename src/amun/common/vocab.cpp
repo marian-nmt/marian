@@ -7,6 +7,8 @@
 #include "common/file_stream.h"
 #include "common/exception.h"
 
+using namespace std;
+
 namespace amunmt {
 
 Vocab::Vocab(const std::string& path) {
@@ -24,7 +26,7 @@ Vocab::Vocab(const std::string& path) {
     id2str_[UNK_ID] = UNK_STR;
 }
 
-size_t Vocab::operator[](const std::string& word) const {
+unsigned Vocab::operator[](const std::string& word) const {
     auto it = str2id_.find(word);
     if(it != str2id_.end())
         return it->second;
@@ -49,7 +51,7 @@ Words Vocab::operator()(const std::string& line, bool addEOS) const {
 
 std::vector<std::string> Vocab::operator()(const Words& sentence, bool ignoreEOS) const {
   std::vector<std::string> decoded;
-  for(size_t i = 0; i < sentence.size(); ++i) {
+  for(unsigned i = 0; i < sentence.size(); ++i) {
     if(sentence[i] != EOS_ID || !ignoreEOS) {
       decoded.push_back((*this)[sentence[i]]);
     }
@@ -58,12 +60,12 @@ std::vector<std::string> Vocab::operator()(const Words& sentence, bool ignoreEOS
 }
 
 
-const std::string& Vocab::operator[](size_t id) const {
+const std::string& Vocab::operator[](unsigned id) const {
   amunmt_UTIL_THROW_IF2(id >= id2str_.size(), "Unknown word id: " << id);
   return id2str_[id];
 }
 
-size_t Vocab::size() const {
+unsigned Vocab::size() const {
   return id2str_.size();
 }
 

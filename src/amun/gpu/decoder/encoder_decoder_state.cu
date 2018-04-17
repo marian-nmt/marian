@@ -1,5 +1,6 @@
 #include <sstream>
 #include "gpu/decoder/encoder_decoder_state.h"
+#include "gpu/dl4mt/cellstate.h"
 
 using namespace std;
 
@@ -7,26 +8,28 @@ namespace amunmt {
 namespace GPU {
 
 ////////////////////////////////////////////
-std::string EncoderDecoderState::Debug(size_t verbosity) const
+std::string EncoderDecoderState::Debug(unsigned verbosity) const
 {
   stringstream strm;
-  strm << "states_=" << states_.Debug(verbosity) << " embeddings_=" << embeddings_.Debug(verbosity);
+  strm << "states_.output=" << states_.output->Debug(verbosity);
+  strm << " states_.cell=" << (states_.cell == NULL ? "NULL" : states_.cell->Debug(verbosity));
+  strm << " embeddings_=" << embeddings_.Debug(verbosity);
   return strm.str();
 }
 
-mblas::Matrix& EncoderDecoderState::GetStates() {
+CellState& EncoderDecoderState::GetStates() {
   return states_;
 }
 
-mblas::Matrix& EncoderDecoderState::GetEmbeddings() {
+mblas::Tensor& EncoderDecoderState::GetEmbeddings() {
   return embeddings_;
 }
 
-const mblas::Matrix& EncoderDecoderState::GetStates() const {
+const CellState& EncoderDecoderState::GetStates() const {
   return states_;
 }
 
-const mblas::Matrix& EncoderDecoderState::GetEmbeddings() const {
+const mblas::Tensor& EncoderDecoderState::GetEmbeddings() const {
   return embeddings_;
 }
 

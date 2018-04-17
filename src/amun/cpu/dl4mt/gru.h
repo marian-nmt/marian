@@ -1,5 +1,5 @@
 #pragma once
-#include "cpu/mblas/matrix.h"
+#include "cpu/mblas/tensor.h"
 
 namespace amunmt {
 namespace CPU {
@@ -11,13 +11,13 @@ class GRU {
     GRU(const Weights& model)
     : w_(model) {
       using namespace mblas;
-      WWx_ = Concat<byColumn, Matrix>(w_.W_, w_.Wx_);
-      UUx_ = Concat<byColumn, Matrix>(w_.U_, w_.Ux_);
+      WWx_ = Concat<byColumn, Tensor>(w_.W_, w_.Wx_);
+      UUx_ = Concat<byColumn, Tensor>(w_.U_, w_.Ux_);
     }
 
-    void GetNextState(mblas::Matrix& NextState,
-                      const mblas::Matrix& State,
-                      const mblas::Matrix& Context) const {
+    void GetNextState(mblas::Tensor& NextState,
+                      const mblas::Tensor& State,
+                      const mblas::Tensor& Context) const {
       RUH_ = Context * WWx_;
       if (w_.Gamma_1_.rows()) {
         LayerNormalization(RUH_, w_.Gamma_1_);
@@ -33,8 +33,8 @@ class GRU {
       ElementwiseOps(NextState, State);
     }
 
-    void ElementwiseOps(mblas::Matrix& NextState,
-                        const mblas::Matrix& State) const {
+    void ElementwiseOps(mblas::Tensor& NextState,
+                        const mblas::Tensor& State) const {
 
       using namespace mblas;
       using namespace blaze;
@@ -78,12 +78,12 @@ class GRU {
   private:
     // Model matrices
     const Weights& w_;
-    mutable mblas::Matrix WWx_;
-    mutable mblas::Matrix UUx_;
+    mutable mblas::Tensor WWx_;
+    mutable mblas::Tensor UUx_;
 
     // reused to avoid allocation
-    mutable mblas::Matrix RUH_;
-    mutable mblas::Matrix Temp_;
+    mutable mblas::Tensor RUH_;
+    mutable mblas::Tensor Temp_;
 };
 
 }

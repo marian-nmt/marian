@@ -4,12 +4,14 @@
 #include <cstdint>
 #include <vector>
 #include <iostream>
-#include <unordered_map>
-#include <boost/timer/timer.hpp>
 
 namespace amunmt {
 
-typedef size_t Word;
+typedef unsigned Factor;
+typedef std::vector<Factor> FactWord;
+typedef std::vector<FactWord> FactWords;
+
+typedef unsigned Word;
 typedef std::vector<Word> Words;
 
 const Word EOS_ID = 0;
@@ -30,17 +32,10 @@ struct DeviceInfo
   friend std::ostream& operator<<(std::ostream& out, const DeviceInfo& obj);
 
   DeviceType deviceType;
-  size_t threadInd;
-  size_t deviceId;
+  unsigned threadInd;
+  unsigned deviceId;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////
-extern std::unordered_map<std::string, boost::timer::cpu_timer> timers;
-
-#define BEGIN_TIMER(str) {} // { HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); timers[str].resume(); }
-#define PAUSE_TIMER(str) {} //{ HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); \
-  //  timers[str].stop();						\
-  //                       }
-
 }
 
