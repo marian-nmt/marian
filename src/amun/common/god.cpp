@@ -26,6 +26,8 @@ using namespace std;
 
 namespace amunmt {
 
+std::unordered_map<std::string, boost::timer::cpu_timer> timers;
+
 God::God()
  : threadIncr_(0)
 {
