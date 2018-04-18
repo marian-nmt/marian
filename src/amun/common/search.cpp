@@ -26,13 +26,13 @@ Search::Search(const God &god)
     bestHyps_(god.GetBestHyps(deviceInfo_))
 {
   //activeCount_.resize(god.Get<unsigned>("mini-batch") + 1, 0);
-  //BEGIN_TIMER_CPU("Search");
+  BEGIN_TIMER_CPU("Search");
 }
 
 
 Search::~Search()
 {
-  //PAUSE_TIMER_CPU("Search");
+  PAUSE_TIMER_CPU("Search");
   //BatchStats();
 #ifdef CUDA
   if (deviceInfo_.deviceType == GPUDevice) {
