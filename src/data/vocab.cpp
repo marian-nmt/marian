@@ -3,6 +3,7 @@
 #include "common/logging.h"
 #include "common/utils.h"
 #include "data/vocab.h"
+#include "common/regex.h"
 
 #include <algorithm>
 #include <iostream>
@@ -10,7 +11,6 @@
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
-#include <regex>
 
 namespace marian {
 
@@ -82,7 +82,7 @@ int Vocab::loadOrCreate(const std::string& vocabPath,
 }
 
 int Vocab::load(const std::string& vocabPath, int max) {
-  bool isYaml = std::regex_search(vocabPath, std::regex("\\.(yml|json)$"));
+  bool isYaml = regex::regex_search(vocabPath, regex::regex("\\.(yml|json)$"));
   LOG(info, "[data] Loading vocabulary from {} file {}", isYaml ? "Yaml/JSON" : "text", vocabPath);
   ABORT_IF(!boost::filesystem::exists(vocabPath),
            "Vocabulary file {} does not exits",

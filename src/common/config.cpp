@@ -7,7 +7,6 @@
 #include <boost/algorithm/string.hpp>
 #include <set>
 #include <string>
-#include <regex>
 
 namespace marian {
 

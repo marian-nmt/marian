@@ -110,8 +110,16 @@ if(COMPILE_CPU)
   endif(MKL_FOUND)
 endif(COMPILE_CPU)
 
+set(BOOST_COMPONENTS system timer iostreams filesystem chrono program_options thread)
 
-set(BOOST_COMPONENTS system timer iostreams filesystem chrono program_options thread regex)
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
+  add_definitions(-DUSE_BOOST_REGEX=1)
+  set(BOOST_COMPONENTS ${BOOST_COMPONENTS} regex)
+  message("-- Using boost::regex")
+else()
+  message("-- Using std::regex")
+endif()
+
 
 if(COMPILE_SERVER)
   find_package(OpenSSL)

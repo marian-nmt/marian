@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
-#include <boost/regex.hpp>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -23,6 +22,8 @@
 #include "common/file_stream.h"
 #include "common/logging.h"
 #include "common/version.h"
+
+#include "common/regex.h"
 
 #define SET_OPTION(key, type)                    \
   do {                                           \
@@ -229,7 +230,7 @@ void ConfigParser::validateDevices() const {
   std::string devices = Join(get<std::vector<std::string>>("devices"));
   Trim(devices);
 
-  boost::regex pattern;
+  regex::regex pattern;
   std::string help;
   if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
     // valid strings: '0: 1 2', '0:1 2 1:2 3'
@@ -241,7 +242,7 @@ void ConfigParser::validateDevices() const {
     help = "Supported formats: '0 1 2 3'";
   }
 
-  UTIL_THROW_IF2(!boost::regex_match(devices, pattern),
+  UTIL_THROW_IF2(!regex::regex_match(devices, pattern),
                  "the argument '(" + devices
                      + ")' for option '--devices' is invalid. "
                      + help);
