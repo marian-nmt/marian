@@ -11,6 +11,7 @@ option(COMPILE_TESTS "Compile tests" OFF)
 option(COMPILE_SERVER "Compile marian-server" ON)
 option(COMPILE_CPU "Compile CPU version" ON)
 option(COMPILE_CUDA "Compile GPU version" ON)
+option(USE_STATIC_LIBS "Compile GPU version" OFF)
 option(USE_CUDNN "Use CUDNN library" OFF)
 option(USE_MPI "Use MPI library" OFF)
 
@@ -65,8 +66,6 @@ endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
 
 list(REMOVE_DUPLICATES CUDA_NVCC_FLAGS)
 set(CUDA_PROPAGATE_HOST_FLAGS OFF)
-
-set(USE_STATIC_LIBS ON)
 
 if(USE_STATIC_LIBS)
   set(_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
@@ -126,6 +125,14 @@ if(COMPILE_SERVER)
   endif(OpenSSL_FOUND)
 endif(COMPILE_SERVER)
 
+find_package(ZLIB)
+if(ZLIB_FOUND)
+  include_directories(${ZLIB_INCLUDE_DIRS})
+  set(EXT_LIBS ${EXT_LIBS} ${ZLIB_LIBRARIES})
+else(ZLIB_FOUND)
+  message(SEND_ERROR "Cannot find zlib.")
+endif(ZLIB_FOUND)
+
 if(USE_STATIC_LIBS)
   set(CMAKE_FIND_LIBRARY_SUFFIXES ${_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
 endif()
@@ -142,13 +149,6 @@ else(Boost_FOUND)
   message(SEND_ERROR "Cannot find Boost libraries. Terminating.")
 endif(Boost_FOUND)
 
-find_package(ZLIB)
-if(ZLIB_FOUND)
-  include_directories(${ZLIB_INCLUDE_DIRS})
-  set(EXT_LIBS ${EXT_LIBS} ${ZLIB_LIBRARIES})
-else(ZLIB_FOUND)
-  message(SEND_ERROR "Cannot find zlib.")
-endif(ZLIB_FOUND)
 
 
 if(COMPILE_TESTS)
