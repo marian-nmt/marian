@@ -214,7 +214,9 @@ void TransposeGeneric(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   if(vAxis == std::vector<int>({0, 2, 1, 3}))
     Transpose0213(out, in);
-  else if(vAxis == std::vector<int>({1, 0}))
+  else if(vAxis == std::vector<int>({1, 0}) 
+          && in->shape()[-1] % 16 == 0 
+          && in->shape()[-2] % 16 == 0)
     Transpose10(out, in);
   else
     TransposeGeneric(out, in, vAxis);
