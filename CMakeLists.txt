@@ -111,13 +111,6 @@ if(COMPILE_CPU)
   endif(MKL_FOUND)
 endif(COMPILE_CPU)
 
-find_package(ZLIB)
-if(ZLIB_FOUND)
-  include_directories(${ZLIB_INCLUDE_DIRS})
-  set(EXT_LIBS ${EXT_LIBS} ${ZLIB_LIBRARIES})
-else(ZLIB_FOUND)
-  message(SEND_ERROR "Cannot find zlib.")
-endif(ZLIB_FOUND)
 
 set(BOOST_COMPONENTS system timer iostreams filesystem chrono program_options thread regex)
 
@@ -148,6 +141,15 @@ if(Boost_FOUND)
 else(Boost_FOUND)
   message(SEND_ERROR "Cannot find Boost libraries. Terminating.")
 endif(Boost_FOUND)
+
+find_package(ZLIB)
+if(ZLIB_FOUND)
+  include_directories(${ZLIB_INCLUDE_DIRS})
+  set(EXT_LIBS ${EXT_LIBS} ${ZLIB_LIBRARIES})
+else(ZLIB_FOUND)
+  message(SEND_ERROR "Cannot find zlib.")
+endif(ZLIB_FOUND)
+
 
 if(COMPILE_TESTS)
   enable_testing()
