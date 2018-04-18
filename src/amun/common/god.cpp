@@ -108,7 +108,7 @@ God& God::Init(int argc, char** argv) {
 
 #ifdef CUDA
   useTensorCores_ = Get<bool>("tensor-cores");
-  cerr << "useTensorCores_=" << useTensorCores_ << endl;
+  //cerr << "useTensorCores_=" << useTensorCores_ << endl;
 #endif
 
   if (Has("input-file")) {
