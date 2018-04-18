@@ -32,26 +32,30 @@ protected:
 
   Expr targetEmbeddings_;
   Expr targetMask_;
+  Expr targetIndices_;
+
   Expr probs_;
-  bool singleStep_{false};
   rnn::States states_;
+  Ptr<data::CorpusBatch> batch_;
 
 public:
   DecoderState(const rnn::States& states,
                Expr probs,
-               std::vector<Ptr<EncoderState>>& encStates)
-      : states_(states), probs_(probs), encStates_(encStates) {}
+               std::vector<Ptr<EncoderState>>& encStates,
+               Ptr<data::CorpusBatch> batch)
+      : states_(states), probs_(probs), encStates_(encStates), batch_(batch) {}
 
   virtual std::vector<Ptr<EncoderState>>& getEncoderStates() {
     return encStates_;
   }
+
   virtual Expr getProbs() { return probs_; }
   virtual void setProbs(Expr probs) { probs_ = probs; }
 
   virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
                                    int beamSize) {
     return New<DecoderState>(
-        states_.select(selIdx, beamSize), probs_, encStates_);
+        states_.select(selIdx, beamSize), probs_, encStates_, batch_);
   }
 
   virtual const rnn::States& getStates() { return states_; }
@@ -62,18 +66,22 @@ public:
     targetEmbeddings_ = targetEmbeddings;
   }
 
+  virtual Expr getTargetIndices() { return targetIndices_; };
+
+  virtual void setTargetIndices(Expr targetIndices) {
+    targetIndices_ = targetIndices;
+  }
+
   virtual Expr getTargetMask() { return targetMask_; };
 
   virtual void setTargetMask(Expr targetMask) { targetMask_ = targetMask; }
 
-  virtual bool doSingleStep() { return singleStep_; };
-
-  virtual void setSingleStep(bool singleStep = true) {
-    singleStep_ = singleStep;
-  }
-
   virtual const std::vector<size_t>& getSourceWords() {
     return getEncoderStates()[0]->getSourceWords();
+  }
+
+  Ptr<data::CorpusBatch> getBatch() {
+    return batch_;
   }
 
   virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) {}

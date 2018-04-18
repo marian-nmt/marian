@@ -21,7 +21,7 @@ void Adagrad::updateImpl(Tensor params, Tensor grads) {
     int elements = params->size();
     alloc_->reserveExact(params->memory()->size());
     alloc_->allocate(gt_, {1, elements});
-    gt_->set(0);
+    gt_->set(0.f);
   }
 
   using namespace functional;
@@ -115,7 +115,7 @@ void Adagrad::save(const std::string& name,
 
 void Adagrad::resetStats() {
   if(gt_)
-    gt_->set(0);
+    gt_->set(0.f);
 }
 
 // Adam
@@ -128,10 +128,10 @@ void Adam::updateImpl(Tensor params, Tensor grads) {
     int elements = params->size();
     alloc_->reserveExact(2 * params->memory()->size());
     alloc_->allocate(mt_, {1, elements});
-    mt_->set(0);
+    mt_->set(0.f);
 
     alloc_->allocate(vt_, {1, elements});
-    vt_->set(0);
+    vt_->set(0.f);
   }
 
   t_++;
@@ -249,10 +249,10 @@ void Adam::save(const std::string& name,
 
 void Adam::resetStats() {
   if(mt_)
-    mt_->set(0);
+    mt_->set(0.f);
 
   if(vt_)
-    vt_->set(0);
+    vt_->set(0.f);
 }
 
 Ptr<OptimizerBase> Optimizer(Ptr<Config> options) {

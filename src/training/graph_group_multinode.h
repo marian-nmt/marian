@@ -2,6 +2,7 @@
 
 #if MPI_FOUND
 #include "mpi.h"
+#include "cuda_runtime.h"
 #endif
 
 #include <condition_variable>
@@ -391,7 +392,7 @@ public:
       clientGraphs_.push_back(New<ExpressionGraph>());
       clientGraphs_[i]->setDevice({devices_[i], DeviceType::gpu});
       clientGraphs_[i]->reserveWorkspaceMB(options_->get<size_t>("workspace"));
-      clientBuilders_.push_back(models::from_config(options_));
+      clientBuilders_.push_back(models::from_config(options_, models::usage::training));
     }
   }
 
@@ -493,7 +494,7 @@ public:
    * Collect statistics from first client's graph.
    */
   Ptr<data::BatchStats> collectStats() {
-    return clientBuilders_[0]->collectStats(clientGraphs_[0]);
+    return GraphGroup::collectStats(clientGraphs_[0], clientBuilders_[0]);
   }
 };
 }

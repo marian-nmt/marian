@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <boost/functional/hash.hpp>
 
 #include "common/logging.h"
 
@@ -116,8 +117,7 @@ public:
     strm << "shape=" << (*this)[0];
     for(int i = 1; i < size(); ++i)
       strm << "x" << (*this)[i];
-    strm << " size=" << elements() << " (" << elements() * sizeof(float)
-         << "B)";
+    strm << " size=" << elements();
     return strm.str();
   }
 
@@ -186,6 +186,13 @@ public:
       }
     }
     return shape;
+  }
+
+  size_t hash() const {
+    size_t seed = boost::hash<int>()(shape_[0]);
+    for(int i = 1; i < shape_.size(); ++i)
+      boost::hash_combine(seed, shape_[i]);
+    return seed;
   }
 };
 }

@@ -9,6 +9,7 @@
 #include "common/shape.h"
 #include "tensors/backend.h"
 #include "tensors/memory_piece.h"
+#include "tensors/types.h"
 
 #include <algorithm>
 
@@ -20,13 +21,18 @@ namespace marian {
 
 class TensorBase : public std::enable_shared_from_this<TensorBase> {
 private:
-  Ptr<MemoryPiece> memory_;
+  Type type_{Type::float32};
   Shape shape_;
+
+  Ptr<MemoryPiece> memory_;
   Ptr<Backend> backend_;
 
 public:
+  TensorBase(Ptr<MemoryPiece> memory, Shape shape, Type type, Ptr<Backend> backend)
+      : memory_(memory), shape_(shape), type_(type), backend_(backend) {}
+
   TensorBase(Ptr<MemoryPiece> memory, Shape shape, Ptr<Backend> backend)
-      : memory_(memory), shape_(shape), backend_(backend) {}
+      : memory_(memory), shape_(shape), type_(Type::float32), backend_(backend) {}
 
   ~TensorBase() {}
 
@@ -34,27 +40,46 @@ public:
 
   virtual Ptr<MemoryPiece> memory() { return memory_; }
 
+  virtual Type type() { return type_; }
+
   virtual Shape& shape() { return shape_; }
 
-  virtual float* data() { return (float*)memory_->data(); }
+  virtual float* data() { return memory_->data<float>(); }
+
+  template <typename T>
+  T* data() { return memory_->data<T>(); }
 
   virtual size_t size() { return shape_.elements(); }
 
   virtual float scalar() {
+    ABORT_IF(!matchType<float>(type_), "Requested type ({}) and underlying type ({}) do not match", request<float>(), type_);
     ABORT_IF(size() != 1, "Tensor is not a scalar");
     return get(0);
+  }
+
+  template <typename T>
+  T scalar() {
+    ABORT_IF(!matchType<T>(type_),
+             "Requested type ({}) and underlying type ({}) do not match",
+             request<T>(),
+             type_);
+
+    ABORT_IF(size() != 1, "Tensor is not a scalar");
+    return get<T>(0);
   }
 
   Ptr<Backend> getBackend() { return backend_; }
   DeviceId getDevice() { return backend_->getDevice(); }
 
   Tensor subtensor(int offset, int size) {
-    auto mem = New<MemoryPiece>(memory_->data() + sizeof(float) * offset,
-                                sizeof(float) * size);
+    auto mem = New<MemoryPiece>(memory_->data() + sizeOf(type_) * offset,
+                                sizeOf(type_) * size);
     return New<TensorBase>(mem, Shape{1, size}, backend_);
   }
 
   float get(size_t i) {
+    ABORT_IF(!matchType<float>(type_), "Requested type ({}) and underlying type ({}) do not match", request<float>(), type_);
+
     float temp;
     if(backend_->getDevice().type == DeviceType::cpu) {
       std::copy(data() + i, data() + i + 1, &temp);
@@ -67,54 +92,114 @@ public:
     return temp;
   }
 
-  void set(size_t i, float value) {
+  template <typename T>
+  float get(size_t i) {
+    ABORT_IF(!matchType<T>(type_),
+             "Requested type ({}) and underlying type ({}) do not match",
+             request<T>(),
+             type_);
+
+    T temp;
     if(backend_->getDevice().type == DeviceType::cpu) {
-      std::copy(&value, &value + 1, data() + i);
+      std::copy(data<T>() + i, data<T>() + i + 1, &temp);
     }
 #ifdef CUDA_FOUND
     else {
-      gpu::copy(backend_, &value, &value + 1, data() + i);
+      gpu::copy(backend_, data<T>() + i, data<T>() + i + 1, &temp);
+    }
+#endif
+    return temp;
+  }
+
+  template <typename T>
+  void set(size_t i, T value) {
+    ABORT_IF(!matchType<T>(type_),
+             "Requested type ({}) and underlying type ({}) do not match",
+             request<T>(),
+             type_);
+
+    if(backend_->getDevice().type == DeviceType::cpu) {
+      std::copy(&value, &value + 1, data<T>() + i);
+    }
+#ifdef CUDA_FOUND
+    else {
+      gpu::copy(backend_, &value, &value + 1, data<T>() + i);
     }
 #endif
   }
 
-  void get(std::vector<float>& v) {
+  template <typename T>
+  void get(std::vector<T>& v) {
+    ABORT_IF(!matchType<T>(type_),
+             "Requested type ({}) and underlying type ({}) do not match",
+             request<T>(),
+             type_);
+
     v.resize(size());
     if(backend_->getDevice().type == DeviceType::cpu) {
-      std::copy(data(), data() + size(), v.data());
+      std::copy(data<T>(), data<T>() + size(), v.data());
     }
 #ifdef CUDA_FOUND
     else {
-      gpu::copy(backend_, data(), data() + size(), v.data());
+      gpu::copy(backend_, data<T>(), data<T>() + size(), v.data());
     }
 #endif
   }
 
-  void set(const float* begin, const float* end) {
+  template <typename T>
+  void set(const T* begin, const T* end) {
+    ABORT_IF(!matchType<T>(type_),
+             "Requested type ({}) and underlying type ({}) do not match",
+             request<T>(),
+             type_);
+
     if(backend_->getDevice().type == DeviceType::cpu) {
-      std::copy(begin, end, data());
+      std::copy(begin, end, data<T>());
     }
 #ifdef CUDA_FOUND
     else {
-      gpu::copy(backend_, begin, end, data());
+      gpu::copy(backend_, begin, end, data<T>());
     }
 #endif
   }
 
-  void set(const std::vector<float>& v) { set(v.data(), v.data() + v.size()); }
+  template <typename T>
+  void set(const std::vector<T>& v) { set(v.data(), v.data() + v.size()); }
 
-  void set(float value) {
+  template <typename T>
+  void set(T value) {
+
+    if(!matchType<T>(type_)) {
+       switch(type_) {
+         case Type::float32: set<float>(value); break;
+         case Type::float64: set<double>(value); break;
+         case Type::int8:    set<int8_t>(value); break;
+         case Type::int16:   set<int16_t>(value); break;
+         case Type::int32:   set<int32_t>(value); break;
+         case Type::int64:   set<int64_t>(value); break;
+         case Type::uint8:   set<uint8_t>(value); break;
+         case Type::uint16:  set<uint16_t>(value); break;
+         case Type::uint32:  set<uint32_t>(value); break;
+         case Type::uint64:  set<uint64_t>(value); break;
+         default: ABORT("Requested type ({}) cannot be converted to underlying type ({})", 
+                        request<float>(), 
+                        type_);
+       }
+    }
+
     if(backend_->getDevice().type == DeviceType::cpu) {
-      std::fill(data(), data() + size(), value);
+      std::fill(data<T>(), data<T>() + size(), value);
     }
 #ifdef CUDA_FOUND
     else {
-      gpu::fill(backend_, data(), data() + size(), value);
+      gpu::fill(backend_, data<T>(), data<T>() + size(), value);
     }
 #endif
   }
 
   void setSparse(const std::vector<size_t>& k, const std::vector<float>& v) {
+    ABORT_IF(!matchType<float>(type_), "Requested type ({}) and underlying type ({}) do not match", request<float>(), type_);
+
     if(backend_->getDevice().type == DeviceType::cpu) {
       for(int i = 0; i < k.size(); ++i)
         data()[k[i]] = v[i];
@@ -127,6 +212,9 @@ public:
   }
 
   void copyFrom(Tensor in) {
+    // @TODO: solve this later
+    ABORT_IF(!matchType<float>(type_), "Requested type ({}) and underlying type ({}) do not match", request<float>(), type_);
+
     if(in->getBackend()->getDevice().type == DeviceType::cpu
        && backend_->getDevice().type == DeviceType::cpu) {
       std::copy(in->data(), in->data() + in->size(), data());
@@ -138,10 +226,17 @@ public:
 #endif
   }
 
+  template <typename T>
   std::string debug() {
+    ABORT_IF(!matchType<T>(type_),
+             "Requested type ({}) and underlying type ({}) do not match",
+             request<T>(),
+             type_);
+
     std::stringstream strm;
     assert(shape_.size());
     strm << shape_;
+    strm << " type=" << type_;
     strm << " device=" << backend_->getDevice();
     strm << " ptr=" << (size_t)memory_->data();
     strm << " bytes=" << memory_->size();
@@ -149,11 +244,14 @@ public:
 
     // values
     size_t totSize = shape_.elements();
-    std::vector<float> values(totSize);
+    std::vector<T> values(totSize);
     get(values);
 
     size_t dispCols = 5;
-    strm << std::fixed << std::setprecision(8) << std::setfill(' ');
+    if(isFloat(type_))
+      strm << std::fixed << std::setprecision(8) << std::setfill(' ');
+    else
+      strm << std::fixed << std::setprecision(0) << std::setfill(' ');
 
     for(int i = 0; i < values.size(); ++i) {
       std::vector<int> dims;
@@ -178,7 +276,17 @@ public:
           strm << " ";
         }
 
-        strm << std::setw(12) << values[i] << " ";
+        strm << std::setw(12);
+        if(isFloat(type_)) {
+          strm << (double)values[i];
+        }
+        else if(isSignedInt(type_)) {
+          strm << (int64_t)values[i];
+        }
+        else {
+          strm << (uint64_t)values[i];
+        }
+        strm << " ";
 
         if(dims.back() + 1 == shape().back()) {
           for(int j = dims.size() - 1; j >= 0; --j) {
@@ -208,6 +316,26 @@ public:
     strm << std::endl;
     return strm.str();
   }
+
+  std::string debug() {
+    switch (type_) {
+      case Type::int8:  return debug<int8_t>();
+      case Type::int16: return debug<int16_t>();
+      case Type::int32: return debug<int32_t>();
+      case Type::int64: return debug<int64_t>();
+
+      case Type::uint8:  return debug<uint8_t>();
+      case Type::uint16: return debug<uint16_t>();
+      case Type::uint32: return debug<uint32_t>();
+      case Type::uint64: return debug<uint64_t>();
+
+      case Type::float32: return debug<float>();
+      case Type::float64: return debug<double>();
+
+      default: ABORT("Unknown type {}", type_);
+    }
+  }
+
 };
 
 typedef std::shared_ptr<TensorBase> Tensor;

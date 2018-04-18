@@ -45,7 +45,7 @@ public:
   size_t totalCapacity(Ptr<TensorAllocator> alloc) {
     size_t sum = 0;
     for(auto p : params_) {
-      sum += alloc->capacity(p->shape());
+      sum += alloc->capacity(p->shape(), Type::float32);
     }
     return sum;
   }
@@ -59,9 +59,11 @@ public:
   void allocateForward() {
     if(!params_.empty() && vals_->size() == 0) {
       vals_->reserveExact(totalCapacity(vals_));
-      for(auto p : params_)
-        if(!p->val())
+      for(auto p : params_) {
+        if(!p->val()) {
           vals_->allocate(p->val(), p->shape());
+        }
+      }
     }
   }
 
@@ -74,7 +76,7 @@ public:
     }
   }
 
-  void set_zero_adjoint() { grads()->set(0); }
+  void set_zero_adjoint() { grads()->set(0.f); }
 
   Tensor vals() { return vals_->asTensor(); }
 

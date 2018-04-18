@@ -352,6 +352,10 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Number of heads in multi-head attention (transformer)")
     ("transformer-dim-ffn", po::value<int>()->default_value(2048),
      "Size of position-wise feed-forward network (transformer)")
+    ("transformer-no-projection", po::value<bool>()->zero_tokens()->default_value(false),
+     "Omit linear projection after multi-head attention (transformer)")
+    ("transformer-ffn-depth", po::value<int>()->default_value(2),
+     "Activation between filters: swish or relu (transformer)")
     ("transformer-ffn-activation", po::value<std::string>()->default_value("swish"),
      "Activation between filters: swish or relu (transformer)")
     ("transformer-preprocess", po::value<std::string>()->default_value(""),
@@ -659,6 +663,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
     ("cpu-threads", po::value<size_t>()->default_value(1),
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
 #endif
+    ("optimize", po::value<bool>()->zero_tokens()->default_value(false),
+      "Optimize speed aggressively sacrificing memory or precision")
     ("mini-batch", po::value<int>()->default_value(1),
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(1),
@@ -667,8 +673,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Sorting strategy for maxi-batch: none (default) src")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
       "Display n-best list")
-    //("lexical-table", po::value<std::string>(),
-    // "Path to lexical table")
+    ("shortlist", po::value<std::vector<std::string>>()->multitoken(),
+     "Use softmax shortlist: path first best prune")
     ("weights", po::value<std::vector<float>>()
       ->multitoken(),
       "Scorer weights")
@@ -716,6 +722,8 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
     ("cpu-threads", po::value<size_t>()->default_value(1),
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
 #endif
+    ("optimize", po::value<bool>()->zero_tokens()->default_value(false),
+      "Optimize speed aggressively sacrificing memory or precision")
     ("mini-batch", po::value<int>()->default_value(64),
       "Size of mini-batch used during update")
     ("mini-batch-words", po::value<int>()->default_value(0),
@@ -845,10 +853,12 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("layer-normalization", bool);
   SET_OPTION("right-left", bool);
   SET_OPTION("transformer-heads", int);
+  SET_OPTION("transformer-no-projection", bool);
   SET_OPTION("transformer-preprocess", std::string);
   SET_OPTION("transformer-postprocess", std::string);
   SET_OPTION("transformer-postprocess-emb", std::string);
   SET_OPTION("transformer-dim-ffn", int);
+  SET_OPTION("transformer-ffn-depth", int);
   SET_OPTION("transformer-ffn-activation", std::string);
 
 #ifdef CUDNN
@@ -948,6 +958,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("n-best", bool);
     SET_OPTION("n-best-feature", std::string);
     SET_OPTION_NONDEFAULT("summary", std::string);
+    SET_OPTION("optimize", bool);
   }
 
   if(mode_ == ConfigMode::translating) {
@@ -958,7 +969,9 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("allow-unk", bool);
     SET_OPTION("n-best", bool);
     SET_OPTION_NONDEFAULT("weights", std::vector<float>);
+    SET_OPTION_NONDEFAULT("shortlist", std::vector<std::string>);
     SET_OPTION("port", size_t);
+    SET_OPTION("optimize", bool);
   }
 
   /** valid **/

@@ -19,10 +19,14 @@ protected:
   size_t edges_{0};
   bool trainable_{true};
   bool destroy_{true};
+  bool memoize_{false};
+
   std::vector<Expr> children_;
 
   Weak<ExpressionGraph> graph_;
   Shape shape_{1, 1, 1, 1};
+  Type value_type_{Type::float32};
+
   std::string name_{"none"};
 
   Tensor val_{nullptr};
@@ -31,9 +35,13 @@ protected:
   bool markedForDebug_{false};
   std::string debugMessage_;
 
+  Ptr<AutoTunerRecorder> recorder_;
+  size_t recorderHash_;
+  bool recorderStop_;
+
 public:
-  Node(Ptr<ExpressionGraph> graph, Shape shape)
-      : graph_(graph), shape_(shape) {}
+  Node(Ptr<ExpressionGraph> graph, Shape shape, Type value_type = Type::float32)
+      : graph_(graph), shape_(shape), value_type_(value_type) {}
 
   virtual ~Node() {
     if(destroy_) {
@@ -58,13 +66,16 @@ public:
         op();
   }
 
-  virtual void forward() { runForward(forwardOps()); }
+  virtual void forward();
 
-  virtual void backward() { runBackward(backwardOps()); }
+  virtual void backward();
 
   virtual bool trainable() { return trainable_; }
 
   virtual void setTrainable(bool trainable) { trainable_ = trainable; }
+
+  virtual bool memoize() { return memoize_; };
+  virtual void setMemoize(bool memoize) { memoize_ = memoize; };
 
   virtual void setId(size_t id) { id_ = id; }
 
@@ -99,6 +110,7 @@ public:
   virtual Tensor& grad() { return adj_; };
 
   virtual const Shape& shape() { return shape_; }
+  virtual const Type& value_type() { return value_type_; }
 
   void set_name(const std::string& name) { name_ = name; }
 
@@ -134,19 +146,26 @@ public:
   virtual Expr child(size_t i) { return children_[i]; }
 
   Ptr<Backend> getBackend();
+
+  void record(Ptr<AutoTunerRecorder>, size_t, bool);
 };
 
 struct NaryNodeOp : public Node {
   size_t hash_{0};
 
-  NaryNodeOp(const std::vector<Expr>& nodes, Shape shape)
-      : Node(nodes.front()->graph(), shape) {
+  NaryNodeOp(const std::vector<Expr>& nodes, Shape shape, Type value_type = Type::float32)
+      : Node(nodes.front()->graph(), shape, value_type) {
     children_.resize(nodes.size());
     for(int i = 0; i < nodes.size(); ++i)
       children_[i] = nodes[i];
 
     setTrainable(std::any_of(
         nodes.begin(), nodes.end(), [](Expr a) { return a->trainable(); }));
+
+    // Node is to be memoized if all children are to be memoized.
+    setMemoize(std::all_of(
+        nodes.begin(), nodes.end(), [](Expr a) { return a->memoize(); }));
+
     remove_children_from_top_nodes();
   }
 

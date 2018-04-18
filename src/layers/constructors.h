@@ -27,44 +27,60 @@ struct LayerFactory : public Factory {
 };
 
 class DenseFactory : public LayerFactory {
-protected:
-  // std::vector<std::pair<std::string, std::string>> tiedParams_;
-  std::vector<std::pair<std::string, std::string>> tiedParamsTransposed_;
-
 public:
   DenseFactory(Ptr<ExpressionGraph> graph) : LayerFactory(graph) {}
 
-  // Accumulator<DenseFactory> tie(const std::string& param,
-  //                              const std::string& tied) {
-  //  tiedParams_.push_back({param, tied});
-  //  return Accumulator<DenseFactory>(*this);
-  //}
-
-  Accumulator<DenseFactory> tie_transposed(const std::string& param,
-                                           const std::string& tied) {
-    tiedParamsTransposed_.push_back({param, tied});
-    return Accumulator<DenseFactory>(*this);
-  }
-
   Ptr<Layer> construct() {
     auto dense = New<Dense>(graph_, options_);
-    // for(auto& p : tiedParams_)
-    //  dense->tie(p.first, p.second);
-    for(auto& p : tiedParamsTransposed_)
-      dense->tie_transposed(p.first, p.second);
     return dense;
   }
 
   DenseFactory clone() {
     DenseFactory aClone(graph_);
     aClone.options_->merge(options_);
-    // aClone.tiedParams_ = tiedParams_;
-    aClone.tiedParamsTransposed_ = tiedParamsTransposed_;
     return aClone;
   }
 };
 
 typedef Accumulator<DenseFactory> dense;
+
+class OutputFactory : public LayerFactory {
+protected:
+  std::vector<std::pair<std::string, std::string>> tiedParamsTransposed_;
+  Ptr<data::Shortlist> shortlist_;
+
+public:
+  OutputFactory(Ptr<ExpressionGraph> graph) : LayerFactory(graph) {}
+
+  Accumulator<OutputFactory> tie_transposed(const std::string& param,
+                                           const std::string& tied) {
+    tiedParamsTransposed_.push_back({param, tied});
+    return Accumulator<OutputFactory>(*this);
+  }
+
+  Accumulator<OutputFactory> set_shortlist(Ptr<data::Shortlist> shortlist) {
+    shortlist_ = shortlist;
+    return Accumulator<OutputFactory>(*this);
+  }
+
+  Ptr<Layer> construct() {
+    auto output = New<Output>(graph_, options_);
+    for(auto& p : tiedParamsTransposed_)
+      output->tie_transposed(p.first, p.second);
+    output->set_shortlist(shortlist_);
+    return output;
+  }
+
+  OutputFactory clone() {
+    OutputFactory aClone(graph_);
+    aClone.options_->merge(options_);
+    aClone.tiedParamsTransposed_ = tiedParamsTransposed_;
+    aClone.shortlist_ = shortlist_;
+    return aClone;
+  }
+};
+
+typedef Accumulator<OutputFactory> output;
 
 class MLP {
 protected:
@@ -98,7 +114,7 @@ public:
 
 class MLPFactory : public Factory {
 private:
-  std::vector<Ptr<DenseFactory>> layers_;
+  std::vector<Ptr<LayerFactory>> layers_;
 
 public:
   MLPFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
@@ -118,14 +134,6 @@ public:
   Accumulator<MLPFactory> push_back(const LF& lf) {
     layers_.push_back(New<LF>(lf));
     return Accumulator<MLPFactory>(*this);
-  }
-
-  MLPFactory clone() {
-    MLPFactory aClone(graph_);
-    aClone.options_->merge(options_);
-    for(auto lf : layers_)
-      aClone.push_back(lf->clone());
-    return aClone;
   }
 };
 

@@ -41,148 +41,168 @@ void SyncGraphGroup::fetchParams(Tensor oldParams,
   }
 }
 
-void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
-  std::vector<Ptr<data::Batch>> batches = batch->split(devices_.size());
+void SyncGraphGroup::execute(Ptr<data::Batch> fullBatch) {
+  std::vector<Ptr<data::Batch>> delayedBatches =
+    delay_ > 1 ?
+      fullBatch->split(delay_) :
+      std::vector<Ptr<data::Batch>>({ fullBatch });
 
-  if(first_) {
-    {
-      THREAD_GUARD(builders_[0]->build(graphs_[0], batches[0]);
-                   graphs_[0]->forward(););
+  std::vector<float> costs(devices_.size(), 0.f);
 
-      ThreadPool pool(graphs_.size() - 1, graphs_.size() - 1);
-      for(size_t i = 1; i < graphs_.size(); ++i) {
-        auto init = [&](size_t i) {
-          builders_[i]->build(graphs_[i], batches[0]);
-          graphs_[i]->forward();
-          graphs_[i]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
-        };
-        pool.enqueue(init, i);
-      }
-    }
+  size_t t = 1;
+  for(auto batch : delayedBatches) {
+    std::vector<Ptr<data::Batch>> batches = batch->split(devices_.size());
 
-    if(params_.size() == 0) {
-      int totalSize = graphs_[0]->params()->vals()->size();
-      shardSize_ = ceil(totalSize / (float)devices_.size());
+    if(first_) {
+      {
+        THREAD_GUARD(builders_[0]->build(graphs_[0], batches[0]);
+                     graphs_[0]->forward(););
 
-      int pos = 0;
-      for(auto graph : graphs_) {
-        int __size__ = std::min(shardSize_, totalSize);
-
-        auto paramsAlloc = New<TensorAllocator>(graph->getBackend());
-        paramsAllocs_.push_back(paramsAlloc);
-
-        paramsAlloc->reserveExact(3 * __size__ * sizeof(float));
-
-        Tensor param, grad, tmp;
-        paramsAlloc->allocate(param, {1, __size__});
-        paramsAlloc->allocate(grad, {1, __size__});
-        paramsAlloc->allocate(tmp, {1, __size__});
-        params_.push_back(param);
-        grads_.push_back(grad);
-        tmpTensors_.push_back(tmp);
-
-        param->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));
-        pos += __size__;
-        totalSize -= __size__;
-      }
-    }
-
-    if(movingAvg_ && paramsAvg_.size() == 0) {
-      int totalSize = graphs_[0]->params()->vals()->size();
-
-      int i = 0;
-      for(auto graph : graphs_) {
-        int __size__ = std::min(shardSize_, totalSize);
-        totalSize -= __size__;
-        Tensor paramAvg;
-        auto allocator = New<TensorAllocator>(graph->getBackend());
-
-        allocator->reserveExact(__size__ * sizeof(float));
-        allocator->allocate(paramAvg, {1, __size__});
-
-        paramAvg->copyFrom(params_[i++]);
-
-        paramsAllocAvg_.push_back(allocator);
-        paramsAvg_.push_back(paramAvg);
-      }
-    }
-
-    first_ = false;
-  }
-
-  std::vector<float> costs(devices_.size());
-
-  {
-    auto task = [this, &costs, batches](size_t idx) {
-      auto graph = graphs_[idx];
-      auto batch = batches[idx];
-
-      if(batch->size() > 0) {
-        auto costNode = builders_[idx]->build(graph, batch);
-        graph->forward();
-        costs[idx] = costNode->scalar();
-        graph->backward();
-      }
-    };
-
-    ThreadPool pool(devices_.size(), devices_.size());
-    for(int idx = 0; idx < batches.size(); ++idx)
-      pool.enqueue(task, idx);
-  }
-
-  {
-    auto task = [this, batches](size_t idx, int pos) {
-      grads_[idx]->set(0);
-      int size = params_[idx]->size();
-      int i = 0;
-
-      float div = devices_.size();  // no. of GPUs
-
-      // do not average gradients if cost type is sum.
-      if(options_->get<std::string>("cost-type") == "ce-sum") {
-        div = 1;
-      }
-
-      for(auto graph : graphs_) {
-        if(batches[i]->size() > 0) {
-          auto subGrad = graph->params()->grads()->subtensor(pos, size);
-          tmpTensors_[idx]->copyFrom(subGrad);
-
-          using namespace functional;
-          Element(_1 = _1 + (_2 / div), grads_[idx], tmpTensors_[idx]);
+        ThreadPool pool(graphs_.size() - 1, graphs_.size() - 1);
+        for(size_t i = 1; i < graphs_.size(); ++i) {
+          auto init = [&](size_t i) {
+            builders_[i]->build(graphs_[i], batches[0]);
+            graphs_[i]->forward();
+            graphs_[i]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
+          };
+          pool.enqueue(init, i);
         }
-        i++;
       }
 
-      shardOpt_[idx]->update(params_[idx], grads_[idx]);
+      if(params_.size() == 0) {
+        int totalSize = graphs_[0]->params()->vals()->size();
+        shardSize_ = ceil(totalSize / (float)devices_.size());
 
-      if(movingAvg_)
-        updateMovingAverage(
-            paramsAvg_[idx], params_[idx], scheduler_->numberOfBatches());
+        int pos = 0;
+        for(auto graph : graphs_) {
+          int __size__ = std::min(shardSize_, totalSize);
 
-      for(auto graph : graphs_) {
-        auto subParam = graph->params()->vals()->subtensor(pos, size);
-        subParam->copyFrom(params_[idx]);
+          auto paramsAlloc = New<TensorAllocator>(graph->getBackend());
+          paramsAllocs_.push_back(paramsAlloc);
+
+          paramsAlloc->reserveExact(3 * __size__ * sizeof(float));
+
+          Tensor param, grad, tmp;
+          paramsAlloc->allocate(param, {1, __size__});
+          paramsAlloc->allocate(grad, {1, __size__});
+          paramsAlloc->allocate(tmp, {1, __size__});
+          params_.push_back(param);
+
+          grad->set(0.f);
+          grads_.push_back(grad);
+
+          tmpTensors_.push_back(tmp);
+
+          param->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));
+          pos += __size__;
+          totalSize -= __size__;
+        }
       }
-    };
 
-    ThreadPool pool(devices_.size(), devices_.size());
-    int pos = 0;
-    for(int idx = 0; idx < devices_.size(); ++idx) {
-      pool.enqueue(task, idx, pos);
-      pos += params_[idx]->size();
+      if(movingAvg_ && paramsAvg_.size() == 0) {
+        int totalSize = graphs_[0]->params()->vals()->size();
+
+        int i = 0;
+        for(auto graph : graphs_) {
+          int __size__ = std::min(shardSize_, totalSize);
+          totalSize -= __size__;
+          Tensor paramAvg;
+          auto allocator = New<TensorAllocator>(graph->getBackend());
+
+          allocator->reserveExact(__size__ * sizeof(float));
+          allocator->allocate(paramAvg, {1, __size__});
+
+          paramAvg->copyFrom(params_[i++]);
+
+          paramsAllocAvg_.push_back(allocator);
+          paramsAvg_.push_back(paramAvg);
+        }
+      }
+
+      first_ = false;
     }
+
+    {
+      auto task = [this, &costs, batches](size_t idx) {
+        auto graph = graphs_[idx];
+        auto batch = batches[idx];
+
+        if(batch->size() > 0) {
+          auto costNode = builders_[idx]->build(graph, batch);
+          graph->forward();
+          costs[idx] += costNode->scalar();
+          graph->backward();
+        }
+      };
+
+      ThreadPool pool(devices_.size(), devices_.size());
+      for(int idx = 0; idx < batches.size(); ++idx)
+        pool.enqueue(task, idx);
+    }
+
+    {
+      auto task = [this, batches](size_t idx, int pos, bool update) {
+        int size = params_[idx]->size();
+        int i = 0;
+
+        float div = devices_.size();  // no. of GPUs
+
+        // do not average gradients if cost type is sum.
+        if(options_->get<std::string>("cost-type") == "ce-sum") {
+          div = 1;
+        }
+
+        for(auto graph : graphs_) {
+          if(batches[i]->size() > 0) {
+            auto subGrad = graph->params()->grads()->subtensor(pos, size);
+            tmpTensors_[idx]->copyFrom(subGrad);
+
+            using namespace functional;
+            Element(_1 = _1 + (_2 / div), grads_[idx], tmpTensors_[idx]);
+          }
+          i++;
+        }
+
+        if(update) {
+          shardOpt_[idx]->update(params_[idx], grads_[idx]);
+          grads_[idx]->set(0.f);
+
+          if(movingAvg_)
+            updateMovingAverage(
+              paramsAvg_[idx], params_[idx], scheduler_->numberOfBatches());
+
+          for(auto graph : graphs_) {
+            auto subParam = graph->params()->vals()->subtensor(pos, size);
+            subParam->copyFrom(params_[idx]);
+          }
+        }
+
+      };
+
+      ThreadPool pool(devices_.size(), devices_.size());
+      int pos = 0;
+      for(int idx = 0; idx < devices_.size(); ++idx) {
+        pool.enqueue(task, idx, pos, t == delay_);
+        pos += params_[idx]->size();
+      }
+    }
+
+    t++;
   }
 
   float cost = 0;
-  for(auto c : costs)
+  for(auto& c : costs) {
     cost += c;
+    c = 0;
+  }
+
+  // @TODO: review this
   if(options_->get<std::string>("cost-type") != "ce-sum") {
-    cost = cost / costs.size();
+    cost = cost / (costs.size() * delay_);
   }
 
   if(scheduler_) {
-    scheduler_->update(cost, batch);
+    scheduler_->update(cost, fullBatch);
 
     if(scheduler_->saving()) {
       this->save();

@@ -11,6 +11,7 @@
 #include "common/definitions.h"
 #include "tensors/device.h"
 #include "tensors/memory_piece.h"
+#include "tensors/types.h"
 
 namespace marian {
 
@@ -165,6 +166,16 @@ public:
   size_t capacity(size_t num) {
     return align(num * sizeof(T));
   }
+
+  size_t capacity(size_t num, Type type) {
+    return align(num * sizeOf(type));
+  }
+
+
+  Ptr<MemoryPiece> alloc(size_t num, Type type) {
+    return alloc(num * sizeOf(type));
+  }
+
 
   template <typename T>
   Ptr<MemoryPiece> alloc(size_t num) {

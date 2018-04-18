@@ -18,8 +18,9 @@ public:
   DecoderStateHardAtt(const rnn::States& states,
                       Expr probs,
                       std::vector<Ptr<EncoderState>>& encStates,
+                      Ptr<data::CorpusBatch> batch,
                       const std::vector<size_t>& attentionIndices)
-      : DecoderState(states, probs, encStates),
+      : DecoderState(states, probs, encStates, batch),
         attentionIndices_(attentionIndices) {}
 
   virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
@@ -31,6 +32,7 @@ public:
     return New<DecoderStateHardAtt>(states_.select(selIdx, beamSize),
                                     probs_,
                                     encStates_,
+                                    batch_,
                                     selectedAttentionIndices);
   }
 
@@ -101,7 +103,7 @@ public:
 
     rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
     return New<DecoderStateHardAtt>(
-        startStates, nullptr, encStates, std::vector<size_t>({0}));
+        startStates, nullptr, encStates, batch, std::vector<size_t>({0}));
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
@@ -228,6 +230,7 @@ public:
     return New<DecoderStateHardAtt>(decStates,
                                     logits,
                                     stateHardAtt->getEncoderStates(),
+                                    stateHardAtt->getBatch(),
                                     stateHardAtt->getAttentionIndices());
   }
 
@@ -236,12 +239,12 @@ public:
     return att->getAlignments();
   }
 
-  virtual std::tuple<Expr, Expr> groundTruth(Ptr<DecoderState> state,
-                                             Ptr<ExpressionGraph> graph,
-                                             Ptr<data::CorpusBatch> batch) {
+  void embeddingsFromBatch(Ptr<ExpressionGraph> graph,
+                           Ptr<DecoderState> state,
+                           Ptr<data::CorpusBatch> batch) {
     using namespace keywords;
 
-    auto ret = DecoderBase::groundTruth(state, graph, batch);
+    DecoderBase::embeddingsFromBatch(graph, state, batch);
 
     auto subBatch = (*batch)[batchIndex_];
     int dimBatch = subBatch->batchSize();
@@ -262,16 +265,14 @@ public:
 
     std::dynamic_pointer_cast<DecoderStateHardAtt>(state)->setAttentionIndices(
         attentionIndices);
-
-    return ret;
   }
 
-  virtual void selectEmbeddings(Ptr<ExpressionGraph> graph,
-                                Ptr<DecoderState> state,
-                                const std::vector<size_t>& embIdx,
-                                int dimBatch,
-                                int beamSize) {
-    DecoderBase::selectEmbeddings(graph, state, embIdx, dimBatch, beamSize);
+  virtual void embeddingsFromPrediction(Ptr<ExpressionGraph> graph,
+                                        Ptr<DecoderState> state,
+                                        const std::vector<size_t>& embIdx,
+                                        int dimBatch,
+                                        int beamSize) {
+    DecoderBase::embeddingsFromPrediction(graph, state, embIdx, dimBatch, beamSize);
 
     auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
 

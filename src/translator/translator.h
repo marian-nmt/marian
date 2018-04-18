@@ -3,6 +3,7 @@
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "data/text_input.h"
+#include "data/shortlist.h"
 
 #include "3rd_party/threadpool.h"
 #include "translator/history.h"
@@ -23,6 +24,7 @@ private:
 
   Ptr<data::Corpus> corpus_;
   Ptr<Vocab> trgVocab_;
+  Ptr<data::ShortlistGenerator> shortlistGenerator_;
 
 public:
   TranslateMultiGPU(Ptr<Config> options)
@@ -31,6 +33,16 @@ public:
         trgVocab_(New<Vocab>()) {
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
     trgVocab_->load(vocabs.back());
+
+    auto srcVocab = corpus_->getVocabs()[0];
+
+    if(options_->has("shortlist"))
+      shortlistGenerator_ =
+        New<data::LexicalShortlistGenerator>(options_,
+                                             srcVocab,
+                                             trgVocab_,
+                                             0, 1,
+                                             vocabs.front() == vocabs.back());
 
     auto devices = options_->getDevices();
 
@@ -41,14 +53,17 @@ public:
     size_t id = 0;
     for(auto device : devices) {
       auto task = [&](DeviceId device, size_t id) {
-        auto graph = New<ExpressionGraph>(true);
+        auto graph = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
         graph->setDevice(device);
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_[id] = graph;
 
         auto scorers = createScorers(options_);
-        for(auto scorer : scorers)
+        for(auto scorer : scorers) {
           scorer->init(graph);
+          if(shortlistGenerator_)
+            scorer->setShortlistGenerator(shortlistGenerator_);
+        }
 
         scorers_[id] = scorers;
       };
@@ -137,7 +152,7 @@ public:
 
     // initialize scorers
     for(auto device : devices_) {
-      auto graph = New<ExpressionGraph>(true);
+      auto graph = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
       graph->setDevice(device);
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);

@@ -168,14 +168,14 @@ public:
   NodeOps forwardOps() {
     using namespace functional;
     return {
-      NodeOp(Prod(val_,
-                  child(0)->val(),
-                  child(1)->val(),
-                  transA_,
-                  transB_,
-                  0.f,
-                  scalar_);
-             Add(_1, val_, child(2)->val()))
+      NodeOp(ProdWithBias(val_,
+                          child(0)->val(),
+                          child(1)->val(),
+                          child(2)->val(),
+                          transA_,
+                          transB_,
+                          0.f,
+                          scalar_))
     };
   }
 

@@ -66,6 +66,19 @@ void Prod(marian::Tensor C,
 #endif
 }
 
+void ProdWithBias(marian::Tensor C,
+          const marian::Tensor A,
+          const marian::Tensor B,
+          const marian::Tensor bias,
+          bool transA,
+          bool transB,
+          float beta,
+          float scalar) {
+  marian::gpu::Prod(C, A, B, transA, transB, beta, scalar);
+  marian::gpu::Add(functional::_1, 1.f, C, bias);
+}
+
+
 void ProdBatched(marian::Tensor C,
                  const marian::Tensor A,
                  const marian::Tensor B,
