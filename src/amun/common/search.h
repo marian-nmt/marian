@@ -44,8 +44,8 @@ class Search {
     Words filterIndices_;
     BaseBestHypsPtr bestHyps_;
 
-    std::vector<unsigned> activeCount_;
-    void BatchStats();
+    //std::vector<unsigned> activeCount_;
+    //void BatchStats();
 };
 
 }

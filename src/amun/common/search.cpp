@@ -25,17 +25,42 @@ Search::Search(const God &god)
     normalizeScore_(god.Get<bool>("normalize")),
     bestHyps_(god.GetBestHyps(deviceInfo_))
 {
-  activeCount_.resize(god.Get<unsigned>("mini-batch") + 1, 0);
+  //activeCount_.resize(god.Get<unsigned>("mini-batch") + 1, 0);
+  BEGIN_TIMER_CPU("Search");
 }
 
 
-Search::~Search() {
-  BatchStats();
+Search::~Search()
+{
+  PAUSE_TIMER_CPU("Search");
+  //BatchStats();
 #ifdef CUDA
   if (deviceInfo_.deviceType == GPUDevice) {
     cudaSetDevice(deviceInfo_.deviceId);
   }
 #endif
+
+  if (timers.size()) {
+    boost::timer::nanosecond_type encDecWall = timers["Search"].elapsed().wall;
+
+    cerr << "timers:" << endl;
+    for (auto iter = timers.begin(); iter != timers.end(); ++iter) {
+      const boost::timer::cpu_timer &timer = iter->second;
+      boost::timer::cpu_times t = timer.elapsed();
+      boost::timer::nanosecond_type wallTime = t.wall;
+
+      int percent = (float) wallTime / (float) encDecWall * 100.0f;
+
+      cerr << iter->first << " ";
+
+      for (int i = 0; i < ((int)35 - (int)iter->first.size()); ++i) {
+        cerr << " ";
+      }
+
+      cerr << timer.format(2, "%w") << " (" << percent << ")" << endl;
+    }
+  }
+
 }
 
 void Search::CleanAfterTranslation()
@@ -79,7 +104,7 @@ std::shared_ptr<Histories> Search::Translate(const Sentences& sentences) {
 
     //cerr << "states0=" << states[0]->Debug(0) << endl;
     //cerr << "beamSizes=" << beamSizes.size() << " " << histories->NumActive() << endl;
-    ++activeCount_[histories->NumActive()];
+    //++activeCount_[histories->NumActive()];
   }
 
   CleanAfterTranslation();
@@ -162,7 +187,7 @@ void Search::FilterTargetVocab(const Sentences& sentences) {
     scorer->Filter(filterIndices_);
   }
 }
-
+/*
 void Search::BatchStats()
 {
   unsigned sum = 0;
@@ -176,7 +201,7 @@ void Search::BatchStats()
   }
   cerr << endl;
 }
-
+*/
 
 }
 
