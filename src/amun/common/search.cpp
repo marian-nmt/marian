@@ -25,12 +25,12 @@ Search::Search(const God &god)
     normalizeScore_(god.Get<bool>("normalize")),
     bestHyps_(god.GetBestHyps(deviceInfo_))
 {
-  activeCount_.resize(god.Get<unsigned>("mini-batch") + 1, 0);
+  //activeCount_.resize(god.Get<unsigned>("mini-batch") + 1, 0);
 }
 
 
 Search::~Search() {
-  BatchStats();
+  //BatchStats();
 #ifdef CUDA
   if (deviceInfo_.deviceType == GPUDevice) {
     cudaSetDevice(deviceInfo_.deviceId);
@@ -79,7 +79,7 @@ std::shared_ptr<Histories> Search::Translate(const Sentences& sentences) {
 
     //cerr << "states0=" << states[0]->Debug(0) << endl;
     //cerr << "beamSizes=" << beamSizes.size() << " " << histories->NumActive() << endl;
-    ++activeCount_[histories->NumActive()];
+    //++activeCount_[histories->NumActive()];
   }
 
   CleanAfterTranslation();
@@ -162,7 +162,7 @@ void Search::FilterTargetVocab(const Sentences& sentences) {
     scorer->Filter(filterIndices_);
   }
 }
-
+/*
 void Search::BatchStats()
 {
   unsigned sum = 0;
@@ -176,7 +176,7 @@ void Search::BatchStats()
   }
   cerr << endl;
 }
-
+*/
 
 }
 
