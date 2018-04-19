@@ -95,8 +95,8 @@ set_target_properties(marian_vocab PROPERTIES OUTPUT_NAME marian-vocab)
 set(EXECUTABLES ${EXECUTABLES} marian_train marian_decoder marian_scorer marian_vocab)
 
 if(USE_STATIC_LIBS)
-# marian.zip
-# This combines marian, marian_decoder, and all the boost libraries in a single ZIP file for execution in MSFT internal tools FLO and Philly.
+# marian.zip and marian.tar
+# This combines marian, marian_decoder in a single ZIP or TAR file for execution in MSFT internal tools FLO and Philly.
 # Unfortunately, cmake does not seem to support full bash commands, so we must list all those dependencies here manually
   add_custom_command(
     OUTPUT "${CMAKE_BINARY_DIR}/marian.zip"
@@ -104,14 +104,16 @@ if(USE_STATIC_LIBS)
     "${CMAKE_BINARY_DIR}/marian" "${CMAKE_BINARY_DIR}/marian-decoder" 
     "${CMAKE_BINARY_DIR}/marian-scorer" "${CMAKE_BINARY_DIR}/marian-vocab"
     DEPENDS marian marian_decoder marian_scorer marian_vocab)
-  add_custom_target(marian.zip DEPENDS "${CMAKE_BINARY_DIR}/marian.zip")
+  add_custom_target(marian_zip DEPENDS "${CMAKE_BINARY_DIR}/marian.zip")
 
   add_custom_command(
     OUTPUT "${CMAKE_BINARY_DIR}/marian.tar"
-    COMMAND tar -cf "${CMAKE_BINARY_DIR}/marian.tar" -C "${CMAKE_BINARY_DIR}"
+    COMMAND tar -cvvf "${CMAKE_BINARY_DIR}/marian.tar" -C "${CMAKE_BINARY_DIR}"
     "marian" "marian-decoder" "marian-scorer" "marian-vocab"
     DEPENDS marian marian_decoder marian_scorer marian_vocab)
-  add_custom_target(marian.tar DEPENDS "${CMAKE_BINARY_DIR}/marian.tar")
+  add_custom_target(marian_tar DEPENDS "${CMAKE_BINARY_DIR}/marian.tar")
+
+  add_custom_target(philly DEPENDS marian_tar marian_zip)
 endif()
 
 if(COMPILE_SERVER)
