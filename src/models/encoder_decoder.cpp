@@ -55,19 +55,6 @@ void EncoderDecoder::push_back(Ptr<DecoderBase> decoder) {
   decoders_.push_back(decoder);
 }
 
-void EncoderDecoder::saveModelParameters(const std::string& name) {
-  Config::YamlNode modelParams;
-  for(auto& key : modelFeatures_)
-    modelParams[key] = options_->getOptions()[key];
-
-  if(options_->has("original-type"))
-    modelParams["type"] = options_->getOptions()["original-type"];
-
-  modelParams["version"] = PROJECT_VERSION_FULL;
-
-  Config::AddYamlToNpz(modelParams, "special:model.yml", name);
-}
-
 void EncoderDecoder::createDecoderConfig(const std::string& name) {
   Config::YamlNode decoder;
   decoder["models"] = std::vector<std::string>({name});
@@ -86,6 +73,22 @@ void EncoderDecoder::createDecoderConfig(const std::string& name) {
   (std::ostream&)out << decoder;
 }
 
+Config::YamlNode EncoderDecoder::getModelParameters() {
+  Config::YamlNode modelParams;
+  for(auto& key : modelFeatures_)
+    modelParams[key] = options_->getOptions()[key];
+
+  if(options_->has("original-type"))
+    modelParams["type"] = options_->getOptions()["original-type"];
+
+  modelParams["version"] = PROJECT_VERSION_FULL;
+  return modelParams;
+}
+
+void EncoderDecoder::saveModelParameters(const std::string& name) {
+  Config::AddYamlToNpz(getModelParameters(), "special:model.yml", name);
+}
+
 void EncoderDecoder::load(Ptr<ExpressionGraph> graph,
                   const std::string& name,
                   bool markedReloaded) {
@@ -96,8 +99,14 @@ void EncoderDecoder::save(Ptr<ExpressionGraph> graph,
                   const std::string& name,
                   bool saveTranslatorConfig) {
   // ignore config for now
-  graph->save(name);
-  saveModelParameters(name);
+  LOG(info, "Saving model weights and runtime parameters to {}", name);
+  std::vector<cnpy::NpzItem> npzItems;
+  graph->save(npzItems);                          // model weights
+  Config::AddYamlToNpzItems(getModelParameters(), // model runtime parameters
+                           "special:model.yml",
+                           npzItems);
+  cnpy::npz_save(name, npzItems); // save both jointly
+  //LOG(info, "Saved {} items.", npzItems.size());
 
   if(saveTranslatorConfig)
     createDecoderConfig(name);
