@@ -20,6 +20,7 @@ namespace marian {
 
 namespace cpu {
 
+#if BLAS_FOUND
 inline void sgemm(bool transA, bool transB,
                   int rows_a, int rows_b, int width,
                   float alpha,
@@ -45,6 +46,7 @@ inline void sgemm(bool transA, bool transB,
               c,
               ldc);
 }
+#endif
 
 void Prod(marian::Tensor C,
           const marian::Tensor A,
