@@ -4,6 +4,7 @@
 #include <memory>
 #include <functional>
 #include <boost/timer/timer.hpp>
+#include <boost/chrono.hpp>
 
 namespace marian {
 
