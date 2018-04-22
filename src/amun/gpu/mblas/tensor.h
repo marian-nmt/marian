@@ -139,6 +139,7 @@ class TTensor : public BaseTensor {
         if (dim(1) > 1) {
           T tmp[2];
 
+          HANDLE_ERROR( cudaStreamSynchronize(CudaStreamHandler::GetStream()));
           HANDLE_ERROR( cudaMemcpy(tmp, vec_.data(), 2 * sizeof(T), cudaMemcpyDeviceToHost) );
           for (size_t i = 0; i < 2; ++i) {
             strm << tmp[i] << " ";
