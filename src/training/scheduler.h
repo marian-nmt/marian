@@ -82,7 +82,7 @@ public:
   void addValidator(Ptr<ValidatorBase> validator) {
     validators_.push_back(validator);
 
-    registerTrainingObserver(validators_.front());
+    registerTrainingObserver(validators_.back());
     if(!state_->loaded) {
       state_->validators[validator->type()]["last-best"] = validator->initScore();
       state_->validators[validator->type()]["stalled"] = 0;
