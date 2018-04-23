@@ -416,6 +416,7 @@ public:
    * Update any client model with given batch if batch is assigned to this node.
    */
   void update(Ptr<data::Batch> batch) {
+    ABORT_IF(finalized_, "Training has already finished.");
     if(batchIter_ % mpi_comm_world_size_
        == mpi_my_rank_) {  // Only take batch assigned to this node
       execute(batch);
@@ -495,6 +496,10 @@ public:
    */
   Ptr<data::BatchStats> collectStats() {
     return GraphGroup::collectStats(clientGraphs_[0], clientBuilders_[0]);
+  }
+
+  virtual void finalize() {
+    finalized_ = true;
   }
 };
 }

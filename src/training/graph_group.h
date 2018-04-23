@@ -14,6 +14,7 @@ protected:
   Ptr<Config> options_;
   Ptr<OptimizerBase> opt_;
   Ptr<Scheduler> scheduler_;
+  bool finalized_{false};
 
   bool scaleLearningRate_;
   float avgBatchWords_;
@@ -33,7 +34,7 @@ public:
 
   virtual void save(bool = false) = 0;
 
-  virtual void wait(){};
+  virtual void finalize() = 0;
 
   virtual void setScheduler(Ptr<Scheduler> scheduler) = 0;
 
