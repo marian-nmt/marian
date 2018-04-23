@@ -83,7 +83,10 @@ public:
     }
   }
 
-  void update(Ptr<data::Batch> batch) { execute(batch); }
+  void update(Ptr<data::Batch> batch) {
+    ABORT_IF(finalized_, "Training has already finished.");
+    execute(batch);
+  }
 
   void load() {
     if(!options_->get<bool>("no-reload")) {
@@ -116,7 +119,7 @@ public:
 
   void save(bool final = false) {
     if(final && scheduler_) {
-      if(movingAvg_)
+      if(movingAvg_ && paramsAvg_.size())
           for(auto g : graphs_)
             fetchParams(g->params()->vals(), paramsAvg_, 0 /* safe? */);
 
@@ -165,6 +168,6 @@ public:
     return GraphGroup::collectStats(graphs_[0], builders_[0]);
   }
 
-  void wait();
+  virtual void finalize();
 };
 }

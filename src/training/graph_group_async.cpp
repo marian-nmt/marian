@@ -236,13 +236,13 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
         cost /= tau_;
 
       if (tau_ > 1) {
-        std::vector<size_t> fakeLength = {1, 1}; 
+        std::vector<size_t> fakeLength = {1, 1};
         auto fb = data::CorpusBatch::fakeBatch(fakeLength,
                                           num_seen_sentences,
                                           NULL);
         fb->front()->setWords(num_seen_words);
         scheduler_->update(cost, fb);
-        
+
         num_seen_words = 0;
         num_seen_sentences = 0;
       } else {
@@ -277,11 +277,10 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
   pool_->enqueue(task, batch);
 }
 
-void AsyncGraphGroup::wait() {
-  {
-    std::unique_lock<std::mutex> lock(schedulerMutex_);
-    pool_->wait_for_others(lock);
-    pool_->notify_others();
-  }
+void AsyncGraphGroup::finalize() {
+  pool_->join_all(); // call before destructing thread pool
+  pool_.reset(nullptr);
+  finalized_ = true;
 }
+
 }

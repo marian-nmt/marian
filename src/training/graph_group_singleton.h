@@ -37,7 +37,10 @@ public:
     builder_ = models::from_config(options_, models::usage::training);
   }
 
-  void update(Ptr<data::Batch> batch) { execute(batch); }
+  void update(Ptr<data::Batch> batch) {
+    ABORT_IF(finalized_, "Training has already finished.");
+    execute(batch);
+  }
 
   void load() {
     if(!options_->get<bool>("no-reload")) {
@@ -100,5 +103,10 @@ public:
   Ptr<data::BatchStats> collectStats() {
     return GraphGroup::collectStats(graph_, builder_);
   }
+
+  virtual void finalize() {
+    finalized_ = true;
+  }
+
 };
 }

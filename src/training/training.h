@@ -77,7 +77,7 @@ public:
     }
     scheduler->finished();
 
-    model->wait();
+    model->finalize();
     model->save(true);
   }
 };
