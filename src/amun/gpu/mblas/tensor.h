@@ -137,21 +137,46 @@ class TTensor : public BaseTensor {
         //T sum = Sum(data(), size());
         //strm << "sum=" << sum << std::flush;
         if (dim(1) > 1) {
-          T tmp[2];
-
           HANDLE_ERROR( cudaStreamSynchronize(CudaStreamHandler::GetStream()));
-          HANDLE_ERROR( cudaMemcpy(tmp, vec_.data(), 2 * sizeof(T), cudaMemcpyDeviceToHost) );
-          for (size_t i = 0; i < 2; ++i) {
+
+          unsigned maxCol = std::min((unsigned) 2, dim(1));
+
+          T tmp[2];
+          HANDLE_ERROR( cudaMemcpy(tmp, vec_.data(), maxCol * sizeof(T), cudaMemcpyDeviceToHost) );
+
+          for (size_t i = 0; i < maxCol; ++i) {
             strm << tmp[i] << " ";
           }
 
           if (dim(1) > 3) {
             strm << "...";
-            HANDLE_ERROR( cudaMemcpy(tmp, vec_.data() + dim(1) - 2, 2 * sizeof(T), cudaMemcpyDeviceToHost) );
-            for (size_t i = 0; i < 2; ++i) {
+            HANDLE_ERROR( cudaMemcpy(tmp, vec_.data() + dim(1) - maxCol, maxCol * sizeof(T), cudaMemcpyDeviceToHost) );
+            for (size_t i = 0; i < maxCol; ++i) {
               strm << tmp[i] << " ";
             }
           }
+
+          if (dim(0) > 1) {
+            // last row
+            strm << "/";
+
+
+            HANDLE_ERROR( cudaMemcpy(tmp, vec_.data() + size() - dim(1), maxCol * sizeof(T), cudaMemcpyDeviceToHost) );
+            for (unsigned i = 0; i < maxCol; i++) {
+              strm << " " << tmp[i];
+            }
+
+            if (dim(1) > 3) {
+              HANDLE_ERROR( cudaMemcpy(tmp, vec_.data() + size() - maxCol, maxCol * sizeof(T), cudaMemcpyDeviceToHost) );
+
+              strm << "...";
+              for (unsigned i = 0; i < maxCol; ++i) {
+                strm << tmp[i] << " ";
+              }
+            }
+
+          }
+
         }
 
         if (verbosity == 2) {

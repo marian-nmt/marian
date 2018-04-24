@@ -108,7 +108,7 @@ void Encoder::Encode(const Sentences& source,
   backwardRnn_.Encode(embeddedWords_.crend() - maxSentenceLength,
                           embeddedWords_.crend() ,
                           context, source.size(), true, &sentenceLengths);
-  //cerr << "GetContext5=" << context.Debug(1) << endl;
+  cerr << "GetContext5=" << context.Debug(1) << endl;
 }
 
 }
