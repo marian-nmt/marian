@@ -68,6 +68,8 @@ void Encoder::Encode(const Sentences& source,
                       std::vector<unsigned> &h_sentenceLengths,
                       mblas::Vector<unsigned> &sentenceLengths)
 {
+  cerr << "source=" << source.Debug(1) << endl;
+
   unsigned maxSentenceLength = GetMaxLength(source, tab);
 
   h_sentenceLengths.resize(source.size());

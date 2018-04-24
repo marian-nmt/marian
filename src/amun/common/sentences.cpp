@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <sstream>
 #include "sentences.h"
 
 using namespace std;
@@ -102,6 +103,18 @@ SentencesPtr Sentences::NextMiniBatch(unsigned batchsize, int batchWords)
 
   return sentences;
 }
+
+std::string Sentences::Debug(unsigned verbosity) const
+{
+  std::stringstream strm;
+  for (unsigned i = 0; i < size(); ++i) {
+    SentencePtr sent = at(i);
+    strm << sent->Debug(verbosity) << std:: endl;;
+  }
+
+  return strm.str();
+}
+
 
 }
 

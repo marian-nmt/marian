@@ -1,3 +1,4 @@
+#include <sstream>
 #include "sentence.h"
 #include "god.h"
 #include "utils.h"
@@ -86,6 +87,18 @@ unsigned Sentence::size(unsigned index) const {
   return words_[index].size();
 }
 
+std::string Sentence::Debug(unsigned verbosity) const
+{
+  cerr << "factors_.size();=" << factors_.size() << endl;
+  const FactWords &words = factors_[0];
+
+  std::stringstream strm;
+  for (unsigned i = 0; i < words.size(); ++i) {
+    const FactWord &word = words[i];
+    strm << word[0] << " ";
+  }
+  return strm.str();
+}
 
 }
 

@@ -25,6 +25,8 @@ class Sentences {
 
     SentencesPtr NextMiniBatch(unsigned batchsize, int batchWords);
 
+    std::string Debug(unsigned verbosity = 1) const;
+
   protected:
     std::vector<SentencePtr> coll_;
     unsigned maxLength_;
