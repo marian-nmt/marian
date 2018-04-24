@@ -22,7 +22,7 @@ class SlowGRU: public Cell {
 
       //std::cerr << std::endl;
 
-      const unsigned cols = GetStateLength();
+      const unsigned cols = GetStateLength().output;
 
       // @TODO: Optimization
       // @TODO: Launch streams to perform GEMMs in parallel

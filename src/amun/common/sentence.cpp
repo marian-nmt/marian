@@ -89,7 +89,6 @@ unsigned Sentence::size(unsigned index) const {
 
 std::string Sentence::Debug(unsigned verbosity) const
 {
-  cerr << "factors_.size();=" << factors_.size() << endl;
   const FactWords &words = factors_[0];
 
   std::stringstream strm;
