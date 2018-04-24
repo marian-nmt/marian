@@ -96,7 +96,7 @@ void Encoder::Encode(const Sentences& source,
       embeddedWords_.emplace_back();
     }
     embeddings_.Lookup(embeddedWords_[i], input[i]);
-    //cerr << "embeddedWords_=" << embeddedWords_.back().Debug(true) << endl;
+    //cerr << "embeddedWord_=" << embeddedWords_[i].Debug(1) << endl;
   }
 
   //cerr << "GetContext3=" << context.Debug(1) << endl;
