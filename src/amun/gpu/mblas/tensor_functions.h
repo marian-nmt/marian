@@ -68,6 +68,38 @@ std::string Debug(const std::vector<T> &vec, unsigned verbosity = 1)
   return strm.str();
 }
 
+/*
+template<typename T>
+__global__ void gSum(const T *data, unsigned count, T &ret)
+{
+  ret = 0;
+  for (unsigned i = 0; i < count; ++i) {
+    ret += data[i];
+  }
+}
+
+template<typename T>
+T Sum(const T *data, unsigned count)
+{
+  T ret;
+  T *d_ret;
+  HANDLE_ERROR( cudaMalloc(&d_ret, sizeof(T)) );
+
+  const cudaStream_t stream = CudaStreamHandler::GetStream();
+
+  HANDLE_ERROR( cudaStreamSynchronize(stream));
+  gSum<<<1, 1, 0, stream>>>(data, count, *d_ret);
+  HANDLE_ERROR(cudaGetLastError());
+
+  HANDLE_ERROR( cudaMemcpyAsync(&ret, d_ret, sizeof(T), cudaMemcpyDeviceToHost, stream) );
+
+  HANDLE_ERROR( cudaStreamSynchronize(stream));
+  HANDLE_ERROR(cudaFree(d_ret));
+
+  return ret;
+}
+*/
+
 template<typename T>
 void copy(const T *in, unsigned count, T *out,  cudaMemcpyKind kind) {
   HANDLE_ERROR( cudaMemcpyAsync(out, in, count * sizeof(T), kind, CudaStreamHandler::GetStream()) );
