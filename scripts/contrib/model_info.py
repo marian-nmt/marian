@@ -37,7 +37,11 @@ def main():
             if args.key not in model:
                 print("Key not found")
                 exit(1)
-            print(model[args.key])
+            if args.full_matrix:
+                for (x, y), val in np.ndenumerate(model[args.key]):
+                    print(val)
+            else:
+                print(model[args.key])
         else:
             for key in model:
                 print(key)
@@ -49,6 +53,8 @@ def parse_args():
     parser.add_argument("-k", "--key", help="print value for specific key")
     parser.add_argument("-s", "--special", action="store_true",
                         help="print values from special:model.yml node")
+    parser.add_argument("-f", "--full-matrix", action="store_true",
+                        help="force numpy to print full arrays")
     return parser.parse_args()
 
 
