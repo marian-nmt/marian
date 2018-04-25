@@ -78,7 +78,8 @@ public:
     scheduler->finished();
 
     model->finalize();
-    model->save(true);
+    if(!trainState->loaded)
+      model->save(true);
   }
 };
 }
