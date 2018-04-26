@@ -49,9 +49,6 @@ public:
 
     auto state = encdec->stepAll(graph, corpusBatch, clearGraph);
 
-    std::string costType = options_->get<std::string>("cost-type");
-    bool inference = options_->get<bool>("inference", false);
-
     float ls = inference_ ? 0.f : options_->get<float>("label-smoothing");
 
     Expr weights;
