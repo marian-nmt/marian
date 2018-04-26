@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include "gpu/mblas/tensor_functions.h"
 #include "gpu/mblas/tensor_wrapper.h"
 #include "gpu/mblas/handles.h"
@@ -17,6 +18,9 @@ struct CellState {
 
   std::unique_ptr<mblas::Tensor> output;
   std::unique_ptr<mblas::Tensor> cell;
+
+  virtual std::string Debug(unsigned verbosity = 1) const;
+
 };
 }
 }
