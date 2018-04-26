@@ -101,7 +101,7 @@ class TTensor : public BaseTensor {
       std::stringstream strm;
       strm << BaseTensor::Debug(verbosity) << " ";
 
-      if (verbosity) {
+      if (verbosity == 1) {
         if (dim(1) > 1) {
           HANDLE_ERROR( cudaStreamSynchronize(CudaStreamHandler::GetStream()));
 
@@ -144,8 +144,7 @@ class TTensor : public BaseTensor {
           }
 
         }
-
-        if (verbosity == 2) {
+        else if (verbosity == 2) {
           const cudaStream_t& stream = CudaStreamHandler::GetStream();
           T h_data[size()];
 

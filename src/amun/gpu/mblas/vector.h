@@ -148,7 +148,28 @@ public:
     std::stringstream strm;
     strm << size_ << " " << std::flush;
 
-    if (verbosity == 2) {
+    if (verbosity == 1) {
+      HANDLE_ERROR( cudaStreamSynchronize(CudaStreamHandler::GetStream()));
+
+      unsigned maxCol = std::min((unsigned) 2, size());
+
+      T tmp[2];
+      HANDLE_ERROR( cudaMemcpy(tmp, data(), maxCol * sizeof(T), cudaMemcpyDeviceToHost) );
+
+      for (size_t i = 0; i < maxCol; ++i) {
+        strm << " " << tmp[i];
+      }
+
+      if (size() > 3) {
+        strm << "...";
+        HANDLE_ERROR( cudaMemcpy(tmp, data() + size() - maxCol, maxCol * sizeof(T), cudaMemcpyDeviceToHost) );
+        for (size_t i = 0; i < maxCol; ++i) {
+          strm << tmp[i] << " ";
+        }
+      }
+
+    }
+    else if (verbosity == 2) {
       T h_data[size()];
 
       const cudaStream_t& stream = CudaStreamHandler::GetStream();
