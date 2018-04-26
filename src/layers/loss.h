@@ -1,12 +1,6 @@
 #pragma once
 
 #include "marian.h"
-// #include "common/definitions.h"
-// #include "common/options.h"
-// #include "graph/expression_graph.h"
-// #include "graph/expression_operators.h"
-// #include "layers/factory.h"
-// #include "layers/param_initializers.h"
 
 namespace marian {
 class LossBase {
