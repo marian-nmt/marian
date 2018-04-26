@@ -111,7 +111,7 @@ class TTensor : public BaseTensor {
           HANDLE_ERROR( cudaMemcpy(tmp, vec_.data(), maxCol * sizeof(T), cudaMemcpyDeviceToHost) );
 
           for (size_t i = 0; i < maxCol; ++i) {
-            strm << tmp[i] << " ";
+            strm << " " << tmp[i];
           }
 
           if (dim(1) > 3) {
