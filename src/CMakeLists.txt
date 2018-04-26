@@ -34,6 +34,8 @@ add_library(marian STATIC
   graph/node_initializers.cpp
 
   layers/convolution.cpp
+  layers/loss.cpp
+  layers/weight.cpp
 
   rnn/cells.cpp
   rnn/attention.cpp
