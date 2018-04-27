@@ -226,13 +226,18 @@ class Decoder {
 
           Broadcast(Tanh(_1 + _2), Temp1_, SCU_, Temp2_, dBatchMapping_, maxLength);
 
-          //std::cerr << "w_.V_=" << w_.V_->Debug(0) << std::endl;
-          //std::cerr << "3Temp1_=" << Temp1_.Debug(0) << std::endl;
-
           Prod(A_, *w_.V_, Temp1_, true);
 
+
           mblas::Softmax(A_, dBatchMapping_, sentenceLengths, batchSize);
+
+          std::cerr << "AlignedSourceContext=" << AlignedSourceContext.Debug(1) << std::endl;
+          std::cerr << "A_=" << A_.Debug(1) << std::endl;
+          std::cerr << "SourceContext=" << SourceContext.Debug(1) << std::endl;
+          std::cerr << "dBatchMapping_=" << dBatchMapping_.Debug(2) << std::endl;
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
+          std::cerr << "AlignedSourceContext=" << AlignedSourceContext.Debug(1) << std::endl;
+          std::cerr << std::endl;
 
           /*
           std::cerr << "AlignedSourceContext=" << AlignedSourceContext.Debug() << std::endl;
