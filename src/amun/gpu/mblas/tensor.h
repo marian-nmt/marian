@@ -142,23 +142,21 @@ class TTensor : public BaseTensor {
             }
 
           }
-
         }
-        else if (verbosity == 2) {
-          const cudaStream_t& stream = CudaStreamHandler::GetStream();
-          T h_data[size()];
+      }
+      else if (verbosity == 2) {
+        HANDLE_ERROR( cudaStreamSynchronize(CudaStreamHandler::GetStream()));
 
-          HANDLE_ERROR( cudaMemcpyAsync(
-              &h_data,
-              vec_.data(),
-              size() * sizeof(T),
-              cudaMemcpyDeviceToHost,
-              stream) );
-          HANDLE_ERROR( cudaStreamSynchronize(stream) );
+        T h_data[size()];
 
-          for (unsigned i = 0; i < size(); ++i) {
-            strm << " " << h_data[i];
-          }
+        HANDLE_ERROR( cudaMemcpy(
+            &h_data,
+            vec_.data(),
+            size() * sizeof(T),
+            cudaMemcpyDeviceToHost) );
+
+        for (unsigned i = 0; i < size(); ++i) {
+          strm << " " << h_data[i];
         }
       }
 
