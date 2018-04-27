@@ -231,13 +231,7 @@ class Decoder {
 
           mblas::Softmax(A_, dBatchMapping_, sentenceLengths, batchSize);
 
-          std::cerr << "AlignedSourceContext=" << AlignedSourceContext.Debug(1) << std::endl;
-          std::cerr << "A_=" << A_.Debug(1) << std::endl;
-          std::cerr << "SourceContext=" << SourceContext.Debug(1) << std::endl;
-          std::cerr << "dBatchMapping_=" << dBatchMapping_.Debug(2) << std::endl;
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
-          std::cerr << "AlignedSourceContext=" << AlignedSourceContext.Debug(1) << std::endl;
-          std::cerr << std::endl;
 
           /*
           std::cerr << "AlignedSourceContext=" << AlignedSourceContext.Debug() << std::endl;
