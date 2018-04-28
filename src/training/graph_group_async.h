@@ -46,7 +46,7 @@ protected:
 
   std::unique_ptr<ThreadPool> pool_;
 
-  size_t tau_{1};
+  size_t optimizerDelay_{1};
 
   virtual void init(Ptr<data::Batch> batch);
 

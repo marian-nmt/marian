@@ -8,6 +8,9 @@
 
 namespace marian {
 
+/**
+ * Single gpu training
+ */
 class SingletonGraph : public GraphGroup {
 public:
   virtual void setScheduler(Ptr<Scheduler> scheduler);

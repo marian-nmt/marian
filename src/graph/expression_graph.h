@@ -80,6 +80,7 @@ public:
       if(it != longterm_->end()) {
         for(auto found : it->second) {
           return found;
+          // @TODO: check why below code does not work for certain nodes and autotuning.
           //if(node->equal(found)) {
             //std::cerr << "found memoized" << std::endl;
             //return found;

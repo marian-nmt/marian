@@ -23,6 +23,11 @@ void Node::free() {
   }
 }
 
+/**
+ * Initialization for backward step of top node
+ * in computation graph. Allocates memory and sets gradient
+ * to 1 (df/df == 1).
+ */
 void Node::init_dependent() {
   if(!adj_) {
     graph()->allocateBackward(shared_from_this());
@@ -30,6 +35,12 @@ void Node::init_dependent() {
   }
 }
 
+/**
+ * Initialization for backward step of any non-top node
+ * in computation graph. Allocates memory and sets gradient
+ * to 0 for further accumulation of gradients from all
+ * parents.
+ */
 void Node::set_zero_adjoint() {
   if(!adj_) {
     graph()->allocateBackward(shared_from_this());

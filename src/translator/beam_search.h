@@ -36,9 +36,15 @@ public:
                bool first) {
     Beams newBeams(beams.size());
     for(int i = 0; i < keys.size(); ++i) {
+
+      // keys is contains indices to vocab items in the entire beam.
+      // values can be between 0 and beamSize * vocabSize.
       int embIdx = keys[i] % vocabSize;
       int beamIdx = i / beamSize;
 
+      // retrieve short list for final softmax (based on words aligned
+      // to source sentences). If short list has been set, map the indices
+      // in the sub-selected vocabulary matrix back to their original positions.
       auto shortlist = scorers_[0]->getShortlist();
       if(shortlist)
         embIdx = shortlist->reverseMap(embIdx);

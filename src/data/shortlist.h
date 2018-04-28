@@ -129,6 +129,7 @@ private:
     std::string src, trg;
     float prob;
     while(in >> trg >> src >> prob) {
+      // @TODO: change this to something safer other than NULL
       if(src == "NULL" || trg == "NULL")
         continue;
 

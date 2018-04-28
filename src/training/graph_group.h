@@ -9,6 +9,10 @@
 
 namespace marian {
 
+/**
+ *  Base class for managing the training process across one, multiple gpus,
+ *  or even multiple machines with multiple gpus.
+ */
 class GraphGroup {
 protected:
   Ptr<Config> options_;
@@ -32,14 +36,18 @@ public:
 
   virtual void load() = 0;
 
-  virtual void save(bool = false) = 0;
+  virtual void save(bool isFinal = false) = 0;
 
   virtual void finalize() = 0;
 
   virtual void setScheduler(Ptr<Scheduler> scheduler) = 0;
 
-  virtual Ptr<data::BatchStats> collectStats() = 0;
-
+  /**
+   * Determine maximal batch size that can fit into the given workspace
+   * so that reallocation does not happen. Rather adjust the batch size
+   * based on the stastistics collected here. Activated with
+   * `--mini-batch-fit`.
+   */
   virtual Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph,
                                              Ptr<models::ModelBase> model,
                                              size_t multiplier = 1) {
@@ -47,7 +55,10 @@ public:
 
     size_t numFiles = options_->get<std::vector<std::string>>("train-sets").size();
 
+    // Initialize first batch to step size
     size_t first = options_->get<size_t>("mini-batch-fit-step");
+
+    // Increase batch size and sentence length by this step size
     size_t step = options_->get<size_t>("mini-batch-fit-step");
 
     size_t maxLength = options_->get<size_t>("max-length");
