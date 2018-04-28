@@ -1,3 +1,4 @@
+#include <sstream>
 #include "gru.h"
 
 using namespace std;
@@ -47,6 +48,7 @@ __global__ void gElementwiseOps(mblas::TensorWrapper<float> outWrap,
     }
   }
 }
+
 
 }
 }

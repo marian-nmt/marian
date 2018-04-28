@@ -1561,6 +1561,11 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/gru.h</locationURI>
 		</link>
 		<link>
+			<name>src/amun/gpu/dl4mt/lstm.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/lstm.cu</locationURI>
+		</link>
+		<link>
 			<name>src/amun/gpu/dl4mt/lstm.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/lstm.h</locationURI>

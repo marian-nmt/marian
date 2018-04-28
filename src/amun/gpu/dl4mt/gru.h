@@ -85,6 +85,12 @@ class SlowGRU: public Cell {
       return CellLength(0, w_.U_->dim(0));
     }
 
+    virtual std::string Debug(unsigned verbosity = 1) const
+    {
+      std::stringstream strm;
+      return "GRU";
+    }
+
   private:
     // Model matrices
     const Weights& w_;
@@ -237,6 +243,12 @@ class FastGRU: public Cell {
       return CellLength(0, w_.U_->dim(0));
     }
 
+    virtual std::string Debug(unsigned verbosity = 1) const
+    {
+      std::stringstream strm;
+
+      return "GRU";
+    }
 
   private:
     // Model matrices
