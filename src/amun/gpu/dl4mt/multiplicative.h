@@ -36,6 +36,12 @@ class Multiplicative: public Cell {
     virtual CellLength GetStateLength() const {
       return innerCell_.GetStateLength();
     }
+
+    virtual std::string Debug(unsigned verbosity = 1) const
+    {
+      return "Multiplicative";
+    }
+
   private:
     CellType<InnerWeights> innerCell_;
     const Weights::MultWeights<InnerWeights>& w_;

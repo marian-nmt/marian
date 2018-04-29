@@ -20,6 +20,8 @@ struct Weights {
     // Embedding matrices for word factors. The first factor is the word
     // surface form. The rest are optional.
     std::vector<std::shared_ptr<mblas::Tensor>> Es_;
+
+    std::string Debug(unsigned verbosity = 1) const;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -36,6 +38,8 @@ struct Weights {
     const std::shared_ptr<mblas::Tensor> Ux_;
     const std::shared_ptr<mblas::Tensor> Gamma_1_;
     const std::shared_ptr<mblas::Tensor> Gamma_2_;
+
+    std::string Debug(unsigned verbosity = 1) const;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -52,6 +56,8 @@ struct Weights {
     const std::shared_ptr<mblas::Tensor> Ux_;
     const std::shared_ptr<mblas::Tensor> Gamma_1_;
     const std::shared_ptr<mblas::Tensor> Gamma_2_;
+
+    std::string Debug(unsigned verbosity = 1) const;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -64,6 +70,8 @@ struct Weights {
     const std::shared_ptr<mblas::Tensor> U_;
     const std::shared_ptr<mblas::Tensor> Gamma_1_;
     const std::shared_ptr<mblas::Tensor> Gamma_2_;
+
+    std::string Debug(unsigned verbosity = 1) const;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -76,6 +84,8 @@ struct Weights {
     const std::shared_ptr<mblas::Tensor> U_;
     const std::shared_ptr<mblas::Tensor> Gamma_1_;
     const std::shared_ptr<mblas::Tensor> Gamma_2_;
+
+    std::string Debug(unsigned verbosity = 1) const;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -85,6 +95,8 @@ struct Weights {
     DecEmbeddings(const NpzConverter& model);
 
     const std::shared_ptr<mblas::Tensor> E_;
+
+    std::string Debug(unsigned verbosity = 1) const;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -96,6 +108,8 @@ struct Weights {
     const std::shared_ptr<mblas::Tensor> Wi_;
     const std::shared_ptr<mblas::Tensor> Bi_;
     const std::shared_ptr<mblas::Tensor> Gamma_;
+
+    std::string Debug(unsigned verbosity = 1) const;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -113,6 +127,8 @@ struct Weights {
     const std::shared_ptr<mblas::Tensor> Ux_;
     const std::shared_ptr<mblas::Tensor> Gamma_1_;
     const std::shared_ptr<mblas::Tensor> Gamma_2_;
+
+    std::string Debug(unsigned verbosity = 1) const;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -130,6 +146,8 @@ struct Weights {
     const std::shared_ptr<mblas::Tensor> Ux_;
     const std::shared_ptr<mblas::Tensor> Gamma_1_;
     const std::shared_ptr<mblas::Tensor> Gamma_2_;
+
+    std::string Debug(unsigned verbosity = 1) const;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -143,6 +161,8 @@ struct Weights {
     const std::shared_ptr<mblas::Tensor> U_;
     const std::shared_ptr<mblas::Tensor> Gamma_1_;
     const std::shared_ptr<mblas::Tensor> Gamma_2_;
+
+    std::string Debug(unsigned verbosity = 1) const;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -156,6 +176,8 @@ struct Weights {
     const std::shared_ptr<mblas::Tensor> U_;
     const std::shared_ptr<mblas::Tensor> Gamma_1_;
     const std::shared_ptr<mblas::Tensor> Gamma_2_;
+
+    std::string Debug(unsigned verbosity = 1) const;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -176,6 +198,8 @@ struct Weights {
     const std::shared_ptr<mblas::Tensor> Bm_;
     const std::shared_ptr<mblas::Tensor> Um_;
     const std::shared_ptr<mblas::Tensor> Bmu_;
+
+    std::string Debug(unsigned verbosity = 1) const;
   private:
     std::string p(std::string prefix, std::string sufix){
       return prefix + "_" + sufix;
@@ -195,6 +219,8 @@ struct Weights {
     const std::shared_ptr<mblas::Tensor> C_;
     const std::shared_ptr<mblas::Tensor> Gamma_1_;
     const std::shared_ptr<mblas::Tensor> Gamma_2_;
+
+    std::string Debug(unsigned verbosity = 1) const;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -214,6 +240,8 @@ struct Weights {
     const std::shared_ptr<mblas::Tensor> Gamma_0_;
     const std::shared_ptr<mblas::Tensor> Gamma_1_;
     const std::shared_ptr<mblas::Tensor> Gamma_2_;
+
+    std::string Debug(unsigned verbosity = 1) const;
   };
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
