@@ -1,5 +1,6 @@
 #pragma once
 
+#include <sstream>
 #include <yaml-cpp/yaml.h>
 
 #include "gpu/mblas/vector.h"
@@ -126,6 +127,14 @@ class Decoder {
                           const CellState& State,
                           const mblas::Tensor& Context) {
           gru_->GetNextState(NextState, State, Context);
+        }
+
+        std::string Debug(unsigned verbosity = 1) const
+        {
+          std::stringstream strm;
+          strm << gru_->Debug(verbosity);
+
+          return strm.str();
         }
 
       private:
@@ -434,11 +443,13 @@ class Decoder {
       //PAUSE_TIMER("GetAlignedSourceContext");
 
       //BEGIN_TIMER("GetNextState");
-      std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
+      std::cerr << "rnn2_=" << rnn2_.Debug(1) << std::endl;
+
+      std::cerr << "BEFORE NextState=" << NextState.Debug(1) << std::endl;
       std::cerr << "HiddenState_=" << HiddenState_.Debug(1) << std::endl;
       std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
-      std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
+      std::cerr << "AFTER NextState=" << NextState.Debug(1) << std::endl;
       std::cerr << std::endl;
       //PAUSE_TIMER("GetNextState");
 

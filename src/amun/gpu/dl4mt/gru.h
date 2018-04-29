@@ -246,8 +246,8 @@ class FastGRU: public Cell {
     virtual std::string Debug(unsigned verbosity = 1) const
     {
       std::stringstream strm;
-
-      return "GRU";
+      strm << w_.Debug(verbosity);
+      return strm.str();
     }
 
   private:
