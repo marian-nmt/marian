@@ -443,14 +443,7 @@ class Decoder {
       //PAUSE_TIMER("GetAlignedSourceContext");
 
       //BEGIN_TIMER("GetNextState");
-      std::cerr << "rnn2_=" << rnn2_.Debug(1) << std::endl;
-
-      std::cerr << "BEFORE NextState=" << NextState.Debug(1) << std::endl;
-      std::cerr << "HiddenState_=" << HiddenState_.Debug(1) << std::endl;
-      std::cerr << "AlignedSourceContext_=" << AlignedSourceContext_.Debug(1) << std::endl;
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
-      std::cerr << "AFTER NextState=" << NextState.Debug(1) << std::endl;
-      std::cerr << std::endl;
       //PAUSE_TIMER("GetNextState");
 
       //BEGIN_TIMER("GetProbs");
