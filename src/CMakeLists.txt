@@ -94,26 +94,31 @@ set_target_properties(marian_vocab PROPERTIES OUTPUT_NAME marian-vocab)
 
 set(EXECUTABLES ${EXECUTABLES} marian_train marian_decoder marian_scorer marian_vocab)
 
-if(USE_STATIC_LIBS)
-# marian.zip and marian.tar
+# marian.zip and marian.tgz
 # This combines marian, marian_decoder in a single ZIP or TAR file for execution in MSFT internal tools FLO and Philly.
-# Unfortunately, cmake does not seem to support full bash commands, so we must list all those dependencies here manually
+# For Philly submission, we need statically-linked versions to deal with library dependencies, so this target is only enabled for static builds.
+if(USE_STATIC_LIBS)
   add_custom_command(
     OUTPUT "${CMAKE_BINARY_DIR}/marian.zip"
     COMMAND zip -v -0 -j "${CMAKE_BINARY_DIR}/marian.zip"
-    "${CMAKE_BINARY_DIR}/marian" "${CMAKE_BINARY_DIR}/marian-decoder" 
-    "${CMAKE_BINARY_DIR}/marian-scorer" "${CMAKE_BINARY_DIR}/marian-vocab"
+                "${CMAKE_BINARY_DIR}/marian"
+                "${CMAKE_BINARY_DIR}/marian-decoder" 
+                "${CMAKE_BINARY_DIR}/marian-scorer"
+                "${CMAKE_BINARY_DIR}/marian-vocab"
     DEPENDS marian marian_decoder marian_scorer marian_vocab)
   add_custom_target(marian_zip DEPENDS "${CMAKE_BINARY_DIR}/marian.zip")
 
   add_custom_command(
-    OUTPUT "${CMAKE_BINARY_DIR}/marian.tar"
-    COMMAND tar -cvvf "${CMAKE_BINARY_DIR}/marian.tar" -C "${CMAKE_BINARY_DIR}"
-    "marian" "marian-decoder" "marian-scorer" "marian-vocab"
+    OUTPUT "${CMAKE_BINARY_DIR}/marian.tgz"
+    COMMAND tar -cvvzf "${CMAKE_BINARY_DIR}/marian.tgz" -C "${CMAKE_BINARY_DIR}"
+                "marian"
+                "marian-decoder"
+                "marian-scorer"
+                "marian-vocab"
     DEPENDS marian marian_decoder marian_scorer marian_vocab)
-  add_custom_target(marian_tar DEPENDS "${CMAKE_BINARY_DIR}/marian.tar")
+  add_custom_target(marian_tgz DEPENDS "${CMAKE_BINARY_DIR}/marian.tgz")
 
-  add_custom_target(philly DEPENDS marian_tar marian_zip)
+  add_custom_target(philly DEPENDS marian_tgz marian_zip)
 endif()
 
 if(COMPILE_SERVER)
