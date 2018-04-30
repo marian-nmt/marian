@@ -8,9 +8,6 @@
 #include "layers/constructors.h"
 #include "layers/factory.h"
 
-//#include "models/model_base.h"
-//#include "models/model_factory.h"
-
 namespace marian {
 
 // collection of subroutines for Transformer implementation

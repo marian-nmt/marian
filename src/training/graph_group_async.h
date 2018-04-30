@@ -69,7 +69,7 @@ public:
         shardSync_(devices_.size()),
         movingAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")},
-        tau_{options_->get<size_t>("optimizer-delay")} {
+        optimizerDelay_{options_->get<size_t>("optimizer-delay")} {
     pool_.reset(new ThreadPool(devices_.size(), devices_.size()));
 
     for(auto device : devices_) {

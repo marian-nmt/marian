@@ -152,6 +152,23 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
     return ms2sFactory.construct();
   }
 
+  if(type == "shared-multi-s2s") {
+    size_t numEncoders = 2;
+    auto ms2sFactory = models::encoder_decoder()(options)
+        ("usage", use)
+        ("type", "s2s")
+        ("original-type", type);
+
+    for(size_t i = 0; i < numEncoders; ++i) {
+      auto prefix = "encoder";
+      ms2sFactory.push_back(models::encoder()("prefix", prefix)("index", i));
+    }
+
+    ms2sFactory.push_back(models::decoder()("index", numEncoders));
+
+    return ms2sFactory.construct();
+  }
+
   if(type == "multi-hard-att") {
     size_t numEncoders = 2;
     auto ms2sFactory = models::encoder_decoder()(options)
@@ -180,6 +197,22 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
 
     for(size_t i = 0; i < numEncoders; ++i) {
       auto prefix = "encoder" + std::to_string(i + 1);
+      mtransFactory.push_back(models::encoder()("prefix", prefix)("index", i));
+    }
+    mtransFactory.push_back(models::decoder()("index", numEncoders));
+
+    return mtransFactory.construct();
+  }
+
+  if(type == "shared-multi-transformer") {
+    size_t numEncoders = 2;
+    auto mtransFactory = models::encoder_decoder()(options)
+        ("usage", use)
+        ("type", "transformer")
+        ("original-type", type);
+
+    for(size_t i = 0; i < numEncoders; ++i) {
+      auto prefix = "encoder";
       mtransFactory.push_back(models::encoder()("prefix", prefix)("index", i));
     }
     mtransFactory.push_back(models::decoder()("index", numEncoders));
