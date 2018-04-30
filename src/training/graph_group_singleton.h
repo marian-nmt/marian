@@ -8,6 +8,9 @@
 
 namespace marian {
 
+/**
+ * Single gpu training
+ */
 class SingletonGraph : public GraphGroup {
 public:
   virtual void setScheduler(Ptr<Scheduler> scheduler);
@@ -25,8 +28,8 @@ private:
   void execute(Ptr<data::Batch> batch);
 
 public:
-  SingletonGraph(Ptr<Config> options)
-      : GraphGroup(options),
+  SingletonGraph(Ptr<Config> config)
+      : GraphGroup(config),
         mvAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")} {
     auto deviceId = options_->getDevices()[0];
@@ -34,11 +37,13 @@ public:
     graph_->setDevice(deviceId);
     graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
     opt_ = Optimizer(options_);
-
-    builder_ = models::from_config(options_);
+    builder_ = models::from_config(options_, models::usage::training);
   }
 
-  void update(Ptr<data::Batch> batch) { execute(batch); }
+  void update(Ptr<data::Batch> batch) {
+    ABORT_IF(finalized_, "Training has already finished.");
+    execute(batch);
+  }
 
   void load() {
     if(!options_->get<bool>("no-reload")) {
@@ -75,7 +80,7 @@ public:
     std::string name = options_->get<std::string>("model");
 
     if(options_->get<bool>("overwrite")) {
-      builder_->save(graph_, name, true);
+      builder_->save(graph, name, true);
       if(scheduler_)
         scheduler_->save(name);
     } else {
@@ -86,10 +91,10 @@ public:
         std::string nameOverwrite = name;
         nameOverwrite.replace(
             name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");
-        builder_->save(graph_, nameOverwrite);
+        builder_->save(graph, nameOverwrite);
       }
 
-      builder_->save(graph_, name, true);
+      builder_->save(graph, name, true);
       if(scheduler_)
         scheduler_->save(name);
     }
@@ -99,7 +104,12 @@ public:
   }
 
   Ptr<data::BatchStats> collectStats() {
-    return builder_->collectStats(graph_);
+    return GraphGroup::collectStats(graph_, builder_);
   }
+
+  virtual void finalize() {
+    finalized_ = true;
+  }
+
 };
 }

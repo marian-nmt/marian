@@ -42,6 +42,7 @@ add_library(marian STATIC
   optimizers/optimizers.cpp
 
   models/model_factory.cpp
+  models/encoder_decoder.cpp
 
   translator/history.cpp
   translator/output_collector.cpp
@@ -94,36 +95,31 @@ set_target_properties(marian_vocab PROPERTIES OUTPUT_NAME marian-vocab)
 set(EXECUTABLES ${EXECUTABLES} marian_train marian_decoder marian_scorer marian_vocab)
 
 # marian.zip and marian.tgz
-# This combines marian, marian-decoder, and all the boost libraries in a single archive file for execution in MSFT internal tools FLO and Philly.
-# We include the boost libraries here so that we don't have to rebuild the docker that this runs in.
-# This trick only works for .so files that are self-contained, and it requires invocation with a
-# modified LD_LIBRARY_PATH that includes the directory of the executable itself.
-# Because cmake does not seem to support full bash commands, we cannot automatically extract the needed
-# libs from the marian binary, but must instead list all those dependencies here manually.
-add_custom_command(
-  OUTPUT "${CMAKE_BINARY_DIR}/marian.zip"
-  COMMAND zip -v -0 -j "${CMAKE_BINARY_DIR}/marian.zip"
-    "${CMAKE_BINARY_DIR}/marian" "${CMAKE_BINARY_DIR}/marian-decoder"
-    /usr/local/boost-1.63.0/lib/libboost_system.so.1.63.0
-    /usr/local/boost-1.63.0/lib/libboost_timer.so.1.63.0
-    /usr/local/boost-1.63.0/lib/libboost_iostreams.so.1.63.0
-    /usr/local/boost-1.63.0/lib/libboost_filesystem.so.1.63.0
-    /usr/local/boost-1.63.0/lib/libboost_chrono.so.1.63.0
-    /usr/local/boost-1.63.0/lib/libboost_program_options.so.1.63.0
-    /usr/local/boost-1.63.0/lib/libboost_thread.so.1.63.0
-    /usr/local/boost-1.63.0/lib/libboost_regex.so.1.63.0
-    /usr/local/boost-1.63.0/lib/libboost_python.so.1.63.0
-  DEPENDS marian marian_decoder)
-# To create the .tgz, we uncompress the .zip into a tmp folder and tar that.
-# For now, we don't delete it when done for diagnostics.
-add_custom_command(
-  OUTPUT "${CMAKE_BINARY_DIR}/marian.tgz"
-  COMMAND rm -fr "${CMAKE_BINARY_DIR}/marian.zip.content"
-  COMMAND unzip -d "${CMAKE_BINARY_DIR}/marian.zip.content" "${CMAKE_BINARY_DIR}/marian.zip"
-  COMMAND tar cvfz "${CMAKE_BINARY_DIR}/marian.tgz" -C "${CMAKE_BINARY_DIR}/marian.zip.content" .
-  DEPENDS "${CMAKE_BINARY_DIR}/marian.zip")
-add_custom_target(marian.zip DEPENDS "${CMAKE_BINARY_DIR}/marian.zip")
-add_custom_target(marian.tgz DEPENDS "${CMAKE_BINARY_DIR}/marian.tgz")
+# This combines marian, marian_decoder in a single ZIP or TAR file for execution in MSFT internal tools FLO and Philly.
+# For Philly submission, we need statically-linked versions to deal with library dependencies, so this target is only enabled for static builds.
+if(USE_STATIC_LIBS)
+  add_custom_command(
+    OUTPUT "${CMAKE_BINARY_DIR}/marian.zip"
+    COMMAND zip -v -0 -j "${CMAKE_BINARY_DIR}/marian.zip"
+                "${CMAKE_BINARY_DIR}/marian"
+                "${CMAKE_BINARY_DIR}/marian-decoder" 
+                "${CMAKE_BINARY_DIR}/marian-scorer"
+                "${CMAKE_BINARY_DIR}/marian-vocab"
+    DEPENDS marian marian_decoder marian_scorer marian_vocab)
+  add_custom_target(marian_zip DEPENDS "${CMAKE_BINARY_DIR}/marian.zip")
+
+  add_custom_command(
+    OUTPUT "${CMAKE_BINARY_DIR}/marian.tgz"
+    COMMAND tar -cvvzf "${CMAKE_BINARY_DIR}/marian.tgz" -C "${CMAKE_BINARY_DIR}"
+                "marian"
+                "marian-decoder"
+                "marian-scorer"
+                "marian-vocab"
+    DEPENDS marian marian_decoder marian_scorer marian_vocab)
+  add_custom_target(marian_tgz DEPENDS "${CMAKE_BINARY_DIR}/marian.tgz")
+
+  add_custom_target(philly DEPENDS marian_tgz marian_zip)
+endif()
 
 if(COMPILE_SERVER)
   add_executable(marian_server command/marian_server.cpp)

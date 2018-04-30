@@ -6,6 +6,9 @@
 namespace marian {
 namespace mlp {
 
+/**
+ * Base class for layer factories, can be used in a multi-layer network factory.
+ */
 struct LayerFactory : public Factory {
   LayerFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
   LayerFactory(const LayerFactory&) = default;
@@ -26,46 +29,73 @@ struct LayerFactory : public Factory {
   virtual Ptr<Layer> construct() = 0;
 };
 
+/**
+ * Dense layer factory, can be used in a multi-layer network factory.
+ */
 class DenseFactory : public LayerFactory {
-protected:
-  // std::vector<std::pair<std::string, std::string>> tiedParams_;
-  std::vector<std::pair<std::string, std::string>> tiedParamsTransposed_;
-
 public:
   DenseFactory(Ptr<ExpressionGraph> graph) : LayerFactory(graph) {}
 
-  // Accumulator<DenseFactory> tie(const std::string& param,
-  //                              const std::string& tied) {
-  //  tiedParams_.push_back({param, tied});
-  //  return Accumulator<DenseFactory>(*this);
-  //}
-
-  Accumulator<DenseFactory> tie_transposed(const std::string& param,
-                                           const std::string& tied) {
-    tiedParamsTransposed_.push_back({param, tied});
-    return Accumulator<DenseFactory>(*this);
-  }
-
   Ptr<Layer> construct() {
     auto dense = New<Dense>(graph_, options_);
-    // for(auto& p : tiedParams_)
-    //  dense->tie(p.first, p.second);
-    for(auto& p : tiedParamsTransposed_)
-      dense->tie_transposed(p.first, p.second);
     return dense;
   }
 
   DenseFactory clone() {
     DenseFactory aClone(graph_);
     aClone.options_->merge(options_);
-    // aClone.tiedParams_ = tiedParams_;
-    aClone.tiedParamsTransposed_ = tiedParamsTransposed_;
     return aClone;
   }
 };
 
+// @TODO: change naming convention
 typedef Accumulator<DenseFactory> dense;
 
+/**
+ * Factory for output layers, can be used in a multi-layer network factory.
+ */
+class OutputFactory : public LayerFactory {
+protected:
+  std::vector<std::pair<std::string, std::string>> tiedParamsTransposed_;
+  Ptr<data::Shortlist> shortlist_;
+
+public:
+  OutputFactory(Ptr<ExpressionGraph> graph) : LayerFactory(graph) {}
+
+  Accumulator<OutputFactory> tie_transposed(const std::string& param,
+                                           const std::string& tied) {
+    tiedParamsTransposed_.push_back({param, tied});
+    return Accumulator<OutputFactory>(*this);
+  }
+
+  Accumulator<OutputFactory> set_shortlist(Ptr<data::Shortlist> shortlist) {
+    shortlist_ = shortlist;
+    return Accumulator<OutputFactory>(*this);
+  }
+
+  Ptr<Layer> construct() {
+    auto output = New<Output>(graph_, options_);
+    for(auto& p : tiedParamsTransposed_)
+      output->tie_transposed(p.first, p.second);
+    output->set_shortlist(shortlist_);
+    return output;
+  }
+
+  OutputFactory clone() {
+    OutputFactory aClone(graph_);
+    aClone.options_->merge(options_);
+    aClone.tiedParamsTransposed_ = tiedParamsTransposed_;
+    aClone.shortlist_ = shortlist_;
+    return aClone;
+  }
+};
+
+// @TODO: change naming convention
+typedef Accumulator<OutputFactory> output;
+
+/**
+ * Multi-layer network, holds and applies layers.
+ */
 class MLP {
 protected:
   Ptr<ExpressionGraph> graph_;
@@ -96,9 +126,13 @@ public:
   void push_back(Ptr<Layer> layer) { layers_.push_back(layer); }
 };
 
+/**
+ * Multi-layer network factory. Can hold layer factories. Used
+ * to accumulate options for later lazy construction.
+ */
 class MLPFactory : public Factory {
 private:
-  std::vector<Ptr<DenseFactory>> layers_;
+  std::vector<Ptr<LayerFactory>> layers_;
 
 public:
   MLPFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
@@ -119,16 +153,9 @@ public:
     layers_.push_back(New<LF>(lf));
     return Accumulator<MLPFactory>(*this);
   }
-
-  MLPFactory clone() {
-    MLPFactory aClone(graph_);
-    aClone.options_->merge(options_);
-    for(auto lf : layers_)
-      aClone.push_back(lf->clone());
-    return aClone;
-  }
 };
 
+// @TODO: change naming convention.
 typedef Accumulator<MLPFactory> mlp;
 }
 }

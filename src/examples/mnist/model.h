@@ -10,12 +10,48 @@
 #include "common/keywords.h"
 #include "graph/expression_graph.h"
 #include "models/model_base.h"
+#include "models/costs.h"
 
 #include "examples/mnist/dataset.h"
-#include "models/encdec.h"
+
 
 namespace marian {
 namespace models {
+
+class MNISTCrossEntropyCost : public CostBase {
+public:
+  MNISTCrossEntropyCost() {}
+
+  Expr apply(Ptr<ModelBase> model,
+             Ptr<ExpressionGraph> graph,
+             Ptr<data::Batch> batch,
+             bool clearGraph = true) {
+
+    auto top = model->build(graph, batch, clearGraph);
+
+    auto vLabels = std::static_pointer_cast<data::DataBatch>(batch)->labels();
+    auto labels = graph->constant({(int)batch->size(), 1},
+                                  inits::from_vector(vLabels));
+
+    // Define a top-level node for training
+    return mean(cross_entropy(top, labels), keywords::axis = 0);
+  }
+};
+
+class MNISTLogsoftmax : public CostBase {
+public:
+  MNISTLogsoftmax() {}
+
+  Expr apply(Ptr<ModelBase> model,
+             Ptr<ExpressionGraph> graph,
+             Ptr<data::Batch> batch,
+             bool clearGraph = true) {
+
+    auto top = model->build(graph, batch, clearGraph);
+    return logsoftmax(top);
+  }
+};
+
 
 class MnistFeedForwardNet : public ModelBase {
 public:
@@ -112,19 +148,7 @@ protected:
 
     // Perform matrix multiplication and addition for the last layer
     auto last = affine(layers.back(), weights.back(), biases.back());
-
-    if(!inference) {
-      // Create an output layer of shape batchSize x 1 and populate it with
-      // labels
-      auto labels = std::static_pointer_cast<data::DataBatch>(batch)->labels();
-      auto y = g->constant({(int)batch->size(), 1}, inits::from_vector(labels));
-
-      // Define a top-level node for training
-      return mean(cross_entropy(last, y), axis = 0);
-    } else {
-      // Define a top-level node for inference
-      return logsoftmax(last);
-    }
+    return last;
   }
 };
 }

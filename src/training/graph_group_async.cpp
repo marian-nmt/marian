@@ -1,6 +1,7 @@
 #include "training/graph_group_async.h"
 #include "functional/functional.h"
 #include "tensors/tensor_operators.h"
+#include "data/corpus_base.h"
 
 namespace marian {
 
@@ -168,7 +169,10 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
     thread_local Ptr<models::ModelBase> builder;
     thread_local size_t t = 0;
     thread_local size_t num_seen_words = 0;
+    thread_local size_t num_seen_trg = 0;
+    thread_local size_t num_seen_sentences = 0;
     thread_local int t_id = 0;
+    thread_local float cost = 0;
 
     thread_local Tensor accGradients;
     thread_local Ptr<TensorAllocator> accAlloc;
@@ -182,19 +186,16 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
     auto costNode = builder->build(graph, batch);
 
-    if(t % tau_ == 0) {
+    if(t % optimizerDelay_ == 0) {
       fetchParams(graph->params()->vals(), params_, t_id);
     }
 
     graph->forward();
-    float cost = costNode->scalar();
+    cost += costNode->scalar();
     graph->backward();
 
-    // Get batch stats
-    size_t batch_words = batch->words();
-
     Tensor gradients;
-    if(tau_ > 1) {
+    if(optimizerDelay_ > 1) {
       if(t == 0) {
         accAlloc = New<TensorAllocator>(graph->getBackend());
         accAlloc->reserveExact(graph->params()->grads()->memory()->size());
@@ -207,30 +208,48 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
       gradients = accGradients;
 
       // Keep track of how many words we've calculated the error from
-      num_seen_words += batch_words;
+      num_seen_words += batch->words();
+      num_seen_trg += batch->wordsTrg();
+      num_seen_sentences += batch->size();
     } else {
       gradients = graph->params()->grads();
-      num_seen_words = batch_words;
+      num_seen_trg = batch->wordsTrg();
     }
 
     t++;
 
-    if(t % tau_ == 0) {
-      pushGradients(gradients, num_seen_words, t_id);
-      // Reset the counter of seen words after gradient update
-      num_seen_words = 0;
-
-      if(tau_ > 1)
+    if(t % optimizerDelay_ == 0) {
+      pushGradients(gradients, num_seen_trg, t_id);
+      // Reset the counter of seen target words after gradient update
+      num_seen_trg = 0;
+      if(optimizerDelay_ > 1)
         gradients->set(0);
     }
 
-    if(scheduler_) {
+    if(t % optimizerDelay_ == 0 && scheduler_) {
       std::unique_lock<std::mutex> lock(schedulerMutex_);
 
       // Wait until the thread that wants to do validation is finished.
       pool_->wait_for_one(lock);
 
-      scheduler_->update(cost, batch);
+      if (options_->get<std::string>("cost-type") != "ce-sum")
+        cost /= optimizerDelay_;
+
+      if (optimizerDelay_ > 1) {
+        std::vector<size_t> fakeLength = {1, 1};
+        auto fb = data::CorpusBatch::fakeBatch(fakeLength,
+                                          num_seen_sentences,
+                                          NULL);
+        fb->front()->setWords(num_seen_words);
+        scheduler_->update(cost, fb);
+
+        num_seen_words = 0;
+        num_seen_sentences = 0;
+      } else {
+        scheduler_->update(cost, batch);
+      }
+
+      cost = 0;
 
       if(scheduler_->saving() || scheduler_->validating()) {
         // Wait with validation or saving until all other threads are done with
@@ -258,11 +277,10 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
   pool_->enqueue(task, batch);
 }
 
-void AsyncGraphGroup::wait() {
-  {
-    std::unique_lock<std::mutex> lock(schedulerMutex_);
-    pool_->wait_for_others(lock);
-    pool_->notify_others();
-  }
+void AsyncGraphGroup::finalize() {
+  pool_->join_all(); // call before destructing thread pool
+  pool_.reset(nullptr);
+  finalized_ = true;
 }
+
 }

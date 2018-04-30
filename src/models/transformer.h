@@ -2,11 +2,11 @@
 
 #include "marian.h"
 
-#include "encdec.h"
+#include "models/encoder.h"
+#include "models/decoder.h"
+#include "models/states.h"
 #include "layers/constructors.h"
 #include "layers/factory.h"
-#include "model_base.h"
-#include "model_factory.h"
 
 namespace marian {
 
@@ -257,10 +257,13 @@ public:
 
     int dimAtt = output->shape()[-1];
 
-    auto Wo
-        = graph->param(prefix + "_Wo", {dimAtt, dimOut}, inits::glorot_uniform);
-    auto bo = graph->param(prefix + "_bo", {1, dimOut}, inits::zeros);
-    output = affine(output, Wo, bo);
+    bool project = !options->get<bool>("transformer-no-projection");
+    if(project || dimAtt != dimOut) {
+      auto Wo
+          = graph->param(prefix + "_Wo", {dimAtt, dimOut}, inits::glorot_uniform);
+      auto bo = graph->param(prefix + "_bo", {1, dimOut}, inits::zeros);
+      output = affine(output, Wo, bo);
+    }
 
     return output;
   }
@@ -334,27 +337,39 @@ public:
     auto output = PreProcess(graph, prefix + "_ffn", opsPre, input, dropProb);
 
     int dimFfn = options->get<int>("transformer-dim-ffn");
-
-    auto W1 = graph->param(
-        prefix + "_W1", {dimModel, dimFfn}, inits::glorot_uniform);
-    auto b1 = graph->param(prefix + "_b1", {1, dimFfn}, inits::zeros);
-
-    auto W2 = graph->param(
-        prefix + "_W2", {dimFfn, dimModel}, inits::glorot_uniform);
-    auto b2 = graph->param(prefix + "_b2", {1, dimModel}, inits::zeros);
-
-    output = affine(output, W1, b1);
-    if(options->get<std::string>("transformer-ffn-activation") == "relu")
-      output = relu(output);
-    else
-      output = swish(output);
-
+    int depthFfn = options->get<int>("transformer-ffn-depth");
+    auto act = options->get<std::string>("transformer-ffn-activation");
     float ffnDropProb
-        = inference ? 0 : options->get<float>("transformer-dropout-ffn");
-    if(ffnDropProb)
-      output = dropout(output, ffnDropProb);
+      = inference ? 0 : options->get<float>("transformer-dropout-ffn");
 
-    output = affine(output, W2, b2);
+    ABORT_IF(depthFfn < 1, "Filter depth {} is smaller than 1", depthFfn);
+
+    int i = 1;
+    int dimLast = dimModel;
+    for(; i < depthFfn; ++i) {
+      int dimFirst = i == 1 ? dimModel : dimFfn;
+      auto W = graph->param(
+          prefix + "_W" + std::to_string(i), {dimFirst, dimFfn}, inits::glorot_uniform);
+      auto b = graph->param(prefix + "_b" + std::to_string(i), {1, dimFfn}, inits::zeros);
+
+      output = affine(output, W, b);
+
+      if(act == "relu")
+        output = relu(output);
+      else
+        output = swish(output);
+
+      if(ffnDropProb)
+        output = dropout(output, ffnDropProb);
+
+      dimLast = dimFfn;
+    }
+
+    auto W = graph->param(
+        prefix + "_W" + std::to_string(i), {dimLast, dimModel}, inits::glorot_uniform);
+    auto b = graph->param(prefix + "_b" + std::to_string(i), {1, dimModel}, inits::zeros);
+
+    output = affine(output, W, b);
 
     auto opsPost = options->get<std::string>("transformer-postprocess");
     output
@@ -470,8 +485,9 @@ class TransformerState : public DecoderState {
 public:
   TransformerState(const rnn::States &states,
                    Expr probs,
-                   std::vector<Ptr<EncoderState>> &encStates)
-      : DecoderState(states, probs, encStates) {}
+                   std::vector<Ptr<EncoderState>> &encStates,
+                   Ptr<data::CorpusBatch> batch)
+      : DecoderState(states, probs, encStates, batch) {}
 
   virtual Ptr<DecoderState> select(const std::vector<size_t> &selIdx,
                                    int beamSize) {
@@ -492,11 +508,14 @@ public:
       selectedStates.push_back({sel, nullptr});
     }
 
-    return New<TransformerState>(selectedStates, probs_, encStates_);
+    return New<TransformerState>(selectedStates, probs_, encStates_, batch_);
   }
 };
 
 class DecoderTransformer : public DecoderBase, public Transformer {
+protected:
+  Ptr<mlp::MLP> output_;
+
 public:
   DecoderTransformer(Ptr<Options> options) : DecoderBase(options) {}
 
@@ -505,7 +524,7 @@ public:
       Ptr<data::CorpusBatch> batch,
       std::vector<Ptr<EncoderState>> &encStates) {
     rnn::States startStates;
-    return New<TransformerState>(startStates, nullptr, encStates);
+    return New<TransformerState>(startStates, nullptr, encStates, batch);
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
@@ -657,33 +676,43 @@ public:
 
     //************************************************************************//
 
-    int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
+    if(!output_) {
+      int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
-    auto layerOut = mlp::dense(graph)          //
-        ("prefix", prefix_ + "_ff_logit_out")  //
-        ("dim", dimTrgVoc);
+      auto layerOut = mlp::output(graph)         //
+          ("prefix", prefix_ + "_ff_logit_out")  //
+          ("dim", dimTrgVoc);
 
-    if(opt<bool>("tied-embeddings") || opt<bool>("tied-embeddings-all")) {
-      std::string tiedPrefix = prefix_ + "_Wemb";
-      if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
-        tiedPrefix = "Wemb";
-      layerOut.tie_transposed("W", tiedPrefix);
+      if(opt<bool>("tied-embeddings") || opt<bool>("tied-embeddings-all")) {
+        std::string tiedPrefix = prefix_ + "_Wemb";
+        if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
+          tiedPrefix = "Wemb";
+        layerOut.tie_transposed("W", tiedPrefix);
+      }
+
+      if(shortlist_)
+        layerOut.set_shortlist(shortlist_);
+
+      // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
+      // assemble layers into MLP and apply to embeddings, decoder context and
+      // aligned source context
+      output_ = mlp::mlp(graph)       //
+                .push_back(layerOut)  //
+                .construct();
     }
 
-    // assemble layers into MLP and apply to embeddings, decoder context and
-    // aligned source context
-    auto output = mlp::mlp(graph).push_back(layerOut);
-
-    Expr logits = output->apply(decoderContext); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
+    Expr logits = output_->apply(decoderContext);
 
     // return unormalized(!) probabilities
     return New<TransformerState>(
-        decoderStates, logits, state->getEncoderStates());
+        decoderStates, logits, state->getEncoderStates(), state->getBatch());
   }
 
   // helper function for guided alignment
   virtual const std::vector<Expr> getAlignments(int i = 0) { return {}; }
 
-  void clear() {}
+  void clear() {
+    output_ = nullptr;
+  }
 };
 }

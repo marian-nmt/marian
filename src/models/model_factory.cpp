@@ -1,9 +1,10 @@
 #include "marian.h"
 
 #include "models/model_factory.h"
+#include "models/costs.h"
 
+#include "models/encoder_decoder.h"
 #include "models/amun.h"
-#include "models/encdec.h"
 #include "models/hardatt.h"
 #include "models/nematus.h"
 #include "models/s2s.h"
@@ -51,7 +52,7 @@ Ptr<DecoderBase> DecoderFactory::construct() {
   ABORT("Unknown decoder type");
 }
 
-Ptr<EncoderDecoder> EncoderDecoderFactory::construct() {
+Ptr<ModelBase> EncoderDecoderFactory::construct() {
   Ptr<EncoderDecoder> encdec;
 
   if(options_->get<std::string>("type") == "amun")
@@ -68,13 +69,14 @@ Ptr<EncoderDecoder> EncoderDecoderFactory::construct() {
   for(auto& df : decoders_)
     encdec->push_back(df(options_).construct());
 
-  return encdec;
+  return add_cost(encdec, options_);
 }
 
-Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
+Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
   // clang-format off
   if(type == "s2s" || type == "amun" || type == "nematus") {
     return models::encoder_decoder()(options)
+        ("usage", use)
         ("original-type", type)
             .push_back(models::encoder()("type", "s2s"))
             .push_back(models::decoder()("type", "s2s"))
@@ -83,6 +85,7 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
 
   if(type == "transformer") {
     return models::encoder_decoder()(options)
+        ("usage", use)
         .push_back(models::encoder()("type", "transformer"))
         .push_back(models::decoder()("type", "transformer"))
         .construct();
@@ -90,6 +93,7 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
 
   if(type == "transformer_s2s") {
     return models::encoder_decoder()(options)
+        ("usage", use)
         ("original-type", type)
             .push_back(models::encoder()("type", "transformer"))
             .push_back(models::decoder()("type", "s2s"))
@@ -104,6 +108,7 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
     std::fill(dimVocabs.begin(), dimVocabs.end(), vocab);
 
     return models::encoder_decoder()(options)
+        ("usage", use)
         ("type", "s2s")
         ("original-type", type)
             .push_back(models::decoder()
@@ -114,6 +119,7 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
 
   if(type == "hard-att") {
     return models::encoder_decoder()(options)
+        ("usage", use)
         ("original-type", type)
             .push_back(models::encoder()("type", "s2s"))
             .push_back(models::decoder()("type", "hard-att"))
@@ -122,6 +128,7 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
 
   if(type == "hard-soft-att") {
     return models::encoder_decoder()(options)
+        ("usage", use)
         ("original-type", type)
             .push_back(models::encoder()("type", "s2s"))
             .push_back(models::decoder()("type", "hard-soft-att"))
@@ -131,6 +138,7 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
   if(type == "multi-s2s") {
     size_t numEncoders = 2;
     auto ms2sFactory = models::encoder_decoder()(options)
+        ("usage", use)
         ("type", "s2s")
         ("original-type", type);
 
@@ -144,9 +152,27 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
     return ms2sFactory.construct();
   }
 
+  if(type == "shared-multi-s2s") {
+    size_t numEncoders = 2;
+    auto ms2sFactory = models::encoder_decoder()(options)
+        ("usage", use)
+        ("type", "s2s")
+        ("original-type", type);
+
+    for(size_t i = 0; i < numEncoders; ++i) {
+      auto prefix = "encoder";
+      ms2sFactory.push_back(models::encoder()("prefix", prefix)("index", i));
+    }
+
+    ms2sFactory.push_back(models::decoder()("index", numEncoders));
+
+    return ms2sFactory.construct();
+  }
+
   if(type == "multi-hard-att") {
     size_t numEncoders = 2;
     auto ms2sFactory = models::encoder_decoder()(options)
+        ("usage", use)
         ("type", "s2s")
         ("original-type", type);
 
@@ -165,11 +191,28 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
   if(type == "multi-transformer") {
     size_t numEncoders = 2;
     auto mtransFactory = models::encoder_decoder()(options)
+        ("usage", use)
         ("type", "transformer")
         ("original-type", type);
 
     for(size_t i = 0; i < numEncoders; ++i) {
       auto prefix = "encoder" + std::to_string(i + 1);
+      mtransFactory.push_back(models::encoder()("prefix", prefix)("index", i));
+    }
+    mtransFactory.push_back(models::decoder()("index", numEncoders));
+
+    return mtransFactory.construct();
+  }
+
+  if(type == "shared-multi-transformer") {
+    size_t numEncoders = 2;
+    auto mtransFactory = models::encoder_decoder()(options)
+        ("usage", use)
+        ("type", "transformer")
+        ("original-type", type);
+
+    for(size_t i = 0; i < numEncoders; ++i) {
+      auto prefix = "encoder";
       mtransFactory.push_back(models::encoder()("prefix", prefix)("index", i));
     }
     mtransFactory.push_back(models::decoder()("index", numEncoders));
@@ -185,6 +228,7 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
     std::fill(dimVocabs.begin(), dimVocabs.end(), vocab);
 
     return models::encoder_decoder()(options)
+        ("usage", use)
         ("type", "transformer")
         ("original-type", type)
             .push_back(models::decoder()
@@ -196,18 +240,31 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
 #ifdef COMPILE_EXAMPLES
   // @TODO: examples should be compiled optionally
   if(type == "mnist-ffnn") {
-    return New<MnistFeedForwardNet>(options);
+    auto mnist = New<MnistFeedForwardNet>(options);
+    if(use == usage::scoring)
+      return New<Scorer>(mnist, New<MNISTLogsoftmax>());
+    else if(use == usage::training)
+      return New<Trainer>(mnist, New<MNISTCrossEntropyCost>());
+    else
+      return mnist;
   }
 #endif
 
 #ifdef CUDNN
 #ifdef COMPILE_EXAMPLES
   if(type == "mnist-lenet") {
-    return New<MnistLeNet>(options);
+    auto mnist = New<MnistLeNet>(options);
+    if(use == usage::scoring)
+      return New<Scorer>(mnist, New<MNISTLogsoftmax>());
+    else if(use == usage::training)
+      return New<Trainer>(mnist, New<MNISTCrossEntropyCost>());
+    else
+      return mnist;
   }
 #endif
   if(type == "char-s2s") {
     return models::encoder_decoder()(options)
+        ("usage", use)
         ("original-type", type)
             .push_back(models::encoder()("type", "char-s2s"))
             .push_back(models::decoder()("type", "s2s"))
@@ -219,15 +276,15 @@ Ptr<ModelBase> by_type(std::string type, Ptr<Options> options) {
   ABORT("Unknown model type: {}", type);
 }
 
-Ptr<ModelBase> from_options(Ptr<Options> options) {
+Ptr<ModelBase> from_options(Ptr<Options> options, usage use) {
   std::string type = options->get<std::string>("type");
-  return by_type(type, options);
+  return by_type(type, use, options);
 }
 
-Ptr<ModelBase> from_config(Ptr<Config> config) {
+Ptr<ModelBase> from_config(Ptr<Config> config, usage use) {
   Ptr<Options> options = New<Options>();
   options->merge(config);
-  return from_options(options);
+  return from_options(options, use);
 }
 }
 }

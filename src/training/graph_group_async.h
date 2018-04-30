@@ -46,7 +46,7 @@ protected:
 
   std::unique_ptr<ThreadPool> pool_;
 
-  size_t tau_{1};
+  size_t optimizerDelay_{1};
 
   virtual void init(Ptr<data::Batch> batch);
 
@@ -63,13 +63,13 @@ protected:
   void execute(Ptr<data::Batch> batch);
 
 public:
-  AsyncGraphGroup(Ptr<Config> options)
-      : GraphGroup(options),
+  AsyncGraphGroup(Ptr<Config> config)
+      : GraphGroup(config),
         devices_{options_->getDevices()},
         shardSync_(devices_.size()),
         movingAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")},
-        tau_{options_->get<size_t>("optimizer-delay")} {
+        optimizerDelay_{options_->get<size_t>("optimizer-delay")} {
     pool_.reset(new ThreadPool(devices_.size(), devices_.size()));
 
     for(auto device : devices_) {
@@ -78,11 +78,15 @@ public:
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
       shardOpt_.push_back(Optimizer(options_));
-      builders_.push_back(models::from_config(options_));
+
+      builders_.push_back(models::from_config(options_, models::usage::training));
     }
   }
 
-  void update(Ptr<data::Batch> batch) { execute(batch); }
+  void update(Ptr<data::Batch> batch) {
+    ABORT_IF(finalized_, "Training has already finished.");
+    execute(batch);
+  }
 
   void load() {
     if(!options_->get<bool>("no-reload")) {
@@ -115,7 +119,7 @@ public:
 
   void save(bool final = false) {
     if(final && scheduler_) {
-      if(movingAvg_)
+      if(movingAvg_ && paramsAvg_.size())
           for(auto g : graphs_)
             fetchParams(g->params()->vals(), paramsAvg_, 0 /* safe? */);
 
@@ -161,9 +165,9 @@ public:
   }
 
   Ptr<data::BatchStats> collectStats() {
-    return builders_[0]->collectStats(graphs_[0]);
+    return GraphGroup::collectStats(graphs_[0], builders_[0]);
   }
 
-  void wait();
+  virtual void finalize();
 };
 }

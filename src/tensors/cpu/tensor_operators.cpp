@@ -15,10 +15,10 @@ namespace cpu {
 
 inline float stableLogit(float x) {
   if(x >= 0) {
-    float z = std::exp(-x);
+    float z = expf(-x);
     return 1.0 / (1.0 + z);
   } else {
-    float z = std::exp(x);
+    float z = expf(x);
     return z / (1.0 + z);
   }
 }
@@ -124,8 +124,69 @@ void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax) {
     SplitCont(outputs, in, ax);
 }
 
+void Transpose0213(Tensor out, Tensor in) {
+  int cols = in->shape()[-1];
+  int rows = in->shape().elements() / in->shape()[-1];
+
+  int r1 = in->shape()[-2];
+  int r2 = in->shape()[-3];
+  int rest = rows / (r1 * r2);
+
+  for(int k = 0; k < rest; ++k) {
+    int shift = k * r1 * r2;
+    for(int j = 0; j < r1 * r2; ++j) {
+      int src = j + shift;
+      int dst = j / r1 + (j % r1) * r2 + shift;
+
+      const float* inRow = in->data() + src * cols ;
+      float* outRow = out->data() + dst * cols;
+
+      std::copy(inRow, inRow + cols, outRow);
+    }
+  }
+}
+
+inline void transpose4x4_SSE(const float *A, float *B, const int lda, const int ldb) {
+  __m128 row1 = _mm_load_ps(&A[0 * lda]);
+  __m128 row2 = _mm_load_ps(&A[1 * lda]);
+  __m128 row3 = _mm_load_ps(&A[2 * lda]);
+  __m128 row4 = _mm_load_ps(&A[3 * lda]);
+  _MM_TRANSPOSE4_PS(row1, row2, row3, row4);
+  _mm_store_ps(&B[0 * ldb], row1);
+  _mm_store_ps(&B[1 * ldb], row2);
+  _mm_store_ps(&B[2 * ldb], row3);
+  _mm_store_ps(&B[3 * ldb], row4);
+}
+
+// from https://stackoverflow.com/questions/16737298/what-is-the-fastest-way-to-transpose-a-matrix-in-c
+#define ROUND_UP(x, s) (((x)+((s)-1)) & -(s))
+
+void Transpose10(Tensor out, const Tensor in) {
+  const float* A = in->data();
+  float* B = out->data();
+
+  const int n = in->shape().elements() / in->shape()[-1];
+  const int m = in->shape()[-1];
+
+  const int block_size = 16;
+  int lda = ROUND_UP(m, block_size);
+  int ldb = ROUND_UP(n, block_size);
+
+  for(int i = 0; i < n; i += block_size) {
+    for(int j = 0; j < m; j += block_size) {
+      int max_i2 = i + block_size < n ? i + block_size : n;
+      int max_j2 = j + block_size < m ? j + block_size : m;
+      for(int i2 = i; i2 < max_i2; i2 += 4) {
+        for(int j2 = j; j2 < max_j2; j2 += 4) {
+          transpose4x4_SSE(&A[i2 * lda + j2], &B[j2 * ldb + i2], lda, ldb);
+        }
+      }
+    }
+  }
+}
+
 // @TODO: optimize this, currently it's quite horrible
-void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
+void TransposeGeneric(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   functional::Array<int, functional::Shape::size()> permute;
   int diff = functional::Shape::size() - vAxis.size();
   for(int i = 0; i < permute.size(); ++i)
@@ -150,6 +211,17 @@ void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   }
 }
 
+void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
+  if(vAxis == std::vector<int>({0, 2, 1, 3}))
+    Transpose0213(out, in);
+  else if(vAxis == std::vector<int>({1, 0}) 
+          && in->shape()[-1] % 16 == 0 
+          && in->shape()[-2] % 16 == 0)
+    Transpose10(out, in);
+  else
+    TransposeGeneric(out, in, vAxis);
+}
+
 void Softmax(Tensor out_, Tensor in_, Tensor mask_) {
   float* out = out_->data();
   const float* in = in_->data();
@@ -170,7 +242,7 @@ void Softmax(Tensor out_, Tensor in_, Tensor mask_) {
 
     float sum = 0.f;
     for(int i = 0; i < cols; ++i) {
-      float ex = !mask || mp[i] ? std::exp(sp[i] - max) : 0.f;
+      float ex = !mask || mp[i] ? expf(sp[i] - max) : 0.f;
       so[i] = ex;
       sum += ex;
     }
@@ -200,13 +272,13 @@ void LogSoftmax(Tensor out_, Tensor in_) {
     float sum = 0.f;
     for(int i = 0; i < cols; ++i) {
       float sm = sp[i] - max;
-      float ex = std::exp(sm);
+      float ex = expf(sm);
       so[i] = sm;
       sum += ex;
     }
 
     for(int i = 0; i < cols; ++i) {
-      so[i] -= std::log(sum);
+      so[i] -= logf(sum);
     }
   }
 }
@@ -254,7 +326,7 @@ void LogSoftmaxGrad(Tensor grad_, Tensor adj_, Tensor val_) {
     }
 
     for(int i = 0; i < cols; ++i) {
-      gradRow[i] += adjRow[i] - sum * std::exp(valRow[i]);
+      gradRow[i] += adjRow[i] - sum * expf(valRow[i]);
     }
   }
 }

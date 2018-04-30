@@ -10,7 +10,7 @@ struct ConstantNode : public Node {
   ConstantNode(Ptr<ExpressionGraph> graph,
                const Shape& shape,
                const NodeInitializer& init)
-      : Node(graph, shape),
+      : Node(graph, shape), // TODO: add value_type
         init_(new NodeInitializer(init)),
         initialized_(false) {
     setTrainable(false);
@@ -28,13 +28,14 @@ struct ConstantNode : public Node {
   const std::string color() { return "white"; }
 
   virtual size_t hash() {
-    std::size_t seed = boost::hash<std::string>()(name());
+    std::size_t seed = boost::hash<std::string>()(name());  // TODO: add value_type
     boost::hash_combine(seed, type());
     boost::hash_combine(seed, this);
     return seed;
   }
 
   virtual bool equal(Expr node) { return this == node.get(); }
+  virtual void record(Ptr<AutoTunerRecorder>, size_t, bool) {};
 
 private:
   UPtr<NodeInitializer> init_;
@@ -45,16 +46,14 @@ struct ParamNode : public Node {
   ParamNode(Ptr<ExpressionGraph> graph,
             const Shape& shape,
             const NodeInitializer& init,
-            bool fixed = false)
-      : Node(graph, shape),
-        init_(new NodeInitializer(init)),
-        initialized_(false) {
-    setTrainable(!fixed);
-  }
+            bool fixed = false);
 
   ~ParamNode() {}
 
-  virtual size_t allocate();
+  virtual size_t allocate() {
+    ABORT_IF(!val_, "Parameters should be allocated by their graph");
+    return 0;
+  }
 
   virtual void init();
 
@@ -72,6 +71,8 @@ struct ParamNode : public Node {
   }
 
   virtual bool equal(Expr node) { return name() == node->name(); }
+
+  virtual void record(Ptr<AutoTunerRecorder>, size_t, bool) {};
 
 private:
   UPtr<NodeInitializer> init_;

@@ -24,6 +24,100 @@ namespace marian {
 template <class T, typename... Args>
 Expr Expression(Args&&... args);
 
+class Tensors {
+private:
+  Ptr<TensorAllocator> tensors_;
+  Ptr<TensorAllocator> cache_;
+
+  typedef std::unordered_map<size_t, std::vector<WExpr>> WeakMemory;
+  typedef std::unordered_map<size_t, std::vector<Expr>> Memory;
+
+  Ptr<WeakMemory> shortterm_;
+  Ptr<Memory> longterm_;
+
+public:
+  Tensors(Ptr<Backend> backend)
+  : tensors_(New<TensorAllocator>(backend)),
+    cache_(New<TensorAllocator>(backend)),
+    shortterm_(New<WeakMemory>()),
+    longterm_(New<Memory>()) {}
+
+  void reserve(size_t bytes) {
+    tensors_->reserve(bytes);
+  }
+
+  void throwAtReallocation(bool throwAtRealloc) {
+    tensors_->throwAtReallocation(throwAtRealloc);
+  }
+
+  void allocateForward(Expr node) {
+    if(!node->val()) {
+      if(node->memoize())
+        cache_->allocate(node->val(), node->shape(), node->value_type());
+      else
+        tensors_->allocate(node->val(), node->shape(), node->value_type());
+    }
+  }
+
+  void allocateBackward(Expr node) {
+    if(!node->grad())
+      tensors_->allocate(node->grad(), node->shape(), node->value_type());
+  }
+
+  void free(Tensor& tensor) {
+    tensors_->free(tensor);
+  }
+
+  // @TODO: get rid of this, not really used or can be done better
+  Ptr<Allocator> allocator() {
+    return tensors_->allocator();
+  }
+
+  Expr findOrRemember(Expr node) {
+    size_t hash = node->hash();
+    if(node->memoize()) {
+      auto it = longterm_->find(hash);
+      if(it != longterm_->end()) {
+        for(auto found : it->second) {
+          return found;
+          // @TODO: check why below code does not work for certain nodes and autotuning.
+          //if(node->equal(found)) {
+            //std::cerr << "found memoized" << std::endl;
+            //return found;
+          //}
+        }
+      }
+      (*longterm_)[hash].push_back(node);
+    }
+
+    auto it = shortterm_->find(hash);
+    if(it != shortterm_->end()) {
+      for(auto foundWeak : it->second) {
+        auto found = foundWeak.lock();
+        if(node->equal(found)) {
+          return found;
+        }
+      }
+    }
+    (*shortterm_)[hash].push_back(node);
+    return nullptr;
+  }
+
+  void clear() {
+    tensors_->clear();
+    shortterm_->clear();
+  }
+
+  void clearShorttermMemory() {
+    shortterm_->clear();
+  }
+
+  void clearLongtermMemory() {
+    longterm_->clear();
+  }
+
+};
+
 class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 private:
   size_t count_{0};
@@ -33,13 +127,15 @@ private:
 
   std::unordered_set<Expr> topNodes_;
   Ptr<Parameters> params_;
-  Ptr<TensorAllocator> tensors_;
+  Ptr<Tensors> tensors_;
 
   Ptr<Backend> backend_;
 
-  std::unordered_map<size_t, std::vector<WExpr>> hashMap_;
+  std::unordered_map<size_t, std::vector<Expr>> memoized_;
 
   bool inferenceOnly_{false};
+  bool optimized_{false};
+
   bool reloaded_{false};
   std::string namespace_;
 
@@ -55,9 +151,10 @@ public:
    *
    * Constructor should be used as New<ExpressionGraph>()
    */
-  ExpressionGraph(bool inference = false);
+  ExpressionGraph(bool inference = false, bool optimized = false);
 
   void setInference(bool inference) { inferenceOnly_ = inference; }
+  bool isInference() { return inferenceOnly_; }
 
   ~ExpressionGraph() {
     clear();
@@ -65,8 +162,13 @@ public:
   }
 
   void setDevice(DeviceId deviceId = {0, DeviceType::gpu});
+
   DeviceId getDevice() { return backend_->getDevice(); }
+
   Ptr<Backend> getBackend() { return backend_; }
+
+  void setOptimized(bool optimized) { optimized_ = optimized; }
+  bool isOptimized() { return (optimized_ && inferenceOnly_); }
 
   void switchParams(const std::string& newNamespace) {
     namespace_ = newNamespace;
@@ -121,7 +223,7 @@ public:
 
   void forwardNext() {
     // @TODO: check if allocation works properly
-    hashMap_.clear();
+    tensors_->clearShorttermMemory();
 
     while(!nodesForward_.empty()) {
       auto v = nodesForward_.front();
@@ -154,7 +256,8 @@ public:
 
     // named_.clear();
     topNodes_.clear();
-    hashMap_.clear();
+
+    tensors_->clearShorttermMemory();
 
     while(!nodesBackward_.empty()) {
       auto v = nodesBackward_.back();
@@ -267,54 +370,60 @@ public:
     return Expr();
   }
 
-  Ptr<Parameters>& params() { return params_; }
+  Ptr<Parameters>& params() {
+    return params_;
+  }
 
   Expr add(Expr node) {
-    size_t hash = node->hash();
-    auto it = hashMap_.find(hash);
-    if(it != hashMap_.end()) {
-      for(auto foundWeak : it->second) {
-        auto found = foundWeak.lock();
-        if(node->equal(found))
-          return found;
+
+    auto found = tensors_->findOrRemember(node);
+    if(found) {
+      return found;
+    } else {
+      node->setId(count_++);
+
+      nodesForward_.push_back(node);
+      if(!inferenceOnly_ && node->trainable()) {
+        nodesBackward_.push_back(node);
+        topNodes_.insert(node);
       }
+
+      return node;
     }
-
-    hashMap_[hash].push_back(node);
-
-    node->setId(count_++);
-
-    nodesForward_.push_back(node);
-    if(!inferenceOnly_ && node->trainable()) {
-      nodesBackward_.push_back(node);
-      topNodes_.insert(node);
-    }
-
-    return node;
   }
 
-  void remove_top_node(Expr node) { topNodes_.erase(node); }
-
-  template <class... Args>
-  void tensor(Tensor& t, Args&&... args) {
-    tensors_->allocate(t, args...);
+  void remove_top_node(Expr node) {
+    topNodes_.erase(node);
   }
 
-  void free(Tensor& t) {
+  void allocateForward(Expr node) {
     if(tensors_)
-      tensors_->free(t);
+      tensors_->allocateForward(node);
   }
 
-  Ptr<Allocator> allocator() { return tensors_->allocator(); }
+  void allocateBackward(Expr node) {
+    if(tensors_)
+      tensors_->allocateBackward(node);
+  }
+
+  void free(Tensor& tensor) {
+    if(tensors_)
+      tensors_->free(tensor);
+  }
+
+  // @TODO: get rid of this, not really used or can be done better
+  Ptr<Allocator> allocator() {
+    return tensors_->allocator();
+  }
 
   void clear() {
-    // clear everything apart from parameters
+    // clear everything apart from parameters and memoized nodes
     count_ = 0;
     nodesForward_.clear();
     nodesBackward_.clear();
 
     topNodes_.clear();
-    hashMap_.clear();
+
     tensors_->clear();
   }
 

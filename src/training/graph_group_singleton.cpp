@@ -28,7 +28,7 @@ void SingletonGraph::execute(Ptr<data::Batch> batch) {
   graph_->backward();
 
   // Get batch stats
-  size_t batch_words = batch->words();
+  size_t batch_words = batch->wordsTrg();
 
   if(scaleLearningRate_) {
     opt_->update(graph_, batch_words / avgBatchWords_);
