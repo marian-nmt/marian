@@ -116,14 +116,16 @@ public:
       float value = validator->validate(graphs);
       if(validator->stalled() > 0) {
         LOG_VALID(info,
-                  "{} : {} : {} : stalled {} times",
+                  "Ep. {} : Up. {} : {} : {} : stalled {} times",
+                  state_->epochs,
                   state_->batches,
                   validator->type(),
                   value,
                   validator->stalled());
       } else {
         LOG_VALID(info,
-                  "{} : {} : {} : new best",
+                  "Ep. {} : Up. {} : {} : {} : new best",
+                  state_->epochs,
                   state_->batches,
                   validator->type(),
                   value);
