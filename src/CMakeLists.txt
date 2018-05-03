@@ -101,7 +101,7 @@ if(COMPILE_SERVER)
 endif(COMPILE_SERVER)
 
 foreach(exec ${EXECUTABLES})
-  target_link_libraries(${exec} marian ${EXT_LIBS})
+  target_link_libraries(${exec} marian ${EXT_LIBS} ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
   if(CUDA_FOUND)
     target_link_libraries(${exec} marian marian_cuda ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
     cuda_add_cublas_to_target(${exec})
