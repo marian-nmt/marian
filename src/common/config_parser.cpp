@@ -99,43 +99,34 @@ const std::set<std::string> PATHS = {"model",
                                      "valid-translation-output",
                                      "log"};
 
-// helper to implement relative-paths option
+// helper to implement interpolate-env-vars and relative-paths options
 static void ProcessPaths(YAML::Node& node,
-                         const boost::filesystem::path& configPath,
-                         bool isPath) {
-  using namespace boost::filesystem;
-
+                         const std::function<std::string(std::string)>& TransformPath,
+                         bool isPath = false) {
   if(isPath) {
     if(node.Type() == YAML::NodeType::Scalar) {
       std::string nodePath = node.as<std::string>();
-      if(nodePath.size()) {
-        try {
-          node = canonical(path{nodePath}, configPath).string();
-        } catch(boost::filesystem::filesystem_error& e) {
-          std::cerr << e.what() << std::endl;
-          auto parentPath = path{nodePath}.parent_path();
-          node = (canonical(parentPath, configPath) / path{nodePath}.filename())
-                     .string();
-        }
+      if(!nodePath.empty()) {
+        node = TransformPath(nodePath); // transform the path
       }
     }
 
     if(node.Type() == YAML::NodeType::Sequence) {
       for(auto&& sub : node) {
-        ProcessPaths(sub, configPath, true);
+        ProcessPaths(sub, TransformPath, true);
       }
     }
   } else {
     switch(node.Type()) {
       case YAML::NodeType::Sequence:
         for(auto&& sub : node) {
-          ProcessPaths(sub, configPath, false);
+          ProcessPaths(sub, TransformPath, false);
         }
         break;
       case YAML::NodeType::Map:
         for(auto&& sub : node) {
           std::string key = sub.first.as<std::string>();
-          ProcessPaths(sub.second, configPath, PATHS.count(key) > 0);
+          ProcessPaths(sub.second, TransformPath, PATHS.count(key) > 0);
         }
         break;
     }
@@ -269,6 +260,8 @@ void ConfigParser::addOptionsCommon(po::options_description& desc) {
      "Suppress logging for translation")
     ("seed", po::value<size_t>()->default_value(0),
      "Seed for all random number generators. 0 means initialize randomly")
+    ("interpolate-env-vars", po::value<bool>()->zero_tokens()->default_value(false),
+     "allow the use of environment variables in paths, of the form ${VAR_NAME}")
     ("relative-paths", po::value<bool>()->zero_tokens()->default_value(false),
      "All paths are relative to the config file location")
     ("dump-config", po::value<bool>()->zero_tokens()->default_value(false),
@@ -1005,6 +998,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("quiet-translation", bool);
   SET_OPTION_NONDEFAULT("log", std::string);
   SET_OPTION("seed", size_t);
+  SET_OPTION("interpolate-env-vars", bool);
   SET_OPTION("relative-paths", bool);
   SET_OPTION("devices", std::vector<std::string>);
   SET_OPTION("cpu-threads", size_t);
@@ -1029,12 +1023,46 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     config_["skip"] = true;
   }
 
+  if(get<bool>("interpolate-env-vars")) {
+    ProcessPaths(config_, 
+      [&](const std::string& nodePath) -> std::string {
+        // replace environment-variable expressions of the form ${VARNAME} in pathnames
+        auto path = nodePath;
+        for(;;)
+        {
+          const auto pos = path.find("${");
+          if (pos == std::string::npos)
+              return path;
+          const auto epos = path.find("}", pos + 2);
+          ABORT_IF(epos == std::string::npos, "interpolate-env-vars option: ${{ without matching }} in '{}'", path.c_str());
+          const auto var = path.substr(pos + 2, epos - (pos + 2)); // isolate the variable name
+          const auto val = getenv(var.c_str());
+          ABORT_IF(!val, "interpolate-env-vars option: environment variable '{}' not defined in '{}'", var.c_str(), path.c_str());
+          path = path.substr(0,pos) + val + path.substr(epos + 1); // replace it; then try again for further replacements
+        }
+      });
+  }
+
   if(get<bool>("relative-paths") && !vm_["dump-config"].as<bool>()) {
+    // change relative paths to absolute paths relative to the config file's directory
+    ABORT_IF(configPaths.empty(), "relative-paths option requires at least one config file (--config option)");
     auto configDir = boost::filesystem::path{configPaths.front()}.parent_path();
     for (const auto& configPath : configPaths)
       ABORT_IF(boost::filesystem::path{configPaths.front()}.parent_path() != configDir,
                "relative-paths option requires all config files to be in the same directory");
-    ProcessPaths(config_, configDir, false);
+    ProcessPaths(config_,
+      [&](const std::string& nodePath) -> std::string {
+        // replace relative path w.r.t. configDir
+        using namespace boost::filesystem;
+        try {
+          return canonical(path{nodePath}, configDir).string();
+        } catch(boost::filesystem::filesystem_error& e) { // will fail if file does not exist; use parent in that case
+          std::cerr << e.what() << std::endl;
+          auto parentPath = path{nodePath}.parent_path();
+          return (canonical(parentPath, configDir) / path{nodePath}.filename())
+                     .string();
+        }
+      });
   }
 
   if(doValidate) {
