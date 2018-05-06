@@ -435,8 +435,7 @@ Tensor& Prod(Tensor& C, const Tensor& A, const Tensor& B,
 
 __global__ void gSoftMax(TensorWrapper<float> out,
                          const VectorWrapper<unsigned> batchIdsWrap,
-                         const VectorWrapper<unsigned> sentenceLengthsWrap,
-                         unsigned shareSize)
+                         const VectorWrapper<unsigned> sentenceLengthsWrap)
 {
   extern __shared__ float _share[];
 
@@ -447,7 +446,7 @@ __global__ void gSoftMax(TensorWrapper<float> out,
   int origSrcPos = threadIdx.x;
 
   while (hypoInd < numHypos) {
-    VectorWrapper<float> _max(_share, shareSize);
+    VectorWrapper<float> _max(_share, blockDim.x);
     _max[origSrcPos] = out(hypoInd, origSrcPos);
     for (int tid = 0; tid < maxLength; tid += blockDim.x) {
       int srcPos = tid + origSrcPos;
@@ -478,7 +477,7 @@ __global__ void gSoftMax(TensorWrapper<float> out,
     __syncthreads();
 
     //float* _sum = _share;// + blockDim.x;
-    VectorWrapper<float> _sum(_share, shareSize);
+    VectorWrapper<float> _sum(_share, blockDim.x);
 
     _sum[origSrcPos] = 0.0f;
     for (int tid = 0; tid < maxLength; tid += blockDim.x) {
@@ -520,22 +519,31 @@ __global__ void gSoftMax(TensorWrapper<float> out,
 
 Tensor& Softmax(Tensor& Out,
                 const mblas::Vector<unsigned>& batchIds,
-                const mblas::Vector<unsigned> &sentenceLengths,
-                unsigned batchSize)
+                const mblas::Vector<unsigned> &sentenceLengths)
 {
+  unsigned numHypos = Out.dim(0);
   unsigned maxLength = Out.dim(1);
 
   TensorWrapper<float> outWrap(Out);
   const VectorWrapper<unsigned> batchIdsWrap(batchIds);
   const VectorWrapper<unsigned> sentenceLengthsWrap(sentenceLengths);
 
-  int blocks = batchSize;
+  int blocks = std::min(MAX_BLOCKS, (int)numHypos);
   int threads = std::min(MAX_THREADS, (int)maxLength);
   int shared = sizeof(float) * threads;
 
+  std::cerr << "Out=" << Out.Debug(2) << std::endl;
+  std::cerr << "batchIds=" << batchIds.Debug(1) << std::endl;
+  std::cerr << "sentenceLengths=" << sentenceLengths.Debug(1) << std::endl;
+  std::cerr << "blocks=" << blocks << std::endl;
+  std::cerr << "threads=" << threads << std::endl;
+
   gSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
-    (outWrap, batchIdsWrap, sentenceLengthsWrap, threads);
+    (outWrap, batchIdsWrap, sentenceLengthsWrap);
   HANDLE_ERROR(cudaGetLastError());
+
+  std::cerr << "Out=" << Out.Debug(2) << std::endl;
+  std::cerr << std::endl;
 
   return Out;
 }

@@ -155,8 +155,7 @@ Tensor& Prod(Tensor& C, const Tensor& A, const Tensor& B,
 
 Tensor& Softmax(Tensor& Out,
                 const mblas::Vector<unsigned>& batchIds,
-                const mblas::Vector<unsigned> &sentenceLengths,
-                unsigned batchSize);
+                const mblas::Vector<unsigned> &sentenceLengths);
 
 Tensor& LogSoftmax(Tensor& Out);
 

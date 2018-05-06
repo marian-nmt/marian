@@ -49,7 +49,7 @@ class LengthOrderer {
 };
 
 void Sentences::SortByLength() {
-  std::sort(coll_.rbegin(), coll_.rend(), LengthOrderer());
+  //std::sort(coll_.rbegin(), coll_.rend(), LengthOrderer());
   //std::sort(coll_.begin(), coll_.end(), LengthOrderer());
   //std::random_shuffle ( coll_.begin(), coll_.end() );
 }
