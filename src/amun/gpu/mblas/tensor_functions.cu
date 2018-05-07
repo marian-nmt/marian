@@ -452,10 +452,10 @@ __global__ void gSoftMax(TensorWrapper<float> out,
     VectorWrapper<float> _max(_share, blockDim.x);
 
     if (origSrcPos < length) {
-      _max[origSrcPos] = out(hypoInd, origSrcPos); // ignore if over maxlength
+      _max[origSrcPos] = out(hypoInd, origSrcPos);
     }
     else {
-      _max[origSrcPos] = -9999;
+      _max[origSrcPos] = LOWEST_FLOAT;
     }
 
     for (int tid = 0; tid < length; tid += blockDim.x) {
@@ -887,8 +887,6 @@ void Normalization(Tensor& out, const Tensor& in, const Tensor& alpha, float eps
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-#define LOWEST_FLOAT -1111111111111
-#define HIGHEST_FLOAT +999999999999
 
 __global__
 void gBeamSizeInit(VectorWrapper<unsigned> hypo2BeamSizeWrap,
