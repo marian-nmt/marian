@@ -446,11 +446,21 @@ __global__ void gSoftMax(TensorWrapper<float> out,
   int origSrcPos = threadIdx.x;
 
   while (hypoInd < numHypos) {
+    unsigned batch = batchIdsWrap[hypoInd];
+    unsigned length = sentenceLengthsWrap[batch];
+
     VectorWrapper<float> _max(_share, blockDim.x);
-    _max[origSrcPos] = out(hypoInd, origSrcPos);
-    for (int tid = 0; tid < maxLength; tid += blockDim.x) {
+
+    if (origSrcPos < length) {
+      _max[origSrcPos] = out(hypoInd, origSrcPos); // ignore if over maxlength
+    }
+    else {
+      _max[origSrcPos] = -9999;
+    }
+
+    for (int tid = 0; tid < length; tid += blockDim.x) {
       int srcPos = tid + origSrcPos;
-      if (srcPos < maxLength) {
+      if (srcPos < length) {
         float value = out(hypoInd, srcPos);
 
         int batch = batchIdsWrap[hypoInd];
@@ -485,7 +495,6 @@ __global__ void gSoftMax(TensorWrapper<float> out,
       if (srcPos < maxLength) {
         out(hypoInd, srcPos) = __expf(out(hypoInd, srcPos) - max);
 
-        int batch = batchIdsWrap[hypoInd];
         out(hypoInd, srcPos) *= srcPos < sentenceLengthsWrap[batch] ? 1 : 0; // sentencesMappingWrap(srcPos, batch, 0, 0);
         _sum[origSrcPos] += out(hypoInd, srcPos);
       }
