@@ -541,18 +541,22 @@ Tensor& Softmax(Tensor& Out,
   int threads = std::min(MAX_THREADS, (int)maxLength);
   int shared = sizeof(float) * threads;
 
+  /*
   std::cerr << "Out=" << Out.Debug(2) << std::endl;
   std::cerr << "batchIds=" << batchIds.Debug(1) << std::endl;
   std::cerr << "sentenceLengths=" << sentenceLengths.Debug(1) << std::endl;
   std::cerr << "blocks=" << blocks << std::endl;
   std::cerr << "threads=" << threads << std::endl;
+  */
 
   gSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
     (outWrap, batchIdsWrap, sentenceLengthsWrap);
   HANDLE_ERROR(cudaGetLastError());
 
+  /*
   std::cerr << "Out=" << Out.Debug(2) << std::endl;
   std::cerr << std::endl;
+  */
 
   return Out;
 }
