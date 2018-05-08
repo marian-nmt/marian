@@ -318,6 +318,37 @@ public:
     return output;
   }
 
+  Expr DecoderLayerSelfAttention(rnn::State& decoderState,
+                                 const rnn::State& prevDecoderState,
+                                 Ptr<ExpressionGraph> graph,
+                                 Ptr<Options> options,
+                                 std::string prefix,
+                                 Expr input,
+                                 Expr selfMask,
+                                 int startPos,
+                                 bool inference = false) {
+
+    using namespace keywords;
+
+    auto values = input;
+    if(startPos > 0) {
+      selfMask = InverseMask(selfMask);
+      values = concatenate({prevDecoderState.output, input},
+                           axis = -2);
+    }
+    decoderState.output = values;
+
+    // TODO: do not recompute matrix multiplies
+    return LayerAttention(graph,
+                          options,
+                          prefix,
+                          input,
+                          values,
+                          values,
+                          selfMask,
+                          inference);
+  }
+
   Expr LayerFFN(Ptr<ExpressionGraph> graph,
                 Ptr<Options> options,
                 std::string prefix,
@@ -371,6 +402,133 @@ public:
         = PostProcess(graph, prefix + "_ffn", opsPost, output, input, dropProb);
 
     return output;
+  }
+
+  Expr LayerAAN(Ptr<ExpressionGraph> graph,
+                Ptr<Options> options,
+                std::string prefix,
+                Expr input,
+                Expr output,
+                bool inference = false) {
+    using namespace keywords;
+
+    int dimModel = input->shape()[-1];
+
+    float dropProb = inference ? 0 : options->get<float>("transformer-dropout");
+    auto opsPre = options->get<std::string>("transformer-preprocess");
+
+    output = PreProcess(graph, prefix + "_ffn", opsPre, output, dropProb);
+
+    auto Wg = graph->param(prefix + "_Wg", {dimModel, dimModel}, inits::glorot_uniform);
+    auto bg = graph->param(prefix + "_bg", {1, dimModel}, inits::zeros);
+    auto gate = affine(input, Wg, bg);
+
+    auto W = graph->param(prefix + "_W", {dimModel, dimModel}, inits::glorot_uniform);
+    auto b = graph->param(prefix + "_b", {1, dimModel}, inits::zeros);
+    output = affine(output, W, b);
+
+    output = highway(output, input, gate);
+
+    auto opsPost = options->get<std::string>("transformer-postprocess");
+    output
+        = PostProcess(graph, prefix + "_ffn", opsPost, output, input, dropProb);
+
+    return output;
+  }
+
+  Expr DecoderLayerAAN(rnn::State& decoderState,
+                       const rnn::State& prevDecoderState,
+                       Ptr<ExpressionGraph> graph,
+                       Ptr<Options> options,
+                       std::string prefix,
+                       Expr input,
+                       Expr selfMask,
+                       int startPos,
+                       bool inference = false) {
+
+    using namespace keywords;
+
+    auto output = input;
+    if(startPos > 0) {
+       output = (prevDecoderState.output * startPos + input) / (startPos + 1);
+    }
+    else if (selfMask) {
+      selfMask = selfMask / sum(selfMask, axis=-1);
+      output = bdot(selfMask, output);
+    }
+    decoderState.output = output;
+
+    return LayerAAN(graph, options, prefix, input, output, inference);
+  }
+
+  Expr LayerOther(Ptr<ExpressionGraph> graph,
+                  Ptr<Options> options,
+                  std::string prefix,
+                  Expr input,
+                  Expr output,
+                  bool inference = false) {
+    using namespace keywords;
+
+    int dimModel = input->shape()[-1];
+
+    float dropProb = inference ? 0 : options->get<float>("transformer-dropout");
+    auto opsPre = options->get<std::string>("transformer-preprocess");
+
+    output = PreProcess(graph, prefix + "_ffn", opsPre, output, dropProb);
+
+    auto opsPost = options->get<std::string>("transformer-postprocess");
+    output
+        = PostProcess(graph, prefix + "_ffn", opsPost, output, input, dropProb);
+
+    return output;
+  }
+
+  Expr DecoderLayerRNN(rnn::State& decoderState,
+                       const rnn::State& prevDecoderState,
+                       const std::string& rnnType,
+                       Ptr<ExpressionGraph> graph,
+                       Ptr<Options> options,
+                       std::string prefix,
+                       Expr input,
+                       Expr decoderMask,
+                       int startPos,
+                       bool transpose,
+                       bool inference = false) {
+
+    using namespace keywords;
+
+    int dimModel = input->shape()[-1];
+
+    bool ln = options->get<bool>("layer-normalization");
+    float dropRnn = inference ? 0 : options->get<float>("dropout-rnn");
+
+    auto rnn = rnn::rnn(graph)
+          ("type", rnnType)
+          ("dimInput", dimModel)
+          ("dimState", dimModel)
+          ("dropout", dropRnn)
+          ("layer-normalization", ln);
+
+    auto output = input;
+    auto tPrevDecoderState = prevDecoderState;
+    if(transpose) {
+      output = TransposeTimeBatch(output);
+      tPrevDecoderState.output = TransposeTimeBatch(tPrevDecoderState.output);
+      if(tPrevDecoderState.cell)
+        tPrevDecoderState.cell = TransposeTimeBatch(tPrevDecoderState.cell);
+    }
+
+    output = rnn->transduce(output, {tPrevDecoderState});
+
+    decoderState = rnn->lastCellStates()[0];
+    if(transpose) {
+      output = TransposeTimeBatch(output);
+      decoderState.output = TransposeTimeBatch(decoderState.output);
+      if(decoderState.cell)
+        decoderState.cell = TransposeTimeBatch(decoderState.cell);
+    }
+
+    return LayerOther(graph, options, prefix, input, output, inference);
   }
 };
 
@@ -501,7 +659,9 @@ public:
       selectedStates.push_back({sel, nullptr});
     }
 
-    return New<TransformerState>(selectedStates, probs_, encStates_, batch_);
+    auto selectedState = New<TransformerState>(selectedStates, probs_, encStates_, batch_);
+    selectedState->setPosition(getPosition());
+    return selectedState;
   }
 };
 
@@ -544,10 +704,7 @@ public:
     // according to paper embeddings are scaled by \sqrt(d_m)
     auto scaledEmbeddings = std::sqrt(dimEmb) * embeddings;
 
-    int startPos = 0;
-    auto prevDecoderStates = state->getStates();
-    if(prevDecoderStates.size() > 0)
-      startPos = prevDecoderStates[0].output->shape()[-2];
+    int startPos = state->getPosition();
 
     scaledEmbeddings
         = AddPositionalEmbeddings(graph, scaledEmbeddings, startPos);
@@ -562,7 +719,6 @@ public:
 
     query = PreProcess(graph, prefix_ + "_emb", opsEmb, query, dropProb);
 
-    rnn::States decoderStates;
     int dimTrgWords = query->shape()[-2];
     int dimBatch = query->shape()[-3];
     auto selfMask = TriangleMask(graph, dimTrgWords);
@@ -574,8 +730,6 @@ public:
       // if(dimBeam > 1)
       //  selfMask = repeat(selfMask, dimBeam, axis = -4);
     }
-
-    selfMask = InverseMask(selfMask);
 
     std::vector<Expr> encoderContexts;
     std::vector<Expr> encoderMasks;
@@ -600,57 +754,69 @@ public:
       encoderMasks.push_back(encoderMask);
     }
 
+    rnn::States prevDecoderStates = state->getStates();
+    rnn::States decoderStates;
     // apply layers
     for(int i = 1; i <= opt<int>("dec-depth"); ++i) {
-      auto values = query;
-      if(prevDecoderStates.size() > 0)
-        values
-            = concatenate({prevDecoderStates[i - 1].output, query}, axis = -2);
+      rnn::State decoderState;
+      std::string layerType = opt<std::string>("transformer-decoder-autoreg");
+      if(layerType == "self-attention") {
+        query = DecoderLayerSelfAttention(decoderState,
+                                          prevDecoderStates[i - 1],
+                                          graph,
+                                          options_,
+                                          prefix_ + "_l" + std::to_string(i) + "_self",
+                                          query,
+                                          selfMask,
+                                          startPos,
+                                          inference_);
+      }
+      else if(layerType == "average-attention") {
+        query = DecoderLayerAAN(decoderState,
+                                prevDecoderStates[i - 1],
+                                graph,
+                                options_,
+                                prefix_ + "_l" + std::to_string(i) + "_aan",
+                                query,
+                                selfMask,
+                                startPos,
+                                inference_);
+      }
+      else if(layerType == "gru") {
+        query = DecoderLayerRNN(decoderState,
+                                prevDecoderStates[i - 1],
+                                "gru",
+                                graph,
+                                options_,
+                                prefix_ + "_l" + std::to_string(i) + "_gru",
+                                query,
+                                selfMask,
+                                startPos,
+                                true,
+                                inference_);
+      }
+      else {
+        ABORT("Unknown auto-regressive layer type in transformer decoder {}", layerType);
+      }
 
-      decoderStates.push_back({values, nullptr});
+      decoderStates.push_back(decoderState);
 
-      // TODO: do not recompute matrix multiplies
-      query = LayerAttention(graph,
-                             options_,
-                             prefix_ + "_l" + std::to_string(i) + "_self",
-                             query,
-                             values,
-                             values,
-                             selfMask,
-                             inference_);
-
+      // Iterate over multiple encoders and simply stack the attention blocks
       if(encoderContexts.size() > 0) {
-        // auto comb = opt<std::string>("transformer-multi-encoder");
-        std::string comb = "stack";
-        if(comb == "concat") {
-          query
-              = LayerAttention(graph,
-                               options_,
-                               prefix_ + "_l" + std::to_string(i) + "_context",
-                               query,
-                               encoderContexts,
-                               encoderContexts,
-                               encoderMasks,
-                               inference_);
+        for(int j = 0; j < encoderContexts.size(); ++j) {
+          std::string prefix
+              = prefix_ + "_l" + std::to_string(i) + "_context";
+          if(j > 0)
+            prefix += "_enc" + std::to_string(j + 1);
 
-        } else if(comb == "stack") {
-          for(int j = 0; j < encoderContexts.size(); ++j) {
-            std::string prefix
-                = prefix_ + "_l" + std::to_string(i) + "_context";
-            if(j > 0)
-              prefix += "_enc" + std::to_string(j + 1);
-
-            query = LayerAttention(graph,
-                                   options_,
-                                   prefix,
-                                   query,
-                                   encoderContexts[j],
-                                   encoderContexts[j],
-                                   encoderMasks[j],
-                                   inference_);
-          }
-        } else {
-          ABORT("Unknown value for transformer-multi-encoder: {}", comb);
+          query = LayerAttention(graph,
+                                 options_,
+                                 prefix,
+                                 query,
+                                 encoderContexts[j],
+                                 encoderContexts[j],
+                                 encoderMasks[j],
+                                 inference_);
         }
       }
 
@@ -692,8 +858,12 @@ public:
     Expr logits = output_->apply(decoderContext);
 
     // return unormalized(!) probabilities
-    return New<TransformerState>(
-        decoderStates, logits, state->getEncoderStates(), state->getBatch());
+    auto nextState = New<TransformerState>(decoderStates,
+                                           logits,
+                                           state->getEncoderStates(),
+                                           state->getBatch());
+    nextState->setPosition(state->getPosition() + 1);
+    return nextState;
   }
 
   // helper function for guided alignment
