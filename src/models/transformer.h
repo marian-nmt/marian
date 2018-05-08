@@ -759,10 +759,14 @@ public:
     // apply layers
     for(int i = 1; i <= opt<int>("dec-depth"); ++i) {
       rnn::State decoderState;
+      rnn::State prevDecoderState;
+      if(prevDecoderStates.size() > 0)
+        prevDecoderState = prevDecoderStates[i - 1];
+
       std::string layerType = opt<std::string>("transformer-decoder-autoreg");
       if(layerType == "self-attention") {
         query = DecoderLayerSelfAttention(decoderState,
-                                          prevDecoderStates[i - 1],
+                                          prevDecoderState,
                                           graph,
                                           options_,
                                           prefix_ + "_l" + std::to_string(i) + "_self",
@@ -773,7 +777,7 @@ public:
       }
       else if(layerType == "average-attention") {
         query = DecoderLayerAAN(decoderState,
-                                prevDecoderStates[i - 1],
+                                prevDecoderState,
                                 graph,
                                 options_,
                                 prefix_ + "_l" + std::to_string(i) + "_aan",
@@ -784,7 +788,7 @@ public:
       }
       else if(layerType == "gru") {
         query = DecoderLayerRNN(decoderState,
-                                prevDecoderStates[i - 1],
+                                prevDecoderState,
                                 "gru",
                                 graph,
                                 options_,
