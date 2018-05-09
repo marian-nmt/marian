@@ -420,16 +420,19 @@ public:
 
     output = PreProcess(graph, prefix + "_ffn", opsPre, output, dropProb);
 
-    auto Wg = graph->param(prefix + "_Wg", {dimModel, dimModel}, inits::glorot_uniform);
-    auto bg = graph->param(prefix + "_bg", {1, dimModel}, inits::zeros);
-
     auto W = graph->param(prefix + "_W", {dimModel, dimModel}, inits::glorot_uniform);
     auto b = graph->param(prefix + "_b", {1, dimModel}, inits::zeros);
     output = affine(output, W, b);
 
-    auto gateIn = logit(affine(input, Wg, bg));
 
-    auto gateOut = logit(affine(output, Wg, bg));
+    auto Wi = graph->param(prefix + "_Wi", {dimModel, dimModel}, inits::glorot_uniform);
+    auto bi = graph->param(prefix + "_bi", {1, dimModel}, inits::zeros);
+
+    auto Wf = graph->param(prefix + "_Wf", {dimModel, dimModel}, inits::glorot_uniform);
+    auto bf = graph->param(prefix + "_bf", {1, dimModel}, inits::zeros);
+
+    auto gateIn = logit(affine(input, Wi, bi));
+    auto gateOut = logit(affine(output, Wf, bf));
     output = gateIn * input + gateOut * output;
     //output = highway(input, output, gateIn);
 
