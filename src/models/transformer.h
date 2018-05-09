@@ -503,6 +503,7 @@ public:
     float dropRnn = inference ? 0 : options->get<float>("dropout-rnn");
 
     auto rnn = rnn::rnn(graph)
+          ("prefix", prefix)
           ("type", rnnType)
           ("dimInput", dimModel)
           ("dimState", dimModel)
