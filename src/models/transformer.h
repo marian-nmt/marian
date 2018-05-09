@@ -507,7 +507,8 @@ public:
           ("dimInput", dimModel)
           ("dimState", dimModel)
           ("dropout", dropRnn)
-          ("layer-normalization", ln);
+          ("layer-normalization", ln)
+          .push_back(rnn::cell(graph));
 
     auto output = input;
     auto tPrevDecoderState = prevDecoderState;
