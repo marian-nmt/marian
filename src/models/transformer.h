@@ -513,17 +513,22 @@ public:
     auto tPrevDecoderState = prevDecoderState;
     if(transpose) {
       output = TransposeTimeBatch(output);
-      tPrevDecoderState.output = TransposeTimeBatch(tPrevDecoderState.output);
+      if(tPrevDecoderState.output)
+        tPrevDecoderState.output = TransposeTimeBatch(tPrevDecoderState.output);
       if(tPrevDecoderState.cell)
         tPrevDecoderState.cell = TransposeTimeBatch(tPrevDecoderState.cell);
     }
 
-    output = rnn->transduce(output, {tPrevDecoderState});
+    if(tPrevDecoderState.output)
+      output = rnn->transduce(output, {tPrevDecoderState});
+    else
+      output = rnn->transduce(output);
 
     decoderState = rnn->lastCellStates()[0];
     if(transpose) {
       output = TransposeTimeBatch(output);
-      decoderState.output = TransposeTimeBatch(decoderState.output);
+      if(decoderState.output)
+        decoderState.output = TransposeTimeBatch(decoderState.output);
       if(decoderState.cell)
         decoderState.cell = TransposeTimeBatch(decoderState.cell);
     }
