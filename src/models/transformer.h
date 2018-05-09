@@ -512,14 +512,16 @@ public:
           .push_back(rnn::cell(graph))
           .construct();
 
+    input = atleast_4d(input);
+
     auto output = input;
     auto tPrevDecoderState = prevDecoderState;
     if(transpose) {
       output = TransposeTimeBatch(output);
       if(tPrevDecoderState.output)
-        tPrevDecoderState.output = TransposeTimeBatch(tPrevDecoderState.output);
+        tPrevDecoderState.output = TransposeTimeBatch(atleast_4d(tPrevDecoderState.output));
       if(tPrevDecoderState.cell)
-        tPrevDecoderState.cell = TransposeTimeBatch(tPrevDecoderState.cell);
+        tPrevDecoderState.cell = TransposeTimeBatch(atleast_4d(tPrevDecoderState.cell));
     }
 
     if(tPrevDecoderState.output)
@@ -531,9 +533,9 @@ public:
     if(transpose) {
       output = TransposeTimeBatch(output);
       if(decoderState.output)
-        decoderState.output = TransposeTimeBatch(decoderState.output);
+        decoderState.output = TransposeTimeBatch(atleast_4d(decoderState.output));
       if(decoderState.cell)
-        decoderState.cell = TransposeTimeBatch(decoderState.cell);
+        decoderState.cell = TransposeTimeBatch(atleast_4d(decoderState.cell));
     }
 
     return LayerOther(graph, options, prefix, input, output, inference);
