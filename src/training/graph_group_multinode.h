@@ -386,13 +386,18 @@ public:
       : GraphGroup(options),
         clientCommOverlap{options_->get<bool>("multi-node-overlap")} {
     // Set up devices for this node
-    loadDeviceConfig(options_->get<std::vector<size_t>>("devices"));
+    std::vector<size_t> devices;
+    for(auto& d : options_->getDevices())
+      devices.push_back(d.no);
+    loadDeviceConfig(devices);
+
     // Create builders and graphs for clients.
-    for(int i = 0; i < devices_.size(); i++) {
+    for(size_t i = 0; i < devices_.size(); i++) {
       clientGraphs_.push_back(New<ExpressionGraph>());
       clientGraphs_[i]->setDevice({devices_[i], DeviceType::gpu});
       clientGraphs_[i]->reserveWorkspaceMB(options_->get<size_t>("workspace"));
-      clientBuilders_.push_back(models::from_config(options_, models::usage::training));
+      clientBuilders_.push_back(
+          models::from_config(options_, models::usage::training));
     }
   }
 
