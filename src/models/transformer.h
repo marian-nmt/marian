@@ -330,9 +330,10 @@ public:
 
     using namespace keywords;
 
+    selfMask = InverseMask(selfMask);
+
     auto values = input;
     if(startPos > 0) {
-      selfMask = InverseMask(selfMask);
       values = concatenate({prevDecoderState.output, input},
                            axis = -2);
     }
@@ -421,13 +422,16 @@ public:
 
     auto Wg = graph->param(prefix + "_Wg", {dimModel, dimModel}, inits::glorot_uniform);
     auto bg = graph->param(prefix + "_bg", {1, dimModel}, inits::zeros);
-    auto gate = affine(input, Wg, bg);
 
     auto W = graph->param(prefix + "_W", {dimModel, dimModel}, inits::glorot_uniform);
     auto b = graph->param(prefix + "_b", {1, dimModel}, inits::zeros);
     output = affine(output, W, b);
 
-    output = highway(output, input, gate);
+    auto gateIn = logit(affine(input, Wg, bg));
+
+    auto gateOut = logit(affine(output, Wg, bg));
+    output = gateIn * input + gateOut * output;
+    //output = highway(input, output, gateIn);
 
     auto opsPost = options->get<std::string>("transformer-postprocess");
     output
