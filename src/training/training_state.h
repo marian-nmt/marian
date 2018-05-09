@@ -82,6 +82,7 @@ public:
   void newBatch() {
     ++batches;
     ++batchesEpoch;
+    loaded = false;
     validated = false;
     for(auto observer : observers_)
       observer->actAfterBatches(*this);

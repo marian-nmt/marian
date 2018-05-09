@@ -365,7 +365,9 @@ public:
       logits = output_->apply(embeddings, decoderContext);
 
     // return unormalized(!) probabilities
-    return New<DecoderState>(decoderStates, logits, state->getEncoderStates(), state->getBatch());
+    auto nextState = New<DecoderState>(decoderStates, logits, state->getEncoderStates(), state->getBatch());
+    nextState->setPosition(state->getPosition() + 1);
+    return nextState;
   }
 
   // helper function for guided alignment

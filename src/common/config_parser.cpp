@@ -352,6 +352,8 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Activation between filters: swish or relu (transformer)")
     ("transformer-ffn-activation", po::value<std::string>()->default_value("swish"),
      "Activation between filters: swish or relu (transformer)")
+    ("transformer-decoder-autoreg", po::value<std::string>()->default_value("self-attention"),
+     "Type of autoregressive layer in transformer decoder: self-attention, average-attention (transformer)")
     ("transformer-preprocess", po::value<std::string>()->default_value(""),
      "Operation before each transformer layer: d = dropout, a = add, n = normalize")
     ("transformer-postprocess-emb", po::value<std::string>()->default_value("d"),
@@ -854,6 +856,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("transformer-dim-ffn", int);
   SET_OPTION("transformer-ffn-depth", int);
   SET_OPTION("transformer-ffn-activation", std::string);
+  SET_OPTION("transformer-decoder-autoreg", std::string);
 
 #ifdef CUDNN
   SET_OPTION("char-stride", int);
