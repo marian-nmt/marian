@@ -1189,31 +1189,10 @@ void SumAndLogSoftMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
 {
   unsigned vocabSize = in.dim(1);
 
-  // calc sum
-  sum[threadIdx.x] = 0.0f;
-  for (int id = threadIdx.x; id < vocabSize; id += blockDim.x) {
-    //row[id] = exp(row[id] - max);
-    float val = in(hypoInd, id) + b4Wrap(0, id);
-    val = __expf(val - topScore);
-    sum[threadIdx.x] += val;
-  }
-
-  int len = blockDim.x;
-  while (len != 1) {
-    __syncthreads();
-
-    int skip = (len + 1) >> 1;
-    if (threadIdx.x < (len >> 1)) {
-      sum[threadIdx.x] += sum[threadIdx.x + skip];
-    }
-    len = (len + 1) >> 1;
-  }
-
-
   // apply partition and log to top
   __syncthreads();
   if (threadIdx.x == 0) {
-    printf("sum=%f \n", sum[0]);
+    //printf("sum=%f \n", sum[0]);
     //printf("val=%f %f \n", in(rowIdx, ele.vocabId, 0, 0), val);
 
     // nbest
@@ -1431,8 +1410,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   mblas::Vector<unsigned> batch2Hypo(batchSize);
   mblas::Vector<NthOutBatch> nBestCandidates(candidateInd);
 
-  cerr << "in=" << in.Debug(1) << endl;
   /*
+  cerr << "in=" << in.Debug(1) << endl;
   cerr << "beamSizes=" << beamSizes.size() << endl;
   cerr << "beamSizeSum=" << beamSizeSum << endl;
   cerr << "batchSize=" << batchSize << endl;
