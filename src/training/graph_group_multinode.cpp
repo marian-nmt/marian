@@ -573,7 +573,7 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
         // a safe state.
         clientThreadPool_->wait_for_others(lock);
 
-        if(scheduler_->saving())
+        if(scheduler_->saving() && mpi_my_rank_==0)
           this->save(graph);
 
         if(scheduler_->validating())
