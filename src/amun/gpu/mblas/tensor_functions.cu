@@ -1050,16 +1050,15 @@ void MaxAndSum(float &max, float &tot, const float &val)
 }
 
 __device__
-void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
+void NBestAndMaxAndSum(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
                 TensorWrapper<NthOutBatch> &nBestMatrix,
                 VectorWrapper<float> &max,
                 VectorWrapper<float> &sum,
-                float &topScore,
                 const TensorWrapper<float> &in,
                 const TensorWrapper<float> &b4Wrap,
-                unsigned hypoInd,
-                unsigned maxBeamSize,
-                bool forbidUNK,
+                const unsigned hypoInd,
+                const unsigned maxBeamSize,
+                const bool forbidUNK,
                 const VectorWrapper<unsigned> &hypo2BeamSizeWrap,
                 const VectorWrapper<unsigned> &hypo2CandidateWrap)
 {
@@ -1166,9 +1165,6 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
     }
   }
 
-  __syncthreads();
-  topScore = max[0];
-
   //if (threadIdx.x == 0) {
   //  printf("max=%f %f %f \n", max[0], sum[0], topScore);
   //}
@@ -1177,13 +1173,13 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 __device__
-void SumAndLogSoftMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
-                      VectorWrapper<float> &sum,
+void dLogSoftMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
                       const TensorWrapper<float> &in,
                       const TensorWrapper<float> &b4Wrap,
-                      unsigned hypoInd,
-                      unsigned maxBeamSize,
-                      float topScore,
+                      const unsigned hypoInd,
+                      const unsigned maxBeamSize,
+                      const float topScore,
+                      const float sumExp,
                       const VectorWrapper<unsigned> &hypo2BeamSizeWrap,
                       const VectorWrapper<unsigned> &hypo2CandidateWrap)
 {
@@ -1203,7 +1199,7 @@ void SumAndLogSoftMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
 
       float &val = ele.score;
       val = __expf(val - topScore);
-      val = __logf(val /sum[0]);
+      val = __logf(val /sumExp);
     }
   }
 }
@@ -1234,13 +1230,10 @@ __global__ void gLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
 
   unsigned hypoInd =  blockIdx.x; // index of previous hypo
   while (hypoInd < hypos) {
-    float topScore;
-
-    NBestAndMax(nBestCandidatesWrap,
+    NBestAndMaxAndSum(nBestCandidatesWrap,
                 nBestMatrix,
                 max,
                 sum,
-                topScore,
                 in,
                 b4Wrap,
                 hypoInd,
@@ -1248,16 +1241,19 @@ __global__ void gLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
                 forbidUNK,
                 hypo2BeamSizeWrap,
                 hypo2CandidateWrap);
+    __syncthreads();
 
-    //__syncthreads();
     if (doSoftmax) {
-      SumAndLogSoftMax(nBestCandidatesWrap,
-                      sum,
+      const float topScore = max[0];
+      const float sumExp = sum[0];
+
+      dLogSoftMax(nBestCandidatesWrap,
                       in,
                       b4Wrap,
                       hypoInd,
                       maxBeamSize,
                       topScore,
+                      sumExp,
                       hypo2BeamSizeWrap,
                       hypo2CandidateWrap);
     }
