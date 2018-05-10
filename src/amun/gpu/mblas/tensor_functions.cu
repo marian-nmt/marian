@@ -1060,7 +1060,8 @@ void NBestAndMaxAndSum(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
                 const unsigned maxBeamSize,
                 const bool forbidUNK,
                 const VectorWrapper<unsigned> &hypo2BeamSizeWrap,
-                const VectorWrapper<unsigned> &hypo2CandidateWrap)
+                const VectorWrapper<unsigned> &hypo2CandidateWrap,
+                bool requireProb)
 {
   assert(max.size() == blockDim.x);
   assert(sum.size() == blockDim.x);
@@ -1090,7 +1091,9 @@ void NBestAndMaxAndSum(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
     AddElement(minScore, i, row, forbidUNK, vocabInd, ele);
 
     // max & sum
-    MaxAndSum(max[threadIdx.x], sum[threadIdx.x], score);
+    if (requireProb) {
+      MaxAndSum(max[threadIdx.x], sum[threadIdx.x], score);
+    }
 
     vocabInd += blockDim.x;
   }
@@ -1141,28 +1144,29 @@ void NBestAndMaxAndSum(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
     }
 
     // top score and sum
-    float &max0 = max[0];
-    float &sum0 = sum[0];
-    //printf("max0=%f %f \n", max[0], sum[0]);
+    if (requireProb) {
+      float &max0 = max[0];
+      float &sum0 = sum[0];
+      //printf("max0=%f %f \n", max[0], sum[0]);
 
-    for (unsigned i = 1; i < max.size(); ++i) {
-      const float &maxi = max[i];
-      const float &sumi = sum[i];
-      //printf("i=%i max0=%f %f maxi=%f %f \n", i, max[0], sum[0], max[i], sum[i]);
+      for (unsigned i = 1; i < max.size(); ++i) {
+        const float &maxi = max[i];
+        const float &sumi = sum[i];
+        //printf("i=%i max0=%f %f maxi=%f %f \n", i, max[0], sum[0], max[i], sum[i]);
 
-      if (max0 > maxi) {
-        float delta = maxi - max0;
-        sum0 = sum0 + __expf(delta) * sumi;
+        if (max0 > maxi) {
+          float delta = maxi - max0;
+          sum0 = sum0 + __expf(delta) * sumi;
+        }
+        else {
+          float delta = max0 - maxi;
+          sum0 = __expf(delta) * sum0 + sumi;
+
+          max0 = maxi;
+        }
       }
-      else {
-        float delta = max0 - maxi;
-        sum0 = __expf(delta) * sum0 + sumi;
-
-        max0 = maxi;
-      }
+      // printf("max=%f %f %f \n", max[0], sum[0], topScore);
     }
-
-    //  printf("max=%f %f %f \n", max[0], sum[0], topScore);
   }
 }
 
@@ -1206,7 +1210,7 @@ __global__ void gLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
                         bool forbidUNK,
                         const VectorWrapper<unsigned> hypo2BeamSizeWrap,
                         const VectorWrapper<unsigned> hypo2CandidateWrap,
-                        bool doSoftmax)
+                        bool requireProb)
 {
   extern __shared__ char _sharePtr[];
 
@@ -1234,10 +1238,11 @@ __global__ void gLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
                 maxBeamSize,
                 forbidUNK,
                 hypo2BeamSizeWrap,
-                hypo2CandidateWrap);
+                hypo2CandidateWrap,
+                requireProb);
     __syncthreads();
 
-    if (doSoftmax) {
+    if (requireProb) {
       const float topScore = max[0];
       const float sumExp = sum[0];
 
@@ -1363,7 +1368,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
                 const std::vector<unsigned>& beamSizes,
                 unsigned beamSizeSum,
                 bool isFirst,
-                bool doSoftmax)
+                bool requireProb)
 {
   //BEGIN_TIMER("LogSoftmax excl kernels");
 
@@ -1462,7 +1467,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
      forbidUNK,
      hypo2BeamSizeWrap,
      hypo2CandidateWrap,
-     doSoftmax);
+     requireProb);
   HANDLE_ERROR(cudaGetLastError());
   //PAUSE_TIMER("gLogSoftMax");
   
