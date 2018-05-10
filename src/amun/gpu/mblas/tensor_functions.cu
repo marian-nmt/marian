@@ -1035,8 +1035,25 @@ void MergeElement(float &minScore,
 }
 
 __device__
+void MaxAndSum(float &max, float &tot, const float &val)
+{
+  if (val > max) {
+    float delta = max - val; // val - max; // TODO see LogSoftmaxFn
+    tot *= __expf(delta);
+
+    max = val;
+    tot += 1; // exp(val - max) = exp(0) = 1
+  }
+  else {
+    tot += __expf(val - max);
+  }
+}
+
+__device__
 void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
                 TensorWrapper<NthOutBatch> &nBestMatrix,
+                VectorWrapper<float> &max,
+                VectorWrapper<float> &sum,
                 float &topScore,
                 const TensorWrapper<float> &in,
                 const TensorWrapper<float> &b4Wrap,
@@ -1057,6 +1074,10 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
 
   // init
   unsigned vocabInd = threadIdx.x;
+
+  max[threadIdx.x] = LOWEST_FLOAT;
+  sum[threadIdx.x] = 0.0f;
+
   unsigned i = 0;
   while (vocabInd < vocabSize && i < beamSize) {
     const float score = in(hypoInd, vocabInd) + b4Wrap(0, vocabInd);
@@ -1065,6 +1086,9 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
     NthOutBatch ele(arrInd, score, hypoInd, vocabInd);
 
     AddElement(minScore, i, row, forbidUNK, vocabInd, ele);
+
+    // max & sum
+    MaxAndSum(max[threadIdx.x], sum[threadIdx.x], score);
 
     vocabInd += blockDim.x;
   }
@@ -1076,6 +1100,9 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
     NthOutBatch ele(arrInd, score, hypoInd, vocabInd);
 
     MergeElement(minScore, row, beamSize, ele, forbidUNK, vocabInd);
+
+    // max & sum
+    MaxAndSum(max[threadIdx.x], sum[threadIdx.x], score);
 
     vocabInd += blockDim.x;
   } // while (vocabInd < vocabSize) {
@@ -1181,9 +1208,13 @@ __global__ void gLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
 {
   extern __shared__ char _sharePtr[];
 
-  VectorWrapper<float> sum((float*)_sharePtr, blockDim.x);
+  void *ptrOffset = _sharePtr;
+  VectorWrapper<float> max((float*)ptrOffset, blockDim.x);
 
-  void *ptrOffset = _sharePtr + sizeof(float) * blockDim.x;
+  ptrOffset = _sharePtr + sizeof(float) * blockDim.x;
+  VectorWrapper<float> sum((float*)ptrOffset, blockDim.x);
+
+  ptrOffset = _sharePtr + 2 * sizeof(float) * blockDim.x;
   TensorWrapper<NthOutBatch> nBestMatrix((NthOutBatch*)ptrOffset, blockDim.x, maxBeamSize, 1, 1);
 
   unsigned hypos = in.dim(0);
@@ -1195,6 +1226,8 @@ __global__ void gLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
 
     NBestAndMax(nBestCandidatesWrap,
                 nBestMatrix,
+                max,
+                sum,
                 topScore,
                 in,
                 b4Wrap,
@@ -1365,8 +1398,8 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   mblas::Vector<unsigned> batch2Hypo(batchSize);
   mblas::Vector<NthOutBatch> nBestCandidates(candidateInd);
 
+  cerr << "in=" << in.Debug(1) << endl;
   /*
-  cerr << "in=" << in.Debug(0) << endl;
   cerr << "beamSizes=" << beamSizes.size() << endl;
   cerr << "beamSizeSum=" << beamSizeSum << endl;
   cerr << "batchSize=" << batchSize << endl;
@@ -1416,7 +1449,7 @@ void LogSoftmaxAndNBest(mblas::Vector<NthOutBatch> &nBest,
   unsigned blocks = std::min((unsigned) MAX_BLOCKS, in.dim(0));
   unsigned threads = std::min((unsigned)MAX_THREADS, in.dim(1));
   unsigned shared = sizeof(NthOutBatch) * threads * maxBeamSize
-             + sizeof(float) * threads;
+             + 2 * sizeof(float) * threads;
 
   //BEGIN_TIMER("gLogSoftMax");
   gLogSoftMax<<<blocks, threads, shared, CudaStreamHandler::GetStream()>>>
