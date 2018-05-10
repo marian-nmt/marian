@@ -1063,6 +1063,9 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
                 const VectorWrapper<unsigned> &hypo2BeamSizeWrap,
                 const VectorWrapper<unsigned> &hypo2CandidateWrap)
 {
+  assert(max.size() == blockDim.x);
+  assert(sum.size() == blockDim.x);
+
   VectorWrapper<NthOutBatch> row = nBestMatrix.Row(threadIdx.x);
 
   unsigned vocabSize = in.dim(1);
@@ -1140,7 +1143,33 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
   }
 
   __syncthreads();
+  if (threadIdx.x == 0) {
+    float &max0 = max[0];
+    float &sum0 = sum[0];
+
+    for (unsigned i = 1; i < max.size(); ++i) {
+      const float &maxi = max[i];
+      const float &sumi = sum[i];
+
+      if (max0 > maxi) {
+        float delta = max0 - maxi;
+        sum0 += delta * sumi;
+      }
+      else {
+        float delta = maxi - max0;
+        sum0 *= delta;
+        sum0 += sumi;
+
+        max0 = maxi;
+      }
+    }
+
+    printf("max=%f %f \n", max[0], sum[0]);
+  }
+
+  __syncthreads();
   topScore = GetMaxScore(nBestMatrix);
+
 
 }
 
