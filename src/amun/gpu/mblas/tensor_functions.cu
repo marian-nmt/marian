@@ -1146,19 +1146,20 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
   if (threadIdx.x == 0) {
     float &max0 = max[0];
     float &sum0 = sum[0];
+    //printf("max0=%f %f \n", max[0], sum[0]);
 
     for (unsigned i = 1; i < max.size(); ++i) {
       const float &maxi = max[i];
       const float &sumi = sum[i];
+      //printf("i=%i max0=%f %f maxi=%f %f \n", i, max[0], sum[0], max[i], sum[i]);
 
       if (max0 > maxi) {
-        float delta = max0 - maxi;
-        sum0 += delta * sumi;
+        float delta = maxi - max0;
+        sum0 = sum0 + __expf(delta) * sumi;
       }
       else {
-        float delta = maxi - max0;
-        sum0 *= delta;
-        sum0 += sumi;
+        float delta = max0 - maxi;
+        sum0 = __expf(delta) * sum0 + sumi;
 
         max0 = maxi;
       }
@@ -1207,9 +1208,11 @@ void SumAndLogSoftMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
     len = (len + 1) >> 1;
   }
 
+
   // apply partition and log to top
   __syncthreads();
   if (threadIdx.x == 0) {
+    printf("sum=%f \n", sum[0]);
     //printf("val=%f %f \n", in(rowIdx, ele.vocabId, 0, 0), val);
 
     // nbest
