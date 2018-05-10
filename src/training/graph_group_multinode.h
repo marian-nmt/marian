@@ -134,6 +134,8 @@ protected:
    */
   static const int MPI_TAG_PARAM_PUSH_{5};
 
+  static const int MPI_TAG_VALID_START_{6};
+  static const int MPI_TAG_VALID_DONE_{7};
   /**
    * Message info indices: 0 = size; 1 = originating client; 2 = number of batch
    * words; 3 = status of node

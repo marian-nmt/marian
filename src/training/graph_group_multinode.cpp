@@ -566,19 +566,36 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
 
       scheduler_->update(cost, batch);
 
-      if(scheduler_->saving() || scheduler_->validating()) {
+      if((scheduler_->saving() || scheduler_->validating())) {
         // Wait with validation or saving until all other threads are done with
         // update.
         // We want to reuse the graphs for validation, so they need to be in
         // a safe state.
         clientThreadPool_->wait_for_others(lock);
 
-        if(scheduler_->saving())
-          this->save(graph);
+	//wait until other nodes are ready
+        int dummy = 0;
+        if (mpi_my_rank_ == 0) {
+           for (int id = 1;id < mpi_comm_world_size_; id++)
+             MPI_Recv(&dummy, 1, MPI_INT, id, MPI_TAG_VALID_START_, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        } else {
+          MPI_Send(&dummy, 1, MPI_INT, 0, MPI_TAG_VALID_START_, MPI_COMM_WORLD);
+        }
+        
+        // TODO: Saving is broken
+        //if(mpi_my_rank_ == 0 && scheduler_->saving())
+        //  this->save(graph);
 
-        if(scheduler_->validating())
+        if(mpi_my_rank_ == 0 && scheduler_->validating())
           scheduler_->validate(clientGraphs_);
 
+        // inform other nodes to continue
+        if (mpi_my_rank_ == 0) {
+           for (int id = 1;id < mpi_comm_world_size_; id++)
+             MPI_Send(&dummy, 1, MPI_INT, id, MPI_TAG_VALID_DONE_, MPI_COMM_WORLD);
+        } else {
+          MPI_Recv(&dummy, 1, MPI_INT, 0, MPI_TAG_VALID_DONE_, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
         // Validation or saving is done, tell other threads to continue work.
         clientThreadPool_->notify_others();
       }
