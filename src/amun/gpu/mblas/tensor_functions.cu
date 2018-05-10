@@ -1139,10 +1139,8 @@ void NBestAndMaxAndSum(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
       assert(candidateInd + i < nBestCandidatesWrap.size());
       nBestCandidatesWrap[candidateInd + i] = curr;
     }
-  }
 
-  __syncthreads();
-  if (threadIdx.x == 0) {
+    // top score and sum
     float &max0 = max[0];
     float &sum0 = sum[0];
     //printf("max0=%f %f \n", max[0], sum[0]);
@@ -1163,12 +1161,9 @@ void NBestAndMaxAndSum(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
         max0 = maxi;
       }
     }
+
+    //  printf("max=%f %f %f \n", max[0], sum[0], topScore);
   }
-
-  //if (threadIdx.x == 0) {
-  //  printf("max=%f %f %f \n", max[0], sum[0], topScore);
-  //}
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1186,7 +1181,6 @@ void dLogSoftMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
   unsigned vocabSize = in.dim(1);
 
   // apply partition and log to top
-  __syncthreads();
   if (threadIdx.x == 0) {
     //printf("sum=%f \n", sum[0]);
     //printf("val=%f %f \n", in(rowIdx, ele.vocabId, 0, 0), val);
