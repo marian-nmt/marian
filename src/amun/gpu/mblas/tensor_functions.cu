@@ -1036,22 +1036,16 @@ void MergeElement(float &minScore,
 
 __device__
 void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
-              float &topScore,
-              const TensorWrapper<float> &in,
-              const TensorWrapper<float> &b4Wrap,
-              unsigned hypoInd,
-              unsigned maxBeamSize,
-              bool forbidUNK,
-              const VectorWrapper<unsigned> &hypo2BeamSizeWrap,
-              const VectorWrapper<unsigned> &hypo2CandidateWrap)
+                TensorWrapper<NthOutBatch> &nBestMatrix,
+                float &topScore,
+                const TensorWrapper<float> &in,
+                const TensorWrapper<float> &b4Wrap,
+                unsigned hypoInd,
+                unsigned maxBeamSize,
+                bool forbidUNK,
+                const VectorWrapper<unsigned> &hypo2BeamSizeWrap,
+                const VectorWrapper<unsigned> &hypo2CandidateWrap)
 {
-  extern __shared__ char _sharePtr[];
-
-  // placeholder for shared mem in subsequent function SumAndLogSoftMax
-  //TensorWrapper<float> maxMatrix((float*)_sharePtr, blockDim.x, 1, 1, 1);
-
-  void *ptrOffset = _sharePtr + sizeof(float) * blockDim.x;
-  TensorWrapper<NthOutBatch> nBestMatrix((NthOutBatch*)ptrOffset, blockDim.x, maxBeamSize, 1, 1);
   VectorWrapper<NthOutBatch> row = nBestMatrix.Row(threadIdx.x);
 
   unsigned vocabSize = in.dim(1);
@@ -1126,26 +1120,24 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 __device__
 void SumAndLogSoftMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
-                            const TensorWrapper<float> &in,
-                            const TensorWrapper<float> &b4Wrap,
-                            unsigned hypoInd,
-                            unsigned maxBeamSize,
-                            float topScore,
-                            const VectorWrapper<unsigned> &hypo2BeamSizeWrap,
-                            const VectorWrapper<unsigned> &hypo2CandidateWrap)
+                      VectorWrapper<float> &sum,
+                      const TensorWrapper<float> &in,
+                      const TensorWrapper<float> &b4Wrap,
+                      unsigned hypoInd,
+                      unsigned maxBeamSize,
+                      float topScore,
+                      const VectorWrapper<unsigned> &hypo2BeamSizeWrap,
+                      const VectorWrapper<unsigned> &hypo2CandidateWrap)
 {
-  extern __shared__ float _share[];
-  VectorWrapper<float> _sum(_share, blockDim.x);
-
   unsigned vocabSize = in.dim(1);
 
   // calc sum
-  _sum[threadIdx.x] = 0.0f;
+  sum[threadIdx.x] = 0.0f;
   for (int id = threadIdx.x; id < vocabSize; id += blockDim.x) {
     //row[id] = exp(row[id] - max);
     float val = in(hypoInd, id) + b4Wrap(0, id);
     val = __expf(val - topScore);
-    _sum[threadIdx.x] += val;
+    sum[threadIdx.x] += val;
   }
 
   int len = blockDim.x;
@@ -1154,7 +1146,7 @@ void SumAndLogSoftMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
 
     int skip = (len + 1) >> 1;
     if (threadIdx.x < (len >> 1)) {
-      _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+      sum[threadIdx.x] += sum[threadIdx.x + skip];
     }
     len = (len + 1) >> 1;
   }
@@ -1172,7 +1164,7 @@ void SumAndLogSoftMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
 
       float &val = ele.score;
       val = __expf(val - topScore);
-      val = __logf(val /_sum[0]);
+      val = __logf(val /sum[0]);
     }
   }
 }
@@ -1187,6 +1179,13 @@ __global__ void gLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
                         const VectorWrapper<unsigned> hypo2CandidateWrap,
                         bool doSoftmax)
 {
+  extern __shared__ char _sharePtr[];
+
+  VectorWrapper<float> sum((float*)_sharePtr, blockDim.x);
+
+  void *ptrOffset = _sharePtr + sizeof(float) * blockDim.x;
+  TensorWrapper<NthOutBatch> nBestMatrix((NthOutBatch*)ptrOffset, blockDim.x, maxBeamSize, 1, 1);
+
   unsigned hypos = in.dim(0);
   unsigned vocabSize = in.dim(1);
 
@@ -1195,25 +1194,27 @@ __global__ void gLogSoftMax(VectorWrapper<NthOutBatch> nBestCandidatesWrap,
     float topScore;
 
     NBestAndMax(nBestCandidatesWrap,
-            topScore,
-            in,
-            b4Wrap,
-            hypoInd,
-            maxBeamSize,
-            forbidUNK,
-            hypo2BeamSizeWrap,
-            hypo2CandidateWrap);
+                nBestMatrix,
+                topScore,
+                in,
+                b4Wrap,
+                hypoInd,
+                maxBeamSize,
+                forbidUNK,
+                hypo2BeamSizeWrap,
+                hypo2CandidateWrap);
 
     //__syncthreads();
     if (doSoftmax) {
       SumAndLogSoftMax(nBestCandidatesWrap,
-                  in,
-                  b4Wrap,
-                  hypoInd,
-                  maxBeamSize,
-                  topScore,
-                  hypo2BeamSizeWrap,
-                  hypo2CandidateWrap);
+                      sum,
+                      in,
+                      b4Wrap,
+                      hypoInd,
+                      maxBeamSize,
+                      topScore,
+                      hypo2BeamSizeWrap,
+                      hypo2CandidateWrap);
     }
 
     __syncthreads();
