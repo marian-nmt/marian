@@ -1164,13 +1164,14 @@ void NBestAndMax(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
         max0 = maxi;
       }
     }
-
-    printf("max=%f %f \n", max[0], sum[0]);
   }
 
   __syncthreads();
-  topScore = GetMaxScore(nBestMatrix);
+  topScore = max[0];
 
+  //if (threadIdx.x == 0) {
+  //  printf("max=%f %f %f \n", max[0], sum[0], topScore);
+  //}
 
 }
 
