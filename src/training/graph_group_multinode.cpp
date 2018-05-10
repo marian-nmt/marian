@@ -339,7 +339,7 @@ void MultiNodeGraphGroup::launchCommOverlapThreads() {
 
             // Synchronize with server shards
             synchronizeWithServerShards(
-                clientCommOverlapBuffersGPU_[gpu],
+                clientSummedGradsGPU[gpu],
                 clientCommOverlapBuffersGPU_[gpu],
                 gpu,
                 scaleLearningRate_ ? clientCommittedWordCounts_[gpu] : 0);
