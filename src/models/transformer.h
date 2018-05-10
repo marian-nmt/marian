@@ -413,39 +413,70 @@ public:
   Expr LayerAAN(Ptr<ExpressionGraph> graph,
                 Ptr<Options> options,
                 std::string prefix,
-                Expr input,
-                Expr output,
+                Expr x,
+                Expr y,
                 bool inference = false) {
     using namespace keywords;
 
-    int dimModel = input->shape()[-1];
+    int dimModel = x->shape()[-1];
 
     float dropProb = inference ? 0 : options->get<float>("transformer-dropout");
     auto opsPre = options->get<std::string>("transformer-preprocess");
 
-    output = PreProcess(graph, prefix + "_ffn", opsPre, output, dropProb);
+    y = PreProcess(graph, prefix + "_ffn", opsPre, y, dropProb);
 
-    auto W = graph->param(prefix + "_W", {dimModel, dimModel}, inits::glorot_uniform);
-    auto b = graph->param(prefix + "_b", {1, dimModel}, inits::zeros);
-    output = affine(output, W, b);
+    // FFN
+    int dimFfn = options->get<int>("transformer-dim-ffn");
+    int depthFfn = options->get<int>("transformer-ffn-depth");
+    auto act = options->get<std::string>("transformer-ffn-activation");
+    float ffnDropProb
+      = inference ? 0 : options->get<float>("transformer-dropout-ffn");
 
+    ABORT_IF(depthFfn < 1, "Filter depth {} is smaller than 1", depthFfn);
 
+    int i = 1;
+    int dimLast = dimModel;
+    for(; i < depthFfn; ++i) {
+      int dimFirst = i == 1 ? dimModel : dimFfn;
+      auto W = graph->param(
+          prefix + "_W" + std::to_string(i), {dimFirst, dimFfn}, inits::glorot_uniform);
+      auto b = graph->param(prefix + "_b" + std::to_string(i), {1, dimFfn}, inits::zeros);
+
+      y = affine(y, W, b);
+
+      if(act == "relu")
+        y = relu(y);
+      else
+        y = swish(y);
+
+      if(ffnDropProb)
+        y = dropout(y, ffnDropProb);
+
+      dimLast = dimFfn;
+    }
+
+    auto W = graph->param(
+        prefix + "_W" + std::to_string(i), {dimLast, dimModel}, inits::glorot_uniform);
+    auto b = graph->param(prefix + "_b" + std::to_string(i), {1, dimModel}, inits::zeros);
+
+    y = affine(y, W, b);
+
+    // Gate
     auto Wi = graph->param(prefix + "_Wi", {dimModel, dimModel}, inits::glorot_uniform);
     auto bi = graph->param(prefix + "_bi", {1, dimModel}, inits::zeros);
 
     auto Wf = graph->param(prefix + "_Wf", {dimModel, dimModel}, inits::glorot_uniform);
     auto bf = graph->param(prefix + "_bf", {1, dimModel}, inits::zeros);
 
-    auto gateIn = logit(affine(input, Wi, bi));
-    auto gateOut = logit(affine(output, Wf, bf));
-    output = gateIn * input + gateOut * output;
+    auto gi = logit(affine(x, Wi, bi));
+    auto gf = logit(affine(y, Wf, bf));
+    y = gi * x + gf * y;
     //output = highway(input, output, gateIn);
 
     auto opsPost = options->get<std::string>("transformer-postprocess");
-    output
-        = PostProcess(graph, prefix + "_ffn", opsPost, output, input, dropProb);
+    y = PostProcess(graph, prefix + "_ffn", opsPost, y, x, dropProb);
 
-    return output;
+    return y;
   }
 
   Expr DecoderLayerAAN(rnn::State& decoderState,
@@ -462,9 +493,13 @@ public:
 
     auto output = input;
     if(startPos > 0) {
-       output = (prevDecoderState.output * startPos + input) / (startPos + 1);
+      // we are decoding at a position after 0
+      output = (prevDecoderState.output * startPos + input) / (startPos + 1);
     }
-    else if (selfMask) {
+    else if(startPos == 0 && output->shape()[-2] > 1) {
+      // we are training or scoring, because there is no history and
+      // the context is larger than a single time step. We do not need
+      // to average batch with only single words.
       selfMask = selfMask / sum(selfMask, axis=-1);
       output = bdot(selfMask, output);
     }
