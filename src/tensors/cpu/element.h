@@ -1,8 +1,3 @@
-/* All or part of this file was contributed by Intel under license:
- *   Copyright (C) 2017-2018 Intel Corporation
- *   SPDX-License-Identifier: MIT
- */
-
 #pragma once
 
 #include "tensors/tensor.h"
@@ -10,35 +5,47 @@
 namespace marian {
 namespace cpu {
 
-template <size_t N, size_t K, class Functor>
-struct E {
+// @TODO: generalize to vector operations, possible using specializations
+
+// single loop over outer dimension. Recursively creates nested loops
+// down to inner dimension and to single elements. Since this is based
+// on strides, it correctly broadcasts to all dimensions without additional
+// computation.
+// Compiler optimizes this to single construct with nested(?) loops.
+template <size_t I = 0> struct E {
+  template <size_t K, class Functor>
   static inline void element(Functor functor,
-                             functional::Array<functional::Tensor<float>, K> tensors,
+                             functional::Array<functional::Tensor<float>, K>& tensors,
                              functional::Array<int, K> indices) {
 
     auto& shape = tensors[0].shape();
-    for(int i = 0; i < shape[functional::Shape::size() - N]; ++i) {
-      E<N - 1, K, Functor>::element(functor, tensors, indices);
-      for(int k = 0; k < K; ++k) {
-         indices[k] += tensors[k].shape().bstride(functional::Shape::size() - N);
-      }
+
+    // loop for outer-most dimension
+    for(int i = 0; i < shape[I]; ++i) {
+
+      // call loop for next-inner dimension
+      E<I + 1>::element(functor, tensors, indices);
+
+      // increase index for current dimension by stride or 0 if broadcasting. bstride(i)
+      // is look-up value, either equal to stride if the corresponding dim is larger 1 or
+      // 0 if the dim is 1.
+      for(int k = 0; k < K; ++k)
+        indices[k] += tensors[k].shape().bstride(I);
     }
   }
 };
 
-template <size_t K, class Functor>
-struct E<1, K, Functor> {
+// specialization for inner-most single element (recursive stopping criterion)
+// using const reference for indices here to avoid copying. No loop.
+template <> struct E<functional::Shape::size()> {
+  template <size_t K, class Functor>
   static inline void element(Functor functor,
-                             functional::Array<functional::Tensor<float>, K> tensors,
-                             functional::Array<int, K> indices) {
+                             functional::Array<functional::Tensor<float>, K>& tensors,
+                             const functional::Array<int, K>& indices) {
 
-    auto& shape = tensors[0].shape();
-    for(int i = 0; i < shape[functional::Shape::size() - 1]; ++i) {
-      tensors[0][indices[0]] = functional::apply(functor, tensors, indices);
-      for(int k = 0; k < K; ++k) {
-         indices[k] += tensors[k].shape().bstride(functional::Shape::size() - 1);
-      }
-    }
+    // just apply the function for all elements across all tensors
+    tensors[0][indices[0]] = functional::apply(functor, tensors, indices);
+
   }
 };
 
@@ -47,9 +54,13 @@ void Element(Functor functor, marian::Tensor out, Tensors... tensors) {
   constexpr size_t K = sizeof...(tensors) + 1;
   functional::Array<functional::Tensor<float>, K> gTensors = {out, tensors...};
 
+  // create and initialize indices to 0
   functional::Array<int, K> indices;
   indices.fill(0);
-  E<functional::Shape::size(), K, Functor>::element(functor, gTensors, indices);
+
+  // call elementwise operation going from outer-most dimension
+  // to inner-most element.
+  E<>::element(functor, gTensors, indices);
 }
 
 }
