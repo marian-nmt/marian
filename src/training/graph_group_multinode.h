@@ -124,15 +124,21 @@ protected:
   int mpi_comm_world_size_{1};
 
   /**
-   * Flag to indicate that an MPI message contains gradients (client -> server).
+   * Flag to indicate that an MPI message contains message info 
+   * before sending the gradient (client -> server).
    */
-  static const int MPI_TAG_GRAD_PUSH_{0};
+  static const int MPI_TAG_GRAD_PUSH_MSG_{0};
+
+  /**
+   * Flag to indicate that an MPI message contains gradient (client -> server).
+   */
+  static const int MPI_TAG_GRAD_PUSH_{5};
 
   /**
    * Flag to indicate that an MPI message contains parameters (server ->
    * client).
    */
-  static const int MPI_TAG_PARAM_PUSH_{5};
+  static const int MPI_TAG_PARAM_PUSH_{10};
 
   /**
    * Message info indices: 0 = size; 1 = originating client; 2 = number of batch

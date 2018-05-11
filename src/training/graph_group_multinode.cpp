@@ -235,7 +235,7 @@ void MultiNodeGraphGroup::launchServerThread() {
                4,
                MPI_UNSIGNED_LONG,
                MPI_ANY_SOURCE,
-               MPI_TAG_GRAD_PUSH_,
+               MPI_TAG_GRAD_PUSH_MSG_,
                MPI_COMM_WORLD,
                &status);
       if(messageInfo[MSG_INFO_STATUS_] == STATUS_NODE_FINISHED_) {
@@ -405,7 +405,7 @@ void MultiNodeGraphGroup::synchronizeWithServerShards(Tensor newGrads,
                 4,
                 MPI_UNSIGNED_LONG,
                 node,
-                MPI_TAG_GRAD_PUSH_,
+                MPI_TAG_GRAD_PUSH_MSG_,
                 MPI_COMM_WORLD);
       MPI_Ssend(clientCommBuffersCPU_[gpu].data(),
                 nodeSize,
