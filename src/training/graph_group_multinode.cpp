@@ -492,6 +492,7 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
     thread_local Ptr<ExpressionGraph> graph;
     thread_local Ptr<models::ModelBase> builder;
     thread_local size_t my_id = 0;
+    thread_local size_t t = 0;
 
     if(!graph) {
       std::lock_guard<std::mutex> lock(mutexClientInit_);
@@ -502,9 +503,21 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
 
     auto costNode = builder->build(graph, batch);
 
+    if (t == 0) {
+      MPI_Barrier(MPI_COMM_WORLD);
+      graph->params()->grads()->set(0);
+      synchronizeWithServerShards(graph->params()->grads(),
+                                graph->params()->vals(),
+                                my_id,
+                                batch->wordsTrg());
+      MPI_Barrier(MPI_COMM_WORLD);
+    }
+
     graph->forward();
     float cost = costNode->scalar();
     graph->backward();
+
+    t++;
 
     graph->getBackend()->synchronize();
 
@@ -573,7 +586,7 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
         // a safe state.
         clientThreadPool_->wait_for_others(lock);
 
-	//wait until other nodes are ready
+        //wait until other nodes are ready
         MPI_Barrier(MPI_COMM_WORLD);
  
         // TODO: Saving is broken
