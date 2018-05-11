@@ -10,40 +10,47 @@
 namespace marian {
 namespace cpu {
 
-template <size_t K, bool broadcast, class Functor>
-void gElement(Functor functor,
-              functional::Array<functional::Tensor<float>, K> tensors) {
-  int length = tensors[0].shape().elements();
-  functional::Array<int, functional::Shape::size()> dims;
-  functional::Array<int, K> indices;
+template <size_t N, size_t K, class Functor>
+struct E {
+  static inline void element(Functor functor,
+                             functional::Array<functional::Tensor<float>, K> tensors,
+                             functional::Array<int, K> indices) {
 
-#pragma omp parallel for simd
-  for(int index = 0; index < length; ++index) {
-    indices.fill(index);
-    if(broadcast) {
-      tensors[0].shape().dims(index, dims);
-      for(int i = 1; i < K; ++i)
-        indices[i] = tensors[i].shape().bindex(dims);
+    auto& shape = tensors[0].shape();
+    for(int i = 0; i < shape[functional::Shape::size() - N]; ++i) {
+      E<N - 1, K, Functor>::element(functor, tensors, indices);
+      for(int k = 0; k < K; ++k) {
+         indices[k] += tensors[k].shape().bstride(functional::Shape::size() - N);
+      }
     }
-    tensors[0][index] = functional::apply(functor, tensors, indices);
   }
-}
+};
+
+template <size_t K, class Functor>
+struct E<1, K, Functor> {
+  static inline void element(Functor functor,
+                             functional::Array<functional::Tensor<float>, K> tensors,
+                             functional::Array<int, K> indices) {
+
+    auto& shape = tensors[0].shape();
+    for(int i = 0; i < shape[functional::Shape::size() - 1]; ++i) {
+      tensors[0][indices[0]] = functional::apply(functor, tensors, indices);
+      for(int k = 0; k < K; ++k) {
+         indices[k] += tensors[k].shape().bstride(functional::Shape::size() - 1);
+      }
+    }
+  }
+};
 
 template <class Functor, class... Tensors>
 void Element(Functor functor, marian::Tensor out, Tensors... tensors) {
   constexpr size_t K = sizeof...(tensors) + 1;
   functional::Array<functional::Tensor<float>, K> gTensors = {out, tensors...};
 
-  int length = gTensors[0].shape().elements();
-
-  bool broadcast = false;
-  for(int i = 1; i < K; ++i)
-    broadcast = broadcast || gTensors[0].shape() != gTensors[i].shape();
-
-  if(broadcast)
-    cpu::gElement<K, true>(functor, gTensors);
-  else
-    cpu::gElement<K, false>(functor, gTensors);
+  functional::Array<int, K> indices;
+  indices.fill(0);
+  E<functional::Shape::size(), K, Functor>::element(functor, gTensors, indices);
 }
+
 }
 }

@@ -225,7 +225,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
   auto device = a->graph()->getDevice().type;
   if(a->graph()->isOptimized() && device == DeviceType::cpu) {
 
-    bool autotune = true;
+    bool autotune = false;
     if(autotune) {
 
       thread_local Ptr<AutoTuner<Expr>> tuner = New<AutoTuner<Expr>>();
