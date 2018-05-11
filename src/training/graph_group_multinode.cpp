@@ -206,6 +206,9 @@ void MultiNodeGraphGroup::calculateShardSizes() {
  */
 void MultiNodeGraphGroup::initShardGpuTensors() {
   size_t offset = 0;
+  for (int i = 0; i < mpi_my_rank_; i++) {
+    offset += nodeSizes_[i];
+  }
   for(int shard = 0; shard < devices_.size(); shard++) {
     Tensor gpuParams
         = newTensor(shardSizes_[shard], clientGraphs_[shard]->getBackend());
@@ -214,6 +217,7 @@ void MultiNodeGraphGroup::initShardGpuTensors() {
     shardParams_.push_back(gpuParams);
     shardGrads_.push_back(
         newTensor(shardSizes_[shard], clientGraphs_[shard]->getBackend()));
+    offset += shardSizes_[shard];
   }
 }
 
@@ -505,11 +509,8 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
 
     if (t == 0) {
       MPI_Barrier(MPI_COMM_WORLD);
-      graph->params()->grads()->set(0);
-      synchronizeWithServerShards(graph->params()->grads(),
-                                graph->params()->vals(),
-                                my_id,
-                                batch->wordsTrg());
+      if (my_id != 0)
+        graph->params()->vals()->copyFrom(clientGraphs_[0]->params()->vals());
       MPI_Barrier(MPI_COMM_WORLD);
     }
 
