@@ -344,14 +344,22 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Tie all embedding layers and output layer")
     ("transformer-heads", po::value<int>()->default_value(8),
      "Number of heads in multi-head attention (transformer)")
-    ("transformer-dim-ffn", po::value<int>()->default_value(2048),
-     "Size of position-wise feed-forward network (transformer)")
     ("transformer-no-projection", po::value<bool>()->zero_tokens()->default_value(false),
      "Omit linear projection after multi-head attention (transformer)")
+    ("transformer-dim-ffn", po::value<int>()->default_value(2048),
+     "Size of position-wise feed-forward network (transformer)")
     ("transformer-ffn-depth", po::value<int>()->default_value(2),
-     "Activation between filters: swish or relu (transformer)")
+     "Depth of filters (transformer)")
     ("transformer-ffn-activation", po::value<std::string>()->default_value("swish"),
      "Activation between filters: swish or relu (transformer)")
+    ("transformer-dim-aan", po::value<int>()->default_value(2048),
+     "Size of position-wise feed-forward network in AAN (transformer)")
+    ("transformer-aan-depth", po::value<int>()->default_value(2),
+     "Depth of filter for AAN (transformer)")
+    ("transformer-aan-activation", po::value<std::string>()->default_value("swish"),
+     "Activation between filters in AAN: swish or relu (transformer)")
+    ("transformer-aan-nogate", po::value<bool>()->zero_tokens()->default_value(false),
+     "Omit gate in AAN (transformer)")
     ("transformer-decoder-autoreg", po::value<std::string>()->default_value("self-attention"),
      "Type of autoregressive layer in transformer decoder: self-attention, average-attention (transformer)")
     ("transformer-preprocess", po::value<std::string>()->default_value(""),
@@ -856,6 +864,10 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("transformer-dim-ffn", int);
   SET_OPTION("transformer-ffn-depth", int);
   SET_OPTION("transformer-ffn-activation", std::string);
+  SET_OPTION("transformer-dim-aan", int);
+  SET_OPTION("transformer-aan-depth", int);
+  SET_OPTION("transformer-aan-activation", std::string);
+  SET_OPTION("transformer-aan-nogate", bool);
   SET_OPTION("transformer-decoder-autoreg", std::string);
 
 #ifdef CUDNN

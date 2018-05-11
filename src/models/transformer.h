@@ -425,22 +425,19 @@ public:
 
     y = PreProcess(graph, prefix + "_ffn", opsPre, y, dropProb);
 
-      // FFN
-    int dimFfn = options->get<int>("transformer-dim-ffn");
-    int depthFfn = options->get<int>("transformer-ffn-depth");
-    auto act = options->get<std::string>("transformer-ffn-activation");
-    float ffnDropProb
-        = inference ? 0 : options->get<float>("transformer-dropout-ffn");
-    
-    ABORT_IF(depthFfn < 1, "Filter depth {} is smaller than 1", depthFfn);
-    
+    // FFN
+    int dimAan = options->get<int>("transformer-dim-aan");
+    int depthAan = options->get<int>("transformer-aan-depth");
+    auto act = options->get<std::string>("transformer-aan-activation");
+    float aanDropProb = inference ? 0 : options->get<float>("transformer-dropout-ffn");
+
     int i = 1;
     int dimLast = dimModel;
-    for(; i < depthFfn; ++i) {
-      int dimFirst = i == 1 ? dimModel : dimFfn;
+    for(; i < depthAan; ++i) {
+      int dimFirst = i == 1 ? dimModel : dimAan;
       auto W = graph->param(
-            prefix + "_W" + std::to_string(i), {dimFirst, dimFfn}, inits::glorot_uniform);
-      auto b = graph->param(prefix + "_b" + std::to_string(i), {1, dimFfn}, inits::zeros);
+            prefix + "_W" + std::to_string(i), {dimFirst, dimAan}, inits::glorot_uniform);
+      auto b = graph->param(prefix + "_b" + std::to_string(i), {1, dimAan}, inits::zeros);
     
       y = affine(y, W, b);
     
@@ -449,27 +446,31 @@ public:
       else
         y = swish(y);
     
-      if(ffnDropProb)
-        y = dropout(y, ffnDropProb);
+      if(aanDropProb)
+        y = dropout(y, aanDropProb);
     
-      dimLast = dimFfn;
+      dimLast = dimAan;
     }
     
-    auto W = graph->param(
-       prefix + "_W" + std::to_string(i), {dimLast, dimModel}, inits::glorot_uniform);
-    auto b = graph->param(prefix + "_b" + std::to_string(i), {1, dimModel}, inits::zeros);
-    
-    y = affine(y, W, b);
+    if(dimLast != dimModel) {
+      auto W = graph->param(
+        prefix + "_W" + std::to_string(i), {dimLast, dimModel}, inits::glorot_uniform);
+      auto b = graph->param(prefix + "_b" + std::to_string(i), {1, dimModel}, inits::zeros);
+      y = affine(y, W, b);
+    }
 
-    auto Wi = graph->param(prefix + "_Wi", {dimModel, dimModel}, inits::glorot_uniform);
-    auto bi = graph->param(prefix + "_bi", {1, dimModel}, inits::zeros);
+    bool noGate = options->get<bool>("transformer-aan-nogate");
+    if(!noGate) {
+      auto Wi = graph->param(prefix + "_Wi", {dimModel, dimModel}, inits::glorot_uniform);
+      auto bi = graph->param(prefix + "_bi", {1, dimModel}, inits::zeros);
     
-    auto Wf = graph->param(prefix + "_Wf", {dimModel, dimModel}, inits::glorot_uniform);
-    auto bf = graph->param(prefix + "_bf", {1, dimModel}, inits::zeros);
+      auto Wf = graph->param(prefix + "_Wf", {dimModel, dimModel}, inits::glorot_uniform);
+      auto bf = graph->param(prefix + "_bf", {1, dimModel}, inits::zeros);
     
-    auto gi = logit(affine(x, Wi, bi));
-    auto gf = logit(affine(y, Wf, bf));
-    y = gi * x + gf * y;
+      auto gi = logit(affine(x, Wi, bi));
+      auto gf = logit(affine(y, Wf, bf));
+      y = gi * x + gf * y;
+    }
 
     auto opsPost = options->get<std::string>("transformer-postprocess");
     y = PostProcess(graph, prefix + "_ffn", opsPost, y, x, dropProb);
