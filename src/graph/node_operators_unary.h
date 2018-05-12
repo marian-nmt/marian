@@ -113,8 +113,7 @@ public:
 
   NodeOps backwardOps() {
     using namespace functional;
-    // @TODO: is this correct?
-    return {NodeOp(Add(_1, child(0)->grad(), adj_))};
+    return {NodeOp(Add(bump(_1, clip_) * _2, child(0)->grad(), child(0)->val(), adj_))};
   }
 
   const std::string type() { return "clip"; }
