@@ -52,7 +52,7 @@ void MultiNodeGraphGroup::init(Ptr<data::Batch> batch) {
                                  // other threads do computations
   }
 
-  // setup local optimizers
+  // setup delayed gradient storage
   if (tau_ > 1) {
     delay_count = std::vector<size_t>(mpi_comm_world_size_);
     totalBatchWords = std::vector<int>(mpi_comm_world_size_);
@@ -405,7 +405,7 @@ void MultiNodeGraphGroup::synchronizeWithServerShards(Tensor newGrads,
   size_t offset = 0;
   for(int node = 0; node < mpi_comm_world_size_; node++) {
     size_t nodeSize = nodeSizes_[node];
-    
+
     // Update remotely if node != this node
     if(node != mpi_my_rank_) {
       Tensor gradient;
