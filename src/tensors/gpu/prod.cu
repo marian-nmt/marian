@@ -4,21 +4,48 @@
 // clang-format off
 #include "tensors/gpu/prod.h"
 #include "tensors/gpu/backend.h"
+#include "tensors/gpu/cuda_helpers.h"
 // clang-format on
 
 namespace marian {
 
 namespace gpu {
 
+__global__ void gClip(float* in, int length, float clip) {
+  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
+    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+    if(index < length) {
+      if(in[index] < -clip)
+        in[index] = -clip;
+      if(in[index] > clip)
+        in[index] = clip;
+    }
+  }
+}
+
+void Clip(marian::Tensor A, float clip) {
+  int length = A->shape().elements();
+  int threads = std::min(MAX_THREADS, length);
+  int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
+
+  gClip<<<blocks, threads>>>(A->data(), length, clip);
+}
+
 void Prod(marian::Tensor C,
-          const marian::Tensor A,
-          const marian::Tensor B,
+          marian::Tensor A,
+          marian::Tensor B,
           bool transA,
           bool transB,
           float beta,
           float scalar) {
   cudaSetDevice(C->getDevice().no);
   float alpha = scalar;
+
+  float clip = C->getBackend()->getClip();
+  if(clip != 0.f) {
+    Clip(A, clip);
+    Clip(B, clip);
+  }
 
   size_t m = A->shape().elements() / A->shape().back();
   size_t k = A->shape().back();
@@ -88,6 +115,13 @@ void ProdBatched(marian::Tensor C,
                  float scalar) {
   cudaSetDevice(C->getDevice().no);
   float alpha = scalar;
+
+  float clip = C->getBackend()->getClip();
+  if(clip != 0.f) {
+    Clip(A, clip);
+    Clip(B, clip);
+  }
+
 
   size_t batchA = A->shape().elements() / (A->shape()[-1] * A->shape()[-2]);
   size_t batchB = B->shape().elements() / (B->shape()[-1] * B->shape()[-2]);

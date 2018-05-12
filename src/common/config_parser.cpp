@@ -480,7 +480,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
       "Sorting strategy for maxi-batch: trg (default) src none")
-
+    ("clip-gemm", po::value<float>()->default_value(0.f),
+     "If not 0 clip GEMM input values to +/- arg")
     ("optimizer,o", po::value<std::string>()->default_value("adam"),
      "Optimization algorithm (possible values: sgd, adagrad, adam")
     ("optimizer-params",  po::value<std::vector<float>>()
@@ -915,6 +916,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("sqlite", std::string);
     SET_OPTION("sqlite-drop", bool);
 
+    SET_OPTION("clip-gemm", float);
     SET_OPTION("optimizer", std::string);
     SET_OPTION_NONDEFAULT("optimizer-params", std::vector<float>);
     SET_OPTION("optimizer-delay", size_t);
