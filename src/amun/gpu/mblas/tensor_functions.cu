@@ -1142,32 +1142,45 @@ void NBestAndMaxAndSum(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
       assert(candidateInd + i < nBestCandidatesWrap.size());
       nBestCandidatesWrap[candidateInd + i] = curr;
     }
+  }
 
-    // top score and sum
-    if (requireProb) {
-      float &max0 = max[0];
-      float &sum0 = sum[0];
-      //printf("max0=%f %f \n", max[0], sum[0]);
+  // top score and sum
+  if (requireProb) {
+    unsigned size = max.size();
+    unsigned len = (size + 1) >> 1;
+    //printf("size=%i %i \n", size, len);
 
-      for (unsigned i = 1; i < max.size(); ++i) {
-        const float &maxi = max[i];
-        const float &sumi = sum[i];
-        //printf("i=%i max0=%f %f maxi=%f %f \n", i, max[0], sum[0], max[i], sum[i]);
+    while (len > 1) {
+      //printf("size=%i %i \n", size, len);
 
-        if (max0 > maxi) {
-          float delta = maxi - max0;
-          sum0 = sum0 + __expf(delta) * sumi;
+      unsigned ind = threadIdx.x;
+      unsigned otherInd = ind + len;
+
+      if (otherInd < max.size()) {
+        float &max0 = max[ind];
+        float &sum0 = sum[ind];
+
+        const float &maxOther = max[otherInd];
+        const float &sumOther = sum[otherInd];
+
+        if (max0 > maxOther) {
+          float delta = maxOther - max0;
+          sum0 = sum0 + __expf(delta) * sumOther;
         }
         else {
-          float delta = max0 - maxi;
-          sum0 = __expf(delta) * sum0 + sumi;
+          float delta = max0 - maxOther;
+          sum0 = __expf(delta) * sum0 + sumOther;
 
-          max0 = maxi;
+          max0 = maxOther;
         }
+
       }
-      // printf("max=%f %f %f \n", max[0], sum[0], topScore);
+
+      len = (len + 1) >> 1;
     }
   }
+
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
