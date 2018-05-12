@@ -222,6 +222,15 @@ protected:
   std::vector<std::condition_variable> cvClientCommOverlapBuffersFilled_;
 
   /**
+   * Variables for optimizer delay
+   */
+  size_t tau_{1};
+  std::vector<std::mutex> optDelayMutex_;
+  std::vector<size_t> delay_count;
+  std::vector<int> totalBatchWords;
+  std::vector<Tensor> accGradients, accGradientBuffer;
+
+  /**
    * Allocate new tensor on given GPU and store allocator.
    */
   Tensor newTensor(int size, Ptr<Backend> backend);
@@ -390,6 +399,7 @@ public:
    */
   MultiNodeGraphGroup(Ptr<Config> options)
       : GraphGroup(options),
+        tau_{options_->get<size_t>("optimizer-delay")},
         clientCommOverlap{options_->get<bool>("multi-node-overlap")} {
     // Set up devices for this node
     std::vector<size_t> devices;

@@ -51,6 +51,22 @@ void MultiNodeGraphGroup::init(Ptr<data::Batch> batch) {
     launchCommOverlapThreads();  // For communicating with server shards while
                                  // other threads do computations
   }
+
+  // setup local optimizers
+  if (tau_ > 1) {
+    delay_count = std::vector<size_t>(mpi_comm_world_size_);
+    totalBatchWords = std::vector<int>(mpi_comm_world_size_);
+    optDelayMutex_ = std::vector<std::mutex>(mpi_comm_world_size_);
+    
+    for (int i = 0;i < mpi_comm_world_size_; i++) {
+      // Shard buffers across GPUs
+      auto backend = clientGraphs_[i % devices_.size()]->getBackend();
+      Tensor accGrad = newTensor(nodeSizes_[i], backend);
+      Tensor accGradBuff = newTensor(nodeSizes_[i], backend);
+      accGradients.push_back(accGrad);
+      accGradientBuffer.push_back(accGradBuff);
+    } 
+  }
 }
 
 /**
@@ -389,12 +405,34 @@ void MultiNodeGraphGroup::synchronizeWithServerShards(Tensor newGrads,
   size_t offset = 0;
   for(int node = 0; node < mpi_comm_world_size_; node++) {
     size_t nodeSize = nodeSizes_[node];
-
+    
     // Update remotely if node != this node
     if(node != mpi_my_rank_) {
+      Tensor gradient;
+
+      // Delayed Gradient Update
+      if (tau_ > 1) {
+        std::lock_guard<std::mutex> guard(optDelayMutex_[node]);
+        accGradientBuffer[node]->copyFrom(newGrads->subtensor(offset, nodeSize));
+        // Accumulate the gradient
+        using namespace functional;
+        Element(_1 += _2, accGradients[node], accGradientBuffer[node]);
+        // Accumulate total batch word
+        totalBatchWords[node] += batchWords;
+        delay_count[node]++;
+
+        if (delay_count[node] < tau_)
+          continue;
+        delay_count[node] = 0;
+        gradient = accGradients[node];
+        batchWords = totalBatchWords[node];
+     } else {
+        gradient = newGrads->subtensor(offset, nodeSize);
+     }
+
       // Copy grads from GPU to CPU (for MPI sending)
       cudaMemcpy(clientCommBuffersCPU_[gpu].data(),
-                 newGrads->subtensor(offset, nodeSize)->data(),
+                 gradient->data(),
                  nodeSize * sizeof(float),
                  cudaMemcpyDeviceToHost);
       cudaStreamSynchronize(0);
@@ -417,7 +455,12 @@ void MultiNodeGraphGroup::synchronizeWithServerShards(Tensor newGrads,
                 node,
                 MPI_TAG_GRAD_PUSH_,
                 MPI_COMM_WORLD);
-
+      // Reset total gradient and batch words
+      if (tau_ > 1) {
+        std::lock_guard<std::mutex> guard(optDelayMutex_[node]);
+        accGradients[node]->set(0);
+        totalBatchWords[node] = 0;
+      }
       // Receive updated params from server node
       MPI_Recv(clientCommBuffersCPU_[gpu].data(),
                nodeSize,
@@ -497,6 +540,10 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
     thread_local Ptr<models::ModelBase> builder;
     thread_local size_t my_id = 0;
     thread_local size_t t = 0;
+    // only for scheduler statistic
+    thread_local float cost = 0;
+    thread_local size_t num_seen_words = 0;
+    thread_local size_t num_seen_sentences = 0;
 
     if(!graph) {
       std::lock_guard<std::mutex> lock(mutexClientInit_);
@@ -515,7 +562,9 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
     }
 
     graph->forward();
-    float cost = costNode->scalar();
+    cost += costNode->scalar();
+    num_seen_words += batch->words();
+    num_seen_sentences += batch->size();
     graph->backward();
 
     t++;
@@ -572,13 +621,29 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
     }
 
     // Run scheduler (if enabled)
-    if(scheduler_) {
+    if(t % tau_ == 0 && scheduler_) {
       std::unique_lock<std::mutex> lock(schedulerMutex_);
 
       // Wait until the thread that wants to do validation is finished.
       clientThreadPool_->wait_for_one(lock);
 
-      scheduler_->update(cost, batch);
+      if (options_->get<std::string>("cost-type") != "ce-sum")
+        cost /= tau_;
+
+      if (tau_ > 1) {
+        std::vector<size_t> fakeLength = {1, 1};
+        auto fb = data::CorpusBatch::fakeBatch(fakeLength,
+                                          num_seen_sentences,
+                                          NULL);
+        fb->front()->setWords(num_seen_words);
+        scheduler_->update(cost, fb);
+      } else {
+        scheduler_->update(cost, batch);
+      }
+      
+      num_seen_words = 0;
+      num_seen_sentences = 0;
+      cost = 0;
 
       if((scheduler_->saving() || scheduler_->validating())) {
         // Wait with validation or saving until all other threads are done with
