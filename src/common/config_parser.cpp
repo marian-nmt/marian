@@ -623,6 +623,8 @@ void ConfigParser::addOptionsValid(po::options_description& desc) {
       "Divide translation score by pow(translation length, arg) ")
     ("word-penalty", po::value<float>()->default_value(0.f)->implicit_value(0.f),
       "Subtract (arg * translation length) from translation score ")
+    ("max-length-factor", po::value<float>()->default_value(3),
+      "Maximum target length as source length times factor")
     ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
       "Allow unknown words to appear in output")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
@@ -1009,6 +1011,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION_NONDEFAULT("valid-translation-output", std::string);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("normalize", float);
+    SET_OPTION("max-length-factor", float);
     SET_OPTION("word-penalty", float);
     SET_OPTION("allow-unk", bool);
     SET_OPTION("n-best", bool);
