@@ -8,11 +8,14 @@ namespace cpu {
 namespace int16 {
 
 struct QuantizeNodeOp : public UnaryNodeOp {
-  QuantizeNodeOp(Expr a) : UnaryNodeOp(a, Type::int16) {}
+  float clipValue_;
+
+  QuantizeNodeOp(Expr a, float clipValue)
+  : UnaryNodeOp(a, Type::int16), clipValue_{clipValue} {}
 
   NodeOps forwardOps() {
     return {
-        NodeOp(Quantize(val_, child(0)->val()))
+      NodeOp(Quantize(val_, child(0)->val(), clipValue_))
     };
   }
 
@@ -118,8 +121,8 @@ static inline Expr affine(Expr a, Expr b, Expr c, float scalar) {
   return Expression<cpu::int16::AffineNodeOp>(nodes, scalar);
 }
 
-static inline Expr quantize(Expr a) {
-  return Expression<cpu::int16::QuantizeNodeOp>(a);
+static inline Expr quantize(Expr a, float clipValue) {
+  return Expression<cpu::int16::QuantizeNodeOp>(a, clipValue);
 }
 
 

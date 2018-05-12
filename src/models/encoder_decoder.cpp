@@ -26,7 +26,7 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
       "special-vocab",
       "tied-embeddings",
       "tied-embeddings-src",
-      "tied-embeddings-all",
+      "tied-embeddings-all"
   };
 
   modelFeatures_.insert("transformer-heads");

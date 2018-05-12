@@ -71,7 +71,8 @@ namespace int16 {
 const int BITS = 10;
 
 static inline void Quantize(marian::Tensor out,
-                            const marian::Tensor in) {
+                            const marian::Tensor in,
+                            float clipValue) {
 
     int num_rows = in->shape().elements() / in->shape()[-1];
     int width = in->shape()[-1];
