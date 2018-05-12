@@ -1145,56 +1145,44 @@ void NBestAndMaxAndSum(VectorWrapper<NthOutBatch> &nBestCandidatesWrap,
   }
 
   // top score and sum
-  __syncthreads();
   if (requireProb) {
     unsigned size = max.size();
-    unsigned len = (size + 1) / 2;
+    unsigned len = (size + 1) >> 1;
     //printf("size=%i %i \n", size, len);
-    __syncthreads();
 
     unsigned ind = threadIdx.x;
     float &max0 = max[ind];
     float &sum0 = sum[ind];
-    __syncthreads();
 
     while (len) {
       __syncthreads();
       //printf("size=%i %i \n", size, len);
 
       unsigned otherInd = ind + len;
-      __syncthreads();
 
       if (otherInd < size) {
-        __syncthreads();
 
         const float &maxOther = max[otherInd];
         const float &sumOther = sum[otherInd];
-        __syncthreads();
 
         if (max0 > maxOther) {
           float delta = maxOther - max0;
           sum0 = sum0 + __expf(delta) * sumOther;
-          __syncthreads();
         }
         else {
           float delta = max0 - maxOther;
           sum0 = __expf(delta) * sum0 + sumOther;
 
           max0 = maxOther;
-          __syncthreads();
         }
 
-        __syncthreads();
       }
 
-      size= len;
-      len = (len > 1) ? (len + 1) / 2 : 0;
-      //len = (len + 1) >> 1;
-      __syncthreads();
+      size = len;
+      len = (len > 1) ? (len + 1) >> 1 : 0;
     }
   }
 
-  __syncthreads();
 
 }
 
