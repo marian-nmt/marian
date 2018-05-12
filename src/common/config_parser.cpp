@@ -650,8 +650,12 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Subtract (arg * translation length) from translation score ")
     ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
       "Allow unknown words to appear in output")
+    ("skip-cost", po::value<bool>()->zero_tokens()->default_value(false),
+      "Ignore model cost during translation, not recommended for beam-size > 1")
     ("max-length", po::value<size_t>()->default_value(1000),
       "Maximum length of a sentence in a training sentence pair")
+    ("max-length-factor", po::value<float>()->default_value(3),
+      "Maximum target length as source length times factor")
     ("max-length-crop", po::value<bool>()->zero_tokens()->default_value(false),
       "Crop a sentence to max-length instead of ommitting it if longer than max-length")
     ("devices,d", po::value<std::vector<std::string>>()
@@ -894,7 +898,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("transformer-dropout", float);
     SET_OPTION("transformer-dropout-attention", float);
     SET_OPTION("transformer-dropout-ffn", float);
- 
+
     SET_OPTION("overwrite", bool);
     SET_OPTION("no-reload", bool);
     if(!vm_["train-sets"].empty()) {
@@ -981,6 +985,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION_NONDEFAULT("shortlist", std::vector<std::string>);
     SET_OPTION("port", size_t);
     SET_OPTION("optimize", bool);
+    SET_OPTION("max-length-factor", float);
+    SET_OPTION("skip-cost", bool);
   }
 
   /** valid **/
@@ -1039,7 +1045,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
 
   if(get<bool>("interpolate-env-vars")) {
-    ProcessPaths(config_, 
+    ProcessPaths(config_,
       [&](const std::string& nodePath) -> std::string {
         // replace environment-variable expressions of the form ${VARNAME} in pathnames
         auto path = nodePath;
