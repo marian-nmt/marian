@@ -37,7 +37,6 @@ Tensor MultiNodeGraphGroup::newTensor(int size, Ptr<Backend> backend) {
  */
 void MultiNodeGraphGroup::init(Ptr<data::Batch> batch) {
   // Setup clients and shards
-  setupMPI();
   setupClients(batch);
   setupServerShards();
   if(clientCommOverlap) {

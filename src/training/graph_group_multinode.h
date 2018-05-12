@@ -231,6 +231,11 @@ protected:
   std::vector<Tensor> accGradients, accGradientBuffer;
 
   /**
+   * LocalOptimizers related variables
+   */
+  bool useLocalOpt_;
+
+  /**
    * Allocate new tensor on given GPU and store allocator.
    */
   Tensor newTensor(int size, Ptr<Backend> backend);
@@ -400,8 +405,10 @@ public:
   MultiNodeGraphGroup(Ptr<Config> options)
       : GraphGroup(options),
         tau_{options_->get<size_t>("optimizer-delay")},
+        useLocalOpt_{options_->get<bool>("multi-node-local-optimizers")},
         clientCommOverlap{options_->get<bool>("multi-node-overlap")} {
     // Set up devices for this node
+    setupMPI(); //Setup MPI before creating device vectors
     std::vector<size_t> devices;
     for(auto& d : options_->getDevices())
       devices.push_back(d.no);
