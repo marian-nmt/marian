@@ -67,6 +67,7 @@ public:
         }
 
         scorers_[id] = scorers;
+        graph->forward();
       };
 
       threadPool.enqueue(task, device, id++);
