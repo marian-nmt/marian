@@ -1,7 +1,7 @@
 #pragma once
 
 #include "graph/node.h"
-#include "tensors/cpu/sharp/sse_gemm.h"
+#include "tensors/cpu/sharp/int_gemm.h"
 
 namespace marian {
 namespace cpu {
@@ -15,7 +15,7 @@ struct QuantizeNodeOp : public UnaryNodeOp {
 
   NodeOps forwardOps() {
     return {
-      NodeOp(Quantize(val_, child(0)->val(), clipValue_))
+      NodeOp(Quantize16(val_, child(0)->val(), clipValue_))
     };
   }
 
@@ -53,7 +53,7 @@ public:
 
   NodeOps forwardOps() {
     return {
-      NodeOp(ProdInt(val_,
+      NodeOp(ProdInt16(val_,
                      child(0)->val(),
                      child(1)->val(),
                      scalar_))
@@ -96,7 +96,7 @@ public:
 
   NodeOps forwardOps() {
     return {
-      NodeOp(ProdInt(val_,
+      NodeOp(ProdInt16(val_,
                      child(0)->val(),
                      child(1)->val(),
                      scalar_);
