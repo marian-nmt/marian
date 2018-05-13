@@ -55,6 +55,7 @@ add_library(marian STATIC
   training/graph_group_sync.cpp
   training/graph_group_singleton.cpp
   training/graph_group_multinode.cpp
+  training/graph_group_multinode_sync.cpp
   training/validator.cpp
 
   $<TARGET_OBJECTS:libyaml-cpp>

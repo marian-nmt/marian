@@ -569,10 +569,6 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("multi-node-overlap", po::value<bool>()
       ->default_value(true),
      "Overlap model computations with MPI communication")
-    ("multi-node-local-optimizers", po::value<bool>()
-      ->zero_tokens()
-      ->default_value(false),
-     "Enable local optimizers with multi-node. Requires optimizer delay to be turned on.")
   ;
   // clang-format on
   desc.add(training);
@@ -937,7 +933,6 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 
     SET_OPTION("multi-node", bool);
     SET_OPTION("multi-node-overlap", bool);
-    SET_OPTION("multi-node-local-optimizers", bool);
   }
 
   if(mode_ == ConfigMode::rescoring) {

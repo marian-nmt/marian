@@ -2,6 +2,7 @@
 
 #include "training/graph_group_async.h"
 #include "training/graph_group_multinode.h"
+#include "training/graph_group_multinode_sync.h"
 #include "training/graph_group_singleton.h"
 #include "training/graph_group_sync.h"
 #include "training/training.h"
@@ -22,7 +23,11 @@ int main(int argc, char** argv) {
     ABORT_IF(!configureMPI(argc, argv), "MPI not found.");
 
     LOG(warn, "[experimental] Running multi-node training");
-    New<Train<MultiNodeGraphGroup>>(options)->run();
+    if (!options->get<bool>("sync-sgd")) {
+        New<Train<MultiNodeGraphGroup>>(options)->run();
+    } else {
+        New<Train<MultiNodeGraphGroupSync>>(options)->run();
+    }
   } else {
     if(devices.size() == 1) {
       New<Train<SingletonGraph>>(options)->run();
