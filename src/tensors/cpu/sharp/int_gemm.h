@@ -30,8 +30,6 @@ static inline void Quantize16(marian::Tensor out,
                             const marian::Tensor in,
                             float clipValue) {
 
-    int size = in->shape().elements();
-    const float* input = in->data();
     float quant_mult = pow(2.0, (float)BITS);
 #ifdef __AVX512F__
     AVX_Quantize16(in->data(), out->data<int16_t>(), quant_mult, in->shape().elements());
@@ -42,6 +40,18 @@ static inline void Quantize16(marian::Tensor out,
 #endif
 }
 
+static inline void Quantize8(marian::Tensor out,
+                            const marian::Tensor in,
+                            float clipValue) {
+#ifdef __AVX512F__
+    float quant_mult = 127.0 / clipValue;
+    AVX_Quantize8(in->data(), out->data<int8_t>(), quant_mult, in->shape().elements());
+#else
+    ABORT("8-bit is currently only AVX512");
+#endif
+}
+
+// This operates on floats after processing so doesn't care about int8_t vs int16_t.
 static void AddBias(marian::Tensor C, const marian::Tensor Bias) {
     float* y = C->data();
     const float* x = C->data();
@@ -79,10 +89,9 @@ static void AddBias(marian::Tensor C, const marian::Tensor Bias) {
 }
 
 static void ProdInt16(marian::Tensor C,
-                    const marian::Tensor A,
-                    const marian::Tensor B,
-                    float scale) {
-
+                      const marian::Tensor A,
+                      const marian::Tensor B,
+                      float scale) {
     ABORT_IF(scale != 1, "Scale other than 1 not supported");
 
     // @TODO: make this a parameter
@@ -103,7 +112,26 @@ static void ProdInt16(marian::Tensor C,
 #endif
 }
 
-}
-}
+static void ProdInt8(marian::Tensor C,
+                     const marian::Tensor A,
+                     const marian::Tensor B,
+                     float scale,
+                     float clipValue) {
+#ifdef __AVX512F__
+    // This would be easy...
+    ABORT_IF(scale != 1, "Scale other than 1 not supported");
+    float quant_mult = 127.0 / clipValue;
+    float unquant_mult = 1.0 / (quant_mult * quant_mult);
+
+    float* fC = C->data();
+    int num_A_rows = A->shape().elements() / A->shape()[-1];
+    int num_B_rows = B->shape().elements() / B->shape()[-1];
+    int width = B->shape()[-1];
+    AVX_MatrixMult8(A->data<__m512i>(), B->data<__m512i>(), fC, unquant_mult, num_A_rows, num_B_rows, width);
+#else
+    ABORT("8-bit is currently only AVX512");
+#endif
 
 }
+
+}}} // namespaces
