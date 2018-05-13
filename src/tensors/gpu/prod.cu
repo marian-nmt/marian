@@ -45,7 +45,7 @@ void Prod(marian::Tensor C,
                           ->getCublasHandle();
 
 #if CUDA_VERSION >= 9000
-// cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
+  cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
 #endif
 
   cublasSgemm(cublasHandle,
@@ -63,7 +63,7 @@ void Prod(marian::Tensor C,
               C->data(),
               ldc);
 #if CUDA_VERSION >= 9000
-// cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
+  cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
 #endif
 }
 
@@ -117,7 +117,7 @@ void ProdBatched(marian::Tensor C,
                           ->getCublasHandle();
 
 #if CUDA_VERSION >= 9000
-// cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
+  cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
 #endif
   cublasSgemmStridedBatched(cublasHandle,
                             opB,
@@ -138,7 +138,7 @@ void ProdBatched(marian::Tensor C,
                             n * m,
                             std::max(batchA, batchB));
 #if CUDA_VERSION >= 9000
-// cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
+  cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
 #endif
 }
 }
