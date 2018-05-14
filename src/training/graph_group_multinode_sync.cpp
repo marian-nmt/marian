@@ -110,7 +110,7 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
   // Copy the data to the CPU
   CUDA_CHECK(cudaMemcpy(accGradientsSync_cpu.data(),
                  accGradientsSync->data(),
-                 accGradientsSync->size(),
+                 accGradientsSync->size()*sizeof(float),
                  cudaMemcpyDeviceToHost));
   // Wait until all nodes are ready
   MPI_Barrier(MPI_COMM_WORLD);
@@ -129,7 +129,7 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
     // Copy the data back to the GPU and do optimizer update
     CUDA_CHECK(cudaMemcpy(accGradientsSync->data(),
                  receiveBuffer_cpu.data(),
-                 accGradientsSync->size(),
+                 accGradientsSync->size()*sizeof(float),
                  cudaMemcpyHostToDevice));
 
    
@@ -140,7 +140,7 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
     // Copy the data back to the host
     CUDA_CHECK(cudaMemcpy(accGradientsSync_cpu.data(), //This is now the updated params
                    clientGraphs_[0]->params()->vals()->data(),
-                   accGradientsSync->size(),
+                   accGradientsSync->size()*sizeof(float),
                    cudaMemcpyDeviceToHost));
   }
 
@@ -158,7 +158,7 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
     //Copy the data to the GPU
     CUDA_CHECK(cudaMemcpy(clientGraphs_[0]->params()->vals()->data(),
                    accGradientsSync_cpu.data(),
-                   accGradientsSync->size(),
+                   accGradientsSync->size()*sizeof(float),
                    cudaMemcpyHostToDevice));
   }
 
@@ -171,7 +171,7 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
           //Because we don't have to go Device->Host->device
           CUDA_CHECK(cudaMemcpy(clientGraphs_[idx]->params()->vals()->data(),
                    accGradientsSync_cpu.data(),
-                   accGradientsSync->size(),
+                   accGradientsSync->size()*sizeof(float),
                    cudaMemcpyHostToDevice));
         },
         idx));
