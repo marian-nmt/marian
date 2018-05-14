@@ -678,6 +678,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Optimize speed aggressively sacrificing memory or precision")
     ("mini-batch", po::value<int>()->default_value(1),
       "Size of mini-batch used during update")
+    ("mini-batch-words", po::value<int>()->default_value(0),
+      "Set mini-batch size based on words instead of sentences")
     ("maxi-batch", po::value<int>()->default_value(1),
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("none"),
@@ -984,6 +986,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("word-penalty", float);
     SET_OPTION("allow-unk", bool);
     SET_OPTION("n-best", bool);
+    SET_OPTION("mini-batch-words", int);
     SET_OPTION_NONDEFAULT("weights", std::vector<float>);
     SET_OPTION_NONDEFAULT("shortlist", std::vector<std::string>);
     SET_OPTION("port", size_t);
