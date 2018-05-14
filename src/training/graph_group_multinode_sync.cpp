@@ -39,8 +39,8 @@ void MultiNodeGraphGroupSync::init(Ptr<data::Batch> batch) {
   setupClients(batch);
 
   // setup sync sgd storage, We keep the summed gradient on Node 0
-  sumGradientBuffer = newTensor(clientGraphs_[0]->params()->vals()->size()*sizeof(float), clientGraphs_[0]->getBackend());
-  accGradientsSync = newTensor(clientGraphs_[0]->params()->vals()->size()*sizeof(float), clientGraphs_[0]->getBackend());
+  sumGradientBuffer = newTensor(clientGraphs_[0]->params()->vals()->size(), clientGraphs_[0]->getBackend());
+  accGradientsSync = newTensor(clientGraphs_[0]->params()->vals()->size(), clientGraphs_[0]->getBackend());
   accGradientsSync->set(0);
 }
 
