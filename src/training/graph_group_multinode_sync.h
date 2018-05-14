@@ -217,7 +217,6 @@ public:
    */
   virtual ~MultiNodeGraphGroupSync() {
     //@TODO merge with finalize method
-    MPI_Finalize();
     delete clientThreadPool_;
   }
 
@@ -309,6 +308,7 @@ public:
 
   virtual void finalize() {
     finalized_ = true;
+    MPI_Finalize();
   }
 };
 }
