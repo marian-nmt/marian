@@ -15,15 +15,10 @@ namespace marian {
 namespace cpu {
 namespace int16 {
 
-// For 16-bit integers, quantize to this many bits.
-// We don't use all 16 because that would cause int32_t to overflow.
-// See Jacob Devlin's comment in SSE_Quantize16 in sse_gemm.cpp.
-// TODO: command-line option.
-const int kQuantize16Bits = 11;
-const int32_t kQuantize16Clip = (1 << kQuantize16Bits) - 1;
+const int BITS = 10;
 
 #ifdef __AVX512F__
-void AVX_Quantize16(const float *input, int16_t *output, int32_t clip, float quant_mult, std::size_t size);
+void AVX_Quantize16(const float *input, int16_t *output, float quant_mult, std::size_t size);
 void AVX_Quantize8(const float *input, int8_t *output, float quant_mult, std::size_t size);
 void AVX_MatrixMult16(const __m512i * A, const __m512i * B, float * C, float unquant_mult, int num_A_rows, int num_B_rows, int width);
 void AVX_MatrixMult8(const __m512i * A, const __m512i * B, float * C, float unquant_mult, int num_A_rows, int num_B_rows, int width);
@@ -34,12 +29,11 @@ void SSE_MatrixMult16(const __m128i * A, const __m128i * B, float * C, float unq
 static inline void Quantize16(marian::Tensor out,
                             const marian::Tensor in,
                             float clipValue) {
-    float quant_mult = (float)kQuantize16Clip / clipValue;
+
+    float quant_mult = pow(2.0, (float)BITS);
 #ifdef __AVX512F__
-    AVX_Quantize16(in->data(), out->data<int16_t>(), kQuantize16Clip, (float)kQuantize16Clip / clipValue, in->shape().elements());
+    AVX_Quantize16(in->data(), out->data<int16_t>(), quant_mult, in->shape().elements());
 #else
-    ABORT("TODO fix SSE clipping");
-    // TODO clipping in SSE.
     int num_rows = in->shape().elements() / in->shape()[-1];
     int width = in->shape()[-1];
     SSE_Quantize16(in->data(), out->data<__m128i>(), quant_mult, num_rows, width);
@@ -97,12 +91,12 @@ static void AddBias(marian::Tensor C, const marian::Tensor Bias) {
 static void ProdInt16(marian::Tensor C,
                       const marian::Tensor A,
                       const marian::Tensor B,
-                      float scale,
-                      float clipValue) {
-    // This would be easy...
+                      float scale) {
     ABORT_IF(scale != 1, "Scale other than 1 not supported");
 
-    float quant_mult = (float)kQuantize16Clip / clipValue;
+    // @TODO: make this a parameter
+    float quant_mult = pow(2.0, (float)BITS);
+
     // If we quantize to n bits and then multiple the values together, the result will be quantized to n^2 bits.
     // So we must divide by 1.0/(n^2) to get back the original value.
     float unquant_mult = 1.0 / (quant_mult * quant_mult);

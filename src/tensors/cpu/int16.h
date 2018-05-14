@@ -56,8 +56,7 @@ public:
       NodeOp(ProdInt16(val_,
                      child(0)->val(),
                      child(1)->val(),
-                     scalar_,
-                     std::static_pointer_cast<QuantizeNodeOp>(child(0))->clipValue_))
+                     scalar_))
     };
   }
 
@@ -100,8 +99,7 @@ public:
       NodeOp(ProdInt16(val_,
                      child(0)->val(),
                      child(1)->val(),
-                     scalar_,
-                     std::static_pointer_cast<QuantizeNodeOp>(child(0))->clipValue_);
+                     scalar_);
              AddBias(val_, child(2)->val()))
     };
   }
