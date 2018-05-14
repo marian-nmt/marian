@@ -49,13 +49,13 @@ void AVX_Quantize8(const float *input, int8_t *output, float quant_mult, std::si
   const float *end = input + size;
   for (; input < end; input += 16, output += 16) {
     __m512i asint = QuantizerGrab(input, quant_mult_reg);
-    /* Ban -128.
+    /* Ban -128. We can't negate it.
      * The largest possbile product is -128 * -128 = 2^14. If two of those are
      * summed that's 2^15 which is too large for int16_t. By banning -128 we
      * can accumulate two in int16_t w/o saturation before going to int32_t.
      * But this is ok because apparently the instruction will saturate.
      */
-//    asint = _mm512_max_epi32(asint, neg127);
+    asint = _mm512_max_epi32(asint, neg127);
     // There doesn't seem to be an unmasked version.
     _mm512_mask_cvtsepi32_storeu_epi8(output, 0xffff, asint);
   }
@@ -415,7 +415,7 @@ void AVX_MatrixMult8(const __m512i * A, const __m512i * B, float * C, float unqu
   const __m512i *A5_row = A + (i+4)*sse_width;
   const __m512i *A6_row = A + (i+5)*sse_width;
   const __m512i *A7_row = A + (i+6)*sse_width;
-  switch (i & 7) {
+  switch (num_A_rows & 7) {
     case 7:
       for (int j = 0; j < num_B_rows; j++) {
         const __m512i *B_row = B + j*sse_width;
