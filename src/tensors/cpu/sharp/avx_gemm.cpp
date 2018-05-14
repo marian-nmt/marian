@@ -28,19 +28,29 @@ inline __m512i QuantizerGrab(const float *input, const __m512 quant_mult_reg) {
 }
 } // namespace
 
-// Convert 
-void AVX_Quantize16(const float *input, int16_t *output, float quant_mult, std::size_t size) {
+// Multiply floats by quant_mult then convert to int16_t.
+// clip specifies a maxmium and minimum value to clip to: [-clip, clip]
+void AVX_Quantize16(const float *input, int16_t *output, int32_t clip, float quant_mult, std::size_t size) {
     assert(size % 16 == 0);
     assert(reinterpret_cast<uintptr_t>(input) % 64 == 0);
     // Fill with the quantization multiplier.
     const __m512 quant_mult_reg = _mm512_set1_ps(quant_mult);
+    const __m512i ceil = _mm512_set1_epi32(clip);
+    const __m512i floor = _mm512_set1_epi32(-clip);
     const float *end = input + size;
     for (; input != end; input += 16, output += 16) {
+      __m512i val = QuantizerGrab(input, quant_mult_reg);
+      // Clip
+      val = _mm512_max_epi32(floor, val);
+      val = _mm512_min_epi32(ceil, val);
+      // Pack to 16-bit with signed saturation and store.
       // There doesn't seem to be an unmasked version.
-      _mm512_mask_cvtsepi32_storeu_epi16(output, 0xffff, QuantizerGrab(input, quant_mult_reg));
+      _mm512_mask_cvtsepi32_storeu_epi16(output, 0xffff, val);
     }
 }
 
+// Multiply floats by quant_mult then convert to int8_t.
+// This always clips at signed 8-bits.
 void AVX_Quantize8(const float *input, int8_t *output, float quant_mult, std::size_t size) {
   assert(size % 16 == 0);
   assert(reinterpret_cast<uintptr_t>(input) % 64 == 0);
@@ -370,6 +380,7 @@ void AVX_MatrixMult8(const __m512i * A, const __m512i * B, float * C, float unqu
   int i = 0;
   int mult8rows = num_A_rows & (~7);
 
+  /* Do 8 rows of A at a time */
   for (; i < mult8rows; i += 8) {
     const __m512i *A1_row = A + (i+0)*sse_width;
     const __m512i *A2_row = A + (i+1)*sse_width;
@@ -408,6 +419,7 @@ void AVX_MatrixMult8(const __m512i * A, const __m512i * B, float * C, float unqu
     }
   }
 
+  /* The boring cases when num_A_rows is not a multiple of 8 */
   const __m512i *A1_row = A + (i+0)*sse_width;
   const __m512i *A2_row = A + (i+1)*sse_width;
   const __m512i *A3_row = A + (i+2)*sse_width;
