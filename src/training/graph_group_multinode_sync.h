@@ -97,9 +97,11 @@ protected:
   size_t tau_{1};
   std::mutex sumGradientMutex_;
   std::mutex updateParamsMutex_;
+  std::mutex sumCostMutex_;
   Tensor accGradientsSync;
-  float * accGradientsSync_cpu;
-  float * receiveBuffer_cpu;
+  Tensor sumGradientBuffer;
+  std::vector<float> accGradientsSync_cpu;
+  std::vector<float> receiveBuffer_cpu;
   bool synchronization_happened{false};
 
   Ptr<OptimizerBase> syncOptimizer_;
@@ -216,8 +218,6 @@ public:
   virtual ~MultiNodeGraphGroupSync() {
     //@TODO merge with finalize method
     delete clientThreadPool_;
-    CUDA_CHECK(cudaFree(accGradientsSync_cpu));
-    CUDA_CHECK(cudaFree(receiveBuffer_cpu));
   }
 
   /**

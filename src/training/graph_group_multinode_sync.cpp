@@ -39,6 +39,7 @@ void MultiNodeGraphGroupSync::init(Ptr<data::Batch> batch) {
   setupClients(batch);
 
   // setup sync sgd storage, We keep the summed gradient on Node 0
+  sumGradientBuffer = newTensor(clientGraphs_[0]->params()->vals()->size()*sizeof(float), clientGraphs_[0]->getBackend());
   accGradientsSync = newTensor(clientGraphs_[0]->params()->vals()->size()*sizeof(float), clientGraphs_[0]->getBackend());
   accGradientsSync->set(0);
 }
@@ -48,10 +49,9 @@ void MultiNodeGraphGroupSync::init(Ptr<data::Batch> batch) {
  * Requires the graph to be initialized first so we know its size
  */
 void MultiNodeGraphGroupSync::initCPUArrays() {
-  CUDA_CHECK(cudaMallocHost(&accGradientsSync_cpu, clientGraphs_[0]->params()->vals()->size()*sizeof(float)));
-  CUDA_CHECK(cudaMallocHost(&receiveBuffer_cpu, clientGraphs_[0]->params()->vals()->size()*sizeof(float)));
-  std::memset(accGradientsSync_cpu, 0, clientGraphs_[0]->params()->vals()->size()*sizeof(float));
-  std::memset(receiveBuffer_cpu, 0, clientGraphs_[0]->params()->vals()->size()*sizeof(float));
+  std::cout<<" INIT VECTOR OF SIZE "<<clientGraphs_[0]->params()->vals()->size()<<std::endl;
+  accGradientsSync_cpu = std::vector<float>(clientGraphs_[0]->params()->vals()->size());
+  receiveBuffer_cpu = std::vector<float>(clientGraphs_[0]->params()->vals()->size());
 }
 
 /**
@@ -96,8 +96,11 @@ void MultiNodeGraphGroupSync::runBatchThroughClientGraphs(Ptr<data::Batch> batch
  */
 void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) {
   std::lock_guard<std::mutex> guard(sumGradientMutex_);
+  sumGradientBuffer->copyFrom(gradient);
   using namespace functional; //@TODO makes more sense to do that on the CPU i think
-  Element(_1 += _2, accGradientsSync, gradient);
+  Element(_1 += _2, accGradientsSync, sumGradientBuffer);
+  
+  cudaStreamSynchronize(0);
 }
 
 /**
@@ -108,48 +111,50 @@ void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) {
 void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
   #if MPI_FOUND
   // Copy the data to the CPU
-  CUDA_CHECK(cudaMemcpy(accGradientsSync_cpu,
+  CUDA_CHECK(cudaMemcpy(accGradientsSync_cpu.data(),
                  accGradientsSync->data(),
-                 accGradientsSync->size() * sizeof(float),
+                 accGradientsSync->size(),
                  cudaMemcpyDeviceToHost));
-
-  int reduce_result = MPI_Reduce(accGradientsSync_cpu, //CPU buffers
-              receiveBuffer_cpu,
-              accGradientsSync->size(),
+  // std::cerr<<"before "<<accGradientsSync->get(7)<<std::endl;
+  // Wait until all nodes are ready
+  MPI_Barrier(MPI_COMM_WORLD);
+  int reduce_result = MPI_Reduce(accGradientsSync_cpu.data(), //CPU buffers
+              receiveBuffer_cpu.data(),
+              accGradientsSync_cpu.size(),
               MPI_FLOAT,
               MPI_SUM,
               0, //Rank of the process with the data. In this case Node 0
               MPI_COMM_WORLD);
-
+  // std::cerr<<" summed "<<receiveBuffer_cpu[7]<<std::endl;
   if (reduce_result != MPI_SUCCESS) {
     LOG(critical, "Error: MPI_REDUCE failed with error {}.", reduce_result);
     std::abort();
   }
-
-  // Copy the data back to the GPU and do optimizer update
-  CUDA_CHECK(cudaMemcpy(accGradientsSync->data(),
-                 accGradientsSync_cpu,
-                 accGradientsSync->size() * sizeof(float),
+  // std::cerr<<" param before "<<clientGraphs_[0]->params()->vals()->get(7)<<std::endl;
+  if (mpi_my_rank_ == 0) {
+    // Copy the data back to the GPU and do optimizer update
+    CUDA_CHECK(cudaMemcpy(accGradientsSync->data(),
+                 receiveBuffer_cpu.data(),
+                 accGradientsSync->size(),
                  cudaMemcpyHostToDevice));
 
-  // Perform optimizer step
-  syncOptimizer_->update(clientGraphs_[0]->params()->vals(),
+   
+    // Perform optimizer step
+    syncOptimizer_->update(clientGraphs_[0]->params()->vals(),
                          accGradientsSync);
 
-  // Copy the data back to the host.
-  if (mpi_my_rank_ == 0) {
-    CUDA_CHECK(cudaMemcpy(accGradientsSync_cpu, //This is now the updated params
+    // Copy the data back to the host
+    CUDA_CHECK(cudaMemcpy(accGradientsSync_cpu.data(), //This is now the updated params
                    clientGraphs_[0]->params()->vals()->data(),
-                   accGradientsSync->size() * sizeof(float),
+                   accGradientsSync->size(),
                    cudaMemcpyDeviceToHost));
   }
 
-  int bcast_result = MPI_Bcast(accGradientsSync_cpu, //This is now the updated params.
-            accGradientsSync->size(),
+  int bcast_result = MPI_Bcast(accGradientsSync_cpu.data(), //This is now the updated params.
+            accGradientsSync_cpu.size(),
             MPI_FLOAT,
             0, //Root process
             MPI_COMM_WORLD);
-
   if (bcast_result != MPI_SUCCESS) {
     LOG(critical, "Error: MPI_REDUCE failed with error {}.", bcast_result);
     std::abort();
@@ -158,10 +163,12 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
   if (mpi_my_rank_ != 0) {
     //Copy the data to the GPU
     CUDA_CHECK(cudaMemcpy(clientGraphs_[0]->params()->vals()->data(),
-                   accGradientsSync_cpu,
-                   accGradientsSync->size() * sizeof(float),
+                   accGradientsSync_cpu.data(),
+                   accGradientsSync->size(),
                    cudaMemcpyHostToDevice));
   }
+  // std::cerr<<" param after "<<clientGraphs_[0]->params()->vals()->get(7)<<std::endl;
+
   //Distribute the graph to the rest of the devices
   std::vector<std::thread> threads;
   for(int idx = 1; idx < devices_.size(); idx++) {
@@ -170,8 +177,8 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
           //If NVLINK is not available it's faster to do this from the CPU
           //Because we don't have to go Device->Host->device
           CUDA_CHECK(cudaMemcpy(clientGraphs_[idx]->params()->vals()->data(),
-                   accGradientsSync_cpu,
-                   accGradientsSync->size() * sizeof(float),
+                   accGradientsSync_cpu.data(),
+                   accGradientsSync->size(),
                    cudaMemcpyHostToDevice));
         },
         idx));
@@ -181,8 +188,8 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
   }
   //set the accumulating buffers to zero;
   accGradientsSync->set(0);
-  std::memset(accGradientsSync_cpu, 0, clientGraphs_[0]->params()->vals()->size()*sizeof(float));
-  std::memset(receiveBuffer_cpu, 0, clientGraphs_[0]->params()->vals()->size()*sizeof(float));
+  std::fill(accGradientsSync_cpu.begin(), accGradientsSync_cpu.end(), 0);
+  std::fill(receiveBuffer_cpu.begin(), receiveBuffer_cpu.end(), 0);
   #endif
 }
 
@@ -195,112 +202,93 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
  *
  * @param batch Batch on which to perform forward and backward passes.
  */
-void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> batch) {
+void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
   if(!initialized_) {
-    init(batch);
+    init(fullBatch);
     initialized_ = true;
   }
 
-  auto task = [this](Ptr<data::Batch> batch) {
-    static size_t i = 0;
-    thread_local Ptr<ExpressionGraph> graph;
-    thread_local Ptr<models::ModelBase> builder;
-    thread_local size_t my_id = 0;
-    thread_local size_t t = 0;
-    // only for scheduler statistic
-    thread_local float cost = 0;
-    thread_local size_t num_seen_words = 0;
-    thread_local size_t num_seen_sentences = 0;
+  std::vector<Ptr<data::Batch>> batches = fullBatch->split(devices_.size());
 
-    if(!graph) {
-      std::lock_guard<std::mutex> lock(mutexClientInit_);
-      my_id = i;
-      graph = clientGraphs_[i];
-      builder = clientBuilders_[i++];
-    }
+  static int t = 0;
 
-    auto costNode = builder->build(graph, batch);
+  static float cost = 0;
+  static size_t num_seen_words = 0;
+  static size_t num_seen_sentences = 0;
 
-    if (t == 0) {
-      if (my_id != 0)
-        graph->params()->vals()->copyFrom(clientGraphs_[0]->params()->vals());
-    }
+  {
+    auto task = [this, batches](int my_id) {
+      auto batch = batches[my_id];
+      auto graph = clientGraphs_[my_id];
+      auto builder = clientBuilders_[my_id];
 
-    graph->forward();
-    cost += costNode->scalar();
-    num_seen_words += batch->words();
-    num_seen_sentences += batch->size();
-    graph->backward();
+      auto costNode = builder->build(graph, batch);
 
-    t++;
-
-    graph->getBackend()->synchronize(); //@Alham do you know why we need this here?
-
-    sumGRAD(graph->params()->vals());
-    //Lock here and send receive gradients. @TODO I AM REALLY NOT SURE THIS IS CORRECT FOR MORE THAN ONE THERADS
-    {
-      std::unique_lock<std::mutex> lock(updateParamsMutex_);
-      clientThreadPool_->wait_for_one(lock); //Only one thread will do the next, correct @TODO
-      if (!synchronization_happened) {
-        sendReceiveUpdateSync();
-        synchronization_happened = true;
+      if (t == 0) {
+        if (my_id != 0)
+          graph->params()->vals()->copyFrom(clientGraphs_[0]->params()->vals());
       }
-      clientThreadPool_->wait_for_others(lock);
-      synchronization_happened = false;
-      clientThreadPool_->notify_others();
+
+      graph->forward();
+      {
+        std::lock_guard<std::mutex> guard(sumCostMutex_);
+        cost += costNode->scalar();
+        num_seen_words += batch->words();
+        num_seen_sentences += batch->size();
+      }
+      graph->backward();
+
+      graph->getBackend()->synchronize(); //@Alham do you know why we need this here?
+
+      sumGRAD(graph->params()->grads());
+    };
+
+    ThreadPool pool(devices_.size(), devices_.size());
+    for(int idx = 0; idx < devices_.size(); ++idx)
+      pool.enqueue(task, idx);
+  }
+
+  sendReceiveUpdateSync();    
+  
+  t++; 
+
+  // Run scheduler (if enabled)
+  if(t % tau_ == 0 && scheduler_) {
+    if (options_->get<std::string>("cost-type") != "ce-sum")
+      cost /= (tau_ * devices_.size());
+
+    if (tau_ > 1) {
+      std::vector<size_t> fakeLength = {1, 1};
+      auto fb = data::CorpusBatch::fakeBatch(fakeLength,
+                                        num_seen_sentences,
+                                        NULL);
+      fb->front()->setWords(num_seen_words);
+      scheduler_->update(cost, fb);
+    } else {
+      scheduler_->update(cost, fullBatch);
     }
     
-    // Run scheduler (if enabled)
-    if(t % tau_ == 0 && scheduler_) {
-      std::unique_lock<std::mutex> lock(schedulerMutex_);
+    num_seen_words = 0;
+    num_seen_sentences = 0;
+    cost = 0;
 
-      // Wait until the thread that wants to do validation is finished.
-      clientThreadPool_->wait_for_one(lock);
+    if((scheduler_->saving() || scheduler_->validating())) {
+      #if MPI_FOUND
+      //wait until other nodes are ready
+      MPI_Barrier(MPI_COMM_WORLD);
 
-      if (options_->get<std::string>("cost-type") != "ce-sum")
-        cost /= tau_;
+      // TODO: Saving is broken
+      //if(mpi_my_rank_ == 0 && scheduler_->saving())
+      //  this->save(graph);
 
-      if (tau_ > 1) {
-        std::vector<size_t> fakeLength = {1, 1};
-        auto fb = data::CorpusBatch::fakeBatch(fakeLength,
-                                          num_seen_sentences,
-                                          NULL);
-        fb->front()->setWords(num_seen_words);
-        scheduler_->update(cost, fb);
-      } else {
-        scheduler_->update(cost, batch);
-      }
-      
-      num_seen_words = 0;
-      num_seen_sentences = 0;
-      cost = 0;
+      if(mpi_my_rank_ == 0 && scheduler_->validating())
+        scheduler_->validate(clientGraphs_);
 
-      if((scheduler_->saving() || scheduler_->validating())) {
-        // Wait with validation or saving until all other threads are done with
-        // update.
-        // We want to reuse the graphs for validation, so they need to be in
-        // a safe state.
-        clientThreadPool_->wait_for_others(lock);
-        #if MPI_FOUND
-        //wait until other nodes are ready
-        MPI_Barrier(MPI_COMM_WORLD);
- 
-        // TODO: Saving is broken
-        //if(mpi_my_rank_ == 0 && scheduler_->saving())
-        //  this->save(graph);
-
-        if(mpi_my_rank_ == 0 && scheduler_->validating())
-          scheduler_->validate(clientGraphs_);
-
-        // inform other nodes to continue
-        MPI_Barrier(MPI_COMM_WORLD);
-        #endif
-        // Validation or saving is done, tell other threads to continue work.
-        clientThreadPool_->notify_others();
-      }
+      // inform other nodes to continue
+      MPI_Barrier(MPI_COMM_WORLD);
+      #endif
     }
-  };
+    }
 
-  clientThreadPool_->enqueue(task, batch);
 }
 }
