@@ -49,7 +49,6 @@ void MultiNodeGraphGroupSync::init(Ptr<data::Batch> batch) {
  * Requires the graph to be initialized first so we know its size
  */
 void MultiNodeGraphGroupSync::initCPUArrays() {
-  std::cout<<" INIT VECTOR OF SIZE "<<clientGraphs_[0]->params()->vals()->size()<<std::endl;
   accGradientsSync_cpu = std::vector<float>(clientGraphs_[0]->params()->vals()->size());
   receiveBuffer_cpu = std::vector<float>(clientGraphs_[0]->params()->vals()->size());
 }
@@ -99,8 +98,6 @@ void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) {
   sumGradientBuffer->copyFrom(gradient);
   using namespace functional; //@TODO makes more sense to do that on the CPU i think
   Element(_1 += _2, accGradientsSync, sumGradientBuffer);
-  
-  cudaStreamSynchronize(0);
 }
 
 /**
@@ -115,7 +112,6 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
                  accGradientsSync->data(),
                  accGradientsSync->size(),
                  cudaMemcpyDeviceToHost));
-  // std::cerr<<"before "<<accGradientsSync->get(7)<<std::endl;
   // Wait until all nodes are ready
   MPI_Barrier(MPI_COMM_WORLD);
   int reduce_result = MPI_Reduce(accGradientsSync_cpu.data(), //CPU buffers
@@ -125,12 +121,10 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
               MPI_SUM,
               0, //Rank of the process with the data. In this case Node 0
               MPI_COMM_WORLD);
-  // std::cerr<<" summed "<<receiveBuffer_cpu[7]<<std::endl;
   if (reduce_result != MPI_SUCCESS) {
     LOG(critical, "Error: MPI_REDUCE failed with error {}.", reduce_result);
     std::abort();
   }
-  // std::cerr<<" param before "<<clientGraphs_[0]->params()->vals()->get(7)<<std::endl;
   if (mpi_my_rank_ == 0) {
     // Copy the data back to the GPU and do optimizer update
     CUDA_CHECK(cudaMemcpy(accGradientsSync->data(),
@@ -167,7 +161,6 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
                    accGradientsSync->size(),
                    cudaMemcpyHostToDevice));
   }
-  // std::cerr<<" param after "<<clientGraphs_[0]->params()->vals()->get(7)<<std::endl;
 
   //Distribute the graph to the rest of the devices
   std::vector<std::thread> threads;
@@ -248,7 +241,8 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
       pool.enqueue(task, idx);
   }
 
-  sendReceiveUpdateSync();    
+  if (t % tau_ == 0)
+    sendReceiveUpdateSync();    
   
   t++; 
 
