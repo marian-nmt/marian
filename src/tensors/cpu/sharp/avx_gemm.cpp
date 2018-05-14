@@ -44,7 +44,7 @@ void AVX_Quantize16(const float *input, int16_t *output, float quant_mult, std::
 void AVX_Quantize8(const float *input, int8_t *output, float quant_mult, std::size_t size) {
   assert(size % 16 == 0);
   assert(reinterpret_cast<uintptr_t>(input) % 64 == 0);
-//  const __m512i neg127 = _mm512_set1_epi32(-127);
+  const __m512i neg127 = _mm512_set1_epi32(-127);
   const __m512 quant_mult_reg = _mm512_set1_ps(quant_mult);
   const float *end = input + size;
   for (; input < end; input += 16, output += 16) {
