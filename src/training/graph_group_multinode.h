@@ -233,7 +233,7 @@ protected:
   /**
    * LocalOptimizers related variables
    */
-  bool useLocalOpt_;
+  //bool useLocalOpt_;
 
   /**
    * Allocate new tensor on given GPU and store allocator.
@@ -405,7 +405,7 @@ public:
   MultiNodeGraphGroup(Ptr<Config> options)
       : GraphGroup(options),
         tau_{options_->get<size_t>("optimizer-delay")},
-        useLocalOpt_{options_->get<bool>("multi-node-local-optimizers")},
+//        useLocalOpt_{options_->get<bool>("multi-node-local-optimizers")},
         clientCommOverlap{options_->get<bool>("multi-node-overlap")} {
     // Set up devices for this node
     setupMPI(); //Setup MPI before creating device vectors
