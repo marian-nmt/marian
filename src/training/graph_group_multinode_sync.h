@@ -308,6 +308,7 @@ public:
 
   virtual void finalize() {
     finalized_ = true;
+    MPI_Finalize();
   }
 };
 }
