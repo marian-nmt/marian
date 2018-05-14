@@ -21,7 +21,7 @@ Search::Search(const God &god)
     scorers_(god.GetScorers(deviceInfo_)),
     filter_(god.GetFilter()),
     maxBeamSize_(god.Get<unsigned>("beam-size")),
-    maxLengthMult_(god.Get<unsigned>("max-length-multiple")),
+    maxLengthMult_(god.Get<float>("max-length-multiple")),
     normalizeScore_(god.Get<bool>("normalize")),
     bestHyps_(god.GetBestHyps(deviceInfo_))
 {
