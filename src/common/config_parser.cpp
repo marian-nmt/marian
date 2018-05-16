@@ -61,6 +61,7 @@ uint16_t guess_terminal_width(uint16_t max_width) {
   return max_width ? std::min(cols, max_width) : cols;
 }
 
+// helper to convert a Yaml node recursively into a string
 void OutputYaml(const YAML::Node node, YAML::Emitter& out) {
   std::set<std::string> sorter;
   switch(node.Type()) {
@@ -100,7 +101,7 @@ const std::set<std::string> PATHS = {"model",
                                      "log"};
 
 // helper to implement interpolate-env-vars and relative-paths options
-static void ProcessPaths(YAML::Node& node,
+static void processPaths(YAML::Node& node,
                          const std::function<std::string(std::string)>& TransformPath,
                          bool isPath = false) {
   if(isPath) {
@@ -113,23 +114,39 @@ static void ProcessPaths(YAML::Node& node,
 
     if(node.Type() == YAML::NodeType::Sequence) {
       for(auto&& sub : node) {
-        ProcessPaths(sub, TransformPath, true);
+        processPaths(sub, TransformPath, true);
       }
     }
   } else {
     switch(node.Type()) {
       case YAML::NodeType::Sequence:
         for(auto&& sub : node) {
-          ProcessPaths(sub, TransformPath, false);
+          processPaths(sub, TransformPath, false);
         }
         break;
       case YAML::NodeType::Map:
         for(auto&& sub : node) {
           std::string key = sub.first.as<std::string>();
-          ProcessPaths(sub.second, TransformPath, PATHS.count(key) > 0);
+          processPaths(sub.second, TransformPath, PATHS.count(key) > 0);
         }
         break;
     }
+  }
+}
+
+// helper to replace environment-variable expressions of the form ${VARNAME} in a string
+static std::string interpolateEnvVars(std::string str) {
+  for(;;)
+  {
+    const auto pos = str.find("${");
+    if (pos == std::string::npos)
+        return str;
+    const auto epos = str.find("}", pos + 2);
+    ABORT_IF(epos == std::string::npos, "interpolate-env-vars option: ${{ without matching }} in '{}'", str.c_str());
+    const auto var = str.substr(pos + 2, epos - (pos + 2)); // isolate the variable name
+    const auto val = getenv(var.c_str());
+    ABORT_IF(!val, "interpolate-env-vars option: environment variable '{}' not defined in '{}'", var.c_str(), str.c_str());
+    str = str.substr(0,pos) + val + str.substr(epos + 1); // replace it; then try again for further replacements
   }
 }
 
@@ -788,23 +805,33 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     exit(0);
   }
 
+  const auto& interpolateEnvVarsIfRequested = [&](std::string str) -> std::string {
+    std::cerr << str << "\n";
+    std::cerr << vm_["interpolate-env-vars"].as<bool>() << "\n";
+    if(vm_["interpolate-env-vars"].as<bool>())
+      str = interpolateEnvVars(str);
+    std::cerr << str << "\n";
+    return str;
+  };
+
   bool loadConfig = vm_.count("config");
   bool reloadConfig
       = (mode_ == ConfigMode::training)
-        && boost::filesystem::exists(vm_["model"].as<std::string>() + ".yml")
+        && boost::filesystem::exists(interpolateEnvVarsIfRequested(vm_["model"].as<std::string>() + ".yml"))
         && !vm_["no-reload"].as<bool>();
   std::vector<std::string> configPaths;
 
   if(loadConfig) {
     configPaths = vm_["config"].as<std::vector<std::string>>();
     config_ = YAML::Node();
-    for (const auto& configPath : configPaths)
+    for (auto& configPath : configPaths)
     {
+      configPath = interpolateEnvVarsIfRequested(configPath); // (note: this updates the configPaths array)
       for(const auto& it : YAML::Load(InputFileStream(configPath))) // later file overrides
         config_[it.first.as<std::string>()] = it.second;
     }
   } else if(reloadConfig) {
-    auto configPath = vm_["model"].as<std::string>() + ".yml";
+    auto configPath = interpolateEnvVarsIfRequested(vm_["model"].as<std::string>() + ".yml");
     config_ = YAML::Load(InputFileStream(configPath));
     configPaths = { configPath };
   }
@@ -1024,23 +1051,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
 
   if(get<bool>("interpolate-env-vars")) {
-    ProcessPaths(config_, 
-      [&](const std::string& nodePath) -> std::string {
-        // replace environment-variable expressions of the form ${VARNAME} in pathnames
-        auto path = nodePath;
-        for(;;)
-        {
-          const auto pos = path.find("${");
-          if (pos == std::string::npos)
-              return path;
-          const auto epos = path.find("}", pos + 2);
-          ABORT_IF(epos == std::string::npos, "interpolate-env-vars option: ${{ without matching }} in '{}'", path.c_str());
-          const auto var = path.substr(pos + 2, epos - (pos + 2)); // isolate the variable name
-          const auto val = getenv(var.c_str());
-          ABORT_IF(!val, "interpolate-env-vars option: environment variable '{}' not defined in '{}'", var.c_str(), path.c_str());
-          path = path.substr(0,pos) + val + path.substr(epos + 1); // replace it; then try again for further replacements
-        }
-      });
+    processPaths(config_, interpolateEnvVars);
   }
 
   if(get<bool>("relative-paths") && !vm_["dump-config"].as<bool>()) {
@@ -1050,7 +1061,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     for (const auto& configPath : configPaths)
       ABORT_IF(boost::filesystem::path{configPaths.front()}.parent_path() != configDir,
                "relative-paths option requires all config files to be in the same directory");
-    ProcessPaths(config_,
+    processPaths(config_,
       [&](const std::string& nodePath) -> std::string {
         // replace relative path w.r.t. configDir
         using namespace boost::filesystem;
