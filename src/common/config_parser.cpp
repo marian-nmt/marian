@@ -136,8 +136,21 @@ static void processPaths(YAML::Node& node,
 
 // helper to replace environment-variable expressions of the form ${VARNAME} in a string
 static std::string interpolateEnvVars(std::string str) {
-  for(;;)
-  {
+#if 1 // temporary workaround for MS-internal PhillyOnAzure cluster: warm storage presently has the form /hdfs/VC instead of /{gfs,hdfs}/CLUSTER/VC
+  if (getenv("PHILLY_JOB_ID")) {
+    const char* cluster = getenv("PHILLY_CLUSTER");
+    const char* vc      = getenv("PHILLY_VC");
+    if (cluster && vc) { // this environment variable exists when running on the cluster
+      static const std::string s_gfsPrefix  = std::string("/gfs/")  + cluster + "/" + vc + "/";
+      static const std::string s_hdfsPrefix = std::string("/hdfs/") + cluster + "/" + vc + "/";
+      if (str.find(s_gfsPrefix) == 0)
+        str = std::string("/hdfs/") + vc + "/" + str.substr(s_gfsPrefix.size());
+      else if (str.find(s_hdfsPrefix) == 0)
+        str = std::string("/hdfs/") + vc + "/" + str.substr(s_hdfsPrefix.size());
+    }
+  }
+#endif
+  for(;;) {
     const auto pos = str.find("${");
     if (pos == std::string::npos)
         return str;
@@ -806,11 +819,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
 
   const auto& interpolateEnvVarsIfRequested = [&](std::string str) -> std::string {
-    std::cerr << str << "\n";
-    std::cerr << vm_["interpolate-env-vars"].as<bool>() << "\n";
     if(vm_["interpolate-env-vars"].as<bool>())
       str = interpolateEnvVars(str);
-    std::cerr << str << "\n";
     return str;
   };
 
