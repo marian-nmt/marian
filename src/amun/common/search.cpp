@@ -86,6 +86,9 @@ std::shared_ptr<Histories> Search::Translate(const Sentences& sentences) {
   Beam prevHyps = histories->GetFirstHyps();
 
   for (unsigned decoderStep = 0; decoderStep < maxLengthMult_ * (float) sentences.GetMaxLength(); ++decoderStep) {
+    //boost::timer::cpu_timer timerStep;
+    //timerStep.start();
+
     for (unsigned i = 0; i < scorers_.size(); i++) {
       scorers_[i]->Decode(*states[i], *nextStates[i], beamSizes);
     }
@@ -102,6 +105,8 @@ std::shared_ptr<Histories> Search::Translate(const Sentences& sentences) {
       break;
     }
 
+    //timerStep.stop();
+    //cerr << "decoderStep=" << decoderStep << " " << timerStep.format(4, "%w") << endl;
     //cerr << "states0=" << states[0]->Debug(0) << endl;
     //cerr << "beamSizes=" << beamSizes.size() << " " << histories->NumActive() << endl;
     //++activeCount_[histories->NumActive()];
