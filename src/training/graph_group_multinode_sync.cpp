@@ -107,16 +107,15 @@ void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) {
 
 void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
   #if MPI_FOUND
+  int network_size = accGradientsSync_cpu.size();
+
   // Copy the data to the CPU
-  CUDA_CHECK(cudaMemcpy(accGradientsSync_cpu.data(),
-                 accGradientsSync->data(),
-                 accGradientsSync->size()*sizeof(float),
-                 cudaMemcpyDeviceToHost));
+  accGradientsSync->get(accGradientsSync_cpu);
   // Wait until all nodes are ready
   MPI_Barrier(MPI_COMM_WORLD);
   int reduce_result = MPI_Reduce(accGradientsSync_cpu.data(), //CPU buffers
               receiveBuffer_cpu.data(),
-              accGradientsSync_cpu.size(),
+              network_size,
               MPI_FLOAT,
               MPI_SUM,
               0, //Rank of the process with the data. In this case Node 0
@@ -125,27 +124,21 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
     LOG(critical, "Error: MPI_REDUCE failed with error {}.", reduce_result);
     std::abort();
   }
-  if (mpi_my_rank_ == 0) {
-    // Copy the data back to the GPU and do optimizer update
-    CUDA_CHECK(cudaMemcpy(accGradientsSync->data(),
-                 receiveBuffer_cpu.data(),
-                 accGradientsSync->size()*sizeof(float),
-                 cudaMemcpyHostToDevice));
 
-   
+  if (mpi_my_rank_ == 0) {
+    static Tensor tmp_grad;
+    // Copy the data back to the GPU and do optimizer update
+    sumGradientBuffer->set(receiveBuffer_cpu);
     // Perform optimizer step
     syncOptimizer_->update(clientGraphs_[0]->params()->vals(),
-                         accGradientsSync);
-
+                         sumGradientBuffer);
+    
     // Copy the data back to the host
-    CUDA_CHECK(cudaMemcpy(accGradientsSync_cpu.data(), //This is now the updated params
-                   clientGraphs_[0]->params()->vals()->data(),
-                   accGradientsSync->size()*sizeof(float),
-                   cudaMemcpyDeviceToHost));
+    clientGraphs_[0]->params()->vals()->get(accGradientsSync_cpu);
   }
 
   int bcast_result = MPI_Bcast(accGradientsSync_cpu.data(), //This is now the updated params.
-            accGradientsSync_cpu.size(),
+            network_size,
             MPI_FLOAT,
             0, //Root process
             MPI_COMM_WORLD);
@@ -156,10 +149,7 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
 
   if (mpi_my_rank_ != 0) {
     //Copy the data to the GPU
-    CUDA_CHECK(cudaMemcpy(clientGraphs_[0]->params()->vals()->data(),
-                   accGradientsSync_cpu.data(),
-                   accGradientsSync->size()*sizeof(float),
-                   cudaMemcpyHostToDevice));
+    clientGraphs_[0]->params()->vals()->set(accGradientsSync_cpu);
   }
 
   //Distribute the graph to the rest of the devices
@@ -169,16 +159,14 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
         [=](int idx) {
           //If NVLINK is not available it's faster to do this from the CPU
           //Because we don't have to go Device->Host->device
-          CUDA_CHECK(cudaMemcpy(clientGraphs_[idx]->params()->vals()->data(),
-                   accGradientsSync_cpu.data(),
-                   accGradientsSync->size()*sizeof(float),
-                   cudaMemcpyHostToDevice));
+          clientGraphs_[idx]->params()->vals()->set(accGradientsSync_cpu);
         },
         idx));
   }
   for(auto&& t : threads) {
     t.join();
   }
+
   //set the accumulating buffers to zero;
   accGradientsSync->set(0);
   std::fill(accGradientsSync_cpu.begin(), accGradientsSync_cpu.end(), 0);
