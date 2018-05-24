@@ -100,6 +100,7 @@ protected:
   std::mutex sumCostMutex_;
   Tensor accGradientsSync;
   Tensor sumGradientBuffer;
+  Tensor paramsAvg_;
   std::vector<float> accGradientsSync_cpu;
   std::vector<float> receiveBuffer_cpu;
   bool synchronization_happened{false};
@@ -111,10 +112,18 @@ protected:
   std::vector<int> totalBatchWords;
   std::vector<Tensor> accGradients, accGradientBuffer;
 
+  bool movingAvg_{false};
+  float mvDecay_{1e-4};
+
   /**
    * Allocate new tensor on given GPU and store allocator.
    */
   Tensor newTensor(int size, Ptr<Backend> backend);
+
+  /*
+   * exponential smoothing
+   */
+  void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches);
 
   /**
    * Setup training environment and launch server thread and (if enabled) client
@@ -193,6 +202,8 @@ public:
   MultiNodeGraphGroupSync(Ptr<Config> options)
       : GraphGroup(options),
         tau_{options_->get<size_t>("optimizer-delay")},
+        movingAvg_{options_->get<float>("exponential-smoothing") > 0},
+        mvDecay_{options_->get<float>("exponential-smoothing")},
         syncOptimizer_{Optimizer(options_)} {
     // Set up devices for this node
     setupMPI(); //Setup MPI before creating device vectors

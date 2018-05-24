@@ -4,6 +4,15 @@
 
 namespace marian {
 
+void MultiNodeGraphGroupSync::updateMovingAverage(Tensor paramsAvg,
+                                         Tensor params,
+                                         size_t batches) {
+  using namespace functional;
+  float decay
+      = std::max(mvDecay_, 1.f - (float)(batches + 1) / (float)(batches + 10));
+  Element(_1 = ((1.f - decay) * _1) + (decay * _2), paramsAvg, params);
+}
+
 /**
  * Set given scheduler to register training observers on the shard optimizers.
  */
@@ -37,12 +46,16 @@ Tensor MultiNodeGraphGroupSync::newTensor(int size, Ptr<Backend> backend) {
 void MultiNodeGraphGroupSync::init(Ptr<data::Batch> batch) {
   // Setup clients and shards
   setupClients(batch);
+  int network_size = clientGraphs_[0]->params()->vals()->size();
+  LOG(info, "model size = {} float params" , network_size);
+  if (movingAvg_)
+    paramsAvg_ = newTensor(network_size, clientGraphs_.back()->getBackend());
 
   // setup sync sgd storage, We keep the summed gradient on Node 0
-  sumGradientBuffer = newTensor(clientGraphs_[0]->params()->vals()->size(), clientGraphs_[0]->getBackend());
-  accGradientsSync = newTensor(clientGraphs_[0]->params()->vals()->size(), clientGraphs_[0]->getBackend());
-  accGradientsSync->set(0);
+  sumGradientBuffer = newTensor(network_size, clientGraphs_[0]->getBackend());
+  accGradientsSync = newTensor(network_size, clientGraphs_[0]->getBackend());
 }
+
 
 /**
  * Initialize the CPU arrays, with pinned memory for faster CudaMemCpy operations.
@@ -104,62 +117,42 @@ void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) {
  * If it's rank 0, it's a local update, if it's rank one it's remote
  * send and receive. Make sure you only call from device 0.
  */
-
 void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
   #if MPI_FOUND
   int network_size = accGradientsSync_cpu.size();
 
   // Copy the data to the CPU
   accGradientsSync->get(accGradientsSync_cpu);
+
   // Wait until all nodes are ready
   MPI_Barrier(MPI_COMM_WORLD);
-  int reduce_result = MPI_Reduce(accGradientsSync_cpu.data(), //CPU buffers
+
+  int reduce_result = MPI_Allreduce(accGradientsSync_cpu.data(), //CPU buffers
               receiveBuffer_cpu.data(),
               network_size,
               MPI_FLOAT,
               MPI_SUM,
-              0, //Rank of the process with the data. In this case Node 0
               MPI_COMM_WORLD);
-  if (reduce_result != MPI_SUCCESS) {
-    LOG(critical, "Error: MPI_REDUCE failed with error {}.", reduce_result);
-    std::abort();
-  }
 
-  if (mpi_my_rank_ == 0) {
-    static Tensor tmp_grad;
-    // Copy the data back to the GPU and do optimizer update
-    sumGradientBuffer->set(receiveBuffer_cpu);
-    // Perform optimizer step
-    syncOptimizer_->update(clientGraphs_[0]->params()->vals(),
-                         sumGradientBuffer);
-    
-    // Copy the data back to the host
-    clientGraphs_[0]->params()->vals()->get(accGradientsSync_cpu);
-  }
+  // Copy the data back to the GPU and do optimizer update
+  // Do update with last GPU to distribute the memory
+  clientGraphs_.back()->params()->grads()->set(receiveBuffer_cpu);
 
-  int bcast_result = MPI_Bcast(accGradientsSync_cpu.data(), //This is now the updated params.
-            network_size,
-            MPI_FLOAT,
-            0, //Root process
-            MPI_COMM_WORLD);
-  if (bcast_result != MPI_SUCCESS) {
-    LOG(critical, "Error: MPI_REDUCE failed with error {}.", bcast_result);
-    std::abort();
-  }
+  // Perform optimizer step
+  syncOptimizer_->update(clientGraphs_.back());
 
-  if (mpi_my_rank_ != 0) {
-    //Copy the data to the GPU
-    clientGraphs_[0]->params()->vals()->set(accGradientsSync_cpu);
-  }
+  if(movingAvg_)
+      updateMovingAverage(
+        paramsAvg_, clientGraphs_.back()->params()->vals(),
+        scheduler_->numberOfBatches());
 
   //Distribute the graph to the rest of the devices
   std::vector<std::thread> threads;
-  for(int idx = 1; idx < devices_.size(); idx++) {
+  for(int idx = 0; idx < devices_.size() - 1; idx++) {
     threads.emplace_back(std::thread(
         [=](int idx) {
-          //If NVLINK is not available it's faster to do this from the CPU
-          //Because we don't have to go Device->Host->device
-          clientGraphs_[idx]->params()->vals()->set(accGradientsSync_cpu);
+          clientGraphs_[idx]->params()->vals()->copyFrom(
+            clientGraphs_.back()->params()->vals());
         },
         idx));
   }
@@ -263,14 +256,27 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
       //if(mpi_my_rank_ == 0 && scheduler_->saving())
       //  this->save(graph);
 
-      if(mpi_my_rank_ == 0 && scheduler_->validating())
+      if(mpi_my_rank_ == 0 && scheduler_->validating()) {
+        // temporarily save current params
+        if(movingAvg_)
+          accGradientsSync->copyFrom(clientGraphs_[0]->params()->vals());
+
+        if(movingAvg_)
+          for(auto graph : clientGraphs_)
+            graph->params()->vals()->copyFrom(paramsAvg_);
+
         scheduler_->validate(clientGraphs_);
+
+        if(movingAvg_)
+          for(auto graph : clientGraphs_)
+            graph->params()->vals()->copyFrom(accGradientsSync);
+      }
 
       // inform other nodes to continue
       MPI_Barrier(MPI_COMM_WORLD);
       #endif
     }
-    }
+  }
 
 }
 }
