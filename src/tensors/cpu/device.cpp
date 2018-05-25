@@ -1,6 +1,9 @@
 #include "tensors/device.h"
 #include <iostream>
 
+//#if DOZE
+#include <malloc.h>
+
 #include <stdlib.h>
 
 namespace marian {
@@ -10,6 +13,11 @@ Device::~Device() {
   free(data_);
   data_ = nullptr;
   size_ = 0;
+}
+
+// #if DOZE
+void* aligned_alloc(size_t alignment, size_t size) {
+    return _aligned_malloc(size, alignment);
 }
 
 void Device::reserve(size_t size) {

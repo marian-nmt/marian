@@ -1,7 +1,7 @@
 #pragma once
 
-#include <sys/ioctl.h>
-#include <unistd.h>
+//#include <sys/ioctl.h>
+//#include <unistd.h>
 #include <boost/program_options.hpp>
 
 #include "3rd_party/yaml-cpp/yaml.h"

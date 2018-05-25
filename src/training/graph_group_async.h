@@ -42,7 +42,7 @@ protected:
   std::vector<Tensor> paramsAvg_;
   std::vector<Ptr<TensorAllocator>> paramsAllocAvg_;
   bool movingAvg_{false};
-  float mvDecay_{1e-4};
+  float mvDecay_{1e-4f};
 
   std::unique_ptr<ThreadPool> pool_;
 

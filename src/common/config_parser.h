@@ -2,8 +2,8 @@
 
 #include <boost/program_options.hpp>
 
-#include <sys/ioctl.h>
-#include <unistd.h>
+//#include <sys/ioctl.h>
+//#include <unistd.h>
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"

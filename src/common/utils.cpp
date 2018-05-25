@@ -64,6 +64,9 @@ std::string Join(const std::vector<std::string>& words,
 }
 
 std::string Exec(const std::string& cmd) {
+  ABORT_IF(true, "NYI");
+  return "";
+  /*
   std::array<char, 128> buffer;
   std::string result;
   std::shared_ptr<std::FILE> pipe(popen(cmd.c_str(), "r"), pclose);
@@ -75,4 +78,5 @@ std::string Exec(const std::string& cmd) {
       result += buffer.data();
   }
   return result;
+  */
 }

@@ -1,9 +1,10 @@
 #pragma once
 
+
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
+//#include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <iostream>
 
@@ -21,11 +22,15 @@ private:
   std::string name_;
 
   int mkstemp_and_unlink(char* tmpl) {
+    ABORT_IF(true, "NYI");
+    return 0;
+    /*
     int ret = mkstemp(tmpl);
     if(unlink_ && ret != -1) {
       ABORT_IF(unlink(tmpl), "Error while deleting '{}'", tmpl);
     }
     return ret;
+    */
   }
 
   int MakeTemp(const std::string& base) {
@@ -41,6 +46,9 @@ private:
   }
 
   void NormalizeTempPrefix(std::string& base) {
+    ABORT_IF(true, "NYI");
+    return;
+    /*
     if(base.empty())
       return;
     if(base[base.size() - 1] == '/')
@@ -51,11 +59,13 @@ private:
       return;
     if(S_ISDIR(sb.st_mode))
       base += '/';
+      */
   }
 
 public:
   TemporaryFile(const std::string base = "/tmp/", bool earlyUnlink = true)
       : unlink_(earlyUnlink) {
+      ABORT_IF(true, "NYI (see destructor)");
     std::string baseTemp(base);
     NormalizeTempPrefix(baseTemp);
     fd_ = MakeTemp(baseTemp);
@@ -65,10 +75,12 @@ public:
     if(fd_ != -1 && !unlink_) {
       ABORT_IF(unlink(name_.c_str()), "Error while deleting '{}'", name_);
     }
+    /*
     if(fd_ != -1 && close(fd_)) {
       std::cerr << "Could not close file " << fd_ << std::endl;
       std::abort();
     }
+    */
   }
 
   int getFileDescriptor() { return fd_; }
@@ -82,14 +94,15 @@ public:
     ABORT_IF(
         !boost::filesystem::exists(file_), "File '{}' does not exist", file);
 
-    if(file_.extension() == ".gz")
-      istream_.push(io::gzip_decompressor());
+    //if(file_.extension() == ".gz")
+    //  istream_.push(io::gzip_decompressor());
     istream_.push(ifstream_);
   }
 
   InputFileStream(TemporaryFile& tempfile)
       : fds_(tempfile.getFileDescriptor(), io::never_close_handle) {
-    lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
+    ABORT_IF(true, "NYI");
+    //lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
     istream_.push(fds_, 1024);
   }
 
@@ -122,14 +135,15 @@ public:
     ABORT_IF(
         !boost::filesystem::exists(file_), "File '{}' does not exist", file);
 
-    if(file_.extension() == ".gz")
-      ostream_.push(io::gzip_compressor());
+    //if(file_.extension() == ".gz")
+    //  ostream_.push(io::gzip_compressor());
     ostream_.push(ofstream_);
   }
 
   OutputFileStream(TemporaryFile& tempfile)
       : fds_(tempfile.getFileDescriptor(), io::never_close_handle) {
-    lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
+    ABORT_IF(true, "NYI");
+    //lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
     ostream_.push(fds_, 1024);
   }
 

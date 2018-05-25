@@ -293,7 +293,7 @@ struct PReLUNodeOp : public UnaryNodeOp {
   }
 
 private:
-  float alpha_{0.01};
+  float alpha_{0.01f};
 };
 
 /**

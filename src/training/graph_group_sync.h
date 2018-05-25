@@ -29,7 +29,7 @@ private:
   std::vector<Tensor> paramsAvg_;
   std::vector<Ptr<TensorAllocator>> paramsAllocAvg_;
   bool movingAvg_{false};
-  float mvDecay_{1e-4};
+  float mvDecay_{1e-4f};
   size_t delay_{1};
 
   void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches);

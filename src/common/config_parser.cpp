@@ -1134,11 +1134,11 @@ std::vector<DeviceId> ConfigParser::getDevices() {
         // does this make sense?
         devices.push_back({ds.size(), DeviceType::gpu});
         for(auto d : ds)
-          devices.push_back({std::stoull(d), DeviceType::gpu});
+          devices.push_back({(size_t)std::stoull(d), DeviceType::gpu});
       }
     } else {
       for(auto d : Split(devicesStr))
-        devices.push_back({std::stoull(d), DeviceType::gpu});
+        devices.push_back({(size_t)std::stoull(d), DeviceType::gpu});
     }
 
     if(config_["cpu-threads"].as<size_t>() > 0) {

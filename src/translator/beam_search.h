@@ -27,7 +27,7 @@ public:
                       ? options_->get<size_t>("beam-size")
                       : 3) {}
 
-  Beams toHyps(const std::vector<uint> keys,
+  Beams toHyps(const std::vector<uint32_t> keys,
                const std::vector<float> costs,
                size_t vocabSize,
                const Beams& beams,

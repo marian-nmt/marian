@@ -23,9 +23,12 @@ message(STATUS "Project name: ${PROJECT_NAME}")
 message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 
 # Set compilation flags
-set(CMAKE_CXX_FLAGS_RELEASE " -std=c++11 -g -O3 -Ofast -m64 -pthread -march=native -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
-set(CMAKE_CXX_FLAGS_DEBUG " -std=c++11 -g -O0 -pthread -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
-set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}  -pg -g")
+# -Wl,--no-as-needed -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets -funroll-loops -ffinite-math-only 
+# -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets
+# -g 
+set(CMAKE_CXX_FLAGS_RELEASE " -std=c++ -O3 -Ofast -m64 -pthread -march=native -fPIC -DBOOST_NO_UNREACHABLE_RETURN_DETECTION")
+set(CMAKE_CXX_FLAGS_DEBUG " -std=c++11 -O0 -pthread -fPIC")
+set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}  -pg")
 #set(CMAKE_CXX_FLAGS_PROFGEN "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-generate -fprofile-correction")
 #set(CMAKE_CXX_FLAGS_PROFUSE "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-use -fprofile-correction")
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
@@ -153,6 +156,9 @@ find_package(Boost COMPONENTS ${BOOST_COMPONENTS})
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
   set(EXT_LIBS ${EXT_LIBS} ${Boost_LIBRARIES})
+  #message("Found boost with toolset compiler ${_boost_COMPILER}")
+  #set(_boost_COMPILER "-vc140")
+  #message("Overwrote compiler version as ${_boost_COMPILER}")
 else(Boost_FOUND)
   message(SEND_ERROR "Cannot find Boost libraries. Terminating.")
 endif(Boost_FOUND)

@@ -70,9 +70,10 @@ void AsyncGraphGroupDrop::fetchParams(Tensor oldParams,
 
     pos += shardSize_;
   }
+  /* OMG BAD
   for(auto&& t : threads) {
     t.join();
-  }
+  }*/
   fetchStep_[device_id]++;
 }
 

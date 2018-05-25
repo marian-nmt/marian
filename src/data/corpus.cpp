@@ -1,4 +1,5 @@
 #include <random>
+#include <numeric>
 
 #include "data/corpus.h"
 

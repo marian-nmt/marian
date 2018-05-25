@@ -36,7 +36,7 @@ struct ConstantShape {
         bstride_(shape.bstride_),
         elements_(shape.elements_) {}
 
-  ConstantShape(const Shape& shape) {
+  ConstantShape(const marian::Shape& shape) {
     size_t filled = shape.size();
 
     ABORT_IF(filled > N,
