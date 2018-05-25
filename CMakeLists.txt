@@ -26,12 +26,17 @@ message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 # -Wl,--no-as-needed -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets -funroll-loops -ffinite-math-only 
 # -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets
 # -g 
-set(CMAKE_CXX_FLAGS_RELEASE " -std=c++ -O3 -Ofast -m64 -pthread -march=native -fPIC -DBOOST_NO_UNREACHABLE_RETURN_DETECTION")
+set(CMAKE_CXX_FLAGS_RELEASE " -std=c++11 -O3 -Ofast -m64 -pthread -march=native -fPIC -DBOOST_NO_UNREACHABLE_RETURN_DETECTION")
 set(CMAKE_CXX_FLAGS_DEBUG " -std=c++11 -O0 -pthread -fPIC")
 set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}  -pg")
 #set(CMAKE_CXX_FLAGS_PROFGEN "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-generate -fprofile-correction")
 #set(CMAKE_CXX_FLAGS_PROFUSE "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-use -fprofile-correction")
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
+
+# if windows
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT") # build multithreaded
+#if windows
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc") # let boost handle exceptions properly (see https://msdn.microsoft.com/en-us/library/1deeycx5.aspx)
 
 # Find packages
 
@@ -113,6 +118,14 @@ if(COMPILE_CPU)
   endif(MKL_FOUND)
 endif(COMPILE_CPU)
 
+# Don't allow in-source linker configuration (i.e. auto-linking) via boost pragma directives
+add_definitions( -DBOOST_ALL_NO_LIB )
+set (Boost_USE_MULTITHREADED ON)
+
+set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+
 set(BOOST_COMPONENTS system timer iostreams filesystem chrono program_options thread)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
@@ -140,6 +153,8 @@ find_package(ZLIB)
 if(ZLIB_FOUND)
   include_directories(${ZLIB_INCLUDE_DIRS})
   set(EXT_LIBS ${EXT_LIBS} ${ZLIB_LIBRARIES})
+  message(${ZLIB_LIBRARIES})
+  message(${ZLIB_INCLUDE_DIR})
 else(ZLIB_FOUND)
   message(SEND_ERROR "Cannot find zlib.")
 endif(ZLIB_FOUND)
