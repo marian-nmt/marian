@@ -319,7 +319,7 @@ public:
           }
 
           auto search
-              = New<BeamSearch>(options_, std::vector<Ptr<Scorer>>{scorer});
+              = New<BeamSearch>(options_, std::vector<Ptr<Scorer>>{scorer}, vocabs_.back()->GetEosId(), vocabs_.back()->GetUnkId());
           auto histories = search->search(graph, batch);
 
           for(auto history : histories) {
