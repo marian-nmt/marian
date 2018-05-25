@@ -99,13 +99,27 @@ int Vocab::load(const std::string& vocabPath, int max) {
   {
     std::ifstream in(vocabPath);
     std::string line;
-    while (std::getline(in, line))
+    while (std::getline(in, line)) {
+      ABORT_IF(line.empty(), "Vocabulary file {} must not contain empty lines", vocabPath);
+      if (line.back() == '\r') // handle Windows text files correctly
+        line.pop_back();
       vocab.insert({ line, vocab.size() });
+    }
     ABORT_IF(in.bad(), "Vocabulary file {} could not be read", vocabPath);
   }
 
   std::unordered_set<Word> seenSpecial;
 
+  // helper to insert a word into str2id_[] and id2str_[]
+  auto insertWord = [&](Word id, const std::string& str)
+  {
+    str2id_[str] = id;
+    if(id >= id2str_.size())
+      id2str_.resize(id + 1);
+    id2str_[id] = str;
+  };
+
+  id2str_.reserve(vocab.size());
   for(auto&& pair : vocab) {
     auto str = pair.first;
     auto id = pair.second;
@@ -115,10 +129,7 @@ int Vocab::load(const std::string& vocabPath, int max) {
     }
 
     if(!max || id < (Word)max) { // note: this requires ids to be sorted by frequency
-      str2id_[str] = id;
-      if(id >= id2str_.size())
-        id2str_.resize(id + 1);
-      id2str_[id] = str;
+      insertWord(id, str);
     }
   }
   ABORT_IF(id2str_.empty(), "Empty vocabulary: ", vocabPath);
@@ -129,8 +140,8 @@ int Vocab::load(const std::string& vocabPath, int max) {
     auto iter = str2id_.find(str);
     if (iter != str2id_.end()) // word already in vocab: must be at right index, else fail
       ABORT_IF(iter->second != id, "vocabulary entry '{}' is expected to have id {}", str, id);
-    str2id_[str] = id;
-    id2str_[id] = str;
+    else
+      insertWord(id, str);
   };
   requireWord(EOS_ID, EOS_STR);
   requireWord(UNK_ID, UNK_STR);
