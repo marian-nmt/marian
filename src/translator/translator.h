@@ -98,7 +98,7 @@ public:
           scorers = scorers_[id % devices.size()];
         }
 
-        auto search = New<Search>(options_, scorers);
+        auto search = New<Search>(options_, scorers, trgVocab_->GetEosId(), trgVocab_->GetUnkId());
 
         auto histories = search->search(graph, batch);
 
@@ -188,7 +188,7 @@ public:
             scorers = scorers_[id % devices_.size()];
           }
 
-          auto search = New<Search>(options_, scorers);
+          auto search = New<Search>(options_, scorers, trgVocab_->GetEosId(), trgVocab_->GetUnkId());
           auto histories = search->search(graph, batch);
 
           for(auto history : histories) {
