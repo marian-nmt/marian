@@ -16,5 +16,10 @@ namespace marian {
     int buildSparse(Tensor t, float* data, int* indices);
 
     void scatterAdd(Tensor t, float* data, int *indices, int size, int offset);
+
+    void scatterUpdate(Tensor t, float* data, int *indices, int size, int offset);
+    
+    void gather(Tensor t, float* data, int *indices, int size, int offset);
+     
   }
 }

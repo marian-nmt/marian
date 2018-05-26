@@ -8,7 +8,10 @@
 #include "tensors/tensor_operators.h"
 #include "tensors/device.h"
 
+#include <algorithm>
+
 #ifdef CUDA_FOUND
+#include "tensors/gpu/algorithm.h"
 #include "training/gradient_dropping/gpu/sparse_algorithm.h"
 #endif
 
@@ -60,6 +63,37 @@ public:
 
   int* indices() { return indices_; }
 
+  // copy to cpu vector
+  void get(std::vector<float>& g, std::vector<int>& i) {
+    int s = std::min((int) g.size(), size());
+    if(backend_->getDevice().type == DeviceType::cpu) {
+      std::copy(data(), data() + s, g.data());
+      std::copy(indices(), indices() + s, i.data());
+    }
+#ifdef CUDA_FOUND
+    else {
+      gpu::copy(backend_, data(), data() + s, g.data());
+      gpu::copy(backend_, indices(), indices() + s, i.data());
+    }
+#endif
+  }
+
+  // copy from cpu vector
+  void set(const std::vector<float>& g, const std::vector<int>& i) {
+    int s = std::min((int) g.size(), capacity());
+    size_ = s;
+    if(backend_->getDevice().type == DeviceType::cpu) {
+      std::copy(g.data(), g.data() + s, data());
+      std::copy(i.data(), i.data() + s, indices());
+    }
+#ifdef CUDA_FOUND
+    else {
+      gpu::copy(backend_, g.data(), g.data() + s, data());
+      gpu::copy(backend_, i.data(), i.data() + s, indices());
+    }
+#endif
+  }
+
   void copyFrom(float* ndata, int* nindices, int nsize) {
     size_ = nsize;
     if(backend_->getDevice().type == DeviceType::cpu) {
@@ -77,11 +111,13 @@ public:
     copyFrom(t->data(), t->indices(), t->size());
   }
 
-  void toDense(Tensor t, int offset) {
+  // Convert sparseTensor into a Tensor
+  void toDense(Tensor t, int offset = 0) {
     t->set(0);
     scatterAdd(t, offset);
   }
 
+  // Convert a tensor into a sparse tensor format
   void fromDense(Tensor t) {
     if(backend_->getDevice().type == DeviceType::cpu) {
       ABORT("Gradient Dropping for CPU is not yet supported");
@@ -94,6 +130,7 @@ public:
 #endif
   }
 
+  // Add t[indices[i]] += data[i]
   void scatterAdd(Tensor t, int offset = 0) {
     if(backend_->getDevice().type == DeviceType::cpu) {
       ABORT("Gradient Dropping for CPU is not yet supported");
@@ -101,6 +138,30 @@ public:
 #ifdef CUDA_FOUND
     else {
       gpu::scatterAdd(t, data(), indices(), size(), offset);
+    }
+#endif
+  }
+
+  // Add t[indices[i]] = data[i]
+  void scatterUpdate(Tensor t, int offset = 0) {
+    if(backend_->getDevice().type == DeviceType::cpu) {
+      ABORT("Gradient Dropping for CPU is not yet supported");
+    }
+#ifdef CUDA_FOUND
+    else {
+      gpu::scatterUpdate(t, data(), indices(), size(), offset);
+    }
+#endif
+  }
+
+  // data[i] = t[indices[i]]
+  void gather(Tensor t, int offset = 0) {
+    if(backend_->getDevice().type == DeviceType::cpu) {
+      ABORT("Gradient Dropping for CPU is not yet supported");
+    }
+#ifdef CUDA_FOUND
+    else {
+      gpu::gather(t, data(), indices(), size(), offset);
     }
 #endif
   }

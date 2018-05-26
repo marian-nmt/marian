@@ -45,6 +45,33 @@ namespace marian {
         denseData[sparseIndices[idx] + offset] += sparseData[idx];
     }
 
+    __global__ void gScatterUpdate(float* denseData,
+                            float* sparseData,
+                            int* sparseIndices,
+                            int denseSize,
+                            int sparseSize,
+                            int offset) {
+      int idx = blockDim.x * blockIdx.x + threadIdx.x;
+      if(idx >= sparseSize)
+        return;
+      if(sparseIndices[idx] >= -offset
+         && sparseIndices[idx] + offset < denseSize)
+        denseData[sparseIndices[idx] + offset] = sparseData[idx];
+    }
+
+    __global__ void gGather(float* denseData,
+                            float* sparseData,
+                            int* sparseIndices,
+                            int denseSize,
+                            int sparseSize,
+                            int offset) {
+      int idx = blockDim.x * blockIdx.x + threadIdx.x;
+      if(idx >= sparseSize)
+        return;
+      if(sparseIndices[idx] >= -offset
+         && sparseIndices[idx] + offset < denseSize)
+        sparseData[idx] = denseData[sparseIndices[idx] + offset];
+    }
 
     std::vector<int> lower_bounds(int* data, std::vector<int> values, int size, DeviceId device) {  
       cudaSetDevice(device.no);
@@ -92,6 +119,26 @@ namespace marian {
       int threads = 512;
       int blocks = 1 + size / threads;
       gScatterAdd<<<blocks, threads>>>(
+          t->data(), data, indices, t->size(), size, offset);
+      cudaStreamSynchronize(0);
+    }
+
+    void scatterUpdate(Tensor t, float* data, int *indices, int size, int offset) {
+      cudaSetDevice(t->getDevice().no);
+
+      int threads = 512;
+      int blocks = 1 + size / threads;
+      gScatterUpdate<<<blocks, threads>>>(
+          t->data(), data, indices, t->size(), size, offset);
+      cudaStreamSynchronize(0);
+    }
+
+    void gather(Tensor t, float* data, int *indices, int size, int offset) {
+      cudaSetDevice(t->getDevice().no);
+
+      int threads = 512;
+      int blocks = 1 + size / threads;
+      gGather<<<blocks, threads>>>(
           t->data(), data, indices, t->size(), size, offset);
       cudaStreamSynchronize(0);
     }
