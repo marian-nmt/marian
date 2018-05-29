@@ -145,8 +145,8 @@ int Vocab::load(const std::string& vocabPath, int max) {
     ABORT_IF(iter == str2id_.end(), "Vocabulary file {} is expected to contain an entry for {}", vocabPath, str);
     return iter->second;
   };
-  eosId_ = getRequiredWordId(DEFAULT_EOS_STR, NEMATUS_EOS_STR, 0);
-  unkId_ = getRequiredWordId(DEFAULT_UNK_STR, NEMATUS_UNK_STR, 1);
+  eosId_ = getRequiredWordId(DEFAULT_EOS_STR, NEMATUS_EOS_STR, DEFAULT_EOS_ID);
+  unkId_ = getRequiredWordId(DEFAULT_UNK_STR, NEMATUS_UNK_STR, DEFAULT_UNK_ID);
 
   // some special symbols for hard attention
   if (!seenSpecial.empty()) {
