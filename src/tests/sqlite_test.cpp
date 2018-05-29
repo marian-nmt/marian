@@ -30,7 +30,7 @@
         std::ifstream file1(argv[2]);
                 
         db.exec("begin;");
-        while(std::getline(file0, line0) && std::getline(file1, line1)) {
+        while(GetLine(file0, line0) && GetLine(file1, line1)) {
             ps.bind(1, (int)lines);
             ps.bind(2, line0);
             ps.bind(3, line1);

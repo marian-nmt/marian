@@ -14,8 +14,11 @@ typedef std::vector<Word> Words;
 const Word DEFAULT_EOS_ID = 0; // EOS and UNK are placed in these positions in Marian-generated vocabs
 const Word DEFAULT_UNK_ID = 1;
 
-const std::string EOS_STR = "</s>";
-const std::string UNK_STR = "<unk>";
+const std::string DEFAULT_EOS_STR = "</s>"; // names of EOS and UNK symbols
+const std::string DEFAULT_UNK_STR = "<unk>";
+
+const std::string NEMATUS_EOS_STR = "eos";  // alternatively accepted names in Yaml dictionaries for ids 0 and 1, resp.
+const std::string NEMATUS_UNK_STR = "UNK";
 
 const Word STP_ID = 2;
 const Word CPY_ID = 3;
