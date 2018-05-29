@@ -136,10 +136,13 @@ int Vocab::load(const std::string& vocabPath, int max) {
   // The name backCompatStr is alternatively accepted for Yaml vocabs if id equals backCompatId.
   auto getRequiredWordId = [&](const std::string& str, const std::string& backCompatStr, Word backCompatId)
   {
-    if (isJson) { // back compat with Nematus Yaml dicts, which use eos and UNK at ids 0 and 1, respectively
-      auto backCompatIter = str2id_.find(backCompatStr);
-      if (backCompatIter != str2id_.end() && backCompatIter->second == backCompatId)
+    if (isJson) { // back compat with Nematus Yaml dicts
+      // if word id 0 or 1 is either empty or has the Nematus-convention string, then use it
+      if (backCompatId < id2str_.size() &&
+          (id2str_[backCompatId].empty() || id2str_[backCompatId] == backCompatStr)) {
+        LOG(info, "[data] Using unused word id {} for {}", backCompatStr, backCompatId, str);
         return backCompatId;
+      }
     }
     auto iter = str2id_.find(str);
     ABORT_IF(iter == str2id_.end(), "Vocabulary file {} is expected to contain an entry for {}", vocabPath, str);
