@@ -80,7 +80,7 @@ void CorpusSQLite::fillSQLite() {
 
       std::string line;
       for(int i = 0; i < files_.size(); ++i) {
-        cont = cont && std::getline((std::istream&)*files_[i], line);
+        cont = cont && GetLine((std::istream&)*files_[i], line);
         if(cont)
           ps.bind(i + 2, line);
       }

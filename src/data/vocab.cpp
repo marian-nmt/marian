@@ -21,7 +21,7 @@ size_t Vocab::operator[](const std::string& word) const {
   if(it != str2id_.end())
     return it->second;
   else
-    return UNK_ID;
+    return unkId_;
 }
 
 Words Vocab::operator()(const std::vector<std::string>& lineTokens,
@@ -32,7 +32,7 @@ Words Vocab::operator()(const std::vector<std::string>& lineTokens,
                  words.begin(),
                  [&](const std::string& w) { return (*this)[w]; });
   if(addEOS)
-    words.push_back(EOS_ID);
+    words.push_back(eosId_);
   return words;
 }
 
@@ -46,7 +46,7 @@ std::vector<std::string> Vocab::operator()(const Words& sentence,
                                            bool ignoreEOS) const {
   std::vector<std::string> decoded;
   for(size_t i = 0; i < sentence.size(); ++i) {
-    if((sentence[i] != EOS_ID || !ignoreEOS)) {
+    if((sentence[i] != eosId_ || !ignoreEOS)) {
       decoded.push_back((*this)[sentence[i]]);
     }
   }
@@ -82,14 +82,14 @@ int Vocab::loadOrCreate(const std::string& vocabPath,
 }
 
 int Vocab::load(const std::string& vocabPath, int max) {
-  bool isYaml = regex::regex_search(vocabPath, regex::regex("\\.(yml|json)$"));
-  LOG(info, "[data] Loading vocabulary from {} file {}", isYaml ? "Yaml/JSON" : "text", vocabPath);
+  bool isJson = regex::regex_search(vocabPath, regex::regex("\\.(json|yml)$"));
+  LOG(info, "[data] Loading vocabulary from {} file {}", isJson ? "JSON/Yaml" : "text", vocabPath);
   ABORT_IF(!boost::filesystem::exists(vocabPath),
            "Vocabulary file {} does not exits",
            vocabPath);
 
   std::map<std::string,Word> vocab;
-  if (isYaml) // read from Yaml (or JSON) file
+  if (isJson) // read from JSON (or Yaml) file
   {
     YAML::Node vocabNode = YAML::Load(InputFileStream(vocabPath));
     for(auto&& pair : vocabNode)
@@ -99,10 +99,8 @@ int Vocab::load(const std::string& vocabPath, int max) {
   {
     std::ifstream in(vocabPath);
     std::string line;
-    while (std::getline(in, line)) {
+    while (GetLine(in, line)) {
       ABORT_IF(line.empty(), "Vocabulary file {} must not contain empty lines", vocabPath);
-      if (line.back() == '\r') // handle Windows text files correctly
-        line.pop_back();
       vocab.insert({ line, vocab.size() });
     }
     ABORT_IF(in.bad(), "Vocabulary file {} could not be read", vocabPath);
@@ -134,19 +132,39 @@ int Vocab::load(const std::string& vocabPath, int max) {
   }
   ABORT_IF(id2str_.empty(), "Empty vocabulary: ", vocabPath);
 
-  // </s> and <unk> are expected at specific positions
-  auto requireWord = [&](Word id, const std::string& str)
+  // look up ids for </s> and <unk>, which are required
+  // The name backCompatStr is alternatively accepted for Yaml vocabs if id equals backCompatId.
+  auto getRequiredWordId = [&](const std::string& str, const std::string& backCompatStr, Word backCompatId)
   {
+    if (isJson) { // back compat with Nematus Yaml dicts
+      // if word id 0 or 1 is either empty or has the Nematus-convention string, then use it
+      if (backCompatId < id2str_.size() &&
+          (id2str_[backCompatId].empty() || id2str_[backCompatId] == backCompatStr)) {
+        LOG(info, "[data] Using unused word id {} for {}", backCompatStr, backCompatId, str);
+        return backCompatId;
+      }
+    }
     auto iter = str2id_.find(str);
-    if (iter != str2id_.end()) // word already in vocab: must be at right index, else fail
-      ABORT_IF(iter->second != id, "vocabulary entry '{}' is expected to have id {}", str, id);
-    else
-      insertWord(id, str);
+    ABORT_IF(iter == str2id_.end(), "Vocabulary file {} is expected to contain an entry for {}", vocabPath, str);
+    return iter->second;
   };
-  requireWord(EOS_ID, EOS_STR);
-  requireWord(UNK_ID, UNK_STR);
-  for(auto id : seenSpecial)
-    requireWord(id, SYM2SPEC.at(id));
+  eosId_ = getRequiredWordId(DEFAULT_EOS_STR, NEMATUS_EOS_STR, DEFAULT_EOS_ID);
+  unkId_ = getRequiredWordId(DEFAULT_UNK_STR, NEMATUS_UNK_STR, DEFAULT_UNK_ID);
+
+  // some special symbols for hard attention
+  if (!seenSpecial.empty()) {
+    auto requireWord = [&](Word id, const std::string& str)
+    {
+      auto iter = str2id_.find(str);
+      if (iter != str2id_.end()) // word already in vocab: must be at right index, else fail
+        ABORT_IF(iter->second != id, "special vocabulary entry '{}' is expected to have id {}", str, id);
+      else
+        insertWord(id, str);
+    };
+    requireWord(DEFAULT_EOS_ID, DEFAULT_EOS_STR); // (the hard-att code has not yet been updated to accept EOS at any id)
+    for(auto id : seenSpecial)
+      requireWord(id, SYM2SPEC.at(id));
+  }
 
   return std::max((int)id2str_.size(), max);
 }
@@ -224,8 +242,8 @@ void Vocab::create(InputFileStream& trainStrm,
   std::sort(vocabVec.begin(), vocabVec.end(), VocabFreqOrderer(counter));
 
   YAML::Node vocabYaml;
-  vocabYaml.force_insert(EOS_STR, EOS_ID);
-  vocabYaml.force_insert(UNK_STR, UNK_ID);
+  vocabYaml.force_insert(DEFAULT_EOS_STR, DEFAULT_EOS_ID);
+  vocabYaml.force_insert(DEFAULT_UNK_STR, DEFAULT_UNK_ID);
 
   for(auto word : seenSpecial)
     vocabYaml.force_insert(SYM2SPEC.at(word), word);

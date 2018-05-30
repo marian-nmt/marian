@@ -51,7 +51,7 @@ public:
     int dimVoc = totalCosts->shape()[-1];
     for(int i = 0; i < attentionIdx.size(); i++) {
       if(batch->front()->data()[attentionIdx[i]] != 0) {
-        totalCosts->val()->set(i * dimVoc + EOS_ID,
+        totalCosts->val()->set(i * dimVoc + DEFAULT_EOS_ID, // this is checked at vocab-load time if the special tokens are present
                                std::numeric_limits<float>::lowest());
       } else {
         totalCosts->val()->set(i * dimVoc + STP_ID,

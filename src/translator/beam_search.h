@@ -15,17 +15,22 @@ private:
   Ptr<Config> options_;
   std::vector<Ptr<Scorer>> scorers_;
   size_t beamSize_;
+  Word trgEosId_ = -1;
+  Word trgUnkId_ = -1;
 
 public:
   template <class... Args>
   BeamSearch(Ptr<Config> options,
              const std::vector<Ptr<Scorer>>& scorers,
+             Word trgEosId, Word trgUnkId,
              Args... args)
       : options_(options),
         scorers_(scorers),
         beamSize_(options_->has("beam-size")
                       ? options_->get<size_t>("beam-size")
-                      : 3) {}
+                      : 3),
+        trgEosId_(trgEosId), trgUnkId_(trgUnkId)
+  {}
 
   Beams toHyps(const std::vector<uint> keys,
                const std::vector<float> costs,
@@ -90,7 +95,7 @@ public:
     for(auto beam : beams) {
       Beam newBeam;
       for(auto hyp : beam) {
-        if(hyp->GetWord() > 0) {
+        if(hyp->GetWord() != trgEosId_) {
           newBeam.push_back(hyp);
         }
       }
@@ -161,9 +166,9 @@ public:
               hypIndices.push_back(hyp->GetPrevStateIndex());
               embIndices.push_back(hyp->GetWord());
               beamCosts.push_back(hyp->GetCost());
-            } else {
+            } else { // dummy hypothesis
               hypIndices.push_back(0);
-              embIndices.push_back(0);
+              embIndices.push_back(0); // (unused)
               beamCosts.push_back(-9999);
             }
           }
@@ -200,7 +205,7 @@ public:
       //**********************************************************************
       // suppress specific symbols if not at right positions
       if(options_->has("allow-unk") && !options_->get<bool>("allow-unk"))
-        suppressUnk(totalCosts);
+        suppressWord(totalCosts, trgUnkId_);
       for(auto state : states)
         state->blacklist(totalCosts, batch);
 

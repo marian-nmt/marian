@@ -51,13 +51,13 @@ SentenceTuple CorpusNBest::next() {
     lastLines_.resize(files_.size() - 1);
     size_t last = files_.size() - 1;
 
-    if(std::getline((std::istream&)*files_[last], line)) {
+    if(GetLine((std::istream&)*files_[last], line)) {
       int curr_num = numFromNbest(line);
       std::string curr_text = lineFromNbest(line);
 
       for(size_t i = 0; i < last; ++i) {
         if(curr_num > lastNum_) {
-          ABORT_IF(!std::getline((std::istream&)*files_[i], lastLines_[i]),
+          ABORT_IF(!GetLine((std::istream&)*files_[i], lastLines_[i]),
                    "Too few lines in input {}",
                    i);
         }
