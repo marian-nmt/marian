@@ -438,20 +438,20 @@ public:
       auto W = graph->param(
             prefix + "_W" + std::to_string(i), {dimFirst, dimAan}, inits::glorot_uniform);
       auto b = graph->param(prefix + "_b" + std::to_string(i), {1, dimAan}, inits::zeros);
-    
+
       y = affine(y, W, b);
-    
+
       if(act == "relu")
         y = relu(y);
       else
         y = swish(y);
-    
+
       if(aanDropProb)
         y = dropout(y, aanDropProb);
-    
+
       dimLast = dimAan;
     }
-    
+
     if(dimLast != dimModel) {
       auto W = graph->param(
         prefix + "_W" + std::to_string(i), {dimLast, dimModel}, inits::glorot_uniform);
@@ -463,10 +463,10 @@ public:
     if(!noGate) {
       auto Wi = graph->param(prefix + "_Wi", {dimModel, dimModel}, inits::glorot_uniform);
       auto bi = graph->param(prefix + "_bi", {1, dimModel}, inits::zeros);
-    
+
       auto Wf = graph->param(prefix + "_Wf", {dimModel, dimModel}, inits::glorot_uniform);
       auto bf = graph->param(prefix + "_bf", {1, dimModel}, inits::zeros);
-    
+
       auto gi = logit(affine(x, Wi, bi));
       auto gf = logit(affine(y, Wf, bf));
       y = gi * x + gf * y;
@@ -527,64 +527,6 @@ public:
         = PostProcess(graph, prefix + "_ffn", opsPost, output, input, dropProb);
 
     return output;
-  }
-
-  Expr DecoderLayerRNN(rnn::State& decoderState,
-                       const rnn::State& prevDecoderState,
-                       const std::string& rnnType,
-                       Ptr<ExpressionGraph> graph,
-                       Ptr<Options> options,
-                       std::string prefix,
-                       Expr input,
-                       Expr decoderMask,
-                       int startPos,
-                       bool transpose,
-                       bool inference = false) {
-
-    using namespace keywords;
-
-    int dimModel = input->shape()[-1];
-
-    bool ln = options->get<bool>("layer-normalization");
-    float dropRnn = inference ? 0 : options->get<float>("dropout-rnn");
-
-    auto rnn = rnn::rnn(graph)
-          ("prefix", prefix)
-          ("type", rnnType)
-          ("dimInput", dimModel)
-          ("dimState", dimModel)
-          ("dropout", dropRnn)
-          ("layer-normalization", ln)
-          .push_back(rnn::cell(graph))
-          .construct();
-
-    input = atleast_4d(input);
-
-    auto output = input;
-    auto tPrevDecoderState = prevDecoderState;
-    if(transpose) {
-      output = TransposeTimeBatch(output);
-      if(tPrevDecoderState.output)
-        tPrevDecoderState.output = TransposeTimeBatch(atleast_4d(tPrevDecoderState.output));
-      if(tPrevDecoderState.cell)
-        tPrevDecoderState.cell = TransposeTimeBatch(atleast_4d(tPrevDecoderState.cell));
-    }
-
-    if(tPrevDecoderState.output)
-      output = rnn->transduce(output, {tPrevDecoderState});
-    else
-      output = rnn->transduce(output);
-
-    decoderState = rnn->lastCellStates()[0];
-    if(transpose) {
-      output = TransposeTimeBatch(output);
-      if(decoderState.output)
-        decoderState.output = TransposeTimeBatch(atleast_4d(decoderState.output));
-      if(decoderState.cell)
-        decoderState.cell = TransposeTimeBatch(atleast_4d(decoderState.cell));
-    }
-
-    return LayerOther(graph, options, prefix, input, output, inference);
   }
 };
 
@@ -833,8 +775,7 @@ public:
                                           selfMask,
                                           startPos,
                                           inference_);
-      }
-      else if(layerType == "average-attention") {
+      } else if(layerType == "average-attention") {
         query = DecoderLayerAAN(decoderState,
                                 prevDecoderState,
                                 graph,
@@ -844,21 +785,7 @@ public:
                                 selfMask,
                                 startPos,
                                 inference_);
-      }
-      else if(layerType == "gru") {
-        query = DecoderLayerRNN(decoderState,
-                                prevDecoderState,
-                                "gru",
-                                graph,
-                                options_,
-                                prefix_ + "_l" + std::to_string(i) + "_gru",
-                                query,
-                                selfMask,
-                                startPos,
-                                true,
-                                inference_);
-      }
-      else {
+      } else {
         ABORT("Unknown auto-regressive layer type in transformer decoder {}", layerType);
       }
 
