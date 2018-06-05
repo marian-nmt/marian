@@ -1095,7 +1095,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
 
   if(get<bool>("interpolate-env-vars")) {
-    ProcessPaths(config_,
+    processPaths(config_,
       [&](const std::string& nodePath) -> std::string {
         // replace environment-variable expressions of the form ${VARNAME} in pathnames
         auto path = nodePath;
