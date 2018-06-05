@@ -102,7 +102,6 @@ void SSE_Quantize16(const float * input, __m128i * output, float quant_mult, int
 // A is typically an activation minibatch matrix.
 void SSE_MatrixMult16(const __m128i * qA, const __m128i * qB, float * fC, float unquant_mult, int num_A_rows, int num_B_rows, int width)
 {
-    assert(num_A_rows % 4 == 0);
     assert(width % 8 == 0);
 
     int sse_width = width / 8;

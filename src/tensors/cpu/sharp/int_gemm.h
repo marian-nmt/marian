@@ -75,7 +75,7 @@ static void AddBias(marian::Tensor C, const marian::Tensor Bias) {
             _mm512_storeu_ps(y + j * n + i, yi);
         }
 #else
-        for (int i = 0; i < n4; i += 4) {
+        for (; i < n4; i += 4) {
             __m128 ai = _mm_loadu_ps(x + j * n + i);
             __m128 bi = _mm_loadu_ps(bias + i);
             __m128 yi = _mm_add_ps(ai, bi);

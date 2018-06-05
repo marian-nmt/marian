@@ -271,6 +271,7 @@ public:
            options_->has("original-type")
                && opt<std::string>("original-type") == "nematus")  //
           );
+
       start = mlp->apply(meanContexts);
     } else {
       int dimBatch = batch->size();
@@ -363,6 +364,7 @@ public:
       logits = output_->apply(embeddings, decoderContext, alignedContext);
     else
       logits = output_->apply(embeddings, decoderContext);
+
 
     // return unormalized(!) probabilities
     auto nextState = New<DecoderState>(decoderStates, logits, state->getEncoderStates(), state->getBatch());
