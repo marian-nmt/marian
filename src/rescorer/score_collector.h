@@ -105,7 +105,7 @@ public:
                  id,
                  lastRead_);
         std::string line;
-        while(lastRead_ < id && std::getline((std::istream&)*file_, line)) {
+        while(lastRead_ < id && GetLine((std::istream&)*file_, line)) {
           lastRead_++;
           iter = buffer_.emplace(lastRead_, line).first;
         }

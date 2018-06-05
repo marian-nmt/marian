@@ -35,6 +35,9 @@ public:
   void create(InputFileStream& trainStrm,
               OutputFileStream& vocabStrm,
               size_t maxSize = 0);
+    
+  Word GetEosId() const { return eosId_; }
+  Word GetUnkId() const { return unkId_; }
 
 private:
   typedef std::map<std::string, size_t> Str2Id;
@@ -42,6 +45,9 @@ private:
 
   typedef std::vector<std::string> Id2Str;
   Id2Str id2str_;
+
+  Word eosId_ = -1;
+  Word unkId_ = -1;
 
   class VocabFreqOrderer;
 };

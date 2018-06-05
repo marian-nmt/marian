@@ -61,6 +61,7 @@ uint16_t guess_terminal_width(uint16_t max_width) {
   return max_width ? std::min(cols, max_width) : cols;
 }
 
+// helper to convert a Yaml node recursively into a string
 void OutputYaml(const YAML::Node node, YAML::Emitter& out) {
   std::set<std::string> sorter;
   switch(node.Type()) {
@@ -100,7 +101,7 @@ const std::set<std::string> PATHS = {"model",
                                      "log"};
 
 // helper to implement interpolate-env-vars and relative-paths options
-static void ProcessPaths(YAML::Node& node,
+static void processPaths(YAML::Node& node,
                          const std::function<std::string(std::string)>& TransformPath,
                          bool isPath = false) {
   if(isPath) {
@@ -113,23 +114,52 @@ static void ProcessPaths(YAML::Node& node,
 
     if(node.Type() == YAML::NodeType::Sequence) {
       for(auto&& sub : node) {
-        ProcessPaths(sub, TransformPath, true);
+        processPaths(sub, TransformPath, true);
       }
     }
   } else {
     switch(node.Type()) {
       case YAML::NodeType::Sequence:
         for(auto&& sub : node) {
-          ProcessPaths(sub, TransformPath, false);
+          processPaths(sub, TransformPath, false);
         }
         break;
       case YAML::NodeType::Map:
         for(auto&& sub : node) {
           std::string key = sub.first.as<std::string>();
-          ProcessPaths(sub.second, TransformPath, PATHS.count(key) > 0);
+          processPaths(sub.second, TransformPath, PATHS.count(key) > 0);
         }
         break;
     }
+  }
+}
+
+// helper to replace environment-variable expressions of the form ${VARNAME} in a string
+static std::string interpolateEnvVars(std::string str) {
+#if 1 // temporary workaround for MS-internal PhillyOnAzure cluster: warm storage presently has the form /hdfs/VC instead of /{gfs,hdfs}/CLUSTER/VC
+  if (getenv("PHILLY_JOB_ID")) {
+    const char* cluster = getenv("PHILLY_CLUSTER");
+    const char* vc      = getenv("PHILLY_VC");
+    if (cluster && vc) { // this environment variable exists when running on the cluster
+      static const std::string s_gfsPrefix  = std::string("/gfs/")  + cluster + "/" + vc + "/";
+      static const std::string s_hdfsPrefix = std::string("/hdfs/") + cluster + "/" + vc + "/";
+      if (str.find(s_gfsPrefix) == 0)
+        str = std::string("/hdfs/") + vc + "/" + str.substr(s_gfsPrefix.size());
+      else if (str.find(s_hdfsPrefix) == 0)
+        str = std::string("/hdfs/") + vc + "/" + str.substr(s_hdfsPrefix.size());
+    }
+  }
+#endif
+  for(;;) {
+    const auto pos = str.find("${");
+    if (pos == std::string::npos)
+        return str;
+    const auto epos = str.find("}", pos + 2);
+    ABORT_IF(epos == std::string::npos, "interpolate-env-vars option: ${{ without matching }} in '{}'", str.c_str());
+    const auto var = str.substr(pos + 2, epos - (pos + 2)); // isolate the variable name
+    const auto val = getenv(var.c_str());
+    ABORT_IF(!val, "interpolate-env-vars option: environment variable '{}' not defined in '{}'", var.c_str(), str.c_str());
+    str = str.substr(0,pos) + val + str.substr(epos + 1); // replace it; then try again for further replacements
   }
 }
 
@@ -811,23 +841,30 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     exit(0);
   }
 
+  const auto& interpolateEnvVarsIfRequested = [&](std::string str) -> std::string {
+    if(vm_["interpolate-env-vars"].as<bool>())
+      str = interpolateEnvVars(str);
+    return str;
+  };
+
   bool loadConfig = vm_.count("config");
   bool reloadConfig
       = (mode_ == ConfigMode::training)
-        && boost::filesystem::exists(vm_["model"].as<std::string>() + ".yml")
+        && boost::filesystem::exists(interpolateEnvVarsIfRequested(vm_["model"].as<std::string>() + ".yml"))
         && !vm_["no-reload"].as<bool>();
   std::vector<std::string> configPaths;
 
   if(loadConfig) {
     configPaths = vm_["config"].as<std::vector<std::string>>();
     config_ = YAML::Node();
-    for (const auto& configPath : configPaths)
+    for (auto& configPath : configPaths)
     {
+      configPath = interpolateEnvVarsIfRequested(configPath); // (note: this updates the configPaths array)
       for(const auto& it : YAML::Load(InputFileStream(configPath))) // later file overrides
         config_[it.first.as<std::string>()] = it.second;
     }
   } else if(reloadConfig) {
-    auto configPath = vm_["model"].as<std::string>() + ".yml";
+    auto configPath = interpolateEnvVarsIfRequested(vm_["model"].as<std::string>() + ".yml");
     config_ = YAML::Load(InputFileStream(configPath));
     configPaths = { configPath };
   }
@@ -1084,7 +1121,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     for (const auto& configPath : configPaths)
       ABORT_IF(boost::filesystem::path{configPaths.front()}.parent_path() != configDir,
                "relative-paths option requires all config files to be in the same directory");
-    ProcessPaths(config_,
+    processPaths(config_,
       [&](const std::string& nodePath) -> std::string {
         // replace relative path w.r.t. configDir
         using namespace boost::filesystem;
