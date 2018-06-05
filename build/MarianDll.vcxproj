@@ -5,28 +5,16 @@
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Release_NoOpt|x64">
-      <Configuration>Release_NoOpt</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug_CpuOnly|x64">
-      <Configuration>Debug_CpuOnly</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release_CpuOnly|x64">
-      <Configuration>Release_CpuOnly</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{E2F320FE-0C01-4C80-810C-3A92205A29DB}</ProjectGuid>
+    <ProjectGuid>{E2F320FE-0C01-4C80-810C-3A92205A29DC}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>Dynamite</RootNamespace>
-    <ProjectName>DynamiteTest</ProjectName>
+    <RootNamespace>Marian</RootNamespace>
+    <ProjectName>MarianDll</ProjectName>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -43,15 +31,6 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release_NoOpt|x64'">
-    <PlatformToolset>v140</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release_CpuOnly|x64'">
-    <PlatformToolset>v140</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug_CpuOnly|x64'">
-    <PlatformToolset>v140</PlatformToolset>
-  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings" />
   <ImportGroup Label="PropertySheets">
@@ -60,68 +39,45 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IntDir>$(Platform)\$(Configuration)\DynamiteTest\</IntDir>
-    <IncludePath>marian-dev\src;%BOOST_INCLUDE_PATH%;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>%BOOST_LIB_PATH%;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
+    <IntDir>$(Platform)\$(Configuration)\MarianDll\</IntDir>
+    <IncludePath>..\src;..\src\3rd_party;%BOOST_INCLUDE_PATH%;%ZLIB_PATH%\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>%BOOST_LIB_PATH%;%ZLIB_PATH%\lib;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IntDir>$(Platform)\$(Configuration)\DynamiteTest\</IntDir>
-    <IncludePath>marian-dev\src;%BOOST_INCLUDE_PATH%;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>%BOOST_LIB_PATH%;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_NoOpt|x64'">
-    <IntDir>$(Platform)\$(Configuration)\DynamiteTest\</IntDir>
-    <IncludePath>marian-dev\src;%BOOST_INCLUDE_PATH%;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>%BOOST_LIB_PATH%;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_CpuOnly|x64'">
-    <IntDir>$(Platform)\$(Configuration)\DynamiteTest\</IntDir>
-    <IncludePath>marian-dev\src;%BOOST_INCLUDE_PATH%;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>%BOOST_LIB_PATH%;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_CpuOnly|x64'">
-    <IntDir>$(Platform)\$(Configuration)\DynamiteTest\</IntDir>
-    <IncludePath>marian-dev\src;%BOOST_INCLUDE_PATH%;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>%BOOST_LIB_PATH%;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
+    <IntDir>$(Platform)\$(Configuration)\MarianDll\</IntDir>
+    <IncludePath>..\src;..\src\3rd_party;%BOOST_INCLUDE_PATH%;%ZLIB_PATH%\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>%BOOST_LIB_PATH%;%ZLIB_PATH%\lib;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Source\Common\Include; $(SolutionDir)ComputationNetworkLib; $(SolutionDir)Source\Readers\ReaderLib; $(SolutionDir)Source\Math; $(SolutionDir)Tests\EndToEndTests\CNTKv2Library\Common;$(SolutionDir)Source\CNTKv2LibraryDll\API;$(SolutionDir)Source\CNTKv2LibraryDll\</AdditionalIncludeDirectories>
-      <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Debug_CpuOnly|x64'">MultiThreadedDebugDLL</RuntimeLibrary>
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Release_NoOpt|x64'">Disabled</Optimization>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release_NoOpt|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)$(Platform)\$(Configuration);$(SolutionDir)$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Release_NoOpt|x64'">Cntk.Core-2.2.lib; Cntk.Common-2.2.lib; kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <SubSystem Condition="'$(Configuration)|$(Platform)'=='Release_NoOpt|x64'">Console</SubSystem>
-      <SubSystem Condition="'$(Configuration)|$(Platform)'=='Release_CpuOnly|x64'">Console</SubSystem>
-      <SubSystem Condition="'$(Configuration)|$(Platform)'=='Debug_CpuOnly|x64'">Console</SubSystem>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Debug_CpuOnly|x64'">Cntk.Core-2.2d.lib; Cntk.Common-2.2d.lib; kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalDependencies Condition="'$(Configuration)|$(Platform)'=='Release_CpuOnly|x64'">Cntk.Core-2.2.lib; Cntk.Common-2.2.lib; kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <StackReserveSize Condition="'$(Configuration)|$(Platform)'=='Release_NoOpt|x64'">100000000</StackReserveSize>
-      <StackReserveSize Condition="'$(Configuration)|$(Platform)'=='Release_CpuOnly|x64'">100000000</StackReserveSize>
-      <StackReserveSize Condition="'$(Configuration)|$(Platform)'=='Debug_CpuOnly|x64'">100000000</StackReserveSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>Level1</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <TreatWarningAsError>true</TreatWarningAsError>
+      <TreatWarningAsError>false</TreatWarningAsError>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MultiThreadedDebugDLL</RuntimeLibrary>
+      <DisableSpecificWarnings>4996;4244</DisableSpecificWarnings>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Cntk.Core-2.2d.lib; Cntk.Common-2.2d.lib; kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib; user32.lib; gdi32.lib; winspool.lib; comdlg32.lib; advapi32.lib; shell32.lib; ole32.lib; oleaut32.lib; uuid.lib; odbc32.lib; odbccp32.lib; %(AdditionalDependencies)</AdditionalDependencies>
       <StackReserveSize>100000000</StackReserveSize>
     </Link>
   </ItemDefinitionGroup>
@@ -148,42 +104,332 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Cntk.Core-2.2.lib; Cntk.Common-2.2.lib; kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib; user32.lib; gdi32.lib; winspool.lib; comdlg32.lib; advapi32.lib; shell32.lib; ole32.lib; oleaut32.lib; uuid.lib; odbc32.lib; odbccp32.lib; %(AdditionalDependencies)</AdditionalDependencies>
       <StackReserveSize>100000000</StackReserveSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Main.cpp" />
-    <ClCompile Include="MT.cpp" />
-    <ClCompile Include="Tests.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="CNTKLibraryHelpers.h" />
-    <ClInclude Include="Layers.h" />
-    <ClInclude Include="marian-dev\src\common\shape.h" />
-    <ClInclude Include="marian-dev\src\layers\constructors.h" />
-    <ClInclude Include="marian-dev\src\layers\convolution.h" />
-    <ClInclude Include="marian-dev\src\layers\factory.h" />
-    <ClInclude Include="marian-dev\src\layers\generic.h" />
-    <ClInclude Include="marian-dev\src\models\amun.h" />
-    <ClInclude Include="marian-dev\src\models\char_s2s.h" />
-    <ClInclude Include="marian-dev\src\models\constructors.h" />
-    <ClInclude Include="marian-dev\src\models\encdec.h" />
-    <ClInclude Include="marian-dev\src\models\hardatt.h" />
-    <ClInclude Include="marian-dev\src\models\model_base.h" />
-    <ClInclude Include="marian-dev\src\models\model_factory.h" />
-    <ClInclude Include="marian-dev\src\models\nematus.h" />
-    <ClInclude Include="marian-dev\src\models\s2s.h" />
-    <ClInclude Include="marian-dev\src\models\states.h" />
-    <ClInclude Include="marian-dev\src\models\transformer.h" />
-    <ClInclude Include="marian-dev\src\rnn\cells.h" />
-    <ClInclude Include="marian-dev\src\rnn\constructors.h" />
-    <ClInclude Include="marian-dev\src\rnn\rnn.h" />
-    <ClInclude Include="marian-dev\src\rnn\types.h" />
-    <ClInclude Include="marian.h" />
-    <ClInclude Include="Models.h" />
-    <ClInclude Include="PlainTextDeseralizer.h" />
-    <ClInclude Include="spdlog\spdlog.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\yaml-node.cpp" />
+    <ClCompile Include="..\src\common\utils.cpp" />
+    <ClCompile Include="..\src\common\logging.cpp" />
+    <ClCompile Include="..\src\common\config.cpp" />
+    <ClCompile Include="..\src\common\config_parser.cpp" />
+    <ClCompile Include="..\src\data\vocab.cpp" />
+    <ClCompile Include="..\src\data\corpus_base.cpp" />
+    <ClCompile Include="..\src\data\corpus.cpp" />
+    <ClCompile Include="..\src\data\corpus_nbest.cpp" />
+    <ClCompile Include="..\src\data\text_input.cpp" />
+    <ClCompile Include="..\src\3rd_party\cnpy\cnpy.cpp" />
+    <ClCompile Include="..\src\3rd_party\exception.cpp" />
+    <ClCompile Include="..\src\3rd_party\svd\svd.cpp" />
+    <ClCompile Include="..\src\tensors\backend.cpp" />
+    <ClCompile Include="..\src\tensors\cpu\device.cpp" />
+    <ClCompile Include="..\src\tensors\cpu\dropout.cpp" />
+    <ClCompile Include="..\src\tensors\cpu\prod.cpp" />
+    <ClCompile Include="..\src\tensors\cpu\tensor_operators.cpp" />
+    <ClCompile Include="..\src\graph\expression_graph.cpp" />
+    <ClCompile Include="..\src\graph\expression_operators.cpp" />
+    <ClCompile Include="..\src\graph\node.cpp" />
+    <ClCompile Include="..\src\graph\node_operators.cpp" />
+    <ClCompile Include="..\src\graph\node_initializers.cpp" />
+    <ClCompile Include="..\src\layers\convolution.cpp" />
+    <ClCompile Include="..\src\rnn\cells.cpp" />
+    <ClCompile Include="..\src\rnn\attention.cpp" />
+    <ClCompile Include="..\src\optimizers\clippers.cpp" />
+    <ClCompile Include="..\src\optimizers\optimizers.cpp" />
+    <ClCompile Include="..\src\models\model_factory.cpp" />
+    <ClCompile Include="..\src\models\encoder_decoder.cpp" />
+    <ClCompile Include="..\src\translator\history.cpp" />
+    <ClCompile Include="..\src\translator\output_collector.cpp" />
+    <ClCompile Include="..\src\translator\nth_element.cpp" />
+    <ClCompile Include="..\src\translator\helpers.cpp" />
+    <ClCompile Include="..\src\translator\scorers.cpp" />
+    <ClCompile Include="..\src\training\graph_group_async.cpp" />
+    <ClCompile Include="..\src\training\graph_group_async_drop.cpp" />
+    <ClCompile Include="..\src\training\graph_group_sync.cpp" />
+    <ClCompile Include="..\src\training\graph_group_singleton.cpp" />
+    <ClCompile Include="..\src\training\graph_group_multinode.cpp" />
+    <ClCompile Include="..\src\training\validator.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\binary.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\convert.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\directives.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emit.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitfromevents.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitter.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitterstate.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitterutils.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\exceptions.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\exp.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\memory.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node_data.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\nodebuilder.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\nodeevents.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\null.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\ostream_wrapper.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\parse.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\parser.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\regex_yaml.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\scanner.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\scanscalar.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\scantag.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\scantoken.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\simplekey.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\singledocparser.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\stream.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\tag.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilder.cpp" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilderadapter.cpp" />
+    <ClCompile Include="..\src\marian.h" />
+    <ClCompile Include="..\src\3rd_party\catch.hpp" />
+    <ClCompile Include="..\src\3rd_party\exception.h" />
+    <ClCompile Include="..\src\3rd_party\reduce_all.h" />
+    <ClCompile Include="..\src\3rd_party\threadpool.h" />
+    <ClCompile Include="..\src\3rd_party\cnpy\cnpy.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\async_logger.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\common.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\formatter.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\logger.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\spdlog.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\tweakme.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\bench\utils.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\bench\latency\utils.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\details\async_logger_impl.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\details\async_log_helper.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\details\file_helper.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\details\format.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\details\line_logger_fwd.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\details\line_logger_impl.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\details\logger_impl.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\details\log_msg.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\details\mpmc_bounded_q.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\details\null_mutex.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\details\os.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\details\pattern_formatter_impl.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\details\registry.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\details\spdlog_impl.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\example\utils.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\async_logger.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\common.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\formatter.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\logger.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\spdlog.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\tweakme.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\async_logger_impl.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\async_log_helper.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\file_helper.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\logger_impl.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\log_msg.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\mpmc_bounded_q.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\null_mutex.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\os.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\pattern_formatter_impl.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\registry.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\spdlog_impl.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\fmt\fmt.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\fmt\ostr.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\fmt\bundled\format.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\fmt\bundled\ostream.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\fmt\bundled\posix.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\fmt\bundled\time.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\android_sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\ansicolor_sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\base_sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\dist_sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\file_sinks.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\msvc_sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\null_sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\ostream_sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\stdout_sinks.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\syslog_sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\wincolor_sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\android_sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\ansicolor_sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\base_sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\dist_sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\file_sinks.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\msvc_sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\null_sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\ostream_sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\stdout_sinks.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\syslog_sink.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\tests\catch.hpp" />
+    <ClCompile Include="..\src\3rd_party\spdlog\tests\includes.h" />
+    <ClCompile Include="..\src\3rd_party\spdlog\tests\utils.h" />
+    <ClCompile Include="..\src\3rd_party\svd\defs_and_types.h" />
+    <ClCompile Include="..\src\3rd_party\svd\svd.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\anchor.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\binary.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\collectionstack.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\directives.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\dll.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitfromevents.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitter.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitterdef.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emittermanip.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitterstate.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitterstyle.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitterutils.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\eventhandler.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\exceptions.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\exp.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\indentation.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\mark.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\nodebuilder.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\nodeevents.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\noncopyable.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\null.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\ostream_wrapper.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\parser.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\ptr_vector.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\regeximpl.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\regex_yaml.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\scanner.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\scanscalar.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\scantag.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\setting.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\singledocparser.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\stlemitter.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\stream.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\streamcharsource.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\stringsource.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\tag.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\token.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\traits.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\yaml.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\anchordict.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilder.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilderadapter.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\convert.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\emit.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\impl.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\iterator.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\node.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\parse.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\ptr.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\type.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\bool_type.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\impl.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\iterator.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\iterator_fwd.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\memory.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\node.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\node_data.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\node_iterator.h" />
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\node_ref.h" />
+    <ClCompile Include="..\src\common\compile_time_crc32.h" />
+    <ClCompile Include="..\src\common\config.h" />
+    <ClCompile Include="..\src\common\config_parser.h" />
+    <ClCompile Include="..\src\common\definitions.h" />
+    <ClCompile Include="..\src\common\file_stream.h" />
+    <ClCompile Include="..\src\common\keywords.h" />
+    <ClCompile Include="..\src\common\logging.h" />
+    <ClCompile Include="..\src\common\options.h" />
+    <ClCompile Include="..\src\common\regex.h" />
+    <ClCompile Include="..\src\common\shape.h" />
+    <ClCompile Include="..\src\common\utils.h" />
+    <ClCompile Include="..\src\common\version.h" />
+    <ClCompile Include="..\src\data\alignment.h" />
+    <ClCompile Include="..\src\data\batch.h" />
+    <ClCompile Include="..\src\data\batch_generator.h" />
+    <ClCompile Include="..\src\data\batch_stats.h" />
+    <ClCompile Include="..\src\data\corpus.h" />
+    <ClCompile Include="..\src\data\corpus_base.h" />
+    <ClCompile Include="..\src\data\corpus_nbest.h" />
+    <ClCompile Include="..\src\data\dataset.h" />
+    <ClCompile Include="..\src\data\npz_converter.h" />
+    <ClCompile Include="..\src\data\rng_engine.h" />
+    <ClCompile Include="..\src\data\shortlist.h" />
+    <ClCompile Include="..\src\data\text_input.h" />
+    <ClCompile Include="..\src\data\types.h" />
+    <ClCompile Include="..\src\data\vocab.h" />
+    <ClCompile Include="..\src\functional\array.h" />
+    <ClCompile Include="..\src\functional\defs.h" />
+    <ClCompile Include="..\src\functional\floats.h" />
+    <ClCompile Include="..\src\functional\functional.h" />
+    <ClCompile Include="..\src\functional\operands.h" />
+    <ClCompile Include="..\src\functional\predicates.h" />
+    <ClCompile Include="..\src\functional\shape.h" />
+    <ClCompile Include="..\src\functional\tensor.h" />
+    <ClCompile Include="..\src\functional\tmp.h" />
+    <ClCompile Include="..\src\graph\auto_tuner.h" />
+    <ClCompile Include="..\src\graph\chainable.h" />
+    <ClCompile Include="..\src\graph\expression_graph.h" />
+    <ClCompile Include="..\src\graph\expression_operators.h" />
+    <ClCompile Include="..\src\graph\node.h" />
+    <ClCompile Include="..\src\graph\node_initializers.h" />
+    <ClCompile Include="..\src\graph\node_operators.h" />
+    <ClCompile Include="..\src\graph\node_operators_binary.h" />
+    <ClCompile Include="..\src\graph\node_operators_unary.h" />
+    <ClCompile Include="..\src\graph\parameters.h" />
+    <ClCompile Include="..\src\layers\constructors.h" />
+    <ClCompile Include="..\src\layers\convolution.h" />
+    <ClCompile Include="..\src\layers\factory.h" />
+    <ClCompile Include="..\src\layers\generic.h" />
+    <ClCompile Include="..\src\layers\guided_alignment.h" />
+    <ClCompile Include="..\src\layers\word2vec_reader.h" />
+    <ClCompile Include="..\src\models\amun.h" />
+    <ClCompile Include="..\src\models\char_s2s.h" />
+    <ClCompile Include="..\src\models\costs.h" />
+    <ClCompile Include="..\src\models\decoder.h" />
+    <ClCompile Include="..\src\models\encoder.h" />
+    <ClCompile Include="..\src\models\encoder_decoder.h" />
+    <ClCompile Include="..\src\models\hardatt.h" />
+    <ClCompile Include="..\src\models\model_base.h" />
+    <ClCompile Include="..\src\models\model_factory.h" />
+    <ClCompile Include="..\src\models\model_task.h" />
+    <ClCompile Include="..\src\models\nematus.h" />
+    <ClCompile Include="..\src\models\s2s.h" />
+    <ClCompile Include="..\src\models\states.h" />
+    <ClCompile Include="..\src\models\transformer.h" />
+    <ClCompile Include="..\src\models\experimental\lex_probs.h" />
+    <ClCompile Include="..\src\optimizers\clippers.h" />
+    <ClCompile Include="..\src\optimizers\optimizers.h" />
+    <ClCompile Include="..\src\rescorer\rescorer.h" />
+    <ClCompile Include="..\src\rescorer\score_collector.h" />
+    <ClCompile Include="..\src\rnn\attention.h" />
+    <ClCompile Include="..\src\rnn\attention_constructors.h" />
+    <ClCompile Include="..\src\rnn\cells.h" />
+    <ClCompile Include="..\src\rnn\constructors.h" />
+    <ClCompile Include="..\src\rnn\rnn.h" />
+    <ClCompile Include="..\src\rnn\types.h" />
+    <ClCompile Include="..\src\tensors\allocator.h" />
+    <ClCompile Include="..\src\tensors\backend.h" />
+    <ClCompile Include="..\src\tensors\device.h" />
+    <ClCompile Include="..\src\tensors\dispatch.h" />
+    <ClCompile Include="..\src\tensors\memory_piece.h" />
+    <ClCompile Include="..\src\tensors\tensor.h" />
+    <ClCompile Include="..\src\tensors\tensor_allocator.h" />
+    <ClCompile Include="..\src\tensors\tensor_operators.h" />
+    <ClCompile Include="..\src\tensors\types.h" />
+    <ClCompile Include="..\src\tensors\cpu\add.h" />
+    <ClCompile Include="..\src\tensors\cpu\backend.h" />
+    <ClCompile Include="..\src\tensors\cpu\element.h" />
+    <ClCompile Include="..\src\tensors\cpu\int16.h" />
+    <ClCompile Include="..\src\tensors\cpu\sharp\sse_gemm.h" />
+    <ClCompile Include="..\src\training\graph_group.h" />
+    <ClCompile Include="..\src\training\graph_group_async.h" />
+    <ClCompile Include="..\src\training\graph_group_async_drop.h" />
+    <ClCompile Include="..\src\training\graph_group_multinode.h" />
+    <ClCompile Include="..\src\training\graph_group_singleton.h" />
+    <ClCompile Include="..\src\training\graph_group_sync.h" />
+    <ClCompile Include="..\src\training\scheduler.h" />
+    <ClCompile Include="..\src\training\training.h" />
+    <ClCompile Include="..\src\training\training_state.h" />
+    <ClCompile Include="..\src\training\validator.h" />
+    <ClCompile Include="..\src\training\gradient_dropping\dropper.h" />
+    <ClCompile Include="..\src\training\gradient_dropping\sparse_tensor.h" />
+    <ClCompile Include="..\src\training\gradient_dropping\gpu\sparse_algorithm.h" />
+    <ClCompile Include="..\src\translator\beam_search.h" />
+    <ClCompile Include="..\src\translator\helpers.h" />
+    <ClCompile Include="..\src\translator\history.h" />
+    <ClCompile Include="..\src\translator\hypothesis.h" />
+    <ClCompile Include="..\src\translator\nth_element.h" />
+    <ClCompile Include="..\src\translator\output_collector.h" />
+    <ClCompile Include="..\src\translator\printer.h" />
+    <ClCompile Include="..\src\translator\scorers.h" />
+    <ClCompile Include="..\src\translator\translator.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

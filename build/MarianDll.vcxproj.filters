@@ -1,125 +1,1079 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
-    </Filter>
-    <Filter Include="Marian On CNTK">
-      <UniqueIdentifier>{f82cd974-3e6a-48c6-a673-98542c7fe613}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Marian On CNTK\API">
-      <UniqueIdentifier>{d5ebe776-85b0-4af5-b9e8-98b569ca1bc3}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Marian On CNTK\Backend">
-      <UniqueIdentifier>{8a33c25e-0d4a-4e41-a555-a253cc8787bc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Marian On CNTK\Frontend">
-      <UniqueIdentifier>{1fb05372-c130-4816-9107-6bfcc6f8dba8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Marian On CNTK\Frontend\models">
-      <UniqueIdentifier>{bd7eabd5-e130-4397-9a8a-1ce873c685c0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Marian On CNTK\Frontend\rnn">
-      <UniqueIdentifier>{a007eba6-68ed-4918-bc49-8f7c792e143e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Marian On CNTK\Frontend\layers">
-      <UniqueIdentifier>{87d91449-258b-48c7-a962-60ab3a8ac510}</UniqueIdentifier>
-    </Filter>
+    <ClCompile Include="..\src\common\utils.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\logging.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\config.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\config_parser.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\vocab.cpp">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\corpus_base.cpp">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\corpus.cpp">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\corpus_nbest.cpp">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\text_input.cpp">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\cnpy\cnpy.cpp">
+      <Filter>3rd_party\cnpy</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\exception.cpp">
+      <Filter>3rd_party</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\svd\svd.cpp">
+      <Filter>3rd_party\svd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\backend.cpp">
+      <Filter>tensors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\cpu\device.cpp">
+      <Filter>tensors\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\cpu\dropout.cpp">
+      <Filter>tensors\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\cpu\prod.cpp">
+      <Filter>tensors\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\cpu\tensor_operators.cpp">
+      <Filter>tensors\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\graph\expression_graph.cpp">
+      <Filter>graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\graph\expression_operators.cpp">
+      <Filter>graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\graph\node.cpp">
+      <Filter>graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\graph\node_operators.cpp">
+      <Filter>graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\graph\node_initializers.cpp">
+      <Filter>graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\layers\convolution.cpp">
+      <Filter>layers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rnn\cells.cpp">
+      <Filter>rnn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rnn\attention.cpp">
+      <Filter>rnn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\optimizers\clippers.cpp">
+      <Filter>optimizers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\optimizers\optimizers.cpp">
+      <Filter>optimizers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\model_factory.cpp">
+      <Filter>models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\encoder_decoder.cpp">
+      <Filter>models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\translator\history.cpp">
+      <Filter>translator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\translator\output_collector.cpp">
+      <Filter>translator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\translator\nth_element.cpp">
+      <Filter>translator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\translator\helpers.cpp">
+      <Filter>translator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\translator\scorers.cpp">
+      <Filter>translator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\graph_group_async.cpp">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\graph_group_async_drop.cpp">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\graph_group_sync.cpp">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\graph_group_singleton.cpp">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\graph_group_multinode.cpp">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\validator.cpp">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\binary.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\convert.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\directives.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emit.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitfromevents.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitter.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitterstate.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitterutils.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\exceptions.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\exp.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\memory.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node_data.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\nodebuilder.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\nodeevents.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\null.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\ostream_wrapper.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\parse.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\parser.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\regex_yaml.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\scanner.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\scanscalar.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\scantag.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\scantoken.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\simplekey.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\singledocparser.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\stream.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\tag.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilder.cpp">
+      <Filter>3rd_party\yaml-cpp\contrib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilderadapter.cpp">
+      <Filter>3rd_party\yaml-cpp\contrib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\marian.h" />
+    <ClCompile Include="..\src\3rd_party\catch.hpp">
+      <Filter>3rd_party</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\exception.h">
+      <Filter>3rd_party</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\reduce_all.h">
+      <Filter>3rd_party</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\threadpool.h">
+      <Filter>3rd_party</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\cnpy\cnpy.h">
+      <Filter>3rd_party\cnpy</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\async_logger.h">
+      <Filter>3rd_party\spdlog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\common.h">
+      <Filter>3rd_party\spdlog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\formatter.h">
+      <Filter>3rd_party\spdlog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\logger.h">
+      <Filter>3rd_party\spdlog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\spdlog.h">
+      <Filter>3rd_party\spdlog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\tweakme.h">
+      <Filter>3rd_party\spdlog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\bench\utils.h">
+      <Filter>3rd_party\spdlog\bench</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\bench\latency\utils.h">
+      <Filter>3rd_party\spdlog\bench\latency</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\details\async_logger_impl.h">
+      <Filter>3rd_party\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\details\async_log_helper.h">
+      <Filter>3rd_party\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\details\file_helper.h">
+      <Filter>3rd_party\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\details\format.h">
+      <Filter>3rd_party\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\details\line_logger_fwd.h">
+      <Filter>3rd_party\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\details\line_logger_impl.h">
+      <Filter>3rd_party\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\details\logger_impl.h">
+      <Filter>3rd_party\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\details\log_msg.h">
+      <Filter>3rd_party\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\details\mpmc_bounded_q.h">
+      <Filter>3rd_party\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\details\null_mutex.h">
+      <Filter>3rd_party\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\details\os.h">
+      <Filter>3rd_party\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\details\pattern_formatter_impl.h">
+      <Filter>3rd_party\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\details\registry.h">
+      <Filter>3rd_party\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\details\spdlog_impl.h">
+      <Filter>3rd_party\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\example\utils.h">
+      <Filter>3rd_party\spdlog\example</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\async_logger_impl.h">
+      <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\async_log_helper.h">
+      <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\file_helper.h">
+      <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\logger_impl.h">
+      <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\log_msg.h">
+      <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\mpmc_bounded_q.h">
+      <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\null_mutex.h">
+      <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\os.h">
+      <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\pattern_formatter_impl.h">
+      <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\registry.h">
+      <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\spdlog_impl.h">
+      <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\fmt\fmt.h">
+      <Filter>3rd_party\spdlog\include\spdlog\fmt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\fmt\ostr.h">
+      <Filter>3rd_party\spdlog\include\spdlog\fmt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\fmt\bundled\format.h">
+      <Filter>3rd_party\spdlog\include\spdlog\fmt\bundled</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\fmt\bundled\ostream.h">
+      <Filter>3rd_party\spdlog\include\spdlog\fmt\bundled</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\fmt\bundled\posix.h">
+      <Filter>3rd_party\spdlog\include\spdlog\fmt\bundled</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\fmt\bundled\time.h">
+      <Filter>3rd_party\spdlog\include\spdlog\fmt\bundled</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\android_sink.h">
+      <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\ansicolor_sink.h">
+      <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\base_sink.h">
+      <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\dist_sink.h">
+      <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\file_sinks.h">
+      <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\msvc_sink.h">
+      <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\null_sink.h">
+      <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\ostream_sink.h">
+      <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\sink.h">
+      <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\stdout_sinks.h">
+      <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\syslog_sink.h">
+      <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\wincolor_sink.h">
+      <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\android_sink.h">
+      <Filter>3rd_party\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\ansicolor_sink.h">
+      <Filter>3rd_party\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\base_sink.h">
+      <Filter>3rd_party\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\dist_sink.h">
+      <Filter>3rd_party\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\file_sinks.h">
+      <Filter>3rd_party\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\msvc_sink.h">
+      <Filter>3rd_party\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\null_sink.h">
+      <Filter>3rd_party\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\ostream_sink.h">
+      <Filter>3rd_party\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\sink.h">
+      <Filter>3rd_party\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\stdout_sinks.h">
+      <Filter>3rd_party\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\sinks\syslog_sink.h">
+      <Filter>3rd_party\spdlog\sinks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\tests\catch.hpp">
+      <Filter>3rd_party\spdlog\tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\tests\includes.h">
+      <Filter>3rd_party\spdlog\tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\tests\utils.h">
+      <Filter>3rd_party\spdlog\tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\svd\defs_and_types.h">
+      <Filter>3rd_party\svd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\svd\svd.h">
+      <Filter>3rd_party\svd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\anchor.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\binary.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\collectionstack.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\directives.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\dll.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitfromevents.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitter.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitterdef.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emittermanip.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitterstate.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitterstyle.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitterutils.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\eventhandler.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\exceptions.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\exp.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\indentation.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\mark.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\nodebuilder.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\nodeevents.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\noncopyable.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\null.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\ostream_wrapper.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\parser.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\ptr_vector.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\regeximpl.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\regex_yaml.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\scanner.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\scanscalar.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\scantag.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\setting.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\singledocparser.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\stlemitter.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\stream.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\streamcharsource.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\stringsource.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\tag.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\token.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\traits.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\yaml.h">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\anchordict.h">
+      <Filter>3rd_party\yaml-cpp\contrib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilder.h">
+      <Filter>3rd_party\yaml-cpp\contrib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilderadapter.h">
+      <Filter>3rd_party\yaml-cpp\contrib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\convert.h">
+      <Filter>3rd_party\yaml-cpp\node</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\emit.h">
+      <Filter>3rd_party\yaml-cpp\node</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\impl.h">
+      <Filter>3rd_party\yaml-cpp\node</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\iterator.h">
+      <Filter>3rd_party\yaml-cpp\node</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\node.h">
+      <Filter>3rd_party\yaml-cpp\node</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\parse.h">
+      <Filter>3rd_party\yaml-cpp\node</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\ptr.h">
+      <Filter>3rd_party\yaml-cpp\node</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\type.h">
+      <Filter>3rd_party\yaml-cpp\node</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\bool_type.h">
+      <Filter>3rd_party\yaml-cpp\node\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\impl.h">
+      <Filter>3rd_party\yaml-cpp\node\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\iterator.h">
+      <Filter>3rd_party\yaml-cpp\node\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\iterator_fwd.h">
+      <Filter>3rd_party\yaml-cpp\node\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\memory.h">
+      <Filter>3rd_party\yaml-cpp\node\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\node.h">
+      <Filter>3rd_party\yaml-cpp\node\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\node_data.h">
+      <Filter>3rd_party\yaml-cpp\node\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\node_iterator.h">
+      <Filter>3rd_party\yaml-cpp\node\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\node_ref.h">
+      <Filter>3rd_party\yaml-cpp\node\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\compile_time_crc32.h">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\config.h">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\config_parser.h">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\definitions.h">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\file_stream.h">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\keywords.h">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\logging.h">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\options.h">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\regex.h">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\shape.h">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\utils.h">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\version.h">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\alignment.h">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\batch.h">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\batch_generator.h">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\batch_stats.h">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\corpus.h">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\corpus_base.h">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\corpus_nbest.h">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\dataset.h">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\npz_converter.h">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\rng_engine.h">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\shortlist.h">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\text_input.h">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\types.h">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\vocab.h">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\functional\array.h">
+      <Filter>functional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\functional\defs.h">
+      <Filter>functional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\functional\floats.h">
+      <Filter>functional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\functional\functional.h">
+      <Filter>functional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\functional\operands.h">
+      <Filter>functional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\functional\predicates.h">
+      <Filter>functional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\functional\shape.h">
+      <Filter>functional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\functional\tensor.h">
+      <Filter>functional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\functional\tmp.h">
+      <Filter>functional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\graph\auto_tuner.h">
+      <Filter>graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\graph\chainable.h">
+      <Filter>graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\graph\expression_graph.h">
+      <Filter>graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\graph\expression_operators.h">
+      <Filter>graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\graph\node.h">
+      <Filter>graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\graph\node_initializers.h">
+      <Filter>graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\graph\node_operators.h">
+      <Filter>graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\graph\node_operators_binary.h">
+      <Filter>graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\graph\node_operators_unary.h">
+      <Filter>graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\graph\parameters.h">
+      <Filter>graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\layers\constructors.h">
+      <Filter>layers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\layers\convolution.h">
+      <Filter>layers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\layers\factory.h">
+      <Filter>layers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\layers\generic.h">
+      <Filter>layers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\layers\guided_alignment.h">
+      <Filter>layers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\layers\word2vec_reader.h">
+      <Filter>layers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\amun.h">
+      <Filter>models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\char_s2s.h">
+      <Filter>models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\costs.h">
+      <Filter>models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\decoder.h">
+      <Filter>models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\encoder.h">
+      <Filter>models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\encoder_decoder.h">
+      <Filter>models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\hardatt.h">
+      <Filter>models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\model_base.h">
+      <Filter>models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\model_factory.h">
+      <Filter>models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\model_task.h">
+      <Filter>models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\nematus.h">
+      <Filter>models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\s2s.h">
+      <Filter>models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\states.h">
+      <Filter>models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\transformer.h">
+      <Filter>models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\experimental\lex_probs.h">
+      <Filter>models\experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\optimizers\clippers.h">
+      <Filter>optimizers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\optimizers\optimizers.h">
+      <Filter>optimizers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rescorer\rescorer.h">
+      <Filter>rescorer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rescorer\score_collector.h">
+      <Filter>rescorer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rnn\attention.h">
+      <Filter>rnn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rnn\attention_constructors.h">
+      <Filter>rnn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rnn\cells.h">
+      <Filter>rnn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rnn\constructors.h">
+      <Filter>rnn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rnn\rnn.h">
+      <Filter>rnn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rnn\types.h">
+      <Filter>rnn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\allocator.h">
+      <Filter>tensors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\backend.h">
+      <Filter>tensors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\device.h">
+      <Filter>tensors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\dispatch.h">
+      <Filter>tensors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\memory_piece.h">
+      <Filter>tensors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\tensor.h">
+      <Filter>tensors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\tensor_allocator.h">
+      <Filter>tensors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\tensor_operators.h">
+      <Filter>tensors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\types.h">
+      <Filter>tensors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\cpu\add.h">
+      <Filter>tensors\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\cpu\backend.h">
+      <Filter>tensors\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\cpu\element.h">
+      <Filter>tensors\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\cpu\int16.h">
+      <Filter>tensors\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\cpu\sharp\sse_gemm.h">
+      <Filter>tensors\cpu\sharp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\graph_group.h">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\graph_group_async.h">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\graph_group_async_drop.h">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\graph_group_multinode.h">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\graph_group_singleton.h">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\graph_group_sync.h">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\scheduler.h">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\training.h">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\training_state.h">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\validator.h">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\gradient_dropping\dropper.h">
+      <Filter>training\gradient_dropping</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\gradient_dropping\sparse_tensor.h">
+      <Filter>training\gradient_dropping</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\gradient_dropping\gpu\sparse_algorithm.h">
+      <Filter>training\gradient_dropping\gpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\translator\beam_search.h">
+      <Filter>translator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\translator\helpers.h">
+      <Filter>translator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\translator\history.h">
+      <Filter>translator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\translator\hypothesis.h">
+      <Filter>translator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\translator\nth_element.h">
+      <Filter>translator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\translator\output_collector.h">
+      <Filter>translator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\translator\printer.h">
+      <Filter>translator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\translator\scorers.h">
+      <Filter>translator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\translator\translator.h">
+      <Filter>translator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\async_logger.h">
+      <Filter>3rd_party\spdlog\include\spdlog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\common.h">
+      <Filter>3rd_party\spdlog\include\spdlog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\formatter.h">
+      <Filter>3rd_party\spdlog\include\spdlog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\logger.h">
+      <Filter>3rd_party\spdlog\include\spdlog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\spdlog.h">
+      <Filter>3rd_party\spdlog\include\spdlog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\tweakme.h">
+      <Filter>3rd_party\spdlog\include\spdlog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\yaml-node.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MT.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Tests.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Layers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="PlainTextDeseralizer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CNTKLibraryHelpers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Models.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="marian.h">
-      <Filter>Marian On CNTK\API</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\common\shape.h">
-      <Filter>Marian On CNTK\Backend</Filter>
-    </ClInclude>
-    <ClInclude Include="spdlog\spdlog.h">
-      <Filter>Marian On CNTK\API</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\rnn\constructors.h">
-      <Filter>Marian On CNTK\Frontend\rnn</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\models\encdec.h">
-      <Filter>Marian On CNTK\Frontend\models</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\layers\factory.h">
-      <Filter>Marian On CNTK\Frontend\layers</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\layers\generic.h">
-      <Filter>Marian On CNTK\Frontend\layers</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\models\model_base.h">
-      <Filter>Marian On CNTK\Frontend\models</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\models\model_factory.h">
-      <Filter>Marian On CNTK\Frontend\models</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\models\states.h">
-      <Filter>Marian On CNTK\Frontend\models</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\models\transformer.h">
-      <Filter>Marian On CNTK\Frontend\models</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\rnn\types.h">
-      <Filter>Marian On CNTK\Frontend\rnn</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\models\s2s.h">
-      <Filter>Marian On CNTK\Frontend\models</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\layers\constructors.h">
-      <Filter>Marian On CNTK\Frontend\layers</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\models\constructors.h">
-      <Filter>Marian On CNTK\Frontend\models</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\rnn\cells.h">
-      <Filter>Marian On CNTK\Frontend\rnn</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\rnn\rnn.h">
-      <Filter>Marian On CNTK\Frontend\rnn</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\models\char_s2s.h">
-      <Filter>Marian On CNTK\Frontend\models</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\layers\convolution.h">
-      <Filter>Marian On CNTK\Frontend\layers</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\models\hardatt.h">
-      <Filter>Marian On CNTK\Frontend\models</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\models\amun.h">
-      <Filter>Marian On CNTK\Frontend\models</Filter>
-    </ClInclude>
-    <ClInclude Include="marian-dev\src\models\nematus.h">
-      <Filter>Marian On CNTK\Frontend\models</Filter>
-    </ClInclude>
+    <Filter Include="3rd_party">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0002}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\cnpy">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0005}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\spdlog">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0008}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\spdlog\bench">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0011}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\spdlog\bench\latency">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0014}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\spdlog\details">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0017}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\spdlog\example">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0020}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\spdlog\include\spdlog\details">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0026}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\spdlog\include\spdlog\fmt">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0029}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\spdlog\include\spdlog\fmt\bundled">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0032}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\spdlog\include\spdlog\sinks">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0035}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\spdlog\sinks">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0038}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\spdlog\tests">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0041}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\svd">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0044}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\yaml-cpp">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0047}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\yaml-cpp\contrib">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0050}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\yaml-cpp\node">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0053}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\yaml-cpp\node\detail">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0056}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0059}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="data">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0062}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="functional">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0065}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="graph">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0068}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="layers">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0071}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="models">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0074}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="models\experimental">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0077}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="optimizers">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0080}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rescorer">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0083}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rnn">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0086}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tensors">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0089}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tensors\cpu">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0092}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tensors\cpu\sharp">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0095}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="training">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0098}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="training\gradient_dropping">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0101}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="training\gradient_dropping\gpu">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0104}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="translator">
+      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0107}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\spdlog\include">
+      <UniqueIdentifier>{4da6ada2-69cc-46db-9afe-085b0e24b943}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\spdlog\include\spdlog">
+      <UniqueIdentifier>{c54af311-d7f5-4559-a8be-8c768a9f0ddf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>
