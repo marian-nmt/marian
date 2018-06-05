@@ -67,9 +67,6 @@
     <ClCompile Include="..\src\graph\node_initializers.cpp">
       <Filter>graph</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\layers\convolution.cpp">
-      <Filter>layers</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\rnn\cells.cpp">
       <Filter>rnn</Filter>
     </ClCompile>
@@ -207,6 +204,10 @@
     </ClCompile>
     <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilderadapter.cpp">
       <Filter>3rd_party\yaml-cpp\contrib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\yaml-node.cpp" />
+    <ClCompile Include="..\src\command\marian_decoder.cpp">
+      <Filter>command</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -745,9 +746,6 @@
     <ClInclude Include="..\src\layers\constructors.h">
       <Filter>layers</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\layers\convolution.h">
-      <Filter>layers</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\layers\factory.h">
       <Filter>layers</Filter>
     </ClInclude>
@@ -961,9 +959,6 @@
     <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\tweakme.h">
       <Filter>3rd_party\spdlog\include\spdlog</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\3rd_party\yaml-cpp\yaml-node.cpp">
-      <Filter>3rd_party\yaml-cpp</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
@@ -1076,6 +1071,9 @@
     </Filter>
     <Filter Include="3rd_party\spdlog\include\spdlog">
       <UniqueIdentifier>{c54af311-d7f5-4559-a8be-8c768a9f0ddf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="command">
+      <UniqueIdentifier>{c6b3323a-0df3-4129-9a66-e93cea668604}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
