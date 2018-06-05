@@ -65,7 +65,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level1</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>MKL_FOUND=1; BLAS_FOUND=1; WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MKL_FOUND=1; BLAS_FOUND=1; MKL_ILP64; WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <TreatWarningAsError>false</TreatWarningAsError>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
