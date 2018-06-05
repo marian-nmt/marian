@@ -24,24 +24,9 @@ void SetColumn(Tensor in_, size_t col, float value) {
   }
 }
 
-void suppressUnk(Expr probs) {
-  SetColumn(probs->val(), UNK_ID, std::numeric_limits<float>::lowest());
-}
-
 void suppressWord(Expr probs, Word id) {
   SetColumn(probs->val(), id, std::numeric_limits<float>::lowest());
 }
-}
-
-void suppressUnk(Expr probs) {
-  if(probs->val()->getBackend()->getDevice().type == DeviceType::cpu) {
-    cpu::suppressUnk(probs);
-  }
-#ifdef CUDA_FOUND
-  else {
-    gpu::suppressUnk(probs);
-  }
-#endif
 }
 
 void suppressWord(Expr probs, Word id) {

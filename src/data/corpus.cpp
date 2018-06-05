@@ -29,7 +29,7 @@ SentenceTuple Corpus::next() {
     for(size_t i = 0; i < files_.size(); ++i) {
       std::string line;
 
-      if(std::getline((std::istream&)*files_[i], line)) {
+      if(GetLine((std::istream&)*files_[i], line)) {
         if(i > 0 && i == alignFileIdx_) {
           addAlignmentToSentenceTuple(line, tup);
         } else if(i > 0 && i == weightFileIdx_) {
@@ -91,7 +91,7 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
   while(cont) {
     std::vector<std::string> lines(files_.size());
     for(size_t i = 0; i < files_.size(); ++i) {
-      cont = cont && std::getline((std::istream&)*files_[i], lines[i]);
+      cont = cont && GetLine((std::istream&)*files_[i], lines[i]);
     }
     if(cont)
       corpus.push_back(lines);
