@@ -208,760 +208,762 @@
     <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilderadapter.cpp">
       <Filter>3rd_party\yaml-cpp\contrib</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\marian.h" />
-    <ClCompile Include="..\src\3rd_party\catch.hpp">
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\marian.h" />
+    <ClInclude Include="..\src\3rd_party\catch.hpp">
       <Filter>3rd_party</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\exception.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\exception.h">
       <Filter>3rd_party</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\reduce_all.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\reduce_all.h">
       <Filter>3rd_party</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\threadpool.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\threadpool.h">
       <Filter>3rd_party</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\cnpy\cnpy.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\cnpy\cnpy.h">
       <Filter>3rd_party\cnpy</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\async_logger.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\async_logger.h">
       <Filter>3rd_party\spdlog</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\common.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\common.h">
       <Filter>3rd_party\spdlog</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\formatter.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\formatter.h">
       <Filter>3rd_party\spdlog</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\logger.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\logger.h">
       <Filter>3rd_party\spdlog</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\spdlog.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\spdlog.h">
       <Filter>3rd_party\spdlog</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\tweakme.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\tweakme.h">
       <Filter>3rd_party\spdlog</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\bench\utils.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\bench\utils.h">
       <Filter>3rd_party\spdlog\bench</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\bench\latency\utils.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\bench\latency\utils.h">
       <Filter>3rd_party\spdlog\bench\latency</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\details\async_logger_impl.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\details\async_logger_impl.h">
       <Filter>3rd_party\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\details\async_log_helper.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\details\async_log_helper.h">
       <Filter>3rd_party\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\details\file_helper.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\details\file_helper.h">
       <Filter>3rd_party\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\details\format.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\details\format.h">
       <Filter>3rd_party\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\details\line_logger_fwd.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\details\line_logger_fwd.h">
       <Filter>3rd_party\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\details\line_logger_impl.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\details\line_logger_impl.h">
       <Filter>3rd_party\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\details\logger_impl.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\details\logger_impl.h">
       <Filter>3rd_party\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\details\log_msg.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\details\log_msg.h">
       <Filter>3rd_party\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\details\mpmc_bounded_q.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\details\mpmc_bounded_q.h">
       <Filter>3rd_party\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\details\null_mutex.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\details\null_mutex.h">
       <Filter>3rd_party\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\details\os.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\details\os.h">
       <Filter>3rd_party\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\details\pattern_formatter_impl.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\details\pattern_formatter_impl.h">
       <Filter>3rd_party\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\details\registry.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\details\registry.h">
       <Filter>3rd_party\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\details\spdlog_impl.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\details\spdlog_impl.h">
       <Filter>3rd_party\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\example\utils.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\example\utils.h">
       <Filter>3rd_party\spdlog\example</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\async_logger_impl.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\details\async_logger_impl.h">
       <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\async_log_helper.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\details\async_log_helper.h">
       <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\file_helper.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\details\file_helper.h">
       <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\logger_impl.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\details\logger_impl.h">
       <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\log_msg.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\details\log_msg.h">
       <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\mpmc_bounded_q.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\details\mpmc_bounded_q.h">
       <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\null_mutex.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\details\null_mutex.h">
       <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\os.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\details\os.h">
       <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\pattern_formatter_impl.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\details\pattern_formatter_impl.h">
       <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\registry.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\details\registry.h">
       <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\details\spdlog_impl.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\details\spdlog_impl.h">
       <Filter>3rd_party\spdlog\include\spdlog\details</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\fmt\fmt.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\fmt\fmt.h">
       <Filter>3rd_party\spdlog\include\spdlog\fmt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\fmt\ostr.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\fmt\ostr.h">
       <Filter>3rd_party\spdlog\include\spdlog\fmt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\fmt\bundled\format.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\fmt\bundled\format.h">
       <Filter>3rd_party\spdlog\include\spdlog\fmt\bundled</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\fmt\bundled\ostream.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\fmt\bundled\ostream.h">
       <Filter>3rd_party\spdlog\include\spdlog\fmt\bundled</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\fmt\bundled\posix.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\fmt\bundled\posix.h">
       <Filter>3rd_party\spdlog\include\spdlog\fmt\bundled</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\fmt\bundled\time.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\fmt\bundled\time.h">
       <Filter>3rd_party\spdlog\include\spdlog\fmt\bundled</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\android_sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\sinks\android_sink.h">
       <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\ansicolor_sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\sinks\ansicolor_sink.h">
       <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\base_sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\sinks\base_sink.h">
       <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\dist_sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\sinks\dist_sink.h">
       <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\file_sinks.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\sinks\file_sinks.h">
       <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\msvc_sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\sinks\msvc_sink.h">
       <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\null_sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\sinks\null_sink.h">
       <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\ostream_sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\sinks\ostream_sink.h">
       <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\sinks\sink.h">
       <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\stdout_sinks.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\sinks\stdout_sinks.h">
       <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\syslog_sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\sinks\syslog_sink.h">
       <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\sinks\wincolor_sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\sinks\wincolor_sink.h">
       <Filter>3rd_party\spdlog\include\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\sinks\android_sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\sinks\android_sink.h">
       <Filter>3rd_party\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\sinks\ansicolor_sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\sinks\ansicolor_sink.h">
       <Filter>3rd_party\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\sinks\base_sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\sinks\base_sink.h">
       <Filter>3rd_party\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\sinks\dist_sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\sinks\dist_sink.h">
       <Filter>3rd_party\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\sinks\file_sinks.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\sinks\file_sinks.h">
       <Filter>3rd_party\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\sinks\msvc_sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\sinks\msvc_sink.h">
       <Filter>3rd_party\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\sinks\null_sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\sinks\null_sink.h">
       <Filter>3rd_party\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\sinks\ostream_sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\sinks\ostream_sink.h">
       <Filter>3rd_party\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\sinks\sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\sinks\sink.h">
       <Filter>3rd_party\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\sinks\stdout_sinks.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\sinks\stdout_sinks.h">
       <Filter>3rd_party\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\sinks\syslog_sink.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\sinks\syslog_sink.h">
       <Filter>3rd_party\spdlog\sinks</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\tests\catch.hpp">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\tests\catch.hpp">
       <Filter>3rd_party\spdlog\tests</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\tests\includes.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\tests\includes.h">
       <Filter>3rd_party\spdlog\tests</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\tests\utils.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\tests\utils.h">
       <Filter>3rd_party\spdlog\tests</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\svd\defs_and_types.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\svd\defs_and_types.h">
       <Filter>3rd_party\svd</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\svd\svd.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\svd\svd.h">
       <Filter>3rd_party\svd</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\anchor.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\anchor.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\binary.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\binary.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\collectionstack.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\collectionstack.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\directives.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\directives.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\dll.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\dll.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitfromevents.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\emitfromevents.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitter.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\emitter.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitterdef.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\emitterdef.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\emittermanip.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\emittermanip.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitterstate.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\emitterstate.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitterstyle.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\emitterstyle.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\emitterutils.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\emitterutils.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\eventhandler.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\eventhandler.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\exceptions.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\exceptions.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\exp.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\exp.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\indentation.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\indentation.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\mark.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\mark.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\nodebuilder.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\nodebuilder.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\nodeevents.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\nodeevents.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\noncopyable.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\noncopyable.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\null.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\null.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\ostream_wrapper.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\ostream_wrapper.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\parser.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\parser.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\ptr_vector.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\ptr_vector.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\regeximpl.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\regeximpl.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\regex_yaml.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\regex_yaml.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\scanner.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\scanner.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\scanscalar.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\scanscalar.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\scantag.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\scantag.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\setting.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\setting.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\singledocparser.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\singledocparser.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\stlemitter.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\stlemitter.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\stream.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\stream.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\streamcharsource.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\streamcharsource.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\stringsource.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\stringsource.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\tag.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\tag.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\token.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\token.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\traits.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\traits.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\yaml.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\yaml.h">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\anchordict.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\contrib\anchordict.h">
       <Filter>3rd_party\yaml-cpp\contrib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilder.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilder.h">
       <Filter>3rd_party\yaml-cpp\contrib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilderadapter.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilderadapter.h">
       <Filter>3rd_party\yaml-cpp\contrib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\convert.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\node\convert.h">
       <Filter>3rd_party\yaml-cpp\node</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\emit.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\node\emit.h">
       <Filter>3rd_party\yaml-cpp\node</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\impl.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\node\impl.h">
       <Filter>3rd_party\yaml-cpp\node</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\iterator.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\node\iterator.h">
       <Filter>3rd_party\yaml-cpp\node</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\node.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\node\node.h">
       <Filter>3rd_party\yaml-cpp\node</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\parse.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\node\parse.h">
       <Filter>3rd_party\yaml-cpp\node</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\ptr.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\node\ptr.h">
       <Filter>3rd_party\yaml-cpp\node</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\type.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\node\type.h">
       <Filter>3rd_party\yaml-cpp\node</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\bool_type.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\node\detail\bool_type.h">
       <Filter>3rd_party\yaml-cpp\node\detail</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\impl.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\node\detail\impl.h">
       <Filter>3rd_party\yaml-cpp\node\detail</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\iterator.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\node\detail\iterator.h">
       <Filter>3rd_party\yaml-cpp\node\detail</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\iterator_fwd.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\node\detail\iterator_fwd.h">
       <Filter>3rd_party\yaml-cpp\node\detail</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\memory.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\node\detail\memory.h">
       <Filter>3rd_party\yaml-cpp\node\detail</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\node.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\node\detail\node.h">
       <Filter>3rd_party\yaml-cpp\node\detail</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\node_data.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\node\detail\node_data.h">
       <Filter>3rd_party\yaml-cpp\node\detail</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\node_iterator.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\node\detail\node_iterator.h">
       <Filter>3rd_party\yaml-cpp\node\detail</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\node\detail\node_ref.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\node\detail\node_ref.h">
       <Filter>3rd_party\yaml-cpp\node\detail</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\common\compile_time_crc32.h">
+    </ClInclude>
+    <ClInclude Include="..\src\common\compile_time_crc32.h">
       <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\common\config.h">
+    </ClInclude>
+    <ClInclude Include="..\src\common\config.h">
       <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\common\config_parser.h">
+    </ClInclude>
+    <ClInclude Include="..\src\common\config_parser.h">
       <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\common\definitions.h">
+    </ClInclude>
+    <ClInclude Include="..\src\common\definitions.h">
       <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\common\file_stream.h">
+    </ClInclude>
+    <ClInclude Include="..\src\common\file_stream.h">
       <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\common\keywords.h">
+    </ClInclude>
+    <ClInclude Include="..\src\common\keywords.h">
       <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\common\logging.h">
+    </ClInclude>
+    <ClInclude Include="..\src\common\logging.h">
       <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\common\options.h">
+    </ClInclude>
+    <ClInclude Include="..\src\common\options.h">
       <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\common\regex.h">
+    </ClInclude>
+    <ClInclude Include="..\src\common\regex.h">
       <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\common\shape.h">
+    </ClInclude>
+    <ClInclude Include="..\src\common\shape.h">
       <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\common\utils.h">
+    </ClInclude>
+    <ClInclude Include="..\src\common\utils.h">
       <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\common\version.h">
+    </ClInclude>
+    <ClInclude Include="..\src\common\version.h">
       <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\data\alignment.h">
+    </ClInclude>
+    <ClInclude Include="..\src\data\alignment.h">
       <Filter>data</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\data\batch.h">
+    </ClInclude>
+    <ClInclude Include="..\src\data\batch.h">
       <Filter>data</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\data\batch_generator.h">
+    </ClInclude>
+    <ClInclude Include="..\src\data\batch_generator.h">
       <Filter>data</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\data\batch_stats.h">
+    </ClInclude>
+    <ClInclude Include="..\src\data\batch_stats.h">
       <Filter>data</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\data\corpus.h">
+    </ClInclude>
+    <ClInclude Include="..\src\data\corpus.h">
       <Filter>data</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\data\corpus_base.h">
+    </ClInclude>
+    <ClInclude Include="..\src\data\corpus_base.h">
       <Filter>data</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\data\corpus_nbest.h">
+    </ClInclude>
+    <ClInclude Include="..\src\data\corpus_nbest.h">
       <Filter>data</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\data\dataset.h">
+    </ClInclude>
+    <ClInclude Include="..\src\data\dataset.h">
       <Filter>data</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\data\npz_converter.h">
+    </ClInclude>
+    <ClInclude Include="..\src\data\npz_converter.h">
       <Filter>data</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\data\rng_engine.h">
+    </ClInclude>
+    <ClInclude Include="..\src\data\rng_engine.h">
       <Filter>data</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\data\shortlist.h">
+    </ClInclude>
+    <ClInclude Include="..\src\data\shortlist.h">
       <Filter>data</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\data\text_input.h">
+    </ClInclude>
+    <ClInclude Include="..\src\data\text_input.h">
       <Filter>data</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\data\types.h">
+    </ClInclude>
+    <ClInclude Include="..\src\data\types.h">
       <Filter>data</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\data\vocab.h">
+    </ClInclude>
+    <ClInclude Include="..\src\data\vocab.h">
       <Filter>data</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\functional\array.h">
+    </ClInclude>
+    <ClInclude Include="..\src\functional\array.h">
       <Filter>functional</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\functional\defs.h">
+    </ClInclude>
+    <ClInclude Include="..\src\functional\defs.h">
       <Filter>functional</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\functional\floats.h">
+    </ClInclude>
+    <ClInclude Include="..\src\functional\floats.h">
       <Filter>functional</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\functional\functional.h">
+    </ClInclude>
+    <ClInclude Include="..\src\functional\functional.h">
       <Filter>functional</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\functional\operands.h">
+    </ClInclude>
+    <ClInclude Include="..\src\functional\operands.h">
       <Filter>functional</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\functional\predicates.h">
+    </ClInclude>
+    <ClInclude Include="..\src\functional\predicates.h">
       <Filter>functional</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\functional\shape.h">
+    </ClInclude>
+    <ClInclude Include="..\src\functional\shape.h">
       <Filter>functional</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\functional\tensor.h">
+    </ClInclude>
+    <ClInclude Include="..\src\functional\tensor.h">
       <Filter>functional</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\functional\tmp.h">
+    </ClInclude>
+    <ClInclude Include="..\src\functional\tmp.h">
       <Filter>functional</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\graph\auto_tuner.h">
+    </ClInclude>
+    <ClInclude Include="..\src\graph\auto_tuner.h">
       <Filter>graph</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\graph\chainable.h">
+    </ClInclude>
+    <ClInclude Include="..\src\graph\chainable.h">
       <Filter>graph</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\graph\expression_graph.h">
+    </ClInclude>
+    <ClInclude Include="..\src\graph\expression_graph.h">
       <Filter>graph</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\graph\expression_operators.h">
+    </ClInclude>
+    <ClInclude Include="..\src\graph\expression_operators.h">
       <Filter>graph</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\graph\node.h">
+    </ClInclude>
+    <ClInclude Include="..\src\graph\node.h">
       <Filter>graph</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\graph\node_initializers.h">
+    </ClInclude>
+    <ClInclude Include="..\src\graph\node_initializers.h">
       <Filter>graph</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\graph\node_operators.h">
+    </ClInclude>
+    <ClInclude Include="..\src\graph\node_operators.h">
       <Filter>graph</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\graph\node_operators_binary.h">
+    </ClInclude>
+    <ClInclude Include="..\src\graph\node_operators_binary.h">
       <Filter>graph</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\graph\node_operators_unary.h">
+    </ClInclude>
+    <ClInclude Include="..\src\graph\node_operators_unary.h">
       <Filter>graph</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\graph\parameters.h">
+    </ClInclude>
+    <ClInclude Include="..\src\graph\parameters.h">
       <Filter>graph</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\layers\constructors.h">
+    </ClInclude>
+    <ClInclude Include="..\src\layers\constructors.h">
       <Filter>layers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\layers\convolution.h">
+    </ClInclude>
+    <ClInclude Include="..\src\layers\convolution.h">
       <Filter>layers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\layers\factory.h">
+    </ClInclude>
+    <ClInclude Include="..\src\layers\factory.h">
       <Filter>layers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\layers\generic.h">
+    </ClInclude>
+    <ClInclude Include="..\src\layers\generic.h">
       <Filter>layers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\layers\guided_alignment.h">
+    </ClInclude>
+    <ClInclude Include="..\src\layers\guided_alignment.h">
       <Filter>layers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\layers\word2vec_reader.h">
+    </ClInclude>
+    <ClInclude Include="..\src\layers\word2vec_reader.h">
       <Filter>layers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\models\amun.h">
+    </ClInclude>
+    <ClInclude Include="..\src\models\amun.h">
       <Filter>models</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\models\char_s2s.h">
+    </ClInclude>
+    <ClInclude Include="..\src\models\char_s2s.h">
       <Filter>models</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\models\costs.h">
+    </ClInclude>
+    <ClInclude Include="..\src\models\costs.h">
       <Filter>models</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\models\decoder.h">
+    </ClInclude>
+    <ClInclude Include="..\src\models\decoder.h">
       <Filter>models</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\models\encoder.h">
+    </ClInclude>
+    <ClInclude Include="..\src\models\encoder.h">
       <Filter>models</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\models\encoder_decoder.h">
+    </ClInclude>
+    <ClInclude Include="..\src\models\encoder_decoder.h">
       <Filter>models</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\models\hardatt.h">
+    </ClInclude>
+    <ClInclude Include="..\src\models\hardatt.h">
       <Filter>models</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\models\model_base.h">
+    </ClInclude>
+    <ClInclude Include="..\src\models\model_base.h">
       <Filter>models</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\models\model_factory.h">
+    </ClInclude>
+    <ClInclude Include="..\src\models\model_factory.h">
       <Filter>models</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\models\model_task.h">
+    </ClInclude>
+    <ClInclude Include="..\src\models\model_task.h">
       <Filter>models</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\models\nematus.h">
+    </ClInclude>
+    <ClInclude Include="..\src\models\nematus.h">
       <Filter>models</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\models\s2s.h">
+    </ClInclude>
+    <ClInclude Include="..\src\models\s2s.h">
       <Filter>models</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\models\states.h">
+    </ClInclude>
+    <ClInclude Include="..\src\models\states.h">
       <Filter>models</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\models\transformer.h">
+    </ClInclude>
+    <ClInclude Include="..\src\models\transformer.h">
       <Filter>models</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\models\experimental\lex_probs.h">
+    </ClInclude>
+    <ClInclude Include="..\src\models\experimental\lex_probs.h">
       <Filter>models\experimental</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\optimizers\clippers.h">
+    </ClInclude>
+    <ClInclude Include="..\src\optimizers\clippers.h">
       <Filter>optimizers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\optimizers\optimizers.h">
+    </ClInclude>
+    <ClInclude Include="..\src\optimizers\optimizers.h">
       <Filter>optimizers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\rescorer\rescorer.h">
+    </ClInclude>
+    <ClInclude Include="..\src\rescorer\rescorer.h">
       <Filter>rescorer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\rescorer\score_collector.h">
+    </ClInclude>
+    <ClInclude Include="..\src\rescorer\score_collector.h">
       <Filter>rescorer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\rnn\attention.h">
+    </ClInclude>
+    <ClInclude Include="..\src\rnn\attention.h">
       <Filter>rnn</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\rnn\attention_constructors.h">
+    </ClInclude>
+    <ClInclude Include="..\src\rnn\attention_constructors.h">
       <Filter>rnn</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\rnn\cells.h">
+    </ClInclude>
+    <ClInclude Include="..\src\rnn\cells.h">
       <Filter>rnn</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\rnn\constructors.h">
+    </ClInclude>
+    <ClInclude Include="..\src\rnn\constructors.h">
       <Filter>rnn</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\rnn\rnn.h">
+    </ClInclude>
+    <ClInclude Include="..\src\rnn\rnn.h">
       <Filter>rnn</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\rnn\types.h">
+    </ClInclude>
+    <ClInclude Include="..\src\rnn\types.h">
       <Filter>rnn</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tensors\allocator.h">
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\allocator.h">
       <Filter>tensors</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tensors\backend.h">
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\backend.h">
       <Filter>tensors</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tensors\device.h">
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\device.h">
       <Filter>tensors</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tensors\dispatch.h">
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\dispatch.h">
       <Filter>tensors</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tensors\memory_piece.h">
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\memory_piece.h">
       <Filter>tensors</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tensors\tensor.h">
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\tensor.h">
       <Filter>tensors</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tensors\tensor_allocator.h">
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\tensor_allocator.h">
       <Filter>tensors</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tensors\tensor_operators.h">
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\tensor_operators.h">
       <Filter>tensors</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tensors\types.h">
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\types.h">
       <Filter>tensors</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tensors\cpu\add.h">
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\cpu\add.h">
       <Filter>tensors\cpu</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tensors\cpu\backend.h">
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\cpu\backend.h">
       <Filter>tensors\cpu</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tensors\cpu\element.h">
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\cpu\element.h">
       <Filter>tensors\cpu</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tensors\cpu\int16.h">
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\cpu\int16.h">
       <Filter>tensors\cpu</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tensors\cpu\sharp\sse_gemm.h">
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\cpu\sharp\sse_gemm.h">
       <Filter>tensors\cpu\sharp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\training\graph_group.h">
+    </ClInclude>
+    <ClInclude Include="..\src\training\graph_group.h">
       <Filter>training</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\training\graph_group_async.h">
+    </ClInclude>
+    <ClInclude Include="..\src\training\graph_group_async.h">
       <Filter>training</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\training\graph_group_async_drop.h">
+    </ClInclude>
+    <ClInclude Include="..\src\training\graph_group_async_drop.h">
       <Filter>training</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\training\graph_group_multinode.h">
+    </ClInclude>
+    <ClInclude Include="..\src\training\graph_group_multinode.h">
       <Filter>training</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\training\graph_group_singleton.h">
+    </ClInclude>
+    <ClInclude Include="..\src\training\graph_group_singleton.h">
       <Filter>training</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\training\graph_group_sync.h">
+    </ClInclude>
+    <ClInclude Include="..\src\training\graph_group_sync.h">
       <Filter>training</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\training\scheduler.h">
+    </ClInclude>
+    <ClInclude Include="..\src\training\scheduler.h">
       <Filter>training</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\training\training.h">
+    </ClInclude>
+    <ClInclude Include="..\src\training\training.h">
       <Filter>training</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\training\training_state.h">
+    </ClInclude>
+    <ClInclude Include="..\src\training\training_state.h">
       <Filter>training</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\training\validator.h">
+    </ClInclude>
+    <ClInclude Include="..\src\training\validator.h">
       <Filter>training</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\training\gradient_dropping\dropper.h">
+    </ClInclude>
+    <ClInclude Include="..\src\training\gradient_dropping\dropper.h">
       <Filter>training\gradient_dropping</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\training\gradient_dropping\sparse_tensor.h">
+    </ClInclude>
+    <ClInclude Include="..\src\training\gradient_dropping\sparse_tensor.h">
       <Filter>training\gradient_dropping</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\training\gradient_dropping\gpu\sparse_algorithm.h">
+    </ClInclude>
+    <ClInclude Include="..\src\training\gradient_dropping\gpu\sparse_algorithm.h">
       <Filter>training\gradient_dropping\gpu</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\translator\beam_search.h">
+    </ClInclude>
+    <ClInclude Include="..\src\translator\beam_search.h">
       <Filter>translator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\translator\helpers.h">
+    </ClInclude>
+    <ClInclude Include="..\src\translator\helpers.h">
       <Filter>translator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\translator\history.h">
+    </ClInclude>
+    <ClInclude Include="..\src\translator\history.h">
       <Filter>translator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\translator\hypothesis.h">
+    </ClInclude>
+    <ClInclude Include="..\src\translator\hypothesis.h">
       <Filter>translator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\translator\nth_element.h">
+    </ClInclude>
+    <ClInclude Include="..\src\translator\nth_element.h">
       <Filter>translator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\translator\output_collector.h">
+    </ClInclude>
+    <ClInclude Include="..\src\translator\output_collector.h">
       <Filter>translator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\translator\printer.h">
+    </ClInclude>
+    <ClInclude Include="..\src\translator\printer.h">
       <Filter>translator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\translator\scorers.h">
+    </ClInclude>
+    <ClInclude Include="..\src\translator\scorers.h">
       <Filter>translator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\translator\translator.h">
+    </ClInclude>
+    <ClInclude Include="..\src\translator\translator.h">
       <Filter>translator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\async_logger.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\async_logger.h">
       <Filter>3rd_party\spdlog\include\spdlog</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\common.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\common.h">
       <Filter>3rd_party\spdlog\include\spdlog</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\formatter.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\formatter.h">
       <Filter>3rd_party\spdlog\include\spdlog</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\logger.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\logger.h">
       <Filter>3rd_party\spdlog\include\spdlog</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\spdlog.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\spdlog.h">
       <Filter>3rd_party\spdlog\include\spdlog</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\spdlog\include\spdlog\tweakme.h">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\tweakme.h">
       <Filter>3rd_party\spdlog\include\spdlog</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\yaml-node.cpp">
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\yaml-cpp\yaml-node.cpp">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
