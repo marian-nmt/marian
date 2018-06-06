@@ -146,10 +146,6 @@ endforeach(exec)
 
 #set_target_properties(align2steps PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
-if(PYTHONLIBS_FOUND)
-#  add_subdirectory(python)
-endif(PYTHONLIBS_FOUND)
-
 if(COMPILE_TESTS)
   set(CATCH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party)
   add_library(Catch INTERFACE)
