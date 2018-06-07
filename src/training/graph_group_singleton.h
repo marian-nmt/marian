@@ -21,7 +21,7 @@ private:
 
   Ptr<ExpressionGraph> mvAvgGraph_;
   bool mvAvg_{false};
-  float mvDecay_{1e-4};
+  float mvDecay_{1e-4f};
 
   void updateMovingAverage(Tensor mvAvgParams, Tensor params, size_t batches);
 

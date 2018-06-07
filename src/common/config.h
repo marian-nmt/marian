@@ -1,15 +1,16 @@
 #pragma once
 
-#include <sys/ioctl.h>
-#include <unistd.h>
-#include <boost/program_options.hpp>
-
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "3rd_party/cnpy/cnpy.h"
 #include "common/config_parser.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
 #include "common/utils.h"
+#include <boost/program_options.hpp>
+#ifndef _WIN32 // TODO: why are these needed by a config parser? Can they be removed for Linux as well?
+#include <sys/ioctl.h>
+#include <unistd.h>
+#endif
 
 namespace marian {
 

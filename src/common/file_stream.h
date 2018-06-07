@@ -1,5 +1,7 @@
 #pragma once
 
+#include "3rd_party/exception.h"
+#include "common/logging.h"
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
@@ -7,10 +9,11 @@
 #include <boost/iostreams/filtering_stream.hpp>
 #include <iostream>
 
+#ifdef _WIN32
+#include <io.h>
+#include <sys/types.h>
 #include <sys/stat.h>
-
-#include "3rd_party/exception.h"
-#include "common/logging.h"
+#endif
 
 namespace io = boost::iostreams;
 
@@ -21,7 +24,12 @@ private:
   std::string name_;
 
   int mkstemp_and_unlink(char* tmpl) {
+#ifdef _WIN32
+    ABORT_IF(true, "mkstemp not available in Windows");
+    int ret = -1;
+#else
     int ret = mkstemp(tmpl);
+#endif
     if(unlink_ && ret != -1) {
       ABORT_IF(unlink(tmpl), "Error while deleting '{}'", tmpl);
     }
@@ -49,6 +57,9 @@ private:
     // It's fine for it to not exist.
     if(-1 == stat(base.c_str(), &sb))
       return;
+#ifdef _WIN32
+#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR) // TODO: unify this
+#endif
     if(S_ISDIR(sb.st_mode))
       base += '/';
   }

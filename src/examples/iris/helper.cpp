@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "common/config.h"
+#include "common/utils.h"
 
 // Constants for Iris example
 const int NUM_FEATURES = 4;

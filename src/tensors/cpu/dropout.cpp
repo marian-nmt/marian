@@ -13,7 +13,7 @@ void Dropout(Tensor tensor, float p) {
   auto &gen = cpuBackend->getRandomGenerator();
   std::bernoulli_distribution dist(1.f - p);
   std::generate(tensor->data(), tensor->data() + tensor->size(), [&]() {
-    return dist(gen) / (1.f - p);
+    return dist(gen) / (1.f - p); // TODO: fix this warning C4804: '/': unsafe use of type 'bool' in operation
   });
 }
 }

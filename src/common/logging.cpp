@@ -37,7 +37,7 @@ bool setLoggingLevel(spdlog::logger& logger, std::string const level) {
     logger.set_level(spdlog::level::info);
   else if(level == "warn")
     logger.set_level(spdlog::level::warn);
-  else if(level == "err" or level == "error")
+  else if(level == "err" || level == "error")
     logger.set_level(spdlog::level::err);
   else if(level == "critical")
     logger.set_level(spdlog::level::critical);
