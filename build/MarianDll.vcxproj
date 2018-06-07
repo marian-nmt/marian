@@ -128,6 +128,8 @@
     <ClCompile Include="..\src\tensors\cpu\device.cpp" />
     <ClCompile Include="..\src\tensors\cpu\dropout.cpp" />
     <ClCompile Include="..\src\tensors\cpu\prod.cpp" />
+    <ClCompile Include="..\src\tensors\cpu\sharp\avx_gemm.cpp" />
+    <ClCompile Include="..\src\tensors\cpu\sharp\sse_gemm.cpp" />
     <ClCompile Include="..\src\tensors\cpu\tensor_operators.cpp" />
     <ClCompile Include="..\src\graph\expression_graph.cpp" />
     <ClCompile Include="..\src\graph\expression_operators.cpp" />
@@ -398,6 +400,7 @@
     <ClInclude Include="..\src\rnn\types.h" />
     <ClInclude Include="..\src\tensors\allocator.h" />
     <ClInclude Include="..\src\tensors\backend.h" />
+    <ClInclude Include="..\src\tensors\cpu\sharp\int_gemm.h" />
     <ClInclude Include="..\src\tensors\device.h" />
     <ClInclude Include="..\src\tensors\dispatch.h" />
     <ClInclude Include="..\src\tensors\memory_piece.h" />
@@ -409,7 +412,6 @@
     <ClInclude Include="..\src\tensors\cpu\backend.h" />
     <ClInclude Include="..\src\tensors\cpu\element.h" />
     <ClInclude Include="..\src\tensors\cpu\int16.h" />
-    <ClInclude Include="..\src\tensors\cpu\sharp\sse_gemm.h" />
     <ClInclude Include="..\src\training\graph_group.h" />
     <ClInclude Include="..\src\training\graph_group_async.h" />
     <ClInclude Include="..\src\training\graph_group_async_drop.h" />

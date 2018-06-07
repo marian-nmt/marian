@@ -211,6 +211,12 @@
     <ClCompile Include="..\src\3rd_party\yaml-cpp\yaml-node.cpp">
       <Filter>3rd_party\yaml-cpp</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\tensors\cpu\sharp\avx_gemm.cpp">
+      <Filter>tensors\cpu\sharp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\cpu\sharp\sse_gemm.cpp">
+      <Filter>tensors\cpu\sharp</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -874,9 +880,6 @@
     <ClInclude Include="..\src\tensors\cpu\int16.h">
       <Filter>tensors\cpu</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\tensors\cpu\sharp\sse_gemm.h">
-      <Filter>tensors\cpu\sharp</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\training\graph_group.h">
       <Filter>training</Filter>
     </ClInclude>
@@ -960,6 +963,9 @@
     </ClInclude>
     <ClInclude Include="..\src\3rd_party\spdlog\include\spdlog\tweakme.h">
       <Filter>3rd_party\spdlog\include\spdlog</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\cpu\sharp\int_gemm.h">
+      <Filter>tensors\cpu\sharp</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
