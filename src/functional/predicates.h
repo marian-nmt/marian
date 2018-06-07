@@ -115,6 +115,9 @@ BINARY(Pow, pow, pow(x, y));
 
 BINARY(Clip, clip, fabs(x) >= y ? sgn(x) * y : x);
 
+// derivative of Clip, cut-off function
+BINARY(Bump, bump, fabs(x) >= y ? 0.f : 1.f);
+
 UNARY(sReLU, ReLU, x > 0.f ? x : 0.f);
 UNARY(sReLUBack, ReLUback, x > 0.f ? 1.f : 0.f);
 BINARY(sPReLU, PReLU, x > 0.f ? x : x * y);

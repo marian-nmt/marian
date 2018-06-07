@@ -4,6 +4,7 @@
 // clang-format off
 #include "tensors/gpu/prod.h"
 #include "tensors/gpu/backend.h"
+#include "tensors/gpu/cuda_helpers.h"
 // clang-format on
 
 namespace marian {
@@ -11,8 +12,8 @@ namespace marian {
 namespace gpu {
 
 void Prod(marian::Tensor C,
-          const marian::Tensor A,
-          const marian::Tensor B,
+          const marian::Tensor& A,
+          const marian::Tensor& B,
           bool transA,
           bool transB,
           float beta,
@@ -44,7 +45,7 @@ void Prod(marian::Tensor C,
                           ->getCublasHandle();
 
 #if CUDA_VERSION >= 9000
-// cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
+  cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
 #endif
 
   cublasSgemm(cublasHandle,
@@ -62,14 +63,14 @@ void Prod(marian::Tensor C,
               C->data(),
               ldc);
 #if CUDA_VERSION >= 9000
-// cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
+  cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
 #endif
 }
 
 void ProdWithBias(marian::Tensor C,
-          const marian::Tensor A,
-          const marian::Tensor B,
-          const marian::Tensor bias,
+          const marian::Tensor& A,
+          const marian::Tensor& B,
+          const marian::Tensor& bias,
           bool transA,
           bool transB,
           float beta,
@@ -80,8 +81,8 @@ void ProdWithBias(marian::Tensor C,
 
 
 void ProdBatched(marian::Tensor C,
-                 const marian::Tensor A,
-                 const marian::Tensor B,
+                 const marian::Tensor& A,
+                 const marian::Tensor& B,
                  bool transA,
                  bool transB,
                  float beta,
@@ -116,7 +117,7 @@ void ProdBatched(marian::Tensor C,
                           ->getCublasHandle();
 
 #if CUDA_VERSION >= 9000
-// cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
+  cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
 #endif
   cublasSgemmStridedBatched(cublasHandle,
                             opB,
@@ -137,7 +138,7 @@ void ProdBatched(marian::Tensor C,
                             n * m,
                             std::max(batchA, batchB));
 #if CUDA_VERSION >= 9000
-// cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
+  cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
 #endif
 }
 }

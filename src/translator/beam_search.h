@@ -225,7 +225,7 @@ public:
       for(int i = 0; i < dimBatch; ++i) {
         if(!beams[i].empty()) {
           final = final
-                  || histories[i]->size() >= 3 * batch->front()->batchWidth();
+                  || histories[i]->size() >= options_->get<float>("max-length-factor") * batch->front()->batchWidth();
           histories[i]->Add(beams[i], prunedBeams[i].empty() || final);
         }
       }

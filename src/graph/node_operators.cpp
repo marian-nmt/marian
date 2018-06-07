@@ -2,7 +2,6 @@
 #include "expression_graph.h"
 
 #include "tensors/tensor_operators.h"
-#include "tensors/cpu/sharp/sse_gemm.h"
 
 namespace marian {
 

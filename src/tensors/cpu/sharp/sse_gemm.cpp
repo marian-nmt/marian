@@ -18,12 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
-
-#include "tensors/tensor.h"
-#include "tensors/tensor_allocator.h"
-#include "tensors/tensor_operators.h"
-
 #include <cassert>
 #include <emmintrin.h>
 #include <immintrin.h>
@@ -34,6 +28,10 @@
 #include <string.h>
 #include <tmmintrin.h>
 #include <xmmintrin.h>
+
+namespace marian {
+namespace cpu {
+namespace int16 {
 
 // This is a reference implementation of 16-bit matrix multiplication described in "Sharp Models on Dull Hardware: Fast and Accurate Neural Machine Translation Decoding on the CPU".
 // This model is not as fast as the one in the paper, becuase it uses SSE2 instead of AVX2. AVX2 instructions are only available on more modern CPUs (Haswell or later).
@@ -52,60 +50,44 @@
 // *impossible* to overflow. If we used, say, n = 12 bits, then we have 32-(12*2) = 8 bits left over. So we *could* overflow if width > 2^8.
 //
 // So, the tradeoff is between quantization precision and possibility of overflow. A good general value is 10 bits, since this gives high precision
-// (precision is 1/2^10 ~= 0.001, which is more than what's needed for almost all neural nets), and cannot overflow unless the matrix width is > 4096.
+// (precision is 1/2^10 ~= 0.001, which is more than what's needed for almost all neural nets), and cannot overflow unless the matrix width is > 4096. 
 
 // This quantizes floating point values into fixed-point 16-bit integers. Effectively, we are performing an SSE version of
 // float x = ...;
 // int16_t y = (int16_t)(quant_mult*x);
-//
+// 
 // Except that the casting is saturated. However, you should always ensure that the input fits into a fixed range anyways.
 // I.e., you should ensure that quant_mult*x fits into the range [-2^15, 2^15].
 // This should always be possible because the value you're quantizing will either be NN weights or NN activations, both of
 // which can be clipped to a fixed range during training.
 
-namespace marian {
-
-namespace cpu {
-namespace int16 {
-
-const int BITS = 10;
-
-static inline void Quantize(marian::Tensor out,
-                            const marian::Tensor in) {
-
-    int num_rows = in->shape().elements() / in->shape()[-1];
-    int width = in->shape()[-1];
-    ABORT_IF(width % 8 != 0, "Width {} is not divisble by 8", width);
-
-    const float* input = in->data();
-    __m128i* output = out->data<__m128i>();
-
-    float quant_mult = pow(2.0, (float)BITS);
-
-    int num_input_chunks = width / 8;
-
+void SSE_Quantize16(const float * input, __m128i * output, float quant_mult, int num_rows, int width) {
+    assert(width % 8 == 0);
+    
+    int num_input_chunks = width/8;
+    
     // Fill an SSE float with 4 copies of the quant mult
     __m128 sse_quant_mult = _mm_set_ps(quant_mult, quant_mult, quant_mult, quant_mult);
-
+    
     for (int i = 0; i < num_rows; i++) {
-        const float* input_row = input + i * width;
-        __m128i* output_row = output + i * num_input_chunks;
+        const float * input_row = input + i*width;
+        __m128i * output_row = output + i*num_input_chunks;
         for (int j = 0; j < num_input_chunks; j++) {
-            const float* x = input_row + j * 8;
+            const float * x = input_row + j*8;
             // Process 8 floats at once, since each __m128i can contain 8 16-bit integers.
-
-            // Load floats into SSE registers.
+            
+            // Load floats floats into SSE registers.
             __m128 f_0 = _mm_loadu_ps(x);
             __m128 f_1 = _mm_loadu_ps(x + 4);
-
+            
             // Multiply by quantization factor (e.g., if quant_mult = 1000.0, 0.34291 --> 342.21)
             __m128 m_0 = _mm_mul_ps(f_0, sse_quant_mult);
             __m128 m_1 = _mm_mul_ps(f_1, sse_quant_mult);
-
+            
             // Cast float to 32-bit int (e.g., 342.21 --> 342)
             __m128i i_0 = _mm_cvtps_epi32(m_0);
             __m128i i_1 = _mm_cvtps_epi32(m_1);
-
+            
             // Cast 32-bit int to 16-bit int. You must ensure that these fit into the 16-bit range
             // by clipping values during training.
             *(output_row + j) = _mm_packs_epi32(i_0, i_1);
@@ -113,27 +95,14 @@ static inline void Quantize(marian::Tensor out,
     }
 }
 
-
 // We are multiplying A * B^T, as opposed to A * B. This is important because it means we can do consecutive memory access on A * B^T which allows to to take the most
 // advantage of L1 cache.
-//
+// 
 // B is typically a weight matrix, so it can be pre-processed offline, and therefore this transpose does not cost anything.
 // A is typically an activation minibatch matrix.
-static inline void SSE_MatrixMult(marian::Tensor C,
-                                  const marian::Tensor A,
-                                  const marian::Tensor B,
-                                  float unquant_mult,
-                                  float scale)
+void SSE_MatrixMult16(const __m128i * qA, const __m128i * qB, float * fC, float unquant_mult, int num_A_rows, int num_B_rows, int width)
 {
-    const __m128i* qA = A->data<__m128i>();
-    const __m128i* qB = B->data<__m128i>();
-    float* fC = C->data();
-
-    int num_A_rows = A->shape().elements() / A->shape()[-1];
-    int num_B_rows = B->shape().elements() / B->shape()[-1];
-    int width = B->shape()[-1];
-
-    ABORT_IF(width % 8 != 0, "Width {} is not divisble by 8", width);
+    assert(width % 8 == 0);
 
     int sse_width = width / 8;
 
@@ -339,46 +308,4 @@ static inline void SSE_MatrixMult(marian::Tensor C,
     }
 }
 
-static void AddBias(marian::Tensor C, const marian::Tensor Bias) {
-    float* y = C->data();
-    const float* x = C->data();
-    const float* bias = Bias->data();
-
-    int m = C->shape().elements() / C->shape()[-1];
-    int n = C->shape()[-1];
-    int n4 = (n / 4) * 4;
-
-    for(int j = 0; j < m; ++j) {
-        for (int i = 0; i < n4; i += 4) {
-            __m128 ai = _mm_loadu_ps(x + j * n + i);
-            __m128 bi = _mm_loadu_ps(bias + i);
-            __m128 yi = _mm_add_ps(ai, bi);
-            _mm_storeu_ps(y + j * n + i, yi);
-        }
-        for (int i = n4; i < n; i++) {
-            y[j * n + i] = x[j * n + i] + bias[i];
-        }
-    }
-}
-
-static void ProdInt(marian::Tensor C,
-                    const marian::Tensor A,
-                    const marian::Tensor B,
-                    float scale) {
-
-    ABORT_IF(scale != 1, "Scale other than 1 not supported");
-
-    // @TODO: make this a parameter
-    float quant_mult = pow(2.0, (float)BITS);
-
-    // If we quantize to n bits and then multiple the values together, the result will be quantized to n^2 bits.
-    // So we must divide by 1.0/(n^2) to get back the original value.
-    float unquant_mult = 1.0 / (quant_mult * quant_mult);
-
-    SSE_MatrixMult(C, A, B, unquant_mult, scale);
-}
-
-}
-}
-
-}
+}}} // namespaces

@@ -2,6 +2,7 @@
 
 #include "common/definitions.h"
 #include "data/batch.h"
+#include "data/rng_engine.h"
 #include "data/vocab.h"
 #include "training/training_state.h"
 
@@ -97,7 +98,8 @@ public:
   }
 };
 
-class Dataset : public DatasetBase<Example, ExampleIterator, DataBatch> {
+class Dataset : public DatasetBase<Example, ExampleIterator, DataBatch>,
+                public RNGEngine {
 protected:
   Examples examples_;
 
@@ -110,7 +112,7 @@ public:
 
   iterator end() { return ExampleIterator(examples_.end()); }
 
-  void shuffle() { std::random_shuffle(examples_.begin(), examples_.end()); }
+  void shuffle() { std::shuffle(examples_.begin(), examples_.end(), eng_); }
 
   batch_ptr toBatch(const Examples& batchVector) {
     int batchSize = batchVector.size();

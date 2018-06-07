@@ -49,6 +49,8 @@ public:
       auto graph = New<ExpressionGraph>();
       graph->setDevice(device);
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
+      graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
+
       graphs_.push_back(graph);
       shardOpt_.push_back(Optimizer(options_));
       builders_.push_back(models::from_config(options_, models::usage::training));

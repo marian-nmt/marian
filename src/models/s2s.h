@@ -271,6 +271,7 @@ public:
            options_->has("original-type")
                && opt<std::string>("original-type") == "nematus")  //
           );
+
       start = mlp->apply(meanContexts);
     } else {
       int dimBatch = batch->size();
@@ -364,8 +365,13 @@ public:
     else
       logits = output_->apply(embeddings, decoderContext);
 
+
     // return unormalized(!) probabilities
-    return New<DecoderState>(decoderStates, logits, state->getEncoderStates(), state->getBatch());
+    auto nextState = New<DecoderState>(decoderStates, logits, state->getEncoderStates(), state->getBatch());
+
+    // Advance current target token position by one
+    nextState->setPosition(state->getPosition() + 1);
+    return nextState;
   }
 
   // helper function for guided alignment

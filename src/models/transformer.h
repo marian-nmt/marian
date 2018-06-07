@@ -323,11 +323,43 @@ public:
     return output;
   }
 
-  static Expr LayerFFN(Ptr<ExpressionGraph> graph,
-                       Ptr<Options> options,
-                       std::string prefix,
-                       Expr input,
-                       bool inference = false) {
+  Expr DecoderLayerSelfAttention(rnn::State& decoderState,
+                                 const rnn::State& prevDecoderState,
+                                 Ptr<ExpressionGraph> graph,
+                                 Ptr<Options> options,
+                                 std::string prefix,
+                                 Expr input,
+                                 Expr selfMask,
+                                 int startPos,
+                                 bool inference = false) {
+
+    using namespace keywords;
+
+    selfMask = transposedLogMask(selfMask);
+
+    auto values = input;
+    if(startPos > 0) {
+      values = concatenate({prevDecoderState.output, input},
+                           axis = -2);
+    }
+    decoderState.output = values;
+
+    // TODO: do not recompute matrix multiplies
+    return LayerAttention(graph,
+                          options,
+                          prefix,
+                          input,
+                          values,
+                          values,
+                          selfMask,
+                          inference);
+  }
+
+  Expr LayerFFN(Ptr<ExpressionGraph> graph,
+                Ptr<Options> options,
+                std::string prefix,
+                Expr input,
+                bool inference = false) {
     using namespace keywords;
 
     int dimModel = input->shape()[-1];
@@ -376,6 +408,108 @@ public:
         = PostProcess(graph, prefix + "_ffn", opsPost, output, input, dropProb);
 
     return output;
+  }
+
+  // Implementation of Average Attention Network Layer (ANN) from
+  // https://arxiv.org/pdf/1805.00631.pdf
+  Expr LayerAAN(Ptr<ExpressionGraph> graph,
+                Ptr<Options> options,
+                std::string prefix,
+                Expr x,
+                Expr y,
+                bool inference = false) {
+    using namespace keywords;
+
+    int dimModel = x->shape()[-1];
+
+    float dropProb = inference ? 0 : options->get<float>("transformer-dropout");
+    auto opsPre = options->get<std::string>("transformer-preprocess");
+
+    y = PreProcess(graph, prefix + "_ffn", opsPre, y, dropProb);
+
+    // FFN
+    int dimAan = options->get<int>("transformer-dim-aan");
+    int depthAan = options->get<int>("transformer-aan-depth");
+    auto act = options->get<std::string>("transformer-aan-activation");
+    float aanDropProb = inference ? 0 : options->get<float>("transformer-dropout-ffn");
+
+    int i = 1;
+    int dimLast = dimModel;
+    for(; i < depthAan; ++i) {
+      int dimFirst = i == 1 ? dimModel : dimAan;
+      auto W = graph->param(
+            prefix + "_W" + std::to_string(i), {dimFirst, dimAan}, inits::glorot_uniform);
+      auto b = graph->param(prefix + "_b" + std::to_string(i), {1, dimAan}, inits::zeros);
+
+      y = affine(y, W, b);
+
+      if(act == "relu")
+        y = relu(y);
+      else
+        y = swish(y);
+
+      if(aanDropProb)
+        y = dropout(y, aanDropProb);
+
+      dimLast = dimAan;
+    }
+
+    if(dimLast != dimModel) {
+      auto W = graph->param(
+        prefix + "_W" + std::to_string(i), {dimLast, dimModel}, inits::glorot_uniform);
+      auto b = graph->param(prefix + "_b" + std::to_string(i), {1, dimModel}, inits::zeros);
+      y = affine(y, W, b);
+    }
+
+    bool noGate = options->get<bool>("transformer-aan-nogate");
+    if(!noGate) {
+      auto Wi = graph->param(prefix + "_Wi", {dimModel, dimModel}, inits::glorot_uniform);
+      auto bi = graph->param(prefix + "_bi", {1, dimModel}, inits::zeros);
+
+      auto Wf = graph->param(prefix + "_Wf", {dimModel, dimModel}, inits::glorot_uniform);
+      auto bf = graph->param(prefix + "_bf", {1, dimModel}, inits::zeros);
+
+      auto gi = logit(affine(x, Wi, bi));
+      auto gf = logit(affine(y, Wf, bf));
+      y = gi * x + gf * y;
+    }
+
+    auto opsPost = options->get<std::string>("transformer-postprocess");
+    y = PostProcess(graph, prefix + "_ffn", opsPost, y, x, dropProb);
+
+    return y;
+  }
+
+  // Implementation of Average Attention Network Layer (ANN) from
+  // https://arxiv.org/pdf/1805.00631.pdf
+  // Function wrapper using decoderState as input.
+  Expr DecoderLayerAAN(rnn::State& decoderState,
+                       const rnn::State& prevDecoderState,
+                       Ptr<ExpressionGraph> graph,
+                       Ptr<Options> options,
+                       std::string prefix,
+                       Expr input,
+                       Expr selfMask,
+                       int startPos,
+                       bool inference = false) {
+
+    using namespace keywords;
+
+    auto output = input;
+    if(startPos > 0) {
+      // we are decoding at a position after 0
+      output = (prevDecoderState.output * startPos + input) / (startPos + 1);
+    }
+    else if(startPos == 0 && output->shape()[-2] > 1) {
+      // we are training or scoring, because there is no history and
+      // the context is larger than a single time step. We do not need
+      // to average batch with only single words.
+      selfMask = selfMask / sum(selfMask, axis=-1);
+      output = bdot(selfMask, output);
+    }
+    decoderState.output = output;
+
+    return LayerAAN(graph, options, prefix, input, output, inference);
   }
 };
 
@@ -508,7 +642,12 @@ public:
       selectedStates.push_back({sel, nullptr});
     }
 
-    return New<TransformerState>(selectedStates, probs_, encStates_, batch_);
+    // Create hypothesis-selected state based on current state and hyp indices
+    auto selectedState = New<TransformerState>(selectedStates, probs_, encStates_, batch_);
+
+    // Set the same target token position as the current state
+    selectedState->setPosition(getPosition());
+    return selectedState;
   }
 };
 
@@ -551,10 +690,10 @@ public:
     // according to paper embeddings are scaled by \sqrt(d_m)
     auto scaledEmbeddings = std::sqrt(dimEmb) * embeddings;
 
-    int startPos = 0;
-    auto prevDecoderStates = state->getStates();
-    if(prevDecoderStates.size() > 0)
-      startPos = prevDecoderStates[0].output->shape()[-2];
+    // set current target token position during decoding or training. At training
+    // this should be 0. During translation the current length of the translation.
+    // Used for position embeddings and creating new decoder states.
+    int startPos = state->getPosition();
 
     scaledEmbeddings
         = AddPositionalEmbeddings(graph, scaledEmbeddings, startPos);
@@ -569,7 +708,6 @@ public:
 
     query = PreProcess(graph, prefix_ + "_emb", opsEmb, query, dropProb);
 
-    rnn::States decoderStates;
     int dimTrgWords = query->shape()[-2];
     int dimBatch = query->shape()[-3];
     auto selfMask = TriangleMask(graph, dimTrgWords);  // [ (1,) 1, max length, max length]
@@ -582,9 +720,6 @@ public:
       //  selfMask = repeat(selfMask, dimBeam, axis = -4);
     }
 
-    selfMask = transposedLogMask(selfMask);
-
-    // reorganize batch and timestep for encoder embeddings
     std::vector<Expr> encoderContexts;
     std::vector<Expr> encoderMasks;
 
@@ -608,60 +743,59 @@ public:
       encoderMasks.push_back(encoderMask);
     }
 
-    // apply decoder layers
-    auto decDepth = opt<int>("dec-depth");
-    for(int i = 1; i <= decDepth; ++i) {
-      auto values = query;
+    rnn::States prevDecoderStates = state->getStates();
+    rnn::States decoderStates;
+    // apply layers
+    for(int i = 1; i <= opt<int>("dec-depth"); ++i) {
+      rnn::State decoderState;
+      rnn::State prevDecoderState;
+
       if(prevDecoderStates.size() > 0)
-        values
-            = concatenate({prevDecoderStates[i - 1].output, query}, axis = -2);
+        prevDecoderState = prevDecoderStates[i - 1];
 
-      decoderStates.push_back({values, nullptr});
+      std::string layerType = opt<std::string>("transformer-decoder-autoreg");
+      if(layerType == "self-attention") {
+        query = DecoderLayerSelfAttention(decoderState,
+                                          prevDecoderState,
+                                          graph,
+                                          options_,
+                                          prefix_ + "_l" + std::to_string(i) + "_self",
+                                          query,
+                                          selfMask,
+                                          startPos,
+                                          inference_);
+      } else if(layerType == "average-attention") {
+        query = DecoderLayerAAN(decoderState,
+                                prevDecoderState,
+                                graph,
+                                options_,
+                                prefix_ + "_l" + std::to_string(i) + "_aan",
+                                query,
+                                selfMask,
+                                startPos,
+                                inference_);
+      } else {
+        ABORT("Unknown auto-regressive layer type in transformer decoder {}", layerType);
+      }
 
-      // TODO: do not recompute matrix multiplies
-      // self-attention
-      query = LayerAttention(graph,
-                             options_,
-                             prefix_ + "_l" + std::to_string(i) + "_self",
-                             query,
-                             values,
-                             values,
-                             selfMask,
-                             inference_);
+      decoderStates.push_back(decoderState);
 
-      // attention over encoder
+      // Iterate over multiple encoders and simply stack the attention blocks
       if(encoderContexts.size() > 0) {
-        // auto comb = opt<std::string>("transformer-multi-encoder");
-        std::string comb = "stack";
-        if(comb == "concat") {
-          query
-              = LayerAttention(graph,
-                               options_,
-                               prefix_ + "_l" + std::to_string(i) + "_context",
-                               query,
-                               encoderContexts,
-                               encoderContexts,
-                               encoderMasks,
-                               inference_);
+        for(int j = 0; j < encoderContexts.size(); ++j) {
+          std::string prefix
+              = prefix_ + "_l" + std::to_string(i) + "_context";
+          if(j > 0)
+            prefix += "_enc" + std::to_string(j + 1);
 
-        } else if(comb == "stack") {
-          for(int j = 0; j < encoderContexts.size(); ++j) { // multiple encoders are applied one after another
-            std::string prefix
-                = prefix_ + "_l" + std::to_string(i) + "_context";
-            if(j > 0)
-              prefix += "_enc" + std::to_string(j + 1);
-
-            query = LayerAttention(graph,
-                                   options_,
-                                   prefix,
-                                   query,
-                                   encoderContexts[j],
-                                   encoderContexts[j],
-                                   encoderMasks[j],
-                                   inference_);
-          }
-        } else {
-          ABORT("Unknown value for transformer-multi-encoder: {}", comb);
+          query = LayerAttention(graph,
+                                 options_,
+                                 prefix,
+                                 query,
+                                 encoderContexts[j],
+                                 encoderContexts[j],
+                                 encoderMasks[j],
+                                 inference_);
         }
       }
 
@@ -704,8 +838,12 @@ public:
     Expr logits = output_->apply(decoderContext);
 
     // return unormalized(!) probabilities
-    return New<TransformerState>(
-        decoderStates, logits, state->getEncoderStates(), state->getBatch());
+    auto nextState = New<TransformerState>(decoderStates,
+                                           logits,
+                                           state->getEncoderStates(),
+                                           state->getBatch());
+    nextState->setPosition(state->getPosition() + 1);
+    return nextState;
   }
 
   // helper function for guided alignment
