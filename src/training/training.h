@@ -78,7 +78,10 @@ public:
     scheduler->finished();
 
     model->finalize();
-    model->save(true);
+
+    // @TODO: romang, can you comment on this?
+    if(!trainState->loaded)
+      model->save(true);
   }
 };
 }

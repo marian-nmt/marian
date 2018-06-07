@@ -18,7 +18,10 @@ Ptr<Scorer> scorerByType(std::string fname,
     options->set("index", index);
   }
 
-  auto encdec = models::from_options(options, models::usage::translation);
+  bool skipCost = config->get<bool>("skip-cost");
+  auto encdec = models::from_options(options,
+                                     skipCost ? models::usage::raw
+                                     : models::usage::translation);
 
   LOG(info, "Loading scorer of type {} as feature {}", type, fname);
 

@@ -26,7 +26,7 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
       "special-vocab",
       "tied-embeddings",
       "tied-embeddings-src",
-      "tied-embeddings-all",
+      "tied-embeddings-all"
   };
 
   modelFeatures_.insert("transformer-heads");
@@ -34,9 +34,14 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
   modelFeatures_.insert("transformer-dim-ffn");
   modelFeatures_.insert("transformer-ffn-depth");
   modelFeatures_.insert("transformer-ffn-activation");
+  modelFeatures_.insert("transformer-dim-aan");
+  modelFeatures_.insert("transformer-aan-depth");
+  modelFeatures_.insert("transformer-aan-activation");
+  modelFeatures_.insert("transformer-aan-nogate");
   modelFeatures_.insert("transformer-preprocess");
   modelFeatures_.insert("transformer-postprocess");
   modelFeatures_.insert("transformer-postprocess-emb");
+  modelFeatures_.insert("transformer-decoder-autoreg");
 }
 
 std::vector<Ptr<EncoderBase>>& EncoderDecoder::getEncoders() {

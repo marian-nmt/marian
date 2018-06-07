@@ -31,6 +31,13 @@ Expr prelu(Expr a, float alpha) {
   return Expression<PReLUNodeOp>(alpha, a);
 }
 
+Expr clip(Expr a, float c) {
+  if(c == 0)
+    return a;
+  else
+    return Expression<ClipNodeOp>(a, c);
+}
+
 Expr log(Expr a) {
   return Expression<LogNodeOp>(a);
 };
@@ -204,16 +211,21 @@ Expr weighted_average(Expr in, Expr weights, keywords::axis_k ax) {
 
 Expr dot(Expr a, Expr b, bool transA, bool transB, float scale) {
   auto device = a->graph()->getDevice().type;
+  float clipValue = a->graph()->getBackend()->getClip();
+
+  // Currently only true when command line options
+  // --optimize --cpu-thread=N with N > 0 are set.
   if(a->graph()->isOptimized() && device == DeviceType::cpu) {
     // dotInt16 computes A * B.T, hence the transpose for B to get A * B
     // if transA = false and transB = false.
 
-    return cpu::int16::dot(cpu::int16::quantize(transA ? transpose(a) : a),
-                           cpu::int16::quantize(transB ? b : transpose(b)),
+    return cpu::int16::dot(cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
+                           cpu::int16::quantize(transB ? b : transpose(b), clipValue),
                            scale);
   }
   else {
-    return Expression<DotNodeOp>(a, b, transA, transB, scale);
+    return Expression<DotNodeOp>(clip(a, clipValue), clip(b, clipValue),
+                                 transA, transB, scale);
   }
 }
 
@@ -223,6 +235,9 @@ Expr bdot(Expr a, Expr b, bool transA, bool transB, float scale) {
 
 Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
   auto device = a->graph()->getDevice().type;
+
+  float clipValue = a->graph()->getBackend()->getClip();
+
   if(a->graph()->isOptimized() && device == DeviceType::cpu) {
 
     bool autotune = true;
@@ -255,8 +270,8 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
         return e;
       };
       auto alg1 = [=]() {
-        return rec1(cpu::int16::affine(rec1(cpu::int16::quantize(transA ? rec1(transpose(a)) : a)),
-                                       cpu::int16::quantize(transB ? b : transpose(b)),
+        return rec1(cpu::int16::affine(rec1(cpu::int16::quantize(transA ? rec1(transpose(a)) : a, clipValue)),
+                                       cpu::int16::quantize(transB ? b : transpose(b), clipValue),
                                        bias,
                                        scale),
                     true);
@@ -270,8 +285,18 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
         e->record(tuner, hash2, stop);
         return e;
       };
+
+
       auto alg2 = [=]() {
-        std::vector<Expr> nodes = {a, b, bias};
+        auto ac = clip(a, clipValue);
+        if(ac != a)
+          ac = rec2(ac);
+
+        auto bc = clip(b, clipValue);
+        if(bc != b)
+          bc = rec2(bc);
+
+        std::vector<Expr> nodes = {ac, bc, bias};
         return rec2(Expression<AffineNodeOp>(nodes, transA, transB, scale),
                     true);
       };
@@ -283,16 +308,21 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
     }
     else {
       // cpu int16 version
-      return cpu::int16::affine(cpu::int16::quantize(transA ? transpose(a) : a),
-                                cpu::int16::quantize(transB ? b : transpose(b)),
+      return cpu::int16::affine(cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
+                                cpu::int16::quantize(transB ? b : transpose(b), clipValue),
                                 bias,
                                 scale);
     }
   }
   else {
     // general version, MKL, CBlas or CUDA
-    std::vector<Expr> nodes = {a, b, bias};
+    // if clipValue > 0, the inputs will be clipped to range [-clipValue, clipValue]
+    // This is meant to keep values at the same range as used during training when
+    // optimizing for 8-bit integer products. Likely to be removed in the future
+    // when we explore better ways to handle this.
+    std::vector<Expr> nodes = {clip(a, clipValue), clip(b, clipValue), bias};
     return Expression<AffineNodeOp>(nodes, transA, transB, scale);
+
   }
 }
 

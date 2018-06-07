@@ -27,6 +27,9 @@ add_library(marian STATIC
   tensors/cpu/prod.cpp
   tensors/cpu/tensor_operators.cpp
 
+  tensors/cpu/sharp/avx_gemm.cpp
+  tensors/cpu/sharp/sse_gemm.cpp
+
   graph/expression_graph.cpp
   graph/expression_operators.cpp
   graph/node.cpp
@@ -128,7 +131,7 @@ if(COMPILE_SERVER)
 endif(COMPILE_SERVER)
 
 foreach(exec ${EXECUTABLES})
-  target_link_libraries(${exec} marian ${EXT_LIBS})
+  target_link_libraries(${exec} marian ${EXT_LIBS} ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
   if(CUDA_FOUND)
     target_link_libraries(${exec} marian marian_cuda ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
     cuda_add_cublas_to_target(${exec})

@@ -290,6 +290,8 @@ void ConfigParser::addOptionsCommon(po::options_description& desc) {
      "Suppress logging for translation")
     ("seed", po::value<size_t>()->default_value(0),
      "Seed for all random number generators. 0 means initialize randomly")
+    ("clip-gemm", po::value<float>()->default_value(0.f),
+     "If not 0 clip GEMM input values to +/- arg")
     ("interpolate-env-vars", po::value<bool>()->zero_tokens()->default_value(false),
      "allow the use of environment variables in paths, of the form ${VAR_NAME}")
     ("relative-paths", po::value<bool>()->zero_tokens()->default_value(false),
@@ -374,14 +376,24 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Tie all embedding layers and output layer")
     ("transformer-heads", po::value<int>()->default_value(8),
      "Number of heads in multi-head attention (transformer)")
-    ("transformer-dim-ffn", po::value<int>()->default_value(2048),
-     "Size of position-wise feed-forward network (transformer)")
     ("transformer-no-projection", po::value<bool>()->zero_tokens()->default_value(false),
      "Omit linear projection after multi-head attention (transformer)")
+    ("transformer-dim-ffn", po::value<int>()->default_value(2048),
+     "Size of position-wise feed-forward network (transformer)")
     ("transformer-ffn-depth", po::value<int>()->default_value(2),
-     "Activation between filters: swish or relu (transformer)")
+     "Depth of filters (transformer)")
     ("transformer-ffn-activation", po::value<std::string>()->default_value("swish"),
      "Activation between filters: swish or relu (transformer)")
+    ("transformer-dim-aan", po::value<int>()->default_value(2048),
+     "Size of position-wise feed-forward network in AAN (transformer)")
+    ("transformer-aan-depth", po::value<int>()->default_value(2),
+     "Depth of filter for AAN (transformer)")
+    ("transformer-aan-activation", po::value<std::string>()->default_value("swish"),
+     "Activation between filters in AAN: swish or relu (transformer)")
+    ("transformer-aan-nogate", po::value<bool>()->zero_tokens()->default_value(false),
+     "Omit gate in AAN (transformer)")
+    ("transformer-decoder-autoreg", po::value<std::string>()->default_value("self-attention"),
+     "Type of autoregressive layer in transformer decoder: self-attention, average-attention (transformer)")
     ("transformer-preprocess", po::value<std::string>()->default_value(""),
      "Operation before each transformer layer: d = dropout, a = add, n = normalize")
     ("transformer-postprocess-emb", po::value<std::string>()->default_value("d"),
@@ -500,7 +512,6 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
       "Sorting strategy for maxi-batch: trg (default) src none")
-
     ("optimizer,o", po::value<std::string>()->default_value("adam"),
      "Optimization algorithm (possible values: sgd, adagrad, adam")
     ("optimizer-params",  po::value<std::vector<float>>()
@@ -596,6 +607,10 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("multi-node-overlap", po::value<bool>()
       ->default_value(true),
      "Overlap model computations with MPI communication")
+    ("multi-node-local-optimizers", po::value<bool>()
+      ->zero_tokens()
+      ->default_value(false),
+     "Enable local optimizers with multi-node. Requires optimizer delay to be turned on.")
   ;
   // clang-format on
   desc.add(training);
@@ -642,6 +657,8 @@ void ConfigParser::addOptionsValid(po::options_description& desc) {
       "Divide translation score by pow(translation length, arg) ")
     ("word-penalty", po::value<float>()->default_value(0.f)->implicit_value(0.f),
       "Subtract (arg * translation length) from translation score ")
+    ("max-length-factor", po::value<float>()->default_value(3),
+      "Maximum target length as source length times factor")
     ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
       "Allow unknown words to appear in output")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
@@ -670,8 +687,12 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Subtract (arg * translation length) from translation score ")
     ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
       "Allow unknown words to appear in output")
+    ("skip-cost", po::value<bool>()->zero_tokens()->default_value(false),
+      "Ignore model cost during translation, not recommended for beam-size > 1")
     ("max-length", po::value<size_t>()->default_value(1000),
       "Maximum length of a sentence in a training sentence pair")
+    ("max-length-factor", po::value<float>()->default_value(3),
+      "Maximum target length as source length times factor")
     ("max-length-crop", po::value<bool>()->zero_tokens()->default_value(false),
       "Crop a sentence to max-length instead of ommitting it if longer than max-length")
     ("devices,d", po::value<std::vector<std::string>>()
@@ -691,6 +712,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Optimize speed aggressively sacrificing memory or precision")
     ("mini-batch", po::value<int>()->default_value(1),
       "Size of mini-batch used during update")
+    ("mini-batch-words", po::value<int>()->default_value(0),
+      "Set mini-batch size based on words instead of sentences")
     ("maxi-batch", po::value<int>()->default_value(1),
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("none"),
@@ -891,6 +914,11 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("transformer-dim-ffn", int);
   SET_OPTION("transformer-ffn-depth", int);
   SET_OPTION("transformer-ffn-activation", std::string);
+  SET_OPTION("transformer-dim-aan", int);
+  SET_OPTION("transformer-aan-depth", int);
+  SET_OPTION("transformer-aan-activation", std::string);
+  SET_OPTION("transformer-aan-nogate", bool);
+  SET_OPTION("transformer-decoder-autoreg", std::string);
 
 #ifdef CUDNN
   SET_OPTION("char-stride", int);
@@ -916,7 +944,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("transformer-dropout", float);
     SET_OPTION("transformer-dropout-attention", float);
     SET_OPTION("transformer-dropout-ffn", float);
- 
+
     SET_OPTION("overwrite", bool);
     SET_OPTION("no-reload", bool);
     if(!vm_["train-sets"].empty()) {
@@ -978,6 +1006,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 
     SET_OPTION("multi-node", bool);
     SET_OPTION("multi-node-overlap", bool);
+    SET_OPTION("multi-node-local-optimizers", bool);
   }
 
   if(mode_ == ConfigMode::rescoring) {
@@ -999,10 +1028,13 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("word-penalty", float);
     SET_OPTION("allow-unk", bool);
     SET_OPTION("n-best", bool);
+    SET_OPTION("mini-batch-words", int);
     SET_OPTION_NONDEFAULT("weights", std::vector<float>);
     SET_OPTION_NONDEFAULT("shortlist", std::vector<std::string>);
     SET_OPTION("port", size_t);
     SET_OPTION("optimize", bool);
+    SET_OPTION("max-length-factor", float);
+    SET_OPTION("skip-cost", bool);
   }
 
   /** valid **/
@@ -1024,6 +1056,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION_NONDEFAULT("valid-translation-output", std::string);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("normalize", float);
+    SET_OPTION("max-length-factor", float);
     SET_OPTION("word-penalty", float);
     SET_OPTION("allow-unk", bool);
     SET_OPTION("n-best", bool);
@@ -1035,6 +1068,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("quiet-translation", bool);
   SET_OPTION_NONDEFAULT("log", std::string);
   SET_OPTION("seed", size_t);
+  SET_OPTION("clip-gemm", float);
   SET_OPTION("interpolate-env-vars", bool);
   SET_OPTION("relative-paths", bool);
   SET_OPTION("devices", std::vector<std::string>);
