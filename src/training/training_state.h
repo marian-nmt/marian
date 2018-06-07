@@ -61,7 +61,10 @@ public:
   // The state of the random number generator from a corpus
   std::string seedCorpus;
 
+  // Set flag if training was resumed
   bool loaded{false};
+
+  // @TODO: romang, is this doing anything?
   bool validated{false};
 
   TrainingState(float learnRate) : eta(learnRate) {}

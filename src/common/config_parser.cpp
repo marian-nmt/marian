@@ -1095,23 +1095,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
 
   if(get<bool>("interpolate-env-vars")) {
-    processPaths(config_,
-      [&](const std::string& nodePath) -> std::string {
-        // replace environment-variable expressions of the form ${VARNAME} in pathnames
-        auto path = nodePath;
-        for(;;)
-        {
-          const auto pos = path.find("${");
-          if (pos == std::string::npos)
-              return path;
-          const auto epos = path.find("}", pos + 2);
-          ABORT_IF(epos == std::string::npos, "interpolate-env-vars option: ${{ without matching }} in '{}'", path.c_str());
-          const auto var = path.substr(pos + 2, epos - (pos + 2)); // isolate the variable name
-          const auto val = getenv(var.c_str());
-          ABORT_IF(!val, "interpolate-env-vars option: environment variable '{}' not defined in '{}'", var.c_str(), path.c_str());
-          path = path.substr(0,pos) + val + path.substr(epos + 1); // replace it; then try again for further replacements
-        }
-      });
+    processPaths(config_, interpolateEnvVars);
   }
 
   if(get<bool>("relative-paths") && !vm_["dump-config"].as<bool>()) {

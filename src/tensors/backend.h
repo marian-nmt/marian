@@ -8,7 +8,9 @@ class Backend {
 protected:
   DeviceId deviceId_;
   size_t seed_;
-  float clip_{0.f};
+
+  // global clipping value for matrix-multiplies, should soon be removed.
+  float clipValue_{0.f};
 
 public:
   Backend(DeviceId deviceId, size_t seed) : deviceId_(deviceId), seed_(seed) {}
@@ -17,12 +19,12 @@ public:
   virtual void setDevice() = 0;
   virtual void synchronize() = 0;
 
-  virtual void setClip(float clip) {
-    clip_ = clip;
+  virtual void setClip(float clipValue) {
+    clipValue_ = clipValue;
   }
 
   float getClip() {
-    return clip_;
+    return clipValue_;
   }
 };
 

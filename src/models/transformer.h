@@ -410,6 +410,8 @@ public:
     return output;
   }
 
+  // Implementation of Average Attention Network Layer (ANN) from
+  // https://arxiv.org/pdf/1805.00631.pdf
   Expr LayerAAN(Ptr<ExpressionGraph> graph,
                 Ptr<Options> options,
                 std::string prefix,
@@ -478,6 +480,9 @@ public:
     return y;
   }
 
+  // Implementation of Average Attention Network Layer (ANN) from
+  // https://arxiv.org/pdf/1805.00631.pdf
+  // Function wrapper using decoderState as input.
   Expr DecoderLayerAAN(rnn::State& decoderState,
                        const rnn::State& prevDecoderState,
                        Ptr<ExpressionGraph> graph,
@@ -505,28 +510,6 @@ public:
     decoderState.output = output;
 
     return LayerAAN(graph, options, prefix, input, output, inference);
-  }
-
-  Expr LayerOther(Ptr<ExpressionGraph> graph,
-                  Ptr<Options> options,
-                  std::string prefix,
-                  Expr input,
-                  Expr output,
-                  bool inference = false) {
-    using namespace keywords;
-
-    int dimModel = input->shape()[-1];
-
-    float dropProb = inference ? 0 : options->get<float>("transformer-dropout");
-    auto opsPre = options->get<std::string>("transformer-preprocess");
-
-    output = PreProcess(graph, prefix + "_ffn", opsPre, output, dropProb);
-
-    auto opsPost = options->get<std::string>("transformer-postprocess");
-    output
-        = PostProcess(graph, prefix + "_ffn", opsPost, output, input, dropProb);
-
-    return output;
   }
 };
 
@@ -659,7 +642,10 @@ public:
       selectedStates.push_back({sel, nullptr});
     }
 
+    // Create hypothesis-selected state based on current state and hyp indices
     auto selectedState = New<TransformerState>(selectedStates, probs_, encStates_, batch_);
+
+    // Set the same target token position as the current state
     selectedState->setPosition(getPosition());
     return selectedState;
   }
@@ -704,6 +690,9 @@ public:
     // according to paper embeddings are scaled by \sqrt(d_m)
     auto scaledEmbeddings = std::sqrt(dimEmb) * embeddings;
 
+    // set current target token position during decoding or training. At training
+    // this should be 0. During translation the current length of the translation.
+    // Used for position embeddings and creating new decoder states.
     int startPos = state->getPosition();
 
     scaledEmbeddings

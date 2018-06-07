@@ -5,6 +5,11 @@
 namespace marian {
 namespace cpu {
 
+// Function in this header are supposed to execute element-wise operations
+// (passed in as a Functor) on arbitrary numbers of tensors. The templates
+// are required to implement correct broadcasting of operations across
+// a fixed-at-compile-time but in principle arbitrary number of dimensions.
+
 // @TODO: generalize to vector operations, possible using specializations
 
 // single loop over outer dimension. Recursively creates nested loops
@@ -49,6 +54,7 @@ template <> struct E<functional::Shape::size()> {
   }
 };
 
+// main call to function executing element-wise operation
 template <class Functor, class... Tensors>
 void Element(const Functor& functor, marian::Tensor out, Tensors... tensors) {
   constexpr size_t K = sizeof...(tensors) + 1;
