@@ -8,9 +8,12 @@
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <iostream>
+
+#ifdef _WIN32
 #include <io.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#endif
 
 namespace io = boost::iostreams;
 
