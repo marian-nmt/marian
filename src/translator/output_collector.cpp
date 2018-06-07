@@ -55,6 +55,9 @@ void OutputCollector::Write(long sourceId,
       }
     }
 
+    if (!nbest) // for 1-best, flush stdout so that we can consume this immediately from an external process
+        ((std::ostream&)*outStrm_) << std::flush;
+
   } else {
     // save for later
     outputs_[sourceId] = std::make_pair(best1, bestn);
