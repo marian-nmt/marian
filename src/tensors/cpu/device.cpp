@@ -1,9 +1,9 @@
 #include "tensors/device.h"
 #include <iostream>
 
-//#if DOZE
+#ifdef _WIN32
 #include <malloc.h>
-
+#endif
 #include <stdlib.h>
 
 namespace marian {
@@ -15,10 +15,11 @@ Device::~Device() {
   size_ = 0;
 }
 
-// #if DOZE
+#ifdef _WIN32
 void* aligned_alloc(size_t alignment, size_t size) {
     return _aligned_malloc(size, alignment);
 }
+#endif
 
 void Device::reserve(size_t size) {
   size = align(size);

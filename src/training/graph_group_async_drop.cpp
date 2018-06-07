@@ -70,10 +70,14 @@ void AsyncGraphGroupDrop::fetchParams(Tensor oldParams,
 
     pos += shardSize_;
   }
-  /* OMG BAD
-  for(auto&& t : threads) {
+#if 0
+  for(auto&& t : threads)
     t.join();
-  }*/
+  // BUGBUG [compiler]: This fails to compile on VS 2015, for the comparison of the iterator with end()
+#else
+  for (size_t i = 0; i < threads.size(); i++)
+      threads[i].join();
+#endif
   fetchStep_[device_id]++;
 }
 

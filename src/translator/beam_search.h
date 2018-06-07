@@ -32,7 +32,7 @@ public:
         trgEosId_(trgEosId), trgUnkId_(trgUnkId)
   {}
 
-  Beams toHyps(const std::vector<uint32_t> keys,
+  Beams toHyps(const std::vector<unsigned int> keys,
                const std::vector<float> costs,
                size_t vocabSize,
                const Beams& beams,
@@ -211,7 +211,7 @@ public:
 
       //**********************************************************************
       // perform beam search and pruning
-      std::vector<unsigned> outKeys;
+      std::vector<unsigned int> outKeys;
       std::vector<float> outCosts;
 
       std::vector<size_t> beamSizes(dimBatch, localBeamSize);

@@ -1,11 +1,11 @@
-#include <iostream>
-#include <sstream>
-
-#include <boost/algorithm/string.hpp>
-
 #include "3rd_party/exception.h"
 #include "common/logging.h"
 #include "common/utils.h"
+#include <iostream>
+#include <sstream>
+#include <array>
+#include <stdio.h>
+#include <boost/algorithm/string.hpp>
 
 void Trim(std::string& s) {
   boost::trim_if(s, boost::is_any_of(" \t\n"));
@@ -64,11 +64,12 @@ std::string Join(const std::vector<std::string>& words,
 }
 
 std::string Exec(const std::string& cmd) {
-  ABORT_IF(true, "NYI");
-  return "";
-  /*
   std::array<char, 128> buffer;
   std::string result;
+#ifdef _WIN32
+#define popen _popen
+#define pclose _pclose
+#endif
   std::shared_ptr<std::FILE> pipe(popen(cmd.c_str(), "r"), pclose);
   if(!pipe)
     ABORT("popen() failed!");
@@ -78,5 +79,4 @@ std::string Exec(const std::string& cmd) {
       result += buffer.data();
   }
   return result;
-  */
 }
