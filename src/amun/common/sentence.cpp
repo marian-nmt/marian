@@ -24,24 +24,31 @@ Sentence::Sentence(const God &god, unsigned vLineNum, const std::string& line)
     Trim(tab);
     Split(tab, lineTokens, " ");
 
-    if (maxLength && lineTokens.size() > maxLength) {
-      lineTokens.resize(maxLength);
+    if (lineTokens.size() == 0) {
+      // empty line
+      words_.emplace_back(Words());
+      factors_.emplace_back(FactWords());
     }
+    else {
+      if (maxLength && lineTokens.size() > maxLength) {
+        lineTokens.resize(maxLength);
+      }
 
-    std::vector<std::vector<std::string>> lineFactors;
-    for (const std::string& token : lineTokens) {
-      std::vector<std::string> wordFactors;
-      Split(token, wordFactors, "|");
-      lineFactors.push_back(wordFactors);
-    }
+      std::vector<std::vector<std::string>> lineFactors;
+      for (const std::string& token : lineTokens) {
+        std::vector<std::string> wordFactors;
+        Split(token, wordFactors, "|");
+        lineFactors.push_back(wordFactors);
+      }
 
-    auto processed = god.Preprocess(i, lineFactors);
-    factors_.emplace_back(god.GetSourceVocabs(i)(processed));
-    Words lineWords(factors_.back().size());
-    for (unsigned i = 0; i < factors_.back().size(); ++i) {
-      lineWords[i] = factors_.back()[i][0];
+      auto processed = god.Preprocess(i, lineFactors);
+      factors_.emplace_back(god.GetSourceVocabs(i)(processed));
+      Words lineWords(factors_.back().size());
+      for (unsigned i = 0; i < factors_.back().size(); ++i) {
+        lineWords[i] = factors_.back()[i][0];
+      }
+      words_.emplace_back(lineWords);
     }
-    words_.emplace_back(lineWords);
     i++;
   }
 }
