@@ -46,6 +46,9 @@ class History {
     unsigned GetLineNum() const
     { return lineNo_; }
 
+    unsigned GetMaxLength() const
+    { return maxLength_; }
+
     void SetActive(bool active);
     bool GetActive() const;
 

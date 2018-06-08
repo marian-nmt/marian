@@ -100,7 +100,7 @@ std::shared_ptr<Histories> Search::Translate(const Sentences& sentences) {
     }
     //cerr << "beamSizes=" << Debug(beamSizes, 1) << endl;
 
-    bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, states, nextStates);
+    bool hasSurvivors = CalcBeam(histories, beamSizes, prevHyps, states, nextStates, decoderStep);
     if (!hasSurvivors) {
       break;
     }
@@ -134,18 +134,24 @@ bool Search::CalcBeam(
     std::vector<unsigned>& beamSizes,
     Beam& prevHyps,
     States& states,
-    States& nextStates)
+    States& nextStates,
+    unsigned decoderStep)
 {
     unsigned batchSize = beamSizes.size();
     Beams beams(batchSize);
     bestHyps_->CalcBeam(prevHyps, scorers_, filterIndices_, beams, beamSizes);
     histories->Add(beams);
 
+    //cerr << "batchSize=" << batchSize << endl;
     histories->SetActive(false);
     Beam survivors;
     for (unsigned batchId = 0; batchId < batchSize; ++batchId) {
+      const History &hist = *histories->at(batchId);
+      unsigned maxLength = hist.GetMaxLength();
+
+      //cerr << "beamSizes[batchId]=" << batchId << " " << beamSizes[batchId] << " " << maxLength << endl;
       for (auto& h : beams[batchId]) {
-        if (h->GetWord() != EOS_ID) {
+        if (decoderStep < maxLength && h->GetWord() != EOS_ID) {
           survivors.push_back(h);
 
           histories->SetActive(batchId, true);
