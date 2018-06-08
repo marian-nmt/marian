@@ -1,6 +1,10 @@
 # Config files from CMake
 src/common/version.h
 
+*.vcxproj.user
+/vs/x64
+pingme.txt
+
 # Compiled Object files
 *.slo
 *.lo
