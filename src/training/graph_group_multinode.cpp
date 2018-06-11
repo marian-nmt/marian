@@ -52,19 +52,19 @@ void MultiNodeGraphGroup::init(Ptr<data::Batch> batch) {
   }
 
   // setup delayed gradient storage
-  if (tau_ > 1) {
+  if(tau_ > 1) {
     delay_count = std::vector<size_t>(mpi_comm_world_size_);
     totalBatchWords = std::vector<int>(mpi_comm_world_size_);
     optDelayMutex_ = std::vector<std::mutex>(mpi_comm_world_size_);
-    
-    for (int i = 0;i < mpi_comm_world_size_; i++) {
+
+    for(int i = 0; i < mpi_comm_world_size_; i++) {
       // Shard buffers across GPUs
       auto backend = clientGraphs_[i % devices_.size()]->getBackend();
       Tensor accGrad = newTensor(nodeSizes_[i], backend);
       Tensor accGradBuff = newTensor(nodeSizes_[i], backend);
       accGradients.push_back(accGrad);
       accGradientBuffer.push_back(accGradBuff);
-    } 
+    }
   }
 }
 
@@ -221,7 +221,7 @@ void MultiNodeGraphGroup::calculateShardSizes() {
  */
 void MultiNodeGraphGroup::initShardGpuTensors() {
   size_t offset = 0;
-  for (int i = 0; i < mpi_my_rank_; i++) {
+  for(int i = 0; i < mpi_my_rank_; i++) {
     offset += nodeSizes_[i];
   }
   for(int shard = 0; shard < devices_.size(); shard++) {
@@ -242,7 +242,8 @@ void MultiNodeGraphGroup::initShardGpuTensors() {
  * updated parameters.
  */
 void MultiNodeGraphGroup::launchServerThread() {
-#if MPI_FOUND
+// @TODO: move CUDA stuff into separate .cu files and remove '&& CUDA_FOUND'
+#if MPI_FOUND && CUDA_FOUND
   serverShardThread_ = new std::thread([this] {
     // keep track of number of nodes still communicating with this shard
     int nCommunicatingNodes = mpi_comm_world_size_;
@@ -400,7 +401,8 @@ void MultiNodeGraphGroup::synchronizeWithServerShards(Tensor newGrads,
                                                       Tensor oldParams,
                                                       int gpu,
                                                       size_t batchWords) {
-#if MPI_FOUND
+// @TODO: move CUDA stuff into separate .cu files and remove '&& CUDA_FOUND'
+#if MPI_FOUND && CUDA_FOUND
   size_t offset = 0;
   for(int node = 0; node < mpi_comm_world_size_; node++) {
     size_t nodeSize = nodeSizes_[node];
@@ -410,9 +412,10 @@ void MultiNodeGraphGroup::synchronizeWithServerShards(Tensor newGrads,
       Tensor gradient;
 
       // Delayed Gradient Update
-      if (tau_ > 1) {
+      if(tau_ > 1) {
         std::lock_guard<std::mutex> guard(optDelayMutex_[node]);
-        accGradientBuffer[node]->copyFrom(newGrads->subtensor(offset, nodeSize));
+        accGradientBuffer[node]->copyFrom(
+            newGrads->subtensor(offset, nodeSize));
         // Accumulate the gradient
         using namespace functional;
         Element(_1 += _2, accGradients[node], accGradientBuffer[node]);
@@ -420,14 +423,14 @@ void MultiNodeGraphGroup::synchronizeWithServerShards(Tensor newGrads,
         totalBatchWords[node] += batchWords;
         delay_count[node]++;
 
-        if (delay_count[node] < tau_)
+        if(delay_count[node] < tau_)
           continue;
         delay_count[node] = 0;
         gradient = accGradients[node];
         batchWords = totalBatchWords[node];
-     } else {
+      } else {
         gradient = newGrads->subtensor(offset, nodeSize);
-     }
+      }
 
       // Copy grads from GPU to CPU (for MPI sending)
       cudaMemcpy(clientCommBuffersCPU_[gpu].data(),
@@ -455,7 +458,7 @@ void MultiNodeGraphGroup::synchronizeWithServerShards(Tensor newGrads,
                 MPI_TAG_GRAD_PUSH_,
                 MPI_COMM_WORLD);
       // Reset total gradient and batch words
-      if (tau_ > 1) {
+      if(tau_ > 1) {
         std::lock_guard<std::mutex> guard(optDelayMutex_[node]);
         accGradients[node]->set(0);
         totalBatchWords[node] = 0;
@@ -554,9 +557,9 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
     auto costNode = builder->build(graph, batch);
 
 #if MPI_FOUND
-    if (t == 0) {
+    if(t == 0) {
       MPI_Barrier(MPI_COMM_WORLD);
-      if (my_id != 0)
+      if(my_id != 0)
         graph->params()->vals()->copyFrom(clientGraphs_[0]->params()->vals());
       MPI_Barrier(MPI_COMM_WORLD);
     }
@@ -628,20 +631,19 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
       // Wait until the thread that wants to do validation is finished.
       clientThreadPool_->wait_for_one(lock);
 
-      if (options_->get<std::string>("cost-type") != "ce-sum")
+      if(options_->get<std::string>("cost-type") != "ce-sum")
         cost /= tau_;
 
-      if (tau_ > 1) {
+      if(tau_ > 1) {
         std::vector<size_t> fakeLength = {1, 1};
-        auto fb = data::CorpusBatch::fakeBatch(fakeLength,
-                                          num_seen_sentences,
-                                          NULL);
+        auto fb = data::CorpusBatch::fakeBatch(
+            fakeLength, num_seen_sentences, NULL);
         fb->front()->setWords(num_seen_words);
         scheduler_->update(cost, fb);
       } else {
         scheduler_->update(cost, batch);
       }
-      
+
       num_seen_words = 0;
       num_seen_sentences = 0;
       cost = 0;
@@ -653,11 +655,11 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
         // a safe state.
         clientThreadPool_->wait_for_others(lock);
 #if MPI_FOUND
-        //wait until other nodes are ready
+        // wait until other nodes are ready
         MPI_Barrier(MPI_COMM_WORLD);
- 
+
         // TODO: Saving is broken
-        //if(mpi_my_rank_ == 0 && scheduler_->saving())
+        // if(mpi_my_rank_ == 0 && scheduler_->saving())
         //  this->save(graph);
 
         if(mpi_my_rank_ == 0 && scheduler_->validating())
