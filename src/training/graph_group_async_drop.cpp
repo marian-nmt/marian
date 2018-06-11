@@ -11,10 +11,8 @@ namespace marian {
 void AsyncGraphGroupDrop::fetchParams(Tensor oldParams,
                                       const std::vector<Tensor>& params,
                                       int device_id) {
-
   // Full fetch when fetching moving average OR still in warm-up period.
-  if(&params == &paramsAvg_ || 
-    fetchStep_[device_id]++ <= dropping_warmup) {
+  if(&params == &paramsAvg_ || fetchStep_[device_id]++ <= dropping_warmup) {
     AsyncGraphGroup::fetchParams(oldParams, params, device_id);
     return;
   }
@@ -22,20 +20,21 @@ void AsyncGraphGroupDrop::fetchParams(Tensor oldParams,
   std::vector<std::thread> threads;
   int pos = 0;
   for(int idx = 0; idx < devices_.size(); idx++) {
-  threads.emplace_back(std::thread(
-      [=](int idx, int pos) {
-        auto sparseGrad = sparseGrads_[device_id][idx];
-        auto sparseShard = sparseShards_[device_id][idx];
+    threads.emplace_back(std::thread(
+        [=](int idx, int pos) {
+          auto sparseGrad = sparseGrads_[device_id][idx];
+          auto sparseShard = sparseShards_[device_id][idx];
 
-        // individual mutex per-shard
-        std::lock_guard<std::mutex> guard(shardSync_[idx]);
+          // individual mutex per-shard
+          std::lock_guard<std::mutex> guard(shardSync_[idx]);
 
-        sparseShard->gather(params[idx]);
-        sparseGrad->copyFrom(sparseShard);
-        sparseGrad->scatterUpdate(oldParams->subtensor(pos, params[idx]->size()));
-      },
-      idx,
-      pos));
+          sparseShard->gather(params[idx]);
+          sparseGrad->copyFrom(sparseShard);
+          sparseGrad->scatterUpdate(
+              oldParams->subtensor(pos, params[idx]->size()));
+        },
+        idx,
+        pos));
 
     pos += shardSize_;
   }
@@ -63,11 +62,11 @@ void AsyncGraphGroupDrop::pushGradients(Tensor newGrads,
           auto tensor = newGrads->subtensor(pos, grads_[idx]->size());
           // individual mutex per-shard
           std::lock_guard<std::mutex> guard(shardSync_[idx]);
-          
+
           // drop the gradients
-          dropper->dropGraph(tensor, sparseGrad, 
-                             droping_rate, dropping_momentum);
-          
+          dropper->dropGraph(
+              tensor, sparseGrad, droping_rate, dropping_momentum);
+
           // send the sharded sparse tensor
           sparseShard->copyFrom(sparseGrad);
 
@@ -123,13 +122,12 @@ void AsyncGraphGroupDrop::init(Ptr<data::Batch> batch) {
         tmp.push_back(SparseTensor(new SparseTensorBase(
             sparseCap / devices_.size(), graphs_[i]->getBackend())));
       sparseGrads_.push_back(tmp);
-       
+
       std::vector<SparseTensor> tmp2;
       for(int j = 0; j < devices_.size(); j++)
         tmp2.push_back(SparseTensor(new SparseTensorBase(
-            sparseCap / devices_.size(), graphs_[j]->getBackend()))); 
+            sparseCap / devices_.size(), graphs_[j]->getBackend())));
       sparseShards_.push_back(tmp2);
-
     }
     drop_first = false;
   }
