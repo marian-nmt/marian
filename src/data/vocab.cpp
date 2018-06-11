@@ -1,13 +1,16 @@
-#include <algorithm>
-#include <sstream>
-#include <unordered_map>
-#include <unordered_set>
-
 #include "3rd_party/exception.h"
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/logging.h"
 #include "common/utils.h"
 #include "data/vocab.h"
+#include "common/regex.h"
+
+#include <algorithm>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace marian {
 
@@ -79,24 +82,39 @@ int Vocab::loadOrCreate(const std::string& vocabPath,
 }
 
 int Vocab::load(const std::string& vocabPath, int max) {
-  LOG(info, "[data] Loading vocabulary from {}", vocabPath);
+  bool isYaml = regex::regex_search(vocabPath, regex::regex("\\.(yml|json)$"));
+  LOG(info, "[data] Loading vocabulary from {} file {}", isYaml ? "Yaml/JSON" : "text", vocabPath);
   ABORT_IF(!boost::filesystem::exists(vocabPath),
-           "Vocabulary {} does not exits",
+           "Vocabulary file {} does not exits",
            vocabPath);
 
-  YAML::Node vocab = YAML::Load(InputFileStream(vocabPath));
+  std::map<std::string,Word> vocab;
+  if (isYaml) // read from Yaml (or JSON) file
+  {
+    YAML::Node vocabNode = YAML::Load(InputFileStream(vocabPath));
+    for(auto&& pair : vocabNode)
+      vocab.insert({ pair.first.as<std::string>(), pair.second.as<Word>() });
+  }
+  else // read from flat text file
+  {
+    std::ifstream in(vocabPath);
+    std::string line;
+    while (std::getline(in, line))
+      vocab.insert({ line, vocab.size() });
+    ABORT_IF(in.bad(), "Vocabulary file {} could not be read", vocabPath);
+  }
 
   std::unordered_set<Word> seenSpecial;
 
   for(auto&& pair : vocab) {
-    auto str = pair.first.as<std::string>();
-    auto id = pair.second.as<Word>();
+    auto str = pair.first;
+    auto id = pair.second;
 
     if(SPEC2SYM.count(str)) {
       seenSpecial.insert(id);
     }
 
-    if(!max || id < (Word)max) {
+    if(!max || id < (Word)max) { // note: this requires ids to be sorted by frequency
       str2id_[str] = id;
       if(id >= id2str_.size())
         id2str_.resize(id + 1);
@@ -105,10 +123,19 @@ int Vocab::load(const std::string& vocabPath, int max) {
   }
   ABORT_IF(id2str_.empty(), "Empty vocabulary: ", vocabPath);
 
-  id2str_[EOS_ID] = EOS_STR;
-  id2str_[UNK_ID] = UNK_STR;
+  // </s> and <unk> are expected at specific positions
+  auto requireWord = [&](Word id, const std::string& str)
+  {
+    auto iter = str2id_.find(str);
+    if (iter != str2id_.end()) // word already in vocab: must be at right index, else fail
+      ABORT_IF(iter->second != id, "vocabulary entry '{}' is expected to have id {}", str, id);
+    str2id_[str] = id;
+    id2str_[id] = str;
+  };
+  requireWord(EOS_ID, EOS_STR);
+  requireWord(UNK_ID, UNK_STR);
   for(auto id : seenSpecial)
-    id2str_[id] = SYM2SPEC.at(id);
+    requireWord(id, SYM2SPEC.at(id));
 
   return std::max((int)id2str_.size(), max);
 }

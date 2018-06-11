@@ -186,7 +186,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
     auto costNode = builder->build(graph, batch);
 
-    if(t % tau_ == 0) {
+    if(t % optimizerDelay_ == 0) {
       fetchParams(graph->params()->vals(), params_, t_id);
     }
 
@@ -195,7 +195,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
     graph->backward();
 
     Tensor gradients;
-    if(tau_ > 1) {
+    if(optimizerDelay_ > 1) {
       if(t == 0) {
         accAlloc = New<TensorAllocator>(graph->getBackend());
         accAlloc->reserveExact(graph->params()->grads()->memory()->size());
@@ -218,24 +218,24 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
     t++;
 
-    if(t % tau_ == 0) {
+    if(t % optimizerDelay_ == 0) {
       pushGradients(gradients, num_seen_trg, t_id);
       // Reset the counter of seen target words after gradient update
       num_seen_trg = 0;
-      if(tau_ > 1)
+      if(optimizerDelay_ > 1)
         gradients->set(0);
     }
 
-    if(t % tau_ == 0 && scheduler_) {
+    if(t % optimizerDelay_ == 0 && scheduler_) {
       std::unique_lock<std::mutex> lock(schedulerMutex_);
 
       // Wait until the thread that wants to do validation is finished.
       pool_->wait_for_one(lock);
 
       if (options_->get<std::string>("cost-type") != "ce-sum")
-        cost /= tau_;
+        cost /= optimizerDelay_;
 
-      if (tau_ > 1) {
+      if (optimizerDelay_ > 1) {
         std::vector<size_t> fakeLength = {1, 1};
         auto fb = data::CorpusBatch::fakeBatch(fakeLength,
                                           num_seen_sentences,

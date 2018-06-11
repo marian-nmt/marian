@@ -8,6 +8,9 @@
 
 namespace marian {
 
+/**
+ * Single gpu training
+ */
 class SingletonGraph : public GraphGroup {
 public:
   virtual void setScheduler(Ptr<Scheduler> scheduler);
@@ -32,6 +35,7 @@ public:
     auto deviceId = options_->getDevices()[0];
     graph_ = New<ExpressionGraph>();
     graph_->setDevice(deviceId);
+    graph_->getBackend()->setClip(options_->get<float>("clip-gemm"));
     graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
     opt_ = Optimizer(options_);
     builder_ = models::from_config(options_, models::usage::training);

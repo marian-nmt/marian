@@ -27,6 +27,9 @@ add_library(marian STATIC
   tensors/cpu/prod.cpp
   tensors/cpu/tensor_operators.cpp
 
+  tensors/cpu/sharp/avx_gemm.cpp
+  tensors/cpu/sharp/sse_gemm.cpp
+
   graph/expression_graph.cpp
   graph/expression_operators.cpp
   graph/node.cpp
@@ -94,6 +97,33 @@ set_target_properties(marian_vocab PROPERTIES OUTPUT_NAME marian-vocab)
 
 set(EXECUTABLES ${EXECUTABLES} marian_train marian_decoder marian_scorer marian_vocab)
 
+# marian.zip and marian.tgz
+# This combines marian, marian_decoder in a single ZIP or TAR file for execution in MSFT internal tools FLO and Philly.
+# For Philly submission, we need statically-linked versions to deal with library dependencies, so this target is only enabled for static builds.
+if(USE_STATIC_LIBS)
+  add_custom_command(
+    OUTPUT "${CMAKE_BINARY_DIR}/marian.zip"
+    COMMAND zip -v -0 -j "${CMAKE_BINARY_DIR}/marian.zip"
+                "${CMAKE_BINARY_DIR}/marian"
+                "${CMAKE_BINARY_DIR}/marian-decoder" 
+                "${CMAKE_BINARY_DIR}/marian-scorer"
+                "${CMAKE_BINARY_DIR}/marian-vocab"
+    DEPENDS marian_train marian_decoder marian_scorer marian_vocab)
+  add_custom_target(marian_zip DEPENDS "${CMAKE_BINARY_DIR}/marian.zip")
+
+  add_custom_command(
+    OUTPUT "${CMAKE_BINARY_DIR}/marian.tgz"
+    COMMAND tar -cvvzf "${CMAKE_BINARY_DIR}/marian.tgz" -C "${CMAKE_BINARY_DIR}"
+                "marian"
+                "marian-decoder"
+                "marian-scorer"
+                "marian-vocab"
+    DEPENDS marian_train marian_decoder marian_scorer marian_vocab)
+  add_custom_target(marian_tgz DEPENDS "${CMAKE_BINARY_DIR}/marian.tgz")
+
+  add_custom_target(philly DEPENDS marian_tgz marian_zip)
+endif()
+
 if(COMPILE_SERVER)
   add_executable(marian_server command/marian_server.cpp)
   set_target_properties(marian_server PROPERTIES OUTPUT_NAME marian-server)
@@ -115,10 +145,6 @@ endforeach(exec)
 #)
 
 #set_target_properties(align2steps PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-
-if(PYTHONLIBS_FOUND)
-#  add_subdirectory(python)
-endif(PYTHONLIBS_FOUND)
 
 if(COMPILE_TESTS)
   set(CATCH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party)

@@ -11,7 +11,7 @@ namespace marian {
 
 class TensorAllocator {
 private:
-  const size_t CHUNK = 512;
+  const size_t CHUNK = 128;
   const size_t MBYTE = 1024 * 1024;
   const size_t GROW = CHUNK * MBYTE;
   const size_t ALIGN = 256;

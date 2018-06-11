@@ -10,7 +10,7 @@ namespace data {
 class Batch {
 public:
   virtual size_t size() const = 0;
-  virtual size_t words() const { return 0; };
+  virtual size_t words(int which = 0) const { return 0; };
   virtual size_t width() const { return 0; };
 
   virtual size_t sizeTrg() const { return 0; };

@@ -16,6 +16,16 @@ repository.
 
 Named in honour of Marian Rejewski, a Polish mathematician and cryptologist.
 
+## Compilation
+
+```
+cd marian-dev
+mkdir -p build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=relwithdebinfo
+make -j
+```
+
 ## Website
 
 More information on https://marian-nmt.github.io

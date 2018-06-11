@@ -38,6 +38,8 @@ protected:
   rnn::States states_;
   Ptr<data::CorpusBatch> batch_;
 
+  size_t position_{0};
+
 public:
   DecoderState(const rnn::States& states,
                Expr probs,
@@ -54,8 +56,10 @@ public:
 
   virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
                                    int beamSize) {
-    return New<DecoderState>(
+    auto selectedState = New<DecoderState>(
         states_.select(selIdx, beamSize), probs_, encStates_, batch_);
+    selectedState->setPosition(getPosition());
+    return selectedState;
   }
 
   virtual const rnn::States& getStates() { return states_; }
@@ -83,6 +87,9 @@ public:
   Ptr<data::CorpusBatch> getBatch() {
     return batch_;
   }
+
+  size_t getPosition() { return position_; }
+  void setPosition(size_t position) { position_ = position; }
 
   virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) {}
 };

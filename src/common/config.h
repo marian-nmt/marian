@@ -5,6 +5,7 @@
 #include <boost/program_options.hpp>
 
 #include "3rd_party/yaml-cpp/yaml.h"
+#include "3rd_party/cnpy/cnpy.h"
 #include "common/config_parser.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
@@ -129,6 +130,9 @@ public:
   static void AddYamlToNpz(const YAML::Node&,
                            const std::string&,
                            const std::string&);
+  static void AddYamlToNpzItems(const YAML::Node&,
+                                const std::string&,
+                                std::vector<cnpy::NpzItem>&);
 
 private:
   YAML::Node config_;

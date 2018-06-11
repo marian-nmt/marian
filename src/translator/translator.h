@@ -55,6 +55,7 @@ public:
       auto task = [&](DeviceId device, size_t id) {
         auto graph = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
         graph->setDevice(device);
+        graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_[id] = graph;
 
@@ -66,6 +67,7 @@ public:
         }
 
         scorers_[id] = scorers;
+        graph->forward();
       };
 
       threadPool.enqueue(task, device, id++);
@@ -154,6 +156,7 @@ public:
     for(auto device : devices_) {
       auto graph = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
       graph->setDevice(device);
+      graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
 

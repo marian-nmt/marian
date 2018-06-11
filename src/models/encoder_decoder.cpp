@@ -26,7 +26,7 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
       "special-vocab",
       "tied-embeddings",
       "tied-embeddings-src",
-      "tied-embeddings-all",
+      "tied-embeddings-all"
   };
 
   modelFeatures_.insert("transformer-heads");
@@ -34,9 +34,14 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
   modelFeatures_.insert("transformer-dim-ffn");
   modelFeatures_.insert("transformer-ffn-depth");
   modelFeatures_.insert("transformer-ffn-activation");
+  modelFeatures_.insert("transformer-dim-aan");
+  modelFeatures_.insert("transformer-aan-depth");
+  modelFeatures_.insert("transformer-aan-activation");
+  modelFeatures_.insert("transformer-aan-nogate");
   modelFeatures_.insert("transformer-preprocess");
   modelFeatures_.insert("transformer-postprocess");
   modelFeatures_.insert("transformer-postprocess-emb");
+  modelFeatures_.insert("transformer-decoder-autoreg");
 }
 
 std::vector<Ptr<EncoderBase>>& EncoderDecoder::getEncoders() {
@@ -53,19 +58,6 @@ std::vector<Ptr<DecoderBase>>& EncoderDecoder::getDecoders() {
 
 void EncoderDecoder::push_back(Ptr<DecoderBase> decoder) {
   decoders_.push_back(decoder);
-}
-
-void EncoderDecoder::saveModelParameters(const std::string& name) {
-  Config::YamlNode modelParams;
-  for(auto& key : modelFeatures_)
-    modelParams[key] = options_->getOptions()[key];
-
-  if(options_->has("original-type"))
-    modelParams["type"] = options_->getOptions()["original-type"];
-
-  modelParams["version"] = PROJECT_VERSION_FULL;
-
-  Config::AddYamlToNpz(modelParams, "special:model.yml", name);
 }
 
 void EncoderDecoder::createDecoderConfig(const std::string& name) {
@@ -86,6 +78,22 @@ void EncoderDecoder::createDecoderConfig(const std::string& name) {
   (std::ostream&)out << decoder;
 }
 
+Config::YamlNode EncoderDecoder::getModelParameters() {
+  Config::YamlNode modelParams;
+  for(auto& key : modelFeatures_)
+    modelParams[key] = options_->getOptions()[key];
+
+  if(options_->has("original-type"))
+    modelParams["type"] = options_->getOptions()["original-type"];
+
+  modelParams["version"] = PROJECT_VERSION_FULL;
+  return modelParams;
+}
+
+void EncoderDecoder::saveModelParameters(const std::string& name) {
+  Config::AddYamlToNpz(getModelParameters(), "special:model.yml", name);
+}
+
 void EncoderDecoder::load(Ptr<ExpressionGraph> graph,
                   const std::string& name,
                   bool markedReloaded) {
@@ -96,8 +104,14 @@ void EncoderDecoder::save(Ptr<ExpressionGraph> graph,
                   const std::string& name,
                   bool saveTranslatorConfig) {
   // ignore config for now
-  graph->save(name);
-  saveModelParameters(name);
+  LOG(info, "Saving model weights and runtime parameters to {}", name);
+  std::vector<cnpy::NpzItem> npzItems;
+  graph->save(npzItems);                          // model weights
+  Config::AddYamlToNpzItems(getModelParameters(), // model runtime parameters
+                           "special:model.yml",
+                           npzItems);
+  cnpy::npz_save(name, npzItems); // save both jointly
+  //LOG(info, "Saved {} items.", npzItems.size());
 
   if(saveTranslatorConfig)
     createDecoderConfig(name);
