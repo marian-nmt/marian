@@ -6,6 +6,9 @@
 namespace marian {
 namespace mlp {
 
+/**
+ * Base class for layer factories, can be used in a multi-layer network factory.
+ */
 struct LayerFactory : public Factory {
   LayerFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
   LayerFactory(const LayerFactory&) = default;
@@ -26,6 +29,9 @@ struct LayerFactory : public Factory {
   virtual Ptr<Layer> construct() = 0;
 };
 
+/**
+ * Dense layer factory, can be used in a multi-layer network factory.
+ */
 class DenseFactory : public LayerFactory {
 public:
   DenseFactory(Ptr<ExpressionGraph> graph) : LayerFactory(graph) {}
@@ -42,8 +48,12 @@ public:
   }
 };
 
+// @TODO: change naming convention
 typedef Accumulator<DenseFactory> dense;
 
+/**
+ * Factory for output layers, can be used in a multi-layer network factory.
+ */
 class OutputFactory : public LayerFactory {
 protected:
   std::vector<std::pair<std::string, std::string>> tiedParamsTransposed_;
@@ -80,8 +90,12 @@ public:
   }
 };
 
+// @TODO: change naming convention
 typedef Accumulator<OutputFactory> output;
 
+/**
+ * Multi-layer network, holds and applies layers.
+ */
 class MLP {
 protected:
   Ptr<ExpressionGraph> graph_;
@@ -112,6 +126,10 @@ public:
   void push_back(Ptr<Layer> layer) { layers_.push_back(layer); }
 };
 
+/**
+ * Multi-layer network factory. Can hold layer factories. Used
+ * to accumulate options for later lazy construction.
+ */
 class MLPFactory : public Factory {
 private:
   std::vector<Ptr<LayerFactory>> layers_;
@@ -137,6 +155,7 @@ public:
   }
 };
 
+// @TODO: change naming convention.
 typedef Accumulator<MLPFactory> mlp;
 }
 }

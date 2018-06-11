@@ -553,12 +553,14 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
 
     auto costNode = builder->build(graph, batch);
 
+#if MPI_FOUND
     if (t == 0) {
       MPI_Barrier(MPI_COMM_WORLD);
       if (my_id != 0)
         graph->params()->vals()->copyFrom(clientGraphs_[0]->params()->vals());
       MPI_Barrier(MPI_COMM_WORLD);
     }
+#endif
 
     graph->forward();
     cost += costNode->scalar();
@@ -650,7 +652,7 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
         // We want to reuse the graphs for validation, so they need to be in
         // a safe state.
         clientThreadPool_->wait_for_others(lock);
-
+#if MPI_FOUND
         //wait until other nodes are ready
         MPI_Barrier(MPI_COMM_WORLD);
  
@@ -663,7 +665,7 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
 
         // inform other nodes to continue
         MPI_Barrier(MPI_COMM_WORLD);
-        
+#endif
         // Validation or saving is done, tell other threads to continue work.
         clientThreadPool_->notify_others();
       }

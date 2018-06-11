@@ -1,9 +1,7 @@
 #pragma once
 
-#include <fstream>
-#include <map>
-#include <unordered_set>
-
+#include "3rd_party/cnpy/cnpy.h"
+#include "3rd_party/threadpool.h"
 #include "common/config.h"
 #include "common/definitions.h"
 
@@ -16,6 +14,10 @@
 #include "graph/parameters.h"
 
 #include "3rd_party/cnpy/cnpy.h"
+
+#include <fstream>
+#include <map>
+#include <unordered_set>
 
 namespace marian {
 
@@ -78,6 +80,7 @@ public:
       if(it != longterm_->end()) {
         for(auto found : it->second) {
           return found;
+          // @TODO: check why below code does not work for certain nodes and autotuning.
           //if(node->equal(found)) {
             //std::cerr << "found memoized" << std::endl;
             //return found;
@@ -231,7 +234,7 @@ public:
       checkNan(v->val());
 
       if(v->marked_for_debug()) {
-        std::cerr << "Debug: " << v->debug_message() << std::endl;
+        std::cerr << "Debug: " << v->debug_message() << " op=" << v->type() << std::endl;
         std::cerr << v->val()->debug() << std::endl;
       }
 
@@ -462,11 +465,9 @@ public:
       setReloaded(true);
   }
 
-  void save(const std::string& name) {
-    LOG(info, "Saving model to {}", name);
-
-    std::string mode = "w";
-
+  // convert all parameters into an array pf cnpy::NpzItem elements, for saving
+  void save(std::vector<cnpy::NpzItem>& npzItems)
+  {
     for(auto p : params()->getMap()) {
       std::string pName = p.first;
 
@@ -477,18 +478,20 @@ public:
 
       std::vector<float> v;
       p.second->val()->get(v);
+
       auto& pShape = p.second->shape();
+      std::vector<unsigned int> shape(pShape.begin(), pShape.end());
 
-      unsigned dim = pShape.size();
-      unsigned* shape = new unsigned[dim];
-      for(int i = 0; i < dim; ++i)
-        shape[i] = pShape[i];
-
-      cnpy::npz_save(name, pName, v.data(), shape, dim, mode);
-
-      delete[] shape;
-      mode = "a";
+      npzItems.emplace_back(pName, v, shape);
     }
+  }
+
+  void save(const std::string& name) {
+    LOG(info, "Saving model to {}", name);
+    std::vector<cnpy::NpzItem> npzItems;
+    save(npzItems);
+    cnpy::npz_save(name, npzItems);
+    LOG(info, "Saved {} items.", npzItems.size());
   }
 };
 
