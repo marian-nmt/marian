@@ -2,11 +2,10 @@
 
 #if MPI_FOUND
 #include "mpi.h"
+#endif
+
+#ifdef CUDA_FOUND
 #include "cuda_runtime.h"
-
-#define CUDA_CHECK(ans) \
-  { gpuAssert2((ans), __FILE__, __LINE__); }
-
 #endif
 
 #include <condition_variable>
@@ -19,18 +18,6 @@
 
 #include "3rd_party/threadpool.h"
 #include "training/graph_group.h"
-
-#if CUDA_FOUND
-inline void gpuAssert2(cudaError_t code,
-                      const char* file,
-                      int line,
-                      bool abort = true) {
-  if(code != cudaSuccess) {
-    LOG(critical, "Error: {} - {}:{}", cudaGetErrorString(code), file, line);
-    std::abort();
-  }
-}
-#endif
 
 namespace marian {
 
@@ -47,7 +34,8 @@ protected:
   // General variables.
 
   /** Number of clients on nodes in MPI world (cluster). */
-  std::vector<int> numberClientsOfNodes_; //@TODO not used for now, but might be useful maybe?
+  std::vector<int> numberClientsOfNodes_;  //@TODO not used for now, but might
+                                           // be useful maybe?
 
   /** Whether graph group has been properly initialized with a first batch. */
   bool initialized_{false};
@@ -152,7 +140,8 @@ protected:
   void runBatchThroughClientGraphs(Ptr<data::Batch> batch);
 
   /**
-   * Initialize the CPU arrays, with pinned memory for faster CudaMemCpy operations.
+   * Initialize the CPU arrays, with pinned memory for faster CudaMemCpy
+   * operations.
    */
   void initCPUArrays();
 
@@ -206,7 +195,7 @@ public:
         mvDecay_{options_->get<float>("exponential-smoothing")},
         syncOptimizer_{Optimizer(options_)} {
     // Set up devices for this node
-    setupMPI(); //Setup MPI before creating device vectors
+    setupMPI();  // Setup MPI before creating device vectors
     std::vector<size_t> devices;
     for(auto& d : options_->getDevices())
       devices.push_back(d.no);
@@ -314,12 +303,15 @@ public:
    * Collect statistics from first client's graph.
    */
   Ptr<data::BatchStats> collectStats() {
-    return GraphGroup::collectStats(clientGraphs_[0], clientBuilders_[0], devices_.size());
+    return GraphGroup::collectStats(
+        clientGraphs_[0], clientBuilders_[0], devices_.size());
   }
 
   virtual void finalize() {
     finalized_ = true;
+#if MPI_FOUND
     MPI_Finalize();
+#endif
   }
 };
 }
