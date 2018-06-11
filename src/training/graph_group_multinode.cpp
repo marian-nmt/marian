@@ -242,7 +242,8 @@ void MultiNodeGraphGroup::initShardGpuTensors() {
  * updated parameters.
  */
 void MultiNodeGraphGroup::launchServerThread() {
-#if MPI_FOUND
+// @TODO: move CUDA stuff into separate .cu files and remove '&& CUDA_FOUND'
+#if MPI_FOUND && CUDA_FOUND
   serverShardThread_ = new std::thread([this] {
     // keep track of number of nodes still communicating with this shard
     int nCommunicatingNodes = mpi_comm_world_size_;
@@ -400,7 +401,8 @@ void MultiNodeGraphGroup::synchronizeWithServerShards(Tensor newGrads,
                                                       Tensor oldParams,
                                                       int gpu,
                                                       size_t batchWords) {
-#if MPI_FOUND
+// @TODO: move CUDA stuff into separate .cu files and remove '&& CUDA_FOUND'
+#if MPI_FOUND && CUDA_FOUND
   size_t offset = 0;
   for(int node = 0; node < mpi_comm_world_size_; node++) {
     size_t nodeSize = nodeSizes_[node];
