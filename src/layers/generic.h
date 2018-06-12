@@ -7,6 +7,9 @@
 
 namespace marian {
 namespace mlp {
+/**
+ * @brief Activation functions
+ */
 enum struct act : int { linear, tanh, logit, ReLU, LeakyReLU, PReLU, swish };
 }
 }

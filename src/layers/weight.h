@@ -1,10 +1,10 @@
 #pragma once
 
 #include "common/options.h"
+#include "data/corpus.h"
 #include "graph/expression_graph.h"
 #include "graph/expression_operators.h"
 #include "graph/node_initializers.h"
-#include "data/corpus.h"
 
 namespace marian {
 
