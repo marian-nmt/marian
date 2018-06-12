@@ -2,11 +2,14 @@
 
 #include "marian.h"
 
-#include "layers/factory.h"
 #include "data/shortlist.h"
+#include "layers/factory.h"
 
 namespace marian {
 namespace mlp {
+/**
+ * @brief Activation functions
+ */
 enum struct act : int { linear, tanh, logit, ReLU, LeakyReLU, PReLU, swish };
 }
 }
@@ -64,27 +67,21 @@ public:
       if(inputs.size() > 1)
         num = std::to_string(i);
 
-      Expr W = g->param(name + "_W" + num,
-                        {in->shape()[-1], dim},
-                        inits::glorot_uniform);
-      Expr b = g->param(name + "_b" + num,
-                        {1, dim},
-                        inits::zeros);
+      Expr W = g->param(
+          name + "_W" + num, {in->shape()[-1], dim}, inits::glorot_uniform);
+      Expr b = g->param(name + "_b" + num, {1, dim}, inits::zeros);
 
       if(layerNorm) {
         if(nematusNorm) {
-          auto ln_s = g->param(name + "_ln_s" + num,
-                               {1, dim},
-                               inits::from_value(1.f));
-          auto ln_b = g->param(name + "_ln_b" + num,
-                               {1, dim},
-                               inits::zeros);
+          auto ln_s = g->param(
+              name + "_ln_s" + num, {1, dim}, inits::from_value(1.f));
+          auto ln_b = g->param(name + "_ln_b" + num, {1, dim}, inits::zeros);
 
-          outputs.push_back(layer_norm(affine(in, W, b), ln_s, ln_b, NEMATUS_LN_EPS));
+          outputs.push_back(
+              layer_norm(affine(in, W, b), ln_s, ln_b, NEMATUS_LN_EPS));
         } else {
-          auto gamma = g->param(name + "_gamma" + num,
-                                {1, dim},
-                                inits::from_value(1.0));
+          auto gamma = g->param(
+              name + "_gamma" + num, {1, dim}, inits::from_value(1.0));
 
           outputs.push_back(layer_norm(dot(in, W), gamma, b));
         }
@@ -107,9 +104,7 @@ public:
     }
   };
 
-  Expr apply(Expr input) {
-    return apply(std::vector<Expr>({input}));
-  }
+  Expr apply(Expr input) { return apply(std::vector<Expr>({input})); }
 };
 
 class Output : public Layer {
@@ -129,9 +124,7 @@ public:
     tiedParams_[param] = graph_->get(tied);
   }
 
-  void set_shortlist(Ptr<data::Shortlist> shortlist) {
-    shortlist_ = shortlist;
-  }
+  void set_shortlist(Ptr<data::Shortlist> shortlist) { shortlist_ = shortlist; }
 
   Expr apply(Expr input) {
     if(!W_) {
@@ -146,15 +139,13 @@ public:
           W_ = rows(W_, shortlist_->indices());
       } else {
         W_ = graph_->param(name + "_" + nameW,
-                          {input->shape()[-1], dim},
-                          inits::glorot_uniform);
+                           {input->shape()[-1], dim},
+                           inits::glorot_uniform);
         if(shortlist_)
           W_ = cols(W_, shortlist_->indices());
       }
 
-      b_ = graph_->param(name + "_b",
-                         {1, dim},
-                         inits::zeros);
+      b_ = graph_->param(name + "_b", {1, dim}, inits::zeros);
       if(shortlist_)
         b_ = cols(b_, shortlist_->indices());
     }
@@ -165,9 +156,7 @@ public:
   virtual Expr apply(const std::vector<Expr>& inputs) {
     ABORT("Not implemented");
   };
-
 };
-
 
 }  // namespace mlp
 
@@ -195,51 +184,4 @@ struct EmbeddingFactory : public Factory {
 };
 
 typedef Accumulator<EmbeddingFactory> embedding;
-
-static inline Expr Cost(Expr logits,
-                        Expr indices,
-                        Expr mask,
-                        std::string costType = "cross-entropy",
-                        float smoothing = 0,
-                        Expr weights = nullptr) {
-  using namespace keywords;
-
-  auto ce = cross_entropy(logits, indices);
-
-  if(weights)
-    ce = weights * ce;
-
-  if(smoothing > 0) {
-    // @TODO: add this to CE kernels instead
-    auto ceq = mean(logsoftmax(logits), axis = -1);
-    ce = (1 - smoothing) * ce - smoothing * ceq;
-  }
-
-  if(mask)
-    ce = ce * mask;
-
-  auto costSum = sum(ce, axis = -3);
-
-  Expr cost;
-  // axes:
-  //  - time axis (words): -3
-  //  - batch axis (sentences): -2
-  if(costType == "ce-mean"
-     || costType
-            == "cross-entropy") {  // sum over words; average over sentences
-    cost = mean(costSum, axis = -2);
-  } else if(costType == "ce-mean-words") {  // average over target tokens
-    cost = sum(costSum, axis = -2) / sum(sum(mask, axis = -3), axis = -2);
-  } else if(costType == "ce-sum") {  // sum over target tokens
-    cost = sum(costSum, axis = -2);
-  } else if(costType == "perplexity") {  // ==exp('ce-mean-words')
-    cost = exp(sum(costSum, axis = -2) / sum(sum(mask, axis = -3), axis = -2));
-  } else if(costType == "ce-rescore") {  // sum over words, keep batch axis
-    cost = -costSum;
-  } else {  // same as ce-mean
-    cost = mean(costSum, axis = -2);
-  }
-
-  return cost;
-}
 }

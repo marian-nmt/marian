@@ -1,8 +1,10 @@
 #pragma once
 
-#include "models/encoder_decoder.h"
 #include "layers/generic.h"
 #include "layers/guided_alignment.h"
+#include "layers/loss.h"
+#include "layers/weight.h"
+#include "models/encoder_decoder.h"
 
 namespace marian {
 namespace models {
@@ -12,58 +14,57 @@ public:
   virtual Expr apply(Ptr<ModelBase> model,
                      Ptr<ExpressionGraph> graph,
                      Ptr<data::Batch> batch,
-                     bool clearGraph = true) = 0;
+                     bool clearGraph = true)
+      = 0;
 };
-
 
 class EncoderDecoderCE : public CostBase {
 protected:
   Ptr<Options> options_;
 
+  bool inference_{false};
+  bool toBeWeighted_{false};
+  Ptr<LossBase> loss_;
+  Ptr<WeightingBase> weighter_;
+
 public:
   EncoderDecoderCE(Ptr<Options> options)
-  : options_(options) {}
+      : options_(options), inference_(options->get<bool>("inference", false)) {
+    loss_ = LossFactory(options_, inference_);
+
+    toBeWeighted_ = (options_->has("data-weighting") && !inference_)
+                    || (options_->has("dynamic-weighting")
+                        && options_->get<bool>("dynamic-weighting")
+                        && !inference_);
+    if(toBeWeighted_)
+      weighter_ = WeightingFactory(options_);
+  }
 
   Expr apply(Ptr<ModelBase> model,
              Ptr<ExpressionGraph> graph,
              Ptr<data::Batch> batch,
              bool clearGraph = true) {
-
     auto encdec = std::static_pointer_cast<EncoderDecoder>(model);
     auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
 
     auto state = encdec->stepAll(graph, corpusBatch, clearGraph);
 
-    std::string costType = options_->get<std::string>("cost-type");
-    bool inference = options_->get<bool>("inference", false);
-
-    float ls = inference ? 0.f : options_->get<float>("label-smoothing");
+    float ls = inference_ ? 0.f : options_->get<float>("label-smoothing");
 
     Expr weights;
+    Expr cost;
     bool sentenceWeighting = false;
 
-    if(options_->has("data-weighting") && !inference) {
-      ABORT_IF(corpusBatch->getDataWeights().empty(),
-               "Vector of weights is unexpectedly empty!");
-
-      sentenceWeighting
-          = options_->get<std::string>("data-weighting-type") == "sentence";
-      int dimBatch = corpusBatch->size();
-      int dimWords = sentenceWeighting ? 1 : corpusBatch->back()->batchWidth();
-
-      weights = graph->constant({1, dimWords, dimBatch, 1},
-                                inits::from_vector(corpusBatch->getDataWeights()));
+    if(toBeWeighted_) {
+      weights = weighter_->getWeights(graph, corpusBatch);
     }
 
-    auto cost
-        = Cost(state->getProbs(),
-               state->getTargetIndices(),
-               state->getTargetMask(),
-               costType,
-               ls,
-               weights);
+    cost = loss_->getCost(state->getProbs(),
+                          state->getTargetIndices(),
+                          state->getTargetMask(),
+                          weights);
 
-    if(options_->has("guided-alignment") && !inference) {
+    if(options_->has("guided-alignment") && !inference_) {
       auto alignments = encdec->getDecoders()[0]->getAlignments();
       ABORT_IF(alignments.empty(), "Model does not seem to support alignments");
 
@@ -85,7 +86,7 @@ protected:
 
 public:
   Trainer(Ptr<ModelBase> model, Ptr<CostBase> cost)
-  : model_(model), cost_(cost) {}
+      : model_(model), cost_(cost) {}
 
   Ptr<ModelBase> getModel() { return model_; }
 
@@ -104,16 +105,10 @@ public:
   virtual Expr build(Ptr<ExpressionGraph> graph,
                      Ptr<data::Batch> batch,
                      bool clearGraph = true) {
-    return cost_->apply(model_,
-                        graph,
-                        batch,
-                        clearGraph);
+    return cost_->apply(model_, graph, batch, clearGraph);
   };
 
-  virtual void clear(Ptr<ExpressionGraph> graph) {
-    model_->clear(graph);
-  };
-
+  virtual void clear(Ptr<ExpressionGraph> graph) { model_->clear(graph); };
 };
 
 typedef Trainer Scorer;
@@ -138,11 +133,11 @@ protected:
 
 public:
   Stepwise(Ptr<EncoderDecoderBase> encdec, Ptr<CostStep> cost)
-  : encdec_(encdec), cost_(cost) {}
+      : encdec_(encdec), cost_(cost) {}
 
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
-                    bool markedReloaded = true)  {
+                    bool markedReloaded = true) {
     encdec_->load(graph, name, markedReloaded);
   }
 
@@ -152,9 +147,7 @@ public:
     encdec_->save(graph, name, saveTranslatorConfig);
   }
 
-  virtual void clear(Ptr<ExpressionGraph> graph) {
-    encdec_->clear(graph);
-  }
+  virtual void clear(Ptr<ExpressionGraph> graph) { encdec_->clear(graph); }
 
   virtual Expr build(Ptr<ExpressionGraph> graph,
                      Ptr<data::Batch> batch,
@@ -174,7 +167,8 @@ public:
                                  const std::vector<size_t>& embIndices,
                                  int dimBatch,
                                  int beamSize) {
-    auto nextState = encdec_->step(graph, state, hypIndices, embIndices, dimBatch, beamSize);
+    auto nextState = encdec_->step(
+        graph, state, hypIndices, embIndices, dimBatch, beamSize);
     return cost_->apply(nextState);
   }
 
@@ -185,22 +179,21 @@ public:
     return nullptr;
   }
 
-  virtual Ptr<Options> getOptions() {
-    return encdec_->getOptions();
-  };
+  virtual Ptr<Options> getOptions() { return encdec_->getOptions(); };
 
-  virtual void setShortlistGenerator(Ptr<data::ShortlistGenerator> shortlistGenerator) {
+  virtual void setShortlistGenerator(
+      Ptr<data::ShortlistGenerator> shortlistGenerator) {
     encdec_->setShortlistGenerator(shortlistGenerator);
   };
 
   virtual Ptr<data::Shortlist> getShortlist() {
     return encdec_->getShortlist();
   };
-
 };
 
-static Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec, Ptr<Options> options) {
-  switch (options->get<usage>("usage", usage::raw)) {
+static Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec,
+                               Ptr<Options> options) {
+  switch(options->get<usage>("usage", usage::raw)) {
     case usage::training:
       return New<Trainer>(encdec, New<EncoderDecoderCE>(options));
     case usage::scoring:
@@ -208,10 +201,8 @@ static Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec, Ptr<Options> options)
     case usage::translation:
       return New<Stepwise>(encdec, New<LogsoftmaxStep>());
     case usage::raw:
-    default:
-      return encdec;
+    default: return encdec;
   }
 }
-
 }
 }
