@@ -14,7 +14,7 @@ namespace cpu {
 // Compiler optimizes this to single construct with nested(?) loops.
 template <size_t I = 0> struct E {
   template <size_t K, class Functor>
-  static inline void element(Functor functor,
+  static inline void element(const Functor& functor,
                              functional::Array<functional::Tensor<float>, K>& tensors,
                              functional::Array<int, K> indices) {
 
@@ -39,18 +39,18 @@ template <size_t I = 0> struct E {
 // using const reference for indices here to avoid copying. No loop.
 template <> struct E<functional::Shape::size()> {
   template <size_t K, class Functor>
-  static inline void element(Functor functor,
+  static inline void element(const Functor& functor,
                              functional::Array<functional::Tensor<float>, K>& tensors,
                              const functional::Array<int, K>& indices) {
 
-    // just apply the function for all elements across all tensors
+    // just apply the function for all indexed elements across all tensors
     tensors[0][indices[0]] = functional::apply(functor, tensors, indices);
 
   }
 };
 
 template <class Functor, class... Tensors>
-void Element(Functor functor, marian::Tensor out, Tensors... tensors) {
+void Element(const Functor& functor, marian::Tensor out, Tensors... tensors) {
   constexpr size_t K = sizeof...(tensors) + 1;
   functional::Array<functional::Tensor<float>, K> gTensors = {out, tensors...};
 

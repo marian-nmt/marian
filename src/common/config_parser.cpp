@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
-#include <boost/regex.hpp>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -23,6 +22,8 @@
 #include "common/file_stream.h"
 #include "common/logging.h"
 #include "common/version.h"
+
+#include "common/regex.h"
 
 #define SET_OPTION(key, type)                    \
   do {                                           \
@@ -98,42 +99,34 @@ const std::set<std::string> PATHS = {"model",
                                      "valid-translation-output",
                                      "log"};
 
-void ProcessPaths(YAML::Node& node,
-                  const boost::filesystem::path& configPath,
-                  bool isPath) {
-  using namespace boost::filesystem;
-
+// helper to implement interpolate-env-vars and relative-paths options
+static void ProcessPaths(YAML::Node& node,
+                         const std::function<std::string(std::string)>& TransformPath,
+                         bool isPath = false) {
   if(isPath) {
     if(node.Type() == YAML::NodeType::Scalar) {
       std::string nodePath = node.as<std::string>();
-      if(nodePath.size()) {
-        try {
-          node = canonical(path{nodePath}, configPath).string();
-        } catch(boost::filesystem::filesystem_error& e) {
-          std::cerr << e.what() << std::endl;
-          auto parentPath = path{nodePath}.parent_path();
-          node = (canonical(parentPath, configPath) / path{nodePath}.filename())
-                     .string();
-        }
+      if(!nodePath.empty()) {
+        node = TransformPath(nodePath); // transform the path
       }
     }
 
     if(node.Type() == YAML::NodeType::Sequence) {
       for(auto&& sub : node) {
-        ProcessPaths(sub, configPath, true);
+        ProcessPaths(sub, TransformPath, true);
       }
     }
   } else {
     switch(node.Type()) {
       case YAML::NodeType::Sequence:
         for(auto&& sub : node) {
-          ProcessPaths(sub, configPath, false);
+          ProcessPaths(sub, TransformPath, false);
         }
         break;
       case YAML::NodeType::Map:
         for(auto&& sub : node) {
           std::string key = sub.first.as<std::string>();
-          ProcessPaths(sub.second, configPath, PATHS.count(key) > 0);
+          ProcessPaths(sub.second, TransformPath, PATHS.count(key) > 0);
         }
         break;
     }
@@ -228,7 +221,7 @@ void ConfigParser::validateDevices() const {
   std::string devices = Join(get<std::vector<std::string>>("devices"));
   Trim(devices);
 
-  boost::regex pattern;
+  regex::regex pattern;
   std::string help;
   if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
     // valid strings: '0: 1 2', '0:1 2 1:2 3'
@@ -240,7 +233,7 @@ void ConfigParser::validateDevices() const {
     help = "Supported formats: '0 1 2 3'";
   }
 
-  UTIL_THROW_IF2(!boost::regex_match(devices, pattern),
+  UTIL_THROW_IF2(!regex::regex_match(devices, pattern),
                  "the argument '(" + devices
                      + ")' for option '--devices' is invalid. "
                      + help);
@@ -252,8 +245,8 @@ void ConfigParser::addOptionsCommon(po::options_description& desc) {
   po::options_description general("General options", guess_terminal_width());
   // clang-format off
   general.add_options()
-    ("config,c", po::value<std::string>(),
-     "Configuration file")
+    ("config,c", po::value<std::vector<std::string>>()->multitoken(),
+     "Configuration file(s). If multiple, later overrides earlier.")
     ("workspace,w", po::value<size_t>()->default_value(defaultWorkspace),
       "Preallocate  arg  MB of work space")
     ("log", po::value<std::string>(),
@@ -267,6 +260,10 @@ void ConfigParser::addOptionsCommon(po::options_description& desc) {
      "Suppress logging for translation")
     ("seed", po::value<size_t>()->default_value(0),
      "Seed for all random number generators. 0 means initialize randomly")
+    ("clip-gemm", po::value<float>()->default_value(0.f),
+     "If not 0 clip GEMM input values to +/- arg")
+    ("interpolate-env-vars", po::value<bool>()->zero_tokens()->default_value(false),
+     "allow the use of environment variables in paths, of the form ${VAR_NAME}")
     ("relative-paths", po::value<bool>()->zero_tokens()->default_value(false),
      "All paths are relative to the config file location")
     ("dump-config", po::value<bool>()->zero_tokens()->default_value(false),
@@ -348,15 +345,25 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
     ("tied-embeddings-all", po::value<bool>()->zero_tokens()->default_value(false),
      "Tie all embedding layers and output layer")
     ("transformer-heads", po::value<int>()->default_value(8),
-     "Number of head in multi-head attention (transformer)")
-    ("transformer-dim-ffn", po::value<int>()->default_value(2048),
-     "Size of position-wise feed-forward network (transformer)")
+     "Number of heads in multi-head attention (transformer)")
     ("transformer-no-projection", po::value<bool>()->zero_tokens()->default_value(false),
      "Omit linear projection after multi-head attention (transformer)")
+    ("transformer-dim-ffn", po::value<int>()->default_value(2048),
+     "Size of position-wise feed-forward network (transformer)")
     ("transformer-ffn-depth", po::value<int>()->default_value(2),
-     "Activation between filters: swish or relu (transformer)")
+     "Depth of filters (transformer)")
     ("transformer-ffn-activation", po::value<std::string>()->default_value("swish"),
      "Activation between filters: swish or relu (transformer)")
+    ("transformer-dim-aan", po::value<int>()->default_value(2048),
+     "Size of position-wise feed-forward network in AAN (transformer)")
+    ("transformer-aan-depth", po::value<int>()->default_value(2),
+     "Depth of filter for AAN (transformer)")
+    ("transformer-aan-activation", po::value<std::string>()->default_value("swish"),
+     "Activation between filters in AAN: swish or relu (transformer)")
+    ("transformer-aan-nogate", po::value<bool>()->zero_tokens()->default_value(false),
+     "Omit gate in AAN (transformer)")
+    ("transformer-decoder-autoreg", po::value<std::string>()->default_value("self-attention"),
+     "Type of autoregressive layer in transformer decoder: self-attention, average-attention (transformer)")
     ("transformer-preprocess", po::value<std::string>()->default_value(""),
      "Operation before each transformer layer: d = dropout, a = add, n = normalize")
     ("transformer-postprocess-emb", po::value<std::string>()->default_value("d"),
@@ -434,6 +441,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "Finish after this many batch updates, 0 is infinity")
     ("disp-freq", po::value<size_t>()->default_value(1000),
       "Display information every  arg  updates")
+    ("disp-label-counts", po::value<bool>()->zero_tokens()->default_value(false),
+      "Display label counts when logging loss progress")
     ("save-freq", po::value<size_t>()->default_value(10000),
       "Save model file every  arg  updates")
     ("no-shuffle", po::value<bool>()->zero_tokens()->default_value(false),
@@ -473,7 +482,6 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
       "Sorting strategy for maxi-batch: trg (default) src none")
-
     ("optimizer,o", po::value<std::string>()->default_value("adam"),
      "Optimization algorithm (possible values: sgd, adagrad, adam")
     ("optimizer-params",  po::value<std::vector<float>>()
@@ -613,6 +621,10 @@ void ConfigParser::addOptionsValid(po::options_description& desc) {
       "Beam size used during search with validating translator")
     ("normalize,n", po::value<float>()->default_value(0.f)->implicit_value(1.f),
       "Divide translation score by pow(translation length, arg) ")
+    ("word-penalty", po::value<float>()->default_value(0.f)->implicit_value(0.f),
+      "Subtract (arg * translation length) from translation score ")
+    ("max-length-factor", po::value<float>()->default_value(3),
+      "Maximum target length as source length times factor")
     ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
       "Allow unknown words to appear in output")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
@@ -637,10 +649,16 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Beam size used during search")
     ("normalize,n", po::value<float>()->default_value(0.f)->implicit_value(1.f),
       "Divide translation score by pow(translation length, arg) ")
+    ("word-penalty", po::value<float>()->default_value(0.f)->implicit_value(0.f),
+      "Subtract (arg * translation length) from translation score ")
     ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
       "Allow unknown words to appear in output")
+    ("skip-cost", po::value<bool>()->zero_tokens()->default_value(false),
+      "Ignore model cost during translation, not recommended for beam-size > 1")
     ("max-length", po::value<size_t>()->default_value(1000),
       "Maximum length of a sentence in a training sentence pair")
+    ("max-length-factor", po::value<float>()->default_value(3),
+      "Maximum target length as source length times factor")
     ("max-length-crop", po::value<bool>()->zero_tokens()->default_value(false),
       "Crop a sentence to max-length instead of ommitting it if longer than max-length")
     ("devices,d", po::value<std::vector<std::string>>()
@@ -660,6 +678,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Optimize speed aggressively sacrificing memory or precision")
     ("mini-batch", po::value<int>()->default_value(1),
       "Size of mini-batch used during update")
+    ("mini-batch-words", po::value<int>()->default_value(0),
+      "Set mini-batch size based on words instead of sentences")
     ("maxi-batch", po::value<int>()->default_value(1),
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("none"),
@@ -792,14 +812,20 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
       = (mode_ == ConfigMode::training)
         && boost::filesystem::exists(vm_["model"].as<std::string>() + ".yml")
         && !vm_["no-reload"].as<bool>();
-  std::string configPath;
+  std::vector<std::string> configPaths;
 
   if(loadConfig) {
-    configPath = vm_["config"].as<std::string>();
-    config_ = YAML::Load(InputFileStream(configPath));
+    configPaths = vm_["config"].as<std::vector<std::string>>();
+    config_ = YAML::Node();
+    for (const auto& configPath : configPaths)
+    {
+      for(const auto& it : YAML::Load(InputFileStream(configPath))) // later file overrides
+        config_[it.first.as<std::string>()] = it.second;
+    }
   } else if(reloadConfig) {
-    configPath = vm_["model"].as<std::string>() + ".yml";
+    auto configPath = vm_["model"].as<std::string>() + ".yml";
     config_ = YAML::Load(InputFileStream(configPath));
+    configPaths = { configPath };
   }
 
   /** model **/
@@ -847,6 +873,11 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("transformer-dim-ffn", int);
   SET_OPTION("transformer-ffn-depth", int);
   SET_OPTION("transformer-ffn-activation", std::string);
+  SET_OPTION("transformer-dim-aan", int);
+  SET_OPTION("transformer-aan-depth", int);
+  SET_OPTION("transformer-aan-activation", std::string);
+  SET_OPTION("transformer-aan-nogate", bool);
+  SET_OPTION("transformer-decoder-autoreg", std::string);
 
 #ifdef CUDNN
   SET_OPTION("char-stride", int);
@@ -881,6 +912,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("after-epochs", size_t);
     SET_OPTION("after-batches", size_t);
     SET_OPTION("disp-freq", size_t);
+    SET_OPTION("disp-label-counts", bool);
     SET_OPTION("save-freq", size_t);
     SET_OPTION("no-shuffle", bool);
     SET_OPTION("no-restore-corpus", bool);
@@ -951,12 +983,16 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("input", std::vector<std::string>);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("normalize", float);
+    SET_OPTION("word-penalty", float);
     SET_OPTION("allow-unk", bool);
     SET_OPTION("n-best", bool);
+    SET_OPTION("mini-batch-words", int);
     SET_OPTION_NONDEFAULT("weights", std::vector<float>);
     SET_OPTION_NONDEFAULT("shortlist", std::vector<std::string>);
     SET_OPTION("port", size_t);
     SET_OPTION("optimize", bool);
+    SET_OPTION("max-length-factor", float);
+    SET_OPTION("skip-cost", bool);
   }
 
   /** valid **/
@@ -978,6 +1014,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION_NONDEFAULT("valid-translation-output", std::string);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("normalize", float);
+    SET_OPTION("max-length-factor", float);
+    SET_OPTION("word-penalty", float);
     SET_OPTION("allow-unk", bool);
     SET_OPTION("n-best", bool);
   }
@@ -988,6 +1026,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("quiet-translation", bool);
   SET_OPTION_NONDEFAULT("log", std::string);
   SET_OPTION("seed", size_t);
+  SET_OPTION("clip-gemm", float);
+  SET_OPTION("interpolate-env-vars", bool);
   SET_OPTION("relative-paths", bool);
   SET_OPTION("devices", std::vector<std::string>);
   SET_OPTION("cpu-threads", size_t);
@@ -1012,9 +1052,47 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     config_["skip"] = true;
   }
 
-  if(get<bool>("relative-paths") && !vm_["dump-config"].as<bool>())
-    ProcessPaths(
-        config_, boost::filesystem::path{configPath}.parent_path(), false);
+  if(get<bool>("interpolate-env-vars")) {
+    ProcessPaths(config_,
+      [&](const std::string& nodePath) -> std::string {
+        // replace environment-variable expressions of the form ${VARNAME} in pathnames
+        auto path = nodePath;
+        for(;;)
+        {
+          const auto pos = path.find("${");
+          if (pos == std::string::npos)
+              return path;
+          const auto epos = path.find("}", pos + 2);
+          ABORT_IF(epos == std::string::npos, "interpolate-env-vars option: ${{ without matching }} in '{}'", path.c_str());
+          const auto var = path.substr(pos + 2, epos - (pos + 2)); // isolate the variable name
+          const auto val = getenv(var.c_str());
+          ABORT_IF(!val, "interpolate-env-vars option: environment variable '{}' not defined in '{}'", var.c_str(), path.c_str());
+          path = path.substr(0,pos) + val + path.substr(epos + 1); // replace it; then try again for further replacements
+        }
+      });
+  }
+
+  if(get<bool>("relative-paths") && !vm_["dump-config"].as<bool>()) {
+    // change relative paths to absolute paths relative to the config file's directory
+    ABORT_IF(configPaths.empty(), "relative-paths option requires at least one config file (--config option)");
+    auto configDir = boost::filesystem::path{configPaths.front()}.parent_path();
+    for (const auto& configPath : configPaths)
+      ABORT_IF(boost::filesystem::path{configPaths.front()}.parent_path() != configDir,
+               "relative-paths option requires all config files to be in the same directory");
+    ProcessPaths(config_,
+      [&](const std::string& nodePath) -> std::string {
+        // replace relative path w.r.t. configDir
+        using namespace boost::filesystem;
+        try {
+          return canonical(path{nodePath}, configDir).string();
+        } catch(boost::filesystem::filesystem_error& e) { // will fail if file does not exist; use parent in that case
+          std::cerr << e.what() << std::endl;
+          auto parentPath = path{nodePath}.parent_path();
+          return (canonical(parentPath, configDir) / path{nodePath}.filename())
+                     .string();
+        }
+      });
+  }
 
   if(doValidate) {
     try {

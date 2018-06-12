@@ -2,6 +2,9 @@
 
 #if MPI_FOUND
 #include "mpi.h"
+#endif
+
+#ifdef CUDA_FOUND
 #include "cuda_runtime.h"
 #endif
 
@@ -124,15 +127,21 @@ protected:
   int mpi_comm_world_size_{1};
 
   /**
-   * Flag to indicate that an MPI message contains gradients (client -> server).
+   * Flag to indicate that an MPI message contains message info
+   * before sending the gradient (client -> server).
    */
-  static const int MPI_TAG_GRAD_PUSH_{0};
+  static const int MPI_TAG_GRAD_PUSH_MSG_{0};
+
+  /**
+   * Flag to indicate that an MPI message contains gradient (client -> server).
+   */
+  static const int MPI_TAG_GRAD_PUSH_{5};
 
   /**
    * Flag to indicate that an MPI message contains parameters (server ->
    * client).
    */
-  static const int MPI_TAG_PARAM_PUSH_{5};
+  static const int MPI_TAG_PARAM_PUSH_{10};
 
   /**
    * Message info indices: 0 = size; 1 = originating client; 2 = number of batch
@@ -214,6 +223,20 @@ protected:
    * been filled.
    */
   std::vector<std::condition_variable> cvClientCommOverlapBuffersFilled_;
+
+  /**
+   * Variables for optimizer delay
+   */
+  size_t tau_{1};
+  std::vector<std::mutex> optDelayMutex_;
+  std::vector<size_t> delay_count;
+  std::vector<int> totalBatchWords;
+  std::vector<Tensor> accGradients, accGradientBuffer;
+
+  /**
+   * LocalOptimizers related variables
+   */
+  // bool useLocalOpt_;
 
   /**
    * Allocate new tensor on given GPU and store allocator.
@@ -384,8 +407,11 @@ public:
    */
   MultiNodeGraphGroup(Ptr<Config> options)
       : GraphGroup(options),
+        tau_{options_->get<size_t>("optimizer-delay")},
+        //        useLocalOpt_{options_->get<bool>("multi-node-local-optimizers")},
         clientCommOverlap{options_->get<bool>("multi-node-overlap")} {
     // Set up devices for this node
+    setupMPI();  // Setup MPI before creating device vectors
     std::vector<size_t> devices;
     for(auto& d : options_->getDevices())
       devices.push_back(d.no);
@@ -503,8 +529,6 @@ public:
     return GraphGroup::collectStats(clientGraphs_[0], clientBuilders_[0]);
   }
 
-  virtual void finalize() {
-    finalized_ = true;
-  }
+  virtual void finalize() { finalized_ = true; }
 };
 }

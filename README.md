@@ -3,6 +3,7 @@ Marian
 
 [![Join the chat at https://gitter.im/marian-nmt](https://badges.gitter.im/amunmt/marian.svg)](https://gitter.im/marian-nmt?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=marian-dev)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev/)
+[![CPU Build Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=marian-dev)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cpu/)
 [![Tests Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=marian-regression-tests)](http://vali.inf.ed.ac.uk/jenkins/job/marian-regression-tests/)
 [![Twitter](https://img.shields.io/twitter/follow/marian_nmt.svg?style=social&label=Follow)](https://twitter.com/intent/follow?screen_name=marian_nmt)
 
@@ -15,6 +16,16 @@ https://github.com/marian-nmt/marian is updated with stable versions of this
 repository.
 
 Named in honour of Marian Rejewski, a Polish mathematician and cryptologist.
+
+## Compilation
+
+```
+cd marian-dev
+mkdir -p build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=relwithdebinfo
+make -j
+```
 
 ## Website
 

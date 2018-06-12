@@ -14,7 +14,7 @@
 #endif
 #endif
 
-#include "sharp/sse_gemm.h"
+#include "sharp/int_gemm.h"
 
 namespace marian {
 
