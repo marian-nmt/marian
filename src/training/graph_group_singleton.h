@@ -53,7 +53,10 @@ public:
       if(boost::filesystem::exists(name)) {
         if(scheduler_)
           scheduler_->load(name);
+
         builder_->load(graph_, name);
+        if(mvAvg_ && boost::filesystem::exists(name + ".mvavg.npz"))
+          loadExponentialSmoothing();
 
         opt_->load(name + ".optimizer.npz", {opt_}, {graph_->getBackend()});
       } else if(options_->has("pretrained-model")) {
@@ -66,15 +69,46 @@ public:
     }
   }
 
+  void loadExponentialSmoothing() {
+    // Exponentially smoothed parameters has been already loaded from model.npz
+    // into graph_, so copy the parameters where they should be, i.e. into
+    // mvAvgGraph_
+    mvAvgGraph_ = New<ExpressionGraph>();
+    mvAvgGraph_->setDevice(graph_->getDevice());
+    mvAvgGraph_->copyParams(graph_);
+
+    // Clear the previous graph as unmodified parameters will be loaded into it
+    // @TODO: can be clearing the graph done better?
+    graph_->clear();
+    graph_->params()->clear();
+    graph_->setReloaded(false);
+
+    // Load the original/unmodified parameters from model.mvavg.npz into graph_
+    std::string name = options_->get<std::string>("model");
+    builder_->load(graph_, name + ".mvavg.npz");
+  }
+
   void save(bool final = false) {
     auto saveGraph = graph_;
-    if(mvAvg_)
+    if(mvAvg_) {
+      // The model with exponentially smoothed parameters will be saved into
+      // model.npz as it's a model which should be used for decoding
       saveGraph = mvAvgGraph_;
+      saveExponentialSmoothing();
+    }
 
     if(final && scheduler_)
       scheduler_->validate({saveGraph}, true);
 
     save(saveGraph, final);
+  }
+
+  void saveExponentialSmoothing() {
+    // Exponentially smoothed parameters from mvAvgGraph_ will be saved into
+    // model.npz, so save the original parameters from graph_ into
+    // model.mvavg.npz
+    std::string name = options_->get<std::string>("model");
+    builder_->save(graph_, name + ".mvavg.npz");
   }
 
   void save(Ptr<ExpressionGraph> graph, bool final = false) {
@@ -108,9 +142,6 @@ public:
     return GraphGroup::collectStats(graph_, builder_);
   }
 
-  virtual void finalize() {
-    finalized_ = true;
-  }
-
+  virtual void finalize() { finalized_ = true; }
 };
 }
