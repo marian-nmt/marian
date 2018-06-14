@@ -28,8 +28,9 @@ private:
 
   std::vector<Tensor> paramsAvg_;
   std::vector<Ptr<TensorAllocator>> paramsAllocAvg_;
-  bool movingAvg_{false};
+  bool mvAvg_{false};
   float mvDecay_{1e-4};
+
   size_t delay_{1};
 
   void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches);
@@ -42,7 +43,7 @@ public:
   SyncGraphGroup(Ptr<Config> config)
       : GraphGroup(config),
         devices_{options_->getDevices()},
-        movingAvg_{options_->get<float>("exponential-smoothing") > 0},
+        mvAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")},
         delay_{options_->get<size_t>("optimizer-delay")} {
     for(auto device : devices_) {
@@ -93,13 +94,13 @@ public:
 
   void save(bool final = false) {
     if(final && scheduler_) {
-      if(movingAvg_ && paramsAvg_.size() > 0)
+      if(mvAvg_ && paramsAvg_.size() > 0)
         for(auto graph : graphs_)
           fetchParams(graph->params()->vals(), paramsAvg_);
 
       scheduler_->validate(graphs_, true);
 
-      if(movingAvg_ && paramsAvg_.size() > 0)
+      if(mvAvg_ && paramsAvg_.size() > 0)
         for(auto graph : graphs_)
           fetchParams(graph->params()->vals(), params_);
     }
@@ -116,7 +117,7 @@ public:
       }
     }
 
-    if(movingAvg_ && paramsAvg_.size() > 0)
+    if(mvAvg_ && paramsAvg_.size() > 0)
       fetchParams(graphs_[idx]->params()->vals(), paramsAvg_);
 
     std::string name = options_->get<std::string>("model");
@@ -141,7 +142,7 @@ public:
         scheduler_->save(name);
     }
 
-    if(movingAvg_ && paramsAvg_.size() > 0)
+    if(mvAvg_ && paramsAvg_.size() > 0)
       fetchParams(graphs_[idx]->params()->vals(), params_);
 
     size_t totalSize = graphs_[idx]->params()->vals()->size();

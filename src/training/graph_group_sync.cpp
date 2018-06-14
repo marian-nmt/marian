@@ -99,7 +99,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> fullBatch) {
         }
       }
 
-      if(movingAvg_ && paramsAvg_.size() == 0) {
+      if(mvAvg_ && paramsAvg_.size() == 0) {
         int totalSize = graphs_[0]->params()->vals()->size();
 
         int i = 0;
@@ -167,7 +167,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> fullBatch) {
           shardOpt_[idx]->update(params_[idx], grads_[idx]);
           grads_[idx]->set(0.f);
 
-          if(movingAvg_)
+          if(mvAvg_)
             updateMovingAverage(
               paramsAvg_[idx], params_[idx], scheduler_->numberOfBatches());
 
@@ -209,14 +209,14 @@ void SyncGraphGroup::execute(Ptr<data::Batch> fullBatch) {
     }
 
     if(scheduler_->validating()) {
-      if(movingAvg_)
+      if(mvAvg_)
         for(auto graph : graphs_)
           fetchParams(graph->params()->vals(), paramsAvg_);
 
       // safe, because all graphs are idle during validation with sync sgd
       scheduler_->validate(graphs_);
 
-      if(movingAvg_)
+      if(mvAvg_)
         for(auto graph : graphs_)
           fetchParams(graph->params()->vals(), params_);
     }
