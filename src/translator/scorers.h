@@ -1,8 +1,8 @@
 #pragma once
 
+#include "data/shortlist.h"
 #include "marian.h"
 #include "models/model_factory.h"
-#include "data/shortlist.h"
 
 namespace marian {
 
@@ -41,7 +41,8 @@ public:
 
   virtual void init(Ptr<ExpressionGraph> graph) {}
 
-  virtual void setShortlistGenerator(Ptr<data::ShortlistGenerator> shortlistGenerator) {};
+  virtual void setShortlistGenerator(
+      Ptr<data::ShortlistGenerator> shortlistGenerator){};
   virtual Ptr<data::Shortlist> getShortlist() { return nullptr; };
   virtual std::vector<float> getAlignment() { return {}; };
 };
@@ -105,7 +106,8 @@ public:
         graph, wrappedState, hypIndices, embIndices, dimBatch, beamSize));
   }
 
-  virtual void setShortlistGenerator(Ptr<data::ShortlistGenerator> shortlistGenerator) {
+  virtual void setShortlistGenerator(
+      Ptr<data::ShortlistGenerator> shortlistGenerator) {
     encdec_->setShortlistGenerator(shortlistGenerator);
   };
 

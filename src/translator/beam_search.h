@@ -37,11 +37,10 @@ public:
     Beams newBeams(beams.size());
 
     std::vector<float> beamAlignments;
-    if(options_->get<bool>("alignment")) 
+    if(options_->get<bool>("alignment"))
       beamAlignments = scorers_[0]->getAlignment();
 
     for(int i = 0; i < keys.size(); ++i) {
-
       // Keys contains indices to vocab items in the entire beam.
       // Values can be between 0 and beamSize * vocabSize.
       int embIdx = keys[i] % vocabSize;
@@ -137,7 +136,9 @@ public:
     Histories histories;
     for(int i = 0; i < dimBatch; ++i) {
       size_t sentId = batch->getSentenceIds()[i];
-      auto history = New<History>(sentId, options_->get<float>("normalize"), options_->get<float>("word-penalty"));
+      auto history = New<History>(sentId,
+                                  options_->get<float>("normalize"),
+                                  options_->get<float>("word-penalty"));
       histories.push_back(history);
     }
 
@@ -253,7 +254,9 @@ public:
       for(int i = 0; i < dimBatch; ++i) {
         if(!beams[i].empty()) {
           final = final
-                  || histories[i]->size() >= options_->get<float>("max-length-factor") * batch->front()->batchWidth();
+                  || histories[i]->size()
+                         >= options_->get<float>("max-length-factor")
+                                * batch->front()->batchWidth();
           histories[i]->Add(beams[i], prunedBeams[i].empty() || final);
         }
       }
