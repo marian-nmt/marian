@@ -1,7 +1,8 @@
 #pragma once
 
-#include "data/shortlist.h"
 #include "marian.h"
+
+#include "data/shortlist.h"
 #include "models/model_factory.h"
 
 namespace marian {

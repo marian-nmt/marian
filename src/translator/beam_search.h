@@ -101,7 +101,7 @@ public:
             std::vector<float> align;
             int width = beamAlignments.size() / keys.size();
             std::cerr << "    ";
-            for(int w = width * i; w < width * (i + 1); ++w) {
+            for(int w = width * beamHypIdx; w < width * (beamHypIdx + 1); ++w) {
               std::cerr << w << ":" << beamAlignments[w] << " ";
               align.push_back(beamAlignments[w]);
             }
