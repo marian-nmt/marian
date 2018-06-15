@@ -95,20 +95,22 @@ public:
                     << " hypIdxTrans: " << hypIdxTrans << " i: " << i
                     << std::endl;
 
-          if(first) {
-            hyp->SetAlignment(beamAlignments);
-          } else {
-            std::vector<float> align;
-            int width = beamAlignments.size() / keys.size();
-            std::cerr << "    ";
-            for(int w = width * beamHypIdx; w < width * (beamHypIdx + 1); ++w) {
-              std::cerr << w << ":" << beamAlignments[w] << " ";
-              align.push_back(beamAlignments[w]);
-            }
-            std::cerr << std::endl;
+          std::vector<float> align;
+          int beamWidth = beamAlignments.size() / beamSize;
+          int batchSize = keys.size() / beamSize;
 
-            hyp->SetAlignment(align);
+          std::cerr << "    BW=" << beamWidth << " BS=" << batchSize << std::endl;
+          std::cerr << "    :: ";
+
+          for(int w = (beamWidth * beamHypIdx) + beamIdx;
+              w < beamWidth * (beamHypIdx + 1);
+              w += batchSize) {
+            std::cerr << w << ":" << beamAlignments[w] << " ";
+            align.push_back(beamAlignments[w]);
           }
+          std::cerr << std::endl;
+
+          hyp->SetAlignment(align);
         }
 
         newBeam.push_back(hyp);
