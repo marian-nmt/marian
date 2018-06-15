@@ -44,6 +44,8 @@ public:
   virtual void setShortlistGenerator(Ptr<data::ShortlistGenerator> shortlistGenerator) = 0;
 
   virtual Ptr<data::Shortlist> getShortlist() = 0;
+
+  virtual const std::vector<Expr> getAlignment() = 0;
 };
 
 class EncoderDecoder : public EncoderDecoderBase {
@@ -106,6 +108,10 @@ public:
 
   virtual Ptr<data::Shortlist> getShortlist() {
     return decoders_[0]->getShortlist();
+  };
+
+  virtual const std::vector<Expr> getAlignment() {
+    return decoders_[0]->getAlignments();
   };
 
   /*********************************************************************/

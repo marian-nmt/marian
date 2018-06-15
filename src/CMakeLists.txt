@@ -54,6 +54,7 @@ add_library(marian STATIC
   translator/nth_element.cpp
   translator/helpers.cpp
   translator/scorers.cpp
+  translator/printer.cpp
 
   training/graph_group_async.cpp
   training/graph_group_async_drop.cpp

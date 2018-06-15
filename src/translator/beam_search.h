@@ -35,14 +35,19 @@ public:
                size_t beamSize,
                bool first) {
     Beams newBeams(beams.size());
+
+    std::vector<float> beamAlignments;
+    if(options_->get<bool>("alignment")) 
+      beamAlignments = scorers_[0]->getAlignment();
+
     for(int i = 0; i < keys.size(); ++i) {
 
-      // keys is contains indices to vocab items in the entire beam.
-      // values can be between 0 and beamSize * vocabSize.
+      // Keys contains indices to vocab items in the entire beam.
+      // Values can be between 0 and beamSize * vocabSize.
       int embIdx = keys[i] % vocabSize;
       int beamIdx = i / beamSize;
 
-      // retrieve short list for final softmax (based on words aligned
+      // Retrieve short list for final softmax (based on words aligned
       // to source sentences). If short list has been set, map the indices
       // in the sub-selected vocabulary matrix back to their original positions.
       auto shortlist = scorers_[0]->getShortlist();
@@ -69,6 +74,8 @@ public:
           beamHypIdx = 0;
 
         auto hyp = New<Hypothesis>(beam[beamHypIdx], embIdx, hypIdxTrans, cost);
+
+        // Set cost breakdown for n-best lists
         if(options_->get<bool>("n-best")) {
           std::vector<float> breakDown(states.size(), 0);
           beam[beamHypIdx]->GetCostBreakdown().resize(states.size(), 0);
@@ -79,6 +86,32 @@ public:
           }
           hyp->GetCostBreakdown() = breakDown;
         }
+
+        // Set alignments
+        if(!beamAlignments.empty()) {
+          std::cerr << " first: " << (bool)first << " hypIdx: " << hypIdx
+                    << " embIdx: " << embIdx << " beamIdx: " << beamIdx
+                    << " beamSize: " << beamSize
+                    << " beamHypIdx: " << beamHypIdx
+                    << " hypIdxTrans: " << hypIdxTrans << " i: " << i
+                    << std::endl;
+
+          if(first) {
+            hyp->SetAlignment(beamAlignments);
+          } else {
+            std::vector<float> align;
+            int width = beamAlignments.size() / keys.size();
+            std::cerr << "    ";
+            for(int w = width * i; w < width * (i + 1); ++w) {
+              std::cerr << w << ":" << beamAlignments[w] << " ";
+              align.push_back(beamAlignments[w]);
+            }
+            std::cerr << std::endl;
+
+            hyp->SetAlignment(align);
+          }
+        }
+
         newBeam.push_back(hyp);
       }
     }

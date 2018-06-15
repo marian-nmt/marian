@@ -24,6 +24,9 @@ public:
   float GetCost() const { return cost_; }
 
   std::vector<float>& GetCostBreakdown() { return costBreakdown_; }
+  std::vector<float>& GetAlignment() { return alignment_; }
+
+  void SetAlignment(const std::vector<float>& align) { alignment_ = align; };
 
 private:
   const Ptr<Hypothesis> prevHyp_;
@@ -32,6 +35,7 @@ private:
   const float cost_;
 
   std::vector<float> costBreakdown_;
+  std::vector<float> alignment_;
 };
 
 typedef std::vector<Ptr<Hypothesis>> Beam;

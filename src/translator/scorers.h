@@ -43,6 +43,7 @@ public:
 
   virtual void setShortlistGenerator(Ptr<data::ShortlistGenerator> shortlistGenerator) {};
   virtual Ptr<data::Shortlist> getShortlist() { return nullptr; };
+  virtual std::vector<float> getAlignment() { return {}; };
 };
 
 class ScorerWrapperState : public ScorerState {
@@ -111,6 +112,22 @@ public:
   virtual Ptr<data::Shortlist> getShortlist() {
     return encdec_->getShortlist();
   };
+
+  virtual std::vector<float> getAlignment() {
+    auto align = encdec_->getAlignment();
+
+    std::vector<float> softAlign;
+    align[0]->val()->get(softAlign);
+
+    // TODO: remove debug
+    std::cerr << std::endl;
+    std::cerr << "  (" << softAlign.size() << ") ";
+    for(auto v : softAlign)
+      std::cerr << v << " ";
+    std::cerr << std::endl;
+
+    return softAlign;
+  }
 };
 
 Ptr<Scorer> scorerByType(std::string fname,
