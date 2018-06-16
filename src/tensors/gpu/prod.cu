@@ -67,6 +67,38 @@ void Prod(marian::Tensor C,
 #endif
 }
 
+__global__ void gAddBias(float* out, const float* bias, size_t rows, size_t cols) {
+
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float* rowOut = out + j * cols;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols) {
+          rowOut[i] += bias[i];
+        }
+      }
+    }
+  }
+
+}
+
+void AddBias(marian::Tensor C, const marian::Tensor bias) {
+  cudaSetDevice(C->getDevice().no);
+
+  size_t rows = C->shape().elements() / C->shape().back();
+  size_t cols = C->shape().back();
+
+  int blocks = std::min(MAX_BLOCKS, (int)rows);
+  int threads = std::min(MAX_THREADS, (int)cols);
+
+  gAddBias<<<blocks, threads>>>(C->data(), bias->data(), rows, cols);
+
+  cudaStreamSynchronize(0);
+}
+
 void ProdWithBias(marian::Tensor C,
           const marian::Tensor A,
           const marian::Tensor B,
@@ -76,7 +108,7 @@ void ProdWithBias(marian::Tensor C,
           float beta,
           float scalar) {
   marian::gpu::Prod(C, A, B, transA, transB, beta, scalar);
-  marian::gpu::Add(functional::_1, 1.f, C, bias);
+  marian::gpu::AddBias(C, bias);
 }
 
 //
