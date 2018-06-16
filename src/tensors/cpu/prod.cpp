@@ -95,6 +95,7 @@ void Prod(marian::Tensor C,
 }
 
 void ProdBatched(marian::Tensor C,
+                 Ptr<Allocator> allocator,
                  const marian::Tensor A,
                  const marian::Tensor B,
                  bool transA,

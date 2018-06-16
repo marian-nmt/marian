@@ -294,6 +294,7 @@ public:
   NodeOps forwardOps() {
     // C = alpha * dot(op(A), op(B))
     return {NodeOp(ProdBatched(val_,
+                               graph()->allocator(),
                                child(0)->val(),
                                child(1)->val(),
                                transA_,
@@ -311,6 +312,7 @@ public:
 
     if(!transA_ && transB_)
       return {NodeOp(ProdBatched(child(0)->grad(),
+                                 graph()->allocator(),
                                  adj_,
                                  child(1)->val(),
                                  false,
@@ -318,6 +320,7 @@ public:
                                  1.0,
                                  scalar_)),
               NodeOp(ProdBatched(child(1)->grad(),
+                                 graph()->allocator(),
                                  adj_,
                                  child(0)->val(),
                                  true,
@@ -327,6 +330,7 @@ public:
 
     if(transA_ && !transB_)
       return {NodeOp(ProdBatched(child(0)->grad(),
+                                 graph()->allocator(),
                                  child(1)->val(),
                                  adj_,
                                  false,
@@ -334,6 +338,7 @@ public:
                                  1.0,
                                  scalar_)),
               NodeOp(ProdBatched(child(1)->grad(),
+                                 graph()->allocator(),
                                  child(0)->val(),
                                  adj_,
                                  false,
@@ -343,6 +348,7 @@ public:
 
     if(transA_ && transB_)
       return {NodeOp(ProdBatched(child(0)->grad(),
+                                 graph()->allocator(),
                                  child(1)->val(),
                                  adj_,
                                  true,
@@ -350,6 +356,7 @@ public:
                                  1.0,
                                  scalar_)),
               NodeOp(ProdBatched(child(1)->grad(),
+                                 graph()->allocator(),
                                  adj_,
                                  child(0)->val(),
                                  true,
@@ -358,6 +365,7 @@ public:
                                  scalar_))};
 
     return {NodeOp(ProdBatched(child(0)->grad(),
+                               graph()->allocator(),
                                adj_,
                                child(1)->val(),
                                false,
@@ -365,6 +373,7 @@ public:
                                1.0,
                                scalar_)),
             NodeOp(ProdBatched(child(1)->grad(),
+                               graph()->allocator(),
                                child(0)->val(),
                                adj_,
                                true,

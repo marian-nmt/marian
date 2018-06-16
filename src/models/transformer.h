@@ -171,13 +171,13 @@ public:
     // time steps and batch entries), also add mask for illegal connections
 
     // @TODO: do this better
-    int dimBeamQ = q->shape()[-4];
-    int dimBeamK = k->shape()[-4];
-    int dimBeam = dimBeamQ / dimBeamK;
-    if(dimBeam > 1) { // broadcast k and v into all beam elements  --TODO: if we use a separate dimension, then this would be automatic at no memory cost
-      k = repeat(k, dimBeam, axis = -4); // [-4: beam depth * batch size, -3: num heads, -2: max src length, -1: split vector dim]
-      v = repeat(v, dimBeam, axis = -4); // [-4: beam depth * batch size, -3: num heads, -2: max src length, -1: split vector dim]
-    }
+    //int dimBeamQ = q->shape()[-4];
+    //int dimBeamK = k->shape()[-4];
+    //int dimBeam = dimBeamQ / dimBeamK;
+    //if(dimBeam > 1) { // broadcast k and v into all beam elements  --TODO: if we use a separate dimension, then this would be automatic at no memory cost
+    //  k = repeat(k, dimBeam, axis = -4); // [-4: beam depth * batch size, -3: num heads, -2: max src length, -1: split vector dim]
+    //  v = repeat(v, dimBeam, axis = -4); // [-4: beam depth * batch size, -3: num heads, -2: max src length, -1: split vector dim]
+    //}
     // now q, k, and v have the same first dims [-4: beam depth * batch size, -3: num heads, -2: max src or tgt length, -1: split vector dim]
 
     // multiplicative attention with flattened softmax
@@ -727,8 +727,6 @@ public:
       decoderMask = reshape(TransposeTimeBatch(decoderMask),// [ 1, batch size, max length, 1 ]
                             {1, dimBatch, 1, dimTrgWords}); // [ 1, batch size, 1, max length ]
       selfMask = selfMask * decoderMask;
-      // if(dimBeam > 1)
-      //  selfMask = repeat(selfMask, dimBeam, axis = -4);
     }
 
     std::vector<Expr> encoderContexts;
