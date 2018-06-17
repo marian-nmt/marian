@@ -170,16 +170,6 @@ public:
     // softmax over batched dot product of query and keys (applied over all
     // time steps and batch entries), also add mask for illegal connections
 
-    // @TODO: do this better
-    //int dimBeamQ = q->shape()[-4];
-    //int dimBeamK = k->shape()[-4];
-    //int dimBeam = dimBeamQ / dimBeamK;
-    //if(dimBeam > 1) { // broadcast k and v into all beam elements  --TODO: if we use a separate dimension, then this would be automatic at no memory cost
-    //  k = repeat(k, dimBeam, axis = -4); // [-4: beam depth * batch size, -3: num heads, -2: max src length, -1: split vector dim]
-    //  v = repeat(v, dimBeam, axis = -4); // [-4: beam depth * batch size, -3: num heads, -2: max src length, -1: split vector dim]
-    //}
-    // now q, k, and v have the same first dims [-4: beam depth * batch size, -3: num heads, -2: max src or tgt length, -1: split vector dim]
-
     // multiplicative attention with flattened softmax
     float scale = 1.0 / std::sqrt((float)dk); // scaling to avoid extreme values due to matrix multiplication
     auto z = bdot(q, k, false, true, scale); // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
@@ -205,55 +195,51 @@ public:
                         int dimOut,
                         int dimHeads,
                         Expr q,                          // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
-                        const std::vector<Expr> &keys,   // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
-                        const std::vector<Expr> &values,
-                        const std::vector<Expr> &masks,  // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
+                        const Expr& keys,   // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
+                        const Expr& values,
+                        const Expr& mask,  // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
                         bool inference = false) {
     using namespace keywords;
 
     int dimModel = q->shape()[-1];
 
-    auto Wq = graph->param(
-        prefix + "_Wq", {dimModel, dimModel}, inits::glorot_uniform);
-    auto bq = graph->param(prefix + "_bq", {1, dimModel}, inits::zeros);
+    // @TODO: good opportunity to implement auto-batching here or do something manually? 
+
+    auto Wq = graph->param(prefix + "_Wq",
+                           {dimModel, dimModel},
+                           inits::glorot_uniform);
+    auto bq = graph->param(prefix + "_bq",
+                           {1, dimModel},
+                           inits::zeros);
     auto qh = affine(q, Wq, bq);
     qh = SplitHeads(qh, dimHeads); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
 
-    std::vector<Expr> outputs;
-    for(int i = 0; i < keys.size(); ++i) {
-      std::string prefixProj = prefix;
-      if(i > 0)
-        prefixProj += "_enc" + std::to_string(i + 1);
+    auto Wk = graph->param(prefix + "_Wk",
+                           {dimModel, dimModel},
+                           inits::glorot_uniform);
+    auto bk = graph->param(prefix + "_bk",
+                           {1, dimModel},
+                           inits::zeros);
+    auto kh = affine(keys, Wk, bk); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
+    kh = SplitHeads(kh, dimHeads); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
 
-      auto Wk = graph->param(prefixProj + "_Wk",
-                             {dimModel, dimModel},
-                             inits::glorot_uniform);
-      auto bk = graph->param(
-          prefixProj + "_bk", {1, dimModel}, inits::zeros);
+    auto Wv = graph->param(prefix + "_Wv",
+                           {dimModel, dimModel},
+                           inits::glorot_uniform);
+    auto bv = graph->param(prefix + "_bv",
+                           {1, dimModel},
+                           inits::zeros);
+    auto vh = affine(values, Wv, bv);
+    vh = SplitHeads(vh, dimHeads); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
 
-      auto Wv = graph->param(
-          prefixProj + "_Wv", {dimModel, dimModel}, inits::glorot_uniform);
-      auto bv = graph->param(prefixProj + "_bv", {1, dimModel}, inits::zeros);
+    // apply multi-head attention to downscaled inputs
+    // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
+    auto output = Attention(graph, options, prefix,
+                            qh, kh, vh,
+                            mask,
+                            inference);
 
-      auto kh = affine(keys[i], Wk, bk); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
-      auto vh = affine(values[i], Wv, bv);
-
-      kh = SplitHeads(kh, dimHeads); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
-      vh = SplitHeads(vh, dimHeads); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
-
-      // apply multi-head attention to downscaled inputs
-      auto output
-          = Attention(graph, options, prefix, qh, kh, vh, masks[i], inference); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
-
-      output = JoinHeads(output, q->shape()[-4]); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
-      outputs.push_back(output);
-    }
-
-    Expr output;
-    if(outputs.size() > 1)
-      output = concatenate(outputs, axis = -1);
-    else
-      output = outputs.front();
+    output = JoinHeads(output, q->shape()[-4]); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
 
     int dimAtt = output->shape()[-1];
 
@@ -271,28 +257,10 @@ public:
   static Expr LayerAttention(Ptr<ExpressionGraph> graph,
                              Ptr<Options> options,
                              std::string prefix,
-                             Expr input,
-                             Expr keys,
-                             Expr values,
-                             Expr mask,
-                             bool inference = false) {
-    return LayerAttention(graph,
-                          options,
-                          prefix,
-                          input,
-                          std::vector<Expr>{keys},
-                          std::vector<Expr>{values},
-                          std::vector<Expr>{mask},
-                          inference);
-  }
-
-  static Expr LayerAttention(Ptr<ExpressionGraph> graph,
-                             Ptr<Options> options,
-                             std::string prefix,
                              Expr input,                      // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
-                             const std::vector<Expr> &keys,   // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
-                             const std::vector<Expr> &values,
-                             const std::vector<Expr> &masks,  // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
+                             const Expr& keys,   // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
+                             const Expr& values,
+                             const Expr& mask,  // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
                              bool inference = false) {
     using namespace keywords;
 
@@ -313,7 +281,7 @@ public:
                        output,
                        keys,
                        values,
-                       masks,
+                       mask,
                        inference);
 
     auto opsPost = options->get<std::string>("transformer-postprocess");

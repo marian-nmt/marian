@@ -67,34 +67,26 @@ void Prod(marian::Tensor C,
 #endif
 }
 
-__global__ void gAddBias(float* out, const float* bias, size_t rows, size_t cols) {
-
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      float* rowOut = out + j * cols;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < cols) {
-          rowOut[i] += bias[i];
-        }
-      }
+__global__ void gAddBias(float* out, const float* bias, size_t length, size_t cols) {
+  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
+    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+    if(index < length) {
+      size_t index2 = index % cols;
+      out[index] += bias[index2];
     }
   }
-
 }
 
 void AddBias(marian::Tensor C, const marian::Tensor bias) {
   cudaSetDevice(C->getDevice().no);
 
-  size_t rows = C->shape().elements() / C->shape().back();
-  size_t cols = C->shape().back();
+  int length = C->shape().elements();
+  int cols = bias->shape().elements();
 
-  int blocks = std::min(MAX_BLOCKS, (int)rows);
-  int threads = std::min(MAX_THREADS, (int)cols);
+  int threads = std::min(MAX_THREADS, length);
+  int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-  gAddBias<<<blocks, threads>>>(C->data(), bias->data(), rows, cols);
+  gAddBias<<<blocks, threads>>>(C->data(), bias->data(), length, cols);
 
   cudaStreamSynchronize(0);
 }
@@ -224,7 +216,7 @@ void ProdBatched(marian::Tensor C,
   for(int i = 0; i < batchC; i++) {
     aptr.push_back(A->data() + (i % batchA) * strideA);
     bptr.push_back(B->data() + (i % batchB) * strideB);
-    cptr.push_back(C->data() + i * strideC;
+    cptr.push_back(C->data() + i * strideC);
   }
 
   auto mp_aptr = allocator->alloc<const float*>(aptr.size());
