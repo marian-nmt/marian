@@ -13,6 +13,8 @@ namespace marian {
 // collection of subroutines for Transformer implementation
 class Transformer {
 public:
+  std::unordered_map<std::string, Expr> cache_;
+
   static Expr TransposeTimeBatch(Expr input) { return transpose(input, {0, 2, 1, 3}); }
 
   static Expr AddPositionalEmbeddings(Ptr<ExpressionGraph> graph,
@@ -189,7 +191,7 @@ public:
     return bdot(weights, v);   // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]
   }
 
-  static Expr MultiHead(Ptr<ExpressionGraph> graph,
+  Expr MultiHead(Ptr<ExpressionGraph> graph,
                         Ptr<Options> options,
                         std::string prefix,
                         int dimOut,
@@ -198,12 +200,13 @@ public:
                         const Expr& keys,   // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
                         const Expr& values,
                         const Expr& mask,  // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
-                        bool inference = false) {
+                        bool inference = false,
+                        bool cache = false) {
     using namespace keywords;
 
     int dimModel = q->shape()[-1];
 
-    // @TODO: good opportunity to implement auto-batching here or do something manually? 
+    // @TODO: good opportunity to implement auto-batching here or do something manually?
 
     auto Wq = graph->param(prefix + "_Wq",
                            {dimModel, dimModel},
@@ -214,23 +217,37 @@ public:
     auto qh = affine(q, Wq, bq);
     qh = SplitHeads(qh, dimHeads); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
 
-    auto Wk = graph->param(prefix + "_Wk",
-                           {dimModel, dimModel},
-                           inits::glorot_uniform);
-    auto bk = graph->param(prefix + "_bk",
-                           {1, dimModel},
-                           inits::zeros);
-    auto kh = affine(keys, Wk, bk); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
-    kh = SplitHeads(kh, dimHeads); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
+    Expr kh;
+    if(!cache || (cache && cache_.count(prefix + "_keys") == 0)) {
+      auto Wk = graph->param(prefix + "_Wk",
+                             {dimModel, dimModel},
+                             inits::glorot_uniform);
+      auto bk = graph->param(prefix + "_bk",
+                             {1, dimModel},
+                             inits::zeros);
+      kh = affine(keys, Wk, bk); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
+      kh = SplitHeads(kh, dimHeads); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
+      cache_[prefix + "_keys"] = kh;
+    }
+    else {
+      kh = cache_[prefix + "_keys"];
+    }
 
-    auto Wv = graph->param(prefix + "_Wv",
-                           {dimModel, dimModel},
-                           inits::glorot_uniform);
-    auto bv = graph->param(prefix + "_bv",
-                           {1, dimModel},
-                           inits::zeros);
-    auto vh = affine(values, Wv, bv);
-    vh = SplitHeads(vh, dimHeads); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
+    Expr vh;
+    if(!cache || (cache && cache_.count(prefix + "_values") == 0)) {
+      auto Wv = graph->param(prefix + "_Wv",
+                             {dimModel, dimModel},
+                             inits::glorot_uniform);
+      auto bv = graph->param(prefix + "_bv",
+                             {1, dimModel},
+                             inits::zeros);
+      vh = affine(values, Wv, bv);
+      vh = SplitHeads(vh, dimHeads); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
+      cache_[prefix + "_values"] = vh;
+    }
+    else {
+      vh = cache_[prefix + "_values"];
+    }
 
     // apply multi-head attention to downscaled inputs
     // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
@@ -254,14 +271,15 @@ public:
     return output;
   }
 
-  static Expr LayerAttention(Ptr<ExpressionGraph> graph,
+  Expr LayerAttention(Ptr<ExpressionGraph> graph,
                              Ptr<Options> options,
                              std::string prefix,
                              Expr input,                      // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
                              const Expr& keys,   // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
                              const Expr& values,
                              const Expr& mask,  // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
-                             bool inference = false) {
+                             bool inference = false,
+                             bool cache = false) {
     using namespace keywords;
 
     int dimModel = input->shape()[-1];
@@ -282,7 +300,8 @@ public:
                        keys,
                        values,
                        mask,
-                       inference);
+                       inference,
+                       cache);
 
     auto opsPost = options->get<std::string>("transformer-postprocess");
     output
@@ -772,6 +791,7 @@ public:
                                  encoderContexts[j],
                                  encoderContexts[j],
                                  encoderMasks[j],
+                                 inference_,
                                  inference_);
         }
       }
@@ -828,6 +848,7 @@ public:
 
   void clear() {
     output_ = nullptr;
+    cache_.clear();
   }
 };
 }

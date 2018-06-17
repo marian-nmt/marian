@@ -178,9 +178,13 @@ public:
       auto totalCosts = prevCosts;
 
       for(int i = 0; i < scorers_.size(); ++i) {
-        states[i] = scorers_[i]->step(
-            graph, states[i], hypIndices, embIndices, dimBatch, localBeamSize);
-
+        states[i] = scorers_[i]->step(graph,
+                                      states[i],
+                                      hypIndices,
+                                      embIndices,
+                                      dimBatch,
+                                      localBeamSize);
+        
         if(scorers_[i]->getWeight() != 1.f)
           totalCosts
               = totalCosts + scorers_[i]->getWeight() * states[i]->getProbs();
@@ -213,8 +217,7 @@ public:
       nth->getNBestList(beamSizes, totalCosts->val(), outCosts, outKeys, first);
 
       int dimTrgVoc = totalCosts->shape()[-1];
-      beams = toHyps(
-          outKeys, outCosts, dimTrgVoc, beams, states, localBeamSize, first);
+      beams = toHyps(outKeys, outCosts, dimTrgVoc, beams, states, localBeamSize, first);
 
       auto prunedBeams = pruneBeam(beams);
       for(int i = 0; i < dimBatch; ++i) {
