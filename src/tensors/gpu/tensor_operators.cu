@@ -266,10 +266,8 @@ void gTranspose0213(float* out, const float* in,
       float* rowOut = out + j * cols;
 
       int z = j / stride;
-
       int y = (j % stride) / stride1;
       int x = (j % stride) % stride1;
-
       int j2 = z * stride + x * stride2 + y;
 
       const float* rowIn = in + j2 * cols;
@@ -281,6 +279,7 @@ void gTranspose0213(float* out, const float* in,
       }
     }
   }
+
 }
 
 void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {

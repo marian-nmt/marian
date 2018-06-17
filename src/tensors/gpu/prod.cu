@@ -224,7 +224,7 @@ void ProdBatched(marian::Tensor C,
   for(int i = 0; i < batchC; i++) {
     aptr.push_back(A->data() + (i % batchA) * strideA);
     bptr.push_back(B->data() + (i % batchB) * strideB);
-    cptr.push_back(C->data() + (i % batchC) * strideC);
+    cptr.push_back(C->data() + i * strideC;
   }
 
   auto mp_aptr = allocator->alloc<const float*>(aptr.size());
