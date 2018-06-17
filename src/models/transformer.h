@@ -218,6 +218,8 @@ public:
     qh = SplitHeads(qh, dimHeads); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
 
     Expr kh;
+    // Caching transformation of the encoder that should not be created again.
+    // @TODO: set this automatically by memoizing encoder context and memoization propagation (short-term)
     if(!cache || (cache && cache_.count(prefix + "_keys") == 0)) {
       auto Wk = graph->param(prefix + "_Wk",
                              {dimModel, dimModel},
