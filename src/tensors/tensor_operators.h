@@ -64,7 +64,8 @@ void Reduce(Functor functor, marian::Tensor out, Tensors... tensors) {
 // clang-format off
   DISPATCH7(Prod, marian::Tensor, const marian::Tensor, const marian::Tensor, bool, bool, float, float)
   DISPATCH8(ProdWithBias, marian::Tensor, const marian::Tensor, const marian::Tensor, const marian::Tensor, bool, bool, float, float)
-  DISPATCH7(ProdBatched, marian::Tensor, const marian::Tensor, const marian::Tensor, bool, bool, float, float)
+
+  DISPATCH8(ProdBatched, marian::Tensor, Ptr<Allocator>, const marian::Tensor, const marian::Tensor, bool, bool, float, float)
 
   DISPATCH2(Dropout, marian::Tensor, float)
 
