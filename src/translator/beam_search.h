@@ -37,15 +37,15 @@ public:
                Ptr<data::CorpusBatch> batch) {
     Beams newBeams(beams.size());
 
-    std::vector<float> beamAlignments;
+    std::vector<float> alignments;
     if(options_->get<bool>("alignment")) {
-      beamAlignments = scorers_[0]->getAlignment();
+      alignments = scorers_[0]->getAlignment();
 
-          std::cerr << "  (" << batch->front()->mask().size() << ") ";
-          int u = 0;
-          for(auto m : batch->front()->mask())
-            std::cerr << u++ << ":" << m << " ";
-          std::cerr << std::endl;
+      std::cerr << "  (" << batch->front()->mask().size() << ") ";
+      int u = 0;
+      for(auto m : batch->front()->mask())
+        std::cerr << u++ << ":" << m << " ";
+      std::cerr << std::endl;
     }
 
     for(int i = 0; i < keys.size(); ++i) {
@@ -95,35 +95,9 @@ public:
         }
 
         // Set alignments
-        if(!beamAlignments.empty()) {
-
-
-          std::cerr << " first: " << (bool)first << " hypIdx: " << hypIdx
-                    << " embIdx: " << embIdx << " beamIdx: " << beamIdx
-                    << " beamSize: " << beamSize
-                    << " beamHypIdx: " << beamHypIdx
-                    << " hypIdxTrans: " << hypIdxTrans << " i: " << i
-                    << std::endl;
-
-          std::vector<float> align;
-          int batchSize = keys.size() / beamSize;
-          int beamWidth = beamAlignments.size() / beamSize;
-          if(first)
-            beamWidth = beamAlignments.size();
-
-          std::cerr << "    BW=" << beamWidth << " BS=" << batchSize << std::endl;
-          std::cerr << "    :: ";
-
-          for(int z = 0; z < beamWidth / batchSize; ++z) {
-            int w = ((beamWidth * beamHypIdx) + beamIdx) + (batchSize * z);
-            int x = w % beamWidth;
-            if(batch->front()->mask()[x] != 0) {
-              std::cerr << w << ":" << beamAlignments[w] << "/" << x << " ";
-              align.push_back(beamAlignments[w]);
-            }
-          }
-          std::cerr << "(" << align.size() << ")" << std::endl;
-
+        if(!alignments.empty()) {
+          auto align = getHardAlignmentsForHypothesis(
+              alignments, batch, beamSize, beamHypIdx, beamIdx);
           hyp->SetAlignment(align);
         }
 
@@ -131,6 +105,43 @@ public:
       }
     }
     return newBeams;
+  }
+
+  std::vector<float> getHardAlignmentsForHypothesis(
+      const std::vector<float> alignments,
+      Ptr<data::CorpusBatch> batch,
+      int beamSize,
+      int beamHypIdx,
+      int beamIdx) {
+    // Let's B be the beam size, N be the number of batched sentences,
+    // and L the number of words in the longest sentence in the batch.
+    // The alignment vector:
+    //
+    // if(first)
+    //   * has length of N x L if it's the first beam
+    //   * stores elements in the following order:
+    //     beam1 = [word1-batch1, word1-batch2, ..., word2-batch1, ...]
+    // else
+    //   * has length of N x L x B
+    //   * stores elements in the following order:
+    //     beams = [beam1, beam2, ..., beam_n]
+    //
+    // The mask vector is always of length N x L and has 1/0s stored like
+    // in a single beam, i.e.:
+    //   * [word1-batch1, word1-batch2, ..., word2-batch1, ...]
+    //
+    size_t batchSize = batch->size();
+    size_t batchWidth = batch->width() * batchSize;
+    std::vector<float> align;
+
+    for(size_t w = 0; w < batchWidth / batchSize; ++w) {
+      size_t a = ((batchWidth * beamHypIdx) + beamIdx) + (batchSize * w);
+      size_t m = a % batchWidth;
+      if(batch->front()->mask()[m] != 0)
+        align.emplace_back(alignments[a]);
+    }
+
+    return align;
   }
 
   Beams pruneBeam(const Beams& beams) {
@@ -263,9 +274,14 @@ public:
       nth->getNBestList(beamSizes, totalCosts->val(), outCosts, outKeys, first);
 
       int dimTrgVoc = totalCosts->shape()[-1];
-      // TODO: calculate alignments earlier and don't pass batch into toHyps()
-      beams = toHyps(
-          outKeys, outCosts, dimTrgVoc, beams, states, localBeamSize, first, batch);
+      beams = toHyps(outKeys,
+                     outCosts,
+                     dimTrgVoc,
+                     beams,
+                     states,
+                     localBeamSize,
+                     first,
+                     batch);
 
       auto prunedBeams = pruneBeam(beams);
       for(int i = 0; i < dimBatch; ++i) {

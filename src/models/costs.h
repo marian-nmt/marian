@@ -190,7 +190,7 @@ public:
     return encdec_->getShortlist();
   };
 
-  virtual const std::vector<Expr> getAlignment() {
+  virtual std::vector<float> getAlignment() {
     return encdec_->getAlignment();
   }
 };

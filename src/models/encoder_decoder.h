@@ -45,7 +45,7 @@ public:
 
   virtual Ptr<data::Shortlist> getShortlist() = 0;
 
-  virtual const std::vector<Expr> getAlignment() = 0;
+  virtual std::vector<float> getAlignment() = 0;
 };
 
 class EncoderDecoder : public EncoderDecoderBase {
@@ -110,8 +110,10 @@ public:
     return decoders_[0]->getShortlist();
   };
 
-  virtual const std::vector<Expr> getAlignment() {
-    return decoders_[0]->getAlignments();
+  virtual std::vector<float> getAlignment() {
+    std::vector<float> softAlign;
+    decoders_[0]->getAlignments()[0]->val()->get(softAlign);
+    return softAlign;
   };
 
   /*********************************************************************/
