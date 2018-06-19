@@ -79,7 +79,7 @@ public:
 
     auto devices = options_->getDevices();
 
-    //ThreadPool threadPool(devices.size(), devices.size());
+    ThreadPool threadPool(devices.size(), devices.size());
 
     size_t batchId = 0;
     auto collector = New<OutputCollector>();
@@ -115,8 +115,7 @@ public:
         }
       };
 
-      //threadPool.enqueue(task, batchId++);
-      task(batchId++);
+      threadPool.enqueue(task, batchId++);
     }
   }
 };

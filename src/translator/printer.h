@@ -21,7 +21,7 @@ void Printer(Ptr<Config> options,
              OStream& best1,
              OStream& bestn) {
   bool reverse = options->get<bool>("right-left");
-  bool align = options->get<bool>("alignment");
+  bool align = options->get<bool>("alignment", false);
 
   if(options->has("n-best") && options->get<bool>("n-best")) {
     const auto& nbl = history->NBest(options->get<size_t>("beam-size"));

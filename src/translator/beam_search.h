@@ -38,15 +38,8 @@ public:
     Beams newBeams(beams.size());
 
     std::vector<float> alignments;
-    if(options_->get<bool>("alignment")) {
+    if(options_->get<bool>("alignment", false))
       alignments = scorers_[0]->getAlignment();
-
-      std::cerr << "  (" << batch->front()->mask().size() << ") ";
-      int u = 0;
-      for(auto m : batch->front()->mask())
-        std::cerr << u++ << ":" << m << " ";
-      std::cerr << std::endl;
-    }
 
     for(int i = 0; i < keys.size(); ++i) {
       // Keys contains indices to vocab items in the entire beam.
