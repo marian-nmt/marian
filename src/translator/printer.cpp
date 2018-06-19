@@ -2,11 +2,13 @@
 
 namespace marian {
 
-std::vector<size_t> GetAlignment(const HypothesisPtr& hypothesis) {
+std::vector<size_t> GetAlignment(const Ptr<Hypothesis>& hyp) {
+  typedef std::vector<float> SoftAlignment;
+
   std::vector<SoftAlignment> aligns;
-  HypothesisPtr last = hypothesis->GetPrevHyp();
+  auto last = hyp->GetPrevHyp();
   while(last->GetPrevHyp().get() != nullptr) {
-    aligns.push_back(*(last->GetAlignment(0)));
+    aligns.push_back(last->GetAlignment());
     last = last->GetPrevHyp();
   }
 
@@ -24,12 +26,13 @@ std::vector<size_t> GetAlignment(const HypothesisPtr& hypothesis) {
   return alignment;
 }
 
-std::string GetAlignmentString(const std::vector<size_t>& alignment) {
-  std::stringstream alignString;
-  alignString << " |||";
-  for(size_t wordIdx = 0; wordIdx < alignment.size(); ++wordIdx) {
-    alignString << " " << wordIdx << "-" << alignment[wordIdx];
+std::string GetAlignmentString(const std::vector<size_t>& align) {
+  std::stringstream alignStr;
+  alignStr << " |||";
+  for(size_t wIdx = 0; wIdx < align.size(); ++wIdx) {
+    alignStr << " " << wIdx << "-" << align[wIdx];
   }
-  return alignString.str();
+  return alignStr.str();
 }
+
 }

@@ -95,6 +95,7 @@ void Prod(marian::Tensor C,
 }
 
 void ProdBatched(marian::Tensor C,
+                 Ptr<Allocator> allocator,
                  const marian::Tensor A,
                  const marian::Tensor B,
                  bool transA,
@@ -128,30 +129,21 @@ void ProdBatched(marian::Tensor C,
   auto strideA = batchA == 1 ? 0 : m * k;
   auto strideC = n * m;
 
-  int steps = std::max(batchA, batchB);
-
-  int offsetA = 0;
-  int offsetB = 0;
-  int offsetC = 0;
-
-  for(int i = 0; i < steps; ++i) {
+  int batchC = std::max(batchA, batchB);
+  for(int i = 0; i < batchC; ++i) {
     sgemm(transA,
           transB,
           m,
           n,
           k,
           alpha,
-          A->data() + offsetA,
+          A->data() + (i % batchA) * strideA,
           lda,
-          B->data() + offsetB,
+          B->data() + (i % batchB) * strideB,
           ldb,
           beta,
-          C->data() + offsetC,
+          C->data() + i * strideC,
           ldc);
-
-    offsetA += strideA;
-    offsetB += strideB;
-    offsetC += strideC;
   }
 #else
   ABORT("Not implemented!");

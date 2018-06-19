@@ -38,6 +38,8 @@ bool IsNan(Tensor in) {
 }
 
 void ConcatCont(Tensor out, const std::vector<Tensor>& inputs, int axis) {
+
+
   cudaSetDevice(out->getDevice().no);
   int step = 1;
   for(int i = 0; i < axis; ++i)
@@ -49,7 +51,7 @@ void ConcatCont(Tensor out, const std::vector<Tensor>& inputs, int axis) {
       size_t size = in->shape().elements() / step;
       size_t offset2 = i * size;
 
-      cudaMemcpyAsync(out->data() + offset1,
+      cudaMemcpy(out->data() + offset1,
                       in->data() + offset2,
                       size * sizeof(float),
                       cudaMemcpyDeviceToDevice);
@@ -106,9 +108,74 @@ void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
   cudaStreamSynchronize(0);
 }
 
+
+__global__ void gJoin2(float* out, size_t rowBatch, size_t cols,
+                       const float* in1, size_t inStride1,
+                       const float* in2, size_t inStride2) {
+
+  int outStride = inStride1 + inStride2;
+  int rows = rowBatch * outStride;
+
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+
+      float* rowOut = out + j * cols;
+
+      int curBatch = j / outStride;
+      int curPos = j % outStride;
+
+      int jIn1 = (curBatch * inStride1) + curPos;
+      int jIn2 = (curBatch * inStride2) + curPos - inStride1;
+
+      const float* rowIn1 = in1 + jIn1 * cols;
+      const float* rowIn2 = in2 + jIn2 * cols;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols) {
+          if(curPos < inStride1)
+            rowOut[i] = rowIn1[i];
+          else
+            rowOut[i] = rowIn2[i];
+        }
+      }
+
+    }
+  }
+}
+
+
+void Concatenate2(Tensor out, Tensor in1, Tensor in2) {
+  cudaSetDevice(out->getDevice().no);
+
+  size_t rows = out->shape().elements() / out->shape().back();
+  size_t cols = out->shape().back();
+
+  size_t rowStride1 = in1->shape()[-2];
+  size_t rowStride2 = in2->shape()[-2];
+
+  size_t rowBatch = rows / out->shape()[-2];
+
+  int blocks = std::min(MAX_BLOCKS, (int)rows);
+  int threads = std::min(MAX_THREADS, (int)cols);
+
+  gJoin2<<<blocks, threads>>>(out->data(),
+                              rowBatch,
+                              cols,
+                              in1->data(),
+                              rowStride1,
+                              in2->data(),
+                              rowStride2);
+
+  cudaStreamSynchronize(0);
+}
+
 void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax) {
   if(ax == out->shape().size() - 1)
     Concatenate1(out, inputs);
+  else if(ax == out->shape().size() - 2 && inputs.size() == 2)
+    Concatenate2(out, inputs[0], inputs[1]);
   else
     ConcatCont(out, inputs, ax);
 }
@@ -185,22 +252,67 @@ __global__ void gTransposeND(
   }
 }
 
+__global__
+void gTranspose0213(float* out, const float* in,
+                    int rows,
+                    int cols,
+                    int stride1,
+                    int stride2) {
+
+  int stride = stride1 * stride2;
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float* rowOut = out + j * cols;
+
+      int z = j / stride;
+      int y = (j % stride) / stride1;
+      int x = (j % stride) % stride1;
+      int j2 = z * stride + x * stride2 + y;
+
+      const float* rowIn = in + j2 * cols;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols)
+          rowOut[i] = rowIn[i];
+      }
+    }
+  }
+
+}
+
 void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   cudaSetDevice(out->getDevice().no);
+  if(vAxis == std::vector<int>({0, 2, 1, 3})) {
 
-  functional::Array<int, functional::Shape::size()> axes;
-  int diff = functional::Shape::size() - vAxis.size();
-  for(int i = 0; i < axes.size(); ++i)
-    if(i < diff)
-      axes[i] = i;
-    else
-      axes[i] = vAxis[i - diff] + diff;
+    int rows = out->shape().elements() / out->shape().back();
+    int cols = out->shape().back();
 
-  int length = out->shape().elements();
-  int threads = std::min(MAX_THREADS, length);
-  int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
+    int blocks = std::min(MAX_BLOCKS, rows);
+    int threads = std::min(MAX_THREADS, cols);
 
-  gTransposeND<<<blocks, threads>>>(out, in, axes);
+    int stride1 = out->shape()[-2];
+    int stride2 = out->shape()[-3];
+
+    gTranspose0213<<<blocks, threads>>>(out->data(), in->data(), rows, cols, stride1, stride2);
+  }
+  else {
+
+    functional::Array<int, functional::Shape::size()> axes;
+    int diff = functional::Shape::size() - vAxis.size();
+    for(int i = 0; i < axes.size(); ++i)
+      if(i < diff)
+        axes[i] = i;
+      else
+        axes[i] = vAxis[i - diff] + diff;
+
+    int length = out->shape().elements();
+    int threads = std::min(MAX_THREADS, length);
+    int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
+
+    gTransposeND<<<blocks, threads>>>(out, in, axes);
+  }
 }
 
 __global__ void gSoftmax(float* out,

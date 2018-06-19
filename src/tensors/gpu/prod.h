@@ -26,6 +26,7 @@ void ProdWithBias(marian::Tensor C,
           float scalar = 1);
 
 void ProdBatched(marian::Tensor C,
+                 Ptr<Allocator> allocator,
                  const marian::Tensor A,
                  const marian::Tensor B,
                  bool transA,
