@@ -306,6 +306,10 @@ public:
 
       ThreadPool threadPool(graphs.size(), graphs.size());
 
+      // @TODO: unify this and get rid of Config object.
+      auto tOptions = New<Options>();
+      tOptions->merge(options_);
+
       while(*batchGenerator) {
         auto batch = batchGenerator->next();
 
@@ -319,7 +323,7 @@ public:
           }
 
           auto search
-              = New<BeamSearch>(options_, std::vector<Ptr<Scorer>>{scorer}, vocabs_.back()->GetEosId(), vocabs_.back()->GetUnkId());
+              = New<BeamSearch>(tOptions, std::vector<Ptr<Scorer>>{scorer}, vocabs_.back()->GetEosId(), vocabs_.back()->GetUnkId());
           auto histories = search->search(graph, batch);
 
           for(auto history : histories) {

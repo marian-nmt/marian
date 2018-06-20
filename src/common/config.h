@@ -135,13 +135,12 @@ public:
                                 const std::string&,
                                 std::vector<cnpy::NpzItem>&);
 
-private:
-  YAML::Node config_;
-  std::vector<DeviceId> devices_;
-
   static void GetYamlFromNpz(YAML::Node&,
                              const std::string&,
                              const std::string&);
+private:
+  YAML::Node config_;
+  std::vector<DeviceId> devices_;
 
   void override(const YAML::Node& params);
 

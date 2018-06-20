@@ -12,7 +12,7 @@ namespace marian {
 
 class BeamSearch {
 private:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
   std::vector<Ptr<Scorer>> scorers_;
   size_t beamSize_;
   Word trgEosId_ = -1;
@@ -20,7 +20,7 @@ private:
 
 public:
   template <class... Args>
-  BeamSearch(Ptr<Config> options,
+  BeamSearch(Ptr<Options> options,
              const std::vector<Ptr<Scorer>>& scorers,
              Word trgEosId, Word trgUnkId,
              Args... args)
