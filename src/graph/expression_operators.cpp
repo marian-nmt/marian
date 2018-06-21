@@ -15,7 +15,7 @@ Expr debug(Expr a, const std::string& message) {
   return a;
 }
 
-Expr sigmoid(Expr a) {
+Expr sigmoid(Expr a) { // logistic function. Note: scipy name is expit()
   return Expression<SigmoidNodeOp>(a);
 }
 
@@ -84,13 +84,12 @@ Expr logaddexp(Expr a, Expr b) {
   return Expression<LogAddExpNodeOp>(a, b);
 }
 
-// on names: stay close to Python/numpy?
-Expr max(Expr a, Expr b) { // TODO: haggle over the name (max vs. elementMax)
-  return Expression<MaxNodeOp>(a, b);
+Expr maximum(Expr a, Expr b) {
+  return Expression<MaximumNodeOp>(a, b);
 }
 
-Expr min(Expr a, Expr b) { // TODO: haggle over the name
-  return Expression<MinNodeOp>(a, b);
+Expr minimum(Expr a, Expr b) {
+  return Expression<MinimumNodeOp>(a, b);
 }
 
 /*********************************************************/

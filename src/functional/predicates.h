@@ -100,8 +100,8 @@ BINARY(LogAddExp,
           (y + log1pf(expf(x - y)))
         /*else*/ :
           (x + log1pf(expf(y - x)))));
-BINARY(Max, max, (x > y) ? y : x); // note: std::max not available on CUDA it seems
-BINARY(Min, min, (x < y) ? y : x);
+BINARY(Maximum, max, (x > y) ? y : x); // note: std::max not available on CUDA it seems
+BINARY(Minimum, min, (x < y) ? y : x);
 
 UNARY(Negate, operator!, !x);
 BINARY(Eq, operator==, x == y);

@@ -549,8 +549,8 @@ struct LogAddExpNodeOp : public ElementBinaryNodeOp {
   const std::string type() { return "logaddexp"; }
 };
 
-struct MaxNodeOp : public ElementBinaryNodeOp {
-  MaxNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
+struct MaximumNodeOp : public ElementBinaryNodeOp {
+  MaximumNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
 
   NodeOps forwardOps() {
     using namespace functional;
@@ -569,8 +569,8 @@ struct MaxNodeOp : public ElementBinaryNodeOp {
 };
 
 // TODO: lotsa code dup here!
-struct MinNodeOp : public ElementBinaryNodeOp {
-  MinNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
+struct MinimumNodeOp : public ElementBinaryNodeOp {
+  MinimumNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
 
   NodeOps forwardOps() {
     using namespace functional;
