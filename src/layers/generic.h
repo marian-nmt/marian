@@ -7,7 +7,7 @@
 
 namespace marian {
 namespace mlp {
-enum struct act : int { linear, tanh, logit, ReLU, LeakyReLU, PReLU, swish };
+enum struct act : int { linear, tanh, sigmoid, ReLU, LeakyReLU, PReLU, swish };
 }
 }
 
@@ -98,7 +98,7 @@ public:
     switch(activation) {
       case act::linear: return plus(outputs);
       case act::tanh: return tanh(outputs);
-      case act::logit: return logit(outputs);
+      case act::sigmoid: return sigmoid(outputs);
       case act::ReLU: return relu(outputs);
       case act::LeakyReLU: return leakyrelu(outputs);
       case act::PReLU: return prelu(outputs);

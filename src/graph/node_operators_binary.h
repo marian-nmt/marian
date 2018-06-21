@@ -541,8 +541,8 @@ struct LogAddExpNodeOp : public ElementBinaryNodeOp {
     using namespace functional;
 
     // d/dx (ln( exp(x) + (exp(y)) = exp(x) / (exp(x) + exp(y)) = 1 / (1 + exp(y-x)) = sigmoid(x-y)
-    return{ NodeOp(Add(_1 * logit(_2 - _3), child(0)->grad(), adj_, child(0)->val(), child(1)->val())),
-            NodeOp(Add(_1 * logit(_3 - _2), child(1)->grad(), adj_, child(0)->val(), child(1)->val())) };
+    return{ NodeOp(Add(_1 * sigmoid(_2 - _3), child(0)->grad(), adj_, child(0)->val(), child(1)->val())),
+            NodeOp(Add(_1 * sigmoid(_3 - _2), child(1)->grad(), adj_, child(0)->val(), child(1)->val())) };
   }
 
   // TODO: this is not a "type" (as in data type). It's an operator name.

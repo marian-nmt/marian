@@ -85,8 +85,8 @@ UNARY(Exp, exp, expf(x));
 UNARY(Abs, abs, fabs(x));
 UNARY(Sqrt, sqrt, sqrtf(x));
 UNARY(Neg, operator-, -x);
-UNARY(Logit,
-      logit,
+UNARY(Sigmoid,
+      sigmoid,
       x > 0 ? (1.f / (1.f + expf(-x))) : (expf(x) / (1.f + expf(x))));
 
 BINARY(Plus, operator+, x + y);

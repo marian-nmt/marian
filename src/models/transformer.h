@@ -425,8 +425,8 @@ public:
       auto Wf = graph_->param(prefix + "_Wf", {dimModel, dimModel}, inits::glorot_uniform);
       auto bf = graph_->param(prefix + "_bf", {1, dimModel}, inits::zeros);
 
-      auto gi = logit(affine(x, Wi, bi));
-      auto gf = logit(affine(y, Wf, bf));
+      auto gi = sigmoid(affine(x, Wi, bi));
+      auto gf = sigmoid(affine(y, Wf, bf));
       y = gi * x + gf * y;
     }
 

@@ -757,9 +757,9 @@ public:
     auto sUo = affine(recState, Uo_, bo_);
     auto sUc = affine(recState, Uc_, bc_);
 
-    auto f = logit(xWs[0] + sUf);
-    auto i = logit(xWs[1] + sUi);
-    auto o = logit(xWs[2] + sUo);
+    auto f = sigmoid(xWs[0] + sUf);
+    auto i = sigmoid(xWs[1] + sUi);
+    auto o = sigmoid(xWs[2] + sUo);
     auto c = tanh(xWs[3] + sUc);
 
     auto nextCellState = f * cellState + i * c;

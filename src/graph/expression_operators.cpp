@@ -15,8 +15,8 @@ Expr debug(Expr a, const std::string& message) {
   return a;
 }
 
-Expr logit(Expr a) {
-  return Expression<LogitNodeOp>(a);
+Expr sigmoid(Expr a) {
+  return Expression<SigmoidNodeOp>(a);
 }
 
 Expr relu(Expr a) {
@@ -80,11 +80,11 @@ Expr operator/(Expr a, Expr b) {
   return Expression<DivNodeOp>(a, b);
 }
 
-// on names: stay close to Python/numpy?
-Expr logaddexp(Expr a, Expr b) { // TODO: haggle over the name (logplus, logadd, expAddLog)
+Expr logaddexp(Expr a, Expr b) {
   return Expression<LogAddExpNodeOp>(a, b);
 }
 
+// on names: stay close to Python/numpy?
 Expr max(Expr a, Expr b) { // TODO: haggle over the name (max vs. elementMax)
   return Expression<MaxNodeOp>(a, b);
 }
@@ -387,7 +387,7 @@ Expr tanh(const std::vector<Expr>& nodes) {
   return Expression<TanhNodeOp>(nodes);
 }
 
-Expr logit(const std::vector<Expr>&) {
+Expr sigmoid(const std::vector<Expr>&) {
   ABORT("Not implemented");
 }
 
@@ -432,7 +432,7 @@ Expr highway(const std::string prefix, Expr x) {
   auto g = mlp::dense(x->graph())
       ("prefix", prefix + "_highway_d1")
       ("dim", outDim)
-      ("activation", mlp::act::logit)
+      ("activation", mlp::act::sigmoid)
       .construct()->apply(x);
   auto relued = mlp::dense(x->graph())
       ("prefix", prefix + "_highway_d2")
