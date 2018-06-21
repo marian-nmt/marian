@@ -81,8 +81,8 @@ Expr operator/(Expr a, Expr b) {
 }
 
 // on names: stay close to Python/numpy?
-Expr logsum(Expr a, Expr b) { // TODO: haggle over the name (logplus, logadd, expAddLog)
-  return Expression<LogSumNodeOp>(a, b);
+Expr logaddexp(Expr a, Expr b) { // TODO: haggle over the name (logplus, logadd, expAddLog)
+  return Expression<LogAddExpNodeOp>(a, b);
 }
 
 Expr max(Expr a, Expr b) { // TODO: haggle over the name (max vs. elementMax)

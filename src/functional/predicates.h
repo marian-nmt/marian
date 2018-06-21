@@ -94,8 +94,8 @@ BINARY(Minus, operator-, x - y);
 BINARY(Mult, operator*, x* y);
 BINARY(Div, operator/, x / y);
 
-BINARY(LogSum,
-       logsum,
+BINARY(LogAddExp,
+       logaddexp,
        (/*if*/ (x < y) ? // Note: This may not be ideal for CUDA; cf. CNTK implementation
           (y + log1pf(expf(x - y)))
         /*else*/ :

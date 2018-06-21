@@ -528,13 +528,13 @@ struct DivNodeOp : public ElementBinaryNodeOp {
 //  const std::string type() { return "pow"; }
 //};
 
-struct LogSumNodeOp : public ElementBinaryNodeOp {
-  LogSumNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
+struct LogAddExpNodeOp : public ElementBinaryNodeOp {
+  LogAddExpNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
 
   NodeOps forwardOps() {
     using namespace functional;
     return{
-      NodeOp(Element(_1 = logsum(_2, _3), val_, child(0)->val(), child(1)->val())) };
+      NodeOp(Element(_1 = logaddexp(_2, _3), val_, child(0)->val(), child(1)->val())) };
   }
 
   NodeOps backwardOps() {
@@ -546,7 +546,7 @@ struct LogSumNodeOp : public ElementBinaryNodeOp {
   }
 
   // TODO: this is not a "type" (as in data type). It's an operator name.
-  const std::string type() { return "logsum"; }
+  const std::string type() { return "logaddexp"; }
 };
 
 struct MaxNodeOp : public ElementBinaryNodeOp {

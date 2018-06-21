@@ -60,7 +60,7 @@ Expr operator/(Expr a, float b);
 // Expr pow(float a, Expr b);
 // Expr pow(Expr a, float b);
 
-Expr logsum(Expr a, Expr b); // TODO: haggle over the name (logplus, logadd, expAddLog)
+Expr logaddexp(Expr a, Expr b);
 
 Expr max(Expr a, Expr b); // TODO: haggle over the name (max vs. elementMax)
 
