@@ -18,9 +18,9 @@ template <size_t I = 0> struct E {
                              functional::Array<functional::Tensor<float>, K>& tensors,
                              functional::Array<int, K> indices) {
 
-    auto& shape = tensors[0].shape();
+    const auto& shape = tensors[0].shape();
 
-    // loop for outer-most dimension
+    // loop over outer-most dimension
     for(int i = 0; i < shape[I]; ++i) {
 
       // call loop for next-inner dimension
@@ -60,7 +60,7 @@ void Element(const Functor& functor, marian::Tensor out, Tensors... tensors) {
 
   // call elementwise operation going from outer-most dimension
   // to inner-most element.
-  E<>::element(functor, gTensors, indices);
+  E<0>::element(functor, gTensors, indices);
 }
 
 }
