@@ -99,55 +99,65 @@ public:
     return reshape(output, {dimBeam, dimBatch, dimSteps, dimModel});
   }
 
-  Expr PreProcess(std::string prefix, std::string ops, Expr input, float dropProb = 0.0f) const {
-    int dimModel = input->shape()[-1];
+  // like affine() but with built-in parameters, activation, and dropout
+  static inline
+  Expr dense(Expr x, std::string prefix, std::string suffix, int outDim, const std::function<Expr(Expr)>& actFn = nullptr, float dropProb = 0.0f)
+  {
+    auto graph = x->graph();
+
+    auto W = graph->param(prefix + "_W" + suffix, { x->shape()[-1], outDim }, inits::glorot_uniform);
+    auto b = graph->param(prefix + "_b" + suffix, { 1,              outDim }, inits::zeros);
+
+    x = affine(x, W, b);
+    if (actFn)
+      x = actFn(x);
+    if (dropProb)
+      x = dropout(x, dropProb);
+    return x;
+  }
+
+  Expr layerNorm(Expr x, std::string prefix, std::string suffix = std::string()) const {
+    int dimModel = x->shape()[-1];
+    auto scale = graph_->param(prefix + "_ln_scale" + suffix, { 1, dimModel }, inits::ones);
+    auto bias  = graph_->param(prefix + "_ln_bias"  + suffix, { 1, dimModel }, inits::zeros);
+    return marian::layerNorm(x, scale, bias, 1e-6);
+  }
+
+  Expr preProcess(std::string prefix, std::string ops, Expr input, float dropProb = 0.0f) const {
     auto output = input;
     for(auto op : ops) {
       // dropout
-      if(op == 'd' && dropProb > 0.0f) {
+      if (op == 'd' && dropProb > 0.0f)
         output = dropout(output, dropProb);
-      }
       // layer normalization
-      if(op == 'n') {
-        auto scale = graph_->param(
-            prefix + "_ln_scale_pre", {1, dimModel}, inits::ones);
-        auto bias = graph_->param(
-            prefix + "_ln_bias_pre", {1, dimModel}, inits::zeros);
-        output = layer_norm(output, scale, bias, 1e-6);
-      }
+      else if (op == 'n')
+        output = layerNorm(output, prefix, "_pre");
+      else
+        ABORT("Unknown pre-processing operation '%c'", op);
     }
     return output;
   }
 
-  Expr PostProcess(std::string prefix, std::string ops, Expr input, Expr prevInput, float dropProb = 0.0f) const {
-    int dimModel = input->shape()[-1];
+  Expr postProcess(std::string prefix, std::string ops, Expr input, Expr prevInput, float dropProb = 0.0f) const {
     auto output = input;
     for(auto op : ops) {
       // dropout
-      if(op == 'd' && dropProb > 0.0f) {
+      if(op == 'd' && dropProb > 0.0f)
         output = dropout(output, dropProb);
-      }
       // skip connection
-      if(op == 'a') {
+      else if(op == 'a')
         output = output + prevInput;
-      }
       // highway connection
-      if(op == 'h') {
-        auto Wh = graph_->param(
-            prefix + "_Wh", {dimModel, dimModel}, inits::glorot_uniform);
-        auto bh = graph_->param(prefix + "_bh", {1, dimModel}, inits::zeros);
-
-        auto t = affine(prevInput, Wh, bh);
+      else if(op == 'h') {
+        int dimModel = input->shape()[-1];
+        auto t = dense(prevInput, prefix, /*suffix=*/"h", dimModel);
         output = highway(output, prevInput, t);
       }
       // layer normalization
-      if(op == 'n') {
-        auto scale
-            = graph_->param(prefix + "_ln_scale", {1, dimModel}, inits::ones);
-        auto bias
-            = graph_->param(prefix + "_ln_bias", {1, dimModel}, inits::zeros);
-        output = layer_norm(output, scale, bias, 1e-6);
-      }
+      else if(op == 'n')
+        output = layerNorm(output, prefix);
+      else
+        ABORT("Unknown pre-processing operation '%c'", op);
     }
     return output;
   }
@@ -160,8 +170,6 @@ public:
                  Expr v,                      // [-4: batch size, -3: num heads, -2: max src length, -1: split vector dim]
                  Expr values,                 // [-4: beam depth, -3: batch size, -2: max kv length, -1: vector dim]
                  Expr mask = nullptr) const { // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
-    using namespace keywords;
-
     int dk = k->shape()[-1];
 
     // softmax over batched dot product of query and keys (applied over all
@@ -172,8 +180,8 @@ public:
     int dimBeamK = k->shape()[-4];
     int dimBeam = dimBeamQ / dimBeamK;
     if(dimBeam > 1) { // broadcast k and v into all beam elements  --TODO: if we use a separate dimension, then this would be automatic at no memory cost
-      k = repeat(k, dimBeam, axis = -4); // [-4: beam depth * batch size, -3: num heads, -2: max src length, -1: split vector dim]
-      v = repeat(v, dimBeam, axis = -4); // [-4: beam depth * batch size, -3: num heads, -2: max src length, -1: split vector dim]
+      k = repeat(k, dimBeam, /*axis=*/-4); // [-4: beam depth * batch size, -3: num heads, -2: max src length, -1: split vector dim]
+      v = repeat(v, dimBeam, /*axis=*/-4); // [-4: beam depth * batch size, -3: num heads, -2: max src length, -1: split vector dim]
     }
     // now q, k, and v have the same first dims [-4: beam depth * batch size, -3: num heads, -2: max src or tgt length, -1: split vector dim]
 
@@ -190,13 +198,10 @@ public:
     // optional dropout for attention weights
     float dropProb
         = inference_ ? 0 : opt<float>("transformer-dropout-attention");
-
-    if(dropProb)
-      weights = dropout(weights, dropProb);
+    weights = dropout(weights, dropProb);
 
     // apply attention weights to values
     auto output = bdot(weights, v);   // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]
-
     return output;
   }
 
@@ -281,7 +286,7 @@ public:
 
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
     auto opsPre = opt<std::string>("transformer-preprocess");
-    auto output = PreProcess(prefix + "_Wo", opsPre, input, dropProb);
+    auto output = preProcess(prefix + "_Wo", opsPre, input, dropProb);
 
     auto heads = opt<int>("transformer-heads");
 
@@ -289,8 +294,7 @@ public:
     output = MultiHead(prefix, dimModel, heads, output, keys, values, masks);
 
     auto opsPost = opt<std::string>("transformer-postprocess");
-    output
-        = PostProcess(prefix + "_Wo", opsPost, output, input, dropProb);
+    output = postProcess(prefix + "_Wo", opsPost, output, input, dropProb);
 
     return output;
   }
@@ -301,15 +305,11 @@ public:
                                  Expr input,
                                  Expr selfMask,
                                  int startPos) const {
-
-    using namespace keywords;
-
     selfMask = transposedLogMask(selfMask);
 
     auto values = input;
     if(startPos > 0) {
-      values = concatenate({prevDecoderState.output, input},
-                           axis = -2);
+      values = concatenate({prevDecoderState.output, input}, /*axis=*/-2);
     }
     decoderState.output = values;
 
@@ -327,31 +327,12 @@ public:
     ABORT("Invalid activation name '{}'", actName);
   }
 
-  // like affine() but with built-in parameters, activation, and dropout
-  static inline
-  Expr dense(Expr x, std::string prefix, int i, int outDim, const std::function<Expr(Expr)>& actFn = nullptr, float dropProb = 0.0f)
-  {
-    auto graph = x->graph();
-
-    auto W = graph->param(prefix + "_W" + std::to_string(i), { x->shape()[-1], outDim }, inits::glorot_uniform);
-    auto b = graph->param(prefix + "_b" + std::to_string(i), { 1,              outDim }, inits::zeros);
-
-    x = affine(x, W, b);
-    if (actFn)
-      x = actFn(x);
-    if (dropProb)
-      x = dropout(x, dropProb);
-    return x;
-  }
-
   Expr LayerFFN(std::string prefix, Expr input) const {
-    using namespace keywords;
-
     int dimModel = input->shape()[-1];
 
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
     auto opsPre = opt<std::string>("transformer-preprocess");
-    auto output = PreProcess(prefix + "_ffn", opsPre, input, dropProb);
+    auto output = preProcess(prefix + "_ffn", opsPre, input, dropProb);
 
     int dimFfn = opt<int>("transformer-dim-ffn");
     int depthFfn = opt<int>("transformer-ffn-depth");
@@ -363,12 +344,12 @@ public:
 
     // the stack of FF layers
     for(int i = 1; i < depthFfn; ++i)
-      output = dense(output, prefix, i, dimFfn, actFn, ffnDropProb);
-    output = dense(output, prefix, depthFfn, dimModel);
+      output = dense(output, prefix, /*suffix=*/std::to_string(i), dimFfn, actFn, ffnDropProb);
+    output = dense(output, prefix, /*suffix=*/std::to_string(depthFfn), dimModel);
 
     auto opsPost = opt<std::string>("transformer-postprocess");
     output
-        = PostProcess(prefix + "_ffn", opsPost, output, input, dropProb);
+        = postProcess(prefix + "_ffn", opsPost, output, input, dropProb);
 
     return output;
   }
@@ -381,7 +362,7 @@ public:
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
     auto opsPre = opt<std::string>("transformer-preprocess");
 
-    y = PreProcess(prefix + "_ffn", opsPre, y, dropProb);
+    y = preProcess(prefix + "_ffn", opsPre, y, dropProb);
 
     // FFN
     int dimAan = opt<int>("transformer-dim-aan");
@@ -431,12 +412,12 @@ public:
     }
 
     auto opsPost = opt<std::string>("transformer-postprocess");
-    y = PostProcess(prefix + "_ffn", opsPost, y, x, dropProb);
+    y = postProcess(prefix + "_ffn", opsPost, y, x, dropProb);
 
     return y;
   }
 
-  // Implementation of Average Attention Network Layer (ANN) from
+  // Implementation of Average Attention Network Layer (AAN) from
   // https://arxiv.org/pdf/1805.00631.pdf
   // Function wrapper using decoderState as input.
   Expr DecoderLayerAAN(rnn::State& decoderState,
@@ -445,9 +426,6 @@ public:
                        Expr input,
                        Expr selfMask,
                        int startPos) const {
-
-    using namespace keywords;
-
     auto output = input;
     if(startPos > 0) {
       // we are decoding at a position after 0
@@ -457,7 +435,7 @@ public:
       // we are training or scoring, because there is no history and
       // the context is larger than a single time step. We do not need
       // to average batch with only single words.
-      selfMask = selfMask / sum(selfMask, axis=-1);
+      selfMask = selfMask / sum(selfMask, /*axis=*/-1);
       output = bdot(selfMask, output);
     }
     decoderState.output = output; // BUGBUG: mutable?
@@ -470,11 +448,12 @@ class EncoderTransformer : public Transformer<EncoderBase> {
 public:
   EncoderTransformer(Ptr<Options> options) : Transformer(options) {}
 
-  // returns the embedding matrix
-  Expr WordEmbeddings() const {
+  // returns the embedding matrix based on options
+  // And based on batchIndex_.
+  Expr wordEmbeddings(int subBatchIndex) const {
     // standard encoder word embeddings
 
-    int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
+    int dimVoc = opt<std::vector<int>>("dim-vocabs")[subBatchIndex];
     int dimEmb = opt<int>("dim-emb");
 
     auto embFactory = embedding(graph_)("dimVocab", dimVoc)("dimEmb", dimEmb);
@@ -490,7 +469,7 @@ public:
     if(options_->has("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
       embFactory                              //
-          ("embFile", embFiles[batchIndex_])  //
+          ("embFile", embFiles[subBatchIndex])  //
           ("normalization", opt<bool>("embedding-normalization"));
     }
 
@@ -508,7 +487,7 @@ public:
     int dimBatch = batch->size();
     int dimSrcWords = (*batch)[batchIndex_]->batchWidth();
 
-    auto embeddings = WordEmbeddings(); // embedding matrix, considering tying and some other options
+    auto embeddings = wordEmbeddings(batchIndex_); // embedding matrix, considering tying and some other options
 
     // embed the source words in the batch
     Expr batchEmbeddings, batchMask;
@@ -537,7 +516,7 @@ public:
     auto opsEmb = opt<std::string>("transformer-postprocess-emb");
 
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
-    layer = PreProcess(prefix_ + "_emb", opsEmb, layer, dropProb);
+    layer = preProcess(prefix_ + "_emb", opsEmb, layer, dropProb);
 
     layerMask = transposedLogMask(layerMask); // [-4: batch size, -3: 1, -2: vector dim=1, -1: max length]
 
@@ -601,7 +580,6 @@ public:
 };
 
 class DecoderTransformer : public Transformer<DecoderBase> {
-protected:
 private:
   Ptr<mlp::MLP> output_;
 
@@ -656,7 +634,7 @@ public:
 
   Ptr<DecoderState> step(Ptr<DecoderState> state) const {
     auto embeddings  = state->getTargetEmbeddings(); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vector dim]
-    auto decoderMask = state->getTargetMask();      // [max length, batch size, 1]  --this is a hypothesis
+    auto decoderMask = state->getTargetMask();       // [max length, batch size, 1]  --this is a hypothesis
 
     // dropout target words
     float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
@@ -691,7 +669,7 @@ public:
     auto opsEmb = opt<std::string>("transformer-postprocess-emb");
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
 
-    query = PreProcess(prefix_ + "_emb", opsEmb, query, dropProb);
+    query = preProcess(prefix_ + "_emb", opsEmb, query, dropProb);
 
     int dimTrgWords = query->shape()[-2];
     int dimBatch    = query->shape()[-3];
@@ -741,13 +719,12 @@ public:
 
       // self-attention
       std::string layerType = opt<std::string>("transformer-decoder-autoreg");
-      if(layerType == "self-attention") {
+      if(layerType == "self-attention")
         query = DecoderLayerSelfAttention(decoderState, prevDecoderState, prefix_ + "_l" + std::to_string(i) + "_self", query, selfMask, startPos);
-      } else if(layerType == "average-attention") {
+      else if(layerType == "average-attention")
         query = DecoderLayerAAN(decoderState, prevDecoderState, prefix_ + "_l" + std::to_string(i) + "_aan", query, selfMask, startPos);
-      } else {
+      else
         ABORT("Unknown auto-regressive layer type in transformer decoder {}", layerType);
-      }
 
       decoderStates.push_back(decoderState);
 
