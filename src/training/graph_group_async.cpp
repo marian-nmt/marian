@@ -1,7 +1,7 @@
 #include "training/graph_group_async.h"
+#include "data/corpus_base.h"
 #include "functional/functional.h"
 #include "tensors/tensor_operators.h"
-#include "data/corpus_base.h"
 
 namespace marian {
 
@@ -82,7 +82,6 @@ void AsyncGraphGroup::updateMovingAverage(Tensor paramsAvg,
 
 void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
   // initialize the parameters
-
   {
     ThreadPool pool(graphs_.size(), graphs_.size());
     for(size_t i = 0; i < graphs_.size(); ++i) {
@@ -94,7 +93,7 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
     }
   }
 
-  if(params_.size() == 0) {
+  if(params_.empty()) {
     int totalSize = graphs_[0]->params()->vals()->size();
     shardSize_ = ceil(totalSize / (float)devices_.size());
 
@@ -117,7 +116,7 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
       pos += __size__;
     }
   }
-  if(grads_.size() == 0) {
+  if(grads_.empty()) {
     int totalSize = graphs_[0]->params()->vals()->size();
 
     for(auto graph : graphs_) {
@@ -133,34 +132,32 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
       grads_.push_back(grad_);
     }
   }
-  if(mvAvg_) {
-    if(paramsAvg_.size() == 0) {
-      int totalSize = graphs_[0]->params()->vals()->size();
+  if(mvAvg_ && paramsAvg_.empty()) {
+    int totalSize = graphs_[0]->params()->vals()->size();
 
-      int i = 0;
-      for(auto graph : graphs_) {
-        int __size__ = std::min(shardSize_, totalSize);
-        totalSize -= __size__;
-        Tensor paramAvg;
-        Ptr<TensorAllocator> allocator
-            = New<TensorAllocator>(graph->getBackend());
+    int i = 0;
+    for(auto graph : graphs_) {
+      int __size__ = std::min(shardSize_, totalSize);
+      totalSize -= __size__;
+      Tensor paramAvg;
+      Ptr<TensorAllocator> allocator
+          = New<TensorAllocator>(graph->getBackend());
 
-        allocator->reserveExact(__size__ * sizeof(float));
-        allocator->allocate(paramAvg, {1, __size__});
+      allocator->reserveExact(__size__ * sizeof(float));
+      allocator->allocate(paramAvg, {1, __size__});
 
-        if(graphAvg_)
-          paramAvg->copyFrom(graphAvg_->params()->vals());
-        else
-          paramAvg->copyFrom(params_[i++]);
-
-        paramsAllocAvg_.push_back(allocator);
-        paramsAvg_.push_back(paramAvg);
-      }
-
-      // we don't need the graph anymore as averaged params have been loaded
       if(graphAvg_)
-        graphAvg_.reset();
+        paramAvg->copyFrom(graphAvg_->params()->vals());
+      else
+        paramAvg->copyFrom(params_[i++]);
+
+      paramsAllocAvg_.push_back(allocator);
+      paramsAvg_.push_back(paramAvg);
     }
+
+    // we don't need the graph anymore as averaged params have been loaded
+    if(graphAvg_)
+      graphAvg_.reset();
   }
 }
 
@@ -239,14 +236,13 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
       // Wait until the thread that wants to do validation is finished.
       pool_->wait_for_one(lock);
 
-      if (options_->get<std::string>("cost-type") != "ce-sum")
+      if(options_->get<std::string>("cost-type") != "ce-sum")
         cost /= optimizerDelay_;
 
-      if (optimizerDelay_ > 1) {
+      if(optimizerDelay_ > 1) {
         std::vector<size_t> fakeLength = {1, 1};
-        auto fb = data::CorpusBatch::fakeBatch(fakeLength,
-                                          num_seen_sentences,
-                                          NULL);
+        auto fb = data::CorpusBatch::fakeBatch(
+            fakeLength, num_seen_sentences, NULL);
         fb->front()->setWords(num_seen_words);
         scheduler_->update(cost, fb);
 
@@ -285,9 +281,8 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
 }
 
 void AsyncGraphGroup::finalize() {
-  pool_->join_all(); // call before destructing thread pool
+  pool_->join_all();  // call before destructing thread pool
   pool_.reset(nullptr);
   finalized_ = true;
 }
-
 }

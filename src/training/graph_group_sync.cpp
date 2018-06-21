@@ -41,11 +41,86 @@ void SyncGraphGroup::fetchParams(Tensor oldParams,
   }
 }
 
+void SyncGraphGroup::init(const std::vector<Ptr<data::Batch>>& batches) {
+  // initialize the parameters
+  {
+    THREAD_GUARD(builders_[0]->build(graphs_[0], batches[0]);
+                 graphs_[0]->forward(););
+
+    ThreadPool pool(graphs_.size() - 1, graphs_.size() - 1);
+    for(size_t i = 1; i < graphs_.size(); ++i) {
+      auto init = [&](size_t i) {
+        builders_[i]->build(graphs_[i], batches[0]);
+        graphs_[i]->forward();
+        graphs_[i]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
+      };
+      pool.enqueue(init, i);
+    }
+  }
+
+  if(params_.empty()) {
+    int totalSize = graphs_[0]->params()->vals()->size();
+    shardSize_ = ceil(totalSize / (float)devices_.size());
+
+    int pos = 0;
+    for(auto graph : graphs_) {
+      int __size__ = std::min(shardSize_, totalSize);
+
+      auto paramsAlloc = New<TensorAllocator>(graph->getBackend());
+      paramsAllocs_.push_back(paramsAlloc);
+
+      // we have param, grad and tmp, hence memory x3
+      paramsAlloc->reserveExact(3 * __size__ * sizeof(float));
+
+      Tensor param, grad, tmp;
+      paramsAlloc->allocate(param, {1, __size__});
+      paramsAlloc->allocate(grad, {1, __size__});
+      paramsAlloc->allocate(tmp, {1, __size__});
+      params_.push_back(param);
+
+      grad->set(0.f);
+      grads_.push_back(grad);
+
+      tmpTensors_.push_back(tmp);
+
+      param->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));
+      pos += __size__;
+      totalSize -= __size__;
+    }
+  }
+
+  if(mvAvg_ && paramsAvg_.empty()) {
+    int totalSize = graphs_[0]->params()->vals()->size();
+
+    int i = 0;
+    for(auto graph : graphs_) {
+      int __size__ = std::min(shardSize_, totalSize);
+      totalSize -= __size__;
+      Tensor paramAvg;
+      auto allocator = New<TensorAllocator>(graph->getBackend());
+
+      allocator->reserveExact(__size__ * sizeof(float));
+      allocator->allocate(paramAvg, {1, __size__});
+
+      if(graphAvg_)
+        paramAvg->copyFrom(graphAvg_->params()->vals());
+      else
+        paramAvg->copyFrom(params_[i++]);
+
+      paramsAllocAvg_.push_back(allocator);
+      paramsAvg_.push_back(paramAvg);
+    }
+
+    // we don't need the graph anymore as averaged params have been loaded
+    if(graphAvg_)
+      graphAvg_.reset();
+  }
+}
+
 void SyncGraphGroup::execute(Ptr<data::Batch> fullBatch) {
-  std::vector<Ptr<data::Batch>> delayedBatches =
-    delay_ > 1 ?
-      fullBatch->split(delay_) :
-      std::vector<Ptr<data::Batch>>({ fullBatch });
+  std::vector<Ptr<data::Batch>> delayedBatches
+      = delay_ > 1 ? fullBatch->split(delay_)
+                   : std::vector<Ptr<data::Batch>>({fullBatch});
 
   std::vector<float> costs(devices_.size(), 0.f);
 
@@ -54,79 +129,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> fullBatch) {
     std::vector<Ptr<data::Batch>> batches = batch->split(devices_.size());
 
     if(first_) {
-      {
-        THREAD_GUARD(builders_[0]->build(graphs_[0], batches[0]);
-                     graphs_[0]->forward(););
-
-        ThreadPool pool(graphs_.size() - 1, graphs_.size() - 1);
-        for(size_t i = 1; i < graphs_.size(); ++i) {
-          auto init = [&](size_t i) {
-            builders_[i]->build(graphs_[i], batches[0]);
-            graphs_[i]->forward();
-            graphs_[i]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
-          };
-          pool.enqueue(init, i);
-        }
-      }
-
-      if(params_.size() == 0) {
-        int totalSize = graphs_[0]->params()->vals()->size();
-        shardSize_ = ceil(totalSize / (float)devices_.size());
-
-        int pos = 0;
-        for(auto graph : graphs_) {
-          int __size__ = std::min(shardSize_, totalSize);
-
-          auto paramsAlloc = New<TensorAllocator>(graph->getBackend());
-          paramsAllocs_.push_back(paramsAlloc);
-
-          // we have param, grad and tmp, hence memory x3
-          paramsAlloc->reserveExact(3 * __size__ * sizeof(float));
-
-          Tensor param, grad, tmp;
-          paramsAlloc->allocate(param, {1, __size__});
-          paramsAlloc->allocate(grad, {1, __size__});
-          paramsAlloc->allocate(tmp, {1, __size__});
-          params_.push_back(param);
-
-          grad->set(0.f);
-          grads_.push_back(grad);
-
-          tmpTensors_.push_back(tmp);
-
-          param->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));
-          pos += __size__;
-          totalSize -= __size__;
-        }
-      }
-
-      if(mvAvg_ && paramsAvg_.size() == 0) {
-        int totalSize = graphs_[0]->params()->vals()->size();
-
-        int i = 0;
-        for(auto graph : graphs_) {
-          int __size__ = std::min(shardSize_, totalSize);
-          totalSize -= __size__;
-          Tensor paramAvg;
-          auto allocator = New<TensorAllocator>(graph->getBackend());
-
-          allocator->reserveExact(__size__ * sizeof(float));
-          allocator->allocate(paramAvg, {1, __size__});
-
-          if(graphAvg_)
-            paramAvg->copyFrom(graphAvg_->params()->vals());
-          else
-            paramAvg->copyFrom(params_[i++]);
-
-          paramsAllocAvg_.push_back(allocator);
-          paramsAvg_.push_back(paramAvg);
-        }
-
-        // we don't need the graph anymore as averaged params have been loaded
-        if(graphAvg_)
-          graphAvg_.reset();
-      }
-
+      init(batches);
       first_ = false;
     }
 
@@ -177,7 +180,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> fullBatch) {
 
           if(mvAvg_)
             updateMovingAverage(
-              paramsAvg_[idx], params_[idx], scheduler_->numberOfBatches());
+                paramsAvg_[idx], params_[idx], scheduler_->numberOfBatches());
 
           for(auto graph : graphs_) {
             auto subParam = graph->params()->vals()->subtensor(pos, size);

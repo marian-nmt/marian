@@ -5,8 +5,8 @@
 namespace marian {
 
 void MultiNodeGraphGroupSync::updateMovingAverage(Tensor paramsAvg,
-                                         Tensor params,
-                                         size_t batches) {
+                                                  Tensor params,
+                                                  size_t batches) {
   using namespace functional;
   float decay
       = std::max(mvDecay_, 1.f - (float)(batches + 1) / (float)(batches + 10));
@@ -22,7 +22,6 @@ void MultiNodeGraphGroupSync::setScheduler(Ptr<Scheduler> scheduler) {
   scheduler_->registerTrainingObserver(scheduler_);
 
   scheduler_->registerTrainingObserver(syncOptimizer_);
-
 }
 
 /**
@@ -47,8 +46,8 @@ void MultiNodeGraphGroupSync::init(Ptr<data::Batch> batch) {
   // Setup clients and shards
   setupClients(batch);
   int network_size = clientGraphs_[0]->params()->vals()->size();
-  LOG(info, "model size = {} float params" , network_size);
-  if (movingAvg_)
+  LOG(info, "model size = {} float params", network_size);
+  if(movingAvg_)
     paramsAvg_ = newTensor(network_size, clientGraphs_.back()->getBackend());
 
   // setup sync sgd storage, We keep the summed gradient on Node 0
@@ -56,14 +55,16 @@ void MultiNodeGraphGroupSync::init(Ptr<data::Batch> batch) {
   accGradientsSync = newTensor(network_size, clientGraphs_[0]->getBackend());
 }
 
-
 /**
- * Initialize the CPU arrays, with pinned memory for faster CudaMemCpy operations.
+ * Initialize the CPU arrays, with pinned memory for faster CudaMemCpy
+ * operations.
  * Requires the graph to be initialized first so we know its size
  */
 void MultiNodeGraphGroupSync::initCPUArrays() {
-  accGradientsSync_cpu = std::vector<float>(clientGraphs_[0]->params()->vals()->size());
-  receiveBuffer_cpu = std::vector<float>(clientGraphs_[0]->params()->vals()->size());
+  accGradientsSync_cpu
+      = std::vector<float>(clientGraphs_[0]->params()->vals()->size());
+  receiveBuffer_cpu
+      = std::vector<float>(clientGraphs_[0]->params()->vals()->size());
 }
 
 /**
@@ -92,7 +93,8 @@ void MultiNodeGraphGroupSync::setupClients(Ptr<data::Batch> batch) {
  * Initialize the graphs (models) of all clients on this node with the given
  * batch.
  */
-void MultiNodeGraphGroupSync::runBatchThroughClientGraphs(Ptr<data::Batch> batch) {
+void MultiNodeGraphGroupSync::runBatchThroughClientGraphs(
+    Ptr<data::Batch> batch) {
   for(int i = 0; i < devices_.size(); i++) {
     THREAD_GUARD(clientBuilders_[i]->build(clientGraphs_[i], batch);
                  clientGraphs_[i]->forward();
@@ -109,7 +111,8 @@ void MultiNodeGraphGroupSync::runBatchThroughClientGraphs(Ptr<data::Batch> batch
 void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) {
   std::lock_guard<std::mutex> guard(sumGradientMutex_);
   sumGradientBuffer->copyFrom(gradient);
-  using namespace functional; //@TODO makes more sense to do that on the CPU i think
+  using namespace functional;  //@TODO makes more sense to do that on the CPU i
+                               //think
   Element(_1 += _2, accGradientsSync, sumGradientBuffer);
 }
 
@@ -118,7 +121,7 @@ void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) {
  * send and receive. Make sure you only call from device 0.
  */
 void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
-  #if MPI_FOUND
+#if MPI_FOUND
   int network_size = accGradientsSync_cpu.size();
 
   // Copy the data to the CPU
@@ -127,12 +130,12 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
   // Wait until all nodes are ready
   MPI_Barrier(MPI_COMM_WORLD);
 
-  int reduce_result = MPI_Allreduce(accGradientsSync_cpu.data(), //CPU buffers
-              receiveBuffer_cpu.data(),
-              network_size,
-              MPI_FLOAT,
-              MPI_SUM,
-              MPI_COMM_WORLD);
+  int reduce_result = MPI_Allreduce(accGradientsSync_cpu.data(),  // CPU buffers
+                                    receiveBuffer_cpu.data(),
+                                    network_size,
+                                    MPI_FLOAT,
+                                    MPI_SUM,
+                                    MPI_COMM_WORLD);
 
   // Copy the data back to the GPU and do optimizer update
   // Do update with last GPU to distribute the memory
@@ -142,17 +145,17 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
   syncOptimizer_->update(clientGraphs_.back());
 
   if(movingAvg_)
-      updateMovingAverage(
-        paramsAvg_, clientGraphs_.back()->params()->vals(),
-        scheduler_->numberOfBatches());
+    updateMovingAverage(paramsAvg_,
+                        clientGraphs_.back()->params()->vals(),
+                        scheduler_->numberOfBatches());
 
-  //Distribute the graph to the rest of the devices
+  // Distribute the graph to the rest of the devices
   std::vector<std::thread> threads;
   for(int idx = 0; idx < devices_.size() - 1; idx++) {
     threads.emplace_back(std::thread(
         [=](int idx) {
           clientGraphs_[idx]->params()->vals()->copyFrom(
-            clientGraphs_.back()->params()->vals());
+              clientGraphs_.back()->params()->vals());
         },
         idx));
   }
@@ -160,13 +163,12 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
     t.join();
   }
 
-  //set the accumulating buffers to zero;
+  // set the accumulating buffers to zero;
   accGradientsSync->set(0);
   std::fill(accGradientsSync_cpu.begin(), accGradientsSync_cpu.end(), 0);
   std::fill(receiveBuffer_cpu.begin(), receiveBuffer_cpu.end(), 0);
-  #endif
+#endif
 }
-
 
 /**
  * Execute given batch on this node, pushing/pulling the resulting
@@ -198,8 +200,8 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
 
       auto costNode = builder->build(graph, batch);
 
-      if (t == 0) {
-        if (my_id != 0)
+      if(t == 0) {
+        if(my_id != 0)
           graph->params()->vals()->copyFrom(clientGraphs_[0]->params()->vals());
       }
 
@@ -212,7 +214,8 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
       }
       graph->backward();
 
-      graph->getBackend()->synchronize(); //@Alham do you know why we need this here?
+      graph->getBackend()
+          ->synchronize();  //@Alham do you know why we need this here?
 
       sumGRAD(graph->params()->grads());
     };
@@ -222,38 +225,37 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
       pool.enqueue(task, idx);
   }
 
-  if (t % tau_ == 0)
-    sendReceiveUpdateSync();    
-  
-  t++; 
+  if(t % tau_ == 0)
+    sendReceiveUpdateSync();
+
+  t++;
 
   // Run scheduler (if enabled)
   if(t % tau_ == 0 && scheduler_) {
-    if (options_->get<std::string>("cost-type") != "ce-sum")
+    if(options_->get<std::string>("cost-type") != "ce-sum")
       cost /= (tau_ * devices_.size());
 
-    if (tau_ > 1) {
+    if(tau_ > 1) {
       std::vector<size_t> fakeLength = {1, 1};
-      auto fb = data::CorpusBatch::fakeBatch(fakeLength,
-                                        num_seen_sentences,
-                                        NULL);
+      auto fb
+          = data::CorpusBatch::fakeBatch(fakeLength, num_seen_sentences, NULL);
       fb->front()->setWords(num_seen_words);
       scheduler_->update(cost, fb);
     } else {
       scheduler_->update(cost, fullBatch);
     }
-    
+
     num_seen_words = 0;
     num_seen_sentences = 0;
     cost = 0;
 
     if((scheduler_->saving() || scheduler_->validating())) {
-      #if MPI_FOUND
-      //wait until other nodes are ready
+#if MPI_FOUND
+      // wait until other nodes are ready
       MPI_Barrier(MPI_COMM_WORLD);
 
       // TODO: Saving is broken
-      //if(mpi_my_rank_ == 0 && scheduler_->saving())
+      // if(mpi_my_rank_ == 0 && scheduler_->saving())
       //  this->save(graph);
 
       if(mpi_my_rank_ == 0 && scheduler_->validating()) {
@@ -274,9 +276,8 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
 
       // inform other nodes to continue
       MPI_Barrier(MPI_COMM_WORLD);
-      #endif
+#endif
     }
   }
-
 }
 }

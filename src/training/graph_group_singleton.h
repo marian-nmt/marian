@@ -1,15 +1,14 @@
 #pragma once
 
-#include <future>
-
 #include <boost/filesystem.hpp>
+#include <future>
 
 #include "training/graph_group.h"
 
 namespace marian {
 
 /**
- * Single gpu training
+ * Single GPU training
  */
 class SingletonGraph : public GraphGroup {
 public:

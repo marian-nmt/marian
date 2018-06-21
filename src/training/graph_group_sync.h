@@ -34,9 +34,11 @@ private:
 
   size_t delay_{1};
 
-  void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches);
+  virtual void init(const std::vector<Ptr<data::Batch>>& batches);
 
   void fetchParams(Tensor oldParams, const std::vector<Tensor>& params);
+
+  void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches);
 
   void execute(Ptr<data::Batch> batch);
 
@@ -112,13 +114,13 @@ public:
 
   void save(bool final = false) {
     if(final && scheduler_) {
-      if(mvAvg_ && paramsAvg_.size() > 0)
+      if(mvAvg_ && !paramsAvg_.empty())
         for(auto graph : graphs_)
           fetchParams(graph->params()->vals(), paramsAvg_);
 
       scheduler_->validate(graphs_, true);
 
-      if(mvAvg_ && paramsAvg_.size() > 0) {
+      if(mvAvg_ && !paramsAvg_.empty()) {
         for(auto graph : graphs_)
           fetchParams(graph->params()->vals(), params_);
         saveExponentialSmoothing();
@@ -142,7 +144,7 @@ public:
       }
     }
 
-    if(mvAvg_ && paramsAvg_.size() > 0)
+    if(mvAvg_ && !paramsAvg_.empty())
       fetchParams(graphs_[idx]->params()->vals(), paramsAvg_);
 
     std::string name = options_->get<std::string>("model");
@@ -167,7 +169,7 @@ public:
         scheduler_->save(name);
     }
 
-    if(mvAvg_ && paramsAvg_.size() > 0)
+    if(mvAvg_ && !paramsAvg_.empty())
       fetchParams(graphs_[idx]->params()->vals(), params_);
 
     size_t totalSize = graphs_[idx]->params()->vals()->size();
