@@ -107,6 +107,8 @@ class SubBatch {
 private:
   std::vector<Word> indices_;
   std::vector<float> mask_;
+  Ptr<Vocab> vocab_;
+  // ... TODO: add the length information (remember it)
 
   size_t size_;
   size_t width_;
@@ -119,12 +121,13 @@ public:
    * @param size Number of sentences
    * @param width Number of words in the longest sentence
    */
-  SubBatch(int size, int width)
+  SubBatch(int size, int width, const Ptr<Vocab>& vocab)
       : indices_(size * width, 0),
         mask_(size * width, 0),
         size_(size),
         width_(width),
-        words_(0) {}
+        words_(0),
+        vocab_(vocab){}
 
   /**
    * @brief Flat vector of word indices.
@@ -140,6 +143,11 @@ public:
    * @see data()
    */
   std::vector<float>& mask() { return mask_; }
+
+  /**
+  * @brief Accessors to the vocab_ field.
+  */
+  const Ptr<Vocab>& vocab() const { return vocab_; }
 
   /**
    * @brief The number of sentences in the batch.
@@ -173,7 +181,7 @@ public:
     for(int k = 0; k < n; ++k) {
       size_t __size__ = std::min(subSize, totSize);
 
-      auto sb = New<SubBatch>(__size__, width_);
+      auto sb = New<SubBatch>(__size__, width_, vocab_);
 
       size_t __words__ = 0;
       for(int j = 0; j < width_; ++j) {
@@ -204,12 +212,12 @@ public:
  */
 class CorpusBatch : public Batch {
 private:
-  std::vector<Ptr<SubBatch>> batches_;
+  std::vector<Ptr<SubBatch>> subBatches_;
   std::vector<float> guidedAlignment_;
   std::vector<float> dataWeights_;
 
 public:
-  CorpusBatch(const std::vector<Ptr<SubBatch>>& batches) : batches_(batches) {}
+  CorpusBatch(const std::vector<Ptr<SubBatch>>& subBatches) : subBatches_(subBatches) {}
 
   /**
    * @brief Access i-th subbatch storing a source or target sentence.
@@ -221,52 +229,52 @@ public:
    *
    * @return Pointer to the requested element.
    */
-  Ptr<SubBatch> operator[](size_t i) const { return batches_[i]; }
+  Ptr<SubBatch> operator[](size_t i) const { return subBatches_[i]; }
 
   /**
    * @brief Access the first subbatch, i.e. the source sentence.
    */
-  Ptr<SubBatch> front() { return batches_.front(); }
+  Ptr<SubBatch> front() { return subBatches_.front(); }
 
   /**
    * @brief Access the last subbatch, i.e. the target sentence.
    */
-  Ptr<SubBatch> back() { return batches_.back(); }
+  Ptr<SubBatch> back() { return subBatches_.back(); }
 
   /**
    * @brief The number of sentences in the batch.
    */
-  size_t size() const { return batches_[0]->batchSize(); }
+  size_t size() const { return subBatches_[0]->batchSize(); }
 
   /**
    * @brief The total number of words for the longest sentence in the batch plus one. Pass which=0 for source and -1 for target.
    */
-  size_t words(int which = 0) const { return batches_[which >= 0 ? which : which + (ptrdiff_t)batches_.size()]->batchWords(); }
+  size_t words(int which = 0) const { return subBatches_[which >= 0 ? which : which + (ptrdiff_t)subBatches_.size()]->batchWords(); }
 
   /**
    * @brief The width of the source mini-batch. Num words + padded?
    */
-  size_t width() const { return batches_[0]->batchWidth(); }
+  size_t width() const { return subBatches_[0]->batchWidth(); }
 
   /**
    * @brief The number of sentences in the batch, target words.
    */
-  size_t sizeTrg() const { return batches_.back()->batchSize(); }
+  size_t sizeTrg() const { return subBatches_.back()->batchSize(); }
   
   /**
    * @brief The number of words for the longest sentence in the batch plus one.
    */
-  size_t wordsTrg() const { return batches_.back()->batchWords(); };
+  size_t wordsTrg() const { return subBatches_.back()->batchWords(); };
 
   /**
    * @brief The width of the target mini-batch. Num words + padded?
    */
-  size_t widthTrg() const { return batches_.back()->batchWidth(); };
+  size_t widthTrg() const { return subBatches_.back()->batchWidth(); };
 
   /**
    * @brief The number of source and targets.
    */
-  size_t sets() const { return batches_.size(); }
+  size_t sets() const { return subBatches_.size(); }
 
   /**
    * @brief Creates a batch filled with fake data. Used to determine the size of
@@ -284,8 +292,10 @@ public:
     std::vector<Ptr<SubBatch>> batches;
 
     for(auto len : lengths) {
-      auto sb = New<SubBatch>(batchSize, len);
-      std::fill(sb->mask().begin(), sb->mask().end(), 1);
+      auto vocab = New<Vocab>();
+      vocab->createFake();
+      auto sb = New<SubBatch>(batchSize, len, vocab); // data: gets initialized to 0. No EOS symbol is distinguished.
+      std::fill(sb->mask().begin(), sb->mask().end(), 1); // mask: no items ask being masked out
 
       batches.push_back(sb);
     }
@@ -323,7 +333,7 @@ public:
   std::vector<Ptr<Batch>> split(size_t n) {
     // split each subbatch separately
     std::vector<std::vector<Ptr<SubBatch>>> subs(n);
-    for(auto subBatch : batches_) {
+    for(auto subBatch : subBatches_) {
       size_t i = 0;
       for(auto splitSubBatch : subBatch->split(n))
         subs[i++].push_back(splitSubBatch);
@@ -357,7 +367,7 @@ public:
       size_t width = 1;
       // There are more weights than sentences, i.e. these are word weights.
       if(dataWeights_.size() != oldSize)
-        width = batches_.back()->batchWidth();
+        width = subBatches_.back()->batchWidth();
 
       for(auto split : splits) {
         std::vector<float> ws(width * split->size(), 1.0f);
@@ -402,14 +412,16 @@ public:
     }
 
     size_t b = 0;
-    for(auto sb : batches_) {
+    for(auto sb : subBatches_) {
       std::cerr << "batch " << b++ << ": " << std::endl;
+      const auto& vocab = *sb->vocab();
       for(size_t i = 0; i < sb->batchWidth(); i++) {
         std::cerr << "\t w: ";
         for(size_t j = 0; j < sb->batchSize(); j++) {
           size_t idx = i * sb->batchSize() + j;
           Word w = sb->data()[idx];
-          std::cerr << w << " ";
+          const auto& s = vocab[w];
+          std::cerr << s << " ";
         }
         std::cerr << std::endl;
       }

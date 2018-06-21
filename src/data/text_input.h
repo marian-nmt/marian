@@ -54,6 +54,7 @@ public:
   iterator begin() { return iterator(*this); }
   iterator end() { return iterator(); }
 
+  // TODO: There are half dozen functions called toBatch(), which are very similar. Factor them.
   batch_ptr toBatch(const std::vector<sample>& batchVector) {
     int batchSize = batchVector.size();
 
@@ -71,8 +72,8 @@ public:
     }
 
     std::vector<Ptr<SubBatch>> subBatches;
-    for(auto m : maxDims) {
-      subBatches.emplace_back(New<SubBatch>(batchSize, m));
+    for (int j = 0; j < maxDims.size(); ++j) {
+      subBatches.emplace_back(New<SubBatch>(batchSize, maxDims[j], vocabs_[j]));
     }
 
     std::vector<size_t> words(maxDims.size(), 0);

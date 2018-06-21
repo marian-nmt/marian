@@ -44,7 +44,7 @@ public:
       = 0;
 
   template <typename T>
-  T opt(const std::string& key) {
+  T opt(const std::string& key) const {
     return options_->get<T>(key);
   }
 

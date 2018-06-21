@@ -80,6 +80,19 @@ Expr operator/(Expr a, Expr b) {
   return Expression<DivNodeOp>(a, b);
 }
 
+// on names: stay close to Python/numpy?
+Expr logsum(Expr a, Expr b) { // TODO: haggle over the name (logplus, logadd, expAddLog)
+  return Expression<LogSumNodeOp>(a, b);
+}
+
+Expr max(Expr a, Expr b) { // TODO: haggle over the name (max vs. elementMax)
+  return Expression<MaxNodeOp>(a, b);
+}
+
+Expr min(Expr a, Expr b) { // TODO: haggle over the name
+  return Expression<MinNodeOp>(a, b);
+}
+
 /*********************************************************/
 
 Expr operator+(Expr a, float b) {
@@ -108,6 +121,11 @@ Expr operator*(Expr a, float b) {
 
 Expr operator/(Expr a, float b) {
   return Expression<ScalarMultNodeOp>(a, 1.f / b);
+}
+
+Expr operator/(float a, Expr b) { // TODO: efficient version of this without constant()
+  auto aExpr = b->graph()->constant({}, inits::from_value(a));
+  return aExpr / b;
 }
 
 // Expr pow(float a, Expr b) {
@@ -326,6 +344,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
   }
 }
 
+// swap the last two axes
 Expr transpose(Expr a) {
   std::vector<int> axes(a->shape().size());
   for(int i = 0; i < axes.size(); ++i) {
@@ -435,8 +454,8 @@ Expr highway(const std::string prefix, Expr x) {
 //    return gamma * (xmmju / std);
 //}
 
-Expr shift(Expr a, Shape shift) {
-  return Expression<ShiftNodeOp>(a, shift);
+Expr shift(Expr a, Shape shift, float padValue) {
+  return Expression<ShiftNodeOp>(a, shift, padValue);
 }
 
 // Expr lexical_bias(Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf) {
