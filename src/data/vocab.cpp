@@ -81,6 +81,16 @@ int Vocab::loadOrCreate(const std::string& vocabPath,
   }
 }
 
+// helper to insert a word into str2id_[] and id2str_[]
+Word Vocab::insertWord(Word id, const std::string& str)
+{
+  str2id_[str] = id;
+  if (id >= id2str_.size())
+    id2str_.resize(id + 1);
+  id2str_[id] = str;
+  return id;
+};
+
 int Vocab::load(const std::string& vocabPath, int max) {
   bool isJson = regex::regex_search(vocabPath, regex::regex("\\.(json|yml)$"));
   LOG(info, "[data] Loading vocabulary from {} file {}", isJson ? "JSON/Yaml" : "text", vocabPath);
@@ -107,15 +117,6 @@ int Vocab::load(const std::string& vocabPath, int max) {
   }
 
   std::unordered_set<Word> seenSpecial;
-
-  // helper to insert a word into str2id_[] and id2str_[]
-  auto insertWord = [&](Word id, const std::string& str)
-  {
-    str2id_[str] = id;
-    if(id >= id2str_.size())
-      id2str_.resize(id + 1);
-    id2str_[id] = str;
-  };
 
   id2str_.reserve(vocab.size());
   for(auto&& pair : vocab) {
@@ -167,6 +168,12 @@ int Vocab::load(const std::string& vocabPath, int max) {
   }
 
   return std::max((int)id2str_.size(), max);
+}
+
+void Vocab::createFake() // for fakeBatch()
+{
+  eosId_ = insertWord(DEFAULT_EOS_ID, DEFAULT_EOS_STR);
+  unkId_ = insertWord(DEFAULT_UNK_ID, DEFAULT_UNK_STR);
 }
 
 class Vocab::VocabFreqOrderer {

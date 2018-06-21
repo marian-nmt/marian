@@ -133,11 +133,11 @@ inline bool operator!=(const std::tm& tm1, const std::tm& tm2)
 
 // eol definition
 #if !defined (SPDLOG_EOL)
-#ifdef _WIN32
-#define SPDLOG_EOL "\r\n"
-#else
+//#ifdef _WIN32
+//#define SPDLOG_EOL "\r\n"
+//#else
 #define SPDLOG_EOL "\n"
-#endif
+//#endif
 #endif
 
 SPDLOG_CONSTEXPR static const char* eol = SPDLOG_EOL;

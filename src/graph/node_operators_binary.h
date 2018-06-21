@@ -528,6 +528,66 @@ struct DivNodeOp : public ElementBinaryNodeOp {
 //  const std::string type() { return "pow"; }
 //};
 
+struct LogSumNodeOp : public ElementBinaryNodeOp {
+  LogSumNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
+
+  NodeOps forwardOps() {
+    using namespace functional;
+    return{
+      NodeOp(Element(_1 = logsum(_2, _3), val_, child(0)->val(), child(1)->val())) };
+  }
+
+  NodeOps backwardOps() {
+    using namespace functional;
+
+    // d/dx (ln( exp(x) + (exp(y)) = exp(x) / (exp(x) + exp(y)) = 1 / (1 + exp(y-x)) = sigmoid(x-y)
+    return{ NodeOp(Add(_1 * logit(_2 - _3), child(0)->grad(), adj_, child(0)->val(), child(1)->val())),
+            NodeOp(Add(_1 * logit(_3 - _2), child(1)->grad(), adj_, child(0)->val(), child(1)->val())) };
+  }
+
+  // TODO: this is not a "type" (as in data type). It's an operator name.
+  const std::string type() { return "logsum"; }
+};
+
+struct MaxNodeOp : public ElementBinaryNodeOp {
+  MaxNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
+
+  NodeOps forwardOps() {
+    using namespace functional;
+    return{
+      NodeOp(Element(_1 = max(_2, _3), val_, child(0)->val(), child(1)->val())) };
+  }
+
+  NodeOps backwardOps() {
+    using namespace functional;
+
+    return{ NodeOp(Add((_2 >  _3) * _1, child(0)->grad(), adj_, child(0)->val(), child(1)->val())),
+            NodeOp(Add((_2 <= _3) * _1, child(1)->grad(), adj_, child(0)->val(), child(1)->val())) };
+  }
+
+  const std::string type() { return "max"; }
+};
+
+// TODO: lotsa code dup here!
+struct MinNodeOp : public ElementBinaryNodeOp {
+  MinNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
+
+  NodeOps forwardOps() {
+    using namespace functional;
+    return{
+      NodeOp(Element(_1 = min(_2, _3), val_, child(0)->val(), child(1)->val())) };
+  }
+
+  NodeOps backwardOps() {
+    using namespace functional;
+
+    return{ NodeOp(Add((_2 <  _3) * _1, child(0)->grad(), adj_, child(0)->val(), child(1)->val())),
+            NodeOp(Add((_2 >= _3) * _1, child(1)->grad(), adj_, child(0)->val(), child(1)->val())) };
+  }
+
+  const std::string type() { return "min"; }
+};
+
 // Cross-entropy node. It computes -b*log(softmax(a)), summing rowwise.
 struct CrossEntropyNodeOp : public NaryNodeOp {
   CrossEntropyNodeOp(Expr a, Expr b) : NaryNodeOp({a, b}, newShape(a)) {}

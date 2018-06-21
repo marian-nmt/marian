@@ -111,7 +111,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\3rd_party\yaml-cpp\yaml-node.cpp" />
-    <ClCompile Include="..\src\command\marian_decoder.cpp" />
+    <ClCompile Include="..\src\command\marian-main.cpp" />
+    <ClInclude Include="..\src\command\marian.cpp" />
+    <ClInclude Include="..\src\command\marian_decoder.cpp" />
+    <ClInclude Include="..\src\command\marian_scorer.cpp" />
+    <ClInclude Include="..\src\command\marian_vocab.cpp" />
     <ClCompile Include="..\src\common\utils.cpp" />
     <ClCompile Include="..\src\common\logging.cpp" />
     <ClCompile Include="..\src\common\config.cpp" />
@@ -386,8 +390,9 @@
     <ClInclude Include="..\src\models\nematus.h" />
     <ClInclude Include="..\src\models\s2s.h" />
     <ClInclude Include="..\src\models\states.h" />
-    <ClInclude Include="..\src\models\transformer.h" />
+    <ClCompile Include="..\src\models\transformer.h" />
     <ClInclude Include="..\src\models\experimental\lex_probs.h" />
+    <ClInclude Include="..\src\models\transformer_factory.h" />
     <ClInclude Include="..\src\optimizers\clippers.h" />
     <ClInclude Include="..\src\optimizers\optimizers.h" />
     <ClInclude Include="..\src\rescorer\rescorer.h" />

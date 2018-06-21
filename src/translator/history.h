@@ -1,8 +1,9 @@
 #pragma once
 
-#include <queue>
-
 #include "hypothesis.h"
+#include "data/types.h"
+
+#include <queue>
 
 namespace marian {
 
@@ -22,10 +23,10 @@ public:
   float LengthPenalty(size_t length) { return std::pow((float)length, alpha_); }
   float WordPenalty(size_t length) { return wp_ * (float)length; }
 
-  void Add(const Beam& beam, bool last = false) {
+  void Add(const Beam& beam, Word trgEosId, bool last = false) {
     if(beam.back()->GetPrevHyp() != nullptr) {
       for(size_t j = 0; j < beam.size(); ++j)
-        if(beam[j]->GetWord() == 0 || last) {
+        if(beam[j]->GetWord() == trgEosId || last) {
           float cost = (beam[j]->GetCost() - WordPenalty(history_.size())) / LengthPenalty(history_.size());
           topHyps_.push({history_.size(), j, cost});
           // std::cerr << "Add " << history_.size() << " " << j << " " << cost

@@ -22,7 +22,7 @@ void Printer(Ptr<Config> options,
     for(size_t i = 0; i < nbl.size(); ++i) {
       const auto& result = nbl[i];
       const auto& words = std::get<0>(result);
-      const auto& hypo = std::get<1>(result);
+      const auto& hypo  = std::get<1>(result);
 
       float realCost = std::get<2>(result);
 

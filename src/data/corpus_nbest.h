@@ -64,8 +64,8 @@ public:
     }
 
     std::vector<Ptr<SubBatch>> subBatches;
-    for(auto m : maxDims) {
-      subBatches.emplace_back(New<SubBatch>(batchSize, m));
+    for (int j = 0; j < maxDims.size(); ++j) {
+      subBatches.emplace_back(New<SubBatch>(batchSize, maxDims[j], vocabs_[j]));
     }
 
     std::vector<size_t> words(maxDims.size(), 0);
