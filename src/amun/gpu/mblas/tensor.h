@@ -19,38 +19,6 @@ using namespace thrust::placeholders;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<typename T>
-__global__ void gSum(const T *data, unsigned count, T &ret)
-{
-  ret = 0;
-  for (unsigned i = 0; i < count; ++i) {
-    ret += data[i];
-  }
-}
-
-template<typename T>
-T Sum(const T *data, unsigned count)
-{
-  T ret;
-  T *d_ret;
-  HANDLE_ERROR( cudaMalloc(&d_ret, sizeof(T)) );
-
-  const cudaStream_t stream = CudaStreamHandler::GetStream();
-
-  HANDLE_ERROR( cudaStreamSynchronize(stream));
-  gSum<<<1, 1, 0, stream>>>(data, count, *d_ret);
-  HANDLE_ERROR(cudaGetLastError());
-
-  HANDLE_ERROR( cudaMemcpyAsync(&ret, d_ret, sizeof(T), cudaMemcpyDeviceToHost, stream) );
-
-  HANDLE_ERROR( cudaStreamSynchronize(stream));
-  HANDLE_ERROR(cudaFree(d_ret));
-
-  return ret;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
 template <typename T>
 class TTensor : public BaseTensor {
   public:
@@ -132,30 +100,63 @@ class TTensor : public BaseTensor {
     {
       std::stringstream strm;
       strm << BaseTensor::Debug(verbosity) << " ";
-      strm << vec_.data() << " "
-          << vec_.size() << " "
-          << vec_.maxSize() << " "
-          << std::flush;
 
-      if (verbosity) {
-        T sum = Sum(data(), size());
-        strm << "sum=" << sum << std::flush;
+      if (verbosity == 1) {
+        if (dim(1) > 1) {
+          HANDLE_ERROR( cudaStreamSynchronize(CudaStreamHandler::GetStream()));
 
-        if (verbosity == 2) {
-          const cudaStream_t& stream = CudaStreamHandler::GetStream();
-          T h_data[size()];
+          unsigned maxCol = std::min((unsigned) 2, dim(1));
 
-          HANDLE_ERROR( cudaMemcpyAsync(
-              &h_data,
-              vec_.data(),
-              size() * sizeof(T),
-              cudaMemcpyDeviceToHost,
-              stream) );
-          HANDLE_ERROR( cudaStreamSynchronize(stream) );
+          T tmp[2];
+          HANDLE_ERROR( cudaMemcpy(tmp, vec_.data(), maxCol * sizeof(T), cudaMemcpyDeviceToHost) );
 
-          for (unsigned i = 0; i < size(); ++i) {
-            strm << " " << h_data[i];
+          for (size_t i = 0; i < maxCol; ++i) {
+            strm << " " << tmp[i];
           }
+
+          if (dim(1) > 3) {
+            strm << "...";
+            HANDLE_ERROR( cudaMemcpy(tmp, vec_.data() + dim(1) - maxCol, maxCol * sizeof(T), cudaMemcpyDeviceToHost) );
+            for (size_t i = 0; i < maxCol; ++i) {
+              strm << tmp[i] << " ";
+            }
+          }
+
+          if (dim(0) > 1 || dim(2) > 1 || dim(3) > 1) {
+            // last row
+            strm << "/";
+
+
+            HANDLE_ERROR( cudaMemcpy(tmp, vec_.data() + size() - dim(1), maxCol * sizeof(T), cudaMemcpyDeviceToHost) );
+            for (unsigned i = 0; i < maxCol; i++) {
+              strm << " " << tmp[i];
+            }
+
+            if (dim(1) > 3) {
+              HANDLE_ERROR( cudaMemcpy(tmp, vec_.data() + size() - maxCol, maxCol * sizeof(T), cudaMemcpyDeviceToHost) );
+
+              strm << "...";
+              for (unsigned i = 0; i < maxCol; ++i) {
+                strm << tmp[i] << " ";
+              }
+            }
+
+          }
+        }
+      }
+      else if (verbosity == 2) {
+        HANDLE_ERROR( cudaStreamSynchronize(CudaStreamHandler::GetStream()));
+
+        T h_data[size()];
+
+        HANDLE_ERROR( cudaMemcpy(
+            &h_data,
+            vec_.data(),
+            size() * sizeof(T),
+            cudaMemcpyDeviceToHost) );
+
+        for (unsigned i = 0; i < size(); ++i) {
+          strm << " " << h_data[i];
         }
       }
 

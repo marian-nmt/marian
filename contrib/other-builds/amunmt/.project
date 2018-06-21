@@ -1256,6 +1256,11 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/common/processor/processor.h</locationURI>
 		</link>
 		<link>
+			<name>src/amun/cpu/decoder/best_hyps.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/decoder/best_hyps.cpp</locationURI>
+		</link>
+		<link>
 			<name>src/amun/cpu/decoder/best_hyps.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/cpu/decoder/best_hyps.h</locationURI>
@@ -1516,9 +1521,9 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/cell.h</locationURI>
 		</link>
 		<link>
-			<name>src/amun/gpu/dl4mt/cellstate.cpp</name>
+			<name>src/amun/gpu/dl4mt/cellstate.cu</name>
 			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/cellstate.cpp</locationURI>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/cellstate.cu</locationURI>
 		</link>
 		<link>
 			<name>src/amun/gpu/dl4mt/cellstate.h</name>
@@ -1554,6 +1559,11 @@
 			<name>src/amun/gpu/dl4mt/gru.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/gru.h</locationURI>
+		</link>
+		<link>
+			<name>src/amun/gpu/dl4mt/lstm.cu</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/amun/gpu/dl4mt/lstm.cu</locationURI>
 		</link>
 		<link>
 			<name>src/amun/gpu/dl4mt/lstm.h</name>

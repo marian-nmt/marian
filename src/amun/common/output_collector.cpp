@@ -16,7 +16,7 @@ void OutputCollector::Write(long sourceId, const std::string& output)
 {
   boost::mutex::scoped_lock lock(mutex_);
   if (sourceId == nextId_) {
-    LOG(progress)->info("Best translation {} : {}", sourceId, output);
+    //LOG(progress)->info("Best translation {} : {}", sourceId, output);
     *outStrm_ << output << std::endl;
     
     ++nextId_;
@@ -29,7 +29,7 @@ void OutputCollector::Write(long sourceId, const std::string& output)
       if (currId == nextId_) {
         // 1st element in the map is the next
         const string &currOutput = iter->second;
-        LOG(progress)->info("Best translation {} : {}", currId, currOutput);
+        //LOG(progress)->info("Best translation {} : {}", currId, currOutput);
         *outStrm_ << currOutput << std::endl;
 
         ++nextId_;

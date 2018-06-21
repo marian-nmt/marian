@@ -9,7 +9,13 @@
 #include <driver_types.h>
 
 namespace amunmt {
+
+extern std::unordered_map<std::string, boost::timer::cpu_timer> timers;
+
 namespace GPU {
+
+#define LOWEST_FLOAT -1111111111111
+#define HIGHEST_FLOAT +999999999999
 
 /////////////////////////////////////////////////////////////////////////////////////
 void HandleError(cudaError_t err, const char *file, int line );
@@ -20,7 +26,6 @@ void HandleErrorCublas(cublasStatus_t err, const char *file, int line );
 #define HANDLE_ERROR_CUBLAS( err ) (HandleErrorCublas( err, __FILE__, __LINE__ ))
 
 /////////////////////////////////////////////////////////////////////////////////////
-extern std::unordered_map<std::string, boost::timer::cpu_timer> timers;
 
 //#define BEGIN_TIMER(str) {}
 //#define PAUSE_TIMER(str) {}

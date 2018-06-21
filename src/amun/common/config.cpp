@@ -249,7 +249,7 @@ void Config::AddOptions(unsigned argc, char** argv) {
 
      ("max-length", po::value<unsigned>()->default_value(500),
       "Maximum length of input sentences. Anything above this is truncated. 0=no max length")
-     ("max-length-multiple", po::value<unsigned>()->default_value(3),
+     ("max-length-multiple", po::value<float>()->default_value(3),
       "Maximum length of output sentences as a multiple of input sentence")
 
       ("version,v", po::value<bool>()->zero_tokens()->default_value(false),
@@ -334,7 +334,7 @@ void Config::AddOptions(unsigned argc, char** argv) {
   SET_OPTION("mini-batch-words", int);
 
   SET_OPTION("max-length", unsigned);
-  SET_OPTION("max-length-multiple", unsigned);
+  SET_OPTION("max-length-multiple", float);
 
   SET_OPTION("use-fused-softmax", bool);
 #ifdef CUDA

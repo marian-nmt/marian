@@ -1,3 +1,4 @@
+#include <sstream>
 #include "model.h"
 #include "gpu/mblas/tensor_functions.h"
 
@@ -34,7 +35,14 @@ namespace GPU {
     }
     Es_.emplace_back(factorEmb);
   }
-}
+  }
+
+  std::string Weights::EncEmbeddings::Debug(unsigned verbosity) const
+  {
+    stringstream strm;
+    strm << "EncEmbeddings" << endl;
+    return strm.str();
+  }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::EncForwardGRU::EncForwardGRU(const NpzConverter& model)
@@ -49,6 +57,22 @@ Weights::EncForwardGRU::EncForwardGRU(const NpzConverter& model)
   Gamma_2_(model.get("encoder_gamma2", false))
 { }
 
+std::string Weights::EncForwardGRU::Debug(unsigned verbosity) const
+{
+  stringstream strm;
+  strm << "W_=" << W_->Debug(verbosity) << endl;
+  strm << "B_=" << B_->Debug(verbosity) << endl;
+  strm << "U_=" << U_->Debug(verbosity) << endl;
+  strm << "Wx_=" << Wx_->Debug(verbosity) << endl;
+  strm << "Bx1_=" << Bx1_->Debug(verbosity) << endl;
+  strm << "Bx2_=" << Bx2_->Debug(verbosity) << endl;
+  strm << "Ux_=" << Ux_->Debug(verbosity) << endl;
+  strm << "Gamma_1_=" << Gamma_1_->Debug(verbosity) << endl;
+  strm << "Gamma_2_" << Gamma_2_->Debug(verbosity) << endl;
+
+  return strm.str();
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::EncForwardLSTM::EncForwardLSTM(const NpzConverter& model)
 // matrix merging is done to be backwards-compatible with the original LSTM implementation in Amun
@@ -61,6 +85,18 @@ Weights::EncForwardLSTM::EncForwardLSTM(const NpzConverter& model)
   Gamma_2_(model.get("encoder_gamma2", false))
 {}
 
+std::string Weights::EncForwardLSTM::Debug(unsigned verbosity) const
+{
+  stringstream strm;
+  strm << "W_=" << W_->Debug(verbosity) << endl;
+  strm << "B_=" << B_->Debug(verbosity) << endl;
+  strm << "U_=" << U_->Debug(verbosity) << endl;
+  strm << "Gamma_1_=" << Gamma_1_->Debug(verbosity) << endl;
+  strm << "Gamma_2_" << Gamma_2_->Debug(verbosity) << endl;
+
+  return strm.str();
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::EncBackwardLSTM::EncBackwardLSTM(const NpzConverter& model)
 // matrix merging is done to be backwards-compatible with the original LSTM implementation in Amun
@@ -72,6 +108,18 @@ Weights::EncBackwardLSTM::EncBackwardLSTM(const NpzConverter& model)
   Gamma_1_(model.get("encoder_r_gamma1", false)),
   Gamma_2_(model.get("encoder_r_gamma2", false))
 {}
+
+std::string Weights::EncBackwardLSTM::Debug(unsigned verbosity) const
+{
+  stringstream strm;
+  strm << "W_=" << W_->Debug(verbosity) << endl;
+  strm << "B_=" << B_->Debug(verbosity) << endl;
+  strm << "U_=" << U_->Debug(verbosity) << endl;
+  strm << "Gamma_1_=" << Gamma_1_->Debug(verbosity) << endl;
+  strm << "Gamma_2_" << Gamma_2_->Debug(verbosity) << endl;
+
+  return strm.str();
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::EncBackwardGRU::EncBackwardGRU(const NpzConverter& model)
@@ -86,11 +134,31 @@ Weights::EncBackwardGRU::EncBackwardGRU(const NpzConverter& model)
   Gamma_2_(model.get("encoder_r_gamma2", false))
 {}
 
+std::string Weights::EncBackwardGRU::Debug(unsigned verbosity) const
+{
+  stringstream strm;
+  strm << "W_=" << W_->Debug(verbosity) << endl;
+  strm << "B_=" << B_->Debug(verbosity) << endl;
+  strm << "U_=" << U_->Debug(verbosity) << endl;
+  strm << "Gamma_1_=" << Gamma_1_->Debug(verbosity) << endl;
+  strm << "Gamma_2_" << Gamma_2_->Debug(verbosity) << endl;
+
+  return strm.str();
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::DecEmbeddings::DecEmbeddings(const NpzConverter& model)
 : E_(model.getFirstOfMany({std::make_pair("Wemb_dec", false),
                            std::make_pair("Wemb", false)}, true))
 {}
+
+std::string Weights::DecEmbeddings::Debug(unsigned verbosity) const
+{
+  stringstream strm;
+  strm << "E_=" << E_->Debug(verbosity) << endl;
+
+  return strm.str();
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::DecInit::DecInit(const NpzConverter& model)
@@ -98,6 +166,16 @@ Weights::DecInit::DecInit(const NpzConverter& model)
   Bi_(model.get("ff_state_b", true, true)),
   Gamma_(model.get("ff_state_gamma", false))
 {}
+
+std::string Weights::DecInit::Debug(unsigned verbosity) const
+{
+  stringstream strm;
+  strm << "Wi_=" << Wi_->Debug(verbosity) << endl;
+  strm << "Bi_=" << Bi_->Debug(verbosity) << endl;
+  strm << "Gamma_=" << Gamma_->Debug(verbosity) << endl;
+
+  return strm.str();
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::DecGRU1::DecGRU1(const NpzConverter& model)
@@ -112,6 +190,22 @@ Weights::DecGRU1::DecGRU1(const NpzConverter& model)
   Gamma_2_(model.get("decoder_cell1_gamma2", false))
 {}
 
+std::string Weights::DecGRU1::Debug(unsigned verbosity) const
+{
+  stringstream strm;
+  strm << "W_=" << W_->Debug(verbosity) << endl;
+  strm << "B_=" << B_->Debug(verbosity) << endl;
+  strm << "U_=" << U_->Debug(verbosity) << endl;
+  strm << "Wx_=" << Wx_->Debug(verbosity) << endl;
+  strm << "Bx1_=" << Bx1_->Debug(verbosity) << endl;
+  strm << "Bx2_=" << Bx2_->Debug(verbosity) << endl;
+  strm << "Ux_=" << Ux_->Debug(verbosity) << endl;
+  strm << "Gamma_1_=" << Gamma_1_->Debug(verbosity) << endl;
+  strm << "Gamma_2_" << Gamma_2_->Debug(verbosity) << endl;
+
+  return strm.str();
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::DecGRU2::DecGRU2(const NpzConverter& model)
 : W_(model.get("decoder_Wc", true)),
@@ -125,6 +219,22 @@ Weights::DecGRU2::DecGRU2(const NpzConverter& model)
   Gamma_2_(model.get("decoder_cell2_gamma2", false))
 {}
 
+std::string Weights::DecGRU2::Debug(unsigned verbosity) const
+{
+  stringstream strm;
+  strm << "W_=" << W_->Debug(verbosity) << endl;
+  strm << "B_=" << B_->Debug(verbosity) << endl;
+  strm << "U_=" << U_->Debug(verbosity) << endl;
+  strm << "Wx_=" << Wx_->Debug(verbosity) << endl;
+  strm << "Bx1_=" << Bx1_->Debug(verbosity) << endl;
+  strm << "Bx2_=" << Bx2_->Debug(verbosity) << endl;
+  strm << "Ux_=" << Ux_->Debug(verbosity) << endl;
+  strm << "Gamma_1_=" << Gamma_1_->Debug(verbosity) << endl;
+  strm << "Gamma_2_" << Gamma_2_->Debug(verbosity) << endl;
+
+  return strm.str();
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::DecLSTM1::DecLSTM1(const NpzConverter& model)
 // matrix merging is done to be backwards-compatible with the original LSTM implementation in Amun
@@ -136,6 +246,18 @@ Weights::DecLSTM1::DecLSTM1(const NpzConverter& model)
   Gamma_1_(model.get("decoder_cell1_gamma1", false)),
   Gamma_2_(model.get("decoder_cell1_gamma2", false))
 {}
+
+std::string Weights::DecLSTM1::Debug(unsigned verbosity) const
+{
+  stringstream strm;
+  strm << "W_=" << W_->Debug(verbosity) << endl;
+  strm << "B_=" << B_->Debug(verbosity) << endl;
+  strm << "U_=" << U_->Debug(verbosity) << endl;
+  strm << "Gamma_1_=" << Gamma_1_->Debug(verbosity) << endl;
+  strm << "Gamma_2_" << Gamma_2_->Debug(verbosity) << endl;
+
+  return strm.str();
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::DecLSTM2::DecLSTM2(const NpzConverter& model)
@@ -149,6 +271,18 @@ Weights::DecLSTM2::DecLSTM2(const NpzConverter& model)
   Gamma_2_(model.get("decoder_cell2_gamma2", false))
 {}
 
+std::string Weights::DecLSTM2::Debug(unsigned verbosity) const
+{
+  stringstream strm;
+  strm << "W_=" << W_->Debug(verbosity) << endl;
+  strm << "B_=" << B_->Debug(verbosity) << endl;
+  strm << "U_=" << U_->Debug(verbosity) << endl;
+  strm << "Gamma_1_=" << Gamma_1_->Debug(verbosity) << endl;
+  strm << "Gamma_2_" << Gamma_2_->Debug(verbosity) << endl;
+
+  return strm.str();
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::DecAlignment::DecAlignment(const NpzConverter& model)
 : V_(model.get("decoder_U_att", true, true)),
@@ -159,6 +293,20 @@ Weights::DecAlignment::DecAlignment(const NpzConverter& model)
   Gamma_1_(model.get("decoder_att_gamma1", false)),
   Gamma_2_(model.get("decoder_att_gamma2", false))
 {}
+
+std::string Weights::DecAlignment::Debug(unsigned verbosity) const
+{
+  stringstream strm;
+  strm << "V_=" << V_->Debug(verbosity) << endl;
+  strm << "W_=" << W_->Debug(verbosity) << endl;
+  strm << "B_=" << B_->Debug(verbosity) << endl;
+  strm << "U_=" << U_->Debug(verbosity) << endl;
+  strm << "C_=" << C_->Debug(verbosity) << endl;
+  strm << "Gamma_1_=" << Gamma_1_->Debug(verbosity) << endl;
+  strm << "Gamma_2_" << Gamma_2_->Debug(verbosity) << endl;
+
+  return strm.str();
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::DecSoftmax::DecSoftmax(const NpzConverter& model)
@@ -176,6 +324,25 @@ Weights::DecSoftmax::DecSoftmax(const NpzConverter& model)
   Gamma_1_(model.get("ff_logit_l1_gamma1", false)),
   Gamma_2_(model.get("ff_logit_l1_gamma2", false))
 {}
+
+std::string Weights::DecSoftmax::Debug(unsigned verbosity) const
+{
+  stringstream strm;
+  strm << "W1_=" << W1_->Debug(verbosity) << endl;
+  strm << "B1_=" << B1_->Debug(verbosity) << endl;
+  strm << "W2_=" << W2_->Debug(verbosity) << endl;
+  strm << "B2_=" << B2_->Debug(verbosity) << endl;
+  strm << "W3_=" << W3_->Debug(verbosity) << endl;
+  strm << "B3_=" << B3_->Debug(verbosity) << endl;
+  strm << "W4_=" << W4_->Debug(verbosity) << endl;
+  strm << "B4_=" << B4_->Debug(verbosity) << endl;
+
+  strm << "Gamma_0_=" << Gamma_0_->Debug(verbosity) << endl;
+  strm << "Gamma_1_=" << Gamma_1_->Debug(verbosity) << endl;
+  strm << "Gamma_2_" << Gamma_2_->Debug(verbosity) << endl;
+
+  return strm.str();
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Weights::Weights(const std::string& npzFile, const YAML::Node& config,  unsigned device)

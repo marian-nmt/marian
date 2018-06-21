@@ -22,7 +22,7 @@ class SlowGRU: public Cell {
 
       //std::cerr << std::endl;
 
-      const unsigned cols = GetStateLength();
+      const unsigned cols = GetStateLength().output;
 
       // @TODO: Optimization
       // @TODO: Launch streams to perform GEMMs in parallel
@@ -83,6 +83,12 @@ class SlowGRU: public Cell {
 
     virtual CellLength GetStateLength() const {
       return CellLength(0, w_.U_->dim(0));
+    }
+
+    virtual std::string Debug(unsigned verbosity = 1) const
+    {
+      std::stringstream strm;
+      return "GRU";
     }
 
   private:
@@ -237,6 +243,12 @@ class FastGRU: public Cell {
       return CellLength(0, w_.U_->dim(0));
     }
 
+    virtual std::string Debug(unsigned verbosity = 1) const
+    {
+      std::stringstream strm;
+      strm << w_.Debug(verbosity);
+      return strm.str();
+    }
 
   private:
     // Model matrices

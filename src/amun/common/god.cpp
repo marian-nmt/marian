@@ -26,6 +26,8 @@ using namespace std;
 
 namespace amunmt {
 
+std::unordered_map<std::string, boost::timer::cpu_timer> timers;
+
 God::God()
  : threadIncr_(0)
 {
@@ -108,7 +110,7 @@ God& God::Init(int argc, char** argv) {
 
 #ifdef CUDA
   useTensorCores_ = Get<bool>("tensor-cores");
-  cerr << "useTensorCores_=" << useTensorCores_ << endl;
+  //cerr << "useTensorCores_=" << useTensorCores_ << endl;
 #endif
 
   if (Has("input-file")) {

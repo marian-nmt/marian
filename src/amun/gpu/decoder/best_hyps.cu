@@ -101,11 +101,11 @@ void  BestHyps::CalcBeam(
     mblas::Vector<NthOutBatch> &nBest = *static_cast<mblas::Vector<NthOutBatch>*>(scorers[0]->GetNBest());
     nBest.newSize(beamSizeSum);
 
-    bool doSoftmax = maxBeamSize_ > 1 || god_.Get<bool>("n-best");
+    bool requireProb = maxBeamSize_ > 1 || god_.Get<bool>("n-best");
     //cerr << "doSoftmax=" << doSoftmax << endl;
 
     BEGIN_TIMER("GetProbs.LogSoftmaxAndNBest");
-    mblas::LogSoftmaxAndNBest(nBest, Probs, b4, costs_, forbidUNK_, maxBeamSize_, beamSizes, beamSizeSum, isFirst, doSoftmax);
+    mblas::LogSoftmaxAndNBest(nBest, Probs, b4, costs_, forbidUNK_, maxBeamSize_, beamSizes, beamSizeSum, isFirst, requireProb);
     PAUSE_TIMER("GetProbs.LogSoftmaxAndNBest");
     //std::cerr << "2Probs=" << Probs.Debug(1) << std::endl;
 

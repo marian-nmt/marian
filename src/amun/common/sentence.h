@@ -21,6 +21,7 @@ class Sentence {
 
     unsigned GetLineNum() const;
 
+    std::string Debug(unsigned verbosity = 1) const;
 
   private:
     void FillDummyFactors(const Words& line);

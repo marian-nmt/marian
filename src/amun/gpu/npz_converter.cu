@@ -62,7 +62,7 @@ std::shared_ptr<mblas::Tensor> NpzConverter::get(const std::string& key, bool ma
     ret.reset(matrix);
   }
 
-  //std::cerr << "key=" << key << " " << matrix.Debug(1) << std::endl;
+  //std::cerr << "key=" << key << " " << ret->Debug(1) << std::endl;
   return ret;
 }
 

@@ -59,6 +59,11 @@ class SlowLSTM: public Cell {
       return CellLength(w_.U_->dim(0), w_.U_->dim(0));
     }
 
+    virtual std::string Debug(unsigned verbosity = 1) const
+    {
+      return "LSTM";
+    }
+
   private:
     // Model matrices
     const Weights& w_;

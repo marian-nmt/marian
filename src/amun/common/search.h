@@ -30,7 +30,8 @@ class Search {
     		std::vector<unsigned>& beamSizes,
         Beam& prevHyps,
     		States& states,
-    		States& nextStates);
+    		States& nextStates,
+    		unsigned decoderStep);
 
     Search(const Search&) = delete;
 
@@ -39,13 +40,13 @@ class Search {
     std::vector<ScorerPtr> scorers_;
     std::shared_ptr<const Filter> filter_;
     const unsigned maxBeamSize_;
-    const unsigned maxLengthMult_;
+    const float maxLengthMult_;
     bool normalizeScore_;
     Words filterIndices_;
     BaseBestHypsPtr bestHyps_;
 
-    std::vector<unsigned> activeCount_;
-    void BatchStats();
+    //std::vector<unsigned> activeCount_;
+    //void BatchStats();
 };
 
 }

@@ -21,7 +21,13 @@ std::string GetSoftAlignmentString(const HypothesisPtr& hypothesis);
 std::string GetNematusAlignmentString(const HypothesisPtr& hypothesis, std::string best, std::string source, unsigned linenum);
 
 template <class OStream>
-void Printer(const God &god, const History& history, OStream& out, const Sentence& sentence) { 
+void Printer(const God &god, const History& history, OStream& out, const Sentence& sentence)
+{
+  if (sentence.size() == 0) {
+    // empty line
+    return;
+  }
+
   auto bestTranslation = history.Top();
   std::vector<std::string> bestSentenceWords = god.Postprocess(god.GetTargetVocab()(bestTranslation.first));
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <sstream>
 #include <yaml-cpp/yaml.h>
 
 #include "gpu/mblas/vector.h"
@@ -128,6 +129,14 @@ class Decoder {
           gru_->GetNextState(NextState, State, Context);
         }
 
+        std::string Debug(unsigned verbosity = 1) const
+        {
+          std::stringstream strm;
+          strm << gru_->Debug(verbosity);
+
+          return strm.str();
+        }
+
       private:
         std::unique_ptr<Cell> gru_;
 
@@ -226,12 +235,11 @@ class Decoder {
 
           Broadcast(Tanh(_1 + _2), Temp1_, SCU_, Temp2_, dBatchMapping_, maxLength);
 
-          //std::cerr << "w_.V_=" << w_.V_->Debug(0) << std::endl;
-          //std::cerr << "3Temp1_=" << Temp1_.Debug(0) << std::endl;
-
           Prod(A_, *w_.V_, Temp1_, true);
 
-          mblas::Softmax(A_, dBatchMapping_, sentenceLengths, batchSize);
+
+          mblas::Softmax(A_, dBatchMapping_, sentenceLengths);
+
           mblas::WeightedMean(AlignedSourceContext, A_, SourceContext, dBatchMapping_);
 
           /*
@@ -436,7 +444,6 @@ class Decoder {
 
       //BEGIN_TIMER("GetNextState");
       GetNextState(NextState, HiddenState_, AlignedSourceContext_);
-      //std::cerr << "NextState=" << NextState.Debug(1) << std::endl;
       //PAUSE_TIMER("GetNextState");
 
       //BEGIN_TIMER("GetProbs");
