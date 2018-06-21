@@ -70,10 +70,10 @@ public:
       std::string name = options_->get<std::string>("model");
 
       if(boost::filesystem::exists(name)) {
-        size_t i = 0;
         if(scheduler_)
           scheduler_->load(name);
 
+        size_t i = 0;
         if(mvAvg_ && boost::filesystem::exists(name + ".mvavg.npz")) {
           for(auto graph : graphs_)
             builders_[i++]->load(graph, name + ".mvavg.npz");

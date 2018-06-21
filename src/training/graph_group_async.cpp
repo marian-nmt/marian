@@ -58,7 +58,7 @@ void AsyncGraphGroup::pushGradients(Tensor newGrads,
             shardOpt_[idx]->update(params_[idx], grads_[idx]);
           }
 
-          if(movingAvg_)
+          if(mvAvg_)
             updateMovingAverage(
                 paramsAvg_[idx], params_[idx], scheduler_->numberOfBatches());
         },
@@ -133,7 +133,7 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
       grads_.push_back(grad_);
     }
   }
-  if(movingAvg_) {
+  if(mvAvg_) {
     if(paramsAvg_.size() == 0) {
       int totalSize = graphs_[0]->params()->vals()->size();
 
@@ -148,11 +148,18 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
         allocator->reserveExact(__size__ * sizeof(float));
         allocator->allocate(paramAvg, {1, __size__});
 
-        paramAvg->copyFrom(params_[i++]);
+        if(graphAvg_)
+          paramAvg->copyFrom(graphAvg_->params()->vals());
+        else
+          paramAvg->copyFrom(params_[i++]);
 
         paramsAllocAvg_.push_back(allocator);
         paramsAvg_.push_back(paramAvg);
       }
+
+      // we don't need the graph anymore as averaged params have been loaded
+      if(graphAvg_)
+        graphAvg_.reset();
     }
   }
 }
@@ -258,7 +265,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
         // a safe state.
         pool_->wait_for_others(lock);
 
-        if(movingAvg_)
+        if(mvAvg_)
           for(auto g : graphs_)
             fetchParams(g->params()->vals(), paramsAvg_, t_id);
 

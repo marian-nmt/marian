@@ -41,7 +41,8 @@ protected:
 
   std::vector<Tensor> paramsAvg_;
   std::vector<Ptr<TensorAllocator>> paramsAllocAvg_;
-  bool movingAvg_{false};
+  Ptr<ExpressionGraph> graphAvg_;
+  bool mvAvg_{false};
   float mvDecay_{1e-4};
 
   std::unique_ptr<ThreadPool> pool_;
@@ -67,7 +68,7 @@ public:
       : GraphGroup(config),
         devices_{options_->getDevices()},
         shardSync_(devices_.size()),
-        movingAvg_{options_->get<float>("exponential-smoothing") > 0},
+        mvAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")},
         optimizerDelay_{options_->get<size_t>("optimizer-delay")} {
     pool_.reset(new ThreadPool(devices_.size(), devices_.size()));
@@ -96,9 +97,16 @@ public:
       if(boost::filesystem::exists(name)) {
         if(scheduler_)
           scheduler_->load(name);
+
         size_t i = 0;
-        for(auto graph : graphs_)
-          builders_[i++]->load(graph, name);
+        if(mvAvg_ && boost::filesystem::exists(name + ".mvavg.npz")) {
+          for(auto graph : graphs_)
+            builders_[i++]->load(graph, name + ".mvavg.npz");
+          loadExponentialSmoothing();
+        } else {
+          for(auto graph : graphs_)
+            builders_[i++]->load(graph, name);
+        }
 
         // @TODO: probably we want to have the list of DeviceIds as an attribute
         std::vector<Ptr<Backend>> backends;
@@ -118,16 +126,32 @@ public:
     }
   }
 
+  void loadExponentialSmoothing() {
+    std::string name = options_->get<std::string>("model");
+    // Exponentially smoothed parameters needs to be loaded from model.npz, so
+    // load the model into a temporary graph
+    Ptr<ExpressionGraph> graphAvg_ = New<ExpressionGraph>();
+    graphAvg_->setDevice(graphs_[0]->getDevice());
+    graphAvg_->load(name, false);
+  }
+
   void save(bool final = false) {
     if(final && scheduler_) {
-      if(movingAvg_ && paramsAvg_.size())
-          for(auto g : graphs_)
-            fetchParams(g->params()->vals(), paramsAvg_, 0 /* safe? */);
+      if(mvAvg_ && paramsAvg_.size()) {
+        for(auto g : graphs_)
+          fetchParams(g->params()->vals(), paramsAvg_, 0 /* safe? */);
+        saveExponentialSmoothing();
+      }
 
       scheduler_->validate(graphs_, true);
     }
 
     save(graphs_[0], final);
+  }
+
+  void saveExponentialSmoothing() {
+    std::string name = options_->get<std::string>("model");
+    builders_[0]->save(graphs_[0], name + ".mvavg.npz");
   }
 
   void save(Ptr<ExpressionGraph> graph, bool final = false) {
