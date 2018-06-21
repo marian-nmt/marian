@@ -7,7 +7,7 @@ Expr debug(Expr a, const std::string& message = "");
 
 Expr plus(const std::vector<Expr>&);
 
-Expr logit(Expr a); // aka sigmoid
+Expr logit(Expr a); // aka sigmoid  --BUGBUG: should be logistic(), not logit()
 Expr logit(const std::vector<Expr>&);
 
 Expr swish(Expr a);

@@ -857,4 +857,15 @@ public:
     output_ = nullptr;
   }
 };
+
+// factory functions
+Ptr<EncoderBase> NewEncoderTransformer(Ptr<Options> options)
+{
+    return New<EncoderTransformer>(options);
+}
+
+Ptr<DecoderBase> NewDecoderTransformer(Ptr<Options> options)
+{
+    return New<DecoderTransformer>(options);
+}
 }
