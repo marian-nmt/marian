@@ -9,11 +9,12 @@
 #include <boost/thread/shared_mutex.hpp>
 
 #include "3rd_party/threadpool.h"
+#include "training/exponential_smoothing.h"
 #include "training/graph_group.h"
 
 namespace marian {
 
-class AsyncGraphGroup : public GraphGroup {
+class AsyncGraphGroup : public GraphGroup, public ExponentialSmoothing {
 public:
   virtual void setScheduler(Ptr<Scheduler> scheduler);
 
@@ -42,14 +43,10 @@ protected:
   std::vector<Tensor> paramsAvg_;
   std::vector<Ptr<TensorAllocator>> paramsAllocAvg_;
   Ptr<ExpressionGraph> graphAvg_;
-  bool mvAvg_{false};
-  float mvDecay_{1e-4};
 
   std::unique_ptr<ThreadPool> pool_;
 
   size_t optimizerDelay_{1};
-
-  virtual void init(Ptr<data::Batch> batch);
 
   virtual void fetchParams(Tensor oldParams,
                            const std::vector<Tensor>& params,
@@ -59,17 +56,15 @@ protected:
                              size_t batch_words,
                              int device_id);
 
-  void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches);
-
+  virtual void init(Ptr<data::Batch> batch);
   void execute(Ptr<data::Batch> batch);
 
 public:
   AsyncGraphGroup(Ptr<Config> config)
       : GraphGroup(config),
+        ExponentialSmoothing{options_->get<float>("exponential-smoothing")},
         devices_{options_->getDevices()},
         shardSync_(devices_.size()),
-        mvAvg_{options_->get<float>("exponential-smoothing") > 0},
-        mvDecay_{options_->get<float>("exponential-smoothing")},
         optimizerDelay_{options_->get<size_t>("optimizer-delay")} {
     pool_.reset(new ThreadPool(devices_.size(), devices_.size()));
 

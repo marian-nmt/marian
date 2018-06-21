@@ -3,6 +3,7 @@
 #include <boost/filesystem.hpp>
 #include <future>
 
+#include "training/exponential_smoothing.h"
 #include "training/graph_group.h"
 
 namespace marian {
@@ -10,27 +11,21 @@ namespace marian {
 /**
  * Single GPU training
  */
-class SingletonGraph : public GraphGroup {
+class SingletonGraph : public GraphGroup, public ExponentialSmoothing {
 public:
   virtual void setScheduler(Ptr<Scheduler> scheduler);
 
 private:
   Ptr<models::ModelBase> builder_;
   Ptr<ExpressionGraph> graph_;
-
   Ptr<ExpressionGraph> graphAvg_;
-  bool mvAvg_{false};
-  float mvDecay_{1e-4};
-
-  void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches);
 
   void execute(Ptr<data::Batch> batch);
 
 public:
   SingletonGraph(Ptr<Config> config)
       : GraphGroup(config),
-        mvAvg_{options_->get<float>("exponential-smoothing") > 0},
-        mvDecay_{options_->get<float>("exponential-smoothing")} {
+        ExponentialSmoothing(options_->get<float>("exponential-smoothing")) {
     auto deviceId = options_->getDevices()[0];
     graph_ = New<ExpressionGraph>();
     graph_->setDevice(deviceId);

@@ -71,15 +71,6 @@ void AsyncGraphGroup::pushGradients(Tensor newGrads,
     t.join();
 }
 
-void AsyncGraphGroup::updateMovingAverage(Tensor paramsAvg,
-                                          Tensor params,
-                                          size_t batches) {
-  using namespace functional;
-  float decay
-      = std::max(mvDecay_, 1.f - (float)(batches + 1) / (float)(batches + 10));
-  Element(_1 = ((1.f - decay) * _1) + (decay * _2), paramsAvg, params);
-}
-
 void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
   // initialize the parameters
   {
