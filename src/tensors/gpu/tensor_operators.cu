@@ -17,7 +17,7 @@ struct isnan_test {
   __host__ __device__ bool operator()(const float a) const { return isnan(a); }
 };
 
-__device__ inline float stableLogit(float x) {
+__device__ inline float stableSigmoid(float x) {
   if(x >= 0) {
     float z = expf(-x);
     return 1.0 / (1.0 + z);
@@ -847,11 +847,11 @@ __global__ void gGRUFastForward(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols) {
-          float r = stableLogit(xWrow[i] + sUrow[i] + b[i]);
+          float r = stableSigmoid(xWrow[i] + sUrow[i] + b[i]);
 
           int k = i + cols;
 
-          float z = stableLogit(xWrow[k] + sUrow[k] + b[k]);
+          float z = stableSigmoid(xWrow[k] + sUrow[k] + b[k]);
 
           int l = i + 2 * cols;
           float h;
@@ -922,8 +922,8 @@ __global__ void gGRUFastBackward(float* outState,
           int k = i + cols;
           int l = i + 2 * cols;
 
-          float r = stableLogit(rowXW[i] + rowSU[i] + b[i]);
-          float z = stableLogit(rowXW[k] + rowSU[k] + b[k]);
+          float r = stableSigmoid(rowXW[i] + rowSU[i] + b[i]);
+          float z = stableSigmoid(rowXW[k] + rowSU[k] + b[k]);
 
           float h;
           if(final)
@@ -1653,10 +1653,10 @@ __global__ void gLSTMCellForward(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols) {
-          float gf = stableLogit(xWrow[i] + sUrow[i] + b[i]);
+          float gf = stableSigmoid(xWrow[i] + sUrow[i] + b[i]);
 
           int k = i + cols;
-          float gi = stableLogit(xWrow[k] + sUrow[k] + b[k]);
+          float gi = stableSigmoid(xWrow[k] + sUrow[k] + b[k]);
 
           int l = i + 2 * cols;
           float gc = tanhf(xWrow[l] + sUrow[l] + b[l]);
@@ -1709,7 +1709,7 @@ __global__ void gLSTMOutputForward(float* out,
         int i = tid + threadIdx.x;
         if(i < cols) {
           int k = i + 3 * cols;
-          float go = stableLogit(xWrow[k] + sUrow[k] + b[k]);
+          float go = stableSigmoid(xWrow[k] + sUrow[k] + b[k]);
 
           rowOut[i] = go * tanhf(rowCell[i]);
         }
@@ -1766,10 +1766,10 @@ __global__ void gLSTMCellBackward(float* outCell,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols) {
-          float gf = stableLogit(xWrow[i] + sUrow[i] + b[i]);
+          float gf = stableSigmoid(xWrow[i] + sUrow[i] + b[i]);
 
           int k = i + cols;
-          float gi = stableLogit(xWrow[k] + sUrow[k] + b[k]);
+          float gi = stableSigmoid(xWrow[k] + sUrow[k] + b[k]);
 
           int l = i + 2 * cols;
           float gc = tanhf(xWrow[l] + sUrow[l] + b[l]);
@@ -1866,7 +1866,7 @@ __global__ void gLSTMOutputBackward(float* outCell,
         int i = tid + threadIdx.x;
         if(i < cols) {
           int k = i + 3 * cols;
-          float go = stableLogit(xWrow[k] + sUrow[k] + b[k]);
+          float go = stableSigmoid(xWrow[k] + sUrow[k] + b[k]);
 
           float t = tanhf(rowCell[i]);
 
@@ -1923,7 +1923,7 @@ __global__ void gHighwayForward(float* out,
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      float sigma = stableLogit(t[index]);
+      float sigma = stableSigmoid(t[index]);
       out[index] = in1[index] * sigma + in2[index] * (1.f - sigma);
     }
   }
@@ -1955,7 +1955,7 @@ __global__ void gHighwayBackward(float* out1,
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      float sigma = stableLogit(t[index]);
+      float sigma = stableSigmoid(t[index]);
       out1[index] = sigma * adj[index];
       out2[index] = (1.f - sigma) * adj[index];
       outt[index]

@@ -186,10 +186,10 @@
 //}
 //
 //template <typename X>
-//struct Logit {
+//struct Sigmoid {
 //  X x;
 //
-//  __HD__ Logit(X _x) : x(_x) {}
+//  __HD__ Sigmoid(X _x) : x(_x) {}
 //
 //  template <typename ...Args>
 //  __HDI__ float operator()(Args&&... args) {
@@ -198,8 +198,8 @@
 //};
 //
 //template <class X>
-//__HDI__ Logit<X> logit(X x) {
-//  return Logit<X>(x);
+//__HDI__ Sigmoid<X> logit(X x) {
+//  return Sigmoid<X>(x);
 //}
 //
 ///******************************************************************************/
@@ -392,7 +392,7 @@ __HDI__ auto simple(Mult<X, Y> f)->decltype(cut(simple(f.x) * simple(f.y))) {
 //}
 //
 //template <typename X, int N>
-//__HDI__ auto grad(Logit<X> f, Var<N> g)->decltype(f * (C<1>() - f) * grad(f.x, g)) {
+//__HDI__ auto grad(Sigmoid<X> f, Var<N> g)->decltype(f * (C<1>() - f) * grad(f.x, g)) {
 //  return f * (C<1>() - f) * grad(f.x, g);
 //}
 
