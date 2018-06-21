@@ -19,11 +19,11 @@ private:
   Ptr<models::ModelBase> builder_;
   Ptr<ExpressionGraph> graph_;
 
-  Ptr<ExpressionGraph> mvAvgGraph_;
+  Ptr<ExpressionGraph> graphAvg_;
   bool mvAvg_{false};
   float mvDecay_{1e-4};
 
-  void updateMovingAverage(Tensor mvAvgParams, Tensor params, size_t batches);
+  void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches);
 
   void execute(Ptr<data::Batch> batch);
 
@@ -71,11 +71,10 @@ public:
 
   void loadExponentialSmoothing() {
     // Exponentially smoothed parameters has been already loaded from model.npz
-    // into graph_, so copy the parameters where they should be, i.e. into
-    // mvAvgGraph_
-    mvAvgGraph_ = New<ExpressionGraph>();
-    mvAvgGraph_->setDevice(graph_->getDevice());
-    mvAvgGraph_->copyParams(graph_);
+    // into graph_, so copy them into graphAvg_
+    graphAvg_ = New<ExpressionGraph>();
+    graphAvg_->setDevice(graph_->getDevice());
+    graphAvg_->copyParams(graph_);
 
     // Clear the previous graph as unmodified parameters will be loaded into it
     // @TODO: can be clearing the graph done better?
@@ -93,7 +92,7 @@ public:
     if(mvAvg_) {
       // The model with exponentially smoothed parameters will be saved into
       // model.npz as it's a model which should be used for decoding
-      saveGraph = mvAvgGraph_;
+      saveGraph = graphAvg_;
       saveExponentialSmoothing();
     }
 
@@ -104,7 +103,7 @@ public:
   }
 
   void saveExponentialSmoothing() {
-    // Exponentially smoothed parameters from mvAvgGraph_ will be saved into
+    // Exponentially smoothed parameters from graphAvg_ will be saved into
     // model.npz, so save the original parameters from graph_ into
     // model.mvavg.npz
     std::string name = options_->get<std::string>("model");

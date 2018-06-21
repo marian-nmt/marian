@@ -74,6 +74,9 @@ public:
         for(auto graph : graphs_)
           builders_[i++]->load(graph, name);
 
+        if(mvAvg_ && boost::filesystem::exists(name + ".mvavg.npz"))
+          loadExponentialSmoothing();
+
         // @TODO: probably we want to have the list of DeviceIds as an attribute
         std::vector<Ptr<Backend>> backends;
         for(auto graph : graphs_)
@@ -92,6 +95,8 @@ public:
     }
   }
 
+  void loadExponentialSmoothing() {}
+
   void save(bool final = false) {
     if(final && scheduler_) {
       if(mvAvg_ && paramsAvg_.size() > 0)
@@ -107,6 +112,8 @@ public:
 
     save(graphs_[0], final);
   }
+
+  void saveExponentialSmoothing() {}
 
   void save(Ptr<ExpressionGraph> graph, bool final = false) {
     int idx = 0;
