@@ -80,6 +80,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> fullBatch) {
           auto paramsAlloc = New<TensorAllocator>(graph->getBackend());
           paramsAllocs_.push_back(paramsAlloc);
 
+          // we have param, grad and tmp, hence memory x3
           paramsAlloc->reserveExact(3 * __size__ * sizeof(float));
 
           Tensor param, grad, tmp;
@@ -112,11 +113,18 @@ void SyncGraphGroup::execute(Ptr<data::Batch> fullBatch) {
           allocator->reserveExact(__size__ * sizeof(float));
           allocator->allocate(paramAvg, {1, __size__});
 
-          paramAvg->copyFrom(params_[i++]);
+          if(graphAvg_)
+            paramAvg->copyFrom(graphAvg_->params()->vals());
+          else
+            paramAvg->copyFrom(params_[i++]);
 
           paramsAllocAvg_.push_back(allocator);
           paramsAvg_.push_back(paramAvg);
         }
+
+        // we don't need the graph anymore as averaged params have been loaded
+        if(graphAvg_)
+          graphAvg_.reset();
       }
 
       first_ = false;

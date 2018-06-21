@@ -28,6 +28,7 @@ private:
 
   std::vector<Tensor> paramsAvg_;
   std::vector<Ptr<TensorAllocator>> paramsAllocAvg_;
+  Ptr<ExpressionGraph> graphAvg_;
   bool mvAvg_{false};
   float mvDecay_{1e-4};
 
@@ -54,7 +55,8 @@ public:
 
       graphs_.push_back(graph);
       shardOpt_.push_back(Optimizer(options_));
-      builders_.push_back(models::from_config(options_, models::usage::training));
+      builders_.push_back(
+          models::from_config(options_, models::usage::training));
     }
   }
 
@@ -71,11 +73,15 @@ public:
         size_t i = 0;
         if(scheduler_)
           scheduler_->load(name);
-        for(auto graph : graphs_)
-          builders_[i++]->load(graph, name);
 
-        if(mvAvg_ && boost::filesystem::exists(name + ".mvavg.npz"))
+        if(mvAvg_ && boost::filesystem::exists(name + ".mvavg.npz")) {
+          for(auto graph : graphs_)
+            builders_[i++]->load(graph, name + ".mvavg.npz");
           loadExponentialSmoothing();
+        } else {
+          for(auto graph : graphs_)
+            builders_[i++]->load(graph, name);
+        }
 
         // @TODO: probably we want to have the list of DeviceIds as an attribute
         std::vector<Ptr<Backend>> backends;
@@ -95,7 +101,14 @@ public:
     }
   }
 
-  void loadExponentialSmoothing() {}
+  void loadExponentialSmoothing() {
+    std::string name = options_->get<std::string>("model");
+    // Exponentially smoothed parameters needs to be loaded from model.npz, so
+    // load the model into a temporary graph
+    Ptr<ExpressionGraph> graphAvg_ = New<ExpressionGraph>();
+    graphAvg_->setDevice(graphs_[0]->getDevice());
+    graphAvg_->load(name, false);
+  }
 
   void save(bool final = false) {
     if(final && scheduler_) {
@@ -105,15 +118,20 @@ public:
 
       scheduler_->validate(graphs_, true);
 
-      if(mvAvg_ && paramsAvg_.size() > 0)
+      if(mvAvg_ && paramsAvg_.size() > 0) {
         for(auto graph : graphs_)
           fetchParams(graph->params()->vals(), params_);
+        saveExponentialSmoothing();
+      }
     }
 
     save(graphs_[0], final);
   }
 
-  void saveExponentialSmoothing() {}
+  void saveExponentialSmoothing() {
+    std::string name = options_->get<std::string>("model");
+    builders_[0]->save(graphs_[0], name + ".mvavg.npz");
+  }
 
   void save(Ptr<ExpressionGraph> graph, bool final = false) {
     int idx = 0;
@@ -157,11 +175,10 @@ public:
   }
 
   Ptr<data::BatchStats> collectStats() {
-    return GraphGroup::collectStats(graphs_[0], builders_[0], devices_.size() * delay_);
+    return GraphGroup::collectStats(
+        graphs_[0], builders_[0], devices_.size() * delay_);
   }
 
-  virtual void finalize() {
-    finalized_ = true;
-  }
+  virtual void finalize() { finalized_ = true; }
 };
 }
