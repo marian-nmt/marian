@@ -1,0 +1,4 @@
+setx ZLIB_PATH d:\marian-windows\zlib-vs15
+setx BOOST_INCLUDE_PATH d:\marian-windows\boost_1_66_0
+setx BOOST_LIB_PATH d:\marian-windows\boost_1_66_0\lib64-msvc-14.1
+setx MKL_PATH D:\marian-windows\mkl\compilers_and_libraries\windows\mkl
