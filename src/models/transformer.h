@@ -379,7 +379,7 @@ public:
     bool noGate = opt<bool>("transformer-aan-nogate");
     if(!noGate) {
       auto gi = dense(x, prefix, /*suffix=*/"i", dimModel, [](Expr x) { return sigmoid(x); }); // TODO: why can we not pass sigmoid directly?
-      auto gf = dense(x, prefix, /*suffix=*/"f", dimModel, [](Expr x) { return sigmoid(x); });
+      auto gf = dense(y, prefix, /*suffix=*/"f", dimModel, [](Expr x) { return sigmoid(x); });
       y = gi * x + gf * y;
     }
 
