@@ -2,7 +2,9 @@
 
 #include "common/config.h"
 #include "data/batch_generator.h"
+#if SQLITE_FOUND
 #include "data/corpus_sqlite.h"
+#endif
 #include "models/model_task.h"
 #include "training/scheduler.h"
 #include "training/validator.h"
@@ -21,9 +23,11 @@ public:
     using namespace data;
 
     Ptr<CorpusBase> dataset;
+#if SQLITE_FOUND
     if(!options_->get<std::string>("sqlite").empty())
       dataset = New<CorpusSQLite>(options_);
     else
+#endif
       dataset = New<Corpus>(options_);
 
     dataset->prepare();

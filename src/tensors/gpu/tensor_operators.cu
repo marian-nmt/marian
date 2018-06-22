@@ -1558,19 +1558,19 @@ void LayerNormalizationGrad(Tensor gradX,
       eps);
 }
 
-__global__ void gShift(float* out, const float* in, int length, int offset) {
+__global__ void gShift(float* out, const float* in, int length, int offset, float padValue) {
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
       if(index - offset < 0 || index - offset >= length)
-        out[index] = 0;
+        out[index] = padValue;
       else
         out[index] = in[index - offset];
     }
   }
 }
 
-void Shift(Tensor out, Tensor in, marian::Shape shift, bool invert) {
+void Shift(Tensor out, Tensor in, marian::Shape shift, float padValue, bool invert) {
   ABORT_IF(in->shape().size() != shift.size(), "bad dimensions");
 
   // BUGBUG: This can only shift along the first axis. Shifting, e.g., along the last axis cannot be implemented this way.
@@ -1588,7 +1588,7 @@ void Shift(Tensor out, Tensor in, marian::Shape shift, bool invert) {
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-  gShift<<<blocks, threads>>>(out->data(), in->data(), length, offset);
+  gShift<<<blocks, threads>>>(out->data(), in->data(), length, offset, padValue);
 }
 
 __global__ void gSetSparse(float* out,

@@ -125,7 +125,7 @@ public:
   virtual void setShortlist(Ptr<data::Shortlist> shortlist) { shortlist_ = shortlist; }
 
   template <typename T>
-  T opt(const std::string& key) {
+  T opt(const std::string& key) const {
     return options_->get<T>(key);
   }
 

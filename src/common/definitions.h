@@ -57,6 +57,9 @@ struct DeviceId {
   friend bool operator==(DeviceId id1, DeviceId id2) {
     return id1.no == id2.no && id1.type == id2.type;
   }
+  friend bool operator!=(DeviceId id1, DeviceId id2) {
+    return !(id1 == id2);
+  }
 };
 
 class TensorBase;

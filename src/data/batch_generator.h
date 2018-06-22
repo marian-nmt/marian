@@ -10,7 +10,6 @@
 #include "common/config.h"
 #include "data/batch_stats.h"
 #include "data/rng_engine.h"
-#include "data/vocab.h"
 #include "training/training_state.h"
 
 namespace marian {

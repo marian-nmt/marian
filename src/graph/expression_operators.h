@@ -7,7 +7,7 @@ Expr debug(Expr a, const std::string& message = "");
 
 Expr plus(const std::vector<Expr>&);
 
-Expr logit(Expr a);
+Expr logit(Expr a); // aka sigmoid  --BUGBUG: should be logistic(), not logit()
 Expr logit(const std::vector<Expr>&);
 
 Expr swish(Expr a);
@@ -59,6 +59,12 @@ Expr operator/(Expr a, float b);
 // Expr pow(Expr a, Expr b);
 // Expr pow(float a, Expr b);
 // Expr pow(Expr a, float b);
+
+Expr logsum(Expr a, Expr b); // TODO: haggle over the name (logplus, logadd, expAddLog)
+
+Expr max(Expr a, Expr b); // TODO: haggle over the name (max vs. elementMax)
+
+Expr min(Expr a, Expr b); // TODO: haggle over the name
 
 Expr dot(Expr a,
          Expr b,
@@ -141,7 +147,7 @@ static inline Expr dropout(Expr x, float prob) {
   return dropout(x, prob, x->shape());
 }
 
-Expr shift(Expr, Shape);
+Expr shift(Expr, Shape, float padValue = 0);
 
 Expr convert2cudnnFormat(Expr x);
 

@@ -21,7 +21,7 @@ struct QuantizeNodeOp : public UnaryNodeOp {
 
   NodeOps backwardOps() {
     ABORT("Only used for inference");
-    return {NodeOp()};
+    return {NodeOp(0)};
   }
 
   const std::string type() { return "quantizeInt16"; }
@@ -62,7 +62,7 @@ public:
 
   NodeOps backwardOps() {
     ABORT("Only used for inference");
-    return {NodeOp()};
+    return {NodeOp(0)};
   }
 
   const std::string type() { return "dotInt16"; }
@@ -106,7 +106,7 @@ public:
 
   NodeOps backwardOps() {
     ABORT("Only used for inference");
-    return {NodeOp()};
+    return {NodeOp(0)};
   }
 
   const std::string type() { return "affineInt16"; }

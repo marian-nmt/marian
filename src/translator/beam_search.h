@@ -134,7 +134,7 @@ public:
     bool final = false;
 
     for(int i = 0; i < dimBatch; ++i)
-      histories[i]->Add(beams[i]);
+      histories[i]->Add(beams[i], trgEosId_);
 
     std::vector<Ptr<ScorerState>> states;
 
@@ -183,6 +183,7 @@ public:
       //**********************************************************************
       // prepare costs for beam search
       auto totalCosts = prevCosts;
+      // BUGBUG: it's not cost but score (higher=better)
 
       for(int i = 0; i < scorers_.size(); ++i) {
         states[i] = scorers_[i]->step(
@@ -193,6 +194,7 @@ public:
               = totalCosts + scorers_[i]->getWeight() * states[i]->getProbs();
         else
           totalCosts = totalCosts + states[i]->getProbs();
+          // BUGBUG: getProbs() -> getLogProbs(); totalCosts -> totalScores (higher=better)
       }
 
       // make beams continuous
@@ -228,7 +230,7 @@ public:
         if(!beams[i].empty()) {
           final = final
                   || histories[i]->size() >= options_->get<float>("max-length-factor") * batch->front()->batchWidth();
-          histories[i]->Add(beams[i], prunedBeams[i].empty() || final);
+          histories[i]->Add(beams[i], trgEosId_, prunedBeams[i].empty() || final);
         }
       }
       beams = prunedBeams;

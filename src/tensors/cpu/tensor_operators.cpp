@@ -878,7 +878,7 @@ void LayerNormalizationGrad(Tensor gradX_,
   }
 }
 
-void Shift(Tensor out_, Tensor in_, marian::Shape shift, bool invert) {
+void Shift(Tensor out_, Tensor in_, marian::Shape shift, float padValue, bool invert) {
   int offset = 0;
   for(int i = 0; i < shift.size(); ++i)
     offset += in_->shape().stride(i) * shift[i];
@@ -892,8 +892,9 @@ void Shift(Tensor out_, Tensor in_, marian::Shape shift, bool invert) {
   int length = out_->shape().elements();
 #pragma omp parallel for
   for(int i = 0; i < length; ++i) {
+    // BUGBUG: This logic is only correct for the outermost axis.
     if(i - offset < 0 || i - offset >= length) {
-      out[i] = 0.f;
+      out[i] = padValue;
     } else {
       out[i] = in[i - offset];
     }

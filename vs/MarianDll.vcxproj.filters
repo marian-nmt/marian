@@ -205,9 +205,6 @@
     <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilderadapter.cpp">
       <Filter>3rd_party\yaml-cpp\contrib</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\command\marian_decoder.cpp">
-      <Filter>command</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\3rd_party\yaml-cpp\yaml-node.cpp">
       <Filter>3rd_party\yaml-cpp</Filter>
     </ClCompile>
@@ -216,6 +213,18 @@
     </ClCompile>
     <ClCompile Include="..\src\tensors\cpu\sharp\sse_gemm.cpp">
       <Filter>tensors\cpu\sharp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\transformer.h">
+      <Filter>models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\command\marian-main.cpp">
+      <Filter>command</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\command\marian_decoder.cpp">
+      <Filter>command</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\command\marian.cpp">
+      <Filter>command</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -805,9 +814,6 @@
     <ClInclude Include="..\src\models\states.h">
       <Filter>models</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\models\transformer.h">
-      <Filter>models</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\models\experimental\lex_probs.h">
       <Filter>models\experimental</Filter>
     </ClInclude>
@@ -966,6 +972,15 @@
     </ClInclude>
     <ClInclude Include="..\src\tensors\cpu\sharp\int_gemm.h">
       <Filter>tensors\cpu\sharp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\models\transformer_factory.h">
+      <Filter>models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\command\marian_scorer.cpp">
+      <Filter>command</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\command\marian_vocab.cpp">
+      <Filter>command</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -112,17 +112,17 @@ inline bool operator!=(const std::tm& tm1, const std::tm& tm2)
     return !(tm1 == tm2);
 }
 
-#ifdef _WIN32
-inline const char* eol()
-{
-    return "\r\n";
-}
-#else
+//#ifdef _WIN32
+//inline const char* eol()
+//{
+//    return "\r\n";
+//}
+//#else
 constexpr inline const char* eol()
 {
     return "\n";
 }
-#endif
+//#endif
 
 #ifdef _WIN32
 inline unsigned short eol_size()
