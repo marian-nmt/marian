@@ -1,4 +1,4 @@
-#include "quicksand.h"
+#include "quicksand.h"7
 #include "marian.h"
 
 #include "translator/scorers.h"
@@ -9,14 +9,15 @@ namespace marian {
 namespace quicksand {
 
 template <class T>
-void set(Ptr<Options> options, const std::string& key, T value) {
+void set(Ptr<Options> options, const std::string& key, const T& value) {
     options->set(key, value);
 }
 
-template void set(Ptr<Options> options, const std::string& key, size_t);
-template void set(Ptr<Options> options, const std::string& key, int);
-template void set(Ptr<Options> options, const std::string& key, std::string);
-template void set(Ptr<Options> options, const std::string& key, bool);
+template void set(Ptr<Options> options, const std::string& key, const size_t&);
+template void set(Ptr<Options> options, const std::string& key, const int&);
+template void set(Ptr<Options> options, const std::string& key, const std::string&);
+template void set(Ptr<Options> options, const std::string& key, const bool&);
+template void set(Ptr<Options> options, const std::string& key, const std::vector<std::string>&);
 
 Ptr<Options> newOptions() {
   return New<Options>();
@@ -46,20 +47,22 @@ public:
         graph_->reserveWorkspaceMB(500);
 
         options_->set("inference", true);
-        options_->set("ignore-model-config", false);
         options_->set("word-penalty", 0);
         options_->set("normalize", 0);
         options_->set("n-best", false);
-        std::string model = options_->get<std::string>("model");
 
-        YAML::Node config;
-        Config::GetYamlFromNpz(config, "special:model.yml", model);
-        options_->merge(config);
+        std::vector<std::string> models = options_->get<std::vector<std::string>>("model");
 
-        std::string type = options_->get<std::string>("type");
+        for(auto& model : models) {
+            Ptr<Options> modelOpts = New<Options>();
+            YAML::Node config;
+            Config::GetYamlFromNpz(config, "special:model.yml", model);
+            modelOpts->merge(options_);
+            modelOpts->merge(config);
+            auto encdec = models::from_options(modelOpts, models::usage::translation);
+            scorers_.push_back(New<ScorerWrapper>(encdec, "F" + std::to_string(scorers_.size()), 1, model));
+        }
 
-        auto encdec = models::from_options(options, models::usage::translation);
-        scorers_.push_back(New<ScorerWrapper>(encdec, "F0", 1, model));
         for(auto scorer : scorers_) {
           scorer->init(graph_);
         }
@@ -67,6 +70,14 @@ public:
 
     NBest decode(const Sentence& sentence) {
         auto words = (*sourceVocab_)(sentence);
+
+        std::ofstream out("sentence.zh");
+        for(auto w : sentence)
+          out << w << " ";
+        std::cout << std::endl;
+        exit(0);
+
+
         auto subBatch = New<data::SubBatch>(1, words.size());
         std::copy(words.begin(), words.end(), subBatch->data().begin());
         std::vector<Ptr<data::SubBatch>> subBatches;

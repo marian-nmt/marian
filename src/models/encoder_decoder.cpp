@@ -97,7 +97,7 @@ void EncoderDecoder::saveModelParameters(const std::string& name) {
 void EncoderDecoder::load(Ptr<ExpressionGraph> graph,
                   const std::string& name,
                   bool markedReloaded) {
-  graph->load(name, markedReloaded && !opt<bool>("ignore-model-config"));
+  graph->load(name, markedReloaded && !opt<bool>("ignore-model-config", false));
 }
 
 void EncoderDecoder::save(Ptr<ExpressionGraph> graph,

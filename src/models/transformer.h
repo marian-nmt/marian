@@ -753,7 +753,7 @@ public:
       if(prevDecoderStates.size() > 0)
         prevDecoderState = prevDecoderStates[i - 1];
 
-      std::string layerType = opt<std::string>("transformer-decoder-autoreg");
+      std::string layerType = opt<std::string>("transformer-decoder-autoreg", "self-attention");
       if(layerType == "self-attention") {
         query = DecoderLayerSelfAttention(decoderState,
                                           prevDecoderState,

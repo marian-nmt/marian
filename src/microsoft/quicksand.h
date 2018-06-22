@@ -19,7 +19,7 @@ typedef std::vector<SentenceWithProb> NBest;
 Ptr<Options> newOptions();
 
 template <class T>
-void set(Ptr<Options> options, const std::string& key, T value);
+void set(Ptr<Options> options, const std::string& key, const T& value);
 
 class BeamSearchDecoderBase {
   protected:
@@ -36,5 +36,3 @@ Ptr<BeamSearchDecoderBase> newDecoder(Ptr<Options> options);
 
 }
 }
-
-

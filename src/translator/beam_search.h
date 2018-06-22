@@ -45,6 +45,8 @@ public:
       // keys is contains indices to vocab items in the entire beam.
       // values can be between 0 and beamSize * vocabSize.
       int embIdx = keys[i] % vocabSize;
+      std::cerr << embIdx << std::endl;
+
       int beamIdx = i / beamSize;
 
       // retrieve short list for final softmax (based on words aligned
