@@ -365,49 +365,21 @@ public:
     y = preProcess(prefix + "_ffn", opsPre, y, dropProb);
 
     // FFN
-    int dimAan = opt<int>("transformer-dim-aan");
+    int dimAan   = opt<int>("transformer-dim-aan");
     int depthAan = opt<int>("transformer-aan-depth");
-    auto act = opt<std::string>("transformer-aan-activation");
+    auto actFn = activationByName(opt<std::string>("transformer-aan-activation"));
     float aanDropProb = inference_ ? 0 : opt<float>("transformer-dropout-ffn");
 
-    int i = 1;
-    int dimLast = dimModel;
-    for(; i < depthAan; ++i) {
-      int dimFirst = i == 1 ? dimModel : dimAan;
-      auto W = graph_->param(
-            prefix + "_W" + std::to_string(i), {dimFirst, dimAan}, inits::glorot_uniform);
-      auto b = graph_->param(prefix + "_b" + std::to_string(i), {1, dimAan}, inits::zeros);
-
-      y = affine(y, W, b);
-
-      if(act == "relu")
-        y = relu(y);
-      else
-        y = swish(y);
-
-      if(aanDropProb)
-        y = dropout(y, aanDropProb);
-
-      dimLast = dimAan;
-    }
-
-    if(dimLast != dimModel) {
-      auto W = graph_->param(
-        prefix + "_W" + std::to_string(i), {dimLast, dimModel}, inits::glorot_uniform);
-      auto b = graph_->param(prefix + "_b" + std::to_string(i), {1, dimModel}, inits::zeros);
-      y = affine(y, W, b);
-    }
+    // the stack of AAN layers
+    for(int i = 1; i < depthAan; ++i)
+      y = dense(y, prefix, /*suffix=*/std::to_string(i), dimAan, actFn, aanDropProb);
+    if(y->shape()[-1] != dimModel) // bring it back to the desired dimension if needed
+      y = dense(y, prefix, std::to_string(depthAan), dimModel);
 
     bool noGate = opt<bool>("transformer-aan-nogate");
     if(!noGate) {
-      auto Wi = graph_->param(prefix + "_Wi", {dimModel, dimModel}, inits::glorot_uniform);
-      auto bi = graph_->param(prefix + "_bi", {1, dimModel}, inits::zeros);
-
-      auto Wf = graph_->param(prefix + "_Wf", {dimModel, dimModel}, inits::glorot_uniform);
-      auto bf = graph_->param(prefix + "_bf", {1, dimModel}, inits::zeros);
-
-      auto gi = sigmoid(affine(x, Wi, bi));
-      auto gf = sigmoid(affine(y, Wf, bf));
+      auto gi = dense(x, prefix, /*suffix=*/"i", dimModel, [](Expr x) { return sigmoid(x); }); // TODO: why can we not pass sigmoid directly?
+      auto gf = dense(x, prefix, /*suffix=*/"f", dimModel, [](Expr x) { return sigmoid(x); });
       y = gi * x + gf * y;
     }
 
