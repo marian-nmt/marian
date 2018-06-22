@@ -5,6 +5,8 @@ namespace marian {
 
 Expr debug(Expr a, const std::string& message = "");
 
+typedef Expr(ActivationFunction) (Expr);
+
 Expr plus(const std::vector<Expr>&);
 
 Expr sigmoid(Expr a); // aka sigmoid  --BUGBUG: should be logistic(), not sigmoid()

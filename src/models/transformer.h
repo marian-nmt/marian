@@ -12,9 +12,6 @@
 #include "layers/constructors.h"
 #include "layers/factory.h"
 
-#define let const auto
-#define lambda [&]
-
 namespace marian {
 
 // shared base class for transformer-based encoder and decoder
@@ -127,7 +124,7 @@ public:
     auto output = input;
     for(auto op : ops) {
       // dropout
-      if (op == 'd' && dropProb > 0.0f)
+      if (op == 'd')
         output = dropout(output, dropProb);
       // layer normalization
       else if (op == 'n')
@@ -142,7 +139,7 @@ public:
     auto output = input;
     for(auto op : ops) {
       // dropout
-      if(op == 'd' && dropProb > 0.0f)
+      if(op == 'd')
         output = dropout(output, dropProb);
       // skip connection
       else if(op == 'a')
@@ -321,9 +318,9 @@ public:
   std::function<Expr(Expr)> activationByName(const std::string& actName)
   {
     if (actName == "relu")
-      return lambda(Expr x) { return relu(x); };   // BUGBUG: why would just marian::relu not compile here?
+      return (ActivationFunction*)relu;
     else if (actName == "swish")
-      return lambda(Expr x) { return swish(x); };
+      return (ActivationFunction*)swish;
     ABORT("Invalid activation name '{}'", actName);
   }
 
@@ -378,8 +375,8 @@ public:
 
     bool noGate = opt<bool>("transformer-aan-nogate");
     if(!noGate) {
-      auto gi = dense(x, prefix, /*suffix=*/"i", dimModel, [](Expr x) { return sigmoid(x); }); // TODO: why can we not pass sigmoid directly?
-      auto gf = dense(y, prefix, /*suffix=*/"f", dimModel, [](Expr x) { return sigmoid(x); });
+      auto gi = dense(x, prefix, /*suffix=*/"i", dimModel, (ActivationFunction*)sigmoid);
+      auto gf = dense(y, prefix, /*suffix=*/"f", dimModel, (ActivationFunction*)sigmoid);
       y = gi * x + gf * y;
     }
 
