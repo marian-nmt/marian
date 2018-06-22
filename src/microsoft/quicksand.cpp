@@ -71,14 +71,7 @@ public:
     NBest decode(const Sentence& sentence) {
         auto words = (*sourceVocab_)(sentence);
 
-        std::ofstream out("sentence.zh");
-        for(auto w : sentence)
-          out << w << " ";
-        std::cout << std::endl;
-        exit(0);
-
-
-        auto subBatch = New<data::SubBatch>(1, words.size());
+        auto subBatch = New<data::SubBatch>(1, words.size(), sourceVocab_);
         std::copy(words.begin(), words.end(), subBatch->data().begin());
         std::vector<Ptr<data::SubBatch>> subBatches;
         subBatches.push_back(subBatch);
