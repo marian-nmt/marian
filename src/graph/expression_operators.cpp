@@ -15,8 +15,8 @@ Expr debug(Expr a, const std::string& message) {
   return a;
 }
 
-Expr logit(Expr a) {
-  return Expression<LogitNodeOp>(a);
+Expr sigmoid(Expr a) { // logistic function. Note: scipy name is expit()
+  return Expression<SigmoidNodeOp>(a);
 }
 
 Expr relu(Expr a) {
@@ -80,17 +80,16 @@ Expr operator/(Expr a, Expr b) {
   return Expression<DivNodeOp>(a, b);
 }
 
-// on names: stay close to Python/numpy?
-Expr logsum(Expr a, Expr b) { // TODO: haggle over the name (logplus, logadd, expAddLog)
-  return Expression<LogSumNodeOp>(a, b);
+Expr logaddexp(Expr a, Expr b) {
+  return Expression<LogAddExpNodeOp>(a, b);
 }
 
-Expr max(Expr a, Expr b) { // TODO: haggle over the name (max vs. elementMax)
-  return Expression<MaxNodeOp>(a, b);
+Expr maximum(Expr a, Expr b) {
+  return Expression<MaximumNodeOp>(a, b);
 }
 
-Expr min(Expr a, Expr b) { // TODO: haggle over the name
-  return Expression<MinNodeOp>(a, b);
+Expr minimum(Expr a, Expr b) {
+  return Expression<MinimumNodeOp>(a, b);
 }
 
 /*********************************************************/
@@ -387,7 +386,7 @@ Expr tanh(const std::vector<Expr>& nodes) {
   return Expression<TanhNodeOp>(nodes);
 }
 
-Expr logit(const std::vector<Expr>&) {
+Expr sigmoid(const std::vector<Expr>&) {
   ABORT("Not implemented");
 }
 
@@ -411,10 +410,10 @@ Expr square(Expr a) {
   return Expression<SquareNodeOp>(a);
 }
 
-Expr layer_norm(Expr x,
-                Expr gamma,
-                Expr beta /*= nullptr*/,
-                float eps /*= 1e-9*/) {
+Expr layerNorm(Expr x,
+               Expr gamma,
+               Expr beta /*= nullptr*/,
+               float eps /*= 1e-9*/) {
   std::vector<Expr> nodes = {x, gamma};
   if(beta)
     nodes.push_back(beta);
@@ -432,7 +431,7 @@ Expr highway(const std::string prefix, Expr x) {
   auto g = mlp::dense(x->graph())
       ("prefix", prefix + "_highway_d1")
       ("dim", outDim)
-      ("activation", mlp::act::logit)
+      ("activation", mlp::act::sigmoid)
       .construct()->apply(x);
   auto relued = mlp::dense(x->graph())
       ("prefix", prefix + "_highway_d2")

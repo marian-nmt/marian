@@ -13,7 +13,7 @@ namespace marian {
 
 namespace cpu {
 
-inline float stableLogit(float x) {
+inline float stableSigmoid(float x) {
   if(x >= 0) {
     float z = expf(-x);
     return 1.0 / (1.0 + z);
@@ -458,12 +458,12 @@ void GRUFastForward(Tensor out_, std::vector<Tensor> inputs, bool final) {
 
 #pragma omp simd
     for(int i = 0; i < cols; ++i) {
-      // @TODO: stable logit
-      float r = stableLogit(xWrow[i] + sUrow[i] + b[i]);
+      // @TODO: stable sigmoid
+      float r = stableSigmoid(xWrow[i] + sUrow[i] + b[i]);
 
       int k = i + cols;
 
-      float z = stableLogit(xWrow[k] + sUrow[k] + b[k]);
+      float z = stableSigmoid(xWrow[k] + sUrow[k] + b[k]);
 
       int l = i + 2 * cols;
       float h;
@@ -515,8 +515,8 @@ void GRUFastBackward(std::vector<Tensor> outputs,
       int k = i + cols;
       int l = i + 2 * cols;
 
-      float r = stableLogit(rowXW[i] + rowSU[i] + b[i]);
-      float z = stableLogit(rowXW[k] + rowSU[k] + b[k]);
+      float r = stableSigmoid(rowXW[i] + rowSU[i] + b[i]);
+      float z = stableSigmoid(rowXW[k] + rowSU[k] + b[k]);
 
       float h;
       if(final)
@@ -931,10 +931,10 @@ void LSTMCellForward(Tensor out_, std::vector<Tensor> inputs) {
     const float* sUrow = sU + j * cols * 4;
 
     for(int i = 0; i < cols; ++i) {
-      float gf = stableLogit(xWrow[i] + sUrow[i] + b[i]);
+      float gf = stableSigmoid(xWrow[i] + sUrow[i] + b[i]);
 
       int k = i + cols;
-      float gi = stableLogit(xWrow[k] + sUrow[k] + b[k]);
+      float gi = stableSigmoid(xWrow[k] + sUrow[k] + b[k]);
 
       int l = i + 2 * cols;
       float gc = std::tanh(xWrow[l] + sUrow[l] + b[l]);
@@ -964,7 +964,7 @@ void LSTMOutputForward(Tensor out_, std::vector<Tensor> inputs) {
 
     for(int i = 0; i < cols; ++i) {
       int k = i + 3 * cols;
-      float go = stableLogit(xWrow[k] + sUrow[k] + b[k]);
+      float go = stableSigmoid(xWrow[k] + sUrow[k] + b[k]);
 
       rowOut[i] = go * std::tanh(rowCell[i]);
     }
@@ -1004,10 +1004,10 @@ void LSTMCellBackward(std::vector<Tensor> outputs,
     const float* rowAdj = adj + j * cols;
 
     for(int i = 0; i < cols; ++i) {
-      float gf = stableLogit(xWrow[i] + sUrow[i] + b[i]);
+      float gf = stableSigmoid(xWrow[i] + sUrow[i] + b[i]);
 
       int k = i + cols;
-      float gi = stableLogit(xWrow[k] + sUrow[k] + b[k]);
+      float gi = stableSigmoid(xWrow[k] + sUrow[k] + b[k]);
 
       int l = i + 2 * cols;
       float gc = std::tanh(xWrow[l] + sUrow[l] + b[l]);
@@ -1089,7 +1089,7 @@ void LSTMOutputBackward(std::vector<Tensor> outputs,
 
     for(int i = 0; i < cols; ++i) {
       int k = i + 3 * cols;
-      float go = stableLogit(xWrow[k] + sUrow[k] + b[k]);
+      float go = stableSigmoid(xWrow[k] + sUrow[k] + b[k]);
 
       float t = std::tanh(rowCell[i]);
 

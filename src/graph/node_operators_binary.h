@@ -528,29 +528,29 @@ struct DivNodeOp : public ElementBinaryNodeOp {
 //  const std::string type() { return "pow"; }
 //};
 
-struct LogSumNodeOp : public ElementBinaryNodeOp {
-  LogSumNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
+struct LogAddExpNodeOp : public ElementBinaryNodeOp {
+  LogAddExpNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
 
   NodeOps forwardOps() {
     using namespace functional;
     return{
-      NodeOp(Element(_1 = logsum(_2, _3), val_, child(0)->val(), child(1)->val())) };
+      NodeOp(Element(_1 = logaddexp(_2, _3), val_, child(0)->val(), child(1)->val())) };
   }
 
   NodeOps backwardOps() {
     using namespace functional;
 
     // d/dx (ln( exp(x) + (exp(y)) = exp(x) / (exp(x) + exp(y)) = 1 / (1 + exp(y-x)) = sigmoid(x-y)
-    return{ NodeOp(Add(_1 * logit(_2 - _3), child(0)->grad(), adj_, child(0)->val(), child(1)->val())),
-            NodeOp(Add(_1 * logit(_3 - _2), child(1)->grad(), adj_, child(0)->val(), child(1)->val())) };
+    return{ NodeOp(Add(_1 * sigmoid(_2 - _3), child(0)->grad(), adj_, child(0)->val(), child(1)->val())),
+            NodeOp(Add(_1 * sigmoid(_3 - _2), child(1)->grad(), adj_, child(0)->val(), child(1)->val())) };
   }
 
   // TODO: this is not a "type" (as in data type). It's an operator name.
-  const std::string type() { return "logsum"; }
+  const std::string type() { return "logaddexp"; }
 };
 
-struct MaxNodeOp : public ElementBinaryNodeOp {
-  MaxNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
+struct MaximumNodeOp : public ElementBinaryNodeOp {
+  MaximumNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
 
   NodeOps forwardOps() {
     using namespace functional;
@@ -569,8 +569,8 @@ struct MaxNodeOp : public ElementBinaryNodeOp {
 };
 
 // TODO: lotsa code dup here!
-struct MinNodeOp : public ElementBinaryNodeOp {
-  MinNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
+struct MinimumNodeOp : public ElementBinaryNodeOp {
+  MinimumNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
 
   NodeOps forwardOps() {
     using namespace functional;

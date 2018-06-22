@@ -7,8 +7,8 @@ Expr debug(Expr a, const std::string& message = "");
 
 Expr plus(const std::vector<Expr>&);
 
-Expr logit(Expr a); // aka sigmoid  --BUGBUG: should be logistic(), not logit()
-Expr logit(const std::vector<Expr>&);
+Expr sigmoid(Expr a); // aka sigmoid  --BUGBUG: should be logistic(), not sigmoid()
+Expr sigmoid(const std::vector<Expr>&);
 
 Expr swish(Expr a);
 Expr swish(const std::vector<Expr>&);
@@ -60,7 +60,7 @@ Expr operator/(Expr a, float b);
 // Expr pow(float a, Expr b);
 // Expr pow(Expr a, float b);
 
-Expr logsum(Expr a, Expr b); // TODO: haggle over the name (logplus, logadd, expAddLog)
+Expr logaddexp(Expr a, Expr b);
 
 Expr max(Expr a, Expr b); // TODO: haggle over the name (max vs. elementMax)
 
@@ -128,7 +128,7 @@ Expr step(Expr a, int step, int axis);
 Expr sqrt(Expr a, float eps = 0.f);
 Expr square(Expr a);
 
-Expr layer_norm(Expr x, Expr gamma, Expr beta = nullptr, float eps = 1e-9);
+Expr layerNorm(Expr x, Expr gamma, Expr beta = nullptr, float eps = 1e-9);
 
 Expr highway(Expr y, Expr x, Expr t);
 Expr highway(const std::string prefix, Expr x);
@@ -137,14 +137,18 @@ static inline Expr dropout(Expr x, Expr mask) {
   return x * mask;
 }
 
-static inline Expr dropout(Expr x, float prob, Shape shape) {
+static inline Expr dropout(Expr x, float dropProb, Shape shape) {
+  if (dropProb == 0)
+    return x;
   auto graph = x->graph();
-  auto mask = graph->dropout(prob, shape);
+  auto mask = graph->dropout(dropProb, shape);
   return dropout(x, mask);
 }
 
-static inline Expr dropout(Expr x, float prob) {
-  return dropout(x, prob, x->shape());
+static inline Expr dropout(Expr x, float dropProb) {
+  if (dropProb == 0)
+    return x;
+  return dropout(x, dropProb, x->shape());
 }
 
 Expr shift(Expr, Shape, float padValue = 0);

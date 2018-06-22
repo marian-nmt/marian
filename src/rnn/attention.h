@@ -80,7 +80,7 @@ public:
         W_comb_att_lnb_ = graph->param(
             prefix + "_W_comb_att_lnb", {1, dimEncState}, inits::zeros);
 
-        mappedContext_ = layer_norm(affine(contextDropped_, Ua_, ba_),
+        mappedContext_ = layerNorm(affine(contextDropped_, Ua_, ba_),
                                     Wc_att_lns_,
                                     Wc_att_lnb_,
                                     NEMATUS_LN_EPS);
@@ -91,7 +91,7 @@ public:
             prefix + "_att_gamma2", {1, dimEncState}, inits::from_value(1.0));
 
         mappedContext_
-            = layer_norm(dot(contextDropped_, Ua_), gammaContext_, ba_);
+            = layerNorm(dot(contextDropped_, Ua_), gammaContext_, ba_);
       }
 
     } else {
@@ -121,10 +121,10 @@ public:
     auto mappedState = dot(recState, Wa_);
     if(layerNorm_)
       if(nematusNorm_)
-        mappedState = layer_norm(
+        mappedState = layerNorm(
             mappedState, W_comb_att_lns_, W_comb_att_lnb_, NEMATUS_LN_EPS);
       else
-        mappedState = layer_norm(mappedState, gammaState_);
+        mappedState = layerNorm(mappedState, gammaState_);
 
     auto attReduce = attOps(va_, mappedContext_, mappedState);
 
