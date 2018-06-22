@@ -189,6 +189,10 @@ public:
   virtual Ptr<data::Shortlist> getShortlist() {
     return encdec_->getShortlist();
   };
+
+  virtual std::vector<float> getAlignment() {
+    return encdec_->getAlignment();
+  }
 };
 
 static Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec,
