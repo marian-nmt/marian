@@ -170,16 +170,14 @@ public:
 
     return {
       NodeOp(Prod(val_,
-                  child(3)->val(),
-                  child(2)->val(),
-                  false, false, 0.f, 1.f);
-             Prod(val_,
                   child(0)->val(),
                   child(1)->val(),
-                  transA_,
-                  transB_,
-                  1.f,
-                  scalar_))
+                  transA_, transB_, 0.f, scalar_);
+             Prod(val_,
+                  child(3)->val(),
+                  child(2)->val(),
+                  false, false, 1.f, 1.f)
+             )
     };
   }
 
