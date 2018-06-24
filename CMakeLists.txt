@@ -38,7 +38,7 @@ set(EXT_LIBS ${EXT_LIBS} ${CMAKE_DL_LIBS})
 if(COMPILE_CUDA)
 find_package(CUDA "8.0" REQUIRED)
 if(CUDA_FOUND)
-  set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY})
+  set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} /usr/local/cuda/lib64/libnccl_static.a)
 
   if(USE_CUDNN)
     find_package(CUDNN "7.0")

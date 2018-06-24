@@ -32,11 +32,13 @@ private:
   float mvDecay_{1e-4};
   size_t delay_{1};
 
+  void initialize(const std::vector<Ptr<data::Batch>>& batches);
+
   void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches);
 
   void fetchParams(Tensor oldParams, const std::vector<Tensor>& params);
 
-  void execute(const std::vector<Ptr<data::Batch>>& batch);
+  void execute(const std::vector<Ptr<data::Batch>>& batches);
 
   void foreachDevice(const std::function<void(size_t,int)>&);
 
