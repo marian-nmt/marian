@@ -7,6 +7,102 @@
 
 namespace marian {
 
+class SyncGraphGroup::NCCL {
+private:
+  ncclComm_t* comms_;
+  cudaStream_t* streams_;
+  int* devs_;
+
+public:
+  void init(size_t devNum) {
+    comms_ = new ncclComm_t[devNum];
+    streams_ = new cudaStream_t[devNum];
+    devs_ = new int[devNum];
+
+    for(int i = 0; i < devNum; ++i) {
+      devs_[i] = i;
+      cudaSetDevice(i);
+      cudaStreamCreate(&streams_[i]);
+    }
+    ncclCommInitAll(comms_, devNum, devs_);
+  }
+
+  void scatterReduce(const std::vector<Ptr<ExpressionGraph>>& graphs,
+                     const std::vector<size_t>& pos,
+                     const std::vector<size_t>& sizes) {
+    ncclGroupStart();
+    for (int i = 0; i < graphs.size(); ++i) {
+
+      const void* sendbuff = (const void*)graphs[i]->params()->grads()->data();
+      auto subgrad = graphs[i]->params()->grads()->subtensor(pos[i], sizes[i]);
+      void* recvbuff = subgrad->data();
+
+      ncclReduceScatter(sendbuff,
+                        recvbuff,
+                        sizes[0],
+                        ncclFloat,
+                        ncclSum,
+                        comms_[i],
+                        streams_[i]);
+    }
+    ncclGroupEnd();
+
+    for (int i = 0; i < graphs.size(); ++i) {
+      cudaSetDevice(i);
+      cudaStreamSynchronize(streams_[i]);
+    }
+  }
+
+  void allGather(const std::vector<Ptr<ExpressionGraph>>& graphs,
+                 const std::vector<Tensor>& params) {
+
+    ncclGroupStart();
+    for (int i = 0; i < graphs.size(); ++i) {
+
+      const void* sendbuff = (const void*)params[i]->data();
+      size_t sendcount = params[0]->size();
+
+      void* recvbuff = (void*)graphs[i]->params()->grads()->data();
+
+      ncclAllGather(sendbuff,
+                    recvbuff,
+                    sendcount,
+                    ncclFloat,
+                    comms_[i],
+                    streams_[i]);
+    }
+    ncclGroupEnd();
+
+    for (int i = 0; i < graphs.size(); ++i) {
+      cudaSetDevice(i);
+      cudaStreamSynchronize(streams_[i]);
+    }
+  }
+};
+
+
+SyncGraphGroup::SyncGraphGroup(Ptr<Config> config)
+    : GraphGroup(config),
+      devices_{options_->getDevices()},
+      movingAvg_{options_->get<float>("exponential-smoothing") > 0},
+      mvDecay_{options_->get<float>("exponential-smoothing")},
+      delay_{options_->get<size_t>("optimizer-delay")} {
+
+  for(auto device : devices_) {
+    auto graph = New<ExpressionGraph>();
+    graph->setDevice(device);
+    graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
+    graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
+
+    graphs_.push_back(graph);
+    shardOpt_.push_back(Optimizer(options_));
+    builders_.push_back(models::from_config(options_, models::usage::training));
+  }
+
+  nccl_ = new NCCL();
+  nccl_->init(devices_.size());
+}
+
 void SyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) {
   scheduler_ = scheduler;
   // optimizer has to be registered last to see changes of learning rate
@@ -116,79 +212,6 @@ void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
   }
 }
 
-class NCCL {
-private:
-  ncclComm_t* comms_;
-  cudaStream_t* streams_;
-  int* devs_;
-
-public:
-  void init(size_t devNum) {
-    comms_ = new ncclComm_t[devNum];
-    streams_ = new cudaStream_t[devNum];
-    devs_ = new int[devNum];
-
-    for(int i = 0; i < devNum; ++i) {
-      devs_[i] = i;
-      cudaSetDevice(i);
-      cudaStreamCreate(&streams_[i]);
-    }
-    ncclCommInitAll(comms_, devNum, devs_);
-  }
-
-  void scatterReduce(const std::vector<Ptr<ExpressionGraph>>& graphs,
-                     const std::vector<size_t>& pos,
-                     const std::vector<size_t>& sizes) {
-    ncclGroupStart();
-    for (int i = 0; i < graphs.size(); ++i) {
-
-      const void* sendbuff = (const void*)graphs[i]->params()->grads()->data();
-      auto subgrad = graphs[i]->params()->grads()->subtensor(pos[i], sizes[i]);
-      void* recvbuff = subgrad->data();
-
-      ncclReduceScatter(sendbuff,
-                        recvbuff,
-                        sizes[0],
-                        ncclFloat,
-                        ncclSum,
-                        comms_[i],
-                        streams_[i]);
-    }
-    ncclGroupEnd();
-
-    for (int i = 0; i < graphs.size(); ++i) {
-      cudaSetDevice(i);
-      cudaStreamSynchronize(streams_[i]);
-    }
-  }
-
-  void allGather(const std::vector<Ptr<ExpressionGraph>>& graphs,
-                 const std::vector<Tensor>& params) {
-
-    ncclGroupStart();
-    for (int i = 0; i < graphs.size(); ++i) {
-
-      const void* sendbuff = (const void*)params[i]->data();
-      size_t sendcount = params[0]->size();
-
-      void* recvbuff = (void*)graphs[i]->params()->grads()->data();
-
-      ncclAllGather(sendbuff,
-                    recvbuff,
-                    sendcount,
-                    ncclFloat,
-                    comms_[i],
-                    streams_[i]);
-    }
-    ncclGroupEnd();
-
-    for (int i = 0; i < graphs.size(); ++i) {
-      cudaSetDevice(i);
-      cudaStreamSynchronize(streams_[i]);
-    }
-  }
-};
-
 void SyncGraphGroup::execute(const std::vector<Ptr<data::Batch>>& batches) {
   // if there are fewer batches than we need, split last batch into right number
   // of pieces and replace last batch with the splits.
@@ -214,27 +237,22 @@ void SyncGraphGroup::execute(const std::vector<Ptr<data::Batch>>& batches) {
     }
   }
 
-  NCCL nccl;
-  nccl.init(devices_.size());
-
-  std::vector<size_t> positions;
-  std::vector<size_t> sizes;
-
-
   std::vector<float> costs(devices_.size(), 0.f);
   size_t t = 1;
 
   for(const auto& curBatches : delayedBatches) {
     if(first_) {
       initialize(curBatches);
+      first_ = false;
+    }
 
-      int pos = 0;
+    std::vector<size_t> positions;
+    std::vector<size_t> sizes;
+
+    int pos = 0;
       for(int idx = 0; idx < devices_.size(); ++idx) {
         positions.push_back(pos);
         sizes.push_back(params_[idx]->size());
-      }
-
-      first_ = false;
     }
 
     // Execute single forward/backward step
@@ -300,10 +318,10 @@ void SyncGraphGroup::execute(const std::vector<Ptr<data::Batch>>& batches) {
     foreachDevice(taskForwardBackward);
 
     if(t == delayedBatches.size()) {
-      nccl.scatterReduce(graphs_, positions, sizes);
+      nccl_->scatterReduce(graphs_, positions, sizes);
       //foreachDevice(taskGather);
       foreachDevice(taskUpdate);
-      nccl.allGather(graphs_, params_);
+      nccl_->allGather(graphs_, params_);
       //foreachDevice(taskBroadcast);
     }
 

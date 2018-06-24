@@ -12,6 +12,9 @@ public:
   virtual void setScheduler(Ptr<Scheduler> scheduler);
 
 private:
+  class NCCL;
+  NCCL* nccl_;
+
   std::vector<Ptr<models::ModelBase>> builders_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<DeviceId> devices_;
@@ -43,23 +46,7 @@ private:
   void foreachDevice(const std::function<void(size_t,int)>&);
 
 public:
-  SyncGraphGroup(Ptr<Config> config)
-      : GraphGroup(config),
-        devices_{options_->getDevices()},
-        movingAvg_{options_->get<float>("exponential-smoothing") > 0},
-        mvDecay_{options_->get<float>("exponential-smoothing")},
-        delay_{options_->get<size_t>("optimizer-delay")} {
-    for(auto device : devices_) {
-      auto graph = New<ExpressionGraph>();
-      graph->setDevice(device);
-      graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
-      graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
-
-      graphs_.push_back(graph);
-      shardOpt_.push_back(Optimizer(options_));
-      builders_.push_back(models::from_config(options_, models::usage::training));
-    }
-  }
+  SyncGraphGroup(Ptr<Config> config);
 
   void update(Ptr<data::Batch> batch) {
     auto batches = batch->split(numBatches());
