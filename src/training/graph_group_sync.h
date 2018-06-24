@@ -38,6 +38,8 @@ private:
 
   void execute(const std::vector<Ptr<data::Batch>>& batch);
 
+  void foreachDevice(const std::function<void(size_t,int)>&);
+
 public:
   SyncGraphGroup(Ptr<Config> config)
       : GraphGroup(config),

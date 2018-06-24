@@ -41,6 +41,17 @@ void SyncGraphGroup::fetchParams(Tensor oldParams,
   }
 }
 
+void SyncGraphGroup::foreachDevice(const std::function<void(size_t, int)>& task) {
+  std::vector<std::thread> group;
+  int pos = 0;
+  for(int idx = 0; idx < devices_.size(); ++idx) {
+    group.emplace_back(task, idx, pos);
+    pos += params_[idx]->size();
+  }
+  for(auto& t : group)
+    t.join();
+}
+
 void SyncGraphGroup::execute(const std::vector<Ptr<data::Batch>>& batches) {
   // if there are fewer batches than we need, split last batch into right number
   // of pieces and replace last batch with the splits.
@@ -129,73 +140,68 @@ void SyncGraphGroup::execute(const std::vector<Ptr<data::Batch>>& batches) {
       first_ = false;
     }
 
-    {
-      // execute single forward/backward step
-      auto task = [this, &costs, batches](size_t idx, bool zero = true) {
-        auto graph = graphs_[idx];
-        auto batch = batches[idx];
+    // execute single forward/backward step
+    auto taskForwardBackward = [this, &costs, batches, t](size_t idx, int pos) {
+      auto graph = graphs_[idx];
+      auto batch = batches[idx];
 
-        if(batch->size() > 0) {
-          auto costNode = builders_[idx]->build(graph, batch);
-          graph->forward();
-          costs[idx] += costNode->scalar();
-          graph->backward(zero);
+      auto costNode = builders_[idx]->build(graph, batch);
+      graph->forward();
+      costs[idx] += costNode->scalar();
+      graph->backward(t == 1);
+    };
+
+    // device index corresponds to shard index
+    auto taskGather = [this, batches](size_t idx, int pos) {
+      int shardSize = params_[idx]->size();
+
+      float div = devices_.size();  // no. of GPUs
+      // do not average gradients if cost type is sum.
+      if(options_->get<std::string>("cost-type") == "ce-sum")
+        div = 1;
+
+      auto curGrad = graphs_[idx]->params()->grads()->subtensor(pos, shardSize);
+
+      // collect and sum gradients
+      // to be replaced with ncclScatterReduce
+      for(auto graph : graphs_) {
+        if(graph != graphs_[idx]) {
+          auto subGrad = graph->params()->grads()->subtensor(pos, shardSize);
+          tmpTensors_[idx]->copyFrom(subGrad);
+
+          using namespace functional;
+          Element(_1 = _1 + (_2 / div), curGrad, tmpTensors_[idx]);
         }
-      };
-
-      // do forward/backward steps in parallel on all devices
-      ThreadPool pool(devices_.size(), devices_.size());
-      for(int idx = 0; idx < batches.size(); ++idx)
-        pool.enqueue(task, idx, t == 1);
-    }
-
-    {
-
-      // device index corresponds to shard index
-      auto task = [this, batches](size_t idx, int pos, bool update) {
-        int shardSize = params_[idx]->size();
-
-        if(update) {
-          float div = devices_.size();  // no. of GPUs
-          // do not average gradients if cost type is sum.
-          if(options_->get<std::string>("cost-type") == "ce-sum")
-            div = 1;
-
-          auto curGrad = graphs_[idx]->params()->grads()->subtensor(pos, shardSize);
-
-          // collect and sum gradients
-          // to be replaced with ncclScatterReduce
-          for(auto graph : graphs_) {
-            if(graph != graphs_[idx]) {
-              auto subGrad = graph->params()->grads()->subtensor(pos, shardSize);
-              tmpTensors_[idx]->copyFrom(subGrad);
-
-              using namespace functional;
-              Element(_1 = _1 + (_2 / div), curGrad, tmpTensors_[idx]);
-            }
-          }
-
-          shardOpt_[idx]->update(params_[idx], curGrad);
-
-          if(movingAvg_)
-            updateMovingAverage(
-              paramsAvg_[idx], params_[idx], scheduler_->numberOfBatches());
-
-          // copy parameter shard to each graph
-          for(auto graph : graphs_) {
-            auto subParam = graph->params()->vals()->subtensor(pos, shardSize);
-            subParam->copyFrom(params_[idx]);
-          }
-        }
-
-      };
-
-      ThreadPool pool(devices_.size(), devices_.size());
-      int pos = 0;
-      for(int idx = 0; idx < devices_.size(); ++idx) {
-        pool.enqueue(task, idx, pos, t == delay_);
-        pos += params_[idx]->size();
       }
+    };
+
+    auto taskUpdate = [this](size_t idx, int pos) {
+      int shardSize = params_[idx]->size();
+      auto curGrad = graphs_[idx]->params()->grads()->subtensor(pos, shardSize);
+      shardOpt_[idx]->update(params_[idx], curGrad);
+
+      if(movingAvg_)
+        updateMovingAverage(
+          paramsAvg_[idx], params_[idx], scheduler_->numberOfBatches());
+    };
+
+    auto taskBroadcast = [this](size_t idx, int pos) {
+      int shardSize = params_[idx]->size();
+      auto curGrad = graphs_[idx]->params()->grads()->subtensor(pos, shardSize);
+
+      // copy parameter shard to each graph
+      for(auto graph : graphs_) {
+        auto subParam = graph->params()->vals()->subtensor(pos, shardSize);
+        subParam->copyFrom(params_[idx]);
+      }
+    };
+
+    foreachDevice(taskForwardBackward);
+
+    if(t == delay_) {
+      foreachDevice(taskGather);
+      foreachDevice(taskUpdate);
+      foreachDevice(taskBroadcast);
     }
 
     t++;
