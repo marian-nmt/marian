@@ -30,8 +30,9 @@ public:
   void scatterReduce(const std::vector<Ptr<ExpressionGraph>>& graphs,
                      const std::vector<size_t>& pos,
                      const std::vector<size_t>& sizes) {
+
     ncclGroupStart();
-    for (int i = 0; i < graphs.size(); ++i) {
+    for(int i = 0; i < graphs.size(); ++i) {
 
       const void* sendbuff = (const void*)graphs[i]->params()->grads()->data();
       auto subgrad = graphs[i]->params()->grads()->subtensor(pos[i], sizes[i]);
@@ -47,26 +48,45 @@ public:
     }
     ncclGroupEnd();
 
-    for (int i = 0; i < graphs.size(); ++i) {
+    for(int i = 0; i < graphs.size(); ++i) {
+      cudaSetDevice(i);
+      cudaStreamSynchronize(streams_[i]);
+    }
+  }
+
+  void allReduce(const std::vector<Ptr<ExpressionGraph>>& graphs) {
+    ncclGroupStart();
+    for(int i = 0; i < graphs.size(); ++i) {
+
+      ncclAllReduce((const void*)graphs[i]->params()->grads()->data(),
+                    (void*)graphs[i]->params()->grads()->data(),
+                    graphs[i]->params()->grads()->size(),
+                    ncclFloat,
+                    ncclSum,
+                    comms_[i],
+                    streams_[i]);
+    }
+    ncclGroupEnd();
+
+    for(int i = 0; i < graphs.size(); ++i) {
       cudaSetDevice(i);
       cudaStreamSynchronize(streams_[i]);
     }
   }
 
   void allGather(const std::vector<Ptr<ExpressionGraph>>& graphs,
-                 const std::vector<Tensor>& params) {
-
+                 const std::vector<size_t>& pos,
+                 const std::vector<size_t>& sizes) {
     ncclGroupStart();
-    for (int i = 0; i < graphs.size(); ++i) {
+    for(int i = 0; i < graphs.size(); ++i) {
 
-      const void* sendbuff = (const void*)params[i]->data();
-      size_t sendcount = params[0]->size();
-
-      void* recvbuff = (void*)graphs[i]->params()->grads()->data();
+      auto subparam = graphs[i]->params()->vals()->subtensor(pos[i], sizes[i]);
+      const void* sendbuff = (const void*)subparam->data();
+      void* recvbuff = (void*)graphs[i]->params()->vals()->data();
 
       ncclAllGather(sendbuff,
                     recvbuff,
-                    sendcount,
+                    sizes[0],
                     ncclFloat,
                     comms_[i],
                     streams_[i]);
@@ -145,7 +165,7 @@ void SyncGraphGroup::foreachDevice(const std::function<void(size_t, int)>& task)
   int pos = 0;
   for(int idx = 0; idx < devices_.size(); ++idx) {
     group.emplace_back(task, idx, pos);
-    pos += params_[idx]->size();
+    pos += tmpTensors_[idx]->size();
   }
   for(auto& t : group)
     t.join();
@@ -175,7 +195,7 @@ void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
   // Initialize sharded parameter storage. For n devices
   // each device stores 1/n-th of parameters.
   // We also create sharded gradients and temporary storage.
-  if(params_.size() == 0) {
+  if(tmpTensors_.size() == 0) {
     int totalSize = graphs_[0]->params()->vals()->size();
     shardSize_ = ceil(totalSize / (float)devices_.size());
 
@@ -186,22 +206,17 @@ void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
       auto paramsAlloc = New<TensorAllocator>(graph->getBackend());
       paramsAllocs_.push_back(paramsAlloc);
 
-      size_t chunks = movingAvg_ ? 3 : 2;
+      size_t chunks = movingAvg_ ? 2 : 1;
       paramsAlloc->reserveExact(chunks * __size__ * sizeof(float));
 
-      Tensor param, tmp, paramAvg;
-
-      // set parameters to actual value from 0th graph
-      paramsAlloc->allocate(param, {1, __size__});
-      params_.push_back(param);
-      param->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));
+      Tensor tmp, paramAvg;
 
       paramsAlloc->allocate(tmp, {1, __size__});
       tmpTensors_.push_back(tmp);
 
       if(movingAvg_) {
         paramsAlloc->allocate(paramAvg, {1, __size__});
-        paramAvg->copyFrom(param);
+        paramAvg->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));
         paramsAvg_.push_back(paramAvg);
       }
 
@@ -250,9 +265,10 @@ void SyncGraphGroup::execute(const std::vector<Ptr<data::Batch>>& batches) {
     std::vector<size_t> sizes;
 
     int pos = 0;
-      for(int idx = 0; idx < devices_.size(); ++idx) {
+    for(int idx = 0; idx < devices_.size(); ++idx) {
         positions.push_back(pos);
-        sizes.push_back(params_[idx]->size());
+        sizes.push_back(tmpTensors_[idx]->size());
+        pos += tmpTensors_[idx]->size();
     }
 
     // Execute single forward/backward step
@@ -272,7 +288,7 @@ void SyncGraphGroup::execute(const std::vector<Ptr<data::Batch>>& batches) {
 
     // Gather gradients from different devices into current gradient shards
     auto taskGather = [this, curBatches, div](size_t idx, int pos) {
-      int shardSize = params_[idx]->size();
+      int shardSize = tmpTensors_[idx]->size();
 
       auto batch = curBatches[idx];
       if(batch) {
@@ -294,24 +310,28 @@ void SyncGraphGroup::execute(const std::vector<Ptr<data::Batch>>& batches) {
 
     // Update parameter shard with gradient shard
     auto taskUpdate = [this](size_t idx, int pos) {
-      int shardSize = params_[idx]->size();
-      auto curGrad = graphs_[idx]->params()->grads()->subtensor(pos, shardSize);
-      shardOpt_[idx]->update(params_[idx], curGrad);
+      int shardSize = tmpTensors_[idx]->size();
+
+      auto curGrad  = graphs_[idx]->params()->grads()->subtensor(pos, shardSize);
+      auto curParam = graphs_[idx]->params()->vals()->subtensor(pos, shardSize);
+      shardOpt_[idx]->update(curParam, curGrad);
 
       if(movingAvg_)
         updateMovingAverage(
-          paramsAvg_[idx], params_[idx], scheduler_->numberOfBatches());
+          paramsAvg_[idx], curParam, scheduler_->numberOfBatches());
     };
 
     // Update all graphs with parameter shard
     auto taskBroadcast = [this](size_t idx, int pos) {
-      int shardSize = params_[idx]->size();
-      auto curGrad = graphs_[idx]->params()->grads()->subtensor(pos, shardSize);
+      int shardSize = tmpTensors_[idx]->size();
+      auto curParam = graphs_[idx]->params()->vals()->subtensor(pos, shardSize);
 
       // copy parameter shard to each graph
       for(auto graph : graphs_) {
-        auto subParam = graph->params()->vals()->subtensor(pos, shardSize);
-        subParam->copyFrom(params_[idx]);
+        if(graph != graphs_[idx]) {
+          auto subParam = graph->params()->vals()->subtensor(pos, shardSize);
+          subParam->copyFrom(curParam);
+        }
       }
     };
 
@@ -319,9 +339,11 @@ void SyncGraphGroup::execute(const std::vector<Ptr<data::Batch>>& batches) {
 
     if(t == delayedBatches.size()) {
       nccl_->scatterReduce(graphs_, positions, sizes);
-      //foreachDevice(taskGather);
       foreachDevice(taskUpdate);
-      nccl_->allGather(graphs_, params_);
+      nccl_->allGather(graphs_, positions, sizes);
+
+      //foreachDevice(taskGather);
+      //foreachDevice(taskUpdate);
       //foreachDevice(taskBroadcast);
     }
 
@@ -354,9 +376,9 @@ void SyncGraphGroup::execute(const std::vector<Ptr<data::Batch>>& batches) {
       // safe, because all graphs are idle during validation with sync sgd
       scheduler_->validate(graphs_);
 
-      if(movingAvg_)
-        for(auto graph : graphs_)
-          fetchParams(graph->params()->vals(), params_);
+      //if(movingAvg_)
+      //  for(auto graph : graphs_)
+      //    fetchParams(graph->params()->vals(), params_);
     }
   }
 }
