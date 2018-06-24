@@ -41,18 +41,31 @@ void SyncGraphGroup::fetchParams(Tensor oldParams,
   }
 }
 
-void SyncGraphGroup::execute(Ptr<data::Batch> fullBatch) {
-  std::vector<Ptr<data::Batch>> delayedBatches =
-    delay_ > 1 ?
-      fullBatch->split(delay_) :
-      std::vector<Ptr<data::Batch>>({ fullBatch });
+void SyncGraphGroup::execute(const std::vector<Ptr<data::Batch>>& batches) {
+  // if there are fewer batches than we need, split last batch into right number
+  // of pieces and replace last batch with the splits.
+
+  std::vector<Ptr<data::Batch>> newBatches = batches;
+  if(newBatches.size() < numBatches()) {
+    size_t splitFill = numBatches() - newBatches.size() + 1;
+    auto fillerBatches = newBatches.back()->split(splitFill);
+    newBatches.back() = fillerBatches[0];
+    for(int i = 1; i < splitFill; ++i)
+      newBatches.push_back(fillerBatches[i]);
+  }
+
+  std::vector<std::vector<Ptr<data::Batch>>> delayedBatches;
+  for(int i = 0; i < delay_; ++i) {
+    delayedBatches.emplace_back();
+    for(int j = 0; j < devices_.size(); ++j) {
+      delayedBatches.back().push_back(newBatches[i * delay_ + j]);
+    }
+  }
 
   std::vector<float> costs(devices_.size(), 0.f);
-
   size_t t = 1;
-  for(auto batch : delayedBatches) {
-    std::vector<Ptr<data::Batch>> batches = batch->split(devices_.size());
 
+  for(const auto& batches : delayedBatches) {
     if(first_) {
       {
         THREAD_GUARD(builders_[0]->build(graphs_[0], batches[0]);
@@ -202,7 +215,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> fullBatch) {
   }
 
   if(scheduler_) {
-    scheduler_->update(cost, fullBatch);
+    scheduler_->update(cost, batches);
 
     if(scheduler_->saving()) {
       this->save();

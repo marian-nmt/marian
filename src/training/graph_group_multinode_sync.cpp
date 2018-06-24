@@ -223,9 +223,9 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
   }
 
   if (t % tau_ == 0)
-    sendReceiveUpdateSync();    
-  
-  t++; 
+    sendReceiveUpdateSync();
+
+  t++;
 
   // Run scheduler (if enabled)
   if(t % tau_ == 0 && scheduler_) {
@@ -242,7 +242,7 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
     } else {
       scheduler_->update(cost, fullBatch);
     }
-    
+
     num_seen_words = 0;
     num_seen_sentences = 0;
     cost = 0;

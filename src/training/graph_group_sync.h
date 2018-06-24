@@ -36,7 +36,7 @@ private:
 
   void fetchParams(Tensor oldParams, const std::vector<Tensor>& params);
 
-  void execute(Ptr<data::Batch> batch);
+  void execute(const std::vector<Ptr<data::Batch>>& batch);
 
 public:
   SyncGraphGroup(Ptr<Config> config)
@@ -58,8 +58,13 @@ public:
   }
 
   void update(Ptr<data::Batch> batch) {
+    auto batches = batch->split(numBatches());
+    update(batches);
+  }
+
+  void update(const std::vector<Ptr<data::Batch>>& batches) {
     ABORT_IF(finalized_, "Training has already finished.");
-    execute(batch);
+    execute(batches);
   }
 
   void load() {
@@ -149,7 +154,11 @@ public:
   }
 
   Ptr<data::BatchStats> collectStats() {
-    return GraphGroup::collectStats(graphs_[0], builders_[0], devices_.size() * delay_);
+    return GraphGroup::collectStats(graphs_[0], builders_[0], 1);
+  }
+
+  size_t numBatches() {
+    return devices_.size() * delay_;
   }
 
   virtual void finalize() {

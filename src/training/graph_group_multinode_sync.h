@@ -220,6 +220,14 @@ public:
     delete clientThreadPool_;
   }
 
+  size_t numBatches() {
+    return 1;
+  }
+
+  void update(const std::vector<Ptr<data::Batch>>& batches) {
+    ABORT("Not implemented");
+  }
+
   /**
    * Update any client model with given batch if batch is assigned to this node.
    */

@@ -154,10 +154,20 @@ public:
   }
 
   void update(float cost, Ptr<data::Batch> batch) {
+    update(cost, std::vector<Ptr<data::Batch>>({batch}));
+  }
+
+  void update(float cost, const std::vector<Ptr<data::Batch>>& batches) {
     state_->validated = false;
 
-    auto batchSize   = batch->size();    // number of sentences in batch
-    auto batchLabels = batch->words(-1); // number of target words in batch
+    auto batchSize   = 0; // number of sentences in batch
+    auto batchLabels = 0; // number of target words in batch
+
+    for(const auto& batch : batches) {
+      batchSize += batch->size();
+      batchLabels += batch->words(-1);
+    }
+
     // reconstruct sum cost, for displaying epoch-level averages instead of minibatch-level
     auto costType = options_->get<std::string>("cost-type");
     auto dispLabelCounts = options_->get<bool>("disp-label-counts"); // if true then show as "cost per label * number of labels"
@@ -178,6 +188,7 @@ public:
     state_->wordsDisp    += batchLabels; // target words processed since last display, for speed display
     state_->samplesEpoch += batchSize;   // sentences processed in this epoch
     state_->labelsTotal  += batchLabels; // total labels processed
+
     state_->newBatch();
 
     if(state_->batches % options_->get<size_t>("disp-freq") == 0) {

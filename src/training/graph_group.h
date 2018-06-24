@@ -32,7 +32,9 @@ public:
 
   virtual ~GraphGroup() {}
 
-  virtual void update(Ptr<data::Batch>) = 0;
+  virtual void update(const std::vector<Ptr<data::Batch>>&) = 0;
+
+  virtual void update(Ptr<data::Batch> batch) = 0;
 
   virtual void load() = 0;
 
@@ -41,6 +43,8 @@ public:
   virtual void finalize() = 0;
 
   virtual void setScheduler(Ptr<Scheduler> scheduler) = 0;
+
+  virtual size_t numBatches() = 0;
 
   /**
    * Determine maximal batch size that can fit into the given workspace

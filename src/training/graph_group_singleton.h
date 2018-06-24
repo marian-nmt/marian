@@ -41,6 +41,14 @@ public:
     builder_ = models::from_config(options_, models::usage::training);
   }
 
+  size_t numBatches() {
+    return 1;
+  }
+
+  void update(const std::vector<Ptr<data::Batch>>& batches) {
+    ABORT("Not implemented");
+  }
+
   void update(Ptr<data::Batch> batch) {
     ABORT_IF(finalized_, "Training has already finished.");
     execute(batch);
