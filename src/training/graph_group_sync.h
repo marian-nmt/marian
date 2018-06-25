@@ -4,6 +4,7 @@
 
 #include "3rd_party/threadpool.h"
 #include "training/graph_group.h"
+#include "training/communicator.h"
 
 namespace marian {
 
@@ -12,8 +13,8 @@ public:
   virtual void setScheduler(Ptr<Scheduler> scheduler);
 
 private:
-  class NCCL;
-  NCCL* nccl_;
+
+  Ptr<Communicator> comm_;
 
   std::vector<Ptr<models::ModelBase>> builders_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
@@ -42,8 +43,6 @@ private:
   void fetchParams(Tensor oldParams, const std::vector<Tensor>& params);
 
   void execute(const std::vector<Ptr<data::Batch>>& batches);
-
-  void foreachDevice(const std::function<void(size_t,int)>&);
 
 public:
   SyncGraphGroup(Ptr<Config> config);
