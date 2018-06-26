@@ -294,7 +294,9 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
         if(bc != b)
           bc = rec2(bc);
 
-        std::vector<Expr> nodes = {ac, bc, bias};
+        int rows = ac->shape().elements() / ac->shape()[-1];
+        Expr ones = ac->graph()->ones({rows, 1});
+        std::vector<Expr> nodes = {ac, bc, bias, ones};
         return rec2(Expression<AffineNodeOp>(nodes, transA, transB, scale),
                     true);
       };
@@ -314,9 +316,10 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
   }
   else {
     // general version, MKL, CBlas or CUDA
-    std::vector<Expr> nodes = {clip(a, clipValue), clip(b, clipValue), bias};
+    int rows = a->shape().elements() / a->shape()[-1];
+    Expr ones = a->graph()->ones({rows, 1});
+    std::vector<Expr> nodes = {clip(a, clipValue), clip(b, clipValue), bias, ones};
     return Expression<AffineNodeOp>(nodes, transA, transB, scale);
-
   }
 }
 

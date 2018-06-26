@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
+- Faster training (20-30%) by optimizing gradient popagation of biases
 - Returning hard alignments during decoding
 
 ## [1.5.0] - 2018-06-17

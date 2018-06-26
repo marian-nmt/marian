@@ -85,8 +85,6 @@ void MultiNodeGraphGroupSync::setupMPI() {
 void MultiNodeGraphGroupSync::setupClients(Ptr<data::Batch> batch) {
   runBatchThroughClientGraphs(batch);
   initCPUArrays();
-
-  clientThreadPool_ = new marian::ThreadPool(devices_.size(), devices_.size());
 }
 
 /**
