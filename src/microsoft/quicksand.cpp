@@ -1,4 +1,4 @@
-#include "quicksand.h"7
+#include "quicksand.h"
 #include "marian.h"
 
 #include "translator/scorers.h"
@@ -19,6 +19,7 @@ template void set(Ptr<Options> options, const std::string& key, const std::strin
 template void set(Ptr<Options> options, const std::string& key, const bool&);
 template void set(Ptr<Options> options, const std::string& key, const std::vector<std::string>&);
 
+
 Ptr<Options> newOptions() {
   return New<Options>();
 }
@@ -28,7 +29,6 @@ private:
     Ptr<ExpressionGraph> graph_;
     Ptr<Vocab> sourceVocab_;
     Ptr<Vocab> targetVocab_;
-
     std::vector<Ptr<Scorer>> scorers_;
 
 public:
@@ -73,11 +73,12 @@ public:
 
         auto subBatch = New<data::SubBatch>(1, words.size(), sourceVocab_);
         std::copy(words.begin(), words.end(), subBatch->data().begin());
+        std::fill(subBatch->mask().begin(), subBatch->mask().end(), 1.f);
+
         std::vector<Ptr<data::SubBatch>> subBatches;
         subBatches.push_back(subBatch);
         auto batch = New<data::CorpusBatch>(subBatches);
         batch->setSentenceIds({0});
-        batch->debug();
 
         auto search = New<BeamSearch>(options_, scorers_,
                                       targetVocab_->GetEosId(), targetVocab_->GetUnkId());
