@@ -124,7 +124,7 @@ void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax) {
     SplitCont(outputs, in, ax);
 }
 
-void Transpose0213(Tensor out, Tensor in) {
+void Transpose0213(Tensor out, Tensor in, float beta) {
   int cols = in->shape()[-1];
   int rows = in->shape().elements() / in->shape()[-1];
 
@@ -141,7 +141,15 @@ void Transpose0213(Tensor out, Tensor in) {
       const float* inRow = in->data() + src * cols ;
       float* outRow = out->data() + dst * cols;
 
-      std::copy(inRow, inRow + cols, outRow);
+      if(beta == 0) {
+        // mostly for fast forward computation
+        std::copy(inRow, inRow + cols, outRow);
+      }
+      else {
+        for(int i = 0; i < cols; ++i) {
+          outRow[i] = inRow[i] + beta * outRow[i];
+        }
+      }
     }
   }
 }
@@ -186,7 +194,7 @@ void Transpose10(Tensor out, const Tensor in) {
 }
 
 // @TODO: optimize this, currently it's quite horrible
-void TransposeGeneric(Tensor out, Tensor in, const std::vector<int>& vAxis) {
+void TransposeGeneric(Tensor out, Tensor in, const std::vector<int>& vAxis, float beta) {
   functional::Array<int, functional::Shape::size()> permute;
   int diff = functional::Shape::size() - vAxis.size();
   for(int i = 0; i < permute.size(); ++i)
@@ -207,19 +215,19 @@ void TransposeGeneric(Tensor out, Tensor in, const std::vector<int>& vAxis) {
     gOut.shape().dims(index, oDims);
     for(int i = 0; i < N; ++i)
       pDims[permute[i]] = oDims[i];
-    gOut[index] = gIn[pDims];
+    gOut[index] = gIn[pDims] + beta * gOut[index];
   }
 }
 
-void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
+void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis, float beta) {
   if(vAxis == std::vector<int>({0, 2, 1, 3}))
-    Transpose0213(out, in);
-  else if(vAxis == std::vector<int>({1, 0}) 
-          && in->shape()[-1] % 16 == 0 
+    Transpose0213(out, in, beta);
+  else if(vAxis == std::vector<int>({1, 0}) && beta == 0
+          && in->shape()[-1] % 16 == 0
           && in->shape()[-2] % 16 == 0)
     Transpose10(out, in);
   else
-    TransposeGeneric(out, in, vAxis);
+    TransposeGeneric(out, in, vAxis, beta);
 }
 
 void Softmax(Tensor out_, Tensor in_, Tensor mask_) {

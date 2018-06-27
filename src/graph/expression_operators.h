@@ -34,6 +34,7 @@ Expr log(Expr a);
 
 Expr exp(Expr a);
 
+// check
 Expr clip(Expr a, float c);
 
 Expr operator-(Expr a);
@@ -79,10 +80,14 @@ Expr affine(Expr a,
             bool transB = false,
             float scalar = 1.f);
 
+// check
 Expr transpose(Expr a);
+// check
 Expr transpose(Expr a, const std::vector<int>& axes);
 
+// check
 Expr concatenate(const std::vector<Expr>& concats, keywords::axis_k ax = 0);
+// check
 Expr repeat(Expr a, size_t repeats, keywords::axis_k ax = 0);
 
 Expr reshape(Expr a, Shape shape);
@@ -96,9 +101,11 @@ Expr atleast_nd(Expr a, size_t dims);
 Expr flatten(Expr a);
 Expr flatten_2d(Expr a);
 
+// check
 Expr rows(Expr a, const std::vector<size_t>& indices);
+// check
 Expr cols(Expr a, const std::vector<size_t>& indices);
-
+// check
 Expr select(Expr a, int axis, const std::vector<size_t>& indices);
 
 /*********************************************************/

@@ -235,7 +235,8 @@ void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax) {
 __global__ void gTransposeND(
     functional::Tensor<float> out,
     const functional::Tensor<float> in,
-    const functional::Array<int, functional::Shape::size()> permute) {
+    const functional::Array<int, functional::Shape::size()> permute,
+    float beta) {
   constexpr size_t N = functional::Shape::size();
   functional::Array<int, N> oDims;
   functional::Array<int, N> pDims;
@@ -247,7 +248,7 @@ __global__ void gTransposeND(
       out.shape().dims(index, oDims);
       for(int i = 0; i < N; ++i)
         pDims[permute[i]] = oDims[i];
-      out[index] = in[pDims];
+      out[index] = in[pDims] + beta * out[index];
     }
   }
 }
@@ -257,7 +258,8 @@ void gTranspose0213(float* out, const float* in,
                     int rows,
                     int cols,
                     int stride1,
-                    int stride2) {
+                    int stride2,
+                    float beta) {
 
   int stride = stride1 * stride2;
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -275,14 +277,14 @@ void gTranspose0213(float* out, const float* in,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols)
-          rowOut[i] = rowIn[i];
+          rowOut[i] = rowIn[i] + beta * rowOut[i];
       }
     }
   }
 
 }
 
-void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
+void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis, float beta) {
   cudaSetDevice(out->getDevice().no);
   if(vAxis == std::vector<int>({0, 2, 1, 3})) {
 
@@ -295,7 +297,8 @@ void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
     int stride1 = out->shape()[-2];
     int stride2 = out->shape()[-3];
 
-    gTranspose0213<<<blocks, threads>>>(out->data(), in->data(), rows, cols, stride1, stride2);
+    gTranspose0213<<<blocks, threads>>>(out->data(), in->data(),
+                                        rows, cols, stride1, stride2, beta);
   }
   else {
 
@@ -311,7 +314,7 @@ void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
     int threads = std::min(MAX_THREADS, length);
     int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-    gTransposeND<<<blocks, threads>>>(out, in, axes);
+    gTransposeND<<<blocks, threads>>>(out, in, axes, beta);
   }
 }
 

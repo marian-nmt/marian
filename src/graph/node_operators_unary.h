@@ -806,11 +806,11 @@ struct TransposeNodeOp : public UnaryNodeOp {
       : UnaryNodeOp(a, newShape(a, axes)), axes_{axes} {}
 
   NodeOps forwardOps() {
-    return {NodeOp(TransposeND(val_, child(0)->val(), axes_))};
+    return {NodeOp(TransposeND(val_, child(0)->val(), axes_, 0.f))};
   }
 
   NodeOps backwardOps() {
-    return {NodeOp(TransposeND(child(0)->grad(), adj_, axes_))};
+    return {NodeOp(TransposeND(child(0)->grad(), adj_, axes_, 1.f))};
   }
 
   template <class... Args>
