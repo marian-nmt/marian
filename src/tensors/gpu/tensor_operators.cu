@@ -69,7 +69,8 @@ __global__ void gInsertCols(float* out,
                             size_t cols_out,
                             size_t cols_in,
                             size_t offset_out,
-                            size_t offset_in) {
+                            size_t offset_in,
+                            float beta) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
@@ -79,7 +80,7 @@ __global__ void gInsertCols(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols)
-          rowOut[i] = rowIn[i];
+          rowOut[i] = rowIn[i] + beta * rowOut[i];
       }
     }
   }
@@ -102,7 +103,7 @@ void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
     int threads = std::min(MAX_THREADS, cols_in);
 
     gInsertCols<<<blocks, threads>>>(
-        out->data(), in->data(), rows, cols_in, cols_out, cols_in, offset, 0);
+        out->data(), in->data(), rows, cols_in, cols_out, cols_in, offset, 0, 0);
     offset += cols_in;
   }
   cudaStreamSynchronize(0);
@@ -195,10 +196,21 @@ void Split1(std::vector<Tensor>& outputs, const Tensor in) {
     int threads = std::min(MAX_THREADS, cols_out);
 
     gInsertCols<<<blocks, threads>>>(
-        out->data(), in->data(), rows, cols_out, cols_out, cols_in, 0, offset);
+        out->data(), in->data(), rows, cols_out, cols_out, cols_in, 0, offset, 1);
     offset += cols_out;
   }
   cudaStreamSynchronize(0);
+}
+
+// @TODO: this function is just a temporary fix until I come up with
+// something better for the situation below.
+__global__ void gAddRow(float* out, const float* in, int length) {
+  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
+    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+    if(index < length) {
+      out[index] = in[index] + out[index];
+    }
+  }
 }
 
 void SplitCont(std::vector<Tensor>& outputs, const Tensor in, int axis) {
@@ -208,17 +220,25 @@ void SplitCont(std::vector<Tensor>& outputs, const Tensor in, int axis) {
   for(int i = 0; i < axis; ++i)
     step *= in->shape()[i];
 
-  size_t offset1 = 0;
+  int offset1 = 0;
   for(int i = 0; i < step; ++i) {
     for(auto out : outputs) {
-      size_t size = out->shape().elements() / step;
-      size_t offset2 = i * size;
+      int size = out->shape().elements() / step;
+      int offset2 = i * size;
 
-      cudaMemcpyAsync(out->data() + offset2,
-                      in->data() + offset1,
-                      size * sizeof(float),
-                      cudaMemcpyDeviceToDevice);
+      // BUG: this is does not add gradients
+      //cudaMemcpyAsync(out->data() + offset2,
+      //                in->data() + offset1,
+      //                size * sizeof(float),
+      //                cudaMemcpyDeviceToDevice);
 
+      // @TODO: this is a quick but bad fix for the above bug
+      int threads = std::min(MAX_THREADS, size);
+      int blocks = std::min(MAX_BLOCKS, size / threads + (size % threads != 0));
+
+      gAddRow<<<blocks, threads>>>(out->data() + offset2,
+                                   in->data() + offset1,
+                                   size);
       offset1 += size;
     }
   }
@@ -812,7 +832,7 @@ __global__ void gPasteCols(float* out,
       for(int tid = 0; tid < colsIn; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < colsIn)
-          rowOut[targetColIdx[i]] = rowIn[i];
+          rowOut[targetColIdx[i]] += rowIn[i];
       }
     }
   }
@@ -879,7 +899,7 @@ __global__ void gInsert(float* out,
       inShape.dims(index, dims);
       dims[axis] = d_indices[dims[index]];
       int outIndex = outShape.index(dims);
-      out[outIndex] = in[index];
+      out[outIndex] += in[index];
     }
   }
 }
