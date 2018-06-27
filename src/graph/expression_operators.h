@@ -82,9 +82,7 @@ Expr affine(Expr a,
 Expr transpose(Expr a);
 Expr transpose(Expr a, const std::vector<int>& axes);
 
-// check
 Expr concatenate(const std::vector<Expr>& concats, keywords::axis_k ax = 0);
-// check
 Expr repeat(Expr a, size_t repeats, keywords::axis_k ax = 0);
 
 Expr reshape(Expr a, Shape shape);

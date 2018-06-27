@@ -79,7 +79,7 @@ void Reduce(Functor functor, marian::Tensor out, Tensors... tensors) {
   DISPATCH4(CrossEntropyPickBackward, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor)
 
   DISPATCH4(TransposeND, marian::Tensor, marian::Tensor, const std::vector<int>&, float)
-  DISPATCH4(Shift, marian::Tensor, marian::Tensor, marian::Shape, bool)
+  DISPATCH5(Shift, marian::Tensor, marian::Tensor, marian::Shape, bool, float)
 
   DISPATCH3(Concatenate, marian::Tensor, const std::vector<marian::Tensor>&, int)
 // clang-format on

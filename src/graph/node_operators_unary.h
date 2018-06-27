@@ -997,11 +997,13 @@ struct ShiftNodeOp : public UnaryNodeOp {
       : UnaryNodeOp(a, a->shape()), shift_(shift) {}
 
   NodeOps forwardOps() {
-    return {NodeOp(Shift(val_, child(0)->val(), shift_, false))};
+    // last parameter beta=0 says to use = (out = in + beta * out)
+    return {NodeOp(Shift(val_, child(0)->val(), shift_, false, 0.f))};
   }
 
   NodeOps backwardOps() {
-    return {NodeOp(Shift(child(0)->grad(), adj_, shift_, true))};
+    // last parameter beta=1 says to use += (out = in + beta * out)
+    return {NodeOp(Shift(child(0)->grad(), adj_, shift_, true, 1.0f))};
   }
 
   const std::string type() { return "shift"; }
