@@ -19,11 +19,9 @@ private:
   Word trgUnkId_ = -1;
 
 public:
-  template <class... Args>
   BeamSearch(Ptr<Options> options,
              const std::vector<Ptr<Scorer>>& scorers,
-             Word trgEosId, Word trgUnkId,
-             Args... args)
+             Word trgEosId, Word trgUnkId = -1)
       : options_(options),
         scorers_(scorers),
         beamSize_(options_->has("beam-size")
@@ -207,7 +205,7 @@ public:
 
       //**********************************************************************
       // suppress specific symbols if not at right positions
-      if(options_->has("allow-unk") && !options_->get<bool>("allow-unk"))
+      if(trgUnkId_ != -1 && options_->has("allow-unk") && !options_->get<bool>("allow-unk"))
         suppressWord(totalCosts, trgUnkId_);
       for(auto state : states)
         state->blacklist(totalCosts, batch);

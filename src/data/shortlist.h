@@ -229,11 +229,11 @@ public:
     std::sort(idx.begin(), idx.end());
 
     // assign new shifted position
-    std::unordered_map<Word, Word> pos;
+    //std::unordered_map<Word, Word> pos;
     std::vector<Word> reverseMap;
 
     for(Word i = 0; i < idx.size(); ++i) {
-      pos[idx[i]] = i;
+      //pos[idx[i]] = i;
       reverseMap.push_back(idx[i]);
     }
 
@@ -243,9 +243,28 @@ public:
       //mapped.push_back(pos[i]);
     //}
 
-    //std::cerr << idx.size() << " " << mapped.size() << " " << reverseMap.size() << std::endl;
-
     return New<Shortlist>(idx, mapped, reverseMap);
+  }
+};
+
+class FakeShortlistGenerator : public ShortlistGenerator {
+private:
+  std::vector<Word> idx_;
+  std::vector<Word> reverseIdx_;
+
+public:
+  FakeShortlistGenerator(const std::unordered_set<Word>& idxSet)
+  : idx_(idxSet.begin(), idxSet.end()) {
+    std::sort(idx_.begin(), idx_.end());
+    // assign new shifted position
+    for(Word i = 0; i < idx_.size(); ++i) {
+      reverseIdx_.push_back(idx_[i]);
+    }
+  }
+
+  Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) {
+    std::vector<Word> tmp;
+    return New<Shortlist>(idx_, tmp, reverseIdx_);
   }
 };
 

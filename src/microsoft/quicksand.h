@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <tuple>
+#include <unordered_set>
 
 namespace marian {
 
@@ -12,27 +13,33 @@ class Options;
 
 namespace quicksand {
 
-typedef std::vector<std::string> Sentence;
-typedef std::tuple<Sentence, float> SentenceWithProb;
-typedef std::vector<SentenceWithProb> NBest;
+typedef size_t Word;
+typedef std::vector<Word> Words;
+typedef std::vector<Words> QSBatch;
+
+typedef std::tuple<Words, float> QSSentenceWithProb;
+typedef std::vector<QSSentenceWithProb> QSNBest;
+typedef std::vector<QSNBest> QSNBestBatch;
 
 Ptr<Options> newOptions();
 
 template <class T>
 void set(Ptr<Options> options, const std::string& key, const T& value);
 
-class BeamSearchDecoderBase {
+class IBeamSearchDecoder {
   protected:
     Ptr<Options> options_;
+    Word eos_;
 
   public:
-    BeamSearchDecoderBase(Ptr<Options> options)
-    : options_(options) {}
+    IBeamSearchDecoder(Ptr<Options> options, Word eos)
+    : options_(options), eos_(eos) {}
 
-    virtual NBest decode(const Sentence& sentence) = 0;
+    virtual QSNBestBatch decode(const QSBatch& qsBatch, size_t maxLength,
+                                const std::unordered_set<size_t>& shortlist) = 0;
 };
 
-Ptr<BeamSearchDecoderBase> newDecoder(Ptr<Options> options);
+Ptr<IBeamSearchDecoder> newDecoder(Ptr<Options> options, Word eos);
 
 }
 }

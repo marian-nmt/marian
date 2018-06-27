@@ -1,8 +1,11 @@
 #include "quicksand.h"
 #include "marian.h"
 
+#include "mkl.h"
+
 #include "translator/scorers.h"
 #include "translator/beam_search.h"
+#include "data/shortlist.h"
 
 namespace marian {
 
@@ -24,32 +27,31 @@ Ptr<Options> newOptions() {
   return New<Options>();
 }
 
-class BeamSearchDecoder : public BeamSearchDecoderBase {
+class BeamSearchDecoder : public IBeamSearchDecoder {
 private:
     Ptr<ExpressionGraph> graph_;
-    Ptr<Vocab> sourceVocab_;
-    Ptr<Vocab> targetVocab_;
     std::vector<Ptr<Scorer>> scorers_;
 
 public:
-    BeamSearchDecoder(Ptr<Options> options)
-    : BeamSearchDecoderBase(options),
-      sourceVocab_(New<Vocab>()),
-      targetVocab_(New<Vocab>()) {
-
+    BeamSearchDecoder(Ptr<Options> options, Word eos)
+    : IBeamSearchDecoder(options, eos) {
         createLoggers();
 
-        sourceVocab_->load(options->get<std::string>("source-vocab"));
-        targetVocab_->load(options->get<std::string>("target-vocab"));
-
-        graph_ = New<ExpressionGraph>(true, false);
+        graph_ = New<ExpressionGraph>(true, true);
         graph_->setDevice(DeviceId{0, DeviceType::cpu});
         graph_->reserveWorkspaceMB(500);
+
+#ifdef MKL_FOUND
+        mkl_set_num_threads(options->get<size_t>("mkl-threads", 1));
+#endif
 
         options_->set("inference", true);
         options_->set("word-penalty", 0);
         options_->set("normalize", 0);
         options_->set("n-best", false);
+
+        // No unk in QS
+        options_->set("allow-unk", false);
 
         std::vector<std::string> models = options_->get<std::vector<std::string>>("model");
 
@@ -68,36 +70,53 @@ public:
         }
     }
 
-    NBest decode(const Sentence& sentence) {
-        auto words = (*sourceVocab_)(sentence);
+    QSNBestBatch decode(const QSBatch& qsBatch, size_t maxLength,
+                        const std::unordered_set<Word>& shortlist) {
 
-        auto subBatch = New<data::SubBatch>(1, words.size(), sourceVocab_);
-        std::copy(words.begin(), words.end(), subBatch->data().begin());
-        std::fill(subBatch->mask().begin(), subBatch->mask().end(), 1.f);
+        if(shortlist.size() > 0) {
+          auto shortListGen = New<data::FakeShortlistGenerator>(shortlist);
+          for(auto scorer : scorers_)
+            scorer->setShortlistGenerator(shortListGen);
+        }
 
+        size_t batchSize = qsBatch.size();
+        auto subBatch = New<data::SubBatch>(batchSize, maxLength, nullptr);
+        for(size_t i = 0; i < maxLength; ++i) {
+          for(size_t j = 0; j < batchSize; ++j) {
+            const auto& sent = qsBatch[j];
+            if(i < sent.size()) {
+              size_t idx = i * batchSize + j;
+              subBatch->data()[idx] = sent[i];
+              subBatch->mask()[idx] = 1;
+            }
+          }
+        }
         std::vector<Ptr<data::SubBatch>> subBatches;
         subBatches.push_back(subBatch);
-        auto batch = New<data::CorpusBatch>(subBatches);
-        batch->setSentenceIds({0});
+        std::vector<size_t> sentIds(batchSize, 0);
 
-        auto search = New<BeamSearch>(options_, scorers_,
-                                      targetVocab_->GetEosId(), targetVocab_->GetUnkId());
+        auto batch = New<data::CorpusBatch>(subBatches);
+        batch->setSentenceIds(sentIds);
+
+        auto search = New<BeamSearch>(options_, scorers_, eos_);
         auto histories = search->search(graph_, batch);
 
-        NBest nbest;
-        for(auto history : histories) {
-          auto bestTranslation = history->Top();
-          auto bestTokens = (*targetVocab_)(std::get<0>(bestTranslation));
-          auto cost = std::get<1>(bestTranslation)->GetCost();
-          nbest.emplace_back(bestTokens, cost);
+        QSNBest nbest;
+        for(const auto& history : histories) {
+          Result bestTranslation = history->Top();
+          nbest.push_back(std::make_tuple(std::get<0>(bestTranslation),
+                                          std::get<2>(bestTranslation)));
         }
-        return nbest;
+
+        QSNBestBatch qsNbestBatch;
+        qsNbestBatch.push_back(nbest);
+        return qsNbestBatch;
     }
 
 };
 
-Ptr<BeamSearchDecoderBase> newDecoder(Ptr<Options> options) {
-    return New<BeamSearchDecoder>(options);
+Ptr<IBeamSearchDecoder> newDecoder(Ptr<Options> options, Word eos) {
+    return New<BeamSearchDecoder>(options, eos);
 }
 
 }
