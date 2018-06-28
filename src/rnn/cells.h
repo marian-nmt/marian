@@ -81,7 +81,7 @@ public:
     auto xW = dot(input, W_);
 
     if(layerNorm_)
-      xW = layer_norm(xW, gamma1_);
+      xW = layerNorm(xW, gamma1_);
 
     return {xW};
   }
@@ -94,7 +94,7 @@ public:
       stateDropped = dropout(recState, dropMaskS_);
     auto sU = dot(stateDropped, U_);
     if(layerNorm_)
-      sU = layer_norm(sU, gamma2_);
+      sU = layerNorm(sU, gamma2_);
 
     Expr output;
     if(xWs.empty())
@@ -207,7 +207,7 @@ public:
 
     auto xW = dot(input, W_);
     if(layerNorm_)
-      xW = layer_norm(xW, gamma1_);
+      xW = layerNorm(xW, gamma1_);
 
     return {xW};
   }
@@ -222,7 +222,7 @@ public:
 
     auto sU = dot(stateDropped, U_);
     if(layerNorm_)
-      sU = layer_norm(sU, gamma2_);
+      sU = layerNorm(sU, gamma2_);
 
     Expr xW;
     if(xWs.empty()) {
@@ -406,8 +406,8 @@ public:
         W = affine(input, W_, b_);
         Wx = affine(input, Wx_, bx_);
       }
-      W = layer_norm(W, W_lns_, W_lnb_, NEMATUS_LN_EPS);
-      Wx = layer_norm(Wx, Wx_lns_, Wx_lnb_, NEMATUS_LN_EPS);
+      W = layerNorm(W, W_lns_, W_lnb_, NEMATUS_LN_EPS);
+      Wx = layerNorm(Wx, Wx_lns_, Wx_lnb_, NEMATUS_LN_EPS);
 
       xW = concatenate({W, Wx}, keywords::axis = -1);
     } else {
@@ -434,8 +434,8 @@ public:
       Expr Ux;  // Temp_2_ in Amun
 
       if(encoder_) {
-        U = layer_norm(dot(stateDropped, U_), U_lns_, U_lnb_, NEMATUS_LN_EPS);
-        Ux = layer_norm(
+        U = layerNorm(dot(stateDropped, U_), U_lns_, U_lnb_, NEMATUS_LN_EPS);
+        Ux = layerNorm(
             dot(stateDropped, Ux_), Ux_lns_, Ux_lnb_, NEMATUS_LN_EPS);
 
         if(transition_) {
@@ -449,8 +449,8 @@ public:
           U = dot(stateDropped, U_);
           Ux = dot(stateDropped, Ux_);
         }
-        U = layer_norm(U, U_lns_, U_lnb_, NEMATUS_LN_EPS);
-        Ux = layer_norm(Ux, Ux_lns_, Ux_lnb_, NEMATUS_LN_EPS);
+        U = layerNorm(U, U_lns_, U_lnb_, NEMATUS_LN_EPS);
+        Ux = layerNorm(Ux, Ux_lns_, Ux_lnb_, NEMATUS_LN_EPS);
       }
 
       sU = concatenate({U, Ux}, keywords::axis = -1);
@@ -555,7 +555,7 @@ public:
     auto xW = dot(input, W_);
 
     if(layerNorm_)
-      xW = layer_norm(xW, gamma1_);
+      xW = layerNorm(xW, gamma1_);
 
     return {xW};
   }
@@ -573,7 +573,7 @@ public:
     auto sU = dot(recStateDropped, U_);
 
     if(layerNorm_)
-      sU = layer_norm(sU, gamma2_);
+      sU = layerNorm(sU, gamma2_);
 
     Expr xW;
     if(xWs.empty()) {
@@ -648,7 +648,7 @@ public:
     auto xWs = CellType::applyInput({input});
     auto xWm = affine(input, Wm_, bwm_);
     if(CellType::layerNorm_)
-      xWm = layer_norm(xWm, gamma1m_);
+      xWm = layerNorm(xWm, gamma1m_);
 
     xWs.push_back(xWm);
     return xWs;
@@ -662,7 +662,7 @@ public:
 
     auto sUm = affine(state.output, Um_, bm_);
     if(CellType::layerNorm_)
-      sUm = layer_norm(sUm, gamma2m_);
+      sUm = layerNorm(sUm, gamma2m_);
 
     auto mstate = xWm * sUm;
 
@@ -757,9 +757,9 @@ public:
     auto sUo = affine(recState, Uo_, bo_);
     auto sUc = affine(recState, Uc_, bc_);
 
-    auto f = logit(xWs[0] + sUf);
-    auto i = logit(xWs[1] + sUi);
-    auto o = logit(xWs[2] + sUo);
+    auto f = sigmoid(xWs[0] + sUf);
+    auto i = sigmoid(xWs[1] + sUi);
+    auto o = sigmoid(xWs[2] + sUo);
     auto c = tanh(xWs[3] + sUc);
 
     auto nextCellState = f * cellState + i * c;

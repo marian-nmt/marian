@@ -12,9 +12,10 @@ protected:
   bool inference_{false};
   size_t batchIndex_{0};
 
-  virtual std::tuple<Expr, Expr> lookup(Ptr<ExpressionGraph> graph,
-                                        Expr srcEmbeddings,
-                                        Ptr<data::CorpusBatch> batch) {
+  //virtual --Note: This used to be virtual, but is never overridden.
+  std::tuple<Expr, Expr> lookup(Ptr<ExpressionGraph> graph,
+                                Expr srcEmbeddings,
+                                Ptr<data::CorpusBatch> batch) const {
     using namespace keywords;
 
     auto subBatch = (*batch)[batchIndex_];

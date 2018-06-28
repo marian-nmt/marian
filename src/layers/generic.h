@@ -7,7 +7,7 @@
 
 namespace marian {
 namespace mlp {
-enum struct act : int { linear, tanh, logit, ReLU, LeakyReLU, PReLU, swish };
+enum struct act : int { linear, tanh, sigmoid, ReLU, LeakyReLU, PReLU, swish };
 }
 }
 
@@ -50,8 +50,8 @@ public:
     auto name = opt<std::string>("prefix");
     auto dim = opt<int>("dim");
 
-    auto layerNorm = opt<bool>("layer-normalization", false);
-    auto nematusNorm = opt<bool>("nematus-normalization", false);
+    auto useLayerNorm   = opt<bool>("layer-normalization",   false);
+    auto useNematusNorm = opt<bool>("nematus-normalization", false);
     auto activation = opt<act>("activation", act::linear);
 
     auto g = graph_;
@@ -71,8 +71,8 @@ public:
                         {1, dim},
                         inits::zeros);
 
-      if(layerNorm) {
-        if(nematusNorm) {
+      if(useLayerNorm) {
+        if(useNematusNorm) {
           auto ln_s = g->param(name + "_ln_s" + num,
                                {1, dim},
                                inits::from_value(1.f));
@@ -80,13 +80,13 @@ public:
                                {1, dim},
                                inits::zeros);
 
-          outputs.push_back(layer_norm(affine(in, W, b), ln_s, ln_b, NEMATUS_LN_EPS));
+          outputs.push_back(layerNorm(affine(in, W, b), ln_s, ln_b, NEMATUS_LN_EPS));
         } else {
           auto gamma = g->param(name + "_gamma" + num,
                                 {1, dim},
                                 inits::from_value(1.0));
 
-          outputs.push_back(layer_norm(dot(in, W), gamma, b));
+          outputs.push_back(layerNorm(dot(in, W), gamma, b));
         }
 
       } else {
@@ -96,14 +96,14 @@ public:
     }
 
     switch(activation) {
-      case act::linear: return plus(outputs);
-      case act::tanh: return tanh(outputs);
-      case act::logit: return logit(outputs);
-      case act::ReLU: return relu(outputs);
+      case act::linear:    return plus(outputs);
+      case act::tanh:      return tanh(outputs);
+      case act::sigmoid:   return sigmoid(outputs);
+      case act::ReLU:      return relu(outputs);
       case act::LeakyReLU: return leakyrelu(outputs);
-      case act::PReLU: return prelu(outputs);
-      case act::swish: return swish(outputs);
-      default: return plus(outputs);
+      case act::PReLU:     return prelu(outputs);
+      case act::swish:     return swish(outputs);
+      default:             return plus(outputs);
     }
   };
 
