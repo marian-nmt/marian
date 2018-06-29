@@ -43,25 +43,6 @@ void SyncGraphGroup::updateMovingAverage(Tensor paramsAvg,
   Element(_1 = ((1.f - decay) * _1) + (decay * _2), paramsAvg, params);
 }
 
-void SyncGraphGroup::fetchParams(Tensor oldParams,
-                                 const std::vector<Tensor>& params) {
-  // @TODO read guard on parameters
-  int pos = 0;
-  std::vector<std::thread> threads;
-  for(int idx = 0; idx < devices_.size(); idx++) {
-    threads.emplace_back(std::thread(
-        [=](int idx, int pos) {
-          oldParams->subtensor(pos, params[idx]->size())->copyFrom(params[idx]);
-        },
-        idx,
-        pos));
-    pos += shardSize_;
-  }
-  for(auto&& t : threads) {
-    t.join();
-  }
-}
-
 void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
   // Initialize 0th graph with random weights in one forward step
   {
@@ -93,12 +74,17 @@ void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
 
       auto paramsAlloc = New<TensorAllocator>(graph->getBackend());
       paramsAllocs_.push_back(paramsAlloc);
-      paramsAlloc->reserveExact(__size__ * sizeof(float));
+      
+      paramsAlloc->reserveExact(2 * __size__ * sizeof(float));
 
-      Tensor paramAvg;
+      Tensor param, paramAvg;
+      paramsAlloc->allocate(param, {1, __size__});
+      params_.push_back(param);
+
       paramsAlloc->allocate(paramAvg, {1, __size__});
-      paramAvg->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));
       paramsAvg_.push_back(paramAvg);
+
+      paramAvg->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));      
 
       // move to next shard
       pos += __size__;
@@ -168,8 +154,7 @@ void SyncGraphGroup::execute(const std::vector<Ptr<data::Batch>>& batches) {
       shardOpt_[idx]->update(curParam, curGrad);
 
       if(movingAvg_)
-        updateMovingAverage(
-          paramsAvg_[idx], curParam, scheduler_->numberOfBatches());
+        updateMovingAverage(paramsAvg_[idx], curParam, scheduler_->numberOfBatches());
     };
 
     comm_->foreach(forwardBackward);
@@ -201,17 +186,110 @@ void SyncGraphGroup::execute(const std::vector<Ptr<data::Batch>>& batches) {
     }
 
     if(scheduler_->validating()) {
-      if(movingAvg_)
-        for(auto graph : graphs_)
-          fetchParams(graph->params()->vals(), paramsAvg_);
+      if(movingAvg_) {
+        // save current params for later restoration
+        comm_->pushParams(params_);
+        // overwrite with averaged parameters
+        comm_->pullParams(paramsAvg_);
+      }
 
       // safe, because all graphs are idle during validation with sync sgd
       scheduler_->validate(graphs_);
 
-      //if(movingAvg_)
-      //  for(auto graph : graphs_)
-      //    fetchParams(graph->params()->vals(), params_);
+      if(movingAvg_) {
+        // restore original parameters
+        comm_->pullParams(params_);
+      }
     }
   }
 }
+
+void SyncGraphGroup::load() {
+  if(!options_->get<bool>("no-reload")) {
+    std::string name = options_->get<std::string>("model");
+
+    if(boost::filesystem::exists(name)) {
+      size_t i = 0;
+      if(scheduler_)
+        scheduler_->load(name);
+      for(auto graph : graphs_)
+        builders_[i++]->load(graph, name);
+
+      // @TODO: probably we want to have the list of DeviceIds as an attribute
+      std::vector<Ptr<Backend>> backends;
+      for(auto graph : graphs_)
+        backends.push_back(graph->getBackend());
+      shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends);
+
+    } else if(options_->has("pretrained-model")) {
+      std::string init = options_->get<std::string>("pretrained-model");
+      LOG(info,
+          "Initialize model weights with the pre-trained model {}",
+          init);
+      size_t i = 0;
+      for(auto graph : graphs_)
+        builders_[i++]->load(graph, init, false);
+    }
+  }
+}
+
+void SyncGraphGroup::save(bool final) {
+    if(final && scheduler_) {
+      if(movingAvg_ && paramsAvg_.size() > 0) {
+        comm_->pushParams(params_);
+        comm_->pullParams(paramsAvg_);
+      }
+       
+      scheduler_->validate(graphs_, true);
+
+      if(movingAvg_ && paramsAvg_.size() > 0)
+        comm_->pullParams(params_);
+    }
+
+    save(graphs_[0], final);
+  }
+
+  void SyncGraphGroup::save(Ptr<ExpressionGraph> graph, bool final) {
+    int idx = 0;
+    for(int i = 0; i < graphs_.size(); ++i) {
+      if(graph == graphs_[i]) {
+        idx = i;
+        break;
+      }
+    }
+
+    if(movingAvg_ && paramsAvg_.size() > 0) {
+      comm_->pushParams(params_);
+      comm_->pullParams(paramsAvg_);
+    }
+
+    std::string name = options_->get<std::string>("model");
+
+    if(options_->get<bool>("overwrite")) {
+      builders_[idx]->save(graphs_[idx], name, true);
+      if(scheduler_)
+        scheduler_->save(name);
+    } else {
+      if(!final) {
+        std::string numberOfBatches
+            = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
+                         : "unknown";
+        std::string nameOverwrite = name;
+        nameOverwrite.replace(
+            name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");
+        builders_[idx]->save(graphs_[idx], nameOverwrite);
+      }
+
+      builders_[idx]->save(graphs_[idx], name, true);
+      if(scheduler_)
+        scheduler_->save(name);
+    }
+
+    if(movingAvg_ && paramsAvg_.size() > 0)
+        comm_->pullParams(params_);
+    
+    size_t totalSize = graphs_[idx]->params()->vals()->size();
+    shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_, totalSize);
+  }
+
 }

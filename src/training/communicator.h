@@ -34,6 +34,9 @@ public:
 
   virtual void scatterReduce() = 0;
   virtual void allGather() = 0;
+
+  virtual void pushParams(std::vector<Tensor>& params) = 0;
+  virtual void pullParams(const std::vector<Tensor>& params) = 0;
 };
 
 Ptr<Communicator> createCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs);
