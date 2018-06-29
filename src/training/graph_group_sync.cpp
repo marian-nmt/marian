@@ -83,7 +83,7 @@ void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
     }
   }
 
-  if(movingAvg_ && tmpTensors_.size() == 0) {
+  if(movingAvg_ && paramsAvg_.size() == 0) {
     int totalSize = graphs_[0]->params()->vals()->size();
     shardSize_ = ceil(totalSize / (float)devices_.size());
 
