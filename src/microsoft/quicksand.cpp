@@ -1,7 +1,10 @@
 #include "quicksand.h"
 #include "marian.h"
 
+#ifdef MKL_FOUND
 #include "mkl.h"
+#endif
+
 
 #include "translator/scorers.h"
 #include "translator/beam_search.h"

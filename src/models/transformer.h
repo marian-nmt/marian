@@ -20,7 +20,14 @@ class Transformer : public EncoderDecoderBase {
   typedef EncoderDecoderBase Base;
 protected:
   using Base::options_; using Base::inference_;
+
   template <typename T> T opt(const std::string& key) const { Ptr<Options> options = options_; return options->get<T>(key); } // need to duplicate, since somehow using Base::opt is not working
+  template <typename T> T opt(const std::string& key, const T& def) const {
+    if(options_->has(key))
+      return options_->get<T>(key);
+    else
+      return def;
+  }
 
   Ptr<ExpressionGraph> graph_;
 public:
