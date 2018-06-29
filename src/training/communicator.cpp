@@ -225,47 +225,73 @@ public:
     // Copy paramter shard from i-th graph to shard params[i]. 
     // Graphs and shards with the same index live on the same device.
     
-    ncclGroupStart();
-    int pos = 0;
-    for(int i = 0; i < graphs_.size(); ++i) {
-      auto subParam = graphs_[i]->params()->vals()->subtensor(pos, params[i]->size());
-      ncclBroadcast((const void*)subParam->data(), 
-                    (void*)params[i]->data(), 
-                    params[i]->size(), 
-                    ncclFloat, 
-                    0,
-                    comms_[i], 
-                    streams_[i]);
-      pos += params[i]->size();
-    }
-    ncclGroupEnd();
+    auto copy = [this, params](size_t idx, int pos) {
+      // copy parameter shard to each graph
+      auto subParam = graphs_[idx]->params()->vals()->subtensor(pos, params[idx]->size());
+      params[idx]->copyFrom(subParam);
+    };
 
-    synchronizeAll();
+    this->foreach(copy);
   }
 
   void pullParams(const std::vector<Tensor>& params) {
     // Update all graphs with parameter shard
     
-    int totalSize = graphs_[0]->params()->vals()->size();
-    int shardSize = ceil(totalSize / (float)graphs_.size());
-
-    ncclGroupStart();
-    for(int i = 0; i < graphs_.size(); ++i) {
-      
-      const void* sendbuff = (const void*)params[i]->data();
-      void* recvbuff = (void*)graphs_[i]->params()->vals()->data();
-
-      ncclAllGather(sendbuff,
-                    recvbuff,
-                    shardSize,
-                    ncclFloat,
-                    comms_[i],
-                    streams_[i]);
-    }
-    ncclGroupEnd();
-
-    synchronizeAll();
+    auto gather = [this, params](size_t idx, int pos) {
+      // copy parameter shard to each graph
+      for(auto graph : graphs_) {
+        auto subParam = graph->params()->vals()->subtensor(pos, params[idx]->size());
+        subParam->copyFrom(params[idx]);
+      }
+    };
+    this->foreach(gather);
   }
+
+  // Doesn't work yet with NCCL
+  // void pushParams(std::vector<Tensor>& params) {
+  //   // Copy paramter shard from i-th graph to shard params[i]. 
+  //   // Graphs and shards with the same index live on the same device.
+    
+  //   int pos = 0;
+  //   for(int i = 0; i < graphs_.size(); ++i) {
+  //     auto subParam = graphs_[i]->params()->vals()->subtensor(pos, params[i]->size());
+  //     ncclGroupStart();
+  //     ncclBroadcast((const void*)subParam->data(), 
+  //                   (void*)params[i]->data(), 
+  //                   params[i]->size(), 
+  //                   ncclFloat, 
+  //                   0,
+  //                   comms_[i], 
+  //                   streams_[i]);
+  //     ncclGroupEnd();
+  //     pos += params[i]->size();
+  //   }
+  //   synchronizeAll();
+  // }
+
+  // void pullParams(const std::vector<Tensor>& params) {
+  //   // Update all graphs with parameter shard
+    
+  //   int totalSize = graphs_[0]->params()->vals()->size();
+  //   int shardSize = ceil(totalSize / (float)graphs_.size());
+
+  //   ncclGroupStart();
+  //   for(int i = 0; i < graphs_.size(); ++i) {
+      
+  //     const void* sendbuff = (const void*)params[i]->data();
+  //     void* recvbuff = (void*)graphs_[i]->params()->vals()->data();
+
+  //     ncclAllGather(sendbuff,
+  //                   recvbuff,
+  //                   shardSize,
+  //                   ncclFloat,
+  //                   comms_[i],
+  //                   streams_[i]);
+  //   }
+  //   ncclGroupEnd();
+
+  //   synchronizeAll();
+  // }
 };
 #endif
 

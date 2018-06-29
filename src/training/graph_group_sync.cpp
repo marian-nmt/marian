@@ -236,13 +236,16 @@ void SyncGraphGroup::load() {
 void SyncGraphGroup::save(bool final) {
     if(final && scheduler_) {
       if(movingAvg_ && paramsAvg_.size() > 0) {
+        // save current params for later restoration
         comm_->pushParams(params_);
+        // overwrite with averaged parameters
         comm_->pullParams(paramsAvg_);
       }
        
       scheduler_->validate(graphs_, true);
 
       if(movingAvg_ && paramsAvg_.size() > 0)
+        // restore original parameters
         comm_->pullParams(params_);
     }
 
@@ -259,7 +262,9 @@ void SyncGraphGroup::save(bool final) {
     }
 
     if(movingAvg_ && paramsAvg_.size() > 0) {
+      // save current params for later restoration
       comm_->pushParams(params_);
+      // overwrite with averaged parameters
       comm_->pullParams(paramsAvg_);
     }
 
@@ -286,7 +291,8 @@ void SyncGraphGroup::save(bool final) {
     }
 
     if(movingAvg_ && paramsAvg_.size() > 0)
-        comm_->pullParams(params_);
+      // restore original parameters
+      comm_->pullParams(params_);
     
     size_t totalSize = graphs_[idx]->params()->vals()->size();
     shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_, totalSize);
