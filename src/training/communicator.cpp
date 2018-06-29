@@ -122,7 +122,11 @@ public:
   }
 
   ~NCCLCommunicator() {
-
+    for(int i = 0; i < devices_.size(); ++i) {
+      cudaSetDevice(devices_[i]);
+      cudaStreamDestroy(streams_[i]);
+      ncclCommDestroy(comms_[i]);
+    }
   }
 
   void scatterReduce() {
