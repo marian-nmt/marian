@@ -62,15 +62,15 @@ void ConcatCont(Tensor out, const std::vector<Tensor>& inputs, int axis) {
   cudaStreamSynchronize(0);
 }
 
+template <bool add>
 __global__ void gInsertCols(float* out,
-                            const float* in,
-                            size_t rows,
-                            size_t cols,
-                            size_t cols_out,
-                            size_t cols_in,
-                            size_t offset_out,
-                            size_t offset_in,
-                            float beta) {
+                 const float* in,
+                 size_t rows,
+                 size_t cols,
+                 size_t cols_out,
+                 size_t cols_in,
+                 size_t offset_out,
+                 size_t offset_in) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
@@ -80,7 +80,10 @@ __global__ void gInsertCols(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols)
-          rowOut[i] = rowIn[i] + beta * rowOut[i];
+          if(add)
+            rowOut[i] += rowIn[i];
+          else
+            rowOut[i] = rowIn[i];
       }
     }
   }
@@ -102,8 +105,8 @@ void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
     int blocks = std::min(MAX_BLOCKS, rows);
     int threads = std::min(MAX_THREADS, cols_in);
 
-    gInsertCols<<<blocks, threads>>>(
-        out->data(), in->data(), rows, cols_in, cols_out, cols_in, offset, 0, 0);
+    gInsertCols<false><<<blocks, threads>>>(
+        out->data(), in->data(), rows, cols_in, cols_out, cols_in, offset, 0);
     offset += cols_in;
   }
   cudaStreamSynchronize(0);
@@ -195,8 +198,8 @@ void Split1(std::vector<Tensor>& outputs, const Tensor in) {
     int blocks = std::min(MAX_BLOCKS, rows);
     int threads = std::min(MAX_THREADS, cols_out);
 
-    gInsertCols<<<blocks, threads>>>(
-        out->data(), in->data(), rows, cols_out, cols_out, cols_in, 0, offset, 1);
+    gInsertCols<true><<<blocks, threads>>>(
+        out->data(), in->data(), rows, cols_out, cols_out, cols_in, 0, offset);
     offset += cols_out;
   }
   cudaStreamSynchronize(0);
@@ -252,11 +255,11 @@ void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax) {
     SplitCont(outputs, in, ax);
 }
 
+template <bool add>
 __global__ void gTransposeND(
     functional::Tensor<float> out,
     const functional::Tensor<float> in,
-    const functional::Array<int, functional::Shape::size()> permute,
-    float beta) {
+    const functional::Array<int, functional::Shape::size()> permute) {
   constexpr size_t N = functional::Shape::size();
   functional::Array<int, N> oDims;
   functional::Array<int, N> pDims;
@@ -268,18 +271,20 @@ __global__ void gTransposeND(
       out.shape().dims(index, oDims);
       for(int i = 0; i < N; ++i)
         pDims[permute[i]] = oDims[i];
-      out[index] = in[pDims] + beta * out[index];
+      if(add)
+        out[index] += in[pDims];
+      else
+        out[index] = in[pDims];
     }
   }
 }
 
-__global__
-void gTranspose0213(float* out, const float* in,
+template <bool add>
+__global__ void gTranspose0213(float* out, const float* in,
                     int rows,
                     int cols,
                     int stride1,
-                    int stride2,
-                    float beta) {
+                    int stride2) {
 
   int stride = stride1 * stride2;
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -296,15 +301,19 @@ void gTranspose0213(float* out, const float* in,
 
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
-        if(i < cols)
-          rowOut[i] = rowIn[i] + beta * rowOut[i];
+        if(i < cols) {
+          if(add)
+            rowOut[i] += rowIn[i];
+          else
+            rowOut[i] = rowIn[i];
+        }
       }
     }
   }
 
 }
 
-void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis, float beta) {
+void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   cudaSetDevice(out->getDevice().no);
   if(vAxis == std::vector<int>({0, 2, 1, 3})) {
 
@@ -317,8 +326,8 @@ void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis, float bet
     int stride1 = out->shape()[-2];
     int stride2 = out->shape()[-3];
 
-    gTranspose0213<<<blocks, threads>>>(out->data(), in->data(),
-                                        rows, cols, stride1, stride2, beta);
+    gTranspose0213<false><<<blocks, threads>>>(out->data(), in->data(),
+                                               rows, cols, stride1, stride2);
   }
   else {
 
@@ -334,7 +343,41 @@ void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis, float bet
     int threads = std::min(MAX_THREADS, length);
     int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-    gTransposeND<<<blocks, threads>>>(out, in, axes, beta);
+    gTransposeND<false><<<blocks, threads>>>(out, in, axes);
+  }
+}
+
+void TransposeNDGrad(Tensor out, Tensor in, const std::vector<int>& vAxis) {
+  cudaSetDevice(out->getDevice().no);
+  if(vAxis == std::vector<int>({0, 2, 1, 3})) {
+
+    int rows = out->shape().elements() / out->shape().back();
+    int cols = out->shape().back();
+
+    int blocks = std::min(MAX_BLOCKS, rows);
+    int threads = std::min(MAX_THREADS, cols);
+
+    int stride1 = out->shape()[-2];
+    int stride2 = out->shape()[-3];
+
+    gTranspose0213<true><<<blocks, threads>>>(out->data(), in->data(),
+                                              rows, cols, stride1, stride2);
+  }
+  else {
+
+    functional::Array<int, functional::Shape::size()> axes;
+    int diff = functional::Shape::size() - vAxis.size();
+    for(int i = 0; i < axes.size(); ++i)
+      if(i < diff)
+        axes[i] = i;
+      else
+        axes[i] = vAxis[i - diff] + diff;
+
+    int length = out->shape().elements();
+    int threads = std::min(MAX_THREADS, length);
+    int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
+
+    gTransposeND<true><<<blocks, threads>>>(out, in, axes);
   }
 }
 
@@ -1693,19 +1736,26 @@ void LayerNormalizationGrad(Tensor gradX,
       eps);
 }
 
-__global__ void gShift(float* out, const float* in, int length, int offset, float beta) {
+template <bool add>
+__global__ void gShift(float* out, const float* in, int length, int offset) {
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      if(index - offset < 0 || index - offset >= length)
-        out[index] = 0;
-      else
-        out[index] = in[index - offset] + beta * out[index];
+      if(add) {
+        if(index - offset >= 0 && index - offset < length)
+          out[index] += in[index - offset];
+      }
+      else {
+        if(index - offset < 0 || index - offset >= length)
+          out[index] = 0;
+        else
+          out[index] = in[index - offset];
+      }
     }
   }
 }
 
-void Shift(Tensor out, Tensor in, marian::Shape shift, bool invert, float beta) {
+void Shift(Tensor out, Tensor in, marian::Shape shift, bool invert) {
   ABORT_IF(in->shape().size() != shift.size(), "bad dimensions");
 
   // BUGBUG: This can only shift along the first axis. Shifting, e.g., along the last axis cannot be implemented this way.
@@ -1723,7 +1773,28 @@ void Shift(Tensor out, Tensor in, marian::Shape shift, bool invert, float beta) 
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-  gShift<<<blocks, threads>>>(out->data(), in->data(), length, offset, beta);
+  gShift<false><<<blocks, threads>>>(out->data(), in->data(), length, offset);
+}
+
+void ShiftGrad(Tensor out, Tensor in, marian::Shape shift, bool invert) {
+  ABORT_IF(in->shape().size() != shift.size(), "bad dimensions");
+
+  // BUGBUG: This can only shift along the first axis. Shifting, e.g., along the last axis cannot be implemented this way.
+  int offset = 0;
+  for(int i = 0; i < shift.size(); ++i)
+    offset += in->shape().stride(i) * shift[i];
+
+  if(invert)
+    offset = -offset;
+
+  cudaSetDevice(out->getDevice().no);
+
+  int length = out->shape().elements();
+
+  int threads = std::min(MAX_THREADS, length);
+  int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
+
+  gShift<true><<<blocks, threads>>>(out->data(), in->data(), length, offset);
 }
 
 __global__ void gSetSparse(float* out,

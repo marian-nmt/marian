@@ -806,11 +806,11 @@ struct TransposeNodeOp : public UnaryNodeOp {
       : UnaryNodeOp(a, newShape(a, axes)), axes_{axes} {}
 
   NodeOps forwardOps() {
-    return {NodeOp(TransposeND(val_, child(0)->val(), axes_, 0.f))};
+    return {NodeOp(TransposeND(val_, child(0)->val(), axes_))};
   }
 
   NodeOps backwardOps() {
-    return {NodeOp(TransposeND(child(0)->grad(), adj_, axes_, 1.f))};
+    return {NodeOp(TransposeNDGrad(child(0)->grad(), adj_, axes_))};
   }
 
   template <class... Args>
@@ -998,12 +998,12 @@ struct ShiftNodeOp : public UnaryNodeOp {
 
   NodeOps forwardOps() {
     // last parameter beta=0 says to use = (out = in + beta * out)
-    return {NodeOp(Shift(val_, child(0)->val(), shift_, false, 0.f))};
+    return {NodeOp(Shift(val_, child(0)->val(), shift_, false))};
   }
 
   NodeOps backwardOps() {
     // last parameter beta=1 says to use += (out = in + beta * out)
-    return {NodeOp(Shift(child(0)->grad(), adj_, shift_, true, 1.0f))};
+    return {NodeOp(ShiftGrad(child(0)->grad(), adj_, shift_, true))};
   }
 
   const std::string type() { return "shift"; }
