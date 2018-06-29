@@ -96,6 +96,11 @@ public:
   }
 
   template <typename T>
+  T opt(const std::string& key, const T& def) {
+    return options_->get<T>(key, def);
+  }
+
+  template <typename T>
   void set(std::string key, T value) {
     options_->set(key, value);
   }

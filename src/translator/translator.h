@@ -88,6 +88,10 @@ public:
 
     bg.prepare(false);
 
+    // @TODO: unify this and get rid of Config object.
+    auto tOptions = New<Options>();
+    tOptions->merge(options_);
+
     while(bg) {
       auto batch = bg.next();
 
@@ -100,7 +104,7 @@ public:
           scorers = scorers_[id % devices.size()];
         }
 
-        auto search = New<Search>(options_, scorers, trgVocab_->GetEosId(), trgVocab_->GetUnkId());
+        auto search = New<Search>(tOptions, scorers, trgVocab_->GetEosId(), trgVocab_->GetUnkId());
 
         auto histories = search->search(graph, batch);
 

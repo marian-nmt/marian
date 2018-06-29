@@ -12,18 +12,16 @@ namespace marian {
 
 class BeamSearch {
 private:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
   std::vector<Ptr<Scorer>> scorers_;
   size_t beamSize_;
   Word trgEosId_ = -1;
   Word trgUnkId_ = -1;
 
 public:
-  template <class... Args>
-  BeamSearch(Ptr<Config> options,
+  BeamSearch(Ptr<Options> options,
              const std::vector<Ptr<Scorer>>& scorers,
-             Word trgEosId, Word trgUnkId,
-             Args... args)
+             Word trgEosId, Word trgUnkId = -1)
       : options_(options),
         scorers_(scorers),
         beamSize_(options_->has("beam-size")
@@ -106,6 +104,7 @@ public:
 
   Histories search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
     int dimBatch = batch->size();
+
     Histories histories;
     for(int i = 0; i < dimBatch; ++i) {
       size_t sentId = batch->getSentenceIds()[i];
@@ -206,7 +205,7 @@ public:
 
       //**********************************************************************
       // suppress specific symbols if not at right positions
-      if(options_->has("allow-unk") && !options_->get<bool>("allow-unk"))
+      if(trgUnkId_ != -1 && options_->has("allow-unk") && !options_->get<bool>("allow-unk"))
         suppressWord(totalCosts, trgUnkId_);
       for(auto state : states)
         state->blacklist(totalCosts, batch);

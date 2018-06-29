@@ -129,6 +129,11 @@ public:
     return options_->get<T>(key);
   }
 
+  template <typename T>
+  T opt(const std::string& key, const T& def) {
+    return options_->get<T>(key, def);
+  }
+
   virtual void clear() = 0;
 };
 
