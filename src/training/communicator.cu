@@ -46,7 +46,7 @@ public:
     ncclCommInitAll(comms_.data(), devices_.size(), devices_.data());
   }
 
-  ~NCCLCommunicator() {
+  ~NCCLCommunicator() override {
     for(int i = 0; i < devices_.size(); ++i) {
       cudaSetDevice(devices_[i]);
       cudaStreamDestroy(streams_[i]);
@@ -54,7 +54,7 @@ public:
     }
   }
 
-  void scatterReduce() {
+  void scatterReduce() override {
     int totalSize = graphs_[0]->params()->vals()->size();
     int shardSize = ceil(totalSize / (float)graphs_.size());
 
@@ -84,7 +84,7 @@ public:
     synchronizeAll();
   }
 
-  void allGather() {
+  void allGather() override {
     int totalSize = graphs_[0]->params()->vals()->size();
     int shardSize = ceil(totalSize / (float)graphs_.size());
 
@@ -113,7 +113,7 @@ public:
     synchronizeAll();
   }
 
-  void swapParams(const std::vector<Tensor>& params) {
+  void swapParams(const std::vector<Tensor>& params) override {
     // Update all graphs with parameter shard
     ABORT_IF(graphs_.size() < 2, "Swap requires at least two graphs");
 
@@ -136,7 +136,7 @@ public:
     this->foreach(gather);
   }
 
-  void pushParams(std::vector<Tensor>& params) {
+  void pushParams(std::vector<Tensor>& params) override {
     // Copy paramter shard from i-th graph to shard params[i]. 
     // Graphs and shards with the same index live on the same device.
     
@@ -149,7 +149,7 @@ public:
     this->foreach(copy);
   }
 
-  void pullParams(const std::vector<Tensor>& params) {
+  void pullParams(const std::vector<Tensor>& params) override {
     // Update all graphs with parameter shard
     
     auto gather = [this, params](size_t idx, int pos) {
@@ -209,18 +209,11 @@ public:
   // }
 };
 
-// This version can also check for NCCL
 Ptr<Communicator> createCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs) {
-#ifdef USE_NCCL
-  for(auto& graph : graphs) {
-    if(graph->getBackend()->getDevice().type == DeviceType::cpu) {
+  for(auto& graph : graphs)
+    if(graph->getBackend()->getDevice().type == DeviceType::cpu)
       return New<DefaultCommunicator>(graphs);
-    }
-  }
   return New<NCCLCommunicator>(graphs);
-#else
-  return New<DefaultCommunicator>(graphs);
-#endif
 }
 
 #endif
