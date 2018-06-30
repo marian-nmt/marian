@@ -39,7 +39,23 @@ public:
   virtual void swapParams(const std::vector<Tensor>& params) = 0;
 };
 
-Ptr<Communicator> createCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs);
+class DefaultCommunicator : public Communicator {
+private:
+  std::vector<Ptr<TensorAllocator>> paramsAllocs_;
+  std::vector<Tensor> tmpTensors_;
 
+  void init();
+
+public:
+  DefaultCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs);
+
+  void scatterReduce();
+  void allGather();
+  void pushParams(std::vector<Tensor>& params);
+  void pullParams(const std::vector<Tensor>& params);
+  void swapParams(const std::vector<Tensor>& params);
+};
+
+Ptr<Communicator> createCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs);
 
 }
