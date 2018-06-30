@@ -25,7 +25,6 @@ private:
   int shardSize_;
   bool first_{true};
 
-  std::vector<Tensor> params_;
   std::vector<Tensor> paramsAvg_;
   std::vector<Ptr<TensorAllocator>> paramsAllocs_;
   

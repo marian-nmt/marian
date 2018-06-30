@@ -75,12 +75,9 @@ void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
       auto paramsAlloc = New<TensorAllocator>(graph->getBackend());
       paramsAllocs_.push_back(paramsAlloc);
       
-      paramsAlloc->reserveExact(2 * __size__ * sizeof(float));
+      paramsAlloc->reserveExact(__size__ * sizeof(float));
 
-      Tensor param, paramAvg;
-      paramsAlloc->allocate(param, {1, __size__});
-      params_.push_back(param);
-
+      Tensor paramAvg;
       paramsAlloc->allocate(paramAvg, {1, __size__});
       paramsAvg_.push_back(paramAvg);
 
@@ -187,18 +184,14 @@ void SyncGraphGroup::execute(const std::vector<Ptr<data::Batch>>& batches) {
 
     if(scheduler_->validating()) {
       if(movingAvg_) {
-        // save current params for later restoration
-        comm_->pushParams(params_);
-        // overwrite with averaged parameters
-        comm_->pullParams(paramsAvg_);
+        comm_->swapParams(paramsAvg_);
       }
 
       // safe, because all graphs are idle during validation with sync sgd
       scheduler_->validate(graphs_);
 
       if(movingAvg_) {
-        // restore original parameters
-        comm_->pullParams(params_);
+        comm_->swapParams(paramsAvg_);
       }
     }
   }
@@ -235,20 +228,14 @@ void SyncGraphGroup::load() {
 
 void SyncGraphGroup::save(bool final) {
     if(final && scheduler_) {
-      if(movingAvg_ && paramsAvg_.size() > 0) {
-        // save current params for later restoration
-        comm_->pushParams(params_);
-        // overwrite with averaged parameters
-        comm_->pullParams(paramsAvg_);
-      }
+      if(movingAvg_ && paramsAvg_.size() > 0)
+        comm_->swapParams(paramsAvg_);
        
       scheduler_->validate(graphs_, true);
 
       if(movingAvg_ && paramsAvg_.size() > 0)
-        // restore original parameters
-        comm_->pullParams(params_);
+        comm_->swapParams(paramsAvg_);
     }
-
     save(graphs_[0], final);
   }
 
@@ -261,12 +248,8 @@ void SyncGraphGroup::save(bool final) {
       }
     }
 
-    if(movingAvg_ && paramsAvg_.size() > 0) {
-      // save current params for later restoration
-      comm_->pushParams(params_);
-      // overwrite with averaged parameters
-      comm_->pullParams(paramsAvg_);
-    }
+    if(movingAvg_ && paramsAvg_.size() > 0)
+      comm_->swapParams(paramsAvg_);
 
     std::string name = options_->get<std::string>("model");
 
@@ -291,8 +274,7 @@ void SyncGraphGroup::save(bool final) {
     }
 
     if(movingAvg_ && paramsAvg_.size() > 0)
-      // restore original parameters
-      comm_->pullParams(params_);
+      comm_->swapParams(paramsAvg_);
     
     size_t totalSize = graphs_[idx]->params()->vals()->size();
     shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_, totalSize);

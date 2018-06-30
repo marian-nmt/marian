@@ -1,5 +1,3 @@
-#include "functional/functional.h"
-#include "tensors/tensor_operators.h"
 #include "graph/expression_graph.h"
 
 namespace marian {
@@ -20,6 +18,7 @@ public:
 
     int pos = 0;
     std::vector<std::thread> group;
+    // iterate over all shards
     for(int idx = 0; idx < graphs_.size(); ++idx) {
       int size = std::min(shardSize, totalSize);
 
@@ -36,7 +35,8 @@ public:
   virtual void allGather() = 0;
 
   virtual void pushParams(std::vector<Tensor>& params) = 0;
-  virtual void pullParams(const std::vector<Tensor>& params) = 0;
+  virtual void pullParams(const std::vector<Tensor>& params) = 0;  
+  virtual void swapParams(const std::vector<Tensor>& params) = 0;
 };
 
 Ptr<Communicator> createCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs);

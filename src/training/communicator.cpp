@@ -115,6 +115,28 @@ public:
     };
     this->foreach(gather);
   }
+
+  void swapParams(const std::vector<Tensor>& params) {
+    // Update all graphs with parameter shard
+    ABORT_IF(graphs_.size() < 2, "Swap requires at least two graphs");
+
+    auto gather = [this, params](size_t idx, int pos) {
+      // copy parameter shard to each graph, apart from last graph
+      for(int i = 0; i < graphs_.size() - 1; ++i) {
+        auto subParam = graphs_[i]->params()->vals()->subtensor(pos, params[idx]->size());
+        subParam->copyFrom(params[idx]);
+      }
+
+      // back-up shard from last graph
+      auto subParamLast = graphs_.back()->params()->vals()->subtensor(pos, params[idx]->size());
+      params[idx]->copyFrom(subParamLast);
+
+      auto subParamFirst = graphs_[0]->params()->vals()->subtensor(pos, params[idx]->size());
+      subParamLast->copyFrom(subParamFirst);
+    };
+    // execute for each shard
+    this->foreach(gather);
+  }
 };
 
 #ifdef USE_NCCL
@@ -244,6 +266,29 @@ public:
         subParam->copyFrom(params[idx]);
       }
     };
+    this->foreach(gather);
+  }
+
+  void swapParams(const std::vector<Tensor>& params) {
+    // Update all graphs with parameter shard
+    ABORT_IF(graphs_.size() < 2, "Swap requires at least two graphs");
+
+    auto gather = [this, params](size_t idx, int pos) {
+      // copy parameter shard to each graph, apart from last graph
+      for(int i = 0; i < graphs_.size() - 1; ++i) {
+        auto subParam = graphs_[i]->params()->vals()->subtensor(pos, params[idx]->size());
+        subParam->copyFrom(params[idx]);
+      }
+
+      // back-up shard from last graph
+      auto subParamLast = graphs_.back()->params()->vals()->subtensor(pos, params[idx]->size());
+      params[idx]->copyFrom(subParamLast);
+
+      auto subParamFirst = graphs_[0]->params()->vals()->subtensor(pos, params[idx]->size());
+      subParamLast->copyFrom(subParamFirst);
+    };
+
+    // execute for each shard
     this->foreach(gather);
   }
 
