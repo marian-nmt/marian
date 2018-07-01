@@ -50,12 +50,13 @@ inline void gInsertCols(float* out,
                         size_t cols_out,
                         size_t cols_in,
                         size_t offset_out,
-                        size_t offset_in) {
+                        size_t offset_in,
+                        float beta) {
   for(int j = 0; j < rows; ++j) {
     float* rowOut = out + j * cols_out + offset_out;
     const float* rowIn = in + j * cols_in + offset_in;
     for(int i = 0; i < cols; ++i) {
-      rowOut[i] = rowIn[i];
+      rowOut[i] = rowIn[i] + beta * rowOut[i];
     }
   }
 }
@@ -71,7 +72,7 @@ void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
              "First dimension must be equal");
     int cols_in = in->shape().back();
     cpu::gInsertCols(
-        out->data(), in->data(), rows, cols_in, cols_out, cols_in, offset, 0);
+        out->data(), in->data(), rows, cols_in, cols_out, cols_in, offset, 0, 0);
     offset += cols_in;
   }
 }
@@ -91,8 +92,11 @@ void Split1(std::vector<Tensor>& outputs, const Tensor in) {
     ABORT_IF(rows != out->shape().elements() / out->shape().back(),
              "First dimension must be equal");
     int cols_out = out->shape().back();
+
+    // set last parameter to 1 to enable += instead of =
+    // @TODO: do this in a more principled ways accross all/most kernels
     cpu::gInsertCols(
-        out->data(), in->data(), rows, cols_out, cols_out, cols_in, 0, offset);
+        out->data(), in->data(), rows, cols_out, cols_out, cols_in, 0, offset, 1);
     offset += cols_out;
   }
 }
@@ -108,9 +112,17 @@ void SplitCont(std::vector<Tensor>& outputs, const Tensor in, int axis) {
       size_t size = out->shape().elements() / step;
       size_t offset2 = i * size;
 
-      std::copy(in->data() + offset1,
-                in->data() + offset1 + size,
-                out->data() + offset2);
+      // BUG: This overwrites gradients!
+      //std::copy(in->data() + offset1,
+      //          in->data() + offset1 + size,
+      //          out->data() + offset2);
+
+      // Fixes gradient problem, @TODO: check performance
+      std::transform(in->data() + offset1,
+                     in->data() + offset1 + size,
+                     out->data() + offset2,
+                     out->data() + offset2,
+                     [](float a, float b){ return a + b; });
 
       offset1 += size;
     }
@@ -124,6 +136,7 @@ void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax) {
     SplitCont(outputs, in, ax);
 }
 
+template <bool add>
 void Transpose0213(Tensor out, Tensor in) {
   int cols = in->shape()[-1];
   int rows = in->shape().elements() / in->shape()[-1];
@@ -141,7 +154,15 @@ void Transpose0213(Tensor out, Tensor in) {
       const float* inRow = in->data() + src * cols ;
       float* outRow = out->data() + dst * cols;
 
-      std::copy(inRow, inRow + cols, outRow);
+      if(!add) {
+        // mostly for fast forward computation
+        std::copy(inRow, inRow + cols, outRow);
+      }
+      else {
+        for(int i = 0; i < cols; ++i) {
+          outRow[i] += inRow[i];
+        }
+      }
     }
   }
 }
@@ -186,6 +207,7 @@ void Transpose10(Tensor out, const Tensor in) {
 }
 
 // @TODO: optimize this, currently it's quite horrible
+template <bool add>
 void TransposeGeneric(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   functional::Array<int, functional::Shape::size()> permute;
   int diff = functional::Shape::size() - vAxis.size();
@@ -207,19 +229,29 @@ void TransposeGeneric(Tensor out, Tensor in, const std::vector<int>& vAxis) {
     gOut.shape().dims(index, oDims);
     for(int i = 0; i < N; ++i)
       pDims[permute[i]] = oDims[i];
-    gOut[index] = gIn[pDims];
+    if(add)
+      gOut[index] += gIn[pDims];
+    else
+      gOut[index] = gIn[pDims];
   }
 }
 
 void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   if(vAxis == std::vector<int>({0, 2, 1, 3}))
-    Transpose0213(out, in);
-  else if(vAxis == std::vector<int>({1, 0}) 
-          && in->shape()[-1] % 16 == 0 
+    Transpose0213<false>(out, in);
+  else if(vAxis == std::vector<int>({1, 0})
+          && in->shape()[-1] % 16 == 0
           && in->shape()[-2] % 16 == 0)
     Transpose10(out, in);
   else
-    TransposeGeneric(out, in, vAxis);
+    TransposeGeneric<false>(out, in, vAxis);
+}
+
+void TransposeNDGrad(Tensor out, Tensor in, const std::vector<int>& vAxis) {
+  if(vAxis == std::vector<int>({0, 2, 1, 3}))
+    Transpose0213<true>(out, in);
+  else
+    TransposeGeneric<true>(out, in, vAxis);
 }
 
 void Softmax(Tensor out_, Tensor in_, Tensor mask_) {
@@ -412,9 +444,8 @@ void PasteCols(Tensor out_,
     const float* rowIn = in + j * colsIn;
     float* rowOut = out + j * colsOut;
 
-    // @TODO: should this be a sum?
     for(int i = 0; i < colsIn; ++i) {
-      rowOut[indices[i]] = rowIn[i];
+      rowOut[indices[i]] += rowIn[i];
     }
   }
 }
@@ -458,7 +489,6 @@ void GRUFastForward(Tensor out_, std::vector<Tensor> inputs, bool final) {
 
 #pragma omp simd
     for(int i = 0; i < cols; ++i) {
-      // @TODO: stable logit
       float r = stableLogit(xWrow[i] + sUrow[i] + b[i]);
 
       int k = i + cols;
@@ -896,6 +926,26 @@ void Shift(Tensor out_, Tensor in_, marian::Shape shift, bool invert) {
       out[i] = 0.f;
     } else {
       out[i] = in[i - offset];
+    }
+  }
+}
+
+void ShiftGrad(Tensor out_, Tensor in_, marian::Shape shift, bool invert) {
+  int offset = 0;
+  for(int i = 0; i < shift.size(); ++i)
+    offset += in_->shape().stride(i) * shift[i];
+
+  if(invert)
+    offset = -offset;
+
+  float* out = out_->data();
+  const float* in = in_->data();
+
+  int length = out_->shape().elements();
+#pragma omp parallel for
+  for(int i = 0; i < length; ++i) {
+    if(i - offset >= 0 && i - offset < length) {
+      out[i] += in[i - offset];
     }
   }
 }
