@@ -68,17 +68,8 @@ public:
       restored = false;
 
       while(*batchGenerator && scheduler->keepGoing()) {
-        if(model->numBatches() > 1) {
-          auto batchesTemp = batchGenerator->nextN(model->numBatches());
-          std::vector<Ptr<data::Batch>> batches;
-          for(auto b : batchesTemp)
-            batches.push_back(b);
-          model->update(batches);
-        }
-        else {
-          auto batch = batchGenerator->next();
-          model->update(batch);
-        }
+        auto batch = batchGenerator->next();
+        model->update(batch);
       }
 
       if(scheduler->keepGoing())

@@ -74,14 +74,14 @@ void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
 
       auto paramsAlloc = New<TensorAllocator>(graph->getBackend());
       paramsAllocs_.push_back(paramsAlloc);
-      
+
       paramsAlloc->reserveExact(__size__ * sizeof(float));
 
       Tensor paramAvg;
       paramsAlloc->allocate(paramAvg, {1, __size__});
       paramsAvg_.push_back(paramAvg);
 
-      paramAvg->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));      
+      paramAvg->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));
 
       // move to next shard
       pos += __size__;
@@ -90,9 +90,9 @@ void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
   }
 }
 
-void SyncGraphGroup::execute(const std::vector<Ptr<data::Batch>>& batches) {
-  // if there are fewer batches than we need, split last batch into right number
-  // of pieces and replace last batch with the splits.
+void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
+  size_t devs = devices_.size();
+  auto batches = batch->split(delay_ * devs);
 
   float div = batches.size();  // no. of batches
   // do not average gradients if cost type is sum.
@@ -100,7 +100,6 @@ void SyncGraphGroup::execute(const std::vector<Ptr<data::Batch>>& batches) {
     div = 1;
 
   std::vector<std::vector<Ptr<data::Batch>>> delayedBatches;
-  size_t devs = devices_.size();
 
   for(int i = 0; i < delay_; ++i) {
     if(i * devs < batches.size()) {
@@ -230,7 +229,7 @@ void SyncGraphGroup::save(bool final) {
     if(final && scheduler_) {
       if(movingAvg_ && paramsAvg_.size() > 0)
         comm_->swapParams(paramsAvg_);
-       
+
       scheduler_->validate(graphs_, true);
 
       if(movingAvg_ && paramsAvg_.size() > 0)
@@ -275,7 +274,7 @@ void SyncGraphGroup::save(bool final) {
 
     if(movingAvg_ && paramsAvg_.size() > 0)
       comm_->swapParams(paramsAvg_);
-    
+
     size_t totalSize = graphs_[idx]->params()->vals()->size();
     shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_, totalSize);
   }

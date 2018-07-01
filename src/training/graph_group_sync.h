@@ -27,7 +27,7 @@ private:
 
   std::vector<Tensor> paramsAvg_;
   std::vector<Ptr<TensorAllocator>> paramsAllocs_;
-  
+
   bool movingAvg_{false};
   float mvDecay_{1e-4};
   size_t delay_{1};
@@ -38,19 +38,14 @@ private:
 
   void fetchParams(Tensor oldParams, const std::vector<Tensor>& params);
 
-  void execute(const std::vector<Ptr<data::Batch>>& batches);
+  void execute(Ptr<data::Batch> batch);
 
 public:
   SyncGraphGroup(Ptr<Config> config);
 
   void update(Ptr<data::Batch> batch) {
-    auto batches = batch->split(numBatches());
-    update(batches);
-  }
-
-  void update(const std::vector<Ptr<data::Batch>>& batches) {
     ABORT_IF(finalized_, "Training has already finished.");
-    execute(batches);
+    execute(batch);
   }
 
   void load();
@@ -58,7 +53,7 @@ public:
   void save(Ptr<ExpressionGraph> graph, bool final = false);
 
   Ptr<data::BatchStats> collectStats() {
-    return GraphGroup::collectStats(graphs_[0], builders_[0], 1);
+    return GraphGroup::collectStats(graphs_[0], builders_[0], numBatches());
   }
 
   size_t numBatches() {

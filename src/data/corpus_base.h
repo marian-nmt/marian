@@ -283,8 +283,11 @@ public:
                                     Ptr<Options> options) {
     std::vector<Ptr<SubBatch>> batches;
 
+    size_t idx = 0;
     for(auto len : lengths) {
       auto sb = New<SubBatch>(batchSize, len);
+      // set word indices to different values to avoid same hashes
+      std::fill(sb->data().begin(), sb->data().end(), idx++);
       std::fill(sb->mask().begin(), sb->mask().end(), 1);
 
       batches.push_back(sb);

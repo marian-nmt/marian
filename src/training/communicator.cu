@@ -208,14 +208,17 @@ public:
   //   synchronizeAll();
   // }
 };
+#endif
 
 Ptr<Communicator> createCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs) {
+#ifdef USE_NCCL
   for(auto& graph : graphs)
     if(graph->getBackend()->getDevice().type == DeviceType::cpu)
       return New<DefaultCommunicator>(graphs);
   return New<NCCLCommunicator>(graphs);
-}
-
+#else
+  return New<DefaultCommunicator>(graphs);
 #endif
+}
 
 }
