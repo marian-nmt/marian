@@ -13,7 +13,7 @@ option(COMPILE_CPU "Compile CPU version" ON)
 option(COMPILE_CUDA "Compile GPU version" ON)
 option(USE_STATIC_LIBS "Compile GPU version" OFF)
 option(USE_CUDNN "Use CUDNN library" OFF)
-option(USE_NCCL "Use CUDNN library" ON)
+option(USE_NCCL "Use NCCL library" ON)
 option(USE_MPI "Use MPI library" OFF)
 
 # Project versioning
