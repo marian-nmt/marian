@@ -15,24 +15,33 @@
 namespace marian {
 
 // shared base class for transformer-based encoder and decoder
-template<class EncoderDecoderBase>
-class Transformer : public EncoderDecoderBase {
-  typedef EncoderDecoderBase Base;
+template <class EncoderOrDecoderBase>
+class Transformer : public EncoderOrDecoderBase {
+  typedef EncoderOrDecoderBase Base;
+
 protected:
   using Base::options_; using Base::inference_;
 
-  template <typename T> T opt(const std::string& key) const { Ptr<Options> options = options_; return options->get<T>(key); } // need to duplicate, since somehow using Base::opt is not working
-  template <typename T> T opt(const std::string& key, const T& def) const {
-    if(options_->has(key))
-      return options_->get<T>(key);
+  template <typename T> 
+  T opt(const std::string& key) const { 
+    Ptr<Options> options = options_; // this is weird
+    return options->get<T>(key); 
+  } // need to duplicate, since somehow using Base::opt is not working
+
+  template <typename T> 
+  T opt(const std::string& key, const T& def) const {
+    Ptr<Options> options = options_; // this is weird
+    if(options->has(key))
+      return options->get<T>(key);
     else
       return def;
   }
 
   Ptr<ExpressionGraph> graph_;
+
 public:
   Transformer(Ptr<Options> options)
-      : EncoderDecoderBase(options) {
+      : EncoderOrDecoderBase(options) {
   }
 
   static Expr transposeTimeBatch(Expr input) { return transpose(input, {0, 2, 1, 3}); }

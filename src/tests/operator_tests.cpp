@@ -165,7 +165,7 @@ void tests(DeviceType device) {
     auto gamma = graph->param("gamma", {1, 4}, inits::ones);
     auto beta = graph->param("beta", {1, 4}, inits::zeros);
 
-    auto ln = layer_norm(a, gamma, beta);
+    auto ln = layerNorm(a, gamma, beta);
 
     graph->forward();
 

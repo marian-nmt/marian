@@ -178,6 +178,10 @@ public:
     auto collector = New<StringCollector>();
     size_t batchId = 0;
 
+    // @TODO: unify this and get rid of Config object.
+    auto tOptions = New<Options>();
+    tOptions->merge(options_);
+
     bg.prepare(false);
 
     {
@@ -195,7 +199,7 @@ public:
             scorers = scorers_[id % devices_.size()];
           }
 
-          auto search = New<Search>(options_, scorers, trgVocab_->GetEosId(), trgVocab_->GetUnkId());
+          auto search = New<Search>(tOptions, scorers, trgVocab_->GetEosId(), trgVocab_->GetUnkId());
           auto histories = search->search(graph, batch);
 
           for(auto history : histories) {
