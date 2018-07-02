@@ -7,7 +7,9 @@
 #include "graph/node.h"
 #include "tensors/tensor_operators.h"
 
-//#include "tensors/gpu/cudnn_wrappers.h"
+#ifdef CUDNN
+#include "tensors/gpu/cudnn_wrappers.h"
+#endif
 
 namespace marian {
 
@@ -810,7 +812,7 @@ struct TransposeNodeOp : public UnaryNodeOp {
   }
 
   NodeOps backwardOps() {
-    return {NodeOp(TransposeND(child(0)->grad(), adj_, axes_))};
+    return {NodeOp(TransposeNDGrad(child(0)->grad(), adj_, axes_))};
   }
 
   template <class... Args>
@@ -997,11 +999,13 @@ struct ShiftNodeOp : public UnaryNodeOp {
       : UnaryNodeOp(a, a->shape()), shift_(shift) {}
 
   NodeOps forwardOps() {
+    // last parameter beta=0 says to use = (out = in + beta * out)
     return {NodeOp(Shift(val_, child(0)->val(), shift_, false))};
   }
 
   NodeOps backwardOps() {
-    return {NodeOp(Shift(child(0)->grad(), adj_, shift_, true))};
+    // last parameter beta=1 says to use += (out = in + beta * out)
+    return {NodeOp(ShiftGrad(child(0)->grad(), adj_, shift_, true))};
   }
 
   const std::string type() { return "shift"; }
@@ -1066,6 +1070,7 @@ struct ShiftNodeOp : public UnaryNodeOp {
 //  Ptr<sparse::CSR> lf_;
 //};
 
+#ifdef CUDNN
 class PoolingOp : public UnaryNodeOp {
 public:
   PoolingOp(Expr x,
@@ -1099,6 +1104,7 @@ public:
 protected:
   PoolingWrapper pooling_;
 };
+#endif
 
 class PoolingWithMaskingOp : public UnaryNodeOp {
 public:

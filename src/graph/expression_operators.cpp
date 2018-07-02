@@ -441,6 +441,7 @@ Expr shift(Expr a, Shape shift) {
 //}
 
 #ifdef CUDA_FOUND
+#ifdef CUDNN
 
 Expr avg_pooling(Expr x,
                  int height,
@@ -504,5 +505,6 @@ Expr pooling_with_masking(Expr x, Expr mask, int width, bool isEven) {
   return Expression<PoolingWithMaskingOp>(x, mask, width, isEven);
 }
 
+#endif
 #endif
 }

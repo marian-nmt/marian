@@ -98,7 +98,6 @@ Expr flatten_2d(Expr a);
 
 Expr rows(Expr a, const std::vector<size_t>& indices);
 Expr cols(Expr a, const std::vector<size_t>& indices);
-
 Expr select(Expr a, int axis, const std::vector<size_t>& indices);
 
 /*********************************************************/

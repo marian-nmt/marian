@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+
 #include "functional/defs.h"
 #include "functional/operands.h"
 

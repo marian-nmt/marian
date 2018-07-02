@@ -63,6 +63,7 @@ add_library(marian STATIC
   training/graph_group_multinode.cpp
   training/graph_group_multinode_sync.cpp
   training/validator.cpp
+  training/communicator.cpp
 
   $<TARGET_OBJECTS:libyaml-cpp>
   $<TARGET_OBJECTS:SQLiteCpp>
@@ -82,6 +83,7 @@ cuda_add_library(marian_cuda
   translator/helpers.cu
   training/gradient_dropping/gpu/dropper.cu
   training/gradient_dropping/gpu/sparse_algorithm.cu
+  training/communicator.cu
   STATIC)
 endif(CUDA_FOUND)
 

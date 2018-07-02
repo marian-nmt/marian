@@ -74,8 +74,6 @@ public:
     } else {
       return cost;
     }
-
-    return cost;
   }
 };
 

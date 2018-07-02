@@ -2,6 +2,8 @@
 #include "graph/node_operators_binary.h"
 
 namespace marian {
+
+#ifdef CUDNN
 Convolution::Convolution(Ptr<ExpressionGraph> graph) : Factory(graph) {}
 
 Expr Convolution::apply(Expr x) {
@@ -29,4 +31,6 @@ Expr Convolution::apply(const std::vector<Expr>&) {
   ABORT("Can't apply convolution on many inputs at once");
   return nullptr;
 }
+#endif
+
 }
