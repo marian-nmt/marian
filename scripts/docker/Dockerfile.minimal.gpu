@@ -1,0 +1,25 @@
+FROM nvidia/cuda:8.0-devel-ubuntu16.04
+
+MAINTAINER Mama <ma@ma.com>
+LABEL description="Minimal Marian nvidia-docker with Ubuntu container for model serving."
+
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+        libsparsehash-dev \
+        libboost-system"${boost_version}" \
+        libboost-filesystem"${boost_version}" \
+        libboost-program-options"${boost_version}" \
+        libboost-timer"${boost_version}" \
+        libboost-iostreams"${boost_version}" \
+        libboost-thread"${boost_version}" \
+        libboost-python"${boost_version}" \
+        libboost-mpi-python"${boost_version}" \
+	&& apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/marian-nmt/marian -t 1.5.0
+
+ENV MARIANPATH /marian
+
+WORKDIR $MARIANPATH
+RUN mkdir -p build
+WORKDIR $MARIANPATH/build
+RUN cmake $MARIANPATH -DCMAKE_BUILD_TYPE=Release -DCUDA=ON && make -j
