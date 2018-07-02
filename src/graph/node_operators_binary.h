@@ -4,8 +4,11 @@
 
 #include "functional/functional.h"
 #include "graph/node.h"
-#include "tensors/gpu/cudnn_wrappers.h"
 #include "tensors/tensor_operators.h"
+
+#ifdef CUDNN
+#include "tensors/gpu/cudnn_wrappers.h"
+#endif
 
 namespace marian {
 
@@ -737,6 +740,7 @@ struct HighwayNodeOp : public NaryNodeOp {
   const std::string type() { return "highway"; }
 };
 
+#ifdef CUDNN
 class ConvolutionOp : public NaryNodeOp {
 public:
   ConvolutionOp(const std::vector<Expr>& nodes,
@@ -773,4 +777,5 @@ public:
 protected:
   ConvolutionWrapper conv_;
 };
+#endif
 }

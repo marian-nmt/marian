@@ -7,6 +7,7 @@
 
 namespace marian {
 
+#ifdef CUDNN
 class Convolution : public Factory {
 protected:
   Ptr<Options> getOptions() { return options_; }
@@ -82,4 +83,6 @@ protected:
   std::vector<int> kernelNums_;
   int stride_;
 };
+#endif
+
 }

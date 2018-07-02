@@ -7,7 +7,9 @@
 #include "graph/node.h"
 #include "tensors/tensor_operators.h"
 
-//#include "tensors/gpu/cudnn_wrappers.h"
+#ifdef CUDNN
+#include "tensors/gpu/cudnn_wrappers.h"
+#endif
 
 namespace marian {
 
@@ -1068,6 +1070,7 @@ struct ShiftNodeOp : public UnaryNodeOp {
 //  Ptr<sparse::CSR> lf_;
 //};
 
+#ifdef CUDNN
 class PoolingOp : public UnaryNodeOp {
 public:
   PoolingOp(Expr x,
@@ -1101,6 +1104,7 @@ public:
 protected:
   PoolingWrapper pooling_;
 };
+#endif
 
 class PoolingWithMaskingOp : public UnaryNodeOp {
 public:
