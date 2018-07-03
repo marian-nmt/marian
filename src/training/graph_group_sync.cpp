@@ -22,7 +22,7 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Config> config)
     builders_.push_back(models::from_config(options_, models::usage::training));
   }
 
-  comm_ = createCommunicator(graphs_);
+  comm_ = createCommunicator(graphs_, options_->get<bool>("no-nccl", false));
 }
 
 void SyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) {
@@ -139,7 +139,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
     };
 
     // Update parameter shard with gradient shard
-    auto update = [this, div](size_t idx, int pos) {
+    auto update = [this](size_t idx, int pos) {
       int totalSize = graphs_[0]->params()->vals()->size();
       int shardSize = ceil(totalSize / (float)devices_.size());
 
@@ -147,12 +147,6 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
       auto curGrad  = graphs_[idx]->params()->grads()->subtensor(pos, size);
       auto curParam = graphs_[idx]->params()->vals()->subtensor(pos, size);
-
-      if(div != 1) {
-        using namespace functional;
-        Element(_1 = _1 / div, curGrad);
-      }
-
       shardOpt_[idx]->update(curParam, curGrad);
 
       if(movingAvg_)

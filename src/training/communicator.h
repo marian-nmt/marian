@@ -37,7 +37,7 @@ public:
   virtual void allGather() = 0;
 
   virtual void pushParams(std::vector<Tensor>& params) = 0;
-  virtual void pullParams(const std::vector<Tensor>& params) = 0;  
+  virtual void pullParams(const std::vector<Tensor>& params) = 0;
   virtual void swapParams(const std::vector<Tensor>& params) = 0;
 };
 
@@ -73,7 +73,7 @@ private:
   }
 
 public:
-  DefaultCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs) 
+  DefaultCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs)
   : Communicator(graphs) {}
 
   ~DefaultCommunicator() override {}
@@ -125,9 +125,9 @@ public:
   }
 
   void pushParams(std::vector<Tensor>& params) override {
-    // Copy paramter shard from i-th graph to shard params[i]. 
+    // Copy paramter shard from i-th graph to shard params[i].
     // Graphs and shards with the same index live on the same device.
-    
+
     auto copy = [this, params](size_t idx, int pos) {
       // copy parameter shard to each graph
       auto subParam = graphs_[idx]->params()->vals()->subtensor(pos, params[idx]->size());
@@ -139,7 +139,7 @@ public:
 
   void pullParams(const std::vector<Tensor>& params) override {
     // Update all graphs with parameter shard
-    
+
     auto gather = [this, params](size_t idx, int pos) {
       // copy parameter shard to each graph
       for(auto graph : graphs_) {
@@ -173,6 +173,6 @@ public:
   }
 };
 
-Ptr<Communicator> createCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs);
+Ptr<Communicator> createCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs, bool noNccl = false);
 
 }

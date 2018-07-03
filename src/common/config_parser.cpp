@@ -460,6 +460,10 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<std::string>({"0"}), "0"),
       "GPU ID(s) to use for training")
+#ifdef USE_NCCL
+    ("no-nccl", po::value<bool>()->zero_tokens()->default_value(false),
+     "Disable inter-GPU communication via NCCL")
+#endif
 #ifdef CUDA_FOUND
     ("cpu-threads", po::value<size_t>()->default_value(0)->implicit_value(1),
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
@@ -966,6 +970,10 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 
     SET_OPTION("multi-node", bool);
     SET_OPTION("multi-node-overlap", bool);
+
+#ifdef USE_NCCL
+    SET_OPTION("no-nccl", bool);
+#endif
   }
 
   if(mode_ == ConfigMode::rescoring) {
