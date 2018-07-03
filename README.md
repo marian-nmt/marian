@@ -23,7 +23,7 @@ Named in honour of Marian Rejewski, a Polish mathematician and cryptologist.
 cd marian-dev
 mkdir -p build
 cd build
-cmake .. -DCMAKE_BUILD_TYPE=relwithdebinfo
+cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j
 ```
 
