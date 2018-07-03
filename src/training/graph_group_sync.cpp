@@ -7,7 +7,7 @@ namespace marian {
 SyncGraphGroup::SyncGraphGroup(Ptr<Config> config)
     : GraphGroup(config),
       devices_{options_->getDevices()},
-      movingAvg_{options_->get<float>("exponential-smoothing") > 0},
+      mvAvg_{options_->get<float>("exponential-smoothing") > 0},
       mvDecay_{options_->get<float>("exponential-smoothing")},
       delay_{options_->get<size_t>("optimizer-delay")} {
 
@@ -64,7 +64,7 @@ void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
     }
   }
 
-  if(movingAvg_ && paramsAvg_.size() == 0) {
+  if(mvAvg_ && paramsAvg_.size() == 0) {
     int totalSize = graphs_[0]->params()->vals()->size();
     shardSize_ = ceil(totalSize / (float)devices_.size());
 
@@ -155,7 +155,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
       shardOpt_[idx]->update(curParam, curGrad);
 
-      if(movingAvg_)
+      if(mvAvg_)
         updateMovingAverage(paramsAvg_[idx], curParam, scheduler_->numberOfBatches());
     };
 
@@ -188,14 +188,14 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
     }
 
     if(scheduler_->validating()) {
-      if(movingAvg_) {
+      if(mvAvg_) {
         comm_->swapParams(paramsAvg_);
       }
 
       // safe, because all graphs are idle during validation with sync sgd
       scheduler_->validate(graphs_);
 
-      if(movingAvg_) {
+      if(mvAvg_) {
         comm_->swapParams(paramsAvg_);
       }
     }
@@ -233,12 +233,12 @@ void SyncGraphGroup::load() {
 
 void SyncGraphGroup::save(bool final) {
     if(final && scheduler_) {
-      if(movingAvg_ && paramsAvg_.size() > 0)
+      if(mvAvg_ && paramsAvg_.size() > 0)
         comm_->swapParams(paramsAvg_);
 
       scheduler_->validate(graphs_, true);
 
-      if(movingAvg_ && paramsAvg_.size() > 0)
+      if(mvAvg_ && paramsAvg_.size() > 0)
         comm_->swapParams(paramsAvg_);
     }
     save(graphs_[0], final);
@@ -253,7 +253,7 @@ void SyncGraphGroup::save(bool final) {
       }
     }
 
-    if(movingAvg_ && paramsAvg_.size() > 0)
+    if(mvAvg_ && paramsAvg_.size() > 0)
       comm_->swapParams(paramsAvg_);
 
     std::string name = options_->get<std::string>("model");
@@ -278,7 +278,7 @@ void SyncGraphGroup::save(bool final) {
         scheduler_->save(name);
     }
 
-    if(movingAvg_ && paramsAvg_.size() > 0)
+    if(mvAvg_ && paramsAvg_.size() > 0)
       comm_->swapParams(paramsAvg_);
 
     size_t totalSize = graphs_[idx]->params()->vals()->size();

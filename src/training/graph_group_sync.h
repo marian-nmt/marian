@@ -28,7 +28,7 @@ private:
   std::vector<Tensor> paramsAvg_;
   std::vector<Ptr<TensorAllocator>> paramsAllocs_;
 
-  bool movingAvg_{false};
+  bool mvAvg_{false};
   float mvDecay_{1e-4};
   size_t delay_{1};
 
