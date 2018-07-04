@@ -186,6 +186,12 @@ public:
     params()->vals()->copyFrom(graph->params()->vals());
   }
 
+  void forceInit() {
+    params()->allocateForward();
+    for(auto v : nodesForward_)
+      v->init();
+  }
+
   void reuseWorkspace(Ptr<ExpressionGraph> graph) {
     tensors_ = graph->tensors_;
   }
