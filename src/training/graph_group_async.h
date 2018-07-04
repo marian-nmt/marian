@@ -126,7 +126,7 @@ public:
     std::string name = options_->get<std::string>("model");
     // Exponentially smoothed parameters needs to be loaded from model.npz, so
     // load the model into a temporary graph
-    Ptr<ExpressionGraph> graphAvg_ = New<ExpressionGraph>();
+    graphAvg_ = New<ExpressionGraph>();
     graphAvg_->setDevice({0, DeviceType::cpu});
     graphAvg_->load(name, false);
   }

@@ -3,12 +3,13 @@
 #include <thread>
 
 #include "3rd_party/threadpool.h"
+#include "training/exponential_smoothing.h"
 #include "training/graph_group.h"
 #include "training/communicator.h"
 
 namespace marian {
 
-class SyncGraphGroup : public GraphGroup {
+class SyncGraphGroup : public GraphGroup, public ExponentialSmoothing {
 public:
   virtual void setScheduler(Ptr<Scheduler> scheduler);
 
@@ -27,18 +28,18 @@ private:
 
   std::vector<Tensor> paramsAvg_;
   std::vector<Ptr<TensorAllocator>> paramsAllocs_;
+  Ptr<ExpressionGraph> graphAvg_;
 
-  bool mvAvg_{false};
-  float mvDecay_{1e-4};
   size_t delay_{1};
 
   void initialize(const std::vector<Ptr<data::Batch>>& batches);
 
-  void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches);
-
   void fetchParams(Tensor oldParams, const std::vector<Tensor>& params);
 
   void execute(Ptr<data::Batch> batch);
+
+  void loadExponentialSmoothing();
+  void saveExponentialSmoothing();
 
 public:
   SyncGraphGroup(Ptr<Config> config);

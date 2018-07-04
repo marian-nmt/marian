@@ -1,14 +1,12 @@
 #include "training/graph_group_sync.h"
-#include "functional/functional.h"
 #include "tensors/tensor_operators.h"
 
 namespace marian {
 
 SyncGraphGroup::SyncGraphGroup(Ptr<Config> config)
     : GraphGroup(config),
+      ExponentialSmoothing{options_->get<float>("exponential-smoothing")},
       devices_{options_->getDevices()},
-      mvAvg_{options_->get<float>("exponential-smoothing") > 0},
-      mvDecay_{options_->get<float>("exponential-smoothing")},
       delay_{options_->get<size_t>("optimizer-delay")} {
 
   for(auto device : devices_) {
@@ -32,15 +30,6 @@ void SyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) {
 
   for(auto opt : shardOpt_)
     scheduler_->registerTrainingObserver(opt);
-}
-
-void SyncGraphGroup::updateMovingAverage(Tensor paramsAvg,
-                                         Tensor params,
-                                         size_t batches) {
-  using namespace functional;
-  float decay
-      = std::max(mvDecay_, 1.f - (float)(batches + 1) / (float)(batches + 10));
-  Element(_1 = ((1.f - decay) * _1) + (decay * _2), paramsAvg, params);
 }
 
 void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
@@ -81,12 +70,20 @@ void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
       paramsAlloc->allocate(paramAvg, {1, __size__});
       paramsAvg_.push_back(paramAvg);
 
-      paramAvg->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));
+      if(graphAvg_)
+        // @TODO: fix, as this obviously won't work!
+        paramAvg->copyFrom(graphAvg_->params()->vals());
+      else
+        paramAvg->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));
 
       // move to next shard
       pos += __size__;
       totalSize -= __size__;
     }
+
+    // we don't need the graph anymore as averaged params have been loaded
+    if(graphAvg_)
+      graphAvg_.reset();
   }
 }
 
@@ -207,11 +204,18 @@ void SyncGraphGroup::load() {
     std::string name = options_->get<std::string>("model");
 
     if(boost::filesystem::exists(name)) {
-      size_t i = 0;
       if(scheduler_)
         scheduler_->load(name);
-      for(auto graph : graphs_)
-        builders_[i++]->load(graph, name);
+
+      size_t i = 0;
+      if(mvAvg_ && boost::filesystem::exists(name + ".mvavg.npz")) {
+        for(auto graph : graphs_)
+          builders_[i++]->load(graph, name + ".mvavg.npz");
+        loadExponentialSmoothing();
+      } else {
+        for(auto graph : graphs_)
+          builders_[i++]->load(graph, name);
+      }
 
       // @TODO: probably we want to have the list of DeviceIds as an attribute
       std::vector<Ptr<Backend>> backends;
@@ -231,6 +235,15 @@ void SyncGraphGroup::load() {
   }
 }
 
+void SyncGraphGroup::loadExponentialSmoothing() {
+  std::string name = options_->get<std::string>("model");
+  // Exponentially smoothed parameters needs to be loaded from model.npz, so
+  // load the model into a temporary graph
+  graphAvg_ = New<ExpressionGraph>();
+  graphAvg_->setDevice({0, DeviceType::cpu});
+  graphAvg_->load(name, false);
+}
+
 void SyncGraphGroup::save(bool final) {
     if(final && scheduler_) {
       if(mvAvg_ && paramsAvg_.size() > 0)
@@ -238,10 +251,17 @@ void SyncGraphGroup::save(bool final) {
 
       scheduler_->validate(graphs_, true);
 
-      if(mvAvg_ && paramsAvg_.size() > 0)
+      if(mvAvg_ && paramsAvg_.size() > 0) {
         comm_->swapParams(paramsAvg_);
+        saveExponentialSmoothing();
+      }
     }
     save(graphs_[0], final);
+  }
+
+  void SyncGraphGroup::saveExponentialSmoothing() {
+    std::string name = options_->get<std::string>("model");
+    builders_[0]->save(graphs_[0], name + ".mvavg.npz");
   }
 
   void SyncGraphGroup::save(Ptr<ExpressionGraph> graph, bool final) {
