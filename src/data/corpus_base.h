@@ -330,6 +330,10 @@ public:
    */
   std::vector<Ptr<Batch>> split(size_t n) {
     // split each subbatch separately
+
+    if(size() < n)
+      n = size();
+
     std::vector<std::vector<Ptr<SubBatch>>> subs(n);
     for(auto subBatch : batches_) {
       size_t i = 0;
