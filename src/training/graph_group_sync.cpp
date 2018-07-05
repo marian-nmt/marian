@@ -208,13 +208,17 @@ void SyncGraphGroup::load() {
 
       size_t i = 0;
       if(mvAvg_ && boost::filesystem::exists(name + ".mvavg.npz")) {
-        for(auto graph : graphs_)
-          builders_[i++]->load(graph, name + ".mvavg.npz");
-
-        // Load the averaged parameters into a temporary graph
         graphAvg_ = New<ExpressionGraph>();
         graphAvg_->setDevice({0, DeviceType::cpu});
-        graphAvg_->load(name, false);
+
+        for(auto graph : graphs_) {
+          // Load the averaged parameters into a temporary graph
+          builders_[i]->load(graphAvg_, name, false);
+          // Load the original parameters from model.npz.mvavg.npz
+          builders_[i]->load(graph, name + ".mvavg.npz");
+          ++i;
+        }
+
         graphAvg_->forceInit();
       } else {
         for(auto graph : graphs_)
