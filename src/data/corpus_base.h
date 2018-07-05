@@ -166,6 +166,11 @@ public:
   std::vector<Ptr<SubBatch>> split(size_t n) {
     std::vector<Ptr<SubBatch>> splits;
 
+    // if the batch size is smaller than the number of splits
+    // adjust the number of splits to the batch size.
+    if(size_ < n)
+      n = size_;
+
     size_t subSize = std::ceil(size_ / (float)n);
     size_t totSize = size_;
 
@@ -252,7 +257,7 @@ public:
    * @brief The number of sentences in the batch, target words.
    */
   size_t sizeTrg() const { return batches_.back()->batchSize(); }
-  
+
   /**
    * @brief The number of words for the longest sentence in the batch plus one.
    */
@@ -294,7 +299,7 @@ public:
     }
 
     auto batch = New<CorpusBatch>(batches);
-    
+
     if(!options) return batch;
 
     if(options->has("guided-alignment")) {
