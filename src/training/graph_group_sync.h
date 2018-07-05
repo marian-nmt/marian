@@ -34,8 +34,6 @@ private:
 
   void initialize(const std::vector<Ptr<data::Batch>>& batches);
 
-  void fetchParams(Tensor oldParams, const std::vector<Tensor>& params);
-
   void execute(Ptr<data::Batch> batch);
 
 public:
