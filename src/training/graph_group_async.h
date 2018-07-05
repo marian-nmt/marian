@@ -60,128 +60,16 @@ protected:
   void execute(Ptr<data::Batch> batch);
 
 public:
-  AsyncGraphGroup(Ptr<Config> config)
-      : GraphGroup(config),
-        ExponentialSmoothing{options_->get<float>("exponential-smoothing")},
-        devices_{options_->getDevices()},
-        shardSync_(devices_.size()),
-        optimizerDelay_{options_->get<size_t>("optimizer-delay")} {
-    pool_.reset(new ThreadPool(devices_.size(), devices_.size()));
-
-    for(auto device : devices_) {
-      auto graph = New<ExpressionGraph>();
-      graph->setDevice(device);
-      graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
-      graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
-      graphs_.push_back(graph);
-      shardOpt_.push_back(Optimizer(options_));
-
-      builders_.push_back(
-          models::from_config(options_, models::usage::training));
-    }
-  }
+  AsyncGraphGroup(Ptr<Config> config);
 
   void update(Ptr<data::Batch> batch) {
     ABORT_IF(finalized_, "Training has already finished.");
     execute(batch);
   }
 
-  void load() {
-    if(!options_->get<bool>("no-reload")) {
-      std::string name = options_->get<std::string>("model");
-
-      if(boost::filesystem::exists(name)) {
-        if(scheduler_)
-          scheduler_->load(name);
-
-        size_t i = 0;
-        if(mvAvg_ && boost::filesystem::exists(name + ".mvavg.npz")) {
-          graphAvg_ = New<ExpressionGraph>();
-          graphAvg_->setDevice({0, DeviceType::cpu});
-
-          for(auto graph : graphs_) {
-            // Load the averaged parameters into a temporary graph
-            builders_[i]->load(graphAvg_, name, false);
-            // Load the original parameters from model.npz.mvavg.npz
-            builders_[i]->load(graph, name + ".mvavg.npz");
-            ++i;
-          }
-
-          graphAvg_->forceInit();
-        } else {
-          for(auto graph : graphs_)
-            builders_[i++]->load(graph, name);
-        }
-
-        // @TODO: probably we want to have the list of DeviceIds as an attribute
-        std::vector<Ptr<Backend>> backends;
-        for(auto graph : graphs_)
-          backends.push_back(graph->getBackend());
-        shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends);
-
-      } else if(options_->has("pretrained-model")) {
-        std::string init = options_->get<std::string>("pretrained-model");
-        LOG(info,
-            "Initialize model weights with the pre-trained model {}",
-            init);
-        size_t i = 0;
-        for(auto graph : graphs_)
-          builders_[i++]->load(graph, init, false);
-      }
-    }
-  }
-
-  void save(bool final = false) {
-    if(final && scheduler_) {
-      if(mvAvg_ && !paramsAvg_.empty()) {
-        // Save original parameters to model.mvavg.npz
-        std::string name = options_->get<std::string>("model");
-        builders_[0]->save(graphs_[0], name + ".mvavg.npz");
-        // Switch to averaged parameters
-        for(auto g : graphs_)
-          fetchParams(g->params()->vals(), paramsAvg_, 0 /* safe? */);
-      }
-
-      scheduler_->validate(graphs_, true);
-    }
-
-    save(graphs_[0], final);
-  }
-
-  void save(Ptr<ExpressionGraph> graph, bool final = false) {
-    int idx = 0;
-    for(int i = 0; i < graphs_.size(); ++i) {
-      if(graph == graphs_[i]) {
-        idx = i;
-        break;
-      }
-    }
-
-    std::string name = options_->get<std::string>("model");
-
-    if(options_->get<bool>("overwrite")) {
-      builders_[idx]->save(graphs_[idx], name, true);
-      if(scheduler_)
-        scheduler_->save(name);
-    } else {
-      if(!final) {
-        std::string numberOfBatches
-            = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
-                         : "unknown";
-        std::string nameOverwrite = name;
-        nameOverwrite.replace(
-            name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");
-        builders_[idx]->save(graphs_[idx], nameOverwrite);
-      }
-
-      builders_[idx]->save(graphs_[idx], name, true);
-      if(scheduler_)
-        scheduler_->save(name);
-    }
-
-    size_t totalSize = graphs_[idx]->params()->vals()->size();
-    shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_, totalSize);
-  }
+  void load();
+  void save(bool final = false);
+  void save(Ptr<ExpressionGraph>, bool final = false);
 
   Ptr<data::BatchStats> collectStats() {
     return GraphGroup::collectStats(graphs_[0], builders_[0]);

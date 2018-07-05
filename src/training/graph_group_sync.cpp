@@ -262,50 +262,49 @@ void SyncGraphGroup::save(bool final) {
     save(graphs_[0], final);
   }
 
-  void SyncGraphGroup::save(Ptr<ExpressionGraph> graph, bool final) {
-    int idx = 0;
-    for(int i = 0; i < graphs_.size(); ++i) {
-      if(graph == graphs_[i]) {
-        idx = i;
-        break;
-      }
+void SyncGraphGroup::save(Ptr<ExpressionGraph> graph, bool final) {
+  int idx = 0;
+  for(int i = 0; i < graphs_.size(); ++i) {
+    if(graph == graphs_[i]) {
+      idx = i;
+      break;
     }
-
-    std::string name = options_->get<std::string>("model");
-
-    if(mvAvg_ && paramsAvg_.size() > 0) {
-      // Save the original parameters in model.npz.mvavg.npz
-      builders_[idx]->save(graphs_[idx], name + ".mvavg.npz", true);
-      // Switch to the averaged parameters
-      comm_->swapParams(paramsAvg_);
-    }
-
-    if(options_->get<bool>("overwrite")) {
-      builders_[idx]->save(graphs_[idx], name, true);
-      if(scheduler_)
-        scheduler_->save(name);
-    } else {
-      if(!final) {
-        std::string numberOfBatches
-            = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
-                         : "unknown";
-        std::string nameOverwrite = name;
-        nameOverwrite.replace(
-            name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");
-        builders_[idx]->save(graphs_[idx], nameOverwrite);
-      }
-
-      builders_[idx]->save(graphs_[idx], name, true);
-      if(scheduler_)
-        scheduler_->save(name);
-    }
-
-    if(mvAvg_ && paramsAvg_.size() > 0)
-      // Switch back to the original parameters
-      comm_->swapParams(paramsAvg_);
-
-    size_t totalSize = graphs_[idx]->params()->vals()->size();
-    shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_, totalSize);
   }
 
+  std::string name = options_->get<std::string>("model");
+
+  if(mvAvg_ && paramsAvg_.size() > 0) {
+    // Save the original parameters in model.npz.mvavg.npz
+    builders_[idx]->save(graphs_[idx], name + ".mvavg.npz", true);
+    // Switch to the averaged parameters
+    comm_->swapParams(paramsAvg_);
+  }
+
+  if(options_->get<bool>("overwrite")) {
+    builders_[idx]->save(graphs_[idx], name, true);
+    if(scheduler_)
+      scheduler_->save(name);
+  } else {
+    if(!final) {
+      std::string numberOfBatches
+          = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
+                       : "unknown";
+      std::string nameOverwrite = name;
+      nameOverwrite.replace(
+          name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");
+      builders_[idx]->save(graphs_[idx], nameOverwrite);
+    }
+
+    builders_[idx]->save(graphs_[idx], name, true);
+    if(scheduler_)
+      scheduler_->save(name);
+  }
+
+  if(mvAvg_ && paramsAvg_.size() > 0)
+    // Switch back to the original parameters
+    comm_->swapParams(paramsAvg_);
+
+  size_t totalSize = graphs_[idx]->params()->vals()->size();
+  shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_, totalSize);
+}
 }
