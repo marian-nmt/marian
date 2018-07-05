@@ -164,19 +164,22 @@ public:
    * @see marian::data::Batch::split(size_t n)
    */
   std::vector<Ptr<SubBatch>> split(size_t n) {
+    ABORT_IF(size_ == 0, "Encoutered sub-batch size of 0");
+
     std::vector<Ptr<SubBatch>> splits;
 
-    // if the batch size is smaller than the number of splits
+    // If the batch size is smaller than the number of splits
     // adjust the number of splits to the batch size.
     if(size_ < n)
       n = size_;
 
-    size_t subSize = std::ceil(size_ / (float)n);
-    size_t totSize = size_;
-
+    // Round down to integer size, at least 1 because of condition above.
+    size_t subSize = size_ / n;
+    
+    size_t rest = size_;
     int pos = 0;
     for(int k = 0; k < n; ++k) {
-      size_t __size__ = std::min(subSize, totSize);
+      size_t __size__ = (k == n - 1) ? rest : subSize;
 
       auto sb = New<SubBatch>(__size__, width_);
 
@@ -194,7 +197,7 @@ public:
       sb->setWords(__words__);
       splits.push_back(sb);
 
-      totSize -= __size__;
+      rest -= __size__;
       pos += __size__;
     }
     return splits;
@@ -329,12 +332,14 @@ public:
    * @see marian::data::SubBatch::split(size_t n)
    */
   std::vector<Ptr<Batch>> split(size_t n) {
-    // split each subbatch separately
+    ABORT_IF(size() == 0, "Encoutered batch size of 0");
 
+    // if batch size is smaller than n split into batch size pieces
     if(size() < n)
       n = size();
 
     std::vector<std::vector<Ptr<SubBatch>>> subs(n);
+    // split each subbatch separately
     for(auto subBatch : batches_) {
       size_t i = 0;
       for(auto splitSubBatch : subBatch->split(n))
