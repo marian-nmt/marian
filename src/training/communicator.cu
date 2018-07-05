@@ -137,9 +137,9 @@ public:
   }
 
   void pushParams(std::vector<Tensor>& params) override {
-    // Copy paramter shard from i-th graph to shard params[i]. 
+    // Copy paramter shard from i-th graph to shard params[i].
     // Graphs and shards with the same index live on the same device.
-    
+
     auto copy = [this, params](size_t idx, int pos) {
       // copy parameter shard to each graph
       auto subParam = graphs_[idx]->params()->vals()->subtensor(pos, params[idx]->size());
@@ -151,7 +151,7 @@ public:
 
   void pullParams(const std::vector<Tensor>& params) override {
     // Update all graphs with parameter shard
-    
+
     auto gather = [this, params](size_t idx, int pos) {
       // copy parameter shard to each graph
       for(auto graph : graphs_) {
@@ -164,19 +164,19 @@ public:
 
   // Doesn't work yet with NCCL
   // void pushParams(std::vector<Tensor>& params) {
-  //   // Copy paramter shard from i-th graph to shard params[i]. 
+  //   // Copy paramter shard from i-th graph to shard params[i].
   //   // Graphs and shards with the same index live on the same device.
-    
+
   //   int pos = 0;
   //   for(int i = 0; i < graphs_.size(); ++i) {
   //     auto subParam = graphs_[i]->params()->vals()->subtensor(pos, params[i]->size());
   //     ncclGroupStart();
-  //     ncclBroadcast((const void*)subParam->data(), 
-  //                   (void*)params[i]->data(), 
-  //                   params[i]->size(), 
-  //                   ncclFloat, 
+  //     ncclBroadcast((const void*)subParam->data(),
+  //                   (void*)params[i]->data(),
+  //                   params[i]->size(),
+  //                   ncclFloat,
   //                   0,
-  //                   comms_[i], 
+  //                   comms_[i],
   //                   streams_[i]);
   //     ncclGroupEnd();
   //     pos += params[i]->size();
@@ -186,13 +186,13 @@ public:
 
   // void pullParams(const std::vector<Tensor>& params) {
   //   // Update all graphs with parameter shard
-    
+
   //   int totalSize = graphs_[0]->params()->vals()->size();
   //   int shardSize = ceil(totalSize / (float)graphs_.size());
 
   //   ncclGroupStart();
   //   for(int i = 0; i < graphs_.size(); ++i) {
-      
+
   //     const void* sendbuff = (const void*)params[i]->data();
   //     void* recvbuff = (void*)graphs_[i]->params()->vals()->data();
 
@@ -210,11 +210,26 @@ public:
 };
 #endif
 
-Ptr<Communicator> createCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs) {
+Ptr<Communicator> createCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs, bool noNccl) {
 #ifdef USE_NCCL
-  for(auto& graph : graphs)
-    if(graph->getBackend()->getDevice().type == DeviceType::cpu)
+  if(noNccl) {
+    LOG(warn, "[comm] NCCL communicator overridden");
+    return New<DefaultCommunicator>(graphs);
+  }
+
+  // if at least one of the devices is not a gpu, fall-back to default
+  for(auto& graph : graphs) {
+    if(graph->getBackend()->getDevice().type == DeviceType::cpu) {
       return New<DefaultCommunicator>(graphs);
+    }
+  }
+
+  size_t d = graphs.size();
+  if((d & (d - 1)) != 0) {
+    LOG(warn, "[comm] Number of devices {} is not a power of 2 and communication might be slow with NCCL", d);
+    LOG(warn, "[comm] You can switch off NCCL with --no-nccl option", d);
+  }
+
   return New<NCCLCommunicator>(graphs);
 #else
   return New<DefaultCommunicator>(graphs);

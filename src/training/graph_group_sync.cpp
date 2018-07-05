@@ -20,7 +20,7 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Config> config)
     builders_.push_back(models::from_config(options_, models::usage::training));
   }
 
-  comm_ = createCommunicator(graphs_);
+  comm_ = createCommunicator(graphs_, options_->get<bool>("no-nccl", false));
 }
 
 void SyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) {
@@ -130,6 +130,12 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
         costs[idx] += costNode->scalar();
 
         // only reset gradients to 0 if t == 1
+        graph->backward(t == 1);
+      }
+      else {
+        // handle case of empty batch, execute do-nothing fw-bw step for
+        // proper inits and resets.
+        graph->forward();
         graph->backward(t == 1);
       }
     };
