@@ -98,7 +98,12 @@ public:
         if(mvAvg_ && boost::filesystem::exists(name + ".mvavg.npz")) {
           for(auto graph : graphs_)
             builders_[i++]->load(graph, name + ".mvavg.npz");
-          loadExponentialSmoothing();
+
+          // Load the averaged parameters into a temporary graph
+          graphAvg_ = New<ExpressionGraph>();
+          graphAvg_->setDevice({0, DeviceType::cpu});
+          graphAvg_->load(name, false);
+          graphAvg_->forceInit();
         } else {
           for(auto graph : graphs_)
             builders_[i++]->load(graph, name);
@@ -122,21 +127,17 @@ public:
     }
   }
 
-  void loadExponentialSmoothing() {
-    std::string name = options_->get<std::string>("model");
-    // Exponentially smoothed parameters needs to be loaded from model.npz, so
-    // load the model into a temporary graph
-    graphAvg_ = New<ExpressionGraph>();
-    graphAvg_->setDevice({0, DeviceType::cpu});
-    graphAvg_->load(name, false);
-  }
+  void loadExponentialSmoothing() { }
 
   void save(bool final = false) {
     if(final && scheduler_) {
       if(mvAvg_ && !paramsAvg_.empty()) {
+        // Save original parameters to model.mvavg.npz
+        std::string name = options_->get<std::string>("model");
+        builders_[0]->save(graphs_[0], name + ".mvavg.npz");
+
         for(auto g : graphs_)
           fetchParams(g->params()->vals(), paramsAvg_, 0 /* safe? */);
-        saveExponentialSmoothing();
       }
 
       scheduler_->validate(graphs_, true);
@@ -145,10 +146,7 @@ public:
     save(graphs_[0], final);
   }
 
-  void saveExponentialSmoothing() {
-    std::string name = options_->get<std::string>("model");
-    builders_[0]->save(graphs_[0], name + ".mvavg.npz");
-  }
+  void saveExponentialSmoothing() { }
 
   void save(Ptr<ExpressionGraph> graph, bool final = false) {
     int idx = 0;
