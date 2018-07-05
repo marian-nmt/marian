@@ -140,7 +140,6 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
         // handle case of empty batch, execute do-nothing fw-bw step for
         // proper inits and resets.
         graph->forward();
-        // only reset gradients to 0 if t == 1
         graph->backward(t == 1);
       }
     };
@@ -155,7 +154,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
       auto curGrad  = graphs_[idx]->params()->grads()->subtensor(pos, size);
       auto curParam = graphs_[idx]->params()->vals()->subtensor(pos, size);
 
-      if(div != -1) {
+      if(div != 1) {
         using namespace functional;
         Element(_1 = _1 / div, curGrad);
       }
