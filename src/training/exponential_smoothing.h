@@ -22,9 +22,6 @@ protected:
     Element(_1 = ((1.f - decay) * _1) + (decay * _2), paramsAvg, params);
   }
 
-  virtual void loadExponentialSmoothing() = 0;
-  virtual void saveExponentialSmoothing() = 0;
-
   bool mvAvg_{false};
   float mvDecay_{1e-4};
 };

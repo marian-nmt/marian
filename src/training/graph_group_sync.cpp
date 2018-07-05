@@ -239,8 +239,6 @@ void SyncGraphGroup::load() {
   }
 }
 
-void SyncGraphGroup::loadExponentialSmoothing() { }
-
 void SyncGraphGroup::save(bool final) {
     if(final && scheduler_) {
       if(mvAvg_ && paramsAvg_.size() > 0)
@@ -254,8 +252,6 @@ void SyncGraphGroup::save(bool final) {
     save(graphs_[0], final);
   }
 
-  void SyncGraphGroup::saveExponentialSmoothing() { }
-
   void SyncGraphGroup::save(Ptr<ExpressionGraph> graph, bool final) {
     int idx = 0;
     for(int i = 0; i < graphs_.size(); ++i) {
@@ -268,9 +264,9 @@ void SyncGraphGroup::save(bool final) {
     std::string name = options_->get<std::string>("model");
 
     if(mvAvg_ && paramsAvg_.size() > 0) {
-      // Save the original parameters in model.mvavg.npz
+      // Save the original parameters in model.npz.mvavg.npz
       builders_[idx]->save(graphs_[idx], name + ".mvavg.npz", true);
-      // Swap to averaged parameters
+      // Switch to the averaged parameters
       comm_->swapParams(paramsAvg_);
     }
 
@@ -295,7 +291,7 @@ void SyncGraphGroup::save(bool final) {
     }
 
     if(mvAvg_ && paramsAvg_.size() > 0)
-      // Swap back to original parameters
+      // Switch back to the original parameters
       comm_->swapParams(paramsAvg_);
 
     size_t totalSize = graphs_[idx]->params()->vals()->size();

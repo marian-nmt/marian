@@ -38,9 +38,6 @@ private:
 
   void execute(Ptr<data::Batch> batch);
 
-  void loadExponentialSmoothing();
-  void saveExponentialSmoothing();
-
 public:
   SyncGraphGroup(Ptr<Config> config);
 
