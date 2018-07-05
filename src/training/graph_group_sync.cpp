@@ -136,6 +136,13 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
         // only reset gradients to 0 if t == 1
         graph->backward(t == 1);
       }
+      else {
+        // handle case of empty batch, execute do-nothing fw-bw step for
+        // proper inits and resets.
+        graph->forward();
+        // only reset gradients to 0 if t == 1
+        graph->backward(t == 1);
+      }
     };
 
     // Update parameter shard with gradient shard
