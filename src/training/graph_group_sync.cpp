@@ -52,38 +52,38 @@ void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
       pool.enqueue(init, i);
     }
   }
+}
 
-  if(mvAvg_ && paramsAvg_.size() == 0) {
-    int totalSize = graphs_[0]->params()->vals()->size();
-    shardSize_ = ceil(totalSize / (float)devices_.size());
+void SyncGraphGroup::initializeAvg() {
+  int totalSize = graphs_[0]->params()->vals()->size();
+  shardSize_ = ceil(totalSize / (float)devices_.size());
 
-    int pos = 0;
-    for(auto graph : graphs_) {
-      int __size__ = std::min(shardSize_, totalSize);
+  int pos = 0;
+  for(auto graph : graphs_) {
+    int __size__ = std::min(shardSize_, totalSize);
 
-      auto paramsAlloc = New<TensorAllocator>(graph->getBackend());
-      paramsAllocs_.push_back(paramsAlloc);
+    auto paramsAlloc = New<TensorAllocator>(graph->getBackend());
+    paramsAllocs_.push_back(paramsAlloc);
 
-      paramsAlloc->reserveExact(__size__ * sizeof(float));
+    paramsAlloc->reserveExact(__size__ * sizeof(float));
 
-      Tensor paramAvg;
-      paramsAlloc->allocate(paramAvg, {1, __size__});
-      paramsAvg_.push_back(paramAvg);
+    Tensor paramAvg;
+    paramsAlloc->allocate(paramAvg, {1, __size__});
+    paramsAvg_.push_back(paramAvg);
 
-      if(graphAvg_)
-        paramAvg->copyFrom(graphAvg_->params()->vals()->subtensor(pos, __size__));
-      else
-        paramAvg->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));
-
-      // move to next shard
-      pos += __size__;
-      totalSize -= __size__;
-    }
-
-    // we don't need the graph anymore as averaged params have been loaded
     if(graphAvg_)
-      graphAvg_.reset();
+      paramAvg->copyFrom(graphAvg_->params()->vals()->subtensor(pos, __size__));
+    else
+      paramAvg->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));
+
+    // move to next shard
+    pos += __size__;
+    totalSize -= __size__;
   }
+
+  // we don't need the graph anymore as averaged params have been loaded
+  if(graphAvg_)
+    graphAvg_.reset();
 }
 
 void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
@@ -116,6 +116,8 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
   for(const auto& curBatches : delayedBatches) {
     if(first_) {
       initialize(curBatches);
+      if(mvAvg_ && paramsAvg_.empty())
+        initializeAvg();
       first_ = false;
     }
 

@@ -14,7 +14,6 @@ public:
   virtual void setScheduler(Ptr<Scheduler> scheduler);
 
 private:
-
   Ptr<Communicator> comm_;
 
   std::vector<Ptr<models::ModelBase>> builders_;
@@ -33,6 +32,7 @@ private:
   size_t delay_{1};
 
   void initialize(const std::vector<Ptr<data::Batch>>& batches);
+  void initializeAvg();
 
   void execute(Ptr<data::Batch> batch);
 
