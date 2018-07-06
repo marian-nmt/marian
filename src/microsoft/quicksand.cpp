@@ -38,7 +38,7 @@ private:
 public:
     BeamSearchDecoder(Ptr<Options> options, Word eos)
     : IBeamSearchDecoder(options, eos) {
-        createLoggers();
+        //createLoggers();
 
         graph_ = New<ExpressionGraph>(true, true);
         graph_->setDevice(DeviceId{0, DeviceType::cpu});
