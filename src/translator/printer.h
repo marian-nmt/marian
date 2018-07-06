@@ -11,8 +11,11 @@
 
 namespace marian {
 
-std::vector<size_t> GetAlignment(const Ptr<Hypothesis>& hyp);
-std::string GetAlignmentString(const std::vector<size_t>& align);
+typedef std::vector<float> SoftAlignment;
+typedef std::pair<size_t, size_t> HardAlignment;
+
+std::vector<HardAlignment> GetAlignment(const Ptr<Hypothesis>& hyp);
+std::string GetAlignmentString(const std::vector<HardAlignment>& align);
 
 template <class OStream>
 void Printer(Ptr<Config> options,

@@ -2,37 +2,42 @@
 
 namespace marian {
 
-std::vector<size_t> GetAlignment(const Ptr<Hypothesis>& hyp) {
-  typedef std::vector<float> SoftAlignment;
-
-  std::vector<SoftAlignment> aligns;
+std::vector<HardAlignment> GetAlignment(const Ptr<Hypothesis>& hyp) {
+  std::vector<SoftAlignment> alignSoft;
   auto last = hyp->GetPrevHyp();
   while(last->GetPrevHyp().get() != nullptr) {
-    aligns.push_back(last->GetAlignment());
+    alignSoft.push_back(last->GetAlignment());
     last = last->GetPrevHyp();
   }
 
-  std::vector<size_t> alignment;
-  for(auto it = aligns.rbegin(); it != aligns.rend(); ++it) {
+  std::vector<HardAlignment> align;
+  for(size_t t = 0; t < alignSoft.size(); ++t) {
+    size_t rev = alignSoft.size() - t - 1;
     size_t maxArg = 0;
-    for(size_t i = 0; i < it->size(); ++i) {
-      if((*it)[maxArg] < (*it)[i]) {
-        maxArg = i;
+    for(size_t s = 0; s < alignSoft[0].size(); ++s) {
+      if(alignSoft[rev][maxArg] < alignSoft[rev][s]) {
+        maxArg = s;
       }
     }
-    alignment.push_back(maxArg);
+    align.push_back(std::make_pair(maxArg, t));
   }
 
-  return alignment;
+  std::sort(align.begin(),
+            align.end(),
+            [](const HardAlignment& a, const HardAlignment& b) {
+              return (a.first == b.first) ? a.second < b.second
+                                          : a.first < b.first;
+            });
+
+  return align;
 }
 
-std::string GetAlignmentString(const std::vector<size_t>& align) {
+std::string GetAlignmentString(const std::vector<HardAlignment>& align) {
   std::stringstream alignStr;
   alignStr << " |||";
-  for(size_t wIdx = 0; wIdx < align.size(); ++wIdx) {
-    alignStr << " " << wIdx << "-" << align[wIdx];
+  for(auto p = align.begin(); p != align.end(); ++p) {
+    alignStr << " " << p->first << "-" << p->second;
   }
   return alignStr.str();
 }
-
 }
