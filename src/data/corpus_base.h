@@ -164,38 +164,35 @@ public:
    * @see marian::data::Batch::split(size_t n)
    */
   std::vector<Ptr<SubBatch>> split(size_t n) {
+    ABORT_IF(size_ == 0, "Encoutered sub-batch size of 0");
+
     std::vector<Ptr<SubBatch>> splits;
-
-    // if the batch size is smaller than the number of splits
-    // adjust the number of splits to the batch size.
-    if(size_ < n)
-      n = size_;
-
     size_t subSize = std::ceil(size_ / (float)n);
-    size_t totSize = size_;
-
+    
+    size_t restSize = size_;
     int pos = 0;
     for(int k = 0; k < n; ++k) {
-      size_t __size__ = std::min(subSize, totSize);
+      size_t __size__ = std::min(subSize, restSize);
+      if(__size__ > 0) {
+        auto sb = New<SubBatch>(__size__, width_);
 
-      auto sb = New<SubBatch>(__size__, width_);
+        size_t __words__ = 0;
+        for(int j = 0; j < width_; ++j) {
+          for(int i = 0; i < __size__; ++i) {
+            sb->data()[j * __size__ + i] = indices_[j * size_ + pos + i];
+            sb->mask()[j * __size__ + i] = mask_[j * size_ + pos + i];
 
-      size_t __words__ = 0;
-      for(int j = 0; j < width_; ++j) {
-        for(int i = 0; i < __size__; ++i) {
-          sb->data()[j * __size__ + i] = indices_[j * size_ + pos + i];
-          sb->mask()[j * __size__ + i] = mask_[j * size_ + pos + i];
-
-          if(mask_[j * size_ + pos + i] != 0)
-            __words__++;
+            if(mask_[j * size_ + pos + i] != 0)
+              __words__++;
+          }
         }
+
+        sb->setWords(__words__);
+        splits.push_back(sb);
+
+        restSize -= __size__;
+        pos += __size__;
       }
-
-      sb->setWords(__words__);
-      splits.push_back(sb);
-
-      totSize -= __size__;
-      pos += __size__;
     }
     return splits;
   }
@@ -329,16 +326,17 @@ public:
    * @see marian::data::SubBatch::split(size_t n)
    */
   std::vector<Ptr<Batch>> split(size_t n) {
+    ABORT_IF(size() == 0, "Encoutered batch size of 0");
+
+    std::vector<std::vector<Ptr<SubBatch>>> subs;
     // split each subbatch separately
-
-    if(size() < n)
-      n = size();
-
-    std::vector<std::vector<Ptr<SubBatch>>> subs(n);
     for(auto subBatch : batches_) {
       size_t i = 0;
-      for(auto splitSubBatch : subBatch->split(n))
+      for(auto splitSubBatch : subBatch->split(n)) {
+        if(subs.size() <= i)
+          subs.resize(i + 1);
         subs[i++].push_back(splitSubBatch);
+      }
     }
 
     // create batches from split subbatches
