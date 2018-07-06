@@ -42,7 +42,6 @@ protected:
 
   std::vector<Tensor> paramsAvg_;
   std::vector<Ptr<TensorAllocator>> paramsAllocAvg_;
-  Ptr<ExpressionGraph> graphAvg_;
 
   std::unique_ptr<ThreadPool> pool_;
 

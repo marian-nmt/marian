@@ -55,6 +55,16 @@ void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
 }
 
 void SyncGraphGroup::initializeAvg() {
+  Ptr<ExpressionGraph> graphAvg;
+  std::string name = options_->get<std::string>("model");
+  if(boost::filesystem::exists(name + ".mvavg.npz")) {
+    // Load the averaged parameters into a temporary graph
+    graphAvg = New<ExpressionGraph>();
+    graphAvg->setDevice({0, DeviceType::cpu});
+    builders_[0]->load(graphAvg, name, false);
+    graphAvg->forceInit();
+  }
+
   int totalSize = graphs_[0]->params()->vals()->size();
   shardSize_ = ceil(totalSize / (float)devices_.size());
 
@@ -71,8 +81,8 @@ void SyncGraphGroup::initializeAvg() {
     paramsAlloc->allocate(paramAvg, {1, __size__});
     paramsAvg_.push_back(paramAvg);
 
-    if(graphAvg_)
-      paramAvg->copyFrom(graphAvg_->params()->vals()->subtensor(pos, __size__));
+    if(graphAvg)
+      paramAvg->copyFrom(graphAvg->params()->vals()->subtensor(pos, __size__));
     else
       paramAvg->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));
 
@@ -81,9 +91,8 @@ void SyncGraphGroup::initializeAvg() {
     totalSize -= __size__;
   }
 
-  // we don't need the graph anymore as averaged params have been loaded
-  if(graphAvg_)
-    graphAvg_.reset();
+  if(graphAvg)
+    graphAvg.reset();
 }
 
 void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
@@ -214,24 +223,14 @@ void SyncGraphGroup::load() {
       if(scheduler_)
         scheduler_->load(name);
 
+      std::string nameGraph = name;
+      if(mvAvg_ && boost::filesystem::exists(name + ".mvavg.npz"))
+        // Load the original parameters from model.npz.mvavg.npz
+        nameGraph += ".mvavg.npz";
+
       size_t i = 0;
-      if(mvAvg_ && boost::filesystem::exists(name + ".mvavg.npz")) {
-        graphAvg_ = New<ExpressionGraph>();
-        graphAvg_->setDevice({0, DeviceType::cpu});
-
-        for(auto graph : graphs_) {
-          // Load the averaged parameters into a temporary graph
-          builders_[i]->load(graphAvg_, name, false);
-          // Load the original parameters from model.npz.mvavg.npz
-          builders_[i]->load(graph, name + ".mvavg.npz");
-          ++i;
-        }
-
-        graphAvg_->forceInit();
-      } else {
-        for(auto graph : graphs_)
-          builders_[i++]->load(graph, name);
-      }
+      for(auto graph : graphs_)
+        builders_[i++]->load(graph, nameGraph);
 
       // @TODO: probably we want to have the list of DeviceIds as an attribute
       std::vector<Ptr<Backend>> backends;
@@ -240,13 +239,13 @@ void SyncGraphGroup::load() {
       shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends);
 
     } else if(options_->has("pretrained-model")) {
-      std::string init = options_->get<std::string>("pretrained-model");
+      std::string nameInit = options_->get<std::string>("pretrained-model");
       LOG(info,
           "Initialize model weights with the pre-trained model {}",
-          init);
+          nameInit);
       size_t i = 0;
       for(auto graph : graphs_)
-        builders_[i++]->load(graph, init, false);
+        builders_[i++]->load(graph, nameInit, false);
     }
   }
 }
