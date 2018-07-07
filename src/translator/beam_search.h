@@ -38,7 +38,8 @@ public:
     Beams newBeams(beams.size());
 
     std::vector<float> alignments;
-    if(options_->get<bool>("alignment", false))
+    if(options_->get<float>("alignment"))
+      // Use alignments from the first scorer, even if ensemble
       alignments = scorers_[0]->getAlignment();
 
     for(int i = 0; i < keys.size(); ++i) {

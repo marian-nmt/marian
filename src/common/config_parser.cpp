@@ -694,7 +694,7 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
      "Use softmax shortlist: path first best prune")
     ("weights", po::value<std::vector<float>>()->multitoken(),
       "Scorer weights")
-    ("alignment", po::value<bool>()->zero_tokens()->default_value(false),
+    ("alignment", po::value<float>()->default_value(0.f)->implicit_value(1.f),
      "Return word alignments")
     // TODO: the options should be available only in server
     ("port,p", po::value<size_t>()->default_value(8080),
@@ -998,7 +998,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("mini-batch-words", int);
     SET_OPTION_NONDEFAULT("weights", std::vector<float>);
     SET_OPTION_NONDEFAULT("shortlist", std::vector<std::string>);
-    SET_OPTION("alignment", bool);
+    SET_OPTION("alignment", float);
     SET_OPTION("port", size_t);
     SET_OPTION("optimize", bool);
     SET_OPTION("max-length-factor", float);

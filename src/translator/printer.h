@@ -14,7 +14,8 @@ namespace marian {
 typedef std::vector<float> SoftAlignment;
 typedef std::pair<size_t, size_t> HardAlignment;
 
-std::vector<HardAlignment> GetAlignment(const Ptr<Hypothesis>& hyp);
+std::vector<HardAlignment> GetAlignment(const Ptr<Hypothesis>& hyp,
+                                        float threshold);
 std::string GetAlignmentString(const std::vector<HardAlignment>& align);
 
 template <class OStream>
@@ -24,7 +25,7 @@ void Printer(Ptr<Config> options,
              OStream& best1,
              OStream& bestn) {
   bool reverse = options->get<bool>("right-left");
-  bool align = options->get<bool>("alignment", false);
+  float alignment = options->get<float>("alignment");
 
   if(options->has("n-best") && options->get<bool>("n-best")) {
     const auto& nbl = history->NBest(options->get<size_t>("beam-size"));
@@ -63,9 +64,9 @@ void Printer(Ptr<Config> options,
   std::string translation = Join((*vocab)(words), " ", reverse);
 
   best1 << translation;
-  if(align) {
+  if(alignment) {
     const auto& hypo = std::get<1>(result);
-    auto align = GetAlignment(hypo);
+    auto align = GetAlignment(hypo, alignment);
     best1 << GetAlignmentString(align);
   }
   best1 << std::flush;
