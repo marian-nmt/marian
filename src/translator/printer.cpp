@@ -4,7 +4,9 @@ namespace marian {
 
 std::vector<HardAlignment> GetAlignment(const Ptr<Hypothesis>& hyp) {
   std::vector<SoftAlignment> alignSoft;
+  // Skip EOS
   auto last = hyp->GetPrevHyp();
+  // Get soft alignments for each target word
   while(last->GetPrevHyp().get() != nullptr) {
     alignSoft.push_back(last->GetAlignment());
     last = last->GetPrevHyp();
@@ -12,6 +14,7 @@ std::vector<HardAlignment> GetAlignment(const Ptr<Hypothesis>& hyp) {
 
   std::vector<HardAlignment> align;
   for(size_t t = 0; t < alignSoft.size(); ++t) {
+    // Retrieved alignments are in reversed order
     size_t rev = alignSoft.size() - t - 1;
     size_t maxArg = 0;
     for(size_t s = 0; s < alignSoft[0].size(); ++s) {
@@ -22,6 +25,7 @@ std::vector<HardAlignment> GetAlignment(const Ptr<Hypothesis>& hyp) {
     align.push_back(std::make_pair(maxArg, t));
   }
 
+  // Sort alignment pairs in ascending order
   std::sort(align.begin(),
             align.end(),
             [](const HardAlignment& a, const HardAlignment& b) {
