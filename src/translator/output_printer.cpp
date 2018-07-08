@@ -2,8 +2,9 @@
 
 namespace marian {
 
-std::vector<HardAlignment> GetAlignment(const Ptr<Hypothesis>& hyp,
-                                        float threshold) {
+std::vector<HardAlignment> OutputPrinter::getAlignment(
+    const Ptr<Hypothesis>& hyp,
+    float threshold) {
   std::vector<SoftAlignment> alignSoft;
   // Skip EOS
   auto last = hyp->GetPrevHyp();
@@ -14,10 +15,11 @@ std::vector<HardAlignment> GetAlignment(const Ptr<Hypothesis>& hyp,
   }
 
   std::vector<HardAlignment> align;
-  for(size_t t = 0; t < alignSoft.size(); ++t) {
-    // Retrieved alignments are in reversed order
-    size_t rev = alignSoft.size() - t - 1;
-    if(threshold == 1.f) {
+  // Alignments by maximum value
+  if(threshold == 1.f) {
+    for(size_t t = 0; t < alignSoft.size(); ++t) {
+      // Retrieved alignments are in reversed order
+      size_t rev = alignSoft.size() - t - 1;
       size_t maxArg = 0;
       for(size_t s = 0; s < alignSoft[0].size(); ++s) {
         if(alignSoft[rev][maxArg] < alignSoft[rev][s]) {
@@ -25,7 +27,12 @@ std::vector<HardAlignment> GetAlignment(const Ptr<Hypothesis>& hyp,
         }
       }
       align.push_back(std::make_pair(maxArg, t));
-    } else {
+    }
+  } else {
+    // Alignments by greather-than-threshold
+    for(size_t t = 0; t < alignSoft.size(); ++t) {
+      // Retrieved alignments are in reversed order
+      size_t rev = alignSoft.size() - t - 1;
       for(size_t s = 0; s < alignSoft[0].size(); ++s) {
         if(alignSoft[rev][s] > threshold) {
           align.push_back(std::make_pair(s, t));
@@ -45,7 +52,8 @@ std::vector<HardAlignment> GetAlignment(const Ptr<Hypothesis>& hyp,
   return align;
 }
 
-std::string GetAlignmentString(const std::vector<HardAlignment>& align) {
+std::string OutputPrinter::getAlignmentString(
+    const std::vector<HardAlignment>& align) {
   std::stringstream alignStr;
   alignStr << " |||";
   for(auto p = align.begin(); p != align.end(); ++p) {

@@ -13,16 +13,7 @@ namespace marian {
 typedef std::vector<float> SoftAlignment;
 typedef std::pair<size_t, size_t> HardAlignment;
 
-std::vector<HardAlignment> GetAlignment(const Ptr<Hypothesis>& hyp,
-                                        float threshold);
-std::string GetAlignmentString(const std::vector<HardAlignment>& align);
-
 class OutputPrinter {
-  Ptr<Vocab> vocab_;
-  bool reverse_{false};
-  size_t nbest_{0};
-  float alignment_{0.f};
-
 public:
   OutputPrinter(Ptr<Config> options, Ptr<Vocab> vocab)
       : vocab_(vocab),
@@ -71,10 +62,20 @@ public:
     best1 << translation;
     if(alignment_) {
       const auto& hypo = std::get<1>(result);
-      auto align = GetAlignment(hypo, alignment_);
-      best1 << GetAlignmentString(align);
+      auto align = getAlignment(hypo, alignment_);
+      best1 << getAlignmentString(align);
     }
     best1 << std::flush;
   }
+
+private:
+  Ptr<Vocab> vocab_;
+  bool reverse_{false};
+  size_t nbest_{0};
+  float alignment_{0.f};
+
+  std::vector<HardAlignment> getAlignment(const Ptr<Hypothesis>& hyp,
+                                          float threshold);
+  std::string getAlignmentString(const std::vector<HardAlignment>& align);
 };
 }
