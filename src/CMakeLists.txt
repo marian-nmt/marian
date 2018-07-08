@@ -51,10 +51,10 @@ add_library(marian STATIC
 
   translator/history.cpp
   translator/output_collector.cpp
+  translator/output_printer.cpp
   translator/nth_element.cpp
   translator/helpers.cpp
   translator/scorers.cpp
-  translator/printer.cpp
 
   training/graph_group_async.cpp
   training/graph_group_async_drop.cpp

@@ -14,7 +14,7 @@
 #include "translator/beam_search.h"
 #include "translator/history.h"
 #include "translator/output_collector.h"
-#include "translator/printer.h"
+#include "translator/output_printer.h"
 #include "translator/scorers.h"
 
 namespace marian {
@@ -294,9 +294,11 @@ public:
 
     boost::timer::cpu_timer timer;
     {
+      auto printer = New<OutputPrinter>(options_, vocabs_.back());
       auto collector = options_->has("valid-translation-output")
                            ? New<OutputCollector>(fileName)
                            : New<OutputCollector>(*tempFile);
+
       if(quiet_)
         collector->setPrintingStrategy(New<QuietPrinting>());
       else
@@ -325,7 +327,7 @@ public:
           for(auto history : histories) {
             std::stringstream best1;
             std::stringstream bestn;
-            Printer(options_, vocabs_.back(), history, best1, bestn);
+            printer->print(history, best1, bestn);
             collector->Write(history->GetLineNum(),
                              best1.str(),
                              bestn.str(),
