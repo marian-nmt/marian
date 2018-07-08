@@ -32,11 +32,15 @@ public:
       const auto& words = std::get<0>(result);
       const auto& hypo = std::get<1>(result);
 
-      float realCost = std::get<2>(result);
-
       std::string translation = Join((*vocab_)(words), " ", reverse_);
+      bestn << history->GetLineNum() << " ||| " << translation;
 
-      bestn << history->GetLineNum() << " ||| " << translation << " |||";
+      if(alignment_) {
+        auto align = getAlignment(hypo, alignment_);
+        bestn << getAlignmentString(align);
+      }
+
+      bestn << " |||";
 
       if(hypo->GetCostBreakdown().empty()) {
         bestn << " F0=" << hypo->GetCost();
@@ -46,6 +50,7 @@ public:
         }
       }
 
+      float realCost = std::get<2>(result);
       bestn << " ||| " << realCost;
 
       if(i < nbl.size() - 1)
