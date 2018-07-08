@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 MAINTAINER Mama <ma@ma.com>
 LABEL description="Basic Marian docker container for Ubuntu"
@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y \
             && rm -rf /var/lib/apt/lists/*
 
 
-RUN git clone https://github.com/marian-nmt/marian
+RUN git clone https://github.com/marian-nmt/marian -t 1.5.0
 
 ENV MARIANPATH /marian
 
