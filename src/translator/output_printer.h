@@ -21,7 +21,7 @@ public:
         nbest_(options->get<bool>("n-best", false)
                    ? options->get<size_t>("beam-size")
                    : 0),
-        alignment_(options->get<float>("alignment")) {}
+        alignment_(options->get<float>("alignment", 0.f)) {}
 
   template <class OStream>
   void print(Ptr<History> history, OStream& best1, OStream& bestn) {
@@ -35,7 +35,7 @@ public:
       std::string translation = Join((*vocab_)(words), " ", reverse_);
       bestn << history->GetLineNum() << " ||| " << translation;
 
-      if(alignment_) {
+      if(alignment_ > 0.f) {
         auto align = getAlignment(hypo, alignment_);
         bestn << getAlignmentString(align);
       }
@@ -65,7 +65,7 @@ public:
     std::string translation = Join((*vocab_)(words), " ", reverse_);
 
     best1 << translation;
-    if(alignment_) {
+    if(alignment_ > 0.f) {
       const auto& hypo = std::get<1>(result);
       auto align = getAlignment(hypo, alignment_);
       best1 << getAlignmentString(align);
