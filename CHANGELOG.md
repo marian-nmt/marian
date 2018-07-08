@@ -10,7 +10,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 - Faster training (20-30%) by optimizing gradient popagation of biases
-- Returning hard alignments during decoding
+- Returning Moses-style hard alignments during decoding single models, ensembles and n-best
+  lists
+- Hard alignment extraction strategy taking source words that have the
+  attention value greater than the threshold
 - Refactored sync sgd for easier communication and integration with NCCL
 - Smaller memory-overhead for sync-sgd
 - NCCL integration (version 2.2.13)
