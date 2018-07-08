@@ -39,7 +39,7 @@ Marcin Junczys-Dowmunt , Roman Grundkiewicz, Tomasz Dwojak, Hieu Hoang, Kenneth 
       title={Marian: Fast Neural Machine Translation in C++},
       author={Marcin Junczys-Dowmunt and Roman Grundkiewicz and Tomasz Dwojak and Hieu Hoang and Kenneth Heafield and Tom Neckermann and Frank Seide and Ulrich Germann and Alham Fikri Aji and Nikolay Bogoychev and André F. T. Martins and Alexandra Birch},
       journal={arXiv preprint arXiv:1804.00344},
-      url={https://arxiv.org/abs/1804.00344}
+      url={https://arxiv.org/abs/1804.00344},
       year={2018}
     }
 
