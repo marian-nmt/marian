@@ -45,10 +45,10 @@ std::string Debug(const std::vector<T> &vec, size_t verbosity = 1)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 extern std::unordered_map<std::string, boost::timer::cpu_timer> timers;
 
-//#define BEGIN_TIMER_CPU(str) {}
-//#define PAUSE_TIMER_CPU(str) {}
-#define BEGIN_TIMER_CPU(str) { timers[str].resume(); }
-#define PAUSE_TIMER_CPU(str) { timers[str].stop(); }
+#define BEGIN_TIMER_CPU(str) {}
+#define PAUSE_TIMER_CPU(str) {}
+//#define BEGIN_TIMER_CPU(str) { timers[str].resume(); }
+//#define PAUSE_TIMER_CPU(str) { timers[str].stop(); }
 
 } // namespace
 

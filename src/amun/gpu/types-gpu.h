@@ -27,11 +27,10 @@ void HandleErrorCublas(cublasStatus_t err, const char *file, int line );
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-//#define BEGIN_TIMER(str) {}
-//#define PAUSE_TIMER(str) {}
-#define BEGIN_TIMER(str) { HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); timers[str].resume(); }
-#define PAUSE_TIMER(str) { HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); \
-							timers[str].stop(); }
+#define BEGIN_TIMER(str) {}
+#define PAUSE_TIMER(str) {}
+//#define BEGIN_TIMER(str) { HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); timers[str].resume(); }
+//#define PAUSE_TIMER(str) { HANDLE_ERROR( cudaStreamSynchronize(mblas::CudaStreamHandler::GetStream())); timers[str].stop(); }
 
 
 }
