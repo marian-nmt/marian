@@ -55,9 +55,9 @@ Marcin Junczys-Dowmunt, Roman Grundkiewicz, Tomasz Dwojak, Hieu Hoang, Kenneth H
 
 More information on https://marian-nmt.github.io
 
-- [https://marian-nmt.github.io/quickstart](Quick start)
-- [https://marian-nmt.github.io/docs](Installation and usage documentation)
-- [https://marian-nmt.github.io/examples](Usage examples)
+- [Quick start](https://marian-nmt.github.io/quickstart)
+- [Installation and usage documentation](https://marian-nmt.github.io/docs)
+- [Usage examples](https://marian-nmt.github.io/examples)
 
 ## Acknowledgements
 
