@@ -319,7 +319,7 @@ public:
     }
     decoderState.output = values;
 
-    return LayerAttention(prefix, input, values, values, selfMask, /*cache=*/ true);
+    return LayerAttention(prefix, input, values, values, selfMask, /*cache=*/ false);
   }
 
   static inline
@@ -656,8 +656,6 @@ public:
       decoderMask = reshape(transposeTimeBatch(decoderMask),// [ 1, batch size, max length, 1 ]
                             {1, dimBatch, 1, dimTrgWords}); // [ 1, batch size, 1, max length ]
       selfMask = selfMask * decoderMask;
-      // if(dimBeam > 1)
-      //  selfMask = repeat(selfMask, dimBeam, axis = -4);
     }
 
     std::vector<Expr> encoderContexts;
@@ -718,7 +716,8 @@ public:
                                  query,
                                  encoderContexts[j], // keys
                                  encoderContexts[j], // values
-                                 encoderMasks[j]);
+                                 encoderMasks[j],
+                                 /*cache=*/ true);
         }
       }
 
@@ -750,6 +749,7 @@ public:
 
   void clear() {
     output_ = nullptr;
+    cache_.clear();
   }
 };
 
