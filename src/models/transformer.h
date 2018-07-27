@@ -278,6 +278,8 @@ public:
       auto bo = graph_->param(prefix + "_bo", {1, dimOut}, inits::zeros);
       output = affine(output, Wo, bo);
     }
+
+    return output;
   }
 
   Expr LayerAttention(std::string prefix,
