@@ -207,6 +207,13 @@ public:
     return currentBatch_;
   }
 
+  std::vector<BatchPtr> nextN(size_t num) {
+    std::vector<BatchPtr> batches;
+    for(int i = 0; i < num && *this; ++i)
+      batches.push_back(next());
+    return batches;
+  }
+
   void prepare(bool shuffle = true) {
     if(shuffle)
       data_->shuffle();

@@ -244,12 +244,13 @@ public:
     }
   }
 
-  void backward() {
+  void backward(bool zero = true) {
     ABORT_IF(topNodes_.size() > 1,
              "There are more than one top most node for backward step");
 
     params_->allocateBackward();
-    params_->set_zero_adjoint();
+    if(zero)
+      params_->set_zero_adjoint();
 
     for(auto&& v : topNodes_)
       v->init_dependent();
@@ -264,7 +265,7 @@ public:
       nodesBackward_.pop_back();
 
       for(auto&& child : v->children()) {
-        if(child->trainable())
+        if(child->trainable() && child->type() != "param")
           child->set_zero_adjoint();
       }
 

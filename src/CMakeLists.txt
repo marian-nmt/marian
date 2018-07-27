@@ -37,6 +37,8 @@ add_library(marian STATIC
   graph/node_initializers.cpp
 
   layers/convolution.cpp
+  layers/loss.cpp
+  layers/weight.cpp
 
   rnn/cells.cpp
   rnn/attention.cpp
@@ -49,6 +51,7 @@ add_library(marian STATIC
 
   translator/history.cpp
   translator/output_collector.cpp
+  translator/output_printer.cpp
   translator/nth_element.cpp
   translator/helpers.cpp
   translator/scorers.cpp
@@ -58,10 +61,13 @@ add_library(marian STATIC
   training/graph_group_sync.cpp
   training/graph_group_singleton.cpp
   training/graph_group_multinode.cpp
+  training/graph_group_multinode_sync.cpp
   training/validator.cpp
+  training/communicator.cpp
 
   $<TARGET_OBJECTS:libyaml-cpp>
-  $<TARGET_OBJECTS:SQLiteCpp>)
+  $<TARGET_OBJECTS:SQLiteCpp>
+)
 
 if(CUDA_FOUND)
 cuda_add_library(marian_cuda
@@ -77,6 +83,7 @@ cuda_add_library(marian_cuda
   translator/helpers.cu
   training/gradient_dropping/gpu/dropper.cu
   training/gradient_dropping/gpu/sparse_algorithm.cu
+  training/communicator.cu
   STATIC)
 endif(CUDA_FOUND)
 
@@ -98,14 +105,16 @@ set_target_properties(marian_vocab PROPERTIES OUTPUT_NAME marian-vocab)
 set(EXECUTABLES ${EXECUTABLES} marian_train marian_decoder marian_scorer marian_vocab)
 
 # marian.zip and marian.tgz
-# This combines marian, marian_decoder in a single ZIP or TAR file for execution in MSFT internal tools FLO and Philly.
-# For Philly submission, we need statically-linked versions to deal with library dependencies, so this target is only enabled for static builds.
+# This combines marian, marian_decoder in a single ZIP or TAR file for
+# execution in MSFT internal tools FLO and Philly.
+# For Philly submission, we need statically-linked versions to deal with
+# library dependencies, so this target is only enabled for static builds.
 if(USE_STATIC_LIBS)
   add_custom_command(
     OUTPUT "${CMAKE_BINARY_DIR}/marian.zip"
     COMMAND zip -v -0 -j "${CMAKE_BINARY_DIR}/marian.zip"
                 "${CMAKE_BINARY_DIR}/marian"
-                "${CMAKE_BINARY_DIR}/marian-decoder" 
+                "${CMAKE_BINARY_DIR}/marian-decoder"
                 "${CMAKE_BINARY_DIR}/marian-scorer"
                 "${CMAKE_BINARY_DIR}/marian-vocab"
     DEPENDS marian_train marian_decoder marian_scorer marian_vocab)
@@ -145,10 +154,6 @@ endforeach(exec)
 #)
 
 #set_target_properties(align2steps PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-
-if(PYTHONLIBS_FOUND)
-#  add_subdirectory(python)
-endif(PYTHONLIBS_FOUND)
 
 if(COMPILE_TESTS)
   set(CATCH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party)

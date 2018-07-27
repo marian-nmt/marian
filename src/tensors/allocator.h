@@ -16,9 +16,27 @@
 namespace marian {
 
 class AllocationException : public std::exception {
+private:
+  char* message_;
+
 public:
-  virtual const char* what() const throw() {
-    return "Memory re-allocation attempted";
+  AllocationException(size_t available, size_t asked) {
+    std::string mstr = "Attempted allocation of "
+      + std::to_string(asked)
+      + ", but only "
+      + std::to_string(available)
+      + " free";
+
+    message_ = new char[mstr.size() + 1];
+    std::copy(mstr.begin(), mstr.end(), message_);
+  }
+
+  ~AllocationException() {
+    delete[] message_;
+  }
+
+  virtual const char* what() const noexcept {
+    return message_;
   }
 };
 
@@ -111,7 +129,7 @@ private:
     auto it = std::lower_bound(gaps_.begin(), gaps_.end(), Gap(nullptr, size));
 
     if(throw_ && it == gaps_.end()) {
-      throw AllocationException();
+      throw AllocationException(available_, size);
     }
 
     while(it == gaps_.end()) {
@@ -119,8 +137,11 @@ private:
       it = std::lower_bound(gaps_.begin(), gaps_.end(), Gap(nullptr, size));
     }
 
-    available_ -= it->size();
-    return *it;
+    Gap gap = *it;
+    gaps_.erase(it);
+
+    available_ -= gap.size();
+    return gap;
   }
 
   void insertGap(Gap gap, bool consolidate = true) {
@@ -186,7 +207,6 @@ public:
     bytes = align(bytes);
     Gap gap = getGap(bytes);
 
-    gaps_.erase(gap);
     if(gap.size() > bytes) {
       insertGap(gap.rest(bytes), false);
     }
