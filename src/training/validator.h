@@ -375,6 +375,7 @@ protected:
   }
 };
 
+// @TODO: combine with TranslationValidator (above) to avoid code duplication
 class BleuValidator : public Validator<data::Corpus> {
 public:
   BleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
