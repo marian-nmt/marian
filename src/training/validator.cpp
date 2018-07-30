@@ -26,6 +26,9 @@ std::vector<Ptr<Validator<data::Corpus>>> Validators(
     } else if(metric == "translation") {
       auto validator = New<TranslationValidator>(vocabs, config);
       validators.push_back(validator);
+    } else if(metric == "bleu") {
+      auto validator = New<BleuValidator>(vocabs, config);
+      validators.push_back(validator);
     } else {
       LOG_VALID(warn, "Unrecognized validation metric: {}", metric);
     }
