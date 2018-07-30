@@ -510,7 +510,9 @@ protected:
 
     std::map<std::vector<Word>, size_t> rgrams;
     for(size_t i = 0; i < ref.size(); ++i) {
-      for(size_t l = 1; l <= std::min(4ul, ref.size() - i); ++l) {
+      // template deduction for std::min<T> seems to be weird under VS due to macros in windows.h
+      // hence explicit type to avoid macro parsing. 
+      for(size_t l = 1; l <= std::min<size_t>(4ul, ref.size() - i); ++l) {
         std::vector<Word> ngram(l);
         std::copy(ref.begin() + i, ref.begin() + i + l, ngram.begin());
         rgrams[ngram]++;
@@ -519,7 +521,7 @@ protected:
 
     std::map<std::vector<Word>, size_t> tgrams;
     for(size_t i = 0; i < cand.size() - 1; ++i) {
-      for(size_t l = 1; l <= std::min(4ul, cand.size() - 1 - i); ++l) {
+      for(size_t l = 1; l <= std::min<size_t>(4ul, cand.size() - 1 - i); ++l) {
         std::vector<Word> ngram(l);
         std::copy(cand.begin() + i, cand.begin() + i + l, ngram.begin());
         tgrams[ngram]++;
@@ -531,7 +533,7 @@ protected:
       size_t tc = ngramcount.second;
       size_t rc = rgrams[ngramcount.first];
 
-      stats[2 * l - 2] += std::min(tc, rc);
+      stats[2 * l - 2] += std::min<size_t>(tc, rc);
       stats[2 * l - 1] += tc;
     }
 
