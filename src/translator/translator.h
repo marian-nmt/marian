@@ -8,7 +8,7 @@
 #include "3rd_party/threadpool.h"
 #include "translator/history.h"
 #include "translator/output_collector.h"
-#include "translator/printer.h"
+#include "translator/output_printer.h"
 
 #include "models/model_task.h"
 #include "translator/scorers.h"
@@ -83,6 +83,7 @@ public:
 
     size_t batchId = 0;
     auto collector = New<OutputCollector>();
+    auto printer = New<OutputPrinter>(options_, trgVocab_);
     if(options_->get<bool>("quiet-translation"))
       collector->setPrintingStrategy(New<QuietPrinting>());
 
@@ -111,7 +112,7 @@ public:
         for(auto history : histories) {
           std::stringstream best1;
           std::stringstream bestn;
-          Printer(options_, trgVocab_, history, best1, bestn);
+          printer->print(history, best1, bestn);
           collector->Write(history->GetLineNum(),
                            best1.str(),
                            bestn.str(),
@@ -176,6 +177,7 @@ public:
     data::BatchGenerator<data::TextInput> bg(corpus_, options_);
 
     auto collector = New<StringCollector>();
+    auto printer = New<OutputPrinter>(options_, trgVocab_);
     size_t batchId = 0;
 
     // @TODO: unify this and get rid of Config object.
@@ -205,7 +207,7 @@ public:
           for(auto history : histories) {
             std::stringstream best1;
             std::stringstream bestn;
-            Printer(options_, trgVocab_, history, best1, bestn);
+            printer->print(history, best1, bestn);
             collector->add(history->GetLineNum(), best1.str(), bestn.str());
           }
         };

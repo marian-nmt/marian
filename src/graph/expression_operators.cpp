@@ -313,7 +313,9 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
         if(bc != b)
           bc = rec2(bc);
 
-        std::vector<Expr> nodes = {ac, bc, bias};
+        int rows = ac->shape().elements() / ac->shape()[-1];
+        Expr ones = ac->graph()->ones({rows, 1});
+        std::vector<Expr> nodes = {ac, bc, bias, ones};
         return rec2(Expression<AffineNodeOp>(nodes, transA, transB, scale),
                     true);
       };
@@ -333,13 +335,16 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
   }
   else {
     // general version, MKL, CBlas or CUDA
+
     // if clipValue > 0, the inputs will be clipped to range [-clipValue, clipValue]
     // This is meant to keep values at the same range as used during training when
     // optimizing for 8-bit integer products. Likely to be removed in the future
     // when we explore better ways to handle this.
-    std::vector<Expr> nodes = {clip(a, clipValue), clip(b, clipValue), bias};
-    return Expression<AffineNodeOp>(nodes, transA, transB, scale);
 
+    int rows = a->shape().elements() / a->shape()[-1];
+    Expr ones = a->graph()->ones({rows, 1});
+    std::vector<Expr> nodes = {clip(a, clipValue), clip(b, clipValue), bias, ones};
+    return Expression<AffineNodeOp>(nodes, transA, transB, scale);
   }
 }
 
@@ -462,6 +467,7 @@ Expr shift(Expr a, Shape shift, float padValue) {
 //}
 
 #ifdef CUDA_FOUND
+#ifdef CUDNN
 
 Expr avg_pooling(Expr x,
                  int height,
@@ -525,5 +531,6 @@ Expr pooling_with_masking(Expr x, Expr mask, int width, bool isEven) {
   return Expression<PoolingWithMaskingOp>(x, mask, width, isEven);
 }
 
+#endif
 #endif
 }

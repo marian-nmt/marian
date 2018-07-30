@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- Faster training (20-30%) by optimizing gradient popagation of biases
+- Returning Moses-style hard alignments during decoding single models, ensembles and n-best
+  lists
+- Hard alignment extraction strategy taking source words that have the
+  attention value greater than the threshold
+- Refactored sync sgd for easier communication and integration with NCCL
+- Smaller memory-overhead for sync-sgd
+- NCCL integration (version 2.2.13)
+
+### Fixed
+
+- A couple of bugs in "selection" (transpose, shift, cols, rows) operators during
+  back-prob for a very specific case: one of the operators is the first operator after
+  a branch, in that case gradient propgation might be interrupted. This did not affect
+  any of the existing models as such a case was not present, but might have caused
+  future models to not train properly.
+- Bug in mini-batch-fit, tied embeddings would result in identical embeddings in fake
+  source and target batch. Caused under-estimation of memory usage and re-allocation.
+
+## [1.5.0] - 2018-06-17
+
+### Added
+
+- Average Attention Networks for Transformer model
+- 16-bit matrix multiplication on CPU
+- Memoization for constant nodes for decoding
+- Autotuning for decoding
+
+### Fixed
+
+- GPU decoding optimizations, about 2x faster decoding of transformer models
+- Multi-node MPI-based training on GPUs
+
 ## [1.4.0] - 2018-03-13
 
 ### Added

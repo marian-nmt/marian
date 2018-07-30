@@ -160,7 +160,6 @@ void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
     bool broadcast = false;
     for(int i = 0; i < K; ++i)
       broadcast = broadcast || gOut.shape() != gIns[i].shape();
-
     gAddEqual<<<blocks, threads>>>(functor, gOut, gIns, scale, broadcast);
   } else {
     int threads = std::min(MAX_THREADS, length);

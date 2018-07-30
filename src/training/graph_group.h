@@ -32,7 +32,7 @@ public:
 
   virtual ~GraphGroup() {}
 
-  virtual void update(Ptr<data::Batch>) = 0;
+  virtual void update(Ptr<data::Batch> batch) = 0;
 
   virtual void load() = 0;
 

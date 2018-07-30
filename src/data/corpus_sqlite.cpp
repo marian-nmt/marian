@@ -99,7 +99,7 @@ void CorpusSQLite::fillSQLite() {
       }
     }
     db_->exec("commit;");
-    LOG(info, "[sqlite] Inserted {} lines", lines);
+    LOG(info, "[sqlite] Inserted {} lines", lines - 1);
     LOG(info, "[sqlite] Creating primary index");
     db_->exec("create unique index idx_line on lines (_id);");
   }

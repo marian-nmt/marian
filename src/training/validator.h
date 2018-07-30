@@ -14,7 +14,7 @@
 #include "translator/beam_search.h"
 #include "translator/history.h"
 #include "translator/output_collector.h"
-#include "translator/printer.h"
+#include "translator/output_printer.h"
 #include "translator/scorers.h"
 
 namespace marian {
@@ -252,9 +252,8 @@ public:
 
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
-    std::vector<std::string> srcPaths(validPaths.begin(), validPaths.end() - 1);
-    std::vector<Ptr<Vocab>> srcVocabs(vocabs_.begin(), vocabs_.end() - 1);
-    auto corpus = New<data::Corpus>(srcPaths, srcVocabs, opts);
+    std::vector<std::string> paths(validPaths.begin(), validPaths.end());
+    auto corpus = New<data::Corpus>(paths, vocabs_, opts);
 
     // Generate batches
     auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, opts);
@@ -294,9 +293,11 @@ public:
 
     boost::timer::cpu_timer timer;
     {
+      auto printer = New<OutputPrinter>(options_, vocabs_.back());
       auto collector = options_->has("valid-translation-output")
                            ? New<OutputCollector>(fileName)
                            : New<OutputCollector>(*tempFile);
+
       if(quiet_)
         collector->setPrintingStrategy(New<QuietPrinting>());
       else
@@ -329,7 +330,7 @@ public:
           for(auto history : histories) {
             std::stringstream best1;
             std::stringstream bestn;
-            Printer(options_, vocabs_.back(), history, best1, bestn);
+            printer->print(history, best1, bestn);
             collector->Write(history->GetLineNum(),
                              best1.str(),
                              bestn.str(),
@@ -373,6 +374,191 @@ protected:
     return 0;
   }
 };
+
+// @TODO: combine with TranslationValidator (above) to avoid code duplication
+class BleuValidator : public Validator<data::Corpus> {
+public:
+  BleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
+      : Validator(vocabs, options, false),
+        quiet_(options_->get<bool>("quiet-translation")) {
+    Ptr<Options> opts = New<Options>();
+    opts->merge(options);
+    opts->set("inference", true);
+    builder_ = models::from_options(opts, models::usage::translation);
+
+    if(!options_->has("valid-script-path"))
+      LOG_VALID(warn,
+                "No post-processing script given for validating translator");
+  }
+
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) {
+    using namespace data;
+
+    // Temporary options for translation
+    auto opts = New<Config>(*options_);
+    opts->set("mini-batch", options_->get<int>("valid-mini-batch"));
+    opts->set("maxi-batch", 10);
+    opts->set("max-length", 1000);
+
+    // Create corpus
+    auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
+    std::vector<std::string> paths(validPaths.begin(), validPaths.end());
+    auto corpus = New<data::Corpus>(paths, vocabs_, opts);
+
+    // Generate batches
+    auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, opts);
+    batchGenerator->prepare(false);
+
+    // Create scorer
+    auto model = options_->get<std::string>("model");
+
+    auto mopts = New<Options>();
+    mopts->merge(options_);
+    mopts->set("inference", true);
+
+    std::vector<Ptr<Scorer>> scorers;
+    for(auto graph : graphs) {
+      auto builder = models::from_options(mopts, models::usage::translation);
+      Ptr<Scorer> scorer = New<ScorerWrapper>(builder, "", 1.0f, model);
+      scorers.push_back(scorer);
+    }
+
+    for(auto graph : graphs)
+      graph->setInference(true);
+
+    if(!quiet_)
+      LOG(info, "Translating validation set...");
+
+    // 0: 1-grams matched, 1: 1-grams total,
+    // ...,
+    // 6: 4-grams matched, 7: 4-grams total,
+    // 8: reference length
+    std::vector<float> stats(9, 0.f);
+
+    boost::timer::cpu_timer timer;
+    {
+      size_t sentenceId = 0;
+
+      ThreadPool threadPool(graphs.size(), graphs.size());
+
+      // @TODO: unify this and get rid of Config object.
+      auto tOptions = New<Options>();
+      tOptions->merge(options_);
+
+      while(*batchGenerator) {
+        auto batch = batchGenerator->next();
+
+        auto task = [=,&stats](size_t id) {
+          thread_local Ptr<ExpressionGraph> graph;
+          thread_local Ptr<Scorer> scorer;
+
+          if(!graph) {
+            graph = graphs[id % graphs.size()];
+            scorer = scorers[id % graphs.size()];
+          }
+
+          auto search
+              = New<BeamSearch>(tOptions, std::vector<Ptr<Scorer>>{scorer}, vocabs_.back()->GetEosId(), vocabs_.back()->GetUnkId());
+          auto histories = search->search(graph, batch);
+
+          size_t no = 0;
+          std::lock_guard<std::mutex> statsLock(mutex_);
+          for(auto history : histories) {
+            auto result = history->Top();
+            const auto& words = std::get<0>(result);
+            updateStats(stats, words, batch, no, vocabs_.back()->GetEosId());
+            no++;
+          }
+        };
+
+        threadPool.enqueue(task, sentenceId);
+        sentenceId++;
+      }
+    }
+
+    if(!quiet_)
+      LOG(info, "Total translation time: {}", timer.format(5, "%ws"));
+
+    for(auto graph : graphs)
+      graph->setInference(false);
+
+    float val = calcBLEU(stats);
+    updateStalled(graphs, val);
+
+    return val;
+  };
+
+  std::string type() { return "bleu"; }
+
+protected:
+  bool quiet_{false};
+
+  void updateStats(std::vector<float>& stats, const Words& cand, const Ptr<data::Batch> batch, size_t no, Word eos) {
+    auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
+    auto subBatch = corpusBatch->back();
+
+    size_t size = subBatch->batchSize();
+    size_t width = subBatch->batchWidth();
+
+    Words ref; // fill ref
+    for(int i = 0; i < width; ++i) {
+      Word w = subBatch->data()[i * size + no];
+      if(w == eos)
+        break;
+      ref.push_back(w);
+    }
+
+    std::map<std::vector<Word>, size_t> rgrams;
+    for(size_t i = 0; i < ref.size(); ++i) {
+      for(size_t l = 1; l <= std::min(4ul, ref.size() - i); ++l) {
+        std::vector<Word> ngram(l);
+        std::copy(ref.begin() + i, ref.begin() + i + l, ngram.begin());
+        rgrams[ngram]++;
+      }
+    }
+
+    std::map<std::vector<Word>, size_t> tgrams;
+    for(size_t i = 0; i < cand.size() - 1; ++i) {
+      for(size_t l = 1; l <= std::min(4ul, cand.size() - 1 - i); ++l) {
+        std::vector<Word> ngram(l);
+        std::copy(cand.begin() + i, cand.begin() + i + l, ngram.begin());
+        tgrams[ngram]++;
+      }
+    }
+
+    for(auto &ngramcount : tgrams) {
+      size_t l = ngramcount.first.size();
+      size_t tc = ngramcount.second;
+      size_t rc = rgrams[ngramcount.first];
+
+      stats[2 * l - 2] += std::min(tc, rc);
+      stats[2 * l - 1] += tc;
+    }
+
+    stats[8] += ref.size();
+  }
+
+  float calcBLEU(const std::vector<float>& stats) {
+    float logbleu = 0;
+    for(int i = 0; i < 8; i += 2) {
+      if(stats[i] == 0.f)
+        return 0.f;
+      logbleu += std::log(stats[i] / stats[i + 1]);
+    }
+
+    logbleu /= 4.f;
+
+    float brev_penalty = 1.f - std::max(stats[8] / stats[1], 1.f);
+    return std::exp(logbleu + brev_penalty) * 100;
+  }
+
+  virtual float validateBG(
+      const std::vector<Ptr<ExpressionGraph>>& graphs,
+      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
+    return 0;
+  }
+};
+
 
 /**
  * @brief Creates validators from options

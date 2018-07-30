@@ -21,6 +21,10 @@ public:
     ABORT_IF(options_->get<std::string>("dec-cell") != "gru-nematus",
              "--type nematus does not currently support other rnn cells "
              "than gru-nematus, use --type s2s");
+
+    ABORT_IF(options_->get<int>("dec-cell-high-depth") > 1,
+             "--type nematus does not currently support "
+             "--dec-cell-high-depth > 1, use --type s2s");
   }
 
   void load(Ptr<ExpressionGraph> graph,
