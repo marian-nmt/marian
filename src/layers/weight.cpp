@@ -3,8 +3,8 @@
 namespace marian {
 
 Ptr<WeightingBase> WeightingFactory(Ptr<Options> options) {
-  if(options->has("data-weighting"))
-    return New<DataWeighting>(options->get<std::string>("data-weighting-type"));
+  ABORT_IF(!options->has("data-weighting"), "No data-weigting specified in options");
+  return New<DataWeighting>(options->get<std::string>("data-weighting-type"));
 }
 
 Expr DataWeighting::getWeights(Ptr<ExpressionGraph> graph,
