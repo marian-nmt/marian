@@ -694,4 +694,4 @@ void MultiNodeGraphGroup::signalFinishedToServerShards() {
   }
 #endif
 }
-}
+}  // namespace marian

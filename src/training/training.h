@@ -84,4 +84,4 @@ public:
       model->save(true);
   }
 };
-}
+}  // namespace marian

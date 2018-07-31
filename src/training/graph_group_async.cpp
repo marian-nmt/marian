@@ -1,7 +1,7 @@
 #include "training/graph_group_async.h"
+#include "data/corpus_base.h"
 #include "functional/functional.h"
 #include "tensors/tensor_operators.h"
-#include "data/corpus_base.h"
 
 namespace marian {
 
@@ -232,14 +232,13 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
       // Wait until the thread that wants to do validation is finished.
       pool_->wait_for_one(lock);
 
-      if (options_->get<std::string>("cost-type") != "ce-sum")
+      if(options_->get<std::string>("cost-type") != "ce-sum")
         cost /= optimizerDelay_;
 
-      if (optimizerDelay_ > 1) {
+      if(optimizerDelay_ > 1) {
         std::vector<size_t> fakeLength = {1, 1};
-        auto fb = data::CorpusBatch::fakeBatch(fakeLength,
-                                          num_seen_sentences,
-                                          NULL);
+        auto fb = data::CorpusBatch::fakeBatch(
+            fakeLength, num_seen_sentences, NULL);
         fb->front()->setWords(num_seen_words);
         scheduler_->update(cost, fb);
 
@@ -278,9 +277,9 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
 }
 
 void AsyncGraphGroup::finalize() {
-  pool_->join_all(); // call before destructing thread pool
+  pool_->join_all();  // call before destructing thread pool
   pool_.reset(nullptr);
   finalized_ = true;
 }
 
-}
+}  // namespace marian

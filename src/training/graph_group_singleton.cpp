@@ -66,4 +66,4 @@ void SingletonGraph::execute(Ptr<data::Batch> batch) {
     }
   }
 }
-}
+}  // namespace marian

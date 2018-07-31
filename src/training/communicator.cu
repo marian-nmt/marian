@@ -1,4 +1,5 @@
 #include "training/communicator.h"
+
 #include "functional/functional.h"
 #include "tensors/tensor_operators.h"
 
@@ -25,11 +26,10 @@ private:
 
 public:
   NCCLCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs)
-   : Communicator(graphs),
-     comms_(graphs.size()),
-     streams_(graphs.size()),
-     devices_(graphs.size())
-  {
+      : Communicator(graphs),
+        comms_(graphs.size()),
+        streams_(graphs.size()),
+        devices_(graphs.size()) {
     LOG(info, "[comm] Using NCCL library for GPU communication");
 
     for(int i = 0; i < graphs_.size(); ++i) {
@@ -98,12 +98,8 @@ public:
       const void* sendbuff = (const void*)subparam->data();
       void* recvbuff = (void*)graphs_[i]->params()->vals()->data();
 
-      ncclAllGather(sendbuff,
-                    recvbuff,
-                    shardSize,
-                    ncclFloat,
-                    comms_[i],
-                    streams_[i]);
+      ncclAllGather(
+          sendbuff, recvbuff, shardSize, ncclFloat, comms_[i], streams_[i]);
 
       pos += size;
       totalSize -= size;
@@ -120,15 +116,18 @@ public:
     auto gather = [this, params](size_t idx, int pos) {
       // copy parameter shard to each graph, apart from last graph
       for(int i = 0; i < graphs_.size() - 1; ++i) {
-        auto subParam = graphs_[i]->params()->vals()->subtensor(pos, params[idx]->size());
+        auto subParam
+            = graphs_[i]->params()->vals()->subtensor(pos, params[idx]->size());
         subParam->copyFrom(params[idx]);
       }
 
       // back-up shard from last graph
-      auto subParamLast = graphs_.back()->params()->vals()->subtensor(pos, params[idx]->size());
+      auto subParamLast = graphs_.back()->params()->vals()->subtensor(
+          pos, params[idx]->size());
       params[idx]->copyFrom(subParamLast);
 
-      auto subParamFirst = graphs_[0]->params()->vals()->subtensor(pos, params[idx]->size());
+      auto subParamFirst
+          = graphs_[0]->params()->vals()->subtensor(pos, params[idx]->size());
       subParamLast->copyFrom(subParamFirst);
     };
 
@@ -142,7 +141,8 @@ public:
 
     auto copy = [this, params](size_t idx, int pos) {
       // copy parameter shard to each graph
-      auto subParam = graphs_[idx]->params()->vals()->subtensor(pos, params[idx]->size());
+      auto subParam
+          = graphs_[idx]->params()->vals()->subtensor(pos, params[idx]->size());
       params[idx]->copyFrom(subParam);
     };
 
@@ -155,7 +155,8 @@ public:
     auto gather = [this, params](size_t idx, int pos) {
       // copy parameter shard to each graph
       for(auto graph : graphs_) {
-        auto subParam = graph->params()->vals()->subtensor(pos, params[idx]->size());
+        auto subParam
+            = graph->params()->vals()->subtensor(pos, params[idx]->size());
         subParam->copyFrom(params[idx]);
       }
     };
@@ -169,9 +170,9 @@ public:
 
   //   int pos = 0;
   //   for(int i = 0; i < graphs_.size(); ++i) {
-  //     auto subParam = graphs_[i]->params()->vals()->subtensor(pos, params[i]->size());
-  //     ncclGroupStart();
-  //     ncclBroadcast((const void*)subParam->data(),
+  //     auto subParam = graphs_[i]->params()->vals()->subtensor(pos,
+  //     params[i]->size()); ncclGroupStart(); ncclBroadcast((const
+  //     void*)subParam->data(),
   //                   (void*)params[i]->data(),
   //                   params[i]->size(),
   //                   ncclFloat,
@@ -210,7 +211,9 @@ public:
 };
 #endif
 
-Ptr<Communicator> createCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs, bool noNccl) {
+Ptr<Communicator> createCommunicator(
+    const std::vector<Ptr<ExpressionGraph>>& graphs,
+    bool noNccl) {
 #ifdef USE_NCCL
   if(noNccl) {
     LOG(warn, "[comm] NCCL communicator overridden");
@@ -226,7 +229,10 @@ Ptr<Communicator> createCommunicator(const std::vector<Ptr<ExpressionGraph>>& gr
 
   size_t d = graphs.size();
   if((d & (d - 1)) != 0) {
-    LOG(warn, "[comm] Number of devices {} is not a power of 2 and communication might be slow with NCCL", d);
+    LOG(warn,
+        "[comm] Number of devices {} is not a power of 2 and communication "
+        "might be slow with NCCL",
+        d);
     LOG(warn, "[comm] You can switch off NCCL with --no-nccl option", d);
   }
 
@@ -236,4 +242,4 @@ Ptr<Communicator> createCommunicator(const std::vector<Ptr<ExpressionGraph>>& gr
 #endif
 }
 
-}
+}  // namespace marian

@@ -302,4 +302,4 @@ public:
 #endif
   }
 };
-}
+}  // namespace marian

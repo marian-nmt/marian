@@ -531,4 +531,4 @@ public:
 
   virtual void finalize() { finalized_ = true; }
 };
-}
+}  // namespace marian

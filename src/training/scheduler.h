@@ -84,7 +84,8 @@ public:
 
     registerTrainingObserver(validators_.back());
     if(!state_->loaded) {
-      state_->validators[validator->type()]["last-best"] = validator->initScore();
+      state_->validators[validator->type()]["last-best"]
+          = validator->initScore();
       state_->validators[validator->type()]["stalled"] = 0;
     }
     if(validators_.size() == 1)
@@ -134,7 +135,8 @@ public:
           state_->validBest = value;
       }
 
-      state_->validators[validator->type()]["last-best"] = validator->lastBest();
+      state_->validators[validator->type()]["last-best"]
+          = validator->lastBest();
       state_->validators[validator->type()]["stalled"] = validator->stalled();
 
       // notify training observers if the first validator did not improve
@@ -160,60 +162,72 @@ public:
   void update(float cost, const std::vector<Ptr<data::Batch>>& batches) {
     state_->validated = false;
 
-    auto batchSize   = 0; // number of sentences in batch
-    auto batchLabels = 0; // number of target words in batch
+    auto batchSize = 0;    // number of sentences in batch
+    auto batchLabels = 0;  // number of target words in batch
 
     for(const auto& batch : batches) {
       batchSize += batch->size();
       batchLabels += batch->words(-1);
     }
 
-    // reconstruct sum cost, for displaying epoch-level averages instead of minibatch-level
+    // reconstruct sum cost, for displaying epoch-level averages instead of
+    // minibatch-level
     auto costType = options_->get<std::string>("cost-type");
-    auto dispLabelCounts = options_->get<bool>("disp-label-counts"); // if true then show as "cost per label * number of labels"
-    if (dispLabelCounts) {
-      auto count = // what was cost normalized with originally?
-        /*if*/ (costType == "ce-sum") ?
-          1
-        /*else if*/ : ((costType == "ce-mean-words") ?
-          batchLabels
-        /*else*/ :  // all others: treat like ce-mean (not correct for some)
-          batchSize);
-      state_->costSum   += cost * count; // aggregate sum cost since last display
-      state_->costCount += batchLabels;  // cost gets normalized w.r.t. this in display
-    } else { // (back compat)
-      state_->costSum   += cost * batchSize;
+    auto dispLabelCounts = options_->get<bool>(
+        "disp-label-counts");  // if true then show as "cost per label * number
+                               // of labels"
+    if(dispLabelCounts) {
+      auto count =  // what was cost normalized with originally?
+          /*if*/ (costType == "ce-sum")
+              ? 1
+              /*else if*/
+              : ((costType == "ce-mean-words")
+                     ? batchLabels
+                     /*else*/
+                     :  // all others: treat like ce-mean (not correct for some)
+                     batchSize);
+      state_->costSum += cost * count;  // aggregate sum cost since last display
+      state_->costCount
+          += batchLabels;  // cost gets normalized w.r.t. this in display
+    } else {               // (back compat)
+      state_->costSum += cost * batchSize;
       state_->costCount += batchSize;
     }
-    state_->wordsDisp    += batchLabels; // target words processed since last display, for speed display
+    state_->wordsDisp += batchLabels;    // target words processed since last
+                                         // display, for speed display
     state_->samplesEpoch += batchSize;   // sentences processed in this epoch
-    state_->labelsTotal  += batchLabels; // total labels processed
+    state_->labelsTotal += batchLabels;  // total labels processed
 
     state_->newBatch();
 
     if(state_->batches % options_->get<size_t>("disp-freq") == 0) {
       if(dispLabelCounts) {
-        if(options_->get<bool>("lr-report")) { // if true then show the learning rate
+        if(options_->get<bool>(
+               "lr-report")) {  // if true then show the learning rate
           LOG(info,
               // TODO: change Cost back to {:.2f}
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} : {:.2f} "
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} "
+              ": {:.2f} "
               "words/s : L.r. {:.4e}",
               state_->epochs,
               state_->batches,
               state_->samplesEpoch,
-              state_->costSum / state_->costCount, state_->costCount, // show cost as "av * count"
+              state_->costSum / state_->costCount,
+              state_->costCount,  // show cost as "av * count"
               state_->labelsTotal,
               timer.format(2, "%ws"),
               state_->wordsDisp / std::stof(timer.format(5, "%w")),
               state_->eta);
         } else {
           LOG(info,
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} : {:.2f} "
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} "
+              ": {:.2f} "
               "words/s",
               state_->epochs,
               state_->batches,
               state_->samplesEpoch,
-              state_->costSum / state_->costCount, state_->costCount,
+              state_->costSum / state_->costCount,
+              state_->costCount,
               state_->labelsTotal,
               timer.format(2, "%ws"),
               state_->wordsDisp / std::stof(timer.format(5, "%w")));
@@ -243,8 +257,12 @@ public:
         }
       }
       // progress heartbeat for MS-internal Philly compute cluster
-      if (getenv("PHILLY_JOB_ID")) // this environment variable exists when running on the cluster
-        printf("PROGRESS: %.2f%%\nEVALERR: %.7f\n", (double)state_->epochs, state_->costSum / state_->costCount), fflush(stdout);
+      if(getenv("PHILLY_JOB_ID"))  // this environment variable exists when
+                                   // running on the cluster
+        printf("PROGRESS: %.2f%%\nEVALERR: %.7f\n",
+               (double)state_->epochs,
+               state_->costSum / state_->costCount),
+            fflush(stdout);
       timer.start();
       state_->costSum = 0;
       state_->costCount = 0;
@@ -414,4 +432,4 @@ public:
     }
   }
 };
-}
+}  // namespace marian

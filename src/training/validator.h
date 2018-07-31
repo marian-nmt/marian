@@ -50,8 +50,6 @@ public:
       stalled_ = state.validators[type()]["stalled"].as<size_t>();
     }
   }
-
-
 };
 
 template <class DataSet>
@@ -158,7 +156,8 @@ protected:
 
         auto task = [=, &cost, &samples, &words](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
-          thread_local auto builder = models::from_options(opts, models::usage::scoring);
+          thread_local auto builder
+              = models::from_options(opts, models::usage::scoring);
 
           if(!graph) {
             graph = graphs[id % graphs.size()];
@@ -323,8 +322,10 @@ public:
             scorer = scorers[id % graphs.size()];
           }
 
-          auto search
-              = New<BeamSearch>(tOptions, std::vector<Ptr<Scorer>>{scorer}, vocabs_.back()->GetEosId(), vocabs_.back()->GetUnkId());
+          auto search = New<BeamSearch>(tOptions,
+                                        std::vector<Ptr<Scorer>>{scorer},
+                                        vocabs_.back()->GetEosId(),
+                                        vocabs_.back()->GetUnkId());
           auto histories = search->search(graph, batch);
 
           for(auto history : histories) {
@@ -448,7 +449,7 @@ public:
       while(*batchGenerator) {
         auto batch = batchGenerator->next();
 
-        auto task = [=,&stats](size_t id) {
+        auto task = [=, &stats](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local Ptr<Scorer> scorer;
 
@@ -457,8 +458,10 @@ public:
             scorer = scorers[id % graphs.size()];
           }
 
-          auto search
-              = New<BeamSearch>(tOptions, std::vector<Ptr<Scorer>>{scorer}, vocabs_.back()->GetEosId(), vocabs_.back()->GetUnkId());
+          auto search = New<BeamSearch>(tOptions,
+                                        std::vector<Ptr<Scorer>>{scorer},
+                                        vocabs_.back()->GetEosId(),
+                                        vocabs_.back()->GetUnkId());
           auto histories = search->search(graph, batch);
 
           size_t no = 0;
@@ -493,14 +496,18 @@ public:
 protected:
   bool quiet_{false};
 
-  void updateStats(std::vector<float>& stats, const Words& cand, const Ptr<data::Batch> batch, size_t no, Word eos) {
+  void updateStats(std::vector<float>& stats,
+                   const Words& cand,
+                   const Ptr<data::Batch> batch,
+                   size_t no,
+                   Word eos) {
     auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
     auto subBatch = corpusBatch->back();
 
     size_t size = subBatch->batchSize();
     size_t width = subBatch->batchWidth();
 
-    Words ref; // fill ref
+    Words ref;  // fill ref
     for(int i = 0; i < width; ++i) {
       Word w = subBatch->data()[i * size + no];
       if(w == eos)
@@ -510,8 +517,8 @@ protected:
 
     std::map<std::vector<Word>, size_t> rgrams;
     for(size_t i = 0; i < ref.size(); ++i) {
-      // template deduction for std::min<T> seems to be weird under VS due to macros in windows.h
-      // hence explicit type to avoid macro parsing. 
+      // template deduction for std::min<T> seems to be weird under VS due to
+      // macros in windows.h hence explicit type to avoid macro parsing.
       for(size_t l = 1; l <= std::min<size_t>(4ul, ref.size() - i); ++l) {
         std::vector<Word> ngram(l);
         std::copy(ref.begin() + i, ref.begin() + i + l, ngram.begin());
@@ -528,7 +535,7 @@ protected:
       }
     }
 
-    for(auto &ngramcount : tgrams) {
+    for(auto& ngramcount : tgrams) {
       size_t l = ngramcount.first.size();
       size_t tc = ngramcount.second;
       size_t rc = rgrams[ngramcount.first];
@@ -561,7 +568,6 @@ protected:
   }
 };
 
-
 /**
  * @brief Creates validators from options
  *
@@ -576,4 +582,4 @@ protected:
 std::vector<Ptr<Validator<data::Corpus>>> Validators(
     std::vector<Ptr<Vocab>> vocabs,
     Ptr<Config> config);
-}
+}  // namespace marian

@@ -193,4 +193,4 @@ public:
 };
 
 typedef std::shared_ptr<SparseTensorBase> SparseTensor;
-}
+}  // namespace marian

@@ -1,5 +1,5 @@
-#include "training/graph_group_async.h"
 #include "training/graph_group_async_drop.h"
+#include "training/graph_group_async.h"
 
 #include "functional/functional.h"
 #include "tensors/tensor_operators.h"
@@ -132,4 +132,4 @@ void AsyncGraphGroupDrop::init(Ptr<data::Batch> batch) {
     drop_first = false;
   }
 }
-}
+}  // namespace marian

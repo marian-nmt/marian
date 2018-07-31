@@ -51,7 +51,8 @@ public:
 
   // Sum of costs since last display
   float costSum{0};
-  // Number of words/labels/samples (depending on cost-type) aggregated in costSum since last display
+  // Number of words/labels/samples (depending on cost-type) aggregated in
+  // costSum since last display
   size_t costCount{0};
   // Number of words seen since last display, for speed measurement
   size_t wordsDisp{0};
@@ -114,8 +115,11 @@ public:
     epochs = config["epochs"].as<size_t>();
     batches = config["batches"].as<size_t>();
     batchesEpoch = config["batches-epoch"].as<size_t>();
-    samplesEpoch = config["samples"].as<size_t>(); // (different serialization name for back compat)
-    labelsTotal = config["labels-total"] ? config["labels-total"].as<size_t>() : 0; // (optional for back compat)
+    // (different serialization name for back compat)
+    samplesEpoch = config["samples"].as<size_t>();
+    // (optional for back compat)
+    labelsTotal
+        = config["labels-total"] ? config["labels-total"].as<size_t>() : 0;
 
     stalled = config["stalled"].as<size_t>();
     maxStalled = config["stalled-max"].as<size_t>();
@@ -128,8 +132,9 @@ public:
     factor = config["eta-factor"].as<float>();
     warmupStart = config["warmup-start"].as<size_t>();
 
-    costSum   = config["cost-sum"].as<float>();
-    costCount = config["disp-samples"].as<size_t>(); // (different serialization name for back compat)
+    costSum = config["cost-sum"].as<float>();
+    // (different serialization name for back compat)
+    costCount = config["disp-samples"].as<size_t>();
     wordsDisp = config["disp-words"].as<size_t>();
 
     seedBatch = config["seed-batch"].as<std::string>();
@@ -157,9 +162,9 @@ public:
     config["eta-factor"] = factor;
     config["warmup-start"] = warmupStart;
 
-    config["cost-sum"]     = costSum;
+    config["cost-sum"] = costSum;
     config["disp-samples"] = costCount;
-    config["disp-words"]   = wordsDisp;
+    config["disp-words"] = wordsDisp;
 
     config["seed-batch"] = seedBatch;
     config["seed-corpus"] = seedCorpus;
@@ -170,4 +175,4 @@ public:
 private:
   std::vector<Ptr<TrainingObserver>> observers_;
 };
-}
+}  // namespace marian
