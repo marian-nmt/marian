@@ -102,5 +102,5 @@ protected:
     }
   }
 };
-}
-}
+}  // namespace models
+}  // namespace marian

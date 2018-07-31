@@ -108,4 +108,4 @@ private:
   int* d_cumBeamSizes;
   size_t lastN;
 };
-}
+}  // namespace marian

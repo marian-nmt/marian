@@ -83,4 +83,4 @@ private:
                                           float threshold);
   std::string getAlignmentString(const std::vector<HardAlignment>& align);
 };
-}
+}  // namespace marian

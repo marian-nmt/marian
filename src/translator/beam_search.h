@@ -21,14 +21,15 @@ private:
 public:
   BeamSearch(Ptr<Options> options,
              const std::vector<Ptr<Scorer>>& scorers,
-             Word trgEosId, Word trgUnkId = -1)
+             Word trgEosId,
+             Word trgUnkId = -1)
       : options_(options),
         scorers_(scorers),
         beamSize_(options_->has("beam-size")
                       ? options_->get<size_t>("beam-size")
                       : 3),
-        trgEosId_(trgEosId), trgUnkId_(trgUnkId)
-  {}
+        trgEosId_(trgEosId),
+        trgUnkId_(trgUnkId) {}
 
   Beams toHyps(const std::vector<unsigned int> keys,
                const std::vector<float> costs,
@@ -220,9 +221,9 @@ public:
               hypIndices.push_back(hyp->GetPrevStateIndex());
               embIndices.push_back(hyp->GetWord());
               beamCosts.push_back(hyp->GetCost());
-            } else { // dummy hypothesis
+            } else {  // dummy hypothesis
               hypIndices.push_back(0);
-              embIndices.push_back(0); // (unused)
+              embIndices.push_back(0);  // (unused)
               beamCosts.push_back(-9999);
             }
           }
@@ -238,19 +239,16 @@ public:
       // BUGBUG: it's not cost but score (higher=better)
 
       for(int i = 0; i < scorers_.size(); ++i) {
-        states[i] = scorers_[i]->step(graph,
-                                      states[i],
-                                      hypIndices,
-                                      embIndices,
-                                      dimBatch,
-                                      localBeamSize);
+        states[i] = scorers_[i]->step(
+            graph, states[i], hypIndices, embIndices, dimBatch, localBeamSize);
 
         if(scorers_[i]->getWeight() != 1.f)
           totalCosts
               = totalCosts + scorers_[i]->getWeight() * states[i]->getProbs();
         else
           totalCosts = totalCosts + states[i]->getProbs();
-          // BUGBUG: getProbs() -> getLogProbs(); totalCosts -> totalScores (higher=better)
+        // BUGBUG: getProbs() -> getLogProbs(); totalCosts -> totalScores
+        // (higher=better)
       }
 
       // make beams continuous
@@ -264,7 +262,8 @@ public:
 
       //**********************************************************************
       // suppress specific symbols if not at right positions
-      if(trgUnkId_ != -1 && options_->has("allow-unk") && !options_->get<bool>("allow-unk"))
+      if(trgUnkId_ != -1 && options_->has("allow-unk")
+         && !options_->get<bool>("allow-unk"))
         suppressWord(totalCosts, trgUnkId_);
       for(auto state : states)
         state->blacklist(totalCosts, batch);
@@ -294,7 +293,8 @@ public:
                   || histories[i]->size()
                          >= options_->get<float>("max-length-factor")
                                 * batch->front()->batchWidth();
-          histories[i]->Add(beams[i], trgEosId_, prunedBeams[i].empty() || final);
+          histories[i]->Add(
+              beams[i], trgEosId_, prunedBeams[i].empty() || final);
         }
       }
       beams = prunedBeams;
@@ -313,4 +313,4 @@ public:
     return histories;
   }
 };
-}
+}  // namespace marian

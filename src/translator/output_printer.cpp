@@ -61,4 +61,4 @@ std::string OutputPrinter::getAlignmentString(
   }
   return alignStr.str();
 }
-}
+}  // namespace marian

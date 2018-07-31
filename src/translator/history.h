@@ -1,7 +1,7 @@
 #pragma once
 
-#include "hypothesis.h"
 #include "data/types.h"
+#include "hypothesis.h"
 
 #include <queue>
 
@@ -27,7 +27,8 @@ public:
     if(beam.back()->GetPrevHyp() != nullptr) {
       for(size_t j = 0; j < beam.size(); ++j)
         if(beam[j]->GetWord() == trgEosId || last) {
-          float cost = (beam[j]->GetCost() - WordPenalty(history_.size())) / LengthPenalty(history_.size());
+          float cost = (beam[j]->GetCost() - WordPenalty(history_.size()))
+                       / LengthPenalty(history_.size());
           topHyps_.push({history_.size(), j, cost});
           // std::cerr << "Add " << history_.size() << " " << j << " " << cost
           // << std::endl;
@@ -79,4 +80,4 @@ private:
 };
 
 typedef std::vector<Ptr<History>> Histories;
-}
+}  // namespace marian

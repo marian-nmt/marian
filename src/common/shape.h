@@ -1,19 +1,19 @@
 #pragma once
 
 #include <algorithm>
+#include <boost/functional/hash.hpp>
 #include <cstdint>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <boost/functional/hash.hpp>
 
 #include "common/logging.h"
 
 namespace marian {
 
 struct Shape {
-public: // TODO: why public?
+public:  // TODO: why public?
   std::vector<int> shape_;
 
 public:
@@ -24,7 +24,7 @@ public:
     std::copy(il.begin(), il.end(), begin());
   }
 
-  Shape(std::vector<int>&& shape) : shape_(std::move(shape)) { }
+  Shape(std::vector<int>&& shape) : shape_(std::move(shape)) {}
 
   void resize(size_t n) { shape_.resize(n, 1); }
 
@@ -198,4 +198,4 @@ public:
     return seed;
   }
 };
-}
+}  // namespace marian

@@ -20,4 +20,4 @@ void suppressWord(Expr probs, Word id);
 }
 
 void suppressWord(Expr probs, Word id);
-}
+}  // namespace marian

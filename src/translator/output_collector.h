@@ -88,4 +88,4 @@ protected:
   typedef std::map<long, std::pair<std::string, std::string>> Outputs;
   Outputs outputs_;
 };
-}
+}  // namespace marian

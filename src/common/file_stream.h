@@ -1,18 +1,18 @@
 #pragma once
 
-#include "3rd_party/exception.h"
-#include "common/logging.h"
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <iostream>
+#include "3rd_party/exception.h"
+#include "common/logging.h"
 
 #ifdef _WIN32
 #include <io.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #endif
 
 namespace io = boost::iostreams;
@@ -58,7 +58,7 @@ private:
     if(-1 == stat(base.c_str(), &sb))
       return;
 #ifdef _WIN32
-#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR) // TODO: unify this
+#define S_ISDIR(m) (((m)&S_IFMT) == S_IFDIR)  // TODO: unify this
 #endif
     if(S_ISDIR(sb.st_mode))
       base += '/';

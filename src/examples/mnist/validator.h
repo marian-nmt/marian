@@ -65,4 +65,4 @@ private:
     return numCorrect;
   }
 };
-}
+}  // namespace marian

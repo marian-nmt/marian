@@ -2,8 +2,8 @@
 
 #include "data/batch_generator.h"
 #include "data/corpus.h"
-#include "data/text_input.h"
 #include "data/shortlist.h"
+#include "data/text_input.h"
 
 #include "3rd_party/threadpool.h"
 #include "translator/history.h"
@@ -37,12 +37,8 @@ public:
     auto srcVocab = corpus_->getVocabs()[0];
 
     if(options_->has("shortlist"))
-      shortlistGenerator_ =
-        New<data::LexicalShortlistGenerator>(options_,
-                                             srcVocab,
-                                             trgVocab_,
-                                             0, 1,
-                                             vocabs.front() == vocabs.back());
+      shortlistGenerator_ = New<data::LexicalShortlistGenerator>(
+          options_, srcVocab, trgVocab_, 0, 1, vocabs.front() == vocabs.back());
 
     auto devices = options_->getDevices();
 
@@ -53,7 +49,8 @@ public:
     size_t id = 0;
     for(auto device : devices) {
       auto task = [&](DeviceId device, size_t id) {
-        auto graph = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
+        auto graph
+            = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
         graph->setDevice(device);
         graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
@@ -105,7 +102,8 @@ public:
           scorers = scorers_[id % devices.size()];
         }
 
-        auto search = New<Search>(tOptions, scorers, trgVocab_->GetEosId(), trgVocab_->GetUnkId());
+        auto search = New<Search>(
+            tOptions, scorers, trgVocab_->GetEosId(), trgVocab_->GetUnkId());
 
         auto histories = search->search(graph, batch);
 
@@ -201,7 +199,8 @@ public:
             scorers = scorers_[id % devices_.size()];
           }
 
-          auto search = New<Search>(tOptions, scorers, trgVocab_->GetEosId(), trgVocab_->GetUnkId());
+          auto search = New<Search>(
+              tOptions, scorers, trgVocab_->GetEosId(), trgVocab_->GetUnkId());
           auto histories = search->search(graph, batch);
 
           for(auto history : histories) {
@@ -220,4 +219,4 @@ public:
     return collector->collect(options_->get<bool>("n-best"));
   }
 };
-}
+}  // namespace marian

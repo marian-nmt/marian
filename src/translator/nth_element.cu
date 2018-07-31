@@ -416,4 +416,4 @@ void NthElementGPU::getValueByKey(std::vector<float>& out, float* d_in) {
                              /* stream_ */ 0));
   CUDA_CHECK(cudaStreamSynchronize(/* stream_ */ 0));
 }
-}
+}  // namespace marian

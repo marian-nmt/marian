@@ -117,5 +117,5 @@ private:
     return dataset;
   }
 };
-}
-}
+}  // namespace data
+}  // namespace marian
