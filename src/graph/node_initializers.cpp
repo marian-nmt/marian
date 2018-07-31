@@ -63,7 +63,7 @@ NodeInitializer uniform(float scale) {
 }
 
 void glorot_uniform(Tensor t) {
-  float scale = sqrtf(6.0f / (t->shape()[0] + t->shape()[1]));
+  float scale = sqrtf(6.0f / (t->shape()[-2] + t->shape()[-1]));
   distribution<std::uniform_real_distribution<float>>(t, -scale, scale);
 }
 
@@ -75,7 +75,7 @@ void xorshift(Tensor t) {
 }
 
 void glorot_normal(Tensor t) {
-  float scale = sqrtf(2.0f / (t->shape()[0] + t->shape()[1]));
+  float scale = sqrtf(2.0f / (t->shape()[-2] + t->shape()[-1]));
   distribution<std::normal_distribution<float>>(t, 0, scale);
 }
 
