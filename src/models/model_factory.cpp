@@ -1,9 +1,10 @@
 #include "marian.h"
 
+#include "models/encoder_decoder.h"
 #include "models/model_factory.h"
+
 #include "models/costs.h"
 
-#include "models/encoder_decoder.h"
 #include "models/amun.h"
 #include "models/hardatt.h"
 #include "models/nematus.h"
@@ -34,7 +35,7 @@ Ptr<EncoderBase> EncoderFactory::construct() {
 #endif
 
   if(options_->get<std::string>("type") == "transformer")
-    //return New<EncoderTransformer>(options_);
+    // return New<EncoderTransformer>(options_);
     return NewEncoderTransformer(options_);
 
   ABORT("Unknown encoder type");
@@ -44,7 +45,7 @@ Ptr<DecoderBase> DecoderFactory::construct() {
   if(options_->get<std::string>("type") == "s2s")
     return New<DecoderS2S>(options_);
   if(options_->get<std::string>("type") == "transformer")
-    //return New<DecoderTransformer>(options_);
+    // return New<DecoderTransformer>(options_);
     return NewDecoderTransformer(options_);
   if(options_->get<std::string>("type") == "hard-att")
     return New<DecoderHardAtt>(options_);
@@ -288,5 +289,5 @@ Ptr<ModelBase> from_config(Ptr<Config> config, usage use) {
   options->merge(config);
   return from_options(options, use);
 }
-}
-}
+}  // namespace models
+}  // namespace marian

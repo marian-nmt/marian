@@ -85,4 +85,4 @@ protected:
 };
 #endif
 
-}
+}  // namespace marian

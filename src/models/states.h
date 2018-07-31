@@ -60,7 +60,8 @@ public:
     auto selectedState = New<DecoderState>(
         states_.select(selIdx, beamSize), probs_, encStates_, batch_);
 
-    // Set positon of new state based on the target token position of current state
+    // Set positon of new state based on the target token position of current
+    // state
     selectedState->setPosition(getPosition());
     return selectedState;
   }
@@ -87,10 +88,7 @@ public:
     return getEncoderStates()[0]->getSourceWords();
   }
 
-  Ptr<data::CorpusBatch> getBatch() {
-    return batch_;
-  }
-
+  Ptr<data::CorpusBatch> getBatch() { return batch_; }
 
   // Set current target token position in state when decoding
   size_t getPosition() { return position_; }
@@ -100,4 +98,4 @@ public:
 
   virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) {}
 };
-}
+}  // namespace marian

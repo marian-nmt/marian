@@ -69,5 +69,5 @@ struct Var {
 
   std::string to_string() { return "Var<" + std::to_string(N) + ">"; }
 };
-}
-}
+}  // namespace functional
+}  // namespace marian

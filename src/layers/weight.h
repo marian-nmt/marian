@@ -30,4 +30,4 @@ public:
 };
 
 Ptr<WeightingBase> WeightingFactory(Ptr<Options> options);
-}
+}  // namespace marian

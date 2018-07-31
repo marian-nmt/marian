@@ -179,4 +179,4 @@ Ptr<OptimizerBase> Optimizer(float eta,
 }
 
 Ptr<OptimizerBase> Optimizer(Ptr<Config> options);
-}
+}  // namespace marian

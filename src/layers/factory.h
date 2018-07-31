@@ -71,4 +71,4 @@ public:
     return Accumulator<Factory>(Factory::clone());
   }
 };
-}
+}  // namespace marian

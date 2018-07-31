@@ -124,5 +124,5 @@ struct ConstantShape {
 };
 
 typedef ConstantShape<CONST_SHAPE_DIMS> Shape;
-}
-}
+}  // namespace functional
+}  // namespace marian

@@ -1,13 +1,14 @@
 #pragma once
 #include <memory>
-#include <vector>
 #include <string>
 #include <tuple>
 #include <unordered_set>
+#include <vector>
 
 namespace marian {
 
-template <typename T> using Ptr = std::shared_ptr<T>;
+template <typename T>
+using Ptr = std::shared_ptr<T>;
 
 class Options;
 
@@ -27,19 +28,21 @@ template <class T>
 void set(Ptr<Options> options, const std::string& key, const T& value);
 
 class IBeamSearchDecoder {
-  protected:
-    Ptr<Options> options_;
-    Word eos_;
+protected:
+  Ptr<Options> options_;
+  Word eos_;
 
-  public:
-    IBeamSearchDecoder(Ptr<Options> options, Word eos)
-    : options_(options), eos_(eos) {}
+public:
+  IBeamSearchDecoder(Ptr<Options> options, Word eos)
+      : options_(options), eos_(eos) {}
 
-    virtual QSNBestBatch decode(const QSBatch& qsBatch, size_t maxLength,
-                                const std::unordered_set<size_t>& shortlist) = 0;
+  virtual QSNBestBatch decode(const QSBatch& qsBatch,
+                              size_t maxLength,
+                              const std::unordered_set<size_t>& shortlist)
+      = 0;
 };
 
 Ptr<IBeamSearchDecoder> newDecoder(Ptr<Options> options, Word eos);
 
-}
-}
+}  // namespace quicksand
+}  // namespace marian

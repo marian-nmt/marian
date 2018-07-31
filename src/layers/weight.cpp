@@ -18,4 +18,4 @@ Expr DataWeighting::getWeights(Ptr<ExpressionGraph> graph,
                                  inits::from_vector(batch->getDataWeights()));
   return weights;
 }
-}
+}  // namespace marian

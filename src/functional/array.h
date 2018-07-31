@@ -32,5 +32,5 @@ struct Array {
       data_[i] = val;
   }
 };
-}
-}
+}  // namespace functional
+}  // namespace marian

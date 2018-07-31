@@ -270,7 +270,7 @@ public:
           ("nematus-normalization",
            options_->has("original-type")
                && opt<std::string>("original-type") == "nematus")  //
-          );
+      );
 
       start = mlp->apply(meanContexts);
     } else {
@@ -337,7 +337,7 @@ public:
 
       int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
-      auto final = mlp::output(graph)          //
+      auto final = mlp::output(graph)           //
           ("prefix", prefix_ + "_ff_logit_l2")  //
           ("dim", dimTrgVoc);
 
@@ -354,9 +354,9 @@ public:
       // assemble layers into MLP and apply to embeddings, decoder context and
       // aligned source context
       output_ = mlp::mlp(graph)         //
-                     .push_back(hidden)  //
-                     .push_back(final)
-                     .construct();
+                    .push_back(hidden)  //
+                    .push_back(final)
+                    .construct();
     }
 
     Expr logits;
@@ -365,9 +365,9 @@ public:
     else
       logits = output_->apply(embeddings, decoderContext);
 
-
     // return unormalized(!) probabilities
-    auto nextState = New<DecoderState>(decoderStates, logits, state->getEncoderStates(), state->getBatch());
+    auto nextState = New<DecoderState>(
+        decoderStates, logits, state->getEncoderStates(), state->getBatch());
 
     // Advance current target token position by one
     nextState->setPosition(state->getPosition() + 1);
@@ -386,4 +386,4 @@ public:
     output_ = nullptr;
   }
 };
-}
+}  // namespace marian

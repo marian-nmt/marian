@@ -53,7 +53,7 @@ public:
     auto name = opt<std::string>("prefix");
     auto dim = opt<int>("dim");
 
-    auto useLayerNorm   = opt<bool>("layer-normalization",   false);
+    auto useLayerNorm = opt<bool>("layer-normalization", false);
     auto useNematusNorm = opt<bool>("nematus-normalization", false);
     auto activation = opt<act>("activation", act::linear);
 
@@ -73,14 +73,12 @@ public:
 
       if(useLayerNorm) {
         if(useNematusNorm) {
-          auto ln_s = g->param(name + "_ln_s" + num,
-                               {1, dim},
-                               inits::from_value(1.f));
-          auto ln_b = g->param(name + "_ln_b" + num,
-                               {1, dim},
-                               inits::zeros);
+          auto ln_s = g->param(
+              name + "_ln_s" + num, {1, dim}, inits::from_value(1.f));
+          auto ln_b = g->param(name + "_ln_b" + num, {1, dim}, inits::zeros);
 
-          outputs.push_back(layerNorm(affine(in, W, b), ln_s, ln_b, NEMATUS_LN_EPS));
+          outputs.push_back(
+              layerNorm(affine(in, W, b), ln_s, ln_b, NEMATUS_LN_EPS));
         } else {
           auto gamma = g->param(
               name + "_gamma" + num, {1, dim}, inits::from_value(1.0));
@@ -94,6 +92,7 @@ public:
       i++;
     }
 
+    // clang-format off
     switch(activation) {
       case act::linear:    return plus(outputs);
       case act::tanh:      return tanh(outputs);
@@ -104,6 +103,7 @@ public:
       case act::swish:     return swish(outputs);
       default:             return plus(outputs);
     }
+    // clang-format on
   };
 
   Expr apply(Expr input) { return apply(std::vector<Expr>({input})); }

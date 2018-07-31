@@ -51,8 +51,10 @@ public:
     int dimVoc = totalCosts->shape()[-1];
     for(int i = 0; i < attentionIdx.size(); i++) {
       if(batch->front()->data()[attentionIdx[i]] != 0) {
-        totalCosts->val()->set(i * dimVoc + DEFAULT_EOS_ID, // this is checked at vocab-load time if the special tokens are present
-                               std::numeric_limits<float>::lowest());
+        totalCosts->val()->set(
+            i * dimVoc + DEFAULT_EOS_ID,  // this is checked at vocab-load time
+                                          // if the special tokens are present
+            std::numeric_limits<float>::lowest());
       } else {
         totalCosts->val()->set(i * dimVoc + STP_ID,
                                std::numeric_limits<float>::lowest());
@@ -272,7 +274,8 @@ public:
                                         const std::vector<size_t>& embIdx,
                                         int dimBatch,
                                         int beamSize) {
-    DecoderBase::embeddingsFromPrediction(graph, state, embIdx, dimBatch, beamSize);
+    DecoderBase::embeddingsFromPrediction(
+        graph, state, embIdx, dimBatch, beamSize);
 
     auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
 
@@ -292,4 +295,4 @@ public:
 
   void clear() { rnn_ = nullptr; }
 };
-}
+}  // namespace marian

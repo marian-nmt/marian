@@ -147,5 +147,5 @@ __HDI__ float loops(Functor functor,
   functional::Array<int, K> acc = {0};
   return Loop<N, N, K>::result(functor, in, acc, length, dim);
 }
-}
-}
+}  // namespace functional
+}  // namespace marian

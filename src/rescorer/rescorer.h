@@ -20,7 +20,8 @@ private:
   Ptr<models::ModelBase> builder_;
 
 public:
-  Rescorer(Ptr<Options> options) : builder_(models::from_options(options, models::usage::scoring)) {}
+  Rescorer(Ptr<Options> options)
+      : builder_(models::from_options(options, models::usage::scoring)) {}
 
   void load(Ptr<ExpressionGraph> graph, const std::string& modelFile) {
     builder_->load(graph, modelFile);
@@ -107,7 +108,6 @@ public:
         auto batch = batchGenerator->next();
 
         auto task = [=, &sumCost, &sumWords, &sumSamples, &smutex](int id) {
-
           thread_local Ptr<ExpressionGraph> graph;
           thread_local Ptr<Model> builder;
 
@@ -156,4 +156,4 @@ public:
     }
   }
 };
-}
+}  // namespace marian

@@ -63,7 +63,7 @@ public:
   OutputFactory(Ptr<ExpressionGraph> graph) : LayerFactory(graph) {}
 
   Accumulator<OutputFactory> tie_transposed(const std::string& param,
-                                           const std::string& tied) {
+                                            const std::string& tied) {
     tiedParamsTransposed_.push_back({param, tied});
     return Accumulator<OutputFactory>(*this);
   }
@@ -157,5 +157,5 @@ public:
 
 // @TODO: change naming convention.
 typedef Accumulator<MLPFactory> mlp;
-}
-}
+}  // namespace mlp
+}  // namespace marian
