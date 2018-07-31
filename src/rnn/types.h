@@ -258,5 +258,5 @@ public:
     stackables_[0]->as<Cell>()->setLazyInputs(lazy);
   }
 };
-}
-}
+}  // namespace rnn
+}  // namespace marian

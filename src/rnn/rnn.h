@@ -20,7 +20,7 @@ enum struct dir : int {
   alternating_backward
 };
 }
-}
+}  // namespace marian
 
 YAML_REGISTER_TYPE(marian::rnn::dir, int)
 
@@ -248,5 +248,5 @@ public:
 
   virtual Ptr<Cell> at(int i) { return rnns_[i]->at(0); }
 };
-}
-}
+}  // namespace rnn
+}  // namespace marian

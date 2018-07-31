@@ -154,6 +154,6 @@ NodeInitializer from_word2vec(const std::string& file,
     t->set(embs);
   };
 }
-}
+}  // namespace inits
 
 }  // namespace marian

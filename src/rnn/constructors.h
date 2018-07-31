@@ -193,5 +193,5 @@ public:
 };
 
 typedef Accumulator<RNNFactory> rnn;
-}
-}
+}  // namespace rnn
+}  // namespace marian

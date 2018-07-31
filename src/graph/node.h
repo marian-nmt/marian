@@ -158,7 +158,9 @@ public:
 struct NaryNodeOp : public Node {
   size_t hash_{0};
 
-  NaryNodeOp(const std::vector<Expr>& nodes, Shape shape, Type value_type = Type::float32)
+  NaryNodeOp(const std::vector<Expr>& nodes,
+             Shape shape,
+             Type value_type = Type::float32)
       : Node(nodes.front()->graph(), shape, value_type) {
     children_.resize(nodes.size());
     for(int i = 0; i < nodes.size(); ++i)
@@ -207,4 +209,4 @@ struct NaryNodeOp : public Node {
 
   void remove_children_from_top_nodes();
 };
-}
+}  // namespace marian

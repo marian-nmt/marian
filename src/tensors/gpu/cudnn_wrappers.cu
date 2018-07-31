@@ -397,4 +397,4 @@ PoolingWrapper::~PoolingWrapper() {
 }
 
 #endif
-}
+}  // namespace marian

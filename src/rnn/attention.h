@@ -81,9 +81,9 @@ public:
             prefix + "_W_comb_att_lnb", {1, dimEncState}, inits::zeros);
 
         mappedContext_ = layerNorm(affine(contextDropped_, Ua_, ba_),
-                                    Wc_att_lns_,
-                                    Wc_att_lnb_,
-                                    NEMATUS_LN_EPS);
+                                   Wc_att_lns_,
+                                   Wc_att_lnb_,
+                                   NEMATUS_LN_EPS);
       } else {
         gammaContext_ = graph->param(
             prefix + "_att_gamma1", {1, dimEncState}, inits::from_value(1.0));
@@ -155,5 +155,5 @@ public:
 };
 
 using Attention = GlobalAttention;
-}
-}
+}  // namespace rnn
+}  // namespace marian

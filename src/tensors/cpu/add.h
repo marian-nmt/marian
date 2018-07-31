@@ -121,5 +121,5 @@ void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
     cpu::gAddGeneric(functor, full, gOut, gIns, scale);
   }
 }
-}
-}
+}  // namespace cpu
+}  // namespace marian

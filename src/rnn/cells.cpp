@@ -130,5 +130,5 @@ Expr lstmOpsC(const std::vector<Expr>& nodes) {
 Expr lstmOpsO(const std::vector<Expr>& nodes) {
   return Expression<LSTMOutputNodeOp>(nodes);
 }
-}
-}
+}  // namespace rnn
+}  // namespace marian

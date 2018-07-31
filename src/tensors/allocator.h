@@ -21,23 +21,16 @@ private:
 
 public:
   AllocationException(size_t available, size_t asked) {
-    std::string mstr = "Attempted allocation of "
-      + std::to_string(asked)
-      + ", but only "
-      + std::to_string(available)
-      + " free";
+    std::string mstr = "Attempted allocation of " + std::to_string(asked)
+                       + ", but only " + std::to_string(available) + " free";
 
     message_ = new char[mstr.size() + 1];
     std::copy(mstr.begin(), mstr.end(), message_);
   }
 
-  ~AllocationException() {
-    delete[] message_;
-  }
+  ~AllocationException() { delete[] message_; }
 
-  virtual const char* what() const noexcept {
-    return message_;
-  }
+  virtual const char* what() const noexcept { return message_; }
 };
 
 class Gap {
@@ -188,15 +181,11 @@ public:
     return align(num * sizeof(T));
   }
 
-  size_t capacity(size_t num, Type type) {
-    return align(num * sizeOf(type));
-  }
-
+  size_t capacity(size_t num, Type type) { return align(num * sizeOf(type)); }
 
   Ptr<MemoryPiece> alloc(size_t num, Type type) {
     return alloc(num * sizeOf(type));
   }
-
 
   template <typename T>
   Ptr<MemoryPiece> alloc(size_t num) {
@@ -259,4 +248,4 @@ public:
 
   DeviceId getDevice() { return device_->getDevice(); }
 };
-}
+}  // namespace marian

@@ -5,11 +5,13 @@ namespace marian {
 
 Expr debug(Expr a, const std::string& message = "");
 
-typedef Expr(ActivationFunction) (Expr);
+typedef Expr(ActivationFunction)(Expr);
 
 Expr plus(const std::vector<Expr>&);
 
-Expr sigmoid(Expr a); // aka sigmoid  --BUGBUG: should be logistic(), not sigmoid()
+// TODO: BUG! should be logistic(), not sigmoid()
+// aka sigmoid
+Expr sigmoid(Expr a);
 Expr sigmoid(const std::vector<Expr>&);
 
 Expr swish(Expr a);
@@ -64,9 +66,9 @@ Expr operator/(Expr a, float b);
 
 Expr logaddexp(Expr a, Expr b);
 
-Expr max(Expr a, Expr b); // TODO: haggle over the name (max vs. elementMax)
+Expr max(Expr a, Expr b);  // TODO: haggle over the name (max vs. elementMax)
 
-Expr min(Expr a, Expr b); // TODO: haggle over the name
+Expr min(Expr a, Expr b);  // TODO: haggle over the name
 
 Expr dot(Expr a,
          Expr b,
@@ -139,7 +141,7 @@ static inline Expr dropout(Expr x, Expr mask) {
 }
 
 static inline Expr dropout(Expr x, float dropProb, Shape shape) {
-  if (dropProb == 0)
+  if(dropProb == 0)
     return x;
   auto graph = x->graph();
   auto mask = graph->dropout(dropProb, shape);
@@ -147,7 +149,7 @@ static inline Expr dropout(Expr x, float dropProb, Shape shape) {
 }
 
 static inline Expr dropout(Expr x, float dropProb) {
-  if (dropProb == 0)
+  if(dropProb == 0)
     return x;
   return dropout(x, dropProb, x->shape());
 }
@@ -175,4 +177,4 @@ Expr max_pooling(Expr x,
                  int strideWidth = 1);
 
 Expr pooling_with_masking(Expr x, Expr mask, int width, bool isEven = false);
-}
+}  // namespace marian

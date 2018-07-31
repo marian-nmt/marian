@@ -16,5 +16,5 @@ void Dropout(Tensor tensor, float dropProb) {
     return (float)dist(gen) / (1.f - dropProb);
   });
 }
-}
-}
+}  // namespace cpu
+}  // namespace marian

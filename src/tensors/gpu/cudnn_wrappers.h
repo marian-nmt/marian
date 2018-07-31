@@ -88,7 +88,7 @@ protected:
   cudnnPoolingDescriptor_t poolingDesc_;
   cudnnPoolingMode_t poolingMode_;
 };
-}
+}  // namespace marian
 
 #else
 
@@ -141,6 +141,6 @@ public:
 
   virtual ~PoolingWrapper();
 };
-}
+}  // namespace marian
 
 #endif

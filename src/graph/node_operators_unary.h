@@ -15,10 +15,10 @@ namespace marian {
 
 struct UnaryNodeOp : public NaryNodeOp {
   UnaryNodeOp(Expr a, Shape shape, Type value_type = Type::float32)
-  : NaryNodeOp({a}, shape, value_type) {}
+      : NaryNodeOp({a}, shape, value_type) {}
 
   UnaryNodeOp(Expr a, Type value_type = Type::float32)
-  : NaryNodeOp({a}, a->shape(), value_type) {}
+      : NaryNodeOp({a}, a->shape(), value_type) {}
 
   const std::string color() { return "yellow"; }
 };
@@ -115,7 +115,8 @@ public:
 
   NodeOps backwardOps() {
     using namespace functional;
-    return {NodeOp(Add(bump(_1, clip_) * _2, child(0)->grad(), child(0)->val(), adj_))};
+    return {NodeOp(
+        Add(bump(_1, clip_) * _2, child(0)->grad(), child(0)->val(), adj_))};
   }
 
   const std::string type() { return "clip"; }
@@ -551,9 +552,9 @@ struct LogNodeOp : public UnaryNodeOp {
 
   NodeOps backwardOps() {
     using namespace functional;
-    return {
-        //NodeOp(Add(_1 * (1.f / _2), child(0)->grad(), adj_, child(0)->val()))};
-        NodeOp(Add(_1 / _2, child(0)->grad(), adj_, child(0)->val()))};
+    return {// NodeOp(Add(_1 * (1.f / _2), child(0)->grad(), adj_,
+            // child(0)->val()))};
+            NodeOp(Add(_1 / _2, child(0)->grad(), adj_, child(0)->val()))};
   }
 
   const std::string type() { return "log"; }
@@ -938,7 +939,8 @@ public:
     Shape outShape = a->shape();
 
     axis_ = outShape.axis(axis);
-#if 0 // this check currently fails in translation; I think should not fail for step==0
+#if 0  // this check currently fails in translation; I think should not fail for
+       // step==0
     for(int i = 0; i < axis_; ++i)
       ABORT_IF(outShape[i] != 1, "non-consecutive slices are presently not supported by step()");
 #endif
@@ -1007,7 +1009,8 @@ struct ShiftNodeOp : public UnaryNodeOp {
       : UnaryNodeOp(a, a->shape()), shift_(shift), padValue_(padValue) {}
 
   NodeOps forwardOps() {
-    return {NodeOp(Shift(val_, child(0)->val(), shift_, padValue_, /*invert=*/false))};
+    return {NodeOp(
+        Shift(val_, child(0)->val(), shift_, padValue_, /*invert=*/false))};
   }
 
   NodeOps backwardOps() {
@@ -1040,8 +1043,8 @@ struct ShiftNodeOp : public UnaryNodeOp {
     return true;
   }
 
-  Shape shift_;    // shift offsets in each dimension
-  float padValue_; // what value to shift in
+  Shape shift_;     // shift offsets in each dimension
+  float padValue_;  // what value to shift in
 };
 
 // struct LexicalProbNodeOp : public NaryNodeOp {
@@ -1149,4 +1152,4 @@ protected:
   int width_;
   bool isEven_;
 };
-}
+}  // namespace marian

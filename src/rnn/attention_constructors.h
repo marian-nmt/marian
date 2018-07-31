@@ -34,5 +34,5 @@ public:
 };
 
 typedef Accumulator<AttentionFactory> attention;
-}
-}
+}  // namespace rnn
+}  // namespace marian

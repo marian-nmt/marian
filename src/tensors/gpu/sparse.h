@@ -207,5 +207,5 @@ void multiply(Ptr<CSR>,
 void LfaForward(Tensor out, Tensor logits, Tensor att, Ptr<CSR> sparseLf);
 
 void LfaBackward(Tensor grad, Tensor adj, Ptr<CSR> sparseLf);
-}
-}
+}  // namespace sparse
+}  // namespace marian

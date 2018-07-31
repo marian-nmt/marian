@@ -37,14 +37,12 @@ private:
 
 public:
   Tensors(Ptr<Backend> backend)
-  : tensors_(New<TensorAllocator>(backend)),
-    cache_(New<TensorAllocator>(backend)),
-    shortterm_(New<WeakMemory>()),
-    longterm_(New<Memory>()) {}
+      : tensors_(New<TensorAllocator>(backend)),
+        cache_(New<TensorAllocator>(backend)),
+        shortterm_(New<WeakMemory>()),
+        longterm_(New<Memory>()) {}
 
-  void reserve(size_t bytes) {
-    tensors_->reserve(bytes);
-  }
+  void reserve(size_t bytes) { tensors_->reserve(bytes); }
 
   void throwAtReallocation(bool throwAtRealloc) {
     tensors_->throwAtReallocation(throwAtRealloc);
@@ -64,14 +62,10 @@ public:
       tensors_->allocate(node->grad(), node->shape(), node->value_type());
   }
 
-  void free(Tensor& tensor) {
-    tensors_->free(tensor);
-  }
+  void free(Tensor& tensor) { tensors_->free(tensor); }
 
   // @TODO: get rid of this, not really used or can be done better
-  Ptr<Allocator> allocator() {
-    return tensors_->allocator();
-  }
+  Ptr<Allocator> allocator() { return tensors_->allocator(); }
 
   Expr findOrRemember(Expr node) {
     size_t hash = node->hash();
@@ -80,10 +74,11 @@ public:
       if(it != longterm_->end()) {
         for(auto found : it->second) {
           return found;
-          // @TODO: check why below code does not work for certain nodes and autotuning.
-          //if(node->equal(found)) {
-            //std::cerr << "found memoized" << std::endl;
-            //return found;
+          // @TODO: check why below code does not work for certain nodes and
+          // autotuning.
+          // if(node->equal(found)) {
+          // std::cerr << "found memoized" << std::endl;
+          // return found;
           //}
         }
       }
@@ -108,14 +103,9 @@ public:
     shortterm_->clear();
   }
 
-  void clearShorttermMemory() {
-    shortterm_->clear();
-  }
+  void clearShorttermMemory() { shortterm_->clear(); }
 
-  void clearLongtermMemory() {
-    longterm_->clear();
-  }
-
+  void clearLongtermMemory() { longterm_->clear(); }
 };
 
 class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
@@ -234,7 +224,8 @@ public:
       checkNan(v->val());
 
       if(v->marked_for_debug()) {
-        std::cerr << "Debug: " << v->debug_message() << " op=" << v->type() << std::endl;
+        std::cerr << "Debug: " << v->debug_message() << " op=" << v->type()
+                  << std::endl;
         std::cerr << v->val()->debug() << std::endl;
       }
 
@@ -371,12 +362,9 @@ public:
     return Expr();
   }
 
-  Ptr<Parameters>& params() {
-    return params_;
-  }
+  Ptr<Parameters>& params() { return params_; }
 
   Expr add(Expr node) {
-
     auto found = tensors_->findOrRemember(node);
     if(found) {
       return found;
@@ -393,9 +381,7 @@ public:
     }
   }
 
-  void remove_top_node(Expr node) {
-    topNodes_.erase(node);
-  }
+  void remove_top_node(Expr node) { topNodes_.erase(node); }
 
   void allocateForward(Expr node) {
     if(tensors_)
@@ -413,9 +399,7 @@ public:
   }
 
   // @TODO: get rid of this, not really used or can be done better
-  Ptr<Allocator> allocator() {
-    return tensors_->allocator();
-  }
+  Ptr<Allocator> allocator() { return tensors_->allocator(); }
 
   void clear() {
     // clear everything apart from parameters and memoized nodes
@@ -467,8 +451,7 @@ public:
   }
 
   // convert all parameters into an array pf cnpy::NpzItem elements, for saving
-  void save(std::vector<cnpy::NpzItem>& npzItems)
-  {
+  void save(std::vector<cnpy::NpzItem>& npzItems) {
     for(auto p : params()->getMap()) {
       std::string pName = p.first;
 
@@ -501,4 +484,4 @@ Expr Expression(Args&&... args) {
   auto e = Expr(new T(std::forward<Args>(args)...));
   return e->graph()->add(e);
 }
-}
+}  // namespace marian

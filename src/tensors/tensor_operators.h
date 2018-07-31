@@ -239,4 +239,4 @@ static inline float L2Norm(marian::Tensor in) {
   DISPATCH5(PoolingWithMaskingForward, marian::Tensor, marian::Tensor, marian::Tensor, int, bool)
   DISPATCH6(PoolingWithMaskingBackward, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, int, bool)
 // clang-format on
-}
+}  // namespace marian

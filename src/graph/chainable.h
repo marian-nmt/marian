@@ -106,4 +106,4 @@ struct Chainable {
 
   virtual void record(Ptr<AutoTunerRecorder>, size_t, bool) = 0;
 };
-}
+}  // namespace marian

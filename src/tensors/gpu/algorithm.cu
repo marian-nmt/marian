@@ -15,6 +15,7 @@ void copy(Ptr<Backend> backend, const T* begin, const T* end, T* dest) {
   CUDA_CHECK(cudaStreamSynchronize(0));
 }
 
+// clang-format off
 template void copy<int8_t>(Ptr<Backend>, const int8_t*, const int8_t*, int8_t*);
 template void copy<int16_t>(Ptr<Backend>, const int16_t*, const int16_t*, int16_t*);
 template void copy<int32_t>(Ptr<Backend>, const int32_t*, const int32_t*, int32_t*);
@@ -27,7 +28,7 @@ template void copy<uint64_t>(Ptr<Backend>, const uint64_t*, const uint64_t*, uin
 
 template void copy<float>(Ptr<Backend>, const float*, const float*, float*);
 template void copy<double>(Ptr<Backend>, const double*, const double*, double*);
-
+// clang-format on
 
 template <typename T>
 __global__ void gFill(T* d_in, int size, T val) {

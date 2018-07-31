@@ -82,4 +82,4 @@ public:
 
   Ptr<Allocator> allocator() { return allocator_; }
 };
-}
+}  // namespace marian

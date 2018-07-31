@@ -1,10 +1,10 @@
 #pragma once
 
-#include <vector>
-#include <memory>
-#include <functional>
-#include <boost/timer/timer.hpp>
 #include <boost/chrono.hpp>
+#include <boost/timer/timer.hpp>
+#include <functional>
+#include <memory>
+#include <vector>
 
 namespace marian {
 
@@ -56,11 +56,10 @@ private:
           return i;
 
         if(stat.time < bestTime) {
-            bestTime = stat.time;
-            best = i;
+          bestTime = stat.time;
+          best = i;
         }
-      }
-      else {
+      } else {
         // collect more stats
         return i;
       }
@@ -73,45 +72,37 @@ private:
   }
 
 public:
+  void insert(const HashedAlgorithm& ha) { algorithms_.push_back(ha); }
 
-    void insert(const HashedAlgorithm& ha) {
-      algorithms_.push_back(ha);
-    }
+  void clear() { algorithms_.clear(); }
 
-    void clear() {
-      algorithms_.clear();
-    }
+  Return run(Args... args) { return algorithms_[choose()].algorithm(args...); }
 
-    Return run(Args ...args) {
-      return algorithms_[choose()].algorithm(args...);
-    }
+  void start(size_t hash) {
+    if(!timer_ && done_.count(hash) == 0)
+      timer_.reset(new boost::timer::cpu_timer());
+  }
 
-    void start(size_t hash) {
-      if(!timer_ && done_.count(hash) == 0)
-        timer_.reset(new boost::timer::cpu_timer());
-    }
+  void stop(size_t hash, bool stop) {
+    if(stop && done_.count(hash) == 0) {
+      timer_->stop();
 
-    void stop(size_t hash, bool stop) {
-      if(stop && done_.count(hash) == 0) {
-        timer_->stop();
+      typedef boost::chrono::duration<double> sec;
+      sec seconds = boost::chrono::nanoseconds(timer_->elapsed().user);
 
-        typedef boost::chrono::duration<double> sec;
-        sec seconds = boost::chrono::nanoseconds(timer_->elapsed().user);
-
-        auto it = stats_.find(hash);
-        if(it != stats_.end()) {
-          if(it->second.runs < max) {
-              it->second.time += seconds.count();
-              it->second.runs += 1;
-          }
+      auto it = stats_.find(hash);
+      if(it != stats_.end()) {
+        if(it->second.runs < max) {
+          it->second.time += seconds.count();
+          it->second.runs += 1;
         }
-        else {
-          stats_.emplace(hash, Stat({seconds.count(), 1}));
-        }
-
-        timer_.reset(nullptr);
+      } else {
+        stats_.emplace(hash, Stat({seconds.count(), 1}));
       }
+
+      timer_.reset(nullptr);
     }
+  }
 };
 
-}
+}  // namespace marian

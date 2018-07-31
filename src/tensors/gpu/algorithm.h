@@ -14,5 +14,5 @@ void setSparse(Ptr<Backend> backend,
                const std::vector<size_t>&,
                const std::vector<float>&,
                float*);
-}
-}
+}  // namespace gpu
+}  // namespace marian
