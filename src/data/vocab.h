@@ -35,11 +35,11 @@ public:
   void create(InputFileStream& trainStrm,
               OutputFileStream& vocabStrm,
               size_t maxSize = 0);
-    
+
   Word GetEosId() const { return eosId_; }
   Word GetUnkId() const { return unkId_; }
 
-  void createFake(); // for fakeBatch()
+  void createFake();  // for fakeBatch()
 
 private:
   Word insertWord(Word id, const std::string& str);
@@ -56,4 +56,4 @@ private:
 
   class VocabFreqOrderer;
 };
-}
+}  // namespace marian

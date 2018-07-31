@@ -30,5 +30,5 @@ public:
 protected:
   std::vector<size_t> sentenceIds_;
 };
-}
-}
+}  // namespace data
+}  // namespace marian

@@ -36,5 +36,5 @@ public:
       map_[lengths] = batchSize;
   }
 };
-}
-}
+}  // namespace data
+}  // namespace marian

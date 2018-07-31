@@ -135,10 +135,10 @@ SentenceTuple CorpusSQLite::next() {
 
 void CorpusSQLite::shuffle() {
   LOG(info, "[sqlite] Selecting shuffled data");
-  select_.reset(new SQLite::Statement(
-      *db_,
-      "select * from lines order by random_seed(" + std::to_string(seed_)
-          + ");"));
+  select_.reset(
+      new SQLite::Statement(*db_,
+                            "select * from lines order by random_seed("
+                                + std::to_string(seed_) + ");"));
 }
 
 void CorpusSQLite::reset() {
@@ -148,13 +148,13 @@ void CorpusSQLite::reset() {
 
 void CorpusSQLite::restore(Ptr<TrainingState> ts) {
   for(size_t i = 0; i < ts->epochs - 1; ++i) {
-    select_.reset(new SQLite::Statement(
-        *db_,
-        "select _id from lines order by random_seed(" + std::to_string(seed_)
-            + ");"));
+    select_.reset(
+        new SQLite::Statement(*db_,
+                              "select _id from lines order by random_seed("
+                                  + std::to_string(seed_) + ");"));
     select_->executeStep();
     reset();
   }
 }
-}
-}
+}  // namespace data
+}  // namespace marian

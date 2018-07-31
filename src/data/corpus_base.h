@@ -127,7 +127,7 @@ public:
         size_(size),
         width_(width),
         words_(0),
-        vocab_(vocab){}
+        vocab_(vocab) {}
 
   /**
    * @brief Flat vector of word indices.
@@ -145,8 +145,8 @@ public:
   std::vector<float>& mask() { return mask_; }
 
   /**
-  * @brief Accessors to the vocab_ field.
-  */
+   * @brief Accessors to the vocab_ field.
+   */
   const Ptr<Vocab>& vocab() const { return vocab_; }
 
   /**
@@ -176,7 +176,7 @@ public:
 
     std::vector<Ptr<SubBatch>> splits;
     size_t subSize = std::ceil(size_ / (float)n);
-    
+
     size_t restSize = size_;
     int pos = 0;
     for(int k = 0; k < n; ++k) {
@@ -219,7 +219,8 @@ private:
   std::vector<float> dataWeights_;
 
 public:
-  CorpusBatch(const std::vector<Ptr<SubBatch>>& subBatches) : subBatches_(subBatches) {}
+  CorpusBatch(const std::vector<Ptr<SubBatch>>& subBatches)
+      : subBatches_(subBatches) {}
 
   /**
    * @brief Access i-th subbatch storing a source or target sentence.
@@ -249,9 +250,14 @@ public:
   size_t size() const { return subBatches_[0]->batchSize(); }
 
   /**
-   * @brief The total number of words for the longest sentence in the batch plus one. Pass which=0 for source and -1 for target.
+   * @brief The total number of words for the longest sentence in the batch plus
+   * one. Pass which=0 for source and -1 for target.
    */
-  size_t words(int which = 0) const { return subBatches_[which >= 0 ? which : which + (ptrdiff_t)subBatches_.size()]->batchWords(); }
+  size_t words(int which = 0) const {
+    return subBatches_[which >= 0 ? which
+                                  : which + (ptrdiff_t)subBatches_.size()]
+        ->batchWords();
+  }
 
   /**
    * @brief The width of the source mini-batch. Num words + padded?
@@ -297,16 +303,20 @@ public:
     for(auto len : lengths) {
       auto vocab = New<Vocab>();
       vocab->createFake();
-      auto sb = New<SubBatch>(batchSize, len, vocab); // data: gets initialized to 0. No EOS symbol is distinguished.
-      std::fill(sb->data().begin(), sb->data().end(), idx++); // set word indices to different values to avoid same hashes
-      std::fill(sb->mask().begin(), sb->mask().end(), 1); // mask: no items ask being masked out
+      // data: gets initialized to 0. No EOS symbol is distinguished.
+      auto sb = New<SubBatch>(batchSize, len, vocab);
+      // set word indices to different values to avoid same hashes
+      std::fill(sb->data().begin(), sb->data().end(), idx++);
+      // mask: no items ask being masked out
+      std::fill(sb->mask().begin(), sb->mask().end(), 1);
 
       batches.push_back(sb);
     }
 
     auto batch = New<CorpusBatch>(batches);
 
-    if(!options) return batch;
+    if(!options)
+      return batch;
 
     if(options->has("guided-alignment")) {
       std::vector<float> alignment(batchSize * lengths.front() * lengths.back(),
@@ -534,5 +544,5 @@ private:
   long long int pos_;
   SentenceTuple tup_;
 };
-}
-}
+}  // namespace data
+}  // namespace marian

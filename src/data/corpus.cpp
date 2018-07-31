@@ -1,5 +1,5 @@
-#include <random>
 #include <numeric>
+#include <random>
 
 #include "data/corpus.h"
 
@@ -126,5 +126,5 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
 
   LOG(info, "[data] Done");
 }
-}
-}
+}  // namespace data
+}  // namespace marian

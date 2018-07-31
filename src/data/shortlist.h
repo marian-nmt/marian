@@ -21,15 +21,14 @@ public:
   Shortlist(const std::vector<Word>& indices,
             const std::vector<Word>& mappedIndices,
             const std::vector<Word>& reverseMap)
-  : indices_(indices),
-    mappedIndices_(mappedIndices),
-    reverseMap_(reverseMap) {}
+      : indices_(indices),
+        mappedIndices_(mappedIndices),
+        reverseMap_(reverseMap) {}
 
   std::vector<Word>& indices() { return indices_; }
   std::vector<Word>& mappedIndices() { return mappedIndices_; }
   Word reverseMap(Word idx) { return reverseMap_[idx]; }
 };
-
 
 class ShortlistGenerator {
 public:
@@ -53,17 +52,16 @@ private:
 
 public:
   SampledShortlistGenerator(Ptr<Config> options,
-                            size_t srcIdx=0,
-                            size_t trgIdx=1,
-                            bool shared=false)
-  : options_(options),
-    srcIdx_(srcIdx),
-    trgIdx_(trgIdx),
-    shared_(shared),
-    gen_(rd_()) {}
+                            size_t srcIdx = 0,
+                            size_t trgIdx = 1,
+                            bool shared = false)
+      : options_(options),
+        srcIdx_(srcIdx),
+        trgIdx_(trgIdx),
+        shared_(shared),
+        gen_(rd_()) {}
 
   virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) {
-
     auto srcBatch = (*batch)[srcIdx_];
     auto trgBatch = (*batch)[trgIdx_];
 
@@ -149,9 +147,8 @@ private:
       for(auto& it : probs)
         sorter.emplace_back(it.second, it.first);
 
-      std::sort(sorter.begin(),
-                sorter.end(),
-                std::greater<std::pair<float, Word>>());
+      std::sort(
+          sorter.begin(), sorter.end(), std::greater<std::pair<float, Word>>());
 
       probs.clear();
       for(auto& it : sorter) {
@@ -172,16 +169,14 @@ public:
                             size_t srcIdx = 0,
                             size_t trgIdx = 1,
                             bool shared = false)
-    : options_(options),
-      srcVocab_(srcVocab),
-      trgVocab_(trgVocab),
-      srcIdx_(srcIdx),
-      trgIdx_(trgIdx),
-      shared_(shared) {
-
+      : options_(options),
+        srcVocab_(srcVocab),
+        trgVocab_(trgVocab),
+        srcIdx_(srcIdx),
+        trgIdx_(trgIdx),
+        shared_(shared) {
     std::vector<std::string> vals
         = options_->get<std::vector<std::string>>("shortlist");
-
 
     ABORT_IF(vals.empty(), "No path to filter path given");
     std::string fname = vals[0];
@@ -190,17 +185,20 @@ public:
     bestNum_ = vals.size() > 2 ? std::stoi(vals[2]) : 100;
     float threshold = vals.size() > 3 ? std::stof(vals[3]) : 0;
 
-    LOG(info, "[data] Loading lexical shortlist as {} {} {} {}",
-        fname, firstNum_, bestNum_, threshold);
+    LOG(info,
+        "[data] Loading lexical shortlist as {} {} {} {}",
+        fname,
+        firstNum_,
+        bestNum_,
+        threshold);
 
     load(fname);
     prune(threshold);
   }
 
   virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) {
-
     auto srcBatch = (*batch)[srcIdx_];
-    //auto trgBatch = (*batch)[trgIdx_];
+    // auto trgBatch = (*batch)[trgIdx_];
 
     // add firstNum most frequent words
     std::unordered_set<Word> idxSet;
@@ -208,7 +206,7 @@ public:
       idxSet.insert(i);
 
     // add all words from ground truth
-    //for(auto i : trgBatch->data())
+    // for(auto i : trgBatch->data())
     //  idxSet.insert(i);
 
     // collect unique words form source
@@ -229,18 +227,18 @@ public:
     std::sort(idx.begin(), idx.end());
 
     // assign new shifted position
-    //std::unordered_map<Word, Word> pos;
+    // std::unordered_map<Word, Word> pos;
     std::vector<Word> reverseMap;
 
     for(Word i = 0; i < idx.size(); ++i) {
-      //pos[idx[i]] = i;
+      // pos[idx[i]] = i;
       reverseMap.push_back(idx[i]);
     }
 
     std::vector<Word> mapped;
-    //for(auto i : trgBatch->data()) {
-      // mapped postions for cross-entropy
-      //mapped.push_back(pos[i]);
+    // for(auto i : trgBatch->data()) {
+    // mapped postions for cross-entropy
+    // mapped.push_back(pos[i]);
     //}
 
     return New<Shortlist>(idx, mapped, reverseMap);
@@ -254,7 +252,7 @@ private:
 
 public:
   FakeShortlistGenerator(const std::unordered_set<Word>& idxSet)
-  : idx_(idxSet.begin(), idxSet.end()) {
+      : idx_(idxSet.begin(), idxSet.end()) {
     std::sort(idx_.begin(), idx_.end());
     // assign new shifted position
     for(Word i = 0; i < idx_.size(); ++i) {
@@ -268,5 +266,5 @@ public:
   }
 };
 
-}
-}
+}  // namespace data
+}  // namespace marian

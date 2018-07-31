@@ -83,7 +83,7 @@ public:
     }
 
     std::vector<Ptr<SubBatch>> subBatches;
-    for (int j = 0; j < maxDims.size(); ++j) {
+    for(int j = 0; j < maxDims.size(); ++j) {
       subBatches.emplace_back(New<SubBatch>(batchSize, maxDims[j], vocabs_[j]));
     }
 
@@ -124,5 +124,5 @@ private:
                             NULL);
   }
 };
-}
-}
+}  // namespace data
+}  // namespace marian

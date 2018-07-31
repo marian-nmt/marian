@@ -198,7 +198,8 @@ public:
         std::unique_lock<std::mutex> lock(loadMutex_);
         loadReady_ = true;
         loadCondition_.notify_all();
-      }).detach();
+      })
+          .detach();
     }
 
     std::unique_lock<std::mutex> lock(loadMutex_);
@@ -258,5 +259,5 @@ public:
     state.seedCorpus = data_->getRNGState();
   }
 };
-}
-}
+}  // namespace data
+}  // namespace marian
