@@ -14,7 +14,7 @@ public:
   virtual void stop(size_t hash, bool) = 0;
 };
 
-template <typename Return, typename ...Args>
+template <typename Return, typename... Args>
 class AutoTuner : public AutoTunerRecorder {
 private:
   typedef std::function<Return(Args...)> Algorithm;

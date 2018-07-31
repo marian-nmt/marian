@@ -11,8 +11,8 @@ namespace mlp {
  * @brief Activation functions
  */
 enum struct act : int { linear, tanh, sigmoid, ReLU, LeakyReLU, PReLU, swish };
-}
-}
+}  // namespace mlp
+}  // namespace marian
 
 YAML_REGISTER_TYPE(marian::mlp::act, int)
 
@@ -186,4 +186,4 @@ struct EmbeddingFactory : public Factory {
 };
 
 typedef Accumulator<EmbeddingFactory> embedding;
-}
+}  // namespace marian

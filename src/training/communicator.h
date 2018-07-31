@@ -1,6 +1,8 @@
+// clang-format off
 #include "graph/expression_graph.h"
 #include "functional/functional.h"
 #include "tensors/tensor_operators.h"
+// clang-format on
 
 namespace marian {
 

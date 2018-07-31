@@ -5,12 +5,12 @@
 
 #include "marian.h"
 
-#include "models/transformer_factory.h"
-#include "models/encoder.h"
-#include "models/decoder.h"
-#include "models/states.h"
 #include "layers/constructors.h"
 #include "layers/factory.h"
+#include "models/decoder.h"
+#include "models/encoder.h"
+#include "models/states.h"
+#include "models/transformer_factory.h"
 
 namespace marian {
 
@@ -24,13 +24,13 @@ protected:
   std::unordered_map<std::string, Expr> cache_;
 
 
-  template <typename T> 
-  T opt(const std::string& key) const { 
+  template <typename T>
+  T opt(const std::string& key) const {
     Ptr<Options> options = options_; // this is weird
-    return options->get<T>(key); 
+    return options->get<T>(key);
   } // need to duplicate, since somehow using Base::opt is not working
 
-  template <typename T> 
+  template <typename T>
   T opt(const std::string& key, const T& def) const {
     Ptr<Options> options = options_; // this is weird
     if(options->has(key))
@@ -217,7 +217,7 @@ public:
                  const Expr &values,        // [-4: beam depth, -3: batch size, -2: max kv length, -1: vector dim]
                  const Expr &mask,         // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
                  bool cache = false) {
-  
+
     int dimModel = q->shape()[-1];
     // @TODO: good opportunity to implement auto-batching here or do something manually?
     auto Wq = graph_->param(prefix + "_Wq",

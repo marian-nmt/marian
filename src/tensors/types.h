@@ -108,4 +108,4 @@ template <> inline std::string request<uint64_t>() { return "uint64"; }
 template <> inline std::string request<float>()  { return "float32"; }
 template <> inline std::string request<double>() { return "float64"; }
 // clang-format on
-}
+}  // namespace marian

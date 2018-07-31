@@ -71,5 +71,5 @@ void setSparse(Ptr<Backend> backend,
   // gpu::SetSparse(data, keys, values);
   CUDA_CHECK(cudaStreamSynchronize(0));
 }
-}
-}
+}  // namespace gpu
+}  // namespace marian

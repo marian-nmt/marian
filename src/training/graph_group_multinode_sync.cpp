@@ -109,7 +109,7 @@ void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) {
   std::lock_guard<std::mutex> guard(sumGradientMutex_);
   sumGradientBuffer->copyFrom(gradient);
   using namespace functional;  //@TODO makes more sense to do that on the CPU i
-                               //think
+                               // think
   Element(_1 += _2, accGradientsSync, sumGradientBuffer);
 }
 

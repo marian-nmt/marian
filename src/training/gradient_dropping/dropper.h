@@ -1,9 +1,9 @@
 #pragma once
 
-#include "training/gradient_dropping/sparse_tensor.h"
-#include "tensors/tensor_operators.h"
-#include "tensors/tensor_allocator.h"
 #include "functional/functional.h"
+#include "tensors/tensor_allocator.h"
+#include "tensors/tensor_operators.h"
+#include "training/gradient_dropping/sparse_tensor.h"
 
 namespace marian {
 

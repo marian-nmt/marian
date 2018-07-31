@@ -283,8 +283,7 @@ void ConfigParser::validateDevices() const {
 
   UTIL_THROW_IF2(!regex::regex_match(devices, pattern),
                  "the argument '(" + devices
-                     + ")' for option '--devices' is invalid. "
-                     + help);
+                     + ")' for option '--devices' is invalid. " + help);
 }
 
 void ConfigParser::addOptionsCommon(po::options_description& desc) {
