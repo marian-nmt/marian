@@ -19,14 +19,10 @@ public:
   virtual void setDevice() = 0;
   virtual void synchronize() = 0;
 
-  virtual void setClip(float clipValue) {
-    clipValue_ = clipValue;
-  }
+  virtual void setClip(float clipValue) { clipValue_ = clipValue; }
 
-  float getClip() {
-    return clipValue_;
-  }
+  float getClip() { return clipValue_; }
 };
 
 Ptr<Backend> BackendByDevice(DeviceId deviceId, size_t seed);
-}
+}  // namespace marian

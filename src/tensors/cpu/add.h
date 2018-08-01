@@ -23,12 +23,12 @@ void gAddGeneric(Functor functor,
                  float scale = 1.0) {
   int outLength = out.shape().elements();
   bool same = outLength == full.elements();
-  for(int i = 0; i < K; ++i)
+  for(size_t i = 0; i < K; ++i)
     same = same && outLength == ins[i].shape().elements();
 
   constexpr size_t N = functional::Shape::size();
   functional::Array<int, N> len;
-  for(int i = 0; i < N; ++i)
+  for(size_t i = 0; i < N; ++i)
     len[i] = full[i] / out.shape()[i];
 
   functional::Array<int, N> dims;
@@ -75,7 +75,7 @@ void gAddReduce(Functor functor,
   int cols = full.back();
 
   bool same = true;
-  for(int i = 0; i < K; ++i)
+  for(size_t i = 0; i < K; ++i)
     same = same && ins[i].shape().elements() == full.elements();
 
   for(int j = 0; j < rows; ++j) {
@@ -88,7 +88,7 @@ void gAddReduce(Functor functor,
       for(int id = 0; id < cols; ++id) {
         full.dims(j * cols + id, dims);
         functional::Array<int, K> indices;
-        for(int i = 0; i < K; ++i)
+        for(size_t i = 0; i < K; ++i)
           indices[i] = ins[i].shape().bindex(dims);
         sum += functional::apply(functor, ins, indices);
       }
@@ -114,12 +114,12 @@ void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
     cpu::gAddReduce(functor, full, gOut, gIns, scale);
   } else if(out->shape() == full) {
     bool broadcast = false;
-    for(int i = 0; i < K; ++i)
+    for(size_t i = 0; i < K; ++i)
       broadcast = broadcast || gOut.shape() != gIns[i].shape();
     cpu::gAddEqual(functor, gOut, gIns, scale, broadcast);
   } else {
     cpu::gAddGeneric(functor, full, gOut, gIns, scale);
   }
 }
-}
-}
+}  // namespace cpu
+}  // namespace marian

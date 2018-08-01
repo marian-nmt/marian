@@ -2,6 +2,7 @@
 
 #include "marian.h"
 #include "states.h"
+
 #include "data/shortlist.h"
 #include "layers/generic.h"
 
@@ -74,8 +75,7 @@ public:
     if(shortlist_) {
       yData = graph->constant({(int)shortlist_->mappedIndices().size(), 1},
                               inits::from_vector(shortlist_->mappedIndices()));
-    }
-    else {
+    } else {
       yData = graph->constant({(int)subBatch->data().size(), 1},
                               inits::from_vector(subBatch->data()));
     }
@@ -122,7 +122,9 @@ public:
   virtual const std::vector<Expr> getAlignments(int i = 0) { return {}; };
 
   virtual Ptr<data::Shortlist> getShortlist() { return shortlist_; }
-  virtual void setShortlist(Ptr<data::Shortlist> shortlist) { shortlist_ = shortlist; }
+  virtual void setShortlist(Ptr<data::Shortlist> shortlist) {
+    shortlist_ = shortlist;
+  }
 
   template <typename T>
   T opt(const std::string& key) const {
@@ -137,4 +139,4 @@ public:
   virtual void clear() = 0;
 };
 
-}
+}  // namespace marian

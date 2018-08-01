@@ -233,4 +233,4 @@ private:
     (std::ostream&)out << amun;
   }
 };
-}
+}  // namespace marian

@@ -72,4 +72,4 @@ protected:
     return stridedMask;
   }
 };
-}
+}  // namespace marian

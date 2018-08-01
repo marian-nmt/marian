@@ -203,5 +203,5 @@ void LfaBackward(Tensor gradAtt, Tensor adj, Ptr<CSR> sparseLf) {
   CollapseAtt(gradAtt, expandAttGrad);
   CUDA_CHECK(cudaFree(expandAttGradBuffer));
 }
-}
-}
+}  // namespace sparse
+}  // namespace marian

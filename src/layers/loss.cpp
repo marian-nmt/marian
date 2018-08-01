@@ -91,4 +91,4 @@ Expr CrossEntropyRescoreLoss::getCost(Expr logits,
   auto ce = getCrossEntropy(logits, indices, mask, weights);
   return -sum(ce, axis = -3);
 }
-}
+}  // namespace marian

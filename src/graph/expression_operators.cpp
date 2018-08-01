@@ -15,7 +15,8 @@ Expr debug(Expr a, const std::string& message) {
   return a;
 }
 
-Expr sigmoid(Expr a) { // logistic function. Note: scipy name is expit()
+// logistic function. Note: scipy name is expit()
+Expr sigmoid(Expr a) {
   return Expression<SigmoidNodeOp>(a);
 }
 
@@ -122,7 +123,8 @@ Expr operator/(Expr a, float b) {
   return Expression<ScalarMultNodeOp>(a, 1.f / b);
 }
 
-Expr operator/(float a, Expr b) { // TODO: efficient version of this without constant()
+// TODO: efficient version of this without constant()
+Expr operator/(float a, Expr b) {
   auto aExpr = b->graph()->constant({}, inits::from_value(a));
   return aExpr / b;
 }
@@ -179,7 +181,7 @@ Expr atleast_nd(Expr a, size_t dims) {
 
   Shape nShape;
   nShape.resize(dims);
-  for(int i = 1; i <= a->shape().size(); ++i)
+  for(int i = 1; i <= (int)a->shape().size(); ++i)
     nShape.set(-i, a->shape()[-i]);
 
   return reshape(a, nShape);
@@ -236,13 +238,13 @@ Expr dot(Expr a, Expr b, bool transA, bool transB, float scale) {
     // dotInt16 computes A * B.T, hence the transpose for B to get A * B
     // if transA = false and transB = false.
 
-    return cpu::int16::dot(cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
-                           cpu::int16::quantize(transB ? b : transpose(b), clipValue),
-                           scale);
-  }
-  else {
-    return Expression<DotNodeOp>(clip(a, clipValue), clip(b, clipValue),
-                                 transA, transB, scale);
+    return cpu::int16::dot(
+        cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
+        cpu::int16::quantize(transB ? b : transpose(b), clipValue),
+        scale);
+  } else {
+    return Expression<DotNodeOp>(
+        clip(a, clipValue), clip(b, clipValue), transA, transB, scale);
   }
 }
 
@@ -256,10 +258,8 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
   float clipValue = a->graph()->getBackend()->getClip();
 
   if(a->graph()->isOptimized() && device == DeviceType::cpu) {
-
     bool autotune = true;
     if(autotune) {
-
       thread_local Ptr<AutoTuner<Expr>> tuner = New<AutoTuner<Expr>>();
 
       // start with new set of algorithms
@@ -267,7 +267,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
 
       // lower precicion for shapes, reduces data sparsity
       auto sh = [](Shape sh) {
-        for(int i = 0; i < sh.size(); ++i)
+        for(size_t i = 0; i < sh.size(); ++i)
           sh.set(i, sh[i] / 4);
         return sh;
       };
@@ -287,11 +287,14 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
         return e;
       };
       auto alg1 = [=]() {
-        return rec1(cpu::int16::affine(rec1(cpu::int16::quantize(transA ? rec1(transpose(a)) : a, clipValue)),
-                                       cpu::int16::quantize(transB ? b : transpose(b), clipValue),
-                                       bias,
-                                       scale),
-                    true);
+        return rec1(
+            cpu::int16::affine(
+                rec1(cpu::int16::quantize(transA ? rec1(transpose(a)) : a,
+                                          clipValue)),
+                cpu::int16::quantize(transB ? b : transpose(b), clipValue),
+                bias,
+                scale),
+            true);
       };
       tuner->insert({hash1, alg1});
 
@@ -302,7 +305,6 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
         e->record(tuner, hash2, stop);
         return e;
       };
-
 
       auto alg2 = [=]() {
         auto ac = clip(a, clipValue);
@@ -324,26 +326,26 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
       // execute algorithm with autotuning
       return tuner->run();
 
-    }
-    else {
+    } else {
       // cpu int16 version
-      return cpu::int16::affine(cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
-                                cpu::int16::quantize(transB ? b : transpose(b), clipValue),
-                                bias,
-                                scale);
+      return cpu::int16::affine(
+          cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
+          cpu::int16::quantize(transB ? b : transpose(b), clipValue),
+          bias,
+          scale);
     }
-  }
-  else {
+  } else {
     // general version, MKL, CBlas or CUDA
 
-    // if clipValue > 0, the inputs will be clipped to range [-clipValue, clipValue]
-    // This is meant to keep values at the same range as used during training when
-    // optimizing for 8-bit integer products. Likely to be removed in the future
-    // when we explore better ways to handle this.
+    // if clipValue > 0, the inputs will be clipped to range [-clipValue,
+    // clipValue] This is meant to keep values at the same range as used during
+    // training when optimizing for 8-bit integer products. Likely to be removed
+    // in the future when we explore better ways to handle this.
 
     int rows = a->shape().elements() / a->shape()[-1];
     Expr ones = a->graph()->ones({rows, 1});
-    std::vector<Expr> nodes = {clip(a, clipValue), clip(b, clipValue), bias, ones};
+    std::vector<Expr> nodes
+        = {clip(a, clipValue), clip(b, clipValue), bias, ones};
     return Expression<AffineNodeOp>(nodes, transA, transB, scale);
   }
 }
@@ -351,7 +353,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
 // swap the last two axes
 Expr transpose(Expr a) {
   std::vector<int> axes(a->shape().size());
-  for(int i = 0; i < axes.size(); ++i) {
+  for(size_t i = 0; i < axes.size(); ++i) {
     axes[i] = i;
   }
   if(axes.size() > 1) {
@@ -533,4 +535,4 @@ Expr pooling_with_masking(Expr x, Expr mask, int width, bool isEven) {
 
 #endif
 #endif
-}
+}  // namespace marian

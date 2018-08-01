@@ -67,7 +67,10 @@ void Prod(marian::Tensor C,
 #endif
 }
 
-__global__ void gAddBias(float* out, const float* bias, size_t length, size_t cols) {
+__global__ void gAddBias(float* out,
+                         const float* bias,
+                         size_t length,
+                         size_t cols) {
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
@@ -92,13 +95,13 @@ void AddBias(marian::Tensor C, const marian::Tensor bias) {
 }
 
 void ProdWithBias(marian::Tensor C,
-          const marian::Tensor& A,
-          const marian::Tensor& B,
-          const marian::Tensor& bias,
-          bool transA,
-          bool transB,
-          float beta,
-          float scalar) {
+                  const marian::Tensor& A,
+                  const marian::Tensor& B,
+                  const marian::Tensor& bias,
+                  bool transA,
+                  bool transB,
+                  float beta,
+                  float scalar) {
   marian::gpu::Prod(C, A, B, transA, transB, beta, scalar);
   marian::gpu::AddBias(C, bias);
 }
@@ -140,7 +143,6 @@ void ProdBatched(marian::Tensor C,
   auto cublasHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
                           ->getCublasHandle();
 
-
   int strideA = batchA == 1 ? 0 : m * k;
   int strideB = batchB == 1 ? 0 : n * k;
   int strideC = n * m;
@@ -157,10 +159,12 @@ void ProdBatched(marian::Tensor C,
   }
 
   auto mp_aptr = allocator->alloc<const float*>(aptr.size());
-  CudaCopy(aptr.data(), aptr.data() + aptr.size(), mp_aptr->data<const float*>());
+  CudaCopy(
+      aptr.data(), aptr.data() + aptr.size(), mp_aptr->data<const float*>());
 
   auto mp_bptr = allocator->alloc<const float*>(bptr.size());
-  CudaCopy(bptr.data(), bptr.data() + bptr.size(), mp_bptr->data<const float*>());
+  CudaCopy(
+      bptr.data(), bptr.data() + bptr.size(), mp_bptr->data<const float*>());
 
   auto mp_cptr = allocator->alloc<float*>(cptr.size());
   CudaCopy(cptr.data(), cptr.data() + cptr.size(), mp_cptr->data<float*>());
@@ -169,20 +173,20 @@ void ProdBatched(marian::Tensor C,
   cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
 #endif
   cublasSgemmBatched(cublasHandle,
-                      opB,
-                      opA,
-                      n,
-                      m,
-                      k,
-                      &alpha,
-                      mp_bptr->data<const float*>(),
-                      ldb,
-                      mp_aptr->data<const float*>(),
-                      lda,
-                      &beta,
-                      mp_cptr->data<float*>(),
-                      ldc,
-                      batchC);
+                     opB,
+                     opA,
+                     n,
+                     m,
+                     k,
+                     &alpha,
+                     mp_bptr->data<const float*>(),
+                     ldb,
+                     mp_aptr->data<const float*>(),
+                     lda,
+                     &beta,
+                     mp_cptr->data<float*>(),
+                     ldc,
+                     batchC);
 #if CUDA_VERSION >= 9000
   cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
 #endif
@@ -192,5 +196,5 @@ void ProdBatched(marian::Tensor C,
   allocator->free(mp_cptr);
 }
 
-}
-}
+}  // namespace gpu
+}  // namespace marian

@@ -99,7 +99,7 @@ void MultiNodeGraphGroup::setupClients(Ptr<data::Batch> batch) {
  * batch.
  */
 void MultiNodeGraphGroup::runBatchThroughClientGraphs(Ptr<data::Batch> batch) {
-  for(int i = 0; i < devices_.size(); i++) {
+  for(size_t i = 0; i < devices_.size(); i++) {
     THREAD_GUARD(clientBuilders_[i]->build(clientGraphs_[i], batch);
                  clientGraphs_[i]->forward();
                  clientGraphs_[i]->getBackend()->synchronize(););
@@ -130,7 +130,7 @@ void MultiNodeGraphGroup::calculateNodeSizes() {
 void MultiNodeGraphGroup::initClientCpuBuffers() {
   // Initialize CPU buffers used to send GPU data through MPI (can't send
   // directly from GPUs)
-  for(int i = 0; i < devices_.size(); i++) {
+  for(size_t i = 0; i < devices_.size(); i++) {
     // @TODO Optimization: Use full size to copy in one go, then send gradients
     // and receive parameters in parallel
     size_t size = nodeSizes_[mpi_my_rank_];
@@ -163,7 +163,7 @@ void MultiNodeGraphGroup::initClientCommOverlapVars() {
  */
 void MultiNodeGraphGroup::initClientCommOverlapGpuTensors() {
   size_t modelSize = clientGraphs_[0]->params()->vals()->size();
-  for(int client = 0; client < devices_.size(); client++) {
+  for(size_t client = 0; client < devices_.size(); client++) {
     // Communication overlap buffer (for grads + params)
     Tensor commOverlapBuffer
         = newTensor(modelSize, clientGraphs_[client]->getBackend());
@@ -193,7 +193,7 @@ void MultiNodeGraphGroup::setupServerShards() {
   // CPU buffer for receiving/sending grads/params
   serverShardBufferCPU_ = std::vector<float>(nodeSizes_[mpi_my_rank_]);
   // Shard optimizers
-  for(int shard = 0; shard < devices_.size(); shard++) {
+  for(size_t shard = 0; shard < devices_.size(); shard++) {
     shardOptimizers_.push_back(Optimizer(options_));
   }
   // Mutexes to prevent simultaneous access to tensors and/or optimizers
@@ -208,7 +208,7 @@ void MultiNodeGraphGroup::setupServerShards() {
 void MultiNodeGraphGroup::calculateShardSizes() {
   size_t nodeSize = nodeSizes_[mpi_my_rank_];
   size_t shardSize = ceilf(((float)nodeSize) / devices_.size());
-  for(int shard = 0; shard < devices_.size(); shard++) {
+  for(size_t shard = 0; shard < devices_.size(); shard++) {
     size_t remainingNodeSize = nodeSize - (shardSize * shard);
     // Takes care of edge case where last shard is smaller than the others
     shardSizes_.push_back(std::min(shardSize, remainingNodeSize));
@@ -224,7 +224,7 @@ void MultiNodeGraphGroup::initShardGpuTensors() {
   for(int i = 0; i < mpi_my_rank_; i++) {
     offset += nodeSizes_[i];
   }
-  for(int shard = 0; shard < devices_.size(); shard++) {
+  for(size_t shard = 0; shard < devices_.size(); shard++) {
     Tensor gpuParams
         = newTensor(shardSizes_[shard], clientGraphs_[shard]->getBackend());
     gpuParams->copyFrom(clientGraphs_[0]->params()->vals()->subtensor(
@@ -379,7 +379,7 @@ void MultiNodeGraphGroup::launchCommOverlapThreads() {
  */
 void MultiNodeGraphGroup::shutDownCommOverlapThreads() {
   stopClientCommThreads_ = true;
-  for(int gpu = 0; gpu < devices_.size(); gpu++) {
+  for(size_t gpu = 0; gpu < devices_.size(); gpu++) {
     clientCommOverlapBuffersFilled_[gpu] = true;
     cvClientCommOverlapBuffersFilled_[gpu]
         .notify_one();  // Unblock thread from lock, then join it
@@ -694,4 +694,4 @@ void MultiNodeGraphGroup::signalFinishedToServerShards() {
   }
 #endif
 }
-}
+}  // namespace marian

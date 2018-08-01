@@ -35,5 +35,5 @@ private:
     return output;
   }
 };
-}
-}
+}  // namespace data
+}  // namespace marian

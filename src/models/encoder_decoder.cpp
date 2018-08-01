@@ -6,28 +6,25 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
     : options_(options),
       prefix_(options->get<std::string>("prefix", "")),
       inference_(options->get<bool>("inference", false)) {
-
-  modelFeatures_ = {
-      "type",
-      "dim-vocabs",
-      "dim-emb",
-      "dim-rnn",
-      "enc-cell",
-      "enc-type",
-      "enc-cell-depth",
-      "enc-depth",
-      "dec-depth",
-      "dec-cell",
-      "dec-cell-base-depth",
-      "dec-cell-high-depth",
-      "skip",
-      "layer-normalization",
-      "right-left",
-      "special-vocab",
-      "tied-embeddings",
-      "tied-embeddings-src",
-      "tied-embeddings-all"
-  };
+  modelFeatures_ = {"type",
+                    "dim-vocabs",
+                    "dim-emb",
+                    "dim-rnn",
+                    "enc-cell",
+                    "enc-type",
+                    "enc-cell-depth",
+                    "enc-depth",
+                    "dec-depth",
+                    "dec-cell",
+                    "dec-cell-base-depth",
+                    "dec-cell-high-depth",
+                    "skip",
+                    "layer-normalization",
+                    "right-left",
+                    "special-vocab",
+                    "tied-embeddings",
+                    "tied-embeddings-src",
+                    "tied-embeddings-all"};
 
   modelFeatures_.insert("transformer-heads");
   modelFeatures_.insert("transformer-no-projection");
@@ -95,23 +92,23 @@ void EncoderDecoder::saveModelParameters(const std::string& name) {
 }
 
 void EncoderDecoder::load(Ptr<ExpressionGraph> graph,
-                  const std::string& name,
-                  bool markedReloaded) {
+                          const std::string& name,
+                          bool markedReloaded) {
   graph->load(name, markedReloaded && !opt<bool>("ignore-model-config", false));
 }
 
 void EncoderDecoder::save(Ptr<ExpressionGraph> graph,
-                  const std::string& name,
-                  bool saveTranslatorConfig) {
+                          const std::string& name,
+                          bool saveTranslatorConfig) {
   // ignore config for now
   LOG(info, "Saving model weights and runtime parameters to {}", name);
   std::vector<cnpy::NpzItem> npzItems;
-  graph->save(npzItems);                          // model weights
-  Config::AddYamlToNpzItems(getModelParameters(), // model runtime parameters
-                           "special:model.yml",
-                           npzItems);
-  cnpy::npz_save(name, npzItems); // save both jointly
-  //LOG(info, "Saved {} items.", npzItems.size());
+  graph->save(npzItems);                           // model weights
+  Config::AddYamlToNpzItems(getModelParameters(),  // model runtime parameters
+                            "special:model.yml",
+                            npzItems);
+  cnpy::npz_save(name, npzItems);  // save both jointly
+  // LOG(info, "Saved {} items.", npzItems.size());
 
   if(saveTranslatorConfig)
     createDecoderConfig(name);
@@ -147,11 +144,11 @@ Ptr<DecoderState> EncoderDecoder::step(Ptr<ExpressionGraph> graph,
                                        const std::vector<size_t>& embIndices,
                                        int dimBatch,
                                        int beamSize) {
-
   state = hypIndices.empty() ? state : state->select(hypIndices, beamSize);
 
   // Fill stte with embeddings based on last prediction
-  decoders_[0]->embeddingsFromPrediction(graph, state, embIndices, dimBatch, beamSize);
+  decoders_[0]->embeddingsFromPrediction(
+      graph, state, embIndices, dimBatch, beamSize);
   auto nextState = decoders_[0]->step(graph, state);
 
   return nextState;
@@ -178,12 +175,10 @@ Ptr<DecoderState> EncoderDecoder::stepAll(Ptr<ExpressionGraph> graph,
 Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
                            Ptr<data::CorpusBatch> batch,
                            bool clearGraph) {
-
   auto state = stepAll(graph, batch, clearGraph);
 
   // returns raw logits
   return state->getProbs();
-
 }
 
 Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
@@ -193,4 +188,4 @@ Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
   return build(graph, corpusBatch, clearGraph);
 }
 
-}
+}  // namespace marian

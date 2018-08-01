@@ -88,4 +88,4 @@ void NthElementCPU::getValueByKey(std::vector<float>& out, float* d_in) {
     out[i] = d_in[h_res_idx[i]];
   }
 }
-}
+}  // namespace marian

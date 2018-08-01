@@ -144,5 +144,5 @@ public:
     return batch;
   }
 };
-}
-}
+}  // namespace data
+}  // namespace marian

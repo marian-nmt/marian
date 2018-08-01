@@ -44,7 +44,7 @@ public:
 
   void reserve(size_t size);
 };
-}
+}  // namespace gpu
 
 namespace cpu {
 class Device : public marian::Device {
@@ -56,7 +56,7 @@ public:
 
   void reserve(size_t size);
 };
-}
+}  // namespace cpu
 
 static inline Ptr<Device> DispatchDevice(DeviceId deviceId,
                                          size_t alignment = 256) {
@@ -72,4 +72,4 @@ static inline Ptr<Device> DispatchDevice(DeviceId deviceId,
     return New<cpu::Device>(deviceId, alignment);
 #endif
 }
-}
+}  // namespace marian

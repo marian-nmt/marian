@@ -49,4 +49,4 @@ public:
     scheduler->finished();
   }
 };
-}
+}  // namespace marian

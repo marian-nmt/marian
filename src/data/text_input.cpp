@@ -54,5 +54,5 @@ SentenceTuple TextInput::next() {
   }
   return SentenceTuple(0);
 }
-}
-}
+}  // namespace data
+}  // namespace marian

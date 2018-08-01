@@ -23,5 +23,5 @@ void scatterAdd(Tensor t, float* data, int* indices, int size, int offset);
 void scatterUpdate(Tensor t, float* data, int* indices, int size, int offset);
 
 void gather(Tensor t, float* data, int* indices, int size, int offset);
-}
-}
+}  // namespace gpu
+}  // namespace marian

@@ -19,9 +19,8 @@ Ptr<Scorer> scorerByType(std::string fname,
   }
 
   bool skipCost = config->get<bool>("skip-cost");
-  auto encdec = models::from_options(options,
-                                     skipCost ? models::usage::raw
-                                     : models::usage::translation);
+  auto encdec = models::from_options(
+      options, skipCost ? models::usage::raw : models::usage::translation);
 
   LOG(info, "Loading scorer of type {} as feature {}", type, fname);
 
@@ -32,13 +31,12 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options) {
   std::vector<Ptr<Scorer>> scorers;
 
   auto models = options->get<std::vector<std::string>>("models");
-  int dimVocab = options->get<std::vector<int>>("dim-vocabs").back();
 
   std::vector<float> weights(models.size(), 1.f);
   if(options->has("weights"))
     weights = options->get<std::vector<float>>("weights");
 
-  int i = 0;
+  size_t i = 0;
   for(auto model : models) {
     std::string fname = "F" + std::to_string(i);
     auto modelOptions = New<Config>(*options);
@@ -56,4 +54,4 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options) {
 
   return scorers;
 }
-}
+}  // namespace marian

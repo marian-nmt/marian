@@ -33,4 +33,4 @@ Expr Convolution::apply(const std::vector<Expr>&) {
 }
 #endif
 
-}
+}  // namespace marian

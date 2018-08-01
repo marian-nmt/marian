@@ -158,10 +158,12 @@ public:
 struct NaryNodeOp : public Node {
   size_t hash_{0};
 
-  NaryNodeOp(const std::vector<Expr>& nodes, Shape shape, Type value_type = Type::float32)
+  NaryNodeOp(const std::vector<Expr>& nodes,
+             Shape shape,
+             Type value_type = Type::float32)
       : Node(nodes.front()->graph(), shape, value_type) {
     children_.resize(nodes.size());
-    for(int i = 0; i < nodes.size(); ++i)
+    for(size_t i = 0; i < nodes.size(); ++i)
       children_[i] = nodes[i];
 
     setTrainable(std::any_of(
@@ -185,7 +187,7 @@ struct NaryNodeOp : public Node {
     if(!hash_) {
       std::size_t seed = boost::hash<std::string>()(name());
       boost::hash_combine(seed, type());
-      for(int i = 0; i < children_.size(); ++i)
+      for(size_t i = 0; i < children_.size(); ++i)
         boost::hash_combine(seed, child(i)->hash());
       hash_ = seed;
     }
@@ -199,7 +201,7 @@ struct NaryNodeOp : public Node {
       return false;
     if(children().size() != node->children().size())
       return false;
-    for(int i = 0; i < children().size(); ++i)
+    for(size_t i = 0; i < children().size(); ++i)
       if(children()[i]->getId() != node->children()[i]->getId())
         return false;
     return true;
@@ -207,4 +209,4 @@ struct NaryNodeOp : public Node {
 
   void remove_children_from_top_nodes();
 };
-}
+}  // namespace marian

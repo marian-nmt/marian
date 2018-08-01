@@ -55,5 +55,5 @@ void Element(Functor functor, Tensor out, Tensors... tensors) {
 }
 
 #include "tensors/gpu/element.inc"
-}
-}
+}  // namespace gpu
+}  // namespace marian

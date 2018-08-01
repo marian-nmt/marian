@@ -38,5 +38,5 @@ struct Tensor {
   __HDI__ Shape& shape() { return shape_; }
   __HDI__ const Shape& shape() const { return shape_; }
 };
-}
-}
+}  // namespace functional
+}  // namespace marian

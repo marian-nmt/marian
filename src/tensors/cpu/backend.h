@@ -23,5 +23,5 @@ public:
 
   std::default_random_engine& getRandomGenerator() { return gen_; }
 };
-}
-}
+}  // namespace cpu
+}  // namespace marian

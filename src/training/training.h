@@ -79,9 +79,10 @@ public:
 
     model->finalize();
 
-    // @TODO: romang, can you comment on this?
+    // Avoid saving the model twice if it has been loaded and training did not
+    // progress
     if(!trainState->loaded)
       model->save(true);
   }
 };
-}
+}  // namespace marian

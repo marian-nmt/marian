@@ -59,7 +59,7 @@ void CorpusSQLite::fillSQLite() {
   if(fill) {
     std::string createStr = "create table lines (_id integer";
     std::string insertStr = "insert into lines values (?";
-    for(int i = 0; i < files_.size(); ++i) {
+    for(size_t i = 0; i < files_.size(); ++i) {
       createStr += ", line" + std::to_string(i) + " text";
       insertStr += ", ?";
     }
@@ -79,7 +79,7 @@ void CorpusSQLite::fillSQLite() {
       ps.bind(1, (int)lines);
 
       std::string line;
-      for(int i = 0; i < files_.size(); ++i) {
+      for(size_t i = 0; i < files_.size(); ++i) {
         cont = cont && GetLine((std::istream&)*files_[i], line);
         if(cont)
           ps.bind(i + 2, line);
@@ -135,10 +135,10 @@ SentenceTuple CorpusSQLite::next() {
 
 void CorpusSQLite::shuffle() {
   LOG(info, "[sqlite] Selecting shuffled data");
-  select_.reset(new SQLite::Statement(
-      *db_,
-      "select * from lines order by random_seed(" + std::to_string(seed_)
-          + ");"));
+  select_.reset(
+      new SQLite::Statement(*db_,
+                            "select * from lines order by random_seed("
+                                + std::to_string(seed_) + ");"));
 }
 
 void CorpusSQLite::reset() {
@@ -148,13 +148,13 @@ void CorpusSQLite::reset() {
 
 void CorpusSQLite::restore(Ptr<TrainingState> ts) {
   for(size_t i = 0; i < ts->epochs - 1; ++i) {
-    select_.reset(new SQLite::Statement(
-        *db_,
-        "select _id from lines order by random_seed(" + std::to_string(seed_)
-            + ");"));
+    select_.reset(
+        new SQLite::Statement(*db_,
+                              "select _id from lines order by random_seed("
+                                  + std::to_string(seed_) + ");"));
     select_->executeStep();
     reset();
   }
 }
-}
-}
+}  // namespace data
+}  // namespace marian

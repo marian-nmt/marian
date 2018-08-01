@@ -36,5 +36,5 @@ void Device::reserve(size_t size) {
 
   size_ = size;
 }
-}
-}
+}  // namespace gpu
+}  // namespace marian

@@ -26,8 +26,7 @@ int main(int argc, char** argv) {
 
     if(options->get<bool>("sync-sgd")) {
       New<Train<MultiNodeGraphGroupSync>>(options)->run();
-    }
-    else {
+    } else {
 #ifdef CUDA_FOUND
       New<Train<MultiNodeGraphGroup>>(options)->run();
 #else
@@ -40,15 +39,13 @@ int main(int argc, char** argv) {
     } else {
       if(options->get<bool>("sync-sgd")) {
         New<Train<SyncGraphGroup>>(options)->run();
-      }
-      else if(options->get<float>("grad-dropping-rate") > 0.0) {
+      } else if(options->get<float>("grad-dropping-rate") > 0.0) {
 #ifdef CUDA_FOUND
         New<Train<AsyncGraphGroupDrop>>(options)->run();
 #else
-      ABORT("Asynchronous training with gradient dropping requires CUDA");
+        ABORT("Asynchronous training with gradient dropping requires CUDA");
 #endif
-      }
-      else {
+      } else {
         New<Train<AsyncGraphGroup>>(options)->run();
       }
     }

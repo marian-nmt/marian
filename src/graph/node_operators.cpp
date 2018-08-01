@@ -26,13 +26,12 @@ ParamNode::ParamNode(Ptr<ExpressionGraph> graph,
                      const Shape& shape,
                      const NodeInitializer& init,
                      bool fixed)
-    : Node(graph, shape), // TODO: add value_type
+    : Node(graph, shape),  // TODO: add value_type
       init_(new NodeInitializer(init)),
       initialized_(false) {
   setTrainable(!fixed);
   setMemoize(graph->isInference());
 }
-
 
 void ParamNode::init() {
   if(!initialized_) {
@@ -41,4 +40,4 @@ void ParamNode::init() {
   }
   init_.reset();
 }
-}
+}  // namespace marian

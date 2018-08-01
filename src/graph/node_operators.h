@@ -10,7 +10,7 @@ struct ConstantNode : public Node {
   ConstantNode(Ptr<ExpressionGraph> graph,
                const Shape& shape,
                const NodeInitializer& init)
-      : Node(graph, shape), // TODO: add value_type
+      : Node(graph, shape),  // TODO: add value_type
         init_(new NodeInitializer(init)),
         initialized_(false) {
     setTrainable(false);
@@ -28,14 +28,15 @@ struct ConstantNode : public Node {
   const std::string color() { return "white"; }
 
   virtual size_t hash() {
-    std::size_t seed = boost::hash<std::string>()(name());  // TODO: add value_type
+    // TODO: add value_type
+    std::size_t seed = boost::hash<std::string>()(name());
     boost::hash_combine(seed, type());
     boost::hash_combine(seed, this);
     return seed;
   }
 
   virtual bool equal(Expr node) { return this == node.get(); }
-  virtual void record(Ptr<AutoTunerRecorder>, size_t, bool) {};
+  virtual void record(Ptr<AutoTunerRecorder>, size_t, bool){};
 
 private:
   UPtr<NodeInitializer> init_;
@@ -72,10 +73,10 @@ struct ParamNode : public Node {
 
   virtual bool equal(Expr node) { return name() == node->name(); }
 
-  virtual void record(Ptr<AutoTunerRecorder>, size_t, bool) {};
+  virtual void record(Ptr<AutoTunerRecorder>, size_t, bool){};
 
 private:
   UPtr<NodeInitializer> init_;
   bool initialized_;
 };
-}
+}  // namespace marian

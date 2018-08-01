@@ -36,4 +36,4 @@ Expr guidedAlignmentCost(Ptr<ExpressionGraph> graph,
   float guidedScalar = options->get<float>("guided-alignment-weight");
   return guidedScalar * alnCost;
 }
-}
+}  // namespace marian

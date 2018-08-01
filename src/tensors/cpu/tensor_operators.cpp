@@ -52,10 +52,10 @@ inline void gInsertCols(float* out,
                         size_t offset_out,
                         size_t offset_in,
                         float beta) {
-  for(int j = 0; j < rows; ++j) {
+  for(size_t j = 0; j < rows; ++j) {
     float* rowOut = out + j * cols_out + offset_out;
     const float* rowIn = in + j * cols_in + offset_in;
-    for(int i = 0; i < cols; ++i) {
+    for(size_t i = 0; i < cols; ++i) {
       rowOut[i] = rowIn[i] + beta * rowOut[i];
     }
   }
@@ -71,14 +71,21 @@ void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
     ABORT_IF(rows != in->shape().elements() / in->shape().back(),
              "First dimension must be equal");
     int cols_in = in->shape().back();
-    cpu::gInsertCols(
-        out->data(), in->data(), rows, cols_in, cols_out, cols_in, offset, 0, 0);
+    cpu::gInsertCols(out->data(),
+                     in->data(),
+                     rows,
+                     cols_in,
+                     cols_out,
+                     cols_in,
+                     offset,
+                     0,
+                     0);
     offset += cols_in;
   }
 }
 
 void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax) {
-  if(ax == out->shape().size() - 1)
+  if(ax == (int)out->shape().size() - 1)
     Concatenate1(out, inputs);
   else
     ConcatCont(out, inputs, ax);
@@ -95,8 +102,15 @@ void Split1(std::vector<Tensor>& outputs, const Tensor in) {
 
     // set last parameter to 1 to enable += instead of =
     // @TODO: do this in a more principled ways accross all/most kernels
-    cpu::gInsertCols(
-        out->data(), in->data(), rows, cols_out, cols_out, cols_in, 0, offset, 1);
+    cpu::gInsertCols(out->data(),
+                     in->data(),
+                     rows,
+                     cols_out,
+                     cols_out,
+                     cols_in,
+                     0,
+                     offset,
+                     1);
     offset += cols_out;
   }
 }
@@ -113,7 +127,7 @@ void SplitCont(std::vector<Tensor>& outputs, const Tensor in, int axis) {
       size_t offset2 = i * size;
 
       // BUG: This overwrites gradients!
-      //std::copy(in->data() + offset1,
+      // std::copy(in->data() + offset1,
       //          in->data() + offset1 + size,
       //          out->data() + offset2);
 
@@ -122,7 +136,7 @@ void SplitCont(std::vector<Tensor>& outputs, const Tensor in, int axis) {
                      in->data() + offset1 + size,
                      out->data() + offset2,
                      out->data() + offset2,
-                     [](float a, float b){ return a + b; });
+                     [](float a, float b) { return a + b; });
 
       offset1 += size;
     }
@@ -130,7 +144,7 @@ void SplitCont(std::vector<Tensor>& outputs, const Tensor in, int axis) {
 }
 
 void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax) {
-  if(ax == in->shape().size() - 1)
+  if(ax == (int)in->shape().size() - 1)
     Split1(outputs, in);
   else
     SplitCont(outputs, in, ax);
@@ -151,14 +165,13 @@ void Transpose0213(Tensor out, Tensor in) {
       int src = j + shift;
       int dst = j / r1 + (j % r1) * r2 + shift;
 
-      const float* inRow = in->data() + src * cols ;
+      const float* inRow = in->data() + src * cols;
       float* outRow = out->data() + dst * cols;
 
       if(!add) {
         // mostly for fast forward computation
         std::copy(inRow, inRow + cols, outRow);
-      }
-      else {
+      } else {
         for(int i = 0; i < cols; ++i) {
           outRow[i] += inRow[i];
         }
@@ -167,7 +180,10 @@ void Transpose0213(Tensor out, Tensor in) {
   }
 }
 
-inline void transpose4x4_SSE(const float *A, float *B, const int lda, const int ldb) {
+inline void transpose4x4_SSE(const float* A,
+                             float* B,
+                             const int lda,
+                             const int ldb) {
   __m128 row1 = _mm_load_ps(&A[0 * lda]);
   __m128 row2 = _mm_load_ps(&A[1 * lda]);
   __m128 row3 = _mm_load_ps(&A[2 * lda]);
@@ -179,8 +195,9 @@ inline void transpose4x4_SSE(const float *A, float *B, const int lda, const int 
   _mm_store_ps(&B[3 * ldb], row4);
 }
 
-// from https://stackoverflow.com/questions/16737298/what-is-the-fastest-way-to-transpose-a-matrix-in-c
-#define ROUND_UP(x, s) (((x)+((s)-1)) & -(s))
+// from
+// https://stackoverflow.com/questions/16737298/what-is-the-fastest-way-to-transpose-a-matrix-in-c
+#define ROUND_UP(x, s) (((x) + ((s)-1)) & -(s))
 
 void Transpose10(Tensor out, const Tensor in) {
   const float* A = in->data();
@@ -211,8 +228,8 @@ template <bool add>
 void TransposeGeneric(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   functional::Array<int, functional::Shape::size()> permute;
   int diff = functional::Shape::size() - vAxis.size();
-  for(int i = 0; i < permute.size(); ++i)
-    if(i < diff)
+  for(size_t i = 0; i < permute.size(); ++i)
+    if((int)i < diff)
       permute[i] = i;
     else
       permute[i] = vAxis[i - diff] + diff;
@@ -227,7 +244,7 @@ void TransposeGeneric(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 
   for(int index = 0; index < length; ++index) {
     gOut.shape().dims(index, oDims);
-    for(int i = 0; i < N; ++i)
+    for(size_t i = 0; i < N; ++i)
       pDims[permute[i]] = oDims[i];
     if(add)
       gOut[index] += gIn[pDims];
@@ -239,8 +256,7 @@ void TransposeGeneric(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   if(vAxis == std::vector<int>({0, 2, 1, 3}))
     Transpose0213<false>(out, in);
-  else if(vAxis == std::vector<int>({1, 0})
-          && in->shape()[-1] % 16 == 0
+  else if(vAxis == std::vector<int>({1, 0}) && in->shape()[-1] % 16 == 0
           && in->shape()[-2] % 16 == 0)
     Transpose10(out, in);
   else
@@ -323,17 +339,17 @@ void SoftmaxGrad(Tensor grad_, Tensor adj_, Tensor val_) {
   const float* adj = adj_->data();
   const float* val = val_->data();
 
-  for(size_t j = 0; j < rows; ++j) {
+  for(int j = 0; j < rows; ++j) {
     float* gradRow = grad + j * cols;
     const float* adjRow = adj + j * cols;
     const float* valRow = val + j * cols;
 
     float sum = 0.f;
-    for(size_t i = 0; i < cols; ++i) {
+    for(int i = 0; i < cols; ++i) {
       sum += valRow[i] * adjRow[i];
     }
 
-    for(size_t i = 0; i < cols; ++i) {
+    for(int i = 0; i < cols; ++i) {
       gradRow[i] += valRow[i] * (adjRow[i] - sum);
     }
   }
@@ -373,7 +389,7 @@ void CopyRows(Tensor out_,
   const float* in = in_->data();
 
 #pragma omp parallel for
-  for(int j = 0; j < rows; ++j) {
+  for(size_t j = 0; j < rows; ++j) {
     size_t dst = j;
     size_t src = indices[j];
 
@@ -393,14 +409,14 @@ void PasteRows(Tensor out_,
   float* out = out_->data();
   const float* in = in_->data();
 
-  for(int j = 0; j < rows; ++j) {
+  for(size_t j = 0; j < rows; ++j) {
     size_t dst = indices[j];  // not a permutation - may alias, unlike PasteCols
     size_t src = j;
 
     float* rowOut = out + dst * cols;
     const float* rowIn = in + src * cols;
 
-    for(int i = 0; i < cols; ++i) {
+    for(size_t i = 0; i < cols; ++i) {
       rowOut[i] += rowIn[i];
     }
   }
@@ -417,11 +433,11 @@ void CopyCols(Tensor out_,
   const float* in = in_->data();
 
 #pragma omp parallel for
-  for(int j = 0; j < rows; ++j) {
+  for(size_t j = 0; j < rows; ++j) {
     const float* rowIn = in + j * colsIn;
     float* rowOut = out + j * colsOut;
 
-    for(int i = 0; i < colsOut; ++i) {
+    for(size_t i = 0; i < colsOut; ++i) {
       rowOut[i] = rowIn[indices[i]];
     }
   }
@@ -440,11 +456,11 @@ void PasteCols(Tensor out_,
   /* n.b. Unlike PasteRows, currently appears safe to assume indices[i] is a
    *      permutation i.e. no racy aliases, and no need to sum vs. just assign.
    */
-  for(int j = 0; j < rows; ++j) {
+  for(size_t j = 0; j < rows; ++j) {
     const float* rowIn = in + j * colsIn;
     float* rowOut = out + j * colsOut;
 
-    for(int i = 0; i < colsIn; ++i) {
+    for(size_t i = 0; i < colsIn; ++i) {
       rowOut[indices[i]] += rowIn[i];
     }
   }
@@ -590,18 +606,19 @@ void GRUFastBackward(std::vector<Tensor> outputs,
         rowOutXW[l] += dfdxW_x;
       if(outSU)
         rowOutSU[l] += dfdxW_x * r;
-      if(outB)
+      if(outB) {
         if(final)
           outB[l] += dfdxW_x * r;
         else
           outB[l] += dfdxW_x;
+      }
     }
   }
 }
 
 void CrossEntropyPick(Tensor out_, Tensor in_, Tensor pick_) {
   float* out = out_->data();
-  Shape& outShape = out_->shape();
+  //Shape& outShape = out_->shape();
   const float* in = in_->data();
   Shape& inShape = in_->shape();
   float* pick = pick_->data();
@@ -693,14 +710,14 @@ void Att(Tensor out_, Tensor va_, Tensor context_, Tensor state_) {
   int cols = k;
 
 #pragma omp parallel for
-  for(size_t j = 0; j < rows; ++j) {
+  for(int j = 0; j < rows; ++j) {
     const float* vaRow = va;
     const float* ctxRow = ctx + (j % (b * t)) * cols;
     const float* stateRow = state + ((j / (b * t)) * b + j % b) * cols;
 
     float sum = 0.f;
 #pragma omp simd reduction(+ : sum)
-    for(size_t i = 0; i < cols; ++i) {
+    for(int i = 0; i < cols; ++i) {
       float z = ctxRow[i] + stateRow[i];
       sum += std::tanh(z) * vaRow[i];
     }
@@ -729,7 +746,7 @@ void AttBack(Tensor gVa_,
   size_t k = context_->shape()[-1];
   size_t n = context_->shape()[-2];
 
-#pragma omp parallel for reduction(+ : gState[ : n* k], gVa[ : k])
+#pragma omp parallel for reduction(+ : gState[:n * k], gVa[:k])
   for(size_t j = 0; j < m; ++j) {
     float* gcRow = gContext + j * k;
     float* gsRow = gState + (j % n) * k;
@@ -823,7 +840,7 @@ void LayerNormalizationGrad(Tensor gradX_,
   size_t cols = y_->shape()[-1];
 
   if(beta) {
-#pragma omp parallel for reduction(+ : gradGamma[ : cols], gradBeta[ : cols])
+#pragma omp parallel for reduction(+ : gradGamma[:cols], gradBeta[:cols])
     for(size_t j = 0; j < rows; ++j) {
       const float* xRow = x + j * cols;
       const float* yRow = y + j * cols;
@@ -865,7 +882,7 @@ void LayerNormalizationGrad(Tensor gradX_,
       }
     }
   } else {
-#pragma omp parallel for reduction(+ : gradGamma[ : cols])
+#pragma omp parallel for reduction(+ : gradGamma[:cols])
     for(size_t j = 0; j < rows; ++j) {
       const float* xRow = x + j * cols;
       const float* yRow = y + j * cols;
@@ -908,9 +925,13 @@ void LayerNormalizationGrad(Tensor gradX_,
   }
 }
 
-void Shift(Tensor out_, Tensor in_, marian::Shape shift, float padValue, bool invert) {
+void Shift(Tensor out_,
+           Tensor in_,
+           marian::Shape shift,
+           float padValue,
+           bool invert) {
   int offset = 0;
-  for(int i = 0; i < shift.size(); ++i)
+  for(size_t i = 0; i < shift.size(); ++i)
     offset += in_->shape().stride(i) * shift[i];
 
   if(invert)
@@ -933,7 +954,7 @@ void Shift(Tensor out_, Tensor in_, marian::Shape shift, float padValue, bool in
 
 void ShiftGrad(Tensor out_, Tensor in_, marian::Shape shift, bool invert) {
   int offset = 0;
-  for(int i = 0; i < shift.size(); ++i)
+  for(size_t i = 0; i < shift.size(); ++i)
     offset += in_->shape().stride(i) * shift[i];
 
   if(invert)
@@ -1198,5 +1219,5 @@ void PoolingWithMaskingBackward(Tensor adj,
                                 bool isEven) {
   ABORT("Not implemented!");
 }
-}
+}  // namespace cpu
 }  // namespace marian

@@ -81,9 +81,9 @@ public:
             prefix + "_W_comb_att_lnb", {1, dimEncState}, inits::zeros);
 
         mappedContext_ = layerNorm(affine(contextDropped_, Ua_, ba_),
-                                    Wc_att_lns_,
-                                    Wc_att_lnb_,
-                                    NEMATUS_LN_EPS);
+                                   Wc_att_lns_,
+                                   Wc_att_lnb_,
+                                   NEMATUS_LN_EPS);
       } else {
         gammaContext_ = graph->param(
             prefix + "_att_gamma1", {1, dimEncState}, inits::from_value(1.0));
@@ -119,12 +119,14 @@ public:
       recState = dropout(recState, dropMaskState_);
 
     auto mappedState = dot(recState, Wa_);
-    if(layerNorm_)
-      if(nematusNorm_)
+    if(layerNorm_) {
+      if(nematusNorm_) {
         mappedState = layerNorm(
             mappedState, W_comb_att_lns_, W_comb_att_lnb_, NEMATUS_LN_EPS);
-      else
+      } else {
         mappedState = layerNorm(mappedState, gammaState_);
+      }
+    }
 
     auto attReduce = attOps(va_, mappedContext_, mappedState);
 
@@ -155,5 +157,5 @@ public:
 };
 
 using Attention = GlobalAttention;
-}
-}
+}  // namespace rnn
+}  // namespace marian

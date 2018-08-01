@@ -93,5 +93,5 @@ void CorpusNBest::reset() {
       files_.emplace_back(new InputFileStream(path));
   }
 }
-}
-}
+}  // namespace data
+}  // namespace marian

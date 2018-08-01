@@ -80,7 +80,8 @@ public:
       graphs_.push_back(graph);
       shardOpt_.push_back(Optimizer(options_));
 
-      builders_.push_back(models::from_config(options_, models::usage::training));
+      builders_.push_back(
+          models::from_config(options_, models::usage::training));
     }
   }
 
@@ -121,8 +122,8 @@ public:
   void save(bool final = false) {
     if(final && scheduler_) {
       if(movingAvg_ && paramsAvg_.size())
-          for(auto g : graphs_)
-            fetchParams(g->params()->vals(), paramsAvg_, 0 /* safe? */);
+        for(auto g : graphs_)
+          fetchParams(g->params()->vals(), paramsAvg_, 0 /* safe? */);
 
       scheduler_->validate(graphs_, true);
     }
@@ -131,8 +132,8 @@ public:
   }
 
   void save(Ptr<ExpressionGraph> graph, bool final = false) {
-    int idx = 0;
-    for(int i = 0; i < graphs_.size(); ++i) {
+    size_t idx = 0;
+    for(size_t i = 0; i < graphs_.size(); ++i) {
       if(graph == graphs_[i]) {
         idx = i;
         break;
@@ -171,4 +172,4 @@ public:
 
   virtual void finalize();
 };
-}
+}  // namespace marian

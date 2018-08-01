@@ -86,7 +86,7 @@ UNARY(Log, log, logf(x));
 UNARY(Exp, exp, expf(x));
 UNARY(Abs, abs, fabs(x));
 UNARY(Sqrt, sqrt, sqrtf(x));
-UNARY(Neg, operator-, -x);
+UNARY(Neg, operator-, - x);
 UNARY(Sigmoid,
       sigmoid,
       x > 0 ? (1.f / (1.f + expf(-x))) : (expf(x) / (1.f + expf(x))));
@@ -98,11 +98,14 @@ BINARY(Div, operator/, x / y);
 
 BINARY(LogAddExp,
        logaddexp,
-       (/*if*/ (x < y) ? // Note: This may not be ideal for CUDA; cf. CNTK implementation
-          (y + log1pf(expf(x - y)))
-        /*else*/ :
-          (x + log1pf(expf(y - x)))));
-BINARY(Maximum, max, (x > y) ? y : x); // note: std::max not available on CUDA it seems
+       (/*if*/ (x < y)
+            ?  // Note: This may not be ideal for CUDA; cf. CNTK implementation
+            (y + log1pf(expf(x - y)))
+            /*else*/
+            : (x + log1pf(expf(y - x)))));
+BINARY(Maximum,
+       max,
+       (x > y) ? y : x);  // note: std::max not available on CUDA it seems
 BINARY(Minimum, min, (x < y) ? y : x);
 
 UNARY(Negate, operator!, !x);
@@ -243,5 +246,5 @@ struct Assignee {
 };
 
 /******************************************************************************/
-}
-}
+}  // namespace functional
+}  // namespace marian

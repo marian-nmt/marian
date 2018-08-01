@@ -36,4 +36,4 @@ public:
         dropping_momentum{options->get<float>("grad-dropping-momentum")},
         dropping_warmup{options->get<size_t>("grad-dropping-warmup")} {}
 };
-}
+}  // namespace marian

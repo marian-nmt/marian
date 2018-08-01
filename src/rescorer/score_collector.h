@@ -118,4 +118,4 @@ public:
     ScoreCollector::Write(id, addToNBest(line, fname_, score));
   }
 };
-}
+}  // namespace marian

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "training/gradient_dropping/sparse_tensor.h"
-#include "tensors/tensor_operators.h"
-#include "tensors/tensor_allocator.h"
 #include "functional/functional.h"
+#include "tensors/tensor_allocator.h"
+#include "tensors/tensor_operators.h"
+#include "training/gradient_dropping/sparse_tensor.h"
 
 namespace marian {
 
@@ -32,23 +32,24 @@ protected:
 
 public:
   virtual void dropGraph(Tensor t,
-                 SparseTensor destination,
-                 float rate = 0.99,
-                 float momentum = 0.0) = 0;
+                         SparseTensor destination,
+                         float rate = 0.99,
+                         float momentum = 0.0)
+      = 0;
 };
 
-
 namespace gpu {
-  class GradientDropBase : public marian::GradientDropBase {
-  protected:
-    float find_threshold(Tensor grads, float rate);
-  public:
-    void dropGraph(Tensor t,
+class GradientDropBase : public marian::GradientDropBase {
+protected:
+  float find_threshold(Tensor grads, float rate);
+
+public:
+  void dropGraph(Tensor t,
                  SparseTensor destination,
                  float rate = 0.99,
                  float momentum = 0.0);
-  };
-}
+};
+}  // namespace gpu
 
 typedef Ptr<GradientDropBase> GradientDrop;
 
@@ -66,4 +67,4 @@ static inline GradientDrop PrepareGradientDrop(DeviceId deviceId) {
 #endif
 }
 
-}
+}  // namespace marian

@@ -27,7 +27,7 @@ void SetColumn(Tensor in_, size_t col, float value) {
 void suppressWord(Expr probs, Word id) {
   SetColumn(probs->val(), id, std::numeric_limits<float>::lowest());
 }
-}
+}  // namespace cpu
 
 void suppressWord(Expr probs, Word id) {
   if(probs->val()->getBackend()->getDevice().type == DeviceType::cpu) {
@@ -39,4 +39,4 @@ void suppressWord(Expr probs, Word id) {
   }
 #endif
 }
-}
+}  // namespace marian

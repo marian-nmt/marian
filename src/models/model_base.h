@@ -6,12 +6,9 @@
 namespace marian {
 namespace models {
 
-enum struct usage {
-  raw, training, scoring, translation
-};
-
+enum struct usage { raw, training, scoring, translation };
 }
-}
+}  // namespace marian
 
 YAML_REGISTER_TYPE(marian::models::usage, int)
 
@@ -37,5 +34,5 @@ public:
   virtual void clear(Ptr<ExpressionGraph> graph) = 0;
 };
 
-}
-}
+}  // namespace models
+}  // namespace marian

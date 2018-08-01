@@ -171,5 +171,5 @@ void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
 }
 
 #include "tensors/gpu/add.inc"
-}
-}
+}  // namespace gpu
+}  // namespace marian

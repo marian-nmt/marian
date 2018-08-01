@@ -2,10 +2,10 @@
 
 #include "common/definitions.h"
 #include "data/batch_generator.h"
+#include "graph/expression_graph.h"
 #include "models/model_base.h"
 #include "optimizers/optimizers.h"
 #include "training/scheduler.h"
-#include "graph/expression_graph.h"
 
 namespace marian {
 
@@ -53,7 +53,8 @@ public:
                                              size_t multiplier = 1) {
     auto stats = New<data::BatchStats>();
 
-    size_t numFiles = options_->get<std::vector<std::string>>("train-sets").size();
+    size_t numFiles
+        = options_->get<std::vector<std::string>>("train-sets").size();
 
     // Initialize first batch to step size
     size_t first = options_->get<size_t>("mini-batch-fit-step");
@@ -105,4 +106,4 @@ public:
     return stats;
   }
 };
-}
+}  // namespace marian

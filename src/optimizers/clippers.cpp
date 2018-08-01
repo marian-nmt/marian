@@ -15,4 +15,4 @@ void Norm::clip(Tensor t) {
   if(l2Norm >= c_)
     Element(_1 = (c_ / l2Norm) * _1, t);
 }
-}
+}  // namespace marian

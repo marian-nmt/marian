@@ -10,7 +10,6 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Config> config)
       movingAvg_{options_->get<float>("exponential-smoothing") > 0},
       mvDecay_{options_->get<float>("exponential-smoothing")},
       delay_{options_->get<size_t>("optimizer-delay")} {
-
   for(auto device : devices_) {
     auto graph = New<ExpressionGraph>();
     graph->setDevice(device);
@@ -81,7 +80,8 @@ void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
       paramsAlloc->allocate(paramAvg, {1, __size__});
       paramsAvg_.push_back(paramAvg);
 
-      paramAvg->copyFrom(graphs_[0]->params()->vals()->subtensor(pos, __size__));
+      paramAvg->copyFrom(
+          graphs_[0]->params()->vals()->subtensor(pos, __size__));
 
       // move to next shard
       pos += __size__;
@@ -101,10 +101,10 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
   std::vector<std::vector<Ptr<data::Batch>>> delayedBatches;
 
-  for(int i = 0; i < delay_; ++i) {
+  for(size_t i = 0; i < delay_; ++i) {
     if(i * devs < batches.size()) {
       delayedBatches.emplace_back();
-      for(int j = 0; j < devs; ++j) {
+      for(size_t j = 0; j < devs; ++j) {
         size_t index = i * devs + j;
         if(index < batches.size())
           delayedBatches.back().push_back(batches[i * devs + j]);
@@ -135,8 +135,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
         // only reset gradients to 0 if t == 1
         graph->backward(t == 1);
-      }
-      else {
+      } else {
         // handle case of empty batch, execute do-nothing fw-bw step for
         // proper inits and resets.
         graph->forward();
@@ -151,7 +150,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
       int size = std::min(totalSize - pos, shardSize);
 
-      auto curGrad  = graphs_[idx]->params()->grads()->subtensor(pos, size);
+      auto curGrad = graphs_[idx]->params()->grads()->subtensor(pos, size);
       auto curParam = graphs_[idx]->params()->vals()->subtensor(pos, size);
 
       if(div != 1) {
@@ -162,7 +161,8 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
       shardOpt_[idx]->update(curParam, curGrad);
 
       if(movingAvg_)
-        updateMovingAverage(paramsAvg_[idx], curParam, scheduler_->numberOfBatches());
+        updateMovingAverage(
+            paramsAvg_[idx], curParam, scheduler_->numberOfBatches());
     };
 
     comm_->foreach(forwardBackward);
@@ -227,9 +227,7 @@ void SyncGraphGroup::load() {
 
     } else if(options_->has("pretrained-model")) {
       std::string init = options_->get<std::string>("pretrained-model");
-      LOG(info,
-          "Initialize model weights with the pre-trained model {}",
-          init);
+      LOG(info, "Initialize model weights with the pre-trained model {}", init);
       size_t i = 0;
       for(auto graph : graphs_)
         builders_[i++]->load(graph, init, false);
@@ -238,57 +236,57 @@ void SyncGraphGroup::load() {
 }
 
 void SyncGraphGroup::save(bool final) {
-    if(final && scheduler_) {
-      if(movingAvg_ && paramsAvg_.size() > 0)
-        comm_->swapParams(paramsAvg_);
-
-      scheduler_->validate(graphs_, true);
-
-      if(movingAvg_ && paramsAvg_.size() > 0)
-        comm_->swapParams(paramsAvg_);
-    }
-    save(graphs_[0], final);
-  }
-
-  void SyncGraphGroup::save(Ptr<ExpressionGraph> graph, bool final) {
-    int idx = 0;
-    for(int i = 0; i < graphs_.size(); ++i) {
-      if(graph == graphs_[i]) {
-        idx = i;
-        break;
-      }
-    }
-
+  if(final && scheduler_) {
     if(movingAvg_ && paramsAvg_.size() > 0)
       comm_->swapParams(paramsAvg_);
 
-    std::string name = options_->get<std::string>("model");
-
-    if(options_->get<bool>("overwrite")) {
-      builders_[idx]->save(graphs_[idx], name, true);
-      if(scheduler_)
-        scheduler_->save(name);
-    } else {
-      if(!final) {
-        std::string numberOfBatches
-            = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
-                         : "unknown";
-        std::string nameOverwrite = name;
-        nameOverwrite.replace(
-            name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");
-        builders_[idx]->save(graphs_[idx], nameOverwrite);
-      }
-
-      builders_[idx]->save(graphs_[idx], name, true);
-      if(scheduler_)
-        scheduler_->save(name);
-    }
+    scheduler_->validate(graphs_, true);
 
     if(movingAvg_ && paramsAvg_.size() > 0)
       comm_->swapParams(paramsAvg_);
-
-    size_t totalSize = graphs_[idx]->params()->vals()->size();
-    shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_, totalSize);
   }
-
+  save(graphs_[0], final);
 }
+
+void SyncGraphGroup::save(Ptr<ExpressionGraph> graph, bool final) {
+  size_t idx = 0;
+  for(size_t i = 0; i < graphs_.size(); ++i) {
+    if(graph == graphs_[i]) {
+      idx = i;
+      break;
+    }
+  }
+
+  if(movingAvg_ && paramsAvg_.size() > 0)
+    comm_->swapParams(paramsAvg_);
+
+  std::string name = options_->get<std::string>("model");
+
+  if(options_->get<bool>("overwrite")) {
+    builders_[idx]->save(graphs_[idx], name, true);
+    if(scheduler_)
+      scheduler_->save(name);
+  } else {
+    if(!final) {
+      std::string numberOfBatches
+          = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
+                       : "unknown";
+      std::string nameOverwrite = name;
+      nameOverwrite.replace(
+          name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");
+      builders_[idx]->save(graphs_[idx], nameOverwrite);
+    }
+
+    builders_[idx]->save(graphs_[idx], name, true);
+    if(scheduler_)
+      scheduler_->save(name);
+  }
+
+  if(movingAvg_ && paramsAvg_.size() > 0)
+    comm_->swapParams(paramsAvg_);
+
+  size_t totalSize = graphs_[idx]->params()->vals()->size();
+  shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_, totalSize);
+}
+
+}  // namespace marian

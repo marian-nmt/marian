@@ -3,8 +3,8 @@
 #include <thread>
 
 #include "3rd_party/threadpool.h"
-#include "training/graph_group.h"
 #include "training/communicator.h"
+#include "training/graph_group.h"
 
 namespace marian {
 
@@ -13,7 +13,6 @@ public:
   virtual void setScheduler(Ptr<Scheduler> scheduler);
 
 private:
-
   Ptr<Communicator> comm_;
 
   std::vector<Ptr<models::ModelBase>> builders_;
@@ -56,12 +55,8 @@ public:
     return GraphGroup::collectStats(graphs_[0], builders_[0], numBatches());
   }
 
-  size_t numBatches() {
-    return devices_.size() * delay_;
-  }
+  size_t numBatches() { return devices_.size() * delay_; }
 
-  virtual void finalize() {
-    finalized_ = true;
-  }
+  virtual void finalize() { finalized_ = true; }
 };
-}
+}  // namespace marian

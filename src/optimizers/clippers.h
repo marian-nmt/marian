@@ -44,4 +44,4 @@ template <class Algorithm, typename... Args>
 ClipperBasePtr Clipper(Args&&... args) {
   return ClipperBasePtr(new Algorithm(args...));
 }
-}
+}  // namespace marian

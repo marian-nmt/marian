@@ -76,4 +76,4 @@ public:
 
   bool has(const std::string& key) const { return options_[key]; }
 };
-}
+}  // namespace marian

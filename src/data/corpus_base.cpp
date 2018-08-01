@@ -257,5 +257,5 @@ void CorpusBase::addWeightsToBatch(Ptr<CorpusBatch> batch,
 
   batch->setDataWeights(weights);
 }
-}
-}
+}  // namespace data
+}  // namespace marian

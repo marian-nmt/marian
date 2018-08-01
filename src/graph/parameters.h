@@ -90,4 +90,4 @@ public:
     grads_->clear();
   }
 };
-}
+}  // namespace marian
