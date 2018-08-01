@@ -9,8 +9,7 @@ typedef Expr(ActivationFunction)(Expr);
 
 Expr plus(const std::vector<Expr>&);
 
-// TODO: BUG! should be logistic(), not sigmoid()
-// aka sigmoid
+// TODO: should be logistic(), not sigmoid()
 Expr sigmoid(Expr a);
 Expr sigmoid(const std::vector<Expr>&);
 

@@ -1,7 +1,8 @@
+// clang-format off
 #include "training/communicator.h"
-
 #include "functional/functional.h"
 #include "tensors/tensor_operators.h"
+// clang-format on
 
 #ifdef USE_NCCL
 #include "cuda_runtime.h"
