@@ -172,15 +172,15 @@ public:
     using namespace functional;
 
     return {
-      NodeOp(Prod(val_,
-                  child(0)->val(),
-                  child(1)->val(),
-                  transA_, transB_, 0.f, scalar_);
-             Prod(val_,
-                  child(3)->val(),
-                  child(2)->val(),
-                  false, false, 1.f, 1.f)
-             )
+      NodeOp(
+          Prod(val_,
+               child(0)->val(),
+               child(1)->val(),
+               transA_,
+               transB_,
+               0.f,
+               scalar_);
+          Prod(val_, child(3)->val(), child(2)->val(), false, false, 1.f, 1.f))
     };
   }
 
@@ -193,90 +193,86 @@ public:
     using namespace functional;
 
     if(!transA_ && transB_)
-      return {NodeOp(Prod(child(0)->grad(),
-                          adj_,
-                          child(1)->val(),
-                          false,
-                          false,
-                          1.0,
-                          scalar_)),
-              NodeOp(Prod(child(1)->grad(),
-                          adj_,
-                          child(0)->val(),
-                          true,
-                          false,
-                          1.0,
-                          scalar_)),
-              NodeOp(Prod(child(2)->grad(),
-                          child(3)->val(), adj_,
-                          true, false,
-                          0.f, 1.f))
-              //NodeOp(Add(_1, child(2)->grad(), adj_))
+      return {
+          NodeOp(Prod(child(0)->grad(),
+                      adj_,
+                      child(1)->val(),
+                      false,
+                      false,
+                      1.0,
+                      scalar_)),
+          NodeOp(Prod(child(1)->grad(),
+                      adj_,
+                      child(0)->val(),
+                      true,
+                      false,
+                      1.0,
+                      scalar_)),
+          NodeOp(Prod(
+              child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f))
+          // NodeOp(Add(_1, child(2)->grad(), adj_))
       };
 
     if(transA_ && !transB_)
-      return {NodeOp(Prod(child(0)->grad(),
-                          child(1)->val(),
-                          adj_,
-                          false,
-                          true,
-                          1.0,
-                          scalar_)),
-              NodeOp(Prod(child(1)->grad(),
-                          child(0)->val(),
-                          adj_,
-                          false,
-                          false,
-                          1.0,
-                          scalar_)),
-              NodeOp(Prod(child(2)->grad(),
-                          child(3)->val(), adj_,
-                          true, false,
-                          0.f, 1.f))
-              //NodeOp(Add(_1, child(2)->grad(), adj_))
+      return {
+          NodeOp(Prod(child(0)->grad(),
+                      child(1)->val(),
+                      adj_,
+                      false,
+                      true,
+                      1.0,
+                      scalar_)),
+          NodeOp(Prod(child(1)->grad(),
+                      child(0)->val(),
+                      adj_,
+                      false,
+                      false,
+                      1.0,
+                      scalar_)),
+          NodeOp(Prod(
+              child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f))
+          // NodeOp(Add(_1, child(2)->grad(), adj_))
       };
 
     if(transA_ && transB_)
-      return {NodeOp(Prod(child(0)->grad(),
-                          child(1)->val(),
-                          adj_,
-                          true,
-                          true,
-                          1.0,
-                          scalar_)),
-              NodeOp(Prod(child(1)->grad(),
-                          adj_,
-                          child(0)->val(),
-                          true,
-                          true,
-                          1.0,
-                          scalar_)),
-              NodeOp(Prod(child(2)->grad(),
-                          child(3)->val(), adj_,
-                          true, false,
-                          0.f, 1.f))
-              //NodeOp(Add(_1, child(2)->grad(), adj_))
+      return {
+          NodeOp(Prod(child(0)->grad(),
+                      child(1)->val(),
+                      adj_,
+                      true,
+                      true,
+                      1.0,
+                      scalar_)),
+          NodeOp(Prod(child(1)->grad(),
+                      adj_,
+                      child(0)->val(),
+                      true,
+                      true,
+                      1.0,
+                      scalar_)),
+          NodeOp(Prod(
+              child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f))
+          // NodeOp(Add(_1, child(2)->grad(), adj_))
       };
 
-    return {NodeOp(Prod(child(0)->grad(),
-                        adj_,
-                        child(1)->val(),
-                        false,
-                        true,
-                        1.0,
-                        scalar_)),
-            NodeOp(Prod(child(1)->grad(),
-                        child(0)->val(),
-                        adj_,
-                        true,
-                        false,
-                        1.0,
-                        scalar_)),
-            NodeOp(Prod(child(2)->grad(),
-                        child(3)->val(), adj_,
-                        true, false,
-                        0.f, 1.f))
-            //NodeOp(Add(_1, child(2)->grad(), adj_))
+    return {
+        NodeOp(Prod(child(0)->grad(),
+                    adj_,
+                    child(1)->val(),
+                    false,
+                    true,
+                    1.0,
+                    scalar_)),
+        NodeOp(Prod(child(1)->grad(),
+                    child(0)->val(),
+                    adj_,
+                    true,
+                    false,
+                    1.0,
+                    scalar_)),
+        NodeOp(Prod(
+            child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f))
+        // NodeOp(Add(_1, child(2)->grad(), adj_))
     };
   }
 
@@ -567,16 +563,25 @@ struct LogAddExpNodeOp : public ElementBinaryNodeOp {
 
   NodeOps forwardOps() {
     using namespace functional;
-    return{
-      NodeOp(Element(_1 = logaddexp(_2, _3), val_, child(0)->val(), child(1)->val())) };
+    return {NodeOp(Element(
+        _1 = logaddexp(_2, _3), val_, child(0)->val(), child(1)->val()))};
   }
 
   NodeOps backwardOps() {
     using namespace functional;
 
-    // d/dx (ln( exp(x) + (exp(y)) = exp(x) / (exp(x) + exp(y)) = 1 / (1 + exp(y-x)) = sigmoid(x-y)
-    return{ NodeOp(Add(_1 * sigmoid(_2 - _3), child(0)->grad(), adj_, child(0)->val(), child(1)->val())),
-            NodeOp(Add(_1 * sigmoid(_3 - _2), child(1)->grad(), adj_, child(0)->val(), child(1)->val())) };
+    // d/dx (ln( exp(x) + (exp(y)) = exp(x) / (exp(x) + exp(y)) = 1 / (1 +
+    // exp(y-x)) = sigmoid(x-y)
+    return {NodeOp(Add(_1 * sigmoid(_2 - _3),
+                       child(0)->grad(),
+                       adj_,
+                       child(0)->val(),
+                       child(1)->val())),
+            NodeOp(Add(_1 * sigmoid(_3 - _2),
+                       child(1)->grad(),
+                       adj_,
+                       child(0)->val(),
+                       child(1)->val()))};
   }
 
   // TODO: this is not a "type" (as in data type). It's an operator name.
@@ -588,15 +593,23 @@ struct MaximumNodeOp : public ElementBinaryNodeOp {
 
   NodeOps forwardOps() {
     using namespace functional;
-    return{
-      NodeOp(Element(_1 = max(_2, _3), val_, child(0)->val(), child(1)->val())) };
+    return {NodeOp(
+        Element(_1 = max(_2, _3), val_, child(0)->val(), child(1)->val()))};
   }
 
   NodeOps backwardOps() {
     using namespace functional;
 
-    return{ NodeOp(Add((_2 >  _3) * _1, child(0)->grad(), adj_, child(0)->val(), child(1)->val())),
-            NodeOp(Add((_2 <= _3) * _1, child(1)->grad(), adj_, child(0)->val(), child(1)->val())) };
+    return {NodeOp(Add((_2 > _3) * _1,
+                       child(0)->grad(),
+                       adj_,
+                       child(0)->val(),
+                       child(1)->val())),
+            NodeOp(Add((_2 <= _3) * _1,
+                       child(1)->grad(),
+                       adj_,
+                       child(0)->val(),
+                       child(1)->val()))};
   }
 
   const std::string type() { return "max"; }
@@ -608,15 +621,23 @@ struct MinimumNodeOp : public ElementBinaryNodeOp {
 
   NodeOps forwardOps() {
     using namespace functional;
-    return{
-      NodeOp(Element(_1 = min(_2, _3), val_, child(0)->val(), child(1)->val())) };
+    return {NodeOp(
+        Element(_1 = min(_2, _3), val_, child(0)->val(), child(1)->val()))};
   }
 
   NodeOps backwardOps() {
     using namespace functional;
 
-    return{ NodeOp(Add((_2 <  _3) * _1, child(0)->grad(), adj_, child(0)->val(), child(1)->val())),
-            NodeOp(Add((_2 >= _3) * _1, child(1)->grad(), adj_, child(0)->val(), child(1)->val())) };
+    return {NodeOp(Add((_2 < _3) * _1,
+                       child(0)->grad(),
+                       adj_,
+                       child(0)->val(),
+                       child(1)->val())),
+            NodeOp(Add((_2 >= _3) * _1,
+                       child(1)->grad(),
+                       adj_,
+                       child(0)->val(),
+                       child(1)->val()))};
   }
 
   const std::string type() { return "min"; }
@@ -666,14 +687,14 @@ struct ConcatenateNodeOp : public NaryNodeOp {
 
   void forward() {
     std::vector<Tensor> concatenees;
-    for(int i = 0; i < children_.size(); ++i)
+    for(size_t i = 0; i < children_.size(); ++i)
       concatenees.push_back(child(i)->val());
     Concatenate(val_, concatenees, ax_);
   }
 
   void backward() {
     std::vector<Tensor> deconcatenees;
-    for(int i = 0; i < children_.size(); ++i) {
+    for(size_t i = 0; i < children_.size(); ++i) {
       auto childPtr = child(i);
       childPtr
           ->set_zero_adjoint();  // @TODO: this is a hotfix, do this properly
@@ -838,4 +859,4 @@ protected:
   ConvolutionWrapper conv_;
 };
 #endif
-}
+}  // namespace marian

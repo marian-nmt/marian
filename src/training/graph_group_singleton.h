@@ -108,9 +108,6 @@ public:
     return GraphGroup::collectStats(graph_, builder_);
   }
 
-  virtual void finalize() {
-    finalized_ = true;
-  }
-
+  virtual void finalize() { finalized_ = true; }
 };
-}
+}  // namespace marian

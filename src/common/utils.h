@@ -20,23 +20,29 @@ std::string Join(const std::vector<std::string>& words,
 
 std::string Exec(const std::string& cmd);
 
-// wrapper around std::getline() that handles Windows input files with extra CR chars at the line end
-template< class CharT, class Traits, class Allocator >
-std::basic_istream<CharT,Traits>& GetLine(std::basic_istream<CharT,Traits>& in,
-                                          std::basic_string<CharT,Traits,Allocator>& line) {
+// wrapper around std::getline() that handles Windows input files with extra CR
+// chars at the line end
+template <class CharT, class Traits, class Allocator>
+std::basic_istream<CharT, Traits>& GetLine(
+    std::basic_istream<CharT, Traits>& in,
+    std::basic_string<CharT, Traits, Allocator>& line) {
   std::getline(in, line);
-  if (in && !line.empty() && line.back() == in.widen('\r')) // strip terminal CR if present
+  // strip terminal CR if present
+  if(in && !line.empty() && line.back() == in.widen('\r'))
     line.pop_back();
   return in;
 }
 
-// wrapper around std::getline() that handles Windows input files with extra CR chars at the line end
-template< class CharT, class Traits, class Allocator >
-std::basic_istream<CharT,Traits>& GetLine(std::basic_istream<CharT,Traits>& in,
-                                          std::basic_string<CharT,Traits,Allocator>& line,
-                                          CharT delim) {
+// wrapper around std::getline() that handles Windows input files with extra CR
+// chars at the line end
+template <class CharT, class Traits, class Allocator>
+std::basic_istream<CharT, Traits>& GetLine(
+    std::basic_istream<CharT, Traits>& in,
+    std::basic_string<CharT, Traits, Allocator>& line,
+    CharT delim) {
   std::getline(in, line, delim);
-  if (in && !line.empty() && line.back() == in.widen('\r')) // strip terminal CR if present
+  // strip terminal CR if present
+  if(in && !line.empty() && line.back() == in.widen('\r'))
     line.pop_back();
   return in;
 }

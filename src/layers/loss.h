@@ -67,4 +67,4 @@ public:
 };
 
 Ptr<LossBase> LossFactory(Ptr<Options> options, bool inference);
-}
+}  // namespace marian

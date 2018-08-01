@@ -109,7 +109,7 @@ struct Loop {
     float sum = 0;
     functional::Array<int, K> acc;
     for(int i = 0; i < length[N - n]; ++i) {
-      for(int j = 0; j < K; ++j) {
+      for(size_t j = 0; j < K; ++j) {
         acc[j] = pAcc[j] + (dim[N - n] + i) * in[j].shape().bstride(N - n);
       }
       sum += Loop<n - 1, N, K>::result(functor, in, acc, length, dim);
@@ -130,7 +130,7 @@ struct Loop<1, N, K> {
     float sum = 0;
     functional::Array<int, K> acc;
     for(int i = 0; i < length[N - 1]; ++i) {
-      for(int j = 0; j < K; ++j) {
+      for(size_t j = 0; j < K; ++j) {
         acc[j] = pAcc[j] + (dim[N - 1] + i) * in[j].shape().bstride(N - 1);
       }
       sum += apply<K>(functor, in, acc);
@@ -147,5 +147,5 @@ __HDI__ float loops(Functor functor,
   functional::Array<int, K> acc = {0};
   return Loop<N, N, K>::result(functor, in, acc, length, dim);
 }
-}
-}
+}  // namespace functional
+}  // namespace marian

@@ -20,7 +20,7 @@ enum struct dir : int {
   alternating_backward
 };
 }
-}
+}  // namespace marian
 
 YAML_REGISTER_TYPE(marian::rnn::dir, int)
 
@@ -161,7 +161,7 @@ public:
 
     Expr output;
     Expr layerInput = input;
-    for(int i = 0; i < rnns_.size(); ++i) {
+    for(size_t i = 0; i < rnns_.size(); ++i) {
       auto lazyInput = layerInput;
 
       auto cell = rnns_[i]->at(0);
@@ -188,7 +188,7 @@ public:
 
     Expr output;
     Expr layerInput = input;
-    for(int i = 0; i < rnns_.size(); ++i) {
+    for(size_t i = 0; i < rnns_.size(); ++i) {
       Expr lazyInput;
       auto cell = rnns_[i]->at(0);
       auto lazyInputs = cell->getLazyInputs(shared_from_this());
@@ -217,7 +217,7 @@ public:
 
     Expr output;
     Expr layerInput = input;
-    for(int i = 0; i < rnns_.size(); ++i) {
+    for(size_t i = 0; i < rnns_.size(); ++i) {
       auto lazyInput = layerInput;
 
       auto cell = rnns_[i]->at(0);
@@ -248,5 +248,5 @@ public:
 
   virtual Ptr<Cell> at(int i) { return rnns_[i]->at(0); }
 };
-}
-}
+}  // namespace rnn
+}  // namespace marian

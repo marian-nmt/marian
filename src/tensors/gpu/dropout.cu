@@ -48,5 +48,5 @@ void Dropout(Tensor tensor, float p) {
 
   gScale<<<numBlocks, numThreads>>>(tensor->data(), n, 1.f - p);
 }
-}
-}
+}  // namespace gpu
+}  // namespace marian

@@ -1,11 +1,12 @@
+#include <stdio.h>
+#include <array>
+#include <boost/algorithm/string.hpp>
+#include <iostream>
+#include <sstream>
+
 #include "3rd_party/exception.h"
 #include "common/logging.h"
 #include "common/utils.h"
-#include <iostream>
-#include <sstream>
-#include <array>
-#include <stdio.h>
-#include <boost/algorithm/string.hpp>
 
 void Trim(std::string& s) {
   boost::trim_if(s, boost::is_any_of(" \t\n"));

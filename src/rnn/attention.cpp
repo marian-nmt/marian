@@ -61,5 +61,5 @@ Expr attOps(Expr va, Expr context, Expr state) {
   return reshape(Expression<AttentionNodeOp>(nodes),
                  {dimBeam, 1, dimWords, dimBatch});
 }
-}
-}
+}  // namespace rnn
+}  // namespace marian

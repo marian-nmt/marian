@@ -73,6 +73,6 @@ NodeInitializer from_word2vec(const std::string& file,
                               int dimVoc,
                               int dimEmb,
                               bool normalize = false);
-}
+}  // namespace inits
 
 }  // namespace marian

@@ -77,8 +77,8 @@ private:
       maxiBatch.reset(new sample_queue(cmpNone));
     }
 
-    int maxBatchSize = options_->get<int>("mini-batch");
-    int maxSize = maxBatchSize * options_->get<int>("maxi-batch");
+    size_t maxBatchSize = options_->get<int>("mini-batch");
+    size_t maxSize = maxBatchSize * options_->get<int>("maxi-batch");
 
     // consume data from corpus into maxi-batch (single sentences)
     // sorted into specified order (due to queue)
@@ -185,7 +185,7 @@ public:
     currentBatch_ = bufferedBatches_.front();
 
     if(loadReady_
-       && bufferedBatches_.size()
+       && (int)bufferedBatches_.size()
               <= std::max(options_->get<int>("maxi-batch") / 5, 1)) {
       {
         std::unique_lock<std::mutex> lock(loadMutex_);
@@ -198,7 +198,8 @@ public:
         std::unique_lock<std::mutex> lock(loadMutex_);
         loadReady_ = true;
         loadCondition_.notify_all();
-      }).detach();
+      })
+          .detach();
     }
 
     std::unique_lock<std::mutex> lock(loadMutex_);
@@ -238,7 +239,7 @@ public:
     }
 
     prepare(shuffle);
-    for(int i = 0; i < state->batchesEpoch; ++i)
+    for(size_t i = 0; i < state->batchesEpoch; ++i)
       next();
 
     return true;
@@ -258,5 +259,5 @@ public:
     state.seedCorpus = data_->getRNGState();
   }
 };
-}
-}
+}  // namespace data
+}  // namespace marian

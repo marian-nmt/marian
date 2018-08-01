@@ -9,11 +9,10 @@
 #include "common/definitions.h"
 #include "common/keywords.h"
 #include "graph/expression_graph.h"
-#include "models/model_base.h"
 #include "models/costs.h"
+#include "models/model_base.h"
 
 #include "examples/mnist/dataset.h"
-
 
 namespace marian {
 namespace models {
@@ -26,12 +25,11 @@ public:
              Ptr<ExpressionGraph> graph,
              Ptr<data::Batch> batch,
              bool clearGraph = true) {
-
     auto top = model->build(graph, batch, clearGraph);
 
     auto vLabels = std::static_pointer_cast<data::DataBatch>(batch)->labels();
-    auto labels = graph->constant({(int)batch->size(), 1},
-                                  inits::from_vector(vLabels));
+    auto labels
+        = graph->constant({(int)batch->size(), 1}, inits::from_vector(vLabels));
 
     // Define a top-level node for training
     return mean(cross_entropy(top, labels), keywords::axis = 0);
@@ -46,12 +44,10 @@ public:
              Ptr<ExpressionGraph> graph,
              Ptr<data::Batch> batch,
              bool clearGraph = true) {
-
     auto top = model->build(graph, batch, clearGraph);
     return logsoftmax(top);
   }
 };
-
 
 class MnistFeedForwardNet : public ModelBase {
 public:
@@ -151,5 +147,5 @@ protected:
     return last;
   }
 };
-}
-}
+}  // namespace models
+}  // namespace marian

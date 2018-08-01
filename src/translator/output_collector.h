@@ -63,14 +63,12 @@ public:
   }
 
 protected:
-  UPtr<OutputFileStream> outStrm_;
-  boost::mutex mutex_;
-  long nextId_;
-
   typedef std::map<long, std::pair<std::string, std::string>> Outputs;
   Outputs outputs_;
-
+  long nextId_;
+  UPtr<OutputFileStream> outStrm_;
   Ptr<PrintingStrategy> printing_;
+  boost::mutex mutex_;
 };
 
 class StringCollector {
@@ -88,4 +86,4 @@ protected:
   typedef std::map<long, std::pair<std::string, std::string>> Outputs;
   Outputs outputs_;
 };
-}
+}  // namespace marian

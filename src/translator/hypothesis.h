@@ -43,4 +43,4 @@ typedef std::vector<Beam> Beams;
 typedef std::vector<size_t> Words;
 typedef std::tuple<Words, Ptr<Hypothesis>, float> Result;
 typedef std::vector<Result> NBestList;
-}
+}  // namespace marian

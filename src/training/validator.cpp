@@ -36,4 +36,4 @@ std::vector<Ptr<Validator<data::Corpus>>> Validators(
 
   return validators;
 }
-}
+}  // namespace marian

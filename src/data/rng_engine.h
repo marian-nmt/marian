@@ -30,5 +30,5 @@ public:
     iss >> eng_;
   }
 };
-}
-}
+}  // namespace data
+}  // namespace marian

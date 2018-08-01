@@ -61,5 +61,5 @@ private:
     return cublasHandle;
   }
 };
-}
-}
+}  // namespace gpu
+}  // namespace marian

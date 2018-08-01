@@ -116,9 +116,7 @@ public:
     return encdec_->getShortlist();
   };
 
-  virtual std::vector<float> getAlignment() {
-    return encdec_->getAlignment();
-  }
+  virtual std::vector<float> getAlignment() { return encdec_->getAlignment(); }
 };
 
 Ptr<Scorer> scorerByType(std::string fname,
@@ -127,4 +125,4 @@ Ptr<Scorer> scorerByType(std::string fname,
                          Ptr<Config> config);
 
 std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options);
-}
+}  // namespace marian

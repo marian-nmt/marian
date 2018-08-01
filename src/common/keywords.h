@@ -230,5 +230,5 @@ public:
 #define KEY(name, value_type)                                                \
   typedef const Keyword<COMPILE_TIME_CRC32_STR(#name), value_type> name##_k; \
   name##_k name
-}
-}
+}  // namespace keywords
+}  // namespace marian

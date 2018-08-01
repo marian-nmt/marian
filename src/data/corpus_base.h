@@ -107,12 +107,13 @@ class SubBatch {
 private:
   std::vector<Word> indices_;
   std::vector<float> mask_;
-  Ptr<Vocab> vocab_;
-  // ... TODO: add the length information (remember it)
 
   size_t size_;
   size_t width_;
   size_t words_;
+
+  Ptr<Vocab> vocab_;
+  // ... TODO: add the length information (remember it)
 
 public:
   /**
@@ -127,7 +128,7 @@ public:
         size_(size),
         width_(width),
         words_(0),
-        vocab_(vocab){}
+        vocab_(vocab) {}
 
   /**
    * @brief Flat vector of word indices.
@@ -145,8 +146,8 @@ public:
   std::vector<float>& mask() { return mask_; }
 
   /**
-  * @brief Accessors to the vocab_ field.
-  */
+   * @brief Accessors to the vocab_ field.
+   */
   const Ptr<Vocab>& vocab() const { return vocab_; }
 
   /**
@@ -176,17 +177,17 @@ public:
 
     std::vector<Ptr<SubBatch>> splits;
     size_t subSize = std::ceil(size_ / (float)n);
-    
+
     size_t restSize = size_;
-    int pos = 0;
-    for(int k = 0; k < n; ++k) {
+    size_t pos = 0;
+    for(size_t k = 0; k < n; ++k) {
       size_t __size__ = std::min(subSize, restSize);
       if(__size__ > 0) {
         auto sb = New<SubBatch>(__size__, width_, vocab_);
 
         size_t __words__ = 0;
-        for(int j = 0; j < width_; ++j) {
-          for(int i = 0; i < __size__; ++i) {
+        for(size_t j = 0; j < width_; ++j) {
+          for(size_t i = 0; i < __size__; ++i) {
             sb->data()[j * __size__ + i] = indices_[j * size_ + pos + i];
             sb->mask()[j * __size__ + i] = mask_[j * size_ + pos + i];
 
@@ -219,7 +220,8 @@ private:
   std::vector<float> dataWeights_;
 
 public:
-  CorpusBatch(const std::vector<Ptr<SubBatch>>& subBatches) : subBatches_(subBatches) {}
+  CorpusBatch(const std::vector<Ptr<SubBatch>>& subBatches)
+      : subBatches_(subBatches) {}
 
   /**
    * @brief Access i-th subbatch storing a source or target sentence.
@@ -249,9 +251,14 @@ public:
   size_t size() const { return subBatches_[0]->batchSize(); }
 
   /**
-   * @brief The total number of words for the longest sentence in the batch plus one. Pass which=0 for source and -1 for target.
+   * @brief The total number of words for the longest sentence in the batch plus
+   * one. Pass which=0 for source and -1 for target.
    */
-  size_t words(int which = 0) const { return subBatches_[which >= 0 ? which : which + (ptrdiff_t)subBatches_.size()]->batchWords(); }
+  size_t words(int which = 0) const {
+    return subBatches_[which >= 0 ? which
+                                  : which + (ptrdiff_t)subBatches_.size()]
+        ->batchWords();
+  }
 
   /**
    * @brief The width of the source mini-batch. Num words + padded?
@@ -297,16 +304,20 @@ public:
     for(auto len : lengths) {
       auto vocab = New<Vocab>();
       vocab->createFake();
-      auto sb = New<SubBatch>(batchSize, len, vocab); // data: gets initialized to 0. No EOS symbol is distinguished.
-      std::fill(sb->data().begin(), sb->data().end(), idx++); // set word indices to different values to avoid same hashes
-      std::fill(sb->mask().begin(), sb->mask().end(), 1); // mask: no items ask being masked out
+      // data: gets initialized to 0. No EOS symbol is distinguished.
+      auto sb = New<SubBatch>(batchSize, len, vocab);
+      // set word indices to different values to avoid same hashes
+      std::fill(sb->data().begin(), sb->data().end(), idx++);
+      // mask: no items ask being masked out
+      std::fill(sb->mask().begin(), sb->mask().end(), 1);
 
       batches.push_back(sb);
     }
 
     auto batch = New<CorpusBatch>(batches);
 
-    if(!options) return batch;
+    if(!options)
+      return batch;
 
     if(options->has("guided-alignment")) {
       std::vector<float> alignment(batchSize * lengths.front() * lengths.back(),
@@ -357,7 +368,7 @@ public:
     size_t pos = 0;
     for(auto split : splits) {
       std::vector<size_t> ids;
-      for(int i = pos; i < pos + split->size(); ++i)
+      for(size_t i = pos; i < pos + split->size(); ++i)
         ids.push_back(sentenceIds_[i]);
       split->setSentenceIds(ids);
       pos += split->size();
@@ -384,8 +395,8 @@ public:
         // this needs to be split along the batch dimension
         // which is here the innermost dimension.
         // Should work for sentence-based weights, too.
-        for(int j = 0; j < width; ++j) {
-          for(int i = 0; i < split->size(); ++i) {
+        for(size_t j = 0; j < width; ++j) {
+          for(size_t i = 0; i < split->size(); ++i) {
             ws[j * split->size() + i] = dataWeights_[j * oldSize + i + pos];
           }
         }
@@ -534,5 +545,5 @@ private:
   long long int pos_;
   SentenceTuple tup_;
 };
-}
-}
+}  // namespace data
+}  // namespace marian

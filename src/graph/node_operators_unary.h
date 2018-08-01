@@ -15,10 +15,10 @@ namespace marian {
 
 struct UnaryNodeOp : public NaryNodeOp {
   UnaryNodeOp(Expr a, Shape shape, Type value_type = Type::float32)
-  : NaryNodeOp({a}, shape, value_type) {}
+      : NaryNodeOp({a}, shape, value_type) {}
 
   UnaryNodeOp(Expr a, Type value_type = Type::float32)
-  : NaryNodeOp({a}, a->shape(), value_type) {}
+      : NaryNodeOp({a}, a->shape(), value_type) {}
 
   const std::string color() { return "yellow"; }
 };
@@ -115,7 +115,8 @@ public:
 
   NodeOps backwardOps() {
     using namespace functional;
-    return {NodeOp(Add(bump(_1, clip_) * _2, child(0)->grad(), child(0)->val(), adj_))};
+    return {NodeOp(
+        Add(bump(_1, clip_) * _2, child(0)->grad(), child(0)->val(), adj_))};
   }
 
   const std::string type() { return "clip"; }
@@ -226,7 +227,7 @@ struct TanhNodeOp : public NaryNodeOp {
                          child(0)->val(),
                          child(1)->val(),
                          child(2)->val());
-                 for(int i = 3; i < children_.size(); ++i)
+                 for(size_t i = 3; i < children_.size(); ++i)
                      Element(_1 = _1 + _2, val_, child(i)->val());
                  Element(_1 = tanh(_1), val_);)
         };
@@ -236,7 +237,7 @@ struct TanhNodeOp : public NaryNodeOp {
   NodeOps backwardOps() {
     using namespace functional;
     NodeOps ops;
-    for(int i = 0; i < children_.size(); i++) {
+    for(size_t i = 0; i < children_.size(); i++) {
       ops.push_back(
           NodeOp(Add(_1 * (1.0f - (_2 * _2)), child(i)->grad(), adj_, val_)));
     }
@@ -551,9 +552,9 @@ struct LogNodeOp : public UnaryNodeOp {
 
   NodeOps backwardOps() {
     using namespace functional;
-    return {
-        //NodeOp(Add(_1 * (1.f / _2), child(0)->grad(), adj_, child(0)->val()))};
-        NodeOp(Add(_1 / _2, child(0)->grad(), adj_, child(0)->val()))};
+    return {// NodeOp(Add(_1 * (1.f / _2), child(0)->grad(), adj_,
+            // child(0)->val()))};
+            NodeOp(Add(_1 / _2, child(0)->grad(), adj_, child(0)->val()))};
   }
 
   const std::string type() { return "log"; }
@@ -827,7 +828,7 @@ struct TransposeNodeOp : public UnaryNodeOp {
     ABORT_IF(shape.size() != axes.size(),
              "Shape and transpose axes have different number of dimensions");
 
-    for(int i = 0; i < shape.size(); ++i)
+    for(size_t i = 0; i < shape.size(); ++i)
       shape.set(i, a->shape()[axes[i]]);
 
     return shape;
@@ -938,7 +939,8 @@ public:
     Shape outShape = a->shape();
 
     axis_ = outShape.axis(axis);
-#if 0 // this check currently fails in translation; I think should not fail for step==0
+#if 0  // this check currently fails in translation; I think should not fail for
+       // step==0
     for(int i = 0; i < axis_; ++i)
       ABORT_IF(outShape[i] != 1, "non-consecutive slices are presently not supported by step()");
 #endif
@@ -1007,7 +1009,8 @@ struct ShiftNodeOp : public UnaryNodeOp {
       : UnaryNodeOp(a, a->shape()), shift_(shift), padValue_(padValue) {}
 
   NodeOps forwardOps() {
-    return {NodeOp(Shift(val_, child(0)->val(), shift_, padValue_, /*invert=*/false))};
+    return {NodeOp(
+        Shift(val_, child(0)->val(), shift_, padValue_, /*invert=*/false))};
   }
 
   NodeOps backwardOps() {
@@ -1040,8 +1043,8 @@ struct ShiftNodeOp : public UnaryNodeOp {
     return true;
   }
 
-  Shape shift_;    // shift offsets in each dimension
-  float padValue_; // what value to shift in
+  Shape shift_;     // shift offsets in each dimension
+  float padValue_;  // what value to shift in
 };
 
 // struct LexicalProbNodeOp : public NaryNodeOp {
@@ -1149,4 +1152,4 @@ protected:
   int width_;
   bool isEven_;
 };
-}
+}  // namespace marian

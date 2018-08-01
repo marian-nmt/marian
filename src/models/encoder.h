@@ -12,7 +12,8 @@ protected:
   bool inference_{false};
   size_t batchIndex_{0};
 
-  //virtual --Note: This used to be virtual, but is never overridden.
+  // @TODO: This used to be virtual, but is never overridden.
+  // virtual
   std::tuple<Expr, Expr> lookup(Ptr<ExpressionGraph> graph,
                                 Expr srcEmbeddings,
                                 Ptr<data::CorpusBatch> batch) const {
@@ -52,4 +53,4 @@ public:
   virtual void clear() = 0;
 };
 
-}
+}  // namespace marian

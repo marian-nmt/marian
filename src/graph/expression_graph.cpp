@@ -26,4 +26,4 @@ void ExpressionGraph::checkNan(Tensor t) {
   ABORT_IF(throwNaN_, "Not implemented");
   // ABORT_IF(throwNaN_ && IsNan(t), "Tensor has NaN");
 }
-}
+}  // namespace marian

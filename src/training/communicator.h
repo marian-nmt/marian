@@ -1,6 +1,8 @@
+// clang-format off
 #include "graph/expression_graph.h"
 #include "functional/functional.h"
 #include "tensors/tensor_operators.h"
+// clang-format on
 
 namespace marian {
 
@@ -10,7 +12,7 @@ protected:
 
 public:
   Communicator(const std::vector<Ptr<ExpressionGraph>>& graphs)
-  : graphs_(graphs) {}
+      : graphs_(graphs) {}
 
   virtual ~Communicator() {}
 
@@ -21,7 +23,7 @@ public:
     int pos = 0;
     std::vector<std::thread> group;
     // iterate over all shards
-    for(int idx = 0; idx < graphs_.size(); ++idx) {
+    for(size_t idx = 0; idx < graphs_.size(); ++idx) {
       int size = std::min(shardSize, totalSize);
 
       group.emplace_back(func, idx, pos);
@@ -74,7 +76,7 @@ private:
 
 public:
   DefaultCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs)
-  : Communicator(graphs) {}
+      : Communicator(graphs) {}
 
   ~DefaultCommunicator() override {}
 
@@ -130,7 +132,8 @@ public:
 
     auto copy = [this, params](size_t idx, int pos) {
       // copy parameter shard to each graph
-      auto subParam = graphs_[idx]->params()->vals()->subtensor(pos, params[idx]->size());
+      auto subParam
+          = graphs_[idx]->params()->vals()->subtensor(pos, params[idx]->size());
       params[idx]->copyFrom(subParam);
     };
 
@@ -143,7 +146,8 @@ public:
     auto gather = [this, params](size_t idx, int pos) {
       // copy parameter shard to each graph
       for(auto graph : graphs_) {
-        auto subParam = graph->params()->vals()->subtensor(pos, params[idx]->size());
+        auto subParam
+            = graph->params()->vals()->subtensor(pos, params[idx]->size());
         subParam->copyFrom(params[idx]);
       }
     };
@@ -156,16 +160,19 @@ public:
 
     auto gather = [this, params](size_t idx, int pos) {
       // copy parameter shard to each graph, apart from last graph
-      for(int i = 0; i < graphs_.size() - 1; ++i) {
-        auto subParam = graphs_[i]->params()->vals()->subtensor(pos, params[idx]->size());
+      for(int i = 0; i < (int)graphs_.size() - 1; ++i) {
+        auto subParam
+            = graphs_[i]->params()->vals()->subtensor(pos, params[idx]->size());
         subParam->copyFrom(params[idx]);
       }
 
       // back-up shard from last graph
-      auto subParamLast = graphs_.back()->params()->vals()->subtensor(pos, params[idx]->size());
+      auto subParamLast = graphs_.back()->params()->vals()->subtensor(
+          pos, params[idx]->size());
       params[idx]->copyFrom(subParamLast);
 
-      auto subParamFirst = graphs_[0]->params()->vals()->subtensor(pos, params[idx]->size());
+      auto subParamFirst
+          = graphs_[0]->params()->vals()->subtensor(pos, params[idx]->size());
       subParamLast->copyFrom(subParamFirst);
     };
     // execute for each shard
@@ -173,6 +180,8 @@ public:
   }
 };
 
-Ptr<Communicator> createCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs, bool noNccl = false);
+Ptr<Communicator> createCommunicator(
+    const std::vector<Ptr<ExpressionGraph>>& graphs,
+    bool noNccl = false);
 
-}
+}  // namespace marian

@@ -135,5 +135,5 @@ void gather(Tensor t, float* data, int* indices, int size, int offset) {
       t->data(), data, indices, t->size(), size, offset);
   cudaStreamSynchronize(0);
 }
-}
-}
+}  // namespace gpu
+}  // namespace marian

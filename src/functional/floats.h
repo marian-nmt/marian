@@ -39,7 +39,7 @@ constexpr unsigned to_binary(float x, unsigned sign, int exp) {
 constexpr unsigned to_binary(float x) {
   return x == 0 ? 0 : to_binary(x, x < 0, exponent(x));
 }
-}
+}  // namespace float2unsigned
 
 namespace unsigned2float {
 
@@ -67,7 +67,7 @@ constexpr float pow(int exp) {
 constexpr float from_binary(unsigned i) {
   return (1.f + sig(i, 22u)) * pow(exponent(i)) * sign(i);
 }
-}
+}  // namespace unsigned2float
 
 constexpr unsigned f2i(float x) {
   return float2unsigned::to_binary(x);
@@ -89,5 +89,5 @@ struct F {
 
   std::string to_string() { return "F<" + std::to_string(value) + ">"; }
 };
-}
-}
+}  // namespace functional
+}  // namespace marian

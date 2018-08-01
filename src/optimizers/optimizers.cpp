@@ -108,7 +108,7 @@ void Adagrad::save(const std::string& name,
     vGt.insert(vGt.end(), tmp.begin(), tmp.end());
   }
 
-  unsigned int shape[2] = { 1, (unsigned int)vGt.size() };
+  unsigned int shape[2] = {1, (unsigned int)vGt.size()};
 
   cnpy::npz_save(name, "adagrad_gt", vGt.data(), shape, 2, "w");
 }
@@ -238,13 +238,11 @@ void Adam::save(const std::string& name,
   }
 
   // the shape is the same for mt_ and vt_
-  std::vector<unsigned int> shape{ 1, (unsigned int)vMt.size() };
+  std::vector<unsigned int> shape{1, (unsigned int)vMt.size()};
 
   cnpy::npz_save(name,
-                     {
-                       cnpy::NpzItem("adam_mt", vMt, shape),
-                       cnpy::NpzItem("adam_vt", vVt, shape)
-                     });
+                 {cnpy::NpzItem("adam_mt", vMt, shape),
+                  cnpy::NpzItem("adam_vt", vVt, shape)});
 }
 
 void Adam::resetStats() {
@@ -278,4 +276,4 @@ Ptr<OptimizerBase> Optimizer(Ptr<Config> options) {
     ABORT("Unknown optimizer: {}", opt);
   }
 }
-}
+}  // namespace marian

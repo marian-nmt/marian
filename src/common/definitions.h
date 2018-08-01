@@ -34,7 +34,7 @@ template <class T>
 Ptr<T> New(Ptr<T> p) {
   return Ptr<T>(p);
 }
-}
+}  // namespace marian
 
 #include "keywords.h"
 
@@ -57,9 +57,7 @@ struct DeviceId {
   friend bool operator==(DeviceId id1, DeviceId id2) {
     return id1.no == id2.no && id1.type == id2.type;
   }
-  friend bool operator!=(DeviceId id1, DeviceId id2) {
-    return !(id1 == id2);
-  }
+  friend bool operator!=(DeviceId id1, DeviceId id2) { return !(id1 == id2); }
 };
 
 class TensorBase;
@@ -113,7 +111,7 @@ KEY(coverage, Expr);
 KEY(max_epochs, int);
 KEY(valid, Ptr<RunBase>);
 KEY(lex_probs, Ptr<LexProbs>);
-}
+}  // namespace keywords
 
 const float NEMATUS_LN_EPS = 1e-5;
-}
+}  // namespace marian

@@ -32,10 +32,10 @@ public:
       : options_(options), inference_(options->get<bool>("inference", false)) {
     loss_ = LossFactory(options_, inference_);
 
-    toBeWeighted_ = (options_->has("data-weighting") && !inference_)
-                    || (options_->has("dynamic-weighting")
-                        && options_->get<bool>("dynamic-weighting")
-                        && !inference_);
+    toBeWeighted_
+        = (options_->has("data-weighting") && !inference_)
+          || (options_->has("dynamic-weighting")
+              && options_->get<bool>("dynamic-weighting") && !inference_);
     if(toBeWeighted_)
       weighter_ = WeightingFactory(options_);
   }
@@ -49,16 +49,11 @@ public:
 
     auto state = encdec->stepAll(graph, corpusBatch, clearGraph);
 
-    float ls = inference_ ? 0.f : options_->get<float>("label-smoothing");
-
     Expr weights;
-    Expr cost;
-    bool sentenceWeighting = false;
-
-    if(toBeWeighted_) {
+    if(toBeWeighted_)
       weights = weighter_->getWeights(graph, corpusBatch);
-    }
 
+    Expr cost;
     cost = loss_->getCost(state->getProbs(),
                           state->getTargetIndices(),
                           state->getTargetMask(),
@@ -188,9 +183,7 @@ public:
     return encdec_->getShortlist();
   };
 
-  virtual std::vector<float> getAlignment() {
-    return encdec_->getAlignment();
-  }
+  virtual std::vector<float> getAlignment() { return encdec_->getAlignment(); }
 };
 
 static Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec,
@@ -206,5 +199,5 @@ static Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec,
     default: return encdec;
   }
 }
-}
-}
+}  // namespace models
+}  // namespace marian
