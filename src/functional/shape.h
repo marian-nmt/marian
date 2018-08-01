@@ -42,8 +42,7 @@ struct ConstantShape {
     ABORT_IF(filled > N,
              "Recompile with CONST_SHAPE_DIMS >= " + std::to_string(filled));
 
-    std::copy(
-        shape.shape_.begin(), shape.shape_.end(), shape_.begin() + N - filled);
+    std::copy(shape.begin(), shape.end(), shape_.begin() + N - filled);
     if(N - filled)
       std::fill_n(shape_.begin(), N - filled, 1);
     updateStrides();

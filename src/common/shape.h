@@ -13,7 +13,7 @@
 namespace marian {
 
 struct Shape {
-public:  // TODO: why public?
+private:
   std::vector<int> shape_;
 
 public:
@@ -26,16 +26,17 @@ public:
 
   Shape(std::vector<int>&& shape) : shape_(std::move(shape)) {}
 
-  void resize(size_t n) { shape_.resize(n, 1); }
-
-  const int* data() const { return shape_.data(); }
-
-  int* data() { return shape_.data(); }
-
   Shape(const Shape& shape) : Shape() {
     shape_.resize(shape.size());
     std::copy(shape.begin(), shape.end(), begin());
   }
+
+  inline size_t size() const { return shape_.size(); }
+
+  void resize(size_t n) { shape_.resize(n, 1); }
+
+  const int* data() const { return shape_.data(); }
+  int* data() { return shape_.data(); }
 
   inline void set(int i, int val) { dim(i) = val; }
 
@@ -59,9 +60,8 @@ public:
     return const_cast<Shape&>(*this).dim(i);
   }
 
-  inline int operator[](int i) { return dim(i); }
-
   inline int operator[](int i) const { return dim(i); }
+  inline int operator[](int i) { return dim(i); }
 
   inline int back() const { return shape_.back(); }
   inline int& back() { return shape_.back(); }
@@ -76,8 +76,6 @@ public:
     else
       return stride[size() + i];
   }
-
-  inline size_t size() const { return shape_.size(); }
 
   inline int elements() const {
     int el = 1;
