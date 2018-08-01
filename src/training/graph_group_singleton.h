@@ -1,37 +1,31 @@
 #pragma once
 
+#include <boost/filesystem.hpp>
 #include <future>
 
-#include <boost/filesystem.hpp>
-
+#include "training/exponential_smoothing.h"
 #include "training/graph_group.h"
 
 namespace marian {
 
 /**
- * Single gpu training
+ * Single GPU training
  */
-class SingletonGraph : public GraphGroup {
+class SingletonGraph : public GraphGroup, public ExponentialSmoothing {
 public:
   virtual void setScheduler(Ptr<Scheduler> scheduler);
 
 private:
   Ptr<models::ModelBase> builder_;
   Ptr<ExpressionGraph> graph_;
-
-  Ptr<ExpressionGraph> mvAvgGraph_;
-  bool mvAvg_{false};
-  float mvDecay_{1e-4f};
-
-  void updateMovingAverage(Tensor mvAvgParams, Tensor params, size_t batches);
+  Ptr<ExpressionGraph> graphAvg_;
 
   void execute(Ptr<data::Batch> batch);
 
 public:
   SingletonGraph(Ptr<Config> config)
       : GraphGroup(config),
-        mvAvg_{options_->get<float>("exponential-smoothing") > 0},
-        mvDecay_{options_->get<float>("exponential-smoothing")} {
+        ExponentialSmoothing(options_->get<float>("exponential-smoothing")) {
     auto deviceId = options_->getDevices()[0];
     graph_ = New<ExpressionGraph>();
     graph_->setDevice(deviceId);
@@ -53,7 +47,19 @@ public:
       if(boost::filesystem::exists(name)) {
         if(scheduler_)
           scheduler_->load(name);
-        builder_->load(graph_, name);
+
+        if(mvAvg_ && boost::filesystem::exists(name + ".mvavg.npz")) {
+          // Load the original parameters from model.npz
+          builder_->load(graph_, name + ".mvavg.npz");
+
+          // Load the averaged parameters from model.npz
+          graphAvg_ = New<ExpressionGraph>();
+          graphAvg_->setDevice(graph_->getDevice());
+          builder_->load(graphAvg_, name);
+          graphAvg_->forceInit();
+        } else {
+          builder_->load(graph_, name);
+        }
 
         opt_->load(name + ".optimizer.npz", {opt_}, {graph_->getBackend()});
       } else if(options_->has("pretrained-model")) {
@@ -68,8 +74,14 @@ public:
 
   void save(bool final = false) {
     auto saveGraph = graph_;
-    if(mvAvg_)
-      saveGraph = mvAvgGraph_;
+    if(mvAvg_) {
+      // The model with averaged parameters will be saved into model.npz as
+      // it's a model which should be used for decoding
+      saveGraph = graphAvg_;
+      // Save the original parameters in model.npz.mvavg.npz
+      std::string name = options_->get<std::string>("model");
+      builder_->save(graph_, name + ".mvavg.npz");
+    }
 
     if(final && scheduler_)
       scheduler_->validate({saveGraph}, true);
