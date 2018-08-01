@@ -41,7 +41,7 @@ public:
 
   inline int& dim(int i) {
     if(i >= 0) {
-      ABORT_IF(i >= size(),
+      ABORT_IF(i >= (int)size(),
                "Index {} is out of bounds, shape has {} dimension",
                i,
                size());
@@ -93,7 +93,7 @@ public:
     for(int j = shape_.size() - 2; j >= 0; --j)
       stride[j] = stride[j + 1] * shape_[j + 1];
 
-    for(int j = 0; j < d.size(); ++j)
+    for(size_t j = 0; j < d.size(); ++j)
       d[j] = (i / stride[j]) % shape_[j];
   }
 
@@ -118,7 +118,7 @@ public:
   std::string toString() const {
     std::stringstream strm;
     strm << "shape=" << (*this)[0];
-    for(int i = 1; i < size(); ++i)
+    for(size_t i = 1; i < size(); ++i)
       strm << "x" << (*this)[i];
     strm << " size=" << elements();
     return strm.str();
@@ -143,7 +143,7 @@ public:
   }
 
   static Shape broadcast(const std::vector<Shape>& shapes) {
-    int maxDims = 0;
+    size_t maxDims = 0;
     for(auto& s : shapes)
       if(s.size() > maxDims)
         maxDims = s.size();
@@ -152,7 +152,7 @@ public:
     shape.resize(maxDims);
 
     for(auto& s : shapes) {
-      for(int i = 0; i < s.size(); ++i) {
+      for(int i = 0; i < (int)s.size(); ++i) {
         ABORT_IF(shape[-i] != s[-i] && shape[-i] != 1 && s[-i] != 1,
                  "Shapes {} and {} cannot be broadcasted",
                  (std::string)shape,
@@ -170,7 +170,7 @@ public:
 
   template <typename T>
   static Shape broadcast(const std::vector<T>& nodes) {
-    int maxDims = 0;
+    size_t maxDims = 0;
     for(auto& n : nodes)
       if(n->shape().size() > maxDims)
         maxDims = n->shape().size();
@@ -180,7 +180,7 @@ public:
 
     for(auto& node : nodes) {
       const Shape& shapen = node->shape();
-      for(int i = 1; i <= shapen.size(); ++i) {
+      for(int i = 1; i <= (int)shapen.size(); ++i) {
         ABORT_IF(shape[-i] != shapen[-i] && shape[-i] != 1 && shapen[-i] != 1,
                  "Shapes {} and {} cannot be broadcasted",
                  (std::string)shape,
@@ -193,7 +193,7 @@ public:
 
   size_t hash() const {
     size_t seed = boost::hash<int>()(shape_[0]);
-    for(int i = 1; i < shape_.size(); ++i)
+    for(size_t i = 1; i < shape_.size(); ++i)
       boost::hash_combine(seed, shape_[i]);
     return seed;
   }

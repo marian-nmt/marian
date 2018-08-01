@@ -23,7 +23,7 @@ public:
     int pos = 0;
     std::vector<std::thread> group;
     // iterate over all shards
-    for(int idx = 0; idx < graphs_.size(); ++idx) {
+    for(size_t idx = 0; idx < graphs_.size(); ++idx) {
       int size = std::min(shardSize, totalSize);
 
       group.emplace_back(func, idx, pos);
@@ -160,7 +160,7 @@ public:
 
     auto gather = [this, params](size_t idx, int pos) {
       // copy parameter shard to each graph, apart from last graph
-      for(int i = 0; i < graphs_.size() - 1; ++i) {
+      for(int i = 0; i < (int)graphs_.size() - 1; ++i) {
         auto subParam
             = graphs_[i]->params()->vals()->subtensor(pos, params[idx]->size());
         subParam->copyFrom(params[idx]);

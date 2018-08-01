@@ -21,10 +21,9 @@ namespace marian {
 
 class TensorBase : public std::enable_shared_from_this<TensorBase> {
 private:
-  Type type_{Type::float32};
-  Shape shape_;
-
   Ptr<MemoryPiece> memory_;
+  Shape shape_;
+  Type type_{Type::float32};
   Ptr<Backend> backend_;
 
 public:
@@ -221,7 +220,7 @@ public:
              type_);
 
     if(backend_->getDevice().type == DeviceType::cpu) {
-      for(int i = 0; i < k.size(); ++i)
+      for(size_t i = 0; i < k.size(); ++i)
         data()[k[i]] = v[i];
     }
 #ifdef CUDA_FOUND
@@ -270,18 +269,18 @@ public:
     std::vector<T> values(totSize);
     get(values);
 
-    size_t dispCols = 5;
+    int dispCols = 5;
     if(isFloat(type_))
       strm << std::fixed << std::setprecision(8) << std::setfill(' ');
     else
       strm << std::fixed << std::setprecision(0) << std::setfill(' ');
 
-    for(int i = 0; i < values.size(); ++i) {
+    for(size_t i = 0; i < values.size(); ++i) {
       std::vector<int> dims;
       shape().dims(i, dims);
 
       bool disp = true;
-      for(int j = 0; j < dims.size(); ++j)
+      for(size_t j = 0; j < dims.size(); ++j)
         disp = disp && (dims[j] < dispCols || dims[j] >= shape()[j] - dispCols);
 
       if(disp) {
@@ -320,14 +319,14 @@ public:
 
         bool prev = true;
         for(int j = dims.size() - 1; j >= 0; --j) {
-          if(j < dims.size() - 1)
+          if(j < (int)dims.size() - 1)
             prev = prev && dims[j + 1] + 1 == shape()[j + 1];
           if(prev && dims[j] + 1 == dispCols && shape()[j] > 2 * dispCols) {
-            if(j < dims.size() - 1)
+            if(j < (int)dims.size() - 1)
               for(int k = 0; k <= j; ++k)
                 strm << " ";
             strm << "... ";
-            if(j < dims.size() - 1)
+            if(j < (int)dims.size() - 1)
               strm << std::endl;
             break;
           }

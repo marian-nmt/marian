@@ -132,6 +132,9 @@ static void processPaths(
           processPaths(sub.second, TransformPath, PATHS.count(key) > 0);
         }
         break;
+      default:
+        // it is OK
+        break;
     }
   }
 }
@@ -1132,8 +1135,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
              "(--config option)");
     auto configDir = boost::filesystem::path{configPaths.front()}.parent_path();
     for(const auto& configPath : configPaths)
-      ABORT_IF(boost::filesystem::path{configPaths.front()}.parent_path()
-                   != configDir,
+      ABORT_IF(boost::filesystem::path{configPath}.parent_path() != configDir,
                "relative-paths option requires all config files to be in the "
                "same directory");
     processPaths(config_, [&](const std::string& nodePath) -> std::string {

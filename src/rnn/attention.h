@@ -119,12 +119,14 @@ public:
       recState = dropout(recState, dropMaskState_);
 
     auto mappedState = dot(recState, Wa_);
-    if(layerNorm_)
-      if(nematusNorm_)
+    if(layerNorm_) {
+      if(nematusNorm_) {
         mappedState = layerNorm(
             mappedState, W_comb_att_lns_, W_comb_att_lnb_, NEMATUS_LN_EPS);
-      else
+      } else {
         mappedState = layerNorm(mappedState, gammaState_);
+      }
+    }
 
     auto attReduce = attOps(va_, mappedContext_, mappedState);
 

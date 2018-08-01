@@ -49,7 +49,7 @@ public:
   virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) {
     auto attentionIdx = getAttentionIndices();
     int dimVoc = totalCosts->shape()[-1];
-    for(int i = 0; i < attentionIdx.size(); i++) {
+    for(size_t i = 0; i < attentionIdx.size(); i++) {
       if(batch->front()->data()[attentionIdx[i]] != 0) {
         totalCosts->val()->set(
             i * dimVoc + DEFAULT_EOS_ID,  // this is checked at vocab-load time
@@ -167,7 +167,7 @@ public:
         auto attCell = rnn::stacked_cell(graph)         //
                            .push_back(rnn::cell(graph)  //
                                       ("prefix", prefix_ + "_cell1"));
-        for(int i = 0; i < state->getEncoderStates().size(); ++i) {
+        for(size_t i = 0; i < state->getEncoderStates().size(); ++i) {
           std::string prefix = prefix_;
           if(state->getEncoderStates().size() > 1)
             prefix += "_att" + std::to_string(i + 1);
@@ -185,7 +185,7 @@ public:
         rnn.push_back(rnn::cell(graph)("prefix", prefix_));
       }
 
-      for(int i = 0; i < decoderLayers - 1; ++i)
+      for(size_t i = 0; i < decoderLayers - 1; ++i)
         rnn.push_back(rnn::cell(graph)  //
                       ("prefix", prefix_ + "_l" + std::to_string(i)));
 
@@ -209,7 +209,7 @@ public:
     Expr logits;
     if(type == "hard-soft-att") {
       std::vector<Expr> alignedContexts;
-      for(int k = 0; k < state->getEncoderStates().size(); ++k) {
+      for(size_t k = 0; k < state->getEncoderStates().size(); ++k) {
         // retrieve all the aligned contexts computed by the attention mechanism
         auto att = rnn_->at(0)
                        ->as<rnn::StackedCell>()
@@ -279,7 +279,7 @@ public:
 
     auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
 
-    int dimSrcWords = state->getEncoderStates()[0]->getContext()->shape()[-3];
+    size_t dimSrcWords = state->getEncoderStates()[0]->getContext()->shape()[-3];
 
     if(embIdx.empty()) {
       stateHardAtt->setAttentionIndices({0});

@@ -92,7 +92,7 @@ public:
       observer->actAfterBatches(*this);
   }
 
-  void newStalled(int num) {
+  void newStalled(size_t num) {
     stalled = num;
     if(num > maxStalled)
       ++maxStalled;

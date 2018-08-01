@@ -221,7 +221,7 @@ public:
         = stackables_[0]->as<Cell>()->applyState(mappedInputs, state, mask);
     ;
 
-    for(int i = 1; i < stackables_.size(); ++i) {
+    for(size_t i = 1; i < stackables_.size(); ++i) {
       if(stackables_[i]->is<Cell>()) {
         auto hiddenNext
             = stackables_[i]->as<Cell>()->apply(lastInputs_, hidden, mask);

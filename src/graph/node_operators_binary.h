@@ -687,14 +687,14 @@ struct ConcatenateNodeOp : public NaryNodeOp {
 
   void forward() {
     std::vector<Tensor> concatenees;
-    for(int i = 0; i < children_.size(); ++i)
+    for(size_t i = 0; i < children_.size(); ++i)
       concatenees.push_back(child(i)->val());
     Concatenate(val_, concatenees, ax_);
   }
 
   void backward() {
     std::vector<Tensor> deconcatenees;
-    for(int i = 0; i < children_.size(); ++i) {
+    for(size_t i = 0; i < children_.size(); ++i) {
       auto childPtr = child(i);
       childPtr
           ->set_zero_adjoint();  // @TODO: this is a hotfix, do this properly

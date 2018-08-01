@@ -18,7 +18,7 @@ private:
 public:
   size_t getBatchSize(const std::vector<size_t>& lengths) {
     auto it = map_.lower_bound(lengths);
-    for(int i = 0; i < lengths.size(); ++i)
+    for(size_t i = 0; i < lengths.size(); ++i)
       while(it != map_.end() && it->first[i] < lengths[i])
         it++;
 
@@ -28,7 +28,7 @@ public:
 
   void add(Ptr<data::CorpusBatch> batch, size_t multiplier = 1) {
     std::vector<size_t> lengths;
-    for(int i = 0; i < batch->sets(); ++i)
+    for(size_t i = 0; i < batch->sets(); ++i)
       lengths.push_back((*batch)[i]->batchWidth());
     size_t batchSize = batch->size() * multiplier;
 

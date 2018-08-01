@@ -119,12 +119,11 @@ private:
   Ptr<Parameters> params_;
   Ptr<Tensors> tensors_;
 
-  Ptr<Backend> backend_;
-
   std::unordered_map<size_t, std::vector<Expr>> memoized_;
 
   bool inferenceOnly_{false};
   bool optimized_{false};
+  Ptr<Backend> backend_;
 
   bool reloaded_{false};
   std::string namespace_;
@@ -439,7 +438,7 @@ public:
         shape.set(1, it.second->shape[0]);
       } else {
         shape.resize(it.second->shape.size());
-        for(int i = 0; i < it.second->shape.size(); ++i)
+        for(size_t i = 0; i < it.second->shape.size(); ++i)
           shape.set(i, it.second->shape[i]);
       }
 

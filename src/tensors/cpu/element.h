@@ -34,7 +34,7 @@ struct E {
       // increase index for current dimension by stride or 0 if broadcasting.
       // bstride(i) is look-up value, either equal to stride if the
       // corresponding dim is larger 1 or 0 if the dim is 1.
-      for(int k = 0; k < K; ++k)
+      for(size_t k = 0; k < K; ++k)
         indices[k] += tensors[k].shape().bstride(I);
     }
   }

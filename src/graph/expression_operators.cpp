@@ -181,7 +181,7 @@ Expr atleast_nd(Expr a, size_t dims) {
 
   Shape nShape;
   nShape.resize(dims);
-  for(int i = 1; i <= a->shape().size(); ++i)
+  for(int i = 1; i <= (int)a->shape().size(); ++i)
     nShape.set(-i, a->shape()[-i]);
 
   return reshape(a, nShape);
@@ -267,7 +267,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
 
       // lower precicion for shapes, reduces data sparsity
       auto sh = [](Shape sh) {
-        for(int i = 0; i < sh.size(); ++i)
+        for(size_t i = 0; i < sh.size(); ++i)
           sh.set(i, sh[i] / 4);
         return sh;
       };
@@ -353,7 +353,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
 // swap the last two axes
 Expr transpose(Expr a) {
   std::vector<int> axes(a->shape().size());
-  for(int i = 0; i < axes.size(); ++i) {
+  for(size_t i = 0; i < axes.size(); ++i) {
     axes[i] = i;
   }
   if(axes.size() > 1) {

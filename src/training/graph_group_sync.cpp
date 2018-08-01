@@ -101,10 +101,10 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
   std::vector<std::vector<Ptr<data::Batch>>> delayedBatches;
 
-  for(int i = 0; i < delay_; ++i) {
+  for(size_t i = 0; i < delay_; ++i) {
     if(i * devs < batches.size()) {
       delayedBatches.emplace_back();
-      for(int j = 0; j < devs; ++j) {
+      for(size_t j = 0; j < devs; ++j) {
         size_t index = i * devs + j;
         if(index < batches.size())
           delayedBatches.back().push_back(batches[i * devs + j]);
@@ -249,8 +249,8 @@ void SyncGraphGroup::save(bool final) {
 }
 
 void SyncGraphGroup::save(Ptr<ExpressionGraph> graph, bool final) {
-  int idx = 0;
-  for(int i = 0; i < graphs_.size(); ++i) {
+  size_t idx = 0;
+  for(size_t i = 0; i < graphs_.size(); ++i) {
     if(graph == graphs_[i]) {
       idx = i;
       break;

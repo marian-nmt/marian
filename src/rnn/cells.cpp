@@ -14,7 +14,7 @@ struct GRUFastNodeOp : public NaryNodeOp {
 
   NodeOps forwardOps() {
     std::vector<Tensor> inputs;
-    for(int i = 0; i < children_.size(); ++i)
+    for(size_t i = 0; i < children_.size(); ++i)
       inputs.push_back(child(i)->val());
 
     return {NodeOp(GRUFastForward(val_, inputs, final_))};
@@ -56,7 +56,7 @@ struct LSTMCellNodeOp : public NaryNodeOp {
 
   NodeOps forwardOps() {
     std::vector<Tensor> inputs;
-    for(int i = 0; i < children_.size(); ++i)
+    for(size_t i = 0; i < children_.size(); ++i)
       inputs.push_back(child(i)->val());
 
     return {NodeOp(LSTMCellForward(val_, inputs))};
@@ -92,7 +92,7 @@ struct LSTMOutputNodeOp : public NaryNodeOp {
 
   NodeOps forwardOps() {
     std::vector<Tensor> inputs;
-    for(int i = 0; i < children_.size(); ++i)
+    for(size_t i = 0; i < children_.size(); ++i)
       inputs.push_back(child(i)->val());
 
     return {NodeOp(LSTMOutputForward(val_, inputs))};

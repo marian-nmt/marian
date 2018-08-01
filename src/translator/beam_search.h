@@ -46,7 +46,7 @@ public:
       // Use alignments from the first scorer, even if ensemble
       alignments = scorers_[0]->getAlignment();
 
-    for(int i = 0; i < keys.size(); ++i) {
+    for(size_t i = 0; i < keys.size(); ++i) {
       // Keys contains indices to vocab items in the entire beam.
       // Values can be between 0 and beamSize * vocabSize.
       int embIdx = keys[i] % vocabSize;
@@ -72,7 +72,7 @@ public:
           hypIdxTrans = hypIdx;
 
         int beamHypIdx = hypIdx % beamSize;
-        if(beamHypIdx >= beam.size())
+        if(beamHypIdx >= (int)beam.size())
           beamHypIdx = beamHypIdx % beam.size();
 
         if(first)
@@ -84,7 +84,7 @@ public:
         if(options_->get<bool>("n-best")) {
           std::vector<float> breakDown(states.size(), 0);
           beam[beamHypIdx]->GetCostBreakdown().resize(states.size(), 0);
-          for(int j = 0; j < states.size(); ++j) {
+          for(size_t j = 0; j < states.size(); ++j) {
             int key = embIdx + hypIdxTrans * vocabSize;
             breakDown[j] = states[j]->breakDown(key)
                            + beam[beamHypIdx]->GetCostBreakdown()[j];
@@ -213,8 +213,8 @@ public:
 
         int dimBatch = batch->size();
 
-        for(int i = 0; i < localBeamSize; ++i) {
-          for(int j = 0; j < beams.size(); ++j) {
+        for(size_t i = 0; i < localBeamSize; ++i) {
+          for(size_t j = 0; j < beams.size(); ++j) {
             auto& beam = beams[j];
             if(i < beam.size()) {
               auto hyp = beam[i];
@@ -238,7 +238,7 @@ public:
       auto totalCosts = prevCosts;
       // BUGBUG: it's not cost but score (higher=better)
 
-      for(int i = 0; i < scorers_.size(); ++i) {
+      for(size_t i = 0; i < scorers_.size(); ++i) {
         states[i] = scorers_[i]->step(
             graph, states[i], hypIndices, embIndices, dimBatch, localBeamSize);
 

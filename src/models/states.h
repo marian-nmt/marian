@@ -28,15 +28,14 @@ public:
 
 class DecoderState {
 protected:
+  rnn::States states_;
+  Expr probs_;
   std::vector<Ptr<EncoderState>> encStates_;
+  Ptr<data::CorpusBatch> batch_;
 
   Expr targetEmbeddings_;
   Expr targetMask_;
   Expr targetIndices_;
-
-  Expr probs_;
-  rnn::States states_;
-  Ptr<data::CorpusBatch> batch_;
 
   // Keep track of current target token position during translation
   size_t position_{0};

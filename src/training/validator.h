@@ -58,7 +58,7 @@ public:
   Validator(std::vector<Ptr<Vocab>> vocabs,
             Ptr<Config> options,
             bool lowerIsBetter = true)
-      : ValidatorBase(lowerIsBetter), options_(options), vocabs_(vocabs) {}
+      : ValidatorBase(lowerIsBetter), vocabs_(vocabs), options_(options) {}
 
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) {
     using namespace data;
@@ -508,7 +508,7 @@ protected:
     size_t width = subBatch->batchWidth();
 
     Words ref;  // fill ref
-    for(int i = 0; i < width; ++i) {
+    for(size_t i = 0; i < width; ++i) {
       Word w = subBatch->data()[i * size + no];
       if(w == eos)
         break;

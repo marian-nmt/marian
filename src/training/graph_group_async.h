@@ -132,8 +132,8 @@ public:
   }
 
   void save(Ptr<ExpressionGraph> graph, bool final = false) {
-    int idx = 0;
-    for(int i = 0; i < graphs_.size(); ++i) {
+    size_t idx = 0;
+    for(size_t i = 0; i < graphs_.size(); ++i) {
       if(graph == graphs_[i]) {
         idx = i;
         break;

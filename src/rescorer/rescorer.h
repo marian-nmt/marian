@@ -68,7 +68,7 @@ public:
 
     models_.resize(graphs_.size());
     ThreadPool pool(graphs_.size(), graphs_.size());
-    for(int i = 0; i < graphs_.size(); ++i) {
+    for(size_t i = 0; i < graphs_.size(); ++i) {
       pool.enqueue(
           [=](int j) {
             models_[j] = New<Model>(temp);

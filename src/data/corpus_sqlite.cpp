@@ -59,7 +59,7 @@ void CorpusSQLite::fillSQLite() {
   if(fill) {
     std::string createStr = "create table lines (_id integer";
     std::string insertStr = "insert into lines values (?";
-    for(int i = 0; i < files_.size(); ++i) {
+    for(size_t i = 0; i < files_.size(); ++i) {
       createStr += ", line" + std::to_string(i) + " text";
       insertStr += ", ?";
     }
@@ -79,7 +79,7 @@ void CorpusSQLite::fillSQLite() {
       ps.bind(1, (int)lines);
 
       std::string line;
-      for(int i = 0; i < files_.size(); ++i) {
+      for(size_t i = 0; i < files_.size(); ++i) {
         cont = cont && GetLine((std::istream&)*files_[i], line);
         if(cont)
           ps.bind(i + 2, line);

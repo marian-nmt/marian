@@ -107,12 +107,13 @@ class SubBatch {
 private:
   std::vector<Word> indices_;
   std::vector<float> mask_;
-  Ptr<Vocab> vocab_;
-  // ... TODO: add the length information (remember it)
 
   size_t size_;
   size_t width_;
   size_t words_;
+
+  Ptr<Vocab> vocab_;
+  // ... TODO: add the length information (remember it)
 
 public:
   /**
@@ -178,15 +179,15 @@ public:
     size_t subSize = std::ceil(size_ / (float)n);
 
     size_t restSize = size_;
-    int pos = 0;
-    for(int k = 0; k < n; ++k) {
+    size_t pos = 0;
+    for(size_t k = 0; k < n; ++k) {
       size_t __size__ = std::min(subSize, restSize);
       if(__size__ > 0) {
         auto sb = New<SubBatch>(__size__, width_, vocab_);
 
         size_t __words__ = 0;
-        for(int j = 0; j < width_; ++j) {
-          for(int i = 0; i < __size__; ++i) {
+        for(size_t j = 0; j < width_; ++j) {
+          for(size_t i = 0; i < __size__; ++i) {
             sb->data()[j * __size__ + i] = indices_[j * size_ + pos + i];
             sb->mask()[j * __size__ + i] = mask_[j * size_ + pos + i];
 
@@ -367,7 +368,7 @@ public:
     size_t pos = 0;
     for(auto split : splits) {
       std::vector<size_t> ids;
-      for(int i = pos; i < pos + split->size(); ++i)
+      for(size_t i = pos; i < pos + split->size(); ++i)
         ids.push_back(sentenceIds_[i]);
       split->setSentenceIds(ids);
       pos += split->size();
@@ -394,8 +395,8 @@ public:
         // this needs to be split along the batch dimension
         // which is here the innermost dimension.
         // Should work for sentence-based weights, too.
-        for(int j = 0; j < width; ++j) {
-          for(int i = 0; i < split->size(); ++i) {
+        for(size_t j = 0; j < width; ++j) {
+          for(size_t i = 0; i < split->size(); ++i) {
             ws[j * split->size() + i] = dataWeights_[j * oldSize + i + pos];
           }
         }

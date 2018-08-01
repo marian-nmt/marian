@@ -49,16 +49,11 @@ public:
 
     auto state = encdec->stepAll(graph, corpusBatch, clearGraph);
 
-    float ls = inference_ ? 0.f : options_->get<float>("label-smoothing");
-
     Expr weights;
-    Expr cost;
-    bool sentenceWeighting = false;
-
-    if(toBeWeighted_) {
+    if(toBeWeighted_)
       weights = weighter_->getWeights(graph, corpusBatch);
-    }
 
+    Expr cost;
     cost = loss_->getCost(state->getProbs(),
                           state->getTargetIndices(),
                           state->getTargetMask(),

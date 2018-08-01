@@ -34,10 +34,9 @@ private:
 
 class TextInput : public DatasetBase<SentenceTuple, TextIterator, CorpusBatch> {
 private:
-  Ptr<Config> options_;
-
   std::vector<UPtr<std::istringstream>> files_;
   std::vector<Ptr<Vocab>> vocabs_;
+  Ptr<Config> options_;
 
   size_t pos_{0};
 
@@ -57,7 +56,7 @@ public:
   // TODO: There are half dozen functions called toBatch(), which are very
   // similar. Factor them.
   batch_ptr toBatch(const std::vector<sample>& batchVector) {
-    int batchSize = batchVector.size();
+    size_t batchSize = batchVector.size();
 
     std::vector<size_t> sentenceIds;
 
@@ -73,14 +72,14 @@ public:
     }
 
     std::vector<Ptr<SubBatch>> subBatches;
-    for(int j = 0; j < maxDims.size(); ++j) {
+    for(size_t j = 0; j < maxDims.size(); ++j) {
       subBatches.emplace_back(New<SubBatch>(batchSize, maxDims[j], vocabs_[j]));
     }
 
     std::vector<size_t> words(maxDims.size(), 0);
-    for(int i = 0; i < batchSize; ++i) {
-      for(int j = 0; j < maxDims.size(); ++j) {
-        for(int k = 0; k < batchVector[i][j].size(); ++k) {
+    for(size_t i = 0; i < batchSize; ++i) {
+      for(size_t j = 0; j < maxDims.size(); ++j) {
+        for(size_t k = 0; k < batchVector[i][j].size(); ++k) {
           subBatches[j]->data()[k * batchSize + i] = batchVector[i][j][k];
           subBatches[j]->mask()[k * batchSize + i] = 1.f;
           words[j]++;

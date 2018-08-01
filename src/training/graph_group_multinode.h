@@ -382,7 +382,9 @@ protected:
    * number of GPUs on the other nodes.
    */
   void loadDeviceConfig(std::vector<size_t> deviceConfig) {
-    size_t index = 0, node = 0, nClientsSeen = 0;
+    size_t index = 0;
+    int node = 0;
+    int nClientsSeen = 0;
     numberClientsOfNodes_ = std::vector<int>(mpi_comm_world_size_, 0);
     while(index < deviceConfig.size()) {
       if(numberClientsOfNodes_[node] == 0) {
@@ -407,9 +409,8 @@ public:
    */
   MultiNodeGraphGroup(Ptr<Config> options)
       : GraphGroup(options),
-        tau_{options_->get<size_t>("optimizer-delay")},
-        //        useLocalOpt_{options_->get<bool>("multi-node-local-optimizers")},
-        clientCommOverlap{options_->get<bool>("multi-node-overlap")} {
+        clientCommOverlap{options_->get<bool>("multi-node-overlap")},
+        tau_{options_->get<size_t>("optimizer-delay")} {
     // Set up devices for this node
     setupMPI();  // Setup MPI before creating device vectors
     std::vector<size_t> devices;
@@ -448,8 +449,8 @@ public:
    */
   void update(Ptr<data::Batch> batch) {
     ABORT_IF(finalized_, "Training has already finished.");
-    if(batchIter_ % mpi_comm_world_size_
-       == mpi_my_rank_) {  // Only take batch assigned to this node
+    // Only take batch assigned to this node
+    if(batchIter_ % mpi_comm_world_size_ == (size_t)mpi_my_rank_) {
       execute(batch);
     }
     batchIter_++;
@@ -489,8 +490,8 @@ public:
    * Save model of given graph to disk.
    */
   void save(Ptr<ExpressionGraph> graph, bool final = false) {
-    int idx = 0;
-    for(int i = 0; i < clientGraphs_.size(); ++i) {
+    size_t idx = 0;
+    for(size_t i = 0; i < clientGraphs_.size(); ++i) {
       if(graph == clientGraphs_[i]) {
         idx = i;
         break;

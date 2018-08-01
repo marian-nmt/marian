@@ -227,7 +227,7 @@ struct TanhNodeOp : public NaryNodeOp {
                          child(0)->val(),
                          child(1)->val(),
                          child(2)->val());
-                 for(int i = 3; i < children_.size(); ++i)
+                 for(size_t i = 3; i < children_.size(); ++i)
                      Element(_1 = _1 + _2, val_, child(i)->val());
                  Element(_1 = tanh(_1), val_);)
         };
@@ -237,7 +237,7 @@ struct TanhNodeOp : public NaryNodeOp {
   NodeOps backwardOps() {
     using namespace functional;
     NodeOps ops;
-    for(int i = 0; i < children_.size(); i++) {
+    for(size_t i = 0; i < children_.size(); i++) {
       ops.push_back(
           NodeOp(Add(_1 * (1.0f - (_2 * _2)), child(i)->grad(), adj_, val_)));
     }
@@ -828,7 +828,7 @@ struct TransposeNodeOp : public UnaryNodeOp {
     ABORT_IF(shape.size() != axes.size(),
              "Shape and transpose axes have different number of dimensions");
 
-    for(int i = 0; i < shape.size(); ++i)
+    for(size_t i = 0; i < shape.size(); ++i)
       shape.set(i, a->shape()[axes[i]]);
 
     return shape;

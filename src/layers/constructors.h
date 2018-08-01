@@ -117,7 +117,7 @@ public:
     else
       output = layers_[0]->apply(av);
 
-    for(int i = 1; i < layers_.size(); ++i)
+    for(size_t i = 1; i < layers_.size(); ++i)
       output = layers_[i]->apply(output);
 
     return output;

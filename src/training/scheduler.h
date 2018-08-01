@@ -52,17 +52,17 @@ public:
 
   bool keepGoing() {
     // stop if it reached the maximum number of epochs
-    int stopAfterEpochs = options_->get<size_t>("after-epochs");
+    size_t stopAfterEpochs = options_->get<size_t>("after-epochs");
     if(stopAfterEpochs > 0 && state_->epochs > stopAfterEpochs)
       return false;
 
     // stop if it reached the maximum number of batch updates
-    int stopAfterBatches = options_->get<size_t>("after-batches");
+    size_t stopAfterBatches = options_->get<size_t>("after-batches");
     if(stopAfterBatches > 0 && state_->batches >= stopAfterBatches)
       return false;
 
     // stop if the first validator did not improve for a given number of checks
-    int stopAfterStalled = options_->get<size_t>("early-stopping");
+    size_t stopAfterStalled = options_->get<size_t>("early-stopping");
     if(stopAfterStalled > 0 && !validators_.empty()
        && stalled() >= stopAfterStalled)
       return false;
@@ -313,20 +313,20 @@ public:
 
       if(strategy == "epoch" || strategy == "epoch+batches"
          || strategy == "epoch+stalled") {
-        int startEpoch
+        size_t startEpoch
             = options_->get<std::vector<size_t>>("lr-decay-start").front();
         if(startEpoch && state.epochs >= startEpoch)
           decay = true;
       }
 
       if(strategy == "epoch+batches") {
-        int startBatches
+        size_t startBatches
             = options_->get<std::vector<size_t>>("lr-decay-start")[1];
         if(startBatches && state.batches >= startBatches)
           decay = true;
       }
       if(strategy == "epoch+stalled") {
-        int startStalled
+        size_t startStalled
             = options_->get<std::vector<size_t>>("lr-decay-start")[1];
         if(startStalled && state.maxStalled >= startStalled)
           decay = true;
@@ -361,7 +361,7 @@ public:
 
     if(factor > 0.0) {
       if("batches" == options_->get<std::string>("lr-decay-strategy")) {
-        int start
+        size_t start
             = options_->get<std::vector<size_t>>("lr-decay-start").front();
         int freq = options_->get<size_t>("lr-decay-freq");
 

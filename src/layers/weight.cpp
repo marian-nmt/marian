@@ -5,6 +5,7 @@ namespace marian {
 Ptr<WeightingBase> WeightingFactory(Ptr<Options> options) {
   if(options->has("data-weighting"))
     return New<DataWeighting>(options->get<std::string>("data-weighting-type"));
+  return nullptr;
 }
 
 Expr DataWeighting::getWeights(Ptr<ExpressionGraph> graph,

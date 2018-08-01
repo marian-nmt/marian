@@ -699,7 +699,7 @@ public:
 
       int dimSrcWords = encoderContext->shape()[-2];
 
-      int dims = encoderMask->shape().size();
+      //int dims = encoderMask->shape().size();
       encoderMask = atleast_nd(encoderMask, 4);
       encoderMask = reshape(transposeTimeBatch(encoderMask),
                             {1, dimBatch, 1, dimSrcWords});
@@ -748,7 +748,7 @@ public:
       // Iterate over multiple encoders and simply stack the attention blocks
       if(encoderContexts.size() > 0) {
         // multiple encoders are applied one after another
-        for(int j = 0; j < encoderContexts.size(); ++j) {
+        for(size_t j = 0; j < encoderContexts.size(); ++j) {
           std::string prefix = prefix_ + "_l" + std::to_string(i) + "_context";
           if(j > 0)
             prefix += "_enc" + std::to_string(j + 1);
@@ -775,7 +775,7 @@ public:
     // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
     Expr logits = output_->apply(decoderContext);
 
-    int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
+    //int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
     // return unormalized(!) probabilities
     auto nextState = New<TransformerState>(

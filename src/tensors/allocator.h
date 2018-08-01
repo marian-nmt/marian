@@ -84,6 +84,7 @@ private:
   size_t available_{0};
   size_t step_{128 * 1024 * 1024};
   size_t alignment_{256};
+
   bool throw_{false};
 
   std::set<Gap> gaps_;
@@ -161,8 +162,8 @@ public:
             size_t step,
             size_t alignment = 256)
       : device_(DispatchDevice(deviceId, alignment)),
-        step_(step),
         available_(0),
+        step_(step),
         alignment_(alignment) {
     reserve(bytes);
   }

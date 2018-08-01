@@ -200,7 +200,7 @@ private:
 
     // setting up conditional (transitional) cell
     auto baseCell = rnn::stacked_cell(graph);
-    for(int i = 1; i <= decoderBaseDepth; ++i) {
+    for(size_t i = 1; i <= decoderBaseDepth; ++i) {
       bool transition = (i > 2);
       auto paramPrefix = prefix_ + "_cell" + std::to_string(i);
       baseCell.push_back(rnn::cell(graph)         //
@@ -208,7 +208,7 @@ private:
                          ("final", i > 1)         //
                          ("transition", transition));
       if(i == 1) {
-        for(int k = 0; k < state->getEncoderStates().size(); ++k) {
+        for(size_t k = 0; k < state->getEncoderStates().size(); ++k) {
           auto attPrefix = prefix_;
           if(state->getEncoderStates().size() > 1)
             attPrefix += "_att" + std::to_string(k + 1);
@@ -224,11 +224,11 @@ private:
     rnn.push_back(baseCell);
 
     // Add more cells to RNN (stacked RNN)
-    for(int i = 2; i <= decoderLayers; ++i) {
+    for(size_t i = 2; i <= decoderLayers; ++i) {
       // deep transition
       auto highCell = rnn::stacked_cell(graph);
 
-      for(int j = 1; j <= decoderHighDepth; j++) {
+      for(size_t j = 1; j <= decoderHighDepth; j++) {
         auto paramPrefix
             = prefix_ + "_l" + std::to_string(i) + "_cell" + std::to_string(j);
         highCell.push_back(rnn::cell(graph)("prefix", paramPrefix));
@@ -309,7 +309,7 @@ public:
     rnn::States decoderStates = rnn_->lastCellStates();
 
     std::vector<Expr> alignedContexts;
-    for(int k = 0; k < state->getEncoderStates().size(); ++k) {
+    for(size_t k = 0; k < state->getEncoderStates().size(); ++k) {
       // retrieve all the aligned contexts computed by the attention mechanism
       auto att = rnn_->at(0)
                      ->as<rnn::StackedCell>()
