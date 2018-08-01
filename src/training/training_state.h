@@ -65,7 +65,7 @@ public:
   // Set flag if training was resumed
   bool loaded{false};
 
-  // @TODO: romang, is this doing anything?
+  // Set flag if the model was validated in the current batch
   bool validated{false};
 
   TrainingState(float learnRate) : eta(learnRate) {}

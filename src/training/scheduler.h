@@ -103,6 +103,8 @@ public:
 
   void validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
                 bool final = false) {
+    // Do not validate if already validated (for instance, after the model is
+    // loaded) or if validation is scheduled for another update
     if(state_->validated
        || (state_->batches % options_->get<size_t>("valid-freq") != 0
            && !final))
