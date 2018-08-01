@@ -191,6 +191,10 @@ bool ConfigParser::has(const std::string& key) const {
 void ConfigParser::validateOptions() const {
   if(mode_ == ConfigMode::translating) {
     UTIL_THROW_IF2(
+        !has("models") && !has("config"),
+        "You need to provide at least one model file or a config file");
+
+    UTIL_THROW_IF2(
         !has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
         "Translating, but vocabularies are not given!");
 
@@ -841,20 +845,6 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
     std::cerr << cmdline_options_ << std::endl;
     exit(0);
-  }
-
-  // @TODO: move to validateOptions()
-  if(mode_ == ConfigMode::translating) {
-    if(vm_.count("models") == 0 && vm_.count("config") == 0) {
-      std::cerr << "Error: you need to provide at least one model file or a "
-                   "config file"
-                << std::endl
-                << std::endl;
-
-      std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
-      std::cerr << cmdline_options_ << std::endl;
-      exit(0);
-    }
   }
 
   if(vm_["version"].as<bool>()) {
