@@ -5,3 +5,5 @@
 [submodule "examples"]
 	path = examples
 	url = https://github.com/marian-nmt/marian-examples
+	branch = master
+
