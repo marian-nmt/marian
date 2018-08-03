@@ -1,4 +1,6 @@
 
+<p align="center"><img src="menu.png" alt="maarian-nmt" height="200px"></p>
+
 # Marian
 
 [![CUDABuild Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=amunmt_compilation_cuda)](http://vali.inf.ed.ac.uk/jenkins/job/amunmt_compilation_cuda/)
