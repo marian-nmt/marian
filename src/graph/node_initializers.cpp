@@ -154,6 +154,17 @@ NodeInitializer from_word2vec(const std::string& file,
     t->set(embs);
   };
 }
+
+NodeInitializer from_mmap(const void* ptr) {
+  return
+      [ptr](Tensor t) { 
+        // @TODO: implement other types, for now croak loudly.
+        ABORT_IF(!matchType<float>(t->type()), "Tensor type and type for mapping do not match");
+        auto mp = New<MemoryPiece>((uint8_t*)ptr, t->size() * sizeof(float));
+        t->reset(mp);
+      };
+}
+
 }  // namespace inits
 
 }  // namespace marian

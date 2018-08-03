@@ -65,6 +65,9 @@ public:
 
         scorers_[id] = scorers;
         graph->forward();
+
+        // if(id == 0)
+        //   graph->saveBinary("model.npz.bin");
       };
 
       threadPool.enqueue(task, device, id++);

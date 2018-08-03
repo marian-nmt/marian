@@ -7,6 +7,7 @@
 
 #include "tensors/backend.h"
 #include "tensors/tensor_allocator.h"
+#include "tensors/binarizer.h"
 
 #include "graph/chainable.h"
 #include "graph/node_initializers.h"
@@ -15,9 +16,9 @@
 
 #include "3rd_party/cnpy/cnpy.h"
 
-#include <fstream>
 #include <map>
 #include <unordered_set>
+
 
 namespace marian {
 
@@ -420,6 +421,14 @@ public:
   void load(const std::string& name, bool markReloaded) {
     using namespace keywords;
 
+    // @TODO: ugly ugly hack
+    auto mapName = name + ".bin";
+    if(boost::filesystem::exists(mapName)) {
+      LOG(info, "Found mappable model at {}", mapName);
+      loadMmap(mapName, markReloaded);
+      return;
+    }
+
     LOG(info, "Loading model from {}", name);
     setReloaded(false);
 
@@ -476,6 +485,55 @@ public:
     cnpy::npz_save(name, npzItems);
     LOG(info, "Saved {} items.", npzItems.size());
   }
+
+  void saveBinary(const std::string& name) {
+    LOG(info, "Saving mapable model to {}", name);
+
+    Binarizer binary(name);
+    // binarize header information about parameters first
+    for(auto p : params()->getMap()) {
+      std::string pName = p.first;
+      if(!namespace_.empty()) {
+        if(pName.substr(0, namespace_.size() + 2) == namespace_ + "::")
+          pName = pName.substr(namespace_.size() + 2);
+      }
+      binary.add(pName, p.second->val());
+    }
+    binary.save();
+
+    LOG(info, "Saved {} items.", params()->getMap().size());
+  }
+
+  char* buf_;
+  void loadMmap(const std::string& name, bool markReloaded) {
+
+    size_t fsize = boost::filesystem::file_size(name);
+    buf_ = new char[fsize];
+    InputFileStream in(name);
+    ((std::istream&)in).read(buf_, fsize);
+
+    map(buf_, markReloaded);
+  }
+
+  void map(const void* ptr, bool markReloaded) {
+    using namespace keywords;
+
+    LOG(info, "Mapping model at address {}", ptr);
+
+    params_ = New<MappedParameters>();
+    params_->init(backend_);
+
+    setReloaded(false);
+
+    Binary binary(ptr);
+    for(const auto& item : binary) {
+      param(item.name, item.shape, inits::from_mmap(item.data));
+    }
+
+    if(markReloaded)
+      setReloaded(true);
+  }
+
 };
 
 template <class T, typename... Args>
