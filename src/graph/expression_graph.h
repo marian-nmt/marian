@@ -418,7 +418,7 @@ public:
 
   void setThrowNaN(bool throwNaN) { throwNaN_ = throwNaN; }
 
-  void load(const std::string& name, bool markReloaded) {
+  void load(const std::string& name, bool markReloaded = true) {
     using namespace keywords;
 
     // @TODO: ugly ugly hack
@@ -515,7 +515,7 @@ public:
     map(buf_, markReloaded);
   }
 
-  void map(const void* ptr, bool markReloaded) {
+  void map(const void* ptr, bool markReloaded = true) {
     using namespace keywords;
 
     LOG(info, "Mapping model at address {}", ptr);
