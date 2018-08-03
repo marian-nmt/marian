@@ -422,12 +422,12 @@ public:
     using namespace keywords;
 
     // @TODO: ugly ugly hack
-    auto mapName = name + ".bin";
-    if(boost::filesystem::exists(mapName)) {
-      LOG(info, "Found mappable model at {}", mapName);
-      loadMmap(mapName, markReloaded);
-      return;
-    }
+    // auto mapName = name + ".bin";
+    // if(boost::filesystem::exists(mapName)) {
+    //   LOG(info, "Found mappable model at {}", mapName);
+    //   loadMmap(mapName, markReloaded);
+    //   return;
+    // }
 
     LOG(info, "Loading model from {}", name);
     setReloaded(false);
@@ -504,16 +504,16 @@ public:
     LOG(info, "Saved {} items.", params()->getMap().size());
   }
 
-  char* buf_;
-  void loadMmap(const std::string& name, bool markReloaded) {
+  // char* buf_;
+  // void loadMmap(const std::string& name, bool markReloaded) {
 
-    size_t fsize = boost::filesystem::file_size(name);
-    buf_ = new char[fsize];
-    InputFileStream in(name);
-    ((std::istream&)in).read(buf_, fsize);
+  //   size_t fsize = boost::filesystem::file_size(name);
+  //   buf_ = new char[fsize];
+  //   InputFileStream in(name);
+  //   ((std::istream&)in).read(buf_, fsize);
 
-    map(buf_, markReloaded);
-  }
+  //   map(buf_, markReloaded);
+  // }
 
   void map(const void* ptr, bool markReloaded = true) {
     using namespace keywords;
