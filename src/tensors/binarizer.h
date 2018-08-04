@@ -25,44 +25,34 @@ class Binary {
 private:
   std::vector<BinaryTensor> tensors_;
 
+  template <typename T>
+  const T* get(const void*& ptr, size_t num = 1) {
+    const T* obj = (const T*)ptr;
+    ptr = (const T*)ptr + num;
+    return obj;
+  }
+
 public:
   Binary(const void* ptr) {
-    const void* current = ptr;
-    size_t headerSize = *(const size_t*)current;
-  
-    tensors_.resize(headerSize);
+    size_t numHeaders = *get<size_t>(ptr);
+    const Header* headers = get<Header>(ptr, numHeaders);
 
-    current = (const size_t*)current + 1;
+    tensors_.resize(numHeaders);
+    for(int i = 0; i < numHeaders; ++i)
+      tensors_[i].name = get<char>(ptr, headers[i].nameLength);
 
-    const Header* beg = (const Header*)current;
-    const Header* end = (const Header*)current + headerSize;
-
-    current = end;
-    for(const Header* it = beg; it != end; it++) {
-      int i = std::distance(beg, it);
-      tensors_[i].name = (const char*)current;
-      current = (const char*)current + it->nameLength + 1;
+    for(int i = 0; i < numHeaders; ++i) {
+      size_t len = headers[i].shapeLength;
+      tensors_[i].shape.resize(len);
+      const int* arr = get<int>(ptr, len);
+      std::copy(arr, arr + len, tensors_[i].shape.begin());
     }
 
-    for(const Header* it = beg; it != end; it++) {
-      int i = std::distance(beg, it);
-      Shape shape;
-      tensors_[i].shape.resize(it->shapeLength);
-      std::copy((const int*)current,
-                (const int*)current + it->shapeLength,
-                tensors_[i].shape.begin());
-      current = (const int*)current + it->shapeLength;
-    }
-
-    size_t offset = *(size_t*)current;
-    current = (size_t*)current + 1;
-    current = (char*)current + offset;
-
-    for(const Header* it = beg; it != end; it++) {
-      int i = std::distance(beg, it);
-      tensors_[i].data = current;
-      current = (const char*)current + it->dataLength;
-    }
+    // move by offset bytes
+    get<char>(ptr, *get<size_t>(ptr));
+    
+    for(int i = 0; i < numHeaders; ++i)
+      tensors_[i].data = get<char>(ptr, headers[i].dataLength);
   }
 
   auto begin() -> decltype(tensors_.begin()) {
