@@ -381,7 +381,8 @@ void LogSoftmaxGrad(Tensor grad_, Tensor adj_, Tensor val_) {
 
 void CopyRows(Tensor out_,
               const Tensor in_,
-              const std::vector<size_t>& indices) {
+              const std::vector<size_t>& indices,
+              Ptr<Allocator> allocator) {
   size_t cols = in_->shape()[1];
   size_t rows = indices.size();
 
