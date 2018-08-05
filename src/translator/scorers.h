@@ -90,9 +90,9 @@ public:
   virtual void init(Ptr<ExpressionGraph> graph) {
     graph->switchParams(getName());
     if(ptr_)
-      encdec_->load(graph, fname_);
-    else
       encdec_->mmap(graph, ptr_);
+    else
+      encdec_->load(graph, fname_);
   }
 
   virtual void clear(Ptr<ExpressionGraph> graph) {
