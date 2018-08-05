@@ -1,5 +1,4 @@
 #include "common/config.h"
-#include "3rd_party/cnpy/cnpy.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
 
