@@ -7,7 +7,6 @@
 
 #include "tensors/backend.h"
 #include "tensors/tensor_allocator.h"
-#include "tensors/binarizer.h"
 
 #include "graph/chainable.h"
 #include "graph/node_initializers.h"
@@ -418,48 +417,47 @@ public:
 
   void setThrowNaN(bool throwNaN) { throwNaN_ = throwNaN; }
 
-  void load(const std::string& name, bool markReloaded = true) {
+  void load(const std::string& name,
+            const std::map<std::string, std::string>& nameMap,
+            bool markReloaded = true) {
     using namespace keywords;
-
-    // @TODO: ugly ugly hack
-    // auto mapName = name + ".bin";
-    // if(boost::filesystem::exists(mapName)) {
-    //   LOG(info, "Found mappable model at {}", mapName);
-    //   loadMmap(mapName, markReloaded);
-    //   return;
-    // }
 
     LOG(info, "Loading model from {}", name);
     setReloaded(false);
 
-    auto numpy = cnpy::npz_load(name);
+    auto ioItems = io::loadItems(name);
 
-    for(auto it : numpy) {
-      auto name = it.first;
-      // skip over special parameters starting with _
-      if(name.substr(0, 8) == "special:")
+    for(auto& item : ioItems) {
+      std::string pName = item.name;
+
+      // skip over special parameters starting with "special:"
+      if(pName.substr(0, 8) == "special:")
         continue;
 
-      Shape shape;
-      if(it.second->shape.size() == 1) {
-        shape.resize(2);
-        shape.set(0, 1);
-        shape.set(1, it.second->shape[0]);
-      } else {
-        shape.resize(it.second->shape.size());
-        for(size_t i = 0; i < it.second->shape.size(); ++i)
-          shape.set(i, it.second->shape[i]);
-      }
+      auto it = nameMap.find(pName);
+      if(it != nameMap.end())
+        pName = it->second;
 
-      param(name, shape, inits::from_numpy(it.second));
+      param(pName, item.shape, inits::from_item(item));
     }
 
     if(markReloaded)
       setReloaded(true);
   }
 
-  // convert all parameters into an array pf cnpy::NpzItem elements, for saving
-  void save(std::vector<cnpy::NpzItem>& npzItems) {
+  void load(const std::string& name,
+            bool markReloaded = true) {
+
+    std::map<std::string, std::string> emptyNameMap;
+    load(name, emptyNameMap, markReloaded);
+  }
+
+
+private:
+  // convert all parameters into an array of IoItem elements, for saving
+  void parametersToItems(std::vector<io::Item>& ioItems,
+                         const std::map<std::string, std::string>& nameMap) {
+
     for(auto p : params()->getMap()) {
       std::string pName = p.first;
 
@@ -468,71 +466,111 @@ public:
           pName = pName.substr(namespace_.size() + 2);
       }
 
-      std::vector<float> v;
-      p.second->val()->get(v);
+      auto it = nameMap.find(pName);
+      if(it != nameMap.end())
+        pName = it->second;
 
-      auto& pShape = p.second->shape();
-      std::vector<unsigned int> shape(pShape.begin(), pShape.end());
+      ABORT_IF(p.second->val()->type() != Type::float32,
+               "Only float32 supported at the moment");
 
-      npzItems.emplace_back(pName, v, shape);
+      io::Item item;
+      item.name = pName;
+      item.bytes.resize(p.second->val()->size() * sizeof(float));
+
+      // @TODO: solve this better with direct copy
+      std::vector<float> temp;
+      p.second->val()->get(temp);
+      std::copy((char*)temp.data(),
+                (char*)temp.data() + temp.size() * sizeof(float),
+                item.data());
+
+      item.shape = p.second->shape();
+
+      ioItems.emplace_back(std::move(item));
     }
+
+  }
+
+public:
+
+  void save(const std::string& name,
+            const std::string& meta,
+            const std::map<std::string, std::string>& nameMap) {
+    LOG(info, "Saving model to {}", name);
+
+    std::vector<io::Item> ioItems;
+    parametersToItems(ioItems, nameMap);
+    if(!meta.empty())
+      io::addMetaToItems(meta, "special:model.yml", ioItems);
+    io::saveItems(name, ioItems);
+
+    LOG(info, "Saved {} items.", ioItems.size());
   }
 
   void save(const std::string& name) {
-    LOG(info, "Saving model to {}", name);
-    std::vector<cnpy::NpzItem> npzItems;
-    save(npzItems);
-    cnpy::npz_save(name, npzItems);
-    LOG(info, "Saved {} items.", npzItems.size());
+    std::map<std::string, std::string> emptyNameMap;
+    save(name, "", emptyNameMap);
   }
 
-  void saveBinary(const std::string& name) {
-    LOG(info, "Saving mapable model to {}", name);
-
-    Binarizer binary(name);
-    // binarize header information about parameters first
-    for(auto p : params()->getMap()) {
-      std::string pName = p.first;
-      if(!namespace_.empty()) {
-        if(pName.substr(0, namespace_.size() + 2) == namespace_ + "::")
-          pName = pName.substr(namespace_.size() + 2);
-      }
-      binary.add(pName, p.second->val());
-    }
-    binary.save();
-
-    LOG(info, "Saved {} items.", params()->getMap().size());
+  void save(const std::string& name,
+            const std::string& meta) {
+    std::map<std::string, std::string> emptyNameMap;
+    save(name, meta, emptyNameMap);
   }
 
+  void save(const std::string& name,
+            const std::map<std::string, std::string>& nameMap) {
+    save(name, "", nameMap);
+  }
+
+
+  //void saveBinary(const std::string& name) {
+  //  LOG(info, "Saving mapable model to {}", name);
+  //
+  //  Binarizer binary(name);
+  //  // binarize header information about parameters first
+  //  for(auto p : params()->getMap()) {
+  //    std::string pName = p.first;
+  //    if(!namespace_.empty()) {
+  //      if(pName.substr(0, namespace_.size() + 2) == namespace_ + "::")
+  //        pName = pName.substr(namespace_.size() + 2);
+  //    }
+  //    binary.add(pName, p.second->val());
+  //  }
+  //  binary.save();
+  //
+  //  LOG(info, "Saved {} items.", params()->getMap().size());
+  //}
+  //
   // char* buf_;
   // void loadMmap(const std::string& name, bool markReloaded) {
-
+  //
   //   size_t fsize = boost::filesystem::file_size(name);
   //   buf_ = new char[fsize];
   //   InputFileStream in(name);
   //   ((std::istream&)in).read(buf_, fsize);
-
+  //
   //   map(buf_, markReloaded);
   // }
-
-  void map(const void* ptr, bool markReloaded = true) {
-    using namespace keywords;
-
-    LOG(info, "Mapping model at address {}", ptr);
-
-    params_ = New<MappedParameters>();
-    params_->init(backend_);
-
-    setReloaded(false);
-
-    Binary binary(ptr);
-    for(const auto& item : binary) {
-      param(item.name, item.shape, inits::from_mmap(item.data));
-    }
-
-    if(markReloaded)
-      setReloaded(true);
-  }
+  //
+  //void map(const void* ptr, bool markReloaded = true) {
+  //  using namespace keywords;
+  //
+  //  LOG(info, "Mapping model at address {}", ptr);
+  //
+  //  params_ = New<MappedParameters>();
+  //  params_->init(backend_);
+  //
+  //  setReloaded(false);
+  //
+  //  Binary binary(ptr);
+  //  for(const auto& item : binary) {
+  //    param(item.name, item.shape, inits::from_mmap(item.data));
+  //  }
+  //
+  //  if(markReloaded)
+  //    setReloaded(true);
+  //}
 
 };
 

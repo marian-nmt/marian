@@ -9,9 +9,9 @@
 #include <vector>
 
 #include "common/definitions.h"
+#include "common/types.h"
 #include "tensors/device.h"
 #include "tensors/memory_piece.h"
-#include "tensors/types.h"
 
 namespace marian {
 

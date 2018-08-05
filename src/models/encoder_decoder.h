@@ -71,7 +71,7 @@ protected:
   std::set<std::string> modelFeatures_;
 
   Config::YamlNode getModelParameters();
-  void saveModelParameters(const std::string& name);
+  std::string getModelParametersAsString();
 
   virtual void createDecoderConfig(const std::string& name);
 

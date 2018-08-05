@@ -1,21 +1,19 @@
 #pragma once
 
+#include "common/definitions.h"
+#include "common/shape.h"
+#include "common/types.h"
+#include "tensors/backend.h"
+#include "tensors/memory_piece.h"
+#ifdef CUDA_FOUND
+#include "tensors/gpu/algorithm.h"
+#endif
+
 #include <iomanip>
 #include <iostream>
 #include <memory>
 #include <sstream>
-
-#include "common/definitions.h"
-#include "common/shape.h"
-#include "tensors/backend.h"
-#include "tensors/memory_piece.h"
-#include "tensors/types.h"
-
 #include <algorithm>
-
-#ifdef CUDA_FOUND
-#include "tensors/gpu/algorithm.h"
-#endif
 
 namespace marian {
 

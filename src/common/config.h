@@ -5,6 +5,7 @@
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/config_parser.h"
 #include "common/file_stream.h"
+#include "common/io.h"
 #include "common/logging.h"
 #include "common/utils.h"
 #ifndef _WIN32  // TODO: why are these needed by a config parser? Can they be
@@ -128,17 +129,6 @@ public:
     out << outYaml.c_str();
     return out;
   }
-
-  static void AddYamlToNpz(const YAML::Node&,
-                           const std::string&,
-                           const std::string&);
-  static void AddYamlToNpzItems(const YAML::Node&,
-                                const std::string&,
-                                std::vector<cnpy::NpzItem>&);
-
-  static void GetYamlFromNpz(YAML::Node&,
-                             const std::string&,
-                             const std::string&);
 
 private:
   YAML::Node config_;

@@ -1,6 +1,7 @@
 #include "marian.h"
 
 #include <boost/program_options.hpp>
+#include <sstream>
 
 //#include "common/logging.h"
 
@@ -40,13 +41,20 @@ int main(int argc, char** argv) {
 
   LOG(info, "Outputting {}", vm["bin"].as<std::string>());
 
+  YAML::Node config;
+  std::stringstream configStr;
+  marian::io::getYamlFromModel(config, "special:model.yml", vm["model"].as<std::string>());
+  configStr << config;
+
   auto graph = New<ExpressionGraph>(true, false);
   graph->setDevice(CPU0);
 
   graph->load(vm["model"].as<std::string>());
   graph->forward();
-  graph->saveBinary(vm["bin"].as<std::string>());
-  
+  graph->save(vm["bin"].as<std::string>(), configStr.str());
+
+  //graph->saveBinary(vm["bin"].as<std::string>());
+
   LOG(info, "Finished");
 
   return 0;

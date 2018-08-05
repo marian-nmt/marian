@@ -64,7 +64,7 @@ void glorot_normal(Tensor t);
 NodeInitializer from_vector(const std::vector<float>& v);
 NodeInitializer from_vector(const std::vector<size_t>& v);
 
-NodeInitializer from_mmap(const void* ptr);
+NodeInitializer from_item(const io::Item& item);
 
 NodeInitializer from_sparse_vector(
     std::pair<std::vector<size_t>, std::vector<float>>& v);
