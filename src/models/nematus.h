@@ -30,20 +30,13 @@ public:
   void load(Ptr<ExpressionGraph> graph,
             const std::string& name,
             bool markedReloaded = true) {
-    using namespace keywords;
-
-    LOG(info, "Loading model from {}", name);
-
     graph->load(name, nameMap_);
   }
 
   void save(Ptr<ExpressionGraph> graph,
             const std::string& name,
             bool saveTranslatorConfig = false) {
-    LOG(info, "Saving model to {}", name);
-
     graph->save(name, getModelParametersAsString(), nameMap_);
-
     if(saveTranslatorConfig) {
       createAmunConfig(name);
       createDecoderConfig(name);

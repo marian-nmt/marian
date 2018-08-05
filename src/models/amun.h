@@ -40,8 +40,6 @@ public:
             bool markedReloaded = true) {
     using namespace keywords;
 
-    LOG(info, "Loading model from {}", name);
-
     std::map<std::string, std::string> nameMap
         = {{"decoder_U", "decoder_cell1_U"},
            {"decoder_Ux", "decoder_cell1_Ux"},
@@ -99,7 +97,6 @@ public:
   void save(Ptr<ExpressionGraph> graph,
             const std::string& name,
             bool saveTranslatorConfig = false) {
-    LOG(info, "Saving model to {}", name);
 
     std::map<std::string, std::string> nameMap
         = {{"decoder_cell1_U", "decoder_U"},
