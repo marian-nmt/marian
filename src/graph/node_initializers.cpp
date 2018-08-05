@@ -125,14 +125,14 @@ NodeInitializer from_sparse_vector(
   };
 }
 
-NodeInitializer from_numpy(const cnpy::NpyArrayPtr& np) {
-  return [np](Tensor t) {
-    size_t size = 1;
-    for(size_t dim : np->shape)
-      size *= dim;
-    t->set((float*)np->data(), (float*)np->data() + size);
-  };
-}
+//NodeInitializer from_numpy(const cnpy::NpyArrayPtr& np) {
+//  return [np](Tensor t) {
+//    size_t size = 1;
+//    for(size_t dim : np->shape)
+//      size *= dim;
+//    t->set((float*)np->data(), (float*)np->data() + size);
+//  };
+//}
 
 // move this somewhere else
 NodeInitializer from_word2vec(const std::string& file,

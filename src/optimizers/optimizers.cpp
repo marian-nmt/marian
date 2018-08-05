@@ -1,6 +1,7 @@
 #include "optimizers.h"
 
 #include "tensors/tensor_operators.h"
+#include "3rd_party/cnpy/cnpy.h"
 
 namespace marian {
 
@@ -47,6 +48,7 @@ void Adagrad::load(const std::string& name,
   std::vector<float> vGt;
   size_t totalSize = 0;
 
+  // @TODO: use new IO
   auto numpy = cnpy::npz_load(name);
   for(auto it : numpy) {
     auto name = it.first;
