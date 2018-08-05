@@ -12,41 +12,41 @@ namespace marian {
 
 namespace io {
 
-bool isNpz(const std::string& name) {
-  return name.size() >= 4 && name.substr(name.length() - 4) == ".npz";
+bool isNpz(const std::string& fileName) {
+  return fileName.size() >= 4 && fileName.substr(fileName.length() - 4) == ".npz";
 }
 
-bool isBin(const std::string& name) {
-  return name.size() >= 4 && name.substr(name.length() - 4) == ".bin";
+bool isBin(const std::string& fileName) {
+  return fileName.size() >= 4 && fileName.substr(fileName.length() - 4) == ".bin";
 }
 
 void getYamlFromNpz(YAML::Node& yaml,
                     const std::string& varName,
-                    const std::string& fName) {
-  auto item = cnpy::npz_load(fName, varName);
+                    const std::string& fileName) {
+  auto item = cnpy::npz_load(fileName, varName);
   if(item->size() > 0)
     yaml = YAML::Load(item->data());
 }
 
 void getYamlFromBin(YAML::Node& yaml,
                     const std::string& varName,
-                    const std::string& fName) {
-  auto item = binary::getItem(fName, varName);
+                    const std::string& fileName) {
+  auto item = binary::getItem(fileName, varName);
   if(item.size() > 0)
     yaml = YAML::Load(item.data());
 }
 
 void getYamlFromModel(YAML::Node& yaml,
                       const std::string& varName,
-                      const std::string& fName) {
-  if(io::isNpz(fName)) {
-    io::getYamlFromNpz(yaml, varName, fName);
+                      const std::string& fileName) {
+  if(io::isNpz(fileName)) {
+    io::getYamlFromNpz(yaml, varName, fileName);
   }
-  else if(io::isBin(fName)) {
-    io::getYamlFromBin(yaml, varName, fName);
+  else if(io::isBin(fileName)) {
+    io::getYamlFromBin(yaml, varName, fileName);
   }
   else {
-    ABORT("Unknown model file format for file {}", fName);
+    ABORT("Unknown model file format for file {}", fileName);
   }
 }
 
@@ -68,8 +68,8 @@ void addMetaToItems(const std::string& meta,
   items.push_back(item);
 }
 
-void loadItemsFromNpz(const std::string& fName, std::vector<Item>& items) {
-    auto numpy = cnpy::npz_load(fName);
+void loadItemsFromNpz(const std::string& fileName, std::vector<Item>& items) {
+    auto numpy = cnpy::npz_load(fileName);
     for(auto it : numpy) {
 
       Shape shape;
@@ -92,16 +92,16 @@ void loadItemsFromNpz(const std::string& fName, std::vector<Item>& items) {
     }
 }
 
-std::vector<Item> loadItems(const std::string& fName) {
+std::vector<Item> loadItems(const std::string& fileName) {
   std::vector<Item> items;
-  if(isNpz(fName)) {
-    loadItemsFromNpz(fName, items);
+  if(isNpz(fileName)) {
+    loadItemsFromNpz(fileName, items);
   }
-  else if(isBin(fName)) {
-    binary::loadItems(fName, items);
+  else if(isBin(fileName)) {
+    binary::loadItems(fileName, items);
   }
   else {
-    ABORT("Unknown model file format for file {}", fName);
+    ABORT("Unknown model file format for file {}", fileName);
   }
 
   return items;
@@ -121,7 +121,7 @@ std::vector<Item> mmapItems(const void* ptr) {
 
 // @TODO: make cnpy and our wrapper talk to each other in terms of types
 // or implement our own saving routines for npz based on npy, probably better.
-void saveItemsNpz(const std::string& fname, const std::vector<Item>& items) {
+void saveItemsNpz(const std::string& fileName, const std::vector<Item>& items) {
   std::vector<cnpy::NpzItem> npzItems;
   for(auto& item : items) {
     std::vector<unsigned int> shape(item.shape.begin(), item.shape.end());
@@ -142,18 +142,18 @@ void saveItemsNpz(const std::string& fname, const std::vector<Item>& items) {
       ABORT("Type currently not supported");
     }
   }
-  cnpy::npz_save(fname, npzItems);
+  cnpy::npz_save(fileName, npzItems);
 }
 
-void saveItems(const std::string& fname, const std::vector<Item>& items) {
-  if(isNpz(fname)) {
-    saveItemsNpz(fname, items);
+void saveItems(const std::string& fileName, const std::vector<Item>& items) {
+  if(isNpz(fileName)) {
+    saveItemsNpz(fileName, items);
   }
-  else if(isBin(fname)) {
-    binary::saveItems(fname, items);
+  else if(isBin(fileName)) {
+    binary::saveItems(fileName, items);
   }
   else {
-    ABORT("Unknown file format for file {}", fname);
+    ABORT("Unknown file format for file {}", fileName);
   }
 }
 

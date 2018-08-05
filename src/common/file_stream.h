@@ -116,6 +116,12 @@ public:
     return stream;
   }
 
+  template <typename T>
+  size_t read(T* ptr, size_t num = 1) {
+    istream_.read((char*)ptr, num * sizeof(T));
+    return num * sizeof(T);
+  }
+
   std::string path() { return file_.string(); }
 
   bool empty() { return ifstream_.peek() == std::ifstream::traits_type::eof(); }
@@ -154,6 +160,12 @@ public:
   friend OutputFileStream& operator<<(OutputFileStream& stream, const T& t) {
     stream.ostream_ << t;
     return stream;
+  }
+
+  template <typename T>
+  size_t write(const T* ptr, size_t num = 1) {
+    ostream_.write((char*)ptr, num * sizeof(T));
+    return num * sizeof(T);
   }
 
   std::string path() { return file_.string(); }

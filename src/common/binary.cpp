@@ -26,13 +26,6 @@ const T* get(const void*& current, size_t num = 1) {
   return ptr;
 }
 
-template <typename T>
-static void write(OutputFileStream& out, size_t& pos, T* data, size_t num = 1) {
-  ((std::ostream&)out).write((char*)data, num * sizeof(T));
-  pos += num * sizeof(T);
-}
-
-
 void loadItems(const void* current,
                std::vector<io::Item>& items,
                bool mapped) {
@@ -76,14 +69,14 @@ void loadItems(const void* current,
   }
 }
 
-void loadItems(const std::string& fName,
+void loadItems(const std::string& fileName,
                std::vector<io::Item>& items) {
 
   // Read file into buffer
-  size_t fileSize = boost::filesystem::file_size(fName);
+  size_t fileSize = boost::filesystem::file_size(fileName);
   char* ptr = new char[fileSize];
-  InputFileStream in(fName);
-  ((std::istream&)in).read(ptr, fileSize);
+  InputFileStream in(fileName);
+  in.read(ptr, fileSize);
 
   // Load items from buffer without mapping
   loadItems(ptr, items, false);
@@ -93,38 +86,38 @@ void loadItems(const std::string& fName,
 }
 
 io::Item getItem(const void* current,
-                 const std::string& vName) {
+                 const std::string& varName) {
 
   std::vector<io::Item> items;
   loadItems(current, items);
 
   for(auto& item : items)
-    if(item.name == vName)
+    if(item.name == varName)
       return item;
 
   return io::Item();
 }
 
-io::Item getItem(const std::string& fName,
-                 const std::string& vName) {
+io::Item getItem(const std::string& fileName,
+                 const std::string& varName) {
 
   std::vector<io::Item> items;
-  loadItems(fName, items);
+  loadItems(fileName, items);
 
   for(auto& item : items)
-    if(item.name == vName)
+    if(item.name == varName)
       return item;
 
   return io::Item();
 }
 
-void saveItems(const std::string& fName,
+void saveItems(const std::string& fileName,
                const std::vector<io::Item>& items) {
-  OutputFileStream out(fName);
+  OutputFileStream out(fileName);
   size_t pos = 0;
 
   size_t binaryFileVersion = BINARY_FILE_VERSION;
-  write(out, pos, &binaryFileVersion);
+  pos += out.write(&binaryFileVersion);
 
   std::vector<Header> headers;
   for(const auto& item : items) {
@@ -135,31 +128,31 @@ void saveItems(const std::string& fName,
   }
 
   size_t headerSize = headers.size();
-  write(out, pos, &headerSize);
-  write(out, pos, headers.data(), headers.size());
+  pos += out.write(&headerSize);
+  pos += out.write(headers.data(), headers.size());
 
   // Write out all names
   for(const auto& item : items) {
-    write(out, pos, item.name.data(), item.name.size() + 1);
+    pos += out.write(item.name.data(), item.name.size() + 1);
   }
   // Write out all shapes
   for(const auto& item : items) {
-    write(out, pos, item.shape.data(), item.shape.size());
+    pos += out.write(item.shape.data(), item.shape.size());
   }
 
   // align to next 256-byte boundary
   size_t nextpos = ((pos + sizeof(size_t)) / 256 + 1) * 256;
   size_t offset = nextpos - pos - sizeof(size_t);
 
-  write(out, pos, &offset);
+  pos += out.write(&offset);
   for(size_t i = 0; i < offset; i++) {
     char padding = 0;
-    write(out, pos, &padding);
+    pos += out.write(&padding);
   }
 
   // Write out all values
   for(const auto& item : items) {
-    write(out, pos, item.data(), item.size());
+    pos += out.write(item.data(), item.size());
   }
 }
 

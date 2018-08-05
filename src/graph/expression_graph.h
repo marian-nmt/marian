@@ -159,16 +159,16 @@ public:
     namespace_ = newNamespace;
   }
 
-  void reserveWorkspaceMB(size_t num) {
-    size_t bytes = num * 1024 * 1024 - 1;
-    tensors_->reserve(bytes);
-  }
-
   void copyParams(Ptr<ExpressionGraph> graph) {
     for(auto p : *graph->params())
       param(p->name(), p->shape(), inits::dummy);
     params()->allocateForward();
     params()->vals()->copyFrom(graph->params()->vals());
+  }
+
+  void reserveWorkspaceMB(size_t num) {
+    size_t bytes = num * 1024 * 1024 - 1;
+    tensors_->reserve(bytes);
   }
 
   void reuseWorkspace(Ptr<ExpressionGraph> graph) {
@@ -447,6 +447,13 @@ public:
 
   void load(const std::string& name,
             bool markReloaded = true) {
+
+    // code to test memory mapping
+    //if(io::isBin(name)) {
+    //  loadMmap(name, markReloaded);
+    //  return;
+    //}
+
     std::map<std::string, std::string> emptyNameMap;
     load(name, emptyNameMap, markReloaded);
   }
@@ -471,6 +478,9 @@ public:
     ABORT_IF(backend_->getDevice().type != DeviceType::cpu || !inferenceOnly_,
              "Memory mapping only supported for CPU inference mode");
 
+    params_ = New<MappedParameters>();
+    params_->init(backend_);
+
     LOG(info, "Memory mapping model at {}", ptr);
     itemsToParameters(io::mmapItems(ptr), nameMap, markReloaded);
   }
@@ -481,17 +491,15 @@ public:
     mmap(ptr, emptyNameMap, markReloaded);
   }
 
-  // char* buf_;
-  // void loadMmap(const std::string& name, bool markReloaded) {
-  //
-  //   size_t fsize = boost::filesystem::file_size(name);
-  //   buf_ = new char[fsize];
-  //   InputFileStream in(name);
-  //   ((std::istream&)in).read(buf_, fsize);
-  //
-  //   map(buf_, markReloaded);
-  // }
-
+   // Code to test memory mapping
+   //char* buf_;
+   //void loadMmap(const std::string& name, bool markReloaded) {
+   //   size_t fsize = boost::filesystem::file_size(name);
+   //   buf_ = new char[fsize];
+   //   InputFileStream in(name);
+   //   in.read(buf_, fsize);
+   //   mmap(buf_, markReloaded);
+   //}
 
 private:
   // convert all parameters into an array of io::Item elements, for saving
