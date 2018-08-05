@@ -258,7 +258,7 @@ namespace cnpy {
     };
 
     //same as npz_save() except that it saves multiple items to .npz file in a single go, which is required when writing to HDFS
-    static inlinep
+    static inline
     void npz_save(std::string zipname, const std::vector<NpzItem>& items)
     {
         auto tmpname = zipname + "$$"; // TODO: add thread id or something
