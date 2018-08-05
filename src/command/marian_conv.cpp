@@ -3,8 +3,6 @@
 #include <boost/program_options.hpp>
 #include <sstream>
 
-//#include "common/logging.h"
-
 int main(int argc, char** argv) {
   using namespace marian;
 
@@ -14,10 +12,10 @@ int main(int argc, char** argv) {
   po::options_description desc("Allowed options");
   // clang-format off
   desc.add_options()
-    ("model,m", po::value<std::string>()->default_value("model.npz"),
-     "Input non-mappable model")
-    ("bin,b", po::value<std::string>()->default_value("model.npz.bin"),
-     "Output mappable model")
+    ("from,f", po::value<std::string>()->default_value("model.npz"),
+     "Input model")
+    ("to,t", po::value<std::string>()->default_value("model.bin"),
+     "Output model")
     ("help,h", "Print this message and exit")
     ;
   // clang-format on
@@ -39,19 +37,21 @@ int main(int argc, char** argv) {
     exit(0);
   }
 
-  LOG(info, "Outputting {}", vm["bin"].as<std::string>());
+  LOG(info, "Outputting {}", vm["to"].as<std::string>());
 
   YAML::Node config;
   std::stringstream configStr;
-  marian::io::getYamlFromModel(config, "special:model.yml", vm["model"].as<std::string>());
+  marian::io::getYamlFromModel(config,
+                               "special:model.yml",
+                               vm["from"].as<std::string>());
   configStr << config;
 
   auto graph = New<ExpressionGraph>(true, false);
   graph->setDevice(CPU0);
 
-  graph->load(vm["model"].as<std::string>());
+  graph->load(vm["from"].as<std::string>());
   graph->forward();
-  graph->save(vm["bin"].as<std::string>(), configStr.str());
+  graph->save(vm["to"].as<std::string>(), configStr.str());
 
   //graph->saveBinary(vm["bin"].as<std::string>());
 

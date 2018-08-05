@@ -1,7 +1,5 @@
 #pragma once
 
-#include "3rd_party/cnpy/cnpy.h"
-#include "3rd_party/threadpool.h"
 #include "common/config.h"
 #include "common/definitions.h"
 
@@ -12,8 +10,6 @@
 #include "graph/node_initializers.h"
 #include "graph/node_operators.h"
 #include "graph/parameters.h"
-
-#include "3rd_party/cnpy/cnpy.h"
 
 #include <map>
 #include <unordered_set>
@@ -417,16 +413,12 @@ public:
 
   void setThrowNaN(bool throwNaN) { throwNaN_ = throwNaN; }
 
-  void load(const std::string& name,
-            const std::map<std::string, std::string>& nameMap,
-            bool markReloaded = true) {
-    using namespace keywords;
-
-    LOG(info, "Loading model from {}", name);
+private:
+  // convert all parameters into an array of IoItem elements, for saving
+  void itemsToParameters(const std::vector<io::Item>& ioItems,
+                         const std::map<std::string, std::string>& nameMap,
+                         bool markReloaded = true) {
     setReloaded(false);
-
-    auto ioItems = io::loadItems(name);
-
     for(auto& item : ioItems) {
       std::string pName = item.name;
 
@@ -440,56 +432,59 @@ public:
 
       param(pName, item.shape, inits::from_item(item));
     }
-
     if(markReloaded)
       setReloaded(true);
   }
 
+public:
+
+  void load(const std::string& name,
+            const std::map<std::string, std::string>& nameMap,
+            bool markReloaded = true) {
+    LOG(info, "Loading model from {}", name);
+    itemsToParameters(io::loadItems(name), nameMap, markReloaded);
+  }
+
   void load(const std::string& name,
             bool markReloaded = true) {
-
     std::map<std::string, std::string> emptyNameMap;
     load(name, emptyNameMap, markReloaded);
   }
 
+  // char* buf_;
+  // void loadMmap(const std::string& name, bool markReloaded) {
+  //
+  //   size_t fsize = boost::filesystem::file_size(name);
+  //   buf_ = new char[fsize];
+  //   InputFileStream in(name);
+  //   ((std::istream&)in).read(buf_, fsize);
+  //
+  //   map(buf_, markReloaded);
+  // }
+  //
+  //void map(const void* ptr, bool markReloaded = true) {
+  //  using namespace keywords;
+  //
+  //  LOG(info, "Mapping model at address {}", ptr);
+  //
+  //  params_ = New<MappedParameters>();
+  //  params_->init(backend_);
+  //
+  //  setReloaded(false);
+  //
+  //  Binary binary(ptr);
+  //  for(const auto& item : binary) {
+  //    param(item.name, item.shape, inits::from_mmap(item.data));
+  //  }
+  //
+  //  if(markReloaded)
+  //    setReloaded(true);
+  //}
 
 private:
   // convert all parameters into an array of IoItem elements, for saving
   void parametersToItems(std::vector<io::Item>& ioItems,
-                         const std::map<std::string, std::string>& nameMap) {
-
-    for(auto p : params()->getMap()) {
-      std::string pName = p.first;
-
-      if(!namespace_.empty()) {
-        if(pName.substr(0, namespace_.size() + 2) == namespace_ + "::")
-          pName = pName.substr(namespace_.size() + 2);
-      }
-
-      auto it = nameMap.find(pName);
-      if(it != nameMap.end())
-        pName = it->second;
-
-      ABORT_IF(p.second->val()->type() != Type::float32,
-               "Only float32 supported at the moment");
-
-      io::Item item;
-      item.name = pName;
-      item.bytes.resize(p.second->val()->size() * sizeof(float));
-
-      // @TODO: solve this better with direct copy
-      std::vector<float> temp;
-      p.second->val()->get(temp);
-      std::copy((char*)temp.data(),
-                (char*)temp.data() + temp.size() * sizeof(float),
-                item.data());
-
-      item.shape = p.second->shape();
-
-      ioItems.emplace_back(std::move(item));
-    }
-
-  }
+                         const std::map<std::string, std::string>& nameMap);
 
 public:
 
@@ -522,55 +517,6 @@ public:
             const std::map<std::string, std::string>& nameMap) {
     save(name, "", nameMap);
   }
-
-
-  //void saveBinary(const std::string& name) {
-  //  LOG(info, "Saving mapable model to {}", name);
-  //
-  //  Binarizer binary(name);
-  //  // binarize header information about parameters first
-  //  for(auto p : params()->getMap()) {
-  //    std::string pName = p.first;
-  //    if(!namespace_.empty()) {
-  //      if(pName.substr(0, namespace_.size() + 2) == namespace_ + "::")
-  //        pName = pName.substr(namespace_.size() + 2);
-  //    }
-  //    binary.add(pName, p.second->val());
-  //  }
-  //  binary.save();
-  //
-  //  LOG(info, "Saved {} items.", params()->getMap().size());
-  //}
-  //
-  // char* buf_;
-  // void loadMmap(const std::string& name, bool markReloaded) {
-  //
-  //   size_t fsize = boost::filesystem::file_size(name);
-  //   buf_ = new char[fsize];
-  //   InputFileStream in(name);
-  //   ((std::istream&)in).read(buf_, fsize);
-  //
-  //   map(buf_, markReloaded);
-  // }
-  //
-  //void map(const void* ptr, bool markReloaded = true) {
-  //  using namespace keywords;
-  //
-  //  LOG(info, "Mapping model at address {}", ptr);
-  //
-  //  params_ = New<MappedParameters>();
-  //  params_->init(backend_);
-  //
-  //  setReloaded(false);
-  //
-  //  Binary binary(ptr);
-  //  for(const auto& item : binary) {
-  //    param(item.name, item.shape, inits::from_mmap(item.data));
-  //  }
-  //
-  //  if(markReloaded)
-  //    setReloaded(true);
-  //}
 
 };
 

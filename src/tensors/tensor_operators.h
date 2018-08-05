@@ -14,12 +14,26 @@
 #include "tensors/gpu/add.h"
 #include "tensors/gpu/element.h"
 #include "tensors/gpu/prod.h"
+#include "tensors/gpu/algorithm.h"
 #endif
 
 #include "tensors/cpu/add.h"
 #include "tensors/cpu/element.h"
 
+#include <algorithm>
+
 namespace marian {
+
+template <typename InIt, typename OutIt>
+void copy(Ptr<Backend> backend, const InIt beg, const InIt end, OutIt it) {
+#ifdef CUDA_FOUND
+  if(backend->getDevice().type == DeviceType::gpu)
+    gpu::copy(backend, beg, end, it);
+  else
+#endif
+    std::copy(beg, end, it);
+}
+
 
 template <class Functor, class... Tensors>
 void Element(Functor functor, marian::Tensor out, Tensors... tensors) {

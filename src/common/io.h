@@ -5,34 +5,14 @@
 #include "common/shape.h"
 #include "common/types.h"
 
-//#include "common/binary.h"
+#include "common/io_item.h"
+#include "common/binary.h"
 
 #include <string>
 
 namespace marian {
 
 namespace io {
-
-struct Item {
-  std::vector<char> bytes;
-  char* ptr{0};
-  bool mapped{false};
-
-  std::string name;
-  Shape shape;
-  Type type{Type::float32};
-
-  char* data() {
-    if(mapped)
-      return ptr;
-    else
-      return bytes.data();
-  }
-
-  size_t size() {
-    return shape.elements() * sizeOf(type);
-  }
-};
 
 static bool isNpz(const std::string& name) {
   return name.size() >= 4 && name.substr(name.length() - 4) == ".npz";
@@ -45,14 +25,17 @@ static bool isBin(const std::string& name) {
 static void getYamlFromNpz(YAML::Node& yaml,
                            const std::string& varName,
                            const std::string& fName) {
-  yaml = YAML::Load(cnpy::npz_load(fName, varName)->data());
+  auto item = cnpy::npz_load(fName, varName);
+  if(item->size() > 0)
+    yaml = YAML::Load(item->data());
 }
 
 static void getYamlFromBin(YAML::Node& yaml,
                            const std::string& varName,
                            const std::string& fName) {
-  ABORT("Not implemented");
-  //yaml = YAML::Load(cnpy::npz_load(fName, varName)->data());
+  auto item = binary::getItem(fName, varName);
+  if(item.size() > 0)
+    yaml = YAML::Load(item.data());
 }
 
 static void getYamlFromModel(YAML::Node& yaml,
@@ -145,7 +128,7 @@ static std::vector<Item> loadItems(const std::string& fName) {
     loadItemsFromNpz(fName, items);
   }
   else if(isBin(fName)) {
-    ABORT("Not implemented");
+    binary::loadItems(fName, items);
   }
   else {
     ABORT("Unknown model file format for file {}", fName);
@@ -180,16 +163,12 @@ static void saveItemsNpz(const std::string& fname, const std::vector<Item>& item
   cnpy::npz_save(fname, npzItems);
 }
 
-static void saveItemsBin(const std::string& fname, const std::vector<Item>& items) {
-    ABORT("Not implemented");
-}
-
 static void saveItems(const std::string& fname, const std::vector<Item>& items) {
   if(isNpz(fname)) {
     saveItemsNpz(fname, items);
   }
   else if(isBin(fname)) {
-    saveItemsBin(fname, items);
+    binary::saveItems(fname, items);
   }
   else {
     ABORT("Unknown file format for file {}", fname);

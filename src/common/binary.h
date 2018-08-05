@@ -4,10 +4,17 @@
 #include "common/file_stream.h"
 #include "common/definitions.h"
 #include "common/types.h"
+#include "common/io_item.h"
 
 #include <string>
 
+// Increase this if binary format changes
+#define BINARY_FILE_VERSION 1
+
 namespace marian {
+namespace io {
+
+namespace binary {
 
 struct Header {
   size_t nameLength;
@@ -16,133 +23,137 @@ struct Header {
   size_t dataLength;
 };
 
-struct BinaryTensor {
-  std::string name;
-  Shape shape;
-  Type type;
-  const void* data;
-};
+template <typename T>
+const T* get(const void*& current, size_t num = 1) {
+  const T* ptr = (const T*)current;
+  current = (const T*)current + num;
+  return ptr;
+}
 
-class Binary {
-private:
-  std::vector<BinaryTensor> tensors_;
-  const void* current_;
+static void loadItems(const void* current,
+                      std::vector<io::Item>& items,
+                      bool mapped = false) {
 
-  template <typename T>
-  const T* get(size_t num = 1) {
-    const T* ptr = (const T*)current_;
-    current_ = (const T*)current_ + num;
-    return ptr;
+  size_t binaryFileVersion = *get<size_t>(current);
+  ABORT_IF(binaryFileVersion != BINARY_FILE_VERSION,
+           "Binary file versions do not match: {} (file) != {} (expected)",
+           binaryFileVersion,
+           BINARY_FILE_VERSION);
+
+  size_t numHeaders = *get<size_t>(current);
+  const Header* headers = get<Header>(current, numHeaders);
+
+  items.resize(numHeaders);
+  for(int i = 0; i < numHeaders; ++i) {
+    items[i].type = (Type)headers[i].type;
+    items[i].name = get<char>(current, headers[i].nameLength);
+    items[i].mapped = mapped;
   }
 
-public:
-  Binary(const void* ptr)
-    : current_(ptr) {
+  for(int i = 0; i < numHeaders; ++i) {
+    size_t len = headers[i].shapeLength;
+    items[i].shape.resize(len);
+    const int* arr = get<int>(current, len);
+    std::copy(arr, arr + len, items[i].shape.begin());
+  }
 
-    size_t numHeaders = *get<size_t>();
-    const Header* headers = get<Header>(numHeaders);
+  // move by offset bytes
+  size_t offset = *get<size_t>(current);
+  get<char>(current, offset);
 
-    tensors_.resize(numHeaders);
-    for(int i = 0; i < numHeaders; ++i) {
-      tensors_[i].type = (Type)headers[i].type;
-      tensors_[i].name = get<char>(headers[i].nameLength);
+  for(int i = 0; i < numHeaders; ++i) {
+    if(items[i].mapped) {
+      items[i].ptr = get<char>(current, headers[i].dataLength);
+    } else {
+      size_t len = headers[i].dataLength;
+      const char* ptr = get<char>(current, len);
+      items[i].bytes.resize(len);
+      std::copy(ptr, ptr + len, items[i].bytes.begin());
     }
+  }
+}
 
-    for(int i = 0; i < numHeaders; ++i) {
-      size_t len = headers[i].shapeLength;
-      tensors_[i].shape.resize(len);
-      const int* arr = get<int>(len);
-      std::copy(arr, arr + len, tensors_[i].shape.begin());
-    }
+static void loadItems(const std::string& fName,
+                      std::vector<io::Item>& items) {
 
-    // move by offset bytes
-    size_t offset = *get<size_t>();
-    get<char>(offset);
+  // Read file into buffer
+  size_t fileSize = boost::filesystem::file_size(fName);
+  char* ptr = new char[fileSize];
+  InputFileStream in(fName);
+  ((std::istream&)in).read(ptr, fileSize);
 
-    for(int i = 0; i < numHeaders; ++i)
-      tensors_[i].data = get<char>(headers[i].dataLength);
+  // Load items from buffer without mapping
+  loadItems(ptr, items, false);
 
+  // Delete buffer
+  delete[] ptr;
+}
+
+static io::Item getItem(const std::string& fName,
+                        const std::string& vName) {
+
+  std::vector<io::Item> items;
+  loadItems(fName, items);
+
+  for(auto& item : items)
+    if(item.name == vName)
+      return item;
+
+  return io::Item();
+}
+
+
+template <typename T>
+static void write(OutputFileStream& out, size_t& pos, T* data, size_t num = 1) {
+  ((std::ostream&)out).write((char*)data, num * sizeof(T));
+  pos += num * sizeof(T);
+}
+
+static void saveItems(const std::string fName,
+                      const std::vector<io::Item>& items) {
+  OutputFileStream out(fName);
+  size_t pos = 0;
+
+  size_t binaryFileVersion = BINARY_FILE_VERSION;
+  write(out, pos, &binaryFileVersion);
+
+  std::vector<Header> headers;
+  for(const auto& item : items) {
+    headers.push_back(Header{item.name.size() + 1,
+                             (size_t)item.type,
+                             item.shape.size(),
+                             item.size()});
   }
 
-  auto begin() -> decltype(tensors_.begin()) {
-    return tensors_.begin();
+  size_t headerSize = headers.size();
+  write(out, pos, &headerSize);
+  write(out, pos, headers.data(), headers.size());
+
+  // Write out all names
+  for(const auto& item : items) {
+    write(out, pos, item.name.data(), item.name.size() + 1);
+  }
+  // Write out all shapes
+  for(const auto& item : items) {
+    write(out, pos, item.shape.data(), item.shape.size());
   }
 
-  auto end() -> decltype(tensors_.end()) {
-    return tensors_.end();
-  }
-};
+  // align to next 256-byte boundary
+  size_t nextpos = ((pos + sizeof(size_t)) / 256 + 1) * 256;
+  size_t offset = nextpos - pos - sizeof(size_t);
 
-class Binarizer {
-private:
-  UPtr<OutputFileStream> out_;
-  size_t pos_;
-
-  typedef std::tuple<std::string, Tensor> NamedTensor;
-  std::vector<NamedTensor> tensors;
-
-public:
-  Binarizer(const std::string& name)
-    : out_{new OutputFileStream(name)}, pos_(0) {}
-
-  void add(const std::string& pName, const Tensor& tensor) {
-    tensors.emplace_back(pName, tensor);
+  write(out, pos, &offset);
+  for(size_t i = 0; i < offset; i++) {
+    char padding = 0;
+    write(out, pos, &padding);
   }
 
-  template <typename T>
-  void write(T* data, size_t num = 1) {
-    ((std::ostream&)*out_).write((char*)data, num * sizeof(T));
-    pos_ += num * sizeof(T);
+  // Write out all values
+  for(const auto& item : items) {
+    write(out, pos, item.data(), item.size());
   }
+}
 
-  void save() {
-
-    std::vector<Header> headers;
-    for(const auto& nt : tensors) {
-      std::string name; Tensor tensor;
-      std::tie(name, tensor) = nt;
-
-      //headers.push_back(Header{name.size() + 1,
-      //                         (size_t)tensor->type(),
-      //                         tensor->shape().size(),
-      //                         tensor->memory()->size()});
-    }
-
-    size_t headerSize = headers.size();
-    write(&headerSize);
-    write(headers.data(), headers.size());
-
-    //// Write out all names
-    //for(const auto& nt : tensors) {
-    //  const std::string& name = std::get<0>(nt);
-    //  write(name.data(), name.size() + 1);
-    //}
-    //
-    //// Write out all shapes
-    //for(const auto& nt : tensors) {
-    //  const Shape shape = std::get<1>(nt)->shape();
-    //  write(shape.data(), shape.size());
-    //}
-    //
-    //// align to next 256-byte boundary
-    //size_t nextpos = ((pos_ + sizeof(size_t)) / 256 + 1) * 256;
-    //size_t offset = nextpos - pos_ - sizeof(size_t);
-    //
-    //write(&offset);
-    //for(size_t i = 0; i < offset; i++) {
-    //   char dummy = 0;
-    //   write(&dummy);
-    //}
-    //
-    //// Write out all values
-    //for(const auto& nt : tensors) {
-    //  const Tensor tensor = std::get<1>(nt);
-    //  ABORT_IF(tensor->getDevice().type != DeviceType::cpu, "Only CPU models can be binarized");
-    //  write(tensor->memory()->data(), tensor->memory()->size());
-    //}
-
-  }
-
-};
-
+}
+}
 }

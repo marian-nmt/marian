@@ -38,6 +38,10 @@ namespace cnpy {
         const char* data() const {
             return bytes.data();
         }
+
+        size_t size() {
+            return bytes.size();
+        }
     };
 
     typedef std::shared_ptr<NpyArray> NpyArrayPtr;
