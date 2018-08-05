@@ -24,6 +24,10 @@ void getYamlFromModel(YAML::Node& yaml,
                       const std::string& varName,
                       const std::string& fileName);
 
+void getYamlFromModel(YAML::Node& yaml,
+                      const std::string& varName,
+                      const void* ptr);
+
 void addMetaToItems(const std::string& meta,
                     const std::string& varName,
                     std::vector<io::Item>& items);

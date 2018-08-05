@@ -115,6 +115,7 @@ public:
 
   YAML::Node getModelParameters();
   void loadModelParameters(const std::string& name);
+  void loadModelParameters(const void* ptr);
 
   const std::vector<DeviceId>& getDevices() { return devices_; }
 

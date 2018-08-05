@@ -63,9 +63,10 @@ public:
     for(auto& model : models) {
       Ptr<Options> modelOpts = New<Options>();
       YAML::Node config;
-      Config::GetYamlFromNpz(config, "special:model.yml", model);
+      io::GetYamlFromModel(config, "special:model.yml", model);
       modelOpts->merge(options_);
       modelOpts->merge(config);
+
       auto encdec = models::from_options(modelOpts, models::usage::translation);
 
       scorers_.push_back(New<ScorerWrapper>(

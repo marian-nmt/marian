@@ -51,5 +51,10 @@ void Config::loadModelParameters(const std::string& name) {
   override(config);
 }
 
+void Config::loadModelParameters(const void* ptr) {
+  YAML::Node config;
+  io::getYamlFromModel(config, "special:model.yml", ptr);
+  override(config);
+}
 
 }  // namespace marian

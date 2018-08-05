@@ -100,6 +100,12 @@ void EncoderDecoder::load(Ptr<ExpressionGraph> graph,
   graph->load(name, markedReloaded && !opt<bool>("ignore-model-config", false));
 }
 
+void EncoderDecoder::mmap(Ptr<ExpressionGraph> graph,
+                          const void* ptr,
+                          bool markedReloaded) {
+  graph->mmap(ptr, markedReloaded && !opt<bool>("ignore-model-config", false));
+}
+
 void EncoderDecoder::save(Ptr<ExpressionGraph> graph,
                           const std::string& name,
                           bool saveTranslatorConfig) {

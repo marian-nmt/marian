@@ -50,6 +50,14 @@ void getYamlFromModel(YAML::Node& yaml,
   }
 }
 
+void getYamlFromModel(YAML::Node& yaml,
+                      const std::string& varName,
+                      const void* ptr) {
+  auto item = binary::getItem(ptr, varName);
+  if(item.size() > 0)
+    yaml = YAML::Load(item.data());
+}
+
 void addMetaToItems(const std::string& meta,
                     const std::string& varName,
                     std::vector<io::Item>& items) {
