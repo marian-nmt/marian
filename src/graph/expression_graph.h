@@ -451,6 +451,36 @@ public:
     load(name, emptyNameMap, markReloaded);
   }
 
+  void load(const void* ptr,
+            const std::map<std::string, std::string>& nameMap,
+            bool markReloaded = true) {
+    LOG(info, "Loading model from buffer at {}", ptr);
+    itemsToParameters(io::loadItems(ptr), nameMap, markReloaded);
+  }
+
+  void load(const void* ptr,
+            bool markReloaded = true) {
+    std::map<std::string, std::string> emptyNameMap;
+    load(ptr, emptyNameMap, markReloaded);
+  }
+
+  void mmap(const void* ptr,
+            const std::map<std::string, std::string>& nameMap,
+            bool markReloaded = true) {
+
+    ABORT_IF(backend_->getDevice().type != DeviceType::cpu || !inferenceOnly_,
+             "Memory mapping only supported for CPU inference mode");
+
+    LOG(info, "Memory mapping model at {}", ptr);
+    itemsToParameters(io::mmapItems(ptr), nameMap, markReloaded);
+  }
+
+  void mmap(const void* ptr,
+            bool markReloaded = true) {
+    std::map<std::string, std::string> emptyNameMap;
+    mmap(ptr, emptyNameMap, markReloaded);
+  }
+
   // char* buf_;
   // void loadMmap(const std::string& name, bool markReloaded) {
   //
@@ -461,28 +491,10 @@ public:
   //
   //   map(buf_, markReloaded);
   // }
-  //
-  //void map(const void* ptr, bool markReloaded = true) {
-  //  using namespace keywords;
-  //
-  //  LOG(info, "Mapping model at address {}", ptr);
-  //
-  //  params_ = New<MappedParameters>();
-  //  params_->init(backend_);
-  //
-  //  setReloaded(false);
-  //
-  //  Binary binary(ptr);
-  //  for(const auto& item : binary) {
-  //    param(item.name, item.shape, inits::from_mmap(item.data));
-  //  }
-  //
-  //  if(markReloaded)
-  //    setReloaded(true);
-  //}
+
 
 private:
-  // convert all parameters into an array of IoItem elements, for saving
+  // convert all parameters into an array of io::Item elements, for saving
   void parametersToItems(std::vector<io::Item>& ioItems,
                          const std::map<std::string, std::string>& nameMap);
 

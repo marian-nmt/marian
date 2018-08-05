@@ -9,6 +9,8 @@ add_library(marian STATIC
   common/logging.cpp
   common/config.cpp
   common/config_parser.cpp
+  common/binary.cpp
+  common/io.cpp
 
   data/vocab.cpp
   data/corpus_base.cpp
