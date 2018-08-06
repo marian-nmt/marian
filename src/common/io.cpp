@@ -134,17 +134,17 @@ void saveItemsNpz(const std::string& fileName, const std::vector<Item>& items) {
   for(auto& item : items) {
     std::vector<unsigned int> shape(item.shape.begin(), item.shape.end());
     if(item.type == Type::float32)
-      npzItems.push_back(cnpy::NpzItem(item.name,
-                                       item.bytes,
-                                       shape,
-                                       cnpy::map_type(typeid(float)),
-                                       sizeOf(Type::float32)));
+      npzItems.emplace_back(item.name,
+                            item.bytes,
+                            shape,
+                            cnpy::map_type(typeid(float)),
+                            sizeOf(Type::float32));
     else if(item.type == Type::int8) {
-      npzItems.push_back(cnpy::NpzItem(item.name,
-                                       item.bytes,
-                                       shape,
-                                       cnpy::map_type(typeid(char)),
-                                       sizeOf(Type::int8)));
+      npzItems.emplace_back(item.name,
+                            item.bytes,
+                            shape,
+                            cnpy::map_type(typeid(char)),
+                            sizeOf(Type::int8));
     }
     else {
       ABORT("Type currently not supported");
