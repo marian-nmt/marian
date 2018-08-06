@@ -62,14 +62,15 @@ void addMetaToItems(const std::string& meta,
                     const std::string& varName,
                     std::vector<io::Item>& items) {
   Item item;
-
   item.name = varName;
 
   // increase size by 1 to add \0
   item.shape = Shape({(int)meta.size() + 1});
 
-  item.bytes.resize(item.shape[0]);
-  std::copy(meta.begin(), meta.end() + item.shape[0], item.bytes.begin());
+  item.bytes.resize(item.shape.elements());
+  std::copy(meta.begin(), meta.end(), item.bytes.begin());
+  // set string terminator
+  item.bytes.back() = '\0';
 
   item.type = Type::int8;
 
@@ -133,22 +134,17 @@ void saveItemsNpz(const std::string& fileName, const std::vector<Item>& items) {
   std::vector<cnpy::NpzItem> npzItems;
   for(auto& item : items) {
     std::vector<unsigned int> shape(item.shape.begin(), item.shape.end());
+    char type = 'f';
+
     if(item.type == Type::float32)
-      npzItems.emplace_back(item.name,
-                            item.bytes,
-                            shape,
-                            cnpy::map_type(typeid(float)),
-                            sizeOf(Type::float32));
-    else if(item.type == Type::int8) {
-      npzItems.emplace_back(item.name,
-                            item.bytes,
-                            shape,
-                            cnpy::map_type(typeid(char)),
-                            sizeOf(Type::int8));
-    }
-    else {
-      ABORT("Type currently not supported");
-    }
+      type = cnpy::map_type(typeid(float));
+    else if(item.type == Type::uint8)
+      type = cnpy::map_type(typeid(char));
+    else
+      ABORT("Other types not supported yet");
+
+    npzItems.emplace_back(item.name, item.bytes, shape, type, sizeOf(item.type));
+
   }
   cnpy::npz_save(fileName, npzItems);
 }
