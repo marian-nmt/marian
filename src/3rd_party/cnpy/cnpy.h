@@ -251,9 +251,8 @@ namespace cnpy {
         {
             shape = dataShape;
             word_size = word_size_;
-            bytes.resize(data.size() * word_size);
-            auto* p = (const char*)data.data();
-            std::copy(p, p + bytes.size(), bytes.begin());
+            bytes.resize(data.size());
+            std::copy(data.begin(), data.end(), bytes.begin());
         }
     };
 
