@@ -79,7 +79,7 @@ void AsyncGraphGroup::pushGradients(Tensor newGrads,
           }
 
           if(mvAvg_)
-            updateMovingAverage(
+            updateAvgParams(
                 paramsAvg_[idx], params_[idx], scheduler_->numberOfBatches());
         },
         idx,

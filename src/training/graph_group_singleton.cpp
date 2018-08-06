@@ -34,9 +34,9 @@ void SingletonGraph::execute(Ptr<data::Batch> batch) {
       graphAvg_->setDevice(graph_->getDevice());
       graphAvg_->copyParams(graph_);
     } else {
-      updateMovingAverage(graphAvg_->params()->vals(),
-                          graph_->params()->vals(),
-                          scheduler_->numberOfBatches());
+      updateAvgParams(graphAvg_->params()->vals(),
+                      graph_->params()->vals(),
+                      scheduler_->numberOfBatches());
     }
   }
 

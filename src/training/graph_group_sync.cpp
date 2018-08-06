@@ -168,7 +168,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
       shardOpt_[idx]->update(curParam, curGrad);
 
       if(mvAvg_)
-        updateMovingAverage(
+        updateAvgParams(
             paramsAvg_[idx], curParam, scheduler_->numberOfBatches());
     };
 

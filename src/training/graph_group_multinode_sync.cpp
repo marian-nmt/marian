@@ -4,9 +4,9 @@
 
 namespace marian {
 
-void MultiNodeGraphGroupSync::updateMovingAverage(Tensor paramsAvg,
-                                                  Tensor params,
-                                                  size_t batches) {
+void MultiNodeGraphGroupSync::updateAvgParams(Tensor paramsAvg,
+                                              Tensor params,
+                                              size_t batches) {
   using namespace functional;
   float decay
       = std::max(mvDecay_, 1.f - (float)(batches + 1) / (float)(batches + 10));
@@ -142,9 +142,9 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
   syncOptimizer_->update(clientGraphs_.back());
 
   if(movingAvg_)
-    updateMovingAverage(paramsAvg_,
-                        clientGraphs_.back()->params()->vals(),
-                        scheduler_->numberOfBatches());
+    updateAvgParams(paramsAvg_,
+                    clientGraphs_.back()->params()->vals(),
+                    scheduler_->numberOfBatches());
 
   // Distribute the graph to the rest of the devices
   std::vector<std::thread> threads;

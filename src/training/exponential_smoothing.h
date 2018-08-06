@@ -7,7 +7,7 @@
 namespace marian {
 
 /**
- * Interface implementing exponential smoothing for graph groups.
+ * Class implementing exponential smoothing for graph groups.
  */
 class ExponentialSmoothing {
 public:
@@ -15,7 +15,7 @@ public:
       : mvAvg_{decay > 0}, mvDecay_{decay} {}
 
 protected:
-  void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches) {
+  void updateAvgParams(Tensor paramsAvg, Tensor params, size_t batches) {
     using namespace functional;
     float decay = std::max(mvDecay_,
                            1.f - (float)(batches + 1) / (float)(batches + 10));
