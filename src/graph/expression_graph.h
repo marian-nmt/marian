@@ -448,12 +448,6 @@ public:
   void load(const std::string& name,
             bool markReloaded = true) {
 
-    // code to test memory mapping
-    //if(io::isBin(name)) {
-    //  loadMmap(name, markReloaded);
-    //  return;
-    //}
-
     std::map<std::string, std::string> emptyNameMap;
     load(name, emptyNameMap, markReloaded);
   }
@@ -490,16 +484,6 @@ public:
     std::map<std::string, std::string> emptyNameMap;
     mmap(ptr, emptyNameMap, markReloaded);
   }
-
-   // Code to test memory mapping
-   //char* buf_;
-   //void loadMmap(const std::string& name, bool markReloaded) {
-   //   size_t fsize = boost::filesystem::file_size(name);
-   //   buf_ = new char[fsize];
-   //   InputFileStream in(name);
-   //   in.read(buf_, fsize);
-   //   mmap(buf_, markReloaded);
-   //}
 
 private:
   // convert all parameters into an array of io::Item elements, for saving
