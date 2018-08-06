@@ -166,13 +166,6 @@ public:
     params()->vals()->copyFrom(graph->params()->vals());
   }
 
-  // @TODO: remove this
-  void forceInit() {
-    params()->allocateForward();
-    for(auto v : nodesForward_)
-      v->init();
-  }
-
   void reserveWorkspaceMB(size_t num) {
     size_t bytes = num * 1024 * 1024 - 1;
     tensors_->reserve(bytes);

@@ -150,8 +150,8 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
       // Load the averaged parameters into a temporary graph
       graphAvg = New<ExpressionGraph>();
       graphAvg->setDevice({0, DeviceType::cpu});
-      builders_[0]->load(graphAvg, name, false);
-      graphAvg->forceInit();
+      graphAvg->load(name, false);
+      graphAvg->forward();
     }
 
     int totalSize = graphs_[0]->params()->vals()->size();

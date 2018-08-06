@@ -60,8 +60,8 @@ void SyncGraphGroup::initializeAvg() {
     // Load the averaged parameters into a temporary graph
     graphAvg = New<ExpressionGraph>();
     graphAvg->setDevice({0, DeviceType::cpu});
-    builders_[0]->load(graphAvg, name, false);
-    graphAvg->forceInit();
+    graphAvg->load(name, false);
+    graphAvg->forward();
   }
 
   int totalSize = graphs_[0]->params()->vals()->size();
@@ -243,6 +243,7 @@ void SyncGraphGroup::load() {
       LOG(info,
           "Initialize model weights with the pre-trained model {}",
           nameInit);
+
       size_t i = 0;
       for(auto graph : graphs_)
         builders_[i++]->load(graph, nameInit, false);

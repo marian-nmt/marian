@@ -56,7 +56,7 @@ public:
           graphAvg_ = New<ExpressionGraph>();
           graphAvg_->setDevice(graph_->getDevice());
           builder_->load(graphAvg_, name);
-          graphAvg_->forceInit();
+          graphAvg_->forward();
         } else {
           builder_->load(graph_, name);
         }
