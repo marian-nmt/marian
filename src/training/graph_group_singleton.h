@@ -48,9 +48,9 @@ public:
         if(scheduler_)
           scheduler_->load(name);
 
-        if(mvAvg_ && boost::filesystem::exists(name + ".mvavg.npz")) {
+        if(mvAvg_ && boost::filesystem::exists(name + ".orig.npz")) {
           // Load the original parameters from model.npz
-          builder_->load(graph_, name + ".mvavg.npz");
+          builder_->load(graph_, name + ".orig.npz");
 
           // Load the averaged parameters from model.npz
           graphAvg_ = New<ExpressionGraph>();
@@ -78,9 +78,9 @@ public:
       // The model with averaged parameters will be saved into model.npz as
       // it's a model which should be used for decoding
       saveGraph = graphAvg_;
-      // Save the original parameters in model.npz.mvavg.npz
+      // Save the original parameters in model.npz.orig.npz
       std::string name = options_->get<std::string>("model");
-      builder_->save(graph_, name + ".mvavg.npz");
+      builder_->save(graph_, name + ".orig.npz");
     }
 
     if(final && scheduler_)
