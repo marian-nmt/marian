@@ -735,7 +735,7 @@ __global__ void gCopyRows(float* out,
   }
 }
 
-void CopyRows(Tensor out, const Tensor in, const std::vector<size_t>& indices) {
+void CopyRows(Tensor out, const Tensor in, const std::vector<size_t>& indices, Ptr<Allocator> allocator) {
   cudaSetDevice(out->getDevice().no);
 
   size_t cols = in->shape().back();
@@ -744,17 +744,15 @@ void CopyRows(Tensor out, const Tensor in, const std::vector<size_t>& indices) {
   int threads = std::min(MAX_THREADS, (int)cols);
   int blocks = std::min(MAX_BLOCKS, (int)rowsToCopy);
 
-  size_t* d_indices;
-  CUDA_CHECK(cudaMalloc(&d_indices, rowsToCopy * sizeof(size_t)));
-  CUDA_CHECK(cudaMemcpy(d_indices,
-                        indices.data(),
-                        rowsToCopy * sizeof(size_t),
-                        cudaMemcpyHostToDevice));
+  auto mp_indices = allocator->alloc<size_t>(rowsToCopy);
+  CudaCopy(indices.data(),
+           indices.data() + indices.size(),
+           mp_indices->data<size_t>());
 
   gCopyRows<<<blocks, threads>>>(
-      out->data(), in->data(), cols, d_indices, rowsToCopy);
+      out->data(), in->data(), cols, mp_indices->data<size_t>(), rowsToCopy);
 
-  CUDA_CHECK(cudaFree(d_indices));
+  allocator->free(mp_indices);
 }
 
 __global__ void gPasteRows(float* out,

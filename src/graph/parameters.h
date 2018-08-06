@@ -11,7 +11,7 @@
 namespace marian {
 
 class Parameters {
-private:
+protected:
   /** @brief List of all parameter nodes of this expression graph. */
   std::vector<Expr> params_;
   std::map<std::string, Expr> named_;
@@ -19,12 +19,15 @@ private:
   Ptr<TensorAllocator> vals_;
   Ptr<TensorAllocator> grads_;
 
-public:
-  void init(Ptr<Backend> backend) {
-    vals_ = New<TensorAllocator>(backend);
-    grads_ = New<TensorAllocator>(backend);
+  size_t totalCapacity(Ptr<TensorAllocator> alloc) {
+    size_t sum = 0;
+    for(auto p : params_) {
+      sum += alloc->capacity(p->shape(), Type::float32);
+    }
+    return sum;
   }
 
+public:
   auto begin() -> decltype(params_.begin()) { return params_.begin(); }
 
   auto end() -> decltype(params_.begin()) { return params_.end(); }
@@ -42,21 +45,18 @@ public:
 
   size_t size() { return params_.size(); }
 
-  size_t totalCapacity(Ptr<TensorAllocator> alloc) {
-    size_t sum = 0;
-    for(auto p : params_) {
-      sum += alloc->capacity(p->shape(), Type::float32);
-    }
-    return sum;
-  }
-
   void add(Expr p, const std::string& name) {
     params_.push_back(p);
     ABORT_IF(named_.count(name), "Parameter '{}' already exists", name);
     named_[name] = p;
   }
 
-  void allocateForward() {
+  virtual void init(Ptr<Backend> backend) {
+    vals_ = New<TensorAllocator>(backend);
+    grads_ = New<TensorAllocator>(backend);
+  }
+
+  virtual void allocateForward() {
     if(!params_.empty() && vals_->size() == 0) {
       vals_->reserveExact(totalCapacity(vals_));
       for(auto p : params_) {
@@ -67,7 +67,7 @@ public:
     }
   }
 
-  void allocateBackward() {
+  virtual void allocateBackward() {
     if(!params_.empty() && grads_->size() == 0) {
       grads_->reserveExact(totalCapacity(grads_));
       for(auto p : params_)
@@ -76,13 +76,13 @@ public:
     }
   }
 
-  void set_zero_adjoint() { grads()->set(0.f); }
+  virtual void set_zero_adjoint() { grads()->set(0.f); }
 
-  Tensor vals() { return vals_->asTensor(); }
+  virtual Tensor vals() { return vals_->asTensor(); }
 
-  Tensor grads() { return grads_->asTensor(); }
+  virtual Tensor grads() { return grads_->asTensor(); }
 
-  void clear() {
+  virtual void clear() {
     params_.clear();
     named_.clear();
 
@@ -90,4 +90,49 @@ public:
     grads_->clear();
   }
 };
+
+class MappedParameters : public Parameters {
+private:
+  Ptr<Backend> backend_;
+
+public:
+  virtual void init(Ptr<Backend> backend) override {
+    backend_ = backend;
+  }
+
+  virtual void allocateForward() override {
+    if(!params_.empty()) {
+      for(auto p : params_) {
+        if(!p->val()) {
+          p->val() = Tensor(new TensorBase(nullptr, p->shape(), Type::float32, backend_));
+        }
+      }
+    }
+  }
+
+  virtual void allocateBackward() override {
+    ABORT("Not implemented for memory-mapped parameters");
+  }
+
+  virtual void set_zero_adjoint() override {
+    ABORT("Not implemented for memory-mapped parameters");
+  }
+
+  virtual Tensor vals() override {
+    ABORT("Not implemented for memory-mapped parameters");
+    return nullptr;
+  }
+
+  virtual Tensor grads() override {
+    ABORT("Not implemented for memory-mapped parameters");
+    return nullptr;
+  }
+
+  virtual void clear() override {
+    params_.clear();
+    named_.clear();
+  }
+};
+
+
 }  // namespace marian

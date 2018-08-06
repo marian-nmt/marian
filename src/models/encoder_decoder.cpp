@@ -87,8 +87,11 @@ Config::YamlNode EncoderDecoder::getModelParameters() {
   return modelParams;
 }
 
-void EncoderDecoder::saveModelParameters(const std::string& name) {
-  Config::AddYamlToNpz(getModelParameters(), "special:model.yml", name);
+std::string EncoderDecoder::getModelParametersAsString() {
+  auto yaml = getModelParameters();
+  YAML::Emitter out;
+  OutputYaml(yaml, out);
+  return std::string(out.c_str());
 }
 
 void EncoderDecoder::load(Ptr<ExpressionGraph> graph,
@@ -97,18 +100,19 @@ void EncoderDecoder::load(Ptr<ExpressionGraph> graph,
   graph->load(name, markedReloaded && !opt<bool>("ignore-model-config", false));
 }
 
+void EncoderDecoder::mmap(Ptr<ExpressionGraph> graph,
+                          const void* ptr,
+                          bool markedReloaded) {
+  graph->mmap(ptr, markedReloaded && !opt<bool>("ignore-model-config", false));
+}
+
 void EncoderDecoder::save(Ptr<ExpressionGraph> graph,
                           const std::string& name,
                           bool saveTranslatorConfig) {
   // ignore config for now
   LOG(info, "Saving model weights and runtime parameters to {}", name);
-  std::vector<cnpy::NpzItem> npzItems;
-  graph->save(npzItems);                           // model weights
-  Config::AddYamlToNpzItems(getModelParameters(),  // model runtime parameters
-                            "special:model.yml",
-                            npzItems);
-  cnpy::npz_save(name, npzItems);  // save both jointly
-  // LOG(info, "Saved {} items.", npzItems.size());
+
+  graph->save(name, getModelParametersAsString());
 
   if(saveTranslatorConfig)
     createDecoderConfig(name);

@@ -9,6 +9,8 @@ add_library(marian STATIC
   common/logging.cpp
   common/config.cpp
   common/config_parser.cpp
+  common/binary.cpp
+  common/io.cpp
 
   data/vocab.cpp
   data/corpus_base.cpp
@@ -102,7 +104,10 @@ set_target_properties(marian_scorer PROPERTIES OUTPUT_NAME marian-scorer)
 add_executable(marian_vocab command/marian_vocab.cpp)
 set_target_properties(marian_vocab PROPERTIES OUTPUT_NAME marian-vocab)
 
-set(EXECUTABLES ${EXECUTABLES} marian_train marian_decoder marian_scorer marian_vocab)
+add_executable(marian_conv command/marian_conv.cpp)
+set_target_properties(marian_conv PROPERTIES OUTPUT_NAME marian-conv)
+
+set(EXECUTABLES ${EXECUTABLES} marian_train marian_decoder marian_scorer marian_vocab marian_conv)
 
 # marian.zip and marian.tgz
 # This combines marian, marian_decoder in a single ZIP or TAR file for
@@ -117,7 +122,8 @@ if(USE_STATIC_LIBS)
                 "${CMAKE_BINARY_DIR}/marian-decoder"
                 "${CMAKE_BINARY_DIR}/marian-scorer"
                 "${CMAKE_BINARY_DIR}/marian-vocab"
-    DEPENDS marian_train marian_decoder marian_scorer marian_vocab)
+                "${CMAKE_BINARY_DIR}/marian-conv"
+    DEPENDS marian_train marian_decoder marian_scorer marian_vocab marian_mmap)
   add_custom_target(marian_zip DEPENDS "${CMAKE_BINARY_DIR}/marian.zip")
 
   add_custom_command(
@@ -127,7 +133,8 @@ if(USE_STATIC_LIBS)
                 "marian-decoder"
                 "marian-scorer"
                 "marian-vocab"
-    DEPENDS marian_train marian_decoder marian_scorer marian_vocab)
+                "marian-conv"
+    DEPENDS marian_train marian_decoder marian_scorer marian_vocab marian_mmap)
   add_custom_target(marian_tgz DEPENDS "${CMAKE_BINARY_DIR}/marian.tgz")
 
   add_custom_target(philly DEPENDS marian_tgz marian_zip)

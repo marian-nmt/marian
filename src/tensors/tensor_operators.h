@@ -14,12 +14,26 @@
 #include "tensors/gpu/add.h"
 #include "tensors/gpu/element.h"
 #include "tensors/gpu/prod.h"
+#include "tensors/gpu/algorithm.h"
 #endif
 
 #include "tensors/cpu/add.h"
 #include "tensors/cpu/element.h"
 
+#include <algorithm>
+
 namespace marian {
+
+template <typename InIt, typename OutIt>
+void copy(Ptr<Backend> backend, const InIt beg, const InIt end, OutIt it) {
+#ifdef CUDA_FOUND
+  if(backend->getDevice().type == DeviceType::gpu)
+    gpu::copy(backend, beg, end, it);
+  else
+#endif
+    std::copy(beg, end, it);
+}
+
 
 template <class Functor, class... Tensors>
 void Element(Functor functor, marian::Tensor out, Tensors... tensors) {
@@ -119,7 +133,7 @@ static inline void Deconcatenate(std::vector<marian::Tensor>& outputs,
   DISPATCH4(HighwayForward, marian::Tensor, const marian::Tensor, const marian::Tensor, const marian::Tensor)
   DISPATCH7(HighwayBackward, marian::Tensor, marian::Tensor, marian::Tensor, const marian::Tensor, const marian::Tensor, const marian::Tensor, const marian::Tensor)
 
-  DISPATCH3(CopyRows, marian::Tensor, const marian::Tensor, const std::vector<size_t>&)
+  DISPATCH4(CopyRows, marian::Tensor, const marian::Tensor, const std::vector<size_t>&, Ptr<Allocator>)
   DISPATCH3(PasteRows, marian::Tensor, const marian::Tensor, const std::vector<size_t>&)
   DISPATCH3(CopyCols, marian::Tensor, const marian::Tensor, const std::vector<size_t>&)
   DISPATCH3(PasteCols, marian::Tensor, const marian::Tensor, const std::vector<size_t>&)

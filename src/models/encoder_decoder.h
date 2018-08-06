@@ -16,6 +16,11 @@ public:
                     bool markedReloaded = true)
       = 0;
 
+  virtual void mmap(Ptr<ExpressionGraph> graph,
+                    const void* ptr,
+                    bool markedReloaded = true)
+      = 0;
+
   virtual void save(Ptr<ExpressionGraph> graph,
                     const std::string& name,
                     bool saveTranslatorConfig = false)
@@ -71,7 +76,7 @@ protected:
   std::set<std::string> modelFeatures_;
 
   Config::YamlNode getModelParameters();
-  void saveModelParameters(const std::string& name);
+  std::string getModelParametersAsString();
 
   virtual void createDecoderConfig(const std::string& name);
 
@@ -92,6 +97,10 @@ public:
 
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
+                    bool markedReloaded = true);
+
+  virtual void mmap(Ptr<ExpressionGraph> graph,
+                    const void* ptr,
                     bool markedReloaded = true);
 
   virtual void save(Ptr<ExpressionGraph> graph,

@@ -26,6 +26,7 @@ template void copy<uint16_t>(Ptr<Backend>, const uint16_t*, const uint16_t*, uin
 template void copy<uint32_t>(Ptr<Backend>, const uint32_t*, const uint32_t*, uint32_t*);
 template void copy<uint64_t>(Ptr<Backend>, const uint64_t*, const uint64_t*, uint64_t*);
 
+template void copy<char>(Ptr<Backend>, const char*, const char*, char*);
 template void copy<float>(Ptr<Backend>, const float*, const float*, float*);
 template void copy<double>(Ptr<Backend>, const double*, const double*, double*);
 // clang-format on
