@@ -922,6 +922,7 @@ public:
     ABORT_IF(dimInput != dimState, "For SRU state and input dims have to be equal");
 
     dropout_ = opt<float>("dropout", 0);
+    layerNorm_ = opt<bool>("layer-normalization", false);
 
     W_ = graph->param(prefix + "_W",
                        {dimInput, dimInput},
@@ -1020,11 +1021,13 @@ public:
   SSRU(Ptr<ExpressionGraph> graph, Ptr<Options> options) : Cell(options) {
     int dimInput = options_->get<int>("dimInput");
     int dimState = options_->get<int>("dimState");
+
     std::string prefix = options->get<std::string>("prefix");
 
     ABORT_IF(dimInput != dimState, "For SSRU state and input dims have to be equal");
 
     dropout_ = opt<float>("dropout", 0);
+    layerNorm_ = opt<bool>("layer-normalization", false);
 
     W_ = graph->param(prefix + "_W",
                        {dimInput, dimInput},
