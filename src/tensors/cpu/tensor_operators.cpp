@@ -1188,16 +1188,16 @@ void LSTMOutputBackward(std::vector<Tensor> outputs,
   }
 }
 
-void HighwayForward2(Tensor out,
-                    const Tensor in1,
-                    const Tensor in2,
-                    const Tensor t) {
-  size_t length = out->shape().elements();
-  for(size_t i = 0; i < length; ++i) {
-    float sigma = stableSigmoid(t->data()[i]);
-    out->data()[i] = sigma * in1->data()[i] + (1.f - sigma) * in2->data()[i];
-  }
-}
+// void HighwayForward(Tensor out,
+//                    const Tensor in1,
+//                    const Tensor in2,
+//                    const Tensor t) {
+//  size_t length = out->shape().elements();
+//  for(size_t i = 0; i < length; ++i) {
+//    float sigma = stableSigmoid(t->data()[i]);
+//    out->data()[i] = sigma * in1->data()[i] + (1.f - sigma) * in2->data()[i];
+//  }
+//}
 
 void HighwayForward(Tensor out,
                     const Tensor in1,
@@ -1205,7 +1205,7 @@ void HighwayForward(Tensor out,
                     const Tensor t) {
   size_t length = out->shape().elements();
 
-  static functional::Approx<5, 0, 10> approxSigmoid(stableSigmoid);
+  static functional::Approx<10, 0, 100> approxSigmoid(stableSigmoid);
 
   for(size_t i = 0; i < length; ++i) {
     float sigma = approxSigmoid(t->data()[i]);
