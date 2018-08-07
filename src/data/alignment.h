@@ -35,5 +35,52 @@ private:
     return output;
   }
 };
+
+typedef std::vector<float> SoftAlignment;
+typedef std::pair<size_t, size_t> HardAlignment;
+
+static std::vector<HardAlignment> ConvertSoftAlignToHardAlign(
+    std::vector<SoftAlignment> alignSoft,
+    float threshold = .0f,
+    bool reversed = true) {
+
+  std::vector<data::HardAlignment> align;
+  // Alignments by maximum value
+  if(threshold == 1.f) {
+    for(size_t t = 0; t < alignSoft.size(); ++t) {
+      // Retrieved alignments are in reversed order
+      size_t rev = alignSoft.size() - t - 1;
+      size_t maxArg = 0;
+      for(size_t s = 0; s < alignSoft[0].size(); ++s) {
+        if(alignSoft[rev][maxArg] < alignSoft[rev][s]) {
+          maxArg = s;
+        }
+      }
+      align.push_back(std::make_pair(maxArg, t));
+    }
+  } else {
+    // Alignments by greather-than-threshold
+    for(size_t t = 0; t < alignSoft.size(); ++t) {
+      // Retrieved alignments are in reversed order
+      size_t rev = alignSoft.size() - t - 1;
+      for(size_t s = 0; s < alignSoft[0].size(); ++s) {
+        if(alignSoft[rev][s] > threshold) {
+          align.push_back(std::make_pair(s, t));
+        }
+      }
+    }
+  }
+
+  // Sort alignment pairs in ascending order
+  std::sort(align.begin(),
+            align.end(),
+            [](const data::HardAlignment& a, const data::HardAlignment& b) {
+              return (a.first == b.first) ? a.second < b.second
+                                          : a.first < b.first;
+            });
+
+  return align;
+}
+
 }  // namespace data
 }  // namespace marian

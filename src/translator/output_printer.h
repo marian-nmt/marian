@@ -4,14 +4,12 @@
 
 #include "common/config.h"
 #include "common/utils.h"
+#include "data/alignment.h"
 #include "data/vocab.h"
 #include "translator/history.h"
 #include "translator/hypothesis.h"
 
 namespace marian {
-
-typedef std::vector<float> SoftAlignment;
-typedef std::pair<size_t, size_t> HardAlignment;
 
 class OutputPrinter {
 public:
@@ -79,8 +77,8 @@ private:
   size_t nbest_{0};
   float alignment_{0.f};
 
-  std::vector<HardAlignment> getAlignment(const Ptr<Hypothesis>& hyp,
-                                          float threshold);
-  std::string getAlignmentString(const std::vector<HardAlignment>& align);
+  std::vector<data::HardAlignment> getAlignment(const Ptr<Hypothesis>& hyp,
+                                                float threshold);
+  std::string getAlignmentString(const std::vector<data::HardAlignment>& align);
 };
 }  // namespace marian
