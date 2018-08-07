@@ -842,8 +842,6 @@ public:
     // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
     Expr logits = output_->apply(decoderContext);
 
-    //int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
-
     // return unormalized(!) probabilities
     Ptr<DecoderState> nextState;
     if(opt<std::string>("transformer-decoder-autoreg") == "rnn") {
