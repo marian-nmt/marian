@@ -766,7 +766,8 @@ public:
     rnn::States decoderStates;
     // apply decoder layers
     auto decDepth = opt<int>("dec-depth");
-    std::vector<size_t> tiedLayers = opt<std::vector<size_t>>("transformer-tied-layers");
+    std::vector<size_t> tiedLayers = opt<std::vector<size_t>>("transformer-tied-layers", 
+                                                              std::vector<size_t>());
     ABORT_IF(!tiedLayers.empty() && tiedLayers.size() != decDepth,
              "Specified layer tying for {} layers, but decoder has {} layers",
              tiedLayers.size(),
