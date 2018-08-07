@@ -132,30 +132,43 @@ public:
           if(options_->get<float>("alignment", .0f)) {
             auto flatAligns = builder->getAlignment();
 
-            //std::cerr << "SIZE= " << flatAligns.size() << std::endl;
-            //for(size_t i = 0; i < flatAligns.size(); ++i) {
-              //std::cerr << i << ": ";
-              //for(size_t j = 0; j < flatAligns[i].size(); ++j)
-                //std::cerr << flatAligns[i][j] << " ";
-              //std::cerr << std::endl;
-            //}
-
             // TODO: refactorize
             for(size_t b = 0; b < batch->size(); ++b) {
-              for(size_t t = 0; t < flatAligns.size() - 1; ++t) {
+              for(size_t t = 0; t < flatAligns.size(); ++t) {
+
+                size_t t_idx = b + (t * batch->size());
+                if(batch->back()->mask()[t_idx] == 0)
+                  continue;
+
                 aligns[b].push_back({});
-                for(size_t s = 0; s < flatAligns[t].size(); ++s) {
+                for(size_t s = b; s < flatAligns[t].size(); s += batch->size()) {
+
+                  size_t s_idx = s;
+                  if(batch->front()->mask()[s_idx] == 0)
+                    continue;
+
                   aligns[b][t].emplace_back(flatAligns[t][s]);
                 }
               }
             }
 
             //for(size_t b = 0; b < aligns.size(); ++b) {
-              //std::cerr << "b= " << b << std::endl;
+              //std::cerr << "ms.f= " << batch->front()->mask().size() << std::endl;
+              //for(auto x : batch->front()->mask())
+                //std::cerr << x << " ";
+              //std::cerr << std::endl;
+              //std::cerr << "ms.b= " << batch->back()->mask().size() << std::endl;
+              //for(auto x : batch->back()->mask())
+                //std::cerr << x << " ";
+
+              //std::cerr << std::endl;
               //for(size_t i = 0; i < aligns[b].size(); ++i) {
+                //std::cerr << "m=" << batch->back()->mask()[b + (i * batch->size())] << " ";
                 //std::cerr << i << ": ";
-                //for(size_t j = 0; j < aligns[b][i].size(); ++j)
+                //for(size_t j = 0; j < aligns[b][i].size(); ++j) {
                   //std::cerr << aligns[b][i][j] << " ";
+                  //std::cerr << "(" << batch->front()->mask()[b + (j * batch->size())] << ") ";
+                //}
                 //std::cerr << std::endl;
               //}
             //}

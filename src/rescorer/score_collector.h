@@ -61,7 +61,7 @@ public:
 
     std::stringstream str;
     str << value << " |||";
-    for(auto p = align.begin(); p != align.end(); ++p) {
+    for(auto p = align.begin(); p != align.end() - 1; ++p) {
       str << " " << p->first << "-" << p->second;
     }
     Write(id, str.str());
