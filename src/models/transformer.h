@@ -437,6 +437,41 @@ public:
 
     return LayerAAN(prefix, input, output);
   }
+
+  Expr DecoderLayerRNN(rnn::State& decoderState,
+                       const rnn::State& prevDecoderState,
+                       std::string prefix,
+                       Expr input,
+                       Expr selfMask,
+                       int startPos) const {
+    using namespace keywords;
+
+    float dropoutRnn = inference_ ? 0.f : opt<float>("dropout-rnn");
+
+    auto rnn = rnn::rnn(graph_)                                    //
+        ("type", opt<std::string>("dec-cell"))                     //
+        ("prefix", prefix)                                         //
+        ("dimInput", opt<int>("dim-emb"))                          //
+        ("dimState", opt<int>("dim-emb"))                          //
+        ("dropout", dropoutRnn)                                    //
+        ("layer-normalization", opt<bool>("layer-normalization"))  //
+        .push_back(rnn::cell(graph_))                              //
+        .construct();
+
+    float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
+    auto opsPre = opt<std::string>("transformer-preprocess");
+    auto output = preProcess(prefix, opsPre, input, dropProb);
+
+    output = transposeTimeBatch(output);
+    output = rnn->transduce(output, prevDecoderState);
+    decoderState = rnn->lastCellStates()[0];
+    output = transposeTimeBatch(output);
+
+    auto opsPost = opt<std::string>("transformer-postprocess");
+    output = postProcess(prefix + "_ffn", opsPost, output, input, dropProb);
+
+    return output;
+  }
 };
 
 class EncoderTransformer : public Transformer<EncoderBase> {
@@ -735,6 +770,13 @@ public:
         query = DecoderLayerAAN(decoderState,
                                 prevDecoderState,
                                 prefix_ + "_l" + std::to_string(i) + "_aan",
+                                query,
+                                selfMask,
+                                startPos);
+      else if(layerType == "rnn")
+        query = DecoderLayerRNN(decoderState,
+                                prevDecoderState,
+                                prefix_ + "_l" + std::to_string(i) + "_rnn",
                                 query,
                                 selfMask,
                                 startPos);
