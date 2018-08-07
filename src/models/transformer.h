@@ -845,8 +845,19 @@ public:
     //int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
     // return unormalized(!) probabilities
-    auto nextState = New<TransformerState>(
-        decoderStates, logits, state->getEncoderStates(), state->getBatch());
+    Ptr<DecoderState> nextState;
+    if(opt<std::string>("transformer-decoder-autoreg") == "rnn") {
+      nextState = New<DecoderState>(decoderStates,
+                                    logits,
+                                    state->getEncoderStates(),
+                                    state->getBatch());
+    }
+    else {
+      nextState = New<TransformerState>(decoderStates,
+                                        logits,
+                                        state->getEncoderStates(),
+                                        state->getBatch());
+    }
     nextState->setPosition(state->getPosition() + 1);
     return nextState;
   }
