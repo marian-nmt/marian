@@ -803,6 +803,8 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
       "Sorting strategy for maxi-batch: trg (default) src none")
+    ("alignment", po::value<float>()->default_value(0.f)->implicit_value(1.f),
+     "Return word alignments")
     ;
   // clang-format on
   desc.add(rescore);
@@ -1036,6 +1038,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("n-best-feature", std::string);
     SET_OPTION_NONDEFAULT("summary", std::string);
     SET_OPTION("optimize", bool);
+    SET_OPTION("alignment", float);
   }
 
   if(mode_ == ConfigMode::translating) {
