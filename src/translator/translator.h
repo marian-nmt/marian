@@ -16,7 +16,7 @@
 namespace marian {
 
 template <class Search>
-class TranslateMultiGPU : public ModelTask {
+class Translate : public ModelTask {
 private:
   Ptr<Config> options_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
@@ -27,7 +27,7 @@ private:
   Ptr<data::ShortlistGenerator> shortlistGenerator_;
 
 public:
-  TranslateMultiGPU(Ptr<Config> options)
+  Translate(Ptr<Config> options)
       : options_(options),
         corpus_(New<data::Corpus>(options_, true)),
         trgVocab_(New<Vocab>()) {
@@ -124,7 +124,7 @@ public:
 };
 
 template <class Search>
-class TranslateServiceMultiGPU : public ModelServiceTask {
+class TranslateService : public ModelServiceTask {
 private:
   Ptr<Config> options_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
@@ -135,9 +135,9 @@ private:
   Ptr<Vocab> trgVocab_;
 
 public:
-  virtual ~TranslateServiceMultiGPU() {}
+  virtual ~TranslateService() {}
 
-  TranslateServiceMultiGPU(Ptr<Config> options)
+  TranslateService(Ptr<Config> options)
       : options_(options),
         devices_(options_->getDevices()),
         trgVocab_(New<Vocab>()) {

@@ -68,6 +68,7 @@ class ScorerWrapper : public Scorer {
 private:
   Ptr<EncoderDecoderBase> encdec_;
   std::string fname_;
+  const void* ptr_;
 
 public:
   ScorerWrapper(Ptr<models::ModelBase> encdec,
@@ -76,11 +77,22 @@ public:
                 const std::string& fname)
       : Scorer(name, weight),
         encdec_(std::static_pointer_cast<EncoderDecoderBase>(encdec)),
-        fname_(fname) {}
+        fname_(fname), ptr_{0} {}
+
+  ScorerWrapper(Ptr<models::ModelBase> encdec,
+                const std::string& name,
+                float weight,
+                const void* ptr)
+      : Scorer(name, weight),
+        encdec_(std::static_pointer_cast<EncoderDecoderBase>(encdec)),
+        ptr_{ptr} {}
 
   virtual void init(Ptr<ExpressionGraph> graph) {
     graph->switchParams(getName());
-    encdec_->load(graph, fname_);
+    if(ptr_)
+      encdec_->mmap(graph, ptr_);
+    else
+      encdec_->load(graph, fname_);
   }
 
   virtual void clear(Ptr<ExpressionGraph> graph) {
@@ -119,10 +131,17 @@ public:
   virtual std::vector<float> getAlignment() { return encdec_->getAlignment(); }
 };
 
-Ptr<Scorer> scorerByType(std::string fname,
+Ptr<Scorer> scorerByType(const std::string& fname,
                          float weight,
-                         std::string model,
+                         const std::string& model,
                          Ptr<Config> config);
 
 std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options);
+
+Ptr<Scorer> scorerByType(const std::string& fname,
+                         float weight,
+                         const void* ptr,
+                         Ptr<Config> config);
+
+std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options, const std::vector<const void*>& ptrs);
 }  // namespace marian

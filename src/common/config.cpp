@@ -1,5 +1,4 @@
 #include "common/config.h"
-#include "3rd_party/cnpy/cnpy.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
 
@@ -47,42 +46,14 @@ void Config::override(const YAML::Node& params) {
 
 void Config::loadModelParameters(const std::string& name) {
   YAML::Node config;
-  GetYamlFromNpz(config, "special:model.yml", name);
+  io::getYamlFromModel(config, "special:model.yml", name);
   override(config);
 }
 
-void Config::GetYamlFromNpz(YAML::Node& yaml,
-                            const std::string& varName,
-                            const std::string& fName) {
-  yaml = YAML::Load(cnpy::npz_load(fName, varName)->data());
+void Config::loadModelParameters(const void* ptr) {
+  YAML::Node config;
+  io::getYamlFromModel(config, "special:model.yml", ptr);
+  override(config);
 }
 
-// helper to serialize a YAML::Node to a Yaml string in a 0-terminated character
-// vector
-static std::vector<char> asYamlCharVector(const YAML::Node node) {
-  YAML::Emitter out;
-  OutputYaml(node, out);
-  return std::vector<char>(out.c_str(), out.c_str() + strlen(out.c_str()) + 1);
-}
-
-void Config::AddYamlToNpz(const YAML::Node& yaml,
-                          const std::string& varName,
-                          const std::string& fName) {
-  // YAML::Node's Yaml representation is saved as a 0-terminated char vector to
-  // the NPZ file
-  auto yamlCharVector = asYamlCharVector(yaml);
-  unsigned int shape = yamlCharVector.size();
-  cnpy::npz_save(fName, varName, yamlCharVector.data(), &shape, 1, "a");
-}
-
-// same as AddYamlToNpz() but adds to an in-memory NpzItem vector instead
-void Config::AddYamlToNpzItems(const YAML::Node& yaml,
-                               const std::string& varName,
-                               std::vector<cnpy::NpzItem>& allItems) {
-  auto yamlCharVector = asYamlCharVector(yaml);
-  allItems.emplace_back(
-      varName,
-      yamlCharVector,
-      std::vector<unsigned int>{(unsigned int)yamlCharVector.size()});
-}
 }  // namespace marian

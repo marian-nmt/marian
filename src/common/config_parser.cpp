@@ -14,7 +14,6 @@
 #endif
 #endif
 
-#include "3rd_party/cnpy/cnpy.h"
 #include "common/definitions.h"
 
 #include "common/config.h"
