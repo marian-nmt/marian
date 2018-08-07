@@ -17,6 +17,9 @@ namespace marian {
         // This is quite fast on the CPU. 
         //
         // approxSigmoid.grad(x) computes the corresponding gradient. 
+        // 
+        // When used as a local variable, use static keyword to create 
+        // only once. 
 
         template <int radius = 5, int offset = 0, int pieces = 10>
         struct Approx {
