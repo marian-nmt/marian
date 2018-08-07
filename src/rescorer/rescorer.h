@@ -10,6 +10,7 @@
 #include "rescorer/score_collector.h"
 #include "training/scheduler.h"
 #include "training/validator.h"
+#include "models/costs.h"
 
 namespace marian {
 
@@ -29,6 +30,11 @@ public:
 
   Expr build(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
     return builder_->build(graph, batch);
+  }
+
+  std::vector<float> getAlignment() {
+    auto model = std::static_pointer_cast<models::Scorer>(builder_)->getModel();
+    return std::static_pointer_cast<EncoderDecoderBase>(model)->getAlignment();
   }
 };
 
@@ -121,6 +127,11 @@ public:
 
           std::vector<float> scores;
           costNode->val()->get(scores);
+
+          std::vector<float> aligns;
+          if(options_->get<float>("alignment", .0f)) {
+            //aligns = builder->getAlignment();
+          }
 
           std::unique_lock<std::mutex> lock(smutex);
           for(auto s : scores)
