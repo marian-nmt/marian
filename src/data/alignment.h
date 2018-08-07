@@ -41,7 +41,7 @@ typedef std::pair<size_t, size_t> HardAlignment;
 
 static std::vector<HardAlignment> ConvertSoftAlignToHardAlign(
     std::vector<SoftAlignment> alignSoft,
-    float threshold = .0f,
+    float threshold = 1.f,
     bool reversed = true) {
 
   std::vector<data::HardAlignment> align;
@@ -49,7 +49,7 @@ static std::vector<HardAlignment> ConvertSoftAlignToHardAlign(
   if(threshold == 1.f) {
     for(size_t t = 0; t < alignSoft.size(); ++t) {
       // Retrieved alignments are in reversed order
-      size_t rev = alignSoft.size() - t - 1;
+      size_t rev = reversed ? alignSoft.size() - t - 1 : t;
       size_t maxArg = 0;
       for(size_t s = 0; s < alignSoft[0].size(); ++s) {
         if(alignSoft[rev][maxArg] < alignSoft[rev][s]) {
@@ -62,7 +62,7 @@ static std::vector<HardAlignment> ConvertSoftAlignToHardAlign(
     // Alignments by greather-than-threshold
     for(size_t t = 0; t < alignSoft.size(); ++t) {
       // Retrieved alignments are in reversed order
-      size_t rev = alignSoft.size() - t - 1;
+      size_t rev = reversed ? alignSoft.size() - t - 1 : t;
       for(size_t s = 0; s < alignSoft[0].size(); ++s) {
         if(alignSoft[rev][s] > threshold) {
           align.push_back(std::make_pair(s, t));

@@ -8,6 +8,7 @@
 #include "common/definitions.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
+#include "data/alignment.h"
 
 namespace marian {
 
@@ -52,6 +53,19 @@ public:
   }
 
   virtual void Write(long id, float value) { Write(id, std::to_string(value)); }
+
+  virtual void Write(long id,
+                     float value,
+                     const std::vector<data::SoftAlignment>& softAlign) {
+    auto align = data::ConvertSoftAlignToHardAlign(softAlign, 1.f, false);
+
+    std::stringstream str;
+    str << value << " |||";
+    for(auto p = align.begin(); p != align.end(); ++p) {
+      str << " " << p->first << "-" << p->second;
+    }
+    Write(id, str.str());
+  }
 
 protected:
   long nextId_{0};

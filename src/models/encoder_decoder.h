@@ -58,7 +58,7 @@ public:
 
   virtual Ptr<data::Shortlist> getShortlist() = 0;
 
-  virtual std::vector<float> getAlignment() = 0;
+  virtual std::vector<data::SoftAlignment> getAlignment() = 0;
 };
 
 class EncoderDecoder : public EncoderDecoderBase {
@@ -133,9 +133,12 @@ public:
     return decoders_[0]->getShortlist();
   };
 
-  virtual std::vector<float> getAlignment() {
-    std::vector<float> softAlign;
-    decoders_[0]->getAlignments()[0]->val()->get(softAlign);
+  virtual std::vector<data::SoftAlignment> getAlignment() {
+    std::vector<data::SoftAlignment> softAlign;
+    for(auto aln : decoders_[0]->getAlignments()) {
+      softAlign.push_back({});
+      aln->val()->get(softAlign.back());
+    }
     return softAlign;
   };
 

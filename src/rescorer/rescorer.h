@@ -32,7 +32,7 @@ public:
     return builder_->build(graph, batch);
   }
 
-  std::vector<float> getAlignment() {
+  std::vector<data::SoftAlignment> getAlignment() {
     auto model = std::static_pointer_cast<models::Scorer>(builder_)->getModel();
     return std::static_pointer_cast<EncoderDecoderBase>(model)->getAlignment();
   }
@@ -128,9 +128,37 @@ public:
           std::vector<float> scores;
           costNode->val()->get(scores);
 
-          std::vector<float> aligns;
+          std::vector<std::vector<data::SoftAlignment>> aligns(batch->size());
           if(options_->get<float>("alignment", .0f)) {
-            //aligns = builder->getAlignment();
+            auto flatAligns = builder->getAlignment();
+
+            //std::cerr << "SIZE= " << flatAligns.size() << std::endl;
+            //for(size_t i = 0; i < flatAligns.size(); ++i) {
+              //std::cerr << i << ": ";
+              //for(size_t j = 0; j < flatAligns[i].size(); ++j)
+                //std::cerr << flatAligns[i][j] << " ";
+              //std::cerr << std::endl;
+            //}
+
+            // TODO: refactorize
+            for(size_t b = 0; b < batch->size(); ++b) {
+              for(size_t t = 0; t < flatAligns.size() - 1; ++t) {
+                aligns[b].push_back({});
+                for(size_t s = 0; s < flatAligns[t].size(); ++s) {
+                  aligns[b][t].emplace_back(flatAligns[t][s]);
+                }
+              }
+            }
+
+            //for(size_t b = 0; b < aligns.size(); ++b) {
+              //std::cerr << "b= " << b << std::endl;
+              //for(size_t i = 0; i < aligns[b].size(); ++i) {
+                //std::cerr << i << ": ";
+                //for(size_t j = 0; j < aligns[b][i].size(); ++j)
+                  //std::cerr << aligns[b][i][j] << " ";
+                //std::cerr << std::endl;
+              //}
+            //}
           }
 
           std::unique_lock<std::mutex> lock(smutex);
@@ -141,7 +169,7 @@ public:
 
           if(!summarize) {
             for(size_t i = 0; i < batch->size(); ++i) {
-              output->Write(batch->getSentenceIds()[i], scores[i]);
+              output->Write(batch->getSentenceIds()[i], scores[i], aligns[i]);
             }
           }
         };
