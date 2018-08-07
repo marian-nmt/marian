@@ -657,8 +657,23 @@ public:
       Ptr<data::CorpusBatch> batch,
       std::vector<Ptr<EncoderState>>& encStates) override {
     graph_ = graph;
-    rnn::States startStates;
-    return New<TransformerState>(startStates, nullptr, encStates, batch);
+
+    using namespace keywords;
+    std::string layerType = opt<std::string>("transformer-decoder-autoreg");
+    if(layerType == "rnn") {
+      int dimBatch = batch->size();
+      int dim = opt<int>("dim-emb");
+
+      auto start = graph->constant({1, 1, dimBatch, dim}, inits::zeros);
+      rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
+
+      // don't use TransformerState for RNN layers
+      return New<DecoderState>(startStates, nullptr, encStates, batch);
+    }
+    else {
+      rnn::States startStates;
+      return New<TransformerState>(startStates, nullptr, encStates, batch);
+    }
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
@@ -750,33 +765,43 @@ public:
     rnn::States decoderStates;
     // apply decoder layers
     auto decDepth = opt<int>("dec-depth");
-    for(int i = 1; i <= decDepth; ++i) {
+    std::vector<size_t> tiedLayers = opt<std::vector<size_t>>("transformer-tied-layers");
+    ABORT_IF(!tiedLayers.empty() && tiedLayers.size() != decDepth,
+             "Specified layer tying for {} layers, but decoder has {} layers",
+             tiedLayers.size(),
+             decDepth);
+
+    for(int i = 0; i < decDepth; ++i) {
       rnn::State decoderState;
       rnn::State prevDecoderState;
 
+      std::string layerNo = std::to_string(i + 1);
+      if(!tiedLayers.empty())
+        layerNo = std::to_string(tiedLayers[i]);
+
       if(prevDecoderStates.size() > 0)
-        prevDecoderState = prevDecoderStates[i - 1];
+        prevDecoderState = prevDecoderStates[i];
 
       // self-attention
       std::string layerType = opt<std::string>("transformer-decoder-autoreg", "self-attention");
       if(layerType == "self-attention")
         query = DecoderLayerSelfAttention(decoderState,
                                           prevDecoderState,
-                                          prefix_ + "_l" + std::to_string(i) + "_self",
+                                          prefix_ + "_l" + layerNo + "_self",
                                           query,
                                           selfMask,
                                           startPos);
       else if(layerType == "average-attention")
         query = DecoderLayerAAN(decoderState,
                                 prevDecoderState,
-                                prefix_ + "_l" + std::to_string(i) + "_aan",
+                                prefix_ + "_l" + layerNo + "_aan",
                                 query,
                                 selfMask,
                                 startPos);
       else if(layerType == "rnn")
         query = DecoderLayerRNN(decoderState,
                                 prevDecoderState,
-                                prefix_ + "_l" + std::to_string(i) + "_rnn",
+                                prefix_ + "_l" + layerNo + "_rnn",
                                 query,
                                 selfMask,
                                 startPos);
@@ -791,7 +816,7 @@ public:
       if(encoderContexts.size() > 0) {
         // multiple encoders are applied one after another
         for(size_t j = 0; j < encoderContexts.size(); ++j) {
-          std::string prefix = prefix_ + "_l" + std::to_string(i) + "_context";
+          std::string prefix = prefix_ + "_l" + layerNo + "_context";
           if(j > 0)
             prefix += "_enc" + std::to_string(j + 1);
 
@@ -805,7 +830,7 @@ public:
       }
 
       // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
-      query = LayerFFN(prefix_ + "_l" + std::to_string(i) + "_ffn", query);
+      query = LayerFFN(prefix_ + "_l" + layerNo + "_ffn", query);
     }
 
     // [-4: beam depth=1, -3: max length, -2: batch size, -1: vector dim]
