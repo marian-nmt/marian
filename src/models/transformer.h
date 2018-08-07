@@ -8,6 +8,7 @@
 
 #include "layers/constructors.h"
 #include "layers/factory.h"
+#include "rnn/rnn.h"
 #include "models/decoder.h"
 #include "models/encoder.h"
 #include "models/states.h"
