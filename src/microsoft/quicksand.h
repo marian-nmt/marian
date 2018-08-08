@@ -34,8 +34,8 @@ protected:
   Word eos_;
 
 public:
-  IBeamSearchDecoder(Ptr<Options> options, 
-                     const std::vector<const void*>& ptrs, 
+  IBeamSearchDecoder(Ptr<Options> options,
+                     const std::vector<const void*>& ptrs,
                      Word eos)
       : options_(options), ptrs_(ptrs), eos_(eos) {}
 
@@ -45,8 +45,8 @@ public:
       = 0;
 };
 
-Ptr<IBeamSearchDecoder> newDecoder(Ptr<Options> options, 
-                                   const std::vector<const void*>& ptrs, 
+Ptr<IBeamSearchDecoder> newDecoder(Ptr<Options> options,
+                                   const std::vector<const void*>& ptrs,
                                    Word eos);
 
 }  // namespace quicksand

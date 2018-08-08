@@ -12,9 +12,9 @@
 
 #ifdef CUDA_FOUND
 #include "tensors/gpu/add.h"
+#include "tensors/gpu/algorithm.h"
 #include "tensors/gpu/element.h"
 #include "tensors/gpu/prod.h"
-#include "tensors/gpu/algorithm.h"
 #endif
 
 #include "tensors/cpu/add.h"
@@ -33,7 +33,6 @@ void copy(Ptr<Backend> backend, const InIt beg, const InIt end, OutIt it) {
 #endif
     std::copy(beg, end, it);
 }
-
 
 template <class Functor, class... Tensors>
 void Element(Functor functor, marian::Tensor out, Tensors... tensors) {

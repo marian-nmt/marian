@@ -1,9 +1,8 @@
 #include "common/binary.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
-#include "common/definitions.h"
-#include "common/types.h"
 #include "common/io_item.h"
+#include "common/types.h"
 
 #include <string>
 
@@ -26,10 +25,7 @@ const T* get(const void*& current, size_t num = 1) {
   return ptr;
 }
 
-void loadItems(const void* current,
-               std::vector<io::Item>& items,
-               bool mapped) {
-
+void loadItems(const void* current, std::vector<io::Item>& items, bool mapped) {
   size_t binaryFileVersion = *get<size_t>(current);
   ABORT_IF(binaryFileVersion != BINARY_FILE_VERSION,
            "Binary file versions do not match: {} (file) != {} (expected)",
@@ -69,9 +65,7 @@ void loadItems(const void* current,
   }
 }
 
-void loadItems(const std::string& fileName,
-               std::vector<io::Item>& items) {
-
+void loadItems(const std::string& fileName, std::vector<io::Item>& items) {
   // Read file into buffer
   size_t fileSize = boost::filesystem::file_size(fileName);
   char* ptr = new char[fileSize];
@@ -85,9 +79,7 @@ void loadItems(const std::string& fileName,
   delete[] ptr;
 }
 
-io::Item getItem(const void* current,
-                 const std::string& varName) {
-
+io::Item getItem(const void* current, const std::string& varName) {
   std::vector<io::Item> items;
   loadItems(current, items);
 
@@ -98,9 +90,7 @@ io::Item getItem(const void* current,
   return io::Item();
 }
 
-io::Item getItem(const std::string& fileName,
-                 const std::string& varName) {
-
+io::Item getItem(const std::string& fileName, const std::string& varName) {
   std::vector<io::Item> items;
   loadItems(fileName, items);
 
@@ -156,6 +146,6 @@ void saveItems(const std::string& fileName,
   }
 }
 
-}
-}
-}
+}  // namespace binary
+}  // namespace io
+}  // namespace marian

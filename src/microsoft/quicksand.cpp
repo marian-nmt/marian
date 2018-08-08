@@ -38,9 +38,10 @@ private:
   std::vector<Ptr<Scorer>> scorers_;
 
 public:
-  BeamSearchDecoder(Ptr<Options> options, const std::vector<const void*>& ptrs, Word eos)
+  BeamSearchDecoder(Ptr<Options> options,
+                    const std::vector<const void*>& ptrs,
+                    Word eos)
       : IBeamSearchDecoder(options, ptrs, eos) {
-
     graph_ = New<ExpressionGraph>(/*inference=*/true, /*optimize=*/true);
     graph_->setDevice(DeviceId{0, DeviceType::cpu});
     graph_->reserveWorkspaceMB(500);
@@ -57,7 +58,8 @@ public:
     // No unk in QS
     options_->set("allow-unk", false);
 
-    std::vector<std::string> models = options_->get<std::vector<std::string>>("model");
+    std::vector<std::string> models
+        = options_->get<std::vector<std::string>>("model");
 
     for(int i = 0; i < models.size(); ++i) {
       Ptr<Options> modelOpts = New<Options>();
@@ -65,9 +67,9 @@ public:
       YAML::Node config;
       if(io::isBin(models[i]) && ptrs_[i] != nullptr)
         io::getYamlFromModel(config, "special:model.yml", ptrs_[i]);
-      else 
+      else
         io::getYamlFromModel(config, "special:model.yml", models[i]);
-      
+
       modelOpts->merge(options_);
       modelOpts->merge(config);
 
@@ -77,8 +79,7 @@ public:
         // if file ends in *.bin and has been mapped by QuickSAND
         scorers_.push_back(New<ScorerWrapper>(
             encdec, "F" + std::to_string(scorers_.size()), 1, ptrs[i]));
-      }
-      else {
+      } else {
         // it's a *.npz file or has not been mapped by QuickSAND
         scorers_.push_back(New<ScorerWrapper>(
             encdec, "F" + std::to_string(scorers_.size()), 1, models[i]));
@@ -134,7 +135,9 @@ public:
   }
 };
 
-Ptr<IBeamSearchDecoder> newDecoder(Ptr<Options> options, const std::vector<const void*>& ptrs, Word eos) {
+Ptr<IBeamSearchDecoder> newDecoder(Ptr<Options> options,
+                                   const std::vector<const void*>& ptrs,
+                                   Word eos) {
   return New<BeamSearchDecoder>(options, ptrs, eos);
 }
 

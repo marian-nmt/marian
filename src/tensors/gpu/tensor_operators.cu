@@ -735,7 +735,10 @@ __global__ void gCopyRows(float* out,
   }
 }
 
-void CopyRows(Tensor out, const Tensor in, const std::vector<size_t>& indices, Ptr<Allocator> allocator) {
+void CopyRows(Tensor out,
+              const Tensor in,
+              const std::vector<size_t>& indices,
+              Ptr<Allocator> allocator) {
   cudaSetDevice(out->getDevice().no);
 
   size_t cols = in->shape().back();

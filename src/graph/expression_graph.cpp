@@ -27,9 +27,9 @@ void ExpressionGraph::checkNan(Tensor t) {
   // ABORT_IF(throwNaN_ && IsNan(t), "Tensor has NaN");
 }
 
-void ExpressionGraph::parametersToItems(std::vector<io::Item>& ioItems,
-                                        const std::map<std::string, std::string>& nameMap) {
-
+void ExpressionGraph::parametersToItems(
+    std::vector<io::Item>& ioItems,
+    const std::map<std::string, std::string>& nameMap) {
   for(auto p : params()->getMap()) {
     std::string pName = p.first;
 
@@ -50,18 +50,20 @@ void ExpressionGraph::parametersToItems(std::vector<io::Item>& ioItems,
     io::Item item;
     item.name = pName;
     item.shape = val->shape();
-    item.type =  val->type();
+    item.type = val->type();
 
     // Use the actual memory as this will be aligned and padded.
     // When memory mapping this is required. Shape keeps track of
     // tensor size. Saving to *.npz will cut to size.
     auto mem = val->memory();
     item.bytes.resize(mem->size());
-    copy(backend_, mem->data<char>(), mem->data<char>() + mem->size(), item.bytes.data());
+    copy(backend_,
+         mem->data<char>(),
+         mem->data<char>() + mem->size(),
+         item.bytes.data());
 
     ioItems.emplace_back(std::move(item));
   }
-
 }
 
 }  // namespace marian
