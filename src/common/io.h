@@ -40,5 +40,5 @@ std::vector<Item> mmapItems(const void* ptr);
 
 void saveItems(const std::string& fileName, const std::vector<Item>& items);
 
-}
-}
+}  // namespace io
+}  // namespace marian

@@ -1,5 +1,4 @@
 #include "training/graph_group_singleton.h"
-#include "functional/functional.h"
 #include "tensors/tensor_operators.h"
 
 namespace marian {
@@ -9,15 +8,6 @@ void SingletonGraph::setScheduler(Ptr<Scheduler> scheduler) {
   // optimizer has to be registered last to see changes of learning rate
   scheduler_->registerTrainingObserver(scheduler_);
   scheduler_->registerTrainingObserver(opt_);
-}
-
-void SingletonGraph::updateMovingAverage(Tensor mvAvgParams,
-                                         Tensor params,
-                                         size_t batches) {
-  using namespace functional;
-  float decay
-      = std::max(mvDecay_, 1.f - (float)(batches + 1) / (float)(batches + 10));
-  Element(_1 = ((1.f - decay) * _1) + (decay * _2), mvAvgParams, params);
 }
 
 void SingletonGraph::execute(Ptr<data::Batch> batch) {
@@ -39,14 +29,14 @@ void SingletonGraph::execute(Ptr<data::Batch> batch) {
   if(mvAvg_) {
     ABORT_IF(!scheduler_, "Scheduler is required for exponential smoothing");
 
-    if(!mvAvgGraph_) {
-      mvAvgGraph_ = New<ExpressionGraph>();
-      mvAvgGraph_->setDevice(graph_->getDevice());
-      mvAvgGraph_->copyParams(graph_);
+    if(!graphAvg_) {
+      graphAvg_ = New<ExpressionGraph>();
+      graphAvg_->setDevice(graph_->getDevice());
+      graphAvg_->copyParams(graph_);
     } else {
-      updateMovingAverage(mvAvgGraph_->params()->vals(),
-                          graph_->params()->vals(),
-                          scheduler_->numberOfBatches());
+      updateAvgParams(graphAvg_->params()->vals(),
+                      graph_->params()->vals(),
+                      scheduler_->numberOfBatches());
     }
   }
 
@@ -58,8 +48,8 @@ void SingletonGraph::execute(Ptr<data::Batch> batch) {
 
     if(scheduler_->validating()) {
       if(mvAvg_) {
-        mvAvgGraph_->reuseWorkspace(graph_);
-        scheduler_->validate({mvAvgGraph_});
+        graphAvg_->reuseWorkspace(graph_);
+        scheduler_->validate({graphAvg_});
       } else {
         scheduler_->validate({graph_});
       }

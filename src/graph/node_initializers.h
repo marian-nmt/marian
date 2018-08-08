@@ -68,7 +68,7 @@ NodeInitializer from_item(const io::Item& item);
 NodeInitializer from_sparse_vector(
     std::pair<std::vector<size_t>, std::vector<float>>& v);
 
-//NodeInitializer from_numpy(const cnpy::NpyArrayPtr& np);
+// NodeInitializer from_numpy(const cnpy::NpyArrayPtr& np);
 
 NodeInitializer from_word2vec(const std::string& file,
                               int dimVoc,

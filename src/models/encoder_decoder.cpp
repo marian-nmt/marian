@@ -39,6 +39,7 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
   modelFeatures_.insert("transformer-postprocess");
   modelFeatures_.insert("transformer-postprocess-emb");
   modelFeatures_.insert("transformer-decoder-autoreg");
+  modelFeatures_.insert("transformer-tied-layers");
 }
 
 std::vector<Ptr<EncoderBase>>& EncoderDecoder::getEncoders() {

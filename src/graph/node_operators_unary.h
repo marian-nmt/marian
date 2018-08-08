@@ -657,7 +657,8 @@ struct RowsNodeOp : public UnaryNodeOp {
   NodeOps forwardOps() {
     // @TODO: solve this with a tensor!
 
-    return {NodeOp(CopyRows(val_, child(0)->val(), indices_, graph()->allocator()))};
+    return {NodeOp(
+        CopyRows(val_, child(0)->val(), indices_, graph()->allocator()))};
   }
 
   NodeOps backwardOps() {

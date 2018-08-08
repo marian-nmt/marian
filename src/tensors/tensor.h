@@ -9,11 +9,11 @@
 #include "tensors/gpu/algorithm.h"
 #endif
 
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <memory>
 #include <sstream>
-#include <algorithm>
 
 namespace marian {
 

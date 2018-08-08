@@ -4,20 +4,21 @@
 #include "common/shape.h"
 #include "common/types.h"
 
-#include "common/io_item.h"
 #include "common/binary.h"
-
+#include "common/io_item.h"
 
 namespace marian {
 
 namespace io {
 
 bool isNpz(const std::string& fileName) {
-  return fileName.size() >= 4 && fileName.substr(fileName.length() - 4) == ".npz";
+  return fileName.size() >= 4
+         && fileName.substr(fileName.length() - 4) == ".npz";
 }
 
 bool isBin(const std::string& fileName) {
-  return fileName.size() >= 4 && fileName.substr(fileName.length() - 4) == ".bin";
+  return fileName.size() >= 4
+         && fileName.substr(fileName.length() - 4) == ".bin";
 }
 
 void getYamlFromNpz(YAML::Node& yaml,
@@ -41,11 +42,9 @@ void getYamlFromModel(YAML::Node& yaml,
                       const std::string& fileName) {
   if(io::isNpz(fileName)) {
     io::getYamlFromNpz(yaml, varName, fileName);
-  }
-  else if(io::isBin(fileName)) {
+  } else if(io::isBin(fileName)) {
     io::getYamlFromBin(yaml, varName, fileName);
-  }
-  else {
+  } else {
     ABORT("Unknown model file format for file {}", fileName);
   }
 }
@@ -78,38 +77,35 @@ void addMetaToItems(const std::string& meta,
 }
 
 void loadItemsFromNpz(const std::string& fileName, std::vector<Item>& items) {
-    auto numpy = cnpy::npz_load(fileName);
-    for(auto it : numpy) {
-
-      Shape shape;
-      if(it.second->shape.size() == 1) {
-        shape.resize(2);
-        shape.set(0, 1);
-        shape.set(1, it.second->shape[0]);
-      } else {
-        shape.resize(it.second->shape.size());
-        for(size_t i = 0; i < it.second->shape.size(); ++i)
-          shape.set(i, it.second->shape[i]);
-      }
-
-      Item item;
-      item.name = it.first;
-      item.shape = shape;
-      item.bytes.swap(it.second->bytes);
-
-      items.emplace_back(std::move(item));
+  auto numpy = cnpy::npz_load(fileName);
+  for(auto it : numpy) {
+    Shape shape;
+    if(it.second->shape.size() == 1) {
+      shape.resize(2);
+      shape.set(0, 1);
+      shape.set(1, it.second->shape[0]);
+    } else {
+      shape.resize(it.second->shape.size());
+      for(size_t i = 0; i < it.second->shape.size(); ++i)
+        shape.set(i, it.second->shape[i]);
     }
+
+    Item item;
+    item.name = it.first;
+    item.shape = shape;
+    item.bytes.swap(it.second->bytes);
+
+    items.emplace_back(std::move(item));
+  }
 }
 
 std::vector<Item> loadItems(const std::string& fileName) {
   std::vector<Item> items;
   if(isNpz(fileName)) {
     loadItemsFromNpz(fileName, items);
-  }
-  else if(isBin(fileName)) {
+  } else if(isBin(fileName)) {
     binary::loadItems(fileName, items);
-  }
-  else {
+  } else {
     ABORT("Unknown model file format for file {}", fileName);
   }
 
@@ -143,8 +139,8 @@ void saveItemsNpz(const std::string& fileName, const std::vector<Item>& items) {
     else
       ABORT("Other types not supported yet");
 
-    npzItems.emplace_back(item.name, item.bytes, shape, type, sizeOf(item.type));
-
+    npzItems.emplace_back(
+        item.name, item.bytes, shape, type, sizeOf(item.type));
   }
   cnpy::npz_save(fileName, npzItems);
 }
@@ -152,14 +148,12 @@ void saveItemsNpz(const std::string& fileName, const std::vector<Item>& items) {
 void saveItems(const std::string& fileName, const std::vector<Item>& items) {
   if(isNpz(fileName)) {
     saveItemsNpz(fileName, items);
-  }
-  else if(isBin(fileName)) {
+  } else if(isBin(fileName)) {
     binary::saveItems(fileName, items);
-  }
-  else {
+  } else {
     ABORT("Unknown file format for file {}", fileName);
   }
 }
 
-}
-}
+}  // namespace io
+}  // namespace marian

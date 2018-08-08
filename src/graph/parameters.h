@@ -96,15 +96,14 @@ private:
   Ptr<Backend> backend_;
 
 public:
-  virtual void init(Ptr<Backend> backend) override {
-    backend_ = backend;
-  }
+  virtual void init(Ptr<Backend> backend) override { backend_ = backend; }
 
   virtual void allocateForward() override {
     if(!params_.empty()) {
       for(auto p : params_) {
         if(!p->val()) {
-          p->val() = Tensor(new TensorBase(nullptr, p->shape(), Type::float32, backend_));
+          p->val() = Tensor(
+              new TensorBase(nullptr, p->shape(), Type::float32, backend_));
         }
       }
     }
@@ -133,6 +132,5 @@ public:
     named_.clear();
   }
 };
-
 
 }  // namespace marian

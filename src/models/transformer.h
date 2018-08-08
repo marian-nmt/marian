@@ -12,6 +12,7 @@
 #include "models/encoder.h"
 #include "models/states.h"
 #include "models/transformer_factory.h"
+#include "rnn/constructors.h"
 
 namespace marian {
 
@@ -278,8 +279,7 @@ public:
       vh = affine(values, Wv, bv);
       vh = SplitHeads(vh, dimHeads);
       cache_[prefix + "_values"] = vh;
-    }
-    else {
+    } else {
       vh = cache_[prefix + "_values"];
     }
 
@@ -436,6 +436,41 @@ public:
     decoderState.output = output; // BUGBUG: mutable?
 
     return LayerAAN(prefix, input, output);
+  }
+
+  Expr DecoderLayerRNN(rnn::State& decoderState,
+                       const rnn::State& prevDecoderState,
+                       std::string prefix,
+                       Expr input,
+                       Expr selfMask,
+                       int startPos) const {
+    using namespace keywords;
+
+    float dropoutRnn = inference_ ? 0.f : opt<float>("dropout-rnn");
+
+    auto rnn = rnn::rnn(graph_)                                    //
+        ("type", opt<std::string>("dec-cell"))                     //
+        ("prefix", prefix)                                         //
+        ("dimInput", opt<int>("dim-emb"))                          //
+        ("dimState", opt<int>("dim-emb"))                          //
+        ("dropout", dropoutRnn)                                    //
+        ("layer-normalization", opt<bool>("layer-normalization"))  //
+        .push_back(rnn::cell(graph_))                              //
+        .construct();
+
+    float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
+    auto opsPre = opt<std::string>("transformer-preprocess");
+    auto output = preProcess(prefix, opsPre, input, dropProb);
+
+    output = transposeTimeBatch(output);
+    output = rnn->transduce(output, prevDecoderState);
+    decoderState = rnn->lastCellStates()[0];
+    output = transposeTimeBatch(output);
+
+    auto opsPost = opt<std::string>("transformer-postprocess");
+    output = postProcess(prefix + "_ffn", opsPost, output, input, dropProb);
+
+    return output;
   }
 };
 
@@ -622,8 +657,23 @@ public:
       Ptr<data::CorpusBatch> batch,
       std::vector<Ptr<EncoderState>>& encStates) override {
     graph_ = graph;
-    rnn::States startStates;
-    return New<TransformerState>(startStates, nullptr, encStates, batch);
+
+    using namespace keywords;
+    std::string layerType = opt<std::string>("transformer-decoder-autoreg");
+    if(layerType == "rnn") {
+      int dimBatch = batch->size();
+      int dim = opt<int>("dim-emb");
+
+      auto start = graph->constant({1, 1, dimBatch, dim}, inits::zeros);
+      rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
+
+      // don't use TransformerState for RNN layers
+      return New<DecoderState>(startStates, nullptr, encStates, batch);
+    }
+    else {
+      rnn::States startStates;
+      return New<TransformerState>(startStates, nullptr, encStates, batch);
+    }
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
@@ -715,26 +765,44 @@ public:
     rnn::States decoderStates;
     // apply decoder layers
     auto decDepth = opt<int>("dec-depth");
-    for(int i = 1; i <= decDepth; ++i) {
+    std::vector<size_t> tiedLayers = opt<std::vector<size_t>>("transformer-tied-layers", 
+                                                              std::vector<size_t>());
+    ABORT_IF(!tiedLayers.empty() && tiedLayers.size() != decDepth,
+             "Specified layer tying for {} layers, but decoder has {} layers",
+             tiedLayers.size(),
+             decDepth);
+
+    for(int i = 0; i < decDepth; ++i) {
       rnn::State decoderState;
       rnn::State prevDecoderState;
 
+      std::string layerNo = std::to_string(i + 1);
+      if(!tiedLayers.empty())
+        layerNo = std::to_string(tiedLayers[i]);
+
       if(prevDecoderStates.size() > 0)
-        prevDecoderState = prevDecoderStates[i - 1];
+        prevDecoderState = prevDecoderStates[i];
 
       // self-attention
       std::string layerType = opt<std::string>("transformer-decoder-autoreg", "self-attention");
       if(layerType == "self-attention")
         query = DecoderLayerSelfAttention(decoderState,
                                           prevDecoderState,
-                                          prefix_ + "_l" + std::to_string(i) + "_self",
+                                          prefix_ + "_l" + layerNo + "_self",
                                           query,
                                           selfMask,
                                           startPos);
       else if(layerType == "average-attention")
         query = DecoderLayerAAN(decoderState,
                                 prevDecoderState,
-                                prefix_ + "_l" + std::to_string(i) + "_aan",
+                                prefix_ + "_l" + layerNo + "_aan",
+                                query,
+                                selfMask,
+                                startPos);
+      else if(layerType == "rnn")
+        query = DecoderLayerRNN(decoderState,
+                                prevDecoderState,
+                                prefix_ + "_l" + layerNo + "_rnn",
                                 query,
                                 selfMask,
                                 startPos);
@@ -749,7 +817,7 @@ public:
       if(encoderContexts.size() > 0) {
         // multiple encoders are applied one after another
         for(size_t j = 0; j < encoderContexts.size(); ++j) {
-          std::string prefix = prefix_ + "_l" + std::to_string(i) + "_context";
+          std::string prefix = prefix_ + "_l" + layerNo + "_context";
           if(j > 0)
             prefix += "_enc" + std::to_string(j + 1);
 
@@ -763,7 +831,7 @@ public:
       }
 
       // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
-      query = LayerFFN(prefix_ + "_l" + std::to_string(i) + "_ffn", query);
+      query = LayerFFN(prefix_ + "_l" + layerNo + "_ffn", query);
     }
 
     // [-4: beam depth=1, -3: max length, -2: batch size, -1: vector dim]
@@ -775,11 +843,15 @@ public:
     // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
     Expr logits = output_->apply(decoderContext);
 
-    //int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
-
     // return unormalized(!) probabilities
-    auto nextState = New<TransformerState>(
-        decoderStates, logits, state->getEncoderStates(), state->getBatch());
+    Ptr<DecoderState> nextState;
+    if(opt<std::string>("transformer-decoder-autoreg") == "rnn") {
+      nextState = New<DecoderState>(
+          decoderStates, logits, state->getEncoderStates(), state->getBatch());
+    } else {
+      nextState = New<TransformerState>(
+          decoderStates, logits, state->getEncoderStates(), state->getBatch());
+    }
     nextState->setPosition(state->getPosition() + 1);
     return nextState;
   }

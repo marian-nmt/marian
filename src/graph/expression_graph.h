@@ -14,7 +14,6 @@
 #include <map>
 #include <unordered_set>
 
-
 namespace marian {
 
 template <class T, typename... Args>
@@ -437,7 +436,6 @@ private:
   }
 
 public:
-
   void load(const std::string& name,
             const std::map<std::string, std::string>& nameMap,
             bool markReloaded = true) {
@@ -445,15 +443,7 @@ public:
     itemsToParameters(io::loadItems(name), nameMap, markReloaded);
   }
 
-  void load(const std::string& name,
-            bool markReloaded = true) {
-
-    // code to test memory mapping
-    //if(io::isBin(name)) {
-    //  loadMmap(name, markReloaded);
-    //  return;
-    //}
-
+  void load(const std::string& name, bool markReloaded = true) {
     std::map<std::string, std::string> emptyNameMap;
     load(name, emptyNameMap, markReloaded);
   }
@@ -465,8 +455,7 @@ public:
     itemsToParameters(io::loadItems(ptr), nameMap, markReloaded);
   }
 
-  void load(const void* ptr,
-            bool markReloaded = true) {
+  void load(const void* ptr, bool markReloaded = true) {
     std::map<std::string, std::string> emptyNameMap;
     load(ptr, emptyNameMap, markReloaded);
   }
@@ -474,7 +463,6 @@ public:
   void mmap(const void* ptr,
             const std::map<std::string, std::string>& nameMap,
             bool markReloaded = true) {
-
     ABORT_IF(backend_->getDevice().type != DeviceType::cpu || !inferenceOnly_,
              "Memory mapping only supported for CPU inference mode");
 
@@ -485,21 +473,10 @@ public:
     itemsToParameters(io::mmapItems(ptr), nameMap, markReloaded);
   }
 
-  void mmap(const void* ptr,
-            bool markReloaded = true) {
+  void mmap(const void* ptr, bool markReloaded = true) {
     std::map<std::string, std::string> emptyNameMap;
     mmap(ptr, emptyNameMap, markReloaded);
   }
-
-   // Code to test memory mapping
-   //char* buf_;
-   //void loadMmap(const std::string& name, bool markReloaded) {
-   //   size_t fsize = boost::filesystem::file_size(name);
-   //   buf_ = new char[fsize];
-   //   InputFileStream in(name);
-   //   in.read(buf_, fsize);
-   //   mmap(buf_, markReloaded);
-   //}
 
 private:
   // convert all parameters into an array of io::Item elements, for saving
@@ -507,11 +484,10 @@ private:
                          const std::map<std::string, std::string>& nameMap);
 
 public:
-
   void save(const std::string& name,
             const std::string& meta,
             const std::map<std::string, std::string>& nameMap) {
-    LOG(info, "Saving model to {}", name);
+    // LOG(info, "Saving model to {}", name);
 
     std::vector<io::Item> ioItems;
     parametersToItems(ioItems, nameMap);
@@ -519,7 +495,7 @@ public:
       io::addMetaToItems(meta, "special:model.yml", ioItems);
     io::saveItems(name, ioItems);
 
-    LOG(info, "Saved {} items.", ioItems.size());
+    // LOG(info, "Saved {} items.", ioItems.size());
   }
 
   void save(const std::string& name) {
@@ -527,8 +503,7 @@ public:
     save(name, "", emptyNameMap);
   }
 
-  void save(const std::string& name,
-            const std::string& meta) {
+  void save(const std::string& name, const std::string& meta) {
     std::map<std::string, std::string> emptyNameMap;
     save(name, meta, emptyNameMap);
   }
@@ -537,7 +512,6 @@ public:
             const std::map<std::string, std::string>& nameMap) {
     save(name, "", nameMap);
   }
-
 };
 
 template <class T, typename... Args>

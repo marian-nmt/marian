@@ -83,8 +83,8 @@ void AsyncGraphGroupDrop::pushGradients(Tensor newGrads,
             shardOpt_[idx]->update(params_[idx], grads_[idx]);
           }
 
-          if(movingAvg_)
-            updateMovingAverage(
+          if(mvAvg_)
+            updateAvgParams(
                 paramsAvg_[idx], params_[idx], scheduler_->numberOfBatches());
         },
         idx,

@@ -77,7 +77,8 @@ public:
                 const std::string& fname)
       : Scorer(name, weight),
         encdec_(std::static_pointer_cast<EncoderDecoderBase>(encdec)),
-        fname_(fname), ptr_{0} {}
+        fname_(fname),
+        ptr_{0} {}
 
   ScorerWrapper(Ptr<models::ModelBase> encdec,
                 const std::string& name,

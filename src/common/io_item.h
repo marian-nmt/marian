@@ -32,5 +32,5 @@ struct Item {
   }
 };
 
-}
-}
+}  // namespace io
+}  // namespace marian

@@ -417,6 +417,9 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Omit gate in AAN (transformer)")
     ("transformer-decoder-autoreg", po::value<std::string>()->default_value("self-attention"),
      "Type of autoregressive layer in transformer decoder: self-attention, average-attention (transformer)")
+    ("transformer-tied-layers", po::value<std::vector<size_t>>()->multitoken()
+      ->default_value(std::vector<size_t>(), ""),
+     "List of tied decoder layers (transformer)")
     ("transformer-preprocess", po::value<std::string>()->default_value(""),
      "Operation before each transformer layer: d = dropout, a = add, n = normalize")
     ("transformer-postprocess-emb", po::value<std::string>()->default_value("d"),
@@ -935,6 +938,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("transformer-aan-activation", std::string);
   SET_OPTION("transformer-aan-nogate", bool);
   SET_OPTION("transformer-decoder-autoreg", std::string);
+  SET_OPTION("transformer-tied-layers", std::vector<size_t>);
 
 #ifdef CUDNN
   SET_OPTION("char-stride", int);

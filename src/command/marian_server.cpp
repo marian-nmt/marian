@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
 
   // initialize translation model task
   auto options = New<Config>(argc, argv, ConfigMode::translating, true);
-  auto task = New<TranslateServiceMultiGPU<BeamSearch>>(options);
+  auto task = New<TranslateService<BeamSearch>>(options);
 
   // create web service server
   WsServer server;

@@ -30,11 +30,14 @@ void set(Ptr<Options> options, const std::string& key, const T& value);
 class IBeamSearchDecoder {
 protected:
   Ptr<Options> options_;
+  std::vector<const void*> ptrs_;
   Word eos_;
 
 public:
-  IBeamSearchDecoder(Ptr<Options> options, Word eos)
-      : options_(options), eos_(eos) {}
+  IBeamSearchDecoder(Ptr<Options> options,
+                     const std::vector<const void*>& ptrs,
+                     Word eos)
+      : options_(options), ptrs_(ptrs), eos_(eos) {}
 
   virtual QSNBestBatch decode(const QSBatch& qsBatch,
                               size_t maxLength,
@@ -42,7 +45,9 @@ public:
       = 0;
 };
 
-Ptr<IBeamSearchDecoder> newDecoder(Ptr<Options> options, Word eos);
+Ptr<IBeamSearchDecoder> newDecoder(Ptr<Options> options,
+                                   const std::vector<const void*>& ptrs,
+                                   Word eos);
 
 }  // namespace quicksand
 }  // namespace marian

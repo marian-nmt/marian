@@ -6,6 +6,7 @@
 #include "common/logging.h"
 #include "common/options.h"
 #include "common/version.h"
+#include "common/io.h"
 
 #include "data/batch_generator.h"
 #include "data/corpus.h"
