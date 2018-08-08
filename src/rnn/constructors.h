@@ -63,6 +63,18 @@ public:
       auto cell = New<Tanh>(graph_, options_);
       cell->setLazyInputs(inputs_);
       return cell;
+    } else if(type == "relu") {
+      auto cell = New<ReLU>(graph_, options_);
+      cell->setLazyInputs(inputs_);
+      return cell;
+    } else if(type == "sru") {
+      auto cell = New<SRU>(graph_, options_);
+      cell->setLazyInputs(inputs_);
+      return cell;
+    } else if(type == "ssru") {
+      auto cell = New<SSRU>(graph_, options_);
+      cell->setLazyInputs(inputs_);
+      return cell;
     } else {
       ABORT("Unknown RNN cell type");
     }

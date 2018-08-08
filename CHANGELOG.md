@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Refactored sync sgd for easier communication and integration with NCCL
 - Smaller memory-overhead for sync-sgd
 - NCCL integration (version 2.2.13)
+- New binary format for saving/load of models, can be used with *.bin extension (can be memory mapped)
+- Memory-mapping of graphs for inferece with ExpressionGraph::mmap(const void* ptr) function. (assumes *.bin model is mapped or in buffer)
+- Added SRU (--dec-cell sru) and ReLU (--dec-cell relu) cells to inventory of RNN cells.
+- RNN auto-regression layers in transformer (--transformer-decoder-autreg rnn), work with gru, lstm, tanh, relu, sru cells.
+- Recurrently stacked layers in transformer (--transformer-tied-layers 1 1 1 2 2 2 means 6 layers with 1-3 and 4-6 tied parameters, two groups of parameters) 
 
 ### Fixed
 
