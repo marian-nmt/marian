@@ -487,7 +487,7 @@ public:
   void save(const std::string& name,
             const std::string& meta,
             const std::map<std::string, std::string>& nameMap) {
-    LOG(info, "Saving model to {}", name);
+    // LOG(info, "Saving model to {}", name);
 
     std::vector<io::Item> ioItems;
     parametersToItems(ioItems, nameMap);
