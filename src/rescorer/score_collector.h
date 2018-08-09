@@ -54,7 +54,7 @@ public:
 
   virtual void Write(long id,
                      float score,
-                     const std::vector<data::SoftAlignment>& align = {}) {
+                     const data::SoftAlignment& align = {}) {
     auto msg = std::to_string(score);
     if(!align.empty()) {
       auto hardAlign = data::ConvertSoftAlignToHardAlign(align, 1.f, false);
@@ -109,7 +109,7 @@ public:
   std::string addToNBest(const std::string nbest,
                          const std::string feature,
                          float score,
-                         const std::vector<data::SoftAlignment>& align = {}) {
+                         const data::SoftAlignment& align = {}) {
     std::vector<std::string> fields;
     Split(nbest, fields, "|||");
     std::stringstream ss;
@@ -122,9 +122,7 @@ public:
     return Join(fields, "|||");
   }
 
-  virtual void Write(long id,
-                     float score,
-                     const std::vector<data::SoftAlignment>& align) {
+  virtual void Write(long id, float score, const data::SoftAlignment& align) {
     std::string line;
     {
       boost::mutex::scoped_lock lock(mutex_);

@@ -32,7 +32,7 @@ public:
     return builder_->build(graph, batch);
   }
 
-  std::vector<data::SoftAlignment> getAlignment() {
+  data::SoftAlignment getAlignment() {
     auto model = std::static_pointer_cast<models::Scorer>(builder_)->getModel();
     return std::static_pointer_cast<EncoderDecoderBase>(model)->getAlignment();
   }
@@ -131,7 +131,8 @@ public:
           std::vector<float> scores;
           costNode->val()->get(scores);
 
-          std::vector<std::vector<data::SoftAlignment>> aligns(batch->size());
+          // soft alignments for each sentence in the batch
+          std::vector<data::SoftAlignment> aligns(batch->size());
           if(options_->get<float>("alignment", .0f)) {
             auto flatAligns = builder->getAlignment();
 

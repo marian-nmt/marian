@@ -189,9 +189,7 @@ public:
     return encdec_->getShortlist();
   };
 
-  virtual std::vector<data::SoftAlignment> getAlignment() {
-    return encdec_->getAlignment();
-  }
+  virtual data::SoftAlignment getAlignment() { return encdec_->getAlignment(); }
 };
 
 static Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec,
