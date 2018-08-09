@@ -57,6 +57,11 @@ public:
   virtual void Write(long id,
                      float value,
                      const std::vector<data::SoftAlignment>& softAlign) {
+    if(softAlign.empty()) {
+      Write(id, value);
+      return;
+    }
+
     auto align = data::ConvertSoftAlignToHardAlign(softAlign, 1.f, false);
 
     std::stringstream str;
