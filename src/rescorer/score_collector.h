@@ -52,24 +52,15 @@ public:
     }
   }
 
-  virtual void Write(long id, float value) { Write(id, std::to_string(value)); }
-
   virtual void Write(long id,
-                     float value,
-                     const std::vector<data::SoftAlignment>& softAlign) {
-    if(softAlign.empty()) {
-      Write(id, value);
-      return;
+                     float score,
+                     const std::vector<data::SoftAlignment>& align = {}) {
+    auto msg = std::to_string(score);
+    if(!align.empty()) {
+      auto hardAlign = data::ConvertSoftAlignToHardAlign(align, 1.f, false);
+      msg += " ||| " + hardAlignToString(hardAlign);
     }
-
-    auto align = data::ConvertSoftAlignToHardAlign(softAlign, 1.f, false);
-
-    std::stringstream str;
-    str << value << " |||";
-    for(auto p = align.begin(); p != align.end() - 1; ++p) {
-      str << " " << p->first << "-" << p->second;
-    }
-    Write(id, str.str());
+    Write(id, msg);
   }
 
 protected:
@@ -79,6 +70,18 @@ protected:
 
   typedef std::map<long, std::string> Outputs;
   Outputs outputs_;
+
+  // @TODO: move to data/alignment.h
+  std::string hardAlignToString(
+      const std::vector<data::HardAlignment>& align) const {
+    std::stringstream str;
+    for(auto p = align.begin(); p != align.end() - 1; ++p) {
+      if(p != align.begin())
+        str << " ";
+      str << p->first << "-" << p->second;
+    }
+    return str.str();
+  }
 };
 
 class ScoreCollectorNBest : public ScoreCollector {
@@ -93,6 +96,7 @@ private:
 
 public:
   ScoreCollectorNBest() = delete;
+
   ScoreCollectorNBest(const Ptr<Config>& options) : options_(options) {
     auto paths = options_->get<std::vector<std::string>>("train-sets");
     nBestList_ = paths.back();
@@ -104,16 +108,23 @@ public:
 
   std::string addToNBest(const std::string nbest,
                          const std::string feature,
-                         float score) {
+                         float score,
+                         const std::vector<data::SoftAlignment>& align = {}) {
     std::vector<std::string> fields;
     Split(nbest, fields, "|||");
     std::stringstream ss;
+    if(!align.empty()) {
+      auto hardAlign = data::ConvertSoftAlignToHardAlign(align, 1.f, false);
+      ss << " " << hardAlignToString(hardAlign) << " |||";
+    }
     ss << fields[2] << feature << "= " << score << " ";
     fields[2] = ss.str();
     return Join(fields, "|||");
   }
 
-  virtual void Write(long id, float score) {
+  virtual void Write(long id,
+                     float score,
+                     const std::vector<data::SoftAlignment>& align) {
     std::string line;
     {
       boost::mutex::scoped_lock lock(mutex_);
@@ -134,7 +145,7 @@ public:
       buffer_.erase(iter);
     }
 
-    ScoreCollector::Write(id, addToNBest(line, fname_, score));
+    ScoreCollector::Write(id, addToNBest(line, fname_, score, align));
   }
 };
 }  // namespace marian
