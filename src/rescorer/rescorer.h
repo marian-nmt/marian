@@ -54,6 +54,9 @@ public:
                 ? std::static_pointer_cast<CorpusBase>(
                       New<CorpusNBest>(options_))
                 : std::static_pointer_cast<CorpusBase>(New<Corpus>(options_))) {
+    ABORT_IF(options_->has("summary") && options_->get<float>("alignment", .0f),
+             "Alignments can not be produced with summarized score");
+
     corpus_->prepare();
 
     auto devices = options_->getDevices();
