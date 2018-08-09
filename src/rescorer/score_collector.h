@@ -73,7 +73,7 @@ protected:
 
   // @TODO: move to data/alignment.h
   std::string hardAlignToString(
-      const std::vector<data::HardAlignment>& align) const {
+      const data::WordAlignment& align) const {
     std::stringstream str;
     for(auto p = align.begin(); p != align.end() - 1; ++p) {
       if(p != align.begin())

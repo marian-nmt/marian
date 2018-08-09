@@ -94,7 +94,7 @@ public:
 
         // Set alignments
         if(!alignments.empty()) {
-          auto align = getHardAlignmentsForHypothesis(
+          auto align = getAlignmentsForHypothesis(
               alignments, batch, beamSize, beamHypIdx, beamIdx);
           hyp->SetAlignment(align);
         }
@@ -105,7 +105,7 @@ public:
     return newBeams;
   }
 
-  std::vector<float> getHardAlignmentsForHypothesis(
+  std::vector<float> getAlignmentsForHypothesis(
       const std::vector<float> alignments,
       Ptr<data::CorpusBatch> batch,
       int beamSize,

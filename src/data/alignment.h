@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/algorithm/string.hpp>
+#include <sstream>
 
 namespace marian {
 namespace data {
@@ -12,6 +13,8 @@ private:
 
 public:
   WordAlignment() {}
+
+  WordAlignment(const std::vector<std::pair<int, int>>& align) : data_(align) {}
 
   /**
    * @brief Constructs the word alignment from its textual representation.
@@ -27,6 +30,24 @@ public:
   auto begin() const -> decltype(data_.begin()) { return data_.begin(); }
   auto end() const -> decltype(data_.end()) { return data_.end(); }
 
+  void push_back(size_t s, size_t t) { data_.push_back(std::make_pair(s, t)); }
+
+  void sort() {
+    std::sort(data_.begin(), data_.end(), [](const Point& a, const Point& b) {
+      return (a.first == b.first) ? a.second < b.second : a.first < b.first;
+    });
+  }
+
+  std::string toString() const {
+    std::stringstream str;
+    for(auto p = begin(); p != end(); ++p) {
+      if(p != begin())
+        str << " ";
+      str << p->first << "-" << p->second;
+    }
+    return str.str();
+  }
+
 private:
   std::vector<std::string> split(const std::string& input,
                                  const std::string& chars) {
@@ -37,14 +58,13 @@ private:
 };
 
 typedef std::vector<float> SoftAlignment;
-typedef std::pair<size_t, size_t> HardAlignment;
 
-static std::vector<HardAlignment> ConvertSoftAlignToHardAlign(
+static WordAlignment ConvertSoftAlignToHardAlign(
     std::vector<SoftAlignment> alignSoft,
     float threshold = 1.f,
     bool reversed = true) {
 
-  std::vector<data::HardAlignment> align;
+  WordAlignment align;
   // Alignments by maximum value
   if(threshold == 1.f) {
     for(size_t t = 0; t < alignSoft.size(); ++t) {
@@ -56,7 +76,7 @@ static std::vector<HardAlignment> ConvertSoftAlignToHardAlign(
           maxArg = s;
         }
       }
-      align.push_back(std::make_pair(maxArg, t));
+      align.push_back(maxArg, t);
     }
   } else {
     // Alignments by greather-than-threshold
@@ -65,19 +85,14 @@ static std::vector<HardAlignment> ConvertSoftAlignToHardAlign(
       size_t rev = reversed ? alignSoft.size() - t - 1 : t;
       for(size_t s = 0; s < alignSoft[0].size(); ++s) {
         if(alignSoft[rev][s] > threshold) {
-          align.push_back(std::make_pair(s, t));
+          align.push_back(s, t);
         }
       }
     }
   }
 
   // Sort alignment pairs in ascending order
-  std::sort(align.begin(),
-            align.end(),
-            [](const data::HardAlignment& a, const data::HardAlignment& b) {
-              return (a.first == b.first) ? a.second < b.second
-                                          : a.first < b.first;
-            });
+  align.sort();
 
   return align;
 }

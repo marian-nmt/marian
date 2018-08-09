@@ -34,8 +34,7 @@ public:
       bestn << history->GetLineNum() << " ||| " << translation;
 
       if(alignment_ > 0.f) {
-        auto align = getAlignment(hypo, alignment_);
-        bestn << getAlignmentString(align);
+        bestn << " " << getAlignment(hypo, alignment_).toString();
       }
 
       bestn << " |||";
@@ -65,8 +64,7 @@ public:
     best1 << translation;
     if(alignment_ > 0.f) {
       const auto& hypo = std::get<1>(result);
-      auto align = getAlignment(hypo, alignment_);
-      best1 << getAlignmentString(align);
+      best1 << " ||| " << getAlignment(hypo, alignment_).toString();
     }
     best1 << std::flush;
   }
@@ -77,8 +75,6 @@ private:
   size_t nbest_{0};
   float alignment_{0.f};
 
-  std::vector<data::HardAlignment> getAlignment(const Ptr<Hypothesis>& hyp,
-                                                float threshold);
-  std::string getAlignmentString(const std::vector<data::HardAlignment>& align);
+  data::WordAlignment getAlignment(const Ptr<Hypothesis>& hyp, float threshold);
 };
 }  // namespace marian

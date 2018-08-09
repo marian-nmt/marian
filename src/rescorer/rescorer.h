@@ -154,27 +154,6 @@ public:
                 }
               }
             }
-
-            //for(size_t b = 0; b < aligns.size(); ++b) {
-              //std::cerr << "ms.f= " << batch->front()->mask().size() << std::endl;
-              //for(auto x : batch->front()->mask())
-                //std::cerr << x << " ";
-              //std::cerr << std::endl;
-              //std::cerr << "ms.b= " << batch->back()->mask().size() << std::endl;
-              //for(auto x : batch->back()->mask())
-                //std::cerr << x << " ";
-
-              //std::cerr << std::endl;
-              //for(size_t i = 0; i < aligns[b].size(); ++i) {
-                //std::cerr << "m=" << batch->back()->mask()[b + (i * batch->size())] << " ";
-                //std::cerr << i << ": ";
-                //for(size_t j = 0; j < aligns[b][i].size(); ++j) {
-                  //std::cerr << aligns[b][i][j] << " ";
-                  //std::cerr << "(" << batch->front()->mask()[b + (j * batch->size())] << ") ";
-                //}
-                //std::cerr << std::endl;
-              //}
-            //}
           }
 
           std::unique_lock<std::mutex> lock(smutex);
