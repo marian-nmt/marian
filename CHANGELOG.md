@@ -7,13 +7,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+- Returning hard alignments by scorer
+
 ## [1.6.0] - 2018-08-08
 
 ### Added
 
 - Faster training (20-30%) by optimizing gradient popagation of biases
-- Returning Moses-style hard alignments during decoding single models, ensembles and n-best
-  lists
+- Returning Moses-style hard alignments during decoding single models,
+  ensembles and n-best lists
 - Hard alignment extraction strategy taking source words that have the
   attention value greater than the threshold
 - Refactored sync sgd for easier communication and integration with NCCL
@@ -24,23 +27,24 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Memory-mapping of graphs for inferece with `ExpressionGraph::mmap(const void*
   ptr)` function. (assumes _*.bin_ model is mapped or in buffer)
 - Added SRU (--dec-cell sru) and ReLU (--dec-cell relu) cells to inventory of
-  RNN cells.
+  RNN cells
 - RNN auto-regression layers in transformer (`--transformer-decoder-autreg
-  rnn`), work with gru, lstm, tanh, relu, sru cells.
+  rnn`), work with gru, lstm, tanh, relu, sru cells
 - Recurrently stacked layers in transformer (`--transformer-tied-layers 1 1 1 2
   2 2` means 6 layers with 1-3 and 4-6 tied parameters, two groups of
   parameters)
+- Seamless training continuation with exponential smoothing
 
 ### Fixed
 
-- A couple of bugs in "selection" (transpose, shift, cols, rows) operators during
-  back-prob for a very specific case: one of the operators is the first operator after
-  a branch, in that case gradient propgation might be interrupted. This did not affect
-  any of the existing models as such a case was not present, but might have caused
-  future models to not train properly.
-- Bug in mini-batch-fit, tied embeddings would result in identical embeddings in fake
-  source and target batch. Caused under-estimation of memory usage and re-allocation.
-- Seamless training continuation with exponential smoothing
+- A couple of bugs in "selection" (transpose, shift, cols, rows) operators
+  during back-prob for a very specific case: one of the operators is the first
+  operator after a branch, in that case gradient propgation might be
+  interrupted. This did not affect any of the existing models as such a case
+  was not present, but might have caused future models to not train properly
+- Bug in mini-batch-fit, tied embeddings would result in identical embeddings
+  in fake source and target batch. Caused under-estimation of memory usage and
+  re-allocation
 
 ## [1.5.0] - 2018-06-17
 
@@ -90,7 +94,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.2.1] - 2018-01-19
 
 ### Fixed
-- Use valid-mini-batch size during validation with "translation" instead of mini-batch
+- Use valid-mini-batch size during validation with "translation" instead of
+  mini-batch
 - Normalize gradients with multi-gpu synchronous SGD
 - Fix divergence between saved models and validated models in asynchronous SGD
 
@@ -122,7 +127,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed ensembling with language model and batched decoding
 - Fixed attention reduction kernel with large matrices (added missing
   `syncthreads()`), which should fix stability with large batches and beam-size
-  during batched decoding.
+  during batched decoding
 
 ## [1.1.1] - 2017-11-30
 
@@ -187,7 +192,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Renamed option name `--dynamic-batching` to `--mini-batch-fit`
 - Unified cross-entropy-based validation, supports now perplexity and other CE
 - Changed `--normalize (bool)` to `--normalize (float)arg`, allow to change
-  length normalization weight as `score / pow(length, arg)`.
+  length normalization weight as `score / pow(length, arg)`
 
 ### Removed
 - Temporarily removed gradient dropping (`--drop-rate X`) until refactoring.
