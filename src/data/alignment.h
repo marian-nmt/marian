@@ -42,17 +42,16 @@ public:
 
   /**
    * @brief Returns textual representation.
-   *
-   * The argument can be used to skip alignments for EOS tokens.
    */
-  std::string toString(bool skipLast = false) const;
+  std::string toString() const;
 };
 
 typedef std::vector<std::vector<float>> SoftAlignment;
 
 WordAlignment ConvertSoftAlignToHardAlign(SoftAlignment alignSoft,
                                           float threshold = 1.f,
-                                          bool reversed = true);
+                                          bool reversed = true,
+                                          bool skipEOS = false);
 
 }  // namespace data
 }  // namespace marian

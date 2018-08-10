@@ -8,6 +8,7 @@
 #include "common/definitions.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
+#include "common/utils.h"
 #include "data/alignment.h"
 
 namespace marian {
@@ -57,8 +58,9 @@ public:
                      const data::SoftAlignment& align = {}) {
     auto msg = std::to_string(score);
     if(!align.empty()) {
-      auto wordAlign = data::ConvertSoftAlignToHardAlign(align, 1.f, false);
-      msg += " ||| " + wordAlign.toString(true);
+      auto wordAlign
+          = data::ConvertSoftAlignToHardAlign(align, 1.f, false, true);
+      msg += " ||| " + wordAlign.toString();
     }
     Write(id, msg);
   }
@@ -102,8 +104,9 @@ public:
     utils::Split(nbest, fields, "|||");
     std::stringstream ss;
     if(!align.empty()) {
-      auto wordAlign = data::ConvertSoftAlignToHardAlign(align, 1.f, false);
-      ss << " " << wordAlign.toString(true) << " |||";
+      auto wordAlign
+          = data::ConvertSoftAlignToHardAlign(align, 1.f, false, true);
+      ss << " " << wordAlign.toString() << " |||";
     }
     ss << fields[2] << feature << "= " << score << " ";
     fields[2] = ss.str();
