@@ -57,8 +57,8 @@ public:
                      const data::SoftAlignment& align = {}) {
     auto msg = std::to_string(score);
     if(!align.empty()) {
-      auto hardAlign = data::ConvertSoftAlignToHardAlign(align, 1.f, false);
-      msg += " ||| " + hardAlignToString(hardAlign);
+      auto wordAlign = data::ConvertSoftAlignToHardAlign(align, 1.f, false);
+      msg += " ||| " + wordAlign.toString(true);
     }
     Write(id, msg);
   }
@@ -70,18 +70,6 @@ protected:
 
   typedef std::map<long, std::string> Outputs;
   Outputs outputs_;
-
-  // @TODO: move to data/alignment.h
-  std::string hardAlignToString(
-      const data::WordAlignment& align) const {
-    std::stringstream str;
-    for(auto p = align.begin(); p != align.end() - 1; ++p) {
-      if(p != align.begin())
-        str << " ";
-      str << p->first << "-" << p->second;
-    }
-    return str.str();
-  }
 };
 
 class ScoreCollectorNBest : public ScoreCollector {
@@ -114,8 +102,8 @@ public:
     Split(nbest, fields, "|||");
     std::stringstream ss;
     if(!align.empty()) {
-      auto hardAlign = data::ConvertSoftAlignToHardAlign(align, 1.f, false);
-      ss << " " << hardAlignToString(hardAlign) << " |||";
+      auto wordAlign = data::ConvertSoftAlignToHardAlign(align, 1.f, false);
+      ss << " " << wordAlign.toString(true) << " |||";
     }
     ss << fields[2] << feature << "= " << score << " ";
     fields[2] = ss.str();

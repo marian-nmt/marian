@@ -6,11 +6,11 @@
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "data/corpus_nbest.h"
+#include "models/costs.h"
 #include "models/model_task.h"
 #include "rescorer/score_collector.h"
 #include "training/scheduler.h"
 #include "training/validator.h"
-#include "models/costs.h"
 
 namespace marian {
 
