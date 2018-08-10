@@ -98,6 +98,7 @@ public:
                                            New<ScoreCollectorNBest>(options_))
                                      : New<ScoreCollector>();
 
+    float alignment = options_->get<float>("alignment", .0f);
     bool summarize = options_->has("summary");
     std::string summary
         = summarize ? options_->get<std::string>("summary") : "cross-entropy";
@@ -133,28 +134,8 @@ public:
 
           // soft alignments for each sentence in the batch
           std::vector<data::SoftAlignment> aligns(batch->size());
-          if(options_->get<float>("alignment", .0f)) {
-            auto flatAligns = builder->getAlignment();
-
-            // TODO: refactorize
-            for(size_t b = 0; b < batch->size(); ++b) {
-              for(size_t t = 0; t < flatAligns.size(); ++t) {
-
-                size_t t_idx = b + (t * batch->size());
-                if(batch->back()->mask()[t_idx] == 0)
-                  continue;
-
-                aligns[b].push_back({});
-                for(size_t s = b; s < flatAligns[t].size(); s += batch->size()) {
-
-                  size_t s_idx = s;
-                  if(batch->front()->mask()[s_idx] == 0)
-                    continue;
-
-                  aligns[b][t].emplace_back(flatAligns[t][s]);
-                }
-              }
-            }
+          if(alignment > .0f) {
+            getAlignmentsForBatch(builder->getAlignment(), batch, aligns);
           }
 
           std::unique_lock<std::mutex> lock(smutex);
@@ -190,5 +171,40 @@ public:
       std::cout << cost << std::endl;
     }
   }
+
+private:
+  void getAlignmentsForBatch(const data::SoftAlignment& rawAligns,
+                             Ptr<data::CorpusBatch> batch,
+                             std::vector<data::SoftAlignment>& aligns) {
+    // Raw word alignments is a vector of N x L, where N is the number of
+    // sentences in the batch and L is the length of the longest sentence in the
+    // batch, and are organized as follows:
+    //   [word1-batch1, word1-batch2, ..., word2-batch1, ... ]
+    // The last alignments are always for EOS tokens.
+
+    // for each sentence in the batch
+    for(size_t b = 0; b < batch->size(); ++b) {
+      // for each target index
+      for(size_t t = 0; t < rawAligns.size(); ++t) {
+        // skip the rest if masked
+        size_t t_idx = b + (t * batch->size());
+        if(batch->back()->mask()[t_idx] == 0)
+          continue;
+
+        aligns[b].push_back({});
+
+        // for each source index
+        for(size_t s = b; s < rawAligns[t].size(); s += batch->size()) {
+          // skip the rest if masked
+          size_t s_idx = s;
+          if(batch->front()->mask()[s_idx] == 0)
+            continue;
+
+          aligns[b][t].emplace_back(rawAligns[t][s]);
+        }
+      }
+    }
+  }
 };
+
 }  // namespace marian
