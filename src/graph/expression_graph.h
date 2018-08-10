@@ -495,7 +495,7 @@ public:
   void save(const std::string& name,
             const std::string& meta,
             const std::map<std::string, std::string>& nameMap) {
-    LOG(info, "Saving model to {}", name);
+    //LOG(info, "Saving model to {}", name);
 
     std::vector<io::Item> ioItems;
     parametersToItems(ioItems, nameMap);
@@ -503,7 +503,7 @@ public:
       io::addMetaToItems(meta, "special:model.yml", ioItems);
     io::saveItems(name, ioItems);
 
-    LOG(info, "Saved {} items.", ioItems.size());
+    //LOG(info, "Saved {} items.", ioItems.size());
   }
 
   void save(const std::string& name) {
