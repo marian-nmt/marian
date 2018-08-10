@@ -99,7 +99,7 @@ public:
                          float score,
                          const data::SoftAlignment& align = {}) {
     std::vector<std::string> fields;
-    Split(nbest, fields, "|||");
+    utils::Split(nbest, fields, "|||");
     std::stringstream ss;
     if(!align.empty()) {
       auto wordAlign = data::ConvertSoftAlignToHardAlign(align, 1.f, false);
@@ -107,7 +107,7 @@ public:
     }
     ss << fields[2] << feature << "= " << score << " ";
     fields[2] = ss.str();
-    return Join(fields, "|||");
+    return utils::Join(fields, "|||");
   }
 
   virtual void Write(long id, float score, const data::SoftAlignment& align) {
@@ -121,7 +121,7 @@ public:
                  id,
                  lastRead_);
         std::string line;
-        while(lastRead_ < id && GetLine((std::istream&)*file_, line)) {
+        while(lastRead_ < id && utils::GetLine((std::istream&)*file_, line)) {
           lastRead_++;
           iter = buffer_.emplace(lastRead_, line).first;
         }
