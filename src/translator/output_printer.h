@@ -34,7 +34,7 @@ public:
       bestn << history->GetLineNum() << " ||| " << translation;
 
       if(alignment_ > 0.f) {
-        bestn << " " << getAlignment(hypo, alignment_).toString();
+        bestn << " ||| " << getAlignment(hypo, alignment_).toString();
       }
 
       bestn << " |||";
