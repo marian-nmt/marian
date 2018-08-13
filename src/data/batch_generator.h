@@ -35,6 +35,7 @@ private:
   int batchSize_{1};
 
   typename DataSet::iterator current_;
+  bool newlyPrepared_{true};
 
   size_t maxiBatchSize_;
   std::deque<BatchPtr> bufferedBatches_;
@@ -82,11 +83,22 @@ private:
 
     // consume data from corpus into maxi-batch (single sentences)
     // sorted into specified order (due to queue)
+    if(newlyPrepared_) {
+      current_ = data_->begin();
+      newlyPrepared_ = false;
+    } else {
+      if(current_ != data_->end())
+        ++current_;
+    }
     size_t sets = 0;
     while(current_ != data_->end() && maxiBatch->size() < maxSize) {
       maxiBatch->push(*current_);
       sets = current_->size();
-      current_++;
+      // do not consume more than required for the maxi batch as this causes
+      // that line-by-line translation is delayed by one sentence
+      bool last = maxiBatch->size() == maxSize;
+      if(!last)
+        ++current_;
     }
 
     samples batchVector;
@@ -220,7 +232,7 @@ public:
       data_->shuffle();
     else
       data_->reset();
-    current_ = data_->begin();
+    newlyPrepared_ = true;
     fillBatches(shuffle);
   }
 
