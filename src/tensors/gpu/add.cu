@@ -131,7 +131,7 @@ __global__ void gAddReduce(Functor functor,
 
 template <class Functor, class... Tensors>
 void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
-  cudaSetDevice(out->getDevice().no);
+  cudaSetDevice(out->getDeviceId().no);
 
   auto full = marian::Shape::broadcast({out, tensors...});
 

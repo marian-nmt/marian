@@ -18,7 +18,7 @@ void Prod(marian::Tensor C,
           bool transB,
           float beta,
           float scalar) {
-  cudaSetDevice(C->getDevice().no);
+  cudaSetDevice(C->getDeviceId().no);
   float alpha = scalar;
 
   size_t m = A->shape().elements() / A->shape().back();
@@ -81,7 +81,7 @@ __global__ void gAddBias(float* out,
 }
 
 void AddBias(marian::Tensor C, const marian::Tensor bias) {
-  cudaSetDevice(C->getDevice().no);
+  cudaSetDevice(C->getDeviceId().no);
 
   int length = C->shape().elements();
   int cols = bias->shape().elements();
@@ -114,7 +114,7 @@ void ProdBatched(marian::Tensor C,
                  bool transB,
                  float beta,
                  float scalar) {
-  cudaSetDevice(C->getDevice().no);
+  cudaSetDevice(C->getDeviceId().no);
   float alpha = scalar;
 
   size_t batchA = A->shape().elements() / (A->shape()[-1] * A->shape()[-2]);

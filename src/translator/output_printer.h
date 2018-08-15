@@ -4,14 +4,12 @@
 
 #include "common/config.h"
 #include "common/utils.h"
+#include "data/alignment.h"
 #include "data/vocab.h"
 #include "translator/history.h"
 #include "translator/hypothesis.h"
 
 namespace marian {
-
-typedef std::vector<float> SoftAlignment;
-typedef std::pair<size_t, size_t> HardAlignment;
 
 class OutputPrinter {
 public:
@@ -32,12 +30,11 @@ public:
       const auto& words = std::get<0>(result);
       const auto& hypo = std::get<1>(result);
 
-      std::string translation = Join((*vocab_)(words), " ", reverse_);
+      std::string translation = utils::Join((*vocab_)(words), " ", reverse_);
       bestn << history->GetLineNum() << " ||| " << translation;
 
       if(alignment_ > 0.f) {
-        auto align = getAlignment(hypo, alignment_);
-        bestn << getAlignmentString(align);
+        bestn << " ||| " << getAlignment(hypo, alignment_).toString();
       }
 
       bestn << " |||";
@@ -62,13 +59,12 @@ public:
     auto result = history->Top();
     const auto& words = std::get<0>(result);
 
-    std::string translation = Join((*vocab_)(words), " ", reverse_);
+    std::string translation = utils::Join((*vocab_)(words), " ", reverse_);
 
     best1 << translation;
     if(alignment_ > 0.f) {
       const auto& hypo = std::get<1>(result);
-      auto align = getAlignment(hypo, alignment_);
-      best1 << getAlignmentString(align);
+      best1 << " ||| " << getAlignment(hypo, alignment_).toString();
     }
     best1 << std::flush;
   }
@@ -79,8 +75,6 @@ private:
   size_t nbest_{0};
   float alignment_{0.f};
 
-  std::vector<HardAlignment> getAlignment(const Ptr<Hypothesis>& hyp,
-                                          float threshold);
-  std::string getAlignmentString(const std::vector<HardAlignment>& align);
+  data::WordAlignment getAlignment(const Ptr<Hypothesis>& hyp, float threshold);
 };
 }  // namespace marian

@@ -52,7 +52,6 @@ Ptr<Scorer> scorerByType(const std::string& fname,
   return New<ScorerWrapper>(encdec, fname, weight, ptr);
 }
 
-
 std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options) {
   std::vector<Ptr<Scorer>> scorers;
 

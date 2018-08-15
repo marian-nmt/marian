@@ -25,7 +25,7 @@ public:
          ConfigMode mode = ConfigMode::training,
          bool validate = false) {
     std::vector<std::string> sargv;
-    Split(options, sargv, " ");
+    utils::Split(options, sargv, " ");
     int argc = sargv.size();
 
     std::vector<char*> argv(argc);

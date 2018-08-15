@@ -74,7 +74,7 @@ void ConvolutionWrapper::forward(Tensor x,
                                  Tensor kernels,
                                  Tensor bias,
                                  Tensor y) {
-  cudaSetDevice(x->getDevice().no);
+  cudaSetDevice(x->getDeviceId().no);
 
   cudnnTensorDescriptor_t xDesc, yDesc;
   setCudnnTensor(xDesc, x);
@@ -108,7 +108,7 @@ void ConvolutionWrapper::backward(Tensor x,
                                   Tensor kernelGrad,
                                   Tensor biasGrad,
                                   Tensor yGrad) {
-  cudaSetDevice(xGrad->getDevice().no);
+  cudaSetDevice(xGrad->getDeviceId().no);
 
   cudnnTensorDescriptor_t xDesc, yDesc;
   setCudnnTensor(xDesc, xGrad);
@@ -242,7 +242,7 @@ void PoolingWrapper::getOutputShape(const Shape& xShape, Shape& shape) {
 }
 
 void PoolingWrapper::forward(Tensor x, Tensor y) {
-  cudaSetDevice(x->getDevice().no);
+  cudaSetDevice(x->getDeviceId().no);
 
   cudnnTensorDescriptor_t xDesc, yDesc;
   setCudnnTensor(xDesc, x);
@@ -264,7 +264,7 @@ void PoolingWrapper::forward(Tensor x, Tensor y) {
 }
 
 void PoolingWrapper::backward(Tensor x, Tensor xGrad, Tensor y, Tensor yGrad) {
-  cudaSetDevice(x->getDevice().no);
+  cudaSetDevice(x->getDeviceId().no);
 
   cudnnTensorDescriptor_t xDesc, yDesc;
   setCudnnTensor(xDesc, x);

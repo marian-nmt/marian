@@ -15,7 +15,9 @@ protected:
 public:
   Backend(DeviceId deviceId, size_t seed) : deviceId_(deviceId), seed_(seed) {}
 
-  virtual DeviceId getDevice() { return deviceId_; };
+  virtual DeviceId getDeviceId() { return deviceId_; };
+
+  // for GPU only, calls cudaSetDevice, does nothing on CPU. Maybe change name.
   virtual void setDevice() = 0;
   virtual void synchronize() = 0;
 
@@ -24,5 +26,5 @@ public:
   float getClip() { return clipValue_; }
 };
 
-Ptr<Backend> BackendByDevice(DeviceId deviceId, size_t seed);
+Ptr<Backend> BackendByDeviceId(DeviceId deviceId, size_t seed);
 }  // namespace marian

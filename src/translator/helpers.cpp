@@ -30,7 +30,7 @@ void suppressWord(Expr probs, Word id) {
 }  // namespace cpu
 
 void suppressWord(Expr probs, Word id) {
-  if(probs->val()->getBackend()->getDevice().type == DeviceType::cpu) {
+  if(probs->val()->getBackend()->getDeviceId().type == DeviceType::cpu) {
     cpu::suppressWord(probs, id);
   }
 #ifdef CUDA_FOUND

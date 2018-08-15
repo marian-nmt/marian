@@ -6,9 +6,9 @@
 #include "tensors/tensor_operators.h"
 #include "tensors/cpu/backend.h"
 
+#include "functional/approx.h"
 #include "functional/functional.h"
 #include "functional/tensor.h"
-#include "functional/approx.h"
 
 namespace marian {
 
@@ -620,7 +620,7 @@ void GRUFastBackward(std::vector<Tensor> outputs,
 
 void CrossEntropyPick(Tensor out_, Tensor in_, Tensor pick_) {
   float* out = out_->data();
-  //Shape& outShape = out_->shape();
+  // Shape& outShape = out_->shape();
   const float* in = in_->data();
   Shape& inShape = in_->shape();
   float* pick = pick_->data();

@@ -9,11 +9,11 @@
 #include "tensors/gpu/algorithm.h"
 #endif
 
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <memory>
 #include <sstream>
-#include <algorithm>
 
 namespace marian {
 
@@ -77,7 +77,7 @@ public:
   }
 
   Ptr<Backend> getBackend() { return backend_; }
-  DeviceId getDevice() { return backend_->getDevice(); }
+  DeviceId getDeviceId() { return backend_->getDeviceId(); }
 
   Tensor subtensor(int offset, int size) {
     auto mem = New<MemoryPiece>(memory_->data() + sizeOf(type_) * offset,
@@ -92,7 +92,7 @@ public:
              type_);
 
     float temp;
-    if(backend_->getDevice().type == DeviceType::cpu) {
+    if(backend_->getDeviceId().type == DeviceType::cpu) {
       std::copy(data() + i, data() + i + 1, &temp);
     }
 #ifdef CUDA_FOUND
@@ -111,7 +111,7 @@ public:
              type_);
 
     T temp;
-    if(backend_->getDevice().type == DeviceType::cpu) {
+    if(backend_->getDeviceId().type == DeviceType::cpu) {
       std::copy(data<T>() + i, data<T>() + i + 1, &temp);
     }
 #ifdef CUDA_FOUND
@@ -129,7 +129,7 @@ public:
              request<T>(),
              type_);
 
-    if(backend_->getDevice().type == DeviceType::cpu) {
+    if(backend_->getDeviceId().type == DeviceType::cpu) {
       std::copy(&value, &value + 1, data<T>() + i);
     }
 #ifdef CUDA_FOUND
@@ -147,7 +147,7 @@ public:
              type_);
 
     v.resize(size());
-    if(backend_->getDevice().type == DeviceType::cpu) {
+    if(backend_->getDeviceId().type == DeviceType::cpu) {
       std::copy(data<T>(), data<T>() + size(), v.data());
     }
 #ifdef CUDA_FOUND
@@ -164,7 +164,7 @@ public:
              request<T>(),
              type_);
 
-    if(backend_->getDevice().type == DeviceType::cpu) {
+    if(backend_->getDeviceId().type == DeviceType::cpu) {
       std::copy(begin, end, data<T>());
     }
 #ifdef CUDA_FOUND
@@ -201,7 +201,7 @@ public:
       }
     }
 
-    if(backend_->getDevice().type == DeviceType::cpu) {
+    if(backend_->getDeviceId().type == DeviceType::cpu) {
       std::fill(data<T>(), data<T>() + size(), value);
     }
 #ifdef CUDA_FOUND
@@ -217,7 +217,7 @@ public:
              request<float>(),
              type_);
 
-    if(backend_->getDevice().type == DeviceType::cpu) {
+    if(backend_->getDeviceId().type == DeviceType::cpu) {
       for(size_t i = 0; i < k.size(); ++i)
         data()[k[i]] = v[i];
     }
@@ -235,8 +235,8 @@ public:
              request<float>(),
              type_);
 
-    if(in->getBackend()->getDevice().type == DeviceType::cpu
-       && backend_->getDevice().type == DeviceType::cpu) {
+    if(in->getBackend()->getDeviceId().type == DeviceType::cpu
+       && backend_->getDeviceId().type == DeviceType::cpu) {
       std::copy(in->data(), in->data() + in->size(), data());
     }
 #ifdef CUDA_FOUND
@@ -257,7 +257,7 @@ public:
     assert(shape_.size());
     strm << shape_;
     strm << " type=" << type_;
-    strm << " device=" << backend_->getDevice();
+    strm << " device=" << backend_->getDeviceId();
     strm << " ptr=" << (size_t)memory_->data();
     strm << " bytes=" << memory_->size();
     strm << std::endl;

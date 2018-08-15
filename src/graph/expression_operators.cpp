@@ -229,7 +229,7 @@ Expr weighted_average(Expr in, Expr weights, keywords::axis_k ax) {
 }
 
 Expr dot(Expr a, Expr b, bool transA, bool transB, float scale) {
-  auto device = a->graph()->getDevice().type;
+  auto device = a->graph()->getDeviceId().type;
   float clipValue = a->graph()->getBackend()->getClip();
 
   // Currently only true when command line options
@@ -253,7 +253,7 @@ Expr bdot(Expr a, Expr b, bool transA, bool transB, float scale) {
 }
 
 Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
-  auto device = a->graph()->getDevice().type;
+  auto device = a->graph()->getDeviceId().type;
 
   float clipValue = a->graph()->getBackend()->getClip();
 

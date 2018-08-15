@@ -85,7 +85,7 @@ std::vector<int> lower_bounds(int* data,
 }
 
 int buildSparse(Tensor t, float* data, int* indices) {
-  cudaSetDevice(t->getDevice().no);
+  cudaSetDevice(t->getDeviceId().no);
   using namespace thrust;
 
   device_ptr<float> grad_ptr(t->data());
@@ -107,7 +107,7 @@ int buildSparse(Tensor t, float* data, int* indices) {
 }
 
 void scatterAdd(Tensor t, float* data, int* indices, int size, int offset) {
-  cudaSetDevice(t->getDevice().no);
+  cudaSetDevice(t->getDeviceId().no);
 
   int threads = 512;
   int blocks = 1 + size / threads;
@@ -117,7 +117,7 @@ void scatterAdd(Tensor t, float* data, int* indices, int size, int offset) {
 }
 
 void scatterUpdate(Tensor t, float* data, int* indices, int size, int offset) {
-  cudaSetDevice(t->getDevice().no);
+  cudaSetDevice(t->getDeviceId().no);
 
   int threads = 512;
   int blocks = 1 + size / threads;
@@ -127,7 +127,7 @@ void scatterUpdate(Tensor t, float* data, int* indices, int size, int offset) {
 }
 
 void gather(Tensor t, float* data, int* indices, int size, int offset) {
-  cudaSetDevice(t->getDevice().no);
+  cudaSetDevice(t->getDeviceId().no);
 
   int threads = 512;
   int blocks = 1 + size / threads;

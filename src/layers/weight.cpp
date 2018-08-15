@@ -3,7 +3,8 @@
 namespace marian {
 
 Ptr<WeightingBase> WeightingFactory(Ptr<Options> options) {
-  ABORT_IF(!options->has("data-weighting"), "No data-weighting specified in options");
+  ABORT_IF(!options->has("data-weighting"),
+           "No data-weighting specified in options");
   return New<DataWeighting>(options->get<std::string>("data-weighting-type"));
 }
 

@@ -30,7 +30,7 @@ __global__ void sampling(float* originalData,
 }
 
 float GradientDropBase::find_threshold(Tensor grads, float rate) {
-  cudaSetDevice(grads->getDevice().no);
+  cudaSetDevice(grads->getDeviceId().no);
 
   int size = grads->size();
 

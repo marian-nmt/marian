@@ -279,7 +279,8 @@ public:
 
     auto stateHardAtt = std::dynamic_pointer_cast<DecoderStateHardAtt>(state);
 
-    size_t dimSrcWords = state->getEncoderStates()[0]->getContext()->shape()[-3];
+    size_t dimSrcWords
+        = state->getEncoderStates()[0]->getContext()->shape()[-3];
 
     if(embIdx.empty()) {
       stateHardAtt->setAttentionIndices({0});

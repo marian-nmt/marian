@@ -108,7 +108,7 @@ protected:
   /*
    * exponential smoothing
    */
-  void updateMovingAverage(Tensor paramsAvg, Tensor params, size_t batches);
+  void updateAvgParams(Tensor paramsAvg, Tensor params, size_t batches);
 
   /**
    * Setup training environment and launch server thread and (if enabled) client

@@ -272,8 +272,8 @@ void ConfigParser::validateOptions() const {
 }
 
 void ConfigParser::validateDevices() const {
-  std::string devices = Join(get<std::vector<std::string>>("devices"));
-  Trim(devices);
+  std::string devices = utils::Join(get<std::vector<std::string>>("devices"));
+  utils::Trim(devices);
 
   regex::regex pattern;
   std::string help;
@@ -806,6 +806,8 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
       "Sorting strategy for maxi-batch: trg (default) src none")
+    ("alignment", po::value<float>()->default_value(0.f)->implicit_value(1.f),
+     "Return word alignments")
     ;
   // clang-format on
   desc.add(rescore);
@@ -1040,6 +1042,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("n-best-feature", std::string);
     SET_OPTION_NONDEFAULT("summary", std::string);
     SET_OPTION("optimize", bool);
+    SET_OPTION("alignment", float);
   }
 
   if(mode_ == ConfigMode::translating) {
@@ -1181,14 +1184,14 @@ std::vector<DeviceId> ConfigParser::getDevices() {
 
   try {
     std::string devicesStr
-        = Join(config_["devices"].as<std::vector<std::string>>());
+        = utils::Join(config_["devices"].as<std::vector<std::string>>());
 
     if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
-      auto parts = Split(devicesStr, ":");
+      auto parts = utils::Split(devicesStr, ":");
       for(size_t i = 1; i < parts.size(); ++i) {
         std::string part = parts[i];
-        Trim(part);
-        auto ds = Split(part, " ");
+        utils::Trim(part);
+        auto ds = utils::Split(part, " ");
         if(i < parts.size() - 1)
           ds.pop_back();
 
@@ -1198,7 +1201,7 @@ std::vector<DeviceId> ConfigParser::getDevices() {
           devices.push_back({(size_t)std::stoull(d), DeviceType::gpu});
       }
     } else {
-      for(auto d : Split(devicesStr))
+      for(auto d : utils::Split(devicesStr))
         devices.push_back({(size_t)std::stoull(d), DeviceType::gpu});
     }
 

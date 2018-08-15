@@ -197,7 +197,7 @@ void CorpusBase::addAlignmentToSentenceTuple(const std::string& line,
 
 void CorpusBase::addWeightsToSentenceTuple(const std::string& line,
                                            SentenceTuple& tup) const {
-  auto elements = Split(line, " ");
+  auto elements = utils::Split(line, " ");
 
   if(!elements.empty()) {
     std::vector<float> weights;
