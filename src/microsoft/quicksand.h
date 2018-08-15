@@ -43,6 +43,8 @@ public:
                               size_t maxLength,
                               const std::unordered_set<size_t>& shortlist)
       = 0;
+
+  virtual void setWorkspace(uint8_t* data, size_t size) = 0;
 };
 
 Ptr<IBeamSearchDecoder> newDecoder(Ptr<Options> options,

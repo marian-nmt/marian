@@ -35,6 +35,8 @@ Ptr<Options> newOptions() {
 class BeamSearchDecoder : public IBeamSearchDecoder {
 private:
   Ptr<ExpressionGraph> graph_;
+  Ptr<cpu::WrappedDevice> device_;
+
   std::vector<Ptr<Scorer>> scorers_;
 
 public:
@@ -43,8 +45,12 @@ public:
                     Word eos)
       : IBeamSearchDecoder(options, ptrs, eos) {
     graph_ = New<ExpressionGraph>(/*inference=*/true, /*optimize=*/true);
-    graph_->setDevice(DeviceId{0, DeviceType::cpu});
-    graph_->reserveWorkspaceMB(500);
+
+    DeviceId deviceId{0, DeviceType::cpu};
+    device_ = New<cpu::WrappedDevice>(deviceId);
+    graph_->setDevice(deviceId, device_);
+
+    //graph_->reserveWorkspaceMB(500);
 
 #ifdef MKL_FOUND
     mkl_set_num_threads(options->get<size_t>("mkl-threads", 1));
@@ -89,6 +95,10 @@ public:
     for(auto scorer : scorers_) {
       scorer->init(graph_);
     }
+  }
+
+  void setWorkspace(uint8_t* data, size_t size)  {
+    device_->set(data, size);
   }
 
   QSNBestBatch decode(const QSBatch& qsBatch,

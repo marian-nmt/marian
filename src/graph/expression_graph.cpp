@@ -8,12 +8,15 @@ namespace marian {
 ExpressionGraph::ExpressionGraph(bool inference, bool optimized)
     : inferenceOnly_(inference), optimized_(optimized), backend_(nullptr) {}
 
-void ExpressionGraph::setDevice(DeviceId deviceId) {
+void ExpressionGraph::setDevice(DeviceId deviceId, Ptr<Device> device) {
   if(!backend_) {
     backend_ = BackendByDeviceId(deviceId, Config::seed);
     params_ = New<Parameters>();
     params_->init(backend_);
-    tensors_ = New<Tensors>(backend_);
+    if(device)
+      tensors_ = New<Tensors>(backend_, device);
+    else
+      tensors_ = New<Tensors>(backend_);
   }
 }
 

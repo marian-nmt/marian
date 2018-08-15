@@ -168,6 +168,18 @@ public:
     reserve(bytes);
   }
 
+  Allocator(DeviceId deviceId,
+            Ptr<Device> device,
+            size_t bytes,
+            size_t step,
+            size_t alignment = 256)
+      : device_(device),
+        available_(0),
+        step_(step),
+        alignment_(alignment) {
+    reserve(bytes);
+  }
+
   void throwAtReallocation(bool throwRealloc) { throw_ = throwRealloc; }
 
   void reserve(size_t bytes) {

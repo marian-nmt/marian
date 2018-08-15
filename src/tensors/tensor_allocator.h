@@ -24,9 +24,9 @@ public:
       : backend_(backend),
         allocator_(New<Allocator>(backend_->getDeviceId(), 0, GROW, ALIGN)) {}
 
-// TensorAllocator(Ptr<Backend> backend, Ptr<Device> device)
-//       : backend_(backend),
-//         allocator_(New<Allocator>(backend_->getDeviceId(), device, 0, GROW, ALIGN)) {}
+  TensorAllocator(Ptr<Backend> backend, Ptr<Device> device)
+      : backend_(backend),
+        allocator_(New<Allocator>(backend_->getDeviceId(), device, 0, GROW, ALIGN)) {}
 
   ~TensorAllocator() { clear(); }
 

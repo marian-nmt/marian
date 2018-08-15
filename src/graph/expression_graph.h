@@ -37,6 +37,12 @@ public:
         shortterm_(New<WeakMemory>()),
         longterm_(New<Memory>()) {}
 
+Tensors(Ptr<Backend> backend, Ptr<Device> device)
+      : tensors_(New<TensorAllocator>(backend, device)),
+        cache_(New<TensorAllocator>(backend)),
+        shortterm_(New<WeakMemory>()),
+        longterm_(New<Memory>()) {}
+
   void reserve(size_t bytes) { tensors_->reserve(bytes); }
 
   void throwAtReallocation(bool throwAtRealloc) {
@@ -150,7 +156,7 @@ public:
     params_->clear();
   }
 
-  void setDevice(DeviceId deviceId = {0, DeviceType::gpu});
+  void setDevice(DeviceId deviceId = {0, DeviceType::gpu}, Ptr<Device> device = nullptr);
 
   DeviceId getDeviceId() { return backend_->getDeviceId(); }
 
