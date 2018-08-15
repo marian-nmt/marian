@@ -1,7 +1,7 @@
 #include "optimizers.h"
 
-#include "tensors/tensor_operators.h"
 #include "common/io.h"
+#include "tensors/tensor_operators.h"
 
 namespace marian {
 
@@ -112,9 +112,8 @@ void Adagrad::save(const std::string& name,
   item.shape = Shape({1, (int)vGt.size()});
   item.type = Type::float32;
   item.bytes.resize(vGt.size() * sizeOf(item.type));
-  std::copy((char*)vGt.data(),
-            (char*)vGt.data() + vGt.size(),
-            item.bytes.begin());
+  std::copy(
+      (char*)vGt.data(), (char*)vGt.data() + vGt.size(), item.bytes.begin());
 
   io::saveItems(name, {item});
 }
@@ -172,7 +171,6 @@ void Adam::load(const std::string& name,
 
   auto items = io::loadItems(name);
   for(auto item : items) {
-
     // get the size of mt_ and vt_, they are the same
     totalSize = item.shape.elements();
 
@@ -240,24 +238,22 @@ void Adam::save(const std::string& name,
     opt->vt_->get(tmp);
     vVt.insert(vVt.end(), tmp.begin(), tmp.end());
   }
-  
+
   io::Item itemMt;
   itemMt.name = "adam_mt";
   itemMt.shape = Shape({1, (int)vMt.size()});
   itemMt.type = Type::float32;
   itemMt.bytes.resize(vMt.size() * sizeOf(itemMt.type));
-  std::copy((char*)vMt.data(),
-            (char*)vMt.data() + vMt.size(),
-            itemMt.bytes.begin());
+  std::copy(
+      (char*)vMt.data(), (char*)vMt.data() + vMt.size(), itemMt.bytes.begin());
 
   io::Item itemVt;
   itemVt.name = "adam_vt";
   itemVt.shape = Shape({1, (int)vVt.size()});
   itemVt.type = Type::float32;
   itemVt.bytes.resize(vVt.size() * sizeOf(itemVt.type));
-  std::copy((char*)vVt.data(),
-            (char*)vVt.data() + vVt.size(),
-            itemVt.bytes.begin());
+  std::copy(
+      (char*)vVt.data(), (char*)vVt.data() + vVt.size(), itemVt.bytes.begin());
 
   io::saveItems(name, {itemMt, itemVt});
 }

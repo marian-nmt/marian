@@ -35,15 +35,22 @@ Ptr<Options> newOptions() {
 class BeamSearchDecoder : public IBeamSearchDecoder {
 private:
   Ptr<ExpressionGraph> graph_;
+  Ptr<cpu::WrappedDevice> device_;
+
   std::vector<Ptr<Scorer>> scorers_;
 
 public:
-  BeamSearchDecoder(Ptr<Options> options, const std::vector<const void*>& ptrs, Word eos)
+  BeamSearchDecoder(Ptr<Options> options,
+                    const std::vector<const void*>& ptrs,
+                    Word eos)
       : IBeamSearchDecoder(options, ptrs, eos) {
+    
+    // setting 16-bit optimization to false for now. Re-enable with better caching or pre-computation
+    graph_ = New<ExpressionGraph>(/*inference=*/true, /*optimize=*/false);
 
-    graph_ = New<ExpressionGraph>(/*inference=*/true, /*optimize=*/true);
-    graph_->setDevice(DeviceId{0, DeviceType::cpu});
-    graph_->reserveWorkspaceMB(500);
+    DeviceId deviceId{0, DeviceType::cpu};
+    device_ = New<cpu::WrappedDevice>(deviceId);
+    graph_->setDevice(deviceId, device_);
 
 #ifdef MKL_FOUND
     mkl_set_num_threads(options->get<size_t>("mkl-threads", 1));
@@ -57,7 +64,8 @@ public:
     // No unk in QS
     options_->set("allow-unk", false);
 
-    std::vector<std::string> models = options_->get<std::vector<std::string>>("model");
+    std::vector<std::string> models
+        = options_->get<std::vector<std::string>>("model");
 
     for(int i = 0; i < models.size(); ++i) {
       Ptr<Options> modelOpts = New<Options>();
@@ -65,9 +73,9 @@ public:
       YAML::Node config;
       if(io::isBin(models[i]) && ptrs_[i] != nullptr)
         io::getYamlFromModel(config, "special:model.yml", ptrs_[i]);
-      else 
+      else
         io::getYamlFromModel(config, "special:model.yml", models[i]);
-      
+
       modelOpts->merge(options_);
       modelOpts->merge(config);
 
@@ -77,8 +85,7 @@ public:
         // if file ends in *.bin and has been mapped by QuickSAND
         scorers_.push_back(New<ScorerWrapper>(
             encdec, "F" + std::to_string(scorers_.size()), 1, ptrs[i]));
-      }
-      else {
+      } else {
         // it's a *.npz file or has not been mapped by QuickSAND
         scorers_.push_back(New<ScorerWrapper>(
             encdec, "F" + std::to_string(scorers_.size()), 1, models[i]));
@@ -88,6 +95,10 @@ public:
     for(auto scorer : scorers_) {
       scorer->init(graph_);
     }
+  }
+
+  void setWorkspace(uint8_t* data, size_t size)  {
+    device_->set(data, size);
   }
 
   QSNBestBatch decode(const QSBatch& qsBatch,
@@ -134,7 +145,9 @@ public:
   }
 };
 
-Ptr<IBeamSearchDecoder> newDecoder(Ptr<Options> options, const std::vector<const void*>& ptrs, Word eos) {
+Ptr<IBeamSearchDecoder> newDecoder(Ptr<Options> options,
+                                   const std::vector<const void*>& ptrs,
+                                   Word eos) {
   return New<BeamSearchDecoder>(options, ptrs, eos);
 }
 

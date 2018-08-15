@@ -8,7 +8,7 @@
 
 namespace marian {
 
-Ptr<Backend> BackendByDevice(DeviceId deviceId, size_t seed) {
+Ptr<Backend> BackendByDeviceId(DeviceId deviceId, size_t seed) {
 #ifdef CUDA_FOUND
   if(deviceId.type == DeviceType::gpu)
     return New<gpu::Backend>(deviceId, seed);

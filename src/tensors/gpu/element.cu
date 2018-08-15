@@ -35,7 +35,7 @@ __global__ void gElement(
 
 template <class Functor, class... Tensors>
 void Element(Functor functor, Tensor out, Tensors... tensors) {
-  cudaSetDevice(out->getDevice().no);
+  cudaSetDevice(out->getDeviceId().no);
 
   constexpr size_t K = sizeof...(tensors) + 1;
   functional::Array<functional::Tensor<float>, K> gTensors = {out, tensors...};

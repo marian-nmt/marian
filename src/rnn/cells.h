@@ -129,14 +129,11 @@ public:
     layerNorm_ = options_->get<bool>("layer-normalization", false);
     dropout_ = options_->get<float>("dropout", 0);
 
-    U_ = graph->param(prefix + "_U",
-                      {dimState, dimState},
-                      inits::diag(1.f));
+    U_ = graph->param(prefix + "_U", {dimState, dimState}, inits::diag(1.f));
 
     if(dimInput)
-      W_ = graph->param(prefix + "_W",
-                        {dimInput, dimState},
-                        inits::glorot_uniform);
+      W_ = graph->param(
+          prefix + "_W", {dimInput, dimState}, inits::glorot_uniform);
 
     b_ = graph->param(prefix + "_b", {1, dimState}, inits::zeros);
 
@@ -148,12 +145,8 @@ public:
 
     if(layerNorm_) {
       if(dimInput)
-        gamma1_ = graph->param(prefix + "_gamma1",
-                               {1, dimState},
-                               inits::ones);
-      gamma2_ = graph->param(prefix + "_gamma2",
-                             {1, dimState},
-                             inits::ones);
+        gamma1_ = graph->param(prefix + "_gamma1", {1, dimState}, inits::ones);
+      gamma2_ = graph->param(prefix + "_gamma2", {1, dimState}, inits::ones);
     }
   }
 
@@ -919,26 +912,22 @@ public:
     int dimState = opt<int>("dimState");
     std::string prefix = opt<std::string>("prefix");
 
-    ABORT_IF(dimInput != dimState, "For SRU state and input dims have to be equal");
+    ABORT_IF(dimInput != dimState,
+             "For SRU state and input dims have to be equal");
 
     dropout_ = opt<float>("dropout", 0);
     layerNorm_ = opt<bool>("layer-normalization", false);
 
-    W_ = graph->param(prefix + "_W",
-                       {dimInput, dimInput},
-                       inits::glorot_uniform);
+    W_ = graph->param(
+        prefix + "_W", {dimInput, dimInput}, inits::glorot_uniform);
 
-    Wf_ = graph->param(prefix + "_Wf",
-                       {dimInput, dimInput},
-                       inits::glorot_uniform);
-    bf_ = graph->param(
-        prefix + "_bf", {1, dimInput}, inits::zeros);
+    Wf_ = graph->param(
+        prefix + "_Wf", {dimInput, dimInput}, inits::glorot_uniform);
+    bf_ = graph->param(prefix + "_bf", {1, dimInput}, inits::zeros);
 
-    Wr_ = graph->param(prefix + "_Wr",
-                       {dimInput, dimInput},
-                       inits::glorot_uniform);
-    br_ = graph->param(
-        prefix + "_br", {1, dimInput}, inits::zeros);
+    Wr_ = graph->param(
+        prefix + "_Wr", {dimInput, dimInput}, inits::glorot_uniform);
+    br_ = graph->param(prefix + "_br", {1, dimInput}, inits::zeros);
 
     if(dropout_ > 0.0f) {
       dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
@@ -946,15 +935,9 @@ public:
 
     if(layerNorm_) {
       if(dimInput)
-        gamma_ = graph->param(prefix + "_gamma",
-                              {1, dimState},
-                              inits::ones);
-      gammar_ = graph->param(prefix + "_gammar",
-                             {1, dimState},
-                             inits::ones);
-      gammaf_ = graph->param(prefix + "_gammaf",
-                             {1, dimState},
-                             inits::ones);
+        gamma_ = graph->param(prefix + "_gamma", {1, dimState}, inits::ones);
+      gammar_ = graph->param(prefix + "_gammar", {1, dimState}, inits::ones);
+      gammaf_ = graph->param(prefix + "_gammaf", {1, dimState}, inits::ones);
     }
   }
 
@@ -996,7 +979,7 @@ public:
     auto r = xWs[2];
     auto input = xWs[3];
 
-    auto nextCellState = highway(cellState, x, f); // rename to "gate"?
+    auto nextCellState = highway(cellState, x, f);  // rename to "gate"?
     auto nextState = highway(tanh(nextCellState), input, r);
 
     auto maskedCellState = mask ? mask * nextCellState : nextCellState;
@@ -1024,21 +1007,18 @@ public:
 
     std::string prefix = options->get<std::string>("prefix");
 
-    ABORT_IF(dimInput != dimState, "For SSRU state and input dims have to be equal");
+    ABORT_IF(dimInput != dimState,
+             "For SSRU state and input dims have to be equal");
 
     dropout_ = opt<float>("dropout", 0);
     layerNorm_ = opt<bool>("layer-normalization", false);
 
-    W_ = graph->param(prefix + "_W",
-                       {dimInput, dimInput},
-                       inits::glorot_uniform);
+    W_ = graph->param(
+        prefix + "_W", {dimInput, dimInput}, inits::glorot_uniform);
 
-    Wf_ = graph->param(prefix + "_Wf",
-                       {dimInput, dimInput},
-                       inits::glorot_uniform);
-    bf_ = graph->param(
-        prefix + "_bf", {1, dimInput}, inits::zeros);
-
+    Wf_ = graph->param(
+        prefix + "_Wf", {dimInput, dimInput}, inits::glorot_uniform);
+    bf_ = graph->param(prefix + "_bf", {1, dimInput}, inits::zeros);
 
     if(dropout_ > 0.0f) {
       dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
@@ -1046,12 +1026,8 @@ public:
 
     if(layerNorm_) {
       if(dimInput)
-        gamma_ = graph->param(prefix + "_gamma",
-                              {1, dimState},
-                              inits::ones);
-      gammaf_ = graph->param(prefix + "_gammaf",
-                             {1, dimState},
-                             inits::ones);
+        gamma_ = graph->param(prefix + "_gamma", {1, dimState}, inits::ones);
+      gammaf_ = graph->param(prefix + "_gammaf", {1, dimState}, inits::ones);
     }
   }
 
@@ -1089,7 +1065,7 @@ public:
     auto x = xWs[0];
     auto f = xWs[1];
 
-    auto nextCellState = highway(cellState, x, f); // rename to "gate"?
+    auto nextCellState = highway(cellState, x, f);  // rename to "gate"?
     auto nextState = relu(nextCellState);
 
     auto maskedCellState = mask ? mask * nextCellState : nextCellState;
@@ -1126,7 +1102,6 @@ public:
 //                        inits::glorot_uniform);
 //     bf_ = graph->param(
 //         prefix + "_bf", {1, dimInput}, inits::zeros);
-
 
 //     if(dropout_ > 0.0f) {
 //       dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
@@ -1171,7 +1146,6 @@ public:
 //     return {maskedState, maskedCellState};
 //   }
 // };
-
 
 }  // namespace rnn
 }  // namespace marian

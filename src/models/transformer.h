@@ -8,11 +8,11 @@
 
 #include "layers/constructors.h"
 #include "layers/factory.h"
-#include "rnn/constructors.h"
 #include "models/decoder.h"
 #include "models/encoder.h"
 #include "models/states.h"
 #include "models/transformer_factory.h"
+#include "rnn/constructors.h"
 
 namespace marian {
 
@@ -279,8 +279,7 @@ public:
       vh = affine(values, Wv, bv);
       vh = SplitHeads(vh, dimHeads);
       cache_[prefix + "_values"] = vh;
-    }
-    else {
+    } else {
       vh = cache_[prefix + "_values"];
     }
 
@@ -847,16 +846,11 @@ public:
     // return unormalized(!) probabilities
     Ptr<DecoderState> nextState;
     if(opt<std::string>("transformer-decoder-autoreg") == "rnn") {
-      nextState = New<DecoderState>(decoderStates,
-                                    logits,
-                                    state->getEncoderStates(),
-                                    state->getBatch());
-    }
-    else {
-      nextState = New<TransformerState>(decoderStates,
-                                        logits,
-                                        state->getEncoderStates(),
-                                        state->getBatch());
+      nextState = New<DecoderState>(
+          decoderStates, logits, state->getEncoderStates(), state->getBatch());
+    } else {
+      nextState = New<TransformerState>(
+          decoderStates, logits, state->getEncoderStates(), state->getBatch());
     }
     nextState->setPosition(state->getPosition() + 1);
     return nextState;

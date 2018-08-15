@@ -8,6 +8,9 @@
 #include "common/logging.h"
 #include "common/utils.h"
 
+namespace marian {
+namespace utils {
+
 void Trim(std::string& s) {
   boost::trim_if(s, boost::is_any_of(" \t\n"));
 }
@@ -81,3 +84,6 @@ std::string Exec(const std::string& cmd) {
   }
   return result;
 }
+
+}  // namespace utils
+}  // namespace marian

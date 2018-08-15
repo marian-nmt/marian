@@ -24,9 +24,9 @@ namespace data {
  * @brief A sentence tuple that stores all sources and target sentences for a
  * specific "line" from a parallel corpus.
  *
- * Sentence tuples are used to store sentences read from external files and to
- * be a basis for construction of marian::data::CorpusBatch objects. They are
- * not a part of marian::data::CorpusBatch.
+ * Sentence tuples store sentences from external files and a basis for
+ * construction of marian::data::CorpusBatch objects. They are not a part of
+ * marian::data::CorpusBatch.
  */
 class SentenceTuple {
 private:
@@ -89,7 +89,7 @@ public:
   auto rend() const -> decltype(tuple_.rend()) { return tuple_.rend(); }
 
   /**
-   * @brief  Get sentence weights.
+   * @brief Get sentence weights.
    *
    * For sentence-level weights the vector contains only one element.
    */

@@ -5,6 +5,26 @@
 
 namespace marian {
 
+AsyncGraphGroup::AsyncGraphGroup(Ptr<Config> config)
+    : GraphGroup(config),
+      ExponentialSmoothing{options_->get<float>("exponential-smoothing")},
+      devices_{options_->getDevices()},
+      shardSync_(devices_.size()),
+      optimizerDelay_{options_->get<size_t>("optimizer-delay")} {
+  pool_.reset(new ThreadPool(devices_.size(), devices_.size()));
+
+  for(auto device : devices_) {
+    auto graph = New<ExpressionGraph>();
+    graph->setDevice(device);
+    graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
+    graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
+    graphs_.push_back(graph);
+    shardOpt_.push_back(Optimizer(options_));
+
+    builders_.push_back(models::from_config(options_, models::usage::training));
+  }
+}
+
 void AsyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) {
   scheduler_ = scheduler;
   // optimizer has to be registered last to see changes of learning rate
@@ -58,8 +78,8 @@ void AsyncGraphGroup::pushGradients(Tensor newGrads,
             shardOpt_[idx]->update(params_[idx], grads_[idx]);
           }
 
-          if(movingAvg_)
-            updateMovingAverage(
+          if(mvAvg_)
+            updateAvgParams(
                 paramsAvg_[idx], params_[idx], scheduler_->numberOfBatches());
         },
         idx,
@@ -71,18 +91,8 @@ void AsyncGraphGroup::pushGradients(Tensor newGrads,
     t.join();
 }
 
-void AsyncGraphGroup::updateMovingAverage(Tensor paramsAvg,
-                                          Tensor params,
-                                          size_t batches) {
-  using namespace functional;
-  float decay
-      = std::max(mvDecay_, 1.f - (float)(batches + 1) / (float)(batches + 10));
-  Element(_1 = ((1.f - decay) * _1) + (decay * _2), paramsAvg, params);
-}
-
 void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
   // initialize the parameters
-
   {
     ThreadPool pool(graphs_.size(), graphs_.size());
     for(size_t i = 0; i < graphs_.size(); ++i) {
@@ -94,7 +104,7 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
     }
   }
 
-  if(params_.size() == 0) {
+  if(params_.empty()) {
     int totalSize = graphs_[0]->params()->vals()->size();
     shardSize_ = ceil(totalSize / (float)devices_.size());
 
@@ -117,7 +127,7 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
       pos += __size__;
     }
   }
-  if(grads_.size() == 0) {
+  if(grads_.empty()) {
     int totalSize = graphs_[0]->params()->vals()->size();
 
     for(auto graph : graphs_) {
@@ -133,27 +143,41 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
       grads_.push_back(grad_);
     }
   }
-  if(movingAvg_) {
-    if(paramsAvg_.size() == 0) {
-      int totalSize = graphs_[0]->params()->vals()->size();
+  if(mvAvg_ && paramsAvg_.empty()) {
+    Ptr<ExpressionGraph> graphAvg;
+    std::string name = options_->get<std::string>("model");
+    if(boost::filesystem::exists(name + ".orig.npz")) {
+      // Load the averaged parameters into a temporary graph
+      graphAvg = New<ExpressionGraph>();
+      graphAvg->setDevice({0, DeviceType::cpu});
+      graphAvg->load(name, false);
+      graphAvg->forward();
+    }
 
-      int i = 0;
-      for(auto graph : graphs_) {
-        int __size__ = std::min(shardSize_, totalSize);
-        totalSize -= __size__;
-        Tensor paramAvg;
-        Ptr<TensorAllocator> allocator
-            = New<TensorAllocator>(graph->getBackend());
+    int totalSize = graphs_[0]->params()->vals()->size();
 
-        allocator->reserveExact(__size__ * sizeof(float));
-        allocator->allocate(paramAvg, {1, __size__});
+    int i = 0;
+    for(auto graph : graphs_) {
+      int __size__ = std::min(shardSize_, totalSize);
+      totalSize -= __size__;
+      Tensor paramAvg;
+      Ptr<TensorAllocator> allocator
+          = New<TensorAllocator>(graph->getBackend());
 
+      allocator->reserveExact(__size__ * sizeof(float));
+      allocator->allocate(paramAvg, {1, __size__});
+
+      if(graphAvg)
+        paramAvg->copyFrom(graphAvg->params()->vals());
+      else
         paramAvg->copyFrom(params_[i++]);
 
-        paramsAllocAvg_.push_back(allocator);
-        paramsAvg_.push_back(paramAvg);
-      }
+      paramsAllocAvg_.push_back(allocator);
+      paramsAvg_.push_back(paramAvg);
     }
+
+    if(graphAvg)
+      graphAvg.reset();
   }
 }
 
@@ -257,7 +281,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
         // a safe state.
         pool_->wait_for_others(lock);
 
-        if(movingAvg_)
+        if(mvAvg_)
           for(auto g : graphs_)
             fetchParams(g->params()->vals(), paramsAvg_, t_id);
 
@@ -274,6 +298,93 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
   };
 
   pool_->enqueue(task, batch);
+}
+
+void AsyncGraphGroup::load() {
+  if(!options_->get<bool>("no-reload")) {
+    std::string name = options_->get<std::string>("model");
+
+    if(boost::filesystem::exists(name)) {
+      if(scheduler_)
+        scheduler_->load(name);
+
+      std::string nameGraph = name;
+      if(mvAvg_ && boost::filesystem::exists(name + ".orig.npz"))
+        // Load the original parameters from model.npz.orig.npz
+        nameGraph += ".orig.npz";
+
+      size_t i = 0;
+      for(auto graph : graphs_)
+        builders_[i++]->load(graph, nameGraph);
+
+      // @TODO: probably we want to have the list of DeviceIds as an attribute
+      std::vector<Ptr<Backend>> backends;
+      for(auto graph : graphs_)
+        backends.push_back(graph->getBackend());
+      shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends);
+
+    } else if(options_->has("pretrained-model")) {
+      std::string nameInit = options_->get<std::string>("pretrained-model");
+      LOG(info,
+          "Initialize model weights with the pre-trained model {}",
+          nameInit);
+      size_t i = 0;
+      for(auto graph : graphs_)
+        builders_[i++]->load(graph, nameInit, false);
+    }
+  }
+}
+
+void AsyncGraphGroup::save(bool final /* = false */) {
+  if(final && scheduler_) {
+    if(mvAvg_ && !paramsAvg_.empty()) {
+      // Save original parameters to model.orig.npz
+      std::string name = options_->get<std::string>("model");
+      builders_[0]->save(graphs_[0], name + ".orig.npz");
+      // Switch to averaged parameters
+      for(auto g : graphs_)
+        fetchParams(g->params()->vals(), paramsAvg_, 0 /* safe? */);
+    }
+
+    scheduler_->validate(graphs_, true);
+  }
+
+  save(graphs_[0], final);
+}
+
+void AsyncGraphGroup::save(Ptr<ExpressionGraph> graph, bool final /*=false*/) {
+  size_t idx = 0;
+  for(size_t i = 0; i < graphs_.size(); ++i) {
+    if(graph == graphs_[i]) {
+      idx = i;
+      break;
+    }
+  }
+
+  std::string name = options_->get<std::string>("model");
+
+  if(options_->get<bool>("overwrite")) {
+    builders_[idx]->save(graphs_[idx], name, true);
+    if(scheduler_)
+      scheduler_->save(name);
+  } else {
+    if(!final) {
+      std::string numberOfBatches
+          = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
+                       : "unknown";
+      std::string nameOverwrite = name;
+      nameOverwrite.replace(
+          name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");
+      builders_[idx]->save(graphs_[idx], nameOverwrite);
+    }
+
+    builders_[idx]->save(graphs_[idx], name, true);
+    if(scheduler_)
+      scheduler_->save(name);
+  }
+
+  size_t totalSize = graphs_[idx]->params()->vals()->size();
+  shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_, totalSize);
 }
 
 void AsyncGraphGroup::finalize() {

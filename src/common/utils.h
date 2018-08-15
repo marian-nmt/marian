@@ -3,6 +3,9 @@
 #include <string>
 #include <vector>
 
+namespace marian {
+namespace utils {
+
 void Trim(std::string& s);
 
 void Split(const std::string& line,
@@ -46,3 +49,6 @@ std::basic_istream<CharT, Traits>& GetLine(
     line.pop_back();
   return in;
 }
+
+}  // namespace utils
+}  // namespace marian

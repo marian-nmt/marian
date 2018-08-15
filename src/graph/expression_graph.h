@@ -14,7 +14,6 @@
 #include <map>
 #include <unordered_set>
 
-
 namespace marian {
 
 template <class T, typename... Args>
@@ -34,6 +33,12 @@ private:
 public:
   Tensors(Ptr<Backend> backend)
       : tensors_(New<TensorAllocator>(backend)),
+        cache_(New<TensorAllocator>(backend)),
+        shortterm_(New<WeakMemory>()),
+        longterm_(New<Memory>()) {}
+
+Tensors(Ptr<Backend> backend, Ptr<Device> device)
+      : tensors_(New<TensorAllocator>(backend, device)),
         cache_(New<TensorAllocator>(backend)),
         shortterm_(New<WeakMemory>()),
         longterm_(New<Memory>()) {}
@@ -112,7 +117,12 @@ private:
   std::list<Expr> nodesBackward_;
 
   std::unordered_set<Expr> topNodes_;
+
+  // Holds memory and expressions that correspond to graph parameters
   Ptr<Parameters> params_;
+
+  // Holds memory and expressions that correspond to temporary expressions.
+  // This gets cleared before a new graph is built.
   Ptr<Tensors> tensors_;
 
   std::unordered_map<size_t, std::vector<Expr>> memoized_;
@@ -146,9 +156,9 @@ public:
     params_->clear();
   }
 
-  void setDevice(DeviceId deviceId = {0, DeviceType::gpu});
+  void setDevice(DeviceId deviceId = {0, DeviceType::gpu}, Ptr<Device> device = nullptr);
 
-  DeviceId getDevice() { return backend_->getDevice(); }
+  DeviceId getDeviceId() { return backend_->getDeviceId(); }
 
   Ptr<Backend> getBackend() { return backend_; }
 
@@ -437,7 +447,6 @@ private:
   }
 
 public:
-
   void load(const std::string& name,
             const std::map<std::string, std::string>& nameMap,
             bool markReloaded = true) {
@@ -445,9 +454,7 @@ public:
     itemsToParameters(io::loadItems(name), nameMap, markReloaded);
   }
 
-  void load(const std::string& name,
-            bool markReloaded = true) {
-
+  void load(const std::string& name, bool markReloaded = true) {
     std::map<std::string, std::string> emptyNameMap;
     load(name, emptyNameMap, markReloaded);
   }
@@ -459,8 +466,7 @@ public:
     itemsToParameters(io::loadItems(ptr), nameMap, markReloaded);
   }
 
-  void load(const void* ptr,
-            bool markReloaded = true) {
+  void load(const void* ptr, bool markReloaded = true) {
     std::map<std::string, std::string> emptyNameMap;
     load(ptr, emptyNameMap, markReloaded);
   }
@@ -468,8 +474,7 @@ public:
   void mmap(const void* ptr,
             const std::map<std::string, std::string>& nameMap,
             bool markReloaded = true) {
-
-    ABORT_IF(backend_->getDevice().type != DeviceType::cpu || !inferenceOnly_,
+    ABORT_IF(backend_->getDeviceId().type != DeviceType::cpu || !inferenceOnly_,
              "Memory mapping only supported for CPU inference mode");
 
     params_ = New<MappedParameters>();
@@ -479,8 +484,7 @@ public:
     itemsToParameters(io::mmapItems(ptr), nameMap, markReloaded);
   }
 
-  void mmap(const void* ptr,
-            bool markReloaded = true) {
+  void mmap(const void* ptr, bool markReloaded = true) {
     std::map<std::string, std::string> emptyNameMap;
     mmap(ptr, emptyNameMap, markReloaded);
   }
@@ -491,11 +495,10 @@ private:
                          const std::map<std::string, std::string>& nameMap);
 
 public:
-
   void save(const std::string& name,
             const std::string& meta,
             const std::map<std::string, std::string>& nameMap) {
-    //LOG(info, "Saving model to {}", name);
+    // LOG(info, "Saving model to {}", name);
 
     std::vector<io::Item> ioItems;
     parametersToItems(ioItems, nameMap);
@@ -503,7 +506,7 @@ public:
       io::addMetaToItems(meta, "special:model.yml", ioItems);
     io::saveItems(name, ioItems);
 
-    //LOG(info, "Saved {} items.", ioItems.size());
+    // LOG(info, "Saved {} items.", ioItems.size());
   }
 
   void save(const std::string& name) {
@@ -511,8 +514,7 @@ public:
     save(name, "", emptyNameMap);
   }
 
-  void save(const std::string& name,
-            const std::string& meta) {
+  void save(const std::string& name, const std::string& meta) {
     std::map<std::string, std::string> emptyNameMap;
     save(name, meta, emptyNameMap);
   }
@@ -521,7 +523,6 @@ public:
             const std::map<std::string, std::string>& nameMap) {
     save(name, "", nameMap);
   }
-
 };
 
 template <class T, typename... Args>

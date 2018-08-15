@@ -125,7 +125,7 @@ NodeInitializer from_sparse_vector(
   };
 }
 
-//NodeInitializer from_numpy(const cnpy::NpyArrayPtr& np) {
+// NodeInitializer from_numpy(const cnpy::NpyArrayPtr& np) {
 //  return [np](Tensor t) {
 //    size_t size = 1;
 //    for(size_t dim : np->shape)
@@ -159,18 +159,20 @@ NodeInitializer from_item(const io::Item& item) {
   if(item.mapped) {
     return [item](Tensor t) {
       // @TODO: implement other types, for now croak loudly.
-      ABORT_IF(t->getBackend()->getDevice().type != DeviceType::cpu, "Memory mapping only works for CPU tensors");
-      ABORT_IF(!matchType<float>(t->type()), "Tensor type and type for mapping do not match");
+      ABORT_IF(t->getBackend()->getDeviceId().type != DeviceType::cpu,
+               "Memory mapping only works for CPU tensors");
+      ABORT_IF(!matchType<float>(t->type()),
+               "Tensor type and type for mapping do not match");
       auto mp = New<MemoryPiece>((uint8_t*)item.ptr, t->size() * sizeof(float));
       t->reset(mp);
     };
-  }
-  else {
+  } else {
     return [item](Tensor t) {
       // @TODO: implement other types, for now croak loudly.
       ABORT_IF(!matchType<float>(t->type()),
                "Tensor type and type for mapping do not match");
-      t->set((const float*)item.bytes.data(), (const float*)item.bytes.data() + t->size());
+      t->set((const float*)item.bytes.data(),
+             (const float*)item.bytes.data() + t->size());
     };
   }
 }

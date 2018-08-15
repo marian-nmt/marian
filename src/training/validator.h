@@ -208,7 +208,7 @@ public:
     builder_->save(graphs[0], model + ".dev.npz", true);
 
     auto command = options_->get<std::string>("valid-script-path");
-    auto valStr = Exec(command);
+    auto valStr = utils::Exec(command);
     float val = std::atof(valStr.c_str());
     updateStalled(graphs, val);
 
@@ -356,7 +356,7 @@ public:
     if(options_->has("valid-script-path")) {
       auto command
           = options_->get<std::string>("valid-script-path") + " " + fileName;
-      auto valStr = Exec(command);
+      auto valStr = utils::Exec(command);
       val = std::atof(valStr.c_str());
       updateStalled(graphs, val);
     }

@@ -12,6 +12,7 @@ add_library(marian STATIC
   common/binary.cpp
   common/io.cpp
 
+  data/alignment.cpp
   data/vocab.cpp
   data/corpus_base.cpp
   data/corpus.cpp

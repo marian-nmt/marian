@@ -41,9 +41,8 @@ int main(int argc, char** argv) {
 
   YAML::Node config;
   std::stringstream configStr;
-  marian::io::getYamlFromModel(config,
-                               "special:model.yml",
-                               vm["from"].as<std::string>());
+  marian::io::getYamlFromModel(
+      config, "special:model.yml", vm["from"].as<std::string>());
   configStr << config;
 
   auto graph = New<ExpressionGraph>(true, false);
@@ -53,7 +52,7 @@ int main(int argc, char** argv) {
   graph->forward();
   graph->save(vm["to"].as<std::string>(), configStr.str());
 
-  //graph->saveBinary(vm["bin"].as<std::string>());
+  // graph->saveBinary(vm["bin"].as<std::string>());
 
   LOG(info, "Finished");
 

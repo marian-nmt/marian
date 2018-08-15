@@ -26,10 +26,10 @@ void readIrisData(const std::string fileName,
   }
   std::string line;
   std::string value;
-  while(GetLine(in, line)) {
+  while(marian::utils::GetLine(in, line)) {
     std::stringstream ss(line);
     int i = 0;
-    while(GetLine(ss, value, ',')) {
+    while(marian::utils::GetLine(ss, value, ',')) {
       if(++i == 5)
         labels.emplace_back(CLASSES[value]);
       else
@@ -42,7 +42,7 @@ void shuffleData(std::vector<float>& features, std::vector<float>& labels) {
   // Create a list of indices 0...K
   std::vector<int> indices;
   indices.reserve(labels.size());
-  for(int i = 0; i < labels.size(); ++i)
+  for(size_t i = 0; i < labels.size(); ++i)
     indices.push_back(i);
 
   // Shuffle indices
@@ -55,7 +55,7 @@ void shuffleData(std::vector<float>& features, std::vector<float>& labels) {
   labelsTemp.reserve(labels.size());
 
   // Get shuffled features and labels
-  for(auto i = 0; i < indices.size(); ++i) {
+  for(size_t i = 0; i < indices.size(); ++i) {
     auto idx = indices[i];
     labelsTemp.push_back(labels[idx]);
     featuresTemp.insert(featuresTemp.end(),

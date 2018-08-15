@@ -31,7 +31,7 @@ public:
 
   virtual size_t size() { return size_; }
 
-  virtual DeviceId getDevice() { return deviceId_; }
+  virtual DeviceId getDeviceId() { return deviceId_; }
 };
 
 namespace gpu {
@@ -56,6 +56,25 @@ public:
 
   void reserve(size_t size);
 };
+
+class WrappedDevice : public marian::Device {
+public:
+  WrappedDevice(DeviceId deviceId, size_t alignment = 256)
+    : marian::Device(deviceId, alignment) {}
+  ~WrappedDevice() {}
+
+  void set(uint8_t* data, size_t size) {
+    marian::Device::data_ = data;
+    marian::Device::size_ = size;
+  }
+
+  // doesn't allocate anything, just checks size.
+  void reserve(size_t size) {
+    ABORT_IF(size > size_, "Requested size {} is larger than pre-allocated size {}", size, size_);
+  }
+
+};
+
 }  // namespace cpu
 
 static inline Ptr<Device> DispatchDevice(DeviceId deviceId,
