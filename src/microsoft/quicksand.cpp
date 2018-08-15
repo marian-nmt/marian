@@ -44,13 +44,13 @@ public:
                     const std::vector<const void*>& ptrs,
                     Word eos)
       : IBeamSearchDecoder(options, ptrs, eos) {
-    graph_ = New<ExpressionGraph>(/*inference=*/true, /*optimize=*/true);
+    
+    // setting 16-bit optimization to false for now. Re-enable with better caching or pre-computation
+    graph_ = New<ExpressionGraph>(/*inference=*/true, /*optimize=*/false);
 
     DeviceId deviceId{0, DeviceType::cpu};
     device_ = New<cpu::WrappedDevice>(deviceId);
     graph_->setDevice(deviceId, device_);
-
-    //graph_->reserveWorkspaceMB(500);
 
 #ifdef MKL_FOUND
     mkl_set_num_threads(options->get<size_t>("mkl-threads", 1));

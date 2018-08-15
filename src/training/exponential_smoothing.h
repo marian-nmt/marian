@@ -23,6 +23,6 @@ protected:
   }
 
   bool mvAvg_{false};
-  float mvDecay_{1e-4};
+  float mvDecay_{1e-4f};
 };
 }  // namespace marian
