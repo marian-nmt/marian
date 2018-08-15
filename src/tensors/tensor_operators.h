@@ -27,7 +27,7 @@ namespace marian {
 template <typename InIt, typename OutIt>
 void copy(Ptr<Backend> backend, const InIt beg, const InIt end, OutIt it) {
 #ifdef CUDA_FOUND
-  if(backend->getDevice().type == DeviceType::gpu)
+  if(backend->getDeviceId().type == DeviceType::gpu)
     gpu::copy(backend, beg, end, it);
   else
 #endif
@@ -37,7 +37,7 @@ void copy(Ptr<Backend> backend, const InIt beg, const InIt end, OutIt it) {
 template <class Functor, class... Tensors>
 void Element(Functor functor, marian::Tensor out, Tensors... tensors) {
 #ifdef CUDA_FOUND
-  if(out->getBackend()->getDevice().type == DeviceType::gpu)
+  if(out->getBackend()->getDeviceId().type == DeviceType::gpu)
     gpu::Element(functor, out, tensors...);
   else
 #endif
@@ -47,7 +47,7 @@ void Element(Functor functor, marian::Tensor out, Tensors... tensors) {
 template <class Functor, class... Tensors>
 void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
 #ifdef CUDA_FOUND
-  if(out->getBackend()->getDevice().type == DeviceType::gpu)
+  if(out->getBackend()->getDeviceId().type == DeviceType::gpu)
     gpu::Add(functor, scale, out, tensors...);
   else
 #endif
@@ -118,7 +118,7 @@ static inline void Deconcatenate(std::vector<marian::Tensor>& outputs,
                                  const marian::Tensor in,
                                  int ax) {
 #ifdef CUDA_FOUND
-  if(in->getBackend()->getDevice().type == DeviceType::gpu)
+  if(in->getBackend()->getDeviceId().type == DeviceType::gpu)
     gpu::Deconcatenate(outputs, in, ax);
   else
 #endif
@@ -162,7 +162,7 @@ static inline void LSTMCellBackward(std::vector<marian::Tensor> outputs,
                                     std::vector<marian::Tensor> inputs,
                                     marian::Tensor adj) {
 #ifdef CUDA_FOUND
-  if(adj->getBackend()->getDevice().type == DeviceType::gpu)
+  if(adj->getBackend()->getDeviceId().type == DeviceType::gpu)
     gpu::LSTMCellBackward(outputs, inputs, adj);
   else
 #endif
@@ -187,7 +187,7 @@ static inline void LSTMOutputBackward(std::vector<marian::Tensor> outputs,
                                       std::vector<marian::Tensor> inputs,
                                       marian::Tensor adj) {
 #ifdef CUDA_FOUND
-  if(adj->getBackend()->getDevice().type == DeviceType::gpu)
+  if(adj->getBackend()->getDeviceId().type == DeviceType::gpu)
     gpu::LSTMOutputBackward(outputs, inputs, adj);
   else
 #endif
@@ -217,7 +217,7 @@ static inline void GRUFastBackward(std::vector<marian::Tensor> outputs,
                                    marian::Tensor adj,
                                    bool final = false) {
 #ifdef CUDA_FOUND
-  if(adj->getBackend()->getDevice().type == DeviceType::gpu)
+  if(adj->getBackend()->getDeviceId().type == DeviceType::gpu)
     gpu::GRUFastBackward(outputs, inputs, adj, final);
   else
 #endif
@@ -241,7 +241,7 @@ float L2Norm(marian::Tensor in);
 
 static inline float L2Norm(marian::Tensor in) {
 #ifdef CUDA_FOUND
-  if(in->getBackend()->getDevice().type == DeviceType::gpu)
+  if(in->getBackend()->getDeviceId().type == DeviceType::gpu)
     return gpu::L2Norm(in);
   else
 #endif

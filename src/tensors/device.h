@@ -31,7 +31,7 @@ public:
 
   virtual size_t size() { return size_; }
 
-  virtual DeviceId getDevice() { return deviceId_; }
+  virtual DeviceId getDeviceId() { return deviceId_; }
 };
 
 namespace gpu {

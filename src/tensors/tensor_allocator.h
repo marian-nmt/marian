@@ -22,7 +22,11 @@ private:
 public:
   TensorAllocator(Ptr<Backend> backend)
       : backend_(backend),
-        allocator_(New<Allocator>(backend_->getDevice(), 0, GROW, ALIGN)) {}
+        allocator_(New<Allocator>(backend_->getDeviceId(), 0, GROW, ALIGN)) {}
+
+// TensorAllocator(Ptr<Backend> backend, Ptr<Device> device)
+//       : backend_(backend),
+//         allocator_(New<Allocator>(backend_->getDeviceId(), device, 0, GROW, ALIGN)) {}
 
   ~TensorAllocator() { clear(); }
 
@@ -35,7 +39,7 @@ public:
     LOG(info,
         "[memory] Extending reserved space to {} MB (device {})",
         mult * CHUNK,
-        allocator_->getDevice());
+        allocator_->getDeviceId());
 
     allocator_->reserve(mult * GROW);
   }
@@ -46,12 +50,12 @@ public:
       LOG(info,
           "[memory] Reserving {} B, device {}",
           bytes,
-          allocator_->getDevice());
+          allocator_->getDeviceId());
     } else {
       LOG(info,
           "[memory] Reserving {} MB, device {}",
           mbytes,
-          allocator_->getDevice());
+          allocator_->getDeviceId());
     }
     allocator_->reserve(bytes);
   }

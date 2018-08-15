@@ -10,7 +10,7 @@ namespace gpu {
 
 template <typename T>
 void copy(Ptr<Backend> backend, const T* begin, const T* end, T* dest) {
-  CUDA_CHECK(cudaSetDevice(backend->getDevice().no));
+  CUDA_CHECK(cudaSetDevice(backend->getDeviceId().no));
   CudaCopy(begin, end, dest);
   CUDA_CHECK(cudaStreamSynchronize(0));
 }
@@ -43,7 +43,7 @@ __global__ void gFill(T* d_in, int size, T val) {
 
 template <typename T>
 void fill(Ptr<Backend> backend, T* begin, T* end, T value) {
-  CUDA_CHECK(cudaSetDevice(backend->getDevice().no));
+  CUDA_CHECK(cudaSetDevice(backend->getDeviceId().no));
   int size = end - begin;
   int threads = std::min(512, size);
   int blocks = (size / threads) + (size % threads != 0);
@@ -67,7 +67,7 @@ void setSparse(Ptr<Backend> backend,
                const std::vector<size_t>& keys,
                const std::vector<float>& values,
                float* data) {
-  CUDA_CHECK(cudaSetDevice(backend->getDevice().no));
+  CUDA_CHECK(cudaSetDevice(backend->getDeviceId().no));
   ABORT("no SetSparse");
   // gpu::SetSparse(data, keys, values);
   CUDA_CHECK(cudaStreamSynchronize(0));

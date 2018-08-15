@@ -159,7 +159,7 @@ NodeInitializer from_item(const io::Item& item) {
   if(item.mapped) {
     return [item](Tensor t) {
       // @TODO: implement other types, for now croak loudly.
-      ABORT_IF(t->getBackend()->getDevice().type != DeviceType::cpu,
+      ABORT_IF(t->getBackend()->getDeviceId().type != DeviceType::cpu,
                "Memory mapping only works for CPU tensors");
       ABORT_IF(!matchType<float>(t->type()),
                "Tensor type and type for mapping do not match");

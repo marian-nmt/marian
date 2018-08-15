@@ -34,7 +34,7 @@ public:
     LOG(info, "[comm] Using NCCL library for GPU communication");
 
     for(int i = 0; i < graphs_.size(); ++i) {
-      auto device = graphs_[i]->getBackend()->getDevice();
+      auto device = graphs_[i]->getBackend()->getDeviceId();
 
       ABORT_IF(device.type != DeviceType::gpu,
                "NCCL communicator can only be used with GPUs");
@@ -223,7 +223,7 @@ Ptr<Communicator> createCommunicator(
 
   // if at least one of the devices is not a gpu, fall-back to default
   for(auto& graph : graphs) {
-    if(graph->getBackend()->getDevice().type == DeviceType::cpu) {
+    if(graph->getBackend()->getDeviceId().type == DeviceType::cpu) {
       return New<DefaultCommunicator>(graphs);
     }
   }

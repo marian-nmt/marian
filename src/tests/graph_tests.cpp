@@ -11,7 +11,7 @@ TEST_CASE("Graph device is set", "[graph]") {
   graph->setDevice({0, DeviceType::gpu});
 
   DeviceId testId{0, DeviceType::gpu};
-  REQUIRE(graph->getDevice() == testId);
+  REQUIRE(graph->getDeviceId() == testId);
 }
 
 TEST_CASE("Expression graph can be initialized with constant values",
@@ -62,7 +62,7 @@ TEST_CASE("Graph device is set (cpu)", "[graph]") {
   graph->setDevice({0, DeviceType::cpu});
 
   DeviceId testId{0, DeviceType::cpu};
-  REQUIRE(graph->getDevice() == testId);
+  REQUIRE(graph->getDeviceId() == testId);
 }
 
 TEST_CASE("Expression graph can be initialized with constant values (cpu)",

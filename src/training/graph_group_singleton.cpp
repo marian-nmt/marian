@@ -31,7 +31,7 @@ void SingletonGraph::execute(Ptr<data::Batch> batch) {
 
     if(!graphAvg_) {
       graphAvg_ = New<ExpressionGraph>();
-      graphAvg_->setDevice(graph_->getDevice());
+      graphAvg_->setDevice(graph_->getDeviceId());
       graphAvg_->copyParams(graph_);
     } else {
       updateAvgParams(graphAvg_->params()->vals(),

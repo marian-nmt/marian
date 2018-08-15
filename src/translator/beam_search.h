@@ -173,8 +173,8 @@ public:
     // @TODO: unify this
     Ptr<NthElement> nth;
 #ifdef CUDA_FOUND
-    if(graph->getDevice().type == DeviceType::gpu)
-      nth = New<NthElementGPU>(localBeamSize, dimBatch, graph->getDevice());
+    if(graph->getDeviceId().type == DeviceType::gpu)
+      nth = New<NthElementGPU>(localBeamSize, dimBatch, graph->getDeviceId());
     else
 #endif
       nth = New<NthElementCPU>(localBeamSize, dimBatch);

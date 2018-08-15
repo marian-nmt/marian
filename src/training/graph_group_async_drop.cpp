@@ -113,7 +113,7 @@ void AsyncGraphGroupDrop::init(Ptr<data::Batch> batch) {
       // prepare droppers
       std::vector<GradientDrop> tmpDropper;
       for(auto device : devices_)
-        tmpDropper.push_back(PrepareGradientDrop(graphs_[i]->getDevice()));
+        tmpDropper.push_back(PrepareGradientDrop(graphs_[i]->getDeviceId()));
       droppers_.push_back(tmpDropper);
 
       // sparsetensor to store sparsified gradients per-device per-shard

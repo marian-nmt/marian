@@ -111,7 +111,12 @@ private:
   std::list<Expr> nodesBackward_;
 
   std::unordered_set<Expr> topNodes_;
+
+  // Holds memory and expressions that correspond to graph parameters
   Ptr<Parameters> params_;
+
+  // Holds memory and expressions that correspond to temporary expressions.
+  // This gets cleared before a new graph is built.
   Ptr<Tensors> tensors_;
 
   std::unordered_map<size_t, std::vector<Expr>> memoized_;
@@ -147,7 +152,7 @@ public:
 
   void setDevice(DeviceId deviceId = {0, DeviceType::gpu});
 
-  DeviceId getDevice() { return backend_->getDevice(); }
+  DeviceId getDeviceId() { return backend_->getDeviceId(); }
 
   Ptr<Backend> getBackend() { return backend_; }
 
@@ -463,7 +468,7 @@ public:
   void mmap(const void* ptr,
             const std::map<std::string, std::string>& nameMap,
             bool markReloaded = true) {
-    ABORT_IF(backend_->getDevice().type != DeviceType::cpu || !inferenceOnly_,
+    ABORT_IF(backend_->getDeviceId().type != DeviceType::cpu || !inferenceOnly_,
              "Memory mapping only supported for CPU inference mode");
 
     params_ = New<MappedParameters>();

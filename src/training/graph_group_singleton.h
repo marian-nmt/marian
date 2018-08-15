@@ -54,7 +54,7 @@ public:
 
           // Load the averaged parameters from model.npz
           graphAvg_ = New<ExpressionGraph>();
-          graphAvg_->setDevice(graph_->getDevice());
+          graphAvg_->setDevice(graph_->getDeviceId());
           builder_->load(graphAvg_, name);
           graphAvg_->forward();
         } else {

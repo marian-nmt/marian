@@ -247,6 +247,6 @@ public:
 
   size_t available() { return available_; }
 
-  DeviceId getDevice() { return device_->getDevice(); }
+  DeviceId getDeviceId() { return device_->getDeviceId(); }
 };
 }  // namespace marian

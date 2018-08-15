@@ -10,7 +10,7 @@ ExpressionGraph::ExpressionGraph(bool inference, bool optimized)
 
 void ExpressionGraph::setDevice(DeviceId deviceId) {
   if(!backend_) {
-    backend_ = BackendByDevice(deviceId, Config::seed);
+    backend_ = BackendByDeviceId(deviceId, Config::seed);
     params_ = New<Parameters>();
     params_->init(backend_);
     tensors_ = New<Tensors>(backend_);
