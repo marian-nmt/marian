@@ -2,46 +2,46 @@
 
 #ifdef CUDA_FOUND
 
-#define DISPATCH1(Function, Arg1)                               \
-  namespace gpu {                                               \
-  void Function(Arg1);                                          \
-  }                                                             \
-  namespace cpu {                                               \
-  void Function(Arg1);                                          \
-  }                                                             \
-  void Function(Arg1 arg1) {                                    \
+#define DISPATCH1(Function, Arg1)                                 \
+  namespace gpu {                                                 \
+  void Function(Arg1);                                            \
+  }                                                               \
+  namespace cpu {                                                 \
+  void Function(Arg1);                                            \
+  }                                                               \
+  void Function(Arg1 arg1) {                                      \
     if(arg1->getBackend()->getDeviceId().type == DeviceType::gpu) \
-      gpu::Function(arg1);                                      \
-    else                                                        \
-      cpu::Function(arg1);                                      \
+      gpu::Function(arg1);                                        \
+    else                                                          \
+      cpu::Function(arg1);                                        \
   }
 
-#define DISPATCH2(Function, Arg1, Arg2)                         \
-  namespace gpu {                                               \
-  void Function(Arg1, Arg2);                                    \
-  }                                                             \
-  namespace cpu {                                               \
-  void Function(Arg1, Arg2);                                    \
-  }                                                             \
-  static inline void Function(Arg1 arg1, Arg2 arg2) {           \
+#define DISPATCH2(Function, Arg1, Arg2)                           \
+  namespace gpu {                                                 \
+  void Function(Arg1, Arg2);                                      \
+  }                                                               \
+  namespace cpu {                                                 \
+  void Function(Arg1, Arg2);                                      \
+  }                                                               \
+  static inline void Function(Arg1 arg1, Arg2 arg2) {             \
     if(arg1->getBackend()->getDeviceId().type == DeviceType::gpu) \
-      gpu::Function(arg1, arg2);                                \
-    else                                                        \
-      cpu::Function(arg1, arg2);                                \
+      gpu::Function(arg1, arg2);                                  \
+    else                                                          \
+      cpu::Function(arg1, arg2);                                  \
   }
 
-#define DISPATCH3(Function, Arg1, Arg2, Arg3)                    \
-  namespace gpu {                                                \
-  void Function(Arg1, Arg2, Arg3);                               \
-  }                                                              \
-  namespace cpu {                                                \
-  void Function(Arg1, Arg2, Arg3);                               \
-  }                                                              \
-  static inline void Function(Arg1 arg1, Arg2 arg2, Arg3 arg3) { \
-    if(arg1->getBackend()->getDeviceId().type == DeviceType::gpu)  \
-      gpu::Function(arg1, arg2, arg3);                           \
-    else                                                         \
-      cpu::Function(arg1, arg2, arg3);                           \
+#define DISPATCH3(Function, Arg1, Arg2, Arg3)                     \
+  namespace gpu {                                                 \
+  void Function(Arg1, Arg2, Arg3);                                \
+  }                                                               \
+  namespace cpu {                                                 \
+  void Function(Arg1, Arg2, Arg3);                                \
+  }                                                               \
+  static inline void Function(Arg1 arg1, Arg2 arg2, Arg3 arg3) {  \
+    if(arg1->getBackend()->getDeviceId().type == DeviceType::gpu) \
+      gpu::Function(arg1, arg2, arg3);                            \
+    else                                                          \
+      cpu::Function(arg1, arg2, arg3);                            \
   }
 
 #define DISPATCH4(Function, Arg1, Arg2, Arg3, Arg4)                         \
@@ -52,25 +52,25 @@
   void Function(Arg1, Arg2, Arg3, Arg4);                                    \
   }                                                                         \
   static inline void Function(Arg1 arg1, Arg2 arg2, Arg3 arg3, Arg4 arg4) { \
-    if(arg1->getBackend()->getDeviceId().type == DeviceType::gpu)             \
+    if(arg1->getBackend()->getDeviceId().type == DeviceType::gpu)           \
       gpu::Function(arg1, arg2, arg3, arg4);                                \
     else                                                                    \
       cpu::Function(arg1, arg2, arg3, arg4);                                \
   }
 
-#define DISPATCH5(Function, Arg1, Arg2, Arg3, Arg4, Arg5)       \
-  namespace gpu {                                               \
-  void Function(Arg1, Arg2, Arg3, Arg4, Arg5);                  \
-  }                                                             \
-  namespace cpu {                                               \
-  void Function(Arg1, Arg2, Arg3, Arg4, Arg5);                  \
-  }                                                             \
-  static inline void Function(                                  \
-      Arg1 arg1, Arg2 arg2, Arg3 arg3, Arg4 arg4, Arg5 arg5) {  \
+#define DISPATCH5(Function, Arg1, Arg2, Arg3, Arg4, Arg5)         \
+  namespace gpu {                                                 \
+  void Function(Arg1, Arg2, Arg3, Arg4, Arg5);                    \
+  }                                                               \
+  namespace cpu {                                                 \
+  void Function(Arg1, Arg2, Arg3, Arg4, Arg5);                    \
+  }                                                               \
+  static inline void Function(                                    \
+      Arg1 arg1, Arg2 arg2, Arg3 arg3, Arg4 arg4, Arg5 arg5) {    \
     if(arg1->getBackend()->getDeviceId().type == DeviceType::gpu) \
-      gpu::Function(arg1, arg2, arg3, arg4, arg5);              \
-    else                                                        \
-      cpu::Function(arg1, arg2, arg3, arg4, arg5);              \
+      gpu::Function(arg1, arg2, arg3, arg4, arg5);                \
+    else                                                          \
+      cpu::Function(arg1, arg2, arg3, arg4, arg5);                \
   }
 
 #define DISPATCH6(Function, Arg1, Arg2, Arg3, Arg4, Arg5, Arg6)           \
@@ -82,7 +82,7 @@
   }                                                                       \
   static inline void Function(                                            \
       Arg1 arg1, Arg2 arg2, Arg3 arg3, Arg4 arg4, Arg5 arg5, Arg6 arg6) { \
-    if(arg1->getBackend()->getDeviceId().type == DeviceType::gpu)           \
+    if(arg1->getBackend()->getDeviceId().type == DeviceType::gpu)         \
       gpu::Function(arg1, arg2, arg3, arg4, arg5, arg6);                  \
     else                                                                  \
       cpu::Function(arg1, arg2, arg3, arg4, arg5, arg6);                  \
@@ -102,7 +102,7 @@
                               Arg5 arg5,                              \
                               Arg6 arg6,                              \
                               Arg7 arg7) {                            \
-    if(arg1->getBackend()->getDeviceId().type == DeviceType::gpu)       \
+    if(arg1->getBackend()->getDeviceId().type == DeviceType::gpu)     \
       gpu::Function(arg1, arg2, arg3, arg4, arg5, arg6, arg7);        \
     else                                                              \
       cpu::Function(arg1, arg2, arg3, arg4, arg5, arg6, arg7);        \
@@ -123,7 +123,7 @@
                               Arg6 arg6,                                    \
                               Arg7 arg7,                                    \
                               Arg8 arg8) {                                  \
-    if(arg1->getBackend()->getDeviceId().type == DeviceType::gpu)             \
+    if(arg1->getBackend()->getDeviceId().type == DeviceType::gpu)           \
       gpu::Function(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);        \
     else                                                                    \
       cpu::Function(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);        \
@@ -146,7 +146,7 @@
                               Arg7 arg7,                                   \
                               Arg8 arg8,                                   \
                               Arg9 arg9) {                                 \
-    if(arg1->getBackend()->getDeviceId().type == DeviceType::gpu)            \
+    if(arg1->getBackend()->getDeviceId().type == DeviceType::gpu)          \
       gpu::Function(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9); \
     else                                                                   \
       cpu::Function(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9); \

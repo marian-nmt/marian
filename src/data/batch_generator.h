@@ -13,7 +13,6 @@
 #include "training/training_state.h"
 
 namespace marian {
-
 namespace data {
 
 template <class DataSet>

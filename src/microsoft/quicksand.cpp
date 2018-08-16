@@ -50,7 +50,7 @@ public:
     device_ = New<cpu::WrappedDevice>(deviceId);
     graph_->setDevice(deviceId, device_);
 
-    //graph_->reserveWorkspaceMB(500);
+    // graph_->reserveWorkspaceMB(500);
 
 #ifdef MKL_FOUND
     mkl_set_num_threads(options->get<size_t>("mkl-threads", 1));
@@ -97,9 +97,7 @@ public:
     }
   }
 
-  void setWorkspace(uint8_t* data, size_t size)  {
-    device_->set(data, size);
-  }
+  void setWorkspace(uint8_t* data, size_t size) { device_->set(data, size); }
 
   QSNBestBatch decode(const QSBatch& qsBatch,
                       size_t maxLength,
