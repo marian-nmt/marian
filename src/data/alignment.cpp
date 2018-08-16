@@ -70,5 +70,19 @@ WordAlignment ConvertSoftAlignToHardAlign(SoftAlignment alignSoft,
   return align;
 }
 
+std::string SoftAlignToString(SoftAlignment align) {
+  std::stringstream str;
+  for(size_t t = align.size(); t > 0; --t) {
+    if(t != align.size())
+      str << " ";
+    for(size_t s = 0; s < align[t - 1].size(); ++s) {
+      if(s != 0)
+        str << ",";
+      str << align[t - 1][s];
+    }
+  }
+  return str.str();
+}
+
 }  // namespace data
 }  // namespace marian

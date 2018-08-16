@@ -19,7 +19,8 @@ public:
         nbest_(options->get<bool>("n-best", false)
                    ? options->get<size_t>("beam-size")
                    : 0),
-        alignment_(options->get<float>("alignment", 0.f)) {}
+        alignment_(options->get<float>("alignment", 0.f)),
+        alignSoft_(options->get<bool>("soft-alignment", false)) {}
 
   template <class OStream>
   void print(Ptr<History> history, OStream& best1, OStream& bestn) {
@@ -33,8 +34,14 @@ public:
       std::string translation = utils::Join((*vocab_)(words), " ", reverse_);
       bestn << history->GetLineNum() << " ||| " << translation;
 
-      if(alignment_ > 0.f) {
-        bestn << " ||| " << getAlignment(hypo, alignment_).toString();
+      if(alignment_ > 0.f || alignSoft_) {
+        auto align = getAlignment(hypo);
+        if(alignment_ > 0.f)
+          bestn << " ||| "
+                << data::ConvertSoftAlignToHardAlign(align, alignment_)
+                       .toString();
+        if(alignSoft_)
+          bestn << " ||| " << data::SoftAlignToString(align);
       }
 
       bestn << " |||";
@@ -62,9 +69,15 @@ public:
     std::string translation = utils::Join((*vocab_)(words), " ", reverse_);
 
     best1 << translation;
-    if(alignment_ > 0.f) {
+    if(alignment_ > 0.f || alignSoft_) {
       const auto& hypo = std::get<1>(result);
-      best1 << " ||| " << getAlignment(hypo, alignment_).toString();
+      auto align = getAlignment(hypo);
+      if(alignment_ > 0.f)
+        best1
+            << " ||| "
+            << data::ConvertSoftAlignToHardAlign(align, alignment_).toString();
+      if(alignSoft_)
+        best1 << " ||| " << data::SoftAlignToString(align);
     }
     best1 << std::flush;
   }
@@ -74,7 +87,8 @@ private:
   bool reverse_{false};
   size_t nbest_{0};
   float alignment_{0.f};
+  bool alignSoft_{false};
 
-  data::WordAlignment getAlignment(const Ptr<Hypothesis>& hyp, float threshold);
+  data::SoftAlignment getAlignment(const Ptr<Hypothesis>& hyp);
 };
 }  // namespace marian

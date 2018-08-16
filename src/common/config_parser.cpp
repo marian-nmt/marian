@@ -752,6 +752,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Scorer weights")
     ("alignment", po::value<float>()->default_value(0.f)->implicit_value(1.f),
      "Return word alignments")
+    ("soft-alignment", po::value<bool>()->zero_tokens()->default_value(false),
+     "Return attention output as soft alignments")
     // TODO: the options should be available only in server
     ("port,p", po::value<size_t>()->default_value(8080),
       "Port number for web socket server")
@@ -1056,6 +1058,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION_NONDEFAULT("weights", std::vector<float>);
     SET_OPTION_NONDEFAULT("shortlist", std::vector<std::string>);
     SET_OPTION("alignment", float);
+    SET_OPTION("soft-alignment", bool);
     SET_OPTION("port", size_t);
     SET_OPTION("optimize", bool);
     SET_OPTION("max-length-factor", float);

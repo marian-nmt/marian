@@ -42,7 +42,8 @@ public:
     Beams newBeams(beams.size());
 
     std::vector<float> alignments;
-    if(options_->get<float>("alignment", 0.f))
+    if(options_->get<float>("alignment", 0.f)
+       || options_->has("soft-alignment"))
       // Use alignments from the first scorer, even if ensemble
       alignments = scorers_[0]->getAlignment();
 
