@@ -750,10 +750,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
      "Use softmax shortlist: path first best prune")
     ("weights", po::value<std::vector<float>>()->multitoken(),
       "Scorer weights")
-    ("alignment", po::value<float>()->default_value(0.f)->implicit_value(1.f),
-     "Return word alignments")
-    ("soft-alignment", po::value<bool>()->zero_tokens()->default_value(false),
-     "Return attention output as soft alignments")
+    ("alignment", po::value<std::string>()->implicit_value("1"),
+     "Return word alignments (possible value: 0.0-1.0, hard, soft")
     // TODO: the options should be available only in server
     ("port,p", po::value<size_t>()->default_value(8080),
       "Port number for web socket server")
@@ -808,8 +806,8 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
       "Sorting strategy for maxi-batch: trg (default) src none")
-    ("alignment", po::value<float>()->default_value(0.f)->implicit_value(1.f),
-     "Return word alignments")
+    ("alignment", po::value<std::string>()->implicit_value("1"),
+     "Return word alignments (possible value: 0.0-1.0, hard, soft")
     ;
   // clang-format on
   desc.add(rescore);
@@ -1044,7 +1042,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("n-best-feature", std::string);
     SET_OPTION_NONDEFAULT("summary", std::string);
     SET_OPTION("optimize", bool);
-    SET_OPTION("alignment", float);
+    SET_OPTION_NONDEFAULT("alignment", std::string);
   }
 
   if(mode_ == ConfigMode::translating) {
@@ -1057,8 +1055,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("mini-batch-words", int);
     SET_OPTION_NONDEFAULT("weights", std::vector<float>);
     SET_OPTION_NONDEFAULT("shortlist", std::vector<std::string>);
-    SET_OPTION("alignment", float);
-    SET_OPTION("soft-alignment", bool);
+    SET_OPTION_NONDEFAULT("alignment", std::string);
     SET_OPTION("port", size_t);
     SET_OPTION("optimize", bool);
     SET_OPTION("max-length-factor", float);

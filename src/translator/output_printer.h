@@ -19,8 +19,8 @@ public:
         nbest_(options->get<bool>("n-best", false)
                    ? options->get<size_t>("beam-size")
                    : 0),
-        alignment_(options->get<float>("alignment", 0.f)),
-        alignSoft_(options->get<bool>("soft-alignment", false)) {}
+        alignment_(options->get<std::string>("alignment", "")),
+        alignmentThreshold_(getAlignmentThreshold(alignment_)) {}
 
   template <class OStream>
   void print(Ptr<History> history, OStream& best1, OStream& bestn) {
@@ -34,15 +34,8 @@ public:
       std::string translation = utils::Join((*vocab_)(words), " ", reverse_);
       bestn << history->GetLineNum() << " ||| " << translation;
 
-      if(alignment_ > 0.f || alignSoft_) {
-        auto align = getAlignment(hypo);
-        if(alignment_ > 0.f)
-          bestn << " ||| "
-                << data::ConvertSoftAlignToHardAlign(align, alignment_)
-                       .toString();
-        if(alignSoft_)
-          bestn << " ||| " << data::SoftAlignToString(align);
-      }
+      if(!alignment_.empty())
+        bestn << " ||| " << getAlignment(hypo);
 
       bestn << " |||";
 
@@ -69,15 +62,9 @@ public:
     std::string translation = utils::Join((*vocab_)(words), " ", reverse_);
 
     best1 << translation;
-    if(alignment_ > 0.f || alignSoft_) {
+    if(!alignment_.empty()) {
       const auto& hypo = std::get<1>(result);
-      auto align = getAlignment(hypo);
-      if(alignment_ > 0.f)
-        best1
-            << " ||| "
-            << data::ConvertSoftAlignToHardAlign(align, alignment_).toString();
-      if(alignSoft_)
-        best1 << " ||| " << data::SoftAlignToString(align);
+      best1 << " ||| " << getAlignment(hypo);
     }
     best1 << std::flush;
   }
@@ -86,9 +73,17 @@ private:
   Ptr<Vocab> vocab_;
   bool reverse_{false};
   size_t nbest_{0};
-  float alignment_{0.f};
-  bool alignSoft_{false};
+  std::string alignment_;
+  float alignmentThreshold_{0.f};
 
-  data::SoftAlignment getAlignment(const Ptr<Hypothesis>& hyp);
+  std::string getAlignment(const Ptr<Hypothesis>& hyp);
+
+  float getAlignmentThreshold(const std::string& str) {
+    try {
+      return std::max(std::stof(str), 0.f);
+    } catch(...) {
+      return 0.f;
+    }
+  }
 };
 }  // namespace marian
