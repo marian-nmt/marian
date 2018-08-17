@@ -41,10 +41,10 @@ public:
                Ptr<data::CorpusBatch> batch) {
     Beams newBeams(beams.size());
 
-    std::vector<float> alignments;
+    std::vector<float> align;
     if(options_->has("alignment"))
       // Use alignments from the first scorer, even if ensemble
-      alignments = scorers_[0]->getAlignment();
+      align = scorers_[0]->getAlignment();
 
     for(size_t i = 0; i < keys.size(); ++i) {
       // Keys contains indices to vocab items in the entire beam.
@@ -93,10 +93,9 @@ public:
         }
 
         // Set alignments
-        if(!alignments.empty()) {
-          auto align = getAlignmentsForHypothesis(
-              alignments, batch, beamSize, beamHypIdx, beamIdx);
-          hyp->SetAlignment(align);
+        if(!align.empty()) {
+          hyp->SetAlignment(
+              getAlignmentsForHypothesis(align, batch, beamHypIdx, beamIdx));
         }
 
         newBeam.push_back(hyp);
@@ -106,9 +105,8 @@ public:
   }
 
   std::vector<float> getAlignmentsForHypothesis(
-      const std::vector<float> alignments,
+      const std::vector<float> alignAll,
       Ptr<data::CorpusBatch> batch,
-      int beamSize,
       int beamHypIdx,
       int beamIdx) {
     // Let's B be the beam size, N be the number of batched sentences,
@@ -136,7 +134,7 @@ public:
       size_t a = ((batchWidth * beamHypIdx) + beamIdx) + (batchSize * w);
       size_t m = a % batchWidth;
       if(batch->front()->mask()[m] != 0)
-        align.emplace_back(alignments[a]);
+        align.emplace_back(alignAll[a]);
     }
 
     return align;
