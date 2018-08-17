@@ -11,7 +11,7 @@ ScoreCollector::ScoreCollector(const Ptr<Config>& options)
     : nextId_(0),
       outStrm_(new OutputFileStream(std::cout)),
       alignment_(options->get<std::string>("alignment", "")),
-      alignmentThreshold_(getAlignmentThreshold(alignment_)){};
+      alignmentThreshold_(getAlignmentThreshold(alignment_)) {}
 
 void ScoreCollector::Write(long id, const std::string& message) {
   boost::mutex::scoped_lock lock(mutex_);
@@ -60,11 +60,11 @@ void ScoreCollector::Write(long id,
 
 std::string ScoreCollector::getAlignment(const data::SoftAlignment& align) {
   if(alignment_ == "soft") {
-    return data::SoftAlignToString(align, true);
+    return data::SoftAlignToString(align);
   } else if(alignment_ == "hard") {
-    return data::ConvertSoftAlignToHardAlign(align, 1.f, true).toString();
+    return data::ConvertSoftAlignToHardAlign(align, 1.f).toString();
   } else if(alignmentThreshold_ > 0.f) {
-    return data::ConvertSoftAlignToHardAlign(align, alignmentThreshold_, true)
+    return data::ConvertSoftAlignToHardAlign(align, alignmentThreshold_)
         .toString();
   } else {
     ABORT("Unrecognized word alignment type");

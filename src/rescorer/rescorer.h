@@ -54,7 +54,6 @@ public:
                 ? std::static_pointer_cast<CorpusBase>(
                       New<CorpusNBest>(options_))
                 : std::static_pointer_cast<CorpusBase>(New<Corpus>(options_))) {
-    // @TODO: move to doValidation in Config Parser
     ABORT_IF(options_->has("summary") && options_->has("alignment"),
              "Alignments can not be produced with summarized score");
 

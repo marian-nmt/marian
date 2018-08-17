@@ -4,9 +4,8 @@ namespace marian {
 
 std::string OutputPrinter::getAlignment(const Ptr<Hypothesis>& hyp) {
   data::SoftAlignment align;
-  // skip EOS
-  auto last = hyp->GetPrevHyp();
-  // get soft alignments for each target word starting from the last token
+  auto last = hyp;
+  // get soft alignments for each target word starting from the last one
   while(last->GetPrevHyp().get() != nullptr) {
     align.push_back(last->GetAlignment());
     last = last->GetPrevHyp();

@@ -33,13 +33,11 @@ std::string WordAlignment::toString() const {
 }
 
 WordAlignment ConvertSoftAlignToHardAlign(SoftAlignment alignSoft,
-                                          float threshold /*= 1.f*/,
-                                          bool skipEOS /*= false*/) {
-  size_t shift = alignSoft.size() > 0 && skipEOS ? 1 : 0;
+                                          float threshold /*= 1.f*/) {
   WordAlignment align;
   // Alignments by maximum value
   if(threshold == 1.f) {
-    for(size_t t = 0; t < alignSoft.size() - shift; ++t) {
+    for(size_t t = 0; t < alignSoft.size(); ++t) {
       // Retrieved alignments are in reversed order
       size_t maxArg = 0;
       for(size_t s = 0; s < alignSoft[0].size(); ++s) {
@@ -51,7 +49,7 @@ WordAlignment ConvertSoftAlignToHardAlign(SoftAlignment alignSoft,
     }
   } else {
     // Alignments by greather-than-threshold
-    for(size_t t = 0; t < alignSoft.size() - shift; ++t) {
+    for(size_t t = 0; t < alignSoft.size(); ++t) {
       // Retrieved alignments are in reversed order
       for(size_t s = 0; s < alignSoft[0].size(); ++s) {
         if(alignSoft[t][s] > threshold) {
@@ -67,11 +65,10 @@ WordAlignment ConvertSoftAlignToHardAlign(SoftAlignment alignSoft,
   return align;
 }
 
-std::string SoftAlignToString(SoftAlignment align, bool skipEOS /*= false*/) {
+std::string SoftAlignToString(SoftAlignment align) {
   std::stringstream str;
-  size_t shift = align.size() > 0 && skipEOS ? 1 : 0;
   bool first = true;
-  for(size_t t = 0; t < align.size() - shift; ++t) {
+  for(size_t t = 0; t < align.size(); ++t) {
     if(!first)
       str << " ";
     for(size_t s = 0; s < align[t].size(); ++s) {

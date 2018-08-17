@@ -38,7 +38,6 @@ public:
         bestn << " ||| " << getAlignment(hypo);
 
       bestn << " |||";
-
       if(hypo->GetCostBreakdown().empty()) {
         bestn << " F0=" << hypo->GetCost();
       } else {
