@@ -70,16 +70,22 @@ WordAlignment ConvertSoftAlignToHardAlign(SoftAlignment alignSoft,
   return align;
 }
 
-std::string SoftAlignToString(SoftAlignment align) {
+std::string SoftAlignToString(SoftAlignment align,
+                              bool reversed /*= true*/,
+                              bool skipEOS /*= false*/) {
   std::stringstream str;
-  for(size_t t = align.size(); t > 0; --t) {
-    if(t != align.size())
+  size_t shift = align.size() > 0 && skipEOS ? 1 : 0;
+  bool first = true;
+  for(size_t t = 0; t < align.size() - shift; ++t) {
+    size_t rev = reversed ? align.size() - t - 1 : t;
+    if(!first)
       str << " ";
-    for(size_t s = 0; s < align[t - 1].size(); ++s) {
+    for(size_t s = 0; s < align[rev].size(); ++s) {
       if(s != 0)
         str << ",";
-      str << align[t - 1][s];
+      str << align[rev][s];
     }
+    first = false;
   }
   return str.str();
 }

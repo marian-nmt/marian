@@ -54,6 +54,7 @@ public:
                 ? std::static_pointer_cast<CorpusBase>(
                       New<CorpusNBest>(options_))
                 : std::static_pointer_cast<CorpusBase>(New<Corpus>(options_))) {
+    // @TODO: move to doValidation in Config Parser
     ABORT_IF(options_->has("summary") && options_->has("alignment"),
              "Alignments can not be produced with summarized score");
 
@@ -96,9 +97,9 @@ public:
     Ptr<ScoreCollector> output = options_->get<bool>("n-best")
                                      ? std::static_pointer_cast<ScoreCollector>(
                                            New<ScoreCollectorNBest>(options_))
-                                     : New<ScoreCollector>();
+                                     : New<ScoreCollector>(options_);
 
-    float alignment = options_->get<float>("alignment", .0f);
+    std::string alignment = options_->get<std::string>("alignment", "");
     bool summarize = options_->has("summary");
     std::string summary
         = summarize ? options_->get<std::string>("summary") : "cross-entropy";
@@ -134,7 +135,7 @@ public:
 
           // soft alignments for each sentence in the batch
           std::vector<data::SoftAlignment> aligns(batch->size());
-          if(alignment > .0f) {
+          if(!alignment.empty()) {
             getAlignmentsForBatch(builder->getAlignment(), batch, aligns);
           }
 

@@ -15,7 +15,11 @@ namespace marian {
 
 class ScoreCollector {
 public:
-  ScoreCollector() : nextId_(0), outStrm_(new OutputFileStream(std::cout)){};
+  ScoreCollector(const Ptr<Config>& options)
+      : nextId_(0),
+        outStrm_(new OutputFileStream(std::cout)),
+        alignment_(options->get<std::string>("alignment", "")),
+        alignmentThreshold_(getAlignmentThreshold(alignment_)){};
 
   virtual void Write(long id, const std::string& message) {
     boost::mutex::scoped_lock lock(mutex_);
@@ -57,11 +61,8 @@ public:
                      float score,
                      const data::SoftAlignment& align = {}) {
     auto msg = std::to_string(score);
-    if(!align.empty()) {
-      auto wordAlign
-          = data::ConvertSoftAlignToHardAlign(align, 1.f, false, true);
-      msg += " ||| " + wordAlign.toString();
-    }
+    if(!alignment_.empty() && !align.empty())
+      msg += " ||| " + getAlignment(align);
     Write(id, msg);
   }
 
@@ -72,6 +73,33 @@ protected:
 
   typedef std::map<long, std::string> Outputs;
   Outputs outputs_;
+
+  std::string alignment_;
+  float alignmentThreshold_{0.f};
+
+  float getAlignmentThreshold(const std::string& str) {
+    try {
+      return std::max(std::stof(str), 0.f);
+    } catch(...) {
+      return 0.f;
+    }
+  }
+
+  std::string getAlignment(const data::SoftAlignment& align) {
+    if(alignment_ == "soft") {
+      return data::SoftAlignToString(align, false, true);
+    } else if(alignment_ == "hard") {
+      return data::ConvertSoftAlignToHardAlign(align, 1.f, false, true)
+          .toString();
+    } else if(alignmentThreshold_ > 0.f) {
+      return data::ConvertSoftAlignToHardAlign(
+                 align, alignmentThreshold_, false, true)
+          .toString();
+    } else {
+      ABORT("Unrecognized word alignment type");
+    }
+    return "";
+  }
 };
 
 class ScoreCollectorNBest : public ScoreCollector {
@@ -87,7 +115,9 @@ private:
 public:
   ScoreCollectorNBest() = delete;
 
-  ScoreCollectorNBest(const Ptr<Config>& options) : options_(options) {
+  // TODO: get rid of the options_ attribute
+  ScoreCollectorNBest(const Ptr<Config>& options)
+      : ScoreCollector(options), options_(options) {
     auto paths = options_->get<std::vector<std::string>>("train-sets");
     nBestList_ = paths.back();
     fname_ = options_->get<std::string>("n-best-feature");
@@ -103,11 +133,8 @@ public:
     std::vector<std::string> fields;
     utils::Split(nbest, fields, "|||");
     std::stringstream ss;
-    if(!align.empty()) {
-      auto wordAlign
-          = data::ConvertSoftAlignToHardAlign(align, 1.f, false, true);
-      ss << " " << wordAlign.toString() << " |||";
-    }
+    if(!alignment_.empty() && !align.empty())
+      ss << " " << getAlignment(align) << " |||";
     ss << fields[2] << feature << "= " << score << " ";
     fields[2] = ss.str();
     return utils::Join(fields, "|||");

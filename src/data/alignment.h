@@ -54,7 +54,9 @@ WordAlignment ConvertSoftAlignToHardAlign(SoftAlignment alignSoft,
                                           bool reversed = true,
                                           bool skipEOS = false);
 
-std::string SoftAlignToString(SoftAlignment align);
+std::string SoftAlignToString(SoftAlignment align,
+                              bool reversed = true,
+                              bool skipEOS = false);
 
 }  // namespace data
 }  // namespace marian
