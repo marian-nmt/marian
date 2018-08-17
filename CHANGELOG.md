@@ -8,10 +8,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
-- Returning hard alignments by scorer
+- Word alignment generation in scorer
+- Attention output generation in decoder and scorer with `--alignment soft`
 
 ### Fixed
 - Delayed output in line-by-line translation
+
+### Changed
+- Generated word alignments include alignments for target EOS tokens
 
 ## [1.6.0] - 2018-08-08
 
