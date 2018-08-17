@@ -353,7 +353,7 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
     ("ignore-model-config", po::value<bool>()->zero_tokens()->default_value(false),
      "Ignore the model configuration saved in npz file")
     ("type", po::value<std::string>()->default_value("amun"),
-      "Model type (possible values: amun, nematus, s2s, multi-s2s, transformer)")
+      "Model type: amun, nematus, s2s, multi-s2s, transformer")
     ("dim-vocabs", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({0, 0}), "0 0"),
@@ -541,7 +541,7 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
-      "Sorting strategy for maxi-batch: trg (default) src none")
+      "Sorting strategy for maxi-batch: trg, src, none")
     ("optimizer,o", po::value<std::string>()->default_value("adam"),
      "Optimization algorithm (possible values: sgd, adagrad, adam")
     ("optimizer-params",  po::value<std::vector<float>>()
@@ -554,8 +554,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("lr-decay", po::value<double>()->default_value(0.0),
      "Decay factor for learning rate: lr = lr * arg (0 to disable)")
     ("lr-decay-strategy", po::value<std::string>()->default_value("epoch+stalled"),
-     "Strategy for learning rate decaying "
-     "(possible values: epoch, batches, stalled, epoch+batches, epoch+stalled)")
+     "Strategy for learning rate decaying: epoch, batches, stalled, "
+     "epoch+batches, epoch+stalled")
     ("lr-decay-start", po::value<std::vector<size_t>>()
        ->multitoken()
        ->default_value(std::vector<size_t>({10,1}), "10 1"),
@@ -603,14 +603,14 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("guided-alignment", po::value<std::string>(),
      "Use guided alignment to guide attention")
     ("guided-alignment-cost", po::value<std::string>()->default_value("ce"),
-     "Cost type for guided alignment. Possible values: ce (cross-entropy), "
-     "mse (mean square error), mult (multiplication)")
+     "Cost type for guided alignment: ce (cross-entropy), mse (mean square "
+     "error), mult (multiplication)")
     ("guided-alignment-weight", po::value<double>()->default_value(1),
      "Weight for guided alignment cost")
     ("data-weighting", po::value<std::string>(),
      "File with sentence or word weights")
     ("data-weighting-type", po::value<std::string>()->default_value("sentence"),
-     "Processing level for data weighting. Possible values: sentence, word")
+     "Processing level for data weighting: sentence, word")
 
     //("drop-rate", po::value<double>()->default_value(0),
     // "Gradient drop ratio (read: https://arxiv.org/abs/1704.05021)")
@@ -743,7 +743,7 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
     ("maxi-batch", po::value<int>()->default_value(1),
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("none"),
-      "Sorting strategy for maxi-batch: none (default) src")
+      "Sorting strategy for maxi-batch: none, src")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
       "Display n-best list")
     ("shortlist", po::value<std::vector<std::string>>()->multitoken(),
@@ -751,7 +751,7 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
     ("weights", po::value<std::vector<float>>()->multitoken(),
       "Scorer weights")
     ("alignment", po::value<std::string>()->implicit_value("1"),
-     "Return word alignments (possible value: 0.0-1.0, hard, soft")
+     "Return word alignment. Possible values: 0.0-1.0, hard, soft")
     // TODO: the options should be available only in server
     ("port,p", po::value<size_t>()->default_value(8080),
       "Port number for web socket server")
@@ -805,9 +805,9 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
-      "Sorting strategy for maxi-batch: trg (default) src none")
+      "Sorting strategy for maxi-batch: trg (default), src, none")
     ("alignment", po::value<std::string>()->implicit_value("1"),
-     "Return word alignments (possible value: 0.0-1.0, hard, soft")
+     "Return word alignments. Possible values: 0.0-1.0, hard, soft")
     ;
   // clang-format on
   desc.add(rescore);
