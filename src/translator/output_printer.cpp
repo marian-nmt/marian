@@ -4,13 +4,16 @@ namespace marian {
 
 std::string OutputPrinter::getAlignment(const Ptr<Hypothesis>& hyp) {
   data::SoftAlignment align;
-  // Skip EOS
+  // skip EOS
   auto last = hyp->GetPrevHyp();
-  // Get soft alignments for each target word
+  // get soft alignments for each target word starting from the last token
   while(last->GetPrevHyp().get() != nullptr) {
     align.push_back(last->GetAlignment());
     last = last->GetPrevHyp();
   }
+
+  // reverse alignments
+  std::reverse(align.begin(), align.end());
 
   if(alignment_ == "soft") {
     return data::SoftAlignToString(align);

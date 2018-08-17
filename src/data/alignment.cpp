@@ -34,7 +34,6 @@ std::string WordAlignment::toString() const {
 
 WordAlignment ConvertSoftAlignToHardAlign(SoftAlignment alignSoft,
                                           float threshold /*= 1.f*/,
-                                          bool reversed /*= true*/,
                                           bool skipEOS /*= false*/) {
   size_t shift = alignSoft.size() > 0 && skipEOS ? 1 : 0;
   WordAlignment align;
@@ -42,10 +41,9 @@ WordAlignment ConvertSoftAlignToHardAlign(SoftAlignment alignSoft,
   if(threshold == 1.f) {
     for(size_t t = 0; t < alignSoft.size() - shift; ++t) {
       // Retrieved alignments are in reversed order
-      size_t rev = reversed ? alignSoft.size() - t - 1 : t;
       size_t maxArg = 0;
       for(size_t s = 0; s < alignSoft[0].size(); ++s) {
-        if(alignSoft[rev][maxArg] < alignSoft[rev][s]) {
+        if(alignSoft[t][maxArg] < alignSoft[t][s]) {
           maxArg = s;
         }
       }
@@ -55,9 +53,8 @@ WordAlignment ConvertSoftAlignToHardAlign(SoftAlignment alignSoft,
     // Alignments by greather-than-threshold
     for(size_t t = 0; t < alignSoft.size() - shift; ++t) {
       // Retrieved alignments are in reversed order
-      size_t rev = reversed ? alignSoft.size() - t - 1 : t;
       for(size_t s = 0; s < alignSoft[0].size(); ++s) {
-        if(alignSoft[rev][s] > threshold) {
+        if(alignSoft[t][s] > threshold) {
           align.push_back(s, t);
         }
       }
@@ -70,20 +67,17 @@ WordAlignment ConvertSoftAlignToHardAlign(SoftAlignment alignSoft,
   return align;
 }
 
-std::string SoftAlignToString(SoftAlignment align,
-                              bool reversed /*= true*/,
-                              bool skipEOS /*= false*/) {
+std::string SoftAlignToString(SoftAlignment align, bool skipEOS /*= false*/) {
   std::stringstream str;
   size_t shift = align.size() > 0 && skipEOS ? 1 : 0;
   bool first = true;
   for(size_t t = 0; t < align.size() - shift; ++t) {
-    size_t rev = reversed ? align.size() - t - 1 : t;
     if(!first)
       str << " ";
-    for(size_t s = 0; s < align[rev].size(); ++s) {
+    for(size_t s = 0; s < align[t].size(); ++s) {
       if(s != 0)
         str << ",";
-      str << align[rev][s];
+      str << align[t][s];
     }
     first = false;
   }
