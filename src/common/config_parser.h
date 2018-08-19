@@ -25,8 +25,6 @@ enum struct ConfigMode {
 // try to determine the width of the terminal
 uint16_t guess_terminal_width(uint16_t max_width = 180);
 
-void OutputYaml(const YAML::Node node, YAML::Emitter& out);
-
 class ConfigParser {
 public:
   ConfigParser(int argc, char** argv, ConfigMode mode, bool validate = false)
