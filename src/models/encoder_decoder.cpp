@@ -1,4 +1,5 @@
 #include "encoder_decoder.h"
+#include "common/cli_helper.h"
 
 namespace marian {
 
@@ -91,7 +92,7 @@ Config::YamlNode EncoderDecoder::getModelParameters() {
 std::string EncoderDecoder::getModelParametersAsString() {
   auto yaml = getModelParameters();
   YAML::Emitter out;
-  OutputYaml(yaml, out);
+  cli::OutputYaml(yaml, out);
   return std::string(out.c_str());
 }
 

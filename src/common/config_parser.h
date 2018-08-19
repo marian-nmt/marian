@@ -1,12 +1,15 @@
 #pragma once
 
 #include <boost/program_options.hpp>
+
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
-#ifndef _WIN32  // TODO: why are these needed by a config parser? Can they be
-                // removed for Linux as well?
+
+// TODO: why are these needed by a config parser? Can they be removed for Linux
+// as well?
+#ifndef _WIN32
 #include <sys/ioctl.h>
 #include <unistd.h>
 #endif

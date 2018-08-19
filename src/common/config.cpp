@@ -29,7 +29,7 @@ YAML::Node& Config::get() {
 
 void Config::log() {
   YAML::Emitter out;
-  OutputYaml(config_, out);
+  cli::OutputYaml(config_, out);
   std::string configString = out.c_str();
 
   std::vector<std::string> results;
