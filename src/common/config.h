@@ -1,14 +1,18 @@
 #pragma once
 
 #include <boost/program_options.hpp>
+
 #include "3rd_party/yaml-cpp/yaml.h"
+#include "common/cli_helper.h"
 #include "common/config_parser.h"
 #include "common/file_stream.h"
 #include "common/io.h"
 #include "common/logging.h"
 #include "common/utils.h"
-#ifndef _WIN32  // TODO: why are these needed by a config parser? Can they be
-                // removed for Linux as well?
+
+// TODO: why are these needed by a config parser? Can they be removed for Linux
+// as well?
+#ifndef _WIN32
 #include <sys/ioctl.h>
 #include <unistd.h>
 #endif
@@ -125,7 +129,7 @@ public:
 
   friend std::ostream& operator<<(std::ostream& out, const Config& config) {
     YAML::Emitter outYaml;
-    OutputYaml(config.get(), outYaml);
+    cli::OutputYaml(config.get(), outYaml);
     out << outYaml.c_str();
     return out;
   }

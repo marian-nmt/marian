@@ -177,8 +177,8 @@ public:
     }
 #ifdef CUDA_FOUND
     else {
-      std::vector<int> outputs
-          = gpu::lower_bounds(indices(), values, size(), backend_->getDeviceId());
+      std::vector<int> outputs = gpu::lower_bounds(
+          indices(), values, size(), backend_->getDeviceId());
 
       startOffset = outputs[0];
       endOffset = outputs[1];

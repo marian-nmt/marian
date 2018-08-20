@@ -19,7 +19,8 @@ public:
         nbest_(options->get<bool>("n-best", false)
                    ? options->get<size_t>("beam-size")
                    : 0),
-        alignment_(options->get<float>("alignment", 0.f)) {}
+        alignment_(options->get<std::string>("alignment", "")),
+        alignmentThreshold_(getAlignmentThreshold(alignment_)) {}
 
   template <class OStream>
   void print(Ptr<History> history, OStream& best1, OStream& bestn) {
@@ -33,12 +34,10 @@ public:
       std::string translation = utils::Join((*vocab_)(words), " ", reverse_);
       bestn << history->GetLineNum() << " ||| " << translation;
 
-      if(alignment_ > 0.f) {
-        bestn << " ||| " << getAlignment(hypo, alignment_).toString();
-      }
+      if(!alignment_.empty())
+        bestn << " ||| " << getAlignment(hypo);
 
       bestn << " |||";
-
       if(hypo->GetCostBreakdown().empty()) {
         bestn << " F0=" << hypo->GetCost();
       } else {
@@ -62,9 +61,9 @@ public:
     std::string translation = utils::Join((*vocab_)(words), " ", reverse_);
 
     best1 << translation;
-    if(alignment_ > 0.f) {
+    if(!alignment_.empty()) {
       const auto& hypo = std::get<1>(result);
-      best1 << " ||| " << getAlignment(hypo, alignment_).toString();
+      best1 << " ||| " << getAlignment(hypo);
     }
     best1 << std::flush;
   }
@@ -73,8 +72,17 @@ private:
   Ptr<Vocab> vocab_;
   bool reverse_{false};
   size_t nbest_{0};
-  float alignment_{0.f};
+  std::string alignment_;
+  float alignmentThreshold_{0.f};
 
-  data::WordAlignment getAlignment(const Ptr<Hypothesis>& hyp, float threshold);
+  std::string getAlignment(const Ptr<Hypothesis>& hyp);
+
+  float getAlignmentThreshold(const std::string& str) {
+    try {
+      return std::max(std::stof(str), 0.f);
+    } catch(...) {
+      return 0.f;
+    }
+  }
 };
 }  // namespace marian

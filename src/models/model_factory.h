@@ -6,7 +6,6 @@
 #include "models/encoder_decoder.h"
 
 namespace marian {
-
 namespace models {
 
 class EncoderFactory : public Factory {

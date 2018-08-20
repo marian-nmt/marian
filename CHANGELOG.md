@@ -8,12 +8,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
-- Returning hard alignments by scorer
+- Word alignment generation in scorer
+- Attention output generation in decoder and scorer with `--alignment soft`
+
+### Fixed
+- Delayed output in line-by-line translation
+
+### Changed
+- Generated word alignments include alignments for target EOS tokens
 
 ## [1.6.0] - 2018-08-08
 
 ### Added
-
 - Faster training (20-30%) by optimizing gradient popagation of biases
 - Returning Moses-style hard alignments during decoding single models,
   ensembles and n-best lists
@@ -36,7 +42,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Seamless training continuation with exponential smoothing
 
 ### Fixed
-
 - A couple of bugs in "selection" (transpose, shift, cols, rows) operators
   during back-prob for a very specific case: one of the operators is the first
   operator after a branch, in that case gradient propgation might be
@@ -49,14 +54,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.5.0] - 2018-06-17
 
 ### Added
-
 - Average Attention Networks for Transformer model
 - 16-bit matrix multiplication on CPU
 - Memoization for constant nodes for decoding
 - Autotuning for decoding
 
 ### Fixed
-
 - GPU decoding optimizations, about 2x faster decoding of transformer models
 - Multi-node MPI-based training on GPUs
 

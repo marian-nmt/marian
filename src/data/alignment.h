@@ -50,9 +50,9 @@ public:
 typedef std::vector<std::vector<float>> SoftAlignment;
 
 WordAlignment ConvertSoftAlignToHardAlign(SoftAlignment alignSoft,
-                                          float threshold = 1.f,
-                                          bool reversed = true,
-                                          bool skipEOS = false);
+                                          float threshold = 1.f);
+
+std::string SoftAlignToString(SoftAlignment align);
 
 }  // namespace data
 }  // namespace marian

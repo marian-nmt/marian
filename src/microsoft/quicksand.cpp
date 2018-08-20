@@ -97,9 +97,7 @@ public:
     }
   }
 
-  void setWorkspace(uint8_t* data, size_t size)  {
-    device_->set(data, size);
-  }
+  void setWorkspace(uint8_t* data, size_t size) { device_->set(data, size); }
 
   QSNBestBatch decode(const QSBatch& qsBatch,
                       size_t maxLength,

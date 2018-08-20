@@ -52,6 +52,8 @@ add_library(marian STATIC
   models/model_factory.cpp
   models/encoder_decoder.cpp
 
+  rescorer/score_collector.cpp
+
   translator/history.cpp
   translator/output_collector.cpp
   translator/output_printer.cpp

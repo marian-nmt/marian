@@ -1,28 +1,27 @@
 #include <algorithm>
-#include <boost/algorithm/string.hpp>
 #include <set>
 #include <stdexcept>
 #include <string>
 
+#include <boost/algorithm/string.hpp>
+
 #if MKL_FOUND
-//#include <omp.h>
 #include <mkl.h>
 #else
 #if BLAS_FOUND
-//#include <omp.h>
 #include <cblas.h>
 #endif
 #endif
 
 #include "common/definitions.h"
 
+#include "common/cli_helper.h"
 #include "common/config.h"
 #include "common/config_parser.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
-#include "common/version.h"
-
 #include "common/regex.h"
+#include "common/version.h"
 
 #define SET_OPTION(key, type)                    \
   do {                                           \
@@ -61,34 +60,6 @@ uint16_t guess_terminal_width(uint16_t max_width) {
   return max_width ? std::min(cols, max_width) : cols;
 }
 
-// helper to convert a Yaml node recursively into a string
-void OutputYaml(const YAML::Node node, YAML::Emitter& out) {
-  std::set<std::string> sorter;
-  switch(node.Type()) {
-    case YAML::NodeType::Null: out << node; break;
-    case YAML::NodeType::Scalar: out << node; break;
-    case YAML::NodeType::Sequence:
-      out << YAML::BeginSeq;
-      for(auto&& n : node)
-        OutputYaml(n, out);
-      out << YAML::EndSeq;
-      break;
-    case YAML::NodeType::Map:
-      for(auto& n : node)
-        sorter.insert(n.first.as<std::string>());
-      out << YAML::BeginMap;
-      for(auto& key : sorter) {
-        out << YAML::Key;
-        out << key;
-        out << YAML::Value;
-        OutputYaml(node[key], out);
-      }
-      out << YAML::EndMap;
-      break;
-    case YAML::NodeType::Undefined: out << node; break;
-  }
-}
-
 const std::set<std::string> PATHS = {"model",
                                      "models",
                                      "train-sets",
@@ -100,88 +71,6 @@ const std::set<std::string> PATHS = {"model",
                                      "valid-translation-output",
                                      "log"};
 
-// helper to implement interpolate-env-vars and relative-paths options
-static void processPaths(
-    YAML::Node& node,
-    const std::function<std::string(std::string)>& TransformPath,
-    bool isPath = false) {
-  if(isPath) {
-    if(node.Type() == YAML::NodeType::Scalar) {
-      std::string nodePath = node.as<std::string>();
-      // transform the path
-      if(!nodePath.empty())
-        node = TransformPath(nodePath);
-    }
-
-    if(node.Type() == YAML::NodeType::Sequence) {
-      for(auto&& sub : node) {
-        processPaths(sub, TransformPath, true);
-      }
-    }
-  } else {
-    switch(node.Type()) {
-      case YAML::NodeType::Sequence:
-        for(auto&& sub : node) {
-          processPaths(sub, TransformPath, false);
-        }
-        break;
-      case YAML::NodeType::Map:
-        for(auto&& sub : node) {
-          std::string key = sub.first.as<std::string>();
-          processPaths(sub.second, TransformPath, PATHS.count(key) > 0);
-        }
-        break;
-      default:
-        // it is OK
-        break;
-    }
-  }
-}
-
-// helper to replace environment-variable expressions of the form ${VARNAME} in
-// a string
-static std::string interpolateEnvVars(std::string str) {
-// temporary workaround for MS-internal PhillyOnAzure cluster: warm storage
-// presently has the form /hdfs/VC instead of /{gfs,hdfs}/CLUSTER/VC
-// @TODO: remove this workaround
-#if 1
-  if(getenv("PHILLY_JOB_ID")) {
-    const char* cluster = getenv("PHILLY_CLUSTER");
-    const char* vc = getenv("PHILLY_VC");
-    // this environment variable exists when running on the cluster
-    if(cluster && vc) {
-      static const std::string s_gfsPrefix
-          = std::string("/gfs/") + cluster + "/" + vc + "/";
-      static const std::string s_hdfsPrefix
-          = std::string("/hdfs/") + cluster + "/" + vc + "/";
-      if(str.find(s_gfsPrefix) == 0)
-        str = std::string("/hdfs/") + vc + "/" + str.substr(s_gfsPrefix.size());
-      else if(str.find(s_hdfsPrefix) == 0)
-        str = std::string("/hdfs/") + vc + "/"
-              + str.substr(s_hdfsPrefix.size());
-    }
-  }
-#endif
-  for(;;) {
-    const auto pos = str.find("${");
-    if(pos == std::string::npos)
-      return str;
-    const auto epos = str.find("}", pos + 2);
-    ABORT_IF(epos == std::string::npos,
-             "interpolate-env-vars option: ${{ without matching }} in '{}'",
-             str.c_str());
-    // isolate the variable name
-    const auto var = str.substr(pos + 2, epos - (pos + 2));
-    const auto val = getenv(var.c_str());
-    ABORT_IF(!val,
-             "interpolate-env-vars option: environment variable '{}' not "
-             "defined in '{}'",
-             var.c_str(),
-             str.c_str());
-    // replace it; then try again for further replacements
-    str = str.substr(0, pos) + val + str.substr(epos + 1);
-  }
-}
 
 bool ConfigParser::has(const std::string& key) const {
   return config_[key];
@@ -353,7 +242,7 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
     ("ignore-model-config", po::value<bool>()->zero_tokens()->default_value(false),
      "Ignore the model configuration saved in npz file")
     ("type", po::value<std::string>()->default_value("amun"),
-      "Model type (possible values: amun, nematus, s2s, multi-s2s, transformer)")
+      "Model type: amun, nematus, s2s, multi-s2s, transformer")
     ("dim-vocabs", po::value<std::vector<int>>()
       ->multitoken()
       ->default_value(std::vector<int>({0, 0}), "0 0"),
@@ -541,7 +430,7 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
-      "Sorting strategy for maxi-batch: trg (default) src none")
+      "Sorting strategy for maxi-batch: trg, src, none")
     ("optimizer,o", po::value<std::string>()->default_value("adam"),
      "Optimization algorithm (possible values: sgd, adagrad, adam")
     ("optimizer-params",  po::value<std::vector<float>>()
@@ -554,8 +443,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("lr-decay", po::value<double>()->default_value(0.0),
      "Decay factor for learning rate: lr = lr * arg (0 to disable)")
     ("lr-decay-strategy", po::value<std::string>()->default_value("epoch+stalled"),
-     "Strategy for learning rate decaying "
-     "(possible values: epoch, batches, stalled, epoch+batches, epoch+stalled)")
+     "Strategy for learning rate decaying: epoch, batches, stalled, "
+     "epoch+batches, epoch+stalled")
     ("lr-decay-start", po::value<std::vector<size_t>>()
        ->multitoken()
        ->default_value(std::vector<size_t>({10,1}), "10 1"),
@@ -603,14 +492,14 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("guided-alignment", po::value<std::string>(),
      "Use guided alignment to guide attention")
     ("guided-alignment-cost", po::value<std::string>()->default_value("ce"),
-     "Cost type for guided alignment. Possible values: ce (cross-entropy), "
-     "mse (mean square error), mult (multiplication)")
+     "Cost type for guided alignment: ce (cross-entropy), mse (mean square "
+     "error), mult (multiplication)")
     ("guided-alignment-weight", po::value<double>()->default_value(1),
      "Weight for guided alignment cost")
     ("data-weighting", po::value<std::string>(),
      "File with sentence or word weights")
     ("data-weighting-type", po::value<std::string>()->default_value("sentence"),
-     "Processing level for data weighting. Possible values: sentence, word")
+     "Processing level for data weighting: sentence, word")
 
     //("drop-rate", po::value<double>()->default_value(0),
     // "Gradient drop ratio (read: https://arxiv.org/abs/1704.05021)")
@@ -743,15 +632,15 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
     ("maxi-batch", po::value<int>()->default_value(1),
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("none"),
-      "Sorting strategy for maxi-batch: none (default) src")
+      "Sorting strategy for maxi-batch: none, src")
     ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
       "Display n-best list")
     ("shortlist", po::value<std::vector<std::string>>()->multitoken(),
      "Use softmax shortlist: path first best prune")
     ("weights", po::value<std::vector<float>>()->multitoken(),
       "Scorer weights")
-    ("alignment", po::value<float>()->default_value(0.f)->implicit_value(1.f),
-     "Return word alignments")
+    ("alignment", po::value<std::string>()->implicit_value("1"),
+     "Return word alignment. Possible values: 0.0-1.0, hard, soft")
     // TODO: the options should be available only in server
     ("port,p", po::value<size_t>()->default_value(8080),
       "Port number for web socket server")
@@ -805,9 +694,9 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
     ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
-      "Sorting strategy for maxi-batch: trg (default) src none")
-    ("alignment", po::value<float>()->default_value(0.f)->implicit_value(1.f),
-     "Return word alignments")
+      "Sorting strategy for maxi-batch: trg (default), src, none")
+    ("alignment", po::value<std::string>()->implicit_value("1"),
+     "Return word alignments. Possible values: 0.0-1.0, hard, soft")
     ;
   // clang-format on
   desc.add(rescore);
@@ -856,17 +745,17 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     exit(0);
   }
 
-  const auto& interpolateEnvVarsIfRequested
+  const auto& InterpolateEnvVarsIfRequested
       = [&](std::string str) -> std::string {
     if(vm_["interpolate-env-vars"].as<bool>())
-      str = interpolateEnvVars(str);
+      str = cli::InterpolateEnvVars(str);
     return str;
   };
 
   bool loadConfig = vm_.count("config");
   bool reloadConfig
       = (mode_ == ConfigMode::training)
-        && boost::filesystem::exists(interpolateEnvVarsIfRequested(
+        && boost::filesystem::exists(InterpolateEnvVarsIfRequested(
                vm_["model"].as<std::string>() + ".yml"))
         && !vm_["no-reload"].as<bool>();
   std::vector<std::string> configPaths;
@@ -875,14 +764,14 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     configPaths = vm_["config"].as<std::vector<std::string>>();
     config_ = YAML::Node();
     for(auto& configPath : configPaths) {
-      configPath = interpolateEnvVarsIfRequested(
+      configPath = InterpolateEnvVarsIfRequested(
           configPath);  // (note: this updates the configPaths array)
       for(const auto& it :
           YAML::Load(InputFileStream(configPath)))  // later file overrides
         config_[it.first.as<std::string>()] = it.second;
     }
   } else if(reloadConfig) {
-    auto configPath = interpolateEnvVarsIfRequested(
+    auto configPath = InterpolateEnvVarsIfRequested(
         vm_["model"].as<std::string>() + ".yml");
     config_ = YAML::Load(InputFileStream(configPath));
     configPaths = {configPath};
@@ -1042,7 +931,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("n-best-feature", std::string);
     SET_OPTION_NONDEFAULT("summary", std::string);
     SET_OPTION("optimize", bool);
-    SET_OPTION("alignment", float);
+    SET_OPTION_NONDEFAULT("alignment", std::string);
   }
 
   if(mode_ == ConfigMode::translating) {
@@ -1055,7 +944,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("mini-batch-words", int);
     SET_OPTION_NONDEFAULT("weights", std::vector<float>);
     SET_OPTION_NONDEFAULT("shortlist", std::vector<std::string>);
-    SET_OPTION("alignment", float);
+    SET_OPTION_NONDEFAULT("alignment", std::string);
     SET_OPTION("port", size_t);
     SET_OPTION("optimize", bool);
     SET_OPTION("max-length-factor", float);
@@ -1120,7 +1009,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
 
   if(get<bool>("interpolate-env-vars")) {
-    processPaths(config_, interpolateEnvVars);
+    cli::ProcessPaths(config_, cli::InterpolateEnvVars, PATHS);
   }
 
   if(get<bool>("relative-paths") && !vm_["dump-config"].as<bool>()) {
@@ -1134,20 +1023,22 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
       ABORT_IF(boost::filesystem::path{configPath}.parent_path() != configDir,
                "relative-paths option requires all config files to be in the "
                "same directory");
-    processPaths(config_, [&](const std::string& nodePath) -> std::string {
+
+    auto transformFunc = [&](const std::string& nodePath) -> std::string {
       // replace relative path w.r.t. configDir
       using namespace boost::filesystem;
       try {
         return canonical(path{nodePath}, configDir).string();
-      } catch(
-          boost::filesystem::filesystem_error&
-              e) {  // will fail if file does not exist; use parent in that case
+      } catch(boost::filesystem::filesystem_error& e) {
+        // will fail if file does not exist; use parent in that case
         std::cerr << e.what() << std::endl;
         auto parentPath = path{nodePath}.parent_path();
         return (canonical(parentPath, configDir) / path{nodePath}.filename())
             .string();
       }
-    });
+    };
+
+    cli::ProcessPaths(config_, transformFunc, PATHS);
   }
 
   if(doValidate) {
@@ -1165,18 +1056,10 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 
   if(vm_["dump-config"].as<bool>()) {
     YAML::Emitter emit;
-    OutputYaml(config_, emit);
+    cli::OutputYaml(config_, emit);
     std::cout << emit.c_str() << std::endl;
     exit(0);
   }
-
-  // @TODO: this should probably be in processOptionDevices()
-  //#ifdef BLAS_FOUND
-  //  //omp_set_num_threads(vm_["omp-threads"].as<size_t>());
-  //#ifdef MKL_FOUND
-  //  mkl_set_num_threads(vm_["omp-threads"].as<size_t>());
-  //#endif
-  //#endif
 }
 
 std::vector<DeviceId> ConfigParser::getDevices() {
