@@ -175,6 +175,7 @@ class Option : public OptionBase<Option> {
 
     /// A human readable default value, usually only set if default is true in creation
     std::string defaultval_;
+    std::string implicitval_;
 
     /// A human readable type value, set when App creates this
     ///
@@ -183,6 +184,7 @@ class Option : public OptionBase<Option> {
 
     /// True if this option has a default
     bool default_{false};
+    bool implicit_{false};
 
     ///@}
     /// @name Configuration
@@ -231,11 +233,20 @@ class Option : public OptionBase<Option> {
     ///@}
 
     /// Making an option by hand is not defined, it must be made by the App class
-    Option(
-        std::string name, std::string description, std::function<bool(results_t)> callback, bool defaulted, App *parent)
-        : description_(std::move(description)), default_(defaulted), parent_(parent),
-          callback_(callback ? std::move(callback) : [](results_t) { return true; }) {
-        std::tie(snames_, lnames_, pname_) = detail::get_names(detail::split_names(name));
+    Option(std::string name,
+           std::string description,
+           std::function<bool(results_t)> callback,
+           bool defaulted,
+           bool implicited,
+           App *parent)
+        : description_(std::move(description)),
+          default_(defaulted),
+          implicit_(implicited),
+          parent_(parent),
+          callback_(callback ? std::move(callback)
+                             : [](results_t) { return true; }) {
+      std::tie(snames_, lnames_, pname_)
+          = detail::get_names(detail::split_names(name));
     }
 
   public:
@@ -425,6 +436,7 @@ class Option : public OptionBase<Option> {
 
     /// The default value (for help printing)
     std::string get_defaultval() const { return defaultval_; }
+    std::string get_implicitval() const { return implicitval_; }
 
     /// See if this is supposed to short circuit (skip validation, INI, etc) (Used for help flags)
     bool get_short_circuit() const { return short_circuit_; }
@@ -464,6 +476,7 @@ class Option : public OptionBase<Option> {
 
     /// True if this has a default value
     int get_default() const { return default_; }
+    int get_implicit() const { return implicit_; }
 
     /// True if the argument can be given directly
     bool get_positional() const { return pname_.length() > 0; }
@@ -694,10 +707,22 @@ class Option : public OptionBase<Option> {
         defaultval_ = val;
         return this;
     }
+    Option *implicit_str(std::string val) {
+        implicitval_ = val;
+        return this;
+    }
 
     /// Set the default value string representation and evaluate
     Option *default_val(std::string val) {
         default_str(val);
+        auto old_results = results_;
+        results_ = {val};
+        run_callback();
+        results_ = std::move(old_results);
+        return this;
+    }
+    Option *implicit_val(std::string val) {
+        implicit_str(val);
         auto old_results = results_;
         results_ = {val};
         run_callback();
