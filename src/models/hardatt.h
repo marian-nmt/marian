@@ -23,8 +23,8 @@ public:
       : DecoderState(states, probs, encStates, batch),
         attentionIndices_(attentionIndices) {}
 
-  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
-                                   int beamSize) {
+  virtual Ptr<DecoderState> selectHyps(const std::vector<size_t>& selIdx,
+                                   int beamSize) override {
     std::vector<size_t> selectedAttentionIndices;
     for(auto i : selIdx)
       selectedAttentionIndices.push_back(attentionIndices_[i]);
@@ -36,6 +36,7 @@ public:
                                     selectedAttentionIndices);
   }
 
+  // @TODO: why are these virtual?
   virtual void setAttentionIndices(
       const std::vector<size_t>& attentionIndices) {
     attentionIndices_ = attentionIndices;

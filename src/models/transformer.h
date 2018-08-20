@@ -546,7 +546,7 @@ public:
                    Ptr<data::CorpusBatch> batch)
       : DecoderState(states, probs, encStates, batch) {}
 
-  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
+  virtual Ptr<DecoderState> selectHyps(const std::vector<size_t>& selIdx,
                                    int beamSize) override {
     // @TODO: merge the reordering bits with base DecoderState::select()
     int dimDepth = states_[0].output->shape()[-1];

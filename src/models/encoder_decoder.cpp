@@ -150,7 +150,7 @@ Ptr<DecoderState> EncoderDecoder::step(Ptr<ExpressionGraph> graph,
                                        int dimBatch,
                                        int beamSize) {
   // create updated state that reflects reordering and dropping of hypotheses
-  state = hypIndices.empty() ? state : state->select(hypIndices, beamSize);
+  state = hypIndices.empty() ? state : state->selectHyps(hypIndices, beamSize);
 
   // Fill stte with embeddings based on last prediction
   decoders_[0]->embeddingsFromPrediction(
