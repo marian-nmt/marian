@@ -98,7 +98,7 @@ protected:
   std::vector<Tensor> accGradients, accGradientBuffer;
 
   bool movingAvg_{false};
-  float mvDecay_{1e-4};
+  float mvDecay_{1e-4f};
 
   /**
    * Allocate new tensor on given GPU and store allocator.

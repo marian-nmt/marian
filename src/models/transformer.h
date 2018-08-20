@@ -15,7 +15,9 @@
 
 namespace marian {
 
-// shared base class for transformer-based encoder and decoder
+// shared base class for transformer-based EncoderTransformer and DecoderTransformer
+// Both classes share a lot of code. This template adds that shared code into their
+// base while still deriving from EncoderBase and DecoderBase, respectively.
 template<class EncoderOrDecoderBase>
 class Transformer : public EncoderOrDecoderBase {
   typedef EncoderOrDecoderBase Base;
@@ -540,32 +542,17 @@ class TransformerState : public DecoderState {
 public:
   TransformerState(const rnn::States& states,
                    Expr probs,
-                   std::vector<Ptr<EncoderState>>& encStates,
+                   const std::vector<Ptr<EncoderState>>& encStates,
                    Ptr<data::CorpusBatch> batch)
       : DecoderState(states, probs, encStates, batch) {}
 
   virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
-                                   int beamSize) {
-    int dimDepth = states_[0].output->shape()[-1];
-    int dimTime  = states_[0].output->shape()[-2];
-    int dimBatch = selIdx.size() / beamSize;
-
-    std::vector<size_t> selIdx2;
-    for(auto i : selIdx)
-      for(int j = 0; j < dimTime; ++j)
-        selIdx2.push_back(i * dimTime + j);
-
-    rnn::States selectedStates;
-    for(auto state : states_) {
-      auto sel = rows(flatten_2d(state.output), selIdx2);
-      sel = reshape(sel, {beamSize, dimBatch, dimTime, dimDepth});
-      selectedStates.push_back({sel, nullptr});
-    }
-
+                                   int beamSize) const override {
     // Create hypothesis-selected state based on current state and hyp indices
-    auto selectedState = New<TransformerState>(selectedStates, probs_, encStates_, batch_);
+    auto selectedState = New<TransformerState>(states_.select(selIdx, beamSize, /*isBatchMajor=*/true), probs_, encStates_, batch_);
 
     // Set the same target token position as the current state
+    // @TODO: This is the same as in base function.
     selectedState->setPosition(getPosition());
     return selectedState;
   }

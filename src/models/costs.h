@@ -119,6 +119,9 @@ public:
   }
 };
 
+// class to wrap an EncoderDecoderBase and a CostStep that are executed in sequence,
+// wrapped again in the EncoderDecoderBase interface
+// @TODO: seems we are conflating an interface defition with its implementation?
 class Stepwise : public EncoderDecoderBase {
 protected:
   Ptr<EncoderDecoderBase> encdec_;

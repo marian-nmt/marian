@@ -12,26 +12,32 @@ struct State {
   Expr output;
   Expr cell;
 
-  State select(const std::vector<size_t>& indices, int beamSize) {
-    output = atleast_4d(output);
-    if(cell)
-      cell = atleast_4d(cell);
+  State select(const std::vector<size_t>& selIdx, // [beamIndex * activeBatchSize + batchIndex]
+               int beamSize, bool isBatchMajor) const {
+    return{ select(output, selIdx, beamSize, isBatchMajor),
+            select(cell,   selIdx, beamSize, isBatchMajor) };
+  }
 
-    int dimDepth = output->shape()[-1];
-    int dimTime = output->shape()[-3];
+private:
+  static Expr select(Expr sel, // [beamSize, dimTime, dimBatch, dimDepth] or [beamSize, dimBatch, dimTime, dimDepth] (dimTime = 1 for RNN)
+                     const std::vector<size_t>& selIdx, // [beamIndex * activeBatchSize + batchIndex]
+                     int beamSize, bool isBatchMajor)
+  {
+    if (!sel)
+      return sel; // keep nullptr untouched
 
-    int dimBatch = indices.size() / beamSize;
+    sel = atleast_4d(sel);
 
-    if(cell) {
-      return State{reshape(rows(flatten_2d(output), indices),
-                           {beamSize, dimTime, dimBatch, dimDepth}),
-                   reshape(rows(flatten_2d(cell), indices),
-                           {beamSize, dimTime, dimBatch, dimDepth})};
-    } else {
-      return State{reshape(rows(flatten_2d(output), indices),
-                           {beamSize, dimTime, dimBatch, dimDepth}),
-                   nullptr};
-    }
+    int dimBatch = selIdx.size() / beamSize;
+    int dimDepth = sel->shape()[-1];
+    int dimTime  = isBatchMajor ? sel->shape()[-2] : sel->shape()[-3];
+
+    ABORT_IF(dimTime != 1 && !isBatchMajor, "unexpected time extent for RNN state"); // (the reshape()/rows() trick won't work in this case)
+    int numCols = isBatchMajor ? dimDepth * dimTime : dimDepth;
+    sel = reshape(sel, { sel->shape().elements() / numCols, numCols }); // [beamSize * dimBatch, dimDepth] or [beamSize * dimBatch, dimTime * dimDepth]
+    sel = rows(sel, selIdx);
+    sel = reshape(sel, { beamSize, isBatchMajor ? dimBatch : dimTime, isBatchMajor ? dimTime : dimBatch, dimDepth });
+    return sel;
   }
 };
 
@@ -44,8 +50,10 @@ public:
   States(const std::vector<State>& states) : states_(states) {}
   States(size_t num, State state) : states_(num, state) {}
 
-  auto begin() -> decltype(states_.begin()) { return states_.begin(); }
-  auto end() -> decltype(states_.begin()) { return states_.end(); }
+  std::vector<State>::iterator begin() { return states_.begin(); }
+  std::vector<State>::iterator end()   { return states_.end(); }
+  std::vector<State>::const_iterator begin() const { return states_.begin(); }
+  std::vector<State>::const_iterator end()   const { return states_.end(); }
 
   Expr outputs() {
     std::vector<Expr> outputs;
@@ -70,10 +78,12 @@ public:
 
   void push_back(const State& state) { states_.push_back(state); }
 
-  States select(const std::vector<size_t>& indices, int beamSize) {
+  // create updated set of states that reflect reordering and dropping of hypotheses
+  States select(const std::vector<size_t>& selIdx, // [beamIndex * activeBatchSize + batchIndex]
+                int beamSize, bool isBatchMajor) const {
     States selected;
     for(auto& state : states_)
-      selected.push_back(state.select(indices, beamSize));
+      selected.push_back(state.select(selIdx, beamSize, isBatchMajor));
     return selected;
   }
 
