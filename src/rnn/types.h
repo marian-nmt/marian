@@ -14,7 +14,7 @@ struct State {
 
   // @TODO: This version only for time-major. Add flag so that this can be shared.
   State select(const std::vector<size_t>& indices, // [beamIndex * activeBatchSize + batchIndex]
-               int beamSize) {
+               int beamSize) const {
     auto selectedOutput = output; // [beamSize, dimTime, dimBatch, dimDepth] (dimTime = 1 for RNN)
     auto selectedCell   = cell;   // [beamSize, dimTime, dimBatch, dimDepth]
 
@@ -46,8 +46,10 @@ public:
   States(const std::vector<State>& states) : states_(states) {}
   States(size_t num, State state) : states_(num, state) {}
 
-  auto begin() -> decltype(states_.begin()) { return states_.begin(); }
-  auto end() -> decltype(states_.begin()) { return states_.end(); }
+  std::vector<State>::iterator begin() { return states_.begin(); }
+  std::vector<State>::iterator end()   { return states_.end(); }
+  std::vector<State>::const_iterator begin() const { return states_.begin(); }
+  std::vector<State>::const_iterator end()   const { return states_.end(); }
 
   Expr outputs() {
     std::vector<Expr> outputs;
@@ -74,7 +76,7 @@ public:
 
   // create updated set of states that reflect reordering and dropping of hypotheses
   States select(const std::vector<size_t>& indices, // [beamIndex * activeBatchSize + batchIndex]
-                int beamSize) {
+                int beamSize) const {
     States selected;
     for(auto& state : states_)
       selected.push_back(state.select(indices, beamSize));

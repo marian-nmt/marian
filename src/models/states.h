@@ -43,21 +43,21 @@ protected:
 public:
   DecoderState(const rnn::States& states,
                Expr probs,
-               std::vector<Ptr<EncoderState>>& encStates,
+               const std::vector<Ptr<EncoderState>>& encStates,
                Ptr<data::CorpusBatch> batch)
       : states_(states), probs_(probs), encStates_(encStates), batch_(batch) {}
 
   // @TODO: Do we need all these to be virtual?
-  virtual std::vector<Ptr<EncoderState>>& getEncoderStates() {
+  virtual const std::vector<Ptr<EncoderState>>& getEncoderStates() const {
     return encStates_;
   }
 
-  virtual Expr getProbs() { return probs_; }
+  virtual Expr getProbs() const { return probs_; }
   virtual void setProbs(Expr probs) { probs_ = probs; }
 
   // @TODO: should this be a constructor? Then derived classes can call this without the New<> in the loop
   virtual Ptr<DecoderState> selectHyps(const std::vector<size_t>& selIdx,
-                                   int beamSize) {
+                                   int beamSize) const {
     auto selectedState = New<DecoderState>(
         states_.select(selIdx, beamSize), probs_, encStates_, batch_);
 
@@ -67,32 +67,32 @@ public:
     return selectedState;
   }
 
-  virtual const rnn::States& getStates() { return states_; }
+  virtual const rnn::States& getStates() const { return states_; }
 
-  virtual Expr getTargetEmbeddings() { return targetEmbeddings_; };
+  virtual Expr getTargetEmbeddings() const { return targetEmbeddings_; };
 
   virtual void setTargetEmbeddings(Expr targetEmbeddings) {
     targetEmbeddings_ = targetEmbeddings;
   }
 
-  virtual Expr getTargetIndices() { return targetIndices_; };
+  virtual Expr getTargetIndices() const { return targetIndices_; };
 
   virtual void setTargetIndices(Expr targetIndices) {
     targetIndices_ = targetIndices;
   }
 
-  virtual Expr getTargetMask() { return targetMask_; };
+  virtual Expr getTargetMask() const { return targetMask_; };
 
   virtual void setTargetMask(Expr targetMask) { targetMask_ = targetMask; }
 
-  virtual const std::vector<size_t>& getSourceWords() {
+  virtual const std::vector<size_t>& getSourceWords() const {
     return getEncoderStates()[0]->getSourceWords();
   }
 
-  Ptr<data::CorpusBatch> getBatch() { return batch_; }
+  Ptr<data::CorpusBatch> getBatch() const { return batch_; }
 
   // Set current target token position in state when decoding
-  size_t getPosition() { return position_; }
+  size_t getPosition() const { return position_; }
 
   // Set current target token position in state when decoding
   void setPosition(size_t position) { position_ = position; }

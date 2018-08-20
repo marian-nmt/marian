@@ -169,7 +169,7 @@ public:
       histories.push_back(history);
     }
 
-    size_t localBeamSize = beamSize_; // max over beam sizes of active sentence hypotheses; effectively, this is either beamSize or 0
+    size_t localBeamSize = beamSize_; // max over beam sizes of active sentence hypotheses
 
     // @TODO: unify this
     Ptr<NthElement> nth;
@@ -182,7 +182,7 @@ public:
 
     Beams beams(dimBatch);        // [batchIndex][beamIndex] is one sentence hypothesis
     for(auto& beam : beams)
-      beam.resize(localBeamSize, New<Hypothesis>()); // TODO: ise beamSize_?
+      beam.resize(localBeamSize, New<Hypothesis>());
 
     bool first = true;
     bool final = false;
@@ -202,7 +202,6 @@ public:
 
     // main loop over output tokens
     do {
-      ABORT_IF(localBeamSize != beamSize_, "unexpected localBeamSize");
       //**********************************************************************
       // create constant containing previous path costs for current beam
       // also create mapping of hyp indices, which are not 1:1 if sentences complete

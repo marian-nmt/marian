@@ -17,23 +17,27 @@ protected:
 public:
   DecoderStateHardAtt(const rnn::States& states,
                       Expr probs,
-                      std::vector<Ptr<EncoderState>>& encStates,
-                      Ptr<data::CorpusBatch> batch,
-                      const std::vector<size_t>& attentionIndices)
-      : DecoderState(states, probs, encStates, batch),
-        attentionIndices_(attentionIndices) {}
+                      const std::vector<Ptr<EncoderState>>& encStates,
+                      Ptr<data::CorpusBatch> batch)
+      : DecoderState(states, probs, encStates, batch) {}
 
   virtual Ptr<DecoderState> selectHyps(const std::vector<size_t>& selIdx,
-                                   int beamSize) override {
+                                   int beamSize) const override {
     std::vector<size_t> selectedAttentionIndices;
     for(auto i : selIdx)
       selectedAttentionIndices.push_back(attentionIndices_[i]);
 
-    return New<DecoderStateHardAtt>(states_.select(selIdx, beamSize),
+    auto selectedState = New<DecoderStateHardAtt>(states_.select(selIdx, beamSize),
                                     probs_,
                                     encStates_,
-                                    batch_,
-                                    selectedAttentionIndices);
+                                    batch_);
+    selectedState->attentionIndices_ = selectedAttentionIndices;
+
+    // Set positon of new state based on the target token position of current
+    // state
+    // @TODO: I copied this to make this consistent with the other instances. Needed?
+    selectedState->setPosition(getPosition());
+    return selectedState;
   }
 
   // @TODO: why are these virtual?
@@ -105,8 +109,9 @@ public:
     }
 
     rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
-    return New<DecoderStateHardAtt>(
-        startStates, nullptr, encStates, batch, std::vector<size_t>({0}));
+    auto startState = New<DecoderStateHardAtt>(startStates, nullptr, encStates, batch);
+    startState->setAttentionIndices(std::vector<size_t>({ 0 }));
+    return startState;
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
@@ -230,11 +235,12 @@ public:
       logits = out->apply(rnnInputs, decContext);
     }
 
-    return New<DecoderStateHardAtt>(decStates,
-                                    logits,
-                                    stateHardAtt->getEncoderStates(),
-                                    stateHardAtt->getBatch(),
-                                    stateHardAtt->getAttentionIndices());
+    auto newState = New<DecoderStateHardAtt>(decStates,
+                                             logits,
+                                             stateHardAtt->getEncoderStates(),
+                                             stateHardAtt->getBatch());
+    newState->setAttentionIndices(std::vector<size_t>(stateHardAtt->getAttentionIndices()));
+    return newState;
   }
 
   const std::vector<Expr> getAlignments() {

@@ -542,12 +542,12 @@ class TransformerState : public DecoderState {
 public:
   TransformerState(const rnn::States& states,
                    Expr probs,
-                   std::vector<Ptr<EncoderState>>& encStates,
+                   const std::vector<Ptr<EncoderState>>& encStates,
                    Ptr<data::CorpusBatch> batch)
       : DecoderState(states, probs, encStates, batch) {}
 
   virtual Ptr<DecoderState> selectHyps(const std::vector<size_t>& selIdx,
-                                   int beamSize) override {
+                                   int beamSize) const override {
     // @TODO: merge the reordering bits with base DecoderState::select()
     int dimDepth = states_[0].output->shape()[-1];
     int dimTime  = states_[0].output->shape()[-2];
@@ -559,7 +559,7 @@ public:
         selIdx2.push_back(i * dimTime + j);
 
     rnn::States selectedStates;
-    for(auto state : states_) {
+    for(const auto& state : states_) {
       auto sel = rows(flatten_2d(state.output), selIdx2);
       sel = reshape(sel, {beamSize, dimBatch, dimTime, dimDepth});
       selectedStates.push_back({sel, nullptr});
