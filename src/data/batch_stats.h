@@ -8,7 +8,6 @@
 #include "data/vocab.h"
 
 namespace marian {
-
 namespace data {
 
 class BatchStats {

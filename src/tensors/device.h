@@ -60,7 +60,7 @@ public:
 class WrappedDevice : public marian::Device {
 public:
   WrappedDevice(DeviceId deviceId, size_t alignment = 256)
-    : marian::Device(deviceId, alignment) {}
+      : marian::Device(deviceId, alignment) {}
   ~WrappedDevice() {}
 
   void set(uint8_t* data, size_t size) {
@@ -70,9 +70,11 @@ public:
 
   // doesn't allocate anything, just checks size.
   void reserve(size_t size) {
-    ABORT_IF(size > size_, "Requested size {} is larger than pre-allocated size {}", size, size_);
+    ABORT_IF(size > size_,
+             "Requested size {} is larger than pre-allocated size {}",
+             size,
+             size_);
   }
-
 };
 
 }  // namespace cpu

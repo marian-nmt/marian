@@ -173,10 +173,7 @@ public:
             size_t bytes,
             size_t step,
             size_t alignment = 256)
-      : device_(device),
-        available_(0),
-        step_(step),
-        alignment_(alignment) {
+      : device_(device), available_(0), step_(step), alignment_(alignment) {
     reserve(bytes);
   }
 

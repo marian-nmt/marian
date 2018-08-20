@@ -14,7 +14,6 @@
 // CPU decoding.
 
 namespace marian {
-
 namespace io {
 
 bool isNpz(const std::string& fileName);

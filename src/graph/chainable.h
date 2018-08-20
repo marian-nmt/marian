@@ -7,7 +7,6 @@
 #include "3rd_party/exception.h"
 #include "common/definitions.h"
 
-// Parent namespace for the Marian project
 namespace marian {
 
 #define NodeOp(op) [=]() { op; }

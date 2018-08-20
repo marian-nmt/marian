@@ -5,7 +5,6 @@
 #include "rnn/types.h"
 
 namespace marian {
-
 namespace rnn {
 
 Expr attOps(Expr va, Expr context, Expr state);

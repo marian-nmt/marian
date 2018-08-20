@@ -33,19 +33,15 @@ std::string WordAlignment::toString() const {
 }
 
 WordAlignment ConvertSoftAlignToHardAlign(SoftAlignment alignSoft,
-                                          float threshold /*= 1.f*/,
-                                          bool reversed /*= true*/,
-                                          bool skipEOS /*= false*/) {
-  size_t shift = alignSoft.size() > 0 && skipEOS ? 1 : 0;
+                                          float threshold /*= 1.f*/) {
   WordAlignment align;
   // Alignments by maximum value
   if(threshold == 1.f) {
-    for(size_t t = 0; t < alignSoft.size() - shift; ++t) {
+    for(size_t t = 0; t < alignSoft.size(); ++t) {
       // Retrieved alignments are in reversed order
-      size_t rev = reversed ? alignSoft.size() - t - 1 : t;
       size_t maxArg = 0;
       for(size_t s = 0; s < alignSoft[0].size(); ++s) {
-        if(alignSoft[rev][maxArg] < alignSoft[rev][s]) {
+        if(alignSoft[t][maxArg] < alignSoft[t][s]) {
           maxArg = s;
         }
       }
@@ -53,11 +49,10 @@ WordAlignment ConvertSoftAlignToHardAlign(SoftAlignment alignSoft,
     }
   } else {
     // Alignments by greather-than-threshold
-    for(size_t t = 0; t < alignSoft.size() - shift; ++t) {
+    for(size_t t = 0; t < alignSoft.size(); ++t) {
       // Retrieved alignments are in reversed order
-      size_t rev = reversed ? alignSoft.size() - t - 1 : t;
       for(size_t s = 0; s < alignSoft[0].size(); ++s) {
-        if(alignSoft[rev][s] > threshold) {
+        if(alignSoft[t][s] > threshold) {
           align.push_back(s, t);
         }
       }
@@ -68,6 +63,22 @@ WordAlignment ConvertSoftAlignToHardAlign(SoftAlignment alignSoft,
   align.sort();
 
   return align;
+}
+
+std::string SoftAlignToString(SoftAlignment align) {
+  std::stringstream str;
+  bool first = true;
+  for(size_t t = 0; t < align.size(); ++t) {
+    if(!first)
+      str << " ";
+    for(size_t s = 0; s < align[t].size(); ++s) {
+      if(s != 0)
+        str << ",";
+      str << align[t][s];
+    }
+    first = false;
+  }
+  return str.str();
 }
 
 }  // namespace data
