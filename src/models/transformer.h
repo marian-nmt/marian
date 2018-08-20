@@ -15,7 +15,9 @@
 
 namespace marian {
 
-// shared base class for transformer-based encoder and decoder
+// shared base class for transformer-based EncoderTransformer and DecoderTransformer
+// Both classes share a lot of code. This template adds that shared code into their
+// base while still deriving from EncoderBase and DecoderBase, respectively.
 template<class EncoderOrDecoderBase>
 class Transformer : public EncoderOrDecoderBase {
   typedef EncoderOrDecoderBase Base;
@@ -545,7 +547,8 @@ public:
       : DecoderState(states, probs, encStates, batch) {}
 
   virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
-                                   int beamSize) {
+                                   int beamSize) override {
+    // @TODO: merge the reordering bits with base DecoderState::select()
     int dimDepth = states_[0].output->shape()[-1];
     int dimTime  = states_[0].output->shape()[-2];
     int dimBatch = selIdx.size() / beamSize;
@@ -566,6 +569,7 @@ public:
     auto selectedState = New<TransformerState>(selectedStates, probs_, encStates_, batch_);
 
     // Set the same target token position as the current state
+    // @TODO: This is the same as in base function.
     selectedState->setPosition(getPosition());
     return selectedState;
   }

@@ -12,26 +12,28 @@ struct State {
   Expr output;
   Expr cell;
 
-  State select(const std::vector<size_t>& indices, int beamSize) {
-    output = atleast_4d(output);
-    if(cell)
-      cell = atleast_4d(cell);
+  // @TODO: This version only for time-major. Add flag so that this can be shared.
+  State select(const std::vector<size_t>& indices, // [beamIndex * activeBatchSize + batchIndex]
+               int beamSize) {
+    auto selectedOutput = output; // [beamSize, dimTime, dimBatch, dimDepth] (dimTime = 1 for RNN)
+    auto selectedCell   = cell;   // [beamSize, dimTime, dimBatch, dimDepth]
 
-    int dimDepth = output->shape()[-1];
-    int dimTime = output->shape()[-3];
+    selectedOutput = atleast_4d(selectedOutput);
+
+    int dimDepth = selectedOutput->shape()[-1];
+    int dimTime  = selectedOutput->shape()[-3];
 
     int dimBatch = indices.size() / beamSize;
 
-    if(cell) {
-      return State{reshape(rows(flatten_2d(output), indices),
-                           {beamSize, dimTime, dimBatch, dimDepth}),
-                   reshape(rows(flatten_2d(cell), indices),
-                           {beamSize, dimTime, dimBatch, dimDepth})};
-    } else {
-      return State{reshape(rows(flatten_2d(output), indices),
-                           {beamSize, dimTime, dimBatch, dimDepth}),
-                   nullptr};
+    selectedOutput = reshape(rows(flatten_2d(selectedOutput), indices),
+                             { beamSize, dimTime, dimBatch, dimDepth });
+    if (selectedCell)
+    {
+      selectedCell = atleast_4d(selectedCell);
+      selectedCell = reshape(rows(flatten_2d(selectedCell), indices),
+                             { beamSize, dimTime, dimBatch, dimDepth });
     }
+    return { selectedOutput, selectedCell };
   }
 };
 
@@ -70,7 +72,9 @@ public:
 
   void push_back(const State& state) { states_.push_back(state); }
 
-  States select(const std::vector<size_t>& indices, int beamSize) {
+  // create updated set of states that reflect reordering and dropping of hypotheses
+  States select(const std::vector<size_t>& indices, // [beamIndex * activeBatchSize + batchIndex]
+                int beamSize) {
     States selected;
     for(auto& state : states_)
       selected.push_back(state.select(indices, beamSize));

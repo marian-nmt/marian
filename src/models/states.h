@@ -28,7 +28,7 @@ public:
 
 class DecoderState {
 protected:
-  rnn::States states_;
+  rnn::States states_; // states of individual decoder layers
   Expr probs_;
   std::vector<Ptr<EncoderState>> encStates_;
   Ptr<data::CorpusBatch> batch_;
@@ -47,6 +47,7 @@ public:
                Ptr<data::CorpusBatch> batch)
       : states_(states), probs_(probs), encStates_(encStates), batch_(batch) {}
 
+  // @TODO: Do we need all these to be virtual?
   virtual std::vector<Ptr<EncoderState>>& getEncoderStates() {
     return encStates_;
   }
@@ -54,6 +55,7 @@ public:
   virtual Expr getProbs() { return probs_; }
   virtual void setProbs(Expr probs) { probs_ = probs; }
 
+  // @TODO: should this be a constructor? Then derived classes can call this without the New<> in the loop
   virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
                                    int beamSize) {
     auto selectedState = New<DecoderState>(

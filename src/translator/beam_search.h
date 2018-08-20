@@ -155,7 +155,8 @@ public:
     }
     return newBeams;
   }
-
+  
+  // main decoding function
   Histories search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
     int dimBatch = batch->size();
 
@@ -168,7 +169,7 @@ public:
       histories.push_back(history);
     }
 
-    size_t localBeamSize = beamSize_;
+    size_t localBeamSize = beamSize_; // max over beam sizes of active sentence hypotheses; effectively, this is either beamSize or 0
 
     // @TODO: unify this
     Ptr<NthElement> nth;
@@ -179,9 +180,9 @@ public:
 #endif
       nth = New<NthElementCPU>(localBeamSize, dimBatch);
 
-    Beams beams(dimBatch);
+    Beams beams(dimBatch);        // [batchIndex][beamIndex] is one sentence hypothesis
     for(auto& beam : beams)
-      beam.resize(localBeamSize, New<Hypothesis>());
+      beam.resize(localBeamSize, New<Hypothesis>()); // TODO: ise beamSize_?
 
     bool first = true;
     bool final = false;
@@ -199,12 +200,15 @@ public:
       states.push_back(scorer->startState(graph, batch));
     }
 
+    // main loop over output tokens
     do {
+      ABORT_IF(localBeamSize != beamSize_, "unexpected localBeamSize");
       //**********************************************************************
-      // create constant containing previous costs for current beam
-      std::vector<size_t> hypIndices;
+      // create constant containing previous path costs for current beam
+      // also create mapping of hyp indices, which are not 1:1 if sentences complete
+      std::vector<size_t> hypIndices; // [beamIndex * activeBatchSize + batchIndex] backpointers, concatenated over beam positions. Used for reordering hypotheses
       std::vector<size_t> embIndices;
-      Expr prevCosts;
+      Expr prevCosts; // [beam, 1, 1, 1]
       if(first) {
         // no cost
         prevCosts = graph->constant({1, 1, 1, 1}, inits::from_value(0));
@@ -214,11 +218,11 @@ public:
         int dimBatch = batch->size();
 
         for(size_t i = 0; i < localBeamSize; ++i) {
-          for(size_t j = 0; j < beams.size(); ++j) {
+          for(size_t j = 0; j < beams.size(); ++j) { // loop over batch entries (active sentences)
             auto& beam = beams[j];
             if(i < beam.size()) {
               auto hyp = beam[i];
-              hypIndices.push_back(hyp->GetPrevStateIndex());
+              hypIndices.push_back(hyp->GetPrevStateIndex()); // backpointer
               embIndices.push_back(hyp->GetWord());
               beamCosts.push_back(hyp->GetCost());
             } else {  // dummy hypothesis
@@ -299,16 +303,17 @@ public:
       }
       beams = prunedBeams;
 
+      // determine beam size for next sentence, as max over still-active sentences
       if(!first) {
         size_t maxBeam = 0;
         for(auto& beam : beams)
-          if(beam.size() > maxBeam)
+          if(beam.size() > maxBeam) // QUESTION: Can this ever be != 0 and != beamSize_?
             maxBeam = beam.size();
         localBeamSize = maxBeam;
       }
       first = false;
 
-    } while(localBeamSize != 0 && !final);
+    } while(localBeamSize != 0 && !final); // end of main loop over output tokens
 
     return histories;
   }

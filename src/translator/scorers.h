@@ -64,6 +64,7 @@ public:
   }
 };
 
+// class to wrap EncoderDecoderBase in a Scorer interface
 class ScorerWrapper : public Scorer {
 private:
   Ptr<EncoderDecoderBase> encdec_;
@@ -114,10 +115,9 @@ public:
                                 int dimBatch,
                                 int beamSize) {
     graph->switchParams(getName());
-    auto wrappedState
-        = std::dynamic_pointer_cast<ScorerWrapperState>(state)->getState();
-    return New<ScorerWrapperState>(encdec_->step(
-        graph, wrappedState, hypIndices, embIndices, dimBatch, beamSize));
+    auto wrapperState = std::dynamic_pointer_cast<ScorerWrapperState>(state);
+    auto newState = encdec_->step(graph, wrapperState->getState(), hypIndices, embIndices, dimBatch, beamSize);
+    return New<ScorerWrapperState>(newState);
   }
 
   virtual void setShortlistGenerator(
