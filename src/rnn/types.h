@@ -12,28 +12,42 @@ struct State {
   Expr output;
   Expr cell;
 
-  // @TODO: This version only for time-major. Add flag so that this can be shared.
-  State select(const std::vector<size_t>& indices, // [beamIndex * activeBatchSize + batchIndex]
-               int beamSize) const {
-    auto selectedOutput = output; // [beamSize, dimTime, dimBatch, dimDepth] (dimTime = 1 for RNN)
-    auto selectedCell   = cell;   // [beamSize, dimTime, dimBatch, dimDepth]
+  State select(const std::vector<size_t>& selIdx, // [beamIndex * activeBatchSize + batchIndex]
+               int beamSize, bool isBatchMajor) const {
+    auto selectedOutput = output; // [beamSize, dimTime, dimBatch, dimDepth] or [beamSize, dimBatch, dimTime, dimDepth] (dimTime = 1 for RNN)
+    auto selectedCell   = cell;   // [beamSize, dimTime, dimBatch, dimDepth] or [beamSize, dimBatch, dimTime, dimDepth]
 
     selectedOutput = atleast_4d(selectedOutput);
 
+    int dimBatch = selIdx.size() / beamSize;
     int dimDepth = selectedOutput->shape()[-1];
-    int dimTime  = selectedOutput->shape()[-3];
+    int dimTime = isBatchMajor ? selectedOutput->shape()[-2] : selectedOutput->shape()[-3];
 
-    int dimBatch = indices.size() / beamSize;
+    if (isBatchMajor) {
+      // @TODO: I think this can be done more efficiently by not using flatten_2d(), but instead merging dimTime with dimDepth
+      std::vector<size_t> selIdx2;
+      for (auto i : selIdx)
+        for (int j = 0; j < dimTime; ++j)
+          selIdx2.push_back(i * dimTime + j);
 
-    selectedOutput = reshape(rows(flatten_2d(selectedOutput), indices),
-                             { beamSize, dimTime, dimBatch, dimDepth });
-    if (selectedCell)
-    {
-      selectedCell = atleast_4d(selectedCell);
-      selectedCell = reshape(rows(flatten_2d(selectedCell), indices),
-                             { beamSize, dimTime, dimBatch, dimDepth });
+      selectedOutput = flatten_2d(selectedOutput);
+      selectedOutput = rows(selectedOutput, selIdx2);
+      selectedOutput = reshape(selectedOutput, { beamSize, isBatchMajor ? dimBatch : dimTime, isBatchMajor ? dimTime : dimBatch, dimDepth });
+      ABORT_IF(selectedCell, "selectedCell must be null for Transformer");
+    } else {
+      ABORT_IF(dimTime != 1, "unexpected time extent for RNN state");
+      selectedOutput = flatten_2d(selectedOutput);
+      selectedOutput = rows(selectedOutput, selIdx);
+      selectedOutput = reshape(selectedOutput, { beamSize, isBatchMajor ? dimBatch : dimTime, isBatchMajor ? dimTime : dimBatch, dimDepth });
+      if (selectedCell)
+      {
+        selectedCell = atleast_4d(selectedCell);
+        selectedCell = flatten_2d(selectedCell);
+        selectedCell = rows(selectedCell, selIdx);
+        selectedCell = reshape(selectedCell, { beamSize, isBatchMajor ? dimBatch : dimTime, isBatchMajor ? dimTime : dimBatch, dimDepth });
+      }
     }
-    return { selectedOutput, selectedCell };
+    return{ selectedOutput, selectedCell };
   }
 };
 
@@ -75,11 +89,11 @@ public:
   void push_back(const State& state) { states_.push_back(state); }
 
   // create updated set of states that reflect reordering and dropping of hypotheses
-  States select(const std::vector<size_t>& indices, // [beamIndex * activeBatchSize + batchIndex]
-                int beamSize) const {
+  States select(const std::vector<size_t>& selIdx, // [beamIndex * activeBatchSize + batchIndex]
+                int beamSize, bool isBatchMajor) const {
     States selected;
     for(auto& state : states_)
-      selected.push_back(state.select(indices, beamSize));
+      selected.push_back(state.select(selIdx, beamSize, isBatchMajor));
     return selected;
   }
 

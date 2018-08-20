@@ -27,7 +27,7 @@ public:
     for(auto i : selIdx)
       selectedAttentionIndices.push_back(attentionIndices_[i]);
 
-    auto selectedState = New<DecoderStateHardAtt>(states_.select(selIdx, beamSize),
+    auto selectedState = New<DecoderStateHardAtt>(states_.select(selIdx, beamSize, /*isBatchMajor=*/false),
                                     probs_,
                                     encStates_,
                                     batch_);
@@ -235,12 +235,13 @@ public:
       logits = out->apply(rnnInputs, decContext);
     }
 
-    auto newState = New<DecoderStateHardAtt>(decStates,
+    auto nextState = New<DecoderStateHardAtt>(decStates,
                                              logits,
                                              stateHardAtt->getEncoderStates(),
                                              stateHardAtt->getBatch());
-    newState->setAttentionIndices(std::vector<size_t>(stateHardAtt->getAttentionIndices()));
-    return newState;
+    nextState->setAttentionIndices(std::vector<size_t>(stateHardAtt->getAttentionIndices()));
+    nextState->setPosition(state->getPosition() + 1); // @TODO: I added this for consistency. Correct?
+    return nextState;
   }
 
   const std::vector<Expr> getAlignments() {

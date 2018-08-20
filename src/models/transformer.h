@@ -548,25 +548,8 @@ public:
 
   virtual Ptr<DecoderState> selectHyps(const std::vector<size_t>& selIdx,
                                    int beamSize) const override {
-    // @TODO: merge the reordering bits with base DecoderState::select()
-    int dimDepth = states_[0].output->shape()[-1];
-    int dimTime  = states_[0].output->shape()[-2];
-    int dimBatch = selIdx.size() / beamSize;
-
-    std::vector<size_t> selIdx2;
-    for(auto i : selIdx)
-      for(int j = 0; j < dimTime; ++j)
-        selIdx2.push_back(i * dimTime + j);
-
-    rnn::States selectedStates;
-    for(const auto& state : states_) {
-      auto sel = rows(flatten_2d(state.output), selIdx2);
-      sel = reshape(sel, {beamSize, dimBatch, dimTime, dimDepth});
-      selectedStates.push_back({sel, nullptr});
-    }
-
     // Create hypothesis-selected state based on current state and hyp indices
-    auto selectedState = New<TransformerState>(selectedStates, probs_, encStates_, batch_);
+    auto selectedState = New<TransformerState>(states_.select(selIdx, beamSize, /*isBatchMajor=*/true), probs_, encStates_, batch_);
 
     // Set the same target token position as the current state
     // @TODO: This is the same as in base function.

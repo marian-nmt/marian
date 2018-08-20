@@ -59,7 +59,7 @@ public:
   virtual Ptr<DecoderState> selectHyps(const std::vector<size_t>& selIdx,
                                    int beamSize) const {
     auto selectedState = New<DecoderState>(
-        states_.select(selIdx, beamSize), probs_, encStates_, batch_);
+        states_.select(selIdx, beamSize, /*isBatchMajor=*/false), probs_, encStates_, batch_);
 
     // Set positon of new state based on the target token position of current
     // state
