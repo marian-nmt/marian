@@ -14,40 +14,30 @@ struct State {
 
   State select(const std::vector<size_t>& selIdx, // [beamIndex * activeBatchSize + batchIndex]
                int beamSize, bool isBatchMajor) const {
-    auto selectedOutput = output; // [beamSize, dimTime, dimBatch, dimDepth] or [beamSize, dimBatch, dimTime, dimDepth] (dimTime = 1 for RNN)
-    auto selectedCell   = cell;   // [beamSize, dimTime, dimBatch, dimDepth] or [beamSize, dimBatch, dimTime, dimDepth]
+    return{ select(output, selIdx, beamSize, isBatchMajor),
+            select(cell,   selIdx, beamSize, isBatchMajor) };
+  }
 
-    selectedOutput = atleast_4d(selectedOutput);
+private:
+  static Expr select(Expr sel, // [beamSize, dimTime, dimBatch, dimDepth] or [beamSize, dimBatch, dimTime, dimDepth] (dimTime = 1 for RNN)
+                     const std::vector<size_t>& selIdx, // [beamIndex * activeBatchSize + batchIndex]
+                     int beamSize, bool isBatchMajor)
+  {
+    if (!sel)
+      return sel; // keep nullptr untouched
+
+    sel = atleast_4d(sel);
 
     int dimBatch = selIdx.size() / beamSize;
-    int dimDepth = selectedOutput->shape()[-1];
-    int dimTime = isBatchMajor ? selectedOutput->shape()[-2] : selectedOutput->shape()[-3];
+    int dimDepth = sel->shape()[-1];
+    int dimTime  = isBatchMajor ? sel->shape()[-2] : sel->shape()[-3];
 
-    if (isBatchMajor) {
-      // @TODO: I think this can be done more efficiently by not using flatten_2d(), but instead merging dimTime with dimDepth
-      std::vector<size_t> selIdx2;
-      for (auto i : selIdx)
-        for (int j = 0; j < dimTime; ++j)
-          selIdx2.push_back(i * dimTime + j);
-
-      selectedOutput = flatten_2d(selectedOutput);
-      selectedOutput = rows(selectedOutput, selIdx2);
-      selectedOutput = reshape(selectedOutput, { beamSize, isBatchMajor ? dimBatch : dimTime, isBatchMajor ? dimTime : dimBatch, dimDepth });
-      ABORT_IF(selectedCell, "selectedCell must be null for Transformer");
-    } else {
-      ABORT_IF(dimTime != 1, "unexpected time extent for RNN state");
-      selectedOutput = flatten_2d(selectedOutput);
-      selectedOutput = rows(selectedOutput, selIdx);
-      selectedOutput = reshape(selectedOutput, { beamSize, isBatchMajor ? dimBatch : dimTime, isBatchMajor ? dimTime : dimBatch, dimDepth });
-      if (selectedCell)
-      {
-        selectedCell = atleast_4d(selectedCell);
-        selectedCell = flatten_2d(selectedCell);
-        selectedCell = rows(selectedCell, selIdx);
-        selectedCell = reshape(selectedCell, { beamSize, isBatchMajor ? dimBatch : dimTime, isBatchMajor ? dimTime : dimBatch, dimDepth });
-      }
-    }
-    return{ selectedOutput, selectedCell };
+    ABORT_IF(dimTime != 1 && !isBatchMajor, "unexpected time extent for RNN state"); // (the reshape()/rows() trick won't work in this case)
+    int numCols = isBatchMajor ? dimDepth * dimTime : dimDepth;
+    sel = reshape(sel, { sel->shape().elements() / numCols, numCols }); // [beamSize * dimBatch, dimDepth] or [beamSize * dimBatch, dimTime * dimDepth]
+    sel = rows(sel, selIdx);
+    sel = reshape(sel, { beamSize, isBatchMajor ? dimBatch : dimTime, isBatchMajor ? dimTime : dimBatch, dimDepth });
+    return sel;
   }
 };
 
