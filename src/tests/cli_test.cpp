@@ -10,9 +10,9 @@ int main(int argc, char** argv) {
   enum color { red, green, blue };
 
   CLIWrapper w;
-  w.add<int>("integer", "-i,--int", "help message for int", 555, true);
-  w.add<std::string>("string", "-s,--str", "help message for str");
-  w.add<std::vector<float>>("vector", "-v,--vec", "help message for vec")->expected(-3);
+  w.add<int>("integer", "-i,--int", "help message for int")->implicit_val("555");
+  w.add<std::string>("string", "-s,--str", "help message for str")->default_val("foo");
+  w.add<std::vector<float>>("vector", "-v,--vec", "help message for vec")->expected(-2);
   w.add<bool>("bool", "-b,--bool", "help message for bool");
   //w.add<color>("enum", "-e,--enum", "help message for enum");
 

@@ -162,13 +162,12 @@ public:
   std::shared_ptr<CLI::Option> add(const std::string &key,
                                    const std::string &args,
                                    const std::string &help,
-                                   T val = T(),
-                                   bool implicit = false) {
+                                   T val = T()) {
     std::cerr << "CLI::add(" << key << ") ";
     vars_.insert(std::make_pair(key, std::shared_ptr<some>(new some(val))));
     opts_.insert(std::make_pair(key,
                                 std::shared_ptr<CLI::Option>(app_.add_option(
-                                    args, vars_[key]->as<T>(), help, true, implicit))));
+                                    args, vars_[key]->as<T>(), help))));
     std::cerr << opts_[key]->get_lnames() << std::endl;
     return opts_[key];
   }
@@ -194,20 +193,18 @@ public:
   }
 };
 
-
-  template <>
-  std::shared_ptr<CLI::Option> CLIWrapper::add(const std::string &key,
-                                   const std::string &args,
-                                   const std::string &help,
-                                   bool val,
-                                   bool implicit) {
-    std::cerr << "CLI::add(" << key << ") ";
-    vars_.insert(std::make_pair(key, std::shared_ptr<some>(new some(false))));
-    opts_.insert(std::make_pair(
-        key, std::shared_ptr<CLI::Option>(app_.add_flag(args, help))));
-    std::cerr << opts_[key]->get_lnames() << std::endl;
-    return opts_[key];
-  }
+template <>
+std::shared_ptr<CLI::Option> CLIWrapper::add(const std::string &key,
+                                             const std::string &args,
+                                             const std::string &help,
+                                             bool val) {
+  std::cerr << "CLI::add(" << key << ") ";
+  vars_.insert(std::make_pair(key, std::shared_ptr<some>(new some(false))));
+  opts_.insert(std::make_pair(
+      key, std::shared_ptr<CLI::Option>(app_.add_flag(args, help))));
+  std::cerr << opts_[key]->get_lnames() << std::endl;
+  return opts_[key];
+}
 
 }  // namespace cli
 }  // namespace marian

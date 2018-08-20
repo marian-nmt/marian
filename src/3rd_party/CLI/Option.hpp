@@ -704,10 +704,12 @@ class Option : public OptionBase<Option> {
 
     /// Set the default value string representation
     Option *default_str(std::string val) {
+        default_ = true;
         defaultval_ = val;
         return this;
     }
     Option *implicit_str(std::string val) {
+        implicit_ = true;
         implicitval_ = val;
         return this;
     }
