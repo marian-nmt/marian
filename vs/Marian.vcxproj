@@ -111,16 +111,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\binary_renamed.cpp" />
     <ClCompile Include="..\src\3rd_party\yaml-cpp\yaml-node.cpp" />
-    <ClCompile Include="..\src\command\marian-main.cpp" />
     <ClInclude Include="..\src\command\marian.cpp" />
     <ClInclude Include="..\src\command\marian_decoder.cpp" />
     <ClInclude Include="..\src\command\marian_scorer.cpp" />
     <ClInclude Include="..\src\command\marian_vocab.cpp" />
+    <ClInclude Include="..\src\command\marian_conv.cpp" />
+    <ClCompile Include="..\src\command\marian_main.cpp" />
+    <ClCompile Include="..\src\common\binary.cpp" />
+    <ClCompile Include="..\src\common\io.cpp" />
     <ClCompile Include="..\src\common\utils.cpp" />
     <ClCompile Include="..\src\common\logging.cpp" />
     <ClCompile Include="..\src\common\config.cpp" />
     <ClCompile Include="..\src\common\config_parser.cpp" />
+    <ClCompile Include="..\src\data\alignment.cpp" />
     <ClCompile Include="..\src\data\vocab.cpp" />
     <ClCompile Include="..\src\data\corpus_base.cpp" />
     <ClCompile Include="..\src\data\corpus.cpp" />
@@ -129,6 +134,8 @@
     <ClCompile Include="..\src\3rd_party\cnpy\cnpy.cpp" />
     <ClCompile Include="..\src\3rd_party\exception.cpp" />
     <ClCompile Include="..\src\3rd_party\svd\svd.cpp" />
+    <ClCompile Include="..\src\layers\loss.cpp" />
+    <ClCompile Include="..\src\layers\weight.cpp" />
     <ClCompile Include="..\src\tensors\backend.cpp" />
     <ClCompile Include="..\src\tensors\cpu\device.cpp" />
     <ClCompile Include="..\src\tensors\cpu\dropout.cpp" />
@@ -147,10 +154,13 @@
     <ClCompile Include="..\src\optimizers\optimizers.cpp" />
     <ClCompile Include="..\src\models\model_factory.cpp" />
     <ClCompile Include="..\src\models\encoder_decoder.cpp" />
+    <ClCompile Include="..\src\training\communicator.cpp" />
+    <ClCompile Include="..\src\training\graph_group_multinode_sync.cpp" />
     <ClCompile Include="..\src\translator\history.cpp" />
     <ClCompile Include="..\src\translator\output_collector.cpp" />
     <ClCompile Include="..\src\translator\nth_element.cpp" />
     <ClCompile Include="..\src\translator\helpers.cpp" />
+    <ClCompile Include="..\src\translator\output_printer.cpp" />
     <ClCompile Include="..\src\translator\scorers.cpp" />
     <ClCompile Include="..\src\training\graph_group_async.cpp" />
     <ClCompile Include="..\src\training\graph_group_async_drop.cpp" />
@@ -158,7 +168,6 @@
     <ClCompile Include="..\src\training\graph_group_singleton.cpp" />
     <ClCompile Include="..\src\training\graph_group_multinode.cpp" />
     <ClCompile Include="..\src\training\validator.cpp" />
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\binary.cpp" />
     <ClCompile Include="..\src\3rd_party\yaml-cpp\convert.cpp" />
     <ClCompile Include="..\src\3rd_party\yaml-cpp\directives.cpp" />
     <ClCompile Include="..\src\3rd_party\yaml-cpp\emit.cpp" />
@@ -189,6 +198,11 @@
     <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilderadapter.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\common\binary.h" />
+    <ClInclude Include="..\src\common\io.h" />
+    <ClInclude Include="..\src\common\io_item.h" />
+    <ClInclude Include="..\src\layers\loss.h" />
+    <ClInclude Include="..\src\layers\weight.h" />
     <ClInclude Include="..\src\marian.h" />
     <ClInclude Include="..\src\3rd_party\catch.hpp" />
     <ClInclude Include="..\src\3rd_party\exception.h" />
@@ -418,10 +432,12 @@
     <ClInclude Include="..\src\tensors\cpu\backend.h" />
     <ClInclude Include="..\src\tensors\cpu\element.h" />
     <ClInclude Include="..\src\tensors\cpu\int16.h" />
+    <ClInclude Include="..\src\training\communicator.h" />
     <ClInclude Include="..\src\training\graph_group.h" />
     <ClInclude Include="..\src\training\graph_group_async.h" />
     <ClInclude Include="..\src\training\graph_group_async_drop.h" />
     <ClInclude Include="..\src\training\graph_group_multinode.h" />
+    <ClInclude Include="..\src\training\graph_group_multinode_sync.h" />
     <ClInclude Include="..\src\training\graph_group_singleton.h" />
     <ClInclude Include="..\src\training\graph_group_sync.h" />
     <ClInclude Include="..\src\training\scheduler.h" />
@@ -437,6 +453,7 @@
     <ClInclude Include="..\src\translator\hypothesis.h" />
     <ClInclude Include="..\src\translator\nth_element.h" />
     <ClInclude Include="..\src\translator\output_collector.h" />
+    <ClInclude Include="..\src\translator\output_printer.h" />
     <ClInclude Include="..\src\translator\printer.h" />
     <ClInclude Include="..\src\translator\scorers.h" />
     <ClInclude Include="..\src\translator\translator.h" />

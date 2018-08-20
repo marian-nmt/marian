@@ -1,18 +1,21 @@
 #include "marian.h"
 
-// TODO: rename these functions actually
+// @TODO: rename these functions actually
 #define main mainTrainer
 #include "marian.cpp"
 #undef main
 #define main mainDecoder
 #include "marian_decoder.cpp"
 #undef main
-//#define main mainScorer
+//#define main mainScorer // commented out for now since it would require more intrusive code changes
 //#include "marian_scorer.cpp"
 //#undef main
-//#define main mainVocab
-//#include "marian_vocab.cpp"
-//#undef main
+#define main mainVocab
+#include "marian_vocab.cpp"
+#undef main
+#define main mainConv
+#include "marian_conv.cpp"
+#undef main
 
 int main(int argc, char** argv) {
   using namespace marian;
@@ -22,13 +25,12 @@ int main(int argc, char** argv) {
     argc--;
     argv[1] = argv[0];
     argv++;
-    if(cmd == "train")
-      return mainTrainer(argc, argv);
-    else if(cmd == "decode")
-      return mainDecoder(argc, argv);
-    // else if (cmd == "score")  return mainScorer(argc, argv);
-    // else if (cmd == "vocab")  return mainVocab(argc, argv);
-    std::cerr << "Command must be train, decode, score, or vocab.";
+    if(cmd == "train")           return mainTrainer(argc, argv);
+    else if(cmd == "decode")     return mainDecoder(argc, argv);
+    // else if (cmd == "score")     return mainScorer(argc, argv);
+    else if (cmd == "vocab")     return mainVocab(argc, argv);
+    else if (cmd == "convert")   return mainConv(argc, argv);
+    std::cerr << "Command must be train, decode, score, vocab, or convert.";
     exit(1);
   } else
     return mainTrainer(argc, argv);
