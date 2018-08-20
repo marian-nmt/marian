@@ -546,7 +546,7 @@ public:
                    Ptr<data::CorpusBatch> batch)
       : DecoderState(states, probs, encStates, batch) {}
 
-  virtual Ptr<DecoderState> selectHyps(const std::vector<size_t>& selIdx,
+  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
                                    int beamSize) const override {
     // Create hypothesis-selected state based on current state and hyp indices
     auto selectedState = New<TransformerState>(states_.select(selIdx, beamSize, /*isBatchMajor=*/true), probs_, encStates_, batch_);

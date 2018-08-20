@@ -21,7 +21,7 @@ public:
                       Ptr<data::CorpusBatch> batch)
       : DecoderState(states, probs, encStates, batch) {}
 
-  virtual Ptr<DecoderState> selectHyps(const std::vector<size_t>& selIdx,
+  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
                                    int beamSize) const override {
     std::vector<size_t> selectedAttentionIndices;
     for(auto i : selIdx)

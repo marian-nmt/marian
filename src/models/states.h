@@ -56,7 +56,7 @@ public:
   virtual void setProbs(Expr probs) { probs_ = probs; }
 
   // @TODO: should this be a constructor? Then derived classes can call this without the New<> in the loop
-  virtual Ptr<DecoderState> selectHyps(const std::vector<size_t>& selIdx,
+  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
                                    int beamSize) const {
     auto selectedState = New<DecoderState>(
         states_.select(selIdx, beamSize, /*isBatchMajor=*/false), probs_, encStates_, batch_);
