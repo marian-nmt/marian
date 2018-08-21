@@ -73,7 +73,7 @@ public:
       return true;
     };
 
-    std::shared_ptr<CLI::Option> opt(app_.add_option(args, fun, help));
+    std::shared_ptr<CLI::Option> opt(app_.add_option(args, fun, help, true));
     opt->type_size(0);
     opts_.insert(std::make_pair(key, opt));
     return opts_[key];

@@ -89,7 +89,6 @@ class App {
 
     /// The default values for options, customizable and changeable INHERITABLE
     OptionDefaults option_defaults_;
-    OptionDefaults option_implicits_;
 
     /// The list of options, stored locally
     std::vector<Option_p> options_;
@@ -189,7 +188,6 @@ class App {
 
             /// OptionDefaults
             option_defaults_ = parent_->option_defaults_;
-            option_implicits_ = parent_->option_implicits_;
 
             // INHERITABLE
             failure_message_ = parent_->failure_message_;
@@ -290,7 +288,6 @@ class App {
 
     /// Get the OptionDefault object, to set option defaults
     OptionDefaults *option_defaults() { return &option_defaults_; }
-    OptionDefaults *option_implicits() { return &option_implicits_; }
 
     ///@}
     /// @name Adding options
@@ -310,25 +307,19 @@ class App {
     ///     std::string filename;
     ///     program.add_option("filename", filename, "description of filename");
     ///
-    Option *add_option(std::string name,
-                       callback_t callback,
-                       std::string description = "",
-                       bool defaulted = false,
-                       bool implicited = false) {
-      Option myopt{name, description, callback, defaulted, implicited, this};
+    Option *add_option(std::string name, callback_t callback, std::string description = "", bool defaulted = false) {
+        Option myopt{name, description, callback, defaulted, this};
 
-      if(std::find_if(std::begin(options_),
-                      std::end(options_),
-                      [&myopt](const Option_p &v) { return *v == myopt; })
-         == std::end(options_)) {
-        options_.emplace_back();
-        Option_p &option = options_.back();
-        option.reset(new Option(
-            name, description, callback, defaulted, implicited, this));
-        option_defaults_.copy_to(option.get());
-        return option.get();
-      } else
-        throw OptionAlreadyAdded(myopt.get_name());
+        if(std::find_if(std::begin(options_), std::end(options_), [&myopt](const Option_p &v) {
+               return *v == myopt;
+           }) == std::end(options_)) {
+            options_.emplace_back();
+            Option_p &option = options_.back();
+            option.reset(new Option(name, description, callback, defaulted, this));
+            option_defaults_.copy_to(option.get());
+            return option.get();
+        } else
+            throw OptionAlreadyAdded(myopt.get_name());
     }
 
     /// Add option for non-vectors (duplicate copy needed without defaulted to avoid `iostream << value`)
@@ -349,22 +340,16 @@ class App {
     Option *add_option(std::string name,
                        T &variable, ///< The variable to set
                        std::string description,
-                       bool defaulted,
-                       bool implicited = false) {
+                       bool defaulted) {
 
         CLI::callback_t fun = [&variable](CLI::results_t res) { return detail::lexical_cast(res[0], variable); };
 
-        Option *opt = add_option(name, fun, description, defaulted, implicited);
+        Option *opt = add_option(name, fun, description, defaulted);
         opt->type_name(detail::type_name<T>());
         if(defaulted) {
             std::stringstream out;
             out << variable;
             opt->default_str(out.str());
-        }
-        if(implicited) {
-            std::stringstream out;
-            out << variable;
-            opt->implicit_str(out.str());
         }
         return opt;
     }
@@ -395,8 +380,7 @@ class App {
     Option *add_option(std::string name,
                        std::vector<T> &variable, ///< The variable vector to set
                        std::string description,
-                       bool defaulted,
-                       bool implicited = false) { ///< Not supported yet for vectors yet
+                       bool defaulted) {
 
         CLI::callback_t fun = [&variable](CLI::results_t res) {
             bool retval = true;

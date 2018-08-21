@@ -233,20 +233,11 @@ class Option : public OptionBase<Option> {
     ///@}
 
     /// Making an option by hand is not defined, it must be made by the App class
-    Option(std::string name,
-           std::string description,
-           std::function<bool(results_t)> callback,
-           bool defaulted,
-           bool implicited,
-           App *parent)
-        : description_(std::move(description)),
-          default_(defaulted),
-          implicit_(implicited),
-          parent_(parent),
-          callback_(callback ? std::move(callback)
-                             : [](results_t) { return true; }) {
-      std::tie(snames_, lnames_, pname_)
-          = detail::get_names(detail::split_names(name));
+    Option(
+        std::string name, std::string description, std::function<bool(results_t)> callback, bool defaulted, App *parent)
+        : description_(std::move(description)), default_(defaulted), parent_(parent),
+          callback_(callback ? std::move(callback) : [](results_t) { return true; }) {
+        std::tie(snames_, lnames_, pname_) = detail::get_names(detail::split_names(name));
     }
 
   public:
@@ -704,18 +695,17 @@ class Option : public OptionBase<Option> {
 
     /// Set the default value string representation
     Option *default_str(std::string val) {
-        default_ = true;
         defaultval_ = val;
         return this;
     }
     Option *implicit_str(std::string val) {
-        implicit_ = true;
         implicitval_ = val;
         return this;
     }
 
     /// Set the default value string representation and evaluate
     Option *default_val(std::string val) {
+        default_ = true;
         default_str(val);
         auto old_results = results_;
         results_ = {val};
@@ -724,6 +714,7 @@ class Option : public OptionBase<Option> {
         return this;
     }
     Option *implicit_val(std::string val) {
+        implicit_ = true;
         implicit_str(val);
         auto old_results = results_;
         results_ = {val};
