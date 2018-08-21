@@ -163,12 +163,12 @@ public:
                                    const std::string &args,
                                    const std::string &help,
                                    T val = T()) {
-    std::cerr << "CLI::add(" << key << ") ";
-    vars_.insert(std::make_pair(key, std::shared_ptr<some>(new some(val))));
-    opts_.insert(std::make_pair(key,
-                                std::shared_ptr<CLI::Option>(app_.add_option(
-                                    args, vars_[key]->as<T>(), help))));
-    std::cerr << opts_[key]->get_lnames() << std::endl;
+    std::cerr << "CLI::add(" << key << ") " << std::endl;;
+    std::shared_ptr<some> var(new some(val));
+    vars_.insert(std::make_pair(key, var));
+    std::shared_ptr<CLI::Option> opt(
+        app_.add_option(args, vars_[key]->as<T>(), help));
+    opts_.insert(std::make_pair(key, opt));
     return opts_[key];
   }
 
@@ -188,9 +188,9 @@ public:
     return vars_[key]->as<T>();
   }
 
-  bool parse(int argv, char **argc) {
-    app_.parse(argv, argc);
-  }
+  bool parse(int argv, char **argc) { app_.parse(argv, argc); }
+
+  CLI::App *app() { return &app_; }
 };
 
 template <>
@@ -198,11 +198,11 @@ std::shared_ptr<CLI::Option> CLIWrapper::add(const std::string &key,
                                              const std::string &args,
                                              const std::string &help,
                                              bool val) {
-  std::cerr << "CLI::add(" << key << ") ";
-  vars_.insert(std::make_pair(key, std::shared_ptr<some>(new some(false))));
-  opts_.insert(std::make_pair(
-      key, std::shared_ptr<CLI::Option>(app_.add_flag(args, help))));
-  std::cerr << opts_[key]->get_lnames() << std::endl;
+  std::cerr << "CLI::add(" << key << ") " << std::endl;
+  std::shared_ptr<some> var(new some(false));
+  vars_.insert(std::make_pair(key, var));
+  std::shared_ptr<CLI::Option> opt(app_.add_flag(args, help));
+  opts_.insert(std::make_pair(key, opt));
   return opts_[key];
 }
 
