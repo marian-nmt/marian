@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "common/cli_wrapper.h"
+#include "common/cli_helper.h"
 
 using namespace marian::cli;
 
@@ -34,11 +35,12 @@ S &operator>>(S &s, color &r) {
 int main(int argc, char** argv) {
 
   CLIWrapper w;
-  w.add<int>("integer", "-i,--int", "help message for int")->implicit_val("555");
-  w.add<std::string>("string", "-s,--str", "help message for str")->default_val("foo");
-  w.add<std::vector<float>>("vector", "-v,--vec", "help message for vec")->expected(-2);
-  w.add<bool>("bool", "-b,--bool", "help message for bool");
-  w.add<color>("enum", "-e,--enum", "help message for enum");
+  w.add<int>("integer", "-i,--int", "help message")->implicit_val("555")->default_val("123");
+  w.add<std::string>("string", "-s,--str", "help message")->default_val("foo");
+  w.add<std::vector<float>>("vector", "-v,--vec", "help message")->expected(-2);
+  w.add<std::vector<std::string>>("defvec", "-d,--defvec", "help message")->default_val("foo");
+  w.add<bool>("bool", "-b,--bool", "help message");
+  //w.add<color>("enum", "-e,--enum", "help message for enum");
 
   try {
     w.parse(argc, argv);
@@ -49,8 +51,12 @@ int main(int argc, char** argv) {
   w.get<int>("integer");
   w.get<std::string>("string");
   w.get<std::vector<float>>("vector");
+  w.get<std::vector<std::string>>("defvec");
   w.get<bool>("bool");
-  w.get<color>("enum");
+  //w.get<color>("enum");
 
+  YAML::Emitter emit;
+  OutputYaml(w.getConfig(), emit);
+  std::cout << emit.c_str() << std::endl;
   return 0;
 }
