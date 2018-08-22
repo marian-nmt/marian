@@ -11,11 +11,22 @@
 namespace marian {
 namespace cli {
 
+// TODO: remove
 template <typename S, typename T>
 S &operator<<(S &s, const std::vector<T> &v) {
   for(auto &x : v)
     s << x << " ";
   return s;
+}
+
+namespace validators {
+const auto& file_exists = CLI::ExistingFile;
+const CLI::detail::ExistingDirectoryValidator dir_exists;
+const CLI::detail::ExistingPathValidator path_exists;
+
+const CLI::detail::NonexistentPathValidator path_not_exists;
+
+typedef CLI::Range range;
 }
 
 class CLIWrapper {

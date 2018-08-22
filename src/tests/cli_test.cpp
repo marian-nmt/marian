@@ -38,8 +38,9 @@ int main(int argc, char** argv) {
   w.add<int>("integer", "-i,--int", "help message")->implicit_val("555")->default_val("123");
   w.add<std::string>("string", "-s,--str", "help message")->default_val("foo");
   w.add<std::vector<float>>("vector", "-v,--vec", "help message")->expected(-2);
-  w.add<std::vector<std::string>>("defvec", "-d,--defvec", "help message")->default_val("foo");
+  w.add<std::vector<std::string>>("defvec", "--defvec,-d", "help message")->default_val("foo");
   w.add<bool>("bool", "-b,--bool", "help message");
+  w.add<std::string>("file", "-f,--file", "help message")->check(validators::file_exists);
   //w.add<color>("enum", "-e,--enum", "help message for enum");
 
   try {
@@ -53,6 +54,7 @@ int main(int argc, char** argv) {
   w.get<std::vector<float>>("vector");
   w.get<std::vector<std::string>>("defvec");
   w.get<bool>("bool");
+  w.get<std::string>("file");
   //w.get<color>("enum");
 
   YAML::Emitter emit;
