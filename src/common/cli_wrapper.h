@@ -35,10 +35,14 @@ private:
   std::map<std::string, std::shared_ptr<some_type>> vars_;
   // Stores option objects
   std::map<std::string, std::shared_ptr<CLI::Option>> opts_;
-  // Command-line arguments parser
+  // Command-line argument parser
   CLI::App app_;
-
+  // Stores options as YAML object
   YAML::Node config_;
+
+  // Name for the current option group
+  std::string currentGroup_{""};
+
 
 public:
   CLIWrapper() {}
@@ -65,6 +69,8 @@ public:
 
     std::shared_ptr<CLI::Option> opt(app_.add_option(args, fun, help, true));
     opt->type_name(CLI::detail::type_name<T>());
+    if(!currentGroup_.empty())
+      opt->group(currentGroup_);
     opts_.insert(std::make_pair(key, opt));
     return opts_[key];
   }
@@ -77,8 +83,11 @@ public:
                                    const std::string &help,
                                    T val = T()) {
     std::cerr << "CLI::add(" << key << ") " << std::endl;
+
+    // TODO: needed?
     config_[key] = false;
     vars_.insert(std::make_pair(key, std::make_shared<some_type>(false)));
+
     CLI::callback_t fun = [this, key](CLI::results_t res) {
       config_[key] = !res.empty();
       return true;
@@ -86,6 +95,8 @@ public:
 
     std::shared_ptr<CLI::Option> opt(app_.add_option(args, fun, help, true));
     opt->type_size(0);
+    if(!currentGroup_.empty())
+      opt->group(currentGroup_);
     opts_.insert(std::make_pair(key, opt));
     return opts_[key];
   }
@@ -115,6 +126,8 @@ public:
 
     std::shared_ptr<CLI::Option> opt(app_.add_option(args, fun, help));
     opt->type_name(CLI::detail::type_name<T>())->type_size(-1);
+    if(!currentGroup_.empty())
+      opt->group(currentGroup_);
     opts_.insert(std::make_pair(key, opt));
     return opts_[key];
   }
@@ -135,6 +148,9 @@ public:
               << " .empty=" << opts_[key]->empty() << std::endl;
     return vars_[key]->as<T>();
   }
+
+  void startGroup(const std::string &name) { currentGroup_ = name; }
+  void endGroup() { currentGroup_ = ""; }
 
   bool parse(int argv, char **argc) { app_.parse(argv, argc); }
 
