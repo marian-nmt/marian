@@ -745,37 +745,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     exit(0);
   }
 
-  const auto& InterpolateEnvVarsIfRequested
-      = [&](std::string str) -> std::string {
-    if(vm_["interpolate-env-vars"].as<bool>())
-      str = cli::InterpolateEnvVars(str);
-    return str;
-  };
-
-  bool loadConfig = vm_.count("config");
-  bool reloadConfig
-      = (mode_ == ConfigMode::training)
-        && boost::filesystem::exists(InterpolateEnvVarsIfRequested(
-               vm_["model"].as<std::string>() + ".yml"))
-        && !vm_["no-reload"].as<bool>();
-  std::vector<std::string> configPaths;
-
-  if(loadConfig) {
-    configPaths = vm_["config"].as<std::vector<std::string>>();
-    config_ = YAML::Node();
-    for(auto& configPath : configPaths) {
-      configPath = InterpolateEnvVarsIfRequested(
-          configPath);  // (note: this updates the configPaths array)
-      for(const auto& it :
-          YAML::Load(InputFileStream(configPath)))  // later file overrides
-        config_[it.first.as<std::string>()] = it.second;
-    }
-  } else if(reloadConfig) {
-    auto configPath = InterpolateEnvVarsIfRequested(
-        vm_["model"].as<std::string>() + ".yml");
-    config_ = YAML::Load(InputFileStream(configPath));
-    configPaths = {configPath};
-  }
+  auto configPaths = loadConfigPaths(vm_);
 
   /** model **/
 
@@ -1013,32 +983,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
 
   if(get<bool>("relative-paths") && !vm_["dump-config"].as<bool>()) {
-    // change relative paths to absolute paths relative to the config file's
-    // directory
-    ABORT_IF(configPaths.empty(),
-             "relative-paths option requires at least one config file "
-             "(--config option)");
-    auto configDir = boost::filesystem::path{configPaths.front()}.parent_path();
-    for(const auto& configPath : configPaths)
-      ABORT_IF(boost::filesystem::path{configPath}.parent_path() != configDir,
-               "relative-paths option requires all config files to be in the "
-               "same directory");
-
-    auto transformFunc = [&](const std::string& nodePath) -> std::string {
-      // replace relative path w.r.t. configDir
-      using namespace boost::filesystem;
-      try {
-        return canonical(path{nodePath}, configDir).string();
-      } catch(boost::filesystem::filesystem_error& e) {
-        // will fail if file does not exist; use parent in that case
-        std::cerr << e.what() << std::endl;
-        auto parentPath = path{nodePath}.parent_path();
-        return (canonical(parentPath, configDir) / path{nodePath}.filename())
-            .string();
-      }
-    };
-
-    cli::ProcessPaths(config_, transformFunc, PATHS);
+    makeAbsolutePaths(configPaths);
   }
 
   if(doValidate) {
@@ -1060,6 +1005,71 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     std::cout << emit.c_str() << std::endl;
     exit(0);
   }
+}
+
+void ConfigParser::makeAbsolutePaths(
+    const std::vector<std::string>& configPaths) {
+  ABORT_IF(configPaths.empty(),
+           "--relative-paths option requires at least one config file provided "
+           "with --config");
+  auto configDir = boost::filesystem::path{configPaths.front()}.parent_path();
+
+  for(const auto& configPath : configPaths)
+    ABORT_IF(boost::filesystem::path{configPath}.parent_path() != configDir,
+             "--relative-paths option requires all config files to be in the "
+             "same directory");
+
+  auto transformFunc = [&](const std::string& nodePath) -> std::string {
+    // replace relative path w.r.t. configDir
+    using namespace boost::filesystem;
+    try {
+      return canonical(path{nodePath}, configDir).string();
+    } catch(boost::filesystem::filesystem_error& e) {
+      // will fail if file does not exist; use parent in that case
+      std::cerr << e.what() << std::endl;
+      auto parentPath = path{nodePath}.parent_path();
+      return (canonical(parentPath, configDir) / path{nodePath}.filename())
+          .string();
+    }
+  };
+
+  cli::ProcessPaths(config_, transformFunc, PATHS);
+}
+
+std::vector<std::string> ConfigParser::loadConfigPaths(
+    const boost::program_options::variables_map& vm_) {
+  std::vector<std::string> configPaths;
+
+  const auto& InterpolateEnvVarsIfRequested
+      = [&](std::string str) -> std::string {
+    if(vm_["interpolate-env-vars"].as<bool>())
+      str = cli::InterpolateEnvVars(str);
+    return str;
+  };
+
+  if(vm_.count("config")) {
+    configPaths = vm_["config"].as<std::vector<std::string>>();
+    config_ = YAML::Node();
+    for(auto& configPath : configPaths) {
+      // (note: this updates the configPaths array)
+      configPath = InterpolateEnvVarsIfRequested(configPath);
+      // later file overrides
+      for(const auto& it : YAML::Load(InputFileStream(configPath)))
+        config_[it.first.as<std::string>()] = it.second;
+    }
+  } else if(mode_ == ConfigMode::training) {
+    auto configYml = vm_["model"].as<std::string>() + ".yml";
+    auto configPath = InterpolateEnvVarsIfRequested(configYml);
+    bool reloadConfig
+        = boost::filesystem::exists(configPath) && !vm_["no-reload"].as<bool>();
+
+    if(reloadConfig) {
+      config_ = YAML::Load(InputFileStream(configPath));
+    }
+    configPaths = {configPath};
+  }
+
+  return configPaths;
 }
 
 std::vector<DeviceId> ConfigParser::getDevices() {

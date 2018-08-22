@@ -59,5 +59,12 @@ private:
 
   void validateOptions() const;
   void validateDevices() const;
+
+  // change relative paths to absolute paths relative to the config file's
+  // directory
+  void makeAbsolutePaths(const std::vector<std::string>&);
+
+  std::vector<std::string> loadConfigPaths(
+      const boost::program_options::variables_map&);
 };
 }  // namespace marian
