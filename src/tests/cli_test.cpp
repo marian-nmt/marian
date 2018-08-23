@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
   //w.add<color>("enum", "-e,--enum", "help message for enum");
 
   try {
-    w.parse(argc, argv);
+    w.app()->parse(argc, argv);
   } catch(const CLI::ParseError& e) {
     return w.app()->exit(e);
   }

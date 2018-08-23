@@ -20,7 +20,7 @@ S &operator<<(S &s, const std::vector<T> &v) {
 }
 
 namespace validators {
-const auto& file_exists = CLI::ExistingFile;
+const CLI::detail::ExistingFileValidator file_exists;
 const CLI::detail::ExistingDirectoryValidator dir_exists;
 const CLI::detail::ExistingPathValidator path_exists;
 
@@ -36,16 +36,19 @@ private:
   // Stores option objects
   std::map<std::string, std::shared_ptr<CLI::Option>> opts_;
   // Command-line argument parser
-  CLI::App app_;
+  std::shared_ptr<CLI::App> app_;
   // Stores options as YAML object
   YAML::Node config_;
 
   // Name for the current option group
   std::string currentGroup_{""};
 
+  // Print failure message on error
+  static std::string failureMessage(const CLI::App *app, const CLI::Error &e);
 
 public:
-  CLIWrapper() {}
+  CLIWrapper();
+
   virtual ~CLIWrapper() {}
 
   template <
@@ -67,7 +70,7 @@ public:
       return ret;
     };
 
-    std::shared_ptr<CLI::Option> opt(app_.add_option(args, fun, help, true));
+    std::shared_ptr<CLI::Option> opt(app_->add_option(args, fun, help, true));
     opt->type_name(CLI::detail::type_name<T>());
     if(!currentGroup_.empty())
       opt->group(currentGroup_);
@@ -93,7 +96,7 @@ public:
       return true;
     };
 
-    std::shared_ptr<CLI::Option> opt(app_.add_option(args, fun, help, true));
+    std::shared_ptr<CLI::Option> opt(app_->add_option(args, fun, help, true));
     opt->type_size(0);
     if(!currentGroup_.empty())
       opt->group(currentGroup_);
@@ -124,7 +127,7 @@ public:
       return (!vec.empty()) && ret;
     };
 
-    std::shared_ptr<CLI::Option> opt(app_.add_option(args, fun, help));
+    std::shared_ptr<CLI::Option> opt(app_->add_option(args, fun, help));
     opt->type_name(CLI::detail::type_name<T>())->type_size(-1);
     if(!currentGroup_.empty())
       opt->group(currentGroup_);
@@ -132,31 +135,25 @@ public:
     return opts_[key];
   }
 
-
   template <typename T>
   std::shared_ptr<CLI::Option> getOption(const std::string &key) {
-    std::cerr << "CLI::getOption(" << key << ") .count=" << opts_[key]->count()
-              << std::endl;
     return opts_[key];
   }
 
+  bool has(const std::string &key) const;
+
   template <typename T>
   T get(const std::string &key) {
-    std::cerr << "CLI::get(" << key << ") =" << vars_[key]->as<T>()
-              << " .count=" << opts_[key]->count()
-              << " .bool=" << (bool)(*opts_[key])
-              << " .empty=" << opts_[key]->empty() << std::endl;
     return vars_[key]->as<T>();
   }
 
   void startGroup(const std::string &name) { currentGroup_ = name; }
   void endGroup() { currentGroup_ = ""; }
 
-  bool parse(int argv, char **argc) { app_.parse(argv, argc); }
-
-  CLI::App *app() { return &app_; }
+  std::shared_ptr<CLI::App> app() { return app_; }
 
   YAML::Node getConfig() { return config_; }
+
 };
 
 }  // namespace cli
