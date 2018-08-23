@@ -38,16 +38,16 @@ public:
         bestn << " ||| " << getAlignment(hypo);
 
       bestn << " |||";
-      if(hypo->GetCostBreakdown().empty()) {
-        bestn << " F0=" << hypo->GetCost();
+      if(hypo->GetScoreBreakdown().empty()) {
+        bestn << " F0=" << hypo->GetPathScore();
       } else {
-        for(size_t j = 0; j < hypo->GetCostBreakdown().size(); ++j) {
-          bestn << " F" << j << "= " << hypo->GetCostBreakdown()[j];
+        for(size_t j = 0; j < hypo->GetScoreBreakdown().size(); ++j) {
+          bestn << " F" << j << "= " << hypo->GetScoreBreakdown()[j];
         }
       }
 
-      float realCost = std::get<2>(result);
-      bestn << " ||| " << realCost;
+      float realScore = std::get<2>(result);
+      bestn << " ||| " << realScore;
 
       if(i < nbl.size() - 1)
         bestn << std::endl;

@@ -10,11 +10,11 @@ namespace marian {
 class History {
 private:
   struct HypothesisCoord {
-    bool operator<(const HypothesisCoord& hc) const { return cost < hc.cost; }
+    bool operator<(const HypothesisCoord& hc) const { return pathScore < hc.pathScore; }
 
     size_t i;
     size_t j;
-    float cost;
+    float pathScore;
   };
 
 public:
@@ -27,10 +27,10 @@ public:
     if(beam.back()->GetPrevHyp() != nullptr) {
       for(size_t j = 0; j < beam.size(); ++j)
         if(beam[j]->GetWord() == trgEosId || last) {
-          float cost = (beam[j]->GetCost() - WordPenalty(history_.size()))
+          float pathScore = (beam[j]->GetPathScore() - WordPenalty(history_.size()))
                        / LengthPenalty(history_.size());
-          topHyps_.push({history_.size(), j, cost});
-          // std::cerr << "Add " << history_.size() << " " << j << " " << cost
+          topHyps_.push({history_.size(), j, pathScore});
+          // std::cerr << "Add " << history_.size() << " " << j << " " << pathScore
           // << std::endl;
         }
     }
@@ -48,7 +48,7 @@ public:
 
       size_t start = bestHypCoord.i;
       size_t j = bestHypCoord.j;
-      // float c = bestHypCoord.cost;
+      // float c = bestHypCoord.pathScore;
       // std::cerr << "h: " << start << " " << j << " " << c << std::endl;
 
       Words targetWords;
@@ -62,7 +62,7 @@ public:
       std::reverse(targetWords.begin(), targetWords.end());
       nbest.emplace_back(targetWords,
                          history_[bestHypCoord.i][bestHypCoord.j],
-                         bestHypCoord.cost);
+                         bestHypCoord.pathScore);
     }
     return nbest;
   }

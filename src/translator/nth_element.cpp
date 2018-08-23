@@ -55,7 +55,7 @@ void NthElementCPU::getNBestList(float* scores,
 
 void NthElementCPU::getNBestList(const std::vector<size_t>& beamSizes,
                                  Tensor scores,
-                                 std::vector<float>& outCosts,
+                                 std::vector<float>& outPathScores,
                                  std::vector<unsigned>& outKeys,
                                  const bool isFirst) {
   std::vector<int> cumulativeBeamSizes(beamSizes.size() + 1, 0);
@@ -69,7 +69,7 @@ void NthElementCPU::getNBestList(const std::vector<size_t>& beamSizes,
   }
 
   getNBestList(scores->data(), batchFirstElementIdxs, cumulativeBeamSizes);
-  GetPairs(cumulativeBeamSizes.back(), outKeys, outCosts);
+  GetPairs(cumulativeBeamSizes.back(), outKeys, outPathScores);
 }
 
 void NthElementCPU::GetPairs(size_t number,
