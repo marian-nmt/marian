@@ -82,18 +82,18 @@ public:
 
   void push_back(Input input) { inputs_.push_back(input); }
 
-  virtual std::vector<Ptr<Batch>> split(size_t n) { ABORT("Not implemented"); }
+  virtual std::vector<Ptr<Batch>> split(size_t n) override { ABORT("Not implemented"); }
 
   Data& features() { return inputs_[0].data(); }
 
   Data& labels() { return inputs_.back().data(); }
 
-  size_t size() const { return inputs_.front().shape()[0]; }
+  size_t size() const override { return inputs_.front().shape()[0]; }
 
-  void setGuidedAlignment(const std::vector<float>&) {
+  void setGuidedAlignment(const std::vector<float>&) override {
     ABORT("Guided alignment in DataBatch is not implemented");
   }
-  void setDataWeights(const std::vector<float>&) {
+  void setDataWeights(const std::vector<float>&) override {
     ABORT("Data weighting in DataBatch is not implemented");
   }
 };
@@ -108,13 +108,13 @@ public:
 
   virtual void loadData() = 0;
 
-  iterator begin() { return ExampleIterator(examples_.begin()); }
+  iterator begin() override { return ExampleIterator(examples_.begin()); }
 
-  iterator end() { return ExampleIterator(examples_.end()); }
+  iterator end() override { return ExampleIterator(examples_.end()); }
 
-  void shuffle() { std::shuffle(examples_.begin(), examples_.end(), eng_); }
+  void shuffle() override { std::shuffle(examples_.begin(), examples_.end(), eng_); }
 
-  batch_ptr toBatch(const Examples& batchVector) {
+  batch_ptr toBatch(const Examples& batchVector) override {
     int batchSize = batchVector.size();
 
     std::vector<int> maxDims;

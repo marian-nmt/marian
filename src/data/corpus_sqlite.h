@@ -52,21 +52,21 @@ public:
                std::vector<Ptr<Vocab>> vocabs,
                Ptr<Config> options);
 
-  sample next();
+  sample next() override;
 
-  void shuffle();
+  void shuffle() override;
 
-  void reset();
+  void reset() override;
 
-  void restore(Ptr<TrainingState>);
+  void restore(Ptr<TrainingState>) override;
 
-  iterator begin() { return iterator(this); }
+  iterator begin() override { return iterator(this); }
 
-  iterator end() { return iterator(); }
+  iterator end() override { return iterator(); }
 
-  std::vector<Ptr<Vocab>>& getVocabs() { return vocabs_; }
+  std::vector<Ptr<Vocab>>& getVocabs() override { return vocabs_; }
 
-  batch_ptr toBatch(const std::vector<sample>& batchVector) {
+  batch_ptr toBatch(const std::vector<sample>& batchVector) override {
     size_t batchSize = batchVector.size();
 
     std::vector<size_t> sentenceIds;

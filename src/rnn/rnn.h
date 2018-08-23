@@ -115,23 +115,23 @@ public:
   friend RNN;
 
   // @TODO: benchmark whether this concatenation is a good idea
-  virtual Expr transduce(Expr input, Expr mask = nullptr) {
+  virtual Expr transduce(Expr input, Expr mask = nullptr) override {
     return apply(input, mask).outputs();
   }
 
-  virtual Expr transduce(Expr input, States states, Expr mask = nullptr) {
+  virtual Expr transduce(Expr input, States states, Expr mask = nullptr) override {
     return apply(input, states, mask).outputs();
   }
 
-  virtual Expr transduce(Expr input, State state, Expr mask = nullptr) {
+  virtual Expr transduce(Expr input, State state, Expr mask = nullptr) override {
     return apply(input, States({state}), mask).outputs();
   }
 
-  States lastCellStates() { return last_; }
+  States lastCellStates() override { return last_; }
 
-  void push_back(Ptr<Cell> cell) { cell_ = cell; }
+  void push_back(Ptr<Cell> cell) override { cell_ = cell; }
 
-  virtual Ptr<Cell> at(int i) {
+  virtual Ptr<Cell> at(int i) override {
     ABORT_IF(i > 0, "SingleRNN only has one cell");
     return cell_;
   }
@@ -149,14 +149,14 @@ public:
         skip_(options->get("skip", false)),
         skipFirst_(options->get("skipFirst", false)) {}
 
-  void push_back(Ptr<Cell> cell) {
+  void push_back(Ptr<Cell> cell) override {
     auto rnn
         = Ptr<SingleLayerRNN>(new SingleLayerRNN(graph_, cell->getOptions()));
     rnn->push_back(cell);
     rnns_.push_back(rnn);
   }
 
-  Expr transduce(Expr input, Expr mask = nullptr) {
+  Expr transduce(Expr input, Expr mask = nullptr) override {
     ABORT_IF(rnns_.empty(), "0 layers in RNN");
 
     Expr output;
@@ -183,7 +183,7 @@ public:
     return output;
   }
 
-  Expr transduce(Expr input, States states, Expr mask = nullptr) {
+  Expr transduce(Expr input, States states, Expr mask = nullptr) override {
     ABORT_IF(rnns_.empty(), "0 layers in RNN");
 
     Expr output;
@@ -212,7 +212,7 @@ public:
     return output;
   }
 
-  Expr transduce(Expr input, State state, Expr mask = nullptr) {
+  Expr transduce(Expr input, State state, Expr mask = nullptr) override {
     ABORT_IF(rnns_.empty(), "0 layers in RNN");
 
     Expr output;
@@ -239,14 +239,14 @@ public:
     return output;
   }
 
-  States lastCellStates() {
+  States lastCellStates() override {
     States temp;
     for(auto rnn : rnns_)
       temp.push_back(rnn->lastCellStates().back());
     return temp;
   }
 
-  virtual Ptr<Cell> at(int i) { return rnns_[i]->at(0); }
+  virtual Ptr<Cell> at(int i) override { return rnns_[i]->at(0); }
 };
 }  // namespace rnn
 }  // namespace marian

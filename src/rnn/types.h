@@ -166,7 +166,7 @@ public:
   virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) = 0;
   virtual State applyState(std::vector<Expr>, State, Expr = nullptr) = 0;
 
-  virtual void clear() {}
+  virtual void clear() override {}
 };
 
 class MultiCellInput : public CellInput {
@@ -180,7 +180,7 @@ public:
 
   void push_back(Ptr<CellInput> input) { inputs_.push_back(input); }
 
-  virtual Expr apply(State state) {
+  virtual Expr apply(State state) override {
     std::vector<Expr> outputs;
     for(auto input : inputs_)
       outputs.push_back(input->apply(state));
@@ -191,14 +191,14 @@ public:
       return outputs[0];
   }
 
-  virtual int dimOutput() {
+  virtual int dimOutput() override {
     int sum = 0;
     for(auto input : inputs_)
       sum += input->dimOutput();
     return sum;
   }
 
-  virtual void clear() {
+  virtual void clear() override {
     for(auto i : inputs_)
       i->clear();
   }
@@ -219,14 +219,14 @@ public:
 
   void push_back(Ptr<Stackable> stackable) { stackables_.push_back(stackable); }
 
-  virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+  virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) override {
     // lastInputs_ = inputs;
     return stackables_[0]->as<Cell>()->applyInput(inputs);
   }
 
   virtual State applyState(std::vector<Expr> mappedInputs,
                            State state,
-                           Expr mask = nullptr) {
+                           Expr mask = nullptr) override {
     State hidden
         = stackables_[0]->as<Cell>()->applyState(mappedInputs, state, mask);
     ;
@@ -250,19 +250,19 @@ public:
 
   Ptr<Stackable> at(int i) { return stackables_[i]; }
 
-  virtual void clear() {
+  virtual void clear() override {
     for(auto s : stackables_)
       s->clear();
   }
 
-  virtual std::vector<Expr> getLazyInputs(Ptr<rnn::RNN> parent) {
+  virtual std::vector<Expr> getLazyInputs(Ptr<rnn::RNN> parent) override {
     ABORT_IF(!stackables_[0]->is<Cell>(),
              "First stackable should be of type Cell");
     return stackables_[0]->as<Cell>()->getLazyInputs(parent);
   }
 
   virtual void setLazyInputs(
-      std::vector<std::function<Expr(Ptr<rnn::RNN>)>> lazy) {
+      std::vector<std::function<Expr(Ptr<rnn::RNN>)>> lazy) override {
     ABORT_IF(!stackables_[0]->is<Cell>(),
              "First stackable should be of type Cell");
     stackables_[0]->as<Cell>()->setLazyInputs(lazy);

@@ -16,7 +16,7 @@ namespace marian {
 
 class AsyncGraphGroup : public GraphGroup, public ExponentialSmoothing {
 public:
-  virtual void setScheduler(Ptr<Scheduler> scheduler);
+  virtual void setScheduler(Ptr<Scheduler> scheduler) override;
 
 protected:
   bool first_{true};
@@ -60,20 +60,20 @@ protected:
 public:
   AsyncGraphGroup(Ptr<Config> config);
 
-  void update(Ptr<data::Batch> batch) {
+  void update(Ptr<data::Batch> batch) override {
     ABORT_IF(finalized_, "Training has already finished.");
     execute(batch);
   }
 
-  void load();
-  void save(bool final = false);
+  void load() override;
+  void save(bool final = false) override;
   void save(Ptr<ExpressionGraph>, bool final = false);
 
   Ptr<data::BatchStats> collectStats() {
     return GraphGroup::collectStats(graphs_[0], builders_[0]);
   }
 
-  virtual void finalize();
+  virtual void finalize() override;
 };
 
 }  // namespace marian

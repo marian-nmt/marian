@@ -248,13 +248,13 @@ public:
   /**
    * @brief The number of sentences in the batch.
    */
-  size_t size() const { return subBatches_[0]->batchSize(); }
+  size_t size() const override { return subBatches_[0]->batchSize(); }
 
   /**
    * @brief The total number of words for the longest sentence in the batch plus
    * one. Pass which=0 for source and -1 for target.
    */
-  size_t words(int which = 0) const {
+  size_t words(int which = 0) const override {
     return subBatches_[which >= 0 ? which
                                   : which + (ptrdiff_t)subBatches_.size()]
         ->batchWords();
@@ -263,22 +263,22 @@ public:
   /**
    * @brief The width of the source mini-batch. Num words + padded?
    */
-  size_t width() const { return subBatches_[0]->batchWidth(); }
+  size_t width() const override { return subBatches_[0]->batchWidth(); }
 
   /**
    * @brief The number of sentences in the batch, target words.
    */
-  size_t sizeTrg() const { return subBatches_.back()->batchSize(); }
+  size_t sizeTrg() const override { return subBatches_.back()->batchSize(); }
 
   /**
    * @brief The number of words for the longest sentence in the batch plus one.
    */
-  size_t wordsTrg() const { return subBatches_.back()->batchWords(); };
+  size_t wordsTrg() const override { return subBatches_.back()->batchWords(); };
 
   /**
    * @brief The width of the target mini-batch. Num words + padded?
    */
-  size_t widthTrg() const { return subBatches_.back()->batchWidth(); };
+  size_t widthTrg() const override { return subBatches_.back()->batchWidth(); };
 
   /**
    * @brief The number of source and targets.
@@ -345,7 +345,7 @@ public:
    *
    * @see marian::data::SubBatch::split(size_t n)
    */
-  std::vector<Ptr<Batch>> split(size_t n) {
+  std::vector<Ptr<Batch>> split(size_t n) override {
     ABORT_IF(size() == 0, "Encoutered batch size of 0");
 
     std::vector<std::vector<Ptr<SubBatch>>> subs;
@@ -409,19 +409,19 @@ public:
   }
 
   std::vector<float>& getGuidedAlignment() { return guidedAlignment_; }
-  void setGuidedAlignment(const std::vector<float>& aln) {
+  void setGuidedAlignment(const std::vector<float>& aln) override {
     guidedAlignment_ = aln;
   }
 
   std::vector<float>& getDataWeights() { return dataWeights_; }
-  void setDataWeights(const std::vector<float>& weights) {
+  void setDataWeights(const std::vector<float>& weights) override {
     dataWeights_ = weights;
   }
 
   /**
    * @brief Prints the batch in a readable form on stderr for debugging.
    */
-  void debug() {
+  void debug() override {
     std::cerr << "batches: " << sets() << std::endl;
 
     if(!sentenceIds_.empty()) {

@@ -30,7 +30,7 @@ public:
     loadData();
   }
 
-  void loadData() {
+  void loadData() override {
     ABORT_IF(paths_.size() != 2, "Paths to MNIST data files are not specified");
 
     auto features = ReadImages(paths_[0]);
@@ -43,7 +43,7 @@ public:
     }
   }
 
-  Example next() {}
+  Example next() override {}
 
 private:
   typedef unsigned char uchar;

@@ -24,7 +24,7 @@ public:
   Expr apply(Ptr<ModelBase> model,
              Ptr<ExpressionGraph> graph,
              Ptr<data::Batch> batch,
-             bool clearGraph = true) {
+             bool clearGraph = true) override {
     auto top = model->build(graph, batch, clearGraph);
 
     auto vLabels = std::static_pointer_cast<data::DataBatch>(batch)->labels();
@@ -43,7 +43,7 @@ public:
   Expr apply(Ptr<ModelBase> model,
              Ptr<ExpressionGraph> graph,
              Ptr<data::Batch> batch,
-             bool clearGraph = true) {
+             bool clearGraph = true) override {
     auto top = model->build(graph, batch, clearGraph);
     return logsoftmax(top);
   }
@@ -59,15 +59,15 @@ public:
 
   virtual Expr build(Ptr<ExpressionGraph> graph,
                      Ptr<data::Batch> batch,
-                     bool clean = false) {
+                     bool clean = false) override {
     return construct(graph, batch, inference_);
   }
 
-  void load(Ptr<ExpressionGraph> graph, const std::string& name, bool) {
+  void load(Ptr<ExpressionGraph> graph, const std::string& name, bool) override {
     LOG(critical, "Loading MNIST model is not supported");
   }
 
-  void save(Ptr<ExpressionGraph> graph, const std::string& name, bool) {
+  void save(Ptr<ExpressionGraph> graph, const std::string& name, bool) override {
     LOG(critical, "Saving MNIST model is not supported");
   }
 
@@ -81,7 +81,7 @@ public:
     return nullptr;
   }
 
-  virtual void clear(Ptr<ExpressionGraph> graph) { graph->clear(); };
+  virtual void clear(Ptr<ExpressionGraph> graph) override { graph->clear(); };
 
 protected:
   Ptr<Options> options_;
