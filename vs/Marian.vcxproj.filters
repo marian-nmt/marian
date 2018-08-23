@@ -118,9 +118,6 @@
     <ClCompile Include="..\src\training\validator.cpp">
       <Filter>training</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\3rd_party\yaml-cpp\binary.cpp">
-      <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\3rd_party\yaml-cpp\convert.cpp">
       <Filter>3rd_party\yaml-cpp</Filter>
     </ClCompile>
@@ -217,13 +214,40 @@
     <ClCompile Include="..\src\models\transformer.h">
       <Filter>models</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\command\marian-main.cpp">
+    <ClCompile Include="..\src\common\io.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\binary.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\command\marian_conv.cpp">
       <Filter>command</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\command\marian_decoder.cpp">
-      <Filter>command</Filter>
+    <ClCompile Include="..\src\data\alignment.cpp">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\layers\loss.cpp">
+      <Filter>layers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\layers\weight.cpp">
+      <Filter>layers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\communicator.cpp">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\translator\output_printer.cpp">
+      <Filter>translator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\yaml-cpp\binary_renamed.cpp">
+      <Filter>3rd_party\yaml-cpp</Filter>
     </ClCompile>
     <ClCompile Include="..\src\command\marian.cpp">
+      <Filter>command</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\graph_group_multinode_sync.cpp">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\command\marian_main.cpp">
       <Filter>command</Filter>
     </ClCompile>
   </ItemGroup>
@@ -979,6 +1003,33 @@
     <ClInclude Include="..\src\command\marian_scorer.cpp">
       <Filter>command</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\command\marian_decoder.cpp">
+      <Filter>command</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\io.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\io_item.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\binary.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\layers\loss.h">
+      <Filter>layers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\layers\weight.h">
+      <Filter>layers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\training\communicator.h">
+      <Filter>training</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\translator\output_printer.h">
+      <Filter>translator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\training\graph_group_multinode_sync.h">
+      <Filter>training</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\command\marian_vocab.cpp">
       <Filter>command</Filter>
     </ClInclude>
@@ -1098,5 +1149,8 @@
     <Filter Include="command">
       <UniqueIdentifier>{c6b3323a-0df3-4129-9a66-e93cea668604}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".editorConfig" />
   </ItemGroup>
 </Project>

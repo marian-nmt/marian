@@ -223,7 +223,7 @@ void CorpusBase::addAlignmentsToBatch(Ptr<CorpusBatch> batch,
 
   for(int b = 0; b < dimBatch; ++b) {
     for(auto p : batchVector[b].getAlignment()) {
-      int sid, tid;
+      size_t sid, tid;
       std::tie(sid, tid) = p;
 
       size_t idx = b + sid * dimBatch + tid * srcWords * dimBatch;

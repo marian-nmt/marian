@@ -5,10 +5,27 @@
 namespace marian {
 namespace functional {
 
+// approximate any unary float function within range with
+// piecewise linear functions in equal steps. 
+//
+// Example:
+// static Approx<10, 0, 100> approxSigmoid(stableSigmoid);
+// float y = approxSigmoid(x);
+//
+// Creates a functor for range [-10,10] with piecewise linear
+// approximations of a sigmoid, 100 pieces, step 0.2.
+// This is quite fast on the CPU. 
+//
+// approxSigmoid.grad(x) computes the corresponding gradient. 
+// 
+// When used as a local variable, use static keyword to create 
+// only once. 
+
 template <int radius = 5, int offset = 0, int pieces = 10>
 struct Approx {
   float a[pieces + 2];
   float b[pieces + 2];
+
 
   template <typename Function>
   Approx(const Function& function) {
