@@ -535,7 +535,7 @@ public:
     return New<EncoderState>(context, batchMask, batch);
   }
 
-  void clear() {}
+  void clear() override {}
 };
 
 class TransformerState : public DecoderState {
@@ -776,11 +776,11 @@ public:
   }
 
   // helper function for guided alignment
-  virtual const std::vector<Expr> getAlignments(int i = 0) {
+  virtual const std::vector<Expr> getAlignments(int i = 0) override {
     return {};
   }
 
-  void clear() {
+  void clear() override {
     output_ = nullptr;
     cache_.clear();
   }

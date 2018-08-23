@@ -150,7 +150,7 @@ public:
   EncoderS2S(Ptr<Options> options) : EncoderBase(options) {}
 
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
-                                  Ptr<data::CorpusBatch> batch) {
+                                  Ptr<data::CorpusBatch> batch) override {
     auto embeddings = buildSourceEmbeddings(graph);
 
     using namespace keywords;
@@ -172,7 +172,7 @@ public:
     return New<EncoderState>(context, batchMask, batch);
   }
 
-  void clear() {}
+  void clear() override {}
 };
 
 class DecoderS2S : public DecoderBase {
@@ -247,7 +247,7 @@ public:
   virtual Ptr<DecoderState> startState(
       Ptr<ExpressionGraph> graph,
       Ptr<data::CorpusBatch> batch,
-      std::vector<Ptr<EncoderState>>& encStates) {
+      std::vector<Ptr<EncoderState>>& encStates) override {
     using namespace keywords;
 
     std::vector<Expr> meanContexts;
@@ -285,7 +285,7 @@ public:
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
-                                 Ptr<DecoderState> state) {
+                                 Ptr<DecoderState> state) override {
     using namespace keywords;
 
     auto embeddings = state->getTargetEmbeddings();
@@ -375,13 +375,13 @@ public:
   }
 
   // helper function for guided alignment
-  virtual const std::vector<Expr> getAlignments(int i = 0) {
+  virtual const std::vector<Expr> getAlignments(int i = 0) override {
     auto att
         = rnn_->at(0)->as<rnn::StackedCell>()->at(i + 1)->as<rnn::Attention>();
     return att->getAlignments();
   }
 
-  void clear() {
+  void clear() override {
     rnn_ = nullptr;
     output_ = nullptr;
   }

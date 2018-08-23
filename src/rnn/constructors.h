@@ -105,7 +105,7 @@ protected:
 public:
   StackedCellFactory(Ptr<ExpressionGraph> graph) : CellFactory(graph) {}
 
-  Ptr<Cell> construct() {
+  Ptr<Cell> construct() override {
     auto stacked = New<StackedCell>(graph_, options_);
 
     int lastDimInput = options_->get<int>("dimInput");

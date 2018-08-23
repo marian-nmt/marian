@@ -44,7 +44,7 @@ public:
                           : std::numeric_limits<float>::lowest();
   }
 
-  virtual void actAfterLoaded(TrainingState& state) {
+  virtual void actAfterLoaded(TrainingState& state) override {
     if(state.validators[type()]) {
       lastBest_ = state.validators[type()]["last-best"].as<float>();
       stalled_ = state.validators[type()]["stalled"].as<size_t>();
@@ -60,7 +60,7 @@ public:
             bool lowerIsBetter = true)
       : ValidatorBase(lowerIsBetter), vocabs_(vocabs), options_(options) {}
 
-  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) {
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     using namespace data;
 
     for(auto graph : graphs)
@@ -130,12 +130,12 @@ public:
     builder_ = models::from_options(opts, models::usage::scoring);
   }
 
-  std::string type() { return options_->get<std::string>("cost-type"); }
+  std::string type() override { return options_->get<std::string>("cost-type"); }
 
 protected:
   virtual float validateBG(
       const std::vector<Ptr<ExpressionGraph>>& graphs,
-      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
+      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) override {
     auto ctype = options_->get<std::string>("cost-type");
 
     float cost = 0;
@@ -202,7 +202,7 @@ public:
              "valid-script metric but no script given");
   }
 
-  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) {
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     using namespace data;
     auto model = options_->get<std::string>("model");
     builder_->save(graphs[0], model + ".dev.npz", true);
@@ -215,12 +215,12 @@ public:
     return val;
   };
 
-  std::string type() { return "valid-script"; }
+  std::string type() override { return "valid-script"; }
 
 protected:
   virtual float validateBG(
       const std::vector<Ptr<ExpressionGraph>>& graphs,
-      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
+      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) override {
     return 0;
   }
 };
@@ -240,7 +240,7 @@ public:
                 "No post-processing script given for validating translator");
   }
 
-  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) {
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     using namespace data;
 
     // Temporary options for translation
@@ -364,14 +364,14 @@ public:
     return val;
   };
 
-  std::string type() { return "translation"; }
+  std::string type() override { return "translation"; }
 
 protected:
   bool quiet_{false};
 
   virtual float validateBG(
       const std::vector<Ptr<ExpressionGraph>>& graphs,
-      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
+      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) override {
     return 0;
   }
 };
@@ -392,7 +392,7 @@ public:
                 "No post-processing script given for validating translator");
   }
 
-  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) {
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     using namespace data;
 
     // Temporary options for translation
@@ -491,7 +491,7 @@ public:
     return val;
   };
 
-  std::string type() { return "bleu"; }
+  std::string type() override { return "bleu"; }
 
 protected:
   bool quiet_{false};
@@ -563,7 +563,7 @@ protected:
 
   virtual float validateBG(
       const std::vector<Ptr<ExpressionGraph>>& graphs,
-      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) {
+      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) override {
     return 0;
   }
 };

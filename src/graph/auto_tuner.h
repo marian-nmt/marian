@@ -78,12 +78,12 @@ public:
 
   Return run(Args... args) { return algorithms_[choose()].algorithm(args...); }
 
-  void start(size_t hash) {
+  void start(size_t hash) override {
     if(!timer_ && done_.count(hash) == 0)
       timer_.reset(new boost::timer::cpu_timer());
   }
 
-  void stop(size_t hash, bool stop) {
+  void stop(size_t hash, bool stop) override {
     if(stop && done_.count(hash) == 0) {
       timer_->stop();
 

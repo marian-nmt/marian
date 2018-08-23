@@ -19,7 +19,7 @@ private:
 public:
   Train(Ptr<Config> options) : options_(options) {}
 
-  void run() {
+  void run() override {
     using namespace data;
 
     Ptr<CorpusBase> dataset;

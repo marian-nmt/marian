@@ -13,7 +13,7 @@ namespace marian {
  */
 class SingletonGraph : public GraphGroup, public ExponentialSmoothing {
 public:
-  virtual void setScheduler(Ptr<Scheduler> scheduler);
+  virtual void setScheduler(Ptr<Scheduler> scheduler) override;
 
 private:
   Ptr<models::ModelBase> builder_;
@@ -35,12 +35,12 @@ public:
     builder_ = models::from_config(options_, models::usage::training);
   }
 
-  void update(Ptr<data::Batch> batch) {
+  void update(Ptr<data::Batch> batch) override {
     ABORT_IF(finalized_, "Training has already finished.");
     execute(batch);
   }
 
-  void load() {
+  void load() override {
     if(!options_->get<bool>("no-reload")) {
       std::string name = options_->get<std::string>("model");
 
@@ -72,7 +72,7 @@ public:
     }
   }
 
-  void save(bool final = false) {
+  void save(bool final = false) override {
     auto saveGraph = graph_;
     if(mvAvg_) {
       // The model with averaged parameters will be saved into model.npz as
@@ -120,6 +120,6 @@ public:
     return GraphGroup::collectStats(graph_, builder_);
   }
 
-  virtual void finalize() { finalized_ = true; }
+  virtual void finalize() override { finalized_ = true; }
 };
 }  // namespace marian

@@ -47,19 +47,19 @@ public:
 
   void getNBestList(float* probs,
                     const std::vector<int>& batchFirstElementIdxs,
-                    const std::vector<int>& cummulatedBeamSizes);
+                    const std::vector<int>& cummulatedBeamSizes) override;
 
   void getNBestList(const std::vector<size_t>& beamSizes,
                     Tensor Probs,
                     std::vector<float>& outCosts,
                     std::vector<unsigned>& outKeys,
-                    const bool isFirst = false);
+                    const bool isFirst = false) override;
 
   void GetPairs(size_t number,
                 std::vector<unsigned>& outKeys,
-                std::vector<float>& outValues);
+                std::vector<float>& outValues) override;
 
-  void getValueByKey(std::vector<float>& out, float* d_in);
+  void getValueByKey(std::vector<float>& out, float* d_in) override;
 };
 
 class NthElementGPU : public NthElement {
@@ -71,19 +71,19 @@ public:
 
   void getNBestList(float* probs,
                     const std::vector<int>& batchFirstElementIdxs,
-                    const std::vector<int>& cummulatedBeamSizes);
+                    const std::vector<int>& cummulatedBeamSizes) override;
 
   void getNBestList(const std::vector<size_t>& beamSizes,
                     Tensor Probs,
                     std::vector<float>& outCosts,
                     std::vector<unsigned>& outKeys,
-                    const bool isFirst = false);
+                    const bool isFirst = false) override;
 
   void GetPairs(size_t number,
                 std::vector<unsigned>& outKeys,
-                std::vector<float>& outValues);
+                std::vector<float>& outValues) override;
 
-  void getValueByKey(std::vector<float>& out, float* d_in);
+  void getValueByKey(std::vector<float>& out, float* d_in) override;
 
 private:
   DeviceId deviceId_;

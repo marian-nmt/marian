@@ -11,7 +11,7 @@ namespace marian {
 
 class SyncGraphGroup : public GraphGroup, public ExponentialSmoothing {
 public:
-  virtual void setScheduler(Ptr<Scheduler> scheduler);
+  virtual void setScheduler(Ptr<Scheduler> scheduler) override;
 
 private:
   Ptr<Communicator> comm_;
@@ -38,13 +38,13 @@ private:
 public:
   SyncGraphGroup(Ptr<Config> config);
 
-  void update(Ptr<data::Batch> batch) {
+  void update(Ptr<data::Batch> batch) override {
     ABORT_IF(finalized_, "Training has already finished.");
     execute(batch);
   }
 
-  void load();
-  void save(bool final = false);
+  void load() override;
+  void save(bool final = false) override;
   void save(Ptr<ExpressionGraph> graph, bool final = false);
 
   Ptr<data::BatchStats> collectStats() {
@@ -53,6 +53,6 @@ public:
 
   size_t numBatches() { return devices_.size() * delay_; }
 
-  virtual void finalize() { finalized_ = true; }
+  virtual void finalize() override { finalized_ = true; }
 };
 }  // namespace marian

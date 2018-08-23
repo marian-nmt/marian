@@ -24,7 +24,7 @@ class Elementwise : public ClipperBase {
 public:
   Elementwise(float c = 10.0) : c_(c) {}
 
-  void clip(Tensor t);
+  void clip(Tensor t) override;
 
 private:
   float c_;
@@ -34,7 +34,7 @@ class Norm : public ClipperBase {
 public:
   Norm(float c = 1.0) : c_(c) {}
 
-  void clip(Tensor t);
+  void clip(Tensor t) override;
 
 private:
   float c_;

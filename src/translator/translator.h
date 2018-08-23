@@ -71,7 +71,7 @@ public:
     }
   }
 
-  void run() {
+  void run() override {
     data::BatchGenerator<data::Corpus> bg(corpus_, options_);
 
     auto devices = options_->getDevices();
@@ -144,7 +144,7 @@ public:
     init();
   }
 
-  void init() {
+  void init() override {
     // initialize vocabs
     auto vocabPaths = options_->get<std::vector<std::string>>("vocabs");
     std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
@@ -170,7 +170,7 @@ public:
     }
   }
 
-  std::vector<std::string> run(const std::vector<std::string>& inputs) {
+  std::vector<std::string> run(const std::vector<std::string>& inputs) override {
     auto corpus_ = New<data::TextInput>(inputs, srcVocabs_, options_);
     data::BatchGenerator<data::TextInput> bg(corpus_, options_);
 
