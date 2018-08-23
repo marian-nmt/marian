@@ -22,16 +22,16 @@ public:
     builder_ = models::from_options(temp, models::usage::scoring);
   }
 
-  virtual void keepBest(const std::vector<Ptr<ExpressionGraph>>& graphs) {
+  virtual void keepBest(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     LOG(warn, "Keeping best model for MNIST examples is not supported");
   }
 
-  std::string type() { return "accuracy"; }
+  std::string type() override { return "accuracy"; }
 
 protected:
   virtual float validateBG(
       const std::vector<Ptr<ExpressionGraph>>& graphs,
-      Ptr<data::BatchGenerator<data::MNISTData>> batchGenerator) {
+      Ptr<data::BatchGenerator<data::MNISTData>> batchGenerator) override {
     float correct = 0;
     size_t samples = 0;
 
