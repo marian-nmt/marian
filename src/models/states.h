@@ -29,7 +29,7 @@ public:
 class DecoderState {
 protected:
   rnn::States states_; // states of individual decoder layers
-  Expr probs_;
+  Expr logProbs_;
   std::vector<Ptr<EncoderState>> encStates_;
   Ptr<data::CorpusBatch> batch_;
 
@@ -42,24 +42,24 @@ protected:
 
 public:
   DecoderState(const rnn::States& states,
-               Expr probs,
+               Expr logProbs,
                const std::vector<Ptr<EncoderState>>& encStates,
                Ptr<data::CorpusBatch> batch)
-      : states_(states), probs_(probs), encStates_(encStates), batch_(batch) {}
+      : states_(states), logProbs_(logProbs), encStates_(encStates), batch_(batch) {}
 
   // @TODO: Do we need all these to be virtual?
   virtual const std::vector<Ptr<EncoderState>>& getEncoderStates() const {
     return encStates_;
   }
 
-  virtual Expr getProbs() const { return probs_; }
-  virtual void setProbs(Expr probs) { probs_ = probs; }
+  virtual Expr getLogProbs() const { return logProbs_; }
+  virtual void setLogProbs(Expr logProbs) { logProbs_ = logProbs; }
 
   // @TODO: should this be a constructor? Then derived classes can call this without the New<> in the loop
   virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
                                    int beamSize) const {
     auto selectedState = New<DecoderState>(
-        states_.select(selIdx, beamSize, /*isBatchMajor=*/false), probs_, encStates_, batch_);
+        states_.select(selIdx, beamSize, /*isBatchMajor=*/false), logProbs_, encStates_, batch_);
 
     // Set positon of new state based on the target token position of current
     // state

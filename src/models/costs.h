@@ -54,7 +54,7 @@ public:
       weights = weighter_->getWeights(graph, corpusBatch);
 
     Expr cost;
-    cost = loss_->getCost(state->getProbs(),
+    cost = loss_->getCost(state->getLogProbs(),
                           state->getTargetIndices(),
                           state->getTargetMask(),
                           weights);
@@ -114,7 +114,8 @@ public:
 class LogsoftmaxStep : public CostStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
-    state->setProbs(logsoftmax(state->getProbs()));
+    // decoder needs normalized probabilities (note: skipped if beam 1 and --skip-cost)
+    state->setLogProbs(logsoftmax(state->getLogProbs()));
     return state;
   }
 };

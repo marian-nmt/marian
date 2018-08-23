@@ -119,7 +119,7 @@ public:
     sparse::multiply(lf_, lookup, lexProbs_);
   }
 
-  Ptr<sparse::CSR> getProbs() { return lexProbs_; }
+  Ptr<sparse::CSR> getProbs() { return lexProbs_; } // @TODO: are these log probs? Then rename.
 
   Ptr<sparse::CSR> getLf() { return lf_; }
 };

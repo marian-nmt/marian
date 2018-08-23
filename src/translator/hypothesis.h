@@ -7,13 +7,13 @@ namespace marian {
 
 class Hypothesis {
 public:
-  Hypothesis() : prevHyp_(nullptr), prevIndex_(0), word_(0), cost_(0.0) {}
+  Hypothesis() : prevHyp_(nullptr), prevIndex_(0), word_(0), pathScore_(0.0) {}
 
   Hypothesis(const Ptr<Hypothesis> prevHyp,
              size_t word,
              size_t prevIndex,
-             float cost)
-      : prevHyp_(prevHyp), prevIndex_(prevIndex), word_(word), cost_(cost) {}
+             float pathScore)
+      : prevHyp_(prevHyp), prevIndex_(prevIndex), word_(word), pathScore_(pathScore) {}
 
   const Ptr<Hypothesis> GetPrevHyp() const { return prevHyp_; }
 
@@ -21,9 +21,9 @@ public:
 
   size_t GetPrevStateIndex() const { return prevIndex_; }
 
-  float GetCost() const { return cost_; }
+  float GetPathScore() const { return pathScore_; }
 
-  std::vector<float>& GetCostBreakdown() { return costBreakdown_; }
+  std::vector<float>& GetScoreBreakdown() { return scoreBreakdown_; }
   std::vector<float>& GetAlignment() { return alignment_; }
 
   void SetAlignment(const std::vector<float>& align) { alignment_ = align; };
@@ -32,9 +32,9 @@ private:
   const Ptr<Hypothesis> prevHyp_;
   const size_t prevIndex_;
   const size_t word_;
-  const float cost_;
+  const float pathScore_;
 
-  std::vector<float> costBreakdown_;
+  std::vector<float> scoreBreakdown_;
   std::vector<float> alignment_;
 };
 
