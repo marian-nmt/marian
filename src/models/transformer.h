@@ -541,15 +541,15 @@ public:
 class TransformerState : public DecoderState {
 public:
   TransformerState(const rnn::States& states,
-                   Expr probs,
+                   Expr logProbs,
                    const std::vector<Ptr<EncoderState>>& encStates,
                    Ptr<data::CorpusBatch> batch)
-      : DecoderState(states, probs, encStates, batch) {}
+      : DecoderState(states, logProbs, encStates, batch) {}
 
   virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
                                    int beamSize) const override {
     // Create hypothesis-selected state based on current state and hyp indices
-    auto selectedState = New<TransformerState>(states_.select(selIdx, beamSize, /*isBatchMajor=*/true), probs_, encStates_, batch_);
+    auto selectedState = New<TransformerState>(states_.select(selIdx, beamSize, /*isBatchMajor=*/true), logProbs_, encStates_, batch_);
 
     // Set the same target token position as the current state
     // @TODO: This is the same as in base function.

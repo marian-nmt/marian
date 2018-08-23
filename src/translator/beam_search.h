@@ -244,10 +244,9 @@ public:
             graph, states[i], hypIndices, embIndices, dimBatch, localBeamSize);
 
         if(scorers_[i]->getWeight() != 1.f)
-          totalCosts
-              = totalCosts + scorers_[i]->getWeight() * states[i]->getProbs();
+          totalCosts = totalCosts + scorers_[i]->getWeight() * states[i]->getLogProbs();
         else
-          totalCosts = totalCosts + states[i]->getProbs();
+          totalCosts = totalCosts + states[i]->getLogProbs();
         // BUGBUG: getProbs() -> getLogProbs(); totalCosts -> totalScores
         // (higher=better)
       }

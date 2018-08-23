@@ -185,7 +185,7 @@ Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
   auto state = stepAll(graph, batch, clearGraph);
 
   // returns raw logits
-  return state->getProbs();
+  return state->getLogProbs();
 }
 
 Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,

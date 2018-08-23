@@ -16,10 +16,10 @@ protected:
 
 public:
   DecoderStateHardAtt(const rnn::States& states,
-                      Expr probs,
+                      Expr logProbs,
                       const std::vector<Ptr<EncoderState>>& encStates,
                       Ptr<data::CorpusBatch> batch)
-      : DecoderState(states, probs, encStates, batch) {}
+      : DecoderState(states, logProbs, encStates, batch) {}
 
   virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
                                    int beamSize) const override {
@@ -28,7 +28,7 @@ public:
       selectedAttentionIndices.push_back(attentionIndices_[i]);
 
     auto selectedState = New<DecoderStateHardAtt>(states_.select(selIdx, beamSize, /*isBatchMajor=*/false),
-                                    probs_,
+                                    logProbs_,
                                     encStates_,
                                     batch_);
     selectedState->attentionIndices_ = selectedAttentionIndices;
