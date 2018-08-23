@@ -1,8 +1,7 @@
 #pragma once
 
-#include <boost/program_options.hpp>
-
 #include "3rd_party/yaml-cpp/yaml.h"
+#include "common/cli_wrapper.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
@@ -28,8 +27,7 @@ uint16_t guess_terminal_width(uint16_t max_width = 180);
 class ConfigParser {
 public:
   ConfigParser(int argc, char** argv, ConfigMode mode, bool validate = false)
-      : mode_(mode),
-        cmdline_options_("Allowed options", guess_terminal_width()) {
+      : mode_(mode) {
     parseOptions(argc, argv, validate);
   }
 
@@ -40,22 +38,22 @@ public:
 
 private:
   ConfigMode mode_;
-  boost::program_options::options_description cmdline_options_;
+  cli::CLIWrapper cli_;
   YAML::Node config_;
 
   bool has(const std::string& key) const;
 
   template <typename T>
   T get(const std::string& key) const {
-    return config_[key].as<T>();
+    return cli_.get<T>(key);
   }
 
-  void addOptionsCommon(boost::program_options::options_description&);
-  void addOptionsModel(boost::program_options::options_description&);
-  void addOptionsTraining(boost::program_options::options_description&);
-  void addOptionsRescore(boost::program_options::options_description&);
-  void addOptionsValid(boost::program_options::options_description&);
-  void addOptionsTranslate(boost::program_options::options_description&);
+  void addOptionsCommon(cli::CLIWrapper&);
+  void addOptionsModel(cli::CLIWrapper&);
+  void addOptionsTraining(cli::CLIWrapper&);
+  void addOptionsRescore(cli::CLIWrapper&);
+  void addOptionsValid(cli::CLIWrapper&);
+  void addOptionsTranslate(cli::CLIWrapper&);
 
   void validateOptions() const;
   void validateDevices() const;
@@ -64,7 +62,6 @@ private:
   // directory
   void makeAbsolutePaths(const std::vector<std::string>&);
 
-  std::vector<std::string> loadConfigPaths(
-      const boost::program_options::variables_map&);
+  std::vector<std::string> loadConfigPaths();
 };
 }  // namespace marian

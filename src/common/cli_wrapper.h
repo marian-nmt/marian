@@ -3,6 +3,10 @@
 #include "3rd_party/CLI/CLI.hpp"
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/some_type.h"
+#include "common/logging.h"
+
+// TODO: remove
+#include "common/cli_helper.h"
 
 #include <map>
 #include <string>
@@ -61,6 +65,7 @@ public:
                                    T val = T()) {
     std::cerr << "CLI::add(" << key << ") " << std::endl;
 
+    config_[key] = val;
     vars_.insert(std::make_pair(key, std::make_shared<some_type>(val)));
 
     CLI::callback_t fun = [this, key](CLI::results_t res) {
@@ -85,11 +90,10 @@ public:
                                    const std::string &args,
                                    const std::string &help,
                                    T val = T()) {
-    std::cerr << "CLI::add(" << key << ") " << std::endl;
+    std::cerr << "CLI::add(" << key << ") as bool" << std::endl;
 
-    // TODO: needed?
     config_[key] = false;
-    vars_.insert(std::make_pair(key, std::make_shared<some_type>(false)));
+    vars_.insert(std::make_pair(key, std::make_shared<some_type>(val)));
 
     CLI::callback_t fun = [this, key](CLI::results_t res) {
       config_[key] = !res.empty();
@@ -111,9 +115,10 @@ public:
                                    const std::string &args,
                                    const std::string &help,
                                    T val = T()) {
-    std::cerr << "CLI::add(" << key << ") " << std::endl;
+    std::cerr << "CLI::add(" << key << ") as vector" << std::endl;
 
     vars_.insert(std::make_pair(key, std::make_shared<some_type>(val)));
+    config_[key] = val;
 
     CLI::callback_t fun = [this, key](CLI::results_t res) {
       auto &vec = vars_[key]->as<T>();
@@ -143,8 +148,9 @@ public:
   bool has(const std::string &key) const;
 
   template <typename T>
-  T get(const std::string &key) {
-    return vars_[key]->as<T>();
+  T get(const std::string &key) const {
+    ABORT_IF(vars_.count(key) == 0, "An options with key '{}' does not exist", key);
+    return vars_.at(key)->as<T>();
   }
 
   void startGroup(const std::string &name) { currentGroup_ = name; }
@@ -152,8 +158,14 @@ public:
 
   std::shared_ptr<CLI::App> app() { return app_; }
 
-  YAML::Node getConfig() { return config_; }
+  YAML::Node getConfig() {
+    // TODO: remove debugs
+    YAML::Emitter emit;
+    OutputYaml(config_, emit);
+    std::cerr << emit.c_str() << std::endl;
 
+    return config_;
+  }
 };
 
 }  // namespace cli

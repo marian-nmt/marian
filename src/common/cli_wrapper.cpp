@@ -8,7 +8,7 @@ CLIWrapper::CLIWrapper() : app_(std::make_shared<CLI::App>()) {
 }
 
 bool CLIWrapper::has(const std::string &key) const {
-  return vars_.count(key) > 0;
+  return opts_.count(key) > 0 && !opts_.at(key)->empty();
 }
 
 std::string CLIWrapper::failureMessage(const CLI::App *app,
