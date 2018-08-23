@@ -59,7 +59,7 @@ public:
 
   virtual Expr getLogProbs() override { return state_->getLogProbs(); };
 
-  virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) {
+  virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) override {
     state_->blacklist(totalCosts, batch);
   }
 };
@@ -89,7 +89,7 @@ public:
         encdec_(std::static_pointer_cast<EncoderDecoderBase>(encdec)),
         ptr_{ptr} {}
 
-  virtual void init(Ptr<ExpressionGraph> graph) {
+  virtual void init(Ptr<ExpressionGraph> graph) override {
     graph->switchParams(getName());
     if(ptr_)
       encdec_->mmap(graph, ptr_);
@@ -97,13 +97,13 @@ public:
       encdec_->load(graph, fname_);
   }
 
-  virtual void clear(Ptr<ExpressionGraph> graph) {
+  virtual void clear(Ptr<ExpressionGraph> graph) override {
     graph->switchParams(getName());
     encdec_->clear(graph);
   }
 
   virtual Ptr<ScorerState> startState(Ptr<ExpressionGraph> graph,
-                                      Ptr<data::CorpusBatch> batch) {
+                                      Ptr<data::CorpusBatch> batch) override {
     graph->switchParams(getName());
     return New<ScorerWrapperState>(encdec_->startState(graph, batch));
   }
@@ -113,7 +113,7 @@ public:
                                 const std::vector<size_t>& hypIndices,
                                 const std::vector<size_t>& embIndices,
                                 int dimBatch,
-                                int beamSize) {
+                                int beamSize) override {
     graph->switchParams(getName());
     auto wrapperState = std::dynamic_pointer_cast<ScorerWrapperState>(state);
     auto newState = encdec_->step(graph, wrapperState->getState(), hypIndices, embIndices, dimBatch, beamSize);
@@ -121,15 +121,15 @@ public:
   }
 
   virtual void setShortlistGenerator(
-      Ptr<data::ShortlistGenerator> shortlistGenerator) {
+      Ptr<data::ShortlistGenerator> shortlistGenerator) override {
     encdec_->setShortlistGenerator(shortlistGenerator);
   };
 
-  virtual Ptr<data::Shortlist> getShortlist() {
+  virtual Ptr<data::Shortlist> getShortlist() override {
     return encdec_->getShortlist();
   };
 
-  virtual std::vector<float> getAlignment() {
+  virtual std::vector<float> getAlignment() override {
     return encdec_->getAlignment().front();
   }
 };

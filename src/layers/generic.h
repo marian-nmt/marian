@@ -47,7 +47,7 @@ public:
   Dense(Ptr<ExpressionGraph> graph, Ptr<Options> options)
       : Layer(graph, options) {}
 
-  Expr apply(const std::vector<Expr>& inputs) {
+  Expr apply(const std::vector<Expr>& inputs) override {
     ABORT_IF(inputs.empty(), "No inputs");
 
     auto name = opt<std::string>("prefix");
@@ -106,7 +106,7 @@ public:
     // clang-format on
   };
 
-  Expr apply(Expr input) { return apply(std::vector<Expr>({input})); }
+  Expr apply(Expr input) override { return apply(std::vector<Expr>({input})); }
 };
 
 class Output : public Layer {
@@ -128,7 +128,7 @@ public:
 
   void set_shortlist(Ptr<data::Shortlist> shortlist) { shortlist_ = shortlist; }
 
-  Expr apply(Expr input) {
+  Expr apply(Expr input) override {
     if(!W_) {
       auto name = options_->get<std::string>("prefix");
       auto dim = options_->get<int>("dim");
@@ -155,7 +155,7 @@ public:
     return affine(input, W_, b_, false, transposeW_);
   }
 
-  virtual Expr apply(const std::vector<Expr>& inputs) {
+  virtual Expr apply(const std::vector<Expr>& inputs) override {
     ABORT("Not implemented");
   };
 };

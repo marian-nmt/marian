@@ -63,7 +63,7 @@ public:
     return applyState(applyInput(inputs), states, mask);
   }
 
-  std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+  std::vector<Expr> applyInput(std::vector<Expr> inputs) override {
     Expr input;
     if(inputs.size() == 0)
       return {};
@@ -83,7 +83,7 @@ public:
     return {xW};
   }
 
-  State applyState(std::vector<Expr> xWs, State state, Expr mask = nullptr) {
+  State applyState(std::vector<Expr> xWs, State state, Expr mask = nullptr) override {
     Expr recState = state.output;
 
     auto stateDropped = recState;
@@ -154,7 +154,7 @@ public:
     return applyState(applyInput(inputs), states, mask);
   }
 
-  std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+  std::vector<Expr> applyInput(std::vector<Expr> inputs) override {
     Expr input;
     if(inputs.size() == 0)
       return {};
@@ -174,7 +174,7 @@ public:
     return {xW};
   }
 
-  State applyState(std::vector<Expr> xWs, State state, Expr mask = nullptr) {
+  State applyState(std::vector<Expr> xWs, State state, Expr mask = nullptr) override {
     Expr recState = state.output;
 
     auto stateDropped = recState;
@@ -275,7 +275,7 @@ public:
     return applyState(applyInput(inputs), state, mask);
   }
 
-  virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+  virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) override {
     Expr input;
     if(inputs.size() == 0)
       return {};
@@ -296,7 +296,7 @@ public:
 
   virtual State applyState(std::vector<Expr> xWs,
                            State state,
-                           Expr mask = nullptr) {
+                           Expr mask = nullptr) override {
     auto stateOrig = state.output;
     auto stateDropped = stateOrig;
     if(dropMaskS_)
@@ -451,7 +451,7 @@ public:
     return applyState(applyInput(inputs), state, mask);
   }
 
-  virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+  virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) override {
     Expr input;
     if(inputs.size() == 0)
       return {};
@@ -488,7 +488,7 @@ public:
 
   virtual State applyState(std::vector<Expr> xWs,
                            State state,
-                           Expr mask = nullptr) {
+                           Expr mask = nullptr) override {
     // make sure that we have transition layers
     assert(transition_ == xWs.empty());
 
@@ -603,7 +603,7 @@ public:
     return applyState(applyInput(inputs), state, mask);
   }
 
-  virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+  virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) override {
     Expr input;
     if(inputs.size() == 0)
       return {};
@@ -625,7 +625,7 @@ public:
 
   virtual State applyState(std::vector<Expr> xWs,
                            State state,
-                           Expr mask = nullptr) {
+                           Expr mask = nullptr) override {
     auto recState = state.output;
     auto cellState = state.cell;
 
@@ -691,7 +691,7 @@ public:
     }
   }
 
-  virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+  virtual std::vector<Expr> applyInput(std::vector<Expr> inputs) override {
     ABORT_IF(inputs.empty(), "Multiplicative LSTM expects input");
 
     Expr input;
@@ -711,7 +711,7 @@ public:
 
   virtual State applyState(std::vector<Expr> xWs,
                            State state,
-                           Expr mask = nullptr) {
+                           Expr mask = nullptr) override {
     auto xWm = xWs.back();
     xWs.pop_back();
 
@@ -774,7 +774,7 @@ public:
     return applyState(applyInput(inputs), state, mask);
   }
 
-  std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+  std::vector<Expr> applyInput(std::vector<Expr> inputs) override {
     ABORT_IF(inputs.empty(), "Slow LSTM expects input");
 
     Expr input;
@@ -791,7 +791,7 @@ public:
     return {xWf, xWi, xWo, xWc};
   }
 
-  State applyState(std::vector<Expr> xWs, State state, Expr mask = nullptr) {
+  State applyState(std::vector<Expr> xWs, State state, Expr mask = nullptr) override {
     auto recState = state.output;
     auto cellState = state.cell;
 
@@ -860,7 +860,7 @@ public:
     return applyState(applyInput(inputs), state, mask);
   }
 
-  std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+  std::vector<Expr> applyInput(std::vector<Expr> inputs) override {
     ABORT_IF(inputs.empty(), "Test LSTM expects input");
 
     Expr input;
@@ -874,7 +874,7 @@ public:
     return {xW};
   }
 
-  State applyState(std::vector<Expr> xWs, State state, Expr mask = nullptr) {
+  State applyState(std::vector<Expr> xWs, State state, Expr mask = nullptr) override {
     auto recState = state.output;
     auto cellState = state.cell;
 
@@ -945,7 +945,7 @@ public:
     return applyState(applyInput(inputs), state, mask);
   }
 
-  std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+  std::vector<Expr> applyInput(std::vector<Expr> inputs) override {
     ABORT_IF(inputs.empty(), "SRU expects input");
 
     Expr input;
@@ -970,7 +970,7 @@ public:
     return {x, f, r, input};
   }
 
-  State applyState(std::vector<Expr> xWs, State state, Expr mask = nullptr) {
+  State applyState(std::vector<Expr> xWs, State state, Expr mask = nullptr) override {
     auto recState = state.output;
     auto cellState = state.cell;
 
@@ -1035,7 +1035,7 @@ public:
     return applyState(applyInput(inputs), state, mask);
   }
 
-  std::vector<Expr> applyInput(std::vector<Expr> inputs) {
+  std::vector<Expr> applyInput(std::vector<Expr> inputs) override {
     ABORT_IF(inputs.empty(), "SSRU expects input");
 
     Expr input;
@@ -1058,7 +1058,7 @@ public:
     return {x, f};
   }
 
-  State applyState(std::vector<Expr> xWs, State state, Expr mask = nullptr) {
+  State applyState(std::vector<Expr> xWs, State state, Expr mask = nullptr) override {
     auto recState = state.output;
     auto cellState = state.cell;
 

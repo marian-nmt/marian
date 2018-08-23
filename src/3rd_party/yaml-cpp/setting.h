@@ -41,7 +41,7 @@ class SettingChange : public SettingChangeBase {
     m_oldSetting = *pSetting;
   }
 
-  virtual void pop() { m_pCurSetting->restore(m_oldSetting); }
+  virtual void pop() override { m_pCurSetting->restore(m_oldSetting); }
 
  private:
   Setting<T>* m_pCurSetting;

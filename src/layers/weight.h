@@ -26,7 +26,7 @@ protected:
 public:
   DataWeighting(std::string weightingType)
       : WeightingBase(), weightingType_(weightingType){};
-  Expr getWeights(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch);
+  Expr getWeights(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) override;
 };
 
 Ptr<WeightingBase> WeightingFactory(Ptr<Options> options);

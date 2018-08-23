@@ -23,11 +23,11 @@ class AsyncGraphGroupDrop : public AsyncGraphGroup {
   std::vector<std::vector<SparseTensor>> sparseGrads_, sparseShards_;
 
 protected:
-  void init(Ptr<data::Batch> batch);
-  void pushGradients(Tensor newGrads, size_t batch_words, int device_id);
+  void init(Ptr<data::Batch> batch) override;
+  void pushGradients(Tensor newGrads, size_t batch_words, int device_id) override;
   void fetchParams(Tensor oldParams,
                    const std::vector<Tensor>& params,
-                   int device_id);
+                   int device_id) override;
 
 public:
   AsyncGraphGroupDrop(Ptr<Config> options)

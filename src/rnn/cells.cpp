@@ -12,7 +12,7 @@ struct GRUFastNodeOp : public NaryNodeOp {
   GRUFastNodeOp(const std::vector<Expr>& nodes, bool final)
       : NaryNodeOp(nodes), final_(final) {}
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     std::vector<Tensor> inputs;
     for(size_t i = 0; i < children_.size(); ++i)
       inputs.push_back(child(i)->val());
@@ -20,7 +20,7 @@ struct GRUFastNodeOp : public NaryNodeOp {
     return {NodeOp(GRUFastForward(val_, inputs, final_))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     std::vector<Tensor> inputs;
     std::vector<Tensor> outputs;
     for(auto child : children_) {
@@ -35,14 +35,14 @@ struct GRUFastNodeOp : public NaryNodeOp {
   }
 
   // do not check if node is trainable
-  virtual void runBackward(const NodeOps& ops) {
+  virtual void runBackward(const NodeOps& ops) override {
     for(auto&& op : ops)
       op();
   }
 
-  const std::string type() { return "GRU-ops"; }
+  const std::string type() override { return "GRU-ops"; }
 
-  const std::string color() { return "yellow"; }
+  const std::string color() override { return "yellow"; }
 };
 
 Expr gruOps(const std::vector<Expr>& nodes, bool final) {
@@ -54,7 +54,7 @@ Expr gruOps(const std::vector<Expr>& nodes, bool final) {
 struct LSTMCellNodeOp : public NaryNodeOp {
   LSTMCellNodeOp(const std::vector<Expr>& nodes) : NaryNodeOp(nodes) {}
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     std::vector<Tensor> inputs;
     for(size_t i = 0; i < children_.size(); ++i)
       inputs.push_back(child(i)->val());
@@ -62,7 +62,7 @@ struct LSTMCellNodeOp : public NaryNodeOp {
     return {NodeOp(LSTMCellForward(val_, inputs))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     std::vector<Tensor> inputs;
     std::vector<Tensor> outputs;
     for(auto child : children_) {
@@ -77,20 +77,20 @@ struct LSTMCellNodeOp : public NaryNodeOp {
   }
 
   // do not check if node is trainable
-  virtual void runBackward(const NodeOps& ops) {
+  virtual void runBackward(const NodeOps& ops) override {
     for(auto&& op : ops)
       op();
   }
 
-  const std::string type() { return "LSTM-cell-ops"; }
+  const std::string type() override { return "LSTM-cell-ops"; }
 
-  const std::string color() { return "yellow"; }
+  const std::string color() override { return "yellow"; }
 };
 
 struct LSTMOutputNodeOp : public NaryNodeOp {
   LSTMOutputNodeOp(const std::vector<Expr>& nodes) : NaryNodeOp(nodes) {}
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     std::vector<Tensor> inputs;
     for(size_t i = 0; i < children_.size(); ++i)
       inputs.push_back(child(i)->val());
@@ -98,7 +98,7 @@ struct LSTMOutputNodeOp : public NaryNodeOp {
     return {NodeOp(LSTMOutputForward(val_, inputs))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     std::vector<Tensor> inputs;
     std::vector<Tensor> outputs;
     for(auto child : children_) {
@@ -113,14 +113,14 @@ struct LSTMOutputNodeOp : public NaryNodeOp {
   }
 
   // do not check if node is trainable
-  virtual void runBackward(const NodeOps& ops) {
+  virtual void runBackward(const NodeOps& ops) override {
     for(auto&& op : ops)
       op();
   }
 
-  const std::string type() { return "LSTM-output-ops"; }
+  const std::string type() override { return "LSTM-output-ops"; }
 
-  const std::string color() { return "yellow"; }
+  const std::string color() override { return "yellow"; }
 };
 
 Expr lstmOpsC(const std::vector<Expr>& nodes) {

@@ -302,7 +302,7 @@ public:
     state_->registerObserver(observer);
   }
 
-  void actAfterEpoch(TrainingState& state) {
+  void actAfterEpoch(TrainingState& state) override {
     float factor = options_->get<double>("lr-decay");
 
     float baselr = getLearningRate(state);
@@ -354,7 +354,7 @@ public:
     }
   }
 
-  void actAfterBatches(TrainingState& state) {
+  void actAfterBatches(TrainingState& state) override {
     float factor = options_->get<double>("lr-decay");
     state.reset = false;
 
@@ -402,7 +402,7 @@ public:
     first_ = false;
   }
 
-  void actAfterStalled(TrainingState& state) {
+  void actAfterStalled(TrainingState& state) override {
     float factor = options_->get<double>("lr-decay");
     state.reset = false;
 

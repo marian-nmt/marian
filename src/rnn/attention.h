@@ -104,7 +104,7 @@ public:
     }
   }
 
-  Expr apply(State state) {
+  Expr apply(State state) override {
     using namespace keywords;
     auto recState = state.output;
 
@@ -147,12 +147,12 @@ public:
 
   std::vector<Expr>& getAlignments() { return alignments_; }
 
-  virtual void clear() {
+  virtual void clear() override {
     contexts_.clear();
     alignments_.clear();
   }
 
-  int dimOutput() { return encState_->getContext()->shape()[-1]; }
+  int dimOutput() override { return encState_->getContext()->shape()[-1]; }
 };
 
 using Attention = GlobalAttention;

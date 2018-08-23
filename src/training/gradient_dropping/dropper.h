@@ -41,13 +41,13 @@ public:
 namespace gpu {
 class GradientDropBase : public marian::GradientDropBase {
 protected:
-  float find_threshold(Tensor grads, float rate);
+  float find_threshold(Tensor grads, float rate) override;
 
 public:
   void dropGraph(Tensor t,
                  SparseTensor destination,
                  float rate = 0.99,
-                 float momentum = 0.0);
+                 float momentum = 0.0) override;
 };
 }  // namespace gpu
 

@@ -37,7 +37,7 @@ public:
 
   void load(Ptr<ExpressionGraph> graph,
             const std::string& name,
-            bool markedReloaded = true) {
+            bool markedReloaded = true) override {
     using namespace keywords;
 
     std::map<std::string, std::string> nameMap
@@ -96,7 +96,7 @@ public:
 
   void save(Ptr<ExpressionGraph> graph,
             const std::string& name,
-            bool saveTranslatorConfig = false) {
+            bool saveTranslatorConfig = false) override {
     LOG(info, "Saving model to {}", name);
 
     std::map<std::string, std::string> nameMap

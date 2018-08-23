@@ -265,7 +265,7 @@ public:
                        Ptr<BatchStats> stats = nullptr)
       : BatchGenerator(data, options, stats) {}
 
-  void actAfterEpoch(TrainingState& state) {
+  void actAfterEpoch(TrainingState& state) override {
     state.seedBatch = getRNGState();
     state.seedCorpus = data_->getRNGState();
   }

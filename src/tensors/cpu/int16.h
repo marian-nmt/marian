@@ -13,16 +13,16 @@ struct QuantizeNodeOp : public UnaryNodeOp {
   QuantizeNodeOp(Expr a, float clipValue)
       : UnaryNodeOp(a, Type::int16), clipValue_{clipValue} {}
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     return {NodeOp(Quantize16(val_, child(0)->val(), clipValue_))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     ABORT("Only used for inference");
     return {NodeOp(0)};
   }
 
-  const std::string type() { return "quantizeInt16"; }
+  const std::string type() override { return "quantizeInt16"; }
 };
 
 class DotNodeOp : public NaryNodeOp {
@@ -48,16 +48,16 @@ public:
     return outShape;
   }
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     return {NodeOp(ProdInt16(val_, child(0)->val(), child(1)->val(), scalar_))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     ABORT("Only used for inference");
     return {NodeOp(0)};
   }
 
-  const std::string type() { return "dotInt16"; }
+  const std::string type() override { return "dotInt16"; }
 };
 
 class AffineNodeOp : public NaryNodeOp {
@@ -83,19 +83,19 @@ public:
     return outShape;
   }
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     return {
       NodeOp(ProdInt16(val_, child(0)->val(), child(1)->val(), scalar_);
              AddBias(val_, child(2)->val()))
     };
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     ABORT("Only used for inference");
     return {NodeOp(0)};
   }
 
-  const std::string type() { return "affineInt16"; }
+  const std::string type() override { return "affineInt16"; }
 };
 
 static inline Expr dot(Expr a, Expr b, float scalar) {

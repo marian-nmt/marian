@@ -43,7 +43,7 @@ public:
   Expr apply(Ptr<ModelBase> model,
              Ptr<ExpressionGraph> graph,
              Ptr<data::Batch> batch,
-             bool clearGraph = true) {
+             bool clearGraph = true) override {
     auto encdec = std::static_pointer_cast<EncoderDecoder>(model);
     auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
 
@@ -85,23 +85,23 @@ public:
 
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
-                    bool markedReloaded = true) {
+                    bool markedReloaded = true) override {
     model_->load(graph, name, markedReloaded);
   };
 
   virtual void save(Ptr<ExpressionGraph> graph,
                     const std::string& name,
-                    bool saveTranslatorConfig = false) {
+                    bool saveTranslatorConfig = false) override {
     model_->save(graph, name, saveTranslatorConfig);
   }
 
   virtual Expr build(Ptr<ExpressionGraph> graph,
                      Ptr<data::Batch> batch,
-                     bool clearGraph = true) {
+                     bool clearGraph = true) override {
     return cost_->apply(model_, graph, batch, clearGraph);
   };
 
-  virtual void clear(Ptr<ExpressionGraph> graph) { model_->clear(graph); };
+  virtual void clear(Ptr<ExpressionGraph> graph) override { model_->clear(graph); };
 };
 
 typedef Trainer Scorer;
@@ -113,8 +113,9 @@ public:
 
 class LogsoftmaxStep : public CostStep {
 public:
-  virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) {
-    state->setLogProbs(logsoftmax(state->getLogProbs())); // @TODO: Why is this needed? If they are already normalized probs?
+  virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
+    // decoder needs normalized probabilities (note: skipped if beam 1 and --skip-cost)
+    state->setLogProbs(logsoftmax(state->getLogProbs()));
     return state;
   }
 };
@@ -133,33 +134,33 @@ public:
 
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
-                    bool markedReloaded = true) {
+                    bool markedReloaded = true) override {
     encdec_->load(graph, name, markedReloaded);
   }
 
   virtual void mmap(Ptr<ExpressionGraph> graph,
                     const void* ptr,
-                    bool markedReloaded = true) {
+                    bool markedReloaded = true) override {
     encdec_->mmap(graph, ptr, markedReloaded);
   };
 
   virtual void save(Ptr<ExpressionGraph> graph,
                     const std::string& name,
-                    bool saveTranslatorConfig = false) {
+                    bool saveTranslatorConfig = false) override {
     encdec_->save(graph, name, saveTranslatorConfig);
   }
 
-  virtual void clear(Ptr<ExpressionGraph> graph) { encdec_->clear(graph); }
+  virtual void clear(Ptr<ExpressionGraph> graph) override { encdec_->clear(graph); }
 
   virtual Expr build(Ptr<ExpressionGraph> graph,
                      Ptr<data::Batch> batch,
-                     bool clearGraph = true) {
+                     bool clearGraph = true) override {
     auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
     return build(graph, corpusBatch, clearGraph);
   }
 
   virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
-                                       Ptr<data::CorpusBatch> batch) {
+                                       Ptr<data::CorpusBatch> batch) override {
     return encdec_->startState(graph, batch);
   }
 
@@ -168,7 +169,7 @@ public:
                                  const std::vector<size_t>& hypIndices,
                                  const std::vector<size_t>& embIndices,
                                  int dimBatch,
-                                 int beamSize) {
+                                 int beamSize) override {
     auto nextState = encdec_->step(
         graph, state, hypIndices, embIndices, dimBatch, beamSize);
     return cost_->apply(nextState);
@@ -176,23 +177,23 @@ public:
 
   virtual Expr build(Ptr<ExpressionGraph> graph,
                      Ptr<data::CorpusBatch> batch,
-                     bool clearGraph = true) {
+                     bool clearGraph = true) override {
     ABORT("Wrong wrapper. Use models::Trainer or models::Scorer");
     return nullptr;
   }
 
-  virtual Ptr<Options> getOptions() { return encdec_->getOptions(); };
+  virtual Ptr<Options> getOptions() override { return encdec_->getOptions(); };
 
   virtual void setShortlistGenerator(
-      Ptr<data::ShortlistGenerator> shortlistGenerator) {
+      Ptr<data::ShortlistGenerator> shortlistGenerator) override {
     encdec_->setShortlistGenerator(shortlistGenerator);
   };
 
-  virtual Ptr<data::Shortlist> getShortlist() {
+  virtual Ptr<data::Shortlist> getShortlist() override {
     return encdec_->getShortlist();
   };
 
-  virtual data::SoftAlignment getAlignment() { return encdec_->getAlignment(); }
+  virtual data::SoftAlignment getAlignment() override { return encdec_->getAlignment(); }
 };
 
 static Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec,

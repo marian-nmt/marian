@@ -36,7 +36,7 @@ class DenseFactory : public LayerFactory {
 public:
   DenseFactory(Ptr<ExpressionGraph> graph) : LayerFactory(graph) {}
 
-  Ptr<Layer> construct() {
+  Ptr<Layer> construct() override {
     auto dense = New<Dense>(graph_, options_);
     return dense;
   }
@@ -73,7 +73,7 @@ public:
     return Accumulator<OutputFactory>(*this);
   }
 
-  Ptr<Layer> construct() {
+  Ptr<Layer> construct() override {
     auto output = New<Output>(graph_, options_);
     for(auto& p : tiedParamsTransposed_)
       output->tie_transposed(p.first, p.second);

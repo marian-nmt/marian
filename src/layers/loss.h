@@ -26,7 +26,7 @@ public:
 class CrossEntropyMeanLoss : public LossBase {
 public:
   explicit CrossEntropyMeanLoss(float smoothing = 0) : LossBase(smoothing){};
-  Expr getCost(Expr logits, Expr indices, Expr mask, Expr weights);
+  Expr getCost(Expr logits, Expr indices, Expr mask, Expr weights) override;
 };
 
 /*
@@ -36,7 +36,7 @@ class CrossEntropyMeanWordsLoss : public LossBase {
 public:
   explicit CrossEntropyMeanWordsLoss(float smoothing = 0)
       : LossBase(smoothing){};
-  Expr getCost(Expr logits, Expr indices, Expr mask, Expr weights);
+  Expr getCost(Expr logits, Expr indices, Expr mask, Expr weights) override;
 };
 
 /*
@@ -45,7 +45,7 @@ public:
 class CrossEntropySumLoss : public LossBase {
 public:
   explicit CrossEntropySumLoss(float smoothing = 0) : LossBase(smoothing){};
-  Expr getCost(Expr logits, Expr indices, Expr mask, Expr weights);
+  Expr getCost(Expr logits, Expr indices, Expr mask, Expr weights) override;
 };
 
 /*
@@ -54,7 +54,7 @@ public:
 class PerplexityLoss : public LossBase {
 public:
   explicit PerplexityLoss(float smoothing = 0) : LossBase(smoothing){};
-  Expr getCost(Expr logits, Expr indices, Expr mask, Expr weights);
+  Expr getCost(Expr logits, Expr indices, Expr mask, Expr weights) override;
 };
 
 /*
@@ -63,7 +63,7 @@ public:
 class CrossEntropyRescoreLoss : public LossBase {
 public:
   explicit CrossEntropyRescoreLoss(float smoothing = 0) : LossBase(smoothing){};
-  Expr getCost(Expr logits, Expr indices, Expr mask, Expr weights);
+  Expr getCost(Expr logits, Expr indices, Expr mask, Expr weights) override;
 };
 
 Ptr<LossBase> LossFactory(Ptr<Options> options, bool inference);

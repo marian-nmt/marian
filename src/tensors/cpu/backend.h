@@ -17,9 +17,9 @@ public:
   Backend(DeviceId deviceId, size_t seed)
       : marian::Backend(deviceId, seed), gen_(seed_) {}
 
-  void setDevice() {}
+  void setDevice() override {}
 
-  void synchronize() {}
+  void synchronize() override {}
 
   std::default_random_engine& getRandomGenerator() { return gen_; }
 };

@@ -51,7 +51,7 @@ public:
     return attentionIndices_;
   }
 
-  virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) {
+  virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) override {
     auto attentionIdx = getAttentionIndices();
     int dimVoc = totalCosts->shape()[-1];
     for(size_t i = 0; i < attentionIdx.size(); i++) {
@@ -84,7 +84,7 @@ public:
   virtual Ptr<DecoderState> startState(
       Ptr<ExpressionGraph> graph,
       Ptr<data::CorpusBatch> batch,
-      std::vector<Ptr<EncoderState>>& encStates) {
+      std::vector<Ptr<EncoderState>>& encStates) override {
     using namespace keywords;
 
     std::vector<Expr> meanContexts;
@@ -115,7 +115,7 @@ public:
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
-                                 Ptr<DecoderState> state) {
+                                 Ptr<DecoderState> state) override {
     using namespace keywords;
 
     auto type = options_->get<std::string>("type");
@@ -251,7 +251,7 @@ public:
 
   void embeddingsFromBatch(Ptr<ExpressionGraph> graph,
                            Ptr<DecoderState> state,
-                           Ptr<data::CorpusBatch> batch) {
+                           Ptr<data::CorpusBatch> batch) override {
     using namespace keywords;
 
     DecoderBase::embeddingsFromBatch(graph, state, batch);
@@ -281,7 +281,7 @@ public:
                                         Ptr<DecoderState> state,
                                         const std::vector<size_t>& embIdx,
                                         int dimBatch,
-                                        int beamSize) {
+                                        int beamSize) override {
     DecoderBase::embeddingsFromPrediction(
         graph, state, embIdx, dimBatch, beamSize);
 
@@ -302,6 +302,6 @@ public:
     }
   }
 
-  void clear() { rnn_ = nullptr; }
+  void clear() override { rnn_ = nullptr; }
 };
 }  // namespace marian
