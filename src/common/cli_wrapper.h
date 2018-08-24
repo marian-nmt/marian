@@ -45,7 +45,9 @@ private:
   // Stores options as YAML object
   YAML::Node config_;
 
-  // Name for the current option group
+  // Name of the default option group
+  std::string defaultGroup_{""};
+  // Name of the current option group
   std::string currentGroup_{""};
 
   // Print failure message on error
@@ -57,7 +59,7 @@ private:
   }
 
 public:
-  CLIWrapper();
+  CLIWrapper(const std::string& name = "General options");
 
   virtual ~CLIWrapper() {}
 
@@ -87,7 +89,7 @@ public:
   }
 
   void startGroup(const std::string &name) { currentGroup_ = name; }
-  void endGroup() { currentGroup_ = ""; }
+  void endGroup() { currentGroup_ = defaultGroup_; }
 
   Ptr<CLI::App> app() { return app_; }
 

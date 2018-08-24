@@ -1,7 +1,5 @@
 #pragma once
 
-#include <boost/program_options.hpp>
-
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/cli_helper.h"
 #include "common/config_parser.h"

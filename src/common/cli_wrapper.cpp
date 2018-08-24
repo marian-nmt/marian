@@ -3,7 +3,11 @@
 namespace marian {
 namespace cli {
 
-CLIWrapper::CLIWrapper() : app_(std::make_shared<CLI::App>()) {
+CLIWrapper::CLIWrapper(const std::string &name)
+    : app_(std::make_shared<CLI::App>()),
+      defaultGroup_(name),
+      currentGroup_(name) {
+  app_->get_help_ptr()->group(defaultGroup_);
   app_->failure_message(failureMessage);
 }
 

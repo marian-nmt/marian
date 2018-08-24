@@ -170,7 +170,10 @@ void ConfigParser::addOptionsCommon(cli::CLIWrapper& cli) {
   int defaultWorkspace = (mode_ == ConfigMode::translating) ? 512 : 2048;
 
   cli.startGroup("General options");
+
   // clang-format off
+  cli.add_nondefault<bool>("--version",
+      "Print version number and exit");
   cli.add<std::vector<std::string>>("--config,-c",
      "Configuration file(s). If multiple, later overrides earlier");
   cli.add<size_t>("--workspace,-w",
@@ -195,8 +198,6 @@ void ConfigParser::addOptionsCommon(cli::CLIWrapper& cli) {
      "All paths are relative to the config file location");
   cli.add<bool>("--dump-config",
      "Dump current (modified) configuration to stdout and exit");
-  cli.add_nondefault<bool>("--version",
-      "Print version number and exit");
   // clang-format on
   cli.endGroup();
 }
