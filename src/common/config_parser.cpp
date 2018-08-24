@@ -725,7 +725,7 @@ void ConfigParser::addOptionsRescore(cli::CLIWrapper &cli) {
   cli.add<std::string>("--maxi-batch-sort",
       "Sorting strategy for maxi-batch: trg (default), src, none",
       "trg");
-  cli.add<std::string>("--alignment",
+  cli.add_nondefault<std::string>("--alignment",
      "Return word alignments. Possible values: 0.0-1.0, hard, soft")
      ->implicit_val("1"),
 
