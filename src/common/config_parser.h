@@ -38,14 +38,13 @@ public:
 
 private:
   ConfigMode mode_;
-  cli::CLIWrapper cli_;
   YAML::Node config_;
 
   bool has(const std::string& key) const;
 
   template <typename T>
   T get(const std::string& key) const {
-    return cli_.get<T>(key);
+    return config_[key].as<T>();
   }
 
   void addOptionsCommon(cli::CLIWrapper&);

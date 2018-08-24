@@ -35,16 +35,16 @@ S &operator>>(S &s, color &r) {
 int main(int argc, char** argv) {
 
   CLIWrapper w;
-  w.add<int>("integer", "-i,--int", "help message")->implicit_val("555")->default_val("123");
-  w.add<std::string>("string", "-s,--str", "help message")->default_val("foo");
-  w.add<std::vector<float>>("vector", "-v,--vec", "help message")->expected(-2);
+  w.add<int>("-i,--int", "help message")->implicit_val("555")->default_val("123");
+  w.add<std::string>("-s,--str", "help message")->default_val("foo");
+  w.add<std::vector<float>>("-v,--vec", "help message")->expected(-2);
   w.startGroup("My group");
-  w.add<std::vector<std::string>>("defvec", "--defvec,-d", "help message")->default_val("foo");
-  w.add<bool>("bool", "-b,--bool", "help message");
-  w.add<std::string>("long", "--a-very-long-option-name-for-testing-purposes", "A very long text a very long text a very long text a very long text a very long text a very long text");
+  w.add<std::vector<std::string>>("--defvec,-d", "help message")->default_val("foo");
+  w.add<bool>("-b,--bool", "help message");
+  w.add<std::string>("--a-very-long-option-name-for-testing-purposes", "A very long text a very long text a very long text a very long text a very long text a very long text");
   w.endGroup();
-  w.add<std::string>("file", "-f,--file", "help message")->check(validators::file_exists);
-  //w.add<color>("enum", "-e,--enum", "help message for enum");
+  w.add<std::string>("-f,--file", "help message")->check(validators::file_exists);
+  //w.add<color>("-e,--enum", "help message for enum");
 
   try {
     w.app()->parse(argc, argv);
@@ -52,12 +52,12 @@ int main(int argc, char** argv) {
     return w.app()->exit(e);
   }
 
-  w.get<int>("integer");
-  w.get<std::string>("string");
-  w.get<std::vector<float>>("vector");
+  w.get<int>("int");
+  w.get<std::string>("str");
+  w.get<std::vector<float>>("vec");
   w.get<std::vector<std::string>>("defvec");
   w.get<bool>("bool");
-  w.get<std::string>("long");
+  //w.get<std::string>("long");
   w.get<std::string>("file");
   //w.get<color>("enum");
 

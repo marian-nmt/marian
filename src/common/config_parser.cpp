@@ -74,13 +74,13 @@ const std::set<std::string> PATHS = {"model",
 
 
 bool ConfigParser::has(const std::string& key) const {
-  return cli_.has(key);
+  return config_[key];
 }
 
 void ConfigParser::validateOptions() const {
   if(mode_ == ConfigMode::translating) {
     UTIL_THROW_IF2(
-        !has("models") && !has("config"),
+        !has("models") && !get<std::vector<std::string>>("config").empty(),
         "You need to provide at least one model file or a config file");
 
     UTIL_THROW_IF2(
@@ -187,31 +187,31 @@ void ConfigParser::addOptionsCommon(cli::CLIWrapper& cli) {
 
   cli.startGroup("General options");
   // clang-format off
-  cli.add<std::vector<std::string>>("config", "--config,-c",
+  cli.add<std::vector<std::string>>("--config,-c",
      "Configuration file(s). If multiple, later overrides earlier");
-  cli.add<size_t>("workspace", "--workspace,-w",
+  cli.add<size_t>("--workspace,-w",
       "Preallocate  arg  MB of work space",
       defaultWorkspace);
-  cli.add<std::string>("log", "--log",
+  cli.add_nondefault<std::string>("--log",
      "Log training process information to file given by  arg");
-  cli.add<std::string>("log-level", "--log-level",
+  cli.add<std::string>("--log-level",
      "Set verbosity level of logging: trace, debug, info, warn, err(or), critical, off",
      "info");
-  cli.add<bool>("quiet", "--quiet",
+  cli.add<bool>("--quiet",
      "Suppress all logging to stderr. Logging to files still works");
-  cli.add<bool>("quiet-translation", "--quiet-translation",
+  cli.add<bool>("--quiet-translation",
      "Suppress logging for translation");
-  cli.add<size_t>("seed", "--seed",
+  cli.add<size_t>("--seed",
      "Seed for all random number generators. 0 means initialize randomly");
-  cli.add<float>("clip-gemm", "--clip-gemm",
+  cli.add<float>("--clip-gemm",
      "If not 0 clip GEMM input values to +/- arg");
-  cli.add<bool>("interpolate-env-vars", "--interpolate-env-vars",
+  cli.add<bool>("--interpolate-env-vars",
      "allow the use of environment variables in paths, of the form ${VAR_NAME}");
-  cli.add<bool>("relative-paths", "--relative-paths",
+  cli.add<bool>("--relative-paths",
      "All paths are relative to the config file location");
-  cli.add<bool>("dump-config", "--dump-config",
+  cli.add<bool>("--dump-config",
      "Dump current (modified) configuration to stdout and exit");
-  cli.add<bool>("version", "--version",
+  cli.add_nondefault<bool>("--version",
       "Print version number and exit");
   // clang-format on
   cli.endGroup();
@@ -222,146 +222,146 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
 
   // clang-format off
   if(mode_ == ConfigMode::translating) {
-    cli.add<std::vector<std::string>>("models", "--models,-m",
+    cli.add_nondefault<std::vector<std::string>>("--models,-m",
       "Paths to model(s) to be loaded");
   } else {
-    cli.add<std::string>("model", "--model,-m",
+    cli.add<std::string>("--model,-m",
       "Path prefix for model to be saved/resumed",
       "model.npz");
 
     if(mode_ == ConfigMode::training) {
-      cli.add<std::string>("pretrained-model", "--pretrained-model",
+      cli.add_nondefault<std::string>("--pretrained-model",
         "Path prefix for pre-trained model to initialize model weights");
     }
   }
 
-  cli.add<bool>("ignore-model-config", "--ignore-model-config",
+  cli.add<bool>("--ignore-model-config",
       "Ignore the model configuration saved in npz file");
-  cli.add<std::string>("type", "--type",
+  cli.add<std::string>("--type",
       "Model type: amun, nematus, s2s, multi-s2s, transformer",
       "amun");
-  cli.add<std::vector<int>>("dim-vocabs", "--dim-vocabs",
+  cli.add<std::vector<int>>("--dim-vocabs",
       "Maximum items in vocabulary ordered by rank, 0 uses all items in the provided/created vocabulary file",
       std::vector<int>({0, 0}));
-  cli.add<int>("dim-emb", "--dim-emb",
+  cli.add<int>("--dim-emb",
       "Size of embedding vector",
       512);
-  cli.add<int>("dim-rnn", "--dim-rnn",
+  cli.add<int>("--dim-rnn",
       "Size of rnn hidden state", 1024);
-  cli.add<std::string>("enc-type", "--enc-type",
+  cli.add<std::string>("--enc-type",
       "Type of encoder RNN : bidirectional, bi-unidirectional, alternating (s2s)",
       "bidirectional");
-  cli.add<std::string>("enc-cell", "--enc-cell",
+  cli.add<std::string>("--enc-cell",
       "Type of RNN cell: gru, lstm, tanh (s2s)", "gru");
-  cli.add<int>("enc-cell-depth", "--enc-cell-depth",
+  cli.add<int>("--enc-cell-depth",
       "Number of transitional cells in encoder layers (s2s)",
       1);
-  cli.add<int>("enc-depth", "--enc-depth",
+  cli.add<int>("--enc-depth",
       "Number of encoder layers (s2s)",
       1);
-  cli.add<std::string>("dec-cell", "--dec-cell",
+  cli.add<std::string>("--dec-cell",
       "Type of RNN cell: gru, lstm, tanh (s2s)",
       "gru");
-  cli.add<int>("dec-cell-base-depth", "--dec-cell-base-depth",
+  cli.add<int>("--dec-cell-base-depth",
       "Number of transitional cells in first decoder layer (s2s)",
       2);
-  cli.add<int>("dec-cell-high-depth", "--dec-cell-high-depth",
+  cli.add<int>("--dec-cell-high-depth",
       "Number of transitional cells in next decoder layers (s2s)",
       1);
-  cli.add<int>("dec-depth", "--dec-depth",
+  cli.add<int>("--dec-depth",
       "Number of decoder layers (s2s)",
       1);
-  cli.add<bool>("skip", "--skip",
+  cli.add<bool>("--skip",
       "Use skip connections (s2s)");
-  cli.add<bool>("layer-normalization", "--layer-normalization",
+  cli.add<bool>("--layer-normalization",
       "Enable layer normalization");
-  cli.add<bool>("right-left", "--right-left",
+  cli.add<bool>("--right-left",
       "Train right-to-left model");
-  cli.add<bool>("best-deep", "--best-deep",
+  cli.add<bool>("--best-deep",
       "Use Edinburgh deep RNN configuration (s2s)");
-  cli.add<std::vector<size_t>>("special-vocab", "--special-vocab",
+  cli.add_nondefault<std::vector<size_t>>("--special-vocab",
       "Model-specific special vocabulary ids");
-  cli.add<bool>("tied-embeddings", "--tied-embeddings",
+  cli.add<bool>("--tied-embeddings",
       "Tie target embeddings and output embeddings in output layer");
-  cli.add<bool>("tied-embeddings-src", "--tied-embeddings-src",
+  cli.add<bool>("--tied-embeddings-src",
       "Tie source and target embeddings");
-  cli.add<bool>("tied-embeddings-all", "--tied-embeddings-all",
+  cli.add<bool>("--tied-embeddings-all",
       "Tie all embedding layers and output layer");
 
   // Transformer options
-  cli.add<int>("transformer-heads", "--transformer-heads",
+  cli.add<int>("--transformer-heads",
       "Number of heads in multi-head attention (transformer)",
       8);
-  cli.add<bool>("transformer-no-projection", "--transformer-no-projection",
+  cli.add<bool>("--transformer-no-projection",
       "Omit linear projection after multi-head attention (transformer)");
-  cli.add<int>("transformer-dim-ffn", "--transformer-dim-ffn",
+  cli.add<int>("--transformer-dim-ffn",
       "Size of position-wise feed-forward network (transformer)",
       2048);
-  cli.add<int>("transformer-ffn-depth", "--transformer-ffn-depth",
+  cli.add<int>("--transformer-ffn-depth",
       "Depth of filters (transformer)",
       2);
-  cli.add<std::string>("transformer-ffn-activation", "--transformer-ffn-activation",
+  cli.add<std::string>("--transformer-ffn-activation",
       "Activation between filters: swish or relu (transformer)",
       "swish");
-  cli.add<int>("transformer-dim-aan", "--transformer-dim-aan",
+  cli.add<int>("--transformer-dim-aan",
       "Size of position-wise feed-forward network in AAN (transformer)",
       2048);
-  cli.add<int>("transformer-aan-depth", "--transformer-aan-depth",
+  cli.add<int>("--transformer-aan-depth",
       "Depth of filter for AAN (transformer)",
       2);
-  cli.add<std::string>("transformer-aan-activation", "--transformer-aan-activation",
+  cli.add<std::string>("--transformer-aan-activation",
       "Activation between filters in AAN: swish or relu (transformer)",
       "swish");
-  cli.add<bool>("transformer-aan-nogate", "--transformer-aan-nogate",
+  cli.add<bool>("--transformer-aan-nogate",
       "Omit gate in AAN (transformer)");
-  cli.add<std::string>("transformer-decoder-autoreg", "--transformer-decoder-autoreg",
+  cli.add<std::string>("--transformer-decoder-autoreg",
       "Type of autoregressive layer in transformer decoder: self-attention, average-attention (transformer)",
       "self-attention");
-  cli.add<std::vector<size_t>>("transformer-tied-layers", "--transformer-tied-layers",
+  cli.add<std::vector<size_t>>("--transformer-tied-layers",
       "List of tied decoder layers (transformer)");
-  cli.add<std::string>("transformer-preprocess", "--transformer-preprocess",
+  cli.add<std::string>("--transformer-preprocess",
       "Operation before each transformer layer: d = dropout, a = add, n = normalize");
-  cli.add<std::string>("transformer-postprocess-emb", "--transformer-postprocess-emb",
+  cli.add<std::string>("--transformer-postprocess-emb",
       "Operation after transformer embedding layer: d = dropout, a = add, n = normalize",
       "d");
-  cli.add<std::string>("transformer-postprocess", "--transformer-postprocess",
+  cli.add<std::string>("--transformer-postprocess",
       "Operation after each transformer layer: d = dropout, a = add, n = normalize",
       "dan");
 #ifdef CUDNN
-  cli.add<int>("char-stride", "--char-stride",
+  cli.add<int>("--char-stride",
       "Width of max-pooling layer after convolution layer in char-s2s model",
       5);
-  cli.add<int>("char-highway", "--char-highway",
+  cli.add<int>("--char-highway",
       "Number of highway network layers after max-pooling in char-s2s model",
       4)
-  cli.add<std::vector<int>>("char-conv-filters-num", "--char-conv-filters-num",
+  cli.add<std::vector<int>>("--char-conv-filters-num",
       "Numbers of convolution filters of correspoding width in char-s2s model",
       std::vector<int>({200, 200, 250, 250, 300, 300, 300, 300}));
-  cli.add<std::vector<int>>("char-conv-filters-widths", "--char-conv-filters-widths",
+  cli.add<std::vector<int>>("--char-conv-filters-widths",
       "Convolution window widths in char-s2s model",
       std::vector<int>({1, 2, 3, 4, 5, 6, 7, 8}));
 #endif
 
   if(mode_ == ConfigMode::training) {
     // TODO: add ->range(0,1);
-    cli.add<float>("dropout-rnn", "--dropout-rnn",
+    cli.add<float>("--dropout-rnn",
         "Scaling dropout along rnn layers and time (0 = no dropout)");
-    cli.add<float>("dropout-src", "--dropout-src",
+    cli.add<float>("--dropout-src",
         "Dropout source words (0 = no dropout)");
-    cli.add<float>("dropout-trg", "--dropout-trg",
+    cli.add<float>("--dropout-trg",
         "Dropout target words (0 = no dropout)");
-    cli.add<float>("grad-dropping-rate", "--grad-dropping-rate",
+    cli.add<float>("--grad-dropping-rate",
         "Gradient Dropping rate (0 = no gradient Dropping)");
-    cli.add<float>("grad-dropping-momentum", "--grad-dropping-momentum",
+    cli.add<float>("--grad-dropping-momentum",
         "Gradient Dropping momentum decay rate (0.0 to 1.0)");
-    cli.add<size_t>("grad-dropping-warmup", "--grad-dropping-warmup",
+    cli.add<size_t>("--grad-dropping-warmup",
         "Do not apply gradient dropping for the first arg steps",
         100);
-    cli.add<float>("transformer-dropout", "--transformer-dropout",
+    cli.add<float>("--transformer-dropout",
         "Dropout between transformer layers (0 = no dropout)");
-    cli.add<float>("transformer-dropout-attention", "--transformer-dropout-attention",
+    cli.add<float>("--transformer-dropout-attention",
         "Dropout for transformer attention (0 = no dropout)");
-    cli.add<float>("transformer-dropout-ffn", "--transformer-dropout-ffn",
+    cli.add<float>("--transformer-dropout-ffn",
         "Dropout for transformer filter (0 = no dropout)");
   }
   // clang-format on
@@ -372,179 +372,180 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
 void ConfigParser::addOptionsTraining(cli::CLIWrapper &cli) {
   cli.startGroup("Training options");
   // clang-format off
-  cli.add<std::string>("cost-type", "--cost-type",
+  cli.add<std::string>("--cost-type",
       "Optimization criterion: ce-mean, ce-mean-words, ce-sum, perplexity", "ce-mean");
-  cli.add<bool>("overwrite", "--overwrite",
+  cli.add<bool>("--overwrite",
       "Overwrite model with following checkpoints");
-  cli.add<bool>("no-reload", "--no-reload",
+  cli.add<bool>("--no-reload",
       "Do not load existing model specified in --model arg");
-  cli.add<std::vector<std::string>>("train-sets", "--train-sets,-t",
+  cli.add<std::vector<std::string>>("--train-sets,-t",
       "Paths to training corpora: source target");
-  cli.add<std::vector<std::string>>("vocabs", "--vocabs,-v",
+  cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --train-sets. "
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
-      "If these files do not exist they are created");
+      "If these files do not exist they are created",
+      std::vector<std::string>());
 
   // scheduling options
-  cli.add<size_t>("after-epochs", "--after-epochs,-e",
+  cli.add<size_t>("--after-epochs,-e",
       "Finish after this many epochs, 0 is infinity");
-  cli.add<size_t>("after-batches", "--after-batches",
+  cli.add<size_t>("--after-batches",
       "Finish after this many batch updates, 0 is infinity");
-  cli.add<size_t>("disp-freq", "--disp-freq",
+  cli.add<size_t>("--disp-freq",
       "Display information every  arg  updates",
       1000);
-  cli.add<bool>("disp-label-counts", "--disp-label-counts",
+  cli.add<bool>("--disp-label-counts",
       "Display label counts when logging loss progress");
-  cli.add<size_t>("save-freq", "--save-freq",
+  cli.add<size_t>("--save-freq",
       "Save model file every  arg  updates",
       10000);
 
   // data management options
-  cli.add<size_t>("max-length", "--max-length",
+  cli.add<size_t>("--max-length",
       "Maximum length of a sentence in a training sentence pair",
       50);
-  cli.add<bool>("max-length-crop", "--max-length-crop",
+  cli.add<bool>("--max-length-crop",
       "Crop a sentence to max-length instead of ommitting it if longer than max-length");
-  cli.add<bool>("no-shuffle", "--no-shuffle",
+  cli.add<bool>("--no-shuffle",
       "Skip shuffling of training data before each epoch");
-  cli.add<bool>("no-restore-corpus", "--no-restore-corpus",
+  cli.add<bool>("--no-restore-corpus",
       "Skip restoring corpus state after training is restarted");
-  cli.add<std::string>("tempdir", "--tempdir,-T",
+  cli.add<std::string>("--tempdir,-T",
       "Directory for temporary (shuffled) files and database",
       "/tmp");
-  cli.add<std::string>("sqlite", "--sqlite",
+  cli.add<std::string>("--sqlite",
       "Use disk-based sqlite3 database for training corpus storage, default"
       " is temporary with path creates persistent storage")
     ->default_val("")->implicit_val("temporary");
-  cli.add<bool>("sqlite-drop", "--sqlite-drop",
+  cli.add<bool>("--sqlite-drop",
       "Drop existing tables in sqlite3 database");
 
   // thread options
-  cli.add<std::vector<std::string>>("devices", "--devices,-d",
+  cli.add<std::vector<std::string>>("--devices,-d",
       "GPU ID(s) to use for training",
       std::vector<std::string>({"0"}));
 #ifdef USE_NCCL
-  cli.add<bool>("no-nccl", "--no-nccl",
+  cli.add<bool>("--no-nccl",
      "Disable inter-GPU communication via NCCL");
 #endif
 #ifdef CUDA_FOUND
-  cli.add<size_t>("cpu-threads", "--cpu-threads",
+  cli.add<size_t>("--cpu-threads",
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
     ->default_val("0")->implicit_val("1");
 #else
-  cli.add<size_t>("cpu-threads", "--cpu-threads",
+  cli.add<size_t>("--cpu-threads",
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
     ->default_val("1");
 #endif
 
   // optimizer options
-  cli.add<int>("mini-batch", "--mini-batch",
+  cli.add<int>("--mini-batch",
       "Size of mini-batch used during update", 64);
-  cli.add<int>("mini-batch-words", "--mini-batch-words",
+  cli.add<int>("--mini-batch-words",
       "Set mini-batch size based on words instead of sentences");
-  cli.add<bool>("mini-batch-fit", "--mini-batch-fit",
+  cli.add<bool>("--mini-batch-fit",
       "Determine mini-batch size automatically based on sentence-length to fit reserved memory");
-  cli.add<size_t>("mini-batch-fit-step", "--mini-batch-fit-step",
+  cli.add<size_t>("--mini-batch-fit-step",
       "Step size for mini-batch-fit statistics",
       10);
-  cli.add<int>("maxi-batch", "--maxi-batch",
+  cli.add<int>("--maxi-batch",
       "Number of batches to preload for length-based sorting",
       100);
-  cli.add<std::string>("maxi-batch-sort", "--maxi-batch-sort",
+  cli.add<std::string>("--maxi-batch-sort",
       "Sorting strategy for maxi-batch: trg, src, none",
       "trg");
 
-  cli.add<std::string>("optimizer", "--optimizer,-o",
+  cli.add<std::string>("--optimizer,-o",
      "Optimization algorithm: sgd, adagrad, adam",
      "adam");
-  cli.add<std::vector<float>>("optimizer-params", "--optimizer-params",
+  cli.add_nondefault<std::vector<float>>("--optimizer-params",
      "Parameters for optimization algorithm, e.g. betas for adam");
-  cli.add<size_t>("optimizer-delay", "--optimizer-delay",
+  cli.add<size_t>("--optimizer-delay",
      "SGD update delay, 1 = no delay",
      1);
 
-  cli.add<bool>("sync-sgd", "--sync-sgd",
+  cli.add<bool>("--sync-sgd",
      "Use synchronous SGD instead of asynchronous for multi-gpu training");
 
   // learning rate options
-  cli.add<double>("learn-rate", "--learn-rate,-l",
+  cli.add<double>("--learn-rate,-l",
      "Learning rate",
      0.0001);
-  cli.add<bool>("lr-report", "--lr-report",
+  cli.add<bool>("--lr-report",
      "Report learning rate for each update");
 
-  cli.add<double>("lr-decay", "--lr-decay",
+  cli.add<double>("--lr-decay",
      "Decay factor for learning rate: lr = lr * arg (0 to disable)");
-  cli.add<std::string>("lr-decay-strategy", "--lr-decay-strategy",
+  cli.add<std::string>("--lr-decay-strategy",
      "Strategy for learning rate decaying: epoch, batches, stalled, epoch+batches, epoch+stalled",
      "epoch+stalled");
-  cli.add<std::vector<size_t>>("lr-decay-start", "--lr-decay-start",
+  cli.add<std::vector<size_t>>("--lr-decay-start",
      "The first number of epoch/batches/stalled validations to start learning rate decaying",
      std::vector<size_t>({10,1}));
-  cli.add<size_t>("lr-decay-freq", "--lr-decay-freq",
+  cli.add<size_t>("--lr-decay-freq",
      "Learning rate decaying frequency for batches, requires --lr-decay-strategy to be batches",
      50000);
-  cli.add<bool>("lr-decay-reset-optimizer", "--lr-decay-reset-optimizer",
+  cli.add<bool>("--lr-decay-reset-optimizer",
       "Reset running statistics of optimizer whenever learning rate decays");
-  cli.add<bool>("lr-decay-repeat-warmup", "--lr-decay-repeat-warmup",
+  cli.add<bool>("--lr-decay-repeat-warmup",
      "Repeat learning rate warmup when learning rate is decayed");
-  cli.add<size_t>("lr-decay-inv-sqrt", "--lr-decay-inv-sqrt",
+  cli.add<size_t>("--lr-decay-inv-sqrt",
      "Decrease learning rate at arg / sqrt(no. updates) starting at arg");
 
-  cli.add<size_t>("lr-warmup", "--lr-warmup",
+  cli.add<size_t>("--lr-warmup",
      "Increase learning rate linearly for arg first steps");
-  cli.add<float>("lr-warmup-start-rate", "--lr-warmup-start-rate",
+  cli.add<float>("--lr-warmup-start-rate",
      "Start value for learning rate warmup");
-  cli.add<bool>("lr-warmup-cycle", "--lr-warmup-cycle",
+  cli.add<bool>("--lr-warmup-cycle",
      "Apply cyclic warmup");
-  cli.add<bool>("lr-warmup-at-reload", "--lr-warmup-at-reload",
+  cli.add<bool>("--lr-warmup-at-reload",
      "Repeat warmup after interrupted training");
 
-  cli.add<bool>("batch-flexible-lr", "--batch-flexible-lr",
+  cli.add<bool>("--batch-flexible-lr",
       "Scales the learning rate based on the number of words in a mini-batch");
-  cli.add<double>("batch-normal-words", "--batch-normal-words",
+  cli.add<double>("--batch-normal-words",
       "Set number of words per batch that the learning rate corresponds to. "
       "The option is only active when batch-flexible-lr is on",
       1920.0);
 
-  cli.add<double>("label-smoothing", "--label-smoothing",
+  cli.add<double>("--label-smoothing",
      "Epsilon for label smoothing (0 to disable)");
-  cli.add<double>("clip-norm", "--clip-norm",
+  cli.add<double>("--clip-norm",
      "Clip gradient norm to  argcli.add<int>(0 to disable)",
      1.f);
-  cli.add<float>("exponential-smoothing", "--exponential-smoothing",
+  cli.add<float>("--exponential-smoothing",
      "Maintain smoothed version of parameters for validation and saving with smoothing factor. 0 to disable")
-    ->default_val("0")->implicit_val("1e-4");
+    ->implicit_val("1e-4")->default_val("0");
 
   // options for additional training data
-  cli.add<std::string>("guided-alignment", "--guided-alignment",
+  cli.add_nondefault<std::string>("--guided-alignment",
      "Use guided alignment to guide attention");
-  cli.add<std::string>("guided-alignment-cost", "--guided-alignment-cost",
+  cli.add<std::string>("--guided-alignment-cost",
      "Cost type for guided alignment: ce (cross-entropy), mse (mean square error), mult (multiplication)",
      "ce");
-  cli.add<double>("guided-alignment-weight", "--guided-alignment-weight",
+  cli.add<double>("--guided-alignment-weight",
      "Weight for guided alignment cost",
      1);
-  cli.add<std::string>("data-weighting", "--data-weighting",
+  cli.add_nondefault<std::string>("--data-weighting",
      "File with sentence or word weights");
-  cli.add<std::string>("data-weighting-type", "--data-weighting-type",
+  cli.add<std::string>("--data-weighting-type",
      "Processing level for data weighting: sentence, word",
      "sentence");
 
   // embedding options
-  cli.add<std::vector<std::string>>("embedding-vectors", "--embedding-vectors",
+  cli.add_nondefault<std::vector<std::string>>("--embedding-vectors",
      "Paths to files with custom source and target embedding vectors");
-  cli.add<bool>("embedding-normalization", "--embedding-normalization",
+  cli.add<bool>("--embedding-normalization",
      "Enable normalization of custom embedding vectors");
-  cli.add<bool>("embedding-fix-src", "--embedding-fix-src",
+  cli.add<bool>("--embedding-fix-src",
      "Fix source embeddings. Affects all encoders");
-  cli.add<bool>("embedding-fix-trg", "--embedding-fix-trg",
+  cli.add<bool>("--embedding-fix-trg",
      "Fix target embeddings. Affects all decoders");
 
-  cli.add<bool>("multi-node", "--multi-node",
+  cli.add<bool>("--multi-node",
      "Enable multi-node training through MPI");
-  cli.add<bool>("multi-node-overlap", "--multi-node-overlap",
+  cli.add<bool>("--multi-node-overlap",
      "Overlap model computations with MPI communication",
      true);
   // clang-format on
@@ -556,56 +557,56 @@ void ConfigParser::addOptionsValid(cli::CLIWrapper &cli) {
   cli.startGroup("Validation set options");
 
   // clang-format off
-  cli.add<std::vector<std::string>>("valid-sets", "--valid-sets",
+  cli.add_nondefault<std::vector<std::string>>("--valid-sets",
       "Paths to validation corpora: source target");
-  cli.add<size_t>("valid-freq", "--valid-freq",
+  cli.add<size_t>("--valid-freq",
       "Validate model every  arg  updates",
       10000);
-  cli.add<std::vector<std::string>>("valid-metrics", "--valid-metrics",
+  cli.add<std::vector<std::string>>("--valid-metrics",
       "Metric to use during validation: cross-entropy, perplexity, valid-script, translation."
       " Multiple metrics can be specified",
       std::vector<std::string>({"cross-entropy"}));
-  cli.add<size_t>("early-stopping", "--early-stopping",
+  cli.add<size_t>("--early-stopping",
      "Stop if the first validation metric does not improve for  arg  consecutive validation steps",
      10);
 
   // decoding options
-  cli.add<size_t>("beam-size", "--beam-size,-b",
+  cli.add<size_t>("--beam-size,-b",
       "Beam size used during search with validating translator",
       12);
-  cli.add<float>("normalize", "--normalize,-n",
+  cli.add<float>("--normalize,-n",
       "Divide translation score by pow(translation length, arg) ")
       ->default_val("0")->implicit_val("1");
-  cli.add<float>("max-length-factor", "--max-length-factor",
+  cli.add<float>("--max-length-factor",
       "Maximum target length as source length times factor",
       3);
-  cli.add<float>("word-penalty", "--word-penalty",
+  cli.add<float>("--word-penalty",
       "Subtract (arg * translation length) from translation score ");
-  cli.add<bool>("allow-unk", "--allow-unk",
+  cli.add<bool>("--allow-unk",
       "Allow unknown words to appear in output");
-  cli.add<bool>("n-best", "--n-best",
+  cli.add<bool>("--n-best",
       "Generate n-best list");
 
   // efficiency options
-  cli.add<int>("valid-mini-batch", "--valid-mini-batch",
+  cli.add<int>("--valid-mini-batch",
       "Size of mini-batch used during validation",
       32);
-  cli.add<size_t>("valid-max-length", "--valid-max-length",
+  cli.add<size_t>("--valid-max-length",
       "Maximum length of a sentence in a validating sentence pair",
       1000);
 
   // options for validation script
-  cli.add<std::string>("valid-script-path", "--valid-script-path",
+  cli.add_nondefault<std::string>("--valid-script-path",
      "Path to external validation script."
      " It should print a single score to stdout."
      " If the option is used with validating translation, the output"
      " translation file will be passed as a first argument");
-  cli.add<std::string>("valid-translation-output", "--valid-translation-output",
+  cli.add_nondefault<std::string>("--valid-translation-output",
      "Path to store the translation");
 
-  cli.add<bool>("keep-best", "--keep-best",
+  cli.add<bool>("--keep-best",
       "Keep best model for each validation metric");
-  cli.add<std::string>("valid-log", "--valid-log",
+  cli.add_nondefault<std::string>("--valid-log",
      "Log validation scores to file given by  arg");
 
   // clang-format on
@@ -616,74 +617,75 @@ void ConfigParser::addOptionsTranslate(cli::CLIWrapper &cli) {
   cli.startGroup("Translator options");
 
   // clang-format off
-  cli.add<std::vector<std::string>>("input", "--input,-i",
+  cli.add<std::vector<std::string>>("--input,-i",
       "Paths to input file(s), stdin by default",
       std::vector<std::string>({"stdin"}));
-  cli.add<std::vector<std::string>>("vocabs", "--vocabs,-v",
-      "Paths to vocabulary files have to correspond to --input");
+  cli.add<std::vector<std::string>>("--vocabs,-v",
+      "Paths to vocabulary files have to correspond to --input",
+      std::vector<std::string>());
 
   // decoding options
-  cli.add<size_t>("beam-size", "--beam-size,-b",
+  cli.add<size_t>("--beam-size,-b",
       "Beam size used during search with validating translator",
       12);
-  cli.add<float>("normalize", "--normalize,-n",
+  cli.add<float>("--normalize,-n",
       "Divide translation score by pow(translation length, arg)")
       ->default_val("0")->implicit_val("1");
-  cli.add<float>("max-length-factor", "--max-length-factor",
+  cli.add<float>("--max-length-factor",
       "Maximum target length as source length times factor",
       3);
-  cli.add<float>("word-penalty", "--word-penalty",
+  cli.add<float>("--word-penalty",
       "Subtract (arg * translation length) from translation score");
-  cli.add<bool>("allow-unk", "--allow-unk",
+  cli.add<bool>("--allow-unk",
       "Allow unknown words to appear in output");
-  cli.add<bool>("n-best", "--n-best",
+  cli.add<bool>("--n-best",
       "Generate n-best list");
-  cli.add<std::string>("alignment", "--alignment",
+  cli.add<std::string>("--alignment",
      "Return word alignment. Possible values: 0.0-1.0, hard, soft")
     ->implicit_val("1");
 
   // efficiency options
-  cli.add<std::vector<std::string>>("devices", "--devices,-d",
+  cli.add<std::vector<std::string>>("--devices,-d",
       "GPUs to use for translation",
       std::vector<std::string>({"0"}));
 #ifdef CUDA_FOUND
-  cli.add<size_t>("cpu-threads", "--cpu-threads",
+  cli.add<size_t>("--cpu-threads",
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
       ->default_val("0")->implicit_val("1");
 #else
-  cli.add<size_t>("cpu-threads", "--cpu-threads",
+  cli.add<size_t>("--cpu-threads",
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
       ->default_val("1");
 #endif
 
-  cli.add<size_t>("max-length", "--max-length",
+  cli.add<size_t>("--max-length",
       "Maximum length of a sentence in a training sentence pair",
       1000);
-  cli.add<bool>("max-length-crop", "--max-length-crop",
+  cli.add<bool>("--max-length-crop",
       "Crop a sentence to max-length instead of ommitting it if longer than max-length");
-  cli.add<bool>("optimize", "--optimize",
+  cli.add<bool>("--optimize",
       "Optimize speed aggressively sacrificing memory or precision");
-  cli.add<int>("mini-batch", "--mini-batch",
+  cli.add<int>("--mini-batch",
       "Size of mini-batch used during update",
       1);
-  cli.add<int>("mini-batch-words", "--mini-batch-words",
+  cli.add<int>("--mini-batch-words",
       "Set mini-batch size based on words instead of sentences");
-  cli.add<int>("maxi-batch", "--maxi-batch",
+  cli.add<int>("--maxi-batch",
       "Number of batches to preload for length-based sorting",
       1);
-  cli.add<std::string>("maxi-batch-sort", "--maxi-batch-sort",
+  cli.add<std::string>("--maxi-batch-sort",
       "Sorting strategy for maxi-batch: none, src",
       "none");
-  cli.add<bool>("skip-cost", "--skip-cost",
+  cli.add<bool>("--skip-cost",
       "Ignore model cost during translation, not recommended for beam-size > 1");
 
-  cli.add<std::vector<std::string>>("shortlist", "--shortlist",
+  cli.add<std::vector<std::string>>("--shortlist",
      "Use softmax shortlist: path first best prune");
-  cli.add<std::vector<float>>("weights", "--weights",
+  cli.add_nondefault<std::vector<float>>("--weights",
       "Scorer weights");
 
   // TODO: the options should be available only in server
-  cli.add<size_t>("port", "--port,-p",
+  cli.add<size_t>("--port,-p",
       "Port number for web socket server",
       8080);
   // clang-format on
@@ -695,53 +697,54 @@ void ConfigParser::addOptionsRescore(cli::CLIWrapper &cli) {
   cli.startGroup("Rescorer options");
 
   // clang-format off
-  cli.add<bool>("no-reload", "--no-reload",
+  cli.add<bool>("--no-reload",
       "Do not load existing model specified in --model arg");
   // TODO: move options like vocabs and train-sets to a separate procedure as they are defined twice
-  cli.add<std::vector<std::string>>("train-sets", "--train-sets,-t",
+  cli.add<std::vector<std::string>>("--train-sets,-t",
       "Paths to corpora to be scored: source target");
-  cli.add<std::vector<std::string>>("vocab", "--vocabs,-v",
+  cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --train-sets."
       " If this parameter is not supplied we look for vocabulary files source.{yml,json} and target.{yml,json}."
-      " If these files do not exists they are created");
-  cli.add<bool>("n-best", "--n-best",
+      " If these files do not exists they are created",
+      std::vector<std::string>());
+  cli.add<bool>("--n-best",
       "Score n-best list instead of plain text corpus");
-  cli.add<std::string>("n-best-feature", "--n-best-feature",
+  cli.add<std::string>("--n-best-feature",
       "Feature name to be inserted into n-best list", "Score");
-  cli.add<std::string>("summary", "--summary",
+  cli.add_nondefault<std::string>("--summary",
       "Only print total cost, possible values: cross-entropy (ce-mean), ce-mean-words, ce-sum, perplexity")
       ->implicit_val("cross-entropy");
-  cli.add<size_t>("max-length", "--max-length",
+  cli.add<size_t>("--max-length",
       "Maximum length of a sentence in a training sentence pair",
       1000);
-  cli.add<bool>("max-length-crop", "--max-length-crop",
+  cli.add<bool>("--max-length-crop",
       "Crop a sentence to max-length instead of ommitting it if longer than max-length");
-  cli.add<std::vector<std::string>>("devices", "--devices,-d",
+  cli.add<std::vector<std::string>>("--devices,-d",
       "GPUs to use for training",
       std::vector<std::string>({"0"}));
 #ifdef CUDA_FOUND
-  cli.add<size_t>("cpu-threads", "--cpu-threads",
+  cli.add<size_t>("--cpu-threads",
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
       ->default_val("0")->implicit_val("1");
 #else
-  cli.add<size_t>("cpu-threads", "--cpu-threads",
+  cli.add<size_t>("--cpu-threads",
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
       ->default_val("1");
 #endif
-  cli.add<bool>("optimize", "--optimize",
+  cli.add<bool>("--optimize",
       "Optimize speed aggressively sacrificing memory or precision");
-  cli.add<int>("mini-batch", "--mini-batch",
+  cli.add<int>("--mini-batch",
       "Size of mini-batch used during update",
       64);
-  cli.add<int>("mini-batch-words", "--mini-batch-words",
+  cli.add<int>("--mini-batch-words",
       "Set mini-batch size based on words instead of sentences");
-  cli.add<int>("maxi-batch", "--maxi-batch",
+  cli.add<int>("--maxi-batch",
       "Number of batches to preload for length-based sorting",
       100);
-  cli.add<std::string>("maxi-batch-sort", "--maxi-batch-sort",
+  cli.add<std::string>("--maxi-batch-sort",
       "Sorting strategy for maxi-batch: trg (default), src, none",
       "trg");
-  cli.add<std::string>("alignment", "--alignment",
+  cli.add<std::string>("--alignment",
      "Return word alignments. Possible values: 0.0-1.0, hard, soft")
      ->implicit_val("1"),
 
@@ -750,42 +753,43 @@ void ConfigParser::addOptionsRescore(cli::CLIWrapper &cli) {
 }
 
 void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
-  addOptionsCommon(cli_);
-  addOptionsModel(cli_);
+  cli::CLIWrapper cli;
+  addOptionsCommon(cli);
+  addOptionsModel(cli);
 
   // clang-format off
   switch(mode_) {
     case ConfigMode::translating:
-      addOptionsTranslate(cli_);
+      addOptionsTranslate(cli);
       break;
     case ConfigMode::rescoring:
-      addOptionsRescore(cli_);
+      addOptionsRescore(cli);
       break;
     case ConfigMode::training:
-      addOptionsTraining(cli_);
-      addOptionsValid(cli_);
+      addOptionsTraining(cli);
+      addOptionsValid(cli);
       break;
   }
   // clang-format on
 
   try {
-    cli_.app()->parse(argc, argv);
+    cli.app()->parse(argc, argv);
   } catch(const CLI::ParseError& e) {
-    exit(cli_.app()->exit(e));
+    exit(cli.app()->exit(e));
   }
 
-  if(cli_.get<bool>("version")) {
+  if(cli.get<bool>("version")) {
     std::cerr << PROJECT_VERSION_FULL << std::endl;
     exit(0);
   }
 
   // TODO: config_ is needed here?
-  config_ = cli_.getConfig();
+  config_ = cli.getConfig();
 
   auto configPaths = loadConfigPaths();
 
 
-  if(cli_.has("best-deep")) {
+  if(cli.has("best-deep")) {
     config_["layer-normalization"] = true;
     config_["tied-embeddings"] = true;
     config_["enc-type"] = "alternating";
@@ -817,6 +821,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
 
   if(get<bool>("dump-config")) {
+    config_.remove("dump-config");
     YAML::Emitter emit;
     cli::OutputYaml(config_, emit);
     std::cout << emit.c_str() << std::endl;

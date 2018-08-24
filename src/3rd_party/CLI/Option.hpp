@@ -716,10 +716,6 @@ class Option : public OptionBase<Option> {
     Option *implicit_val(std::string val) {
         implicit_ = true;
         implicit_str(val);
-        auto old_results = results_;
-        results_ = {val};
-        run_callback();
-        results_ = std::move(old_results);
         return this;
     }
 
