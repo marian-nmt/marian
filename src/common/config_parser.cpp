@@ -64,7 +64,7 @@ bool ConfigParser::has(const std::string& key) const {
 void ConfigParser::validateOptions() const {
   if(mode_ == ConfigMode::translating) {
     UTIL_THROW_IF2(
-        !has("models") && !get<std::vector<std::string>>("config").empty(),
+        !has("models") && get<std::vector<std::string>>("config").empty(),
         "You need to provide at least one model file or a config file");
 
     UTIL_THROW_IF2(
@@ -778,8 +778,6 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     config_ = cli.getConfigWithNewDefaults(config);
   }
 
-  config_.remove("config");
-
   // TODO: option expansion should be done at the very end?
   if(cli.has("best-deep")) {
     config_["layer-normalization"] = true;
@@ -811,6 +809,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
       exit(1);
     }
   }
+
+  config_.remove("config");
 
   if(get<bool>("dump-config")) {
     config_.remove("dump-config");
