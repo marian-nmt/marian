@@ -172,8 +172,6 @@ struct NaryNodeOp : public Node {
     // Node is to be memoized if all children are to be memoized.
     setMemoize(std::all_of(
         nodes.begin(), nodes.end(), [](Expr a) { return a->memoize(); }));
-
-    remove_children_from_top_nodes();
   }
 
   NaryNodeOp(const std::vector<Expr>& nodes)
@@ -206,7 +204,5 @@ struct NaryNodeOp : public Node {
         return false;
     return true;
   }
-
-  void remove_children_from_top_nodes();
 };
 }  // namespace marian

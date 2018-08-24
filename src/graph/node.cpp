@@ -83,9 +83,4 @@ void Node::record(Ptr<AutoTunerRecorder> recorder,
   recorderHash_ = recorderHash;
   recorderStop_ = stop;
 }
-
-void NaryNodeOp::remove_children_from_top_nodes() {
-  for(auto child : children_)
-    graph()->remove_top_node(child);
-}
 }  // namespace marian
