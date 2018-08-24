@@ -1,6 +1,7 @@
 #include "marian.h"
 
-#include <boost/program_options.hpp>
+#include "common/cli_wrapper.h"
+
 #include <sstream>
 
 int main(int argc, char** argv) {
@@ -8,49 +9,32 @@ int main(int argc, char** argv) {
 
   createLoggers();
 
-  namespace po = boost::program_options;
-  po::options_description desc("Allowed options");
-  // clang-format off
-  desc.add_options()
-    ("from,f", po::value<std::string>()->default_value("model.npz"),
-     "Input model")
-    ("to,t", po::value<std::string>()->default_value("model.bin"),
-     "Output model")
-    ("help,h", "Print this message and exit")
-    ;
-  // clang-format on
+  cli::CLIWrapper cli("Allowed options");
+  cli.add<std::string>("--from,-f", "Input model", "model.npz");
+  cli.add<std::string>("--to,-t", "Output model", "model.bin");
 
-  po::variables_map vm;
   try {
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);
-  } catch(std::exception& e) {
-    std::cerr << "Error: " << e.what() << std::endl << std::endl;
-    std::cerr << "Usage: " << argv[0] << " [options]" << std::endl << std::endl;
-    std::cerr << desc << std::endl;
-    exit(1);
+    cli.app()->parse(argc, argv);
+  } catch(const CLI::ParseError& e) {
+    exit(cli.app()->exit(e));
   }
 
-  if(vm.count("help")) {
-    std::cerr << "Usage: " << argv[0] << " [options]" << std::endl << std::endl;
-    std::cerr << desc << std::endl;
-    exit(0);
-  }
+  auto modelFrom = cli.get<std::string>("from");
+  auto modelTo = cli.get<std::string>("to");
 
-  LOG(info, "Outputting {}", vm["to"].as<std::string>());
+  LOG(info, "Outputting {}", modelTo);
 
   YAML::Node config;
   std::stringstream configStr;
-  marian::io::getYamlFromModel(
-      config, "special:model.yml", vm["from"].as<std::string>());
+  marian::io::getYamlFromModel(config, "special:model.yml", modelFrom);
   configStr << config;
 
   auto graph = New<ExpressionGraph>(true, false);
   graph->setDevice(CPU0);
 
-  graph->load(vm["from"].as<std::string>());
+  graph->load(modelFrom);
   graph->forward();
-  graph->save(vm["to"].as<std::string>(), configStr.str());
+  graph->save(modelFrom, configStr.str());
 
   // graph->saveBinary(vm["bin"].as<std::string>());
 
