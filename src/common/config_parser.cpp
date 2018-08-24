@@ -970,8 +970,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION_NONDEFAULT("valid-translation-output", std::string);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("normalize", float);
-    SET_OPTION("max-length-factor", float);
     SET_OPTION("word-penalty", float);
+    SET_OPTION("max-length-factor", float);
     SET_OPTION("allow-unk", bool);
     SET_OPTION("n-best", bool);
   }
