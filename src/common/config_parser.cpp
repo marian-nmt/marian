@@ -364,12 +364,11 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper &cli) {
       "Do not load existing model specified in --model arg");
   cli.add<std::vector<std::string>>("--train-sets,-t",
       "Paths to training corpora: source target");
-  cli.add<std::vector<std::string>>("--vocabs,-v",
+  cli.add_nondefault<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --train-sets. "
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
-      "If these files do not exist they are created",
-      std::vector<std::string>());
+      "If these files do not exist they are created");
 
   // scheduling options
   cli.add<size_t>("--after-epochs,-e",
@@ -604,9 +603,8 @@ void ConfigParser::addOptionsTranslate(cli::CLIWrapper &cli) {
   cli.add<std::vector<std::string>>("--input,-i",
       "Paths to input file(s), stdin by default",
       std::vector<std::string>({"stdin"}));
-  cli.add<std::vector<std::string>>("--vocabs,-v",
-      "Paths to vocabulary files have to correspond to --input",
-      std::vector<std::string>());
+  cli.add_nondefault<std::vector<std::string>>("--vocabs,-v",
+      "Paths to vocabulary files have to correspond to --input");
 
   // decoding options
   cli.add<size_t>("--beam-size,-b",
@@ -686,11 +684,10 @@ void ConfigParser::addOptionsRescore(cli::CLIWrapper &cli) {
   // TODO: move options like vocabs and train-sets to a separate procedure as they are defined twice
   cli.add<std::vector<std::string>>("--train-sets,-t",
       "Paths to corpora to be scored: source target");
-  cli.add<std::vector<std::string>>("--vocabs,-v",
+  cli.add_nondefault<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --train-sets."
       " If this parameter is not supplied we look for vocabulary files source.{yml,json} and target.{yml,json}."
-      " If these files do not exists they are created",
-      std::vector<std::string>());
+      " If these files do not exists they are created");
   cli.add<bool>("--n-best",
       "Score n-best list instead of plain text corpus");
   cli.add<std::string>("--n-best-feature",
