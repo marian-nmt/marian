@@ -15,13 +15,13 @@ namespace marian {
 struct NthElement {
   virtual ~NthElement() {}
 
-  virtual void getNBestList(float* probs,
+  virtual void getNBestList(float* logProbs,
                             const std::vector<int>& batchFirstElementIdxs,
                             const std::vector<int>& cummulatedBeamSizes)
       = 0;
 
   virtual void getNBestList(const std::vector<size_t>& beamSizes,
-                            Tensor Probs,
+                            Tensor logProbs,
                             std::vector<float>& outCosts,
                             std::vector<unsigned>& outKeys,
                             const bool isFirst = false)
@@ -45,21 +45,21 @@ public:
   NthElementCPU(const NthElementCPU& copy) = delete;
   NthElementCPU(size_t maxBeamSize, size_t maxBatchSize);
 
-  void getNBestList(float* probs,
+  void getNBestList(float* logProbs,
                     const std::vector<int>& batchFirstElementIdxs,
-                    const std::vector<int>& cummulatedBeamSizes);
+                    const std::vector<int>& cummulatedBeamSizes) override;
 
   void getNBestList(const std::vector<size_t>& beamSizes,
-                    Tensor Probs,
+                    Tensor logProbs,
                     std::vector<float>& outCosts,
                     std::vector<unsigned>& outKeys,
-                    const bool isFirst = false);
+                    const bool isFirst = false) override;
 
   void GetPairs(size_t number,
                 std::vector<unsigned>& outKeys,
-                std::vector<float>& outValues);
+                std::vector<float>& outValues) override;
 
-  void getValueByKey(std::vector<float>& out, float* d_in);
+  void getValueByKey(std::vector<float>& out, float* d_in) override;
 };
 
 class NthElementGPU : public NthElement {
@@ -69,21 +69,21 @@ public:
   NthElementGPU(size_t maxBeamSize, size_t maxBatchSize, DeviceId deviceId);
   ~NthElementGPU();
 
-  void getNBestList(float* probs,
+  void getNBestList(float* logProbs,
                     const std::vector<int>& batchFirstElementIdxs,
-                    const std::vector<int>& cummulatedBeamSizes);
+                    const std::vector<int>& cummulatedBeamSizes) override;
 
   void getNBestList(const std::vector<size_t>& beamSizes,
-                    Tensor Probs,
+                    Tensor logProbs,
                     std::vector<float>& outCosts,
                     std::vector<unsigned>& outKeys,
-                    const bool isFirst = false);
+                    const bool isFirst = false) override;
 
   void GetPairs(size_t number,
                 std::vector<unsigned>& outKeys,
-                std::vector<float>& outValues);
+                std::vector<float>& outValues) override;
 
-  void getValueByKey(std::vector<float>& out, float* d_in);
+  void getValueByKey(std::vector<float>& out, float* d_in) override;
 
 private:
   DeviceId deviceId_;

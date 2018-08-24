@@ -535,21 +535,21 @@ public:
     return New<EncoderState>(context, batchMask, batch);
   }
 
-  void clear() {}
+  void clear() override {}
 };
 
 class TransformerState : public DecoderState {
 public:
   TransformerState(const rnn::States& states,
-                   Expr probs,
+                   Expr logProbs,
                    const std::vector<Ptr<EncoderState>>& encStates,
                    Ptr<data::CorpusBatch> batch)
-      : DecoderState(states, probs, encStates, batch) {}
+      : DecoderState(states, logProbs, encStates, batch) {}
 
   virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
                                    int beamSize) const override {
     // Create hypothesis-selected state based on current state and hyp indices
-    auto selectedState = New<TransformerState>(states_.select(selIdx, beamSize, /*isBatchMajor=*/true), probs_, encStates_, batch_);
+    auto selectedState = New<TransformerState>(states_.select(selIdx, beamSize, /*isBatchMajor=*/true), logProbs_, encStates_, batch_);
 
     // Set the same target token position as the current state
     // @TODO: This is the same as in base function.
@@ -776,11 +776,11 @@ public:
   }
 
   // helper function for guided alignment
-  virtual const std::vector<Expr> getAlignments(int i = 0) {
+  virtual const std::vector<Expr> getAlignments(int i = 0) override {
     return {};
   }
 
-  void clear() {
+  void clear() override {
     output_ = nullptr;
     cache_.clear();
   }

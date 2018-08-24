@@ -45,7 +45,7 @@ public:
     return outShape;
   }
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     // C = alpha * dot(op(A), op(B))
     return {NodeOp(Prod(val_,
                         child(0)->val(),
@@ -56,7 +56,7 @@ public:
                         scalar_))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     // D is the adjoint, the matrix of derivatives
     // df/dA += alpha * dot(D, op(B).T)
     // df/dB += alpha * dot(op(A).T, D)
@@ -127,9 +127,9 @@ public:
                         scalar_))};
   }
 
-  const std::string type() { return "•"; }
+  const std::string type() override { return "•"; }
 
-  const std::string color() { return "orange"; }
+  const std::string color() override { return "orange"; }
 };
 
 class AffineNodeOp : public NaryNodeOp {
@@ -168,7 +168,7 @@ public:
     return outShape;
   }
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     using namespace functional;
 
     return {
@@ -184,7 +184,7 @@ public:
     };
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     // D is the adjoint, the matrix of derivatives
     // df/dA += alpha * dot(D, op(B).T)
     // df/dB += alpha * dot(op(A).T, D)
@@ -276,7 +276,7 @@ public:
     };
   }
 
-  const std::string type() { return "affine"; }
+  const std::string type() override { return "affine"; }
 };
 
 class DotBatchedNodeOp : public NaryNodeOp {
@@ -312,7 +312,7 @@ public:
     return outShape;
   }
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     // C = alpha * dot(op(A), op(B))
     return {NodeOp(ProdBatched(val_,
                                graph()->allocator(),
@@ -324,7 +324,7 @@ public:
                                scalar_))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     // D is the adjoint, the matrix of derivatives
     // df/dA += alpha * dot(D, op(B).T)
     // df/dB += alpha * dot(op(A).T, D)
@@ -403,9 +403,9 @@ public:
                                scalar_))};
   }
 
-  const std::string type() { return "•"; }
+  const std::string type() override { return "•"; }
 
-  const std::string color() { return "orange"; }
+  const std::string color() override { return "orange"; }
 };
 
 struct ScalarProductNodeOp : public NaryNodeOp {
@@ -424,22 +424,22 @@ struct ScalarProductNodeOp : public NaryNodeOp {
     return full;
   }
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     using namespace functional;
 
     return {NodeOp(Reduce(_1 * _2, val_, child(0)->val(), child(1)->val()))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     using namespace functional;
 
     return {NodeOp(Add(_1 * _2, child(0)->grad(), child(1)->val(), adj_)),
             NodeOp(Add(_1 * _2, child(1)->grad(), child(0)->val(), adj_))};
   }
 
-  const std::string type() { return "scalar-product"; }
+  const std::string type() override { return "scalar-product"; }
 
-  const std::string color() { return "orange"; }
+  const std::string color() override { return "orange"; }
 };
 
 struct ElementBinaryNodeOp : public NaryNodeOp {
@@ -447,80 +447,80 @@ struct ElementBinaryNodeOp : public NaryNodeOp {
 
   Shape newShape(Expr a, Expr b) { return Shape::broadcast({a, b}); }
 
-  const std::string color() { return "yellow"; }
+  const std::string color() override { return "yellow"; }
 };
 
 struct PlusNodeOp : public ElementBinaryNodeOp {
   PlusNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     using namespace functional;
 
     return {
         NodeOp(Element(_1 = _2 + _3, val_, child(0)->val(), child(1)->val()))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     using namespace functional;
 
     return {NodeOp(Add(_1, child(0)->grad(), adj_)),
             NodeOp(Add(_1, child(1)->grad(), adj_))};
   }
 
-  const std::string type() { return "+"; }
+  const std::string type() override { return "+"; }
 };
 
 struct MinusNodeOp : public ElementBinaryNodeOp {
   MinusNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     using namespace functional;
 
     return {
         NodeOp(Element(_1 = _2 - _3, val_, child(0)->val(), child(1)->val()))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     using namespace functional;
 
     return {NodeOp(Add(_1, child(0)->grad(), adj_)),
             NodeOp(Add(-_1, child(1)->grad(), adj_))};
   }
 
-  const std::string type() { return "-"; }
+  const std::string type() override { return "-"; }
 };
 
 struct MultNodeOp : public ElementBinaryNodeOp {
   MultNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     using namespace functional;
 
     return {
         NodeOp(Element(_1 = _2 * _3, val_, child(0)->val(), child(1)->val()))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     using namespace functional;
 
     return {NodeOp(Add(_1 * _2, child(0)->grad(), adj_, child(1)->val())),
             NodeOp(Add(_1 * _2, child(1)->grad(), adj_, child(0)->val()))};
   }
 
-  const std::string type() { return "×"; }
+  const std::string type() override { return "×"; }
 };
 
 struct DivNodeOp : public ElementBinaryNodeOp {
   DivNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     using namespace functional;
 
     return {
         NodeOp(Element(_1 = _2 / _3, val_, child(0)->val(), child(1)->val()))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     using namespace functional;
 
     return {
@@ -532,7 +532,7 @@ struct DivNodeOp : public ElementBinaryNodeOp {
                    child(1)->val()))};
   }
 
-  const std::string type() { return "÷"; }
+  const std::string type() override { return "÷"; }
 };
 
 // struct PowNodeOp : public ElementBinaryNodeOp {
@@ -561,13 +561,13 @@ struct DivNodeOp : public ElementBinaryNodeOp {
 struct LogAddExpNodeOp : public ElementBinaryNodeOp {
   LogAddExpNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     using namespace functional;
     return {NodeOp(Element(
         _1 = logaddexp(_2, _3), val_, child(0)->val(), child(1)->val()))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     using namespace functional;
 
     // d/dx (ln( exp(x) + (exp(y)) = exp(x) / (exp(x) + exp(y)) = 1 / (1 +
@@ -585,19 +585,19 @@ struct LogAddExpNodeOp : public ElementBinaryNodeOp {
   }
 
   // TODO: this is not a "type" (as in data type). It's an operator name.
-  const std::string type() { return "logaddexp"; }
+  const std::string type() override { return "logaddexp"; }
 };
 
 struct MaximumNodeOp : public ElementBinaryNodeOp {
   MaximumNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     using namespace functional;
     return {NodeOp(
         Element(_1 = max(_2, _3), val_, child(0)->val(), child(1)->val()))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     using namespace functional;
 
     return {NodeOp(Add((_2 > _3) * _1,
@@ -612,20 +612,20 @@ struct MaximumNodeOp : public ElementBinaryNodeOp {
                        child(1)->val()))};
   }
 
-  const std::string type() { return "max"; }
+  const std::string type() override { return "max"; }
 };
 
 // TODO: lotsa code dup here!
 struct MinimumNodeOp : public ElementBinaryNodeOp {
   MinimumNodeOp(Expr a, Expr b) : ElementBinaryNodeOp(a, b) {}
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     using namespace functional;
     return {NodeOp(
         Element(_1 = min(_2, _3), val_, child(0)->val(), child(1)->val()))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     using namespace functional;
 
     return {NodeOp(Add((_2 < _3) * _1,
@@ -640,7 +640,7 @@ struct MinimumNodeOp : public ElementBinaryNodeOp {
                        child(1)->val()))};
   }
 
-  const std::string type() { return "min"; }
+  const std::string type() override { return "min"; }
 };
 
 // Cross-entropy node. It computes -b*log(softmax(a)), summing rowwise.
@@ -653,17 +653,17 @@ struct CrossEntropyNodeOp : public NaryNodeOp {
     return shape1;
   }
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     // C = sum(-logsoftmax(A) * delta(y', y))
     return {NodeOp(CrossEntropyPick(val_, child(0)->val(), child(1)->val()))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     return {NodeOp(CrossEntropyPickBackward(
         child(0)->grad(), adj_, child(0)->val(), child(1)->val()))};
   }
 
-  const std::string type() { return "x-ent"; }
+  const std::string type() override { return "x-ent"; }
 };
 
 struct ConcatenateNodeOp : public NaryNodeOp {
@@ -685,14 +685,14 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     return shape;
   }
 
-  void forward() {
+  void forward() override {
     std::vector<Tensor> concatenees;
     for(size_t i = 0; i < children_.size(); ++i)
       concatenees.push_back(child(i)->val());
     Concatenate(val_, concatenees, ax_);
   }
 
-  void backward() {
+  void backward() override {
     std::vector<Tensor> deconcatenees;
     for(size_t i = 0; i < children_.size(); ++i) {
       auto childPtr = child(i);
@@ -703,13 +703,13 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     Deconcatenate(deconcatenees, adj_, ax_);
   }
 
-  virtual size_t hash() {
+  virtual size_t hash() override {
     size_t seed = NaryNodeOp::hash();
     boost::hash_combine(seed, ax_);
     return seed;
   }
 
-  virtual bool equal(Expr node) {
+  virtual bool equal(Expr node) override {
     if(!NaryNodeOp::equal(node))
       return false;
     auto cnode = std::dynamic_pointer_cast<ConcatenateNodeOp>(node);
@@ -720,7 +720,7 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     return true;
   }
 
-  const std::string type() { return "concat"; }
+  const std::string type() override { return "concat"; }
 
   int ax_;
 };
@@ -772,7 +772,7 @@ public:
   LayerNormalizationOp(const std::vector<Expr>& nodes, float eps = 1e-9)
       : NaryNodeOp(nodes), eps_(eps) {}
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     return {NodeOp(
         LayerNormalization(val_,
                            child(0)->val(),
@@ -781,7 +781,7 @@ public:
                            eps_))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     return {NodeOp(LayerNormalizationGrad(
         child(0)->grad(),
         child(1)->grad(),
@@ -794,7 +794,7 @@ public:
         eps_))};
   }
 
-  const std::string type() { return "layer_normalization"; }
+  const std::string type() override { return "layer_normalization"; }
 
 private:
   float eps_;
@@ -803,12 +803,12 @@ private:
 struct HighwayNodeOp : public NaryNodeOp {
   HighwayNodeOp(const std::vector<Expr>& nodes) : NaryNodeOp(nodes) {}
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     return {NodeOp(HighwayForward(
         val_, child(0)->val(), child(1)->val(), child(2)->val()))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     return {NodeOp(HighwayBackward(child(0)->grad(),
                                    child(1)->grad(),
                                    child(2)->grad(),
@@ -818,7 +818,7 @@ struct HighwayNodeOp : public NaryNodeOp {
                                    adj_))};
   }
 
-  const std::string type() { return "highway"; }
+  const std::string type() override { return "highway"; }
 };
 
 #ifdef CUDNN

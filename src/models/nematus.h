@@ -29,13 +29,13 @@ public:
 
   void load(Ptr<ExpressionGraph> graph,
             const std::string& name,
-            bool markedReloaded = true) {
+            bool markedReloaded = true) override {
     graph->load(name, nameMap_);
   }
 
   void save(Ptr<ExpressionGraph> graph,
             const std::string& name,
-            bool saveTranslatorConfig = false) {
+            bool saveTranslatorConfig = false) override {
     graph->save(name, getModelParametersAsString(), nameMap_);
     if(saveTranslatorConfig) {
       createAmunConfig(name);

@@ -17,17 +17,17 @@ public:
 
 class DefaultPrinting : public PrintingStrategy {
 public:
-  bool shouldBePrinted(long) { return true; }
+  bool shouldBePrinted(long) override { return true; }
 };
 
 class QuietPrinting : public PrintingStrategy {
 public:
-  bool shouldBePrinted(long) { return false; }
+  bool shouldBePrinted(long) override { return false; }
 };
 
 class GeometricPrinting : public PrintingStrategy {
 public:
-  bool shouldBePrinted(long id) {
+  bool shouldBePrinted(long id) override {
     if(id == 0)
       next_ = start_;
     if(id <= 5)

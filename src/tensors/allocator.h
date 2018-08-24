@@ -30,7 +30,7 @@ public:
 
   ~AllocationException() { delete[] message_; }
 
-  virtual const char* what() const noexcept { return message_; }
+  virtual const char* what() const noexcept override { return message_; }
 };
 
 class Gap {

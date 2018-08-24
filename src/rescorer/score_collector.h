@@ -50,7 +50,7 @@ public:
 
   virtual void Write(long id,
                      float score,
-                     const data::SoftAlignment& align = {});
+                     const data::SoftAlignment& align = {}) override;
 
 private:
   std::string nBestList_;

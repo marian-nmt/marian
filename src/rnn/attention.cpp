@@ -21,12 +21,12 @@ struct AttentionNodeOp : public NaryNodeOp {
     return shape;
   }
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     return {
         NodeOp(Att(val_, child(0)->val(), child(1)->val(), child(2)->val()))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     return {
       NodeOp(AttBack(child(0)->grad(),
                      child(1)->grad(),
@@ -39,14 +39,14 @@ struct AttentionNodeOp : public NaryNodeOp {
   }
 
   // do not check if node is trainable
-  virtual void runBackward(const NodeOps& ops) {
+  virtual void runBackward(const NodeOps& ops) override {
     for(auto&& op : ops)
       op();
   }
 
-  const std::string type() { return "Att-ops"; }
+  const std::string type() override { return "Att-ops"; }
 
-  const std::string color() { return "yellow"; }
+  const std::string color() override { return "yellow"; }
 };
 
 Expr attOps(Expr va, Expr context, Expr state) {

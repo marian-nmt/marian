@@ -54,10 +54,10 @@ public:
     }
   }
 
-  virtual float scalar();
+  virtual float scalar() override;
 
-  virtual NodeOps forwardOps() { return {}; };
-  virtual NodeOps backwardOps() { return {}; };
+  virtual NodeOps forwardOps() override { return {}; };
+  virtual NodeOps backwardOps() override { return {}; };
 
   virtual void runForward(const NodeOps& ops) {
     for(auto&& op : ops)
@@ -71,61 +71,61 @@ public:
         op();
   }
 
-  virtual void forward();
+  virtual void forward() override;
 
-  virtual void backward();
+  virtual void backward() override;
 
-  virtual bool trainable() { return trainable_; }
+  virtual bool trainable() override { return trainable_; }
 
-  virtual void setTrainable(bool trainable) { trainable_ = trainable; }
+  virtual void setTrainable(bool trainable) override { trainable_ = trainable; }
 
-  virtual bool memoize() { return memoize_; };
-  virtual void setMemoize(bool memoize) { memoize_ = memoize; };
+  virtual bool memoize() override { return memoize_; };
+  virtual void setMemoize(bool memoize) override { memoize_ = memoize; };
 
-  virtual void setId(size_t id) { id_ = id; }
+  virtual void setId(size_t id) override { id_ = id; }
 
-  virtual size_t getId() { return id_; }
+  virtual size_t getId() override { return id_; }
 
   virtual void increaseEdges(size_t edges = 1) { edges_ += edges; };
   virtual void decreaseEdges(size_t edges = 1) { edges_ -= edges; };
   virtual size_t edges() { return edges_; };
 
-  virtual Ptr<ExpressionGraph> graph() { return graph_.lock(); }
+  virtual Ptr<ExpressionGraph> graph() override { return graph_.lock(); }
 
-  virtual void debug(const std::string& message) {
+  virtual void debug(const std::string& message) override {
     debugMessage_ = message;
     markedForDebug_ = true;
   }
 
-  virtual bool marked_for_debug() { return markedForDebug_; }
-  virtual const std::string& debug_message() { return debugMessage_; }
+  virtual bool marked_for_debug() override { return markedForDebug_; }
+  virtual const std::string& debug_message() override { return debugMessage_; }
 
-  virtual size_t allocate();
+  virtual size_t allocate() override;
 
-  virtual void free();
+  virtual void free() override;
 
-  virtual void init(){};
+  virtual void init() override{};
 
-  virtual void init_dependent();
+  virtual void init_dependent() override;
 
-  virtual void set_zero_adjoint();
+  virtual void set_zero_adjoint() override;
 
-  virtual Tensor& val() { return val_; };
+  virtual Tensor& val() override { return val_; };
 
-  virtual Tensor& grad() { return adj_; };
+  virtual Tensor& grad() override { return adj_; };
 
-  virtual const Shape& shape() { return shape_; }
-  virtual const Type& value_type() { return value_type_; }
+  virtual const Shape& shape() override { return shape_; }
+  virtual const Type& value_type() override { return value_type_; }
 
-  void set_name(const std::string& name) { name_ = name; }
+  void set_name(const std::string& name) override { name_ = name; }
 
-  const std::string& name() const { return name_; }
+  const std::string& name() const override { return name_; }
 
-  virtual const std::string form() { return "box"; }
+  virtual const std::string form() override { return "box"; }
 
-  virtual const std::string color() { return "orange"; }
+  virtual const std::string color() override { return "orange"; }
 
-  virtual const std::string label() {
+  virtual const std::string label() override {
     std::stringstream label;
     label << "<" << type();
     if(name_ != "none") {
@@ -136,7 +136,7 @@ public:
     return label.str();
   }
 
-  virtual std::string graphviz() {
+  virtual std::string graphviz() override {
     std::stringstream ss;
     ss << "\"" << this << "\" [shape=\"" << form() << "\", label=" << label()
        << ", style=\"filled\", fillcolor=\"" << color() << "\"]" << std::endl;
@@ -146,13 +146,13 @@ public:
     return ss.str();
   }
 
-  virtual std::vector<Expr>& children() { return children_; }
+  virtual std::vector<Expr>& children() override { return children_; }
 
-  virtual Expr child(size_t i) { return children_[i]; }
+  virtual Expr child(size_t i) override { return children_[i]; }
 
   Ptr<Backend> getBackend();
 
-  void record(Ptr<AutoTunerRecorder>, size_t, bool);
+  void record(Ptr<AutoTunerRecorder>, size_t, bool) override;
 };
 
 struct NaryNodeOp : public Node {
@@ -181,9 +181,9 @@ struct NaryNodeOp : public Node {
 
   virtual ~NaryNodeOp() {}
 
-  std::vector<Expr>& children() { return children_; }
+  std::vector<Expr>& children() override { return children_; }
 
-  virtual size_t hash() {
+  virtual size_t hash() override {
     if(!hash_) {
       std::size_t seed = boost::hash<std::string>()(name());
       boost::hash_combine(seed, type());
@@ -194,7 +194,7 @@ struct NaryNodeOp : public Node {
     return hash_;
   }
 
-  virtual bool equal(Expr node) {
+  virtual bool equal(Expr node) override {
     if(type() != node->type())
       return false;
     if(name() != node->name())

@@ -27,7 +27,7 @@ namespace marian {
  */
 class MultiNodeGraphGroup : public GraphGroup {
 public:
-  virtual void setScheduler(Ptr<Scheduler> scheduler);
+  virtual void setScheduler(Ptr<Scheduler> scheduler) override;
 
 protected:
   ////////////////////////////////////////////////////////////////////////////
@@ -447,7 +447,7 @@ public:
   /**
    * Update any client model with given batch if batch is assigned to this node.
    */
-  void update(Ptr<data::Batch> batch) {
+  void update(Ptr<data::Batch> batch) override {
     ABORT_IF(finalized_, "Training has already finished.");
     // Only take batch assigned to this node
     if(batchIter_ % mpi_comm_world_size_ == (size_t)mpi_my_rank_) {
@@ -459,7 +459,7 @@ public:
   /**
    * Load models from disk if file exists and setting is not disabled
    */
-  void load() {
+  void load() override {
     if(!options_->get<bool>("no-reload")) {
       std::string name = options_->get<std::string>("model");
 
@@ -484,7 +484,7 @@ public:
   /**
    * Save model of first client's graph to disk
    */
-  void save(bool final = false) { save(clientGraphs_[0], final); }
+  void save(bool final = false) override { save(clientGraphs_[0], final); }
 
   /**
    * Save model of given graph to disk.
@@ -530,6 +530,6 @@ public:
     return GraphGroup::collectStats(clientGraphs_[0], clientBuilders_[0]);
   }
 
-  virtual void finalize() { finalized_ = true; }
+  virtual void finalize() override { finalized_ = true; }
 };
 }  // namespace marian

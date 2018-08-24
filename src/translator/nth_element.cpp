@@ -17,12 +17,12 @@ NthElementCPU::NthElementCPU(size_t maxBeamSize, size_t maxBatchSize) {
   h_res_idx.resize(maxSize);
 }
 
-void NthElementCPU::getNBestList(float* probs,
+void NthElementCPU::getNBestList(float* scores,
                                  const std::vector<int>& batchFirstElementIdxs,
                                  const std::vector<int>& cumulativeBeamSizes) {
-  /* For each batch, select the top N elements, where N is the beam size for
+  /* For each batch, select the max N elements, where N is the beam size for
    * this batch. Locally record these elements (their current value and index
-   * in 'probs') before updating each element to a large negative value, such
+   * in 'scores') before updating each element to a large negative value, such
    * that they won't be a maximum if we're called again on the same input.
    */
 
@@ -41,35 +41,35 @@ void NthElementCPU::getNBestList(float* probs,
     std::vector<int>::iterator end
         = idxs.begin() + batchFirstElementIdxs[batchIdx + 1];
     std::partial_sort(
-        begin, middle, end, [=](int a, int b) { return probs[a] > probs[b]; });
+        begin, middle, end, [=](int a, int b) { return scores[a] > scores[b]; });
 
     while(begin != middle) {
       int idx = *begin++;
       h_res_idx[pos] = idx;
-      h_res[pos] = probs[idx];
-      probs[idx] = std::numeric_limits<float>::lowest();
+      h_res[pos] = scores[idx];
+      scores[idx] = std::numeric_limits<float>::lowest();
       ++pos;
     }
   }
 }
 
 void NthElementCPU::getNBestList(const std::vector<size_t>& beamSizes,
-                                 Tensor probs,
-                                 std::vector<float>& outCosts,
+                                 Tensor scores,
+                                 std::vector<float>& outPathScores,
                                  std::vector<unsigned>& outKeys,
                                  const bool isFirst) {
   std::vector<int> cumulativeBeamSizes(beamSizes.size() + 1, 0);
   std::vector<int> batchFirstElementIdxs(beamSizes.size() + 1, 0);
 
-  size_t vocabSize = probs->shape()[-1];
+  size_t vocabSize = scores->shape()[-1];
   for(size_t i = 0; i < beamSizes.size(); ++i) {
     cumulativeBeamSizes[i + 1] = cumulativeBeamSizes[i] + beamSizes[i];
     batchFirstElementIdxs[i + 1]
         += (isFirst ? i + 1 : cumulativeBeamSizes[i + 1]) * vocabSize;
   }
 
-  getNBestList(probs->data(), batchFirstElementIdxs, cumulativeBeamSizes);
-  GetPairs(cumulativeBeamSizes.back(), outKeys, outCosts);
+  getNBestList(scores->data(), batchFirstElementIdxs, cumulativeBeamSizes);
+  GetPairs(cumulativeBeamSizes.back(), outKeys, outPathScores);
 }
 
 void NthElementCPU::GetPairs(size_t number,

@@ -87,7 +87,7 @@ public:
     }
   }
 
-  void run() {
+  void run() override {
     LOG(info, "Scoring");
 
     auto batchGenerator = New<BatchGenerator<CorpusBase>>(corpus_, options_);

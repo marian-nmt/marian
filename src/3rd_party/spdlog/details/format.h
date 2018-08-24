@@ -786,7 +786,7 @@ private:
     }
 
 protected:
-    void grow(std::size_t size);
+    void grow(std::size_t size) override;
 
 public:
     explicit MemoryBuffer(const Allocator &alloc = Allocator())
@@ -844,7 +844,7 @@ public:
 };
 
 template <typename T, std::size_t SIZE, typename Allocator>
-void MemoryBuffer<T, SIZE, Allocator>::grow(std::size_t size)
+void MemoryBuffer<T, SIZE, Allocator>::grow(std::size_t size) // override
 {
     std::size_t new_capacity = this->capacity_ + this->capacity_ / 2;
     if (size > new_capacity)
@@ -2479,7 +2479,7 @@ public:
         this->setp(start_, start_ + buffer_.capacity());
     }
 
-    int_type overflow(int_type ch = traits_type::eof())
+    int_type overflow(int_type ch = traits_type::eof()) override
     {
         if (!traits_type::eq_int_type(ch, traits_type::eof()))
         {

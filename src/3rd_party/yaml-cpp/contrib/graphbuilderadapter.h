@@ -28,21 +28,21 @@ class GraphBuilderAdapter : public EventHandler {
   GraphBuilderAdapter(GraphBuilderInterface& builder)
       : m_builder(builder), m_pRootNode(NULL), m_pKeyNode(NULL) {}
 
-  virtual void OnDocumentStart(const Mark& mark) { (void)mark; }
-  virtual void OnDocumentEnd() {}
+  virtual void OnDocumentStart(const Mark& mark) override { (void)mark; }
+  virtual void OnDocumentEnd() override {}
 
-  virtual void OnNull(const Mark& mark, anchor_t anchor);
-  virtual void OnAlias(const Mark& mark, anchor_t anchor);
+  virtual void OnNull(const Mark& mark, anchor_t anchor) override;
+  virtual void OnAlias(const Mark& mark, anchor_t anchor) override;
   virtual void OnScalar(const Mark& mark, const std::string& tag,
-                        anchor_t anchor, const std::string& value);
+                        anchor_t anchor, const std::string& value) override;
 
   virtual void OnSequenceStart(const Mark& mark, const std::string& tag,
-                               anchor_t anchor, EmitterStyle::value style);
-  virtual void OnSequenceEnd();
+                               anchor_t anchor, EmitterStyle::value style) override;
+  virtual void OnSequenceEnd() override;
 
   virtual void OnMapStart(const Mark& mark, const std::string& tag,
-                          anchor_t anchor, EmitterStyle::value style);
-  virtual void OnMapEnd();
+                          anchor_t anchor, EmitterStyle::value style) override;
+  virtual void OnMapEnd() override;
 
   void* RootNode() const { return m_pRootNode; }
 

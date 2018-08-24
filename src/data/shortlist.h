@@ -61,7 +61,7 @@ public:
         shared_(shared),
         gen_(rd_()) {}
 
-  virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) {
+  virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) override {
     auto srcBatch = (*batch)[srcIdx_];
     auto trgBatch = (*batch)[trgIdx_];
 
@@ -196,7 +196,7 @@ public:
     prune(threshold);
   }
 
-  virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) {
+  virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) override {
     auto srcBatch = (*batch)[srcIdx_];
     // auto trgBatch = (*batch)[trgIdx_];
 
@@ -260,7 +260,7 @@ public:
     }
   }
 
-  Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) {
+  Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) override {
     std::vector<Word> tmp;
     return New<Shortlist>(idx_, tmp, reverseIdx_);
   }

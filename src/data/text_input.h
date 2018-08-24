@@ -45,17 +45,17 @@ public:
             std::vector<Ptr<Vocab>> vocabs,
             Ptr<Config> options);
 
-  sample next();
+  sample next() override;
 
-  void shuffle() {}
-  void reset() {}
+  void shuffle() override {}
+  void reset() override {}
 
-  iterator begin() { return iterator(*this); }
-  iterator end() { return iterator(); }
+  iterator begin() override { return iterator(*this); }
+  iterator end() override { return iterator(); }
 
   // TODO: There are half dozen functions called toBatch(), which are very
   // similar. Factor them.
-  batch_ptr toBatch(const std::vector<sample>& batchVector) {
+  batch_ptr toBatch(const std::vector<sample>& batchVector) override {
     size_t batchSize = batchVector.size();
 
     std::vector<size_t> sentenceIds;
@@ -96,7 +96,7 @@ public:
     return batch;
   }
 
-  void prepare() {}
+  void prepare() override {}
 };
 }  // namespace data
 }  // namespace marian
