@@ -372,7 +372,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper &cli) {
       "If these files do not exist they are created");
 
   // scheduling options
-  cli.add<size_t>("--after-epoch,-e",
+  cli.add<size_t>("--after-epochs,-e",
       "Finish after this many epochs, 0 is infinity");
   cli.add<size_t>("--after-batches",
       "Finish after this many batch updates, 0 is infinity");
