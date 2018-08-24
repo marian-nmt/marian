@@ -763,13 +763,13 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     exit(cli.app()->exit(e));
   }
 
-  if(cli.get<bool>("version")) {
+  // TODO: config_ is needed here?
+  config_ = cli.getConfig();
+
+  if(has("version")) {
     std::cerr << PROJECT_VERSION_FULL << std::endl;
     exit(0);
   }
-
-  // TODO: config_ is needed here?
-  config_ = cli.getConfig();
 
   auto configPaths = loadConfigPaths();
 
@@ -883,10 +883,8 @@ std::vector<std::string> ConfigParser::loadConfigPaths() {
     bool reloadConfig
         = boost::filesystem::exists(path) && !config_["no-reload"].as<bool>();
 
-    if(reloadConfig) {
-      config_ = YAML::Load(InputFileStream(path));
-    }
-    paths = {path};
+    if(reloadConfig)
+      paths = {path};
   }
 
   return paths;

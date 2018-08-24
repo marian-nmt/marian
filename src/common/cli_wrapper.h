@@ -82,7 +82,7 @@ public:
   template <typename T>
   T get(const std::string &key) const {
     ABORT_IF(
-        vars_.count(key) == 0, "An options with key '{}' does not exist", key);
+        vars_.count(key) == 0, "An option with key '{}' is not defined", key);
     return vars_.at(key)->as<T>();
   }
 
