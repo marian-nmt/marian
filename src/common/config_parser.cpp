@@ -23,25 +23,9 @@
 #include "common/regex.h"
 #include "common/version.h"
 
-#define SET_OPTION(key, type)                    \
-  do {                                           \
-    if(!vm_[key].defaulted() || !config_[key]) { \
-      config_[key] = vm_[key].as<type>();        \
-    }                                            \
-  } while(0)
-
-#define SET_OPTION_NONDEFAULT(key, type)  \
-  do {                                    \
-    if(vm_.count(key) > 0) {              \
-      config_[key] = vm_[key].as<type>(); \
-    }                                     \
-  } while(0)
-
-namespace po = boost::program_options;
-
 namespace marian {
 
-uint16_t guess_terminal_width(uint16_t max_width) {
+uint16_t guess_terminal_width(uint16_t max_width, uint16_t default_width) {
   uint16_t cols = 0;
 #ifdef TIOCGSIZE
   struct ttysize ts;
@@ -56,7 +40,7 @@ uint16_t guess_terminal_width(uint16_t max_width) {
 #endif
   // couldn't determine terminal width
   if(cols == 0)
-    cols = po::options_description::m_default_line_length;
+    cols = default_width;
   return max_width ? std::min(cols, max_width) : cols;
 }
 
@@ -754,6 +738,7 @@ void ConfigParser::addOptionsRescore(cli::CLIWrapper &cli) {
 
 void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   cli::CLIWrapper cli;
+
   addOptionsCommon(cli);
   addOptionsModel(cli);
 

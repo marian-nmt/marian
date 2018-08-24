@@ -22,7 +22,7 @@ enum struct ConfigMode {
 };
 
 // try to determine the width of the terminal
-uint16_t guess_terminal_width(uint16_t max_width = 180);
+uint16_t guess_terminal_width(uint16_t max_width = 180, uint16_t default_width = 180);
 
 class ConfigParser {
 public:
