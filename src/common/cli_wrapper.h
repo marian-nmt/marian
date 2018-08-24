@@ -92,12 +92,20 @@ public:
   Ptr<CLI::App> app() { return app_; }
 
   YAML::Node getConfig() {
-    // TODO: remove debugs
-    YAML::Emitter emit;
-    OutputYaml(config_, emit);
-    std::cerr << emit.c_str() << std::endl;
-
     return config_;
+  }
+
+  YAML::Node getConfigWithNewDefaults(const YAML::Node& node) const {
+    YAML::Node yaml = YAML::Clone(config_);
+    // iterate requested default values
+    for(auto it : node) {
+      auto key = it.first.as<std::string>();
+      // if we have an option and but it was not specified on command-line
+      if(vars_.count(key) > 0 && opts_.at(key)->empty()) {
+        yaml[key] = YAML::Clone(it.second);
+      }
+    }
+    return yaml;
   }
 
 private:
@@ -111,14 +119,14 @@ private:
                           T val,
                           bool defaulted,
                           bool addToConfig) {
-    std::cerr << "CLI::add(" << key << ") " << std::endl;
+    //std::cerr << "CLI::add(" << key << ") " << std::endl;
 
     if(addToConfig)
       config_[key] = val;
     vars_.insert(std::make_pair(key, std::make_shared<some_type>(val)));
 
     CLI::callback_t fun = [this, key](CLI::results_t res) {
-      std::cerr << "CLI::callback(" << key << ") " << std::endl;
+      //std::cerr << "CLI::callback(" << key << ") " << std::endl;
       auto &var = vars_[key]->as<T>();
       auto ret = CLI::detail::lexical_cast(res[0], var);
       config_[key] = var;
@@ -143,14 +151,14 @@ private:
                           T val,
                           bool defaulted,
                           bool addToConfig) {
-    std::cerr << "CLI::add(" << key << ") as bool" << std::endl;
+    //std::cerr << "CLI::add(" << key << ") as bool" << std::endl;
 
     if(addToConfig)
       config_[key] = val;
     vars_.insert(std::make_pair(key, std::make_shared<some_type>(val)));
 
     CLI::callback_t fun = [this, key](CLI::results_t res) {
-      std::cerr << "CLI::callback(" << key << ") " << std::endl;
+      //std::cerr << "CLI::callback(" << key << ") " << std::endl;
       config_[key] = !res.empty();
       return true;
     };
@@ -173,14 +181,14 @@ private:
                           T val,
                           bool defaulted,
                           bool addToConfig) {
-    std::cerr << "CLI::add(" << key << ") as vector" << std::endl;
+    //std::cerr << "CLI::add(" << key << ") as vector" << std::endl;
 
     if(addToConfig)
       config_[key] = val;
     vars_.insert(std::make_pair(key, std::make_shared<some_type>(val)));
 
     CLI::callback_t fun = [this, key](CLI::results_t res) {
-      std::cerr << "CLI::callback(" << key << ") " << std::endl;
+      //std::cerr << "CLI::callback(" << key << ") " << std::endl;
       auto &vec = vars_[key]->as<T>();
       vec.clear();
       bool ret = true;

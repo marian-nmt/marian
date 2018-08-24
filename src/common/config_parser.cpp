@@ -663,7 +663,7 @@ void ConfigParser::addOptionsTranslate(cli::CLIWrapper &cli) {
   cli.add<bool>("--skip-cost",
       "Ignore model cost during translation, not recommended for beam-size > 1");
 
-  cli.add<std::vector<std::string>>("--shortlist",
+  cli.add_nondefault<std::vector<std::string>>("--shortlist",
      "Use softmax shortlist: path first best prune");
   cli.add_nondefault<std::vector<float>>("--weights",
       "Scorer weights");
@@ -773,7 +773,12 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 
   auto configPaths = loadConfigPaths();
 
+  if(!configPaths.empty()) {
+    auto config = loadConfigFiles(configPaths);
+    config_ = cli.getConfigWithNewDefaults(config);
+  }
 
+  // TODO: option expansion should be done at the very end?
   if(cli.has("best-deep")) {
     config_["layer-normalization"] = true;
     config_["tied-embeddings"] = true;
@@ -843,38 +848,48 @@ void ConfigParser::makeAbsolutePaths(
   cli::ProcessPaths(config_, transformFunc, PATHS);
 }
 
+YAML::Node ConfigParser::loadConfigFiles(
+    const std::vector<std::string>& paths) {
+  YAML::Node config;
+
+  for(auto& path : paths) {
+    // later file overrides
+    for(const auto& it : YAML::Load(InputFileStream(path))) {
+      config[it.first.as<std::string>()] = YAML::Clone(it.second);
+    }
+  }
+
+  return config;
+}
+
 std::vector<std::string> ConfigParser::loadConfigPaths() {
-  std::vector<std::string> configPaths;
+  std::vector<std::string> paths;
 
   bool interpolateEnvVars = config_["interpolate-env-vars"].as<bool>();
   bool loadConfig = !config_["config"].as<std::vector<std::string>>().empty();
 
   if(loadConfig) {
-    configPaths = config_["config"].as<std::vector<std::string>>();
-    config_ = YAML::Node();
-    for(auto& configPath : configPaths) {
-      // (note: this updates the configPaths array)
+    paths = config_["config"].as<std::vector<std::string>>();
+    for(auto& path : paths) {
+      // (note: this updates the paths array)
       if(interpolateEnvVars)
-        configPath = cli::InterpolateEnvVars(configPath);
-      // later file overrides
-      for(const auto& it : YAML::Load(InputFileStream(configPath)))
-        config_[it.first.as<std::string>()] = it.second;
+        path = cli::InterpolateEnvVars(path);
     }
   } else if(mode_ == ConfigMode::training) {
-    auto configPath = config_["model"].as<std::string>() + ".yml";
+    auto path = config_["model"].as<std::string>() + ".yml";
     if(interpolateEnvVars)
-      configPath = cli::InterpolateEnvVars(configPath);
+      path = cli::InterpolateEnvVars(path);
 
     bool reloadConfig
-        = boost::filesystem::exists(configPath) && !config_["no-reload"].as<bool>();
+        = boost::filesystem::exists(path) && !config_["no-reload"].as<bool>();
 
     if(reloadConfig) {
-      config_ = YAML::Load(InputFileStream(configPath));
+      config_ = YAML::Load(InputFileStream(path));
     }
-    configPaths = {configPath};
+    paths = {path};
   }
 
-  return configPaths;
+  return paths;
 }
 
 std::vector<DeviceId> ConfigParser::getDevices() {

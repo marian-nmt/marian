@@ -62,5 +62,6 @@ private:
   void makeAbsolutePaths(const std::vector<std::string>&);
 
   std::vector<std::string> loadConfigPaths();
+  YAML::Node loadConfigFiles(const std::vector<std::string>&);
 };
 }  // namespace marian
