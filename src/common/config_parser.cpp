@@ -778,6 +778,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     config_ = cli.getConfigWithNewDefaults(config);
   }
 
+  config_.remove("config");
+
   // TODO: option expansion should be done at the very end?
   if(cli.has("best-deep")) {
     config_["layer-normalization"] = true;
