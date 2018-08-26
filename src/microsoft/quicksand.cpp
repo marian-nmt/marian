@@ -20,13 +20,11 @@ void set(Ptr<Options> options, const std::string& key, const T& value) {
 
 template void set(Ptr<Options> options, const std::string& key, const size_t&);
 template void set(Ptr<Options> options, const std::string& key, const int&);
-template void set(Ptr<Options> options,
-                  const std::string& key,
-                  const std::string&);
+template void set(Ptr<Options> options, const std::string& key, const std::string&);
 template void set(Ptr<Options> options, const std::string& key, const bool&);
-template void set(Ptr<Options> options,
-                  const std::string& key,
-                  const std::vector<std::string>&);
+template void set(Ptr<Options> options, const std::string& key, const std::vector<std::string>&);
+template void set(Ptr<Options> options, const std::string& key, const float&);
+template void set(Ptr<Options> options, const std::string& key, const double&);
 
 Ptr<Options> newOptions() {
   return New<Options>();
@@ -55,14 +53,6 @@ public:
 #ifdef MKL_FOUND
     mkl_set_num_threads(options->get<size_t>("mkl-threads", 1));
 #endif
-
-    options_->set("inference", true);
-    options_->set("word-penalty", 0);
-    options_->set("normalize", 0);
-    options_->set("n-best", false);
-
-    // No unk in QS
-    options_->set("allow-unk", false);
 
     std::vector<std::string> models
         = options_->get<std::vector<std::string>>("model");
