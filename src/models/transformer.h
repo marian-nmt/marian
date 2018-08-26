@@ -173,6 +173,7 @@ public:
   void collectOneHead(Expr weights, int dimBeam) {
     // select first head, this is arbitrary as the choice does not really matter
     auto head0 = select(weights, -3, {0});
+    //auto head0 = mean(weights, keywords::axis=-3);
 
     int dimBatchBeam = head0->shape()[-4];
     int srcWords = head0->shape()[-1];
@@ -181,11 +182,14 @@ public:
 
     // reshape and transpose to match the format guided_alignment expects
     head0 = reshape(head0, {dimBeam, dimBatch, trgWords, srcWords});
-    head0 = transpose(head0, {0, 3, 1, 2});
+    head0 = transpose(head0, {0, 3, 1, 2}); // beam, src, batch, trg
 
     // safe only last alignment set. For training this will be all alignments,
-    // for translation only the last one. 
-    alignments_ = { head0 };
+    // for translation only the last one. Also split alignments by target words.
+    // @TODO: make splitting obsolete
+    alignments_.clear();
+    for(int i = 0; i < trgWords; ++i)
+      alignments_.push_back(select(head0, -1, {(size_t)i}));
   }
 
   // determine the multiplicative-attention probability and performs the associative lookup as well
@@ -769,11 +773,20 @@ public:
 
           // if training is performed with guided_alignment or if alignment is requested during
           // decoding or scoring return the attention weights of one head of the last layer.
-          // @TODO: allow choice of layer. Restrict to first encoder (j == 0).
-          // @TODO2: maybe allow to return average or max over all heads?
-          bool saveAttentionWeights = (options_->has("guided-alignment") || options_->has("alignment"))
-                             && j == 0 
-                             && i == decDepth - 1;
+          // @TODO: maybe allow to return average or max over all heads?
+          bool saveAttentionWeights = false;
+          if(j == 0 && (options_->has("guided-alignment") || options_->has("alignment"))) {
+            size_t attLayer = decDepth - 1;
+            std::string gaStr = options_->get<std::string>("transformer-guided-alignment-layer");
+            if(gaStr != "last")
+              attLayer = std::stoull(gaStr) - 1;
+            
+            ABORT_IF(attLayer >= decDepth, 
+                     "Chosen layer for guided attention ({}) larger than number of layers ({})", 
+                     attLayer + 1, decDepth);
+
+            saveAttentionWeights = i == attLayer;
+          }
 
           query = LayerAttention(prefix,
                                  query,

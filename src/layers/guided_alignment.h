@@ -14,12 +14,12 @@ static inline Expr guidedAlignmentCost(Ptr<ExpressionGraph> graph,
   int dimSrc = att->shape()[-3];
   int dimTrg = att->shape()[-1];
 
-  debug(att, "Attention");
+  //debug(att, "Attention");
   
   auto aln = graph->constant(att->shape(),
                              inits::from_vector(batch->getGuidedAlignment()));
 
-  debug(aln, "Alignment");
+  //debug(aln, "Alignment");
 
 
   std::string guidedCostType

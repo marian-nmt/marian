@@ -309,6 +309,8 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
     ("transformer-tied-layers", po::value<std::vector<size_t>>()->multitoken()
       ->default_value(std::vector<size_t>(), ""),
      "List of tied decoder layers (transformer)")
+    ("transformer-guided-alignment-layer", po::value<std::string>()->default_value("last"),
+     "Last or number of layer to use for guided alignment training in transformer")
     ("transformer-preprocess", po::value<std::string>()->default_value(""),
      "Operation before each transformer layer: d = dropout, a = add, n = normalize")
     ("transformer-postprocess-emb", po::value<std::string>()->default_value("d"),
@@ -828,6 +830,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("transformer-aan-nogate", bool);
   SET_OPTION("transformer-decoder-autoreg", std::string);
   SET_OPTION("transformer-tied-layers", std::vector<size_t>);
+  SET_OPTION("transformer-guided-alignment-layer", std::string);
 
 #ifdef CUDNN
   SET_OPTION("char-stride", int);
