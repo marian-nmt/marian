@@ -182,7 +182,7 @@ public:
 
     // reshape and transpose to match the format guided_alignment expects
     head0 = reshape(head0, {dimBeam, dimBatch, trgWords, srcWords});
-    head0 = transpose(head0, {0, 3, 1, 2}); // beam, src, batch, trg
+    head0 = transpose(head0, {0, 3, 1, 2}); // [-4: beam depth, -3: max src length, -2: batch size, -1: max tgt length]
 
     // safe only last alignment set. For training this will be all alignments,
     // for translation only the last one. Also split alignments by target words.
