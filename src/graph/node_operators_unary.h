@@ -755,7 +755,9 @@ struct ColsNodeOp : public UnaryNodeOp {
 
 struct SelectNodeOp : public UnaryNodeOp {
   SelectNodeOp(Expr a, int axis, const std::vector<size_t>& indices)
-      : UnaryNodeOp(a, newShape(a, axis, indices)), indices_(indices) {
+      : UnaryNodeOp(a, newShape(a, axis, indices)), 
+        indices_(indices), 
+        axis_{a->shape().axis(axis)} {
     setMemoize(false);
   }
 
@@ -771,8 +773,8 @@ struct SelectNodeOp : public UnaryNodeOp {
 
   Shape newShape(Expr a, int axis, const std::vector<size_t>& indices) {
     Shape shape = a->shape();
-    axis_ = shape.axis(axis);
-    shape.set(axis_, indices.size());
+    axis = shape.axis(axis);
+    shape.set(axis, indices.size());
     return shape;
   }
 
@@ -805,7 +807,7 @@ struct SelectNodeOp : public UnaryNodeOp {
   }
 
   std::vector<size_t> indices_;
-  int axis_{0};
+  int axis_;
 };
 
 struct TransposeNodeOp : public UnaryNodeOp {

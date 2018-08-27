@@ -17,6 +17,15 @@ std::vector<std::string> Split(const std::string& line,
                                const std::string del = " ",
                                bool keepEmpty = false);
 
+void SplitAny(const std::string& line,
+              std::vector<std::string>& pieces,
+              const std::string del = " ",
+              bool keepEmpty = false);
+
+std::vector<std::string> SplitAny(const std::string& line,
+                                  const std::string del = " ",
+                                  bool keepEmpty = false);
+
 std::string Join(const std::vector<std::string>& words,
                  const std::string& del = " ",
                  bool reverse = false);

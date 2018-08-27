@@ -304,6 +304,9 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "self-attention");
   cli.add<std::vector<size_t>>("--transformer-tied-layers",
       "List of tied decoder layers (transformer)");
+  cli.add<std::string>("--transformer-guided-alignment-layer",
+      "Last or number of layer to use for guided alignment training in transformer",
+      "last");
   cli.add<std::string>("--transformer-preprocess",
       "Operation before each transformer layer: d = dropout, a = add, n = normalize");
   cli.add<std::string>("--transformer-postprocess-emb",

@@ -25,6 +25,7 @@ class Transformer : public EncoderOrDecoderBase {
 protected:
   using Base::options_; using Base::inference_;
   std::unordered_map<std::string, Expr> cache_;
+  std::vector<Expr> alignments_;
 
   template <typename T> T opt(const std::string& key) const { Ptr<Options> options = options_; return options->get<T>(key); }  // need to duplicate, since somehow using Base::opt is not working
   // FIXME: that separate options assignment is weird
@@ -169,14 +170,37 @@ public:
     return output;
   }
 
+  void collectOneHead(Expr weights, int dimBeam) {
+    // select first head, this is arbitrary as the choice does not really matter
+    auto head0 = select(weights, -3, {0});
+    //auto head0 = mean(weights, keywords::axis=-3);
+
+    int dimBatchBeam = head0->shape()[-4];
+    int srcWords = head0->shape()[-1];
+    int trgWords = head0->shape()[-2];
+    int dimBatch = dimBatchBeam / dimBeam;
+
+    // reshape and transpose to match the format guided_alignment expects
+    head0 = reshape(head0, {dimBeam, dimBatch, trgWords, srcWords});
+    head0 = transpose(head0, {0, 3, 1, 2}); // [-4: beam depth, -3: max src length, -2: batch size, -1: max tgt length]
+
+    // safe only last alignment set. For training this will be all alignments,
+    // for translation only the last one. Also split alignments by target words.
+    // @TODO: make splitting obsolete
+    alignments_.clear();
+    for(int i = 0; i < trgWords; ++i)
+      alignments_.push_back(select(head0, -1, {(size_t)i}));
+  }
+
   // determine the multiplicative-attention probability and performs the associative lookup as well
   // q, k, and v have already been split into multiple heads, undergone any desired linear transform.
   Expr Attention(std::string prefix,
                  Expr q,              // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]
                  Expr k,              // [-4: batch size, -3: num heads, -2: max src length, -1: split vector dim]
                  Expr v,              // [-4: batch size, -3: num heads, -2: max src length, -1: split vector dim]
-                 Expr mask = nullptr) // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
-      const {
+                 Expr mask = nullptr, // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
+                 bool saveAttentionWeights = false,
+                 int dimBeam = 1) {
     int dk = k->shape()[-1];
 
     // softmax over batched dot product of query and keys (applied over all
@@ -191,6 +215,9 @@ public:
 
     // take softmax along src sequence axis (-1)
     auto weights = softmax(z); // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
+
+    if(saveAttentionWeights)
+      collectOneHead(weights, dimBeam);
 
     // optional dropout for attention weights
     float dropProb
@@ -209,7 +236,8 @@ public:
                  const Expr &keys,   // [-4: beam depth, -3: batch size, -2: max kv length, -1: vector dim]
                  const Expr &values, // [-4: beam depth, -3: batch size, -2: max kv length, -1: vector dim]
                  const Expr &mask,   // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
-                 bool cache = false) {
+                 bool cache = false,
+                 bool saveAttentionWeights = false) {
     int dimModel = q->shape()[-1];
     // @TODO: good opportunity to implement auto-batching here or do something manually?
     auto Wq = graph_->param(prefix + "_Wq", {dimModel, dimModel}, inits::glorot_uniform);
@@ -245,11 +273,13 @@ public:
       vh = cache_[prefix + "_values"];
     }
 
+    int dimBeam = q->shape()[-4];
+
     // apply multi-head attention to downscaled inputs
     auto output
-        = Attention(prefix, qh, kh, vh, mask); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
+        = Attention(prefix, qh, kh, vh, mask, saveAttentionWeights, dimBeam); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
 
-    output = JoinHeads(output, q->shape()[-4]); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
+    output = JoinHeads(output, dimBeam); // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
 
     int dimAtt = output->shape()[-1];
 
@@ -269,7 +299,8 @@ public:
                       const Expr& keys,   // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
                       const Expr& values, // ...?
                       const Expr& mask,   // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
-                      bool cache = false) {
+                      bool cache = false,
+                      bool saveAttentionWeights = false) {
     int dimModel = input->shape()[-1];
 
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
@@ -279,7 +310,7 @@ public:
     auto heads = opt<int>("transformer-heads");
 
     // multi-head self-attention over previous input
-    output = MultiHead(prefix, dimModel, heads, output, keys, values, mask, cache);
+    output = MultiHead(prefix, dimModel, heads, output, keys, values, mask, cache, saveAttentionWeights);
 
     auto opsPost = opt<std::string>("transformer-postprocess");
     output = postProcess(prefix + "_Wo", opsPost, output, input, dropProb);
@@ -740,12 +771,30 @@ public:
           if(j > 0)
             prefix += "_enc" + std::to_string(j + 1);
 
+          // if training is performed with guided_alignment or if alignment is requested during
+          // decoding or scoring return the attention weights of one head of the last layer.
+          // @TODO: maybe allow to return average or max over all heads?
+          bool saveAttentionWeights = false;
+          if(j == 0 && (options_->has("guided-alignment") || options_->has("alignment"))) {
+            size_t attLayer = decDepth - 1;
+            std::string gaStr = options_->get<std::string>("transformer-guided-alignment-layer");
+            if(gaStr != "last")
+              attLayer = std::stoull(gaStr) - 1;
+            
+            ABORT_IF(attLayer >= decDepth, 
+                     "Chosen layer for guided attention ({}) larger than number of layers ({})", 
+                     attLayer + 1, decDepth);
+
+            saveAttentionWeights = i == attLayer;
+          }
+
           query = LayerAttention(prefix,
                                  query,
                                  encoderContexts[j], // keys
                                  encoderContexts[j], // values
                                  encoderMasks[j],
-                                 /*cache=*/true);
+                                 /*cache=*/true,
+                                 saveAttentionWeights);
         }
       }
 
@@ -777,12 +826,13 @@ public:
 
   // helper function for guided alignment
   virtual const std::vector<Expr> getAlignments(int i = 0) override {
-    return {};
+    return alignments_;
   }
 
   void clear() override {
     output_ = nullptr;
     cache_.clear();
+    alignments_.clear();
   }
 };
 
