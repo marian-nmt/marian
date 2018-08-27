@@ -166,7 +166,7 @@ void ConfigParser::validateDevices() const {
                      + ")' for option '--devices' is invalid. " + help);
 }
 
-void ConfigParser::addOptionsCommon(cli::CLIWrapper& cli) {
+void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   int defaultWorkspace = (mode_ == ConfigMode::translating) ? 512 : 2048;
 
   cli.startGroup("General options");
@@ -388,12 +388,9 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper &cli) {
       "Save model file every  arg  updates",
       10000);
 
+  addSuboptionsLength(cli);
+
   // data management options
-  cli.add<size_t>("--max-length",
-      "Maximum length of a sentence in a training sentence pair",
-      50);
-  cli.add<bool>("--max-length-crop",
-      "Crop a sentence to max-length instead of ommitting it if longer than max-length");
   cli.add<bool>("--no-shuffle",
       "Skip shuffling of training data before each epoch");
   cli.add<bool>("--no-restore-corpus",
@@ -404,45 +401,14 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper &cli) {
   cli.add<std::string>("--sqlite",
       "Use disk-based sqlite3 database for training corpus storage, default"
       " is temporary with path creates persistent storage")
-    ->default_val("")->implicit_val("temporary");
+    ->implicit_val("temporary");
   cli.add<bool>("--sqlite-drop",
       "Drop existing tables in sqlite3 database");
 
-  // thread options
-  cli.add<std::vector<std::string>>("--devices,-d",
-      "GPU ID(s) to use for training",
-      std::vector<std::string>({"0"}));
-#ifdef USE_NCCL
-  cli.add<bool>("--no-nccl",
-     "Disable inter-GPU communication via NCCL");
-#endif
-#ifdef CUDA_FOUND
-  cli.add<size_t>("--cpu-threads",
-      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
-    ->default_val("0")->implicit_val("1");
-#else
-  cli.add<size_t>("--cpu-threads",
-      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
-    ->default_val("1");
-#endif
+  addSuboptionsDevices(cli);
+  addSuboptionsBatching(cli);
 
   // optimizer options
-  cli.add<int>("--mini-batch",
-      "Size of mini-batch used during update", 64);
-  cli.add<int>("--mini-batch-words",
-      "Set mini-batch size based on words instead of sentences");
-  cli.add<bool>("--mini-batch-fit",
-      "Determine mini-batch size automatically based on sentence-length to fit reserved memory");
-  cli.add<size_t>("--mini-batch-fit-step",
-      "Step size for mini-batch-fit statistics",
-      10);
-  cli.add<int>("--maxi-batch",
-      "Number of batches to preload for length-based sorting",
-      100);
-  cli.add<std::string>("--maxi-batch-sort",
-      "Sorting strategy for maxi-batch: trg, src, none",
-      "trg");
-
   cli.add<std::string>("--optimizer,-o",
      "Optimization algorithm: sgd, adagrad, adam",
      "adam");
@@ -502,8 +468,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper &cli) {
      "Clip gradient norm to  argcli.add<int>(0 to disable)",
      1.f);
   cli.add<float>("--exponential-smoothing",
-     "Maintain smoothed version of parameters for validation and saving with smoothing factor. 0 to disable")
-    ->implicit_val("1e-4")->default_val("0");
+     "Maintain smoothed version of parameters for validation and saving with smoothing factor. 0 to disable",
+     0)->implicit_val("1e-4");
 
   // options for additional training data
   cli.add_nondefault<std::string>("--guided-alignment",
@@ -540,7 +506,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper &cli) {
   cli.endGroup();
 }
 
-void ConfigParser::addOptionsValid(cli::CLIWrapper &cli) {
+void ConfigParser::addOptionsValidation(cli::CLIWrapper &cli) {
   cli.startGroup("Validation set options");
 
   // clang-format off
@@ -562,8 +528,8 @@ void ConfigParser::addOptionsValid(cli::CLIWrapper &cli) {
       "Beam size used during search with validating translator",
       12);
   cli.add<float>("--normalize,-n",
-      "Divide translation score by pow(translation length, arg) ")
-      ->default_val("0")->implicit_val("1");
+      "Divide translation score by pow(translation length, arg)",
+      0)->implicit_val("1");
   cli.add<float>("--max-length-factor",
       "Maximum target length as source length times factor",
       3);
@@ -600,7 +566,7 @@ void ConfigParser::addOptionsValid(cli::CLIWrapper &cli) {
   cli.endGroup();
 }
 
-void ConfigParser::addOptionsTranslate(cli::CLIWrapper &cli) {
+void ConfigParser::addOptionsTranslation(cli::CLIWrapper &cli) {
   cli.startGroup("Translator options");
 
   // clang-format off
@@ -615,8 +581,8 @@ void ConfigParser::addOptionsTranslate(cli::CLIWrapper &cli) {
       "Beam size used during search with validating translator",
       12);
   cli.add<float>("--normalize,-n",
-      "Divide translation score by pow(translation length, arg)")
-      ->default_val("0")->implicit_val("1");
+      "Divide translation score by pow(translation length, arg)",
+      0)->implicit_val("1");
   cli.add<float>("--max-length-factor",
       "Maximum target length as source length times factor",
       3);
@@ -630,38 +596,12 @@ void ConfigParser::addOptionsTranslate(cli::CLIWrapper &cli) {
      "Return word alignment. Possible values: 0.0-1.0, hard, soft")
     ->implicit_val("1");
 
-  // efficiency options
-  cli.add<std::vector<std::string>>("--devices,-d",
-      "GPUs to use for translation",
-      std::vector<std::string>({"0"}));
-#ifdef CUDA_FOUND
-  cli.add<size_t>("--cpu-threads",
-      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
-      ->default_val("0")->implicit_val("1");
-#else
-  cli.add<size_t>("--cpu-threads",
-      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
-      ->default_val("1");
-#endif
+  addSuboptionsDevices(cli);
+  addSuboptionsLength(cli);
+  addSuboptionsBatching(cli);
 
-  cli.add<size_t>("--max-length",
-      "Maximum length of a sentence in a training sentence pair",
-      1000);
-  cli.add<bool>("--max-length-crop",
-      "Crop a sentence to max-length instead of ommitting it if longer than max-length");
   cli.add<bool>("--optimize",
       "Optimize speed aggressively sacrificing memory or precision");
-  cli.add<int>("--mini-batch",
-      "Size of mini-batch used during update",
-      1);
-  cli.add<int>("--mini-batch-words",
-      "Set mini-batch size based on words instead of sentences");
-  cli.add<int>("--maxi-batch",
-      "Number of batches to preload for length-based sorting",
-      1);
-  cli.add<std::string>("--maxi-batch-sort",
-      "Sorting strategy for maxi-batch: none, src",
-      "none");
   cli.add<bool>("--skip-cost",
       "Ignore model cost during translation, not recommended for beam-size > 1");
 
@@ -679,8 +619,8 @@ void ConfigParser::addOptionsTranslate(cli::CLIWrapper &cli) {
  cli.endGroup();
 }
 
-void ConfigParser::addOptionsRescore(cli::CLIWrapper &cli) {
-  cli.startGroup("Rescorer options");
+void ConfigParser::addOptionsScoring(cli::CLIWrapper &cli) {
+  cli.startGroup("Scorer options");
 
   // clang-format off
   cli.add<bool>("--no-reload",
@@ -699,14 +639,31 @@ void ConfigParser::addOptionsRescore(cli::CLIWrapper &cli) {
   cli.add_nondefault<std::string>("--summary",
       "Only print total cost, possible values: cross-entropy (ce-mean), ce-mean-words, ce-sum, perplexity")
       ->implicit_val("cross-entropy");
-  cli.add<size_t>("--max-length",
-      "Maximum length of a sentence in a training sentence pair",
-      1000);
-  cli.add<bool>("--max-length-crop",
-      "Crop a sentence to max-length instead of ommitting it if longer than max-length");
+  cli.add_nondefault<std::string>("--alignment",
+     "Return word alignments. Possible values: 0.0-1.0, hard, soft")
+     ->implicit_val("1"),
+
+  addSuboptionsLength(cli);
+  addSuboptionsDevices(cli);
+  addSuboptionsBatching(cli);
+
+  cli.add<bool>("--optimize",
+      "Optimize speed aggressively sacrificing memory or precision");
+
+  // clang-format on
+  cli.endGroup();
+}
+
+void ConfigParser::addSuboptionsDevices(cli::CLIWrapper &cli) {
+  // clang-format off
   cli.add<std::vector<std::string>>("--devices,-d",
       "GPUs to use for training",
       std::vector<std::string>({"0"}));
+#ifdef USE_NCCL
+  if(mode_ == ConfigMode::training)
+    cli.add<bool>("--no-nccl",
+      "Disable inter-GPU communication via NCCL");
+#endif
 #ifdef CUDA_FOUND
   cli.add<size_t>("--cpu-threads",
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
@@ -716,44 +673,67 @@ void ConfigParser::addOptionsRescore(cli::CLIWrapper &cli) {
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
       ->default_val("1");
 #endif
-  cli.add<bool>("--optimize",
-      "Optimize speed aggressively sacrificing memory or precision");
+  // clang-format on
+}
+
+void ConfigParser::addSuboptionsBatching(cli::CLIWrapper &cli) {
+  int defaultMiniBatch = (mode_ == ConfigMode::translating) ? 1 : 64;
+  int defaultMaxiBatch = (mode_ == ConfigMode::translating) ? 1 : 100;
+  std::string defaultMaxiBatchSort
+      = (mode_ == ConfigMode::translating) ? "none" : "trg";
+
+  // clang-format off
   cli.add<int>("--mini-batch",
       "Size of mini-batch used during update",
-      64);
+      defaultMiniBatch);
   cli.add<int>("--mini-batch-words",
       "Set mini-batch size based on words instead of sentences");
+
+  if(mode_ == ConfigMode::training) {
+    cli.add<bool>("--mini-batch-fit",
+      "Determine mini-batch size automatically based on sentence-length to fit reserved memory");
+    cli.add<size_t>("--mini-batch-fit-step",
+      "Step size for mini-batch-fit statistics",
+      10);
+  }
+
   cli.add<int>("--maxi-batch",
       "Number of batches to preload for length-based sorting",
-      100);
+      defaultMaxiBatch);
   cli.add<std::string>("--maxi-batch-sort",
-      "Sorting strategy for maxi-batch: trg (default), src, none",
-      "trg");
-  cli.add_nondefault<std::string>("--alignment",
-     "Return word alignments. Possible values: 0.0-1.0, hard, soft")
-     ->implicit_val("1"),
-
+      "Sorting strategy for maxi-batch: none, src, trg (not available for decoder)",
+      defaultMaxiBatchSort);
   // clang-format on
-  cli.endGroup();
+}
+
+void ConfigParser::addSuboptionsLength(cli::CLIWrapper &cli) {
+  size_t defaultMaxLength = (mode_ == ConfigMode::training) ? 50 : 1000;
+  // clang-format off
+  cli.add<size_t>("--max-length",
+      "Maximum length of a sentence in a training sentence pair",
+      defaultMaxLength);
+  cli.add<bool>("--max-length-crop",
+      "Crop a sentence to max-length instead of ommitting it if longer than max-length");
+  // clang-format on
 }
 
 void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   cli::CLIWrapper cli;
 
-  addOptionsCommon(cli);
+  addOptionsGeneral(cli);
   addOptionsModel(cli);
 
   // clang-format off
   switch(mode_) {
     case ConfigMode::translating:
-      addOptionsTranslate(cli);
+      addOptionsTranslation(cli);
       break;
     case ConfigMode::rescoring:
-      addOptionsRescore(cli);
+      addOptionsScoring(cli);
       break;
     case ConfigMode::training:
       addOptionsTraining(cli);
-      addOptionsValid(cli);
+      addOptionsValidation(cli);
       break;
   }
   // clang-format on

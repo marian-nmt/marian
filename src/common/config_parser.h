@@ -47,12 +47,16 @@ private:
     return config_[key].as<T>();
   }
 
-  void addOptionsCommon(cli::CLIWrapper&);
+  void addOptionsGeneral(cli::CLIWrapper&);
   void addOptionsModel(cli::CLIWrapper&);
   void addOptionsTraining(cli::CLIWrapper&);
-  void addOptionsRescore(cli::CLIWrapper&);
-  void addOptionsValid(cli::CLIWrapper&);
-  void addOptionsTranslate(cli::CLIWrapper&);
+  void addOptionsValidation(cli::CLIWrapper&);
+  void addOptionsTranslation(cli::CLIWrapper&);
+  void addOptionsScoring(cli::CLIWrapper&);
+
+  void addSuboptionsDevices(cli::CLIWrapper&);
+  void addSuboptionsBatching(cli::CLIWrapper&);
+  void addSuboptionsLength(cli::CLIWrapper&);
 
   void validateOptions() const;
   void validateDevices() const;
