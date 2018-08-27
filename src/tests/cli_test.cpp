@@ -46,11 +46,7 @@ int main(int argc, char** argv) {
   w.add<std::string>("-f,--file", "help message")->check(validators::file_exists);
   //w.add<color>("-e,--enum", "help message for enum");
 
-  try {
-    w.app()->parse(argc, argv);
-  } catch(const CLI::ParseError& e) {
-    return w.app()->exit(e);
-  }
+  w.parse(argc, argv);
 
   w.get<int>("int");
   w.get<std::string>("str");

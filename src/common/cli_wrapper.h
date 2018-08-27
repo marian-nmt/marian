@@ -50,7 +50,6 @@ private:
   // Name of the current option group
   std::string currentGroup_{""};
 
-  // Print failure message on error
   static std::string failureMessage(const CLI::App *app, const CLI::Error &e);
 
   std::string keyName(const std::string &args) const {
@@ -61,7 +60,7 @@ private:
 public:
   CLIWrapper(const std::string& name = "General options");
 
-  virtual ~CLIWrapper() {}
+  virtual ~CLIWrapper();
 
   /**
    * @brief Defines an option with a default value
@@ -112,6 +111,9 @@ public:
     return add_option<T>(keyName(args), args, help, T(), false, false);
   }
 
+  // Parses command-line arguments. Handles --help and --version options
+  void parse(int argc, char** argv);
+
   // Checks if an option has been defined (not necessarily parsed)
   bool has(const std::string &key) const;
 
@@ -125,8 +127,6 @@ public:
 
   void startGroup(const std::string &name) { currentGroup_ = name; }
   void endGroup() { currentGroup_ = defaultGroup_; }
-
-  Ptr<CLI::App> app() { return app_; }
 
   // Returns config with all defined and parsed options as a YAML object
   YAML::Node getConfig() const;

@@ -13,11 +13,7 @@ int main(int argc, char** argv) {
   cli.add<std::string>("--from,-f", "Input model", "model.npz");
   cli.add<std::string>("--to,-t", "Output model", "model.bin");
 
-  try {
-    cli.app()->parse(argc, argv);
-  } catch(const CLI::ParseError& e) {
-    exit(cli.app()->exit(e));
-  }
+  cli.parse(argc, argv);
 
   auto modelFrom = cli.get<std::string>("from");
   auto modelTo = cli.get<std::string>("to");

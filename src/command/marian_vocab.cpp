@@ -13,11 +13,7 @@ int main(int argc, char** argv) {
   cli.add<size_t>(
       "--max-size,-m", "Generate only  arg  most common vocabulary items", 0);
 
-  try {
-    cli.app()->parse(argc, argv);
-  } catch(const CLI::ParseError& e) {
-    exit(cli.app()->exit(e));
-  }
+  cli.parse(argc, argv);
 
   LOG(info, "Creating vocabulary...");
 

@@ -21,7 +21,6 @@
 #include "common/file_stream.h"
 #include "common/logging.h"
 #include "common/regex.h"
-#include "common/version.h"
 
 namespace marian {
 
@@ -725,37 +724,31 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 
   // clang-format off
   switch(mode_) {
+    case ConfigMode::training:
+      addOptionsTraining(cli);
+      addOptionsValidation(cli);
+      break;
     case ConfigMode::translating:
       addOptionsTranslation(cli);
       break;
     case ConfigMode::rescoring:
       addOptionsScoring(cli);
       break;
-    case ConfigMode::training:
-      addOptionsTraining(cli);
-      addOptionsValidation(cli);
-      break;
   }
   // clang-format on
 
-  try {
-    cli.app()->parse(argc, argv);
-  } catch(const CLI::ParseError& e) {
-    exit(cli.app()->exit(e));
-  }
-
-  // TODO: config_ is needed here?
+  // parse command-line options
+  cli.parse(argc, argv);
+  // get YAML config with default and parsed options
   config_ = cli.getConfig();
 
-  if(has("version")) {
-    std::cerr << PROJECT_VERSION_FULL << std::endl;
-    exit(0);
-  }
-
+  // get paths to extra config files
   auto configPaths = loadConfigPaths();
 
   if(!configPaths.empty()) {
+    // load options from extra config files into a single YAML config
     auto config = loadConfigFiles(configPaths);
+    // combine loaded options with the main YAML config
     config_ = cli.getConfigWithNewDefaults(config);
   }
 
@@ -791,6 +784,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     }
   }
 
+  // remove extra config files from the config to avoid redundancy
   config_.remove("config");
 
   if(get<bool>("dump-config")) {

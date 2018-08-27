@@ -1,4 +1,5 @@
 #include "common/cli_wrapper.h"
+#include "common/version.h"
 
 namespace marian {
 namespace cli {
@@ -9,6 +10,21 @@ CLIWrapper::CLIWrapper(const std::string &name)
       currentGroup_(name) {
   app_->get_help_ptr()->group(defaultGroup_);
   app_->failure_message(failureMessage);
+}
+
+CLIWrapper::~CLIWrapper() {}
+
+void CLIWrapper::parse(int argc, char** argv) {
+  try {
+    app_->parse(argc, argv);
+  } catch(const CLI::ParseError& e) {
+    exit(app_->exit(e));
+  }
+
+  if(has("version")) {
+    std::cerr << PROJECT_VERSION_FULL << std::endl;
+    exit(0);
+  }
 }
 
 bool CLIWrapper::has(const std::string &key) const {
