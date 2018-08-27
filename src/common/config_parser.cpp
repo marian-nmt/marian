@@ -24,25 +24,6 @@
 
 namespace marian {
 
-uint16_t guess_terminal_width(uint16_t max_width, uint16_t default_width) {
-  uint16_t cols = 0;
-#ifdef TIOCGSIZE
-  struct ttysize ts;
-  ioctl(STDIN_FILENO, TIOCGSIZE, &ts);
-  if(ts.ts_cols != 0)
-    cols = ts.ts_cols;
-#elif defined(TIOCGWINSZ)
-  struct winsize ts;
-  ioctl(STDIN_FILENO, TIOCGWINSZ, &ts);
-  if(ts.ws_col != 0)
-    cols = ts.ws_col;
-#endif
-  // couldn't determine terminal width
-  if(cols == 0)
-    cols = default_width;
-  return max_width ? std::min(cols, max_width) : cols;
-}
-
 // TODO: move to CLIWrapper
 const std::set<std::string> PATHS = {"model",
                                      "models",
@@ -706,7 +687,7 @@ void ConfigParser::addSuboptionsLength(cli::CLIWrapper &cli) {
 }
 
 void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
-  cli::CLIWrapper cli;
+  cli::CLIWrapper cli("General options", 40);
 
   addOptionsGeneral(cli);
   addOptionsModel(cli);

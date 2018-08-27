@@ -6,9 +6,6 @@
 #include "common/logging.h"
 #include "common/some_type.h"
 
-// TODO: remove
-#include "common/cli_helper.h"
-
 #include <iostream>
 #include <map>
 #include <string>
@@ -16,13 +13,8 @@
 namespace marian {
 namespace cli {
 
-// TODO: remove
-template <typename S, typename T>
-S &operator<<(S &s, const std::vector<T> &v) {
-  for(auto &x : v)
-    s << x << " ";
-  return s;
-}
+// try to determine the width of the terminal
+static uint16_t guess_terminal_width(uint16_t max_width = 0, uint16_t default_width = 180);
 
 namespace validators {
 const CLI::detail::ExistingFileValidator file_exists;
@@ -33,6 +25,15 @@ const CLI::detail::NonexistentPathValidator path_not_exists;
 
 typedef CLI::Range range;
 }
+
+class CLIFormatter : public CLI::Formatter {
+public:
+  CLIFormatter(size_t columnWidth, size_t screenWidth);
+  virtual std::string make_option_desc(const CLI::Option *) const;
+
+private:
+  size_t screenWidth_{0};
+};
 
 class CLIWrapper {
 private:
@@ -64,8 +65,12 @@ public:
    * Option --help, -h is automatically added.
    *
    * @param name Header for the main option group
+   * @param columnWidth Width of the column with option names
+   * @param screenWidth Maximum allowed width for help messages
    */
-  CLIWrapper(const std::string& name = "General options");
+  CLIWrapper(const std::string &name = "General options",
+             size_t columnWidth = 35,
+             size_t screenWidth = 0);
 
   virtual ~CLIWrapper();
 
@@ -140,11 +145,21 @@ public:
     return vars_.at(key)->as<T>();
   }
 
-  // Returns config with all defined and parsed options as a YAML object
+  /**
+   * @brief Returns the YAML config with all defined and parsed options
+   *
+   * @return YAML config
+   */
   YAML::Node getConfig() const;
 
-  // Returns config file with overwritten values for options that has been
-  // parsed (not just defined)
+  /**
+   * @brief Generates a YAML config that overwrites default option values with the
+   * provided options
+   *
+   * @param node YAML config with new default values for options
+   *
+   * @return YAML config
+   */
   YAML::Node getConfigWithNewDefaults(const YAML::Node& node) const;
 
 private:
