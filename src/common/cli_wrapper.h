@@ -58,6 +58,13 @@ private:
   }
 
 public:
+  /**
+   * @brief Creates an instance of the command-line parser
+   *
+   * Option --help, -h is automatically added.
+   *
+   * @param name Header for the main option group
+   */
   CLIWrapper(const std::string& name = "General options");
 
   virtual ~CLIWrapper();
@@ -164,36 +171,11 @@ private:
     opt->type_name(CLI::detail::type_name<T>());
     if(!currentGroup_.empty())
       opt->group(currentGroup_);
-
-    opts_.insert(std::make_pair(key, opt));
-    return opts_[key];
-  }
-
-  template <typename T,
-            CLI::enable_if_t<CLI::is_bool<T>::value,
-                             CLI::detail::enabler> = CLI::detail::dummy>
-  CLI::Option *add_option(const std::string &key,
-                          const std::string &args,
-                          const std::string &help,
-                          T val,
-                          bool defaulted,
-                          bool addToConfig) {
-    //std::cerr << "CLI::add(" << key << ") as bool" << std::endl;
-
-    if(addToConfig)
-      config_[key] = val;
-    vars_.insert(std::make_pair(key, std::make_shared<some_type>(val)));
-
-    CLI::callback_t fun = [this, key](CLI::results_t res) {
-      //std::cerr << "CLI::callback(" << key << ") " << std::endl;
-      config_[key] = !res.empty();
-      return true;
-    };
-
-    auto opt = app_->add_option(args, fun, help, defaulted);
-    opt->type_size(0);
-    if(!currentGroup_.empty())
-      opt->group(currentGroup_);
+    if(defaulted) {
+      std::stringstream ss;
+      ss << val;
+      opt->default_str(ss.str());
+    }
 
     opts_.insert(std::make_pair(key, opt));
     return opts_[key];
@@ -229,6 +211,38 @@ private:
 
     auto opt = app_->add_option(args, fun, help);
     opt->type_name(CLI::detail::type_name<T>())->type_size(-1);
+    if(!currentGroup_.empty())
+      opt->group(currentGroup_);
+    if(defaulted)
+      opt->default_str(CLI::detail::join(val));
+
+    opts_.insert(std::make_pair(key, opt));
+    return opts_[key];
+  }
+
+  template <typename T,
+            CLI::enable_if_t<CLI::is_bool<T>::value,
+                             CLI::detail::enabler> = CLI::detail::dummy>
+  CLI::Option *add_option(const std::string &key,
+                          const std::string &args,
+                          const std::string &help,
+                          T val,
+                          bool defaulted,
+                          bool addToConfig) {
+    //std::cerr << "CLI::add(" << key << ") as bool" << std::endl;
+
+    if(addToConfig)
+      config_[key] = val;
+    vars_.insert(std::make_pair(key, std::make_shared<some_type>(val)));
+
+    CLI::callback_t fun = [this, key](CLI::results_t res) {
+      //std::cerr << "CLI::callback(" << key << ") " << std::endl;
+      config_[key] = !res.empty();
+      return true;
+    };
+
+    auto opt = app_->add_option(args, fun, help, defaulted);
+    opt->type_size(0);
     if(!currentGroup_.empty())
       opt->group(currentGroup_);
 
