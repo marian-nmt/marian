@@ -374,10 +374,32 @@ public:
       pos += split->size();
     }
 
-    // @TODO: restore word alignments in split batches
-    ABORT_IF(
-        !guidedAlignment_.empty(),
-        "Guided alignment with synchronous SGD is temporarily not supported");
+    if(!guidedAlignment_.empty()) {
+      size_t oldSize = size();
+
+      pos = 0;
+      for(auto split : splits) {
+        auto cb = std::static_pointer_cast<CorpusBatch>(split);
+        size_t srcWords = cb->front()->batchWidth();
+        size_t trgWords = cb->back()->batchWidth();
+        size_t dimBatch = cb->size();
+
+        std::vector<float> aligns(srcWords * dimBatch * trgWords, 0.f);
+
+        for(size_t i = 0; i < dimBatch; ++i) {
+          size_t bi = i + pos;
+          for(size_t sid = 0; sid < srcWords; ++sid) {
+            for(size_t tid = 0; tid < trgWords; ++tid) {
+              size_t bidx = sid * oldSize * trgWords + bi * trgWords + tid;
+              size_t idx = sid * dimBatch * trgWords + i * trgWords + tid;
+              aligns[idx] = guidedAlignment_[bidx];
+            }
+          }
+        }
+        cb->setGuidedAlignment(aligns);
+        pos += dimBatch;
+      }
+    }
 
     // restore data weights in split batches
     pos = 0;
