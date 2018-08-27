@@ -38,11 +38,11 @@ int main(int argc, char** argv) {
   w.add<int>("-i,--int", "help message")->implicit_val("555")->default_val("123");
   w.add<std::string>("-s,--str", "help message")->default_val("foo");
   w.add<std::vector<float>>("-v,--vec", "help message")->expected(-2);
-  w.startGroup("My group");
+  w.switchGroup("My group");
   w.add<std::vector<std::string>>("--defvec,-d", "help message")->default_val("foo");
   w.add<bool>("-b,--bool", "help message");
   w.add<std::string>("--a-very-long-option-name-for-testing-purposes", "A very long text a very long text a very long text a very long text a very long text a very long text");
-  w.endGroup();
+  w.switchGroup();
   w.add<std::string>("-f,--file", "help message")->check(validators::file_exists);
   //w.add<color>("-e,--enum", "help message for enum");
 

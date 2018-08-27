@@ -118,6 +118,14 @@ public:
     return add_option<T>(keyName(args), args, help, T(), false, false);
   }
 
+  /**
+   * @brief Switches to different option group or to the default group if
+   * argument is empty
+   *
+   * @param name Header of the option group
+   */
+  void switchGroup(const std::string &name = "");
+
   // Parses command-line arguments. Handles --help and --version options
   void parse(int argc, char** argv);
 
@@ -131,9 +139,6 @@ public:
         vars_.count(key) == 0, "An option with key '{}' is not defined", key);
     return vars_.at(key)->as<T>();
   }
-
-  void startGroup(const std::string &name) { currentGroup_ = name; }
-  void endGroup() { currentGroup_ = defaultGroup_; }
 
   // Returns config with all defined and parsed options as a YAML object
   YAML::Node getConfig() const;

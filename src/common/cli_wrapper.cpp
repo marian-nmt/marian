@@ -14,6 +14,13 @@ CLIWrapper::CLIWrapper(const std::string &name)
 
 CLIWrapper::~CLIWrapper() {}
 
+void CLIWrapper::switchGroup(const std::string &name) {
+  if(name.empty())
+    currentGroup_ = defaultGroup_;
+  else
+    currentGroup_ = name;
+}
+
 void CLIWrapper::parse(int argc, char** argv) {
   try {
     app_->parse(argc, argv);

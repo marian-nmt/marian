@@ -168,7 +168,7 @@ void ConfigParser::validateDevices() const {
 void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   int defaultWorkspace = (mode_ == ConfigMode::translating) ? 512 : 2048;
 
-  cli.startGroup("General options");
+  cli.switchGroup("General options");
 
   // clang-format off
   cli.add_nondefault<bool>("--version",
@@ -198,11 +198,10 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   cli.add<bool>("--dump-config",
      "Dump current (modified) configuration to stdout and exit");
   // clang-format on
-  cli.endGroup();
 }
 
 void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
-  cli.startGroup("Model options");
+  cli.switchGroup("Model options");
 
   // clang-format off
   if(mode_ == ConfigMode::translating) {
@@ -352,12 +351,10 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
         "Dropout for transformer filter (0 = no dropout)");
   }
   // clang-format on
-
-  cli.endGroup();
 }
 
 void ConfigParser::addOptionsTraining(cli::CLIWrapper &cli) {
-  cli.startGroup("Training options");
+  cli.switchGroup("Training options");
   // clang-format off
   cli.add<std::string>("--cost-type",
       "Optimization criterion: ce-mean, ce-mean-words, ce-sum, perplexity", "ce-mean");
@@ -501,12 +498,10 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper &cli) {
      "Overlap model computations with MPI communication",
      true);
   // clang-format on
-
-  cli.endGroup();
 }
 
 void ConfigParser::addOptionsValidation(cli::CLIWrapper &cli) {
-  cli.startGroup("Validation set options");
+  cli.switchGroup("Validation set options");
 
   // clang-format off
   cli.add_nondefault<std::vector<std::string>>("--valid-sets",
@@ -560,13 +555,11 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper &cli) {
       "Keep best model for each validation metric");
   cli.add_nondefault<std::string>("--valid-log",
      "Log validation scores to file given by  arg");
-
   // clang-format on
-  cli.endGroup();
 }
 
 void ConfigParser::addOptionsTranslation(cli::CLIWrapper &cli) {
-  cli.startGroup("Translator options");
+  cli.switchGroup("Translator options");
 
   // clang-format off
   cli.add<std::vector<std::string>>("--input,-i",
@@ -614,12 +607,10 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper &cli) {
       "Port number for web socket server",
       8080);
   // clang-format on
-
- cli.endGroup();
 }
 
 void ConfigParser::addOptionsScoring(cli::CLIWrapper &cli) {
-  cli.startGroup("Scorer options");
+  cli.switchGroup("Scorer options");
 
   // clang-format off
   cli.add<bool>("--no-reload",
@@ -648,9 +639,7 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper &cli) {
 
   cli.add<bool>("--optimize",
       "Optimize speed aggressively sacrificing memory or precision");
-
   // clang-format on
-  cli.endGroup();
 }
 
 void ConfigParser::addSuboptionsDevices(cli::CLIWrapper &cli) {
