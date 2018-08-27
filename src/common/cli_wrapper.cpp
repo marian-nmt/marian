@@ -24,5 +24,26 @@ std::string CLIWrapper::failureMessage(const CLI::App *app,
   return header;
 }
 
+YAML::Node CLIWrapper::getConfig() const {
+  return config_;
+}
+
+YAML::Node CLIWrapper::getConfigWithNewDefaults(const YAML::Node &node) const {
+  YAML::Node yaml = YAML::Clone(config_);
+  // iterate requested default values
+  for(auto it : node) {
+    auto key = it.first.as<std::string>();
+    // warn if the option for which the default value we are setting for has
+    // been not defined
+    if(vars_.count(key) == 0)
+      LOG(warn, "Default value for an undefined option with key '{}'", key);
+    // if we have an option and but it was not specified on command-line
+    if(vars_.count(key) > 0 && opts_.at(key)->empty()) {
+      yaml[key] = YAML::Clone(it.second);
+    }
+  }
+  return yaml;
+}
+
 }  // namespace cli
 }  // namespace marian

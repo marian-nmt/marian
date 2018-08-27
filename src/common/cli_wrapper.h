@@ -63,24 +63,59 @@ public:
 
   virtual ~CLIWrapper() {}
 
+  /**
+   * @brief Defines an option with a default value
+   *
+   * @param args Comma-separated list of short and long option names
+   * @param help Help message
+   * @param val Default value
+   *
+   * @return Option object
+   */
   template <typename T>
   CLI::Option *add(const std::string &args, const std::string &help, T val) {
     return add_option<T>(keyName(args), args, help, val, true, true);
   }
 
+  /**
+   * @brief Defines an option without an explicit default value. The implicit
+   * default value is T()
+   *
+   * The option will be defined in the config file even if not given as a
+   * command-line argument. The implicit default value for a numeric option is
+   * 0, for a string is an empty string, and for a vector is an empty vector.
+   *
+   * @param args Comma-separated list of short and long option names
+   * @param help Help message
+   *
+   * @return Option object
+   */
   template <typename T>
   CLI::Option *add(const std::string &args, const std::string &help) {
     return add_option<T>(keyName(args), args, help, T(), false, true);
   }
 
+  /**
+   * @brief Defines a non-defaulted option
+   *
+   * The option will be not present in the config file unless given as a
+   * command-line argument.
+   *
+   * @param args Comma-separated list of short and long option names
+   * @param help Help message
+   *
+   * @return Option object
+   */
   template <typename T>
   CLI::Option *add_nondefault(const std::string &args,
                               const std::string &help) {
     return add_option<T>(keyName(args), args, help, T(), false, false);
   }
 
+  // Checks if an option has been defined (not necessarily parsed)
   bool has(const std::string &key) const;
 
+  // Gets the current value for the option
   template <typename T>
   T get(const std::string &key) const {
     ABORT_IF(
@@ -93,22 +128,12 @@ public:
 
   Ptr<CLI::App> app() { return app_; }
 
-  YAML::Node getConfig() {
-    return config_;
-  }
+  // Returns config with all defined and parsed options as a YAML object
+  YAML::Node getConfig() const;
 
-  YAML::Node getConfigWithNewDefaults(const YAML::Node& node) const {
-    YAML::Node yaml = YAML::Clone(config_);
-    // iterate requested default values
-    for(auto it : node) {
-      auto key = it.first.as<std::string>();
-      // if we have an option and but it was not specified on command-line
-      if(vars_.count(key) > 0 && opts_.at(key)->empty()) {
-        yaml[key] = YAML::Clone(it.second);
-      }
-    }
-    return yaml;
-  }
+  // Returns config file with overwritten values for options that has been
+  // parsed (not just defined)
+  YAML::Node getConfigWithNewDefaults(const YAML::Node& node) const;
 
 private:
   template <
