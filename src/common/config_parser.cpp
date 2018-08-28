@@ -16,15 +16,15 @@
 #include "common/definitions.h"
 
 #include "common/cli_helper.h"
-#include "common/config.h"
 #include "common/config_parser.h"
+#include "common/config_validator.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
-#include "common/regex.h"
+#include "common/utils.h"
 
 namespace marian {
 
-// TODO: move to CLIWrapper
+// TODO: move to CLIWrapper and update
 const std::set<std::string> PATHS = {"model",
                                      "models",
                                      "train-sets",
@@ -36,115 +36,6 @@ const std::set<std::string> PATHS = {"model",
                                      "valid-translation-output",
                                      "log"};
 
-
-bool ConfigParser::has(const std::string& key) const {
-  return config_[key];
-}
-
-void ConfigParser::validateOptions() const {
-  if(mode_ == ConfigMode::translating) {
-    UTIL_THROW_IF2(
-        !has("models") && get<std::vector<std::string>>("config").empty(),
-        "You need to provide at least one model file or a config file");
-
-    UTIL_THROW_IF2(
-        !has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
-        "Translating, but vocabularies are not given!");
-
-    for(const auto& modelFile : get<std::vector<std::string>>("models")) {
-      boost::filesystem::path modelPath(modelFile);
-      UTIL_THROW_IF2(!boost::filesystem::exists(modelPath),
-                     "Model file does not exist: " + modelFile);
-    }
-
-    return;
-  }
-
-  UTIL_THROW_IF2(
-      !has("train-sets") || get<std::vector<std::string>>("train-sets").empty(),
-      "No train sets given in config file or on command line");
-  UTIL_THROW_IF2(
-      has("vocabs")
-          && get<std::vector<std::string>>("vocabs").size()
-                 != get<std::vector<std::string>>("train-sets").size(),
-      "There should be as many vocabularies as training sets");
-  UTIL_THROW_IF2(
-      has("embedding-vectors")
-          && get<std::vector<std::string>>("embedding-vectors").size()
-                 != get<std::vector<std::string>>("train-sets").size(),
-      "There should be as many files with embedding vectors as "
-      "training sets");
-
-  boost::filesystem::path modelPath(get<std::string>("model"));
-
-  if(mode_ == ConfigMode::rescoring) {
-    UTIL_THROW_IF2(!boost::filesystem::exists(modelPath),
-                   "Model file does not exist: " + modelPath.string());
-
-    UTIL_THROW_IF2(
-        !has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
-        "Scoring, but vocabularies are not given!");
-
-    return;
-  }
-
-  auto modelDir = modelPath.parent_path();
-  if(modelDir.empty())
-    modelDir = boost::filesystem::current_path();
-
-  UTIL_THROW_IF2(
-      !modelDir.empty() && !boost::filesystem::is_directory(modelDir),
-      "Model directory does not exist");
-
-  UTIL_THROW_IF2(!modelDir.empty()
-                     && !(boost::filesystem::status(modelDir).permissions()
-                          & boost::filesystem::owner_write),
-                 "No write permission in model directory");
-
-  UTIL_THROW_IF2(
-      has("valid-sets")
-          && get<std::vector<std::string>>("valid-sets").size()
-                 != get<std::vector<std::string>>("train-sets").size(),
-      "There should be as many validation sets as training sets");
-
-  // validations for learning rate decaying
-  UTIL_THROW_IF2(get<double>("lr-decay") > 1.0,
-                 "Learning rate decay factor greater than 1.0 is unusual");
-  UTIL_THROW_IF2(
-      (get<std::string>("lr-decay-strategy") == "epoch+batches"
-       || get<std::string>("lr-decay-strategy") == "epoch+stalled")
-          && get<std::vector<size_t>>("lr-decay-start").size() != 2,
-      "Decay strategies 'epoch+batches' and 'epoch+stalled' require two "
-      "values specified with --lr-decay-start options");
-  UTIL_THROW_IF2(
-      (get<std::string>("lr-decay-strategy") == "epoch"
-       || get<std::string>("lr-decay-strategy") == "batches"
-       || get<std::string>("lr-decay-strategy") == "stalled")
-          && get<std::vector<size_t>>("lr-decay-start").size() != 1,
-      "Single decay strategies require only one value specified with "
-      "--lr-decay-start option");
-}
-
-void ConfigParser::validateDevices() const {
-  std::string devices = utils::Join(get<std::vector<std::string>>("devices"));
-  utils::Trim(devices);
-
-  regex::regex pattern;
-  std::string help;
-  if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
-    // valid strings: '0: 1 2', '0:1 2 1:2 3'
-    pattern = "( *[0-9]+ *: *[0-9]+( *[0-9]+)*)+";
-    help = "Supported format for multi-node setting: '0:0 1 2 3 1:0 1 2 3'";
-  } else {
-    // valid strings: '0', '0 1 2 3', '3 2 0 1'
-    pattern = "[0-9]+( *[0-9]+)*";
-    help = "Supported formats: '0 1 2 3'";
-  }
-
-  UTIL_THROW_IF2(!regex::regex_match(devices, pattern),
-                 "the argument '(" + devices
-                     + ")' for option '--devices' is invalid. " + help);
-}
 
 void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   int defaultWorkspace = (mode_ == ConfigMode::translating) ? 512 : 2048;
@@ -735,18 +626,19 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     config_["skip"] = true;
   }
 
-  if(get<bool>("interpolate-env-vars")) {
+  // TODO: is as<bool> needed?
+  if(config_["interpolate-env-vars"].as<bool>()) {
     cli::ProcessPaths(config_, cli::InterpolateEnvVars, PATHS);
   }
 
-  if(get<bool>("relative-paths") && !get<bool>("dump-config")) {
+  if(config_["relative-paths"].as<bool>() && !config_["dump-config"].as<bool>()) {
     makeAbsolutePaths(configPaths);
   }
 
   if(doValidate) {
     try {
-      validateOptions();
-      validateDevices();
+      ConfigValidator validator(mode_, config_);
+      validator.validate();
     } catch(util::Exception& e) {
       std::cerr << "Error: " << e.what() << std::endl << std::endl;
       std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
@@ -757,7 +649,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   // remove extra config files from the config to avoid redundancy
   config_.remove("config");
 
-  if(get<bool>("dump-config")) {
+  if(config_["dump-config"].as<bool>()) {
     config_.remove("dump-config");
     YAML::Emitter emit;
     cli::OutputYaml(config_, emit);
@@ -840,12 +732,11 @@ std::vector<std::string> ConfigParser::loadConfigPaths() {
 std::vector<DeviceId> ConfigParser::getDevices() {
   std::vector<DeviceId> devices;
 
-  // TODO: why do we use config_[x] and get<> interchanbeably
   try {
     std::string devicesStr
         = utils::Join(config_["devices"].as<std::vector<std::string>>());
 
-    if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
+    if(mode_ == ConfigMode::training && config_["multi-node"].as<bool>()) {
       auto parts = utils::Split(devicesStr, ":");
       for(size_t i = 1; i < parts.size(); ++i) {
         std::string part = parts[i];

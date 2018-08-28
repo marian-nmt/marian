@@ -3,8 +3,6 @@
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/cli_wrapper.h"
 #include "common/definitions.h"
-#include "common/file_stream.h"
-#include "common/logging.h"
 
 // TODO: why are these needed by a config parser? Can they be removed for Linux
 // as well?
@@ -37,13 +35,6 @@ private:
   ConfigMode mode_;
   YAML::Node config_;
 
-  bool has(const std::string& key) const;
-
-  template <typename T>
-  T get(const std::string& key) const {
-    return config_[key].as<T>();
-  }
-
   void addOptionsGeneral(cli::CLIWrapper&);
   void addOptionsModel(cli::CLIWrapper&);
   void addOptionsTraining(cli::CLIWrapper&);
@@ -54,9 +45,6 @@ private:
   void addSuboptionsDevices(cli::CLIWrapper&);
   void addSuboptionsBatching(cli::CLIWrapper&);
   void addSuboptionsLength(cli::CLIWrapper&);
-
-  void validateOptions() const;
-  void validateDevices() const;
 
   // change relative paths to absolute paths relative to the config file's
   // directory

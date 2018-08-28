@@ -10,6 +10,7 @@ add_library(marian STATIC
   common/cli_wrapper.cpp
   common/config.cpp
   common/config_parser.cpp
+  common/config_validator.cpp
   common/binary.cpp
   common/io.cpp
 
