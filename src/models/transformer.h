@@ -173,7 +173,6 @@ public:
   void collectOneHead(Expr weights, int dimBeam) {
     // select first head, this is arbitrary as the choice does not really matter
     auto head0 = select(weights, -3, {0});
-    //auto head0 = mean(weights, keywords::axis=-3);
 
     int dimBatchBeam = head0->shape()[-4];
     int srcWords = head0->shape()[-1];
