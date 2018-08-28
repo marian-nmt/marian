@@ -256,7 +256,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper &cli) {
       "Save model file every  arg  updates",
       10000);
 
-  addSuboptionsLength(cli);
+  addSupoptionsInputLength(cli);
 
   // data management options
   cli.add<bool>("--no-shuffle",
@@ -461,7 +461,7 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper &cli) {
     ->implicit_val("1");
 
   addSuboptionsDevices(cli);
-  addSuboptionsLength(cli);
+  addSupoptionsInputLength(cli);
   addSuboptionsBatching(cli);
 
   cli.add<bool>("--optimize",
@@ -505,7 +505,7 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper &cli) {
      "Return word alignments. Possible values: 0.0-1.0, hard, soft")
      ->implicit_val("1"),
 
-  addSuboptionsLength(cli);
+  addSupoptionsInputLength(cli);
   addSuboptionsDevices(cli);
   addSuboptionsBatching(cli);
 
@@ -566,7 +566,7 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper &cli) {
   // clang-format on
 }
 
-void ConfigParser::addSuboptionsLength(cli::CLIWrapper &cli) {
+void ConfigParser::addSupoptionsInputLength(cli::CLIWrapper &cli) {
   size_t defaultMaxLength = (mode_ == cli::mode::training) ? 50 : 1000;
   // clang-format off
   cli.add<size_t>("--max-length",
@@ -626,12 +626,11 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     config_["skip"] = true;
   }
 
-  // TODO: is as<bool> needed?
-  if(config_["interpolate-env-vars"].as<bool>()) {
+  if(has("interpolate-env-vars")) {
     cli::ProcessPaths(config_, cli::InterpolateEnvVars, PATHS);
   }
 
-  if(config_["relative-paths"].as<bool>() && !config_["dump-config"].as<bool>()) {
+  if(has("relative-paths") && !has("dump-config")) {
     makeAbsolutePaths(configPaths);
   }
 
@@ -650,7 +649,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   // remove extra config files from the config to avoid redundancy
   config_.remove("config");
 
-  if(config_["dump-config"].as<bool>()) {
+  if(has("dump-config")) {
     config_.remove("dump-config");
     YAML::Emitter emit;
     cli::OutputYaml(config_, emit);
@@ -693,7 +692,7 @@ YAML::Node ConfigParser::loadConfigFiles(
   YAML::Node config;
 
   for(auto& path : paths) {
-    // later file overrides
+    // later file overrides earlier
     for(const auto& it : YAML::Load(InputFileStream(path))) {
       config[it.first.as<std::string>()] = YAML::Clone(it.second);
     }
@@ -705,7 +704,7 @@ YAML::Node ConfigParser::loadConfigFiles(
 std::vector<std::string> ConfigParser::loadConfigPaths() {
   std::vector<std::string> paths;
 
-  bool interpolateEnvVars = config_["interpolate-env-vars"].as<bool>();
+  bool interpolateEnvVars = has("interpolate-env-vars");
   bool loadConfig = !config_["config"].as<std::vector<std::string>>().empty();
 
   if(loadConfig) {
@@ -720,14 +719,17 @@ std::vector<std::string> ConfigParser::loadConfigPaths() {
     if(interpolateEnvVars)
       path = cli::InterpolateEnvVars(path);
 
-    bool reloadConfig
-        = boost::filesystem::exists(path) && !config_["no-reload"].as<bool>();
+    bool reloadConfig = boost::filesystem::exists(path) && !has("no-reload");
 
     if(reloadConfig)
       paths = {path};
   }
 
   return paths;
+}
+
+YAML::Node ConfigParser::getConfig() const {
+  return config_;
 }
 
 std::vector<DeviceId> ConfigParser::getDevices() {
@@ -737,7 +739,7 @@ std::vector<DeviceId> ConfigParser::getDevices() {
     std::string devicesStr
         = utils::Join(config_["devices"].as<std::vector<std::string>>());
 
-    if(mode_ == cli::mode::training && config_["multi-node"].as<bool>()) {
+    if(mode_ == cli::mode::training && has("multi-node")) {
       auto parts = utils::Split(devicesStr, ":");
       for(size_t i = 1; i < parts.size(); ++i) {
         std::string part = parts[i];
@@ -769,7 +771,8 @@ std::vector<DeviceId> ConfigParser::getDevices() {
   return devices;
 }
 
-YAML::Node ConfigParser::getConfig() const {
-  return config_;
+bool ConfigParser::has(const std::string& key) const {
+  return config_[key] && config_[key].as<bool>();
 }
+
 }  // namespace marian

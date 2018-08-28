@@ -17,6 +17,11 @@ namespace cli {
 enum struct mode { training, translation, scoring };
 }  // namespace cli
 
+/**
+ * @brief Command-line options parser
+ *
+ * New options and aliases should be defined within `addOptions*` methods.
+ */
 class ConfigParser {
 public:
   ConfigParser(int argc, char** argv, cli::mode mode, bool validate = false)
@@ -24,10 +29,31 @@ public:
     parseOptions(argc, argv, validate);
   }
 
+  /**
+   * @brief Parse command-line options
+   *
+   * Options are parsed in the following order, later config options overwrite
+   * earlier:
+   *  * predefined default values
+   *  * options from the config files provided with --config, from left to right
+   *  * options from the model config file, e.g. model.npz.yml
+   *  * aliases expanded into options, e.g. --best-deep
+   *  * options provided as command-line arguments
+   *
+   * Parsed options are available from getConfig().
+   *
+   * @param argc
+   * @param argv
+   * @param validate Do or do not validate parsed options
+   */
   void parseOptions(int argc, char** argv, bool validate);
 
   YAML::Node getConfig() const;
   std::vector<DeviceId> getDevices();
+
+  // Check if the config has a boolean option for the given key and it is
+  // enabled
+  bool has(const std::string& key) const;
 
 private:
   cli::mode mode_;
@@ -42,13 +68,17 @@ private:
 
   void addSuboptionsDevices(cli::CLIWrapper&);
   void addSuboptionsBatching(cli::CLIWrapper&);
-  void addSuboptionsLength(cli::CLIWrapper&);
+  void addSupoptionsInputLength(cli::CLIWrapper&);
 
-  // change relative paths to absolute paths relative to the config file's
+  // Change relative paths to absolute paths relative to the config file's
   // directory
   void makeAbsolutePaths(const std::vector<std::string>&);
 
+  // Load paths to all config files found in the config object
   std::vector<std::string> loadConfigPaths();
+
+  // Create and return a new config from all provided config files
   YAML::Node loadConfigFiles(const std::vector<std::string>&);
 };
+
 }  // namespace marian
