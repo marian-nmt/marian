@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - Generated word alignments include alignments for target EOS tokens
+- Boost::program_options has been replaced by another CLI library
+- Expansion of unambiguous command-line arguments is no longer supported
 
 ## [1.6.0] - 2018-08-08
 
