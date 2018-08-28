@@ -434,14 +434,16 @@ public:
     size_t b = 0;
     for(auto sb : subBatches_) {
       std::cerr << "batch " << b++ << ": " << std::endl;
-      const auto& vocab = *sb->vocab();
+      const auto& vocab = sb->vocab();
       for(size_t i = 0; i < sb->batchWidth(); i++) {
         std::cerr << "\t w: ";
         for(size_t j = 0; j < sb->batchSize(); j++) {
           size_t idx = i * sb->batchSize() + j;
           Word w = sb->data()[idx];
-          const auto& s = vocab[w];
-          std::cerr << s << " ";
+          if (vocab)
+            std::cerr << (*vocab)[w] << " ";
+          else
+            std::cerr << w << " "; // if not loaded then print numeric id instead
         }
         std::cerr << std::endl;
       }
