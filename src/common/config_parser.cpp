@@ -77,7 +77,7 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
 
   // clang-format off
   if(mode_ == cli::mode::translation) {
-    cli.add_nondefault<std::vector<std::string>>("--models,-m",
+    cli.add<std::vector<std::string>>("--models,-m",
       "Paths to model(s) to be loaded");
   } else {
     cli.add<std::string>("--model,-m",
@@ -236,7 +236,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper &cli) {
       "Do not load existing model specified in --model arg");
   cli.add<std::vector<std::string>>("--train-sets,-t",
       "Paths to training corpora: source target");
-  cli.add_nondefault<std::vector<std::string>>("--vocabs,-v",
+  cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --train-sets. "
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
@@ -437,7 +437,7 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper &cli) {
   cli.add<std::vector<std::string>>("--input,-i",
       "Paths to input file(s), stdin by default",
       std::vector<std::string>({"stdin"}));
-  cli.add_nondefault<std::vector<std::string>>("--vocabs,-v",
+  cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --input");
 
   // decoding options
@@ -490,7 +490,7 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper &cli) {
   // TODO: move options like vocabs and train-sets to a separate procedure as they are defined twice
   cli.add<std::vector<std::string>>("--train-sets,-t",
       "Paths to corpora to be scored: source target");
-  cli.add_nondefault<std::vector<std::string>>("--vocabs,-v",
+  cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --train-sets."
       " If this parameter is not supplied we look for vocabulary files source.{yml,json} and target.{yml,json}."
       " If these files do not exists they are created");
@@ -613,7 +613,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     config_ = cli.getConfigWithNewDefaults(config);
   }
 
-  // TODO: option expansion should be done at the very end?
+  // TODO: add add_alias to CLIWrapper
   if(cli.has("best-deep")) {
     config_["layer-normalization"] = true;
     config_["tied-embeddings"] = true;

@@ -58,7 +58,7 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
     paths_ = options_->get<std::vector<std::string>>("input");
 
   std::vector<std::string> vocabPaths;
-  if(options_->has("vocabs"))
+  if(!options_->get<std::vector<std::string>>("vocabs").empty())
     vocabPaths = options_->get<std::vector<std::string>>("vocabs");
 
   if(training) {
@@ -68,7 +68,8 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
 
   std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
 
-  if(training) {  // training or scoring
+  // training or scoring
+  if(training) {
     std::vector<Vocab> vocabs;
 
     if(vocabPaths.empty()) {

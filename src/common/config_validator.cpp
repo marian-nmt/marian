@@ -35,11 +35,12 @@ void ConfigValidator::validateOptions(cli::mode mode) const {
 
 void ConfigValidator::validateOptionsTranslation() const {
   UTIL_THROW_IF2(
-      !has("models") && get<std::vector<std::string>>("config").empty(),
+      get<std::vector<std::string>>("models").empty()
+          && get<std::vector<std::string>>("config").empty(),
       "You need to provide at least one model file or a config file");
-  UTIL_THROW_IF2(
-      !has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
-      "Translating, but vocabularies are not given!");
+
+  UTIL_THROW_IF2(get<std::vector<std::string>>("vocabs").empty(),
+                 "Translating, but vocabularies are not given!");
 
   for(const auto& modelFile : get<std::vector<std::string>>("models")) {
     boost::filesystem::path modelPath(modelFile);
@@ -53,7 +54,7 @@ void ConfigValidator::validateOptionsParallelData() const {
       !has("train-sets") || get<std::vector<std::string>>("train-sets").empty(),
       "No train sets given in config file or on command line");
   UTIL_THROW_IF2(
-      has("vocabs")
+      !get<std::vector<std::string>>("vocabs").empty()
           && get<std::vector<std::string>>("vocabs").size()
                  != get<std::vector<std::string>>("train-sets").size(),
       "There should be as many vocabularies as training sets");
@@ -64,9 +65,8 @@ void ConfigValidator::validateOptionsScoring() const {
 
   UTIL_THROW_IF2(!boost::filesystem::exists(modelPath),
                  "Model file does not exist: " + modelPath.string());
-  UTIL_THROW_IF2(
-      !has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
-      "Scoring, but vocabularies are not given!");
+  UTIL_THROW_IF2(get<std::vector<std::string>>("vocabs").empty(),
+                 "Scoring, but vocabularies are not given!");
 }
 
 void ConfigValidator::validateOptionsTraining() const {

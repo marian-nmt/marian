@@ -124,7 +124,7 @@ public:
   }
 
   /**
-   * @brief Switches to different option group or to the default group if
+   * @brief Switch to different option group or to the default group if
    * argument is empty
    *
    * @param name Header of the option group
@@ -146,15 +146,17 @@ public:
   }
 
   /**
-   * @brief Returns the YAML config with all defined and parsed options
+   * @brief Return config with defined and parsed options
    *
    * @return YAML config
    */
   YAML::Node getConfig() const;
 
   /**
-   * @brief Generates a YAML config that overwrites default option values with the
-   * provided options
+   * @brief Generate config with overwritten values for unparsed options
+   *
+   * Default values are overwritten with the options found in the config
+   * provided as the argument and parsed command-line options remain unchanged
    *
    * @param node YAML config with new default values for options
    *

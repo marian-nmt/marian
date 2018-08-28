@@ -74,11 +74,11 @@ private:
   // directory
   void makeAbsolutePaths(const std::vector<std::string>&);
 
+  // Create a new config from all provided config files
+  YAML::Node loadConfigFiles(const std::vector<std::string>&);
+
   // Load paths to all config files found in the config object
   std::vector<std::string> loadConfigPaths();
-
-  // Create and return a new config from all provided config files
-  YAML::Node loadConfigFiles(const std::vector<std::string>&);
 };
 
 }  // namespace marian
