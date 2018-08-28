@@ -15,6 +15,8 @@
 
 namespace marian {
 
+// clang-format off
+
 // shared base class for transformer-based EncoderTransformer and DecoderTransformer
 // Both classes share a lot of code. This template adds that shared code into their
 // base while still deriving from EncoderBase and DecoderBase, respectively.
@@ -544,7 +546,7 @@ public:
     layer = preProcess(prefix_ + "_emb", opsEmb, layer, dropProb);
 
     layerMask = transposedLogMask(layerMask); // [-4: batch size, -3: 1, -2: vector dim=1, -1: max length]
-    
+
     // apply encoder layers
     auto encDepth = opt<int>("enc-depth");
     for(int i = 1; i <= encDepth; ++i) {
@@ -779,9 +781,9 @@ public:
             std::string gaStr = options_->get<std::string>("transformer-guided-alignment-layer");
             if(gaStr != "last")
               attLayer = std::stoull(gaStr) - 1;
-            
-            ABORT_IF(attLayer >= decDepth, 
-                     "Chosen layer for guided attention ({}) larger than number of layers ({})", 
+
+            ABORT_IF(attLayer >= decDepth,
+                     "Chosen layer for guided attention ({}) larger than number of layers ({})",
                      attLayer + 1, decDepth);
 
             saveAttentionWeights = i == attLayer;
@@ -845,4 +847,7 @@ Ptr<DecoderBase> NewDecoderTransformer(Ptr<Options> options)
 {
   return New<DecoderTransformer>(options);
 }
+
+// clang-format on
+
 }  // namespace marian
