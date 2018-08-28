@@ -12,35 +12,43 @@ bool ConfigValidator::has(const std::string& key) const {
   return config_[key];
 }
 
-ConfigValidator::ConfigValidator(ConfigMode mode, const YAML::Node& config)
-    : mode_(mode), config_(config) {}
+ConfigValidator::ConfigValidator(const YAML::Node& config)
+    : config_(config) {}
 
 ConfigValidator::~ConfigValidator() {}
 
-void ConfigValidator::validate() const {
-  validateOptions();
-  validateDevices();
+void ConfigValidator::validateOptions(ConfigMode mode) const {
+  switch(mode) {
+    case ConfigMode::translating:
+      validateOptionsTranslation();
+      break;
+    case ConfigMode::rescoring:
+      validateOptionsParallelData();
+      validateOptionsScoring();
+      break;
+    case ConfigMode::training:
+      validateOptionsParallelData();
+      validateOptionsTraining();
+      break;
+  }
 }
 
-void ConfigValidator::validateOptions() const {
-  if(mode_ == ConfigMode::translating) {
-    UTIL_THROW_IF2(
-        !has("models") && get<std::vector<std::string>>("config").empty(),
-        "You need to provide at least one model file or a config file");
+void ConfigValidator::validateOptionsTranslation() const {
+  UTIL_THROW_IF2(
+      !has("models") && get<std::vector<std::string>>("config").empty(),
+      "You need to provide at least one model file or a config file");
+  UTIL_THROW_IF2(
+      !has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
+      "Translating, but vocabularies are not given!");
 
-    UTIL_THROW_IF2(
-        !has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
-        "Translating, but vocabularies are not given!");
-
-    for(const auto& modelFile : get<std::vector<std::string>>("models")) {
-      boost::filesystem::path modelPath(modelFile);
-      UTIL_THROW_IF2(!boost::filesystem::exists(modelPath),
-                     "Model file does not exist: " + modelFile);
-    }
-
-    return;
+  for(const auto& modelFile : get<std::vector<std::string>>("models")) {
+    boost::filesystem::path modelPath(modelFile);
+    UTIL_THROW_IF2(!boost::filesystem::exists(modelPath),
+                   "Model file does not exist: " + modelFile);
   }
+}
 
+void ConfigValidator::validateOptionsParallelData() const {
   UTIL_THROW_IF2(
       !has("train-sets") || get<std::vector<std::string>>("train-sets").empty(),
       "No train sets given in config file or on command line");
@@ -49,6 +57,19 @@ void ConfigValidator::validateOptions() const {
           && get<std::vector<std::string>>("vocabs").size()
                  != get<std::vector<std::string>>("train-sets").size(),
       "There should be as many vocabularies as training sets");
+}
+
+void ConfigValidator::validateOptionsScoring() const {
+  boost::filesystem::path modelPath(get<std::string>("model"));
+
+  UTIL_THROW_IF2(!boost::filesystem::exists(modelPath),
+                 "Model file does not exist: " + modelPath.string());
+  UTIL_THROW_IF2(
+      !has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
+      "Scoring, but vocabularies are not given!");
+}
+
+void ConfigValidator::validateOptionsTraining() const {
   UTIL_THROW_IF2(
       has("embedding-vectors")
           && get<std::vector<std::string>>("embedding-vectors").size()
@@ -57,17 +78,6 @@ void ConfigValidator::validateOptions() const {
       "training sets");
 
   boost::filesystem::path modelPath(get<std::string>("model"));
-
-  if(mode_ == ConfigMode::rescoring) {
-    UTIL_THROW_IF2(!boost::filesystem::exists(modelPath),
-                   "Model file does not exist: " + modelPath.string());
-
-    UTIL_THROW_IF2(
-        !has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
-        "Scoring, but vocabularies are not given!");
-
-    return;
-  }
 
   auto modelDir = modelPath.parent_path();
   if(modelDir.empty())
@@ -106,13 +116,13 @@ void ConfigValidator::validateOptions() const {
       "--lr-decay-start option");
 }
 
-void ConfigValidator::validateDevices() const {
+void ConfigValidator::validateDevices(ConfigMode mode) const {
   std::string devices = utils::Join(get<std::vector<std::string>>("devices"));
   utils::Trim(devices);
 
   regex::regex pattern;
   std::string help;
-  if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
+  if(mode == ConfigMode::training && get<bool>("multi-node")) {
     // valid strings: '0: 1 2', '0:1 2 1:2 3'
     pattern = "( *[0-9]+ *: *[0-9]+( *[0-9]+)*)+";
     help = "Supported format for multi-node setting: '0:0 1 2 3 1:0 1 2 3'";

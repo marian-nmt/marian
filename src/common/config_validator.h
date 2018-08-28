@@ -8,7 +8,6 @@ namespace marian {
 class ConfigValidator
 {
 private:
-  ConfigMode mode_;
   const YAML::Node& config_;
 
   bool has(const std::string& key) const;
@@ -18,14 +17,17 @@ private:
     return config_[key].as<T>();
   }
 
-  void validateOptions() const;
-  void validateDevices() const;
+  void validateOptionsTranslation() const;
+  void validateOptionsParallelData() const;
+  void validateOptionsScoring() const;
+  void validateOptionsTraining() const;
 
 public:
-  ConfigValidator(ConfigMode mode, const YAML::Node& config);
+  ConfigValidator(const YAML::Node& config);
   virtual ~ConfigValidator();
 
-  void validate() const;
+  void validateOptions(ConfigMode mode) const;
+  void validateDevices(ConfigMode mode) const;
 };
 
 }  // namespace marian
