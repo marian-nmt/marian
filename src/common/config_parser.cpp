@@ -38,7 +38,7 @@ const std::set<std::string> PATHS = {"model",
 
 
 void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
-  int defaultWorkspace = (mode_ == ConfigMode::translating) ? 512 : 2048;
+  int defaultWorkspace = (mode_ == cli::mode::translation) ? 512 : 2048;
 
   cli.switchGroup("General options");
 
@@ -76,7 +76,7 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
   cli.switchGroup("Model options");
 
   // clang-format off
-  if(mode_ == ConfigMode::translating) {
+  if(mode_ == cli::mode::translation) {
     cli.add_nondefault<std::vector<std::string>>("--models,-m",
       "Paths to model(s) to be loaded");
   } else {
@@ -84,7 +84,7 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "Path prefix for model to be saved/resumed",
       "model.npz");
 
-    if(mode_ == ConfigMode::training) {
+    if(mode_ == cli::mode::training) {
       cli.add_nondefault<std::string>("--pretrained-model",
         "Path prefix for pre-trained model to initialize model weights");
     }
@@ -200,7 +200,7 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       std::vector<int>({1, 2, 3, 4, 5, 6, 7, 8}));
 #endif
 
-  if(mode_ == ConfigMode::training) {
+  if(mode_ == cli::mode::training) {
     // TODO: add ->range(0,1);
     cli.add<float>("--dropout-rnn",
         "Scaling dropout along rnn layers and time (0 = no dropout)");
@@ -520,7 +520,7 @@ void ConfigParser::addSuboptionsDevices(cli::CLIWrapper &cli) {
       "GPUs to use for training",
       std::vector<std::string>({"0"}));
 #ifdef USE_NCCL
-  if(mode_ == ConfigMode::training)
+  if(mode_ == cli::mode::training)
     cli.add<bool>("--no-nccl",
       "Disable inter-GPU communication via NCCL");
 #endif
@@ -537,10 +537,10 @@ void ConfigParser::addSuboptionsDevices(cli::CLIWrapper &cli) {
 }
 
 void ConfigParser::addSuboptionsBatching(cli::CLIWrapper &cli) {
-  int defaultMiniBatch = (mode_ == ConfigMode::translating) ? 1 : 64;
-  int defaultMaxiBatch = (mode_ == ConfigMode::translating) ? 1 : 100;
+  int defaultMiniBatch = (mode_ == cli::mode::translation) ? 1 : 64;
+  int defaultMaxiBatch = (mode_ == cli::mode::translation) ? 1 : 100;
   std::string defaultMaxiBatchSort
-      = (mode_ == ConfigMode::translating) ? "none" : "trg";
+      = (mode_ == cli::mode::translation) ? "none" : "trg";
 
   // clang-format off
   cli.add<int>("--mini-batch",
@@ -549,7 +549,7 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper &cli) {
   cli.add<int>("--mini-batch-words",
       "Set mini-batch size based on words instead of sentences");
 
-  if(mode_ == ConfigMode::training) {
+  if(mode_ == cli::mode::training) {
     cli.add<bool>("--mini-batch-fit",
       "Determine mini-batch size automatically based on sentence-length to fit reserved memory");
     cli.add<size_t>("--mini-batch-fit-step",
@@ -567,7 +567,7 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper &cli) {
 }
 
 void ConfigParser::addSuboptionsLength(cli::CLIWrapper &cli) {
-  size_t defaultMaxLength = (mode_ == ConfigMode::training) ? 50 : 1000;
+  size_t defaultMaxLength = (mode_ == cli::mode::training) ? 50 : 1000;
   // clang-format off
   cli.add<size_t>("--max-length",
       "Maximum length of a sentence in a training sentence pair",
@@ -585,14 +585,14 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 
   // clang-format off
   switch(mode_) {
-    case ConfigMode::training:
+    case cli::mode::training:
       addOptionsTraining(cli);
       addOptionsValidation(cli);
       break;
-    case ConfigMode::translating:
+    case cli::mode::translation:
       addOptionsTranslation(cli);
       break;
-    case ConfigMode::rescoring:
+    case cli::mode::scoring:
       addOptionsScoring(cli);
       break;
   }
@@ -715,7 +715,7 @@ std::vector<std::string> ConfigParser::loadConfigPaths() {
       if(interpolateEnvVars)
         path = cli::InterpolateEnvVars(path);
     }
-  } else if(mode_ == ConfigMode::training) {
+  } else if(mode_ == cli::mode::training) {
     auto path = config_["model"].as<std::string>() + ".yml";
     if(interpolateEnvVars)
       path = cli::InterpolateEnvVars(path);
@@ -737,7 +737,7 @@ std::vector<DeviceId> ConfigParser::getDevices() {
     std::string devicesStr
         = utils::Join(config_["devices"].as<std::vector<std::string>>());
 
-    if(mode_ == ConfigMode::training && config_["multi-node"].as<bool>()) {
+    if(mode_ == cli::mode::training && config_["multi-node"].as<bool>()) {
       auto parts = utils::Split(devicesStr, ":");
       for(size_t i = 1; i < parts.size(); ++i) {
         std::string part = parts[i];

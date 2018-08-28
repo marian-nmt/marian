@@ -13,15 +13,13 @@
 
 namespace marian {
 
-enum struct ConfigMode {
-  training,
-  translating,
-  rescoring,
-};
+namespace cli {
+enum struct mode { training, translation, scoring };
+}  // namespace cli
 
 class ConfigParser {
 public:
-  ConfigParser(int argc, char** argv, ConfigMode mode, bool validate = false)
+  ConfigParser(int argc, char** argv, cli::mode mode, bool validate = false)
       : mode_(mode) {
     parseOptions(argc, argv, validate);
   }
@@ -32,7 +30,7 @@ public:
   std::vector<DeviceId> getDevices();
 
 private:
-  ConfigMode mode_;
+  cli::mode mode_;
   YAML::Node config_;
 
   void addOptionsGeneral(cli::CLIWrapper&);

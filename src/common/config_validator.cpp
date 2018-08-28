@@ -17,16 +17,16 @@ ConfigValidator::ConfigValidator(const YAML::Node& config)
 
 ConfigValidator::~ConfigValidator() {}
 
-void ConfigValidator::validateOptions(ConfigMode mode) const {
+void ConfigValidator::validateOptions(cli::mode mode) const {
   switch(mode) {
-    case ConfigMode::translating:
+    case cli::mode::translation:
       validateOptionsTranslation();
       break;
-    case ConfigMode::rescoring:
+    case cli::mode::scoring:
       validateOptionsParallelData();
       validateOptionsScoring();
       break;
-    case ConfigMode::training:
+    case cli::mode::training:
       validateOptionsParallelData();
       validateOptionsTraining();
       break;
@@ -116,13 +116,13 @@ void ConfigValidator::validateOptionsTraining() const {
       "--lr-decay-start option");
 }
 
-void ConfigValidator::validateDevices(ConfigMode mode) const {
+void ConfigValidator::validateDevices(cli::mode mode) const {
   std::string devices = utils::Join(get<std::vector<std::string>>("devices"));
   utils::Trim(devices);
 
   regex::regex pattern;
   std::string help;
-  if(mode == ConfigMode::training && get<bool>("multi-node")) {
+  if(mode == cli::mode::training && get<bool>("multi-node")) {
     // valid strings: '0: 1 2', '0:1 2 1:2 3'
     pattern = "( *[0-9]+ *: *[0-9]+( *[0-9]+)*)+";
     help = "Supported format for multi-node setting: '0:0 1 2 3 1:0 1 2 3'";

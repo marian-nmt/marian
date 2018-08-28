@@ -24,7 +24,7 @@ public:
   typedef YAML::Node YamlNode;
 
   Config(const std::string options,
-         ConfigMode mode = ConfigMode::training,
+         cli::mode mode = cli::mode::training,
          bool validate = false) {
     std::vector<std::string> sargv;
     utils::Split(options, sargv, " ");
@@ -39,14 +39,14 @@ public:
 
   Config(int argc,
          char** argv,
-         ConfigMode mode = ConfigMode::training,
+         cli::mode mode = cli::mode::training,
          bool validate = true) {
     initialize(argc, argv, mode, validate);
   }
 
   void initialize(int argc,
                   char** argv,
-                  ConfigMode mode = ConfigMode::training,
+                  cli::mode mode = cli::mode::training,
                   bool validate = true) {
     auto parser = ConfigParser(argc, argv, mode, validate);
     config_ = parser.getConfig();
@@ -59,7 +59,7 @@ public:
     else
       seed = get<size_t>("seed");
 
-    if(mode != ConfigMode::translating) {
+    if(mode != cli::mode::translation) {
       if(boost::filesystem::exists(get<std::string>("model"))
          && !get<bool>("no-reload")) {
         try {

@@ -26,8 +26,8 @@ public:
   ConfigValidator(const YAML::Node& config);
   virtual ~ConfigValidator();
 
-  void validateOptions(ConfigMode mode) const;
-  void validateDevices(ConfigMode mode) const;
+  void validateOptions(cli::mode mode) const;
+  void validateDevices(cli::mode mode) const;
 };
 
 }  // namespace marian

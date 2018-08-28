@@ -6,7 +6,7 @@
 int main(int argc, char** argv) {
   using namespace marian;
 
-  auto options = New<Config>(argc, argv, ConfigMode::rescoring);
+  auto options = New<Config>(argc, argv, cli::mode::scoring);
 
   boost::timer::cpu_timer timer;
   New<Rescore<Rescorer>>(options)->run();
