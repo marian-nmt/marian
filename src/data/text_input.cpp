@@ -1,4 +1,5 @@
 #include "data/text_input.h"
+#include "common/utils.h"
 
 namespace marian {
 namespace data {
