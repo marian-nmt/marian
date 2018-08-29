@@ -98,6 +98,7 @@ public:
         scorer->setShortlistGenerator(shortListGen);
     }
 
+    // form source batch, by interleaving the words over sentences in the batch, and setting the mask
     size_t batchSize = qsBatch.size();
     auto subBatch = New<data::SubBatch>(batchSize, maxLength, nullptr);
     for(size_t i = 0; i < maxLength; ++i) {
@@ -117,18 +118,22 @@ public:
     auto batch = New<data::CorpusBatch>(subBatches);
     batch->setSentenceIds(sentIds);
 
+    // decode
     auto search = New<BeamSearch>(options_, scorers_, eos_);
     auto histories = search->search(graph_, batch);
 
-    QSNBest nbest;
-    for(const auto& history : histories) {
-      Result bestTranslation = history->Top();
-      nbest.push_back(std::make_tuple(std::get<0>(bestTranslation),
-                                      std::get<2>(bestTranslation)));
+    // convert to QuickSAND format
+    QSNBestBatch qsNbestBatch;
+    for(const auto& history : histories) { // loop over batch entries
+      QSNBest qsNbest;
+      auto nbestHyps = history->NBest(SIZE_MAX); // request as many N as we have
+      for (const auto& hyp : nbestHyps) { // loop over N-best entries
+        qsNbest.push_back(std::make_tuple(std::get<0>(hyp),
+                                          std::get<2>(hyp)));
+      }
+      qsNbestBatch.push_back(qsNbest);
     }
 
-    QSNBestBatch qsNbestBatch;
-    qsNbestBatch.push_back(nbest);
     return qsNbestBatch;
   }
 };
