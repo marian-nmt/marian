@@ -602,7 +602,7 @@ public:
     graph_ = graph;
 
     using namespace keywords;
-    std::string layerType = opt<std::string>("transformer-decoder-autoreg");
+    std::string layerType = opt<std::string>("transformer-decoder-autoreg", "self-attention");
     if (layerType == "rnn") {
       int dimBatch = batch->size();
       int dim = opt<int>("dim-emb");
@@ -764,7 +764,7 @@ public:
 
     // return unormalized(!) probabilities
     Ptr<DecoderState> nextState;
-    if (opt<std::string>("transformer-decoder-autoreg") == "rnn") {
+    if (opt<std::string>("transformer-decoder-autoreg", "self-attention") == "rnn") {
       nextState = New<DecoderState>(
           decoderStates, logits, state->getEncoderStates(), state->getBatch());
     } else {
