@@ -1,7 +1,8 @@
 #pragma once
 
-#include "3rd_party/exception.h"
 #include "marian.h"
+
+#include "common/logging.h"
 
 #include <fstream>
 #include <string>
@@ -29,7 +30,7 @@ public:
     utils::GetLine(embFile, line);
     utils::Split(line, values);
     ABORT_IF(values.size() != 2,
-             "Unexpected format of the first line in embedding file");
+             "Unexpected format of the first line of the embedding file");
     ABORT_IF(stoi(values[1]) != dimEmb,
              "Unexpected length of embedding vectors");
 

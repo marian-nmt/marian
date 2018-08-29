@@ -34,15 +34,17 @@ void ConfigValidator::validateOptions(cli::mode mode) const {
 }
 
 void ConfigValidator::validateOptionsTranslation() const {
+  auto models = get<std::vector<std::string>>("models");
+  auto configs = get<std::vector<std::string>>("config");
   UTIL_THROW_IF2(
-      get<std::vector<std::string>>("models").empty()
-          && get<std::vector<std::string>>("config").empty(),
+      models.empty() && configs.empty(),
       "You need to provide at least one model file or a config file");
 
-  UTIL_THROW_IF2(get<std::vector<std::string>>("vocabs").empty(),
+  auto vocabs = get<std::vector<std::string>>("vocabs");
+  UTIL_THROW_IF2(vocabs.empty(),
                  "Translating, but vocabularies are not given!");
 
-  for(const auto& modelFile : get<std::vector<std::string>>("models")) {
+  for(const auto& modelFile : models) {
     boost::filesystem::path modelPath(modelFile);
     UTIL_THROW_IF2(!boost::filesystem::exists(modelPath),
                    "Model file does not exist: " + modelFile);
@@ -50,14 +52,13 @@ void ConfigValidator::validateOptionsTranslation() const {
 }
 
 void ConfigValidator::validateOptionsParallelData() const {
-  UTIL_THROW_IF2(
-      !has("train-sets") || get<std::vector<std::string>>("train-sets").empty(),
-      "No train sets given in config file or on command line");
-  UTIL_THROW_IF2(
-      !get<std::vector<std::string>>("vocabs").empty()
-          && get<std::vector<std::string>>("vocabs").size()
-                 != get<std::vector<std::string>>("train-sets").size(),
-      "There should be as many vocabularies as training sets");
+  auto trainSets = get<std::vector<std::string>>("train-sets");
+  UTIL_THROW_IF2(trainSets.empty(),
+                 "No train sets given in config file or on command line");
+
+  auto vocabs = get<std::vector<std::string>>("vocabs");
+  UTIL_THROW_IF2(!vocabs.empty() && vocabs.size() != trainSets.size(),
+                 "There should be as many vocabularies as training sets");
 }
 
 void ConfigValidator::validateOptionsScoring() const {
@@ -70,12 +71,13 @@ void ConfigValidator::validateOptionsScoring() const {
 }
 
 void ConfigValidator::validateOptionsTraining() const {
+  auto trainSets = get<std::vector<std::string>>("train-sets");
+
   UTIL_THROW_IF2(
       has("embedding-vectors")
           && get<std::vector<std::string>>("embedding-vectors").size()
-                 != get<std::vector<std::string>>("train-sets").size(),
-      "There should be as many files with embedding vectors as "
-      "training sets");
+                 != trainSets.size(),
+      "There should be as many embedding vector files as training sets");
 
   boost::filesystem::path modelPath(get<std::string>("model"));
 
@@ -92,25 +94,24 @@ void ConfigValidator::validateOptionsTraining() const {
                           & boost::filesystem::owner_write),
                  "No write permission in model directory");
 
-  UTIL_THROW_IF2(
-      has("valid-sets")
-          && get<std::vector<std::string>>("valid-sets").size()
-                 != get<std::vector<std::string>>("train-sets").size(),
-      "There should be as many validation sets as training sets");
+  UTIL_THROW_IF2(has("valid-sets")
+                     && get<std::vector<std::string>>("valid-sets").size()
+                            != trainSets.size(),
+                 "There should be as many validation sets as training sets");
 
   // validations for learning rate decaying
   UTIL_THROW_IF2(get<double>("lr-decay") > 1.0,
                  "Learning rate decay factor greater than 1.0 is unusual");
+
+  auto strategy = get<std::string>("lr-decay-strategy");
+
   UTIL_THROW_IF2(
-      (get<std::string>("lr-decay-strategy") == "epoch+batches"
-       || get<std::string>("lr-decay-strategy") == "epoch+stalled")
+      (strategy == "epoch+batches" || strategy == "epoch+stalled")
           && get<std::vector<size_t>>("lr-decay-start").size() != 2,
       "Decay strategies 'epoch+batches' and 'epoch+stalled' require two "
-      "values specified with --lr-decay-start options");
+      "values specified with --lr-decay-start option");
   UTIL_THROW_IF2(
-      (get<std::string>("lr-decay-strategy") == "epoch"
-       || get<std::string>("lr-decay-strategy") == "batches"
-       || get<std::string>("lr-decay-strategy") == "stalled")
+      (strategy == "epoch" || strategy == "batches" || strategy == "stalled")
           && get<std::vector<size_t>>("lr-decay-start").size() != 1,
       "Single decay strategies require only one value specified with "
       "--lr-decay-start option");
