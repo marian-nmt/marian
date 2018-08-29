@@ -578,6 +578,20 @@ void ConfigParser::addSupoptionsInputLength(cli::CLIWrapper &cli) {
   // clang-format on
 }
 
+void ConfigParser::addOptionsAliases(cli::CLIWrapper &cli) {
+  cli.add_alias<bool>("best-deep", true, [](YAML::Node& config) {
+    config["layer-normalization"] = true;
+    config["tied-embeddings"] = true;
+    config["enc-type"] = "alternating";
+    config["enc-cell-depth"] = 2;
+    config["enc-depth"] = 4;
+    config["dec-cell-base-depth"] = 4;
+    config["dec-cell-high-depth"] = 2;
+    config["dec-depth"] = 4;
+    config["skip"] = true;
+  });
+}
+
 void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   cli::CLIWrapper cli("General options", 40);
 
@@ -599,6 +613,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
   // clang-format on
 
+  addOptionsAliases(cli);
+
   // parse command-line options
   cli.parse(argc, argv);
   // get YAML config with default and parsed options
@@ -611,20 +627,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     // load options from extra config files into a single YAML config
     auto config = loadConfigFiles(configPaths);
     // combine loaded options with the main YAML config
-    config_ = cli.getConfigWithNewDefaults(config);
-  }
-
-  // TODO: add add_alias to CLIWrapper
-  if(cli.has("best-deep")) {
-    config_["layer-normalization"] = true;
-    config_["tied-embeddings"] = true;
-    config_["enc-type"] = "alternating";
-    config_["enc-cell-depth"] = 2;
-    config_["enc-depth"] = 4;
-    config_["dec-cell-base-depth"] = 4;
-    config_["dec-cell-high-depth"] = 2;
-    config_["dec-depth"] = 4;
-    config_["skip"] = true;
+    cli.overwriteDefault(config);
+    config_ = cli.getConfig();
   }
 
   if(has("interpolate-env-vars")) {
@@ -656,6 +660,12 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     cli::OutputYaml(config_, emit);
     std::cout << emit.c_str() << std::endl;
     exit(0);
+  }
+
+  if(cli.hasAliases()) {
+    cli.setConfig(config_);
+    cli.expandAliases();
+    config_ = cli.getConfig();
   }
 }
 

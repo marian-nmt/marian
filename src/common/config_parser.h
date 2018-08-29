@@ -70,6 +70,8 @@ private:
   void addSuboptionsBatching(cli::CLIWrapper&);
   void addSupoptionsInputLength(cli::CLIWrapper&);
 
+  void addOptionsAliases(cli::CLIWrapper&);
+
   // Change relative paths to absolute paths relative to the config file's
   // directory
   void makeAbsolutePaths(const std::vector<std::string>&);

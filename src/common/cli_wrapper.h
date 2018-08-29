@@ -41,6 +41,8 @@ private:
   std::map<std::string, Ptr<some_type>> vars_;
   // Stores option objects
   std::map<std::string, CLI::Option *> opts_;
+  // Stores aliases
+  std::map<std::string, std::function<YAML::Node()>> aliases_;
   // Command-line argument parser
   Ptr<CLI::App> app_;
   // Stores options as YAML object
@@ -60,7 +62,7 @@ private:
 
 public:
   /**
-   * @brief Creates an instance of the command-line parser
+   * @brief Create an instance of the command-line parser
    *
    * Option --help, -h is automatically added.
    *
@@ -75,7 +77,7 @@ public:
   virtual ~CLIWrapper();
 
   /**
-   * @brief Defines an option with a default value
+   * @brief Define an option with a default value
    *
    * @param args Comma-separated list of short and long option names
    * @param help Help message
@@ -89,7 +91,7 @@ public:
   }
 
   /**
-   * @brief Defines an option without an explicit default value. The implicit
+   * @brief Define an option without an explicit default value. The implicit
    * default value is T()
    *
    * The option will be defined in the config file even if not given as a
@@ -107,9 +109,9 @@ public:
   }
 
   /**
-   * @brief Defines a non-defaulted option
+   * @brief Define a non-defaulted option
    *
-   * The option will be not present in the config file unless given as a
+   * The option will not be present in the config file unless given as a
    * command-line argument.
    *
    * @param args Comma-separated list of short and long option names
@@ -123,6 +125,35 @@ public:
     return add_option<T>(keyName(args), args, help, T(), false, false);
   }
 
+  template <typename T>
+  /**
+   * @brief Define option alias
+   *
+   * Aliases are options that set other options.
+   *
+   * @param key A option long name without prefixing dashes
+   * @param val An expected value for the option to trigger the alias
+   * @param fun A function populating YAML config
+   */
+  void add_alias(const std::string &key,
+                 T val,
+                 std::function<void(YAML::Node &)> fun) {
+    ABORT_IF(vars_.count(key) == 0,
+             "Can not create alias for non-existent option with key '{}'",
+             key);
+
+    // TODO: aliases should not introduce path options
+    auto aliasFunc = [this, key, val, fun]() -> YAML::Node {
+      YAML::Node config;
+      // if the key exists and has requested value
+      if(opts_.count(key) && val == vars_[key]->as<T>())
+        fun(config);
+      return config;
+    };
+    aliases_.insert(std::make_pair(key, aliasFunc));
+  }
+
+
   /**
    * @brief Switch to different option group or to the default group if
    * argument is empty
@@ -131,13 +162,16 @@ public:
    */
   void switchGroup(const std::string &name = "");
 
-  // Parses command-line arguments. Handles --help and --version options
+  // Parse command-line arguments. Handles --help and --version options
   void parse(int argc, char** argv);
 
-  // Checks if an option has been defined (not necessarily parsed)
+  // expand alias options
+  void expandAliases();
+
+  // Check if an option has been defined (not necessarily parsed)
   bool has(const std::string &key) const;
 
-  // Gets the current value for the option
+  // Get the current value for the option
   template <typename T>
   T get(const std::string &key) const {
     ABORT_IF(
@@ -145,24 +179,22 @@ public:
     return vars_.at(key)->as<T>();
   }
 
-  /**
-   * @brief Return config with defined and parsed options
-   *
-   * @return YAML config
-   */
   YAML::Node getConfig() const;
 
+  void setConfig(const YAML::Node& config);
+
+  bool hasAliases() const;
+
   /**
-   * @brief Generate config with overwritten values for unparsed options
+   * @brief Overwrite values for unparsed options
    *
    * Default values are overwritten with the options found in the config
-   * provided as the argument and parsed command-line options remain unchanged
+   * provided as the argument, while parsed command-line options remain
+   * unchanged
    *
    * @param node YAML config with new default values for options
-   *
-   * @return YAML config
    */
-  YAML::Node getConfigWithNewDefaults(const YAML::Node& node) const;
+  void overwriteDefault(const YAML::Node& node);
 
 private:
   template <
@@ -259,6 +291,7 @@ private:
 
     CLI::callback_t fun = [this, key](CLI::results_t res) {
       //std::cerr << "CLI::callback(" << key << ") " << std::endl;
+      vars_[key]->as<T>() = !res.empty();
       config_[key] = !res.empty();
       return true;
     };

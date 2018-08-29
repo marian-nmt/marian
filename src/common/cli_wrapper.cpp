@@ -95,6 +95,23 @@ void CLIWrapper::parse(int argc, char** argv) {
   }
 }
 
+void CLIWrapper::expandAliases() {
+  YAML::Node config;
+
+  for(auto& al : aliases_) {
+    for(const auto &it : al.second()) {
+      auto key = it.first.as<std::string>();
+      ABORT_IF(!opts_.count(key),
+               "Alias '{}' is trying to set a nonexistent option '{}'",
+               al.first,
+               key);
+      config[key] = YAML::Clone(it.second);
+    }
+  }
+
+  overwriteDefault(config);
+}
+
 bool CLIWrapper::has(const std::string &key) const {
   return opts_.count(key) > 0 && !opts_.at(key)->empty();
 }
@@ -108,12 +125,19 @@ std::string CLIWrapper::failureMessage(const CLI::App *app,
   return header;
 }
 
+bool CLIWrapper::hasAliases() const {
+  return !aliases_.empty();
+}
+
 YAML::Node CLIWrapper::getConfig() const {
   return config_;
 }
 
-YAML::Node CLIWrapper::getConfigWithNewDefaults(const YAML::Node &node) const {
-  YAML::Node yaml = YAML::Clone(config_);
+void CLIWrapper::setConfig(const YAML::Node& config) {
+  config_ = config;
+}
+
+void CLIWrapper::overwriteDefault(const YAML::Node &node) {
   // iterate requested default values
   for(auto it : node) {
     auto key = it.first.as<std::string>();
@@ -121,12 +145,11 @@ YAML::Node CLIWrapper::getConfigWithNewDefaults(const YAML::Node &node) const {
     // been not defined
     if(vars_.count(key) == 0)
       LOG(warn, "Default value for an undefined option with key '{}'", key);
-    // if we have an option and but it was not specified on command-line
+    // if we have an option but it was not specified on command-line
     if(vars_.count(key) > 0 && opts_.at(key)->empty()) {
-      yaml[key] = YAML::Clone(it.second);
+      config_[key] = YAML::Clone(it.second);
     }
   }
-  return yaml;
 }
 
 }  // namespace cli
