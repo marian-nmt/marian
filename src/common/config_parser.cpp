@@ -578,8 +578,10 @@ void ConfigParser::addSupoptionsInputLength(cli::CLIWrapper &cli) {
   // clang-format on
 }
 
-void ConfigParser::addOptionsAliases(cli::CLIWrapper &cli) {
-  cli.add_alias<bool>("best-deep", true, [](YAML::Node& config) {
+void ConfigParser::expandAliases(cli::CLIWrapper &cli) {
+  YAML::Node config;
+
+  if(config_["best-deep"].as<bool>()) {
     config["layer-normalization"] = true;
     config["tied-embeddings"] = true;
     config["enc-type"] = "alternating";
@@ -589,7 +591,13 @@ void ConfigParser::addOptionsAliases(cli::CLIWrapper &cli) {
     config["dec-cell-high-depth"] = 2;
     config["dec-depth"] = 4;
     config["skip"] = true;
-  });
+  }
+
+  if(config) {
+    cli.setConfig(config_);
+    cli.overwriteDefault(config);
+    config_ = cli.getConfig();
+  }
 }
 
 void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
@@ -612,8 +620,6 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
       break;
   }
   // clang-format on
-
-  addOptionsAliases(cli);
 
   // parse command-line options
   cli.parse(argc, argv);
@@ -662,11 +668,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     exit(0);
   }
 
-  if(cli.hasAliases()) {
-    cli.setConfig(config_);
-    cli.expandAliases();
-    config_ = cli.getConfig();
-  }
+  expandAliases(cli);
 }
 
 void ConfigParser::makeAbsolutePaths(

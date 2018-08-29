@@ -70,7 +70,7 @@ private:
   void addSuboptionsBatching(cli::CLIWrapper&);
   void addSupoptionsInputLength(cli::CLIWrapper&);
 
-  void addOptionsAliases(cli::CLIWrapper&);
+  void expandAliases(cli::CLIWrapper&);
 
   // Change relative paths to absolute paths relative to the config file's
   // directory

@@ -41,8 +41,6 @@ private:
   std::map<std::string, Ptr<some_type>> vars_;
   // Stores option objects
   std::map<std::string, CLI::Option *> opts_;
-  // Stores aliases
-  std::map<std::string, std::function<YAML::Node()>> aliases_;
   // Command-line argument parser
   Ptr<CLI::App> app_;
   // Stores options as YAML object
@@ -125,35 +123,6 @@ public:
     return add_option<T>(keyName(args), args, help, T(), false, false);
   }
 
-  template <typename T>
-  /**
-   * @brief Define option alias
-   *
-   * Aliases are options that set other options.
-   *
-   * @param key A option long name without prefixing dashes
-   * @param val An expected value for the option to trigger the alias
-   * @param fun A function populating YAML config
-   */
-  void add_alias(const std::string &key,
-                 T val,
-                 std::function<void(YAML::Node &)> fun) {
-    ABORT_IF(vars_.count(key) == 0,
-             "Can not create alias for non-existent option with key '{}'",
-             key);
-
-    // TODO: aliases should not introduce path options
-    auto aliasFunc = [this, key, val, fun]() -> YAML::Node {
-      YAML::Node config;
-      // if the key exists and has requested value
-      if(opts_.count(key) && val == vars_[key]->as<T>())
-        fun(config);
-      return config;
-    };
-    aliases_.insert(std::make_pair(key, aliasFunc));
-  }
-
-
   /**
    * @brief Switch to different option group or to the default group if
    * argument is empty
@@ -164,9 +133,6 @@ public:
 
   // Parse command-line arguments. Handles --help and --version options
   void parse(int argc, char** argv);
-
-  // expand alias options
-  void expandAliases();
 
   // Check if an option has been defined (not necessarily parsed)
   bool has(const std::string &key) const;
@@ -182,8 +148,6 @@ public:
   YAML::Node getConfig() const;
 
   void setConfig(const YAML::Node& config);
-
-  bool hasAliases() const;
 
   /**
    * @brief Overwrite values for unparsed options
