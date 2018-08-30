@@ -932,7 +932,7 @@ __global__ void gInsert(float* out,
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
       inShape.dims(index, dims);
-      dims[axis] = d_indices[dims[index]];
+      dims[axis] = d_indices[dims[axis]];
       int outIndex = outShape.index(dims);
       out[outIndex] += in[index];
     }
