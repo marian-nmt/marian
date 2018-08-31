@@ -45,6 +45,7 @@ std::vector<std::string> Split(const std::string& line,
   return pieces;
 }
 
+// @TODO: SplitAny() shares all but 2 expressions with Split(). Merge them.
 void SplitAny(const std::string& line,
               std::vector<std::string>& pieces,
               const std::string del /*= " "*/,

@@ -27,7 +27,11 @@ class Transformer : public EncoderOrDecoderBase {
 protected:
   using Base::options_; using Base::inference_;
   std::unordered_map<std::string, Expr> cache_;
-  std::vector<Expr> alignments_;
+
+  // attention weights produced by step()
+  // If enabled, it is set once per batch during training, and once per step during translation.
+  // It can be accessed by getAlignments(). @TODO: move into a state or return-value object
+  std::vector<Expr> alignments_; // [max tgt len or 1][beam depth, max src length, batch size, 1]
 
   template <typename T> T opt(const std::string& key) const { Ptr<Options> options = options_; return options->get<T>(key); }  // need to duplicate, since somehow using Base::opt is not working
   // FIXME: that separate options assignment is weird
@@ -174,7 +178,7 @@ public:
 
   void collectOneHead(Expr weights, int dimBeam) {
     // select first head, this is arbitrary as the choice does not really matter
-    auto head0 = select(weights, -3, {0});
+    auto head0 = select(weights, -3, {0}); // @TODO: implement an index() or slice() operator and use that
 
     int dimBatchBeam = head0->shape()[-4];
     int srcWords = head0->shape()[-1];
@@ -185,12 +189,12 @@ public:
     head0 = reshape(head0, {dimBeam, dimBatch, trgWords, srcWords});
     head0 = transpose(head0, {0, 3, 1, 2}); // [-4: beam depth, -3: max src length, -2: batch size, -1: max tgt length]
 
-    // safe only last alignment set. For training this will be all alignments,
+    // save only last alignment set. For training this will be all alignments,
     // for translation only the last one. Also split alignments by target words.
     // @TODO: make splitting obsolete
     alignments_.clear();
     for(int i = 0; i < trgWords; ++i)
-      alignments_.push_back(select(head0, -1, {(size_t)i}));
+      alignments_.push_back(select(head0, -1, {(size_t)i})); // [tgt index][-4: beam depth, -3: max src length, -2: batch size, -1: 1]
   }
 
   // determine the multiplicative-attention probability and performs the associative lookup as well
@@ -441,8 +445,6 @@ public:
                        Expr input,
                        Expr selfMask,
                        int startPos) const {
-    using namespace keywords;
-
     float dropoutRnn = inference_ ? 0.f : opt<float>("dropout-rnn");
 
     auto rnn = rnn::rnn(graph_)                                    //
@@ -633,7 +635,6 @@ public:
       std::vector<Ptr<EncoderState>>& encStates) override {
     graph_ = graph;
 
-    using namespace keywords;
     std::string layerType = opt<std::string>("transformer-decoder-autoreg", "self-attention");
     if (layerType == "rnn") {
       int dimBatch = batch->size();
@@ -826,6 +827,7 @@ public:
   }
 
   // helper function for guided alignment
+  // @TODO: const vector<> seems wrong. Either make it non-const or a const& (more efficient but dangerous)
   virtual const std::vector<Expr> getAlignments(int i = 0) override {
     return alignments_;
   }
