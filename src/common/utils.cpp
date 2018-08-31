@@ -45,6 +45,37 @@ std::vector<std::string> Split(const std::string& line,
   return pieces;
 }
 
+// @TODO: SplitAny() shares all but 2 expressions with Split(). Merge them.
+void SplitAny(const std::string& line,
+              std::vector<std::string>& pieces,
+              const std::string del /*= " "*/,
+              bool keepEmpty) {
+  size_t begin = 0;
+  size_t pos = 0;
+  std::string token;
+  while((pos = line.find_first_of(del, begin)) != std::string::npos) {
+    if(pos >= begin) {
+      token = line.substr(begin, pos - begin);
+      if(token.size() > 0 || keepEmpty)
+        pieces.push_back(token);
+    }
+    begin = pos + 1;
+  }
+  if(pos >= begin) {
+    token = line.substr(begin, pos - begin);
+    if(token.size() > 0 || keepEmpty)
+      pieces.push_back(token);
+  }
+}
+
+std::vector<std::string> SplitAny(const std::string& line,
+                                  const std::string del /*= " "*/,
+                                  bool keepEmpty) {
+  std::vector<std::string> pieces;
+  SplitAny(line, pieces, del, keepEmpty);
+  return pieces;
+}
+
 std::string Join(const std::vector<std::string>& words,
                  const std::string& del /*= " "*/,
                  bool reverse /*= false*/) {

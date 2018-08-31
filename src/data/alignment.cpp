@@ -11,7 +11,7 @@ WordAlignment::WordAlignment(
     : data_(align) {}
 
 WordAlignment::WordAlignment(const std::string& line) {
-  std::vector<std::string> atok = utils::Split(line, " -");
+  std::vector<std::string> atok = utils::SplitAny(line, " -");
   for(size_t i = 0; i < atok.size(); i += 2)
     data_.emplace_back(std::stoi(atok[i]), std::stoi(atok[i + 1]));
 }

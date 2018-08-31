@@ -755,7 +755,9 @@ struct ColsNodeOp : public UnaryNodeOp {
 
 struct SelectNodeOp : public UnaryNodeOp {
   SelectNodeOp(Expr a, int axis, const std::vector<size_t>& indices)
-      : UnaryNodeOp(a, newShape(a, axis, indices)), indices_(indices) {
+      : UnaryNodeOp(a, newShape(a, axis, indices)), 
+        indices_(indices), 
+        axis_{a->shape().axis(axis)} {
     setMemoize(false);
   }
 
@@ -771,8 +773,8 @@ struct SelectNodeOp : public UnaryNodeOp {
 
   Shape newShape(Expr a, int axis, const std::vector<size_t>& indices) {
     Shape shape = a->shape();
-    axis_ = shape.axis(axis);
-    shape.set(axis_, indices.size());
+    axis = shape.axis(axis);
+    shape.set(axis, indices.size());
     return shape;
   }
 
@@ -805,21 +807,25 @@ struct SelectNodeOp : public UnaryNodeOp {
   }
 
   std::vector<size_t> indices_;
-  int axis_{0};
+  int axis_;
 };
 
 struct TransposeNodeOp : public UnaryNodeOp {
   std::vector<int> axes_;
+  std::vector<int> axesBw_;
 
   TransposeNodeOp(Expr a, const std::vector<int>& axes)
-      : UnaryNodeOp(a, newShape(a, axes)), axes_{axes} {}
+      : UnaryNodeOp(a, newShape(a, axes)), axes_{axes}, axesBw_(axes.size()) {
+    for(int i = 0; i < axes_.size(); ++i)
+       axesBw_[axes_[i]] = i;
+  }
 
   NodeOps forwardOps() override {
     return {NodeOp(TransposeND(val_, child(0)->val(), axes_))};
   }
 
   NodeOps backwardOps() override {
-    return {NodeOp(TransposeNDGrad(child(0)->grad(), adj_, axes_))};
+    return {NodeOp(TransposeNDGrad(child(0)->grad(), adj_, axesBw_))};
   }
 
   template <class... Args>

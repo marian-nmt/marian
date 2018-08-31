@@ -219,14 +219,14 @@ void CorpusBase::addAlignmentsToBatch(Ptr<CorpusBatch> batch,
   int srcWords = batch->front()->batchWidth();
   int trgWords = batch->back()->batchWidth();
   int dimBatch = batch->getSentenceIds().size();
-  std::vector<float> aligns(dimBatch * srcWords * trgWords, 0.f);
+
+  std::vector<float> aligns(srcWords * dimBatch * trgWords, 0.f);
 
   for(int b = 0; b < dimBatch; ++b) {
     for(auto p : batchVector[b].getAlignment()) {
       size_t sid, tid;
       std::tie(sid, tid) = p;
-
-      size_t idx = b + sid * dimBatch + tid * srcWords * dimBatch;
+      size_t idx = sid * dimBatch * trgWords + b * trgWords + tid;
       aligns[idx] = 1.f;
     }
   }

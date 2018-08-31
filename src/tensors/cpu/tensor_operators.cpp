@@ -473,7 +473,21 @@ void Select(Tensor out,
             int axis,
             const std::vector<size_t>& indices,
             Ptr<Allocator> allocator) {
-  ABORT("Not implemented!");
+  
+  // @TODO: make this efficient
+  functional::Shape outShape = out->shape();
+  functional::Shape inShape = in->shape();
+  int length = outShape.elements();
+  
+  functional::Array<int, functional::Shape::size()> dims;
+
+  for(int index = 0; index < length; ++index) {
+    outShape.dims(index, dims);
+    dims[axis] = indices[dims[axis]];
+    int inIndex = inShape.index(dims);
+    out->data()[index] = in->data()[inIndex];
+  }
+
 }
 
 void Insert(Tensor out,
@@ -481,7 +495,20 @@ void Insert(Tensor out,
             int axis,
             const std::vector<size_t>& indices,
             Ptr<Allocator> allocator) {
-  ABORT("Not implemented!");
+
+  // @TODO: make this efficient
+  functional::Shape outShape = out->shape();
+  functional::Shape inShape = in->shape();
+  
+  int length = inShape.elements();
+  functional::Array<int, functional::Shape::size()> dims;
+
+  for(int index = 0; index < length; ++index) {
+    inShape.dims(index, dims);
+    dims[axis] = indices[dims[axis]];
+    int outIndex = outShape.index(dims);
+    out->data()[outIndex] += in->data()[index];
+  }
 }
 
 void GRUFastForward(Tensor out_, std::vector<Tensor> inputs, bool final) {
