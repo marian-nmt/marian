@@ -91,7 +91,7 @@ private:
   std::unordered_map<uint8_t*, Ptr<MemoryPiece>> allocated_;
 
   size_t align(size_t size) {
-    return size_t(ceil(size / (float)alignment_) * alignment_);
+    return (size_t)(ceil(size / (float)alignment_) * alignment_);
   }
 
   void grow(size_t add) {

@@ -68,7 +68,7 @@ void Adagrad::load(const std::string& name,
   }
 
   // get the size of params which should go
-  size_t shardSize = size_t(ceil(totalSize / (float)backends.size()));
+  size_t shardSize = (size_t)(ceil(totalSize / (float)backends.size()));
 
   size_t id = 0;
   for(auto optBase : opts) {
@@ -193,7 +193,7 @@ void Adam::load(const std::string& name,
   }
 
   // get the size of params which should go
-  size_t shardSize = size_t(ceil(totalSize / (float)backends.size()));
+  size_t shardSize = (size_t)(ceil(totalSize / (float)backends.size()));
 
   size_t id = 0;
   for(auto optBase : opts) {

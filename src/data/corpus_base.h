@@ -176,7 +176,7 @@ public:
     ABORT_IF(size_ == 0, "Encoutered sub-batch size of 0");
 
     std::vector<Ptr<SubBatch>> splits;
-    size_t subSize = size_t(std::ceil(size_ / (float)n));
+    size_t subSize = (size_t)(std::ceil(size_ / (float)n));
 
     size_t restSize = size_;
     size_t pos = 0;
