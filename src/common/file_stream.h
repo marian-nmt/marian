@@ -7,6 +7,7 @@
 #pragma warning(disable: 4458) // declaration of 'traits_type' hides class member
 #pragma warning(disable: 4456) // declaration of 'c' hides previous local declaration
 #pragma warning(disable: 4244) // conversion from 'int' to 'char', possible loss of data
+#pragma warning(disable: 4706) // assignment within conditional expression
 #include <boost/iostreams/filter/gzip.hpp>
 #pragma warning(pop)
 #include <boost/iostreams/filtering_stream.hpp>
