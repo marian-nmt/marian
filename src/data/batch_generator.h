@@ -110,7 +110,7 @@ private:
     while(!maxiBatch->empty()) {
       // push item onto batch
       batchVector.push_back(maxiBatch->top());
-      currentWords += batchVector.back()[0].size();
+      currentWords += (int)batchVector.back()[0].size();
       maxiBatch->pop();
 
       // Batch size based on sentences

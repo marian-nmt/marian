@@ -126,6 +126,8 @@ struct convert<_Null> {
     }                                                                    \
   }
 
+#pragma warning(push)
+#pragma warning(disable: 4127) // conditional expression is constant (the std::numeric_limits constants in macro above)
 #define YAML_DEFINE_CONVERT_STREAMABLE_SIGNED(type) \
   YAML_DEFINE_CONVERT_STREAMABLE(type, -)
 
@@ -148,6 +150,7 @@ YAML_DEFINE_CONVERT_STREAMABLE_UNSIGNED(unsigned char);
 YAML_DEFINE_CONVERT_STREAMABLE_SIGNED(float);
 YAML_DEFINE_CONVERT_STREAMABLE_SIGNED(double);
 YAML_DEFINE_CONVERT_STREAMABLE_SIGNED(long double);
+#pragma warning(pop)
 
 #undef YAML_DEFINE_CONVERT_STREAMABLE_SIGNED
 #undef YAML_DEFINE_CONVERT_STREAMABLE_UNSIGNED

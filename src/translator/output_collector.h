@@ -29,7 +29,7 @@ class GeometricPrinting : public PrintingStrategy {
 public:
   bool shouldBePrinted(long id) override {
     if(id == 0)
-      next_ = start_;
+      next_ = (long)start_;
     if(id <= 5)
       return true;
     if(next_ == id) {

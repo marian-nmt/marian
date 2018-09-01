@@ -68,6 +68,8 @@ bool configureMPI(int argc, char** argv, bool sync) {
       "Your version of MPI does not support multi-threaded communication.");
 
   enable = true;
+#else
+  argc; argv; sync; // (unused)
 #endif
   return enable;
 }

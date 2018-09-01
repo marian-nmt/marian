@@ -82,7 +82,7 @@ public:
 
   void push_back(Input input) { inputs_.push_back(input); }
 
-  virtual std::vector<Ptr<Batch>> split(size_t n) override { ABORT("Not implemented"); }
+  virtual std::vector<Ptr<Batch>> split(size_t /*n*/) override { ABORT("Not implemented"); }
 
   Data& features() { return inputs_[0].data(); }
 
@@ -115,7 +115,7 @@ public:
   void shuffle() override { std::shuffle(examples_.begin(), examples_.end(), eng_); }
 
   batch_ptr toBatch(const Examples& batchVector) override {
-    int batchSize = batchVector.size();
+    int batchSize = (int)batchVector.size();
 
     std::vector<int> maxDims;
     for(auto& ex : batchVector) {
@@ -123,7 +123,7 @@ public:
         maxDims.resize(ex.size(), 0);
       for(size_t i = 0; i < ex.size(); ++i) {
         if(ex[i].size() > (size_t)maxDims[i])
-          maxDims[i] = ex[i].size();
+          maxDims[i] = (int)ex[i].size();
       }
     }
 

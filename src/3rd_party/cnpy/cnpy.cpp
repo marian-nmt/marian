@@ -70,19 +70,19 @@ void cnpy::parse_npy_header(FILE* fp, unsigned int& word_size, unsigned int*& sh
     int loc1, loc2;
 
     //fortran order
-    loc1 = header.find("fortran_order")+16;
+    loc1 = (int)header.find("fortran_order")+16;
     fortran_order = (header.substr(loc1,5) == "True" ? true : false);
 
     //shape
-    loc1 = header.find("(");
-    loc2 = header.find(")");
+    loc1 = (int)header.find("(");
+    loc2 = (int)header.find(")");
     std::string str_shape = header.substr(loc1+1,loc2-loc1-1);
     if(str_shape.length() == 0) ndims = 0;
     else if(str_shape[str_shape.size()-1] == ',') ndims = 1;
-    else ndims = std::count(str_shape.begin(),str_shape.end(),',')+1;
+    else ndims = (unsigned int)std::count(str_shape.begin(),str_shape.end(),',')+1;
     shape = new unsigned int[ndims];
     for(unsigned int i = 0;i < ndims;i++) {
-        loc1 = str_shape.find(",");
+        loc1 = (int)str_shape.find(",");
         shape[i] = atoi(str_shape.substr(0,loc1).c_str());
         str_shape = str_shape.substr(loc1+1);
     }
@@ -90,15 +90,15 @@ void cnpy::parse_npy_header(FILE* fp, unsigned int& word_size, unsigned int*& sh
     //endian, word size, data type
     //byte order code | stands for not applicable.
     //not sure when this applies except for byte array
-    loc1 = header.find("descr")+9;
+    loc1 = (int)header.find("descr")+9;
     bool littleEndian = (header[loc1] == '<' || header[loc1] == '|' ? true : false);
-    assert(littleEndian);
+    assert(littleEndian); littleEndian;
 
     //char type = header[loc1+1];
     //assert(type == map_type(T));
 
     std::string str_ws = header.substr(loc1+2);
-    loc2 = str_ws.find("'");
+    loc2 = (int)str_ws.find("'");
     word_size = atoi(str_ws.substr(0,loc2).c_str());
 }
 

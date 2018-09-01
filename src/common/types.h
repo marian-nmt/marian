@@ -40,11 +40,11 @@ static inline size_t sizeOf(Type type) {
 }
 
 static inline bool isSignedInt(Type type) {
-  return TypeClass::signed_type & type;
+  return (TypeClass::signed_type & type) != 0;
 }
 
 static inline bool isUnsignedInt(Type type) {
-  return TypeClass::unsigned_type & type;
+  return (TypeClass::unsigned_type & type) != 0;
 }
 
 static inline bool isInt(Type type) {
@@ -52,7 +52,7 @@ static inline bool isInt(Type type) {
 }
 
 static inline bool isFloat(Type type) {
-  return TypeClass::float_type & type;
+  return (TypeClass::float_type & type) != 0;
 }
 
 template <typename T>

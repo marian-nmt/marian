@@ -51,7 +51,7 @@ public:
     int dimEmb   = input->shape()[-1];
     int dimWords = input->shape()[-3];
 
-    float num_timescales = dimEmb / 2;
+    float num_timescales = (float)dimEmb / 2;
     float log_timescale_increment = std::log(10000.f) / (num_timescales - 1.f);
 
     std::vector<float> vPos(dimEmb * dimWords, 0);
@@ -59,7 +59,7 @@ public:
       for(int i = 0; i < num_timescales; ++i) {
         float v = p * std::exp(i * -log_timescale_increment);
         vPos[(p - start) * dimEmb + i] = std::sin(v);
-        vPos[(p - start) * dimEmb + num_timescales + i] = std::cos(v);
+        vPos[(p - start) * dimEmb + (int)num_timescales + i] = std::cos(v); // @TODO: is int vs. float correct for num_timescales?
       }
     }
 
@@ -134,7 +134,7 @@ public:
     int dimModel = x->shape()[-1];
     auto scale = graph_->param(prefix + "_ln_scale" + suffix, { 1, dimModel }, inits::ones);
     auto bias  = graph_->param(prefix + "_ln_bias"  + suffix, { 1, dimModel }, inits::zeros);
-    return marian::layerNorm(x, scale, bias, 1e-6);
+    return marian::layerNorm(x, scale, bias, 1e-6f);
   }
 
   Expr preProcess(std::string prefix, std::string ops, Expr input, float dropProb = 0.0f) const {
@@ -212,7 +212,7 @@ public:
     // time steps and batch entries), also add mask for illegal connections
 
     // multiplicative attention with flattened softmax
-    float scale = 1.0 / std::sqrt((float)dk); // scaling to avoid extreme values due to matrix multiplication
+    float scale = 1.0f / std::sqrt((float)dk); // scaling to avoid extreme values due to matrix multiplication
     auto z = bdot(q, k, false, true, scale); // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
 
     // mask out garbage beyond end of sequences
@@ -425,7 +425,7 @@ public:
     auto output = input;
     if(startPos > 0) {
       // we are decoding at a position after 0
-      output = (prevDecoderState.output * startPos + input) / (startPos + 1);
+      output = (prevDecoderState.output * (float)startPos + input) / float(startPos + 1);
     }
     else if(startPos == 0 && output->shape()[-2] > 1) {
       // we are training or scoring, because there is no history and
@@ -444,7 +444,7 @@ public:
                        std::string prefix,
                        Expr input,
                        Expr selfMask,
-                       int startPos) const {
+                       int /*startPos*/) const {
     float dropoutRnn = inference_ ? 0.f : opt<float>("dropout-rnn");
 
     auto rnn = rnn::rnn(graph_)                                    //
@@ -479,7 +479,7 @@ public:
 
   // returns the embedding matrix based on options
   // and based on batchIndex_.
-  Expr wordEmbeddings(int subBatchIndex) const {
+  Expr wordEmbeddings(size_t subBatchIndex) const {
     // standard encoder word embeddings
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[subBatchIndex];
@@ -513,8 +513,8 @@ public:
 
   Ptr<EncoderState> apply(Ptr<data::CorpusBatch> batch) {
     int dimEmb = opt<int>("dim-emb");
-    int dimBatch = batch->size();
-    int dimSrcWords = (*batch)[batchIndex_]->batchWidth();
+    int dimBatch = (int)batch->size();
+    int dimSrcWords = (int)(*batch)[batchIndex_]->batchWidth();
 
     auto embeddings = wordEmbeddings(batchIndex_); // embedding matrix, considering tying and some other options
 
@@ -531,7 +531,7 @@ public:
     }
 
     // according to paper embeddings are scaled up by \sqrt(d_m)
-    auto scaledEmbeddings = std::sqrt(dimEmb) * batchEmbeddings;
+    auto scaledEmbeddings = std::sqrt((float)dimEmb) * batchEmbeddings;
 
     scaledEmbeddings = addPositionalEmbeddings(scaledEmbeddings);
 
@@ -637,7 +637,7 @@ public:
 
     std::string layerType = opt<std::string>("transformer-decoder-autoreg", "self-attention");
     if (layerType == "rnn") {
-      int dimBatch = batch->size();
+      int dimBatch = (int)batch->size();
       int dim = opt<int>("dim-emb");
 
       auto start = graph->constant({1, 1, dimBatch, dim}, inits::zeros);
@@ -678,12 +678,12 @@ public:
       dimBeam = embeddings->shape()[-4];
 
     // according to paper embeddings are scaled by \sqrt(d_m)
-    auto scaledEmbeddings = std::sqrt(dimEmb) * embeddings;
+    auto scaledEmbeddings = std::sqrt((float)dimEmb) * embeddings;
 
     // set current target token position during decoding or training. At training
     // this should be 0. During translation the current length of the translation.
     // Used for position embeddings and creating new decoder states.
-    int startPos = state->getPosition();
+    int startPos = (int)state->getPosition();
 
     scaledEmbeddings
       = addPositionalEmbeddings(scaledEmbeddings, startPos);
@@ -828,7 +828,7 @@ public:
 
   // helper function for guided alignment
   // @TODO: const vector<> seems wrong. Either make it non-const or a const& (more efficient but dangerous)
-  virtual const std::vector<Expr> getAlignments(int i = 0) override {
+  virtual const std::vector<Expr> getAlignments(int /*i*/ = 0) override {
     return alignments_;
   }
 

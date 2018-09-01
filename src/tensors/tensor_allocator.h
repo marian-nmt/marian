@@ -35,7 +35,7 @@ public:
   }
 
   void reserve(size_t bytes = 0) {
-    float mult = bytes / GROW + 1;
+    auto mult = bytes / GROW + 1;
     LOG(info,
         "[memory] Extending reserved space to {} MB (device {})",
         mult * CHUNK,
@@ -78,8 +78,8 @@ public:
 
   Tensor asTensor() {
     auto mem = allocator_->memory();
-    int size = mem->size() / sizeof(float);
-    return Tensor(new TensorBase(mem, {1, size}, backend_));
+    auto size = mem->size() / sizeof(float);
+    return Tensor(new TensorBase(mem, {1, (int)size}, backend_));
   }
 
   size_t size() { return allocator_->size() / sizeof(float); }

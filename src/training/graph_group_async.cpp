@@ -36,7 +36,7 @@ void AsyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) {
 
 void AsyncGraphGroup::fetchParams(Tensor oldParams,
                                   const std::vector<Tensor>& params,
-                                  int device_id) {
+                                  int /*device_id*/) {
   // @TODO read guard on parameters
   int pos = 0;
 
@@ -46,7 +46,7 @@ void AsyncGraphGroup::fetchParams(Tensor oldParams,
         [&](int idx, int pos) {
           // individual mutex per-shard
           std::lock_guard<std::mutex> guard(shardSync_[idx]);
-          oldParams->subtensor(pos, params[idx]->size())->copyFrom(params[idx]);
+          oldParams->subtensor((int)pos, (int)params[idx]->size())->copyFrom(params[idx]);
         },
         idx,
         pos));
@@ -60,7 +60,7 @@ void AsyncGraphGroup::fetchParams(Tensor oldParams,
 
 void AsyncGraphGroup::pushGradients(Tensor newGrads,
                                     size_t batch_words,
-                                    int device_id) {
+                                    int /*device_id*/) {
   // add instead of copy?
   std::vector<std::thread> threads;
   int pos = 0;
@@ -69,7 +69,7 @@ void AsyncGraphGroup::pushGradients(Tensor newGrads,
         [&](int idx, int pos) {
           // individual mutex per-shard
           std::lock_guard<std::mutex> guard(shardSync_[idx]);
-          grads_[idx]->copyFrom(newGrads->subtensor(pos, grads_[idx]->size()));
+          grads_[idx]->copyFrom(newGrads->subtensor(pos, (int)grads_[idx]->size()));
 
           if(scaleLearningRate_) {
             shardOpt_[idx]->update(
@@ -105,8 +105,8 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
   }
 
   if(params_.empty()) {
-    int totalSize = graphs_[0]->params()->vals()->size();
-    shardSize_ = ceil(totalSize / (float)devices_.size());
+    int totalSize = (int)graphs_[0]->params()->vals()->size();
+    shardSize_ = (int)ceil(totalSize / (float)devices_.size());
 
     int pos = 0;
     // parameter sharding
@@ -128,7 +128,7 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
     }
   }
   if(grads_.empty()) {
-    int totalSize = graphs_[0]->params()->vals()->size();
+    int totalSize = (int)graphs_[0]->params()->vals()->size();
 
     for(auto graph : graphs_) {
       int __size__ = std::min(shardSize_, totalSize);
@@ -154,7 +154,7 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
       graphAvg->forward();
     }
 
-    int totalSize = graphs_[0]->params()->vals()->size();
+    int totalSize = (int)graphs_[0]->params()->vals()->size();
 
     int i = 0;
     for(auto graph : graphs_) {
@@ -203,7 +203,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
     if(!graph) {
       std::lock_guard<std::mutex> lock(sync_);
-      t_id = i;
+      t_id = (int)i;
       graph = graphs_[i];
       builder = builders_[i++];
     }

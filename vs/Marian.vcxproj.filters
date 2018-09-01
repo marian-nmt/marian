@@ -220,9 +220,6 @@
     <ClCompile Include="..\src\common\binary.cpp">
       <Filter>common</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\command\marian_conv.cpp">
-      <Filter>command</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\data\alignment.cpp">
       <Filter>data</Filter>
     </ClCompile>
@@ -240,9 +237,6 @@
     </ClCompile>
     <ClCompile Include="..\src\3rd_party\yaml-cpp\binary_renamed.cpp">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\command\marian.cpp">
-      <Filter>command</Filter>
     </ClCompile>
     <ClCompile Include="..\src\training\graph_group_multinode_sync.cpp">
       <Filter>training</Filter>
@@ -1033,6 +1027,13 @@
     <ClInclude Include="..\src\command\marian_vocab.cpp">
       <Filter>command</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\command\marian.cpp">
+      <Filter>command</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\command\marian_decoder.cpp">
+      <Filter>command</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\command\marian_conv.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">

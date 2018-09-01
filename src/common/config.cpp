@@ -12,7 +12,7 @@ namespace marian {
 size_t Config::seed = (size_t)time(0);
 
 bool Config::has(const std::string& key) const {
-  return config_[key];
+  return !!config_[key];
 }
 
 YAML::Node Config::get(const std::string& key) const {

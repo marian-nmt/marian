@@ -24,8 +24,6 @@ std::string OutputPrinter::getAlignment(const Ptr<Hypothesis>& hyp) {
   } else {
     ABORT("Unrecognized word alignment type");
   }
-
-  return "";
 }
 
 }  // namespace marian

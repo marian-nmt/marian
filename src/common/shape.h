@@ -38,7 +38,10 @@ public:
   const int* data() const { return shape_.data(); }
   int* data() { return shape_.data(); }
 
-  inline void set(int i, int val) { dim(i) = val; }
+  inline void set(int    i, int val) { dim(i) = val; }
+  inline void set(size_t i, int val) { dim(i) = val; }
+  inline void set(int    i, size_t val) { dim(i) = (int)val; }
+  inline void set(size_t i, size_t val) { dim(i) = (int)val; }
 
   inline int& dim(int i) {
     if(i >= 0) {
@@ -55,20 +58,24 @@ public:
       return shape_[size() + i];
     }
   }
-
   inline const int& dim(int i) const {
     return const_cast<Shape&>(*this).dim(i);
   }
 
+  inline       int& dim(size_t i)       { return dim(int(i)); }
+  inline const int& dim(size_t i) const { return dim(int(i)); }
+
   inline int operator[](int i) const { return dim(i); }
-  inline int operator[](int i) { return dim(i); }
+  inline int operator[](int i)       { return dim(i); }
+  inline int operator[](size_t i) const { return dim(i); }
+  inline int operator[](size_t i)       { return dim(i); }
 
   inline int back() const { return shape_.back(); }
   inline int& back() { return shape_.back(); }
 
   inline int stride(int i) const {
     std::vector<int> stride(shape_.size(), 1);
-    for(int j = shape_.size() - 2; j >= 0; --j)
+    for(int j = (int)shape_.size() - 2; j >= 0; --j)
       stride[j] = stride[j + 1] * shape_[j + 1];
 
     if(i >= 0)
@@ -88,7 +95,7 @@ public:
     d.resize(shape_.size());
 
     std::vector<int> stride(shape_.size(), 1);
-    for(int j = shape_.size() - 2; j >= 0; --j)
+    for(int j = (int)shape_.size() - 2; j >= 0; --j)
       stride[j] = stride[j + 1] * shape_[j + 1];
 
     for(size_t j = 0; j < d.size(); ++j)
@@ -116,7 +123,7 @@ public:
   std::string toString() const {
     std::stringstream strm;
     strm << "shape=" << (*this)[0];
-    for(size_t i = 1; i < size(); ++i)
+    for(int i = 1; i < size(); ++i)
       strm << "x" << (*this)[i];
     strm << " size=" << elements();
     return strm.str();
@@ -135,7 +142,7 @@ public:
 
   int axis(int ax) const {
     if(ax < 0)
-      return size() + ax;
+      return (int)size() + ax;
     else
       return ax;
   }

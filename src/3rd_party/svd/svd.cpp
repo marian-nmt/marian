@@ -33,7 +33,7 @@ static double PYTHAG(double a, double b)
 
 int dsvd(float *a, int m, int n, float *w, float *v)
 {
-    int flag, i, its, j, jj, k, l, nm;
+    int flag, i, its, j, jj, k, l = 0, nm = 0; // (initializing to keep compiler happy)
     double c, f, h, s, x, y, z;
     double anorm = 0.0, g = 0.0, scale = 0.0;
     double *rv1;

@@ -353,12 +353,12 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
 // swap the last two axes
 Expr transpose(Expr a) {
   std::vector<int> axes(a->shape().size());
-  for(size_t i = 0; i < axes.size(); ++i) {
+  for(int i = 0; i < axes.size(); ++i) {
     axes[i] = i;
   }
   if(axes.size() > 1) {
-    axes[axes.size() - 1] = axes.size() - 2;
-    axes[axes.size() - 2] = axes.size() - 1;
+    axes[axes.size() - 1] = (int)axes.size() - 2;
+    axes[axes.size() - 2] = (int)axes.size() - 1;
   }
   return Expression<TransposeNodeOp>(a, axes);
 }
@@ -405,7 +405,7 @@ Expr leakyrelu(const std::vector<Expr>&) {
   ABORT("Not implemented");
 }
 
-Expr prelu(const std::vector<Expr>&, float alpha) {
+Expr prelu(const std::vector<Expr>&, float /*alpha*/) {
   ABORT("Not implemented");
 }
 

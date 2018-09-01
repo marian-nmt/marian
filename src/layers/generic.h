@@ -155,7 +155,7 @@ public:
     return affine(input, W_, b_, false, transposeW_);
   }
 
-  virtual Expr apply(const std::vector<Expr>& inputs) override {
+  virtual Expr apply(const std::vector<Expr>& /*inputs*/) override {
     ABORT("Not implemented");
   };
 };

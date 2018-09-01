@@ -56,7 +56,7 @@ uint16_t guess_terminal_width(uint16_t max_width) {
 #endif
   // couldn't determine terminal width
   if(cols == 0)
-    cols = po::options_description::m_default_line_length;
+    cols = (uint16_t)po::options_description::m_default_line_length;
   return max_width ? std::min(cols, max_width) : cols;
 }
 
@@ -73,7 +73,7 @@ const std::set<std::string> PATHS = {"model",
 
 
 bool ConfigParser::has(const std::string& key) const {
-  return config_[key];
+  return !!config_[key];
 }
 
 void ConfigParser::validateOptions() const {
@@ -288,6 +288,8 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
      "Tie all embedding layers and output layer")
     ("transformer-heads", po::value<int>()->default_value(8),
      "Number of heads in multi-head attention (transformer)")
+    ("transformer-dim-ffn", po::value<int>()->default_value(2048),
+     "Size of position-wise feed-forward network (transformer)")
     ("transformer-no-projection", po::value<bool>()->zero_tokens()->default_value(false),
      "Omit linear projection after multi-head attention (transformer)")
     ("transformer-dim-ffn", po::value<int>()->default_value(2048),
@@ -332,6 +334,20 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
       ->multitoken(),
      "Convolution window widths in char-s2s model")
 #endif
+    // Frank's experiments
+    // Note: Don't forget to add these also in encoder_decoder.cpp, EncoderDecoder().
+    ("use-direct-sent-end-prob", po::value<bool>()->zero_tokens()->default_value(false),
+     "Enable Frank's direct sentence-end model (experimental) (transformer, requires --transformer-heads-top)")
+    ("transformer-heads-top", po::value<int>(), //->default_value(8),
+     "Number of heads in top layer, multi-head attention (transformer)")
+    ("transformer-coverage", po::value<bool>()->zero_tokens()->default_value(false),
+     "Enable Frank's coverage model, top layer only (experimental) (transformer)")
+    ("transformer-coverage-all", po::value<bool>()->zero_tokens()->default_value(false),
+     "Enable Frank's coverage model, all layers (experimental) (transformer)")
+    ("transformer-alignment-weight-heads", po::value<bool>()->zero_tokens()->default_value(false),
+     "If deriving alignment and/or coverage from multi-head, learn interpolation weights (experimental) (transformer)")
+    ("transformer-offset-embedding-range", po::value<int>()->default_value(0),
+     "Clipping range of offset embedding, 0 to disable (transformer)")
     ;
 
   if(mode_ == ConfigMode::training) {
@@ -488,7 +504,7 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
      "Epsilon for label smoothing (0 to disable)")
     ("clip-norm", po::value<double>()->default_value(1.f),
      "Clip gradient norm to  arg  (0 to disable)")
-    ("exponential-smoothing", po::value<float>()->default_value(0.f)->implicit_value(1e-4, "1e-4"),
+    ("exponential-smoothing", po::value<float>()->default_value(0.f)->implicit_value(1e-4f, "1e-4"),
      "Maintain smoothed version of parameters for validation and saving with smoothing factor arg. "
      " 0 to disable.")
     ("guided-alignment", po::value<std::string>(),
@@ -754,7 +770,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     return str;
   };
 
-  bool loadConfig = vm_.count("config");
+  bool loadConfig = vm_.count("config") != 0;
   bool reloadConfig
       = (mode_ == ConfigMode::training)
         && boost::filesystem::exists(InterpolateEnvVarsIfRequested(
@@ -831,6 +847,14 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("transformer-decoder-autoreg", std::string);
   SET_OPTION("transformer-tied-layers", std::vector<size_t>);
   SET_OPTION("transformer-guided-alignment-layer", std::string);
+
+  // Frank's experiments:
+  SET_OPTION("use-direct-sent-end-prob", bool);
+  SET_OPTION_NONDEFAULT("transformer-heads-top", int);
+  SET_OPTION("transformer-coverage", bool);
+  SET_OPTION("transformer-coverage-all", bool);
+  SET_OPTION("transformer-alignment-weight-heads", bool);
+  SET_OPTION("transformer-offset-embedding-range", int);
 
 #ifdef CUDNN
   SET_OPTION("char-stride", int);

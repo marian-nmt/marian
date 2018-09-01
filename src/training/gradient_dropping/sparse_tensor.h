@@ -102,6 +102,8 @@ public:
       gpu::copy(backend_, ndata, ndata + nsize, data());
       gpu::copy(backend_, nindices, nindices + nsize, indices());
     }
+#else
+    ndata; nindices; // (unused)
 #endif
   }
 
@@ -137,6 +139,8 @@ public:
     else {
       gpu::scatterAdd(t, data(), indices(), size(), offset);
     }
+#else
+    t; offset; // (unused)
 #endif
   }
 
@@ -149,6 +153,8 @@ public:
     else {
       gpu::scatterUpdate(t, data(), indices(), size(), offset);
     }
+#else
+    t; offset; // (unused)
 #endif
   }
 
@@ -161,6 +167,8 @@ public:
     else {
       gpu::gather(t, data(), indices(), size(), offset);
     }
+#else
+    t; offset; // (unused)
 #endif
   }
 

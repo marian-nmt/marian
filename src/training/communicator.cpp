@@ -7,7 +7,7 @@ namespace marian {
 #ifndef CUDA_FOUND
 Ptr<Communicator> createCommunicator(
     const std::vector<Ptr<ExpressionGraph>>& graphs,
-    bool noNccl) {
+    bool /*noNccl*/) {
   return New<DefaultCommunicator>(graphs);
 }
 #endif
