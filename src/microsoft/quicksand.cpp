@@ -8,6 +8,7 @@
 #include "data/shortlist.h"
 #include "translator/beam_search.h"
 #include "translator/scorers.h"
+#include "data/alignment.h"
 
 namespace marian {
 
@@ -69,6 +70,8 @@ public:
       modelOpts->merge(options_);
       modelOpts->merge(config);
 
+      std::cerr << modelOpts->str() << std::flush;
+
       auto encdec = models::from_options(modelOpts, models::usage::translation);
 
       if(io::isBin(models[i]) && ptrs_[i] != nullptr) {
@@ -120,16 +123,38 @@ public:
 
     // decode
     auto search = New<BeamSearch>(options_, scorers_, eos_);
-    auto histories = search->search(graph_, batch);
+    Histories histories = search->search(graph_, batch);
 
     // convert to QuickSAND format
     QSNBestBatch qsNbestBatch;
     for(const auto& history : histories) { // loop over batch entries
       QSNBest qsNbest;
-      auto nbestHyps = history->NBest(SIZE_MAX); // request as many N as we have
-      for (const auto& hyp : nbestHyps) { // loop over N-best entries
-        qsNbest.push_back(std::make_tuple(std::get<0>(hyp),
-                                          std::get<2>(hyp)));
+      NBestList nbestHyps = history->NBest(SIZE_MAX); // request as many N as we have
+      for (const Result& result : nbestHyps) { // loop over N-best entries
+        // get hypothesis word sequence and normalized sentence score
+        auto words = std::get<0>(result);
+        auto score = std::get<2>(result);
+        // determine alignment if present
+        AlignmentSets alignmentSets;
+        if (options_->has("alignment"))
+        {
+          float alignmentThreshold;
+          auto alignment = options_->get<std::string>("alignment"); // @TODO: this logic now exists three times in Marian
+          if (alignment == "soft")
+            alignmentThreshold = 0.0f;
+          else if (alignment == "hard")
+            alignmentThreshold = 1.0f;
+          else
+            alignmentThreshold = std::max(std::stof(alignment), 0.f);
+          auto hyp = std::get<1>(result);
+          data::WordAlignment align = data::ConvertSoftAlignToHardAlign(hyp->TracebackAlignment(), alignmentThreshold);
+          // convert to QuickSAND format
+          alignmentSets.resize(words.size());
+          for (const auto& p : align) // @TODO: Does the feature_model param max_alignment_links apply here?
+              alignmentSets[p.tgtPos].insert({p.srcPos, p.prob});
+        }
+        // form hypothesis to return
+        qsNbest.emplace_back(words, std::move(alignmentSets), score);
       }
       qsNbestBatch.push_back(qsNbest);
     }
