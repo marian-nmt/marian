@@ -196,15 +196,25 @@ Ptr<Communicator> createCommunicator(
 // This implements the MPI APIs we use here, with the following modifications:
 //  * throws exception instead of returning an error
 //  * swapped out some strange MPI-specific data types to more correct C++ ones where appropriate
+#if MPI_FOUND
+#else
+enum MPI_Comm { MPI_COMM_WORLD };
+enum MPI_Datatype { MPI_FLOAT, MPI_UNSIGNED_LONG };
+enum MPI_Op { MPI_SUM };
+struct MPI_Status { int MPI_SOURCE; };
+#define MPI_ANY_SOURCE ((size_t)-2)
+#define MPI_STATUS_IGNORE ((MPI_Status*)nullptr)
+#endif
 struct/*interface*/ IMPIWrapper
 {
   virtual size_t myRank() const = 0;
   virtual size_t commWorldSize() const = 0;
-  virtual void barrier(MPI_Comm comm) const = 0;
-  virtual void sSend(void* buf, size_t count, MPI_Datatype datatype, size_t destRank, int tag, MPI_Comm comm) const = 0;
-  virtual void recv(void* buf, size_t count, MPI_Datatype datatype, size_t sourceRank, int tag, MPI_Comm comm, MPI_Status* status) const = 0;
-  virtual void allReduce(const void* sendbuf, void* recvbuf, size_t count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) const = 0;
+  virtual void barrier(MPI_Comm comm = MPI_COMM_WORLD) const = 0;
+  virtual void sSend(void* buf, size_t count, MPI_Datatype datatype, size_t destRank, int tag, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
+  virtual void recv(void* buf, size_t count, MPI_Datatype datatype, size_t sourceRank, int tag, MPI_Comm comm = MPI_COMM_WORLD, MPI_Status* status = MPI_STATUS_IGNORE) const = 0;
+  virtual void allReduce(const void* sendbuf, void* recvbuf, size_t count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
   virtual void finalize() = 0;
+  static const size_t RECV_ANY_SOURCE = (size_t)MPI_ANY_SOURCE;
 };
 
 Ptr<IMPIWrapper> createMPIWrapper(bool sync);

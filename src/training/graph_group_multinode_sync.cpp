@@ -117,26 +117,23 @@ void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) { // @TODO: why UPPERCASE
 }
 
 /**
- * MPI_Allreduce over accGradientSync across workers.
+ * mpi_allReduce over accGradientSync across workers.
  * If it's rank 0, it's a local update, if it's rank one it's remote
  * send and receive. Make sure you only call from device 0.
  */
 void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
-#if MPI_FOUND
   auto network_size = accGradientsSync_cpu.size();
 
   // Copy the data to the CPU
   accGradientsSync->get(/*out*/ accGradientsSync_cpu);
 
   // Wait until all nodes are ready
-  MPI_Barrier(MPI_COMM_WORLD);
+  mpi_->barrier();
 
-  /*int reduce_result =*/ MPI_Allreduce(accGradientsSync_cpu.data(),  // CPU buffers
-                                    receiveBuffer_cpu.data(),
-                                    (int)network_size,
-                                    MPI_FLOAT,
-                                    MPI_SUM,
-                                    MPI_COMM_WORLD);
+  mpi_->allReduce(accGradientsSync_cpu.data(),  // CPU buffers
+                  receiveBuffer_cpu.data(),
+                  network_size,
+                  MPI_FLOAT, MPI_SUM);
 
   // Copy the data back to the GPU and do optimizer update
   // Do update with last GPU to distribute the memory
@@ -169,7 +166,6 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
   // @TODO: why set these to 0? TODO: change to NaN
   std::fill(accGradientsSync_cpu.begin(), accGradientsSync_cpu.end(), 0.f);
   std::fill(receiveBuffer_cpu.begin(), receiveBuffer_cpu.end(), 0.f);
-#endif
 }
 
 /**
@@ -259,9 +255,8 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
     cost = 0;
 
     if((scheduler_->saving() || scheduler_->validating())) {
-#if MPI_FOUND
       // wait until other nodes are ready
-      MPI_Barrier(MPI_COMM_WORLD);
+      mpi_->barrier();
 
       // TODO: Saving is broken
       // if(mpi_->myRank() == 0 && scheduler_->saving())
@@ -284,8 +279,7 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
       }
 
       // inform other nodes to continue
-      MPI_Barrier(MPI_COMM_WORLD);
-#endif
+      mpi_->barrier();
     }
   }
 }
