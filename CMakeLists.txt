@@ -74,6 +74,12 @@ if(CUDA_FOUND)
 
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCUDA_FOUND")
   list(APPEND CUDA_NVCC_FLAGS -DCUDA_FOUND; )
+
+  if (MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBOOST_PP_VARIADICS=0")
+    list(APPEND CUDA_NVCC_FLAGS -DBOOST_PP_VARIADICS=0; )
+  endif()
+
 else(CUDA_FOUND)
   message(WARNING "Cannot find CUDA compiling CPU version only")
 endif(CUDA_FOUND)

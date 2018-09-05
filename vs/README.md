@@ -72,5 +72,13 @@ This part gives more information on the changes done.
    There was preprocessor instructions (`#ifdef ... #else ... #endif`) in the middle of a call of a macro function (`CUDNN_CALL`), which is not allowed with MS compiler.
 
 7. __Fix mismatched class/struct forward declarations__  
+   [Github Link](https://github.com/cedrou/marian-dev/commit/fbb221e995685f9181d00a0861c6eb97d60bcffa)  
    Microsoft's C++ name mangling makes a distinction between `class` and `struct` objects, so definitions and forward declaration must match.  
    See [this pdf](https://www.agner.org/optimize/calling_conventions.pdf), page 27, for more information.
+
+8. __Fix unresolved external due to a removed #include directive__  
+   [Github Link](https://github.com/cedrou/marian-dev/commit/78dd2a2d599fa07cfad35c90464aed5018097eba)  
+   An `#include` directive was specifically removed for MSVC compiler.
+
+9. __Fix CUDA+MSVC incompatibility with Boost.Preprocessor__  
+   The toolchain nvcc+msvc is not correctly handled in Boost.Preprocessor module. See [this issue](https://github.com/boostorg/preprocessor/issues/15). In the meantime, the recommended workaround is to disable Variadic Macro support in Boost.
