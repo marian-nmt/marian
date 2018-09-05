@@ -3,10 +3,6 @@
 #include "training/graph_group.h"
 #include "training/communicator.h"
 
-#if MPI_FOUND
-#include "mpi.h"
-#endif
-
 #ifdef CUDA_FOUND
 #include "cuda_runtime.h"
 #endif
@@ -31,10 +27,9 @@ class MultiNodeGraphGroupSync : public GraphGroup {
 public:
   virtual void setScheduler(Ptr<Scheduler> scheduler) override;
 
-protected:
+private:
   ////////////////////////////////////////////////////////////////////////////
   // General variables.
-
   /** Number of clients on nodes in MPI world (cluster). */
   std::vector<int> numberClientsOfNodes_;  //@TODO not used for now, but might
                                            // be useful maybe?
@@ -127,11 +122,6 @@ protected:
   virtual void init(Ptr<data::Batch> batch);
 
   /**
-   * Setup MPI world size and rank of this node.
-   */
-  void setupMPI();
-
-  /**
    * Setup clients that will compute gradients and communicate them with the
    * server shards.
    * There is one client per GPU.
@@ -201,10 +191,9 @@ public:
         movingAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")},
         syncOptimizer_{Optimizer(options_)} {
-    ABORT_IF(!configureMPI(/*argc*/0, /*argv*/NULL, options->get<bool>("sync-sgd")),
-             "MPI not found.");
+    setupMPI();  // Setup MPI first thing
+
     // Set up devices for this node
-    setupMPI();  // Setup MPI before creating device vectors
     std::vector<size_t> devices; // set of GPU device ids for this worker
     for(auto& d : options_->getDevices())
       devices.push_back(d.no);
@@ -310,14 +299,6 @@ public:
   Ptr<data::BatchStats> collectStats() {
     return GraphGroup::collectStats(
         clientGraphs_[0], clientBuilders_[0], devices_.size());
-  }
-
-  virtual void finalize() override {
-    finalized_ = true;
-    // @TODO: abstract MPI so that we can have a fake interface for debugging, and also can hook NCCL
-#if MPI_FOUND
-    MPI_Finalize();
-#endif
   }
 };
 }  // namespace marian

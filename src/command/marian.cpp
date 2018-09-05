@@ -11,8 +11,6 @@
 #include "training/graph_group_multinode.h"
 #endif
 
-bool configureMPI(int, char**, bool);
-
 int main(int argc, char** argv) {
   using namespace marian;
 

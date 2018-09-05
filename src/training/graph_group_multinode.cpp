@@ -69,16 +69,6 @@ void MultiNodeGraphGroup::init(Ptr<data::Batch> batch) {
 }
 
 /**
- * Setup MPI world size and rank of this node.
- */
-void MultiNodeGraphGroup::setupMPI() {
-#if MPI_FOUND
-  MPI_Comm_size(MPI_COMM_WORLD, &mpi_comm_world_size_);
-  MPI_Comm_rank(MPI_COMM_WORLD, &mpi_my_rank_);
-#endif
-}
-
-/**
  * Setup clients that will compute gradients and communicate them with the
  * server shards.
  * There is one client per GPU.

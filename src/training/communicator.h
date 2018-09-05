@@ -192,25 +192,24 @@ Ptr<Communicator> createCommunicator(
     const std::vector<Ptr<ExpressionGraph>>& graphs,
     bool noNccl = false);
 
-static inline
-bool configureMPI(int argc, char** argv, bool sync) {
-    bool enable = false;
-#if MPI_FOUND
-    int required_mode = sync ? MPI_THREAD_SERIALIZED : MPI_THREAD_MULTIPLE;
-    int provided_thread_mode = 0;
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided_thread_mode);
-    // Enable if occasional truncation errors
-    MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+// Abstracts MPI operations, allowing alternative implementations (specifically fake (for debugging) and NCCL.
+// This implements the MPI APIs we use here, with the following modifications:
+//  * throws exception instead of returning an error
+//  * swapped out some strange MPI-specific data types to more correct C++ ones where appropriate
+struct/*interface*/ IMPIWrapper
+{
+  // MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided_thread_mode);
+  // MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+  // MPI_Comm_size(MPI_COMM_WORLD, &mpi_comm_world_size_);
+  // MPI_Comm_rank(MPI_COMM_WORLD, &mpi_my_rank_);
+  // MPI_Recv(&messageInfo,
+  // MPI_Ssend(serverShardBufferCPU_.data(),
+  // MPI_Recv(clientCommBuffersCPU_[gpu].data(),
+  // MPI_Barrier(MPI_COMM_WORLD);
+  // MPI_Allreduce(accGradientsSync_cpu.data(),  // CPU buffers
+  virtual void finalize() = 0;
+};
 
-    ABORT_IF(
-        provided_thread_mode < required_mode,
-        "Your version of MPI does not support multi-threaded communication.");
-
-    enable = true;
-#else
-    argc; argv; sync; // (unused)
-#endif
-    return enable;
-}
+Ptr<IMPIWrapper> createMPIWrapper(bool sync);
 
 }  // namespace marian

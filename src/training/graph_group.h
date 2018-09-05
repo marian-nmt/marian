@@ -6,6 +6,7 @@
 #include "models/model_base.h"
 #include "optimizers/optimizers.h"
 #include "training/scheduler.h"
+#include "training/communicator.h"
 
 namespace marian {
 
@@ -20,6 +21,8 @@ protected:
   Ptr<Scheduler> scheduler_; // scheduler that keeps track of how much has been processed
   bool finalized_{false};    // 'true' if training has completed (further updates are no longer allowed)
 
+  Ptr<IMPIWrapper> mpi_; // all MPI-like communication goes through this
+
   bool scaleLearningRate_; // option "batch-flexible-lr"; "Scales the learning rate based on the number of words in a mini-batch"
   // @TODO: Is this the same as not averaging? On which level? Entire batch, or within-worker?
   float avgBatchWords_;    // option "batch-normal-words"; "Set number of words per batch that the learning rate corresponds to"
@@ -33,13 +36,25 @@ public:
 
   virtual ~GraphGroup() {}
 
+  void setupMPI() {
+    mpi_ = createMPIWrapper(options_->get<bool>("sync-sgd"));
+  }
+
+  /**
+   * Setup MPI world size and rank of this node.
+   */
   virtual void update(Ptr<data::Batch> batch) = 0;
 
   virtual void load() = 0;
 
   virtual void save(bool isFinal = false) = 0;
 
-  virtual void finalize() = 0;
+  virtual void finalize() {
+    if (mpi_) {
+      mpi_->finalize();
+    }
+    finalized_ = true;
+  }
 
   virtual void setScheduler(Ptr<Scheduler> scheduler) = 0;
 

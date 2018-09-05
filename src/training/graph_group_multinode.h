@@ -3,10 +3,6 @@
 #include "training/graph_group.h"
 #include "training/communicator.h"
 
-#if MPI_FOUND
-#include "mpi.h"
-#endif
-
 #ifdef CUDA_FOUND
 #include "cuda_runtime.h"
 #endif
@@ -254,11 +250,6 @@ protected:
   virtual void init(Ptr<data::Batch> batch);
 
   /**
-   * Setup MPI world size and rank of this node.
-   */
-  void setupMPI();
-
-  /**
    * Setup clients that will compute gradients and communicate them with the
    * server shards.
    * There is one client per GPU.
@@ -413,10 +404,8 @@ public:
       : GraphGroup(options),
         clientCommOverlap{options_->get<bool>("multi-node-overlap")},
         tau_{options_->get<size_t>("optimizer-delay")} {
-    ABORT_IF(!configureMPI(/*argc*/0, /*argv*/NULL, options->get<bool>("sync-sgd")),
-             "MPI not found.");
-    // Set up devices for this node
     setupMPI();  // Setup MPI before creating device vectors
+    // Set up devices for this node
     std::vector<size_t> devices;
     for(auto& d : options_->getDevices())
       devices.push_back(d.no);
@@ -533,7 +522,5 @@ public:
   Ptr<data::BatchStats> collectStats() {
     return GraphGroup::collectStats(clientGraphs_[0], clientBuilders_[0]);
   }
-
-  virtual void finalize() override { finalized_ = true; }
 };
 }  // namespace marian
