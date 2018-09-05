@@ -65,13 +65,45 @@ public:
 };
 #endif
 
+// dummy MPI wrapper that implements only one process without actual operations
+class FakeMPIWrapper : public IMPIWrapper
+{
+public:
+  FakeMPIWrapper(bool) {
+    LOG(warn, "compiled without MPI support; using FakeMPIWrapper to allow debugging");
+  }
+
+  virtual size_t myRank() const override { return 0; };
+  virtual size_t commWorldSize() const override { return 1; };
+
+  // @TODO: error handling??
+#pragma warning(push)
+#pragma warning(disable: 4100) // unreferenced formal parameter
+  virtual void barrier(MPI_Comm comm) const override { }
+  virtual void sSend(void* buf, size_t count, MPI_Datatype datatype, size_t destRank, int tag, MPI_Comm comm) const override
+  {
+    ABORT("should not send data to ourselves in dummy mode");
+  }
+  virtual void recv(void* buf, size_t count, MPI_Datatype datatype, size_t sourceRank, int tag, MPI_Comm comm, MPI_Status* status) const override
+  {
+    ABORT("should not attempt to receive from ourselves in dummy mode");
+  }
+  virtual void allReduce(const void* sendbuf, void* recvbuf, size_t count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) const override
+  {
+    ABORT("should not attempt to all-reduce from ourselves in dummy mode"); // @TODO: yes, we should, for testing
+  }
+#pragma warning(push)
+
+  virtual void finalize() override { }
+};
+
 // create instance of the MPI wrapper
 Ptr<IMPIWrapper> createMPIWrapper(bool sync) {
   // @TODO: This will be extended in the future to create other types, e.g. NCCL and fake for debugging
 #if MPI_FOUND
   return New<MPIWrapper>(sync);
 #else
-  ABORT("MPI not found.");
+  return New<FakeMPIWrapper>(sync);
 #endif
 }
 

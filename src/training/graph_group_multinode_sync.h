@@ -182,9 +182,9 @@ public:
   MultiNodeGraphGroupSync(Ptr<Config> options)
       : GraphGroup(options),
         tau_{options_->get<size_t>("optimizer-delay")},
-        movingAvg_{options_->get<float>("exponential-smoothing") > 0},
+        movingAvg_{options_->get<float>("exponential-smoothing") > 0}, // @TODO: redundant
         mvDecay_{options_->get<float>("exponential-smoothing")},
-        syncOptimizer_{Optimizer(options_)} {
+        syncOptimizer_{Optimizer(options_)} { // @BUGBUG? Do we really have two optimizers?
     setupMPI();  // Setup MPI first thing
 
     // Set up devices for this node
