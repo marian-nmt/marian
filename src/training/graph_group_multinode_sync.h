@@ -64,7 +64,7 @@ private:
    * Global means that on all workers, this batch id refers to the same batch,
    * while each worker only processes a subset of batches.
    * Nodes process batches round-robin. Specifically, each node processes
-   * the subset of batches with batchIter_ % mpi_comm_world_size_ == mpi_my_rank_).
+   * the subset of batches with batchIter_ % mpi_->commWorldSize() == mpi_->myRank()).
    * @TODO: This is bad. The batches should be global and split into sub-batches across nodes.
    *        Otherwise batch ids are not comparable.
    */
@@ -72,12 +72,6 @@ private:
 
   ////////////////////////////////////////////////////////////////////////////
   // Communication variables.
-
-  /** MPI rank of this node. */
-  int mpi_my_rank_{0};
-
-  /** Number of nodes in MPI world (cluster). */
-  int mpi_comm_world_size_{1};
 
   /**
    * Variables for optimizer delay and synchronous SGD
@@ -162,14 +156,14 @@ private:
    */
   void loadDeviceConfig(std::vector<size_t> deviceConfig) { // deviceConfig = array of GPU device ids for this worker --@TODO: rename to deviceIds, or just devices?
     size_t index = 0, node = 0, nClientsSeen = 0;
-    numberClientsOfNodes_ = std::vector<int>(mpi_comm_world_size_, 0); // @TODO: use assign(n, 0)
+    numberClientsOfNodes_ = std::vector<int>(mpi_->commWorldSize(), 0); // @TODO: use assign(n, 0)
     // @TODO: What does this logic do??
     while(index < deviceConfig.size()) {
       if(numberClientsOfNodes_[node] == 0) {
         numberClientsOfNodes_[node] = (int)deviceConfig[index];
         nClientsSeen = 0;
       } else if(nClientsSeen < numberClientsOfNodes_[node]) {
-        if(node == mpi_my_rank_) {
+        if(node == mpi_->myRank()) {
           devices_.push_back(deviceConfig[index]);
         }
         nClientsSeen++;
@@ -214,8 +208,8 @@ public:
    */
   void update(Ptr<data::Batch> batch) override {
     ABORT_IF(finalized_, "Training has already finished.");
-    if(batchIter_ % mpi_comm_world_size_
-       == mpi_my_rank_) {  // Only take batch assigned to this node
+    if(batchIter_ % mpi_->commWorldSize()
+       == mpi_->myRank()) {  // Only take batch assigned to this node
       execute(batch);
     }
     batchIter_++;

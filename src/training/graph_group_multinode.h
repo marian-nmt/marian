@@ -118,12 +118,6 @@ protected:
    */
   std::vector<std::vector<float>> clientCommBuffersCPU_;
 
-  /** MPI rank of this node. */
-  int mpi_my_rank_{0};
-
-  /** Number of nodes in MPI world (cluster). */
-  int mpi_comm_world_size_{1};
-
   /**
    * Flag to indicate that an MPI message contains message info
    * before sending the gradient (client -> server).
@@ -378,13 +372,13 @@ protected:
     size_t index = 0;
     int node = 0;
     int nClientsSeen = 0;
-    numberClientsOfNodes_ = std::vector<int>(mpi_comm_world_size_, 0);
+    numberClientsOfNodes_ = std::vector<int>(mpi_->commWorldSize(), 0);
     while(index < deviceConfig.size()) {
       if(numberClientsOfNodes_[node] == 0) {
         numberClientsOfNodes_[node] = (int)deviceConfig[index];
         nClientsSeen = 0;
       } else if(nClientsSeen < numberClientsOfNodes_[node]) {
-        if(node == mpi_my_rank_) {
+        if(node == mpi_->myRank()) {
           devices_.push_back(deviceConfig[index]);
         }
         nClientsSeen++;
@@ -443,7 +437,7 @@ public:
   void update(Ptr<data::Batch> batch) override {
     ABORT_IF(finalized_, "Training has already finished.");
     // Only take batch assigned to this node
-    if(batchIter_ % mpi_comm_world_size_ == (size_t)mpi_my_rank_) {
+    if(batchIter_ % mpi_->commWorldSize() == (size_t)mpi_->myRank()) {
       execute(batch);
     }
     batchIter_++;

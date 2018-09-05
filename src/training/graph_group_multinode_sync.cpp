@@ -264,10 +264,10 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
       MPI_Barrier(MPI_COMM_WORLD);
 
       // TODO: Saving is broken
-      // if(mpi_my_rank_ == 0 && scheduler_->saving())
+      // if(mpi_->myRank() == 0 && scheduler_->saving())
       //  this->save(graph);
 
-      if(mpi_my_rank_ == 0 && scheduler_->validating()) {
+      if(mpi_->myRank() == 0 && scheduler_->validating()) {
         // temporarily save current params
         if(movingAvg_)
           accGradientsSync->copyFrom(clientGraphs_[0]->params()->vals());

@@ -198,15 +198,12 @@ Ptr<Communicator> createCommunicator(
 //  * swapped out some strange MPI-specific data types to more correct C++ ones where appropriate
 struct/*interface*/ IMPIWrapper
 {
-  // MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided_thread_mode);
-  // MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
-  // MPI_Comm_size(MPI_COMM_WORLD, &mpi_comm_world_size_);
-  // MPI_Comm_rank(MPI_COMM_WORLD, &mpi_my_rank_);
-  // MPI_Recv(&messageInfo,
-  // MPI_Ssend(serverShardBufferCPU_.data(),
-  // MPI_Recv(clientCommBuffersCPU_[gpu].data(),
-  // MPI_Barrier(MPI_COMM_WORLD);
-  // MPI_Allreduce(accGradientsSync_cpu.data(),  // CPU buffers
+  virtual size_t myRank() const = 0;
+  virtual size_t commWorldSize() const = 0;
+  virtual void barrier(MPI_Comm comm) const = 0;
+  virtual void sSend(void* buf, size_t count, MPI_Datatype datatype, size_t destRank, int tag, MPI_Comm comm) const = 0;
+  virtual void recv(void* buf, size_t count, MPI_Datatype datatype, size_t sourceRank, int tag, MPI_Comm comm, MPI_Status* status) const = 0;
+  virtual void allReduce(const void* sendbuf, void* recvbuf, size_t count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) const = 0;
   virtual void finalize() = 0;
 };
 
