@@ -131,21 +131,21 @@ void ProdBatched(marian::Tensor C,
   auto strideA = batchA == 1 ? 0 : m * k;
   auto strideC = n * m;
 
-  int batchC = std::max(batchA, batchB);
-  for(int i = 0; i < batchC; ++i) {
+  auto batchC = std::max(batchA, batchB);
+  for(size_t i = 0; i < batchC; ++i) {
     sgemm(transA,
           transB,
-          m,
-          n,
-          k,
+          (int)m,
+          (int)n,
+          (int)k,
           alpha,
           A->data() + (i % batchA) * strideA,
-          lda,
+          (int)lda,
           B->data() + (i % batchB) * strideB,
-          ldb,
+          (int)ldb,
           beta,
           C->data() + i * strideC,
-          ldc);
+          (int)ldc);
   }
 #else
   ABORT("Not implemented!");

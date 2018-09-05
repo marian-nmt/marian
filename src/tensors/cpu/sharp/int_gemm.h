@@ -56,8 +56,8 @@ void SSE_MatrixMult16(const __m128i* A,
 
 static inline void Quantize16(marian::Tensor out,
                               const marian::Tensor in,
-                              float clipValue) {
-  float quant_mult = pow(2.0, (float)BITS);
+                              float /*clipValue*/) {
+  float quant_mult = (float)pow(2.0, BITS);
 #ifdef __AVX512F__
   AVX_Quantize16(
       in->data(), out->data<int16_t>(), quant_mult, in->shape().elements());
@@ -76,6 +76,7 @@ static inline void Quantize8(marian::Tensor out,
   AVX_Quantize8(
       in->data(), out->data<int8_t>(), quant_mult, in->shape().elements());
 #else
+    out; in; clipValue;
   ABORT("8-bit is currently only AVX512");
 #endif
 }
@@ -118,19 +119,19 @@ static void AddBias(marian::Tensor C, const marian::Tensor Bias) {
   }
 }
 
-static void ProdInt16(marian::Tensor C,
-                      const marian::Tensor A,
-                      const marian::Tensor B,
+static inline void ProdInt16(marian::Tensor C,
+                             const marian::Tensor A,
+                             const marian::Tensor B,
                       float scale) {
   ABORT_IF(scale != 1, "Scale other than 1 not supported");
 
   // @TODO: make this a parameter
-  float quant_mult = pow(2.0, (float)BITS);
+  float quant_mult = (float)pow(2.0, BITS);
 
   // If we quantize to n bits and then multiple the values together, the result
   // will be quantized to n^2 bits. So we must divide by 1.0/(n^2) to get back
   // the original value.
-  float unquant_mult = 1.0 / (quant_mult * quant_mult);
+  float unquant_mult = 1.0f / (quant_mult * quant_mult);
 
   float* fC = C->data();
   int num_A_rows = A->shape().elements() / A->shape()[-1];
@@ -155,11 +156,11 @@ static void ProdInt16(marian::Tensor C,
 #endif
 }
 
-static void ProdInt8(marian::Tensor C,
-                     const marian::Tensor A,
-                     const marian::Tensor B,
-                     float scale,
-                     float clipValue) {
+static inline void ProdInt8(marian::Tensor C,
+                            const marian::Tensor A,
+                            const marian::Tensor B,
+                            float scale,
+                            float clipValue) {
 #ifdef __AVX512F__
   // This would be easy...
   ABORT_IF(scale != 1, "Scale other than 1 not supported");
@@ -178,6 +179,7 @@ static void ProdInt8(marian::Tensor C,
                   num_B_rows,
                   width);
 #else
+    C; A; B; scale; clipValue;
   ABORT("8-bit is currently only AVX512");
 #endif
 }

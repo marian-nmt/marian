@@ -17,10 +17,10 @@ namespace cpu {
 inline float stableSigmoid(float x) {
   if(x >= 0) {
     float z = expf(-x);
-    return 1.0 / (1.0 + z);
+    return 1.0f / (1.0f + z);
   } else {
     float z = expf(x);
-    return z / (1.0 + z);
+    return z / (1.0f + z);
   }
 }
 
@@ -228,9 +228,9 @@ void Transpose10(Tensor out, const Tensor in) {
 template <bool add>
 void TransposeGeneric(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   functional::Array<int, functional::Shape::size()> permute;
-  int diff = functional::Shape::size() - vAxis.size();
-  for(size_t i = 0; i < permute.size(); ++i)
-    if((int)i < diff)
+  int diff = int(functional::Shape::size() - vAxis.size());
+  for(int i = 0; i < permute.size(); ++i)
+    if(i < diff)
       permute[i] = i;
     else
       permute[i] = vAxis[i - diff] + diff;
@@ -483,7 +483,7 @@ void Select(Tensor out,
 
   for(int index = 0; index < length; ++index) {
     outShape.dims(index, dims);
-    dims[axis] = indices[dims[axis]];
+    dims[axis] = (int)indices[dims[axis]];
     int inIndex = inShape.index(dims);
     out->data()[index] = in->data()[inIndex];
   }
@@ -505,7 +505,7 @@ void Insert(Tensor out,
 
   for(int index = 0; index < length; ++index) {
     inShape.dims(index, dims);
-    dims[axis] = indices[dims[axis]];
+    dims[axis] = (int)indices[dims[axis]];
     int outIndex = outShape.index(dims);
     out->data()[outIndex] += in->data()[index];
   }
@@ -547,8 +547,8 @@ void GRUFastForward(Tensor out_, std::vector<Tensor> inputs, bool final) {
       else
         h = std::tanh(xWrow[l] + sUrow[l] * r + b[l]);
 
-      float out = (1.0f - z) * h + z * rowState[i];
-      rowOut[i] = m * out + (1 - m) * rowState[i];
+      float o = (1.0f - z) * h + z * rowState[i];
+      rowOut[i] = m * o + (1 - m) * rowState[i];
     }
   }
 }
@@ -599,16 +599,16 @@ void GRUFastBackward(std::vector<Tensor> outputs,
       else
         h = std::tanh(rowXW[l] + rowSU[l] * r + b[l]);
 
-      float adj = rowAdj[i];
+      float a = rowAdj[i];
 
       float t = (1 - z) * (1 - h * h);
 
       // df/ds
       if(outState)
-        rowOutState[i] += (m * z - m + 1) * adj;
+        rowOutState[i] += (m * z - m + 1) * a;
 
       // df/d(xW_r) ...
-      float dfdxW_r = m * r * (1 - r) * t * adj;
+      float dfdxW_r = m * r * (1 - r) * t * a;
       if(final)
         dfdxW_r *= rowSU[l] + b[l];
       else
@@ -621,7 +621,7 @@ void GRUFastBackward(std::vector<Tensor> outputs,
         outB[i] += dfdxW_r;
 
       // df/d(xW_z) ...
-      float dfdxW_z = m * (1 - z) * z * (rowState[i] - h) * adj;
+      float dfdxW_z = m * (1 - z) * z * (rowState[i] - h) * a;
       if(outXW)
         rowOutXW[k] += dfdxW_z;
       if(outSU)
@@ -630,7 +630,7 @@ void GRUFastBackward(std::vector<Tensor> outputs,
         outB[k] += dfdxW_z;
 
       // df/d(xW_x) ...
-      float dfdxW_x = m * t * adj;
+      float dfdxW_x = m * t * a;
       if(outXW)
         rowOutXW[l] += dfdxW_x;
       if(outSU)
@@ -671,7 +671,7 @@ void CrossEntropyPick(Tensor out_, Tensor in_, Tensor pick_) {
     }
 
     // cross-entropy
-    int i = pick[j];
+    int i = (int)pick[j];
     // This appears to be safe i.e. that i >= 0 && i < cols is known
     out[j] = std::log(sum) - sp[i] + max;
   }
@@ -960,7 +960,7 @@ void Shift(Tensor out_,
            float padValue,
            bool invert) {
   int offset = 0;
-  for(size_t i = 0; i < shift.size(); ++i)
+  for(int i = 0; i < shift.size(); ++i)
     offset += in_->shape().stride(i) * shift[i];
 
   if(invert)
@@ -983,7 +983,7 @@ void Shift(Tensor out_,
 
 void ShiftGrad(Tensor out_, Tensor in_, marian::Shape shift, bool invert) {
   int offset = 0;
-  for(size_t i = 0; i < shift.size(); ++i)
+  for(int i = 0; i < shift.size(); ++i)
     offset += in_->shape().stride(i) * shift[i];
 
   if(invert)
@@ -1004,7 +1004,7 @@ void ShiftGrad(Tensor out_, Tensor in_, marian::Shape shift, bool invert) {
 void SetSparse(float* out,
                const std::vector<size_t>& indices,
                const std::vector<float>& values) {
-  int length = indices.size();
+  int length = (int)indices.size();
   for(int index = 0; index < length; ++index) {
     out[indices[index]] = values[index];
   }
@@ -1112,15 +1112,15 @@ void LSTMCellBackward(std::vector<Tensor> outputs,
       int l = i + 2 * cols;
       float gc = std::tanh(xWrow[l] + sUrow[l] + b[l]);
 
-      float adj = rowAdj[i];
+      float a = rowAdj[i];
 
       // dc/dx_{t-1}
       if(outCell) {
-        rowOutCell[i] += (m * gf - m + 1) * adj;
+        rowOutCell[i] += (m * gf - m + 1) * a;
       }
 
       // dc/d(b_f) = dc/d(xW_f) ...
-      float dcdxf = m * rowCell[i] * gf * (1 - gf) * adj;
+      float dcdxf = m * rowCell[i] * gf * (1 - gf) * a;
       if(outXW) {
         rowOutXW[i] += dcdxf;
       }
@@ -1132,7 +1132,7 @@ void LSTMCellBackward(std::vector<Tensor> outputs,
       }
 
       // dc/d(b_i) ...
-      float dcdb_i = m * gc * gi * (1 - gi) * adj;
+      float dcdb_i = m * gc * gi * (1 - gi) * a;
       if(outXW) {
         rowOutXW[k] += dcdb_i;
       }
@@ -1144,7 +1144,7 @@ void LSTMCellBackward(std::vector<Tensor> outputs,
       }
 
       // dc/d(b_c) ...
-      float dcdxc = m * gi * (1 - gc * gc) * adj;
+      float dcdxc = m * gi * (1 - gc * gc) * a;
       if(outXW) {
         rowOutXW[l] += dcdxc;
       }
@@ -1193,15 +1193,15 @@ void LSTMOutputBackward(std::vector<Tensor> outputs,
 
       float t = std::tanh(rowCell[i]);
 
-      float adj = rowAdj[i];
+      float a = rowAdj[i];
 
       // dc/dc_{t-1}
       if(outCell) {
-        rowOutCell[i] += go * (1 - t * t) * adj;
+        rowOutCell[i] += go * (1 - t * t) * a;
       }
 
       // dc/d(b_o) = dc/d(xW_f) ...
-      float dcdxo = t * go * (1 - go) * adj;
+      float dcdxo = t * go * (1 - go) * a;
       if(outXW) {
         rowOutXW[k] += dcdxo;
       }
@@ -1240,30 +1240,30 @@ void HighwayForward(Tensor out,
   }
 }
 
-void HighwayBackward(Tensor out1,
-                     Tensor out2,
-                     Tensor outt,
-                     const Tensor in1,
-                     const Tensor in2,
-                     const Tensor t,
-                     const Tensor adj) {
+void HighwayBackward(Tensor /*out1*/,
+                     Tensor /*out2*/,
+                     Tensor /*outt*/,
+                     const Tensor /*in1*/,
+                     const Tensor /*in2*/,
+                     const Tensor /*t*/,
+                     const Tensor /*adj*/) {
   ABORT("Not implemented!");
 }
 
-void PoolingWithMaskingForward(Tensor out,
-                               Tensor in,
-                               Tensor mask,
-                               int width,
-                               bool isEven) {
+void PoolingWithMaskingForward(Tensor /*out*/,
+                               Tensor /*in*/,
+                               Tensor /*mask*/,
+                               int /*width*/,
+                               bool /*isEven*/) {
   ABORT("Not implemented!");
 }
 
-void PoolingWithMaskingBackward(Tensor adj,
-                                Tensor adjIn,
-                                Tensor in,
-                                Tensor mask,
-                                int width,
-                                bool isEven) {
+void PoolingWithMaskingBackward(Tensor /*adj*/,
+                                Tensor /*adjIn*/,
+                                Tensor /*in*/,
+                                Tensor /*mask*/,
+                                int /*width*/,
+                                bool /*isEven*/) {
   ABORT("Not implemented!");
 }
 }  // namespace cpu

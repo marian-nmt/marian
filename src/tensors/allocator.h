@@ -91,7 +91,7 @@ private:
   std::unordered_map<uint8_t*, Ptr<MemoryPiece>> allocated_;
 
   size_t align(size_t size) {
-    return ceil(size / (float)alignment_) * alignment_;
+    return (size_t)(ceil(size / (float)alignment_) * alignment_);
   }
 
   void grow(size_t add) {
@@ -168,7 +168,7 @@ public:
     reserve(bytes);
   }
 
-  Allocator(DeviceId deviceId,
+  Allocator(DeviceId /*deviceId*/,
             Ptr<Device> device,
             size_t bytes,
             size_t step,

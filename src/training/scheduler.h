@@ -20,12 +20,12 @@ private:
   float getLearningRate(TrainingState& state) {
     float baselr = options_->get<float>("learn-rate");
 
-    float bno = state.batches - state.warmupStart;
+    auto bno = state.batches - state.warmupStart;
 
     size_t warmup = options_->get<size_t>("lr-warmup");
     float mult1 = 1.f;
     if(warmup > 0) {
-      mult1 = std::min(1.f, bno / (float)warmup);
+      mult1 = std::min(1.f, (float)bno / (float)warmup);
     }
 
     size_t decayGoogle = options_->get<size_t>("lr-decay-inv-sqrt");
@@ -164,8 +164,8 @@ public:
   void update(float cost, const std::vector<Ptr<data::Batch>>& batches) {
     state_->validated = false;
 
-    auto batchSize = 0;    // number of sentences in batch
-    auto batchLabels = 0;  // number of target words in batch
+    size_t batchSize = 0;    // number of sentences in batch
+    size_t batchLabels = 0;  // number of target words in batch
 
     for(const auto& batch : batches) {
       batchSize += batch->size();
@@ -303,7 +303,7 @@ public:
   }
 
   void actAfterEpoch(TrainingState& state) override {
-    float factor = options_->get<double>("lr-decay");
+    float factor = (float)options_->get<double>("lr-decay"); // @TODO: <float>?
 
     float baselr = getLearningRate(state);
     state.eta = baselr * state.factor;
@@ -355,7 +355,7 @@ public:
   }
 
   void actAfterBatches(TrainingState& state) override {
-    float factor = options_->get<double>("lr-decay");
+    float factor = (float)options_->get<double>("lr-decay"); // @TODO: <float>?
     state.reset = false;
 
     float baselr = getLearningRate(state);
@@ -365,7 +365,7 @@ public:
       if("batches" == options_->get<std::string>("lr-decay-strategy")) {
         size_t start
             = options_->get<std::vector<size_t>>("lr-decay-start").front();
-        int freq = options_->get<size_t>("lr-decay-freq");
+        size_t freq = options_->get<size_t>("lr-decay-freq");
 
         if(start > 0 && freq > 0 && state.batches >= start
            && ((state.batches - start) % freq == 0)) {
@@ -403,7 +403,7 @@ public:
   }
 
   void actAfterStalled(TrainingState& state) override {
-    float factor = options_->get<double>("lr-decay");
+    float factor = (float)options_->get<double>("lr-decay"); // @TODO: <float>?
     state.reset = false;
 
     float baselr = getLearningRate(state);
@@ -411,7 +411,7 @@ public:
 
     if(factor > 0.0) {
       if(options_->get<std::string>("lr-decay-strategy") == "stalled") {
-        int startStalled
+        size_t startStalled
             = options_->get<std::vector<size_t>>("lr-decay-start").front();
         if(startStalled && state.stalled && state.stalled % startStalled == 0) {
           state.factor *= factor;

@@ -122,7 +122,7 @@ public:
    * @param size Number of sentences
    * @param width Number of words in the longest sentence
    */
-  SubBatch(int size, int width, const Ptr<Vocab>& vocab)
+  SubBatch(size_t size, size_t width, const Ptr<Vocab>& vocab)
       : indices_(size * width, 0),
         mask_(size * width, 0),
         size_(size),
@@ -176,31 +176,31 @@ public:
     ABORT_IF(size_ == 0, "Encoutered sub-batch size of 0");
 
     std::vector<Ptr<SubBatch>> splits;
-    size_t subSize = std::ceil(size_ / (float)n);
+    size_t subSize = (size_t)(std::ceil(size_ / (float)n));
 
     size_t restSize = size_;
     size_t pos = 0;
     for(size_t k = 0; k < n; ++k) {
-      size_t __size__ = std::min(subSize, restSize);
-      if(__size__ > 0) {
-        auto sb = New<SubBatch>(__size__, width_, vocab_);
+      size_t size = std::min(subSize, restSize);
+      if(size > 0) {
+        auto sb = New<SubBatch>(size, width_, vocab_);
 
-        size_t __words__ = 0;
+        size_t words = 0;
         for(size_t j = 0; j < width_; ++j) {
-          for(size_t i = 0; i < __size__; ++i) {
-            sb->data()[j * __size__ + i] = indices_[j * size_ + pos + i];
-            sb->mask()[j * __size__ + i] = mask_[j * size_ + pos + i];
+          for(size_t i = 0; i < size; ++i) {
+            sb->data()[j * size + i] = indices_[j * size_ + pos + i];
+            sb->mask()[j * size + i] = mask_[j * size_ + pos + i];
 
             if(mask_[j * size_ + pos + i] != 0)
-              __words__++;
+              words++;
           }
         }
 
-        sb->setWords(__words__);
+        sb->setWords(words);
         splits.push_back(sb);
 
-        restSize -= __size__;
-        pos += __size__;
+        restSize -= size;
+        pos += size;
       }
     }
     return splits;
@@ -309,7 +309,7 @@ public:
       // set word indices to different values to avoid same hashes
       std::fill(sb->data().begin(), sb->data().end(), idx++);
       // mask: no items ask being masked out
-      std::fill(sb->mask().begin(), sb->mask().end(), 1);
+      std::fill(sb->mask().begin(), sb->mask().end(), 1.f);
 
       batches.push_back(sb);
     }
@@ -326,7 +326,7 @@ public:
     }
 
     if(options->has("data-weighting")) {
-      int weightsSize = batchSize;
+      auto weightsSize = batchSize;
       if(options->get<std::string>("data-weighting-type") != "sentence")
         weightsSize *= lengths.back();
       std::vector<float> weights(weightsSize, 1.f);

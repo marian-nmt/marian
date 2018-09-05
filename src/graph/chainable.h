@@ -51,7 +51,8 @@ class ExpressionGraph;
  *   or formally \f$\bar{w}_i = \frac{\partial y}{\partial w_i}\f$
  */
 template <class DataType>
-struct Chainable {
+class Chainable {
+public:
   Chainable() {}
   virtual ~Chainable(){};
 

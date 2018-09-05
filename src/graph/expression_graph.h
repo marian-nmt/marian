@@ -203,7 +203,7 @@ public:
       tensors_->throwAtReallocation(true);
       backprop();
       tensors_->throwAtReallocation(false);
-    } catch(AllocationException& e) {
+    } catch(AllocationException&) {
       tensors_->throwAtReallocation(false);
       return false;
     }

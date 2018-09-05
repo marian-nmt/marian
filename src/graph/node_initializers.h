@@ -28,7 +28,7 @@ NodeInitializer diag(float val);
 
 template <class Distribution, class Iterator>
 void distribution(Iterator begin, Iterator end, float a, float b) {
-  std::default_random_engine engine(Config::seed++);
+  std::default_random_engine engine((unsigned int)Config::seed++);
   Distribution dist(a, b);
   auto gen = std::bind(dist, engine);
   std::generate(begin, end, gen);

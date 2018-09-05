@@ -19,7 +19,7 @@ void Adagrad::updateImpl(Tensor params, Tensor grads) {
     alloc_ = New<TensorAllocator>(params->getBackend());
 
   if(!gt_) {
-    int elements = params->size();
+    int elements = (int)params->size();
     alloc_->reserveExact(params->memory()->size());
     alloc_->allocate(gt_, {1, elements});
     gt_->set(0.f);
@@ -68,13 +68,13 @@ void Adagrad::load(const std::string& name,
   }
 
   // get the size of params which should go
-  size_t shardSize = ceil(totalSize / (float)backends.size());
+  size_t shardSize = (size_t)(ceil(totalSize / (float)backends.size()));
 
   size_t id = 0;
   for(auto optBase : opts) {
     auto opt = std::dynamic_pointer_cast<Adagrad>(optBase);
 
-    int size = std::min(shardSize, totalSize);
+    int size = (int)std::min(shardSize, totalSize);
     totalSize -= size;
 
     if(!opt->alloc_)
@@ -95,7 +95,7 @@ void Adagrad::load(const std::string& name,
 
 void Adagrad::save(const std::string& name,
                    std::vector<Ptr<OptimizerBase>> opts,
-                   size_t totalSize) {
+                   size_t /*totalSize*/) {
   LOG(info, "Saving Adagrad parameters to {}", name);
 
   std::vector<float> vGt;
@@ -130,7 +130,7 @@ void Adam::updateImpl(Tensor params, Tensor grads) {
     alloc_ = New<TensorAllocator>(params->getBackend());
 
   if(!mt_) {
-    int elements = params->size();
+    int elements = (int)params->size();
     alloc_->reserveExact(2 * params->memory()->size());
     alloc_->allocate(mt_, {1, elements});
     mt_->set(0.f);
@@ -140,8 +140,8 @@ void Adam::updateImpl(Tensor params, Tensor grads) {
   }
 
   t_++;
-  float denom1 = 1 - std::pow(beta1_, t_);
-  float denom2 = 1 - std::pow(beta2_, t_);
+  float denom1 = 1 - (float)std::pow(beta1_, t_);
+  float denom2 = 1 - (float)std::pow(beta2_, t_);
 
   using namespace functional;
 
@@ -193,13 +193,13 @@ void Adam::load(const std::string& name,
   }
 
   // get the size of params which should go
-  size_t shardSize = ceil(totalSize / (float)backends.size());
+  size_t shardSize = (size_t)(ceil(totalSize / (float)backends.size()));
 
   size_t id = 0;
   for(auto optBase : opts) {
     auto opt = std::dynamic_pointer_cast<Adam>(optBase);
 
-    int size = std::min(shardSize, totalSize);
+    int size = (int)std::min(shardSize, totalSize);
     totalSize -= size;
 
     if(!opt->alloc_)
@@ -223,7 +223,7 @@ void Adam::load(const std::string& name,
 
 void Adam::save(const std::string& name,
                 std::vector<Ptr<OptimizerBase>> opts,
-                size_t totalSize) {
+                size_t /*totalSize*/) {
   LOG(info, "Saving Adam parameters to {}", name);
 
   std::vector<float> vMt;
@@ -267,13 +267,13 @@ void Adam::resetStats() {
 }
 
 Ptr<OptimizerBase> Optimizer(Ptr<Config> options) {
-  float lrate = options->get<double>("learn-rate");
+  float lrate = (float)options->get<double>("learn-rate"); // @TODO: should this be <float>?
   auto params = options->has("optimizer-params")
                     ? options->get<std::vector<float>>("optimizer-params")
                     : std::vector<float>({});
 
   Ptr<ClipperBase> clipper = nullptr;
-  float clipNorm = options->get<double>("clip-norm");
+  float clipNorm = (float)options->get<double>("clip-norm"); // @TODO: should this be <float>?
   if(clipNorm > 0)
     clipper = Clipper<Norm>(clipNorm);
 

@@ -15,7 +15,7 @@ private:
 
 public:
   Backend(DeviceId deviceId, size_t seed)
-      : marian::Backend(deviceId, seed), gen_(seed_) {}
+      : marian::Backend(deviceId, seed), gen_((unsigned int)seed_) {}
 
   void setDevice() override {}
 

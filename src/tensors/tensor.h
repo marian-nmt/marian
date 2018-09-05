@@ -91,7 +91,7 @@ public:
              request<float>(),
              type_);
 
-    float temp;
+    float temp = 0; // (initialize to keep compiler happy)
     if(backend_->getDeviceId().type == DeviceType::cpu) {
       std::copy(data() + i, data() + i + 1, &temp);
     }
@@ -183,16 +183,16 @@ public:
   void set(T value) {
     if(!matchType<T>(type_)) {
       switch(type_) {
-        case Type::float32: set<float>(value); break;
-        case Type::float64: set<double>(value); break;
-        case Type::int8: set<int8_t>(value); break;
-        case Type::int16: set<int16_t>(value); break;
-        case Type::int32: set<int32_t>(value); break;
-        case Type::int64: set<int64_t>(value); break;
-        case Type::uint8: set<uint8_t>(value); break;
-        case Type::uint16: set<uint16_t>(value); break;
-        case Type::uint32: set<uint32_t>(value); break;
-        case Type::uint64: set<uint64_t>(value); break;
+        case Type::float32: set<float   >((float   )value); break;
+        case Type::float64: set<double  >((double  )value); break;
+        case Type::int8:    set<int8_t  >((int8_t  )value); break;
+        case Type::int16:   set<int16_t >((int16_t )value); break;
+        case Type::int32:   set<int32_t >((int32_t )value); break;
+        case Type::int64:   set<int64_t >((int64_t )value); break;
+        case Type::uint8:   set<uint8_t >((uint8_t )value); break;
+        case Type::uint16:  set<uint16_t>((uint16_t)value); break;
+        case Type::uint32:  set<uint32_t>((uint32_t)value); break;
+        case Type::uint64:  set<uint64_t>((uint64_t)value); break;
         default:
           ABORT(
               "Requested type ({}) cannot be converted to underlying type ({})",
@@ -273,19 +273,19 @@ public:
     else
       strm << std::fixed << std::setprecision(0) << std::setfill(' ');
 
-    for(size_t i = 0; i < values.size(); ++i) {
+    for(int i = 0; i < values.size(); ++i) {
       std::vector<int> dims;
       shape().dims(i, dims);
 
       bool disp = true;
-      for(size_t j = 0; j < dims.size(); ++j)
+      for(int j = 0; j < dims.size(); ++j)
         disp = disp && (dims[j] < dispCols || dims[j] >= shape()[j] - dispCols);
 
       if(disp) {
         if(dims.back() == 0) {
           bool par = true;
           std::vector<std::string> p;
-          for(int j = dims.size() - 1; j >= 0; --j) {
+          for(int j = (int)dims.size() - 1; j >= 0; --j) {
             if(dims[j] != 0)
               par = false;
 
@@ -307,7 +307,7 @@ public:
         strm << " ";
 
         if(dims.back() + 1 == shape().back()) {
-          for(int j = dims.size() - 1; j >= 0; --j) {
+          for(int j = (int)dims.size() - 1; j >= 0; --j) {
             if(dims[j] + 1 != shape()[j])
               break;
             strm << "]";
@@ -316,7 +316,7 @@ public:
         }
 
         bool prev = true;
-        for(int j = dims.size() - 1; j >= 0; --j) {
+        for(int j = (int)dims.size() - 1; j >= 0; --j) {
           if(j < (int)dims.size() - 1)
             prev = prev && dims[j + 1] + 1 == shape()[j + 1];
           if(prev && dims[j] + 1 == dispCols && shape()[j] > 2 * dispCols) {

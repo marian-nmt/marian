@@ -79,7 +79,7 @@ public:
       for(auto i : srcBatch->data())
         idxSet.insert(i);
 
-    std::uniform_int_distribution<> dis(firstNum_, maxVocab_);
+    std::uniform_int_distribution<> dis((int)firstNum_, (int)maxVocab_);
     while(idxSet.size() < total_ && idxSet.size() < maxVocab_)
       idxSet.insert(dis(gen_));
 

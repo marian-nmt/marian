@@ -19,7 +19,7 @@ void SetColumn(Tensor in_, size_t col, float value) {
 
   float* in = in_->data();
   for(int rowNumber = 0; rowNumber < nRows; ++rowNumber) {
-    int index = col + rowNumber * nColumns;
+    auto index = col + rowNumber * nColumns;
     in[index] = value;
   }
 }

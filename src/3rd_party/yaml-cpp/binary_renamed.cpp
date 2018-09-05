@@ -79,11 +79,11 @@ std::vector<unsigned char> DecodeBase64(const std::string &input) {
 
     value = (value << 6) | d;
     if (i % 4 == 3) {
-      *out++ = value >> 16;
+      *out++ = (unsigned char)(value >> 16);
       if (i > 0 && input[i - 1] != '=')
-        *out++ = value >> 8;
+        *out++ = (unsigned char)(value >> 8);
       if (input[i] != '=')
-        *out++ = value;
+        *out++ = (unsigned char)value;
     }
   }
 

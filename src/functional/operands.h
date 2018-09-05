@@ -13,7 +13,7 @@ using IsClass = typename std::enable_if<std::is_class<C>::value, C>::type;
 template <int N>
 struct Select {
   template <typename T, typename... Args>
-  __HDI__ static auto apply(T&& arg, Args&&... args)
+  __HDI__ static auto apply(T&& /*arg*/, Args&&... args)
       -> decltype(Select<N - 1>::apply(args...)) {
     return Select<N - 1>::apply(args...);
   }
@@ -22,7 +22,7 @@ struct Select {
 template <>
 struct Select<0> {
   template <typename T, typename... Args>
-  __HDI__ static T apply(T&& arg, Args&&... args) {
+  __HDI__ static T apply(T&& arg, Args&&... /*args*/) {
     return arg;
   }
 };
@@ -49,7 +49,7 @@ struct Capture {
   Capture(float val) : value(val){};
 
   template <typename... Args>
-  __HDI__ float operator()(Args&&... args) {
+  __HDI__ float operator()(Args&&... /*args*/) {
     return value;
   }
 

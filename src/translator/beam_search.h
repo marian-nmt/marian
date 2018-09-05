@@ -15,8 +15,8 @@ private:
   Ptr<Options> options_;
   std::vector<Ptr<Scorer>> scorers_;
   size_t beamSize_;
-  Word trgEosId_ = -1;
-  Word trgUnkId_ = -1;
+  Word trgEosId_ = (Word)-1;
+  Word trgUnkId_ = (Word)-1;
 
 public:
   BeamSearch(Ptr<Options> options,
@@ -49,8 +49,8 @@ public:
     for(size_t i = 0; i < keys.size(); ++i) {
       // Keys contains indices to vocab items in the entire beam.
       // Values can be between 0 and beamSize * vocabSize.
-      int embIdx = keys[i] % vocabSize;
-      int beamIdx = i / beamSize;
+      size_t embIdx = keys[i] % vocabSize;
+      auto beamIdx = i / beamSize;
 
       // Retrieve short list for final softmax (based on words aligned
       // to source sentences). If short list has been set, map the indices
@@ -63,15 +63,15 @@ public:
         auto& beam = beams[beamIdx];
         auto& newBeam = newBeams[beamIdx];
 
-        int hypIdx = keys[i] / vocabSize;
+        size_t hypIdx = keys[i] / vocabSize;
         float pathScore = pathScores[i];
 
-        int hypIdxTrans
+        size_t hypIdxTrans
             = (hypIdx / beamSize) + (hypIdx % beamSize) * beams.size();
         if(first)
           hypIdxTrans = hypIdx;
 
-        int beamHypIdx = hypIdx % beamSize;
+        size_t beamHypIdx = hypIdx % beamSize;
         if(beamHypIdx >= (int)beam.size())
           beamHypIdx = beamHypIdx % beam.size();
 
@@ -85,7 +85,7 @@ public:
           std::vector<float> breakDown(states.size(), 0);
           beam[beamHypIdx]->GetScoreBreakdown().resize(states.size(), 0);
           for(size_t j = 0; j < states.size(); ++j) {
-            int key = embIdx + hypIdxTrans * vocabSize;
+            size_t key = embIdx + hypIdxTrans * vocabSize;
             breakDown[j] = states[j]->breakDown(key)
                            + beam[beamHypIdx]->GetScoreBreakdown()[j];
           }
@@ -95,7 +95,7 @@ public:
         // Set alignments
         if(!align.empty()) {
           hyp->SetAlignment(
-              getAlignmentsForHypothesis(align, batch, beamHypIdx, beamIdx));
+              getAlignmentsForHypothesis(align, batch, (int)beamHypIdx, (int)beamIdx));
         }
 
         newBeam.push_back(hyp);
@@ -156,7 +156,7 @@ public:
   
   // main decoding function
   Histories search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
-    int dimBatch = batch->size();
+    int dimBatch = (int)batch->size();
 
     Histories histories;
     for(int i = 0; i < dimBatch; ++i) {
@@ -212,7 +212,7 @@ public:
       } else {
         std::vector<float> beamScores;
 
-        int dimBatch = batch->size();
+        dimBatch = (int)batch->size();
 
         for(size_t i = 0; i < localBeamSize; ++i) {
           for(size_t j = 0; j < beams.size(); ++j) { // loop over batch entries (active sentences)
@@ -240,7 +240,7 @@ public:
 
       for(size_t i = 0; i < scorers_.size(); ++i) {
         states[i] = scorers_[i]->step(
-            graph, states[i], hypIndices, embIndices, dimBatch, localBeamSize);
+            graph, states[i], hypIndices, embIndices, dimBatch, (int)localBeamSize);
 
         if(scorers_[i]->getWeight() != 1.f)
           pathScores = pathScores + scorers_[i]->getWeight() * states[i]->getLogProbs();

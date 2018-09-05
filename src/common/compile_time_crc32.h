@@ -74,7 +74,7 @@ constexpr uint32_t crc32(const char* str) {
 
 // This is the stop-recursion function
 template <>
-constexpr uint32_t crc32<size_t(-1)>(const char* str) {
+constexpr uint32_t crc32<size_t(-1)>(const char*) {
   return 0xFFFFFFFF;
 }
 

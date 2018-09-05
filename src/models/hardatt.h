@@ -215,7 +215,7 @@ public:
     Expr logits;
     if(type == "hard-soft-att") {
       std::vector<Expr> alignedContexts;
-      for(size_t k = 0; k < state->getEncoderStates().size(); ++k) {
+      for(int k = 0; k < state->getEncoderStates().size(); ++k) {
         // retrieve all the aligned contexts computed by the attention mechanism
         auto att = rnn_->at(0)
                        ->as<rnn::StackedCell>()
@@ -257,8 +257,8 @@ public:
     DecoderBase::embeddingsFromBatch(graph, state, batch);
 
     auto subBatch = (*batch)[batchIndex_];
-    int dimBatch = subBatch->batchSize();
-    int dimWords = subBatch->batchWidth();
+    int dimBatch = (int)subBatch->batchSize();
+    int dimWords = (int)subBatch->batchWidth();
 
     std::vector<size_t> attentionIndices(dimBatch, 0);
     std::vector<size_t> currentPos(dimBatch, 0);

@@ -71,7 +71,7 @@ public:
    *
    * @arg value The value to store in this object
    */
-  Keyword(Value value) : value_(value) {}
+  Keyword(Value val) : value_(val) {}
 
   /**
    * @brief Constructs a <code>Keyword</code> with no specified value.
@@ -90,8 +90,8 @@ public:
    *
    * @return  a new <code>Keyword</code> object containing the specified value
    */
-  Keyword<key, Value> operator=(Value value) const {
-    return Keyword<key, Value>(value);
+  Keyword<key, Value> operator=(Value val) const {
+    return Keyword<key, Value>(val);
   }
 
   /**
@@ -141,22 +141,22 @@ struct True {};
 struct False {};
 
 template <typename Match, typename... Args>
-typename Match::value_type opt(True foo,
-                               typename Match::value_type dflt,
+typename Match::value_type opt(True /*foo*/,
+                               typename Match::value_type /*dflt*/,
                                Args... args) {
   std::tuple<Args...> t(args...);
   return std::get<Index<Match, std::tuple<Args...>>::value>(t)();
 }
 
 template <typename Match, typename... Args>
-typename Match::value_type opt(False foo,
+typename Match::value_type opt(False /*foo*/,
                                typename Match::value_type dflt,
-                               Args... args) {
+                               Args... /*args*/) {
   return dflt;
 }
 
 template <typename Match, typename... Args>
-typename Match::value_type Get(Match key,
+typename Match::value_type Get(Match /*key*/,
                                typename Match::value_type dflt,
                                Args... args) {
   constexpr bool match = is_one_of<Match, Args...>::value;
@@ -165,7 +165,7 @@ typename Match::value_type Get(Match key,
 }
 
 template <typename Match, typename... Args>
-constexpr bool Has(Match key, Args... args) {
+constexpr bool Has(Match /*key*/, Args... args) {
   return is_one_of<Match, Args...>::value;
 }
 

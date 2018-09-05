@@ -89,7 +89,7 @@ struct ConstantShape {
 
   __HDI__ static constexpr size_t size() { return N; }
 
-  __HDI__ int elements() const { return elements_; }
+  __HDI__ int elements() const { return (int)elements_; }
 
   __HDI__ int index(const Array<int, N>& d) const {
     int i = 0;

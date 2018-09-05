@@ -60,8 +60,8 @@ public:
     auto yEmb = yEmbFactory.construct();
 
     auto subBatch = (*batch)[batchIndex_];
-    int dimBatch = subBatch->batchSize();
-    int dimWords = subBatch->batchWidth();
+    int dimBatch = (int)subBatch->batchSize();
+    int dimWords = (int)subBatch->batchWidth();
 
     auto chosenEmbeddings = rows(yEmb, subBatch->data());
 
@@ -119,7 +119,7 @@ public:
     state->setTargetEmbeddings(selectedEmbs);
   }
 
-  virtual const std::vector<Expr> getAlignments(int i = 0) { return {}; };
+  virtual const std::vector<Expr> getAlignments(int /*i*/ = 0) { return {}; };
 
   virtual Ptr<data::Shortlist> getShortlist() { return shortlist_; }
   virtual void setShortlist(Ptr<data::Shortlist> shortlist) {
