@@ -20,8 +20,6 @@ int main(int argc, char** argv) {
   auto devices = options->getDevices();
 
   if(options->get<bool>("multi-node")) {
-    ABORT_IF(!configureMPI(argc, argv, options->get<bool>("sync-sgd")),
-             "MPI not found.");
     LOG(warn, "[experimental] Running multi-node training");
 
     if(options->get<bool>("sync-sgd")) {
@@ -52,24 +50,4 @@ int main(int argc, char** argv) {
   }
 
   return 0;
-}
-
-bool configureMPI(int argc, char** argv, bool sync) {
-  bool enable = false;
-#if MPI_FOUND
-  int required_mode = sync ? MPI_THREAD_SERIALIZED : MPI_THREAD_MULTIPLE;
-  int provided_thread_mode = 0;
-  MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided_thread_mode);
-  // Enable if occasional truncation errors
-  MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
-
-  ABORT_IF(
-      provided_thread_mode < required_mode,
-      "Your version of MPI does not support multi-threaded communication.");
-
-  enable = true;
-#else
-  argc; argv; sync; // (unused)
-#endif
-  return enable;
 }

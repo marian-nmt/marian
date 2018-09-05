@@ -1,5 +1,8 @@
 #pragma once
 
+#include "training/graph_group.h"
+#include "training/communicator.h"
+
 #if MPI_FOUND
 #include "mpi.h"
 #endif
@@ -17,7 +20,6 @@
 #include <boost/thread/shared_mutex.hpp>
 
 #include "3rd_party/threadpool.h"
-#include "training/graph_group.h"
 
 namespace marian {
 
@@ -199,6 +201,8 @@ public:
         movingAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")},
         syncOptimizer_{Optimizer(options_)} {
+    ABORT_IF(!configureMPI(/*argc*/0, /*argv*/NULL, options->get<bool>("sync-sgd")),
+             "MPI not found.");
     // Set up devices for this node
     setupMPI();  // Setup MPI before creating device vectors
     std::vector<size_t> devices; // set of GPU device ids for this worker

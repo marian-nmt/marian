@@ -1,5 +1,8 @@
 #pragma once
 
+#include "training/graph_group.h"
+#include "training/communicator.h"
+
 #if MPI_FOUND
 #include "mpi.h"
 #endif
@@ -17,7 +20,6 @@
 #include <boost/thread/shared_mutex.hpp>
 
 #include "3rd_party/threadpool.h"
-#include "training/graph_group.h"
 
 namespace marian {
 
@@ -411,6 +413,8 @@ public:
       : GraphGroup(options),
         clientCommOverlap{options_->get<bool>("multi-node-overlap")},
         tau_{options_->get<size_t>("optimizer-delay")} {
+    ABORT_IF(!configureMPI(/*argc*/0, /*argv*/NULL, options->get<bool>("sync-sgd")),
+             "MPI not found.");
     // Set up devices for this node
     setupMPI();  // Setup MPI before creating device vectors
     std::vector<size_t> devices;

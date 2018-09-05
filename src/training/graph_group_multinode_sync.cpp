@@ -136,7 +136,7 @@ void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) { // @TODO: why UPPERCASE
  */
 void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
 #if MPI_FOUND
-  int network_size = accGradientsSync_cpu.size();
+  auto network_size = accGradientsSync_cpu.size();
 
   // Copy the data to the CPU
   accGradientsSync->get(/*out*/ accGradientsSync_cpu);
@@ -144,9 +144,9 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
   // Wait until all nodes are ready
   MPI_Barrier(MPI_COMM_WORLD);
 
-  int reduce_result = MPI_Allreduce(accGradientsSync_cpu.data(),  // CPU buffers
+  /*int reduce_result =*/ MPI_Allreduce(accGradientsSync_cpu.data(),  // CPU buffers
                                     receiveBuffer_cpu.data(),
-                                    network_size,
+                                    (int)network_size,
                                     MPI_FLOAT,
                                     MPI_SUM,
                                     MPI_COMM_WORLD);
@@ -180,8 +180,8 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
   // set the accumulating buffers to zero;
   accGradientsSync->set(0);
   // @TODO: why set these to 0? TODO: change to NaN
-  std::fill(accGradientsSync_cpu.begin(), accGradientsSync_cpu.end(), 0);
-  std::fill(receiveBuffer_cpu.begin(), receiveBuffer_cpu.end(), 0);
+  std::fill(accGradientsSync_cpu.begin(), accGradientsSync_cpu.end(), 0.f);
+  std::fill(receiveBuffer_cpu.begin(), receiveBuffer_cpu.end(), 0.f);
 #endif
 }
 

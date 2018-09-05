@@ -1,11 +1,18 @@
+#pragma once
+
 // clang-format off
 #include "graph/expression_graph.h"
 #include "functional/functional.h"
 #include "tensors/tensor_operators.h"
+#if MPI_FOUND
+#include "mpi.h"
+#endif
 // clang-format on
 
 namespace marian {
 
+// This class implements the cross-GPU operations for distributed training within a single box.
+// @TODO: This should absorb the multi-node version as well.
 class Communicator {
 protected:
   const std::vector<Ptr<ExpressionGraph>> graphs_;
@@ -16,7 +23,8 @@ public:
 
   virtual ~Communicator() {}
 
-  virtual void foreach(const std::function<void(size_t, int)>& func) {
+  // helper to apply a function to each graph, in parallel threads
+  virtual void foreach(const std::function<void(size_t, int)>& func) const {
     int totalSize = (int)graphs_[0]->params()->vals()->size();
     int shardSize = (int)ceil(totalSize / (float)graphs_.size());
 
@@ -183,5 +191,26 @@ public:
 Ptr<Communicator> createCommunicator(
     const std::vector<Ptr<ExpressionGraph>>& graphs,
     bool noNccl = false);
+
+static inline
+bool configureMPI(int argc, char** argv, bool sync) {
+    bool enable = false;
+#if MPI_FOUND
+    int required_mode = sync ? MPI_THREAD_SERIALIZED : MPI_THREAD_MULTIPLE;
+    int provided_thread_mode = 0;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided_thread_mode);
+    // Enable if occasional truncation errors
+    MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+
+    ABORT_IF(
+        provided_thread_mode < required_mode,
+        "Your version of MPI does not support multi-threaded communication.");
+
+    enable = true;
+#else
+    argc; argv; sync; // (unused)
+#endif
+    return enable;
+}
 
 }  // namespace marian
