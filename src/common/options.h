@@ -74,6 +74,6 @@ public:
       return defaultValue;
   }
 
-  bool has(const std::string& key) const { return !!options_[key]; }
+  bool has(const std::string& key) const { return options_[key]; }
 };
 }  // namespace marian

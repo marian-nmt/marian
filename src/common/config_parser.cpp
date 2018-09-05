@@ -73,7 +73,7 @@ const std::set<std::string> PATHS = {"model",
 
 
 bool ConfigParser::has(const std::string& key) const {
-  return !!config_[key];
+  return config_[key];
 }
 
 void ConfigParser::validateOptions() const {
