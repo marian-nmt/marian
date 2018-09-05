@@ -14,10 +14,7 @@ The following SDK are required to build Marian with GPU support
 
    - [MKL](https://software.intel.com/en-us/mkl)
 
-## Patch some files
-
-### CUDA: Unsupported Visual Studio Version Error
-From [nVidia forum](https://devtalk.nvidia.com/default/topic/1022648/cuda-setup-and-installation/cuda-9-unsupported-visual-studio-version-error/4)
+### Patch for CUDA error: Unsupported Visual Studio Version Error
 
 The latest versions of Visual Studio 2017 are not officially supported by CUDA. Two fixes are proposed:
 - Downgrade Visual Studio to a supported version
@@ -29,6 +26,8 @@ The latest versions of Visual Studio 2017 are not officially supported by CUDA. 
 
       131     #if _MSC_VER < 1600 || _MSC_VER > 1915
 
+For more information, read this [nVidia forum](https://devtalk.nvidia.com/default/topic/1022648/cuda-setup-and-installation/cuda-9-unsupported-visual-studio-version-error/4)
+
 
 ## Configure
 - Run configure.bat
@@ -38,7 +37,7 @@ The latest versions of Visual Studio 2017 are not officially supported by CUDA. 
 
 
 ## Changes from the master branch
-This part gives more information on the changes done.
+This part gives more information on all changes done.
 
 1. __Fix Cuda error : Unsupported Visual Studio Version Error__   
    See above for justification and fixes
