@@ -49,11 +49,11 @@ protected:
   /** Graph builders for clients (which run forward and backward passes). */
   std::vector<Ptr<models::ModelBase>> clientBuilders_;
 
-  /** Graphs of clients. */
-  std::vector<Ptr<ExpressionGraph>> clientGraphs_;
+  /** Graphs of clients. One entry per GPU on this node. */
+  std::vector<Ptr<ExpressionGraph>> clientGraphs_; // [num local GPUs]
 
   /** Devices (GPUs) on this node. */
-  std::vector<size_t> devices_;
+  std::vector<size_t> devices_; // [num local GPUs]
 
   /** Mutex to ensure clients are uniquely assigned to graphs and builders. */
   std::mutex mutexClientInit_;
@@ -62,8 +62,14 @@ protected:
   std::mutex schedulerMutex_;
 
   /**
-   * Batch number counter used for evenly distributing mini-batches across
+   * Global batch counter used for evenly distributing mini-batches across
    * nodes.
+   * Global means that on all workers, this batch id refers to the same batch,
+   * while each worker only processes a subset of batches.
+   * Nodes process batches round-robin. Specifically, each node processes
+   * the subset of batches with batchIter_ % mpi_comm_world_size_ == mpi_my_rank_).
+   * @TODO: This is bad. The batches should be global and split into sub-batches across nodes.
+   *        Otherwise batch ids are not comparable.
    */
   size_t batchIter_ = 0;
 
@@ -160,10 +166,12 @@ protected:
   /**
    * Load the GPU configuration of this node (i.e. which GPUs to use) and the
    * number of GPUs on the other nodes.
+   * Specifically, this sets up numberClientsOfNodes_[]. It does not communicate with other nodes.
    */
-  void loadDeviceConfig(std::vector<size_t> deviceConfig) {
+  void loadDeviceConfig(std::vector<size_t> deviceConfig) { // deviceConfig = array of GPU device ids for this worker --@TODO: rename to deviceIds, or just devices?
     size_t index = 0, node = 0, nClientsSeen = 0;
-    numberClientsOfNodes_ = std::vector<int>(mpi_comm_world_size_, 0);
+    numberClientsOfNodes_ = std::vector<int>(mpi_comm_world_size_, 0); // @TODO: use assign(n, 0)
+    // @TODO: What does this logic do??
     while(index < deviceConfig.size()) {
       if(numberClientsOfNodes_[node] == 0) {
         numberClientsOfNodes_[node] = (int)deviceConfig[index];
@@ -193,12 +201,12 @@ public:
         syncOptimizer_{Optimizer(options_)} {
     // Set up devices for this node
     setupMPI();  // Setup MPI before creating device vectors
-    std::vector<size_t> devices;
+    std::vector<size_t> devices; // set of GPU device ids for this worker
     for(auto& d : options_->getDevices())
       devices.push_back(d.no);
-    loadDeviceConfig(devices);
+    loadDeviceConfig(devices); // set up numberClientsOfNodes_[]  --@TODO: not clear what it is for, or even what it is
 
-    // Create builders and graphs for clients.
+    // Create builders and graphs for clients; that is, for each GPU we use on this node.
     for(size_t i = 0; i < devices_.size(); i++) {
       clientGraphs_.push_back(New<ExpressionGraph>());
       clientGraphs_[i]->setDevice({devices_[i], DeviceType::gpu});
@@ -222,6 +230,7 @@ public:
 
   /**
    * Load models from disk if file exists and setting is not disabled
+   * @TODO: How is this specific to multi-node? This a general operation, no? Code dup
    */
   void load() override {
     if(!options_->get<bool>("no-reload")) {
@@ -247,6 +256,7 @@ public:
 
   /**
    * Save model of first client's graph to disk
+   * @BUGBUG: Only node[0] should save the model, no? Or are these assumed to be local directories?
    */
   void save(bool final = false) override { save(clientGraphs_[0], final); }
 
@@ -254,6 +264,7 @@ public:
    * Save model of given graph to disk.
    */
   void save(Ptr<ExpressionGraph> graph, bool final = false) {
+    // recover which client (device) owns this graph
     int idx = 0;
     for(int i = 0; i < clientGraphs_.size(); ++i) {
       if(graph == clientGraphs_[i]) {
@@ -262,6 +273,7 @@ public:
       }
     }
 
+    // @TODO: This code does not seem specific to multi-node. Remove code dup.
     if(options_->get<bool>("overwrite")) {
       std::string name = options_->get<std::string>("model");
 
@@ -289,6 +301,7 @@ public:
 
   /**
    * Collect statistics from first client's graph.
+   * @BUGBUG: This assumes that all GPUs in the worker are the same, but not across workers. Meaningful? Better determine this once and broadcast.
    */
   Ptr<data::BatchStats> collectStats() {
     return GraphGroup::collectStats(
@@ -297,6 +310,7 @@ public:
 
   virtual void finalize() override {
     finalized_ = true;
+    // @TODO: abstract MPI so that we can have a fake interface for debugging, and also can hook NCCL
 #if MPI_FOUND
     MPI_Finalize();
 #endif

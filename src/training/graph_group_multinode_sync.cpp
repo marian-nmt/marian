@@ -19,6 +19,7 @@ void MultiNodeGraphGroupSync::updateAvgParams(Tensor paramsAvg,
 void MultiNodeGraphGroupSync::setScheduler(Ptr<Scheduler> scheduler) {
   scheduler_ = scheduler;
   // optimizer has to be registered last to see a change of learning rate
+  // @TODO: Is this specific to multi-node?
   scheduler_->registerTrainingObserver(scheduler_);
 
   scheduler_->registerTrainingObserver(syncOptimizer_);
@@ -26,6 +27,7 @@ void MultiNodeGraphGroupSync::setScheduler(Ptr<Scheduler> scheduler) {
 
 /**
  * Allocate new tensor on given GPU and store allocator.
+  // @TODO: Is this specific to multi-node?
  */
 Tensor MultiNodeGraphGroupSync::newTensor(int size, Ptr<Backend> backend) {
   Tensor t;
@@ -47,6 +49,9 @@ void MultiNodeGraphGroupSync::init(Ptr<data::Batch> batch) {
   setupClients(batch);
   int network_size = (int)clientGraphs_[0]->params()->vals()->size();
   LOG(info, "model size = {} float params", network_size);
+
+  // @TODO: move this after the other allocations, unless there is a reason
+  // @TODO: should this code know how to allocate this? Shouldn't this be owned by the parameter-averager?
   if(movingAvg_)
     paramsAvg_ = newTensor(network_size, clientGraphs_.back()->getBackend());
 
@@ -56,8 +61,10 @@ void MultiNodeGraphGroupSync::init(Ptr<data::Batch> batch) {
 }
 
 /**
- * Initialize the CPU arrays, with pinned memory for faster CudaMemCpy
- * operations. Requires the graph to be initialized first so we know its size
+ * Initialize the CPU arrays that are used during transferring data via MPI.
+ * This uses pinned memory for faster CudaMemCpy operations. Requires the graph
+ * to be initialized first so we know its size.
+ * @TODO: why is his a separate function? Is this used more than once? Move to setupClients()?
  */
 void MultiNodeGraphGroupSync::initCPUArrays() {
   accGradientsSync_cpu
@@ -73,6 +80,9 @@ void MultiNodeGraphGroupSync::setupMPI() {
 #if MPI_FOUND
   MPI_Comm_size(MPI_COMM_WORLD, &mpi_comm_world_size_);
   MPI_Comm_rank(MPI_COMM_WORLD, &mpi_my_rank_);
+#else
+  mpi_comm_world_size_ = 1; // fake it (useful for debugging)
+  mpi_my_rank_ = 0;
 #endif
 }
 
@@ -82,13 +92,14 @@ void MultiNodeGraphGroupSync::setupMPI() {
  * There is one client per GPU.
  */
 void MultiNodeGraphGroupSync::setupClients(Ptr<data::Batch> batch) {
-  runBatchThroughClientGraphs(batch);
+  runBatchThroughClientGraphs(batch);   // @TODO: what is this? A fake batch?
   initCPUArrays();
 }
 
 /**
  * Initialize the graphs (models) of all clients on this node with the given
  * batch.
+ * @TODO: why is his a separate function? Is this used more than once?
  */
 void MultiNodeGraphGroupSync::runBatchThroughClientGraphs(
     Ptr<data::Batch> batch) {
@@ -104,8 +115,13 @@ void MultiNodeGraphGroupSync::runBatchThroughClientGraphs(
  * communication.
  * Includes summed and committed word counts, buffer flags, mutexes and
  * condition variables.
+ * @BUGBUG: This does not seem to initialize, but rather do actual summation.
+ * @TODO: Description of what this seems to actually do:
+ * Adds the gradient tensor to sumGradientBuffer_
+ * sumGradientBuffer has been allocated on a GPU.
+ 8 @TODO: where does 'gradient' come from? A different GPU possibly? CPU? Anything?
  */
-void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) {
+void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) { // @TODO: why UPPERCASE?
   std::lock_guard<std::mutex> guard(sumGradientMutex_);
   sumGradientBuffer->copyFrom(gradient);
   using namespace functional;  //@TODO makes more sense to do that on the CPU i
@@ -114,6 +130,7 @@ void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) {
 }
 
 /**
+ * MPI_Allreduce over accGradientSync across workers.
  * If it's rank 0, it's a local update, if it's rank one it's remote
  * send and receive. Make sure you only call from device 0.
  */
@@ -122,7 +139,7 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
   int network_size = accGradientsSync_cpu.size();
 
   // Copy the data to the CPU
-  accGradientsSync->get(accGradientsSync_cpu);
+  accGradientsSync->get(/*out*/ accGradientsSync_cpu);
 
   // Wait until all nodes are ready
   MPI_Barrier(MPI_COMM_WORLD);
@@ -162,6 +179,7 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
 
   // set the accumulating buffers to zero;
   accGradientsSync->set(0);
+  // @TODO: why set these to 0? TODO: change to NaN
   std::fill(accGradientsSync_cpu.begin(), accGradientsSync_cpu.end(), 0);
   std::fill(receiveBuffer_cpu.begin(), receiveBuffer_cpu.end(), 0);
 #endif
@@ -213,7 +231,9 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
 
       graph->getBackend()
           ->synchronize();  //@Alham do you know why we need this here?
+      // @TODO: should not be necessary, since we only run on the zero stream
 
+      // aggregate locally across the devices
       sumGRAD(graph->params()->grads());
     };
 
@@ -222,6 +242,7 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
       pool.enqueue(task, idx);
   }
 
+  // aggregate globally
   if(t % tau_ == 0)
     sendReceiveUpdateSync();
 
@@ -229,16 +250,20 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
 
   // Run scheduler (if enabled)
   if(t % tau_ == 0 && scheduler_) {
+    // some objectives work on averages
+    // @TODO: we need the precise word count for ce-sum
     if(options_->get<std::string>("cost-type") != "ce-sum")
       cost /= (tau_ * devices_.size());
 
     if(tau_ > 1) {
+      // run a fake update
       std::vector<size_t> fakeLength = {1, 1};
       auto fb
           = data::CorpusBatch::fakeBatch(fakeLength, num_seen_sentences, NULL);
       fb->front()->setWords(num_seen_words);
       scheduler_->update(cost, fb);
     } else {
+      // real update
       scheduler_->update(cost, fullBatch);
     }
 

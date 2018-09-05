@@ -16,12 +16,13 @@ namespace marian {
 class GraphGroup {
 protected:
   Ptr<Config> options_;
-  Ptr<OptimizerBase> opt_;
-  Ptr<Scheduler> scheduler_;
-  bool finalized_{false};
+  Ptr<OptimizerBase> opt_;   // the optimizer
+  Ptr<Scheduler> scheduler_; // scheduler that keeps track of how much has been processed
+  bool finalized_{false};    // 'true' if training has completed (further updates are no longer allowed)
 
-  bool scaleLearningRate_;
-  float avgBatchWords_;
+  bool scaleLearningRate_; // option "batch-flexible-lr"; "Scales the learning rate based on the number of words in a mini-batch"
+  // @TODO: Is this the same as not averaging? On which level? Entire batch, or within-worker?
+  float avgBatchWords_;    // option "batch-normal-words"; "Set number of words per batch that the learning rate corresponds to"
 
 public:
   GraphGroup(Ptr<Config> options)
