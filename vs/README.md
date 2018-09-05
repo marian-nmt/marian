@@ -53,7 +53,12 @@ This part gives more information on the changes done.
 
 4. __Fix marian::Backendn marian::cpu::Beckend and marian::gpu::Backend conflicts__  
    [Github Link](https://github.com/cedrou/marian-dev/commit/6370ea27d68b83c75868437bbf27bd92c9fb5628)  
-   There were name conflicts between the 3 `Backend` classes that confused the compiler. I renamed the CPU and GPU as `cpuBackend` and `gpuBackend`.
+   There were name conflicts between the 3 `Backend` classes that confused the compiler:
+   
+   >  template instantiation resulted in unexpected function type of "type" (the meaning of a name may have changed since the template declaration -- the type of the template is "type")
+   .
+
+   I renamed the CPU and GPU as `cpuBackend` and `gpuBackend`.
 
 5. __Fix error : identifier "CUDA_FLT_MAX" is undefined in device code__  
    [Github Link](https://github.com/cedrou/marian-dev/commit/112118fce3c8c54049913126c2685e8e7463713c)  
