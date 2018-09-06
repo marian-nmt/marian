@@ -1,5 +1,7 @@
 #pragma once
 
+// @TODO: Does this need to be a header at all? We can inline the entire class definition if we just add a factory function.
+
 #include "training/graph_group.h"
 #include "training/communicator.h"
 
@@ -79,7 +81,7 @@ private:
   std::mutex sumGradientMutex_;
   std::mutex updateParamsMutex_;
   std::mutex sumCostMutex_;
-  Tensor accGradientsSync;
+  Tensor accGradientsSync; // @TODO: add _ suffixes; @TODO: Why "-Sync"? @TODO: which mutes guards this? Group variables by guarding mutexes
   Tensor sumGradientBuffer;
   Tensor paramsAvg_;
   std::vector<float> accGradientsSync_cpu;
@@ -151,7 +153,8 @@ private:
   /**
    * Load the GPU configuration of this node (i.e. which GPUs to use) and the
    * number of GPUs on the other nodes.
-   * Specifically, this sets up numberClientsOfNodes_[]. It does not communicate with other nodes.
+   * Specifically, this sets up numberClientsOfNodes_[] and deivces_[]. It does not communicate with other nodes.
+   * @BUGBUG: This does not parse the string correctly in that it leaves devices_[] empty in case of only one node (which is useful for debugging).
    */
   void loadDeviceConfig(std::vector<size_t> deviceConfig) { // deviceConfig = array of GPU device ids for this worker --@TODO: rename to deviceIds, or just devices?
     size_t index = 0, node = 0, nClientsSeen = 0;
@@ -180,7 +183,7 @@ public:
    */
   MultiNodeGraphGroupSync(Ptr<Config> options)
       : GraphGroup(options),
-        tau_{options_->get<size_t>("optimizer-delay")},
+        tau_{options_->get<size_t>("optimizer-delay")}, // do cross-node aggregation only every tau_ updates (defaults to 1)
         movingAvg_{options_->get<float>("exponential-smoothing") > 0}, // @TODO: redundant
         mvDecay_{options_->get<float>("exponential-smoothing")},
         syncOptimizer_{Optimizer(options_)} { // @BUGBUG? Do we really have two optimizers?

@@ -55,22 +55,22 @@ void MultiNodeGraphGroupSync::init(Ptr<data::Batch> batch) {
   if(movingAvg_)
     paramsAvg_ = newTensor(network_size, clientGraphs_.back()->getBackend());
 
-  // setup sync sgd storage, We keep the summed gradient on Node 0
+  // setup sync sgd storage, We keep the summed gradient on device 0
   sumGradientBuffer = newTensor(network_size, clientGraphs_[0]->getBackend());
-  accGradientsSync = newTensor(network_size, clientGraphs_[0]->getBackend());
+  accGradientsSync  = newTensor(network_size, clientGraphs_[0]->getBackend());
 }
 
 /**
  * Initialize the CPU arrays that are used during transferring data via MPI.
  * This uses pinned memory for faster CudaMemCpy operations. Requires the graph
  * to be initialized first so we know its size.
- * @TODO: why is his a separate function? Is this used more than once? Move to setupClients()?
+ * @TODO: these buffers are fully owned by one function, we should only touch them there for improved code locality
  */
 void MultiNodeGraphGroupSync::initCPUArrays() {
-  accGradientsSync_cpu
-      = std::vector<float>(clientGraphs_[0]->params()->vals()->size());
-  receiveBuffer_cpu
-      = std::vector<float>(clientGraphs_[0]->params()->vals()->size());
+  //accGradientsSync_cpu
+  //    = std::vector<float>(clientGraphs_[0]->params()->vals()->size());
+  //receiveBuffer_cpu
+  //    = std::vector<float>(clientGraphs_[0]->params()->vals()->size());
 }
 
 /**
@@ -106,7 +106,8 @@ void MultiNodeGraphGroupSync::runBatchThroughClientGraphs(
  * @TODO: Description of what this seems to actually do:
  * Adds the gradient tensor to sumGradientBuffer_
  * sumGradientBuffer has been allocated on a GPU.
- 8 @TODO: where does 'gradient' come from? A different GPU possibly? CPU? Anything?
+ * @TODO: where does 'gradient' come from? A different GPU possibly? CPU? Anything?
+ * @TODO: inline this to where it is called, to make the synchronization situation clearer
  */
 void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) { // @TODO: why UPPERCASE?
   std::lock_guard<std::mutex> guard(sumGradientMutex_);
@@ -114,22 +115,27 @@ void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) { // @TODO: why UPPERCASE
   using namespace functional;  //@TODO makes more sense to do that on the CPU i
                                // think
   Element(_1 += _2, accGradientsSync, sumGradientBuffer);
+  // Note: This merely submits the GPU compute on device 0, but does not wait for its completion.
+  // The next copyFrom() call will run on the same stream, and thus after this is complete.
+  // The lock_guard will only guard CPU-side aspects of accessing sumGradientBuffer.
 }
 
 /**
- * mpi_allReduce over accGradientSync across workers.
- * If it's rank 0, it's a local update, if it's rank one it's remote
- * send and receive. Make sure you only call from device 0.
+ * All-reduce accGradientSync across nodes.
  */
-void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
-  auto network_size = accGradientsSync_cpu.size();
+void MultiNodeGraphGroupSync::sendReceiveUpdateSync() { // @TODO: rename to allReduceAccGradients()
+  auto network_size = clientGraphs_[0]->params()->vals()->size();
 
-  // Copy the data to the CPU
+  // Copy the locally aggregated gradients to the CPU
+  accGradientsSync_cpu.resize(network_size);
   accGradientsSync->get(/*out*/ accGradientsSync_cpu);
 
   // Wait until all nodes are ready
+  // @TODO: Is that necessary before allReduce?
   mpi_->barrier();
 
+  //LOG(info, "all-reducing {} gradient values, node {}", network_size, mpi_->myRank());
+  receiveBuffer_cpu.resize(network_size);
   mpi_->allReduce(accGradientsSync_cpu.data(),  // CPU buffers
                   receiveBuffer_cpu.data(),
                   network_size,
@@ -147,8 +153,9 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
                     clientGraphs_.back()->params()->vals(),
                     scheduler_->numberOfBatches());
 
-  // Distribute the graph to the rest of the devices
-  std::vector<std::thread> threads;
+  // Distribute the updated params to the rest of the devices
+  // @TODO: Does the multi-threaded operation here add any value for GPUs?
+  std::vector<std::thread> threads; // @TODO: keep the thread pool around
   for(int idx = 0; idx < devices_.size() - 1; idx++) {
     threads.emplace_back(std::thread(
         [=](int idx) {
@@ -162,10 +169,10 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
   }
 
   // set the accumulating buffers to zero;
-  accGradientsSync->set(0);
-  // @TODO: why set these to 0? TODO: change to NaN
-  std::fill(accGradientsSync_cpu.begin(), accGradientsSync_cpu.end(), 0.f);
-  std::fill(receiveBuffer_cpu.begin(), receiveBuffer_cpu.end(), 0.f);
+  accGradientsSync->set(0); // @TODO: we can already launch this once we have copied it out, so that this op runs concurrently with the MPI exchange
+  // @TODO: The following should not be necessary.
+  //std::fill(accGradientsSync_cpu.begin(), accGradientsSync_cpu.end(), std::numeric_limits<float>::signaling_NaN());
+  //std::fill(receiveBuffer_cpu.begin(), receiveBuffer_cpu.end(), std::numeric_limits<float>::signaling_NaN());
 }
 
 /**
@@ -212,17 +219,19 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
       }
       graph->backward();
 
+      // wait for GPU computation to complete
+      // The first GPU that finishes will get to call sumGRAD() first, and therefore gets sumGradientBuffer first.
       graph->getBackend()
-          ->synchronize();  //@Alham do you know why we need this here?
-      // @TODO: should not be necessary, since we only run on the zero stream
+          ->synchronize();
 
       // aggregate locally across the devices
       sumGRAD(graph->params()->grads());
     };
 
-    ThreadPool pool(devices_.size(), devices_.size());
+    ThreadPool pool(devices_.size(), devices_.size()); // @TODO: is it expensive to create threads all the time? Why is this not a class member?
     for(int idx = 0; idx < devices_.size(); ++idx)
       pool.enqueue(task, idx);
+    // destruction of pool joins the threads
   }
 
   // aggregate globally
