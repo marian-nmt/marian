@@ -26,7 +26,7 @@ public:
     int required_mode = sync ? MPI_THREAD_SERIALIZED : MPI_THREAD_MULTIPLE;
     int provided_thread_mode = 0;
     int argc = 1;
-    char* argv[] = { "this.exe" };
+    char* argv[] = { const_cast<char*>("this.exe") };
     char** argvp = argv;
     MPI_Init_thread(&argc, &argvp, MPI_THREAD_MULTIPLE, &provided_thread_mode);
     // Enable if occasional truncation errors
@@ -38,6 +38,8 @@ public:
 
     MPI_Comm_size(MPI_COMM_WORLD, &comm_world_size_);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank_);
+
+    LOG(info, "MPI mode, node {} out of {}", my_rank_, comm_world_size_);
   }
 
   virtual size_t myRank() const override { return (size_t)my_rank_; };
