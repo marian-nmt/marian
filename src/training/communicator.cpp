@@ -54,6 +54,9 @@ public:
   virtual void barrier(MPI_Comm comm) const override {
     HANDLE_MPI_ERROR(MPI_Barrier(comm));
   }
+  virtual void bCast(void* buf, size_t count, MPI_Datatype datatype, size_t rootRank, MPI_Comm comm = MPI_COMM_WORLD) const override {
+    HANDLE_MPI_ERROR(MPI_Bcast(buf, (int)count, datatype, (int)rootRank, comm));
+  }
   virtual void sSend(void* buf, size_t count, MPI_Datatype datatype, size_t destRank, int tag, MPI_Comm comm) const override {
     HANDLE_MPI_ERROR(MPI_Ssend(buf, (int)count, datatype, (int)destRank, tag, comm));
   }
@@ -84,20 +87,19 @@ public:
 #pragma warning(push)
 #pragma warning(disable: 4100) // unreferenced formal parameter
   virtual void barrier(MPI_Comm comm) const override { }
-  virtual void sSend(void* buf, size_t count, MPI_Datatype datatype, size_t destRank, int tag, MPI_Comm comm) const override
-  {
+  virtual void bCast(void* buf, size_t count, MPI_Datatype datatype, size_t rootRank, MPI_Comm comm = MPI_COMM_WORLD) const override {
+    ABORT("should not broadcast data to ourselves in dummy mode");
+  }
+  virtual void sSend(void* buf, size_t count, MPI_Datatype datatype, size_t destRank, int tag, MPI_Comm comm) const override {
     ABORT("should not send data to ourselves in dummy mode");
   }
-  virtual void recv(void* buf, size_t count, MPI_Datatype datatype, size_t sourceRank, int tag, MPI_Comm comm, MPI_Status* status) const override
-  {
+  virtual void recv(void* buf, size_t count, MPI_Datatype datatype, size_t sourceRank, int tag, MPI_Comm comm, MPI_Status* status) const override {
     ABORT("should not attempt to receive from ourselves in dummy mode");
   }
-  virtual void allReduce(const void* sendbuf, void* recvbuf, size_t count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) const override
-  {
+  virtual void allReduce(const void* sendbuf, void* recvbuf, size_t count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) const override {
     ABORT("should not attempt to all-reduce from ourselves in dummy mode"); // @TODO: yes, we should, for testing
   }
 #pragma warning(push)
-
   virtual void finalize() override { }
 };
 

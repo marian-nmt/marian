@@ -64,6 +64,9 @@ public:
    * so that reallocation does not happen. Rather adjust the batch size
    * based on the stastistics collected here. Activated with
    * `--mini-batch-fit`.
+   * In a multi-GPU scenario, the first GPU is used to determine the size.
+   * The actual allowed size is then determined by multiplying it with the
+   * number of devices, which is passed in as the 'multiplier'.
    */
   virtual Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph,
                                              Ptr<models::ModelBase> model,

@@ -271,10 +271,12 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
       // wait until other nodes are ready
       mpi_->barrier();
 
+      // save
       // TODO: Saving is broken
-      // if(mpi_->myRank() == 0 && scheduler_->saving())
-      //  this->save(graph);
+      if(scheduler_->saving())
+        save(/*graph*/);
 
+      // validate
       if(mpi_->myRank() == 0 && scheduler_->validating()) {
         // temporarily save current params
         if(movingAvg_)

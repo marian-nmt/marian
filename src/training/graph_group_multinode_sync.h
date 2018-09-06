@@ -245,14 +245,18 @@ public:
 
   /**
    * Save model of first client's graph to disk
-   * @BUGBUG: Only node[0] should save the model, no? Or are these assumed to be local directories?
+   * Only MPI node[0] saves the model.
    */
-  void save(bool final = false) override { save(clientGraphs_[0], final); }
+  void save(bool final = false) override {
+    if (mpi_->myRank() == 0)
+      saveGraph(clientGraphs_[0], final);
+  }
 
+private:
   /**
    * Save model of given graph to disk.
    */
-  void save(Ptr<ExpressionGraph> graph, bool final = false) {
+  void saveGraph(Ptr<ExpressionGraph> graph, bool final = false) {
     // recover which client (device) owns this graph
     int idx = 0;
     for(int i = 0; i < clientGraphs_.size(); ++i) {
@@ -287,14 +291,25 @@ public:
         scheduler_->save(name);
     }
   }
+public:
 
   /**
-   * Collect statistics from first client's graph.
-   * @BUGBUG: This assumes that all GPUs in the worker are the same, but not across workers. Meaningful? Better determine this once and broadcast.
+   * Collect statistics from first node's first device's graph.
+   * The total size per node is generalized by multiplying with the number of devices
+   * The resulting statistics from the first node is then broadcast to the other nodes.
+   * This assumes that all GPUs are of the same size.
    */
   Ptr<data::BatchStats> collectStats() {
-    return GraphGroup::collectStats(
-        clientGraphs_[0], clientBuilders_[0], devices_.size());
+    mpi_->barrier();
+    // determine the statistics for one device
+    std::vector<size_t> flattenedStats;
+    if (mpi_->myRank() == 0) { // on node 0
+      auto stats = GraphGroup::collectStats(
+        clientGraphs_[0], clientBuilders_[0], devices_.size()); // @TODO: * tau_ ?
+      flattenedStats = stats->flatten();
+    }
+    mpi_->bCast(flattenedStats, 0); // broadcast to all
+    return New<data::BatchStats>(flattenedStats); // now all have the same BatchStats
   }
 };
 }  // namespace marian

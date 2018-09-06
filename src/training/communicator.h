@@ -199,7 +199,7 @@ Ptr<Communicator> createCommunicator(
 #if MPI_FOUND
 #else
 enum MPI_Comm { MPI_COMM_WORLD };
-enum MPI_Datatype { MPI_FLOAT, MPI_UNSIGNED_LONG };
+enum MPI_Datatype { MPI_FLOAT, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG };
 enum MPI_Op { MPI_SUM };
 struct MPI_Status { int MPI_SOURCE; };
 #define MPI_ANY_SOURCE ((size_t)-2)
@@ -210,11 +210,25 @@ struct/*interface*/ IMPIWrapper
   virtual size_t myRank() const = 0;
   virtual size_t commWorldSize() const = 0;
   virtual void barrier(MPI_Comm comm = MPI_COMM_WORLD) const = 0;
+  virtual void bCast(void* buf, size_t count, MPI_Datatype datatype, size_t rootRank, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
   virtual void sSend(void* buf, size_t count, MPI_Datatype datatype, size_t destRank, int tag, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
   virtual void recv(void* buf, size_t count, MPI_Datatype datatype, size_t sourceRank, int tag, MPI_Comm comm = MPI_COMM_WORLD, MPI_Status* status = MPI_STATUS_IGNORE) const = 0;
   virtual void allReduce(const void* sendbuf, void* recvbuf, size_t count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
   virtual void finalize() = 0;
   static const size_t RECV_ANY_SOURCE = (size_t)MPI_ANY_SOURCE;
+  // helper templates
+private:
+  static MPI_Datatype getDataType(const float*) { return MPI_FLOAT; }
+  static MPI_Datatype getDataType(const unsigned long*) { return MPI_UNSIGNED_LONG; }
+  static MPI_Datatype getDataType(const unsigned long long*) { return MPI_UNSIGNED_LONG_LONG; }
+public:
+  template<typename T>
+  void bCast(std::vector<T>& v, size_t rootRank, MPI_Comm comm = MPI_COMM_WORLD) {
+    size_t vecLen = v.size();
+    bCast(&vecLen, 1, getDataType(&vecLen), rootRank, comm);
+    v.resize(vecLen);
+    bCast(v.data(), v.size(), getDataType(v.data()), rootRank, comm);
+  }
 };
 
 Ptr<IMPIWrapper> initMPI(bool multiThreaded);
