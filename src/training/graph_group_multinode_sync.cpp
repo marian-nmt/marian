@@ -175,8 +175,8 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
   // set the accumulating buffers to zero;
   accGradientsSync->set(0); // @TODO: we can already launch this once we have copied it out, so that this op runs concurrently with the MPI exchange
   // @TODO: The following should not be necessary.
-  std::fill(accGradientsSync_cpu.begin(), accGradientsSync_cpu.end(), 0);
-  std::fill(receiveBuffer_cpu.begin(), receiveBuffer_cpu.end(), 0);
+  //std::fill(accGradientsSync_cpu.begin(), accGradientsSync_cpu.end(), 0);
+  //std::fill(receiveBuffer_cpu.begin(), receiveBuffer_cpu.end(), 0);
 }
 
 /**
