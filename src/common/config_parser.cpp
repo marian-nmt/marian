@@ -1072,6 +1072,7 @@ std::vector<DeviceId> ConfigParser::getDevices() {
     std::string devicesStr
         = utils::Join(config_["devices"].as<std::vector<std::string>>());
 
+    // special syntax for multi-node
     if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
       auto parts = utils::Split(devicesStr, ":");
       for(size_t i = 1; i < parts.size(); ++i) {
@@ -1081,12 +1082,18 @@ std::vector<DeviceId> ConfigParser::getDevices() {
         if(i < parts.size() - 1)
           ds.pop_back();
 
-        // does this make sense?
+        // resulting array has this format
+        //  - for each node
+        //     - number of GPUs on that node
+        //     - GPU ids for that node
+        // e.g. 0:0 1 1: 2 3 -> (2, (0, 1)) (2, (2,3))
         devices.push_back({ds.size(), DeviceType::gpu});
         for(auto d : ds)
           devices.push_back({(size_t)std::stoull(d), DeviceType::gpu});
       }
-    } else {
+    }
+    // normal syntax
+    else {
       for(auto d : utils::Split(devicesStr))
         devices.push_back({(size_t)std::stoull(d), DeviceType::gpu});
     }

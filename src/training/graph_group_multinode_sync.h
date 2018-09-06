@@ -24,16 +24,14 @@ namespace marian {
  * Multi-node graph group for asynchronous training over multiple
  * machines each with one or multiple GPUs
  */
-class MultiNodeGraphGroupSync : public GraphGroup {
+class MultiNodeGraphGroupSync : public MultiNodeGraphGroupBase {
+  using Base = MultiNodeGraphGroupBase;
 public:
   virtual void setScheduler(Ptr<Scheduler> scheduler) override;
 
 private:
   ////////////////////////////////////////////////////////////////////////////
   // General variables.
-  /** Number of clients on nodes in MPI world (cluster). */
-  std::vector<int> numberClientsOfNodes_;  //@TODO not used for now, but might
-                                           // be useful maybe?
 
   /** Whether graph group has been properly initialized with a first batch. */
   bool initialized_{false};
@@ -43,15 +41,6 @@ private:
 
   ////////////////////////////////////////////////////////////////////////////
   // Client variables.
-
-  /** Graph builders for clients (which run forward and backward passes). */
-  std::vector<Ptr<models::ModelBase>> clientBuilders_;
-
-  /** Graphs of clients. One entry per GPU on this node. */
-  std::vector<Ptr<ExpressionGraph>> clientGraphs_; // [num local GPUs]
-
-  /** Devices (GPUs) on this node. */
-  std::vector<size_t> devices_; // [num local GPUs]
 
   /** Mutex to ensure clients are uniquely assigned to graphs and builders. */
   std::mutex mutexClientInit_;
@@ -150,60 +139,16 @@ private:
 
   void execute(Ptr<data::Batch> batch);
 
-  /**
-   * Load the GPU configuration of this node (i.e. which GPUs to use) and the
-   * number of GPUs on the other nodes.
-   * Specifically, this sets up numberClientsOfNodes_[] and deivces_[]. It does not communicate with other nodes.
-   * @BUGBUG: This does not parse the string correctly in that it leaves devices_[] empty in case of only one node (which is useful for debugging).
-   */
-  void loadDeviceConfig(std::vector<size_t> deviceConfig) { // deviceConfig = array of GPU device ids for this worker --@TODO: rename to deviceIds, or just devices?
-    size_t index = 0, node = 0, nClientsSeen = 0;
-    numberClientsOfNodes_ = std::vector<int>(mpi_->commWorldSize(), 0); // @TODO: use assign(n, 0)
-    // @TODO: What does this logic do??
-    while(index < deviceConfig.size()) {
-      if(numberClientsOfNodes_[node] == 0) {
-        numberClientsOfNodes_[node] = (int)deviceConfig[index];
-        nClientsSeen = 0;
-      } else if(nClientsSeen < numberClientsOfNodes_[node]) {
-        if(node == mpi_->myRank()) {
-          devices_.push_back(deviceConfig[index]);
-        }
-        nClientsSeen++;
-      } else {
-        node++;
-        index--;
-      }
-      index++;
-    }
-  }
-
 public:
   /**
    * (Constructor) Call super class and initialize client graphs and builders.
    */
   MultiNodeGraphGroupSync(Ptr<Config> options)
-      : GraphGroup(options),
+      : Base(options),
         tau_{options_->get<size_t>("optimizer-delay")}, // do cross-node aggregation only every tau_ updates (defaults to 1)
         movingAvg_{options_->get<float>("exponential-smoothing") > 0}, // @TODO: redundant
         mvDecay_{options_->get<float>("exponential-smoothing")},
-        syncOptimizer_{Optimizer(options_)} { // @BUGBUG? Do we really have two optimizers?
-    setupMPI();  // Setup MPI first thing
-
-    // Set up devices for this node
-    std::vector<size_t> devices; // set of GPU device ids for this worker
-    for(auto& d : options_->getDevices())
-      devices.push_back(d.no);
-    loadDeviceConfig(devices); // set up numberClientsOfNodes_[]  --@TODO: not clear what it is for, or even what it is
-
-    // Create builders and graphs for clients; that is, for each GPU we use on this node.
-    for(size_t i = 0; i < devices_.size(); i++) {
-      clientGraphs_.push_back(New<ExpressionGraph>());
-      clientGraphs_[i]->setDevice({devices_[i], DeviceType::gpu});
-      clientGraphs_[i]->reserveWorkspaceMB(options_->get<size_t>("workspace"));
-      clientBuilders_.push_back(
-          models::from_config(options_, models::usage::training));
-    }
-  }
+    syncOptimizer_{ Optimizer(options_) } { } // @BUGBUG? Do we really have two optimizers?
 
   /**
    * Update any client model with given batch if batch is assigned to this node.

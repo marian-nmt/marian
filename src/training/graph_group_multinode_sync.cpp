@@ -195,43 +195,49 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
 
   std::vector<Ptr<data::Batch>> batches = fullBatch->split(devices_.size());
 
+  for (size_t i = 0; i < devices_.size(); i++) {
+    const auto& b = batches[i];
+    LOG(info, "[rank {}] [dev {} {}] max len {} total {} (source)", mpi_->myRank(), i, devices_[i], b->width(), b->words());
+  }
+
   static int t = 0;
 
   static float cost = 0;
   static size_t num_seen_words = 0;
   static size_t num_seen_sentences = 0;
 
+  // compute gradients
+  auto task = [&](int my_id) {
+    auto batch = batches[my_id];
+    auto graph = clientGraphs_[my_id];
+    auto builder = clientBuilders_[my_id];
+
+    auto costNode = builder->build(graph, batch);
+
+    if(t == 0) {
+      if(my_id != 0)
+        graph->params()->vals()->copyFrom(clientGraphs_[0]->params()->vals());
+    }
+
+    graph->forward();
+    {
+      std::lock_guard<std::mutex> guard(sumCostMutex_);
+      cost += costNode->scalar();
+      num_seen_words += batch->words();
+      num_seen_sentences += batch->size();
+    }
+    graph->backward();
+
+    // wait for GPU computation to complete
+    // The first GPU that finishes will get to call sumGRAD() first, and therefore gets sumGradientBuffer first.
+    graph->getBackend()
+        ->synchronize();
+
+    // aggregate locally across the devices
+    sumGRAD(graph->params()->grads());
+  };
+
   {
-    auto task = [this, batches](int my_id) {
-      auto batch = batches[my_id];
-      auto graph = clientGraphs_[my_id];
-      auto builder = clientBuilders_[my_id];
-
-      auto costNode = builder->build(graph, batch);
-
-      if(t == 0) {
-        if(my_id != 0)
-          graph->params()->vals()->copyFrom(clientGraphs_[0]->params()->vals());
-      }
-
-      graph->forward();
-      {
-        std::lock_guard<std::mutex> guard(sumCostMutex_);
-        cost += costNode->scalar();
-        num_seen_words += batch->words();
-        num_seen_sentences += batch->size();
-      }
-      graph->backward();
-
-      // wait for GPU computation to complete
-      // The first GPU that finishes will get to call sumGRAD() first, and therefore gets sumGradientBuffer first.
-      graph->getBackend()
-          ->synchronize();
-
-      // aggregate locally across the devices
-      sumGRAD(graph->params()->grads());
-    };
-
     ThreadPool pool(devices_.size(), devices_.size()); // @TODO: is it expensive to create threads all the time? Why is this not a class member?
     for(int idx = 0; idx < devices_.size(); ++idx)
       pool.enqueue(task, idx);

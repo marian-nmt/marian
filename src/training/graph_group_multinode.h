@@ -23,11 +23,12 @@ namespace marian {
  * Multi-node graph group for asynchronous training over multiple
  * machines each with one or multiple GPUs
  */
-class MultiNodeGraphGroup : public GraphGroup {
+class MultiNodeGraphGroup : public MultiNodeGraphGroupBase {
+  using Base = MultiNodeGraphGroupBase;
 public:
   virtual void setScheduler(Ptr<Scheduler> scheduler) override;
 
-protected:
+private:
   ////////////////////////////////////////////////////////////////////////////
   // General variables.
 
@@ -42,15 +43,6 @@ protected:
 
   /** Thread pool to enable clients to run concurrently. */
   ThreadPool* clientThreadPool_;
-
-  /** Graph builders for clients (which run forward and backward passes). */
-  std::vector<Ptr<models::ModelBase>> clientBuilders_;
-
-  /** Graphs of clients. */
-  std::vector<Ptr<ExpressionGraph>> clientGraphs_;
-
-  /** Devices (GPUs) on this node. */
-  std::vector<size_t> devices_;
 
   /** Mutex to ensure clients are uniquely assigned to graphs and builders. */
   std::mutex mutexClientInit_;
@@ -103,9 +95,6 @@ protected:
 
   ////////////////////////////////////////////////////////////////////////////
   // Communication variables.
-
-  /** Number of clients on nodes in MPI world (cluster). */
-  std::vector<int> numberClientsOfNodes_;
 
   /** Number of parameters allocated (sharded) to nodes. */
   std::vector<size_t> nodeSizes_;
@@ -364,56 +353,14 @@ protected:
    */
   virtual void signalFinishedToServerShards();
 
-  /**
-   * Load the GPU configuration of this node (i.e. which GPUs to use) and the
-   * number of GPUs on the other nodes.
-   */
-  void loadDeviceConfig(std::vector<size_t> deviceConfig) {
-    size_t index = 0;
-    int node = 0;
-    int nClientsSeen = 0;
-    numberClientsOfNodes_ = std::vector<int>(mpi_->commWorldSize(), 0);
-    while(index < deviceConfig.size()) {
-      if(numberClientsOfNodes_[node] == 0) {
-        numberClientsOfNodes_[node] = (int)deviceConfig[index];
-        nClientsSeen = 0;
-      } else if(nClientsSeen < numberClientsOfNodes_[node]) {
-        if(node == mpi_->myRank()) {
-          devices_.push_back(deviceConfig[index]);
-        }
-        nClientsSeen++;
-      } else {
-        node++;
-        index--;
-      }
-      index++;
-    }
-  }
-
 public:
   /**
    * (Constructor) Call super class and initialize client graphs and builders.
    */
   MultiNodeGraphGroup(Ptr<Config> options)
-      : GraphGroup(options),
+      : Base(options),
         clientCommOverlap{options_->get<bool>("multi-node-overlap")},
-        tau_{options_->get<size_t>("optimizer-delay")} {
-    setupMPI();  // Setup MPI before creating device vectors
-    // Set up devices for this node
-    std::vector<size_t> devices;
-    for(auto& d : options_->getDevices())
-      devices.push_back(d.no);
-    loadDeviceConfig(devices);
-
-    // Create builders and graphs for clients.
-    for(size_t i = 0; i < devices_.size(); i++) {
-      clientGraphs_.push_back(New<ExpressionGraph>());
-      clientGraphs_[i]->setDevice({devices_[i], DeviceType::gpu});
-      clientGraphs_[i]->reserveWorkspaceMB(options_->get<size_t>("workspace"));
-      clientBuilders_.push_back(
-          models::from_config(options_, models::usage::training));
-    }
-  }
+        tau_{options_->get<size_t>("optimizer-delay")} { }
 
   /**
    * (Destructor) Shut down server shard thread and (if comm. overlap enabled)
