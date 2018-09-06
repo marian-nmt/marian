@@ -56,8 +56,10 @@ void MultiNodeGraphGroupSync::init(Ptr<data::Batch> batch) {
     paramsAvg_ = newTensor(network_size, clientGraphs_.back()->getBackend());
 
   // setup sync sgd storage, We keep the summed gradient on device 0
-  sumGradientBuffer = newTensor(network_size, clientGraphs_[0]->getBackend());
-  accGradientsSync  = newTensor(network_size, clientGraphs_[0]->getBackend());
+  if (devices_.size() > 1)
+    sumGradientBuffer_ = newTensor(network_size, clientGraphs_[0]->getBackend());
+  if (devices_.size() > 1 || tau_ > 1)
+    accGradient_       = newTensor(network_size, clientGraphs_[0]->getBackend());
 }
 
 /**
@@ -98,23 +100,31 @@ void MultiNodeGraphGroupSync::runBatchThroughClientGraphs(
 }
 
 /**
- * Initialize variables required for overlapping client computations and
- * communication.
- * Includes summed and committed word counts, buffer flags, mutexes and
- * condition variables.
- * @BUGBUG: This does not seem to initialize, but rather do actual summation.
- * @TODO: Description of what this seems to actually do:
- * Adds the gradient tensor to sumGradientBuffer_
- * sumGradientBuffer has been allocated on a GPU.
- * @TODO: where does 'gradient' come from? A different GPU possibly? CPU? Anything?
+ * Adds one GPU's gradient tensor to accGradient_
+ * sumGradientBuffer_ has been allocated on the same GPU as accGradient_.
  * @TODO: inline this to where it is called, to make the synchronization situation clearer
  */
 void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) { // @TODO: why UPPERCASE?
+  ABORT_IF(!(devices_.size() > 1 || tau_ > 1), "unnecessarily summing gradient??");
+  ABORT_IF(accGradient_ == nullptr, "accGradient not created??");
+
+  // wait for GPU computation to complete
+  // The first GPU that finishes will get to call sumGRAD() first, and therefore gets sumGradientBuffer first.
+  if (accGradient_->getDeviceId() != gradient->getDeviceId())
+    gradient->getBackend()->synchronize();
+
   std::lock_guard<std::mutex> guard(sumGradientMutex_);
-  sumGradientBuffer->copyFrom(gradient);
-  using namespace functional;  //@TODO makes more sense to do that on the CPU i
-                               // think
-  Element(_1 += _2, accGradientsSync, sumGradientBuffer);
+  if (accGradient_->getDeviceId() != gradient->getDeviceId()) { // don't copy if already on the same device as accumulator
+    ABORT_IF(sumGradientBuffer_ == nullptr, "no sumGradientBuffer_ when we need it??");
+    ABORT_IF(sumGradientBuffer_->getDeviceId() != accGradient_->getDeviceId(), "sumGradientBuffer_ on wrong device??");
+    sumGradientBuffer_->copyFrom(gradient);
+    gradient = sumGradientBuffer_; // substitute gradient reference with the a ref to the copy on the right device
+  }
+  else
+    LOG(info, "not copying gradient on dev {}", gradient->getDeviceId().no);
+
+  using namespace functional;
+  Element(_1 += _2, accGradient_, gradient);
   // Note: This merely submits the GPU compute on device 0, but does not wait for its completion.
   // The next copyFrom() call will run on the same stream, and thus after this is complete.
   // The lock_guard will only guard CPU-side aspects of accessing sumGradientBuffer.
@@ -127,11 +137,10 @@ void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) { // @TODO: why UPPERCASE
 //  - all-reduce of gradient across workers -> allReduceAccGradients()
 //  - model update (should just be in execute())
 //  - broadcast of updated model to all devices (this mirrors sumGRAD())
-void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
+void MultiNodeGraphGroupSync::sendReceiveUpdateSync(Tensor accGradientsSync) {
   auto network_size = clientGraphs_[0]->params()->vals()->size();
 
   // Copy the locally aggregated gradients to the CPU
-  accGradientsSync_cpu.resize(network_size);
   accGradientsSync->get(/*out*/ accGradientsSync_cpu);
 
   // Wait until all nodes are ready
@@ -228,25 +237,25 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
     }
     graph->backward();
 
-    // wait for GPU computation to complete
-    // The first GPU that finishes will get to call sumGRAD() first, and therefore gets sumGradientBuffer first.
-    graph->getBackend()
-        ->synchronize();
-
-    // aggregate locally across the devices
-    sumGRAD(graph->params()->grads());
+    if (accGradient_ != nullptr) // aggregate locally across the devices
+      sumGRAD(graph->params()->grads());
+    else // if only one GPU and not summing, we directly work off the gradient to save GPU RAM
+      ABORT_IF(devices_.size() > 1 || tau_ > 1, "no accGradient_ when we need it??");
   };
 
-  {
+  if (devices_.size() > 1) {
     ThreadPool pool(devices_.size(), devices_.size()); // @TODO: is it expensive to create threads all the time? Why is this not a class member?
     for(int idx = 0; idx < devices_.size(); ++idx)
       pool.enqueue(task, idx);
     // destruction of pool joins the threads
   }
+  else { // don't use thread if single GPU
+    task(0);
+  }
 
   // aggregate globally
   if(t % tau_ == 0)
-    sendReceiveUpdateSync();
+    sendReceiveUpdateSync(accGradient_ != nullptr ? accGradient_ : clientGraphs_[0]->params()->grads());
 
   t++;
 
@@ -285,18 +294,20 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
       // validate
       if(mpi_->myRank() == 0 && scheduler_->validating()) {
         // temporarily save current params
-        if(movingAvg_)
-          accGradientsSync->copyFrom(clientGraphs_[0]->params()->vals());
+        if (movingAvg_)
+          clientGraphs_[0]->params()->vals()->get(accGradientsSync_cpu);
+          //accGradient_->copyFrom(clientGraphs_[0]->params()->vals()); // we don't need to occupy GPU RAM for this
 
         if(movingAvg_)
           for(auto graph : clientGraphs_)
-            graph->params()->vals()->copyFrom(paramsAvg_);
+            graph->params()->vals()->copyFrom(paramsAvg_); // @TODO: any way to just swap the two?
 
         scheduler_->validate(clientGraphs_);
 
         if(movingAvg_)
           for(auto graph : clientGraphs_)
-            graph->params()->vals()->copyFrom(accGradientsSync);
+            graph->params()->vals()->set(accGradientsSync_cpu);
+            //graph->params()->vals()->copyFrom(accGradient_);
       }
 
       // inform other nodes to continue

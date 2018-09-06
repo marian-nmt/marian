@@ -63,6 +63,8 @@ private:
   ////////////////////////////////////////////////////////////////////////////
   // Communication variables.
 
+  Ptr<Communicator> comm_;
+
   /**
    * Variables for optimizer delay and synchronous SGD
    */
@@ -70,8 +72,8 @@ private:
   std::mutex sumGradientMutex_;
   std::mutex updateParamsMutex_;
   std::mutex sumCostMutex_;
-  Tensor accGradientsSync; // @TODO: add _ suffixes; @TODO: Why "-Sync"? @TODO: which mutes guards this? Group variables by guarding mutexes
-  Tensor sumGradientBuffer;
+  Tensor accGradient_; // @TODO: which mutex guards this? Group variables by guarding mutexes
+  Tensor sumGradientBuffer_; // buffer owned by sumGRAD
   Tensor paramsAvg_;
   std::vector<float> accGradientsSync_cpu;
   std::vector<float> receiveBuffer_cpu;
@@ -135,7 +137,7 @@ private:
    * Does the MPI Communication, parameter update and copying back parameters.
    * @TODO ALHAM. God function too godly?
    */
-  void sendReceiveUpdateSync();
+  void sendReceiveUpdateSync(Tensor accGradient);
 
   void execute(Ptr<data::Batch> batch);
 
@@ -148,7 +150,9 @@ public:
         tau_{options_->get<size_t>("optimizer-delay")}, // do cross-node aggregation only every tau_ updates (defaults to 1)
         movingAvg_{options_->get<float>("exponential-smoothing") > 0}, // @TODO: redundant
         mvDecay_{options_->get<float>("exponential-smoothing")},
-    syncOptimizer_{ Optimizer(options_) } { } // @BUGBUG? Do we really have two optimizers?
+    syncOptimizer_{ Optimizer(options_) } { // @BUGBUG? Do we really have two optimizers?
+    //comm_ = createCommunicator(clientGraphs_, options_->get<bool>("no-nccl", false));
+  }
 
   /**
    * Update any client model with given batch if batch is assigned to this node.
