@@ -217,6 +217,7 @@ struct/*interface*/ IMPIWrapper
   static const size_t RECV_ANY_SOURCE = (size_t)MPI_ANY_SOURCE;
 };
 
-Ptr<IMPIWrapper> createMPIWrapper(bool sync);
+Ptr<IMPIWrapper> initMPI(bool multiThreaded);
+void finalizeMPI(Ptr<IMPIWrapper>&&);
 
 }  // namespace marian

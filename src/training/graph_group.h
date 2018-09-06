@@ -37,7 +37,7 @@ public:
   virtual ~GraphGroup() {}
 
   void setupMPI() {
-    mpi_ = createMPIWrapper(options_->get<bool>("sync-sgd"));
+    mpi_ = initMPI(/*multiThreaded=*/!options_->get<bool>("sync-sgd"));
   }
 
   /**
@@ -51,7 +51,8 @@ public:
 
   virtual void finalize() {
     if (mpi_) {
-      mpi_->finalize();
+      finalizeMPI(std::move(mpi_));
+      ABORT_IF(mpi_, "MPI not finalized??");
     }
     finalized_ = true;
   }

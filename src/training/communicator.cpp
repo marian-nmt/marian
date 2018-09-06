@@ -16,87 +16,61 @@ Ptr<Communicator> createCommunicator(
 #endif
 
 #if MPI_FOUND
+// wrapper for MPI calls
+// Since MPI can only be initialized once, only one instance of this class can exist.
 class MPIWrapper : public IMPIWrapper
 {
-  static std::mutex s_mutex;    // guards the following static variables
-  static size_t s_useCount;     // how many times has this wrapper been instantiated?
-  static int s_threadingMode;   // current level of thread support
-  static int s_my_rank;         // MPI rank of this node
-  static int s_comm_world_size; // Number of nodes in MPI world (cluster)
+  int my_rank_;         // MPI rank of this node
+  int comm_world_size_; // Number of nodes in MPI world (cluster)
 
-  static void handleError(int mpiRetval, const char* exprString) { // call this with the return value of all MPI calls to report errors
-    if (mpiRetval != MPI_SUCCESS) {
-      ABORT("MPI call failed with code {} on node {}: {}", mpiRetval, s_my_rank, exprString); // @TODO: also log host name, which is involved on Windows
-    }
+  void handleError(int mpiRetval, const char* exprString) const { // call this with the return value of all MPI calls to report errors
+    if (mpiRetval != MPI_SUCCESS)
+      ABORT("MPI call failed with code {} on node {}: {}", mpiRetval, my_rank_, exprString); // @TODO: also log host name, which is involved on Windows
   }
 #define HANDLE_MPI_ERROR(expr) (handleError(expr, #expr)) // call through a macro so we can also log the failed expression itself
 
 public:
-  MPIWrapper(bool sync) {
-    int required_mode = sync ? MPI_THREAD_SERIALIZED : MPI_THREAD_MULTIPLE;
+  MPIWrapper(bool multiThreaded) {
+    int requiredThreadingMode = multiThreaded ? MPI_THREAD_MULTIPLE : MPI_THREAD_SINGLE;
 
-    std::lock_guard<std::mutex> guard(s_mutex);
+    int argc = 1; char* argv[] = { const_cast<char*>("this.exe") }; char** argvp = argv; // dummy argc/argv since MPI_Init needs something here
+    int providedThreadingMode;
+    HANDLE_MPI_ERROR(MPI_Init_thread(&argc, &argvp, MPI_THREAD_MULTIPLE, &providedThreadingMode));
+    MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN); // have errors reported as return codes
 
-    if (s_useCount == 0) {
-      int argc = 1; char* argv[] = { const_cast<char*>("this.exe") }; char** argvp = argv; // dummy argc/argv since MPI_Init needs something here
-      HANDLE_MPI_ERROR(MPI_Init_thread(&argc, &argvp, MPI_THREAD_MULTIPLE, &s_threadingMode)); // @TODO: should set_errhandler() be done before this?
-      s_useCount++;
-      MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN); // have errors reported as return codes
+    ABORT_IF(
+      providedThreadingMode < requiredThreadingMode,
+      "Your version of MPI does not support multi-threaded communication.");
 
-      if (s_threadingMode < required_mode)
-        LOG(warn, "Threading mode actual {} vs requested {}", s_threadingMode, required_mode);
-      // @BUGBUG: for now I need to manually synchronize since my MPI version does not accept the threading mode parameter
-      //ABORT_IF(
-      //  threadSupportLevel_ < required_mode,
-      //  "Your version of MPI does not support multi-threaded communication.");
+    MPI_Comm_size(MPI_COMM_WORLD, &comm_world_size_);
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank_);
 
-      MPI_Comm_size(MPI_COMM_WORLD, &s_comm_world_size);
-      MPI_Comm_rank(MPI_COMM_WORLD, &s_my_rank);
-    }
-    else { // already initialized; just make sure we got the right threading mode
-      ABORT_IF(s_threadingMode != required_mode, "MPIWrapper constructed with inconsistent threading mode");
-    }
-
-    LOG(info, "MPI mode, node {} out of {}", s_my_rank, s_comm_world_size);
+    LOG(info, "[mpi] initialized as node {} out of {}", my_rank_, comm_world_size_);
   }
 
-  virtual size_t myRank()        const override { return (size_t)s_my_rank; };
-  virtual size_t commWorldSize() const override { return (size_t)s_comm_world_size; };
+  virtual size_t myRank()        const override { return (size_t)my_rank_; };
+  virtual size_t commWorldSize() const override { return (size_t)comm_world_size_; };
 
   virtual void barrier(MPI_Comm comm) const override {
-    std::lock_guard<std::mutex> guard(s_mutex); // @BUGBUG: for now I need to manually synchronize since my MPI version does not accept the threading mode parameter
     HANDLE_MPI_ERROR(MPI_Barrier(comm));
   }
   virtual void sSend(void* buf, size_t count, MPI_Datatype datatype, size_t destRank, int tag, MPI_Comm comm) const override {
-    std::lock_guard<std::mutex> guard(s_mutex); // @BUGBUG: for now I need to manually synchronize since my MPI version does not accept the threading mode parameter
     HANDLE_MPI_ERROR(MPI_Ssend(buf, (int)count, datatype, (int)destRank, tag, comm));
   }
   virtual void recv(void* buf, size_t count, MPI_Datatype datatype, size_t sourceRank, int tag, MPI_Comm comm, MPI_Status* status) const override {
-    std::lock_guard<std::mutex> guard(s_mutex); // @BUGBUG: for now I need to manually synchronize since my MPI version does not accept the threading mode parameter
     HANDLE_MPI_ERROR(MPI_Recv(buf, (int)count, datatype, (int)sourceRank, tag, comm, status));
   }
   virtual void allReduce(const void* sendbuf, void* recvbuf, size_t count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) const override {
-    std::lock_guard<std::mutex> guard(s_mutex); // @BUGBUG: for now I need to manually synchronize since my MPI version does not accept the threading mode parameter
     HANDLE_MPI_ERROR(MPI_Allreduce(sendbuf, recvbuf, (int)count, datatype, op, comm));
   }
-
   virtual void finalize() override {
-    std::lock_guard<std::mutex> guard(s_mutex);
-    ABORT_IF(s_useCount == 0, "finalize called too many times");
-    if (s_useCount == 1) // last call finalizes MPI, i.e. tells MPI that we sucessfully completed computation
-      HANDLE_MPI_ERROR(MPI_Finalize());
-    s_useCount--;
+    HANDLE_MPI_ERROR(MPI_Finalize());
   }
 };
-
-/*static*/ size_t     MPIWrapper::s_useCount = 0;
-/*static*/ int        MPIWrapper::s_my_rank = -1;
-/*static*/ int        MPIWrapper::s_comm_world_size = -1;
-/*static*/ std::mutex MPIWrapper::s_mutex;
-/*static*/ int        MPIWrapper::s_threadingMode;
 #endif
 
 // dummy MPI wrapper that implements only one process without actual operations
+// @TODO: Complete this.
 class FakeMPIWrapper : public IMPIWrapper
 {
 public:
@@ -127,14 +101,38 @@ public:
   virtual void finalize() override { }
 };
 
-// create instance of the MPI wrapper
-Ptr<IMPIWrapper> createMPIWrapper(bool sync) {
-  // @TODO: This will be extended in the future to create other types, e.g. NCCL and fake for debugging
+// create instance of the singleton MPI wrapper
+static Ptr<IMPIWrapper> s_mpi;    // singleton instance of MPI wrapper
+static size_t s_mpiUseCount;      // how many times has this wrapper been instantiated?
+static bool s_mpiIsMultiThreaded; // multi-threading mode of this instance
+
+Ptr<IMPIWrapper> initMPI(bool multiThreaded) {
+  if (!s_mpi) {
+    // @TODO: This will be extended in the future to create other types, e.g. NCCL and fake for debugging
 #if MPI_FOUND
-  return New<MPIWrapper>(sync);
+    s_mpi = New<MPIWrapper>(multiThreaded);
 #else
-  return New<FakeMPIWrapper>(sync);
+    s_mpi = New<FakeMPIWrapper>(multiThreaded);
 #endif
+    s_mpiIsMultiThreaded = multiThreaded;
+  }
+  else {
+    ABORT_IF(s_mpiIsMultiThreaded != multiThreaded, "attempted to reinitialize MPI with different multi-threading mode");
+  }
+  s_mpiUseCount++;
+  return s_mpi;
+}
+
+void finalizeMPI(Ptr<IMPIWrapper>&& mpi) {
+  ABORT_IF(mpi == nullptr || mpi != s_mpi, "attempted to finalize an inconsistent MPI instance. This should not be possible.");
+  mpi = nullptr; // destruct caller's handle
+  ABORT_IF(s_mpiUseCount == 0, "finalize called too many times. This should not be possible.");
+  if (s_mpiUseCount == 1) { // last call finalizes MPI, i.e. tells MPI that we sucessfully completed computation
+    ABORT_IF(s_mpi.use_count() != 1, "dangling reference to MPI??"); // caller kept another shared_ptr to this instance
+    s_mpi->finalize(); // signal successful completion to MPI
+    s_mpi = nullptr;   // release the singleton instance upon last finalization
+  }
+  s_mpiUseCount--;
 }
 
 }  // namespace marian

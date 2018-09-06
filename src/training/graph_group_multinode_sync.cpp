@@ -123,7 +123,11 @@ void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) { // @TODO: why UPPERCASE
 /**
  * All-reduce accGradientSync across nodes.
  */
-void MultiNodeGraphGroupSync::sendReceiveUpdateSync() { // @TODO: rename to allReduceAccGradients()
+// @TODO: This function mixes several concerns. It should be split up into:
+//  - all-reduce of gradient across workers -> allReduceAccGradients()
+//  - model update (should just be in execute())
+//  - broadcast of updated model to all devices (this mirrors sumGRAD())
+void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
   auto network_size = clientGraphs_[0]->params()->vals()->size();
 
   // Copy the locally aggregated gradients to the CPU
@@ -171,8 +175,8 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() { // @TODO: rename to allR
   // set the accumulating buffers to zero;
   accGradientsSync->set(0); // @TODO: we can already launch this once we have copied it out, so that this op runs concurrently with the MPI exchange
   // @TODO: The following should not be necessary.
-  //std::fill(accGradientsSync_cpu.begin(), accGradientsSync_cpu.end(), std::numeric_limits<float>::signaling_NaN());
-  //std::fill(receiveBuffer_cpu.begin(), receiveBuffer_cpu.end(), std::numeric_limits<float>::signaling_NaN());
+  std::fill(accGradientsSync_cpu.begin(), accGradientsSync_cpu.end(), 0);
+  std::fill(receiveBuffer_cpu.begin(), receiveBuffer_cpu.end(), 0);
 }
 
 /**
