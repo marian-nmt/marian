@@ -4,6 +4,7 @@
 #include <tuple>
 #include <unordered_set>
 #include <vector>
+#include <set>
 
 namespace marian {
 
@@ -17,8 +18,9 @@ namespace quicksand {
 typedef size_t Word;
 typedef std::vector<Word> Words;
 typedef std::vector<Words> QSBatch;
+typedef std::vector<std::set<std::pair<size_t, float>>> AlignmentSets; // [tgtPos] -> set of (srcPos, score)
 
-typedef std::tuple<Words, float> QSSentenceWithProb;
+typedef std::tuple<Words, AlignmentSets, float> QSSentenceWithProb;
 typedef std::vector<QSSentenceWithProb> QSNBest;
 typedef std::vector<QSNBest> QSNBestBatch;
 
