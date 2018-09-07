@@ -15,7 +15,7 @@ typedef std::vector<std::function<void()>> NodeOps;
 class AutoTunerRecorder;
 
 template <class DataType>
-struct Chainable;
+class Chainable;
 /**
  * A convenience type to represent a shared pointer to a Chainable<Tensor>
  * object.

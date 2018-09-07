@@ -30,7 +30,7 @@ public:
                   std::vector<int> kernelNums,
                   int stride)
       : name_(prefix),
-        size_(kernelNums.size()),
+        size_((int)kernelNums.size()),
         kernelHeight_(kernelHeight),
         kernelWidths_(kernelWidths),
         kernelNums_(kernelNums),

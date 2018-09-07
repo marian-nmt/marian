@@ -83,7 +83,7 @@ class TensorBase;
 typedef Ptr<TensorBase> Tensor;
 
 template <class DataType>
-struct Chainable;
+class Chainable;
 typedef Ptr<Chainable<Tensor>> Expr;
 
 class OptimizerBase;

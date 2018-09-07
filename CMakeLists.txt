@@ -25,13 +25,27 @@ message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 
 # Set compilation flags
 if (MSVC)
-  set(CMAKE_CXX_FLAGS         "${CMAKE_CXX_FLAGS}         /EHsc")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT /O2 /Ob2 /W4 /Zo /DNDEBUG")
-  # to add debug info
-  #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
-  #set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /INCREMENTAL:NO /DEBUG /OPT:REF")
+  set(CMAKE_CXX_FLAGS           "${CMAKE_CXX_FLAGS}           /EHsc /D_CRT_NONSTDC_NO_WARNINGS /D_CRT_SECURE_NO_WARNINGS /DUNICODE /D_UNICODE")
+  
+  set(CMAKE_CXX_FLAGS_RELEASE   "${CMAKE_CXX_FLAGS_RELEASE}   /MT")   # Runtime Library: Multi-threaded
+  set(CMAKE_CXX_FLAGS_RELEASE   "${CMAKE_CXX_FLAGS_RELEASE}   /O2")   # Optimization: Maximum Optimization (favor Speed) (/Og /Oi /Ot /Oy /Ob2 /GF /Gy)
+  set(CMAKE_CXX_FLAGS_RELEASE   "${CMAKE_CXX_FLAGS_RELEASE}   /W4")   # Warning Level: Level4
+  #set(CMAKE_CXX_FLAGS_RELEASE   "${CMAKE_CXX_FLAGS_RELEASE}   /WX")   # treat Warnings As Errors: yes
+  set(CMAKE_CXX_FLAGS_RELEASE   "${CMAKE_CXX_FLAGS_RELEASE}   /Zi")   # Debug Information Format: Program Database
+  set(CMAKE_CXX_FLAGS_RELEASE   "${CMAKE_CXX_FLAGS_RELEASE}   /MP")   # Multi-processor Compilation: yes
+  set(CMAKE_CXX_FLAGS_RELEASE   "${CMAKE_CXX_FLAGS_RELEASE}   /GL")   # Whole Program Optimization: Yes (require LTCG in linker flags)
+  set(CMAKE_CXX_FLAGS_RELEASE   "${CMAKE_CXX_FLAGS_RELEASE}   /DNDEBUG")
 
-  set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG}   /MTd /Zi /Ob0 /Od /RTC1 /D_DEBUG")
+  set(CMAKE_CXX_FLAGS_DEBUG     "${CMAKE_CXX_FLAGS_DEBUG}     /MTd")  # Runtime Library: Multi-threaded Debug
+  set(CMAKE_CXX_FLAGS_DEBUG     "${CMAKE_CXX_FLAGS_DEBUG}     /Od")   # Optimization: Disabled
+  set(CMAKE_CXX_FLAGS_DEBUG     "${CMAKE_CXX_FLAGS_DEBUG}     /Ob0")  # Inline function Expansion: Disabled
+  set(CMAKE_CXX_FLAGS_DEBUG     "${CMAKE_CXX_FLAGS_DEBUG}     /RTC1") # Basic Runtime Checks: Both
+  set(CMAKE_CXX_FLAGS_DEBUG     "${CMAKE_CXX_FLAGS_DEBUG}     /ZI")   # Debug Information Format: Program Database for Edit-and-Continue
+  set(CMAKE_CXX_FLAGS_DEBUG     "${CMAKE_CXX_FLAGS_DEBUG}     /D_DEBUG")
+  
+  set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS}    /LTCG:incremental /INCREMENTAL:NO")
+
+  set(CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} /LTCG:incremental")
 else()
   set(CMAKE_CXX_FLAGS_RELEASE " -std=c++11 -O3 -Ofast -m64 -pthread -march=native -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
   set(CMAKE_CXX_FLAGS_NONATIVE " -std=c++11 -O3 -Ofast -m64 -pthread -march=x86-64 -mavx -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
