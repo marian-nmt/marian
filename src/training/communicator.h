@@ -34,17 +34,25 @@ public:
     for(size_t idx = 0; idx < graphs_.size(); ++idx) {
       int size = std::min(shardSize, totalSize);
 
-      group.emplace_back(func, idx, pos);
+      group.emplace_back(func, idx, pos); // @BUGBUG: It seems the callee must guess the shard size again. Better pass the actual size.
 
       pos += size;
       totalSize -= size;
+      // @TODO: safer variant is pos = totalSize * idx / graphs_.size() and endpos = same for (id+1)
     }
     for(auto& t : group)
       t.join();
   }
 
-  virtual void scatterReduce() = 0;
-  virtual void allGather() = 0;
+  virtual void scatterReduce() = 0; // @TODO: indicate by the name that this is scattering gradients
+  virtual void allGather(bool vals) = 0;
+  void allReduceGrads() // @TODO: This should use proper NCCL primitives. Currently an emulation.
+  {
+    if (graphs_.size() > 1) {
+      scatterReduce();
+      allGather(/*vals=*/false);
+    }
+  }
 
   virtual void pushParams(std::vector<Tensor>& params) = 0;
   virtual void pullParams(const std::vector<Tensor>& params) = 0;
@@ -114,19 +122,23 @@ public:
     this->foreach(scatter);
   }
 
-  void allGather() override {
+  void allGather(bool vals) override {
     int totalSize = (int)graphs_[0]->params()->vals()->size();
     int shardSize = (int)ceil(totalSize / (float)graphs_.size());
 
     // Update all graphs with parameter shard
-    auto gather = [this, shardSize](size_t idx, int pos) {
-      auto curParam = graphs_[idx]->params()->vals()->subtensor(pos, shardSize);
+    auto gather = [this, shardSize, vals](size_t idx, int pos) {
+      auto getShard = [&](Ptr<ExpressionGraph> graph) {
+        auto tensor = vals ? graph->params()->vals() : graph->params()->grads();
+        return tensor->subtensor(pos, shardSize);
+      };
+      auto curShard = getShard(graphs_[idx]);
 
       // copy parameter shard to each graph
       for(auto graph : graphs_) {
         if(graph != graphs_[idx]) {
-          auto subParam = graph->params()->vals()->subtensor(pos, shardSize);
-          subParam->copyFrom(curParam);
+          auto subShard = getShard(graph);
+          subShard->copyFrom(curShard);
         }
       }
     };

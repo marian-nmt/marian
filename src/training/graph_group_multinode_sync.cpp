@@ -56,9 +56,10 @@ void MultiNodeGraphGroupSync::init(Ptr<data::Batch> batch) {
     paramsAvg_ = newTensor(network_size, clientGraphs_.back()->getBackend());
 
   // setup sync sgd storage, We keep the summed gradient on device 0
-  if (devices_.size() > 1)
-    sumGradientBuffer_ = newTensor(network_size, clientGraphs_[0]->getBackend());
-  if (devices_.size() > 1 || tau_ > 1)
+  // @TODO: eliminate devices size condition once comm_ works
+  //if (devices_.size() > 1)
+  //  sumGradientBuffer_ = newTensor(network_size, clientGraphs_[0]->getBackend());
+  if (tau_ > 1)
     accGradient_       = newTensor(network_size, clientGraphs_[0]->getBackend());
 }
 
@@ -145,7 +146,7 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync(Tensor accGradientsSync) {
 
   // Wait until all nodes are ready
   // @TODO: Is that necessary before allReduce?
-  mpi_->barrier();
+  //mpi_->barrier();
 
   //LOG(info, "all-reducing {} gradient values, node {}", network_size, mpi_->myRank());
   receiveBuffer_cpu.resize(network_size);
@@ -180,12 +181,6 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync(Tensor accGradientsSync) {
   for(auto&& t : threads) {
     t.join();
   }
-
-  // set the accumulating buffers to zero;
-  accGradientsSync->set(0); // @TODO: we can already launch this once we have copied it out, so that this op runs concurrently with the MPI exchange
-  // @TODO: The following should not be necessary.
-  //std::fill(accGradientsSync_cpu.begin(), accGradientsSync_cpu.end(), 0);
-  //std::fill(receiveBuffer_cpu.begin(), receiveBuffer_cpu.end(), 0);
 }
 
 /**
@@ -204,10 +199,10 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
 
   std::vector<Ptr<data::Batch>> batches = fullBatch->split(devices_.size());
 
-  for (size_t i = 0; i < devices_.size(); i++) {
-    const auto& b = batches[i];
-    LOG(info, "[rank {}] [dev {} {}] max len {} total {} (source)", mpi_->myRank(), i, devices_[i], b->width(), b->words());
-  }
+  //for (size_t i = 0; i < devices_.size(); i++) {
+  //  const auto& b = batches[i];
+  //  LOG(info, "[rank {}] [dev {} {}] max len {} total {} (source)", mpi_->myRank(), i, devices_[i], b->width(), b->words());
+  //}
 
   static int t = 0;
 
@@ -223,7 +218,7 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
 
     auto costNode = builder->build(graph, batch);
 
-    if(t == 0) {
+    if(t == 0) { // the very first update must start from identical initial values
       if(my_id != 0)
         graph->params()->vals()->copyFrom(clientGraphs_[0]->params()->vals());
     }
@@ -237,14 +232,14 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
     }
     graph->backward();
 
-    if (accGradient_ != nullptr) // aggregate locally across the devices
-      sumGRAD(graph->params()->grads());
-    else // if only one GPU and not summing, we directly work off the gradient to save GPU RAM
-      ABORT_IF(devices_.size() > 1 || tau_ > 1, "no accGradient_ when we need it??");
+    //if (accGradient_ != nullptr) // aggregate locally across the devices
+    //  sumGRAD(graph->params()->grads());
+    //else // if only one GPU and not summing, we directly work off the gradient to save GPU RAM
+    //  ABORT_IF(devices_.size() > 1 || tau_ > 1, "no accGradient_ when we need it??");
   };
 
   if (devices_.size() > 1) {
-    ThreadPool pool(devices_.size(), devices_.size()); // @TODO: is it expensive to create threads all the time? Why is this not a class member?
+    ThreadPool pool(devices_.size(), devices_.size()); // @TODO: use comm_->foreach()
     for(int idx = 0; idx < devices_.size(); ++idx)
       pool.enqueue(task, idx);
     // destruction of pool joins the threads
@@ -253,9 +248,22 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
     task(0);
   }
 
+  // aggregate locally
+  comm_->allReduceGrads();
+
+  // aggregate across delayed batches
+  // @TODO: If we instead not reset the gradients themselves, we can eliminate accGradient_ altogether & save 0.5 GB.
+  if (accGradient_ != nullptr) // aggregate locally across the devices
+    sumGRAD(clientGraphs_[0]->params()->grads());
+
   // aggregate globally
-  if(t % tau_ == 0)
+  if (t % tau_ == 0) {
     sendReceiveUpdateSync(accGradient_ != nullptr ? accGradient_ : clientGraphs_[0]->params()->grads());
+
+    // set the accumulating buffers to zero;
+    if (accGradient_ != nullptr) // aggregate locally across the devices
+      accGradient_->set(0); // @TODO: we can already launch this once we have copied it out, so that this op runs concurrently with the MPI exchange
+  }
 
   t++;
 

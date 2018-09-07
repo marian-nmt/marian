@@ -176,7 +176,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
     if(t == delayedBatches.size()) {
       comm_->scatterReduce();
       comm_->foreach(update);
-      comm_->allGather();
+      comm_->allGather(/*vals=*/true);
     }
 
     t++;

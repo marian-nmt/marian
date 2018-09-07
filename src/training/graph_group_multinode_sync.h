@@ -151,7 +151,7 @@ public:
         movingAvg_{options_->get<float>("exponential-smoothing") > 0}, // @TODO: redundant
         mvDecay_{options_->get<float>("exponential-smoothing")},
     syncOptimizer_{ Optimizer(options_) } { // @BUGBUG? Do we really have two optimizers?
-    //comm_ = createCommunicator(clientGraphs_, options_->get<bool>("no-nccl", false));
+    comm_ = createCommunicator(clientGraphs_, options_->get<bool>("no-nccl", false));
   }
 
   /**

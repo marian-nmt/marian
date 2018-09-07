@@ -85,7 +85,7 @@ public:
     synchronizeAll();
   }
 
-  void allGather() override {
+  void allGather(bool vals) override {
     int totalSize = graphs_[0]->params()->vals()->size();
     int shardSize = ceil(totalSize / (float)graphs_.size());
 
@@ -95,9 +95,10 @@ public:
     for(int i = 0; i < graphs_.size(); ++i) {
       int size = std::min(shardSize, totalSize);
 
-      auto subparam = graphs_[i]->params()->vals()->subtensor(pos, size);
+      auto tensor = vals ? graphs_[i]->params()->vals() : graphs_[i]->params()->grads();
+      auto subparam = tensor->subtensor(pos, size);
       const void* sendbuff = (const void*)subparam->data();
-      void* recvbuff = (void*)graphs_[i]->params()->vals()->data();
+      void* recvbuff = (void*)tensor->data();
 
       ncclAllGather(
           sendbuff, recvbuff, shardSize, ncclFloat, comms_[i], streams_[i]);
