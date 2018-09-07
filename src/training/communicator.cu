@@ -55,6 +55,29 @@ public:
     }
   }
 
+#define NCCLCHECK(cmd) do {                         \
+  ncclResult_t r = cmd;                             \
+  ABORT_IF(r != ncclSuccess, "Failed, NCCL error {} '{}'",             \
+        #cmd, ncclGetErrorString(r));   \
+} while(0)
+
+  void reduceGrads() override {
+    ncclGroupStart();
+    for(int i = 0; i < graphs_.size(); ++i) {
+      NCCLCHECK(ncclReduce(graphs_[i]->params()->grads()->data(),
+                           graphs_[i]->params()->grads()->data(),
+                           graphs_[0]->params()->vals()->size(),
+                           ncclFloat,
+                           ncclSum,
+				           0, // root  --@TODO: add root as parameter to this function, default 0
+                           comms_[i],
+                           streams_[i]));
+    }
+    ncclGroupEnd();
+
+    synchronizeAll();
+  }
+
   void scatterReduce() override {
     int totalSize = graphs_[0]->params()->vals()->size();
     int shardSize = ceil(totalSize / (float)graphs_.size());

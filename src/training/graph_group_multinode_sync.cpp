@@ -249,7 +249,7 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
   }
 
   // aggregate locally
-  comm_->allReduceGrads();
+  comm_->reduceGrads();
 
   // aggregate across delayed batches
   // @TODO: If we instead not reset the gradients themselves, we can eliminate accGradient_ altogether & save 0.5 GB.

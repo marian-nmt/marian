@@ -46,13 +46,7 @@ public:
 
   virtual void scatterReduce() = 0; // @TODO: indicate by the name that this is scattering gradients
   virtual void allGather(bool vals) = 0;
-  void allReduceGrads() // @TODO: This should use proper NCCL primitives. Currently an emulation.
-  {
-    if (graphs_.size() > 1) {
-      scatterReduce();
-      allGather(/*vals=*/false);
-    }
-  }
+  virtual void reduceGrads() = 0;
 
   virtual void pushParams(std::vector<Tensor>& params) = 0;
   virtual void pullParams(const std::vector<Tensor>& params) = 0;
@@ -144,6 +138,13 @@ public:
     };
 
     this->foreach(gather);
+  }
+
+  void reduceGrads() override {
+    if (graphs_.size() > 1) {
+      scatterReduce();
+      allGather(/*vals=*/false); // @BUGBUG: This is a hack that is slow and also overwriting some gradients (which is OK in practice)
+    }
   }
 
   void pushParams(std::vector<Tensor>& params) override {
