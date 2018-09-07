@@ -19,7 +19,7 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Config> config)
     builders_.push_back(models::from_config(options_, models::usage::training));
   }
 
-  comm_ = createCommunicator(graphs_, options_->get<bool>("no-nccl", false));
+  comm_ = createCommunicator(graphs_, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/nullptr);
 }
 
 void SyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) {

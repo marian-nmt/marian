@@ -11,6 +11,8 @@
 
 namespace marian {
 
+struct/*interface*/ IMPIWrapper; // @TODO: Should we use a separate header, or move this declaration up here?
+
 // This class implements the cross-GPU operations for distributed training within a single box.
 // @TODO: This should absorb the multi-node version as well.
 class Communicator {
@@ -46,7 +48,8 @@ public:
 
   virtual void scatterReduce() = 0; // @TODO: indicate by the name that this is scattering gradients
   virtual void allGather(bool vals) = 0;
-  virtual void reduceGrads() = 0;
+  virtual void allReduceGrads() = 0;
+  virtual void reduceGrads(size_t root = 0) = 0;
 
   virtual void pushParams(std::vector<Tensor>& params) = 0;
   virtual void pullParams(const std::vector<Tensor>& params) = 0;
@@ -85,8 +88,10 @@ private:
   }
 
 public:
-  DefaultCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs)
-      : Communicator(graphs) {}
+  DefaultCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs, Ptr<IMPIWrapper> mpi)
+      : Communicator(graphs) {
+    ABORT_IF(mpi != nullptr, "DefaultCommunicator support for MPI is not yet implemented");
+  }
 
   ~DefaultCommunicator() override {}
 
@@ -140,11 +145,15 @@ public:
     this->foreach(gather);
   }
 
-  void reduceGrads() override {
-    if (graphs_.size() > 1) {
+  void allReduceGrads() override {
+    if (graphs_.size() > 1) { // @TODO: perf bug: this is not efficient
       scatterReduce();
-      allGather(/*vals=*/false); // @BUGBUG: This is a hack that is slow and also overwriting some gradients (which is OK in practice)
+      allGather(/*vals=*/false);
     }
+  }
+
+  void reduceGrads(size_t /*root*/) override {
+    allReduceGrads(); // @BUGBUG: This is a hack that is slow and also overwriting some gradients (which is OK in practice)
   }
 
   void pushParams(std::vector<Tensor>& params) override {
@@ -203,7 +212,7 @@ public:
 
 Ptr<Communicator> createCommunicator(
     const std::vector<Ptr<ExpressionGraph>>& graphs,
-    bool noNccl = false);
+    bool noNccl, Ptr<IMPIWrapper> mpi);
 
 // Abstracts MPI operations, allowing alternative implementations (specifically fake (for debugging) and NCCL.
 // This implements the MPI APIs we use here, with the following modifications:

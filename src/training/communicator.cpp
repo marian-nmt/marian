@@ -5,15 +5,40 @@
 
 namespace marian {
 
-// Compile this if cuda is not being compiled.
-// Version with CUDA and/or NCCL is compiled in communicator.cu
-#ifndef CUDA_FOUND
 Ptr<Communicator> createCommunicator(
-    const std::vector<Ptr<ExpressionGraph>>& graphs,
-    bool /*noNccl*/) {
-  return New<DefaultCommunicator>(graphs);
-}
+  const std::vector<Ptr<ExpressionGraph>>& graphs,
+  bool noNccl, Ptr<IMPIWrapper> mpi) {
+  mpi;
+#if defined(CUDA_FOUND) && defined(USE_NCCL)
+  if(noNccl) {
+    LOG(warn, "[comm] NCCL communicator overridden");
+    return New<DefaultCommunicator>(graphs, mpi);
+  }
+
+  // if at least one of the devices is not a gpu, fall-back to default
+  for(auto& graph : graphs) {
+    if(graph->getBackend()->getDeviceId().type == DeviceType::cpu) {
+      return New<DefaultCommunicator>(graphs, mpi);
+    }
+  }
+
+  size_t d = graphs.size();
+  if((d & (d - 1)) != 0) {
+    LOG(warn,
+        "[comm] Number of devices {} is not a power of 2 and communication "
+        "might be slow with NCCL",
+        d);
+    LOG(warn, "[comm] You can switch off NCCL with --no-nccl option", d);
+  }
+
+  // the actual implemenntation is inside communicator.cu
+  extern Ptr<Communicator> newNCCLCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs, Ptr<IMPIWrapper> mpi);
+  return newNCCLCommunicator(graphs, mpi);
+#else // no CUDA or no NCCL
+  noNccl; // (unused)
+  return New<DefaultCommunicator>(graphs, mpi);
 #endif
+}
 
 #if MPI_FOUND
 // wrapper for MPI calls

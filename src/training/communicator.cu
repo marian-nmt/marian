@@ -17,6 +17,7 @@ private:
   std::vector<ncclComm_t> comms_;
   std::vector<cudaStream_t> streams_;
   std::vector<int> devices_;
+  Ptr<IMPIWrapper> mpi_; // cf. https://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/index.html#multidevprothrd
 
   void synchronizeAll() {
     for(int i = 0; i < graphs_.size(); ++i) {
@@ -26,12 +27,21 @@ private:
   }
 
 public:
-  NCCLCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs)
+  // a NCCLCommunicator is bound to a set of graphs, one per GPU device
+  // If mpi is used, then each worker has an instance of this class for its specific
+  // set of GPU devices, which are communicating with each other.
+  NCCLCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs, Ptr<IMPIWrapper> mpi)
       : Communicator(graphs),
         comms_(graphs.size()),
         streams_(graphs.size()),
-        devices_(graphs.size()) {
-    LOG(info, "[comm] Using NCCL library for GPU communication");
+        devices_(graphs.size()),
+		mpi_(mpi) {
+	if (mpi_)
+      LOG(info, "[comm] Using NCCL library and MPI for GPU communication");
+   else
+      LOG(info, "[comm] Using NCCL library for GPU communication");
+
+    ABORT_IF(mpi_ != nullptr, "NCCLCommunicator support for MPI is not yet implemented");
 
     for(int i = 0; i < graphs_.size(); ++i) {
       auto device = graphs_[i]->getBackend()->getDeviceId();
@@ -56,12 +66,28 @@ public:
   }
 
 #define NCCLCHECK(cmd) do {                         \
-  ncclResult_t r = cmd;                             \
-  ABORT_IF(r != ncclSuccess, "Failed, NCCL error {} '{}'",             \
-        #cmd, ncclGetErrorString(r));   \
-} while(0)
+    ncclResult_t r = cmd;                             \
+    ABORT_IF(r != ncclSuccess, "Failed, NCCL error {} '{}'",             \
+          #cmd, ncclGetErrorString(r));   \
+  } while(0)
 
-  void reduceGrads() override {
+  void allReduceGrads() override {
+    ncclGroupStart();
+    for(int i = 0; i < graphs_.size(); ++i) {
+      NCCLCHECK(ncclAllReduce(graphs_[i]->params()->grads()->data(),
+                              graphs_[i]->params()->grads()->data(),
+                              graphs_[0]->params()->vals()->size(),
+                              ncclFloat,
+                              ncclSum,
+                              comms_[i],
+                              streams_[i]));
+    }
+    ncclGroupEnd();
+
+    synchronizeAll();
+  }
+
+  void reduceGrads(size_t root) override {
     ncclGroupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
       NCCLCHECK(ncclReduce(graphs_[i]->params()->grads()->data(),
@@ -69,7 +95,7 @@ public:
                            graphs_[0]->params()->vals()->size(),
                            ncclFloat,
                            ncclSum,
-				           0, // root  --@TODO: add root as parameter to this function, default 0
+				           root,
                            comms_[i],
                            streams_[i]));
     }
@@ -236,35 +262,8 @@ public:
 };
 #endif
 
-Ptr<Communicator> createCommunicator(
-    const std::vector<Ptr<ExpressionGraph>>& graphs,
-    bool noNccl) {
-#ifdef USE_NCCL
-  if(noNccl) {
-    LOG(warn, "[comm] NCCL communicator overridden");
-    return New<DefaultCommunicator>(graphs);
-  }
-
-  // if at least one of the devices is not a gpu, fall-back to default
-  for(auto& graph : graphs) {
-    if(graph->getBackend()->getDeviceId().type == DeviceType::cpu) {
-      return New<DefaultCommunicator>(graphs);
-    }
-  }
-
-  size_t d = graphs.size();
-  if((d & (d - 1)) != 0) {
-    LOG(warn,
-        "[comm] Number of devices {} is not a power of 2 and communication "
-        "might be slow with NCCL",
-        d);
-    LOG(warn, "[comm] You can switch off NCCL with --no-nccl option", d);
-  }
-
-  return New<NCCLCommunicator>(graphs);
-#else
-  return New<DefaultCommunicator>(graphs);
-#endif
+Ptr<Communicator> newNCCLCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs, Ptr<IMPIWrapper> mpi) {
+  return New<NCCLCommunicator>(graphs, mpi);
 }
 
 }  // namespace marian
