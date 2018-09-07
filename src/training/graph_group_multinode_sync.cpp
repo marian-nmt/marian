@@ -53,7 +53,9 @@ void MultiNodeGraphGroupSync::init(Ptr<data::Batch> batch) {
   // @TODO: move this after the other allocations, unless there is a reason
   // @TODO: should this code know how to allocate this? Shouldn't this be owned by the parameter-averager?
   if(movingAvg_)
-    paramsAvg_ = newTensor(network_size, clientGraphs_.back()->getBackend());
+    paramsAvg_ = newTensor(network_size, clientGraphs_[0]->getBackend());
+  // @TODO: original version put averaging onto a different GPU, to save GPU RAM.
+  //        No longer needed since we no longer aggregate anything else on the GPU.
 
   // setup sync sgd storage, We keep the summed gradient on device 0
   // @TODO: eliminate devices size condition once comm_ works
@@ -178,11 +180,10 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync2() {
   std::vector<std::thread> threads; // @TODO: keep the thread pool around
   for(int idx = 1; idx < devices_.size(); idx++) {
     threads.emplace_back(std::thread(
-        [=](int idx) {
+        [=]() {
           clientGraphs_[idx]->params()->vals()->copyFrom(
               clientGraphs_[0]->params()->vals());
-        },
-        idx));
+        }));
   }
   for(auto&& t : threads) {
     t.join();

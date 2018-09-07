@@ -1,3 +1,5 @@
+// @TODO: why is this a .cu file? It does not contain any CUDA kernels.
+
 // clang-format off
 #include "training/communicator.h"
 #include "functional/functional.h"
@@ -14,6 +16,7 @@ namespace marian {
 #ifdef USE_NCCL
 
 #define NCCLCHECK(cmd) do {                         \
+    LOG(info, "[nccl] {}", #cmd); \
     ncclResult_t r = cmd;                             \
     LOG(info, "[nccl] {} -> {}", #cmd, r); \
     ABORT_IF(r != ncclSuccess, "Failed, NCCL error {} '{}'",             \
