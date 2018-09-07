@@ -111,7 +111,7 @@ public:
           std::stringstream best1;
           std::stringstream bestn;
           printer->print(history, best1, bestn);
-          collector->Write(history->GetLineNum(),
+          collector->Write((long)history->GetLineNum(),
                            best1.str(),
                            bestn.str(),
                            options_->get<bool>("n-best"));

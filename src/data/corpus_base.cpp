@@ -216,9 +216,9 @@ void CorpusBase::addWeightsToSentenceTuple(const std::string& line,
 
 void CorpusBase::addAlignmentsToBatch(Ptr<CorpusBatch> batch,
                                       const std::vector<sample>& batchVector) {
-  int srcWords = batch->front()->batchWidth();
-  int trgWords = batch->back()->batchWidth();
-  int dimBatch = batch->getSentenceIds().size();
+  int srcWords = (int)batch->front()->batchWidth();
+  int trgWords = (int)batch->back()->batchWidth();
+  int dimBatch = (int)batch->getSentenceIds().size();
 
   std::vector<float> aligns(srcWords * dimBatch * trgWords, 0.f);
 
@@ -235,8 +235,8 @@ void CorpusBase::addAlignmentsToBatch(Ptr<CorpusBatch> batch,
 
 void CorpusBase::addWeightsToBatch(Ptr<CorpusBatch> batch,
                                    const std::vector<sample>& batchVector) {
-  int dimBatch = batch->size();
-  int trgWords = batch->back()->batchWidth();
+  int dimBatch = (int)batch->size();
+  int trgWords = (int)batch->back()->batchWidth();
 
   auto sentenceLevel
       = options_->get<std::string>("data-weighting-type") == "sentence";

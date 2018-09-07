@@ -58,7 +58,11 @@ class YAML_CPP_API Node {
   bool IsMap() const { return Type() == NodeType::Map; }
 
   // bool conversions
+#if 1 // @TODO: Original code used the strange macro below, which returned a pointer instead of a bool. Why? What am I breaking?
+  operator bool() const { return IsDefined(); }
+#else
   YAML_CPP_OPERATOR_BOOL()
+#endif
   bool operator!() const { return !IsDefined(); }
 
   // access

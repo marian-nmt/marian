@@ -59,7 +59,7 @@ struct Approx {
     if(x <= -radius)
       return 0;
     if(x < radius)  // +1 because 0 holds value for x < -radius
-      return (x + radius - offset) / ((2.f * radius) / pieces) + 1;
+      return int((x + radius - offset) / ((2.f * radius) / pieces) + 1);
     return pieces + 1;
   }
 

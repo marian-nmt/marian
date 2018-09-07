@@ -31,7 +31,7 @@ void AsyncGraphGroupDrop::fetchParams(Tensor oldParams,
           sparseShard->gather(params[idx]);
           sparseGrad->copyFrom(sparseShard);
           sparseGrad->scatterUpdate(
-              oldParams->subtensor(pos, params[idx]->size()));
+              oldParams->subtensor((int)pos, (int)params[idx]->size()));
         },
         idx,
         pos));
@@ -59,7 +59,7 @@ void AsyncGraphGroupDrop::pushGradients(Tensor newGrads,
           auto dropper = droppers_[device_id][idx];
           auto sparseGrad = sparseGrads_[device_id][idx];
           auto sparseShard = sparseShards_[device_id][idx];
-          auto tensor = newGrads->subtensor(pos, grads_[idx]->size());
+          auto tensor = newGrads->subtensor((int)pos, (int)grads_[idx]->size());
           // individual mutex per-shard
           std::lock_guard<std::mutex> guard(shardSync_[idx]);
 
@@ -107,8 +107,8 @@ void AsyncGraphGroupDrop::init(Ptr<data::Batch> batch) {
       fetch_ready.push_back(false);
 
       // Size of the sparse tensor
-      int totalSize = graphs_[0]->params()->vals()->size();
-      int sparseCap = totalSize * 1.2 * (1.0 - droping_rate);
+      int totalSize = (int)graphs_[0]->params()->vals()->size();
+      int sparseCap = (int)(totalSize * 1.2 * (1.0 - droping_rate));
 
       // prepare droppers
       std::vector<GradientDrop> tmpDropper;
@@ -120,13 +120,13 @@ void AsyncGraphGroupDrop::init(Ptr<data::Batch> batch) {
       std::vector<SparseTensor> tmp;
       for(int j = 0; j < devices_.size(); j++)
         tmp.push_back(SparseTensor(new SparseTensorBase(
-            sparseCap / devices_.size(), graphs_[i]->getBackend())));
+            sparseCap / (int)devices_.size(), graphs_[i]->getBackend())));
       sparseGrads_.push_back(tmp);
 
       std::vector<SparseTensor> tmp2;
       for(int j = 0; j < devices_.size(); j++)
         tmp2.push_back(SparseTensor(new SparseTensorBase(
-            sparseCap / devices_.size(), graphs_[j]->getBackend())));
+            sparseCap / (int)devices_.size(), graphs_[j]->getBackend())));
       sparseShards_.push_back(tmp2);
     }
     drop_first = false;

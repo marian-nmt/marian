@@ -63,12 +63,12 @@ public:
 
   void setParams(const std::vector<float>& params) { parseParams(params); }
 
-  virtual void load(const std::string& name,
-                    std::vector<Ptr<OptimizerBase>> opts,
-                    std::vector<Ptr<Backend>> backends) {}
-  virtual void save(const std::string& name,
-                    std::vector<Ptr<OptimizerBase>> opts,
-                    size_t totalSize) {}
+  virtual void load(const std::string& /*name*/,
+                    std::vector<Ptr<OptimizerBase>> /*opts*/,
+                    std::vector<Ptr<Backend>> /*backends*/) {}
+  virtual void save(const std::string& /*name*/,
+                    std::vector<Ptr<OptimizerBase>> /*opts*/,
+                    size_t /*totalSize*/) {}
 
 protected:
   virtual void updateImpl(Tensor params, Tensor grads) = 0;
@@ -94,7 +94,7 @@ public:
 private:
   void updateImpl(Tensor params, Tensor grads) override;
 
-  virtual void parseParams(const std::vector<float>& params) override {}
+  virtual void parseParams(const std::vector<float>& /*params*/) override {}
   virtual void resetStats() override {}
 };
 
@@ -124,7 +124,7 @@ private:
       eps_ = params[0];
   }
 
-  float eps_ = 1e-8;
+  float eps_ = 1e-8f;
   Ptr<TensorAllocator> alloc_;
   Tensor gt_;
 };
@@ -159,9 +159,9 @@ private:
       eps_ = params[2];
   }
 
-  float beta1_ = 0.9;
-  float beta2_ = 0.999;
-  float eps_ = 1e-8;
+  float beta1_ = 0.9f;
+  float beta2_ = 0.999f;
+  float eps_ = 1e-8f;
   size_t t_;
 
   Ptr<TensorAllocator> alloc_;

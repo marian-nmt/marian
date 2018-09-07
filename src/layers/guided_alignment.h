@@ -38,13 +38,13 @@ static inline Expr guidedAlignmentCost(Ptr<ExpressionGraph> graph,
   }
 
   Expr alnCost;
-  float eps = 1e-6;
+  float epsilon = 1e-6f;
   if(guidedCostType == "mse") {
-    alnCost = sum(flatten(square(att - aln))) / (2 * div);
+    alnCost = sum(flatten(square(att - aln))) / (float)(2 * div);
   } else if(guidedCostType == "mult") {
-    alnCost = -log(sum(flatten(att * aln)) + eps) / div;
+    alnCost = -log(sum(flatten(att * aln)) + epsilon) / (float)div;
   } else if(guidedCostType == "ce") {
-    alnCost = -sum(flatten(aln * log(att + eps))) / div;
+    alnCost = -sum(flatten(aln * log(att + epsilon))) / (float)div;
   } else {
     ABORT("Unknown alignment cost type");
   }

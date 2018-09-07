@@ -209,7 +209,7 @@ public:
 
     auto command = options_->get<std::string>("valid-script-path");
     auto valStr = utils::Exec(command);
-    float val = std::atof(valStr.c_str());
+    float val = (float)std::atof(valStr.c_str());
     updateStalled(graphs, val);
 
     return val;
@@ -219,8 +219,8 @@ public:
 
 protected:
   virtual float validateBG(
-      const std::vector<Ptr<ExpressionGraph>>& graphs,
-      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) override {
+      const std::vector<Ptr<ExpressionGraph>>& /*graphs*/,
+      Ptr<data::BatchGenerator<data::Corpus>> /*batchGenerator*/) override {
     return 0;
   }
 };
@@ -332,7 +332,7 @@ public:
             std::stringstream best1;
             std::stringstream bestn;
             printer->print(history, best1, bestn);
-            collector->Write(history->GetLineNum(),
+            collector->Write((long)history->GetLineNum(),
                              best1.str(),
                              bestn.str(),
                              options_->get<bool>("n-best"));
@@ -357,7 +357,7 @@ public:
       auto command
           = options_->get<std::string>("valid-script-path") + " " + fileName;
       auto valStr = utils::Exec(command);
-      val = std::atof(valStr.c_str());
+      val = (float)std::atof(valStr.c_str());
       updateStalled(graphs, val);
     }
 
@@ -370,8 +370,8 @@ protected:
   bool quiet_{false};
 
   virtual float validateBG(
-      const std::vector<Ptr<ExpressionGraph>>& graphs,
-      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) override {
+      const std::vector<Ptr<ExpressionGraph>>& /*graphs*/,
+      Ptr<data::BatchGenerator<data::Corpus>> /*batchGenerator*/) override {
     return 0;
   }
 };
@@ -562,8 +562,8 @@ protected:
   }
 
   virtual float validateBG(
-      const std::vector<Ptr<ExpressionGraph>>& graphs,
-      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) override {
+      const std::vector<Ptr<ExpressionGraph>>& /*graphs*/,
+      Ptr<data::BatchGenerator<data::Corpus>> /*batchGenerator*/) override {
     return 0;
   }
 };

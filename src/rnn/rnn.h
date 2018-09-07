@@ -64,10 +64,10 @@ private:
 
     auto xWs = cell_->applyInput({input});
 
-    size_t timeSteps = input->shape()[-3];
+    auto timeSteps = input->shape()[-3];
 
     States outputs;
-    for(size_t i = 0; i < timeSteps; ++i) {
+    for(int i = 0; i < timeSteps; ++i) {
       int j = i;
 
       if(direction_ == dir::backward)

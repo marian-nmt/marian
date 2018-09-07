@@ -30,7 +30,7 @@ public:
          bool validate = false) {
     std::vector<std::string> sargv;
     utils::Split(options, sargv, " ");
-    int argc = sargv.size();
+    int argc = (int)sargv.size();
 
     std::vector<char*> argv(argc);
     for(int i = 0; i < argc; ++i)
@@ -67,7 +67,7 @@ public:
         try {
           if(!get<bool>("ignore-model-config"))
             loadModelParameters(get<std::string>("model"));
-        } catch(std::runtime_error& e) {
+        } catch(std::runtime_error&) {
           LOG(info, "[config] No model configuration found in model file");
         }
       }
@@ -76,7 +76,7 @@ public:
       try {
         if(!get<bool>("ignore-model-config"))
           loadModelParameters(model);
-      } catch(std::runtime_error& e) {
+      } catch(std::runtime_error&) {
         LOG(info, "[config] No model configuration found in model file");
       }
     }

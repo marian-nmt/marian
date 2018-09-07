@@ -119,12 +119,10 @@ public:
 
   virtual Tensor vals() override {
     ABORT("Not implemented for memory-mapped parameters");
-    return nullptr;
   }
 
   virtual Tensor grads() override {
     ABORT("Not implemented for memory-mapped parameters");
-    return nullptr;
   }
 
   virtual void clear() override {

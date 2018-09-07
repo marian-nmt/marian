@@ -56,7 +56,7 @@ uint16_t guess_terminal_width(uint16_t max_width) {
 #endif
   // couldn't determine terminal width
   if(cols == 0)
-    cols = po::options_description::m_default_line_length;
+    cols = (uint16_t)po::options_description::m_default_line_length;
   return max_width ? std::min(cols, max_width) : cols;
 }
 
@@ -488,7 +488,7 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
      "Epsilon for label smoothing (0 to disable)")
     ("clip-norm", po::value<double>()->default_value(1.f),
      "Clip gradient norm to  arg  (0 to disable)")
-    ("exponential-smoothing", po::value<float>()->default_value(0.f)->implicit_value(1e-4, "1e-4"),
+    ("exponential-smoothing", po::value<float>()->default_value(0.f)->implicit_value(1e-4f, "1e-4"),
      "Maintain smoothed version of parameters for validation and saving with smoothing factor arg. "
      " 0 to disable.")
     ("guided-alignment", po::value<std::string>(),
@@ -754,7 +754,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     return str;
   };
 
-  bool loadConfig = vm_.count("config");
+  bool loadConfig = vm_.count("config") != 0;
   bool reloadConfig
       = (mode_ == ConfigMode::training)
         && boost::filesystem::exists(InterpolateEnvVarsIfRequested(
@@ -973,8 +973,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION_NONDEFAULT("valid-translation-output", std::string);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("normalize", float);
-    SET_OPTION("max-length-factor", float);
     SET_OPTION("word-penalty", float);
+    SET_OPTION("max-length-factor", float);
     SET_OPTION("allow-unk", bool);
     SET_OPTION("n-best", bool);
   }

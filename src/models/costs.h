@@ -175,9 +175,9 @@ public:
     return cost_->apply(nextState);
   }
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::CorpusBatch> batch,
-                     bool clearGraph = true) override {
+  virtual Expr build(Ptr<ExpressionGraph> /*graph*/,
+                     Ptr<data::CorpusBatch> /*batch*/,
+                     bool /*clearGraph*/ = true) override {
     ABORT("Wrong wrapper. Use models::Trainer or models::Scorer");
     return nullptr;
   }

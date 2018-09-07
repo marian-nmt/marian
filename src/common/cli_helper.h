@@ -10,7 +10,7 @@ namespace cli {
 
 // helper to replace environment-variable expressions of the form ${VARNAME} in
 // a string
-static std::string InterpolateEnvVars(std::string str) {
+static inline std::string InterpolateEnvVars(std::string str) {
 // temporary workaround for MS-internal PhillyOnAzure cluster: warm storage
 // presently has the form /hdfs/VC instead of /{gfs,hdfs}/CLUSTER/VC
 #if 1
