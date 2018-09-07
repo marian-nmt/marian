@@ -12,12 +12,20 @@
 namespace marian {
 
 #ifdef USE_NCCL
+
+#define NCCLCHECK(cmd) do {                         \
+    ncclResult_t r = cmd;                             \
+    LOG(info, "[nccl] {} -> {}", #cmd, r); \
+    ABORT_IF(r != ncclSuccess, "Failed, NCCL error {} '{}'",             \
+          #cmd, ncclGetErrorString(r));   \
+  } while(0)
+
 class NCCLCommunicator : public Communicator {
 private:
   std::vector<ncclComm_t> comms_;
   std::vector<cudaStream_t> streams_;
   std::vector<int> devices_;
-  Ptr<IMPIWrapper> mpi_; // cf. https://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/index.html#multidevprothrd
+  Ptr<IMPIWrapper> mpi_; // non-null if multi-node
 
   void synchronizeAll() {
     for(int i = 0; i < graphs_.size(); ++i) {
@@ -26,22 +34,28 @@ private:
     }
   }
 
+  size_t myRankWithMPI(size_t index) const { // map local device index to a global MPI rank
+    return mpi_->myRank() * devices_.size() + index;
+  }
+
+  size_t numRanksWithMPI() const { // map local device index to a global MPI rank
+    return mpi_->commWorldSize() * devices_.size();
+  }
+
 public:
   // a NCCLCommunicator is bound to a set of graphs, one per GPU device
-  // If mpi is used, then each worker has an instance of this class for its specific
+  // If MPI is used, then each worker has an instance of this class for its specific
   // set of GPU devices, which are communicating with each other.
   NCCLCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs, Ptr<IMPIWrapper> mpi)
       : Communicator(graphs),
         comms_(graphs.size()),
         streams_(graphs.size()),
         devices_(graphs.size()),
-		mpi_(mpi) {
-	if (mpi_)
+        mpi_(mpi) {
+    if (mpi_)
       LOG(info, "[comm] Using NCCL library and MPI for GPU communication");
-   else
+    else
       LOG(info, "[comm] Using NCCL library for GPU communication");
-
-    ABORT_IF(mpi_ != nullptr, "NCCLCommunicator support for MPI is not yet implemented");
 
     for(int i = 0; i < graphs_.size(); ++i) {
       auto device = graphs_[i]->getBackend()->getDeviceId();
@@ -54,7 +68,31 @@ public:
       cudaStreamCreate(&streams_[i]);
     }
 
-    ncclCommInitAll(comms_.data(), devices_.size(), devices_.data());
+    // when using MPI, the setup is a laborious
+    // cf. https://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/index.html#multidevprothrd
+    if (mpi_) {
+      // generate NCCL unique ID at one process and broadcast to all
+      ncclUniqueId uniqueId;
+      if (mpi->myRank() == 0) ncclGetUniqueId(&uniqueId);
+      LOG(info, "before bcast: unique id = {}", std::string(uniqueId.internal, NCCL_UNIQUE_ID_BYTES));
+      mpi_->bCast((void*)&uniqueId, sizeof(uniqueId), MPI_BYTE, 0);
+      LOG(info, "unique id = {}", std::string(uniqueId.internal, NCCL_UNIQUE_ID_BYTES));
+
+      // initialize NCCL with group API
+      NCCLCHECK(ncclGroupStart());
+      for (int i = 0; i < devices_.size(); i++) {
+        cudaSetDevice(devices_[i]);
+        //LOG(info, "ncclCommInitRank {}, {}", numRanksWithMPI(), myRankWithMPI(i));
+        NCCLCHECK(ncclCommInitRank(&comms_[i], numRanksWithMPI(), uniqueId, myRankWithMPI(i)));
+        LOG(info, "done ncclCommInitRank {}, {}", numRanksWithMPI(), myRankWithMPI(i));
+      }
+      NCCLCHECK(ncclGroupEnd());
+    }
+    // without MPI, we have a handy convenience version to initialize
+    else {
+      NCCLCHECK(ncclCommInitAll(comms_.data(), devices_.size(), devices_.data()));
+    }
+    LOG(info, "done constructing NCCLCommunicator");
   }
 
   ~NCCLCommunicator() override {
@@ -65,13 +103,8 @@ public:
     }
   }
 
-#define NCCLCHECK(cmd) do {                         \
-    ncclResult_t r = cmd;                             \
-    ABORT_IF(r != ncclSuccess, "Failed, NCCL error {} '{}'",             \
-          #cmd, ncclGetErrorString(r));   \
-  } while(0)
-
   void allReduceGrads() override {
+    // @BUGBUG: This function is untested with MPI. If we don't need it, remove.
     ncclGroupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
       NCCLCHECK(ncclAllReduce(graphs_[i]->params()->grads()->data(),
@@ -88,14 +121,14 @@ public:
   }
 
   void reduceGrads(size_t root) override {
-    ncclGroupStart();
+    ncclGroupStart(); // this will aggregate across nodes and across devices inside nodes (we only loop over the local devices here)
     for(int i = 0; i < graphs_.size(); ++i) {
       NCCLCHECK(ncclReduce(graphs_[i]->params()->grads()->data(),
                            graphs_[i]->params()->grads()->data(),
                            graphs_[0]->params()->vals()->size(),
                            ncclFloat,
                            ncclSum,
-				           root,
+                           root,
                            comms_[i],
                            streams_[i]));
     }
@@ -105,6 +138,7 @@ public:
   }
 
   void scatterReduce() override {
+    ABORT_IF(mpi_ != nullptr, "allReduceGrads() support for MPI is not yet implemented");
     int totalSize = graphs_[0]->params()->vals()->size();
     int shardSize = ceil(totalSize / (float)graphs_.size());
 
@@ -135,6 +169,7 @@ public:
   }
 
   void allGather(bool vals) override {
+    ABORT_IF(mpi_ != nullptr, "allReduceGrads() support for MPI is not yet implemented");
     int totalSize = graphs_[0]->params()->vals()->size();
     int shardSize = ceil(totalSize / (float)graphs_.size());
 
@@ -161,6 +196,7 @@ public:
   }
 
   void swapParams(const std::vector<Tensor>& params) override {
+    ABORT_IF(mpi_ != nullptr, "allReduceGrads() support for MPI is not yet implemented");
     // Update all graphs with parameter shard
     ABORT_IF(graphs_.size() < 2, "Swap requires at least two graphs");
 
@@ -187,6 +223,7 @@ public:
   }
 
   void pushParams(std::vector<Tensor>& params) override {
+    ABORT_IF(mpi_ != nullptr, "allReduceGrads() support for MPI is not yet implemented");
     // Copy paramter shard from i-th graph to shard params[i].
     // Graphs and shards with the same index live on the same device.
 
@@ -201,6 +238,7 @@ public:
   }
 
   void pullParams(const std::vector<Tensor>& params) override {
+    ABORT_IF(mpi_ != nullptr, "allReduceGrads() support for MPI is not yet implemented");
     // Update all graphs with parameter shard
 
     auto gather = [this, params](size_t idx, int pos) {

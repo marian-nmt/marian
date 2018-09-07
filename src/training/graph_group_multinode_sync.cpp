@@ -138,6 +138,7 @@ void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) { // @TODO: why UPPERCASE
 //  - all-reduce of gradient across workers -> allReduceAccGradients()
 //  - model update (should just be in execute())
 //  - broadcast of updated model to all devices (this mirrors sumGRAD())
+// @TODO: this goes away in case of NCCL; or rather, this should be moved to DefaultCommunicator
 void MultiNodeGraphGroupSync::sendReceiveUpdateSync(Tensor accGradientsSync) {
   auto network_size = clientGraphs_[0]->params()->vals()->size();
 
@@ -155,26 +156,31 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync(Tensor accGradientsSync) {
                   network_size,
                   MPI_FLOAT, MPI_SUM);
 
-  // Copy the data back to the GPU and do optimizer update
-  // Do update with last GPU to distribute the memory
-  clientGraphs_.back()->params()->grads()->set(receiveBuffer_cpu);
+  // Copy the data back to the GPU
+  clientGraphs_[0]->params()->grads()->set(receiveBuffer_cpu);
+}
 
+/**
+ * second step of update  --@TODO: split this up correctly; e.g. move back to execute()
+ * We are back in GPU land at this point.
+ */
+void MultiNodeGraphGroupSync::sendReceiveUpdateSync2() {
   // Perform optimizer step
-  syncOptimizer_->update(clientGraphs_.back());
+  syncOptimizer_->update(clientGraphs_[0]);
 
   if(movingAvg_)
     updateAvgParams(paramsAvg_,
-                    clientGraphs_.back()->params()->vals(),
+                    clientGraphs_[0]->params()->vals(),
                     scheduler_->numberOfBatches());
 
   // Distribute the updated params to the rest of the devices
   // @TODO: Does the multi-threaded operation here add any value for GPUs?
   std::vector<std::thread> threads; // @TODO: keep the thread pool around
-  for(int idx = 0; idx < devices_.size() - 1; idx++) {
+  for(int idx = 1; idx < devices_.size(); idx++) {
     threads.emplace_back(std::thread(
         [=](int idx) {
           clientGraphs_[idx]->params()->vals()->copyFrom(
-              clientGraphs_.back()->params()->vals());
+              clientGraphs_[0]->params()->vals());
         },
         idx));
   }
@@ -248,6 +254,14 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
     task(0);
   }
 
+#if 0 // NCCL version
+  ABORT_IF(accGradient_ != nullptr, "tau_ not yet implemented for NCCL MPI verseion"); // @TODO: we better change backward() to allow not resetting
+  if (t % tau_ == 0) {
+    LOG(info, "NCCL/MPI reduce");
+    comm_->reduceGrads();
+    sendReceiveUpdateSync2();
+  }
+#else
   // aggregate locally
   comm_->reduceGrads();
 
@@ -259,11 +273,13 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
   // aggregate globally
   if (t % tau_ == 0) {
     sendReceiveUpdateSync(accGradient_ != nullptr ? accGradient_ : clientGraphs_[0]->params()->grads());
+    sendReceiveUpdateSync2();
 
     // set the accumulating buffers to zero;
     if (accGradient_ != nullptr) // aggregate locally across the devices
       accGradient_->set(0); // @TODO: we can already launch this once we have copied it out, so that this op runs concurrently with the MPI exchange
   }
+#endif
 
   t++;
 

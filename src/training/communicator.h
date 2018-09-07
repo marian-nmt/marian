@@ -232,7 +232,7 @@ struct/*interface*/ IMPIWrapper
   virtual size_t myRank() const = 0;
   virtual size_t commWorldSize() const = 0;
   virtual void barrier(MPI_Comm comm = MPI_COMM_WORLD) const = 0;
-  virtual void bCast(void* buf, size_t count, MPI_Datatype datatype, size_t rootRank, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
+  virtual void bCast(void* buf, size_t count, MPI_Datatype datatype, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
   virtual void sSend(void* buf, size_t count, MPI_Datatype datatype, size_t destRank, int tag, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
   virtual void recv(void* buf, size_t count, MPI_Datatype datatype, size_t sourceRank, int tag, MPI_Comm comm = MPI_COMM_WORLD, MPI_Status* status = MPI_STATUS_IGNORE) const = 0;
   virtual void allReduce(const void* sendbuf, void* recvbuf, size_t count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
@@ -245,7 +245,7 @@ private:
   static MPI_Datatype getDataType(const unsigned long long*) { return MPI_UNSIGNED_LONG_LONG; }
 public:
   template<typename T>
-  void bCast(std::vector<T>& v, size_t rootRank, MPI_Comm comm = MPI_COMM_WORLD) {
+  void bCast(std::vector<T>& v, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) {
     size_t vecLen = v.size();
     bCast(&vecLen, 1, getDataType(&vecLen), rootRank, comm);
     v.resize(vecLen);

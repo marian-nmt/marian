@@ -138,6 +138,7 @@ private:
    * @TODO ALHAM. God function too godly?
    */
   void sendReceiveUpdateSync(Tensor accGradient);
+  void sendReceiveUpdateSync2();
 
   void execute(Ptr<data::Batch> batch);
 
