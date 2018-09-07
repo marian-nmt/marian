@@ -4,9 +4,16 @@ setlocal
 set ROOT=%~dp0
 set MARIAN_ROOT=%ROOT%..
 
+
+set NEED_VCPKG=
+if "%BOOST_INCLUDE_PATH%" == "" set NEED_VCPKG=1
+if "%ZLIB_PATH%" == "" set NEED_VCPKG=1
+if "%OPENSSL_PATH%" == "" set NEED_VCPKG=1
+
+if "%NEED_VCPKG%"=="" goto :checkDeps
+
 :: If you already have vcpkg (a C++ library manager for Windows), and it is not in your PATH
-:: set the following variable to the directory that contains the vcpkg.exe
-set VCPKG_ROOT=
+:: Please set the VCPKG_ROOT variable to the directory that contains the vcpkg.exe
 
 
 :: Clone or update vcpkg (used to manage the dependencies)
@@ -41,82 +48,135 @@ set VCPKG_DEFAULT_TRIPLET=x64-windows-static
 set VCPKG_INSTALL=%VCPKG_ROOT%\installed\%VCPKG_DEFAULT_TRIPLET%
 set VCPKG=%VCPKG_ROOT%\vcpkg
 
-echo.
 
+
+:checkDeps
 
 :: Check dependencies and configure CMake
 :: -------------------------------------------------------
 
+echo.
 echo --- Checking dependencies...
 
 set CMAKE_OPT=
 
 
-:: Use vcpkg toolchain
-set CMAKE_OPT=%CMAKE_OPT% -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake
-set CMAKE_OPT=%CMAKE_OPT% -DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET%
-
-
-::
-:: Check prerequisites
-::
-
 :: -------------------------
+:: The CUDA_PATH env variable is normally set by the CUDA SDK installer
+::
+echo.
 echo ... CUDA
-if not exist "%CUDA_PATH%" (
+if "%CUDA_PATH%"=="" (
     echo The CUDA_PATH environment variable is not defined: please make sure CUDA 8.0+ is installed.
     goto :eof
 )
+if not exist "%CUDA_PATH%" (
+    echo CUDA_PATH is set to an invalid path:
+    echo %CUDA_PATH%
+    echo Please make sure CUDA 8.0+ is properly installed.
+    goto :eof
+)
+
 echo Found Cuda SDK in %CUDA_PATH%
 
 
 :: -------------------------
+::
+echo.
 echo ... CUDNN
-if not exist "%CUDA_PATH%\lib\x64" (
+if not exist "%CUDA_PATH%\lib\x64\cudnn.lib" (
     echo CuDNN not found in your CUDA installation
-    goto :eof
-)
-echo Found CuDNN in "%CUDA_PATH%\lib\x64"
+) else (
+    echo Found CuDNN library in %CUDA_PATH%\lib\x64
 
-set CMAKE_OPT=%CMAKE_OPT% -D CUDNN_LIBRARY:PATH="%CUDA_PATH%\lib\x64\cudnn.lib"
-set CMAKE_OPT=%CMAKE_OPT% -D CUDNN_INCLUDE:PATH="%CUDA_PATH%\include"
+    set CMAKE_OPT=%CMAKE_OPT% -D CUDNN_LIBRARY:PATH="%CUDA_PATH%\lib\x64\cudnn.lib"
+)
 
 
 :: -------------------------
+:: If MKL_PATH is not set, we use the standard default installation dir
+::
+echo.
 echo ... Intel MKL
-set MKLROOT="C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\mkl"
-if not exist %MKLROOT% (
-    echo Please modify the script file to set MKLROOT to the installation path of the Intel MKL library.
+if "%MKL_PATH%" == "" ( 
+    set "MKL_PATH=C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\mkl"
+)
+if not exist "%MKL_PATH%" (
+    echo MKL_PATH is set to an invalid path:
+    echo "%MKL_PATH%"
+    echo Please set MKL_PATH to the installation path of the Intel MKL library.
     goto :eof
 )
-echo Found Intel MKL in %MKLROOT%
+echo Found Intel MKL library in %MKL_PATH%
 
-set CMAKE_OPT=%CMAKE_OPT% -DMKL_ROOT:PATH=%MKLROOT%
-set CMAKE_OPT=%CMAKE_OPT% -DMKL_INCLUDE_DIRS:PATH=%MKLROOT%\include
-set CMAKE_OPT=%CMAKE_OPT% -DMKL_CORE_LIBRARY:FILEPATH=%MKLROOT%\lib\intel64\mkl_core.lib
-set CMAKE_OPT=%CMAKE_OPT% -DMKL_INTERFACE_LIBRARY:FILEPATH=%MKLROOT%\lib\intel64\mkl_intel_ilp64.lib
-set CMAKE_OPT=%CMAKE_OPT% -DMKL_SEQUENTIAL_LAYER_LIBRARY:FILEPATH=%MKLROOT%\lib\intel64\mkl_sequential.lib
+set CMAKE_OPT=%CMAKE_OPT% -DMKL_ROOT:PATH="%MKL_PATH%"
+set CMAKE_OPT=%CMAKE_OPT% -DMKL_INCLUDE_DIRS:PATH="%MKL_PATH%\include"
+set CMAKE_OPT=%CMAKE_OPT% -DMKL_CORE_LIBRARY:FILEPATH="%MKL_PATH%\lib\intel64\mkl_core.lib"
+set CMAKE_OPT=%CMAKE_OPT% -DMKL_INTERFACE_LIBRARY:FILEPATH="%MKL_PATH%\lib\intel64\mkl_intel_ilp64.lib"
+set CMAKE_OPT=%CMAKE_OPT% -DMKL_SEQUENTIAL_LAYER_LIBRARY:FILEPATH="%MKL_PATH%\lib\intel64\mkl_sequential.lib"
 
 
 :: -------------------------
+:: BOOST_INCLUDE_PATH and BOOST_LIB_PATH can be both set to an existing Boost installation.
+:: If not, we use vcpkg to install the required Boost packages
+::
+echo.
 echo ... Boost (1.58+)
-%VCPKG% install boost-chrono boost-filesystem boost-iostreams boost-program-options boost-regex boost-system boost-thread boost-timer boost-asio
+if "%BOOST_INCLUDE_PATH%" == "" (
+    "%VCPKG%" install boost-chrono boost-filesystem boost-iostreams boost-program-options boost-regex boost-system boost-thread boost-timer boost-asio
+    set BOOST_INCLUDE_PATH="%VCPKG_INSTALL%\include"
+    set BOOST_LIB_PATH="%VCPKG_INSTALL%\lib"
+)
+if not exist "%BOOST_INCLUDE_PATH%" (
+    echo BOOST_INCLUDE_PATH is set to an invalid path:
+    echo "%BOOST_INCLUDE_PATH%"
+    echo Please set BOOST_INCLUDE_PATH and BOOST_LIB_PATH to the installation path of the Boost library.
+    goto :eof
+)
+if not exist "%BOOST_LIB_PATH%" (
+    echo BOOST_LIB_PATH is set to an invalid path:
+    echo "%BOOST_LIB_PATH%"
+    echo Please set BOOST_INCLUDE_PATH and BOOST_LIB_PATH to the installation path of the Boost library.
+    goto :eof
+)
+echo Found Boost headers in "%BOOST_INCLUDE_PATH%"
+
+set CMAKE_OPT=%CMAKE_OPT% -D BOOST_INCLUDEDIR:PATH="%BOOST_INCLUDE_PATH%"
+set CMAKE_OPT=%CMAKE_OPT% -D BOOST_LIBRARYDIR:PATH="%BOOST_LIB_PATH%"
+
 
 :: -------------------------
+:: ZLIB_PATH can be set to an existing zlib installation.
+:: If not, we use vcpkg to install the library
+::
+echo.
 echo ... zlib
-%VCPKG% install zlib
+if "%ZLIB_PATH%"=="" (
+    %VCPKG% install zlib
+    set ZLIB_PATH=%VCPKG_INSTALL%
+)
+
+set CMAKE_OPT=%CMAKE_OPT% -D ZLIB_LIBRARY:PATH=%ZLIB_PATH%\lib\zlib.lib
+set CMAKE_OPT=%CMAKE_OPT% -D ZLIB_INCLUDE_DIR:PATH=%ZLIB_PATH%\include
+
 
 :: -------------------------
+:: OPENSSL_PATH can be set to an existing OpenSSL installation.
+:: If not, we use vcpkg to install the library
+::
+echo.
 echo ... OpenSSL
-%VCPKG% install openssl
-set CMAKE_OPT=%CMAKE_OPT% -DOPENSSL_USE_STATIC_LIBS:BOOL=TRUE
-set CMAKE_OPT=%CMAKE_OPT% -DOPENSSL_MSVC_STATIC_RT:BOOL=TRUE
+if "%OPENSSL_PATH%"=="" (
+    %VCPKG% install openssl
+    set OPENSSL_PATH=%VCPKG_INSTALL%
+)
+set CMAKE_OPT=%CMAKE_OPT% -D OPENSSL_ROOT_DIR:PATH=%OPENSSL_PATH%
+set CMAKE_OPT=%CMAKE_OPT% -D OPENSSL_USE_STATIC_LIBS:BOOL=TRUE
+set CMAKE_OPT=%CMAKE_OPT% -D OPENSSL_MSVC_STATIC_RT:BOOL=TRUE
 
 echo.
-
+echo.
 echo --- Configuring CMake...
-
-set CMAKE_OPT=%CMAKE_OPT% -DBUILD_STATIC:BOOL=TRUE 
 
 :: -----  Target Visual Studio 2017 64bits -----
 set CMAKE_OPT=%CMAKE_OPT% -G"Visual Studio 15 2017 Win64" 
@@ -125,12 +185,7 @@ set CMAKE_OPT=%CMAKE_OPT% -G"Visual Studio 15 2017 Win64"
 set CMAKE_OPT=%CMAKE_OPT% -D CMAKE_POLICY_DEFAULT_CMP0074=NEW
 
 :: -----  Disable some tool build -----
-set CMAKE_OPT=%CMAKE_OPT% -D COMPILE_TRAIN:BOOL=TRUE 
-set CMAKE_OPT=%CMAKE_OPT% -D COMPILE_DECODER:BOOL=TRUE 
 set CMAKE_OPT=%CMAKE_OPT% -D COMPILE_SERVER:BOOL=TRUE 
-set CMAKE_OPT=%CMAKE_OPT% -D COMPILE_SCORER:BOOL=FALSE 
-set CMAKE_OPT=%CMAKE_OPT% -D COMPILE_PYTHON:BOOL=FALSE 
-set CMAKE_OPT=%CMAKE_OPT% -D COMPILE_VOCAB:BOOL=TRUE 
 set CMAKE_OPT=%CMAKE_OPT% -D COMPILE_EXAMPLES:BOOL=FALSE 
 set CMAKE_OPT=%CMAKE_OPT% -D COMPILE_TESTS:BOOL=FALSE 
 
@@ -163,3 +218,7 @@ cmake %CMAKE_OPT% %MARIAN_ROOT%
 ::cmake --build .
 
 popd
+
+goto :eof
+
+
