@@ -255,15 +255,15 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
     task(0);
   }
 
-#if 0 // NCCL version
+#if 1 // NCCL version
   ABORT_IF(accGradient_ != nullptr, "tau_ not yet implemented for NCCL MPI verseion"); // @TODO: we better change backward() to allow not resetting
   if (t % tau_ == 0) {
-    LOG(info, "NCCL/MPI reduce");
+    //LOG(info, "NCCL/MPI reduce");
     comm_->reduceGrads();
     sendReceiveUpdateSync2();
   }
 #else
-  // aggregate locally
+  // aggregate locally   --@TODO: you must also not pass mpi_ to the communicator, otherwise we double-aggregate
   comm_->reduceGrads();
 
   // aggregate across delayed batches

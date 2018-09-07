@@ -16,9 +16,9 @@ namespace marian {
 #ifdef USE_NCCL
 
 #define NCCLCHECK(cmd) do {                         \
-    LOG(info, "[nccl] {}", #cmd); \
+    /*LOG(info, "[nccl] {}", #cmd);*/ \
     ncclResult_t r = cmd;                             \
-    LOG(info, "[nccl] {} -> {}", #cmd, r); \
+    /*LOG(info, "[nccl] {} -> {}", #cmd, r);*/ \
     ABORT_IF(r != ncclSuccess, "Failed, NCCL error {} '{}'",             \
           #cmd, ncclGetErrorString(r));   \
   } while(0)
