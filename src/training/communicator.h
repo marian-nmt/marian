@@ -216,7 +216,7 @@ Ptr<Communicator> createCommunicator(
 
 // Abstracts MPI operations, allowing alternative implementations (specifically fake (for debugging) and NCCL.
 // This implements the MPI APIs we use here, with the following modifications:
-//  * throws exception instead of returning an error
+//  * aborts with ABORT() instead of returning an error
 //  * swapped out some strange MPI-specific data types to more correct C++ ones where appropriate
 #if MPI_FOUND
 #else

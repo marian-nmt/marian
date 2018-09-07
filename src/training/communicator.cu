@@ -75,17 +75,21 @@ public:
     // cf. https://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/index.html#multidevprothrd
     if (mpi_) {
       // generate NCCL unique ID at one process and broadcast to all
-      ncclUniqueId uniqueId;
-      if (mpi->myRank() == 0) ncclGetUniqueId(&uniqueId);
-      LOG(info, "before bcast: unique id = {}", std::string(uniqueId.internal, NCCL_UNIQUE_ID_BYTES));
+      ncclUniqueId uniqueId = { 0 };
+      LOG(info, "[mpi rank {}] before ncclGetUniqueId", mpi_->myRank());
+      if (mpi->myRank() == 0)
+        NCCLCHECK(ncclGetUniqueId(&uniqueId));
+      LOG(info, "[mpi rank {}] before bcast", mpi_->myRank());
+      //LOG(info, "before bcast: unique id = {}", std::string(uniqueId.internal, NCCL_UNIQUE_ID_BYTES));
       mpi_->bCast((void*)&uniqueId, sizeof(uniqueId), MPI_BYTE, 0);
-      LOG(info, "unique id = {}", std::string(uniqueId.internal, NCCL_UNIQUE_ID_BYTES));
+      LOG(info, "[mpi rank {}] after bcast", mpi_->myRank());
+      //LOG(info, "unique id = {}", std::string(uniqueId.internal, NCCL_UNIQUE_ID_BYTES));
 
       // initialize NCCL with group API
       NCCLCHECK(ncclGroupStart());
       for (int i = 0; i < devices_.size(); i++) {
         cudaSetDevice(devices_[i]);
-        //LOG(info, "ncclCommInitRank {}, {}", numRanksWithMPI(), myRankWithMPI(i));
+        LOG(info, "ncclCommInitRank {}, {}", numRanksWithMPI(), myRankWithMPI(i));
         NCCLCHECK(ncclCommInitRank(&comms_[i], numRanksWithMPI(), uniqueId, myRankWithMPI(i)));
         LOG(info, "done ncclCommInitRank {}, {}", numRanksWithMPI(), myRankWithMPI(i));
       }
@@ -93,7 +97,9 @@ public:
     }
     // without MPI, we have a handy convenience version to initialize
     else {
+      LOG(info, "InitAll");
       NCCLCHECK(ncclCommInitAll(comms_.data(), devices_.size(), devices_.data()));
+      LOG(info, "done InitAll");
     }
     LOG(info, "done constructing NCCLCommunicator");
   }
@@ -107,7 +113,6 @@ public:
   }
 
   void allReduceGrads() override {
-    // @BUGBUG: This function is untested with MPI. If we don't need it, remove.
     ncclGroupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
       NCCLCHECK(ncclAllReduce(graphs_[i]->params()->grads()->data(),

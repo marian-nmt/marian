@@ -63,7 +63,8 @@ private:
   ////////////////////////////////////////////////////////////////////////////
   // Communication variables.
 
-  Ptr<Communicator> comm_;
+  Ptr<Communicator> commWithinNode_; // Communicator within a single node, across devices
+  Ptr<Communicator> commAcrossNodes_; // Communicator across nodes, for device 0
 
   /**
    * Variables for optimizer delay and synchronous SGD
@@ -152,7 +153,8 @@ public:
         movingAvg_{options_->get<float>("exponential-smoothing") > 0}, // @TODO: redundant
         mvDecay_{options_->get<float>("exponential-smoothing")},
     syncOptimizer_{ Optimizer(options_) } { // @BUGBUG? Do we really have two optimizers?
-    comm_ = createCommunicator(clientGraphs_, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/mpi_);
+    commWithinNode_ = createCommunicator(clientGraphs_, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/nullptr);
+    commAcrossNodes_ = createCommunicator(std::vector<Ptr<ExpressionGraph>>{clientGraphs_[0]}, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/mpi_);
   }
 
   /**
@@ -258,7 +260,9 @@ public:
         clientGraphs_[0], clientBuilders_[0], devices_.size()); // @TODO: * tau_ ?
       flattenedStats = stats->flatten();
     }
+    LOG(info, "[mpi rank {}] distributing BatchStats with {} numbers", mpi_->myRank(), flattenedStats.size());
     mpi_->bCast(flattenedStats, 0); // broadcast to all
+    LOG(info, "[mpi rank {}] distributed BatchStats with {} numbers", mpi_->myRank(), flattenedStats.size());
     return New<data::BatchStats>(flattenedStats); // now all have the same BatchStats
   }
 };
