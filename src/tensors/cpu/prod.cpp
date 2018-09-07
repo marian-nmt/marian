@@ -92,7 +92,7 @@ void Prod(marian::Tensor C,
         C->data(),
         ldc);
 #else
-  ABORT("Not implemented!");
+  ABORT("You need to compile with MKL in order to use the CPU version");
 #endif
 }
 
@@ -148,7 +148,7 @@ void ProdBatched(marian::Tensor C,
           (int)ldc);
   }
 #else
-  ABORT("Not implemented!");
+  ABORT("You need to compile with MKL in order to use the CPU version");
 #endif
 }
 
