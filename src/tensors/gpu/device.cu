@@ -24,13 +24,15 @@ void Device::reserve(size_t size) {
 
   if(data_) {
     // Allocate memory by going through host memory
-    uint8_t *temp = new uint8_t[size_];
+    uint8_t *temp = new uint8_t[size_]; // TODO: use std::vector
     CUDA_CHECK(cudaMemcpy(temp, data_, size_, cudaMemcpyDeviceToHost));
     CUDA_CHECK(cudaFree(data_));
+    LOG(info, "re-allocating {} bytes on device {} (with CPU detour)", size, deviceId_.no);
     CUDA_CHECK(cudaMalloc(&data_, size));
     CUDA_CHECK(cudaMemcpy(data_, temp, size_, cudaMemcpyHostToDevice));
     delete[] temp;
   } else {
+    LOG(info, "re-allocating {} bytes in device {} (without CPU detour)", size, deviceId_.no);
     CUDA_CHECK(cudaMalloc(&data_, size));
   }
 

@@ -81,27 +81,37 @@ public:
         NCCLCHECK(ncclGetUniqueId(&uniqueId));
       LOG(info, "[mpi rank {}] before bcast", mpi_->myRank());
       //LOG(info, "before bcast: unique id = {}", std::string(uniqueId.internal, NCCL_UNIQUE_ID_BYTES));
-      mpi_->bCast((void*)&uniqueId, sizeof(uniqueId), MPI_BYTE, 0);
+      mpi_->bCast(&uniqueId, NCCL_UNIQUE_ID_BYTES, MPI_BYTE, 0);
       LOG(info, "[mpi rank {}] after bcast", mpi_->myRank());
       //LOG(info, "unique id = {}", std::string(uniqueId.internal, NCCL_UNIQUE_ID_BYTES));
 
-      // initialize NCCL with group API
-      NCCLCHECK(ncclGroupStart());
-      for (int i = 0; i < devices_.size(); i++) {
-        cudaSetDevice(devices_[i]);
-        LOG(info, "ncclCommInitRank {}, {}", numRanksWithMPI(), myRankWithMPI(i));
-        NCCLCHECK(ncclCommInitRank(&comms_[i], numRanksWithMPI(), uniqueId, myRankWithMPI(i)));
-        LOG(info, "done ncclCommInitRank {}, {}", numRanksWithMPI(), myRankWithMPI(i));
+      // if more than one device then initialize NCCL with group API
+      if (devices_.size() > 1) {
+        NCCLCHECK(ncclGroupStart());
+        for (int i = 0; i < devices_.size(); i++) {
+          cudaSetDevice(devices_[i]);
+          LOG(info, "ncclCommInitRank {}, {}", numRanksWithMPI(), myRankWithMPI(i));
+          NCCLCHECK(ncclCommInitRank(&comms_[i], numRanksWithMPI(), uniqueId, myRankWithMPI(i)));
+          LOG(info, "done ncclCommInitRank {}, {}", numRanksWithMPI(), myRankWithMPI(i));
+        }
+        NCCLCHECK(ncclGroupEnd());
+        LOG(info, "[mpi rank {}] group done constructing NCCLCommunicator", mpi_->myRank());
       }
-      NCCLCHECK(ncclGroupEnd());
+      // one device: no group API
+      else {
+        cudaSetDevice(devices_[0]);
+        LOG(info, "[mpi rank {} of {}] ncclCommInitRank", mpi_->myRank(), mpi_->commWorldSize());
+        NCCLCHECK(ncclCommInitRank(&comms_[0], mpi_->commWorldSize(), uniqueId, mpi_->myRank()));
+        LOG(info, "[mpi rank {}] done constructing NCCLCommunicator", mpi_->myRank());
+      }
     }
     // without MPI, we have a handy convenience version to initialize
     else {
-      LOG(info, "InitAll");
+      LOG(info, "ncclCommInitAll");
       NCCLCHECK(ncclCommInitAll(comms_.data(), devices_.size(), devices_.data()));
-      LOG(info, "done InitAll");
+      LOG(info, "done ncclCommInitAll");
+      LOG(info, "done constructing NCCLCommunicator");
     }
-    LOG(info, "done constructing NCCLCommunicator");
   }
 
   ~NCCLCommunicator() override {
