@@ -334,8 +334,8 @@ namespace SimpleWeb {
 
         auto send_stream = std::make_shared<SendStream>();
 
-        send_stream->put(status >> 8);
-        send_stream->put(status % 256);
+        send_stream->put((unsigned char)(status >> 8));
+        send_stream->put((unsigned char)(status % 256));
 
         *send_stream << reason;
 
@@ -680,7 +680,7 @@ namespace SimpleWeb {
             message = std::shared_ptr<Message>(new Message(fin_rsv_opcode, length));
           std::ostream ostream(&message->streambuf);
           for(std::size_t c = 0; c < length; c++)
-            ostream.put(istream.get() ^ mask[c % 4]);
+            ostream.put((unsigned char)(istream.get() ^ mask[c % 4]));
 
           // If connection close
           if((fin_rsv_opcode & 0x0f) == 8) {
@@ -689,8 +689,8 @@ namespace SimpleWeb {
 
             int status = 0;
             if(length >= 2) {
-              unsigned char byte1 = message->get();
-              unsigned char byte2 = message->get();
+              unsigned char byte1 = (unsigned char)(message->get());
+              unsigned char byte2 = (unsigned char)(message->get());
               status = (static_cast<int>(byte1) << 8) + byte2;
             }
 
