@@ -70,7 +70,9 @@ This part gives more information on all changes done. Refer to [this page](https
    See [this pdf](https://www.agner.org/optimize/calling_conventions.pdf), page 27, for more information.
 
 8. __Fix unresolved external due to a removed #include directive__  
-   An `#include` directive was specifically removed for MSVC compiler.
+   There was an include directive removed from MSVC compilation, but this prevented the build of the project. I'm not sure why this was removed; the comment is:
+
+        #ifndef _WIN32  // TODO: remove this once I updated the Linux-side makefile
 
 9. __Fix CUDA+MSVC incompatibility with Boost.Preprocessor__  
    The toolchain nvcc+msvc is not correctly handled in Boost.Preprocessor module. See [this issue](https://github.com/boostorg/preprocessor/issues/15). In the meantime, the recommended workaround is to disable Variadic Macro support in Boost.  
@@ -80,3 +82,6 @@ This part gives more information on all changes done. Refer to [this page](https
    The code explicitely disabled the creation of temporary files because "mkstemp not available in Windows". In fact, `_mktemp` and `_unlink` are both implemented, but thay don't work as expected. I used `_tempnam` to replace `mkstemp`, and added the flag `_O_TEMPORARY` to the parameters of `_open` to automatically delete the file when it is closed. If `unlinkEarly` is not set, I added a call to `remove` in the destructor to delete the file after its closure.  
    I also handled the case of the default value for the `base` parameter: the path `\tmp` doesnot exist on Windows, so it is replaced by the value of the `%TMP%` environment variable in `NormalizeTempPrefix`.
 
+11. __Revert commit #2f8b093__  
+   cf [Issue #301](https://github.com/marian-nmt/marian-dev/issues/301)  
+   Revert the commit while waiting official fix.
