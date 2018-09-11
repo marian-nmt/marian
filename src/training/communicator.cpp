@@ -49,8 +49,13 @@ class MPIWrapper : public IMPIWrapper
   int comm_world_size_; // Number of nodes in MPI world (cluster)
 
   void handleError(int mpiRetval, const char* exprString) const { // call this with the return value of all MPI calls to report errors
-    if (mpiRetval != MPI_SUCCESS)
-      ABORT("MPI call failed with code {} on node {}: {}", mpiRetval, my_rank_, exprString); // @TODO: also log host name, which is involved on Windows
+    if (mpiRetval != MPI_SUCCESS) {
+      char errStr[MPI_MAX_ERROR_STRING + 1] = { 0 };
+      int resultLen = 0;
+      MPI_Error_string(mpiRetval, &errStr[0], &resultLen);
+      errStr[resultLen] = 0; // (@TODO: needed?)
+      ABORT("MPI call failed with code {} '{}' on node {}: {}", mpiRetval, errStr, my_rank_, exprString); // @TODO: also log host name, which is involved on Windows
+    }
   }
 #define HANDLE_MPI_ERROR(expr) (handleError(expr, #expr)) // call through a macro so we can also log the failed expression itself
 

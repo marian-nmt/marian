@@ -63,8 +63,8 @@ private:
   ////////////////////////////////////////////////////////////////////////////
   // Communication variables.
 
-  Ptr<Communicator> commWithinNode_; // Communicator within a single node, across devices
-  Ptr<Communicator> commAcrossNodes_; // Communicator across nodes, for device 0
+  Ptr<Communicator> commWithinNode_;  // Communicator within a single node, across devices (only if > 1 device)
+  Ptr<Communicator> commAcrossNodes_; // Communicator across nodes, for device 0 (only if > 1 node)
 
   /**
    * Variables for optimizer delay and synchronous SGD
@@ -153,8 +153,10 @@ public:
         movingAvg_{options_->get<float>("exponential-smoothing") > 0}, // @TODO: redundant
         mvDecay_{options_->get<float>("exponential-smoothing")},
     syncOptimizer_{ Optimizer(options_) } { // @BUGBUG? Do we really have two optimizers?
-    commWithinNode_ = createCommunicator(clientGraphs_, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/nullptr);
-    commAcrossNodes_ = createCommunicator(std::vector<Ptr<ExpressionGraph>>{clientGraphs_[0]}, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/mpi_);
+    if (clientGraphs_.size() > 1)
+      commWithinNode_ = createCommunicator(clientGraphs_, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/nullptr);
+    if (mpi_->commWorldSize() > 1)
+      commAcrossNodes_ = createCommunicator(std::vector<Ptr<ExpressionGraph>>{clientGraphs_[0]}, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/mpi_);
   }
 
   /**

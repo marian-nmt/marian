@@ -260,13 +260,16 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
   if (t % tau_ == 0) {
     //LOG(info, "NCCL/MPI reduce");
     // this is tricky because we want a "some-reduce" that computes the sum of all but redistributes only to the first device of each node
-    commWithinNode_->reduceGrads();     // reduce local devices -> dev 0 contains node-local gradient
-    commAcrossNodes_->allReduceGrads(); // all-reduce all dev 0 across nodes -> dev 0 of all devices contain the cross-node gradient
+    if (commWithinNode_)
+      commWithinNode_->reduceGrads();     // reduce local devices -> dev 0 contains node-local gradient
+    if (commAcrossNodes_)
+      commAcrossNodes_->allReduceGrads(); // all-reduce all dev 0 across nodes -> dev 0 of all devices contain the cross-node gradient
     sendReceiveUpdateSync2();
   }
 #else
   // aggregate locally
-  commWithinNode_->reduceGrads();
+  if (commWithinNode_)
+    commWithinNode_->reduceGrads();
 
   // aggregate across delayed batches
   // @TODO: If we instead not reset the gradients themselves, we can eliminate accGradient_ altogether & save 0.5 GB.
