@@ -20,13 +20,11 @@ void set(Ptr<Options> options, const std::string& key, const T& value) {
 
 template void set(Ptr<Options> options, const std::string& key, const size_t&);
 template void set(Ptr<Options> options, const std::string& key, const int&);
-template void set(Ptr<Options> options,
-                  const std::string& key,
-                  const std::string&);
+template void set(Ptr<Options> options, const std::string& key, const std::string&);
 template void set(Ptr<Options> options, const std::string& key, const bool&);
-template void set(Ptr<Options> options,
-                  const std::string& key,
-                  const std::vector<std::string>&);
+template void set(Ptr<Options> options, const std::string& key, const std::vector<std::string>&);
+template void set(Ptr<Options> options, const std::string& key, const float&);
+template void set(Ptr<Options> options, const std::string& key, const double&);
 
 Ptr<Options> newOptions() {
   return New<Options>();
@@ -55,14 +53,6 @@ public:
 #ifdef MKL_FOUND
     mkl_set_num_threads(options->get<size_t>("mkl-threads", 1));
 #endif
-
-    options_->set("inference", true);
-    options_->set("word-penalty", 0);
-    options_->set("normalize", 0);
-    options_->set("n-best", false);
-
-    // No unk in QS
-    options_->set("allow-unk", false);
 
     std::vector<std::string> models
         = options_->get<std::vector<std::string>>("model");
@@ -108,6 +98,7 @@ public:
         scorer->setShortlistGenerator(shortListGen);
     }
 
+    // form source batch, by interleaving the words over sentences in the batch, and setting the mask
     size_t batchSize = qsBatch.size();
     auto subBatch = New<data::SubBatch>(batchSize, maxLength, nullptr);
     for(size_t i = 0; i < maxLength; ++i) {
@@ -127,18 +118,22 @@ public:
     auto batch = New<data::CorpusBatch>(subBatches);
     batch->setSentenceIds(sentIds);
 
+    // decode
     auto search = New<BeamSearch>(options_, scorers_, eos_);
     auto histories = search->search(graph_, batch);
 
-    QSNBest nbest;
-    for(const auto& history : histories) {
-      Result bestTranslation = history->Top();
-      nbest.push_back(std::make_tuple(std::get<0>(bestTranslation),
-                                      std::get<2>(bestTranslation)));
+    // convert to QuickSAND format
+    QSNBestBatch qsNbestBatch;
+    for(const auto& history : histories) { // loop over batch entries
+      QSNBest qsNbest;
+      auto nbestHyps = history->NBest(SIZE_MAX); // request as many N as we have
+      for (const auto& hyp : nbestHyps) { // loop over N-best entries
+        qsNbest.push_back(std::make_tuple(std::get<0>(hyp),
+                                          std::get<2>(hyp)));
+      }
+      qsNbestBatch.push_back(qsNbest);
     }
 
-    QSNBestBatch qsNbestBatch;
-    qsNbestBatch.push_back(nbest);
     return qsNbestBatch;
   }
 };

@@ -60,8 +60,8 @@ void MultiNodeGraphGroup::init(Ptr<data::Batch> batch) {
     for(int i = 0; i < mpi_comm_world_size_; i++) {
       // Shard buffers across GPUs
       auto backend = clientGraphs_[i % devices_.size()]->getBackend();
-      Tensor accGrad = newTensor(nodeSizes_[i], backend);
-      Tensor accGradBuff = newTensor(nodeSizes_[i], backend);
+      Tensor accGrad     = newTensor((int)nodeSizes_[i], backend);
+      Tensor accGradBuff = newTensor((int)nodeSizes_[i], backend);
       accGradients.push_back(accGrad);
       accGradientBuffer.push_back(accGradBuff);
     }
@@ -113,7 +113,7 @@ void MultiNodeGraphGroup::runBatchThroughClientGraphs(Ptr<data::Batch> batch) {
  */
 void MultiNodeGraphGroup::calculateNodeSizes() {
   size_t modelSize = clientGraphs_[0]->params()->vals()->size();
-  size_t nodeSize = ceilf(((float)modelSize) / mpi_comm_world_size_);
+  size_t nodeSize = (size_t)ceilf(((float)modelSize) / mpi_comm_world_size_);
   for(int node = 0; node < mpi_comm_world_size_; node++) {
     size_t remainingModelSize = modelSize - (nodeSize * node);
     // Takes care of edge case where last node is smaller than the others
@@ -166,11 +166,11 @@ void MultiNodeGraphGroup::initClientCommOverlapGpuTensors() {
   for(size_t client = 0; client < devices_.size(); client++) {
     // Communication overlap buffer (for grads + params)
     Tensor commOverlapBuffer
-        = newTensor(modelSize, clientGraphs_[client]->getBackend());
+        = newTensor((int)modelSize, clientGraphs_[client]->getBackend());
     commOverlapBuffer->copyFrom(clientGraphs_[0]->params()->vals());
     clientCommOverlapBuffersGPU_.push_back(commOverlapBuffer);
     // Gradients local sum buffer
-    Tensor sumGrads = newTensor(modelSize, clientGraphs_[client]->getBackend());
+    Tensor sumGrads = newTensor((int)modelSize, clientGraphs_[client]->getBackend());
     sumGrads->set(0);
     clientSummedGradsGPU.push_back(sumGrads);
     // Local optimizer to apply summed gradients
@@ -207,7 +207,7 @@ void MultiNodeGraphGroup::setupServerShards() {
  */
 void MultiNodeGraphGroup::calculateShardSizes() {
   size_t nodeSize = nodeSizes_[mpi_my_rank_];
-  size_t shardSize = ceilf(((float)nodeSize) / devices_.size());
+  size_t shardSize = (size_t)ceilf(((float)nodeSize) / devices_.size());
   for(size_t shard = 0; shard < devices_.size(); shard++) {
     size_t remainingNodeSize = nodeSize - (shardSize * shard);
     // Takes care of edge case where last shard is smaller than the others
@@ -226,12 +226,12 @@ void MultiNodeGraphGroup::initShardGpuTensors() {
   }
   for(size_t shard = 0; shard < devices_.size(); shard++) {
     Tensor gpuParams
-        = newTensor(shardSizes_[shard], clientGraphs_[shard]->getBackend());
+        = newTensor((int)shardSizes_[shard], clientGraphs_[shard]->getBackend());
     gpuParams->copyFrom(clientGraphs_[0]->params()->vals()->subtensor(
-        offset, shardSizes_[shard]));
+        (int)offset, (int)shardSizes_[shard]));
     shardParams_.push_back(gpuParams);
     shardGrads_.push_back(
-        newTensor(shardSizes_[shard], clientGraphs_[shard]->getBackend()));
+        newTensor((int)shardSizes_[shard], clientGraphs_[shard]->getBackend()));
     offset += shardSizes_[shard];
   }
 }
@@ -519,6 +519,8 @@ void MultiNodeGraphGroup::synchronizeWithServerShards(Tensor newGrads,
 
     offset += nodeSize;
   }
+#else
+  newGrads; oldParams; gpu; batchWords; // (unused)
 #endif
 }
 
@@ -578,7 +580,7 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
     if(!clientCommOverlap) {
       synchronizeWithServerShards(graph->params()->grads(),
                                   graph->params()->vals(),
-                                  my_id,
+                                  (int)my_id,
                                   batch->wordsTrg());
     }
 

@@ -70,7 +70,7 @@ namespace cnpy {
     template<> std::vector<char>& operator+=(std::vector<char>& lhs, const char* rhs);
 
 
-    template<typename T> std::string tostring(T i, int pad = 0, char padval = ' ') {
+    template<typename T> std::string tostring(T i, int /*pad*/ = 0, char /*padval*/ = ' ') {
         std::stringstream s;
         s << i;
         return s.str();
@@ -162,7 +162,7 @@ namespace cnpy {
 
         unsigned long nels = 1;
         for (int m=0; m<ndims; m++ ) nels *= shape[m];
-        int nbytes = nels*sizeof(T) + npy_header.size();
+        auto nbytes = nels*sizeof(T) + npy_header.size();
 
         //get the CRC of the data to be added
         unsigned int crc = crc32(0L,(unsigned char*)&npy_header[0],npy_header.size());
@@ -250,7 +250,7 @@ namespace cnpy {
             name(name), type(type_)
         {
             shape = dataShape;
-            word_size = word_size_;
+            word_size = (unsigned int)word_size_;
             bytes.resize(data.size());
             std::copy(data.begin(), data.end(), bytes.begin());
         }
@@ -278,15 +278,15 @@ namespace cnpy {
             const auto* shape     = item.shape.data();
             const auto  type      = item.type;
             const auto  word_size = item.word_size;
-            const unsigned int ndims = item.shape.size();
+            const unsigned int ndims = (unsigned int)item.shape.size();
             std::vector<char> npy_header = create_npy_header(type,word_size,shape,ndims);
 
             unsigned long nels = 1;
-            for (int m=0; m<ndims; m++ ) nels *= shape[m];
-            int nbytes = nels*word_size + npy_header.size();
+            for (size_t m=0; m<ndims; m++ ) nels *= shape[m];
+            auto nbytes = nels*word_size + npy_header.size();
 
             //get the CRC of the data to be added
-            unsigned int crc = crc32(0L,(unsigned char*)&npy_header[0],npy_header.size());
+            unsigned int crc = crc32(0L,(unsigned char*)&npy_header[0],(uInt)npy_header.size());
             crc = crc32(crc,(unsigned char*)data,nels*word_size);
 
             //build the local header
@@ -330,7 +330,7 @@ namespace cnpy {
         fwrite(&global_header[0],sizeof(char),global_header.size(),fp);
 
         //build footer
-        unsigned short nrecs = items.size();
+        auto nrecs = items.size();
         std::vector<char> footer;
         footer += "PK"; //first part of sig
         footer += (unsigned short) 0x0605; //second part of sig
@@ -347,7 +347,7 @@ namespace cnpy {
 
         //close up
         fflush(fp);
-        bool bad = ferror(fp);
+        bool bad = ferror(fp) != 0;
         fclose(fp);
 
         // move to final location (atomically)
@@ -370,7 +370,7 @@ namespace cnpy {
         dict += tostring(word_size);
         dict += "', 'fortran_order': False, 'shape': (";
         dict += tostring(shape[0]);
-        for(int i = 1;i < ndims;i++) {
+        for(size_t i = 1;i < ndims;i++) {
             dict += ", ";
             dict += tostring(shape[i]);
         }
@@ -382,7 +382,7 @@ namespace cnpy {
         dict.back() = '\n';
 
         std::vector<char> header;
-        header += (char) 0x93;
+        header += (char) (0x93 - 0x100);
         header += "NUMPY";
         header += (char) 0x01; //major version of numpy format
         header += (char) 0x00; //minor version of numpy format

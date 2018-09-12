@@ -64,8 +64,8 @@ void SyncGraphGroup::initializeAvg() {
     graphAvg->forward();
   }
 
-  int totalSize = graphs_[0]->params()->vals()->size();
-  shardSize_ = ceil(totalSize / (float)devices_.size());
+  int totalSize = (int)graphs_[0]->params()->vals()->size();
+  shardSize_ = (int)ceil(totalSize / (float)devices_.size());
 
   int pos = 0;
   for(auto graph : graphs_) {
@@ -99,7 +99,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
   size_t devs = devices_.size();
   auto batches = batch->split(delay_ * devs);
 
-  float div = batches.size();  // no. of batches
+  float div = (float)batches.size();  // no. of batches
   // do not average gradients if cost type is sum.
   if(options_->get<std::string>("cost-type") == "ce-sum")
     div = 1;
@@ -131,7 +131,7 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
     }
 
     // Execute single forward/backward step
-    auto forwardBackward = [this, &costs, curBatches, t](size_t idx, int pos) {
+    auto forwardBackward = [this, &costs, curBatches, t](size_t idx, int /*pos*/) {
       auto graph = graphs_[idx];
       auto batch = curBatches[idx];
 
@@ -152,8 +152,8 @@ void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
     // Update parameter shard with gradient shard
     auto update = [this, div](size_t idx, int pos) {
-      int totalSize = graphs_[0]->params()->vals()->size();
-      int shardSize = ceil(totalSize / (float)devices_.size());
+      int totalSize = (int)graphs_[0]->params()->vals()->size();
+      int shardSize = (int)ceil(totalSize / (float)devices_.size());
 
       int size = std::min(totalSize - pos, shardSize);
 

@@ -29,7 +29,7 @@ public:
 
   void load(Ptr<ExpressionGraph> graph,
             const std::string& name,
-            bool markedReloaded = true) override {
+            bool /*markedReloaded*/ = true) override {
     graph->load(name, nameMap_);
   }
 

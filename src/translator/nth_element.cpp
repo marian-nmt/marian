@@ -30,8 +30,8 @@ void NthElementCPU::getNBestList(float* scores,
   std::vector<int> idxs(numProbs);
   std::iota(idxs.begin(), idxs.end(), 0);
 
-  int numBatches = batchFirstElementIdxs.size() - 1;
-  for(int batchIdx = 0; batchIdx < numBatches; ++batchIdx) {
+  size_t numBatches = batchFirstElementIdxs.size() - 1;
+  for(size_t batchIdx = 0; batchIdx < numBatches; ++batchIdx) {
     int pos = cumulativeBeamSizes[batchIdx];
     int beamSize = cumulativeBeamSizes[batchIdx + 1] - pos;
 
@@ -61,9 +61,9 @@ void NthElementCPU::getNBestList(const std::vector<size_t>& beamSizes,
   std::vector<int> cumulativeBeamSizes(beamSizes.size() + 1, 0);
   std::vector<int> batchFirstElementIdxs(beamSizes.size() + 1, 0);
 
-  size_t vocabSize = scores->shape()[-1];
-  for(size_t i = 0; i < beamSizes.size(); ++i) {
-    cumulativeBeamSizes[i + 1] = cumulativeBeamSizes[i] + beamSizes[i];
+  auto vocabSize = scores->shape()[-1];
+  for(int i = 0; i < beamSizes.size(); ++i) {
+    cumulativeBeamSizes[i + 1] = cumulativeBeamSizes[i] + (int)beamSizes[i];
     batchFirstElementIdxs[i + 1]
         += (isFirst ? i + 1 : cumulativeBeamSizes[i + 1]) * vocabSize;
   }

@@ -166,7 +166,7 @@ protected:
     numberClientsOfNodes_ = std::vector<int>(mpi_comm_world_size_, 0);
     while(index < deviceConfig.size()) {
       if(numberClientsOfNodes_[node] == 0) {
-        numberClientsOfNodes_[node] = deviceConfig[index];
+        numberClientsOfNodes_[node] = (int)deviceConfig[index];
         nClientsSeen = 0;
       } else if(nClientsSeen < numberClientsOfNodes_[node]) {
         if(node == mpi_my_rank_) {

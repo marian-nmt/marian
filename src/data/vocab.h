@@ -51,8 +51,8 @@ private:
   typedef std::vector<std::string> Id2Str;
   Id2Str id2str_;
 
-  Word eosId_ = -1;
-  Word unkId_ = -1;
+  Word eosId_ = (Word)-1;
+  Word unkId_ = (Word)-1;
 
   class VocabFreqOrderer;
 };

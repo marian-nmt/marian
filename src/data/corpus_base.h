@@ -123,7 +123,7 @@ public:
    * @param size Number of sentences
    * @param width Number of words in the longest sentence
    */
-  SubBatch(int size, int width, const Ptr<Vocab>& vocab)
+  SubBatch(size_t size, size_t width, const Ptr<Vocab>& vocab)
       : indices_(size * width, 0),
         mask_(size * width, 0),
         size_(size),
@@ -177,31 +177,31 @@ public:
     ABORT_IF(size_ == 0, "Encoutered sub-batch size of 0");
 
     std::vector<Ptr<SubBatch>> splits;
-    size_t subSize = std::ceil(size_ / (float)n);
+    size_t subSize = (size_t)(std::ceil(size_ / (float)n));
 
     size_t restSize = size_;
     size_t pos = 0;
     for(size_t k = 0; k < n; ++k) {
-      size_t __size__ = std::min(subSize, restSize);
-      if(__size__ > 0) {
-        auto sb = New<SubBatch>(__size__, width_, vocab_);
+      size_t size = std::min(subSize, restSize);
+      if(size > 0) {
+        auto sb = New<SubBatch>(size, width_, vocab_);
 
-        size_t __words__ = 0;
+        size_t words = 0;
         for(size_t j = 0; j < width_; ++j) {
-          for(size_t i = 0; i < __size__; ++i) {
-            sb->data()[j * __size__ + i] = indices_[j * size_ + pos + i];
-            sb->mask()[j * __size__ + i] = mask_[j * size_ + pos + i];
+          for(size_t i = 0; i < size; ++i) {
+            sb->data()[j * size + i] = indices_[j * size_ + pos + i];
+            sb->mask()[j * size + i] = mask_[j * size_ + pos + i];
 
             if(mask_[j * size_ + pos + i] != 0)
-              __words__++;
+              words++;
           }
         }
 
-        sb->setWords(__words__);
+        sb->setWords(words);
         splits.push_back(sb);
 
-        restSize -= __size__;
-        pos += __size__;
+        restSize -= size;
+        pos += size;
       }
     }
     return splits;
@@ -310,7 +310,7 @@ public:
       // set word indices to different values to avoid same hashes
       std::fill(sb->data().begin(), sb->data().end(), idx++);
       // mask: no items ask being masked out
-      std::fill(sb->mask().begin(), sb->mask().end(), 1);
+      std::fill(sb->mask().begin(), sb->mask().end(), 1.f);
 
       batches.push_back(sb);
     }
@@ -327,7 +327,7 @@ public:
     }
 
     if(options->has("data-weighting")) {
-      int weightsSize = batchSize;
+      auto weightsSize = batchSize;
       if(options->get<std::string>("data-weighting-type") != "sentence")
         weightsSize *= lengths.back();
       std::vector<float> weights(weightsSize, 1.f);
@@ -375,10 +375,32 @@ public:
       pos += split->size();
     }
 
-    // @TODO: restore word alignments in split batches
-    ABORT_IF(
-        !guidedAlignment_.empty(),
-        "Guided alignment with synchronous SGD is temporarily not supported");
+    if(!guidedAlignment_.empty()) {
+      size_t oldSize = size();
+
+      pos = 0;
+      for(auto split : splits) {
+        auto cb = std::static_pointer_cast<CorpusBatch>(split);
+        size_t srcWords = cb->front()->batchWidth();
+        size_t trgWords = cb->back()->batchWidth();
+        size_t dimBatch = cb->size();
+
+        std::vector<float> aligns(srcWords * dimBatch * trgWords, 0.f);
+
+        for(size_t i = 0; i < dimBatch; ++i) {
+          size_t bi = i + pos;
+          for(size_t sid = 0; sid < srcWords; ++sid) {
+            for(size_t tid = 0; tid < trgWords; ++tid) {
+              size_t bidx = sid * oldSize * trgWords + bi * trgWords + tid;
+              size_t idx = sid * dimBatch * trgWords + i * trgWords + tid;
+              aligns[idx] = guidedAlignment_[bidx];
+            }
+          }
+        }
+        cb->setGuidedAlignment(aligns);
+        pos += dimBatch;
+      }
+    }
 
     // restore data weights in split batches
     pos = 0;
@@ -435,14 +457,16 @@ public:
     size_t b = 0;
     for(auto sb : subBatches_) {
       std::cerr << "batch " << b++ << ": " << std::endl;
-      const auto& vocab = *sb->vocab();
+      const auto& vocab = sb->vocab();
       for(size_t i = 0; i < sb->batchWidth(); i++) {
         std::cerr << "\t w: ";
         for(size_t j = 0; j < sb->batchSize(); j++) {
           size_t idx = i * sb->batchSize() + j;
           Word w = sb->data()[idx];
-          const auto& s = vocab[w];
-          std::cerr << s << " ";
+          if (vocab)
+            std::cerr << (*vocab)[w] << " ";
+          else
+            std::cerr << w << " "; // if not loaded then print numeric id instead
         }
         std::cerr << std::endl;
       }

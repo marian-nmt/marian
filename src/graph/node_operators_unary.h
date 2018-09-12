@@ -812,16 +812,20 @@ struct SelectNodeOp : public UnaryNodeOp {
 
 struct TransposeNodeOp : public UnaryNodeOp {
   std::vector<int> axes_;
+  std::vector<int> axesBw_;
 
   TransposeNodeOp(Expr a, const std::vector<int>& axes)
-      : UnaryNodeOp(a, newShape(a, axes)), axes_{axes} {}
+      : UnaryNodeOp(a, newShape(a, axes)), axes_{axes}, axesBw_(axes.size()) {
+    for(int i = 0; i < axes_.size(); ++i)
+       axesBw_[axes_[i]] = i;
+  }
 
   NodeOps forwardOps() override {
     return {NodeOp(TransposeND(val_, child(0)->val(), axes_))};
   }
 
   NodeOps backwardOps() override {
-    return {NodeOp(TransposeNDGrad(child(0)->grad(), adj_, axes_))};
+    return {NodeOp(TransposeNDGrad(child(0)->grad(), adj_, axesBw_))};
   }
 
   template <class... Args>

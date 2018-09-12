@@ -21,9 +21,9 @@ protected:
 
     auto subBatch = (*batch)[batchIndex_];
 
-    int dimBatch = subBatch->batchSize();
+    int dimBatch = (int)subBatch->batchSize();
     int dimEmb = srcEmbeddings->shape()[-1];
-    int dimWords = subBatch->batchWidth();
+    int dimWords = (int)subBatch->batchWidth();
 
     auto chosenEmbeddings = rows(srcEmbeddings, subBatch->data());
 

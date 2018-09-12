@@ -28,7 +28,7 @@ void gAddGeneric(Functor functor,
 
   constexpr size_t N = functional::Shape::size();
   functional::Array<int, N> len;
-  for(size_t i = 0; i < N; ++i)
+  for(int i = 0; i < N; ++i)
     len[i] = full[i] / out.shape()[i];
 
   functional::Array<int, N> dims;
@@ -101,7 +101,7 @@ template <class Functor, class... Tensors>
 void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
   auto full = marian::Shape::broadcast({out, tensors...});
 
-  int length = out->shape().elements();
+  //int length = out->shape().elements();
 
   constexpr size_t K = sizeof...(Tensors);
 
@@ -109,8 +109,8 @@ void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
   functional::Array<functional::Tensor<float>, K> gIns = {tensors...};
 
   if(full.back() != 1 && out->shape().back() == 1) {
-    size_t m = full.elements() / length;
-    size_t k = full.back();
+    //size_t m = full.elements() / length;
+    //size_t k = full.back();
     cpu::gAddReduce(functor, full, gOut, gIns, scale);
   } else if(out->shape() == full) {
     bool broadcast = false;

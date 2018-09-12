@@ -116,7 +116,7 @@ private:
   std::list<Expr> nodesForward_;
   std::list<Expr> nodesBackward_;
 
-  std::unordered_set<Expr> topNodes_;
+  std::unordered_set<Expr> topNodes_; // current set of roots. In the end, all but one must have been consumed.
 
   // Holds memory and expressions that correspond to graph parameters
   Ptr<Parameters> params_;
@@ -203,7 +203,7 @@ public:
       tensors_->throwAtReallocation(true);
       backprop();
       tensors_->throwAtReallocation(false);
-    } catch(AllocationException& e) {
+    } catch(AllocationException&) {
       tensors_->throwAtReallocation(false);
       return false;
     }
@@ -377,17 +377,20 @@ public:
     } else {
       node->setId(count_++);
 
+      // record in foward graph
       nodesForward_.push_back(node);
+
+      // record in backward graph if training, and keep track of roots
       if(!inferenceOnly_ && node->trainable()) {
         nodesBackward_.push_back(node);
-        topNodes_.insert(node);
+        topNodes_.insert(node); // opportunistically record all new nodes as roots (gets removed once consumed)
       }
+      for(auto child : node->children())
+        topNodes_.erase(child); // this child is consumed and therefore not a root
 
       return node;
     }
   }
-
-  void remove_top_node(Expr node) { topNodes_.erase(node); }
 
   void allocateForward(Expr node) {
     if(tensors_)

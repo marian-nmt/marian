@@ -51,10 +51,10 @@ struct BinaryFunctor {
   template <class X>                                     \
   using name = UnaryFunctor<elem::name, X>;              \
   template <typename X>                                  \
-  name<IsClass<X>> name2(X x) {                          \
+  static inline name<IsClass<X>> name2(X x) {            \
     return name<X>(x);                                   \
   }                                                      \
-  static name<Capture> name2(Capture x) { return name<Capture>(x); }
+  static inline name<Capture> name2(Capture x) { return name<Capture>(x); }
 
 #define BINARY(name, name2, func)                                 \
   namespace elem {                                                \
@@ -120,7 +120,7 @@ BINARY(Or, operator||, x || y);
 
 template <typename T>
 __HDI__ T sgn(T val) {
-  return (float(0) < val) - (val < float(0));
+  return T((0 < val) - (val < 0));
 }
 
 UNARY(Sgn, sgn, sgn(x));

@@ -23,7 +23,7 @@ float xor128() {
   y = z;
   z = w;
   w = (w ^ (w >> 19) ^ t ^ (t >> 8)) % 1000;
-  return 0.1 * ((w % 1000) / 1000.f) - 0.05;
+  return 0.1f * ((w % 1000) / 1000.f) - 0.05f;
 }
 
 void zeros(Tensor t) {
@@ -50,7 +50,7 @@ NodeInitializer diag(float val) {
   };
 }
 
-NodeInitializer normal(float scale, bool ortho /*= true*/) {
+NodeInitializer normal(float scale, bool /*ortho*/ /*= true*/) {
   return [scale](Tensor t) {
     distribution<std::normal_distribution<float>>(t, 0, scale);
   };
@@ -113,7 +113,10 @@ NodeInitializer from_vector(const std::vector<float>& v) {
 }
 
 NodeInitializer from_vector(const std::vector<size_t>& v) {
-  std::vector<float> vf(v.begin(), v.end());
+  auto n = v.size();
+  std::vector<float> vf(n);
+  for (size_t i = 0; i < n; i++)
+    vf[i] = (float)v[i];
   return from_vector(vf);
 }
 

@@ -28,7 +28,7 @@ private:
 
     sel = atleast_4d(sel);
 
-    int dimBatch = selIdx.size() / beamSize;
+    int dimBatch = (int)selIdx.size() / beamSize;
     int dimDepth = sel->shape()[-1];
     int dimTime  = isBatchMajor ? sel->shape()[-2] : sel->shape()[-3];
 
@@ -93,7 +93,7 @@ public:
 };
 
 class Cell;
-struct CellInput;
+class CellInput;
 
 class Stackable : public std::enable_shared_from_this<Stackable> {
 protected:

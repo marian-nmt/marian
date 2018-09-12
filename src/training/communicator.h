@@ -17,8 +17,8 @@ public:
   virtual ~Communicator() {}
 
   virtual void foreach(const std::function<void(size_t, int)>& func) {
-    int totalSize = graphs_[0]->params()->vals()->size();
-    int shardSize = ceil(totalSize / (float)graphs_.size());
+    int totalSize = (int)graphs_[0]->params()->vals()->size();
+    int shardSize = (int)ceil(totalSize / (float)graphs_.size());
 
     int pos = 0;
     std::vector<std::thread> group;
@@ -50,8 +50,8 @@ private:
 
   void init() {
     if(tmpTensors_.size() == 0) {
-      int totalSize = graphs_[0]->params()->vals()->size();
-      int shardSize = ceil(totalSize / (float)graphs_.size());
+      int totalSize = (int)graphs_[0]->params()->vals()->size();
+      int shardSize = (int)ceil(totalSize / (float)graphs_.size());
 
       int pos = 0;
       for(auto graph : graphs_) {
@@ -83,8 +83,8 @@ public:
   void scatterReduce() override {
     init();
 
-    int totalSize = graphs_[0]->params()->vals()->size();
-    int shardSize = ceil(totalSize / (float)graphs_.size());
+    int totalSize = (int)graphs_[0]->params()->vals()->size();
+    int shardSize = (int)ceil(totalSize / (float)graphs_.size());
 
     // Gather gradients from different devices into current gradient shards
     auto scatter = [this, shardSize](size_t idx, int pos) {
@@ -107,8 +107,8 @@ public:
   }
 
   void allGather() override {
-    int totalSize = graphs_[0]->params()->vals()->size();
-    int shardSize = ceil(totalSize / (float)graphs_.size());
+    int totalSize = (int)graphs_[0]->params()->vals()->size();
+    int shardSize = (int)ceil(totalSize / (float)graphs_.size());
 
     // Update all graphs with parameter shard
     auto gather = [this, shardSize](size_t idx, int pos) {
@@ -133,7 +133,7 @@ public:
     auto copy = [this, params](size_t idx, int pos) {
       // copy parameter shard to each graph
       auto subParam
-          = graphs_[idx]->params()->vals()->subtensor(pos, params[idx]->size());
+          = graphs_[idx]->params()->vals()->subtensor(pos, (int)params[idx]->size());
       params[idx]->copyFrom(subParam);
     };
 
@@ -147,7 +147,7 @@ public:
       // copy parameter shard to each graph
       for(auto graph : graphs_) {
         auto subParam
-            = graph->params()->vals()->subtensor(pos, params[idx]->size());
+            = graph->params()->vals()->subtensor(pos, (int)params[idx]->size());
         subParam->copyFrom(params[idx]);
       }
     };
@@ -162,17 +162,17 @@ public:
       // copy parameter shard to each graph, apart from last graph
       for(int i = 0; i < (int)graphs_.size() - 1; ++i) {
         auto subParam
-            = graphs_[i]->params()->vals()->subtensor(pos, params[idx]->size());
+            = graphs_[i]->params()->vals()->subtensor(pos, (int)params[idx]->size());
         subParam->copyFrom(params[idx]);
       }
 
       // back-up shard from last graph
-      auto subParamLast = graphs_.back()->params()->vals()->subtensor(
-          pos, params[idx]->size());
+      auto subParamLast =
+          graphs_.back()->params()->vals()->subtensor(pos, (int)params[idx]->size());
       params[idx]->copyFrom(subParamLast);
 
       auto subParamFirst
-          = graphs_[0]->params()->vals()->subtensor(pos, params[idx]->size());
+          = graphs_[0]->params()->vals()->subtensor(pos, (int)params[idx]->size());
       subParamLast->copyFrom(subParamFirst);
     };
     // execute for each shard

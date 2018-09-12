@@ -16,7 +16,7 @@ protected:
   size_t alignment_;
 
   size_t align(size_t size) {
-    return ceil(size / (float)alignment_) * alignment_;
+    return (size_t)(ceil(size / (float)alignment_) * alignment_);
   }
 
 public:

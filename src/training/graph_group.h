@@ -63,7 +63,7 @@ public:
     size_t step = options_->get<size_t>("mini-batch-fit-step");
 
     size_t maxLength = options_->get<size_t>("max-length");
-    maxLength = std::ceil(maxLength / (float)step) * step;
+    maxLength = (size_t)(std::ceil(maxLength / (float)step) * step);
 
     // @TODO: ugly
     auto toptions = New<Options>();
@@ -85,7 +85,7 @@ public:
       size_t end = maxBatch;
 
       std::vector<size_t> lengths(numFiles, i);
-      bool fits = true;
+      fits = true;
 
       do {
         size_t current = (start + end) / 2;

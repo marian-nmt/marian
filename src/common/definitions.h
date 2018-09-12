@@ -108,7 +108,7 @@ KEY(axis, int);
 KEY(shape, Shape);
 KEY(value, float);
 KEY(fixed, bool);
-KEY(prefix, std::string);
+//KEY(prefix, std::string); // (conflicts with local variables named prefix)
 KEY(final, bool);
 KEY(output_last, bool);
 KEY(mask, Expr);
@@ -132,5 +132,5 @@ KEY(valid, Ptr<RunBase>);
 KEY(lex_probs, Ptr<LexProbs>);
 }  // namespace keywords
 
-const float NEMATUS_LN_EPS = 1e-5;
+const float NEMATUS_LN_EPS = 1e-5f;
 }  // namespace marian

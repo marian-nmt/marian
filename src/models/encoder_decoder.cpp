@@ -64,8 +64,9 @@ void EncoderDecoder::createDecoderConfig(const std::string& name) {
   Config::YamlNode decoder;
   decoder["models"] = std::vector<std::string>({name});
   decoder["vocabs"] = options_->get<std::vector<std::string>>("vocabs");
-  decoder["normalize"] = opt<float>("normalize");
   decoder["beam-size"] = opt<size_t>("beam-size");
+  decoder["normalize"] = opt<float>("normalize");
+  decoder["word-penalty"] = opt<float>("word-penalty");
 
   decoder["mini-batch"] = opt<size_t>("valid-mini-batch");
   decoder["maxi-batch"] = opt<size_t>("valid-mini-batch") > 1 ? 100 : 1;

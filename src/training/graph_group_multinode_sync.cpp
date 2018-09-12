@@ -45,7 +45,7 @@ Tensor MultiNodeGraphGroupSync::newTensor(int size, Ptr<Backend> backend) {
 void MultiNodeGraphGroupSync::init(Ptr<data::Batch> batch) {
   // Setup clients and shards
   setupClients(batch);
-  int network_size = clientGraphs_[0]->params()->vals()->size();
+  int network_size = (int)clientGraphs_[0]->params()->vals()->size();
   LOG(info, "model size = {} float params", network_size);
   if(movingAvg_)
     paramsAvg_ = newTensor(network_size, clientGraphs_.back()->getBackend());
