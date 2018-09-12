@@ -56,14 +56,17 @@ void createLoggers(const marian::Config* options) {
   std::vector<std::string> generalLogs;
   std::vector<std::string> validLogs;
 
-  if(options && options->has("log")) {
+  if(options && options->has("log")
+     && !options->get<std::string>("log").empty()) {
     generalLogs.push_back(options->get<std::string>("log"));
-#ifndef _WIN32  // can't open the same file twice in Windows for some reason
+#ifndef _WIN32
+    // can't open the same file twice in Windows for some reason
     validLogs.push_back(options->get<std::string>("log"));
 #endif
   }
 
-  if(options && options->has("valid-log")) {
+  if(options && options->has("valid-log")
+     && !options->get<std::string>("valid-log").empty()) {
     validLogs.push_back(options->get<std::string>("valid-log"));
   }
 

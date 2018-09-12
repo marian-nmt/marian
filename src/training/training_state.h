@@ -5,6 +5,8 @@
 
 #include "common/definitions.h"
 
+#include <boost/filesystem.hpp>
+
 namespace marian {
 
 class TrainingState;

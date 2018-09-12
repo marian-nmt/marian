@@ -1,11 +1,8 @@
 #pragma once
 
-#include <boost/program_options.hpp>
-
 #include "3rd_party/yaml-cpp/yaml.h"
+#include "common/cli_wrapper.h"
 #include "common/definitions.h"
-#include "common/file_stream.h"
-#include "common/logging.h"
 
 // TODO: why are these needed by a config parser? Can they be removed for Linux
 // as well?
@@ -16,48 +13,74 @@
 
 namespace marian {
 
-enum struct ConfigMode {
-  training,
-  translating,
-  rescoring,
-};
+namespace cli {
+enum struct mode { training, translation, scoring };
+}  // namespace cli
 
-// try to determine the width of the terminal
-uint16_t guess_terminal_width(uint16_t max_width = 180);
-
+/**
+ * @brief Command-line options parser
+ *
+ * New options and aliases should be defined within `addOptions*` methods.
+ */
 class ConfigParser {
 public:
-  ConfigParser(int argc, char** argv, ConfigMode mode, bool validate = false)
-      : mode_(mode),
-        cmdline_options_("Allowed options", guess_terminal_width()) {
+  ConfigParser(int argc, char** argv, cli::mode mode, bool validate = false)
+      : mode_(mode) {
     parseOptions(argc, argv, validate);
   }
 
+  /**
+   * @brief Parse command-line options
+   *
+   * Options are parsed in the following order, later config options overwrite
+   * earlier:
+   *  * predefined default values
+   *  * options from the config files provided with --config, from left to right
+   *  * options from the model config file, e.g. model.npz.yml
+   *  * aliases expanded into options, e.g. --best-deep
+   *  * options provided as command-line arguments
+   *
+   * Parsed options are available from getConfig().
+   *
+   * @param argc
+   * @param argv
+   * @param validate Do or do not validate parsed options
+   */
   void parseOptions(int argc, char** argv, bool validate);
 
   YAML::Node getConfig() const;
   std::vector<DeviceId> getDevices();
 
-private:
-  ConfigMode mode_;
-  boost::program_options::options_description cmdline_options_;
-  YAML::Node config_;
-
+  // Check if the config has a boolean option for the given key and it is
+  // enabled
   bool has(const std::string& key) const;
 
-  template <typename T>
-  T get(const std::string& key) const {
-    return config_[key].as<T>();
-  }
+private:
+  cli::mode mode_;
+  YAML::Node config_;
 
-  void addOptionsCommon(boost::program_options::options_description&);
-  void addOptionsModel(boost::program_options::options_description&);
-  void addOptionsTraining(boost::program_options::options_description&);
-  void addOptionsRescore(boost::program_options::options_description&);
-  void addOptionsValid(boost::program_options::options_description&);
-  void addOptionsTranslate(boost::program_options::options_description&);
+  void addOptionsGeneral(cli::CLIWrapper&);
+  void addOptionsModel(cli::CLIWrapper&);
+  void addOptionsTraining(cli::CLIWrapper&);
+  void addOptionsValidation(cli::CLIWrapper&);
+  void addOptionsTranslation(cli::CLIWrapper&);
+  void addOptionsScoring(cli::CLIWrapper&);
 
-  void validateOptions() const;
-  void validateDevices() const;
+  void addSuboptionsDevices(cli::CLIWrapper&);
+  void addSuboptionsBatching(cli::CLIWrapper&);
+  void addSuboptionsInputLength(cli::CLIWrapper&);
+
+  void expandAliases(cli::CLIWrapper&);
+
+  // Change relative paths to absolute paths relative to the config file's
+  // directory
+  void makeAbsolutePaths(const std::vector<std::string>&);
+
+  // Create a new config from all provided config files
+  YAML::Node loadConfigFiles(const std::vector<std::string>&);
+
+  // Load paths to all config files found in the config object
+  std::vector<std::string> loadConfigPaths();
 };
+
 }  // namespace marian

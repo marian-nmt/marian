@@ -20,7 +20,7 @@ bool test_vectors(const std::vector<float>& output, const std::vector<float>& co
 }
 
 int main(int argc, char** argv) {
-  auto config = Config(argc, argv, ConfigMode::translating, false);
+  auto config = Config(argc, argv, cli::mode::translation, false);
   auto graph = New<ExpressionGraph>(false);
   graph->setDevice(0);
   graph->reserveWorkspaceMB(128);
