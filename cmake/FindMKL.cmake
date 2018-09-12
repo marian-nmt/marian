@@ -53,7 +53,13 @@ else()
   set(COR_LIB "mkl_core")
 endif()
 
-set(INTEL_ROOT "/opt/intel" CACHE PATH "Folder contains intel libs")
+if(MSVC)
+  set(ProgramFilesx86 "ProgramFiles(x86)")
+  set(INTEL_ROOT_DEFAULT $ENV{${ProgramFilesx86}}/IntelSWTools/compilers_and_libraries/windows)
+else()
+  set(INTEL_ROOT_DEFAULT "/opt/intel")
+endif()
+set(INTEL_ROOT ${INTEL_ROOT_DEFAULT} CACHE PATH "Folder contains intel libs")
 find_path(MKL_ROOT include/mkl.h PATHS $ENV{MKLROOT} ${INTEL_ROOT}/mkl
                                    DOC "Folder contains MKL")
 
