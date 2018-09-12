@@ -260,9 +260,9 @@ namespace cnpy {
     static inline
     void npz_save(std::string zipname, const std::vector<NpzItem>& items)
     {
-        unlink(zipname.c_str()); // when saving to HDFS, we cannot overwrite an existing file
+        auto tmpname = zipname + "$$"; // TODO: add thread id or something
+        unlink(tmpname.c_str()); // when saving to HDFS, we cannot overwrite an existing file
         FILE* fp = fopen(zipname.c_str(),"wb");
-
         if (!fp)
             throw std::runtime_error("npz_save: error opening file for writing: " + zipname);
 
@@ -349,9 +349,18 @@ namespace cnpy {
         fflush(fp);
         bool bad = ferror(fp) != 0;
         fclose(fp);
-        if (bad)
-            throw std::runtime_error("npz_save: error saving to file: " + zipname);
-    }
+
+		// move to final location (atomically)
+		unlink(zipname.c_str()); // needed for Windows
+		bad = bad || (rename(tmpname.c_str(), zipname.c_str()) == -1);
+
+		if (bad)
+		{
+			unlink(tmpname.c_str());
+			throw std::runtime_error("npz_save: error saving to file: " + zipname);
+		}
+
+	}
 
     static inline
     std::vector<char> create_npy_header(char type, size_t word_size, const unsigned int* shape, const unsigned int ndims) {
