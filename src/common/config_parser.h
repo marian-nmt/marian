@@ -68,7 +68,7 @@ private:
 
   void addSuboptionsDevices(cli::CLIWrapper&);
   void addSuboptionsBatching(cli::CLIWrapper&);
-  void addSupoptionsInputLength(cli::CLIWrapper&);
+  void addSuboptionsInputLength(cli::CLIWrapper&);
 
   void expandAliases(cli::CLIWrapper&);
 

@@ -257,7 +257,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper &cli) {
       "Save model file every  arg  updates",
       10000);
 
-  addSupoptionsInputLength(cli);
+  addSuboptionsInputLength(cli);
 
   // data management options
   cli.add<bool>("--no-shuffle",
@@ -462,7 +462,7 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper &cli) {
     ->implicit_val("1");
 
   addSuboptionsDevices(cli);
-  addSupoptionsInputLength(cli);
+  addSuboptionsInputLength(cli);
   addSuboptionsBatching(cli);
 
   cli.add<bool>("--optimize",
@@ -506,7 +506,7 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper &cli) {
      "Return word alignments. Possible values: 0.0-1.0, hard, soft")
      ->implicit_val("1"),
 
-  addSupoptionsInputLength(cli);
+  addSuboptionsInputLength(cli);
   addSuboptionsDevices(cli);
   addSuboptionsBatching(cli);
 
@@ -567,7 +567,7 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper &cli) {
   // clang-format on
 }
 
-void ConfigParser::addSupoptionsInputLength(cli::CLIWrapper &cli) {
+void ConfigParser::addSuboptionsInputLength(cli::CLIWrapper &cli) {
   size_t defaultMaxLength = (mode_ == cli::mode::training) ? 50 : 1000;
   // clang-format off
   cli.add<size_t>("--max-length",

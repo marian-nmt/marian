@@ -2,9 +2,9 @@
 
 #include "3rd_party/CLI/CLI.hpp"
 #include "3rd_party/yaml-cpp/yaml.h"
+#include "common/any_type.h"
 #include "common/definitions.h"
 #include "common/logging.h"
-#include "common/some_type.h"
 
 #include <iostream>
 #include <map>
@@ -14,7 +14,8 @@ namespace marian {
 namespace cli {
 
 // try to determine the width of the terminal
-static uint16_t guess_terminal_width(uint16_t max_width = 0, uint16_t default_width = 180);
+static uint16_t guess_terminal_width(uint16_t max_width = 0,
+                                     uint16_t default_width = 180);
 
 namespace validators {
 const CLI::detail::ExistingFileValidator file_exists;
@@ -38,7 +39,7 @@ private:
 class CLIWrapper {
 private:
   // Stores option variables
-  std::map<std::string, Ptr<some_type>> vars_;
+  std::map<std::string, Ptr<any_type>> vars_;
   // Stores option objects
   std::map<std::string, CLI::Option *> opts_;
   // Command-line argument parser
@@ -132,7 +133,7 @@ public:
   void switchGroup(const std::string &name = "");
 
   // Parse command-line arguments. Handles --help and --version options
-  void parse(int argc, char** argv);
+  void parse(int argc, char **argv);
 
   // Check if an option has been defined (not necessarily parsed)
   bool has(const std::string &key) const;
@@ -147,7 +148,7 @@ public:
 
   YAML::Node getConfig() const;
 
-  void setConfig(const YAML::Node& config);
+  void setConfig(const YAML::Node &config);
 
   /**
    * @brief Overwrite values for unparsed options
@@ -158,7 +159,7 @@ public:
    *
    * @param node YAML config with new default values for options
    */
-  void overwriteDefault(const YAML::Node& node);
+  void overwriteDefault(const YAML::Node &node);
 
 private:
   template <
@@ -171,14 +172,14 @@ private:
                           T val,
                           bool defaulted,
                           bool addToConfig) {
-    //std::cerr << "CLI::add(" << key << ") " << std::endl;
+    // std::cerr << "CLI::add(" << key << ") " << std::endl;
 
     if(addToConfig)
       config_[key] = val;
-    vars_.insert(std::make_pair(key, std::make_shared<some_type>(val)));
+    vars_.insert(std::make_pair(key, std::make_shared<any_type>(val)));
 
     CLI::callback_t fun = [this, key](CLI::results_t res) {
-      //std::cerr << "CLI::callback(" << key << ") " << std::endl;
+      // std::cerr << "CLI::callback(" << key << ") " << std::endl;
       auto &var = vars_[key]->as<T>();
       auto ret = CLI::detail::lexical_cast(res[0], var);
       config_[key] = var;
@@ -208,14 +209,14 @@ private:
                           T val,
                           bool defaulted,
                           bool addToConfig) {
-    //std::cerr << "CLI::add(" << key << ") as vector" << std::endl;
+    // std::cerr << "CLI::add(" << key << ") as vector" << std::endl;
 
     if(addToConfig)
       config_[key] = val;
-    vars_.insert(std::make_pair(key, std::make_shared<some_type>(val)));
+    vars_.insert(std::make_pair(key, std::make_shared<any_type>(val)));
 
     CLI::callback_t fun = [this, key](CLI::results_t res) {
-      //std::cerr << "CLI::callback(" << key << ") " << std::endl;
+      // std::cerr << "CLI::callback(" << key << ") " << std::endl;
       auto &vec = vars_[key]->as<T>();
       vec.clear();
       bool ret = true;
@@ -247,14 +248,14 @@ private:
                           T val,
                           bool defaulted,
                           bool addToConfig) {
-    //std::cerr << "CLI::add(" << key << ") as bool" << std::endl;
+    // std::cerr << "CLI::add(" << key << ") as bool" << std::endl;
 
     if(addToConfig)
       config_[key] = val;
-    vars_.insert(std::make_pair(key, std::make_shared<some_type>(val)));
+    vars_.insert(std::make_pair(key, std::make_shared<any_type>(val)));
 
     CLI::callback_t fun = [this, key](CLI::results_t res) {
-      //std::cerr << "CLI::callback(" << key << ") " << std::endl;
+      // std::cerr << "CLI::callback(" << key << ") " << std::endl;
       vars_[key]->as<T>() = !res.empty();
       config_[key] = !res.empty();
       return true;

@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
 
   graph->load(modelFrom);
   graph->forward();
-  graph->save(modelFrom, configStr.str());
+  graph->save(modelTo, configStr.str());
 
   // graph->saveBinary(vm["bin"].as<std::string>());
 

@@ -4,7 +4,7 @@
 
 namespace marian {
 
-class some_type {
+class any_type {
   using id = size_t;
 
   template <typename T>
@@ -21,8 +21,7 @@ class some_type {
   using decay = typename std::decay<T>::type;
 
   template <typename T>
-  using none =
-      typename std::enable_if<!std::is_same<some_type, T>::value>::type;
+  using none = typename std::enable_if<!std::is_same<any_type, T>::value>::type;
 
   struct base {
     virtual ~base() {}
@@ -62,21 +61,21 @@ class some_type {
   }
 
 public:
-  some_type() {}
-  ~some_type() { delete p; }
+  any_type() {}
+  ~any_type() { delete p; }
 
-  some_type(some_type &&s) : p{s.p} { s.p = nullptr; }
-  some_type(some_type const &s) : p{s.p->copy()} {}
+  any_type(any_type &&s) : p{s.p} { s.p = nullptr; }
+  any_type(any_type const &s) : p{s.p->copy()} {}
 
   template <typename T, typename U = decay<T>, typename = none<U>>
-  some_type(T &&x) : p{new data<U>{std::forward<T>(x)}} {}
+  any_type(T &&x) : p{new data<U>{std::forward<T>(x)}} {}
 
-  some_type &operator=(some_type s) {
+  any_type &operator=(any_type s) {
     swap(*this, s);
     return *this;
   }
 
-  friend void swap(some_type &s, some_type &r) { std::swap(s.p, r.p); }
+  friend void swap(any_type &s, any_type &r) { std::swap(s.p, r.p); }
 
   void clear() {
     delete p;
