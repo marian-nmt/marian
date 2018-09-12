@@ -1,6 +1,8 @@
 #include "logging.h"
 #include "common/config.h"
 #include "spdlog/sinks/null_sink.h"
+#include <time.h>
+#include <stdlib.h>
 
 std::shared_ptr<spdlog::logger> stderrLogger(
     const std::string& name,
@@ -78,5 +80,16 @@ void createLoggers(const marian::Config* options) {
     if(!setLoggingLevel(*general, loglevel))
       return;
     setLoggingLevel(*valid, loglevel);
+  }
+
+  if (options && options->has("log-time-zone")) {
+      std::string timezone = options->get<std::string>("log-time-zone");
+      if (timezone != "") {
+#ifdef _WIN32
+#define setenv(var, val, over) SetEnvironmentVariableA(var, val) // ignoring over flag
+#endif
+        setenv("TZ", timezone.c_str(), true);
+        tzset();
+      }
   }
 }
