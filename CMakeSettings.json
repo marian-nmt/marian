@@ -1,0 +1,160 @@
+{
+  "environments": [
+    {
+      "environment": "MarianEnvironment",
+
+      // Dependencies can be found automatically if you use vcpkg as your library manager.
+      // In this case, please set the VCPKG_ROOT variable to the directory that contains the vcpkg.exe
+      // If you prefer managing yourself the dependencies, please fill in the other variables.
+      "VCPKG_ROOT": "D:\\Perso\\Dev\\vcpkg",
+
+      "BOOST_INCLUDE_PATH": "",
+      "BOOST_LIB_PATH": "",
+      "ZLIB_ROOT": "",
+      "OPENSSL_PATH": "",
+
+      // The MKL library can be automatically found by CMake. However, if you installed it in a custom
+      // directory, please set the MKLROOT to this directory path.
+      // Default is c:\ProgramFiles (x86)\IntelSWTools\compilers_and_libraries\windows\mkl on Windows, or
+      // /opt/intel/mkl on Linux
+      "MKLROOT": ""
+    }
+  ],
+  "configurations": [
+    {
+      "name": "x64-Debug-Ninja",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "inheritEnvironments": [ "msvc_x64_x64", "MarianEnvironment" ],
+      "buildRoot": "${projectDir}\\build\\${name}",
+      "installRoot": "${projectDir}\\install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "-v",
+      "ctestCommandArgs": "",
+      "variables": [
+        { "name": "CMAKE_TOOLCHAIN_FILE", "value": "${env.VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake" },
+        { "name": "VCPKG_TARGET_TRIPLET", "value": "x64-windows-static" },
+        
+        { "name": "BOOST_INCLUDEDIR:PATH", "value": "${env.BOOST_INCLUDE_PATH}" },
+        { "name": "BOOST_LIBRARYDIR:PATH", "value": "${env.BOOST_LIB_PATH}" },
+
+        { "name": "ZLIB_ROOT:PATH", "value": "${env.ZLIB_ROOT}" },
+        
+        { "name": "OPENSSL_ROOT_DIR:PATH", "value": "${env.OPENSSL_PATH}" },
+        {
+          "name": "OPENSSL_USE_STATIC_LIBS:BOOL",
+          "value": "TRUE"
+        },
+        { "name": "OPENSSL_MSVC_STATIC_RT:BOOL", "value": "TRUE" },
+        
+        { "name": "COMPILE_SERVER:BOOL", "value": "TRUE" }, 
+        { "name": "COMPILE_EXAMPLES:BOOL", "value": "FALSE" }, 
+        { "name": "COMPILE_TESTS:BOOL", "value": "FALSE" }, 
+        { "name": "COMPILE_CPU:BOOL", "value": "TRUE" }, 
+        { "name": "COMPILE_CUDA:BOOL", "value": "TRUE" }, 
+        
+        { "name": "USE_CUDNN:BOOL", "value": "TRUE" }, 
+        { "name": "USE_MPI:BOOL", "value": "FALSE" }
+      ]
+    },
+    {
+      "name": "x64-Release-Ninja",
+      "generator": "Ninja",
+      "configurationType": "RelWithDebInfo",
+      "inheritEnvironments": [ "msvc_x64_x64", "MarianEnvironment" ],
+      "buildRoot": "${projectDir}\\build\\${name}",
+      "installRoot": "${projectDir}\\install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "-v",
+      "ctestCommandArgs": "",
+      "variables": [
+        { "name": "CMAKE_TOOLCHAIN_FILE", "value": "${env.VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake" },
+        { "name": "VCPKG_TARGET_TRIPLET", "value": "x64-windows-static" },
+        
+        { "name": "BOOST_INCLUDEDIR:PATH", "value": "${env.BOOST_INCLUDE_PATH}" },
+        { "name": "BOOST_LIBRARYDIR:PATH", "value": "${env.BOOST_LIB_PATH}" },
+
+        { "name": "ZLIB_ROOT:PATH", "value": "${env.ZLIB_ROOT}" },
+        
+        { "name": "OPENSSL_ROOT_DIR:PATH", "value": "${env.OPENSSL_PATH}" },
+        { "name": "OPENSSL_USE_STATIC_LIBS:BOOL", "value": "TRUE" },
+        { "name": "OPENSSL_MSVC_STATIC_RT:BOOL", "value": "TRUE" },
+        
+        { "name": "COMPILE_SERVER:BOOL", "value": "TRUE" }, 
+        { "name": "COMPILE_EXAMPLES:BOOL", "value": "FALSE" }, 
+        { "name": "COMPILE_TESTS:BOOL", "value": "FALSE" }, 
+        { "name": "COMPILE_CPU:BOOL", "value": "TRUE" }, 
+        { "name": "COMPILE_CUDA:BOOL", "value": "TRUE" }, 
+        
+        { "name": "USE_CUDNN:BOOL", "value": "TRUE" }, 
+        { "name": "USE_MPI:BOOL", "value": "FALSE" }
+      ]
+    },
+    {
+      "name": "x64-Debug-MSBuild",
+      "generator": "Visual Studio 15 2017 Win64",
+      "configurationType": "Debug",
+      "inheritEnvironments": [ "msvc_x64_x64", "MarianEnvironment" ],
+      "buildRoot": "${projectDir}\\build\\${name}",
+      "installRoot": "${projectDir}\\install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "-v",
+      "ctestCommandArgs": "",
+      "variables": [
+        { "name": "CMAKE_TOOLCHAIN_FILE", "value": "${env.VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake" },
+        { "name": "VCPKG_TARGET_TRIPLET", "value": "x64-windows-static" },
+        
+        { "name": "BOOST_INCLUDEDIR:PATH", "value": "${env.BOOST_INCLUDE_PATH}" },
+        { "name": "BOOST_LIBRARYDIR:PATH", "value": "${env.BOOST_LIB_PATH}" },
+
+        { "name": "ZLIB_ROOT:PATH", "value": "${env.ZLIB_ROOT}" },
+        
+        { "name": "OPENSSL_ROOT_DIR:PATH", "value": "${env.OPENSSL_PATH}" },
+        { "name": "OPENSSL_USE_STATIC_LIBS:BOOL", "value": "TRUE" },
+        { "name": "OPENSSL_MSVC_STATIC_RT:BOOL", "value": "TRUE" },
+        
+        { "name": "COMPILE_SERVER:BOOL", "value": "TRUE" }, 
+        { "name": "COMPILE_EXAMPLES:BOOL", "value": "FALSE" }, 
+        { "name": "COMPILE_TESTS:BOOL", "value": "FALSE" }, 
+        { "name": "COMPILE_CPU:BOOL", "value": "TRUE" }, 
+        { "name": "COMPILE_CUDA:BOOL", "value": "TRUE" }, 
+        
+        { "name": "USE_CUDNN:BOOL", "value": "TRUE" }, 
+        { "name": "USE_MPI:BOOL", "value": "FALSE" }
+      ]
+    },
+    {
+      "name": "x64-Release-MSBuild",
+      "generator": "Visual Studio 15 2017 Win64",
+      "configurationType": "RelWithDebInfo",
+      "inheritEnvironments": [ "msvc_x64_x64", "MarianEnvironment" ],
+      "buildRoot": "${projectDir}\\build\\${name}",
+      "installRoot": "${projectDir}\\install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "-v",
+      "ctestCommandArgs": "",
+      "variables": [
+        { "name": "CMAKE_TOOLCHAIN_FILE", "value": "${env.VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake" },
+        { "name": "VCPKG_TARGET_TRIPLET", "value": "x64-windows-static" },
+        
+        { "name": "BOOST_INCLUDEDIR:PATH", "value": "${env.BOOST_INCLUDE_PATH}" },
+        { "name": "BOOST_LIBRARYDIR:PATH", "value": "${env.BOOST_LIB_PATH}" },
+
+        { "name": "ZLIB_ROOT:PATH", "value": "${env.ZLIB_ROOT}" },
+        
+        { "name": "OPENSSL_ROOT_DIR:PATH", "value": "${env.OPENSSL_PATH}" },
+        { "name": "OPENSSL_USE_STATIC_LIBS:BOOL", "value": "TRUE" },
+        { "name": "OPENSSL_MSVC_STATIC_RT:BOOL", "value": "TRUE" },
+        
+        { "name": "COMPILE_SERVER:BOOL", "value": "TRUE" }, 
+        { "name": "COMPILE_EXAMPLES:BOOL", "value": "FALSE" }, 
+        { "name": "COMPILE_TESTS:BOOL", "value": "FALSE" }, 
+        { "name": "COMPILE_CPU:BOOL", "value": "TRUE" }, 
+        { "name": "COMPILE_CUDA:BOOL", "value": "TRUE" }, 
+        
+        { "name": "USE_CUDNN:BOOL", "value": "TRUE" }, 
+        { "name": "USE_MPI:BOOL", "value": "FALSE" }
+      ]
+    },
+  ]
+}
