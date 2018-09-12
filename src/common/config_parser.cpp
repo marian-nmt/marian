@@ -196,6 +196,8 @@ void ConfigParser::addOptionsCommon(po::options_description& desc) {
     ("log-level", po::value<std::string>()->default_value("info"),
      "Set verbosity level of logging "
      "(trace - debug - info - warn - err(or) - critical - off)")
+    ("log-time-zone", po::value<std::string>()->default_value(""),
+     "Set time zone for the date shown on logging")
     ("quiet", po::value<bool>()->zero_tokens()->default_value(false),
      "Suppress all logging to stderr. Logging to files still works")
     ("quiet-translation", po::value<bool>()->zero_tokens()->default_value(false),
@@ -981,6 +983,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 
   SET_OPTION("workspace", size_t);
   SET_OPTION("log-level", std::string);
+  SET_OPTION("log-time-zone", std::string);
   SET_OPTION("quiet", bool);
   SET_OPTION("quiet-translation", bool);
   SET_OPTION_NONDEFAULT("log", std::string);
