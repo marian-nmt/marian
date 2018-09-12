@@ -192,7 +192,7 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       5);
   cli.add<int>("--char-highway",
       "Number of highway network layers after max-pooling in char-s2s model",
-      4)
+      4);
   cli.add<std::vector<int>>("--char-conv-filters-num",
       "Numbers of convolution filters of correspoding width in char-s2s model",
       std::vector<int>({200, 200, 250, 250, 300, 300, 300, 300}));
