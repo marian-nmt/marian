@@ -133,21 +133,15 @@ public:
   void switchGroup(const std::string &name = "");
 
   // Parse command-line arguments. Handles --help and --version options
-  void parse(int argc, char **argv);
+  YAML::Node parse(int argc, char **argv);
 
   // Check if an option has been defined (not necessarily parsed)
   bool has(const std::string &key) const;
 
-  // Get the current value for the option
-  template <typename T>
-  T get(const std::string &key) const {
-    ABORT_IF(
-        vars_.count(key) == 0, "An option with key '{}' is not defined", key);
-    return vars_.at(key)->as<T>();
-  }
-
+  // Get option values
   YAML::Node getConfig() const;
 
+  // Set option values
   void setConfig(const YAML::Node &config);
 
   /**

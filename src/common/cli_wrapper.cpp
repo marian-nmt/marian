@@ -82,7 +82,7 @@ void CLIWrapper::switchGroup(const std::string &name) {
     currentGroup_ = name;
 }
 
-void CLIWrapper::parse(int argc, char** argv) {
+YAML::Node CLIWrapper::parse(int argc, char** argv) {
   try {
     app_->parse(argc, argv);
   } catch(const CLI::ParseError& e) {
@@ -93,6 +93,8 @@ void CLIWrapper::parse(int argc, char** argv) {
     std::cerr << PROJECT_VERSION_FULL << std::endl;
     exit(0);
   }
+
+  return config_;
 }
 
 bool CLIWrapper::has(const std::string &key) const {

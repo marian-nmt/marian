@@ -621,10 +621,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
   // clang-format on
 
-  // parse command-line options
-  cli.parse(argc, argv);
-  // get YAML config with default and parsed options
-  config_ = cli.getConfig();
+  // parse command-line options and get YAML config
+  config_ = cli.parse(argc, argv);
 
   // get paths to extra config files
   auto configPaths = loadConfigPaths();

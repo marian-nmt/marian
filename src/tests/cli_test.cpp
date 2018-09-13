@@ -46,15 +46,15 @@ int main(int argc, char** argv) {
   w.add<std::string>("-f,--file", "help message")->check(validators::file_exists);
   //w.add<color>("-e,--enum", "help message for enum");
 
-  w.parse(argc, argv);
+  auto opts = w.parse(argc, argv);
 
-  w.get<int>("int");
-  w.get<std::string>("str");
-  w.get<std::vector<float>>("vec");
-  w.get<std::vector<std::string>>("defvec");
-  w.get<bool>("bool");
+  opts["int"].as<int>();
+  opts["str"].as<std::string>();
+  opts["vec"].as<std::vector<float>>();
+  opts["defvec"].as<std::vector<std::string>>();
+  opts["bool"].as<bool>();
   //w.get<std::string>("long");
-  w.get<std::string>("file");
+  opts["file"].as<std::string>();
   //w.get<color>("enum");
 
   YAML::Emitter emit;

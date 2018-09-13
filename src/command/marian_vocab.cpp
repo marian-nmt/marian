@@ -12,15 +12,14 @@ int main(int argc, char** argv) {
   cli::CLIWrapper cli("Allowed options");
   cli.add<size_t>(
       "--max-size,-m", "Generate only  arg  most common vocabulary items", 0);
-
-  cli.parse(argc, argv);
+  auto opts = cli.parse(argc, argv);
 
   LOG(info, "Creating vocabulary...");
 
   auto vocab = New<Vocab>();
   InputFileStream corpusStrm(std::cin);
   OutputFileStream vocabStrm(std::cout);
-  vocab->create(corpusStrm, vocabStrm, cli.get<size_t>("max-size"));
+  vocab->create(corpusStrm, vocabStrm, opts["max-size"].as<size_t>());
 
   LOG(info, "Finished");
 

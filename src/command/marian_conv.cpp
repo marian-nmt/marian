@@ -13,10 +13,9 @@ int main(int argc, char** argv) {
   cli.add<std::string>("--from,-f", "Input model", "model.npz");
   cli.add<std::string>("--to,-t", "Output model", "model.bin");
 
-  cli.parse(argc, argv);
-
-  auto modelFrom = cli.get<std::string>("from");
-  auto modelTo = cli.get<std::string>("to");
+  auto opts = cli.parse(argc, argv);
+  auto modelFrom = opts["from"].as<std::string>();
+  auto modelTo = opts["to"].as<std::string>();
 
   LOG(info, "Outputting {}", modelTo);
 
