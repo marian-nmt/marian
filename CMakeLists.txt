@@ -24,25 +24,11 @@ message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 
 # Set compilation flags
 if (MSVC)
-  set(CMAKE_CXX_FLAGS           "${CMAKE_CXX_FLAGS}           /EHsc /D_CRT_NONSTDC_NO_WARNINGS /D_CRT_SECURE_NO_WARNINGS /DUNICODE /D_UNICODE")
+  set(CMAKE_CXX_FLAGS           "/EHsc /DWIN32 /D_WINDOWS /DUNICODE /D_UNICODE /D_CRT_NONSTDC_NO_WARNINGS /D_CRT_SECURE_NO_WARNINGS")
+  set(CMAKE_CXX_FLAGS_RELEASE   "/MT /O2 /W4 /Zi /MP /GL /DNDEBUG")
+  set(CMAKE_CXX_FLAGS_DEBUG     "/MTd /Od /Ob0 /RTC1 /Zi /D_DEBUG")
   
-  set(CMAKE_CXX_FLAGS_RELEASE   "${CMAKE_CXX_FLAGS_RELEASE}   /MT")   # Runtime Library: Multi-threaded
-  set(CMAKE_CXX_FLAGS_RELEASE   "${CMAKE_CXX_FLAGS_RELEASE}   /O2")   # Optimization: Maximum Optimization (favor Speed) (/Og /Oi /Ot /Oy /Ob2 /GF /Gy)
-  set(CMAKE_CXX_FLAGS_RELEASE   "${CMAKE_CXX_FLAGS_RELEASE}   /W4")   # Warning Level: Level4
-  #set(CMAKE_CXX_FLAGS_RELEASE   "${CMAKE_CXX_FLAGS_RELEASE}   /WX")   # treat Warnings As Errors: yes
-  set(CMAKE_CXX_FLAGS_RELEASE   "${CMAKE_CXX_FLAGS_RELEASE}   /Zi")   # Debug Information Format: Program Database
-  set(CMAKE_CXX_FLAGS_RELEASE   "${CMAKE_CXX_FLAGS_RELEASE}   /MP")   # Multi-processor Compilation: yes
-  set(CMAKE_CXX_FLAGS_RELEASE   "${CMAKE_CXX_FLAGS_RELEASE}   /GL")   # Whole Program Optimization: Yes (require LTCG in linker flags)
-  set(CMAKE_CXX_FLAGS_RELEASE   "${CMAKE_CXX_FLAGS_RELEASE}   /DNDEBUG")
-
-  set(CMAKE_CXX_FLAGS_DEBUG     "${CMAKE_CXX_FLAGS_DEBUG}     /MTd")  # Runtime Library: Multi-threaded Debug
-  set(CMAKE_CXX_FLAGS_DEBUG     "${CMAKE_CXX_FLAGS_DEBUG}     /Od")   # Optimization: Disabled
-  set(CMAKE_CXX_FLAGS_DEBUG     "${CMAKE_CXX_FLAGS_DEBUG}     /Ob0")  # Inline function Expansion: Disabled
-  set(CMAKE_CXX_FLAGS_DEBUG     "${CMAKE_CXX_FLAGS_DEBUG}     /RTC1") # Basic Runtime Checks: Both
-  set(CMAKE_CXX_FLAGS_DEBUG     "${CMAKE_CXX_FLAGS_DEBUG}     /ZI")   # Debug Information Format: Program Database for Edit-and-Continue
-  set(CMAKE_CXX_FLAGS_DEBUG     "${CMAKE_CXX_FLAGS_DEBUG}     /D_DEBUG")
-  
-  set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS}    /LTCG:incremental /INCREMENTAL:NO")
+  set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS} /DEBUG /LTCG:incremental /INCREMENTAL:NO")
 
   set(CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} /LTCG:incremental")
 else()
