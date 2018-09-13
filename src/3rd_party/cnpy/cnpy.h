@@ -262,9 +262,9 @@ namespace cnpy {
     {
         auto tmpname = zipname + "$$"; // TODO: add thread id or something
         unlink(tmpname.c_str()); // when saving to HDFS, we cannot overwrite an existing file
-        FILE* fp = fopen(zipname.c_str(),"wb");
+        FILE* fp = fopen(tmpname.c_str(),"wb");
         if (!fp)
-            throw std::runtime_error("npz_save: error opening file for writing: " + zipname);
+            throw std::runtime_error("npz_save: error opening file for writing: " + tmpname);
 
         std::vector<char> global_header;
         std::vector<char> local_header;
@@ -351,7 +351,9 @@ namespace cnpy {
         fclose(fp);
 
 		// move to final location (atomically)
+#ifdef _MSC_VER
 		unlink(zipname.c_str()); // needed for Windows
+#endif
 		bad = bad || (rename(tmpname.c_str(), zipname.c_str()) == -1);
 
 		if (bad)
