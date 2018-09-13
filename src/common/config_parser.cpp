@@ -69,7 +69,8 @@ const std::set<std::string> PATHS = {"model",
                                      "valid-script-path",
                                      "valid-log",
                                      "valid-translation-output",
-                                     "log"};
+                                     "log",
+									 "output" };
 
 
 bool ConfigParser::has(const std::string& key) const {
@@ -596,6 +597,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<std::string>({"stdin"}), "stdin"),
       "Paths to input file(s), stdin by default")
+	("output,o", po::value<std::string>()->default_value("stdout"),
+		"Path to store the translation output")
     ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to vocabulary files have to correspond to --input")
     ("beam-size,b", po::value<size_t>()->default_value(12),
@@ -648,6 +651,7 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
     // TODO: the options should be available only in server
     ("port,p", po::value<size_t>()->default_value(8080),
       "Port number for web socket server")
+	
   ;
   // clang-format on
   desc.add(translate);
@@ -941,6 +945,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 
   if(mode_ == ConfigMode::translating) {
     SET_OPTION("input", std::vector<std::string>);
+	SET_OPTION("output", std::string);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("normalize", float);
     SET_OPTION("word-penalty", float);
@@ -993,6 +998,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("relative-paths", bool);
   SET_OPTION("devices", std::vector<std::string>);
   SET_OPTION("cpu-threads", size_t);
+ 
   // SET_OPTION("omp-threads", size_t);
 
   SET_OPTION("mini-batch", int);

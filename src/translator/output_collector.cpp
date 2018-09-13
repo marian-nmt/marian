@@ -5,10 +5,15 @@
 
 namespace marian {
 
-OutputCollector::OutputCollector()
-    : nextId_(0),
-      outStrm_(new OutputFileStream(std::cout)),
-      printing_(new DefaultPrinting()) {}
+
+	OutputCollector::OutputCollector(std::string outFile = "stdout")
+		: nextId_(0),
+		outStrm_(new OutputFileStream(std::cout)),
+		printing_(new DefaultPrinting()) {
+		if (outFile != "stdout")
+			outStrm_.reset(new OutputFileStream(outFile));
+	}
+
 
 void OutputCollector::Write(long sourceId,
                             const std::string& best1,
