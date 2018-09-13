@@ -7,18 +7,18 @@ namespace data {
 WordAlignment::WordAlignment() {}
 
 WordAlignment::WordAlignment(
-    const std::vector<std::pair<size_t, size_t>>& align)
+    const std::vector<Point>& align)
     : data_(align) {}
 
 WordAlignment::WordAlignment(const std::string& line) {
   std::vector<std::string> atok = utils::SplitAny(line, " -");
   for(size_t i = 0; i < atok.size(); i += 2)
-    data_.emplace_back(std::stoi(atok[i]), std::stoi(atok[i + 1]));
+    data_.emplace_back(Point{ (size_t)std::stoi(atok[i]), (size_t)std::stoi(atok[i + 1]), 1.f });
 }
 
 void WordAlignment::sort() {
   std::sort(data_.begin(), data_.end(), [](const Point& a, const Point& b) {
-    return (a.first == b.first) ? a.second < b.second : a.first < b.first;
+    return (a.srcPos == b.srcPos) ? a.tgtPos < b.tgtPos : a.srcPos < b.srcPos;
   });
 }
 
@@ -27,7 +27,7 @@ std::string WordAlignment::toString() const {
   for(auto p = begin(); p != end(); ++p) {
     if(p != begin())
       str << " ";
-    str << p->first << "-" << p->second;
+    str << p->srcPos << "-" << p->tgtPos;
   }
   return str.str();
 }
@@ -45,7 +45,7 @@ WordAlignment ConvertSoftAlignToHardAlign(SoftAlignment alignSoft,
           maxArg = s;
         }
       }
-      align.push_back(maxArg, t);
+      align.push_back(maxArg, t, 1.f);
     }
   } else {
     // Alignments by greather-than-threshold
@@ -53,7 +53,7 @@ WordAlignment ConvertSoftAlignToHardAlign(SoftAlignment alignSoft,
       // Retrieved alignments are in reversed order
       for(size_t s = 0; s < alignSoft[0].size(); ++s) {
         if(alignSoft[t][s] > threshold) {
-          align.push_back(s, t);
+          align.push_back(s, t, alignSoft[t][s]);
         }
       }
     }

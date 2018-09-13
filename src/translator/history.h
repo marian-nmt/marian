@@ -7,14 +7,16 @@
 
 namespace marian {
 
+// search grid of one batch entry
 class History {
 private:
-  struct HypothesisCoord {
-    bool operator<(const HypothesisCoord& hc) const { return pathScore < hc.pathScore; }
+  // one hypothesis of a full sentence (reference into search grid)
+  struct SentenceHypothesisCoord {
+    bool operator<(const SentenceHypothesisCoord& hc) const { return normalizedPathScore < hc.normalizedPathScore; }
 
-    size_t i;
-    size_t j;
-    float pathScore;
+    size_t i; // last time step of this sentence hypothesis
+    size_t j; // which beam entry
+    float normalizedPathScore; // length-normalized sentence score
   };
 
 public:
@@ -37,32 +39,24 @@ public:
     history_.push_back(beam);
   }
 
-  size_t size() const { return history_.size(); }
+  size_t size() const { return history_.size(); } // number of time steps
 
   NBestList NBest(size_t n) const {
     NBestList nbest;
-    auto topHypsCopy = topHyps_;
-    while(nbest.size() < n && !topHypsCopy.empty()) {
+    for (auto topHypsCopy = topHyps_; nbest.size() < n && !topHypsCopy.empty(); topHypsCopy.pop()) {
       auto bestHypCoord = topHypsCopy.top();
-      topHypsCopy.pop();
 
-      size_t start = bestHypCoord.i;
-      size_t j = bestHypCoord.j;
-      // float c = bestHypCoord.pathScore;
+      const size_t start = bestHypCoord.i; // last time step of this hypothesis
+      const size_t j     = bestHypCoord.j; // which beam entry
+      Ptr<Hypothesis> bestHyp = history_[start][j];
+      // float c = bestHypCoord.normalizedPathScore;
       // std::cerr << "h: " << start << " " << j << " " << c << std::endl;
 
-      Words targetWords;
-      Ptr<Hypothesis> bestHyp = history_[start][j];
-      while(bestHyp->GetPrevHyp() != nullptr) {
-        targetWords.push_back(bestHyp->GetWord());
-        // std::cerr << bestHyp->GetWord() << " " << bestHyp << std::endl;
-        bestHyp = bestHyp->GetPrevHyp();
-      }
+      // trace back best path
+      Words targetWords = bestHyp->TracebackWords();
 
-      std::reverse(targetWords.begin(), targetWords.end());
-      nbest.emplace_back(targetWords,
-                         history_[bestHypCoord.i][bestHypCoord.j],
-                         bestHypCoord.pathScore);
+      // note: bestHyp->GetPathScore() is not normalized, while bestHypCoord.normalizedPathScore is
+      nbest.emplace_back(targetWords, bestHyp, bestHypCoord.normalizedPathScore);
     }
     return nbest;
   }
@@ -72,8 +66,8 @@ public:
   size_t GetLineNum() const { return lineNo_; }
 
 private:
-  std::vector<Beam> history_;
-  std::priority_queue<HypothesisCoord> topHyps_;
+  std::vector<Beam> history_; // [time step][index into beam] search grid
+  std::priority_queue<SentenceHypothesisCoord> topHyps_; // all sentence hypotheses (those that reached eos), sorted by score
   size_t lineNo_;
   float alpha_;
   float wp_;

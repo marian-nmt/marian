@@ -8,10 +8,14 @@ namespace marian {
 namespace data {
 
 class WordAlignment {
+  struct Point
+  {
+      size_t srcPos;
+      size_t tgtPos;
+      float prob;
+  };
 private:
-  typedef std::pair<size_t, size_t> Point;
   std::vector<Point> data_;
-
 public:
   WordAlignment();
 
@@ -20,7 +24,9 @@ public:
    *
    * @param align Vector of pairs of two unsigned integers
    */
-  WordAlignment(const std::vector<std::pair<size_t, size_t>>& align);
+private:
+  WordAlignment(const std::vector<Point>& align);
+public:
 
   /**
    * @brief Constructs word alignments from textual representation.
@@ -30,9 +36,9 @@ public:
   WordAlignment(const std::string& line);
 
   auto begin() const -> decltype(data_.begin()) { return data_.begin(); }
-  auto end() const -> decltype(data_.end()) { return data_.end(); }
+  auto end()   const -> decltype(data_.end())   { return data_.end(); }
 
-  void push_back(size_t s, size_t t) { data_.push_back(std::make_pair(s, t)); }
+  void push_back(size_t s, size_t t, float p) { data_.emplace_back(Point{ s, t, p }); }
 
   size_t size() const { return data_.size(); }
 

@@ -779,7 +779,7 @@ public:
           bool saveAttentionWeights = false;
           if(j == 0 && (options_->has("guided-alignment") || options_->has("alignment"))) {
             size_t attLayer = decDepth - 1;
-            std::string gaStr = options_->get<std::string>("transformer-guided-alignment-layer");
+            std::string gaStr = options_->get<std::string>("transformer-guided-alignment-layer", "last");
             if(gaStr != "last")
               attLayer = std::stoull(gaStr) - 1;
 
