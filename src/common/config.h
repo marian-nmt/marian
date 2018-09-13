@@ -20,10 +20,7 @@ public:
 
   typedef YAML::Node YamlNode;
 
-  Config(const std::string options,
-         cli::mode mode = cli::mode::training,
-         bool validate = false);
-
+  // TODO: remove mode from this class
   Config(int argc,
          char** argv,
          cli::mode mode = cli::mode::training,
@@ -63,6 +60,7 @@ public:
   void loadModelParameters(const std::string& name);
   void loadModelParameters(const void* ptr);
 
+  // @TODO: remove this accessor or move to a more appropriate class
   const std::vector<DeviceId>& getDevices();
 
   void save(const std::string& name);
@@ -78,6 +76,7 @@ private:
   YAML::Node config_;
   std::vector<DeviceId> devices_;
 
+  // Add options overwritting values for existing ones
   void override(const YAML::Node& params);
 
   void log();

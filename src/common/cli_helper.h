@@ -91,7 +91,11 @@ static void ProcessPaths(
   }
 }
 
-// helper to convert a Yaml node recursively into a string
+// helper to convert a YAML node recursively into a string
+//
+// TODO: create a helper function that converts a YAML node into a string
+// without an emitter; consider extracting YAML-related helper functions to a
+// separate file
 static void OutputYaml(const YAML::Node node, YAML::Emitter& out) {
   std::set<std::string> sorter;
   switch(node.Type()) {

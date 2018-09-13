@@ -133,6 +133,9 @@ public:
    * @param help Help message
    *
    * @return Option object
+   *
+   * TODO: require to always state the default value creating the parser as this
+   * will be clearer
    */
   template <typename T>
   CLI::Option *add(const std::string &args, const std::string &help) {
@@ -155,7 +158,7 @@ public:
    *
    * @return Option object
    *
-   * @TODO: consider to remove this method during final refactorization of
+   * @TODO: consider removing this method during final refactorization of
    * command-line/config parsers in the future as all options should either
    * have a default value or be non-defaulted
    */
