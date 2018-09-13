@@ -13,10 +13,6 @@
 namespace marian {
 namespace cli {
 
-// try to determine the width of the terminal
-static uint16_t guess_terminal_width(uint16_t max_width = 0,
-                                     uint16_t default_width = 180);
-
 namespace validators {
 const CLI::detail::ExistingFileValidator file_exists;
 const CLI::detail::ExistingDirectoryValidator dir_exists;
