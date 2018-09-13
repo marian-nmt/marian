@@ -1,6 +1,7 @@
 #include <numeric>
 #include <random>
 
+#include "common/utils.h"
 #include "data/corpus.h"
 
 namespace marian {

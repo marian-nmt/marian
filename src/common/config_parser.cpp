@@ -16,50 +16,15 @@
 #include "common/definitions.h"
 
 #include "common/cli_helper.h"
-#include "common/config.h"
 #include "common/config_parser.h"
+#include "common/config_validator.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
-#include "common/regex.h"
-#include "common/version.h"
-
-#define SET_OPTION(key, type)                    \
-  do {                                           \
-    if(!vm_[key].defaulted() || !config_[key]) { \
-      config_[key] = vm_[key].as<type>();        \
-    }                                            \
-  } while(0)
-
-#define SET_OPTION_NONDEFAULT(key, type)  \
-  do {                                    \
-    if(vm_.count(key) > 0) {              \
-      config_[key] = vm_[key].as<type>(); \
-    }                                     \
-  } while(0)
-
-namespace po = boost::program_options;
+#include "common/utils.h"
 
 namespace marian {
 
-uint16_t guess_terminal_width(uint16_t max_width) {
-  uint16_t cols = 0;
-#ifdef TIOCGSIZE
-  struct ttysize ts;
-  ioctl(STDIN_FILENO, TIOCGSIZE, &ts);
-  if(ts.ts_cols != 0)
-    cols = ts.ts_cols;
-#elif defined(TIOCGWINSZ)
-  struct winsize ts;
-  ioctl(STDIN_FILENO, TIOCGWINSZ, &ts);
-  if(ts.ws_col != 0)
-    cols = ts.ws_col;
-#endif
-  // couldn't determine terminal width
-  if(cols == 0)
-    cols = (uint16_t)po::options_description::m_default_line_length;
-  return max_width ? std::min(cols, max_width) : cols;
-}
-
+// TODO: move to CLIWrapper and update
 const std::set<std::string> PATHS = {"model",
                                      "models",
                                      "train-sets",
@@ -72,997 +37,714 @@ const std::set<std::string> PATHS = {"model",
                                      "log"};
 
 
-bool ConfigParser::has(const std::string& key) const {
-  return config_[key];
-}
+void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
+  int defaultWorkspace = (mode_ == cli::mode::translation) ? 512 : 2048;
 
-void ConfigParser::validateOptions() const {
-  if(mode_ == ConfigMode::translating) {
-    UTIL_THROW_IF2(
-        !has("models") && !has("config"),
-        "You need to provide at least one model file or a config file");
+  cli.switchGroup("General options");
 
-    UTIL_THROW_IF2(
-        !has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
-        "Translating, but vocabularies are not given!");
-
-    for(const auto& modelFile : get<std::vector<std::string>>("models")) {
-      boost::filesystem::path modelPath(modelFile);
-      UTIL_THROW_IF2(!boost::filesystem::exists(modelPath),
-                     "Model file does not exist: " + modelFile);
-    }
-
-    return;
-  }
-
-  UTIL_THROW_IF2(
-      !has("train-sets") || get<std::vector<std::string>>("train-sets").empty(),
-      "No train sets given in config file or on command line");
-  UTIL_THROW_IF2(
-      has("vocabs")
-          && get<std::vector<std::string>>("vocabs").size()
-                 != get<std::vector<std::string>>("train-sets").size(),
-      "There should be as many vocabularies as training sets");
-  UTIL_THROW_IF2(
-      has("embedding-vectors")
-          && get<std::vector<std::string>>("embedding-vectors").size()
-                 != get<std::vector<std::string>>("train-sets").size(),
-      "There should be as many files with embedding vectors as "
-      "training sets");
-
-  boost::filesystem::path modelPath(get<std::string>("model"));
-
-  if(mode_ == ConfigMode::rescoring) {
-    UTIL_THROW_IF2(!boost::filesystem::exists(modelPath),
-                   "Model file does not exist: " + modelPath.string());
-
-    UTIL_THROW_IF2(
-        !has("vocabs") || get<std::vector<std::string>>("vocabs").empty(),
-        "Scoring, but vocabularies are not given!");
-
-    return;
-  }
-
-  auto modelDir = modelPath.parent_path();
-  if(modelDir.empty())
-    modelDir = boost::filesystem::current_path();
-
-  UTIL_THROW_IF2(
-      !modelDir.empty() && !boost::filesystem::is_directory(modelDir),
-      "Model directory does not exist");
-
-  UTIL_THROW_IF2(!modelDir.empty()
-                     && !(boost::filesystem::status(modelDir).permissions()
-                          & boost::filesystem::owner_write),
-                 "No write permission in model directory");
-
-  UTIL_THROW_IF2(
-      has("valid-sets")
-          && get<std::vector<std::string>>("valid-sets").size()
-                 != get<std::vector<std::string>>("train-sets").size(),
-      "There should be as many validation sets as training sets");
-
-  // validations for learning rate decaying
-  UTIL_THROW_IF2(get<double>("lr-decay") > 1.0,
-                 "Learning rate decay factor greater than 1.0 is unusual");
-  UTIL_THROW_IF2(
-      (get<std::string>("lr-decay-strategy") == "epoch+batches"
-       || get<std::string>("lr-decay-strategy") == "epoch+stalled")
-          && get<std::vector<size_t>>("lr-decay-start").size() != 2,
-      "Decay strategies 'epoch+batches' and 'epoch+stalled' require two "
-      "values specified with --lr-decay-start options");
-  UTIL_THROW_IF2(
-      (get<std::string>("lr-decay-strategy") == "epoch"
-       || get<std::string>("lr-decay-strategy") == "batches"
-       || get<std::string>("lr-decay-strategy") == "stalled")
-          && get<std::vector<size_t>>("lr-decay-start").size() != 1,
-      "Single decay strategies require only one value specified with "
-      "--lr-decay-start option");
-}
-
-void ConfigParser::validateDevices() const {
-  std::string devices = utils::Join(get<std::vector<std::string>>("devices"));
-  utils::Trim(devices);
-
-  regex::regex pattern;
-  std::string help;
-  if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
-    // valid strings: '0: 1 2', '0:1 2 1:2 3'
-    pattern = "( *[0-9]+ *: *[0-9]+( *[0-9]+)*)+";
-    help = "Supported format for multi-node setting: '0:0 1 2 3 1:0 1 2 3'";
-  } else {
-    // valid strings: '0', '0 1 2 3', '3 2 0 1'
-    pattern = "[0-9]+( *[0-9]+)*";
-    help = "Supported formats: '0 1 2 3'";
-  }
-
-  UTIL_THROW_IF2(!regex::regex_match(devices, pattern),
-                 "the argument '(" + devices
-                     + ")' for option '--devices' is invalid. " + help);
-}
-
-void ConfigParser::addOptionsCommon(po::options_description& desc) {
-  int defaultWorkspace = (mode_ == ConfigMode::translating) ? 512 : 2048;
-
-  po::options_description general("General options", guess_terminal_width());
   // clang-format off
-  general.add_options()
-    ("config,c", po::value<std::vector<std::string>>()->multitoken(),
-     "Configuration file(s). If multiple, later overrides earlier.")
-    ("workspace,w", po::value<size_t>()->default_value(defaultWorkspace),
-      "Preallocate  arg  MB of work space")
-    ("log", po::value<std::string>(),
-     "Log training process information to file given by  arg")
-    ("log-level", po::value<std::string>()->default_value("info"),
-     "Set verbosity level of logging "
-     "(trace - debug - info - warn - err(or) - critical - off)")
-    ("quiet", po::value<bool>()->zero_tokens()->default_value(false),
-     "Suppress all logging to stderr. Logging to files still works")
-    ("quiet-translation", po::value<bool>()->zero_tokens()->default_value(false),
-     "Suppress logging for translation")
-    ("seed", po::value<size_t>()->default_value(0),
-     "Seed for all random number generators. 0 means initialize randomly")
-    ("clip-gemm", po::value<float>()->default_value(0.f),
-     "If not 0 clip GEMM input values to +/- arg")
-    ("interpolate-env-vars", po::value<bool>()->zero_tokens()->default_value(false),
-     "allow the use of environment variables in paths, of the form ${VAR_NAME}")
-    ("relative-paths", po::value<bool>()->zero_tokens()->default_value(false),
-     "All paths are relative to the config file location")
-    ("dump-config", po::value<bool>()->zero_tokens()->default_value(false),
-     "Dump current (modified) configuration to stdout and exit")
-    ("version", po::value<bool>()->zero_tokens()->default_value(false),
-      "Print version number and exit")
-    ("help,h", po::value<bool>()->zero_tokens()->default_value(false),
-      "Print this help message and exit")
-  ;
+  cli.add_nondefault<bool>("--version",
+      "Print version number and exit");
+  cli.add<std::vector<std::string>>("--config,-c",
+     "Configuration file(s). If multiple, later overrides earlier");
+  cli.add<size_t>("--workspace,-w",
+      "Preallocate  arg  MB of work space",
+      defaultWorkspace);
+  cli.add_nondefault<std::string>("--log",
+     "Log training process information to file given by  arg");
+  cli.add<std::string>("--log-level",
+     "Set verbosity level of logging: trace, debug, info, warn, err(or), critical, off",
+     "info");
+  cli.add_nondefault<std::string>("--log-time-zone",
+     "Set time zone for the date shown on logging");
+  cli.add<bool>("--quiet",
+     "Suppress all logging to stderr. Logging to files still works");
+  cli.add<bool>("--quiet-translation",
+     "Suppress logging for translation");
+  cli.add<size_t>("--seed",
+     "Seed for all random number generators. 0 means initialize randomly");
+  cli.add<float>("--clip-gemm",
+     "If not 0 clip GEMM input values to +/- arg");
+  cli.add<bool>("--interpolate-env-vars",
+     "allow the use of environment variables in paths, of the form ${VAR_NAME}");
+  cli.add<bool>("--relative-paths",
+     "All paths are relative to the config file location");
+  cli.add<bool>("--dump-config",
+     "Dump current (modified) configuration to stdout and exit");
   // clang-format on
-  desc.add(general);
 }
 
-void ConfigParser::addOptionsModel(po::options_description& desc) {
-  po::options_description model("Model options", guess_terminal_width());
-  // clang-format off
-  if(mode_ == ConfigMode::translating) {
-    model.add_options()
-    ("models,m", po::value<std::vector<std::string>>()->multitoken(),
-     "Paths to model(s) to be loaded");
-  } else {
-    model.add_options()
-      ("model,m", po::value<std::string>()->default_value("model.npz"),
-      "Path prefix for model to be saved/resumed");
+void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
+  cli.switchGroup("Model options");
 
-    if(mode_ == ConfigMode::training) {
-      model.add_options()
-        ("pretrained-model", po::value<std::string>(),
+  // clang-format off
+  if(mode_ == cli::mode::translation) {
+    cli.add<std::vector<std::string>>("--models,-m",
+      "Paths to model(s) to be loaded");
+  } else {
+    cli.add<std::string>("--model,-m",
+      "Path prefix for model to be saved/resumed",
+      "model.npz");
+
+    if(mode_ == cli::mode::training) {
+      cli.add_nondefault<std::string>("--pretrained-model",
         "Path prefix for pre-trained model to initialize model weights");
     }
   }
 
-  model.add_options()
-    ("ignore-model-config", po::value<bool>()->zero_tokens()->default_value(false),
-     "Ignore the model configuration saved in npz file")
-    ("type", po::value<std::string>()->default_value("amun"),
-      "Model type: amun, nematus, s2s, multi-s2s, transformer")
-    ("dim-vocabs", po::value<std::vector<int>>()
-      ->multitoken()
-      ->default_value(std::vector<int>({0, 0}), "0 0"),
-     "Maximum items in vocabulary ordered by rank, 0 uses all items in the "
-     "provided/created vocabulary file")
-    ("dim-emb", po::value<int>()->default_value(512),
-     "Size of embedding vector")
-    ("dim-rnn", po::value<int>()->default_value(1024),
-     "Size of rnn hidden state")
-    ("enc-type", po::value<std::string>()->default_value("bidirectional"),
-     "Type of encoder RNN : bidirectional, bi-unidirectional, alternating (s2s)")
-    ("enc-cell", po::value<std::string>()->default_value("gru"),
-     "Type of RNN cell: gru, lstm, tanh (s2s)")
-    ("enc-cell-depth", po::value<int>()->default_value(1),
-     "Number of transitional cells in encoder layers (s2s)")
-    ("enc-depth", po::value<int>()->default_value(1),
-     "Number of encoder layers (s2s)")
-    ("dec-cell", po::value<std::string>()->default_value("gru"),
-     "Type of RNN cell: gru, lstm, tanh (s2s)")
-    ("dec-cell-base-depth", po::value<int>()->default_value(2),
-     "Number of transitional cells in first decoder layer (s2s)")
-    ("dec-cell-high-depth", po::value<int>()->default_value(1),
-     "Number of transitional cells in next decoder layers (s2s)")
-    ("dec-depth", po::value<int>()->default_value(1),
-     "Number of decoder layers (s2s)")
-    //("dec-high-context", po::value<std::string>()->default_value("none"),
-    // "Repeat attended context: none, repeat, conditional, conditional-repeat (s2s)")
-    ("skip", po::value<bool>()->zero_tokens()->default_value(false),
-     "Use skip connections (s2s)")
-    ("layer-normalization", po::value<bool>()->zero_tokens()->default_value(false),
-     "Enable layer normalization")
-    ("right-left", po::value<bool>()->zero_tokens()->default_value(false),
-     "Train right-to-left model")
-    ("best-deep", po::value<bool>()->zero_tokens()->default_value(false),
-     "Use Edinburgh deep RNN configuration (s2s)")
-    ("special-vocab", po::value<std::vector<size_t>>()->multitoken(),
-     "Model-specific special vocabulary ids")
-    ("tied-embeddings", po::value<bool>()->zero_tokens()->default_value(false),
-     "Tie target embeddings and output embeddings in output layer")
-    ("tied-embeddings-src", po::value<bool>()->zero_tokens()->default_value(false),
-     "Tie source and target embeddings")
-    ("tied-embeddings-all", po::value<bool>()->zero_tokens()->default_value(false),
-     "Tie all embedding layers and output layer")
-    ("transformer-heads", po::value<int>()->default_value(8),
-     "Number of heads in multi-head attention (transformer)")
-    ("transformer-no-projection", po::value<bool>()->zero_tokens()->default_value(false),
-     "Omit linear projection after multi-head attention (transformer)")
-    ("transformer-dim-ffn", po::value<int>()->default_value(2048),
-     "Size of position-wise feed-forward network (transformer)")
-    ("transformer-ffn-depth", po::value<int>()->default_value(2),
-     "Depth of filters (transformer)")
-    ("transformer-ffn-activation", po::value<std::string>()->default_value("swish"),
-     "Activation between filters: swish or relu (transformer)")
-    ("transformer-dim-aan", po::value<int>()->default_value(2048),
-     "Size of position-wise feed-forward network in AAN (transformer)")
-    ("transformer-aan-depth", po::value<int>()->default_value(2),
-     "Depth of filter for AAN (transformer)")
-    ("transformer-aan-activation", po::value<std::string>()->default_value("swish"),
-     "Activation between filters in AAN: swish or relu (transformer)")
-    ("transformer-aan-nogate", po::value<bool>()->zero_tokens()->default_value(false),
-     "Omit gate in AAN (transformer)")
-    ("transformer-decoder-autoreg", po::value<std::string>()->default_value("self-attention"),
-     "Type of autoregressive layer in transformer decoder: self-attention, average-attention (transformer)")
-    ("transformer-tied-layers", po::value<std::vector<size_t>>()->multitoken()
-      ->default_value(std::vector<size_t>(), ""),
-     "List of tied decoder layers (transformer)")
-    ("transformer-guided-alignment-layer", po::value<std::string>()->default_value("last"),
-     "Last or number of layer to use for guided alignment training in transformer")
-    ("transformer-preprocess", po::value<std::string>()->default_value(""),
-     "Operation before each transformer layer: d = dropout, a = add, n = normalize")
-    ("transformer-postprocess-emb", po::value<std::string>()->default_value("d"),
-     "Operation after transformer embedding layer: d = dropout, a = add, n = normalize")
-    ("transformer-postprocess", po::value<std::string>()->default_value("dan"),
-     "Operation after each transformer layer: d = dropout, a = add, n = normalize")
-#ifdef CUDNN
-    ("char-stride", po::value<int>()->default_value(5),
-     "Width of max-pooling layer after convolution layer in char-s2s model")
-    ("char-highway", po::value<int>()->default_value(4),
-     "Number of highway network layers after max-pooling in char-s2s model")
-    ("char-conv-filters-num", po::value<std::vector<int>>()
-      ->default_value(std::vector<int>({200, 200, 250, 250, 300, 300, 300, 300}),
-                                      "200 200 250 250 300 300 300 300")
-      ->multitoken(),
-     "Numbers of convolution filters of correspoding width in char-s2s model")
-    ("char-conv-filters-widths", po::value<std::vector<int>>()
-     ->default_value(std::vector<int>({1, 2, 3, 4, 5, 6, 7, 8}), "1 2 3 4 5 6 7 8")
-      ->multitoken(),
-     "Convolution window widths in char-s2s model")
-#endif
-    ;
+  cli.add<bool>("--ignore-model-config",
+      "Ignore the model configuration saved in npz file");
+  cli.add<std::string>("--type",
+      "Model type: amun, nematus, s2s, multi-s2s, transformer",
+      "amun");
+  cli.add<std::vector<int>>("--dim-vocabs",
+      "Maximum items in vocabulary ordered by rank, 0 uses all items in the provided/created vocabulary file",
+      std::vector<int>({0, 0}));
+  cli.add<int>("--dim-emb",
+      "Size of embedding vector",
+      512);
+  cli.add<int>("--dim-rnn",
+      "Size of rnn hidden state", 1024);
+  cli.add<std::string>("--enc-type",
+      "Type of encoder RNN : bidirectional, bi-unidirectional, alternating (s2s)",
+      "bidirectional");
+  cli.add<std::string>("--enc-cell",
+      "Type of RNN cell: gru, lstm, tanh (s2s)", "gru");
+  cli.add<int>("--enc-cell-depth",
+      "Number of transitional cells in encoder layers (s2s)",
+      1);
+  cli.add<int>("--enc-depth",
+      "Number of encoder layers (s2s)",
+      1);
+  cli.add<std::string>("--dec-cell",
+      "Type of RNN cell: gru, lstm, tanh (s2s)",
+      "gru");
+  cli.add<int>("--dec-cell-base-depth",
+      "Number of transitional cells in first decoder layer (s2s)",
+      2);
+  cli.add<int>("--dec-cell-high-depth",
+      "Number of transitional cells in next decoder layers (s2s)",
+      1);
+  cli.add<int>("--dec-depth",
+      "Number of decoder layers (s2s)",
+      1);
+  cli.add<bool>("--skip",
+      "Use skip connections (s2s)");
+  cli.add<bool>("--layer-normalization",
+      "Enable layer normalization");
+  cli.add<bool>("--right-left",
+      "Train right-to-left model");
+  cli.add<bool>("--best-deep",
+      "Use Edinburgh deep RNN configuration (s2s)");
+  cli.add_nondefault<std::vector<size_t>>("--special-vocab",
+      "Model-specific special vocabulary ids");
+  cli.add<bool>("--tied-embeddings",
+      "Tie target embeddings and output embeddings in output layer");
+  cli.add<bool>("--tied-embeddings-src",
+      "Tie source and target embeddings");
+  cli.add<bool>("--tied-embeddings-all",
+      "Tie all embedding layers and output layer");
 
-  if(mode_ == ConfigMode::training) {
-    model.add_options()
-      ("dropout-rnn", po::value<float>()->default_value(0),
-       "Scaling dropout along rnn layers and time (0 = no dropout)")
-      ("dropout-src", po::value<float>()->default_value(0),
-       "Dropout source words (0 = no dropout)")
-      ("dropout-trg", po::value<float>()->default_value(0),
-       "Dropout target words (0 = no dropout)")
-      ("grad-dropping-rate", po::value<float>()->default_value(0),
-       "Gradient Dropping rate (0 = no gradient Dropping)")
-      ("grad-dropping-momentum", po::value<float>()->default_value(0),
-       "Gradient Dropping momentum decay rate (0.0 to 1.0)")
-      ("grad-dropping-warmup", po::value<size_t>()->default_value(100),
-       "Do not apply gradient dropping for the first arg steps")
-      ("transformer-dropout", po::value<float>()->default_value(0),
-       "Dropout between transformer layers (0 = no dropout)")
-      ("transformer-dropout-attention", po::value<float>()->default_value(0),
-       "Dropout for transformer attention (0 = no dropout)")
-      ("transformer-dropout-ffn", po::value<float>()->default_value(0),
-       "Dropout for transformer filter (0 = no dropout)")
-    ;
+  // Transformer options
+  cli.add<int>("--transformer-heads",
+      "Number of heads in multi-head attention (transformer)",
+      8);
+  cli.add<bool>("--transformer-no-projection",
+      "Omit linear projection after multi-head attention (transformer)");
+  cli.add<int>("--transformer-dim-ffn",
+      "Size of position-wise feed-forward network (transformer)",
+      2048);
+  cli.add<int>("--transformer-ffn-depth",
+      "Depth of filters (transformer)",
+      2);
+  cli.add<std::string>("--transformer-ffn-activation",
+      "Activation between filters: swish or relu (transformer)",
+      "swish");
+  cli.add<int>("--transformer-dim-aan",
+      "Size of position-wise feed-forward network in AAN (transformer)",
+      2048);
+  cli.add<int>("--transformer-aan-depth",
+      "Depth of filter for AAN (transformer)",
+      2);
+  cli.add<std::string>("--transformer-aan-activation",
+      "Activation between filters in AAN: swish or relu (transformer)",
+      "swish");
+  cli.add<bool>("--transformer-aan-nogate",
+      "Omit gate in AAN (transformer)");
+  cli.add<std::string>("--transformer-decoder-autoreg",
+      "Type of autoregressive layer in transformer decoder: self-attention, average-attention (transformer)",
+      "self-attention");
+  cli.add<std::vector<size_t>>("--transformer-tied-layers",
+      "List of tied decoder layers (transformer)");
+  cli.add<std::string>("--transformer-guided-alignment-layer",
+      "Last or number of layer to use for guided alignment training in transformer",
+      "last");
+  cli.add<std::string>("--transformer-preprocess",
+      "Operation before each transformer layer: d = dropout, a = add, n = normalize");
+  cli.add<std::string>("--transformer-postprocess-emb",
+      "Operation after transformer embedding layer: d = dropout, a = add, n = normalize",
+      "d");
+  cli.add<std::string>("--transformer-postprocess",
+      "Operation after each transformer layer: d = dropout, a = add, n = normalize",
+      "dan");
+
+#ifdef CUDNN
+  cli.add<int>("--char-stride",
+      "Width of max-pooling layer after convolution layer in char-s2s model",
+      5);
+  cli.add<int>("--char-highway",
+      "Number of highway network layers after max-pooling in char-s2s model",
+      4);
+  cli.add<std::vector<int>>("--char-conv-filters-num",
+      "Numbers of convolution filters of correspoding width in char-s2s model",
+      std::vector<int>({200, 200, 250, 250, 300, 300, 300, 300}));
+  cli.add<std::vector<int>>("--char-conv-filters-widths",
+      "Convolution window widths in char-s2s model",
+      std::vector<int>({1, 2, 3, 4, 5, 6, 7, 8}));
+#endif
+
+  if(mode_ == cli::mode::training) {
+    // TODO: add ->range(0,1);
+    cli.add<float>("--dropout-rnn",
+        "Scaling dropout along rnn layers and time (0 = no dropout)");
+    cli.add<float>("--dropout-src",
+        "Dropout source words (0 = no dropout)");
+    cli.add<float>("--dropout-trg",
+        "Dropout target words (0 = no dropout)");
+    cli.add<float>("--grad-dropping-rate",
+        "Gradient Dropping rate (0 = no gradient Dropping)");
+    cli.add<float>("--grad-dropping-momentum",
+        "Gradient Dropping momentum decay rate (0.0 to 1.0)");
+    cli.add<size_t>("--grad-dropping-warmup",
+        "Do not apply gradient dropping for the first arg steps",
+        100);
+    cli.add<float>("--transformer-dropout",
+        "Dropout between transformer layers (0 = no dropout)");
+    cli.add<float>("--transformer-dropout-attention",
+        "Dropout for transformer attention (0 = no dropout)");
+    cli.add<float>("--transformer-dropout-ffn",
+        "Dropout for transformer filter (0 = no dropout)");
   }
   // clang-format on
-
-  desc.add(model);
 }
 
-void ConfigParser::addOptionsTraining(po::options_description& desc) {
-  po::options_description training("Training options", guess_terminal_width());
+void ConfigParser::addOptionsTraining(cli::CLIWrapper &cli) {
+  cli.switchGroup("Training options");
   // clang-format off
-  training.add_options()
-    ("cost-type", po::value<std::string>()->default_value("ce-mean"),
-      "Optimization criterion: ce-mean, ce-mean-words, ce-sum, perplexity")
-    ("overwrite", po::value<bool>()->zero_tokens()->default_value(false),
-      "Overwrite model with following checkpoints")
-    ("no-reload", po::value<bool>()->zero_tokens()->default_value(false),
-      "Do not load existing model specified in --model arg")
-    ("train-sets,t", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to training corpora: source target")
-    ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
+  cli.add<std::string>("--cost-type",
+      "Optimization criterion: ce-mean, ce-mean-words, ce-sum, perplexity", "ce-mean");
+  cli.add<bool>("--overwrite",
+      "Overwrite model with following checkpoints");
+  cli.add<bool>("--no-reload",
+      "Do not load existing model specified in --model arg");
+  cli.add<std::vector<std::string>>("--train-sets,-t",
+      "Paths to training corpora: source target");
+  cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --train-sets. "
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
-      "If these files do not exist they are created")
-    ("max-length", po::value<size_t>()->default_value(50),
-      "Maximum length of a sentence in a training sentence pair")
-    ("max-length-crop", po::value<bool>()->zero_tokens()->default_value(false),
-      "Crop a sentence to max-length instead of ommitting it if longer than max-length")
-    ("after-epochs,e", po::value<size_t>()->default_value(0),
-      "Finish after this many epochs, 0 is infinity")
-    ("after-batches", po::value<size_t>()->default_value(0),
-      "Finish after this many batch updates, 0 is infinity")
-    ("disp-freq", po::value<size_t>()->default_value(1000),
-      "Display information every  arg  updates")
-    ("disp-label-counts", po::value<bool>()->zero_tokens()->default_value(false),
-      "Display label counts when logging loss progress")
-    ("save-freq", po::value<size_t>()->default_value(10000),
-      "Save model file every  arg  updates")
-    ("no-shuffle", po::value<bool>()->zero_tokens()->default_value(false),
-      "Skip shuffling of training data before each epoch")
-    ("no-restore-corpus", po::value<bool>()->zero_tokens()->default_value(false),
-      "Skip restoring corpus state after training is restarted")
-    ("tempdir,T", po::value<std::string>()->default_value("/tmp"),
-      "Directory for temporary (shuffled) files and database")
-    ("sqlite", po::value<std::string>()->default_value("")->implicit_value("temporary"),
-      "Use disk-based sqlite3 database for training corpus storage, default "
-      "is temporary with path creates persistent storage")
-    ("sqlite-drop", po::value<bool>()->zero_tokens()->default_value(false),
-      "Drop existing tables in sqlite3 database")
-    ("devices,d", po::value<std::vector<std::string>>()
-      ->multitoken()
-      ->default_value(std::vector<std::string>({"0"}), "0"),
-      "GPU ID(s) to use for training")
-#ifdef USE_NCCL
-    ("no-nccl", po::value<bool>()->zero_tokens()->default_value(false),
-     "Disable inter-GPU communication via NCCL")
-#endif
-#ifdef CUDA_FOUND
-    ("cpu-threads", po::value<size_t>()->default_value(0)->implicit_value(1),
-      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
-    //("omp-threads", po::value<size_t>()->default_value(1),
-    //  "Set number of OpenMP threads for each CPU-based thread")
-#else
-    ("cpu-threads", po::value<size_t>()->default_value(1),
-      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
-#endif
-    ("mini-batch", po::value<int>()->default_value(64),
-      "Size of mini-batch used during update")
-    ("mini-batch-words", po::value<int>()->default_value(0),
-      "Set mini-batch size based on words instead of sentences")
-    ("mini-batch-fit", po::value<bool>()->zero_tokens()->default_value(false),
-      "Determine mini-batch size automatically based on sentence-length to "
-      "fit reserved memory")
-    ("mini-batch-fit-step", po::value<size_t>()->default_value(10),
-      "Step size for mini-batch-fit statistics")
-    ("maxi-batch", po::value<int>()->default_value(100),
-      "Number of batches to preload for length-based sorting")
-    ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
-      "Sorting strategy for maxi-batch: trg, src, none")
-    ("optimizer,o", po::value<std::string>()->default_value("adam"),
-     "Optimization algorithm (possible values: sgd, adagrad, adam")
-    ("optimizer-params",  po::value<std::vector<float>>()
-       ->multitoken(),
-     "Parameters for optimization algorithm, e.g. betas for adam")
-    ("optimizer-delay", po::value<size_t>()->default_value(1),
-     "SGD update delay, 1 = no delay")
-    ("learn-rate,l", po::value<double>()->default_value(0.0001),
-     "Learning rate")
-    ("lr-decay", po::value<double>()->default_value(0.0),
-     "Decay factor for learning rate: lr = lr * arg (0 to disable)")
-    ("lr-decay-strategy", po::value<std::string>()->default_value("epoch+stalled"),
-     "Strategy for learning rate decaying: epoch, batches, stalled, "
-     "epoch+batches, epoch+stalled")
-    ("lr-decay-start", po::value<std::vector<size_t>>()
-       ->multitoken()
-       ->default_value(std::vector<size_t>({10,1}), "10 1"),
-       "The first number of epoch/batches/stalled validations to start "
-       "learning rate decaying")
-    ("lr-decay-freq", po::value<size_t>()->default_value(50000),
-     "Learning rate decaying frequency for batches, "
-     "requires --lr-decay-strategy to be batches")
-    ("lr-decay-reset-optimizer", po::value<bool>()->zero_tokens()->default_value(false),
-      "Reset running statistics of optimizer whenever learning rate decays")
+      "If these files do not exist they are created");
 
-    ("lr-decay-repeat-warmup", po::value<bool>()
-     ->zero_tokens()->default_value(false),
-     "Repeat learning rate warmup when learning rate is decayed")
-    ("lr-decay-inv-sqrt", po::value<size_t>()->default_value(0),
-     "Decrease learning rate at arg / sqrt(no. updates) starting at arg")
+  // scheduling options
+  cli.add<size_t>("--after-epochs,-e",
+      "Finish after this many epochs, 0 is infinity");
+  cli.add<size_t>("--after-batches",
+      "Finish after this many batch updates, 0 is infinity");
+  cli.add<size_t>("--disp-freq",
+      "Display information every  arg  updates",
+      1000);
+  cli.add<bool>("--disp-label-counts",
+      "Display label counts when logging loss progress");
+  cli.add<size_t>("--save-freq",
+      "Save model file every  arg  updates",
+      10000);
 
-    ("lr-warmup", po::value<size_t>()->default_value(0),
-     "Increase learning rate linearly for arg first steps")
-    ("lr-warmup-start-rate", po::value<float>()->default_value(0),
-     "Start value for learning rate warmup")
-    ("lr-warmup-cycle", po::value<bool>()->zero_tokens()->default_value(false),
-     "Apply cyclic warmup")
-    ("lr-warmup-at-reload", po::value<bool>()->zero_tokens()->default_value(false),
-     "Repeat warmup after interrupted training")
+  addSuboptionsInputLength(cli);
 
-    ("lr-report", po::value<bool>()
-     ->zero_tokens()->default_value(false),
-     "Report learning rate for each update")
+  // data management options
+  cli.add<bool>("--no-shuffle",
+      "Skip shuffling of training data before each epoch");
+  cli.add<bool>("--no-restore-corpus",
+      "Skip restoring corpus state after training is restarted");
+  cli.add<std::string>("--tempdir,-T",
+      "Directory for temporary (shuffled) files and database",
+      "/tmp");
+  cli.add<std::string>("--sqlite",
+      "Use disk-based sqlite3 database for training corpus storage, default"
+      " is temporary with path creates persistent storage")
+    ->implicit_val("temporary");
+  cli.add<bool>("--sqlite-drop",
+      "Drop existing tables in sqlite3 database");
 
-    ("batch-flexible-lr", po::value<bool>()->zero_tokens()->default_value(false),
-      "Scales the learning rate based on the number of words in a mini-batch")
-    ("batch-normal-words", po::value<double>()->default_value(1920.0),
+  addSuboptionsDevices(cli);
+  addSuboptionsBatching(cli);
+
+  // optimizer options
+  cli.add<std::string>("--optimizer,-o",
+     "Optimization algorithm: sgd, adagrad, adam",
+     "adam");
+  cli.add_nondefault<std::vector<float>>("--optimizer-params",
+     "Parameters for optimization algorithm, e.g. betas for adam");
+  cli.add<size_t>("--optimizer-delay",
+     "SGD update delay, 1 = no delay",
+     1);
+
+  cli.add<bool>("--sync-sgd",
+     "Use synchronous SGD instead of asynchronous for multi-gpu training");
+
+  // learning rate options
+  cli.add<double>("--learn-rate,-l",
+     "Learning rate",
+     0.0001);
+  cli.add<bool>("--lr-report",
+     "Report learning rate for each update");
+
+  cli.add<double>("--lr-decay",
+     "Decay factor for learning rate: lr = lr * arg (0 to disable)");
+  cli.add<std::string>("--lr-decay-strategy",
+     "Strategy for learning rate decaying: epoch, batches, stalled, epoch+batches, epoch+stalled",
+     "epoch+stalled");
+  cli.add<std::vector<size_t>>("--lr-decay-start",
+     "The first number of epoch/batches/stalled validations to start learning rate decaying",
+     std::vector<size_t>({10,1}));
+  cli.add<size_t>("--lr-decay-freq",
+     "Learning rate decaying frequency for batches, requires --lr-decay-strategy to be batches",
+     50000);
+  cli.add<bool>("--lr-decay-reset-optimizer",
+      "Reset running statistics of optimizer whenever learning rate decays");
+  cli.add<bool>("--lr-decay-repeat-warmup",
+     "Repeat learning rate warmup when learning rate is decayed");
+  cli.add<size_t>("--lr-decay-inv-sqrt",
+     "Decrease learning rate at arg / sqrt(no. updates) starting at arg");
+
+  cli.add<size_t>("--lr-warmup",
+     "Increase learning rate linearly for arg first steps");
+  cli.add<float>("--lr-warmup-start-rate",
+     "Start value for learning rate warmup");
+  cli.add<bool>("--lr-warmup-cycle",
+     "Apply cyclic warmup");
+  cli.add<bool>("--lr-warmup-at-reload",
+     "Repeat warmup after interrupted training");
+
+  cli.add<bool>("--batch-flexible-lr",
+      "Scales the learning rate based on the number of words in a mini-batch");
+  cli.add<double>("--batch-normal-words",
       "Set number of words per batch that the learning rate corresponds to. "
-      "The option is only active when batch-flexible-lr is on")
-    ("sync-sgd", po::value<bool>()->zero_tokens()->default_value(false),
-     "Use synchronous SGD instead of asynchronous for multi-gpu training")
-    ("label-smoothing", po::value<double>()->default_value(0),
-     "Epsilon for label smoothing (0 to disable)")
-    ("clip-norm", po::value<double>()->default_value(1.f),
-     "Clip gradient norm to  arg  (0 to disable)")
-    ("exponential-smoothing", po::value<float>()->default_value(0.f)->implicit_value(1e-4f, "1e-4"),
-     "Maintain smoothed version of parameters for validation and saving with smoothing factor arg. "
-     " 0 to disable.")
-    ("guided-alignment", po::value<std::string>(),
-     "Use guided alignment to guide attention")
-    ("guided-alignment-cost", po::value<std::string>()->default_value("ce"),
-     "Cost type for guided alignment: ce (cross-entropy), mse (mean square "
-     "error), mult (multiplication)")
-    ("guided-alignment-weight", po::value<double>()->default_value(1),
-     "Weight for guided alignment cost")
-    ("data-weighting", po::value<std::string>(),
-     "File with sentence or word weights")
-    ("data-weighting-type", po::value<std::string>()->default_value("sentence"),
-     "Processing level for data weighting: sentence, word")
+      "The option is only active when batch-flexible-lr is on",
+      1920.0);
 
-    //("drop-rate", po::value<double>()->default_value(0),
-    // "Gradient drop ratio (read: https://arxiv.org/abs/1704.05021)")
-    ("embedding-vectors", po::value<std::vector<std::string>>()
-      ->multitoken(),
-     "Paths to files with custom source and target embedding vectors")
-    ("embedding-normalization", po::value<bool>()
-      ->zero_tokens()
-      ->default_value(false),
-     "Enable normalization of custom embedding vectors")
-    ("embedding-fix-src", po::value<bool>()
-      ->zero_tokens()
-      ->default_value(false),
-     "Fix source embeddings. Affects all encoders")
-    ("embedding-fix-trg", po::value<bool>()
-      ->zero_tokens()
-      ->default_value(false),
-     "Fix target embeddings. Affects all decoders")
+  cli.add<double>("--label-smoothing",
+     "Epsilon for label smoothing (0 to disable)");
+  cli.add<double>("--clip-norm",
+     "Clip gradient norm to  argcli.add<int>(0 to disable)",
+     1.f);
+  cli.add<float>("--exponential-smoothing",
+     "Maintain smoothed version of parameters for validation and saving with smoothing factor. 0 to disable",
+     0)->implicit_val("1e-4");
 
-    ("multi-node", po::value<bool>()
-      ->zero_tokens()
-      ->default_value(false),
-     "Enable multi-node training through MPI")
-    ("multi-node-overlap", po::value<bool>()
-      ->default_value(true),
-     "Overlap model computations with MPI communication")
-  ;
+  // options for additional training data
+  cli.add_nondefault<std::string>("--guided-alignment",
+     "Use guided alignment to guide attention");
+  cli.add<std::string>("--guided-alignment-cost",
+     "Cost type for guided alignment: ce (cross-entropy), mse (mean square error), mult (multiplication)",
+     "ce");
+  cli.add<double>("--guided-alignment-weight",
+     "Weight for guided alignment cost",
+     1);
+  cli.add_nondefault<std::string>("--data-weighting",
+     "File with sentence or word weights");
+  cli.add<std::string>("--data-weighting-type",
+     "Processing level for data weighting: sentence, word",
+     "sentence");
+
+  // embedding options
+  cli.add_nondefault<std::vector<std::string>>("--embedding-vectors",
+     "Paths to files with custom source and target embedding vectors");
+  cli.add<bool>("--embedding-normalization",
+     "Enable normalization of custom embedding vectors");
+  cli.add<bool>("--embedding-fix-src",
+     "Fix source embeddings. Affects all encoders");
+  cli.add<bool>("--embedding-fix-trg",
+     "Fix target embeddings. Affects all decoders");
+
+  cli.add<bool>("--multi-node",
+     "Enable multi-node training through MPI");
+  cli.add<bool>("--multi-node-overlap",
+     "Overlap model computations with MPI communication",
+     true);
   // clang-format on
-  desc.add(training);
 }
 
-void ConfigParser::addOptionsValid(po::options_description& desc) {
-  po::options_description valid("Validation set options",
-                                guess_terminal_width());
-  // clang-format off
-  valid.add_options()
-    ("valid-sets", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to validation corpora: source target")
-    ("valid-freq", po::value<size_t>()->default_value(10000),
-      "Validate model every  arg  updates")
-    ("valid-metrics", po::value<std::vector<std::string>>()
-      ->multitoken()
-      ->default_value(std::vector<std::string>({"cross-entropy"}),
-                      "cross-entropy"),
-      "Metric to use during validation: cross-entropy, perplexity, "
-      "valid-script, translation. "
-      "Multiple metrics can be specified")
-    ("valid-mini-batch", po::value<int>()->default_value(32),
-      "Size of mini-batch used during validation")
-    ("valid-max-length", po::value<size_t>()->default_value(1000),
-      "Maximum length of a sentence in a validating sentence pair")
-    ("valid-script-path", po::value<std::string>(),
-     "Path to external validation script. "
-     "It should print a single score to stdout. "
-     "If the option is used with validating translation, the output "
-     "translation file will be passed as a first argument ")
-    ("early-stopping", po::value<size_t>()->default_value(10),
-     "Stop if the first validation metric does not improve for  arg  consecutive "
-     "validation steps")
-    ("keep-best", po::value<bool>()->zero_tokens()->default_value(false),
-      "Keep best model for each validation metric")
-    ("valid-log", po::value<std::string>(),
-     "Log validation scores to file given by  arg")
+void ConfigParser::addOptionsValidation(cli::CLIWrapper &cli) {
+  cli.switchGroup("Validation set options");
 
-    ("valid-translation-output", po::value<std::string>(),
-     "Path to store the translation")
-    ("beam-size,b", po::value<size_t>()->default_value(12),
-      "Beam size used during search with validating translator")
-    ("normalize,n", po::value<float>()->default_value(0.f)->implicit_value(1.f),
-      "Divide translation score by pow(translation length, arg) ")
-    ("word-penalty", po::value<float>()->default_value(0.f)->implicit_value(0.f),
-      "Subtract (arg * translation length) from translation score ")
-    ("max-length-factor", po::value<float>()->default_value(3),
-      "Maximum target length as source length times factor")
-    ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
-      "Allow unknown words to appear in output")
-    ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
-      "Generate n-best list")
-  ;
+  // clang-format off
+  cli.add_nondefault<std::vector<std::string>>("--valid-sets",
+      "Paths to validation corpora: source target");
+  cli.add<size_t>("--valid-freq",
+      "Validate model every  arg  updates",
+      10000);
+  cli.add<std::vector<std::string>>("--valid-metrics",
+      "Metric to use during validation: cross-entropy, perplexity, valid-script, translation."
+      " Multiple metrics can be specified",
+      std::vector<std::string>({"cross-entropy"}));
+  cli.add<size_t>("--early-stopping",
+     "Stop if the first validation metric does not improve for  arg  consecutive validation steps",
+     10);
+
+  // decoding options
+  cli.add<size_t>("--beam-size,-b",
+      "Beam size used during search with validating translator",
+      12);
+  cli.add<float>("--normalize,-n",
+      "Divide translation score by pow(translation length, arg)",
+      0)->implicit_val("1");
+  cli.add<float>("--max-length-factor",
+      "Maximum target length as source length times factor",
+      3);
+  cli.add<float>("--word-penalty",
+      "Subtract (arg * translation length) from translation score ");
+  cli.add<bool>("--allow-unk",
+      "Allow unknown words to appear in output");
+  cli.add<bool>("--n-best",
+      "Generate n-best list");
+
+  // efficiency options
+  cli.add<int>("--valid-mini-batch",
+      "Size of mini-batch used during validation",
+      32);
+  cli.add<size_t>("--valid-max-length",
+      "Maximum length of a sentence in a validating sentence pair",
+      1000);
+
+  // options for validation script
+  cli.add_nondefault<std::string>("--valid-script-path",
+     "Path to external validation script."
+     " It should print a single score to stdout."
+     " If the option is used with validating translation, the output"
+     " translation file will be passed as a first argument");
+  cli.add_nondefault<std::string>("--valid-translation-output",
+     "Path to store the translation");
+
+  cli.add<bool>("--keep-best",
+      "Keep best model for each validation metric");
+  cli.add_nondefault<std::string>("--valid-log",
+     "Log validation scores to file given by  arg");
   // clang-format on
-  desc.add(valid);
 }
 
-void ConfigParser::addOptionsTranslate(po::options_description& desc) {
-  po::options_description translate("Translator options",
-                                    guess_terminal_width());
+void ConfigParser::addOptionsTranslation(cli::CLIWrapper &cli) {
+  cli.switchGroup("Translator options");
+
   // clang-format off
-  translate.add_options()
-    ("input,i", po::value<std::vector<std::string>>()
-      ->multitoken()
-      ->default_value(std::vector<std::string>({"stdin"}), "stdin"),
-      "Paths to input file(s), stdin by default")
-    ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to vocabulary files have to correspond to --input")
-    ("beam-size,b", po::value<size_t>()->default_value(12),
-      "Beam size used during search")
-    ("normalize,n", po::value<float>()->default_value(0.f)->implicit_value(1.f),
-      "Divide translation score by pow(translation length, arg) ")
-    ("word-penalty", po::value<float>()->default_value(0.f)->implicit_value(0.f),
-      "Subtract (arg * translation length) from translation score ")
-    ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),
-      "Allow unknown words to appear in output")
-    ("skip-cost", po::value<bool>()->zero_tokens()->default_value(false),
-      "Ignore model cost during translation, not recommended for beam-size > 1")
-    ("max-length", po::value<size_t>()->default_value(1000),
-      "Maximum length of a sentence in a training sentence pair")
-    ("max-length-factor", po::value<float>()->default_value(3),
-      "Maximum target length as source length times factor")
-    ("max-length-crop", po::value<bool>()->zero_tokens()->default_value(false),
-      "Crop a sentence to max-length instead of ommitting it if longer than max-length")
-    ("devices,d", po::value<std::vector<std::string>>()
-      ->multitoken()
-      ->default_value(std::vector<std::string>({"0"}), "0"),
-      "GPUs to use for translating")
-#ifdef CUDA_FOUND
-    ("cpu-threads", po::value<size_t>()->default_value(0)->implicit_value(1),
-      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
-    //("omp-threads", po::value<size_t>()->default_value(1),
-    //  "Set number of OpenMP threads for each CPU-based thread")
-#else
-    ("cpu-threads", po::value<size_t>()->default_value(1),
-      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
-#endif
-    ("optimize", po::value<bool>()->zero_tokens()->default_value(false),
-      "Optimize speed aggressively sacrificing memory or precision")
-    ("mini-batch", po::value<int>()->default_value(1),
-      "Size of mini-batch used during update")
-    ("mini-batch-words", po::value<int>()->default_value(0),
-      "Set mini-batch size based on words instead of sentences")
-    ("maxi-batch", po::value<int>()->default_value(1),
-      "Number of batches to preload for length-based sorting")
-    ("maxi-batch-sort", po::value<std::string>()->default_value("none"),
-      "Sorting strategy for maxi-batch: none, src")
-    ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
-      "Display n-best list")
-    ("shortlist", po::value<std::vector<std::string>>()->multitoken(),
-     "Use softmax shortlist: path first best prune")
-    ("weights", po::value<std::vector<float>>()->multitoken(),
-      "Scorer weights")
-    ("alignment", po::value<std::string>()->implicit_value("1"),
+  cli.add<std::vector<std::string>>("--input,-i",
+      "Paths to input file(s), stdin by default",
+      std::vector<std::string>({"stdin"}));
+  cli.add<std::vector<std::string>>("--vocabs,-v",
+      "Paths to vocabulary files have to correspond to --input");
+
+  // decoding options
+  cli.add<size_t>("--beam-size,-b",
+      "Beam size used during search with validating translator",
+      12);
+  cli.add<float>("--normalize,-n",
+      "Divide translation score by pow(translation length, arg)",
+      0)->implicit_val("1");
+  cli.add<float>("--max-length-factor",
+      "Maximum target length as source length times factor",
+      3);
+  cli.add<float>("--word-penalty",
+      "Subtract (arg * translation length) from translation score");
+  cli.add<bool>("--allow-unk",
+      "Allow unknown words to appear in output");
+  cli.add<bool>("--n-best",
+      "Generate n-best list");
+  cli.add_nondefault<std::string>("--alignment",
      "Return word alignment. Possible values: 0.0-1.0, hard, soft")
-    // TODO: the options should be available only in server
-    ("port,p", po::value<size_t>()->default_value(8080),
-      "Port number for web socket server")
-  ;
+    ->implicit_val("1");
+
+  addSuboptionsDevices(cli);
+  addSuboptionsInputLength(cli);
+  addSuboptionsBatching(cli);
+
+  cli.add<bool>("--optimize",
+      "Optimize speed aggressively sacrificing memory or precision");
+  cli.add<bool>("--skip-cost",
+      "Ignore model cost during translation, not recommended for beam-size > 1");
+
+  cli.add_nondefault<std::vector<std::string>>("--shortlist",
+     "Use softmax shortlist: path first best prune");
+  cli.add_nondefault<std::vector<float>>("--weights",
+      "Scorer weights");
+
+  // TODO: the options should be available only in server
+  cli.add<size_t>("--port,-p",
+      "Port number for web socket server",
+      8080);
   // clang-format on
-  desc.add(translate);
 }
 
-void ConfigParser::addOptionsRescore(po::options_description& desc) {
-  po::options_description rescore("Rescorer options", guess_terminal_width());
+void ConfigParser::addOptionsScoring(cli::CLIWrapper &cli) {
+  cli.switchGroup("Scorer options");
+
   // clang-format off
-  rescore.add_options()
-    ("no-reload", po::value<bool>()->zero_tokens()->default_value(false),
-      "Do not load existing model specified in --model arg")
-    ("train-sets,t", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to corpora to be scored: source target")
-    ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
-      "Paths to vocabulary files have to correspond to --train-sets. "
-      "If this parameter is not supplied we look for vocabulary files "
-      "source.{yml,json} and target.{yml,json}. "
-      "If these files do not exists they are created")
-    ("n-best", po::value<bool>()->zero_tokens()->default_value(false),
-      "Score n-best list instead of plain text corpus")
-    ("n-best-feature", po::value<std::string>()->default_value("Score"),
-      "Feature name to be inserted into n-best list")
-    ("summary", po::value<std::string>()->implicit_value("cross-entropy"),
+  cli.add<bool>("--no-reload",
+      "Do not load existing model specified in --model arg");
+  // TODO: move options like vocabs and train-sets to a separate procedure as they are defined twice
+  cli.add<std::vector<std::string>>("--train-sets,-t",
+      "Paths to corpora to be scored: source target");
+  cli.add<std::vector<std::string>>("--vocabs,-v",
+      "Paths to vocabulary files have to correspond to --train-sets."
+      " If this parameter is not supplied we look for vocabulary files source.{yml,json} and target.{yml,json}."
+      " If these files do not exists they are created");
+  cli.add<bool>("--n-best",
+      "Score n-best list instead of plain text corpus");
+  cli.add<std::string>("--n-best-feature",
+      "Feature name to be inserted into n-best list", "Score");
+  cli.add_nondefault<std::string>("--summary",
       "Only print total cost, possible values: cross-entropy (ce-mean), ce-mean-words, ce-sum, perplexity")
-    ("max-length", po::value<size_t>()->default_value(1000),
-      "Maximum length of a sentence in a training sentence pair")
-    ("max-length-crop", po::value<bool>()->zero_tokens()->default_value(false),
-      "Crop a sentence to max-length instead of ommitting it if longer than max-length")
-    ("devices,d", po::value<std::vector<std::string>>()
-      ->multitoken()
-      ->default_value(std::vector<std::string>({"0"}), "0"),
-      "GPUs to use for training")
-#ifdef CUDA_FOUND
-    ("cpu-threads", po::value<size_t>()->default_value(0)->implicit_value(1),
-      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
-    //("omp-threads", po::value<size_t>()->default_value(1),
-    //  "Set number of OpenMP threads for each CPU-based thread")
-#else
-    ("cpu-threads", po::value<size_t>()->default_value(1),
-      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
-#endif
-    ("optimize", po::value<bool>()->zero_tokens()->default_value(false),
-      "Optimize speed aggressively sacrificing memory or precision")
-    ("mini-batch", po::value<int>()->default_value(64),
-      "Size of mini-batch used during update")
-    ("mini-batch-words", po::value<int>()->default_value(0),
-      "Set mini-batch size based on words instead of sentences")
-    ("maxi-batch", po::value<int>()->default_value(100),
-      "Number of batches to preload for length-based sorting")
-    ("maxi-batch-sort", po::value<std::string>()->default_value("trg"),
-      "Sorting strategy for maxi-batch: trg (default), src, none")
-    ("alignment", po::value<std::string>()->implicit_value("1"),
+      ->implicit_val("cross-entropy");
+  cli.add_nondefault<std::string>("--alignment",
      "Return word alignments. Possible values: 0.0-1.0, hard, soft")
-    ;
+     ->implicit_val("1"),
+
+  addSuboptionsInputLength(cli);
+  addSuboptionsDevices(cli);
+  addSuboptionsBatching(cli);
+
+  cli.add<bool>("--optimize",
+      "Optimize speed aggressively sacrificing memory or precision");
   // clang-format on
-  desc.add(rescore);
+}
+
+void ConfigParser::addSuboptionsDevices(cli::CLIWrapper &cli) {
+  // clang-format off
+  cli.add<std::vector<std::string>>("--devices,-d",
+      "GPUs to use for training",
+      std::vector<std::string>({"0"}));
+#ifdef USE_NCCL
+  if(mode_ == cli::mode::training)
+    cli.add<bool>("--no-nccl",
+      "Disable inter-GPU communication via NCCL");
+#endif
+#ifdef CUDA_FOUND
+  cli.add<size_t>("--cpu-threads",
+      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
+      ->default_val("0")->implicit_val("1");
+#else
+  cli.add<size_t>("--cpu-threads",
+      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
+      ->default_val("1");
+#endif
+  // clang-format on
+}
+
+void ConfigParser::addSuboptionsBatching(cli::CLIWrapper &cli) {
+  int defaultMiniBatch = (mode_ == cli::mode::translation) ? 1 : 64;
+  int defaultMaxiBatch = (mode_ == cli::mode::translation) ? 1 : 100;
+  std::string defaultMaxiBatchSort
+      = (mode_ == cli::mode::translation) ? "none" : "trg";
+
+  // clang-format off
+  cli.add<int>("--mini-batch",
+      "Size of mini-batch used during update",
+      defaultMiniBatch);
+  cli.add<int>("--mini-batch-words",
+      "Set mini-batch size based on words instead of sentences");
+
+  if(mode_ == cli::mode::training) {
+    cli.add<bool>("--mini-batch-fit",
+      "Determine mini-batch size automatically based on sentence-length to fit reserved memory");
+    cli.add<size_t>("--mini-batch-fit-step",
+      "Step size for mini-batch-fit statistics",
+      10);
+  }
+
+  cli.add<int>("--maxi-batch",
+      "Number of batches to preload for length-based sorting",
+      defaultMaxiBatch);
+  cli.add<std::string>("--maxi-batch-sort",
+      "Sorting strategy for maxi-batch: none, src, trg (not available for decoder)",
+      defaultMaxiBatchSort);
+  // clang-format on
+}
+
+void ConfigParser::addSuboptionsInputLength(cli::CLIWrapper &cli) {
+  size_t defaultMaxLength = (mode_ == cli::mode::training) ? 50 : 1000;
+  // clang-format off
+  cli.add<size_t>("--max-length",
+      "Maximum length of a sentence in a training sentence pair",
+      defaultMaxLength);
+  cli.add<bool>("--max-length-crop",
+      "Crop a sentence to max-length instead of ommitting it if longer than max-length");
+  // clang-format on
+}
+
+void ConfigParser::expandAliases(cli::CLIWrapper &cli) {
+  YAML::Node config;
+
+  if(config_["best-deep"].as<bool>()) {
+    config["layer-normalization"] = true;
+    config["tied-embeddings"] = true;
+    config["enc-type"] = "alternating";
+    config["enc-cell-depth"] = 2;
+    config["enc-depth"] = 4;
+    config["dec-cell-base-depth"] = 4;
+    config["dec-cell-high-depth"] = 2;
+    config["dec-depth"] = 4;
+    config["skip"] = true;
+  }
+
+  if(config) {
+    cli.setConfig(config_);
+    cli.overwriteDefault(config);
+    config_ = cli.getConfig();
+  }
 }
 
 void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
-  addOptionsCommon(cmdline_options_);
-  addOptionsModel(cmdline_options_);
+  cli::CLIWrapper cli("General options", 40);
+
+  addOptionsGeneral(cli);
+  addOptionsModel(cli);
 
   // clang-format off
   switch(mode_) {
-    case ConfigMode::translating:
-      addOptionsTranslate(cmdline_options_);
+    case cli::mode::training:
+      addOptionsTraining(cli);
+      addOptionsValidation(cli);
       break;
-    case ConfigMode::rescoring:
-      addOptionsRescore(cmdline_options_);
+    case cli::mode::translation:
+      addOptionsTranslation(cli);
       break;
-    case ConfigMode::training:
-      addOptionsTraining(cmdline_options_);
-      addOptionsValid(cmdline_options_);
+    case cli::mode::scoring:
+      addOptionsScoring(cli);
       break;
   }
   // clang-format on
 
-  boost::program_options::variables_map vm_;
-  try {
-    po::store(
-        po::command_line_parser(argc, argv).options(cmdline_options_).run(),
-        vm_);
-    po::notify(vm_);
-  } catch(std::exception& e) {
-    std::cerr << "Error: " << e.what() << std::endl << std::endl;
-    std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
-    std::cerr << cmdline_options_ << std::endl;
-    exit(1);
+  // parse command-line options
+  cli.parse(argc, argv);
+  // get YAML config with default and parsed options
+  config_ = cli.getConfig();
+
+  // get paths to extra config files
+  auto configPaths = loadConfigPaths();
+
+  if(!configPaths.empty()) {
+    // load options from extra config files into a single YAML config
+    auto config = loadConfigFiles(configPaths);
+    // combine loaded options with the main YAML config
+    cli.overwriteDefault(config);
+    config_ = cli.getConfig();
   }
 
-  if(vm_["help"].as<bool>()) {
-    std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
-    std::cerr << cmdline_options_ << std::endl;
-    exit(0);
-  }
-
-  if(vm_["version"].as<bool>()) {
-    std::cerr << PROJECT_VERSION_FULL << std::endl;
-    exit(0);
-  }
-
-  const auto& InterpolateEnvVarsIfRequested
-      = [&](std::string str) -> std::string {
-    if(vm_["interpolate-env-vars"].as<bool>())
-      str = cli::InterpolateEnvVars(str);
-    return str;
-  };
-
-  bool loadConfig = vm_.count("config") != 0;
-  bool reloadConfig
-      = (mode_ == ConfigMode::training)
-        && boost::filesystem::exists(InterpolateEnvVarsIfRequested(
-               vm_["model"].as<std::string>() + ".yml"))
-        && !vm_["no-reload"].as<bool>();
-  std::vector<std::string> configPaths;
-
-  if(loadConfig) {
-    configPaths = vm_["config"].as<std::vector<std::string>>();
-    config_ = YAML::Node();
-    for(auto& configPath : configPaths) {
-      configPath = InterpolateEnvVarsIfRequested(
-          configPath);  // (note: this updates the configPaths array)
-      for(const auto& it :
-          YAML::Load(InputFileStream(configPath)))  // later file overrides
-        config_[it.first.as<std::string>()] = it.second;
-    }
-  } else if(reloadConfig) {
-    auto configPath = InterpolateEnvVarsIfRequested(
-        vm_["model"].as<std::string>() + ".yml");
-    config_ = YAML::Load(InputFileStream(configPath));
-    configPaths = {configPath};
-  }
-
-  /** model **/
-
-  if(mode_ == ConfigMode::translating) {
-    SET_OPTION_NONDEFAULT("models", std::vector<std::string>);
-  } else {
-    SET_OPTION("model", std::string);
-    if(mode_ == ConfigMode::training) {
-      SET_OPTION_NONDEFAULT("pretrained-model", std::string);
-    }
-  }
-
-  if(!vm_["vocabs"].empty()) {
-    config_["vocabs"] = vm_["vocabs"].as<std::vector<std::string>>();
-  }
-
-  SET_OPTION("ignore-model-config", bool);
-  SET_OPTION("type", std::string);
-  SET_OPTION("dim-vocabs", std::vector<int>);
-  SET_OPTION("dim-emb", int);
-  SET_OPTION("dim-rnn", int);
-
-  SET_OPTION("enc-type", std::string);
-  SET_OPTION("enc-cell", std::string);
-  SET_OPTION("enc-cell-depth", int);
-  SET_OPTION("enc-depth", int);
-
-  SET_OPTION("dec-cell", std::string);
-  SET_OPTION("dec-cell-base-depth", int);
-  SET_OPTION("dec-cell-high-depth", int);
-  SET_OPTION("dec-depth", int);
-
-  SET_OPTION("skip", bool);
-  SET_OPTION("tied-embeddings", bool);
-  SET_OPTION("tied-embeddings-src", bool);
-  SET_OPTION("tied-embeddings-all", bool);
-  SET_OPTION("layer-normalization", bool);
-  SET_OPTION("right-left", bool);
-  SET_OPTION("transformer-heads", int);
-  SET_OPTION("transformer-no-projection", bool);
-  SET_OPTION("transformer-preprocess", std::string);
-  SET_OPTION("transformer-postprocess", std::string);
-  SET_OPTION("transformer-postprocess-emb", std::string);
-  SET_OPTION("transformer-dim-ffn", int);
-  SET_OPTION("transformer-ffn-depth", int);
-  SET_OPTION("transformer-ffn-activation", std::string);
-  SET_OPTION("transformer-dim-aan", int);
-  SET_OPTION("transformer-aan-depth", int);
-  SET_OPTION("transformer-aan-activation", std::string);
-  SET_OPTION("transformer-aan-nogate", bool);
-  SET_OPTION("transformer-decoder-autoreg", std::string);
-  SET_OPTION("transformer-tied-layers", std::vector<size_t>);
-  SET_OPTION("transformer-guided-alignment-layer", std::string);
-
-#ifdef CUDNN
-  SET_OPTION("char-stride", int);
-  SET_OPTION("char-highway", int);
-  SET_OPTION("char-conv-filters-num", std::vector<int>);
-  SET_OPTION("char-conv-filters-widths", std::vector<int>);
-#endif
-
-  SET_OPTION("best-deep", bool);
-  SET_OPTION_NONDEFAULT("special-vocab", std::vector<size_t>);
-
-  if(mode_ == ConfigMode::training) {
-    SET_OPTION("cost-type", std::string);
-
-    SET_OPTION("dropout-rnn", float);
-    SET_OPTION("dropout-src", float);
-    SET_OPTION("dropout-trg", float);
-
-    SET_OPTION("grad-dropping-rate", float);
-    SET_OPTION("grad-dropping-momentum", float);
-    SET_OPTION("grad-dropping-warmup", size_t);
-
-    SET_OPTION("transformer-dropout", float);
-    SET_OPTION("transformer-dropout-attention", float);
-    SET_OPTION("transformer-dropout-ffn", float);
-
-    SET_OPTION("overwrite", bool);
-    SET_OPTION("no-reload", bool);
-    if(!vm_["train-sets"].empty()) {
-      config_["train-sets"] = vm_["train-sets"].as<std::vector<std::string>>();
-    }
-    SET_OPTION("after-epochs", size_t);
-    SET_OPTION("after-batches", size_t);
-    SET_OPTION("disp-freq", size_t);
-    SET_OPTION("disp-label-counts", bool);
-    SET_OPTION("save-freq", size_t);
-    SET_OPTION("no-shuffle", bool);
-    SET_OPTION("no-restore-corpus", bool);
-    SET_OPTION("tempdir", std::string);
-    SET_OPTION("sqlite", std::string);
-    SET_OPTION("sqlite-drop", bool);
-
-    SET_OPTION("optimizer", std::string);
-    SET_OPTION_NONDEFAULT("optimizer-params", std::vector<float>);
-    SET_OPTION("optimizer-delay", size_t);
-    SET_OPTION("learn-rate", double);
-    SET_OPTION("sync-sgd", bool);
-    SET_OPTION("mini-batch-words", int);
-    SET_OPTION("mini-batch-fit", bool);
-    SET_OPTION("mini-batch-fit-step", size_t);
-
-    SET_OPTION("lr-decay", double);
-    SET_OPTION("lr-decay-strategy", std::string);
-    SET_OPTION("lr-decay-start", std::vector<size_t>);
-    SET_OPTION("lr-decay-freq", size_t);
-    SET_OPTION("lr-decay-reset-optimizer", bool);
-    SET_OPTION("lr-warmup", size_t);
-
-    SET_OPTION("lr-decay-inv-sqrt", size_t);
-    SET_OPTION("lr-warmup-start-rate", float);
-    SET_OPTION("lr-warmup-cycle", bool);
-
-    SET_OPTION("lr-decay-repeat-warmup", bool);
-    SET_OPTION("lr-warmup-at-reload", bool);
-    SET_OPTION("lr-report", bool);
-
-    SET_OPTION("batch-flexible-lr", bool);
-    SET_OPTION("batch-normal-words", double);
-
-    SET_OPTION("label-smoothing", double);
-    SET_OPTION("clip-norm", double);
-    SET_OPTION("exponential-smoothing", float);
-
-    SET_OPTION_NONDEFAULT("guided-alignment", std::string);
-    SET_OPTION("guided-alignment-cost", std::string);
-    SET_OPTION("guided-alignment-weight", double);
-    SET_OPTION_NONDEFAULT("data-weighting", std::string);
-    SET_OPTION("data-weighting-type", std::string);
-
-    // SET_OPTION("drop-rate", double);
-    SET_OPTION_NONDEFAULT("embedding-vectors", std::vector<std::string>);
-    SET_OPTION("embedding-normalization", bool);
-    SET_OPTION("embedding-fix-src", bool);
-    SET_OPTION("embedding-fix-trg", bool);
-
-    SET_OPTION("multi-node", bool);
-    SET_OPTION("multi-node-overlap", bool);
-
-#ifdef USE_NCCL
-    SET_OPTION("no-nccl", bool);
-#endif
-  }
-
-  if(mode_ == ConfigMode::rescoring) {
-    SET_OPTION("no-reload", bool);
-    if(!vm_["train-sets"].empty()) {
-      config_["train-sets"] = vm_["train-sets"].as<std::vector<std::string>>();
-    }
-    SET_OPTION("mini-batch-words", int);
-    SET_OPTION("n-best", bool);
-    SET_OPTION("n-best-feature", std::string);
-    SET_OPTION_NONDEFAULT("summary", std::string);
-    SET_OPTION("optimize", bool);
-    SET_OPTION_NONDEFAULT("alignment", std::string);
-  }
-
-  if(mode_ == ConfigMode::translating) {
-    SET_OPTION("input", std::vector<std::string>);
-    SET_OPTION("beam-size", size_t);
-    SET_OPTION("normalize", float);
-    SET_OPTION("word-penalty", float);
-    SET_OPTION("allow-unk", bool);
-    SET_OPTION("n-best", bool);
-    SET_OPTION("mini-batch-words", int);
-    SET_OPTION_NONDEFAULT("weights", std::vector<float>);
-    SET_OPTION_NONDEFAULT("shortlist", std::vector<std::string>);
-    SET_OPTION_NONDEFAULT("alignment", std::string);
-    SET_OPTION("port", size_t);
-    SET_OPTION("optimize", bool);
-    SET_OPTION("max-length-factor", float);
-    SET_OPTION("skip-cost", bool);
-  }
-
-  /** valid **/
-
-  if(mode_ == ConfigMode::training) {
-    if(!vm_["valid-sets"].empty()) {
-      config_["valid-sets"] = vm_["valid-sets"].as<std::vector<std::string>>();
-    }
-    SET_OPTION_NONDEFAULT("valid-sets", std::vector<std::string>);
-    SET_OPTION("valid-freq", size_t);
-    SET_OPTION("valid-metrics", std::vector<std::string>);
-    SET_OPTION("valid-mini-batch", int);
-    SET_OPTION("valid-max-length", size_t);
-    SET_OPTION_NONDEFAULT("valid-script-path", std::string);
-    SET_OPTION("early-stopping", size_t);
-    SET_OPTION("keep-best", bool);
-    SET_OPTION_NONDEFAULT("valid-log", std::string);
-
-    SET_OPTION_NONDEFAULT("valid-translation-output", std::string);
-    SET_OPTION("beam-size", size_t);
-    SET_OPTION("normalize", float);
-    SET_OPTION("word-penalty", float);
-    SET_OPTION("max-length-factor", float);
-    SET_OPTION("allow-unk", bool);
-    SET_OPTION("n-best", bool);
-  }
-
-  SET_OPTION("workspace", size_t);
-  SET_OPTION("log-level", std::string);
-  SET_OPTION("quiet", bool);
-  SET_OPTION("quiet-translation", bool);
-  SET_OPTION_NONDEFAULT("log", std::string);
-  SET_OPTION("seed", size_t);
-  SET_OPTION("clip-gemm", float);
-  SET_OPTION("interpolate-env-vars", bool);
-  SET_OPTION("relative-paths", bool);
-  SET_OPTION("devices", std::vector<std::string>);
-  SET_OPTION("cpu-threads", size_t);
-  // SET_OPTION("omp-threads", size_t);
-
-  SET_OPTION("mini-batch", int);
-  SET_OPTION("maxi-batch", int);
-
-  SET_OPTION("maxi-batch-sort", std::string);
-  SET_OPTION("max-length", size_t);
-  SET_OPTION("max-length-crop", bool);
-
-  if(vm_["best-deep"].as<bool>()) {
-    config_["layer-normalization"] = true;
-    config_["tied-embeddings"] = true;
-    config_["enc-type"] = "alternating";
-    config_["enc-cell-depth"] = 2;
-    config_["enc-depth"] = 4;
-    config_["dec-cell-base-depth"] = 4;
-    config_["dec-cell-high-depth"] = 2;
-    config_["dec-depth"] = 4;
-    config_["skip"] = true;
-  }
-
-  if(get<bool>("interpolate-env-vars")) {
+  if(has("interpolate-env-vars")) {
     cli::ProcessPaths(config_, cli::InterpolateEnvVars, PATHS);
   }
 
-  if(get<bool>("relative-paths") && !vm_["dump-config"].as<bool>()) {
-    // change relative paths to absolute paths relative to the config file's
-    // directory
-    ABORT_IF(configPaths.empty(),
-             "relative-paths option requires at least one config file "
-             "(--config option)");
-    auto configDir = boost::filesystem::path{configPaths.front()}.parent_path();
-    for(const auto& configPath : configPaths)
-      ABORT_IF(boost::filesystem::path{configPath}.parent_path() != configDir,
-               "relative-paths option requires all config files to be in the "
-               "same directory");
-
-    auto transformFunc = [&](const std::string& nodePath) -> std::string {
-      // replace relative path w.r.t. configDir
-      using namespace boost::filesystem;
-      try {
-        return canonical(path{nodePath}, configDir).string();
-      } catch(boost::filesystem::filesystem_error& e) {
-        // will fail if file does not exist; use parent in that case
-        std::cerr << e.what() << std::endl;
-        auto parentPath = path{nodePath}.parent_path();
-        return (canonical(parentPath, configDir) / path{nodePath}.filename())
-            .string();
-      }
-    };
-
-    cli::ProcessPaths(config_, transformFunc, PATHS);
+  if(has("relative-paths") && !has("dump-config")) {
+    makeAbsolutePaths(configPaths);
   }
 
   if(doValidate) {
     try {
-      validateOptions();
-      validateDevices();
+      ConfigValidator validator(config_);
+      validator.validateOptions(mode_);
+      validator.validateDevices(mode_);
     } catch(util::Exception& e) {
       std::cerr << "Error: " << e.what() << std::endl << std::endl;
-
       std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
-      std::cerr << cmdline_options_ << std::endl;
       exit(1);
     }
   }
 
-  if(vm_["dump-config"].as<bool>()) {
+  // remove extra config files from the config to avoid redundancy
+  config_.remove("config");
+
+  if(has("dump-config")) {
+    config_.remove("dump-config");
     YAML::Emitter emit;
     cli::OutputYaml(config_, emit);
     std::cout << emit.c_str() << std::endl;
     exit(0);
   }
+
+  expandAliases(cli);
+}
+
+void ConfigParser::makeAbsolutePaths(
+    const std::vector<std::string>& configPaths) {
+  ABORT_IF(configPaths.empty(),
+           "--relative-paths option requires at least one config file provided "
+           "with --config");
+  auto configDir = boost::filesystem::path{configPaths.front()}.parent_path();
+
+  for(const auto& configPath : configPaths)
+    ABORT_IF(boost::filesystem::path{configPath}.parent_path() != configDir,
+             "--relative-paths option requires all config files to be in the "
+             "same directory");
+
+  auto transformFunc = [&](const std::string& nodePath) -> std::string {
+    // replace relative path w.r.t. configDir
+    using namespace boost::filesystem;
+    try {
+      return canonical(path{nodePath}, configDir).string();
+    } catch(boost::filesystem::filesystem_error& e) {
+      // will fail if file does not exist; use parent in that case
+      std::cerr << e.what() << std::endl;
+      auto parentPath = path{nodePath}.parent_path();
+      return (canonical(parentPath, configDir) / path{nodePath}.filename())
+          .string();
+    }
+  };
+
+  cli::ProcessPaths(config_, transformFunc, PATHS);
+}
+
+YAML::Node ConfigParser::loadConfigFiles(
+    const std::vector<std::string>& paths) {
+  YAML::Node config;
+
+  for(auto& path : paths) {
+    // later file overrides earlier
+    for(const auto& it : YAML::Load(InputFileStream(path))) {
+      config[it.first.as<std::string>()] = YAML::Clone(it.second);
+    }
+  }
+
+  return config;
+}
+
+std::vector<std::string> ConfigParser::loadConfigPaths() {
+  std::vector<std::string> paths;
+
+  bool interpolateEnvVars = has("interpolate-env-vars");
+  bool loadConfig = !config_["config"].as<std::vector<std::string>>().empty();
+
+  if(loadConfig) {
+    paths = config_["config"].as<std::vector<std::string>>();
+    for(auto& path : paths) {
+      // (note: this updates the paths array)
+      if(interpolateEnvVars)
+        path = cli::InterpolateEnvVars(path);
+    }
+  } else if(mode_ == cli::mode::training) {
+    auto path = config_["model"].as<std::string>() + ".yml";
+    if(interpolateEnvVars)
+      path = cli::InterpolateEnvVars(path);
+
+    bool reloadConfig = boost::filesystem::exists(path) && !has("no-reload");
+
+    if(reloadConfig)
+      paths = {path};
+  }
+
+  return paths;
+}
+
+YAML::Node ConfigParser::getConfig() const {
+  return config_;
 }
 
 std::vector<DeviceId> ConfigParser::getDevices() {
@@ -1072,7 +754,7 @@ std::vector<DeviceId> ConfigParser::getDevices() {
     std::string devicesStr
         = utils::Join(config_["devices"].as<std::vector<std::string>>());
 
-    if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
+    if(mode_ == cli::mode::training && has("multi-node")) {
       auto parts = utils::Split(devicesStr, ":");
       for(size_t i = 1; i < parts.size(); ++i) {
         std::string part = parts[i];
@@ -1104,7 +786,8 @@ std::vector<DeviceId> ConfigParser::getDevices() {
   return devices;
 }
 
-YAML::Node ConfigParser::getConfig() const {
-  return config_;
+bool ConfigParser::has(const std::string& key) const {
+  return config_[key] && config_[key].as<bool>();
 }
+
 }  // namespace marian

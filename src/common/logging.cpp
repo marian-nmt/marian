@@ -1,6 +1,8 @@
 #include "logging.h"
 #include "common/config.h"
 #include "spdlog/sinks/null_sink.h"
+#include <time.h>
+#include <stdlib.h>
 
 std::shared_ptr<spdlog::logger> stderrLogger(
     const std::string& name,
@@ -56,14 +58,17 @@ void createLoggers(const marian::Config* options) {
   std::vector<std::string> generalLogs;
   std::vector<std::string> validLogs;
 
-  if(options && options->has("log")) {
+  if(options && options->has("log")
+     && !options->get<std::string>("log").empty()) {
     generalLogs.push_back(options->get<std::string>("log"));
-#ifndef _WIN32  // can't open the same file twice in Windows for some reason
+#ifndef _WIN32
+    // can't open the same file twice in Windows for some reason
     validLogs.push_back(options->get<std::string>("log"));
 #endif
   }
 
-  if(options && options->has("valid-log")) {
+  if(options && options->has("valid-log")
+     && !options->get<std::string>("valid-log").empty()) {
     validLogs.push_back(options->get<std::string>("valid-log"));
   }
 
@@ -78,5 +83,16 @@ void createLoggers(const marian::Config* options) {
     if(!setLoggingLevel(*general, loglevel))
       return;
     setLoggingLevel(*valid, loglevel);
+  }
+
+  if (options && options->has("log-time-zone")) {
+      std::string timezone = options->get<std::string>("log-time-zone");
+      if (timezone != "") {
+#ifdef _WIN32
+#define setenv(var, val, over) SetEnvironmentVariableA(var, val) // ignoring over flag
+#endif
+        setenv("TZ", timezone.c_str(), true);
+        tzset();
+      }
   }
 }

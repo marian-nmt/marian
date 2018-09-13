@@ -58,7 +58,7 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
     paths_ = options_->get<std::vector<std::string>>("input");
 
   std::vector<std::string> vocabPaths;
-  if(options_->has("vocabs"))
+  if(!options_->get<std::vector<std::string>>("vocabs").empty())
     vocabPaths = options_->get<std::vector<std::string>>("vocabs");
 
   if(training) {
@@ -68,7 +68,8 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
 
   std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
 
-  if(training) {  // training or scoring
+  // training or scoring
+  if(training) {
     std::vector<Vocab> vocabs;
 
     if(vocabPaths.empty()) {
@@ -224,9 +225,7 @@ void CorpusBase::addAlignmentsToBatch(Ptr<CorpusBatch> batch,
 
   for(int b = 0; b < dimBatch; ++b) {
     for(auto p : batchVector[b].getAlignment()) {
-      size_t sid, tid;
-      std::tie(sid, tid) = p;
-      size_t idx = sid * dimBatch * trgWords + b * trgWords + tid;
+      size_t idx = p.srcPos * dimBatch * trgWords + b * trgWords + p.tgtPos;
       aligns[idx] = 1.f;
     }
   }

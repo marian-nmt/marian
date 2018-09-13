@@ -11,6 +11,7 @@
 #include "common/definitions.h"
 #include "common/file_stream.h"
 #include "common/options.h"
+#include "common/utils.h"
 #include "data/alignment.h"
 #include "data/batch.h"
 #include "data/dataset.h"

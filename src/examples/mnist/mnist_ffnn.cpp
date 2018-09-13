@@ -24,7 +24,7 @@ const std::vector<std::string> VALID_SET
 using namespace marian;
 
 int main(int argc, char** argv) {
-  auto options = New<Config>(argc, argv, ConfigMode::training, false);
+  auto options = New<Config>(argc, argv, cli::mode::training, false);
 
   if(!options->has("train-sets"))
     options->set("train-sets", TRAIN_SET);
