@@ -30,6 +30,10 @@ const CLI::detail::NonexistentPathValidator path_not_exists;
 typedef CLI::Range range;
 }
 
+/**
+ * The helper class for cli::CLIWrapper handling formatting of options and their
+ * descriptions.
+ */
 class CLIFormatter : public CLI::Formatter {
 public:
   CLIFormatter(size_t columnWidth, size_t screenWidth);
@@ -39,15 +43,30 @@ private:
   size_t screenWidth_{0};
 };
 
+/**
+ * @brief The class used to define and parse command-line arguments.
+ *
+ * It is a wrapper around https://github.com/CLIUtils/CLI11 that stores defined
+ * command-line arguments in a YAML object.
+ *
+ * Usage outline: first call add() methods to create all the options; then call
+ * parse(argv, argc) to parse command line and get defined options and their
+ * values in a YAML object. The object can be also obtained later by calling
+ * getConfig().
+ *
+ * Options are organized in option groups. Each option group has a header that
+ * preceeds all options in the group. The header for the default option group
+ * can be set from the class constructor.
+ */
 class CLIWrapper {
 private:
-  // Stores option variables
+  // Map with option names and variables
   std::map<std::string, Ptr<any_type>> vars_;
-  // Stores option objects
+  // Map with option names and objects
   std::map<std::string, CLI::Option *> opts_;
   // Command-line argument parser
   Ptr<CLI::App> app_;
-  // Stores options as YAML object
+  // Defined option names and values as a YAML object
   YAML::Node config_;
 
   // Name of the default option group
@@ -57,20 +76,25 @@ private:
 
   static std::string failureMessage(const CLI::App *app, const CLI::Error &e);
 
+  // Extract an option name from comma-separated list of command-line arguments,
+  // e.g. 'help' from '--help,-h'
   std::string keyName(const std::string &args) const {
-    return std::get<1>(CLI::detail::get_names(CLI::detail::split_names(args)))
-        .front();
+    // re-use existing functions from CLI11 to keep option names consistent
+    return std::get<1>(CLI::detail::get_names(CLI::detail::split_names(
+                           args)))  // get long names only
+        .front();                   // get first long name
   }
 
 public:
   /**
-   * @brief Create an instance of the command-line parser
+   * @brief Create an instance of the command-line argument parser
    *
    * Option --help, -h is automatically added.
    *
-   * @param name Header for the main option group
+   * @param name Header text for the main option group
    * @param columnWidth Width of the column with option names
-   * @param screenWidth Maximum allowed width for help messages
+   * @param screenWidth Maximum allowed width for help messages, 0 means no
+   *  limit
    */
   CLIWrapper(const std::string &name = "General options",
              size_t columnWidth = 35,
@@ -89,7 +113,12 @@ public:
    */
   template <typename T>
   CLI::Option *add(const std::string &args, const std::string &help, T val) {
-    return add_option<T>(keyName(args), args, help, val, true, true);
+    return add_option<T>(keyName(args),
+                         args,
+                         help,
+                         val,
+                         /*defaulted =*/true,
+                         /*addToConfig =*/true);
   }
 
   /**
@@ -107,7 +136,12 @@ public:
    */
   template <typename T>
   CLI::Option *add(const std::string &args, const std::string &help) {
-    return add_option<T>(keyName(args), args, help, T(), false, true);
+    return add_option<T>(keyName(args),
+                         args,
+                         help,
+                         T(),
+                         /*defaulted =*/false,
+                         /*addToConfig =*/true);
   }
 
   /**
@@ -120,16 +154,25 @@ public:
    * @param help Help message
    *
    * @return Option object
+   *
+   * @TODO: consider to remove this method during final refactorization of
+   * command-line/config parsers in the future as all options should either
+   * have a default value or be non-defaulted
    */
   template <typename T>
   CLI::Option *add_nondefault(const std::string &args,
                               const std::string &help) {
-    return add_option<T>(keyName(args), args, help, T(), false, false);
+    return add_option<T>(keyName(args),
+                         args,
+                         help,
+                         T(),
+                         /*defaulted =*/false,
+                         /*addToConfig =*/false);
   }
 
   /**
-   * @brief Switch to different option group or to the default group if
-   * argument is empty
+   * Switch to different option group or to the default group if
+   * argument is empty.
    *
    * @param name Header of the option group
    */
@@ -138,10 +181,10 @@ public:
   // Parse command-line arguments. Handles --help and --version options
   YAML::Node parse(int argc, char **argv);
 
-  // Get option values
+  // Get option values as a YAML object
   YAML::Node getConfig() const;
 
-  // Set option values
+  // Set option values from the YAML object
   void setConfig(const YAML::Node &config);
 
   /**
