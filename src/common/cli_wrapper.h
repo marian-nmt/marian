@@ -138,9 +138,6 @@ public:
   // Parse command-line arguments. Handles --help and --version options
   YAML::Node parse(int argc, char **argv);
 
-  // Check if an option has been defined (not necessarily parsed)
-  bool has(const std::string &key) const;
-
   // Get option values
   YAML::Node getConfig() const;
 

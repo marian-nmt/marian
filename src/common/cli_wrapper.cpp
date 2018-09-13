@@ -1,5 +1,4 @@
 #include "common/cli_wrapper.h"
-#include "common/version.h"
 
 namespace marian {
 namespace cli {
@@ -89,16 +88,7 @@ YAML::Node CLIWrapper::parse(int argc, char** argv) {
     exit(app_->exit(e));
   }
 
-  if(has("version")) {
-    std::cerr << PROJECT_VERSION_FULL << std::endl;
-    exit(0);
-  }
-
   return config_;
-}
-
-bool CLIWrapper::has(const std::string &key) const {
-  return opts_.count(key) > 0 && !opts_.at(key)->empty();
 }
 
 std::string CLIWrapper::failureMessage(const CLI::App *app,

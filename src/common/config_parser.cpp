@@ -21,6 +21,7 @@
 #include "common/file_stream.h"
 #include "common/logging.h"
 #include "common/utils.h"
+#include "common/version.h"
 
 namespace marian {
 
@@ -623,6 +624,12 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 
   // parse command-line options and get YAML config
   config_ = cli.parse(argc, argv);
+
+  // handle version printing
+  if(has("version")) {
+    std::cerr << PROJECT_VERSION_FULL << std::endl;
+    exit(0);
+  }
 
   // get paths to extra config files
   auto configPaths = loadConfigPaths();
