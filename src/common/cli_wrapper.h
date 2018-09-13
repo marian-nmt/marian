@@ -181,10 +181,26 @@ public:
   // Parse command-line arguments. Handles --help and --version options
   YAML::Node parse(int argc, char **argv);
 
-  // Get option values as a YAML object
+  /**
+   * @brief Get parsed options
+   *
+   * @return A copy of the YAML object being populated while options are
+   * created and parsed.
+   *
+   * TODO: consider renaming this method during final refactorization of
+   * cmd/config parsers to avoid confusing it with Config/Options classes
+   */
   YAML::Node getConfig() const;
 
-  // Set option values from the YAML object
+  /**
+   * @brief Replace option values
+   *
+   * It may overwrite option values set after parsing command-line options.
+   * No validation for option names or types.
+   *
+   * TODO: consider renaming this method during final refactorization of
+   * cmd/config parsers to avoid confusing it with Config/Options classes
+  */
   void setConfig(const YAML::Node &config);
 
   /**
@@ -201,6 +217,7 @@ public:
 private:
   template <
       typename T,
+      // options with numeric and string-like values
       CLI::enable_if_t<!CLI::is_bool<T>::value && !CLI::is_vector<T>::value,
                        CLI::detail::enabler> = CLI::detail::dummy>
   CLI::Option *add_option(const std::string &key,
@@ -209,35 +226,43 @@ private:
                           T val,
                           bool defaulted,
                           bool addToConfig) {
-    // std::cerr << "CLI::add(" << key << ") " << std::endl;
-
+    // define YAML entry if requested
     if(addToConfig)
       config_[key] = val;
+    // create variable for the option
     vars_.insert(std::make_pair(key, std::make_shared<any_type>(val)));
 
+    // callback function collecting a command-line argument
     CLI::callback_t fun = [this, key](CLI::results_t res) {
-      // std::cerr << "CLI::callback(" << key << ") " << std::endl;
+      // get variable associated with the option
       auto &var = vars_[key]->as<T>();
+      // store parser result in var
       auto ret = CLI::detail::lexical_cast(res[0], var);
+      // update YAML entry
       config_[key] = var;
       return ret;
     };
 
     auto opt = app_->add_option(args, fun, help, defaulted);
+    // set human readable type value: UINT, INT, FLOAT or TEXT
     opt->type_name(CLI::detail::type_name<T>());
+    // set option group
     if(!currentGroup_.empty())
       opt->group(currentGroup_);
+    // set textual representation of the default value for help message
     if(defaulted) {
       std::stringstream ss;
       ss << val;
       opt->default_str(ss.str());
     }
 
+    // store option object
     opts_.insert(std::make_pair(key, opt));
     return opts_[key];
   }
 
   template <typename T,
+            // options with vector values
             CLI::enable_if_t<CLI::is_vector<T>::value,
                              CLI::detail::enabler> = CLI::detail::dummy>
   CLI::Option *add_option(const std::string &key,
@@ -246,37 +271,47 @@ private:
                           T val,
                           bool defaulted,
                           bool addToConfig) {
-    // std::cerr << "CLI::add(" << key << ") as vector" << std::endl;
-
+    // define YAML entry if requested
     if(addToConfig)
       config_[key] = val;
+    // create variable for the option
     vars_.insert(std::make_pair(key, std::make_shared<any_type>(val)));
 
+    // callback function collecting command-line arguments
     CLI::callback_t fun = [this, key](CLI::results_t res) {
-      // std::cerr << "CLI::callback(" << key << ") " << std::endl;
+      // get vector variable associated with the option
       auto &vec = vars_[key]->as<T>();
       vec.clear();
       bool ret = true;
+      // populate the vector with parser results
       for(const auto &a : res) {
         vec.emplace_back();
         ret &= CLI::detail::lexical_cast(a, vec.back());
       }
+      // update YAML entry
       config_[key] = vec;
       return (!vec.empty()) && ret;
     };
 
     auto opt = app_->add_option(args, fun, help);
-    opt->type_name(CLI::detail::type_name<T>())->type_size(-1);
+    // set human readable type value: VECTOR and
+    opt->type_name(CLI::detail::type_name<T>());
+    // accept unlimited number of arguments
+    opt->type_size(-1);
+    // set option group
     if(!currentGroup_.empty())
       opt->group(currentGroup_);
+    // set textual representation of the default vector values for help message
     if(defaulted)
       opt->default_str(CLI::detail::join(val));
 
+    // store option object
     opts_.insert(std::make_pair(key, opt));
     return opts_[key];
   }
 
   template <typename T,
+            // options with boolean values, called flags in CLI11
             CLI::enable_if_t<CLI::is_bool<T>::value,
                              CLI::detail::enabler> = CLI::detail::dummy>
   CLI::Option *add_option(const std::string &key,
@@ -285,24 +320,29 @@ private:
                           T val,
                           bool defaulted,
                           bool addToConfig) {
-    // std::cerr << "CLI::add(" << key << ") as bool" << std::endl;
-
+    // define YAML entry if requested
     if(addToConfig)
       config_[key] = val;
+    // create variable for the option
     vars_.insert(std::make_pair(key, std::make_shared<any_type>(val)));
 
+    // callback function setting the flag
     CLI::callback_t fun = [this, key](CLI::results_t res) {
-      // std::cerr << "CLI::callback(" << key << ") " << std::endl;
+      // set boolean variable associated with the option
       vars_[key]->as<T>() = !res.empty();
+      // update YAML entry
       config_[key] = !res.empty();
       return true;
     };
 
     auto opt = app_->add_option(args, fun, help, defaulted);
+    // do not accept any argument for the boolean option
     opt->type_size(0);
+    // set option group
     if(!currentGroup_.empty())
       opt->group(currentGroup_);
 
+    // store option object
     opts_.insert(std::make_pair(key, opt));
     return opts_[key];
   }

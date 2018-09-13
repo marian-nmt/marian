@@ -27,7 +27,7 @@ CLIFormatter::CLIFormatter(size_t columnWidth, size_t screenWidth)
   column_width(columnWidth);
 }
 
-std::string CLIFormatter::make_option_desc(const CLI::Option * opt) const {
+std::string CLIFormatter::make_option_desc(const CLI::Option *opt) const {
   auto desc = opt->get_description();
 
   // TODO: restore guessing terminal width
@@ -81,10 +81,10 @@ void CLIWrapper::switchGroup(const std::string &name) {
     currentGroup_ = name;
 }
 
-YAML::Node CLIWrapper::parse(int argc, char** argv) {
+YAML::Node CLIWrapper::parse(int argc, char **argv) {
   try {
     app_->parse(argc, argv);
-  } catch(const CLI::ParseError& e) {
+  } catch(const CLI::ParseError &e) {
     exit(app_->exit(e));
   }
 
@@ -104,7 +104,7 @@ YAML::Node CLIWrapper::getConfig() const {
   return config_;
 }
 
-void CLIWrapper::setConfig(const YAML::Node& config) {
+void CLIWrapper::setConfig(const YAML::Node &config) {
   config_ = config;
 }
 
