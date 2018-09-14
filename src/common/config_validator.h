@@ -5,6 +5,8 @@
 
 namespace marian {
 
+// TODO: Finally refactorize Config, Options, ConfigParser and ConfigValidator
+// classes.
 class ConfigValidator
 {
 private:

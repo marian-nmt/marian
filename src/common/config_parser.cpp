@@ -37,7 +37,6 @@ const std::set<std::string> PATHS = {"model",
                                      "valid-translation-output",
                                      "log"};
 
-
 void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   int defaultWorkspace = (mode_ == cli::mode::translation) ? 512 : 2048;
 
@@ -227,7 +226,7 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
   // clang-format on
 }
 
-void ConfigParser::addOptionsTraining(cli::CLIWrapper &cli) {
+void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.switchGroup("Training options");
   // clang-format off
   cli.add<std::string>("--cost-type",
@@ -374,7 +373,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper &cli) {
   // clang-format on
 }
 
-void ConfigParser::addOptionsValidation(cli::CLIWrapper &cli) {
+void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
   cli.switchGroup("Validation set options");
 
   // clang-format off
@@ -432,7 +431,7 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper &cli) {
   // clang-format on
 }
 
-void ConfigParser::addOptionsTranslation(cli::CLIWrapper &cli) {
+void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   cli.switchGroup("Translator options");
 
   // clang-format off
@@ -483,7 +482,7 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper &cli) {
   // clang-format on
 }
 
-void ConfigParser::addOptionsScoring(cli::CLIWrapper &cli) {
+void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
   cli.switchGroup("Scorer options");
 
   // clang-format off
@@ -516,7 +515,7 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper &cli) {
   // clang-format on
 }
 
-void ConfigParser::addSuboptionsDevices(cli::CLIWrapper &cli) {
+void ConfigParser::addSuboptionsDevices(cli::CLIWrapper& cli) {
   // clang-format off
   cli.add<std::vector<std::string>>("--devices,-d",
       "GPUs to use for training",
@@ -538,7 +537,7 @@ void ConfigParser::addSuboptionsDevices(cli::CLIWrapper &cli) {
   // clang-format on
 }
 
-void ConfigParser::addSuboptionsBatching(cli::CLIWrapper &cli) {
+void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
   int defaultMiniBatch = (mode_ == cli::mode::translation) ? 1 : 64;
   int defaultMaxiBatch = (mode_ == cli::mode::translation) ? 1 : 100;
   std::string defaultMaxiBatchSort
@@ -568,7 +567,7 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper &cli) {
   // clang-format on
 }
 
-void ConfigParser::addSuboptionsInputLength(cli::CLIWrapper &cli) {
+void ConfigParser::addSuboptionsInputLength(cli::CLIWrapper& cli) {
   size_t defaultMaxLength = (mode_ == cli::mode::training) ? 50 : 1000;
   // clang-format off
   cli.add<size_t>("--max-length",
@@ -579,7 +578,7 @@ void ConfigParser::addSuboptionsInputLength(cli::CLIWrapper &cli) {
   // clang-format on
 }
 
-void ConfigParser::expandAliases(cli::CLIWrapper &cli) {
+void ConfigParser::expandAliases(cli::CLIWrapper& cli) {
   YAML::Node config;
 
   if(config_["best-deep"].as<bool>()) {
@@ -626,7 +625,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   config_ = cli.parse(argc, argv);
 
   // handle version printing
-  if(has("version")) {
+  if(hasBool("version")) {
     std::cerr << PROJECT_VERSION_FULL << std::endl;
     exit(0);
   }
@@ -642,11 +641,11 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     config_ = cli.getConfig();
   }
 
-  if(has("interpolate-env-vars")) {
+  if(hasBool("interpolate-env-vars")) {
     cli::ProcessPaths(config_, cli::InterpolateEnvVars, PATHS);
   }
 
-  if(has("relative-paths") && !has("dump-config")) {
+  if(hasBool("relative-paths") && !hasBool("dump-config")) {
     makeAbsolutePaths(configPaths);
   }
 
@@ -665,7 +664,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   // remove extra config files from the config to avoid redundancy
   config_.remove("config");
 
-  if(has("dump-config")) {
+  if(hasBool("dump-config")) {
     config_.remove("dump-config");
     YAML::Emitter emit;
     cli::OutputYaml(config_, emit);
@@ -722,7 +721,7 @@ YAML::Node ConfigParser::loadConfigFiles(
 std::vector<std::string> ConfigParser::loadConfigPaths() {
   std::vector<std::string> paths;
 
-  bool interpolateEnvVars = has("interpolate-env-vars");
+  bool interpolateEnvVars = hasBool("interpolate-env-vars");
   bool loadConfig = !config_["config"].as<std::vector<std::string>>().empty();
 
   if(loadConfig) {
@@ -737,7 +736,8 @@ std::vector<std::string> ConfigParser::loadConfigPaths() {
     if(interpolateEnvVars)
       path = cli::InterpolateEnvVars(path);
 
-    bool reloadConfig = boost::filesystem::exists(path) && !has("no-reload");
+    bool reloadConfig
+        = boost::filesystem::exists(path) && !hasBool("no-reload");
 
     if(reloadConfig)
       paths = {path};
@@ -757,7 +757,7 @@ std::vector<DeviceId> ConfigParser::getDevices() {
     std::string devicesStr
         = utils::Join(config_["devices"].as<std::vector<std::string>>());
 
-    if(mode_ == cli::mode::training && has("multi-node")) {
+    if(mode_ == cli::mode::training && hasBool("multi-node")) {
       auto parts = utils::Split(devicesStr, ":");
       for(size_t i = 1; i < parts.size(); ++i) {
         std::string part = parts[i];
@@ -789,7 +789,7 @@ std::vector<DeviceId> ConfigParser::getDevices() {
   return devices;
 }
 
-bool ConfigParser::has(const std::string& key) const {
+bool ConfigParser::hasBool(const std::string& key) const {
   return config_[key] && config_[key].as<bool>();
 }
 

@@ -14,6 +14,20 @@
 
 namespace marian {
 
+// TODO: Finally refactorize Config, Options, ConfigParser and ConfigValidator
+// classes.
+//
+// TODO: The problem is that there are many config classes in here, plus
+// "configuration" can refer to the high-level concept of the entire program's
+// configuration, and/or any of its representations. Avoidthe term "config" and
+// always qualify it what kind of config, e.g. new Options instance.
+//
+// TODO: What is not clear is the different config levels as there are classes
+// for:
+//  - parsing cmd-line options
+//  - representing a set of options
+//  - interpreting these options in the context of Marian
+// It is not clear which class does what, which class knows what.
 class Config {
 public:
   static size_t seed;
