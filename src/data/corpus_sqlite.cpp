@@ -33,7 +33,7 @@ void CorpusSQLite::fillSQLite() {
   } else {
     auto path = options_->get<std::string>("sqlite");
 
-    if(boost::filesystem::exists(path)) {
+    if(filesystem::exists(path)) {
       LOG(info, "[sqlite] Reusing persistent database {}", path);
 
       db_.reset(new SQLite::Database(path, SQLite::OPEN_READWRITE));

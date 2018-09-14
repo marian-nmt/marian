@@ -48,7 +48,7 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
     seed = get<size_t>("seed");
 
   if(mode != cli::mode::translation) {
-    if(boost::filesystem::exists(get<std::string>("model"))
+    if(filesystem::exists(get<std::string>("model"))
        && !get<bool>("no-reload")) {
       try {
         if(!get<bool>("ignore-model-config"))

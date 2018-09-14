@@ -1,11 +1,10 @@
 #pragma once
 
+#include "common/definitions.h"
+#include "common/filesystem.h"
+
 #include <fstream>
 #include <vector>
-
-#include "common/definitions.h"
-
-#include <boost/filesystem.hpp>
 
 namespace marian {
 
@@ -109,7 +108,7 @@ public:
   }
 
   void load(const std::string& name) {
-    if(!boost::filesystem::exists(name))
+    if(!filesystem::exists(name))
       return;
 
     YAML::Node config = YAML::LoadFile(name);

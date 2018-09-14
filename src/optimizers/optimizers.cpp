@@ -40,7 +40,7 @@ void Adagrad::updateImpl(Tensor params, Tensor grads) {
 void Adagrad::load(const std::string& name,
                    std::vector<Ptr<OptimizerBase>> opts,
                    std::vector<Ptr<Backend>> backends) {
-  if(!boost::filesystem::exists(name))
+  if(!filesystem::exists(name))
     return;
 
   LOG(info, "Loading Adagrad parameters from {}", name);
@@ -160,7 +160,7 @@ void Adam::updateImpl(Tensor params, Tensor grads) {
 void Adam::load(const std::string& name,
                 std::vector<Ptr<OptimizerBase>> opts,
                 std::vector<Ptr<Backend>> backends) {
-  if(!boost::filesystem::exists(name))
+  if(!filesystem::exists(name))
     return;
 
   LOG(info, "Loading Adam parameters from {}", name);

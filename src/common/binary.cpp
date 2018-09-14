@@ -67,7 +67,7 @@ void loadItems(const void* current, std::vector<io::Item>& items, bool mapped) {
 
 void loadItems(const std::string& fileName, std::vector<io::Item>& items) {
   // Read file into buffer
-  size_t fileSize = boost::filesystem::file_size(fileName);
+  size_t fileSize = filesystem::fileSize(fileName);
   char* ptr = new char[fileSize];
   InputFileStream in(fileName);
   in.read(ptr, fileSize);

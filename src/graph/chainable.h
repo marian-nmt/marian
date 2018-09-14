@@ -1,11 +1,10 @@
 #pragma once
 
-#include <boost/functional/hash.hpp>
-#include <memory>
-#include <vector>
-
 #include "3rd_party/exception.h"
 #include "common/definitions.h"
+
+#include <memory>
+#include <vector>
 
 namespace marian {
 
