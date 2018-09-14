@@ -1,8 +1,17 @@
+#include "common/definitions.h"
+
+#include "common/cli_helper.h"
+#include "common/config_parser.h"
+#include "common/config_validator.h"
+#include "common/file_stream.h"
+#include "common/logging.h"
+#include "common/utils.h"
+#include "3rd_party/exception.h"
+
 #include <algorithm>
 #include <set>
 #include <stdexcept>
 #include <string>
-
 #include <boost/algorithm/string.hpp>
 
 #if MKL_FOUND
@@ -12,15 +21,6 @@
 #include <cblas.h>
 #endif
 #endif
-
-#include "common/definitions.h"
-
-#include "common/cli_helper.h"
-#include "common/config_parser.h"
-#include "common/config_validator.h"
-#include "common/file_stream.h"
-#include "common/logging.h"
-#include "common/utils.h"
 
 namespace marian {
 

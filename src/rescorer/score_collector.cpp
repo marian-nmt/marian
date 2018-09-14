@@ -14,7 +14,7 @@ ScoreCollector::ScoreCollector(const Ptr<Config>& options)
       alignmentThreshold_(getAlignmentThreshold(alignment_)) {}
 
 void ScoreCollector::Write(long id, const std::string& message) {
-  boost::mutex::scoped_lock lock(mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
   if(id == nextId_) {
     ((std::ostream&)*outStrm_) << message << std::endl;
 
@@ -84,7 +84,7 @@ void ScoreCollectorNBest::Write(long id,
                                 const data::SoftAlignment& align) {
   std::string line;
   {
-    boost::mutex::scoped_lock lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     auto iter = buffer_.find(id);
     if(iter == buffer_.end()) {
       ABORT_IF(lastRead_ >= id,

@@ -6,6 +6,7 @@
 #include <string>
 #include <stdint.h>
 
+namespace marian {
 namespace util {
 
 template <class Except, class Data> typename Except::template ExceptionTag<Except&>::Identity operator<<(Except &e, const Data &data);
@@ -170,3 +171,4 @@ class WindowsException : public Exception {
 #endif
 
 } // namespace util
+} // namespace marian

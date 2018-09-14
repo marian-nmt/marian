@@ -1,7 +1,8 @@
 #include "output_collector.h"
-#include <cassert>
 #include "common/file_stream.h"
 #include "common/logging.h"
+
+#include <cassert>
 
 namespace marian {
 
@@ -14,7 +15,7 @@ void OutputCollector::Write(long sourceId,
                             const std::string& best1,
                             const std::string& bestn,
                             bool nbest) {
-  boost::mutex::scoped_lock lock(mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
   if(sourceId == nextId_) {
     if(printing_->shouldBePrinted(sourceId))
       LOG(info, "Best translation {} : {}", sourceId, best1);
@@ -71,7 +72,7 @@ StringCollector::StringCollector() : maxId_(-1) {}
 void StringCollector::add(long sourceId,
                           const std::string& best1,
                           const std::string& bestn) {
-  boost::mutex::scoped_lock lock(mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
   LOG(info, "Best translation {} : {}", sourceId, best1);
   outputs_[sourceId] = std::make_pair(best1, bestn);
   if(maxId_ <= sourceId)

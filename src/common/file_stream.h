@@ -12,7 +12,6 @@
 #pragma warning(pop)
 #include <boost/iostreams/filtering_stream.hpp>
 #include <iostream>
-#include "3rd_party/exception.h"
 #include "common/logging.h"
 
 #ifdef _WIN32
