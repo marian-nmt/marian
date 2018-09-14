@@ -24,12 +24,13 @@ private:
   void validateOptionsScoring() const;
   void validateOptionsTraining() const;
 
+  void validateDevices(cli::mode mode) const;
+
 public:
   ConfigValidator(const YAML::Node& config);
   virtual ~ConfigValidator();
 
   void validateOptions(cli::mode mode) const;
-  void validateDevices(cli::mode mode) const;
 };
 
 }  // namespace marian

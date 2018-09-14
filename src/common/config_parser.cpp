@@ -653,7 +653,6 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     try {
       ConfigValidator validator(config_);
       validator.validateOptions(mode_);
-      validator.validateDevices(mode_);
     } catch(util::Exception& e) {
       std::cerr << "Error: " << e.what() << std::endl << std::endl;
       std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;

@@ -14,6 +14,7 @@ namespace marian {
 namespace cli {
 
 // Try to determine the width of the terminal
+//
 // TODO: make use of it in the current CLI or remove. This is an old code used
 // for boost::program_options and might not be needed anymore.
 static uint16_t guess_terminal_width(uint16_t max_width = 0,
