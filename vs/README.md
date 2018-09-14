@@ -14,28 +14,136 @@ The following SDK are required to build Marian with GPU support
 
    - [MKL](https://software.intel.com/en-us/mkl)
 
-### Patch for CUDA error: Unsupported Visual Studio Version Error
+
+__Note: Patch for CUDA error: Unsupported Visual Studio Version Error__
 
 The latest versions of Visual Studio 2017 are not officially supported by CUDA. Two fixes are proposed:
-- Downgrade Visual Studio to a supported version
-- Edit the file `<CUDA install path>\include\crt\host_config.h` and change the line 131:
 
-      131     #if _MSC_VER < 1600 || _MSC_VER > 1914
+   - Downgrade Visual Studio to a supported version
 
-  into:
+   - Edit the file `<CUDA install path>\include\crt\host_config.h` and change the line 131:
 
-      131     #if _MSC_VER < 1600 || _MSC_VER > 1915
+         131     #if _MSC_VER < 1600 || _MSC_VER > 1914
+
+     into:
+
+         131     #if _MSC_VER < 1600 || _MSC_VER > 1915
 
 For more information, read this [nVidia forum](https://devtalk.nvidia.com/default/topic/1022648/cuda-setup-and-installation/cuda-9-unsupported-visual-studio-version-error/4)
 
 
-## Configure
-- Run configure.bat
+---
+## Check dependencies : `CheckDeps.bat`
 
-## Build
-- Run build.bat
+In addition to the 3 previous prerequisites, Marian needs 3 libraries that you may already have on your system:
+
+    - Boost (1.58+)
+    - zlib
+    - OpenSSL
+
+The script `CheckDeps.bat` can be used to verify that all dependencies are found on your system. If not, it will use the `vcpkg` library manager to download and manage your dependencies for CMake.
+
+If you already have a working `vcpkg` installation, this script can use it:
+- If vcpkg is in your `PATH` environment variable, the script will find it and use it automatically.
+- Otherwise, you need to edit the script and set the `VCPKG_ROOT` variable to the directory that contains the vcpkg.exe
 
 
+If you prefer to manage yourself the dependencies, you can edit the script file to set the following variables to the respective installation paths. These variable can also be already set in your environment.
+- `BOOST_INCLUDE_PATH` and `BOOST_LIB_PATH`
+- `ZLIB_ROOT`
+- `OPENSSL_PATH`
+
+---
+## Build the project
+
+There are 3 alternatives to build the project:
+1. Use Visual Studio 2017 built-in support for CMake
+2. Create a Solution file for Visual Studio
+3. Use a script (MSBuild)
+
+### 1. Use VS2017 with built-in support for CMake
+
+VS2017 now allows to develop projects built with CMake without the need to generate VS projects and solutions. For more information, please read [this article](https://blogs.msdn.microsoft.com/vcblog/2016/10/05/cmake-support-in-visual-studio/) from the Visual C++ Team.
+
+You just need to open the root folder of the git repository in VS (which contains the file `CMakeSettings.json`):
+- In an Explorer window, right-click then `Open in Visual Studio`
+- In a VS2017 instance, `File > Open > Folder...`
+
+You may need to edit the file `CMakeSettings.json` to set the environment variable for the dependencies.
+
+The developing experience is very similar than when using a solution file (Intellisense, build project with `F7`, debug, set breakpoints and watch variables, ...), except that the project configuration is done in 3 different files:
+
+   - `CMakeList.txt`: this is the CMake source file from the original project.  
+     It is used to configure the build targets, add/remove files to compile and configure the compiler flags.
+
+   - `CMakeSettings.json`: this file is required to enable CMake integration in VS2017.  
+     Use this file to configure the environment variables and the parameters passed to CMake to generate the project.
+   
+   - `.vs\launch.vs.json`: this is a user specific file and it is not commited in the Git repo  
+     Use this file to configure the debugging targets.  
+     For example:
+
+         {
+             "version": "0.2.1",
+             "defaults": {},
+             "configurations": [
+                 {
+                 "type": "default",
+                 "name": "Training Basics",
+                 "project": "CMakeLists.txt",
+                 "projectTarget": "marian.exe",
+                 "currentDir": "D:\\Perso\\github\\marian\\marian-examples\\training-basics",
+                 "args": [
+                     "--devices 0",
+                     "--type amun",
+                     "--model model/model.npz",
+                     "--train-sets data/corpus.bpe.ro data/corpus.bpe.en",
+                     "--vocabs model/vocab.ro.yml model/vocab.en.yml",
+                     "--dim-vocabs 66000 50000",
+                     "--mini-batch-fit",
+                     "-w 3000",
+                     "--layer-normalization",
+                     "--dropout-rnn 0.2",
+                     "--dropout-src 0.1",
+                     "--dropout-trg 0.1",
+                     "--early-stopping 5",
+                     "--valid-freq 100",
+                     "--save-freq 10000",
+                     "--disp-freq 100",
+                     "--valid-metrics cross-entropy translation",
+                     "--valid-sets data/newsdev2016.bpe.ro data/newsdev2016.bpe.en",
+                     "--valid-script-path .\\scripts\\validate.bat",
+                     "--log model/train.log",
+                     "--valid-log model/valid.log",
+                     "--overwrite",
+                     "--keep-best",
+                     "--seed 1111",
+                     "--exponential-smoothing",
+                     "--normalize=1",
+                     "--beam-size=12",
+                     "--quiet-translation"
+                 ]
+                 }
+             ]
+         }
+
+
+
+### 2. Create solution and projects files for Visual Studio : `CreateVSProjects.bat`
+
+If you have a previous version of Visual Studio, you will need to use CMake to generate the projects files.
+
+The provided script `CreateVSProjects.bat` runs the dependency checks then invokes CMake with the right parameters to create the solutions for Visual Studio.
+
+
+### 3. Use MSBuild : `Build.bat`
+
+The last alternative is to use the script `Build.bat` that will:
+- Check the dependencies
+- Create the VS project files
+- Invoke MSBuild on these projects to build the targets in Release.
+
+---
 ## Changes from the master branch
 This part gives more information on all changes done. Refer to [this page](https://github.com/cedrou/marian-dev/commits/build_on_win) for commits.
 
@@ -48,11 +156,10 @@ This part gives more information on all changes done. Refer to [this page](https
 3. __Fix Warning: D9002: ignoring unknown option '-m64'__  
    This one is related to a compiler flag added while finding the package MKL that does not exists for MS compiler. 
 
-4. __Fix marian::Backendn marian::cpu::Beckend and marian::gpu::Backend conflicts__  
+4. __Fix marian::Backend, marian::cpu::Backend and marian::gpu::Backend conflicts__  
    There were name conflicts between the 3 `Backend` classes that confused the compiler:
    
-   >  template instantiation resulted in unexpected function type of "type" (the meaning of a name may have changed since the template declaration -- the type of the template is "type")
-   .
+   >  template instantiation resulted in unexpected function type of "type" (the meaning of a name may have changed since the template declaration -- the type of the template is "type").
 
    I renamed the CPU and GPU as `cpuBackend` and `gpuBackend`.
 
@@ -69,8 +176,11 @@ This part gives more information on all changes done. Refer to [this page](https
    Microsoft's C++ name mangling makes a distinction between `class` and `struct` objects, so definitions and forward declaration must match.  
    See [this pdf](https://www.agner.org/optimize/calling_conventions.pdf), page 27, for more information.
 
+   _Note_: This fix was invalidated by commit # from @frankseide
+
 8. __Fix unresolved external due to a removed #include directive__  
-   There was an include directive removed from MSVC compilation, but this prevented the build of the project. I'm not sure why this was removed; the comment is:
+   There was an include directive removed from MSVC compilation, but this prevented the build of the project.  
+   I'm not sure why this was removed; the comment is:
 
         #ifndef _WIN32  // TODO: remove this once I updated the Linux-side makefile
 
@@ -78,10 +188,13 @@ This part gives more information on all changes done. Refer to [this page](https
    The toolchain nvcc+msvc is not correctly handled in Boost.Preprocessor module. See [this issue](https://github.com/boostorg/preprocessor/issues/15). In the meantime, the recommended workaround is to disable Variadic Macro support in Boost.  
    I created a [PR](https://github.com/boostorg/preprocessor/pull/18) in the Boost repo on GitHub to fix this.
 
+   _Note_: The library sources have been fixed, but this fix is still needed until the next release of Boost.Preprocessor
+
 10. __Provide implementation for mkstemp / Fix temporary file creation__  
    The code explicitely disabled the creation of temporary files because "mkstemp not available in Windows". In fact, `_mktemp` and `_unlink` are both implemented, but thay don't work as expected. I used `_tempnam` to replace `mkstemp`, and added the flag `_O_TEMPORARY` to the parameters of `_open` to automatically delete the file when it is closed. If `unlinkEarly` is not set, I added a call to `remove` in the destructor to delete the file after its closure.  
    I also handled the case of the default value for the `base` parameter: the path `\tmp` doesnot exist on Windows, so it is replaced by the value of the `%TMP%` environment variable in `NormalizeTempPrefix`.
 
-11. __Revert commit #2f8b093__  
+11. __Revert commit #2f8b093 + Fix copy/paste error while fixing #301 + restrict fix to MSVC compiler.__  
    cf [Issue #301](https://github.com/marian-nmt/marian-dev/issues/301)  
-   Revert the commit while waiting official fix.
+   
+   

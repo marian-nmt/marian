@@ -8,14 +8,14 @@
       // If you prefer managing yourself the dependencies, please fill in the other variables.
       "VCPKG_ROOT": "D:\\Perso\\Dev\\vcpkg",
 
-      "BOOST_INCLUDE_PATH": "",
-      "BOOST_LIB_PATH": "",
+      "BOOST_INCLUDEDIR": "",
+      "BOOST_LIBRARYDIR": "",
       "ZLIB_ROOT": "",
-      "OPENSSL_PATH": "",
+      "OPENSSL_ROOT_DIR": "",
 
       // The MKL library can be automatically found by CMake. However, if you installed it in a custom
       // directory, please set the MKLROOT to this directory path.
-      // Default is c:\ProgramFiles (x86)\IntelSWTools\compilers_and_libraries\windows\mkl on Windows, or
+      // Default is c:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\mkl on Windows, or
       // /opt/intel/mkl on Linux
       "MKLROOT": ""
     }
@@ -35,12 +35,6 @@
         { "name": "CMAKE_TOOLCHAIN_FILE", "value": "${env.VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake" },
         { "name": "VCPKG_TARGET_TRIPLET", "value": "x64-windows-static" },
         
-        { "name": "BOOST_INCLUDEDIR:PATH", "value": "${env.BOOST_INCLUDE_PATH}" },
-        { "name": "BOOST_LIBRARYDIR:PATH", "value": "${env.BOOST_LIB_PATH}" },
-
-        { "name": "ZLIB_ROOT:PATH", "value": "${env.ZLIB_ROOT}" },
-        
-        { "name": "OPENSSL_ROOT_DIR:PATH", "value": "${env.OPENSSL_PATH}" },
         { "name": "OPENSSL_USE_STATIC_LIBS:BOOL", "value": "TRUE" },
         { "name": "OPENSSL_MSVC_STATIC_RT:BOOL", "value": "TRUE" },
         
@@ -68,12 +62,6 @@
         { "name": "CMAKE_TOOLCHAIN_FILE", "value": "${env.VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake" },
         { "name": "VCPKG_TARGET_TRIPLET", "value": "x64-windows-static" },
         
-        { "name": "BOOST_INCLUDEDIR:PATH", "value": "${env.BOOST_INCLUDE_PATH}" },
-        { "name": "BOOST_LIBRARYDIR:PATH", "value": "${env.BOOST_LIB_PATH}" },
-
-        { "name": "ZLIB_ROOT:PATH", "value": "${env.ZLIB_ROOT}" },
-        
-        { "name": "OPENSSL_ROOT_DIR:PATH", "value": "${env.OPENSSL_PATH}" },
         { "name": "OPENSSL_USE_STATIC_LIBS:BOOL", "value": "TRUE" },
         { "name": "OPENSSL_MSVC_STATIC_RT:BOOL", "value": "TRUE" },
         
@@ -101,12 +89,6 @@
         { "name": "CMAKE_TOOLCHAIN_FILE", "value": "${env.VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake" },
         { "name": "VCPKG_TARGET_TRIPLET", "value": "x64-windows-static" },
         
-        { "name": "BOOST_INCLUDEDIR:PATH", "value": "${env.BOOST_INCLUDE_PATH}" },
-        { "name": "BOOST_LIBRARYDIR:PATH", "value": "${env.BOOST_LIB_PATH}" },
-
-        { "name": "ZLIB_ROOT:PATH", "value": "${env.ZLIB_ROOT}" },
-        
-        { "name": "OPENSSL_ROOT_DIR:PATH", "value": "${env.OPENSSL_PATH}" },
         { "name": "OPENSSL_USE_STATIC_LIBS:BOOL", "value": "TRUE" },
         { "name": "OPENSSL_MSVC_STATIC_RT:BOOL", "value": "TRUE" },
         
@@ -134,12 +116,6 @@
         { "name": "CMAKE_TOOLCHAIN_FILE", "value": "${env.VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake" },
         { "name": "VCPKG_TARGET_TRIPLET", "value": "x64-windows-static" },
         
-        { "name": "BOOST_INCLUDEDIR:PATH", "value": "${env.BOOST_INCLUDE_PATH}" },
-        { "name": "BOOST_LIBRARYDIR:PATH", "value": "${env.BOOST_LIB_PATH}" },
-
-        { "name": "ZLIB_ROOT:PATH", "value": "${env.ZLIB_ROOT}" },
-        
-        { "name": "OPENSSL_ROOT_DIR:PATH", "value": "${env.OPENSSL_PATH}" },
         { "name": "OPENSSL_USE_STATIC_LIBS:BOOL", "value": "TRUE" },
         { "name": "OPENSSL_MSVC_STATIC_RT:BOOL", "value": "TRUE" },
         
