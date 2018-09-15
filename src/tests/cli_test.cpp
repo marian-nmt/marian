@@ -34,31 +34,34 @@ S &operator>>(S &s, color &r) {
 
 int main(int argc, char** argv) {
 
-  CLIWrapper w;
-  w.add<int>("-i,--int", "help message")->implicit_val("555")->default_val("123");
-  w.add<std::string>("-s,--str", "help message")->default_val("foo");
-  w.add<std::vector<float>>("-v,--vec", "help message")->expected(-2);
-  w.switchGroup("My group");
-  w.add<std::vector<std::string>>("--defvec,-d", "help message")->default_val("foo");
-  w.add<bool>("-b,--bool", "help message");
-  w.add<std::string>("--a-very-long-option-name-for-testing-purposes", "A very long text a very long text a very long text a very long text a very long text a very long text");
-  w.switchGroup();
-  w.add<std::string>("-f,--file", "help message")->check(validators::file_exists);
-  //w.add<color>("-e,--enum", "help message for enum");
+  auto options = New<Options>();
+  {
+    auto w = New<CLIWrapper>(options);
+    w->add<int>("-i,--int", "help message")->implicit_val("555")->default_val("123");
+    w->add<std::string>("-s,--str", "help message")->default_val("foo");
+    w->add<std::vector<float>>("-v,--vec", "help message")->expected(-2);
+    w->switchGroup("My group");
+    w->add<std::vector<std::string>>("--defvec,-d", "help message")->default_val("foo");
+    w->add<bool>("-b,--bool", "help message");
+    w->add<std::string>("--a-very-long-option-name-for-testing-purposes", "A very long text a very long text a very long text a very long text a very long text a very long text");
+    w->switchGroup();
+    w->add<std::string>("-f,--file", "help message")->check(validators::file_exists);
+    //w.add<color>("-e,--enum", "help message for enum");
 
-  w.parse(argc, argv);
+    w->parse(argc, argv);
+  }
 
-  w.get<int>("int");
-  w.get<std::string>("str");
-  w.get<std::vector<float>>("vec");
-  w.get<std::vector<std::string>>("defvec");
-  w.get<bool>("bool");
+  options->get<int>("int");
+  options->get<std::string>("str");
+  options->get<std::vector<float>>("vec");
+  options->get<std::vector<std::string>>("defvec");
+  options->get<bool>("bool");
   //w.get<std::string>("long");
-  w.get<std::string>("file");
+  options->get<std::string>("file");
   //w.get<color>("enum");
 
   YAML::Emitter emit;
-  OutputYaml(w.getConfig(), emit);
+  OutputYaml(options->getOptions(), emit);
   std::cout << emit.c_str() << std::endl;
   return 0;
 }

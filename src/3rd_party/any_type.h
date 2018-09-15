@@ -2,8 +2,14 @@
 
 #include <utility>
 
-namespace marian {
-
+/**
+ * The container for single values of any type.
+ *
+ * Loosely inspired by boost::any.
+ *
+ * Based on https://codereview.stackexchange.com/questions/48344
+ * and http://coliru.stacked-crooked.com/a/a5eab9499d50e829
+ */
 class any_type {
   using id = size_t;
 
@@ -128,5 +134,3 @@ public:
     return as<T>();
   }
 };
-
-}  // namespace marian

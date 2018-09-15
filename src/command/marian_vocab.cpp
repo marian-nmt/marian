@@ -9,18 +9,19 @@ int main(int argc, char** argv) {
 
   createLoggers();
 
-  cli::CLIWrapper cli("Allowed options");
-  cli.add<size_t>(
-      "--max-size,-m", "Generate only  arg  most common vocabulary items", 0);
-
-  cli.parse(argc, argv);
+  auto options = New<Options>();
+  {
+    auto cli = New<cli::CLIWrapper>(options, "Allowed options");
+    cli->add<size_t>("--max-size,-m", "Generate only  arg  most common vocabulary items", 0);
+    cli->parse(argc, argv);
+  }
 
   LOG(info, "Creating vocabulary...");
 
   auto vocab = New<Vocab>();
   InputFileStream corpusStrm(std::cin);
   OutputFileStream vocabStrm(std::cout);
-  vocab->create(corpusStrm, vocabStrm, cli.get<size_t>("max-size"));
+  vocab->create(corpusStrm, vocabStrm, options->get<size_t>("max-size"));
 
   LOG(info, "Finished");
 
