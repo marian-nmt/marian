@@ -64,8 +64,8 @@ private:
  */
 class CLIWrapper {
 private:
-  // Map with option names and variables
-  std::map<std::string, Ptr<any_type>> vars_;
+  // [option name] -> option value
+  std::map<std::string, Ptr<any_type>> allVars_;
   // Map with option names and objects
   std::map<std::string, CLI::Option *> opts_;
   // Command-line argument parser
@@ -237,12 +237,12 @@ private:
     if(addToConfig)
       config_[key] = val;
     // create variable for the option
-    vars_.insert(std::make_pair(key, std::make_shared<any_type>(val)));
+    allVars_.insert(std::make_pair(key, std::make_shared<any_type>(val)));
 
     // callback function collecting a command-line argument
     CLI::callback_t fun = [this, key](CLI::results_t res) {
       // get variable associated with the option
-      auto &var = vars_[key]->as<T>();
+      auto &var = allVars_[key]->as<T>();
       // store parser result in var
       auto ret = CLI::detail::lexical_cast(res[0], var);
       // update YAML entry
@@ -282,12 +282,12 @@ private:
     if(addToConfig)
       config_[key] = val;
     // create variable for the option
-    vars_.insert(std::make_pair(key, std::make_shared<any_type>(val)));
+    allVars_.insert(std::make_pair(key, std::make_shared<any_type>(val)));
 
     // callback function collecting command-line arguments
     CLI::callback_t fun = [this, key](CLI::results_t res) {
       // get vector variable associated with the option
-      auto &vec = vars_[key]->as<T>();
+      auto &vec = allVars_[key]->as<T>();
       vec.clear();
       bool ret = true;
       // populate the vector with parser results
@@ -331,12 +331,12 @@ private:
     if(addToConfig)
       config_[key] = val;
     // create variable for the option
-    vars_.insert(std::make_pair(key, std::make_shared<any_type>(val)));
+    allVars_.insert(std::make_pair(key, std::make_shared<any_type>(val)));
 
     // callback function setting the flag
     CLI::callback_t fun = [this, key](CLI::results_t res) {
       // set boolean variable associated with the option
-      vars_[key]->as<T>() = !res.empty();
+      allVars_[key]->as<T>() = !res.empty();
       // update YAML entry
       config_[key] = !res.empty();
       return true;
