@@ -1,4 +1,5 @@
 #include "common/cli_wrapper.h"
+#include "common/options.h"
 
 namespace marian {
 namespace cli {
@@ -56,12 +57,14 @@ std::string CLIFormatter::make_option_desc(const CLI::Option *opt) const {
   return desc;
 }
 
-CLIWrapper::CLIWrapper(const std::string &name,
+CLIWrapper::CLIWrapper(YAML::Node &config,
+                       const std::string &name,
                        size_t columnWidth,
                        size_t screenWidth)
     : app_(std::make_shared<CLI::App>()),
       defaultGroup_(name),
-      currentGroup_(name) {
+      currentGroup_(name),
+      config_(config) {
   // set group name for --help option
   app_->get_help_ptr()->group(defaultGroup_);
   // set custom failure message
@@ -72,6 +75,12 @@ CLIWrapper::CLIWrapper(const std::string &name,
   app_->formatter(fmt);
 }
 
+CLIWrapper::CLIWrapper(Ptr<marian::Options> options,
+                       const std::string &name,
+                       size_t columnWidth,
+                       size_t screenWidth)
+    : CLIWrapper(options->getOptions(), name, columnWidth, screenWidth) {}
+
 CLIWrapper::~CLIWrapper() {}
 
 void CLIWrapper::switchGroup(const std::string &name) {
@@ -81,14 +90,12 @@ void CLIWrapper::switchGroup(const std::string &name) {
     currentGroup_ = name;
 }
 
-YAML::Node CLIWrapper::parse(int argc, char **argv) {
+void CLIWrapper::parse(int argc, char **argv) {
   try {
     app_->parse(argc, argv);
   } catch(const CLI::ParseError &e) {
     exit(app_->exit(e));
   }
-
-  return config_;
 }
 
 std::string CLIWrapper::failureMessage(const CLI::App *app,
@@ -98,14 +105,6 @@ std::string CLIWrapper::failureMessage(const CLI::App *app,
     header += "Run with " + app->get_help_ptr()->get_name()
               + " for more information.\n";
   return header;
-}
-
-YAML::Node CLIWrapper::getConfig() const {
-  return config_;
-}
-
-void CLIWrapper::setConfig(const YAML::Node &config) {
-  config_ = config;
 }
 
 void CLIWrapper::overwriteDefault(const YAML::Node &node) {

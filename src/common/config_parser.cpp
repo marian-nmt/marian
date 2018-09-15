@@ -43,8 +43,9 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   cli.switchGroup("General options");
 
   // clang-format off
-  cli.add_nondefault<bool>("--version",
-      "Print version number and exit");
+  cli.add<bool>("--version",
+     "Print version number and exit",
+     false);
   cli.add<std::vector<std::string>>("--config,-c",
      "Configuration file(s). If multiple, later overrides earlier");
   cli.add<size_t>("--workspace,-w",
@@ -593,15 +594,15 @@ void ConfigParser::expandAliases(cli::CLIWrapper& cli) {
     config["skip"] = true;
   }
 
-  if(config) {
-    cli.setConfig(config_);
+  // @TODO: Quite sure CLIWrapper should not do that;
+  // that's semantics that seem to belong into the current class
+  // and has not really anything to do with CLI proper.
+  if(config)
     cli.overwriteDefault(config);
-    config_ = cli.getConfig();
-  }
 }
 
 void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
-  cli::CLIWrapper cli("General options", 40);
+  cli::CLIWrapper cli(config_, "General options", 40);
 
   addOptionsGeneral(cli);
   addOptionsModel(cli);
@@ -621,11 +622,11 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
   // clang-format on
 
-  // parse command-line options and get YAML config
-  config_ = cli.parse(argc, argv);
+  // parse command-line options and fill wrapped YAML config
+  cli.parse(argc, argv);
 
   // handle version printing
-  if(hasBool("version")) {
+  if(get<bool>("version")) {
     std::cerr << PROJECT_VERSION_FULL << std::endl;
     exit(0);
   }
@@ -638,14 +639,13 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     auto config = loadConfigFiles(configPaths);
     // combine loaded options with the main YAML config
     cli.overwriteDefault(config);
-    config_ = cli.getConfig();
   }
 
-  if(hasBool("interpolate-env-vars")) {
+  if(get<bool>("interpolate-env-vars")) {
     cli::ProcessPaths(config_, cli::InterpolateEnvVars, PATHS);
   }
 
-  if(hasBool("relative-paths") && !hasBool("dump-config")) {
+  if(get<bool>("relative-paths") && !get<bool>("dump-config")) {
     makeAbsolutePaths(configPaths);
   }
 
@@ -663,7 +663,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   // remove extra config files from the config to avoid redundancy
   config_.remove("config");
 
-  if(hasBool("dump-config")) {
+  if(get<bool>("dump-config")) {
     config_.remove("dump-config");
     YAML::Emitter emit;
     cli::OutputYaml(config_, emit);
@@ -720,7 +720,7 @@ YAML::Node ConfigParser::loadConfigFiles(
 std::vector<std::string> ConfigParser::loadConfigPaths() {
   std::vector<std::string> paths;
 
-  bool interpolateEnvVars = hasBool("interpolate-env-vars");
+  bool interpolateEnvVars = get<bool>("interpolate-env-vars");
   bool loadConfig = !config_["config"].as<std::vector<std::string>>().empty();
 
   if(loadConfig) {
@@ -736,7 +736,7 @@ std::vector<std::string> ConfigParser::loadConfigPaths() {
       path = cli::InterpolateEnvVars(path);
 
     bool reloadConfig
-        = boost::filesystem::exists(path) && !hasBool("no-reload");
+        = boost::filesystem::exists(path) && !get<bool>("no-reload");
 
     if(reloadConfig)
       paths = {path};
@@ -756,7 +756,7 @@ std::vector<DeviceId> ConfigParser::getDevices() {
     std::string devicesStr
         = utils::Join(config_["devices"].as<std::vector<std::string>>());
 
-    if(mode_ == cli::mode::training && hasBool("multi-node")) {
+    if(mode_ == cli::mode::training && get<bool>("multi-node")) {
       auto parts = utils::Split(devicesStr, ":");
       for(size_t i = 1; i < parts.size(); ++i) {
         std::string part = parts[i];
@@ -786,10 +786,6 @@ std::vector<DeviceId> ConfigParser::getDevices() {
   }
 
   return devices;
-}
-
-bool ConfigParser::hasBool(const std::string& key) const {
-  return config_[key] && config_[key].as<bool>();
 }
 
 }  // namespace marian

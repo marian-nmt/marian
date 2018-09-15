@@ -55,9 +55,18 @@ private:
   cli::mode mode_;
   YAML::Node config_;
 
-  // Check if the config has a boolean option for the given key and it is
-  // enabled
-  bool hasBool(const std::string& key) const;
+  // Check if the config contains value for option key
+  bool has(const std::string& key) const {
+    return (bool)config_[key];
+  }
+
+  // Return value for given option key cast to given type.
+  // Abort if not set.
+  template <typename T>
+  T get(const std::string& key) const {
+    ABORT_IF(!has(key), "CLI object has no key {}", key);
+    return config_[key].as<T>();
+  }
 
   void addOptionsGeneral(cli::CLIWrapper&);
   void addOptionsModel(cli::CLIWrapper&);

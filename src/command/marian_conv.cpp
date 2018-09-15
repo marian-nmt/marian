@@ -9,13 +9,15 @@ int main(int argc, char** argv) {
 
   createLoggers();
 
-  cli::CLIWrapper cli("Allowed options");
-  cli.add<std::string>("--from,-f", "Input model", "model.npz");
-  cli.add<std::string>("--to,-t", "Output model", "model.bin");
-
-  auto opts = cli.parse(argc, argv);
-  auto modelFrom = opts["from"].as<std::string>();
-  auto modelTo = opts["to"].as<std::string>();
+  auto options = New<Options>();
+  {
+    auto cli = New<cli::CLIWrapper>(options, "Allowed options");
+    cli->add<std::string>("--from,-f", "Input model", "model.npz");
+    cli->add<std::string>("--to,-t", "Output model", "model.bin");
+    cli->parse(argc, argv);
+  }
+  auto modelFrom = options->get<std::string>("from");
+  auto modelTo = options->get<std::string>("to");
 
   LOG(info, "Outputting {}", modelTo);
 

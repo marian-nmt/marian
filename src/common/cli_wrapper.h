@@ -11,6 +11,9 @@
 #include <string>
 
 namespace marian {
+
+class Options;
+
 namespace cli {
 
 // Try to determine the width of the terminal
@@ -67,8 +70,10 @@ private:
   std::map<std::string, CLI::Option *> opts_;
   // Command-line argument parser
   Ptr<CLI::App> app_;
-  // Defined option names and values as a YAML object
-  YAML::Node config_;
+
+  // If this is a wrapper then this should just be a reference,
+  // then we do not have the added level of containment.
+  YAML::Node &config_;
 
   // Name of the default option group
   std::string defaultGroup_{""};
@@ -92,12 +97,32 @@ public:
    *
    * Option --help, -h is automatically added.
    *
+   * @param config A reference to the to-be-wrapped yaml tree
    * @param name Header text for the main option group
    * @param columnWidth Width of the column with option names
    * @param screenWidth Maximum allowed width for help messages, 0 means no
    *  limit
    */
-  CLIWrapper(const std::string &name = "General options",
+
+  CLIWrapper(YAML::Node &config,
+             const std::string &name = "General options",
+             size_t columnWidth = 35,
+             size_t screenWidth = 0);
+
+  /**
+   * @brief Create an instance of the command-line argument parser,
+   * short-cuft for Options object.
+   *
+   * Option --help, -h is automatically added.
+   *
+   * @param options A smart pointer to the Options object containing the to-be-wrapped yaml tree
+   * @param name Header text for the main option group
+   * @param columnWidth Width of the column with option names
+   * @param screenWidth Maximum allowed width for help messages, 0 means no
+   *  limit
+   */
+  CLIWrapper(Ptr<Options> options,
+             const std::string &name = "General options",
              size_t columnWidth = 35,
              size_t screenWidth = 0);
 
@@ -183,29 +208,7 @@ public:
   void switchGroup(const std::string &name = "");
 
   // Parse command-line arguments. Handles --help and --version options
-  YAML::Node parse(int argc, char **argv);
-
-  /**
-   * @brief Get parsed options
-   *
-   * @return A copy of the YAML object being populated while options are
-   * created and parsed.
-   *
-   * TODO: consider renaming this method during final refactorization of
-   * cmd/config parsers to avoid confusing it with Config/Options classes
-   */
-  YAML::Node getConfig() const;
-
-  /**
-   * @brief Replace option values
-   *
-   * It may overwrite option values set after parsing command-line options.
-   * No validation for option names or types.
-   *
-   * TODO: consider renaming this method during final refactorization of
-   * cmd/config parsers to avoid confusing it with Config/Options classes
-  */
-  void setConfig(const YAML::Node &config);
+  void parse(int argc, char **argv);
 
   /**
    * @brief Overwrite values for unparsed options
