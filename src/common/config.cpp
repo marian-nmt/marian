@@ -126,6 +126,7 @@ void Config::log() {
   cli::OutputYaml(config_, out);
   std::string configString = out.c_str();
 
+  // print YAML prepending each line with [config]
   std::vector<std::string> results;
   boost::algorithm::split(results, configString, boost::is_any_of("\n"));
   for(auto& r : results)
