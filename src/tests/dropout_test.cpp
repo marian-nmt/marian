@@ -5,7 +5,6 @@
 #include "marian.h"
 
 using namespace marian;
-using namespace keywords;
 
 int main(int argc, char** argv) {
   auto c = New<Config>(argc, argv);

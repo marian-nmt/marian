@@ -108,8 +108,6 @@ void tests(DeviceType type) {
       auto backward = type == "alternating" ? rnn::dir::alternating_backward
                                             : rnn::dir::backward;
 
-      using namespace keywords;
-
       auto rnnFw = rnn::rnn(graph)           //
           ("type", cellType)                 //
           ("direction", forward)             //
@@ -200,17 +198,17 @@ void tests(DeviceType type) {
 
     int dimRnn = 32;
     auto context1 = buildRnn("enc1", input, mask, dimRnn);
-    auto contextSum1 = sum(context1, keywords::axis=2);
+    auto contextSum1 = sum(context1, /*axis*/2);
 
     auto context2 = buildRnn("enc2", input, mask, dimRnn, 2, 2);
-    auto contextSum2 = sum(context2, keywords::axis=2);
+    auto contextSum2 = sum(context2, /*axis*/2);
 
     // @TODO: why is this numerically instable on different machines?
     //auto context3 = buildRnn("enc3", input, mask,
     //                         dimRnn, 4, 4,
     //                         "alternating", "lstm",
     //                         true, true);
-    //auto contextSum3 = sum(context3, keywords::axis=1);
+    //auto contextSum3 = sum(context3, /*axis*/1);
 
     graph->forward();
 
