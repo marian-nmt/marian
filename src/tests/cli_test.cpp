@@ -2,6 +2,7 @@
 #include <iostream>
 #include <memory>
 
+#include "common/definitions.h"
 #include "common/cli_wrapper.h"
 #include "common/cli_helper.h"
 
