@@ -9,7 +9,7 @@ Marian
 [![Twitter](https://img.shields.io/twitter/follow/marian_nmt.svg?style=social&label=Follow)](https://twitter.com/intent/follow?screen_name=marian_nmt)
 
  <p>
-  <b>Marian</b> (formerly known as AmuNMT) is an efficient Neural Machine Translation framework written
+  <b>Marian</b> is an efficient Neural Machine Translation framework written
   in pure C++ with minimal dependencies. Named in honour of Marian Rejewski, a Polish mathematician and cryptologist.
   
   Named in honour of Marian Rejewski, a Polish mathematician and cryptologist.
