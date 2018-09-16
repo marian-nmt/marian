@@ -1050,42 +1050,6 @@ struct ShiftNodeOp : public UnaryNodeOp {
   float padValue_;  // what value to shift in
 };
 
-// struct LexicalProbNodeOp : public NaryNodeOp {
-//  template <typename... Args>
-//  LexicalProbNodeOp(
-//      Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf, Args... args)
-//      : NaryNodeOp({logits, att}, keywords::shape = logits->shape(), args...),
-//        eps_(eps),
-//        lf_(lf) {}
-//
-//  void forward() {
-//    sparse::LfaForward(val_, child(0)->val(), child(1)->val(), lf_);
-//    // val = x + ln(p + eps)
-//    Element(_1 = (log(_1 + eps_) + _2), val_, child(0)->val());
-//  }
-//
-//  void backward() {
-//    Add(_1, child(0)->grad(), adj_);
-//    // adj' = adj / (p + eps) = adj / exp(val - x)
-//    Element(_1 = _1 / exp(_2 - _3), adj_, val_, child(0)->val());
-//    sparse::LfaBackward(child(1)->grad(), adj_, lf_);
-//  }
-//
-//  const std::string type() { return "lexical_prob"; }
-//
-//  virtual size_t hash() {
-//    if(!hash_) {
-//      size_t seed = NaryNodeOp::hash();
-//      util::hash_combine(seed, (size_t)lf_.get());
-//      hash_ = seed;
-//    }
-//    return hash_;
-//  }
-//
-//  float eps_;
-//  Ptr<sparse::CSR> lf_;
-//};
-
 #ifdef CUDNN
 class PoolingOp : public UnaryNodeOp {
 public:

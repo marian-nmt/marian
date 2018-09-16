@@ -4,10 +4,7 @@
 #include <iostream>
 #include <memory>
 
-#include <boost/timer/timer.hpp>
-
 #include "common/definitions.h"
-#include "common/keywords.h"
 #include "graph/expression_graph.h"
 #include "models/costs.h"
 #include "models/model_base.h"
@@ -32,7 +29,7 @@ public:
         = graph->constant({(int)batch->size(), 1}, inits::from_vector(vLabels));
 
     // Define a top-level node for training
-    return mean(cross_entropy(top, labels), keywords::axis = 0);
+    return mean(cross_entropy(top, labels), /*axis =*/ 0);
   }
 };
 
@@ -100,7 +97,6 @@ protected:
   virtual Expr construct(Ptr<ExpressionGraph> g,
                          Ptr<data::Batch> batch,
                          bool inference = false) {
-    using namespace keywords;
     const std::vector<int> dims = {784, 2048, 2048, 10};
 
     // Start with an empty expression graph

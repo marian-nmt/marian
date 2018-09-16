@@ -740,48 +740,6 @@ struct ConcatenateNodeOp : public NaryNodeOp {
   int ax_;
 };
 
-/*
-struct TanhPlus3NodeOp : public NaryNodeOp {
-  TanhPlus3NodeOp(const std::vector<Expr>& nodes)
-    : NaryNodeOp(nodes, keywords::shape=newShape(nodes)) { }
-
-  Shape newShape(const std::vector<Expr>& nodes) {
-    Shape shape = nodes[0]->shape();
-
-    for(int n = 1; n < nodes.size(); ++n) {
-      Shape shapen = nodes[n]->shape();
-      for(int i = 0; i < shapen.size(); ++i) {
-        ABORT_IF(shape[i] != shapen[i] && shape[i] != 1 && shapen[i] != 1,
-                       "Shapes cannot be broadcasted");
-        shape.set(i, std::max(shape[i], shapen[i]));
-      }
-    }
-    return shape;
-  }
-
-  void forward() {
-    Element(_1 = Tanh(_2 + _3 + _4),
-            val_,
-            child(0)->val(),
-            child(1)->val(),
-            child(2)->val());
-  }
-
-  void backward() {
-    for(auto&& child : children_) {
-      if(child->trainable())
-        Add((1.f - _1 * _1) * _2,
-            child->grad(), val_, adj_);
-    }
-  }
-
-  const std::string type() {
-    return "tanhPlus3";
-  }
-
-};
-*/
-
 struct LayerNormalizationOp : public NaryNodeOp {
 public:
   LayerNormalizationOp(const std::vector<Expr>& nodes, float eps = 1e-9)

@@ -105,7 +105,6 @@ public:
   }
 
   Expr apply(State state) override {
-    using namespace keywords;
     auto recState = state.output;
 
     int dimBatch = contextDropped_->shape()[-2];

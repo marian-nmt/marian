@@ -85,7 +85,6 @@ public:
       Ptr<ExpressionGraph> graph,
       Ptr<data::CorpusBatch> batch,
       std::vector<Ptr<EncoderState>>& encStates) override {
-    using namespace keywords;
 
     std::vector<Expr> meanContexts;
     for(auto& encState : encStates) {
@@ -116,7 +115,6 @@ public:
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state) override {
-    using namespace keywords;
 
     auto type = options_->get<std::string>("type");
 
@@ -252,8 +250,6 @@ public:
   void embeddingsFromBatch(Ptr<ExpressionGraph> graph,
                            Ptr<DecoderState> state,
                            Ptr<data::CorpusBatch> batch) override {
-    using namespace keywords;
-
     DecoderBase::embeddingsFromBatch(graph, state, batch);
 
     auto subBatch = (*batch)[batchIndex_];

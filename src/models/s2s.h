@@ -32,7 +32,6 @@ public:
     auto backward = type == "alternating" ? rnn::dir::alternating_backward
                                           : rnn::dir::backward;
 
-    using namespace keywords;
     float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
 
     auto rnnFw = rnn::rnn(graph)                                   //
@@ -153,7 +152,6 @@ public:
                                   Ptr<data::CorpusBatch> batch) override {
     auto embeddings = buildSourceEmbeddings(graph);
 
-    using namespace keywords;
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask;
     std::tie(batchEmbeddings, batchMask)
@@ -248,7 +246,6 @@ public:
       Ptr<ExpressionGraph> graph,
       Ptr<data::CorpusBatch> batch,
       std::vector<Ptr<EncoderState>>& encStates) override {
-    using namespace keywords;
 
     std::vector<Expr> meanContexts;
     for(auto& encState : encStates) {
@@ -286,7 +283,6 @@ public:
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state) override {
-    using namespace keywords;
 
     auto embeddings = state->getTargetEmbeddings();
 
