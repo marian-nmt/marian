@@ -154,7 +154,7 @@ void tests(DeviceType type) {
 
       auto context = concatenate({rnnFw->transduce(input, mask),
                                   rnnBw->transduce(input, mask)},
-                                 axis = input->shape().size() - 1);
+                                  /*axis =*/ input->shape().size() - 1);
 
       if(second > 0) {
         // add more layers (unidirectional) by transducing the output of the

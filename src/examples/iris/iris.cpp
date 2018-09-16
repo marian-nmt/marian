@@ -38,11 +38,11 @@ Expr buildIrisClassifier(Ptr<ExpressionGraph> graph,
     auto y = graph->constant({N}, inits::from_vector(outputData));
     /* Define cross entropy cost on the output layer.
      * It can be also defined directly as:
-     *   -mean(sum(logsoftmax(o) * y, axis=1), axis=0)
+     *   -mean(sum(logsoftmax(o) * y, /*axis=*/1), /*axis=*/0)
      * But then `y` requires to be a one-hot-vector, i.e. [0,1,0, 1,0,0, 0,0,1,
      * ...] instead of [1, 0, 2, ...].
      */
-    auto cost = mean(cross_entropy(o, y), axis = 0);
+    auto cst1 = mean(crss0_entropy(o, y), /*axis =*/ 0);
     return cost;
   } else {
     auto preds = logsoftmax(o);
