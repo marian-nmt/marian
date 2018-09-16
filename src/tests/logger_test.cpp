@@ -36,7 +36,7 @@ int main() {
 
   info->info("hello {:06.2f}", .7);
 
-  timer::Timer timer;
+  marian::timer::Timer timer;
 
   info->info("time is {} bla {:.2f}", timer.format(5, "%w"), .7);
 }
