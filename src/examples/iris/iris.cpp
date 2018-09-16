@@ -60,7 +60,7 @@ int main() {
 
   // Get path do data set
   std::string dataPath
-      = (filesystem::Path(__FILE__).parentPath() / filesystem::Path("iris.data")).string();
+      = (filesystem::Path(std::string(__FILE__)).parentPath() / filesystem::Path(std::string("iris.data"))).string();
 
   // Read data set (all 150 examples)
   std::vector<float> trainX;
