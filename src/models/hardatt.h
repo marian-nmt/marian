@@ -92,7 +92,7 @@ public:
       // average the source context weighted by the batch mask
       // this will remove padded zeros from the average
       meanContexts.push_back(weighted_average(
-          encState->getContext(), encState->getMask(), axis = -3));
+          encState->getContext(), encState->getMask(), /*axis =*/ -3));
     }
 
     Expr start;
@@ -157,7 +157,7 @@ public:
     attendedContext = reshape(attendedContext,
                               {dimBeam, dimTrgWords, dimBatch, dimContext});
 
-    auto rnnInputs = concatenate({trgEmbeddings, attendedContext}, axis = -1);
+    auto rnnInputs = concatenate({trgEmbeddings, attendedContext}, /*axis =*/ -1);
     int dimInput = rnnInputs->shape()[-1];
 
     if(!rnn_) {
@@ -226,7 +226,7 @@ public:
 
       Expr alignedContext;
       if(alignedContexts.size() > 1)
-        alignedContext = concatenate(alignedContexts, axis = -1);
+        alignedContext = concatenate(alignedContexts, /*axis =*/ -1);
       else if(alignedContexts.size() == 1)
         alignedContext = alignedContexts[0];
 

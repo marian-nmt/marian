@@ -441,8 +441,7 @@ struct LogSoftmaxNodeOp : public UnaryNodeOp {
 struct SumNodeOp : public UnaryNodeOp {
   int ax_;
 
-  template <typename... Args>
-  SumNodeOp(Expr a, Args... args) : UnaryNodeOp(a, newShape(a, args...)) {}
+  SumNodeOp(Expr a, int axis) : UnaryNodeOp(a, newShape(a, axis)) {}
 
   NodeOps forwardOps() override {
     using namespace functional;
@@ -455,10 +454,9 @@ struct SumNodeOp : public UnaryNodeOp {
     return {NodeOp(Add(_1, child(0)->grad(), adj_))};
   }
 
-  template <class... Args>
-  Shape newShape(Expr a, Args... args) {
+  Shape newShape(Expr a, int axis) {
     Shape shape = a->shape();
-    ax_ = shape.axis(keywords::Get(keywords::axis, -1, args...));
+    ax_ = shape.axis(axis);
 
     shape.set(ax_, 1);
     return shape;
@@ -491,8 +489,7 @@ struct SumNodeOp : public UnaryNodeOp {
 struct MeanNodeOp : public UnaryNodeOp {
   int ax_;
 
-  template <typename... Args>
-  MeanNodeOp(Expr a, Args... args) : UnaryNodeOp(a, newShape(a, args...)) {}
+  MeanNodeOp(Expr a, int axis) : UnaryNodeOp(a, newShape(a, axis)) {}
 
   NodeOps forwardOps() override {
     using namespace functional;
@@ -510,10 +507,9 @@ struct MeanNodeOp : public UnaryNodeOp {
     return {NodeOp(Add(_1, scale, child(0)->grad(), adj_))};
   }
 
-  template <class... Args>
-  Shape newShape(Expr a, Args... args) {
+  Shape newShape(Expr a, int axis) {
     Shape shape = a->shape();
-    ax_ = shape.axis(keywords::Get(keywords::axis, -1, args...));
+    ax_ = shape.axis(axis);
     shape.set(ax_, 1);
     return shape;
   }

@@ -89,7 +89,7 @@ public:
 
     auto context = concatenate({rnnFw->transduce(embeddings, mask),
                                 rnnBw->transduce(embeddings, mask)},
-                               axis = -1);
+                               /*axis =*/ -1);
 
     if(second > 0) {
       // add more layers (unidirectional) by transducing the output of the
@@ -255,7 +255,7 @@ public:
       // average the source context weighted by the batch mask
       // this will remove padded zeros from the average
       meanContexts.push_back(weighted_average(
-          encState->getContext(), encState->getMask(), axis = -3));
+          encState->getContext(), encState->getMask(), /*axis =*/ -3));
     }
 
     Expr start;
@@ -320,7 +320,7 @@ public:
 
     Expr alignedContext;
     if(alignedContexts.size() > 1)
-      alignedContext = concatenate(alignedContexts, axis = -1);
+      alignedContext = concatenate(alignedContexts, /*axis =*/ -1);
     else if(alignedContexts.size() == 1)
       alignedContext = alignedContexts[0];
 

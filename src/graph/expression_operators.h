@@ -91,8 +91,8 @@ Expr affine(Expr a,
 Expr transpose(Expr a);
 Expr transpose(Expr a, const std::vector<int>& axes);
 
-Expr concatenate(const std::vector<Expr>& concats, keywords::axis_k ax = 0);
-Expr repeat(Expr a, size_t repeats, keywords::axis_k ax = 0);
+Expr concatenate(const std::vector<Expr>& concats, int ax = 0);
+Expr repeat(Expr a, size_t repeats, int ax = 0);
 
 Expr reshape(Expr a, Shape shape);
 
@@ -111,19 +111,19 @@ Expr select(Expr a, int axis, const std::vector<size_t>& indices);
 
 /*********************************************************/
 
-Expr sum(Expr a, keywords::axis_k ax = 0);
+Expr sum(Expr a, int ax = 0);
 
 Expr softmax(Expr a, Expr mask = nullptr);
 
 Expr logsoftmax(Expr a);
 
-Expr mean(Expr a, keywords::axis_k ax = 0);
+Expr mean(Expr a, int ax = 0);
 
 Expr cross_entropy(Expr a, Expr b);
 
-Expr scalar_product(Expr a, Expr b, keywords::axis_k ax = 0);
+Expr scalar_product(Expr a, Expr b, int ax = 0);
 
-Expr weighted_average(Expr in, Expr weights, keywords::axis_k ax = 0);
+Expr weighted_average(Expr in, Expr weights, int ax = 0);
 
 Expr step(Expr a, int step, int axis);
 
