@@ -51,13 +51,22 @@ public:
   YAML::Node getConfig() const;
   std::vector<DeviceId> getDevices();
 
-  // Check if the config has a boolean option for the given key and it is
-  // enabled
-  bool has(const std::string& key) const;
-
 private:
   cli::mode mode_;
   YAML::Node config_;
+
+  // Check if the config contains value for option key
+  bool has(const std::string& key) const {
+    return (bool)config_[key];
+  }
+
+  // Return value for given option key cast to given type.
+  // Abort if not set.
+  template <typename T>
+  T get(const std::string& key) const {
+    ABORT_IF(!has(key), "CLI object has no key {}", key);
+    return config_[key].as<T>();
+  }
 
   void addOptionsGeneral(cli::CLIWrapper&);
   void addOptionsModel(cli::CLIWrapper&);
@@ -76,10 +85,10 @@ private:
   // directory
   void makeAbsolutePaths(const std::vector<std::string>&);
 
-  // Create a new config from all provided config files
+  // Create a new YAML config object from all provided YAML files
   YAML::Node loadConfigFiles(const std::vector<std::string>&);
 
-  // Load paths to all config files found in the config object
+  // Load paths to all YAML files found in the config object
   std::vector<std::string> loadConfigPaths();
 };
 

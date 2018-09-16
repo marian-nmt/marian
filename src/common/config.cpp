@@ -12,20 +12,6 @@ namespace marian {
 
 size_t Config::seed = (size_t)time(0);
 
-Config::Config(const std::string options,
-               cli::mode mode /*= cli::mode::training*/,
-               bool validate /*= false*/) {
-  std::vector<std::string> sargv;
-  utils::Split(options, sargv, " ");
-  int argc = sargv.size();
-
-  std::vector<char*> argv(argc);
-  for(int i = 0; i < argc; ++i)
-    argv[i] = const_cast<char*>(sargv[i].c_str());
-
-  initialize(argc, &argv[0], mode, validate);
-}
-
 Config::Config(int argc,
                char** argv,
                cli::mode mode /*= cli::mode::training*/,
@@ -126,6 +112,7 @@ void Config::log() {
   cli::OutputYaml(config_, out);
   std::string configString = out.c_str();
 
+  // print YAML prepending each line with [config]
   std::vector<std::string> results;
   boost::algorithm::split(results, configString, boost::is_any_of("\n"));
   for(auto& r : results)

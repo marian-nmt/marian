@@ -1,13 +1,13 @@
-#include "common/definitions.h"
-
-#include "common/cli_helper.h"
 #include "common/config_parser.h"
+
+#include "common/definitions.h"
+#include "common/cli_helper.h"
 #include "common/config_validator.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
 #include "common/utils.h"
+#include "common/version.h"
 #include "3rd_party/exception.h"
-#include "common/filesystem.h"
 
 #include <algorithm>
 #include <set>
@@ -37,15 +37,15 @@ const std::set<std::string> PATHS = {"model",
                                      "valid-translation-output",
                                      "log"};
 
-
 void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   int defaultWorkspace = (mode_ == cli::mode::translation) ? 512 : 2048;
 
   cli.switchGroup("General options");
 
   // clang-format off
-  cli.add_nondefault<bool>("--version",
-      "Print version number and exit");
+  cli.add<bool>("--version",
+     "Print version number and exit",
+     false);
   cli.add<std::vector<std::string>>("--config,-c",
      "Configuration file(s). If multiple, later overrides earlier");
   cli.add<size_t>("--workspace,-w",
@@ -229,7 +229,7 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
   // clang-format on
 }
 
-void ConfigParser::addOptionsTraining(cli::CLIWrapper &cli) {
+void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.switchGroup("Training options");
   // clang-format off
   cli.add<std::string>("--cost-type",
@@ -376,7 +376,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper &cli) {
   // clang-format on
 }
 
-void ConfigParser::addOptionsValidation(cli::CLIWrapper &cli) {
+void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
   cli.switchGroup("Validation set options");
 
   // clang-format off
@@ -434,7 +434,7 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper &cli) {
   // clang-format on
 }
 
-void ConfigParser::addOptionsTranslation(cli::CLIWrapper &cli) {
+void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   cli.switchGroup("Translator options");
 
   // clang-format off
@@ -485,7 +485,7 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper &cli) {
   // clang-format on
 }
 
-void ConfigParser::addOptionsScoring(cli::CLIWrapper &cli) {
+void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
   cli.switchGroup("Scorer options");
 
   // clang-format off
@@ -518,7 +518,7 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper &cli) {
   // clang-format on
 }
 
-void ConfigParser::addSuboptionsDevices(cli::CLIWrapper &cli) {
+void ConfigParser::addSuboptionsDevices(cli::CLIWrapper& cli) {
   // clang-format off
   cli.add<std::vector<std::string>>("--devices,-d",
       "GPUs to use for training",
@@ -540,7 +540,7 @@ void ConfigParser::addSuboptionsDevices(cli::CLIWrapper &cli) {
   // clang-format on
 }
 
-void ConfigParser::addSuboptionsBatching(cli::CLIWrapper &cli) {
+void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
   int defaultMiniBatch = (mode_ == cli::mode::translation) ? 1 : 64;
   int defaultMaxiBatch = (mode_ == cli::mode::translation) ? 1 : 100;
   std::string defaultMaxiBatchSort
@@ -570,7 +570,7 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper &cli) {
   // clang-format on
 }
 
-void ConfigParser::addSuboptionsInputLength(cli::CLIWrapper &cli) {
+void ConfigParser::addSuboptionsInputLength(cli::CLIWrapper& cli) {
   size_t defaultMaxLength = (mode_ == cli::mode::training) ? 50 : 1000;
   // clang-format off
   cli.add<size_t>("--max-length",
@@ -581,7 +581,7 @@ void ConfigParser::addSuboptionsInputLength(cli::CLIWrapper &cli) {
   // clang-format on
 }
 
-void ConfigParser::expandAliases(cli::CLIWrapper &cli) {
+void ConfigParser::expandAliases(cli::CLIWrapper& cli) {
   YAML::Node config;
 
   if(config_["best-deep"].as<bool>()) {
@@ -596,15 +596,15 @@ void ConfigParser::expandAliases(cli::CLIWrapper &cli) {
     config["skip"] = true;
   }
 
-  if(config) {
-    cli.setConfig(config_);
+  // @TODO: Quite sure CLIWrapper should not do that;
+  // that's semantics that seem to belong into the current class
+  // and has not really anything to do with CLI proper.
+  if(config)
     cli.overwriteDefault(config);
-    config_ = cli.getConfig();
-  }
 }
 
 void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
-  cli::CLIWrapper cli("General options", 40);
+  cli::CLIWrapper cli(config_, "General options", 40);
 
   addOptionsGeneral(cli);
   addOptionsModel(cli);
@@ -624,10 +624,14 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
   // clang-format on
 
-  // parse command-line options
+  // parse command-line options and fill wrapped YAML config
   cli.parse(argc, argv);
-  // get YAML config with default and parsed options
-  config_ = cli.getConfig();
+
+  // handle version printing
+  if(get<bool>("version")) {
+    std::cerr << PROJECT_VERSION_FULL << std::endl;
+    exit(0);
+  }
 
   // get paths to extra config files
   auto configPaths = loadConfigPaths();
@@ -637,14 +641,13 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     auto config = loadConfigFiles(configPaths);
     // combine loaded options with the main YAML config
     cli.overwriteDefault(config);
-    config_ = cli.getConfig();
   }
 
-  if(has("interpolate-env-vars")) {
+  if(get<bool>("interpolate-env-vars")) {
     cli::ProcessPaths(config_, cli::InterpolateEnvVars, PATHS);
   }
 
-  if(has("relative-paths") && !has("dump-config")) {
+  if(get<bool>("relative-paths") && !get<bool>("dump-config")) {
     makeAbsolutePaths(configPaths);
   }
 
@@ -652,7 +655,6 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     try {
       ConfigValidator validator(config_);
       validator.validateOptions(mode_);
-      validator.validateDevices(mode_);
     } catch(util::Exception& e) {
       std::cerr << "Error: " << e.what() << std::endl << std::endl;
       std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
@@ -663,7 +665,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   // remove extra config files from the config to avoid redundancy
   config_.remove("config");
 
-  if(has("dump-config")) {
+  if(get<bool>("dump-config")) {
     config_.remove("dump-config");
     YAML::Emitter emit;
     cli::OutputYaml(config_, emit);
@@ -719,7 +721,7 @@ YAML::Node ConfigParser::loadConfigFiles(
 std::vector<std::string> ConfigParser::loadConfigPaths() {
   std::vector<std::string> paths;
 
-  bool interpolateEnvVars = has("interpolate-env-vars");
+  bool interpolateEnvVars = get<bool>("interpolate-env-vars");
   bool loadConfig = !config_["config"].as<std::vector<std::string>>().empty();
 
   if(loadConfig) {
@@ -734,8 +736,7 @@ std::vector<std::string> ConfigParser::loadConfigPaths() {
     if(interpolateEnvVars)
       path = cli::InterpolateEnvVars(path);
 
-    bool reloadConfig = filesystem::exists(path) && !has("no-reload");
-
+    bool reloadConfig = filesystem::exists(path) && !get<bool>("no-reload");
     if(reloadConfig)
       paths = {path};
   }
@@ -754,7 +755,7 @@ std::vector<DeviceId> ConfigParser::getDevices() {
     std::string devicesStr
         = utils::Join(config_["devices"].as<std::vector<std::string>>());
 
-    if(mode_ == cli::mode::training && has("multi-node")) {
+    if(mode_ == cli::mode::training && get<bool>("multi-node")) {
       auto parts = utils::Split(devicesStr, ":");
       for(size_t i = 1; i < parts.size(); ++i) {
         std::string part = parts[i];
@@ -784,10 +785,6 @@ std::vector<DeviceId> ConfigParser::getDevices() {
   }
 
   return devices;
-}
-
-bool ConfigParser::has(const std::string& key) const {
-  return config_[key] && config_[key].as<bool>();
 }
 
 }  // namespace marian

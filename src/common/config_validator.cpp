@@ -30,6 +30,8 @@ void ConfigValidator::validateOptions(cli::mode mode) const {
       validateOptionsTraining();
       break;
   }
+
+  validateDevices(mode);
 }
 
 void ConfigValidator::validateOptionsTranslation() const {
