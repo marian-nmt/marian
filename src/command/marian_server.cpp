@@ -2,6 +2,7 @@
 #include "translator/beam_search.h"
 #include "translator/translator.h"
 #include "common/timer.h"
+#include "common/utils.h"
 
 #include "3rd_party/simple-websocket-server/server_ws.hpp"
 
@@ -24,7 +25,7 @@ int main(int argc, char **argv) {
     auto message_str = message->string();
 
     auto message_short = message_str;
-    boost::algorithm::trim_right(message_short);
+    utils::trimRight(message_short);
     LOG(error, "Message received: {}", message_short);
 
     auto send_stream = std::make_shared<WsServer::SendStream>();
