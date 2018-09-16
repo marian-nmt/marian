@@ -3,7 +3,6 @@
 #include <deque>
 #include <queue>
 
-#include <boost/timer/timer.hpp>
 #include "data/corpus.h"
 #include "data/vocab.h"
 

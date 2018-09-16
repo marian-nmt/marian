@@ -1,7 +1,5 @@
 #include "marian.h"
-
-
-#include <boost/timer/timer.hpp>
+#include "common/timer.h"
 
 int main(int argc, char** argv) {
     using namespace marian;
@@ -11,7 +9,7 @@ int main(int argc, char** argv) {
         g->setDevice({0, DeviceType::cpu});
         g->reserveWorkspaceMB(2512);
 
-        boost::timer::auto_cpu_timer timer;
+        timer::AutoTimer timer;
         for(int i = 0; i < 100; ++i) {
             g->clear();
 
@@ -43,7 +41,7 @@ int main(int argc, char** argv) {
         g->setDevice({0, DeviceType::cpu});
         g->reserveWorkspaceMB(2512);
 
-        boost::timer::auto_cpu_timer timer;
+        timer::AutoTimer timer;
         for(int i = 0; i < 100; ++i) {
             g->clear();
 

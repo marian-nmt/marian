@@ -1,11 +1,8 @@
 #pragma once
 
-#include <cstdio>
-#include <cstdlib>
-#include <limits>
-
 #include "3rd_party/threadpool.h"
 #include "common/config.h"
+#include "common/timer.h"
 #include "common/utils.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
@@ -16,6 +13,10 @@
 #include "translator/output_collector.h"
 #include "translator/output_printer.h"
 #include "translator/scorers.h"
+
+#include <cstdio>
+#include <cstdlib>
+#include <limits>
 
 namespace marian {
 
@@ -208,7 +209,7 @@ public:
     builder_->save(graphs[0], model + ".dev.npz", true);
 
     auto command = options_->get<std::string>("valid-script-path");
-    auto valStr = utils::Exec(command);
+    auto valStr = utils::exec(command);
     float val = (float)std::atof(valStr.c_str());
     updateStalled(graphs, val);
 
@@ -290,7 +291,7 @@ public:
     if(!quiet_)
       LOG(info, "Translating validation set...");
 
-    boost::timer::cpu_timer timer;
+    timer::Timer timer;
     {
       auto printer = New<OutputPrinter>(options_, vocabs_.back());
       auto collector = options_->has("valid-translation-output")
@@ -356,7 +357,7 @@ public:
     if(options_->has("valid-script-path")) {
       auto command
           = options_->get<std::string>("valid-script-path") + " " + fileName;
-      auto valStr = utils::Exec(command);
+      auto valStr = utils::exec(command);
       val = (float)std::atof(valStr.c_str());
       updateStalled(graphs, val);
     }
@@ -436,7 +437,7 @@ public:
     // 8: reference length
     std::vector<float> stats(9, 0.f);
 
-    boost::timer::cpu_timer timer;
+    timer::Timer timer;
     {
       size_t sentenceId = 0;
 

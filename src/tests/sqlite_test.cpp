@@ -1,12 +1,10 @@
+#include "common/utils.h"
+#include "common/timer.h"
+#include "SQLiteCpp/SQLiteCpp.h"
+
 #include <iostream>
 #include <memory>
 #include <fstream>
-
-#include <boost/timer/timer.hpp>
-
-#include <SQLiteCpp/SQLiteCpp.h>
-
-#include "common/utils.h"
 
 int main(int argc, char** argv) {
 
@@ -16,9 +14,9 @@ int main(int argc, char** argv) {
     db.exec("drop table if exists lines");
     db.exec("create table lines (_id integer, line0 text, line1 text);");
 
-    boost::timer::auto_cpu_timer total;
+    marian::timer::AutoTimer total;
 
-    std::unique_ptr<boost::timer::auto_cpu_timer> t(new boost::timer::auto_cpu_timer());
+    std::unique_ptr<marian::timer::AutoTimer> t(new marian::timer::AutoTimer());
 
     SQLite::Statement ps(db, "insert into lines values (?, ?, ?)");
 
@@ -43,7 +41,7 @@ int main(int argc, char** argv) {
       lines++;
       if(lines % 1000000 == 0) {
         std::cerr << "[" << lines << "]" << std::endl;
-        t.reset(new boost::timer::auto_cpu_timer());
+        t.reset(new marian::timer::AutoTimer());
 
         db.exec("commit;");
         db.exec("begin;");
@@ -53,18 +51,18 @@ int main(int argc, char** argv) {
 
     std::cerr << "[" << lines << "]" << std::endl;
 
-    t.reset(new boost::timer::auto_cpu_timer());
+    t.reset(new marian::timer::AutoTimer());
     std::cerr << "creating index" << std::endl;
     db.exec("create unique index idx_line on lines (_id);");
 
-    t.reset(new boost::timer::auto_cpu_timer());
+    t.reset(new marian::timer::AutoTimer());
 
     std::cout << "count : " << db.execAndGet("select count(*) from lines").getInt() << std::endl;
-    t.reset(new boost::timer::auto_cpu_timer());
+    t.reset(new marian::timer::AutoTimer());
 
     int count = 0;
     SQLite::Statement sel(db, "select * from lines order by random();");
-    t.reset(new boost::timer::auto_cpu_timer());
+    t.reset(new marian::timer::AutoTimer());
     while(sel.executeStep()) {
         // Demonstrate how to get some typed column value
         int id = sel.getColumn(0);

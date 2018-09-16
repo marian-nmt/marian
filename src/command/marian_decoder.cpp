@@ -1,6 +1,7 @@
 #include "marian.h"
 #include "translator/beam_search.h"
 #include "translator/translator.h"
+#include "common/timer.h"
 #ifdef _WIN32
 #include <Windows.h>
 #endif
@@ -11,7 +12,7 @@ int main(int argc, char** argv) {
   auto options = New<Config>(argc, argv, cli::mode::translation);
   auto task = New<Translate<BeamSearch>>(options);
 
-  boost::timer::cpu_timer timer;
+  timer::Timer timer;
   task->run();
   LOG(info, "Total time: {}", timer.format());
 

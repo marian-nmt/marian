@@ -16,7 +16,7 @@ CorpusNBest::CorpusNBest(std::vector<std::string> paths,
 
 int numFromNbest(const std::string& line) {
   std::vector<std::string> fields;
-  utils::Split(line, fields, " ||| ", true);
+  utils::split(line, fields, " ||| ", true);
   ABORT_IF(fields.size() < 4,
            "Too few fields ({}) in line \"{}\", is this a correct n-best list?",
            fields.size(),
@@ -26,7 +26,7 @@ int numFromNbest(const std::string& line) {
 
 std::string lineFromNbest(const std::string& line) {
   std::vector<std::string> fields;
-  utils::Split(line, fields, " ||| ", true);
+  utils::split(line, fields, " ||| ", true);
   ABORT_IF(fields.size() < 4,
            "Too few fields ({}) in line \"{}\", is this a correct n-best list?",
            fields.size(),
@@ -51,13 +51,13 @@ SentenceTuple CorpusNBest::next() {
     lastLines_.resize(files_.size() - 1);
     size_t last = files_.size() - 1;
 
-    if(utils::GetLine((std::istream&)*files_[last], line)) {
+    if(utils::getline((std::istream&)*files_[last], line)) {
       int curr_num = numFromNbest(line);
       std::string curr_text = lineFromNbest(line);
 
       for(size_t i = 0; i < last; ++i) {
         if(curr_num > lastNum_) {
-          ABORT_IF(!utils::GetLine((std::istream&)*files_[i], lastLines_[i]),
+          ABORT_IF(!utils::getline((std::istream&)*files_[i], lastLines_[i]),
                    "Too few lines in input {}",
                    i);
         }

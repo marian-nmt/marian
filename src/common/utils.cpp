@@ -1,21 +1,30 @@
+#include "common/utils.h"
+#include "common/logging.h"
+#include "3rd_party/exception.h"
+#include "CLI/StringTools.hpp"
+
 #include <stdio.h>
 #include <array>
-#include <boost/algorithm/string.hpp>
 #include <iostream>
 #include <sstream>
-
-#include "3rd_party/exception.h"
-#include "common/logging.h"
-#include "common/utils.h"
 
 namespace marian {
 namespace utils {
 
-void Trim(std::string& s) {
-  boost::trim_if(s, boost::is_any_of(" \t\n"));
+void trim(std::string& s) {
+  CLI::detail::trim(s, " \t\n");
 }
 
-void Split(const std::string& line,
+void trimRight(std::string& s) {
+  CLI::detail::rtrim(s, " \t\n");
+}
+
+void trimLeft(std::string& s) {
+  CLI::detail::ltrim(s, " \t\n");
+}
+
+// @TODO: use more functions from CLI instead of own implementations
+void split(const std::string& line,
            std::vector<std::string>& pieces,
            const std::string del /*= " "*/,
            bool keepEmpty) {
@@ -37,16 +46,16 @@ void Split(const std::string& line,
   }
 }
 
-std::vector<std::string> Split(const std::string& line,
+std::vector<std::string> split(const std::string& line,
                                const std::string del /*= " "*/,
                                bool keepEmpty) {
   std::vector<std::string> pieces;
-  Split(line, pieces, del, keepEmpty);
+  split(line, pieces, del, keepEmpty);
   return pieces;
 }
 
-// @TODO: SplitAny() shares all but 2 expressions with Split(). Merge them.
-void SplitAny(const std::string& line,
+// @TODO: splitAny() shares all but 2 expressions with split(). Merge them.
+void splitAny(const std::string& line,
               std::vector<std::string>& pieces,
               const std::string del /*= " "*/,
               bool keepEmpty) {
@@ -68,15 +77,15 @@ void SplitAny(const std::string& line,
   }
 }
 
-std::vector<std::string> SplitAny(const std::string& line,
+std::vector<std::string> splitAny(const std::string& line,
                                   const std::string del /*= " "*/,
                                   bool keepEmpty) {
   std::vector<std::string> pieces;
-  SplitAny(line, pieces, del, keepEmpty);
+  splitAny(line, pieces, del, keepEmpty);
   return pieces;
 }
 
-std::string Join(const std::vector<std::string>& words,
+std::string join(const std::vector<std::string>& words,
                  const std::string& del /*= " "*/,
                  bool reverse /*= false*/) {
   std::stringstream ss;
@@ -98,7 +107,7 @@ std::string Join(const std::vector<std::string>& words,
   return ss.str();
 }
 
-std::string Exec(const std::string& cmd) {
+std::string exec(const std::string& cmd) {
   std::array<char, 128> buffer;
   std::string result;
 #ifdef _WIN32
