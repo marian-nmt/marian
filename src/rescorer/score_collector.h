@@ -1,12 +1,12 @@
 #pragma once
 
-#include <boost/thread/mutex.hpp>
-#include <map>
-
 #include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
 #include "data/alignment.h"
+
+#include <map>
+#include <mutex>
 
 namespace marian {
 
@@ -22,7 +22,7 @@ public:
 protected:
   long nextId_{0};
   UPtr<OutputFileStream> outStrm_;
-  boost::mutex mutex_;
+  std::mutex mutex_;
 
   typedef std::map<long, std::string> Outputs;
   Outputs outputs_;

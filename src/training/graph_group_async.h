@@ -4,7 +4,6 @@
 #include <future>
 #include <thread>
 
-#include <boost/filesystem.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/shared_mutex.hpp>
 

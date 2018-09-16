@@ -56,7 +56,7 @@ void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
 void SyncGraphGroup::initializeAvg() {
   Ptr<ExpressionGraph> graphAvg;
   std::string name = options_->get<std::string>("model");
-  if(boost::filesystem::exists(name + ".orig.npz")) {
+  if(filesystem::exists(name + ".orig.npz")) {
     // Load the averaged parameters into a temporary graph
     graphAvg = New<ExpressionGraph>();
     graphAvg->setDevice({0, DeviceType::cpu});
@@ -219,12 +219,12 @@ void SyncGraphGroup::load() {
   if(!options_->get<bool>("no-reload")) {
     std::string name = options_->get<std::string>("model");
 
-    if(boost::filesystem::exists(name)) {
+    if(filesystem::exists(name)) {
       if(scheduler_)
         scheduler_->load(name);
 
       std::string nameGraph = name;
-      if(mvAvg_ && boost::filesystem::exists(name + ".orig.npz"))
+      if(mvAvg_ && filesystem::exists(name + ".orig.npz"))
         // Load the original parameters from model.npz.orig.npz
         nameGraph += ".orig.npz";
 

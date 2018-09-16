@@ -1,6 +1,10 @@
 #pragma once
 
-#include <boost/filesystem.hpp>
+// @TODO: this file still contains lots of stuff from boost::filesystem and boost::iostreams,
+// this has to be figured out.
+
+#include "common/filesystem.h"
+
 #include <boost/filesystem/fstream.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
 #pragma warning(push)
@@ -12,7 +16,6 @@
 #pragma warning(pop)
 #include <boost/iostreams/filtering_stream.hpp>
 #include <iostream>
-#include "3rd_party/exception.h"
 #include "common/logging.h"
 
 #ifdef _WIN32
@@ -95,11 +98,11 @@ public:
 
 class InputFileStream {
 public:
-  InputFileStream(const std::string& file) : file_(file), ifstream_(file_) {
+  InputFileStream(const std::string& file) : file_(file), ifstream_(file_.getBoost()) {
     ABORT_IF(
-        !boost::filesystem::exists(file_), "File '{}' does not exist", file);
+        !marian::filesystem::exists(file_), "File '{}' does not exist", file);
 
-    if(file_.extension() == ".gz")
+    if(file_.extension() == marian::filesystem::Path(std::string(".gz")))
       istream_.push(io::gzip_decompressor());
     istream_.push(ifstream_);
   }
@@ -133,7 +136,7 @@ public:
   bool empty() { return ifstream_.peek() == std::ifstream::traits_type::eof(); }
 
 private:
-  boost::filesystem::path file_;
+  marian::filesystem::Path file_;
   boost::filesystem::ifstream ifstream_;
   io::file_descriptor_source fds_;
   io::filtering_istream istream_;
@@ -141,11 +144,11 @@ private:
 
 class OutputFileStream {
 public:
-  OutputFileStream(const std::string& file) : file_(file), ofstream_(file_) {
+  OutputFileStream(const std::string& file) : file_(file), ofstream_(file_.getBoost()) {
     ABORT_IF(
-        !boost::filesystem::exists(file_), "File '{}' does not exist", file);
+        !marian::filesystem::exists(file_), "File '{}' does not exist", file);
 
-    if(file_.extension() == ".gz")
+    if(file_.extension() == marian::filesystem::Path(std::string(".gz")))
       ostream_.push(io::gzip_compressor());
     ostream_.push(ofstream_);
   }
@@ -177,7 +180,7 @@ public:
   std::string path() { return file_.string(); }
 
 private:
-  boost::filesystem::path file_;
+  marian::filesystem::Path file_;
   boost::filesystem::ofstream ofstream_;
   io::file_descriptor_sink fds_;
   io::filtering_ostream ostream_;

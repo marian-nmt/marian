@@ -1,12 +1,13 @@
 #pragma once
 
-#include <random>
-#include <unordered_map>
-#include <vector>
-
 #include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
+
+#include <random>
+#include <unordered_map>
+#include <vector>
+#include <iostream>
 
 namespace marian {
 namespace data {
@@ -33,6 +34,10 @@ public:
 class ShortlistGenerator {
 public:
   virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) = 0;
+
+  // Writes text version of (possibly) pruned short list to file
+  // with given prefix and implementation-specific suffixes.
+  virtual void dump(const std::string& prefix) = 0;
 };
 
 class SampledShortlistGenerator : public ShortlistGenerator {
@@ -103,6 +108,10 @@ public:
     }
 
     return New<Shortlist>(idx, mapped, reverseMap);
+  }
+
+  virtual void dump(const std::string& prefix) {
+    ABORT("Not implemented");
   }
 };
 
@@ -194,6 +203,22 @@ public:
 
     load(fname);
     prune(threshold);
+  }
+
+  void dump(const std::string& prefix) {
+    // Dump top most frequent words from target vocabulary
+    OutputFileStream outTop(prefix + ".top");
+    for(Word i = 0; i < firstNum_ && i < trgVocab_->size(); ++i)
+      (std::ostream&)outTop << (*trgVocab_)[i] << std::endl;
+
+    // Dump translation pairs from dictionary
+    OutputFileStream outDic(prefix + ".dic");
+    for(size_t srcId = 0; srcId < data_.size(); srcId++) {
+      for(auto& it : data_[srcId]) {
+        size_t trgId = it.first;
+        (std::ostream&)outDic << (*srcVocab_)[srcId] << " " << (*trgVocab_)[trgId] << std::endl;
+      }
+    }
   }
 
   virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) override {
