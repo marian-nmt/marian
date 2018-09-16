@@ -68,6 +68,9 @@ make -j
 ```
 -->
 
+## Amun
+The handwritten decoder for RNN models compatible with Marian and Nematus has been superseded by the Marian decoder. The code is available in a seperate repositoy: https://github.com/marian-nmt/amun
+
 ## Website
 
 More information on https://marian-nmt.github.io
