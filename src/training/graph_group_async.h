@@ -4,9 +4,9 @@
 #include <future>
 #include <thread>
 
+#include "training/graph_group.h"
 #include "3rd_party/threadpool.h"
 #include "training/exponential_smoothing.h"
-#include "training/graph_group.h"
 
 namespace marian {
 

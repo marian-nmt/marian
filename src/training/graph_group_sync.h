@@ -1,11 +1,8 @@
 #pragma once
 
-#include <thread>
-
-#include "3rd_party/threadpool.h"
+#include "training/graph_group.h"
 #include "training/communicator.h"
 #include "training/exponential_smoothing.h"
-#include "training/graph_group.h"
 
 namespace marian {
 
