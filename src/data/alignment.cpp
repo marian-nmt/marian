@@ -1,6 +1,8 @@
 #include "data/alignment.h"
 #include "common/utils.h"
 
+#include <algorithm>
+
 namespace marian {
 namespace data {
 
