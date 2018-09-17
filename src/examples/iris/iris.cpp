@@ -1,7 +1,6 @@
 #include <vector>
 
-#include <boost/filesystem.hpp>
-
+#include "common/filesystem.h"
 #include "common/config.h"
 #include "examples/iris/helper.cpp"
 #include "marian.h"
@@ -61,8 +60,7 @@ int main() {
 
   // Get path do data set
   std::string dataPath
-      = (boost::filesystem::path(__FILE__).parent_path() / "iris.data")
-            .string();
+      = (filesystem::Path(std::string(__FILE__)).parentPath() / filesystem::Path(std::string("iris.data"))).string();
 
   // Read data set (all 150 examples)
   std::vector<float> trainX;

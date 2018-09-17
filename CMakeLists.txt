@@ -47,7 +47,7 @@ endif()
 set(EXT_LIBS ${EXT_LIBS} ${CMAKE_DL_LIBS})
 
 if(COMPILE_CUDA)
-find_package(CUDA "8.0" REQUIRED)
+find_package(CUDA "8.0")
 if(CUDA_FOUND)
   set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY})
 
@@ -79,7 +79,7 @@ if(CUDA_FOUND)
   endif()
 
 else(CUDA_FOUND)
-  message(WARNING "Cannot find CUDA compiling CPU version only")
+  message(FATAL_ERROR "CUDA has not been found, set -DCOMPILE_CUDA=off to avoid this check and to compile the CPU version only")
 endif(CUDA_FOUND)
 
 else(COMPILE_CUDA)
@@ -145,8 +145,7 @@ if(COMPILE_CPU)
   endif(MKL_FOUND)
 endif(COMPILE_CPU)
 
-set(BOOST_COMPONENTS system timer iostreams filesystem chrono thread)
-
+set(BOOST_COMPONENTS system timer iostreams filesystem chrono)
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
   add_definitions(-DUSE_BOOST_REGEX=1)
   set(BOOST_COMPONENTS ${BOOST_COMPONENTS} regex)
@@ -154,7 +153,6 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERS
 else()
   message("-- Using std::regex")
 endif()
-
 
 if(COMPILE_SERVER)
   find_package(OpenSSL)
@@ -192,8 +190,6 @@ else(Boost_FOUND)
   message(SEND_ERROR "Cannot find Boost libraries. Terminating.")
 endif(Boost_FOUND)
 
-
-
 if(COMPILE_TESTS)
   enable_testing()
 endif(COMPILE_TESTS)
@@ -221,3 +217,6 @@ if(DOXYGEN_FOUND)
     COMMENT "Generating API documentation with Doxygen" VERBATIM
   )
 endif(DOXYGEN_FOUND)
+
+execute_process(COMMAND git submodule update --init --recursive --no-fetch
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

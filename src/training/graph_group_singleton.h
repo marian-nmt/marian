@@ -1,10 +1,10 @@
 #pragma once
 
-#include <boost/filesystem.hpp>
 #include <future>
 
 #include "training/exponential_smoothing.h"
 #include "training/graph_group.h"
+#include "common/filesystem.h"
 
 namespace marian {
 
@@ -44,11 +44,11 @@ public:
     if(!options_->get<bool>("no-reload")) {
       std::string name = options_->get<std::string>("model");
 
-      if(boost::filesystem::exists(name)) {
+      if(filesystem::exists(name)) {
         if(scheduler_)
           scheduler_->load(name);
 
-        if(mvAvg_ && boost::filesystem::exists(name + ".orig.npz")) {
+        if(mvAvg_ && filesystem::exists(name + ".orig.npz")) {
           // Load the original parameters from model.npz
           builder_->load(graph_, name + ".orig.npz");
 

@@ -29,9 +29,9 @@ struct ConstantNode : public Node {
 
   virtual size_t hash() override {
     // TODO: add value_type
-    std::size_t seed = boost::hash<std::string>()(name());
-    boost::hash_combine(seed, type());
-    boost::hash_combine(seed, this);
+    std::size_t seed = util::hash<std::string>()(name());
+    util::hash_combine(seed, type());
+    util::hash_combine(seed, this);
     return seed;
   }
 
@@ -65,9 +65,9 @@ struct ParamNode : public Node {
   const std::string color() override { return "orangered"; }
 
   virtual size_t hash() override {
-    std::size_t seed = boost::hash<std::string>()(name());
-    boost::hash_combine(seed, type());
-    boost::hash_combine(seed, this);
+    std::size_t seed = util::hash<std::string>()(name());
+    util::hash_combine(seed, type());
+    util::hash_combine(seed, this);
     return seed;
   }
 

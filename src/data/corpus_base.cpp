@@ -147,7 +147,7 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
   if(training && options_->has("guided-alignment")) {
     auto path = options_->get<std::string>("guided-alignment");
 
-    ABORT_IF(!boost::filesystem::exists(path), "Alignment file does not exist");
+    ABORT_IF(!filesystem::exists(path), "Alignment file does not exist");
     LOG(info, "[data] Using word alignments from file {}", path);
 
     alignFileIdx_ = paths_.size();
@@ -158,7 +158,7 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
   if(training && options_->has("data-weighting")) {
     auto path = options_->get<std::string>("data-weighting");
 
-    ABORT_IF(!boost::filesystem::exists(path), "Weight file does not exist");
+    ABORT_IF(!filesystem::exists(path), "Weight file does not exist");
     LOG(info, "[data] Using weights from file {}", path);
 
     weightFileIdx_ = paths_.size();

@@ -1,8 +1,18 @@
+#include "common/config_parser.h"
+
+#include "common/definitions.h"
+#include "common/cli_helper.h"
+#include "common/config_validator.h"
+#include "common/file_stream.h"
+#include "common/logging.h"
+#include "common/utils.h"
+#include "common/version.h"
+#include "3rd_party/exception.h"
+
 #include <algorithm>
 #include <set>
 #include <stdexcept>
 #include <string>
-
 #include <boost/algorithm/string.hpp>
 
 #if MKL_FOUND
@@ -12,16 +22,6 @@
 #include <cblas.h>
 #endif
 #endif
-
-#include "common/definitions.h"
-
-#include "common/cli_helper.h"
-#include "common/config_parser.h"
-#include "common/config_validator.h"
-#include "common/file_stream.h"
-#include "common/logging.h"
-#include "common/utils.h"
-#include "common/version.h"
 
 namespace marian {
 
@@ -681,23 +681,22 @@ void ConfigParser::makeAbsolutePaths(
   ABORT_IF(configPaths.empty(),
            "--relative-paths option requires at least one config file provided "
            "with --config");
-  auto configDir = boost::filesystem::path{configPaths.front()}.parent_path();
+  auto configDir = filesystem::Path{configPaths.front()}.parentPath();
 
   for(const auto& configPath : configPaths)
-    ABORT_IF(boost::filesystem::path{configPath}.parent_path() != configDir,
+    ABORT_IF(filesystem::Path{configPath}.parentPath() != configDir,
              "--relative-paths option requires all config files to be in the "
              "same directory");
 
   auto transformFunc = [&](const std::string& nodePath) -> std::string {
     // replace relative path w.r.t. configDir
-    using namespace boost::filesystem;
     try {
-      return canonical(path{nodePath}, configDir).string();
-    } catch(boost::filesystem::filesystem_error& e) {
+      return canonical(filesystem::Path{nodePath}, configDir).string();
+    } catch(filesystem::FilesystemError& e) {
       // will fail if file does not exist; use parent in that case
       std::cerr << e.what() << std::endl;
-      auto parentPath = path{nodePath}.parent_path();
-      return (canonical(parentPath, configDir) / path{nodePath}.filename())
+      auto parentPath = filesystem::Path{nodePath}.parentPath();
+      return (canonical(parentPath, configDir) / filesystem::Path{nodePath}.filename())
           .string();
     }
   };
@@ -737,9 +736,7 @@ std::vector<std::string> ConfigParser::loadConfigPaths() {
     if(interpolateEnvVars)
       path = cli::InterpolateEnvVars(path);
 
-    bool reloadConfig
-        = boost::filesystem::exists(path) && !get<bool>("no-reload");
-
+    bool reloadConfig = filesystem::exists(path) && !get<bool>("no-reload");
     if(reloadConfig)
       paths = {path};
   }

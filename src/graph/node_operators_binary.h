@@ -2,6 +2,7 @@
 
 #include <thread>
 
+#include "common/hash.h"
 #include "functional/functional.h"
 #include "graph/node.h"
 #include "tensors/tensor_operators.h"
@@ -705,7 +706,7 @@ struct ConcatenateNodeOp : public NaryNodeOp {
 
   virtual size_t hash() override {
     size_t seed = NaryNodeOp::hash();
-    boost::hash_combine(seed, ax_);
+    util::hash_combine(seed, ax_);
     return seed;
   }
 

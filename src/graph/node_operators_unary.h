@@ -45,7 +45,7 @@ public:
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      boost::hash_combine(hash_, scalar_);
+      util::hash_combine(hash_, scalar_);
     }
     return hash_;
   }
@@ -84,7 +84,7 @@ public:
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      boost::hash_combine(hash_, scalar_);
+      util::hash_combine(hash_, scalar_);
     }
     return hash_;
   }
@@ -124,7 +124,7 @@ public:
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      boost::hash_combine(hash_, clip_);
+      util::hash_combine(hash_, clip_);
     }
     return hash_;
   }
@@ -318,7 +318,7 @@ struct PReLUNodeOp : public UnaryNodeOp {
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      boost::hash_combine(hash_, alpha_);
+      util::hash_combine(hash_, alpha_);
     }
     return hash_;
   }
@@ -386,7 +386,7 @@ struct SoftmaxNodeOp : public UnaryNodeOp {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
       if(mask_)
-        boost::hash_combine(hash_, mask_->hash());
+        util::hash_combine(hash_, mask_->hash());
     }
     return hash_;
   }
@@ -471,7 +471,7 @@ struct SumNodeOp : public UnaryNodeOp {
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      boost::hash_combine(hash_, ax_);
+      util::hash_combine(hash_, ax_);
     }
     return hash_;
   }
@@ -525,7 +525,7 @@ struct MeanNodeOp : public UnaryNodeOp {
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      boost::hash_combine(hash_, ax_);
+      util::hash_combine(hash_, ax_);
     }
     return hash_;
   }
@@ -596,7 +596,7 @@ struct SqrtNodeOp : public UnaryNodeOp {
   virtual size_t hash() override {
     if(!hash_) {
       size_t seed = NaryNodeOp::hash();
-      boost::hash_combine(seed, epsilon_);
+      util::hash_combine(seed, epsilon_);
       hash_ = seed;
     }
     return hash_;
@@ -682,7 +682,7 @@ struct RowsNodeOp : public UnaryNodeOp {
     if(!hash_) {
       size_t seed = NaryNodeOp::hash();
       for(auto i : indices_)
-        boost::hash_combine(seed, i);
+        util::hash_combine(seed, i);
       hash_ = seed;
     }
     return hash_;
@@ -733,7 +733,7 @@ struct ColsNodeOp : public UnaryNodeOp {
     if(!hash_) {
       size_t seed = NaryNodeOp::hash();
       for(auto i : indices_)
-        boost::hash_combine(seed, i);
+        util::hash_combine(seed, i);
       hash_ = seed;
     }
     return hash_;
@@ -755,8 +755,8 @@ struct ColsNodeOp : public UnaryNodeOp {
 
 struct SelectNodeOp : public UnaryNodeOp {
   SelectNodeOp(Expr a, int axis, const std::vector<size_t>& indices)
-      : UnaryNodeOp(a, newShape(a, axis, indices)), 
-        indices_(indices), 
+      : UnaryNodeOp(a, newShape(a, axis, indices)),
+        indices_(indices),
         axis_{a->shape().axis(axis)} {
     setMemoize(false);
   }
@@ -785,9 +785,9 @@ struct SelectNodeOp : public UnaryNodeOp {
   virtual size_t hash() override {
     if(!hash_) {
       size_t seed = NaryNodeOp::hash();
-      boost::hash_combine(seed, axis_);
+      util::hash_combine(seed, axis_);
       for(auto i : indices_)
-        boost::hash_combine(seed, i);
+        util::hash_combine(seed, i);
       hash_ = seed;
     }
     return hash_;
@@ -845,7 +845,7 @@ struct TransposeNodeOp : public UnaryNodeOp {
     if(!hash_) {
       size_t seed = NaryNodeOp::hash();
       for(auto ax : axes_)
-        boost::hash_combine(seed, ax);
+        util::hash_combine(seed, ax);
       hash_ = seed;
     }
     return hash_;
@@ -912,7 +912,7 @@ public:
     if(!hash_) {
       size_t seed = NaryNodeOp::hash();
       for(auto s : shape())
-        boost::hash_combine(seed, s);
+        util::hash_combine(seed, s);
       hash_ = seed;
     }
     return hash_;
@@ -991,8 +991,8 @@ public:
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      boost::hash_combine(hash_, step_);
-      boost::hash_combine(hash_, axis_);
+      util::hash_combine(hash_, step_);
+      util::hash_combine(hash_, axis_);
     }
     return hash_;
   }
@@ -1032,8 +1032,8 @@ struct ShiftNodeOp : public UnaryNodeOp {
     if(!hash_) {
       size_t seed = NaryNodeOp::hash();
       for(auto i : shift_)
-        boost::hash_combine(seed, i);
-      boost::hash_combine(seed, padValue_);
+        util::hash_combine(seed, i);
+      util::hash_combine(seed, padValue_);
       hash_ = seed;
     }
     return hash_;
@@ -1080,7 +1080,7 @@ struct ShiftNodeOp : public UnaryNodeOp {
 //  virtual size_t hash() {
 //    if(!hash_) {
 //      size_t seed = NaryNodeOp::hash();
-//      boost::hash_combine(seed, (size_t)lf_.get());
+//      util::hash_combine(seed, (size_t)lf_.get());
 //      hash_ = seed;
 //    }
 //    return hash_;

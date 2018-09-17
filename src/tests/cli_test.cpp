@@ -2,9 +2,12 @@
 #include <iostream>
 #include <memory>
 
+#include "common/definitions.h"
+#include "common/options.h"
 #include "common/cli_wrapper.h"
 #include "common/cli_helper.h"
 
+using namespace marian;
 using namespace marian::cli;
 
 enum color { red, green, blue };

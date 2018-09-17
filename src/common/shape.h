@@ -1,13 +1,13 @@
 #pragma once
 
 #include <algorithm>
-#include <boost/functional/hash.hpp>
 #include <cstdint>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
 
+#include "common/hash.h"
 #include "common/logging.h"
 
 namespace marian {
@@ -197,9 +197,9 @@ public:
   }
 
   size_t hash() const {
-    size_t seed = boost::hash<int>()(shape_[0]);
+    size_t seed = util::hash<int>()(shape_[0]);
     for(size_t i = 1; i < shape_.size(); ++i)
-      boost::hash_combine(seed, shape_[i]);
+      util::hash_combine(seed, shape_[i]);
     return seed;
   }
 };
