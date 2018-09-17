@@ -27,9 +27,9 @@ namespace io = boost::iostreams;
 
 class TemporaryFile {
 private:
-	int fd_;
+  int fd_;
   bool unlink_;
-	std::string name_;
+  std::string name_;
 
 #ifndef _MSC_VER
   int mkstemp_and_unlink(char* tmpl) {
@@ -42,71 +42,71 @@ private:
 #endif
 
 
-	int MakeTemp(const std::string& base) {
+  int MakeTemp(const std::string& base) {
 #ifdef _MSC_VER
-    char* name = _tempnam(base.c_str(), "marian.");
+    char* name = tempnam(base.c_str(), "marian.");
     ABORT_IF(name == NULL,
-			"Error while making a temporary based on '{}'",
+      "Error while making a temporary based on '{}'",
       base);
 
     int oflag = _O_RDWR | _O_CREAT | _O_EXCL;
     if (unlink_) oflag |= _O_TEMPORARY;
 
-		int ret = _open(name, oflag, _S_IREAD | _S_IWRITE);
-		ABORT_IF(ret == -1,
-			"Error while making a temporary based on '{}'",
-			base);
+    int ret = open(name, oflag, _S_IREAD | _S_IWRITE);
+    ABORT_IF(ret == -1,
+      "Error while making a temporary based on '{}'",
+      base);
 
-		name_ = name;
+    name_ = name;
     free(name);
 
-		return ret;
+    return ret;
 #else
-		std::string name(base);
-		name += "marian.XXXXXX";
-		name.push_back(0);
-		int ret;
-		ABORT_IF(-1 == (ret = mkstemp_and_unlink(&name[0])),
-			"Error while making a temporary based on '{}'",
-			base);
-		name_ = name;
-		return ret;
+    std::string name(base);
+    name += "marian.XXXXXX";
+    name.push_back(0);
+    int ret;
+    ABORT_IF(-1 == (ret = mkstemp_and_unlink(&name[0])),
+      "Error while making a temporary based on '{}'",
+      base);
+    name_ = name;
+    return ret;
 #endif
-	}
+  }
 
-	void NormalizeTempPrefix(std::string& base) {
-		if(base.empty())
-			return;
+  void NormalizeTempPrefix(std::string& base) {
+    if(base.empty())
+      return;
 
 #ifdef _MSC_VER
     if(base.substr(0,4) == "/tmp")
       base = getenv("TMP");
 #else
-		if(base[base.size() - 1] == boost::filesystem::path::preferred_separator)
-			return;
-		struct stat sb;
-		// It's fine for it to not exist.
-		if(-1 == stat(base.c_str(), &sb))
-			return;
-		if(S_ISDIR(sb.st_mode))
-			base += boost::filesystem::path::preferred_separator;
+    if(base[base.size() - 1] == '/')
+      return;
+    struct stat sb;
+    // It's fine for it to not exist.
+    if(stat(base.c_str(), &sb) == - 1)
+      return;
+    if(S_ISDIR(sb.st_mode))
+      base += '/';
 #endif
-	}
+  }
 
 public:
   TemporaryFile(const std::string base = "/tmp/", bool earlyUnlink = true)
       : unlink_(earlyUnlink) {
-		std::string baseTemp(base);
-		NormalizeTempPrefix(baseTemp);
-		fd_ = MakeTemp(baseTemp);
-	}
+    std::string baseTemp(base);
+    NormalizeTempPrefix(baseTemp);
+    fd_ = MakeTemp(baseTemp);
+  }
 
-	~TemporaryFile() {
+  ~TemporaryFile() {
 #ifdef _MSC_VER
     if (fd_ == -1)
       return;
 
-    if(_close(fd_)) {
+    if(close(fd_)) {
       std::cerr << "Could not close file " << fd_ << std::endl;
       std::abort();
     }
@@ -123,11 +123,11 @@ public:
       std::abort();
     }
 #endif
-	}
+  }
 
-	int getFileDescriptor() { return fd_; }
+  int getFileDescriptor() { return fd_; }
 
-	std::string getFileName() { return name_; }
+  std::string getFileName() { return name_; }
 };
 
 class InputFileStream {

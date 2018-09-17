@@ -41,7 +41,7 @@ void Prod(marian::Tensor C,
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
-  auto cublasHandle = std::static_pointer_cast<gpu::gpuBackend>(C->getBackend())
+  auto cublasHandle = std::static_pointer_cast<gpu::GpuBackend>(C->getBackend())
                           ->getCublasHandle();
 
 #if CUDA_VERSION >= 9000
@@ -140,7 +140,7 @@ void ProdBatched(marian::Tensor C,
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
-  auto cublasHandle = std::static_pointer_cast<gpu::gpuBackend>(C->getBackend())
+  auto cublasHandle = std::static_pointer_cast<gpu::GpuBackend>(C->getBackend())
                           ->getCublasHandle();
 
   int strideA = batchA == 1 ? 0 : m * k;

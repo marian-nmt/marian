@@ -350,19 +350,18 @@ namespace cnpy {
         bool bad = ferror(fp) != 0;
         fclose(fp);
 
-		// move to final location (atomically)
+        // move to final location (atomically)
 #ifdef _MSC_VER
-		unlink(zipname.c_str()); // needed for Windows
+        unlink(zipname.c_str()); // needed for Windows
 #endif
-		bad = bad || (rename(tmpname.c_str(), zipname.c_str()) == -1);
+        bad = bad || (rename(tmpname.c_str(), zipname.c_str()) == -1);
 
-		if (bad)
-		{
-			unlink(tmpname.c_str());
-			throw std::runtime_error("npz_save: error saving to file: " + zipname);
-		}
-
-	}
+        if (bad)
+        {
+            unlink(tmpname.c_str());
+            throw std::runtime_error("npz_save: error saving to file: " + zipname);
+        }
+    }
 
     static inline
     std::vector<char> create_npy_header(char type, size_t word_size, const unsigned int* shape, const unsigned int ndims) {

@@ -18,9 +18,9 @@
 namespace marian {
 namespace gpu {
 
-class gpuBackend : public marian::Backend {
+class GpuBackend : public marian::Backend {
 public:
-  gpuBackend(DeviceId deviceId, size_t seed) : marian::Backend(deviceId, seed) {
+  GpuBackend(DeviceId deviceId, size_t seed) : marian::Backend(deviceId, seed) {
     setDevice();
     setHandles();
   }
