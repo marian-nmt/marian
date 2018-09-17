@@ -12,20 +12,6 @@ namespace marian {
 
 size_t Config::seed = (size_t)time(0);
 
-Config::Config(const std::string options,
-               cli::mode mode /*= cli::mode::training*/,
-               bool validate /*= false*/) {
-  std::vector<std::string> sargv;
-  utils::Split(options, sargv, " ");
-  int argc = (int)sargv.size();
-
-  std::vector<char*> argv(argc);
-  for(int i = 0; i < argc; ++i)
-    argv[i] = const_cast<char*>(sargv[i].c_str());
-
-  initialize(argc, &argv[0], mode, validate);
-}
-
 Config::Config(int argc,
                char** argv,
                cli::mode mode /*= cli::mode::training*/,
