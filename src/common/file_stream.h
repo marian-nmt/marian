@@ -28,7 +28,8 @@ private:
   std::string name_;
 
 #ifndef _WIN32
-  std::unique_ptr<__gnu_cxx::stdio_filebuf<char>> buf_;
+  std::unique_ptr<__gnu_cxx::stdio_filebuf<char>> inBuffer_;
+  std::unique_ptr<__gnu_cxx::stdio_filebuf<char>> outBuffer_;
 #endif
 
 
@@ -81,7 +82,8 @@ public:
     fd_ = MakeTemp(baseTemp);
 
 #ifndef _WIN32
-    buf_.reset(new __gnu_cxx::stdio_filebuf<char>(fd_, std::ios::in|std::ios::out));
+    inBuffer_.reset(new __gnu_cxx::stdio_filebuf<char>(fd_, std::ios::in));
+    outBuffer_.reset(new __gnu_cxx::stdio_filebuf<char>(fd_, std::ios::out));
 #endif
   }
 
@@ -100,7 +102,8 @@ public:
 
   int getFileDescriptor() { return fd_; }
 
-  std::streambuf* rdbuf() { buf_.get(); }
+  std::streambuf* getInBuffer() { inBuffer_.get(); }
+  std::streambuf* getOutBuffer() { outBuffer_.get(); }
 
   std::string getFileName() { return name_; }
 };
@@ -123,7 +126,7 @@ public:
 
   InputFileStream(TemporaryFile& tempfile) {
     tempfile.seek(0);
-    istream_.reset(new std::istream(tempfile.rdbuf()));
+    istream_.reset(new std::istream(tempfile.getInBuffer()));
   }
 
   InputFileStream(std::istream& strm) {
@@ -168,7 +171,7 @@ public:
 
   OutputFileStream(TemporaryFile& tempfile) {
     tempfile.seek(0);
-    ostream_.reset(new std::ostream(tempfile.rdbuf()));
+    ostream_.reset(new std::ostream(tempfile.getOutBuffer()));
   }
 
   OutputFileStream(std::ostream& strm) {
