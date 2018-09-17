@@ -27,6 +27,11 @@ private:
   bool unlink_;
   std::string name_;
 
+#ifndef _WIN32
+  std::unique_ptr<__gnu_cxx::stdio_filebuf<char>> buf_;
+#endif
+
+
   int mkstemp_and_unlink(char* tmpl) {
 #ifdef _WIN32
     ABORT_IF(true, "mkstemp not available in Windows");
@@ -74,6 +79,10 @@ public:
     std::string baseTemp(base);
     NormalizeTempPrefix(baseTemp);
     fd_ = MakeTemp(baseTemp);
+
+#ifndef _WIN32
+    buf_.reset(new __gnu_cxx::stdio_filebuf<char>(fd_, std::ios::in|std::ios::out));
+#endif
   }
 
   ~TemporaryFile() {
@@ -81,12 +90,17 @@ public:
       ABORT_IF(unlink(name_.c_str()), "Error while deleting '{}'", name_);
     }
     if(fd_ != -1 && close(fd_)) {
-      std::cerr << "Could not close file " << fd_ << std::endl;
-      std::abort();
+      ABORT("Could not close file {}", fd_ );
     }
   }
 
+  void seek(size_t pos) {
+    lseek(fd_, pos, SEEK_SET);
+  }
+
   int getFileDescriptor() { return fd_; }
+
+  std::streambuf* rdbuf() { buf_.get(); }
 
   std::string getFileName() { return name_; }
 };
@@ -96,27 +110,20 @@ private:
   std::unique_ptr<std::istream> istream_;
   marian::filesystem::Path file_;
 
-#ifndef _WIN32
-    std::unique_ptr<__gnu_cxx::stdio_filebuf<char>> filebuf_;
-#endif
-
 public:
   InputFileStream(const std::string& file)
   : file_(file) {
     ABORT_IF(!marian::filesystem::exists(file_),"File '{}' does not exist", file);
-    istream_.reset(new zstr::ifstream(file_));
+
+    if(file_.extension() == marian::filesystem::Path(std::string(".gz")))
+      istream_.reset(new zstr::ifstream(file_));
+    else
+      istream_.reset(new std::ifstream(file_));
   }
 
   InputFileStream(TemporaryFile& tempfile) {
-    lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
-
-  // @TODO: this is non-standard, add more alternatives
-  // this SO answer describes a number of alternatives for different compilers, checking g++ for now.
-  // https://stackoverflow.com/questions/2746168/how-to-construct-a-c-fstream-from-a-posix-file-descriptor
-  #ifndef _WIN32
-    filebuf_.reset(new __gnu_cxx::stdio_filebuf<char>(tempfile.getFileDescriptor(), std::ios::in));
-    istream_.reset(new std::istream(filebuf_.get()));
-  #endif
+    tempfile.seek(0);
+    istream_.reset(new std::istream(tempfile.rdbuf()));
   }
 
   InputFileStream(std::istream& strm) {
@@ -151,15 +158,8 @@ private:
   std::unique_ptr<std::ostream> ostream_;
   marian::filesystem::Path file_;
 
-#ifndef _WIN32
-    std::unique_ptr<__gnu_cxx::stdio_filebuf<char>> filebuf_;
-#endif
-
 public:
   OutputFileStream(const std::string& file) : file_(file) {
-    // based on file extension choose if to compress or not
-    // this is not needed for decompressions as it looks at header and
-    // we can just use zstr::ifstream
     if(file_.extension() == marian::filesystem::Path(std::string(".gz")))
       ostream_.reset(new zstr::ofstream(file_));
     else
@@ -167,17 +167,8 @@ public:
   }
 
   OutputFileStream(TemporaryFile& tempfile) {
-    lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
-
-  // This will fail on Windows as no tempfile can be created anyway.
-
-  // @TODO: this is non-standard, add more alternatives
-  // this SO answer describes a number of alternatives for different compilers, checking g++ for now.
-  // https://stackoverflow.com/questions/2746168/how-to-construct-a-c-fstream-from-a-posix-file-descriptor
-  #ifndef _WIN32
-    filebuf_.reset(new __gnu_cxx::stdio_filebuf<char>(tempfile.getFileDescriptor(), std::ios::out));
-    ostream_.reset(new std::ostream(filebuf_.get()));
-  #endif
+    tempfile.seek(0);
+    ostream_.reset(new std::ostream(tempfile.rdbuf()));
   }
 
   OutputFileStream(std::ostream& strm) {
