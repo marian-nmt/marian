@@ -1,8 +1,29 @@
+::
+:: Usage: CreateVSProjects.bat [<build-directory>=.\build]
+::
+:: This script runs the dependency checks, then invokes CMake with the right parameters to create 
+:: the solutions for Visual Studio.
+::
+:: Run this script only if you have a previous version of Visual Studio (2015 and below), or if you 
+:: don't want to use the built-in CMake integration.
+::
+:: You may want to change the generator target to fit your installation. By default, the target is
+:: "Visual Studio 15 2017 Win64". Run `cmake --help` for a list of supported targets.
+::
+:: Note: You don't need to run this script if you want to use Visual Studio with built-in support for CMake
+:: (only available for VS 2017+)
+::
+::
 @echo off
 setlocal
 
 set ROOT=%~dp0
 set MARIAN_ROOT=%ROOT%..
+
+set BUILD_ROOT=%1
+if "%BUILD_ROOT%"=="" set BUILD_ROOT=%ROOT%build
+
+set GENERATOR_TARGET="Visual Studio 15 2017 Win64"
 
 call CheckDeps.bat
 if errorlevel 1 exit /b 1
@@ -18,7 +39,7 @@ set CMAKE_OPT=%CMAKE_OPT% -D OPENSSL_USE_STATIC_LIBS:BOOL=TRUE
 set CMAKE_OPT=%CMAKE_OPT% -D OPENSSL_MSVC_STATIC_RT:BOOL=TRUE
 
 :: -----  Target Visual Studio 2017 64bits -----
-set CMAKE_OPT=%CMAKE_OPT% -G"Visual Studio 15 2017 Win64" 
+set CMAKE_OPT=%CMAKE_OPT% -G %GENERATOR_TARGET%
 
 :: Policy CMP0074: find_package uses <PackageName>_ROOT variables.
 set CMAKE_OPT=%CMAKE_OPT% -D CMAKE_POLICY_DEFAULT_CMP0074=NEW
@@ -43,7 +64,6 @@ echo --------------------------------------------------
 echo.
 echo.
 
-set BUILD_ROOT=%ROOT%build-vs
 if not exist %BUILD_ROOT% mkdir %BUILD_ROOT%
 pushd %BUILD_ROOT%
 

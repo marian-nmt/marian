@@ -1,6 +1,15 @@
+::
+:: Usage: CheckDeps.bat
+::
+:: This script is used to verify that all the dependencies required to build Marian are available.
+:: The Cuda SDK, the CuDNN library and the Intel MKL must be installed beforehand by the user.
+:: The Boost, zlib and OpenSSH libraries, if not found, will be installed by this script using vcpkg
+::
+::
 @echo off
 
 set ROOT=%~dp0
+
 
 :: The vcpkg library manager can be used to manage your dependencies in CMake.
 ::
@@ -12,6 +21,7 @@ set ROOT=%~dp0
 ::----------------------------------------------------------------------------------------------
 ::set VCPKG_ROOT=
 
+
 :: If you prefer to manage yourself the dependencies, please set the following variables
 :: to the respective paths. These variable can also be already set in your environment.
 ::----------------------------------------------------------------------------------------------
@@ -19,6 +29,7 @@ set ROOT=%~dp0
 ::set BOOST_LIBRARYDIR=
 ::set ZLIB_ROOT=
 ::set OPENSSL_ROOT_DIR=
+
 
 :: If all the variables are empty and vcpkg is found in a known path, the script will download and
 :: install vcpkg and will use it to manage the dependencies.
@@ -55,9 +66,7 @@ if not exist %VCPKG_ROOT% (
     echo --- Cloning vcpkg...
     git clone https://github.com/Microsoft/vcpkg.git %VCPKG_ROOT%
 
-    pushd %VCPKG_ROOT%
-    call bootstrap-vcpkg.bat
-    popd
+    set BOOTSTRAP_VCPKG=1
 
 ) else (
 
@@ -66,10 +75,16 @@ if not exist %VCPKG_ROOT% (
     echo --- Updating vcpkg...
     for /f "delims=" %%p in ('git pull') do (
         if not "%%p" == "Already up to date." (
-            call bootstrap-vcpkg.bat
+            set BOOTSTRAP_VCPKG=1
         )
     )
 
+    popd
+)
+
+if "%BOOTSTRAP_VCPKG%"=="1" (
+    pushd %VCPKG_ROOT%
+    call bootstrap-vcpkg.bat
     popd
 )
 
@@ -276,12 +291,13 @@ echo Found OpenSSL library in "%OPENSSL_ROOT_DIR%"
 echo.
 echo.
 echo --------------------------------------------------
-echo CUDA_PATH=%CUDA_PATH%
-echo MKLROOT=%MKLROOT%
-echo BOOST_INCLUDEDIR=%BOOST_INCLUDEDIR%
-echo BOOST_LIBRARYDIR=%BOOST_LIBRARYDIR%
-echo ZLIB_ROOT=%ZLIB_ROOT%
-echo OPENSSL_ROOT_DIR=%OPENSSL_ROOT_DIR%
+echo           CUDA_PATH ^| %CUDA_PATH%
+echo             MKLROOT ^| %MKLROOT%
+echo          VCPKG_ROOT ^| %VCPKG_ROOT%
+echo    BOOST_INCLUDEDIR ^| %BOOST_INCLUDEDIR%
+echo    BOOST_LIBRARYDIR ^| %BOOST_LIBRARYDIR%
+echo           ZLIB_ROOT ^| %ZLIB_ROOT%
+echo    OPENSSL_ROOT_DIR ^| %OPENSSL_ROOT_DIR%
 echo --------------------------------------------------
 echo.
 echo.
