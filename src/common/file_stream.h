@@ -1,8 +1,5 @@
 #pragma once
 
-// @TODO: this file still contains lots of stuff from boost::filesystem and boost::iostreams,
-// this has to be figured out.
-
 #include "common/filesystem.h"
 #include "common/logging.h"
 
@@ -160,8 +157,6 @@ private:
 
 public:
   OutputFileStream(const std::string& file) : file_(file) {
-    ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
-
     // based on file extension choose if to compress or not
     // this is not needed for decompressions as it looks at header and
     // we can just use zstr::ifstream
@@ -173,6 +168,8 @@ public:
 
   OutputFileStream(TemporaryFile& tempfile) {
     lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
+
+  // This will fail on Windows as no tempfile can be created anyway.
 
   // @TODO: this is non-standard, add more alternatives
   // this SO answer describes a number of alternatives for different compilers, checking g++ for now.
