@@ -5,20 +5,16 @@
 
 #include "common/filesystem.h"
 #include "common/logging.h"
-#include "3rd_party/zstr/zstr.hpp"
 
-#include <boost/filesystem/fstream.hpp>
-#include <boost/iostreams/device/file_descriptor.hpp>
 #pragma warning(push)
 #pragma warning(disable: 4458) // declaration of 'traits_type' hides class member
 #pragma warning(disable: 4456) // declaration of 'c' hides previous local declaration
 #pragma warning(disable: 4244) // conversion from 'int' to 'char', possible loss of data
 #pragma warning(disable: 4706) // assignment within conditional expression
-#include <boost/iostreams/filter/gzip.hpp>
+#include "3rd_party/zstr/zstr.hpp"
 #pragma warning(pop)
-#include <boost/iostreams/filtering_stream.hpp>
-#include <iostream>
 
+#include <iostream>
 
 #ifdef _WIN32
 #include <io.h>
@@ -27,8 +23,6 @@
 #else
 #include <ext/stdio_filebuf.h>
 #endif
-
-namespace io = boost::iostreams;
 
 class TemporaryFile {
 private:
@@ -104,7 +98,6 @@ class InputFileStream {
 private:
   std::unique_ptr<std::istream> istream_;
   marian::filesystem::Path file_;
-  io::file_descriptor_source fds_;
 
 #ifndef _WIN32
     std::unique_ptr<__gnu_cxx::stdio_filebuf<char>> filebuf_;
@@ -113,15 +106,11 @@ private:
 public:
   InputFileStream(const std::string& file)
   : file_(file) {
-
-    ABORT_IF(
-        !marian::filesystem::exists(file_), "File '{}' does not exist", file);
-
+    ABORT_IF(!marian::filesystem::exists(file_),"File '{}' does not exist", file);
     istream_.reset(new zstr::ifstream(file_));
   }
 
-  InputFileStream(TemporaryFile& tempfile)
-      : fds_(tempfile.getFileDescriptor(), io::never_close_handle) {
+  InputFileStream(TemporaryFile& tempfile) {
     lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
 
   // @TODO: this is non-standard, add more alternatives
@@ -129,7 +118,7 @@ public:
   // https://stackoverflow.com/questions/2746168/how-to-construct-a-c-fstream-from-a-posix-file-descriptor
   #ifndef _WIN32
     filebuf_.reset(new __gnu_cxx::stdio_filebuf<char>(tempfile.getFileDescriptor(), std::ios::in));
-    istream_.reset(new std::istream(filebuf_.get()));
+    istream_.reset(new zstr::istream(filebuf_.get()));
   #endif
   }
 
@@ -160,45 +149,51 @@ public:
 };
 
 class OutputFileStream {
+private:
+  std::unique_ptr<std::ostream> ostream_;
+  marian::filesystem::Path file_;
+
+#ifndef _WIN32
+    std::unique_ptr<__gnu_cxx::stdio_filebuf<char>> filebuf_;
+#endif
+
 public:
-  OutputFileStream(const std::string& file) : file_(file), ofstream_(file_.getBoost()) {
-    ABORT_IF(
-        !marian::filesystem::exists(file_), "File '{}' does not exist", file);
-
-    if(file_.extension() == marian::filesystem::Path(std::string(".gz")))
-      ostream_.push(io::gzip_compressor());
-    ostream_.push(ofstream_);
+  OutputFileStream(const std::string& file) : file_(file) {
+    ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
+    ostream_.reset(new zstr::ofstream(file_));
   }
 
-  OutputFileStream(TemporaryFile& tempfile)
-      : fds_(tempfile.getFileDescriptor(), io::never_close_handle) {
+  OutputFileStream(TemporaryFile& tempfile) {
     lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
-    ostream_.push(fds_, 1024);
+
+  // @TODO: this is non-standard, add more alternatives
+  // this SO answer describes a number of alternatives for different compilers, checking g++ for now.
+  // https://stackoverflow.com/questions/2746168/how-to-construct-a-c-fstream-from-a-posix-file-descriptor
+  #ifndef _WIN32
+    filebuf_.reset(new __gnu_cxx::stdio_filebuf<char>(tempfile.getFileDescriptor(), std::ios::out));
+    ostream_.reset(new std::ostream(filebuf_.get()));
+  #endif
   }
 
-  OutputFileStream(std::ostream& strm) { ostream_.push(strm, 0); }
+  OutputFileStream(std::ostream& strm) {
+    ostream_.reset(new zstr::ostream(strm));
+  }
 
-  operator std::ostream&() { return ostream_; }
+  operator std::ostream&() { return *ostream_; }
 
-  operator bool() { return (bool)ostream_; }
+  operator bool() { return (bool)*ostream_; }
 
   template <typename T>
   friend OutputFileStream& operator<<(OutputFileStream& stream, const T& t) {
-    stream.ostream_ << t;
+    *(stream.ostream_) << t;
     return stream;
   }
 
   template <typename T>
   size_t write(const T* ptr, size_t num = 1) {
-    ostream_.write((char*)ptr, num * sizeof(T));
+    ostream_->write((char*)ptr, num * sizeof(T));
     return num * sizeof(T);
   }
 
   std::string path() { return file_.string(); }
-
-private:
-  marian::filesystem::Path file_;
-  boost::filesystem::ofstream ofstream_;
-  io::file_descriptor_sink fds_;
-  io::filtering_ostream ostream_;
 };
