@@ -118,13 +118,14 @@ public:
   // https://stackoverflow.com/questions/2746168/how-to-construct-a-c-fstream-from-a-posix-file-descriptor
   #ifndef _WIN32
     filebuf_.reset(new __gnu_cxx::stdio_filebuf<char>(tempfile.getFileDescriptor(), std::ios::in));
-    istream_.reset(new zstr::istream(filebuf_.get()));
+    istream_.reset(new std::istream(filebuf_.get()));
   #endif
   }
 
   InputFileStream(std::istream& strm) {
-    istream_.reset(new zstr::istream(strm));
+    istream_.reset(new std::istream(strm.rdbuf()));
   }
+
 
   operator std::istream&() { return *istream_; }
 
@@ -160,7 +161,14 @@ private:
 public:
   OutputFileStream(const std::string& file) : file_(file) {
     ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
-    ostream_.reset(new zstr::ofstream(file_));
+
+    // based on file extension choose if to compress or not
+    // this is not needed for decompressions as it looks at header and
+    // we can just use zstr::ifstream
+    if(file_.extension() == marian::filesystem::Path(std::string(".gz")))
+      ostream_.reset(new zstr::ofstream(file_));
+    else
+      ostream_.reset(new std::ofstream(file_));
   }
 
   OutputFileStream(TemporaryFile& tempfile) {
@@ -176,7 +184,7 @@ public:
   }
 
   OutputFileStream(std::ostream& strm) {
-    ostream_.reset(new zstr::ostream(strm));
+    ostream_.reset(new std::ostream(strm.rdbuf()));
   }
 
   operator std::ostream&() { return *ostream_; }
