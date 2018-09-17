@@ -4,6 +4,8 @@
 // this has to be figured out.
 
 #include "common/filesystem.h"
+#include "common/logging.h"
+#include "3rd_party/zstr/zstr.hpp"
 
 #include <boost/filesystem/fstream.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
@@ -16,12 +18,14 @@
 #pragma warning(pop)
 #include <boost/iostreams/filtering_stream.hpp>
 #include <iostream>
-#include "common/logging.h"
+
 
 #ifdef _WIN32
 #include <io.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#else
+#include <ext/stdio_filebuf.h>
 #endif
 
 namespace io = boost::iostreams;
@@ -97,49 +101,62 @@ public:
 };
 
 class InputFileStream {
+private:
+  std::unique_ptr<std::istream> istream_;
+  marian::filesystem::Path file_;
+  io::file_descriptor_source fds_;
+
+#ifndef _WIN32
+    std::unique_ptr<__gnu_cxx::stdio_filebuf<char>> filebuf_;
+#endif
+
 public:
-  InputFileStream(const std::string& file) : file_(file), ifstream_(file_.getBoost()) {
+  InputFileStream(const std::string& file)
+  : file_(file) {
+
     ABORT_IF(
         !marian::filesystem::exists(file_), "File '{}' does not exist", file);
 
-    if(file_.extension() == marian::filesystem::Path(std::string(".gz")))
-      istream_.push(io::gzip_decompressor());
-    istream_.push(ifstream_);
+    istream_.reset(new zstr::ifstream(file_));
   }
 
   InputFileStream(TemporaryFile& tempfile)
       : fds_(tempfile.getFileDescriptor(), io::never_close_handle) {
     lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
-    istream_.push(fds_, 1024);
+
+  // @TODO: this is non-standard, add more alternatives
+  // this SO answer describes a number of alternatives for different compilers, checking g++ for now.
+  // https://stackoverflow.com/questions/2746168/how-to-construct-a-c-fstream-from-a-posix-file-descriptor
+  #ifndef _WIN32
+    filebuf_.reset(new __gnu_cxx::stdio_filebuf<char>(tempfile.getFileDescriptor(), std::ios::in));
+    istream_.reset(new std::istream(filebuf_.get()));
+  #endif
   }
 
-  InputFileStream(std::istream& strm) { istream_.push(strm, 0); }
+  InputFileStream(std::istream& strm) {
+    istream_.reset(new zstr::istream(strm));
+  }
 
-  operator std::istream&() { return istream_; }
+  operator std::istream&() { return *istream_; }
 
-  operator bool() { return (bool)istream_; }
+  operator bool() { return (bool)*istream_; }
 
   template <typename T>
   friend InputFileStream& operator>>(InputFileStream& stream, T& t) {
-    stream.istream_ >> t;
+    *(stream.istream_) >> t;
     return stream;
   }
 
   template <typename T>
   size_t read(T* ptr, size_t num = 1) {
-    istream_.read((char*)ptr, num * sizeof(T));
+    istream_->read((char*)ptr, num * sizeof(T));
     return num * sizeof(T);
   }
 
   std::string path() { return file_.string(); }
 
-  bool empty() { return ifstream_.peek() == std::ifstream::traits_type::eof(); }
+  bool empty() { return istream_->peek() == std::ifstream::traits_type::eof(); }
 
-private:
-  marian::filesystem::Path file_;
-  boost::filesystem::ifstream ifstream_;
-  io::file_descriptor_source fds_;
-  io::filtering_istream istream_;
 };
 
 class OutputFileStream {
