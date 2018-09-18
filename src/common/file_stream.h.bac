@@ -1,36 +1,36 @@
 #pragma once
 
-// @TODO: this file still contains lots of stuff from boost::filesystem and boost::iostreams,
-// this has to be figured out.
-
 #include "common/filesystem.h"
+#include "common/logging.h"
 
-#include <boost/filesystem/fstream.hpp>
-#include <boost/iostreams/device/file_descriptor.hpp>
 #pragma warning(push)
 #pragma warning(disable: 4458) // declaration of 'traits_type' hides class member
 #pragma warning(disable: 4456) // declaration of 'c' hides previous local declaration
 #pragma warning(disable: 4244) // conversion from 'int' to 'char', possible loss of data
 #pragma warning(disable: 4706) // assignment within conditional expression
-#include <boost/iostreams/filter/gzip.hpp>
+#include "3rd_party/zstr/zstr.hpp"
 #pragma warning(pop)
-#include <boost/iostreams/filtering_stream.hpp>
+
 #include <iostream>
-#include "common/logging.h"
 
 #ifdef _WIN32
 #include <io.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#else
+#include <ext/stdio_filebuf.h>
 #endif
-
-namespace io = boost::iostreams;
 
 class TemporaryFile {
 private:
   int fd_;
   bool unlink_;
   std::string name_;
+
+#ifndef _WIN32
+  std::unique_ptr<__gnu_cxx::stdio_filebuf<char>> buffer_;
+#endif
+
 
   int mkstemp_and_unlink(char* tmpl) {
 #ifdef _WIN32
@@ -79,109 +79,123 @@ public:
     std::string baseTemp(base);
     NormalizeTempPrefix(baseTemp);
     fd_ = MakeTemp(baseTemp);
+
+#ifndef _WIN32
+    buffer_.reset(new __gnu_cxx::stdio_filebuf<char>(fd_, std::ios::out));
+#endif
   }
 
   ~TemporaryFile() {
     if(fd_ != -1 && !unlink_) {
-      ABORT_IF(unlink(name_.c_str()), "Error while deleting '{}'", name_);
+      //ABORT_IF(unlink(name_.c_str()), "Error while deleting '{}'", name_);
     }
-    if(fd_ != -1 && close(fd_)) {
-      std::cerr << "Could not close file " << fd_ << std::endl;
-      std::abort();
-    }
+    // if(fd_ != -1 && close(fd_)) {
+    //   ABORT("Could not close file {}", fd_ );
+    // }
+  }
+
+  void seek(size_t pos) {
+    lseek(fd_, pos, SEEK_SET);
   }
 
   int getFileDescriptor() { return fd_; }
+
+  std::streambuf* getBuffer() { buffer_.get(); }
 
   std::string getFileName() { return name_; }
 };
 
 class InputFileStream {
+private:
+  std::unique_ptr<std::istream> istream_;
+  marian::filesystem::Path file_;
+
 public:
-  InputFileStream(const std::string& file) : file_(file), ifstream_(file_.getBoost()) {
-    ABORT_IF(
-        !marian::filesystem::exists(file_), "File '{}' does not exist", file);
+  InputFileStream(const std::string& file)
+  : file_(file) {
+    ABORT_IF(!marian::filesystem::exists(file_),"File '{}' does not exist", file);
 
     if(file_.extension() == marian::filesystem::Path(std::string(".gz")))
-      istream_.push(io::gzip_decompressor());
-    istream_.push(ifstream_);
+      istream_.reset(new zstr::ifstream(file_));
+    else
+      istream_.reset(new std::ifstream(file_));
   }
 
-  InputFileStream(TemporaryFile& tempfile)
-      : fds_(tempfile.getFileDescriptor(), io::never_close_handle) {
-    lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
-    istream_.push(fds_, 1024);
+  InputFileStream(TemporaryFile& tempfile) {
+    tempfile.seek(0);
+    istream_.reset(new std::istream(tempfile.getBuffer()));
   }
 
-  InputFileStream(std::istream& strm) { istream_.push(strm, 0); }
+  InputFileStream(std::istream& strm) {
+    istream_.reset(new std::istream(strm.rdbuf()));
+  }
 
-  operator std::istream&() { return istream_; }
 
-  operator bool() { return (bool)istream_; }
+  operator std::istream&() { return *istream_; }
+
+  operator bool() { return (bool)*istream_; }
 
   template <typename T>
   friend InputFileStream& operator>>(InputFileStream& stream, T& t) {
-    stream.istream_ >> t;
+    *(stream.istream_) >> t;
     return stream;
   }
 
   template <typename T>
   size_t read(T* ptr, size_t num = 1) {
-    istream_.read((char*)ptr, num * sizeof(T));
+    istream_->read((char*)ptr, num * sizeof(T));
     return num * sizeof(T);
   }
 
   std::string path() { return file_.string(); }
 
-  bool empty() { return ifstream_.peek() == std::ifstream::traits_type::eof(); }
+  bool empty() { return istream_->peek() == std::ifstream::traits_type::eof(); }
 
-private:
-  marian::filesystem::Path file_;
-  boost::filesystem::ifstream ifstream_;
-  io::file_descriptor_source fds_;
-  io::filtering_istream istream_;
 };
 
 class OutputFileStream {
+private:
+  std::unique_ptr<std::ostream> ostream_;
+  marian::filesystem::Path file_;
+
 public:
-  OutputFileStream(const std::string& file) : file_(file), ofstream_(file_.getBoost()) {
-    ABORT_IF(
-        !marian::filesystem::exists(file_), "File '{}' does not exist", file);
-
+  OutputFileStream(const std::string& file) : file_(file) {
     if(file_.extension() == marian::filesystem::Path(std::string(".gz")))
-      ostream_.push(io::gzip_compressor());
-    ostream_.push(ofstream_);
+      ostream_.reset(new zstr::ofstream(file_));
+    else
+      ostream_.reset(new std::ofstream(file_));
   }
 
-  OutputFileStream(TemporaryFile& tempfile)
-      : fds_(tempfile.getFileDescriptor(), io::never_close_handle) {
-    lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
-    ostream_.push(fds_, 1024);
+  OutputFileStream(TemporaryFile& tempfile) {
+    tempfile.seek(0);
+    ostream_.reset(new std::ostream(tempfile.getBuffer()));
   }
 
-  OutputFileStream(std::ostream& strm) { ostream_.push(strm, 0); }
+  OutputFileStream(std::ostream& strm) {
+    ostream_.reset(new std::ostream(strm.rdbuf()));
+  }
 
-  operator std::ostream&() { return ostream_; }
+  operator std::ostream&() { return *ostream_; }
 
-  operator bool() { return (bool)ostream_; }
+  operator bool() { return (bool)*ostream_; }
 
   template <typename T>
   friend OutputFileStream& operator<<(OutputFileStream& stream, const T& t) {
-    stream.ostream_ << t;
+    *(stream.ostream_) << t;
+    return stream;
+  }
+
+  // handle things like std::endl which is actually a function not a value
+  friend OutputFileStream& operator<<(OutputFileStream& stream, std::ostream& (*var)(std::ostream&)) {
+    *(stream.ostream_) << var;
     return stream;
   }
 
   template <typename T>
   size_t write(const T* ptr, size_t num = 1) {
-    ostream_.write((char*)ptr, num * sizeof(T));
+    ostream_->write((char*)ptr, num * sizeof(T));
     return num * sizeof(T);
   }
 
   std::string path() { return file_.string(); }
-
-private:
-  marian::filesystem::Path file_;
-  boost::filesystem::ofstream ofstream_;
-  io::file_descriptor_sink fds_;
-  io::filtering_ostream ostream_;
 };
