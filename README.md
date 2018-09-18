@@ -1,11 +1,11 @@
 Marian
 ======
 
-[![Build Status](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev.svg?label=Build)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev/)
-[![CPU Build Status](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cpu.svg?label=CPU%20Build)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cpu/)
+[![Build Status](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev.svg?label=CUDA)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev/)
+[![CPU Build Status](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cpu.svg?label=CPU)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cpu/)
 [![Tests Status](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cpu.svg?label=Tests)](http://vali.inf.ed.ac.uk/jenkins/job/marian-regression-tests/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-[![Latest release](https://img.shields.io/github/release/marian-nmt/marian.svg?label=Release<F5>)](https://github.com/marian-nmt/marian/releases)
+[![Latest release](https://img.shields.io/github/release/marian-nmt/marian.svg?label=Release)](https://github.com/marian-nmt/marian/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE.md)
 [![Twitter](https://img.shields.io/twitter/follow/marian_nmt.svg?style=social)](https://twitter.com/intent/follow?screen_name=marian_nmt)
 
  <p>
