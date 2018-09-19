@@ -285,11 +285,11 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
           for(auto g : graphs_)
             fetchParams(g->params()->vals(), paramsAvg_, t_id);
 
-        if(scheduler_->saving())
-          this->save(graph);
-
         if(scheduler_->validating())
           scheduler_->validate(graphs_);
+
+        if(scheduler_->saving())
+          this->save(graph);
 
         // Validation or saving is done, tell other threads to continue work.
         pool_->notify_others();
