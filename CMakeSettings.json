@@ -1,8 +1,6 @@
 {
   "environments": [
     {
-      "environment": "MarianEnvironment",
-
       // Dependencies can be found automatically if you use vcpkg as your library manager.
       // In this case, please set the VCPKG_ROOT variable to the directory that contains the vcpkg.exe
       // If you prefer managing yourself the dependencies, please fill in the other variables.
@@ -22,12 +20,12 @@
   ],
   "configurations": [
     {
-      "name": "x64-Debug-Ninja",
+      "name": "Release",
       "generator": "Ninja",
-      "configurationType": "Debug",
-      "inheritEnvironments": [ "msvc_x64_x64", "MarianEnvironment" ],
-      "buildRoot": "${projectDir}\\build\\${name}",
-      "installRoot": "${projectDir}\\install\\${name}",
+      "configurationType": "Release",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${projectDir}\\build",
+      "installRoot": "${projectDir}\\install",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "-v",
       "ctestCommandArgs": "",
@@ -49,68 +47,14 @@
       ]
     },
     {
-      "name": "x64-Release-Ninja",
+      "name": "Debug",
       "generator": "Ninja",
-      "configurationType": "Release",
-      "inheritEnvironments": [ "msvc_x64_x64", "MarianEnvironment" ],
-      "buildRoot": "${projectDir}\\build\\${name}",
-      "installRoot": "${projectDir}\\install\\${name}",
+      "configurationType": "Debug",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${projectDir}\\build\\debug",
+      "installRoot": "${projectDir}\\install\\debug",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "-v",
-      "ctestCommandArgs": "",
-      "variables": [
-        { "name": "CMAKE_TOOLCHAIN_FILE", "value": "${env.VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake" },
-        { "name": "VCPKG_TARGET_TRIPLET", "value": "x64-windows-static" },
-        
-        { "name": "OPENSSL_USE_STATIC_LIBS:BOOL", "value": "TRUE" },
-        { "name": "OPENSSL_MSVC_STATIC_RT:BOOL", "value": "TRUE" },
-        
-        { "name": "COMPILE_SERVER:BOOL", "value": "TRUE" }, 
-        { "name": "COMPILE_EXAMPLES:BOOL", "value": "FALSE" }, 
-        { "name": "COMPILE_TESTS:BOOL", "value": "FALSE" }, 
-        { "name": "COMPILE_CPU:BOOL", "value": "TRUE" }, 
-        { "name": "COMPILE_CUDA:BOOL", "value": "TRUE" }, 
-        
-        { "name": "USE_CUDNN:BOOL", "value": "TRUE" }, 
-        { "name": "USE_MPI:BOOL", "value": "FALSE" }
-      ]
-    },
-    {
-      "name": "x64-Debug-MSBuild",
-      "generator": "Visual Studio 15 2017 Win64",
-      "configurationType": "Debug",
-      "inheritEnvironments": [ "msvc_x64_x64", "MarianEnvironment" ],
-      "buildRoot": "${projectDir}\\build\\${name}",
-      "installRoot": "${projectDir}\\install\\${name}",
-      "cmakeCommandArgs": "",
-      "buildCommandArgs": "-m -v:minimal",
-      "ctestCommandArgs": "",
-      "variables": [
-        { "name": "CMAKE_TOOLCHAIN_FILE", "value": "${env.VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake" },
-        { "name": "VCPKG_TARGET_TRIPLET", "value": "x64-windows-static" },
-        
-        { "name": "OPENSSL_USE_STATIC_LIBS:BOOL", "value": "TRUE" },
-        { "name": "OPENSSL_MSVC_STATIC_RT:BOOL", "value": "TRUE" },
-        
-        { "name": "COMPILE_SERVER:BOOL", "value": "TRUE" }, 
-        { "name": "COMPILE_EXAMPLES:BOOL", "value": "FALSE" }, 
-        { "name": "COMPILE_TESTS:BOOL", "value": "FALSE" }, 
-        { "name": "COMPILE_CPU:BOOL", "value": "TRUE" }, 
-        { "name": "COMPILE_CUDA:BOOL", "value": "TRUE" }, 
-        
-        { "name": "USE_CUDNN:BOOL", "value": "TRUE" }, 
-        { "name": "USE_MPI:BOOL", "value": "FALSE" }
-      ]
-    },
-    {
-      "name": "x64-Release-MSBuild",
-      "generator": "Visual Studio 15 2017 Win64",
-      "configurationType": "Release",
-      "inheritEnvironments": [ "msvc_x64_x64", "MarianEnvironment" ],
-      "buildRoot": "${projectDir}\\build\\${name}",
-      "installRoot": "${projectDir}\\install\\${name}",
-      "cmakeCommandArgs": "",
-      "buildCommandArgs": "-m -v:minimal",
       "ctestCommandArgs": "",
       "variables": [
         { "name": "CMAKE_TOOLCHAIN_FILE", "value": "${env.VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake" },
