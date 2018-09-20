@@ -604,7 +604,11 @@ void ConfigParser::expandAliases(cli::CLIWrapper& cli) {
 }
 
 void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
-  cli::CLIWrapper cli(config_, "General options", 40);
+  cli::CLIWrapper cli(config_,
+                      "Marian: Fast Neural Machine Translation in C++",
+                      "General options",
+                      "",
+                      40);
 
   addOptionsGeneral(cli);
   addOptionsModel(cli);

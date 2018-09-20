@@ -11,7 +11,12 @@ int main(int argc, char** argv) {
 
   auto options = New<Options>();
   {
-    auto cli = New<cli::CLIWrapper>(options, "Allowed options");
+    auto cli = New<cli::CLIWrapper>(
+        options,
+        "Convert a model in the .npz format to a mmap-able binary model",
+        "Allowed options",
+        "Examples:\n"
+        "  ./marian-conv -f model.npz -t model.bin");
     cli->add<std::string>("--from,-f", "Input model", "model.npz");
     cli->add<std::string>("--to,-t", "Output model", "model.bin");
     cli->parse(argc, argv);

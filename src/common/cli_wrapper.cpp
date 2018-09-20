@@ -58,13 +58,18 @@ std::string CLIFormatter::make_option_desc(const CLI::Option *opt) const {
 }
 
 CLIWrapper::CLIWrapper(YAML::Node &config,
-                       const std::string &name,
+                       const std::string &description,
+                       const std::string &header,
+                       const std::string &footer,
                        size_t columnWidth,
                        size_t screenWidth)
-    : app_(std::make_shared<CLI::App>()),
-      defaultGroup_(name),
-      currentGroup_(name),
+    : app_(std::make_shared<CLI::App>(description)),
+      defaultGroup_(header),
+      currentGroup_(header),
       config_(config) {
+  // set footer
+  if(!footer.empty())
+    app_->footer("\n" + footer);
   // set group name for --help option
   app_->get_help_ptr()->group(defaultGroup_);
   // set custom failure message
@@ -76,10 +81,17 @@ CLIWrapper::CLIWrapper(YAML::Node &config,
 }
 
 CLIWrapper::CLIWrapper(Ptr<marian::Options> options,
-                       const std::string &name,
+                       const std::string &description,
+                       const std::string &header,
+                       const std::string &footer,
                        size_t columnWidth,
                        size_t screenWidth)
-    : CLIWrapper(options->getOptions(), name, columnWidth, screenWidth) {}
+    : CLIWrapper(options->getOptions(),
+                 description,
+                 header,
+                 footer,
+                 columnWidth,
+                 screenWidth) {}
 
 CLIWrapper::~CLIWrapper() {}
 

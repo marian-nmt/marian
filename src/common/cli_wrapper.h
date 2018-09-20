@@ -71,14 +71,14 @@ private:
   // Command-line argument parser
   Ptr<CLI::App> app_;
 
-  // If this is a wrapper then this should just be a reference,
-  // then we do not have the added level of containment.
-  YAML::Node &config_;
-
   // Name of the default option group
   std::string defaultGroup_{""};
   // Name of the current option group
   std::string currentGroup_{""};
+
+  // If this is a wrapper then this should just be a reference,
+  // then we do not have the added level of containment.
+  YAML::Node &config_;
 
   static std::string failureMessage(const CLI::App *app, const CLI::Error &e);
 
@@ -98,14 +98,17 @@ public:
    * Option --help, -h is automatically added.
    *
    * @param config A reference to the to-be-wrapped yaml tree
-   * @param name Header text for the main option group
+   * @param description Program description
+   * @param header Header text for the main option group
+   * @param footer Text displayed after the list of options
    * @param columnWidth Width of the column with option names
    * @param screenWidth Maximum allowed width for help messages, 0 means no
    *  limit
    */
-
   CLIWrapper(YAML::Node &config,
-             const std::string &name = "General options",
+             const std::string &description = "",
+             const std::string &header = "General options",
+             const std::string &footer = "",
              size_t columnWidth = 35,
              size_t screenWidth = 0);
 
@@ -115,15 +118,20 @@ public:
    *
    * Option --help, -h is automatically added.
    *
-   * @param options A smart pointer to the Options object containing the to-be-wrapped yaml tree
-   * @param name Header text for the main option group
+   * @param options A smart pointer to the Options object containing the
+   *  to-be-wrapped yaml tree
+   * @param description Program description
+   * @param header Header text for the main option group
+   * @param footer Text displayed after the list of options
    * @param columnWidth Width of the column with option names
    * @param screenWidth Maximum allowed width for help messages, 0 means no
    *  limit
    */
   CLIWrapper(Ptr<Options> options,
-             const std::string &name = "General options",
-             size_t columnWidth = 35,
+             const std::string &description = "",
+             const std::string &header = "General options",
+             const std::string &footer = "",
+             size_t columnWidth = 30,
              size_t screenWidth = 0);
 
   virtual ~CLIWrapper();
