@@ -12,9 +12,9 @@ namespace marian {
 Ptr<Backend> BackendByDeviceId(DeviceId deviceId, size_t seed) {
 #ifdef CUDA_FOUND
   if(deviceId.type == DeviceType::gpu)
-    return New<gpu::GpuBackend>(deviceId, seed);
+    return New<gpu::Backend>(deviceId, seed);
   else
 #endif
-    return New<cpu::CpuBackend>(deviceId, seed);
+    return New<cpu::Backend>(deviceId, seed);
 }
 }  // namespace marian

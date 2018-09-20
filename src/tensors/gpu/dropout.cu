@@ -38,7 +38,7 @@ __global__ void gScale(float* data, int n, float p) {
 
 void Dropout(Tensor tensor, float p) {
   auto gpuBackend
-      = std::static_pointer_cast<gpu::GpuBackend>(tensor->getBackend());
+      = std::static_pointer_cast<gpu::Backend>(tensor->getBackend());
   curandGenerator_t gen = gpuBackend->getCurandGenerator();
   int n = tensor->size();
   CURAND_CALL(curandGenerateUniform(gen, tensor->data(), n));

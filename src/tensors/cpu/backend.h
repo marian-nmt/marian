@@ -9,12 +9,12 @@
 namespace marian {
 namespace cpu {
 
-class CpuBackend : public marian::Backend {
+class Backend : public marian::Backend {
 private:
   std::default_random_engine gen_;
 
 public:
-  CpuBackend(DeviceId deviceId, size_t seed)
+  Backend(DeviceId deviceId, size_t seed)
       : marian::Backend(deviceId, seed), gen_((unsigned int)seed_) {}
 
   void setDevice() override {}
