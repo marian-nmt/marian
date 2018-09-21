@@ -43,7 +43,7 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   cli.switchGroup("General options");
 
   // clang-format off
-  cli.add<bool>("--version",
+  cli.add_nondefault<bool>("--version",
      "Print version number and exit");
   cli.add<std::vector<std::string>>("--config,-c",
      "Configuration file(s). If multiple, later overrides earlier");
@@ -631,11 +631,9 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   cli.parse(argc, argv);
 
   // handle version printing
-  if(get<bool>("version")) {
+  if(has("version")) {
     std::cerr << PROJECT_VERSION_FULL << std::endl;
     exit(0);
-  } else {
-    config_["version"] = PROJECT_VERSION_FULL;
   }
 
   // get paths to extra config files

@@ -2,6 +2,7 @@
 #include "common/file_stream.h"
 #include "common/logging.h"
 #include "common/utils.h"
+#include "common/version.h"
 
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
@@ -28,11 +29,18 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
 
   createLoggers(this);
 
+  // set random seed
   if(get<size_t>("seed") == 0)
     seed = (size_t)time(0);
   else
     seed = get<size_t>("seed");
 
+  // set Marian version for newly started training, can be overwritten by a
+  // version from loaded model parameters
+  if(mode == cli::mode::training)
+    config_["version"] = PROJECT_VERSION_FULL;
+
+  // load model parameters
   if(mode != cli::mode::translation) {
     if(filesystem::exists(get<std::string>("model"))
        && !get<bool>("no-reload")) {
@@ -52,10 +60,13 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
       LOG(info, "[config] No model configuration found in model file");
     }
   }
+
   log();
 
   if(has("version"))
-    LOG(info, "Model created with Marian {}", get("version").as<std::string>());
+    LOG(info,
+        "[config] Model created with Marian {}",
+        get("version").as<std::string>());
 }
 
 bool Config::has(const std::string& key) const {

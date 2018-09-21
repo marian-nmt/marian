@@ -160,8 +160,9 @@ public:
    * default value is T()
    *
    * The option will be defined in the config file even if not given as a
-   * command-line argument. The implicit default value for a numeric option is
-   * 0, for a string is an empty string, and for a vector is an empty vector.
+   * command-line argument. The implicit default value for a boolean or numeric
+   * option is 0, for a string is an empty string, and for a vector is an empty
+   * vector.
    *
    * @param args Comma-separated list of short and long option names
    * @param help Help message
