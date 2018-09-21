@@ -37,16 +37,18 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
 
   // load model parameters
   if(mode != cli::mode::translation) {
-    if(filesystem::exists(get<std::string>("model"))
-       && !get<bool>("no-reload")) {
+    auto model = get<std::string>("model");
+    if(filesystem::exists(model) && !get<bool>("no-reload")) {
       try {
         if(!get<bool>("ignore-model-config"))
-          loadModelParameters(get<std::string>("model"));
+          loadModelParameters(model);
       } catch(std::runtime_error& e) {
         LOG(info, "[config] No model configuration found in model file");
       }
     }
-  } else {
+  }
+  // if cli::mode::translation
+  else {
     auto model = get<std::vector<std::string>>("models")[0];
     try {
       if(!get<bool>("ignore-model-config"))
@@ -63,9 +65,9 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
   // Key "version" is present only if loaded from model parameters and is not
   // related to --version flag
   if(has("version")) {
-    auto version = get("version").as<std::string>();
+    auto version = get<std::string>("version");
 
-    if(version != PROJECT_VERSION_FULL)
+    if(mode == cli::mode::training && version != PROJECT_VERSION_FULL)
       LOG(info,
           "[config] Loaded model has been created with Marian {}, "
           "will be overwritten with current version {} at saving",
@@ -79,9 +81,8 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
   // If this is a newly started training
   else if(mode == cli::mode::training) {
     LOG(info,
-        "[config] The model is being created with Marian {}",
+        "[config] Model is being created with Marian {}",
         PROJECT_VERSION_FULL);
-    config_["version"] = PROJECT_VERSION_FULL;
   }
 }
 
