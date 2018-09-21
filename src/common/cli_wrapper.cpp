@@ -1,5 +1,6 @@
 #include "common/cli_wrapper.h"
 #include "common/options.h"
+#include "common/version.h"
 
 namespace marian {
 namespace cli {
@@ -70,14 +71,20 @@ CLIWrapper::CLIWrapper(YAML::Node &config,
   // set footer
   if(!footer.empty())
     app_->footer("\n" + footer);
-  // set group name for --help option
+
+  // set group name for the automatically added --help option
   app_->get_help_ptr()->group(defaultGroup_);
+
   // set custom failure message
   app_->failure_message(failureMessage);
-
   // set custom formatter for help message
   auto fmt = std::make_shared<CLIFormatter>(columnWidth, screenWidth);
   app_->formatter(fmt);
+
+  // add --version option
+  optVersion_
+      = app_->add_flag("--version", "Print the version number and exit");
+  optVersion_->group(defaultGroup_);
 }
 
 CLIWrapper::CLIWrapper(Ptr<marian::Options> options,
@@ -107,6 +114,12 @@ void CLIWrapper::parse(int argc, char **argv) {
     app_->parse(argc, argv);
   } catch(const CLI::ParseError &e) {
     exit(app_->exit(e));
+  }
+
+  // handle --version flag
+  if(optVersion_->count()) {
+    std::cerr << PROJECT_VERSION_FULL << std::endl;
+    exit(0);
   }
 }
 

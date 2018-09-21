@@ -80,6 +80,10 @@ private:
   // then we do not have the added level of containment.
   YAML::Node &config_;
 
+  // Option for --version flag. This is a special flag and similarly to --help,
+  // the key "version" will be not added into the YAML config
+  CLI::Option* optVersion_;
+
   static std::string failureMessage(const CLI::App *app, const CLI::Error &e);
 
   // Extract an option name from comma-separated list of command-line arguments,
@@ -160,8 +164,9 @@ public:
    * default value is T()
    *
    * The option will be defined in the config file even if not given as a
-   * command-line argument. The implicit default value for a numeric option is
-   * 0, for a string is an empty string, and for a vector is an empty vector.
+   * command-line argument. The implicit default value for a boolean or numeric
+   * option is 0, for a string is an empty string, and for a vector is an empty
+   * vector.
    *
    * @param args Comma-separated list of short and long option names
    * @param help Help message
