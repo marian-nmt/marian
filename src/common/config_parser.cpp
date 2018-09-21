@@ -44,8 +44,7 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
 
   // clang-format off
   cli.add<bool>("--version",
-     "Print version number and exit",
-     false);
+     "Print version number and exit");
   cli.add<std::vector<std::string>>("--config,-c",
      "Configuration file(s). If multiple, later overrides earlier");
   cli.add<size_t>("--workspace,-w",
@@ -635,6 +634,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   if(get<bool>("version")) {
     std::cerr << PROJECT_VERSION_FULL << std::endl;
     exit(0);
+  } else {
+    config_["version"] = PROJECT_VERSION_FULL;
   }
 
   // get paths to extra config files

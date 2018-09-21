@@ -55,9 +55,7 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
   log();
 
   if(has("version"))
-    LOG(info,
-        "[config] Model created with Marian {}",
-        get("version").as<std::string>());
+    LOG(info, "Model created with Marian {}", get("version").as<std::string>());
 }
 
 bool Config::has(const std::string& key) const {
