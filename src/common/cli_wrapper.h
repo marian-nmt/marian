@@ -80,6 +80,10 @@ private:
   // then we do not have the added level of containment.
   YAML::Node &config_;
 
+  // Option for --version flag. This is a special flag and similarly to --help,
+  // the key "version" will be not added into the YAML config
+  CLI::Option* optVersion_;
+
   static std::string failureMessage(const CLI::App *app, const CLI::Error &e);
 
   // Extract an option name from comma-separated list of command-line arguments,

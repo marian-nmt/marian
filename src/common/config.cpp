@@ -35,11 +35,6 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
   else
     seed = get<size_t>("seed");
 
-  // set Marian version for newly started training, can be overwritten by a
-  // version from loaded model parameters
-  if(mode == cli::mode::training)
-    config_["version"] = PROJECT_VERSION_FULL;
-
   // load model parameters
   if(mode != cli::mode::translation) {
     if(filesystem::exists(get<std::string>("model"))
@@ -63,10 +58,31 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
 
   log();
 
-  if(has("version"))
+  // Log version of Marian that has been used to create the model.
+  //
+  // Key "version" is present only if loaded from model parameters and is not
+  // related to --version flag
+  if(has("version")) {
+    auto version = get("version").as<std::string>();
+
+    if(version != PROJECT_VERSION_FULL)
+      LOG(info,
+          "[config] Loaded model has been created with Marian {}, "
+          "will be overwritten with current version {} at saving",
+          version,
+          PROJECT_VERSION_FULL);
+    else
+      LOG(info,
+          "[config] Loaded model has been created with Marian {}",
+          version);
+  }
+  // If this is a newly started training
+  else if(mode == cli::mode::training) {
     LOG(info,
-        "[config] Model created with Marian {}",
-        get("version").as<std::string>());
+        "[config] The model is being created with Marian {}",
+        PROJECT_VERSION_FULL);
+    config_["version"] = PROJECT_VERSION_FULL;
+  }
 }
 
 bool Config::has(const std::string& key) const {
