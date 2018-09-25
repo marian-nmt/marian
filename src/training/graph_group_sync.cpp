@@ -6,8 +6,8 @@ namespace marian {
 SyncGraphGroup::SyncGraphGroup(Ptr<Config> config)
     : GraphGroup(config),
       ExponentialSmoothing{options_->get<float>("exponential-smoothing")},
-      devices_{options_->getDevices()},
-      delay_{options_->get<size_t>("optimizer-delay")} {
+      delay_{options_->get<size_t>("optimizer-delay")} { // @TODO: rename to something else; delay means delayed updated, not accumulation
+  devices_ = options_->getDevices();
   for(auto device : devices_) {
     auto graph = New<ExpressionGraph>();
     graph->setDevice(device);

@@ -15,14 +15,17 @@ int main(int argc, char** argv) {
   using namespace marian;
 
   auto options = New<Config>(argc, argv);
-  auto devices = options->getDevices();
 
-  if(options->get<bool>("multi-node")) {
+  if (options->get<bool>("sync-sgd")) {
+      New<Train<SyncGraphGroup>>(options)->run();
+  }
+
+  else if(options->get<bool>("multi-node")) {
     LOG(warn, "[experimental] Running multi-node training");
 
-    if(options->get<bool>("sync-sgd")) {
+    /*if(options->get<bool>("sync-sgd")) {
       New<Train<MultiNodeGraphGroupSync>>(options)->run();
-    } else {
+    } else*/ {
 #ifdef CUDA_FOUND
       New<Train<MultiNodeGraphGroup>>(options)->run();
 #else
@@ -30,12 +33,11 @@ int main(int argc, char** argv) {
 #endif
     }
   } else {
+    auto devices = options->getDevices();
     if(devices.size() == 1) {
       New<Train<SingletonGraph>>(options)->run();
     } else {
-      if(options->get<bool>("sync-sgd")) {
-        New<Train<SyncGraphGroup>>(options)->run();
-      } else if(options->get<float>("grad-dropping-rate") > 0.0) {
+      if(options->get<float>("grad-dropping-rate") > 0.0) {
 #ifdef CUDA_FOUND
         New<Train<AsyncGraphGroupDrop>>(options)->run();
 #else

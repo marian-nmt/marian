@@ -74,9 +74,9 @@ public:
   void run() override {
     data::BatchGenerator<data::Corpus> bg(corpus_, options_);
 
-    auto devices = options_->getDevices();
+    auto numDevices = options_->getDevices().size(); // @TODO: make this a class member. We only need the size actually.
 
-    ThreadPool threadPool(devices.size(), devices.size());
+    ThreadPool threadPool(numDevices, numDevices);
 
     size_t batchId = 0;
     auto collector = New<OutputCollector>();
@@ -98,8 +98,8 @@ public:
         thread_local std::vector<Ptr<Scorer>> scorers;
 
         if(!graph) {
-          graph = graphs_[id % devices.size()];
-          scorers = scorers_[id % devices.size()];
+          graph = graphs_[id % numDevices];
+          scorers = scorers_[id % numDevices];
         }
 
         auto search = New<Search>(

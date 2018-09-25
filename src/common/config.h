@@ -52,7 +52,6 @@ public:
                   bool validate = true) {
     auto parser = ConfigParser(argc, argv, mode, validate);
     config_ = parser.getConfig();
-    devices_ = parser.getDevices();
 
     createLoggers(this);
 
@@ -120,7 +119,7 @@ public:
   void loadModelParameters(const std::string& name);
   void loadModelParameters(const void* ptr);
 
-  const std::vector<DeviceId>& getDevices() { return devices_; }
+  std::vector<DeviceId> getDevices(size_t myRank = 0, size_t numRanks = 1);
 
   void save(const std::string& name) {
     OutputFileStream out(name);
@@ -136,7 +135,7 @@ public:
 
 private:
   YAML::Node config_;
-  std::vector<DeviceId> devices_;
+  //std::vector<DeviceId> devices_;
 
   void override(const YAML::Node& params);
 

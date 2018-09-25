@@ -33,7 +33,7 @@ private:
   void initialize(const std::vector<Ptr<data::Batch>>& batches);
   void initializeAvg();
 
-  void execute(Ptr<data::Batch> batch);
+  void execute(Ptr<data::Batch> batch); // @TODO: merge with update()
 
 public:
   SyncGraphGroup(Ptr<Config> config);

@@ -160,27 +160,6 @@ void ConfigParser::validateOptions() const {
       "--lr-decay-start option");
 }
 
-void ConfigParser::validateDevices() const {
-  std::string devices = utils::Join(get<std::vector<std::string>>("devices"));
-  utils::Trim(devices);
-
-  regex::regex pattern;
-  std::string help;
-  if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
-    // valid strings: '0: 1 2', '0:1 2 1:2 3'
-    pattern = "( *[0-9]+ *: *[0-9]+( *[0-9]+)*)+";
-    help = "Supported format for multi-node setting: '0:0 1 2 3 1:0 1 2 3'";
-  } else {
-    // valid strings: '0', '0 1 2 3', '3 2 0 1'
-    pattern = "[0-9]+( *[0-9]+)*";
-    help = "Supported formats: '0 1 2 3'";
-  }
-
-  UTIL_THROW_IF2(!regex::regex_match(devices, pattern),
-                 "the argument '(" + devices
-                     + ")' for option '--devices' is invalid. " + help);
-}
-
 void ConfigParser::addOptionsCommon(po::options_description& desc) {
   int defaultWorkspace = (mode_ == ConfigMode::translating) ? 512 : 2048;
 
@@ -405,10 +384,12 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "is temporary with path creates persistent storage")
     ("sqlite-drop", po::value<bool>()->zero_tokens()->default_value(false),
       "Drop existing tables in sqlite3 database")
+    ("num-devices", po::value<size_t>(),
+      "number of GPUs to use for this process. Defaults to length(devices) or 1.")
     ("devices,d", po::value<std::vector<std::string>>()
       ->multitoken()
       ->default_value(std::vector<std::string>({"0"}), "0"),
-      "GPU ID(s) to use for training")
+      "specific GPU ID(s) to use for training. Defaults to 0..num-devices-1")
 #ifdef USE_NCCL
     ("no-nccl", po::value<bool>()->zero_tokens()->default_value(false),
      "Disable inter-GPU communication via NCCL")
@@ -614,6 +595,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Maximum target length as source length times factor")
     ("max-length-crop", po::value<bool>()->zero_tokens()->default_value(false),
       "Crop a sentence to max-length instead of ommitting it if longer than max-length")
+    ("num-devices", po::value<size_t>(),
+      "number of GPUs to use for translating. Defaults to length(devices).")
     ("devices,d", po::value<std::vector<std::string>>()
       ->multitoken()
       ->default_value(std::vector<std::string>({"0"}), "0"),
@@ -657,8 +640,8 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
   po::options_description rescore("Rescorer options", guess_terminal_width());
   // clang-format off
   rescore.add_options()
-    ("no-reload", po::value<bool>()->zero_tokens()->default_value(false),
-      "Do not load existing model specified in --model arg")
+    //("no-reload", po::value<bool>()->zero_tokens()->default_value(false), // TODO: should not be here, right?
+    //  "Do not load existing model specified in --model arg")
     ("train-sets,t", po::value<std::vector<std::string>>()->multitoken(),
       "Paths to corpora to be scored: source target")
     ("vocabs,v", po::value<std::vector<std::string>>()->multitoken(),
@@ -676,10 +659,12 @@ void ConfigParser::addOptionsRescore(po::options_description& desc) {
       "Maximum length of a sentence in a training sentence pair")
     ("max-length-crop", po::value<bool>()->zero_tokens()->default_value(false),
       "Crop a sentence to max-length instead of ommitting it if longer than max-length")
+    ("num-devices", po::value<size_t>(),
+      "number of GPUs to use for scoring. Defaults to length(devices).")
     ("devices,d", po::value<std::vector<std::string>>()
       ->multitoken()
       ->default_value(std::vector<std::string>({"0"}), "0"),
-      "GPUs to use for training")
+      "GPUs to use for scoring")
 #ifdef CUDA_FOUND
     ("cpu-threads", po::value<size_t>()->default_value(0)->implicit_value(1),
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
@@ -991,6 +976,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("clip-gemm", float);
   SET_OPTION("interpolate-env-vars", bool);
   SET_OPTION("relative-paths", bool);
+  SET_OPTION("num-devices", size_t);
   SET_OPTION("devices", std::vector<std::string>);
   SET_OPTION("cpu-threads", size_t);
   // SET_OPTION("omp-threads", size_t);
@@ -1050,7 +1036,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   if(doValidate) {
     try {
       validateOptions();
-      validateDevices();
+      //getDevices(); // (validate by parsing)
     } catch(util::Exception& e) {
       std::cerr << "Error: " << e.what() << std::endl << std::endl;
 
@@ -1066,52 +1052,6 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     std::cout << emit.c_str() << std::endl;
     exit(0);
   }
-}
-
-std::vector<DeviceId> ConfigParser::getDevices() {
-  std::vector<DeviceId> devices;
-
-  try {
-    std::string devicesStr
-        = utils::Join(config_["devices"].as<std::vector<std::string>>());
-
-    // special syntax for multi-node
-    if(mode_ == ConfigMode::training && get<bool>("multi-node")) {
-      auto parts = utils::Split(devicesStr, ":");
-      for(size_t i = 1; i < parts.size(); ++i) {
-        std::string part = parts[i];
-        utils::Trim(part);
-        auto ds = utils::Split(part, " ");
-        if(i < parts.size() - 1)
-          ds.pop_back();
-
-        // resulting array has this format
-        //  - for each node
-        //     - number of GPUs on that node
-        //     - GPU ids for that node
-        // e.g. 0:0 1 1: 2 3 -> (2, (0, 1)) (2, (2,3))
-        devices.push_back({ds.size(), DeviceType::gpu});
-        for(auto d : ds)
-          devices.push_back({(size_t)std::stoull(d), DeviceType::gpu});
-      }
-    }
-    // normal syntax
-    else {
-      for(auto d : utils::Split(devicesStr))
-        devices.push_back({(size_t)std::stoull(d), DeviceType::gpu});
-    }
-
-    if(config_["cpu-threads"].as<size_t>() > 0) {
-      devices.clear();
-      for(size_t i = 0; i < config_["cpu-threads"].as<size_t>(); ++i)
-        devices.push_back({i, DeviceType::cpu});
-    }
-
-  } catch(...) {
-    ABORT("Problem parsing devices, please report an issue on github");
-  }
-
-  return devices;
 }
 
 YAML::Node ConfigParser::getConfig() const {

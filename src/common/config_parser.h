@@ -36,7 +36,6 @@ public:
   void parseOptions(int argc, char** argv, bool validate);
 
   YAML::Node getConfig() const;
-  std::vector<DeviceId> getDevices();
 
 private:
   ConfigMode mode_;
@@ -58,6 +57,5 @@ private:
   void addOptionsTranslate(boost::program_options::options_description&);
 
   void validateOptions() const;
-  void validateDevices() const;
 };
 }  // namespace marian
