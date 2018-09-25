@@ -27,10 +27,9 @@ int main(int argc, char **argv) {
 
     // Translate
     boost::timer::cpu_timer timer;
-    for(auto &outputText : task->run({inputText})) {
-      LOG(info, "Best translation: {}", outputText);
-      *sendStream << outputText << std::endl;
-    }
+    auto outputText = task->run(inputText);
+    LOG(info, "Best translation: {}", outputText);
+    *sendStream << outputText << std::endl;
     LOG(info, "Translation took: {}", timer.format(5, "%ws"));
 
     // Send translation back
