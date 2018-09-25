@@ -88,7 +88,6 @@ cuda_add_library(marian_cuda
   translator/helpers.cu
   training/gradient_dropping/gpu/dropper.cu
   training/gradient_dropping/gpu/sparse_algorithm.cu
-  training/communicator.cu
   STATIC)
 endif(CUDA_FOUND)
 

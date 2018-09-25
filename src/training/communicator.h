@@ -13,38 +13,20 @@ namespace marian {
 
 struct/*interface*/ IMPIWrapper; // @TODO: Should we use a separate header, or move this declaration up here?
 
-// This class implements the cross-GPU operations for distributed training within a single box.
+// This interface implements the cross-GPU operations for distributed training within a single box.
 // @TODO: This should absorb the multi-node version as well.
-class Communicator {
+class ICommunicator {
 protected:
   const std::vector<Ptr<ExpressionGraph>> graphs_;
 
 public:
-  Communicator(const std::vector<Ptr<ExpressionGraph>>& graphs)
+  ICommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs)
       : graphs_(graphs) {}
 
-  virtual ~Communicator() {}
+  virtual ~ICommunicator() {}
 
-  // helper to apply a function to each graph, in parallel threads
-  virtual void foreach(const std::function<void(size_t, int)>& func) const {
-    int totalSize = (int)graphs_[0]->params()->vals()->size();
-    int shardSize = (int)ceil(totalSize / (float)graphs_.size());
-
-    int pos = 0;
-    std::vector<std::thread> group;
-    // iterate over all shards
-    for(size_t idx = 0; idx < graphs_.size(); ++idx) {
-      int size = std::min(shardSize, totalSize);
-
-      group.emplace_back(func, idx, pos); // @BUGBUG: It seems the callee must guess the shard size again. Better pass the actual size.
-
-      pos += size;
-      totalSize -= size;
-      // @TODO: safer variant is pos = totalSize * idx / graphs_.size() and endpos = same for (id+1)
-    }
-    for(auto& t : group)
-      t.join();
-  }
+  // helper to apply a function to each graph or shard, in parallel threads
+  virtual void foreach(const std::function<void(size_t, int)>& func) const = 0;
 
   virtual void scatterReduce() = 0; // @TODO: indicate by the name that this is scattering gradients
   virtual void allGather(bool vals) = 0;
@@ -56,7 +38,7 @@ public:
   virtual void swapParams(const std::vector<Tensor>& params) = 0;
 };
 
-class DefaultCommunicator : public Communicator {
+class DefaultCommunicator : public ICommunicator {
 private:
   std::vector<Ptr<TensorAllocator>> paramsAllocs_;
   std::vector<Tensor> tmpTensors_;
@@ -89,11 +71,31 @@ private:
 
 public:
   DefaultCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs, Ptr<IMPIWrapper> mpi)
-      : Communicator(graphs) {
+      : ICommunicator(graphs) {
     ABORT_IF(mpi != nullptr, "DefaultCommunicator support for MPI is not yet implemented");
   }
 
   ~DefaultCommunicator() override {}
+
+  void foreach(const std::function<void(size_t, int)>& func) const override {
+    int totalSize = (int)graphs_[0]->params()->vals()->size();
+    int shardSize = (int)ceil(totalSize / (float)graphs_.size());
+
+    int pos = 0;
+    std::vector<std::thread> group;
+    // iterate over all shards
+    for(size_t idx = 0; idx < graphs_.size(); ++idx) {
+      int size = std::min(shardSize, totalSize);
+
+      group.emplace_back(func, idx, pos); // @BUGBUG: It seems the callee must guess the shard size again. Better pass the actual size.
+
+      pos += size;
+      totalSize -= size;
+      // @TODO: safer variant is pos = totalSize * idx / graphs_.size() and endpos = same for (id+1)
+    }
+    for(auto& t : group)
+      t.join();
+  }
 
   void scatterReduce() override {
     init();
@@ -210,7 +212,7 @@ public:
   }
 };
 
-Ptr<Communicator> createCommunicator(
+Ptr<ICommunicator> createCommunicator(
     const std::vector<Ptr<ExpressionGraph>>& graphs,
     bool noNccl, Ptr<IMPIWrapper> mpi);
 

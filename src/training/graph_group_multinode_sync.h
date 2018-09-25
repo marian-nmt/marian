@@ -63,8 +63,8 @@ private:
   ////////////////////////////////////////////////////////////////////////////
   // Communication variables.
 
-  Ptr<Communicator> commWithinNode_;  // Communicator within a single node, across devices (only if > 1 device)
-  Ptr<Communicator> commAcrossNodes_; // Communicator across nodes, for device 0 (only if > 1 node)
+  Ptr<ICommunicator> commWithinNode_;  // Communicator within a single node, across devices (only if > 1 device)
+  Ptr<ICommunicator> commAcrossNodes_; // Communicator across nodes, for device 0 (only if > 1 node)
 
   /**
    * Variables for optimizer delay and synchronous SGD

@@ -1,19 +1,14 @@
-// @TODO: why is this a .cu file? It does not contain any CUDA kernels.
-
+// Note: This must only be included if defined(CUDA_FOUND) && defined(USE_NCCL)
 // clang-format off
 #include "training/communicator.h"
-#include "functional/functional.h"
-#include "tensors/tensor_operators.h"
+//#include "functional/functional.h"
+//#include "tensors/tensor_operators.h"
 // clang-format on
-
-#ifdef USE_NCCL
+ 
 #include "cuda_runtime.h"
 #include "nccl.h"
-#endif
 
 namespace marian {
-
-#ifdef USE_NCCL
 
 #define NCCLCHECK(cmd) do {                         \
     /*LOG(info, "[nccl] {}", #cmd);*/ \
@@ -23,7 +18,7 @@ namespace marian {
           #cmd, ncclGetErrorString(r));   \
   } while(0)
 
-class NCCLCommunicator : public Communicator {
+class NCCLCommunicator : public ICommunicator {
 private:
   std::vector<ncclComm_t> comms_;
   std::vector<cudaStream_t> streams_;
@@ -37,12 +32,26 @@ private:
     }
   }
 
-  size_t myRankWithMPI(size_t index) const { // map local device index to a global MPI rank
-    return mpi_->myRank() * devices_.size() + index;
+  size_t myRankWithMPI(size_t localDeviceIndex) const { // map local device index to a global MPI rank
+    if (mpi_)
+      return mpi_->myRank() * devices_.size() + localDeviceIndex;
+    else
+      return localDeviceIndex;
   }
 
   size_t numRanksWithMPI() const { // map local device index to a global MPI rank
-    return mpi_->commWorldSize() * devices_.size();
+    if (mpi_)
+      return mpi_->commWorldSize() * devices_.size();
+    else
+      return devices_.size();
+  }
+
+  // determine the index range (begin, end) of a shard
+  std::pair<size_t, size_t> shardRange(size_t localDeviceIndex) const {
+    size_t numShards = numRanksWithMPI();
+    size_t rank = myRankWithMPI(localDeviceIndex);
+    size_t dataSize = graphs_[0]->params()->vals()->size();
+    return{ dataSize * rank / numShards, dataSize * (rank + 1) / numShards };
   }
 
 public:
@@ -50,7 +59,7 @@ public:
   // If MPI is used, then each worker has an instance of this class for its specific
   // set of GPU devices, which are communicating with each other.
   NCCLCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs, Ptr<IMPIWrapper> mpi)
-      : Communicator(graphs),
+      : ICommunicator(graphs),
         comms_(graphs.size()),
         streams_(graphs.size()),
         devices_(graphs.size()),
@@ -122,6 +131,36 @@ public:
     }
   }
 
+  void foreach(const std::function<void(size_t, int)>& func) const override {
+    size_t begin, end;
+
+    //int totalSize = (int)graphs_[0]->params()->vals()->size();
+    //int shardSize = (int)ceil(totalSize / (float)graphs_.size());
+    //
+    //int pos = 0;
+    std::vector<std::thread> group;
+    // iterate over all shards on this worker
+    if (graphs_.size() == 1) {
+      func(0, begin);
+    }
+    else
+    for(size_t i = 0; i < graphs_.size(); ++i) {
+      std::tie
+      (begin, end) = shardRange(i);
+      std::cerr << "foreach " << begin << " " << end << std::endl;
+      size_t size = end-begin;
+      //int size = std::min(shardSize, totalSize);
+
+      group.emplace_back(func, i, begin); // @BUGBUG: It seems the callee must guess the shard size again. Better pass the actual size.
+
+      //pos += size;
+      //totalSize -= size;
+      // @TODO: safer variant is pos = totalSize * i / graphs_.size() and endpos = same for (id+1)
+    }
+    for(auto& t : group)
+      t.join();
+  }
+
   void allReduceGrads() override {
     ncclGroupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
@@ -138,8 +177,10 @@ public:
     synchronizeAll();
   }
 
+  // this will aggregate across nodes and across devices inside nodes (we only loop over the local devices here) into worker[0].device[0]
+  // only used by graph_group_multinode_sync.cpp, which is unused now
   void reduceGrads(size_t root) override {
-    ncclGroupStart(); // this will aggregate across nodes and across devices inside nodes (we only loop over the local devices here)
+    ncclGroupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
       NCCLCHECK(ncclReduce(graphs_[i]->params()->grads()->data(),
                            graphs_[i]->params()->grads()->data(),
@@ -156,19 +197,25 @@ public:
   }
 
   void scatterReduce() override {
-    ABORT_IF(mpi_ != nullptr, "allReduceGrads() support for MPI is not yet implemented");
-    int totalSize = graphs_[0]->params()->vals()->size();
-    int shardSize = ceil(totalSize / (float)graphs_.size());
+    //ABORT_IF(mpi_ != nullptr, "allReduceGrads() support for MPI is not yet implemented");
+    //int totalSize = graphs_[0]->params()->vals()->size();
+    //int shardSize = ceil(totalSize / (float)graphs_.size());
+    //
+    //int pos = 0;
 
-    int pos = 0;
+    size_t shardSize = shardRange(0).second;
 
+    size_t begin, end;
     ncclGroupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
-      int size = std::min(shardSize, totalSize);
+      std::tie
+      (begin, end) = shardRange(i);
+      std::cerr << "scatterReduce " << begin << " " << end << std::endl;
+      size_t size = end-begin;
 
-      const void* sendbuff = (const void*)graphs_[i]->params()->grads()->data();
-      auto subgrad = graphs_[i]->params()->grads()->subtensor(pos, size);
-      void* recvbuff = subgrad->data();
+      const auto* sendbuff = graphs_[i]->params()->grads()->data();
+      auto subgrad = graphs_[i]->params()->grads()->subtensor(begin, size);
+      auto* recvbuff = subgrad->data();
 
       ncclReduceScatter(sendbuff,
                         recvbuff,
@@ -178,8 +225,8 @@ public:
                         comms_[i],
                         streams_[i]);
 
-      pos += size;
-      totalSize -= size;
+      //pos += size;
+      //totalSize -= size;
     }
     ncclGroupEnd();
 
@@ -187,26 +234,32 @@ public:
   }
 
   void allGather(bool vals) override {
-    ABORT_IF(mpi_ != nullptr, "allReduceGrads() support for MPI is not yet implemented");
-    int totalSize = graphs_[0]->params()->vals()->size();
-    int shardSize = ceil(totalSize / (float)graphs_.size());
+    //ABORT_IF(mpi_ != nullptr, "allReduceGrads() support for MPI is not yet implemented");
+    //int totalSize = graphs_[0]->params()->vals()->size();
+    //int shardSize = ceil(totalSize / (float)graphs_.size());
+    //
+    //int pos = 0;
 
-    int pos = 0;
+    size_t shardSize = shardRange(0).second;
 
+    size_t begin, end;
     ncclGroupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
-      int size = std::min(shardSize, totalSize);
+      std::tie
+      (begin, end) = shardRange(i);
+      std::cerr << "allGather " << begin << " " << end << std::endl;
+      size_t size = end-begin;
+      //int size = std::min(shardSize, totalSize);
 
       auto tensor = vals ? graphs_[i]->params()->vals() : graphs_[i]->params()->grads();
-      auto subparam = tensor->subtensor(pos, size);
-      const void* sendbuff = (const void*)subparam->data();
-      void* recvbuff = (void*)tensor->data();
+      auto subparam = tensor->subtensor(begin, size);
+      const auto* sendbuff = subparam->data();
+      void* recvbuff = tensor->data();
 
-      ncclAllGather(
-          sendbuff, recvbuff, shardSize, ncclFloat, comms_[i], streams_[i]);
+      ncclAllGather(sendbuff, recvbuff, shardSize, ncclFloat, comms_[i], streams_[i]);
 
-      pos += size;
-      totalSize -= size;
+      //pos += size;
+      //totalSize -= size;
     }
     ncclGroupEnd();
 
@@ -214,7 +267,7 @@ public:
   }
 
   void swapParams(const std::vector<Tensor>& params) override {
-    ABORT_IF(mpi_ != nullptr, "allReduceGrads() support for MPI is not yet implemented");
+    ABORT_IF(mpi_ != nullptr, "swapParams() support for MPI is not yet implemented");
     // Update all graphs with parameter shard
     ABORT_IF(graphs_.size() < 2, "Swap requires at least two graphs");
 
@@ -316,10 +369,9 @@ public:
   //   synchronizeAll();
   // }
 };
-#endif
 
-Ptr<Communicator> newNCCLCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs, Ptr<IMPIWrapper> mpi) {
-  return New<NCCLCommunicator>(graphs, mpi);
-}
+//Ptr<ICommunicator> newNCCLCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs, Ptr<IMPIWrapper> mpi) {
+//  return New<NCCLCommunicator>(graphs, mpi);
+//}
 
 }  // namespace marian

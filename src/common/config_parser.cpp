@@ -976,7 +976,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   SET_OPTION("clip-gemm", float);
   SET_OPTION("interpolate-env-vars", bool);
   SET_OPTION("relative-paths", bool);
-  SET_OPTION("num-devices", size_t);
+  SET_OPTION_NONDEFAULT("num-devices", size_t);
   SET_OPTION("devices", std::vector<std::string>);
   SET_OPTION("cpu-threads", size_t);
   // SET_OPTION("omp-threads", size_t);

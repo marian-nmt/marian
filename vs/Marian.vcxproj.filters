@@ -1153,5 +1153,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorConfig" />
+    <None Include="..\src\training\communicator_nccl.h">
+      <Filter>training</Filter>
+    </None>
   </ItemGroup>
 </Project>

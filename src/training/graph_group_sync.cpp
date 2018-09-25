@@ -7,7 +7,11 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Config> config)
     : GraphGroup(config),
       ExponentialSmoothing{options_->get<float>("exponential-smoothing")},
       delay_{options_->get<size_t>("optimizer-delay")} { // @TODO: rename to something else; delay means delayed updated, not accumulation
-  devices_ = options_->getDevices();
+
+  // @TODO: it seems we don't even need the --multi-node option, do we? Just run under MPI to enable that.
+  mpi_ = initMPI(/*multiThreaded=*/false); // when not running under MPI, this will be a fake object that represents a one-worker setup
+
+  devices_ = options_->getDevices(mpi_->myRank(), mpi_->commWorldSize());
   for(auto device : devices_) {
     auto graph = New<ExpressionGraph>();
     graph->setDevice(device);
@@ -19,7 +23,8 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Config> config)
     builders_.push_back(models::from_config(options_, models::usage::training));
   }
 
-  comm_ = createCommunicator(graphs_, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/nullptr);
+  if (graphs_.size() > 1)
+    comm_ = createCommunicator(graphs_, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/mpi_);
 }
 
 void SyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) {
@@ -95,8 +100,10 @@ void SyncGraphGroup::initializeAvg() {
     graphAvg.reset();
 }
 
-void SyncGraphGroup::execute(Ptr<data::Batch> batch) {
-  size_t devs = devices_.size();
+void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
+  ABORT_IF(finalized_, "Training has already finished.");
+
+  size_t devs = devices_.size() * mpi_->commWorldSize();
   auto batches = batch->split(delay_ * devs);
 
   float div = (float)batches.size();  // no. of batches

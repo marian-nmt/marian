@@ -460,6 +460,7 @@
     <ClInclude Include="..\src\translator\translator.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\src\training\communicator_nccl.h" />
     <None Include=".editorConfig" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

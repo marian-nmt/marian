@@ -1,11 +1,16 @@
 #include "training/communicator.h"
+
+#if defined(CUDA_FOUND) && defined(USE_NCCL)
+#include "training/communicator_nccl.h"
+#endif
+
 #if MPI_FOUND
 #include "mpi.h"
 #endif
 
 namespace marian {
 
-Ptr<Communicator> createCommunicator(
+Ptr<ICommunicator> createCommunicator(
   const std::vector<Ptr<ExpressionGraph>>& graphs,
   bool noNccl, Ptr<IMPIWrapper> mpi) {
   mpi;
@@ -32,8 +37,9 @@ Ptr<Communicator> createCommunicator(
   }
 
   // the actual implemenntation is inside communicator.cu
-  extern Ptr<Communicator> newNCCLCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs, Ptr<IMPIWrapper> mpi);
-  return newNCCLCommunicator(graphs, mpi);
+  //extern Ptr<ICommunicator> newNCCLCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs, Ptr<IMPIWrapper> mpi);
+  //return newNCCLCommunicator(graphs, mpi);
+  return New<NCCLCommunicator>(graphs, mpi); 
 #else // no CUDA or no NCCL
   noNccl; // (unused)
   return New<DefaultCommunicator>(graphs, mpi);

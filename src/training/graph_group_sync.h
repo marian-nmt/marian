@@ -14,15 +14,17 @@ public:
   virtual void setScheduler(Ptr<Scheduler> scheduler) override;
 
 private:
-  Ptr<Communicator> comm_;
+  Ptr<ICommunicator> comm_;
 
-  std::vector<Ptr<models::ModelBase>> builders_;
-  std::vector<Ptr<ExpressionGraph>> graphs_;
-  std::vector<DeviceId> devices_;
+  Ptr<IMPIWrapper> mpi_; // multi-node only; all MPI-like communication goes through this
 
-  std::vector<Ptr<OptimizerBase>> shardOpt_;
+  std::vector<DeviceId> devices_;                // [deviceIndex]
+  std::vector<Ptr<models::ModelBase>> builders_; // [deviceIndex]
+  std::vector<Ptr<ExpressionGraph>> graphs_;     // [deviceIndex]
 
-  int shardSize_;
+  std::vector<Ptr<OptimizerBase>> shardOpt_;     // [deviceIndex]
+
+  int shardSize_; // @TODO: what is this?
   bool first_{true};
 
   std::vector<Tensor> paramsAvg_;
@@ -33,15 +35,10 @@ private:
   void initialize(const std::vector<Ptr<data::Batch>>& batches);
   void initializeAvg();
 
-  void execute(Ptr<data::Batch> batch); // @TODO: merge with update()
-
 public:
   SyncGraphGroup(Ptr<Config> config);
 
-  void update(Ptr<data::Batch> batch) override {
-    ABORT_IF(finalized_, "Training has already finished.");
-    execute(batch);
-  }
+  void update(Ptr<data::Batch> batch) override;
 
   void load() override;
   void save(bool final = false) override;
