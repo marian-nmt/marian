@@ -131,7 +131,7 @@ public:
     }
   }
 
-  void foreach(const std::function<void(size_t, int)>& func) const override {
+  void foreach(const std::function<void(size_t, size_t /*shardBegin*/, size_t /*shardEnd*/)>& func) const override {
     size_t begin, end;
 
     //int totalSize = (int)graphs_[0]->params()->vals()->size();
@@ -141,7 +141,7 @@ public:
     std::vector<std::thread> group;
     // iterate over all shards on this worker
     if (graphs_.size() == 1) {
-      func(0, begin);
+      func(0, begin, end);
     }
     else
     for(size_t i = 0; i < graphs_.size(); ++i) {
@@ -151,7 +151,7 @@ public:
       size_t size = end-begin;
       //int size = std::min(shardSize, totalSize);
 
-      group.emplace_back(func, i, begin); // @BUGBUG: It seems the callee must guess the shard size again. Better pass the actual size.
+      group.emplace_back(func, i, begin, end);
 
       //pos += size;
       //totalSize -= size;
@@ -271,21 +271,21 @@ public:
     // Update all graphs with parameter shard
     ABORT_IF(graphs_.size() < 2, "Swap requires at least two graphs");
 
-    auto gather = [this, params](size_t idx, int pos) {
+    auto gather = [this, params](size_t idx, size_t begin, size_t end) {
       // copy parameter shard to each graph, apart from last graph
       for(int i = 0; i < graphs_.size() - 1; ++i) {
         auto subParam
-            = graphs_[i]->params()->vals()->subtensor(pos, params[idx]->size());
+            = graphs_[i]->params()->vals()->subtensor(begin, params[idx]->size());
         subParam->copyFrom(params[idx]);
       }
 
       // back-up shard from last graph
-      auto subParamLast = graphs_.back()->params()->vals()->subtensor(
-          pos, params[idx]->size());
+      auto subParamLast
+          = graphs_.back()->params()->vals()->subtensor(begin, params[idx]->size());
       params[idx]->copyFrom(subParamLast);
 
       auto subParamFirst
-          = graphs_[0]->params()->vals()->subtensor(pos, params[idx]->size());
+          = graphs_[0]->params()->vals()->subtensor(begin, params[idx]->size());
       subParamLast->copyFrom(subParamFirst);
     };
 
@@ -298,7 +298,7 @@ public:
     // Copy paramter shard from i-th graph to shard params[i].
     // Graphs and shards with the same index live on the same device.
 
-    auto copy = [this, params](size_t idx, int pos) {
+    auto copy = [this, params](size_t idx, size_t begin, size_t end) {
       // copy parameter shard to each graph
       auto subParam
           = graphs_[idx]->params()->vals()->subtensor(pos, params[idx]->size());
@@ -312,11 +312,11 @@ public:
     ABORT_IF(mpi_ != nullptr, "allReduceGrads() support for MPI is not yet implemented");
     // Update all graphs with parameter shard
 
-    auto gather = [this, params](size_t idx, int pos) {
+    auto gather = [this, params](size_t idx, size_t begin, size_t end) {
       // copy parameter shard to each graph
       for(auto graph : graphs_) {
         auto subParam
-            = graph->params()->vals()->subtensor(pos, params[idx]->size());
+            = graph->params()->vals()->subtensor(begin, params[idx]->size());
         subParam->copyFrom(params[idx]);
       }
     };

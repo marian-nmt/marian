@@ -104,15 +104,16 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
   ABORT_IF(finalized_, "Training has already finished.");
 
   size_t devs = devices_.size() * mpi_->commWorldSize();
-  auto batches = batch->split(delay_ * devs);
+  auto batches = batch->split(delay_ * devs); // data-parallel split of batch over all GPUs
 
   float div = (float)batches.size();  // no. of batches
   // do not average gradients if cost type is sum.
   if(options_->get<std::string>("cost-type") == "ce-sum")
     div = 1;
 
+  // load all batches
+  // @TODO: does delay work this way? We pass the entire batch for all delay steps in one go
   std::vector<std::vector<Ptr<data::Batch>>> delayedBatches;
-
   for(size_t i = 0; i < delay_; ++i) {
     if(i * devs < batches.size()) {
       delayedBatches.emplace_back();
@@ -138,7 +139,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
     }
 
     // Execute single forward/backward step
-    auto forwardBackward = [this, &costs, curBatches, t](size_t idx, int /*pos*/) {
+    auto forwardBackward = [this, &costs, curBatches, t](size_t idx, size_t /*begin*/, size_t /*end*/) {
       auto graph = graphs_[idx];
       auto batch = curBatches[idx];
 
@@ -158,14 +159,15 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
     };
 
     // Update parameter shard with gradient shard
-    auto update = [this, div](size_t idx, int pos) {
-      int totalSize = (int)graphs_[0]->params()->vals()->size();
-      int shardSize = (int)ceil(totalSize / (float)devices_.size());
+    auto update = [this, div](size_t idx, size_t begin, size_t end) {
+      size_t totalSize = (int)graphs_[0]->params()->vals()->size();
+      size_t shardSize = (int)ceil(totalSize / (float)devices_.size());
 
-      int size = std::min(totalSize - pos, shardSize);
+      size_t size = std::min(totalSize - begin, shardSize);
+      ABORT_IF(size != end-begin, "inconsistent shard size??");
 
-      auto curGrad = graphs_[idx]->params()->grads()->subtensor(pos, size);
-      auto curParam = graphs_[idx]->params()->vals()->subtensor(pos, size);
+      auto curGrad = graphs_[idx]->params()->grads()->subtensor(begin, size);
+      auto curParam = graphs_[idx]->params()->vals()->subtensor(begin, size);
 
       if(div != 1) {
         using namespace functional;

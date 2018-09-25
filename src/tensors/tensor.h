@@ -79,10 +79,10 @@ public:
   Ptr<Backend> getBackend() { return backend_; }
   DeviceId getDeviceId() { return backend_->getDeviceId(); }
 
-  Tensor subtensor(int offset, int size) {
+  Tensor subtensor(size_t offset, size_t size) {
     auto mem = New<MemoryPiece>(memory_->data() + sizeOf(type_) * offset,
                                 sizeOf(type_) * size);
-    return New<TensorBase>(mem, Shape{1, size}, backend_);
+    return New<TensorBase>(mem, Shape{1, (int)size}, backend_);
   }
 
   float get(size_t i) {
