@@ -131,19 +131,17 @@ public:
     }
   }
 
-  void foreach(const std::function<void(size_t, size_t /*shardBegin*/, size_t /*shardEnd*/)>& func) const override {
-    size_t begin, end;
-
+  void foreach(const std::function<void(size_t, size_t /*shardBegin*/, size_t /*shardEnd*/)>& func, bool parallel= true) const override {
+    parallel &= graphs_.size() > 1;
+      
     //int totalSize = (int)graphs_[0]->params()->vals()->size();
     //int shardSize = (int)ceil(totalSize / (float)graphs_.size());
     //
     //int pos = 0;
+
     std::vector<std::thread> group;
     // iterate over all shards on this worker
-    if (graphs_.size() == 1) {
-      func(0, begin, end);
-    }
-    else
+    size_t begin, end;
     for(size_t i = 0; i < graphs_.size(); ++i) {
       std::tie
       (begin, end) = shardRange(i);
@@ -151,13 +149,16 @@ public:
       size_t size = end-begin;
       //int size = std::min(shardSize, totalSize);
 
-      group.emplace_back(func, i, begin, end);
+      if (parallel)
+        group.emplace_back(func, i, begin, end);
+      else
+        func(i, begin, end);
 
       //pos += size;
       //totalSize -= size;
       // @TODO: safer variant is pos = totalSize * i / graphs_.size() and endpos = same for (id+1)
     }
-    for(auto& t : group)
+    for(auto& t : group) // (note: group is empty is not parallel)
       t.join();
   }
 
@@ -266,10 +267,10 @@ public:
     synchronizeAll();
   }
 
+  // swap params worker[0].device[0] with a sharded set (in particular, that's the smoothed parameters)
   void swapParams(const std::vector<Tensor>& params) override {
     ABORT_IF(mpi_ != nullptr, "swapParams() support for MPI is not yet implemented");
     // Update all graphs with parameter shard
-    ABORT_IF(graphs_.size() < 2, "Swap requires at least two graphs");
 
     auto gather = [this, params](size_t idx, size_t begin, size_t end) {
       // copy parameter shard to each graph, apart from last graph
@@ -290,26 +291,26 @@ public:
     };
 
     // execute for each shard
-    this->foreach(gather);
+    foreach(gather);
   }
 
   void pushParams(std::vector<Tensor>& params) override {
-    ABORT_IF(mpi_ != nullptr, "allReduceGrads() support for MPI is not yet implemented");
+    ABORT_IF(mpi_ != nullptr, "pushParams() support for MPI is not yet implemented");
     // Copy paramter shard from i-th graph to shard params[i].
     // Graphs and shards with the same index live on the same device.
 
     auto copy = [this, params](size_t idx, size_t begin, size_t end) {
       // copy parameter shard to each graph
       auto subParam
-          = graphs_[idx]->params()->vals()->subtensor(pos, params[idx]->size());
+          = graphs_[idx]->params()->vals()->subtensor(begin, params[idx]->size());
       params[idx]->copyFrom(subParam);
     };
 
-    this->foreach(copy);
+    foreach(copy);
   }
 
   void pullParams(const std::vector<Tensor>& params) override {
-    ABORT_IF(mpi_ != nullptr, "allReduceGrads() support for MPI is not yet implemented");
+    ABORT_IF(mpi_ != nullptr, "pullParams() support for MPI is not yet implemented");
     // Update all graphs with parameter shard
 
     auto gather = [this, params](size_t idx, size_t begin, size_t end) {
@@ -320,7 +321,7 @@ public:
         subParam->copyFrom(params[idx]);
       }
     };
-    this->foreach(gather);
+    foreach(gather);
   }
 
   // Doesn't work yet with NCCL

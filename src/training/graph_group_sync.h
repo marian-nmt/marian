@@ -42,7 +42,6 @@ public:
 
   void load() override;
   void save(bool final = false) override;
-  void save(Ptr<ExpressionGraph> graph, bool final = false);
 
   Ptr<data::BatchStats> collectStats() {
     return GraphGroup::collectStats(graphs_[0], builders_[0], numBatches());

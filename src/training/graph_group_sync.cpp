@@ -8,7 +8,7 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Config> config)
       ExponentialSmoothing{options_->get<float>("exponential-smoothing")},
       delay_{options_->get<size_t>("optimizer-delay")} { // @TODO: rename to something else; delay means delayed updated, not accumulation
 
-  // @TODO: it seems we don't even need the --multi-node option, do we? Just run under MPI to enable that.
+  // @TODO: it seems we don'_____local_t_____ even need the --multi-node option, do we? Just run under MPI to enable that.
   mpi_ = initMPI(/*multiThreaded=*/false); // when not running under MPI, this will be a fake object that represents a one-worker setup
 
   devices_ = options_->getDevices(mpi_->myRank(), mpi_->commWorldSize());
@@ -38,73 +38,71 @@ void SyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) {
 
 void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
   // Initialize 0th graph with random weights in one forward step
-  {
-    THREAD_GUARD(builders_[0]->build(graphs_[0], batches[0]);
-                 graphs_[0]->forward(););
+  THREAD_GUARD(builders_[0]->build(graphs_[0], batches[0]);
+               graphs_[0]->forward(););
 
-    // Copy weights from 0th graph to all other graphs
-    // to have equal weights across devices
-    ThreadPool pool(graphs_.size() - 1, graphs_.size() - 1);
-    for(size_t i = 1; i < graphs_.size(); ++i) {
-      auto init = [&](size_t i) {
-        // initialize i-th graph and weights
-        builders_[i]->build(graphs_[i], batches[0]);
-        graphs_[i]->forward();
-        // overwrite weights of i-th graph with weights from 0th graph
-        graphs_[i]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
-      };
-      pool.enqueue(init, i);
-    }
+  // Copy weights from 0th graph to all other graphs
+  // to have equal weights across devices
+  ThreadPool pool(graphs_.size() - 1, graphs_.size() - 1);
+  for(size_t i = 1; i < graphs_.size(); ++i) {
+    auto init = [&](size_t i) {
+      // initialize t-th graph and weights
+      builders_[i]->build(graphs_[i], batches[0]);
+      graphs_[i]->forward();
+      // overwrite weights of t-th graph with weights from 0th graph
+      graphs_[i]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
+    };
+    pool.enqueue(init, i);
   }
+  // ThreadPool destructor waits until completion of all tasks.
 }
 
 void SyncGraphGroup::initializeAvg() {
-  Ptr<ExpressionGraph> graphAvg;
+  Ptr<ExpressionGraph> graphAvg; // CPU-side temp
   std::string name = options_->get<std::string>("model");
   if(boost::filesystem::exists(name + ".orig.npz")) {
     // Load the averaged parameters into a temporary graph
     graphAvg = New<ExpressionGraph>();
     graphAvg->setDevice({0, DeviceType::cpu});
     graphAvg->load(name, false);
-    graphAvg->forward();
+    graphAvg->forward(); // initialize parameters if needed
   }
 
-  int totalSize = (int)graphs_[0]->params()->vals()->size();
-  shardSize_ = (int)ceil(totalSize / (float)devices_.size());
+  auto init = [&](size_t localDeviceIndex, size_t begin, size_t end) {
+    size_t size = end-begin;
 
-  int pos = 0;
-  for(auto graph : graphs_) {
-    int __size__ = std::min(shardSize_, totalSize);
+    // get the device-specific allocator
+    auto paramsAllocator = New<TensorAllocator>(graphs_[localDeviceIndex]->getBackend());
+    paramsAllocs_[localDeviceIndex] = paramsAllocator;
 
-    auto paramsAlloc = New<TensorAllocator>(graph->getBackend());
-    paramsAllocs_.push_back(paramsAlloc);
-
-    paramsAlloc->reserveExact(__size__ * sizeof(float));
+    paramsAllocator->reserveExact(size * sizeof(float));
 
     Tensor paramAvg;
-    paramsAlloc->allocate(paramAvg, {1, __size__});
-    paramsAvg_.push_back(paramAvg);
+    paramsAllocator->allocate(paramAvg, {1, (int)size});
+    paramsAvg_[localDeviceIndex] = paramAvg;
 
     if(graphAvg)
-      paramAvg->copyFrom(graphAvg->params()->vals()->subtensor(pos, __size__));
+      paramAvg->copyFrom(graphAvg  ->params()->vals()->subtensor(begin, size));
     else
-      paramAvg->copyFrom(
-          graphs_[0]->params()->vals()->subtensor(pos, __size__));
+      paramAvg->copyFrom(graphs_[0]->params()->vals()->subtensor(begin, size));
 
-    // move to next shard
-    pos += __size__;
-    totalSize -= __size__;
-  }
+    // note: for multi-node, graphAvg and graphs_[0] contain a complete copy, from which
+    // each worker copies only part into its respective shard(s)
+  };
 
-  if(graphAvg)
-    graphAvg.reset();
+  paramsAllocs_.resize(graphs_.size()); // allocators
+  paramsAvg_.resize(graphs_.size());    // averaged parameters (shards; if multi-node, then distributed over workers)
+  comm_->foreach(init, /*parallel=*/false); // @TODO: is sequential operation necessary here? (is the allocation stuff sufficiently reentrant or thread-separated?)
+
+  //if(graphAvg)
+  //  graphAvg.reset();
 }
 
 void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
   ABORT_IF(finalized_, "Training has already finished.");
 
-  size_t devs = devices_.size() * mpi_->commWorldSize();
-  auto batches = batch->split(delay_ * devs); // data-parallel split of batch over all GPUs
+  size_t globalNumDevices = devices_.size() * mpi_->commWorldSize(); // global number of devices (for multi-node, this counts all workers)
+  auto batches = batch->split(delay_ * globalNumDevices); // data-parallel split of batch over all GPUs
 
   float div = (float)batches.size();  // no. of batches
   // do not average gradients if cost type is sum.
@@ -112,85 +110,87 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
     div = 1;
 
   // load all batches
-  // @TODO: does delay work this way? We pass the entire batch for all delay steps in one go
-  std::vector<std::vector<Ptr<data::Batch>>> delayedBatches;
-  for(size_t i = 0; i < delay_; ++i) {
-    if(i * devs < batches.size()) {
-      delayedBatches.emplace_back();
-      for(size_t j = 0; j < devs; ++j) {
-        size_t index = i * devs + j;
-        if(index < batches.size())
-          delayedBatches.back().push_back(batches[i * devs + j]);
-        else
-          delayedBatches.back().push_back(nullptr);
-      }
+  // For multi-node, we load all data for all workers, which is a bit wasteful.
+  std::vector<std::vector<Ptr<data::Batch>>> delayedBatches(delay_); // [delay][global device index]
+  for(size_t t = 0; t < delay_; ++t) {
+    for(size_t j = 0; j < globalNumDevices; ++j) {
+      size_t index = t * globalNumDevices + j;
+      if(index < batches.size())
+        delayedBatches[t].push_back(batches[index]);
+      else // we may not have enough data to form this many batches
+        delayedBatches[t].push_back(nullptr);
     }
   }
 
-  std::vector<float> costs(devices_.size(), 0.f);
-  size_t t = 1;
+  // Upon very first execution, reset everything
+  if(first_) {
+    initialize(delayedBatches[0]);
+    if(mvAvg_ && paramsAvg_.empty())
+      initializeAvg();
+    first_ = false;
+  }
 
-  for(const auto& curBatches : delayedBatches) {
-    if(first_) {
-      initialize(curBatches);
-      if(mvAvg_ && paramsAvg_.empty())
-        initializeAvg();
-      first_ = false;
-    }
+  // Compute gradients
+  // This happens in multiple steps in case of delay_ > 1.
+  std::vector<float> costs(devices_.size(), 0.f); // [local device index] aggregate cost for each local device
+  for (size_t t = 0; t < delayedBatches.size(); t++) {
+    const auto& curBatches = delayedBatches[t];
 
     // Execute single forward/backward step
-    auto forwardBackward = [this, &costs, curBatches, t](size_t idx, size_t /*begin*/, size_t /*end*/) {
-      auto graph = graphs_[idx];
-      auto batch = curBatches[idx];
+    auto forwardBackward = [this, &costs, &curBatches, t](size_t localDeviceIndex, size_t /*begin*/, size_t /*end*/) {
+      auto graph = graphs_[localDeviceIndex];
+      auto batch = curBatches[localDeviceIndex + devices_.size() + mpi_->myRank()];
 
       if(batch) {
-        auto costNode = builders_[idx]->build(graph, batch);
+        auto costNode = builders_[localDeviceIndex]->build(graph, batch);
         graph->forward();
-        costs[idx] += costNode->scalar();
+        costs[localDeviceIndex] += costNode->scalar();
 
-        // only reset gradients to 0 if t == 1
-        graph->backward(t == 1);
-      } else {
+        // only reset gradients to 0 if t + 1 == 1
+        graph->backward(/*zero=*/t == 0);
+      }
+      else {
         // handle case of empty batch, execute do-nothing fw-bw step for
         // proper inits and resets.
         graph->forward();
-        graph->backward(t == 1);
+        graph->backward(/*zero=*/t == 0);
       }
     };
 
-    // Update parameter shard with gradient shard
-    auto update = [this, div](size_t idx, size_t begin, size_t end) {
-      size_t totalSize = (int)graphs_[0]->params()->vals()->size();
-      size_t shardSize = (int)ceil(totalSize / (float)devices_.size());
-
-      size_t size = std::min(totalSize - begin, shardSize);
-      ABORT_IF(size != end-begin, "inconsistent shard size??");
-
-      auto curGrad = graphs_[idx]->params()->grads()->subtensor(begin, size);
-      auto curParam = graphs_[idx]->params()->vals()->subtensor(begin, size);
-
-      if(div != 1) {
-        using namespace functional;
-        Element(_1 = _1 / div, curGrad);
-      }
-
-      shardOpt_[idx]->update(curParam, curGrad);
-
-      if(mvAvg_)
-        updateAvgParams(
-            paramsAvg_[idx], curParam, scheduler_->numberOfBatches());
-    };
-
-    comm_->foreach(forwardBackward);
-    if(t == delayedBatches.size()) {
-      comm_->scatterReduce();
-      comm_->foreach(update);
-      comm_->allGather(/*vals=*/true);
-    }
-
-    t++;
+    comm_->foreach(forwardBackward); // compute gradients in parallel on each device. Aggregate if delay_ > 1.
   }
 
+  // Update parameter shard with gradient shard
+  auto update = [this, div](size_t idx, size_t begin, size_t end) {
+#if 1
+    size_t totalSize = graphs_[0]->params()->vals()->size();
+    size_t shardSize = (size_t)ceil(totalSize / (float)devices_.size());
+
+    size_t size = std::min(totalSize - begin, shardSize);
+    ABORT_IF(size != end-begin, "inconsistent shard size??");
+#endif
+
+    auto curGrad = graphs_[idx]->params()->grads()->subtensor(begin, end-begin);
+    auto curParam = graphs_[idx]->params()->vals()->subtensor(begin, end-begin);
+
+    if(div != 1) {
+      using namespace functional;
+      Element(_1 = _1 / div, curGrad);
+    }
+
+    shardOpt_[idx]->update(curParam, curGrad);
+
+    if(mvAvg_)
+      updateAvgParams(
+          paramsAvg_[idx], curParam, scheduler_->numberOfBatches());
+  };
+
+  comm_->scatterReduce();          // reduce gradients across all devices (globally) into shards
+  comm_->foreach(update);          // per-shard model-update
+  comm_->allGather(/*vals=*/true); // distribute shards back  --@TODO; remove the 'true' again; no longer needed I think
+
+  // cost across all local devices
+  // @TODO: We should report cost aggregated over all workers.
   float cost = 0;
   for(auto& c : costs) {
     cost += c;
@@ -245,7 +245,7 @@ void SyncGraphGroup::load() {
       std::vector<Ptr<Backend>> backends;
       for(auto graph : graphs_)
         backends.push_back(graph->getBackend());
-      shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends);
+      shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends); // @BUGBUG: Check that this is correct for multi-node
 
     } else if(options_->has("pretrained-model")) {
       std::string nameInit = options_->get<std::string>("pretrained-model");
@@ -261,53 +261,50 @@ void SyncGraphGroup::load() {
 }
 
 void SyncGraphGroup::save(bool final) {
+  // do final validation
   if(final && scheduler_) {
+    // bring the smoothed model in
+    // Note that it is sharded. For multi-node, it is sharded over multiple machines, so this is a network access.
     if(mvAvg_ && paramsAvg_.size() > 0)
       comm_->swapParams(paramsAvg_);
 
-    scheduler_->validate(graphs_, true);
-
-    if(mvAvg_ && paramsAvg_.size() > 0)
-      comm_->swapParams(paramsAvg_);
-  }
-  save(graphs_[0], final);
-}
-
-void SyncGraphGroup::save(Ptr<ExpressionGraph> graph, bool final) {
-  size_t idx = 0;
-  for(size_t i = 0; i < graphs_.size(); ++i) {
-    if(graph == graphs_[i]) {
-      idx = i;
-      break;
+    mpi_->barrier();
+    if (mpi_->myRank() == 0) { // in multi-node, only first worker saves the model (they are all identical)
+      scheduler_->validate(graphs_, true);
     }
+    mpi_->barrier();
+
+    if(mvAvg_ && paramsAvg_.size() > 0)
+      comm_->swapParams(paramsAvg_);
   }
 
   std::string name = options_->get<std::string>("model");
 
+  // save original (unsmoothed) parameters as well
+  // @TODO: Check whether we are reloading the correct file (the unsmoothed one).
   if(mvAvg_ && paramsAvg_.size() > 0) {
     // Save the original parameters in model.npz.orig.npz
-    builders_[idx]->save(graphs_[idx], name + ".orig.npz", true);
+    if (mpi_->myRank() == 0) // only save from one worker
+      builders_[0]->save(graphs_[0], name + ".orig.npz", true);
     // Switch to the averaged parameters
-    comm_->swapParams(paramsAvg_);
+    comm_->swapParams(paramsAvg_); // note: the smoothed model is sharded, across workers of multi-node. This brings it into worker[0].device[0]
   }
 
-  if(options_->get<bool>("overwrite")) {
-    builders_[idx]->save(graphs_[idx], name, true);
-    if(scheduler_)
-      scheduler_->save(name);
-  } else {
-    if(!final) {
+  // save main model file
+  if (mpi_->myRank() == 0) { // only save from one worker
+    // if not overwrite then save a copy with number of updates in the model pathname
+    if(!options_->get<bool>("overwrite") && !final) {
       std::string numberOfBatches
           = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
                        : "unknown";
       std::string nameOverwrite = name;
       nameOverwrite.replace(
           name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");
-      builders_[idx]->save(graphs_[idx], nameOverwrite);
+      builders_[0]->save(graphs_[0], nameOverwrite);
     }
-
-    builders_[idx]->save(graphs_[idx], name, true);
-    if(scheduler_)
+    // save main model file
+    builders_[0]->save(graphs_[0], name, true);
+    if (scheduler_)
       scheduler_->save(name);
   }
 
@@ -315,8 +312,9 @@ void SyncGraphGroup::save(Ptr<ExpressionGraph> graph, bool final) {
     // Switch back to the original parameters
     comm_->swapParams(paramsAvg_);
 
-  size_t totalSize = graphs_[idx]->params()->vals()->size();
-  shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_, totalSize);
+  size_t totalSize = graphs_[0]->params()->vals()->size();
+  // @BUGBUG @BUGBUG: This does not work for multi-node.
+  shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_, totalSize);
 }
 
 }  // namespace marian

@@ -26,7 +26,7 @@ public:
   virtual ~ICommunicator() {}
 
   // helper to apply a function to each graph or shard, in parallel threads
-  virtual void foreach(const std::function<void(size_t /*index*/, size_t /*shardBegin*/, size_t /*shardEnd*/)>& func) const = 0;
+  virtual void foreach(const std::function<void(size_t /*index*/, size_t /*shardBegin*/, size_t /*shardEnd*/)>& func, bool parallel = true) const = 0;
 
   virtual void scatterReduce() = 0; // @TODO: indicate by the name that this is scattering gradients
   virtual void allGather(bool vals) = 0;
@@ -77,7 +77,9 @@ public:
 
   ~DefaultCommunicator() override {}
 
-  void foreach(const std::function<void(size_t, size_t /*shardBegin*/, size_t /*shardEnd*/)>& func) const override {
+  void foreach(const std::function<void(size_t, size_t /*shardBegin*/, size_t /*shardEnd*/)>& func, bool parallel = true) const override {
+    parallel &= graphs_.size() > 1;
+
     size_t totalSize = graphs_[0]->params()->vals()->size();
     size_t shardSize = (size_t)ceil(totalSize / (float)graphs_.size());
 
@@ -87,13 +89,16 @@ public:
     for(size_t idx = 0; idx < graphs_.size(); ++idx) {
       size_t size = std::min(shardSize, totalSize);
 
-      group.emplace_back(func, idx, pos, pos+size);
+      if (parallel)
+        group.emplace_back(func, idx, pos, pos+size);
+      else
+        func(idx, pos, pos+size);
 
       pos += size;
       totalSize -= size;
-      // @TODO: safer variant is pos = totalSize * idx / graphs_.size() and endpos = same for (id+1)
+      // @TODO: safer variant is pos = totalSize * idx / graphs_.size() and endpos = same for (id+1). Cf. NCCL version.
     }
-    for(auto& t : group)
+    for(auto& t : group) // (note: group is empty is not parallel)
       t.join();
   }
 
@@ -120,7 +125,7 @@ public:
       }
     };
 
-    this->foreach(scatter);
+    foreach(scatter);
   }
 
   void allGather(bool vals) override {
@@ -144,7 +149,7 @@ public:
       }
     };
 
-    this->foreach(gather);
+    foreach(gather);
   }
 
   void allReduceGrads() override {
@@ -170,7 +175,7 @@ public:
       params[idx]->copyFrom(subParam);
     };
 
-    this->foreach(copy);
+    foreach(copy);
   }
 
   void pullParams(const std::vector<Tensor>& params) override {
@@ -185,7 +190,7 @@ public:
         subParam->copyFrom(params[idx]);
       }
     };
-    this->foreach(gather);
+    foreach(gather);
   }
 
   void swapParams(const std::vector<Tensor>& params) override {
@@ -211,7 +216,7 @@ public:
       subParamLast->copyFrom(subParamFirst);
     };
     // execute for each shard
-    this->foreach(gather);
+    foreach(gather);
   }
 };
 
