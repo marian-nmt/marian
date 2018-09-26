@@ -1,17 +1,17 @@
 Marian
 ======
-<!-- [![Join the chat at https://gitter.im/marian-nmt](https://badges.gitter.im/amunmt/marian.svg)](https://gitter.im/marian-nmt?
- utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) -->
 
-[![Build Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=marian-dev)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev/)
-[![CPU Build Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=marian-dev)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cpu/)
-[![Tests Status](http://vali.inf.ed.ac.uk/jenkins/buildStatus/icon?job=marian-regression-tests)](http://vali.inf.ed.ac.uk/jenkins/job/marian-regression-tests/)
-[![Twitter](https://img.shields.io/twitter/follow/marian_nmt.svg?style=social&label=Follow)](https://twitter.com/intent/follow?screen_name=marian_nmt)
+[![Build Status](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev.svg?label=CUDA)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev/)
+[![CPU Build Status](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cpu.svg?label=CPU)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cpu/)
+[![Tests Status](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cpu.svg?label=tests)](http://vali.inf.ed.ac.uk/jenkins/job/marian-regression-tests/)
+[![Latest release](https://img.shields.io/github/release/marian-nmt/marian.svg?label=release)](https://github.com/marian-nmt/marian/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE.md)
+[![Twitter](https://img.shields.io/twitter/follow/marian_nmt.svg?style=social)](https://twitter.com/intent/follow?screen_name=marian_nmt)
 
  <p>
   <b>Marian</b> is an efficient Neural Machine Translation framework written
   in pure C++ with minimal dependencies. Named in honour of Marian Rejewski, a Polish mathematician and cryptologist.
-  
+
   Named in honour of Marian Rejewski, a Polish mathematician and cryptologist.
 
   <!--It has mainly been developed at the
@@ -38,7 +38,10 @@ Marian
 
 If you use this, please cite:
 
-Marcin Junczys-Dowmunt, Roman Grundkiewicz, Tomasz Dwojak, Hieu Hoang, Kenneth Heafield, Tom Neckermann, Frank Seide, Ulrich Germann, Alham Fikri Aji, Nikolay Bogoychev, André F. T. Martins, Alexandra Birch (2018). Marian: Fast Neural Machine Translation in C++ (http://www.aclweb.org/anthology/P18-4020)
+Marcin Junczys-Dowmunt, Roman Grundkiewicz, Tomasz Dwojak, Hieu Hoang, Kenneth
+Heafield, Tom Neckermann, Frank Seide, Ulrich Germann, Alham Fikri Aji, Nikolay
+Bogoychev, André F. T. Martins, Alexandra Birch (2018). Marian: Fast Neural
+Machine Translation in C++ (http://www.aclweb.org/anthology/P18-4020)
 
     @InProceedings{mariannmt,
         title     = {Marian: Fast Neural Machine Translation in {C++}},
@@ -69,7 +72,7 @@ make -j
 -->
 
 ## Amun
-The handwritten decoder for RNN models compatible with Marian and Nematus has been superseded by the Marian decoder. The code is available in a seperate repositoy: https://github.com/marian-nmt/amun
+The handwritten decoder for RNN models compatible with Marian and Nematus has been superseded by the Marian decoder. The code is available in a separate repository: https://github.com/marian-nmt/amun
 
 ## Website
 

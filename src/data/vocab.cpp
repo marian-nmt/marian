@@ -70,6 +70,9 @@ int Vocab::loadOrCreate(const std::string& vocabPath,
     if(filesystem::exists(trainPath + ".json")) {
       return load(trainPath + ".json", max);
     }
+    if(filesystem::exists(trainPath + ".yaml")) {
+      return load(trainPath + ".yaml", max);
+    }
     if(filesystem::exists(trainPath + ".yml")) {
       return load(trainPath + ".yml", max);
     }
@@ -92,7 +95,7 @@ Word Vocab::insertWord(Word id, const std::string& str) {
 };
 
 int Vocab::load(const std::string& vocabPath, int max) {
-  bool isJson = regex::regex_search(vocabPath, regex::regex("\\.(json|yml)$"));
+  bool isJson = regex::regex_search(vocabPath, regex::regex("\\.(json|yaml|yml)$"));
   LOG(info,
       "[data] Loading vocabulary from {} file {}",
       isJson ? "JSON/Yaml" : "text",

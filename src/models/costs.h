@@ -196,7 +196,7 @@ public:
   virtual data::SoftAlignment getAlignment() override { return encdec_->getAlignment(); }
 };
 
-static Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec,
+inline Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec,
                                Ptr<Options> options) {
   switch(options->get<usage>("usage", usage::raw)) {
     case usage::training:

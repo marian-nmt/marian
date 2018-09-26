@@ -11,8 +11,14 @@ int main(int argc, char** argv) {
 
   auto options = New<Options>();
   {
-    auto cli = New<cli::CLIWrapper>(options, "Allowed options");
-    cli->add<size_t>("--max-size,-m", "Generate only  arg  most common vocabulary items", 0);
+    auto cli = New<cli::CLIWrapper>(
+        options,
+        "Create a vocabulary from text corpora given on STDIN",
+        "Allowed options",
+        "Examples:\n"
+        "  ./marian-vocab < text.src > vocab.yml\n"
+        "  cat text.src text.trg | ./marian-vocab > vocab.yml");
+    cli->add<size_t>("--max-size,-m", "Generate only UINT most common vocabulary items", 0);
     cli->parse(argc, argv);
   }
 

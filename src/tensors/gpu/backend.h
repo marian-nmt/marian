@@ -25,7 +25,7 @@ public:
     setHandles();
   }
 
-  void setDevice() override { cudaSetDevice(deviceId_.no); }
+  void setDevice() override { cudaSetDevice((int)deviceId_.no); }
 
   void synchronize() override { cudaStreamSynchronize(0); }
 
@@ -43,7 +43,7 @@ private:
   }
 
   curandGenerator_t createCurandGenerator() {
-    cudaSetDevice(deviceId_.no);
+    cudaSetDevice((int)deviceId_.no);
     curandGenerator_t generator;
     CURAND_CALL(curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_DEFAULT));
     CURAND_CALL(curandSetPseudoRandomGeneratorSeed(generator, seed_));
@@ -55,7 +55,7 @@ private:
   }
 
   cublasHandle_t create_handle() {
-    cudaSetDevice(deviceId_.no);
+    cudaSetDevice((int)deviceId_.no);
     cublasHandle_t cublasHandle;
     cublasCreate(&cublasHandle);
     return cublasHandle;

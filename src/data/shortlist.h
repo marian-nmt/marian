@@ -110,7 +110,7 @@ public:
     return New<Shortlist>(idx, mapped, reverseMap);
   }
 
-  virtual void dump(const std::string& prefix) {
+  virtual void dump(const std::string& /*prefix*/) {
     ABORT("Not implemented");
   }
 };

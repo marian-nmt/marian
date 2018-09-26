@@ -170,6 +170,7 @@ void ConvolutionWrapper::setConvDescriptor(int hPad,
                                            int wStride) {
   CUDNN_CALL(cudnnCreateConvolutionDescriptor(&convDesc_));
 
+#if CUDNN_MAJOR > 5
   CUDNN_CALL(cudnnSetConvolution2dDescriptor(convDesc_,
                                              hPad,
                                              wPad,
@@ -177,10 +178,16 @@ void ConvolutionWrapper::setConvDescriptor(int hPad,
                                              wStride,
                                              1,
                                              1,  // upscales
-#if CUDNN_MAJOR > 5
                                              CUDNN_CROSS_CORRELATION,
                                              CUDNN_DATA_FLOAT));
 #else
+  CUDNN_CALL(cudnnSetConvolution2dDescriptor(convDesc_,
+                                             hPad,
+                                             wPad,
+                                             hStride,
+                                             wStride,
+                                             1,
+                                             1,  // upscales
                                              CUDNN_CROSS_CORRELATION));
 #endif
 }

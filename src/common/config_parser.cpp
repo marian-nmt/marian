@@ -6,7 +6,6 @@
 #include "common/file_stream.h"
 #include "common/logging.h"
 #include "common/utils.h"
-#include "common/version.h"
 #include "3rd_party/exception.h"
 
 #include <algorithm>
@@ -42,9 +41,6 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   cli.switchGroup("General options");
 
   // clang-format off
-  cli.add<bool>("--version",
-     "Print version number and exit",
-     false);
   cli.add<std::vector<std::string>>("--config,-c",
      "Configuration file(s). If multiple, later overrides earlier");
   cli.add<size_t>("--workspace,-w",
@@ -603,7 +599,11 @@ void ConfigParser::expandAliases(cli::CLIWrapper& cli) {
 }
 
 void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
-  cli::CLIWrapper cli(config_, "General options", 40);
+  cli::CLIWrapper cli(config_,
+                      "Marian: Fast Neural Machine Translation in C++",
+                      "General options",
+                      "",
+                      40);
 
   addOptionsGeneral(cli);
   addOptionsModel(cli);
@@ -625,12 +625,6 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 
   // parse command-line options and fill wrapped YAML config
   cli.parse(argc, argv);
-
-  // handle version printing
-  if(get<bool>("version")) {
-    std::cerr << PROJECT_VERSION_FULL << std::endl;
-    exit(0);
-  }
 
   // get paths to extra config files
   auto configPaths = loadConfigPaths();

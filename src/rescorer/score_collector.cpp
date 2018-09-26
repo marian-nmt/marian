@@ -82,7 +82,6 @@ ScoreCollectorNBest::ScoreCollectorNBest(const Ptr<Config>& options)
 void ScoreCollectorNBest::Write(long id,
                                 float score,
                                 const data::SoftAlignment& align) {
-  std::string line;
   {
     std::lock_guard<std::mutex> lock(mutex_);
     auto iter = buffer_.find(id);
