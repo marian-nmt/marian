@@ -79,10 +79,10 @@ void CorpusSQLite::fillSQLite() {
       ps.bind(1, (int)lines);
 
       std::string line;
-      for(size_t i = 0; i < files_.size(); ++i) {
+      for(int i = 0; i < files_.size(); ++i) {
         cont = cont && utils::GetLine((std::istream&)*files_[i], line);
         if(cont)
-          ps.bind(i + 2, line);
+          ps.bind((int)(i + 2), line);
       }
 
       if(cont) {
@@ -114,7 +114,7 @@ SentenceTuple CorpusSQLite::next() {
     SentenceTuple tup(curId);
 
     for(size_t i = 0; i < files_.size(); ++i) {
-      auto line = select_->getColumn(i + 1);
+      auto line = select_->getColumn((int)(i + 1));
 
       if(i > 0 && i == alignFileIdx_) {
         addAlignmentToSentenceTuple(line, tup);

@@ -53,7 +53,7 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
     try {
       if(!get<bool>("ignore-model-config"))
         loadModelParameters(model);
-    } catch(std::runtime_error& e) {
+    } catch(std::runtime_error& ) {
       LOG(info, "[config] No model configuration found in model file");
     }
   }

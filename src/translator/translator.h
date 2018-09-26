@@ -207,7 +207,7 @@ public:
             std::stringstream best1;
             std::stringstream bestn;
             printer->print(history, best1, bestn);
-            collector->add(history->GetLineNum(), best1.str(), bestn.str());
+            collector->add((long)history->GetLineNum(), best1.str(), bestn.str());
           }
         };
 

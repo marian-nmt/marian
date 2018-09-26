@@ -79,7 +79,7 @@ public:
     ThreadPool pool(graphs_.size(), graphs_.size());
     for(size_t i = 0; i < graphs_.size(); ++i) {
       pool.enqueue(
-          [=](int j) {
+          [=](size_t j) {
             models_[j] = New<Model>(temp);
             models_[j]->load(graphs_[j], modelFile);
           },
@@ -117,7 +117,7 @@ public:
       while(*batchGenerator) {
         auto batch = batchGenerator->next();
 
-        auto task = [=, &sumCost, &sumWords, &sumSamples, &smutex](int id) {
+        auto task = [=, &sumCost, &sumWords, &sumSamples, &smutex](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local Ptr<Model> builder;
 
@@ -146,7 +146,7 @@ public:
 
           if(!summarize) {
             for(size_t i = 0; i < batch->size(); ++i) {
-              output->Write(batch->getSentenceIds()[i], scores[i], aligns[i]);
+              output->Write((long)batch->getSentenceIds()[i], scores[i], aligns[i]);
             }
           }
         };

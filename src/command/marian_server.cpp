@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
 
   // create web service server
   WsServer server;
-  server.config.port = options->get<size_t>("port");
+  server.config.port = options->get<unsigned short>("port");
   auto &translate = server.endpoint["^/translate/?$"];
 
   translate.on_message = [&task](Ptr<WsServer::Connection> connection,
