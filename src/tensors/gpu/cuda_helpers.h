@@ -4,6 +4,7 @@
 #include "3rd_party/exception.h"
 #include "common/logging.h"
 
+// fixes a missing constant in CUDA device code (specific to MSVC compiler)
 __constant__ float CUDA_FLT_MAX = 1.70141e+38;
 const int MAX_THREADS = 512;
 const int MAX_BLOCKS = 65535;
