@@ -323,7 +323,6 @@ public:
                p->shape());
 
       p->setTrainable(!fixed);
-      add(p);
       return p;
     }
 
