@@ -129,11 +129,21 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
       auto graph = graphs_[localDeviceIndex];
       auto subBatch = getSubBatch(t, localDeviceIndex, mpi_->myRank());
 
+      // temporary for the cost
+      // @BUGBUG: must exist before first allocations; must do stuff in initialize()
+      //auto costTmp = graph->param("special:costTmp", {}, inits::zeros);
+      //if (t == 0)
+      //    costTmp->grad()->set(0.0f);
+
       if(subBatch) {
         auto costNode = builders_[localDeviceIndex]->build(graph, subBatch);
         graph->forward();
         localDeviceCosts[localDeviceIndex] += costNode->scalar();
         graph->backward(/*zero=*/t == 0); // only reset gradients to 0 if t = 0
+        //// record cost in a gradient
+        //using namespace functional;
+        //Element(_1 += _2, costTmp->grad(), costNode->val()); // stick it into a fake gradient that gets aggregated
+        //// @TODO: Complete this. We still need to move it back from grad to val, which is tricky due to sharding.
       }
       else { // empty batch: execute do-nothing fw-bw step for proper inits and resets
         graph->forward();
@@ -151,12 +161,12 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
     auto curParam = graphs_[idx]->params()->vals()->subtensor(begin, end-begin);
 
     // if individual gradients were averages, then need to average again over all subBatches
-    float div = (float)subBatches.size();
+    auto div = subBatches.size();
     if (options_->get<std::string>("cost-type") == "ce-sum")
       div = 1;
     if(div != 1) {
       using namespace functional;
-      Element(_1 = _1 / div, curGrad);
+      Element(_1 = _1 / (float)div, curGrad);
     }
 
     shardOpt_[idx]->update(curParam, curGrad);
@@ -164,6 +174,11 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
     if(mvAvg_)
       updateAvgParams(
           paramsAvg_[idx], curParam, scheduler_->numberOfBatches());
+
+    // fetch the aggregated cost
+    // @TODO: We are sharded here. Need to copy costTmp->grad() to costTmp->val().
+    //auto costTmp = graphs_[idx]->param("special:costTmp", {}, inits::zeros);
+    //costTmp->val()->copyFrom(costTmp->grad());
   };
 
   comm_->scatterReduce();          // reduce gradients across all devices (globally) into shards
@@ -191,6 +206,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
         if (subBatch)
           thisSubBatches.push_back(subBatch);
       }
+    // @TODO: ^^ This becomes unnecessary if we do the proper exchange of cost values as part of aggregation above
     scheduler_->update(cost, thisSubBatches);
 
     if(scheduler_->saving()) {

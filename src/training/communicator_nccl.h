@@ -114,9 +114,9 @@ public:
         groupStart();
         for (int i = 0; i < devices_.size(); i++) {
           CUDA_CHECK(cudaSetDevice(devices_[i]));
-          LOG(info, "ncclCommInitRank {}, {}", numRanksWithMPI(), myRankWithMPI(i));
+          LOG(info, "[{}] ncclCommInitRank {} out of {}, GPU[{}]", mpi_->to_string(), myRankWithMPI(i), numRanksWithMPI(), i);
           NCCLCHECK(ncclCommInitRank(&comms_[i], numRanksWithMPI(), uniqueId, myRankWithMPI(i)));
-          LOG(info, "done ncclCommInitRank {}, {}", numRanksWithMPI(), myRankWithMPI(i));
+          LOG(info, "[{}] done ncclCommInitRank {} out of {}, GPU[{}]", mpi_->to_string(), myRankWithMPI(i), numRanksWithMPI(), i);
         }
         groupEnd();
         LOG(info, "[{}] group done constructing NCCLCommunicator", mpi_->to_string());
