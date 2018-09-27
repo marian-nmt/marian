@@ -339,6 +339,8 @@ public:
 
     // add to list of parameters
     p->set_name(name);
+    p->setId(count_++);
+    
     params_->add(p, name);
     return p;
   }
