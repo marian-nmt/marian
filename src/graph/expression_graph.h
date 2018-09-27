@@ -323,6 +323,8 @@ public:
                p->shape());
 
       p->setTrainable(!fixed);
+      
+      add(p);
       return p;
     }
 
@@ -339,10 +341,7 @@ public:
 
     // set name and id and add to list of parameters
     p->set_name(name);
-    p->setId(count_++);
     params_->add(p, name);
-
-    // parameters do not need to be added to the tape. They get initialized once in bulk. 
 
     return p;
   }
