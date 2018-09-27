@@ -18,13 +18,15 @@
 #include <iostream>
 #include "common/logging.h"
 
-#ifdef _WIN32
-#include <io.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#endif
-
 namespace io = boost::iostreams;
+
+#ifdef _MSC_VER
+
+#include <fcntl.h>
+#include <io.h>
+#include <stdlib.h>
+
+#endif
 
 class TemporaryFile {
 private:
@@ -32,45 +34,66 @@ private:
   bool unlink_;
   std::string name_;
 
+#ifndef _MSC_VER
   int mkstemp_and_unlink(char* tmpl) {
-#ifdef _WIN32
-    ABORT_IF(true, "mkstemp not available in Windows");
-    int ret = -1;
-#else
     int ret = mkstemp(tmpl);
-#endif
     if(unlink_ && ret != -1) {
       ABORT_IF(unlink(tmpl), "Error while deleting '{}'", tmpl);
     }
     return ret;
   }
+#endif
+
 
   int MakeTemp(const std::string& base) {
+#ifdef _MSC_VER
+    char* name = tempnam(base.c_str(), "marian.");
+    ABORT_IF(name == NULL,
+      "Error while making a temporary based on '{}'",
+      base);
+
+    int oflag = _O_RDWR | _O_CREAT | _O_EXCL;
+    if (unlink_) oflag |= _O_TEMPORARY;
+
+    int ret = open(name, oflag, _S_IREAD | _S_IWRITE);
+    ABORT_IF(ret == -1,
+      "Error while making a temporary based on '{}'",
+      base);
+
+    name_ = name;
+    free(name);
+
+    return ret;
+#else
     std::string name(base);
     name += "marian.XXXXXX";
     name.push_back(0);
     int ret;
     ABORT_IF(-1 == (ret = mkstemp_and_unlink(&name[0])),
-             "Error while making a temporary based on '{}'",
-             base);
+      "Error while making a temporary based on '{}'",
+      base);
     name_ = name;
     return ret;
+#endif
   }
 
   void NormalizeTempPrefix(std::string& base) {
     if(base.empty())
       return;
+
+#ifdef _MSC_VER
+    if(base.substr(0,4) == "/tmp")
+      base = getenv("TMP");
+#else
     if(base[base.size() - 1] == '/')
       return;
     struct stat sb;
     // It's fine for it to not exist.
-    if(-1 == stat(base.c_str(), &sb))
+    if(stat(base.c_str(), &sb) == - 1)
       return;
-#ifdef _WIN32
-#define S_ISDIR(m) (((m)&S_IFMT) == S_IFDIR)  // TODO: unify this
-#endif
     if(S_ISDIR(sb.st_mode))
       base += '/';
+#endif
   }
 
 public:
@@ -82,6 +105,19 @@ public:
   }
 
   ~TemporaryFile() {
+#ifdef _MSC_VER
+    if (fd_ == -1)
+      return;
+
+    if(close(fd_)) {
+      std::cerr << "Could not close file " << fd_ << std::endl;
+      std::abort();
+    }
+
+    if(!unlink_) {
+      ABORT_IF(remove(name_.c_str()), "Error while deleting '{}'", name_);
+    }
+#else
     if(fd_ != -1 && !unlink_) {
       ABORT_IF(unlink(name_.c_str()), "Error while deleting '{}'", name_);
     }
@@ -89,6 +125,7 @@ public:
       std::cerr << "Could not close file " << fd_ << std::endl;
       std::abort();
     }
+#endif
   }
 
   int getFileDescriptor() { return fd_; }

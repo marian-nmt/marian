@@ -57,7 +57,7 @@ protected:
                       int stride) {
     auto subBatch = (*batch)[batchIndex_];
 
-    int dimBatch = subBatch->batchSize();
+    size_t dimBatch = subBatch->batchSize();
 
     std::vector<float> strided;
     for(size_t wordIdx = 0; wordIdx < subBatch->mask().size();
@@ -66,9 +66,9 @@ protected:
         strided.push_back(subBatch->mask()[j]);
       }
     }
-    int dimWords = strided.size() / dimBatch;
+    size_t dimWords = strided.size() / dimBatch;
     auto stridedMask
-        = graph->constant({dimWords, dimBatch, 1}, inits::from_vector(strided));
+        = graph->constant({(int)dimWords, (int)dimBatch, 1}, inits::from_vector(strided));
     return stridedMask;
   }
 };

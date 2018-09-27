@@ -5,7 +5,8 @@
 namespace marian {
 namespace cli {
 
-uint16_t guess_terminal_width(uint16_t max_width, uint16_t default_width) {
+/*
+static uint16_t guess_terminal_width(uint16_t max_width, uint16_t default_width) {
   uint16_t cols = 0;
 #ifdef TIOCGSIZE
   struct ttysize ts;
@@ -23,6 +24,7 @@ uint16_t guess_terminal_width(uint16_t max_width, uint16_t default_width) {
     cols = default_width;
   return max_width ? std::min(cols, max_width) : cols;
 }
+*/
 
 CLIFormatter::CLIFormatter(size_t columnWidth, size_t screenWidth)
     : CLI::Formatter(), screenWidth_(screenWidth) {

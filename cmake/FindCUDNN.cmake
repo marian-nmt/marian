@@ -115,13 +115,10 @@ get_filename_component(__libpath_cudart "${CUDA_CUDART_LIBRARY}" PATH)
 # More strict enforcement of minor/patch version is done if/when the header file is examined.
 if(CUDNN_FIND_VERSION_EXACT)
   SET(__cudnn_ver_suffix ".${CUDNN_FIND_VERSION_MAJOR}")
-  SET(__cudnn_lib_win_name cudnn64_${CUDNN_FIND_VERSION_MAJOR})
-else()
-  SET(__cudnn_lib_win_name cudnn64)
 endif()
 
 find_library(CUDNN_LIBRARY 
-  NAMES libcudnn.so${__cudnn_ver_suffix} libcudnn${__cudnn_ver_suffix}.dylib ${__cudnn_lib_win_name}
+  NAMES libcudnn.so${__cudnn_ver_suffix} libcudnn${__cudnn_ver_suffix}.dylib cudnn
   PATHS $ENV{LD_LIBRARY_PATH} ${__libpath_cudart} ${CUDNN_ROOT_DIR} ${PC_CUDNN_LIBRARY_DIRS} ${CMAKE_INSTALL_PREFIX}
   PATH_SUFFIXES lib lib64 bin
   DOC "CUDNN library." )
