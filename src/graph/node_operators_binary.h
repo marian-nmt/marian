@@ -414,7 +414,6 @@ struct ScalarProductNodeOp : public NaryNodeOp {
       : NaryNodeOp({a, b}, newShape(a, b, axis)) {}
 
   Shape newShape(Expr a, Expr b, int axis) {
-
     Shape full = Shape::broadcast({a, b});
     axis_ = full.axis(axis);
 

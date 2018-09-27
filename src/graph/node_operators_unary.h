@@ -439,7 +439,7 @@ struct LogSoftmaxNodeOp : public UnaryNodeOp {
 };
 
 struct SumNodeOp : public UnaryNodeOp {
-  int ax_;
+  int axis_;
 
   SumNodeOp(Expr a, int axis) : UnaryNodeOp(a, newShape(a, axis)) {}
 
@@ -456,9 +456,9 @@ struct SumNodeOp : public UnaryNodeOp {
 
   Shape newShape(Expr a, int axis) {
     Shape shape = a->shape();
-    ax_ = shape.axis(axis);
+    axis_ = shape.axis(axis);
 
-    shape.set(ax_, 1);
+    shape.set(axis_, 1);
     return shape;
   }
 
@@ -469,7 +469,7 @@ struct SumNodeOp : public UnaryNodeOp {
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      util::hash_combine(hash_, ax_);
+      util::hash_combine(hash_, axis_);
     }
     return hash_;
   }
@@ -480,14 +480,14 @@ struct SumNodeOp : public UnaryNodeOp {
     Ptr<SumNodeOp> cnode = std::dynamic_pointer_cast<SumNodeOp>(node);
     if(!cnode)
       return false;
-    if(ax_ != cnode->ax_)
+    if(axis_ != cnode->axis_)
       return false;
     return true;
   }
 };
 
 struct MeanNodeOp : public UnaryNodeOp {
-  int ax_;
+  int axis_;
 
   MeanNodeOp(Expr a, int axis) : UnaryNodeOp(a, newShape(a, axis)) {}
 
@@ -509,8 +509,8 @@ struct MeanNodeOp : public UnaryNodeOp {
 
   Shape newShape(Expr a, int axis) {
     Shape shape = a->shape();
-    ax_ = shape.axis(axis);
-    shape.set(ax_, 1);
+    axis_ = shape.axis(axis);
+    shape.set(axis_, 1);
     return shape;
   }
 
@@ -521,7 +521,7 @@ struct MeanNodeOp : public UnaryNodeOp {
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      util::hash_combine(hash_, ax_);
+      util::hash_combine(hash_, axis_);
     }
     return hash_;
   }
@@ -532,7 +532,7 @@ struct MeanNodeOp : public UnaryNodeOp {
     Ptr<MeanNodeOp> cnode = std::dynamic_pointer_cast<MeanNodeOp>(node);
     if(!cnode)
       return false;
-    if(ax_ != cnode->ax_)
+    if(axis_ != cnode->axis_)
       return false;
     return true;
   }
