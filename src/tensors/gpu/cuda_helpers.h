@@ -3,12 +3,12 @@
 
 #include "3rd_party/exception.h"
 #include "common/logging.h"
+#include "cuda_runtime.h"
+#include "nccl.h"
 
 const float CUDA_FLT_MAX = 1.70141e+38;
 const int MAX_THREADS = 512;
 const int MAX_BLOCKS = 65535;
-
-#ifdef __CUDACC__
 
 #define CUDA_CHECK(ans) \
   { gpuAssert((ans),#ans, __FILE__, __LINE__); }
@@ -18,7 +18,7 @@ inline void gpuAssert(cudaError_t code, const char* exprString,
                       int line,
                       bool abort = true) {
   if(code != cudaSuccess) {
-    LOG(critical, "Error: {} - {}:{}: {}", cudaGetErrorString(code), file, line, exprString);
+    LOG(critical, "CUDA Error {}: {} - {}:{}: {}", code, cudaGetErrorString(code), file, line, exprString);
     std::abort();
   }
 }
@@ -41,7 +41,13 @@ void CudaCopy(const T* start, const T* end, T* dest) {
     }                                                   \
   }
 
-#endif
+#define NCCLCHECK(cmd) do {                             \
+    /*LOG(info, "[nccl] {}", #cmd);*/ \
+    ncclResult_t code = cmd;                            \
+    /*LOG(info, "[nccl] {} -> {}", #cmd, code);*/       \
+    ABORT_IF(code != ncclSuccess, "Failed, NCCL error {} '{}' - {}",             \
+          code, ncclGetErrorString(code), #cmd);        \
+  } while(0)
 
 // void cusparseStatus(cusparseStatus_t status){
 //	switch(status){

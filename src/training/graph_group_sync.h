@@ -32,7 +32,7 @@ private:
 
   size_t delay_{1};
 
-  void initialize(const std::vector<Ptr<data::Batch>>& batches);
+  void initialize(const Ptr<data::Batch>& exampleBatch);
   void initializeAvg();
 
 public:

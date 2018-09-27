@@ -168,7 +168,7 @@ public:
     // Graphs and shards with the same index live on the same device.
 
     auto copy = [this, params](size_t idx, size_t begin, size_t end) {
-      ABORT_IF(end-begin != params[idx]->size(), "inconsistent shard size??");
+      ABORT_IF(end-begin != params[idx]->size(), "inconsistent shard size (pushParams [{}], {} vs {})??", idx, end-begin, params[idx]->size());
       // copy parameter shard to each graph
       auto subParam
           = graphs_[idx]->params()->vals()->subtensor(begin, params[idx]->size());
@@ -182,7 +182,7 @@ public:
     // Update all graphs with parameter shard
 
     auto gather = [this, params](size_t idx, size_t begin, size_t end) {
-      ABORT_IF(end-begin != params[idx]->size(), "inconsistent shard size??");
+      ABORT_IF(end-begin != params[idx]->size(), "inconsistent shard size (pullParams, [{}], {} vs {})??", idx, end-begin, params[idx]->size());
       // copy parameter shard to each graph
       for(auto graph : graphs_) {
         auto subParam
@@ -198,7 +198,7 @@ public:
     ABORT_IF(graphs_.size() < 2, "Swap requires at least two graphs");
 
     auto gather = [this, params](size_t idx, size_t begin, size_t end) {
-      ABORT_IF(end-begin != params[idx]->size(), "inconsistent shard size??");
+      ABORT_IF(end-begin != params[idx]->size(), "inconsistent shard size (swapParams, [{}], {} vs {})??", idx, end-begin, params[idx]->size());
       // copy parameter shard to each graph, apart from last graph
       for(int i = 0; i < (int)graphs_.size() - 1; ++i) {
         auto subParam
@@ -260,6 +260,9 @@ public:
     bCast(&vecLen, 1, getDataType(&vecLen), rootRank, comm);
     v.resize(vecLen);
     bCast(v.data(), v.size(), getDataType(v.data()), rootRank, comm);
+  }
+  std::string to_string() { // helper to identify the node in logs
+      return "worker " + std::to_string(myRank()) + " out of " + std::to_string(commWorldSize());
   }
 };
 

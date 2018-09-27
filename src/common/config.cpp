@@ -68,13 +68,19 @@ void Config::loadModelParameters(const void* ptr) {
 // Examples:
 //  - CPU:
 //    --cpu-threads 8
-//  - single-worker GPU:
+//  - single worker, single GPU:
+//    [no option given]  // will use device 0
+//    --num-devices 1    // same
+//    --devices 2        // will use device 2
+//  - single worker process, multiple GPU:
 //    --num-devices 4    // will use devices 0, 1, 2, and 3
+//    --devices 0 1 2 3  // same
 //    --devices 4 5 6 7  // will use devices 4, 5, 6, and 7
-//  - multi-worker GPU:
-//    --num-devices 4   // will use devices 0, 1, 2, and 3 on all workers, respectively
-//    --devices 4 5 6 7 // will use devices 4, 5, 6, and 7 on all workers, respectively
-//    --num-devices 1 --devices 3 4 5   // this is a 3-process job on a single machine; worker 0 will use device 3, worker 1 device 4, and worker 2 device 5
+//  - multiple worker processes, multiple GPU:
+//    --num-devices 4   // will use devices 0, 1, 2, and 3 on all worker nodes, respectively
+//    --devices 4 5 6 7 // will use devices 4, 5, 6, and 7 on all worker nodes, respectively
+//    --num-devices 1 --devices 0 1 2 3 4 5 6 7 // this is a 8-process job on a single machine; workers 0..7 use devices 0..7, respectively
+//    --num-devices 4 --devices 0 1 2 3 4 5 6 7 // this is a 2-process job on a single machine; worker 0 uses 0..3, and worker 1 uses 4..7
 std::vector<DeviceId> Config::getDevices(size_t myRank /*= 0*/, size_t numWorkers /*= 1*/) {
   std::vector<DeviceId> devices;
   auto devicesArg = get<std::vector<std::string>>("devices");
@@ -92,34 +98,26 @@ std::vector<DeviceId> Config::getDevices(size_t myRank /*= 0*/, size_t numWorker
       deviceNos.push_back((size_t)std::stoull(d));
     // if devices[] is empty then default to 0..N-1, where N = numDevices or 1
     if (deviceNos.empty()) {
-      if (numDevices == 0) // default to 1
+      if (numDevices == 0) // if neither is given, then we default to 1 device, which is device[0]
         numDevices = 1;
       for(size_t i = 0; i < numDevices; ++i) // default to 0..N-1
         deviceNos.push_back(i);
     }
     // devices[] is not empty
-    else {
-      if (numDevices == 0) // default to 1
-        numDevices = deviceNos.size(); // default to #devices
-      else
-        ABORT_IF(!get<bool>("multi-node") && numDevices != deviceNos.size(), "devices[] size must be equal to numDevices");
-      // If multi-node then we can either have one set of devices shared across all workers,
-      // or the full list across all workers concatenated.
-      // E.g. --num-devices 1 --devices 0 1 2 3 means 4 processes using devices 0, 1, 2, and 3, respectively.
-      if (numWorkers == 1) {
-        ABORT_IF(numDevices != deviceNos.size(), "devices[] size must be equal to numDevices");
-      }
-      else {
-        size_t numDevicesPerWorker = deviceNos.size() / numDevices;
-        ABORT_IF(numDevices * numDevicesPerWorker != deviceNos.size(), "devices[] size must be equal to or a multiple of numDevices");
-        ABORT_IF(!get<bool>("multi-node"), "getDevices() called wth numRanks != 1 while not in multi-node mode??");
-        size_t numNodeSpecs = deviceNos.size() / numDevicesPerWorker; // devices[] can either list devices for all nodes individually, or list one set shared by all
-        if (numNodeSpecs != 1) {
-          ABORT_IF(numNodeSpecs != numWorkers, "devices[] must either list a shared set of devices, or one set per worker");
-          deviceNos.erase(deviceNos.begin(), deviceNos.begin() + myRank * numDevicesPerWorker);
-          deviceNos.resize(numDevicesPerWorker);
-        }
-      }
+    else if (numDevices == 0) // if device list then num devices defaults to list size
+      numDevices = deviceNos.size(); // default to #devices
+    // If multi-node then we can either have one set of devices shared across all workers,
+    // or the full list across all workers concatenated.
+    // E.g. --num-devices 1 --devices 0 2 4 5 means 4 processes using devices 0, 2, 4, and 5, respectively.
+    // In that case, we cut out and return our own slice. In the above example, for worker 1, we would return {2}.
+    if (numWorkers == 1) // special-case the error mesage (also caught indirectly below, but with a msg that is confusing when one does not run multi-node)
+      ABORT_IF(numDevices != deviceNos.size(), "devices[] size must be equal to numDevices"); // same as requiring numPerWorkerDeviceNos == 1
+    size_t numPerWorkerDeviceNos = deviceNos.size() / numDevices; // how many lists concatenated in devices[]? Allowed is either 1 (=shared) or numWorkers
+    ABORT_IF(numDevices * numPerWorkerDeviceNos != deviceNos.size(), "devices[] size must be equal to or a multiple of numDevices"); // (check that it is a multiple)
+    if (numPerWorkerDeviceNos != 1) { // if multiple concatenated lists are given, slice out the one for myRank
+      ABORT_IF(numPerWorkerDeviceNos != numWorkers, "devices[] must either list a shared set of devices, or one set per worker");
+      deviceNos.erase(deviceNos.begin(), deviceNos.begin() + myRank * numDevices);
+      deviceNos.resize(numDevices);
     }
     // form the final vector
     for (auto d : deviceNos)
@@ -127,7 +125,7 @@ std::vector<DeviceId> Config::getDevices(size_t myRank /*= 0*/, size_t numWorker
   }
 #if 1
   for (auto d : devices)
-    LOG(info, "[{}/{}]: {}[{}]", myRank, numWorkers, d.type == DeviceType::cpu ? "CPU" : "GPU", d.no);
+    LOG(info, "[worker {} out of {}]: {}[{}]", myRank, numWorkers, d.type == DeviceType::cpu ? "CPU" : "GPU", d.no);
 #endif
   return devices;
 }

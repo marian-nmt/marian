@@ -8,7 +8,6 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Config> config)
       ExponentialSmoothing{options_->get<float>("exponential-smoothing")},
       delay_{options_->get<size_t>("optimizer-delay")} { // @TODO: rename to something else; delay means delayed updated, not accumulation
 
-  // @TODO: it seems we don'_____local_t_____ even need the --multi-node option, do we? Just run under MPI to enable that.
   mpi_ = initMPI(/*multiThreaded=*/false); // when not running under MPI, this will be a fake object that represents a one-worker setup
 
   devices_ = options_->getDevices(mpi_->myRank(), mpi_->commWorldSize());
@@ -23,8 +22,10 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Config> config)
     builders_.push_back(models::from_config(options_, models::usage::training));
   }
 
-  if (graphs_.size() > 1)
-    comm_ = createCommunicator(graphs_, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/mpi_);
+  // Note: We may well end up with only one MPI worker or only one graph per worker.
+  // This part of the code will not special-case any of this here.
+  // Rather, it is assumed that the communicator knows to reduce unnecessary transfers to no-ops.
+  comm_ = createCommunicator(graphs_, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/mpi_);
 }
 
 void SyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) {
@@ -36,9 +37,9 @@ void SyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) {
     scheduler_->registerTrainingObserver(opt);
 }
 
-void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
+void SyncGraphGroup::initialize(const Ptr<data::Batch>& exampleBatch) {
   // Initialize 0th graph with random weights in one forward step
-  THREAD_GUARD(builders_[0]->build(graphs_[0], batches[0]);
+  THREAD_GUARD(builders_[0]->build(graphs_[0], exampleBatch);
                graphs_[0]->forward(););
 
   // Copy weights from 0th graph to all other graphs
@@ -47,7 +48,7 @@ void SyncGraphGroup::initialize(const std::vector<Ptr<data::Batch>>& batches) {
   for(size_t i = 1; i < graphs_.size(); ++i) {
     auto init = [&](size_t i) {
       // initialize t-th graph and weights
-      builders_[i]->build(graphs_[i], batches[0]);
+      builders_[i]->build(graphs_[i], exampleBatch);
       graphs_[i]->forward();
       // overwrite weights of t-th graph with weights from 0th graph
       graphs_[i]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
@@ -93,38 +94,27 @@ void SyncGraphGroup::initializeAvg() {
   paramsAllocs_.resize(graphs_.size()); // allocators
   paramsAvg_.resize(graphs_.size());    // averaged parameters (shards; if multi-node, then distributed over workers)
   comm_->foreach(init, /*parallel=*/false); // @TODO: is sequential operation necessary here? (is the allocation stuff sufficiently reentrant or thread-separated?)
-
-  //if(graphAvg)
-  //  graphAvg.reset();
 }
 
 void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
   ABORT_IF(finalized_, "Training has already finished.");
 
-  size_t globalNumDevices = devices_.size() * mpi_->commWorldSize(); // global number of devices (for multi-node, this counts all workers)
-  auto batches = batch->split(delay_ * globalNumDevices); // data-parallel split of batch over all GPUs
+  // distribute the batch over (delay, local device, worker rank)
+  size_t numSubBatches = delay_ * devices_.size() * mpi_->commWorldSize();
+  auto subBatches = batch->split(numSubBatches);
+  subBatches.resize(numSubBatches); // pad with nullptrs if out of data
 
-  float div = (float)batches.size();  // no. of batches
-  // do not average gradients if cost type is sum.
-  if(options_->get<std::string>("cost-type") == "ce-sum")
-    div = 1;
-
-  // load all batches
-  // For multi-node, we load all data for all workers, which is a bit wasteful.
-  std::vector<std::vector<Ptr<data::Batch>>> delayedBatches(delay_); // [delay][global device index]
-  for(size_t t = 0; t < delay_; ++t) {
-    for(size_t j = 0; j < globalNumDevices; ++j) {
-      size_t index = t * globalNumDevices + j;
-      if(index < batches.size())
-        delayedBatches[t].push_back(batches[index]);
-      else // we may not have enough data to form this many batches
-        delayedBatches[t].push_back(nullptr);
-    }
-  }
+  // Helper to access the subBatches array
+  auto getSubBatch = [&](size_t t, size_t localDeviceIndex, size_t rank) {
+    // 't' (the delay) should be slowest changing dimension. If subBatches are sorted by
+    // length, then grouping sentences of similar length into the same delay step can
+    // reduce unnecessary time spent in padding.
+    return subBatches[(t * mpi_->commWorldSize() + rank) * devices_.size() + localDeviceIndex];
+  };
 
   // Upon very first execution, reset everything
   if(first_) {
-    initialize(delayedBatches[0]);
+    initialize(subBatches.front());
     if(mvAvg_ && paramsAvg_.empty())
       initializeAvg();
     first_ = false;
@@ -132,26 +122,20 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
 
   // Compute gradients
   // This happens in multiple steps in case of delay_ > 1.
-  std::vector<float> costs(devices_.size(), 0.f); // [local device index] aggregate cost for each local device
-  for (size_t t = 0; t < delayedBatches.size(); t++) {
-    const auto& curBatches = delayedBatches[t];
-
+  std::vector<float> localDeviceCosts(devices_.size(), 0.f); // [local device index] aggregate cost for each local device
+  for (size_t t = 0; t < delay_; t++) {
     // Execute single forward/backward step
-    auto forwardBackward = [this, &costs, &curBatches, t](size_t localDeviceIndex, size_t /*begin*/, size_t /*end*/) {
+    auto forwardBackward = [&](size_t localDeviceIndex, size_t /*begin*/, size_t /*end*/) {
       auto graph = graphs_[localDeviceIndex];
-      auto batch = curBatches[localDeviceIndex + devices_.size() + mpi_->myRank()];
+      auto subBatch = getSubBatch(t, localDeviceIndex, mpi_->myRank());
 
-      if(batch) {
-        auto costNode = builders_[localDeviceIndex]->build(graph, batch);
+      if(subBatch) {
+        auto costNode = builders_[localDeviceIndex]->build(graph, subBatch);
         graph->forward();
-        costs[localDeviceIndex] += costNode->scalar();
-
-        // only reset gradients to 0 if t + 1 == 1
-        graph->backward(/*zero=*/t == 0);
+        localDeviceCosts[localDeviceIndex] += costNode->scalar();
+        graph->backward(/*zero=*/t == 0); // only reset gradients to 0 if t = 0
       }
-      else {
-        // handle case of empty batch, execute do-nothing fw-bw step for
-        // proper inits and resets.
+      else { // empty batch: execute do-nothing fw-bw step for proper inits and resets
         graph->forward();
         graph->backward(/*zero=*/t == 0);
       }
@@ -159,20 +143,17 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
 
     comm_->foreach(forwardBackward); // compute gradients in parallel on each device. Aggregate if delay_ > 1.
   }
+  // At this point, each device on eacn worker has a gradient aggregated over a subset of the sub-batches.
 
   // Update parameter shard with gradient shard
-  auto update = [this, div](size_t idx, size_t begin, size_t end) {
-#if 1
-    size_t totalSize = graphs_[0]->params()->vals()->size();
-    size_t shardSize = (size_t)ceil(totalSize / (float)devices_.size());
-
-    size_t size = std::min(totalSize - begin, shardSize);
-    ABORT_IF(size != end-begin, "inconsistent shard size??");
-#endif
-
+  auto update = [&](size_t idx, size_t begin, size_t end) {
     auto curGrad = graphs_[idx]->params()->grads()->subtensor(begin, end-begin);
     auto curParam = graphs_[idx]->params()->vals()->subtensor(begin, end-begin);
 
+    // if individual gradients were averages, then need to average again over all subBatches
+    float div = (float)subBatches.size();
+    if (options_->get<std::string>("cost-type") == "ce-sum")
+      div = 1;
     if(div != 1) {
       using namespace functional;
       Element(_1 = _1 / div, curGrad);
@@ -192,18 +173,25 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
   // cost across all local devices
   // @TODO: We should report cost aggregated over all workers.
   float cost = 0;
-  for(auto& c : costs) {
+  for(auto& c : localDeviceCosts) {
     cost += c;
     c = 0;
   }
 
   // @TODO: review this
   if(options_->get<std::string>("cost-type") != "ce-sum") {
-    cost = cost / (costs.size() * delay_);
+    cost = cost / (localDeviceCosts.size() * delay_);
   }
 
   if(scheduler_) {
-    scheduler_->update(cost, batches);
+    std::vector<Ptr<data::Batch>> thisSubBatches; // scheduler wants to know specifically what data we used, for statistics
+    for (size_t t = 0; t < delay_; t++)
+      for (size_t localDeviceIndex = 0; localDeviceIndex < devices_.size(); localDeviceIndex++) {
+        auto subBatch = getSubBatch(t, localDeviceIndex, mpi_->myRank());
+        if (subBatch)
+          thisSubBatches.push_back(subBatch);
+      }
+    scheduler_->update(cost, thisSubBatches);
 
     if(scheduler_->saving()) {
       this->save();

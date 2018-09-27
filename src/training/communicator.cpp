@@ -81,7 +81,7 @@ public:
     MPI_Comm_size(MPI_COMM_WORLD, &comm_world_size_);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank_);
 
-    LOG(info, "[mpi] initialized as node {} out of {}", my_rank_, comm_world_size_);
+    LOG(info, "[mpi] initialized as worker {} out of {}", my_rank_, comm_world_size_);
   }
 
   virtual size_t myRank()        const override { return (size_t)my_rank_; };

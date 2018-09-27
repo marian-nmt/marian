@@ -7,28 +7,24 @@
  
 #include "cuda_runtime.h"
 #include "nccl.h"
+#include "tensors/gpu/cuda_helpers.h"
 
 namespace marian {
 
-#define NCCLCHECK(cmd) do {                         \
-    /*LOG(info, "[nccl] {}", #cmd);*/ \
-    ncclResult_t r = cmd;                             \
-    /*LOG(info, "[nccl] {} -> {}", #cmd, r);*/ \
-    ABORT_IF(r != ncclSuccess, "Failed, NCCL error {} '{}'",             \
-          #cmd, ncclGetErrorString(r));   \
-  } while(0)
-
 class NCCLCommunicator : public ICommunicator {
 private:
-  std::vector<ncclComm_t> comms_;
-  std::vector<cudaStream_t> streams_;
-  std::vector<int> devices_;
+  std::vector<ncclComm_t> comms_;     // [device index]
+  std::vector<cudaStream_t> streams_; // [device index]
+  std::vector<int> devices_;          // [device index]
   Ptr<IMPIWrapper> mpi_; // non-null if multi-node
+
+  static void groupStart() { NCCLCHECK(ncclGroupStart()); } // helpers to make sure we check the error
+  static void groupEnd()   { NCCLCHECK(ncclGroupEnd());   }
 
   void synchronizeAll() {
     for(int i = 0; i < graphs_.size(); ++i) {
-      cudaSetDevice(devices_[i]);
-      cudaStreamSynchronize(streams_[i]);
+      CUDA_CHECK(cudaSetDevice(devices_[i]));
+      CUDA_CHECK(cudaStreamSynchronize(streams_[i]));
     }
   }
 
@@ -46,12 +42,30 @@ private:
       return devices_.size();
   }
 
+  size_t dataSize() const {
+    return graphs_[0]->params()->vals()->size();
+  }
+
+  // determine the (max) shard size
+  // All shards except the last one have this size.
+  // Presently, even all shards must have identical size, due to a limitation in NCCL we have not yet worked around.
+  size_t shardSize() const {
+    size_t numShards = numRanksWithMPI();
+    size_t size = (dataSize() + numShards - 1) / numShards;
+#if 1 // for now, all shards must have the same size, since NCCL does not allow a sub-slice for the last shard
+    ABORT_IF(size * numShards != dataSize(), "presently, all shards must have the same size");
+#endif
+    return size;
+  }
+
   // determine the index range (begin, end) of a shard
   std::pair<size_t, size_t> shardRange(size_t localDeviceIndex) const {
-    size_t numShards = numRanksWithMPI();
+    size_t size = shardSize();
     size_t rank = myRankWithMPI(localDeviceIndex);
-    size_t dataSize = graphs_[0]->params()->vals()->size();
-    return{ dataSize * rank / numShards, dataSize * (rank + 1) / numShards };
+    size_t begin = rank * size;
+    size_t end = begin + size;
+    end = std::min(end, dataSize()); // clip last shard. Note: Presently this never happens, since shardSize() enforces uniform shard size.
+    return{ begin, end };
   }
 
 public:
@@ -76,8 +90,8 @@ public:
                "NCCL communicator can only be used with GPUs");
 
       devices_[i] = device.no;
-      cudaSetDevice(devices_[i]);
-      cudaStreamCreate(&streams_[i]);
+      CUDA_CHECK(cudaSetDevice(devices_[i]));
+      CUDA_CHECK(cudaStreamCreate(&streams_[i]));
     }
 
     // when using MPI, the setup is a laborious
@@ -85,36 +99,38 @@ public:
     if (mpi_) {
       // generate NCCL unique ID at one process and broadcast to all
       ncclUniqueId uniqueId = { 0 };
-      LOG(info, "[mpi rank {}] before ncclGetUniqueId", mpi_->myRank());
+      LOG(info, "[{}] before ncclGetUniqueId", mpi_->to_string());
       if (mpi->myRank() == 0)
         NCCLCHECK(ncclGetUniqueId(&uniqueId));
-      LOG(info, "[mpi rank {}] before bcast", mpi_->myRank());
+      LOG(info, "[{}] before bcast", mpi_->to_string());
       //LOG(info, "before bcast: unique id = {}", std::string(uniqueId.internal, NCCL_UNIQUE_ID_BYTES));
-      mpi_->bCast(&uniqueId, NCCL_UNIQUE_ID_BYTES, MPI_BYTE, 0);
-      LOG(info, "[mpi rank {}] after bcast", mpi_->myRank());
+      static_assert(sizeof(uniqueId) == NCCL_UNIQUE_ID_BYTES, "wrong NCCL_UNIQUE_ID_BYTES??"); // (this value is used in NVidia examples)
+      mpi_->bCast(&uniqueId, sizeof(uniqueId), MPI_BYTE, 0);
+      LOG(info, "[{}] after bcast", mpi_->to_string());
       //LOG(info, "unique id = {}", std::string(uniqueId.internal, NCCL_UNIQUE_ID_BYTES));
 
       // if more than one device then initialize NCCL with group API
-      if (devices_.size() > 1) {
-        NCCLCHECK(ncclGroupStart());
+      //if (devices_.size() > 1) {
+        groupStart();
         for (int i = 0; i < devices_.size(); i++) {
-          cudaSetDevice(devices_[i]);
+          CUDA_CHECK(cudaSetDevice(devices_[i]));
           LOG(info, "ncclCommInitRank {}, {}", numRanksWithMPI(), myRankWithMPI(i));
           NCCLCHECK(ncclCommInitRank(&comms_[i], numRanksWithMPI(), uniqueId, myRankWithMPI(i)));
           LOG(info, "done ncclCommInitRank {}, {}", numRanksWithMPI(), myRankWithMPI(i));
         }
-        NCCLCHECK(ncclGroupEnd());
-        LOG(info, "[mpi rank {}] group done constructing NCCLCommunicator", mpi_->myRank());
-      }
-      // one device: no group API
-      else {
-        cudaSetDevice(devices_[0]);
-        LOG(info, "[mpi rank {} of {}] ncclCommInitRank", mpi_->myRank(), mpi_->commWorldSize());
-        NCCLCHECK(ncclCommInitRank(&comms_[0], mpi_->commWorldSize(), uniqueId, mpi_->myRank()));
-        LOG(info, "[mpi rank {}] done constructing NCCLCommunicator", mpi_->myRank());
-      }
+        groupEnd();
+        LOG(info, "[{}] group done constructing NCCLCommunicator", mpi_->to_string());
+      //}
+      //// one device: no group API
+      //else {
+      //  CUDA_CHECK(cudaSetDevice(devices_[0]));
+      //  LOG(info, "[mpi rank {} of {}] ncclCommInitRank", mpi_->myRank(), mpi_->commWorldSize());
+      //  NCCLCHECK(ncclCommInitRank(&comms_[0], mpi_->commWorldSize(), uniqueId, mpi_->myRank()));
+      //  LOG(info, "[mpi rank {}] done constructing NCCLCommunicator", mpi_->myRank());
+      //}
     }
     // without MPI, we have a handy convenience version to initialize
+    // @TODO: We should be able to just use the code above as well.
     else {
       LOG(info, "ncclCommInitAll");
       NCCLCHECK(ncclCommInitAll(comms_.data(), devices_.size(), devices_.data()));
@@ -145,7 +161,7 @@ public:
     for(size_t i = 0; i < graphs_.size(); ++i) {
       std::tie
       (begin, end) = shardRange(i);
-      std::cerr << "foreach " << begin << " " << end << std::endl;
+      //std::cerr << "[" << mpi_->to_string() << "] foreach " << begin << " " << end << std::endl;
       size_t size = end-begin;
       //int size = std::min(shardSize, totalSize);
 
@@ -163,7 +179,7 @@ public:
   }
 
   void allReduceGrads() override {
-    ncclGroupStart();
+    groupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
       NCCLCHECK(ncclAllReduce(graphs_[i]->params()->grads()->data(),
                               graphs_[i]->params()->grads()->data(),
@@ -173,15 +189,14 @@ public:
                               comms_[i],
                               streams_[i]));
     }
-    ncclGroupEnd();
-
+    groupEnd();
     synchronizeAll();
   }
 
   // this will aggregate across nodes and across devices inside nodes (we only loop over the local devices here) into worker[0].device[0]
   // only used by graph_group_multinode_sync.cpp, which is unused now
   void reduceGrads(size_t root) override {
-    ncclGroupStart();
+    groupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
       NCCLCHECK(ncclReduce(graphs_[i]->params()->grads()->data(),
                            graphs_[i]->params()->grads()->data(),
@@ -192,8 +207,7 @@ public:
                            comms_[i],
                            streams_[i]));
     }
-    ncclGroupEnd();
-
+    groupEnd();
     synchronizeAll();
   }
 
@@ -204,34 +218,27 @@ public:
     //
     //int pos = 0;
 
-    size_t shardSize = shardRange(0).second;
-
     size_t begin, end;
-    ncclGroupStart();
+    groupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
       std::tie
       (begin, end) = shardRange(i);
-      std::cerr << "scatterReduce " << begin << " " << end << std::endl;
-      size_t size = end-begin;
+      //std::cerr << "[" << mpi_->to_string() << "] scatterReduce " << begin << " " << end << std::endl;
 
-      const auto* sendbuff = graphs_[i]->params()->grads()->data();
-      auto subgrad = graphs_[i]->params()->grads()->subtensor(begin, size);
-      auto* recvbuff = subgrad->data();
+      auto grads = graphs_[i]->params()->grads();
+      const auto* sendbuf = grads->data();
+      auto*       recvbuf = grads->subtensor(begin, end-begin)->data();
+      size_t      bufsize = shardSize();
 
-      ncclReduceScatter(sendbuff,
-                        recvbuff,
-                        shardSize,
-                        ncclFloat,
-                        ncclSum,
-                        comms_[i],
-                        streams_[i]);
+      NCCLCHECK(ncclReduceScatter(sendbuf, recvbuf, bufsize, ncclFloat, ncclSum, comms_[i], streams_[i]));
 
       //pos += size;
       //totalSize -= size;
     }
-    ncclGroupEnd();
-
+    groupEnd();
+    //std::cerr << "scatterReduce submitted" << std::endl;
     synchronizeAll();
+    //std::cerr << "scatterReduce completed" << std::endl;
   }
 
   void allGather(bool vals) override {
@@ -241,28 +248,25 @@ public:
     //
     //int pos = 0;
 
-    size_t shardSize = shardRange(0).second;
-
     size_t begin, end;
-    ncclGroupStart();
+    groupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
       std::tie
       (begin, end) = shardRange(i);
-      std::cerr << "allGather " << begin << " " << end << std::endl;
-      size_t size = end-begin;
+      //std::cerr << "[" << mpi_->to_string() << "] allGather " << begin << " " << end << std::endl;
       //int size = std::min(shardSize, totalSize);
 
       auto tensor = vals ? graphs_[i]->params()->vals() : graphs_[i]->params()->grads();
-      auto subparam = tensor->subtensor(begin, size);
-      const auto* sendbuff = subparam->data();
-      void* recvbuff = tensor->data();
+      const auto* sendbuf = tensor->subtensor(begin, end-begin)->data();
+      void*       recvbuf = tensor->data();
+      size_t      bufsize = shardSize();
 
-      ncclAllGather(sendbuff, recvbuff, shardSize, ncclFloat, comms_[i], streams_[i]);
+      NCCLCHECK(ncclAllGather(sendbuf, recvbuf, bufsize, ncclFloat, comms_[i], streams_[i]));
 
       //pos += size;
       //totalSize -= size;
     }
-    ncclGroupEnd();
+    groupEnd();
 
     synchronizeAll();
   }
@@ -332,7 +336,7 @@ public:
   //   int pos = 0;
   //   for(int i = 0; i < graphs_.size(); ++i) {
   //     auto subParam = graphs_[i]->params()->vals()->subtensor(pos,
-  //     params[i]->size()); ncclGroupStart(); ncclBroadcast((const
+  //     params[i]->size()); groupStart(); ncclBroadcast((const
   //     void*)subParam->data(),
   //                   (void*)params[i]->data(),
   //                   params[i]->size(),
@@ -340,7 +344,7 @@ public:
   //                   0,
   //                   comms_[i],
   //                   streams_[i]);
-  //     ncclGroupEnd();
+  //     groupEnd();
   //     pos += params[i]->size();
   //   }
   //   synchronizeAll();
@@ -352,7 +356,7 @@ public:
   //   int totalSize = graphs_[0]->params()->vals()->size();
   //   int shardSize = ceil(totalSize / (float)graphs_.size());
 
-  //   ncclGroupStart();
+  //   groupStart();
   //   for(int i = 0; i < graphs_.size(); ++i) {
 
   //     const void* sendbuff = (const void*)params[i]->data();
@@ -365,7 +369,7 @@ public:
   //                   comms_[i],
   //                   streams_[i]);
   //   }
-  //   ncclGroupEnd();
+  //   groupEnd();
 
   //   synchronizeAll();
   // }
