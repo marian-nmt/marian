@@ -1,7 +1,5 @@
 #pragma once
 
-// @TODO: Does this need to be a header at all? We can inline the entire class definition if we just add a factory function.
-
 #include "training/graph_group.h"
 #include "training/communicator.h"
 
@@ -9,6 +7,7 @@
 #include "cuda_runtime.h"
 #endif
 
+#include <condition_variable>
 #include <future>
 #include <thread>
 
@@ -30,7 +29,7 @@ public:
   virtual void setScheduler(Ptr<Scheduler> scheduler) override;
 
 private:
-  ////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
   // General variables.
 
   /** Whether graph group has been properly initialized with a first batch. */
@@ -49,22 +48,17 @@ private:
   std::mutex schedulerMutex_;
 
   /**
-   * Global batch counter used for evenly distributing mini-batches across
+   * Batch number counter used for evenly distributing mini-batches across
    * nodes.
-   * Global means that on all workers, this batch id refers to the same batch,
-   * while each worker only processes a subset of batches.
-   * Nodes process batches round-robin. Specifically, each node processes
-   * the subset of batches with batchIter_ % mpi_->commWorldSize() == mpi_->myRank()).
-   * @TODO: This is bad. The batches should be global and split into sub-batches across nodes.
-   *        Otherwise batch ids are not comparable.
    */
   size_t batchIter_ = 0;
 
   ////////////////////////////////////////////////////////////////////////////
   // Communication variables.
 
-  Ptr<ICommunicator> commWithinNode_;  // Communicator within a single node, across devices (only if > 1 device)
-  Ptr<ICommunicator> commAcrossNodes_; // Communicator across nodes, for device 0 (only if > 1 node)
+  /** Number of clients on nodes in MPI world (cluster). */
+  std::vector<int> numberClientsOfNodes_;  //@TODO not used for now, but might
+                                           // be useful maybe?
 
   /**
    * Variables for optimizer delay and synchronous SGD
@@ -73,8 +67,8 @@ private:
   std::mutex sumGradientMutex_;
   std::mutex updateParamsMutex_;
   std::mutex sumCostMutex_;
-  Tensor accGradient_; // @TODO: which mutex guards this? Group variables by guarding mutexes
-  Tensor sumGradientBuffer_; // buffer owned by sumGRAD
+  Tensor accGradientsSync;
+  Tensor sumGradientBuffer;
   Tensor paramsAvg_;
   std::vector<float> accGradientsSync_cpu;
   std::vector<float> receiveBuffer_cpu;
@@ -138,8 +132,7 @@ private:
    * Does the MPI Communication, parameter update and copying back parameters.
    * @TODO ALHAM. God function too godly?
    */
-  void sendReceiveUpdateSync(Tensor accGradient);
-  void sendReceiveUpdateSync2();
+  void sendReceiveUpdateSync();
 
   void execute(Ptr<data::Batch> batch);
 
@@ -149,14 +142,10 @@ public:
    */
   MultiNodeGraphGroupSync(Ptr<Config> options)
       : Base(options),
-        tau_{options_->get<size_t>("optimizer-delay")}, // do cross-node aggregation only every tau_ updates (defaults to 1)
-        movingAvg_{options_->get<float>("exponential-smoothing") > 0}, // @TODO: redundant
+        tau_{options_->get<size_t>("optimizer-delay")},
+        movingAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")},
-    syncOptimizer_{ Optimizer(options_) } { // @BUGBUG? Do we really have two optimizers?
-    if (clientGraphs_.size() > 1)
-      commWithinNode_ = createCommunicator(clientGraphs_, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/nullptr);
-    if (mpi_->commWorldSize() > 1)
-      commAcrossNodes_ = createCommunicator(std::vector<Ptr<ExpressionGraph>>{clientGraphs_[0]}, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/mpi_);
+        syncOptimizer_{Optimizer(options_)} {
   }
 
   /**
@@ -164,8 +153,7 @@ public:
    */
   void update(Ptr<data::Batch> batch) override {
     ABORT_IF(finalized_, "Training has already finished.");
-    if(batchIter_ % mpi_->commWorldSize()
-       == mpi_->myRank()) {  // Only take batch assigned to this node
+    if(batchIter_ % mpi_->commWorldSize() == mpi_->myRank()) {  // Only take batch assigned to this node
       execute(batch);
     }
     batchIter_++;
@@ -173,7 +161,6 @@ public:
 
   /**
    * Load models from disk if file exists and setting is not disabled
-   * @TODO: How is this specific to multi-node? This a general operation, no? Code dup
    */
   void load() override {
     if(!options_->get<bool>("no-reload")) {
@@ -199,19 +186,13 @@ public:
 
   /**
    * Save model of first client's graph to disk
-   * Only MPI node[0] saves the model.
    */
-  void save(bool final = false) override {
-    if (mpi_->myRank() == 0)
-      saveGraph(clientGraphs_[0], final);
-  }
+  void save(bool final = false) override { save(clientGraphs_[0], final); }
 
-private:
   /**
    * Save model of given graph to disk.
    */
-  void saveGraph(Ptr<ExpressionGraph> graph, bool final = false) {
-    // recover which client (device) owns this graph
+  void save(Ptr<ExpressionGraph> graph, bool final = false) {
     int idx = 0;
     for(int i = 0; i < clientGraphs_.size(); ++i) {
       if(graph == clientGraphs_[i]) {
@@ -220,7 +201,6 @@ private:
       }
     }
 
-    // @TODO: This code does not seem specific to multi-node. Remove code dup.
     if(options_->get<bool>("overwrite")) {
       std::string name = options_->get<std::string>("model");
 
@@ -245,27 +225,13 @@ private:
         scheduler_->save(name);
     }
   }
-public:
 
   /**
-   * Collect statistics from first node's first device's graph.
-   * The total size per node is generalized by multiplying with the number of devices
-   * The resulting statistics from the first node is then broadcast to the other nodes.
-   * This assumes that all GPUs are of the same size.
+   * Collect statistics from first client's graph.
    */
   Ptr<data::BatchStats> collectStats() {
-    mpi_->barrier();
-    // determine the statistics for one device
-    std::vector<size_t> flattenedStats;
-    if (mpi_->myRank() == 0) { // on node 0
-      auto stats = GraphGroup::collectStats(
-        clientGraphs_[0], clientBuilders_[0], devices_.size()); // @TODO: * tau_ ?
-      flattenedStats = stats->flatten();
-    }
-    LOG(info, "[mpi rank {}] distributing BatchStats with {} numbers", mpi_->myRank(), flattenedStats.size());
-    mpi_->bCast(flattenedStats, 0); // broadcast to all
-    LOG(info, "[mpi rank {}] distributed BatchStats with {} numbers", mpi_->myRank(), flattenedStats.size());
-    return New<data::BatchStats>(flattenedStats); // now all have the same BatchStats
+    return GraphGroup::collectStats(
+        clientGraphs_[0], clientBuilders_[0], devices_.size());
   }
 };
 }  // namespace marian

@@ -28,7 +28,7 @@ public:
   // helper to apply a function to each graph or shard, in parallel threads
   virtual void foreach(const std::function<void(size_t /*index*/, size_t /*shardBegin*/, size_t /*shardEnd*/)>& func, bool parallel = true) const = 0;
 
-  virtual void scatterReduce() = 0; // @TODO: indicate by the name that this is scattering gradients
+  virtual void scatterReduce() = 0; // @TODO: indicate by the name that this is scattering gradients. @TODO: No, no longer needed.
   virtual void allGather(bool vals) = 0;
   virtual void allReduceGrads() = 0;
   virtual void reduceGrads(size_t root = 0) = 0;

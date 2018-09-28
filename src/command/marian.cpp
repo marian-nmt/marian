@@ -16,29 +16,42 @@ int main(int argc, char** argv) {
 
   auto options = New<Config>(argc, argv);
 
-  if (options->get<bool>("sync-sgd")) {
-      New<Train<SyncGraphGroup>>(options)->run();
-  }
+  // selects MultiNodeGraphGroup family
+  // Note: --sync-sgd without --multi-node also supports MPI now, using the SyncGraphGroup.
+  // This means we have two redundant implementations of multi-node sync-sgd. Note that the
+  // MultiNodeGraphGroup family is out of date. Therefore, the goal is to remove MultiNodeGraphGroupSync.
+  if(options->get<bool>("multi-node")) {
+    LOG(warn, "[experimental] Old multi-node training implementations. These are presently not up-to-date.");
 
-  else if(options->get<bool>("multi-node")) {
-    LOG(warn, "[experimental] Running multi-node training");
-
-    /*if(options->get<bool>("sync-sgd")) {
+    if(options->get<bool>("sync-sgd")) {
+      LOG(warn, "[training] Using MultiNodeGraphGroupSync trainer.");
       New<Train<MultiNodeGraphGroupSync>>(options)->run();
-    } else*/ {
+    } else {
 #ifdef CUDA_FOUND
+      LOG(warn, "[training] Using MultiNodeGraphGroup trainer.");
       New<Train<MultiNodeGraphGroup>>(options)->run();
 #else
       ABORT("Asynchronous multi-node training requires CUDA");
 #endif
     }
-  } else {
+  }
+  // --sync-sgd always selects SyncGraphGroup
+  // If given, then this implementation is used for all combinations of
+  // (single, multiple) workers x (single, multiple) GPUs per worker.
+  // This variant is presently up-to-date and best supported.
+  else if (options->get<bool>("sync-sgd")) {
+    LOG(warn, "[training] Using SyncGraphGroup trainer.");
+    New<Train<SyncGraphGroup>>(options)->run();
+  }
+  else {
     auto devices = options->getDevices();
     if(devices.size() == 1) {
+      LOG(warn, "[training] Using SingletonGraph trainer.");
       New<Train<SingletonGraph>>(options)->run();
     } else {
       if(options->get<float>("grad-dropping-rate") > 0.0) {
 #ifdef CUDA_FOUND
+        LOG(warn, "[training] Using AsyncGraphGroupDrop trainer.");
         New<Train<AsyncGraphGroupDrop>>(options)->run();
 #else
         ABORT("Asynchronous training with gradient dropping requires CUDA");
