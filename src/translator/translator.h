@@ -218,7 +218,7 @@ public:
     }
 
     auto translations = collector->collect(options_->get<bool>("n-best"));
-    return utils::Join(translations, "\n");
+    return utils::join(translations, "\n");
   }
 };
 }  // namespace marian
