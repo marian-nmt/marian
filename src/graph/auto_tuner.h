@@ -22,7 +22,7 @@ private:
 
   const size_t max = 100;
 
-  UPtr<timer::Timer> timer_;
+  UPtr<timer::CPUTimer> timer_;
 
   struct HashedAlgorithm {
     size_t hash;
@@ -81,7 +81,7 @@ public:
 
   void start(size_t hash) override {
     if(!timer_ && done_.count(hash) == 0)
-      timer_.reset(new timer::Timer());
+      timer_.reset(new timer::CPUTimer());
   }
 
   void stop(size_t hash, bool stop) override {
