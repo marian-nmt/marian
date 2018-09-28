@@ -70,7 +70,9 @@ public:
 
   Expr findOrRemember(Expr node) {
     size_t hash = node->hash();
-    if(node->memoize()) {
+    // memoize constant nodes that are not parameters
+    // parameters are already memoized in the graph itself
+    if(node->type() != "param" && node->memoize()) {
       auto it = longterm_->find(hash);
       if(it != longterm_->end()) {
         for(auto found : it->second) {
@@ -323,7 +325,6 @@ public:
                p->shape());
 
       p->setTrainable(!fixed);
-      
       add(p);
       return p;
     }
