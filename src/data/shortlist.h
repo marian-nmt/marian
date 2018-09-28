@@ -193,6 +193,7 @@ public:
     firstNum_ = vals.size() > 1 ? std::stoi(vals[1]) : 100;
     bestNum_ = vals.size() > 2 ? std::stoi(vals[2]) : 100;
     float threshold = vals.size() > 3 ? std::stof(vals[3]) : 0;
+    std::string dumpPath = vals.size() > 4 ? vals[4] : "";
 
     LOG(info,
         "[data] Loading lexical shortlist as {} {} {} {}",
@@ -203,10 +204,14 @@ public:
 
     load(fname);
     prune(threshold);
+
+    if(!dumpPath.empty())
+      dump(dumpPath);
   }
 
   void dump(const std::string& prefix) {
     // Dump top most frequent words from target vocabulary
+    LOG(info, "[data] Saving shortlist dump to {}.top", prefix + ".{top,dic}");
     OutputFileStream outTop(prefix + ".top");
     for(Word i = 0; i < firstNum_ && i < trgVocab_->size(); ++i)
       (std::ostream&)outTop << (*trgVocab_)[i] << std::endl;
@@ -216,7 +221,7 @@ public:
     for(size_t srcId = 0; srcId < data_.size(); srcId++) {
       for(auto& it : data_[srcId]) {
         size_t trgId = it.first;
-        (std::ostream&)outDic << (*srcVocab_)[srcId] << " " << (*trgVocab_)[trgId] << std::endl;
+        (std::ostream&)outDic << (*srcVocab_)[srcId] << "\t" << (*trgVocab_)[trgId] << std::endl;
       }
     }
   }
