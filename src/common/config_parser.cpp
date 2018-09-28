@@ -12,7 +12,6 @@
 #include <set>
 #include <stdexcept>
 #include <string>
-#include <boost/algorithm/string.hpp>
 
 #if MKL_FOUND
 #include <mkl.h>
@@ -746,14 +745,14 @@ std::vector<DeviceId> ConfigParser::getDevices() {
 
   try {
     std::string devicesStr
-        = utils::Join(config_["devices"].as<std::vector<std::string>>());
+        = utils::join(config_["devices"].as<std::vector<std::string>>());
 
     if(mode_ == cli::mode::training && get<bool>("multi-node")) {
-      auto parts = utils::Split(devicesStr, ":");
+      auto parts = utils::split(devicesStr, ":");
       for(size_t i = 1; i < parts.size(); ++i) {
         std::string part = parts[i];
-        utils::Trim(part);
-        auto ds = utils::Split(part, " ");
+        utils::trim(part);
+        auto ds = utils::split(part, " ");
         if(i < parts.size() - 1)
           ds.pop_back();
 
@@ -763,7 +762,7 @@ std::vector<DeviceId> ConfigParser::getDevices() {
           devices.push_back({(size_t)std::stoull(d), DeviceType::gpu});
       }
     } else {
-      for(auto d : utils::Split(devicesStr))
+      for(auto d : utils::split(devicesStr))
         devices.push_back({(size_t)std::stoull(d), DeviceType::gpu});
     }
 

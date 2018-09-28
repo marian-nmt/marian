@@ -79,8 +79,8 @@ void CorpusSQLite::fillSQLite() {
       ps.bind(1, (int)lines);
 
       std::string line;
-      for(int i = 0; i < files_.size(); ++i) {
-        cont = cont && utils::GetLine((std::istream&)*files_[i], line);
+      for(size_t i = 0; i < files_.size(); ++i) {
+        cont = cont && utils::getline((std::istream&)*files_[i], line);
         if(cont)
           ps.bind((int)(i + 2), line);
       }

@@ -1,6 +1,8 @@
 #include "data/alignment.h"
 #include "common/utils.h"
 
+#include <algorithm>
+
 namespace marian {
 namespace data {
 
@@ -11,7 +13,7 @@ WordAlignment::WordAlignment(
     : data_(align) {}
 
 WordAlignment::WordAlignment(const std::string& line) {
-  std::vector<std::string> atok = utils::SplitAny(line, " -");
+  std::vector<std::string> atok = utils::splitAny(line, " -");
   for(size_t i = 0; i < atok.size(); i += 2)
     data_.emplace_back(Point{ (size_t)std::stoi(atok[i]), (size_t)std::stoi(atok[i + 1]), 1.f });
 }

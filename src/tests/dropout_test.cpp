@@ -1,13 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <boost/chrono.hpp>
-#include <boost/timer/timer.hpp>
 #include <vector>
 
 #include "marian.h"
 
 using namespace marian;
-using namespace keywords;
 
 int main(int argc, char** argv) {
   auto c = New<Config>(argc, argv);

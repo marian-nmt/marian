@@ -34,7 +34,6 @@ public:
   virtual void embeddingsFromBatch(Ptr<ExpressionGraph> graph,
                                    Ptr<DecoderState> state,
                                    Ptr<data::CorpusBatch> batch) {
-    using namespace keywords;
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");
@@ -92,8 +91,6 @@ public:
                                         const std::vector<size_t>& embIdx,
                                         int dimBatch,
                                         int dimBeam) {
-    using namespace keywords;
-
     int dimTrgEmb = opt<int>("dim-emb");
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 

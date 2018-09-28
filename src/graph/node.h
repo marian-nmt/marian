@@ -5,7 +5,6 @@
 #include <thread>
 
 #include "common/hash.h"
-#include "common/keywords.h"
 #include "tensors/backend.h"
 #include "tensors/tensor.h"
 

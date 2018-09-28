@@ -439,10 +439,9 @@ struct LogSoftmaxNodeOp : public UnaryNodeOp {
 };
 
 struct SumNodeOp : public UnaryNodeOp {
-  int ax_;
+  int axis_;
 
-  template <typename... Args>
-  SumNodeOp(Expr a, Args... args) : UnaryNodeOp(a, newShape(a, args...)) {}
+  SumNodeOp(Expr a, int axis) : UnaryNodeOp(a, newShape(a, axis)) {}
 
   NodeOps forwardOps() override {
     using namespace functional;
@@ -455,12 +454,11 @@ struct SumNodeOp : public UnaryNodeOp {
     return {NodeOp(Add(_1, child(0)->grad(), adj_))};
   }
 
-  template <class... Args>
-  Shape newShape(Expr a, Args... args) {
+  Shape newShape(Expr a, int axis) {
     Shape shape = a->shape();
-    ax_ = shape.axis(keywords::Get(keywords::axis, -1, args...));
+    axis_ = shape.axis(axis);
 
-    shape.set(ax_, 1);
+    shape.set(axis_, 1);
     return shape;
   }
 
@@ -471,7 +469,7 @@ struct SumNodeOp : public UnaryNodeOp {
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      util::hash_combine(hash_, ax_);
+      util::hash_combine(hash_, axis_);
     }
     return hash_;
   }
@@ -482,17 +480,16 @@ struct SumNodeOp : public UnaryNodeOp {
     Ptr<SumNodeOp> cnode = std::dynamic_pointer_cast<SumNodeOp>(node);
     if(!cnode)
       return false;
-    if(ax_ != cnode->ax_)
+    if(axis_ != cnode->axis_)
       return false;
     return true;
   }
 };
 
 struct MeanNodeOp : public UnaryNodeOp {
-  int ax_;
+  int axis_;
 
-  template <typename... Args>
-  MeanNodeOp(Expr a, Args... args) : UnaryNodeOp(a, newShape(a, args...)) {}
+  MeanNodeOp(Expr a, int axis) : UnaryNodeOp(a, newShape(a, axis)) {}
 
   NodeOps forwardOps() override {
     using namespace functional;
@@ -510,11 +507,10 @@ struct MeanNodeOp : public UnaryNodeOp {
     return {NodeOp(Add(_1, scale, child(0)->grad(), adj_))};
   }
 
-  template <class... Args>
-  Shape newShape(Expr a, Args... args) {
+  Shape newShape(Expr a, int axis) {
     Shape shape = a->shape();
-    ax_ = shape.axis(keywords::Get(keywords::axis, -1, args...));
-    shape.set(ax_, 1);
+    axis_ = shape.axis(axis);
+    shape.set(axis_, 1);
     return shape;
   }
 
@@ -525,7 +521,7 @@ struct MeanNodeOp : public UnaryNodeOp {
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      util::hash_combine(hash_, ax_);
+      util::hash_combine(hash_, axis_);
     }
     return hash_;
   }
@@ -536,7 +532,7 @@ struct MeanNodeOp : public UnaryNodeOp {
     Ptr<MeanNodeOp> cnode = std::dynamic_pointer_cast<MeanNodeOp>(node);
     if(!cnode)
       return false;
-    if(ax_ != cnode->ax_)
+    if(axis_ != cnode->axis_)
       return false;
     return true;
   }
@@ -1053,42 +1049,6 @@ struct ShiftNodeOp : public UnaryNodeOp {
   Shape shift_;     // shift offsets in each dimension
   float padValue_;  // what value to shift in
 };
-
-// struct LexicalProbNodeOp : public NaryNodeOp {
-//  template <typename... Args>
-//  LexicalProbNodeOp(
-//      Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf, Args... args)
-//      : NaryNodeOp({logits, att}, keywords::shape = logits->shape(), args...),
-//        eps_(eps),
-//        lf_(lf) {}
-//
-//  void forward() {
-//    sparse::LfaForward(val_, child(0)->val(), child(1)->val(), lf_);
-//    // val = x + ln(p + eps)
-//    Element(_1 = (log(_1 + eps_) + _2), val_, child(0)->val());
-//  }
-//
-//  void backward() {
-//    Add(_1, child(0)->grad(), adj_);
-//    // adj' = adj / (p + eps) = adj / exp(val - x)
-//    Element(_1 = _1 / exp(_2 - _3), adj_, val_, child(0)->val());
-//    sparse::LfaBackward(child(1)->grad(), adj_, lf_);
-//  }
-//
-//  const std::string type() { return "lexical_prob"; }
-//
-//  virtual size_t hash() {
-//    if(!hash_) {
-//      size_t seed = NaryNodeOp::hash();
-//      util::hash_combine(seed, (size_t)lf_.get());
-//      hash_ = seed;
-//    }
-//    return hash_;
-//  }
-//
-//  float eps_;
-//  Ptr<sparse::CSR> lf_;
-//};
 
 #ifdef CUDNN
 class PoolingOp : public UnaryNodeOp {

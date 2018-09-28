@@ -1,6 +1,8 @@
 #include "marian.h"
 #include "translator/beam_search.h"
 #include "translator/translator.h"
+#include "common/timer.h"
+#include "common/utils.h"
 
 #include "3rd_party/simple-websocket-server/server_ws.hpp"
 
@@ -26,7 +28,7 @@ int main(int argc, char **argv) {
     auto sendStream = std::make_shared<WSServer::SendStream>();
 
     // Translate
-    boost::timer::cpu_timer timer;
+    timer::Timer timer;
     auto outputText = task->run(inputText);
     LOG(info, "Best translation: {}", outputText);
     *sendStream << outputText << std::endl;

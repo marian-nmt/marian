@@ -1,5 +1,4 @@
 #include "training/graph_group_sync.h"
-#include "tensors/tensor_operators.h"
 
 namespace marian {
 

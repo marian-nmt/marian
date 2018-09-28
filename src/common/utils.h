@@ -6,36 +6,38 @@
 namespace marian {
 namespace utils {
 
-void Trim(std::string& s);
+void trim(std::string& s);
+void trimLeft(std::string& s);
+void trimRight(std::string& s);
 
-void Split(const std::string& line,
+void split(const std::string& line,
            std::vector<std::string>& pieces,
            const std::string del = " ",
            bool keepEmpty = false);
 
-std::vector<std::string> Split(const std::string& line,
+std::vector<std::string> split(const std::string& line,
                                const std::string del = " ",
                                bool keepEmpty = false);
 
-void SplitAny(const std::string& line,
+void splitAny(const std::string& line,
               std::vector<std::string>& pieces,
               const std::string del = " ",
               bool keepEmpty = false);
 
-std::vector<std::string> SplitAny(const std::string& line,
+std::vector<std::string> splitAny(const std::string& line,
                                   const std::string del = " ",
                                   bool keepEmpty = false);
 
-std::string Join(const std::vector<std::string>& words,
+std::string join(const std::vector<std::string>& words,
                  const std::string& del = " ",
                  bool reverse = false);
 
-std::string Exec(const std::string& cmd);
+std::string exec(const std::string& cmd);
 
 // wrapper around std::getline() that handles Windows input files with extra CR
 // chars at the line end
 template <class CharT, class Traits, class Allocator>
-std::basic_istream<CharT, Traits>& GetLine(
+std::basic_istream<CharT, Traits>& getline(
     std::basic_istream<CharT, Traits>& in,
     std::basic_string<CharT, Traits, Allocator>& line) {
   std::getline(in, line);
@@ -48,7 +50,7 @@ std::basic_istream<CharT, Traits>& GetLine(
 // wrapper around std::getline() that handles Windows input files with extra CR
 // chars at the line end
 template <class CharT, class Traits, class Allocator>
-std::basic_istream<CharT, Traits>& GetLine(
+std::basic_istream<CharT, Traits>& getline(
     std::basic_istream<CharT, Traits>& in,
     std::basic_string<CharT, Traits, Allocator>& line,
     CharT delim) {

@@ -32,7 +32,6 @@ public:
     auto backward = type == "alternating" ? rnn::dir::alternating_backward
                                           : rnn::dir::backward;
 
-    using namespace keywords;
     float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
 
     auto rnnFw = rnn::rnn(graph)                                   //
@@ -89,7 +88,7 @@ public:
 
     auto context = concatenate({rnnFw->transduce(embeddings, mask),
                                 rnnBw->transduce(embeddings, mask)},
-                               axis = -1);
+                               /*axis =*/ -1);
 
     if(second > 0) {
       // add more layers (unidirectional) by transducing the output of the
@@ -153,7 +152,6 @@ public:
                                   Ptr<data::CorpusBatch> batch) override {
     auto embeddings = buildSourceEmbeddings(graph);
 
-    using namespace keywords;
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask;
     std::tie(batchEmbeddings, batchMask)
@@ -248,14 +246,13 @@ public:
       Ptr<ExpressionGraph> graph,
       Ptr<data::CorpusBatch> batch,
       std::vector<Ptr<EncoderState>>& encStates) override {
-    using namespace keywords;
 
     std::vector<Expr> meanContexts;
     for(auto& encState : encStates) {
       // average the source context weighted by the batch mask
       // this will remove padded zeros from the average
       meanContexts.push_back(weighted_average(
-          encState->getContext(), encState->getMask(), axis = -3));
+          encState->getContext(), encState->getMask(), /*axis =*/ -3));
     }
 
     Expr start;
@@ -286,7 +283,6 @@ public:
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state) override {
-    using namespace keywords;
 
     auto embeddings = state->getTargetEmbeddings();
 
@@ -320,7 +316,7 @@ public:
 
     Expr alignedContext;
     if(alignedContexts.size() > 1)
-      alignedContext = concatenate(alignedContexts, axis = -1);
+      alignedContext = concatenate(alignedContexts, /*axis =*/ -1);
     else if(alignedContexts.size() == 1)
       alignedContext = alignedContexts[0];
 

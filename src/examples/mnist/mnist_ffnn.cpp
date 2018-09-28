@@ -4,8 +4,6 @@
 #include <iomanip>
 #include <string>
 
-#include <boost/timer/timer.hpp>
-
 #include "marian.h"
 
 #include "examples/mnist/model.h"

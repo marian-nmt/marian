@@ -18,7 +18,6 @@ protected:
   virtual Expr construct(Ptr<ExpressionGraph> g,
                          Ptr<data::Batch> batch,
                          bool inference = false) {
-    using namespace keywords;
     const std::vector<int> dims = {784, 128, 10};
 
     // Start with an empty expression graph
@@ -95,7 +94,7 @@ protected:
       auto y = g->constant({(int)batch->size(), 1}, inits::from_vector(labels));
 
       // Define a top-level node for training
-      return mean(cross_entropy(last, y), axis = 0);
+      return mean(cross_entropy(last, y), /*axis =*/ 0);
     } else {
       // Define a top-level node for inference
       return logsoftmax(last);

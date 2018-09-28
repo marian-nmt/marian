@@ -145,11 +145,11 @@ Expr operator/(float a, Expr b) {
 
 /*********************************************************/
 
-Expr concatenate(const std::vector<Expr>& concats, keywords::axis_k ax) {
+Expr concatenate(const std::vector<Expr>& concats, int ax) {
   return Expression<ConcatenateNodeOp>(concats, ax);
 }
 
-Expr repeat(Expr a, size_t repeats, keywords::axis_k ax) {
+Expr repeat(Expr a, size_t repeats, int ax) {
   if(repeats == 1)
     return a;
   return concatenate(std::vector<Expr>(repeats, a), ax);
@@ -210,19 +210,19 @@ Expr select(Expr a, int axis, const std::vector<size_t>& indices) {
   return Expression<SelectNodeOp>(a, axis, indices);
 }
 
-Expr sum(Expr a, keywords::axis_k ax) {
+Expr sum(Expr a, int ax) {
   return Expression<SumNodeOp>(a, ax);
 }
 
-Expr mean(Expr a, keywords::axis_k ax) {
+Expr mean(Expr a, int ax) {
   return Expression<MeanNodeOp>(a, ax);
 }
 
-Expr scalar_product(Expr a, Expr b, keywords::axis_k ax) {
+Expr scalar_product(Expr a, Expr b, int ax) {
   return Expression<ScalarProductNodeOp>(a, b, ax);
 }
 
-Expr weighted_average(Expr in, Expr weights, keywords::axis_k ax) {
+Expr weighted_average(Expr in, Expr weights, int ax) {
   auto p = scalar_product(in, weights, ax);
   auto s = sum(weights, ax);
   return p / s;

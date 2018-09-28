@@ -5,7 +5,6 @@
 #include "common/version.h"
 
 #include <algorithm>
-#include <boost/algorithm/string.hpp>
 #include <set>
 #include <string>
 
@@ -140,7 +139,7 @@ void Config::log() {
 
   // print YAML prepending each line with [config]
   std::vector<std::string> results;
-  boost::algorithm::split(results, configString, boost::is_any_of("\n"));
+  utils::split(configString, results, "\n");
   for(auto& r : results)
     LOG(info, "[config] {}", r);
 }

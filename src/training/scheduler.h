@@ -15,7 +15,7 @@ private:
 
   Ptr<TrainingState> state_;
 
-  boost::timer::cpu_timer timer;
+  timer::Timer timer;
 
   float getLearningRate(TrainingState& state) {
     float baselr = options_->get<float>("learn-rate");

@@ -63,7 +63,7 @@ public:
       auto alignments = encdec->getDecoders()[0]->getAlignments();
       ABORT_IF(alignments.empty(), "Model does not seem to support alignments");
 
-      auto att = concatenate(alignments, keywords::axis = -1);
+      auto att = concatenate(alignments, /*axis =*/ -1);
 
       return cost + guidedAlignmentCost(graph, corpusBatch, options_, att);
     } else {

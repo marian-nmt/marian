@@ -15,7 +15,6 @@ public:
                                   Ptr<data::CorpusBatch> batch) {
     auto embeddings = buildSourceEmbeddings(graph);
 
-    using namespace keywords;
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask;
     std::tie(batchEmbeddings, batchMask)

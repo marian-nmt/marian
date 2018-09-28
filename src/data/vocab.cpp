@@ -39,7 +39,7 @@ Words Vocab::operator()(const std::vector<std::string>& lineTokens,
 
 Words Vocab::operator()(const std::string& line, bool addEOS) const {
   std::vector<std::string> lineTokens;
-  utils::Split(line, lineTokens, " ");
+  utils::split(line, lineTokens, " ");
   return (*this)(lineTokens, addEOS);
 }
 
@@ -115,7 +115,7 @@ int Vocab::load(const std::string& vocabPath, int max) {
   else {
     std::ifstream in(vocabPath);
     std::string line;
-    while(utils::GetLine(in, line)) {
+    while(utils::getline(in, line)) {
       ABORT_IF(line.empty(),
                "Vocabulary file {} must not contain empty lines",
                vocabPath);
@@ -249,7 +249,7 @@ void Vocab::create(InputFileStream& trainStrm,
 
   while(getline((std::istream&)trainStrm, line)) {
     std::vector<std::string> toks;
-    utils::Split(line, toks);
+    utils::split(line, toks);
 
     for(const std::string& tok : toks) {
       if(SPEC2SYM.count(tok)) {

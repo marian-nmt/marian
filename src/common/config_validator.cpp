@@ -117,8 +117,8 @@ void ConfigValidator::validateOptionsTraining() const {
 }
 
 void ConfigValidator::validateDevices(cli::mode mode) const {
-  std::string devices = utils::Join(get<std::vector<std::string>>("devices"));
-  utils::Trim(devices);
+  std::string devices = utils::join(get<std::vector<std::string>>("devices"));
+  utils::trim(devices);
 
   regex::regex pattern;
   std::string help;

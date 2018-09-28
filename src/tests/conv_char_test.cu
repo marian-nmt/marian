@@ -45,11 +45,11 @@ int main(int argc, char** argv) {
   }
 
   auto x = graph->param("x", {dimBatch, dimWord, batchLength},
-                        keywords::init=inits::from_vector(embData));
+                        inits::from_vector(embData));
 
 
   auto xMask = graph->constant({dimBatch, 1, batchLength},
-                               keywords::init=inits::from_vector(embMask));
+                               inits::from_vector(embMask));
 
   std::vector<Expr> convs({Convolution("convolution_1", 1, dimWord, 200)(x, xMask),
                            Convolution("convolution_2", 2, dimWord, 200)(x, xMask),
@@ -61,16 +61,16 @@ int main(int argc, char** argv) {
                            Convolution("convolution_8", 8, dimWord, 300)(x, xMask)});
 
 
-  auto convolution = concatenate(convs, keywords::axis=1);
+  auto convolution = concatenate(convs, /*axis=*/1);
 
 
   auto r = relu(convolution);
   // debug(r, "R");
   auto maxPooling = MaxPooling("max_pooling", 5, 1, 5, 1)(r);
   auto highway = Highway("highway", 4)(maxPooling);
-  auto idx = graph->constant({4, 1}, keywords::init=inits::zeros);
+  auto idx = graph->constant({4, 1}, inits::zeros);
   auto ce = cross_entropy(highway, idx);
-  auto cost = mean(sum(ce, keywords::axis=2), keywords::axis=0);
+  auto cost = mean(sum(ce, /*axis=*/2), /*axis=*/0);
 
 
   debug(x, "x");

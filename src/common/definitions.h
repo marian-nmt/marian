@@ -34,11 +34,6 @@ template <class T>
 Ptr<T> New(Ptr<T> p) {
   return Ptr<T>(p);
 }
-}  // namespace marian
-
-#include "keywords.h"
-
-namespace marian {
 
 enum class DeviceType : size_t { gpu = 0, cpu = 1 };
 
@@ -95,42 +90,6 @@ typedef Ptr<ClipperBase> ClipperBasePtr;
 class RunBase;
 typedef Ptr<RunBase> RunBasePtr;
 
-class LexProbs;
-
-/**
- * @brief Defines a set of keywords.
- *
- * Each invocation of the KEY(name, value_type) macro
- *    will result in the creation of an instance of the Keyword class.
- */
-namespace keywords {
-KEY(axis, int);
-KEY(shape, Shape);
-KEY(value, float);
-KEY(fixed, bool);
-//KEY(prefix, std::string); // (conflicts with local variables named prefix)
-KEY(final, bool);
-KEY(output_last, bool);
-KEY(mask, Expr);
-KEY(dropout_prob, float);
-KEY(init, std::function<void(Tensor)>);
-
-KEY(eta, float);
-KEY(beta1, float);
-KEY(beta2, float);
-KEY(eps, float);
-KEY(optimizer, Ptr<OptimizerBase>);
-KEY(clip, Ptr<ClipperBase>);
-KEY(batch_size, int);
-KEY(normalize, bool);
-KEY(inference, bool);
-KEY(skip, bool);
-KEY(skip_first, bool);
-KEY(coverage, Expr);
-KEY(max_epochs, int);
-KEY(valid, Ptr<RunBase>);
-KEY(lex_probs, Ptr<LexProbs>);
-}  // namespace keywords
 
 const float NEMATUS_LN_EPS = 1e-5f;
 }  // namespace marian

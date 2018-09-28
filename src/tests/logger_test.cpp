@@ -1,8 +1,9 @@
-#include <boost/timer/timer.hpp>
+#include "common/timer.h"
+#include "common/logging.h"
+
 #include <iostream>
 #include <string>
 #include <vector>
-#include "common/logging.h"
 
 // small test program for playing around with spdlog formatting of messages
 
@@ -35,7 +36,7 @@ int main() {
 
   info->info("hello {:06.2f}", .7);
 
-  boost::timer::cpu_timer timer;
+  marian::timer::Timer timer;
 
   info->info("time is {} bla {:.2f}", timer.format(5, "%w"), .7);
 }

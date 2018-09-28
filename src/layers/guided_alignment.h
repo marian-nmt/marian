@@ -8,8 +8,6 @@ static inline Expr guidedAlignmentCost(Ptr<ExpressionGraph> graph,
                                        Ptr<data::CorpusBatch> batch,
                                        Ptr<Options> options,
                                        Expr att) {
-  using namespace keywords;
-
   int dimBatch = att->shape()[-2];
   int dimSrc = att->shape()[-3];
   int dimTrg = att->shape()[-1];

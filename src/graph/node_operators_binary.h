@@ -410,18 +410,14 @@ public:
 };
 
 struct ScalarProductNodeOp : public NaryNodeOp {
-  template <typename... Args>
-  ScalarProductNodeOp(Expr a, Expr b, Args... args)
-      : NaryNodeOp({a, b}, newShape(a, b, args...)) {}
+  ScalarProductNodeOp(Expr a, Expr b, int axis)
+      : NaryNodeOp({a, b}, newShape(a, b, axis)) {}
 
-  template <typename... Args>
-  Shape newShape(Expr a, Expr b, Args... args) {
-    int ax = keywords::Get(keywords::axis, -1, args...);
-
+  Shape newShape(Expr a, Expr b, int axis) {
     Shape full = Shape::broadcast({a, b});
-    ax = full.axis(ax);
+    axis_ = full.axis(axis);
 
-    full.set(ax, 1);
+    full.set(axis_, 1);
     return full;
   }
 
@@ -441,6 +437,25 @@ struct ScalarProductNodeOp : public NaryNodeOp {
   const std::string type() override { return "scalar-product"; }
 
   const std::string color() override { return "orange"; }
+
+  virtual size_t hash() override {
+    size_t seed = NaryNodeOp::hash();
+    util::hash_combine(seed, axis_);
+    return seed;
+  }
+
+  virtual bool equal(Expr node) override {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    auto cnode = std::dynamic_pointer_cast<ScalarProductNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(axis_ != cnode->axis_)
+      return false;
+    return true;
+  }
+
+  int axis_;
 };
 
 struct ElementBinaryNodeOp : public NaryNodeOp {
@@ -668,10 +683,8 @@ struct CrossEntropyNodeOp : public NaryNodeOp {
 };
 
 struct ConcatenateNodeOp : public NaryNodeOp {
-  template <typename... Args>
-  ConcatenateNodeOp(const std::vector<Expr>& nodes, Args... args)
-      : NaryNodeOp(nodes,
-                   newShape(nodes, keywords::Get(keywords::axis, 0, args...))) {
+  ConcatenateNodeOp(const std::vector<Expr>& nodes, int axis)
+      : NaryNodeOp(nodes, newShape(nodes, axis)) {
   }
 
   Shape newShape(const std::vector<Expr>& nodes, int ax) {
@@ -725,48 +738,6 @@ struct ConcatenateNodeOp : public NaryNodeOp {
 
   int ax_;
 };
-
-/*
-struct TanhPlus3NodeOp : public NaryNodeOp {
-  TanhPlus3NodeOp(const std::vector<Expr>& nodes)
-    : NaryNodeOp(nodes, keywords::shape=newShape(nodes)) { }
-
-  Shape newShape(const std::vector<Expr>& nodes) {
-    Shape shape = nodes[0]->shape();
-
-    for(int n = 1; n < nodes.size(); ++n) {
-      Shape shapen = nodes[n]->shape();
-      for(int i = 0; i < shapen.size(); ++i) {
-        ABORT_IF(shape[i] != shapen[i] && shape[i] != 1 && shapen[i] != 1,
-                       "Shapes cannot be broadcasted");
-        shape.set(i, std::max(shape[i], shapen[i]));
-      }
-    }
-    return shape;
-  }
-
-  void forward() {
-    Element(_1 = Tanh(_2 + _3 + _4),
-            val_,
-            child(0)->val(),
-            child(1)->val(),
-            child(2)->val());
-  }
-
-  void backward() {
-    for(auto&& child : children_) {
-      if(child->trainable())
-        Add((1.f - _1 * _1) * _2,
-            child->grad(), val_, adj_);
-    }
-  }
-
-  const std::string type() {
-    return "tanhPlus3";
-  }
-
-};
-*/
 
 struct LayerNormalizationOp : public NaryNodeOp {
 public:

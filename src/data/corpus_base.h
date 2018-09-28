@@ -4,15 +4,13 @@
 #include <iostream>
 #include <random>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/iterator/iterator_facade.hpp>
-
 #include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
 #include "common/options.h"
 #include "common/utils.h"
 #include "data/alignment.h"
+#include "data/iterator_facade.h"
 #include "data/batch.h"
 #include "data/dataset.h"
 #include "data/rng_engine.h"
@@ -548,22 +546,17 @@ protected:
                          const std::vector<sample>& batchVector);
 };
 
-class CorpusIterator
-    : public boost::iterator_facade<CorpusIterator,
-                                    SentenceTuple const,
-                                    boost::forward_traversal_tag> {
+class CorpusIterator : public IteratorFacade<CorpusIterator, SentenceTuple> {
 public:
   CorpusIterator();
   explicit CorpusIterator(CorpusBase* corpus);
 
 private:
-  friend class boost::iterator_core_access;
+  void increment() override;
 
-  void increment();
+  bool equal(CorpusIterator const& other) const override;
 
-  bool equal(CorpusIterator const& other) const;
-
-  const SentenceTuple& dereference() const;
+  const SentenceTuple& dereference() const override;
 
   CorpusBase* corpus_;
 

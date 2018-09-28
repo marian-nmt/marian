@@ -4,9 +4,6 @@
 #include <iostream>
 #include <random>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/iterator/iterator_facade.hpp>
-
 #include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"

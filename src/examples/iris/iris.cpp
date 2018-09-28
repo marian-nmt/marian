@@ -7,7 +7,6 @@
 
 using namespace marian;
 using namespace data;
-using namespace keywords;
 
 // Constants for Iris example
 const size_t MAX_EPOCHS = 200;
@@ -43,7 +42,7 @@ Expr buildIrisClassifier(Ptr<ExpressionGraph> graph,
      * But then `y` requires to be a one-hot-vector, i.e. [0,1,0, 1,0,0, 0,0,1,
      * ...] instead of [1, 0, 2, ...].
      */
-    auto cost = mean(cross_entropy(o, y), axis = 0);
+    auto cost = mean(cross_entropy(o, y), /*axis =*/ 0);
     return cost;
   } else {
     auto preds = logsoftmax(o);

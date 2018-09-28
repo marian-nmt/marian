@@ -85,14 +85,13 @@ public:
       Ptr<ExpressionGraph> graph,
       Ptr<data::CorpusBatch> batch,
       std::vector<Ptr<EncoderState>>& encStates) override {
-    using namespace keywords;
 
     std::vector<Expr> meanContexts;
     for(auto& encState : encStates) {
       // average the source context weighted by the batch mask
       // this will remove padded zeros from the average
       meanContexts.push_back(weighted_average(
-          encState->getContext(), encState->getMask(), axis = -3));
+          encState->getContext(), encState->getMask(), /*axis =*/ -3));
     }
 
     Expr start;
@@ -116,7 +115,6 @@ public:
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state) override {
-    using namespace keywords;
 
     auto type = options_->get<std::string>("type");
 
@@ -157,7 +155,7 @@ public:
     attendedContext = reshape(attendedContext,
                               {dimBeam, dimTrgWords, dimBatch, dimContext});
 
-    auto rnnInputs = concatenate({trgEmbeddings, attendedContext}, axis = -1);
+    auto rnnInputs = concatenate({trgEmbeddings, attendedContext}, /*axis =*/ -1);
     int dimInput = rnnInputs->shape()[-1];
 
     if(!rnn_) {
@@ -226,7 +224,7 @@ public:
 
       Expr alignedContext;
       if(alignedContexts.size() > 1)
-        alignedContext = concatenate(alignedContexts, axis = -1);
+        alignedContext = concatenate(alignedContexts, /*axis =*/ -1);
       else if(alignedContexts.size() == 1)
         alignedContext = alignedContexts[0];
 
@@ -252,8 +250,6 @@ public:
   void embeddingsFromBatch(Ptr<ExpressionGraph> graph,
                            Ptr<DecoderState> state,
                            Ptr<data::CorpusBatch> batch) override {
-    using namespace keywords;
-
     DecoderBase::embeddingsFromBatch(graph, state, batch);
 
     auto subBatch = (*batch)[batchIndex_];

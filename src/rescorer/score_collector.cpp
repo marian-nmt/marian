@@ -91,7 +91,7 @@ void ScoreCollectorNBest::Write(long id,
                "Entry {} < {} already read but not in buffer",
                id,
                lastRead_);
-      while(lastRead_ < id && utils::GetLine((std::istream&)*file_, line)) {
+      while(lastRead_ < id && utils::getline((std::istream&)*file_, line)) {
         lastRead_++;
         iter = buffer_.emplace(lastRead_, line).first;
       }
@@ -109,13 +109,13 @@ std::string ScoreCollectorNBest::addToNBest(const std::string nbest,
                                             float score,
                                             const data::SoftAlignment& align) {
   std::vector<std::string> fields;
-  utils::Split(nbest, fields, "|||");
+  utils::split(nbest, fields, "|||");
   std::stringstream ss;
   if(!alignment_.empty() && !align.empty())
     ss << " " << getAlignment(align) << " |||";
   ss << fields[2] << feature << "= " << score << " ";
   fields[2] = ss.str();
-  return utils::Join(fields, "|||");
+  return utils::join(fields, "|||");
 }
 
 }  // namespace marian

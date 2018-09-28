@@ -31,7 +31,7 @@ public:
       const auto& words = std::get<0>(result);
       const auto& hypo = std::get<1>(result);
 
-      std::string translation = utils::Join((*vocab_)(words), " ", reverse_);
+      std::string translation = utils::join((*vocab_)(words), " ", reverse_);
       bestn << history->GetLineNum() << " ||| " << translation;
 
       if(!alignment_.empty())
@@ -58,7 +58,7 @@ public:
     auto result = history->Top();
     const auto& words = std::get<0>(result);
 
-    std::string translation = utils::Join((*vocab_)(words), " ", reverse_);
+    std::string translation = utils::join((*vocab_)(words), " ", reverse_);
 
     best1 << translation;
     if(!alignment_.empty()) {

@@ -177,7 +177,7 @@ void MultiNodeGraphGroup::initClientCommOverlapGpuTensors() {
     clientLocalOptimizers_.push_back(Optimizer(options_));
     // => for simple SGD opt:
     // clientLocalOptimizers_.push_back(Optimizer<Sgd>(0.0001,
-    // keywords::clip=Clipper<Norm>(1)));
+    // Clipper<Norm>(1)));
   }
 }
 

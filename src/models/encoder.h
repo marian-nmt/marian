@@ -17,8 +17,6 @@ protected:
   std::tuple<Expr, Expr> lookup(Ptr<ExpressionGraph> graph,
                                 Expr srcEmbeddings,
                                 Ptr<data::CorpusBatch> batch) const {
-    using namespace keywords;
-
     auto subBatch = (*batch)[batchIndex_];
 
     int dimBatch = (int)subBatch->batchSize();

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <boost/timer/timer.hpp>
 #include <condition_variable>
 #include <deque>
 #include <functional>
