@@ -47,8 +47,13 @@ public:
   virtual ~Timer() {}
 };
 
+class AutoTimer : public Timer {
+public:
+  AutoTimer() {}
+  ~AutoTimer() { std::cout << "Time: " << elapsed() << "s wall" << std::endl; }
+};
+
 using CPUTimer = boost::timer::cpu_timer;
-using AutoTimer = boost::timer::auto_cpu_timer;
 
 }  // namespace timer
 }  // namespace marian
