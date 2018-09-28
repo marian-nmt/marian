@@ -346,7 +346,7 @@ public:
     }
 
     if(!quiet_)
-      LOG(info, "Total translation time: {}", timer.format(5, "%ws"));
+      LOG(info, "Total translation time: {}s", timer.format(5, "%w"));
 
     for(auto graph : graphs)
       graph->setInference(false);
@@ -481,7 +481,7 @@ public:
     }
 
     if(!quiet_)
-      LOG(info, "Total translation time: {}", timer.format(5, "%ws"));
+      LOG(info, "Total translation time: {}s", timer.format(5, "%w"));
 
     for(auto graph : graphs)
       graph->setInference(false);

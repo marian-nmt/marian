@@ -204,57 +204,55 @@ public:
 
     if(state_->batches % options_->get<size_t>("disp-freq") == 0) {
       if(dispLabelCounts) {
-        if(options_->get<bool>(
-               "lr-report")) {  // if true then show the learning rate
+        // if true then show the learning rate
+        if(options_->get<bool>("lr-report")) {
           LOG(info,
               // TODO: change Cost back to {:.2f}
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} "
-              ": {:.2f} "
-              "words/s : L.r. {:.4e}",
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : "
+              "Time {}s : {:.2f} words/s : L.r. {:.4e}",
               state_->epochs,
               state_->batches,
               state_->samplesEpoch,
               state_->costSum / state_->costCount,
               state_->costCount,  // show cost as "av * count"
               state_->labelsTotal,
-              timer.format(2, "%ws"),
+              timer.format(2, "%w"),
               state_->wordsDisp / std::stof(timer.format(5, "%w")),
               state_->eta);
         } else {
           LOG(info,
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} "
-              ": {:.2f} "
-              "words/s",
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : "
+              "Time {}s : {:.2f} words/s",
               state_->epochs,
               state_->batches,
               state_->samplesEpoch,
               state_->costSum / state_->costCount,
               state_->costCount,
               state_->labelsTotal,
-              timer.format(2, "%ws"),
+              timer.format(2, "%w"),
               state_->wordsDisp / std::stof(timer.format(5, "%w")));
         }
       } else {
         if(options_->get<bool>("lr-report")) {
           LOG(info,
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {}s : {:.2f} "
               "words/s : L.r. {:.4e}",
               state_->epochs,
               state_->batches,
               state_->samplesEpoch,
               state_->costSum / state_->costCount,
-              timer.format(2, "%ws"),
+              timer.format(2, "%w"),
               state_->wordsDisp / std::stof(timer.format(5, "%w")),
               state_->eta);
         } else {
           LOG(info,
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {}s : {:.2f} "
               "words/s",
               state_->epochs,
               state_->batches,
               state_->samplesEpoch,
               state_->costSum / state_->costCount,
-              timer.format(2, "%ws"),
+              timer.format(2, "%w"),
               state_->wordsDisp / std::stof(timer.format(5, "%w")));
         }
       }
