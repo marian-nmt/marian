@@ -70,7 +70,9 @@ public:
 
   Expr findOrRemember(Expr node) {
     size_t hash = node->hash();
-    if(node->memoize()) {
+    // memoize constant nodes that are not parameters
+    // parameters are already memoized in the graph itself
+    if(node->type() != "param" && node->memoize()) {
       auto it = longterm_->find(hash);
       if(it != longterm_->end()) {
         for(auto found : it->second) {
@@ -338,9 +340,10 @@ public:
     // create parameter node (adds to tape)
     p = Expression<ParamNode>(shared_from_this(), shape, init, fixed);
 
-    // add to list of parameters
+    // set name and id and add to list of parameters
     p->set_name(name);
     params_->add(p, name);
+
     return p;
   }
 
