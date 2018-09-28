@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
       LOG(info, "Best translation: {}", transl);
       *send_stream << transl << std::endl;
     }
-    LOG(info, "Translation took: {}s", timer.format(5, "%w"));
+    LOG(info, "Translation took: {:.5f}s", timer.elapsed());
 
     connection->send(send_stream, [](const SimpleWeb::error_code &ec) {
       if(ec) {

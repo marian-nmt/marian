@@ -36,19 +36,19 @@ public:
 
   bool stopped() const { return stopped_; }
 
-  std::string format(size_t precision = 5, const std::string& fmt = "") const {
-    auto seconds = std::chrono::duration<double>(elapsed()).count();
-    auto format = "%." + std::to_string(precision) + "g";
+  std::string format(const char* format = "%.5gs wall") const {
+    auto seconds = elapsed();
     char buffer[50];
-    std::snprintf(buffer, 50, format.c_str(), seconds);
+    std::snprintf(buffer, 50, format, seconds);
     return buffer;
   }
 
-  std::chrono::nanoseconds elapsed() const {
+  template <class Duration = std::chrono::duration<double>>
+  typename Duration::rep elapsed() const {
     if(stopped_)
-      return time_;
+      return std::chrono::duration_cast<Duration>(time_).count();
     time_point current = clock::now();
-    return current - start_;
+    return Duration(current - start_).count();
   }
 
   virtual ~Timer() {}
