@@ -1,3 +1,4 @@
+// @TODO: rename to communicator_nccl.h
 // Note: This must only be included if defined(CUDA_FOUND) && defined(USE_NCCL)
 // clang-format off
 #include "training/communicator.h"
@@ -150,11 +151,6 @@ public:
   void foreach(const std::function<void(size_t, size_t /*shardBegin*/, size_t /*shardEnd*/)>& func, bool parallel= true) const override {
     parallel &= graphs_.size() > 1;
       
-    //int totalSize = (int)graphs_[0]->params()->vals()->size();
-    //int shardSize = (int)ceil(totalSize / (float)graphs_.size());
-    //
-    //int pos = 0;
-
     std::vector<std::thread> group;
     // iterate over all shards on this worker
     size_t begin, end;
@@ -163,61 +159,17 @@ public:
       (begin, end) = shardRange(i);
       //std::cerr << "[" << mpi_->to_string() << "] foreach " << begin << " " << end << std::endl;
       size_t size = end-begin;
-      //int size = std::min(shardSize, totalSize);
 
       if (parallel)
         group.emplace_back(func, i, begin, end);
       else
         func(i, begin, end);
-
-      //pos += size;
-      //totalSize -= size;
-      // @TODO: safer variant is pos = totalSize * i / graphs_.size() and endpos = same for (id+1)
     }
     for(auto& t : group) // (note: group is empty is not parallel)
       t.join();
   }
 
-  void allReduceGrads() override {
-    groupStart();
-    for(int i = 0; i < graphs_.size(); ++i) {
-      NCCLCHECK(ncclAllReduce(graphs_[i]->params()->grads()->data(),
-                              graphs_[i]->params()->grads()->data(),
-                              graphs_[0]->params()->vals()->size(),
-                              ncclFloat,
-                              ncclSum,
-                              comms_[i],
-                              streams_[i]));
-    }
-    groupEnd();
-    synchronizeAll();
-  }
-
-  // this will aggregate across nodes and across devices inside nodes (we only loop over the local devices here) into worker[0].device[0]
-  // only used by graph_group_multinode_sync.cpp, which is unused now
-  void reduceGrads(size_t root) override {
-    groupStart();
-    for(int i = 0; i < graphs_.size(); ++i) {
-      NCCLCHECK(ncclReduce(graphs_[i]->params()->grads()->data(),
-                           graphs_[i]->params()->grads()->data(),
-                           graphs_[0]->params()->vals()->size(),
-                           ncclFloat,
-                           ncclSum,
-                           root,
-                           comms_[i],
-                           streams_[i]));
-    }
-    groupEnd();
-    synchronizeAll();
-  }
-
   void scatterReduce() override {
-    //ABORT_IF(mpi_ != nullptr, "allReduceGrads() support for MPI is not yet implemented");
-    //int totalSize = graphs_[0]->params()->vals()->size();
-    //int shardSize = ceil(totalSize / (float)graphs_.size());
-    //
-    //int pos = 0;
-
     size_t begin, end;
     groupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
@@ -231,9 +183,6 @@ public:
       size_t      bufsize = shardSize();
 
       NCCLCHECK(ncclReduceScatter(sendbuf, recvbuf, bufsize, ncclFloat, ncclSum, comms_[i], streams_[i]));
-
-      //pos += size;
-      //totalSize -= size;
     }
     groupEnd();
     //std::cerr << "scatterReduce submitted" << std::endl;
@@ -241,33 +190,22 @@ public:
     //std::cerr << "scatterReduce completed" << std::endl;
   }
 
-  void allGather(bool vals) override {
-    //ABORT_IF(mpi_ != nullptr, "allReduceGrads() support for MPI is not yet implemented");
-    //int totalSize = graphs_[0]->params()->vals()->size();
-    //int shardSize = ceil(totalSize / (float)graphs_.size());
-    //
-    //int pos = 0;
-
+  void allGather() override {
     size_t begin, end;
     groupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
       std::tie
       (begin, end) = shardRange(i);
       //std::cerr << "[" << mpi_->to_string() << "] allGather " << begin << " " << end << std::endl;
-      //int size = std::min(shardSize, totalSize);
 
-      auto tensor = vals ? graphs_[i]->params()->vals() : graphs_[i]->params()->grads();
-      const auto* sendbuf = tensor->subtensor(begin, end-begin)->data();
-      void*       recvbuf = tensor->data();
+      auto vals = graphs_[i]->params()->vals();
+      const auto* sendbuf = vals->subtensor(begin, end-begin)->data();
+      void*       recvbuf = vals->data();
       size_t      bufsize = shardSize();
 
       NCCLCHECK(ncclAllGather(sendbuf, recvbuf, bufsize, ncclFloat, comms_[i], streams_[i]));
-
-      //pos += size;
-      //totalSize -= size;
     }
     groupEnd();
-
     synchronizeAll();
   }
 

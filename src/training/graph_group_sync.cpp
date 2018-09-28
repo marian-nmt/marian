@@ -181,9 +181,9 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
     //costTmp->val()->copyFrom(costTmp->grad());
   };
 
-  comm_->scatterReduce();          // reduce gradients across all devices (globally) into shards
-  comm_->foreach(update);          // per-shard model-update
-  comm_->allGather(/*vals=*/true); // distribute shards back  --@TODO; remove the 'true' again; no longer needed I think
+  comm_->scatterReduce(); // reduce gradients across all devices (globally) into shards
+  comm_->foreach(update); // per-shard model-update
+  comm_->allGather();     // distribute param value shards back
 
   // cost across all local devices
   // @TODO: We should report cost aggregated over all workers.

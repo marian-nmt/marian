@@ -14,7 +14,6 @@ namespace marian {
 struct/*interface*/ IMPIWrapper; // @TODO: Should we use a separate header, or move this declaration up here?
 
 // This interface implements the cross-GPU operations for distributed training within a single box.
-// @TODO: This should absorb the multi-node version as well.
 class ICommunicator {
 protected:
   const std::vector<Ptr<ExpressionGraph>> graphs_;
@@ -28,10 +27,8 @@ public:
   // helper to apply a function to each graph or shard, in parallel threads
   virtual void foreach(const std::function<void(size_t /*index*/, size_t /*shardBegin*/, size_t /*shardEnd*/)>& func, bool parallel = true) const = 0;
 
-  virtual void scatterReduce() = 0; // @TODO: indicate by the name that this is scattering gradients. @TODO: No, no longer needed.
-  virtual void allGather(bool vals) = 0;
-  virtual void allReduceGrads() = 0;
-  virtual void reduceGrads(size_t root = 0) = 0;
+  virtual void scatterReduce() = 0; // reduce param gradients and scatter into gradient shards
+  virtual void allGather() = 0;     // redistribute value shards into param values
 
   virtual void pushParams(std::vector<Tensor>& params) = 0;
   virtual void pullParams(const std::vector<Tensor>& params) = 0;
@@ -96,7 +93,6 @@ public:
 
       pos += size;
       totalSize -= size;
-      // @TODO: safer variant is pos = totalSize * idx / graphs_.size() and endpos = same for (id+1). Cf. NCCL version.
     }
     for(auto& t : group) // (note: group is empty is not parallel)
       t.join();
@@ -113,7 +109,6 @@ public:
       auto curGrad = graphs_[idx]->params()->grads()->subtensor(begin, end-begin);
 
       // collect and sum gradients
-      // to be replaced with ncclScatterReduce
       for(auto graph : graphs_) {
         if(graph != graphs_[idx]) {
           auto subGrad = graph->params()->grads()->subtensor(begin, end - begin);
@@ -128,19 +123,18 @@ public:
     foreach(scatter);
   }
 
-  void allGather(bool vals) override {
+  void allGather() override {
     int totalSize = (int)graphs_[0]->params()->vals()->size();
     int shardSize = (int)ceil(totalSize / (float)graphs_.size());
 
     // Update all graphs with parameter shard
-    auto gather = [this, shardSize, vals](size_t idx, size_t begin, size_t end) {
+    auto gather = [this, shardSize](size_t idx, size_t begin, size_t end) {
       auto getShard = [&](Ptr<ExpressionGraph> graph) {
-        auto tensor = vals ? graph->params()->vals() : graph->params()->grads();
-        return tensor->subtensor(begin, end-begin);
+        return graph->params()->vals()->subtensor(begin, end-begin);
       };
       auto curShard = getShard(graphs_[idx]);
 
-      // copy parameter shard to each graph
+      // Copy parameter shard to each graph
       for(auto graph : graphs_) {
         if(graph != graphs_[idx]) {
           auto subShard = getShard(graph);
@@ -152,24 +146,13 @@ public:
     foreach(gather);
   }
 
-  void allReduceGrads() override {
-    if (graphs_.size() > 1) { // @TODO: perf bug: this is not efficient
-      scatterReduce();
-      allGather(/*vals=*/false);
-    }
-  }
-
-  void reduceGrads(size_t /*root*/) override {
-    allReduceGrads(); // @BUGBUG: This is a hack that is slow and also overwriting some gradients (which is OK in practice)
-  }
-
   void pushParams(std::vector<Tensor>& params) override {
     // Copy paramter shard from i-th graph to shard params[i].
     // Graphs and shards with the same index live on the same device.
 
     auto copy = [this, params](size_t idx, size_t begin, size_t end) {
       ABORT_IF(end-begin != params[idx]->size(), "inconsistent shard size (pushParams [{}], {} vs {})??", idx, end-begin, params[idx]->size());
-      // copy parameter shard to each graph
+      // Copy parameter shard to each graph
       auto subParam
           = graphs_[idx]->params()->vals()->subtensor(begin, params[idx]->size());
       params[idx]->copyFrom(subParam);
@@ -183,7 +166,7 @@ public:
 
     auto gather = [this, params](size_t idx, size_t begin, size_t end) {
       ABORT_IF(end-begin != params[idx]->size(), "inconsistent shard size (pullParams, [{}], {} vs {})??", idx, end-begin, params[idx]->size());
-      // copy parameter shard to each graph
+      // Copy parameter shard to each graph
       for(auto graph : graphs_) {
         auto subParam
             = graph->params()->vals()->subtensor(begin, params[idx]->size());
@@ -199,14 +182,14 @@ public:
 
     auto gather = [this, params](size_t idx, size_t begin, size_t end) {
       ABORT_IF(end-begin != params[idx]->size(), "inconsistent shard size (swapParams, [{}], {} vs {})??", idx, end-begin, params[idx]->size());
-      // copy parameter shard to each graph, apart from last graph
+      // Copy parameter shard to each graph, apart from last graph
       for(int i = 0; i < (int)graphs_.size() - 1; ++i) {
         auto subParam
             = graphs_[i]->params()->vals()->subtensor(begin, params[idx]->size());
         subParam->copyFrom(params[idx]);
       }
 
-      // back-up shard from last graph
+      // Back-up shard from last graph
       auto subParamLast =
           graphs_.back()->params()->vals()->subtensor(begin, params[idx]->size());
       params[idx]->copyFrom(subParamLast);
@@ -215,7 +198,7 @@ public:
           = graphs_[0]->params()->vals()->subtensor(begin, params[idx]->size());
       subParamLast->copyFrom(subParamFirst);
     };
-    // execute for each shard
+    // Execute for each shard
     foreach(gather);
   }
 };

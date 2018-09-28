@@ -2,8 +2,6 @@
 #include "functional/functional.h"
 #include "tensors/tensor_operators.h"
 
-#include <condition_variable> // @TODO: needed?
-
 namespace marian {
 
 void MultiNodeGraphGroupSync::updateAvgParams(Tensor paramsAvg,
