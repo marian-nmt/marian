@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
 
   timer::Timer timer;
   task->run();
-  LOG(info, "Total time: {}", timer.format());
+  LOG(info, "Total time: {:.5f}s wall", timer.elapsed());
 
   return 0;
 }

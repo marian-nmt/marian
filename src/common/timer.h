@@ -36,13 +36,6 @@ public:
 
   bool stopped() const { return stopped_; }
 
-  std::string format(const char* format = "%.5gs wall") const {
-    auto seconds = elapsed();
-    char buffer[50];
-    std::snprintf(buffer, 50, format, seconds);
-    return buffer;
-  }
-
   template <class Duration = std::chrono::duration<double>>
   typename Duration::rep elapsed() const {
     if(stopped_)
