@@ -474,9 +474,8 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
       "Scorer weights");
 
   // TODO: the options should be available only in server
-  cli.add<size_t>("--port,-p",
-      "Port number for web socket server",
-      8080);
+  cli.add_nondefault<size_t>("--port,-p",
+      "Port number for web socket server");
   // clang-format on
 }
 
