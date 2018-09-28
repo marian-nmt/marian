@@ -38,6 +38,7 @@ public:
   }
 
   // helpers for multi-node
+  // serialize into a flat vector, for MPI data exchange
   std::vector<size_t> flatten() const {
     std::vector<size_t> res;
     if(map_.empty())
@@ -57,6 +58,7 @@ public:
   }
 
   // deserialize a flattened batchStats
+  // used as part of MPI data exchange
   BatchStats(const std::vector<size_t>& flattenedStats) {
     if (flattenedStats.empty())
       return;
