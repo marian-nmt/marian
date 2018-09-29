@@ -10,7 +10,7 @@ Marian
 
  <p>
   <b>Marian</b> is an efficient Neural Machine Translation framework written
-  in pure C++ with minimal dependencies. Named in honour of Marian Rejewski, a Polish mathematician and cryptologist.
+  in pure C++ with minimal dependencies. 
 
   Named in honour of Marian Rejewski, a Polish mathematician and cryptologist.
 
