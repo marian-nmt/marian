@@ -92,7 +92,7 @@ void Adagrad::load(const std::string& name,
     return;
   }
 
-  auto setGt = [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
+  scatter(vGt, [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
     auto opt = std::dynamic_pointer_cast<Adagrad>(opts[id]);
     if(!opt->gt_) {
       if(!opt->alloc_)
@@ -102,9 +102,7 @@ void Adagrad::load(const std::string& name,
       opt->alloc_->allocate(opt->gt_, {1, (int)size});
     }
     opt->gt_->set(std::vector<float>(begin, end));
-  };
-
-  scatter(vGt, setGt, opts.size());
+  }, opts.size());
 }
 
 void Adagrad::save(const std::string& name,
@@ -204,7 +202,7 @@ void Adam::load(const std::string& name,
   }
   ABORT_IF(vMt.size() != vVt.size(), "mt and vt have different sizes??");
 
-  auto setMt = [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
+  scatter(vMt, [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
     auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
     if(!opt->mt_ || !opt->vt_) { // lazily allocate
       if(!opt->alloc_)
@@ -215,14 +213,12 @@ void Adam::load(const std::string& name,
       opt->alloc_->allocate(opt->vt_, {1, (int)size});
     }
     opt->mt_->set(std::vector<float>(begin, end)); // set the value
-  };
-  auto setVt = [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
+  }, opts.size());
+
+  scatter(vVt, [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
     auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
     opt->vt_->set(std::vector<float>(begin, end));
-  };
-
-  scatter(vMt, setMt, opts.size());
-  scatter(vVt, setMt, opts.size());
+  }, opts.size());
 }
 
 void Adam::save(const std::string& name,
@@ -234,6 +230,7 @@ void Adam::save(const std::string& name,
     auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
     opt->mt_->get(data);
   }, opts.size());
+
   auto vVt = gather([&](size_t id, std::vector<float>& data) {
     auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
     opt->vt_->get(data);
