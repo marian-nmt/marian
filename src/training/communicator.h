@@ -4,6 +4,7 @@
 #include "graph/expression_graph.h"
 #include "functional/functional.h"
 #include "tensors/tensor_operators.h"
+#include "optimizers/optimizers.h"
 #if MPI_FOUND
 #include "mpi.h"
 #endif
@@ -36,8 +37,7 @@ public:
 
   // temporary: helpers for scattering optimizer state in load()
 
-  void scatterState(const std::vector<float>& data,
-                    const std::function<void(size_t, std::vector<float>::const_iterator, std::vector<float>::const_iterator)>& setFn) {
+  void scatterState(const std::vector<float>& data, const OptimizerBase::ScatterStateSetFunc& setFn) {
     size_t dataSize = data.size();
     size_t numLocalDevices = graphs_.size();
     size_t shardSize = (dataSize + numLocalDevices - 1) / numLocalDevices;// (size_t)(ceil(dataSize / (float)numLocalDevices));
@@ -47,7 +47,7 @@ public:
       setFn(localDeviceIndex, data.begin() + begin, data.begin() + end);
     }
   }
-  std::vector<float> gatherState(const std::function<std::vector<float>(size_t)>& getFn) {
+  std::vector<float> gatherState(const OptimizerBase::GatherStateGetFunc& getFn) {
     std::vector<float> data; // we know the size here
     for (size_t localDeviceIndex = 0; localDeviceIndex < graphs_.size(); localDeviceIndex++) {
       std::vector<float> tmp = getFn(localDeviceIndex);

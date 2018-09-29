@@ -322,9 +322,7 @@ void AsyncGraphGroup::load() {
       for(auto graph : graphs_)
         backends.push_back(graph->getBackend());
       shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends,
-        /*scatterStateFn=*/[&](const std::vector<float>& data,
-                               const std::function<void(size_t, std::vector<float>::const_iterator,
-                                                        std::vector<float>::const_iterator)>& setFn) {
+        /*scatterStateFn=*/[&](const std::vector<float>& data, const OptimizerBase::ScatterStateSetFunc& setFn) {
           size_t dataSize = data.size();
           size_t numLocalDevices = graphs_.size();
           size_t shardSize = (dataSize + numLocalDevices - 1) / numLocalDevices;// (size_t)(ceil(dataSize / (float)numLocalDevices));
@@ -395,7 +393,7 @@ void AsyncGraphGroup::save(Ptr<ExpressionGraph> graph, bool final /*=false*/) {
   }
 
   shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_,
-    /*gatherStateFn=*/[&](const std::function<std::vector<float>(size_t)>& getFn) {
+    /*gatherStateFn=*/[&](const OptimizerBase::GatherStateGetFunc& getFn) {
       std::vector<float> data;
       for (size_t i = 0; i < graphs_.size(); i++) {
         auto tmp = getFn(i);
