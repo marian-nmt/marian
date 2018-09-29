@@ -26,14 +26,15 @@ static void scatter(const std::vector<float>& data,
     setFn(id, data.begin() + shift, data.begin() + shift + size);
   }
 }
-static void gather(std::vector<float>& data,
-                   const std::function<void(size_t, std::vector<float>&)>& getFn,
-                   size_t numShards) {
+static std::vector<float> gather(const std::function<void(size_t, std::vector<float>&)>& getFn,
+                                 size_t numShards) {
+  std::vector<float> data;
   for (size_t id = 0; id < numShards; id++) {
     std::vector<float> tmp;
     getFn(id, tmp);
     data.insert(data.end(), tmp.begin(), tmp.end());
   }
+  return data;
 }
 
 // Aagrad
@@ -111,12 +112,10 @@ void Adagrad::save(const std::string& name,
   LOG(info, "Saving Adagrad parameters to {}", name);
 
   // fetch and concatenate state vectors from shards into a CPU-side vector
-  std::vector<float> vGt;
-  auto getGt = [&](size_t id, std::vector<float>& data) {
+  auto vGt = gather([&](size_t id, std::vector<float>& data) {
     auto opt = std::dynamic_pointer_cast<Adagrad>(opts[id]);
     opt->gt_->get(data);
-  };
-  gather(vGt, getGt, opts.size());
+  }, opts.size());
 
   // save to file
   io::Item item;
@@ -231,18 +230,14 @@ void Adam::save(const std::string& name,
   LOG(info, "Saving Adam parameters to {}", name);
 
   // fetch and concatenate state vectors from shards into a CPU-side vector
-  auto getMt = [&](size_t id, std::vector<float>& data) {
+  auto vMt = gather([&](size_t id, std::vector<float>& data) {
     auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
     opt->mt_->get(data);
-  };
-  auto getVt = [&](size_t id, std::vector<float>& data) {
+  }, opts.size());
+  auto vVt = gather([&](size_t id, std::vector<float>& data) {
     auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
     opt->vt_->get(data);
-  };
-  std::vector<float> vMt;
-  std::vector<float> vVt;
-  gather(vMt, getMt, opts.size());
-  gather(vVt, getVt, opts.size());
+  }, opts.size());
 
   // save to file
   io::Item itemMt;
