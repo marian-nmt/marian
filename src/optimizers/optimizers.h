@@ -1,15 +1,15 @@
 #pragma once
 
-#include <algorithm>
-#include <map>
-#include <memory>
-
 #include "common/config.h"
 #include "graph/expression_graph.h"
 #include "optimizers/clippers.h"
 #include "tensors/backend.h"
 #include "tensors/tensor.h"
 #include "training/training_state.h"
+
+#include <algorithm>
+#include <map>
+#include <memory>
 
 namespace marian {
 

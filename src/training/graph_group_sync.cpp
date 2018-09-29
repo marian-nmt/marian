@@ -169,6 +169,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
       Element(_1 = _1 / (float)div, curGrad);
     }
 
+    // actual model update
     shardOpt_[idx]->update(curParam, curGrad);
 
     if(mvAvg_)
@@ -246,7 +247,7 @@ void SyncGraphGroup::load() {
       std::vector<Ptr<Backend>> backends;
       for(auto graph : graphs_)
         backends.push_back(graph->getBackend());
-      shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends); // @BUGBUG: Check that this is correct for multi-node
+      shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends);
 
     } else if(options_->has("pretrained-model")) {
       std::string nameInit = options_->get<std::string>("pretrained-model");
@@ -314,7 +315,6 @@ void SyncGraphGroup::save(bool final) {
     comm_->swapParams(paramsAvg_);
 
   size_t totalSize = graphs_[0]->params()->vals()->size();
-  // @BUGBUG @BUGBUG: This does not work for multi-node.
   shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_, totalSize);
 }
 

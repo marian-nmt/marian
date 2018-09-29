@@ -25,16 +25,16 @@ void Device::reserve(size_t size) {
 
   if(data_) {
     // Allocate memory while temporarily parking original content in host memory
-    uint8_t *temp = new uint8_t[size_]; // TODO: use std::vector
+    uint8_t *temp = new uint8_t[size_]; // @TODO: use std::vector
     CUDA_CHECK(cudaMemcpy(temp, data_, size_, cudaMemcpyDeviceToHost));
     CUDA_CHECK(cudaFree(data_));
-    LOG(info, "re-allocating {} bytes on device {}", size, deviceId_.no);
+    LOG(info, "[memory] Re-allocating {} bytes on device {}", size, deviceId_.no);
     CUDA_CHECK(cudaMalloc(&data_, size));
     CUDA_CHECK(cudaMemcpy(data_, temp, size_, cudaMemcpyHostToDevice));
     delete[] temp;
   } else {
     // No data_ yet: Just alloc.
-    LOG(info, "allocating {} bytes in device {}", size, deviceId_.no);
+    LOG(info, "[memory] Allocating {} bytes in device {}", size, deviceId_.no);
     CUDA_CHECK(cudaMalloc(&data_, size));
   }
 

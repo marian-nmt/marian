@@ -29,21 +29,21 @@ private:
     }
   }
 
-  size_t myRankWithMPI(size_t localDeviceIndex) const { // map local device index to a global MPI rank
+  size_t myRank(size_t localDeviceIndex) const { // map local device index to a global rank
     if (mpi_)
       return mpi_->myRank() * devices_.size() + localDeviceIndex;
     else
       return localDeviceIndex;
   }
 
-  size_t numRanksWithMPI() const { // map local device index to a global MPI rank
+  size_t numWorkers() const { // total number of devices across all workers
     if (mpi_)
       return mpi_->commWorldSize() * devices_.size();
     else
       return devices_.size();
   }
 
-  size_t dataSize() const {
+  size_t dataSize() const { // total number of floats that comprise the concatenated parameter and gradient vector
     return graphs_[0]->params()->vals()->size();
   }
 
@@ -51,7 +51,7 @@ private:
   // All shards except the last one have this size.
   // Presently, even all shards must have identical size, due to a limitation in NCCL we have not yet worked around.
   size_t shardSize() const {
-    size_t numShards = numRanksWithMPI();
+    size_t numShards = numWorkers();
     size_t size = (dataSize() + numShards - 1) / numShards;
 #if 1 // for now, all shards must have the same size, since NCCL does not allow a sub-slice for the last shard
     ABORT_IF(size * numShards != dataSize(), "presently, all shards must have the same size");
@@ -62,7 +62,7 @@ private:
   // determine the index range (begin, end) of a shard
   std::pair<size_t, size_t> shardRange(size_t localDeviceIndex) const {
     size_t size = shardSize();
-    size_t rank = myRankWithMPI(localDeviceIndex);
+    size_t rank = myRank(localDeviceIndex);
     size_t begin = rank * size;
     size_t end = begin + size;
     end = std::min(end, dataSize()); // clip last shard. Note: Presently this never happens, since shardSize() enforces uniform shard size.
@@ -113,11 +113,11 @@ public:
       // if more than one device then initialize NCCL with group API
       //if (devices_.size() > 1) {
         groupStart();
-        for (int i = 0; i < devices_.size(); i++) {
-          CUDA_CHECK(cudaSetDevice(devices_[i]));
-          LOG(info, "[{}] ncclCommInitRank {} out of {}, GPU[{}]", mpi_->to_string(), myRankWithMPI(i), numRanksWithMPI(), i);
-          NCCLCHECK(ncclCommInitRank(&comms_[i], numRanksWithMPI(), uniqueId, myRankWithMPI(i)));
-          LOG(info, "[{}] done ncclCommInitRank {} out of {}, GPU[{}]", mpi_->to_string(), myRankWithMPI(i), numRanksWithMPI(), i);
+        for (int localDeviceIndex = 0; localDeviceIndex < devices_.size(); localDeviceIndex++) {
+          CUDA_CHECK(cudaSetDevice(devices_[localDeviceIndex]));
+          LOG(info, "[{}] ncclCommInitRank {} out of {}, GPU[{}]", mpi_->to_string(), myRank(localDeviceIndex), numWorkers(), localDeviceIndex);
+          NCCLCHECK(ncclCommInitRank(&comms_[localDeviceIndex], numWorkers(), uniqueId, myRank(localDeviceIndex)));
+          LOG(info, "[{}] done ncclCommInitRank {} out of {}, GPU[{}]", mpi_->to_string(), myRank(localDeviceIndex), numWorkers(), localDeviceIndex);
         }
         groupEnd();
         LOG(info, "[{}] group done constructing NCCLCommunicator", mpi_->to_string());
@@ -209,26 +209,27 @@ public:
     synchronizeAll();
   }
 
-  // swap params worker[0].device[0] with a sharded set (in particular, that's the smoothed parameters)
-  void swapParams(const std::vector<Tensor>& params) override {
+  // swap paramShards worker[0].device[0] with a sharded set
+  // This is used for the smoothed parameters, and also for persisting optimizer state.
+  void swapParams(const std::vector<Tensor>& paramShards) override {
     ABORT_IF(mpi_ != nullptr, "swapParams() support for MPI is not yet implemented");
     // Update all graphs with parameter shard
 
-    auto gather = [this, params](size_t idx, size_t begin, size_t end) {
+    auto gather = [this, paramShards](size_t idx, size_t begin, size_t end) {
       // copy parameter shard to each graph, apart from last graph
       for(int i = 0; i < graphs_.size() - 1; ++i) {
         auto subParam
-            = graphs_[i]->params()->vals()->subtensor(begin, params[idx]->size());
-        subParam->copyFrom(params[idx]);
+            = graphs_[i]->params()->vals()->subtensor(begin, end-begin);
+        subParam->copyFrom(paramShards[idx]);
       }
 
       // back-up shard from last graph
       auto subParamLast
-          = graphs_.back()->params()->vals()->subtensor(begin, params[idx]->size());
-      params[idx]->copyFrom(subParamLast);
+          = graphs_.back()->params()->vals()->subtensor(begin, end-begin);
+      paramShards[idx]->copyFrom(subParamLast);
 
       auto subParamFirst
-          = graphs_[0]->params()->vals()->subtensor(begin, params[idx]->size());
+          = graphs_.front()->params()->vals()->subtensor(begin, end-begin);
       subParamLast->copyFrom(subParamFirst);
     };
 
@@ -236,35 +237,37 @@ public:
     foreach(gather);
   }
 
-  void pushParams(std::vector<Tensor>& params) override {
+#if 0
+  void pushParams(std::vector<Tensor>& paramShards) override {
     ABORT_IF(mpi_ != nullptr, "pushParams() support for MPI is not yet implemented");
-    // Copy paramter shard from i-th graph to shard params[i].
+    // Copy paramter shard from i-th graph to shard paramShards[i].
     // Graphs and shards with the same index live on the same device.
 
-    auto copy = [this, params](size_t idx, size_t begin, size_t end) {
+    auto copy = [this, paramShards](size_t idx, size_t begin, size_t end) {
       // copy parameter shard to each graph
       auto subParam
-          = graphs_[idx]->params()->vals()->subtensor(begin, params[idx]->size());
-      params[idx]->copyFrom(subParam);
+          = graphs_[idx]->params()->vals()->subtensor(begin, paramShards[idx]->size());
+      paramShards[idx]->copyFrom(subParam);
     };
 
     foreach(copy);
   }
 
-  void pullParams(const std::vector<Tensor>& params) override {
+  void pullParams(const std::vector<Tensor>& paramShards) override {
     ABORT_IF(mpi_ != nullptr, "pullParams() support for MPI is not yet implemented");
     // Update all graphs with parameter shard
 
-    auto gather = [this, params](size_t idx, size_t begin, size_t end) {
+    auto gather = [this, paramShards](size_t idx, size_t begin, size_t end) {
       // copy parameter shard to each graph
       for(auto graph : graphs_) {
         auto subParam
-            = graph->params()->vals()->subtensor(begin, params[idx]->size());
-        subParam->copyFrom(params[idx]);
+            = graph->params()->vals()->subtensor(begin, paramShards[idx]->size());
+        subParam->copyFrom(paramShards[idx]);
       }
     };
     foreach(gather);
   }
+#endif
 
   // Doesn't work yet with NCCL
   // void pushParams(std::vector<Tensor>& params) {
@@ -274,9 +277,10 @@ public:
   //   int pos = 0;
   //   for(int i = 0; i < graphs_.size(); ++i) {
   //     auto subParam = graphs_[i]->params()->vals()->subtensor(pos,
-  //     params[i]->size()); groupStart(); ncclBroadcast((const
-  //     void*)subParam->data(),
-  //                   (void*)params[i]->data(),
+  //                                                             params[i]->size());
+  //     groupStart();
+  //     ncclBroadcast(subParam->data(),
+  //                   params[i]->data(),
   //                   params[i]->size(),
   //                   ncclFloat,
   //                   0,

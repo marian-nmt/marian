@@ -30,9 +30,9 @@ public:
   virtual void scatterReduce() = 0; // reduce param gradients and scatter into gradient shards
   virtual void allGather() = 0;     // redistribute value shards into param values
 
-  virtual void pushParams(std::vector<Tensor>& params) = 0;
-  virtual void pullParams(const std::vector<Tensor>& params) = 0;
-  virtual void swapParams(const std::vector<Tensor>& params) = 0;
+  //virtual void pushParams(std::vector<Tensor>& paramShards) = 0;
+  //virtual void pullParams(const std::vector<Tensor>& paramShards) = 0;
+  virtual void swapParams(const std::vector<Tensor>& paramShards) = 0;
 };
 
 class DefaultCommunicator : public ICommunicator {
@@ -146,56 +146,58 @@ public:
     foreach(gather);
   }
 
-  void pushParams(std::vector<Tensor>& params) override {
-    // Copy paramter shard from i-th graph to shard params[i].
+#if 0
+  void pushParams(std::vector<Tensor>& paramShards) override {
+    // Copy paramter shard from i-th graph to shard paramShards[i].
     // Graphs and shards with the same index live on the same device.
 
-    auto copy = [this, params](size_t idx, size_t begin, size_t end) {
-      ABORT_IF(end-begin != params[idx]->size(), "inconsistent shard size (pushParams [{}], {} vs {})??", idx, end-begin, params[idx]->size());
+    auto copy = [this, paramShards](size_t idx, size_t begin, size_t end) {
+      ABORT_IF(end-begin != paramShards[idx]->size(), "inconsistent shard size (pushParams [{}], {} vs {})??", idx, end-begin, paramShards[idx]->size());
       // Copy parameter shard to each graph
       auto subParam
-          = graphs_[idx]->params()->vals()->subtensor(begin, params[idx]->size());
-      params[idx]->copyFrom(subParam);
+          = graphs_[idx]->params()->vals()->subtensor(begin, paramShards[idx]->size());
+      paramShards[idx]->copyFrom(subParam);
     };
 
     foreach(copy);
   }
 
-  void pullParams(const std::vector<Tensor>& params) override {
+  void pullParams(const std::vector<Tensor>& paramShards) override {
     // Update all graphs with parameter shard
 
-    auto gather = [this, params](size_t idx, size_t begin, size_t end) {
-      ABORT_IF(end-begin != params[idx]->size(), "inconsistent shard size (pullParams, [{}], {} vs {})??", idx, end-begin, params[idx]->size());
+    auto gather = [this, paramShards](size_t idx, size_t begin, size_t end) {
+      ABORT_IF(end-begin != paramShards[idx]->size(), "inconsistent shard size (pullParams, [{}], {} vs {})??", idx, end-begin, paramShards[idx]->size());
       // Copy parameter shard to each graph
       for(auto graph : graphs_) {
         auto subParam
-            = graph->params()->vals()->subtensor(begin, params[idx]->size());
-        subParam->copyFrom(params[idx]);
+            = graph->params()->vals()->subtensor(begin, paramShards[idx]->size());
+        subParam->copyFrom(paramShards[idx]);
       }
     };
     foreach(gather);
   }
+#endif
 
-  void swapParams(const std::vector<Tensor>& params) override {
+  void swapParams(const std::vector<Tensor>& paramShards) override {
     // Update all graphs with parameter shard
     ABORT_IF(graphs_.size() < 2, "Swap requires at least two graphs");
 
-    auto gather = [this, params](size_t idx, size_t begin, size_t end) {
-      ABORT_IF(end-begin != params[idx]->size(), "inconsistent shard size (swapParams, [{}], {} vs {})??", idx, end-begin, params[idx]->size());
+    auto gather = [this, paramShards](size_t idx, size_t begin, size_t end) {
+      ABORT_IF(end-begin != paramShards[idx]->size(), "inconsistent shard size (swapParams, [{}], {} vs {})??", idx, end-begin, paramShards[idx]->size());
       // Copy parameter shard to each graph, apart from last graph
       for(int i = 0; i < (int)graphs_.size() - 1; ++i) {
         auto subParam
-            = graphs_[i]->params()->vals()->subtensor(begin, params[idx]->size());
-        subParam->copyFrom(params[idx]);
+            = graphs_[i]->params()->vals()->subtensor(begin, paramShards[idx]->size());
+        subParam->copyFrom(paramShards[idx]);
       }
 
       // Back-up shard from last graph
       auto subParamLast =
-          graphs_.back()->params()->vals()->subtensor(begin, params[idx]->size());
-      params[idx]->copyFrom(subParamLast);
+          graphs_.back()->params()->vals()->subtensor(begin, paramShards[idx]->size());
+      paramShards[idx]->copyFrom(subParamLast);
 
       auto subParamFirst
-          = graphs_[0]->params()->vals()->subtensor(begin, params[idx]->size());
+          = graphs_[0]->params()->vals()->subtensor(begin, paramShards[idx]->size());
       subParamLast->copyFrom(subParamFirst);
     };
     // Execute for each shard
