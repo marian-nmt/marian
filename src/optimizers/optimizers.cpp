@@ -79,7 +79,7 @@ void Adagrad::load(const std::string& name,
       opt->alloc_->allocate(opt->gt_, {1, (int)size});
     }
     opt->gt_->set(std::vector<float>(begin, end));
-  }, opts.size());
+  });
 }
 
 void Adagrad::save(const std::string& name,
@@ -88,10 +88,12 @@ void Adagrad::save(const std::string& name,
   LOG(info, "Saving Adagrad parameters to {}", name);
 
   // fetch and concatenate state vectors from shards into a CPU-side vector
-  auto vGt = gatherFn([&](size_t localDeviceIndex, std::vector<float>& data) {
-    auto opt = std::dynamic_pointer_cast<Adagrad>(opts[localDeviceIndex]);
-    opt->gt_->get(data);
-  }, opts.size());
+  auto vGt = gatherFn([&](size_t localDeviceIndex) {
+      auto opt = std::dynamic_pointer_cast<Adagrad>(opts[localDeviceIndex]);
+      std::vector<float> data;
+      opt->gt_->get(data);
+      return data;
+    });
 
   // save to file
   io::Item item;
@@ -193,13 +195,13 @@ void Adam::load(const std::string& name,
       opt->alloc_->allocate(opt->vt_, {1, (int)size});
     }
     opt->mt_->set(std::vector<float>(begin, end)); // set the value
-  }, opts.size());
+  });
 
   scatterFn(vVt,
     [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
     auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
     opt->vt_->set(std::vector<float>(begin, end));
-  }, opts.size());
+  });
 }
 
 void Adam::save(const std::string& name,
@@ -208,15 +210,19 @@ void Adam::save(const std::string& name,
   LOG(info, "Saving Adam parameters to {}", name);
 
   // fetch and concatenate state vectors from shards into a CPU-side vector
-  auto vMt = gatherFn([&](size_t localDeviceIndex, std::vector<float>& data) {
+  auto vMt = gatherFn([&](size_t localDeviceIndex) {
     auto opt = std::dynamic_pointer_cast<Adam>(opts[localDeviceIndex]);
+    std::vector<float> data;
     opt->mt_->get(data);
-  }, opts.size());
+    return data;
+  });
 
-  auto vVt = gatherFn([&](size_t localDeviceIndex, std::vector<float>& data) {
+  auto vVt = gatherFn([&](size_t localDeviceIndex) {
     auto opt = std::dynamic_pointer_cast<Adam>(opts[localDeviceIndex]);
+    std::vector<float> data;
     opt->vt_->get(data);
-  }, opts.size());
+    return data;
+  });
 
   // save to file
   io::Item itemMt;

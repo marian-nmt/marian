@@ -249,9 +249,8 @@ void SyncGraphGroup::load() {
         backends.push_back(graph->getBackend());
       shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends,
         [&](const std::vector<float>& data,
-            const std::function<void(size_t, std::vector<float>::const_iterator, std::vector<float>::const_iterator)>& setFn,
-            size_t /*numLocalDevices*/) {
-          comm_->scatterState(data, setFn, shardOpt_.size());
+            const std::function<void(size_t, std::vector<float>::const_iterator, std::vector<float>::const_iterator)>& setFn) {
+          comm_->scatterState(data, setFn);
         });
     } else if(options_->has("pretrained-model")) {
       std::string nameInit = options_->get<std::string>("pretrained-model");
@@ -319,9 +318,8 @@ void SyncGraphGroup::save(bool final) {
     comm_->swapParams(paramsAvg_);
 
   shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_,
-    [&](const std::function<void(size_t, std::vector<float>&)>& getFn,
-        size_t /*numLocalDevices*/) {
-      return comm_->gatherState(getFn, shardOpt_.size());
+    [&](const std::function<std::vector<float>(size_t)>& getFn) {
+      return comm_->gatherState(getFn);
     });
 }
 

@@ -63,8 +63,8 @@ public:
 
         opt_->load(name + ".optimizer.npz", {opt_}, {graph_->getBackend()},
           /*scatterStateFn=*/[&](const std::vector<float>& data,
-              const std::function<void(size_t, std::vector<float>::const_iterator, std::vector<float>::const_iterator)>& setFn,
-              size_t /*numLocalDevices*/) {
+                                 const std::function<void(size_t, std::vector<float>::const_iterator,
+                                                          std::vector<float>::const_iterator)>& setFn) {
             setFn(/*localDeviceIndex=*/0, data.begin(), data.end());
           });
       } else if(options_->has("pretrained-model")) {
@@ -118,11 +118,8 @@ public:
     }
 
     opt_->save(name + ".optimizer.npz", {opt_},
-      /*gatherStateFn=*/[&](const std::function<void(size_t, std::vector<float>&)>& getFn,
-                                                     size_t /*numLocalDevices*/) {
-        std::vector<float> data;
-        getFn(/*localDeviceIndex=*/0, data);
-        return data;
+      /*gatherStateFn=*/[&](const std::function<std::vector<float>(size_t)>& getFn) {
+        return getFn(/*localDeviceIndex=*/0);
       });
   }
 

@@ -64,13 +64,10 @@ public:
   void setParams(const std::vector<float>& params) { parseParams(params); }
 
   typedef std::function<void(const std::vector<float>& /*data*/,
-                             const std::function<void(size_t /*id*/,
+                             const std::function<void(size_t /*localDeviceIndex*/,
                                                       std::vector<float>::const_iterator /*begin*/,
-                                                      std::vector<float>::const_iterator /*end*/)>& setFn,
-                             size_t numLocalDevices)> ScatterStateFunc;
-  typedef std::function<std::vector<float>(const std::function<void(size_t /*id*/,
-                                                                    std::vector<float>&)>& /*getFn*/,
-                                           size_t /*numLocalDevices*/)> GatherStateFunc;
+                                                      std::vector<float>::const_iterator /*end*/)>& setFn)> ScatterStateFunc;
+  typedef std::function<std::vector<float>(const std::function<std::vector<float>(size_t /*localDeviceIndex*/)>& /*getFn*/)> GatherStateFunc;
   virtual void load(const std::string& /*name*/,
                     const std::vector<Ptr<OptimizerBase>>& /*opts*/,
                     const std::vector<Ptr<Backend>>& /*backends*/,
