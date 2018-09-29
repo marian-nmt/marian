@@ -93,8 +93,8 @@ void Adagrad::save(const std::string& name,
                    size_t /*totalSize*/) {
   LOG(info, "Saving Adagrad parameters to {}", name);
 
+  // fetch and concatenate state vectors from shards into a CPU-side vector
   std::vector<float> vGt;
-
   for(auto optBase : opts) {
     auto opt = std::dynamic_pointer_cast<Adagrad>(optBase);
     std::vector<float> tmp;
@@ -102,6 +102,7 @@ void Adagrad::save(const std::string& name,
     vGt.insert(vGt.end(), tmp.begin(), tmp.end());
   }
 
+  // save to file
   io::Item item;
   item.name = "adagrad_gt";
   item.shape = Shape({1, (int)vGt.size()});
@@ -217,19 +218,23 @@ void Adam::save(const std::string& name,
                 size_t /*totalSize*/) {
   LOG(info, "Saving Adam parameters to {}", name);
 
+  // fetch and concatenate state vectors from shards into a CPU-side vector
   std::vector<float> vMt;
-  std::vector<float> vVt;
-
   for(auto optBase : opts) {
     auto opt = std::dynamic_pointer_cast<Adam>(optBase);
-
     std::vector<float> tmp;
     opt->mt_->get(tmp);
     vMt.insert(vMt.end(), tmp.begin(), tmp.end());
+  }
+  std::vector<float> vVt;
+  for(auto optBase : opts) {
+    auto opt = std::dynamic_pointer_cast<Adam>(optBase);
+    std::vector<float> tmp;
     opt->vt_->get(tmp);
     vVt.insert(vVt.end(), tmp.begin(), tmp.end());
   }
 
+  // save to file
   io::Item itemMt;
   itemMt.name = "adam_mt";
   itemMt.shape = Shape({1, (int)vMt.size()});
