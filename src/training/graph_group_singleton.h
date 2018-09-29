@@ -61,7 +61,7 @@ public:
           builder_->load(graph_, name);
         }
 
-        opt_->load(name + ".optimizer.npz", {opt_}, {graph_->getBackend()});
+        opt_->load(name + ".optimizer.npz", {opt_}, {graph_->getBackend()}, scatterState);
       } else if(options_->has("pretrained-model")) {
         std::string init = options_->get<std::string>("pretrained-model");
         LOG(info,
@@ -112,7 +112,7 @@ public:
         scheduler_->save(name);
     }
 
-    opt_->save(name + ".optimizer.npz", {opt_});
+    opt_->save(name + ".optimizer.npz", {opt_}, gatherState);
   }
 
   Ptr<data::BatchStats> collectStats() {

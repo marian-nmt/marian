@@ -13,6 +13,32 @@
 
 namespace marian {
 
+
+// temporary: helpers for scattering optimizer state in load()
+
+static inline void scatterState(const std::vector<float>& data,
+                    const std::function<void(size_t, std::vector<float>::const_iterator, std::vector<float>::const_iterator)>& setFn,
+                    size_t numShards) {
+  for(size_t id = 0; id < numShards; id++) {
+    size_t dataSize = data.size();
+    size_t shardSize = (size_t)(ceil(dataSize / (float)numShards));
+    size_t shift = id * shardSize;
+    size_t size = std::min(shardSize, dataSize-shift);
+
+    setFn(id, data.begin() + shift, data.begin() + shift + size);
+  }
+}
+static inline std::vector<float> gatherState(const std::function<void(size_t, std::vector<float>&)>& getFn,
+                                 size_t numShards) {
+  std::vector<float> data;
+  for (size_t id = 0; id < numShards; id++) {
+    std::vector<float> tmp;
+    getFn(id, tmp);
+    data.insert(data.end(), tmp.begin(), tmp.end());
+  }
+  return data;
+}
+
 /**
  * Base class for optimizers.
  */
@@ -63,11 +89,21 @@ public:
 
   void setParams(const std::vector<float>& params) { parseParams(params); }
 
+  typedef std::function<void(const std::vector<float>& /*data*/,
+                             const std::function<void(size_t /*id*/,
+                                                      std::vector<float>::const_iterator /*begin*/,
+                                                      std::vector<float>::const_iterator /*end*/)>& setFn,
+                             size_t numShards)> ScatterStateFunc;
+  typedef std::function<std::vector<float>(const std::function<void(size_t /*id*/,
+                                                                    std::vector<float>&)>& /*getFn*/,
+                                           size_t /*numShards*/)> GatherStateFunc;
   virtual void load(const std::string& /*name*/,
-                    std::vector<Ptr<OptimizerBase>> /*opts*/,
-                    std::vector<Ptr<Backend>> /*backends*/) {}
+                    const std::vector<Ptr<OptimizerBase>>& /*opts*/,
+                    const std::vector<Ptr<Backend>>& /*backends*/,
+                    const ScatterStateFunc& /*scatterFn*/) {}
   virtual void save(const std::string& /*name*/,
-                    std::vector<Ptr<OptimizerBase>> /*opts*/) {}
+                    const std::vector<Ptr<OptimizerBase>>& /*opts*/,
+                    const GatherStateFunc& /*gatherFn*/) {}
 
 protected:
   virtual void updateImpl(Tensor params, Tensor grads) = 0;
@@ -108,10 +144,12 @@ public:
       : OptimizerBase(eta, clipper) {}
 
   void load(const std::string& name,
-            std::vector<Ptr<OptimizerBase>> opts,
-            std::vector<Ptr<Backend>> backends) override;
+            const std::vector<Ptr<OptimizerBase>>& opts,
+            const std::vector<Ptr<Backend>>& backends,
+            const ScatterStateFunc& scatterFn) override;
   void save(const std::string& name,
-            std::vector<Ptr<OptimizerBase>> opts) override;
+            const std::vector<Ptr<OptimizerBase>>& opts,
+            const GatherStateFunc& gatherFn) override;
 
 private:
   void updateImpl(Tensor params, Tensor grads) override;
@@ -138,10 +176,12 @@ public:
       : OptimizerBase(eta, clipper), t_(0) {}
 
   void load(const std::string& name,
-            std::vector<Ptr<OptimizerBase>> opts,
-            std::vector<Ptr<Backend>> backends) override;
+            const std::vector<Ptr<OptimizerBase>>& opts,
+            const std::vector<Ptr<Backend>>& backends,
+            const ScatterStateFunc& scatterFn) override;
   void save(const std::string& name,
-            std::vector<Ptr<OptimizerBase>> opts) override;
+            const std::vector<Ptr<OptimizerBase>>& opts,
+            const GatherStateFunc& gatherFn) override;
 
 private:
   void updateImpl(Tensor params, Tensor grads) override;

@@ -247,7 +247,7 @@ void SyncGraphGroup::load() {
       std::vector<Ptr<Backend>> backends;
       for(auto graph : graphs_)
         backends.push_back(graph->getBackend());
-      shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends);
+      shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends, scatterState);
 
     } else if(options_->has("pretrained-model")) {
       std::string nameInit = options_->get<std::string>("pretrained-model");
@@ -314,7 +314,7 @@ void SyncGraphGroup::save(bool final) {
     // Switch back to the original parameters
     comm_->swapParams(paramsAvg_);
 
-  shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_);
+  shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_, gatherState);
 }
 
 }  // namespace marian

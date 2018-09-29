@@ -321,7 +321,7 @@ void AsyncGraphGroup::load() {
       std::vector<Ptr<Backend>> backends;
       for(auto graph : graphs_)
         backends.push_back(graph->getBackend());
-      shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends);
+      shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends, scatterState);
 
     } else if(options_->has("pretrained-model")) {
       std::string nameInit = options_->get<std::string>("pretrained-model");
@@ -383,7 +383,7 @@ void AsyncGraphGroup::save(Ptr<ExpressionGraph> graph, bool final /*=false*/) {
       scheduler_->save(name);
   }
 
-  shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_);
+  shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_, gatherState);
 }
 
 void AsyncGraphGroup::finalize() {

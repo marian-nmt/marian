@@ -12,31 +12,6 @@ void Sgd::updateImpl(Tensor params, Tensor grads) {
   params->getBackend()->synchronize();
 }
 
-// temporary: helpers for scattering optimizer state in load()
-
-static void scatter(const std::vector<float>& data,
-                    const std::function<void(size_t, std::vector<float>::const_iterator, std::vector<float>::const_iterator)>& setFn,
-                    size_t numShards) {
-  for(size_t id = 0; id < numShards; id++) {
-    size_t dataSize = data.size();
-    size_t shardSize = (size_t)(ceil(dataSize / (float)numShards));
-    size_t shift = id * shardSize;
-    size_t size = std::min(shardSize, dataSize-shift);
-
-    setFn(id, data.begin() + shift, data.begin() + shift + size);
-  }
-}
-static std::vector<float> gather(const std::function<void(size_t, std::vector<float>&)>& getFn,
-                                 size_t numShards) {
-  std::vector<float> data;
-  for (size_t id = 0; id < numShards; id++) {
-    std::vector<float> tmp;
-    getFn(id, tmp);
-    data.insert(data.end(), tmp.begin(), tmp.end());
-  }
-  return data;
-}
-
 // Aagrad
 
 void Adagrad::updateImpl(Tensor params, Tensor grads) {
@@ -63,8 +38,9 @@ void Adagrad::updateImpl(Tensor params, Tensor grads) {
 }
 
 void Adagrad::load(const std::string& name,
-                   std::vector<Ptr<OptimizerBase>> opts,
-                   std::vector<Ptr<Backend>> backends) {
+                   const std::vector<Ptr<OptimizerBase>>& opts,
+                   const std::vector<Ptr<Backend>>& backends,
+                   const ScatterStateFunc& scatterFn) {
   ABORT_IF(opts.size() != backends.size(), "opts and backends of different sizes??");
 
   if(!boost::filesystem::exists(name))
@@ -92,7 +68,8 @@ void Adagrad::load(const std::string& name,
     return;
   }
 
-  scatter(vGt, [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
+  scatterFn(vGt,
+    [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
     auto opt = std::dynamic_pointer_cast<Adagrad>(opts[id]);
     if(!opt->gt_) {
       if(!opt->alloc_)
@@ -106,11 +83,12 @@ void Adagrad::load(const std::string& name,
 }
 
 void Adagrad::save(const std::string& name,
-                   std::vector<Ptr<OptimizerBase>> opts) {
+                   const std::vector<Ptr<OptimizerBase>>& opts,
+                   const GatherStateFunc& gatherFn) {
   LOG(info, "Saving Adagrad parameters to {}", name);
 
   // fetch and concatenate state vectors from shards into a CPU-side vector
-  auto vGt = gather([&](size_t id, std::vector<float>& data) {
+  auto vGt = gatherFn([&](size_t id, std::vector<float>& data) {
     auto opt = std::dynamic_pointer_cast<Adagrad>(opts[id]);
     opt->gt_->get(data);
   }, opts.size());
@@ -167,8 +145,9 @@ void Adam::updateImpl(Tensor params, Tensor grads) {
 }
 
 void Adam::load(const std::string& name,
-                std::vector<Ptr<OptimizerBase>> opts,
-                std::vector<Ptr<Backend>> backends) {
+                const std::vector<Ptr<OptimizerBase>>& opts,
+                const std::vector<Ptr<Backend>>& backends,
+                const ScatterStateFunc& scatterFn) {
   ABORT_IF(opts.size() != backends.size(), "opts and backends of different sizes??");
 
   if(!boost::filesystem::exists(name))
@@ -202,7 +181,8 @@ void Adam::load(const std::string& name,
   }
   ABORT_IF(vMt.size() != vVt.size(), "mt and vt have different sizes??");
 
-  scatter(vMt, [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
+  scatterFn(vMt,
+    [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
     auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
     if(!opt->mt_ || !opt->vt_) { // lazily allocate
       if(!opt->alloc_)
@@ -215,23 +195,25 @@ void Adam::load(const std::string& name,
     opt->mt_->set(std::vector<float>(begin, end)); // set the value
   }, opts.size());
 
-  scatter(vVt, [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
+  scatterFn(vVt,
+    [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
     auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
     opt->vt_->set(std::vector<float>(begin, end));
   }, opts.size());
 }
 
 void Adam::save(const std::string& name,
-                std::vector<Ptr<OptimizerBase>> opts) {
+                const std::vector<Ptr<OptimizerBase>>& opts,
+                const GatherStateFunc& gatherFn) {
   LOG(info, "Saving Adam parameters to {}", name);
 
   // fetch and concatenate state vectors from shards into a CPU-side vector
-  auto vMt = gather([&](size_t id, std::vector<float>& data) {
+  auto vMt = gatherFn([&](size_t id, std::vector<float>& data) {
     auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
     opt->mt_->get(data);
   }, opts.size());
 
-  auto vVt = gather([&](size_t id, std::vector<float>& data) {
+  auto vVt = gatherFn([&](size_t id, std::vector<float>& data) {
     auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
     opt->vt_->get(data);
   }, opts.size());
