@@ -33,6 +33,30 @@ public:
   //virtual void pushParams(std::vector<Tensor>& paramShards) = 0;
   //virtual void pullParams(const std::vector<Tensor>& paramShards) = 0;
   virtual void swapParams(const std::vector<Tensor>& paramShards) = 0;
+
+  // temporary: helpers for scattering optimizer state in load()
+
+  void scatterState(const std::vector<float>& data,
+                    const std::function<void(size_t, std::vector<float>::const_iterator, std::vector<float>::const_iterator)>& setFn,
+                    size_t numLocalDevices) {
+    size_t dataSize = data.size();
+    size_t shardSize = (dataSize + numLocalDevices - 1) / numLocalDevices;// (size_t)(ceil(dataSize / (float)numLocalDevices));
+    for(size_t localDeviceIndex = 0; localDeviceIndex < numLocalDevices; localDeviceIndex++) {
+      size_t begin = localDeviceIndex * shardSize;
+      size_t end   = std::min(begin + shardSize, dataSize);
+      setFn(localDeviceIndex, data.begin() + begin, data.begin() + end);
+    }
+  }
+  static inline std::vector<float> gatherState(const std::function<void(size_t, std::vector<float>&)>& getFn,
+                                   size_t numLocalDevices) {
+    std::vector<float> data;
+    std::vector<float> tmp;
+    for (size_t localDeviceIndex = 0; localDeviceIndex < numLocalDevices; localDeviceIndex++) {
+      getFn(localDeviceIndex, tmp);
+      data.insert(data.end(), tmp.begin(), tmp.end());
+    }
+    return data;
+  }
 };
 
 class DefaultCommunicator : public ICommunicator {

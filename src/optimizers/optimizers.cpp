@@ -69,11 +69,11 @@ void Adagrad::load(const std::string& name,
   }
 
   scatterFn(vGt,
-    [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
-    auto opt = std::dynamic_pointer_cast<Adagrad>(opts[id]);
+    [&](size_t localDeviceIndex, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
+    auto opt = std::dynamic_pointer_cast<Adagrad>(opts[localDeviceIndex]);
     if(!opt->gt_) {
       if(!opt->alloc_)
-        opt->alloc_ = New<TensorAllocator>(backends[id]);
+        opt->alloc_ = New<TensorAllocator>(backends[localDeviceIndex]);
       auto size = end-begin;
       opt->alloc_->reserveExact(sizeof(float) * size);
       opt->alloc_->allocate(opt->gt_, {1, (int)size});
@@ -88,8 +88,8 @@ void Adagrad::save(const std::string& name,
   LOG(info, "Saving Adagrad parameters to {}", name);
 
   // fetch and concatenate state vectors from shards into a CPU-side vector
-  auto vGt = gatherFn([&](size_t id, std::vector<float>& data) {
-    auto opt = std::dynamic_pointer_cast<Adagrad>(opts[id]);
+  auto vGt = gatherFn([&](size_t localDeviceIndex, std::vector<float>& data) {
+    auto opt = std::dynamic_pointer_cast<Adagrad>(opts[localDeviceIndex]);
     opt->gt_->get(data);
   }, opts.size());
 
@@ -182,11 +182,11 @@ void Adam::load(const std::string& name,
   ABORT_IF(vMt.size() != vVt.size(), "mt and vt have different sizes??");
 
   scatterFn(vMt,
-    [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
-    auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
+    [&](size_t localDeviceIndex, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
+    auto opt = std::dynamic_pointer_cast<Adam>(opts[localDeviceIndex]);
     if(!opt->mt_ || !opt->vt_) { // lazily allocate
       if(!opt->alloc_)
-        opt->alloc_ = New<TensorAllocator>(backends[id]);
+        opt->alloc_ = New<TensorAllocator>(backends[localDeviceIndex]);
       auto size = end-begin;
       opt->alloc_->reserveExact(2 * sizeof(float) * size);
       opt->alloc_->allocate(opt->mt_, {1, (int)size});
@@ -208,13 +208,13 @@ void Adam::save(const std::string& name,
   LOG(info, "Saving Adam parameters to {}", name);
 
   // fetch and concatenate state vectors from shards into a CPU-side vector
-  auto vMt = gatherFn([&](size_t id, std::vector<float>& data) {
-    auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
+  auto vMt = gatherFn([&](size_t localDeviceIndex, std::vector<float>& data) {
+    auto opt = std::dynamic_pointer_cast<Adam>(opts[localDeviceIndex]);
     opt->mt_->get(data);
   }, opts.size());
 
-  auto vVt = gatherFn([&](size_t id, std::vector<float>& data) {
-    auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
+  auto vVt = gatherFn([&](size_t localDeviceIndex, std::vector<float>& data) {
+    auto opt = std::dynamic_pointer_cast<Adam>(opts[localDeviceIndex]);
     opt->vt_->get(data);
   }, opts.size());
 

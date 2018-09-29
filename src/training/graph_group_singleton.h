@@ -61,7 +61,12 @@ public:
           builder_->load(graph_, name);
         }
 
-        opt_->load(name + ".optimizer.npz", {opt_}, {graph_->getBackend()}, scatterState);
+        opt_->load(name + ".optimizer.npz", {opt_}, {graph_->getBackend()},
+          /*scatterStateFn=*/[&](const std::vector<float>& data,
+              const std::function<void(size_t, std::vector<float>::const_iterator, std::vector<float>::const_iterator)>& setFn,
+              size_t /*numLocalDevices*/) {
+            setFn(/*localDeviceIndex=*/0, data.begin(), data.end());
+          });
       } else if(options_->has("pretrained-model")) {
         std::string init = options_->get<std::string>("pretrained-model");
         LOG(info,
@@ -112,7 +117,13 @@ public:
         scheduler_->save(name);
     }
 
-    opt_->save(name + ".optimizer.npz", {opt_}, gatherState);
+    opt_->save(name + ".optimizer.npz", {opt_},
+      /*gatherStateFn=*/[&](const std::function<void(size_t, std::vector<float>&)>& getFn,
+                                                     size_t /*numLocalDevices*/) {
+        std::vector<float> data;
+        getFn(/*localDeviceIndex=*/0, data);
+        return data;
+      });
   }
 
   Ptr<data::BatchStats> collectStats() {

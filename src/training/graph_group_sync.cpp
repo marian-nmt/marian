@@ -247,8 +247,12 @@ void SyncGraphGroup::load() {
       std::vector<Ptr<Backend>> backends;
       for(auto graph : graphs_)
         backends.push_back(graph->getBackend());
-      shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends, scatterState);
-
+      shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends,
+        [&](const std::vector<float>& data,
+            const std::function<void(size_t, std::vector<float>::const_iterator, std::vector<float>::const_iterator)>& setFn,
+            size_t /*numLocalDevices*/) {
+          comm_->scatterState(data, setFn, shardOpt_.size());
+        });
     } else if(options_->has("pretrained-model")) {
       std::string nameInit = options_->get<std::string>("pretrained-model");
       LOG(info,
@@ -314,7 +318,11 @@ void SyncGraphGroup::save(bool final) {
     // Switch back to the original parameters
     comm_->swapParams(paramsAvg_);
 
-  shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_, gatherState);
+  shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_,
+    [&](const std::function<void(size_t, std::vector<float>&)>& getFn,
+        size_t /*numLocalDevices*/) {
+      return comm_->gatherState(getFn, shardOpt_.size());
+    });
 }
 
 }  // namespace marian

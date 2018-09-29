@@ -321,8 +321,19 @@ void AsyncGraphGroup::load() {
       std::vector<Ptr<Backend>> backends;
       for(auto graph : graphs_)
         backends.push_back(graph->getBackend());
-      shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends, scatterState);
-
+      shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends,
+        /*scatterStateFn=*/[&](const std::vector<float>& data,
+            const std::function<void(size_t, std::vector<float>::const_iterator, std::vector<float>::const_iterator)>& setFn,
+            size_t /*numLocalDevices*/) {
+          size_t dataSize = data.size();
+          size_t numLocalDevices = shardOpt_.size();
+          size_t shardSize = (dataSize + numLocalDevices - 1) / numLocalDevices;// (size_t)(ceil(dataSize / (float)numLocalDevices));
+          for (size_t localDeviceIndex = 0; localDeviceIndex < numLocalDevices; localDeviceIndex++) {
+            size_t begin = localDeviceIndex * shardSize;
+            size_t end = std::min(begin + shardSize, dataSize);
+            setFn(localDeviceIndex, data.begin() + begin, data.begin() + end);
+          }
+        });
     } else if(options_->has("pretrained-model")) {
       std::string nameInit = options_->get<std::string>("pretrained-model");
       LOG(info,
@@ -383,7 +394,17 @@ void AsyncGraphGroup::save(Ptr<ExpressionGraph> graph, bool final /*=false*/) {
       scheduler_->save(name);
   }
 
-  shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_, gatherState);
+  shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_,
+    /*gatherStateFn=*/[&](const std::function<void(size_t, std::vector<float>&)>& getFn,
+                                 size_t /*numLocalDevices*/) {
+      std::vector<float> data;
+      std::vector<float> tmp;
+      for (size_t localDeviceIndex = 0; localDeviceIndex < shardOpt_.size(); localDeviceIndex++) {
+        getFn(localDeviceIndex, tmp);
+        data.insert(data.end(), tmp.begin(), tmp.end());
+      }
+      return data;
+    });
 }
 
 void AsyncGraphGroup::finalize() {
