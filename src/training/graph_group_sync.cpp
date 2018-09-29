@@ -192,6 +192,8 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
     cost += c;
   // extrapolate cost across workers
   // @TODO: This is a crude estimate. Rather, we should aggregate cost across all GPUs correctly; cf. gradient trick described above.
+  // @TODO: If this is too crude, we can also resurrect the code from f68433 to loop over the local batches,
+  // and then determine a correction factor based on actual counts. They are very close though across workers.
   cost *= mpi_->commWorldSize();
 
   // if cost is average-based, we need to turn the sum over devices into an average as well
