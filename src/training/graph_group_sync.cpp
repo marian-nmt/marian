@@ -188,31 +188,26 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
   // cost across all local devices
   // @TODO: We should report cost aggregated over all workers.
   float cost = 0;
-  for(auto& c : localDeviceCosts) {
+  for(auto& c : localDeviceCosts)
     cost += c;
-    c = 0;
-  }
+  // extrapolate cost across workers
+  // @TODO: This is a crude estimate. Rather, we should aggregate cost across all GPUs correctly; cf. gradient trick described above.
+  cost *= mpi_->commWorldSize();
 
-  // @TODO: review this
-  if(options_->get<std::string>("cost-type") != "ce-sum") {
-    cost = cost / (localDeviceCosts.size() * delay_);
-  }
+  // if cost is average-based, we need to turn the sum over devices into an average as well
+  if(options_->get<std::string>("cost-type") != "ce-sum")
+    cost /= numSubBatches;
 
   if(scheduler_) {
-    std::vector<Ptr<data::Batch>> thisSubBatches; // scheduler wants to know specifically what data we used, for statistics
-    for (size_t t = 0; t < delay_; t++)
-      for (size_t localDeviceIndex = 0; localDeviceIndex < devices_.size(); localDeviceIndex++) {
-        auto subBatch = getSubBatch(t, localDeviceIndex, mpi_->myRank());
-        if (subBatch)
-          thisSubBatches.push_back(subBatch);
-      }
-    // @TODO: ^^ This becomes unnecessary if we do the proper exchange of cost values as part of aggregation above
-    scheduler_->update(cost, thisSubBatches);
+    // track and log cost
+    scheduler_->update(cost, subBatches);
 
+    // save intermediate model to file
     if(scheduler_->saving()) {
-      this->save();
+      save();
     }
 
+    // process valid data set
     if(scheduler_->validating()) {
       if(mvAvg_) {
         comm_->swapParams(paramsAvg_);

@@ -187,8 +187,8 @@ public:
               subWidth = j + 1;
         }
       }
-      if (subWidth < width_)
-        LOG(info, "[data] sub-batch {} of {} wide batch has effective width of {}", pos / subSize, width_, subWidth);
+      //if (subWidth < width_)
+      //  LOG(info, "[data] sub-batch {} of {} wide batch has effective width of {}", pos / subSize, width_, subWidth);
 
       // create sub-batch
       auto sb = New<SubBatch>(size, subWidth, vocab_);
