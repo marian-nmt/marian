@@ -40,19 +40,20 @@ void Adagrad::updateImpl(Tensor params, Tensor grads) {
 void Adagrad::load(const std::string& name,
                    std::vector<Ptr<OptimizerBase>> opts,
                    std::vector<Ptr<Backend>> backends) {
+  ABORT_IF(opts.size() != backends.size(), "opts and backends of different sizes??");
+
   if(!boost::filesystem::exists(name))
     return;
 
   LOG(info, "Loading Adagrad parameters from {}", name);
 
   std::vector<float> vGt;
-  size_t totalSize = 0;
 
   // @TODO: use new IO
   auto items = io::loadItems(name);
   for(auto item : items) {
     // get the size of gt_
-    totalSize = item.shape.elements();
+    auto totalSize = item.shape.elements();
 
     // extract data into vectors
     if(item.name == "adagrad_gt") {
@@ -61,35 +62,29 @@ void Adagrad::load(const std::string& name,
           (float*)item.data(), (float*)item.data() + totalSize, vGt.begin());
     }
   }
-
   if(vGt.empty()) {
     LOG(warn, "[warn] Adagrad parameters not found in .npz file");
     return;
   }
 
-  // get the size of params which should go
-  size_t shardSize = (size_t)(ceil(totalSize / (float)backends.size()));
+  for(size_t id = 0; id < opts.size(); id++) {
+    auto opt = std::dynamic_pointer_cast<Adagrad>(opts[id]);
 
-  size_t id = 0;
-  for(auto optBase : opts) {
-    auto opt = std::dynamic_pointer_cast<Adagrad>(optBase);
-
-    int size = (int)std::min(shardSize, totalSize);
-    totalSize -= size;
+    size_t totalSize = vGt.size();
+    size_t shardSize = (size_t)(ceil(totalSize / (float)opts.size()));
+    size_t shift = id * shardSize;
+    size_t size = std::min(shardSize, totalSize-shift);
 
     if(!opt->alloc_)
       opt->alloc_ = New<TensorAllocator>(backends[id]);
 
     if(!opt->gt_) {
       opt->alloc_->reserveExact(sizeof(float) * size);
-      opt->alloc_->allocate(opt->gt_, {1, size});
+      opt->alloc_->allocate(opt->gt_, {1, (int)size});
     }
 
-    size_t shift = id * shardSize;
     std::vector<float> tmp(vGt.begin() + shift, vGt.begin() + shift + size);
     opt->gt_->set(tmp);
-
-    id++;
   }
 }
 
@@ -160,6 +155,8 @@ void Adam::updateImpl(Tensor params, Tensor grads) {
 void Adam::load(const std::string& name,
                 std::vector<Ptr<OptimizerBase>> opts,
                 std::vector<Ptr<Backend>> backends) {
+  ABORT_IF(opts.size() != backends.size(), "opts and backends of different sizes??");
+
   if(!boost::filesystem::exists(name))
     return;
 
@@ -167,12 +164,11 @@ void Adam::load(const std::string& name,
 
   std::vector<float> vMt;
   std::vector<float> vVt;
-  size_t totalSize = 0;
 
   auto items = io::loadItems(name);
   for(auto item : items) {
     // get the size of mt_ and vt_, they are the same
-    totalSize = item.shape.elements();
+    auto totalSize = item.shape.elements();
 
     // extract data into vectors
     if(item.name == "adam_mt") {
@@ -186,38 +182,33 @@ void Adam::load(const std::string& name,
           (float*)item.data(), (float*)item.data() + totalSize, vVt.begin());
     }
   }
-
   if(vMt.empty() || vVt.empty()) {
     LOG(warn, "[warn] Adam parameters not found in .npz file");
     return;
   }
+  ABORT_IF(vMt.size() != vVt.size(), "mt and vt have different sizes??");
 
-  // get the size of params which should go
-  size_t shardSize = (size_t)(ceil(totalSize / (float)backends.size()));
+  for(size_t id = 0; id < opts.size(); id++) {
+    auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
 
-  size_t id = 0;
-  for(auto optBase : opts) {
-    auto opt = std::dynamic_pointer_cast<Adam>(optBase);
-
-    int size = (int)std::min(shardSize, totalSize);
-    totalSize -= size;
+    size_t totalSize = vMt.size();
+    size_t shardSize = (size_t)(ceil(totalSize / (float)opts.size()));
+    size_t shift = id * shardSize;
+    size_t size = std::min(shardSize, totalSize-shift);
 
     if(!opt->alloc_)
       opt->alloc_ = New<TensorAllocator>(backends[id]);
 
     if(!opt->mt_ || !opt->vt_) {
       opt->alloc_->reserveExact(2 * sizeof(float) * size);
-      opt->alloc_->allocate(opt->mt_, {1, size});
-      opt->alloc_->allocate(opt->vt_, {1, size});
+      opt->alloc_->allocate(opt->mt_, {1, (int)size});
+      opt->alloc_->allocate(opt->vt_, {1, (int)size});
     }
 
-    size_t shift = id * shardSize;
     std::vector<float> tmpMt(vMt.begin() + shift, vMt.begin() + shift + size);
     opt->mt_->set(tmpMt);
     std::vector<float> tmpVt(vVt.begin() + shift, vVt.begin() + shift + size);
     opt->vt_->set(tmpVt);
-
-    id++;
   }
 }
 
