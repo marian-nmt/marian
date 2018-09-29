@@ -211,6 +211,7 @@ public:
 
   // swap paramShards worker[0].device[0] with a sharded set
   // This is used for the smoothed parameters, and also for persisting optimizer state.
+  // @TODO: Make sure that this only goes into worker[0], and not all.
   void swapParams(const std::vector<Tensor>& paramShards) override {
     ABORT_IF(mpi_ != nullptr, "swapParams() support for MPI is not yet implemented");
     // Update all graphs with parameter shard
@@ -238,7 +239,7 @@ public:
   }
 
   void scatterState(const std::vector<float>& data, const OptimizerBase::ScatterStateSetFunc& setFn) const override {
-    ABORT_IF(mpi_ != nullptr, "swapParams() support for MPI is not yet implemented");
+    ABORT_IF(mpi_ != nullptr, "scatterState() support for MPI is not yet implemented");
     size_t dataSize = data.size();
     size_t numLocalDevices = graphs_.size();
     size_t shardSize = (dataSize + numLocalDevices - 1) / numLocalDevices;// (size_t)(ceil(dataSize / (float)numLocalDevices));
@@ -250,7 +251,7 @@ public:
   }
 
   std::vector<float> gatherState(const OptimizerBase::GatherStateGetFunc& getFn) const override {
-    ABORT_IF(mpi_ != nullptr, "swapParams() support for MPI is not yet implemented");
+    ABORT_IF(mpi_ != nullptr, "gatherState() support for MPI is not yet implemented");
     std::vector<float> data; // we know the size here
     for (size_t localDeviceIndex = 0; localDeviceIndex < graphs_.size(); localDeviceIndex++) {
       std::vector<float> tmp = getFn(localDeviceIndex);
