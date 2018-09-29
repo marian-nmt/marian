@@ -26,6 +26,15 @@ static void scatter(const std::vector<float>& data,
     setFn(id, data.begin() + shift, data.begin() + shift + size);
   }
 }
+static void gather(std::vector<float>& data,
+                   const std::function<void(size_t, std::vector<float>&)>& getFn,
+                   size_t numShards) {
+  for (size_t id = 0; id < numShards; id++) {
+    std::vector<float> tmp;
+    getFn(id, tmp);
+    data.insert(data.end(), tmp.begin(), tmp.end());
+  }
+}
 
 // Aagrad
 
@@ -103,12 +112,11 @@ void Adagrad::save(const std::string& name,
 
   // fetch and concatenate state vectors from shards into a CPU-side vector
   std::vector<float> vGt;
-  for(auto optBase : opts) {
-    auto opt = std::dynamic_pointer_cast<Adagrad>(optBase);
-    std::vector<float> tmp;
-    opt->gt_->get(tmp);
-    vGt.insert(vGt.end(), tmp.begin(), tmp.end());
-  }
+  auto getGt = [&](size_t id, std::vector<float>& data) {
+    auto opt = std::dynamic_pointer_cast<Adagrad>(opts[id]);
+    opt->gt_->get(data);
+  };
+  gather(vGt, getGt, opts.size());
 
   // save to file
   io::Item item;
@@ -223,20 +231,18 @@ void Adam::save(const std::string& name,
   LOG(info, "Saving Adam parameters to {}", name);
 
   // fetch and concatenate state vectors from shards into a CPU-side vector
+  auto getMt = [&](size_t id, std::vector<float>& data) {
+    auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
+    opt->mt_->get(data);
+  };
+  auto getVt = [&](size_t id, std::vector<float>& data) {
+    auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
+    opt->vt_->get(data);
+  };
   std::vector<float> vMt;
-  for(auto optBase : opts) {
-    auto opt = std::dynamic_pointer_cast<Adam>(optBase);
-    std::vector<float> tmp;
-    opt->mt_->get(tmp);
-    vMt.insert(vMt.end(), tmp.begin(), tmp.end());
-  }
   std::vector<float> vVt;
-  for(auto optBase : opts) {
-    auto opt = std::dynamic_pointer_cast<Adam>(optBase);
-    std::vector<float> tmp;
-    opt->vt_->get(tmp);
-    vVt.insert(vVt.end(), tmp.begin(), tmp.end());
-  }
+  gather(vMt, getMt, opts.size());
+  gather(vVt, getVt, opts.size());
 
   // save to file
   io::Item itemMt;
