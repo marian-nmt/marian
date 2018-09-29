@@ -67,8 +67,7 @@ public:
                     std::vector<Ptr<OptimizerBase>> /*opts*/,
                     std::vector<Ptr<Backend>> /*backends*/) {}
   virtual void save(const std::string& /*name*/,
-                    std::vector<Ptr<OptimizerBase>> /*opts*/,
-                    size_t /*totalSize*/) {}
+                    std::vector<Ptr<OptimizerBase>> /*opts*/) {}
 
 protected:
   virtual void updateImpl(Tensor params, Tensor grads) = 0;
@@ -112,8 +111,7 @@ public:
             std::vector<Ptr<OptimizerBase>> opts,
             std::vector<Ptr<Backend>> backends) override;
   void save(const std::string& name,
-            std::vector<Ptr<OptimizerBase>> opts,
-            size_t totalSize) override;
+            std::vector<Ptr<OptimizerBase>> opts) override;
 
 private:
   void updateImpl(Tensor params, Tensor grads) override;
@@ -143,8 +141,7 @@ public:
             std::vector<Ptr<OptimizerBase>> opts,
             std::vector<Ptr<Backend>> backends) override;
   void save(const std::string& name,
-            std::vector<Ptr<OptimizerBase>> opts,
-            size_t totalSize) override;
+            std::vector<Ptr<OptimizerBase>> opts) override;
 
 private:
   void updateImpl(Tensor params, Tensor grads) override;

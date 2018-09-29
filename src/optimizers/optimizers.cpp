@@ -89,8 +89,7 @@ void Adagrad::load(const std::string& name,
 }
 
 void Adagrad::save(const std::string& name,
-                   std::vector<Ptr<OptimizerBase>> opts,
-                   size_t /*totalSize*/) {
+                   std::vector<Ptr<OptimizerBase>> opts) {
   LOG(info, "Saving Adagrad parameters to {}", name);
 
   // fetch and concatenate state vectors from shards into a CPU-side vector
@@ -214,8 +213,7 @@ void Adam::load(const std::string& name,
 }
 
 void Adam::save(const std::string& name,
-                std::vector<Ptr<OptimizerBase>> opts,
-                size_t /*totalSize*/) {
+                std::vector<Ptr<OptimizerBase>> opts) {
   LOG(info, "Saving Adam parameters to {}", name);
 
   // fetch and concatenate state vectors from shards into a CPU-side vector

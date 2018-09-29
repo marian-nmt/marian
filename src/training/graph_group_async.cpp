@@ -383,8 +383,7 @@ void AsyncGraphGroup::save(Ptr<ExpressionGraph> graph, bool final /*=false*/) {
       scheduler_->save(name);
   }
 
-  size_t totalSize = graphs_[idx]->params()->vals()->size();
-  shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_, totalSize);
+  shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_);
 }
 
 void AsyncGraphGroup::finalize() {

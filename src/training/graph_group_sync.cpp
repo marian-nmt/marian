@@ -241,7 +241,7 @@ void SyncGraphGroup::load() {
 
       size_t i = 0;
       for(auto graph : graphs_)
-        builders_[i++]->load(graph, nameGraph);
+        builders_[i++]->load(graph, nameGraph); // we just load it N times from disk (it'll be in disk cache after the first)
 
       // @TODO: probably we want to have the list of DeviceIds as an attribute
       std::vector<Ptr<Backend>> backends;
@@ -314,8 +314,7 @@ void SyncGraphGroup::save(bool final) {
     // Switch back to the original parameters
     comm_->swapParams(paramsAvg_);
 
-  size_t totalSize = graphs_[0]->params()->vals()->size();
-  shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_, totalSize);
+  shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_);
 }
 
 }  // namespace marian

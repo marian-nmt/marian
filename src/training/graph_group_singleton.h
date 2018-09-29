@@ -112,8 +112,7 @@ public:
         scheduler_->save(name);
     }
 
-    size_t totalSize = graph_->params()->vals()->size();
-    opt_->save(name + ".optimizer.npz", {opt_}, totalSize);
+    opt_->save(name + ".optimizer.npz", {opt_});
   }
 
   Ptr<data::BatchStats> collectStats() {
