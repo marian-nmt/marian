@@ -12,6 +12,21 @@ void Sgd::updateImpl(Tensor params, Tensor grads) {
   params->getBackend()->synchronize();
 }
 
+// temporary: helpers for scattering optimizer state in load()
+
+static void scatter(const std::vector<float>& data,
+                    const std::function<void(size_t, std::vector<float>::const_iterator, std::vector<float>::const_iterator)>& setFn,
+                    size_t numShards) {
+  for(size_t id = 0; id < numShards; id++) {
+    size_t dataSize = data.size();
+    size_t shardSize = (size_t)(ceil(dataSize / (float)numShards));
+    size_t shift = id * shardSize;
+    size_t size = std::min(shardSize, dataSize-shift);
+
+    setFn(id, data.begin() + shift, data.begin() + shift + size);
+  }
+}
+
 // Aagrad
 
 void Adagrad::updateImpl(Tensor params, Tensor grads) {
@@ -67,25 +82,19 @@ void Adagrad::load(const std::string& name,
     return;
   }
 
-  for(size_t id = 0; id < opts.size(); id++) {
+  auto setGt = [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
     auto opt = std::dynamic_pointer_cast<Adagrad>(opts[id]);
-
-    size_t totalSize = vGt.size();
-    size_t shardSize = (size_t)(ceil(totalSize / (float)opts.size()));
-    size_t shift = id * shardSize;
-    size_t size = std::min(shardSize, totalSize-shift);
-
-    if(!opt->alloc_)
-      opt->alloc_ = New<TensorAllocator>(backends[id]);
-
     if(!opt->gt_) {
+      if(!opt->alloc_)
+        opt->alloc_ = New<TensorAllocator>(backends[id]);
+      auto size = end-begin;
       opt->alloc_->reserveExact(sizeof(float) * size);
       opt->alloc_->allocate(opt->gt_, {1, (int)size});
     }
+    opt->gt_->set(std::vector<float>(begin, end));
+  };
 
-    std::vector<float> tmp(vGt.begin() + shift, vGt.begin() + shift + size);
-    opt->gt_->set(tmp);
-  }
+  scatter(vGt, setGt, opts.size());
 }
 
 void Adagrad::save(const std::string& name,
@@ -188,28 +197,25 @@ void Adam::load(const std::string& name,
   }
   ABORT_IF(vMt.size() != vVt.size(), "mt and vt have different sizes??");
 
-  for(size_t id = 0; id < opts.size(); id++) {
+  auto setMt = [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
     auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
-
-    size_t totalSize = vMt.size();
-    size_t shardSize = (size_t)(ceil(totalSize / (float)opts.size()));
-    size_t shift = id * shardSize;
-    size_t size = std::min(shardSize, totalSize-shift);
-
-    if(!opt->alloc_)
-      opt->alloc_ = New<TensorAllocator>(backends[id]);
-
-    if(!opt->mt_ || !opt->vt_) {
+    if(!opt->mt_ || !opt->vt_) { // lazily allocate
+      if(!opt->alloc_)
+        opt->alloc_ = New<TensorAllocator>(backends[id]);
+      auto size = end-begin;
       opt->alloc_->reserveExact(2 * sizeof(float) * size);
       opt->alloc_->allocate(opt->mt_, {1, (int)size});
       opt->alloc_->allocate(opt->vt_, {1, (int)size});
     }
+    opt->mt_->set(std::vector<float>(begin, end)); // set the value
+  };
+  auto setVt = [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
+    auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
+    opt->vt_->set(std::vector<float>(begin, end));
+  };
 
-    std::vector<float> tmpMt(vMt.begin() + shift, vMt.begin() + shift + size);
-    opt->mt_->set(tmpMt);
-    std::vector<float> tmpVt(vVt.begin() + shift, vVt.begin() + shift + size);
-    opt->vt_->set(tmpVt);
-  }
+  scatter(vMt, setMt, opts.size());
+  scatter(vVt, setMt, opts.size());
 }
 
 void Adam::save(const std::string& name,
