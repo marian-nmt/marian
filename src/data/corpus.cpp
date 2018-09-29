@@ -1,7 +1,7 @@
+#include "data/corpus.h"
+
 #include <numeric>
 #include <random>
-
-#include "data/corpus.h"
 
 namespace marian {
 namespace data {

@@ -1,12 +1,5 @@
 #pragma once
 
-#include <fstream>
-#include <iostream>
-#include <random>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/iterator/iterator_facade.hpp>
-
 #include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
@@ -16,6 +9,10 @@
 #include "data/dataset.h"
 #include "data/rng_engine.h"
 #include "data/vocab.h"
+
+#include <iostream>
+#include <boost/algorithm/string.hpp>
+#include <boost/iterator/iterator_facade.hpp>
 
 namespace marian {
 namespace data {
@@ -175,33 +172,40 @@ public:
   std::vector<Ptr<SubBatch>> split(size_t n) {
     ABORT_IF(size_ == 0, "Encoutered sub-batch size of 0");
 
-    std::vector<Ptr<SubBatch>> splits;
     size_t subSize = (size_t)(std::ceil(size_ / (float)n));
 
-    size_t restSize = size_;
-    size_t pos = 0;
-    for(size_t k = 0; k < n; ++k) {
-      size_t size = std::min(subSize, restSize);
-      if(size > 0) {
-        auto sb = New<SubBatch>(size, width_, vocab_);
+    std::vector<Ptr<SubBatch>> splits;
+    for(size_t pos = 0; pos < size_; pos += subSize) {
+      size_t size = std::min(subSize, size_ - pos);
 
-        size_t words = 0;
-        for(size_t j = 0; j < width_; ++j) {
-          for(size_t i = 0; i < size; ++i) {
-            sb->data()[j * size + i] = indices_[j * size_ + pos + i];
-            sb->mask()[j * size + i] = mask_[j * size_ + pos + i];
-
-            if(mask_[j * size_ + pos + i] != 0)
-              words++;
-          }
+      // determine actual width
+      size_t subWidth = 0;
+      for(size_t j = 0; j < width_; ++j) {
+        for(size_t i = 0; i < size; ++i) {
+          if(mask_[j * size_ + (pos + i)] != 0)
+            if (subWidth < j + 1)
+              subWidth = j + 1;
         }
-
-        sb->setWords(words);
-        splits.push_back(sb);
-
-        restSize -= size;
-        pos += size;
       }
+      if (subWidth < width_)
+        LOG(info, "[data] sub-batch {} of {} wide batch has effective width of {}", pos / subSize, width_, subWidth);
+
+      // create sub-batch
+      auto sb = New<SubBatch>(size, subWidth, vocab_);
+
+      size_t words = 0;
+      for(size_t j = 0; j < subWidth; ++j) {
+        for(size_t i = 0; i < size; ++i) {
+          sb->data()[j * size + i] = indices_[j * size_ + (pos + i)];
+          sb->mask()[j * size + i] =    mask_[j * size_ + (pos + i)];
+
+          if(mask_[j * size_ + (pos + i)] != 0)
+            words++;
+        }
+      }
+      sb->setWords(words);
+
+      splits.push_back(sb);
     }
     return splits;
   }
@@ -375,6 +379,7 @@ public:
     }
 
     if(!guidedAlignment_.empty()) {
+      size_t oldTrgWords = back()->batchWidth();
       size_t oldSize = size();
 
       pos = 0;
@@ -390,8 +395,8 @@ public:
           size_t bi = i + pos;
           for(size_t sid = 0; sid < srcWords; ++sid) {
             for(size_t tid = 0; tid < trgWords; ++tid) {
-              size_t bidx = sid * oldSize * trgWords + bi * trgWords + tid;
-              size_t idx = sid * dimBatch * trgWords + i * trgWords + tid;
+              size_t bidx = sid * oldSize  * oldTrgWords + bi * oldTrgWords + tid;
+              size_t idx  = sid * dimBatch *    trgWords +  i *    trgWords + tid;
               aligns[idx] = guidedAlignment_[bidx];
             }
           }
