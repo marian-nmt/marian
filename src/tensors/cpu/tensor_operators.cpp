@@ -382,10 +382,12 @@ void LogSoftmaxGrad(Tensor grad_, Tensor adj_, Tensor val_) {
 
 void CopyRows(Tensor out_,
               const Tensor in_,
-              const std::vector<IndexType>& indices,
-              Ptr<Allocator> allocator) {
+              const Tensor indices) {
+
+  matchOrAbort<IndexType>(indices->type());
+
   size_t cols = in_->shape()[1];
-  size_t rows = indices.size();
+  size_t rows = indices->size();
 
   float* out = out_->data();
   const float* in = in_->data();
@@ -393,7 +395,7 @@ void CopyRows(Tensor out_,
 #pragma omp parallel for
   for(size_t j = 0; j < rows; ++j) {
     size_t dst = j;
-    size_t src = indices[j];
+    size_t src = indices->data<IndexType>()[j];
 
     float* rowOut = out + dst * cols;
     const float* rowIn = in + src * cols;
@@ -404,15 +406,18 @@ void CopyRows(Tensor out_,
 
 void PasteRows(Tensor out_,
                const Tensor in_,
-               const std::vector<IndexType>& indices) {
+               const Tensor indices) {
+
+  matchOrAbort<IndexType>(indices->type());
+
   size_t cols = in_->shape()[-1];
-  size_t rows = indices.size();
+  size_t rows = indices->size();
 
   float* out = out_->data();
   const float* in = in_->data();
 
   for(size_t j = 0; j < rows; ++j) {
-    size_t dst = indices[j];  // not a permutation - may alias, unlike PasteCols
+    size_t dst = indices->data<IndexType>()[j];  // not a permutation - may alias, unlike PasteCols
     size_t src = j;
 
     float* rowOut = out + dst * cols;

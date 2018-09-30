@@ -458,6 +458,34 @@ struct ScalarProductNodeOp : public NaryNodeOp {
   int axis_;
 };
 
+struct RowsNodeOp : public NaryNodeOp {
+  RowsNodeOp(Expr a, Expr indices)
+      : NaryNodeOp({a, indices}, newShape(a, indices->shape().elements()))
+      {}
+
+  NodeOps forwardOps() override {
+    return {NodeOp(
+        CopyRows(val_, child(0)->val(), child(1)->val()))};
+  }
+
+  NodeOps backwardOps() override {
+    return {NodeOp(PasteRows(child(0)->grad(), adj_, child(1)->val()))};
+  }
+
+  template <class... Args>
+  Shape newShape(Expr a, size_t num) {
+    Shape shape = a->shape();
+    ABORT_IF(shape.size() != 2,
+             "rows operator can only be used with 2-dimensional tensors");
+    shape.set(0, num);
+    return shape;
+  }
+
+  const std::string type() override { return "rows"; }
+
+  const std::string color() override { return "orange"; }
+};
+
 struct ElementBinaryNodeOp : public NaryNodeOp {
   ElementBinaryNodeOp(Expr a, Expr b) : NaryNodeOp({a, b}, newShape(a, b)) {}
 
@@ -661,7 +689,9 @@ struct MinimumNodeOp : public ElementBinaryNodeOp {
 
 // Cross-entropy node. It computes -b*log(softmax(a)), summing rowwise.
 struct CrossEntropyNodeOp : public NaryNodeOp {
-  CrossEntropyNodeOp(Expr a, Expr b) : NaryNodeOp({a, b}, newShape(a)) {}
+  CrossEntropyNodeOp(Expr a, Expr indices) : NaryNodeOp({a, indices}, newShape(a)) {
+    matchOrAbort<IndexType>(indices->value_type());
+  }
 
   Shape newShape(Expr a) {
     Shape shape1 = a->shape();

@@ -347,8 +347,8 @@ public:
     return p;
   }
 
-  Expr constant(const Shape& shape, const NodeInitializer& init) {
-    return Expression<ConstantNode>(shared_from_this(), shape, init);
+  Expr constant(const Shape& shape, const NodeInitializer& init, Type value_type = Type::float32) {
+    return Expression<ConstantNode>(shared_from_this(), shape, init, value_type);
   }
 
   Expr ones(const Shape& shape) {

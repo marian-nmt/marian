@@ -643,61 +643,6 @@ struct NegNodeOp : public UnaryNodeOp {
   const std::string type() override { return "-"; }
 };
 
-struct RowsNodeOp : public UnaryNodeOp {
-  RowsNodeOp(Expr a, const std::vector<IndexType>& indices)
-      : UnaryNodeOp(a, newShape(a, indices)), indices_(indices) {
-    // @TODO: fix this by using int32 tensor for indices
-    setMemoize(false);
-  }
-
-  NodeOps forwardOps() override {
-    // @TODO: solve this with a tensor!
-
-    return {NodeOp(
-        CopyRows(val_, child(0)->val(), indices_, graph()->allocator()))};
-  }
-
-  NodeOps backwardOps() override {
-    return {NodeOp(PasteRows(child(0)->grad(), adj_, indices_))};
-  }
-
-  template <class... Args>
-  Shape newShape(Expr a, const std::vector<IndexType>& indices) {
-    Shape shape = a->shape();
-    ABORT_IF(shape.size() != 2,
-             "rows operator can only be used with 2-dimensional tensors");
-    shape.set(0, indices.size());
-    return shape;
-  }
-
-  const std::string type() override { return "rows"; }
-
-  const std::string color() override { return "orange"; }
-
-  virtual size_t hash() override {
-    if(!hash_) {
-      size_t seed = NaryNodeOp::hash();
-      for(auto i : indices_)
-        util::hash_combine(seed, i);
-      hash_ = seed;
-    }
-    return hash_;
-  }
-
-  virtual bool equal(Expr node) override {
-    if(!NaryNodeOp::equal(node))
-      return false;
-    Ptr<RowsNodeOp> cnode = std::dynamic_pointer_cast<RowsNodeOp>(node);
-    if(!cnode)
-      return false;
-    if(indices_ != cnode->indices_)
-      return false;
-    return true;
-  }
-
-  std::vector<IndexType> indices_;
-};
-
 struct ColsNodeOp : public UnaryNodeOp {
   ColsNodeOp(Expr a, const std::vector<IndexType>& indices)
       : UnaryNodeOp(a, newShape(a, indices)), indices_(indices) {

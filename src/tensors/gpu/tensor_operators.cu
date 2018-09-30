@@ -737,25 +737,20 @@ __global__ void gCopyRows(float* out,
 
 void CopyRows(Tensor out,
               const Tensor in,
-              const std::vector<IndexType>& indices,
-              Ptr<Allocator> allocator) {
+              const Tensor indices) {
+
+  matchOrAbort<IndexType>(indices->type());
+
   cudaSetDevice(out->getDeviceId().no);
 
   size_t cols = in->shape().back();
-  size_t rowsToCopy = indices.size();
+  size_t rowsToCopy = indices->size();
 
   int threads = std::min(MAX_THREADS, (int)cols);
   int blocks = std::min(MAX_BLOCKS, (int)rowsToCopy);
 
-  auto mp_indices = allocator->alloc<IndexType>(rowsToCopy);
-  CudaCopy(indices.data(),
-           indices.data() + indices.size(),
-           mp_indices->data<IndexType>());
-
   gCopyRows<<<blocks, threads>>>(
-      out->data(), in->data(), cols, mp_indices->data<IndexType>(), rowsToCopy);
-
-  allocator->free(mp_indices);
+      out->data(), in->data(), cols, indices->data<IndexType>(), rowsToCopy);
 }
 
 __global__ void gPasteRows(float* out,
@@ -783,26 +778,20 @@ __global__ void gPasteRows(float* out,
 
 void PasteRows(Tensor out,
                const Tensor in,
-               const std::vector<IndexType>& indices) {
+               const Tensor indices) {
+
+  matchOrAbort<IndexType>(indices->type());
+
   cudaSetDevice(out->getDeviceId().no);
 
   size_t cols = in->shape().back();
-  size_t rowsToCopy = indices.size();
+  size_t rowsToCopy = indices->size();
 
   int threads = std::min(MAX_THREADS, (int)cols);
   int blocks = std::min(MAX_BLOCKS, (int)rowsToCopy);
 
-  // @TODO: turn into tensor
-  IndexType* d_indices;
-  CUDA_CHECK(cudaMalloc(&d_indices, rowsToCopy * sizeof(IndexType)));
-  CUDA_CHECK(cudaMemcpy(d_indices,
-                        indices.data(),
-                        rowsToCopy * sizeof(IndexType),
-                        cudaMemcpyHostToDevice));
-
   gPasteRows<<<blocks, threads>>>(
-      out->data(), in->data(), cols, d_indices, rowsToCopy);
-  CUDA_CHECK(cudaFree(d_indices));
+      out->data(), in->data(), cols, indices->data<IndexType>(), rowsToCopy);
 }
 
 /////////////
@@ -1180,7 +1169,7 @@ __global__ void gCrossEntropyPick(float* out,
                                   const functional::Shape outShape,
                                   const float* in,
                                   const functional::Shape inShape,
-                                  const float* pick) {
+                                  const IndexType* pick) {
   int rows = inShape.elements() / inShape.back();
   int cols = inShape.back();
 
@@ -1246,7 +1235,9 @@ __global__ void gCrossEntropyPick(float* out,
   }
 }
 
-void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
+void CrossEntropyPick(Tensor out, Tensor in, Tensor indices) {
+  matchOrAbort<IndexType>(indices->type());
+
   cudaSetDevice(out->getDeviceId().no);
 
   int rows = in->shape().elements() / in->shape().back();
@@ -1257,14 +1248,14 @@ void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
   int shared = sizeof(float) * threads * 2;
 
   gCrossEntropyPick<<<blocks, threads, shared>>>(
-      out->data(), out->shape(), in->data(), in->shape(), pick->data());
+      out->data(), out->shape(), in->data(), in->shape(), indices->data<IndexType>());
 }
 
 __global__ void gCrossEntropyPickBackward(float* out,
                                           const functional::Shape outShape,
                                           const float* adj,
                                           const float* in,
-                                          const float* pick) {
+                                          const IndexType* pick) {
   int rows = outShape.elements() / outShape.back();
   int cols = outShape.back();
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -1332,7 +1323,9 @@ __global__ void gCrossEntropyPickBackward(float* out,
   }
 }
 
-void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
+void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor indices) {
+  matchOrAbort<IndexType>(indices->type());
+
   cudaSetDevice(out->getDeviceId().no);
 
   int rows = out->shape().elements() / out->shape().back();
@@ -1343,7 +1336,7 @@ void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
   int shared = sizeof(float) * threads * 2;
 
   gCrossEntropyPickBackward<<<blocks, threads, shared>>>(
-      out->data(), out->shape(), adj->data(), a->data(), pick->data());
+      out->data(), out->shape(), adj->data(), a->data(), indices->data<IndexType>());
 }
 
 float L2Norm(Tensor in) {

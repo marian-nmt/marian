@@ -73,10 +73,12 @@ public:
     Expr yData;
     if(shortlist_) {
       yData = graph->constant({(int)shortlist_->mappedIndices().size(), 1},
-                              inits::from_vector(shortlist_->mappedIndices()));
+                              inits::from_vector(shortlist_->mappedIndices()),
+                              Type::uint32);
     } else {
       yData = graph->constant({(int)subBatch->data().size(), 1},
-                              inits::from_vector(subBatch->data()));
+                              inits::from_vector(subBatch->data()),
+                              Type::uint32);
     }
 
     auto yShifted = shift(y, {1, 0, 0});
