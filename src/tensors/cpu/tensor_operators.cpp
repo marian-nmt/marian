@@ -386,7 +386,7 @@ void CopyRows(Tensor out_,
 
   matchOrAbort<IndexType>(indices->type());
 
-  size_t cols = in_->shape()[1];
+  size_t cols = in_->shape()[-1];
   size_t rows = indices->size();
 
   float* out = out_->data();
@@ -395,7 +395,7 @@ void CopyRows(Tensor out_,
 #pragma omp parallel for
   for(size_t j = 0; j < rows; ++j) {
     size_t dst = j;
-    size_t src = indices->data<IndexType>()[j];
+    size_t src = (size_t)indices->data<IndexType>()[j];
 
     float* rowOut = out + dst * cols;
     const float* rowIn = in + src * cols;
@@ -659,11 +659,12 @@ void GRUFastBackward(std::vector<Tensor> outputs,
 }
 
 void CrossEntropyPick(Tensor out_, Tensor in_, Tensor pick_) {
+  matchOrAbort<IndexType>(pick_->type());
+
   float* out = out_->data();
   // Shape& outShape = out_->shape();
   const float* in = in_->data();
   Shape& inShape = in_->shape();
-  float* pick = pick_->data();
 
   int rows = inShape.elements() / inShape.back();
   int cols = inShape.back();
@@ -684,7 +685,7 @@ void CrossEntropyPick(Tensor out_, Tensor in_, Tensor pick_) {
     }
 
     // cross-entropy
-    int i = (int)pick[j];
+    int i = (int)pick_->data<IndexType>()[j];
     // This appears to be safe i.e. that i >= 0 && i < cols is known
     out[j] = std::log(sum) - sp[i] + max;
   }
@@ -694,11 +695,12 @@ void CrossEntropyPickBackward(Tensor out_,
                               Tensor adj_,
                               Tensor a,
                               Tensor pick_) {
+
+  matchOrAbort<IndexType>(pick_->type());
   float* out = out_->data();
   Shape& outShape = out_->shape();
   const float* adj = adj_->data();
   const float* in = a->data();
-  const float* pick = pick_->data();
 
   int rows = outShape.elements() / outShape.back();
   int cols = outShape.back();
@@ -720,7 +722,7 @@ void CrossEntropyPickBackward(Tensor out_,
 
     // cross-entropy
     for(int i = 0; i < cols; ++i) {
-      float sub = (float)(i == (int)pick[j]);
+      float sub = (float)(i == (int)pick_->data<IndexType>()[j]);
       so[i] += adj[j] * (std::exp(sp[i] - max) / sum - sub);
     }
   }
