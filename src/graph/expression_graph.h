@@ -351,12 +351,18 @@ public:
     return Expression<ConstantNode>(shared_from_this(), shape, init, value_type);
   }
 
+  Expr indices(const std::vector<IndexType>& indices) {
+    return constant({(int)indices.size()},
+                    inits::from_vector(indices),
+                    Type::uint32);
+  }
+
   Expr ones(const Shape& shape) {
-    return Expression<ConstantNode>(shared_from_this(), shape, inits::ones);
+    return constant(shape, inits::ones);
   }
 
   Expr zeros(const Shape& shape) {
-    return Expression<ConstantNode>(shared_from_this(), shape, inits::zeros);
+    return constant(shape, inits::zeros);
   }
 
   Expr dropout(float prob, const Shape& shape);

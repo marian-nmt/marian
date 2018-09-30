@@ -105,9 +105,14 @@ Expr atleast_nd(Expr a, size_t dims);
 Expr flatten(Expr a);
 Expr flatten_2d(Expr a);
 
-Expr rows(Expr a, const std::vector<uint32_t>& indices);
-Expr cols(Expr a, const std::vector<uint32_t>& indices);
-Expr select(Expr a, int axis, const std::vector<uint32_t>& indices);
+Expr rows(Expr a, Expr indices);
+Expr rows(Expr a, const std::vector<IndexType>& indices);
+
+Expr cols(Expr a, Expr indices);
+Expr cols(Expr a, const std::vector<IndexType>& indices);
+
+Expr select(Expr a, Expr indices, int axis);
+Expr select(Expr a, const std::vector<IndexType>& indices, int axis);
 
 /*********************************************************/
 

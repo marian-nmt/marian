@@ -431,10 +431,13 @@ void PasteRows(Tensor out_,
 
 void CopyCols(Tensor out_,
               const Tensor in_,
-              const std::vector<IndexType>& indices) {
+              const Tensor indices) {
+
+  matchOrAbort<IndexType>(indices->type());
+
   size_t rows = in_->shape().elements() / in_->shape()[-1];
   size_t colsIn = in_->shape()[-1];
-  size_t colsOut = indices.size();
+  size_t colsOut = indices->size();
 
   float* out = out_->data();
   const float* in = in_->data();
@@ -445,17 +448,20 @@ void CopyCols(Tensor out_,
     float* rowOut = out + j * colsOut;
 
     for(size_t i = 0; i < colsOut; ++i) {
-      rowOut[i] = rowIn[indices[i]];
+      rowOut[i] = rowIn[indices->data<IndexType>()[i]];
     }
   }
 }
 
 void PasteCols(Tensor out_,
                const Tensor in_,
-               const std::vector<IndexType>& indices) {
+               const Tensor indices) {
+
+  matchOrAbort<IndexType>(indices->type());
+
   size_t rows = out_->shape().elements() / out_->shape()[-1];
   size_t colsOut = out_->shape()[-1];
-  size_t colsIn = indices.size();
+  size_t colsIn = indices->size();
 
   float* out = out_->data();
   const float* in = in_->data();
@@ -468,16 +474,17 @@ void PasteCols(Tensor out_,
     float* rowOut = out + j * colsOut;
 
     for(size_t i = 0; i < colsIn; ++i) {
-      rowOut[indices[i]] += rowIn[i];
+      rowOut[indices->data<IndexType>()[i]] += rowIn[i];
     }
   }
 }
 
 void Select(Tensor out,
             const Tensor in,
-            int axis,
-            const std::vector<IndexType>& indices,
-            Ptr<Allocator> allocator) {
+            const Tensor indices,
+            int axis) {
+
+  matchOrAbort<IndexType>(indices->type());
 
   // @TODO: make this efficient
   functional::Shape outShape = out->shape();
@@ -488,7 +495,7 @@ void Select(Tensor out,
 
   for(int index = 0; index < length; ++index) {
     outShape.dims(index, dims);
-    dims[axis] = (int)indices[dims[axis]];
+    dims[axis] = (int)indices->data<IndexType>()[dims[axis]];
     int inIndex = inShape.index(dims);
     out->data()[index] = in->data()[inIndex];
   }
@@ -497,9 +504,10 @@ void Select(Tensor out,
 
 void Insert(Tensor out,
             const Tensor in,
-            int axis,
-            const std::vector<IndexType>& indices,
-            Ptr<Allocator> allocator) {
+            const Tensor indices,
+            int axis) {
+
+  matchOrAbort<IndexType>(indices->type());
 
   // @TODO: make this efficient
   functional::Shape outShape = out->shape();
@@ -510,7 +518,7 @@ void Insert(Tensor out,
 
   for(int index = 0; index < length; ++index) {
     inShape.dims(index, dims);
-    dims[axis] = (int)indices[dims[axis]];
+    dims[axis] = (int)indices->data<IndexType>()[dims[axis]];
     int outIndex = outShape.index(dims);
     out->data()[outIndex] += in->data()[index];
   }

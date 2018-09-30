@@ -178,7 +178,8 @@ public:
 
   void collectOneHead(Expr weights, int dimBeam) {
     // select first head, this is arbitrary as the choice does not really matter
-    auto head0 = select(weights, -3, {0}); // @TODO: implement an index() or slice() operator and use that
+    std::vector<IndexType> idx0 = {0};
+    auto head0 = select(weights, idx0, -3); // @TODO: implement an index() or slice() operator and use that
 
     int dimBatchBeam = head0->shape()[-4];
     int srcWords = head0->shape()[-1];
@@ -193,8 +194,10 @@ public:
     // for translation only the last one. Also split alignments by target words.
     // @TODO: make splitting obsolete
     alignments_.clear();
-    for(int i = 0; i < trgWords; ++i)
-      alignments_.push_back(select(head0, -1, {(IndexType)i})); // [tgt index][-4: beam depth, -3: max src length, -2: batch size, -1: 1]
+    for(int i = 0; i < trgWords; ++i) {
+      std::vector<IndexType> idx = {(IndexType)i};
+      alignments_.push_back(select(head0, idx, -1)); // [tgt index][-4: beam depth, -3: max src length, -2: batch size, -1: 1]
+    }
   }
 
   // determine the multiplicative-attention probability and performs the associative lookup as well

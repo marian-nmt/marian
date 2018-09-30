@@ -135,11 +135,11 @@ static inline void Deconcatenate(std::vector<marian::Tensor>& outputs,
   DISPATCH3(CopyRows, marian::Tensor, const marian::Tensor, const marian::Tensor)
   DISPATCH3(PasteRows, marian::Tensor, const marian::Tensor, const marian::Tensor)
 
-  DISPATCH3(CopyCols, marian::Tensor, const marian::Tensor, const std::vector<IndexType>&)
-  DISPATCH3(PasteCols, marian::Tensor, const marian::Tensor, const std::vector<IndexType>&)
+  DISPATCH3(CopyCols, marian::Tensor, const marian::Tensor, const marian::Tensor)
+  DISPATCH3(PasteCols, marian::Tensor, const marian::Tensor, const marian::Tensor)
 
-  DISPATCH5(Select, marian::Tensor, marian::Tensor, int, const std::vector<IndexType>&, Ptr<Allocator>)
-  DISPATCH5(Insert, marian::Tensor, marian::Tensor, int, const std::vector<IndexType>&, Ptr<Allocator>)
+  DISPATCH4(Select, marian::Tensor, const marian::Tensor, const marian::Tensor, int)
+  DISPATCH4(Insert, marian::Tensor, const marian::Tensor, const marian::Tensor, int)
 
   DISPATCH2(LSTMCellForward, marian::Tensor, std::vector<marian::Tensor>)
   DISPATCH2(LSTMOutputForward, marian::Tensor, std::vector<marian::Tensor>);

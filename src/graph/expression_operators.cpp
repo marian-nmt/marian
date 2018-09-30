@@ -198,20 +198,32 @@ Expr flatten_2d(Expr a) {
   return Expression<ReshapeNodeOp>(a, shape);
 }
 
-Expr rows(Expr a, const std::vector<IndexType>& indices) {
-  auto indexTensor = a->graph()->constant({(int)indices.size()},
-                                          inits::from_vector(indices),
-                                          Type::uint32);
-
-  return Expression<RowsNodeOp>(a, indexTensor);
+Expr rows(Expr a, Expr indices) {
+  return Expression<RowsNodeOp>(a, indices);
 }
 
-Expr cols(Expr a, const std::vector<IndexType>& indices) {
+Expr rows(Expr a, const std::vector<IndexType>& indices) {
+  auto indexExpr = a->graph()->indices(indices);
+  return rows(a, indexExpr);
+}
+
+
+Expr cols(Expr a, Expr indices) {
   return Expression<ColsNodeOp>(a, indices);
 }
 
-Expr select(Expr a, int axis, const std::vector<IndexType>& indices) {
-  return Expression<SelectNodeOp>(a, axis, indices);
+Expr cols(Expr a, const std::vector<IndexType>& indices) {
+  auto indexExpr = a->graph()->indices(indices);
+  return cols(a, indexExpr);
+}
+
+Expr select(Expr a, Expr indices, int axis) {
+  return Expression<SelectNodeOp>(a, indices, axis);
+}
+
+Expr select(Expr a, const std::vector<IndexType>& indices, int axis) {
+  auto indexExpr = a->graph()->indices(indices);
+  return select(a, indexExpr, axis);
 }
 
 Expr sum(Expr a, int ax) {
