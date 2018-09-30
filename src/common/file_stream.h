@@ -157,24 +157,6 @@ public:
 
   operator bool() { return (bool)istream_; }
 
-  template <typename T>
-  friend InputFileStream& operator>>(InputFileStream& stream, T& t) {
-    stream.istream_ >> t;
-    ABORT_IF(stream.fail(),
-             "Exception reading from file '{}'",
-             stream.path());
-    return stream;
-  }
-
-  template <typename T>
-  size_t read(T* ptr, size_t num = 1) {
-    istream_.read((char*)ptr, num * sizeof(T));
-    ABORT_IF(fail(),
-             "Exception reading from file '{}'",
-             path());
-    return num * sizeof(T);
-  }
-
   bool bad() const {
     return istream_.bad();
   }
@@ -195,6 +177,24 @@ public:
 
   bool empty() { return ifstream_.peek() == std::ifstream::traits_type::eof(); }
 
+  template <typename T>
+  friend InputFileStream& operator>>(InputFileStream& stream, T& t) {
+    stream.istream_ >> t;
+    ABORT_IF(stream.fail(),
+             "Error reading from file '{}'",
+             stream.path());
+    return stream;
+  }
+
+  template <typename T>
+  size_t read(T* ptr, size_t num = 1) {
+    istream_.read((char*)ptr, num * sizeof(T));
+    ABORT_IF(fail(),
+             "Error reading from file '{}'",
+             path());
+    return num * sizeof(T);
+  }
+
 private:
   marian::filesystem::Path file_;
   boost::filesystem::ifstream ifstream_;
@@ -207,7 +207,7 @@ private:
 static InputFileStream& getline(InputFileStream& in, std::string& line) {
   std::getline((std::istream&)in, line);
   ABORT_IF(in.fail(),
-           "Exception reading from file '{}'",
+           "Error reading from file '{}'",
            in.path());
   // strip terminal CR if present
   if(in && !line.empty() && line.back() == in.widen('\r'))
@@ -220,7 +220,7 @@ static InputFileStream& getline(InputFileStream& in, std::string& line) {
 static InputFileStream& getline(InputFileStream& in, std::string& line, char delim) {
   std::getline((std::istream&)in, line, delim);
   ABORT_IF(in.fail(),
-           "Exception reading from file '{}'",
+           "Error reading from file '{}'",
            in.path());
   // strip terminal CR if present
   if(in && !line.empty() && line.back() == in.widen('\r'))
@@ -251,11 +251,19 @@ public:
 
   operator bool() { return (bool)ostream_; }
 
+  bool bad() const {
+    return ostream_.bad();
+  }
+
+  bool fail() const {
+    return ostream_.fail();
+  }
+
   template <typename T>
   friend OutputFileStream& operator<<(OutputFileStream& stream, const T& t) {
     stream.ostream_ << t;
-    ABORT_IF(!stream.ostream_,
-             "Exception writing to file '{}'",
+    ABORT_IF(stream.fail(),
+             "Error writing to file '{}'",
              stream.path());
     return stream;
   }
@@ -263,8 +271,8 @@ public:
   // handle things like std::endl which is actually a function not a value
   friend OutputFileStream& operator<<(OutputFileStream& stream, std::ostream& (*var)(std::ostream&)) {
     stream.ostream_ << var;
-    ABORT_IF(!stream.ostream_,
-             "Exception writing to file '{}'",
+    ABORT_IF(stream.fail(),
+             "Error writing to file '{}'",
              stream.path());
     return stream;
   }
@@ -272,8 +280,8 @@ public:
   template <typename T>
   size_t write(const T* ptr, size_t num = 1) {
     ostream_.write((char*)ptr, num * sizeof(T));
-    ABORT_IF(!ostream_,
-             "Exception writing to file '{}'",
+    ABORT_IF(fail(),
+             "Error writing to file '{}'",
              path());
     return num * sizeof(T);
   }
