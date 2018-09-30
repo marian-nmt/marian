@@ -29,8 +29,8 @@ int main(int argc, char** argv) {
     std::ifstream file1(argv[2]);
 
     db.exec("begin;");
-    while(marian::utils::getline(file0, line0)
-          && marian::utils::getline(file1, line1)) {
+    while(marian::io::getline(file0, line0)
+          && marian::io::getline(file1, line1)) {
       ps.bind(1, (int)lines);
       ps.bind(2, line0);
       ps.bind(3, line1);

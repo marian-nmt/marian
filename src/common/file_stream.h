@@ -18,8 +18,6 @@
 #include <iostream>
 #include "common/logging.h"
 
-namespace io = boost::iostreams;
-
 #ifdef _MSC_VER
 
 #include <fcntl.h>
@@ -27,6 +25,9 @@ namespace io = boost::iostreams;
 #include <stdlib.h>
 
 #endif
+
+namespace marian {
+namespace io {
 
 class TemporaryFile {
 private:
@@ -140,12 +141,12 @@ public:
         !marian::filesystem::exists(file_), "File '{}' does not exist", file);
 
     if(file_.extension() == marian::filesystem::Path(std::string(".gz")))
-      istream_.push(io::gzip_decompressor());
+      istream_.push(boost::iostreams::gzip_decompressor());
     istream_.push(ifstream_);
   }
 
   InputFileStream(TemporaryFile& tempfile)
-      : fds_(tempfile.getFileDescriptor(), io::never_close_handle) {
+      : fds_(tempfile.getFileDescriptor(), boost::iostreams::never_close_handle) {
     lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
     istream_.push(fds_, 1024);
   }
@@ -159,13 +160,31 @@ public:
   template <typename T>
   friend InputFileStream& operator>>(InputFileStream& stream, T& t) {
     stream.istream_ >> t;
+    ABORT_IF(stream.bad(),
+             "Exception reading from file '{}'",
+             stream.path());
     return stream;
   }
 
   template <typename T>
   size_t read(T* ptr, size_t num = 1) {
     istream_.read((char*)ptr, num * sizeof(T));
+    ABORT_IF(bad(),
+             "Exception reading from file '{}'",
+             path());
     return num * sizeof(T);
+  }
+
+  bool bad() const {
+    return istream_.bad();
+  }
+
+  char widen(char c) {
+    return istream_.widen(c);
+  }
+
+  bool isOpen() const {
+    return ifstream_.is_open();
   }
 
   std::string path() { return file_.string(); }
@@ -175,9 +194,35 @@ public:
 private:
   marian::filesystem::Path file_;
   boost::filesystem::ifstream ifstream_;
-  io::file_descriptor_source fds_;
-  io::filtering_istream istream_;
+  boost::iostreams::file_descriptor_source fds_;
+  boost::iostreams::filtering_istream istream_;
 };
+
+// wrapper around std::getline() that handles Windows input files with extra CR
+// chars at the line end
+static InputFileStream& getline(InputFileStream& in, std::string& line) {
+  std::getline((std::istream&)in, line);
+  ABORT_IF(in.bad(),
+           "Exception reading from file '{}'",
+           in.path());
+  // strip terminal CR if present
+  if(in && !line.empty() && line.back() == in.widen('\r'))
+    line.pop_back();
+  return in;
+}
+
+// wrapper around std::getline() that handles Windows input files with extra CR
+// chars at the line end
+static InputFileStream& getline(InputFileStream& in, std::string& line, char delim) {
+  std::getline((std::istream&)in, line, delim);
+  ABORT_IF(in.bad(),
+           "Exception reading from file '{}'",
+           in.path());
+  // strip terminal CR if present
+  if(in && !line.empty() && line.back() == in.widen('\r'))
+    line.pop_back();
+  return in;
+}
 
 class OutputFileStream {
 public:
@@ -186,12 +231,12 @@ public:
         !marian::filesystem::exists(file_), "File '{}' does not exist", file);
 
     if(file_.extension() == marian::filesystem::Path(std::string(".gz")))
-      ostream_.push(io::gzip_compressor());
+      ostream_.push(boost::iostreams::gzip_compressor());
     ostream_.push(ofstream_);
   }
 
   OutputFileStream(TemporaryFile& tempfile)
-      : fds_(tempfile.getFileDescriptor(), io::never_close_handle) {
+      : fds_(tempfile.getFileDescriptor(), boost::iostreams::never_close_handle) {
     lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
     ostream_.push(fds_, 1024);
   }
@@ -205,12 +250,27 @@ public:
   template <typename T>
   friend OutputFileStream& operator<<(OutputFileStream& stream, const T& t) {
     stream.ostream_ << t;
+    ABORT_IF(!stream.ostream_,
+             "Exception writing to file '{}'",
+             stream.path());
+    return stream;
+  }
+
+  // handle things like std::endl which is actually a function not a value
+  friend OutputFileStream& operator<<(OutputFileStream& stream, std::ostream& (*var)(std::ostream&)) {
+    stream.ostream_ << var;
+    ABORT_IF(!stream.ostream_,
+             "Exception writing to file '{}'",
+             stream.path());
     return stream;
   }
 
   template <typename T>
   size_t write(const T* ptr, size_t num = 1) {
     ostream_.write((char*)ptr, num * sizeof(T));
+    ABORT_IF(!ostream_,
+             "Exception writing to file '{}'",
+             path());
     return num * sizeof(T);
   }
 
@@ -219,6 +279,9 @@ public:
 private:
   marian::filesystem::Path file_;
   boost::filesystem::ofstream ofstream_;
-  io::file_descriptor_sink fds_;
-  io::filtering_ostream ostream_;
+  boost::iostreams::file_descriptor_sink fds_;
+  boost::iostreams::filtering_ostream ostream_;
 };
+
+}
+}

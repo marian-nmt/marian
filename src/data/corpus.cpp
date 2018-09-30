@@ -30,7 +30,7 @@ SentenceTuple Corpus::next() {
     for(size_t i = 0; i < files_.size(); ++i) {
       std::string line;
 
-      if(utils::getline((std::istream&)*files_[i], line)) {
+      if(io::getline(*files_[i], line)) {
         if(i > 0 && i == alignFileIdx_) {
           addAlignmentToSentenceTuple(line, tup);
         } else if(i > 0 && i == weightFileIdx_) {
@@ -68,9 +68,9 @@ void Corpus::reset() {
   pos_ = 0;
   for(auto& path : paths_) {
     if(path == "stdin")
-      files_.emplace_back(new InputFileStream(std::cin));
+      files_.emplace_back(new io::InputFileStream(std::cin));
     else
-      files_.emplace_back(new InputFileStream(path));
+      files_.emplace_back(new io::InputFileStream(path));
   }
 }
 
@@ -85,14 +85,14 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
 
   files_.clear();
   for(auto path : paths) {
-    files_.emplace_back(new InputFileStream(path));
+    files_.emplace_back(new io::InputFileStream(path));
   }
 
   bool cont = true;
   while(cont) {
     std::vector<std::string> lines(files_.size());
     for(size_t i = 0; i < files_.size(); ++i) {
-      cont = cont && utils::getline((std::istream&)*files_[i], lines[i]);
+      cont = cont && io::getline(*files_[i], lines[i]);
     }
     if(cont)
       corpus.push_back(lines);
@@ -105,24 +105,24 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
 
   tempFiles_.clear();
 
-  std::vector<UPtr<OutputFileStream>> outs;
+  std::vector<UPtr<io::OutputFileStream>> outs;
   for(size_t i = 0; i < files_.size(); ++i) {
     tempFiles_.emplace_back(
-        new TemporaryFile(options_->get<std::string>("tempdir")));
-    outs.emplace_back(new OutputFileStream(*tempFiles_[i]));
+        new io::TemporaryFile(options_->get<std::string>("tempdir")));
+    outs.emplace_back(new io::OutputFileStream(*tempFiles_[i]));
   }
 
   for(auto id : ids_) {
     auto& lines = corpus[id];
     size_t i = 0;
     for(auto& line : lines) {
-      (std::ostream&)*outs[i++] << line << std::endl;
+      *outs[i++] << line << std::endl;
     }
   }
 
   files_.clear();
   for(size_t i = 0; i < outs.size(); ++i) {
-    files_.emplace_back(new InputFileStream(*tempFiles_[i]));
+    files_.emplace_back(new io::InputFileStream(*tempFiles_[i]));
   }
 
   LOG(info, "[data] Done");

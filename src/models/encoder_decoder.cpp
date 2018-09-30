@@ -75,8 +75,8 @@ void EncoderDecoder::createDecoderConfig(const std::string& name) {
 
   decoder["relative-paths"] = false;
 
-  OutputFileStream out(name + ".decoder.yml");
-  (std::ostream&)out << decoder;
+  io::OutputFileStream out(name + ".decoder.yml");
+  out << decoder;
 }
 
 Config::YamlNode EncoderDecoder::getModelParameters() {

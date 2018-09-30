@@ -41,7 +41,7 @@ CorpusBase::CorpusBase(std::vector<std::string> paths,
            "Number of corpus files and vocab files does not agree");
 
   for(auto path : paths_) {
-    files_.emplace_back(new InputFileStream(path));
+    files_.emplace_back(new io::InputFileStream(path));
     ABORT_IF(files_.back()->empty(), "File '{}' is empty", path);
   }
 }
@@ -132,9 +132,9 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
 
   for(auto path : paths_) {
     if(path == "stdin")
-      files_.emplace_back(new InputFileStream(std::cin));
+      files_.emplace_back(new io::InputFileStream(std::cin));
     else {
-      files_.emplace_back(new InputFileStream(path));
+      files_.emplace_back(new io::InputFileStream(path));
       ABORT_IF(files_.back()->empty(), "File '{}' is empty", path);
     }
   }
@@ -153,7 +153,7 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
 
     alignFileIdx_ = paths_.size();
     paths_.emplace_back(path);
-    files_.emplace_back(new InputFileStream(path));
+    files_.emplace_back(new io::InputFileStream(path));
     ABORT_IF(files_.back()->empty(), "File with alignments '{}' is empty", path);
   }
 
@@ -165,7 +165,7 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
 
     weightFileIdx_ = paths_.size();
     paths_.emplace_back(path);
-    files_.emplace_back(new InputFileStream(path));
+    files_.emplace_back(new io::InputFileStream(path));
     ABORT_IF(files_.back()->empty(), "File with weights '{}' is empty", path);
   }
 }

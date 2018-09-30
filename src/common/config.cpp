@@ -110,8 +110,8 @@ const std::vector<DeviceId>& Config::getDevices() {
 }
 
 void Config::save(const std::string& name) {
-  OutputFileStream out(name);
-  (std::ostream&)out << *this;
+  io::OutputFileStream out(name);
+  out << *this;
 }
 
 void Config::loadModelParameters(const std::string& name) {
