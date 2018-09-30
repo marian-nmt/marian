@@ -148,8 +148,8 @@ void Adam::updateImpl(Tensor params, Tensor grads) {
   Element(_1 = (beta1_ * _1) + ((1 - beta1_) * _2), mt_, grads);
   Element(_1 = (beta2_ * _1) + ((1 - beta2_) * (_2 * _2)), vt_, grads);
 
-  Element(_1 -= (multiplyFactor_ * eta_) * (_2 / denom1)
-                / (sqrt(_3 / denom2) + eps_),
+  Element(_1 -= (multiplyFactor_ * eta_) * ((_2 / denom1)
+                / (sqrt(_3 / denom2) + eps_) + w_ * _1),
           params,
           mt_,
           vt_);

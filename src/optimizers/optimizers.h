@@ -157,11 +157,14 @@ private:
       beta2_ = params[1];
     if(params.size() > 2)
       eps_ = params[2];
+    if(params.size() > 3)
+      w_ = params[3];
   }
 
   float beta1_ = 0.9f;
   float beta2_ = 0.999f;
   float eps_ = 1e-8f;
+  float w_ = 0.0f;
   size_t t_;
 
   Ptr<TensorAllocator> alloc_;
