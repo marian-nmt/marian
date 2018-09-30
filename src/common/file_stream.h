@@ -160,7 +160,7 @@ public:
   template <typename T>
   friend InputFileStream& operator>>(InputFileStream& stream, T& t) {
     stream.istream_ >> t;
-    ABORT_IF(stream.bad(),
+    ABORT_IF(stream.fail(),
              "Exception reading from file '{}'",
              stream.path());
     return stream;
@@ -169,7 +169,7 @@ public:
   template <typename T>
   size_t read(T* ptr, size_t num = 1) {
     istream_.read((char*)ptr, num * sizeof(T));
-    ABORT_IF(bad(),
+    ABORT_IF(fail(),
              "Exception reading from file '{}'",
              path());
     return num * sizeof(T);
@@ -177,6 +177,10 @@ public:
 
   bool bad() const {
     return istream_.bad();
+  }
+
+  bool fail() const {
+    return istream_.fail();
   }
 
   char widen(char c) {
@@ -202,7 +206,7 @@ private:
 // chars at the line end
 static InputFileStream& getline(InputFileStream& in, std::string& line) {
   std::getline((std::istream&)in, line);
-  ABORT_IF(in.bad(),
+  ABORT_IF(in.fail(),
            "Exception reading from file '{}'",
            in.path());
   // strip terminal CR if present
@@ -215,7 +219,7 @@ static InputFileStream& getline(InputFileStream& in, std::string& line) {
 // chars at the line end
 static InputFileStream& getline(InputFileStream& in, std::string& line, char delim) {
   std::getline((std::istream&)in, line, delim);
-  ABORT_IF(in.bad(),
+  ABORT_IF(in.fail(),
            "Exception reading from file '{}'",
            in.path());
   // strip terminal CR if present
