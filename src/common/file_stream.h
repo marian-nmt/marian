@@ -180,7 +180,8 @@ public:
   template <typename T>
   friend InputFileStream& operator>>(InputFileStream& stream, T& t) {
     stream.istream_ >> t;
-    ABORT_IF(stream.fail(),
+    // bad() seems to be correct here. Should not abort on EOF.
+    ABORT_IF(stream.bad(),
              "Error reading from file '{}'",
              stream.path());
     return stream;
@@ -189,6 +190,7 @@ public:
   template <typename T>
   size_t read(T* ptr, size_t num = 1) {
     istream_.read((char*)ptr, num * sizeof(T));
+    // fail() seems to be correct here. Failure to read should abort.
     ABORT_IF(fail(),
              "Error reading from file '{}'",
              path());
@@ -206,7 +208,8 @@ private:
 // chars at the line end
 static InputFileStream& getline(InputFileStream& in, std::string& line) {
   std::getline((std::istream&)in, line);
-  ABORT_IF(in.fail(),
+  // bad() seems to be correct here. Should not abort on EOF.
+  ABORT_IF(in.bad(),
            "Error reading from file '{}'",
            in.path());
   // strip terminal CR if present
@@ -219,7 +222,8 @@ static InputFileStream& getline(InputFileStream& in, std::string& line) {
 // chars at the line end
 static InputFileStream& getline(InputFileStream& in, std::string& line, char delim) {
   std::getline((std::istream&)in, line, delim);
-  ABORT_IF(in.fail(),
+  // bad() seems to be correct here. Should not abort on EOF.
+  ABORT_IF(in.bad(),
            "Error reading from file '{}'",
            in.path());
   // strip terminal CR if present
@@ -262,6 +266,7 @@ public:
   template <typename T>
   friend OutputFileStream& operator<<(OutputFileStream& stream, const T& t) {
     stream.ostream_ << t;
+    // fail() seems to be correct here. Failure to write should abort.
     ABORT_IF(stream.fail(),
              "Error writing to file '{}'",
              stream.path());
@@ -271,6 +276,7 @@ public:
   // handle things like std::endl which is actually a function not a value
   friend OutputFileStream& operator<<(OutputFileStream& stream, std::ostream& (*var)(std::ostream&)) {
     stream.ostream_ << var;
+    // fail() seems to be correct here. Failure to write should abort.
     ABORT_IF(stream.fail(),
              "Error writing to file '{}'",
              stream.path());
@@ -280,6 +286,7 @@ public:
   template <typename T>
   size_t write(const T* ptr, size_t num = 1) {
     ostream_.write((char*)ptr, num * sizeof(T));
+    // fail() seems to be correct here. Failure to write should abort.
     ABORT_IF(fail(),
              "Error writing to file '{}'",
              path());
