@@ -44,7 +44,8 @@ SentenceTuple TextInput::next() {
     SentenceTuple tup(curId);
     for(size_t i = 0; i < files_.size(); ++i) {
       std::string line;
-      if(utils::getline(*files_[i], line)) {
+      io::InputFileStream dummyStream(*files_[i]);
+      if(io::getline(dummyStream, line)) {
         Words words = (*vocabs_[i])(line);
         if(words.empty())
           words.push_back(0);

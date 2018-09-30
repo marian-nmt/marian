@@ -8,7 +8,7 @@ namespace marian {
 
 OutputCollector::OutputCollector()
     : nextId_(0),
-      outStrm_(new OutputFileStream(std::cout)),
+      outStrm_(new io::OutputFileStream(std::cout)),
       printing_(new DefaultPrinting()) {}
 
 void OutputCollector::Write(long sourceId,
@@ -21,9 +21,9 @@ void OutputCollector::Write(long sourceId,
       LOG(info, "Best translation {} : {}", sourceId, best1);
 
     if(nbest)
-      ((std::ostream&)*outStrm_) << bestn << std::endl;
+      *outStrm_ << bestn << std::endl;
     else
-      ((std::ostream&)*outStrm_) << best1 << std::endl;
+      *outStrm_ << best1 << std::endl;
 
     ++nextId_;
 
@@ -38,9 +38,9 @@ void OutputCollector::Write(long sourceId,
         if(printing_->shouldBePrinted(currId))
           LOG(info, "Best translation {} : {}", currId, currOutput.first);
         if(nbest)
-          ((std::ostream&)*outStrm_) << currOutput.second << std::endl;
+          *outStrm_ << currOutput.second << std::endl;
         else
-          ((std::ostream&)*outStrm_) << currOutput.first << std::endl;
+          *outStrm_ << currOutput.first << std::endl;
 
         ++nextId_;
 
@@ -59,7 +59,7 @@ void OutputCollector::Write(long sourceId,
     // for 1-best, flush stdout so that we can consume this immediately from an
     // external process
     if(!nbest)
-      ((std::ostream&)*outStrm_) << std::flush;
+      *outStrm_ << std::flush;
 
   } else {
     // save for later

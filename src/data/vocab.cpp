@@ -107,15 +107,15 @@ int Vocab::load(const std::string& vocabPath, int max) {
   std::map<std::string, Word> vocab;
   // read from JSON (or Yaml) file
   if(isJson) {
-    YAML::Node vocabNode = YAML::Load(InputFileStream(vocabPath));
+    YAML::Node vocabNode = YAML::Load(io::InputFileStream(vocabPath));
     for(auto&& pair : vocabNode)
       vocab.insert({pair.first.as<std::string>(), pair.second.as<Word>()});
   }
   // read from flat text file
   else {
-    std::ifstream in(vocabPath);
+    io::InputFileStream in(vocabPath);
     std::string line;
-    while(utils::getline(in, line)) {
+    while(io::getline(in, line)) {
       ABORT_IF(line.empty(),
                "Vocabulary file {} must not contain empty lines",
                vocabPath);
@@ -234,13 +234,13 @@ void Vocab::create(const std::string& vocabPath, const std::string& trainPath) {
            "Vocab file '{}' exists. Not overwriting",
            (std::string)vocabPath);
 
-  InputFileStream trainStrm(trainPath);
-  OutputFileStream vocabStrm(vocabPath);
+  io::InputFileStream trainStrm(trainPath);
+  io::OutputFileStream vocabStrm(vocabPath);
   create(trainStrm, vocabStrm);
 }
 
-void Vocab::create(InputFileStream& trainStrm,
-                   OutputFileStream& vocabStrm,
+void Vocab::create(io::InputFileStream& trainStrm,
+                   io::OutputFileStream& vocabStrm,
                    size_t maxSize) {
   std::string line;
   std::unordered_map<std::string, size_t> counter;
@@ -290,6 +290,6 @@ void Vocab::create(InputFileStream& trainStrm,
   for(size_t i = 0; i < vocabSize; ++i)
     vocabYaml.force_insert(vocabVec[i], i + maxSpec + 1);
 
-  (std::ostream&)vocabStrm << vocabYaml;
+  vocabStrm << vocabYaml;
 }
 }  // namespace marian

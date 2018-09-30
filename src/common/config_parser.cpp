@@ -702,7 +702,7 @@ YAML::Node ConfigParser::loadConfigFiles(
 
   for(auto& path : paths) {
     // later file overrides earlier
-    for(const auto& it : YAML::Load(InputFileStream(path))) {
+    for(const auto& it : YAML::Load(io::InputFileStream(path))) {
       config[it.first.as<std::string>()] = YAML::Clone(it.second);
     }
   }

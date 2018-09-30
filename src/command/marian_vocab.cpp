@@ -25,8 +25,8 @@ int main(int argc, char** argv) {
   LOG(info, "Creating vocabulary...");
 
   auto vocab = New<Vocab>();
-  InputFileStream corpusStrm(std::cin);
-  OutputFileStream vocabStrm(std::cout);
+  io::InputFileStream corpusStrm(std::cin);
+  io::OutputFileStream vocabStrm(std::cout);
   vocab->create(corpusStrm, vocabStrm, options->get<size_t>("max-size"));
 
   LOG(info, "Finished");

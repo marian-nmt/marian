@@ -496,7 +496,7 @@ public:
   virtual std::vector<Ptr<Vocab>>& getVocabs() = 0;
 
 protected:
-  std::vector<UPtr<InputFileStream>> files_;
+  std::vector<UPtr<io::InputFileStream>> files_;
   std::vector<Ptr<Vocab>> vocabs_;
 
   size_t pos_{0};
