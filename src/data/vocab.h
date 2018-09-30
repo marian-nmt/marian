@@ -32,8 +32,8 @@ public:
                    int max = 0);
   int load(const std::string& vocabPath, int max = 0);
   void create(const std::string& vocabPath, const std::string& trainPath);
-  void create(InputFileStream& trainStrm,
-              OutputFileStream& vocabStrm,
+  void create(io::InputFileStream& trainStrm,
+              io::OutputFileStream& vocabStrm,
               size_t maxSize = 0);
 
   Word GetEosId() const { return eosId_; }

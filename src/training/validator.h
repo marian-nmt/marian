@@ -275,13 +275,13 @@ public:
 
     // Set up output file
     std::string fileName;
-    Ptr<TemporaryFile> tempFile;
+    Ptr<io::TemporaryFile> tempFile;
 
     if(options_->has("valid-translation-output")) {
       fileName = options_->get<std::string>("valid-translation-output");
     } else {
       tempFile.reset(
-          new TemporaryFile(options_->get<std::string>("tempdir"), false));
+          new io::TemporaryFile(options_->get<std::string>("tempdir"), false));
       fileName = tempFile->getFileName();
     }
 

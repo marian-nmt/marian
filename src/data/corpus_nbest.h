@@ -18,7 +18,7 @@ namespace data {
 
 class CorpusNBest : public CorpusBase {
 private:
-  std::vector<UPtr<TemporaryFile>> tempFiles_;
+  std::vector<UPtr<io::TemporaryFile>> tempFiles_;
   std::vector<size_t> ids_;
   int lastNum_{-1};
   std::vector<std::string> lastLines_;

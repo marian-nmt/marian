@@ -26,10 +26,10 @@ void readIrisData(const std::string fileName,
   }
   std::string line;
   std::string value;
-  while(marian::utils::getline(in, line)) {
+  while(std::getline(in, line)) {
     std::stringstream ss(line);
     int i = 0;
-    while(marian::utils::getline(ss, value, ',')) {
+    while(std::getline(ss, value, ',')) {
       if(++i == 5)
         labels.emplace_back(CLASSES[value]);
       else
