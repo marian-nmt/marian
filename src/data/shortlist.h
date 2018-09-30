@@ -211,7 +211,7 @@ public:
 
   void dump(const std::string& prefix) {
     // Dump top most frequent words from target vocabulary
-    LOG(info, "[data] Saving shortlist dump to {}.top", prefix + ".{top,dic}");
+    LOG(info, "[data] Saving shortlist dump to {}", prefix + ".{top,dic}");
     io::OutputFileStream outTop(prefix + ".top");
     for(Word i = 0; i < firstNum_ && i < trgVocab_->size(); ++i)
       outTop << (*trgVocab_)[i] << std::endl;
