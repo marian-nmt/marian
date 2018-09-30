@@ -6,7 +6,7 @@
 int main(int argc, char** argv) {
   using namespace marian;
 
-  createLoggers();
+  createLoggers(); // @TODO: Most other main() do not call this directly. Needed here?
 
   namespace po = boost::program_options;
   po::options_description desc("Allowed options");

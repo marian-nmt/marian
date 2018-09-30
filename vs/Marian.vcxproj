@@ -112,8 +112,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\3rd_party\ExceptionWithCallStack.cpp" />
     <ClCompile Include="..\src\3rd_party\yaml-cpp\binary_renamed.cpp" />
     <ClCompile Include="..\src\3rd_party\yaml-cpp\yaml-node.cpp" />
+    <ClInclude Include="..\src\3rd_party\ExceptionWithCallStack.h" />
     <ClInclude Include="..\src\command\marian.cpp" />
     <ClInclude Include="..\src\command\marian_decoder.cpp" />
     <ClInclude Include="..\src\command\marian_scorer.cpp" />
