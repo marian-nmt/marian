@@ -88,7 +88,7 @@ public:
 
   virtual void embeddingsFromPrediction(Ptr<ExpressionGraph> graph,
                                         Ptr<DecoderState> state,
-                                        const std::vector<size_t>& embIdx,
+                                        const std::vector<IndexType>& embIdx,
                                         int dimBatch,
                                         int dimBeam) {
     int dimTrgEmb = opt<int>("dim-emb");

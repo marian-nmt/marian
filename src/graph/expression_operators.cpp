@@ -198,15 +198,15 @@ Expr flatten_2d(Expr a) {
   return Expression<ReshapeNodeOp>(a, shape);
 }
 
-Expr rows(Expr a, const std::vector<size_t>& indices) {
+Expr rows(Expr a, const std::vector<uint32_t>& indices) {
   return Expression<RowsNodeOp>(a, indices);
 }
 
-Expr cols(Expr a, const std::vector<size_t>& indices) {
+Expr cols(Expr a, const std::vector<uint32_t>& indices) {
   return Expression<ColsNodeOp>(a, indices);
 }
 
-Expr select(Expr a, int axis, const std::vector<size_t>& indices) {
+Expr select(Expr a, int axis, const std::vector<uint32_t>& indices) {
   return Expression<SelectNodeOp>(a, axis, indices);
 }
 

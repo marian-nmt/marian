@@ -14,6 +14,8 @@
 
 namespace marian {
 
+typedef uint32_t IndexType;
+
 template <class T>
 using Ptr = std::shared_ptr<T>;
 

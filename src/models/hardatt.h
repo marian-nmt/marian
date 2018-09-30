@@ -12,7 +12,7 @@ namespace marian {
 
 class DecoderStateHardAtt : public DecoderState {
 protected:
-  std::vector<size_t> attentionIndices_;
+  std::vector<IndexType> attentionIndices_;
 
 public:
   DecoderStateHardAtt(const rnn::States& states,
@@ -21,9 +21,9 @@ public:
                       Ptr<data::CorpusBatch> batch)
       : DecoderState(states, logProbs, encStates, batch) {}
 
-  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
+  virtual Ptr<DecoderState> select(const std::vector<IndexType>& selIdx,
                                    int beamSize) const override {
-    std::vector<size_t> selectedAttentionIndices;
+    std::vector<IndexType> selectedAttentionIndices;
     for(auto i : selIdx)
       selectedAttentionIndices.push_back(attentionIndices_[i]);
 
@@ -42,11 +42,11 @@ public:
 
   // @TODO: why are these virtual?
   virtual void setAttentionIndices(
-      const std::vector<size_t>& attentionIndices) {
+      const std::vector<IndexType>& attentionIndices) {
     attentionIndices_ = attentionIndices;
   }
 
-  virtual std::vector<size_t>& getAttentionIndices() {
+  virtual std::vector<IndexType>& getAttentionIndices() {
     ABORT_IF(attentionIndices_.empty(), "Empty attention indices");
     return attentionIndices_;
   }
@@ -76,7 +76,7 @@ protected:
 public:
   DecoderHardAtt(Ptr<Options> options) : DecoderBase(options) {
     if(options->has("special-vocab")) {
-      auto spec = options->get<std::vector<size_t>>("special-vocab");
+      auto spec = options->get<std::vector<Word>>("special-vocab");
       specialSymbols_.insert(spec.begin(), spec.end());
     }
   }
@@ -109,7 +109,7 @@ public:
 
     rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
     auto startState = New<DecoderStateHardAtt>(startStates, nullptr, encStates, batch);
-    startState->setAttentionIndices(std::vector<size_t>({ 0 }));
+    startState->setAttentionIndices(std::vector<IndexType>({ 0 }));
     return startState;
   }
 
@@ -237,7 +237,7 @@ public:
                                              logits,
                                              stateHardAtt->getEncoderStates(),
                                              stateHardAtt->getBatch());
-    nextState->setAttentionIndices(std::vector<size_t>(stateHardAtt->getAttentionIndices()));
+    nextState->setAttentionIndices(std::vector<IndexType>(stateHardAtt->getAttentionIndices()));
     nextState->setPosition(state->getPosition() + 1); // @TODO: I added this for consistency. Correct?
     return nextState;
   }
@@ -256,13 +256,13 @@ public:
     int dimBatch = (int)subBatch->batchSize();
     int dimWords = (int)subBatch->batchWidth();
 
-    std::vector<size_t> attentionIndices(dimBatch, 0);
-    std::vector<size_t> currentPos(dimBatch, 0);
+    std::vector<IndexType> attentionIndices(dimBatch, 0);
+    std::vector<IndexType> currentPos(dimBatch, 0);
     std::iota(currentPos.begin(), currentPos.end(), 0);
 
     for(int i = 0; i < dimWords - 1; ++i) {
       for(int j = 0; j < dimBatch; ++j) {
-        size_t word = subBatch->data()[i * dimBatch + j];
+        Word word = subBatch->data()[i * dimBatch + j];
         if(specialSymbols_.count(word))
           currentPos[j] += dimBatch;
         attentionIndices.push_back(currentPos[j]);
@@ -275,7 +275,7 @@ public:
 
   virtual void embeddingsFromPrediction(Ptr<ExpressionGraph> graph,
                                         Ptr<DecoderState> state,
-                                        const std::vector<size_t>& embIdx,
+                                        const std::vector<IndexType>& embIdx,
                                         int dimBatch,
                                         int beamSize) override {
     DecoderBase::embeddingsFromPrediction(

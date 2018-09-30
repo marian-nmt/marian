@@ -382,7 +382,7 @@ void LogSoftmaxGrad(Tensor grad_, Tensor adj_, Tensor val_) {
 
 void CopyRows(Tensor out_,
               const Tensor in_,
-              const std::vector<size_t>& indices,
+              const std::vector<IndexType>& indices,
               Ptr<Allocator> allocator) {
   size_t cols = in_->shape()[1];
   size_t rows = indices.size();
@@ -404,7 +404,7 @@ void CopyRows(Tensor out_,
 
 void PasteRows(Tensor out_,
                const Tensor in_,
-               const std::vector<size_t>& indices) {
+               const std::vector<IndexType>& indices) {
   size_t cols = in_->shape()[-1];
   size_t rows = indices.size();
 
@@ -426,7 +426,7 @@ void PasteRows(Tensor out_,
 
 void CopyCols(Tensor out_,
               const Tensor in_,
-              const std::vector<size_t>& indices) {
+              const std::vector<IndexType>& indices) {
   size_t rows = in_->shape().elements() / in_->shape()[-1];
   size_t colsIn = in_->shape()[-1];
   size_t colsOut = indices.size();
@@ -447,7 +447,7 @@ void CopyCols(Tensor out_,
 
 void PasteCols(Tensor out_,
                const Tensor in_,
-               const std::vector<size_t>& indices) {
+               const std::vector<IndexType>& indices) {
   size_t rows = out_->shape().elements() / out_->shape()[-1];
   size_t colsOut = out_->shape()[-1];
   size_t colsIn = indices.size();
@@ -471,14 +471,14 @@ void PasteCols(Tensor out_,
 void Select(Tensor out,
             const Tensor in,
             int axis,
-            const std::vector<size_t>& indices,
+            const std::vector<IndexType>& indices,
             Ptr<Allocator> allocator) {
-  
+
   // @TODO: make this efficient
   functional::Shape outShape = out->shape();
   functional::Shape inShape = in->shape();
   int length = outShape.elements();
-  
+
   functional::Array<int, functional::Shape::size()> dims;
 
   for(int index = 0; index < length; ++index) {
@@ -493,13 +493,13 @@ void Select(Tensor out,
 void Insert(Tensor out,
             const Tensor in,
             int axis,
-            const std::vector<size_t>& indices,
+            const std::vector<IndexType>& indices,
             Ptr<Allocator> allocator) {
 
   // @TODO: make this efficient
   functional::Shape outShape = out->shape();
   functional::Shape inShape = in->shape();
-  
+
   int length = inShape.elements();
   functional::Array<int, functional::Shape::size()> dims;
 

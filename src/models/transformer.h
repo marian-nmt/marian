@@ -194,7 +194,7 @@ public:
     // @TODO: make splitting obsolete
     alignments_.clear();
     for(int i = 0; i < trgWords; ++i)
-      alignments_.push_back(select(head0, -1, {(size_t)i})); // [tgt index][-4: beam depth, -3: max src length, -2: batch size, -1: 1]
+      alignments_.push_back(select(head0, -1, {(IndexType)i})); // [tgt index][-4: beam depth, -3: max src length, -2: batch size, -1: 1]
   }
 
   // determine the multiplicative-attention probability and performs the associative lookup as well
@@ -580,7 +580,7 @@ public:
                    Ptr<data::CorpusBatch> batch)
       : DecoderState(states, logProbs, encStates, batch) {}
 
-  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
+  virtual Ptr<DecoderState> select(const std::vector<IndexType>& selIdx,
                                    int beamSize) const override {
     // Create hypothesis-selected state based on current state and hyp indices
     auto selectedState = New<TransformerState>(states_.select(selIdx, beamSize, /*isBatchMajor=*/true), logProbs_, encStates_, batch_);

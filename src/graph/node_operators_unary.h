@@ -644,7 +644,7 @@ struct NegNodeOp : public UnaryNodeOp {
 };
 
 struct RowsNodeOp : public UnaryNodeOp {
-  RowsNodeOp(Expr a, const std::vector<size_t>& indices)
+  RowsNodeOp(Expr a, const std::vector<IndexType>& indices)
       : UnaryNodeOp(a, newShape(a, indices)), indices_(indices) {
     // @TODO: fix this by using int32 tensor for indices
     setMemoize(false);
@@ -662,7 +662,7 @@ struct RowsNodeOp : public UnaryNodeOp {
   }
 
   template <class... Args>
-  Shape newShape(Expr a, const std::vector<size_t>& indices) {
+  Shape newShape(Expr a, const std::vector<IndexType>& indices) {
     Shape shape = a->shape();
     ABORT_IF(shape.size() != 2,
              "rows operator can only be used with 2-dimensional tensors");
@@ -695,11 +695,11 @@ struct RowsNodeOp : public UnaryNodeOp {
     return true;
   }
 
-  std::vector<size_t> indices_;
+  std::vector<IndexType> indices_;
 };
 
 struct ColsNodeOp : public UnaryNodeOp {
-  ColsNodeOp(Expr a, const std::vector<size_t>& indices)
+  ColsNodeOp(Expr a, const std::vector<IndexType>& indices)
       : UnaryNodeOp(a, newShape(a, indices)), indices_(indices) {
     setMemoize(false);
   }
@@ -715,7 +715,7 @@ struct ColsNodeOp : public UnaryNodeOp {
   }
 
   template <class... Args>
-  Shape newShape(Expr a, const std::vector<size_t>& indices) {
+  Shape newShape(Expr a, const std::vector<IndexType>& indices) {
     Shape shape = a->shape();
     shape.set(1, indices.size());
     return shape;
@@ -746,11 +746,11 @@ struct ColsNodeOp : public UnaryNodeOp {
     return true;
   }
 
-  std::vector<size_t> indices_;
+  std::vector<IndexType> indices_;
 };
 
 struct SelectNodeOp : public UnaryNodeOp {
-  SelectNodeOp(Expr a, int axis, const std::vector<size_t>& indices)
+  SelectNodeOp(Expr a, int axis, const std::vector<IndexType>& indices)
       : UnaryNodeOp(a, newShape(a, axis, indices)),
         indices_(indices),
         axis_{a->shape().axis(axis)} {
@@ -767,7 +767,7 @@ struct SelectNodeOp : public UnaryNodeOp {
         Insert(child(0)->grad(), adj_, axis_, indices_, graph()->allocator()))};
   }
 
-  Shape newShape(Expr a, int axis, const std::vector<size_t>& indices) {
+  Shape newShape(Expr a, int axis, const std::vector<IndexType>& indices) {
     Shape shape = a->shape();
     axis = shape.axis(axis);
     shape.set(axis, indices.size());
@@ -802,7 +802,7 @@ struct SelectNodeOp : public UnaryNodeOp {
     return true;
   }
 
-  std::vector<size_t> indices_;
+  std::vector<IndexType> indices_;
   int axis_;
 };
 

@@ -715,7 +715,7 @@ __global__ void gArgmax(float* out,
 __global__ void gCopyRows(float* out,
                           const float* in,
                           size_t cols,
-                          const size_t* sourceRowIdx,
+                          const IndexType* sourceRowIdx,
                           size_t rows) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -737,7 +737,7 @@ __global__ void gCopyRows(float* out,
 
 void CopyRows(Tensor out,
               const Tensor in,
-              const std::vector<size_t>& indices,
+              const std::vector<IndexType>& indices,
               Ptr<Allocator> allocator) {
   cudaSetDevice(out->getDeviceId().no);
 
@@ -747,13 +747,13 @@ void CopyRows(Tensor out,
   int threads = std::min(MAX_THREADS, (int)cols);
   int blocks = std::min(MAX_BLOCKS, (int)rowsToCopy);
 
-  auto mp_indices = allocator->alloc<size_t>(rowsToCopy);
+  auto mp_indices = allocator->alloc<IndexType>(rowsToCopy);
   CudaCopy(indices.data(),
            indices.data() + indices.size(),
-           mp_indices->data<size_t>());
+           mp_indices->data<IndexType>());
 
   gCopyRows<<<blocks, threads>>>(
-      out->data(), in->data(), cols, mp_indices->data<size_t>(), rowsToCopy);
+      out->data(), in->data(), cols, mp_indices->data<IndexType>(), rowsToCopy);
 
   allocator->free(mp_indices);
 }
@@ -761,7 +761,7 @@ void CopyRows(Tensor out,
 __global__ void gPasteRows(float* out,
                            const float* in,
                            size_t cols,
-                           const size_t* targetRowIdx,
+                           const IndexType* targetRowIdx,
                            size_t rows) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -783,7 +783,7 @@ __global__ void gPasteRows(float* out,
 
 void PasteRows(Tensor out,
                const Tensor in,
-               const std::vector<size_t>& indices) {
+               const std::vector<IndexType>& indices) {
   cudaSetDevice(out->getDeviceId().no);
 
   size_t cols = in->shape().back();
@@ -793,11 +793,11 @@ void PasteRows(Tensor out,
   int blocks = std::min(MAX_BLOCKS, (int)rowsToCopy);
 
   // @TODO: turn into tensor
-  size_t* d_indices;
-  CUDA_CHECK(cudaMalloc(&d_indices, rowsToCopy * sizeof(size_t)));
+  IndexType* d_indices;
+  CUDA_CHECK(cudaMalloc(&d_indices, rowsToCopy * sizeof(IndexType)));
   CUDA_CHECK(cudaMemcpy(d_indices,
                         indices.data(),
-                        rowsToCopy * sizeof(size_t),
+                        rowsToCopy * sizeof(IndexType),
                         cudaMemcpyHostToDevice));
 
   gPasteRows<<<blocks, threads>>>(
@@ -811,7 +811,7 @@ __global__ void gCopyCols(float* out,
                           const float* in,
                           size_t rows,
                           size_t colsIn,
-                          const size_t* sourceColIdx,
+                          const IndexType* sourceColIdx,
                           size_t colsOut) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -828,7 +828,7 @@ __global__ void gCopyCols(float* out,
   }
 }
 
-void CopyCols(Tensor out, const Tensor in, const std::vector<size_t>& indices) {
+void CopyCols(Tensor out, const Tensor in, const std::vector<IndexType>& indices) {
   cudaSetDevice(out->getDeviceId().no);
 
   size_t rows = in->shape().elements() / in->shape().back();
@@ -839,11 +839,11 @@ void CopyCols(Tensor out, const Tensor in, const std::vector<size_t>& indices) {
   int threads = std::min(MAX_THREADS, (int)colsToCopy);
   int blocks = std::min(MAX_BLOCKS, (int)rows);
 
-  size_t* d_indices;
-  CUDA_CHECK(cudaMalloc(&d_indices, colsToCopy * sizeof(size_t)));
+  IndexType* d_indices;
+  CUDA_CHECK(cudaMalloc(&d_indices, colsToCopy * sizeof(IndexType)));
   CUDA_CHECK(cudaMemcpy(d_indices,
                         indices.data(),
-                        colsToCopy * sizeof(size_t),
+                        colsToCopy * sizeof(IndexType),
                         cudaMemcpyHostToDevice));
 
   gCopyCols<<<blocks, threads>>>(
@@ -856,7 +856,7 @@ __global__ void gPasteCols(float* out,
                            const float* in,
                            size_t rows,
                            size_t colsOut,
-                           const size_t* targetColIdx,
+                           const IndexType* targetColIdx,
                            size_t colsIn) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -875,7 +875,7 @@ __global__ void gPasteCols(float* out,
 
 void PasteCols(Tensor out,
                const Tensor in,
-               const std::vector<size_t>& indices) {
+               const std::vector<IndexType>& indices) {
   cudaSetDevice(out->getDeviceId().no);
 
   size_t rows = in->shape().elements() / in->shape().back();
@@ -886,11 +886,11 @@ void PasteCols(Tensor out,
   int threads = std::min(MAX_THREADS, (int)colsToCopy);
   int blocks = std::min(MAX_BLOCKS, (int)rows);
 
-  size_t* d_indices;
-  CUDA_CHECK(cudaMalloc(&d_indices, colsToCopy * sizeof(size_t)));
+  IndexType* d_indices;
+  CUDA_CHECK(cudaMalloc(&d_indices, colsToCopy * sizeof(IndexType)));
   CUDA_CHECK(cudaMemcpy(d_indices,
                         indices.data(),
-                        colsToCopy * sizeof(size_t),
+                        colsToCopy * sizeof(IndexType),
                         cudaMemcpyHostToDevice));
 
   gPasteCols<<<blocks, threads>>>(
@@ -904,7 +904,7 @@ __global__ void gSelect(float* out,
                         const float* in,
                         const functional::Shape inShape,
                         int axis,
-                        size_t* d_indices) {
+                        IndexType* d_indices) {
   int length = outShape.elements();
   functional::Array<int, functional::Shape::size()> dims;
 
@@ -924,7 +924,7 @@ __global__ void gInsert(float* out,
                         const float* in,
                         const functional::Shape inShape,
                         int axis,
-                        size_t* d_indices) {
+                        IndexType* d_indices) {
   int length = inShape.elements();
   functional::Array<int, functional::Shape::size()> dims;
 
@@ -942,7 +942,7 @@ __global__ void gInsert(float* out,
 void Select(Tensor out,
             const Tensor in,
             int axis,
-            const std::vector<size_t>& indices,
+            const std::vector<IndexType>& indices,
             Ptr<Allocator> allocator) {
   cudaSetDevice(out->getDeviceId().no);
 
@@ -951,10 +951,10 @@ void Select(Tensor out,
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-  auto mp_indices = allocator->alloc<size_t>(indices.size());
+  auto mp_indices = allocator->alloc<IndexType>(indices.size());
   CudaCopy(indices.data(),
            indices.data() + indices.size(),
-           mp_indices->data<size_t>());
+           mp_indices->data<IndexType>());
 
   int axisGPU = axis + functional::Shape::size() - out->shape().size();
   gSelect<<<blocks, threads>>>(out->data(),
@@ -962,7 +962,7 @@ void Select(Tensor out,
                                in->data(),
                                in->shape(),
                                axisGPU,
-                               mp_indices->data<size_t>());
+                               mp_indices->data<IndexType>());
 
   allocator->free(mp_indices);
 }
@@ -970,7 +970,7 @@ void Select(Tensor out,
 void Insert(Tensor out,
             const Tensor in,
             int axis,
-            const std::vector<size_t>& indices,
+            const std::vector<IndexType>& indices,
             Ptr<Allocator> allocator) {
   cudaSetDevice(in->getDeviceId().no);
 
@@ -979,10 +979,10 @@ void Insert(Tensor out,
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-  auto mp_indices = allocator->alloc<size_t>(indices.size());
+  auto mp_indices = allocator->alloc<IndexType>(indices.size());
   CudaCopy(indices.data(),
            indices.data() + indices.size(),
-           mp_indices->data<size_t>());
+           mp_indices->data<IndexType>());
 
   int axisGPU = axis + functional::Shape::size() - out->shape().size();
   gInsert<<<blocks, threads>>>(out->data(),
@@ -990,7 +990,7 @@ void Insert(Tensor out,
                                in->data(),
                                in->shape(),
                                axisGPU,
-                               mp_indices->data<size_t>());
+                               mp_indices->data<IndexType>());
 
   allocator->free(mp_indices);
 }
