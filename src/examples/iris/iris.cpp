@@ -14,7 +14,7 @@ const size_t MAX_EPOCHS = 200;
 // Function creating feedforward dense network graph
 Expr buildIrisClassifier(Ptr<ExpressionGraph> graph,
                          std::vector<float> inputData,
-                         std::vector<float> outputData = {},
+                         std::vector<IndexType> outputData = {},
                          bool train = false) {
   // The number of input data
   int N = inputData.size() / NUM_FEATURES;
@@ -35,7 +35,7 @@ Expr buildIrisClassifier(Ptr<ExpressionGraph> graph,
   auto o = affine(h, W2, b2);
 
   if(train) {
-    auto y = graph->constant({N}, inits::from_vector(outputData));
+    auto y = graph->indices(outputData);
     /* Define cross entropy cost on the output layer.
      * It can be also defined directly as:
      *   -mean(sum(logsoftmax(o) * y, axis=1), axis=0)
@@ -63,7 +63,7 @@ int main() {
 
   // Read data set (all 150 examples)
   std::vector<float> trainX;
-  std::vector<float> trainY;
+  std::vector<IndexType> trainY;
   readIrisData(dataPath, trainX, trainY);
 
   // Split shuffled data into training data (120 examples) and test data (rest
@@ -71,7 +71,7 @@ int main() {
   shuffleData(trainX, trainY);
   std::vector<float> testX(trainX.end() - 30 * NUM_FEATURES, trainX.end());
   trainX.resize(120 * NUM_FEATURES);
-  std::vector<float> testY(trainY.end() - 30, trainY.end());
+  std::vector<IndexType> testY(trainY.end() - 30, trainY.end());
   trainY.resize(120);
 
   {
