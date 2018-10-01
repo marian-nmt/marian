@@ -112,7 +112,9 @@ NodeInitializer from_vector(const std::vector<float>& v) {
       [vPtr](Tensor t) { t->set(vPtr->data(), vPtr->data() + vPtr->size()); };
 }
 
-// @TODO: handle this better with proper type support
+// @TODO: handle this better with proper type support, the Initialize should be
+// able to inform the calling function about the tensor type it is expecting.
+// Probably needs to turn into struct with type information.
 NodeInitializer from_vector(const std::vector<IndexType>& v) {
   auto vPtr = New<std::vector<IndexType>>(v.begin(), v.end());
   return

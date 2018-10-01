@@ -109,6 +109,8 @@ template <> inline std::string request<float>()  { return "float32"; }
 template <> inline std::string request<double>() { return "float64"; }
 // clang-format on
 
+
+// Abort if given C++ does not correspond to runtime type
 template <typename T>
 void matchOrAbort(Type type) {
   ABORT_IF(!matchType<T>(type),

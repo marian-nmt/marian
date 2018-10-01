@@ -10,7 +10,10 @@
 
 namespace marian {
 
+// Type for all vocabulary items, based on IndexType
 typedef IndexType Word;
+
+// Sequence of vocabulary items
 typedef std::vector<Word> Words;
 
 // EOS and UNK are placed in these positions in Marian-generated vocabs

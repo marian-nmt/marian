@@ -152,6 +152,8 @@ private:
       beta2_ = params[1];
     if(params.size() > 2)
       eps_ = params[2];
+
+    // weighted decay for AdamW, to be explored, disabled by default
     if(params.size() > 3)
       w_ = params[3];
   }

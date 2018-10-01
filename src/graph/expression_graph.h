@@ -351,6 +351,8 @@ public:
     return Expression<ConstantNode>(shared_from_this(), shape, init, value_type);
   }
 
+  // shortcut to turn vector of indices to integer tensor, to be used with operators
+  // like rows or select
   Expr indices(const std::vector<IndexType>& indices) {
     return constant({(int)indices.size()},
                     inits::from_vector(indices),

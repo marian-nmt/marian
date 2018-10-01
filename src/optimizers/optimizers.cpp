@@ -150,8 +150,10 @@ void Adam::updateImpl(Tensor params, Tensor grads) {
   Element(_1 = (beta1_ * _1) + ((1 - beta1_) * _2), mt_, grads);
   Element(_1 = (beta2_ * _1) + ((1 - beta2_) * (_2 * _2)), vt_, grads);
 
-  Element(_1 -= eta_ * ((_2 / denom1)
-                / (sqrt(_3 / denom2) + eps_) + w_ * _1),
+  Element(_1 -= eta_                         // learning-rate: x_t = x_{t-1} - \eta * (...)
+                * ((_2 / denom1)             // 1st moment: m_{t-1}
+                / (sqrt(_3 / denom2) + eps_) // 2nd moment: \sqrt(v_{t-1})
+                + w_ * _1),                  // weight-decay: w * x_{t-1}
           params,
           mt_,
           vt_);
