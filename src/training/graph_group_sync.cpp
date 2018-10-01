@@ -295,6 +295,7 @@ void SyncGraphGroup::save(bool final) {
   }
 
   // save main model file
+  // @TODO: do we need a barrier here as wel?
   if (mpi_->myMPIRank() == 0) { // only save from one MPI process
     // if not overwrite then save a copy with number of updates in the model pathname
     if(!options_->get<bool>("overwrite") && !final) {

@@ -237,6 +237,7 @@ public:
     foreach(gather);
   }
 
+  // This is used when restoring optimizer state, which is sharded.
   void scatterState(const std::vector<float>& data, const OptimizerBase::ScatterStateSetFunc& setFn) const override {
     ABORT_IF(mpi_ && mpi_->numMPIProcesses() > 1, "scatterState() support for MPI is not yet implemented");
     size_t dataSize = data.size();
@@ -249,6 +250,7 @@ public:
     }
   }
 
+  // This is used when persisting optimizer state, which is sharded.
   std::vector<float> gatherState(const OptimizerBase::GatherStateGetFunc& getFn) const override {
     ABORT_IF(mpi_ && mpi_->numMPIProcesses() > 1, "gatherState() support for MPI is not yet implemented");
     std::vector<float> data; // we know the size here

@@ -47,6 +47,7 @@ public:
     return GraphGroup::collectStats(graphs_[0], builders_[0], numBatches());
   }
 
+  // @TODO: do we need to check mpi_ for null?
   size_t numBatches() { return devices_.size() * (mpi_ ? mpi_->numMPIProcesses() : 1) * delay_; }
 
   virtual void finalize() override { finalized_ = true; }

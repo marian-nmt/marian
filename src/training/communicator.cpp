@@ -37,9 +37,7 @@ Ptr<ICommunicator> createCommunicator(
     LOG(warn, "[comm] You can switch off NCCL with --no-nccl option", d);
   }
 
-  // the actual implemenntation is inside communicator.cu
-  //extern Ptr<ICommunicator> newNCCLCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs, Ptr<IMPIWrapper> mpi);
-  //return newNCCLCommunicator(graphs, mpi);
+  // the actual implementation is inside communicator.cu
   return New<NCCLCommunicator>(graphs, mpi); 
 #else // no CUDA or no NCCL
   noNccl; // (unused)
