@@ -8,6 +8,12 @@
 #include <signal.h>
 #endif
 
+#ifdef _MSC_VER
+#define noinline __declspec(noinline)
+#else
+#define noinline __attribute__((noinline))
+#endif
+
 std::shared_ptr<spdlog::logger> stderrLogger(
     const std::string& name,
     const std::string& pattern,
@@ -60,10 +66,10 @@ bool setLoggingLevel(spdlog::logger& logger, std::string const level) {
 
 #ifdef __unix__
 static struct sigaction prev_segfault_sigaction;
-void segfault_sigaction(int signal, siginfo_t *si, void *arg)
+void noinline segfault_sigaction(int signal, siginfo_t *si, void *arg)
 {
   sigaction(signal, &prev_segfault_sigaction, NULL); // revert signal handler
-  marian::logCallStack(/*skipLevels=*/1);
+  marian::logCallStack(/*skipLevels=*/2); // skip segfault_sigaction() and one level up in the kernel
   raise(signal); // re-raise so we terminate mostly as usual
 }
 #endif
@@ -117,17 +123,13 @@ void createLoggers(const marian::Config* options) {
   sa.sa_flags = SA_SIGINFO | SA_RESETHAND;
 
   sigaction(SIGSEGV, &sa, &prev_segfault_sigaction);
-
-  // test it
-  *((int*)0) = 13; // cause a crash
-
 #endif
 }
 
 namespace marian {
-  void logCallStack(size_t skipLevels)
+  void noinline logCallStack(size_t skipLevels)
   {
-    auto callStack = ::Microsoft::MSR::CNTK::DebugUtil::GetCallStack(skipLevels + 1, /*makeFunctionNamesStandOut=*/true);
-    checkedLog("general", "critical", "Call stack:\n{}", callStack);
+    auto callStack = ::Microsoft::MSR::CNTK::DebugUtil::GetCallStack(skipLevels + 2, /*makeFunctionNamesStandOut=*/true);
+    checkedLog("general", "critical", "Call stack:{}", callStack);
   }
 }
