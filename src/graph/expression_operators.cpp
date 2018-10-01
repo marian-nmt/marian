@@ -55,8 +55,15 @@ Expr operator-(Expr a) {
   return Expression<NegNodeOp>(a);
 };
 
+Expr softmax(Expr a) {
+  return Expression<SoftmaxNodeOp>(a);
+}
+
+// @TODO: maybe get rid of this entirely to not obfuscate, what's going on inside.
+// @TODO: switch to log-masking everywhere?
 Expr softmax(Expr a, Expr mask) {
-  return Expression<SoftmaxNodeOp>(a, mask);
+  auto logMask = (1 - mask) * -99999999.f;
+  return softmax(a + logMask);
 }
 
 Expr logsoftmax(Expr a) {

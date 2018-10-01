@@ -374,14 +374,9 @@ void TransposeNDGrad(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 
 __global__ void gSoftmax(float* out,
                          functional::Shape outShape,
-                         const float* in,
-                         const float* mask,
-                         const functional::Shape maskShape) {
+                         const float* in) {
   int rows = outShape.elements() / outShape.back();
   int cols = outShape.back();
-
-  bool broadcast = outShape != maskShape;
-  functional::Array<int, functional::Shape::size()> dims;
 
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -396,17 +391,7 @@ __global__ void gSoftmax(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float mVal = 1.f;
-          if(mask) {
-            int mIndex = id + j * cols;
-            if(broadcast) {
-              outShape.dims(mIndex, dims);
-              mIndex = maskShape.bindex(dims);
-            }
-            mVal = mask[mIndex];
-          }
-
-          if(mVal && sp[id] > _max[threadIdx.x])
+          if(sp[id] > _max[threadIdx.x])
             _max[threadIdx.x] = sp[id];
         }
       }
@@ -432,21 +417,8 @@ __global__ void gSoftmax(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float mVal = 1.f;
-          if(mask) {
-            int mIndex = id + j * cols;
-            if(broadcast) {
-              outShape.dims(mIndex, dims);
-              mIndex = maskShape.bindex(dims);
-            }
-            mVal = mask[mIndex];
-          }
-
-          float ex = 0;
-          if(mVal)
-            ex = __expf(sp[id] - max);
+          float ex = __expf(sp[id] - max);
           so[id] = ex;
-
           _sum[threadIdx.x] += ex;
         }
       }
@@ -470,7 +442,7 @@ __global__ void gSoftmax(float* out,
   }
 }
 
-void Softmax(Tensor out, Tensor in, Tensor mask) {
+void Softmax(Tensor out, Tensor in) {
   cudaSetDevice(out->getDeviceId().no);
 
   size_t m = out->shape().elements() / out->shape().back();
@@ -480,12 +452,7 @@ void Softmax(Tensor out, Tensor in, Tensor mask) {
   int threads = std::min(MAX_THREADS, (int)k);
   int shared = sizeof(float) * threads * 2;
 
-  if(mask)
-    gSoftmax<<<blocks, threads, shared>>>(
-        out->data(), out->shape(), in->data(), mask->data(), mask->shape());
-  else
-    gSoftmax<<<blocks, threads, shared>>>(
-        out->data(), out->shape(), in->data(), 0, out->shape());
+  gSoftmax<<<blocks, threads, shared>>>(out->data(), out->shape(), in->data());
 }
 
 __global__ void gLogSoftmax(float* out,

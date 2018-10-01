@@ -371,37 +371,11 @@ struct SwishNodeOp : public UnaryNodeOp {
 };
 
 struct SoftmaxNodeOp : public UnaryNodeOp {
-  SoftmaxNodeOp(Expr a) : UnaryNodeOp(a), mask_(nullptr) {}
-
-  SoftmaxNodeOp(Expr a, Expr mask) : UnaryNodeOp(a), mask_(mask) {}
-
-  Expr mask_;
+  SoftmaxNodeOp(Expr a) : UnaryNodeOp(a) {}
 
   NodeOps forwardOps() override {
     return {
-        NodeOp(Softmax(val_, child(0)->val(), mask_ ? mask_->val() : nullptr))};
-  }
-
-  virtual size_t hash() override {
-    if(!hash_) {
-      hash_ = NaryNodeOp::hash();
-      if(mask_)
-        util::hash_combine(hash_, mask_->hash());
-    }
-    return hash_;
-  }
-
-  virtual bool equal(Expr node) override {
-    if(!NaryNodeOp::equal(node))
-      return false;
-    Ptr<SoftmaxNodeOp> cnode = std::dynamic_pointer_cast<SoftmaxNodeOp>(node);
-    if(!cnode)
-      return false;
-    if((bool)mask_ != (bool)cnode->mask_)
-      return false;
-    if(mask_ && !mask_->equal(cnode->mask_))
-      return false;
-    return true;
+        NodeOp(Softmax(val_, child(0)->val()))};
   }
 
   NodeOps backwardOps() override {

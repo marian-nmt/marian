@@ -82,7 +82,7 @@ void Reduce(Functor functor, marian::Tensor out, Tensors... tensors) {
 
   DISPATCH2(Dropout, marian::Tensor, float)
 
-  DISPATCH3(Softmax, marian::Tensor, marian::Tensor, marian::Tensor)
+  DISPATCH2(Softmax, marian::Tensor, marian::Tensor)
   DISPATCH3(SoftmaxGrad, marian::Tensor, marian::Tensor, marian::Tensor)
 
   DISPATCH2(LogSoftmax, marian::Tensor, marian::Tensor)

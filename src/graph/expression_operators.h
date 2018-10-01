@@ -118,7 +118,8 @@ Expr select(Expr a, const std::vector<IndexType>& indices, int axis);
 
 Expr sum(Expr a, int ax = 0);
 
-Expr softmax(Expr a, Expr mask = nullptr);
+Expr softmax(Expr a);
+Expr softmax(Expr a, Expr mask);
 
 Expr logsoftmax(Expr a);
 

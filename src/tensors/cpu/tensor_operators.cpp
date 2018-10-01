@@ -271,16 +271,9 @@ void TransposeNDGrad(Tensor out, Tensor in, const std::vector<int>& vAxis) {
     TransposeGeneric<true>(out, in, vAxis);
 }
 
-void Softmax(Tensor out_, Tensor in_, Tensor mask_) {
+void Softmax(Tensor out_, Tensor in_) {
   float* out = out_->data();
   const float* in = in_->data();
-  const float* mask = mask_ ? mask_->data() : nullptr;
-
-  functional::Shape outShape = out_->shape();
-  functional::Shape maskShape = mask_->shape();
-
-  bool broadcast = out_->shape() != mask_->shape();
-  functional::Array<int, functional::Shape::size()> dims;
 
   int rows = out_->shape().elements() / out_->shape().back();
   int cols = out_->shape().back();
@@ -288,37 +281,14 @@ void Softmax(Tensor out_, Tensor in_, Tensor mask_) {
   for(int j = 0; j < rows; ++j) {
     float* so = out + j * cols;
     const float* sp = in + j * cols;
-    const float* mp = mask;
-    //const float* mp = mask ? mask + j * cols : nullptr;
 
     float max = sp[0];
-    for(int i = 1; i < cols; ++i) {
-      float mVal = 1.f;
-      if(mask) {
-        // @TODO: make this more efficient
-        int mIndex = i + j * cols;
-        if(broadcast) {
-          outShape.dims(mIndex, dims);
-          mIndex = maskShape.bindex(dims);
-        }
-        mVal = mask[mIndex];
-      }
-      max = std::max(max, sp[i] * mVal);
-    }
+    for(int i = 1; i < cols; ++i)
+      max = std::max(max, sp[i]);
 
     float sum = 0.f;
     for(int i = 0; i < cols; ++i) {
-      float mVal = 1.f;
-      if(mask) {
-        int mIndex = i + j * cols;
-        if(broadcast) {
-          outShape.dims(mIndex, dims);
-          mIndex = maskShape.bindex(dims);
-        }
-        mVal = mask[mIndex];
-      }
-
-      float ex = expf(sp[i] - max) * mVal;
+      float ex = expf(sp[i] - max);
       so[i] = ex;
       sum += ex;
     }
