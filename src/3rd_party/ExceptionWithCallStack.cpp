@@ -4,18 +4,27 @@
 //
 // ExceptionWithCallStack.cpp : Defines the CNTK exception and stack utilities
 //
-#include "stdafx.h"
-#include "ExceptionWithCallStack.h"
-#include "Basics.h"
+
+//#define _CRT_SECURE_NO_WARNINGS // "secure" CRT not available on all platforms  --add this at the top of all CPP files that give "function or variable may be unsafe" warnings
 #ifdef _WIN32
+#pragma comment(lib, "Dbghelp.lib")
 #pragma warning(push)
 #pragma warning(disable: 4091) // 'typedef ': ignored on left of '' when no variable is declared
+#define NOMINMAX
+#include <Windows.h>
 #include "DbgHelp.h"
 #pragma warning(pop)
-#include <WinBase.h>
+#else
+#include <execinfo.h>
+#include <cxxabi.h>
 #endif
+
+#include "ExceptionWithCallStack.h"
+
 #include <algorithm>
 #include <iostream>
+#include <functional>
+#include <stdexcept>
 
 namespace Microsoft { namespace MSR { namespace CNTK {
 
@@ -142,11 +151,11 @@ static void CollectCallStack(size_t skipLevels, bool makeFunctionNamesStandOut, 
     typedef USHORT(WINAPI * CaptureStackBackTraceType)(__in ULONG, __in ULONG, __out PVOID*, __out_opt PULONG);
     CaptureStackBackTraceType RtlCaptureStackBackTrace = (CaptureStackBackTraceType)(GetProcAddress(LoadLibrary(L"kernel32.dll"), "RtlCaptureStackBackTrace"));
     if (RtlCaptureStackBackTrace == nullptr) // failed somehow
-        return write("Failed to generate CALL STACK. GetProcAddress(\"RtlCaptureStackBackTrace\") failed with error " + msra::strfun::utf8(FormatWin32Error(GetLastError())) + "\n");
+        return write("Failed to generate CALL STACK. GetProcAddress(\"RtlCaptureStackBackTrace\") failed\n");
 
     HANDLE process = GetCurrentProcess();
     if (!SymInitialize(process, nullptr, TRUE))
-        return write("Failed to generate CALL STACK. SymInitialize() failed with error " + msra::strfun::utf8(FormatWin32Error(GetLastError())) + "\n");
+        return write("Failed to generate CALL STACK. SymInitialize() failed\n");
 
     // get the call stack
     void* callStack[MAX_CALLERS];
@@ -174,11 +183,10 @@ static void CollectCallStack(size_t skipLevels, bool makeFunctionNamesStandOut, 
         }
         else
         {
-            DWORD error = GetLastError();
             char buf[17];
             sprintf_s(buf, "%p", callStack[i]);
             write(buf);
-            write(" (SymFromAddr() error: " + msra::strfun::utf8(FormatWin32Error(error)) + ")\n");
+            write(" (SymFromAddr() error)\n");
         }
     }
 

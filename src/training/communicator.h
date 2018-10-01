@@ -243,7 +243,7 @@ Ptr<ICommunicator> createCommunicator(
 #if MPI_FOUND
 #else
 enum MPI_Comm { MPI_COMM_WORLD };
-enum MPI_Datatype { MPI_FLOAT, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG };
+enum MPI_Datatype { MPI_FLOAT, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG, MPI_BYTE };
 enum MPI_Op { MPI_SUM };
 struct MPI_Status { int MPI_SOURCE; };
 #define MPI_ANY_SOURCE ((size_t)-2)

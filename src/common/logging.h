@@ -5,7 +5,7 @@
 #include "spdlog/spdlog.h"
 
 namespace marian {
-  void logCallStack();
+  void logCallStack(size_t skipLevels);
 }
 
 /**
@@ -49,7 +49,7 @@ namespace marian {
 #define ABORT(...)                                                      \
   do {                                                                  \
     checkedLog("general", "critical", __VA_ARGS__);                     \
-    ::marian::logCallStack();                                           \
+    ::marian::logCallStack(/*skipLevels=*/0);                           \
     std::cerr << "Aborted from " << FUNCTION_NAME << " in " << __FILE__ \
               << ": " << __LINE__ << std::endl;                         \
     std::abort();                                                       \

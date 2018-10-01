@@ -5,24 +5,9 @@
 // ExceptionWithCallStack.h - debug util functions
 //
 
-#pragma once
-#ifndef _CRT_SECURE_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS // "secure" CRT not available on all platforms  --add this at the top of all CPP files that give "function or variable may be unsafe" warnings
-#endif
-#ifdef _WIN32
-#define NOMINMAX
-#pragma comment(lib, "Dbghelp.lib")
-#else
-#include <execinfo.h>
-#include <cxxabi.h>
-#endif
-
-#include <functional>
-#include <stdexcept>
+#include <string>
 
 namespace Microsoft { namespace MSR { namespace CNTK {
-
-using namespace std;
 
 // base class that we can catch, independent of the type parameter
 struct /*interface*/ IExceptionWithCallStackBase

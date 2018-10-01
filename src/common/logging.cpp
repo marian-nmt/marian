@@ -59,9 +59,12 @@ bool setLoggingLevel(spdlog::logger& logger, std::string const level) {
 }
 
 #ifdef __unix__
+static struct sigaction prev_segfault_sigaction;
 void segfault_sigaction(int signal, siginfo_t *si, void *arg)
 {
-  marian::logCallStack();
+  sigaction(signal, &prev_segfault_sigaction, NULL); // revert signal handler
+  marian::logCallStack(/*skipLevels=*/1);
+  raise(signal); // re-raise so we terminate mostly as usual
 }
 #endif
 
@@ -111,17 +114,20 @@ void createLoggers(const marian::Config* options) {
   memset(&sa, 0, sizeof(sa));
   sigemptyset(&sa.sa_mask);
   sa.sa_sigaction = segfault_sigaction;
-  sa.sa_flags = SA_SIGINFO;
+  sa.sa_flags = SA_SIGINFO | SA_RESETHAND;
 
-  sigaction(SIGSEGV, &sa, NULL);
+  sigaction(SIGSEGV, &sa, &prev_segfault_sigaction);
+
+  // test it
+  *((int*)0) = 13; // cause a crash
+
 #endif
 }
 
 namespace marian {
-  void logCallStack()
+  void logCallStack(size_t skipLevels)
   {
-    using namespace ::Microsoft::MSR::CNTK::DebugUtil;
-    auto callStack = GetCallStack(/*skipLevels=*/ 1, /*makeFunctionNamesStandOut=*/true);
+    auto callStack = ::Microsoft::MSR::CNTK::DebugUtil::GetCallStack(skipLevels + 1, /*makeFunctionNamesStandOut=*/true);
     checkedLog("general", "critical", "Call stack:\n{}", callStack);
   }
 }
