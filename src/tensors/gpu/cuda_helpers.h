@@ -15,11 +15,9 @@ const int MAX_BLOCKS = 65535;
 
 inline void gpuAssert(cudaError_t code, const char* exprString,
                       const char* file,
-                      int line,
-                      bool abort = true) {
+                      int line) {
   if(code != cudaSuccess) {
-    LOG(critical, "CUDA Error {}: {} - {}:{}: {}", code, cudaGetErrorString(code), file, line, exprString);
-    std::abort();
+    ABORT("CUDA Error {}: {} - {}:{}: {}", code, cudaGetErrorString(code), file, line, exprString);
   }
 }
 

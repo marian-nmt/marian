@@ -8,9 +8,9 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Config> config)
       ExponentialSmoothing{options_->get<float>("exponential-smoothing")},
       delay_{options_->get<size_t>("optimizer-delay")} { // @TODO: rename to something else; delay means delayed updated, not accumulation
 
-  mpi_ = initMPI(/*multiThreaded=*/false); // when not running under MPI, this will be a fake object that represents a one-worker setup
+  mpi_ = initMPI(/*multiThreaded=*/false); // when not running under MPI, this will be a fake object that represents a one-MPI-process setup
 
-  devices_ = options_->getDevices(mpi_->myRank(), mpi_->commWorldSize());
+  devices_ = options_->getDevices(mpi_->myMPIRank(), mpi_->numMPIProcesses());
   for(auto device : devices_) {
     auto graph = New<ExpressionGraph>();
     graph->setDevice(device);
@@ -22,7 +22,7 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Config> config)
     builders_.push_back(models::from_config(options_, models::usage::training));
   }
 
-  // Note: We may well end up with only one MPI worker or only one graph per worker.
+  // Note: We may well end up with only one MPI process or only one graph per worker.
   // This part of the code will not special-case any of this here.
   // Rather, it is assumed that the communicator knows to reduce unnecessary transfers to no-ops.
   comm_ = createCommunicator(graphs_, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/mpi_);
@@ -88,19 +88,19 @@ void SyncGraphGroup::initializeAvg() {
       paramAvg->copyFrom(graphs_[0]->params()->vals()->subtensor(begin, size));
 
     // note: for multi-node, graphAvg and graphs_[0] contain a complete copy, from which
-    // each worker copies only part into its respective shard(s)
+    // each MPI process copies only part into its respective shard(s)
   };
 
   paramsAllocs_.resize(graphs_.size()); // allocators
-  paramsAvg_.resize(graphs_.size());    // averaged parameters (shards; if multi-node, then distributed over workers)
+  paramsAvg_.resize(graphs_.size());    // averaged parameters (shards; distributed over MPI processes if applicable)
   comm_->foreach(init, /*parallel=*/false); // @TODO: is sequential operation necessary here? (is the allocation stuff sufficiently reentrant or thread-separated?)
 }
 
 void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
   ABORT_IF(finalized_, "Training has already finished.");
 
-  // distribute the batch over (delay, local device, worker rank)
-  size_t numSubBatches = delay_ * devices_.size() * mpi_->commWorldSize();
+  // distribute the batch over (delay, local device, MPI rank)
+  size_t numSubBatches = delay_ * devices_.size() * mpi_->numMPIProcesses();
   auto subBatches = batch->split(numSubBatches);
   subBatches.resize(numSubBatches); // pad with nullptrs if out of data
 
@@ -109,7 +109,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
     // 't' (the delay) should be slowest changing dimension. If subBatches are sorted by
     // length, then grouping sentences of similar length into the same delay step can
     // reduce unnecessary time spent in padding.
-    return subBatches[(t * mpi_->commWorldSize() + rank) * devices_.size() + localDeviceIndex];
+    return subBatches[(t * mpi_->numMPIProcesses() + rank) * devices_.size() + localDeviceIndex];
   };
 
   // Upon very first execution, reset everything
@@ -127,7 +127,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
     // Execute single forward/backward step
     auto forwardBackward = [&](size_t localDeviceIndex, size_t /*begin*/, size_t /*end*/) {
       auto graph = graphs_[localDeviceIndex];
-      auto subBatch = getSubBatch(t, localDeviceIndex, mpi_->myRank());
+      auto subBatch = getSubBatch(t, localDeviceIndex, mpi_->myMPIRank());
 
       // temporary for the cost
       // @BUGBUG: must exist before first allocations; must do stuff in initialize()
@@ -153,7 +153,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
 
     comm_->foreach(forwardBackward); // compute gradients in parallel on each device. Aggregate if delay_ > 1.
   }
-  // At this point, each device on eacn worker has a gradient aggregated over a subset of the sub-batches.
+  // At this point, each device on eacn MPI process has a gradient aggregated over a subset of the sub-batches.
 
   // Update parameter shard with gradient shard
   auto update = [&](size_t idx, size_t begin, size_t end) {
@@ -187,15 +187,15 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
   comm_->allGather();     // distribute param value shards back
 
   // cost across all local devices
-  // @TODO: We should report cost aggregated over all workers.
+  // @TODO: We should report cost aggregated over all MPI processes.
   float cost = 0;
   for(auto& c : localDeviceCosts)
     cost += c;
-  // extrapolate cost across workers
+  // extrapolate cost across MPI processes
   // @TODO: This is a crude estimate. Rather, we should aggregate cost across all GPUs correctly; cf. gradient trick described above.
   // @TODO: If this is too crude, we can also resurrect the code from f68433 to loop over the local batches,
-  // and then determine a correction factor based on actual counts. They are very close though across workers.
-  cost *= mpi_->commWorldSize();
+  // and then determine a correction factor based on actual counts. They are very close though across MPI processes.
+  cost *= mpi_->numMPIProcesses();
 
   // if cost is average-based, we need to turn the sum over devices into an average as well
   if(options_->get<std::string>("cost-type") != "ce-sum")
@@ -273,7 +273,7 @@ void SyncGraphGroup::save(bool final) {
       comm_->swapParams(paramsAvg_);
 
     mpi_->barrier();
-    if (mpi_->myRank() == 0) { // in multi-node, only first worker saves the model (they are all identical)
+    if (mpi_->myMPIRank() == 0) { // in multi-node, only first MPI process saves the model (they are all identical)
       scheduler_->validate(graphs_, true);
     }
     mpi_->barrier();
@@ -288,14 +288,14 @@ void SyncGraphGroup::save(bool final) {
   // @TODO: Check whether we are reloading the correct file (the unsmoothed one).
   if(mvAvg_ && paramsAvg_.size() > 0) {
     // Save the original parameters in model.npz.orig.npz
-    if (mpi_->myRank() == 0) // only save from one worker
+    if (mpi_->myMPIRank() == 0) // only save from one MPI process
       builders_[0]->save(graphs_[0], name + ".orig.npz", true);
     // Switch to the averaged parameters
-    comm_->swapParams(paramsAvg_); // note: the smoothed model is sharded, across workers of multi-node. This brings it into worker[0].device[0]
+    comm_->swapParams(paramsAvg_); // note: the smoothed model is sharded across GPUs, and across MPI processes if applicablenode. This brings it into MPI process[0].device[0]
   }
 
   // save main model file
-  if (mpi_->myRank() == 0) { // only save from one worker
+  if (mpi_->myMPIRank() == 0) { // only save from one MPI process
     // if not overwrite then save a copy with number of updates in the model pathname
     if(!options_->get<bool>("overwrite") && !final) {
       std::string numberOfBatches

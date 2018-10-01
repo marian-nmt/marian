@@ -8,6 +8,9 @@
 #if MPI_FOUND
 #include "mpi.h"
 #endif
+#ifdef __unix__
+#include <unistd.h>
+#endif
 // clang-format on
 
 namespace marian {
@@ -251,8 +254,8 @@ struct MPI_Status { int MPI_SOURCE; };
 #endif
 struct/*interface*/ IMPIWrapper
 {
-  virtual size_t myRank() const = 0;
-  virtual size_t commWorldSize() const = 0;
+  virtual size_t myMPIRank() const = 0;
+  virtual size_t numMPIProcesses() const = 0;
   virtual void barrier(MPI_Comm comm = MPI_COMM_WORLD) const = 0;
   virtual void bCast(void* buf, size_t count, MPI_Datatype datatype, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
   virtual void sSend(void* buf, size_t count, MPI_Datatype datatype, size_t destRank, int tag, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
@@ -262,8 +265,8 @@ struct/*interface*/ IMPIWrapper
   static const size_t RECV_ANY_SOURCE = (size_t)MPI_ANY_SOURCE;
   // helper templates
 private:
-  static MPI_Datatype getDataType(const float*) { return MPI_FLOAT; }
-  static MPI_Datatype getDataType(const unsigned long*) { return MPI_UNSIGNED_LONG; }
+  static MPI_Datatype getDataType(const float*)              { return MPI_FLOAT; }
+  static MPI_Datatype getDataType(const unsigned long*)      { return MPI_UNSIGNED_LONG; }
   static MPI_Datatype getDataType(const unsigned long long*) { return MPI_UNSIGNED_LONG_LONG; }
 public:
   template<typename T>
@@ -273,8 +276,19 @@ public:
     v.resize(vecLen);
     bCast(v.data(), v.size(), getDataType(v.data()), rootRank, comm);
   }
-  std::string to_string() { // helper to identify the node in logs
-      return "worker " + std::to_string(myRank()) + " out of " + std::to_string(commWorldSize());
+  std::string idStr() { // helper to identify the node in logs
+#ifdef _WIN32
+    std::string hostname = getenv("COMPUTERNAME");
+    auto processId = GetCurrentProcessId();
+#else
+    static std::string hostname = [](){ // not sure if gethostname() is expensive. This way we call it only once.
+      char hostnamebuf[HOST_NAME_MAX + 1] = { 0 };
+      gethostname(hostnamebuf, sizeof(hostnamebuf));
+      return std::string(hostnamebuf);
+    }();
+    auto processId = getpid();
+#endif
+    return hostname + ":" + std::to_string(processId) + " MPI rank " + std::to_string(myMPIRank()) + " out of " + std::to_string(numMPIProcesses());
   }
 };
 

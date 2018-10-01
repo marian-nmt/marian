@@ -82,11 +82,11 @@ public:
     MPI_Comm_size(MPI_COMM_WORLD, &comm_world_size_);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank_);
 
-    LOG(info, "[mpi] initialized as worker {} out of {}", my_rank_, comm_world_size_);
+    LOG(info, "[mpi] initialized as {}", idStr());
   }
 
-  virtual size_t myRank()        const override { return (size_t)my_rank_; };
-  virtual size_t commWorldSize() const override { return (size_t)comm_world_size_; };
+  virtual size_t myMPIRank()        const override { return (size_t)my_rank_; };
+  virtual size_t numMPIProcesses() const override { return (size_t)comm_world_size_; };
 
   virtual void barrier(MPI_Comm comm) const override {
     HANDLE_MPI_ERROR(MPI_Barrier(comm));
@@ -118,8 +118,8 @@ public:
     LOG(warn, "compiled without MPI support; using FakeMPIWrapper to allow debugging");
   }
 
-  virtual size_t myRank() const override { return 0; };
-  virtual size_t commWorldSize() const override { return 1; };
+  virtual size_t myMPIRank() const override { return 0; };
+  virtual size_t numMPIProcesses() const override { return 1; };
 
 #pragma warning(push)
 #pragma warning(disable: 4100) // unreferenced formal parameter

@@ -238,10 +238,10 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
       mpi_->barrier();
 
       // TODO: Saving is broken
-      // if(mpi_->myRank() == 0 && scheduler_->saving())
+      // if(mpi_->myMPIRank() == 0 && scheduler_->saving())
       //  this->save(graph);
 
-      if(mpi_->myRank() == 0 && scheduler_->validating()) {
+      if(mpi_->myMPIRank() == 0 && scheduler_->validating()) {
         // temporarily save current params
         if(movingAvg_)
           accGradientsSync->copyFrom(clientGraphs_[0]->params()->vals());

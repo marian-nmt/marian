@@ -153,7 +153,7 @@ public:
    */
   void update(Ptr<data::Batch> batch) override {
     ABORT_IF(finalized_, "Training has already finished.");
-    if(batchIter_ % mpi_->commWorldSize() == mpi_->myRank()) {  // Only take batch assigned to this node
+    if(batchIter_ % mpi_->numMPIProcesses() == mpi_->myMPIRank()) {  // Only take batch assigned to this node
       execute(batch);
     }
     batchIter_++;

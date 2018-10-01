@@ -22,7 +22,7 @@ protected:
   bool finalized_{false};    // 'true' if training has completed (further updates are no longer allowed)
 
   bool scaleLearningRate_; // option "batch-flexible-lr"; "Scales the learning rate based on the number of words in a mini-batch"
-  // @TODO: Is this the same as not averaging? On which level? Entire batch, or within-worker?
+  // @TODO: Is this the same as not averaging? On which level? Entire batch, or within MPI process?
   float avgBatchWords_;    // option "batch-normal-words"; "Set number of words per batch that the learning rate corresponds to"
 
 public:
@@ -140,7 +140,7 @@ public:
     setupMPI();
 
     // Set up devices for this node
-    std::vector<size_t> devices; // set of GPU device ids for this worker
+    std::vector<size_t> devices; // set of GPU device ids for this MPI process
     for (auto& d : options_->getDevices())
       devices.push_back(d.no);
     loadDeviceConfig(devices); // set up numberClientsOfNodes_[] and devices_[]
@@ -178,7 +178,7 @@ public:
       ABORT_IF(index == deviceConfig.size(), "mal-formed device config array??");
       return deviceConfig[index++];
     };
-    std::vector<std::vector<size_t>> allDevices(mpi_->commWorldSize());
+    std::vector<std::vector<size_t>> allDevices(mpi_->numMPIProcesses());
     for (auto& devices : allDevices) {
       devices.resize(next());
       for (auto& device : devices)
@@ -193,12 +193,12 @@ public:
     }
 
     // get our own config
-    devices_ = allDevices[mpi_->myRank()];
+    devices_ = allDevices[mpi_->myMPIRank()];
 
     // log
-    LOG(info, "[mpi rank {}] device configuration", mpi_->myRank());
+    LOG(info, "[mpi rank {}] device configuration", mpi_->myMPIRank());
     for (auto& device : devices_)
-      LOG(info, "[mpi rank {}]  - {}", mpi_->myRank(), device);
+      LOG(info, "[mpi rank {}]  - {}", mpi_->myMPIRank(), device);
   }
 
   virtual void finalize() override {

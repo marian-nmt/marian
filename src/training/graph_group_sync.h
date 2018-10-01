@@ -47,7 +47,7 @@ public:
     return GraphGroup::collectStats(graphs_[0], builders_[0], numBatches());
   }
 
-  size_t numBatches() { return devices_.size() * (mpi_ ? mpi_->commWorldSize() : 1) * delay_; }
+  size_t numBatches() { return devices_.size() * (mpi_ ? mpi_->numMPIProcesses() : 1) * delay_; }
 
   virtual void finalize() override { finalized_ = true; }
 };

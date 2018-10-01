@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
   }
   // --sync-sgd always selects SyncGraphGroup
   // If given, then this implementation is used for all combinations of
-  // (single, multiple) workers x (single, multiple) GPUs per worker.
+  // (single, multiple) MPI processes x (single, multiple) GPUs per MPI process.
   // This variant is presently up-to-date and best supported.
   else if (options->get<bool>("sync-sgd")) {
     LOG(warn, "[training] Using SyncGraphGroup trainer.");

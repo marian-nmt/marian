@@ -60,28 +60,28 @@ void Config::loadModelParameters(const void* ptr) {
 // For multi-node, this returns the devices vector for the given rank.
 // For CPU, specify --cpu-threads.
 // For GPU, specify either --num-devices or --devices.
-// For single-worker GPU, if both are given, --num-devices must be equal to size of --devices.
-// For multi-node GPU, if --devices is equal to --num-devices, then the device set is shared
+// For single-MPI-process GPU, if both are given, --num-devices must be equal to size of --devices.
+// For multi-MPI-process GPU, if --devices is equal to --num-devices, then the device set is shared
 // across all nodes. Alternatively, it can contain a multiple of --num-devices entries. In that case,
-// devices lists the set of worker-local GPUs for all workers, concatenated. This last form must be used
-// when running a multi-worker MPI job on a single machine with multiple GPUs.
+// devices lists the set of MPI-process-local GPUs for all MPI processes, concatenated. This last form must be used
+// when running a multi-MPI-process MPI job on a single machine with multiple GPUs.
 // Examples:
 //  - CPU:
 //    --cpu-threads 8
-//  - single worker, single GPU:
+//  - single MPI process, single GPU:
 //    [no option given]  // will use device 0
 //    --num-devices 1    // same
 //    --devices 2        // will use device 2
-//  - single worker process, multiple GPU:
+//  - single MPI process, multiple GPU:
 //    --num-devices 4    // will use devices 0, 1, 2, and 3
 //    --devices 0 1 2 3  // same
 //    --devices 4 5 6 7  // will use devices 4, 5, 6, and 7
-//  - multiple worker processes, multiple GPU:
-//    --num-devices 4   // will use devices 0, 1, 2, and 3 on all worker nodes, respectively
-//    --devices 4 5 6 7 // will use devices 4, 5, 6, and 7 on all worker nodes, respectively
-//    --num-devices 1 --devices 0 1 2 3 4 5 6 7 // this is a 8-process job on a single machine; workers 0..7 use devices 0..7, respectively
-//    --num-devices 4 --devices 0 1 2 3 4 5 6 7 // this is a 2-process job on a single machine; worker 0 uses 0..3, and worker 1 uses 4..7
-std::vector<DeviceId> Config::getDevices(size_t myRank /*= 0*/, size_t numWorkers /*= 1*/) {
+//  - multiple MPI processes, multiple GPU:
+//    --num-devices 4   // will use devices 0, 1, 2, and 3 in all MPI process, respectively
+//    --devices 4 5 6 7 // will use devices 4, 5, 6, and 7 in all MPI process, respectively
+//    --num-devices 1 --devices 0 1 2 3 4 5 6 7 // this is a 8-process job on a single machine; MPI processes 0..7 use devices 0..7, respectively
+//    --num-devices 4 --devices 0 1 2 3 4 5 6 7 // this is a 2-process job on a single machine; MPI process 0 uses 0..3, and MPI process 1 uses 4..7
+std::vector<DeviceId> Config::getDevices(size_t myMPIRank /*= 0*/, size_t numMPIProcesses /*= 1*/) {
   std::vector<DeviceId> devices;
   auto devicesArg = get<std::vector<std::string>>("devices");
   // CPU: devices[] just enumerate the threads (--devices is ignored)
@@ -106,17 +106,17 @@ std::vector<DeviceId> Config::getDevices(size_t myRank /*= 0*/, size_t numWorker
     // devices[] is not empty
     else if (numDevices == 0) // if device list then num devices defaults to list size
       numDevices = deviceNos.size(); // default to #devices
-    // If multi-node then we can either have one set of devices shared across all workers,
-    // or the full list across all workers concatenated.
+    // If multiple MPI processes then we can either have one set of devices shared across all MPI-processes,
+    // or the full list across all MPI processes concatenated.
     // E.g. --num-devices 1 --devices 0 2 4 5 means 4 processes using devices 0, 2, 4, and 5, respectively.
-    // In that case, we cut out and return our own slice. In the above example, for worker 1, we would return {2}.
-    if (numWorkers == 1) // special-case the error mesage (also caught indirectly below, but with a msg that is confusing when one does not run multi-node)
-      ABORT_IF(numDevices != deviceNos.size(), "devices[] size must be equal to numDevices"); // same as requiring numPerWorkerDeviceNos == 1
-    size_t numPerWorkerDeviceNos = deviceNos.size() / numDevices; // how many lists concatenated in devices[]? Allowed is either 1 (=shared) or numWorkers
-    ABORT_IF(numDevices * numPerWorkerDeviceNos != deviceNos.size(), "devices[] size must be equal to or a multiple of numDevices"); // (check that it is a multiple)
-    if (numPerWorkerDeviceNos != 1) { // if multiple concatenated lists are given, slice out the one for myRank
-      ABORT_IF(numPerWorkerDeviceNos != numWorkers, "devices[] must either list a shared set of devices, or one set per worker");
-      deviceNos.erase(deviceNos.begin(), deviceNos.begin() + myRank * numDevices);
+    // In that case, we cut out and return our own slice. In the above example, for MPI process 1, we would return {2}.
+    if (numMPIProcesses == 1) // special-case the error mesage (also caught indirectly below, but with a msg that is confusing when one does not run multi-node)
+      ABORT_IF(numDevices != deviceNos.size(), "devices[] size must be equal to numDevices"); // same as requiring numPerMPIProcessDeviceNos == 1
+    size_t numPerMPIProcessDeviceNos = deviceNos.size() / numDevices; // how many lists concatenated in devices[]? Allowed is either 1 (=shared) or numWorkers
+    ABORT_IF(numDevices * numPerMPIProcessDeviceNos != deviceNos.size(), "devices[] size must be equal to or a multiple of numDevices"); // (check that it is a multiple)
+    if (numPerMPIProcessDeviceNos != 1) { // if multiple concatenated lists are given, slice out the one for myMPIRank
+      ABORT_IF(numPerMPIProcessDeviceNos != numMPIProcesses, "devices[] must either list a shared set of devices, or one set per MPI process");
+      deviceNos.erase(deviceNos.begin(), deviceNos.begin() + myMPIRank * numDevices);
       deviceNos.resize(numDevices);
     }
     // form the final vector
@@ -125,7 +125,7 @@ std::vector<DeviceId> Config::getDevices(size_t myRank /*= 0*/, size_t numWorker
   }
 #if 1
   for (auto d : devices)
-    LOG(info, "[worker {} out of {}]: {}[{}]", myRank, numWorkers, d.type == DeviceType::cpu ? "CPU" : "GPU", d.no);
+    LOG(info, "[MPI rank {} out of {}]: {}[{}]", myMPIRank, numMPIProcesses, d.type == DeviceType::cpu ? "CPU" : "GPU", d.no);
 #endif
   return devices;
 }

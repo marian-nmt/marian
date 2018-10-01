@@ -119,7 +119,7 @@ public:
   void loadModelParameters(const std::string& name);
   void loadModelParameters(const void* ptr);
 
-  std::vector<DeviceId> getDevices(size_t myRank = 0, size_t numRanks = 1);
+  std::vector<DeviceId> getDevices(size_t myMPIRank = 0, size_t numRanks = 1);
 
   void save(const std::string& name) {
     OutputFileStream out(name);
