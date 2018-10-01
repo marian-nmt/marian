@@ -15,8 +15,14 @@ private:
   std::vector<int> devices_;          // [device index]
   Ptr<IMPIWrapper> mpi_; // (may be null)
 
-  static void groupStart() { NCCLCHECK(ncclGroupStart()); } // helpers to make sure we check the error
-  static void groupEnd()   { NCCLCHECK(ncclGroupEnd());   }
+  void groupStart() const { NCCLCHECK(ncclGroupStart()); } // helpers to make sure we check the error
+  //void groupEnd() const   { NCCLCHECK(ncclGroupEnd());   }
+  void groupEnd() const {
+    auto rc = ncclGroupEnd();
+    if (rc != ncclSuccess)
+      LOG(critical, "[{}] groupEnd failed", mpiIdStr());
+    NCCLCHECK(rc);
+  }
 
   void synchronizeAll() {
     for(int i = 0; i < graphs_.size(); ++i) {
@@ -104,20 +110,22 @@ public:
       NCCLCHECK(ncclGetUniqueId(&uniqueId));
 
     if (mpi_) {
-      LOG(info, "[{}] before bcast", mpiIdStr());
+      //LOG(info, "[{}] before bcast", mpiIdStr());
       static_assert(sizeof(uniqueId) == NCCL_UNIQUE_ID_BYTES, "wrong NCCL_UNIQUE_ID_BYTES??"); // (this value is used in NVidia examples)
       mpi_->bCast(&uniqueId, sizeof(uniqueId), MPI_BYTE, 0);
-      LOG(info, "[{}] after bcast", mpiIdStr());
+      //LOG(info, "[{}] after bcast", mpiIdStr());
     }
 
+    // @BUGBUG: This fails randomly for 4, 32, and 64 GPUs. Seems stable for 8 and 16?
+    //          Failed, NCCL error 2 'unhandled system error' - ncclGroupEnd()
       // if more than one device then initialize NCCL with group API
       //if (devices_.size() > 1) {
     groupStart();
     for (int localDeviceIndex = 0; localDeviceIndex < devices_.size(); localDeviceIndex++) {
       CUDA_CHECK(cudaSetDevice(devices_[localDeviceIndex]));
-      LOG(info, "[{}] ncclCommInitRank {} out of {}, GPU[{}]", mpiIdStr(), myNcclRank(localDeviceIndex), numNcclRanks(), localDeviceIndex);
+      LOG(info, "[{}] ncclCommInitRank {} out of {}: GPU[{}]", mpiIdStr(), myNcclRank(localDeviceIndex), numNcclRanks(), localDeviceIndex);
       NCCLCHECK(ncclCommInitRank(&comms_[localDeviceIndex], numNcclRanks(), uniqueId, myNcclRank(localDeviceIndex)));
-      LOG(info, "[{}] done ncclCommInitRank {} out of {}, GPU[{}]", mpiIdStr(), myNcclRank(localDeviceIndex), numNcclRanks(), localDeviceIndex);
+      //LOG(info, "[{}] done ncclCommInitRank {} out of {}, GPU[{}]", mpiIdStr(), myNcclRank(localDeviceIndex), numNcclRanks(), localDeviceIndex);
     }
     groupEnd();
       //}

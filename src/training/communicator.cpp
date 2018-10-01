@@ -80,13 +80,20 @@ public:
     MPI_Comm_size(MPI_COMM_WORLD, &comm_world_size_);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank_);
 
-    LOG(info, "[mpi] initialized as {}", idStr());
+    // log hostnames in order, and test
+    // @TODO: We call ourselves here. Not sure if that is properly allowed.
+    for (size_t r = 0; r < numMPIProcesses(); r++) {
+      this->barrier();
+      if (r == this->myMPIRank())
+        LOG(info, "[mpi] initialized as {}", this->idStr());
+    }
+    this->barrier();
   }
 
   virtual size_t myMPIRank()        const override { return (size_t)my_rank_; };
   virtual size_t numMPIProcesses() const override { return (size_t)comm_world_size_; };
 
-  virtual void barrier(MPI_Comm comm) const override {
+  virtual void barrier(MPI_Comm comm = MPI_COMM_WORLD) const override {
     HANDLE_MPI_ERROR(MPI_Barrier(comm));
   }
   virtual void bCast(void* buf, size_t count, MPI_Datatype datatype, size_t rootRank, MPI_Comm comm = MPI_COMM_WORLD) const override {

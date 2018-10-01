@@ -64,16 +64,6 @@ bool setLoggingLevel(spdlog::logger& logger, std::string const level) {
   return true;
 }
 
-#ifdef __unix__
-static struct sigaction prev_segfault_sigaction;
-void noinline segfault_sigaction(int signal, siginfo_t *si, void *arg)
-{
-  sigaction(signal, &prev_segfault_sigaction, NULL); // revert signal handler
-  marian::logCallStack(/*skipLevels=*/2); // skip segfault_sigaction() and one level up in the kernel
-  raise(signal); // re-raise so we terminate mostly as usual
-}
-#endif
-
 void createLoggers(const marian::Config* options) {
   std::vector<std::string> generalLogs;
   std::vector<std::string> validLogs;
@@ -115,13 +105,25 @@ void createLoggers(const marian::Config* options) {
 
 #ifdef __unix__
   // catch segfaults
-  struct sigaction sa;
+  //void noinline segfault_sigaction(int signal, siginfo_t *si, void *arg)
+  //{
+  //    checkedLog("general", "critical", "Segmentation fault");
+  //    sigaction(signal, &prev_segfault_sigaction, NULL); // revert signal handler
+  //    marian::logCallStack(/*skipLevels=*/2); // skip segfault_sigaction() and one level up in the kernel
+  //    raise(signal); // re-raise so we terminate mostly as usual
+  //}
 
-  memset(&sa, 0, sizeof(sa));
+  static struct sigaction prev_segfault_sigaction;
+  struct sigaction sa = { 0 };
   sigemptyset(&sa.sa_mask);
-  sa.sa_sigaction = segfault_sigaction;
-  sa.sa_flags = SA_SIGINFO | SA_RESETHAND;
-
+  sa.sa_flags = SA_SIGINFO;
+  sa.sa_sigaction = [&](int signal, siginfo_t *si, void *arg)
+  {
+    checkedLog("general", "critical", "Segmentation fault");
+    sigaction(signal, &prev_segfault_sigaction, NULL); // revert signal handler
+    marian::logCallStack(/*skipLevels=*/0/*2*/); // skip segfault_sigaction() and one level up in the kernel
+    raise(signal); // re-raise so we terminate mostly as usual
+  };
   sigaction(SIGSEGV, &sa, &prev_segfault_sigaction);
 #endif
 }

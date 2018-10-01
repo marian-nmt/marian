@@ -168,8 +168,10 @@ public:
     size_t batchLabels = 0;  // number of target words in batch
 
     for(const auto& batch : batches) {
-      batchSize += batch->size();
-      batchLabels += batch->words(-1);
+      if (batch) { // (nullptr is allowed as result of split)
+        batchSize += batch->size();
+        batchLabels += batch->words(-1);
+      }
     }
 
     // reconstruct sum cost, for displaying epoch-level averages instead of
