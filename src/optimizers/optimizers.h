@@ -21,29 +21,26 @@ public:
   OptimizerBase(float eta, Ptr<ClipperBase> clipper = nullptr)
       : eta_(eta), clipper_(clipper) {}
 
-  void update(Ptr<ExpressionGraph> graph, float multiplyFactor = 1.0f) {
+  void update(Ptr<ExpressionGraph> graph) {
     Tensor p = graph->params()->vals();
     Tensor g = graph->params()->grads();
 
-    update(p, g, multiplyFactor);
+    update(p, g);
   }
 
-  void update(Tensor params, Tensor grads, float multiplyFactor = 1.0f) {
+  void update(Tensor params, Tensor grads) {
     if(clipper_)
       clipper_->clip(grads);
 
     // In case we want to add a multiply factor to our learning rate
-    multiplyFactor_ = multiplyFactor;
     updateImpl(params, grads);
   }
 
   virtual void init(TrainingState& state) override {
     eta_ = state.eta;
-    multiplyFactor_ = state.factor;
   }
   virtual void actAfterLoaded(TrainingState& state) override {
     eta_ = state.eta;
-    multiplyFactor_ = state.factor;
   }
   virtual void actAfterEpoch(TrainingState& state) override {
     eta_ = state.eta;
@@ -77,8 +74,6 @@ protected:
 
   // Learning rate
   float eta_;
-  // Compensates for larger batch
-  float multiplyFactor_;
   // Clip gradient norm
   Ptr<ClipperBase> clipper_;
 };

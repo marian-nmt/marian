@@ -76,12 +76,7 @@ void AsyncGraphGroupDrop::pushGradients(Tensor newGrads,
           sparseShard->toDense(grads_[idx]);
 
           // optimize
-          if(scaleLearningRate_) {
-            shardOpt_[idx]->update(
-                params_[idx], grads_[idx], batch_words / avgBatchWords_);
-          } else {
-            shardOpt_[idx]->update(params_[idx], grads_[idx]);
-          }
+          shardOpt_[idx]->update(params_[idx], grads_[idx]);
 
           if(mvAvg_)
             updateAvgParams(

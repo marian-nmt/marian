@@ -592,11 +592,6 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
               graph->params()->grads());
       graph->getBackend()->synchronize();
 
-      // Sum up word counts if batch flexible learning rate is enabled
-      if(scaleLearningRate_) {
-        clientSummedWordCounts_[my_id] += batch->wordsTrg();
-      }
-
       // If communication channel ready, swap graph's pointers with secondary
       // buffers
       if(!clientCommOverlapBuffersFilled_[my_id]) {
@@ -609,11 +604,6 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
           // Copy summed grads to communication buffer
           clientCommOverlapBuffersGPU_[my_id]->copyFrom(
               clientSummedGradsGPU[my_id]);
-          // Commit summed word counts if batch-flexible-lr enabled
-          if(scaleLearningRate_) {
-            clientCommittedWordCounts_[my_id] = clientSummedWordCounts_[my_id];
-            clientSummedWordCounts_[my_id] = 0;
-          }
           // Notify communication thread that buffers have been read and filled
           clientCommOverlapBuffersFilled_[my_id] = true;
           cvClientCommOverlapBuffersFilled_[my_id].notify_one();
