@@ -30,7 +30,7 @@ public:
 
   // helper to apply a function to each graph or shard, in parallel threads
   typedef std::function<void(size_t, size_t /*shardBegin*/, size_t /*shardEnd*/)> ForeachFunc;
-  virtual void foreach(const ForeachFunc& func, bool parallel = true) const = 0;
+  virtual void foreach(const ForeachFunc& func, bool parallel = true, bool localShardsOnly = true) const = 0;
 
   // @TODO: all of these are const, no?
   virtual void scatterReduce() = 0; // reduce param gradients and scatter into gradient shards
@@ -84,7 +84,8 @@ public:
 
   ~DefaultCommunicator() override {}
 
-  void foreach(const ForeachFunc& func, bool parallel = true) const override {
+  void foreach(const ForeachFunc& func, bool parallel = true, bool /*localShardsOnly*/ = true) const override {
+    // note: localShardsOnly is ignored for DefaultCommunicator since it is local-only
     parallel &= graphs_.size() > 1;
 
     size_t totalSize = graphs_[0]->params()->vals()->size();

@@ -48,6 +48,17 @@ private:
       return localDeviceIndex;
   }
 
+  size_t ncclRankToMPIRank(size_t ncclRank) const {
+    if (mpi_)
+      return ncclRank / devices_.size();
+    else
+      return ncclRank;
+  }
+
+  size_t ncclRankToLocalDeviceIndex(size_t ncclRank) const {
+    return ncclRank % devices_.size();
+  }
+
   size_t numNcclRanks() const { // total number of devices across all MPI processes
     if (mpi_)
       return mpi_->numMPIProcesses() * devices_.size();
@@ -255,15 +266,17 @@ public:
     }
   }
 
-  void foreach(const ForeachFunc& func, bool parallel = true) const override {
+  void foreach(const ForeachFunc& func, bool parallel = true, bool localShardsOnly = true) const override {
     parallel &= graphs_.size() > 1;
-      
+
+    // This loop is dual-purpose:
+    //  - localShardsOnly=true:  iterate over all shards on *this* MPI process
+    //  - localShardsOnly=false: iterate over all shards on the entire NCCL setup
+    // These differ in multi-MPI-process configurations.
     std::vector<std::thread> group;
-    // iterate over all shards on *this* MPI process
-    size_t begin, end;
-    for(size_t i = 0; i < graphs_.size(); ++i) {
-      std::tie
-      (begin, end) = localShardRange(i);
+    for(size_t i = 0; i < localShardsOnly ? graphs_.size() : numNcclRanks(); ++i) {
+      size_t begin, end; std::tie
+      (begin, end) = localShardsOnly ? localShardRange(i) : ncclRankShardRange(i);
       //std::cerr << "[" << mpiIdStr() << "] foreach " << begin << " " << end << std::endl;
       size_t size = end-begin;
 
@@ -277,10 +290,9 @@ public:
   }
 
   void scatterReduce() override {
-    size_t begin, end;
     groupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
-      std::tie
+      size_t begin, end; std::tie
       (begin, end) = localShardRange(i);
       //std::cerr << "[" << mpiIdStr() << "] scatterReduce " << begin << " " << end << std::endl;
 
@@ -298,10 +310,9 @@ public:
   }
 
   void allGather() override {
-    size_t begin, end;
     groupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
-      std::tie
+      size_t begin, end; std::tie
       (begin, end) = localShardRange(i);
       //std::cerr << "[" << mpiIdStr() << "] allGather " << begin << " " << end << std::endl;
 
@@ -316,35 +327,64 @@ public:
     synchronizeAll();
   }
 
-  // swap paramShards MPI process[0].device[0] with a sharded set
+  // swap distributed paramShards with model params()
+  // It is assumed that all model params() on all devices and MPI processes are identical.
   // This is used for the smoothed parameters, and also for persisting optimizer state.
-  // @TODO: Make sure that this only goes into MPI process[0], and not all.
-  void swapParams(const std::vector<Tensor>& paramShards) override {
+  void swapParams(const std::vector<Tensor>& distributedParamShards) override {
     ABORT_IF(mpi_ && mpi_->numMPIProcesses() > 1, "swapParams() support for MPI is not yet implemented");
-    // Update all graphs with parameter shard
 
-    auto gather = [this, paramShards](size_t idx, size_t begin, size_t end) {
+    // get everything onto the CPU
+    auto distributedParams = gatherState([&](size_t localDeviceIndex) {
+      std::vector<float> tmp;
+      distributedParamShards[localDeviceIndex]->get(tmp);
+      return tmp;
+    });
+    // Now all MPI processes hold an identical copy of a concatenation of all distributedParamShards[] across local and remote devices.
+    std::vector<float> localParams;
+    graphs_[0]->params()->vals()->get(localParams);
+    // Now all MPI processes hold an identical copy of params() (remember, we assumed all devices hold the same params()).
+    ABORT_IF(distributedParams.size() != localParams.size(), "distributed sharded and local params have different size??");
+
+    // swap
+    std::swap(distributedParams, localParams);
+
+    // distribute it back
+    scatterState(distributedParams, [&](size_t localDeviceIndex,
+                                        std::vector<float>::const_iterator begin,
+                                        std::vector<float>::const_iterator end){
+      std::vector<float> tmp(begin, end);
+      distributedParamShards[localDeviceIndex]->set(tmp);
+    });
+    for (auto& graph : graphs_) // broadcast to every local graph
+      graph->params()->vals()->set(localParams);
+
+#if 0
+    // Update all graphs with parameter shard
+    // This function is called for each shard of MPI process[0] params().
+    auto gather = [this, distributedParamShards](size_t ncclRank, size_t begin, size_t end) {
       // copy parameter shard to each graph, apart from last graph
       for(int i = 0; i < graphs_.size() - 1; ++i) {
         auto subParam
             = graphs_[i]->params()->vals()->subtensor(begin, end-begin);
-        subParam->copyFrom(paramShards[idx]);
+        subParam->copyFrom(distributedParamShards[ncclRank]);
       }
 
       // back-up shard from last graph
       auto subParamLast
           = graphs_.back()->params()->vals()->subtensor(begin, end-begin);
-      paramShards[idx]->copyFrom(subParamLast);
+      distributedParamShards[ncclRank]->copyFrom(subParamLast);
 
       auto subParamFirst
           = graphs_.front()->params()->vals()->subtensor(begin, end-begin);
       subParamLast->copyFrom(subParamFirst);
     };
 
-    // execute for each shard
-    foreach(gather);
+    // execute for each shard across the entire NCCL configuration
+    foreach(gather, /*parallel=*/false, /*localShardsOnly=*/false);
+#endif
   }
 
+  // Distribute a single CPU-side vector to shards across multiple devices and MPI processes.
   // This is used when restoring optimizer state, which is sharded.
   void scatterState(const std::vector<float>& data, const OptimizerBase::ScatterStateSetFunc& setFn) const override {
     ABORT_IF(mpi_ && mpi_->numMPIProcesses() > 1, "scatterState() support for MPI is not yet implemented");
@@ -358,6 +398,7 @@ public:
     }
   }
 
+  // Collect shards across multiple devices and MPI processes in the NCCL configuration into a single CPU-side vector.
   // This is used when persisting optimizer state, which is sharded.
   std::vector<float> gatherState(const OptimizerBase::GatherStateGetFunc& getFn) const override {
     ABORT_IF(mpi_ && mpi_->numMPIProcesses() > 1, "gatherState() support for MPI is not yet implemented");
