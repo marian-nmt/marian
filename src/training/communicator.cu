@@ -274,7 +274,7 @@ public:
     //  - localShardsOnly=false: iterate over all shards on the entire NCCL setup
     // These differ in multi-MPI-process configurations.
     std::vector<std::thread> group;
-    for(size_t i = 0; i < localShardsOnly ? graphs_.size() : numNcclRanks(); ++i) {
+    for(size_t i = 0; i < (localShardsOnly ? graphs_.size() : numNcclRanks()); ++i) {
       size_t begin, end; std::tie
       (begin, end) = localShardsOnly ? localShardRange(i) : ncclRankShardRange(i);
       //std::cerr << "[" << mpiIdStr() << "] foreach " << begin << " " << end << std::endl;

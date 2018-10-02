@@ -39,8 +39,10 @@ void SyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) {
 
 void SyncGraphGroup::initialize(const Ptr<data::Batch>& exampleBatch) {
   // Initialize 0th graph with random weights in one forward step
-  THREAD_GUARD(builders_[0]->build(graphs_[0], exampleBatch);
-               graphs_[0]->forward(););
+  THREAD_GUARD({
+    builders_[0]->build(graphs_[0], exampleBatch);
+    graphs_[0]->forward();
+  });
 
   // Copy weights from 0th graph to all other graphs
   // to have equal weights across devices
@@ -286,6 +288,7 @@ void SyncGraphGroup::save(bool final) {
 
   std::string name = options_->get<std::string>("model");
 
+  mpi_->barrier();
   // save original (unsmoothed) parameters as well
   // @TODO: Check whether we are reloading the correct file (the unsmoothed one).
   if(mvAvg_ && paramsAvg_.size() > 0) {
@@ -315,9 +318,15 @@ void SyncGraphGroup::save(bool final) {
       scheduler_->save(name);
   }
 
-  if(mvAvg_ && paramsAvg_.size() > 0)
+  if(mvAvg_ && paramsAvg_.size() > 0) {
     // Switch back to the original parameters
     comm_->swapParams(paramsAvg_);
+#if 0 // temp for testing of saving
+    if (mpi_->myMPIRank() == 0) // for testing of swapParams
+      builders_[0]->save(graphs_[0], name + ".orig_after_swapping.npz", true);
+#endif
+  }
+  mpi_->barrier();
 
   shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_,
     [&](const OptimizerBase::GatherStateGetFunc& getFn) {
