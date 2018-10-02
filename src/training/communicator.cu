@@ -72,13 +72,17 @@ private:
   }
 
   // determine the index range (begin, end) of a shard
-  std::pair<size_t, size_t> shardRange(size_t localDeviceIndex) const {
+  std::pair<size_t, size_t> ncclRankShardRange(size_t rank) const {
     size_t size = shardSize();
-    size_t rank = myNcclRank(localDeviceIndex);
     size_t begin = rank * size;
     size_t end = begin + size;
     end = std::min(end, dataSize()); // clip last shard. Note: Presently this never happens, since shardSize() enforces uniform shard size.
     return{ begin, end };
+  }
+
+  // determine the index range (begin, end) of a shard
+  std::pair<size_t, size_t> localShardRange(size_t localDeviceIndex) const {
+    return ncclRankShardRange(myNcclRank(localDeviceIndex));
   }
 
   static std::string ncclVersionString() {
@@ -251,7 +255,7 @@ public:
     }
   }
 
-  void foreach(const std::function<void(size_t, size_t /*shardBegin*/, size_t /*shardEnd*/)>& func, bool parallel= true) const override {
+  void foreach(const ForeachFunc& func, bool parallel = true) const override {
     parallel &= graphs_.size() > 1;
       
     std::vector<std::thread> group;
@@ -259,7 +263,7 @@ public:
     size_t begin, end;
     for(size_t i = 0; i < graphs_.size(); ++i) {
       std::tie
-      (begin, end) = shardRange(i);
+      (begin, end) = localShardRange(i);
       //std::cerr << "[" << mpiIdStr() << "] foreach " << begin << " " << end << std::endl;
       size_t size = end-begin;
 
@@ -277,7 +281,7 @@ public:
     groupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
       std::tie
-      (begin, end) = shardRange(i);
+      (begin, end) = localShardRange(i);
       //std::cerr << "[" << mpiIdStr() << "] scatterReduce " << begin << " " << end << std::endl;
 
       auto grads = graphs_[i]->params()->grads();
@@ -298,7 +302,7 @@ public:
     groupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
       std::tie
-      (begin, end) = shardRange(i);
+      (begin, end) = localShardRange(i);
       //std::cerr << "[" << mpiIdStr() << "] allGather " << begin << " " << end << std::endl;
 
       auto vals = graphs_[i]->params()->vals();
