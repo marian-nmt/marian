@@ -15,7 +15,7 @@ private:
 
   Ptr<TrainingState> state_;
 
-  boost::timer::cpu_timer timer;
+  boost::timer::cpu_timer timer_, heartBeatTimer_;
 
   float getLearningRate(TrainingState& state) {
     float baselr = options_->get<float>("learn-rate");
@@ -219,8 +219,8 @@ public:
               state_->costSum / state_->costCount,
               state_->costCount,  // show cost as "av * count"
               state_->labelsTotal,
-              timer.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer.format(5, "%w")),
+              timer_.format(2, "%ws"),
+              state_->wordsDisp / std::stof(timer_.format(5, "%w")),
               state_->eta);
         } else {
           LOG(info,
@@ -233,8 +233,8 @@ public:
               state_->costSum / state_->costCount,
               state_->costCount,
               state_->labelsTotal,
-              timer.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer.format(5, "%w")));
+              timer_.format(2, "%ws"),
+              state_->wordsDisp / std::stof(timer_.format(5, "%w")));
         }
       } else {
         if(options_->get<bool>("lr-report")) {
@@ -245,8 +245,8 @@ public:
               state_->batches,
               state_->samplesEpoch,
               state_->costSum / state_->costCount,
-              timer.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer.format(5, "%w")),
+              timer_.format(2, "%ws"),
+              state_->wordsDisp / std::stof(timer_.format(5, "%w")),
               state_->eta);
         } else {
           LOG(info,
@@ -256,21 +256,24 @@ public:
               state_->batches,
               state_->samplesEpoch,
               state_->costSum / state_->costCount,
-              timer.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer.format(5, "%w")));
+              timer_.format(2, "%ws"),
+              state_->wordsDisp / std::stof(timer_.format(5, "%w")));
         }
       }
-      // progress heartbeat for MS-internal Philly compute cluster
-      if(getenv("PHILLY_JOB_ID"))  // this environment variable exists when
-                                   // running on the cluster
-        printf("PROGRESS: %.2f%%\nEVALERR: %.7f\n",
-               (double)state_->epochs,
-               state_->costSum / state_->costCount),
-            fflush(stdout);
-      timer.start();
+      timer_.start();
       state_->costSum = 0;
       state_->costCount = 0;
       state_->wordsDisp = 0;
+    }
+    // progress heartbeat for MS-internal Philly compute cluster
+    // This environment variable exists when running on the cluster.
+    if(getenv("PHILLY_JOB_ID") && heartBeatTimer_.elapsed().user / boost::timer::nanosecond_type(1000000000LL) >= 600) {
+      // boost::chrono::duration_cast<boost::chrono::seconds>(boost::chrono::nanoseconds(heartBeatTimer_.elapsed().user)).count();
+      printf("PROGRESS: %.2f%%\nEVALERR: %.7f\n", (double)state_->epochs, state_->costSum / state_->costCount), fflush(stdout);
+#if 1
+      LOG(info, "heart beat after {} updates", state_->batches);
+#endif
+      heartBeatTimer_.start();
     }
   }
 
