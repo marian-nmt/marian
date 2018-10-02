@@ -105,14 +105,6 @@ void createLoggers(const marian::Config* options) {
 
 #ifdef __unix__
   // catch segfaults
-  //void noinline segfault_sigaction(int signal, siginfo_t *si, void *arg)
-  //{
-  //    checkedLog("general", "critical", "Segmentation fault");
-  //    sigaction(signal, &prev_segfault_sigaction, NULL); // revert signal handler
-  //    marian::logCallStack(/*skipLevels=*/2); // skip segfault_sigaction() and one level up in the kernel
-  //    raise(signal); // re-raise so we terminate mostly as usual
-  //}
-
   static struct sigaction prev_segfault_sigaction;
   struct sigaction sa = { 0 };
   sigemptyset(&sa.sa_mask);

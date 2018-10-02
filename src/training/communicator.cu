@@ -6,6 +6,12 @@
 #include "nccl.h"
 #include "tensors/gpu/cuda_helpers.h"
 
+
+#include <signal.h> // HACK
+#include <sys/types.h>
+#include <sys/syscall.h>
+pid_t gettid(void){ return syscall(SYS_gettid); }
+
 namespace marian {
 
 class NCCLCommunicator : public ICommunicator {
@@ -126,13 +132,50 @@ public:
       //LOG(info, "[{}] after bcast", mpiIdStr());
     }
 
+      mpiBarrier();
+#define SIG_BAD 27 // SIGPROF
+    //LOG(info, "[{}] setting fake handlers", mpiIdStr());
+    //// FAKE SIGNAL HANDLERS
+    //size_t sig = SIG_BAD;//for (size_t sig = 0; sig < NSIG; sig++) {
+    //  struct sigaction sa = { 0 };
+    //  sigemptyset(&sa.sa_mask);
+    //  sa.sa_flags = SA_RESTART;
+    //  sa.sa_handler = [&](int signal){
+    //    char hostnamebuf[HOST_NAME_MAX + 1] = { 0 };
+    //    gethostname(hostnamebuf, sizeof(hostnamebuf));
+    //    LOG(info, "[{}:{}:{}] Signal {} caught--still??", hostnamebuf, getpid(), (int)gettid(), signal);
+    //  };
+    //  auto rc1 =
+    //  sigaction(sig, &sa, nullptr);
+    //  LOG(info, "[{}] {} -> {}", mpiIdStr(), sig, rc1);
+    //}
+    //LOG(info, "[{}] done setting fake handlers", mpiIdStr());
+
+      sigset_t newSigSet, oldSigSet;
+
+      pthread_sigmask(SIG_BLOCK, NULL, &newSigSet);
+      LOG(info, "[{}] pthread_sigmask original mask={}", mpiIdStr(), newSigSet.__val[0]);
+
+      sigemptyset(&newSigSet);
+      sigaddset(&newSigSet, SIG_BAD);
+      LOG(info, "[{}] pthread_sigmask mask={}", mpiIdStr(), newSigSet.__val[0]);
+      auto rc2 = pthread_sigmask(SIG_BLOCK, &newSigSet, &oldSigSet);
+      LOG(info, "[{}] pthread_sigmask rc={}", mpiIdStr(), rc2);
+      auto rc2b = sigprocmask(SIG_BLOCK, &newSigSet, &oldSigSet);
+      LOG(info, "[{}] pthread_sigmask rc={}", mpiIdStr(), rc2b);
+
+      pthread_sigmask(SIG_BLOCK, NULL, &newSigSet);
+      LOG(info, "[{}] pthread_sigmask resulting mask={}", mpiIdStr(), newSigSet.__val[0]);
+      sigprocmask(SIG_BLOCK, NULL, &newSigSet);
+      LOG(info, "[{}:{}] sigprocmask resulting mask={}", mpiIdStr(), (int)gettid(), newSigSet.__val[0]);
+
     // @BUGBUG: This fails randomly for 4, 32, and 64 GPUs. Seems stable for 8 and 16?
     //          Failed, NCCL error 2 'unhandled system error' - ncclGroupEnd()
     //          include/shm.h:26 NCCL WARN Unable to allocate shared memory (4263936 bytes) : Interrupted system call
       // if more than one device then initialize NCCL with group API
       //if (devices_.size() > 1) {
     for (size_t attempts = 1; ; attempts++) {
-      mpiBarrier();
+      //mpiBarrier();
       LOG(info, "[{}] groupStart", mpiIdStr());
       groupStart();
       for (int localDeviceIndex = 0; localDeviceIndex < devices_.size(); localDeviceIndex++) {
@@ -142,11 +185,13 @@ public:
         //LOG(info, "[{}] done ncclCommInitRank {} out of {}, GPU[{}]", mpiIdStr(), myNcclRank(localDeviceIndex), numNcclRanks(), localDeviceIndex);
       }
       //groupEnd();
-      LOG(info, "[{}] barrier before groupEnd", mpiIdStr());
-      mpiBarrier();
-      ::sleep(1); // where does this signal come from? Maybe waiting helps
+      //LOG(info, "[{}] barrier before groupEnd", mpiIdStr());
+      //mpiBarrier();
+      //::sleep(1); // where does this signal come from? Maybe waiting helps
+
       LOG(info, "[{}] groupEnd", mpiIdStr());
       auto rc = ncclGroupEnd(); // things happen here
+
       LOG(info, "[{}] groupEnd rc = {}", mpiIdStr(), rc);
       ::sleep(/*seconds=*/mpi_ ? mpi_->numMPIProcesses() : 0); // give all a chance to detect their error. This makes a difference.
       int err = (rc != ncclSuccess);
@@ -174,6 +219,9 @@ public:
       ::sleep(5); // sleeping
       LOG(info, "[{}] attempt {}", mpiIdStr(), attempts+1);
     }
+
+      auto rc3 = pthread_sigmask(SIG_SETMASK, &oldSigSet, NULL);
+      LOG(info, "[{}] pthread_sigmask reset rc={}", mpiIdStr(), rc3);
     LOG(info, "[{}] groupEnd succeeded", mpiIdStr());
     mpiBarrier();
       //}
