@@ -3,6 +3,7 @@ add_subdirectory(3rd_party)
 include_directories(.)
 include_directories(3rd_party)
 include_directories(3rd_party/SQLiteCpp/include)
+include_directories(3rd_party/sentencepiece)
 
 add_library(marian STATIC
   common/utils.cpp
