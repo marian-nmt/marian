@@ -244,8 +244,19 @@ public:
   }
 
   void backward(bool zero = true) {
-    ABORT_IF(topNodes_.size() > 1,
-             "There are more than one top most node for backward step");
+    if(topNodes_.size() > 1) {
+      LOG(critical, "There are more ({}) than one top most node for backward step:", topNodes_.size());
+      for(auto node : topNodes_) {
+        LOG(critical,
+            "\tType: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
+            node->type(),
+            node->shape(),
+            node->name(),
+            node->getId(),
+            node->hash());
+      }
+      ABORT("Aborting");
+    }
 
     params_->allocateBackward();
     if(zero)
