@@ -83,11 +83,11 @@ public:
     // log hostnames in order, and test
     // @TODO: We call ourselves here. Not sure if that is properly allowed.
     for (size_t r = 0; r < numMPIProcesses(); r++) {
-      this->barrier();
-      if (r == this->myMPIRank())
-        LOG(info, "[mpi] initialized as {}", this->idStr());
+      MPIWrapper::barrier();
+      if (r == MPIWrapper::myMPIRank())
+        LOG(info, "[mpi] initialized as {}", MPIWrapper::idStr());
     }
-    this->barrier();
+    MPIWrapper::barrier();
   }
 
   virtual size_t myMPIRank()        const override { return (size_t)my_rank_; };

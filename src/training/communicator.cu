@@ -75,6 +75,17 @@ private:
     return{ begin, end };
   }
 
+  static std::string ncclVersionString() {
+    int ncclVersion = 0;
+    ncclGetVersion(&ncclVersion);
+    return std::to_string(ncclVersion/1000) + "." + std::to_string((ncclVersion/100)%10) + "." + std::to_string(ncclVersion%100);
+  }
+
+  void mpiBarrier() const {
+    if (mpi_)
+      mpi_->barrier();
+  }
+
 public:
   // a NCCLCommunicator is bound to a set of graphs, one per GPU device
   // If MPI is used, then each MPI process has an instance of this class for its specific
@@ -86,14 +97,10 @@ public:
         streams_(graphs.size()),
         devices_(graphs.size()),
         mpi_(mpi) {
-    int ncclVersion = 0;
-    ncclGetVersion(&ncclVersion);
-    std::string ncclVersionString = std::to_string(ncclVersion/1000) + "." + std::to_string((ncclVersion/100)%10) + "." + std::to_string(ncclVersion%100);
-    if (mpi_)
-      LOG(info, "[comm] Using NCCL {} and MPI for GPU communication", ncclVersionString);
-    else
-      LOG(info, "[comm] Using NCCL {} for GPU communication", ncclVersionString);
+    mpiBarrier();
+    LOG(info, "[comm] Using NCCL {} {}for GPU communication", ncclVersionString(), mpi_ ? "and MPI " : "");
 
+    // set up our local devices
     for(int i = 0; i < graphs_.size(); ++i) {
       auto device = graphs_[i]->getBackend()->getDeviceId();
 
@@ -119,26 +126,13 @@ public:
       //LOG(info, "[{}] after bcast", mpiIdStr());
     }
 
-      if (mpi_) {
-        int err0 = 1;
-        LOG(info, "[{}] dummy allReduce {}", mpiIdStr(), err0);
-        mpi_->allReduce(&err0, &err0, 1, MPI_INT, MPI_SUM);
-        LOG(info, "[{}] allReduced to {}", mpiIdStr(), err0);
-
-        int err1 = 1;
-        int totalErr1 = err1;
-        LOG(info, "[{}] dummy allReduce1 {}", mpiIdStr(), err1);
-        mpi_->allReduce(&err1, &totalErr1, 1, MPI_INT, MPI_SUM);
-        LOG(info, "[{}] allReduced {} to {}", mpiIdStr(), err1, totalErr1);
-      }
-
     // @BUGBUG: This fails randomly for 4, 32, and 64 GPUs. Seems stable for 8 and 16?
     //          Failed, NCCL error 2 'unhandled system error' - ncclGroupEnd()
+    //          include/shm.h:26 NCCL WARN Unable to allocate shared memory (4263936 bytes) : Interrupted system call
       // if more than one device then initialize NCCL with group API
       //if (devices_.size() > 1) {
     for (size_t attempts = 1; ; attempts++) {
-      if (mpi_)
-        mpi_->barrier();
+      mpiBarrier();
       LOG(info, "[{}] groupStart", mpiIdStr());
       groupStart();
       for (int localDeviceIndex = 0; localDeviceIndex < devices_.size(); localDeviceIndex++) {
@@ -149,36 +143,39 @@ public:
       }
       //groupEnd();
       LOG(info, "[{}] barrier before groupEnd", mpiIdStr());
-      if (mpi_)
-        mpi_->barrier();
+      mpiBarrier();
+      ::sleep(1); // where does this signal come from? Maybe waiting helps
       LOG(info, "[{}] groupEnd", mpiIdStr());
       auto rc = ncclGroupEnd(); // things happen here
       LOG(info, "[{}] groupEnd rc = {}", mpiIdStr(), rc);
+      ::sleep(/*seconds=*/mpi_ ? mpi_->numMPIProcesses() : 0); // give all a chance to detect their error. This makes a difference.
       int err = (rc != ncclSuccess);
       int totalErr = err;
-      //if (mpi_) {
-      //  LOG(info, "[{}] allReduce {}", mpiIdStr(), err);
-      //  mpi_->allReduce(&err, &totalErr, 1, MPI_INT, MPI_SUM);
-      //  LOG(info, "[{}] groupEnd failure {} total failures {}", mpiIdStr(), err, totalErr);
-      //}
+      // determine the error situation across all workers
+      if (mpi_) {
+        LOG(info, "[{}] barrier before allReduce err", mpiIdStr());
+        mpiBarrier();
+        LOG(info, "[{}] allReduce err {}", mpiIdStr(), err);
+        mpi_->allReduce(&err, &totalErr, 1, MPI_INT, MPI_SUM);
+        LOG(info, "[{}] groupEnd failure {} total failures {}", mpiIdStr(), err, totalErr);
+      }
       if (totalErr == 0)
         break;
       LOG(info, "[{}] groupEnd failed: {}", mpiIdStr(), rc);
-      ABORT_IF(attempts == 1, "too many failed retries");
-      if (!err)
+      ::sleep(1); // wait some more before taking the process down
+      ABORT_IF(attempts == 5, "too many failed retries");
+      if (!err) // (does not seem to happen, since all fail)
         for (int localDeviceIndex = 0; localDeviceIndex < devices_.size(); localDeviceIndex++) {
           LOG(info, "[{}] cleaning up {}: rc was {}", mpiIdStr(), localDeviceIndex, rc);
           ncclCommDestroy(comms_[localDeviceIndex]);
         }
-      if (mpi_)
-        mpi_->barrier();
+      mpiBarrier();
       LOG(info, "[{}] sleeping", mpiIdStr());
       ::sleep(5); // sleeping
       LOG(info, "[{}] attempt {}", mpiIdStr(), attempts+1);
     }
     LOG(info, "[{}] groupEnd succeeded", mpiIdStr());
-    if (mpi_)
-      mpi_->barrier();
+    mpiBarrier();
       //}
       //// one device: no group API
       //else {
@@ -195,7 +192,7 @@ public:
     //  NCCLCHECK(ncclCommInitAll(comms_.data(), devices_.size(), devices_.data()));
     //  LOG(info, "done ncclCommInitAll");
     //}
-    LOG(info, "[{}] NCCLCommunicator constructed succesfully", mpiIdStr());
+    LOG(info, "[{}] NCCLCommunicator constructed successfully", mpiIdStr());
   }
 
   ~NCCLCommunicator() override {
