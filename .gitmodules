@@ -1,3 +1,6 @@
 [submodule "examples"]
 	path = examples
 	url = https://github.com/marian-nmt/marian-examples
+[submodule "src/3rd_party/sentencepiece"]
+	path = src/3rd_party/sentencepiece
+	url = https://github.com/marian-nmt/sentencepiece
