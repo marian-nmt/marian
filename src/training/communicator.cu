@@ -48,16 +48,16 @@ private:
       return localDeviceIndex;
   }
 
-  size_t ncclRankToMPIRank(size_t ncclRank) const {
-    if (mpi_)
-      return ncclRank / devices_.size();
-    else
-      return ncclRank;
-  }
+  //size_t ncclRankToMPIRank(size_t ncclRank) const {
+  //  if (mpi_)
+  //    return ncclRank / devices_.size();
+  //  else
+  //    return ncclRank;
+  //}
 
-  size_t ncclRankToLocalDeviceIndex(size_t ncclRank) const {
-    return ncclRank % devices_.size();
-  }
+  //size_t ncclRankToLocalDeviceIndex(size_t ncclRank) const {
+  //  return ncclRank % devices_.size();
+  //}
 
   size_t numNcclRanks() const { // total number of devices across all MPI processes
     if (mpi_)
@@ -331,18 +331,18 @@ public:
   // It is assumed that all model params() on all devices and MPI processes are identical.
   // This is used for the smoothed parameters, and also for persisting optimizer state.
   void swapParams(const std::vector<Tensor>& distributedParamShards) override {
-    ABORT_IF(mpi_ && mpi_->numMPIProcesses() > 1, "swapParams() support for MPI is not yet implemented");
-
     // get everything onto the CPU
     auto distributedParams = gatherState([&](size_t localDeviceIndex) {
       std::vector<float> tmp;
       distributedParamShards[localDeviceIndex]->get(tmp);
+      LOG(info, "[{}] swapParams.getFn({}) -> size {}, ({}, {}, {}, ...)", mpiIdStr(), localDeviceIndex, tmp.size(), tmp[0], tmp[1], tmp[2]);
       return tmp;
     });
     // Now all MPI processes hold an identical copy of a concatenation of all distributedParamShards[] across local and remote devices.
     std::vector<float> localParams;
     graphs_[0]->params()->vals()->get(localParams);
     // Now all MPI processes hold an identical copy of params() (remember, we assumed all devices hold the same params()).
+    LOG(info, "[{}] swapParams: distributedParams.size = {}, localParams.size = {}", mpiIdStr(), distributedParams.size(), localParams.size());
     ABORT_IF(distributedParams.size() != localParams.size(), "distributed sharded and local params have different size??");
 
     // swap
@@ -352,47 +352,24 @@ public:
     scatterState(distributedParams, [&](size_t localDeviceIndex,
                                         std::vector<float>::const_iterator begin,
                                         std::vector<float>::const_iterator end){
-      std::vector<float> tmp(begin, end);
-      distributedParamShards[localDeviceIndex]->set(tmp);
+      ABORT_IF(distributedParamShards[localDeviceIndex]->size() != end-begin, "swapParams size mismatch??"); // @TODO: move check to set()
+      distributedParamShards[localDeviceIndex]->set(std::vector<float>(begin, end)); // @TODO: directly pass iterators to set()
     });
     for (auto& graph : graphs_) // broadcast to every local graph
       graph->params()->vals()->set(localParams);
-
-#if 0
-    // Update all graphs with parameter shard
-    // This function is called for each shard of MPI process[0] params().
-    auto gather = [this, distributedParamShards](size_t ncclRank, size_t begin, size_t end) {
-      // copy parameter shard to each graph, apart from last graph
-      for(int i = 0; i < graphs_.size() - 1; ++i) {
-        auto subParam
-            = graphs_[i]->params()->vals()->subtensor(begin, end-begin);
-        subParam->copyFrom(distributedParamShards[ncclRank]);
-      }
-
-      // back-up shard from last graph
-      auto subParamLast
-          = graphs_.back()->params()->vals()->subtensor(begin, end-begin);
-      distributedParamShards[ncclRank]->copyFrom(subParamLast);
-
-      auto subParamFirst
-          = graphs_.front()->params()->vals()->subtensor(begin, end-begin);
-      subParamLast->copyFrom(subParamFirst);
-    };
-
-    // execute for each shard across the entire NCCL configuration
-    foreach(gather, /*parallel=*/false, /*localShardsOnly=*/false);
-#endif
   }
 
   // Distribute a single CPU-side vector to shards across multiple devices and MPI processes.
   // This is used when restoring optimizer state, which is sharded.
+  // It is assumed that all MPI processes get the same data() passed. Hence, no MPI transfers are needed here.
   void scatterState(const std::vector<float>& data, const OptimizerBase::ScatterStateSetFunc& setFn) const override {
-    ABORT_IF(mpi_ && mpi_->numMPIProcesses() > 1, "scatterState() support for MPI is not yet implemented");
     size_t dataSize = data.size();
-    size_t numLocalDevices = graphs_.size();
-    size_t shardSize = (dataSize + numLocalDevices - 1) / numLocalDevices;// (size_t)(ceil(dataSize / (float)numLocalDevices));
-    for(size_t localDeviceIndex = 0; localDeviceIndex < numLocalDevices; localDeviceIndex++) {
-      size_t begin = localDeviceIndex * shardSize;
+    size_t numShards = numNcclRanks();
+    size_t shardSize = (dataSize + numShards - 1) / numShards;
+    for(size_t localDeviceIndex = 0; localDeviceIndex < graphs_.size(); localDeviceIndex++) {
+      // We only slice out data that is kept in our MPI process. Remember that all MPI processes receive the same, complete data.
+      auto ncclRank = myNcclRank(localDeviceIndex);
+      size_t begin = ncclRank * shardSize;
       size_t end   = std::min(begin + shardSize, dataSize);
       setFn(localDeviceIndex, data.begin() + begin, data.begin() + end);
     }
@@ -401,94 +378,39 @@ public:
   // Collect shards across multiple devices and MPI processes in the NCCL configuration into a single CPU-side vector.
   // This is used when persisting optimizer state, which is sharded.
   std::vector<float> gatherState(const OptimizerBase::GatherStateGetFunc& getFn) const override {
-    ABORT_IF(mpi_ && mpi_->numMPIProcesses() > 1, "gatherState() support for MPI is not yet implemented");
-    std::vector<float> data; // we know the size here
-    for (size_t localDeviceIndex = 0; localDeviceIndex < graphs_.size(); localDeviceIndex++) {
-      std::vector<float> tmp = getFn(localDeviceIndex);
-      data.insert(data.end(), tmp.begin(), tmp.end());
+    std::vector<float> tmp; // (temp buffer used multiple times)
+    // first, concatenate over all local devices
+    std::vector<float> localData;
+    for(size_t localDeviceIndex = 0; localDeviceIndex < graphs_.size(); localDeviceIndex++) {
+      tmp = getFn(localDeviceIndex);
+      localData.insert(localData.end(), tmp.begin(), tmp.end());
     }
-    ABORT_IF(data.size() != graphs_[0]->params()->vals()->size(), "gathering wrong amount of data??");
+    LOG(info, "[{}] gatherState: localData.size = {}", mpiIdStr(), localData.size());
+    // second, concatenate across MPI processes
+    // Note that all local devices occupy consecutive ncclRanks in order.
+    std::vector<float> data;
+    if (mpi_) {
+      // push one rank's data at a time using broadcast
+      for(size_t mpiRank = 0; mpiRank < mpi_->numMPIProcesses(); mpiRank++) {
+        // broadcast mpiRank's localData to all
+        // first send the size
+        unsigned long long size = (mpiRank == mpi_->myMPIRank()) ? localData.size() : 0;
+        mpi_->bCast(&size, 1, MPI_UNSIGNED_LONG_LONG, /*root=*/mpiRank);
+        LOG(info, "[{}] gatherState: root = rank {}; broadcast size = {}", mpiIdStr(), mpiRank, size);
+        // then the data
+        auto& buf = (mpiRank == mpi_->myMPIRank()) ? localData : tmp;
+        buf.resize(size); // (this is a no-op for myRank)
+        ABORT_IF(mpiRank == mpi_->myMPIRank() && buf.size() != localData.size(), "??");
+        mpi_->bCast(buf.data(), buf.size(), MPI_FLOAT, /*root=*/mpiRank);
+        // now all ranks have the same slice: concatenate (we will end up with the same on all MPI processes)
+        data.insert(data.end(), buf.begin(), buf.end());
+      }
+    }
+    else { // no MPI: localData is the complete result already
+      data = std::move(localData);
+    }
     return data;
   }
-
-#if 0
-  void pushParams(std::vector<Tensor>& paramShards) override {
-    ABORT_IF(mpi_, "pushParams() support for MPI is not yet implemented");
-    // Copy paramter shard from i-th graph to shard paramShards[i].
-    // Graphs and shards with the same index live on the same device.
-
-    auto copy = [this, paramShards](size_t idx, size_t begin, size_t end) {
-      // copy parameter shard to each graph
-      auto subParam
-          = graphs_[idx]->params()->vals()->subtensor(begin, paramShards[idx]->size());
-      paramShards[idx]->copyFrom(subParam);
-    };
-
-    foreach(copy);
-  }
-
-  void pullParams(const std::vector<Tensor>& paramShards) override {
-    ABORT_IF(mpi_, "pullParams() support for MPI is not yet implemented");
-    // Update all graphs with parameter shard
-
-    auto gather = [this, paramShards](size_t idx, size_t begin, size_t end) {
-      // copy parameter shard to each graph
-      for(auto graph : graphs_) {
-        auto subParam
-            = graph->params()->vals()->subtensor(begin, paramShards[idx]->size());
-        subParam->copyFrom(paramShards[idx]);
-      }
-    };
-    foreach(gather);
-  }
-#endif
-
-  // Doesn't work yet with NCCL
-  // void pushParams(std::vector<Tensor>& params) {
-  //   // Copy paramter shard from i-th graph to shard params[i].
-  //   // Graphs and shards with the same index live on the same device.
-
-  //   int pos = 0;
-  //   for(int i = 0; i < graphs_.size(); ++i) {
-  //     auto subParam = graphs_[i]->params()->vals()->subtensor(pos,
-  //                                                             params[i]->size());
-  //     groupStart();
-  //     ncclBroadcast(subParam->data(),
-  //                   params[i]->data(),
-  //                   params[i]->size(),
-  //                   ncclFloat,
-  //                   0,
-  //                   comms_[i],
-  //                   streams_[i]);
-  //     groupEnd();
-  //     pos += params[i]->size();
-  //   }
-  //   synchronizeAll();
-  // }
-
-  // void pullParams(const std::vector<Tensor>& params) {
-  //   // Update all graphs with parameter shard
-
-  //   int totalSize = graphs_[0]->params()->vals()->size();
-  //   int shardSize = ceil(totalSize / (float)graphs_.size());
-
-  //   groupStart();
-  //   for(int i = 0; i < graphs_.size(); ++i) {
-
-  //     const void* sendbuff = (const void*)params[i]->data();
-  //     void* recvbuff = (void*)graphs_[i]->params()->vals()->data();
-
-  //     ncclAllGather(sendbuff,
-  //                   recvbuff,
-  //                   shardSize,
-  //                   ncclFloat,
-  //                   comms_[i],
-  //                   streams_[i]);
-  //   }
-  //   groupEnd();
-
-  //   synchronizeAll();
-  // }
 };
 
 }  // namespace marian

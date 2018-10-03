@@ -321,7 +321,7 @@ void SyncGraphGroup::save(bool final) {
   if(mvAvg_ && paramsAvg_.size() > 0) {
     // Switch back to the original parameters
     comm_->swapParams(paramsAvg_);
-#if 0 // temp for testing of saving
+#if 0 // temp for testing of saving distributed models
     if (mpi_->myMPIRank() == 0) // for testing of swapParams
       builders_[0]->save(graphs_[0], name + ".orig_after_swapping.npz", true);
 #endif
