@@ -15,7 +15,7 @@
 
 namespace marian {
 
-Vocab::Vocab() {}
+Vocab::Vocab() : processor_(new Processor()) {}
 
 size_t Vocab::operator[](const std::string& word) const {
   auto it = str2id_.find(word);
@@ -39,7 +39,7 @@ Words Vocab::operator()(const std::vector<std::string>& lineTokens,
 
 Words Vocab::operator()(const std::string& line, bool addEOS) const {
   std::vector<std::string> lineTokens;
-  utils::split(line, lineTokens, " ");
+  processor_->encode(line, lineTokens);
   return (*this)(lineTokens, addEOS);
 }
 
@@ -52,6 +52,17 @@ std::vector<std::string> Vocab::operator()(const Words& sentence,
     }
   }
   return decoded;
+}
+
+std::string Vocab::decode(const Words& sentence, bool reverse) const {
+  std::string line;
+  auto tokens = (*this)(sentence, true);
+  
+  if(reverse)
+    std::reverse(tokens.begin(), tokens.end());
+
+  processor_->decode(tokens, line);
+  return line;
 }
 
 const std::string& Vocab::operator[](size_t id) const {
