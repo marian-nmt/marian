@@ -321,7 +321,7 @@ void SyncGraphGroup::save(bool final) {
   if(mvAvg_ && paramsAvg_.size() > 0) {
     // Switch back to the original parameters
     comm_->swapParams(paramsAvg_);
-#if 0 // temp for testing of saving distributed models
+#if 1 // temp for testing of saving distributed models; must be identical to .orig.npz
     if (mpi_->myMPIRank() == 0) // for testing of swapParams
       builders_[0]->save(graphs_[0], name + ".orig_after_swapping.npz", true);
 #endif
@@ -331,7 +331,8 @@ void SyncGraphGroup::save(bool final) {
   shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_,
     [&](const OptimizerBase::GatherStateGetFunc& getFn) {
       return comm_->gatherState(getFn);
-    });
+    },
+    mpi_->myMPIRank() == 0);
 }
 
 }  // namespace marian

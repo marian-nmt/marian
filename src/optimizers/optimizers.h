@@ -77,7 +77,8 @@ public:
                     const ScatterStateFunc& /*scatterFn*/) {}
   virtual void save(const std::string& /*name*/,
                     const std::vector<Ptr<OptimizerBase>>& /*opts*/,
-                    const GatherStateFunc& /*gatherFn*/) {}
+                    const GatherStateFunc& /*gatherFn*/,
+                    bool /*isMainProcess*/ = true) {}
 
 protected:
   virtual void updateImpl(Tensor params, Tensor grads) = 0;
@@ -123,7 +124,8 @@ public:
             const ScatterStateFunc& scatterFn) override;
   void save(const std::string& name,
             const std::vector<Ptr<OptimizerBase>>& opts,
-            const GatherStateFunc& gatherFn) override;
+            const GatherStateFunc& gatherFn,
+            bool /*isMainProcess*/ = true) override;
 
 private:
   void updateImpl(Tensor params, Tensor grads) override;
@@ -155,7 +157,8 @@ public:
             const ScatterStateFunc& scatterFn) override;
   void save(const std::string& name,
             const std::vector<Ptr<OptimizerBase>>& opts,
-            const GatherStateFunc& gatherFn) override;
+            const GatherStateFunc& gatherFn,
+            bool isMainProcess = true) override;
 
 private:
   void updateImpl(Tensor params, Tensor grads) override;

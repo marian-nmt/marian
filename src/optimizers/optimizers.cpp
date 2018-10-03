@@ -84,16 +84,21 @@ void Adagrad::load(const std::string& name,
 
 void Adagrad::save(const std::string& name,
                    const std::vector<Ptr<OptimizerBase>>& opts,
-                   const GatherStateFunc& gatherFn) {
+                   const GatherStateFunc& gatherFn,
+                   bool isMainProcess /*= true*/) {
   LOG(info, "Saving Adagrad parameters to {}", name);
 
-  // fetch and concatenate state vectors from shards into a CPU-side vector
+  // fetch and concatenate state vectors from distributed shards into a CPU-side vector
   auto vGt = gatherFn([&](size_t localDeviceIndex) {
       auto opt = std::dynamic_pointer_cast<Adagrad>(opts[localDeviceIndex]);
       std::vector<float> data;
       opt->gt_->get(data);
       return data;
     });
+
+  // if not main MPI process then we have done our duty
+  if (!isMainProcess)
+    return;
 
   // save to file
   io::Item item;
@@ -206,10 +211,12 @@ void Adam::load(const std::string& name,
 
 void Adam::save(const std::string& name,
                 const std::vector<Ptr<OptimizerBase>>& opts,
-                const GatherStateFunc& gatherFn) {
-  LOG(info, "Saving Adam parameters to {}", name);
+                const GatherStateFunc& gatherFn,
+                bool isMainProcess /*= true*/) {
+  if (isMainProcess)
+    LOG(info, "Saving Adam parameters to {}", name);
 
-  // fetch and concatenate state vectors from shards into a CPU-side vector
+  // fetch and concatenate state vectors from distributed shards into a CPU-side vector
   auto vMt = gatherFn([&](size_t localDeviceIndex) {
     auto opt = std::dynamic_pointer_cast<Adam>(opts[localDeviceIndex]);
     std::vector<float> data;
@@ -223,6 +230,10 @@ void Adam::save(const std::string& name,
     opt->vt_->get(data);
     return data;
   });
+
+  // if not main MPI process then we have done our duty
+  if (!isMainProcess)
+      return;
 
   // save to file
   io::Item itemMt;
