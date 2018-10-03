@@ -328,13 +328,6 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<bool>("--lr-warmup-at-reload",
      "Repeat warmup after interrupted training");
 
-  cli.add<bool>("--batch-flexible-lr",
-      "Scales the learning rate based on the number of words in a mini-batch");
-  cli.add<double>("--batch-normal-words",
-      "Set number of words per batch that the learning rate corresponds to. "
-      "The option is only active when batch-flexible-lr is on",
-      1920.0);
-
   cli.add<double>("--label-smoothing",
      "Epsilon for label smoothing (0 to disable)");
   cli.add<double>("--clip-norm",

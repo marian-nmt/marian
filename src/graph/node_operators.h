@@ -9,8 +9,9 @@ namespace marian {
 struct ConstantNode : public Node {
   ConstantNode(Ptr<ExpressionGraph> graph,
                const Shape& shape,
-               const NodeInitializer& init)
-      : Node(graph, shape),  // TODO: add value_type
+               const NodeInitializer& init,
+               Type value_type = Type::float32)
+      : Node(graph, shape, value_type),
         init_(new NodeInitializer(init)),
         initialized_(false) {
     setTrainable(false);

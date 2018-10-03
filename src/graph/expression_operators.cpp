@@ -55,8 +55,15 @@ Expr operator-(Expr a) {
   return Expression<NegNodeOp>(a);
 };
 
+Expr softmax(Expr a) {
+  return Expression<SoftmaxNodeOp>(a);
+}
+
+// @TODO: maybe get rid of this entirely to not obfuscate, what's going on inside.
+// @TODO: switch to log-masking everywhere?
 Expr softmax(Expr a, Expr mask) {
-  return Expression<SoftmaxNodeOp>(a, mask);
+  auto logMask = (1 - mask) * -99999999.f;
+  return softmax(a + logMask);
 }
 
 Expr logsoftmax(Expr a) {
@@ -198,16 +205,32 @@ Expr flatten_2d(Expr a) {
   return Expression<ReshapeNodeOp>(a, shape);
 }
 
-Expr rows(Expr a, const std::vector<size_t>& indices) {
+Expr rows(Expr a, Expr indices) {
   return Expression<RowsNodeOp>(a, indices);
 }
 
-Expr cols(Expr a, const std::vector<size_t>& indices) {
+Expr rows(Expr a, const std::vector<IndexType>& indices) {
+  auto indexExpr = a->graph()->indices(indices);
+  return rows(a, indexExpr);
+}
+
+
+Expr cols(Expr a, Expr indices) {
   return Expression<ColsNodeOp>(a, indices);
 }
 
-Expr select(Expr a, int axis, const std::vector<size_t>& indices) {
-  return Expression<SelectNodeOp>(a, axis, indices);
+Expr cols(Expr a, const std::vector<IndexType>& indices) {
+  auto indexExpr = a->graph()->indices(indices);
+  return cols(a, indexExpr);
+}
+
+Expr select(Expr a, Expr indices, int axis) {
+  return Expression<SelectNodeOp>(a, indices, axis);
+}
+
+Expr select(Expr a, const std::vector<IndexType>& indices, int axis) {
+  auto indexExpr = a->graph()->indices(indices);
+  return select(a, indexExpr, axis);
 }
 
 Expr sum(Expr a, int ax) {
@@ -371,14 +394,8 @@ Expr step(Expr a, int step, int axis) {
   return Expression<StepNodeOp>(a, step, axis);
 }
 
-Expr cross_entropy(Expr a, Expr b) {
-  // auto sOrig = a->shape();
-  // auto sOut = a->shape();
-  // Shape sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
-  // sOut.set(1, 1);
-  // return reshape(Expression<CrossEntropyNodeOp>(reshape(a, sTemp), b), sOut);
-
-  return Expression<CrossEntropyNodeOp>(a, b);
+Expr cross_entropy(Expr a, Expr indices) {
+  return Expression<CrossEntropyNodeOp>(a, indices);
 }
 
 Expr plus(const std::vector<Expr>&) {

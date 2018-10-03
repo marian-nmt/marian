@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/definitions.h"
+
 #include <cstdint>
 #include <cstdlib>
 #include <string>
@@ -8,7 +10,10 @@
 
 namespace marian {
 
-typedef size_t Word;
+// Type for all vocabulary items, based on IndexType
+typedef IndexType Word;
+
+// Sequence of vocabulary items
 typedef std::vector<Word> Words;
 
 // EOS and UNK are placed in these positions in Marian-generated vocabs

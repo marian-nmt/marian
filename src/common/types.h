@@ -108,4 +108,15 @@ template <> inline std::string request<uint64_t>() { return "uint64"; }
 template <> inline std::string request<float>()  { return "float32"; }
 template <> inline std::string request<double>() { return "float64"; }
 // clang-format on
+
+
+// Abort if given C++ does not correspond to runtime type
+template <typename T>
+void matchOrAbort(Type type) {
+  ABORT_IF(!matchType<T>(type),
+           "Requested type ({}) and underlying type ({}) do not match",
+           request<T>(),
+           type);
+}
+
 }  // namespace marian

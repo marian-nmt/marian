@@ -458,6 +458,113 @@ struct ScalarProductNodeOp : public NaryNodeOp {
   int axis_;
 };
 
+struct RowsNodeOp : public NaryNodeOp {
+  RowsNodeOp(Expr a, Expr indices)
+      : NaryNodeOp({a, indices}, newShape(a, indices->shape().elements())) {
+      matchOrAbort<IndexType>(indices->value_type());
+  }
+
+  NodeOps forwardOps() override {
+    return {NodeOp(
+        CopyRows(val_, child(0)->val(), child(1)->val()))};
+  }
+
+  NodeOps backwardOps() override {
+    return {NodeOp(PasteRows(child(0)->grad(), adj_, child(1)->val()))};
+  }
+
+  template <class... Args>
+  Shape newShape(Expr a, size_t num) {
+    Shape shape = a->shape();
+    ABORT_IF(shape.size() != 2,
+             "rows operator can only be used with 2-dimensional tensors");
+    shape.set(0, num);
+    return shape;
+  }
+
+  const std::string type() override { return "rows"; }
+
+  const std::string color() override { return "orange"; }
+};
+
+struct SelectNodeOp : public NaryNodeOp {
+  SelectNodeOp(Expr a, Expr indices, int axis)
+      : NaryNodeOp({a, indices}, newShape(a, axis, indices->shape().elements())),
+        axis_{a->shape().axis(axis)} {
+    matchOrAbort<IndexType>(indices->value_type());
+  }
+
+  NodeOps forwardOps() override {
+    return {NodeOp(
+        Select(val_, child(0)->val(), child(1)->val(), axis_))};
+  }
+
+  NodeOps backwardOps() override {
+    return {NodeOp(
+        Insert(child(0)->grad(), adj_, child(1)->val(), axis_))};
+  }
+
+  Shape newShape(Expr a, int axis, size_t num) {
+    Shape shape = a->shape();
+    axis = shape.axis(axis);
+    shape.set(axis, num);
+    return shape;
+  }
+
+  const std::string type() override { return "select"; }
+
+  const std::string color() override { return "orange"; }
+
+  virtual size_t hash() override {
+    if(!hash_) {
+      size_t seed = NaryNodeOp::hash();
+      util::hash_combine(seed, axis_);
+      hash_ = seed;
+    }
+    return hash_;
+  }
+
+  virtual bool equal(Expr node) override {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    Ptr<SelectNodeOp> cnode = std::dynamic_pointer_cast<SelectNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(axis_ != cnode->axis_)
+      return false;
+    return true;
+  }
+
+  int axis_;
+};
+
+struct ColsNodeOp : public NaryNodeOp {
+  ColsNodeOp(Expr a, Expr indices)
+    : NaryNodeOp({a, indices}, newShape(a, indices->shape().elements())) {
+    matchOrAbort<IndexType>(indices->value_type());
+  }
+
+  NodeOps forwardOps() override {
+    return {NodeOp(CopyCols(val_, child(0)->val(), child(1)->val()))};
+  }
+
+  NodeOps backwardOps() override {
+    return {NodeOp(PasteCols(child(0)->grad(), adj_, child(1)->val()))};
+  }
+
+  template <class... Args>
+  Shape newShape(Expr a, size_t num) {
+    Shape shape = a->shape();
+    shape.set(1, num);
+    return shape;
+  }
+
+  const std::string type() override { return "cols"; }
+
+  const std::string color() override { return "orange"; }
+};
+
+
 struct ElementBinaryNodeOp : public NaryNodeOp {
   ElementBinaryNodeOp(Expr a, Expr b) : NaryNodeOp({a, b}, newShape(a, b)) {}
 
@@ -661,7 +768,9 @@ struct MinimumNodeOp : public ElementBinaryNodeOp {
 
 // Cross-entropy node. It computes -b*log(softmax(a)), summing rowwise.
 struct CrossEntropyNodeOp : public NaryNodeOp {
-  CrossEntropyNodeOp(Expr a, Expr b) : NaryNodeOp({a, b}, newShape(a)) {}
+  CrossEntropyNodeOp(Expr a, Expr indices) : NaryNodeOp({a, indices}, newShape(a)) {
+    matchOrAbort<IndexType>(indices->value_type());
+  }
 
   Shape newShape(Expr a) {
     Shape shape1 = a->shape();
