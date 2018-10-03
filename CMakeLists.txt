@@ -22,6 +22,9 @@ include(GetVersionFromFile)
 message(STATUS "Project name: ${PROJECT_NAME}")
 message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 
+execute_process(COMMAND git submodule update --init --recursive --no-fetch
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
 # Set compilation flags
 if(MSVC)
   set(CMAKE_CXX_FLAGS           "/EHsc /DWIN32 /D_WINDOWS /DUNICODE /D_UNICODE /D_CRT_NONSTDC_NO_WARNINGS /D_CRT_SECURE_NO_WARNINGS")
@@ -218,5 +221,3 @@ if(DOXYGEN_FOUND)
   )
 endif(DOXYGEN_FOUND)
 
-execute_process(COMMAND git submodule update --init --recursive --no-fetch
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
