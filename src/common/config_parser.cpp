@@ -28,6 +28,7 @@ const std::set<std::string> PATHS = {"model",
                                      "models",
                                      "train-sets",
                                      "vocabs",
+                                     "sentencepiece-models",
                                      "embedding-vectors",
                                      "valid-sets",
                                      "valid-script-path",
@@ -240,6 +241,11 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
       "If these files do not exist they are created");
+
+  cli.add_nondefault<std::vector<std::string>>("--sentencepiece-models",
+      "Paths to SentencePiece models");
+  cli.add_nondefault<std::vector<float>>("--sentencepiece-alphas",
+      "Alphas for SentencePiece model sampling");
 
   // scheduling options
   cli.add<size_t>("--after-epochs,-e",

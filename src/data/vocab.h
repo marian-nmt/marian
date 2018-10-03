@@ -32,17 +32,18 @@ private:
 public:
   SentencePiece(const std::string& spmModel, float alpha = 0) 
     : spm_(new sentencepiece::SentencePieceProcessor()), alpha_(alpha) {
+    LOG(info, "Loading SentencePiece model from {} with alpha {}", spmModel, alpha);
     spm_->Load(spmModel);
   }
 
-   void encode(const std::string& line, std::vector<std::string>& pieces) const override {
+  void encode(const std::string& line, std::vector<std::string>& pieces) const override {
     if(alpha_ != 0)
       spm_->SampleEncode(line, -1, alpha_, &pieces);
     else
       spm_->Encode(line, &pieces);
   }
 
-   void decode(const std::vector<std::string>& pieces, std::string& line) const override {
+  void decode(const std::vector<std::string>& pieces, std::string& line) const override {
     spm_->Decode(pieces, &line);
   }
 };
