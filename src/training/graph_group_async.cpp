@@ -71,12 +71,7 @@ void AsyncGraphGroup::pushGradients(Tensor newGrads,
           std::lock_guard<std::mutex> guard(shardSync_[idx]);
           grads_[idx]->copyFrom(newGrads->subtensor(pos, (int)grads_[idx]->size()));
 
-          if(scaleLearningRate_) {
-            shardOpt_[idx]->update(
-                params_[idx], grads_[idx], batch_words / avgBatchWords_);
-          } else {
-            shardOpt_[idx]->update(params_[idx], grads_[idx]);
-          }
+          shardOpt_[idx]->update(params_[idx], grads_[idx]);
 
           if(mvAvg_)
             updateAvgParams(

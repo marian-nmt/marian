@@ -14,6 +14,12 @@
 
 namespace marian {
 
+// Type to be used for all index types, e.g. for integer tensors for rows operator.
+// size_t would seem to be the natural choice of over uint32_t but has usually 8 bytes
+// while uint32_t has 4 bytes. This type will be often exchanged between CPU and GPU.
+// This minimizes bandwith at little cost.
+typedef uint32_t IndexType;
+
 template <class T>
 using Ptr = std::shared_ptr<T>;
 

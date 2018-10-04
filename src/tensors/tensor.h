@@ -104,7 +104,7 @@ public:
   }
 
   template <typename T>
-  float get(size_t i) {
+  T get(size_t i) {
     ABORT_IF(!matchType<T>(type_),
              "Requested type ({}) and underlying type ({}) do not match",
              request<T>(),

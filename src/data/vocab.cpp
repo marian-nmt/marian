@@ -54,7 +54,7 @@ std::vector<std::string> Vocab::operator()(const Words& sentence,
   return decoded;
 }
 
-const std::string& Vocab::operator[](size_t id) const {
+const std::string& Vocab::operator[](Word id) const {
   ABORT_IF(id >= id2str_.size(), "Unknown word id: ", id);
   return id2str_[id];
 }

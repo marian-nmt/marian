@@ -271,27 +271,24 @@ void TransposeNDGrad(Tensor out, Tensor in, const std::vector<int>& vAxis) {
     TransposeGeneric<true>(out, in, vAxis);
 }
 
-void Softmax(Tensor out_, Tensor in_, Tensor mask_) {
-  float* out = out_->data();
-  const float* in = in_->data();
-  const float* mask = mask_ ? mask_->data() : nullptr;
+void Softmax(Tensor out, Tensor in) {
+  float* pOut = out->data();
+  const float* pIn = in->data();
 
-  int rows = out_->shape().elements() / out_->shape().back();
-  int cols = out_->shape().back();
+  int rows = out->shape().elements() / out->shape().back();
+  int cols = out->shape().back();
 
   for(int j = 0; j < rows; ++j) {
-    float* so = out + j * cols;
-    const float* sp = in + j * cols;
-    const float* mp = mask ? mask + j * cols : nullptr;
+    float* so = pOut + j * cols;
+    const float* sp = pIn + j * cols;
 
     float max = sp[0];
-    for(int i = 1; i < cols; ++i) {
+    for(int i = 1; i < cols; ++i)
       max = std::max(max, sp[i]);
-    }
 
     float sum = 0.f;
     for(int i = 0; i < cols; ++i) {
-      float ex = !mask || mp[i] ? expf(sp[i] - max) : 0.f;
+      float ex = expf(sp[i] - max);
       so[i] = ex;
       sum += ex;
     }
@@ -302,16 +299,16 @@ void Softmax(Tensor out_, Tensor in_, Tensor mask_) {
   }
 }
 
-void LogSoftmax(Tensor out_, Tensor in_) {
-  float* out = out_->data();
-  const float* in = in_->data();
+void LogSoftmax(Tensor out, Tensor in) {
+  float* pOut = out->data();
+  const float* pIn = in->data();
 
-  int rows = out_->shape().elements() / out_->shape().back();
-  int cols = out_->shape().back();
+  int rows = out->shape().elements() / out->shape().back();
+  int cols = out->shape().back();
 
   for(int j = 0; j < rows; ++j) {
-    float* so = out + j * cols;
-    const float* sp = in + j * cols;
+    float* so = pOut + j * cols;
+    const float* sp = pIn + j * cols;
 
     float max = sp[0];
     for(int i = 1; i < cols; ++i) {
@@ -332,6 +329,7 @@ void LogSoftmax(Tensor out_, Tensor in_) {
   }
 }
 
+// @TODO: Remove remaining underscores in CPU kernels
 void SoftmaxGrad(Tensor grad_, Tensor adj_, Tensor val_) {
   int rows = grad_->shape().elements() / grad_->shape()[-1];
   int cols = grad_->shape()[-1];
@@ -382,10 +380,12 @@ void LogSoftmaxGrad(Tensor grad_, Tensor adj_, Tensor val_) {
 
 void CopyRows(Tensor out_,
               const Tensor in_,
-              const std::vector<size_t>& indices,
-              Ptr<Allocator> allocator) {
-  size_t cols = in_->shape()[1];
-  size_t rows = indices.size();
+              const Tensor indices) {
+
+  matchOrAbort<IndexType>(indices->type());
+
+  size_t cols = in_->shape()[-1];
+  size_t rows = indices->size();
 
   float* out = out_->data();
   const float* in = in_->data();
@@ -393,7 +393,10 @@ void CopyRows(Tensor out_,
 #pragma omp parallel for
   for(size_t j = 0; j < rows; ++j) {
     size_t dst = j;
-    size_t src = indices[j];
+
+    // @TODO: consider moving type checking to this function 
+    // instead of matchOrAbort above
+    size_t src = (size_t)indices->data<IndexType>()[j];
 
     float* rowOut = out + dst * cols;
     const float* rowIn = in + src * cols;
@@ -404,15 +407,18 @@ void CopyRows(Tensor out_,
 
 void PasteRows(Tensor out_,
                const Tensor in_,
-               const std::vector<size_t>& indices) {
+               const Tensor indices) {
+
+  matchOrAbort<IndexType>(indices->type());
+
   size_t cols = in_->shape()[-1];
-  size_t rows = indices.size();
+  size_t rows = indices->size();
 
   float* out = out_->data();
   const float* in = in_->data();
 
   for(size_t j = 0; j < rows; ++j) {
-    size_t dst = indices[j];  // not a permutation - may alias, unlike PasteCols
+    size_t dst = indices->data<IndexType>()[j];  // not a permutation - may alias, unlike PasteCols
     size_t src = j;
 
     float* rowOut = out + dst * cols;
@@ -426,10 +432,13 @@ void PasteRows(Tensor out_,
 
 void CopyCols(Tensor out_,
               const Tensor in_,
-              const std::vector<size_t>& indices) {
+              const Tensor indices) {
+
+  matchOrAbort<IndexType>(indices->type());
+
   size_t rows = in_->shape().elements() / in_->shape()[-1];
   size_t colsIn = in_->shape()[-1];
-  size_t colsOut = indices.size();
+  size_t colsOut = indices->size();
 
   float* out = out_->data();
   const float* in = in_->data();
@@ -440,17 +449,20 @@ void CopyCols(Tensor out_,
     float* rowOut = out + j * colsOut;
 
     for(size_t i = 0; i < colsOut; ++i) {
-      rowOut[i] = rowIn[indices[i]];
+      rowOut[i] = rowIn[indices->data<IndexType>()[i]];
     }
   }
 }
 
 void PasteCols(Tensor out_,
                const Tensor in_,
-               const std::vector<size_t>& indices) {
+               const Tensor indices) {
+
+  matchOrAbort<IndexType>(indices->type());
+
   size_t rows = out_->shape().elements() / out_->shape()[-1];
   size_t colsOut = out_->shape()[-1];
-  size_t colsIn = indices.size();
+  size_t colsIn = indices->size();
 
   float* out = out_->data();
   const float* in = in_->data();
@@ -463,27 +475,29 @@ void PasteCols(Tensor out_,
     float* rowOut = out + j * colsOut;
 
     for(size_t i = 0; i < colsIn; ++i) {
-      rowOut[indices[i]] += rowIn[i];
+      rowOut[indices->data<IndexType>()[i]] += rowIn[i];
     }
   }
 }
 
 void Select(Tensor out,
             const Tensor in,
-            int axis,
-            const std::vector<size_t>& indices,
-            Ptr<Allocator> allocator) {
-  
+            const Tensor indices,
+            int axis) {
+
+  matchOrAbort<IndexType>(indices->type());
+
   // @TODO: make this efficient
   functional::Shape outShape = out->shape();
   functional::Shape inShape = in->shape();
   int length = outShape.elements();
-  
-  functional::Array<int, functional::Shape::size()> dims;
 
+  functional::Array<int, functional::Shape::size()> dims;
+  int axisCPU = axis + functional::Shape::size() - out->shape().size();
+  
   for(int index = 0; index < length; ++index) {
     outShape.dims(index, dims);
-    dims[axis] = (int)indices[dims[axis]];
+    dims[axisCPU] = (int)indices->data<IndexType>()[dims[axisCPU]];
     int inIndex = inShape.index(dims);
     out->data()[index] = in->data()[inIndex];
   }
@@ -492,20 +506,22 @@ void Select(Tensor out,
 
 void Insert(Tensor out,
             const Tensor in,
-            int axis,
-            const std::vector<size_t>& indices,
-            Ptr<Allocator> allocator) {
+            const Tensor indices,
+            int axis) {
+
+  matchOrAbort<IndexType>(indices->type());
 
   // @TODO: make this efficient
   functional::Shape outShape = out->shape();
   functional::Shape inShape = in->shape();
-  
+
   int length = inShape.elements();
   functional::Array<int, functional::Shape::size()> dims;
+  int axisCPU = axis + functional::Shape::size() - out->shape().size();
 
   for(int index = 0; index < length; ++index) {
     inShape.dims(index, dims);
-    dims[axis] = (int)indices[dims[axis]];
+    dims[axisCPU] = (int)indices->data<IndexType>()[dims[axisCPU]];
     int outIndex = outShape.index(dims);
     out->data()[outIndex] += in->data()[index];
   }
@@ -646,11 +662,12 @@ void GRUFastBackward(std::vector<Tensor> outputs,
 }
 
 void CrossEntropyPick(Tensor out_, Tensor in_, Tensor pick_) {
+  matchOrAbort<IndexType>(pick_->type());
+
   float* out = out_->data();
   // Shape& outShape = out_->shape();
   const float* in = in_->data();
   Shape& inShape = in_->shape();
-  float* pick = pick_->data();
 
   int rows = inShape.elements() / inShape.back();
   int cols = inShape.back();
@@ -671,7 +688,7 @@ void CrossEntropyPick(Tensor out_, Tensor in_, Tensor pick_) {
     }
 
     // cross-entropy
-    int i = (int)pick[j];
+    int i = (int)pick_->data<IndexType>()[j];
     // This appears to be safe i.e. that i >= 0 && i < cols is known
     out[j] = std::log(sum) - sp[i] + max;
   }
@@ -681,11 +698,12 @@ void CrossEntropyPickBackward(Tensor out_,
                               Tensor adj_,
                               Tensor a,
                               Tensor pick_) {
+
+  matchOrAbort<IndexType>(pick_->type());
   float* out = out_->data();
   Shape& outShape = out_->shape();
   const float* adj = adj_->data();
   const float* in = a->data();
-  const float* pick = pick_->data();
 
   int rows = outShape.elements() / outShape.back();
   int cols = outShape.back();
@@ -707,7 +725,7 @@ void CrossEntropyPickBackward(Tensor out_,
 
     // cross-entropy
     for(int i = 0; i < cols; ++i) {
-      float sub = (float)(i == (int)pick[j]);
+      float sub = (float)(i == (int)pick_->data<IndexType>()[j]);
       so[i] += adj[j] * (std::exp(sp[i] - max) / sum - sub);
     }
   }

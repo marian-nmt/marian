@@ -153,7 +153,7 @@ public:
     }
     return newBeams;
   }
-  
+
   // main decoding function
   Histories search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
     int dimBatch = (int)batch->size();
@@ -203,8 +203,8 @@ public:
       //**********************************************************************
       // create constant containing previous path scores for current beam
       // also create mapping of hyp indices, which are not 1:1 if sentences complete
-      std::vector<size_t> hypIndices; // [beamIndex * activeBatchSize + batchIndex] backpointers, concatenated over beam positions. Used for reordering hypotheses
-      std::vector<size_t> embIndices;
+      std::vector<IndexType> hypIndices; // [beamIndex * activeBatchSize + batchIndex] backpointers, concatenated over beam positions. Used for reordering hypotheses
+      std::vector<IndexType> embIndices;
       Expr prevPathScores; // [beam, 1, 1, 1]
       if(first) {
         // no scores yet

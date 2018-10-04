@@ -105,15 +105,24 @@ Expr atleast_nd(Expr a, size_t dims);
 Expr flatten(Expr a);
 Expr flatten_2d(Expr a);
 
-Expr rows(Expr a, const std::vector<size_t>& indices);
-Expr cols(Expr a, const std::vector<size_t>& indices);
-Expr select(Expr a, int axis, const std::vector<size_t>& indices);
+Expr rows(Expr a, Expr indices);
+Expr rows(Expr a, const std::vector<IndexType>& indices);
+
+Expr cols(Expr a, Expr indices);
+Expr cols(Expr a, const std::vector<IndexType>& indices);
+
+Expr select(Expr a, Expr indices, int axis);
+Expr select(Expr a, const std::vector<IndexType>& indices, int axis);
 
 /*********************************************************/
 
 Expr sum(Expr a, int ax = 0);
 
-Expr softmax(Expr a, Expr mask = nullptr);
+Expr softmax(Expr a);
+
+// @TODO: maybe get rid of this entirely to not obfuscate, what's going on inside.
+// @TODO: switch to log-masking everywhere?
+Expr softmax(Expr a, Expr zeroOneMask);
 
 Expr logsoftmax(Expr a);
 
