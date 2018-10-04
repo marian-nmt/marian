@@ -271,16 +271,16 @@ void TransposeNDGrad(Tensor out, Tensor in, const std::vector<int>& vAxis) {
     TransposeGeneric<true>(out, in, vAxis);
 }
 
-void Softmax(Tensor out_, Tensor in_) {
-  float* out = out_->data();
-  const float* in = in_->data();
+void Softmax(Tensor out, Tensor in) {
+  float* pOut = out->data();
+  const float* pIn = in->data();
 
-  int rows = out_->shape().elements() / out_->shape().back();
-  int cols = out_->shape().back();
+  int rows = out->shape().elements() / out->shape().back();
+  int cols = out->shape().back();
 
   for(int j = 0; j < rows; ++j) {
-    float* so = out + j * cols;
-    const float* sp = in + j * cols;
+    float* so = pOut + j * cols;
+    const float* sp = pIn + j * cols;
 
     float max = sp[0];
     for(int i = 1; i < cols; ++i)
@@ -299,16 +299,16 @@ void Softmax(Tensor out_, Tensor in_) {
   }
 }
 
-void LogSoftmax(Tensor out_, Tensor in_) {
-  float* out = out_->data();
-  const float* in = in_->data();
+void LogSoftmax(Tensor out, Tensor in) {
+  float* pOut = out->data();
+  const float* pIn = in->data();
 
-  int rows = out_->shape().elements() / out_->shape().back();
-  int cols = out_->shape().back();
+  int rows = out->shape().elements() / out->shape().back();
+  int cols = out->shape().back();
 
   for(int j = 0; j < rows; ++j) {
-    float* so = out + j * cols;
-    const float* sp = in + j * cols;
+    float* so = pOut + j * cols;
+    const float* sp = pIn + j * cols;
 
     float max = sp[0];
     for(int i = 1; i < cols; ++i) {
@@ -329,6 +329,7 @@ void LogSoftmax(Tensor out_, Tensor in_) {
   }
 }
 
+// @TODO: Remove remaining underscores in CPU kernels
 void SoftmaxGrad(Tensor grad_, Tensor adj_, Tensor val_) {
   int rows = grad_->shape().elements() / grad_->shape()[-1];
   int cols = grad_->shape()[-1];
@@ -392,6 +393,9 @@ void CopyRows(Tensor out_,
 #pragma omp parallel for
   for(size_t j = 0; j < rows; ++j) {
     size_t dst = j;
+
+    // @TODO: consider moving type checking to this function 
+    // instead of matchOrAbort above
     size_t src = (size_t)indices->data<IndexType>()[j];
 
     float* rowOut = out + dst * cols;
