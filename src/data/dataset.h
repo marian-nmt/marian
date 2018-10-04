@@ -12,6 +12,9 @@ namespace data {
 template <class Sample, class Iterator, class Batch>
 class DatasetBase {
 protected:
+  // Data processing may differ in training/inference settings
+  bool inference_{false};
+
   std::vector<std::string> paths_;
 
 public:
@@ -22,6 +25,8 @@ public:
 
   DatasetBase() {}
   DatasetBase(std::vector<std::string> paths) : paths_(paths) {}
+
+  void setInference(bool inference) { inference_ = inference; }
 
   virtual Iterator begin() = 0;
   virtual Iterator end() = 0;

@@ -31,6 +31,8 @@ public:
       : options_(options),
         corpus_(New<data::Corpus>(options_, true)),
         trgVocab_(New<Vocab>()) {
+    
+    corpus_->setInference(true);
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
     trgVocab_->load(vocabs.back());
 
@@ -173,6 +175,8 @@ public:
   std::string run(const std::string& input) override {
     auto corpus_ = New<data::TextInput>(
         std::vector<std::string>({input}), srcVocabs_, options_);
+    corpus_->setInference(true);
+
     data::BatchGenerator<data::TextInput> bg(corpus_, options_);
 
     auto collector = New<StringCollector>();

@@ -77,6 +77,7 @@ public:
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     auto corpus = New<DataSet>(validPaths, vocabs_, opts);
+    corpus->setInference(true);
 
     // Generate batches
     auto batchGenerator = New<BatchGenerator<DataSet>>(corpus, opts);
@@ -254,6 +255,7 @@ public:
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     std::vector<std::string> paths(validPaths.begin(), validPaths.end());
     auto corpus = New<data::Corpus>(paths, vocabs_, opts);
+    corpus->setInference(true);
 
     // Generate batches
     auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, opts);
@@ -406,6 +408,7 @@ public:
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     std::vector<std::string> paths(validPaths.begin(), validPaths.end());
     auto corpus = New<data::Corpus>(paths, vocabs_, opts);
+    corpus->setInference(true);
 
     // Generate batches
     auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, opts);

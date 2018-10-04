@@ -46,7 +46,7 @@ SentenceTuple TextInput::next() {
       std::string line;
       io::InputFileStream dummyStream(*files_[i]);
       if(io::getline(dummyStream, line)) {
-        Words words = (*vocabs_[i])(line);
+        Words words = vocabs_[i]->encode(line, /*addEOS =*/ true, /*inference =*/ inference_);
         if(words.empty())
           words.push_back(0);
         tup.push_back(words);

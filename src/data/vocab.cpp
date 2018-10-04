@@ -37,12 +37,6 @@ Words Vocab::operator()(const std::vector<std::string>& lineTokens,
   return words;
 }
 
-Words Vocab::operator()(const std::string& line, bool addEOS) const {
-  std::vector<std::string> lineTokens;
-  processor_->encode(line, lineTokens);
-  return (*this)(lineTokens, addEOS);
-}
-
 std::vector<std::string> Vocab::operator()(const Words& sentence,
                                            bool ignoreEOS) const {
   std::vector<std::string> decoded;
@@ -54,13 +48,15 @@ std::vector<std::string> Vocab::operator()(const Words& sentence,
   return decoded;
 }
 
-std::string Vocab::decode(const Words& sentence, bool reverse) const {
-  std::string line;
-  auto tokens = (*this)(sentence, true);
-  
-  if(reverse)
-    std::reverse(tokens.begin(), tokens.end());
+Words Vocab::encode(const std::string& line, bool addEOS, bool inference) const {
+  std::vector<std::string> lineTokens;
+  processor_->encode(line, lineTokens, inference);
+  return (*this)(lineTokens, addEOS);
+}
 
+std::string Vocab::decode(const Words& sentence, bool ignoreEOS) const {
+  std::string line;
+  auto tokens = (*this)(sentence, ignoreEOS);
   processor_->decode(tokens, line);
   return line;
 }
@@ -260,7 +256,10 @@ void Vocab::create(io::InputFileStream& trainStrm,
 
   while(getline((std::istream&)trainStrm, line)) {
     std::vector<std::string> toks;
-    utils::split(line, toks);
+    
+    // we do not want any unexpected behavior during creation
+    // e.g. sampling, hence use inference mode
+    processor_->encode(line, toks, /*inference=*/true);
 
     for(const std::string& tok : toks) {
       if(SPEC2SYM.count(tok)) {

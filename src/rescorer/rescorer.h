@@ -57,6 +57,7 @@ public:
     ABORT_IF(options_->has("summary") && options_->has("alignment"),
              "Alignments can not be produced with summarized score");
 
+    corpus_->setInference(true);
     corpus_->prepare();
 
     auto devices = options_->getDevices();
