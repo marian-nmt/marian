@@ -41,7 +41,8 @@ private:
 
   mutable std::mutex loadMutex_;
   mutable std::condition_variable loadCondition_;
-  bool loadReady_{true};
+  bool loadingSamples_{false};
+  bool hadData_{false};
 
   void fillBatches(bool shuffle = true) {
     typedef typename sample::value_type Item;
@@ -176,8 +177,6 @@ private:
     loadCondition_.wait(
         lock, [this] { return bufferedBatches_.empty(); });
   
-    loadReady_ = tempBatches.size() > 0;
-    
     // put batches onto queue
     // exclusive lock
     // LOG(info, "Dumping batches to buffer");
@@ -185,6 +184,9 @@ private:
       bufferedBatches_.push_back(batch);
     // LOG(info, "Done dumping batches");
     
+    loadingSamples_ = false;
+    hadData_ = tempBatches.size() > 0;
+
     // Buffer is full now, everyone else can carry on
     loadCondition_.notify_all();
   }
@@ -200,20 +202,20 @@ public:
     // Detach the loading process so it's not blocking batch processing.
     {
       std::unique_lock<std::mutex> lock(loadMutex_);
-      if(loadReady_) {
-        loadReady_ = false;
+      if(!loadingSamples_ && hadData_) {
+        loadingSamples_ = true;
         std::thread([this]() { 
           fillBatches(); 
         }).detach();
       }
     }
     
-    // If there are not batches, but loading is happening,
+    // If there are no batches, but loading is happening,
     // wait for loading to finish. 
     {
       std::unique_lock<std::mutex> lock(loadMutex_);
       loadCondition_.wait(lock, [this] { 
-        return !loadReady_ || !bufferedBatches_.empty(); 
+        return !(loadingSamples_ && bufferedBatches_.empty()); 
       });
     }
 
@@ -230,7 +232,7 @@ public:
       // if(bufferedBatches_.size() % 100 == 0)
       //   LOG(info, "Buffered batches left {}", bufferedBatches_.size());
 
-      // If there are not batches left, notify everyone who's waiting.
+      // If there are no batches left, notify everyone who's waiting.
       // This will either dump buffered batches on the current queue,
       // or switch to the next epoch in the next call.
       if(bufferedBatches_.empty()) {
@@ -256,9 +258,7 @@ public:
       data_->reset();
     newlyPrepared_ = true;
 
-    LOG(info, "[data] Preloading batches");
     fillBatches(shuffle);
-    LOG(info, "[data] Done");
   }
 
   bool restore(Ptr<TrainingState> state, bool shuffle) {
