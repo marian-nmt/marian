@@ -92,9 +92,8 @@ public:
     auto tOptions = New<Options>();
     tOptions->merge(options_);
 
-    while(bg) {
-      auto batch = bg.next();
-
+    decltype(bg.next()) batch;
+    while(batch = bg.next()) {
       auto task = [=](size_t id) {
         thread_local Ptr<ExpressionGraph> graph;
         thread_local std::vector<Ptr<Scorer>> scorers;
@@ -192,8 +191,8 @@ public:
     {
       ThreadPool threadPool_(devices_.size(), devices_.size());
 
-      while(bg) {
-        auto batch = bg.next();
+      decltype(bg.next()) batch;
+      while(batch = bg.next()) {
 
         auto task = [=](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;

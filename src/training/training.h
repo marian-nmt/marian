@@ -73,8 +73,8 @@ public:
         batchGenerator->prepare(shuffle);
       restored = false;
 
-      while(*batchGenerator && scheduler->keepGoing()) {
-        auto batch = batchGenerator->next();
+      decltype(batchGenerator->next()) batch;
+      while((batch = batchGenerator->next()) && scheduler->keepGoing()) {
         model->update(batch);
       }
 

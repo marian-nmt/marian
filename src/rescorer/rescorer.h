@@ -115,9 +115,8 @@ public:
     {
       ThreadPool pool(graphs_.size(), graphs_.size());
 
-      while(*batchGenerator) {
-        auto batch = batchGenerator->next();
-
+      decltype(batchGenerator->next()) batch;
+      while(batch = batchGenerator->next()) {
         auto task = [=, &sumCost, &sumWords, &sumSamples, &smutex](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local Ptr<Model> builder;

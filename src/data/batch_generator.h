@@ -195,16 +195,6 @@ public:
                  Ptr<BatchStats> stats = nullptr)
       : data_(data), options_(options), stats_(stats) {}
 
-  operator bool() const {
-    // wait if empty but loading
-    std::unique_lock<std::mutex> lock(loadMutex_);
-    loadCondition_.wait(lock, [this] { 
-      return !loadReady_ || !bufferedBatches_.empty(); 
-    });
-
-    return !bufferedBatches_.empty();
-  }
-
   BatchPtr next() {
     // Start preloading batches and inform that loading is happening.
     // Detach the loading process so it's not blocking batch processing.
@@ -228,22 +218,28 @@ public:
     }
 
     std::unique_lock<std::mutex> lock(loadMutex_);
-    // Consume a batch
-    currentBatch_ = bufferedBatches_.front();
-    bufferedBatches_.pop_front();
-
-    // if(bufferedBatches_.size() % 100 == 0)
-    //   LOG(info, "Buffered batches left {}", bufferedBatches_.size());
-
-    // If there are not batches left, notify everyone who's waiting.
-    // This will either dump buffered batches on the current queue,
-    // or switch to the next epoch if no batches could be loaded. 
+    // Try to consume a batch
     if(bufferedBatches_.empty()) {
-      // LOG(info, "Empty batches, notifying");
-      loadCondition_.notify_all();
+      // There was no batch in the buffer despite preloading -> end of epoch
+      return nullptr;
     }
+    else {
+      auto batch = bufferedBatches_.front();
+      bufferedBatches_.pop_front();
 
-    return currentBatch_;
+      // if(bufferedBatches_.size() % 100 == 0)
+      //   LOG(info, "Buffered batches left {}", bufferedBatches_.size());
+
+      // If there are not batches left, notify everyone who's waiting.
+      // This will either dump buffered batches on the current queue,
+      // or switch to the next epoch in the next call.
+      if(bufferedBatches_.empty()) {
+        // LOG(info, "Empty batches, notifying");
+        loadCondition_.notify_all();
+      }
+
+      return batch;
+    }
   }
 
   std::vector<BatchPtr> nextN(size_t num) {

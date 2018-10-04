@@ -153,9 +153,8 @@ protected:
       opts->set("inference", true);
       opts->set("cost-type", "ce-sum");
 
-      while(*batchGenerator) {
-        auto batch = batchGenerator->next();
-
+      Ptr<data::CorpusBatch> batch;
+      while(batch = batchGenerator->next()) {
         auto task = [=, &cost, &samples, &words](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local auto builder
@@ -313,9 +312,8 @@ public:
       auto tOptions = New<Options>();
       tOptions->merge(options_);
 
-      while(*batchGenerator) {
-        auto batch = batchGenerator->next();
-
+      Ptr<data::CorpusBatch> batch;
+      while(batch = batchGenerator->next()) {
         auto task = [=](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local Ptr<Scorer> scorer;
@@ -450,9 +448,8 @@ public:
       auto tOptions = New<Options>();
       tOptions->merge(options_);
 
-      while(*batchGenerator) {
-        auto batch = batchGenerator->next();
-
+      Ptr<data::CorpusBatch> batch;
+      while(batch = batchGenerator->next()) {
         auto task = [=, &stats](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local Ptr<Scorer> scorer;
