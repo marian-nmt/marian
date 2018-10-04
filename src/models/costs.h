@@ -59,7 +59,7 @@ public:
                           state->getTargetMask(),
                           weights);
 
-    if(options_->get("guided-alignment", std::string()) != "" && !inference_) {
+    if(options_->get("guided-alignment", std::string("none")) != "none" && !inference_) {
       auto alignments = encdec->getDecoders()[0]->getAlignments();
       ABORT_IF(alignments.empty(), "Model does not seem to support alignments");
 

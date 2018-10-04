@@ -270,7 +270,7 @@ public:
     if(getenv("PHILLY_JOB_ID") && heartBeatTimer_.elapsed().user / boost::timer::nanosecond_type(1000000000LL) >= 600) {
       // boost::chrono::duration_cast<boost::chrono::seconds>(boost::chrono::nanoseconds(heartBeatTimer_.elapsed().user)).count();
       printf("PROGRESS: %.2f%%\nEVALERR: %.7f\n", (double)state_->epochs, state_->costSum / state_->costCount), fflush(stdout);
-#if 1
+#if 0
       LOG(info, "heart beat after {} updates", state_->batches);
 #endif
       heartBeatTimer_.start();
