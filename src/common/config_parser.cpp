@@ -33,7 +33,8 @@ const std::set<std::string> PATHS = {"model",
                                      "valid-script-path",
                                      "valid-log",
                                      "valid-translation-output",
-                                     "log"};
+                                     "log",
+									 "output" };
 
 void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   int defaultWorkspace = (mode_ == cli::mode::translation) ? 512 : 2048;
@@ -429,6 +430,9 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   cli.add<std::vector<std::string>>("--input,-i",
       "Paths to input file(s), stdin by default",
       std::vector<std::string>({"stdin"}));
+  cli.add<std::vector<std::string>>("--output,-o",
+      "Paths to output file(s), stdout by default",
+      std::vector<std::string>({"stdout"}));
   cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --input");
 
@@ -699,7 +703,6 @@ YAML::Node ConfigParser::loadConfigFiles(
       config[it.first.as<std::string>()] = YAML::Clone(it.second);
     }
   }
-
   return config;
 }
 
