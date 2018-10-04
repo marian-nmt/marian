@@ -323,7 +323,7 @@ public:
     if(!options)
       return batch;
 
-    if(options->has("guided-alignment")) {
+    if(options->get("guided-alignment", std::string()) != "") {
       std::vector<float> alignment(batchSize * lengths.front() * lengths.back(),
                                    0.f);
       batch->setGuidedAlignment(alignment);

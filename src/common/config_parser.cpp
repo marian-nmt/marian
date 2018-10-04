@@ -474,7 +474,7 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
     ("exponential-smoothing", po::value<float>()->default_value(0.f)->implicit_value(1e-4f, "1e-4"),
      "Maintain smoothed version of parameters for validation and saving with smoothing factor arg. "
      " 0 to disable.")
-    ("guided-alignment", po::value<std::string>(),
+    ("guided-alignment", po::value<std::string>()->default_value(""),
      "Use guided alignment to guide attention")
     ("guided-alignment-cost", po::value<std::string>()->default_value("ce"),
      "Cost type for guided alignment: ce (cross-entropy), mse (mean square "
@@ -891,7 +891,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     SET_OPTION("clip-norm", double);
     SET_OPTION("exponential-smoothing", float);
 
-    SET_OPTION_NONDEFAULT("guided-alignment", std::string);
+    SET_OPTION("guided-alignment", std::string);
     SET_OPTION("guided-alignment-cost", std::string);
     SET_OPTION("guided-alignment-weight", double);
     SET_OPTION_NONDEFAULT("data-weighting", std::string);
