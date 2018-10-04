@@ -28,9 +28,10 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Config> config)
   comm_ = createCommunicator(graphs_, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/mpi_);
 }
 
-void SyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) {
+void SyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) /*override*/ {
   scheduler_ = scheduler;
   // optimizer has to be registered last to see changes of learning rate
+  // @TODO: ^^Fix this comment. Either it refers to the scheduler, or it should be moved. Which one?
   scheduler_->registerTrainingObserver(scheduler_);
 
   for(auto opt : shardOpt_)
@@ -96,6 +97,11 @@ void SyncGraphGroup::initializeAvg() {
   paramsAllocs_.resize(graphs_.size()); // allocators
   paramsAvg_.resize(graphs_.size());    // averaged parameters (shards; distributed over MPI processes if applicable)
   comm_->foreach(init, /*parallel=*/false); // @TODO: is sequential operation necessary here? (is the allocation stuff sufficiently reentrant or thread-separated?)
+}
+
+Ptr<data::BatchStats> SyncGraphGroup::collectStats() {
+    size_t multiplier = devices_.size() * mpi_->numMPIProcesses() * delay_;
+    return GraphGroup::collectStats(graphs_[0], builders_[0], multiplier);
 }
 
 void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
@@ -210,27 +216,21 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
     scheduler_->update(cost, subBatches);
 
     // save intermediate model to file
-    if(scheduler_->saving()) {
+    if(scheduler_->saving() && isMainProcess()) {
       save();
     }
 
     // process valid data set
     if(scheduler_->validating()) {
-      if(mvAvg_) {
-        comm_->swapParams(paramsAvg_);
-      }
-
-      // safe, because all graphs are idle during validation with sync sgd
-      scheduler_->validate(graphs_);
-
-      if(mvAvg_) {
-        comm_->swapParams(paramsAvg_);
-      }
+      swapParamsAvg();
+      if (isMainProcess())
+        scheduler_->validate(graphs_);
+      swapParamsAvg();
     }
   }
 }
 
-void SyncGraphGroup::load() {
+void SyncGraphGroup::load() /*override*/ {
   if(!options_->get<bool>("no-reload")) {
     std::string name = options_->get<std::string>("model");
 
@@ -268,71 +268,67 @@ void SyncGraphGroup::load() {
   }
 }
 
-void SyncGraphGroup::save(bool final) {
+void SyncGraphGroup::save(bool final) /*override*/ {
   // do final validation
   if(final && scheduler_) {
+    barrier(); // (for better grouping of log messages)
     // bring the smoothed model in
     // Note that it is sharded. For multi-node, it is sharded over multiple machines, so this is a network access.
-    if(mvAvg_ && paramsAvg_.size() > 0)
-      comm_->swapParams(paramsAvg_);
-
-    mpi_->barrier();
-    if (mpi_->myMPIRank() == 0) { // in multi-node, only first MPI process saves the model (they are all identical)
+    // Also note that the swap must run on all MPI processes concurrently, although only one actually validates.
+    swapParamsAvg();
+    if (isMainProcess()) // in multi-node, only first MPI process saves the model (they are all identical)
       scheduler_->validate(graphs_, true);
-    }
-    mpi_->barrier();
-
-    if(mvAvg_ && paramsAvg_.size() > 0)
-      comm_->swapParams(paramsAvg_);
+    swapParamsAvg();
   }
 
   std::string name = options_->get<std::string>("model");
 
-  mpi_->barrier();
-  // save original (unsmoothed) parameters as well
+  barrier(); // (for better grouping of log messages)
+  // if smoothing then save original (unsmoothed) parameters as well
   // @TODO: Check whether we are reloading the correct file (the unsmoothed one).
-  if(mvAvg_ && paramsAvg_.size() > 0) {
+  if(mvAvg_ && paramsAvg_.size() > 0 && isMainProcess()) // only save from one MPI process
     // Save the original parameters in model.npz.orig.npz
-    if (mpi_->myMPIRank() == 0) // only save from one MPI process
-      builders_[0]->save(graphs_[0], name + ".orig.npz", true);
-    // Switch to the averaged parameters
-    comm_->swapParams(paramsAvg_); // note: the smoothed model is sharded across GPUs, and across MPI processes if applicablenode. This brings it into MPI process[0].device[0]
-  }
+    builders_[0]->save(graphs_[0], name + ".orig.npz", true);
+
+  // Temporarily switch to the averaged parameters
+  // Note: the smoothed model is sharded across GPUs, and across MPI processes if applicable. This brings it into MPI process[*].device[*]
+  swapParamsAvg();
 
   // save main model file
-  // @TODO: do we need a barrier here as wel?
-  if (mpi_->myMPIRank() == 0) { // only save from one MPI process
+  if (isMainProcess()) { // only save from one MPI process
     // if not overwrite then save a copy with number of updates in the model pathname
     if(!options_->get<bool>("overwrite") && !final) {
       std::string numberOfBatches
           = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
                        : "unknown";
       std::string nameOverwrite = name;
-      nameOverwrite.replace(
-          name.size() - 4, 4, ".iter" + numberOfBatches + ".npz");
+      nameOverwrite.replace(name.size() - 4, 4, ".iter" + numberOfBatches + ".npz"); // @TODO: use insert?
       builders_[0]->save(graphs_[0], nameOverwrite);
     }
     // save main model file
     builders_[0]->save(graphs_[0], name, true);
+    // save scheduler-related state
     if (scheduler_)
       scheduler_->save(name);
   }
 
-  if(mvAvg_ && paramsAvg_.size() > 0) {
-    // Switch back to the original parameters
-    comm_->swapParams(paramsAvg_);
-#if 1 // temp for testing of saving distributed models; must be identical to .orig.npz
-    if (mpi_->myMPIRank() == 0) // for testing of swapParams
-      builders_[0]->save(graphs_[0], name + ".orig_after_swapping.npz", true);
-#endif
-  }
-  mpi_->barrier();
+  // Switch back to the original parameters
+  swapParamsAvg();
 
+#if 1 // temporary, for testing of saving distributed models; must be identical to .orig.npz
+  if(mvAvg_ && paramsAvg_.size() > 0 && isMainProcess())
+    builders_[0]->save(graphs_[0], name + ".orig_after_swapping.npz", true);
+#endif
+  barrier(); // (for better grouping of log messages)
+
+  // persist optimizer state
   shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_,
     [&](const OptimizerBase::GatherStateGetFunc& getFn) {
       return comm_->gatherState(getFn);
     },
-    mpi_->myMPIRank() == 0);
+    isMainProcess());
+
+  barrier(); // (for better grouping of log messages)
 }
 
 }  // namespace marian

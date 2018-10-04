@@ -15,6 +15,9 @@ private:
 
   Ptr<TrainingState> state_;
 
+  bool isSecondaryRank_{false}; // set this to true in multi-MPI-process settings; only main rank validates, saves files, and heart-beats
+  void setSecondaryRank() { isSecondaryRank_ = true; }
+
   boost::timer::cpu_timer timer_, heartBeatTimer_;
 
   float getLearningRate(TrainingState& state) {
@@ -267,8 +270,9 @@ public:
     }
     // progress heartbeat for MS-internal Philly compute cluster
     // This environment variable exists when running on the cluster.
-    if(getenv("PHILLY_JOB_ID") && heartBeatTimer_.elapsed().user / boost::timer::nanosecond_type(1000000000LL) >= 600) {
-      // boost::chrono::duration_cast<boost::chrono::seconds>(boost::chrono::nanoseconds(heartBeatTimer_.elapsed().user)).count();
+    using namespace boost::chrono;
+    if(!isSecondaryRank_ && getenv("PHILLY_JOB_ID") &&
+        duration_cast<minutes>(nanoseconds(heartBeatTimer_.elapsed().user)).count() >= 10) {
       printf("PROGRESS: %.2f%%\nEVALERR: %.7f\n", (double)state_->epochs, state_->costSum / state_->costCount), fflush(stdout);
 #if 0
       LOG(info, "heart beat after {} updates", state_->batches);
