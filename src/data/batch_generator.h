@@ -176,13 +176,14 @@ private:
     loadCondition_.wait(
         lock, [this] { return bufferedBatches_.empty(); });
   
+    loadReady_ = tempBatches.size() > 0;
+    
     // put batches onto queue
     // exclusive lock
     // LOG(info, "Dumping batches to buffer");
     for(const auto& batch : tempBatches)
       bufferedBatches_.push_back(batch);
     // LOG(info, "Done dumping batches");
-    loadReady_ = true;
     
     // Buffer is full now, everyone else can carry on
     loadCondition_.notify_all();
@@ -258,7 +259,7 @@ public:
     else
       data_->reset();
     newlyPrepared_ = true;
-    
+
     LOG(info, "[data] Preloading batches");
     fillBatches(shuffle);
     LOG(info, "[data] Done");
