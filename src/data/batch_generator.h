@@ -79,7 +79,7 @@ private:
     size_t maxBatchSize = options_->get<int>("mini-batch");
     size_t maxSize = maxBatchSize * options_->get<int>("maxi-batch");
 
-    LOG(info, "Preloading batches");
+    // LOG(info, "Preloading batches");
 
     // consume data from corpus into maxi-batch (single sentences)
     // sorted into specified order (due to queue)
@@ -258,7 +258,10 @@ public:
     else
       data_->reset();
     newlyPrepared_ = true;
+    
+    LOG(info, "[data] Preloading batches");
     fillBatches(shuffle);
+    LOG(info, "[data] Done");
   }
 
   bool restore(Ptr<TrainingState> state, bool shuffle) {
