@@ -24,9 +24,11 @@ public:
              bool clearGraph = true) override {
     auto top = model->build(graph, batch, clearGraph);
 
-    auto vLabels = std::static_pointer_cast<data::DataBatch>(batch)->labels();
-    auto labels
-        = graph->constant({(int)batch->size(), 1}, inits::from_vector(vLabels));
+    auto vfLabels = std::static_pointer_cast<data::DataBatch>(batch)->labels();
+
+    // convert float to IndexType
+    std::vector<IndexType> vLabels(vfLabels.begin(), vfLabels.end());
+    auto labels = graph->indices(vLabels);
 
     // Define a top-level node for training
     return mean(cross_entropy(top, labels), /*axis =*/ 0);

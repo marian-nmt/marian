@@ -12,7 +12,7 @@ struct State {
   Expr output;
   Expr cell;
 
-  State select(const std::vector<size_t>& selIdx, // [beamIndex * activeBatchSize + batchIndex]
+  State select(const std::vector<IndexType>& selIdx, // [beamIndex * activeBatchSize + batchIndex]
                int beamSize, bool isBatchMajor) const {
     return{ select(output, selIdx, beamSize, isBatchMajor),
             select(cell,   selIdx, beamSize, isBatchMajor) };
@@ -20,7 +20,7 @@ struct State {
 
 private:
   static Expr select(Expr sel, // [beamSize, dimTime, dimBatch, dimDepth] or [beamSize, dimBatch, dimTime, dimDepth] (dimTime = 1 for RNN)
-                     const std::vector<size_t>& selIdx, // [beamIndex * activeBatchSize + batchIndex]
+                     const std::vector<IndexType>& selIdx, // [beamIndex * activeBatchSize + batchIndex]
                      int beamSize, bool isBatchMajor)
   {
     if (!sel)
@@ -79,7 +79,7 @@ public:
   void push_back(const State& state) { states_.push_back(state); }
 
   // create updated set of states that reflect reordering and dropping of hypotheses
-  States select(const std::vector<size_t>& selIdx, // [beamIndex * activeBatchSize + batchIndex]
+  States select(const std::vector<IndexType>& selIdx, // [beamIndex * activeBatchSize + batchIndex]
                 int beamSize, bool isBatchMajor) const {
     States selected;
     for(auto& state : states_)

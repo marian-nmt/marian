@@ -14,6 +14,9 @@
 
 namespace marian {
 
+// type to be used for all index types, e.g. for integer tensors for rows operator
+typedef uint32_t IndexType;
+
 template <class T>
 using Ptr = std::shared_ptr<T>;
 

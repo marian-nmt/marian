@@ -45,7 +45,7 @@ public:
   std::string decode(const Words& sentence,
                      bool ignoreEos = true) const;
 
-  const std::string& operator[](size_t id) const;
+  const std::string& operator[](Word id) const;
 
   size_t size() const;
 
@@ -58,7 +58,7 @@ private:
   Word insertWord(Word id, const std::string& str);
 
 private:
-  typedef std::map<std::string, size_t> Str2Id;
+  typedef std::map<std::string, Word> Str2Id;
   Str2Id str2id_;
 
   typedef std::vector<std::string> Id2Str;

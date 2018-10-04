@@ -34,8 +34,8 @@ public:
       = 0;
   virtual Ptr<ScorerState> step(Ptr<ExpressionGraph>,
                                 Ptr<ScorerState>,
-                                const std::vector<size_t>&,
-                                const std::vector<size_t>&,
+                                const std::vector<IndexType>&,
+                                const std::vector<IndexType>&,
                                 int dimBatch,
                                 int beamSize)
       = 0;
@@ -110,8 +110,8 @@ public:
 
   virtual Ptr<ScorerState> step(Ptr<ExpressionGraph> graph,
                                 Ptr<ScorerState> state,
-                                const std::vector<size_t>& hypIndices,
-                                const std::vector<size_t>& embIndices,
+                                const std::vector<IndexType>& hypIndices,
+                                const std::vector<IndexType>& embIndices,
                                 int dimBatch,
                                 int beamSize) override {
     graph->switchParams(getName());

@@ -10,7 +10,7 @@ using namespace marian;
 void tests(DeviceType type) {
   auto floatApprox = [](float x, float y) { return x == Approx(y).epsilon(0.01); };
 
-  std::vector<size_t> vWords = {
+  Words vWords = {
     43, 2, 83, 78,
     6, 38, 80, 40,
     40, 70, 26, 60,
@@ -21,7 +21,7 @@ void tests(DeviceType type) {
     0, 0, 0, 0
   };
 
-  std::vector<size_t> vMask = {
+  std::vector<float> vMask = {
     1, 1, 1, 1,
     1, 1, 1, 1,
     1, 1, 1, 1,
