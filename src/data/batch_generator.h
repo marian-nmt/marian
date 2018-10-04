@@ -79,6 +79,8 @@ private:
     size_t maxBatchSize = options_->get<int>("mini-batch");
     size_t maxSize = maxBatchSize * options_->get<int>("maxi-batch");
 
+    LOG(info, "Preloading batches");
+
     // consume data from corpus into maxi-batch (single sentences)
     // sorted into specified order (due to queue)
     if(newlyPrepared_) {
@@ -91,6 +93,10 @@ private:
     size_t sets = 0;
     while(current_ != data_->end() && maxiBatch->size() < maxSize) {
       maxiBatch->push(*current_);
+      
+      // if(maxiBatch->size() % 100000 == 0)
+      //   LOG(info, "Preloaded samples: {}", maxiBatch->size());
+
       sets = current_->size();
       // do not consume more than required for the maxi batch as this causes
       // that line-by-line translation is delayed by one sentence
@@ -98,6 +104,8 @@ private:
       if(!last)
         ++current_;
     }
+
+    // LOG(info, "Turning samples into batches");
 
     samples batchVector;
     int currentWords = 0;
@@ -162,11 +170,22 @@ private:
       std::shuffle(tempBatches.begin(), tempBatches.end(), eng_);
     }
 
+    // Wait here until batch buffer is empty;   
+    // LOG(info, "Waiting for buffer to be empty");
+    std::unique_lock<std::mutex> lock(loadMutex_);
+    loadCondition_.wait(
+        lock, [this] { return bufferedBatches_.empty(); });
+  
     // put batches onto queue
     // exclusive lock
-    std::unique_lock<std::mutex> lock(loadMutex_);
+    // LOG(info, "Dumping batches to buffer");
     for(const auto& batch : tempBatches)
       bufferedBatches_.push_back(batch);
+    // LOG(info, "Done dumping batches");
+    loadReady_ = true;
+    
+    // Buffer is full now, everyone else can carry on
+    loadCondition_.notify_all();
   }
 
 public:
@@ -178,42 +197,50 @@ public:
   operator bool() const {
     // wait if empty but loading
     std::unique_lock<std::mutex> lock(loadMutex_);
-    loadCondition_.wait(
-        lock, [this] { return loadReady_ || !bufferedBatches_.empty(); });
+    loadCondition_.wait(lock, [this] { 
+      return !loadReady_ || !bufferedBatches_.empty(); 
+    });
 
     return !bufferedBatches_.empty();
   }
 
   BatchPtr next() {
+    // Start preloading batches and inform that loading is happening.
+    // Detach the loading process so it's not blocking batch processing.
     {
       std::unique_lock<std::mutex> lock(loadMutex_);
-      loadCondition_.wait(
-          lock, [this] { return loadReady_ || !bufferedBatches_.empty(); });
-    }
-
-    ABORT_IF(bufferedBatches_.empty(), "No batches to fetch, run prepare()");
-    currentBatch_ = bufferedBatches_.front();
-
-    if(loadReady_
-       && (int)bufferedBatches_.size()
-              <= std::max(options_->get<int>("maxi-batch") / 5, 1)) {
-      {
-        std::unique_lock<std::mutex> lock(loadMutex_);
+      if(loadReady_) {
         loadReady_ = false;
-        loadCondition_.notify_all();
+        std::thread([this]() { 
+          fillBatches(); 
+        }).detach();
       }
-
-      std::thread([this]() {
-        fillBatches();
-        std::unique_lock<std::mutex> lock(loadMutex_);
-        loadReady_ = true;
-        loadCondition_.notify_all();
-      })
-          .detach();
+    }
+    
+    // If there are not batches, but loading is happening,
+    // wait for loading to finish. 
+    {
+      std::unique_lock<std::mutex> lock(loadMutex_);
+      loadCondition_.wait(lock, [this] { 
+        return !loadReady_ || !bufferedBatches_.empty(); 
+      });
     }
 
     std::unique_lock<std::mutex> lock(loadMutex_);
+    // Consume a batch
+    currentBatch_ = bufferedBatches_.front();
     bufferedBatches_.pop_front();
+
+    // if(bufferedBatches_.size() % 100 == 0)
+    //   LOG(info, "Buffered batches left {}", bufferedBatches_.size());
+
+    // If there are not batches left, notify everyone who's waiting.
+    // This will either dump buffered batches on the current queue,
+    // or switch to the next epoch if no batches could be loaded. 
+    if(bufferedBatches_.empty()) {
+      // LOG(info, "Empty batches, notifying");
+      loadCondition_.notify_all();
+    }
 
     return currentBatch_;
   }
