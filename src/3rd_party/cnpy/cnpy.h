@@ -351,7 +351,10 @@ namespace cnpy {
         fclose(fp);
 
         // move to final location (atomically)
-        bad =  bad || (rename(tmpname.c_str(), zipname.c_str()) == -1);
+#ifdef _MSC_VER
+        unlink(zipname.c_str()); // needed for Windows
+#endif
+        bad = bad || (rename(tmpname.c_str(), zipname.c_str()) == -1);
 
         if (bad)
         {

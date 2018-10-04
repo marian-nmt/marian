@@ -4,9 +4,6 @@
 #include <iostream>
 #include <random>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/iterator/iterator_facade.hpp>
-
 #include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
@@ -21,7 +18,7 @@ namespace data {
 
 class Corpus : public CorpusBase {
 private:
-  std::vector<UPtr<TemporaryFile>> tempFiles_;
+  std::vector<UPtr<io::TemporaryFile>> tempFiles_;
   std::vector<size_t> ids_;
 
   void shuffleFiles(const std::vector<std::string>& paths);

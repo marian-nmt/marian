@@ -68,7 +68,7 @@ public:
     if(inputs.size() == 0)
       return {};
     else if(inputs.size() > 1)
-      input = concatenate(inputs, keywords::axis = -1);
+      input = concatenate(inputs, /*axis =*/ -1);
     else
       input = inputs.front();
 
@@ -159,7 +159,7 @@ public:
     if(inputs.size() == 0)
       return {};
     else if(inputs.size() > 1)
-      input = concatenate(inputs, keywords::axis = -1);
+      input = concatenate(inputs, /*axis =*/ -1);
     else
       input = inputs.front();
 
@@ -232,19 +232,19 @@ public:
         prefix + "_U", {dimState, 2 * dimState}, inits::glorot_uniform);
     auto Ux = graph->param(
         prefix + "_Ux", {dimState, dimState}, inits::glorot_uniform);
-    U_ = concatenate({U, Ux}, keywords::axis = -1);
+    U_ = concatenate({U, Ux}, /*axis =*/ -1);
 
     if(dimInput > 0) {
       auto W = graph->param(
           prefix + "_W", {dimInput, 2 * dimState}, inits::glorot_uniform);
       auto Wx = graph->param(
           prefix + "_Wx", {dimInput, dimState}, inits::glorot_uniform);
-      W_ = concatenate({W, Wx}, keywords::axis = -1);
+      W_ = concatenate({W, Wx}, /*axis =*/ -1);
     }
 
     auto b = graph->param(prefix + "_b", {1, 2 * dimState}, inits::zeros);
     auto bx = graph->param(prefix + "_bx", {1, dimState}, inits::zeros);
-    b_ = concatenate({b, bx}, keywords::axis = -1);
+    b_ = concatenate({b, bx}, /*axis =*/ -1);
 
     // @TODO use this and adjust Amun model type saving and loading
     // U_ = graph->param(prefix + "_U", {dimState, 3 * dimState},
@@ -280,7 +280,7 @@ public:
     if(inputs.size() == 0)
       return {};
     else if(inputs.size() > 1)
-      input = concatenate(inputs, keywords::axis = -1);
+      input = concatenate(inputs, /*axis =*/ -1);
     else
       input = inputs[0];
 
@@ -384,7 +384,7 @@ public:
       U_ = U;
       Ux_ = Ux;
     } else {
-      UUx_ = concatenate({U, Ux}, keywords::axis = -1);
+      UUx_ = concatenate({U, Ux}, /*axis =*/ -1);
     }
 
     if(dimInput > 0) {
@@ -396,7 +396,7 @@ public:
         W_ = W;
         Wx_ = Wx;
       } else {
-        WWx_ = concatenate({W, Wx}, keywords::axis = -1);
+        WWx_ = concatenate({W, Wx}, /*axis =*/ -1);
       }
     }
 
@@ -410,12 +410,12 @@ public:
       // in specific cases we need to pass bx to the kernel
       if(encoder_ && transition_) {
         auto b0 = graph->constant({1, 2 * dimState}, inits::zeros);
-        bbx_ = concatenate({b0, bx}, keywords::axis = -1);
+        bbx_ = concatenate({b0, bx}, /*axis =*/ -1);
       } else {
         bbx_ = graph->constant({1, 3 * dimState}, inits::zeros);
       }
     } else {
-      bbx_ = concatenate({b, bx}, keywords::axis = -1);
+      bbx_ = concatenate({b, bx}, /*axis =*/ -1);
     }
 
     if(dropout_ > 0.0f) {
@@ -456,7 +456,7 @@ public:
     if(inputs.size() == 0)
       return {};
     else if(inputs.size() > 1)
-      input = concatenate(inputs, keywords::axis = -1);
+      input = concatenate(inputs, /*axis =*/ -1);
     else
       input = inputs[0];
 
@@ -478,7 +478,7 @@ public:
       W = layerNorm(W, W_lns_, W_lnb_, NEMATUS_LN_EPS);
       Wx = layerNorm(Wx, Wx_lns_, Wx_lnb_, NEMATUS_LN_EPS);
 
-      xW = concatenate({W, Wx}, keywords::axis = -1);
+      xW = concatenate({W, Wx}, /*axis =*/ -1);
     } else {
       xW = dot(input, WWx_);
     }
@@ -522,7 +522,7 @@ public:
         Ux = layerNorm(Ux, Ux_lns_, Ux_lnb_, NEMATUS_LN_EPS);
       }
 
-      sU = concatenate({U, Ux}, keywords::axis = -1);
+      sU = concatenate({U, Ux}, /*axis =*/ -1);
     } else {
       sU = dot(stateDropped, UUx_);
     }
@@ -608,7 +608,7 @@ public:
     if(inputs.size() == 0)
       return {};
     else if(inputs.size() > 1) {
-      input = concatenate(inputs, keywords::axis = -1);
+      input = concatenate(inputs, /*axis =*/ -1);
     } else
       input = inputs.front();
 
@@ -696,7 +696,7 @@ public:
 
     Expr input;
     if(inputs.size() > 1) {
-      input = concatenate(inputs, keywords::axis = -1);
+      input = concatenate(inputs, /*axis =*/ -1);
     } else
       input = inputs.front();
 
@@ -779,7 +779,7 @@ public:
 
     Expr input;
     if(inputs.size() > 1)
-      input = concatenate(inputs, keywords::axis = -1);
+      input = concatenate(inputs, /*axis =*/ -1);
     else
       input = inputs.front();
 
@@ -851,9 +851,9 @@ public:
         prefix + "_Wo", {dimInput, dimState}, inits::glorot_uniform);
     auto bo = graph->param(prefix + "_bo", {1, dimState}, inits::zeros);
 
-    U_ = concatenate({Uf, Ui, Uc, Uo}, keywords::axis = -1);
-    W_ = concatenate({Wf, Wi, Wc, Wo}, keywords::axis = -1);
-    b_ = concatenate({bf, bi, bc, bo}, keywords::axis = -1);
+    U_ = concatenate({Uf, Ui, Uc, Uo}, /*axis =*/ -1);
+    W_ = concatenate({Wf, Wi, Wc, Wo}, /*axis =*/ -1);
+    b_ = concatenate({bf, bi, bc, bo}, /*axis =*/ -1);
   }
 
   State apply(std::vector<Expr> inputs, State state, Expr mask = nullptr) {
@@ -865,7 +865,7 @@ public:
 
     Expr input;
     if(inputs.size() > 1)
-      input = concatenate(inputs, keywords::axis = -1);
+      input = concatenate(inputs, /*axis =*/ -1);
     else
       input = inputs.front();
 
@@ -950,7 +950,7 @@ public:
 
     Expr input;
     if(inputs.size() > 1)
-      input = concatenate(inputs, keywords::axis = -1);
+      input = concatenate(inputs, /*axis =*/ -1);
     else
       input = inputs.front();
 
@@ -1040,7 +1040,7 @@ public:
 
     Expr input;
     if(inputs.size() > 1)
-      input = concatenate(inputs, keywords::axis = -1);
+      input = concatenate(inputs, /*axis =*/ -1);
     else
       input = inputs.front();
 
@@ -1117,7 +1117,7 @@ public:
 
 //     Expr input;
 //     if(inputs.size() > 1)
-//       input = concatenate(inputs, keywords::axis = -1);
+//       input = concatenate(inputs, /*axis =*/ -1);
 //     else
 //       input = inputs.front();
 

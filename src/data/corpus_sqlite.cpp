@@ -33,7 +33,7 @@ void CorpusSQLite::fillSQLite() {
   } else {
     auto path = options_->get<std::string>("sqlite");
 
-    if(boost::filesystem::exists(path)) {
+    if(filesystem::exists(path)) {
       LOG(info, "[sqlite] Reusing persistent database {}", path);
 
       db_.reset(new SQLite::Database(path, SQLite::OPEN_READWRITE));
@@ -80,9 +80,9 @@ void CorpusSQLite::fillSQLite() {
 
       std::string line;
       for(size_t i = 0; i < files_.size(); ++i) {
-        cont = cont && utils::GetLine((std::istream&)*files_[i], line);
+        cont = cont && io::getline(*files_[i], line);
         if(cont)
-          ps.bind(i + 2, line);
+          ps.bind((int)(i + 2), line);
       }
 
       if(cont) {
@@ -114,7 +114,7 @@ SentenceTuple CorpusSQLite::next() {
     SentenceTuple tup(curId);
 
     for(size_t i = 0; i < files_.size(); ++i) {
-      auto line = select_->getColumn(i + 1);
+      auto line = select_->getColumn((int)(i + 1));
 
       if(i > 0 && i == alignFileIdx_) {
         addAlignmentToSentenceTuple(line, tup);

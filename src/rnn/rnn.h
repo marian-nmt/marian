@@ -168,7 +168,7 @@ public:
       auto lazyInputs = cell->getLazyInputs(shared_from_this());
       if(!lazyInputs.empty()) {
         lazyInputs.push_back(layerInput);
-        lazyInput = concatenate(lazyInputs, keywords::axis = -1);
+        lazyInput = concatenate(lazyInputs, /*axis =*/ -1);
       }
 
       auto layerOutput = rnns_[i]->transduce(lazyInput, mask);
@@ -194,7 +194,7 @@ public:
       auto lazyInputs = cell->getLazyInputs(shared_from_this());
       if(!lazyInputs.empty()) {
         lazyInputs.push_back(layerInput);
-        lazyInput = concatenate(lazyInputs, keywords::axis = -1);
+        lazyInput = concatenate(lazyInputs, /*axis =*/ -1);
       } else {
         lazyInput = layerInput;
       }
@@ -224,7 +224,7 @@ public:
       auto lazyInputs = cell->getLazyInputs(shared_from_this());
       if(!lazyInputs.empty()) {
         lazyInputs.push_back(layerInput);
-        lazyInput = concatenate(lazyInputs, keywords::axis = -1);
+        lazyInput = concatenate(lazyInputs, /*axis =*/ -1);
       }
 
       auto layerOutput = rnns_[i]->transduce(lazyInput, States({state}), mask);

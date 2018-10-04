@@ -61,7 +61,7 @@ void xorshift(Tensor t);
 void glorot_normal(Tensor t);
 
 NodeInitializer from_vector(const std::vector<float>& v);
-NodeInitializer from_vector(const std::vector<size_t>& v);
+NodeInitializer from_vector(const std::vector<IndexType>& v);
 
 NodeInitializer from_item(const io::Item& item);
 

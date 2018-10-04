@@ -1,7 +1,8 @@
 #pragma once
 
-#include "3rd_party/exception.h"
 #include "marian.h"
+
+#include "common/logging.h"
 
 #include <fstream>
 #include <string>
@@ -16,8 +17,8 @@ public:
   std::vector<float> read(const std::string& fileName, int dimVoc, int dimEmb) {
     LOG(info, "[data] Loading embedding vectors from {}", fileName);
 
-    std::ifstream embFile(fileName);
-    ABORT_IF(!embFile.is_open(),
+    io::InputFileStream embFile(fileName);
+    ABORT_IF(!embFile.isOpen(),
              "Unable to open file with embeddings: " + fileName);
 
     std::string line;
@@ -26,18 +27,18 @@ public:
 
     // The first line contains two values: the number of words in the
     // vocabulary and the length of embedding vectors
-    utils::GetLine(embFile, line);
-    utils::Split(line, values);
+    io::getline(embFile, line);
+    utils::split(line, values);
     ABORT_IF(values.size() != 2,
-             "Unexpected format of the first line in embedding file");
+             "Unexpected format of the first line of the embedding file");
     ABORT_IF(stoi(values[1]) != dimEmb,
              "Unexpected length of embedding vectors");
 
     // Read embedding vectors into a map
     std::unordered_map<Word, std::vector<float>> word2vec;
-    while(utils::GetLine(embFile, line)) {
+    while(io::getline(embFile, line)) {
       values.clear();
-      utils::Split(line, values);
+      utils::split(line, values);
 
       Word word = std::stoi(values.front());
       if(word >= (size_t)dimVoc)

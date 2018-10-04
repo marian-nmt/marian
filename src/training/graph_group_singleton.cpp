@@ -1,5 +1,4 @@
 #include "training/graph_group_singleton.h"
-#include "tensors/tensor_operators.h"
 
 namespace marian {
 
@@ -19,12 +18,7 @@ void SingletonGraph::execute(Ptr<data::Batch> batch) {
 
   // Get batch stats
   size_t batch_words = batch->wordsTrg();
-
-  if(scaleLearningRate_) {
-    opt_->update(graph_, batch_words / avgBatchWords_);
-  } else {
-    opt_->update(graph_);
-  }
+  opt_->update(graph_);
 
   if(mvAvg_) {
     ABORT_IF(!scheduler_, "Scheduler is required for exponential smoothing");
@@ -43,9 +37,6 @@ void SingletonGraph::execute(Ptr<data::Batch> batch) {
   if(scheduler_) {
     scheduler_->update(cost, batch);
 
-    if(scheduler_->saving())
-      this->save();
-
     if(scheduler_->validating()) {
       if(mvAvg_) {
         graphAvg_->reuseWorkspace(graph_);
@@ -54,6 +45,9 @@ void SingletonGraph::execute(Ptr<data::Batch> batch) {
         scheduler_->validate({graph_});
       }
     }
+
+    if(scheduler_->saving())
+      this->save();
   }
 }
 }  // namespace marian

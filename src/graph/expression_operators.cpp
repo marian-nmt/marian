@@ -55,8 +55,13 @@ Expr operator-(Expr a) {
   return Expression<NegNodeOp>(a);
 };
 
-Expr softmax(Expr a, Expr mask) {
-  return Expression<SoftmaxNodeOp>(a, mask);
+Expr softmax(Expr a) {
+  return Expression<SoftmaxNodeOp>(a);
+}
+
+Expr softmax(Expr a, Expr zeroOneMask) {
+  auto logMask = (1 - zeroOneMask) * -99999999.f;
+  return softmax(a + logMask);
 }
 
 Expr logsoftmax(Expr a) {
@@ -145,11 +150,11 @@ Expr operator/(float a, Expr b) {
 
 /*********************************************************/
 
-Expr concatenate(const std::vector<Expr>& concats, keywords::axis_k ax) {
+Expr concatenate(const std::vector<Expr>& concats, int ax) {
   return Expression<ConcatenateNodeOp>(concats, ax);
 }
 
-Expr repeat(Expr a, size_t repeats, keywords::axis_k ax) {
+Expr repeat(Expr a, size_t repeats, int ax) {
   if(repeats == 1)
     return a;
   return concatenate(std::vector<Expr>(repeats, a), ax);
@@ -198,31 +203,51 @@ Expr flatten_2d(Expr a) {
   return Expression<ReshapeNodeOp>(a, shape);
 }
 
-Expr rows(Expr a, const std::vector<size_t>& indices) {
+Expr rows(Expr a, Expr indices) {
+  // @TODO:: replace with `select(a, indices, -2)` 
+  // as soon as select is efficient enough
   return Expression<RowsNodeOp>(a, indices);
 }
 
-Expr cols(Expr a, const std::vector<size_t>& indices) {
+Expr rows(Expr a, const std::vector<IndexType>& indices) {
+  auto indexExpr = a->graph()->indices(indices);
+  return rows(a, indexExpr);
+}
+
+
+Expr cols(Expr a, Expr indices) {
+  // @TODO:: replace with `select(a, indices, -1)` 
+  // as soon as select is efficient enough
   return Expression<ColsNodeOp>(a, indices);
 }
 
-Expr select(Expr a, int axis, const std::vector<size_t>& indices) {
-  return Expression<SelectNodeOp>(a, axis, indices);
+Expr cols(Expr a, const std::vector<IndexType>& indices) {
+  auto indexExpr = a->graph()->indices(indices);
+  return cols(a, indexExpr);
 }
 
-Expr sum(Expr a, keywords::axis_k ax) {
+Expr select(Expr a, Expr indices, int axis) {
+  return Expression<SelectNodeOp>(a, indices, axis);
+}
+
+Expr select(Expr a, const std::vector<IndexType>& indices, int axis) {
+  auto indexExpr = a->graph()->indices(indices);
+  return select(a, indexExpr, axis);
+}
+
+Expr sum(Expr a, int ax) {
   return Expression<SumNodeOp>(a, ax);
 }
 
-Expr mean(Expr a, keywords::axis_k ax) {
+Expr mean(Expr a, int ax) {
   return Expression<MeanNodeOp>(a, ax);
 }
 
-Expr scalar_product(Expr a, Expr b, keywords::axis_k ax) {
+Expr scalar_product(Expr a, Expr b, int ax) {
   return Expression<ScalarProductNodeOp>(a, b, ax);
 }
 
-Expr weighted_average(Expr in, Expr weights, keywords::axis_k ax) {
+Expr weighted_average(Expr in, Expr weights, int ax) {
   auto p = scalar_product(in, weights, ax);
   auto s = sum(weights, ax);
   return p / s;
@@ -274,14 +299,14 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
 
       // create context for current call as hash
       std::size_t hash = sh(a->shape()).hash();
-      boost::hash_combine(hash, sh(b->shape()).hash());
-      boost::hash_combine(hash, sh(bias->shape()).hash());
-      boost::hash_combine(hash, transA);
-      boost::hash_combine(hash, transB);
+      util::hash_combine(hash, sh(b->shape()).hash());
+      util::hash_combine(hash, sh(bias->shape()).hash());
+      util::hash_combine(hash, transA);
+      util::hash_combine(hash, transB);
 
       // add first algorithm variant (Int16)
       size_t hash1 = hash;
-      boost::hash_combine(hash1, 1);
+      util::hash_combine(hash1, 1);
       auto rec1 = [=](Expr e, bool stop = false) {
         e->record(tuner, hash1, stop);
         return e;
@@ -300,7 +325,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
 
       // add second algorithm variant (CBlas)
       size_t hash2 = hash;
-      boost::hash_combine(hash2, 2);
+      util::hash_combine(hash2, 2);
       auto rec2 = [=](Expr e, bool stop = false) {
         e->record(tuner, hash2, stop);
         return e;
@@ -371,14 +396,8 @@ Expr step(Expr a, int step, int axis) {
   return Expression<StepNodeOp>(a, step, axis);
 }
 
-Expr cross_entropy(Expr a, Expr b) {
-  // auto sOrig = a->shape();
-  // auto sOut = a->shape();
-  // Shape sTemp({sOrig[0] * sOrig[2] * sOrig[3], sOrig[1], 1, 1});
-  // sOut.set(1, 1);
-  // return reshape(Expression<CrossEntropyNodeOp>(reshape(a, sTemp), b), sOut);
-
-  return Expression<CrossEntropyNodeOp>(a, b);
+Expr cross_entropy(Expr a, Expr indices) {
+  return Expression<CrossEntropyNodeOp>(a, indices);
 }
 
 Expr plus(const std::vector<Expr>&) {

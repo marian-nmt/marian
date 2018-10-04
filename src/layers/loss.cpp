@@ -45,48 +45,43 @@ Expr CrossEntropyMeanLoss::getCost(Expr logits,
                                    Expr indices,
                                    Expr mask,
                                    Expr weights) {
-  using namespace keywords;
   auto ce = getCrossEntropy(logits, indices, mask, weights);
   // Time axis (words): -3
   // Batch axis (sentences): -2
-  return mean(sum(ce, axis = -3), axis = -2);
+  return mean(sum(ce, /*axis =*/ -3), /*axis =*/ -2);
 }
 
 Expr CrossEntropyMeanWordsLoss::getCost(Expr logits,
                                         Expr indices,
                                         Expr mask,
                                         Expr weights) {
-  using namespace keywords;
   auto ce = getCrossEntropy(logits, indices, mask, weights);
-  return sum(sum(ce, axis = -3), axis = -2)
-         / sum(sum(mask, axis = -3), axis = -2);
+  return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
+         / sum(sum(mask, /*axis =*/ -3), /*axis =*/ -2);
 }
 
 Expr CrossEntropySumLoss::getCost(Expr logits,
                                   Expr indices,
                                   Expr mask,
                                   Expr weights) {
-  using namespace keywords;
   auto ce = getCrossEntropy(logits, indices, mask, weights);
-  return sum(sum(ce, axis = -3), axis = -2);
+  return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2);
 }
 
 Expr PerplexityLoss::getCost(Expr logits,
                              Expr indices,
                              Expr mask,
                              Expr weights) {
-  using namespace keywords;
   auto ce = getCrossEntropy(logits, indices, mask, weights);
-  return exp(sum(sum(ce, axis = -3), axis = -2)
-             / sum(sum(mask, axis = -3), axis = -2));
+  return exp(sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
+             / sum(sum(mask, /*axis =*/ -3), /*axis =*/ -2));
 }
 
 Expr CrossEntropyRescoreLoss::getCost(Expr logits,
                                       Expr indices,
                                       Expr mask,
                                       Expr weights) {
-  using namespace keywords;
   auto ce = getCrossEntropy(logits, indices, mask, weights);
-  return -sum(ce, axis = -3);
+  return -sum(ce, /*axis =*/ -3);
 }
 }  // namespace marian

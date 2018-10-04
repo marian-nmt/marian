@@ -4,13 +4,9 @@
 #include <future>
 #include <thread>
 
-#include <boost/filesystem.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/shared_mutex.hpp>
-
+#include "training/graph_group.h"
 #include "3rd_party/threadpool.h"
 #include "training/exponential_smoothing.h"
-#include "training/graph_group.h"
 
 namespace marian {
 

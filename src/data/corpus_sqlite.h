@@ -4,9 +4,6 @@
 #include <iostream>
 #include <random>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/iterator/iterator_facade.hpp>
-
 #include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
@@ -77,7 +74,7 @@ public:
         maxDims.resize(ex.size(), 0);
       for(size_t i = 0; i < ex.size(); ++i) {
         if(ex[i].size() > (size_t)maxDims[i])
-          maxDims[i] = ex[i].size();
+          maxDims[i] = (int)ex[i].size();
       }
       sentenceIds.push_back(ex.getId());
     }

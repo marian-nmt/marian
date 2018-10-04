@@ -4,6 +4,7 @@
 #include "common/logging.h"
 #include "common/regex.h"
 #include "common/utils.h"
+#include "common/filesystem.h"
 
 #include <algorithm>
 #include <fstream>
@@ -38,7 +39,7 @@ Words Vocab::operator()(const std::vector<std::string>& lineTokens,
 
 Words Vocab::operator()(const std::string& line, bool addEOS) const {
   std::vector<std::string> lineTokens;
-  utils::Split(line, lineTokens, " ");
+  utils::split(line, lineTokens, " ");
   return (*this)(lineTokens, addEOS);
 }
 
@@ -53,7 +54,7 @@ std::vector<std::string> Vocab::operator()(const Words& sentence,
   return decoded;
 }
 
-const std::string& Vocab::operator[](size_t id) const {
+const std::string& Vocab::operator[](Word id) const {
   ABORT_IF(id >= id2str_.size(), "Unknown word id: ", id);
   return id2str_[id];
 }
@@ -66,16 +67,19 @@ int Vocab::loadOrCreate(const std::string& vocabPath,
                         const std::string& trainPath,
                         int max) {
   if(vocabPath.empty()) {
-    if(boost::filesystem::exists(trainPath + ".json")) {
+    if(filesystem::exists(trainPath + ".json")) {
       return load(trainPath + ".json", max);
     }
-    if(boost::filesystem::exists(trainPath + ".yml")) {
+    if(filesystem::exists(trainPath + ".yaml")) {
+      return load(trainPath + ".yaml", max);
+    }
+    if(filesystem::exists(trainPath + ".yml")) {
       return load(trainPath + ".yml", max);
     }
     create(trainPath + ".yml", trainPath);
     return load(trainPath + ".yml", max);
   } else {
-    if(!boost::filesystem::exists(vocabPath))
+    if(!filesystem::exists(vocabPath))
       create(vocabPath, trainPath);
     return load(vocabPath, max);
   }
@@ -91,27 +95,27 @@ Word Vocab::insertWord(Word id, const std::string& str) {
 };
 
 int Vocab::load(const std::string& vocabPath, int max) {
-  bool isJson = regex::regex_search(vocabPath, regex::regex("\\.(json|yml)$"));
+  bool isJson = regex::regex_search(vocabPath, regex::regex("\\.(json|yaml|yml)$"));
   LOG(info,
       "[data] Loading vocabulary from {} file {}",
       isJson ? "JSON/Yaml" : "text",
       vocabPath);
-  ABORT_IF(!boost::filesystem::exists(vocabPath),
+  ABORT_IF(!filesystem::exists(vocabPath),
            "Vocabulary file {} does not exits",
            vocabPath);
 
   std::map<std::string, Word> vocab;
   // read from JSON (or Yaml) file
   if(isJson) {
-    YAML::Node vocabNode = YAML::Load(InputFileStream(vocabPath));
+    YAML::Node vocabNode = YAML::Load(io::InputFileStream(vocabPath));
     for(auto&& pair : vocabNode)
       vocab.insert({pair.first.as<std::string>(), pair.second.as<Word>()});
   }
   // read from flat text file
   else {
-    std::ifstream in(vocabPath);
+    io::InputFileStream in(vocabPath);
     std::string line;
-    while(utils::GetLine(in, line)) {
+    while(io::getline(in, line)) {
       ABORT_IF(line.empty(),
                "Vocabulary file {} must not contain empty lines",
                vocabPath);
@@ -213,32 +217,30 @@ public:
 void Vocab::create(const std::string& vocabPath, const std::string& trainPath) {
   LOG(info, "[data] Creating vocabulary {} from {}", vocabPath, trainPath);
 
-  boost::filesystem::path path(vocabPath);
-  auto dir = path.parent_path();
+  filesystem::Path path(vocabPath);
+  auto dir = path.parentPath();
   if(dir.empty())
-    dir = boost::filesystem::current_path();
+    dir = filesystem::currentPath();
 
-  ABORT_IF(!dir.empty() && !boost::filesystem::is_directory(dir),
+  ABORT_IF(!dir.empty() && !filesystem::isDirectory(dir),
            "Specified vocab directory {} does not exist",
-           dir);
+           (std::string)dir);
 
-  ABORT_IF(!dir.empty()
-               && !(boost::filesystem::status(dir).permissions()
-                    & boost::filesystem::owner_write),
+  ABORT_IF(!dir.empty() && !filesystem::canWrite(dir),
            "No write permission in vocab directory {}",
-           dir);
+           (std::string)dir);
 
-  ABORT_IF(boost::filesystem::exists(vocabPath),
+  ABORT_IF(filesystem::exists(vocabPath),
            "Vocab file '{}' exists. Not overwriting",
-           vocabPath);
+           (std::string)vocabPath);
 
-  InputFileStream trainStrm(trainPath);
-  OutputFileStream vocabStrm(vocabPath);
+  io::InputFileStream trainStrm(trainPath);
+  io::OutputFileStream vocabStrm(vocabPath);
   create(trainStrm, vocabStrm);
 }
 
-void Vocab::create(InputFileStream& trainStrm,
-                   OutputFileStream& vocabStrm,
+void Vocab::create(io::InputFileStream& trainStrm,
+                   io::OutputFileStream& vocabStrm,
                    size_t maxSize) {
   std::string line;
   std::unordered_map<std::string, size_t> counter;
@@ -247,7 +249,7 @@ void Vocab::create(InputFileStream& trainStrm,
 
   while(getline((std::istream&)trainStrm, line)) {
     std::vector<std::string> toks;
-    utils::Split(line, toks);
+    utils::split(line, toks);
 
     for(const std::string& tok : toks) {
       if(SPEC2SYM.count(tok)) {
@@ -288,6 +290,6 @@ void Vocab::create(InputFileStream& trainStrm,
   for(size_t i = 0; i < vocabSize; ++i)
     vocabYaml.force_insert(vocabVec[i], i + maxSpec + 1);
 
-  (std::ostream&)vocabStrm << vocabYaml;
+  vocabStrm << vocabYaml;
 }
 }  // namespace marian

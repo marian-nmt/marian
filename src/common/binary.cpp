@@ -67,9 +67,9 @@ void loadItems(const void* current, std::vector<io::Item>& items, bool mapped) {
 
 void loadItems(const std::string& fileName, std::vector<io::Item>& items) {
   // Read file into buffer
-  size_t fileSize = boost::filesystem::file_size(fileName);
+  size_t fileSize = filesystem::fileSize(fileName);
   char* ptr = new char[fileSize];
-  InputFileStream in(fileName);
+  io::InputFileStream in(fileName);
   in.read(ptr, fileSize);
 
   // Load items from buffer without mapping
@@ -103,7 +103,7 @@ io::Item getItem(const std::string& fileName, const std::string& varName) {
 
 void saveItems(const std::string& fileName,
                const std::vector<io::Item>& items) {
-  OutputFileStream out(fileName);
+  io::OutputFileStream out(fileName);
   size_t pos = 0;
 
   size_t binaryFileVersion = BINARY_FILE_VERSION;

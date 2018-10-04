@@ -1,14 +1,12 @@
 #include <vector>
 
-#include <boost/filesystem.hpp>
-
+#include "common/filesystem.h"
 #include "common/config.h"
 #include "examples/iris/helper.cpp"
 #include "marian.h"
 
 using namespace marian;
 using namespace data;
-using namespace keywords;
 
 // Constants for Iris example
 const size_t MAX_EPOCHS = 200;
@@ -16,7 +14,7 @@ const size_t MAX_EPOCHS = 200;
 // Function creating feedforward dense network graph
 Expr buildIrisClassifier(Ptr<ExpressionGraph> graph,
                          std::vector<float> inputData,
-                         std::vector<float> outputData = {},
+                         std::vector<IndexType> outputData = {},
                          bool train = false) {
   // The number of input data
   int N = inputData.size() / NUM_FEATURES;
@@ -37,14 +35,14 @@ Expr buildIrisClassifier(Ptr<ExpressionGraph> graph,
   auto o = affine(h, W2, b2);
 
   if(train) {
-    auto y = graph->constant({N}, inits::from_vector(outputData));
+    auto y = graph->indices(outputData);
     /* Define cross entropy cost on the output layer.
      * It can be also defined directly as:
      *   -mean(sum(logsoftmax(o) * y, axis=1), axis=0)
      * But then `y` requires to be a one-hot-vector, i.e. [0,1,0, 1,0,0, 0,0,1,
      * ...] instead of [1, 0, 2, ...].
      */
-    auto cost = mean(cross_entropy(o, y), axis = 0);
+    auto cost = mean(cross_entropy(o, y), /*axis =*/ 0);
     return cost;
   } else {
     auto preds = logsoftmax(o);
@@ -61,12 +59,11 @@ int main() {
 
   // Get path do data set
   std::string dataPath
-      = (boost::filesystem::path(__FILE__).parent_path() / "iris.data")
-            .string();
+      = (filesystem::Path(std::string(__FILE__)).parentPath() / filesystem::Path(std::string("iris.data"))).string();
 
   // Read data set (all 150 examples)
   std::vector<float> trainX;
-  std::vector<float> trainY;
+  std::vector<IndexType> trainY;
   readIrisData(dataPath, trainX, trainY);
 
   // Split shuffled data into training data (120 examples) and test data (rest
@@ -74,7 +71,7 @@ int main() {
   shuffleData(trainX, trainY);
   std::vector<float> testX(trainX.end() - 30 * NUM_FEATURES, trainX.end());
   trainX.resize(120 * NUM_FEATURES);
-  std::vector<float> testY(trainY.end() - 30, trainY.end());
+  std::vector<IndexType> testY(trainY.end() - 30, trainY.end());
   trainY.resize(120);
 
   {

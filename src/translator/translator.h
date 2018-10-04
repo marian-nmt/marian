@@ -181,8 +181,9 @@ public:
     }
   }
 
-  std::vector<std::string> run(const std::vector<std::string>& inputs) override {
-    auto corpus_ = New<data::TextInput>(inputs, srcVocabs_, options_);
+  std::string run(const std::string& input) override {
+    auto corpus_ = New<data::TextInput>(
+        std::vector<std::string>({input}), srcVocabs_, options_);
     data::BatchGenerator<data::TextInput> bg(corpus_, options_);
 
     auto collector = New<StringCollector>();
@@ -218,7 +219,7 @@ public:
             std::stringstream best1;
             std::stringstream bestn;
             printer->print(history, best1, bestn);
-            collector->add(history->GetLineNum(), best1.str(), bestn.str());
+            collector->add((long)history->GetLineNum(), best1.str(), bestn.str());
           }
         };
 
@@ -227,7 +228,8 @@ public:
       }
     }
 
-    return collector->collect(options_->get<bool>("n-best"));
+    auto translations = collector->collect(options_->get<bool>("n-best"));
+    return utils::join(translations, "\n");
   }
 };
 }  // namespace marian

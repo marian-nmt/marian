@@ -71,12 +71,7 @@ void AsyncGraphGroup::pushGradients(Tensor newGrads,
           std::lock_guard<std::mutex> guard(shardSync_[idx]);
           grads_[idx]->copyFrom(newGrads->subtensor(pos, (int)grads_[idx]->size()));
 
-          if(scaleLearningRate_) {
-            shardOpt_[idx]->update(
-                params_[idx], grads_[idx], batch_words / avgBatchWords_);
-          } else {
-            shardOpt_[idx]->update(params_[idx], grads_[idx]);
-          }
+          shardOpt_[idx]->update(params_[idx], grads_[idx]);
 
           if(mvAvg_)
             updateAvgParams(
@@ -146,7 +141,7 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
   if(mvAvg_ && paramsAvg_.empty()) {
     Ptr<ExpressionGraph> graphAvg;
     std::string name = options_->get<std::string>("model");
-    if(boost::filesystem::exists(name + ".orig.npz")) {
+    if(filesystem::exists(name + ".orig.npz")) {
       // Load the averaged parameters into a temporary graph
       graphAvg = New<ExpressionGraph>();
       graphAvg->setDevice({0, DeviceType::cpu});
@@ -285,11 +280,11 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
           for(auto g : graphs_)
             fetchParams(g->params()->vals(), paramsAvg_, t_id);
 
-        if(scheduler_->saving())
-          this->save(graph);
-
         if(scheduler_->validating())
           scheduler_->validate(graphs_);
+
+        if(scheduler_->saving())
+          this->save(graph);
 
         // Validation or saving is done, tell other threads to continue work.
         pool_->notify_others();
@@ -304,12 +299,12 @@ void AsyncGraphGroup::load() {
   if(!options_->get<bool>("no-reload")) {
     std::string name = options_->get<std::string>("model");
 
-    if(boost::filesystem::exists(name)) {
+    if(filesystem::exists(name)) {
       if(scheduler_)
         scheduler_->load(name);
 
       std::string nameGraph = name;
-      if(mvAvg_ && boost::filesystem::exists(name + ".orig.npz"))
+      if(mvAvg_ && filesystem::exists(name + ".orig.npz"))
         // Load the original parameters from model.npz.orig.npz
         nameGraph += ".orig.npz";
 

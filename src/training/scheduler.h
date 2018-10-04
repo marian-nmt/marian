@@ -15,7 +15,7 @@ private:
 
   Ptr<TrainingState> state_;
 
-  boost::timer::cpu_timer timer;
+  timer::Timer timer;
 
   float getLearningRate(TrainingState& state) {
     float baselr = options_->get<float>("learn-rate");
@@ -274,7 +274,7 @@ public:
 
   void load(const std::string& name) {
     std::string nameYaml = name + ".progress.yml";
-    if(boost::filesystem::exists(nameYaml))
+    if(filesystem::exists(nameYaml))
       state_->load(nameYaml);
 
     if(options_->get<bool>("no-restore-corpus")) {

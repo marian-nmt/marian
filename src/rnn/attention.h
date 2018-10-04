@@ -105,7 +105,6 @@ public:
   }
 
   Expr apply(State state) override {
-    using namespace keywords;
     auto recState = state.output;
 
     int dimBatch = contextDropped_->shape()[-2];
@@ -134,7 +133,7 @@ public:
                      {dimBeam, srcWords, dimBatch, 1});
     // <- horrible
 
-    auto alignedSource = scalar_product(encState_->getAttended(), e, axis = -3);
+    auto alignedSource = scalar_product(encState_->getAttended(), e, /*axis =*/ -3);
 
     contexts_.push_back(alignedSource);
     alignments_.push_back(e);
@@ -143,7 +142,7 @@ public:
 
   std::vector<Expr>& getContexts() { return contexts_; }
 
-  Expr getContext() { return concatenate(contexts_, keywords::axis = -3); }
+  Expr getContext() { return concatenate(contexts_, /*axis =*/ -3); }
 
   std::vector<Expr>& getAlignments() { return alignments_; }
 

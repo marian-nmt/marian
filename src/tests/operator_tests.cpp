@@ -191,14 +191,14 @@ void tests(DeviceType device) {
 
     auto a = graph->constant({2, 4}, inits::from_vector(vA));
 
-    auto s1 = sum(a, keywords::axis=0);
-    auto s2 = sum(a, keywords::axis=1);
+    auto s1 = sum(a, /*axis=*/ 0);
+    auto s2 = sum(a, /*axis=*/ 1);
 
-    auto m3 = mean(s1, keywords::axis=1);
+    auto m3 = mean(s1, /*axis=*/ 1);
 
-    auto sp = scalar_product(s2, s2, keywords::axis=0);
+    auto sp = scalar_product(s2, s2, /*axis=*/ 0);
 
-    auto wa = weighted_average(a, s1, keywords::axis=-1);
+    auto wa = weighted_average(a, s1, /*axis=*/ -1);
 
     graph->forward();
 
@@ -251,10 +251,10 @@ void tests(DeviceType device) {
     auto in3 = graph->constant({1, 2, 2, 3}, inits::from_value(3));
     auto in4 = graph->constant({1, 2, 2, 3}, inits::from_value(4));
 
-    auto c1out1 = concatenate({in1, in2, in3, in4}, keywords::axis=2);
-    auto c1out2 = concatenate({in1, in2, in3, in4}, keywords::axis=-1);
-    auto c1out3 = concatenate({in1, in2, in3, in4}, keywords::axis=-3);
-    auto c1out4 = concatenate({in1, in2, in3, in4}, keywords::axis=0);
+    auto c1out1 = concatenate({in1, in2, in3, in4}, /*axis=*/ 2);
+    auto c1out2 = concatenate({in1, in2, in3, in4}, /*axis=*/ -1);
+    auto c1out3 = concatenate({in1, in2, in3, in4}, /*axis=*/ -3);
+    auto c1out4 = concatenate({in1, in2, in3, in4}, /*axis=*/ 0);
 
     graph->forward();
 

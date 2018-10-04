@@ -10,14 +10,16 @@
 #include "common/config.h"
 #include "common/utils.h"
 
+using namespace marian;
+
 // Constants for Iris example
 const int NUM_FEATURES = 4;
 const int NUM_LABELS = 3;
 
 void readIrisData(const std::string fileName,
                   std::vector<float>& features,
-                  std::vector<float>& labels) {
-  std::map<std::string, int> CLASSES
+                  std::vector<IndexType>& labels) {
+  std::map<std::string, IndexType> CLASSES
       = {{"Iris-setosa", 0}, {"Iris-versicolor", 1}, {"Iris-virginica", 2}};
 
   std::ifstream in(fileName);
@@ -26,10 +28,10 @@ void readIrisData(const std::string fileName,
   }
   std::string line;
   std::string value;
-  while(marian::utils::GetLine(in, line)) {
+  while(std::getline(in, line)) {
     std::stringstream ss(line);
     int i = 0;
-    while(marian::utils::GetLine(ss, value, ',')) {
+    while(std::getline(ss, value, ',')) {
       if(++i == 5)
         labels.emplace_back(CLASSES[value]);
       else
@@ -38,9 +40,9 @@ void readIrisData(const std::string fileName,
   }
 }
 
-void shuffleData(std::vector<float>& features, std::vector<float>& labels) {
+void shuffleData(std::vector<float>& features, std::vector<IndexType>& labels) {
   // Create a list of indices 0...K
-  std::vector<int> indices;
+  std::vector<size_t> indices;
   indices.reserve(labels.size());
   for(size_t i = 0; i < labels.size(); ++i)
     indices.push_back(i);
@@ -51,7 +53,7 @@ void shuffleData(std::vector<float>& features, std::vector<float>& labels) {
 
   std::vector<float> featuresTemp;
   featuresTemp.reserve(features.size());
-  std::vector<float> labelsTemp;
+  std::vector<IndexType> labelsTemp;
   labelsTemp.reserve(labels.size());
 
   // Get shuffled features and labels
@@ -68,7 +70,7 @@ void shuffleData(std::vector<float>& features, std::vector<float>& labels) {
 }
 
 float calculateAccuracy(const std::vector<float> probs,
-                        const std::vector<float> labels) {
+                        const std::vector<IndexType> labels) {
   size_t numCorrect = 0;
   for(size_t i = 0; i < probs.size(); i += NUM_LABELS) {
     auto pred = std::distance(

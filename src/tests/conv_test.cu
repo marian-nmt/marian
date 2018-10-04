@@ -20,7 +20,7 @@ bool test_vectors(const std::vector<float>& output, const std::vector<float>& co
 }
 
 int main(int argc, char** argv) {
-  auto config = Config(argc, argv, ConfigMode::translating, false);
+  auto config = Config(argc, argv, cli::mode::translation, false);
   auto graph = New<ExpressionGraph>(false);
   graph->setDevice(0);
   graph->reserveWorkspaceMB(128);
@@ -43,16 +43,15 @@ int main(int argc, char** argv) {
   }
 
   auto x = graph->param("x", {dimBatch, dimWord, batchLength},
-                        keywords::init=inits::from_vector(embData));
-
+                        inits::from_vector(embData));
 
   auto xMask = graph->constant({dimBatch, 1, batchLength},
-                               keywords::init=inits::from_vector(embMask));
+                               inits::from_vector(embMask));
 
   auto convolution = Convolution("convolution", 3, 1, 3)(x, xMask);
-  auto idx = graph->constant({elemNum, 1}, keywords::init=inits::zeros);
+  auto idx = graph->constant({elemNum, 1}, inits::zeros);
   auto ce = cross_entropy(convolution, idx);
-  auto cost = mean(sum(ce, keywords::axis=2), keywords::axis=0);
+  auto cost = mean(sum(ce, /*axis=*/2), /*axis=*/0);
 
 
   debug(x, "X");

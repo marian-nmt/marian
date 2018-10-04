@@ -34,7 +34,6 @@ public:
   virtual void embeddingsFromBatch(Ptr<ExpressionGraph> graph,
                                    Ptr<DecoderState> state,
                                    Ptr<data::CorpusBatch> batch) {
-    using namespace keywords;
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");
@@ -73,11 +72,9 @@ public:
 
     Expr yData;
     if(shortlist_) {
-      yData = graph->constant({(int)shortlist_->mappedIndices().size(), 1},
-                              inits::from_vector(shortlist_->mappedIndices()));
+      yData = graph->indices(shortlist_->mappedIndices());
     } else {
-      yData = graph->constant({(int)subBatch->data().size(), 1},
-                              inits::from_vector(subBatch->data()));
+      yData = graph->indices(subBatch->data());
     }
 
     auto yShifted = shift(y, {1, 0, 0});
@@ -89,11 +86,9 @@ public:
 
   virtual void embeddingsFromPrediction(Ptr<ExpressionGraph> graph,
                                         Ptr<DecoderState> state,
-                                        const std::vector<size_t>& embIdx,
+                                        const std::vector<IndexType>& embIdx,
                                         int dimBatch,
                                         int dimBeam) {
-    using namespace keywords;
-
     int dimTrgEmb = opt<int>("dim-emb");
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 

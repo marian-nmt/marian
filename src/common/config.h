@@ -1,14 +1,9 @@
 #pragma once
 
-#include <boost/program_options.hpp>
-
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/cli_helper.h"
 #include "common/config_parser.h"
-#include "common/file_stream.h"
 #include "common/io.h"
-#include "common/logging.h"
-#include "common/utils.h"
 
 // TODO: why are these needed by a config parser? Can they be removed for Linux
 // as well?
@@ -19,81 +14,40 @@
 
 namespace marian {
 
+// TODO: Finally refactorize Config, Options, ConfigParser and ConfigValidator
+// classes.
+//
+// TODO: The problem is that there are many config classes in here, plus
+// "configuration" can refer to the high-level concept of the entire program's
+// configuration, and/or any of its representations. Avoidthe term "config" and
+// always qualify it what kind of config, e.g. new Options instance.
+//
+// TODO: What is not clear is the different config levels as there are classes
+// for:
+//  - parsing cmd-line options
+//  - representing a set of options
+//  - interpreting these options in the context of Marian
+// It is not clear which class does what, which class knows what.
 class Config {
 public:
   static size_t seed;
 
   typedef YAML::Node YamlNode;
 
-  Config(const std::string options,
-         ConfigMode mode = ConfigMode::training,
-         bool validate = false) {
-    std::vector<std::string> sargv;
-    utils::Split(options, sargv, " ");
-    int argc = (int)sargv.size();
-
-    std::vector<char*> argv(argc);
-    for(int i = 0; i < argc; ++i)
-      argv[i] = const_cast<char*>(sargv[i].c_str());
-
-    initialize(argc, &argv[0], mode, validate);
-  }
-
+  // TODO: remove mode from this class
   Config(int argc,
          char** argv,
-         ConfigMode mode = ConfigMode::training,
-         bool validate = true) {
-    initialize(argc, argv, mode, validate);
-  }
+         cli::mode mode = cli::mode::training,
+         bool validate = true);
 
-  void initialize(int argc,
-                  char** argv,
-                  ConfigMode mode = ConfigMode::training,
-                  bool validate = true) {
-    auto parser = ConfigParser(argc, argv, mode, validate);
-    config_ = parser.getConfig();
-    devices_ = parser.getDevices();
+  Config(const Config& other);
 
-    createLoggers(this);
-
-    if(get<size_t>("seed") == 0)
-      seed = (size_t)time(0);
-    else
-      seed = get<size_t>("seed");
-
-    if(mode != ConfigMode::translating) {
-      if(boost::filesystem::exists(get<std::string>("model"))
-         && !get<bool>("no-reload")) {
-        try {
-          if(!get<bool>("ignore-model-config"))
-            loadModelParameters(get<std::string>("model"));
-        } catch(std::runtime_error&) {
-          LOG(info, "[config] No model configuration found in model file");
-        }
-      }
-    } else {
-      auto model = get<std::vector<std::string>>("models")[0];
-      try {
-        if(!get<bool>("ignore-model-config"))
-          loadModelParameters(model);
-      } catch(std::runtime_error&) {
-        LOG(info, "[config] No model configuration found in model file");
-      }
-    }
-    log();
-
-    if(has("version"))
-      LOG(info,
-          "[config] Model created with Marian {}",
-          get("version").as<std::string>());
-  }
-
-  Config(const Config& other) : config_(YAML::Clone(other.config_)) {}
+  void initialize(int argc, char** argv, cli::mode mode, bool validate);
 
   bool has(const std::string& key) const;
 
+  YAML::Node operator[](const std::string& key) const;
   YAML::Node get(const std::string& key) const;
-  YAML::Node operator[](const std::string& key) const { return get(key); }
 
   template <typename T>
   T get(const std::string& key) const {
@@ -108,24 +62,22 @@ public:
       return dflt;
   }
 
+  const YAML::Node& get() const;
+  YAML::Node& get();
+
   template <typename T>
   void set(const std::string& key, const T& value) {
     config_[key] = value;
   }
 
-  const YAML::Node& get() const;
-  YAML::Node& get();
-
   YAML::Node getModelParameters();
   void loadModelParameters(const std::string& name);
   void loadModelParameters(const void* ptr);
 
-  const std::vector<DeviceId>& getDevices() { return devices_; }
+  // @TODO: remove this accessor or move to a more appropriate class
+  const std::vector<DeviceId>& getDevices();
 
-  void save(const std::string& name) {
-    OutputFileStream out(name);
-    (std::ostream&)out << *this;
-  }
+  void save(const std::string& name);
 
   friend std::ostream& operator<<(std::ostream& out, const Config& config) {
     YAML::Emitter outYaml;
@@ -138,6 +90,7 @@ private:
   YAML::Node config_;
   std::vector<DeviceId> devices_;
 
+  // Add options overwritting values for existing ones
   void override(const YAML::Node& params);
 
   void log();

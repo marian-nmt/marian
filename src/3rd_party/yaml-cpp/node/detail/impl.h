@@ -140,9 +140,9 @@ inline bool node_data::remove(const Key& key, shared_memory_holder pMemory) {
     it = jt;
   }
 
-  for (node_map::iterator it = m_map.begin(); it != m_map.end(); ++it) {
-    if (it->first->equals(key, pMemory)) {
-      m_map.erase(it);
+  for (node_map::iterator it2 = m_map.begin(); it2 != m_map.end(); ++it2) {
+    if (it2->first->equals(key, pMemory)) {
+      m_map.erase(it2);
       return true;
     }
   }

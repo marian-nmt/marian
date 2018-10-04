@@ -1,7 +1,6 @@
 #pragma once
 
-#include <boost/iterator/iterator_facade.hpp>
-
+#include "data/iterator_facade.h"
 #include "data/corpus.h"
 
 namespace marian {
@@ -9,22 +8,17 @@ namespace data {
 
 class TextInput;
 
-class TextIterator
-    : public boost::iterator_facade<TextIterator,
-                                    SentenceTuple const,
-                                    boost::forward_traversal_tag> {
+class TextIterator : public IteratorFacade<TextIterator, SentenceTuple const> {
 public:
   TextIterator();
   explicit TextIterator(TextInput& corpus);
 
 private:
-  friend class boost::iterator_core_access;
+  void increment() override;
 
-  void increment();
+  bool equal(TextIterator const& other) const override;
 
-  bool equal(TextIterator const& other) const;
-
-  const SentenceTuple& dereference() const;
+  const SentenceTuple& dereference() const override;
 
   TextInput* corpus_;
 

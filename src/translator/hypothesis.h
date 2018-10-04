@@ -65,7 +65,6 @@ private:
 
 typedef std::vector<Ptr<Hypothesis>> Beam;                // Beam = vector of hypotheses
 typedef std::vector<Beam> Beams;                          // Beams = vector of vector of hypotheses
-typedef std::vector<size_t> Words;                        // Words = vector of word ids
 typedef std::tuple<Words, Ptr<Hypothesis>, float> Result; // (word ids for hyp, hyp, normalized sentence score for hyp)
 typedef std::vector<Result> NBestList;                    // sorted vector of (word ids, hyp, sent score) tuples
 }  // namespace marian

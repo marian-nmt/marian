@@ -91,8 +91,8 @@ Expr affine(Expr a,
 Expr transpose(Expr a);
 Expr transpose(Expr a, const std::vector<int>& axes);
 
-Expr concatenate(const std::vector<Expr>& concats, keywords::axis_k ax = 0);
-Expr repeat(Expr a, size_t repeats, keywords::axis_k ax = 0);
+Expr concatenate(const std::vector<Expr>& concats, int ax = 0);
+Expr repeat(Expr a, size_t repeats, int ax = 0);
 
 Expr reshape(Expr a, Shape shape);
 
@@ -105,25 +105,34 @@ Expr atleast_nd(Expr a, size_t dims);
 Expr flatten(Expr a);
 Expr flatten_2d(Expr a);
 
-Expr rows(Expr a, const std::vector<size_t>& indices);
-Expr cols(Expr a, const std::vector<size_t>& indices);
-Expr select(Expr a, int axis, const std::vector<size_t>& indices);
+Expr rows(Expr a, Expr indices);
+Expr rows(Expr a, const std::vector<IndexType>& indices);
+
+Expr cols(Expr a, Expr indices);
+Expr cols(Expr a, const std::vector<IndexType>& indices);
+
+Expr select(Expr a, Expr indices, int axis);
+Expr select(Expr a, const std::vector<IndexType>& indices, int axis);
 
 /*********************************************************/
 
-Expr sum(Expr a, keywords::axis_k ax = 0);
+Expr sum(Expr a, int ax = 0);
 
-Expr softmax(Expr a, Expr mask = nullptr);
+Expr softmax(Expr a);
+
+// @TODO: maybe get rid of this entirely to not obfuscate, what's going on inside.
+// @TODO: switch to log-masking everywhere?
+Expr softmax(Expr a, Expr zeroOneMask);
 
 Expr logsoftmax(Expr a);
 
-Expr mean(Expr a, keywords::axis_k ax = 0);
+Expr mean(Expr a, int ax = 0);
 
 Expr cross_entropy(Expr a, Expr b);
 
-Expr scalar_product(Expr a, Expr b, keywords::axis_k ax = 0);
+Expr scalar_product(Expr a, Expr b, int ax = 0);
 
-Expr weighted_average(Expr in, Expr weights, keywords::axis_k ax = 0);
+Expr weighted_average(Expr in, Expr weights, int ax = 0);
 
 Expr step(Expr a, int step, int axis);
 

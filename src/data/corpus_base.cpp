@@ -41,7 +41,8 @@ CorpusBase::CorpusBase(std::vector<std::string> paths,
            "Number of corpus files and vocab files does not agree");
 
   for(auto path : paths_) {
-    files_.emplace_back(new InputFileStream(path));
+    files_.emplace_back(new io::InputFileStream(path));
+    ABORT_IF(files_.back()->empty(), "File '{}' is empty", path);
   }
 }
 
@@ -58,7 +59,7 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
     paths_ = options_->get<std::vector<std::string>>("input");
 
   std::vector<std::string> vocabPaths;
-  if(options_->has("vocabs"))
+  if(!options_->get<std::vector<std::string>>("vocabs").empty())
     vocabPaths = options_->get<std::vector<std::string>>("vocabs");
 
   if(training) {
@@ -68,7 +69,8 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
 
   std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
 
-  if(training) {  // training or scoring
+  // training or scoring
+  if(training) {
     std::vector<Vocab> vocabs;
 
     if(vocabPaths.empty()) {
@@ -130,9 +132,9 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
 
   for(auto path : paths_) {
     if(path == "stdin")
-      files_.emplace_back(new InputFileStream(std::cin));
+      files_.emplace_back(new io::InputFileStream(std::cin));
     else {
-      files_.emplace_back(new InputFileStream(path));
+      files_.emplace_back(new io::InputFileStream(path));
       ABORT_IF(files_.back()->empty(), "File '{}' is empty", path);
     }
   }
@@ -146,23 +148,25 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
   if(training && options_->has("guided-alignment")) {
     auto path = options_->get<std::string>("guided-alignment");
 
-    ABORT_IF(!boost::filesystem::exists(path), "Alignment file does not exist");
+    ABORT_IF(!filesystem::exists(path), "Alignment file does not exist");
     LOG(info, "[data] Using word alignments from file {}", path);
 
     alignFileIdx_ = paths_.size();
     paths_.emplace_back(path);
-    files_.emplace_back(new InputFileStream(path));
+    files_.emplace_back(new io::InputFileStream(path));
+    ABORT_IF(files_.back()->empty(), "File with alignments '{}' is empty", path);
   }
 
   if(training && options_->has("data-weighting")) {
     auto path = options_->get<std::string>("data-weighting");
 
-    ABORT_IF(!boost::filesystem::exists(path), "Weight file does not exist");
+    ABORT_IF(!filesystem::exists(path), "Weight file does not exist");
     LOG(info, "[data] Using weights from file {}", path);
 
     weightFileIdx_ = paths_.size();
     paths_.emplace_back(path);
-    files_.emplace_back(new InputFileStream(path));
+    files_.emplace_back(new io::InputFileStream(path));
+    ABORT_IF(files_.back()->empty(), "File with weights '{}' is empty", path);
   }
 }
 
@@ -197,7 +201,7 @@ void CorpusBase::addAlignmentToSentenceTuple(const std::string& line,
 
 void CorpusBase::addWeightsToSentenceTuple(const std::string& line,
                                            SentenceTuple& tup) const {
-  auto elements = utils::Split(line, " ");
+  auto elements = utils::split(line, " ");
 
   if(!elements.empty()) {
     std::vector<float> weights;

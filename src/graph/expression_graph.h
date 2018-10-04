@@ -70,7 +70,9 @@ public:
 
   Expr findOrRemember(Expr node) {
     size_t hash = node->hash();
-    if(node->memoize()) {
+    // memoize constant nodes that are not parameters
+    // parameters are already memoized in the graph itself
+    if(node->type() != "param" && node->memoize()) {
       auto it = longterm_->find(hash);
       if(it != longterm_->end()) {
         for(auto found : it->second) {
@@ -242,8 +244,19 @@ public:
   }
 
   void backward(bool zero = true) {
-    ABORT_IF(topNodes_.size() > 1,
-             "There are more than one top most node for backward step");
+    if(topNodes_.size() > 1) {
+      LOG(critical, "There are more ({}) than one top most node for backward step:", topNodes_.size());
+      for(auto node : topNodes_) {
+        LOG(critical,
+            "\tType: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
+            node->type(),
+            node->shape(),
+            node->name(),
+            node->getId(),
+            node->hash());
+      }
+      ABORT("Aborting");
+    }
 
     params_->allocateBackward();
     if(zero)
@@ -338,22 +351,32 @@ public:
     // create parameter node (adds to tape)
     p = Expression<ParamNode>(shared_from_this(), shape, init, fixed);
 
-    // add to list of parameters
+    // set name and id and add to list of parameters
     p->set_name(name);
     params_->add(p, name);
+
     return p;
   }
 
-  Expr constant(const Shape& shape, const NodeInitializer& init) {
-    return Expression<ConstantNode>(shared_from_this(), shape, init);
+  Expr constant(const Shape& shape, const NodeInitializer& init, Type value_type = Type::float32) {
+    return Expression<ConstantNode>(shared_from_this(), shape, init, value_type);
+  }
+
+  // @TODO: add version with iterators
+  // shortcut to turn vector of indices to integer tensor, to be used with operators
+  // like rows or select
+  Expr indices(const std::vector<IndexType>& indicesVector) {
+    return constant({(int)indicesVector.size()},
+                    inits::from_vector(indicesVector),
+                    Type::uint32);
   }
 
   Expr ones(const Shape& shape) {
-    return Expression<ConstantNode>(shared_from_this(), shape, inits::ones);
+    return constant(shape, inits::ones);
   }
 
   Expr zeros(const Shape& shape) {
-    return Expression<ConstantNode>(shared_from_this(), shape, inits::zeros);
+    return constant(shape, inits::zeros);
   }
 
   Expr dropout(float prob, const Shape& shape);

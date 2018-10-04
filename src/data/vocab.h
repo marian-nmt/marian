@@ -23,7 +23,7 @@ public:
   std::vector<std::string> operator()(const Words& sentence,
                                       bool ignoreEOS = true) const;
 
-  const std::string& operator[](size_t id) const;
+  const std::string& operator[](Word id) const;
 
   size_t size() const;
 
@@ -32,8 +32,8 @@ public:
                    int max = 0);
   int load(const std::string& vocabPath, int max = 0);
   void create(const std::string& vocabPath, const std::string& trainPath);
-  void create(InputFileStream& trainStrm,
-              OutputFileStream& vocabStrm,
+  void create(io::InputFileStream& trainStrm,
+              io::OutputFileStream& vocabStrm,
               size_t maxSize = 0);
 
   Word GetEosId() const { return eosId_; }
@@ -45,7 +45,7 @@ private:
   Word insertWord(Word id, const std::string& str);
 
 private:
-  typedef std::map<std::string, size_t> Str2Id;
+  typedef std::map<std::string, Word> Str2Id;
   Str2Id str2id_;
 
   typedef std::vector<std::string> Id2Str;

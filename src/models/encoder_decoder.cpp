@@ -75,8 +75,8 @@ void EncoderDecoder::createDecoderConfig(const std::string& name) {
 
   decoder["relative-paths"] = false;
 
-  OutputFileStream out(name + ".decoder.yml");
-  (std::ostream&)out << decoder;
+  io::OutputFileStream out(name + ".decoder.yml");
+  out << decoder;
 }
 
 Config::YamlNode EncoderDecoder::getModelParameters() {
@@ -148,8 +148,8 @@ Ptr<DecoderState> EncoderDecoder::startState(Ptr<ExpressionGraph> graph,
 
 Ptr<DecoderState> EncoderDecoder::step(Ptr<ExpressionGraph> graph,
                                        Ptr<DecoderState> state,
-                                       const std::vector<size_t>& hypIndices, // [beamIndex * activeBatchSize + batchIndex]
-                                       const std::vector<size_t>& embIndices, // [beamIndex * activeBatchSize + batchIndex]
+                                       const std::vector<IndexType>& hypIndices, // [beamIndex * activeBatchSize + batchIndex]
+                                       const std::vector<IndexType>& embIndices, // [beamIndex * activeBatchSize + batchIndex]
                                        int dimBatch,
                                        int beamSize) {
   // create updated state that reflects reordering and dropping of hypotheses

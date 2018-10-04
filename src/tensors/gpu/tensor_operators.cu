@@ -374,14 +374,9 @@ void TransposeNDGrad(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 
 __global__ void gSoftmax(float* out,
                          functional::Shape outShape,
-                         const float* in,
-                         const float* mask,
-                         const functional::Shape maskShape) {
+                         const float* in) {
   int rows = outShape.elements() / outShape.back();
   int cols = outShape.back();
-
-  bool broadcast = outShape != maskShape;
-  functional::Array<int, functional::Shape::size()> dims;
 
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -396,17 +391,7 @@ __global__ void gSoftmax(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float mVal = 1.f;
-          if(mask) {
-            int mIndex = id + j * cols;
-            if(broadcast) {
-              outShape.dims(mIndex, dims);
-              mIndex = maskShape.bindex(dims);
-            }
-            mVal = mask[mIndex];
-          }
-
-          if(mVal && sp[id] > _max[threadIdx.x])
+          if(sp[id] > _max[threadIdx.x])
             _max[threadIdx.x] = sp[id];
         }
       }
@@ -432,21 +417,8 @@ __global__ void gSoftmax(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float mVal = 1.f;
-          if(mask) {
-            int mIndex = id + j * cols;
-            if(broadcast) {
-              outShape.dims(mIndex, dims);
-              mIndex = maskShape.bindex(dims);
-            }
-            mVal = mask[mIndex];
-          }
-
-          float ex = 0;
-          if(mVal)
-            ex = __expf(sp[id] - max);
+          float ex = __expf(sp[id] - max);
           so[id] = ex;
-
           _sum[threadIdx.x] += ex;
         }
       }
@@ -470,7 +442,7 @@ __global__ void gSoftmax(float* out,
   }
 }
 
-void Softmax(Tensor out, Tensor in, Tensor mask) {
+void Softmax(Tensor out, Tensor in) {
   cudaSetDevice(out->getDeviceId().no);
 
   size_t m = out->shape().elements() / out->shape().back();
@@ -480,12 +452,7 @@ void Softmax(Tensor out, Tensor in, Tensor mask) {
   int threads = std::min(MAX_THREADS, (int)k);
   int shared = sizeof(float) * threads * 2;
 
-  if(mask)
-    gSoftmax<<<blocks, threads, shared>>>(
-        out->data(), out->shape(), in->data(), mask->data(), mask->shape());
-  else
-    gSoftmax<<<blocks, threads, shared>>>(
-        out->data(), out->shape(), in->data(), 0, out->shape());
+  gSoftmax<<<blocks, threads, shared>>>(out->data(), out->shape(), in->data());
 }
 
 __global__ void gLogSoftmax(float* out,
@@ -715,7 +682,7 @@ __global__ void gArgmax(float* out,
 __global__ void gCopyRows(float* out,
                           const float* in,
                           size_t cols,
-                          const size_t* sourceRowIdx,
+                          const IndexType* sourceRowIdx,
                           size_t rows) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -737,31 +704,26 @@ __global__ void gCopyRows(float* out,
 
 void CopyRows(Tensor out,
               const Tensor in,
-              const std::vector<size_t>& indices,
-              Ptr<Allocator> allocator) {
+              const Tensor indices) {
+
+  matchOrAbort<IndexType>(indices->type());
+
   cudaSetDevice(out->getDeviceId().no);
 
   size_t cols = in->shape().back();
-  size_t rowsToCopy = indices.size();
+  size_t rowsToCopy = indices->size();
 
   int threads = std::min(MAX_THREADS, (int)cols);
   int blocks = std::min(MAX_BLOCKS, (int)rowsToCopy);
 
-  auto mp_indices = allocator->alloc<size_t>(rowsToCopy);
-  CudaCopy(indices.data(),
-           indices.data() + indices.size(),
-           mp_indices->data<size_t>());
-
   gCopyRows<<<blocks, threads>>>(
-      out->data(), in->data(), cols, mp_indices->data<size_t>(), rowsToCopy);
-
-  allocator->free(mp_indices);
+      out->data(), in->data(), cols, indices->data<IndexType>(), rowsToCopy);
 }
 
 __global__ void gPasteRows(float* out,
                            const float* in,
                            size_t cols,
-                           const size_t* targetRowIdx,
+                           const IndexType* targetRowIdx,
                            size_t rows) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -783,26 +745,20 @@ __global__ void gPasteRows(float* out,
 
 void PasteRows(Tensor out,
                const Tensor in,
-               const std::vector<size_t>& indices) {
+               const Tensor indices) {
+
+  matchOrAbort<IndexType>(indices->type());
+
   cudaSetDevice(out->getDeviceId().no);
 
   size_t cols = in->shape().back();
-  size_t rowsToCopy = indices.size();
+  size_t rowsToCopy = indices->size();
 
   int threads = std::min(MAX_THREADS, (int)cols);
   int blocks = std::min(MAX_BLOCKS, (int)rowsToCopy);
 
-  // @TODO: turn into tensor
-  size_t* d_indices;
-  CUDA_CHECK(cudaMalloc(&d_indices, rowsToCopy * sizeof(size_t)));
-  CUDA_CHECK(cudaMemcpy(d_indices,
-                        indices.data(),
-                        rowsToCopy * sizeof(size_t),
-                        cudaMemcpyHostToDevice));
-
   gPasteRows<<<blocks, threads>>>(
-      out->data(), in->data(), cols, d_indices, rowsToCopy);
-  CUDA_CHECK(cudaFree(d_indices));
+      out->data(), in->data(), cols, indices->data<IndexType>(), rowsToCopy);
 }
 
 /////////////
@@ -811,7 +767,7 @@ __global__ void gCopyCols(float* out,
                           const float* in,
                           size_t rows,
                           size_t colsIn,
-                          const size_t* sourceColIdx,
+                          const IndexType* sourceColIdx,
                           size_t colsOut) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -828,35 +784,28 @@ __global__ void gCopyCols(float* out,
   }
 }
 
-void CopyCols(Tensor out, const Tensor in, const std::vector<size_t>& indices) {
+void CopyCols(Tensor out, const Tensor in, const Tensor indices) {
+  matchOrAbort<IndexType>(indices->type());
+
   cudaSetDevice(out->getDeviceId().no);
 
   size_t rows = in->shape().elements() / in->shape().back();
   size_t cols = in->shape().back();
 
-  size_t colsToCopy = indices.size();
+  size_t colsToCopy = indices->size();
 
   int threads = std::min(MAX_THREADS, (int)colsToCopy);
   int blocks = std::min(MAX_BLOCKS, (int)rows);
 
-  size_t* d_indices;
-  CUDA_CHECK(cudaMalloc(&d_indices, colsToCopy * sizeof(size_t)));
-  CUDA_CHECK(cudaMemcpy(d_indices,
-                        indices.data(),
-                        colsToCopy * sizeof(size_t),
-                        cudaMemcpyHostToDevice));
-
   gCopyCols<<<blocks, threads>>>(
-      out->data(), in->data(), rows, cols, d_indices, colsToCopy);
-
-  CUDA_CHECK(cudaFree(d_indices));
+      out->data(), in->data(), rows, cols, indices->data<IndexType>(), colsToCopy);
 }
 
 __global__ void gPasteCols(float* out,
                            const float* in,
                            size_t rows,
                            size_t colsOut,
-                           const size_t* targetColIdx,
+                           const IndexType* targetColIdx,
                            size_t colsIn) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -875,28 +824,21 @@ __global__ void gPasteCols(float* out,
 
 void PasteCols(Tensor out,
                const Tensor in,
-               const std::vector<size_t>& indices) {
+               const Tensor indices) {
+  matchOrAbort<IndexType>(indices->type());
+
   cudaSetDevice(out->getDeviceId().no);
 
   size_t rows = in->shape().elements() / in->shape().back();
   size_t cols = in->shape().back();
 
-  size_t colsToCopy = indices.size();
+  size_t colsToCopy = indices->size();
 
   int threads = std::min(MAX_THREADS, (int)colsToCopy);
   int blocks = std::min(MAX_BLOCKS, (int)rows);
 
-  size_t* d_indices;
-  CUDA_CHECK(cudaMalloc(&d_indices, colsToCopy * sizeof(size_t)));
-  CUDA_CHECK(cudaMemcpy(d_indices,
-                        indices.data(),
-                        colsToCopy * sizeof(size_t),
-                        cudaMemcpyHostToDevice));
-
   gPasteCols<<<blocks, threads>>>(
-      out->data(), in->data(), rows, cols, d_indices, colsToCopy);
-
-  CUDA_CHECK(cudaFree(d_indices));
+      out->data(), in->data(), rows, cols, indices->data<IndexType>(), colsToCopy);
 }
 
 __global__ void gSelect(float* out,
@@ -904,7 +846,7 @@ __global__ void gSelect(float* out,
                         const float* in,
                         const functional::Shape inShape,
                         int axis,
-                        size_t* d_indices) {
+                        IndexType* d_indices) {
   int length = outShape.elements();
   functional::Array<int, functional::Shape::size()> dims;
 
@@ -924,7 +866,7 @@ __global__ void gInsert(float* out,
                         const float* in,
                         const functional::Shape inShape,
                         int axis,
-                        size_t* d_indices) {
+                        IndexType* d_indices) {
   int length = inShape.elements();
   functional::Array<int, functional::Shape::size()> dims;
 
@@ -941,9 +883,10 @@ __global__ void gInsert(float* out,
 
 void Select(Tensor out,
             const Tensor in,
-            int axis,
-            const std::vector<size_t>& indices,
-            Ptr<Allocator> allocator) {
+            const Tensor indices,
+            int axis) {
+  matchOrAbort<IndexType>(indices->type());
+
   cudaSetDevice(out->getDeviceId().no);
 
   int length = out->shape().elements();
@@ -951,27 +894,20 @@ void Select(Tensor out,
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-  auto mp_indices = allocator->alloc<size_t>(indices.size());
-  CudaCopy(indices.data(),
-           indices.data() + indices.size(),
-           mp_indices->data<size_t>());
-
   int axisGPU = axis + functional::Shape::size() - out->shape().size();
   gSelect<<<blocks, threads>>>(out->data(),
                                out->shape(),
                                in->data(),
                                in->shape(),
                                axisGPU,
-                               mp_indices->data<size_t>());
-
-  allocator->free(mp_indices);
+                               indices->data<IndexType>());
 }
 
 void Insert(Tensor out,
             const Tensor in,
-            int axis,
-            const std::vector<size_t>& indices,
-            Ptr<Allocator> allocator) {
+            const Tensor indices,
+            int axis) {
+  matchOrAbort<IndexType>(indices->type());
   cudaSetDevice(in->getDeviceId().no);
 
   int length = in->shape().elements();
@@ -979,20 +915,13 @@ void Insert(Tensor out,
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-  auto mp_indices = allocator->alloc<size_t>(indices.size());
-  CudaCopy(indices.data(),
-           indices.data() + indices.size(),
-           mp_indices->data<size_t>());
-
   int axisGPU = axis + functional::Shape::size() - out->shape().size();
   gInsert<<<blocks, threads>>>(out->data(),
                                out->shape(),
                                in->data(),
                                in->shape(),
                                axisGPU,
-                               mp_indices->data<size_t>());
-
-  allocator->free(mp_indices);
+                               indices->data<IndexType>());
 }
 
 __global__ void gGRUFastForward(float* out,
@@ -1180,7 +1109,7 @@ __global__ void gCrossEntropyPick(float* out,
                                   const functional::Shape outShape,
                                   const float* in,
                                   const functional::Shape inShape,
-                                  const float* pick) {
+                                  const IndexType* pick) {
   int rows = inShape.elements() / inShape.back();
   int cols = inShape.back();
 
@@ -1246,7 +1175,13 @@ __global__ void gCrossEntropyPick(float* out,
   }
 }
 
-void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
+// In each j-th row, take the corresponding j-th label index i from indices and compute:
+// For each vocabulary item v, the only non-zero element in a row in the sum is the item 
+// that matches the label indexed by i (the picked element). 
+// C = sum_{v in V}(-logsoftmax(A) * delta(v, i) = -logsoftmax(A)[i] 
+void CrossEntropyPick(Tensor out, Tensor in, Tensor indices) {
+  matchOrAbort<IndexType>(indices->type());
+
   cudaSetDevice(out->getDeviceId().no);
 
   int rows = in->shape().elements() / in->shape().back();
@@ -1257,14 +1192,14 @@ void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
   int shared = sizeof(float) * threads * 2;
 
   gCrossEntropyPick<<<blocks, threads, shared>>>(
-      out->data(), out->shape(), in->data(), in->shape(), pick->data());
+      out->data(), out->shape(), in->data(), in->shape(), indices->data<IndexType>());
 }
 
 __global__ void gCrossEntropyPickBackward(float* out,
                                           const functional::Shape outShape,
                                           const float* adj,
                                           const float* in,
-                                          const float* pick) {
+                                          const IndexType* pick) {
   int rows = outShape.elements() / outShape.back();
   int cols = outShape.back();
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -1332,7 +1267,9 @@ __global__ void gCrossEntropyPickBackward(float* out,
   }
 }
 
-void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
+void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor indices) {
+  matchOrAbort<IndexType>(indices->type());
+
   cudaSetDevice(out->getDeviceId().no);
 
   int rows = out->shape().elements() / out->shape().back();
@@ -1343,7 +1280,7 @@ void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
   int shared = sizeof(float) * threads * 2;
 
   gCrossEntropyPickBackward<<<blocks, threads, shared>>>(
-      out->data(), out->shape(), adj->data(), a->data(), pick->data());
+      out->data(), out->shape(), adj->data(), a->data(), indices->data<IndexType>());
 }
 
 float L2Norm(Tensor in) {

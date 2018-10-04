@@ -1,7 +1,8 @@
 #pragma once
 
-#include <boost/chrono.hpp>
-#include <boost/timer/timer.hpp>
+#include "common/timer.h"
+
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -21,7 +22,7 @@ private:
 
   const size_t max = 100;
 
-  UPtr<boost::timer::cpu_timer> timer_;
+  UPtr<timer::Timer> timer_;
 
   struct HashedAlgorithm {
     size_t hash;
@@ -80,15 +81,15 @@ public:
 
   void start(size_t hash) override {
     if(!timer_ && done_.count(hash) == 0)
-      timer_.reset(new boost::timer::cpu_timer());
+      timer_.reset(new timer::Timer());
   }
 
   void stop(size_t hash, bool stop) override {
     if(stop && done_.count(hash) == 0) {
       timer_->stop();
 
-      typedef boost::chrono::duration<double> sec;
-      sec seconds = boost::chrono::nanoseconds(timer_->elapsed().user);
+      typedef std::chrono::duration<double> sec;
+      sec seconds = std::chrono::nanoseconds(timer_->elapsed().user);
 
       auto it = stats_.find(hash);
       if(it != stats_.end()) {

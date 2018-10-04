@@ -112,12 +112,13 @@ NodeInitializer from_vector(const std::vector<float>& v) {
       [vPtr](Tensor t) { t->set(vPtr->data(), vPtr->data() + vPtr->size()); };
 }
 
-NodeInitializer from_vector(const std::vector<size_t>& v) {
-  auto n = v.size();
-  std::vector<float> vf(n);
-  for (size_t i = 0; i < n; i++)
-    vf[i] = (float)v[i];
-  return from_vector(vf);
+// @TODO: handle this better with proper type support, the NodeInitializer 
+// should be able to inform the calling function about the tensor type it 
+// is expecting. Probably needs to turn into struct with type information.
+NodeInitializer from_vector(const std::vector<IndexType>& v) {
+  auto vPtr = New<std::vector<IndexType>>(v.begin(), v.end());
+  return
+      [vPtr](Tensor t) { t->set(vPtr->data(), vPtr->data() + vPtr->size()); };
 }
 
 NodeInitializer from_sparse_vector(

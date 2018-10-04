@@ -63,7 +63,7 @@ public:
       auto alignments = encdec->getDecoders()[0]->getAlignments();
       ABORT_IF(alignments.empty(), "Model does not seem to support alignments");
 
-      auto att = concatenate(alignments, keywords::axis = -1);
+      auto att = concatenate(alignments, /*axis =*/ -1);
 
       return cost + guidedAlignmentCost(graph, corpusBatch, options_, att);
     } else {
@@ -166,8 +166,8 @@ public:
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state,
-                                 const std::vector<size_t>& hypIndices,
-                                 const std::vector<size_t>& embIndices,
+                                 const std::vector<IndexType>& hypIndices,
+                                 const std::vector<IndexType>& embIndices,
                                  int dimBatch,
                                  int beamSize) override {
     auto nextState = encdec_->step(
@@ -196,7 +196,7 @@ public:
   virtual data::SoftAlignment getAlignment() override { return encdec_->getAlignment(); }
 };
 
-static Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec,
+inline Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec,
                                Ptr<Options> options) {
   switch(options->get<usage>("usage", usage::raw)) {
     case usage::training:

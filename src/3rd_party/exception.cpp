@@ -12,6 +12,7 @@
 #include <io.h>
 #endif
 
+namespace marian {
 namespace util {
 
 Exception::Exception() throw() {}
@@ -106,3 +107,4 @@ WindowsException::~WindowsException() throw() {}
 #endif
 
 } // namespace util
+} // marian

@@ -45,7 +45,7 @@ public:
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      boost::hash_combine(hash_, scalar_);
+      util::hash_combine(hash_, scalar_);
     }
     return hash_;
   }
@@ -84,7 +84,7 @@ public:
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      boost::hash_combine(hash_, scalar_);
+      util::hash_combine(hash_, scalar_);
     }
     return hash_;
   }
@@ -124,7 +124,7 @@ public:
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      boost::hash_combine(hash_, clip_);
+      util::hash_combine(hash_, clip_);
     }
     return hash_;
   }
@@ -318,7 +318,7 @@ struct PReLUNodeOp : public UnaryNodeOp {
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      boost::hash_combine(hash_, alpha_);
+      util::hash_combine(hash_, alpha_);
     }
     return hash_;
   }
@@ -371,37 +371,11 @@ struct SwishNodeOp : public UnaryNodeOp {
 };
 
 struct SoftmaxNodeOp : public UnaryNodeOp {
-  SoftmaxNodeOp(Expr a) : UnaryNodeOp(a), mask_(nullptr) {}
-
-  SoftmaxNodeOp(Expr a, Expr mask) : UnaryNodeOp(a), mask_(mask) {}
-
-  Expr mask_;
+  SoftmaxNodeOp(Expr a) : UnaryNodeOp(a) {}
 
   NodeOps forwardOps() override {
     return {
-        NodeOp(Softmax(val_, child(0)->val(), mask_ ? mask_->val() : nullptr))};
-  }
-
-  virtual size_t hash() override {
-    if(!hash_) {
-      hash_ = NaryNodeOp::hash();
-      if(mask_)
-        boost::hash_combine(hash_, mask_->hash());
-    }
-    return hash_;
-  }
-
-  virtual bool equal(Expr node) override {
-    if(!NaryNodeOp::equal(node))
-      return false;
-    Ptr<SoftmaxNodeOp> cnode = std::dynamic_pointer_cast<SoftmaxNodeOp>(node);
-    if(!cnode)
-      return false;
-    if((bool)mask_ != (bool)cnode->mask_)
-      return false;
-    if(mask_ && !mask_->equal(cnode->mask_))
-      return false;
-    return true;
+        NodeOp(Softmax(val_, child(0)->val()))};
   }
 
   NodeOps backwardOps() override {
@@ -439,10 +413,9 @@ struct LogSoftmaxNodeOp : public UnaryNodeOp {
 };
 
 struct SumNodeOp : public UnaryNodeOp {
-  int ax_;
+  int axis_;
 
-  template <typename... Args>
-  SumNodeOp(Expr a, Args... args) : UnaryNodeOp(a, newShape(a, args...)) {}
+  SumNodeOp(Expr a, int axis) : UnaryNodeOp(a, newShape(a, axis)) {}
 
   NodeOps forwardOps() override {
     using namespace functional;
@@ -455,12 +428,11 @@ struct SumNodeOp : public UnaryNodeOp {
     return {NodeOp(Add(_1, child(0)->grad(), adj_))};
   }
 
-  template <class... Args>
-  Shape newShape(Expr a, Args... args) {
+  Shape newShape(Expr a, int axis) {
     Shape shape = a->shape();
-    ax_ = shape.axis(keywords::Get(keywords::axis, -1, args...));
+    axis_ = shape.axis(axis);
 
-    shape.set(ax_, 1);
+    shape.set(axis_, 1);
     return shape;
   }
 
@@ -471,7 +443,7 @@ struct SumNodeOp : public UnaryNodeOp {
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      boost::hash_combine(hash_, ax_);
+      util::hash_combine(hash_, axis_);
     }
     return hash_;
   }
@@ -482,17 +454,16 @@ struct SumNodeOp : public UnaryNodeOp {
     Ptr<SumNodeOp> cnode = std::dynamic_pointer_cast<SumNodeOp>(node);
     if(!cnode)
       return false;
-    if(ax_ != cnode->ax_)
+    if(axis_ != cnode->axis_)
       return false;
     return true;
   }
 };
 
 struct MeanNodeOp : public UnaryNodeOp {
-  int ax_;
+  int axis_;
 
-  template <typename... Args>
-  MeanNodeOp(Expr a, Args... args) : UnaryNodeOp(a, newShape(a, args...)) {}
+  MeanNodeOp(Expr a, int axis) : UnaryNodeOp(a, newShape(a, axis)) {}
 
   NodeOps forwardOps() override {
     using namespace functional;
@@ -510,11 +481,10 @@ struct MeanNodeOp : public UnaryNodeOp {
     return {NodeOp(Add(_1, scale, child(0)->grad(), adj_))};
   }
 
-  template <class... Args>
-  Shape newShape(Expr a, Args... args) {
+  Shape newShape(Expr a, int axis) {
     Shape shape = a->shape();
-    ax_ = shape.axis(keywords::Get(keywords::axis, -1, args...));
-    shape.set(ax_, 1);
+    axis_ = shape.axis(axis);
+    shape.set(axis_, 1);
     return shape;
   }
 
@@ -525,7 +495,7 @@ struct MeanNodeOp : public UnaryNodeOp {
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      boost::hash_combine(hash_, ax_);
+      util::hash_combine(hash_, axis_);
     }
     return hash_;
   }
@@ -536,7 +506,7 @@ struct MeanNodeOp : public UnaryNodeOp {
     Ptr<MeanNodeOp> cnode = std::dynamic_pointer_cast<MeanNodeOp>(node);
     if(!cnode)
       return false;
-    if(ax_ != cnode->ax_)
+    if(axis_ != cnode->axis_)
       return false;
     return true;
   }
@@ -596,7 +566,7 @@ struct SqrtNodeOp : public UnaryNodeOp {
   virtual size_t hash() override {
     if(!hash_) {
       size_t seed = NaryNodeOp::hash();
-      boost::hash_combine(seed, epsilon_);
+      util::hash_combine(seed, epsilon_);
       hash_ = seed;
     }
     return hash_;
@@ -647,169 +617,6 @@ struct NegNodeOp : public UnaryNodeOp {
   const std::string type() override { return "-"; }
 };
 
-struct RowsNodeOp : public UnaryNodeOp {
-  RowsNodeOp(Expr a, const std::vector<size_t>& indices)
-      : UnaryNodeOp(a, newShape(a, indices)), indices_(indices) {
-    // @TODO: fix this by using int32 tensor for indices
-    setMemoize(false);
-  }
-
-  NodeOps forwardOps() override {
-    // @TODO: solve this with a tensor!
-
-    return {NodeOp(
-        CopyRows(val_, child(0)->val(), indices_, graph()->allocator()))};
-  }
-
-  NodeOps backwardOps() override {
-    return {NodeOp(PasteRows(child(0)->grad(), adj_, indices_))};
-  }
-
-  template <class... Args>
-  Shape newShape(Expr a, const std::vector<size_t>& indices) {
-    Shape shape = a->shape();
-    ABORT_IF(shape.size() != 2,
-             "rows operator can only be used with 2-dimensional tensors");
-    shape.set(0, indices.size());
-    return shape;
-  }
-
-  const std::string type() override { return "rows"; }
-
-  const std::string color() override { return "orange"; }
-
-  virtual size_t hash() override {
-    if(!hash_) {
-      size_t seed = NaryNodeOp::hash();
-      for(auto i : indices_)
-        boost::hash_combine(seed, i);
-      hash_ = seed;
-    }
-    return hash_;
-  }
-
-  virtual bool equal(Expr node) override {
-    if(!NaryNodeOp::equal(node))
-      return false;
-    Ptr<RowsNodeOp> cnode = std::dynamic_pointer_cast<RowsNodeOp>(node);
-    if(!cnode)
-      return false;
-    if(indices_ != cnode->indices_)
-      return false;
-    return true;
-  }
-
-  std::vector<size_t> indices_;
-};
-
-struct ColsNodeOp : public UnaryNodeOp {
-  ColsNodeOp(Expr a, const std::vector<size_t>& indices)
-      : UnaryNodeOp(a, newShape(a, indices)), indices_(indices) {
-    setMemoize(false);
-  }
-
-  NodeOps forwardOps() override {
-    // @TODO: solve this with a tensor!
-
-    return {NodeOp(CopyCols(val_, child(0)->val(), indices_))};
-  }
-
-  NodeOps backwardOps() override {
-    return {NodeOp(PasteCols(child(0)->grad(), adj_, indices_))};
-  }
-
-  template <class... Args>
-  Shape newShape(Expr a, const std::vector<size_t>& indices) {
-    Shape shape = a->shape();
-    shape.set(1, indices.size());
-    return shape;
-  }
-
-  const std::string type() override { return "cols"; }
-
-  const std::string color() override { return "orange"; }
-
-  virtual size_t hash() override {
-    if(!hash_) {
-      size_t seed = NaryNodeOp::hash();
-      for(auto i : indices_)
-        boost::hash_combine(seed, i);
-      hash_ = seed;
-    }
-    return hash_;
-  }
-
-  virtual bool equal(Expr node) override {
-    if(!NaryNodeOp::equal(node))
-      return false;
-    Ptr<ColsNodeOp> cnode = std::dynamic_pointer_cast<ColsNodeOp>(node);
-    if(!cnode)
-      return false;
-    if(indices_ != cnode->indices_)
-      return false;
-    return true;
-  }
-
-  std::vector<size_t> indices_;
-};
-
-struct SelectNodeOp : public UnaryNodeOp {
-  SelectNodeOp(Expr a, int axis, const std::vector<size_t>& indices)
-      : UnaryNodeOp(a, newShape(a, axis, indices)), 
-        indices_(indices), 
-        axis_{a->shape().axis(axis)} {
-    setMemoize(false);
-  }
-
-  NodeOps forwardOps() override {
-    return {NodeOp(
-        Select(val_, child(0)->val(), axis_, indices_, graph()->allocator()))};
-  }
-
-  NodeOps backwardOps() override {
-    return {NodeOp(
-        Insert(child(0)->grad(), adj_, axis_, indices_, graph()->allocator()))};
-  }
-
-  Shape newShape(Expr a, int axis, const std::vector<size_t>& indices) {
-    Shape shape = a->shape();
-    axis = shape.axis(axis);
-    shape.set(axis, indices.size());
-    return shape;
-  }
-
-  const std::string type() override { return "select"; }
-
-  const std::string color() override { return "orange"; }
-
-  virtual size_t hash() override {
-    if(!hash_) {
-      size_t seed = NaryNodeOp::hash();
-      boost::hash_combine(seed, axis_);
-      for(auto i : indices_)
-        boost::hash_combine(seed, i);
-      hash_ = seed;
-    }
-    return hash_;
-  }
-
-  virtual bool equal(Expr node) override {
-    if(!NaryNodeOp::equal(node))
-      return false;
-    Ptr<SelectNodeOp> cnode = std::dynamic_pointer_cast<SelectNodeOp>(node);
-    if(!cnode)
-      return false;
-    if(axis_ != cnode->axis_)
-      return false;
-    if(indices_ != cnode->indices_)
-      return false;
-    return true;
-  }
-
-  std::vector<size_t> indices_;
-  int axis_;
-};
-
 struct TransposeNodeOp : public UnaryNodeOp {
   std::vector<int> axes_;
   std::vector<int> axesBw_;
@@ -845,7 +652,7 @@ struct TransposeNodeOp : public UnaryNodeOp {
     if(!hash_) {
       size_t seed = NaryNodeOp::hash();
       for(auto ax : axes_)
-        boost::hash_combine(seed, ax);
+        util::hash_combine(seed, ax);
       hash_ = seed;
     }
     return hash_;
@@ -912,7 +719,7 @@ public:
     if(!hash_) {
       size_t seed = NaryNodeOp::hash();
       for(auto s : shape())
-        boost::hash_combine(seed, s);
+        util::hash_combine(seed, s);
       hash_ = seed;
     }
     return hash_;
@@ -991,8 +798,8 @@ public:
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      boost::hash_combine(hash_, step_);
-      boost::hash_combine(hash_, axis_);
+      util::hash_combine(hash_, step_);
+      util::hash_combine(hash_, axis_);
     }
     return hash_;
   }
@@ -1032,8 +839,8 @@ struct ShiftNodeOp : public UnaryNodeOp {
     if(!hash_) {
       size_t seed = NaryNodeOp::hash();
       for(auto i : shift_)
-        boost::hash_combine(seed, i);
-      boost::hash_combine(seed, padValue_);
+        util::hash_combine(seed, i);
+      util::hash_combine(seed, padValue_);
       hash_ = seed;
     }
     return hash_;
@@ -1053,42 +860,6 @@ struct ShiftNodeOp : public UnaryNodeOp {
   Shape shift_;     // shift offsets in each dimension
   float padValue_;  // what value to shift in
 };
-
-// struct LexicalProbNodeOp : public NaryNodeOp {
-//  template <typename... Args>
-//  LexicalProbNodeOp(
-//      Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf, Args... args)
-//      : NaryNodeOp({logits, att}, keywords::shape = logits->shape(), args...),
-//        eps_(eps),
-//        lf_(lf) {}
-//
-//  void forward() {
-//    sparse::LfaForward(val_, child(0)->val(), child(1)->val(), lf_);
-//    // val = x + ln(p + eps)
-//    Element(_1 = (log(_1 + eps_) + _2), val_, child(0)->val());
-//  }
-//
-//  void backward() {
-//    Add(_1, child(0)->grad(), adj_);
-//    // adj' = adj / (p + eps) = adj / exp(val - x)
-//    Element(_1 = _1 / exp(_2 - _3), adj_, val_, child(0)->val());
-//    sparse::LfaBackward(child(1)->grad(), adj_, lf_);
-//  }
-//
-//  const std::string type() { return "lexical_prob"; }
-//
-//  virtual size_t hash() {
-//    if(!hash_) {
-//      size_t seed = NaryNodeOp::hash();
-//      boost::hash_combine(seed, (size_t)lf_.get());
-//      hash_ = seed;
-//    }
-//    return hash_;
-//  }
-//
-//  float eps_;
-//  Ptr<sparse::CSR> lf_;
-//};
 
 #ifdef CUDNN
 class PoolingOp : public UnaryNodeOp {
