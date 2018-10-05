@@ -493,10 +493,11 @@ void Select(Tensor out,
   int length = outShape.elements();
 
   functional::Array<int, functional::Shape::size()> dims;
-
+  int axisCPU = axis + functional::Shape::size() - out->shape().size();
+  
   for(int index = 0; index < length; ++index) {
     outShape.dims(index, dims);
-    dims[axis] = (int)indices->data<IndexType>()[dims[axis]];
+    dims[axisCPU] = (int)indices->data<IndexType>()[dims[axisCPU]];
     int inIndex = inShape.index(dims);
     out->data()[index] = in->data()[inIndex];
   }
@@ -516,10 +517,11 @@ void Insert(Tensor out,
 
   int length = inShape.elements();
   functional::Array<int, functional::Shape::size()> dims;
+  int axisCPU = axis + functional::Shape::size() - out->shape().size();
 
   for(int index = 0; index < length; ++index) {
     inShape.dims(index, dims);
-    dims[axis] = (int)indices->data<IndexType>()[dims[axis]];
+    dims[axisCPU] = (int)indices->data<IndexType>()[dims[axisCPU]];
     int outIndex = outShape.index(dims);
     out->data()[outIndex] += in->data()[index];
   }
