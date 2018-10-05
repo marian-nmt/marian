@@ -240,17 +240,13 @@ public:
     }
   }
 
-  void foreach(const ForeachFunc& func, bool parallel = true, bool localShardsOnly = true) const override {
+  void foreach(const ForeachFunc& func, bool parallel = true) const override {
     parallel &= graphs_.size() > 1;
 
-    // This loop is dual-purpose:
-    //  - localShardsOnly=true:  iterate over all shards on *this* MPI process
-    //  - localShardsOnly=false: iterate over all shards on the entire NCCL setup
-    // These differ in multi-MPI-process configurations.
     std::vector<std::thread> group;
-    for(size_t i = 0; i < (localShardsOnly ? graphs_.size() : numNcclRanks()); ++i) {
+    for(size_t i = 0; i < graphs_.size(); ++i) {
       size_t begin, end; std::tie
-      (begin, end) = localShardsOnly ? localShardRange(i) : ncclRankShardRange(i);
+      (begin, end) = localShardRange(i);
       //std::cerr << "[" << mpiIdStr() << "] foreach " << begin << " " << end << std::endl;
       size_t size = end-begin;
 

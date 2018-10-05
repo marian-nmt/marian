@@ -28,9 +28,9 @@ public:
 
   virtual ~ICommunicator() {}
 
-  // helper to apply a function to each graph or shard, in parallel threads
+  // helper to apply a function to each local graph, in parallel threads
   typedef std::function<void(size_t, size_t /*shardBegin*/, size_t /*shardEnd*/)> ForeachFunc;
-  virtual void foreach(const ForeachFunc& func, bool parallel = true, bool localShardsOnly = true) const = 0;
+  virtual void foreach(const ForeachFunc& func, bool parallel = true) const = 0;
 
   // @TODO: all of these are const, no?
   virtual void scatterReduce() = 0; // reduce param gradients and scatter into gradient shards
@@ -44,7 +44,63 @@ public:
   virtual std::vector<float> gatherState(const OptimizerBase::GatherStateGetFunc& getFn) const = 0;
 };
 
-// @TODO: add comment to say what this is and when it is used
+// Abstracts MPI operations, allowing alternative implementations (specifically fake (for debugging) and NCCL.
+// This implements the MPI APIs we use here, with the following modifications:
+//  * aborts with ABORT() instead of returning an error
+//  * swapped out some strange MPI-specific data types to more correct C++ ones where appropriate
+#if MPI_FOUND
+#else
+enum MPI_Comm { MPI_COMM_WORLD };
+enum MPI_Datatype { MPI_FLOAT, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG, MPI_BYTE };
+enum MPI_Op { MPI_SUM };
+struct MPI_Status { int MPI_SOURCE; };
+#define MPI_ANY_SOURCE ((size_t)-2)
+#define MPI_STATUS_IGNORE ((MPI_Status*)nullptr)
+#endif
+struct/*interface*/ IMPIWrapper
+{
+  virtual size_t myMPIRank() const = 0;
+  virtual size_t numMPIProcesses() const = 0;
+  virtual void barrier(MPI_Comm comm = MPI_COMM_WORLD) const = 0;
+  virtual void bCast(void* buf, size_t count, MPI_Datatype datatype, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
+  virtual void sSend(void* buf, size_t count, MPI_Datatype datatype, size_t destRank, int tag, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
+  virtual void recv(void* buf, size_t count, MPI_Datatype datatype, size_t sourceRank, int tag, MPI_Comm comm = MPI_COMM_WORLD, MPI_Status* status = MPI_STATUS_IGNORE) const = 0;
+  virtual void allReduce(const void* sendbuf, void* recvbuf, size_t count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
+  virtual void finalize() = 0;
+  static const size_t RECV_ANY_SOURCE = (size_t)MPI_ANY_SOURCE;
+  // helper templates
+private:
+  static MPI_Datatype getDataType(const float*)              { return MPI_FLOAT; }
+  static MPI_Datatype getDataType(const unsigned long*)      { return MPI_UNSIGNED_LONG; }
+  static MPI_Datatype getDataType(const unsigned long long*) { return MPI_UNSIGNED_LONG_LONG; }
+public:
+  template<typename T>
+  void bCast(std::vector<T>& v, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) {
+    size_t vecLen = v.size();
+    bCast(&vecLen, 1, getDataType(&vecLen), rootRank, comm);
+    v.resize(vecLen);
+    bCast(v.data(), v.size(), getDataType(v.data()), rootRank, comm);
+  }
+  std::string idStr() { // helper to identify the node in logs
+#ifdef _WIN32
+    std::string hostname = getenv("COMPUTERNAME");
+    auto processId = GetCurrentProcessId();
+#else
+    static std::string hostname = [](){ // not sure if gethostname() is expensive. This way we call it only once.
+      char hostnamebuf[HOST_NAME_MAX + 1] = { 0 };
+      gethostname(hostnamebuf, sizeof(hostnamebuf));
+      return std::string(hostnamebuf);
+    }();
+    auto processId = getpid();
+#endif
+    return hostname + ":" + std::to_string(processId) + " MPI rank " + std::to_string(myMPIRank()) + " out of " + std::to_string(numMPIProcesses());
+  }
+};
+
+Ptr<IMPIWrapper> initMPI(bool multiThreaded);
+void finalizeMPI(Ptr<IMPIWrapper>&&);
+
+// DefaultCommunicator is used when we cannot use NCCLCommunicator, e.g. if it is not compiled in
 class DefaultCommunicator : public ICommunicator {
 private:
   std::vector<Ptr<TensorAllocator>> paramsAllocs_;
@@ -84,8 +140,7 @@ public:
 
   ~DefaultCommunicator() override {}
 
-  void foreach(const ForeachFunc& func, bool parallel = true, bool /*localShardsOnly*/ = true) const override {
-    // note: localShardsOnly is ignored for DefaultCommunicator since it is local-only
+  void foreach(const ForeachFunc& func, bool parallel = true) const override {
     parallel &= graphs_.size() > 1;
 
     size_t totalSize = graphs_[0]->params()->vals()->size();
@@ -240,61 +295,5 @@ public:
 Ptr<ICommunicator> createCommunicator(
     const std::vector<Ptr<ExpressionGraph>>& graphs,
     bool noNccl, Ptr<IMPIWrapper> mpi);
-
-// Abstracts MPI operations, allowing alternative implementations (specifically fake (for debugging) and NCCL.
-// This implements the MPI APIs we use here, with the following modifications:
-//  * aborts with ABORT() instead of returning an error
-//  * swapped out some strange MPI-specific data types to more correct C++ ones where appropriate
-#if MPI_FOUND
-#else
-enum MPI_Comm { MPI_COMM_WORLD };
-enum MPI_Datatype { MPI_FLOAT, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG, MPI_BYTE };
-enum MPI_Op { MPI_SUM };
-struct MPI_Status { int MPI_SOURCE; };
-#define MPI_ANY_SOURCE ((size_t)-2)
-#define MPI_STATUS_IGNORE ((MPI_Status*)nullptr)
-#endif
-struct/*interface*/ IMPIWrapper
-{
-  virtual size_t myMPIRank() const = 0;
-  virtual size_t numMPIProcesses() const = 0;
-  virtual void barrier(MPI_Comm comm = MPI_COMM_WORLD) const = 0;
-  virtual void bCast(void* buf, size_t count, MPI_Datatype datatype, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
-  virtual void sSend(void* buf, size_t count, MPI_Datatype datatype, size_t destRank, int tag, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
-  virtual void recv(void* buf, size_t count, MPI_Datatype datatype, size_t sourceRank, int tag, MPI_Comm comm = MPI_COMM_WORLD, MPI_Status* status = MPI_STATUS_IGNORE) const = 0;
-  virtual void allReduce(const void* sendbuf, void* recvbuf, size_t count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
-  virtual void finalize() = 0;
-  static const size_t RECV_ANY_SOURCE = (size_t)MPI_ANY_SOURCE;
-  // helper templates
-private:
-  static MPI_Datatype getDataType(const float*)              { return MPI_FLOAT; }
-  static MPI_Datatype getDataType(const unsigned long*)      { return MPI_UNSIGNED_LONG; }
-  static MPI_Datatype getDataType(const unsigned long long*) { return MPI_UNSIGNED_LONG_LONG; }
-public:
-  template<typename T>
-  void bCast(std::vector<T>& v, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) {
-    size_t vecLen = v.size();
-    bCast(&vecLen, 1, getDataType(&vecLen), rootRank, comm);
-    v.resize(vecLen);
-    bCast(v.data(), v.size(), getDataType(v.data()), rootRank, comm);
-  }
-  std::string idStr() { // helper to identify the node in logs
-#ifdef _WIN32
-    std::string hostname = getenv("COMPUTERNAME");
-    auto processId = GetCurrentProcessId();
-#else
-    static std::string hostname = [](){ // not sure if gethostname() is expensive. This way we call it only once.
-      char hostnamebuf[HOST_NAME_MAX + 1] = { 0 };
-      gethostname(hostnamebuf, sizeof(hostnamebuf));
-      return std::string(hostnamebuf);
-    }();
-    auto processId = getpid();
-#endif
-    return hostname + ":" + std::to_string(processId) + " MPI rank " + std::to_string(myMPIRank()) + " out of " + std::to_string(numMPIProcesses());
-  }
-};
-
-Ptr<IMPIWrapper> initMPI(bool multiThreaded);
-void finalizeMPI(Ptr<IMPIWrapper>&&);
 
 }  // namespace marian
