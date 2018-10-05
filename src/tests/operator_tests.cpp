@@ -11,14 +11,12 @@ void tests(DeviceType device) {
   graph->setDevice({0, device});
   graph->reserveWorkspaceMB(16);
 
-  std::vector<float> vA({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
-  std::vector<float> vB({1, 2, 3, 4, 5, 6});
   std::vector<float> values;
 
   SECTION("scalar multiplication") {
     graph->clear();
     values.clear();
-    std::vector<float> vB2({2, 4, 6, 8, 10, 12});
+    std::vector<float> vB({1, 2, 3, 4, 5, 6});
 
     auto B = graph->param("B", {3, 2}, inits::from_vector(vB));
     auto B2 = B * 2.0f;
@@ -26,6 +24,8 @@ void tests(DeviceType device) {
 
     CHECK(B2->shape() == Shape({3, 2}));
     B2->val()->get(values);
+
+    std::vector<float> vB2({2, 4, 6, 8, 10, 12});
     CHECK(values == vB2);
   }
 
@@ -279,6 +279,9 @@ void tests(DeviceType device) {
   SECTION("dot product") {
     graph->clear();
     values.clear();
+
+    std::vector<float> vA({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+    std::vector<float> vB({1, 2, 3, 4, 5, 6});
     std::vector<float> vC({22, 28, 49, 64, 76, 100, 103, 136});
 
     auto A = graph->param("A", {2, 2, 3}, inits::from_vector(vA));
