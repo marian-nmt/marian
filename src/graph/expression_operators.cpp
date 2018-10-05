@@ -517,7 +517,7 @@ Expr convert2cudnnFormat(Expr x) {
   int numExamples = x->shape()[1];
   int embSize = x->shape()[2];
 
-  std::vector<size_t> newIndeces;
+  std::vector<IndexType> newIndeces;
   for(int b = 0; b < numExamples; ++b) {
     for(int t = 0; t < numWords; ++t) {
       newIndeces.push_back((t * numExamples) + b);
@@ -537,7 +537,7 @@ Expr convertFromcudnnFormat(Expr x) {
 
   auto reshapedX = reshape(x, {batchDim * sentenceDim, embSize});
 
-  std::vector<size_t> newIndeces;
+  std::vector<IndexType> newIndeces;
   for(int t = 0; t < sentenceDim; ++t) {
     for(int b = 0; b < batchDim; ++b) {
       newIndeces.push_back(b * sentenceDim + t);
