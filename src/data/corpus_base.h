@@ -30,8 +30,8 @@ namespace data {
 class SentenceTuple {
 private:
   size_t id_;
-  std::vector<Words> tuple_;
-  std::vector<float> weights_;
+  std::vector<Words> tuple_;    // [stream index][step index]
+  std::vector<float> weights_;  // [stream index]
   WordAlignment alignment_;
 
 public:

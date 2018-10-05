@@ -140,7 +140,8 @@ void Config::log() {
 }
 
 // parse the device-spec parameters (--num-devices, --devices, --cpu-threads) into an array of size_t
-// For multi-node, this returns the devices vector for the given rank.
+// For multi-node, this returns the devices vector for the given rank, where "devices" really
+// refers to how many graph instances are used (for CPU, that is the number of threads).
 // For CPU, specify --cpu-threads.
 // For GPU, specify either --num-devices or --devices.
 // For single-MPI-process GPU, if both are given, --num-devices must be equal to size of --devices.
@@ -167,9 +168,8 @@ void Config::log() {
 std::vector<DeviceId> Config::getDevices(size_t myMPIRank /*= 0*/, size_t numMPIProcesses /*= 1*/) {
   std::vector<DeviceId> devices;
   auto devicesArg = get<std::vector<std::string>>("devices");
-  // CPU: devices[] just enumerate the threads (--devices is ignored)
+  // CPU: devices[] just enumerate the threads (note: --devices refers to GPUs, and is thus ignored)
   if (get<size_t>("cpu-threads") > 0) {
-    ABORT_IF(!devicesArg.empty(), "devices parameter not allowed in CPU mode");
     for (size_t i = 0; i < get<size_t>("cpu-threads"); ++i)
       devices.push_back({ i, DeviceType::cpu });
   }

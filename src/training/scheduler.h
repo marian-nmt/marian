@@ -207,7 +207,9 @@ public:
 
     state_->newBatch();
 
-    if(state_->batches % options_->get<size_t>("disp-freq") == 0) {
+    if(state_->batches % options_->get<size_t>("disp-freq") == 0
+        || state_->batches < 10   // for debugging for now   --@TODO: make this a parameter? --disp-first
+        ) {
       if(dispLabelCounts) {
         if(options_->get<bool>(
                "lr-report")) {  // if true then show the learning rate
