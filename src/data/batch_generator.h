@@ -26,6 +26,7 @@ protected:
   Ptr<DataSet> data_;
   Ptr<Config> options_;
   bool restored_{false};
+  bool shuffle_;
 
 private:
   Ptr<BatchStats> stats_;
@@ -205,7 +206,7 @@ public:
       if(!loadingSamples_ && hadData_) {
         loadingSamples_ = true;
         std::thread([this]() { 
-          fillBatches(); 
+          fillBatches(shuffle_); 
         }).detach();
       }
     }
@@ -257,6 +258,9 @@ public:
     else
       data_->reset();
     newlyPrepared_ = true;
+    
+    // @TODO: solve this better, maybe use options
+    shuffle_ = shuffle;
 
     fillBatches(shuffle);
   }
