@@ -33,9 +33,7 @@ const std::set<std::string> PATHS = {"model",
                                      "valid-script-path",
                                      "valid-log",
                                      "valid-translation-output",
-                                     "log",
-                                     "input",
-                                     "output" };
+                                     "log" };
 
 void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   int defaultWorkspace = (mode_ == cli::mode::translation) ? 512 : 2048;
