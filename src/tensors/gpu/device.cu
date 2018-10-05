@@ -35,7 +35,6 @@ void Device::reserve(size_t size) {
     // No data_ yet: Just alloc.
     LOG(info, "[memory] Allocating {} bytes in device {}", size, deviceId_.no);
     CUDA_CHECK(cudaMalloc(&data_, size));
-    LOG(info, "[memory] Done allocating {} bytes in device {}", size, deviceId_.no);
   }
 
   size_ = size;

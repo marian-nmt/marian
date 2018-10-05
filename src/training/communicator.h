@@ -79,7 +79,7 @@ private:
 public:
   DefaultCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs, Ptr<IMPIWrapper> mpi)
       : ICommunicator(graphs) {
-    ABORT_IF(mpi != nullptr, "DefaultCommunicator support for MPI is not yet implemented");
+    ABORT_IF(mpi && mpi->numMPIProcesses() != 1, "DefaultCommunicator does not support multi-process MPI");
   }
 
   ~DefaultCommunicator() override {}
