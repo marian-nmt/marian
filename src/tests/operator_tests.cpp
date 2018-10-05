@@ -412,6 +412,25 @@ void tests(DeviceType device) {
     B6->val()->get(values);
     CHECK( values == vB6 );
   }
+
+  SECTION("rows and columns selection") {
+    graph->clear();
+    values.clear();
+    std::vector<float> values2;
+
+    std::vector<float> vA({0, .3333, -.2, -.3, 0, 4.5, 5.2, -10, 101.45, -100.05, 0, 1.05e-5});
+    std::vector<IndexType> idx1({0, 1});
+
+    auto A1 = graph->param("4x3", {4,3}, inits::from_vector(vA));
+    auto B1 = rows(transpose(A1), idx1);
+    auto C1 = transpose(cols(A1, idx1));
+    graph->forward();
+
+    CHECK(B1->shape() == C1->shape());
+    B1->val()->get(values);
+    C1->val()->get(values2);
+    CHECK( values == values2 );
+  }
 }
 
 #ifdef CUDA_FOUND
