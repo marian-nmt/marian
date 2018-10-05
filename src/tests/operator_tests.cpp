@@ -301,18 +301,17 @@ void tests(DeviceType device) {
     std::vector<float> vA({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
 
     std::vector<IndexType> iB0({0});            // first row
-    std::vector<float> vB0({1, 2, 3});
     std::vector<IndexType> iB1({0, 1, 2});      // several consecutive rows
-    std::vector<float> vB1({1, 2, 3, 4, 5, 6, 7, 8, 9});
     std::vector<IndexType> iB2({0, 2});         // two nonconsecutive rows
-    std::vector<float> vB2({1, 2, 3, 7, 8, 9});
     std::vector<IndexType> iB3({2, 1});         // reversed order
-    std::vector<float> vB3({7, 8, 9, 4, 5, 6});
     std::vector<IndexType> iB4({1, 1});         // repeated rows
-    std::vector<float> vB4({4, 5, 6, 4, 5, 6});
     std::vector<IndexType> iB5({0, 1, 2, 3});   // identity
-    std::vector<float> vB5 = vA;
     std::vector<IndexType> iB6({});             // empty
+    std::vector<float> vB0({1, 2, 3});
+    std::vector<float> vB1({1, 2, 3, 4, 5, 6, 7, 8, 9});
+    std::vector<float> vB2({1, 2, 3, 7, 8, 9});
+    std::vector<float> vB3({7, 8, 9, 4, 5, 6});
+    std::vector<float> vB4({4, 5, 6, 4, 5, 6});
     std::vector<float> vB6;
 
     auto A = graph->param("A", {4, 3}, inits::from_vector(vA));
@@ -347,9 +346,69 @@ void tests(DeviceType device) {
 
     CHECK(B5->shape() == Shape({4, 3}));
     B5->val()->get(values);
-    CHECK( values == vB5 );
+    CHECK( values == vA );
 
     CHECK(B6->shape() == Shape({0, 3}));
+    B6->val()->get(values);
+    CHECK( values == vB6 );
+  }
+
+  SECTION("columns selection from 2d matrix") {
+    graph->clear();
+    values.clear();
+
+    std::vector<float> vA({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+
+    std::vector<IndexType> iB0({0});            // first column
+    std::vector<IndexType> iB1({0, 1, 2});      // several consecutive columns
+    std::vector<IndexType> iB2({0, 2});         // two nonconsecutive columns
+    std::vector<IndexType> iB3({2, 1});         // reversed order
+    std::vector<IndexType> iB4({1, 1});         // repeated columns
+    std::vector<IndexType> iB5({0, 1, 2, 3});   // identity
+    std::vector<IndexType> iB6({});             // empty
+
+    std::vector<float> vB0({1, 5, 9});
+    std::vector<float> vB1({1, 2, 3, 5, 6, 7, 9, 10, 11});
+    std::vector<float> vB2({1, 3, 5, 7, 9, 11});
+    std::vector<float> vB3({3, 2, 7, 6, 11, 10});
+    std::vector<float> vB4({2, 2, 6, 6, 10, 10});
+    std::vector<float> vB6;
+
+    auto A = graph->param("A", {3, 4}, inits::from_vector(vA));
+    auto B0 = cols(A, iB0);
+    auto B1 = cols(A, iB1);
+    auto B2 = cols(A, iB2);
+    auto B3 = cols(A, iB3);
+    auto B4 = cols(A, iB4);
+    auto B5 = cols(A, iB5);
+    auto B6 = cols(A, iB6);
+    graph->forward();
+
+    CHECK(B0->shape() == Shape({3, 1}));
+    B0->val()->get(values);
+    CHECK( values == vB0 );
+
+    CHECK(B1->shape() == Shape({3, 3}));
+    B1->val()->get(values);
+    CHECK( values == vB1 );
+
+    CHECK(B2->shape() == Shape({3, 2}));
+    B2->val()->get(values);
+    CHECK( values == vB2 );
+
+    CHECK(B3->shape() == Shape({3, 2}));
+    B3->val()->get(values);
+    CHECK( values == vB3 );
+
+    CHECK(B4->shape() == Shape({3, 2}));
+    B4->val()->get(values);
+    CHECK( values == vB4 );
+
+    CHECK(B5->shape() == Shape({3, 4}));
+    B5->val()->get(values);
+    CHECK( values == vA );
+
+    CHECK(B6->shape() == Shape({3, 0}));
     B6->val()->get(values);
     CHECK( values == vB6 );
   }
