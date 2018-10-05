@@ -43,10 +43,9 @@ void AsyncGraphGroupDrop::fetchParams(Tensor oldParams,
 }
 
 void AsyncGraphGroupDrop::pushGradients(Tensor newGrads,
-                                        size_t batch_words,
                                         int device_id) {
   if(pushStep_[device_id]++ < dropping_warmup) {
-    AsyncGraphGroup::pushGradients(newGrads, batch_words, device_id);
+    AsyncGraphGroup::pushGradients(newGrads, device_id);
     return;
   }
 

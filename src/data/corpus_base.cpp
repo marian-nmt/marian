@@ -145,7 +145,7 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
            files_.size(),
            vocabs_.size());
 
-  if(training && options_->has("guided-alignment")) {
+  if(training && options_->get("guided-alignment", std::string("none")) != "none") {
     auto path = options_->get<std::string>("guided-alignment");
 
     ABORT_IF(!filesystem::exists(path), "Alignment file does not exist");

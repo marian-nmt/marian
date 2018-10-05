@@ -7,49 +7,42 @@
 namespace marian {
 
 class SyncGraphGroup : public GraphGroup, public ExponentialSmoothing {
-public:
-  virtual void setScheduler(Ptr<Scheduler> scheduler) override;
+  const size_t delay_{ 1 }; // optimizer-delay parameter
 
-private:
-  Ptr<Communicator> comm_;
+  Ptr<ICommunicator> comm_; // [not null] communicator, e.g. NCCLCommunicator
+  Ptr<IMPIWrapper> mpi_;    // [not null] all MPI-like communication goes through this (this is a dummy implementation if no MPI run)
 
-  std::vector<Ptr<models::ModelBase>> builders_;
-  std::vector<Ptr<ExpressionGraph>> graphs_;
-  std::vector<DeviceId> devices_;
+  std::vector<DeviceId> devices_;                  // [deviceIndex]
+  std::vector<Ptr<models::ModelBase>> builders_;   // [deviceIndex]
+  std::vector<Ptr<ExpressionGraph>> graphs_;       // [deviceIndex]
 
-  std::vector<Ptr<OptimizerBase>> shardOpt_;
+  std::vector<Ptr<OptimizerBase>> shardOpt_;       // [deviceIndex]
 
-  int shardSize_;
-  bool first_{true};
+  std::vector<Tensor> paramsAvg_;                  // [deviceIndex] exponentially smoothed parameters, sharded
+  // @TODO: instead, create an array of ExponentialSmoothing objects, and don't use ExponentialSmoothing as a base class
+  std::vector<Ptr<TensorAllocator>> paramsAllocs_; // [deviceIndex] we must hold a reference to the memory until this class dies
+  // @TODO: move this nto ExponentialSmoothing, together with paramsAvg_?
 
-  std::vector<Tensor> paramsAvg_;
-  std::vector<Ptr<TensorAllocator>> paramsAllocs_;
+  bool first_{ true }; // gets interpreted and cleared by update()
 
-  size_t delay_{1};
-
-  void initialize(const std::vector<Ptr<data::Batch>>& batches);
+  void initialize(const Ptr<data::Batch>& exampleBatch);
   void initializeAvg();
 
-  void execute(Ptr<data::Batch> batch);
+  bool isMainProcess() const { return mpi_->myMPIRank() == 0; } // (we need this test a few times)
+  void barrier() const { mpi_->barrier(); } // (we need this several times)
+  void swapParamsAvg() { if (mvAvg_ && paramsAvg_.size() > 0) comm_->swapParams(paramsAvg_); } // note: must call this on all MPI ranks in parallel
 
 public:
   SyncGraphGroup(Ptr<Config> config);
 
-  void update(Ptr<data::Batch> batch) override {
-    ABORT_IF(finalized_, "Training has already finished.");
-    execute(batch);
-  }
+  void setScheduler(Ptr<Scheduler> scheduler) override;
+
+  void update(Ptr<data::Batch> batch) override;
 
   void load() override;
   void save(bool final = false) override;
-  void save(Ptr<ExpressionGraph> graph, bool final = false);
 
-  Ptr<data::BatchStats> collectStats() {
-    return GraphGroup::collectStats(graphs_[0], builders_[0], numBatches());
-  }
-
-  size_t numBatches() { return devices_.size() * delay_; }
-
-  virtual void finalize() override { finalized_ = true; }
+  Ptr<data::BatchStats> collectStats();
+  // @TODO: consider to make this a virtual as well? Currently it is a template dispatch
 };
 }  // namespace marian

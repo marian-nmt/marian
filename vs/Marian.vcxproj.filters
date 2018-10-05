@@ -244,6 +244,9 @@
     <ClCompile Include="..\src\command\marian_main.cpp">
       <Filter>command</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\3rd_party\ExceptionWithCallStack.cpp">
+      <Filter>3rd_party</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -1034,6 +1037,12 @@
       <Filter>command</Filter>
     </ClInclude>
     <ClInclude Include="..\src\command\marian_conv.cpp" />
+    <ClInclude Include="..\src\3rd_party\ExceptionWithCallStack.h">
+      <Filter>3rd_party</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\timer.h">
+      <Filter>common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
@@ -1153,5 +1162,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorConfig" />
+    <None Include="..\src\training\communicator_nccl.h">
+      <Filter>training</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -49,7 +49,7 @@ public:
     for(size_t i = 0; i < keys.size(); ++i) {
       // Keys contains indices to vocab items in the entire beam.
       // Values can be between 0 and beamSize * vocabSize.
-      size_t embIdx = keys[i] % vocabSize;
+      Word embIdx = (Word)(keys[i] % vocabSize);
       auto beamIdx = i / beamSize;
 
       // Retrieve short list for final softmax (based on words aligned
@@ -57,7 +57,7 @@ public:
       // in the sub-selected vocabulary matrix back to their original positions.
       auto shortlist = scorers_[0]->getShortlist();
       if(shortlist)
-        embIdx = shortlist->reverseMap(embIdx);
+        embIdx = shortlist->reverseMap(embIdx); // @TODO: should reverseMap accept a size_t or a Word?
 
       if(newBeams[beamIdx].size() < beams[beamIdx].size()) {
         auto& beam = beams[beamIdx];
@@ -219,7 +219,7 @@ public:
             auto& beam = beams[j];
             if(i < beam.size()) {
               auto hyp = beam[i];
-              hypIndices.push_back(hyp->GetPrevStateIndex()); // backpointer
+              hypIndices.push_back((unsigned int)hyp->GetPrevStateIndex()); // backpointer
               embIndices.push_back(hyp->GetWord());
               beamScores.push_back(hyp->GetPathScore());
             } else {  // dummy hypothesis

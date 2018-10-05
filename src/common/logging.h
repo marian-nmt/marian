@@ -4,6 +4,10 @@
 
 #include "spdlog/spdlog.h"
 
+namespace marian {
+  void logCallStack(size_t skipLevels);
+}
+
 /**
  * Prints logging message into stderr and a file specified with `--log` option.
  *
@@ -45,6 +49,7 @@
 #define ABORT(...)                                                      \
   do {                                                                  \
     checkedLog("general", "critical", __VA_ARGS__);                     \
+    ::marian::logCallStack(/*skipLevels=*/0);                           \
     std::cerr << "Aborted from " << FUNCTION_NAME << " in " << __FILE__ \
               << ": " << __LINE__ << std::endl;                         \
     std::abort();                                                       \

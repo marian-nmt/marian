@@ -1,8 +1,8 @@
 #pragma once
 
+#include "functional/defs.h"
 #include <limits>
 #include <string>
-#include "functional/defs.h"
 
 namespace marian {
 namespace functional {

@@ -15,7 +15,10 @@ private:
 
   Ptr<TrainingState> state_;
 
-  timer::Timer timer;
+  bool isSecondaryRank_{false}; // set this to true in multi-MPI-process settings; only main rank validates, saves files, and heart-beats
+  void setSecondaryRank() { isSecondaryRank_ = true; }
+
+  timer::Timer timer_, heartBeatTimer_;
 
   float getLearningRate(TrainingState& state) {
     float baselr = options_->get<float>("learn-rate");
@@ -168,8 +171,10 @@ public:
     size_t batchLabels = 0;  // number of target words in batch
 
     for(const auto& batch : batches) {
-      batchSize += batch->size();
-      batchLabels += batch->words(-1);
+      if (batch) { // (nullptr is allowed as result of split)
+        batchSize += batch->size();
+        batchLabels += batch->words(-1);
+      }
     }
 
     // reconstruct sum cost, for displaying epoch-level averages instead of
@@ -217,8 +222,8 @@ public:
               state_->costSum / state_->costCount,
               state_->costCount,  // show cost as "av * count"
               state_->labelsTotal,
-              timer.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer.format(5, "%w")),
+              timer_.format(2, "%ws"),
+              state_->wordsDisp / std::stof(timer_.format(5, "%w")),
               state_->eta);
         } else {
           LOG(info,
@@ -231,8 +236,8 @@ public:
               state_->costSum / state_->costCount,
               state_->costCount,
               state_->labelsTotal,
-              timer.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer.format(5, "%w")));
+              timer_.format(2, "%ws"),
+              state_->wordsDisp / std::stof(timer_.format(5, "%w")));
         }
       } else {
         if(options_->get<bool>("lr-report")) {
@@ -243,8 +248,8 @@ public:
               state_->batches,
               state_->samplesEpoch,
               state_->costSum / state_->costCount,
-              timer.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer.format(5, "%w")),
+              timer_.format(2, "%ws"),
+              state_->wordsDisp / std::stof(timer_.format(5, "%w")),
               state_->eta);
         } else {
           LOG(info,
@@ -254,21 +259,25 @@ public:
               state_->batches,
               state_->samplesEpoch,
               state_->costSum / state_->costCount,
-              timer.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer.format(5, "%w")));
+              timer_.format(2, "%ws"),
+              state_->wordsDisp / std::stof(timer_.format(5, "%w")));
         }
       }
-      // progress heartbeat for MS-internal Philly compute cluster
-      if(getenv("PHILLY_JOB_ID"))  // this environment variable exists when
-                                   // running on the cluster
-        printf("PROGRESS: %.2f%%\nEVALERR: %.7f\n",
-               (double)state_->epochs,
-               state_->costSum / state_->costCount),
-            fflush(stdout);
-      timer.start();
+      timer_.start();
       state_->costSum = 0;
       state_->costCount = 0;
       state_->wordsDisp = 0;
+    }
+    // progress heartbeat for MS-internal Philly compute cluster
+    // This environment variable exists when running on the cluster.
+    using namespace std::chrono;
+    if(!isSecondaryRank_ && getenv("PHILLY_JOB_ID") &&
+        duration_cast<minutes>(nanoseconds(heartBeatTimer_.elapsed().user)).count() >= 10) {
+      printf("PROGRESS: %.2f%%\nEVALERR: %.7f\n", (double)state_->epochs, state_->costSum / state_->costCount), fflush(stdout);
+#if 0
+      LOG(info, "heart beat after {} updates", state_->batches);
+#endif
+      heartBeatTimer_.start();
     }
   }
 

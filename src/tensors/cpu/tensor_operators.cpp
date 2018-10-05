@@ -493,7 +493,7 @@ void Select(Tensor out,
   int length = outShape.elements();
 
   functional::Array<int, functional::Shape::size()> dims;
-  int axisCPU = axis + functional::Shape::size() - out->shape().size();
+  int axisCPU = (int)(axis + functional::Shape::size() - out->shape().size());
   
   for(int index = 0; index < length; ++index) {
     outShape.dims(index, dims);

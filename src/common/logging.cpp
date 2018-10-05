@@ -1,8 +1,18 @@
 #include "logging.h"
 #include "common/config.h"
 #include "spdlog/sinks/null_sink.h"
+#include "3rd_party/ExceptionWithCallStack.h"
 #include <time.h>
 #include <stdlib.h>
+#ifdef __unix__
+#include <signal.h>
+#endif
+
+#ifdef _MSC_VER
+#define noinline __declspec(noinline)
+#else
+#define noinline __attribute__((noinline))
+#endif
 
 std::shared_ptr<spdlog::logger> stderrLogger(
     const std::string& name,
@@ -85,13 +95,37 @@ void createLoggers(const marian::Config* options) {
   }
 
   if (options && options->has("log-time-zone")) {
-      std::string timezone = options->get<std::string>("log-time-zone");
-      if (timezone != "") {
+    std::string timezone = options->get<std::string>("log-time-zone");
+    if (timezone != "") {
 #ifdef _WIN32
 #define setenv(var, val, over) SetEnvironmentVariableA(var, val) // ignoring over flag
 #endif
-        setenv("TZ", timezone.c_str(), true);
-        tzset();
-      }
+      setenv("TZ", timezone.c_str(), true);
+      tzset();
+    }
+  }
+
+#ifdef __unix__
+  // catch segfaults
+  static struct sigaction prev_segfault_sigaction;
+  struct sigaction sa = { 0 };
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_SIGINFO;
+  sa.sa_sigaction = [&](int signal, siginfo_t *si, void *arg)
+  {
+    checkedLog("general", "critical", "Segmentation fault");
+    sigaction(signal, &prev_segfault_sigaction, NULL); // revert signal handler
+    marian::logCallStack(/*skipLevels=*/0/*2*/); // skip segfault_sigaction() and one level up in the kernel
+    raise(signal); // re-raise so we terminate mostly as usual
+  };
+  sigaction(SIGSEGV, &sa, &prev_segfault_sigaction);
+#endif
+}
+
+namespace marian {
+  void noinline logCallStack(size_t skipLevels)
+  {
+    auto callStack = ::Microsoft::MSR::CNTK::DebugUtil::GetCallStack(skipLevels + 2, /*makeFunctionNamesStandOut=*/true);
+    checkedLog("general", "critical", "Call stack:{}", callStack);
   }
 }
