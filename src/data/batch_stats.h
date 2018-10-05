@@ -36,7 +36,7 @@ public:
       map_[lengths] = batchSize;
   }
 
-  // helpers for multi-node
+  // helpers for multi-node  --note: presently unused, but keeping them around for later use
   // serialize into a flat vector, for MPI data exchange
   std::vector<size_t> flatten() const {
     std::vector<size_t> res;

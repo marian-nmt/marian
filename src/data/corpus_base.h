@@ -13,8 +13,6 @@
 #include "data/vocab.h"
 
 #include <iostream>
-//#include <fstream>   // needed?
-//#include <random>    // needed?
 #include <boost/algorithm/string.hpp>
 #include <boost/iterator/iterator_facade.hpp>
 

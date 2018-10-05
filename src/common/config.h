@@ -87,7 +87,6 @@ public:
 
 private:
   YAML::Node config_;
-  //std::vector<DeviceId> devices_;
 
   // Add options overwritting values for existing ones
   void override(const YAML::Node& params);
