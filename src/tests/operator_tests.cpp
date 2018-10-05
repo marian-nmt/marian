@@ -293,6 +293,66 @@ void tests(DeviceType device) {
     C->val()->get(values);
     CHECK(values == vC);
   }
+
+  SECTION("rows selection from 2d matrix") {
+    graph->clear();
+    values.clear();
+
+    std::vector<float> vA({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+
+    std::vector<IndexType> iB0({0});            // first row
+    std::vector<float> vB0({1, 2, 3});
+    std::vector<IndexType> iB1({0, 1, 2});      // several consecutive rows
+    std::vector<float> vB1({1, 2, 3, 4, 5, 6, 7, 8, 9});
+    std::vector<IndexType> iB2({0, 2});         // two nonconsecutive rows
+    std::vector<float> vB2({1, 2, 3, 7, 8, 9});
+    std::vector<IndexType> iB3({2, 1});         // reversed order
+    std::vector<float> vB3({7, 8, 9, 4, 5, 6});
+    std::vector<IndexType> iB4({1, 1});         // repeated rows
+    std::vector<float> vB4({4, 5, 6, 4, 5, 6});
+    std::vector<IndexType> iB5({0, 1, 2, 3});   // identity
+    std::vector<float> vB5 = vA;
+    std::vector<IndexType> iB6({});             // empty
+    std::vector<float> vB6;
+
+    auto A = graph->param("A", {4, 3}, inits::from_vector(vA));
+    auto B0 = rows(A, iB0);
+    auto B1 = rows(A, iB1);
+    auto B2 = rows(A, iB2);
+    auto B3 = rows(A, iB3);
+    auto B4 = rows(A, iB4);
+    auto B5 = rows(A, iB5);
+    auto B6 = rows(A, iB6);
+    graph->forward();
+
+    CHECK(B0->shape() == Shape({1, 3}));
+    B0->val()->get(values);
+    CHECK( values == vB0 );
+
+    CHECK(B1->shape() == Shape({3, 3}));
+    B1->val()->get(values);
+    CHECK( values == vB1 );
+
+    CHECK(B2->shape() == Shape({2, 3}));
+    B2->val()->get(values);
+    CHECK( values == vB2 );
+
+    CHECK(B3->shape() == Shape({2, 3}));
+    B3->val()->get(values);
+    CHECK( values == vB3 );
+
+    CHECK(B4->shape() == Shape({2, 3}));
+    B4->val()->get(values);
+    CHECK( values == vB4 );
+
+    CHECK(B5->shape() == Shape({4, 3}));
+    B5->val()->get(values);
+    CHECK( values == vB5 );
+
+    CHECK(B6->shape() == Shape({0, 3}));
+    B6->val()->get(values);
+    CHECK( values == vB6 );
+  }
 }
 
 #ifdef CUDA_FOUND
