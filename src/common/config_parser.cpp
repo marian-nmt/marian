@@ -34,7 +34,7 @@ const std::set<std::string> PATHS = {"model",
                                      "valid-log",
                                      "valid-translation-output",
                                      "log",
-									 "input",
+                                     "input",
                                      "output" };
 
 void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
