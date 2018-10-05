@@ -214,12 +214,13 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
     // track and log cost
     scheduler_->update(cost, subBatches);
 
-    // save intermediate model to file
-    if(scheduler_->saving() && isMainProcess()) {
+    // save intermediate model (and optimizer state) to file
+    if(scheduler_->saving()) {
       save();
     }
 
     // process valid data set
+    // This may save a model as well.
     if(scheduler_->validating()) {
       swapParamsAvg();
       if (isMainProcess())
@@ -268,21 +269,28 @@ void SyncGraphGroup::load() /*override*/ {
 }
 
 void SyncGraphGroup::save(bool final) /*override*/ {
+  barrier(); // (for better grouping of log messages)
+  LOG(info, "[{}] save() line {}!", this->mpi_->idStr(), __LINE__);
   // do final validation
   if(final && scheduler_) {
-    barrier(); // (for better grouping of log messages)
     // bring the smoothed model in
     // Note that it is sharded. For multi-node, it is sharded over multiple machines, so this is a network access.
     // Also note that the swap must run on all MPI processes concurrently, although only one actually validates.
+    LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
     swapParamsAvg();
+    LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
     if (isMainProcess()) // in multi-node, only first MPI process saves the model (they are all identical)
       scheduler_->validate(graphs_, true);
+    LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
     swapParamsAvg();
+    LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   }
 
   std::string name = options_->get<std::string>("model");
 
+  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   barrier(); // (for better grouping of log messages)
+  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   // if smoothing then save original (unsmoothed) parameters as well
   // @TODO: Check whether we are reloading the correct file (the unsmoothed one).
   if(mvAvg_ && paramsAvg_.size() > 0 && isMainProcess()) // only save from one MPI process
@@ -291,11 +299,14 @@ void SyncGraphGroup::save(bool final) /*override*/ {
 
   // Temporarily switch to the averaged parameters
   // Note: the smoothed model is sharded across GPUs, and across MPI processes if applicable. This brings it into MPI process[*].device[*]
+  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   swapParamsAvg();
+  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
 
   // save main model file
   if (isMainProcess()) { // only save from one MPI process
     // if not overwrite then save a copy with number of updates in the model pathname
+    LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
     if(!options_->get<bool>("overwrite") && !final) {
       std::string numberOfBatches
           = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
@@ -304,30 +315,40 @@ void SyncGraphGroup::save(bool final) /*override*/ {
       nameOverwrite.replace(name.size() - 4, 4, ".iter" + numberOfBatches + ".npz"); // @TODO: use insert?
       builders_[0]->save(graphs_[0], nameOverwrite);
     }
+    LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
     // save main model file
     builders_[0]->save(graphs_[0], name, true);
+    LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
     // save scheduler-related state
     if (scheduler_)
       scheduler_->save(name);
+    LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   }
 
   // Switch back to the original parameters
+  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   swapParamsAvg();
+  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
 
 #if 1 // temporary, for testing of saving distributed models; must be identical to .orig.npz
   if(mvAvg_ && paramsAvg_.size() > 0 && isMainProcess())
     builders_[0]->save(graphs_[0], name + ".orig_after_swapping.npz", true);
 #endif
+  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   barrier(); // (for better grouping of log messages)
+  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
 
   // persist optimizer state
+  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_,
     [&](const OptimizerBase::GatherStateGetFunc& getFn) {
       return comm_->gatherState(getFn);
     },
     isMainProcess());
+  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
 
   barrier(); // (for better grouping of log messages)
+  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
 }
 
 }  // namespace marian
