@@ -517,7 +517,7 @@ void Insert(Tensor out,
 
   int length = inShape.elements();
   functional::Array<int, functional::Shape::size()> dims;
-  int axisCPU = axis + functional::Shape::size() - out->shape().size();
+  int axisCPU = (int)(axis + functional::Shape::size() - out->shape().size());
 
   for(int index = 0; index < length; ++index) {
     inShape.dims(index, dims);

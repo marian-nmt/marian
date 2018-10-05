@@ -123,6 +123,8 @@
     <ClInclude Include="..\src\command\marian_conv.cpp" />
     <ClCompile Include="..\src\command\marian_main.cpp" />
     <ClCompile Include="..\src\common\binary.cpp" />
+    <ClCompile Include="..\src\common\cli_wrapper.cpp" />
+    <ClCompile Include="..\src\common\config_validator.cpp" />
     <ClCompile Include="..\src\common\io.cpp" />
     <ClCompile Include="..\src\common\utils.cpp" />
     <ClCompile Include="..\src\common\logging.cpp" />
@@ -202,9 +204,15 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\common\binary.h" />
+    <ClInclude Include="..\src\common\cli_helper.h" />
+    <ClInclude Include="..\src\common\cli_wrapper.h" />
+    <ClInclude Include="..\src\common\config_validator.h" />
+    <ClInclude Include="..\src\common\filesystem.h" />
+    <ClInclude Include="..\src\common\hash.h" />
     <ClInclude Include="..\src\common\io.h" />
     <ClInclude Include="..\src\common\io_item.h" />
     <ClInclude Include="..\src\common\timer.h" />
+    <ClInclude Include="..\src\common\types.h" />
     <ClInclude Include="..\src\layers\loss.h" />
     <ClInclude Include="..\src\layers\weight.h" />
     <ClInclude Include="..\src\marian.h" />

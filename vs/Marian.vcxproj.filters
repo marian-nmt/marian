@@ -247,6 +247,12 @@
     <ClCompile Include="..\src\3rd_party\ExceptionWithCallStack.cpp">
       <Filter>3rd_party</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\common\cli_wrapper.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\config_validator.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -1041,6 +1047,24 @@
       <Filter>3rd_party</Filter>
     </ClInclude>
     <ClInclude Include="..\src\common\timer.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\cli_helper.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\cli_wrapper.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\config_validator.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\filesystem.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\hash.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\types.h">
       <Filter>common</Filter>
     </ClInclude>
   </ItemGroup>

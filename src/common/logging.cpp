@@ -122,6 +122,15 @@ void createLoggers(const marian::Config* options) {
 #endif
 }
 
+// modify the log pattern for the "general" logger to include the MPI rank
+// This is called upon initializing MPI. It is needed to associated error messages to ranks.
+void switchtoMultinodeLogging(std::string nodeIdStr) {
+  Logger log = spdlog::get("general");
+  if (log)
+    log->set_pattern("[%Y-%m-%d %T " + nodeIdStr + "] %v");
+}
+
+
 namespace marian {
   void noinline logCallStack(size_t skipLevels)
   {

@@ -81,7 +81,11 @@ public:
     v.resize(vecLen);
     bCast(v.data(), v.size(), getDataType(v.data()), rootRank, comm);
   }
-  std::string idStr() { // helper to identify the node in logs
+  std::string idStr() const { // helper to identify the node in logs
+    return hostnameAndProcessId() + " MPI rank " + std::to_string(myMPIRank()) + " out of " + std::to_string(numMPIProcesses());
+  }
+protected:
+  static std::string hostnameAndProcessId() { // helper to get hostname:pid
 #ifdef _WIN32
     std::string hostname = getenv("COMPUTERNAME");
     auto processId = GetCurrentProcessId();
@@ -93,7 +97,7 @@ public:
     }();
     auto processId = getpid();
 #endif
-    return hostname + ":" + std::to_string(processId) + " MPI rank " + std::to_string(myMPIRank()) + " out of " + std::to_string(numMPIProcesses());
+    return hostname + ":" + std::to_string(processId);
   }
 };
 

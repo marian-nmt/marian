@@ -80,14 +80,16 @@ public:
     MPI_Comm_size(MPI_COMM_WORLD, &comm_world_size_);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank_);
 
+    // patch logging pattern to include the MPI process info
+    switchtoMultinodeLogging(std::to_string(MPIWrapper::myMPIRank()));
+
     // log hostnames in order, and test
-    // @TODO: We call ourselves here. Not sure if that is properly allowed.
     for (size_t r = 0; r < numMPIProcesses(); r++) {
       MPIWrapper::barrier();
       if (r == MPIWrapper::myMPIRank())
-        LOG(info, "[mpi] initialized as {}", MPIWrapper::idStr());
+        LOG(info, "[mpi] initialized {} processes", MPIWrapper::numMPIProcesses());
+      MPIWrapper::barrier();
     }
-    MPIWrapper::barrier();
   }
 
   virtual size_t myMPIRank()        const override { return (size_t)my_rank_; };
