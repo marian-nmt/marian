@@ -293,6 +293,31 @@ void tests(DeviceType device) {
     CHECK(values == vC);
   }
 
+  SECTION("affine transformation") {
+    graph->clear();
+    values.clear();
+
+    std::vector<float> vA({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+    std::vector<float> vB({1, 2, 3, 4, 5, 6});
+    std::vector<float> vAff({24, 30, 51, 66, 78, 102, 105, 138});
+
+    auto A = graph->param("A", {4, 3}, inits::from_vector(vA));
+    auto B = graph->param("B", {3, 2}, inits::from_vector(vB));
+    auto C = graph->param("C", {4, 2}, inits::from_value(2));
+    auto aff1 = affine(A, B, C);
+    auto aff2 = dot(A, B) + C;
+    graph->forward();
+
+    CHECK(aff1->shape() == Shape({4, 2}));
+    aff1->val()->get(values);
+    CHECK(values == vAff);
+
+    std::vector<float> values2;
+    CHECK(aff2->shape() == aff1->shape());
+    aff2->val()->get(values2);
+    CHECK(values2 == values);
+  }
+
   SECTION("rows selection from 2d matrix") {
     graph->clear();
     values.clear();
