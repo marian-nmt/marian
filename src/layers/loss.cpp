@@ -49,7 +49,8 @@ Expr CrossEntropyMeanLoss::getCost(Expr logits,
   // Time axis (words): -3
   // Batch axis (sentences): -2
   if(weights) {
-    return mean(sum(ce, /*axis =*/ -3) / sum(weights, -3), /*axis =*/ -2);
+    return sum(sum(ce, /*axis =*/ -3) /*axis =*/ -2)
+           / sum(mean(weights, /*axis =*/ -3) /*axis =*/ -2);
   }
   else {
     return mean(sum(ce, /*axis =*/ -3), /*axis =*/ -2);
@@ -62,9 +63,8 @@ Expr CrossEntropyMeanWordsLoss::getCost(Expr logits,
                                         Expr weights) {
   auto ce = getCrossEntropy(logits, indices, mask, weights);
   if(weights) {
-    // @TODO: this only works for sentence weights now
     return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
-           / (sum(sum(mask, /*axis =*/ -3), /*axis =*/ -2) * sum(sum(weights, /*axis =*/ -3), /*axis =*/ -2));
+           / sum(sum(weights, /*axis =*/ -3), /*axis =*/ -2);
   }
   else {
     return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
@@ -78,7 +78,8 @@ Expr CrossEntropySumLoss::getCost(Expr logits,
                                   Expr weights) {
   auto ce = getCrossEntropy(logits, indices, mask, weights);
   if(weights) {
-    return sum(sum(ce, /*axis =*/ -3) / sum(weights, /*axis =*/ -3), /*axis =*/ -2);
+    return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
+           / mean(mean(weights, /*axis =*/ -3), /*axis =*/ -2);
   }
   else {
     return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2);
@@ -92,7 +93,7 @@ Expr PerplexityLoss::getCost(Expr logits,
   auto ce = getCrossEntropy(logits, indices, mask, weights);
   if(weights) {
     return exp(sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
-               / sum(sum(mask * weights, /*axis =*/ -3), /*axis =*/ -2));
+               / sum(sum(weights, /*axis =*/ -3), /*axis =*/ -2));
   }
   else {
     return exp(sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
