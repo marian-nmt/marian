@@ -318,6 +318,54 @@ void tests(DeviceType device) {
     CHECK(values2 == values);
   }
 
+  SECTION("repeat") {
+    graph->clear();
+    values.clear();
+
+    std::vector<float> vA({1, 2, 3, 4, 5, 6});
+    std::vector<float> vB({1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6});
+    std::vector<float> vC({1, 2, 3, 1, 2, 3, 4, 5, 6, 4, 5, 6});
+
+    auto A = graph->param("A", {2,3}, inits::from_vector(vA));
+    auto I = repeat(A, 1, 0);
+    auto B = repeat(A, 2, 0);
+    auto C = repeat(A, 2, 1);
+    graph->forward();
+
+    CHECK(I->shape() == Shape({2, 3}));
+    I->val()->get(values);
+    CHECK(values == vA);
+
+    CHECK(B->shape() == Shape({4, 3}));
+    B->val()->get(values);
+    CHECK(values == vB);
+
+    CHECK(C->shape() == Shape({2, 6}));
+    C->val()->get(values);
+    CHECK(values == vC);
+  }
+
+  SECTION("flatten") {
+    graph->clear();
+    values.clear();
+
+    std::vector<float> vIn({1, 2, 3, 4, 5, 6, 7, 8});
+
+    auto A = graph->param("A", {2, 4}, inits::from_vector(vIn));
+    auto Af = flatten(A);
+    auto B = graph->param("B", {2, 2, 1, 2}, inits::from_vector(vIn));
+    auto Bf = flatten(B);
+    graph->forward();
+
+    CHECK(Af->shape() == Shape({8}));
+    Af->val()->get(values);
+    CHECK(values == vIn);
+
+    CHECK(Bf->shape() == Shape({8}));
+    Bf->val()->get(values);
+    CHECK(values == vIn);
+  }
+
   SECTION("rows selection from 2d matrix") {
     graph->clear();
     values.clear();

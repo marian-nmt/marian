@@ -199,7 +199,6 @@ Expr flatten(Expr a) {
 
 Expr flatten_2d(Expr a) {
   Shape shape = {a->shape().elements() / a->shape()[-1], a->shape()[-1]};
-
   return Expression<ReshapeNodeOp>(a, shape);
 }
 
