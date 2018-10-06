@@ -62,8 +62,9 @@ Expr CrossEntropyMeanWordsLoss::getCost(Expr logits,
                                         Expr weights) {
   auto ce = getCrossEntropy(logits, indices, mask, weights);
   if(weights) {
+    // @TODO: this only works for sentence weights now
     return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
-           / sum(sum(mask * weights, /*axis =*/ -3), /*axis =*/ -2);
+           / (sum(sum(mask, /*axis =*/ -3), /*axis =*/ -2) * sum(sum(weights, /*axis =*/ -3), /*axis =*/ -2));
   }
   else {
     return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
