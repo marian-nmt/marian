@@ -35,7 +35,7 @@ public:
     trgVocab_->load(vocabs.back());
 
     auto srcVocab = corpus_->getVocabs()[0];
-
+	
     if(options_->has("shortlist"))
       shortlistGenerator_ = New<data::LexicalShortlistGenerator>(
           options_, srcVocab, trgVocab_, 0, 1, vocabs.front() == vocabs.back());
@@ -79,7 +79,7 @@ public:
     ThreadPool threadPool(devices.size(), devices.size());
 
     size_t batchId = 0;
-    auto collector = New<OutputCollector>();
+    auto collector = New<OutputCollector>(options_->get<std::string>("output"));
     auto printer = New<OutputPrinter>(options_, trgVocab_);
     if(options_->get<bool>("quiet-translation"))
       collector->setPrintingStrategy(New<QuietPrinting>());
@@ -119,6 +119,17 @@ public:
       };
 
       threadPool.enqueue(task, batchId++);
+
+	  // progress heartbeat for MS-internal Philly compute cluster
+	  //otherwise this job may be killed prematurely if no log for 4 hrs
+	  if (getenv("PHILLY_JOB_ID"))  // this environment variable exists when running on the cluster
+	  {
+		  auto progress = 0.f; //fake progress for now
+		  fprintf(stdout, "PROGRESS: %.2f%%\n", progress);
+		  fflush(stdout);
+	  }
+		  
+	  
     }
   }
 };
@@ -170,8 +181,9 @@ public:
     }
   }
 
-  std::vector<std::string> run(const std::vector<std::string>& inputs) override {
-    auto corpus_ = New<data::TextInput>(inputs, srcVocabs_, options_);
+  std::string run(const std::string& input) override {
+    auto corpus_ = New<data::TextInput>(
+        std::vector<std::string>({input}), srcVocabs_, options_);
     data::BatchGenerator<data::TextInput> bg(corpus_, options_);
 
     auto collector = New<StringCollector>();
@@ -216,7 +228,8 @@ public:
       }
     }
 
-    return collector->collect(options_->get<bool>("n-best"));
+    auto translations = collector->collect(options_->get<bool>("n-best"));
+    return utils::join(translations, "\n");
   }
 };
 }  // namespace marian

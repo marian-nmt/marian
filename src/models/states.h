@@ -21,7 +21,7 @@ public:
   virtual Expr getAttended() { return context_; }
   virtual Expr getMask() { return mask_; }
 
-  virtual const std::vector<size_t>& getSourceWords() {
+  virtual const Words& getSourceWords() {
     return batch_->front()->data();
   }
 };
@@ -56,7 +56,7 @@ public:
   virtual void setLogProbs(Expr logProbs) { logProbs_ = logProbs; }
 
   // @TODO: should this be a constructor? Then derived classes can call this without the New<> in the loop
-  virtual Ptr<DecoderState> select(const std::vector<size_t>& selIdx,
+  virtual Ptr<DecoderState> select(const std::vector<IndexType>& selIdx,
                                    int beamSize) const {
     auto selectedState = New<DecoderState>(
         states_.select(selIdx, beamSize, /*isBatchMajor=*/false), logProbs_, encStates_, batch_);
@@ -85,7 +85,7 @@ public:
 
   virtual void setTargetMask(Expr targetMask) { targetMask_ = targetMask; }
 
-  virtual const std::vector<size_t>& getSourceWords() const {
+  virtual const Words& getSourceWords() const {
     return getEncoderStates()[0]->getSourceWords();
   }
 

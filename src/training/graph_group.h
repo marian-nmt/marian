@@ -20,15 +20,10 @@ protected:
   Ptr<Scheduler> scheduler_;
   bool finalized_{false};
 
-  bool scaleLearningRate_;
-  float avgBatchWords_;
-
 public:
   GraphGroup(Ptr<Config> options)
       : options_(options),
-        opt_(Optimizer(options)),
-        scaleLearningRate_(options->get<bool>("batch-flexible-lr")),
-        avgBatchWords_(options->get<float>("batch-normal-words")) {}
+        opt_(Optimizer(options)) {}
 
   virtual ~GraphGroup() {}
 

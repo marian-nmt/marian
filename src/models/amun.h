@@ -166,8 +166,8 @@ private:
     amun["scorers"]["F0"]["type"] = "Nematus";
     amun["weights"]["F0"] = 1.0f;
 
-    OutputFileStream out(name + ".amun.yml");
-    (std::ostream&)out << amun;
+    io::OutputFileStream out(name + ".amun.yml");
+    out << amun;
   }
 };
 }  // namespace marian

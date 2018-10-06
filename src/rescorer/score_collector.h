@@ -21,7 +21,7 @@ public:
 
 protected:
   long nextId_{0};
-  UPtr<OutputFileStream> outStrm_;
+  UPtr<io::OutputFileStream> outStrm_;
   std::mutex mutex_;
 
   typedef std::map<long, std::string> Outputs;
@@ -56,7 +56,7 @@ private:
   std::string nBestList_;
   std::string fname_;
   long lastRead_{-1};
-  UPtr<InputFileStream> file_;
+  UPtr<io::InputFileStream> file_;
   std::map<long, std::string> buffer_;
 
   std::string addToNBest(const std::string nbest,

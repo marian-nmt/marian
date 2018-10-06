@@ -6,59 +6,56 @@
 
 #include "3rd_party/simple-websocket-server/server_ws.hpp"
 
-typedef SimpleWeb::SocketServer<SimpleWeb::WS> WsServer;
+typedef SimpleWeb::SocketServer<SimpleWeb::WS> WSServer;
 
 int main(int argc, char **argv) {
   using namespace marian;
 
-  // initialize translation model task
+  // Initialize translation task
   auto options = New<Config>(argc, argv, cli::mode::translation, true);
   auto task = New<TranslateService<BeamSearch>>(options);
 
-  // create web service server
-  WsServer server;
-  server.config.port = options->get<unsigned short>("port");
+  // Initialize web server
+  WSServer server;
+  server.config.port = options->get<size_t>("port", 8080);
+
   auto &translate = server.endpoint["^/translate/?$"];
 
-  translate.on_message = [&task](Ptr<WsServer::Connection> connection,
-                                 Ptr<WsServer::Message> message) {
-    auto message_str = message->string();
+  translate.on_message = [&task](Ptr<WSServer::Connection> connection,
+                                 Ptr<WSServer::Message> message) {
+    // Get input text
+    auto inputText = message->string();
+    auto sendStream = std::make_shared<WSServer::SendStream>();
 
-    auto message_short = message_str;
-    utils::trimRight(message_short);
-    LOG(error, "Message received: {}", message_short);
-
-    auto send_stream = std::make_shared<WsServer::SendStream>();
+    // Translate
     timer::Timer timer;
-    for(auto &transl : task->run({message_str})) {
-      LOG(info, "Best translation: {}", transl);
-      *send_stream << transl << std::endl;
-    }
+    auto outputText = task->run(inputText);
+    LOG(info, "Best translation: {}", outputText);
+    *sendStream << outputText << std::endl;
     LOG(info, "Translation took: {:.5f}s", timer.elapsed());
 
-    connection->send(send_stream, [](const SimpleWeb::error_code &ec) {
+    // Send translation back
+    connection->send(sendStream, [](const SimpleWeb::error_code &ec) {
       if(ec) {
-        auto ec_str = std::to_string(ec.value());
-        LOG(error, "Error sending message: ({}) {}", ec_str, ec.message());
+        LOG(error, "Error sending message: ({}) {}", ec.value(), ec.message());
       }
     });
   };
 
   // Error Codes for error code meanings
   // http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html
-  translate.on_error = [](Ptr<WsServer::Connection> connection,
+  translate.on_error = [](Ptr<WSServer::Connection> connection,
                           const SimpleWeb::error_code &ec) {
-    auto ec_str = std::to_string(ec.value());
-    LOG(error, "Connection error: ({}) {}", ec_str, ec.message());
+    LOG(error, "Connection error: ({}) {}", ec.value(), ec.message());
   };
 
-  // start server
-  std::thread server_thread([&server]() {
+  // Start server thread
+  std::thread serverThread([&server]() {
     LOG(info, "Server is listening on port {}", server.config.port);
     server.start();
   });
 
-  server_thread.join();
+  serverThread.join();
 
   return 0;
 }

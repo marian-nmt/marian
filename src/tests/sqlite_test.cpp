@@ -1,6 +1,7 @@
-#include "common/utils.h"
-#include "common/timer.h"
 #include "SQLiteCpp/SQLiteCpp.h"
+#include "common/file_stream.h"
+#include "common/timer.h"
+#include "common/utils.h"
 
 #include <iostream>
 #include <memory>
@@ -25,12 +26,12 @@ int main(int argc, char** argv) {
 
     std::cerr << "Reading from " << argv[1] << " and " << argv[2] << std::endl;
 
-    std::ifstream file0(argv[1]);
-    std::ifstream file1(argv[2]);
+    marian::io::InputFileStream file0(argv[1]);
+    marian::io::InputFileStream file1(argv[2]);
 
     db.exec("begin;");
-    while(marian::utils::getline(file0, line0)
-          && marian::utils::getline(file1, line1)) {
+    while(marian::io::getline(file0, line0)
+          && marian::io::getline(file1, line1)) {
       ps.bind(1, (int)lines);
       ps.bind(2, line0);
       ps.bind(3, line1);

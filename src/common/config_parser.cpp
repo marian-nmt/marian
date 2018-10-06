@@ -33,7 +33,7 @@ const std::set<std::string> PATHS = {"model",
                                      "valid-script-path",
                                      "valid-log",
                                      "valid-translation-output",
-                                     "log"};
+                                     "log" };
 
 void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   int defaultWorkspace = (mode_ == cli::mode::translation) ? 512 : 2048;
@@ -322,13 +322,6 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<bool>("--lr-warmup-at-reload",
      "Repeat warmup after interrupted training");
 
-  cli.add<bool>("--batch-flexible-lr",
-      "Scales the learning rate based on the number of words in a mini-batch");
-  cli.add<double>("--batch-normal-words",
-      "Set number of words per batch that the learning rate corresponds to. "
-      "The option is only active when batch-flexible-lr is on",
-      1920.0);
-
   cli.add<double>("--label-smoothing",
      "Epsilon for label smoothing (0 to disable)");
   cli.add<double>("--clip-norm",
@@ -436,6 +429,9 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   cli.add<std::vector<std::string>>("--input,-i",
       "Paths to input file(s), stdin by default",
       std::vector<std::string>({"stdin"}));
+  cli.add<std::string>("--output,-o",
+      "Paths to output file(s), stdout by default",
+      "stdout");
   cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --input");
 
@@ -474,9 +470,8 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
       "Scorer weights");
 
   // TODO: the options should be available only in server
-  cli.add<size_t>("--port,-p",
-      "Port number for web socket server",
-      8080);
+  cli.add_nondefault<size_t>("--port,-p",
+      "Port number for web socket server");
   // clang-format on
 }
 
@@ -682,6 +677,10 @@ void ConfigParser::makeAbsolutePaths(
              "same directory");
 
   auto transformFunc = [&](const std::string& nodePath) -> std::string {
+    // Catch stdin/stdout and do not process
+    if(nodePath == "stdin" || nodePath == "stdout")
+      return nodePath;
+    
     // replace relative path w.r.t. configDir
     try {
       return canonical(filesystem::Path{nodePath}, configDir).string();
@@ -703,11 +702,10 @@ YAML::Node ConfigParser::loadConfigFiles(
 
   for(auto& path : paths) {
     // later file overrides earlier
-    for(const auto& it : YAML::Load(InputFileStream(path))) {
+    for(const auto& it : YAML::Load(io::InputFileStream(path))) {
       config[it.first.as<std::string>()] = YAML::Clone(it.second);
     }
   }
-
   return config;
 }
 

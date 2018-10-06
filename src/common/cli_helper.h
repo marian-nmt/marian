@@ -13,6 +13,13 @@ namespace cli {
 static inline std::string InterpolateEnvVars(std::string str) {
 // temporary workaround for MS-internal PhillyOnAzure cluster: warm storage
 // presently has the form /hdfs/VC instead of /{gfs,hdfs}/CLUSTER/VC
+
+// Catch stdin/stdout and do not process
+std::cerr << str << std::endl;
+if(str == "stdin" || str == "stdout") {
+  return str;
+} 
+
 #if 1
   if(getenv("PHILLY_JOB_ID")) {
     const char* cluster = getenv("PHILLY_CLUSTER");

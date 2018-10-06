@@ -8,7 +8,6 @@
 #include "common/io_item.h"
 
 namespace marian {
-
 namespace io {
 
 bool isNpz(const std::string& fileName) {

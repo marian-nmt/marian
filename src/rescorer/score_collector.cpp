@@ -9,14 +9,14 @@ namespace marian {
 
 ScoreCollector::ScoreCollector(const Ptr<Config>& options)
     : nextId_(0),
-      outStrm_(new OutputFileStream(std::cout)),
+      outStrm_(new io::OutputFileStream(std::cout)),
       alignment_(options->get<std::string>("alignment", "")),
       alignmentThreshold_(getAlignmentThreshold(alignment_)) {}
 
 void ScoreCollector::Write(long id, const std::string& message) {
   std::lock_guard<std::mutex> lock(mutex_);
   if(id == nextId_) {
-    ((std::ostream&)*outStrm_) << message << std::endl;
+    *outStrm_ << message << std::endl;
 
     ++nextId_;
 
@@ -27,7 +27,7 @@ void ScoreCollector::Write(long id, const std::string& message) {
 
       if(currId == nextId_) {
         // 1st element in the map is the next
-        ((std::ostream&)*outStrm_) << iter->second << std::endl;
+        *outStrm_ << iter->second << std::endl;
 
         ++nextId_;
 
@@ -76,7 +76,7 @@ ScoreCollectorNBest::ScoreCollectorNBest(const Ptr<Config>& options)
     : ScoreCollector(options),
       nBestList_(options->get<std::vector<std::string>>("train-sets").back()),
       fname_(options->get<std::string>("n-best-feature")) {
-  file_.reset(new InputFileStream(nBestList_));
+  file_.reset(new io::InputFileStream(nBestList_));
 }
 
 void ScoreCollectorNBest::Write(long id,
@@ -91,7 +91,7 @@ void ScoreCollectorNBest::Write(long id,
                "Entry {} < {} already read but not in buffer",
                id,
                lastRead_);
-      while(lastRead_ < id && utils::getline((std::istream&)*file_, line)) {
+      while(lastRead_ < id && io::getline(*file_, line)) {
         lastRead_++;
         iter = buffer_.emplace(lastRead_, line).first;
       }

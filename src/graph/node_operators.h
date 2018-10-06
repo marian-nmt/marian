@@ -9,8 +9,9 @@ namespace marian {
 struct ConstantNode : public Node {
   ConstantNode(Ptr<ExpressionGraph> graph,
                const Shape& shape,
-               const NodeInitializer& init)
-      : Node(graph, shape),  // TODO: add value_type
+               const NodeInitializer& init,
+               Type value_type = Type::float32)
+      : Node(graph, shape, value_type),
         init_(new NodeInitializer(init)),
         initialized_(false) {
     setTrainable(false);
@@ -28,10 +29,7 @@ struct ConstantNode : public Node {
   const std::string color() override { return "white"; }
 
   virtual size_t hash() override {
-    // TODO: add value_type
-    std::size_t seed = util::hash<std::string>()(name());
-    util::hash_combine(seed, type());
-    util::hash_combine(seed, this);
+    size_t seed = util::hash<size_t>()((size_t)this);
     return seed;
   }
 
@@ -65,9 +63,7 @@ struct ParamNode : public Node {
   const std::string color() override { return "orangered"; }
 
   virtual size_t hash() override {
-    std::size_t seed = util::hash<std::string>()(name());
-    util::hash_combine(seed, type());
-    util::hash_combine(seed, this);
+    size_t seed = util::hash<size_t>()((size_t)this);
     return seed;
   }
 

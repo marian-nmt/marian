@@ -131,7 +131,7 @@ private:
   std::vector<std::unordered_map<size_t, float>> data_;
 
   void load(const std::string& fname) {
-    InputFileStream in(fname);
+    io::InputFileStream in(fname);
 
     std::string src, trg;
     float prob;
@@ -193,6 +193,7 @@ public:
     firstNum_ = vals.size() > 1 ? std::stoi(vals[1]) : 100;
     bestNum_ = vals.size() > 2 ? std::stoi(vals[2]) : 100;
     float threshold = vals.size() > 3 ? std::stof(vals[3]) : 0;
+    std::string dumpPath = vals.size() > 4 ? vals[4] : "";
 
     LOG(info,
         "[data] Loading lexical shortlist as {} {} {} {}",
@@ -203,20 +204,24 @@ public:
 
     load(fname);
     prune(threshold);
+
+    if(!dumpPath.empty())
+      dump(dumpPath);
   }
 
   void dump(const std::string& prefix) {
     // Dump top most frequent words from target vocabulary
-    OutputFileStream outTop(prefix + ".top");
+    LOG(info, "[data] Saving shortlist dump to {}", prefix + ".{top,dic}");
+    io::OutputFileStream outTop(prefix + ".top");
     for(Word i = 0; i < firstNum_ && i < trgVocab_->size(); ++i)
-      (std::ostream&)outTop << (*trgVocab_)[i] << std::endl;
+      outTop << (*trgVocab_)[i] << std::endl;
 
     // Dump translation pairs from dictionary
-    OutputFileStream outDic(prefix + ".dic");
+    io::OutputFileStream outDic(prefix + ".dic");
     for(size_t srcId = 0; srcId < data_.size(); srcId++) {
       for(auto& it : data_[srcId]) {
         size_t trgId = it.first;
-        (std::ostream&)outDic << (*srcVocab_)[srcId] << " " << (*trgVocab_)[trgId] << std::endl;
+        outDic << (*srcVocab_)[srcId] << "\t" << (*trgVocab_)[trgId] << std::endl;
       }
     }
   }
