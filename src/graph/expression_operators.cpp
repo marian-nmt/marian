@@ -204,7 +204,7 @@ Expr flatten_2d(Expr a) {
 }
 
 Expr rows(Expr a, Expr indices) {
-  // @TODO:: replace with `select(a, indices, -2)` 
+  // @TODO:: replace with `select(a, indices, -2)`
   // as soon as select is efficient enough
   return Expression<RowsNodeOp>(a, indices);
 }
@@ -216,7 +216,7 @@ Expr rows(Expr a, const std::vector<IndexType>& indices) {
 
 
 Expr cols(Expr a, Expr indices) {
-  // @TODO:: replace with `select(a, indices, -1)` 
+  // @TODO:: replace with `select(a, indices, -1)`
   // as soon as select is efficient enough
   return Expression<ColsNodeOp>(a, indices);
 }

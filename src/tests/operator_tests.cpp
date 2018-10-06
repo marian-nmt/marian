@@ -81,7 +81,6 @@ void tests(DeviceType device) {
     std::vector<float> vT4({1, 5, 3, 7, 2, 6, 4, 8});
     std::vector<float> vT5({1, 2, 5, 6, 3, 4, 7, 8});
 
-
     auto a = graph->constant({2, 4}, inits::from_vector(vA));
 
     auto t1 = transpose(a);
@@ -413,7 +412,7 @@ void tests(DeviceType device) {
     CHECK( values == vB6 );
   }
 
-  SECTION("rows and columns selection") {
+  SECTION("relation of rows and columns selection using transpose") {
     graph->clear();
     values.clear();
     std::vector<float> values2;
@@ -441,6 +440,64 @@ void tests(DeviceType device) {
     B2->val()->get(values);
     C2->val()->get(values2);
     CHECK( values == values2 );
+  }
+
+  SECTION("select operator") {
+    using Indices = std::vector<IndexType>;
+
+    graph->clear();
+    values.clear();
+
+    std::vector<float> in({1, -2, 3, -4, 5, -6, 7, -8, 9, -10, 11, -12});
+    std::vector<float> vB1({1, -2, 3});
+    std::vector<float> vB2({1, -4, 7, -10});
+    std::vector<float> vB3({-2, 5, -8, 11});
+    std::vector<float> vB4({1, -2, 3, -4, 5, -6});
+    std::vector<float> vD1(vB4);
+    std::vector<float> vD2({5, -6, 11, -12});
+    std::vector<float> vD3({1, -2, 5, -6, 7, -8, 11, -12});
+
+    auto A = graph->param("4x3", {4,3}, inits::from_vector(in));
+    auto B1 = select(A, Indices({0}), 0);
+    auto B2 = select(A, Indices({0}), 1);
+    auto B3 = select(A, Indices({1}), -1);
+    auto B4 = select(A, Indices({0, 1}), 0);
+
+    auto C = graph->param("2x3x2", {2, 3, 2}, inits::from_vector(in));
+    auto D1 = select(C, Indices({0}), 0);
+    auto D2 = select(C, Indices({2}), -2);
+    auto D3 = select(C, Indices({0,2}), 1);
+    graph->forward();
+
+    CHECK(B1->shape() == Shape({1, 3}));
+    B1->val()->get(values);
+    CHECK( values == vB1 );
+
+    CHECK(B2->shape() == Shape({4, 1}));
+    B2->val()->get(values);
+    CHECK( values == vB2 );
+
+    CHECK(B3->shape() == Shape({4, 1}));
+    B3->val()->get(values);
+    CHECK( values == vB3 );
+
+    CHECK(B4->shape() == Shape({2, 3}));
+    B4->val()->get(values);
+    CHECK( values == vB4 );
+
+    values.clear();
+
+    CHECK(D1->shape() == Shape({1, 3, 2}));
+    D1->val()->get(values);
+    CHECK( values == vD1 );
+
+    CHECK(D2->shape() == Shape({2, 1, 2}));
+    D2->val()->get(values);
+    CHECK( values == vD2 );
+
+    CHECK(D3->shape() == Shape({2, 2, 2}));
+    D3->val()->get(values);
+    CHECK( values == vD3 );
   }
 }
 
