@@ -37,7 +37,7 @@ void makeAbsolutePaths(YAML::Node& config,
     }
   };
 
-  ProcessPaths(config, transformFunc, PATHS);
+  processPaths(config, transformFunc, PATHS);
 }
 
 }  // namespace cli

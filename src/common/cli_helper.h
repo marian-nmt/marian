@@ -60,7 +60,7 @@ static inline std::string InterpolateEnvVars(std::string str) {
 }
 
 // helper to implement interpolate-env-vars and relative-paths options
-static inline void ProcessPaths(
+static inline void processPaths(
     YAML::Node& node,
     const std::function<std::string(std::string)>& TransformPath,
     const std::set<std::string>& PATHS,
@@ -75,20 +75,20 @@ static inline void ProcessPaths(
 
     if(node.Type() == YAML::NodeType::Sequence) {
       for(auto&& sub : node) {
-        ProcessPaths(sub, TransformPath, PATHS, true);
+        processPaths(sub, TransformPath, PATHS, true);
       }
     }
   } else {
     switch(node.Type()) {
       case YAML::NodeType::Sequence:
         for(auto&& sub : node) {
-          ProcessPaths(sub, TransformPath, PATHS, false);
+          processPaths(sub, TransformPath, PATHS, false);
         }
         break;
       case YAML::NodeType::Map:
         for(auto&& sub : node) {
           std::string key = sub.first.as<std::string>();
-          ProcessPaths(sub.second, TransformPath, PATHS, PATHS.count(key) > 0);
+          processPaths(sub.second, TransformPath, PATHS, PATHS.count(key) > 0);
         }
         break;
       default:
