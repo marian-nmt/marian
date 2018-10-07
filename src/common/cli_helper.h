@@ -60,7 +60,7 @@ static inline std::string InterpolateEnvVars(std::string str) {
 }
 
 // helper to implement interpolate-env-vars and relative-paths options
-static void ProcessPaths(
+static inline void ProcessPaths(
     YAML::Node& node,
     const std::function<std::string(std::string)>& TransformPath,
     const std::set<std::string>& PATHS,
@@ -98,6 +98,12 @@ static void ProcessPaths(
   }
 }
 
+// Change relative paths to absolute paths relative to the config file's
+// directory
+void makeAbsolutePaths(YAML::Node& config,
+                       const std::vector<std::string>& configPaths,
+                       const std::set<std::string>& PATHS);
+
 // helper to convert a YAML node recursively into a string
 //
 // TODO: create a helper function that converts a YAML node into a string
@@ -130,7 +136,6 @@ static void OutputYaml(const YAML::Node node, YAML::Emitter& out) {
     case YAML::NodeType::Undefined: out << node; break;
   }
 }
-
 
 }  // namespace cli
 }  // namespace marian

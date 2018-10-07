@@ -631,7 +631,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
       // interpolate environmental variables before expanding relative paths
       if(config["interpolate-env-vars"] && config["relative-paths"].as<bool>())
         cli::ProcessPaths(config, cli::InterpolateEnvVars, PATHS);
-      makeAbsolutePaths(config, configPaths, PATHS);
+      cli::makeAbsolutePaths(config, configPaths, PATHS);
       // remove "relative-paths"
       config.remove("relative-paths");
     }
@@ -645,7 +645,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 
   //if(get<bool>("relative-paths") && !get<bool>("dump-config")) {
     //auto pwd = filesystem::currentPath();
-    //makeAbsolutePaths(config_, {pwd}, PATHS);
+    //cli::makeAbsolutePaths(config_, {pwd}, PATHS);
   //}
 
   if(doValidate) {
@@ -671,42 +671,6 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
 
   expandAliases(cli);
-}
-
-void ConfigParser::makeAbsolutePaths(
-    YAML::Node& config,
-    const std::vector<std::string>& configPaths,
-    const std::set<std::string>& PATHS) {
-  ABORT_IF(configPaths.empty(),
-           "--relative-paths option requires at least one config file provided "
-           "with --config");
-  // TODO: expand paths relative to EACH config file
-  // expand relative paths w.r.t to the first config file
-  auto configDir = filesystem::Path{configPaths.front()}.parentPath();
-
-  for(const auto& configPath : configPaths)
-    ABORT_IF(filesystem::Path{configPath}.parentPath() != configDir,
-             "--relative-paths option requires all config files to be in the "
-             "same directory");
-
-  auto transformFunc = [&](const std::string& nodePath) -> std::string {
-    // Catch stdin/stdout and do not process
-    if(nodePath == "stdin" || nodePath == "stdout")
-      return nodePath;
-
-    // replace relative path w.r.t. configDir
-    try {
-      return canonical(filesystem::Path{nodePath}, configDir).string();
-    } catch(filesystem::FilesystemError& e) {
-      // will fail if file does not exist; use parent in that case
-      std::cerr << e.what() << std::endl;
-      auto parentPath = filesystem::Path{nodePath}.parentPath();
-      return (canonical(parentPath, configDir) / filesystem::Path{nodePath}.filename())
-          .string();
-    }
-  };
-
-  cli::ProcessPaths(config, transformFunc, PATHS);
 }
 
 YAML::Node ConfigParser::loadConfigFiles(

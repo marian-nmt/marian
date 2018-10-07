@@ -7,6 +7,7 @@ include_directories(3rd_party/SQLiteCpp/include)
 add_library(marian STATIC
   common/utils.cpp
   common/logging.cpp
+  common/cli_helper.cpp
   common/cli_wrapper.cpp
   common/config.cpp
   common/config_parser.cpp
