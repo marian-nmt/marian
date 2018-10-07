@@ -108,6 +108,7 @@ void createLoggers(const marian::Config* options) {
 #ifdef __unix__
   // catch segfaults
   static struct sigaction prev_segfault_sigaction;
+  static struct sigaction prev_fperror_sigaction;
   struct sigaction sa = { 0 };
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = SA_SIGINFO;
@@ -119,6 +120,14 @@ void createLoggers(const marian::Config* options) {
     raise(signal); // re-raise so we terminate mostly as usual
   };
   sigaction(SIGSEGV, &sa, &prev_segfault_sigaction);
+  sa.sa_sigaction = [&](int signal, siginfo_t *si, void *arg)
+  {
+      checkedLog("general", "critical", "Floating-point exception");
+      sigaction(signal, &prev_fperror_sigaction, NULL); // revert signal handler
+      marian::logCallStack(/*skipLevels=*/0/*2*/); // skip segfault_sigaction() and one level up in the kernel
+      raise(signal); // re-raise so we terminate mostly as usual
+  };
+  sigaction(SIGFPE, &sa, &prev_fperror_sigaction);
 #endif
 }
 
