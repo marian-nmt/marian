@@ -623,10 +623,18 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 
   // get paths to extra config files
   auto configPaths = loadConfigPaths();
-
   if(!configPaths.empty()) {
-    // load options from extra config files into a single YAML config
+    // load options from all config files into a single YAML object
     auto config = loadConfigFiles(configPaths);
+    // expand relative paths
+    if(config["relative-paths"] && config["relative-paths"].as<bool>()) {
+      // interpolate environmental variables before expanding relative paths
+      if(config["interpolate-env-vars"] && config["relative-paths"].as<bool>())
+        cli::ProcessPaths(config, cli::InterpolateEnvVars, PATHS);
+      makeAbsolutePaths(config, configPaths, PATHS);
+      // remove "relative-paths"
+      config.remove("relative-paths");
+    }
     // combine loaded options with the main YAML config
     cli.overwriteDefault(config);
   }
@@ -635,9 +643,10 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     cli::ProcessPaths(config_, cli::InterpolateEnvVars, PATHS);
   }
 
-  if(get<bool>("relative-paths") && !get<bool>("dump-config")) {
-    makeAbsolutePaths(configPaths);
-  }
+  //if(get<bool>("relative-paths") && !get<bool>("dump-config")) {
+    //auto pwd = filesystem::currentPath();
+    //makeAbsolutePaths(config_, {pwd}, PATHS);
+  //}
 
   if(doValidate) {
     try {
@@ -665,10 +674,14 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 }
 
 void ConfigParser::makeAbsolutePaths(
-    const std::vector<std::string>& configPaths) {
+    YAML::Node& config,
+    const std::vector<std::string>& configPaths,
+    const std::set<std::string>& PATHS) {
   ABORT_IF(configPaths.empty(),
            "--relative-paths option requires at least one config file provided "
            "with --config");
+  // TODO: expand paths relative to EACH config file
+  // expand relative paths w.r.t to the first config file
   auto configDir = filesystem::Path{configPaths.front()}.parentPath();
 
   for(const auto& configPath : configPaths)
@@ -680,7 +693,7 @@ void ConfigParser::makeAbsolutePaths(
     // Catch stdin/stdout and do not process
     if(nodePath == "stdin" || nodePath == "stdout")
       return nodePath;
-    
+
     // replace relative path w.r.t. configDir
     try {
       return canonical(filesystem::Path{nodePath}, configDir).string();
@@ -693,7 +706,7 @@ void ConfigParser::makeAbsolutePaths(
     }
   };
 
-  cli::ProcessPaths(config_, transformFunc, PATHS);
+  cli::ProcessPaths(config, transformFunc, PATHS);
 }
 
 YAML::Node ConfigParser::loadConfigFiles(

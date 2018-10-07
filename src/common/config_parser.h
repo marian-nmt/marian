@@ -79,11 +79,13 @@ private:
   void addSuboptionsBatching(cli::CLIWrapper&);
   void addSuboptionsInputLength(cli::CLIWrapper&);
 
-  void expandAliases(cli::CLIWrapper&);
-
   // Change relative paths to absolute paths relative to the config file's
   // directory
-  void makeAbsolutePaths(const std::vector<std::string>&);
+  void makeAbsolutePaths(YAML::Node& config,
+                         const std::vector<std::string>& configPaths,
+                         const std::set<std::string>& PATHS);
+
+  void expandAliases(cli::CLIWrapper&);
 
   // Create a new YAML config object from all provided YAML files
   YAML::Node loadConfigFiles(const std::vector<std::string>&);
