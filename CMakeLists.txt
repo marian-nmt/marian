@@ -14,6 +14,7 @@ option(USE_STATIC_LIBS "Compile GPU version" OFF)
 option(USE_CUDNN "Use CUDNN library" OFF)
 option(USE_NCCL "Use NCCL library" ON)
 option(USE_MPI "Use MPI library" OFF)
+option(USE_SENTENCEPIECE "Download and compile SentencePiece" OFF)
 
 # Project versioning
 find_package(Git QUIET)
@@ -24,6 +25,13 @@ message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 
 execute_process(COMMAND git submodule update --init --recursive --no-fetch
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+if(USE_SENTENCEPIECE)
+  execute_process(COMMAND git clone https://github.com/marian-nmt/sentencepiece.git
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/3rd_party)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_SENTENCEPIECE")
+  set(EXT_LIBS ${EXT_LIBS} sentencepiece)
+endif()
 
 # Set compilation flags
 if(MSVC)
