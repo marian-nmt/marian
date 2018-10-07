@@ -2,7 +2,10 @@
 
 #include "common/definitions.h"
 #include "common/utils.h"
+
+#ifdef USE_SENTENCEPIECE
 #include "sentencepiece/src/sentencepiece_processor.h"
+#endif
 
 #include <map>
 #include <string>
@@ -21,13 +24,15 @@ public:
   }
 };
 
+#ifdef USE_SENTENCEPIECE
+
 class SentencePiece : public Processor {
 private:
    UPtr<sentencepiece::SentencePieceProcessor> spm_;
    float alpha_{0};
 
 public:
-  SentencePiece(const std::string& spmModel, float alpha = 0) 
+  SentencePiece(const std::string& spmModel, float alpha = 0)
     : spm_(new sentencepiece::SentencePieceProcessor()), alpha_(alpha) {
     LOG(info, "Loading SentencePiece model from {} with alpha {}", spmModel, alpha);
     spm_->Load(spmModel);
@@ -44,5 +49,7 @@ public:
     spm_->Decode(pieces, &line);
   }
 };
+
+#endif
 
 }

@@ -31,15 +31,18 @@ public:
       : options_(options),
         corpus_(New<data::Corpus>(options_, true)),
         trgVocab_(New<Vocab>()) {
-    
+
     corpus_->setInference(true);
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
     trgVocab_->load(vocabs.back());
+
+#ifdef USE_SENTENCEPIECE
     // @TODO: turn sentencePiece into Vocab type
     if(options_->has("sentencepiece-models")) {
        auto spms = options_->get<std::vector<std::string>>("sentencepiece-models");
        trgVocab_->resetProcessor(New<SentencePiece>(spms.back()));
     }
+#endif
 
     auto srcVocab = corpus_->getVocabs()[0];
 
