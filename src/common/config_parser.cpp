@@ -28,9 +28,6 @@ const std::set<std::string> PATHS = {"model",
                                      "models",
                                      "train-sets",
                                      "vocabs",
-#ifdef USE_SENTENCEPIECE
-                                     "sentencepiece-models",
-#endif
                                      "embedding-vectors",
                                      "valid-sets",
                                      "valid-script-path",
@@ -243,14 +240,6 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
       "If these files do not exist they are created");
-
-#ifdef USE_SENTENCEPIECE
-  cli.add_nondefault<std::vector<std::string>>("--sentencepiece-models",
-      "Paths to SentencePiece models");
-  cli.add_nondefault<std::vector<float>>("--sentencepiece-alphas",
-      "Alphas for SentencePiece model sampling");
-#endif
-
   // scheduling options
   cli.add<size_t>("--after-epochs,-e",
       "Finish after this many epochs, 0 is infinity");
@@ -441,12 +430,6 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
       std::vector<std::string>({"stdin"}));
   cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --input");
-
-#ifdef USE_SENTENCEPIECE
-  cli.add_nondefault<std::vector<std::string>>("--sentencepiece-models",
-      "Paths to SentencePiece models");
-#endif
-
   // decoding options
   cli.add<size_t>("--beam-size,-b",
       "Beam size used during search with validating translator",
@@ -500,12 +483,6 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
       "Paths to vocabulary files have to correspond to --train-sets."
       " If this parameter is not supplied we look for vocabulary files source.{yml,json} and target.{yml,json}."
       " If these files do not exists they are created");
-
-#ifdef USE_SENTENCEPIECE
-  cli.add_nondefault<std::vector<std::string>>("--sentencepiece-models",
-      "Paths to SentencePiece models");
-#endif
-
   cli.add<bool>("--n-best",
       "Score n-best list instead of plain text corpus");
   cli.add<std::string>("--n-best-feature",
