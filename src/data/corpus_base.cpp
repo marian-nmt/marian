@@ -130,27 +130,6 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
     }
   }
 
-#ifdef USE_SENTENCEPIECE
-
-  if(options_->has("sentencepiece-models")) {
-    auto spModels = options_->get<std::vector<std::string>>("sentencepiece-models");
-    ABORT_IF(spModels.size() > vocabs_.size(),
-             "Too many SentencePiece models ({}) compared to vocabularies ({})",
-             spModels.size(),
-             vocabs_.size());
-
-    std::vector<float> alphas;
-    if(options_->has("sentencepiece-alphas"))
-      alphas = options_->get<std::vector<float>>("sentencepiece-alphas");
-
-    for(size_t i = 0; i < spModels.size(); ++i) {
-      float alpha = i < alphas.size() ? alphas[i] : 0.f;
-      vocabs_[i]->resetProcessor(New<SentencePiece>(spModels[i], alpha));
-    }
-  }
-
-#endif
-
   for(auto path : paths_) {
     if(path == "stdin")
       files_.emplace_back(new io::InputFileStream(std::cin));

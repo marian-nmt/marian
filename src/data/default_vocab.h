@@ -20,8 +20,6 @@ namespace marian {
 
 class DefaultVocab : public BaseVocab {
 public:
-  DefaultVocab();
-
   virtual int loadOrCreate(const std::string& vocabPath,
                            const std::string& textPath,
                            int max = 0) override;
@@ -56,10 +54,6 @@ public:
 
   virtual void createFake();
 
-  virtual void resetProcessor(Ptr<Processor> processor) override {
-    processor_ = processor;
-  };
-
 private:
   Word insertWord(Word id, const std::string& str);
 
@@ -74,11 +68,7 @@ private:
   Word unkId_ = (Word)-1;
 
   class VocabFreqOrderer;
-
-  Ptr<Processor> processor_;
 };
-
-DefaultVocab::DefaultVocab() : processor_(new Processor()) {}
 
 Word DefaultVocab::operator[](const std::string& word) const {
   auto it = str2id_.find(word);
@@ -111,17 +101,16 @@ std::vector<std::string> DefaultVocab::operator()(const Words& sentence,
   return decoded;
 }
 
-Words DefaultVocab::encode(const std::string& line, bool addEOS, bool inference) const {
+Words DefaultVocab::encode(const std::string& line, bool addEOS, bool /*inference*/) const {
   std::vector<std::string> lineTokens;
-  processor_->encode(line, lineTokens, inference);
+  utils::split(line, lineTokens, " ");
   return (*this)(lineTokens, addEOS);
 }
 
 std::string DefaultVocab::decode(const Words& sentence, bool ignoreEOS) const {
   std::string line;
   auto tokens = (*this)(sentence, ignoreEOS);
-  processor_->decode(tokens, line);
-  return line;
+  return utils::join(tokens, " ");
 }
 
 const std::string& DefaultVocab::operator[](Word id) const {
@@ -322,7 +311,7 @@ void DefaultVocab::create(io::InputFileStream& trainStrm,
 
     // we do not want any unexpected behavior during creation
     // e.g. sampling, hence use inference mode
-    processor_->encode(line, toks, /*inference=*/true);
+    utils::split(line, toks, " ");
 
     for(const std::string& tok : toks) {
       if(SPEC2SYM.count(tok)) {

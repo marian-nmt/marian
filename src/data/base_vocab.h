@@ -3,12 +3,18 @@
 #include "common/definitions.h"
 #include "common/file_stream.h"
 #include "data/types.h"
-#include "data/processor.h"
 
 namespace marian {
 
 class BaseVocab {
+protected:
+  // size_t batchIndex_;
+  // Ptr<Options> options_;
+
 public:
+  // BaseVocab(size_t batchIndex, Ptr<Options> options)
+  //  : batchIndex_(batchIndex), options_(options) {}
+
   virtual int loadOrCreate(const std::string& /*vocabPath*/,
                            const std::string& /*textPath*/,
                            int /*max*/ = 0) = 0;
@@ -43,8 +49,6 @@ public:
   virtual Word getUnkId() const = 0;
 
   virtual void createFake() = 0;
-
-  virtual void resetProcessor(Ptr<Processor> /*processor*/) = 0;
 };
 
 }

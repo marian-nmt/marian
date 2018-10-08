@@ -21,6 +21,7 @@ public:
 
   virtual int load(const std::string& vocabPath, int max = 0) override;
   virtual void create(const std::string& vocabPath, const std::string& trainPath) override;
+
   virtual void create(io::InputFileStream& trainStrm,
                       io::OutputFileStream& vocabStrm,
                       size_t maxSize = 0) override;
@@ -71,13 +72,6 @@ public:
 
   // create fake vocabulary for collecting batch statistics
   virtual void createFake() override;
-
-  // change underlying preprocessor: deprecated and to be removed.
-  // will be replaced with specific vocabulary implementation with
-  // specific built-in processor
-  virtual void resetProcessor(Ptr<Processor> processor) override {
-    vImpl_->resetProcessor(processor);
-  };
 };
 
 }  // namespace marian
