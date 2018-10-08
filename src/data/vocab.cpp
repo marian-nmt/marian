@@ -7,6 +7,7 @@
 
 namespace marian {
 
+// make model peek on type
 Ptr<BaseVocab> vocabFactory(const std::string& vocabPath) {
   bool isSentencePiece = regex::regex_search(vocabPath, regex::regex("\\.(spm)$"));
   if(isSentencePiece) {
@@ -14,7 +15,8 @@ Ptr<BaseVocab> vocabFactory(const std::string& vocabPath) {
     return New<SentencePieceVocab>();
 #else
     ABORT("*.spm suffix in path {} reserved for SentencePiece models, "
-          "but support for SentencePiece is not compile into Marian.", 
+          "but support for SentencePiece is not compiled into Marian."
+          "Try to recompile after `cmake .. -DUSE_SENTENCEPIECE=on [...]`",
           vocabPath);
 #endif
   }
