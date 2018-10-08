@@ -3,6 +3,7 @@
 #include "common/config.h"
 #include "training/training_state.h"
 #include "training/validator.h"
+#include "training/communicator.h"
 
 namespace marian {
 
@@ -14,9 +15,6 @@ private:
   bool first_{true};
 
   Ptr<TrainingState> state_;
-
-  bool isSecondaryRank_{false}; // set this to true in multi-MPI-process settings; only main rank validates, saves files, and heart-beats
-  void setSecondaryRank() { isSecondaryRank_ = true; }
 
   timer::Timer timer_, heartBeatTimer_;
 
@@ -164,7 +162,7 @@ public:
     update(cost, std::vector<Ptr<data::Batch>>({batch}));
   }
 
-  void update(float cost, const std::vector<Ptr<data::Batch>>& batches) {
+  void update(float cost, const std::vector<Ptr<data::Batch>>& batches, Ptr<IMPIWrapper> mpi = nullptr) {
     state_->validated = false;
 
     size_t batchSize = 0;    // number of sentences in batch
@@ -176,6 +174,11 @@ public:
         batchLabels += batch->words(-1);
       }
     }
+
+    // extrapolate cost across MPI processes, so that we have numbers in the right range
+    // When doing the actual log, we then aggregate across MPI processes to get the accurate number.
+    if (mpi)
+      cost *= mpi->numMPIProcesses(); // @BUGBUG: we should not do that unless ce-sum; and instead fix GraphGroupSync
 
     // reconstruct sum cost, for displaying epoch-level averages instead of
     // minibatch-level
@@ -210,7 +213,16 @@ public:
     if(state_->batches % options_->get<size_t>("disp-freq") == 0
         || state_->batches < 10   // for debugging for now   --@TODO: make this a parameter? --disp-first
         ) {
-      if(dispLabelCounts) {
+      // if MPI then aggregate precise cost across workers
+      if (mpi) {
+        //LOG(info, "all-reducing cost from {}", state_->costSum);
+        state_->costSum /= mpi->numMPIProcesses(); // undo the extra scaling
+        mpi->allReduce(&state_->costSum, &state_->costSum, 1, MPI_FLOAT, MPI_SUM);
+        //LOG(info, "all-reduced cost to {}", state_->costSum);
+      }
+      /*if (mpi && mpi->myMPIRank() != 0)   // @TODO: enable this once we are sure this works correctly
+        ; // skip the report on alternate worker processes
+      else*/ if(dispLabelCounts) {
         if(options_->get<bool>(
                "lr-report")) {  // if true then show the learning rate
           LOG(info,
@@ -273,7 +285,7 @@ public:
     // progress heartbeat for MS-internal Philly compute cluster
     // This environment variable exists when running on the cluster.
     using namespace std::chrono;
-    if(!isSecondaryRank_ && getenv("PHILLY_JOB_ID") &&
+    if((!mpi || mpi->myMPIRank() == 0) && getenv("PHILLY_JOB_ID") &&
         duration_cast<minutes>(nanoseconds(heartBeatTimer_.elapsed().user)).count() >= 10) {
       printf("PROGRESS: %.2f%%\nEVALERR: %.7f\n", (double)state_->epochs, state_->costSum / state_->costCount), fflush(stdout);
 #if 0
