@@ -178,35 +178,29 @@ public:
     // extrapolate cost across MPI processes, so that we have numbers in the right range
     // When doing the actual log, we then aggregate across MPI processes to get the accurate number.
     if (mpi)
-      cost *= mpi->numMPIProcesses(); // @BUGBUG: we should not do that unless ce-sum; and instead fix GraphGroupSync
+      cost *= mpi->numMPIProcesses(); // @BUGBUG: this is presently correct for ce-sum, but possibly not the av-based losses
 
-    // reconstruct sum cost, for displaying epoch-level averages instead of
-    // minibatch-level
+    // reconstruct sum cost, for displaying epoch-level averages instead of minibatch-level
     auto costType = options_->get<std::string>("cost-type");
     auto dispLabelCounts = options_->get<bool>(
-        "disp-label-counts");  // if true then show as "cost per label * number
-                               // of labels"
+        "disp-label-counts");  // if true then show as "cost per label * number of labels"
     if(dispLabelCounts) {
       auto count =  // what was cost normalized with originally?
-          /*if*/ (costType == "ce-sum")
-              ? 1
-              /*else if*/
-              : ((costType == "ce-mean-words")
-                     ? batchLabels
-                     /*else*/
-                     :  // all others: treat like ce-mean (not correct for some)
-                     batchSize);
-      state_->costSum += cost * count;  // aggregate sum cost since last display
-      state_->costCount
-          += batchLabels;  // cost gets normalized w.r.t. this in display
+          /*if*/ (costType == "ce-sum") ?
+            1
+          /*else if*/ : ((costType == "ce-mean-words") ?
+            batchLabels
+          /*else*/ :  // all others: treat like ce-mean (not correct for some)
+            batchSize);
+      state_->costSum   += cost * count; // aggregate sum cost since last display
+      state_->costCount += batchLabels;  // cost gets normalized w.r.t. this in display
     } else {               // (back compat)
-      state_->costSum += cost * batchSize;
+      state_->costSum   += cost * batchSize;
       state_->costCount += batchSize;
     }
-    state_->wordsDisp += batchLabels;    // target words processed since last
-                                         // display, for speed display
+    state_->wordsDisp    += batchLabels; // target words processed since last display, for speed display
     state_->samplesEpoch += batchSize;   // sentences processed in this epoch
-    state_->labelsTotal += batchLabels;  // total labels processed
+    state_->labelsTotal  += batchLabels; // total labels processed
 
     state_->newBatch();
 
