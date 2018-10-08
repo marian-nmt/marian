@@ -622,22 +622,16 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   cli.parse(argc, argv);
 
   // get paths to extra config files
-  auto configPaths = loadConfigPaths();
+  auto configPaths = findConfigPaths();
   if(!configPaths.empty()) {
-    // load options from all config files into a single YAML object
     auto config = loadConfigFiles(configPaths);
-    // combine loaded options with the main YAML config
+    // combine loaded options with the main config object
     cli.overwriteDefault(config);
   }
 
   if(get<bool>("interpolate-env-vars")) {
     cli::processPaths(config_, cli::InterpolateEnvVars, PATHS);
   }
-
-  //if(get<bool>("relative-paths") && !get<bool>("dump-config")) {
-    //auto pwd = filesystem::currentPath();
-    //cli::makeAbsolutePaths(config_, {pwd}, PATHS);
-  //}
 
   if(doValidate) {
     try {
@@ -664,40 +658,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   expandAliases(cli);
 }
 
-YAML::Node ConfigParser::loadConfigFiles(
-    const std::vector<std::string>& paths) {
-  YAML::Node configAll;
-
-  for(auto& path : paths) {
-    // load single config file
-    YAML::Node config = YAML::Load(io::InputFileStream(path));
-
-    // apply relative paths if requested
-    if(config["relative-paths"] && config["relative-paths"].as<bool>()) {
-      // interpolate environment variables if requested in this config file or
-      // via command-line options
-      bool interpolateEnvVars = (config["interpolate-env-vars"]
-                                 && config["interpolate-env-vars"].as<bool>())
-                                || get<bool>("interpolate-env-vars");
-      if(interpolateEnvVars)
-        cli::processPaths(config, cli::InterpolateEnvVars, PATHS);
-
-      // replace relative path w.r.t. the config file
-      cli::makeAbsolutePaths(config, path, PATHS);
-      // remove 'relative-paths' and do not spread it into other config files
-      config.remove("relative-paths");
-    }
-
-    // merge with previous config files, later file overrides earlier
-    for(const auto& it : config) {
-      configAll[it.first.as<std::string>()] = YAML::Clone(it.second);
-    }
-  }
-
-  return configAll;
-}
-
-std::vector<std::string> ConfigParser::loadConfigPaths() {
+std::vector<std::string> ConfigParser::findConfigPaths() {
   std::vector<std::string> paths;
 
   bool interpolateEnvVars = get<bool>("interpolate-env-vars");
@@ -721,6 +682,39 @@ std::vector<std::string> ConfigParser::loadConfigPaths() {
   }
 
   return paths;
+}
+
+YAML::Node ConfigParser::loadConfigFiles(
+    const std::vector<std::string>& paths) {
+  YAML::Node configAll;
+
+  for(auto& path : paths) {
+    // load single config file
+    YAML::Node config = YAML::Load(io::InputFileStream(path));
+
+    // expand relative paths if requested
+    if(config["relative-paths"] && config["relative-paths"].as<bool>()) {
+      // interpolate environment variables if requested in this config file or
+      // via command-line options
+      bool interpolateEnvVars = (config["interpolate-env-vars"]
+                                 && config["interpolate-env-vars"].as<bool>())
+                                || get<bool>("interpolate-env-vars");
+      if(interpolateEnvVars)
+        cli::processPaths(config, cli::InterpolateEnvVars, PATHS);
+
+      // replace relative path w.r.t. the config file
+      cli::makeAbsolutePaths(config, path, PATHS);
+      // remove 'relative-paths' and do not spread it into other config files
+      config.remove("relative-paths");
+    }
+
+    // merge with previous config files, later file overrides earlier
+    for(const auto& it : config) {
+      configAll[it.first.as<std::string>()] = YAML::Clone(it.second);
+    }
+  }
+
+  return configAll;
 }
 
 YAML::Node ConfigParser::getConfig() const {

@@ -81,11 +81,12 @@ private:
 
   void expandAliases(cli::CLIWrapper&);
 
-  // Create a new YAML config object from all provided YAML files
+  // Extract paths to all config files found in the config object.
+  // Look at --config option and model.npz.yml files.
+  std::vector<std::string> findConfigPaths();
+  // Load options from config files.
+  // Handle environment variables and relative paths.
   YAML::Node loadConfigFiles(const std::vector<std::string>&);
-
-  // Load paths to all YAML files found in the config object
-  std::vector<std::string> loadConfigPaths();
 };
 
 }  // namespace marian
