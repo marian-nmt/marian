@@ -145,10 +145,16 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
       //    costTmp->grad()->set(0.0f);
 
       if(subBatch) {
+        timer::Timer timer;
         auto costNode = builders_[localDeviceIndex]->build(graph, subBatch);
+        timer.format(2, "after build: %ws");
         graph->forward();
-        localDeviceCosts[localDeviceIndex] += costNode->scalar();
+        timer.format(2, "after forward (no sync): %ws");
+        //localDeviceCosts[localDeviceIndex] += costNode->scalar();
         graph->backward(/*zero=*/t == 0); // only reset gradients to 0 if t = 0
+        timer.format(2, "after backward (no sync): %ws");
+        localDeviceCosts[localDeviceIndex] += costNode->scalar(); // moved here for time measurements; @TODO: move this back
+        timer.format(2, "after scalar() (that's a sync): %ws");
         //// record cost in a gradient
         //using namespace functional;
         //Element(_1 += _2, costTmp->grad(), costNode->val()); // stick it into a fake gradient that gets aggregated
@@ -191,9 +197,13 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
     //costTmp->val()->copyFrom(costTmp->grad());
   };
 
+  timer::Timer timer;
   comm_->scatterReduce(); // reduce gradients across all devices (globally) into shards
+  timer.format(2, "after scatterReduce (has sync): %ws");
   comm_->foreach(update); // per-shard model-update
+  timer.format(2, "after model update (no sync): %ws");
   comm_->allGather();     // distribute param value shards back
+  timer.format(2, "after allGather (has sync): %ws");
 
   // cost across all local devices
   // @TODO: We should report cost aggregated over all MPI processes.
