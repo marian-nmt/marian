@@ -23,19 +23,30 @@
 
 namespace marian {
 
-// TODO: move to CLIWrapper and update
-const std::set<std::string> PATHS = {"model",
-                                     "models",
-                                     "train-sets",
-                                     "vocabs",
-                                     "embedding-vectors",
-                                     "valid-sets",
-                                     "valid-script-path",
-                                     "valid-log",
-                                     "valid-translation-output",
-                                     "input",
-                                     "output",
-                                     "log"};
+// TODO: move to CLIWrapper
+// clang-format off
+const std::set<std::string> PATHS = {
+  "model",
+  "models",
+  "train-sets",
+  "vocabs",
+  "embedding-vectors",
+  "valid-sets",
+  "valid-script-path",
+  "valid-log",
+  "valid-translation-output",
+  "input",            // except: stdin
+  "output",           // except: stdout
+  "pretrained-model",
+  "data-weighting",
+  "log"
+  // TODO: Handle the special value in helper functions
+  //"sqlite",         // except: temporary
+  // TODO: This is a vector with a path and some numbers, handle this in helper
+  // functions or separate shortlist path to a separate command-line option
+  //"shortlist",
+};
+// clang-format on
 
 void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   int defaultWorkspace = (mode_ == cli::mode::translation) ? 512 : 2048;
@@ -335,7 +346,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
 
   // options for additional training data
   cli.add_nondefault<std::string>("--guided-alignment",
-     "Use guided alignment to guide attention");
+     "Path to a file with word alignments. Use guided alignment to guide attention");
   cli.add<std::string>("--guided-alignment-cost",
      "Cost type for guided alignment: ce (cross-entropy), mse (mean square error), mult (multiplication)",
      "ce");
@@ -343,7 +354,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "Weight for guided alignment cost",
      1);
   cli.add_nondefault<std::string>("--data-weighting",
-     "File with sentence or word weights");
+     "Path to a file with sentence or word weights");
   cli.add<std::string>("--data-weighting-type",
      "Processing level for data weighting: sentence, word",
      "sentence");
@@ -352,7 +363,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add_nondefault<std::vector<std::string>>("--embedding-vectors",
      "Paths to files with custom source and target embedding vectors");
   cli.add<bool>("--embedding-normalization",
-     "Enable normalization of custom embedding vectors");
+     "Normalize values from custom embedding vectors to [-1, 1]");
   cli.add<bool>("--embedding-fix-src",
      "Fix source embeddings. Affects all encoders");
   cli.add<bool>("--embedding-fix-trg",
