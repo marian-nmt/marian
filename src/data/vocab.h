@@ -8,8 +8,8 @@ namespace marian {
 // vocabulary implementation (vImpl_) based on speficied path
 // and suffix.
 // Vocabulary implementations can currently be:
-// * DefaultVocabulary (YAML and TXT)
-// * SentencePiece (in preparation)
+// * DefaultVocabulary for YAML (*.yml and *.yaml) and TXT (any other non-specific ending)
+// * SentencePiece with suffix *.spm (works, but has to be created outside Marian)
 class Vocab : public BaseVocab {
 private:
   Ptr<BaseVocab> vImpl_;
@@ -29,18 +29,6 @@ public:
   // string token to token id
   virtual Word operator[](const std::string& word) const override {
     return vImpl_->operator[](word);
-  }
-
-  // tokenized text to list of token ids
-  virtual Words operator()(const std::vector<std::string>& lineTokens,
-                          bool addEOS = true) const override {
-    return vImpl_->operator()(lineTokens, addEOS);
-  }
-
-  // list of token ids to tokenized text
-  virtual std::vector<std::string> operator()(const Words& sentence,
-                                              bool ignoreEOS = true) const override {
-    return vImpl_->operator()(sentence, ignoreEOS);
   }
 
   // token id to string token

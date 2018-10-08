@@ -32,12 +32,6 @@ public:
 
   virtual Word operator[](const std::string& word) const override;
 
-  virtual Words operator()(const std::vector<std::string>& lineTokens,
-                          bool addEOS = true) const override;
-
-  virtual std::vector<std::string> operator()(const Words& sentence,
-                                              bool ignoreEOS = true) const;
-
   virtual const std::string& operator[](Word id) const override;
 
   virtual Words encode(const std::string& line,
@@ -55,9 +49,14 @@ public:
   virtual void createFake();
 
 private:
+  virtual Words operator()(const std::vector<std::string>& lineTokens,
+                          bool addEOS = true) const;
+
+  virtual std::vector<std::string> operator()(const Words& sentence,
+                                              bool ignoreEOS = true) const;
+
   Word insertWord(Word id, const std::string& str);
 
-private:
   typedef std::map<std::string, Word> Str2Id;
   Str2Id str2id_;
 

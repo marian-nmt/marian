@@ -32,12 +32,6 @@ public:
   
   virtual Word operator[](const std::string& word) const override;
 
-  virtual Words operator()(const std::vector<std::string>& lineTokens,
-                          bool addEOS = true) const override;
-
-  virtual std::vector<std::string> operator()(const Words& sentence,
-                                              bool ignoreEOS = true) const;
-
   virtual const std::string& operator[](Word id) const override;
 
   virtual Words encode(const std::string& line,
@@ -49,17 +43,17 @@ public:
 
   virtual size_t size() const;
 
-  virtual Word getEosId() const override { return spm_->eos_id(); }
-  virtual Word getUnkId() const override { return spm_->unk_id(); }
+  virtual Word getEosId() const override { return (Word)spm_->eos_id(); }
+  virtual Word getUnkId() const override { return (Word)spm_->unk_id(); }
 
   void create(const std::string& /*vocabPath*/, const std::string& /*trainPath*/) {
-    ABORT("[data] Creating of SentencePieceVocabulary not supported yet");
+    ABORT("[data] Training of SentencePieceVocabulary not supported yet");
   }
 
   void create(io::InputFileStream& /*trainStrm*/,
               io::OutputFileStream& /*vocabStrm*/,
               size_t /*maxSize*/) {
-    ABORT("[data] Creating of SentencePieceVocabulary not supported yet");
+    ABORT("[data] Training of SentencePieceVocabulary not supported yet");
   }
 
   void createFake() {
@@ -71,49 +65,31 @@ Word SentencePieceVocab::operator[](const std::string& token) const {
   return (Word)spm_->PieceToId(token);
 }
 
-Words SentencePieceVocab::operator()(const std::vector<std::string>& lineTokens,
-                                     bool addEOS) const {
-  Words words(lineTokens.size());
-  std::transform(lineTokens.begin(),
-                 lineTokens.end(),
-                 words.begin(),
-                 [&](const std::string& w) { return (*this)[w]; });
+const std::string& SentencePieceVocab::operator[](Word id) const {
+  ABORT_IF(id >= size(), "Unknown word id: ", id);
+  return spm_->IdToPiece(id);
+}
+
+Words SentencePieceVocab::encode(const std::string& line, bool addEOS, bool inference) const {
+  std::vector<int> spmIds;
+  if(inference || alpha_ == 0)
+    spm_->Encode(line, &spmIds);
+  else
+    spm_->SampleEncode(line, -1, alpha_, &spmIds);
+
+  Words words(spmIds.begin(), spmIds.end());
+  
   if(addEOS)
     words.push_back(getEosId());
   return words;
 }
 
-std::vector<std::string> SentencePieceVocab::operator()(const Words& sentence, bool ignoreEOS) const {
-  std::vector<std::string> decoded;
-  for(size_t i = 0; i < sentence.size(); ++i) {
-    if((sentence[i] != getEosId() || !ignoreEOS)) {
-      decoded.push_back((*this)[sentence[i]]);
-    }
-  }
-  return decoded;
-}
-
-Words SentencePieceVocab::encode(const std::string& line, bool addEOS, bool inference) const {
-  std::vector<std::string> lineTokens;
-  if(inference || alpha_ == 0)
-    spm_->Encode(line, &lineTokens);
-  else
-    spm_->SampleEncode(line, -1, alpha_, &lineTokens);
-  // @TODO: use numerical sentence directly instead of this call
-  return (*this)(lineTokens, addEOS);
-}
-
 std::string SentencePieceVocab::decode(const Words& sentence, bool ignoreEOS) const {
   std::string line;
-  // @TODO: use numerical sentence directly instead of this call
-  std::vector<std::string> lineTokens = (*this)(sentence, ignoreEOS);
-  spm_->Decode(lineTokens, &line);
+  // convert vector of Word to vector of int
+  std::vector<int> spmSentence(sentence.begin(), sentence.end());
+  spm_->Decode(spmSentence, &line);
   return line;
-}
-
-const std::string& SentencePieceVocab::operator[](Word id) const {
-  ABORT_IF(id >= size(), "Unknown word id: ", id);
-  return spm_->IdToPiece(id);
 }
 
 size_t SentencePieceVocab::size() const {

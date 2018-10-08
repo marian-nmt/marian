@@ -28,12 +28,6 @@ public:
 
   virtual Word operator[](const std::string& /*word*/) const = 0;
 
-  virtual Words operator()(const std::vector<std::string>& /*lineTokens*/,
-                           bool /*addEOS*/ = true) const = 0;
-
-  virtual std::vector<std::string> operator()(const Words& /*sentence*/,
-                                              bool /*ignoreEOS*/ = true) const = 0;
-
   virtual Words encode(const std::string& /*line*/,
                        bool /*addEOS*/ = true,
                        bool /*inference*/ = false) const = 0;
