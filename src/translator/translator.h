@@ -112,7 +112,7 @@ public:
         }
 
         auto search = New<Search>(
-            tOptions, scorers, trgVocab_->GetEosId(), trgVocab_->GetUnkId());
+            tOptions, scorers, trgVocab_->getEosId(), trgVocab_->getUnkId());
 
         auto histories = search->search(graph, batch);
 
@@ -212,7 +212,7 @@ public:
           }
 
           auto search = New<Search>(
-              tOptions, scorers, trgVocab_->GetEosId(), trgVocab_->GetUnkId());
+              tOptions, scorers, trgVocab_->getEosId(), trgVocab_->getUnkId());
           auto histories = search->search(graph, batch);
 
           for(auto history : histories) {

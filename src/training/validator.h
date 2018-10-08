@@ -325,8 +325,8 @@ public:
 
           auto search = New<BeamSearch>(tOptions,
                                         std::vector<Ptr<Scorer>>{scorer},
-                                        vocabs_.back()->GetEosId(),
-                                        vocabs_.back()->GetUnkId());
+                                        vocabs_.back()->getEosId(),
+                                        vocabs_.back()->getUnkId());
           auto histories = search->search(graph, batch);
 
           for(auto history : histories) {
@@ -461,8 +461,8 @@ public:
 
           auto search = New<BeamSearch>(tOptions,
                                         std::vector<Ptr<Scorer>>{scorer},
-                                        vocabs_.back()->GetEosId(),
-                                        vocabs_.back()->GetUnkId());
+                                        vocabs_.back()->getEosId(),
+                                        vocabs_.back()->getUnkId());
           auto histories = search->search(graph, batch);
 
           size_t no = 0;
@@ -470,7 +470,7 @@ public:
           for(auto history : histories) {
             auto result = history->Top();
             const auto& words = std::get<0>(result);
-            updateStats(stats, words, batch, no, vocabs_.back()->GetEosId());
+            updateStats(stats, words, batch, no, vocabs_.back()->getEosId());
             no++;
           }
         };

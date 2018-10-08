@@ -1,75 +1,83 @@
 #pragma once
 
-#include "data/processor.h"
-#include "common/definitions.h"
-#include "common/file_stream.h"
-#include "common/options.h"
-#include "data/types.h"
-
-#include <map>
-#include <string>
-#include <vector>
+#include "data/base_vocab.h"
 
 namespace marian {
 
-class Vocab {
+// Wrapper around vocabulary types. Can choose underlying
+// vocabulary implementation (vImpl_) based on speficied path
+// and suffix.
+// Vocabulary implementations can currently be:
+// * DefaultVocabulary (YAML and TXT)
+// * SentencePiece (in preparation)
+class Vocab : public BaseVocab {
+private:
+  Ptr<BaseVocab> vImpl_;
+
 public:
-  Vocab();
+  virtual int loadOrCreate(const std::string& vocabPath,
+                           const std::string& textPath,
+                           int max = 0) override;
 
-  int loadOrCreate(const std::string& vocabPath,
-                   const std::string& textPath,
-                   int max = 0);
+  virtual int load(const std::string& vocabPath, int max = 0) override;
+  virtual void create(const std::string& vocabPath, const std::string& trainPath) override;
+  virtual void create(io::InputFileStream& trainStrm,
+                      io::OutputFileStream& vocabStrm,
+                      size_t maxSize = 0) override;
 
-  int load(const std::string& vocabPath, int max = 0);
-  void create(const std::string& vocabPath, const std::string& trainPath);
-  void create(io::InputFileStream& trainStrm,
-              io::OutputFileStream& vocabStrm,
-              size_t maxSize = 0);
+  // string token to token id
+  virtual Word operator[](const std::string& word) const override {
+    return vImpl_->operator[](word);
+  }
 
-   void resetProcessor(Ptr<Processor> processor) {
-     processor_ = processor;
-   }
+  // tokenized text to list of token ids
+  virtual Words operator()(const std::vector<std::string>& lineTokens,
+                          bool addEOS = true) const override {
+    return vImpl_->operator()(lineTokens, addEOS);
+  }
 
-  size_t operator[](const std::string& word) const;
+  // list of token ids to tokenized text
+  virtual std::vector<std::string> operator()(const Words& sentence,
+                                              bool ignoreEOS = true) const override {
+    return vImpl_->operator()(sentence, ignoreEOS);
+  }
 
-  Words operator()(const std::vector<std::string>& lineTokens,
-                   bool addEOS = true) const;
+  // token id to string token
+  virtual const std::string& operator[](Word id) const override {
+    return vImpl_->operator[](id);
+  }
 
-  std::vector<std::string> operator()(const Words& sentence,
-                                      bool ignoreEOS = true) const;
+  // line of text to list of token ids, can perform tokenization
+  virtual Words encode(const std::string& line,
+                       bool addEOS = true,
+                       bool inference = false) const override {
+    return vImpl_->encode(line, addEOS, inference);
+  }
 
-  Words encode(const std::string& line, 
-               bool addEOS = true,
-               bool inference = false) const;
+  // list of token ids to single line, can perform detokenization
+  virtual std::string decode(const Words& sentence,
+                             bool ignoreEOS = true) const override {
+    return vImpl_->decode(sentence, ignoreEOS);
+  }
 
-  std::string decode(const Words& sentence,
-                     bool ignoreEos = true) const;
+  // number of vocabulary items
+  virtual size_t size() const override { return vImpl_->size(); }
 
-  const std::string& operator[](Word id) const;
+  // return EOS symbol id
+  virtual Word getEosId() const override { return vImpl_->getEosId(); }
 
-  size_t size() const;
+  // return UNK symbol id
+  virtual Word getUnkId() const override { return vImpl_->getUnkId(); }
 
-  Word GetEosId() const { return eosId_; }
-  Word GetUnkId() const { return unkId_; }
+  // create fake vocabulary for collecting batch statistics
+  virtual void createFake() override;
 
-  void createFake();  // for fakeBatch()
-
-private:
-  Word insertWord(Word id, const std::string& str);
-
-private:
-  typedef std::map<std::string, Word> Str2Id;
-  Str2Id str2id_;
-
-  typedef std::vector<std::string> Id2Str;
-  Id2Str id2str_;
-
-  Word eosId_ = (Word)-1;
-  Word unkId_ = (Word)-1;
-
-  class VocabFreqOrderer;
-
-  Ptr<Processor> processor_;
+  // change underlying preprocessor: deprecated and to be removed.
+  // will be replaced with specific vocabulary implementation with
+  // specific built-in processor
+  virtual void resetProcessor(Ptr<Processor> processor) override {
+    vImpl_->resetProcessor(processor);
+  };
 };
 
 }  // namespace marian
