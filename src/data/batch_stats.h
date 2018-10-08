@@ -17,7 +17,8 @@ public:
   BatchStats() { }
 
   size_t getBatchSize(const std::vector<size_t>& lengths) {
-    auto it = map_.lower_bound(lengths);
+    // find the first item where all item.first[i] >= lengths[i], i.e. that can fit sentence tuples of lengths[]
+    auto it = map_.lower_bound(lengths); // typ. 20 items, ~4..5 steps
     for(size_t i = 0; i < lengths.size(); ++i)
       while(it != map_.end() && it->first[i] < lengths[i])
         it++;

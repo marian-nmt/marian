@@ -192,6 +192,7 @@ void Adam::load(const std::string& name,
   }
   ABORT_IF(vMt.size() != vVt.size(), "mt and vt have different sizes??");
 
+  LOG(info, "loading Adam params"); // @TODO: delete this
   scatterFn(vMt,
     [&](size_t localDeviceIndex, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
     auto opt = std::dynamic_pointer_cast<Adam>(opts[localDeviceIndex]);
@@ -211,6 +212,7 @@ void Adam::load(const std::string& name,
     auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
     opt->vt_->set(std::vector<float>(begin, end));
   });
+  LOG(info, "done loading Adam params"); // @TODO: delete this
 }
 
 void Adam::save(const std::string& name,

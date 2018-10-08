@@ -198,12 +198,12 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
   // cost across all local devices
   // @TODO: We should report cost aggregated over all MPI processes.
   float cost = 0;
-  for(auto& c : localDeviceCosts)
+  for(auto& c : localDeviceCosts) // localDeviceCosts is already summed up over delay steps
     cost += c;
   // extrapolate cost across MPI processes
   // @TODO: This is a crude estimate. Rather, we should aggregate cost across all GPUs correctly; cf. gradient trick described above.
   // @TODO: If this is too crude, we can also resurrect the code from f68433 to loop over the local batches,
-  // and then determine a correction factor based on actual counts. They are very close though across MPI processes.
+  //        and then determine a correction factor based on actual counts. They are very close though across MPI processes.
   cost *= mpi_->numMPIProcesses();
 
   // if cost is average-based, we need to turn the sum over devices into an average as well

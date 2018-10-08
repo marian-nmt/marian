@@ -81,8 +81,13 @@ public:
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank_);
 
     // patch logging pattern to include the MPI rank, so that we can associate error messages with nodes
-    if (numMPIProcesses() > 1)
-      switchtoMultinodeLogging(std::to_string(MPIWrapper::myMPIRank()));
+    if (numMPIProcesses() > 1) {
+      std::string rankStr = std::to_string(MPIWrapper::myMPIRank());
+      std::string maxRankStr = std::to_string(MPIWrapper::numMPIProcesses() -1);
+      while (rankStr.size() < maxRankStr.size()) // pad so that logs across MPI processes line up nicely
+        rankStr.insert(rankStr.begin(), ' ');
+      switchtoMultinodeLogging(rankStr);
+    }
 
     // log hostnames in order, and test
     for (size_t r = 0; r < numMPIProcesses(); r++) {

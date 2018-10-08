@@ -35,6 +35,7 @@ TextInput::TextInput(std::vector<std::string> inputs,
 }
 
 SentenceTuple TextInput::next() {
+  // @TODO: This code mixes two patterns (while and early exit). Fix that.
   bool cont = true;
   while(cont) {
     // get index of the current sentence
