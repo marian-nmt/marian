@@ -67,7 +67,7 @@ void Corpus::reset() {
   ids_.clear();
   pos_ = 0;
   for(auto& path : paths_) {
-    if(path == "stdin")
+    if(path == "-")
       files_.emplace_back(new io::InputFileStream(std::cin));
     else
       files_.emplace_back(new io::InputFileStream(path));

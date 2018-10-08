@@ -87,7 +87,7 @@ void CorpusNBest::reset() {
   pos_ = 0;
   lastNum_ = -1;
   for(auto& path : paths_) {
-    if(path == "stdin")
+    if(path == "-")
       files_.emplace_back(new io::InputFileStream(std::cin));
     else
       files_.emplace_back(new io::InputFileStream(path));

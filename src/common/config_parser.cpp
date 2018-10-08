@@ -35,8 +35,8 @@ const std::set<std::string> PATHS = {
   "valid-script-path",
   "valid-log",
   "valid-translation-output",
-  "input",            // except: stdin
-  "output",           // except: stdout
+  "input",            // except: -
+  "output",           // except: -
   "pretrained-model",
   "data-weighting",
   "log"
@@ -441,10 +441,10 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   // clang-format off
   cli.add<std::vector<std::string>>("--input,-i",
       "Paths to input file(s), stdin by default",
-      std::vector<std::string>({"stdin"}));
+      std::vector<std::string>({"-"}));
   cli.add<std::string>("--output,-o",
       "Paths to output file(s), stdout by default",
-      "stdout");
+      "-");
   cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --input");
 
