@@ -5,26 +5,16 @@ namespace marian {
 namespace cli {
 
 void makeAbsolutePaths(YAML::Node& config,
-                       const std::vector<std::string>& configPaths,
+                       const std::string& configPath,
                        const std::set<std::string>& PATHS) {
-  ABORT_IF(configPaths.empty(),
-           "--relative-paths option requires at least one config file provided "
-           "with --config");
-  // TODO: expand paths relative to EACH config file
-  // expand relative paths w.r.t to the first config file
-  auto configDir = filesystem::Path{configPaths.front()}.parentPath();
-
-  for(const auto& configPath : configPaths)
-    ABORT_IF(filesystem::Path{configPath}.parentPath() != configDir,
-             "--relative-paths option requires all config files to be in the "
-             "same directory");
+  auto configDir = filesystem::Path{configPath}.parentPath();
 
   auto transformFunc = [&](const std::string& nodePath) -> std::string {
     // Catch stdin/stdout and do not process
     if(nodePath == "stdin" || nodePath == "stdout")
       return nodePath;
 
-    // replace relative path w.r.t. configDir
+    // replace relative path w.r.t. config directory
     try {
       return canonical(filesystem::Path{nodePath}, configDir).string();
     } catch(filesystem::FilesystemError& e) {
