@@ -629,7 +629,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     // expand relative paths
     if(config["relative-paths"] && config["relative-paths"].as<bool>()) {
       // interpolate environmental variables before expanding relative paths
-      if(config["interpolate-env-vars"] && config["relative-paths"].as<bool>())
+      if(config["interpolate-env-vars"]
+         && config["interpolate-env-vars"].as<bool>())
         cli::processPaths(config, cli::InterpolateEnvVars, PATHS);
       cli::makeAbsolutePaths(config, configPaths, PATHS);
       // remove "relative-paths"
