@@ -141,6 +141,7 @@
     <ClCompile Include="..\src\3rd_party\svd\svd.cpp" />
     <ClCompile Include="..\src\layers\loss.cpp" />
     <ClCompile Include="..\src\layers\weight.cpp" />
+    <ClCompile Include="..\src\microsoft\quicksand.cpp" />
     <ClCompile Include="..\src\tensors\backend.cpp" />
     <ClCompile Include="..\src\tensors\cpu\device.cpp" />
     <ClCompile Include="..\src\tensors\cpu\dropout.cpp" />
@@ -404,6 +405,7 @@
     <ClInclude Include="..\src\layers\generic.h" />
     <ClInclude Include="..\src\layers\guided_alignment.h" />
     <ClInclude Include="..\src\layers\word2vec_reader.h" />
+    <ClInclude Include="..\src\microsoft\quicksand.h" />
     <ClInclude Include="..\src\models\amun.h" />
     <ClInclude Include="..\src\models\char_s2s.h" />
     <ClInclude Include="..\src\models\costs.h" />

@@ -232,7 +232,7 @@ void CorpusBase::addAlignmentsToBatch(Ptr<CorpusBatch> batch,
       aligns[idx] = 1.f;
     }
   }
-  batch->setGuidedAlignment(aligns);
+  batch->setGuidedAlignment(std::move(aligns));
 }
 
 void CorpusBase::addWeightsToBatch(Ptr<CorpusBatch> batch,

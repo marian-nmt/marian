@@ -253,6 +253,9 @@
     <ClCompile Include="..\src\common\config_validator.cpp">
       <Filter>common</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\microsoft\quicksand.cpp">
+      <Filter>microsoft</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -1067,6 +1070,9 @@
     <ClInclude Include="..\src\common\types.h">
       <Filter>common</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\microsoft\quicksand.h">
+      <Filter>microsoft</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
@@ -1182,6 +1188,9 @@
     </Filter>
     <Filter Include="command">
       <UniqueIdentifier>{c6b3323a-0df3-4129-9a66-e93cea668604}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="microsoft">
+      <UniqueIdentifier>{bf291eae-3de9-4294-b5aa-07ab631951e1}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

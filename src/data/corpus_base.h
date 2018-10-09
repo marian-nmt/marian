@@ -328,7 +328,7 @@ public:
     if(options->get("guided-alignment", std::string("none")) != "none") {
       std::vector<float> alignment(batchSize * lengths.front() * lengths.back(),
                                    0.f);
-      batch->setGuidedAlignment(alignment);
+      batch->setGuidedAlignment(std::move(alignment));
     }
 
     if(options->has("data-weighting")) {
@@ -403,7 +403,7 @@ public:
             }
           }
         }
-        cb->setGuidedAlignment(aligns);
+        cb->setGuidedAlignment(std::move(aligns));
         pos += dimBatch;
       }
     }
@@ -438,8 +438,8 @@ public:
   }
 
   std::vector<float>& getGuidedAlignment() { return guidedAlignment_; }
-  void setGuidedAlignment(const std::vector<float>& aln) override {
-    guidedAlignment_ = aln;
+  void setGuidedAlignment(std::vector<float>&& aln) override {
+      guidedAlignment_ = std::move(aln);
   }
 
   std::vector<float>& getDataWeights() { return dataWeights_; }
