@@ -109,6 +109,7 @@ private:
       logCallStack(0);
       throw;
     }
+    size_t numSentencesRead = maxiBatch->size();
 
     // construct the actual batches and place them in the queue
     samples batchVector;
@@ -140,7 +141,7 @@ private:
               lengths[i] = batchVector.back()[i].size(); // record max lengths so far
 
           maxBatchSize = stats_->findBatchSize(lengths, cachedStatsIter);
-#if 1     // sanity check: would we find the same entry if searching from the start?
+#if 0     // sanity check: would we find the same entry if searching from the start?
           auto it = stats_->lower_bound(lengths);
           auto maxBatchSize1 = stats_->findBatchSize(lengths, it);
           ABORT_IF(maxBatchSize != maxBatchSize1, "findBatchSize iter caching logic is borked");
@@ -191,7 +192,8 @@ private:
     LOG(info, "begin pushing batches (this is after lock), #tempBatches = {}", tempBatches.size());
     for(const auto& batch : tempBatches) // @TODO: insert(bufferedBatches_.end(), tempBatches.begin(), tempBatches.end());
       bufferedBatches_.push_back(batch);
-    LOG(info, "fillBatches completed, bufferedBatches.size = {}", bufferedBatches_.size());
+    LOG(info, "[data] read a total of {} sentences, forming {} batches", numSentencesRead, bufferedBatches_.size());
+    // @TODO: the second number is not correct if bufferedBatches was not empty upon calling this
   }
 
 public:
