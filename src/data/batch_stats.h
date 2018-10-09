@@ -22,13 +22,13 @@ public:
 
   size_t findBatchSize(const std::vector<size_t>& lengths, const_iterator& it) const {
     // find the first item where all item.first[i] >= lengths[i], i.e. that can fit sentence tuples of lengths[]
-#if 1 // sanity check
-    for(size_t i = 0; i < lengths.size(); ++i)
-      ABORT_IF(it != map_.end() && it->first[i] > lengths[i], "lower_bound not called before findBatchSize()??");
-#endif
+    // This is expected to be called multiple times with increasing sentence lengths.
+    // To get an initial value for 'it', call lower_bound() or begin().
+
     for(size_t i = 0; i < lengths.size(); ++i)
       while(it != map_.end() && it->first[i] < lengths[i])
         it++;
+    // @BUGBUG: Is it guaranteed that if we bump it, that a length value in the key never decreases?
 
     ABORT_IF(it == map_.end(), "Missing batch statistics");
     return it->second;

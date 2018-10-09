@@ -48,17 +48,6 @@ private:
       return localDeviceIndex;
   }
 
-  //size_t ncclRankToMPIRank(size_t ncclRank) const {
-  //  if (mpi_)
-  //    return ncclRank / devices_.size();
-  //  else
-  //    return ncclRank;
-  //}
-
-  //size_t ncclRankToLocalDeviceIndex(size_t ncclRank) const {
-  //  return ncclRank % devices_.size();
-  //}
-
   size_t numNcclRanks() const { // total number of devices across all MPI processes
     if (mpi_)
       return mpi_->numMPIProcesses() * devices_.size();
@@ -106,6 +95,23 @@ private:
     if (mpi_)
       mpi_->barrier();
   }
+
+  // helper class to temporarily block a UNIX signal
+  class BlockSignal {
+    typedef std::function<void(int, const sigset_t*, sigset_t*)> SigMaskFn;
+    SigMaskFn sigMaskFn_; // function to set the mask, thread or proc
+    sigset_t oldSigSet_;  // old set to restore the signal
+  public:
+    BlockSignal(int signal, const SigMaskFn& sigMaskFn) : sigMaskFn_(sigMaskFn) {
+      sigset_t newSigSet;
+      sigemptyset(&newSigSet);
+      sigaddset(&newSigSet, signal); // block signal by setting it in the blocked-signal mask
+      sigMaskFn_(SIG_BLOCK, &newSigSet, &oldSigSet_);
+    }
+    ~BlockSignal() {
+      sigMaskFn_(SIG_BLOCK, &oldSigSet_, nullptr); // restore old signal mask
+    }
+  };
 
 public:
   // a NCCLCommunicator is bound to a set of graphs, one per GPU device
@@ -158,28 +164,10 @@ public:
     // This is caused by SIGPROF signals being raised, causing EINTR, which NCCL does not handle.
     // Reported as Issue #137 on the NCCL Github.
     // To work around, we disable the SIGPROF signal during NCCL initialization.
-    // @TODO: It is not yet known which of the two calls (thread or process) make it work.
-    // @TODO: Refactor this.
 #define SIG_BAD 27 // SIGPROF
-    sigset_t newSigSet, oldSigSet;
+    BlockSignal blockThread(SIG_BAD, pthread_sigmask); // Note: I don't know yet which of these two makes the difference.
+    BlockSignal blockProc(SIG_BAD, sigprocmask);       // So for now just block both.
 
-    pthread_sigmask(SIG_BLOCK, NULL, &newSigSet);
-    LOG(info, "[{}] pthread_sigmask original mask={}", mpiIdStr(), newSigSet.__val[0]);
-
-    sigemptyset(&newSigSet);
-    sigaddset(&newSigSet, SIG_BAD);
-    LOG(info, "[{}] pthread_sigmask mask={}", mpiIdStr(), newSigSet.__val[0]);
-    auto rc2 = pthread_sigmask(SIG_BLOCK, &newSigSet, &oldSigSet);
-    LOG(info, "[{}] pthread_sigmask rc={}", mpiIdStr(), rc2);
-    auto rc2b = sigprocmask(SIG_BLOCK, &newSigSet, &oldSigSet);
-    LOG(info, "[{}] pthread_sigmask rc={}", mpiIdStr(), rc2b);
-
-    pthread_sigmask(SIG_BLOCK, NULL, &newSigSet);
-    LOG(info, "[{}] pthread_sigmask resulting mask={}", mpiIdStr(), newSigSet.__val[0]);
-    sigprocmask(SIG_BLOCK, NULL, &newSigSet);
-    LOG(info, "[{}:{}] sigprocmask resulting mask={}", mpiIdStr(), (int)gettid(), newSigSet.__val[0]);
-
-    LOG(info, "[{}] groupStart", mpiIdStr());
     groupStart();
     for (int localDeviceIndex = 0; localDeviceIndex < devices_.size(); localDeviceIndex++) {
       CUDA_CHECK(cudaSetDevice(devices_[localDeviceIndex]));
@@ -187,46 +175,8 @@ public:
       NCCLCHECK(ncclCommInitRank(&comms_[localDeviceIndex], numNcclRanks(), uniqueId, myNcclRank(localDeviceIndex)));
       //LOG(info, "[{}] done ncclCommInitRank {} out of {}, GPU[{}]", mpiIdStr(), myNcclRank(localDeviceIndex), numNcclRanks(), localDeviceIndex);
     }
-#if 1
     groupEnd();
-#else
-    LOG(info, "[{}] groupEnd", mpiIdStr());
-    auto rc = ncclGroupEnd(); // things happen here
 
-    LOG(info, "[{}] groupEnd rc = {}", mpiIdStr(), rc);
-    ::sleep(/*seconds=*/mpi_ ? mpi_->numMPIProcesses() : 0); // give all a chance to detect their error. This makes a difference.
-    int err = (rc != ncclSuccess);
-    int totalErr = err;
-    // determine the error situation across all workers
-    if (mpi_) {
-      LOG(info, "[{}] barrier before allReduce err", mpiIdStr());
-      mpiBarrier();
-      LOG(info, "[{}] allReduce err {}", mpiIdStr(), err);
-      mpi_->allReduce(&err, &totalErr, 1, MPI_INT, MPI_SUM);
-      LOG(info, "[{}] groupEnd failure {} total failures {}", mpiIdStr(), err, totalErr);
-    }
-    ABORT_IF(totalErr != 0, "NCCL initialization failed");
-#endif
-
-    auto rc3 = pthread_sigmask(SIG_SETMASK, &oldSigSet, NULL);
-    LOG(info, "[{}] pthread_sigmask reset rc={}", mpiIdStr(), rc3);
-
-      //}
-      //// one device: no group API
-      //else {
-      //  CUDA_CHECK(cudaSetDevice(devices_[0]));
-      //  LOG(info, "[mpi rank {} of {}] ncclCommInitRank", mpi_->myMPIRank(), mpi_->numMPIProcesses());
-      //  NCCLCHECK(ncclCommInitRank(&comms_[0], mpi_->numMPIProcesses(), uniqueId, mpi_->myMPIRank()));
-      //  LOG(info, "[mpi rank {}] done constructing NCCLCommunicator", mpi_->myMPIRank());
-      //}
-    //}
-    //// without MPI, we have a handy convenience version to initialize
-    //// @TODO: We should be able to just use the code above as well.
-    //else {
-    //  LOG(info, "ncclCommInitAll");
-    //  NCCLCHECK(ncclCommInitAll(comms_.data(), devices_.size(), devices_.data()));
-    //  LOG(info, "done ncclCommInitAll");
-    //}
     mpiBarrier(); // (synchronize the log messages)
     LOG(info, "[{}] NCCLCommunicator constructed successfully", mpiIdStr());
     mpiBarrier(); // (synchronize the log messages)

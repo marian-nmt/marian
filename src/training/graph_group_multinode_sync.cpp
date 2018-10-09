@@ -108,7 +108,7 @@ void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) {
  * send and receive. Make sure you only call from device 0.
  */
 void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
-  auto network_size = accGradientsSync_cpu.size();
+  auto network_size = accGradientsSync_cpu.size(); // @TODO: get this from accGradientSync (not CPU), it is more direct
 
   // Copy the data to the CPU
   accGradientsSync->get(accGradientsSync_cpu);
@@ -152,6 +152,9 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
   accGradientsSync->set(0);
   std::fill(accGradientsSync_cpu.begin(), accGradientsSync_cpu.end(), 0.0f);
   std::fill(receiveBuffer_cpu.begin(), receiveBuffer_cpu.end(), 0.0f);
+  // @TODO:
+  //  - these fill() calls are not necessary
+  //  - can accGradientsSync_cpu and receiveBuffer_cpu be the same buffer? Then change allReduce() to single-argument function.
 }
 
 /**

@@ -140,7 +140,7 @@ private:
               lengths[i] = batchVector.back()[i].size(); // record max lengths so far
 
           maxBatchSize = stats_->findBatchSize(lengths, cachedStatsIter);
-#if 1     // sanity check
+#if 1     // sanity check: would we find the same entry if searching from the start?
           auto it = stats_->lower_bound(lengths);
           auto maxBatchSize1 = stats_->findBatchSize(lengths, it);
           ABORT_IF(maxBatchSize != maxBatchSize1, "findBatchSize iter caching logic is borked");

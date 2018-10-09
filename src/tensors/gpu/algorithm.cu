@@ -45,8 +45,10 @@ __global__ void gFill(T* d_in, int size, T val) {
 
 template <typename T>
 void fill(Ptr<Backend> backend, T* begin, T* end, T value) {
-  CUDA_CHECK(cudaSetDevice(backend->getDeviceId().no));
   int size = end - begin;
+  if (size == 0)
+    return;
+  CUDA_CHECK(cudaSetDevice(backend->getDeviceId().no));
   int threadsPerBlock = std::min(512, size);
   int blocks = (size / threadsPerBlock) + (size % threadsPerBlock != 0); // @TODO: (size+threadsPerBlock-1)/threadsPerBlock or CeilDiv(a,b)
   gFill<<<blocks, threadsPerBlock>>>(begin, size, value);
