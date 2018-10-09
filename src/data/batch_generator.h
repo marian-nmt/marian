@@ -211,7 +211,11 @@ public:
 
     if(loadReady_
       && (int)bufferedBatches_.size()
+#if 1
+              <= 5  // @TODO: only preroll one, to see if we have a threading issue
+#else
               <= 100/*std::max(options_->get<int>("maxi-batch") / 5, 1)*/  // @TODO: rather, pull Marcin's proper fix
+#endif
         ) {
       {
         std::unique_lock<std::mutex> lock(loadMutex_);
