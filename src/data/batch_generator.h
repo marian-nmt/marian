@@ -91,21 +91,21 @@ private:
     }
     size_t sets = 0;
     try {
-    LOG(info, "begin read lines, current size {}", maxiBatch->size());
-    while(current_ != data_->end() && maxiBatch->size() < maxSize) { // loop over data
-      maxiBatch->push(*current_);
-      sets = current_->size();
-      // do not consume more than required for the maxi batch as this causes
-      // that line-by-line translation is delayed by one sentence
-      bool last = maxiBatch->size() == maxSize;
-      if(!last)
-        ++current_; // this actually reads the next line and pre-processes it
-    }
-    LOG(info, "end read lines, current size {}", maxiBatch->size());
-    // @TODO: Consider using MPI at this point to parallelize parsing.
+      LOG(info, "begin read lines");
+      while(current_ != data_->end() && maxiBatch->size() < maxSize) { // loop over data
+        maxiBatch->push(*current_);
+        sets = current_->size();
+        // do not consume more than required for the maxi batch as this causes
+        // that line-by-line translation is delayed by one sentence
+        bool last = maxiBatch->size() == maxSize;
+        if(!last)
+          ++current_; // this actually reads the next line and pre-processes it
+      }
+      LOG(info, "end read lines, current size {}", maxiBatch->size());
+      // @TODO: Consider using MPI at this point to parallelize parsing.
     }
     catch (const std::exception & e) {
-      LOG("exception caught while reading: {}", e.what());
+      LOG("exception caught while reading corpus data: {}", e.what());
       logCallStack(0);
       throw;
     }
@@ -120,7 +120,7 @@ private:
 
     // process all loaded sentences in order of increasing length
     // @TODO: we could just use a vector and do a sort() here; would make the cost more explicit
-    LOG(info, "begin form batches, #batches = {}", maxiBatch->size());
+    LOG(info, "begin form batches, #lines = {}", maxiBatch->size());
     const size_t mbWords = options_->get<size_t>("mini-batch-words", 0);
     const bool useDynamicBatching = options_->has("mini-batch-fit");
     BatchStats::const_iterator cachedStatsIter;
@@ -189,7 +189,7 @@ private:
     // exclusive lock
     std::unique_lock<std::mutex> lock(loadMutex_);
     LOG(info, "begin pushing batches (this is after lock), #tempBatches = {}", tempBatches.size());
-    for(const auto& batch : tempBatches) // @TODO: use insert()
+    for(const auto& batch : tempBatches) // @TODO: insert(bufferedBatches_.end(), tempBatches.begin(), tempBatches.end());
       bufferedBatches_.push_back(batch);
     LOG(info, "fillBatches completed, bufferedBatches.size = {}", bufferedBatches_.size());
   }
