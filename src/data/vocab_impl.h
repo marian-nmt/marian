@@ -6,13 +6,13 @@
 
 namespace marian {
 
-class BaseVocab {
+class VocabImpl {
 protected:
   // size_t batchIndex_;
   // Ptr<Options> options_;
 
 public:
-  // BaseVocab(size_t batchIndex, Ptr<Options> options)
+  // VocabImpl(size_t batchIndex, Ptr<Options> options)
   //  : batchIndex_(batchIndex), options_(options) {}
 
   virtual int loadOrCreate(const std::string& /*vocabPath*/,

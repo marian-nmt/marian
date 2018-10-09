@@ -1,6 +1,6 @@
 #pragma once
 
-#include "data/base_vocab.h"
+#include "data/vocab_impl.h"
 
 #include "3rd_party/exception.h"
 #include "3rd_party/yaml-cpp/yaml.h"
@@ -18,8 +18,12 @@
 
 namespace marian {
 
-class DefaultVocab : public BaseVocab {
+class DefaultVocab : public VocabImpl {
 public:
+  static Ptr<VocabImpl> tryToLoad(const std::string& /*vocabPath*/) {
+    return nullptr;
+  }
+
   virtual int loadOrCreate(const std::string& vocabPath,
                            const std::string& textPath,
                            int max = 0) override;

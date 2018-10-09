@@ -21,12 +21,12 @@ void Device::reserve(size_t size) {
            "New size must be larger than old size and larger than 0");
 
   if(data_) {
-    uint8_t *temp = static_cast<uint8_t *>(malloc(size));
+    uint8_t *temp = static_cast<uint8_t*>(malloc(size));
     std::copy(data_, data_ + size_, temp);
     free(data_);
     data_ = temp;
   } else {
-    data_ = static_cast<uint8_t *>(malloc(size));
+    data_ = static_cast<uint8_t*>(malloc(size));
   }
   size_ = size;
 }

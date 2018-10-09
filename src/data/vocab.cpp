@@ -1,4 +1,5 @@
 #include "data/vocab.h"
+#include "data/vocab_impl.h"
 #include "data/default_vocab.h"
 
 #ifdef USE_SENTENCEPIECE
@@ -7,20 +8,19 @@
 
 namespace marian {
 
-// @TODO: make each vocab peek on type
-Ptr<BaseVocab> vocabFactory(const std::string& vocabPath) {
-  bool isSentencePiece = regex::regex_search(vocabPath, regex::regex("\\.(spm)$"));
-  if(isSentencePiece) {
+Ptr<VocabImpl> vocabFactory(const std::string& vocabPath) {
+  Ptr<VocabImpl> vocab;
 #ifdef USE_SENTENCEPIECE
-    return New<SentencePieceVocab>();
-#else
-    ABORT("*.spm suffix in path {} reserved for SentencePiece models, "
-          "but support for SentencePiece is not compiled into Marian. "
-          "Try to recompile after `cmake .. -DUSE_SENTENCEPIECE=on [...]`",
-          vocabPath);
-#endif
+  if(vocab = SentencePieceVocab::tryToLoad(vocabPath)) {
+    return vocab;
   }
-  return New<DefaultVocab>();
+#endif
+  if(vocab = DefaultVocab::tryToLoad(vocabPath)) {
+    return vocab;
+  }
+
+  ABORT("Loading vocabulary from {} failed", vocabPath);
+  return vocab;
 }
 
 int Vocab::loadOrCreate(const std::string& vocabPath,

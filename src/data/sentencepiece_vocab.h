@@ -2,7 +2,7 @@
 
 #ifdef USE_SENTENCEPIECE
 
-#include "data/base_vocab.h"
+#include "data/vocab_impl.h"
 
 #include "sentencepiece/src/sentencepiece_processor.h"
 
@@ -18,18 +18,22 @@
 
 namespace marian {
 
-class SentencePieceVocab : public BaseVocab {
+class SentencePieceVocab : public VocabImpl {
 private:
   UPtr<sentencepiece::SentencePieceProcessor> spm_;
   float alpha_{0};
 
 public:
+  static Ptr<VocabImpl> tryToLoad(const std::string& /*vocabPath*/) {
+    return nullptr;
+  }
+
   virtual int loadOrCreate(const std::string& vocabPath,
                            const std::string& textPath,
                            int max = 0) override;
 
   virtual int load(const std::string& vocabPath, int max = 0) override;
-  
+
   virtual Word operator[](const std::string& word) const override;
 
   virtual const std::string& operator[](Word id) const override;
@@ -78,7 +82,7 @@ Words SentencePieceVocab::encode(const std::string& line, bool addEOS, bool infe
     spm_->SampleEncode(line, -1, alpha_, &spmIds);
 
   Words words(spmIds.begin(), spmIds.end());
-  
+
   if(addEOS)
     words.push_back(getEosId());
   return words;
@@ -121,11 +125,11 @@ int SentencePieceVocab::load(const std::string& vocabPath, int /*max*/) {
   ABORT_IF(!filesystem::exists(vocabPath),
            "SentencePiece vocabulary file {} does not exits",
            vocabPath);
-  
+
   spm_.reset(new sentencepiece::SentencePieceProcessor());
   const auto status = spm_->Load(vocabPath);
-  
-  ABORT_IF(!status.ok(), 
+
+  ABORT_IF(!status.ok(),
            "SentencePiece error: {}",
            status.ToString());
 
