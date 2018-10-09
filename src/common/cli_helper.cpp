@@ -11,7 +11,7 @@ void makeAbsolutePaths(YAML::Node& config,
 
   auto transformFunc = [&](const std::string& nodePath) -> std::string {
     // Catch stdin/stdout and do not process
-    if(nodePath == "-")
+    if(nodePath == "stdin" || nodePath == "stdout")
       return nodePath;
 
     // replace relative path w.r.t. config directory

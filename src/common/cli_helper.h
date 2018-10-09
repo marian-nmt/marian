@@ -16,7 +16,7 @@ static inline std::string InterpolateEnvVars(std::string str) {
 
   // Catch stdin/stdout and do not process
   std::cerr << str << std::endl;
-  if(str == "-") {
+  if(str == "stdin" || str == "stdout") {
     return str;
   }
 

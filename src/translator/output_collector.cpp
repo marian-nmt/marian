@@ -6,11 +6,11 @@
 
 namespace marian {
 
-OutputCollector::OutputCollector(std::string outFile = "-")
+OutputCollector::OutputCollector(std::string outFile = "stdout")
   : nextId_(0),
     outStrm_(new io::OutputFileStream(std::cout)),
     printing_(new DefaultPrinting()) {
-  if (outFile != "-")
+  if (outFile != "stdout")
     outStrm_.reset(new io::OutputFileStream(outFile));
 }
 
