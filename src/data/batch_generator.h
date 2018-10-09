@@ -123,6 +123,9 @@ private:
     LOG(info, "begin form batches, #batches = {}", maxiBatch->size());
     const size_t mbWords = options_->get<size_t>("mini-batch-words", 0);
     const bool useDynamicBatching = options_->has("mini-batch-fit");
+    BatchStats::const_iterator cachedStatsIter;
+    if (stats_)
+      cachedStatsIter = stats_->begin();
     while(!maxiBatch->empty()) { // while there are sentences in the queue
       // push item onto batch
       batchVector.push_back(maxiBatch->top());
@@ -136,7 +139,12 @@ private:
             if(batchVector.back()[i].size() > lengths[i])
               lengths[i] = batchVector.back()[i].size(); // record max lengths so far
 
-          maxBatchSize = stats_->getBatchSize(lengths); // note: to speed this up, we could cache the iterator. We call it with growing sentence length.
+          maxBatchSize = stats_->findBatchSize(lengths, cachedStatsIter);
+#if 1     // sanity check
+          auto it = stats_->lower_bound(lengths);
+          auto maxBatchSize1 = stats_->findBatchSize(lengths, it);
+          ABORT_IF(maxBatchSize != maxBatchSize1, "findBatchSize iter caching logic is borked");
+#endif
 
           makeBatch = batchVector.size() >= maxBatchSize;
           // if last added sentence caused a bump then we likely have bad padding, so rather move it into the next batch
@@ -161,6 +169,8 @@ private:
         batchVector.clear();
         currentWords = 0;
         lengths.assign(sets, 0);
+        if (stats_)
+          cachedStatsIter = stats_->begin();
       }
     }
 
@@ -191,19 +201,29 @@ public:
       : data_(data), options_(options), stats_(stats) {}
 
   operator bool() const {
+#if 0
     // wait if empty but loading
     std::unique_lock<std::mutex> lock(loadMutex_);
     loadCondition_.wait(
         lock, [this] { return loadReady_ || !bufferedBatches_.empty(); });
+#endif
 
     return !bufferedBatches_.empty();
   }
 
   BatchPtr next() {
+#if 1 // not threaded  --note: also disable in operator bool()
+    ABORT_IF(bufferedBatches_.empty(), "No batches to fetch, run prepare()");
+    currentBatch_ = bufferedBatches_.front();
+    bufferedBatches_.pop_front();
+    if (bufferedBatches_.empty())
+      fillBatches();
+#else
     {
       std::unique_lock<std::mutex> lock(loadMutex_);
       loadCondition_.wait(
           lock, [this] { return loadReady_ || !bufferedBatches_.empty(); });
+      // @TODO: same code as operator bool()
     }
 
     ABORT_IF(bufferedBatches_.empty(), "No batches to fetch, run prepare()");
@@ -234,6 +254,7 @@ public:
 
     std::unique_lock<std::mutex> lock(loadMutex_);
     bufferedBatches_.pop_front();
+#endif
 
     return currentBatch_;
   }

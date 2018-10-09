@@ -16,9 +16,16 @@ private:
 public:
   BatchStats() { }
 
-  size_t getBatchSize(const std::vector<size_t>& lengths) {
+  typedef std::map<std::vector<size_t>, size_t>::const_iterator const_iterator;
+  const_iterator begin() const { return map_.begin(); }
+  const_iterator lower_bound(const std::vector<size_t>& lengths) const { return map_.lower_bound(lengths); }
+
+  size_t findBatchSize(const std::vector<size_t>& lengths, const_iterator& it) const {
     // find the first item where all item.first[i] >= lengths[i], i.e. that can fit sentence tuples of lengths[]
-    auto it = map_.lower_bound(lengths); // typ. 20 items, ~4..5 steps
+#if 1 // sanity check
+    for(size_t i = 0; i < lengths.size(); ++i)
+      ABORT_IF(it != map_.end() && it->first[i] > lengths[i], "lower_bound not called before findBatchSize()??");
+#endif
     for(size_t i = 0; i < lengths.size(); ++i)
       while(it != map_.end() && it->first[i] < lengths[i])
         it++;
