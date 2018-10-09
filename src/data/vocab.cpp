@@ -8,19 +8,20 @@
 
 namespace marian {
 
+// @TODO: make each vocab peek on type
 Ptr<VocabImpl> vocabFactory(const std::string& vocabPath) {
-  Ptr<VocabImpl> vocab;
+  bool isSentencePiece = regex::regex_search(vocabPath, regex::regex("\\.(spm)$"));
+  if(isSentencePiece) {
 #ifdef USE_SENTENCEPIECE
-  if(vocab = SentencePieceVocab::tryToLoad(vocabPath)) {
-    return vocab;
-  }
+    return New<SentencePieceVocab>();
+#else
+    ABORT("*.spm suffix in path {} reserved for SentencePiece models, "
+          "but support for SentencePiece is not compiled into Marian. "
+          "Try to recompile after `cmake .. -DUSE_SENTENCEPIECE=on [...]`",
+          vocabPath);
 #endif
-  if(vocab = DefaultVocab::tryToLoad(vocabPath)) {
-    return vocab;
   }
-
-  ABORT("Loading vocabulary from {} failed", vocabPath);
-  return vocab;
+  return New<DefaultVocab>();
 }
 
 int Vocab::loadOrCreate(const std::string& vocabPath,

@@ -24,10 +24,6 @@ private:
   float alpha_{0};
 
 public:
-  static Ptr<VocabImpl> tryToLoad(const std::string& /*vocabPath*/) {
-    return nullptr;
-  }
-
   virtual int loadOrCreate(const std::string& vocabPath,
                            const std::string& textPath,
                            int max = 0) override;
