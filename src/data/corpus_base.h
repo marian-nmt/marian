@@ -12,10 +12,6 @@
 #include "data/rng_engine.h"
 #include "data/vocab.h"
 
-#include <iostream>
-#include <boost/algorithm/string.hpp>
-#include <boost/iterator/iterator_facade.hpp>
-
 namespace marian {
 namespace data {
 

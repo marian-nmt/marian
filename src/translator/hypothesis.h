@@ -12,7 +12,7 @@ public:
 
   Hypothesis(const Ptr<Hypothesis> prevHyp,
              Word word,
-             size_t prevIndex,
+             IndexType prevIndex,
              float pathScore)
       : prevHyp_(prevHyp), prevIndex_(prevIndex), word_(word), pathScore_(pathScore) {}
 
@@ -20,7 +20,7 @@ public:
 
   Word GetWord() const { return word_; }
 
-  size_t GetPrevStateIndex() const { return prevIndex_; }
+  IndexType GetPrevStateIndex() const { return prevIndex_; }
 
   float GetPathScore() const { return pathScore_; }
 
@@ -55,7 +55,7 @@ public:
 
 private:
   const Ptr<Hypothesis> prevHyp_;
-  const size_t prevIndex_;
+  const IndexType prevIndex_;
   const Word word_;
   const float pathScore_;
 

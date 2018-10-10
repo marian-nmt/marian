@@ -7,7 +7,7 @@
 int main(int argc, char** argv) {
   using namespace marian;
 
-  createLoggers(); // @TODO: Most other main() do not call this directly. Needed here?
+  createLoggers();
 
   auto options = New<Options>();
   {

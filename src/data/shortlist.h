@@ -128,7 +128,7 @@ private:
   size_t firstNum_{100};
   size_t bestNum_{100};
 
-  std::vector<std::unordered_map<size_t, float>> data_;
+  std::vector<std::unordered_map<Word, float>> data_;
 
   void load(const std::string& fname) {
     io::InputFileStream in(fname);
@@ -154,7 +154,7 @@ private:
     for(auto& probs : data_) {
       std::vector<std::pair<float, Word>> sorter;
       for(auto& it : probs)
-        sorter.emplace_back(it.second, (Word)it.first); // @TODO: it.first Word or size_t?
+        sorter.emplace_back(it.second, (Word)it.first);
 
       std::sort(
           sorter.begin(), sorter.end(), std::greater<std::pair<float, Word>>());

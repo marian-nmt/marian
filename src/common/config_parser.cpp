@@ -249,6 +249,9 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<size_t>("--disp-freq",
       "Display information every  arg  updates",
       1000);
+  cli.add<size_t>("--disp-first",
+      "Display nformation for the first  arg  updates",
+      1000);
   cli.add<bool>("--disp-label-counts",
       "Display label counts when logging loss progress");
   cli.add<size_t>("--save-freq",
@@ -512,10 +515,10 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
 void ConfigParser::addSuboptionsDevices(cli::CLIWrapper& cli) {
   // clang-format off
   cli.add<std::vector<std::string>>("--devices,-d",
-      "specifies GPU ID(s) to use for training. Defaults to 0..num-devices-1",
+      "Specifies GPU ID(s) to use for training. Defaults to 0..num-devices-1",
       std::vector<std::string>({"0"}));
   cli.add_nondefault<size_t>("--num-devices",
-      "number of GPUs to use for this process. Defaults to length(devices) or 1.");
+      "Number of GPUs to use for this process. Defaults to length(devices) or 1.");
 #ifdef USE_NCCL
   if(mode_ == cli::mode::training)
     cli.add<bool>("--no-nccl",

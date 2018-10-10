@@ -204,9 +204,8 @@ public:
 
     state_->newBatch();
 
-    if(state_->batches % options_->get<size_t>("disp-freq") == 0
-        || state_->batches < 10   // for debugging for now   --@TODO: make this a parameter? --disp-first
-        ) {
+    if(state_->batches %  options_->get<size_t>("disp-freq") == 0 ||
+       state_->batches <= options_->get<size_t>("disp-first")) {
       // if MPI then aggregate precise cost across workers
       if (mpi) {
         //LOG(info, "all-reducing cost from {}", state_->costSum);
@@ -220,7 +219,6 @@ public:
         if(options_->get<bool>(
                "lr-report")) {  // if true then show the learning rate
           LOG(info,
-              // TODO: change Cost back to {:.2f}
               "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} "
               ": {:.2f} "
               "words/s : L.r. {:.4e}",

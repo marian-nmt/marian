@@ -219,7 +219,7 @@ public:
             auto& beam = beams[j];
             if(i < beam.size()) {
               auto hyp = beam[i];
-              hypIndices.push_back((unsigned int)hyp->GetPrevStateIndex()); // backpointer
+              hypIndices.push_back((IndexType)hyp->GetPrevStateIndex()); // backpointer
               embIndices.push_back(hyp->GetWord());
               beamScores.push_back(hyp->GetPathScore());
             } else {  // dummy hypothesis

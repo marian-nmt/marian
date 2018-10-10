@@ -4,6 +4,9 @@
  
 #include "cuda_runtime.h"
 #include "nccl.h"
+#if (NCCL_MAJOR<3 || NCCL_MINOR<2)
+#define ncclGetVersion(pv) (*(pv) = (NCCL_MAJOR * 1000 + NCCL_MINOR * 100 + NCCL_PATCH))
+#endif
 #include "tensors/gpu/cuda_helpers.h"
 
 
@@ -125,7 +128,9 @@ public:
         devices_(graphs.size()),
         mpi_(mpi) {
     mpiBarrier(); // barrier to group the multiple log messages from MPI processes
-    LOG(info, "[comm] Using NCCL {} {}for GPU communication", ncclVersionString(), mpi_ ? "and MPI " : "");
+    LOG(info, "[comm] Using NCCL {} {}for GPU communication",
+        ncclVersionString(),
+        (mpi_ && mpi_->numMPIProcesses() > 1) ? "and MPI " : "");
     mpiBarrier(); // (synchronize the log messages)
 
     // set up our local devices

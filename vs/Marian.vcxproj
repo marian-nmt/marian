@@ -141,7 +141,9 @@
     <ClCompile Include="..\src\3rd_party\svd\svd.cpp" />
     <ClCompile Include="..\src\layers\loss.cpp" />
     <ClCompile Include="..\src\layers\weight.cpp" />
-    <ClCompile Include="..\src\microsoft\quicksand.cpp" />
+    <ClCompile Include="..\src\microsoft\quicksand.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\src\tensors\backend.cpp" />
     <ClCompile Include="..\src\tensors\cpu\device.cpp" />
     <ClCompile Include="..\src\tensors\cpu\dropout.cpp" />
