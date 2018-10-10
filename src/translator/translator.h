@@ -31,11 +31,12 @@ public:
       : options_(options),
         corpus_(New<data::Corpus>(options_, true)),
         trgVocab_(New<Vocab>()) {
+
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
     trgVocab_->load(vocabs.back());
 
     auto srcVocab = corpus_->getVocabs()[0];
-	
+
     if(options_->has("shortlist"))
       shortlistGenerator_ = New<data::LexicalShortlistGenerator>(
           options_, srcVocab, trgVocab_, 0, 1, vocabs.front() == vocabs.back());
@@ -90,9 +91,7 @@ public:
     auto tOptions = New<Options>();
     tOptions->merge(options_);
 
-    while(bg) {
-      auto batch = bg.next();
-
+    for(auto batch : bg) {
       auto task = [=](size_t id) {
         thread_local Ptr<ExpressionGraph> graph;
         thread_local std::vector<Ptr<Scorer>> scorers;
@@ -103,7 +102,7 @@ public:
         }
 
         auto search = New<Search>(
-            tOptions, scorers, trgVocab_->GetEosId(), trgVocab_->GetUnkId());
+            tOptions, scorers, trgVocab_->getEosId(), trgVocab_->getUnkId());
 
         auto histories = search->search(graph, batch);
 
@@ -119,17 +118,6 @@ public:
       };
 
       threadPool.enqueue(task, batchId++);
-
-	  // progress heartbeat for MS-internal Philly compute cluster
-	  //otherwise this job may be killed prematurely if no log for 4 hrs
-	  if (getenv("PHILLY_JOB_ID"))  // this environment variable exists when running on the cluster
-	  {
-		  auto progress = 0.f; //fake progress for now
-		  fprintf(stdout, "PROGRESS: %.2f%%\n", progress);
-		  fflush(stdout);
-	  }
-		  
-	  
     }
   }
 };
@@ -184,7 +172,8 @@ public:
   std::string run(const std::string& input) override {
     auto corpus_ = New<data::TextInput>(
         std::vector<std::string>({input}), srcVocabs_, options_);
-    data::BatchGenerator<data::TextInput> bg(corpus_, options_);
+
+    data::BatchGenerator<data::TextInput> batchGenerator(corpus_, options_);
 
     auto collector = New<StringCollector>();
     auto printer = New<OutputPrinter>(options_, trgVocab_);
@@ -194,13 +183,12 @@ public:
     auto tOptions = New<Options>();
     tOptions->merge(options_);
 
-    bg.prepare(false);
+    batchGenerator.prepare(false);
 
     {
       ThreadPool threadPool_(devices_.size(), devices_.size());
 
-      while(bg) {
-        auto batch = bg.next();
+      for(auto batch : batchGenerator) {
 
         auto task = [=](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
@@ -212,7 +200,7 @@ public:
           }
 
           auto search = New<Search>(
-              tOptions, scorers, trgVocab_->GetEosId(), trgVocab_->GetUnkId());
+              tOptions, scorers, trgVocab_->getEosId(), trgVocab_->getUnkId());
           auto histories = search->search(graph, batch);
 
           for(auto history : histories) {

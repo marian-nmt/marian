@@ -73,9 +73,10 @@ public:
         batchGenerator->prepare(shuffle);
       restored = false;
 
-      while(*batchGenerator && scheduler->keepGoing()) {
-        auto batch = batchGenerator->next();
-        model->update(batch);
+      for(auto batchIt = std::begin(*batchGenerator); 
+          batchIt != std::end(*batchGenerator) && scheduler->keepGoing();
+          batchIt++) {
+        model->update(*batchIt);
       }
 
       if(scheduler->keepGoing())
