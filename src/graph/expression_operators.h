@@ -119,7 +119,10 @@ Expr select(Expr a, const std::vector<IndexType>& indices, int axis);
 Expr sum(Expr a, int ax = 0);
 
 Expr softmax(Expr a);
-Expr softmax(Expr a, Expr mask);
+
+// @TODO: maybe get rid of this entirely to not obfuscate, what's going on inside.
+// @TODO: switch to log-masking everywhere?
+Expr softmax(Expr a, Expr zeroOneMask);
 
 Expr logsoftmax(Expr a);
 

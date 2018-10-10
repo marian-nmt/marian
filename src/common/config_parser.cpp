@@ -33,7 +33,7 @@ const std::set<std::string> PATHS = {"model",
                                      "valid-script-path",
                                      "valid-log",
                                      "valid-translation-output",
-                                     "log"};
+                                     "log" };
 
 void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   int defaultWorkspace = (mode_ == cli::mode::translation) ? 512 : 2048;
@@ -428,6 +428,9 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   cli.add<std::vector<std::string>>("--input,-i",
       "Paths to input file(s), stdin by default",
       std::vector<std::string>({"stdin"}));
+  cli.add<std::string>("--output,-o",
+      "Paths to output file(s), stdout by default",
+      "stdout");
   cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --input");
   // decoding options
@@ -672,6 +675,10 @@ void ConfigParser::makeAbsolutePaths(
              "same directory");
 
   auto transformFunc = [&](const std::string& nodePath) -> std::string {
+    // Catch stdin/stdout and do not process
+    if(nodePath == "stdin" || nodePath == "stdout")
+      return nodePath;
+    
     // replace relative path w.r.t. configDir
     try {
       return canonical(filesystem::Path{nodePath}, configDir).string();
@@ -697,7 +704,6 @@ YAML::Node ConfigParser::loadConfigFiles(
       config[it.first.as<std::string>()] = YAML::Clone(it.second);
     }
   }
-
   return config;
 }
 

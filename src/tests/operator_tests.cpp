@@ -11,14 +11,12 @@ void tests(DeviceType device) {
   graph->setDevice({0, device});
   graph->reserveWorkspaceMB(16);
 
-  std::vector<float> vA({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
-  std::vector<float> vB({1, 2, 3, 4, 5, 6});
   std::vector<float> values;
 
   SECTION("scalar multiplication") {
     graph->clear();
     values.clear();
-    std::vector<float> vB2({2, 4, 6, 8, 10, 12});
+    std::vector<float> vB({1, 2, 3, 4, 5, 6});
 
     auto B = graph->param("B", {3, 2}, inits::from_vector(vB));
     auto B2 = B * 2.0f;
@@ -26,6 +24,8 @@ void tests(DeviceType device) {
 
     CHECK(B2->shape() == Shape({3, 2}));
     B2->val()->get(values);
+
+    std::vector<float> vB2({2, 4, 6, 8, 10, 12});
     CHECK(values == vB2);
   }
 
@@ -80,7 +80,6 @@ void tests(DeviceType device) {
     std::vector<float> vT3({1, 2, 5, 6, 3, 4, 7, 8});
     std::vector<float> vT4({1, 5, 3, 7, 2, 6, 4, 8});
     std::vector<float> vT5({1, 2, 5, 6, 3, 4, 7, 8});
-
 
     auto a = graph->constant({2, 4}, inits::from_vector(vA));
 
@@ -279,6 +278,9 @@ void tests(DeviceType device) {
   SECTION("dot product") {
     graph->clear();
     values.clear();
+
+    std::vector<float> vA({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+    std::vector<float> vB({1, 2, 3, 4, 5, 6});
     std::vector<float> vC({22, 28, 49, 64, 76, 100, 103, 136});
 
     auto A = graph->param("A", {2, 2, 3}, inits::from_vector(vA));
@@ -289,6 +291,312 @@ void tests(DeviceType device) {
     CHECK(C->shape() == Shape({2, 2, 2}));
     C->val()->get(values);
     CHECK(values == vC);
+  }
+
+  SECTION("affine transformation") {
+    graph->clear();
+    values.clear();
+
+    std::vector<float> vA({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+    std::vector<float> vB({1, 2, 3, 4, 5, 6});
+    std::vector<float> vAff({24, 30, 51, 66, 78, 102, 105, 138});
+
+    auto A = graph->param("A", {4, 3}, inits::from_vector(vA));
+    auto B = graph->param("B", {3, 2}, inits::from_vector(vB));
+    auto C = graph->param("C", {4, 2}, inits::from_value(2));
+    auto aff1 = affine(A, B, C);
+    auto aff2 = dot(A, B) + C;
+    graph->forward();
+
+    CHECK(aff1->shape() == Shape({4, 2}));
+    aff1->val()->get(values);
+    CHECK(values == vAff);
+
+    std::vector<float> values2;
+    CHECK(aff2->shape() == aff1->shape());
+    aff2->val()->get(values2);
+    CHECK(values2 == values);
+  }
+
+  SECTION("repeat") {
+    graph->clear();
+    values.clear();
+
+    std::vector<float> vA({1, 2, 3, 4, 5, 6});
+    std::vector<float> vB({1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6});
+    std::vector<float> vC({1, 2, 3, 1, 2, 3, 4, 5, 6, 4, 5, 6});
+
+    auto A = graph->param("A", {2,3}, inits::from_vector(vA));
+    auto I = repeat(A, 1, 0);
+    auto B = repeat(A, 2, 0);
+    auto C = repeat(A, 2, 1);
+    graph->forward();
+
+    CHECK(I->shape() == Shape({2, 3}));
+    I->val()->get(values);
+    CHECK(values == vA);
+
+    CHECK(B->shape() == Shape({4, 3}));
+    B->val()->get(values);
+    CHECK(values == vB);
+
+    CHECK(C->shape() == Shape({2, 6}));
+    C->val()->get(values);
+    CHECK(values == vC);
+  }
+
+  SECTION("flatten") {
+    graph->clear();
+    values.clear();
+
+    std::vector<float> vIn({1, 2, 3, 4, 5, 6, 7, 8});
+
+    auto A = graph->param("A", {2, 4}, inits::from_vector(vIn));
+    auto Af = flatten(A);
+    auto B = graph->param("B", {2, 2, 1, 2}, inits::from_vector(vIn));
+    auto Bf = flatten(B);
+    graph->forward();
+
+    CHECK(Af->shape() == Shape({8}));
+    Af->val()->get(values);
+    CHECK(values == vIn);
+
+    CHECK(Bf->shape() == Shape({8}));
+    Bf->val()->get(values);
+    CHECK(values == vIn);
+  }
+
+  SECTION("rows selection from 2d matrix") {
+    graph->clear();
+    values.clear();
+
+    std::vector<float> vA({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+
+    std::vector<IndexType> iB0({0});            // first row
+    std::vector<IndexType> iB1({0, 1, 2});      // several consecutive rows
+    std::vector<IndexType> iB2({0, 2});         // two nonconsecutive rows
+    std::vector<IndexType> iB3({2, 1});         // reversed order
+    std::vector<IndexType> iB4({1, 1});         // repeated rows
+    std::vector<IndexType> iB5({0, 1, 2, 3});   // identity
+    std::vector<IndexType> iB6({});             // empty
+    std::vector<float> vB0({1, 2, 3});
+    std::vector<float> vB1({1, 2, 3, 4, 5, 6, 7, 8, 9});
+    std::vector<float> vB2({1, 2, 3, 7, 8, 9});
+    std::vector<float> vB3({7, 8, 9, 4, 5, 6});
+    std::vector<float> vB4({4, 5, 6, 4, 5, 6});
+    std::vector<float> vB6;
+
+    auto A = graph->param("A", {4, 3}, inits::from_vector(vA));
+    auto B0 = rows(A, iB0);
+    auto B1 = rows(A, iB1);
+    auto B2 = rows(A, iB2);
+    auto B3 = rows(A, iB3);
+    auto B4 = rows(A, iB4);
+    auto B5 = rows(A, iB5);
+    auto B6 = rows(A, iB6);
+    graph->forward();
+
+    CHECK(B0->shape() == Shape({1, 3}));
+    B0->val()->get(values);
+    CHECK( values == vB0 );
+
+    CHECK(B1->shape() == Shape({3, 3}));
+    B1->val()->get(values);
+    CHECK( values == vB1 );
+
+    CHECK(B2->shape() == Shape({2, 3}));
+    B2->val()->get(values);
+    CHECK( values == vB2 );
+
+    CHECK(B3->shape() == Shape({2, 3}));
+    B3->val()->get(values);
+    CHECK( values == vB3 );
+
+    CHECK(B4->shape() == Shape({2, 3}));
+    B4->val()->get(values);
+    CHECK( values == vB4 );
+
+    CHECK(B5->shape() == Shape({4, 3}));
+    B5->val()->get(values);
+    CHECK( values == vA );
+
+    CHECK(B6->shape() == Shape({0, 3}));
+    B6->val()->get(values);
+    CHECK( values == vB6 );
+  }
+
+  SECTION("columns selection from 2d matrix") {
+    graph->clear();
+    values.clear();
+
+    std::vector<float> vA({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+
+    std::vector<IndexType> iB0({0});            // first column
+    std::vector<IndexType> iB1({0, 1, 2});      // several consecutive columns
+    std::vector<IndexType> iB2({0, 2});         // two nonconsecutive columns
+    std::vector<IndexType> iB3({2, 1});         // reversed order
+    std::vector<IndexType> iB4({1, 1});         // repeated columns
+    std::vector<IndexType> iB5({0, 1, 2, 3});   // identity
+    std::vector<IndexType> iB6({});             // empty
+
+    std::vector<float> vB0({1, 5, 9});
+    std::vector<float> vB1({1, 2, 3, 5, 6, 7, 9, 10, 11});
+    std::vector<float> vB2({1, 3, 5, 7, 9, 11});
+    std::vector<float> vB3({3, 2, 7, 6, 11, 10});
+    std::vector<float> vB4({2, 2, 6, 6, 10, 10});
+    std::vector<float> vB6;
+
+    auto A = graph->param("A", {3, 4}, inits::from_vector(vA));
+    auto B0 = cols(A, iB0);
+    auto B1 = cols(A, iB1);
+    auto B2 = cols(A, iB2);
+    auto B3 = cols(A, iB3);
+    auto B4 = cols(A, iB4);
+    auto B5 = cols(A, iB5);
+    auto B6 = cols(A, iB6);
+    graph->forward();
+
+    CHECK(B0->shape() == Shape({3, 1}));
+    B0->val()->get(values);
+    CHECK( values == vB0 );
+
+    CHECK(B1->shape() == Shape({3, 3}));
+    B1->val()->get(values);
+    CHECK( values == vB1 );
+
+    CHECK(B2->shape() == Shape({3, 2}));
+    B2->val()->get(values);
+    CHECK( values == vB2 );
+
+    CHECK(B3->shape() == Shape({3, 2}));
+    B3->val()->get(values);
+    CHECK( values == vB3 );
+
+    CHECK(B4->shape() == Shape({3, 2}));
+    B4->val()->get(values);
+    CHECK( values == vB4 );
+
+    CHECK(B5->shape() == Shape({3, 4}));
+    B5->val()->get(values);
+    CHECK( values == vA );
+
+    CHECK(B6->shape() == Shape({3, 0}));
+    B6->val()->get(values);
+    CHECK( values == vB6 );
+  }
+
+  SECTION("relation of rows and columns selection using transpose") {
+    graph->clear();
+    values.clear();
+    std::vector<float> values2;
+
+    std::vector<float> vA({0, .3333, -.2, -.3, 0, 4.5, 5.2, -10, 101.45, -100.05, 0, 1.05e-5});
+    std::vector<IndexType> idx({0, 1});
+
+    auto A1 = graph->param("4x3", {4,3}, inits::from_vector(vA));
+    auto B1 = rows(transpose(A1), idx);
+    auto C1 = transpose(cols(A1, idx));
+    auto A2 = graph->param("6x2", {6,2}, inits::from_vector(vA));
+    auto B2 = cols(transpose(A2), idx);
+    auto C2 = transpose(rows(A2, idx));
+    graph->forward();
+
+    CHECK(B1->shape() == C1->shape());
+    B1->val()->get(values);
+    C1->val()->get(values2);
+    CHECK( values == values2 );
+
+    values.clear();
+    values2.clear();
+
+    CHECK(B2->shape() == C2->shape());
+    B2->val()->get(values);
+    C2->val()->get(values2);
+    CHECK( values == values2 );
+  }
+
+  SECTION("select operator") {
+    using Indices = std::vector<IndexType>;
+
+    graph->clear();
+    values.clear();
+
+    std::vector<float> in({1, -2, 3, -4, 5, -6, 7, -8, 9, -10, 11, -12});
+    std::vector<float> vB1({1, -2, 3});
+    std::vector<float> vB2({1, -4, 7, -10});
+    std::vector<float> vB3({-2, 5, -8, 11});
+    std::vector<float> vB4({1, -2, 3, -4, 5, -6});
+    std::vector<float> vD1(vB4);
+    std::vector<float> vD2({5, -6, 11, -12});
+    std::vector<float> vD3({1, -2, 5, -6, 7, -8, 11, -12});
+
+    auto A = graph->param("4x3", {4,3}, inits::from_vector(in));
+    auto B1 = select(A, Indices({0}), 0);
+    auto B2 = select(A, Indices({0}), 1);
+    auto B3 = select(A, Indices({1}), -1);
+    auto B4 = select(A, Indices({0, 1}), 0);
+
+    auto C = graph->param("2x3x2", {2, 3, 2}, inits::from_vector(in));
+    auto D1 = select(C, Indices({0}), 0);
+    auto D2 = select(C, Indices({2}), -2);
+    auto D3 = select(C, Indices({0,2}), 1);
+    graph->forward();
+
+    CHECK(B1->shape() == Shape({1, 3}));
+    B1->val()->get(values);
+    CHECK( values == vB1 );
+
+    CHECK(B2->shape() == Shape({4, 1}));
+    B2->val()->get(values);
+    CHECK( values == vB2 );
+
+    CHECK(B3->shape() == Shape({4, 1}));
+    B3->val()->get(values);
+    CHECK( values == vB3 );
+
+    CHECK(B4->shape() == Shape({2, 3}));
+    B4->val()->get(values);
+    CHECK( values == vB4 );
+
+    values.clear();
+
+    CHECK(D1->shape() == Shape({1, 3, 2}));
+    D1->val()->get(values);
+    CHECK( values == vD1 );
+
+    CHECK(D2->shape() == Shape({2, 1, 2}));
+    D2->val()->get(values);
+    CHECK( values == vD2 );
+
+    CHECK(D3->shape() == Shape({2, 2, 2}));
+    D3->val()->get(values);
+    CHECK( values == vD3 );
+  }
+
+  SECTION("rows/cols as select operations") {
+    graph->clear();
+    values.clear();
+    std::vector<float> values2;
+
+    std::vector<float> vA({0, .3333, -.2, -.3, 0, 4.5, 5.2, -10, 101.45, -100.05, 0, 1.05e-5});
+    std::vector<IndexType> idx({0, 2});
+
+    auto A = graph->param("4x3", {4, 3}, inits::from_vector(vA));
+    auto B1 = rows(A, idx);
+    auto B2 = select(A, idx, 0);
+    auto C1 = cols(A, idx);
+    auto C2 = select(A, idx, 1);
+    graph->forward();
+
+    CHECK(B1->shape() == B2->shape());
+    B1->val()->get(values);
+    B2->val()->get(values2);
+    CHECK( values == values2 );
+
+    CHECK(C1->shape() == C2->shape());
+    C1->val()->get(values);
+    C2->val()->get(values2);
+    CHECK( values == values2 );
   }
 }
 

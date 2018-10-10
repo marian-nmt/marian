@@ -153,8 +153,7 @@ protected:
       opts->set("inference", true);
       opts->set("cost-type", "ce-sum");
 
-      Ptr<data::CorpusBatch> batch;
-      while(batch = batchGenerator->next()) {
+      for(auto batch : *batchGenerator) {
         auto task = [=, &cost, &samples, &words](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local auto builder
@@ -254,7 +253,6 @@ public:
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     std::vector<std::string> paths(validPaths.begin(), validPaths.end());
     auto corpus = New<data::Corpus>(paths, vocabs_, opts);
-    corpus->setInference(true);
 
     // Generate batches
     auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, opts);
@@ -312,8 +310,8 @@ public:
       auto tOptions = New<Options>();
       tOptions->merge(options_);
 
-      Ptr<data::CorpusBatch> batch;
-      while(batch = batchGenerator->next()) {
+      for(auto batch : *batchGenerator) {
+
         auto task = [=](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local Ptr<Scorer> scorer;
@@ -448,8 +446,8 @@ public:
       auto tOptions = New<Options>();
       tOptions->merge(options_);
 
-      Ptr<data::CorpusBatch> batch;
-      while(batch = batchGenerator->next()) {
+      for(auto batch : *batchGenerator) {
+
         auto task = [=, &stats](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local Ptr<Scorer> scorer;

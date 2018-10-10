@@ -178,8 +178,7 @@ public:
 
   void collectOneHead(Expr weights, int dimBeam) {
     // select first head, this is arbitrary as the choice does not really matter
-    std::vector<IndexType> idx0 = {0};
-    auto head0 = select(weights, idx0, -3); // @TODO: implement an index() or slice() operator and use that
+    auto head0 = select(weights, std::vector<IndexType>({0}), -3); // @TODO: implement an index() or slice() operator and use that
 
     int dimBatchBeam = head0->shape()[-4];
     int srcWords = head0->shape()[-1];
@@ -195,8 +194,7 @@ public:
     // @TODO: make splitting obsolete
     alignments_.clear();
     for(int i = 0; i < trgWords; ++i) {
-      std::vector<IndexType> idx = {(IndexType)i};
-      alignments_.push_back(select(head0, idx, -1)); // [tgt index][-4: beam depth, -3: max src length, -2: batch size, -1: 1]
+      alignments_.push_back(select(head0, std::vector<IndexType>({(IndexType)i}), -1)); // [tgt index][-4: beam depth, -3: max src length, -2: batch size, -1: 1]
     }
   }
 

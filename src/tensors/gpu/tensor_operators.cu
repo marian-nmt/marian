@@ -1175,6 +1175,10 @@ __global__ void gCrossEntropyPick(float* out,
   }
 }
 
+// In each j-th row, take the corresponding j-th label index i from indices and compute:
+// For each vocabulary item v, the only non-zero element in a row in the sum is the item 
+// that matches the label indexed by i (the picked element). 
+// C = sum_{v in V}(-logsoftmax(A) * delta(v, i) = -logsoftmax(A)[i] 
 void CrossEntropyPick(Tensor out, Tensor in, Tensor indices) {
   matchOrAbort<IndexType>(indices->type());
 
