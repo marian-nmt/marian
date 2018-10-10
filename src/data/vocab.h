@@ -36,8 +36,8 @@ public:
               io::OutputFileStream& vocabStrm,
               size_t maxSize = 0);
 
-  Word GetEosId() const { return eosId_; }
-  Word GetUnkId() const { return unkId_; }
+  Word getEosId() const { return eosId_; }
+  Word getUnkId() const { return unkId_; }
 
   void createFake();  // for fakeBatch()
 
