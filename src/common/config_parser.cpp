@@ -250,8 +250,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "Display information every  arg  updates",
       1000);
   cli.add<size_t>("--disp-first",
-      "Display nformation for the first  arg  updates",
-      1000);
+      "Display nformation for the first  arg  updates");
   cli.add<bool>("--disp-label-counts",
       "Display label counts when logging loss progress");
   cli.add<size_t>("--save-freq",
