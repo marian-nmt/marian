@@ -196,7 +196,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
     localCost += c;
 
   // if localCost is average-based, we need to turn the sum over devices into an average as well
-  if(options_->get<std::string>("localCost-type") != "ce-sum")
+  if(options_->get<std::string>("cost-type") != "ce-sum")
     localCost /= numSubBatches;
 
   if(scheduler_) {
