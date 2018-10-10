@@ -238,7 +238,8 @@ private:
     for(const auto& batch : tempBatches)
       bufferedBatches_.push_back(batch);
     // LOG(info, "Done dumping batches");
-    
+    LOG(info, "[data] read {} sentences; current batch queue size is {}", numSentencesRead, bufferedBatches_.size());
+
     loadingSamples_ = false;
     hadData_ = tempBatches.size() > 0;
 
