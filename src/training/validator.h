@@ -152,9 +152,7 @@ protected:
       opts->set("inference", true);
       opts->set("cost-type", "ce-sum");
 
-      while(*batchGenerator) {
-        auto batch = batchGenerator->next();
-
+      for(auto batch : *batchGenerator) {
         auto task = [=, &cost, &samples, &words](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local auto builder
@@ -254,7 +252,7 @@ public:
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     std::vector<std::string> paths(validPaths.begin(), validPaths.end());
     auto corpus = New<data::Corpus>(paths, vocabs_, opts);
-
+    
     // Generate batches
     auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, opts);
     batchGenerator->prepare(false);
@@ -311,9 +309,7 @@ public:
       auto tOptions = New<Options>();
       tOptions->merge(options_);
 
-      while(*batchGenerator) {
-        auto batch = batchGenerator->next();
-
+      for(auto batch : *batchGenerator) {
         auto task = [=](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local Ptr<Scorer> scorer;
@@ -325,8 +321,8 @@ public:
 
           auto search = New<BeamSearch>(tOptions,
                                         std::vector<Ptr<Scorer>>{scorer},
-                                        vocabs_.back()->GetEosId(),
-                                        vocabs_.back()->GetUnkId());
+                                        vocabs_.back()->getEosId(),
+                                        vocabs_.back()->getUnkId());
           auto histories = search->search(graph, batch);
 
           for(auto history : histories) {
@@ -447,9 +443,7 @@ public:
       auto tOptions = New<Options>();
       tOptions->merge(options_);
 
-      while(*batchGenerator) {
-        auto batch = batchGenerator->next();
-
+      for(auto batch : *batchGenerator) {
         auto task = [=, &stats](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local Ptr<Scorer> scorer;
@@ -461,8 +455,8 @@ public:
 
           auto search = New<BeamSearch>(tOptions,
                                         std::vector<Ptr<Scorer>>{scorer},
-                                        vocabs_.back()->GetEosId(),
-                                        vocabs_.back()->GetUnkId());
+                                        vocabs_.back()->getEosId(),
+                                        vocabs_.back()->getUnkId());
           auto histories = search->search(graph, batch);
 
           size_t no = 0;
@@ -470,7 +464,7 @@ public:
           for(auto history : histories) {
             auto result = history->Top();
             const auto& words = std::get<0>(result);
-            updateStats(stats, words, batch, no, vocabs_.back()->GetEosId());
+            updateStats(stats, words, batch, no, vocabs_.back()->getEosId());
             no++;
           }
         };
