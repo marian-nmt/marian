@@ -138,27 +138,17 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
       auto graph = graphs_[localDeviceIndex];
       auto subBatch = getSubBatch(t, localDeviceIndex, mpi_->myMPIRank());
 
-      // temporary for the cost
-      // @BUGBUG: must exist before first allocations; must do stuff in initialize()
-      //auto costTmp = graph->param("special:costTmp", {}, inits::zeros);
-      //if (t == 0)
-      //    costTmp->grad()->set(0.0f);
-
       if(subBatch) {
         timer::Timer timer;
         auto costNode = builders_[localDeviceIndex]->build(graph, subBatch);
-        timer.format(2, "after build: %ws");
+        LOG(info, timer.format(2, "after build: %ws"));
         graph->forward();
-        timer.format(2, "after forward (no sync): %ws");
+        LOG(info, timer.format(2, "after forward (no sync): %ws"));
         //localDeviceCosts[localDeviceIndex] += costNode->scalar();
         graph->backward(/*zero=*/t == 0); // only reset gradients to 0 if t = 0
-        timer.format(2, "after backward (no sync): %ws");
+        LOG(info, timer.format(2, "after backward (no sync): %ws"));
         localDeviceCosts[localDeviceIndex] += costNode->scalar(); // moved here for time measurements; @TODO: move this back
-        timer.format(2, "after scalar() (that's a sync): %ws");
-        //// record cost in a gradient
-        //using namespace functional;
-        //Element(_1 += _2, costTmp->grad(), costNode->val()); // stick it into a fake gradient that gets aggregated
-        //// @TODO: Complete this. We still need to move it back from grad to val, which is tricky due to sharding.
+        LOG(info, timer.format(2, "after scalar() (that's a sync): %ws"));
       }
       else { // empty batch: execute do-nothing fw-bw step for proper inits and resets
         graph->forward();
@@ -190,41 +180,32 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
     if(mvAvg_)
       updateAvgParams(
           paramsAvg_[idx], curParam, scheduler_->numberOfBatches());
-
-    // fetch the aggregated cost
-    // @TODO: We are sharded here. Need to copy costTmp->grad() to costTmp->val().
-    //auto costTmp = graphs_[idx]->param("special:costTmp", {}, inits::zeros);
-    //costTmp->val()->copyFrom(costTmp->grad());
   };
 
   timer::Timer timer;
   comm_->scatterReduce(); // reduce gradients across all devices (globally) into shards
-  timer.format(2, "after scatterReduce (has sync): %ws");
+  LOG(info, timer.format(2, "after scatterReduce (has sync): %ws"));
   comm_->foreach(update); // per-shard model-update
-  timer.format(2, "after model update (no sync): %ws");
+  LOG(info, timer.format(2, "after model update (no sync): %ws"));
   comm_->allGather();     // distribute param value shards back
-  timer.format(2, "after allGather (has sync): %ws");
+  LOG(info, timer.format(2, "after allGather (has sync): %ws"));
 
-  // cost across all local devices
-  // @TODO: We should report cost aggregated over all MPI processes.
-  float cost = 0;
+  // cost across all local devices (scheduler will aggregate cross-process)
+  float localCost = 0;
   for(auto& c : localDeviceCosts) // localDeviceCosts is already summed up over delay steps
-    cost += c;
+    localCost += c;
 
-  // if cost is average-based, we need to turn the sum over devices into an average as well
-  if(options_->get<std::string>("cost-type") != "ce-sum")
-    cost /= numSubBatches;
-
-  // the cost is not aggregated across MPI workers here; that is done inside the scheduler
+  // if localCost is average-based, we need to turn the sum over devices into an average as well
+  if(options_->get<std::string>("localCost-type") != "ce-sum")
+    localCost /= numSubBatches;
 
   if(scheduler_) {
-    // track and log cost
-    scheduler_->update(cost, subBatches, mpi_);
+    // track and log localCost
+    scheduler_->update(localCost, subBatches, mpi_);
 
     // save intermediate model (and optimizer state) to file
-    if(scheduler_->saving()) {
+    if(scheduler_->saving())
       save();
-    }
 
     // process valid data set
     // This may save a model as well.
