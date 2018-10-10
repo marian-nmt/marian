@@ -73,6 +73,7 @@ public:
         batchGenerator->prepare(shuffle);
       restored = false;
 
+      // @TODO: try to use for(auto ...)
       for(auto batchIt = std::begin(*batchGenerator); 
           batchIt != std::end(*batchGenerator) && scheduler->keepGoing();
           batchIt++) {

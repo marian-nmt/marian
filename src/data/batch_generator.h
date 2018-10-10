@@ -34,7 +34,7 @@ private:
 public:
   
   virtual bool equal(const BatchIterator& other) const {
-    // XAND of batch pointers. They should either be both not set or both set.
+    // iterators are only equal if they point at the same batch or both have nullptr
     return current_ == other.current_;
   }
 
