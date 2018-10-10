@@ -214,9 +214,9 @@ public:
         mpi->allReduce(&state_->costSum, &state_->costSum, 1, MPI_FLOAT, MPI_SUM);
         //LOG(info, "all-reduced cost to {}", state_->costSum);
       }
-      /*if (mpi && mpi->myMPIRank() != 0)   // @TODO: enable this once we are sure this works correctly
+      if (mpi && mpi->myMPIRank() != 0)
         ; // skip the report on alternate worker processes
-      else*/ if(dispLabelCounts) {
+      else if(dispLabelCounts) {
         if(options_->get<bool>(
                "lr-report")) {  // if true then show the learning rate
           LOG(info,
