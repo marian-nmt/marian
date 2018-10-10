@@ -63,11 +63,11 @@ public:
         auto& beam = beams[beamIdx];
         auto& newBeam = newBeams[beamIdx];
 
-        size_t hypIdx = keys[i] / vocabSize;
+        auto hypIdx = (IndexType)(keys[i] / vocabSize);
         float pathScore = pathScores[i];
 
-        size_t hypIdxTrans
-            = (hypIdx / beamSize) + (hypIdx % beamSize) * beams.size();
+        auto hypIdxTrans
+            = IndexType((hypIdx / beamSize) + (hypIdx % beamSize) * beams.size());
         if(first)
           hypIdxTrans = hypIdx;
 
