@@ -134,26 +134,23 @@ private:
 
       // have we reached sufficient amount of data to form a batch?
       bool makeBatch;
-      if(useDynamicBatching) { // batch size based on dynamic batching
-        if(stats_) {
-          for(size_t i = 0; i < sets; ++i)
-            if(batchVector.back()[i].size() > lengths[i])
-              lengths[i] = batchVector.back()[i].size(); // record max lengths so far
+      if(useDynamicBatching && stats_) { // batch size based on dynamic batching
+        for(size_t i = 0; i < sets; ++i)
+          if(batchVector.back()[i].size() > lengths[i])
+            lengths[i] = batchVector.back()[i].size(); // record max lengths so far
 
-          maxBatchSize = stats_->findBatchSize(lengths, cachedStatsIter);
-          // this optimization makes no difference indeed
+        maxBatchSize = stats_->findBatchSize(lengths, cachedStatsIter);
+        // this optimization makes no difference indeed
 #if 1     // sanity check: would we find the same entry if searching from the start?
-          auto it = stats_->lower_bound(lengths);
-          auto maxBatchSize1 = stats_->findBatchSize(lengths, it);
-          ABORT_IF(maxBatchSize != maxBatchSize1, "findBatchSize iter caching logic is borked");
+        auto it = stats_->lower_bound(lengths);
+        auto maxBatchSize1 = stats_->findBatchSize(lengths, it);
+        ABORT_IF(maxBatchSize != maxBatchSize1, "findBatchSize iter caching logic is borked");
 #endif
-
-          makeBatch = batchVector.size() >= maxBatchSize;
-          // if last added sentence caused a bump then we likely have bad padding, so rather move it into the next batch
-          if(batchVector.size() > maxBatchSize) {
-            maxiBatch->push(batchVector.back());
-            batchVector.pop_back();
-          }
+        makeBatch = batchVector.size() >= maxBatchSize;
+        // if last added sentence caused a bump then we likely have bad padding, so rather move it into the next batch
+        if(batchVector.size() > maxBatchSize) {
+          maxiBatch->push(batchVector.back());
+          batchVector.pop_back();
         }
       }
       else if(mbWords > 0) {
