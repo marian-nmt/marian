@@ -35,8 +35,7 @@ protected:
     float correct = 0;
     size_t samples = 0;
 
-    while(*batchGenerator) {
-      auto batch = batchGenerator->next();
+    for(auto batch : *batchGenerator) {
       auto probs = builder_->build(graphs[0], batch, true);
       graphs[0]->forward();
 
