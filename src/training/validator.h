@@ -553,9 +553,6 @@ Tokenizer function from multi-bleu-detok.pl, corresponds to sacreBLEU.py
     normText = regex::regex_replace(normText, regex::regex("^\\s+"), "");
     normText = regex::regex_replace(normText, regex::regex("\\s+$"), "");
 
-    std::cerr << text << std::endl;
-    std::cerr << normText << std::endl << std::endl;
-
     return normText;
   }
 
@@ -567,7 +564,8 @@ Tokenizer function from multi-bleu-detok.pl, corresponds to sacreBLEU.py
   template <typename T>
   void updateStats(std::vector<float>& stats,
                    const std::vector<T>& cand,
-                   const std::vector<T>& ref) {
+                   const std::vector<T>& ref,
+                   bool hasEOS = true) {
 
     std::map<std::vector<T>, size_t> rgrams;
     for(size_t i = 0; i < ref.size(); ++i) {
@@ -581,7 +579,7 @@ Tokenizer function from multi-bleu-detok.pl, corresponds to sacreBLEU.py
     }
 
     std::map<std::vector<T>, size_t> tgrams;
-    for(size_t i = 0; i < cand.size() - 1; ++i) {
+    for(size_t i = 0; i < cand.size() - (size_t)hasEOS; ++i) {
       for(size_t l = 1; l <= std::min<size_t>(4ul, cand.size() - 1 - i); ++l) {
         std::vector<T> ngram(l);
         std::copy(cand.begin() + i, cand.begin() + i + l, ngram.begin());
@@ -622,7 +620,7 @@ Tokenizer function from multi-bleu-detok.pl, corresponds to sacreBLEU.py
     }
 
     if(detok_)
-      updateStats(stats, decode(cand), decode(ref));
+      updateStats(stats, decode(cand), decode(ref), /*hasEOS =*/ false);
     else
       updateStats(stats, cand, ref);
   }
