@@ -28,15 +28,9 @@ private:
   mutable std::vector<std::future<void>> threadResults_; // [device index]
 
   void groupStart() const { NCCLCHECK(ncclGroupStart()); } // helpers to make sure we check the error
-  void groupEnd() const   { NCCLCHECK(ncclGroupEnd());   }
-  //void groupEnd() const {
-  //  auto rc = ncclGroupEnd();
-  //  if (rc != ncclSuccess)
-  //    LOG(critical, "[{}] groupEnd failed", mpiIdStr());
-  //  NCCLCHECK(rc);
-  //}
+  void groupEnd()   const { NCCLCHECK(ncclGroupEnd());   }
 
-  void synchronizeAll() {
+  void synchronizeAll() const {
     for(int i = 0; i < graphs_.size(); ++i) {
       CUDA_CHECK(cudaSetDevice(devices_[i]));
       CUDA_CHECK(cudaStreamSynchronize(streams_[i]));
@@ -234,7 +228,7 @@ catch (const std::exception& e) // something leaks thread handles
     //  t.join();
   }
 
-  void scatterReduce() override {
+  void scatterReduce() const override {
     groupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
       size_t begin, end; std::tie
@@ -254,7 +248,7 @@ catch (const std::exception& e) // something leaks thread handles
     //std::cerr << "scatterReduce completed" << std::endl;
   }
 
-  void allGather() override {
+  void allGather() const override {
     groupStart();
     for(int i = 0; i < graphs_.size(); ++i) {
       size_t begin, end; std::tie
@@ -274,8 +268,8 @@ catch (const std::exception& e) // something leaks thread handles
 
   // swap distributed paramShards with model params()
   // It is assumed that all model params() on all devices and MPI processes are identical.
-  // This is used for the smoothed parameters, and also for persisting optimizer state.
-  void swapParams(const std::vector<Tensor>& distributedParamShards) override {
+  // This is used for the smoothed parameters.
+  void swapParams(const std::vector<Tensor>& distributedParamShards) const override {
     // get everything onto the CPU
     auto distributedParams = gatherState([&](size_t localDeviceIndex) {
       std::vector<float> tmp;
@@ -305,7 +299,7 @@ catch (const std::exception& e) // something leaks thread handles
   }
 
   // Distribute a single CPU-side vector to shards across multiple devices and MPI processes.
-  // This is used when restoring optimizer state, which is sharded.
+  // This is used when restoring optimizer state, which is sharded, and as part of swapParams().
   // It is assumed that all MPI processes get the same data() passed. Hence, no MPI transfers are needed here.
   void scatterState(const std::vector<float>& data, const OptimizerBase::ScatterStateSetFunc& setFn) const override {
     size_t dataSize = data.size();
@@ -321,7 +315,7 @@ catch (const std::exception& e) // something leaks thread handles
   }
 
   // Collect shards across multiple devices and MPI processes in the NCCL configuration into a single CPU-side vector.
-  // This is used when persisting optimizer state, which is sharded.
+  // This is used when persisting optimizer state, which is sharded, and as part of swapParams().
   std::vector<float> gatherState(const OptimizerBase::GatherStateGetFunc& getFn) const override {
     std::vector<float> tmp; // (temp buffer used multiple times)
     // first, concatenate over all local devices

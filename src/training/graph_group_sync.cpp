@@ -160,7 +160,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
 
     comm_->foreach(forwardBackward); // compute gradients in parallel on each device. Aggregate if delay_ > 1.
   }
-  // At this point, each device on eacn MPI process has a gradient aggregated over a subset of the sub-batches.
+  // At this point, each device on each MPI process has a gradient aggregated over a subset of the sub-batches.
 
   // Update parameter shard with gradient shard
   auto update = [&](size_t idx, size_t begin, size_t end) {
@@ -242,8 +242,8 @@ void SyncGraphGroup::load() /*override*/ {
       for(auto graph : graphs_)
         backends.push_back(graph->getBackend());
       shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends,
-        [&](const std::vector<float>& data, const OptimizerBase::ScatterStateSetFunc& setFn) {
-          comm_->scatterState(data, setFn);
+        [&](const std::vector<float>& optimizerStateVector, const OptimizerBase::ScatterStateSetFunc& setShardFn) {
+          comm_->scatterState(optimizerStateVector, setShardFn);
         });
     } else if(options_->has("pretrained-model")) {
       std::string nameInit = options_->get<std::string>("pretrained-model");
@@ -331,8 +331,8 @@ void SyncGraphGroup::save(bool final) /*override*/ {
   // persist optimizer state
   LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_,
-    [&](const OptimizerBase::GatherStateGetFunc& getFn) {
-      return comm_->gatherState(getFn);
+    [&](const OptimizerBase::GatherStateGetFunc& getShardFn) {
+      return comm_->gatherState(getShardFn);
     },
     isMainProcess());
   LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);

@@ -31,14 +31,12 @@ public:
   // helper to apply a function to each local graph, in parallel threads
   typedef std::function<void(size_t, size_t /*shardBegin*/, size_t /*shardEnd*/)> ForeachFunc;
   virtual void foreach(const ForeachFunc& func, bool parallel = true) const = 0;
+  // @TODO: We probably can still share foreach() between the two implementations. Just need to move some helper functions from the .cu file.
 
-  // @TODO: all of these are const, no?
-  virtual void scatterReduce() = 0; // reduce param gradients and scatter into gradient shards
-  virtual void allGather() = 0;     // redistribute value shards into param values
+  virtual void scatterReduce() const = 0; // reduce param gradients and scatter into gradient shards
+  virtual void allGather() const = 0;     // redistribute value shards into param values
 
-  //virtual void pushParams(std::vector<Tensor>& paramShards) = 0;
-  //virtual void pullParams(const std::vector<Tensor>& paramShards) = 0;
-  virtual void swapParams(const std::vector<Tensor>& paramShards) = 0;
+  virtual void swapParams(const std::vector<Tensor>& paramShards) const = 0;
 
   virtual void scatterState(const std::vector<float>& data, const OptimizerBase::ScatterStateSetFunc& setFn) const = 0;
   virtual std::vector<float> gatherState(const OptimizerBase::GatherStateGetFunc& getFn) const = 0;
@@ -110,7 +108,7 @@ private:
   std::vector<Ptr<TensorAllocator>> paramsAllocs_;
   std::vector<Tensor> tmpTensors_;
 
-  void init() {
+  void lazyInit() {
     if(tmpTensors_.size() == 0) {
       int totalSize = (int)graphs_[0]->params()->vals()->size();
       int shardSize = (int)ceil(totalSize / (float)graphs_.size());
@@ -168,8 +166,8 @@ public:
       t.join();
   }
 
-  void scatterReduce() override {
-    init();
+  void scatterReduce() const override {
+    const_cast<DefaultCommunicator*>(this)->lazyInit();
 
     int totalSize = (int)graphs_[0]->params()->vals()->size();
     int shardSize = (int)ceil(totalSize / (float)graphs_.size());
@@ -193,7 +191,7 @@ public:
     foreach(scatter);
   }
 
-  void allGather() override {
+  void allGather() const override {
     int totalSize = (int)graphs_[0]->params()->vals()->size();
     int shardSize = (int)ceil(totalSize / (float)graphs_.size());
 
@@ -216,39 +214,7 @@ public:
     foreach(gather);
   }
 
-#if 0
-  void pushParams(std::vector<Tensor>& paramShards) override {
-    // Copy paramter shard from i-th graph to shard paramShards[i].
-    // Graphs and shards with the same index live on the same device.
-
-    auto copy = [this, paramShards](size_t idx, size_t begin, size_t end) {
-      ABORT_IF(end-begin != paramShards[idx]->size(), "inconsistent shard size (pushParams [{}], {} vs {})??", idx, end-begin, paramShards[idx]->size());
-      // Copy parameter shard to each graph
-      auto subParam
-          = graphs_[idx]->params()->vals()->subtensor(begin, paramShards[idx]->size());
-      paramShards[idx]->copyFrom(subParam);
-    };
-
-    foreach(copy);
-  }
-
-  void pullParams(const std::vector<Tensor>& paramShards) override {
-    // Update all graphs with parameter shard
-
-    auto gather = [this, paramShards](size_t idx, size_t begin, size_t end) {
-      ABORT_IF(end-begin != paramShards[idx]->size(), "inconsistent shard size (pullParams, [{}], {} vs {})??", idx, end-begin, paramShards[idx]->size());
-      // Copy parameter shard to each graph
-      for(auto graph : graphs_) {
-        auto subParam
-            = graph->params()->vals()->subtensor(begin, paramShards[idx]->size());
-        subParam->copyFrom(paramShards[idx]);
-      }
-    };
-    foreach(gather);
-  }
-#endif
-
-  void swapParams(const std::vector<Tensor>& paramShards) override {
+  void swapParams(const std::vector<Tensor>& paramShards) const override {
     // Update all graphs with parameter shard
     ABORT_IF(graphs_.size() < 2, "Swap requires at least two graphs");
 
