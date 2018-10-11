@@ -556,16 +556,18 @@ Tokenizer function from multi-bleu-detok.pl, corresponds to sacreBLEU.py
     return normText;
   }
 
-  std::vector<std::string> decode(const Words& words) {
+  std::vector<std::string> decode(const Words& words, bool addEOS = false) {
     auto vocab = vocabs_.back();
-    return utils::splitAny(tokenize(vocab->decode(words)), " ");
+    auto tokens = utils::splitAny(tokenize(vocab->decode(words)), " ");
+    if(addEOS)
+      tokens.push_back("</s>");
+    return tokens;
   }
 
   template <typename T>
   void updateStats(std::vector<float>& stats,
                    const std::vector<T>& cand,
-                   const std::vector<T>& ref,
-                   bool hasEOS = true) {
+                   const std::vector<T>& ref) {
 
     std::map<std::vector<T>, size_t> rgrams;
     for(size_t i = 0; i < ref.size(); ++i) {
@@ -579,7 +581,7 @@ Tokenizer function from multi-bleu-detok.pl, corresponds to sacreBLEU.py
     }
 
     std::map<std::vector<T>, size_t> tgrams;
-    for(size_t i = 0; i < cand.size() - (size_t)hasEOS; ++i) {
+    for(size_t i = 0; i < cand.size() - 1; ++i) {
       for(size_t l = 1; l <= std::min<size_t>(4ul, cand.size() - 1 - i); ++l) {
         std::vector<T> ngram(l);
         std::copy(cand.begin() + i, cand.begin() + i + l, ngram.begin());
@@ -620,7 +622,7 @@ Tokenizer function from multi-bleu-detok.pl, corresponds to sacreBLEU.py
     }
 
     if(detok_)
-      updateStats(stats, decode(cand), decode(ref), /*hasEOS =*/ false);
+      updateStats(stats, decode(cand, /*addEOS=*/ true), decode(ref));
     else
       updateStats(stats, cand, ref);
   }
