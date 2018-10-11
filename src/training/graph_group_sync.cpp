@@ -39,6 +39,7 @@ void SyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) /*override*/ {
 
 void SyncGraphGroup::initialize(const Ptr<data::Batch>& exampleBatch) {
   // Initialize 0th graph with random weights in one forward step
+  // @TODO: Why do we need the THREAD_GUARD here? Why not run this on the main thread?
   THREAD_GUARD({
     builders_[0]->build(graphs_[0], exampleBatch);
     graphs_[0]->forward();
@@ -58,6 +59,7 @@ void SyncGraphGroup::initialize(const Ptr<data::Batch>& exampleBatch) {
     pool.enqueue(init, i);
   }
   // ThreadPool destructor waits until completion of all tasks.
+  // @TODO: can we use comm_->foreach()?
 }
 
 void SyncGraphGroup::initializeAvg() {

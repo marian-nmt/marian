@@ -1,16 +1,17 @@
 #pragma once
 
-#include <condition_variable>
-#include <deque>
-#include <functional>
-#include <mutex>
-#include <queue>
-
 #include "common/config.h"
 #include "data/batch_stats.h"
 #include "data/rng_engine.h"
 #include "training/training_state.h"
 #include "data/iterator_facade.h"
+#include "3rd_party/threadpool.h"
+
+#include <condition_variable>
+#include <deque>
+#include <functional>
+#include <mutex>
+#include <queue>
 
 
 // @TODO: remove this.
@@ -85,6 +86,7 @@ private:
   std::deque<BatchPtr> bufferedBatches_;
   BatchPtr currentBatch_;
 
+  mutable ThreadPool threadPool_; // (we only use one thread, but keep it around)
   mutable std::mutex loadMutex_;
   mutable std::condition_variable loadCondition_;
   bool loadingSamples_{false};
@@ -261,11 +263,21 @@ private:
       if(!loadingSamples_ && hadData_) {
 try{
         loadingSamples_ = true;
+#if 1
+        threadPool_.enqueue([this]() {
+        //std::thread([this]() {
+          //pid_t gettid(void) { return syscall(SYS_gettid); }
+          //LOG(info, "new thread for fillBatch with id {}", (pid_t)syscall(SYS_gettid));
+          fillBatches(shuffle_); 
+        });
+        //.detach();
+#else
         std::thread([this]() { 
           //pid_t gettid(void) { return syscall(SYS_gettid); }
           LOG(info, "new thread for fillBatch with id {}", (pid_t)syscall(SYS_gettid));
           fillBatches(shuffle_); 
         }).detach();
+#endif
 }
 catch (const std::exception&) { // something leaks thread handles
   LOG(info, "caught exception in Corpus::next()");
@@ -313,7 +325,7 @@ public:
   BatchGenerator(Ptr<DataSet> data,
                  Ptr<Config> options,
                  Ptr<BatchStats> stats = nullptr)
-      : data_(data), options_(options), stats_(stats) {}
+      : data_(data), options_(options), stats_(stats), threadPool_(1) {}
 
   iterator begin() {
     return iterator(this, next());

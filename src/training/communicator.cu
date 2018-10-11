@@ -1,6 +1,7 @@
 // @TODO: rename to communicator_nccl.h
 // Note: This must only be included if defined(CUDA_FOUND) && defined(USE_NCCL)
 #include "training/communicator.h"
+#include "3rd_party/threadpool.h"
  
 #include "cuda_runtime.h"
 #include "nccl.h"
@@ -23,15 +24,17 @@ private:
   std::vector<cudaStream_t> streams_; // [device index]
   std::vector<int> devices_;          // [device index]
   Ptr<IMPIWrapper> mpi_; // (may be null)
+  mutable ThreadPool threadPool_;
+  mutable std::vector<std::future<void>> threadResults_; // [device index]
 
   void groupStart() const { NCCLCHECK(ncclGroupStart()); } // helpers to make sure we check the error
-  //void groupEnd() const   { NCCLCHECK(ncclGroupEnd());   }
-  void groupEnd() const {
-    auto rc = ncclGroupEnd();
-    if (rc != ncclSuccess)
-      LOG(critical, "[{}] groupEnd failed", mpiIdStr());
-    NCCLCHECK(rc);
-  }
+  void groupEnd() const   { NCCLCHECK(ncclGroupEnd());   }
+  //void groupEnd() const {
+  //  auto rc = ncclGroupEnd();
+  //  if (rc != ncclSuccess)
+  //    LOG(critical, "[{}] groupEnd failed", mpiIdStr());
+  //  NCCLCHECK(rc);
+  //}
 
   void synchronizeAll() {
     for(int i = 0; i < graphs_.size(); ++i) {
@@ -130,6 +133,7 @@ public:
         comms_(graphs.size()),
         streams_(graphs.size()),
         devices_(graphs.size()),
+        threadPool_(graphs.size(), graphs.size()), threadResults_(graphs.size()),
         mpi_(mpi) {
     mpiBarrier(); // barrier to group the multiple log messages from MPI processes
     LOG(info, "[comm] Using NCCL {} {}for GPU communication",
@@ -202,16 +206,17 @@ public:
   void foreach(const ForeachFunc& func, bool parallel = true) const override {
     parallel &= graphs_.size() > 1;
 
-    std::vector<std::thread> group;
     for(size_t i = 0; i < graphs_.size(); ++i) {
       size_t begin, end; std::tie
       (begin, end) = localShardRange(i);
       //std::cerr << "[" << mpiIdStr() << "] foreach " << begin << " " << end << std::endl;
-      size_t size = end-begin;
-
 try{
       if (parallel)
-        group.emplace_back(func, i, begin, end);
+        threadResults_[i] = threadPool_.enqueue(func, i, begin, end);
+        //group.emplace_back(func, i, begin, end);
+        //threadPool_.enqueue([&](size_t i){
+        //  func(i, begin, end);
+        //}, i);
       else
         func(i, begin, end);
 }
@@ -222,8 +227,11 @@ catch (const std::exception& e) // something leaks thread handles
   throw;
 }
     }
-    for(auto& t : group) // (note: group is empty is not parallel)
-      t.join();
+    if (parallel)
+      for(size_t i = 0; i < graphs_.size(); ++i)
+        threadResults_[i].wait();
+    //for(auto& t : group) // (note: group is empty is not parallel)
+    //  t.join();
   }
 
   void scatterReduce() override {
