@@ -25,10 +25,15 @@ public:
     // This is expected to be called multiple times with increasing sentence lengths.
     // To get an initial value for 'it', call lower_bound() or begin().
 
-    for(size_t i = 0; i < lengths.size(); ++i)
-      while(it != map_.end() && it->first[i] < lengths[i])
-        it++;
-    // @BUGBUG: Is it guaranteed that if we bump it, that a length value in the key never decreases?
+    bool done = false;
+    while (!done && it != map_.end()) {
+      done = true;
+      for(size_t i = 0; i < lengths.size(); ++i)
+        while(it != map_.end() && it->first[i] < lengths[i]) {
+          it++;
+          done = false; // it++ might have decreased a key[<i], so we must check once again
+        }
+    }
 
     ABORT_IF(it == map_.end(), "Missing batch statistics");
     return it->second;
