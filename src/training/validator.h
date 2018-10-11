@@ -505,7 +505,7 @@ public:
     return val;
   };
 
-  std::string type() override { return "bleu"; }
+  std::string type() override { return detok_ ? "bleu-detok" : "bleu"; }
 
 protected:
   bool quiet_{false};
