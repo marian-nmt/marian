@@ -553,6 +553,9 @@ Tokenizer function from multi-bleu-detok.pl, corresponds to sacreBLEU.py
     normText = regex::regex_replace(normText, regex::regex("^\\s+"), "");
     normText = regex::regex_replace(normText, regex::regex("\\s+$"), "");
 
+    std::cerr << text << std::endl;
+    std::cerr << normText << std::endl << std::endl;
+
     return normText;
   }
 
