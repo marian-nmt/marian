@@ -1,8 +1,7 @@
 #include "training/communicator.h"
 
 #if defined(CUDA_FOUND) && defined(USE_NCCL)
-#include "training/communicator.cu"
-//#include "training/communicator_nccl.h" // @TODO: rename to this
+#include "training/communicator_nccl.h"
 #endif
 
 #if MPI_FOUND
