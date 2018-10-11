@@ -101,8 +101,9 @@ void SyncGraphGroup::initializeAvg() {
 }
 
 Ptr<data::BatchStats> SyncGraphGroup::collectStats() {
-    size_t multiplier = devices_.size() * mpi_->numMPIProcesses() * delay_;
-    return GraphGroup::collectStats(graphs_[0], builders_[0], multiplier);
+  // @TODO: This should only run on MPI process 0. Also we can share vv this vv expression with update().
+  size_t multiplier = devices_.size() * mpi_->numMPIProcesses() * delay_;
+  return GraphGroup::collectStats(graphs_[0], builders_[0], multiplier);
 }
 
 void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
