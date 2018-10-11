@@ -123,7 +123,6 @@ public:
 
 // dummy MPI wrapper that implements only one process without actual operations
 // This is used when not compiling under MPI.
-// @TODO: Complete this.
 class FakeMPIWrapper : public IMPIWrapper
 {
 public:
@@ -148,6 +147,9 @@ public:
     ABORT_IF(status != MPI_STATUS_IGNORE, "fake recv not implemented when passing a status");
   }
   virtual void allReduce(const void* sendbuf, void* recvbuf, size_t count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) const override {
+    // @TODO: There is only one place where this is called with sendbuf != recvbuf, which is sync multi-node.
+    //        I think that can be changed to use the same buffer. Then we should change this API
+    //        to only accept one parameter, and remove this error check can be removed.
     ABORT_IF(sendbuf != recvbuf, "fake allReduce only implemented for in-place operation"); // otherwise it's not a no-op, we must copy data
   }
 #pragma warning(push)

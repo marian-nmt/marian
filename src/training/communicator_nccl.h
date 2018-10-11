@@ -332,17 +332,11 @@ catch (const std::exception& e) // something leaks thread handles
       // push one rank's data at a time using broadcast
       for(size_t mpiRank = 0; mpiRank < mpi_->numMPIProcesses(); mpiRank++) {
         // broadcast mpiRank's localData to all
-        // first send the size
-        unsigned long long size = (mpiRank == mpi_->myMPIRank()) ? localData.size() : 0;
-        mpi_->bCast(&size, 1, MPI_UNSIGNED_LONG_LONG, /*root=*/mpiRank);
-        LOG(info, "[{}] gatherState: root = rank {}; broadcast size = {}", mpiIdStr(), mpiRank, size);
-        // then the data
-        auto& buf = (mpiRank == mpi_->myMPIRank()) ? localData : tmp;
-        buf.resize(size); // (this is a no-op for myRank)
-        ABORT_IF(mpiRank == mpi_->myMPIRank() && buf.size() != localData.size(), "??");
-        mpi_->bCast(buf.data(), buf.size(), MPI_FLOAT, /*root=*/mpiRank);
+        if(mpiRank == mpi_->myMPIRank())
+          tmp = localData;
+        mpi_->bCast(tmp, /*rootRank=*/mpiRank);
         // now all ranks have the same slice: concatenate (we will end up with the same on all MPI processes)
-        data.insert(data.end(), buf.begin(), buf.end());
+        data.insert(data.end(), tmp.begin(), tmp.end());
       }
     }
     else { // no MPI: localData is the complete result already

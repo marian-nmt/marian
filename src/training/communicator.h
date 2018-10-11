@@ -74,7 +74,7 @@ private:
 public:
   template<typename T>
   void bCast(std::vector<T>& v, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) {
-    size_t vecLen = v.size();
+    unsigned long long vecLen = (unsigned long long)v.size(); // only value from rootRank is used here
     bCast(&vecLen, 1, getDataType(&vecLen), rootRank, comm);
     v.resize(vecLen);
     bCast(v.data(), v.size(), getDataType(v.data()), rootRank, comm);
