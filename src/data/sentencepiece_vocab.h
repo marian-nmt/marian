@@ -46,21 +46,23 @@ public:
 
   virtual size_t size() const;
 
+  virtual std::string type() const { return "SentencePieceVocab"; }
+
   virtual Word getEosId() const override { return (Word)spm_->eos_id(); }
   virtual Word getUnkId() const override { return (Word)spm_->unk_id(); }
 
   void create(const std::string& /*vocabPath*/, const std::string& /*trainPath*/) {
-    ABORT("[data] Training of SentencePieceVocabulary not supported yet");
+    ABORT("[data] Training of SentencePieceVocab not supported yet");
   }
 
   void create(io::InputFileStream& /*trainStrm*/,
               io::OutputFileStream& /*vocabStrm*/,
               size_t /*maxSize*/) {
-    ABORT("[data] Training of SentencePieceVocabulary not supported yet");
+    ABORT("[data] Training of SentencePieceVocab not supported yet");
   }
 
   void createFake() {
-    ABORT("[data] Fake SentencePieceVocabulary not supported");
+    ABORT("[data] Fake SentencePieceVocab not supported");
   }
 };
 
@@ -100,17 +102,17 @@ size_t SentencePieceVocab::size() const {
 }
 
 int SentencePieceVocab::load(const std::string& vocabPath, int /*max*/) {
-  LOG(info, "[data] Loading SentencePiece vocabulary from file {}", vocabPath);
+  LOG(info, "[data] Loading SentencePieceVocab from file {}", vocabPath);
 
   ABORT_IF(!filesystem::exists(vocabPath),
-           "SentencePiece vocabulary file {} does not exits",
+           "SentencePieceVocab file {} does not exits",
            vocabPath);
 
   spm_.reset(new sentencepiece::SentencePieceProcessor());
   const auto status = spm_->Load(vocabPath);
 
   ABORT_IF(!status.ok(),
-           "SentencePiece error: {}",
+           "SentencePieceVocab error: {}",
            status.ToString());
 
   return spm_->GetPieceSize();

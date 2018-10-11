@@ -42,6 +42,8 @@ public:
 
   virtual size_t size() const;
 
+  virtual std::string type() const { return "DefaultVocab"; }
+
   virtual Word getEosId() const override { return eosId_; }
   virtual Word getUnkId() const override { return unkId_; }
 

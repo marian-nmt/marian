@@ -15,51 +15,54 @@ private:
   Ptr<VocabImpl> vImpl_;
 
 public:
-  virtual int loadOrCreate(const std::string& vocabPath,
-                           const std::string& textPath,
-                           int max = 0);
+  int loadOrCreate(const std::string& vocabPath,
+                   const std::string& textPath,
+                   int max = 0);
 
-  virtual int load(const std::string& vocabPath, int max = 0);
-  virtual void create(const std::string& vocabPath, const std::string& trainPath);
+  int load(const std::string& vocabPath, int max = 0);
+  void create(const std::string& vocabPath, const std::string& trainPath);
 
-  virtual void create(io::InputFileStream& trainStrm,
-                      io::OutputFileStream& vocabStrm,
-                      size_t maxSize = 0);
+  void create(io::InputFileStream& trainStrm,
+              io::OutputFileStream& vocabStrm,
+              size_t maxSize = 0);
 
   // string token to token id
-  virtual Word operator[](const std::string& word) const {
+  Word operator[](const std::string& word) const {
     return vImpl_->operator[](word);
   }
 
   // token id to string token
-  virtual const std::string& operator[](Word id) const {
+  const std::string& operator[](Word id) const {
     return vImpl_->operator[](id);
   }
 
   // line of text to list of token ids, can perform tokenization
-  virtual Words encode(const std::string& line,
-                       bool addEOS = true,
-                       bool inference = false) const {
+  Words encode(const std::string& line,
+               bool addEOS = true,
+               bool inference = false) const {
     return vImpl_->encode(line, addEOS, inference);
   }
 
   // list of token ids to single line, can perform detokenization
-  virtual std::string decode(const Words& sentence,
-                             bool ignoreEOS = true) const {
+  std::string decode(const Words& sentence,
+                     bool ignoreEOS = true) const {
     return vImpl_->decode(sentence, ignoreEOS);
   }
 
   // number of vocabulary items
-  virtual size_t size() const { return vImpl_->size(); }
+  size_t size() const { return vImpl_->size(); }
+
+  // number of vocabulary items
+  std::string type() const { return vImpl_->type(); }
 
   // return EOS symbol id
-  virtual Word getEosId() const { return vImpl_->getEosId(); }
+  Word getEosId() const { return vImpl_->getEosId(); }
 
   // return UNK symbol id
-  virtual Word getUnkId() const { return vImpl_->getUnkId(); }
+  Word getUnkId() const { return vImpl_->getUnkId(); }
 
   // create fake vocabulary for collecting batch statistics
-  virtual void createFake();
+  void createFake();
 };
 
 }  // namespace marian

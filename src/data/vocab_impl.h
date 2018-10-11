@@ -46,6 +46,7 @@ public:
   virtual const std::string& operator[](Word /*id*/) const = 0;
 
   virtual size_t size() const = 0;
+  virtual std::string type() const = 0;
 
   virtual Word getEosId() const = 0;
   virtual Word getUnkId() const = 0;
