@@ -12,6 +12,12 @@
 #include "training/training_state.h"
 #include "data/iterator_facade.h"
 
+
+// @TODO: remove this.
+#include <sys/syscall.h>
+
+
+
 namespace marian {
 namespace data {
 
@@ -247,16 +253,25 @@ private:
     loadCondition_.notify_all();
   }
 
-    BatchPtr next() {
+  BatchPtr next() {
     // Start preloading batches and inform that loading is happening.
     // Detach the loading process so it's not blocking batch processing.
     {
       std::unique_lock<std::mutex> lock(loadMutex_);
       if(!loadingSamples_ && hadData_) {
+try{
         loadingSamples_ = true;
         std::thread([this]() { 
+          //pid_t gettid(void) { return syscall(SYS_gettid); }
+          LOG(info, "new thread for fillBatch with id {}", (pid_t)syscall(SYS_gettid));
           fillBatches(shuffle_); 
         }).detach();
+}
+catch (const std::exception&) { // something leaks thread handles
+  LOG(info, "caught exception in Corpus::next()");
+  system("ps -T -A");
+  throw;
+}
       }
     }
     

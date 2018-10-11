@@ -37,6 +37,10 @@ private:
     for(int i = 0; i < graphs_.size(); ++i) {
       CUDA_CHECK(cudaSetDevice(devices_[i]));
       CUDA_CHECK(cudaStreamSynchronize(streams_[i]));
+      // @TODO: why do we sync the CPU, and not the GPU?
+      //  - cudaEventRecord() an event on the nccl stream
+      //  - submit a cudaStreamWaitEvent() into our compute stream (=NULL stream)
+      // cf. https://github.com/pytorch/pytorch/blob/master/torch/lib/c10d/ProcessGroupNCCL.cpp
     }
   }
 
@@ -205,10 +209,18 @@ public:
       //std::cerr << "[" << mpiIdStr() << "] foreach " << begin << " " << end << std::endl;
       size_t size = end-begin;
 
+try{
       if (parallel)
         group.emplace_back(func, i, begin, end);
       else
         func(i, begin, end);
+}
+catch (const std::exception& e) // something leaks thread handles
+{
+  LOG(info, "caught exception in foreach {}", i);
+  system("ps -T -A");
+  throw;
+}
     }
     for(auto& t : group) // (note: group is empty is not parallel)
       t.join();
