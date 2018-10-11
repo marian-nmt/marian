@@ -15,16 +15,24 @@ public:
   // VocabImpl(size_t batchIndex, Ptr<Options> options)
   //  : batchIndex_(batchIndex), options_(options) {}
 
-  virtual int loadOrCreate(const std::string& /*vocabPath*/,
-                           const std::string& /*textPath*/,
-                           int /*max*/ = 0) = 0;
-
   virtual int load(const std::string& /*vocabPath*/, int /*max*/ = 0) = 0;
   virtual void create(const std::string& /*vocabPath*/, const std::string& /*trainPath*/) = 0;
 
   virtual void create(io::InputFileStream& /*trainStrm*/,
                       io::OutputFileStream& /*vocabStrm*/,
                       size_t /*maxSize*/ = 0) = 0;
+
+  // return canonical suffix for given type of vocabulary
+  virtual const std::string& canonicalSuffix() const = 0;
+  virtual const std::vector<std::string>& suffixes() const = 0;
+
+
+  virtual int findAndLoad(const std::string& path, int max) {
+    for(auto suffix : suffixes())
+      if(filesystem::exists(path + suffix))
+        return load(path + suffix, max);
+    return 0;
+  }
 
   virtual Word operator[](const std::string& /*word*/) const = 0;
 

@@ -77,7 +77,6 @@ public:
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     auto corpus = New<DataSet>(validPaths, vocabs_, opts);
-    corpus->setInference(true);
 
     // Generate batches
     auto batchGenerator = New<BatchGenerator<DataSet>>(corpus, opts);
@@ -404,7 +403,6 @@ public:
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     std::vector<std::string> paths(validPaths.begin(), validPaths.end());
     auto corpus = New<data::Corpus>(paths, vocabs_, opts);
-    corpus->setInference(true);
 
     // Generate batches
     auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, opts);
@@ -495,40 +493,26 @@ public:
 protected:
   bool quiet_{false};
 
+  template <typename T>
   void updateStats(std::vector<float>& stats,
-                   const Words& cand,
-                   const Ptr<data::Batch> batch,
-                   size_t no,
-                   Word eos) {
-    auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
-    auto subBatch = corpusBatch->back();
+                   const std::vector<T>& cand,
+                   const std::vector<T>& ref) {
 
-    size_t size = subBatch->batchSize();
-    size_t width = subBatch->batchWidth();
-
-    Words ref;  // fill ref
-    for(size_t i = 0; i < width; ++i) {
-      Word w = subBatch->data()[i * size + no];
-      if(w == eos)
-        break;
-      ref.push_back(w);
-    }
-
-    std::map<std::vector<Word>, size_t> rgrams;
+    std::map<std::vector<T>, size_t> rgrams;
     for(size_t i = 0; i < ref.size(); ++i) {
       // template deduction for std::min<T> seems to be weird under VS due to
       // macros in windows.h hence explicit type to avoid macro parsing.
       for(size_t l = 1; l <= std::min<size_t>(4ul, ref.size() - i); ++l) {
-        std::vector<Word> ngram(l);
+        std::vector<T> ngram(l);
         std::copy(ref.begin() + i, ref.begin() + i + l, ngram.begin());
         rgrams[ngram]++;
       }
     }
 
-    std::map<std::vector<Word>, size_t> tgrams;
+    std::map<std::vector<T>, size_t> tgrams;
     for(size_t i = 0; i < cand.size() - 1; ++i) {
       for(size_t l = 1; l <= std::min<size_t>(4ul, cand.size() - 1 - i); ++l) {
-        std::vector<Word> ngram(l);
+        std::vector<T> ngram(l);
         std::copy(cand.begin() + i, cand.begin() + i + l, ngram.begin());
         tgrams[ngram]++;
       }
@@ -544,6 +528,29 @@ protected:
     }
 
     stats[8] += ref.size();
+  }
+
+  void updateStats(std::vector<float>& stats,
+                   const Words& cand,
+                   const Ptr<data::Batch> batch,
+                   size_t no,
+                   Word eos) {
+
+    auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
+    auto subBatch = corpusBatch->back();
+
+    size_t size = subBatch->batchSize();
+    size_t width = subBatch->batchWidth();
+
+    Words ref;  // fill ref
+    for(size_t i = 0; i < width; ++i) {
+      Word w = subBatch->data()[i * size + no];
+      if(w == eos)
+        break;
+      ref.push_back(w);
+    }
+
+    updateStats(stats, cand, ref);
   }
 
   float calcBLEU(const std::vector<float>& stats) {

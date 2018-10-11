@@ -20,15 +20,14 @@ namespace marian {
 
 class DefaultVocab : public VocabImpl {
 public:
-  virtual int loadOrCreate(const std::string& vocabPath,
-                           const std::string& textPath,
-                           int max = 0) override;
-
   virtual int load(const std::string& vocabPath, int max = 0) override;
   virtual void create(const std::string& vocabPath, const std::string& trainPath) override;
   virtual void create(io::InputFileStream& trainStrm,
                       io::OutputFileStream& vocabStrm,
                       size_t maxSize = 0) override;
+  
+  virtual const std::string& canonicalSuffix() const { return suffixes_[0]; }
+  virtual const std::vector<std::string>& suffixes() const { return suffixes_; }
 
   virtual Word operator[](const std::string& word) const override;
 
@@ -65,6 +64,8 @@ private:
 
   Word eosId_ = (Word)-1;
   Word unkId_ = (Word)-1;
+
+  std::vector<std::string> suffixes_ = { ".yml", ".yaml", ".json" };
 
   class VocabFreqOrderer;
 };
@@ -119,28 +120,6 @@ const std::string& DefaultVocab::operator[](Word id) const {
 
 size_t DefaultVocab::size() const {
   return id2str_.size();
-}
-
-int DefaultVocab::loadOrCreate(const std::string& vocabPath,
-                        const std::string& trainPath,
-                        int max) {
-  if(vocabPath.empty()) {
-    if(filesystem::exists(trainPath + ".json")) {
-      return load(trainPath + ".json", max);
-    }
-    if(filesystem::exists(trainPath + ".yaml")) {
-      return load(trainPath + ".yaml", max);
-    }
-    if(filesystem::exists(trainPath + ".yml")) {
-      return load(trainPath + ".yml", max);
-    }
-    create(trainPath + ".yml", trainPath);
-    return load(trainPath + ".yml", max);
-  } else {
-    if(!filesystem::exists(vocabPath))
-      create(vocabPath, trainPath);
-    return load(vocabPath, max);
-  }
 }
 
 // helper to insert a word into str2id_[] and id2str_[]

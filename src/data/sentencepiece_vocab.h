@@ -22,13 +22,16 @@ class SentencePieceVocab : public VocabImpl {
 private:
   UPtr<sentencepiece::SentencePieceProcessor> spm_;
   float alpha_{0};
+  std::vector<std::string> suffixes_ = {".spm"};
 
 public:
-  virtual int loadOrCreate(const std::string& vocabPath,
-                           const std::string& textPath,
-                           int max = 0) override;
 
   virtual int load(const std::string& vocabPath, int max = 0) override;
+
+  virtual const std::string& canonicalSuffix() const { return suffixes_[0]; }
+  virtual const std::vector<std::string>& suffixes() const { return suffixes_; }
+
+  virtual std::string suffix() { return suffixes_[0]; };
 
   virtual Word operator[](const std::string& word) const override;
 
@@ -94,25 +97,6 @@ std::string SentencePieceVocab::decode(const Words& sentence, bool ignoreEOS) co
 
 size_t SentencePieceVocab::size() const {
   return spm_->GetPieceSize();
-}
-
-int SentencePieceVocab::loadOrCreate(const std::string& vocabPath,
-                                     const std::string& trainPath,
-                                     int max) {
-  if(vocabPath.empty()) {
-    if(filesystem::exists(trainPath + ".spm")) {
-      return load(trainPath + ".spm", max);
-    }
-
-    // @TODO: make this work, currently it will abort on purpose
-    create(trainPath + ".spm", trainPath);
-    return load(trainPath + ".spm", max);
-  } else {
-    if(!filesystem::exists(vocabPath))
-      // @TODO: make this work, currently it will abort on purpose
-      create(vocabPath, trainPath);
-    return load(vocabPath, max);
-  }
 }
 
 int SentencePieceVocab::load(const std::string& vocabPath, int /*max*/) {

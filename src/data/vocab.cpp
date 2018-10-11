@@ -25,11 +25,33 @@ Ptr<VocabImpl> vocabFactory(const std::string& vocabPath) {
 }
 
 int Vocab::loadOrCreate(const std::string& vocabPath,
-                        const std::string& textPath,
+                        const std::string& trainPath,
                         int max) {
-  if(!vImpl_)
-    vImpl_ = vocabFactory(vocabPath);
-  vImpl_->loadOrCreate(vocabPath, textPath, max);
+  
+  if(vocabPath.empty()) {
+    // No vocabulary path was given, attempt to first find a vocabulary
+    // for trainPath + possible suffixes. If not found attempt to create
+    // as trainPath + canonical suffix. 
+    vImpl_ = New<DefaultVocab>();
+
+    int size = vImpl_->findAndLoad(trainPath, max);
+    if(size > 0)
+      return size;
+
+    auto path = trainPath + vImpl_->canonicalSuffix();
+    vImpl_->create(path, trainPath);
+    return vImpl_->load(path, max);
+  } else {
+    if(!filesystem::exists(vocabPath)) {
+      // Vocabulary path was given, but no vocabulary present,
+      // attempt to create in specified location.
+      create(vocabPath, trainPath);
+    }
+    
+    // Vocabulary path exists, attempting to load
+    return load(vocabPath, max);
+  }
+
 }
 
 int Vocab::load(const std::string& vocabPath, int max) {
