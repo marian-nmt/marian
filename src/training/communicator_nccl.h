@@ -178,14 +178,14 @@ public:
     groupStart();
     for (int localDeviceIndex = 0; localDeviceIndex < devices_.size(); localDeviceIndex++) {
       CUDA_CHECK(cudaSetDevice(devices_[localDeviceIndex]));
-      LOG(info, "[{}] ncclCommInitRank {} out of {}: GPU[{}]", mpiIdStr(), myNcclRank(localDeviceIndex), numNcclRanks(), localDeviceIndex);
+      //LOG(info, "[{}] ncclCommInitRank {} out of {}: GPU[{}]", mpiIdStr(), myNcclRank(localDeviceIndex), numNcclRanks(), localDeviceIndex);
       NCCLCHECK(ncclCommInitRank(&comms_[localDeviceIndex], numNcclRanks(), uniqueId, myNcclRank(localDeviceIndex)));
       //LOG(info, "[{}] done ncclCommInitRank {} out of {}, GPU[{}]", mpiIdStr(), myNcclRank(localDeviceIndex), numNcclRanks(), localDeviceIndex);
     }
     groupEnd();
 
     mpiBarrier(); // (synchronize the log messages)
-    LOG(info, "[{}] NCCLCommunicator constructed successfully", mpiIdStr());
+    LOG(info, "NCCLCommunicator constructed successfully for {}", mpiIdStr());
     mpiBarrier(); // (synchronize the log messages)
   }
 
@@ -216,6 +216,7 @@ try{
 }
 catch (const std::exception& e) // something leaks thread handles
 {
+  // keeping this around, in case the error still happens  --@TODO: remove once this has not been observed anymore
   LOG(info, "caught exception in foreach {}", i);
   system("ps -T -A");
   throw;
@@ -277,14 +278,14 @@ catch (const std::exception& e) // something leaks thread handles
     auto distributedParams = gatherState([&](size_t localDeviceIndex) {
       std::vector<float> tmp;
       distributedParamShards[localDeviceIndex]->get(tmp);
-      LOG(info, "[{}] swapParams.getFn({}) -> size {}, ({}, {}, {}, ...)", mpiIdStr(), localDeviceIndex, tmp.size(), tmp[0], tmp[1], tmp[2]);
+      //LOG(info, "[{}] swapParams.getFn({}) -> size {}, ({}, {}, {}, ...)", mpiIdStr(), localDeviceIndex, tmp.size(), tmp[0], tmp[1], tmp[2]);
       return tmp;
     });
     // Now all MPI processes hold an identical copy of a concatenation of all distributedParamShards[] across local and remote devices.
     std::vector<float> localParams;
     graphs_[0]->params()->vals()->get(localParams);
     // Now all MPI processes hold an identical copy of params() (remember, we assumed all devices hold the same params()).
-    LOG(info, "[{}] swapParams: distributedParams.size = {}, localParams.size = {}", mpiIdStr(), distributedParams.size(), localParams.size());
+    //LOG(info, "[{}] swapParams: distributedParams.size = {}, localParams.size = {}", mpiIdStr(), distributedParams.size(), localParams.size());
     ABORT_IF(distributedParams.size() != localParams.size(), "distributed sharded and local params have different size??");
 
     // swap
@@ -327,7 +328,7 @@ catch (const std::exception& e) // something leaks thread handles
       tmp = getFn(localDeviceIndex);
       localData.insert(localData.end(), tmp.begin(), tmp.end());
     }
-    LOG(info, "[{}] gatherState: localData.size = {}", mpiIdStr(), localData.size());
+    //LOG(info, "[{}] gatherState: localData.size = {}", mpiIdStr(), localData.size());
     // second, concatenate across MPI processes
     // Note that all local devices occupy consecutive ncclRanks in order.
     std::vector<float> data;

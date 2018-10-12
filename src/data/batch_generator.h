@@ -13,12 +13,6 @@
 #include <mutex>
 #include <queue>
 
-
-// @TODO: remove this.
-#include <sys/syscall.h>
-
-
-
 namespace marian {
 namespace data {
 
@@ -94,7 +88,7 @@ private:
 
   // this runs on a bg thread; sequencing is handled by caller, but locking is done in here
   void fillBatches(bool shuffle = true) {
-    LOG(info, "fillBatches entered");
+    //LOG(info, "fillBatches entered");
     typedef typename sample::value_type Item;
     auto itemCmp = [](const Item& sa, const Item& sb) { return sa.size() < sb.size(); }; // sort by element length, not content
 
@@ -152,7 +146,7 @@ private:
           ++current_; // this actually reads the next line and pre-processes it
       }
     }
-    catch (const std::exception & e) {
+    catch (const std::exception & e) { // @TODO: This can probably be removed.
       LOG("exception caught while reading corpus data: {}", e.what());
       logCallStack(0);
       throw;
@@ -171,7 +165,7 @@ private:
 
     // process all loaded sentences in order of increasing length
     // @TODO: we could just use a vector and do a sort() here; would make the cost more explicit
-    LOG(info, "begin form batches, #lines = {}", maxiBatch->size());
+    //LOG(info, "begin form batches, #lines = {}", maxiBatch->size());
     const size_t mbWords = options_->get<size_t>("mini-batch-words", 0);
     const bool useDynamicBatching = options_->has("mini-batch-fit");
     BatchStats::const_iterator cachedStatsIter;
@@ -226,13 +220,13 @@ private:
     // turn rest into batch
     if(!batchVector.empty())
       tempBatches.push_back(data_->toBatch(batchVector));
-    LOG(info, "end form batches, #tempBatches = {}", tempBatches.size());
+    //LOG(info, "end form batches, #tempBatches = {}", tempBatches.size());
 
+    // Shuffle the batches
     if(shuffle) {
-      // shuffle the batches
       std::shuffle(tempBatches.begin(), tempBatches.end(), eng_);
     }
-    LOG(info, "end shuffling batches, #tempBatches = {}", tempBatches.size());
+    //LOG(info, "end shuffling batches, #tempBatches = {}", tempBatches.size());
 
     // Wait here until batch buffer is empty;   
     // LOG(info, "Waiting for buffer to be empty");
@@ -246,7 +240,7 @@ private:
     for(const auto& batch : tempBatches)
       bufferedBatches_.push_back(batch);
     // LOG(info, "Done dumping batches");
-    LOG(info, "[data] read {} sentences; current batch queue size is {}", numSentencesRead, bufferedBatches_.size());
+    LOG(info, "[data] read {} sentences. Current batch queue size is {}", numSentencesRead, bufferedBatches_.size());
 
     loadingSamples_ = false;
     hadData_ = tempBatches.size() > 0;
@@ -279,7 +273,7 @@ try{
         }).detach();
 #endif
 }
-catch (const std::exception&) { // something leaks thread handles
+catch (const std::exception&) { // catch thread-handle leaks. @TODO: Remove this once no longer needed.
   LOG(info, "caught exception in Corpus::next()");
   system("ps -T -A");
   throw;

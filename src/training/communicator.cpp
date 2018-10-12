@@ -127,7 +127,7 @@ class FakeMPIWrapper : public IMPIWrapper
 {
 public:
   FakeMPIWrapper(bool) {
-    LOG(warn, "compiled without MPI support; using FakeMPIWrapper to allow debugging");
+    LOG(warn, "Compiled without MPI support. Falling back to FakeMPIWrapper");
   }
 
   virtual size_t myMPIRank() const override { return 0; };
@@ -144,13 +144,13 @@ public:
   }
   virtual void recv(void* buf, size_t count, MPI_Datatype datatype, size_t sourceRank, int tag, MPI_Comm comm, MPI_Status* status) const override {
     // @TODO: fill in status
-    ABORT_IF(status != MPI_STATUS_IGNORE, "fake recv not implemented when passing a status");
+    ABORT_IF(status != MPI_STATUS_IGNORE, "FakeMPIWrapper::recv() does not yet implement returning a status object");
   }
   virtual void allReduce(const void* sendbuf, void* recvbuf, size_t count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) const override {
     // @TODO: There is only one place where this is called with sendbuf != recvbuf, which is sync multi-node.
     //        I think that can be changed to use the same buffer. Then we should change this API
     //        to only accept one parameter, and remove this error check can be removed.
-    ABORT_IF(sendbuf != recvbuf, "fake allReduce only implemented for in-place operation"); // otherwise it's not a no-op, we must copy data
+    ABORT_IF(sendbuf != recvbuf, "FakeMPIWrapper::allReduce() only implemented for in-place operation"); // otherwise it's not a no-op, we must copy data
   }
 #pragma warning(push)
   virtual void finalize() override { }
@@ -163,7 +163,6 @@ static bool s_mpiIsMultiThreaded; // multi-threading mode of this instance
 
 Ptr<IMPIWrapper> initMPI(bool multiThreaded) {
   if (!s_mpi) {
-    // @TODO: This will be extended in the future to create other types, e.g. NCCL and fake for debugging
 #if MPI_FOUND
     s_mpi = New<MPIWrapper>(multiThreaded);
 #else

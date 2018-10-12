@@ -144,14 +144,14 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
       if(subBatch) {
         timer::Timer timer;
         auto costNode = builders_[localDeviceIndex]->build(graph, subBatch);
-        LOG(info, timer.format(2, "after build: %ws"));
+        //LOG(info, timer.format(2, "after build: %ws"));
         graph->forward();
-        LOG(info, timer.format(2, "after forward (no sync): %ws"));
-        //localDeviceCosts[localDeviceIndex] += costNode->scalar();
+        //LOG(info, timer.format(2, "after forward (no sync): %ws"));
+        localDeviceCosts[localDeviceIndex] += costNode->scalar();
         graph->backward(/*zero=*/t == 0); // only reset gradients to 0 if t = 0
-        LOG(info, timer.format(2, "after backward (no sync): %ws"));
-        localDeviceCosts[localDeviceIndex] += costNode->scalar(); // moved here for time measurements; @TODO: move this back
-        LOG(info, timer.format(2, "after scalar() (that's a sync): %ws"));
+        //LOG(info, timer.format(2, "after backward (no sync): %ws"));
+        //localDeviceCosts[localDeviceIndex] += costNode->scalar(); // moved here for time measurements; @TODO: move this back
+        //LOG(info, timer.format(2, "after scalar() (that's a sync): %ws"));
       }
       else { // empty batch: execute do-nothing fw-bw step for proper inits and resets
         graph->forward();
@@ -187,13 +187,13 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
 
   timer::Timer timer;
   comm_->scatterReduce(); // reduce gradients across all devices (globally) into shards
-  LOG(info, timer.format(2, "after scatterReduce (has sync): %ws"));
+  //LOG(info, timer.format(2, "after scatterReduce (has sync): %ws"));
   comm_->foreach(update); // per-shard model-update
-  LOG(info, timer.format(2, "after model update (no sync): %ws"));
-  graphs_.front()->getBackend()->synchronize(); // @TODO: This is strictly for time measurement. Make sure it doesn't accidentally stay in here!!
-  LOG(info, timer.format(2, "after model update sync (which is unnecessary except for time measurements): %ws"));
+  //LOG(info, timer.format(2, "after model update (no sync): %ws"));
+  //graphs_.front()->getBackend()->synchronize(); // @TODO: This is strictly for time measurement. Make sure it doesn't accidentally stay in here!!
+  //LOG(info, timer.format(2, "after model update sync (which is unnecessary except for time measurements): %ws"));
   comm_->allGather();     // distribute param value shards back
-  LOG(info, timer.format(2, "after allGather (has sync): %ws"));
+  //LOG(info, timer.format(2, "after allGather (has sync): %ws"));
 
   // cost across all local devices (scheduler will aggregate cross-process)
   float localCost = 0;
@@ -263,27 +263,27 @@ void SyncGraphGroup::load() /*override*/ {
 
 void SyncGraphGroup::save(bool final) /*override*/ {
   barrier(); // (for better grouping of log messages)
-  LOG(info, "[{}] save() line {}!", this->mpi_->idStr(), __LINE__);
+  //LOG(info, "[{}] save() line {}!", this->mpi_->idStr(), __LINE__);
   // do final validation
   if(final && scheduler_) {
     // bring the smoothed model in
     // Note that it is sharded. For multi-node, it is sharded over multiple machines, so this is a network access.
     // Also note that the swap must run on all MPI processes concurrently, although only one actually validates.
-    LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+    //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
     swapParamsAvg();
-    LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+    //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
     if (isMainProcess()) // in multi-node, only first MPI process saves the model (they are all identical)
       scheduler_->validate(graphs_, true);
-    LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+    //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
     swapParamsAvg();
-    LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+    //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   }
 
   std::string name = options_->get<std::string>("model");
 
-  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   barrier(); // (for better grouping of log messages)
-  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   // if smoothing then save original (unsmoothed) parameters as well
   // @TODO: Check whether we are reloading the correct file (the unsmoothed one).
   if(mvAvg_ && paramsAvg_.size() > 0 && isMainProcess()) // only save from one MPI process
@@ -292,14 +292,14 @@ void SyncGraphGroup::save(bool final) /*override*/ {
 
   // Temporarily switch to the averaged parameters
   // Note: the smoothed model is sharded across GPUs, and across MPI processes if applicable. This brings it into MPI process[*].device[*]
-  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   swapParamsAvg();
-  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
 
   // save main model file
   if (isMainProcess()) { // only save from one MPI process
     // if not overwrite then save a copy with number of updates in the model pathname
-    LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+    //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
     if(!options_->get<bool>("overwrite") && !final) {
       std::string numberOfBatches
           = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
@@ -308,40 +308,40 @@ void SyncGraphGroup::save(bool final) /*override*/ {
       nameOverwrite.replace(name.size() - 4, 4, ".iter" + numberOfBatches + ".npz"); // @TODO: use insert?
       builders_[0]->save(graphs_[0], nameOverwrite);
     }
-    LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+    //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
     // save main model file
     builders_[0]->save(graphs_[0], name, true);
-    LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+    //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
     // save scheduler-related state
     if (scheduler_)
       scheduler_->save(name);
-    LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+    //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   }
 
   // Switch back to the original parameters
-  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   swapParamsAvg();
-  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
 
 #if 1 // temporary, for testing of saving distributed models; must be identical to .orig.npz
   if(mvAvg_ && paramsAvg_.size() > 0 && isMainProcess())
     builders_[0]->save(graphs_[0], name + ".orig_after_swapping.npz", true);
 #endif
-  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   barrier(); // (for better grouping of log messages)
-  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
 
   // persist optimizer state
-  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_,
     [&](const OptimizerBase::GatherStateGetFunc& getShardFn) {
       return comm_->gatherState(getShardFn);
     },
     isMainProcess());
-  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
 
   barrier(); // (for better grouping of log messages)
-  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
 }
 
 }  // namespace marian
