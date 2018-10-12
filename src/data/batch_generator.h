@@ -1,16 +1,17 @@
 #pragma once
 
-#include <condition_variable>
-#include <deque>
-#include <functional>
-#include <mutex>
-#include <queue>
-
 #include "common/config.h"
 #include "data/batch_stats.h"
 #include "data/rng_engine.h"
 #include "training/training_state.h"
 #include "data/iterator_facade.h"
+#include "3rd_party/threadpool.h"
+
+#include <condition_variable>
+#include <deque>
+#include <functional>
+#include <mutex>
+#include <queue>
 
 namespace marian {
 namespace data {
@@ -56,7 +57,7 @@ public:
   typedef typename DataSet::batch_ptr BatchPtr;
 
   typedef typename DataSet::sample sample;
-  typedef std::vector<sample> samples;
+  typedef std::vector<sample> samples;     // @TODO: type names should be capitalized
 
   typedef BatchIterator<BatchGenerator> iterator;
   friend iterator;
@@ -79,15 +80,17 @@ private:
   std::deque<BatchPtr> bufferedBatches_;
   BatchPtr currentBatch_;
 
+  mutable ThreadPool threadPool_; // (we only use one thread, but keep it around)
   mutable std::mutex loadMutex_;
   mutable std::condition_variable loadCondition_;
   bool loadingSamples_{false};
   bool hadData_{false};
 
+  // this runs on a bg thread; sequencing is handled by caller, but locking is done in here
   void fillBatches(bool shuffle = true) {
+    //LOG(info, "fillBatches entered");
     typedef typename sample::value_type Item;
-    auto itemCmp
-        = [](const Item& sa, const Item& sb) { return sa.size() < sb.size(); };
+    auto itemCmp = [](const Item& sa, const Item& sb) { return sa.size() < sb.size(); }; // sort by element length, not content
 
     auto cmpSrc = [itemCmp](const sample& a, const sample& b) {
       return std::lexicographical_compare(
@@ -99,12 +102,12 @@ private:
           a.rbegin(), a.rend(), b.rbegin(), b.rend(), itemCmp);
     };
 
-    auto cmpNone = [](const sample& a, const sample& b) { return &a < &b; };
+    auto cmpNone = [](const sample& a, const sample& b) { return &a < &b; }; // instead sort by address, so we have something to work with
 
     typedef std::function<bool(const sample&, const sample&)> cmp_type;
     typedef std::priority_queue<sample, samples, cmp_type> sample_queue;
 
-    std::unique_ptr<sample_queue> maxiBatch;
+    std::unique_ptr<sample_queue> maxiBatch; // priority queue, shortest first
 
     if(options_->has("maxi-batch-sort")) {
       if(options_->get<std::string>("maxi-batch-sort") == "src")
@@ -132,84 +135,91 @@ private:
         ++current_;
     }
     size_t sets = 0;
-    while(current_ != data_->end() && maxiBatch->size() < maxSize) {
+    while(current_ != data_->end() && maxiBatch->size() < maxSize) { // loop over data
       maxiBatch->push(*current_);
- 
-      // if(maxiBatch->size() % 100000 == 0)
-      //   LOG(info, "Preloaded samples: {}", maxiBatch->size());
-
       sets = current_->size();
-      // do not consume more than required for the maxi batch as this causes
-      // that line-by-line translation is delayed by one sentence
-      bool last = maxiBatch->size() == maxSize;
+        // do not consume more than required for the maxi batch as this causes
+        // that line-by-line translation is delayed by one sentence
+        bool last = maxiBatch->size() == maxSize;
       if(!last)
-        ++current_;
+        ++current_; // this actually reads the next line and pre-processes it
     }
+    size_t numSentencesRead = maxiBatch->size();
 
     // LOG(info, "Turning samples into batches");
 
+    // construct the actual batches and place them in the queue
     samples batchVector;
-    int currentWords = 0;
-    std::vector<size_t> lengths(sets, 0);
+    size_t currentWords = 0;
+    std::vector<size_t> lengths(sets, 0); // records maximum length observed within current batch
 
     std::vector<BatchPtr> tempBatches;
+    tempBatches.reserve(10000); // (should be enough in most cases; not critical)
 
-    // while there are sentences in the queue
-    while(!maxiBatch->empty()) {
+    // process all loaded sentences in order of increasing length
+    // @TODO: we could just use a vector and do a sort() here; would make the cost more explicit
+    //LOG(info, "begin form batches, #lines = {}", maxiBatch->size());
+    const size_t mbWords = options_->get<size_t>("mini-batch-words", 0);
+    const bool useDynamicBatching = options_->has("mini-batch-fit");
+    BatchStats::const_iterator cachedStatsIter;
+    if (stats_)
+      cachedStatsIter = stats_->begin();
+    while(!maxiBatch->empty()) { // while there are sentences in the queue
       // push item onto batch
       batchVector.push_back(maxiBatch->top());
-      currentWords += (int)batchVector.back()[0].size();
-      maxiBatch->pop();
+      maxiBatch->pop(); // fetch next-shortest
 
-      // Batch size based on sentences
-      bool makeBatch = batchVector.size() == maxBatchSize;
+      // have we reached sufficient amount of data to form a batch?
+      bool makeBatch;
+      if(useDynamicBatching && stats_) { // batch size based on dynamic batching
+        for(size_t i = 0; i < sets; ++i)
+          if(batchVector.back()[i].size() > lengths[i])
+            lengths[i] = batchVector.back()[i].size(); // record max lengths so far
 
-      // Batch size based on words
-      if(options_->has("mini-batch-words")) {
-        int mbWords = options_->get<int>("mini-batch-words");
-        if(mbWords > 0)
-          makeBatch = currentWords > mbWords;
-      }
-
-      if(options_->has("mini-batch-fit")) {
-        // Dynamic batching
-        if(stats_) {
-          for(size_t i = 0; i < sets; ++i)
-            if(batchVector.back()[i].size() > lengths[i])
-              lengths[i] = batchVector.back()[i].size();
-
-          maxBatchSize = stats_->getBatchSize(lengths);
-
-          if(batchVector.size() > maxBatchSize) {
-            maxiBatch->push(batchVector.back());
-            batchVector.pop_back();
-            makeBatch = true;
-          } else {
-            makeBatch = batchVector.size() == maxBatchSize;
-          }
+        maxBatchSize = stats_->findBatchSize(lengths, cachedStatsIter);
+        // this optimization makes no difference indeed
+#if 1     // sanity check: would we find the same entry if searching from the start?
+        auto it = stats_->lower_bound(lengths);
+        auto maxBatchSize1 = stats_->findBatchSize(lengths, it);
+        ABORT_IF(maxBatchSize != maxBatchSize1, "findBatchSize iter caching logic is borked");
+#endif
+        makeBatch = batchVector.size() >= maxBatchSize;
+        // if last added sentence caused a bump then we likely have bad padding, so rather move it into the next batch
+        if(batchVector.size() > maxBatchSize) {
+          maxiBatch->push(batchVector.back());
+          batchVector.pop_back();
         }
       }
+      else if(mbWords > 0) {
+        currentWords += batchVector.back()[0].size(); // count words based on first stream =source  --@TODO: shouldn't we count based on labels?
+        makeBatch = currentWords > mbWords; // Batch size based on sentences
+      }
+      else
+        makeBatch = batchVector.size() == maxBatchSize; // Batch size based on words
 
-      // if batch has desired size create a real batch
+      // if we reached the desired batch size then create a real batch
       if(makeBatch) {
         tempBatches.push_back(data_->toBatch(batchVector));
 
         // prepare for next batch
         batchVector.clear();
         currentWords = 0;
-        lengths.clear();
-        lengths.resize(sets, 0);
+        lengths.assign(sets, 0);
+        if (stats_)
+          cachedStatsIter = stats_->begin();
       }
     }
 
     // turn rest into batch
     if(!batchVector.empty())
       tempBatches.push_back(data_->toBatch(batchVector));
+    //LOG(info, "end form batches, #tempBatches = {}", tempBatches.size());
 
+    // Shuffle the batches
     if(shuffle) {
-      // shuffle the batches
       std::shuffle(tempBatches.begin(), tempBatches.end(), eng_);
     }
+    //LOG(info, "end shuffling batches, #tempBatches = {}", tempBatches.size());
 
     // Wait here until batch buffer is empty;   
     // LOG(info, "Waiting for buffer to be empty");
@@ -222,7 +232,8 @@ private:
     // LOG(info, "Dumping batches to buffer");
     for(const auto& batch : tempBatches)
       bufferedBatches_.push_back(batch);
-    // LOG(info, "Done dumping batches");
+
+    //LOG(info, "[data] read {} sentences. Current batch queue size is {}", numSentencesRead, bufferedBatches_.size());
 
     loadingSamples_ = false;
     hadData_ = tempBatches.size() > 0;
@@ -237,10 +248,29 @@ private:
     {
       std::unique_lock<std::mutex> lock(loadMutex_);
       if(!loadingSamples_ && hadData_) {
+try{
         loadingSamples_ = true;
+#if 1
+        threadPool_.enqueue([this]() {
+        //std::thread([this]() {
+          //pid_t gettid(void) { return syscall(SYS_gettid); }
+          //LOG(info, "new thread for fillBatch with id {}", (pid_t)syscall(SYS_gettid));
+          fillBatches(shuffle_); 
+        });
+        //.detach();
+#else
         std::thread([this]() { 
+          //pid_t gettid(void) { return syscall(SYS_gettid); }
+          LOG(info, "new thread for fillBatch with id {}", (pid_t)syscall(SYS_gettid));
           fillBatches(shuffle_); 
         }).detach();
+#endif
+}
+catch (const std::exception&) { // catch thread-handle leaks. @TODO: Remove this once no longer needed.
+  LOG(info, "caught exception in Corpus::next()");
+  system("ps -T -A");
+  throw;
+}
       }
     }
     
@@ -283,7 +313,7 @@ public:
   BatchGenerator(Ptr<DataSet> data,
                  Ptr<Config> options,
                  Ptr<BatchStats> stats = nullptr)
-      : data_(data), options_(options), stats_(stats) {}
+      : data_(data), options_(options), stats_(stats), threadPool_(1) {}
 
   iterator begin() {
     return iterator(this, next());

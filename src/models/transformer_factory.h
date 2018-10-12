@@ -13,4 +13,6 @@ Ptr<EncoderBase> NewEncoderTransformer(Ptr<Options> options);
 Ptr<DecoderBase> NewDecoderTransformer(Ptr<Options> options);
 }  // namespace marian
 
+#ifndef _MSC_VER
 #include "models/transformer.h"
+#endif

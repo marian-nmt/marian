@@ -17,21 +17,32 @@
 #include "marian_conv.cpp"
 #undef main
 
+#include "3rd_party/ExceptionWithCallStack.h"
+
 int main(int argc, char** argv) {
   using namespace marian;
 
-  if(argc > 1 && argv[1][0] != '-') {
-    std::string cmd = argv[1];
-    argc--;
-    argv[1] = argv[0];
-    argv++;
-    if(cmd == "train")           return mainTrainer(argc, argv);
-    else if(cmd == "decode")     return mainDecoder(argc, argv);
-    // else if (cmd == "score")     return mainScorer(argc, argv);
-    else if (cmd == "vocab")     return mainVocab(argc, argv);
-    else if (cmd == "convert")   return mainConv(argc, argv);
-    std::cerr << "Command must be train, decode, score, vocab, or convert.";
+  try
+  {
+    if(argc > 1 && argv[1][0] != '-') {
+      std::string cmd = argv[1];
+      argc--;
+      argv[1] = argv[0];
+      argv++;
+      if(cmd == "train")           return mainTrainer(argc, argv);
+      else if(cmd == "decode")     return mainDecoder(argc, argv);
+      // else if (cmd == "score")     return mainScorer(argc, argv);
+      else if (cmd == "vocab")     return mainVocab(argc, argv);
+      else if (cmd == "convert")   return mainConv(argc, argv);
+      std::cerr << "Command must be train, decode, score, vocab, or convert." << std::endl;
+      exit(1);
+    } else
+      return mainTrainer(argc, argv);
+  }
+  catch (const std::exception& e)
+  {
+    std::cerr << "Command failed with exception: " << e.what() << std::endl
+              << ::Microsoft::MSR::CNTK::DebugUtil::GetCallStack(/*skipLevels=*/0/*2*/, /*makeFunctionNamesStandOut=*/true);
     exit(1);
-  } else
-    return mainTrainer(argc, argv);
+  }
 }

@@ -23,7 +23,7 @@ class TrainingState {
 public:
   // Current epoch
   size_t epochs{1};
-  // The total number of batches
+  // The total number of batches   --@TODO: rename to 'updates'
   size_t batches{0};
   // The number of batches seen in this epoch
   size_t batchesEpoch{0};

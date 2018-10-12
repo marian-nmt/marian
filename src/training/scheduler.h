@@ -3,6 +3,7 @@
 #include "common/config.h"
 #include "training/training_state.h"
 #include "training/validator.h"
+#include "training/communicator.h"
 
 namespace marian {
 
@@ -15,7 +16,7 @@ private:
 
   Ptr<TrainingState> state_;
 
-  timer::Timer timer;
+  timer::Timer timer_, heartBeatTimer_;
 
   float getLearningRate(TrainingState& state) {
     float baselr = options_->get<float>("learn-rate");
@@ -161,53 +162,63 @@ public:
     update(cost, std::vector<Ptr<data::Batch>>({batch}));
   }
 
-  void update(float cost, const std::vector<Ptr<data::Batch>>& batches) {
+  void update(float cost, const std::vector<Ptr<data::Batch>>& batches, Ptr<IMPIWrapper> mpi = nullptr) {
     state_->validated = false;
 
     size_t batchSize = 0;    // number of sentences in batch
     size_t batchLabels = 0;  // number of target words in batch
 
     for(const auto& batch : batches) {
-      batchSize += batch->size();
-      batchLabels += batch->words(-1);
+      if (batch) { // (nullptr is allowed as result of split)
+        batchSize += batch->size();
+        batchLabels += batch->words(-1);
+      }
     }
 
-    // reconstruct sum cost, for displaying epoch-level averages instead of
-    // minibatch-level
+    // extrapolate cost across MPI processes, so that we have numbers in the right range
+    // When doing the actual log, we then aggregate across MPI processes to get the accurate number.
+    if (mpi)
+      cost *= mpi->numMPIProcesses(); // @BUGBUG: this is presently correct for ce-sum, but possibly not the av-based losses
+
+    // reconstruct sum cost, for displaying epoch-level averages instead of minibatch-level
     auto costType = options_->get<std::string>("cost-type");
     auto dispLabelCounts = options_->get<bool>(
-        "disp-label-counts");  // if true then show as "cost per label * number
-                               // of labels"
+        "disp-label-counts");  // if true then show as "cost per label * number of labels"
     if(dispLabelCounts) {
       auto count =  // what was cost normalized with originally?
-          /*if*/ (costType == "ce-sum")
-              ? 1
-              /*else if*/
-              : ((costType == "ce-mean-words")
-                     ? batchLabels
-                     /*else*/
-                     :  // all others: treat like ce-mean (not correct for some)
-                     batchSize);
-      state_->costSum += cost * count;  // aggregate sum cost since last display
-      state_->costCount
-          += batchLabels;  // cost gets normalized w.r.t. this in display
+          /*if*/ (costType == "ce-sum") ?
+            1
+          /*else if*/ : ((costType == "ce-mean-words") ?
+            batchLabels
+          /*else*/ :  // all others: treat like ce-mean (not correct for some)
+            batchSize);
+      state_->costSum   += cost * count; // aggregate sum cost since last display
+      state_->costCount += batchLabels;  // cost gets normalized w.r.t. this in display
     } else {               // (back compat)
-      state_->costSum += cost * batchSize;
+      state_->costSum   += cost * batchSize;
       state_->costCount += batchSize;
     }
-    state_->wordsDisp += batchLabels;    // target words processed since last
-                                         // display, for speed display
+    state_->wordsDisp    += batchLabels; // target words processed since last display, for speed display
     state_->samplesEpoch += batchSize;   // sentences processed in this epoch
-    state_->labelsTotal += batchLabels;  // total labels processed
+    state_->labelsTotal  += batchLabels; // total labels processed
 
     state_->newBatch();
 
-    if(state_->batches % options_->get<size_t>("disp-freq") == 0) {
-      if(dispLabelCounts) {
+    if(state_->batches %  options_->get<size_t>("disp-freq") == 0 ||
+       state_->batches <= options_->get<size_t>("disp-first")) {
+      // if MPI then aggregate precise cost across workers
+      if (mpi) {
+        //LOG(info, "all-reducing cost from {}", state_->costSum);
+        state_->costSum /= mpi->numMPIProcesses(); // undo the extra scaling
+        mpi->allReduce(&state_->costSum, &state_->costSum, 1, MPI_FLOAT, MPI_SUM);
+        //LOG(info, "all-reduced cost to {}", state_->costSum);
+      }
+      if (mpi && mpi->myMPIRank() != 0)
+        ; // skip the report on alternate worker processes
+      else if(dispLabelCounts) {
         if(options_->get<bool>(
                "lr-report")) {  // if true then show the learning rate
           LOG(info,
-              // TODO: change Cost back to {:.2f}
               "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} "
               ": {:.2f} "
               "words/s : L.r. {:.4e}",
@@ -217,8 +228,8 @@ public:
               state_->costSum / state_->costCount,
               state_->costCount,  // show cost as "av * count"
               state_->labelsTotal,
-              timer.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer.format(5, "%w")),
+              timer_.format(2, "%ws"),
+              state_->wordsDisp / std::stof(timer_.format(5, "%w")),
               state_->eta);
         } else {
           LOG(info,
@@ -231,8 +242,8 @@ public:
               state_->costSum / state_->costCount,
               state_->costCount,
               state_->labelsTotal,
-              timer.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer.format(5, "%w")));
+              timer_.format(2, "%ws"),
+              state_->wordsDisp / std::stof(timer_.format(5, "%w")));
         }
       } else {
         if(options_->get<bool>("lr-report")) {
@@ -243,8 +254,8 @@ public:
               state_->batches,
               state_->samplesEpoch,
               state_->costSum / state_->costCount,
-              timer.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer.format(5, "%w")),
+              timer_.format(2, "%ws"),
+              state_->wordsDisp / std::stof(timer_.format(5, "%w")),
               state_->eta);
         } else {
           LOG(info,
@@ -254,21 +265,25 @@ public:
               state_->batches,
               state_->samplesEpoch,
               state_->costSum / state_->costCount,
-              timer.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer.format(5, "%w")));
+              timer_.format(2, "%ws"),
+              state_->wordsDisp / std::stof(timer_.format(5, "%w")));
         }
       }
-      // progress heartbeat for MS-internal Philly compute cluster
-      if(getenv("PHILLY_JOB_ID"))  // this environment variable exists when
-                                   // running on the cluster
-        printf("PROGRESS: %.2f%%\nEVALERR: %.7f\n",
-               (double)state_->epochs,
-               state_->costSum / state_->costCount),
-            fflush(stdout);
-      timer.start();
+      timer_.start();
       state_->costSum = 0;
       state_->costCount = 0;
       state_->wordsDisp = 0;
+    }
+    // progress heartbeat for MS-internal Philly compute cluster
+    // This environment variable exists when running on the cluster.
+    using namespace std::chrono;
+    if((!mpi || mpi->myMPIRank() == 0) && getenv("PHILLY_JOB_ID") &&
+        duration_cast<minutes>(nanoseconds(heartBeatTimer_.elapsed().user)).count() >= 10) {
+      printf("PROGRESS: %.2f%%\nEVALERR: %.7f\n", (double)state_->epochs, state_->costSum / state_->costCount), fflush(stdout);
+#if 0
+      LOG(info, "heart beat after {} updates", state_->batches);
+#endif
+      heartBeatTimer_.start();
     }
   }
 

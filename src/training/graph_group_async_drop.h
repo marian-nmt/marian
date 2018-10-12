@@ -24,7 +24,7 @@ class AsyncGraphGroupDrop : public AsyncGraphGroup {
 
 protected:
   void init(Ptr<data::Batch> batch) override;
-  void pushGradients(Tensor newGrads, size_t batch_words, int device_id) override;
+  void pushGradients(Tensor newGrads, int device_id) override;
   void fetchParams(Tensor oldParams,
                    const std::vector<Tensor>& params,
                    int device_id) override;

@@ -1,15 +1,15 @@
 #pragma once
 
-#include <algorithm>
-#include <map>
-#include <memory>
-
 #include "common/config.h"
 #include "graph/expression_graph.h"
 #include "optimizers/clippers.h"
 #include "tensors/backend.h"
 #include "tensors/tensor.h"
 #include "training/training_state.h"
+
+#include <algorithm>
+#include <map>
+#include <memory>
 
 namespace marian {
 
@@ -60,12 +60,22 @@ public:
 
   void setParams(const std::vector<float>& params) { parseParams(params); }
 
+  typedef std::function<void(size_t /*localDeviceIndex*/,
+                             std::vector<float>::const_iterator /*begin*/,
+                             std::vector<float>::const_iterator /*end*/)> ScatterStateSetFunc;
+  typedef std::function<std::vector<float>(size_t /*localDeviceIndex*/)> GatherStateGetFunc;
+
+  typedef std::function<void(const std::vector<float>& /*data*/, const ScatterStateSetFunc& /*setFn*/)> ScatterStateFunc;
+  typedef std::function<std::vector<float>(const GatherStateGetFunc& /*getFn*/)> GatherStateFunc;
+
   virtual void load(const std::string& /*name*/,
-                    std::vector<Ptr<OptimizerBase>> /*opts*/,
-                    std::vector<Ptr<Backend>> /*backends*/) {}
+                    const std::vector<Ptr<OptimizerBase>>& /*opts*/,
+                    const std::vector<Ptr<Backend>>& /*backends*/,
+                    const ScatterStateFunc& /*scatterFn*/) {}
   virtual void save(const std::string& /*name*/,
-                    std::vector<Ptr<OptimizerBase>> /*opts*/,
-                    size_t /*totalSize*/) {}
+                    const std::vector<Ptr<OptimizerBase>>& /*opts*/,
+                    const GatherStateFunc& /*gatherFn*/,
+                    bool /*isMainProcess*/ = true) {}
 
 protected:
   virtual void updateImpl(Tensor params, Tensor grads) = 0;
@@ -104,11 +114,13 @@ public:
       : OptimizerBase(eta, clipper) {}
 
   void load(const std::string& name,
-            std::vector<Ptr<OptimizerBase>> opts,
-            std::vector<Ptr<Backend>> backends) override;
+            const std::vector<Ptr<OptimizerBase>>& opts,
+            const std::vector<Ptr<Backend>>& backends,
+            const ScatterStateFunc& scatterFn) override;
   void save(const std::string& name,
-            std::vector<Ptr<OptimizerBase>> opts,
-            size_t totalSize) override;
+            const std::vector<Ptr<OptimizerBase>>& opts,
+            const GatherStateFunc& gatherFn,
+            bool /*isMainProcess*/ = true) override;
 
 private:
   void updateImpl(Tensor params, Tensor grads) override;
@@ -135,11 +147,13 @@ public:
       : OptimizerBase(eta, clipper), t_(0) {}
 
   void load(const std::string& name,
-            std::vector<Ptr<OptimizerBase>> opts,
-            std::vector<Ptr<Backend>> backends) override;
+            const std::vector<Ptr<OptimizerBase>>& opts,
+            const std::vector<Ptr<Backend>>& backends,
+            const ScatterStateFunc& scatterFn) override;
   void save(const std::string& name,
-            std::vector<Ptr<OptimizerBase>> opts,
-            size_t totalSize) override;
+            const std::vector<Ptr<OptimizerBase>>& opts,
+            const GatherStateFunc& gatherFn,
+            bool isMainProcess = true) override;
 
 private:
   void updateImpl(Tensor params, Tensor grads) override;

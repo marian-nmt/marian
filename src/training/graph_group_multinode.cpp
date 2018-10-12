@@ -2,6 +2,10 @@
 #include "functional/functional.h"
 #include "tensors/tensor_operators.h"
 
+#ifdef CUDA_FOUND
+#include "cuda_runtime.h"
+#endif
+
 namespace marian {
 
 /**
@@ -53,11 +57,11 @@ void MultiNodeGraphGroup::init(Ptr<data::Batch> batch) {
 
   // setup delayed gradient storage
   if(tau_ > 1) {
-    delay_count = std::vector<size_t>(mpi_comm_world_size_);
-    totalBatchWords = std::vector<int>(mpi_comm_world_size_);
-    optDelayMutex_ = std::vector<std::mutex>(mpi_comm_world_size_);
+    delay_count = std::vector<size_t>(mpi_->numMPIProcesses());
+    totalBatchWords = std::vector<int>(mpi_->numMPIProcesses());
+    optDelayMutex_ = std::vector<std::mutex>(mpi_->numMPIProcesses());
 
-    for(int i = 0; i < mpi_comm_world_size_; i++) {
+    for(int i = 0; i < mpi_->numMPIProcesses(); i++) {
       // Shard buffers across GPUs
       auto backend = clientGraphs_[i % devices_.size()]->getBackend();
       Tensor accGrad     = newTensor((int)nodeSizes_[i], backend);
@@ -66,16 +70,6 @@ void MultiNodeGraphGroup::init(Ptr<data::Batch> batch) {
       accGradientBuffer.push_back(accGradBuff);
     }
   }
-}
-
-/**
- * Setup MPI world size and rank of this node.
- */
-void MultiNodeGraphGroup::setupMPI() {
-#if MPI_FOUND
-  MPI_Comm_size(MPI_COMM_WORLD, &mpi_comm_world_size_);
-  MPI_Comm_rank(MPI_COMM_WORLD, &mpi_my_rank_);
-#endif
 }
 
 /**
@@ -113,8 +107,8 @@ void MultiNodeGraphGroup::runBatchThroughClientGraphs(Ptr<data::Batch> batch) {
  */
 void MultiNodeGraphGroup::calculateNodeSizes() {
   size_t modelSize = clientGraphs_[0]->params()->vals()->size();
-  size_t nodeSize = (size_t)ceilf(((float)modelSize) / mpi_comm_world_size_);
-  for(int node = 0; node < mpi_comm_world_size_; node++) {
+  size_t nodeSize = (size_t)ceilf(((float)modelSize) / mpi_->numMPIProcesses());
+  for(int node = 0; node < mpi_->numMPIProcesses(); node++) {
     size_t remainingModelSize = modelSize - (nodeSize * node);
     // Takes care of edge case where last node is smaller than the others
     nodeSizes_.push_back(std::min(nodeSize, remainingModelSize));
@@ -133,7 +127,7 @@ void MultiNodeGraphGroup::initClientCpuBuffers() {
   for(size_t i = 0; i < devices_.size(); i++) {
     // @TODO Optimization: Use full size to copy in one go, then send gradients
     // and receive parameters in parallel
-    size_t size = nodeSizes_[mpi_my_rank_];
+    size_t size = nodeSizes_[mpi_->myMPIRank()];
     clientCommBuffersCPU_.push_back(std::vector<float>(size));
   }
 }
@@ -191,7 +185,7 @@ void MultiNodeGraphGroup::setupServerShards() {
   calculateShardSizes();
   initShardGpuTensors();
   // CPU buffer for receiving/sending grads/params
-  serverShardBufferCPU_ = std::vector<float>(nodeSizes_[mpi_my_rank_]);
+  serverShardBufferCPU_ = std::vector<float>(nodeSizes_[mpi_->myMPIRank()]);
   // Shard optimizers
   for(size_t shard = 0; shard < devices_.size(); shard++) {
     shardOptimizers_.push_back(Optimizer(options_));
@@ -206,7 +200,7 @@ void MultiNodeGraphGroup::setupServerShards() {
  * the node size is not perfectly divisibly by the number of shards.
  */
 void MultiNodeGraphGroup::calculateShardSizes() {
-  size_t nodeSize = nodeSizes_[mpi_my_rank_];
+  size_t nodeSize = nodeSizes_[mpi_->myMPIRank()];
   size_t shardSize = (size_t)ceilf(((float)nodeSize) / devices_.size());
   for(size_t shard = 0; shard < devices_.size(); shard++) {
     size_t remainingNodeSize = nodeSize - (shardSize * shard);
@@ -221,7 +215,7 @@ void MultiNodeGraphGroup::calculateShardSizes() {
  */
 void MultiNodeGraphGroup::initShardGpuTensors() {
   size_t offset = 0;
-  for(int i = 0; i < mpi_my_rank_; i++) {
+  for(int i = 0; i < mpi_->myMPIRank(); i++) {
     offset += nodeSizes_[i];
   }
   for(size_t shard = 0; shard < devices_.size(); shard++) {
@@ -243,18 +237,18 @@ void MultiNodeGraphGroup::initShardGpuTensors() {
  */
 void MultiNodeGraphGroup::launchServerThread() {
 // @TODO: move CUDA stuff into separate .cu files and remove '&& CUDA_FOUND'
-#if MPI_FOUND && CUDA_FOUND
+#if CUDA_FOUND
   serverShardThread_ = new std::thread([this] {
     // keep track of number of nodes still communicating with this shard
-    int nCommunicatingNodes = mpi_comm_world_size_;
+    int nCommunicatingNodes = mpi_->numMPIProcesses();
     MPI_Status status;
     do {
       // Receive grads from any client
       unsigned long messageInfo[4];
-      MPI_Recv(&messageInfo,
+      mpi_->recv(&messageInfo,
                4,
                MPI_UNSIGNED_LONG,
-               MPI_ANY_SOURCE,
+               IMPIWrapper::RECV_ANY_SOURCE,
                MPI_TAG_GRAD_PUSH_MSG_,
                MPI_COMM_WORLD,
                &status);
@@ -262,13 +256,11 @@ void MultiNodeGraphGroup::launchServerThread() {
         nCommunicatingNodes--;
         continue;
       }  // register finished node and skip to next loop iteration
-      MPI_Recv(serverShardBufferCPU_.data(),
-               nodeSizes_[mpi_my_rank_],
+      mpi_->recv(serverShardBufferCPU_.data(),
+               nodeSizes_[mpi_->myMPIRank()],
                MPI_FLOAT,
                status.MPI_SOURCE,
-               MPI_TAG_GRAD_PUSH_,
-               MPI_COMM_WORLD,
-               MPI_STATUS_IGNORE);
+               MPI_TAG_GRAD_PUSH_);
 
       // Update shard params asynchronously over GPUs
       std::vector<std::thread> threads;
@@ -288,14 +280,8 @@ void MultiNodeGraphGroup::launchServerThread() {
               cudaStreamSynchronize(0);
 
               // Run optimizer on GPU
-              if(scaleLearningRate_ && batchWords > 0) {
-                shardOptimizers_[gpu]->update(shardParams_[gpu],
-                                              shardGrads_[gpu],
-                                              batchWords / avgBatchWords_);
-              } else {
-                shardOptimizers_[gpu]->update(shardParams_[gpu],
-                                              shardGrads_[gpu]);
-              }
+              shardOptimizers_[gpu]->update(shardParams_[gpu],
+                                            shardGrads_[gpu]);
               cudaStreamSynchronize(0);
               // Copy params from GPU
               cudaMemcpy(&serverShardBufferCPU_.at(offset),
@@ -316,12 +302,11 @@ void MultiNodeGraphGroup::launchServerThread() {
       }
 
       // Send updated params to same client
-      MPI_Ssend(serverShardBufferCPU_.data(),
-                nodeSizes_[mpi_my_rank_],
+      mpi_->sSend(serverShardBufferCPU_.data(),
+                nodeSizes_[mpi_->myMPIRank()],
                 MPI_FLOAT,
                 status.MPI_SOURCE,
-                MPI_TAG_PARAM_PUSH_,
-                MPI_COMM_WORLD);
+                MPI_TAG_PARAM_PUSH_);
 
     } while(nCommunicatingNodes != 0);
   });
@@ -341,7 +326,6 @@ void MultiNodeGraphGroup::shutDownServerThread() {
  * gradients/parameters whenever the respective communication buffers are full.
  */
 void MultiNodeGraphGroup::launchCommOverlapThreads() {
-#if MPI_FOUND
   for(int gpu = 0; gpu < devices_.size(); gpu++) {
     clientCommThreads_.emplace_back(new std::thread(
         [this](int gpu) {
@@ -361,8 +345,7 @@ void MultiNodeGraphGroup::launchCommOverlapThreads() {
             synchronizeWithServerShards(
                 clientCommOverlapBuffersGPU_[gpu],
                 clientCommOverlapBuffersGPU_[gpu],
-                gpu,
-                scaleLearningRate_ ? clientCommittedWordCounts_[gpu] : 0);
+                gpu);
 
             // Indicate that buffers can be read from and filled again
             clientCommOverlapBuffersFilled_[gpu] = false;
@@ -371,7 +354,6 @@ void MultiNodeGraphGroup::launchCommOverlapThreads() {
         },
         gpu));
   }
-#endif
 }
 
 /**
@@ -402,13 +384,13 @@ void MultiNodeGraphGroup::synchronizeWithServerShards(Tensor newGrads,
                                                       int gpu,
                                                       size_t batchWords) {
 // @TODO: move CUDA stuff into separate .cu files and remove '&& CUDA_FOUND'
-#if MPI_FOUND && CUDA_FOUND
+#if CUDA_FOUND
   size_t offset = 0;
-  for(int node = 0; node < mpi_comm_world_size_; node++) {
+  for(int node = 0; node < mpi_->numMPIProcesses(); node++) {
     size_t nodeSize = nodeSizes_[node];
 
     // Update remotely if node != this node
-    if(node != mpi_my_rank_) {
+    if(node != mpi_->myMPIRank()) {
       Tensor gradient;
 
       // Delayed Gradient Update
@@ -445,18 +427,16 @@ void MultiNodeGraphGroup::synchronizeWithServerShards(Tensor newGrads,
       messageInfo[MSG_INFO_CLIENT_] = gpu;
       messageInfo[MSG_INFO_BATCHWORDS_] = batchWords;
       messageInfo[MSG_INFO_STATUS_] = STATUS_NODE_TRAINING_;
-      MPI_Ssend(&messageInfo,
+      mpi_->sSend(&messageInfo,
                 4,
                 MPI_UNSIGNED_LONG,
                 node,
-                MPI_TAG_GRAD_PUSH_MSG_,
-                MPI_COMM_WORLD);
-      MPI_Ssend(clientCommBuffersCPU_[gpu].data(),
+                MPI_TAG_GRAD_PUSH_MSG_);
+      mpi_->sSend(clientCommBuffersCPU_[gpu].data(),
                 nodeSize,
                 MPI_FLOAT,
                 node,
-                MPI_TAG_GRAD_PUSH_,
-                MPI_COMM_WORLD);
+                MPI_TAG_GRAD_PUSH_);
       // Reset total gradient and batch words
       if(tau_ > 1) {
         std::lock_guard<std::mutex> guard(optDelayMutex_[node]);
@@ -464,13 +444,11 @@ void MultiNodeGraphGroup::synchronizeWithServerShards(Tensor newGrads,
         totalBatchWords[node] = 0;
       }
       // Receive updated params from server node
-      MPI_Recv(clientCommBuffersCPU_[gpu].data(),
+      mpi_->recv(clientCommBuffersCPU_[gpu].data(),
                nodeSize,
                MPI_FLOAT,
                node,
-               MPI_TAG_PARAM_PUSH_,
-               MPI_COMM_WORLD,
-               MPI_STATUS_IGNORE);
+               MPI_TAG_PARAM_PUSH_);
 
       // Copy params from CPU back to GPU
       cudaMemcpy(oldParams->subtensor(offset, nodeSize)->data(),
@@ -494,14 +472,8 @@ void MultiNodeGraphGroup::synchronizeWithServerShards(Tensor newGrads,
               // Copy grads to appropriate GPU
               shardGrads_[gpu]->copyFrom(newGrads->subtensor(offset, size));
               // Run optimizer on GPU
-              if(scaleLearningRate_ && batchWords > 0) {
-                shardOptimizers_[gpu]->update(shardParams_[gpu],
-                                              shardGrads_[gpu],
-                                              batchWords / avgBatchWords_);
-              } else {
-                shardOptimizers_[gpu]->update(shardParams_[gpu],
-                                              shardGrads_[gpu]);
-              }
+              shardOptimizers_[gpu]->update(shardParams_[gpu],
+                                            shardGrads_[gpu]);
               cudaStreamSynchronize(0);
               // Copy params back to current GPU
               oldParams->subtensor(offset, size)->copyFrom(shardParams_[gpu]);
@@ -558,14 +530,12 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
 
     auto costNode = builder->build(graph, batch);
 
-#if MPI_FOUND
     if(t == 0) {
-      MPI_Barrier(MPI_COMM_WORLD);
+      mpi_->barrier();
       if(my_id != 0)
         graph->params()->vals()->copyFrom(clientGraphs_[0]->params()->vals());
-      MPI_Barrier(MPI_COMM_WORLD);
+      mpi_->barrier();
     }
-#endif
 
     graph->forward();
     cost += costNode->scalar();
@@ -646,20 +616,20 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
         // We want to reuse the graphs for validation, so they need to be in
         // a safe state.
         clientThreadPool_->wait_for_others(lock);
-#if MPI_FOUND
+
         // wait until other nodes are ready
-        MPI_Barrier(MPI_COMM_WORLD);
+        mpi_->barrier();
 
         // TODO: Saving is broken
-        // if(mpi_my_rank_ == 0 && scheduler_->saving())
+        // if(mpi_->myMPIRank() == 0 && scheduler_->saving())
         //  this->save(graph);
 
-        if(mpi_my_rank_ == 0 && scheduler_->validating())
+        if(mpi_->myMPIRank() == 0 && scheduler_->validating())
           scheduler_->validate(clientGraphs_);
 
         // inform other nodes to continue
-        MPI_Barrier(MPI_COMM_WORLD);
-#endif
+        mpi_->barrier();
+
         // Validation or saving is done, tell other threads to continue work.
         clientThreadPool_->notify_others();
       }
@@ -673,17 +643,10 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
  * Notify server shards that this node has finished training.
  */
 void MultiNodeGraphGroup::signalFinishedToServerShards() {
-#if MPI_FOUND
   unsigned long messageInfo[4];
   messageInfo[MSG_INFO_STATUS_] = STATUS_NODE_FINISHED_;
-  for(int node = 0; node < mpi_comm_world_size_; node++) {
-    MPI_Ssend(&messageInfo,
-              4,
-              MPI_UNSIGNED_LONG,
-              node,
-              MPI_TAG_GRAD_PUSH_,
-              MPI_COMM_WORLD);
+  for(int node = 0; node < mpi_->numMPIProcesses(); node++) {
+    mpi_->sSend(&messageInfo, 4, MPI_UNSIGNED_LONG, node, MPI_TAG_GRAD_PUSH_);
   }
-#endif
 }
 }  // namespace marian

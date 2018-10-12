@@ -49,7 +49,7 @@ public:
     for(size_t i = 0; i < keys.size(); ++i) {
       // Keys contains indices to vocab items in the entire beam.
       // Values can be between 0 and beamSize * vocabSize.
-      size_t embIdx = keys[i] % vocabSize;
+      Word embIdx = (Word)(keys[i] % vocabSize);
       auto beamIdx = i / beamSize;
 
       // Retrieve short list for final softmax (based on words aligned
@@ -57,17 +57,17 @@ public:
       // in the sub-selected vocabulary matrix back to their original positions.
       auto shortlist = scorers_[0]->getShortlist();
       if(shortlist)
-        embIdx = shortlist->reverseMap(embIdx);
+        embIdx = shortlist->reverseMap(embIdx); // @TODO: should reverseMap accept a size_t or a Word?
 
       if(newBeams[beamIdx].size() < beams[beamIdx].size()) {
         auto& beam = beams[beamIdx];
         auto& newBeam = newBeams[beamIdx];
 
-        size_t hypIdx = keys[i] / vocabSize;
+        auto hypIdx = (IndexType)(keys[i] / vocabSize);
         float pathScore = pathScores[i];
 
-        size_t hypIdxTrans
-            = (hypIdx / beamSize) + (hypIdx % beamSize) * beams.size();
+        auto hypIdxTrans
+            = IndexType((hypIdx / beamSize) + (hypIdx % beamSize) * beams.size());
         if(first)
           hypIdxTrans = hypIdx;
 
@@ -169,14 +169,7 @@ public:
 
     size_t localBeamSize = beamSize_; // max over beam sizes of active sentence hypotheses
 
-    // @TODO: unify this
-    Ptr<NthElement> nth;
-#ifdef CUDA_FOUND
-    if(graph->getDeviceId().type == DeviceType::gpu)
-      nth = New<NthElementGPU>(localBeamSize, dimBatch, graph->getDeviceId());
-    else
-#endif
-      nth = New<NthElementCPU>(localBeamSize, dimBatch);
+    auto getNBestList = createGetNBestListFn(localBeamSize, dimBatch, graph->getDeviceId());
 
     Beams beams(dimBatch);        // [batchIndex][beamIndex] is one sentence hypothesis
     for(auto& beam : beams)
@@ -219,7 +212,7 @@ public:
             auto& beam = beams[j];
             if(i < beam.size()) {
               auto hyp = beam[i];
-              hypIndices.push_back(hyp->GetPrevStateIndex()); // backpointer
+              hypIndices.push_back((IndexType)hyp->GetPrevStateIndex()); // backpointer
               embIndices.push_back(hyp->GetWord());
               beamScores.push_back(hyp->GetPathScore());
             } else {  // dummy hypothesis
@@ -271,7 +264,7 @@ public:
       std::vector<float> outPathScores;
 
       std::vector<size_t> beamSizes(dimBatch, localBeamSize);
-      nth->getNBestList(beamSizes, pathScores->val(), outPathScores, outKeys, first);
+      getNBestList(beamSizes, pathScores->val(), outPathScores, outKeys, first);
 
       int dimTrgVoc = pathScores->shape()[-1];
       beams = toHyps(outKeys,
