@@ -40,11 +40,10 @@ NodeInitializer from_value(float v) {
 
 NodeInitializer diag(float val) {
   return [val](Tensor t) {
-    if(t->shape()[0] == t->shape()[1] && t->shape()[2] == 1
-       && t->shape()[3] == 1) {
+    if(t->shape().size() == 2 && t->shape()[-1] == t->shape()[-2]) {
       std::vector<float> vec(t->size(), 0);
-      for(int i = 0; i < t->shape()[0]; ++i)
-        vec[i * t->shape()[1] + i] = val;
+      for(int i = 0; i < t->shape()[-2]; ++i)
+        vec[i * t->shape()[-1] + i] = val;
       t->set(vec);
     }
   };
