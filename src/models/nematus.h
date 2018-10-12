@@ -36,7 +36,13 @@ public:
   void save(Ptr<ExpressionGraph> graph,
             const std::string& name,
             bool saveTranslatorConfig = false) override {
-    graph->save(name, getModelParametersAsString(), nameMap_);
+    // a dummy matrix 'decoder_c_tt' required for Amun and Nematus
+    io::Item ctt;
+    ctt.name = "decoder_c_tt";
+    ctt.shape = Shape({1, 0});
+    ctt.bytes.emplace_back(0);
+
+    graph->save(name, getModelParametersAsString(), nameMap_, {ctt});
     if(saveTranslatorConfig) {
       createAmunConfig(name);
       createDecoderConfig(name);

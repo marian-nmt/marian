@@ -143,7 +143,13 @@ public:
            {"encoder_bi_r_gamma1", "encoder_r_gamma1"},
            {"encoder_bi_r_gamma2", "encoder_r_gamma2"}};
 
-    graph->save(name, getModelParametersAsString(), nameMap);
+    // a dummy matrix 'decoder_c_tt' required for Amun and Nematus
+    io::Item ctt;
+    ctt.name = "decoder_c_tt";
+    ctt.shape = Shape({1, 0});
+    ctt.bytes.emplace_back(0);
+
+    graph->save(name, getModelParametersAsString(), nameMap, {ctt});
 
     if(saveTranslatorConfig) {
       createAmunConfig(name);
