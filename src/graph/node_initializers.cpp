@@ -38,15 +38,18 @@ NodeInitializer from_value(float v) {
   return [v](Tensor t) { t->set(v); };
 }
 
-NodeInitializer diag(float val) {
+// diagonal matrix with value val along diagonal
+NodeInitializer eye(float val) {
   return [val](Tensor t) {
-    if(t->shape()[0] == t->shape()[1] && t->shape()[2] == 1
-       && t->shape()[3] == 1) {
-      std::vector<float> vec(t->size(), 0);
-      for(int i = 0; i < t->shape()[0]; ++i)
-        vec[i * t->shape()[1] + i] = val;
-      t->set(vec);
-    }
+    ABORT_IF(t->shape().size() != 2 || t->shape()[-1] != t->shape()[-2], 
+             "eye(val) is defined only for quadratic tensors, shape is {}",
+             t->shape());
+  
+    // @TODO: implement efficient version on the GPU
+    std::vector<float> vec(t->size(), 0);
+    for(int i = 0; i < t->shape()[-1]; ++i)
+      vec[i * t->shape()[0] + i] = val;
+    t->set(vec);
   };
 }
 
@@ -89,6 +92,7 @@ NodeInitializer dropout(float prob) {
 // -log(-log(uniform(0.f + eps, 1.f - eps)));
 void gumbel(Tensor tensor) {
   using namespace functional;
+  // @TODO: make eps a parameter? Seems to influence amplitude quite heavilygit 
   float eps = 1e-05;
   Uniform(tensor, 0.f + eps, 1.f - eps);
   Element(_1 = -log(-log(_1)), tensor);

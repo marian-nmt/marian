@@ -203,7 +203,7 @@ Expr flatten_2d(Expr a) {
   return Expression<ReshapeNodeOp>(a, shape);
 }
 
-Expr like(Expr a, const NodeInitializer& init) {
+Expr constant_like(Expr a, const NodeInitializer& init) {
   const auto& shape = a->shape();
   auto graph = a->graph();
   return graph->constant(shape, init);

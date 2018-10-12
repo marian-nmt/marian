@@ -115,21 +115,26 @@ class LogsoftmaxStep : public CostStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     // decoder needs normalized probabilities (note: skipped if beam 1 and --skip-cost)
+    auto logits = state->getLogProbs();
+    
+    auto logprobs = logsoftmax(logits);
 
-    state->setLogProbs(logsoftmax(state->getLogProbs()));
+    state->setLogProbs(logprobs);
     return state;
   }
 };
 
 // Gumbel-max noising for sampling during beam-search
-// Seems to work well enough with beam-size=1
+// Seems to work well enough with beam-size=1. Turn on
+// with --gumbel-max during translation with marian-decoder
 class GumbelmaxStep : public CostStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     auto logits = state->getLogProbs();
     
-    auto noise = like(logits, inits::gumbel);
-    state->setLogProbs(logsoftmax(logits + noise));
+    auto logprobs = logsoftmax(logits + constant_like(logits, inits::gumbel));
+
+    state->setLogProbs(logprobs);
     return state;
   }
 };

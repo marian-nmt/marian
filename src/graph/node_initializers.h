@@ -24,7 +24,7 @@ void ones(Tensor t);
 
 NodeInitializer from_value(float v);
 
-NodeInitializer diag(float val);
+NodeInitializer eye(float val = 1.f);
 
 NodeInitializer normal(float mju, float sigma);
 
