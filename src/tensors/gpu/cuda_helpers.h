@@ -11,42 +11,43 @@ __constant__ float CUDA_FLT_MAX = 1.70141e+38;
 const int MAX_THREADS = 512;
 const int MAX_BLOCKS = 65535;
 
-#define CUDA_CHECK(ans) \
-  { gpuAssert((ans),#ans, __FILE__, __LINE__); }
+#define CUDA_CHECK(expr) do {                                                                      \
+  cudaError_t rc = (expr);                                                                         \
+  ABORT_IF(rc != cudaSuccess,                                                                      \
+        "CUDA error {} '{}' - {}:{}: {}", rc, cudaGetErrorString(rc),  __FILE__, __LINE__, #expr); \
+} while(0)
 
+#define CUSPARSE_CHECK(expr) do {                                              \
+  cusparseStatus_t rc = (expr);                                                \
+  ABORT_IF(rc != CUSPARSE_STATUS_SUCCESS,                                      \
+           "Cusparse Error: {} - {}:{}: {}", rc, __FILE__, __LINE__, #expr);   \
+} while(0)
+
+#define NCCL_CHECK(expr) do {                                                                      \
+  ncclResult_t rc = (expr);                                                                        \
+  ABORT_IF(rc != ncclSuccess,                                                                      \
+        "NCCL error {} '{}' - {}:{}: {}", rc, ncclGetErrorString(rc),  __FILE__, __LINE__, #expr); \
+} while(0)
+
+#define CURAND_CHECK(expr) do {                                          \
+  curandStatus_t rc = (expr);                                            \
+  ABORT_IF(rc != CURAND_STATUS_SUCCESS,                                  \
+          "Curand error {} - {}:{}: {}", rc, __FILE__, __LINE__, #expr); \
+} while(0)
+
+// @TODO: remove this if no longer used
 inline void gpuAssert(cudaError_t code, const char* exprString,
                       const char* file,
                       int line) {
-  if(code != cudaSuccess) {
-    ABORT("CUDA Error {}: {} - {}:{}: {}", code, cudaGetErrorString(code), file, line, exprString);
-  }
+  ABORT_IF(code != cudaSuccess,
+           "CUDA Error {}: {} - {}:{}: {}", code, cudaGetErrorString(code), file, line, exprString);
 }
 
+// @TODO: is this used anywhere?
 template <typename T>
 void CudaCopy(const T* start, const T* end, T* dest) {
-  CUDA_CHECK(cudaMemcpy(
-      (void*)dest, (void*)start, (end - start) * sizeof(T), cudaMemcpyDefault));
+  CUDA_CHECK(cudaMemcpy(dest, start, (end - start) * sizeof(T), cudaMemcpyDefault));
 }
-
-#define CUSPARSE_CHECK(x)                               \
-  {                                                     \
-    cusparseStatus_t _c = x;                            \
-    if(_c != CUSPARSE_STATUS_SUCCESS) {                 \
-      printf("cusparse fail: %d, file: %s, line: %d\n", \
-             (int)_c,                                   \
-             __FILE__,                                  \
-             __LINE__);                                 \
-      exit(-1);                                         \
-    }                                                   \
-  }
-
-#define NCCLCHECK(cmd) do {                             \
-    /*LOG(info, "[nccl] {}", #cmd);*/ \
-    ncclResult_t code = cmd;                            \
-    /*LOG(info, "[nccl] {} -> {}", #cmd, code);*/       \
-    ABORT_IF(code != ncclSuccess, "Failed, NCCL error {} '{}' - {}",             \
-          code, ncclGetErrorString(code), #cmd);        \
-  } while(0)
 
 // void cusparseStatus(cusparseStatus_t status){
 //	switch(status){
