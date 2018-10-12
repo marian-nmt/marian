@@ -75,7 +75,9 @@ private:
     values.reserve(dimEmb);
     // Glorot numal distribution
     float scale = sqrtf(2.0f / (dimVoc + dimEmb));
-    inits::distribution<std::normal_distribution<float>>(values, 0, scale);
+    
+    ABORT("Currently not correctly implemented");
+    //inits::distribution<std::normal_distribution<float>>(values, 0, scale);
     return values;
   }
 };

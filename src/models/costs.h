@@ -126,16 +126,10 @@ public:
 class GumbelmaxStep : public CostStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
-  
     auto logits = state->getLogProbs();
-    auto graph = logits->graph();
-    auto shape = logits->shape();
-    float eps = 1e-05;
-
-    auto noise = graph->constant(shape, inits::uniform(0.f + eps, 1.f - eps));
-    auto gumbel = -log(-log(noise));
-
-    state->setLogProbs(logsoftmax(logits + gumbel));
+    
+    auto noise = like(logits, inits::gumbel);
+    state->setLogProbs(logsoftmax(logits + noise));
     return state;
   }
 };

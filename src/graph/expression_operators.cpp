@@ -1,6 +1,7 @@
 #include "graph/expression_operators.h"
 #include "layers/constructors.h"
 
+#include "graph/node_initializers.h"
 #include "graph/node_operators.h"
 #include "graph/node_operators_binary.h"
 #include "graph/node_operators_unary.h"
@@ -200,6 +201,12 @@ Expr flatten(Expr a) {
 Expr flatten_2d(Expr a) {
   Shape shape = {a->shape().elements() / a->shape()[-1], a->shape()[-1]};
   return Expression<ReshapeNodeOp>(a, shape);
+}
+
+Expr like(Expr a, const NodeInitializer& init) {
+  const auto& shape = a->shape();
+  auto graph = a->graph();
+  return graph->constant(shape, init);
 }
 
 Expr rows(Expr a, Expr indices) {

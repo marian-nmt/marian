@@ -3,11 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// clang-format off
 #include "tensors/tensor_operators.h"
 #include "tensors/gpu/backend.h"
-// clang-format on
 
+// @TODO move this to a header file
 #define CUDA_CALL(x)                                  \
   do {                                                \
     if((x) != cudaSuccess) {                          \
@@ -27,26 +26,27 @@
 namespace marian {
 namespace gpu {
 
-__global__ void gScale(float* data, int n, float p) {
-  int index = threadIdx.x + blockIdx.x * blockDim.x;
+void Uniform(Tensor tensor, float a, float b) {
+  ABORT_IF(a >= b, "");
 
-  while(index < n) {
-    data[index] = (data[index] < p) / p;
-    index += gridDim.x * blockDim.x;
-  }
-}
-
-void Dropout(Tensor tensor, float p) {
   auto gpuBackend
       = std::static_pointer_cast<gpu::Backend>(tensor->getBackend());
   curandGenerator_t gen = gpuBackend->getCurandGenerator();
-  int n = tensor->size();
-  CURAND_CALL(curandGenerateUniform(gen, tensor->data(), n));
+  CURAND_CALL(curandGenerateUniform(gen, tensor->data(), tensor->size()));
 
-  int numThreads = std::min(n, 512);
-  int numBlocks = n / numThreads + (n % numThreads != 0);
-
-  gScale<<<numBlocks, numThreads>>>(tensor->data(), n, 1.f - p);
+  // curandGenerateUniform has no range parameters (why?) so we need to
+  // scale and shift inplace if range is different than [0, 1). 
+  using namespace functional;
+  if(a != 0.f || b != 1.f)
+    gpu::Element(_1 = (b - a) * _1 + a, tensor);
 }
+
+void Normal(Tensor tensor, float mju, float sigma) {
+  auto gpuBackend
+      = std::static_pointer_cast<gpu::Backend>(tensor->getBackend());
+  curandGenerator_t gen = gpuBackend->getCurandGenerator();
+  CURAND_CALL(curandGenerateNormal(gen, tensor->data(), tensor->size(), mju, sigma));
+}
+
 }  // namespace gpu
 }  // namespace marian

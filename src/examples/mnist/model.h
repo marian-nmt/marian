@@ -133,7 +133,7 @@ protected:
 
       // Construct a weight node for the outgoing connections from layer i
       weights.emplace_back(
-          g->param("W" + std::to_string(i), {in, out}, inits::uniform()));
+          g->param("W" + std::to_string(i), {in, out}, inits::uniform(-0.1f, 0.1f)));
 
       // Construct a bias node. These weights are initialized to zero
       biases.emplace_back(

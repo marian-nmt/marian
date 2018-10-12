@@ -27,7 +27,7 @@ Ptr<VocabImpl> vocabFactory(const std::string& vocabPath) {
 int Vocab::loadOrCreate(const std::string& vocabPath,
                         const std::string& trainPath,
                         int max) {
-  
+              
   if(vocabPath.empty()) {
     // No vocabulary path was given, attempt to first find a vocabulary
     // for trainPath + possible suffixes. If not found attempt to create

@@ -1,5 +1,4 @@
 #include "graph/node_initializers.h"
-#include "3rd_party/svd/svd.h"
 #include "layers/word2vec_reader.h"
 #include "tensors/tensor_operators.h"
 
@@ -51,27 +50,21 @@ NodeInitializer diag(float val) {
   };
 }
 
-NodeInitializer normal(float scale, bool /*ortho*/ /*= true*/) {
-  return [scale](Tensor t) {
-    distribution<std::normal_distribution<float>>(t, 0, scale);
-  };
-}
-
-NodeInitializer uniform(float scale) {
-  return [scale](Tensor t) {
-    distribution<std::uniform_real_distribution<float>>(t, -scale, scale);
+NodeInitializer normal(float mju, float sigma) {
+  return [mju, sigma](Tensor tensor) {
+    Normal(tensor, mju, sigma);
   };
 }
 
 NodeInitializer uniform(float a, float b) {
-  return [a, b](Tensor t) {
-    distribution<std::uniform_real_distribution<float>>(t, a, b);
+  return [a, b](Tensor tensor) {
+    Uniform(tensor, a, b);
   };
 }
 
-void glorot_uniform(Tensor t) {
-  float scale = sqrtf(6.0f / (t->shape()[-2] + t->shape()[-1]));
-  distribution<std::uniform_real_distribution<float>>(t, -scale, scale);
+void glorot_uniform(Tensor tensor) {
+  float scale = sqrtf(6.0f / (tensor->shape()[-2] + tensor->shape()[-1]));
+  Uniform(tensor, -scale, scale);
 }
 
 void xorshift(Tensor t) {
@@ -81,9 +74,9 @@ void xorshift(Tensor t) {
   t->set(vals);
 }
 
-void glorot_normal(Tensor t) {
-  float scale = sqrtf(2.0f / (t->shape()[-2] + t->shape()[-1]));
-  distribution<std::normal_distribution<float>>(t, 0, scale);
+void glorot_normal(Tensor tensor) {
+  float scale = sqrtf(2.0f / (tensor->shape()[-2] + tensor->shape()[-1]));
+  Normal(tensor, 0.f, scale);
 }
 
 NodeInitializer dropout(float prob) {
@@ -92,31 +85,13 @@ NodeInitializer dropout(float prob) {
   };
 }
 
-void svd(std::vector<float>& vec, Shape shape) {
-  int rows = shape[0] * shape[2] * shape[3];
-  int cols = shape[1];
-
-  int n = std::min(rows, cols);
-  int m = std::max(rows, cols);
-
-  ABORT_IF(m % n != 0,
-           "Matrix dimensions must be equal or multiples of each other");
-
-  for(int i = 0; i < shape.elements(); i += n * n) {
-    std::vector<float> t1(n);
-    std::vector<float> t2(n * n);
-    float* a = vec.data() + i;
-    float* w = t1.data();
-    float* v = t2.data();
-    dsvd(a, n, n, w, v);
-  }
-}
-
-void ortho(Tensor t) {
-  std::vector<float> vec(t->size());
-  distribution<std::normal_distribution<float>>(vec, 0, 1);
-  svd(vec, t->shape());
-  t->set(vec);
+// gumbel noise:
+// -log(-log(uniform(0.f + eps, 1.f - eps)));
+void gumbel(Tensor tensor) {
+  using namespace functional;
+  float eps = 1e-05;
+  Uniform(tensor, 0.f + eps, 1.f - eps);
+  Element(_1 = -log(-log(_1)), tensor);
 }
 
 NodeInitializer from_vector(const std::vector<float>& v) {

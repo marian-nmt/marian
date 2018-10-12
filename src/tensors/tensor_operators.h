@@ -75,30 +75,41 @@ void Reduce(Functor functor, marian::Tensor out, Tensors... tensors) {
 }
 
 // clang-format off
-  DISPATCH7(Prod, marian::Tensor, const marian::Tensor&, const marian::Tensor&, bool, bool, float, float)
-  DISPATCH8(ProdWithBias, marian::Tensor, const marian::Tensor&, const marian::Tensor&, const marian::Tensor&, bool, bool, float, float)
+DISPATCH7(Prod, marian::Tensor, const marian::Tensor&, const marian::Tensor&, bool, bool, float, float)
+DISPATCH8(ProdWithBias, marian::Tensor, const marian::Tensor&, const marian::Tensor&, const marian::Tensor&, bool, bool, float, float)
 
-  DISPATCH8(ProdBatched, marian::Tensor, Ptr<Allocator>, const marian::Tensor, const marian::Tensor, bool, bool, float, float)
+DISPATCH8(ProdBatched, marian::Tensor, Ptr<Allocator>, const marian::Tensor, const marian::Tensor, bool, bool, float, float)
 
-  DISPATCH2(Dropout, marian::Tensor, float)
+DISPATCH2(Softmax, marian::Tensor, marian::Tensor)
+DISPATCH3(SoftmaxGrad, marian::Tensor, marian::Tensor, marian::Tensor)
 
-  DISPATCH2(Softmax, marian::Tensor, marian::Tensor)
-  DISPATCH3(SoftmaxGrad, marian::Tensor, marian::Tensor, marian::Tensor)
+DISPATCH2(LogSoftmax, marian::Tensor, marian::Tensor)
+DISPATCH3(LogSoftmaxGrad, marian::Tensor, marian::Tensor, marian::Tensor)
 
-  DISPATCH2(LogSoftmax, marian::Tensor, marian::Tensor)
-  DISPATCH3(LogSoftmaxGrad, marian::Tensor, marian::Tensor, marian::Tensor)
+DISPATCH3(CrossEntropyPick, marian::Tensor, marian::Tensor, marian::Tensor)
+DISPATCH4(CrossEntropyPickBackward, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor)
 
-  DISPATCH3(CrossEntropyPick, marian::Tensor, marian::Tensor, marian::Tensor)
-  DISPATCH4(CrossEntropyPickBackward, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor)
+DISPATCH3(TransposeND, marian::Tensor, marian::Tensor, const std::vector<int>&)
+DISPATCH3(TransposeNDGrad, marian::Tensor, marian::Tensor, const std::vector<int>&)
 
-  DISPATCH3(TransposeND, marian::Tensor, marian::Tensor, const std::vector<int>&)
-  DISPATCH3(TransposeNDGrad, marian::Tensor, marian::Tensor, const std::vector<int>&)
+DISPATCH5(Shift, marian::Tensor, marian::Tensor, marian::Shape, float, bool)
+DISPATCH4(ShiftGrad, marian::Tensor, marian::Tensor, marian::Shape, bool)
 
-  DISPATCH5(Shift, marian::Tensor, marian::Tensor, marian::Shape, float, bool)
-  DISPATCH4(ShiftGrad, marian::Tensor, marian::Tensor, marian::Shape, bool)
+DISPATCH3(Concatenate, marian::Tensor, const std::vector<marian::Tensor>&, int)
 
-  DISPATCH3(Concatenate, marian::Tensor, const std::vector<marian::Tensor>&, int)
+// in-place uniform distribution
+DISPATCH3(Uniform, marian::Tensor, float, float);
+DISPATCH3(Normal, marian::Tensor, float, float);
 // clang-format on
+
+static inline void Dropout(Tensor tensor, float p) {
+  // in-place uniform distribution
+  Uniform(tensor, 0.f, 1.f);
+  // in-place scaling dropout
+  float invp = 1.f - p;
+  using namespace functional;
+  Element(_1 = (_1 < invp) / invp, tensor);
+}
 
 #ifdef CUDA_FOUND
 namespace gpu {
