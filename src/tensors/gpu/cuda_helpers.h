@@ -3,24 +3,22 @@
 
 #include "3rd_party/exception.h"
 #include "common/logging.h"
+#include "cuda_runtime.h"
+#include "nccl.h"
 
 // fixes a missing constant in CUDA device code (specific to MSVC compiler)
 __constant__ float CUDA_FLT_MAX = 1.70141e+38;
 const int MAX_THREADS = 512;
 const int MAX_BLOCKS = 65535;
 
-#ifdef __CUDACC__
-
 #define CUDA_CHECK(ans) \
-  { gpuAssert((ans), __FILE__, __LINE__); }
+  { gpuAssert((ans),#ans, __FILE__, __LINE__); }
 
-inline void gpuAssert(cudaError_t code,
+inline void gpuAssert(cudaError_t code, const char* exprString,
                       const char* file,
-                      int line,
-                      bool abort = true) {
+                      int line) {
   if(code != cudaSuccess) {
-    LOG(critical, "Error: {} - {}:{}", cudaGetErrorString(code), file, line);
-    std::abort();
+    ABORT("CUDA Error {}: {} - {}:{}: {}", code, cudaGetErrorString(code), file, line, exprString);
   }
 }
 
@@ -42,7 +40,13 @@ void CudaCopy(const T* start, const T* end, T* dest) {
     }                                                   \
   }
 
-#endif
+#define NCCLCHECK(cmd) do {                             \
+    /*LOG(info, "[nccl] {}", #cmd);*/ \
+    ncclResult_t code = cmd;                            \
+    /*LOG(info, "[nccl] {} -> {}", #cmd, code);*/       \
+    ABORT_IF(code != ncclSuccess, "Failed, NCCL error {} '{}' - {}",             \
+          code, ncclGetErrorString(code), #cmd);        \
+  } while(0)
 
 // void cusparseStatus(cusparseStatus_t status){
 //	switch(status){

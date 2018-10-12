@@ -13,7 +13,7 @@ class Vocab {
 public:
   Vocab();
 
-  size_t operator[](const std::string& word) const;
+  Word operator[](const std::string& word) const;
 
   Words operator()(const std::vector<std::string>& lineTokens,
                    bool addEOS = true) const;

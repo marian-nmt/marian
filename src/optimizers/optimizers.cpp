@@ -40,21 +40,23 @@ void Adagrad::updateImpl(Tensor params, Tensor grads) {
 }
 
 void Adagrad::load(const std::string& name,
-                   std::vector<Ptr<OptimizerBase>> opts,
-                   std::vector<Ptr<Backend>> backends) {
+                   const std::vector<Ptr<OptimizerBase>>& opts,
+                   const std::vector<Ptr<Backend>>& backends,
+                   const ScatterStateFunc& scatterFn) {
+  ABORT_IF(opts.size() != backends.size(), "opts and backends of different sizes??");
+
   if(!filesystem::exists(name))
     return;
 
   LOG(info, "Loading Adagrad parameters from {}", name);
 
   std::vector<float> vGt;
-  size_t totalSize = 0;
 
   // @TODO: use new IO
   auto items = io::loadItems(name);
   for(auto item : items) {
     // get the size of gt_
-    totalSize = item.shape.elements();
+    auto totalSize = item.shape.elements();
 
     // extract data into vectors
     if(item.name == "adagrad_gt") {
@@ -63,52 +65,44 @@ void Adagrad::load(const std::string& name,
           (float*)item.data(), (float*)item.data() + totalSize, vGt.begin());
     }
   }
-
   if(vGt.empty()) {
     LOG(warn, "[warn] Adagrad parameters not found in .npz file");
     return;
   }
 
-  // get the size of params which should go
-  size_t shardSize = (size_t)(ceil(totalSize / (float)backends.size()));
-
-  size_t id = 0;
-  for(auto optBase : opts) {
-    auto opt = std::dynamic_pointer_cast<Adagrad>(optBase);
-
-    int size = (int)std::min(shardSize, totalSize);
-    totalSize -= size;
-
-    if(!opt->alloc_)
-      opt->alloc_ = New<TensorAllocator>(backends[id]);
-
+  scatterFn(vGt,
+    [&](size_t localDeviceIndex, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
+    auto opt = std::dynamic_pointer_cast<Adagrad>(opts[localDeviceIndex]);
     if(!opt->gt_) {
+      if(!opt->alloc_)
+        opt->alloc_ = New<TensorAllocator>(backends[localDeviceIndex]);
+      auto size = end-begin;
       opt->alloc_->reserveExact(sizeof(float) * size);
-      opt->alloc_->allocate(opt->gt_, {1, size});
+      opt->alloc_->allocate(opt->gt_, {1, (int)size});
     }
-
-    size_t shift = id * shardSize;
-    std::vector<float> tmp(vGt.begin() + shift, vGt.begin() + shift + size);
-    opt->gt_->set(tmp);
-
-    id++;
-  }
+    opt->gt_->set(std::vector<float>(begin, end));
+  });
 }
 
 void Adagrad::save(const std::string& name,
-                   std::vector<Ptr<OptimizerBase>> opts,
-                   size_t /*totalSize*/) {
+                   const std::vector<Ptr<OptimizerBase>>& opts,
+                   const GatherStateFunc& gatherFn,
+                   bool isMainProcess /*= true*/) {
   LOG(info, "Saving Adagrad parameters to {}", name);
 
-  std::vector<float> vGt;
+  // fetch and concatenate state vectors from distributed shards into a CPU-side vector
+  auto vGt = gatherFn([&](size_t localDeviceIndex) {
+      auto opt = std::dynamic_pointer_cast<Adagrad>(opts[localDeviceIndex]);
+      std::vector<float> data;
+      opt->gt_->get(data);
+      return data;
+    });
 
-  for(auto optBase : opts) {
-    auto opt = std::dynamic_pointer_cast<Adagrad>(optBase);
-    std::vector<float> tmp;
-    opt->gt_->get(tmp);
-    vGt.insert(vGt.end(), tmp.begin(), tmp.end());
-  }
+  // if not main MPI process then we have done our duty
+  if (!isMainProcess)
+    return;
 
+  // save to file
   io::Item item;
   item.name = "adagrad_gt";
   item.shape = Shape({1, (int)vGt.size()});
@@ -162,8 +156,11 @@ void Adam::updateImpl(Tensor params, Tensor grads) {
 }
 
 void Adam::load(const std::string& name,
-                std::vector<Ptr<OptimizerBase>> opts,
-                std::vector<Ptr<Backend>> backends) {
+                const std::vector<Ptr<OptimizerBase>>& opts,
+                const std::vector<Ptr<Backend>>& backends,
+                const ScatterStateFunc& scatterFn) {
+  ABORT_IF(opts.size() != backends.size(), "opts and backends of different sizes??");
+
   if(!filesystem::exists(name))
     return;
 
@@ -171,12 +168,11 @@ void Adam::load(const std::string& name,
 
   std::vector<float> vMt;
   std::vector<float> vVt;
-  size_t totalSize = 0;
 
   auto items = io::loadItems(name);
   for(auto item : items) {
     // get the size of mt_ and vt_, they are the same
-    totalSize = item.shape.elements();
+    auto totalSize = item.shape.elements();
 
     // extract data into vectors
     if(item.name == "adam_mt") {
@@ -190,59 +186,62 @@ void Adam::load(const std::string& name,
           (float*)item.data(), (float*)item.data() + totalSize, vVt.begin());
     }
   }
-
   if(vMt.empty() || vVt.empty()) {
     LOG(warn, "[warn] Adam parameters not found in .npz file");
     return;
   }
+  ABORT_IF(vMt.size() != vVt.size(), "mt and vt have different sizes??");
 
-  // get the size of params which should go
-  size_t shardSize = (size_t)(ceil(totalSize / (float)backends.size()));
-
-  size_t id = 0;
-  for(auto optBase : opts) {
-    auto opt = std::dynamic_pointer_cast<Adam>(optBase);
-
-    int size = (int)std::min(shardSize, totalSize);
-    totalSize -= size;
-
-    if(!opt->alloc_)
-      opt->alloc_ = New<TensorAllocator>(backends[id]);
-
-    if(!opt->mt_ || !opt->vt_) {
+  //LOG(info, "loading Adam params");
+  scatterFn(vMt,
+    [&](size_t localDeviceIndex, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
+    auto opt = std::dynamic_pointer_cast<Adam>(opts[localDeviceIndex]);
+    if(!opt->mt_ || !opt->vt_) { // lazily allocate
+      if(!opt->alloc_)
+        opt->alloc_ = New<TensorAllocator>(backends[localDeviceIndex]);
+      auto size = end-begin;
       opt->alloc_->reserveExact(2 * sizeof(float) * size);
-      opt->alloc_->allocate(opt->mt_, {1, size});
-      opt->alloc_->allocate(opt->vt_, {1, size});
+      opt->alloc_->allocate(opt->mt_, {1, (int)size});
+      opt->alloc_->allocate(opt->vt_, {1, (int)size});
     }
+    opt->mt_->set(std::vector<float>(begin, end)); // set the value
+  });
 
-    size_t shift = id * shardSize;
-    std::vector<float> tmpMt(vMt.begin() + shift, vMt.begin() + shift + size);
-    opt->mt_->set(tmpMt);
-    std::vector<float> tmpVt(vVt.begin() + shift, vVt.begin() + shift + size);
-    opt->vt_->set(tmpVt);
-
-    id++;
-  }
+  scatterFn(vVt,
+    [&](size_t id, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) {
+    auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
+    opt->vt_->set(std::vector<float>(begin, end));
+  });
+  //LOG(info, "done loading Adam params");
 }
 
 void Adam::save(const std::string& name,
-                std::vector<Ptr<OptimizerBase>> opts,
-                size_t /*totalSize*/) {
-  LOG(info, "Saving Adam parameters to {}", name);
+                const std::vector<Ptr<OptimizerBase>>& opts,
+                const GatherStateFunc& gatherFn,
+                bool isMainProcess /*= true*/) {
+  if (isMainProcess)
+    LOG(info, "Saving Adam parameters to {}", name);
 
-  std::vector<float> vMt;
-  std::vector<float> vVt;
+  // fetch and concatenate state vectors from distributed shards into a CPU-side vector
+  auto vMt = gatherFn([&](size_t localDeviceIndex) {
+    auto opt = std::dynamic_pointer_cast<Adam>(opts[localDeviceIndex]);
+    std::vector<float> data;
+    opt->mt_->get(data);
+    return data;
+  });
 
-  for(auto optBase : opts) {
-    auto opt = std::dynamic_pointer_cast<Adam>(optBase);
+  auto vVt = gatherFn([&](size_t localDeviceIndex) {
+    auto opt = std::dynamic_pointer_cast<Adam>(opts[localDeviceIndex]);
+    std::vector<float> data;
+    opt->vt_->get(data);
+    return data;
+  });
 
-    std::vector<float> tmp;
-    opt->mt_->get(tmp);
-    vMt.insert(vMt.end(), tmp.begin(), tmp.end());
-    opt->vt_->get(tmp);
-    vVt.insert(vVt.end(), tmp.begin(), tmp.end());
-  }
+  // if not main MPI process then we have done our duty
+  if (!isMainProcess)
+      return;
 
+  // save to file
   io::Item itemMt;
   itemMt.name = "adam_mt";
   itemMt.shape = Shape({1, (int)vMt.size()});

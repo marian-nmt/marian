@@ -59,7 +59,6 @@ void AsyncGraphGroup::fetchParams(Tensor oldParams,
 }
 
 void AsyncGraphGroup::pushGradients(Tensor newGrads,
-                                    size_t batch_words,
                                     int /*device_id*/) {
   // add instead of copy?
   std::vector<std::thread> threads;
@@ -188,7 +187,6 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
     thread_local Ptr<models::ModelBase> builder;
     thread_local size_t t = 0;
     thread_local size_t num_seen_words = 0;
-    thread_local size_t num_seen_trg = 0;
     thread_local size_t num_seen_sentences = 0;
     thread_local int t_id = 0;
     thread_local float cost = 0;
@@ -228,19 +226,16 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
       // Keep track of how many words we've calculated the error from
       num_seen_words += batch->words();
-      num_seen_trg += batch->wordsTrg();
       num_seen_sentences += batch->size();
     } else {
       gradients = graph->params()->grads();
-      num_seen_trg = batch->wordsTrg();
     }
 
     t++;
 
     if(t % optimizerDelay_ == 0) {
-      pushGradients(gradients, num_seen_trg, t_id);
+      pushGradients(gradients, t_id);
       // Reset the counter of seen target words after gradient update
-      num_seen_trg = 0;
       if(optimizerDelay_ > 1)
         gradients->set(0);
     }
@@ -316,8 +311,17 @@ void AsyncGraphGroup::load() {
       std::vector<Ptr<Backend>> backends;
       for(auto graph : graphs_)
         backends.push_back(graph->getBackend());
-      shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends);
-
+      shardOpt_[0]->load(name + ".optimizer.npz", shardOpt_, backends,
+        /*scatterStateFn=*/[&](const std::vector<float>& data, const OptimizerBase::ScatterStateSetFunc& setFn) {
+          size_t dataSize = data.size();
+          size_t numLocalDevices = graphs_.size();
+          size_t shardSize = (dataSize + numLocalDevices - 1) / numLocalDevices;// (size_t)(ceil(dataSize / (float)numLocalDevices));
+          for (size_t i = 0; i < numLocalDevices; i++) {
+            size_t begin = i * shardSize;
+            size_t end = std::min(begin + shardSize, dataSize);
+            setFn(i, data.begin() + begin, data.begin() + end);
+          }
+        });
     } else if(options_->has("pretrained-model")) {
       std::string nameInit = options_->get<std::string>("pretrained-model");
       LOG(info,
@@ -378,8 +382,15 @@ void AsyncGraphGroup::save(Ptr<ExpressionGraph> graph, bool final /*=false*/) {
       scheduler_->save(name);
   }
 
-  size_t totalSize = graphs_[idx]->params()->vals()->size();
-  shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_, totalSize);
+  shardOpt_[idx]->save(name + ".optimizer.npz", shardOpt_,
+    /*gatherStateFn=*/[&](const OptimizerBase::GatherStateGetFunc& getFn) {
+      std::vector<float> data;
+      for (size_t i = 0; i < graphs_.size(); i++) {
+        auto tmp = getFn(i);
+        data.insert(data.end(), tmp.begin(), tmp.end());
+      }
+      return data;
+    });
 }
 
 void AsyncGraphGroup::finalize() {

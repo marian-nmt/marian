@@ -293,7 +293,7 @@ public:
         if(specialSymbols_.count(embIdx[i])) {
           stateHardAtt->getAttentionIndices()[i]++;
           if(stateHardAtt->getAttentionIndices()[i] >= dimSrcWords)
-            stateHardAtt->getAttentionIndices()[i] = dimSrcWords - 1;
+            stateHardAtt->getAttentionIndices()[i] = (IndexType)dimSrcWords - 1;
         }
     }
   }
