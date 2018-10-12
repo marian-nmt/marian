@@ -33,21 +33,25 @@ template void copy<double>(Ptr<Backend>, const double*, const double*, double*);
 
 template <typename T>
 __global__ void gFill(T* d_in, int size, T val) {
-  for(int bid = 0; bid < size; bid += blockDim.x * gridDim.x) {
-    int index = bid + threadIdx.x + blockDim.x * blockIdx.x;
+  //auto blocks = gridDim.x;
+  auto threadsPerBlock = blockDim.x;
+  //for(int bid = 0; bid < size; bid += threadsPerBlock * blocks) {
+    int index = /*bid +*/ threadIdx.x + threadsPerBlock * blockIdx.x;
     if(index < size) {
       d_in[index] = val;
     }
-  }
+  //}
 }
 
 template <typename T>
 void fill(Ptr<Backend> backend, T* begin, T* end, T value) {
-  CUDA_CHECK(cudaSetDevice(backend->getDeviceId().no));
   int size = end - begin;
-  int threads = std::min(512, size);
-  int blocks = (size / threads) + (size % threads != 0);
-  gFill<<<blocks, threads>>>(begin, size, value);
+  if (size == 0)
+    return;
+  CUDA_CHECK(cudaSetDevice(backend->getDeviceId().no));
+  int threadsPerBlock = std::min(512, size);
+  int blocks = (size / threadsPerBlock) + (size % threadsPerBlock != 0); // @TODO: (size+threadsPerBlock-1)/threadsPerBlock or CeilDiv(a,b)
+  gFill<<<blocks, threadsPerBlock>>>(begin, size, value);
   CUDA_CHECK(cudaStreamSynchronize(0));
 }
 

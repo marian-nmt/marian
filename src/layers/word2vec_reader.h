@@ -56,7 +56,7 @@ public:
     embs.reserve(dimVoc * dimEmb);
 
     // Populate output vector with embedding
-    for(size_t word = 0; word < (size_t)dimVoc; ++word) {
+    for(Word word = 0; word < (Word)dimVoc; ++word) {
       // For words not occuring in the file use uniform distribution
       if(word2vec.find(word) == word2vec.end()) {
         auto randVals = randomEmbeddings(dimVoc, dimEmb);

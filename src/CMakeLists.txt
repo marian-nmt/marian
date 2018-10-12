@@ -26,6 +26,7 @@ add_library(marian STATIC
   3rd_party/cnpy/cnpy.cpp
   3rd_party/exception.cpp
   3rd_party/svd/svd.cpp
+  3rd_party/ExceptionWithCallStack.cpp
 
   tensors/backend.cpp
   tensors/cpu/device.cpp
@@ -91,7 +92,6 @@ cuda_add_library(marian_cuda
   translator/helpers.cu
   training/gradient_dropping/gpu/dropper.cu
   training/gradient_dropping/gpu/sparse_algorithm.cu
-  training/communicator.cu
   STATIC)
 endif(CUDA_FOUND)
 

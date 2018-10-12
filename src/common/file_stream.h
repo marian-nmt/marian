@@ -206,7 +206,7 @@ private:
 
 // wrapper around std::getline() that handles Windows input files with extra CR
 // chars at the line end
-static InputFileStream& getline(InputFileStream& in, std::string& line) {
+static inline InputFileStream& getline(InputFileStream& in, std::string& line) {
   std::getline((std::istream&)in, line);
   // bad() seems to be correct here. Should not abort on EOF.
   ABORT_IF(in.bad(),
@@ -220,7 +220,7 @@ static InputFileStream& getline(InputFileStream& in, std::string& line) {
 
 // wrapper around std::getline() that handles Windows input files with extra CR
 // chars at the line end
-static InputFileStream& getline(InputFileStream& in, std::string& line, char delim) {
+static inline InputFileStream& getline(InputFileStream& in, std::string& line, char delim) {
   std::getline((std::istream&)in, line, delim);
   // bad() seems to be correct here. Should not abort on EOF.
   ABORT_IF(in.bad(),
