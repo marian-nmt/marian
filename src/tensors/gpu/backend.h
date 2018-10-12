@@ -1,11 +1,11 @@
 #pragma once
 
 #include "common/config.h"
-#include "tensors/backend.h"
+#include "tensors/backend.h" // note: this is one folder up
 #include "tensors/gpu/cuda_helpers.h"
 
-#include <cublas_v2.h>
 #include <cuda.h>
+#include <cublas_v2.h>
 #include <curand.h>
 
 namespace marian {

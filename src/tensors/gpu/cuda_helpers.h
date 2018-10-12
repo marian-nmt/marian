@@ -1,13 +1,10 @@
 #pragma once
-#include <cstdlib>
-
-#include "3rd_party/exception.h"
 #include "common/logging.h"
 #include "cuda_runtime.h"
 #include "nccl.h"
 
 // fixes a missing constant in CUDA device code (specific to MSVC compiler)
-__constant__ float CUDA_FLT_MAX = 1.70141e+38;
+static __constant__ float CUDA_FLT_MAX = 1.70141e+38;
 const int MAX_THREADS = 512;
 const int MAX_BLOCKS = 65535;
 

@@ -5,10 +5,8 @@
 
 #pragma once
 
-#include <algorithm>
-#include <vector>
-
 #include "tensors/tensor.h"
+#include <vector>
 
 namespace marian {
 
@@ -19,14 +17,4 @@ typedef std::function<void(const std::vector<size_t>& beamSizes,
                            const bool isFirst)> GetNBestListFn;
 
 GetNBestListFn createGetNBestListFn(size_t beamSize, size_t dimBatch, DeviceId deviceId);
-
-struct /*interface*/ INthElement {
-  virtual ~INthElement() {}
-  virtual void getNBestList(const std::vector<size_t>& beamSizes,
-                            Tensor logProbs,
-                            std::vector<float>& outCosts,
-                            std::vector<unsigned>& outKeys,
-                            const bool isFirst)
-      = 0;
-};
 }  // namespace marian

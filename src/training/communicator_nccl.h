@@ -2,14 +2,13 @@
 // Note: This must only be included if defined(CUDA_FOUND) && defined(USE_NCCL)
 #include "training/communicator.h"
 #include "3rd_party/threadpool.h"
- 
+#include "tensors/gpu/cuda_helpers.h"
+
 #include "cuda_runtime.h"
 #include "nccl.h"
 #if (NCCL_MAJOR<3 || NCCL_MINOR<2)
 #define ncclGetVersion(pv) (*(pv) = (NCCL_MAJOR * 1000 + NCCL_MINOR * 100 + NCCL_PATCH))
 #endif
-#include "tensors/gpu/cuda_helpers.h"
-
 
 #include <signal.h> // HACK
 #include <sys/types.h>
