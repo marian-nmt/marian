@@ -49,6 +49,9 @@ void distribution(Tensor t, float a, float b) {
 NodeInitializer normal(float scale = 0.1, bool ortho = true);
 
 NodeInitializer uniform(float scale = 0.1);
+NodeInitializer uniform(float a, float b);
+
+NodeInitializer dropout(float prob);
 
 static inline void dummy(Tensor t) {}
 

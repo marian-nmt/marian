@@ -466,6 +466,9 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
      "Use softmax shortlist: path first best prune");
   cli.add_nondefault<std::vector<float>>("--weights",
       "Scorer weights");
+  cli.add<bool>("--gumbel-max",
+      "Sample with Gumbel-max trick",
+       false);
 
   // TODO: the options should be available only in server
   cli.add_nondefault<size_t>("--port,-p",

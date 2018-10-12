@@ -59,7 +59,7 @@ public:
                           state->getTargetMask(),
                           weights);
 
-    if(options_->has("guided-alignment") && !inference_) {
+    if(options_->get("guided-alignment", std::string("none")) != "none" && !inference_) {
       auto alignments = encdec->getDecoders()[0]->getAlignments();
       ABORT_IF(alignments.empty(), "Model does not seem to support alignments");
 
@@ -115,7 +115,27 @@ class LogsoftmaxStep : public CostStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     // decoder needs normalized probabilities (note: skipped if beam 1 and --skip-cost)
+
     state->setLogProbs(logsoftmax(state->getLogProbs()));
+    return state;
+  }
+};
+
+// Gumbel-max noising for sampling during beam-search
+// Seems to work well enough with beam-size=1
+class GumbelmaxStep : public CostStep {
+public:
+  virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
+  
+    auto logits = state->getLogProbs();
+    auto graph = logits->graph();
+    auto shape = logits->shape();
+    float eps = 1e-05;
+
+    auto noise = graph->constant(shape, inits::uniform(0.f + eps, 1.f - eps));
+    auto gumbel = -log(-log(noise));
+
+    state->setLogProbs(logsoftmax(logits + gumbel));
     return state;
   }
 };
@@ -204,7 +224,10 @@ inline Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec,
     case usage::scoring:
       return New<Scorer>(encdec, New<EncoderDecoderCE>(options));
     case usage::translation:
-      return New<Stepwise>(encdec, New<LogsoftmaxStep>());
+      if(options->get<bool>("gumbel-max", false))
+        return New<Stepwise>(encdec, New<GumbelmaxStep>());
+      else
+        return New<Stepwise>(encdec, New<LogsoftmaxStep>());
     case usage::raw:
     default: return encdec;
   }
