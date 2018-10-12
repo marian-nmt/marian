@@ -248,6 +248,9 @@ catch (const std::exception& e) // something leaks thread handles
     //std::cerr << "scatterReduce completed" << std::endl;
   }
 
+  // This distributes all 64 model shards to all 64 GPUs.
+  // @TODO: For unknown reasons, this takes longer than any other operation incl. scatterReduce().
+  //        But both should have the same number of data transfers of the same size.
   void allGather() const override {
     groupStart();
     for(int i = 0; i < graphs_.size(); ++i) {

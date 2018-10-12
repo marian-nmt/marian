@@ -190,6 +190,8 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
   LOG(info, timer.format(2, "after scatterReduce (has sync): %ws"));
   comm_->foreach(update); // per-shard model-update
   LOG(info, timer.format(2, "after model update (no sync): %ws"));
+  graphs_.front()->getBackend()->synchronize(); // @TODO: This is strictly for time measurement. Make sure it doesn't accidentally stay in here!!
+  LOG(info, timer.format(2, "after model update sync (which is unnecessary except for time measurements): %ws"));
   comm_->allGather();     // distribute param value shards back
   LOG(info, timer.format(2, "after allGather (has sync): %ws"));
 
