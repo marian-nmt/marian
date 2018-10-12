@@ -1,6 +1,7 @@
 #include "graph/node_initializers.h"
 #include "3rd_party/svd/svd.h"
 #include "layers/word2vec_reader.h"
+#include "tensors/tensor_operators.h"
 
 #include <stdint.h>
 #include <algorithm>
@@ -62,6 +63,12 @@ NodeInitializer uniform(float scale) {
   };
 }
 
+NodeInitializer uniform(float a, float b) {
+  return [a, b](Tensor t) {
+    distribution<std::uniform_real_distribution<float>>(t, a, b);
+  };
+}
+
 void glorot_uniform(Tensor t) {
   float scale = sqrtf(6.0f / (t->shape()[-2] + t->shape()[-1]));
   distribution<std::uniform_real_distribution<float>>(t, -scale, scale);
@@ -77,6 +84,12 @@ void xorshift(Tensor t) {
 void glorot_normal(Tensor t) {
   float scale = sqrtf(2.0f / (t->shape()[-2] + t->shape()[-1]));
   distribution<std::normal_distribution<float>>(t, 0, scale);
+}
+
+NodeInitializer dropout(float prob) {
+  return [prob](Tensor t) {
+    Dropout(t, prob); 
+  };
 }
 
 void svd(std::vector<float>& vec, Shape shape) {

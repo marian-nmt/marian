@@ -391,10 +391,6 @@ public:
     opts->set("inference", true);
     builder_ = models::from_options(opts, models::usage::translation);
 
-    if(!options_->has("valid-script-path"))
-      LOG_VALID(warn,
-                "No post-processing script given for validating translator");
-
 #ifdef USE_SENTENCEPIECE
     auto vocab = vocabs_.back();
     ABORT_IF(detok_ && vocab->type() != "SentencePieceVocab",

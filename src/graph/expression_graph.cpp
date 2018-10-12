@@ -21,8 +21,7 @@ void ExpressionGraph::setDevice(DeviceId deviceId, Ptr<Device> device) {
 }
 
 Expr ExpressionGraph::dropout(float prob, const Shape& shape) {
-  return Expression<ConstantNode>(
-      shared_from_this(), shape, [prob, this](Tensor t) { Dropout(t, prob); });
+  return constant(shape, inits::dropout(prob));
 }
 
 void ExpressionGraph::checkNan(Tensor t) {
