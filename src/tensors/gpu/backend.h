@@ -1,19 +1,12 @@
 #pragma once
 
-#include <cublas_v2.h>
-#include <cuda.h>
-#include <curand.h>
-
 #include "common/config.h"
-#include "tensors/backend.h"
+#include "tensors/backend.h" // note: this is one folder up
+#include "tensors/gpu/cuda_helpers.h"
 
-#define CURAND_CALL(x)                                \
-  do {                                                \
-    if((x) != CURAND_STATUS_SUCCESS) {                \
-      printf("Error at %s:%d\n", __FILE__, __LINE__); \
-      exit(1);                                        \
-    }                                                 \
-  } while(0)
+#include <cuda.h>
+#include <cublas_v2.h>
+#include <curand.h>
 
 namespace marian {
 namespace gpu {
@@ -45,12 +38,12 @@ private:
   curandGenerator_t createCurandGenerator() {
     cudaSetDevice((int)deviceId_.no);
     curandGenerator_t generator;
-    CURAND_CALL(curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_DEFAULT));
-    CURAND_CALL(curandSetPseudoRandomGeneratorSeed(generator, seed_));
+    CURAND_CHECK(curandCreateGenerator(&generator, CURAND_RNG_PSEUDO_DEFAULT));
+    CURAND_CHECK(curandSetPseudoRandomGeneratorSeed(generator, seed_));
 
     // cudaStream_t stream = 0;
-    // CURAND_CALL(curandSetStream(generator, stream));
-    // CURAND_CALL(curandDestroyGenerator(generator));
+    // CURAND_CHECK(curandSetStream(generator, stream));
+    // CURAND_CHECK(curandDestroyGenerator(generator));
     return generator;
   }
 

@@ -2,14 +2,13 @@
 // Note: This must only be included if defined(CUDA_FOUND) && defined(USE_NCCL)
 #include "training/communicator.h"
 #include "3rd_party/threadpool.h"
- 
+#include "tensors/gpu/cuda_helpers.h"
+
 #include "cuda_runtime.h"
 #include "nccl.h"
 #if (NCCL_MAJOR<3 || NCCL_MINOR<2)
 #define ncclGetVersion(pv) (*(pv) = (NCCL_MAJOR * 1000 + NCCL_MINOR * 100 + NCCL_PATCH))
 #endif
-#include "tensors/gpu/cuda_helpers.h"
-
 
 #include <signal.h> // HACK
 #include <sys/types.h>
@@ -27,8 +26,8 @@ private:
   mutable ThreadPool threadPool_;
   mutable std::vector<std::future<void>> threadResults_; // [device index]
 
-  void groupStart() const { NCCLCHECK(ncclGroupStart()); } // helpers to make sure we check the error
-  void groupEnd()   const { NCCLCHECK(ncclGroupEnd());   }
+  void groupStart() const { NCCL_CHECK(ncclGroupStart()); } // helpers to make sure we check the error
+  void groupEnd()   const { NCCL_CHECK(ncclGroupEnd());   }
 
   void synchronizeAll() const {
     for(int i = 0; i < graphs_.size(); ++i) {
@@ -154,7 +153,7 @@ public:
     // generate NCCL unique ID at one process and broadcast to all
     ncclUniqueId uniqueId = { 0 };
     if (!mpi_ || mpi->myMPIRank() == 0)
-      NCCLCHECK(ncclGetUniqueId(&uniqueId));
+      NCCL_CHECK(ncclGetUniqueId(&uniqueId));
 
     if (mpi_) {
       //LOG(info, "[{}] before bcast", mpiIdStr());
@@ -179,7 +178,7 @@ public:
     for (int localDeviceIndex = 0; localDeviceIndex < devices_.size(); localDeviceIndex++) {
       CUDA_CHECK(cudaSetDevice(devices_[localDeviceIndex]));
       //LOG(info, "[{}] ncclCommInitRank {} out of {}: GPU[{}]", mpiIdStr(), myNcclRank(localDeviceIndex), numNcclRanks(), localDeviceIndex);
-      NCCLCHECK(ncclCommInitRank(&comms_[localDeviceIndex], numNcclRanks(), uniqueId, myNcclRank(localDeviceIndex)));
+      NCCL_CHECK(ncclCommInitRank(&comms_[localDeviceIndex], numNcclRanks(), uniqueId, myNcclRank(localDeviceIndex)));
       //LOG(info, "[{}] done ncclCommInitRank {} out of {}, GPU[{}]", mpiIdStr(), myNcclRank(localDeviceIndex), numNcclRanks(), localDeviceIndex);
     }
     groupEnd();
@@ -241,7 +240,7 @@ catch (const std::exception& e) // something leaks thread handles
       auto*       recvbuf = grads->subtensor(begin, end-begin)->data();
       size_t      bufsize = shardSize();
 
-      NCCLCHECK(ncclReduceScatter(sendbuf, recvbuf, bufsize, ncclFloat, ncclSum, comms_[i], streams_[i]));
+      NCCL_CHECK(ncclReduceScatter(sendbuf, recvbuf, bufsize, ncclFloat, ncclSum, comms_[i], streams_[i]));
     }
     groupEnd();
     //std::cerr << "scatterReduce submitted" << std::endl;
@@ -264,7 +263,7 @@ catch (const std::exception& e) // something leaks thread handles
       void*       recvbuf = vals->data();
       size_t      bufsize = shardSize();
 
-      NCCLCHECK(ncclAllGather(sendbuf, recvbuf, bufsize, ncclFloat, comms_[i], streams_[i]));
+      NCCL_CHECK(ncclAllGather(sendbuf, recvbuf, bufsize, ncclFloat, comms_[i], streams_[i]));
     }
     groupEnd();
     synchronizeAll();
