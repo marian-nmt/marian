@@ -23,10 +23,12 @@ void OutputCollector::Write(long sourceId,
     if(printing_->shouldBePrinted(sourceId))
       LOG(info, "Best translation {} : {}", sourceId, best1);
 
-    if(nbest)
-      *outStrm_ << bestn << std::endl;
-    else
-      *outStrm_ << best1 << std::endl;
+    if(outStrm_) {
+      if(nbest)
+        *outStrm_ << bestn << std::endl;
+      else
+        *outStrm_ << best1 << std::endl;
+    }
 
     ++nextId_;
 
@@ -40,10 +42,13 @@ void OutputCollector::Write(long sourceId,
         const auto& currOutput = iter->second;
         if(printing_->shouldBePrinted(currId))
           LOG(info, "Best translation {} : {}", currId, currOutput.first);
-        if(nbest)
-          *outStrm_ << currOutput.second << std::endl;
-        else
-          *outStrm_ << currOutput.first << std::endl;
+
+        if(outStrm_) {
+          if(nbest)
+            *outStrm_ << currOutput.second << std::endl;
+          else
+            *outStrm_ << currOutput.first << std::endl;
+        }
 
         ++nextId_;
 
@@ -61,7 +66,7 @@ void OutputCollector::Write(long sourceId,
 
     // for 1-best, flush stdout so that we can consume this immediately from an
     // external process
-    if(!nbest)
+    if(outStrm_ && !nbest)
       *outStrm_ << std::flush;
 
   } else {

@@ -397,11 +397,11 @@ public:
 
 #ifdef USE_SENTENCEPIECE
     auto vocab = vocabs_.back();
-    ABORT_IF(detok_ && vocab->type() != "SentencePieceVocab", 
+    ABORT_IF(detok_ && vocab->type() != "SentencePieceVocab",
              "Detokenizing BLEU validator expects the target vocabulary to be SentencePieceVocab. "
              "Current vocabulary type is {}", vocab->type());
 #else
-    ABORT_IF(detok_, 
+    ABORT_IF(detok_,
              "Detokenizing BLEU validator expects the target vocabulary to be SentencePieceVocab. "
              "Marian has not been compiled with SentencePieceVocab support.");
 #endif
@@ -453,6 +453,22 @@ public:
 
     timer::Timer timer;
     {
+      auto printer = New<OutputPrinter>(options_, vocabs_.back());
+
+      Ptr<OutputCollector> collector;
+      if(options_->has("valid-translation-output")) {
+        auto fileName = options_->get<std::string>("valid-translation-output");
+        collector = New<OutputCollector>(fileName); // for debugging
+      }
+      else {
+        collector = New<OutputCollector>(/* null */); // don't print, but log
+      }
+
+      if(quiet_)
+        collector->setPrintingStrategy(New<QuietPrinting>());
+      else
+        collector->setPrintingStrategy(New<GeometricPrinting>());
+
       size_t sentenceId = 0;
 
       ThreadPool threadPool(graphs.size(), graphs.size());
@@ -484,6 +500,14 @@ public:
             auto result = history->Top();
             const auto& words = std::get<0>(result);
             updateStats(stats, words, batch, no, vocabs_.back()->getEosId());
+
+            std::stringstream best1;
+            std::stringstream bestn;
+            printer->print(history, best1, bestn);
+            collector->Write((long)history->GetLineNum(),
+                             best1.str(),
+                             bestn.str(),
+                             /*nbest=*/ false);
             no++;
           }
         };
@@ -535,7 +559,7 @@ Tokenizer function from multi-bleu-detok.pl, corresponds to sacreBLEU.py
 
   std::string tokenize(const std::string& text) {
     std::string normText = text;
-    
+
     normText = regex::regex_replace(normText, regex::regex("<skipped>"), "");
     normText = regex::regex_replace(normText, regex::regex("-\\n"), "");
     normText = regex::regex_replace(normText, regex::regex("\\n"), " ");
@@ -543,7 +567,7 @@ Tokenizer function from multi-bleu-detok.pl, corresponds to sacreBLEU.py
     normText = regex::regex_replace(normText, regex::regex("&amp;"), "&");
     normText = regex::regex_replace(normText, regex::regex("&lt;"), "<");
     normText = regex::regex_replace(normText, regex::regex("&gt;"), ">");
-    
+
     normText = " " + normText + " ";
     normText = regex::regex_replace(normText, regex::regex("([\\{-\\~\\[-\\` -\\&\(-\\+\\:-\\@\\/])"), " $1 ");
     normText = regex::regex_replace(normText, regex::regex("([^0-9])([\\.,])"), "$1 $2 ");
