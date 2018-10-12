@@ -169,14 +169,7 @@ public:
 
     size_t localBeamSize = beamSize_; // max over beam sizes of active sentence hypotheses
 
-    // @TODO: unify this
-    Ptr<NthElement> nth;
-#ifdef CUDA_FOUND
-    if(graph->getDeviceId().type == DeviceType::gpu)
-      nth = New<NthElementGPU>(localBeamSize, dimBatch, graph->getDeviceId());
-    else
-#endif
-      nth = New<NthElementCPU>(localBeamSize, dimBatch);
+    auto getNBestList = createGetNBestListFn(localBeamSize, dimBatch, graph->getDeviceId());
 
     Beams beams(dimBatch);        // [batchIndex][beamIndex] is one sentence hypothesis
     for(auto& beam : beams)
@@ -271,7 +264,7 @@ public:
       std::vector<float> outPathScores;
 
       std::vector<size_t> beamSizes(dimBatch, localBeamSize);
-      nth->getNBestList(beamSizes, pathScores->val(), outPathScores, outKeys, first);
+      getNBestList(beamSizes, pathScores->val(), outPathScores, outKeys, first);
 
       int dimTrgVoc = pathScores->shape()[-1];
       beams = toHyps(outKeys,
