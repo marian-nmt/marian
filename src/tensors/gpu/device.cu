@@ -28,13 +28,13 @@ void Device::reserve(size_t size) {
     std::vector<uint8_t> temp(size_);
     CUDA_CHECK(cudaMemcpy(temp.data(), data_, size_, cudaMemcpyDeviceToHost));
     CUDA_CHECK(cudaFree(data_));
-    LOG(info, "[memory] Re-allocating from {} to {} bytes on device {}", size_, size, deviceId_.no);
+    LOG(debug, "[memory] Re-allocating from {} to {} bytes on device {}", size_, size, deviceId_.no);
     CUDA_CHECK(cudaMalloc(&data_, size));
     CUDA_CHECK(cudaMemcpy(data_, temp.data(), size_, cudaMemcpyHostToDevice));
-    logCallStack(0); // @TODO: remove this
+    //logCallStack(0);
   } else {
     // No data_ yet: Just alloc.
-    LOG(info, "[memory] Allocating {} bytes in device {}", size, deviceId_.no);
+    LOG(debug, "[memory] Allocating {} bytes in device {}", size, deviceId_.no);
     CUDA_CHECK(cudaMalloc(&data_, size));
   }
 
