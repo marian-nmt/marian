@@ -97,14 +97,13 @@ DISPATCH4(ShiftGrad, marian::Tensor, marian::Tensor, marian::Shape, bool)
 
 DISPATCH3(Concatenate, marian::Tensor, const std::vector<marian::Tensor>&, int)
 
-// in-place uniform distribution
-DISPATCH3(Uniform, marian::Tensor, float, float);
-DISPATCH3(Normal, marian::Tensor, float, float);
 // clang-format on
 
 static inline void Dropout(Tensor tensor, float p) {
   // in-place uniform distribution
-  Uniform(tensor, 0.f, 1.f);
+  auto rnd = tensor->getBackend()->getRandomGenerator();
+  rnd->uniform(tensor, 0.f, 1.f);
+
   // in-place scaling dropout
   float invp = 1.f - p;
   using namespace functional;

@@ -52,13 +52,13 @@ public:
   virtual Word getUnkId() const override { return (Word)spm_->unk_id(); }
 
   void create(const std::string& /*vocabPath*/, const std::string& /*trainPath*/) {
-    ABORT("[data] Training of SentencePieceVocab not supported yet");
+    ABORT("[data] Training of SentencePieceVocab not yet supported");
   }
 
   void create(io::InputFileStream& /*trainStrm*/,
               io::OutputFileStream& /*vocabStrm*/,
               size_t /*maxSize*/) {
-    ABORT("[data] Training of SentencePieceVocab not supported yet");
+    ABORT("[data] Training of SentencePieceVocab not yet supported");
   }
 
   void createFake() {

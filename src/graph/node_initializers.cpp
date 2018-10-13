@@ -41,10 +41,10 @@ NodeInitializer from_value(float v) {
 // diagonal matrix with value val along diagonal
 NodeInitializer eye(float val) {
   return [val](Tensor t) {
-    ABORT_IF(t->shape().size() != 2 || t->shape()[-1] != t->shape()[-2], 
+    ABORT_IF(t->shape().size() != 2 || t->shape()[-1] != t->shape()[-2],
              "eye(val) is defined only for quadratic tensors, shape is {}",
              t->shape());
-  
+
     // @TODO: implement efficient version on the GPU
     std::vector<float> vec(t->size(), 0);
     for(int i = 0; i < t->shape()[-1]; ++i)
@@ -53,21 +53,26 @@ NodeInitializer eye(float val) {
   };
 }
 
-NodeInitializer normal(float mju, float sigma) {
-  return [mju, sigma](Tensor tensor) {
-    Normal(tensor, mju, sigma);
+NodeInitializer uniform(float a, float b) {
+  return [a, b](Tensor tensor) {
+    tensor->getBackend()->getRandomGenerator()->uniform(tensor, a, b);
   };
 }
 
-NodeInitializer uniform(float a, float b) {
-  return [a, b](Tensor tensor) {
-    Uniform(tensor, a, b);
+NodeInitializer normal(float mean, float stddev) {
+  return [mean, stddev](Tensor tensor) {
+    tensor->getBackend()->getRandomGenerator()->normal(tensor, mean, stddev);
   };
 }
 
 void glorot_uniform(Tensor tensor) {
   float scale = sqrtf(6.0f / (tensor->shape()[-2] + tensor->shape()[-1]));
-  Uniform(tensor, -scale, scale);
+  uniform(-scale, scale)(tensor);
+}
+
+void glorot_normal(Tensor tensor) {
+  float scale = sqrtf(2.0f / (tensor->shape()[-2] + tensor->shape()[-1]));
+  normal(0.f, scale)(tensor);
 }
 
 void xorshift(Tensor t) {
@@ -77,14 +82,9 @@ void xorshift(Tensor t) {
   t->set(vals);
 }
 
-void glorot_normal(Tensor tensor) {
-  float scale = sqrtf(2.0f / (tensor->shape()[-2] + tensor->shape()[-1]));
-  Normal(tensor, 0.f, scale);
-}
-
 NodeInitializer dropout(float prob) {
   return [prob](Tensor t) {
-    Dropout(t, prob); 
+    Dropout(t, prob);
   };
 }
 
@@ -92,9 +92,9 @@ NodeInitializer dropout(float prob) {
 // -log(-log(uniform(0.f + eps, 1.f - eps)));
 void gumbel(Tensor tensor) {
   using namespace functional;
-  // @TODO: make eps a parameter? Seems to influence amplitude quite heavilygit 
+  // @TODO: make eps a parameter? Seems to influence amplitude quite heavilygit
   float eps = 1e-05;
-  Uniform(tensor, 0.f + eps, 1.f - eps);
+  uniform(0.f + eps, 1.f - eps)(tensor);
   Element(_1 = -log(-log(_1)), tensor);
 }
 
@@ -104,8 +104,8 @@ NodeInitializer from_vector(const std::vector<float>& v) {
       [vPtr](Tensor t) { t->set(vPtr->data(), vPtr->data() + vPtr->size()); };
 }
 
-// @TODO: handle this better with proper type support, the NodeInitializer 
-// should be able to inform the calling function about the tensor type it 
+// @TODO: handle this better with proper type support, the NodeInitializer
+// should be able to inform the calling function about the tensor type it
 // is expecting. Probably needs to turn into struct with type information.
 NodeInitializer from_vector(const std::vector<IndexType>& v) {
   auto vPtr = New<std::vector<IndexType>>(v.begin(), v.end());

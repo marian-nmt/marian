@@ -29,8 +29,8 @@ add_library(marian STATIC
   3rd_party/ExceptionWithCallStack.cpp
 
   tensors/backend.cpp
+  tensors/rand.cpp
   tensors/cpu/device.cpp
-  tensors/cpu/rand.cpp
   tensors/cpu/prod.cpp
   tensors/cpu/tensor_operators.cpp
 
@@ -82,7 +82,6 @@ if(CUDA_FOUND)
 cuda_add_library(marian_cuda
   tensors/gpu/device.cu
   tensors/gpu/algorithm.cu
-  tensors/gpu/rand.cu
   tensors/gpu/prod.cu
   tensors/gpu/element.cu
   tensors/gpu/add.cu

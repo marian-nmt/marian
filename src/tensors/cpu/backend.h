@@ -10,18 +10,10 @@ namespace marian {
 namespace cpu {
 
 class Backend : public marian::Backend {
-private:
-  std::default_random_engine engine_;
-
 public:
-  Backend(DeviceId deviceId, size_t seed)
-      : marian::Backend(deviceId, seed), engine_((unsigned int)seed_) {}
-
+  Backend(DeviceId deviceId, size_t seed) : marian::Backend(deviceId, seed) {}
   void setDevice() override {}
-
   void synchronize() override {}
-
-  std::default_random_engine& getRandomGenerator() { return engine_; }
 };
 }  // namespace cpu
 }  // namespace marian
