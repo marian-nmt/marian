@@ -173,14 +173,14 @@ struct EmbeddingFactory : public Factory {
     bool fixed = opt<bool>("fixed", false);
 
     NodeInitializer initFunc = inits::glorot_uniform;
-	if (options_->has("embFile")) {
-		std::string file = opt<std::string>("embFile");
-		if (!file.empty()) {
-			bool norm = opt<bool>("normalization", false);
-			initFunc = inits::from_word2vec(file, dimVoc, dimEmb, norm);
-		}
-	}
-	
+  if (options_->has("embFile")) {
+    std::string file = opt<std::string>("embFile");
+    if (!file.empty()) {
+      bool norm = opt<bool>("normalization", false);
+      initFunc = inits::from_word2vec(file, dimVoc, dimEmb, norm);
+    }
+  }
+  
     return graph_->param(name, {dimVoc, dimEmb}, initFunc, fixed);
   }
 };
