@@ -48,13 +48,13 @@ Expr CrossEntropyMeanLoss::getCost(Expr logits,
   auto ce = getCrossEntropy(logits, indices, mask, weights);
   // Time axis (words): -3
   // Batch axis (sentences): -2
-  if(weights) {
-    return sum(sum(ce, /*axis =*/ -3) /*axis =*/ -2)
-           / sum(mean(mask * weights, /*axis =*/ -3) /*axis =*/ -2);
-  }
-  else {
+  // if(weights) {
+  //   return sum(sum(ce, /*axis =*/ -3) /*axis =*/ -2);
+  //          / sum(mean(mask * weights, /*axis =*/ -3) /*axis =*/ -2);
+  // }
+  // else {
     return mean(sum(ce, /*axis =*/ -3), /*axis =*/ -2);
-  }
+  // }
 }
 
 Expr CrossEntropyMeanWordsLoss::getCost(Expr logits,
@@ -62,14 +62,14 @@ Expr CrossEntropyMeanWordsLoss::getCost(Expr logits,
                                         Expr mask,
                                         Expr weights) {
   auto ce = getCrossEntropy(logits, indices, mask, weights);
-  if(weights) {
-    return (sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
-           / sum(sum(mask * weights, /*axis =*/ -3), /*axis =*/ -2));
-  }
-  else {
+  // if(weights) {
+  //   return (sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
+  //          / sum(sum(mask * weights, /*axis =*/ -3), /*axis =*/ -2));
+  // }
+  // else {
     return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
            / sum(sum(mask, /*axis =*/ -3), /*axis =*/ -2);
-  }
+  // }
 }
 
 Expr CrossEntropySumLoss::getCost(Expr logits,
@@ -77,13 +77,13 @@ Expr CrossEntropySumLoss::getCost(Expr logits,
                                   Expr mask,
                                   Expr weights) {
   auto ce = getCrossEntropy(logits, indices, mask, weights);
-  if(weights) {
-    return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
-           / mean(mean(mask * weights, /*axis =*/ -3), /*axis =*/ -2);
-  }
-  else {
+  // if(weights) {
+  //   return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
+  //          / mean(mean(mask * weights, /*axis =*/ -3), /*axis =*/ -2);
+  // }
+  // else {
     return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2);
-  }
+  // }
 }
 
 Expr PerplexityLoss::getCost(Expr logits,
