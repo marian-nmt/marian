@@ -24,7 +24,28 @@ private:
   float alpha_{0};
   std::vector<std::string> suffixes_ = {".spm"};
 
+  Ptr<Options> options_;
+  size_t batchIndex_{0};
+
 public:
+  SentencePieceVocab(Ptr<Options> options, size_t batchIndex)
+    : options_(options), batchIndex_(batchIndex) {
+
+    if(options_->has("sentencepiece-alphas")) {
+      auto alphas = options_->get<std::vector<float>>("sentencepiece-alphas");
+      if(alphas.size() <= batchIndex)
+        alpha_ = 0.f;
+      else
+        alpha_ = alphas[batchIndex_];
+
+      if(alpha_ > 0)
+        LOG(debug,
+            "Setting SentencePieceVocab sampling factor to {} for input {}",
+            alpha_,
+            batchIndex_);
+    }
+
+  }
 
   virtual int load(const std::string& vocabPath, int max = 0) override;
 

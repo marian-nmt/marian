@@ -92,7 +92,7 @@ NodeInitializer dropout(float prob) {
 // -log(-log(uniform(0.f + eps, 1.f - eps)));
 void gumbel(Tensor tensor) {
   using namespace functional;
-  // @TODO: make eps a parameter? Seems to influence amplitude quite heavilygit
+  // @TODO: make eps a parameter? Seems to influence amplitude quite heavily
   float eps = 1e-05;
   uniform(0.f + eps, 1.f - eps)(tensor);
   Element(_1 = -log(-log(_1)), tensor);

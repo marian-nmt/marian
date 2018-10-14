@@ -71,6 +71,7 @@ public:
 
     // Update validation options
     auto opts = New<Config>(*options_);
+    opts->set("inference", true);
     opts->set("max-length", options_->get<size_t>("valid-max-length"));
     if(options_->has("valid-mini-batch"))
       opts->set("mini-batch", options_->get<size_t>("valid-mini-batch"));
@@ -246,6 +247,7 @@ public:
 
     // Temporary options for translation
     auto opts = New<Config>(*options_);
+    opts->set("inference", true);
     opts->set("mini-batch", options_->get<int>("valid-mini-batch"));
     opts->set("maxi-batch", 10);
     opts->set("max-length", 1000);
@@ -408,6 +410,7 @@ public:
 
     // Temporary options for translation
     auto opts = New<Config>(*options_);
+    opts->set("inference", true);
     opts->set("mini-batch", options_->get<int>("valid-mini-batch"));
     opts->set("maxi-batch", 10);
     opts->set("max-length", 1000);

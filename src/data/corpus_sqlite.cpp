@@ -10,8 +10,8 @@ CorpusSQLite::CorpusSQLite(Ptr<Config> options, bool translate /*= false*/)
   fillSQLite();
 }
 
-CorpusSQLite::CorpusSQLite(std::vector<std::string> paths,
-                           std::vector<Ptr<Vocab>> vocabs,
+CorpusSQLite::CorpusSQLite(const std::vector<std::string>& paths,
+                           const std::vector<Ptr<Vocab>>& vocabs,
                            Ptr<Config> options)
     : CorpusBase(paths, vocabs, options), seed_(Config::seed) {
   fillSQLite();

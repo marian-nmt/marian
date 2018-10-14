@@ -240,6 +240,11 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
       "If these files do not exist they are created");
+#ifdef USE_SENTENCEPIECE
+  cli.add<std::vector<float>>("--sentencepiece-alphas",
+                              "Sampling factors for SentencePieceVocab;"
+                              "i-th factor corresponds to i-th vocabulary");
+#endif
   // scheduling options
   cli.add<size_t>("--after-epochs,-e",
       "Finish after this many epochs, 0 is infinity");
@@ -367,7 +372,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<bool>("--ulr",
       "Is ULR (Universal Language Representation) enabled?",
       false);
-  // reading pre-trained universal embedings for multi-sources 
+  // reading pre-trained universal embedings for multi-sources
   // note that source and target here is relative to ULR not the translation  langs
   //queries: EQ in Fig2 :  is the unified embbedins projected to one space.
   //"Path to file with universal sources embeddings from projection into universal space")
@@ -712,7 +717,7 @@ void ConfigParser::makeAbsolutePaths(
     // Catch stdin/stdout and do not process
     if(nodePath == "stdin" || nodePath == "stdout")
       return nodePath;
-    
+
     // replace relative path w.r.t. configDir
     try {
       return canonical(filesystem::Path{nodePath}, configDir).string();

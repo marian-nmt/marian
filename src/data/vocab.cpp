@@ -9,11 +9,11 @@
 namespace marian {
 
 // @TODO: make each vocab peek on type
-Ptr<VocabImpl> vocabFactory(const std::string& vocabPath) {
+Ptr<VocabImpl> vocabFactory(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
   bool isSentencePiece = regex::regex_search(vocabPath, regex::regex("\\.(spm)$"));
   if(isSentencePiece) {
 #ifdef USE_SENTENCEPIECE
-    return New<SentencePieceVocab>();
+    return New<SentencePieceVocab>(options, batchIndex);
 #else
     ABORT("*.spm suffix in path {} reserved for SentencePiece models, "
           "but support for SentencePiece is not compiled into Marian. "
@@ -27,42 +27,51 @@ Ptr<VocabImpl> vocabFactory(const std::string& vocabPath) {
 int Vocab::loadOrCreate(const std::string& vocabPath,
                         const std::string& trainPath,
                         int max) {
-              
+  size_t size = 0;
   if(vocabPath.empty()) {
     // No vocabulary path was given, attempt to first find a vocabulary
     // for trainPath + possible suffixes. If not found attempt to create
-    // as trainPath + canonical suffix. 
+    // as trainPath + canonical suffix.
+
+    LOG(info,
+        "No vocabulary path given; "
+        "trying to find default vocabulary based on data path {}",
+        trainPath);
+
     vImpl_ = New<DefaultVocab>();
+    size = vImpl_->findAndLoad(trainPath, max);
 
-    int size = vImpl_->findAndLoad(trainPath, max);
-    if(size > 0)
-      return size;
-
-    auto path = trainPath + vImpl_->canonicalSuffix();
-    vImpl_->create(path, trainPath);
-    return vImpl_->load(path, max);
+    if(size == 0) {
+      auto path = trainPath + vImpl_->canonicalSuffix();
+      LOG(info,
+          "No vocabulary path given; "
+          "trying to find vocabulary based on data path {}",
+          trainPath);
+      vImpl_->create(path, trainPath);
+      size = vImpl_->load(path, max);
+    }
   } else {
     if(!filesystem::exists(vocabPath)) {
       // Vocabulary path was given, but no vocabulary present,
       // attempt to create in specified location.
       create(vocabPath, trainPath);
     }
-    
     // Vocabulary path exists, attempting to load
-    return load(vocabPath, max);
+    size = load(vocabPath, max);
   }
-
+  LOG(info, "[data] Setting vocabulary size for input {} to {}", batchIndex_, size);
+  return size;
 }
 
 int Vocab::load(const std::string& vocabPath, int max) {
   if(!vImpl_)
-    vImpl_ = vocabFactory(vocabPath);
+    vImpl_ = vocabFactory(vocabPath, options_, batchIndex_);
   return vImpl_->load(vocabPath, max);
 }
 
 void Vocab::create(const std::string& vocabPath, const std::string& trainPath) {
   if(!vImpl_)
-    vImpl_ = vocabFactory(vocabPath);
+    vImpl_ = vocabFactory(vocabPath, options_, batchIndex_);
   vImpl_->create(vocabPath, trainPath);
 }
 

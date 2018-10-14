@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/options.h"
 #include "data/vocab_impl.h"
 
 namespace marian {
@@ -13,8 +14,13 @@ namespace marian {
 class Vocab {
 private:
   Ptr<VocabImpl> vImpl_;
+  Ptr<Options> options_;
+  size_t batchIndex_;
 
 public:
+  Vocab(Ptr<Options> options, size_t batchIndex)
+  : options_(options), batchIndex_(batchIndex) {}
+
   int loadOrCreate(const std::string& vocabPath,
                    const std::string& textPath,
                    int max = 0);

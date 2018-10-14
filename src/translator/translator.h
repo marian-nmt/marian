@@ -29,10 +29,15 @@ private:
 public:
   Translate(Ptr<Config> options)
       : options_(options),
-        corpus_(New<data::Corpus>(options_, true)),
-        trgVocab_(New<Vocab>()) {
+        corpus_(New<data::Corpus>(options_, true)) {
 
+    options_->set("inference", true);
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
+
+    auto topt = New<Options>();
+    topt->merge(options_);
+    trgVocab_ = New<Vocab>(topt, vocabs.size() - 1);
+
     trgVocab_->load(vocabs.back());
 
     auto srcVocab = corpus_->getVocabs()[0];
@@ -149,20 +154,27 @@ public:
 
   TranslateService(Ptr<Config> options)
       : options_(options),
-        devices_(options_->getDevices()),
-        trgVocab_(New<Vocab>()) {
+        devices_(options_->getDevices()) {
     init();
   }
 
   void init() override {
     // initialize vocabs
+    options_->set("inference", true);
+
     auto vocabPaths = options_->get<std::vector<std::string>>("vocabs");
     std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
+
+    auto topt = New<Options>();
+    topt->merge(options_);
+
     for(size_t i = 0; i < vocabPaths.size() - 1; ++i) {
-      Ptr<Vocab> vocab = New<Vocab>();
+      Ptr<Vocab> vocab = New<Vocab>(topt, i);
       vocab->load(vocabPaths[i], maxVocabs[i]);
       srcVocabs_.emplace_back(vocab);
     }
+
+    trgVocab_ = New<Vocab>(topt, vocabPaths.size() - 1);
     trgVocab_->load(vocabPaths.back());
 
     // initialize scorers

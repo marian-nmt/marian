@@ -124,7 +124,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
 
   // Upon very first execution, reset everything
   if(first_) {
-    LOG(info, "[{}] Processing first minibatch. Batches are processed as {} processes x {} GPUs/process x {} delay steps.",
+    LOG(debug, "[{}] Processing first minibatch. Batches are processed as {} processes x {} GPUs/process x {} delay steps.",
          mpi_->idStr(), mpi_->numMPIProcesses(), devices_.size(), delay_);
     initialize(subBatches.front());
     if(mvAvg_ && paramsAvg_.empty())

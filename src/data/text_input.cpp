@@ -27,9 +27,8 @@ TextInput::TextInput(std::vector<std::string> inputs,
                      Ptr<Config> options)
     // TODO: fix this: input text is stored in an inherited variable named
     // paths_ that is very confusing
-    : DatasetBase(inputs),
-      vocabs_(vocabs),
-      options_(options) {
+    : DatasetBase(inputs, options),
+      vocabs_(vocabs) {
   for(const auto& text : paths_)
     files_.emplace_back(new std::istringstream(text));
 }

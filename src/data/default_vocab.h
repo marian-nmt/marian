@@ -25,7 +25,7 @@ public:
   virtual void create(io::InputFileStream& trainStrm,
                       io::OutputFileStream& vocabStrm,
                       size_t maxSize = 0) override;
-  
+
   virtual const std::string& canonicalSuffix() const { return suffixes_[0]; }
   virtual const std::vector<std::string>& suffixes() const { return suffixes_; }
 

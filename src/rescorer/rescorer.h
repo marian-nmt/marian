@@ -48,16 +48,18 @@ private:
 
 public:
   Rescore(Ptr<Config> options)
-      : options_(options),
-        corpus_(
-            options_->get<bool>("n-best")
-                ? std::static_pointer_cast<CorpusBase>(
-                      New<CorpusNBest>(options_))
-                : std::static_pointer_cast<CorpusBase>(New<Corpus>(options_))) {
+      : options_(options) {
+
+    options_->set("inference", true);
+
+    if(options_->get<bool>("n-best"))
+      corpus_ = New<CorpusNBest>(options_);
+    else
+      corpus_ = New<Corpus>(options_);
+
     ABORT_IF(options_->has("summary") && options_->has("alignment"),
              "Alignments can not be produced with summarized score");
 
-    corpus_->setInference(true);
     corpus_->prepare();
 
     auto devices = options_->getDevices();
@@ -73,7 +75,6 @@ public:
 
     Ptr<Options> temp = New<Options>();
     temp->merge(options);
-    temp->set("inference", true);
     temp->set("cost-type", "ce-rescore");
 
     models_.resize(graphs_.size());
