@@ -89,7 +89,7 @@ public:
     if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
       nameMap["Wemb"] = "Wemb";
 
-    graph->load(name, nameMap);
+    graph->load(name, nameMap, true, {"decoder_c_tt"});
   }
 
   void save(Ptr<ExpressionGraph> graph,

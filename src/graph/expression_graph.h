@@ -454,13 +454,17 @@ private:
   // convert all parameters into an array of IoItem elements, for saving
   void itemsToParameters(const std::vector<io::Item>& ioItems,
                          const std::map<std::string, std::string>& nameMap,
-                         bool markReloaded = true) {
+                         bool markReloaded = true,
+                         const std::unordered_set<std::string>& skipItems = {}) {
     setReloaded(false);
     for(auto& item : ioItems) {
       std::string pName = item.name;
 
       // skip over special parameters starting with "special:"
       if(pName.substr(0, 8) == "special:")
+        continue;
+      // skip over items that should not be added into the graph
+      if(skipItems.count(pName))
         continue;
 
       auto it = nameMap.find(pName);
@@ -476,9 +480,10 @@ private:
 public:
   void load(const std::string& name,
             const std::map<std::string, std::string>& nameMap,
-            bool markReloaded = true) {
+            bool markReloaded = true,
+            const std::unordered_set<std::string>& skipItems = {}) {
     LOG(info, "Loading model from {}", name);
-    itemsToParameters(io::loadItems(name), nameMap, markReloaded);
+    itemsToParameters(io::loadItems(name), nameMap, markReloaded, skipItems);
   }
 
   void load(const std::string& name, bool markReloaded = true) {
