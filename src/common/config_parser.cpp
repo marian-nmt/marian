@@ -366,30 +366,30 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      true);
   // support for universal encoder ULR https://arxiv.org/pdf/1802.05368.pdf
   cli.add<bool>("--ulr-enabled",
-	  "Is ULR (Universal Language Representation) enabled?",
-	  false);
+    "Is ULR (Universal Language Representation) enabled?",
+    false);
   // reading pre-trained universal embedings for multi-sources 
   // note that source and target here is relative to ULR not the translation  langs
   //queries: EQ in Fig2 :  is the unified embbedins projected to one space.
   //"Path to file with universal sources embeddings from projection into universal space")
   cli.add<bool>("--ulr-query-vectors",
-	  "Path to file with universal sources embeddings from projection into universal space",
-	  "");
+     "Path to file with universal sources embeddings from projection into universal space",
+     "");
   //keys: EK in Fig2 :  is the keys of the target  embbedins projected to unified  space (i.e. ENU in multi-lingual case)
   cli.add<std::string>("--ulr-keys-vectors",
-	  "Path to file with universal sources embeddings of traget keys from projection into universal space",
-	  "");
+     "Path to file with universal sources embeddings of traget keys from projection into universal space",
+     "");
   cli.add<bool>("--ulr-trainable-transformation",
-	  "Is Query Transformation Matrix A trainable ?",
-	  false);
+     "Is Query Transformation Matrix A trainable ?",
+     false);
   cli.add<int>("--ulr-dim-emb",
-	  "ULR mono embed dim");
+     "ULR mono embed dim");
   cli.add<float>("--ulr-dropout",
-	  "ULR dropout on embeddings attentions: default is no dropuout",
-	  0.0f);
+     "ULR dropout on embeddings attentions: default is no dropuout",
+     0.0f);
   cli.add<float>("--ulr-softmax-temperature",
-	  "ULR softmax temperature to control randomness of predictions- deafult is 1.0: no temperature ",
-	  1.0f);
+     "ULR softmax temperature to control randomness of predictions- deafult is 1.0: no temperature ",
+     1.0f);
   // clang-format on
 }
 
