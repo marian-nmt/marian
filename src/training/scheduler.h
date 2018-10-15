@@ -95,7 +95,8 @@ public:
 
   bool validating() {
     return (!validators_.empty()
-            && state_->batches % options_->get<size_t>("valid-freq") == 0);
+            && state_->batches % options_->get<size_t>("valid-freq") == 0
+            && keepGoing());
   }
 
   bool saving() {
