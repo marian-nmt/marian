@@ -18,7 +18,6 @@ protected:
   Ptr<Config> options_;
   bool inference_{false};
 
-
 public:
   typedef Batch batch_type;
   typedef Ptr<Batch> batch_ptr;
@@ -27,10 +26,12 @@ public:
 
   // @TODO: get rid of Config in favor of Options!
   DatasetBase(std::vector<std::string> paths, Ptr<Config> options)
-    : paths_(paths), options_(options), inference_(options->get<bool>("inference", false)) {}
+      : paths_(paths),
+        options_(options),
+        inference_(options != nullptr ? options->get<bool>("inference", false)
+                                      : false) {}
 
   DatasetBase(Ptr<Config> options) : DatasetBase({}, options) {}
-
 
   virtual Iterator begin() = 0;
   virtual Iterator end() = 0;
