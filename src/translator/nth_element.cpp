@@ -107,6 +107,8 @@ GetNBestListFn createGetNBestListFn(size_t beamSize, size_t dimBatch, DeviceId d
 #ifdef CUDA_FOUND
   if(deviceId.type == DeviceType::gpu)
     return createGetNBestListGPUFn(beamSize, dimBatch, deviceId);
+#else
+    deviceId; // (unused)
 #endif
   auto nth = New<NthElementCPU>(beamSize, dimBatch);
   return [nth](const std::vector<size_t>& beamSizes,

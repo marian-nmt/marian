@@ -35,19 +35,19 @@
 
 
 typedef struct {
-	float x, y, z;
+  float x, y, z;
 } fcoords;
 
 typedef struct {
-	long x, y, z;
+  long x, y, z;
 } lcoords;
 
 typedef struct {
-	int x, y, z;
+  int x, y, z;
 } icoords;
 
 typedef struct {
-	float min, max;
+  float min, max;
 } lims;
 
 

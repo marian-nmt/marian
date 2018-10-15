@@ -137,7 +137,7 @@ class ErrnoException : public Exception {
 // file wasn't there, or couldn't be open for some reason
 class FileOpenException : public Exception {
   public:
-	FileOpenException() throw() {}
+    FileOpenException() throw() {}
     ~FileOpenException() throw() {}
 };
 
