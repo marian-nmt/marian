@@ -323,7 +323,7 @@ void SyncGraphGroup::save(bool final) /*override*/ {
   swapParamsAvg();
   //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
 
-#if 1 // temporary, for testing of saving distributed models; must be identical to .orig.npz
+#if 0 // temporary, for testing of saving distributed models; must be identical to .orig.npz
   if(mvAvg_ && paramsAvg_.size() > 0 && isMainProcess())
     builders_[0]->save(graphs_[0], name + ".orig_after_swapping.npz", true);
 #endif
