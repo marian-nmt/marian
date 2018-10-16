@@ -76,8 +76,18 @@ private:
     // Glorot numal distribution
     float scale = sqrtf(2.0f / (dimVoc + dimEmb));
     
-    ABORT("Currently not correctly implemented");
-    //inits::distribution<std::normal_distribution<float>>(values, 0, scale);
+    // @TODO: switch to new random generator back-end.
+    // This is rarly used however. 
+    std::random_device rd;
+    std::mt19937 engine(rd());
+ 
+    std::normal_distribution<float> d(0, scale);
+    auto gen = [&d, &engine] () {
+       return d(engine);
+    };
+
+    std::generate(values.begin(), values.end(), gen);
+ 
     return values;
   }
 };
