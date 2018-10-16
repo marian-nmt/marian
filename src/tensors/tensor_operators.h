@@ -97,15 +97,19 @@ DISPATCH3(Concatenate, marian::Tensor, const std::vector<marian::Tensor>&, int)
 
 // clang-format on
 
-static inline void Dropout(Tensor tensor, float p) {
+static inline void Bernoulli(Tensor tensor, float prob, float scale = 1.f) {
   // in-place uniform distribution
   auto rnd = tensor->getBackend()->getRandomGenerator();
   rnd->uniform(tensor, 0.f, 1.f);
 
-  // in-place scaling dropout
-  float invp = 1.f - p;
   using namespace functional;
-  Element(_1 = (_1 < invp) / invp, tensor);
+  Element(_1 = (_1 < prob) * scale, tensor);
+}
+
+
+static inline void Dropout(Tensor tensor, float p) {
+  float scale = 1.f / (1.f - p);
+  Bernoulli(tensor, p, scale);
 }
 
 #ifdef CUDA_FOUND

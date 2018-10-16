@@ -82,6 +82,12 @@ void xorshift(Tensor t) {
   t->set(vals);
 }
 
+NodeInitializer bernoulli(float prob, float scale) {
+  return [prob, scale](Tensor tensor) {
+    Bernoulli(tensor, prob, scale);
+  };
+}
+
 NodeInitializer dropout(float prob) {
   return [prob](Tensor t) {
     Dropout(t, prob);

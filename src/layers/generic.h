@@ -200,9 +200,7 @@ ULREmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
     NodeInitializer initFunc = inits::glorot_uniform;
     std::string queryFile = opt<std::string>("ulrQueryFile");
     std::string keyFile = opt<std::string>("ulrKeysFile");
-    bool norm = opt<bool>("normalization", false);
     bool trainTrans = opt<bool>("ulrTrainTransform", false);
-      
     if (!queryFile.empty() && !keyFile.empty()) {
       initFunc = inits::from_word2vec(queryFile, dimQueries, dimUlrEmb, false);
       name = "ulr_query";

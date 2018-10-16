@@ -37,6 +37,8 @@ void ConfigValidator::validateOptions(cli::mode mode) const {
 void ConfigValidator::validateOptionsTranslation() const {
   auto models = get<std::vector<std::string>>("models");
   auto configs = get<std::vector<std::string>>("config");
+
+  // @TODO: Review usage of THROW_IF. Added issue on github.
   UTIL_THROW_IF2(
       models.empty() && configs.empty(),
       "You need to provide at least one model file or a config file");

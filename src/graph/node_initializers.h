@@ -30,6 +30,8 @@ NodeInitializer normal(float mju, float sigma);
 
 NodeInitializer uniform(float a, float b);
 
+NodeInitializer bernoulli(float p, float scale = 1.f);
+
 NodeInitializer dropout(float prob);
 
 void gumbel(Tensor t);

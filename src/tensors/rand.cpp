@@ -10,13 +10,36 @@
 
 namespace marian {
 
-Ptr<RandomGenerator> randomGeneratorFactory(size_t seed, DeviceId deviceId) {
+class StdlibRandomGenerator : public RandomGenerator {
+private:
+  std::mt19937 engine_;
+
+public:
+  StdlibRandomGenerator(size_t seed) : RandomGenerator(seed) {}
+
+  virtual void uniform(Tensor tensor, float a, float b) override;
+  virtual void normal(Tensor, float mean, float stddev) override;
+};
+
 #ifdef CUDA_FOUND
-    if(deviceId.type == DeviceType::gpu)
-        return New<CurandRandomGenerator>(seed, deviceId);
-    else
-        return New<CurandRandomGenerator>(seed, deviceId);
-        //return New<StdlibRandomGenerator>(seed);
+class CurandRandomGenerator : public RandomGenerator {
+private:
+  DeviceId deviceId_;
+  curandGenerator_t generator_;
+
+public:
+  CurandRandomGenerator(size_t seed, DeviceId deviceId);
+  ~CurandRandomGenerator();
+
+  virtual void uniform(Tensor tensor, float a, float b) override;
+  virtual void normal(Tensor, float mean, float stddev) override;
+
+};
+#endif
+
+Ptr<RandomGenerator> createRandomGenerator(size_t seed, DeviceId deviceId) {
+#ifdef CUDA_FOUND
+    return New<CurandRandomGenerator>(seed, deviceId);
 #else
     ABORT_IF(deviceId.type != DeviceType::cpu,
              "StdlibRandomGenerator can only be used for CPU tensors");
@@ -52,32 +75,28 @@ void StdlibRandomGenerator::normal(Tensor tensor, float mean, float stddev) {
 
 CurandRandomGenerator::CurandRandomGenerator(size_t seed, DeviceId deviceId)
 : RandomGenerator(seed), deviceId_(deviceId) {
-    CURAND_CHECK(curandCreateGeneratorHost(&cpuGenerator, CURAND_RNG_PSEUDO_DEFAULT));
-    CURAND_CHECK(curandSetPseudoRandomGeneratorSeed(cpuGenerator, seed_));
-
     if(deviceId_.type == DeviceType::gpu) {
       cudaSetDevice(deviceId_.no);
-      CURAND_CHECK(curandCreateGenerator(&gpuGenerator, CURAND_RNG_PSEUDO_DEFAULT));
-      CURAND_CHECK(curandSetPseudoRandomGeneratorSeed(gpuGenerator, seed_));
+      CURAND_CHECK(curandCreateGenerator(&generator_, CURAND_RNG_PSEUDO_DEFAULT));
     }
+    else {
+      CURAND_CHECK(curandCreateGeneratorHost(&generator_, CURAND_RNG_PSEUDO_DEFAULT));
+    }
+    CURAND_CHECK(curandSetPseudoRandomGeneratorSeed(generator_, seed_));
 }
 
 CurandRandomGenerator::~CurandRandomGenerator() {
-    CURAND_CHECK(curandDestroyGenerator(cpuGenerator));
-    if(deviceId_.type == DeviceType::gpu) {
-        cudaSetDevice(deviceId_.no);
-        CURAND_CHECK(curandDestroyGenerator(gpuGenerator));
-    }
+    if(deviceId_.type == DeviceType::gpu)
+      cudaSetDevice(deviceId_.no);
+    CURAND_CHECK(curandDestroyGenerator(generator_));
 }
 
 void CurandRandomGenerator::uniform(Tensor tensor, float a, float b) {
+    matchOrAbort<float>(tensor->type());
+
     tensor->getBackend()->setDevice();
-
-    if(tensor->getBackend()->getDeviceId().type == DeviceType::gpu)
-        CURAND_CHECK(curandGenerateUniform(gpuGenerator, tensor->data(), tensor->size()));
-    else
-        CURAND_CHECK(curandGenerateUniform(cpuGenerator, tensor->data(), tensor->size()));
-
+    CURAND_CHECK(curandGenerateUniform(generator_, tensor->data(), tensor->size()));
+    
     // curandGenerateUniform has no range parameters (why?) so we need to
     // scale and shift inplace if range is different than [0, 1).
     using namespace functional;
@@ -86,12 +105,10 @@ void CurandRandomGenerator::uniform(Tensor tensor, float a, float b) {
 }
 
 void CurandRandomGenerator::normal(Tensor tensor, float mean, float stddev) {
-    tensor->getBackend()->setDevice();
+    matchOrAbort<float>(tensor->type());
 
-    if(tensor->getBackend()->getDeviceId().type == DeviceType::gpu)
-        CURAND_CHECK(curandGenerateNormal(gpuGenerator, tensor->data(), tensor->size(), mean, stddev));
-    else
-        CURAND_CHECK(curandGenerateNormal(cpuGenerator, tensor->data(), tensor->size(), mean, stddev));
+    tensor->getBackend()->setDevice();
+    CURAND_CHECK(curandGenerateNormal(generator_, tensor->data(), tensor->size(), mean, stddev));
 }
 
 #endif
