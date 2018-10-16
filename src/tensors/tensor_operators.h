@@ -75,30 +75,38 @@ void Reduce(Functor functor, marian::Tensor out, Tensors... tensors) {
 }
 
 // clang-format off
-  DISPATCH7(Prod, marian::Tensor, const marian::Tensor&, const marian::Tensor&, bool, bool, float, float)
-  DISPATCH8(ProdWithBias, marian::Tensor, const marian::Tensor&, const marian::Tensor&, const marian::Tensor&, bool, bool, float, float)
+DISPATCH7(Prod, marian::Tensor, const marian::Tensor&, const marian::Tensor&, bool, bool, float, float)
+DISPATCH8(ProdBatched, marian::Tensor, Ptr<Allocator>, const marian::Tensor, const marian::Tensor, bool, bool, float, float)
 
-  DISPATCH8(ProdBatched, marian::Tensor, Ptr<Allocator>, const marian::Tensor, const marian::Tensor, bool, bool, float, float)
+DISPATCH2(Softmax, marian::Tensor, marian::Tensor)
+DISPATCH3(SoftmaxGrad, marian::Tensor, marian::Tensor, marian::Tensor)
 
-  DISPATCH2(Dropout, marian::Tensor, float)
+DISPATCH2(LogSoftmax, marian::Tensor, marian::Tensor)
+DISPATCH3(LogSoftmaxGrad, marian::Tensor, marian::Tensor, marian::Tensor)
 
-  DISPATCH2(Softmax, marian::Tensor, marian::Tensor)
-  DISPATCH3(SoftmaxGrad, marian::Tensor, marian::Tensor, marian::Tensor)
+DISPATCH3(CrossEntropyPick, marian::Tensor, marian::Tensor, marian::Tensor)
+DISPATCH4(CrossEntropyPickBackward, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor)
 
-  DISPATCH2(LogSoftmax, marian::Tensor, marian::Tensor)
-  DISPATCH3(LogSoftmaxGrad, marian::Tensor, marian::Tensor, marian::Tensor)
+DISPATCH3(TransposeND, marian::Tensor, marian::Tensor, const std::vector<int>&)
+DISPATCH3(TransposeNDGrad, marian::Tensor, marian::Tensor, const std::vector<int>&)
 
-  DISPATCH3(CrossEntropyPick, marian::Tensor, marian::Tensor, marian::Tensor)
-  DISPATCH4(CrossEntropyPickBackward, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor)
+DISPATCH5(Shift, marian::Tensor, marian::Tensor, marian::Shape, float, bool)
+DISPATCH4(ShiftGrad, marian::Tensor, marian::Tensor, marian::Shape, bool)
 
-  DISPATCH3(TransposeND, marian::Tensor, marian::Tensor, const std::vector<int>&)
-  DISPATCH3(TransposeNDGrad, marian::Tensor, marian::Tensor, const std::vector<int>&)
+DISPATCH3(Concatenate, marian::Tensor, const std::vector<marian::Tensor>&, int)
 
-  DISPATCH5(Shift, marian::Tensor, marian::Tensor, marian::Shape, float, bool)
-  DISPATCH4(ShiftGrad, marian::Tensor, marian::Tensor, marian::Shape, bool)
-
-  DISPATCH3(Concatenate, marian::Tensor, const std::vector<marian::Tensor>&, int)
 // clang-format on
+
+static inline void Dropout(Tensor tensor, float p) {
+  // in-place uniform distribution
+  auto rnd = tensor->getBackend()->getRandomGenerator();
+  rnd->uniform(tensor, 0.f, 1.f);
+
+  // in-place scaling dropout
+  float invp = 1.f - p;
+  using namespace functional;
+  Element(_1 = (_1 < invp) / invp, tensor);
+}
 
 #ifdef CUDA_FOUND
 namespace gpu {
@@ -126,23 +134,23 @@ static inline void Deconcatenate(std::vector<marian::Tensor>& outputs,
 }
 
 // clang-format off
-  DISPATCH5(LayerNormalization, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, float)
-  DISPATCH9(LayerNormalizationGrad, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, float)
+DISPATCH5(LayerNormalization, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, float)
+DISPATCH9(LayerNormalizationGrad, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, float)
 
-  DISPATCH4(HighwayForward, marian::Tensor, const marian::Tensor, const marian::Tensor, const marian::Tensor)
-  DISPATCH7(HighwayBackward, marian::Tensor, marian::Tensor, marian::Tensor, const marian::Tensor, const marian::Tensor, const marian::Tensor, const marian::Tensor)
+DISPATCH4(HighwayForward, marian::Tensor, const marian::Tensor, const marian::Tensor, const marian::Tensor)
+DISPATCH7(HighwayBackward, marian::Tensor, marian::Tensor, marian::Tensor, const marian::Tensor, const marian::Tensor, const marian::Tensor, const marian::Tensor)
 
-  DISPATCH3(CopyRows, marian::Tensor, const marian::Tensor, const marian::Tensor)
-  DISPATCH3(PasteRows, marian::Tensor, const marian::Tensor, const marian::Tensor)
+DISPATCH3(CopyRows, marian::Tensor, const marian::Tensor, const marian::Tensor)
+DISPATCH3(PasteRows, marian::Tensor, const marian::Tensor, const marian::Tensor)
 
-  DISPATCH3(CopyCols, marian::Tensor, const marian::Tensor, const marian::Tensor)
-  DISPATCH3(PasteCols, marian::Tensor, const marian::Tensor, const marian::Tensor)
+DISPATCH3(CopyCols, marian::Tensor, const marian::Tensor, const marian::Tensor)
+DISPATCH3(PasteCols, marian::Tensor, const marian::Tensor, const marian::Tensor)
 
-  DISPATCH4(Select, marian::Tensor, const marian::Tensor, const marian::Tensor, int)
-  DISPATCH4(Insert, marian::Tensor, const marian::Tensor, const marian::Tensor, int)
+DISPATCH4(Select, marian::Tensor, const marian::Tensor, const marian::Tensor, int)
+DISPATCH4(Insert, marian::Tensor, const marian::Tensor, const marian::Tensor, int)
 
-  DISPATCH2(LSTMCellForward, marian::Tensor, std::vector<marian::Tensor>)
-  DISPATCH2(LSTMOutputForward, marian::Tensor, std::vector<marian::Tensor>);
+DISPATCH2(LSTMCellForward, marian::Tensor, std::vector<marian::Tensor>)
+DISPATCH2(LSTMOutputForward, marian::Tensor, std::vector<marian::Tensor>);
 // clang-format on
 
 #ifdef CUDA_FOUND
@@ -226,8 +234,8 @@ static inline void GRUFastBackward(std::vector<marian::Tensor> outputs,
 }
 
 // clang-format off
-  DISPATCH4(Att, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor)
-  DISPATCH7(AttBack, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor)
+DISPATCH4(Att, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor)
+DISPATCH7(AttBack, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor)
 // clang-format on
 
 #ifdef CUDA_FOUND
@@ -250,7 +258,7 @@ static inline float L2Norm(marian::Tensor in) {
 }
 
 // clang-format off
-  DISPATCH5(PoolingWithMaskingForward, marian::Tensor, marian::Tensor, marian::Tensor, int, bool)
-  DISPATCH6(PoolingWithMaskingBackward, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, int, bool)
+DISPATCH5(PoolingWithMaskingForward, marian::Tensor, marian::Tensor, marian::Tensor, int, bool)
+DISPATCH6(PoolingWithMaskingBackward, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, int, bool)
 // clang-format on
 }  // namespace marian

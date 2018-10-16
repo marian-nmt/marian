@@ -253,7 +253,11 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
       "If these files do not exist they are created");
-
+#ifdef USE_SENTENCEPIECE
+  cli.add<std::vector<float>>("--sentencepiece-alphas",
+                              "Sampling factors for SentencePieceVocab;"
+                              "i-th factor corresponds to i-th vocabulary");
+#endif
   // scheduling options
   cli.add<size_t>("--after-epochs,-e",
       "Finish after this many epochs, 0 is infinity");
@@ -345,11 +349,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<float>("--exponential-smoothing",
      "Maintain smoothed version of parameters for validation and saving with smoothing factor. 0 to disable",
      0)->implicit_val("1e-4");
-
-  // options for additional training data
-  cli.add<std::string>("--guided-alignment",
-     "File with alignments to guide attention, or 'none'",
-     "none");
+  cli.add_nondefault<std::string>("--guided-alignment",
+     "Path to a file with word alignments. Use guided alignment to guide attention");
   cli.add<std::string>("--guided-alignment-cost",
      "Cost type for guided alignment: ce (cross-entropy), mse (mean square error), mult (multiplication)",
      "ce");
@@ -378,31 +379,31 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "Overlap model computations with MPI communication",
      true);
   // support for universal encoder ULR https://arxiv.org/pdf/1802.05368.pdf
-  cli.add<bool>("--ulr-enabled",
-    "Is ULR (Universal Language Representation) enabled?",
-    false);
-  // reading pre-trained universal embedings for multi-sources 
+  cli.add<bool>("--ulr",
+      "Is ULR (Universal Language Representation) enabled?",
+      false);
+  // reading pre-trained universal embedings for multi-sources
   // note that source and target here is relative to ULR not the translation  langs
   //queries: EQ in Fig2 :  is the unified embbedins projected to one space.
   //"Path to file with universal sources embeddings from projection into universal space")
   cli.add<bool>("--ulr-query-vectors",
-     "Path to file with universal sources embeddings from projection into universal space",
-     "");
+      "Path to file with universal sources embeddings from projection into universal space",
+      "");
   //keys: EK in Fig2 :  is the keys of the target  embbedins projected to unified  space (i.e. ENU in multi-lingual case)
   cli.add<std::string>("--ulr-keys-vectors",
-     "Path to file with universal sources embeddings of traget keys from projection into universal space",
-     "");
+      "Path to file with universal sources embeddings of traget keys from projection into universal space",
+      "");
   cli.add<bool>("--ulr-trainable-transformation",
-     "Is Query Transformation Matrix A trainable ?",
-     false);
+      "Is Query Transformation Matrix A trainable ?",
+      false);
   cli.add<int>("--ulr-dim-emb",
-     "ULR mono embed dim");
+      "ULR mono embed dim");
   cli.add<float>("--ulr-dropout",
-     "ULR dropout on embeddings attentions: default is no dropuout",
-     0.0f);
+      "ULR dropout on embeddings attentions: default is no dropuout",
+      0.0f);
   cli.add<float>("--ulr-softmax-temperature",
-     "ULR softmax temperature to control randomness of predictions- deafult is 1.0: no temperature ",
-     1.0f);
+      "ULR softmax temperature to control randomness of predictions- deafult is 1.0: no temperature ",
+      1.0f);
   // clang-format on
 }
 
@@ -476,7 +477,6 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
       "stdout");
   cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --input");
-
   // decoding options
   cli.add<size_t>("--beam-size,-b",
       "Beam size used during search with validating translator",
@@ -510,6 +510,9 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
      "Use softmax shortlist: path first best prune");
   cli.add_nondefault<std::vector<float>>("--weights",
       "Scorer weights");
+  cli.add<bool>("--gumbel-max",
+      "Sample with Gumbel-max trick",
+       false);
 
   // TODO: the options should be available only in server
   cli.add_nondefault<size_t>("--port,-p",

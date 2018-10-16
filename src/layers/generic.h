@@ -173,21 +173,21 @@ struct EmbeddingFactory : public Factory {
     bool fixed = opt<bool>("fixed", false);
 
     NodeInitializer initFunc = inits::glorot_uniform;
-    if (options_->has("embFile")) {
-      std::string file = opt<std::string>("embFile");
-      if (!file.empty()) {
-        bool norm = opt<bool>("normalization", false);
-        initFunc = inits::from_word2vec(file, dimVoc, dimEmb, norm);
-      }
+  if (options_->has("embFile")) {
+    std::string file = opt<std::string>("embFile");
+    if (!file.empty()) {
+      bool norm = opt<bool>("normalization", false);
+      initFunc = inits::from_word2vec(file, dimVoc, dimEmb, norm);
     }
-
+  }
+  
     return graph_->param(name, {dimVoc, dimEmb}, initFunc, fixed);
   }
 };
 
 
 struct ULREmbeddingFactory : public Factory {
-  ULREmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
+ULREmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
 
   std::vector<Expr> construct() {
     std::string name = "url_embed"; //opt<std::string>("prefix");
@@ -200,8 +200,9 @@ struct ULREmbeddingFactory : public Factory {
     NodeInitializer initFunc = inits::glorot_uniform;
     std::string queryFile = opt<std::string>("ulrQueryFile");
     std::string keyFile = opt<std::string>("ulrKeysFile");
+    bool norm = opt<bool>("normalization", false);
     bool trainTrans = opt<bool>("ulrTrainTransform", false);
-
+      
     if (!queryFile.empty() && !keyFile.empty()) {
       initFunc = inits::from_word2vec(queryFile, dimQueries, dimUlrEmb, false);
       name = "ulr_query";
@@ -225,26 +226,28 @@ struct ULREmbeddingFactory : public Factory {
       auto ulr_src_embed = graph_->param(name, { dimQueries, dimEmb }, initFunc, fixed);
       ulrEmbeds.push_back(ulr_src_embed);
       // ulr transformation matrix
-      //initFunc = inits::diag(1.f); // identity matrix  - is it ok to init wiht identity or shall we make this to the fixed case only
+      //initFunc = inits::eye(1.f); // identity matrix  - is it ok to init wiht identity or shall we make this to the fixed case only
       if (trainTrans) {
         initFunc = inits::glorot_uniform;
         fixed = false;
       }
       else
       {
-        initFunc = inits::diag(1.f); // identity matrix
+        initFunc = inits::eye(); // identity matrix
         fixed = true;
       }
       name = "ulr_transform";
       auto ulr_transform = graph_->param(name, { dimUlrEmb, dimUlrEmb }, initFunc, fixed);
       ulrEmbeds.push_back(ulr_transform);
-        
+
       initFunc = inits::from_value(1.f);  // TBD: we should read sharable flags here - 1 means all sharable - 0 means no universal embeddings - should be zero for top freq only
       fixed = true;
       name = "ulr_shared";
       auto share_embed = graph_->param(name, { dimQueries, 1 }, initFunc, fixed);
       ulrEmbeds.push_back(share_embed);
+
     }
+
     return ulrEmbeds;
   }
 };

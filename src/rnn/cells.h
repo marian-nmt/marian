@@ -129,7 +129,7 @@ public:
     layerNorm_ = options_->get<bool>("layer-normalization", false);
     dropout_ = options_->get<float>("dropout", 0);
 
-    U_ = graph->param(prefix + "_U", {dimState, dimState}, inits::diag(1.f));
+    U_ = graph->param(prefix + "_U", {dimState, dimState}, inits::eye());
 
     if(dimInput)
       W_ = graph->param(
