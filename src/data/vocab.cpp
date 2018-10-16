@@ -17,7 +17,7 @@ namespace marian {
 
 Vocab::Vocab() {}
 
-size_t Vocab::operator[](const std::string& word) const {
+Word Vocab::operator[](const std::string& word) const {
   auto it = str2id_.find(word);
   if(it != str2id_.end())
     return it->second;
@@ -119,7 +119,7 @@ int Vocab::load(const std::string& vocabPath, int max) {
       ABORT_IF(line.empty(),
                "Vocabulary file {} must not contain empty lines",
                vocabPath);
-      vocab.insert({line, vocab.size()});
+      vocab.insert({line, (Word)vocab.size()});
     }
     ABORT_IF(in.bad(), "Vocabulary file {} could not be read", vocabPath);
   }

@@ -1,54 +1,114 @@
+#pragma once
+
 // clang-format off
 #include "graph/expression_graph.h"
 #include "functional/functional.h"
 #include "tensors/tensor_operators.h"
+#include "optimizers/optimizers.h"
+#if MPI_FOUND
+#include "mpi.h"
+#endif
+#ifdef __unix__
+#include <unistd.h>
+#endif
 // clang-format on
 
 namespace marian {
 
-class Communicator {
+struct/*interface*/ IMPIWrapper; // @TODO: Should we use a separate header, or move this declaration up here?
+
+// This interface implements the cross-GPU operations for distributed training within a single box.
+class ICommunicator {
 protected:
   const std::vector<Ptr<ExpressionGraph>> graphs_;
 
 public:
-  Communicator(const std::vector<Ptr<ExpressionGraph>>& graphs)
+  ICommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs)
       : graphs_(graphs) {}
 
-  virtual ~Communicator() {}
+  virtual ~ICommunicator() {}
 
-  virtual void foreach(const std::function<void(size_t, int)>& func) {
-    int totalSize = (int)graphs_[0]->params()->vals()->size();
-    int shardSize = (int)ceil(totalSize / (float)graphs_.size());
+  // helper to apply a function to each local graph, in parallel threads
+  typedef std::function<void(size_t, size_t /*shardBegin*/, size_t /*shardEnd*/)> ForeachFunc;
+  virtual void foreach(const ForeachFunc& func, bool parallel = true) const = 0;
+  // @TODO: We probably can still share foreach() between the two implementations. Just need to move some helper functions from the .cu file.
 
-    int pos = 0;
-    std::vector<std::thread> group;
-    // iterate over all shards
-    for(size_t idx = 0; idx < graphs_.size(); ++idx) {
-      int size = std::min(shardSize, totalSize);
+  virtual void scatterReduce() const = 0; // reduce param gradients and scatter into gradient shards
+  virtual void allGather() const = 0;     // redistribute value shards into param values
 
-      group.emplace_back(func, idx, pos);
+  virtual void swapParams(const std::vector<Tensor>& paramShards) const = 0;
 
-      pos += size;
-      totalSize -= size;
-    }
-    for(auto& t : group)
-      t.join();
-  }
-
-  virtual void scatterReduce() = 0;
-  virtual void allGather() = 0;
-
-  virtual void pushParams(std::vector<Tensor>& params) = 0;
-  virtual void pullParams(const std::vector<Tensor>& params) = 0;
-  virtual void swapParams(const std::vector<Tensor>& params) = 0;
+  virtual void scatterState(const std::vector<float>& data, const OptimizerBase::ScatterStateSetFunc& setFn) const = 0;
+  virtual std::vector<float> gatherState(const OptimizerBase::GatherStateGetFunc& getFn) const = 0;
 };
 
-class DefaultCommunicator : public Communicator {
+// Abstracts MPI operations, allowing alternative implementations (specifically fake (for debugging) and NCCL.
+// This implements the MPI APIs we use here, with the following modifications:
+//  * aborts with ABORT() instead of returning an error
+//  * swapped out some strange MPI-specific data types to more correct C++ ones where appropriate
+#if MPI_FOUND
+#else
+enum MPI_Comm { MPI_COMM_WORLD };
+enum MPI_Datatype { MPI_FLOAT, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG, MPI_BYTE };
+enum MPI_Op { MPI_SUM };
+struct MPI_Status { int MPI_SOURCE; };
+#define MPI_ANY_SOURCE ((size_t)-2)
+#define MPI_STATUS_IGNORE ((MPI_Status*)nullptr)
+#endif
+struct/*interface*/ IMPIWrapper
+{
+  virtual size_t myMPIRank() const = 0;
+  virtual size_t numMPIProcesses() const = 0;
+  virtual void barrier(MPI_Comm comm = MPI_COMM_WORLD) const = 0;
+  virtual void bCast(void* buf, size_t count, MPI_Datatype datatype, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
+  virtual void sSend(void* buf, size_t count, MPI_Datatype datatype, size_t destRank, int tag, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
+  virtual void recv(void* buf, size_t count, MPI_Datatype datatype, size_t sourceRank, int tag, MPI_Comm comm = MPI_COMM_WORLD, MPI_Status* status = MPI_STATUS_IGNORE) const = 0;
+  virtual void allReduce(const void* sendbuf, void* recvbuf, size_t count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
+  virtual void finalize() = 0;
+  static const size_t RECV_ANY_SOURCE = (size_t)MPI_ANY_SOURCE;
+  // helper templates
+private:
+  static MPI_Datatype getDataType(const float*)              { return MPI_FLOAT; }
+  static MPI_Datatype getDataType(const unsigned long*)      { return MPI_UNSIGNED_LONG; }
+  static MPI_Datatype getDataType(const unsigned long long*) { return MPI_UNSIGNED_LONG_LONG; }
+public:
+  template<typename T>
+  void bCast(std::vector<T>& v, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) {
+    unsigned long long vecLen = (unsigned long long)v.size(); // only value from rootRank is used here
+    bCast(&vecLen, 1, getDataType(&vecLen), rootRank, comm);
+    v.resize(vecLen);
+    bCast(v.data(), v.size(), getDataType(v.data()), rootRank, comm);
+  }
+  std::string idStr() const { // helper to identify the node in logs
+    return hostnameAndProcessId() + " MPI rank " + std::to_string(myMPIRank()) + " out of " + std::to_string(numMPIProcesses());
+  }
+protected:
+  static std::string hostnameAndProcessId() { // helper to get hostname:pid
+#ifdef _WIN32
+    std::string hostname = getenv("COMPUTERNAME");
+    auto processId = GetCurrentProcessId();
+#else
+    static std::string hostname = [](){ // not sure if gethostname() is expensive. This way we call it only once.
+      char hostnamebuf[HOST_NAME_MAX + 1] = { 0 };
+      gethostname(hostnamebuf, sizeof(hostnamebuf));
+      return std::string(hostnamebuf);
+    }();
+    auto processId = getpid();
+#endif
+    return hostname + ":" + std::to_string(processId);
+  }
+};
+
+Ptr<IMPIWrapper> initMPI(bool multiThreaded);
+void finalizeMPI(Ptr<IMPIWrapper>&&);
+
+// DefaultCommunicator is used when we cannot use NCCLCommunicator, e.g. if it is not compiled in
+class DefaultCommunicator : public ICommunicator {
 private:
   std::vector<Ptr<TensorAllocator>> paramsAllocs_;
   std::vector<Tensor> tmpTensors_;
 
-  void init() {
+  void lazyInit() {
     if(tmpTensors_.size() == 0) {
       int totalSize = (int)graphs_[0]->params()->vals()->size();
       int shardSize = (int)ceil(totalSize / (float)graphs_.size());
@@ -75,26 +135,51 @@ private:
   }
 
 public:
-  DefaultCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs)
-      : Communicator(graphs) {}
+  DefaultCommunicator(const std::vector<Ptr<ExpressionGraph>>& graphs, Ptr<IMPIWrapper> mpi)
+      : ICommunicator(graphs) {
+    ABORT_IF(mpi && mpi->numMPIProcesses() != 1, "DefaultCommunicator does not support multi-process MPI");
+  }
 
   ~DefaultCommunicator() override {}
 
-  void scatterReduce() override {
-    init();
+  void foreach(const ForeachFunc& func, bool parallel = true) const override {
+    parallel &= graphs_.size() > 1;
+
+    size_t totalSize = graphs_[0]->params()->vals()->size();
+    size_t shardSize = (size_t)ceil(totalSize / (float)graphs_.size());
+
+    size_t pos = 0;
+    std::vector<std::thread> group;
+    // iterate over all shards
+    for(size_t idx = 0; idx < graphs_.size(); ++idx) {
+      size_t size = std::min(shardSize, totalSize);
+
+      if (parallel)
+        group.emplace_back(func, idx, pos, pos+size);
+      else
+        func(idx, pos, pos+size);
+
+      pos += size;
+      totalSize -= size;
+    }
+    for(auto& t : group) // (note: group is empty is not parallel)
+      t.join();
+  }
+
+  void scatterReduce() const override {
+    const_cast<DefaultCommunicator*>(this)->lazyInit();
 
     int totalSize = (int)graphs_[0]->params()->vals()->size();
     int shardSize = (int)ceil(totalSize / (float)graphs_.size());
 
     // Gather gradients from different devices into current gradient shards
-    auto scatter = [this, shardSize](size_t idx, int pos) {
-      auto curGrad = graphs_[idx]->params()->grads()->subtensor(pos, shardSize);
+    auto scatter = [this, shardSize](size_t idx, size_t begin, size_t end) {
+      auto curGrad = graphs_[idx]->params()->grads()->subtensor(begin, end-begin);
 
       // collect and sum gradients
-      // to be replaced with ncclScatterReduce
       for(auto graph : graphs_) {
         if(graph != graphs_[idx]) {
-          auto subGrad = graph->params()->grads()->subtensor(pos, shardSize);
+          auto subGrad = graph->params()->grads()->subtensor(begin, end - begin);
           tmpTensors_[idx]->copyFrom(subGrad);
 
           using namespace functional;
@@ -103,85 +188,82 @@ public:
       }
     };
 
-    this->foreach(scatter);
+    foreach(scatter);
   }
 
-  void allGather() override {
+  void allGather() const override {
     int totalSize = (int)graphs_[0]->params()->vals()->size();
     int shardSize = (int)ceil(totalSize / (float)graphs_.size());
 
     // Update all graphs with parameter shard
-    auto gather = [this, shardSize](size_t idx, int pos) {
-      auto curParam = graphs_[idx]->params()->vals()->subtensor(pos, shardSize);
+    auto gather = [this, shardSize](size_t idx, size_t begin, size_t end) {
+      auto getShard = [&](Ptr<ExpressionGraph> graph) {
+        return graph->params()->vals()->subtensor(begin, end-begin);
+      };
+      auto curShard = getShard(graphs_[idx]);
 
-      // copy parameter shard to each graph
+      // Copy parameter shard to each graph
       for(auto graph : graphs_) {
         if(graph != graphs_[idx]) {
-          auto subParam = graph->params()->vals()->subtensor(pos, shardSize);
-          subParam->copyFrom(curParam);
+          auto subShard = getShard(graph);
+          subShard->copyFrom(curShard);
         }
       }
     };
 
-    this->foreach(gather);
+    foreach(gather);
   }
 
-  void pushParams(std::vector<Tensor>& params) override {
-    // Copy paramter shard from i-th graph to shard params[i].
-    // Graphs and shards with the same index live on the same device.
-
-    auto copy = [this, params](size_t idx, int pos) {
-      // copy parameter shard to each graph
-      auto subParam
-          = graphs_[idx]->params()->vals()->subtensor(pos, (int)params[idx]->size());
-      params[idx]->copyFrom(subParam);
-    };
-
-    this->foreach(copy);
-  }
-
-  void pullParams(const std::vector<Tensor>& params) override {
-    // Update all graphs with parameter shard
-
-    auto gather = [this, params](size_t idx, int pos) {
-      // copy parameter shard to each graph
-      for(auto graph : graphs_) {
-        auto subParam
-            = graph->params()->vals()->subtensor(pos, (int)params[idx]->size());
-        subParam->copyFrom(params[idx]);
-      }
-    };
-    this->foreach(gather);
-  }
-
-  void swapParams(const std::vector<Tensor>& params) override {
+  void swapParams(const std::vector<Tensor>& paramShards) const override {
     // Update all graphs with parameter shard
     ABORT_IF(graphs_.size() < 2, "Swap requires at least two graphs");
 
-    auto gather = [this, params](size_t idx, int pos) {
-      // copy parameter shard to each graph, apart from last graph
+    auto gather = [this, paramShards](size_t idx, size_t begin, size_t end) {
+      ABORT_IF(end-begin != paramShards[idx]->size(), "inconsistent shard size (swapParams, [{}], {} vs {})??", idx, end-begin, paramShards[idx]->size());
+      // Copy parameter shard to each graph, apart from last graph
       for(int i = 0; i < (int)graphs_.size() - 1; ++i) {
         auto subParam
-            = graphs_[i]->params()->vals()->subtensor(pos, (int)params[idx]->size());
-        subParam->copyFrom(params[idx]);
+            = graphs_[i]->params()->vals()->subtensor(begin, paramShards[idx]->size());
+        subParam->copyFrom(paramShards[idx]);
       }
 
-      // back-up shard from last graph
+      // Back-up shard from last graph
       auto subParamLast =
-          graphs_.back()->params()->vals()->subtensor(pos, (int)params[idx]->size());
-      params[idx]->copyFrom(subParamLast);
+          graphs_.back()->params()->vals()->subtensor(begin, paramShards[idx]->size());
+      paramShards[idx]->copyFrom(subParamLast);
 
       auto subParamFirst
-          = graphs_[0]->params()->vals()->subtensor(pos, (int)params[idx]->size());
+          = graphs_[0]->params()->vals()->subtensor(begin, paramShards[idx]->size());
       subParamLast->copyFrom(subParamFirst);
     };
-    // execute for each shard
-    this->foreach(gather);
+    // Execute for each shard
+    foreach(gather);
+  }
+
+  void scatterState(const std::vector<float>& data, const OptimizerBase::ScatterStateSetFunc& setFn) const override {
+    size_t dataSize = data.size();
+    size_t numLocalDevices = graphs_.size();
+    size_t shardSize = (dataSize + numLocalDevices - 1) / numLocalDevices;// (size_t)(ceil(dataSize / (float)numLocalDevices));
+    for(size_t localDeviceIndex = 0; localDeviceIndex < numLocalDevices; localDeviceIndex++) {
+      size_t begin = localDeviceIndex * shardSize;
+      size_t end   = std::min(begin + shardSize, dataSize);
+      setFn(localDeviceIndex, data.begin() + begin, data.begin() + end);
+    }
+  }
+
+  std::vector<float> gatherState(const OptimizerBase::GatherStateGetFunc& getFn) const override {
+    std::vector<float> data; // we know the size here
+    for (size_t localDeviceIndex = 0; localDeviceIndex < graphs_.size(); localDeviceIndex++) {
+      std::vector<float> tmp = getFn(localDeviceIndex);
+      data.insert(data.end(), tmp.begin(), tmp.end());
+    }
+    ABORT_IF(data.size() != graphs_[0]->params()->vals()->size(), "gathering wrong amount of data??");
+    return data;
   }
 };
 
-Ptr<Communicator> createCommunicator(
+Ptr<ICommunicator> createCommunicator(
     const std::vector<Ptr<ExpressionGraph>>& graphs,
-    bool noNccl = false);
+    bool noNccl, Ptr<IMPIWrapper> mpi);
 
 }  // namespace marian

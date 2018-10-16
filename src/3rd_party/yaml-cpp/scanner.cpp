@@ -34,10 +34,10 @@ Token& Scanner::peek() {
                               // if it's empty before peeking.
 
 #if 0
-		static Token *pLast = 0;
-		if(pLast != &m_tokens.front())
-			std::cerr << "peek: " << m_tokens.front() << "\n";
-		pLast = &m_tokens.front();
+  static Token *pLast = 0;
+  if (pLast != &m_tokens.front())
+    std::cerr << "peek: " << m_tokens.front() << "\n";
+  pLast = &m_tokens.front();
 #endif
 
   return m_tokens.front();

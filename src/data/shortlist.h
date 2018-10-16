@@ -128,7 +128,7 @@ private:
   size_t firstNum_{100};
   size_t bestNum_{100};
 
-  std::vector<std::unordered_map<size_t, float>> data_;
+  std::vector<std::unordered_map<Word, float>> data_;
 
   void load(const std::string& fname) {
     io::InputFileStream in(fname);
@@ -154,7 +154,7 @@ private:
     for(auto& probs : data_) {
       std::vector<std::pair<float, Word>> sorter;
       for(auto& it : probs)
-        sorter.emplace_back(it.second, it.first);
+        sorter.emplace_back(it.second, (Word)it.first);
 
       std::sort(
           sorter.begin(), sorter.end(), std::greater<std::pair<float, Word>>());
@@ -218,9 +218,9 @@ public:
 
     // Dump translation pairs from dictionary
     io::OutputFileStream outDic(prefix + ".dic");
-    for(size_t srcId = 0; srcId < data_.size(); srcId++) {
-      for(auto& it : data_[srcId]) {
-        size_t trgId = it.first;
+    for(Word srcId = 0; srcId < data_.size(); srcId++) {
+      for(auto& it : data_[srcId]) { // @TODO: change data_.first from size_t to Word
+        Word trgId = (Word)it.first;
         outDic << (*srcVocab_)[srcId] << "\t" << (*trgVocab_)[trgId] << std::endl;
       }
     }
@@ -249,7 +249,7 @@ public:
       if(shared_)
         idxSet.insert(i);
       for(auto& it : data_[i])
-        idxSet.insert(it.first);
+        idxSet.insert((Word)it.first); // @TODO: change it.first to Word
     }
 
     // turn into vector and sort (selected indices)

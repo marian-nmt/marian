@@ -8,6 +8,7 @@ namespace marian {
 
 /**
  * Class implementing exponential smoothing for graph groups.
+ * The smoothed parameters themselves are not stored in here.
  */
 class ExponentialSmoothing {
 public:

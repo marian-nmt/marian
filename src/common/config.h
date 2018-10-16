@@ -74,8 +74,7 @@ public:
   void loadModelParameters(const std::string& name);
   void loadModelParameters(const void* ptr);
 
-  // @TODO: remove this accessor or move to a more appropriate class
-  const std::vector<DeviceId>& getDevices();
+  std::vector<DeviceId> getDevices(size_t myMPIRank = 0, size_t numRanks = 1);
 
   void save(const std::string& name);
 
@@ -88,7 +87,6 @@ public:
 
 private:
   YAML::Node config_;
-  std::vector<DeviceId> devices_;
 
   // Add options overwritting values for existing ones
   void override(const YAML::Node& params);

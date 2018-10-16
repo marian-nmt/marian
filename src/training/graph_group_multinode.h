@@ -1,12 +1,7 @@
 #pragma once
 
-#if MPI_FOUND
-#include "mpi.h"
-#endif
-
-#ifdef CUDA_FOUND
-#include "cuda_runtime.h"
-#endif
+#include "training/graph_group.h"
+#include "training/communicator.h"
 
 #include "common/filesystem.h"
 #include "3rd_party/threadpool.h"
@@ -22,11 +17,12 @@ namespace marian {
  * Multi-node graph group for asynchronous training over multiple
  * machines each with one or multiple GPUs
  */
-class MultiNodeGraphGroup : public GraphGroup {
+class MultiNodeGraphGroup : public MultiNodeGraphGroupBase {
+  using Base = MultiNodeGraphGroupBase;
 public:
   virtual void setScheduler(Ptr<Scheduler> scheduler) override;
 
-protected:
+private:
   ////////////////////////////////////////////////////////////////////////////
   // General variables.
 
@@ -41,15 +37,6 @@ protected:
 
   /** Thread pool to enable clients to run concurrently. */
   ThreadPool* clientThreadPool_;
-
-  /** Graph builders for clients (which run forward and backward passes). */
-  std::vector<Ptr<models::ModelBase>> clientBuilders_;
-
-  /** Graphs of clients. */
-  std::vector<Ptr<ExpressionGraph>> clientGraphs_;
-
-  /** Devices (GPUs) on this node. */
-  std::vector<size_t> devices_;
 
   /** Mutex to ensure clients are uniquely assigned to graphs and builders. */
   std::mutex mutexClientInit_;
@@ -103,9 +90,6 @@ protected:
   ////////////////////////////////////////////////////////////////////////////
   // Communication variables.
 
-  /** Number of clients on nodes in MPI world (cluster). */
-  std::vector<int> numberClientsOfNodes_;
-
   /** Number of parameters allocated (sharded) to nodes. */
   std::vector<size_t> nodeSizes_;
 
@@ -116,12 +100,6 @@ protected:
    * CPU buffer for sending gradients and receiving parameters via MPI.
    */
   std::vector<std::vector<float>> clientCommBuffersCPU_;
-
-  /** MPI rank of this node. */
-  int mpi_my_rank_{0};
-
-  /** Number of nodes in MPI world (cluster). */
-  int mpi_comm_world_size_{1};
 
   /**
    * Flag to indicate that an MPI message contains message info
@@ -249,11 +227,6 @@ protected:
   virtual void init(Ptr<data::Batch> batch);
 
   /**
-   * Setup MPI world size and rank of this node.
-   */
-  void setupMPI();
-
-  /**
    * Setup clients that will compute gradients and communicate them with the
    * server shards.
    * There is one client per GPU.
@@ -374,56 +347,14 @@ protected:
    */
   virtual void signalFinishedToServerShards();
 
-  /**
-   * Load the GPU configuration of this node (i.e. which GPUs to use) and the
-   * number of GPUs on the other nodes.
-   */
-  void loadDeviceConfig(std::vector<size_t> deviceConfig) {
-    size_t index = 0;
-    int node = 0;
-    int nClientsSeen = 0;
-    numberClientsOfNodes_ = std::vector<int>(mpi_comm_world_size_, 0);
-    while(index < deviceConfig.size()) {
-      if(numberClientsOfNodes_[node] == 0) {
-        numberClientsOfNodes_[node] = (int)deviceConfig[index];
-        nClientsSeen = 0;
-      } else if(nClientsSeen < numberClientsOfNodes_[node]) {
-        if(node == mpi_my_rank_) {
-          devices_.push_back(deviceConfig[index]);
-        }
-        nClientsSeen++;
-      } else {
-        node++;
-        index--;
-      }
-      index++;
-    }
-  }
-
 public:
   /**
    * (Constructor) Call super class and initialize client graphs and builders.
    */
   MultiNodeGraphGroup(Ptr<Config> options)
-      : GraphGroup(options),
+      : Base(options),
         clientCommOverlap{options_->get<bool>("multi-node-overlap")},
-        tau_{options_->get<size_t>("optimizer-delay")} {
-    // Set up devices for this node
-    setupMPI();  // Setup MPI before creating device vectors
-    std::vector<size_t> devices;
-    for(auto& d : options_->getDevices())
-      devices.push_back(d.no);
-    loadDeviceConfig(devices);
-
-    // Create builders and graphs for clients.
-    for(size_t i = 0; i < devices_.size(); i++) {
-      clientGraphs_.push_back(New<ExpressionGraph>());
-      clientGraphs_[i]->setDevice({devices_[i], DeviceType::gpu});
-      clientGraphs_[i]->reserveWorkspaceMB(options_->get<size_t>("workspace"));
-      clientBuilders_.push_back(
-          models::from_config(options_, models::usage::training));
-    }
-  }
+        tau_{options_->get<size_t>("optimizer-delay")} { }
 
   /**
    * (Destructor) Shut down server shard thread and (if comm. overlap enabled)
@@ -447,7 +378,7 @@ public:
   void update(Ptr<data::Batch> batch) override {
     ABORT_IF(finalized_, "Training has already finished.");
     // Only take batch assigned to this node
-    if(batchIter_ % mpi_comm_world_size_ == (size_t)mpi_my_rank_) {
+    if(batchIter_ % mpi_->numMPIProcesses() == (size_t)mpi_->myMPIRank()) {
       execute(batch);
     }
     batchIter_++;
@@ -526,7 +457,5 @@ public:
   Ptr<data::BatchStats> collectStats() {
     return GraphGroup::collectStats(clientGraphs_[0], clientBuilders_[0]);
   }
-
-  virtual void finalize() override { finalized_ = true; }
 };
 }  // namespace marian

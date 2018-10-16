@@ -1,3 +1,5 @@
+#include "data/corpus.h"
+
 #include <numeric>
 #include <random>
 
@@ -16,8 +18,7 @@ Corpus::Corpus(std::vector<std::string> paths,
     : CorpusBase(paths, vocabs, options) {}
 
 SentenceTuple Corpus::next() {
-  bool cont = true;
-  while(cont) {
+  for (;;) { // (this is a retry loop for skipping invalid sentences)
     // get index of the current sentence
     size_t curId = pos_;
     // if corpus has been shuffled, ids_ contains sentence indexes
@@ -27,11 +28,13 @@ SentenceTuple Corpus::next() {
 
     // fill up the sentence tuple with sentences from all input files
     SentenceTuple tup(curId);
+    size_t eofsHit = 0;
     for(size_t i = 0; i < files_.size(); ++i) {
       std::string line;
 
-      if(io::getline(*files_[i], line)) {
-        if(i > 0 && i == alignFileIdx_) {
+      bool gotLine = io::getline(*files_[i], line);
+      if(gotLine) {
+        if(i > 0 && i == alignFileIdx_) { // @TODO: alignFileIdx == 0 possible?
           addAlignmentToSentenceTuple(line, tup);
         } else if(i > 0 && i == weightFileIdx_) {
           addWeightsToSentenceTuple(line, tup);
@@ -39,23 +42,23 @@ SentenceTuple Corpus::next() {
           addWordsToSentenceTuple(line, i, tup);
         }
       }
+      else
+        eofsHit++;
     }
 
-    // continue only if each input file provides an example
-    size_t expectedSize = files_.size();
-    if(weightFileIdx_ > 0)
-      expectedSize -= 1;
-    if(alignFileIdx_ > 0)
-      expectedSize -= 1;
-    cont = tup.size() == expectedSize;
+    if (eofsHit == files_.size())
+      return SentenceTuple(0);
+    ABORT_IF(eofsHit != 0, "not all input files have the same number of lines");
 
-    // continue if all sentences are no longer than maximum allowed length
-    if(cont && std::all_of(tup.begin(), tup.end(), [=](const Words& words) {
+    // check if all streams are valid, that is, non-empty and no longer than maximum allowed length
+    if(std::all_of(tup.begin(), tup.end(), [=](const Words& words) {
          return words.size() > 0 && words.size() <= maxLength_;
        }))
       return tup;
+
+    // otherwise skip this sentence and try the next one
+    // @TODO: tail recursion?
   }
-  return SentenceTuple(0);
 }
 
 void Corpus::shuffle() {

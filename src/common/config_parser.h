@@ -49,7 +49,6 @@ public:
   void parseOptions(int argc, char** argv, bool validate);
 
   YAML::Node getConfig() const;
-  std::vector<DeviceId> getDevices();
 
 private:
   cli::mode mode_;

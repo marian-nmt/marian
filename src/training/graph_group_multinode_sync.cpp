@@ -67,16 +67,6 @@ void MultiNodeGraphGroupSync::initCPUArrays() {
 }
 
 /**
- * Setup MPI world size and rank of this node.
- */
-void MultiNodeGraphGroupSync::setupMPI() {
-#if MPI_FOUND
-  MPI_Comm_size(MPI_COMM_WORLD, &mpi_comm_world_size_);
-  MPI_Comm_rank(MPI_COMM_WORLD, &mpi_my_rank_);
-#endif
-}
-
-/**
  * Setup clients that will compute gradients and communicate them with the
  * server shards.
  * There is one client per GPU.
@@ -118,21 +108,19 @@ void MultiNodeGraphGroupSync::sumGRAD(Tensor gradient) {
  * send and receive. Make sure you only call from device 0.
  */
 void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
-#if MPI_FOUND
-  int network_size = accGradientsSync_cpu.size();
+  auto network_size = accGradientsSync_cpu.size(); // @TODO: get this from accGradientSync (not CPU), it is more direct
 
   // Copy the data to the CPU
   accGradientsSync->get(accGradientsSync_cpu);
 
   // Wait until all nodes are ready
-  MPI_Barrier(MPI_COMM_WORLD);
+  mpi_->barrier();
 
-  int reduce_result = MPI_Allreduce(accGradientsSync_cpu.data(),  // CPU buffers
-                                    receiveBuffer_cpu.data(),
-                                    network_size,
-                                    MPI_FLOAT,
-                                    MPI_SUM,
-                                    MPI_COMM_WORLD);
+  mpi_->allReduce(accGradientsSync_cpu.data(),  // CPU buffers
+                  receiveBuffer_cpu.data(),
+                  network_size,
+                  MPI_FLOAT,
+                  MPI_SUM);
 
   // Copy the data back to the GPU and do optimizer update
   // Do update with last GPU to distribute the memory
@@ -162,9 +150,11 @@ void MultiNodeGraphGroupSync::sendReceiveUpdateSync() {
 
   // set the accumulating buffers to zero;
   accGradientsSync->set(0);
-  std::fill(accGradientsSync_cpu.begin(), accGradientsSync_cpu.end(), 0);
-  std::fill(receiveBuffer_cpu.begin(), receiveBuffer_cpu.end(), 0);
-#endif
+  std::fill(accGradientsSync_cpu.begin(), accGradientsSync_cpu.end(), 0.0f);
+  std::fill(receiveBuffer_cpu.begin(), receiveBuffer_cpu.end(), 0.0f);
+  // @TODO:
+  //  - these fill() calls are not necessary
+  //  - can accGradientsSync_cpu and receiveBuffer_cpu be the same buffer? Then change allReduce() to single-argument function.
 }
 
 /**
@@ -247,15 +237,14 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
     cost = 0;
 
     if((scheduler_->saving() || scheduler_->validating())) {
-#if MPI_FOUND
       // wait until other nodes are ready
-      MPI_Barrier(MPI_COMM_WORLD);
+      mpi_->barrier();
 
       // TODO: Saving is broken
-      // if(mpi_my_rank_ == 0 && scheduler_->saving())
+      // if(mpi_->myMPIRank() == 0 && scheduler_->saving())
       //  this->save(graph);
 
-      if(mpi_my_rank_ == 0 && scheduler_->validating()) {
+      if(mpi_->myMPIRank() == 0 && scheduler_->validating()) {
         // temporarily save current params
         if(movingAvg_)
           accGradientsSync->copyFrom(clientGraphs_[0]->params()->vals());
@@ -272,8 +261,7 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
       }
 
       // inform other nodes to continue
-      MPI_Barrier(MPI_COMM_WORLD);
-#endif
+      mpi_->barrier();
     }
   }
 }
