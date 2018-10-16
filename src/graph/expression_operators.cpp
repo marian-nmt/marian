@@ -208,12 +208,17 @@ Expr flatten(Expr a) {
 
 Expr flatten_2d(Expr a) {
   Shape shape = {a->shape().elements() / a->shape()[-1], a->shape()[-1]};
-
   return Expression<ReshapeNodeOp>(a, shape);
 }
 
+Expr constant_like(Expr a, const NodeInitializer& init) {
+  const auto& shape = a->shape();
+  auto graph = a->graph();
+  return graph->constant(shape, init);
+}
+
 Expr rows(Expr a, Expr indices) {
-  // @TODO:: replace with `select(a, indices, -2)` 
+  // @TODO:: replace with `select(a, indices, -2)`
   // as soon as select is efficient enough
   return Expression<RowsNodeOp>(a, indices);
 }
@@ -225,7 +230,7 @@ Expr rows(Expr a, const std::vector<IndexType>& indices) {
 
 
 Expr cols(Expr a, Expr indices) {
-  // @TODO:: replace with `select(a, indices, -1)` 
+  // @TODO:: replace with `select(a, indices, -1)`
   // as soon as select is efficient enough
   return Expression<ColsNodeOp>(a, indices);
 }
@@ -541,7 +546,7 @@ Expr convert2cudnnFormat(Expr x) {
   int numExamples = x->shape()[1];
   int embSize = x->shape()[2];
 
-  std::vector<size_t> newIndeces;
+  std::vector<IndexType> newIndeces;
   for(int b = 0; b < numExamples; ++b) {
     for(int t = 0; t < numWords; ++t) {
       newIndeces.push_back((t * numExamples) + b);
@@ -561,7 +566,7 @@ Expr convertFromcudnnFormat(Expr x) {
 
   auto reshapedX = reshape(x, {batchDim * sentenceDim, embSize});
 
-  std::vector<size_t> newIndeces;
+  std::vector<IndexType> newIndeces;
   for(int t = 0; t < sentenceDim; ++t) {
     for(int b = 0; b < batchDim; ++b) {
       newIndeces.push_back(b * sentenceDim + t);

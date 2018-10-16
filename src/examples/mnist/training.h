@@ -39,8 +39,9 @@ public:
     // Run training
     while(scheduler->keepGoing()) {
       batchGenerator->prepare(!options_->get<bool>("no-shuffle"));
-      while(*batchGenerator && scheduler->keepGoing()) {
-        auto batch = batchGenerator->next();
+      for(auto batch : *batchGenerator) {
+        if(!scheduler->keepGoing())
+           break;
         model->update(batch);
       }
       if(scheduler->keepGoing())

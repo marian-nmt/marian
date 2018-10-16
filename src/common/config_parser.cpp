@@ -23,17 +23,30 @@
 
 namespace marian {
 
-// TODO: move to CLIWrapper and update
-const std::set<std::string> PATHS = {"model",
-                                     "models",
-                                     "train-sets",
-                                     "vocabs",
-                                     "embedding-vectors",
-                                     "valid-sets",
-                                     "valid-script-path",
-                                     "valid-log",
-                                     "valid-translation-output",
-                                     "log" };
+// TODO: move to CLIWrapper
+// clang-format off
+const std::set<std::string> PATHS = {
+  "model",
+  "models",
+  "train-sets",
+  "vocabs",
+  "embedding-vectors",
+  "valid-sets",
+  "valid-script-path",
+  "valid-log",
+  "valid-translation-output",
+  "input",            // except: stdin
+  "output",           // except: stdout
+  "pretrained-model",
+  "data-weighting",
+  "log"
+  // TODO: Handle the special value in helper functions
+  //"sqlite",         // except: temporary
+  // TODO: This is a vector with a path and some numbers, handle this in helper
+  // functions or separate shortlist path to a separate command-line option
+  //"shortlist",
+};
+// clang-format on
 
 void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   int defaultWorkspace = (mode_ == cli::mode::translation) ? 512 : 2048;
@@ -240,7 +253,11 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
       "If these files do not exist they are created");
-
+#ifdef USE_SENTENCEPIECE
+  cli.add<std::vector<float>>("--sentencepiece-alphas",
+                              "Sampling factors for SentencePieceVocab;"
+                              "i-th factor corresponds to i-th vocabulary");
+#endif
   // scheduling options
   cli.add<size_t>("--after-epochs,-e",
       "Finish after this many epochs, 0 is infinity");
@@ -332,10 +349,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<float>("--exponential-smoothing",
      "Maintain smoothed version of parameters for validation and saving with smoothing factor. 0 to disable",
      0)->implicit_val("1e-4");
-
-  // options for additional training data
   cli.add<std::string>("--guided-alignment",
-     "File with alignments to guide attention, or 'none'",
+     "Path to a file with word alignments. Use guided alignment to guide attention or 'none'", 
      "none");
   cli.add<std::string>("--guided-alignment-cost",
      "Cost type for guided alignment: ce (cross-entropy), mse (mean square error), mult (multiplication)",
@@ -344,7 +359,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "Weight for guided alignment cost",
      1);
   cli.add_nondefault<std::string>("--data-weighting",
-     "File with sentence or word weights");
+     "Path to a file with sentence or word weights");
   cli.add<std::string>("--data-weighting-type",
      "Processing level for data weighting: sentence, word",
      "sentence");
@@ -353,7 +368,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add_nondefault<std::vector<std::string>>("--embedding-vectors",
      "Paths to files with custom source and target embedding vectors");
   cli.add<bool>("--embedding-normalization",
-     "Enable normalization of custom embedding vectors");
+     "Normalize values from custom embedding vectors to [-1, 1]");
   cli.add<bool>("--embedding-fix-src",
      "Fix source embeddings. Affects all encoders");
   cli.add<bool>("--embedding-fix-trg",
@@ -365,31 +380,31 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "Overlap model computations with MPI communication",
      true);
   // support for universal encoder ULR https://arxiv.org/pdf/1802.05368.pdf
-  cli.add<bool>("--ulr-enabled",
-    "Is ULR (Universal Language Representation) enabled?",
-    false);
-  // reading pre-trained universal embedings for multi-sources 
+  cli.add<bool>("--ulr",
+      "Is ULR (Universal Language Representation) enabled?",
+      false);
+  // reading pre-trained universal embedings for multi-sources
   // note that source and target here is relative to ULR not the translation  langs
   //queries: EQ in Fig2 :  is the unified embbedins projected to one space.
   //"Path to file with universal sources embeddings from projection into universal space")
   cli.add<bool>("--ulr-query-vectors",
-     "Path to file with universal sources embeddings from projection into universal space",
-     "");
+      "Path to file with universal sources embeddings from projection into universal space",
+      "");
   //keys: EK in Fig2 :  is the keys of the target  embbedins projected to unified  space (i.e. ENU in multi-lingual case)
   cli.add<std::string>("--ulr-keys-vectors",
-     "Path to file with universal sources embeddings of traget keys from projection into universal space",
-     "");
+      "Path to file with universal sources embeddings of traget keys from projection into universal space",
+      "");
   cli.add<bool>("--ulr-trainable-transformation",
-     "Is Query Transformation Matrix A trainable ?",
-     false);
+      "Is Query Transformation Matrix A trainable ?",
+      false);
   cli.add<int>("--ulr-dim-emb",
-     "ULR mono embed dim");
+      "ULR mono embed dim");
   cli.add<float>("--ulr-dropout",
-     "ULR dropout on embeddings attentions: default is no dropuout",
-     0.0f);
+      "ULR dropout on embeddings attentions: default is no dropuout",
+      0.0f);
   cli.add<float>("--ulr-softmax-temperature",
-     "ULR softmax temperature to control randomness of predictions- deafult is 1.0: no temperature ",
-     1.0f);
+      "ULR softmax temperature to control randomness of predictions- deafult is 1.0: no temperature ",
+      1.0f);
   // clang-format on
 }
 
@@ -463,7 +478,6 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
       "stdout");
   cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --input");
-
   // decoding options
   cli.add<size_t>("--beam-size,-b",
       "Beam size used during search with validating translator",
@@ -497,6 +511,9 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
      "Use softmax shortlist: path first best prune");
   cli.add_nondefault<std::vector<float>>("--weights",
       "Scorer weights");
+  cli.add<bool>("--output-sampling",
+      "Noise output layer with gumbel noise",
+       false);
 
   // TODO: the options should be available only in server
   cli.add_nondefault<size_t>("--port,-p",
@@ -653,21 +670,15 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   cli.parse(argc, argv);
 
   // get paths to extra config files
-  auto configPaths = loadConfigPaths();
-
+  auto configPaths = findConfigPaths();
   if(!configPaths.empty()) {
-    // load options from extra config files into a single YAML config
     auto config = loadConfigFiles(configPaths);
-    // combine loaded options with the main YAML config
+    // combine loaded options with the main config object
     cli.overwriteDefault(config);
   }
 
   if(get<bool>("interpolate-env-vars")) {
-    cli::ProcessPaths(config_, cli::InterpolateEnvVars, PATHS);
-  }
-
-  if(get<bool>("relative-paths") && !get<bool>("dump-config")) {
-    makeAbsolutePaths(configPaths);
+    cli::processPaths(config_, cli::InterpolateEnvVars, PATHS);
   }
 
   if(doValidate) {
@@ -695,52 +706,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   expandAliases(cli);
 }
 
-void ConfigParser::makeAbsolutePaths(
-    const std::vector<std::string>& configPaths) {
-  ABORT_IF(configPaths.empty(),
-           "--relative-paths option requires at least one config file provided "
-           "with --config");
-  auto configDir = filesystem::Path{configPaths.front()}.parentPath();
-
-  for(const auto& configPath : configPaths)
-    ABORT_IF(filesystem::Path{configPath}.parentPath() != configDir,
-             "--relative-paths option requires all config files to be in the "
-             "same directory");
-
-  auto transformFunc = [&](const std::string& nodePath) -> std::string {
-    // Catch stdin/stdout and do not process
-    if(nodePath == "stdin" || nodePath == "stdout")
-      return nodePath;
-    
-    // replace relative path w.r.t. configDir
-    try {
-      return canonical(filesystem::Path{nodePath}, configDir).string();
-    } catch(filesystem::FilesystemError& e) {
-      // will fail if file does not exist; use parent in that case
-      std::cerr << e.what() << std::endl;
-      auto parentPath = filesystem::Path{nodePath}.parentPath();
-      return (canonical(parentPath, configDir) / filesystem::Path{nodePath}.filename())
-          .string();
-    }
-  };
-
-  cli::ProcessPaths(config_, transformFunc, PATHS);
-}
-
-YAML::Node ConfigParser::loadConfigFiles(
-    const std::vector<std::string>& paths) {
-  YAML::Node config;
-
-  for(auto& path : paths) {
-    // later file overrides earlier
-    for(const auto& it : YAML::Load(io::InputFileStream(path))) {
-      config[it.first.as<std::string>()] = YAML::Clone(it.second);
-    }
-  }
-  return config;
-}
-
-std::vector<std::string> ConfigParser::loadConfigPaths() {
+std::vector<std::string> ConfigParser::findConfigPaths() {
   std::vector<std::string> paths;
 
   bool interpolateEnvVars = get<bool>("interpolate-env-vars");
@@ -764,6 +730,39 @@ std::vector<std::string> ConfigParser::loadConfigPaths() {
   }
 
   return paths;
+}
+
+YAML::Node ConfigParser::loadConfigFiles(
+    const std::vector<std::string>& paths) {
+  YAML::Node configAll;
+
+  for(auto& path : paths) {
+    // load single config file
+    YAML::Node config = YAML::Load(io::InputFileStream(path));
+
+    // expand relative paths if requested
+    if(config["relative-paths"] && config["relative-paths"].as<bool>()) {
+      // interpolate environment variables if requested in this config file or
+      // via command-line options
+      bool interpolateEnvVars = (config["interpolate-env-vars"]
+                                 && config["interpolate-env-vars"].as<bool>())
+                                || get<bool>("interpolate-env-vars");
+      if(interpolateEnvVars)
+        cli::processPaths(config, cli::InterpolateEnvVars, PATHS);
+
+      // replace relative path w.r.t. the config file
+      cli::makeAbsolutePaths(config, path, PATHS);
+      // remove 'relative-paths' and do not spread it into other config files
+      config.remove("relative-paths");
+    }
+
+    // merge with previous config files, later file overrides earlier
+    for(const auto& it : config) {
+      configAll[it.first.as<std::string>()] = YAML::Clone(it.second);
+    }
+  }
+
+  return configAll;
 }
 
 YAML::Node ConfigParser::getConfig() const {

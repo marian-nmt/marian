@@ -104,6 +104,8 @@ Expr atleast_3d(Expr a);
 Expr atleast_4d(Expr a);
 Expr atleast_nd(Expr a, size_t dims);
 
+Expr constant_like(Expr a, const NodeInitializer& init);
+
 Expr flatten(Expr a);
 Expr flatten_2d(Expr a);
 

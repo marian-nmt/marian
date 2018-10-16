@@ -1,6 +1,6 @@
 #include "graph/node_initializers.h"
-#include "3rd_party/svd/svd.h"
 #include "layers/word2vec_reader.h"
+#include "tensors/tensor_operators.h"
 
 #include <stdint.h>
 #include <algorithm>
@@ -38,32 +38,41 @@ NodeInitializer from_value(float v) {
   return [v](Tensor t) { t->set(v); };
 }
 
-NodeInitializer diag(float val) {
+// diagonal matrix with value val along diagonal
+NodeInitializer eye(float val) {
   return [val](Tensor t) {
-    if(t->shape().size() == 2 && t->shape()[-1] == t->shape()[-2]) {
-      std::vector<float> vec(t->size(), 0);
-      for(int i = 0; i < t->shape()[-2]; ++i)
-        vec[i * t->shape()[-1] + i] = val;
-      t->set(vec);
-    }
+    ABORT_IF(t->shape().size() != 2 || t->shape()[-1] != t->shape()[-2],
+             "eye(val) is defined only for quadratic tensors, shape is {}",
+             t->shape());
+
+    // @TODO: implement efficient version on the GPU
+    std::vector<float> vec(t->size(), 0);
+    for(int i = 0; i < t->shape()[-1]; ++i)
+      vec[i * t->shape()[0] + i] = val;
+    t->set(vec);
   };
 }
 
-NodeInitializer normal(float scale, bool /*ortho*/ /*= true*/) {
-  return [scale](Tensor t) {
-    distribution<std::normal_distribution<float>>(t, 0, scale);
+NodeInitializer uniform(float a, float b) {
+  return [a, b](Tensor tensor) {
+    tensor->getBackend()->getRandomGenerator()->uniform(tensor, a, b);
   };
 }
 
-NodeInitializer uniform(float scale) {
-  return [scale](Tensor t) {
-    distribution<std::uniform_real_distribution<float>>(t, -scale, scale);
+NodeInitializer normal(float mean, float stddev) {
+  return [mean, stddev](Tensor tensor) {
+    tensor->getBackend()->getRandomGenerator()->normal(tensor, mean, stddev);
   };
 }
 
-void glorot_uniform(Tensor t) {
-  float scale = sqrtf(6.0f / (t->shape()[-2] + t->shape()[-1]));
-  distribution<std::uniform_real_distribution<float>>(t, -scale, scale);
+void glorot_uniform(Tensor tensor) {
+  float scale = sqrtf(6.0f / (tensor->shape()[-2] + tensor->shape()[-1]));
+  uniform(-scale, scale)(tensor);
+}
+
+void glorot_normal(Tensor tensor) {
+  float scale = sqrtf(2.0f / (tensor->shape()[-2] + tensor->shape()[-1]));
+  normal(0.f, scale)(tensor);
 }
 
 void xorshift(Tensor t) {
@@ -73,36 +82,26 @@ void xorshift(Tensor t) {
   t->set(vals);
 }
 
-void glorot_normal(Tensor t) {
-  float scale = sqrtf(2.0f / (t->shape()[-2] + t->shape()[-1]));
-  distribution<std::normal_distribution<float>>(t, 0, scale);
+NodeInitializer bernoulli(float prob, float scale) {
+  return [prob, scale](Tensor tensor) {
+    Bernoulli(tensor, prob, scale);
+  };
 }
 
-void svd(std::vector<float>& vec, Shape shape) {
-  int rows = shape[0] * shape[2] * shape[3];
-  int cols = shape[1];
-
-  int n = std::min(rows, cols);
-  int m = std::max(rows, cols);
-
-  ABORT_IF(m % n != 0,
-           "Matrix dimensions must be equal or multiples of each other");
-
-  for(int i = 0; i < shape.elements(); i += n * n) {
-    std::vector<float> t1(n);
-    std::vector<float> t2(n * n);
-    float* a = vec.data() + i;
-    float* w = t1.data();
-    float* v = t2.data();
-    dsvd(a, n, n, w, v);
-  }
+NodeInitializer dropout(float prob) {
+  return [prob](Tensor t) {
+    Dropout(t, prob);
+  };
 }
 
-void ortho(Tensor t) {
-  std::vector<float> vec(t->size());
-  distribution<std::normal_distribution<float>>(vec, 0, 1);
-  svd(vec, t->shape());
-  t->set(vec);
+// gumbel noise:
+// -log(-log(uniform(0.f + eps, 1.f - eps)));
+void gumbel(Tensor tensor) {
+  using namespace functional;
+  // @TODO: make eps a parameter? Seems to influence amplitude quite heavily
+  float eps = 1e-05;
+  uniform(0.f + eps, 1.f - eps)(tensor);
+  Element(_1 = -log(-log(_1)), tensor);
 }
 
 NodeInitializer from_vector(const std::vector<float>& v) {
@@ -111,8 +110,8 @@ NodeInitializer from_vector(const std::vector<float>& v) {
       [vPtr](Tensor t) { t->set(vPtr->data(), vPtr->data() + vPtr->size()); };
 }
 
-// @TODO: handle this better with proper type support, the NodeInitializer 
-// should be able to inform the calling function about the tensor type it 
+// @TODO: handle this better with proper type support, the NodeInitializer
+// should be able to inform the calling function about the tensor type it
 // is expecting. Probably needs to turn into struct with type information.
 NodeInitializer from_vector(const std::vector<IndexType>& v) {
   auto vPtr = New<std::vector<IndexType>>(v.begin(), v.end());
