@@ -211,6 +211,12 @@ Expr flatten_2d(Expr a) {
   return Expression<ReshapeNodeOp>(a, shape);
 }
 
+Expr constant_like(Expr a, const NodeInitializer& init) {
+  const auto& shape = a->shape();
+  auto graph = a->graph();
+  return graph->constant(shape, init);
+}
+
 Expr rows(Expr a, Expr indices) {
   // @TODO:: replace with `select(a, indices, -2)`
   // as soon as select is efficient enough

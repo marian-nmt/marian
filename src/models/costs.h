@@ -115,7 +115,26 @@ class LogsoftmaxStep : public CostStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     // decoder needs normalized probabilities (note: skipped if beam 1 and --skip-cost)
-    state->setLogProbs(logsoftmax(state->getLogProbs()));
+    auto logits = state->getLogProbs();
+    
+    auto logprobs = logsoftmax(logits);
+
+    state->setLogProbs(logprobs);
+    return state;
+  }
+};
+
+// Gumbel-max noising for sampling during beam-search
+// Seems to work well enough with beam-size=1. Turn on
+// with --gumbel-max during translation with marian-decoder
+class GumbelmaxStep : public CostStep {
+public:
+  virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
+    auto logits = state->getLogProbs();
+    
+    auto logprobs = logsoftmax(logits + constant_like(logits, inits::gumbel));
+
+    state->setLogProbs(logprobs);
     return state;
   }
 };
@@ -204,7 +223,10 @@ inline Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec,
     case usage::scoring:
       return New<Scorer>(encdec, New<EncoderDecoderCE>(options));
     case usage::translation:
-      return New<Stepwise>(encdec, New<LogsoftmaxStep>());
+      if(options->get<bool>("gumbel-max", false))
+        return New<Stepwise>(encdec, New<GumbelmaxStep>());
+      else
+        return New<Stepwise>(encdec, New<LogsoftmaxStep>());
     case usage::raw:
     default: return encdec;
   }
