@@ -44,38 +44,3 @@ template <typename T>
 void CudaCopy(const T* start, const T* end, T* dest) {
   CUDA_CHECK(cudaMemcpy(dest, start, (end - start) * sizeof(T), cudaMemcpyDefault));
 }
-
-// void cusparseStatus(cusparseStatus_t status){
-//  switch(status){
-//    case CUSPARSE_STATUS_INVALID_VALUE:
-//      printf("invalid value");
-//      break;
-//    case CUSPARSE_STATUS_NOT_INITIALIZED:
-//      printf("not initialized");
-//      break;
-//    case CUSPARSE_STATUS_ARCH_MISMATCH:
-//      printf("arch mismatch");
-//      break;
-//    case CUSPARSE_STATUS_EXECUTION_FAILED:
-//      printf("exe failed");
-//      break;
-//    case CUSPARSE_STATUS_INTERNAL_ERROR:
-//      printf("internal error");
-//      break;
-//    case CUSPARSE_STATUS_MATRIX_TYPE_NOT_SUPPORTED:
-//      printf("not supported");
-//      break;
-//    case CUSPARSE_STATUS_ALLOC_FAILED:
-//      printf("alloc failed");
-//      break;
-//    case CUSPARSE_STATUS_MAPPING_ERROR :
-//      printf("map error");
-//      break;
-//    case CUSPARSE_STATUS_SUCCESS:
-//      printf("success\n");
-//      break;
-//    default:
-//        printf("unknown status\n");
-//      break;
-//  }
-//}

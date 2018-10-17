@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.5.1)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} /usr/local/cuda-8.0/lib64)
 
 project(marian CXX C)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Custom CMake options
 option(COMPILE_EXAMPLES "Compile examples" OFF)
@@ -14,6 +15,7 @@ option(USE_STATIC_LIBS "Compile GPU version" OFF)
 option(USE_CUDNN "Use CUDNN library" OFF)
 option(USE_NCCL "Use NCCL library" ON)
 option(USE_MPI "Use MPI library" OFF)
+option(USE_SENTENCEPIECE "Download and compile SentencePiece" OFF)
 
 # Project versioning
 find_package(Git QUIET)
@@ -21,6 +23,9 @@ include(GetVersionFromFile)
 
 message(STATUS "Project name: ${PROJECT_NAME}")
 message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
+
+execute_process(COMMAND git submodule update --init --recursive --no-fetch
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Set compilation flags
 if(MSVC)
@@ -43,8 +48,27 @@ else()
   set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
 endif()
 
-# Find packages
+# Downloading SentencePiece if requested and set to compile with it.
+# Requires all the dependencies imposed by SentencePiece
+if(USE_SENTENCEPIECE)
+  message(STATUS "Using SentencePiece from our fork https://github.com/marian-nmt/sentencepiece.git")
+  if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/3rd_party/sentencepiece)
+    execute_process(COMMAND git clone https://github.com/marian-nmt/sentencepiece.git
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/3rd_party
+                    RESULT_VARIABLE git_result
+                    ERROR_QUIET)
+    message(STATUS "Downloaded SentencePiece [code: ${git_result}]")
+  else()
+    message(STATUS "It seems that SentencePiece has already been downloaded. Reusing.")
+  endif()
 
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_SENTENCEPIECE")
+  LIST(APPEND CUDA_NVCC_FLAGS -DUSE_SENTENCEPIECE; )
+  set(EXT_LIBS ${EXT_LIBS} sentencepiece)
+endif()
+
+
+# Find packages
 set(EXT_LIBS ${EXT_LIBS} ${CMAKE_DL_LIBS})
 
 if(COMPILE_CUDA)
@@ -219,5 +243,3 @@ if(DOXYGEN_FOUND)
   )
 endif(DOXYGEN_FOUND)
 
-execute_process(COMMAND git submodule update --init --recursive --no-fetch
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

@@ -45,8 +45,8 @@ private:
 public:
   CorpusSQLite(Ptr<Config> options, bool translate = false);
 
-  CorpusSQLite(std::vector<std::string> paths,
-               std::vector<Ptr<Vocab>> vocabs,
+  CorpusSQLite(const std::vector<std::string>& paths,
+               const std::vector<Ptr<Vocab>>& vocabs,
                Ptr<Config> options);
 
   sample next() override;

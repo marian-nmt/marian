@@ -28,10 +28,13 @@ public:
 
     for(size_t i = 0; i < nbl.size(); ++i) {
       const auto& result = nbl[i];
-      const auto& words = std::get<0>(result);
       const auto& hypo = std::get<1>(result);
+      auto words = std::get<0>(result);
+      
+      if(reverse_)
+        std::reverse(words.begin(), words.end());
 
-      std::string translation = utils::join((*vocab_)(words), " ", reverse_);
+      std::string translation = vocab_->decode(words);
       bestn << history->GetLineNum() << " ||| " << translation;
 
       if(!alignment_.empty())
@@ -56,9 +59,12 @@ public:
     }
 
     auto result = history->Top();
-    const auto& words = std::get<0>(result);
+    auto words = std::get<0>(result);
 
-    std::string translation = utils::join((*vocab_)(words), " ", reverse_);
+    if(reverse_)
+      std::reverse(words.begin(), words.end());
+
+    std::string translation = vocab_->decode(words);
 
     best1 << translation;
     if(!alignment_.empty()) {

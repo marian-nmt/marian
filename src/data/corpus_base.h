@@ -304,7 +304,7 @@ public:
 
     size_t idx = 0;
     for(auto len : lengths) {
-      auto vocab = New<Vocab>();
+      auto vocab = New<Vocab>(options, 0);
       vocab->createFake();
       // data: gets initialized to 0. No EOS symbol is distinguished.
       auto sb = New<SubBatch>(batchSize, len, vocab);
@@ -489,12 +489,10 @@ class CorpusBase
     : public DatasetBase<SentenceTuple, CorpusIterator, CorpusBatch>,
       public RNGEngine {
 public:
-  CorpusBase() : DatasetBase() {}
-
   CorpusBase(Ptr<Config> options, bool translate = false);
 
-  CorpusBase(std::vector<std::string> paths,
-             std::vector<Ptr<Vocab>> vocabs,
+  CorpusBase(const std::vector<std::string>& paths,
+             const std::vector<Ptr<Vocab>>& vocabs,
              Ptr<Config> options);
 
   virtual std::vector<Ptr<Vocab>>& getVocabs() = 0;
@@ -504,8 +502,6 @@ protected:
   std::vector<Ptr<Vocab>> vocabs_;
 
   size_t pos_{0};
-
-  Ptr<Config> options_;
 
   size_t maxLength_{0};
   bool maxLengthCrop_{false};

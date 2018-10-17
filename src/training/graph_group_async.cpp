@@ -127,14 +127,14 @@ void AsyncGraphGroup::init(Ptr<data::Batch> batch) {
     for(auto graph : graphs_) {
       int __size__ = std::min(shardSize_, totalSize);
       totalSize -= __size__;
-      Tensor grad_;
-      Ptr<TensorAllocator> allocator_
+      Tensor grad;
+      Ptr<TensorAllocator> allocator
           = New<TensorAllocator>(graph->getBackend());
 
-      allocator_->reserveExact(__size__ * sizeof(float));
-      allocator_->allocate(grad_, {1, __size__});
-      gradsAlloc_.push_back(allocator_);
-      grads_.push_back(grad_);
+      allocator->reserveExact(__size__ * sizeof(float));
+      allocator->allocate(grad, {1, __size__});
+      gradsAlloc_.push_back(allocator);
+      grads_.push_back(grad);
     }
   }
   if(mvAvg_ && paramsAvg_.empty()) {

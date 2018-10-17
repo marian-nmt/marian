@@ -1,5 +1,6 @@
 #pragma once
 #include "graph/expression_graph.h"
+#include "graph/node_initializers.h"
 
 namespace marian {
 
@@ -104,6 +105,7 @@ Expr atleast_3d(Expr a);
 Expr atleast_4d(Expr a);
 Expr atleast_nd(Expr a, size_t dims);
 
+// create a constant of shape a->shape() and initialize with init
 Expr constant_like(Expr a, const NodeInitializer& init);
 
 Expr flatten(Expr a);
