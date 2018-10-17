@@ -112,7 +112,7 @@ void createLoggers(const marian::Config* options) {
   struct sigaction sa = { 0 };
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = SA_SIGINFO;
-  sa.sa_sigaction = [&](int signal, siginfo_t *si, void *arg)
+  sa.sa_sigaction = [](int signal, siginfo_t *si, void *arg)
   {
     checkedLog("general", "critical", "Segmentation fault");
     sigaction(signal, &prev_segfault_sigaction, NULL); // revert signal handler
@@ -120,7 +120,7 @@ void createLoggers(const marian::Config* options) {
     raise(signal); // re-raise so we terminate mostly as usual
   };
   sigaction(SIGSEGV, &sa, &prev_segfault_sigaction);
-  sa.sa_sigaction = [&](int signal, siginfo_t *si, void *arg)
+  sa.sa_sigaction = [](int signal, siginfo_t *si, void *arg)
   {
       checkedLog("general", "critical", "Floating-point exception");
       sigaction(signal, &prev_fperror_sigaction, NULL); // revert signal handler
