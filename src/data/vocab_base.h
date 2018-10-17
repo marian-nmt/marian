@@ -6,7 +6,7 @@
 
 namespace marian {
 
-class VocabImpl {
+class VocabBase {
 public:
   virtual int load(const std::string& /*vocabPath*/, int /*max*/ = 0) = 0;
   virtual void create(const std::string& /*vocabPath*/, const std::string& /*trainPath*/) = 0;
@@ -19,8 +19,7 @@ public:
   virtual const std::string& canonicalSuffix() const = 0;
   virtual const std::vector<std::string>& suffixes() const = 0;
 
-
-  virtual int findAndLoad(const std::string& path, int max) {
+  int findAndLoad(const std::string& path, int max) {
     for(auto suffix : suffixes())
       if(filesystem::exists(path + suffix))
         return load(path + suffix, max);

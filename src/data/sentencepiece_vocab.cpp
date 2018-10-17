@@ -1,4 +1,4 @@
-#include "data/vocab_impl.h"
+#include "data/vocab_base.h"
 
 #ifdef USE_SENTENCEPIECE
 #include "sentencepiece/src/sentencepiece_processor.h"
@@ -12,8 +12,9 @@
 namespace marian {
 
 #ifdef USE_SENTENCEPIECE
+
 // Wrapper around https://github.com/google/sentencepiece
-class SentencePieceVocab : public VocabImpl {
+class SentencePieceVocab : public VocabBase {
 private:
   // Actual SentencePiece processor object
   UPtr<sentencepiece::SentencePieceProcessor> spm_;
@@ -140,7 +141,7 @@ int SentencePieceVocab::load(const std::string& vocabPath, int /*max*/) {
 }
 #endif
 
-Ptr<VocabImpl> createSentencePieceVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
+Ptr<VocabBase> createSentencePieceVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
   bool isSentencePiece = regex::regex_search(vocabPath, regex::regex("\\.(spm)$"));
   if(isSentencePiece) {
 #ifdef USE_SENTENCEPIECE

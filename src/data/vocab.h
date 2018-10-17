@@ -7,7 +7,7 @@
 
 namespace marian {
 
-class VocabImpl;
+class VocabBase;
 
 // Wrapper around vocabulary types. Can choose underlying
 // vocabulary implementation (vImpl_) based on speficied path
@@ -17,7 +17,7 @@ class VocabImpl;
 // * SentencePiece with suffix *.spm (works, but has to be created outside Marian)
 class Vocab {
 private:
-  Ptr<VocabImpl> vImpl_;
+  Ptr<VocabBase> vImpl_;
   Ptr<Options> options_;
   size_t batchIndex_;
 

@@ -1,13 +1,13 @@
 #include "data/vocab.h"
-#include "data/vocab_impl.h"
+#include "data/vocab_base.h"
 
 namespace marian {
 
-Ptr<VocabImpl> createDefaultVocab();
-Ptr<VocabImpl> createSentencePieceVocab(const std::string& /*vocabPath*/, Ptr<Options>, size_t /*batchIndex*/);
+Ptr<VocabBase> createDefaultVocab();
+Ptr<VocabBase> createSentencePieceVocab(const std::string& /*vocabPath*/, Ptr<Options>, size_t /*batchIndex*/);
 
 // @TODO: make each vocab peek on type
-Ptr<VocabImpl> createVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
+Ptr<VocabBase> createVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
   auto vocab = createSentencePieceVocab(vocabPath, options, batchIndex);
   return vocab ? vocab : createDefaultVocab();
 }

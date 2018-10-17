@@ -1,4 +1,4 @@
-#include "data/vocab_impl.h"
+#include "data/vocab_base.h"
 
 #include "3rd_party/exception.h"
 #include "3rd_party/yaml-cpp/yaml.h"
@@ -16,7 +16,7 @@
 
 namespace marian {
 
-class DefaultVocab : public VocabImpl {
+class DefaultVocab : public VocabBase {
 private:
   typedef std::map<std::string, Word> Str2Id;
   Str2Id str2id_;
@@ -41,7 +41,7 @@ private:
       return counter_[a] > counter_[b] || (counter_[a] == counter_[b] && a < b);
     }
   };
-  
+
 public:
   virtual const std::string& canonicalSuffix() const { return suffixes_[0]; }
   virtual const std::vector<std::string>& suffixes() const { return suffixes_; }
@@ -304,7 +304,7 @@ private:
   };
 };
 
-Ptr<VocabImpl> createDefaultVocab() {
+Ptr<VocabBase> createDefaultVocab() {
   return New<DefaultVocab>();
 }
 
