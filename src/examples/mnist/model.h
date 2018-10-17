@@ -128,12 +128,12 @@ protected:
         // Wrap the result in rectified linear activation function,
         // and finally wrap that in a dropout node
         layers.emplace_back(dropout(
-            relu(affine(layers.back(), weights.back(), biases.back())), 0.5));
+            relu(affine(layers.back(), weights.back(), biases.back())), 0.2));
       }
 
       // Construct a weight node for the outgoing connections from layer i
       weights.emplace_back(
-          g->param("W" + std::to_string(i), {in, out}, inits::uniform(-0.1f, 0.1f)));
+          g->param("W" + std::to_string(i), {in, out}, inits::glorot_uniform));
 
       // Construct a bias node. These weights are initialized to zero
       biases.emplace_back(
