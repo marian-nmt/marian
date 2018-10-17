@@ -1,7 +1,6 @@
 #pragma once
 #include "common/logging.h"
 #include "cuda_runtime.h"
-#include "nccl.h"
 
 // fixes a missing constant in CUDA device code (specific to MSVC compiler)
 static __constant__ float CUDA_FLT_MAX = 1.70141e+38;
