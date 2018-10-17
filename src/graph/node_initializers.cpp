@@ -11,21 +11,6 @@ namespace marian {
 
 namespace inits {
 
-float xor128() {
-  static uint64_t x = 123456789;
-  static uint64_t y = 362436069;
-  static uint64_t z = 521288629;
-  static uint64_t w = 88675123;
-  uint64_t t;
-
-  t = (x ^ (x << 11)) % 1000;
-  x = y;
-  y = z;
-  z = w;
-  w = (w ^ (w >> 19) ^ t ^ (t >> 8)) % 1000;
-  return 0.1f * ((w % 1000) / 1000.f) - 0.05f;
-}
-
 void zeros(Tensor t) {
   t->set(0.f);
 }
@@ -73,13 +58,6 @@ void glorot_uniform(Tensor tensor) {
 void glorot_normal(Tensor tensor) {
   float scale = sqrtf(2.0f / (tensor->shape()[-2] + tensor->shape()[-1]));
   normal(0.f, scale)(tensor);
-}
-
-void xorshift(Tensor t) {
-  std::vector<float> vals(t->size());
-  for(auto&& v : vals)
-    v = xor128();
-  t->set(vals);
 }
 
 NodeInitializer bernoulli(float prob, float scale) {

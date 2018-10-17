@@ -13,11 +13,6 @@ typedef std::function<void(Tensor)> NodeInitializer;
 
 namespace inits {
 
-float xor128();
-
-// Use a constant seed for deterministic behaviour.
-// std::default_random_engine engine(42);
-
 void zeros(Tensor t);
 
 void ones(Tensor t);
@@ -30,6 +25,10 @@ NodeInitializer normal(float mean = 0.f, float stddev = 1.f);
 
 NodeInitializer uniform(float a = 0.f, float b = 1.f);
 
+void glorot_uniform(Tensor t);
+
+void glorot_normal(Tensor t);
+
 NodeInitializer bernoulli(float p, float scale = 1.f);
 
 NodeInitializer dropout(float prob);
@@ -37,12 +36,6 @@ NodeInitializer dropout(float prob);
 void gumbel(Tensor t);
 
 static inline void dummy(Tensor t) {}
-
-void glorot_uniform(Tensor t);
-
-void xorshift(Tensor t);
-
-void glorot_normal(Tensor t);
 
 NodeInitializer from_vector(const std::vector<float>& v);
 NodeInitializer from_vector(const std::vector<IndexType>& v);
