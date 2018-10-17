@@ -535,22 +535,24 @@ protected:
   std::string tokenize(const std::string& text) {
     std::string normText = text;
 
-    normText = regex::regex_replace(normText, regex::regex("<skipped>"), "");
-    normText = regex::regex_replace(normText, regex::regex("-\\n"), "");
-    normText = regex::regex_replace(normText, regex::regex("\\n"), " ");
-    normText = regex::regex_replace(normText, regex::regex("&quot;"), "\"");
-    normText = regex::regex_replace(normText, regex::regex("&amp;"), "&");
-    normText = regex::regex_replace(normText, regex::regex("&lt;"), "<");
-    normText = regex::regex_replace(normText, regex::regex("&gt;"), ">");
+    // language-independent part:
+    normText = regex::regex_replace(normText, regex::regex("<skipped>"), ""); // strip "skipped" tags
+    normText = regex::regex_replace(normText, regex::regex("-\\n"), "");      // strip end-of-line hyphenation and join lines
+    normText = regex::regex_replace(normText, regex::regex("\\n"), " ");      // join lines
+    normText = regex::regex_replace(normText, regex::regex("&quot;"), "\"");  // convert SGML tag for quote to "
+    normText = regex::regex_replace(normText, regex::regex("&amp;"), "&");    // convert SGML tag for ampersand to &
+    normText = regex::regex_replace(normText, regex::regex("&lt;"), "<");     //convert SGML tag for less-than to >
+    normText = regex::regex_replace(normText, regex::regex("&gt;"), ">");     //convert SGML tag for greater-than to <
 
+    // language-dependent part (assuming Western languages):
     normText = " " + normText + " ";
-    normText = regex::regex_replace(normText, regex::regex("([\\{-\\~\\[-\\` -\\&\(-\\+\\:-\\@\\/])"), " $1 ");
-    normText = regex::regex_replace(normText, regex::regex("([^0-9])([\\.,])"), "$1 $2 ");
-    normText = regex::regex_replace(normText, regex::regex("([\\.,])([^0-9])"), " $1 $2");
-    normText = regex::regex_replace(normText, regex::regex("([0-9])(-)"), "$1 $2 ");
-    normText = regex::regex_replace(normText, regex::regex("\\s+"), " ");
-    normText = regex::regex_replace(normText, regex::regex("^\\s+"), "");
-    normText = regex::regex_replace(normText, regex::regex("\\s+$"), "");
+    normText = regex::regex_replace(normText, regex::regex("([\\{-\\~\\[-\\` -\\&\(-\\+\\:-\\@\\/])"), " $1 "); // tokenize punctuation
+    normText = regex::regex_replace(normText, regex::regex("([^0-9])([\\.,])"), "$1 $2 "); // tokenize period and comma unless preceded by a digit
+    normText = regex::regex_replace(normText, regex::regex("([\\.,])([^0-9])"), " $1 $2"); // tokenize period and comma unless followed by a digit
+    normText = regex::regex_replace(normText, regex::regex("([0-9])(-)"), "$1 $2 ");       // tokenize dash when preceded by a digit
+    normText = regex::regex_replace(normText, regex::regex("\\s+"), " "); // one space only between words
+    normText = regex::regex_replace(normText, regex::regex("^\\s+"), ""); // no leading space
+    normText = regex::regex_replace(normText, regex::regex("\\s+$"), ""); // no trailing space
 
     return normText;
   }

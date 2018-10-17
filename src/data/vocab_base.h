@@ -8,15 +8,15 @@ namespace marian {
 
 class VocabBase {
 public:
-  virtual int load(const std::string& /*vocabPath*/, int /*max*/ = 0) = 0;
-  virtual void create(const std::string& /*vocabPath*/, const std::string& /*trainPath*/) = 0;
+  virtual int load(const std::string& vocabPath, int max = 0) = 0;
+  virtual void create(const std::string& vocabPath, const std::string& trainPath) = 0;
 
-  virtual void create(io::InputFileStream& /*trainStrm*/,
-                      io::OutputFileStream& /*vocabStrm*/,
-                      size_t /*maxSize*/ = 0) = 0;
+  virtual void create(io::InputFileStream& trainStrm,
+                      io::OutputFileStream& vocabStrm,
+                      size_t maxSize = 0) = 0;
 
   // return canonical suffix for given type of vocabulary
-  virtual const std::string& canonicalSuffix() const = 0;
+  virtual const std::string& canonicalExtension() const = 0;
   virtual const std::vector<std::string>& suffixes() const = 0;
 
   int findAndLoad(const std::string& path, int max) {
@@ -26,16 +26,16 @@ public:
     return 0;
   }
 
-  virtual Word operator[](const std::string& /*word*/) const = 0;
+  virtual Word operator[](const std::string& word) const = 0;
 
-  virtual Words encode(const std::string& /*line*/,
-                       bool /*addEOS*/ = true,
-                       bool /*inference*/ = false) const = 0;
+  virtual Words encode(const std::string& line,
+                       bool addEOS = true,
+                       bool inference = false) const = 0;
 
-  virtual std::string decode(const Words& /*sentence*/,
-                             bool /*ignoreEos*/ = true) const = 0;
+  virtual std::string decode(const Words& sentence,
+                             bool ignoreEos = true) const = 0;
 
-  virtual const std::string& operator[](Word /*id*/) const = 0;
+  virtual const std::string& operator[](Word id) const = 0;
 
   virtual size_t size() const = 0;
   virtual std::string type() const = 0;

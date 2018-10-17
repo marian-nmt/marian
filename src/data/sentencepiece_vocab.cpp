@@ -48,25 +48,10 @@ public:
 
   }
 
-  virtual int load(const std::string& vocabPath, int max = 0) override;
-
-  virtual const std::string& canonicalSuffix() const { return suffixes_[0]; }
+  virtual const std::string& canonicalExtension() const { return suffixes_[0]; }
   virtual const std::vector<std::string>& suffixes() const { return suffixes_; }
 
   virtual std::string suffix() { return suffixes_[0]; };
-
-  virtual Word operator[](const std::string& word) const override;
-
-  virtual const std::string& operator[](Word id) const override;
-
-  virtual Words encode(const std::string& line,
-                       bool addEOS = true,
-                       bool inference = false) const;
-
-  virtual std::string decode(const Words& sentence,
-                             bool ignoreEOS = true) const;
-
-  virtual size_t size() const;
 
   virtual std::string type() const { return "SentencePieceVocab"; }
 
@@ -86,59 +71,60 @@ public:
   void createFake() {
     ABORT("[data] Fake SentencePieceVocab not supported");
   }
+
+  Word operator[](const std::string& token) const {
+    return (Word)spm_->PieceToId(token);
+  }
+
+  const std::string& operator[](Word id) const {
+    ABORT_IF(id >= size(), "Unknown word id: ", id);
+    return spm_->IdToPiece(id);
+  }
+
+  Words encode(const std::string& line, bool addEOS, bool inference) const {
+    std::vector<int> spmIds;
+    if(inference || alpha_ == 0)
+      spm_->Encode(line, &spmIds);
+    else
+      spm_->SampleEncode(line, -1, alpha_, &spmIds);
+
+    Words words(spmIds.begin(), spmIds.end());
+
+    if(addEOS)
+      words.push_back(getEosId());
+    return words;
+  }
+
+  std::string decode(const Words& sentence, bool ignoreEOS) const {
+    std::string line;
+    // convert vector of Word to vector of int
+    std::vector<int> spmSentence(sentence.begin(), sentence.end());
+    spm_->Decode(spmSentence, &line);
+    return line;
+  }
+
+  size_t size() const {
+    return spm_->GetPieceSize();
+  }
+
+  int load(const std::string& vocabPath, int /*max*/) {
+    LOG(info, "[data] Loading SentencePieceVocab from file {}", vocabPath);
+
+    ABORT_IF(!filesystem::exists(vocabPath),
+            "SentencePieceVocab file {} does not exits",
+            vocabPath);
+
+    spm_.reset(new sentencepiece::SentencePieceProcessor());
+    const auto status = spm_->Load(vocabPath);
+
+    ABORT_IF(!status.ok(),
+            "SentencePieceVocab error: {}",
+            status.ToString());
+
+    return spm_->GetPieceSize();
+  }
+
 };
-
-Word SentencePieceVocab::operator[](const std::string& token) const {
-  return (Word)spm_->PieceToId(token);
-}
-
-const std::string& SentencePieceVocab::operator[](Word id) const {
-  ABORT_IF(id >= size(), "Unknown word id: ", id);
-  return spm_->IdToPiece(id);
-}
-
-Words SentencePieceVocab::encode(const std::string& line, bool addEOS, bool inference) const {
-  std::vector<int> spmIds;
-  if(inference || alpha_ == 0)
-    spm_->Encode(line, &spmIds);
-  else
-    spm_->SampleEncode(line, -1, alpha_, &spmIds);
-
-  Words words(spmIds.begin(), spmIds.end());
-
-  if(addEOS)
-    words.push_back(getEosId());
-  return words;
-}
-
-std::string SentencePieceVocab::decode(const Words& sentence, bool ignoreEOS) const {
-  std::string line;
-  // convert vector of Word to vector of int
-  std::vector<int> spmSentence(sentence.begin(), sentence.end());
-  spm_->Decode(spmSentence, &line);
-  return line;
-}
-
-size_t SentencePieceVocab::size() const {
-  return spm_->GetPieceSize();
-}
-
-int SentencePieceVocab::load(const std::string& vocabPath, int /*max*/) {
-  LOG(info, "[data] Loading SentencePieceVocab from file {}", vocabPath);
-
-  ABORT_IF(!filesystem::exists(vocabPath),
-           "SentencePieceVocab file {} does not exits",
-           vocabPath);
-
-  spm_.reset(new sentencepiece::SentencePieceProcessor());
-  const auto status = spm_->Load(vocabPath);
-
-  ABORT_IF(!status.ok(),
-           "SentencePieceVocab error: {}",
-           status.ToString());
-
-  return spm_->GetPieceSize();
-}
 #endif
 
 Ptr<VocabBase> createSentencePieceVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {

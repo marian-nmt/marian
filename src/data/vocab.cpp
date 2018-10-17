@@ -30,7 +30,7 @@ int Vocab::loadOrCreate(const std::string& vocabPath,
     size = vImpl_->findAndLoad(trainPath, max);
 
     if(size == 0) {
-      auto path = trainPath + vImpl_->canonicalSuffix();
+      auto path = trainPath + vImpl_->canonicalExtension();
       LOG(info,
           "No vocabulary path given; "
           "trying to find vocabulary based on data path {}",
