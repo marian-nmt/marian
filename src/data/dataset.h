@@ -12,10 +12,9 @@ namespace data {
 template <class Sample, class Iterator, class Batch>
 class DatasetBase {
 protected:
-  // Data processing may differ in training/inference settings
   std::vector<std::string> paths_;
-
   Ptr<Config> options_;
+  // Data processing may differ in training/inference settings
   bool inference_{false};
 
 public:

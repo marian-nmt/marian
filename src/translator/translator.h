@@ -31,9 +31,14 @@ public:
       : options_(options),
         corpus_(New<data::Corpus>(options_, true)) {
 
+    // This is currently safe as the translator is either created stand-alone or
+    // or config is created anew from Options in the validator. @TODO: make sure
+    // it stays safe when Config/Options get unified. 
     options_->set("inference", true);
+    
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
 
+    // @TODO: to be fixed and removed.
     auto topt = New<Options>();
     topt->merge(options_);
     trgVocab_ = New<Vocab>(topt, vocabs.size() - 1);
@@ -97,7 +102,6 @@ public:
     tOptions->merge(options_);
 
     for(auto batch : bg) {
-
       auto task = [=](size_t id) {
         thread_local Ptr<ExpressionGraph> graph;
         thread_local std::vector<Ptr<Scorer>> scorers;
@@ -165,6 +169,7 @@ public:
     auto vocabPaths = options_->get<std::vector<std::string>>("vocabs");
     std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
 
+    // @TODO: Ugly hack to convery Config to Options, to be removed.
     auto topt = New<Options>();
     topt->merge(options_);
 

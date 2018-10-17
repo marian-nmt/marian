@@ -18,6 +18,8 @@ add_library(marian STATIC
 
   data/alignment.cpp
   data/vocab.cpp
+  data/default_vocab.cpp
+  data/sentencepiece_vocab.cpp
   data/corpus_base.cpp
   data/corpus.cpp
   data/corpus_sqlite.cpp

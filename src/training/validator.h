@@ -314,7 +314,6 @@ public:
       tOptions->merge(options_);
 
       for(auto batch : *batchGenerator) {
-
         auto task = [=](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local Ptr<Scorer> scorer;
@@ -477,7 +476,6 @@ public:
       tOptions->merge(options_);
 
       for(auto batch : *batchGenerator) {
-
         auto task = [=, &stats](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local Ptr<Scorer> scorer;
@@ -533,29 +531,7 @@ public:
 protected:
   bool quiet_{false};
 
-/*
-Tokenizer function from multi-bleu-detok.pl, corresponds to sacreBLEU.py
-
-# language-independent part:
-        $norm_text =~ s/<skipped>//g; # strip "skipped" tags
-        $norm_text =~ s/-\n//g; # strip end-of-line hyphenation and join lines
-        $norm_text =~ s/\n/ /g; # join lines
-        $norm_text =~ s/&quot;/"/g;  # convert SGML tag for quote to "
-        $norm_text =~ s/&amp;/&/g;   # convert SGML tag for ampersand to &
-        $norm_text =~ s/&lt;/</g;    # convert SGML tag for less-than to >
-        $norm_text =~ s/&gt;/>/g;    # convert SGML tag for greater-than to <
-
-# language-dependent part (assuming Western languages):
-        $norm_text = " $norm_text ";
-        $norm_text =~ s/([\{-\~\[-\` -\&\(-\+\:-\@\/])/ $1 /g;   # tokenize punctuation
-        $norm_text =~ s/([^0-9])([\.,])/$1 $2 /g; # tokenize period and comma unless preceded by a digit
-        $norm_text =~ s/([\.,])([^0-9])/ $1 $2/g; # tokenize period and comma unless followed by a digit
-        $norm_text =~ s/([0-9])(-)/$1 $2 /g; # tokenize dash when preceded by a digit
-        $norm_text =~ s/\s+/ /g; # one space only between words
-        $norm_text =~ s/^\s+//;  # no leading space
-        $norm_text =~ s/\s+$//;  # no trailing space
-*/
-
+  // Tokenizer function adapted from multi-bleu-detok.pl, corresponds to sacreBLEU.py
   std::string tokenize(const std::string& text) {
     std::string normText = text;
 
@@ -587,6 +563,7 @@ Tokenizer function from multi-bleu-detok.pl, corresponds to sacreBLEU.py
     return tokens;
   }
 
+  // Update document-wide sufficient statistics for BLEU with single sentence n-gram stats.
   template <typename T>
   void updateStats(std::vector<float>& stats,
                    const std::vector<T>& cand,
@@ -624,6 +601,7 @@ Tokenizer function from multi-bleu-detok.pl, corresponds to sacreBLEU.py
     stats[8] += ref.size();
   }
 
+  // Extract matching target reference from batch and pass on to update BLEU stats
   void updateStats(std::vector<float>& stats,
                    const Words& cand,
                    const Ptr<data::Batch> batch,

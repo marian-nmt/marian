@@ -1,7 +1,6 @@
 #include "graph/expression_operators.h"
 #include "layers/constructors.h"
 
-#include "graph/node_initializers.h"
 #include "graph/node_operators.h"
 #include "graph/node_operators_binary.h"
 #include "graph/node_operators_unary.h"

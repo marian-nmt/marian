@@ -1,27 +1,15 @@
 #include "data/vocab.h"
 #include "data/vocab_impl.h"
-#include "data/default_vocab.h"
-
-#ifdef USE_SENTENCEPIECE
-#include "data/sentencepiece_vocab.h"
-#endif
 
 namespace marian {
 
+Ptr<VocabImpl> createDefaultVocab();
+Ptr<VocabImpl> createSentencePieceVocab(const std::string& /*vocabPath*/, Ptr<Options>, size_t /*batchIndex*/);
+
 // @TODO: make each vocab peek on type
-Ptr<VocabImpl> vocabFactory(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
-  bool isSentencePiece = regex::regex_search(vocabPath, regex::regex("\\.(spm)$"));
-  if(isSentencePiece) {
-#ifdef USE_SENTENCEPIECE
-    return New<SentencePieceVocab>(options, batchIndex);
-#else
-    ABORT("*.spm suffix in path {} reserved for SentencePiece models, "
-          "but support for SentencePiece is not compiled into Marian. "
-          "Try to recompile after `cmake .. -DUSE_SENTENCEPIECE=on [...]`",
-          vocabPath);
-#endif
-  }
-  return New<DefaultVocab>();
+Ptr<VocabImpl> createVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
+  auto vocab = createSentencePieceVocab(vocabPath, options, batchIndex);
+  return vocab ? vocab : createDefaultVocab();
 }
 
 int Vocab::loadOrCreate(const std::string& vocabPath,
@@ -38,7 +26,7 @@ int Vocab::loadOrCreate(const std::string& vocabPath,
         "trying to find default vocabulary based on data path {}",
         trainPath);
 
-    vImpl_ = New<DefaultVocab>();
+    vImpl_ = createDefaultVocab();
     size = vImpl_->findAndLoad(trainPath, max);
 
     if(size == 0) {
@@ -65,13 +53,13 @@ int Vocab::loadOrCreate(const std::string& vocabPath,
 
 int Vocab::load(const std::string& vocabPath, int max) {
   if(!vImpl_)
-    vImpl_ = vocabFactory(vocabPath, options_, batchIndex_);
+    vImpl_ = createVocab(vocabPath, options_, batchIndex_);
   return vImpl_->load(vocabPath, max);
 }
 
 void Vocab::create(const std::string& vocabPath, const std::string& trainPath) {
   if(!vImpl_)
-    vImpl_ = vocabFactory(vocabPath, options_, batchIndex_);
+    vImpl_ = createVocab(vocabPath, options_, batchIndex_);
   vImpl_->create(vocabPath, trainPath);
 }
 
@@ -79,14 +67,49 @@ void Vocab::create(io::InputFileStream& trainStrm,
                    io::OutputFileStream& vocabStrm,
                    size_t maxSize) {
   if(!vImpl_)
-    vImpl_ = New<DefaultVocab>(); // Only DefaultVocab can be built from streams
+    vImpl_ = createDefaultVocab(); // Only DefaultVocab can be built from streams
   vImpl_->create(trainStrm, vocabStrm, maxSize);
 }
 
 void Vocab::createFake() {
   if(!vImpl_)
-    vImpl_ = New<DefaultVocab>(); // DefaultVocab is OK here
+    vImpl_ = createDefaultVocab(); // DefaultVocab is OK here
   vImpl_->createFake();
 }
+
+// string token to token id
+Word Vocab::operator[](const std::string& word) const {
+  return vImpl_->operator[](word);
+}
+
+// token id to string token
+const std::string& Vocab::operator[](Word id) const {
+  return vImpl_->operator[](id);
+}
+
+// line of text to list of token ids, can perform tokenization
+Words Vocab::encode(const std::string& line,
+              bool addEOS,
+              bool inference) const {
+  return vImpl_->encode(line, addEOS, inference);
+}
+
+// list of token ids to single line, can perform detokenization
+std::string Vocab::decode(const Words& sentence,
+                    bool ignoreEOS) const {
+  return vImpl_->decode(sentence, ignoreEOS);
+}
+
+// number of vocabulary items
+size_t Vocab::size() const { return vImpl_->size(); }
+
+// number of vocabulary items
+std::string Vocab::type() const { return vImpl_->type(); }
+
+// return EOS symbol id
+Word Vocab::getEosId() const { return vImpl_->getEosId(); }
+
+// return UNK symbol id
+Word Vocab::getUnkId() const { return vImpl_->getUnkId(); }
 
 }  // namespace marian

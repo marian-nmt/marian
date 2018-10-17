@@ -7,14 +7,7 @@
 namespace marian {
 
 class VocabImpl {
-protected:
-  // size_t batchIndex_;
-  // Ptr<Options> options_;
-
 public:
-  // VocabImpl(size_t batchIndex, Ptr<Options> options)
-  //  : batchIndex_(batchIndex), options_(options) {}
-
   virtual int load(const std::string& /*vocabPath*/, int /*max*/ = 0) = 0;
   virtual void create(const std::string& /*vocabPath*/, const std::string& /*trainPath*/) = 0;
 

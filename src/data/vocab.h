@@ -1,9 +1,13 @@
 #pragma once
 
+#include "common/definitions.h"
+#include "data/types.h"
 #include "common/options.h"
-#include "data/vocab_impl.h"
+#include "common/file_stream.h"
 
 namespace marian {
+
+class VocabImpl;
 
 // Wrapper around vocabulary types. Can choose underlying
 // vocabulary implementation (vImpl_) based on speficied path
@@ -33,39 +37,31 @@ public:
               size_t maxSize = 0);
 
   // string token to token id
-  Word operator[](const std::string& word) const {
-    return vImpl_->operator[](word);
-  }
+  Word operator[](const std::string& word) const;
 
   // token id to string token
-  const std::string& operator[](Word id) const {
-    return vImpl_->operator[](id);
-  }
+  const std::string& operator[](Word id) const;
 
   // line of text to list of token ids, can perform tokenization
   Words encode(const std::string& line,
                bool addEOS = true,
-               bool inference = false) const {
-    return vImpl_->encode(line, addEOS, inference);
-  }
+               bool inference = false) const;
 
   // list of token ids to single line, can perform detokenization
   std::string decode(const Words& sentence,
-                     bool ignoreEOS = true) const {
-    return vImpl_->decode(sentence, ignoreEOS);
-  }
+                     bool ignoreEOS = true) const;
 
   // number of vocabulary items
-  size_t size() const { return vImpl_->size(); }
+  size_t size() const;
 
   // number of vocabulary items
-  std::string type() const { return vImpl_->type(); }
+  std::string type() const;
 
   // return EOS symbol id
-  Word getEosId() const { return vImpl_->getEosId(); }
+  Word getEosId() const;
 
   // return UNK symbol id
-  Word getUnkId() const { return vImpl_->getUnkId(); }
+  Word getUnkId() const;
 
   // create fake vocabulary for collecting batch statistics
   void createFake();

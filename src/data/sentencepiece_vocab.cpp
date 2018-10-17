@@ -1,27 +1,27 @@
-#pragma once
-
-#ifdef USE_SENTENCEPIECE
-
 #include "data/vocab_impl.h"
 
+#ifdef USE_SENTENCEPIECE
 #include "sentencepiece/src/sentencepiece_processor.h"
+#endif 
 
-#include "3rd_party/exception.h"
-#include "3rd_party/yaml-cpp/yaml.h"
+#include "common/options.h"
 #include "common/logging.h"
-#include "common/regex.h"
-#include "common/utils.h"
 #include "common/filesystem.h"
-
-#include <algorithm>
-#include <iostream>
+#include "common/regex.h"
 
 namespace marian {
 
+#ifdef USE_SENTENCEPIECE
+// Wrapper around https://github.com/google/sentencepiece
 class SentencePieceVocab : public VocabImpl {
 private:
+  // Actual SentencePiece processor object
   UPtr<sentencepiece::SentencePieceProcessor> spm_;
+
+  // Sampling factor for subword regularization, disabled when 0
   float alpha_{0};
+
+  // Allowed suffixes for SentencePiece model
   std::vector<std::string> suffixes_ = {".spm"};
 
   Ptr<Options> options_;
@@ -138,7 +138,23 @@ int SentencePieceVocab::load(const std::string& vocabPath, int /*max*/) {
 
   return spm_->GetPieceSize();
 }
+#endif
+
+Ptr<VocabImpl> createSentencePieceVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
+  bool isSentencePiece = regex::regex_search(vocabPath, regex::regex("\\.(spm)$"));
+  if(isSentencePiece) {
+#ifdef USE_SENTENCEPIECE
+    return New<SentencePieceVocab>(options, batchIndex);
+#else
+    ABORT("*.spm suffix in path {} reserved for SentencePiece models, "
+          "but support for SentencePiece is not compiled into Marian. "
+          "Try to recompile after `cmake .. -DUSE_SENTENCEPIECE=on [...]`",
+          vocabPath);
+#endif
+  }
+  // Not a SentencePiece model based on suffix;
+  return nullptr;
+}
 
 }
 
-#endif

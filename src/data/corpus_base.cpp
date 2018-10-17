@@ -162,6 +162,10 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
 void CorpusBase::addWordsToSentenceTuple(const std::string& line,
                                          size_t i,
                                          SentenceTuple& tup) const {
+  
+  // This turns a string in to a sequence of numerical word ids. Depending
+  // on the vocabulary type, this can be non-trivial, e.g. when SentencePiece
+  // is used. 
   Words words = vocabs_[i]->encode(line, /*addEOS =*/ true, inference_);
 
   if(words.empty())
