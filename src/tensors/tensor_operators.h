@@ -107,8 +107,9 @@ static inline void Bernoulli(Tensor tensor, float prob, float scale = 1.f) {
 
 
 static inline void Dropout(Tensor tensor, float p) {
-  float scale = 1.f / (1.f - p);
-  Bernoulli(tensor, p, scale);
+  float dropProb = 1.f - p;
+  float scale = 1.f / dropProb;
+  Bernoulli(tensor, dropProb, scale);
 }
 
 #ifdef CUDA_FOUND
