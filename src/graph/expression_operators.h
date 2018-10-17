@@ -92,6 +92,8 @@ Expr affine(Expr a,
 Expr transpose(Expr a);
 Expr transpose(Expr a, const std::vector<int>& axes);
 
+Expr swapAxes(Expr x, int axis1, int axis2);
+
 Expr concatenate(const std::vector<Expr>& concats, int ax = 0);
 Expr repeat(Expr a, size_t repeats, int ax = 0);
 
@@ -122,11 +124,11 @@ Expr select(Expr a, const std::vector<IndexType>& indices, int axis);
 
 Expr sum(Expr a, int ax = 0);
 
-Expr softmax(Expr a);
+Expr softmax(Expr x, int axis = -1);
 
 // @TODO: maybe get rid of this entirely to not obfuscate, what's going on inside.
 // @TODO: switch to log-masking everywhere?
-Expr softmax(Expr a, Expr zeroOneMask);
+Expr softmax(Expr a, Expr zeroOneMask, int axis = -1);
 
 Expr logsoftmax(Expr a);
 

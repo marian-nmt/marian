@@ -1045,7 +1045,6 @@
     <ClInclude Include="..\src\command\marian_decoder.cpp">
       <Filter>command</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\command\marian_conv.cpp" />
     <ClInclude Include="..\src\3rd_party\ExceptionWithCallStack.h">
       <Filter>3rd_party</Filter>
     </ClInclude>
@@ -1072,6 +1071,9 @@
     </ClInclude>
     <ClInclude Include="..\src\microsoft\quicksand.h">
       <Filter>microsoft</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\command\marian_conv.cpp">
+      <Filter>command</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

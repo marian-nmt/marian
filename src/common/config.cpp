@@ -206,7 +206,7 @@ std::vector<DeviceId> Config::getDevices(size_t myMPIRank /*= 0*/, size_t numMPI
     for (auto d : deviceNos)
       devices.push_back({ d, DeviceType::gpu });
   }
-#if 0
+#ifdef MPI_FOUND
   for (auto d : devices)
     LOG(info, "[MPI rank {} out of {}]: {}[{}]", myMPIRank, numMPIProcesses, d.type == DeviceType::cpu ? "CPU" : "GPU", d.no);
 #endif

@@ -44,4 +44,3 @@ template <typename T>
 void CudaCopy(const T* start, const T* end, T* dest) {
   CUDA_CHECK(cudaMemcpy(dest, start, (end - start) * sizeof(T), cudaMemcpyDefault));
 }
-

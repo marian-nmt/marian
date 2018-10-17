@@ -82,6 +82,12 @@ void xorshift(Tensor t) {
   t->set(vals);
 }
 
+NodeInitializer bernoulli(float prob, float scale) {
+  return [prob, scale](Tensor tensor) {
+    Bernoulli(tensor, prob, scale);
+  };
+}
+
 NodeInitializer dropout(float prob) {
   return [prob](Tensor t) {
     Dropout(t, prob);
@@ -93,7 +99,7 @@ NodeInitializer dropout(float prob) {
 void gumbel(Tensor tensor) {
   using namespace functional;
   // @TODO: make eps a parameter? Seems to influence amplitude quite heavily
-  float eps = 1e-05;
+  float eps = 1e-05f;
   uniform(0.f + eps, 1.f - eps)(tensor);
   Element(_1 = -log(-log(_1)), tensor);
 }

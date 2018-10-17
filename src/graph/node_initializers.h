@@ -26,9 +26,11 @@ NodeInitializer from_value(float v);
 
 NodeInitializer eye(float val = 1.f);
 
-NodeInitializer normal(float mju, float sigma);
+NodeInitializer normal(float mean = 0.f, float stddev = 1.f);
 
-NodeInitializer uniform(float a, float b);
+NodeInitializer uniform(float a = 0.f, float b = 1.f);
+
+NodeInitializer bernoulli(float p, float scale = 1.f);
 
 NodeInitializer dropout(float prob);
 

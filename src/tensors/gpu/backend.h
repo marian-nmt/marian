@@ -19,7 +19,8 @@ public:
   }
 
   ~Backend() {
-    // @TODO: destroy handle!
+    setDevice();
+    cublasDestroy(cublasHandle_);
   }
 
   void setDevice() override { cudaSetDevice((int)deviceId_.no); }
@@ -36,7 +37,6 @@ private:
   }
 
   cublasHandle_t create_handle() {
-    cudaSetDevice((int)deviceId_.no);
     cublasHandle_t cublasHandle;
     cublasCreate(&cublasHandle);
     return cublasHandle;

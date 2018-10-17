@@ -349,8 +349,9 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<float>("--exponential-smoothing",
      "Maintain smoothed version of parameters for validation and saving with smoothing factor. 0 to disable",
      0)->implicit_val("1e-4");
-  cli.add_nondefault<std::string>("--guided-alignment",
-     "Path to a file with word alignments. Use guided alignment to guide attention");
+  cli.add<std::string>("--guided-alignment",
+     "Path to a file with word alignments. Use guided alignment to guide attention or 'none'", 
+     "none");
   cli.add<std::string>("--guided-alignment-cost",
      "Cost type for guided alignment: ce (cross-entropy), mse (mean square error), mult (multiplication)",
      "ce");
@@ -510,8 +511,8 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
      "Use softmax shortlist: path first best prune");
   cli.add_nondefault<std::vector<float>>("--weights",
       "Scorer weights");
-  cli.add<bool>("--gumbel-max",
-      "Sample with Gumbel-max trick",
+  cli.add<bool>("--output-sampling",
+      "Noise output layer with gumbel noise",
        false);
 
   // TODO: the options should be available only in server
