@@ -86,24 +86,17 @@ std::vector<std::string> splitAny(const std::string& line,
 }
 
 std::string join(const std::vector<std::string>& words,
-                 const std::string& del /*= " "*/,
-                 bool reverse /*= false*/) {
+                 const std::string& del /*= " "*/) {
   std::stringstream ss;
   if(words.empty()) {
     return "";
   }
 
-  if(reverse) {
-    for(size_t i = words.size() - 1; i > 0; --i) {
-      ss << words[i] << del;
-    }
-    ss << words[0];
-  } else {
-    ss << words[0];
-    for(size_t i = 1; i < words.size(); ++i) {
-      ss << del << words[i];
-    }
+  ss << words[0];
+  for(size_t i = 1; i < words.size(); ++i) {
+    ss << del << words[i];
   }
+
   return ss.str();
 }
 

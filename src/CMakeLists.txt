@@ -3,6 +3,7 @@ add_subdirectory(3rd_party)
 include_directories(.)
 include_directories(3rd_party)
 include_directories(3rd_party/SQLiteCpp/include)
+include_directories(3rd_party/sentencepiece)
 
 add_library(marian STATIC
   common/utils.cpp
@@ -17,6 +18,8 @@ add_library(marian STATIC
 
   data/alignment.cpp
   data/vocab.cpp
+  data/default_vocab.cpp
+  data/sentencepiece_vocab.cpp
   data/corpus_base.cpp
   data/corpus.cpp
   data/corpus_sqlite.cpp

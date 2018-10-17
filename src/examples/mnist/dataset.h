@@ -86,7 +86,8 @@ protected:
   Examples examples_;
 
 public:
-  Dataset(std::vector<std::string> paths) : DatasetBase(paths) {}
+  Dataset(const std::vector<std::string>& paths, Ptr<Config> options)
+  : DatasetBase(paths, options) {}
 
   virtual void loadData() = 0;
 
@@ -136,7 +137,7 @@ public:
   MNISTData(std::vector<std::string> paths,
             std::vector<Ptr<Vocab>> vocabs = {},
             Ptr<Config> options = nullptr)
-      : Dataset(paths), IMAGE_MAGIC_NUMBER(2051), LABEL_MAGIC_NUMBER(2049) {
+      : Dataset(paths, options), IMAGE_MAGIC_NUMBER(2051), LABEL_MAGIC_NUMBER(2049) {
     loadData();
   }
 

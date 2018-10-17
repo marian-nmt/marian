@@ -135,21 +135,14 @@ private:
         ++current_;
     }
     size_t sets = 0;
-    try {
-      while(current_ != data_->end() && maxiBatch->size() < maxSize) { // loop over data
-        maxiBatch->push(*current_);
-        sets = current_->size();
+    while(current_ != data_->end() && maxiBatch->size() < maxSize) { // loop over data
+      maxiBatch->push(*current_);
+      sets = current_->size();
         // do not consume more than required for the maxi batch as this causes
         // that line-by-line translation is delayed by one sentence
         bool last = maxiBatch->size() == maxSize;
-        if(!last)
-          ++current_; // this actually reads the next line and pre-processes it
-      }
-    }
-    catch (const std::exception & e) { // @TODO: This can probably be removed.
-      LOG("exception caught while reading corpus data: {}", e.what());
-      logCallStack(0);
-      throw;
+      if(!last)
+        ++current_; // this actually reads the next line and pre-processes it
     }
     size_t numSentencesRead = maxiBatch->size();
 
@@ -233,13 +226,12 @@ private:
     std::unique_lock<std::mutex> lock(loadMutex_);
     loadCondition_.wait(
         lock, [this] { return bufferedBatches_.empty(); });
-  
+
     // put batches onto queue
     // exclusive lock
     // LOG(info, "Dumping batches to buffer");
     for(const auto& batch : tempBatches)
       bufferedBatches_.push_back(batch);
-    // LOG(info, "Done dumping batches");
     LOG(debug, "[data] read {} sentences. Current batch queue size is {}", numSentencesRead, bufferedBatches_.size());
 
     loadingSamples_ = false;
@@ -316,6 +308,7 @@ catch (const std::exception&) { // catch thread-handle leaks. @TODO: Remove this
   }
 
 public:
+
   BatchGenerator(Ptr<DataSet> data,
                  Ptr<Config> options,
                  Ptr<BatchStats> stats = nullptr)

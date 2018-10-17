@@ -4,6 +4,8 @@
 #include "common/config.h"
 #include "common/timer.h"
 #include "common/utils.h"
+#include "common/regex.h"
+#include "common/utils.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "graph/expression_graph.h"
@@ -69,6 +71,7 @@ public:
 
     // Update validation options
     auto opts = New<Config>(*options_);
+    opts->set("inference", true);
     opts->set("max-length", options_->get<size_t>("valid-max-length"));
     if(options_->has("valid-mini-batch"))
       opts->set("mini-batch", options_->get<size_t>("valid-mini-batch"));
@@ -244,6 +247,7 @@ public:
 
     // Temporary options for translation
     auto opts = New<Config>(*options_);
+    opts->set("inference", true);
     opts->set("mini-batch", options_->get<int>("valid-mini-batch"));
     opts->set("maxi-batch", 10);
     opts->set("max-length", 1000);
@@ -252,7 +256,7 @@ public:
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     std::vector<std::string> paths(validPaths.begin(), validPaths.end());
     auto corpus = New<data::Corpus>(paths, vocabs_, opts);
-    
+
     // Generate batches
     auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, opts);
     batchGenerator->prepare(false);
@@ -375,18 +379,29 @@ protected:
 
 // @TODO: combine with TranslationValidator (above) to avoid code duplication
 class BleuValidator : public Validator<data::Corpus> {
+private:
+  bool detok_{false};
+
 public:
-  BleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
+  BleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options, bool detok = false)
       : Validator(vocabs, options, false),
-        quiet_(options_->get<bool>("quiet-translation")) {
+        quiet_(options_->get<bool>("quiet-translation")),
+        detok_(detok) {
     Ptr<Options> opts = New<Options>();
     opts->merge(options);
     opts->set("inference", true);
     builder_ = models::from_options(opts, models::usage::translation);
 
-    if(!options_->has("valid-script-path"))
-      LOG_VALID(warn,
-                "No post-processing script given for validating translator");
+#ifdef USE_SENTENCEPIECE
+    auto vocab = vocabs_.back();
+    ABORT_IF(detok_ && vocab->type() != "SentencePieceVocab",
+             "Detokenizing BLEU validator expects the target vocabulary to be SentencePieceVocab. "
+             "Current vocabulary type is {}", vocab->type());
+#else
+    ABORT_IF(detok_,
+             "Detokenizing BLEU validator expects the target vocabulary to be SentencePieceVocab. "
+             "Marian has not been compiled with SentencePieceVocab support.");
+#endif
   }
 
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
@@ -394,6 +409,7 @@ public:
 
     // Temporary options for translation
     auto opts = New<Config>(*options_);
+    opts->set("inference", true);
     opts->set("mini-batch", options_->get<int>("valid-mini-batch"));
     opts->set("maxi-batch", 10);
     opts->set("max-length", 1000);
@@ -435,6 +451,22 @@ public:
 
     timer::Timer timer;
     {
+      auto printer = New<OutputPrinter>(options_, vocabs_.back());
+
+      Ptr<OutputCollector> collector;
+      if(options_->has("valid-translation-output")) {
+        auto fileName = options_->get<std::string>("valid-translation-output");
+        collector = New<OutputCollector>(fileName); // for debugging
+      }
+      else {
+        collector = New<OutputCollector>(/* null */); // don't print, but log
+      }
+
+      if(quiet_)
+        collector->setPrintingStrategy(New<QuietPrinting>());
+      else
+        collector->setPrintingStrategy(New<GeometricPrinting>());
+
       size_t sentenceId = 0;
 
       ThreadPool threadPool(graphs.size(), graphs.size());
@@ -465,6 +497,14 @@ public:
             auto result = history->Top();
             const auto& words = std::get<0>(result);
             updateStats(stats, words, batch, no, vocabs_.back()->getEosId());
+
+            std::stringstream best1;
+            std::stringstream bestn;
+            printer->print(history, best1, bestn);
+            collector->Write((long)history->GetLineNum(),
+                             best1.str(),
+                             bestn.str(),
+                             /*nbest=*/ false);
             no++;
           }
         };
@@ -486,45 +526,66 @@ public:
     return val;
   };
 
-  std::string type() override { return "bleu"; }
+  std::string type() override { return detok_ ? "bleu-detok" : "bleu"; }
 
 protected:
   bool quiet_{false};
 
+  // Tokenizer function adapted from multi-bleu-detok.pl, corresponds to sacreBLEU.py
+  std::string tokenize(const std::string& text) {
+    std::string normText = text;
+
+    // language-independent part:
+    normText = regex::regex_replace(normText, regex::regex("<skipped>"), ""); // strip "skipped" tags
+    normText = regex::regex_replace(normText, regex::regex("-\\n"), "");      // strip end-of-line hyphenation and join lines
+    normText = regex::regex_replace(normText, regex::regex("\\n"), " ");      // join lines
+    normText = regex::regex_replace(normText, regex::regex("&quot;"), "\"");  // convert SGML tag for quote to "
+    normText = regex::regex_replace(normText, regex::regex("&amp;"), "&");    // convert SGML tag for ampersand to &
+    normText = regex::regex_replace(normText, regex::regex("&lt;"), "<");     //convert SGML tag for less-than to >
+    normText = regex::regex_replace(normText, regex::regex("&gt;"), ">");     //convert SGML tag for greater-than to <
+
+    // language-dependent part (assuming Western languages):
+    normText = " " + normText + " ";
+    normText = regex::regex_replace(normText, regex::regex("([\\{-\\~\\[-\\` -\\&\(-\\+\\:-\\@\\/])"), " $1 "); // tokenize punctuation
+    normText = regex::regex_replace(normText, regex::regex("([^0-9])([\\.,])"), "$1 $2 "); // tokenize period and comma unless preceded by a digit
+    normText = regex::regex_replace(normText, regex::regex("([\\.,])([^0-9])"), " $1 $2"); // tokenize period and comma unless followed by a digit
+    normText = regex::regex_replace(normText, regex::regex("([0-9])(-)"), "$1 $2 ");       // tokenize dash when preceded by a digit
+    normText = regex::regex_replace(normText, regex::regex("\\s+"), " "); // one space only between words
+    normText = regex::regex_replace(normText, regex::regex("^\\s+"), ""); // no leading space
+    normText = regex::regex_replace(normText, regex::regex("\\s+$"), ""); // no trailing space
+
+    return normText;
+  }
+
+  std::vector<std::string> decode(const Words& words, bool addEOS = false) {
+    auto vocab = vocabs_.back();
+    auto tokens = utils::splitAny(tokenize(vocab->decode(words)), " ");
+    if(addEOS)
+      tokens.push_back("</s>");
+    return tokens;
+  }
+
+  // Update document-wide sufficient statistics for BLEU with single sentence n-gram stats.
+  template <typename T>
   void updateStats(std::vector<float>& stats,
-                   const Words& cand,
-                   const Ptr<data::Batch> batch,
-                   size_t no,
-                   Word eos) {
-    auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
-    auto subBatch = corpusBatch->back();
+                   const std::vector<T>& cand,
+                   const std::vector<T>& ref) {
 
-    size_t size = subBatch->batchSize();
-    size_t width = subBatch->batchWidth();
-
-    Words ref;  // fill ref
-    for(size_t i = 0; i < width; ++i) {
-      Word w = subBatch->data()[i * size + no];
-      if(w == eos)
-        break;
-      ref.push_back(w);
-    }
-
-    std::map<std::vector<Word>, size_t> rgrams;
+    std::map<std::vector<T>, size_t> rgrams;
     for(size_t i = 0; i < ref.size(); ++i) {
       // template deduction for std::min<T> seems to be weird under VS due to
       // macros in windows.h hence explicit type to avoid macro parsing.
       for(size_t l = 1; l <= std::min<size_t>(4ul, ref.size() - i); ++l) {
-        std::vector<Word> ngram(l);
+        std::vector<T> ngram(l);
         std::copy(ref.begin() + i, ref.begin() + i + l, ngram.begin());
         rgrams[ngram]++;
       }
     }
 
-    std::map<std::vector<Word>, size_t> tgrams;
+    std::map<std::vector<T>, size_t> tgrams;
     for(size_t i = 0; i < cand.size() - 1; ++i) {
       for(size_t l = 1; l <= std::min<size_t>(4ul, cand.size() - 1 - i); ++l) {
-        std::vector<Word> ngram(l);
+        std::vector<T> ngram(l);
         std::copy(cand.begin() + i, cand.begin() + i + l, ngram.begin());
         tgrams[ngram]++;
       }
@@ -540,6 +601,33 @@ protected:
     }
 
     stats[8] += ref.size();
+  }
+
+  // Extract matching target reference from batch and pass on to update BLEU stats
+  void updateStats(std::vector<float>& stats,
+                   const Words& cand,
+                   const Ptr<data::Batch> batch,
+                   size_t no,
+                   Word eos) {
+
+    auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
+    auto subBatch = corpusBatch->back();
+
+    size_t size = subBatch->batchSize();
+    size_t width = subBatch->batchWidth();
+
+    Words ref;  // fill ref
+    for(size_t i = 0; i < width; ++i) {
+      Word w = subBatch->data()[i * size + no];
+      if(w == eos)
+        break;
+      ref.push_back(w);
+    }
+
+    if(detok_)
+      updateStats(stats, decode(cand, /*addEOS=*/ true), decode(ref));
+    else
+      updateStats(stats, cand, ref);
   }
 
   float calcBLEU(const std::vector<float>& stats) {

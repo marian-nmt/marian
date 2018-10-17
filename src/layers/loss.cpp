@@ -48,7 +48,13 @@ Expr CrossEntropyMeanLoss::getCost(Expr logits,
   auto ce = getCrossEntropy(logits, indices, mask, weights);
   // Time axis (words): -3
   // Batch axis (sentences): -2
-  return mean(sum(ce, /*axis =*/ -3), /*axis =*/ -2);
+  // if(weights) {
+  //   return sum(sum(ce, /*axis =*/ -3) /*axis =*/ -2);
+  //          / sum(mean(mask * weights, /*axis =*/ -3) /*axis =*/ -2);
+  // }
+  // else {
+    return mean(sum(ce, /*axis =*/ -3), /*axis =*/ -2);
+  // }
 }
 
 Expr CrossEntropyMeanWordsLoss::getCost(Expr logits,
@@ -56,8 +62,14 @@ Expr CrossEntropyMeanWordsLoss::getCost(Expr logits,
                                         Expr mask,
                                         Expr weights) {
   auto ce = getCrossEntropy(logits, indices, mask, weights);
-  return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
-         / sum(sum(mask, /*axis =*/ -3), /*axis =*/ -2);
+  // if(weights) {
+  //   return (sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
+  //          / sum(sum(mask * weights, /*axis =*/ -3), /*axis =*/ -2));
+  // }
+  // else {
+    return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2) // sum CE over all words in the batch
+           / sum(sum(mask, /*axis =*/ -3), /*axis =*/ -2); // divide by number of words (sum over mask)
+  // }
 }
 
 Expr CrossEntropySumLoss::getCost(Expr logits,
@@ -65,7 +77,13 @@ Expr CrossEntropySumLoss::getCost(Expr logits,
                                   Expr mask,
                                   Expr weights) {
   auto ce = getCrossEntropy(logits, indices, mask, weights);
-  return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2);
+  // if(weights) {
+  //   return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
+  //          / mean(mean(mask * weights, /*axis =*/ -3), /*axis =*/ -2);
+  // }
+  // else {
+    return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2);
+  // }
 }
 
 Expr PerplexityLoss::getCost(Expr logits,
@@ -73,8 +91,14 @@ Expr PerplexityLoss::getCost(Expr logits,
                              Expr mask,
                              Expr weights) {
   auto ce = getCrossEntropy(logits, indices, mask, weights);
-  return exp(sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
-             / sum(sum(mask, /*axis =*/ -3), /*axis =*/ -2));
+  // if(weights) {
+  //   return exp(sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
+  //              / sum(sum(mask * weights, /*axis =*/ -3), /*axis =*/ -2));
+  // }
+  // else {
+    return exp(sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2) // sum CE over all words in the batch
+               / sum(sum(mask, /*axis =*/ -3), /*axis =*/ -2)); // divide by number of words (sum over mask)
+  // }
 }
 
 Expr CrossEntropyRescoreLoss::getCost(Expr logits,
