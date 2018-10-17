@@ -4,6 +4,8 @@
 // this has to be figured out.
 
 #include "common/filesystem.h"
+#include "common/logging.h"
+#include "common/definitions.h"
 
 #include <boost/filesystem/fstream.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
@@ -16,7 +18,6 @@
 #pragma warning(pop)
 #include <boost/iostreams/filtering_stream.hpp>
 #include <iostream>
-#include "common/logging.h"
 
 #ifdef _MSC_VER
 
@@ -177,6 +178,12 @@ public:
 
   bool empty() { return ifstream_.peek() == std::ifstream::traits_type::eof(); }
 
+  void setbufsize(size_t size) const {
+    ifstream_.rdbuf()->pubsetbuf(0, 0);
+    readBuf_ = std::make_unique<char[]>(size);
+    ifstream_.rdbuf()->pubsetbuf(readBuf_.get(), 0);
+  }
+
   template <typename T>
   friend InputFileStream& operator>>(InputFileStream& stream, T& t) {
     stream.istream_ >> t;
@@ -202,6 +209,7 @@ private:
   boost::filesystem::ifstream ifstream_;
   boost::iostreams::file_descriptor_source fds_;
   boost::iostreams::filtering_istream istream_;
+  mutable UPtr<char[]> readBuf_; // for setbuf()
 };
 
 // wrapper around std::getline() that handles Windows input files with extra CR
