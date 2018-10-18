@@ -74,5 +74,8 @@ public:
   }
 
   bool has(const std::string& key) const { return options_[key]; }
+
+  const YAML::Node& get() const { return options_; }
+  YAML::Node& get() { return options_; }
 };
 }  // namespace marian

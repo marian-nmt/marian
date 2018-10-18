@@ -77,9 +77,13 @@ public:
       opts->set("mini-batch", options_->get<size_t>("valid-mini-batch"));
     opts->set("mini-batch-sort", "src");
 
+    // @TODO: to be fixed after replacing Config with Options
+    auto topt = New<Options>();
+    topt->merge(opts);
+
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
-    auto corpus = New<DataSet>(validPaths, vocabs_, opts);
+    auto corpus = New<DataSet>(validPaths, vocabs_, topt);
 
     // Generate batches
     auto batchGenerator = New<BatchGenerator<DataSet>>(corpus, opts);
@@ -150,6 +154,7 @@ protected:
 
     {
       ThreadPool threadPool(graphs.size(), graphs.size());
+      // @TODO: clean after replacing Config with Options
       Ptr<Options> opts = New<Options>();
       opts->merge(options_);
       opts->set("inference", true);
@@ -252,10 +257,14 @@ public:
     opts->set("maxi-batch", 10);
     opts->set("max-length", 1000);
 
+    // @TODO: to be fixed after replacing Config with Options
+    auto topt = New<Options>();
+    topt->merge(opts);
+
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     std::vector<std::string> paths(validPaths.begin(), validPaths.end());
-    auto corpus = New<data::Corpus>(paths, vocabs_, opts);
+    auto corpus = New<data::Corpus>(paths, vocabs_, topt);
 
     // Generate batches
     auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, opts);
@@ -414,10 +423,14 @@ public:
     opts->set("maxi-batch", 10);
     opts->set("max-length", 1000);
 
+    // @TODO: to be fixed after replacing Config with Options
+    auto topt = New<Options>();
+    topt->merge(opts);
+
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     std::vector<std::string> paths(validPaths.begin(), validPaths.end());
-    auto corpus = New<data::Corpus>(paths, vocabs_, opts);
+    auto corpus = New<data::Corpus>(paths, vocabs_, topt);
 
     // Generate batches
     auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, opts);

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
 #include "common/options.h"
@@ -489,11 +488,12 @@ class CorpusBase
     : public DatasetBase<SentenceTuple, CorpusIterator, CorpusBatch>,
       public RNGEngine {
 public:
-  CorpusBase(Ptr<Config> options, bool translate = false);
+  // @TODO: check if translate can be replaced by an option in options
+  CorpusBase(Ptr<Options> options, bool translate = false);
 
   CorpusBase(const std::vector<std::string>& paths,
              const std::vector<Ptr<Vocab>>& vocabs,
-             Ptr<Config> options);
+             Ptr<Options> options);
 
   virtual std::vector<Ptr<Vocab>>& getVocabs() = 0;
 

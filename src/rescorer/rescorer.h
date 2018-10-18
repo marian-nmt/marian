@@ -52,10 +52,14 @@ public:
 
     options_->set("inference", true);
 
+    // @TODO: to be fixed after removing Config
+    Ptr<Options> copt = New<Options>();
+    copt->merge(options_);
+
     if(options_->get<bool>("n-best"))
-      corpus_ = New<CorpusNBest>(options_);
+      corpus_ = New<CorpusNBest>(copt);
     else
-      corpus_ = New<Corpus>(options_);
+      corpus_ = New<Corpus>(copt);
 
     ABORT_IF(options_->has("summary") && options_->has("alignment"),
              "Alignments can not be produced with summarized score");
@@ -73,6 +77,7 @@ public:
 
     auto modelFile = options_->get<std::string>("model");
 
+    // @TODO: to be fixed after removing Config
     Ptr<Options> temp = New<Options>();
     temp->merge(options);
     temp->set("cost-type", "ce-rescore");

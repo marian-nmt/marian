@@ -27,18 +27,20 @@ private:
   Ptr<data::ShortlistGenerator> shortlistGenerator_;
 
 public:
-  Translate(Ptr<Config> options)
-      : options_(options),
-        corpus_(New<data::Corpus>(options_, true)) {
+  Translate(Ptr<Config> options) : options_(options) {
+    // @TODO: to be fixed and removed after removing Config
+    auto copt = New<Options>();
+    copt->merge(options_);
+    corpus_ = New<data::Corpus>(copt, true);
 
     // This is currently safe as the translator is either created stand-alone or
     // or config is created anew from Options in the validator. @TODO: make sure
-    // it stays safe when Config/Options get unified. 
+    // it stays safe when Config/Options get unified.
     options_->set("inference", true);
-    
+
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
 
-    // @TODO: to be fixed and removed.
+    // @TODO: to be fixed and removed after removing Config
     auto topt = New<Options>();
     topt->merge(options_);
     trgVocab_ = New<Vocab>(topt, vocabs.size() - 1);
@@ -198,18 +200,16 @@ public:
   }
 
   std::string run(const std::string& input) override {
-    auto corpus_ = New<data::TextInput>(
-        std::vector<std::string>({input}), srcVocabs_, options_);
+    // @TODO: unify this and get rid of Config object.
+    auto tOptions = New<Options>();
+    tOptions->merge(options_);
 
+    auto corpus_ = New<data::TextInput>(std::vector<std::string>({input}), srcVocabs_, tOptions);
     data::BatchGenerator<data::TextInput> batchGenerator(corpus_, options_);
 
     auto collector = New<StringCollector>();
     auto printer = New<OutputPrinter>(options_, trgVocab_);
     size_t batchId = 0;
-
-    // @TODO: unify this and get rid of Config object.
-    auto tOptions = New<Options>();
-    tOptions->merge(options_);
 
     batchGenerator.prepare(false);
 

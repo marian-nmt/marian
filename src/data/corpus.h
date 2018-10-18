@@ -4,9 +4,9 @@
 #include <iostream>
 #include <random>
 
-#include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
+#include "common/options.h"
 #include "data/alignment.h"
 #include "data/batch.h"
 #include "data/corpus_base.h"
@@ -24,11 +24,12 @@ private:
   void shuffleFiles(const std::vector<std::string>& paths);
 
 public:
-  Corpus(Ptr<Config> options, bool translate = false);
+  // @TODO: check if translate can be replaced by an option in options
+  Corpus(Ptr<Options> options, bool translate = false);
 
   Corpus(std::vector<std::string> paths,
          std::vector<Ptr<Vocab>> vocabs,
-         Ptr<Config> options);
+         Ptr<Options> options);
 
   /**
    * @brief Iterates sentence tuples in the corpus.

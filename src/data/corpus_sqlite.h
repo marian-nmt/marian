@@ -4,9 +4,9 @@
 #include <iostream>
 #include <random>
 
-#include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
+#include "common/options.h"
 #include "data/alignment.h"
 #include "data/batch.h"
 #include "data/corpus_base.h"
@@ -43,11 +43,12 @@ private:
   size_t seed_;
 
 public:
-  CorpusSQLite(Ptr<Config> options, bool translate = false);
+  // @TODO: check if translate can be replaced by an option in options
+  CorpusSQLite(Ptr<Options> options, bool translate = false);
 
   CorpusSQLite(const std::vector<std::string>& paths,
                const std::vector<Ptr<Vocab>>& vocabs,
-               Ptr<Config> options);
+               Ptr<Options> options);
 
   sample next() override;
 

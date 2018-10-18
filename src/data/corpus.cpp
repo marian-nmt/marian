@@ -9,12 +9,12 @@
 namespace marian {
 namespace data {
 
-Corpus::Corpus(Ptr<Config> options, bool translate /*= false*/)
+Corpus::Corpus(Ptr<Options> options, bool translate /*= false*/)
     : CorpusBase(options, translate) {}
 
 Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
-               Ptr<Config> options)
+               Ptr<Options> options)
     : CorpusBase(paths, vocabs, options) {}
 
 SentenceTuple Corpus::next() {

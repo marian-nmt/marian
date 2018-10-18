@@ -22,15 +22,25 @@ public:
   void run() override {
     using namespace data;
 
+    // @TODO: to be fixed and removed after removing Config
+    auto opts = New<Options>();
+    opts->merge(options_);
+
     Ptr<CorpusBase> dataset;
     if(!options_->get<std::string>("sqlite").empty())
 #ifndef _MSC_VER // @TODO: include SqLite in Visual Studio project
-      dataset = New<CorpusSQLite>(options_);
+      dataset = New<CorpusSQLite>(opts);
 #else
       ABORT("SqLite presently not supported on Windows");
 #endif
     else
-      dataset = New<Corpus>(options_);
+      dataset = New<Corpus>(opts);
+
+    // @TODO: remove after cleaning training/training.h
+    options_->set<std::vector<int>>("dim-vocabs",
+                                    dataset->options()->get<std::vector<int>>("dim-vocabs"));
+    options_->set<std::vector<std::string>>(
+        "vocabs", dataset->options()->get<std::vector<std::string>>("vocabs"));
 
     dataset->prepare();
 
@@ -74,7 +84,7 @@ public:
       restored = false;
 
       // @TODO: try to use for(auto ...)
-      for(auto batchIt = std::begin(*batchGenerator); 
+      for(auto batchIt = std::begin(*batchGenerator);
           batchIt != std::end(*batchGenerator) && scheduler->keepGoing();
           batchIt++) {
         model->update(*batchIt);
