@@ -546,7 +546,7 @@ protected:
 
     // language-dependent part (assuming Western languages):
     normText = " " + normText + " ";
-    normText = regex::regex_replace(normText, regex::regex("([\\{-\\~\\[-\\` -\\&\(-\\+\\:-\\@\\/])"), " $1 "); // tokenize punctuation
+    normText = regex::regex_replace(normText, regex::regex("([\\{-\\~\\[-\\` -\\&\\(-\\+\\:-\\@\\/])"), " $1 "); // tokenize punctuation
     normText = regex::regex_replace(normText, regex::regex("([^0-9])([\\.,])"), "$1 $2 "); // tokenize period and comma unless preceded by a digit
     normText = regex::regex_replace(normText, regex::regex("([\\.,])([^0-9])"), " $1 $2"); // tokenize period and comma unless followed by a digit
     normText = regex::regex_replace(normText, regex::regex("([0-9])(-)"), "$1 $2 ");       // tokenize dash when preceded by a digit

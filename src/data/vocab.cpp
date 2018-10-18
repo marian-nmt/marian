@@ -48,7 +48,7 @@ int Vocab::loadOrCreate(const std::string& vocabPath,
     size = load(vocabPath, max);
   }
   LOG(info, "[data] Setting vocabulary size for input {} to {}", batchIndex_, size);
-  return size;
+  return (int)size;
 }
 
 int Vocab::load(const std::string& vocabPath, int max) {
