@@ -92,13 +92,17 @@ public:
   void run() override {
     LOG(info, "Scoring");
 
+    // @TODO: Ugly hack to convert Config to Options, to be removed.
+    auto opts = New<Options>();
+    opts->merge(options_);
+
     auto batchGenerator = New<BatchGenerator<CorpusBase>>(corpus_, options_);
     batchGenerator->prepare(false);
 
     Ptr<ScoreCollector> output = options_->get<bool>("n-best")
                                      ? std::static_pointer_cast<ScoreCollector>(
-                                           New<ScoreCollectorNBest>(options_))
-                                     : New<ScoreCollector>(options_);
+                                           New<ScoreCollectorNBest>(opts))
+                                     : New<ScoreCollector>(opts);
 
     std::string alignment = options_->get<std::string>("alignment", "");
     bool summarize = options_->has("summary");
