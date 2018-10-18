@@ -126,6 +126,7 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
       out << corpusStream[id] << std::endl;
     }
   }
+  LOG(info, "[data] Done shuffling {} sentences.", numSentences);
 
   // replace files_[] by the tempfiles we just created
   for(size_t i = 0; i < numStreams; ++i) {
@@ -133,8 +134,6 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
     files_[i]->setbufsize(10000000);
   }
   pos_ = 0;
-
-  LOG(info, "[data] Done shuffling {} sentences.", numSentences);
 }
 }  // namespace data
 }  // namespace marian

@@ -18,6 +18,7 @@
 #pragma warning(pop)
 #include <boost/iostreams/filtering_stream.hpp>
 #include <iostream>
+#include <memory>
 
 #ifdef _MSC_VER
 
@@ -180,7 +181,8 @@ public:
 
   void setbufsize(size_t size) const {
     ifstream_.rdbuf()->pubsetbuf(0, 0);
-    readBuf_ = std::make_unique<char[]>(size);
+    //readBuf_ = std::make_unique<char[]>(size);
+    readBuf_.reset(new char[size]);
     ifstream_.rdbuf()->pubsetbuf(readBuf_.get(), 0);
   }
 
