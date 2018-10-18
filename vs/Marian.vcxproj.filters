@@ -43,9 +43,6 @@
     <ClCompile Include="..\src\tensors\cpu\device.cpp">
       <Filter>tensors\cpu</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\tensors\cpu\dropout.cpp">
-      <Filter>tensors\cpu</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\tensors\cpu\prod.cpp">
       <Filter>tensors\cpu</Filter>
     </ClCompile>
@@ -255,6 +252,12 @@
     </ClCompile>
     <ClCompile Include="..\src\microsoft\quicksand.cpp">
       <Filter>microsoft</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\cli_helper.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\rand.cpp">
+      <Filter>tensors</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1074,6 +1077,9 @@
     </ClInclude>
     <ClInclude Include="..\src\command\marian_conv.cpp">
       <Filter>command</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\rand.h">
+      <Filter>tensors</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -123,6 +123,7 @@
     <ClInclude Include="..\src\command\marian_conv.cpp" />
     <ClCompile Include="..\src\command\marian_main.cpp" />
     <ClCompile Include="..\src\common\binary.cpp" />
+    <ClCompile Include="..\src\common\cli_helper.cpp" />
     <ClCompile Include="..\src\common\cli_wrapper.cpp" />
     <ClCompile Include="..\src\common\config_validator.cpp" />
     <ClCompile Include="..\src\common\io.cpp" />
@@ -146,7 +147,6 @@
     </ClCompile>
     <ClCompile Include="..\src\tensors\backend.cpp" />
     <ClCompile Include="..\src\tensors\cpu\device.cpp" />
-    <ClCompile Include="..\src\tensors\cpu\dropout.cpp" />
     <ClCompile Include="..\src\tensors\cpu\prod.cpp" />
     <ClCompile Include="..\src\tensors\cpu\sharp\avx_gemm.cpp" />
     <ClCompile Include="..\src\tensors\cpu\sharp\sse_gemm.cpp" />
@@ -162,6 +162,7 @@
     <ClCompile Include="..\src\optimizers\optimizers.cpp" />
     <ClCompile Include="..\src\models\model_factory.cpp" />
     <ClCompile Include="..\src\models\encoder_decoder.cpp" />
+    <ClCompile Include="..\src\tensors\rand.cpp" />
     <ClCompile Include="..\src\training\communicator.cpp" />
     <ClCompile Include="..\src\training\graph_group_multinode_sync.cpp" />
     <ClCompile Include="..\src\translator\history.cpp" />
@@ -440,6 +441,7 @@
     <ClInclude Include="..\src\tensors\device.h" />
     <ClInclude Include="..\src\tensors\dispatch.h" />
     <ClInclude Include="..\src\tensors\memory_piece.h" />
+    <ClInclude Include="..\src\tensors\rand.h" />
     <ClInclude Include="..\src\tensors\tensor.h" />
     <ClInclude Include="..\src\tensors\tensor_allocator.h" />
     <ClInclude Include="..\src\tensors\tensor_operators.h" />
