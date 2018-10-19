@@ -56,8 +56,8 @@ class BatchGenerator : public RNGEngine {
 public:
   typedef typename DataSet::batch_ptr BatchPtr;
 
-  typedef typename DataSet::sample sample;
-  typedef std::vector<sample> samples;     // @TODO: type names should be capitalized
+  typedef typename DataSet::sample Sample;
+  typedef std::vector<Sample> Samples;     // @TODO: type names should be capitalized
 
   typedef BatchIterator<BatchGenerator> iterator;
   friend iterator;
@@ -76,38 +76,32 @@ private:
 
   // state of reading
   typename DataSet::iterator current_;
-  bool newlyPrepared_{ true }; // prepare() was just called: we need to reset current_
+  bool newlyPrepared_{ true }; // prepare() was just called: we need to reset current_  --@TODO: can we just reset it directly?
 
   // variables for multi-threaded pre-fetching
-  std::future<std::deque<BatchPtr>> futureBufferedBatches_; // next swath of batches is returned via this
   mutable ThreadPool threadPool_; // (we only use one thread, but keep it around)
-#if 0
-  mutable std::mutex loadMutex_;
-  mutable std::condition_variable loadCondition_;
-  bool loadingSamples_{false};
-  bool hadData_{false};
-#endif
+  std::future<std::deque<BatchPtr>> futureBufferedBatches_; // next swath of batches is returned via this
 
   // this runs on a bg thread; sequencing is handled by caller, but locking is done in here
   std::deque<BatchPtr> fetchBatches() {
     //LOG(info, "fillBatches entered");
-    typedef typename sample::value_type Item;
+    typedef typename Sample::value_type Item;
     auto itemCmp = [](const Item& sa, const Item& sb) { return sa.size() < sb.size(); }; // sort by element length, not content
 
-    auto cmpSrc = [itemCmp](const sample& a, const sample& b) {
+    auto cmpSrc = [itemCmp](const Sample& a, const Sample& b) {
       return std::lexicographical_compare(
           a.begin(), a.end(), b.begin(), b.end(), itemCmp);
     };
 
-    auto cmpTrg = [itemCmp](const sample& a, const sample& b) {
+    auto cmpTrg = [itemCmp](const Sample& a, const Sample& b) {
       return std::lexicographical_compare(
           a.rbegin(), a.rend(), b.rbegin(), b.rend(), itemCmp);
     };
 
-    auto cmpNone = [](const sample& a, const sample& b) { return &a < &b; }; // instead sort by address, so we have something to work with
+    auto cmpNone = [](const Sample& a, const Sample& b) { return &a < &b; }; // instead sort by address, so we have something to work with
 
-    typedef std::function<bool(const sample&, const sample&)> cmp_type;
-    typedef std::priority_queue<sample, samples, cmp_type> sample_queue;
+    typedef std::function<bool(const Sample&, const Sample&)> cmp_type;
+    typedef std::priority_queue<Sample, Samples, cmp_type> sample_queue;
 
     std::unique_ptr<sample_queue> maxiBatch; // priority queue, shortest first
 
@@ -151,7 +145,7 @@ private:
     // LOG(info, "Turning samples into batches");
 
     // construct the actual batches and place them in the queue
-    samples batchVector;
+    Samples batchVector;
     size_t currentWords = 0;
     std::vector<size_t> lengths(sets, 0); // records maximum length observed within current batch
 
@@ -225,30 +219,6 @@ private:
     return std::deque<BatchPtr>(tempBatches.begin(), tempBatches.end());
   }
 
-#if 0
-  void fillBatches() {
-    auto tempBatches = fetchBatches();
-
-    // Wait here until batch buffer is empty;   
-    // LOG(info, "Waiting for buffer to be empty");
-    std::unique_lock<std::mutex> lock(loadMutex_);
-    loadCondition_.wait(
-        lock, [this] { return bufferedBatches_.empty(); });
-
-    // put batches onto queue
-    // exclusive lock
-    // LOG(info, "Dumping batches to buffer");
-    for(const auto& batch : tempBatches)
-      bufferedBatches_.push_back(batch);
-
-    loadingSamples_ = false;
-    hadData_ = tempBatches.size() > 0;
-
-    // Buffer is full now, everyone else can carry on
-    loadCondition_.notify_all();
-  }
-#endif
-
   // this starts fillBatches() as a background operation
   void fetchBatchesAsync() {
     ABORT_IF(futureBufferedBatches_.valid(), "attempted to restart futureBufferedBatches_ while still running");
@@ -276,61 +246,6 @@ private:
     bufferedBatches_.pop_front();
     return batch;
   }
-#if 0
-  BatchPtr ___OLD_next() {
-    // Start preloading batches and inform that loading is happening.
-    // Detach the loading process so it's not blocking batch processing.
-    {
-      std::unique_lock<std::mutex> lock(loadMutex_);
-      if(!loadingSamples_ && hadData_) {
-try{
-        loadingSamples_ = true;
-        threadPool_.enqueue([this]() {
-          fillBatches(); 
-        });
-}
-catch (const std::exception&) { // catch thread-handle leaks. @TODO: Remove this once no longer needed.
-  LOG(info, "caught exception in Corpus::next()");
-  system("ps -T -A");
-  throw;
-}
-      }
-    }
-    
-    // If there are no batches, but loading is happening,
-    // wait for loading to finish. 
-    {
-      std::unique_lock<std::mutex> lock(loadMutex_);
-      loadCondition_.wait(lock, [this] { 
-        return !(loadingSamples_ && bufferedBatches_.empty()); 
-      });
-    }
-
-    std::unique_lock<std::mutex> lock(loadMutex_);
-    // Try to consume a batch
-    if(bufferedBatches_.empty()) {
-      // There was no batch in the buffer despite preloading -> end of epoch
-      return nullptr;
-    }
-    else {
-      auto batch = bufferedBatches_.front();
-      bufferedBatches_.pop_front();
-
-      // if(bufferedBatches_.size() % 100 == 0)
-      //   LOG(info, "Buffered batches left {}", bufferedBatches_.size());
-
-      // If there are no batches left, notify everyone who's waiting.
-      // This will either dump buffered batches into the current queue,
-      // or switch to the next epoch in the next call.
-      if(bufferedBatches_.empty()) {
-        // LOG(info, "Empty batches, notifying");
-        loadCondition_.notify_all();
-      }
-
-      return batch;
-    }
-  }
-#endif
 
 public:
 
