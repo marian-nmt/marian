@@ -18,7 +18,7 @@ namespace marian {
 template <class Search>
 class Translate : public ModelTask {
 private:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<std::vector<Ptr<Scorer>>> scorers_;
 
@@ -27,22 +27,17 @@ private:
   Ptr<data::ShortlistGenerator> shortlistGenerator_;
 
 public:
-  Translate(Ptr<Config> options) : options_(options) {
-    // @TODO: to be fixed and removed after removing Config
-    auto opts = New<Options>();
-    opts->merge(options_);
-    corpus_ = New<data::Corpus>(opts, true);
-
+  Translate(Ptr<Options> options) : options_(options) {
     // This is currently safe as the translator is either created stand-alone or
     // or config is created anew from Options in the validator. @TODO: make sure
     // it stays safe when Config/Options get unified.
     options_->set("inference", true);
 
+    corpus_ = New<data::Corpus>(options_, true);
+
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
-
-    trgVocab_ = New<Vocab>(opts, vocabs.size() - 1);
+    trgVocab_ = New<Vocab>(options_, vocabs.size() - 1);
     trgVocab_->load(vocabs.back());
-
     auto srcVocab = corpus_->getVocabs()[0];
 
     if(options_->has("shortlist"))
@@ -81,11 +76,7 @@ public:
   }
 
   void run() override {
-    // @TODO: unify this and get rid of Config object.
-    auto tOptions = New<Options>();
-    tOptions->merge(options_);
-
-    data::BatchGenerator<data::Corpus> bg(corpus_, tOptions);
+    data::BatchGenerator<data::Corpus> bg(corpus_, options_);
 
     // @TODO: make this a class member. We only need the size actually.
     auto numDevices = options_->getDevices().size();
@@ -94,7 +85,7 @@ public:
 
     size_t batchId = 0;
     auto collector = New<OutputCollector>(options_->get<std::string>("output"));
-    auto printer = New<OutputPrinter>(tOptions, trgVocab_);
+    auto printer = New<OutputPrinter>(options_, trgVocab_);
     if(options_->get<bool>("quiet-translation"))
       collector->setPrintingStrategy(New<QuietPrinting>());
 
@@ -110,9 +101,7 @@ public:
           scorers = scorers_[id % numDevices];
         }
 
-        auto search = New<Search>(
-            tOptions, scorers, trgVocab_->getEosId(), trgVocab_->getUnkId());
-
+        auto search = New<Search>(options_, scorers, trgVocab_->getEosId(), trgVocab_->getUnkId());
         auto histories = search->search(graph, batch);
 
         for(auto history : histories) {
@@ -144,7 +133,7 @@ public:
 template <class Search>
 class TranslateService : public ModelServiceTask {
 private:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<std::vector<Ptr<Scorer>>> scorers_;
 
@@ -155,9 +144,7 @@ private:
 public:
   virtual ~TranslateService() {}
 
-  TranslateService(Ptr<Config> options)
-      : options_(options),
-        devices_(options_->getDevices()) {
+  TranslateService(Ptr<Options> options) : options_(options), devices_(options_->getDevices()) {
     init();
   }
 
@@ -168,17 +155,13 @@ public:
     auto vocabPaths = options_->get<std::vector<std::string>>("vocabs");
     std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
 
-    // @TODO: Ugly hack to convery Config to Options, to be removed.
-    auto topt = New<Options>();
-    topt->merge(options_);
-
     for(size_t i = 0; i < vocabPaths.size() - 1; ++i) {
-      Ptr<Vocab> vocab = New<Vocab>(topt, i);
+      Ptr<Vocab> vocab = New<Vocab>(options_, i);
       vocab->load(vocabPaths[i], maxVocabs[i]);
       srcVocabs_.emplace_back(vocab);
     }
 
-    trgVocab_ = New<Vocab>(topt, vocabPaths.size() - 1);
+    trgVocab_ = New<Vocab>(options_, vocabPaths.size() - 1);
     trgVocab_->load(vocabPaths.back());
 
     // initialize scorers
@@ -197,15 +180,11 @@ public:
   }
 
   std::string run(const std::string& input) override {
-    // @TODO: unify this and get rid of Config object.
-    auto tOptions = New<Options>();
-    tOptions->merge(options_);
-
-    auto corpus_ = New<data::TextInput>(std::vector<std::string>({input}), srcVocabs_, tOptions);
-    data::BatchGenerator<data::TextInput> batchGenerator(corpus_, tOptions);
+    auto corpus_ = New<data::TextInput>(std::vector<std::string>({input}), srcVocabs_, options_);
+    data::BatchGenerator<data::TextInput> batchGenerator(corpus_, options_);
 
     auto collector = New<StringCollector>();
-    auto printer = New<OutputPrinter>(tOptions, trgVocab_);
+    auto printer = New<OutputPrinter>(options_, trgVocab_);
     size_t batchId = 0;
 
     batchGenerator.prepare(false);
@@ -224,8 +203,7 @@ public:
             scorers = scorers_[id % devices_.size()];
           }
 
-          auto search = New<Search>(
-              tOptions, scorers, trgVocab_->getEosId(), trgVocab_->getUnkId());
+          auto search = New<Search>(options_, scorers, trgVocab_->getEosId(), trgVocab_->getUnkId());
           auto histories = search->search(graph, batch);
 
           for(auto history : histories) {

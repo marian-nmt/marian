@@ -14,7 +14,7 @@
 int main(int argc, char** argv) {
   using namespace marian;
 
-  auto options = New<Config>(argc, argv);
+  auto options = parseOptions(argc, argv);
 
   // selects MultiNodeGraphGroup family
   // Note: --sync-sgd without --multi-node also supports MPI now, using the SyncGraphGroup.

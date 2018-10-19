@@ -5,7 +5,7 @@
 
 namespace marian {
 
-AsyncGraphGroup::AsyncGraphGroup(Ptr<Config> config)
+AsyncGraphGroup::AsyncGraphGroup(Ptr<Options> config)
     : GraphGroup(config),
       ExponentialSmoothing{options_->get<float>("exponential-smoothing")},
       devices_{options_->getDevices()},
@@ -21,7 +21,7 @@ AsyncGraphGroup::AsyncGraphGroup(Ptr<Config> config)
     graphs_.push_back(graph);
     shardOpt_.push_back(Optimizer(options_));
 
-    builders_.push_back(models::from_config(options_, models::usage::training));
+    builders_.push_back(models::from_options(options_, models::usage::training));
   }
 }
 

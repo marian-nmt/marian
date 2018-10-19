@@ -139,13 +139,13 @@ Ptr<Scorer> scorerByType(const std::string& fname,
                          const std::string& model,
                          Ptr<Config> config);
 
-std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options);
+std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options);
 
 Ptr<Scorer> scorerByType(const std::string& fname,
                          float weight,
                          const void* ptr,
                          Ptr<Config> config);
 
-std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options,
-                                       const std::vector<const void*>& ptrs);
+std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<const void*>& ptrs);
+
 }  // namespace marian

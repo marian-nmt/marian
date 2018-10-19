@@ -20,6 +20,7 @@ Config::Config(int argc,
 }
 
 Config::Config(const Config& other) : config_(YAML::Clone(other.config_)) {}
+Config::Config(const Options& options) : config_(YAML::Clone(options.getOptions())) {}
 
 void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
   auto parser = ConfigParser(argc, argv, mode, validate);
@@ -211,6 +212,16 @@ std::vector<DeviceId> Config::getDevices(size_t myMPIRank /*= 0*/, size_t numMPI
     LOG(info, "[MPI rank {} out of {}]: {}[{}]", myMPIRank, numMPIProcesses, d.type == DeviceType::cpu ? "CPU" : "GPU", d.no);
 #endif
   return devices;
+}
+
+Ptr<Options> parseOptions(int argc,
+                          char** argv,
+                          cli::mode mode /*= cli::mode::training*/,
+                          bool validate /*= true*/) {
+  auto config = New<Config>(argc, argv, mode, validate);
+  auto options = New<Options>();
+  options->merge(config->get());
+  return options;
 }
 
 }  // namespace marian

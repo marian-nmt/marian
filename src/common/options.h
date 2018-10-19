@@ -2,7 +2,6 @@
 
 #include <sstream>
 #include <string>
-#include "common/config.h"
 #include "common/definitions.h"
 
 #include "3rd_party/yaml-cpp/yaml.h"
@@ -28,12 +27,14 @@ namespace marian {
 class Options {
 protected:
   YAML::Node options_;
+  std::vector<DeviceId> devices_;
 
 public:
   Options() {}
   Options(const Options& other) : options_(YAML::Clone(other.options_)) {}
 
   YAML::Node& getOptions() { return options_; }
+  const YAML::Node& getOptions() const { return options_; }
 
   void parse(const std::string& yaml) {
     auto node = YAML::Load(yaml);
@@ -43,7 +44,7 @@ public:
 
   void merge(Ptr<Options> options) { merge(options->getOptions()); }
 
-  void merge(Ptr<Config> config) { merge(config->get()); }
+  void merge(const YAML::Node& yaml) { merge(yaml); }
 
   void merge(YAML::Node& node) {
     for(auto it : node)
@@ -80,5 +81,10 @@ public:
 
   const YAML::Node& get() const { return options_; }
   YAML::Node& get() { return options_; }
+
+  std::vector<DeviceId> getDevices(size_t myMPIRank = 0, size_t numMPIProcesses = 1) const {
+    ABORT("Implement me!!!");
+  }
 };
+
 }  // namespace marian

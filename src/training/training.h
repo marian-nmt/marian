@@ -14,33 +14,29 @@ namespace marian {
 template <class ModelWrapper>
 class Train : public ModelTask {
 private:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
 
 public:
-  Train(Ptr<Config> options) : options_(options) {}
+  Train(Ptr<Options> options) : options_(options) {}
 
   void run() override {
     using namespace data;
 
-    // @TODO: to be fixed and removed after removing Config
-    auto opts = New<Options>();
-    opts->merge(options_);
-
     Ptr<CorpusBase> dataset;
     if(!options_->get<std::string>("sqlite").empty())
 #ifndef _MSC_VER // @TODO: include SqLite in Visual Studio project
-      dataset = New<CorpusSQLite>(opts);
+      dataset = New<CorpusSQLite>(options_);
 #else
       ABORT("SqLite presently not supported on Windows");
 #endif
     else
-      dataset = New<Corpus>(opts);
+      dataset = New<Corpus>(options_);
 
     // @TODO: remove after cleaning training/training.h
-    options_->set<std::vector<int>>("dim-vocabs",
-                                    dataset->options()->get<std::vector<int>>("dim-vocabs"));
-    options_->set<std::vector<std::string>>(
-        "vocabs", dataset->options()->get<std::vector<std::string>>("vocabs"));
+    //options_->set<std::vector<int>>("dim-vocabs",
+                                    //dataset->options()->get<std::vector<int>>("dim-vocabs"));
+    //options_->set<std::vector<std::string>>(
+        //"vocabs", dataset->options()->get<std::vector<std::string>>("vocabs"));
 
     dataset->prepare();
 
@@ -61,11 +57,11 @@ public:
 
     if((options_->has("valid-sets") || options_->has("valid-script-path"))
        && options_->get<size_t>("valid-freq") > 0) {
-      for(auto validator : Validators(dataset->getVocabs(), opts))
+      for(auto validator : Validators(dataset->getVocabs(), options_))
         scheduler->addValidator(validator);
     }
 
-    auto batchGenerator = New<CorpusBatchGenerator>(dataset, opts, stats);
+    auto batchGenerator = New<CorpusBatchGenerator>(dataset, options_, stats);
     scheduler->registerTrainingObserver(batchGenerator);
 
     auto model = New<ModelWrapper>(options_);

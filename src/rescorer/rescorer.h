@@ -2,7 +2,7 @@
 
 #include "marian.h"
 
-#include "common/config.h"
+#include "common/options.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
 #include "data/corpus_nbest.h"
@@ -41,25 +41,20 @@ public:
 template <class Model>
 class Rescore : public ModelTask {
 private:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
   Ptr<CorpusBase> corpus_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<Ptr<Model>> models_;
 
 public:
-  Rescore(Ptr<Config> options)
-      : options_(options) {
+  Rescore(Ptr<Options> options) : options_(options) {
 
     options_->set("inference", true);
 
-    // @TODO: to be fixed after removing Config
-    Ptr<Options> copt = New<Options>();
-    copt->merge(options_);
-
     if(options_->get<bool>("n-best"))
-      corpus_ = New<CorpusNBest>(copt);
+      corpus_ = New<CorpusNBest>(options_);
     else
-      corpus_ = New<Corpus>(copt);
+      corpus_ = New<Corpus>(options_);
 
     ABORT_IF(options_->has("summary") && options_->has("alignment"),
              "Alignments can not be produced with summarized score");
@@ -77,17 +72,16 @@ public:
 
     auto modelFile = options_->get<std::string>("model");
 
-    // @TODO: to be fixed after removing Config
-    Ptr<Options> temp = New<Options>();
-    temp->merge(options);
-    temp->set("cost-type", "ce-rescore");
+    // @TODO: make sure it's OK as previously there was a Options object created from the Config
+    // object and modified
+    options_->set("cost-type", "ce-rescore");
 
     models_.resize(graphs_.size());
     ThreadPool pool(graphs_.size(), graphs_.size());
     for(size_t i = 0; i < graphs_.size(); ++i) {
       pool.enqueue(
           [=](size_t j) {
-            models_[j] = New<Model>(temp);
+            models_[j] = New<Model>(options_);
             models_[j]->load(graphs_[j], modelFile);
           },
           i);
@@ -97,22 +91,17 @@ public:
   void run() override {
     LOG(info, "Scoring");
 
-    // @TODO: Ugly hack to convert Config to Options, to be removed.
-    auto opts = New<Options>();
-    opts->merge(options_);
-
-    auto batchGenerator = New<BatchGenerator<CorpusBase>>(corpus_, opts);
+    auto batchGenerator = New<BatchGenerator<CorpusBase>>(corpus_, options_);
     batchGenerator->prepare(false);
 
     Ptr<ScoreCollector> output = options_->get<bool>("n-best")
                                      ? std::static_pointer_cast<ScoreCollector>(
-                                           New<ScoreCollectorNBest>(opts))
-                                     : New<ScoreCollector>(opts);
+                                           New<ScoreCollectorNBest>(options_))
+                                     : New<ScoreCollector>(options_);
 
     std::string alignment = options_->get<std::string>("alignment", "");
     bool summarize = options_->has("summary");
-    std::string summary
-        = summarize ? options_->get<std::string>("summary") : "cross-entropy";
+    std::string summary = summarize ? options_->get<std::string>("summary") : "cross-entropy";
 
     float sumCost = 0;
     size_t sumWords = 0;

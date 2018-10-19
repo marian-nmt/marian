@@ -4,9 +4,9 @@
 #include "common/cli_helper.h"
 #include "common/config_parser.h"
 #include "common/io.h"
+#include "common/options.h"
 
-// TODO: why are these needed by a config parser? Can they be removed for Linux
-// as well?
+// TODO: why are these needed by a config parser? Can they be removed for Linux as well?
 #ifndef _WIN32
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -41,6 +41,7 @@ public:
          bool validate = true);
 
   Config(const Config& other);
+  Config(const Options& options);
 
   void initialize(int argc, char** argv, cli::mode mode, bool validate);
 
@@ -93,4 +94,10 @@ private:
 
   void log();
 };
+
+Ptr<Options> parseOptions(int argc,
+                          char** argv,
+                          cli::mode mode = cli::mode::training,
+                          bool validate = true);
+
 }  // namespace marian

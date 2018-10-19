@@ -7,7 +7,7 @@ Ptr<Scorer> scorerByType(const std::string& fname,
                          const std::string& model,
                          Ptr<Config> config) {
   Ptr<Options> options = New<Options>();
-  options->merge(config);
+  options->merge(config->get());
   options->set("inference", true);
 
   std::string type = options->get<std::string>("type");
@@ -32,7 +32,7 @@ Ptr<Scorer> scorerByType(const std::string& fname,
                          const void* ptr,
                          Ptr<Config> config) {
   Ptr<Options> options = New<Options>();
-  options->merge(config);
+  options->merge(config->get());
   options->set("inference", true);
 
   std::string type = options->get<std::string>("type");
@@ -52,7 +52,7 @@ Ptr<Scorer> scorerByType(const std::string& fname,
   return New<ScorerWrapper>(encdec, fname, weight, ptr);
 }
 
-std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options) {
+std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options) {
   std::vector<Ptr<Scorer>> scorers;
 
   auto models = options->get<std::vector<std::string>>("models");
@@ -80,8 +80,7 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options) {
   return scorers;
 }
 
-std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options,
-                                       const std::vector<const void*>& ptrs) {
+std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<const void*>& ptrs) {
   std::vector<Ptr<Scorer>> scorers;
 
   std::vector<float> weights(ptrs.size(), 1.f);
