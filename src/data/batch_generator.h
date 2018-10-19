@@ -87,7 +87,7 @@ private:
   bool hadData_{false};
 
   // this runs on a bg thread; sequencing is handled by caller, but locking is done in here
-  void fillBatches(bool shuffle = true) {
+  std::vector<BatchPtr> fetchBatches() {
     //LOG(info, "fillBatches entered");
     typedef typename sample::value_type Item;
     auto itemCmp = [](const Item& sa, const Item& sb) { return sa.size() < sb.size(); }; // sort by element length, not content
@@ -216,10 +216,15 @@ private:
     //LOG(info, "end form batches, #tempBatches = {}", tempBatches.size());
 
     // Shuffle the batches
-    if(shuffle) {
+    if(shuffle_) {
       std::shuffle(tempBatches.begin(), tempBatches.end(), eng_);
     }
-    //LOG(info, "end shuffling batches, #tempBatches = {}", tempBatches.size());
+    LOG(debug, "[data] fetched {} batches with {} sentences.", tempBatches.size(), numSentencesRead);
+    return tempBatches;
+  }
+
+  void fillBatches() {
+    auto tempBatches = fetchBatches();
 
     // Wait here until batch buffer is empty;   
     // LOG(info, "Waiting for buffer to be empty");
@@ -232,7 +237,6 @@ private:
     // LOG(info, "Dumping batches to buffer");
     for(const auto& batch : tempBatches)
       bufferedBatches_.push_back(batch);
-    LOG(debug, "[data] read {} sentences. Current batch queue size is {}", numSentencesRead, bufferedBatches_.size());
 
     loadingSamples_ = false;
     hadData_ = tempBatches.size() > 0;
@@ -249,21 +253,9 @@ private:
       if(!loadingSamples_ && hadData_) {
 try{
         loadingSamples_ = true;
-#if 1
         threadPool_.enqueue([this]() {
-        //std::thread([this]() {
-          //pid_t gettid(void) { return syscall(SYS_gettid); }
-          //LOG(info, "new thread for fillBatch with id {}", (pid_t)syscall(SYS_gettid));
-          fillBatches(shuffle_); 
+          fillBatches(); 
         });
-        //.detach();
-#else
-        std::thread([this]() { 
-          //pid_t gettid(void) { return syscall(SYS_gettid); }
-          LOG(info, "new thread for fillBatch with id {}", (pid_t)syscall(SYS_gettid));
-          fillBatches(shuffle_); 
-        }).detach();
-#endif
 }
 catch (const std::exception&) { // catch thread-handle leaks. @TODO: Remove this once no longer needed.
   LOG(info, "caught exception in Corpus::next()");
@@ -333,7 +325,7 @@ public:
     // @TODO: solve this better, maybe use options
     shuffle_ = shuffle;
 
-    fillBatches(shuffle);
+    fillBatches();
   }
 
   // Used to restore the state of a BatchGenerator after

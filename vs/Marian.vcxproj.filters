@@ -259,6 +259,12 @@
     <ClCompile Include="..\src\tensors\rand.cpp">
       <Filter>tensors</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\data\default_vocab.cpp">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\sentencepiece_vocab.cpp">
+      <Filter>data</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
