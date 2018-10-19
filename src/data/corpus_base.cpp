@@ -79,6 +79,9 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
       for(size_t i = 0; i < paths_.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>(options_, i);
         int vocSize = vocab->loadOrCreate("", paths_[i], maxVocabs[i]);
+        // TODO: this is not nice as it modifies the option object and needs to expose the changes
+        // outside the corpus as models need to know about the vocabulary size; extract the vocab
+        // creation functionality from the class.
         options_->get()["dim-vocabs"][i] = vocSize;
 
         options_->get()["vocabs"].push_back(paths_[i] + ".yml");
@@ -92,6 +95,9 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
       for(size_t i = 0; i < vocabPaths.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>(options_, i);
         int vocSize = vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
+        // TODO: this is not nice as it modifies the option object and needs to expose the changes
+        // outside the corpus as models need to know about the vocabulary size; extract the vocab
+        // creation functionality from the class.
         options_->get()["dim-vocabs"][i] = vocSize;
 
         vocabs_.emplace_back(vocab);
