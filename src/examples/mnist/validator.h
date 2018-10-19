@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/config.h"
+#include "common/options.h"
 #include "data/batch_generator.h"
 #include "graph/expression_graph.h"
 #include "models/model_base.h"
@@ -14,7 +14,7 @@ namespace marian {
 
 class AccuracyValidator : public Validator<data::MNISTData> {
 public:
-  AccuracyValidator(Ptr<Config> options)
+  AccuracyValidator(Ptr<Options> options)
       : Validator(std::vector<Ptr<Vocab>>(), options, false) {
     Ptr<Options> temp = New<Options>();
     temp->merge(options);

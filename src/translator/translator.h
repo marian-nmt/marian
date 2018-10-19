@@ -29,9 +29,9 @@ private:
 public:
   Translate(Ptr<Config> options) : options_(options) {
     // @TODO: to be fixed and removed after removing Config
-    auto copt = New<Options>();
-    copt->merge(options_);
-    corpus_ = New<data::Corpus>(copt, true);
+    auto opts = New<Options>();
+    opts->merge(options_);
+    corpus_ = New<data::Corpus>(opts, true);
 
     // This is currently safe as the translator is either created stand-alone or
     // or config is created anew from Options in the validator. @TODO: make sure
@@ -40,11 +40,7 @@ public:
 
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
 
-    // @TODO: to be fixed and removed after removing Config
-    auto topt = New<Options>();
-    topt->merge(options_);
-    trgVocab_ = New<Vocab>(topt, vocabs.size() - 1);
-
+    trgVocab_ = New<Vocab>(opts, vocabs.size() - 1);
     trgVocab_->load(vocabs.back());
 
     auto srcVocab = corpus_->getVocabs()[0];
@@ -85,23 +81,24 @@ public:
   }
 
   void run() override {
-    data::BatchGenerator<data::Corpus> bg(corpus_, options_);
+    // @TODO: unify this and get rid of Config object.
+    auto tOptions = New<Options>();
+    tOptions->merge(options_);
 
-    auto numDevices = options_->getDevices().size(); // @TODO: make this a class member. We only need the size actually.
+    data::BatchGenerator<data::Corpus> bg(corpus_, tOptions);
+
+    // @TODO: make this a class member. We only need the size actually.
+    auto numDevices = options_->getDevices().size();
 
     ThreadPool threadPool(numDevices, numDevices);
 
     size_t batchId = 0;
     auto collector = New<OutputCollector>(options_->get<std::string>("output"));
-    auto printer = New<OutputPrinter>(options_, trgVocab_);
+    auto printer = New<OutputPrinter>(tOptions, trgVocab_);
     if(options_->get<bool>("quiet-translation"))
       collector->setPrintingStrategy(New<QuietPrinting>());
 
     bg.prepare(false);
-
-    // @TODO: unify this and get rid of Config object.
-    auto tOptions = New<Options>();
-    tOptions->merge(options_);
 
     for(auto batch : bg) {
       auto task = [=](size_t id) {
@@ -205,10 +202,10 @@ public:
     tOptions->merge(options_);
 
     auto corpus_ = New<data::TextInput>(std::vector<std::string>({input}), srcVocabs_, tOptions);
-    data::BatchGenerator<data::TextInput> batchGenerator(corpus_, options_);
+    data::BatchGenerator<data::TextInput> batchGenerator(corpus_, tOptions);
 
     auto collector = New<StringCollector>();
-    auto printer = New<OutputPrinter>(options_, trgVocab_);
+    auto printer = New<OutputPrinter>(tOptions, trgVocab_);
     size_t batchId = 0;
 
     batchGenerator.prepare(false);

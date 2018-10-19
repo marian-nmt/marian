@@ -101,7 +101,7 @@ public:
     auto opts = New<Options>();
     opts->merge(options_);
 
-    auto batchGenerator = New<BatchGenerator<CorpusBase>>(corpus_, options_);
+    auto batchGenerator = New<BatchGenerator<CorpusBase>>(corpus_, opts);
     batchGenerator->prepare(false);
 
     Ptr<ScoreCollector> output = options_->get<bool>("n-best")

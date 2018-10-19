@@ -59,7 +59,7 @@ template <class DataSet>
 class Validator : public ValidatorBase {
 public:
   Validator(std::vector<Ptr<Vocab>> vocabs,
-            Ptr<Config> options,
+            Ptr<Options> options,
             bool lowerIsBetter = true)
       : ValidatorBase(lowerIsBetter), vocabs_(vocabs), options_(options) {}
 
@@ -69,21 +69,18 @@ public:
     for(auto graph : graphs)
       graph->setInference(true);
 
+    // TODO: this is repeated 3 times?
     // Update validation options
-    auto opts = New<Config>(*options_);
+    auto opts = New<Options>(*options_);
     opts->set("inference", true);
     opts->set("max-length", options_->get<size_t>("valid-max-length"));
     if(options_->has("valid-mini-batch"))
       opts->set("mini-batch", options_->get<size_t>("valid-mini-batch"));
     opts->set("mini-batch-sort", "src");
 
-    // @TODO: to be fixed after replacing Config with Options
-    auto topt = New<Options>();
-    topt->merge(opts);
-
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
-    auto corpus = New<DataSet>(validPaths, vocabs_, topt);
+    auto corpus = New<DataSet>(validPaths, vocabs_, opts);
 
     // Generate batches
     auto batchGenerator = New<BatchGenerator<DataSet>>(corpus, opts);
@@ -101,7 +98,7 @@ public:
 
 protected:
   std::vector<Ptr<Vocab>> vocabs_;
-  Ptr<Config> options_;
+  Ptr<Options> options_;
   Ptr<models::ModelBase> builder_;
 
   virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>&,
@@ -129,7 +126,7 @@ protected:
 
 class CrossEntropyValidator : public Validator<data::Corpus> {
 public:
-  CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
+  CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options) {
     Ptr<Options> opts = New<Options>();
     opts->merge(options);
@@ -198,7 +195,7 @@ protected:
 
 class ScriptValidator : public Validator<data::Corpus> {
 public:
-  ScriptValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
+  ScriptValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options, false) {
     Ptr<Options> opts = New<Options>();
     opts->merge(options);
@@ -234,7 +231,7 @@ protected:
 
 class TranslationValidator : public Validator<data::Corpus> {
 public:
-  TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
+  TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options, false),
         quiet_(options_->get<bool>("quiet-translation")) {
     Ptr<Options> opts = New<Options>();
@@ -250,21 +247,18 @@ public:
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     using namespace data;
 
+    // TODO: this is repeated 3 times?
     // Temporary options for translation
-    auto opts = New<Config>(*options_);
+    auto opts = New<Options>(*options_);
     opts->set("inference", true);
     opts->set("mini-batch", options_->get<int>("valid-mini-batch"));
     opts->set("maxi-batch", 10);
     opts->set("max-length", 1000);
 
-    // @TODO: to be fixed after replacing Config with Options
-    auto topt = New<Options>();
-    topt->merge(opts);
-
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     std::vector<std::string> paths(validPaths.begin(), validPaths.end());
-    auto corpus = New<data::Corpus>(paths, vocabs_, topt);
+    auto corpus = New<data::Corpus>(paths, vocabs_, opts);
 
     // Generate batches
     auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, opts);
@@ -318,10 +312,6 @@ public:
 
       ThreadPool threadPool(graphs.size(), graphs.size());
 
-      // @TODO: unify this and get rid of Config object.
-      auto tOptions = New<Options>();
-      tOptions->merge(options_);
-
       for(auto batch : *batchGenerator) {
         auto task = [=](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
@@ -332,7 +322,7 @@ public:
             scorer = scorers[id % graphs.size()];
           }
 
-          auto search = New<BeamSearch>(tOptions,
+          auto search = New<BeamSearch>(options_,
                                         std::vector<Ptr<Scorer>>{scorer},
                                         vocabs_.back()->getEosId(),
                                         vocabs_.back()->getUnkId());
@@ -392,7 +382,7 @@ private:
   bool detok_{false};
 
 public:
-  BleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options, bool detok = false)
+  BleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, bool detok = false)
       : Validator(vocabs, options, false),
         quiet_(options_->get<bool>("quiet-translation")),
         detok_(detok) {
@@ -416,21 +406,18 @@ public:
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     using namespace data;
 
+    // TODO: this is repeated 3 times?
     // Temporary options for translation
-    auto opts = New<Config>(*options_);
+    auto opts = New<Options>(*options_);
     opts->set("inference", true);
     opts->set("mini-batch", options_->get<int>("valid-mini-batch"));
     opts->set("maxi-batch", 10);
     opts->set("max-length", 1000);
 
-    // @TODO: to be fixed after replacing Config with Options
-    auto topt = New<Options>();
-    topt->merge(opts);
-
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     std::vector<std::string> paths(validPaths.begin(), validPaths.end());
-    auto corpus = New<data::Corpus>(paths, vocabs_, topt);
+    auto corpus = New<data::Corpus>(paths, vocabs_, opts);
 
     // Generate batches
     auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, opts);
@@ -484,10 +471,6 @@ public:
 
       ThreadPool threadPool(graphs.size(), graphs.size());
 
-      // @TODO: unify this and get rid of Config object.
-      auto tOptions = New<Options>();
-      tOptions->merge(options_);
-
       for(auto batch : *batchGenerator) {
         auto task = [=, &stats](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
@@ -498,7 +481,7 @@ public:
             scorer = scorers[id % graphs.size()];
           }
 
-          auto search = New<BeamSearch>(tOptions,
+          auto search = New<BeamSearch>(options_,
                                         std::vector<Ptr<Scorer>>{scorer},
                                         vocabs_.back()->getEosId(),
                                         vocabs_.back()->getUnkId());
@@ -677,5 +660,5 @@ protected:
  */
 std::vector<Ptr<Validator<data::Corpus>>> Validators(
     std::vector<Ptr<Vocab>> vocabs,
-    Ptr<Config> config);
+    Ptr<Options> config);
 }  // namespace marian

@@ -20,16 +20,19 @@ public:
   void run() override {
     using namespace data;
 
+    // @TODO: unify this and get rid of Config object.
+    auto tOptions = New<Options>();
+    tOptions->merge(options_);
+
     // Prepare data set
     auto paths = options_->get<std::vector<std::string>>("train-sets");
     auto dataset = New<data::MNISTData>(paths);
-    auto batchGenerator
-        = New<BatchGenerator<data::MNISTData>>(dataset, options_, nullptr);
+    auto batchGenerator = New<BatchGenerator<data::MNISTData>>(dataset, tOptions, nullptr);
 
     // Prepare scheduler with validators
     auto trainState = New<TrainingState>(options_->get<float>("learn-rate"));
     auto scheduler = New<Scheduler>(options_, trainState);
-    scheduler->addValidator(New<AccuracyValidator>(options_));
+    scheduler->addValidator(New<AccuracyValidator>(tOptions));
 
     // Prepare model
     auto model = New<ModelWrapper>(options_);

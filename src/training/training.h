@@ -61,11 +61,11 @@ public:
 
     if((options_->has("valid-sets") || options_->has("valid-script-path"))
        && options_->get<size_t>("valid-freq") > 0) {
-      for(auto validator : Validators(dataset->getVocabs(), options_))
+      for(auto validator : Validators(dataset->getVocabs(), opts))
         scheduler->addValidator(validator);
     }
 
-    auto batchGenerator = New<CorpusBatchGenerator>(dataset, options_, stats);
+    auto batchGenerator = New<CorpusBatchGenerator>(dataset, opts, stats);
     scheduler->registerTrainingObserver(batchGenerator);
 
     auto model = New<ModelWrapper>(options_);

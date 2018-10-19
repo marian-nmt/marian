@@ -30,6 +30,9 @@ protected:
   YAML::Node options_;
 
 public:
+  Options() {}
+  Options(const Options& other) : options_(YAML::Clone(other.options_)) {}
+
   YAML::Node& getOptions() { return options_; }
 
   void parse(const std::string& yaml) {
