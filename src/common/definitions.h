@@ -1,13 +1,13 @@
 #pragma once
 
+#include "common/logging.h"
+#include "shape.h"
+
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
-
-#include "common/logging.h"
-#include "shape.h"
 
 #define THREAD_GUARD(body) std::thread([&]() { body; }).join()
 #define NodeOp(op) [=]() { op; }
