@@ -71,20 +71,17 @@ protected:
 private:
   Ptr<BatchStats> stats_;
 
-  int batchSize_{1};
+  // state of fetching
+  std::deque<BatchPtr> bufferedBatches_; // current swath of batches that next() reads from
 
   // state of reading
   typename DataSet::iterator current_;
-  bool newlyPrepared_{true}; // prepare() was just called: we need to reset current_
-
-  //size_t maxiBatchSize_;
-  std::deque<BatchPtr> bufferedBatches_; // current swath of batches that next() reads from
-  //BatchPtr currentBatch_;
+  bool newlyPrepared_{ true }; // prepare() was just called: we need to reset current_
 
   // variables for multi-threaded pre-fetching
-  //std::deque<BatchPtr>
+  std::future<std::deque<BatchPtr>> futureBufferedBatches_; // next swath of batches is returned via this
   mutable ThreadPool threadPool_; // (we only use one thread, but keep it around)
-#if 1
+#if 0
   mutable std::mutex loadMutex_;
   mutable std::condition_variable loadCondition_;
   bool loadingSamples_{false};
@@ -228,6 +225,7 @@ private:
     return std::deque<BatchPtr>(tempBatches.begin(), tempBatches.end());
   }
 
+#if 0
   void fillBatches() {
     auto tempBatches = fetchBatches();
 
@@ -249,12 +247,37 @@ private:
     // Buffer is full now, everyone else can carry on
     loadCondition_.notify_all();
   }
+#endif
 
   // this starts fillBatches() as a background operation
   void fetchBatchesAsync() {
+    ABORT_IF(futureBufferedBatches_.valid(), "attempted to restart futureBufferedBatches_ while still running");
+    futureBufferedBatches_ = threadPool_.enqueue([this]() {
+        return fetchBatches();
+      });
   }
 
   BatchPtr next() {
+    if(bufferedBatches_.empty()) {
+      // out of data: need to get next batch from background thread
+      // We only get here if the future has been scheduled to run; it must be valid.
+      ABORT_IF(!futureBufferedBatches_.valid(), "attempted to wait for futureBufferedBatches_ when none pending");
+      futureBufferedBatches_.wait();
+      auto fetchedBufferedBatches = futureBufferedBatches_.get(); // note: this will move-construct in-place (hopefully)
+      bufferedBatches_ = std::move(fetchedBufferedBatches); // @TODO: combine this with the previous line once this works
+      // if bg thread returns an empty swath, we hit the end of the epoch
+      if (bufferedBatches_.empty()) {
+        return nullptr;
+      }
+      // and kick off the next bg operation
+      fetchBatchesAsync();
+    }
+    auto batch = bufferedBatches_.front();
+    bufferedBatches_.pop_front();
+    return batch;
+  }
+#if 0
+  BatchPtr ___OLD_next() {
     // Start preloading batches and inform that loading is happening.
     // Detach the loading process so it's not blocking batch processing.
     {
@@ -307,6 +330,7 @@ catch (const std::exception&) { // catch thread-handle leaks. @TODO: Remove this
       return batch;
     }
   }
+#endif
 
 public:
 
