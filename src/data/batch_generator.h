@@ -73,21 +73,26 @@ private:
 
   int batchSize_{1};
 
+  // state of reading
   typename DataSet::iterator current_;
-  bool newlyPrepared_{true};
+  bool newlyPrepared_{true}; // prepare() was just called: we need to reset current_
 
-  size_t maxiBatchSize_;
-  std::deque<BatchPtr> bufferedBatches_;
-  BatchPtr currentBatch_;
+  //size_t maxiBatchSize_;
+  std::deque<BatchPtr> bufferedBatches_; // current swath of batches that next() reads from
+  //BatchPtr currentBatch_;
 
+  // variables for multi-threaded pre-fetching
+  //std::deque<BatchPtr>
   mutable ThreadPool threadPool_; // (we only use one thread, but keep it around)
+#if 1
   mutable std::mutex loadMutex_;
   mutable std::condition_variable loadCondition_;
   bool loadingSamples_{false};
   bool hadData_{false};
+#endif
 
   // this runs on a bg thread; sequencing is handled by caller, but locking is done in here
-  std::vector<BatchPtr> fetchBatches() {
+  std::deque<BatchPtr> fetchBatches() {
     //LOG(info, "fillBatches entered");
     typedef typename sample::value_type Item;
     auto itemCmp = [](const Item& sa, const Item& sb) { return sa.size() < sb.size(); }; // sort by element length, not content
@@ -220,7 +225,7 @@ private:
       std::shuffle(tempBatches.begin(), tempBatches.end(), eng_);
     }
     LOG(debug, "[data] fetched {} batches with {} sentences.", tempBatches.size(), numSentencesRead);
-    return tempBatches;
+    return std::deque<BatchPtr>(tempBatches.begin(), tempBatches.end());
   }
 
   void fillBatches() {
@@ -243,6 +248,10 @@ private:
 
     // Buffer is full now, everyone else can carry on
     loadCondition_.notify_all();
+  }
+
+  // this starts fillBatches() as a background operation
+  void fetchBatchesAsync() {
   }
 
   BatchPtr next() {
@@ -325,7 +334,8 @@ public:
     // @TODO: solve this better, maybe use options
     shuffle_ = shuffle;
 
-    fillBatches();
+    // start the background pre-fetch operation
+    fetchBatchesAsync();
   }
 
   // Used to restore the state of a BatchGenerator after
