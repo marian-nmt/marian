@@ -196,10 +196,7 @@ class ScriptValidator : public Validator<data::Corpus> {
 public:
   ScriptValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options, false) {
-    Ptr<Options> opts = New<Options>();
-    opts->merge(options);
-    opts->set("inference", true);
-    builder_ = models::from_options(opts, models::usage::raw);
+    builder_ = models::from_options(options_, models::usage::raw);
 
     ABORT_IF(!options_->has("valid-script-path"),
              "valid-script metric but no script given");
@@ -233,10 +230,7 @@ public:
   TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options, false),
         quiet_(options_->get<bool>("quiet-translation")) {
-    Ptr<Options> opts = New<Options>();
-    opts->merge(options);
-    opts->set("inference", true);
-    builder_ = models::from_options(opts, models::usage::translation);
+    builder_ = models::from_options(options_, models::usage::translation);
 
     if(!options_->has("valid-script-path"))
       LOG_VALID(warn,
@@ -377,12 +371,9 @@ private:
 public:
   BleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, bool detok = false)
       : Validator(vocabs, options, false),
-        quiet_(options_->get<bool>("quiet-translation")),
-        detok_(detok) {
-    Ptr<Options> opts = New<Options>();
-    opts->merge(options);
-    opts->set("inference", true);
-    builder_ = models::from_options(opts, models::usage::translation);
+        detok_(detok),
+        quiet_(options_->get<bool>("quiet-translation")) {
+    builder_ = models::from_options(options_, models::usage::translation);
 
 #ifdef USE_SENTENCEPIECE
     auto vocab = vocabs_.back();
