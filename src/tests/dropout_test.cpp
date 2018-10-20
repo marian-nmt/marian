@@ -9,7 +9,7 @@ using namespace marian;
 int main(int argc, char** argv) {
   auto c = New<Config>(argc, argv);
 
-  auto type = c->get<bool>("cpu")
+  auto type = c->get<size_t>("cpu-threads") > 0
     ? DeviceType::cpu
     : DeviceType::gpu;
   DeviceId deviceId{0, type};

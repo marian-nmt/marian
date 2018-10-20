@@ -15,7 +15,8 @@ private:
   std::mt19937 engine_;
 
 public:
-  StdlibRandomGenerator(size_t seed) : RandomGenerator(seed) {}
+  StdlibRandomGenerator(size_t seed)
+  : RandomGenerator(seed), engine_(seed) {}
 
   virtual void uniform(Tensor tensor, float a, float b) override;
   virtual void normal(Tensor, float mean, float stddev) override;
@@ -31,28 +32,20 @@ public:
   CurandRandomGenerator(size_t seed, DeviceId deviceId);
   ~CurandRandomGenerator();
 
-  virtual void uniform(Tensor tensor, float a, float b) override;
+  virtual void uniform(Tensor, float a, float b) override;
   virtual void normal(Tensor, float mean, float stddev) override;
 
 };
 #endif
 
-Ptr<RandomGenerator> createRandomGenerator(size_t seed, DeviceId deviceId) {
-#ifdef CUDA_FOUND
-    return New<CurandRandomGenerator>(seed, deviceId);
-#else
-    ABORT_IF(deviceId.type != DeviceType::cpu,
-             "StdlibRandomGenerator can only be used for CPU tensors");
-    return New<StdlibRandomGenerator>(seed);
-#endif
-}
-
 void StdlibRandomGenerator::uniform(Tensor tensor, float a, float b) {
+    matchOrAbort<float>(tensor->type());
+
     ABORT_IF(tensor->getBackend()->getDeviceId().type != DeviceType::cpu,
              "StdlibRandomGenerator can only be used for CPU tensors");
 
-    std::uniform_real_distribution<float> dist(a, b);
-    auto gen = std::bind(dist, engine_);
+    auto dist = std::uniform_real_distribution<float>(a, b);
+    auto gen = bind(dist, std::ref(engine_)); // does not change engine state without std::ref
 
     auto begin = tensor->data<float>();
     auto end   = tensor->data<float>() + tensor->size();
@@ -60,11 +53,13 @@ void StdlibRandomGenerator::uniform(Tensor tensor, float a, float b) {
 }
 
 void StdlibRandomGenerator::normal(Tensor tensor, float mean, float stddev) {
+    matchOrAbort<float>(tensor->type());
+
     ABORT_IF(tensor->getBackend()->getDeviceId().type != DeviceType::cpu,
              "StdlibRandomGenerator can only be used for CPU tensors");
 
-    std::normal_distribution<float> dist(mean, stddev);
-    auto gen = std::bind(dist, engine_);
+    auto dist = std::normal_distribution<float>(mean, stddev);
+    auto gen = bind(dist, std::ref(engine_)); // does not change engine state without std::ref
 
     auto begin = tensor->data<float>();
     auto end   = tensor->data<float>() + tensor->size();
@@ -96,7 +91,7 @@ void CurandRandomGenerator::uniform(Tensor tensor, float a, float b) {
 
     tensor->getBackend()->setDevice();
     CURAND_CHECK(curandGenerateUniform(generator_, tensor->data(), tensor->size()));
-    
+
     // curandGenerateUniform has no range parameters (why?) so we need to
     // scale and shift inplace if range is different than [0, 1).
     using namespace functional;
@@ -112,5 +107,15 @@ void CurandRandomGenerator::normal(Tensor tensor, float mean, float stddev) {
 }
 
 #endif
+
+Ptr<RandomGenerator> createRandomGenerator(size_t seed, DeviceId deviceId) {
+#ifdef CUDA_FOUND
+    return New<CurandRandomGenerator>(seed, deviceId);
+#else
+    ABORT_IF(deviceId.type != DeviceType::cpu,
+             "StdlibRandomGenerator can only be used for CPU tensors");
+    return New<StdlibRandomGenerator>(seed);
+#endif
+}
 
 }

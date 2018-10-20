@@ -133,6 +133,7 @@ Ptr<VocabBase> createSentencePieceVocab(const std::string& vocabPath, Ptr<Option
 #ifdef USE_SENTENCEPIECE
     return New<SentencePieceVocab>(options, batchIndex);
 #else
+    batchIndex;
     ABORT("*.spm suffix in path {} reserved for SentencePiece models, "
           "but support for SentencePiece is not compiled into Marian. "
           "Try to recompile after `cmake .. -DUSE_SENTENCEPIECE=on [...]`",
@@ -144,4 +145,3 @@ Ptr<VocabBase> createSentencePieceVocab(const std::string& vocabPath, Ptr<Option
 }
 
 }
-
