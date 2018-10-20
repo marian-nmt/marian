@@ -1,24 +1,22 @@
 #include "translator/scorers.h"
+#include "common/io.h"
 
 namespace marian {
 
 Ptr<Scorer> scorerByType(const std::string& fname,
                          float weight,
                          const std::string& model,
-                         Ptr<Config> config) {
-  Ptr<Options> options = New<Options>();
-  options->merge(config->get());
+                         Ptr<Options> options) {
   options->set("inference", true);
-
   std::string type = options->get<std::string>("type");
 
   // @TODO: solve this better
-  if(type == "lm" && config->has("input")) {
-    size_t index = config->get<std::vector<std::string>>("input").size();
+  if(type == "lm" && options->has("input")) {
+    size_t index = options->get<std::vector<std::string>>("input").size();
     options->set("index", index);
   }
 
-  bool skipCost = config->get<bool>("skip-cost");
+  bool skipCost = options->get<bool>("skip-cost");
   auto encdec = models::from_options(
       options, skipCost ? models::usage::raw : models::usage::translation);
 
@@ -30,20 +28,17 @@ Ptr<Scorer> scorerByType(const std::string& fname,
 Ptr<Scorer> scorerByType(const std::string& fname,
                          float weight,
                          const void* ptr,
-                         Ptr<Config> config) {
-  Ptr<Options> options = New<Options>();
-  options->merge(config->get());
+                         Ptr<Options> options) {
   options->set("inference", true);
-
   std::string type = options->get<std::string>("type");
 
   // @TODO: solve this better
-  if(type == "lm" && config->has("input")) {
-    size_t index = config->get<std::vector<std::string>>("input").size();
+  if(type == "lm" && options->has("input")) {
+    size_t index = options->get<std::vector<std::string>>("input").size();
     options->set("index", index);
   }
 
-  bool skipCost = config->get<bool>("skip-cost");
+  bool skipCost = options->get<bool>("skip-cost");
   auto encdec = models::from_options(
       options, skipCost ? models::usage::raw : models::usage::translation);
 
@@ -64,11 +59,12 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options) {
   size_t i = 0;
   for(auto model : models) {
     std::string fname = "F" + std::to_string(i);
-    auto modelOptions = New<Config>(*options);
 
+    // load options specific for the scorer
+    auto modelOptions = New<Options>(*options);
     try {
       if(!options->get<bool>("ignore-model-config"))
-        modelOptions->loadModelParameters(model);
+        io::getYamlFromModel(modelOptions->getOptions(), "special::model.yml", model);
     } catch(std::runtime_error&) {
       LOG(warn, "No model settings found in model file");
     }
@@ -90,11 +86,12 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<c
   size_t i = 0;
   for(auto ptr : ptrs) {
     std::string fname = "F" + std::to_string(i);
-    auto modelOptions = New<Config>(*options);
 
+    // load options specific for the scorer
+    auto modelOptions = New<Options>(*options);
     try {
       if(!options->get<bool>("ignore-model-config"))
-        modelOptions->loadModelParameters(ptr);
+        io::getYamlFromModel(modelOptions->getOptions(), "special::model.yml", ptr);
     } catch(std::runtime_error&) {
       LOG(warn, "No model settings found in model file");
     }

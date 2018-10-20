@@ -42,8 +42,7 @@ public:
 
   virtual void init(Ptr<ExpressionGraph> graph) {}
 
-  virtual void setShortlistGenerator(
-      Ptr<data::ShortlistGenerator> shortlistGenerator){};
+  virtual void setShortlistGenerator(Ptr<data::ShortlistGenerator> shortlistGenerator){};
   virtual Ptr<data::Shortlist> getShortlist() { return nullptr; };
   virtual std::vector<float> getAlignment() { return {}; };
 };
@@ -137,14 +136,14 @@ public:
 Ptr<Scorer> scorerByType(const std::string& fname,
                          float weight,
                          const std::string& model,
-                         Ptr<Config> config);
+                         Ptr<Options> config);
 
 std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options);
 
 Ptr<Scorer> scorerByType(const std::string& fname,
                          float weight,
                          const void* ptr,
-                         Ptr<Config> config);
+                         Ptr<Options> config);
 
 std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<const void*>& ptrs);
 
