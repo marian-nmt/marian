@@ -132,6 +132,8 @@
     <ClCompile Include="..\src\common\config.cpp" />
     <ClCompile Include="..\src\common\config_parser.cpp" />
     <ClCompile Include="..\src\data\alignment.cpp" />
+    <ClCompile Include="..\src\data\default_vocab.cpp" />
+    <ClCompile Include="..\src\data\sentencepiece_vocab.cpp" />
     <ClCompile Include="..\src\data\vocab.cpp" />
     <ClCompile Include="..\src\data\corpus_base.cpp" />
     <ClCompile Include="..\src\data\corpus.cpp" />
