@@ -32,12 +32,6 @@ public:
     else
       dataset = New<Corpus>(options_);
 
-    // @TODO: remove after cleaning training/training.h
-    //options_->set<std::vector<int>>("dim-vocabs",
-                                    //dataset->options()->get<std::vector<int>>("dim-vocabs"));
-    //options_->set<std::vector<std::string>>(
-        //"vocabs", dataset->options()->get<std::vector<std::string>>("vocabs"));
-
     dataset->prepare();
 
     Ptr<BatchStats> stats;

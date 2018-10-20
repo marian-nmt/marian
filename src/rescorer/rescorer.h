@@ -48,17 +48,16 @@ private:
 
 public:
   Rescore(Ptr<Options> options) : options_(options) {
+    ABORT_IF(options_->has("summary") && options_->has("alignment"),
+             "Alignments can not be produced with summarized score");
 
     options_->set("inference", true);
+    options_->set("cost-type", "ce-rescore");
 
     if(options_->get<bool>("n-best"))
       corpus_ = New<CorpusNBest>(options_);
     else
       corpus_ = New<Corpus>(options_);
-
-    ABORT_IF(options_->has("summary") && options_->has("alignment"),
-             "Alignments can not be produced with summarized score");
-
     corpus_->prepare();
 
     auto devices = options_->getDevices();
@@ -71,10 +70,6 @@ public:
     }
 
     auto modelFile = options_->get<std::string>("model");
-
-    // @TODO: make sure it's OK as previously there was a Options object created from the Config
-    // object and modified
-    options_->set("cost-type", "ce-rescore");
 
     models_.resize(graphs_.size());
     ThreadPool pool(graphs_.size(), graphs_.size());
@@ -106,11 +101,9 @@ public:
     float sumCost = 0;
     size_t sumWords = 0;
     size_t sumSamples = 0;
-
     size_t batchId = 0;
 
     std::mutex smutex;
-
     {
       ThreadPool pool(graphs_.size(), graphs_.size());
 
