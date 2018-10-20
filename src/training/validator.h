@@ -33,8 +33,7 @@ protected:
   std::mutex mutex_;
 
 public:
-  ValidatorBase(bool lowerIsBetter)
-      : lowerIsBetter_(lowerIsBetter), lastBest_{initScore()} {}
+  ValidatorBase(bool lowerIsBetter) : lowerIsBetter_(lowerIsBetter), lastBest_{initScore()} {}
 
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) = 0;
   virtual std::string type() = 0;
@@ -58,10 +57,13 @@ public:
 template <class DataSet>
 class Validator : public ValidatorBase {
 public:
-  Validator(std::vector<Ptr<Vocab>> vocabs,
-            Ptr<Options> options,
-            bool lowerIsBetter = true)
-      : ValidatorBase(lowerIsBetter), vocabs_(vocabs), options_(options) {}
+  Validator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, bool lowerIsBetter = true)
+      : ValidatorBase(lowerIsBetter),
+        vocabs_(vocabs),
+        // options_ is a copy of global options, so it can be safely modified within the class
+        options_(New<Options>(*options)) {
+    options_->set("inference", true);
+  }
 
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     using namespace data;
@@ -72,7 +74,6 @@ public:
     // TODO: this is repeated 3 times?
     // Update validation options
     auto opts = New<Options>(*options_);
-    opts->set("inference", true);
     opts->set("max-length", options_->get<size_t>("valid-max-length"));
     if(options_->has("valid-mini-batch"))
       opts->set("mini-batch", options_->get<size_t>("valid-mini-batch"));
@@ -128,11 +129,11 @@ class CrossEntropyValidator : public Validator<data::Corpus> {
 public:
   CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options) {
-    Ptr<Options> opts = New<Options>();
-    opts->merge(options);
-    opts->set("inference", true);
-    opts->set("cost-type", "ce-sum");
-    builder_ = models::from_options(opts, models::usage::scoring);
+    // set the cost type temporarily to 'ce-sum' for model builder
+    auto ctype = options_->get<std::string>("cost-type");
+    options_->set("cost-type", "ce-sum");
+    builder_ = models::from_options(options_, models::usage::scoring);
+    options_->set("cost-type", ctype);
   }
 
   std::string type() override { return options_->get<std::string>("cost-type"); }
@@ -141,27 +142,22 @@ protected:
   virtual float validateBG(
       const std::vector<Ptr<ExpressionGraph>>& graphs,
       Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) override {
+    // set the cost type temporarily to 'ce-sum' for model builder
     auto ctype = options_->get<std::string>("cost-type");
+    options_->set("cost-type", "ce-sum");
 
     float cost = 0;
     size_t samples = 0;
     size_t words = 0;
-
     size_t batchId = 0;
 
     {
       ThreadPool threadPool(graphs.size(), graphs.size());
-      // @TODO: clean after replacing Config with Options
-      Ptr<Options> opts = New<Options>();
-      opts->merge(options_);
-      opts->set("inference", true);
-      opts->set("cost-type", "ce-sum");
 
       for(auto batch : *batchGenerator) {
         auto task = [=, &cost, &samples, &words](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
-          thread_local auto builder
-              = models::from_options(opts, models::usage::scoring);
+          thread_local auto builder = models::from_options(options_, models::usage::scoring);
 
           if(!graph) {
             graph = graphs[id % graphs.size()];
@@ -181,6 +177,9 @@ protected:
         batchId++;
       }
     }
+
+    // get back to the original cost type
+    options_->set("cost-type", ctype);
 
     if(ctype == "perplexity")
       return std::exp(cost / words);
@@ -250,7 +249,6 @@ public:
     // TODO: this is repeated 3 times?
     // Temporary options for translation
     auto opts = New<Options>(*options_);
-    opts->set("inference", true);
     opts->set("mini-batch", options_->get<int>("valid-mini-batch"));
     opts->set("maxi-batch", 10);
     opts->set("max-length", 1000);
@@ -266,14 +264,9 @@ public:
 
     // Create scorer
     auto model = options_->get<std::string>("model");
-
-    auto mopts = New<Options>();
-    mopts->merge(options_);
-    mopts->set("inference", true);
-
     std::vector<Ptr<Scorer>> scorers;
     for(auto graph : graphs) {
-      auto builder = models::from_options(mopts, models::usage::translation);
+      auto builder = models::from_options(options_, models::usage::translation);
       Ptr<Scorer> scorer = New<ScorerWrapper>(builder, "", 1.0f, model);
       scorers.push_back(scorer);
     }
@@ -409,7 +402,6 @@ public:
     // TODO: this is repeated 3 times?
     // Temporary options for translation
     auto opts = New<Options>(*options_);
-    opts->set("inference", true);
     opts->set("mini-batch", options_->get<int>("valid-mini-batch"));
     opts->set("maxi-batch", 10);
     opts->set("max-length", 1000);
@@ -425,14 +417,9 @@ public:
 
     // Create scorer
     auto model = options_->get<std::string>("model");
-
-    auto mopts = New<Options>();
-    mopts->merge(options_);
-    mopts->set("inference", true);
-
     std::vector<Ptr<Scorer>> scorers;
     for(auto graph : graphs) {
-      auto builder = models::from_options(mopts, models::usage::translation);
+      auto builder = models::from_options(options_, models::usage::translation);
       Ptr<Scorer> scorer = New<ScorerWrapper>(builder, "", 1.0f, model);
       scorers.push_back(scorer);
     }
