@@ -32,7 +32,6 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
   // set random seed
   if(get<size_t>("seed") == 0) {
     seed = (size_t)time(0);
-    set<size_t>("seed", seed);
   } else {
     seed = get<size_t>("seed");
   }

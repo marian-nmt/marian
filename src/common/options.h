@@ -24,10 +24,12 @@
 
 namespace marian {
 
+/**
+ * Container for options stored as key-value pairs. Keys are unique strings.
+ */
 class Options {
 protected:
   YAML::Node options_;
-  std::vector<DeviceId> devices_;
 
 public:
   Options() {}
@@ -42,15 +44,23 @@ public:
       options_[it.first.as<std::string>()] = YAML::Clone(it.second);
   }
 
-  void merge(Ptr<Options> options) { merge(options->getOptions()); }
-
-  void merge(const YAML::Node& yaml, bool overwrite = false) { merge(yaml, overwrite); }
-
+  /**
+   * @brief Splice options from a YAML node
+   *
+   * By default, only options with keys that do not already exist in options_ are extracted from
+   * node. These options are cloned if overwirte is true.
+   *
+   * @param node a YAML node to transfer the options from
+   * @param overwrite overwrite all options
+   */
   void merge(YAML::Node& node, bool overwrite = false) {
     for(auto it : node)
       if(overwrite || !options_[it.first.as<std::string>()])
         options_[it.first.as<std::string>()] = YAML::Clone(it.second);
   }
+
+  void merge(const YAML::Node& yaml, bool overwrite = false) { merge(yaml, overwrite); }
+  void merge(Ptr<Options> options) { merge(options->getOptions()); }
 
   std::string str() {
     std::stringstream ss;
@@ -79,16 +89,13 @@ public:
 
   bool has(const std::string& key) const { return options_[key]; }
 
-  const YAML::Node& get() const { return options_; }
-  YAML::Node& get() { return options_; }
 
 
 
 
 
-
-
-
+// @TODO: remove the function from this class
+//
 // parse the device-spec parameters (--num-devices, --devices, --cpu-threads) into an array of size_t
 // For multi-node, this returns the devices vector for the given rank, where "devices" really
 // refers to how many graph instances are used (for CPU, that is the number of threads).

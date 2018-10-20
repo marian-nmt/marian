@@ -28,6 +28,10 @@ namespace marian {
 //  - representing a set of options
 //  - interpreting these options in the context of Marian
 // It is not clear which class does what, which class knows what.
+//
+// TODO: At the moment Config is an intermediate object used to get an Options object from
+// ConfigParser by calling parseOptions(). This should be either renamed and heavily refactorized or
+// (better) be build into ConfigParser.
 class Config {
 public:
   static size_t seed;
@@ -95,6 +99,16 @@ private:
   void log();
 };
 
+/**
+ * Parse the command line options.
+ *
+ * @param argc number of arguments passed to the program
+ * @param argv array of command-line arguments
+ * @param mode change the set of available command-line options, e.g. training, translation, etc.
+ * @param validate validate parsed options and abort on failure
+ *
+ * @return parsed otions
+ */
 Ptr<Options> parseOptions(int argc,
                           char** argv,
                           cli::mode mode = cli::mode::training,

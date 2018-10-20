@@ -305,7 +305,7 @@ public:
 
   void save(const std::string& name) {
     // Save config options
-    YAML::Node config = options_->get();
+    YAML::Node config = options_->getOptions();
     std::ofstream fout(name + ".yml");
     fout << config;
     // Save training progress
