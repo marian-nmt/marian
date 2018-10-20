@@ -64,7 +64,7 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options) {
     auto modelOptions = New<Options>(*options);
     try {
       if(!options->get<bool>("ignore-model-config"))
-        io::getYamlFromModel(modelOptions->getOptions(), "special::model.yml", model);
+        io::getYamlFromModel(modelOptions->getOptions(), "special:model.yml", model);
     } catch(std::runtime_error&) {
       LOG(warn, "No model settings found in model file");
     }
@@ -91,7 +91,7 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<c
     auto modelOptions = New<Options>(*options);
     try {
       if(!options->get<bool>("ignore-model-config"))
-        io::getYamlFromModel(modelOptions->getOptions(), "special::model.yml", ptr);
+        io::getYamlFromModel(modelOptions->getOptions(), "special:model.yml", ptr);
     } catch(std::runtime_error&) {
       LOG(warn, "No model settings found in model file");
     }
