@@ -63,8 +63,11 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options) {
     // load options specific for the scorer
     auto modelOptions = New<Options>(*options);
     try {
-      if(!options->get<bool>("ignore-model-config"))
-        io::getYamlFromModel(modelOptions->getOptions(), "special:model.yml", model);
+      if(!options->get<bool>("ignore-model-config")) {
+        YAML::Node modelYaml;
+        io::getYamlFromModel(modelYaml, "special:model.yml", model);
+        modelOptions->merge(modelYaml, true);
+      }
     } catch(std::runtime_error&) {
       LOG(warn, "No model settings found in model file");
     }
@@ -90,8 +93,11 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<c
     // load options specific for the scorer
     auto modelOptions = New<Options>(*options);
     try {
-      if(!options->get<bool>("ignore-model-config"))
-        io::getYamlFromModel(modelOptions->getOptions(), "special:model.yml", ptr);
+      if(!options->get<bool>("ignore-model-config")) {
+        YAML::Node modelYaml;
+        io::getYamlFromModel(modelYaml, "special:model.yml", ptr);
+        modelOptions->merge(modelYaml, true);
+      }
     } catch(std::runtime_error&) {
       LOG(warn, "No model settings found in model file");
     }

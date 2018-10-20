@@ -44,11 +44,11 @@ public:
 
   void merge(Ptr<Options> options) { merge(options->getOptions()); }
 
-  void merge(const YAML::Node& yaml) { merge(yaml); }
+  void merge(const YAML::Node& yaml, bool overwrite = false) { merge(yaml, overwrite); }
 
-  void merge(YAML::Node& node) {
+  void merge(YAML::Node& node, bool overwrite = false) {
     for(auto it : node)
-      if(!options_[it.first.as<std::string>()])
+      if(overwrite || !options_[it.first.as<std::string>()])
         options_[it.first.as<std::string>()] = YAML::Clone(it.second);
   }
 
