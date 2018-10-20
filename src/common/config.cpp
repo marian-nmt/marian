@@ -10,6 +10,7 @@
 
 namespace marian {
 
+// @TODO: keep seed in a single place, now it is kept here and in Config/Options
 size_t Config::seed = (size_t)time(0);
 
 Config::Config(int argc,
@@ -29,10 +30,12 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
   createLoggers(this);
 
   // set random seed
-  if(get<size_t>("seed") == 0)
+  if(get<size_t>("seed") == 0) {
     seed = (size_t)time(0);
-  else
+    set<size_t>("seed", seed);
+  } else {
     seed = get<size_t>("seed");
+  }
 
   // load model parameters
   if(mode != cli::mode::translation) {
