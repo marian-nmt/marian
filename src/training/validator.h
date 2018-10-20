@@ -62,7 +62,14 @@ public:
         vocabs_(vocabs),
         // options_ is a copy of global options, so it can be safely modified within the class
         options_(New<Options>(*options)) {
+    // set options common for all validators
     options_->set("inference", true);
+    if(options_->has("valid-max-length"))
+      options_->set("max-length", options_->get<size_t>("valid-max-length"));
+    if(options_->has("valid-mini-batch"))
+      options_->set("mini-batch", options_->get<size_t>("valid-mini-batch"));
+    options_->set("mini-batch-sort", "src");
+    options_->set("maxi-batch", 10);
   }
 
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
@@ -71,20 +78,12 @@ public:
     for(auto graph : graphs)
       graph->setInference(true);
 
-    // TODO: this is repeated 3 times?
-    // Update validation options
-    auto opts = New<Options>(*options_);
-    opts->set("max-length", options_->get<size_t>("valid-max-length"));
-    if(options_->has("valid-mini-batch"))
-      opts->set("mini-batch", options_->get<size_t>("valid-mini-batch"));
-    opts->set("mini-batch-sort", "src");
-
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
-    auto corpus = New<DataSet>(validPaths, vocabs_, opts);
+    auto corpus = New<DataSet>(validPaths, vocabs_, options_);
 
     // Generate batches
-    auto batchGenerator = New<BatchGenerator<DataSet>>(corpus, opts);
+    auto batchGenerator = New<BatchGenerator<DataSet>>(corpus, options_);
     batchGenerator->prepare(false);
 
     // Validate on batches
@@ -198,8 +197,7 @@ public:
       : Validator(vocabs, options, false) {
     builder_ = models::from_options(options_, models::usage::raw);
 
-    ABORT_IF(!options_->has("valid-script-path"),
-             "valid-script metric but no script given");
+    ABORT_IF(!options_->has("valid-script-path"), "valid-script metric but no script given");
   }
 
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
@@ -233,27 +231,19 @@ public:
     builder_ = models::from_options(options_, models::usage::translation);
 
     if(!options_->has("valid-script-path"))
-      LOG_VALID(warn,
-                "No post-processing script given for validating translator");
+      LOG_VALID(warn, "No post-processing script given for validating translator");
   }
 
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     using namespace data;
 
-    // TODO: this is repeated 3 times?
-    // Temporary options for translation
-    auto opts = New<Options>(*options_);
-    opts->set("mini-batch", options_->get<int>("valid-mini-batch"));
-    opts->set("maxi-batch", 10);
-    opts->set("max-length", 1000);
-
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     std::vector<std::string> paths(validPaths.begin(), validPaths.end());
-    auto corpus = New<data::Corpus>(paths, vocabs_, opts);
+    auto corpus = New<data::Corpus>(paths, vocabs_, options_);
 
     // Generate batches
-    auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, opts);
+    auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, options_);
     batchGenerator->prepare(false);
 
     // Create scorer
@@ -272,8 +262,7 @@ public:
     if(options_->has("valid-translation-output")) {
       fileName = options_->get<std::string>("valid-translation-output");
     } else {
-      tempFile.reset(
-          new io::TemporaryFile(options_->get<std::string>("tempdir"), false));
+      tempFile.reset(new io::TemporaryFile(options_->get<std::string>("tempdir"), false));
       fileName = tempFile->getFileName();
     }
 
@@ -341,8 +330,7 @@ public:
 
     // Run post-processing script if given
     if(options_->has("valid-script-path")) {
-      auto command
-          = options_->get<std::string>("valid-script-path") + " " + fileName;
+      auto command = options_->get<std::string>("valid-script-path") + " " + fileName;
       auto valStr = utils::exec(command);
       val = (float)std::atof(valStr.c_str());
       updateStalled(graphs, val);
@@ -390,20 +378,13 @@ public:
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     using namespace data;
 
-    // TODO: this is repeated 3 times?
-    // Temporary options for translation
-    auto opts = New<Options>(*options_);
-    opts->set("mini-batch", options_->get<int>("valid-mini-batch"));
-    opts->set("maxi-batch", 10);
-    opts->set("max-length", 1000);
-
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     std::vector<std::string> paths(validPaths.begin(), validPaths.end());
-    auto corpus = New<data::Corpus>(paths, vocabs_, opts);
+    auto corpus = New<data::Corpus>(paths, vocabs_, options_);
 
     // Generate batches
-    auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, opts);
+    auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, options_);
     batchGenerator->prepare(false);
 
     // Create scorer
