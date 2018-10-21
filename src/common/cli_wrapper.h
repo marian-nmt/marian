@@ -303,14 +303,20 @@ private:
       auto &vec = allVars_[key]->as<T>();
       vec.clear();
       bool ret = true;
-      // populate the vector with parser results
-      for(const auto &a : res) {
-        vec.emplace_back();
-        ret &= CLI::detail::lexical_cast(a, vec.back());
+      // handle '[]' as an empty vector
+      if(res.size() == 1 && res.front() == "[]") {
+        ret = true;
+      } else {
+        // populate the vector with parser results
+        for(const auto &a : res) {
+          vec.emplace_back();
+          ret &= CLI::detail::lexical_cast(a, vec.back());
+        }
+        ret &= !vec.empty();
       }
       // update YAML entry
       config_[key] = vec;
-      return (!vec.empty()) && ret;
+      return ret;
     };
 
     auto opt = app_->add_option(args, fun, help);
