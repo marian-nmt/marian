@@ -16,7 +16,7 @@ private:
 
 public:
   StdlibRandomGenerator(size_t seed)
-  : RandomGenerator(seed), engine_(seed) {}
+  : RandomGenerator(seed), engine_((unsigned int)seed) {}
 
   virtual void uniform(Tensor tensor, float a, float b) override;
   virtual void normal(Tensor, float mean, float stddev) override;
