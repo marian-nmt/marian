@@ -303,14 +303,20 @@ private:
       auto &vec = allVars_[key]->as<T>();
       vec.clear();
       bool ret = true;
-      // populate the vector with parser results
-      for(const auto &a : res) {
-        vec.emplace_back();
-        ret &= CLI::detail::lexical_cast(a, vec.back());
+      // handle '[]' as an empty vector
+      if(res.size() == 1 && res.front() == "[]") {
+        ret = true;
+      } else {
+        // populate the vector with parser results
+        for(const auto &a : res) {
+          vec.emplace_back();
+          ret &= CLI::detail::lexical_cast(a, vec.back());
+        }
+        ret &= !vec.empty();
       }
       // update YAML entry
       config_[key] = vec;
-      return (!vec.empty()) && ret;
+      return ret;
     };
 
     auto opt = app_->add_option(args, fun, help);
@@ -348,19 +354,30 @@ private:
 
     // callback function setting the flag
     CLI::callback_t fun = [this, key](CLI::results_t res) {
-      // set boolean variable associated with the option
-      allVars_[key]->as<T>() = !res.empty();
-      // update YAML entry
-      config_[key] = !res.empty();
-      return true;
+      // get parser result, it is safe as boolean options have an implicit value
+      auto val = res[0];
+      auto ret = true;
+      if(val == "true" || val == "on" || val == "yes" || val == "1") {
+        allVars_[key]->as<T>() = true;
+        config_[key] = true;
+      } else if(val == "false" || val == "off" || val == "no" || val == "0") {
+        allVars_[key]->as<T>() = false;
+        config_[key] = false;
+      } else {
+        ret = false;
+      }
+      return ret;
     };
 
     auto opt = app_->add_option(args, fun, help, defaulted);
-    // do not accept any argument for the boolean option
-    opt->type_size(0);
     // set option group
     if(!currentGroup_.empty())
       opt->group(currentGroup_);
+    // set textual representation of the default value for help message
+    if(defaulted)
+      opt->default_str(val ? "true" : "false");
+    // allow to use the flag without any argument
+    opt->implicit_val("true");
 
     // store option object
     opts_.insert(std::make_pair(key, opt));
