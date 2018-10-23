@@ -56,6 +56,8 @@ protected:
     auto srcEmbeddings = rows(srcEmbed, subBatch->data());   // extract trainable src embeddings
     auto alpha = rows(ulrSharable, subBatch->data());  // extract sharable flags
     auto qt = dot(queryEmbeddings, ulrTransform, false, false);  //A: transform embeddings based on similarity A :  dimUlrEmb *dimUlrEmb
+    auto sqrtDim=std::sqrt((float)queryEmbeddings->shape()[-1]);
+    qt = qt/sqrtDim;  // normalize accordin to embed size to avoid dot prodcut growing large in magintude with larger embeds sizes
     auto z = dot(qt, keyEmbed, false, true);      // query-key similarity 
     float dropProb = this->options_->get<float>("ulr-dropout", 0.0f);  // default no dropout
     z = dropout(z, dropProb);
@@ -64,7 +66,7 @@ protected:
     // high temperature Softmax outputs are more close to each other
     // low temperatures the softmax become more similar to  "hardmax" 
     auto weights = softmax(z / tau);  // assume default  is dim=-1, what about temprature? - scaler ??
-    auto chosenEmbeddings = dot(weights, uniEmbed);  // THIS IS WRONG  - IT SHOULD BE AVERAGE 
+    auto chosenEmbeddings = dot(weights, uniEmbed);  // AVERAGE 
     auto chosenEmbeddings_mix = srcEmbeddings + alpha * chosenEmbeddings;  // this should be elementwise  broadcast
     auto batchEmbeddings = reshape(chosenEmbeddings_mix, { dimWords, dimBatch, dimEmb });
     auto batchMask = graph->constant({ dimWords, dimBatch, 1 },
