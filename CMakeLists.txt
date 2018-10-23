@@ -4,6 +4,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 project(marian CXX C)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(BUILD_ARCH native CACHE STRING "Compile for this CPU architecture.")
 
 # Custom CMake options
 option(COMPILE_EXAMPLES "Compile examples" OFF)
@@ -16,7 +17,6 @@ option(USE_CUDNN "Use CUDNN library" OFF)
 option(USE_NCCL "Use NCCL library" ON)
 option(USE_MPI "Use MPI library" OFF)
 option(USE_SENTENCEPIECE "Download and compile SentencePiece" OFF)
-option(COMPILE_NATIVELY "Generate native code (-march=native => less portable)" ON)
 
 # Project versioning
 find_package(Git QUIET)
@@ -28,12 +28,6 @@ message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 execute_process(COMMAND git submodule update --init --recursive --no-fetch
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
               
-if (COMPILE_NATIVELY)
-  set(MARCH native)
-else()     
-  set(MARCH "x86-64 -mavx")
-endif()
-
 # Set compilation flags
 if(MSVC)
   set(CMAKE_CXX_FLAGS           "/EHsc /DWIN32 /D_WINDOWS /DUNICODE /D_UNICODE /D_CRT_NONSTDC_NO_WARNINGS /D_CRT_SECURE_NO_WARNINGS")
@@ -44,7 +38,7 @@ if(MSVC)
 
   set(CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} /LTCG:incremental")
 else()
-  set(CMAKE_CXX_FLAGS_RELEASE         " -std=c++11 -O3 -Ofast -m64 -pthread -march=${MARCH} -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
+  set(CMAKE_CXX_FLAGS_RELEASE         " -std=c++11 -O3 -Ofast -m64 -pthread -march=${BUILD_ARCH} -msse4.1 -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
 
   set(CMAKE_CXX_FLAGS_DEBUG           " -std=c++11 -g -rdynamic -O0 -pthread -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
   set(CMAKE_CXX_FLAGS_ST              "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG")
