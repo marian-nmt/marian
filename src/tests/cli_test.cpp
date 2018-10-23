@@ -45,7 +45,8 @@ int main(int argc, char** argv) {
     w->add<std::vector<float>>("-v,--vec", "help message")->expected(-2);
     w->switchGroup("My group");
     w->add<std::vector<std::string>>("--defvec,-d", "help message")->default_val("foo");
-    w->add<bool>("-b,--bool", "help message");
+    w->add<bool>("-b,--bool", "boolean option");
+    w->add<bool>("-x,--xbool", "false boolean option", true);
     w->add<std::string>("--a-very-long-option-name-for-testing-purposes", "A very long text a very long text a very long text a very long text a very long text a very long text");
     w->switchGroup();
     w->add<std::string>("-f,--file", "help message")->check(validators::file_exists);
