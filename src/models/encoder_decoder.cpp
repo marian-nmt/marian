@@ -88,7 +88,7 @@ Config::YamlNode EncoderDecoder::getModelParameters() {
   if(options_->has("original-type"))
     modelParams["type"] = options_->getOptions()["original-type"];
 
-  modelParams["version"] = projectVersion();
+  modelParams["version"] = buildVersion();
   return modelParams;
 }
 
