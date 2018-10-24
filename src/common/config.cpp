@@ -65,12 +65,12 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
   if(has("version")) {
     auto version = get<std::string>("version");
 
-    if(mode == cli::mode::training && version != PROJECT_VERSION_FULL)
+    if(mode == cli::mode::training && version != projectVersion())
       LOG(info,
           "[config] Loaded model has been created with Marian {}, "
           "will be overwritten with current version {} at saving",
           version,
-          PROJECT_VERSION_FULL);
+          projectVersion());
     else
       LOG(info,
           "[config] Loaded model has been created with Marian {}",
@@ -80,7 +80,7 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
   else if(mode == cli::mode::training) {
     LOG(info,
         "[config] Model is being created with Marian {}",
-        PROJECT_VERSION_FULL);
+        projectVersion());
   }
 }
 

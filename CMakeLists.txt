@@ -224,10 +224,11 @@ if(COMPILE_EXAMPLES)
   add_definitions(-DCOMPILE_EXAMPLES=1)
 endif(COMPILE_EXAMPLES)
 
-# Compile source files
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/common/version.h.in
-               ${CMAKE_CURRENT_SOURCE_DIR}/src/common/version.h @ONLY)
+# Generate project_version.h to reflect our version number
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/common/project_version.h.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/common/projectI_version.h @ONLY)
 
+# Compile source files
 include_directories(${marian_SOURCE_DIR}/src)
 add_subdirectory(src)
 

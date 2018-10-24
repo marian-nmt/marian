@@ -131,6 +131,7 @@
     <ClCompile Include="..\src\common\logging.cpp" />
     <ClCompile Include="..\src\common\config.cpp" />
     <ClCompile Include="..\src\common\config_parser.cpp" />
+    <ClCompile Include="..\src\common\version.cpp" />
     <ClCompile Include="..\src\data\alignment.cpp" />
     <ClCompile Include="..\src\data\default_vocab.cpp" />
     <ClCompile Include="..\src\data\sentencepiece_vocab.cpp" />
@@ -219,6 +220,7 @@
     <ClInclude Include="..\src\common\io_item.h" />
     <ClInclude Include="..\src\common\timer.h" />
     <ClInclude Include="..\src\common\types.h" />
+    <ClInclude Include="..\src\common\version.h" />
     <ClInclude Include="..\src\layers\loss.h" />
     <ClInclude Include="..\src\layers\weight.h" />
     <ClInclude Include="..\src\marian.h" />
@@ -371,7 +373,7 @@
     <ClInclude Include="..\src\common\regex.h" />
     <ClInclude Include="..\src\common\shape.h" />
     <ClInclude Include="..\src\common\utils.h" />
-    <ClInclude Include="..\src\common\version.h" />
+    <ClInclude Include="..\src\common\project_version.h" />
     <ClInclude Include="..\src\data\alignment.h" />
     <ClInclude Include="..\src\data\batch.h" />
     <ClInclude Include="..\src\data\batch_generator.h" />
