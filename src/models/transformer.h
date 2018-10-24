@@ -527,7 +527,7 @@ public:
     // create the embedding matrix, considering tying and some other options
     // embed the source words in the batch
     Expr batchEmbeddings, batchMask;
-    if (options_->has("ulr-enabled") && options_->get<bool>("ulr-enabled") == true) {
+    if (options_->has("ulr") && options_->get<bool>("ulr") == true) {
       auto embeddings = ULREmbeddings(); // embedding uses ULR
       std::tie(batchEmbeddings, batchMask)
         = EncoderBase::ulrLookup(graph_, embeddings, batch);
