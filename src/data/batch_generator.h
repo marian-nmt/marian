@@ -149,8 +149,7 @@ private:
     size_t currentWords = 0;
     std::vector<size_t> lengths(sets, 0); // records maximum length observed within current batch
 
-    std::vector<BatchPtr> tempBatches;
-    tempBatches.reserve(10000); // (should be enough in most cases; not critical)
+    std::deque<BatchPtr> tempBatches;
 
     // process all loaded sentences in order of increasing length
     // @TODO: we could just use a vector and do a sort() here; would make the cost more explicit
@@ -216,15 +215,15 @@ private:
       std::shuffle(tempBatches.begin(), tempBatches.end(), eng_);
     }
     LOG(debug, "[data] fetched {} batches with {} sentences.", tempBatches.size(), numSentencesRead);
-    return std::deque<BatchPtr>(tempBatches.begin(), tempBatches.end());
+    return tempBatches;
   }
 
   // this starts fillBatches() as a background operation
   void fetchBatchesAsync() {
     ABORT_IF(futureBufferedBatches_.valid(), "attempted to restart futureBufferedBatches_ while still running");
     futureBufferedBatches_ = threadPool_.enqueue([this]() {
-        return fetchBatches();
-      });
+      return fetchBatches();
+    });
   }
 
   BatchPtr next() {
@@ -232,9 +231,7 @@ private:
       // out of data: need to get next batch from background thread
       // We only get here if the future has been scheduled to run; it must be valid.
       ABORT_IF(!futureBufferedBatches_.valid(), "attempted to wait for futureBufferedBatches_ when none pending");
-      futureBufferedBatches_.wait();
-      auto fetchedBufferedBatches = futureBufferedBatches_.get(); // note: this will move-construct in-place (hopefully)
-      bufferedBatches_ = std::move(fetchedBufferedBatches); // @TODO: combine this with the previous line once this works
+      bufferedBatches_ = std::move(futureBufferedBatches_.get());
       // if bg thread returns an empty swath, we hit the end of the epoch
       if (bufferedBatches_.empty()) {
         return nullptr;
@@ -253,6 +250,11 @@ public:
                  Ptr<Config> options,
                  Ptr<BatchStats> stats = nullptr)
       : data_(data), options_(options), stats_(stats), threadPool_(1) {}
+
+  ~BatchGenerator() {
+    if (futureBufferedBatches_.valid()) // bg thread holds a reference to 'this',
+      futureBufferedBatches_.get();     // so must wait for it to complete
+  }
 
   iterator begin() {
     return iterator(this, next());
