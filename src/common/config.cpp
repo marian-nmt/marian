@@ -42,7 +42,6 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
     cmdLine += quote + arg + quote;
   }
   LOG(info, "[marian] {}", cmdLine);
-  exit(1); // @TODO: remove!
 
   // set random seed
   if(get<size_t>("seed") == 0)
