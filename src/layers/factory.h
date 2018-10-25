@@ -62,11 +62,6 @@ public:
     return *this;
   }
 
-  Accumulator& operator()(Ptr<Config> config) {
-    Factory::getOptions()->merge(config->get());
-    return *this;
-  }
-
   Accumulator<Factory> clone() {
     return Accumulator<Factory>(Factory::clone());
   }
