@@ -33,9 +33,12 @@ protected:
 
 public:
   Options() {}
-  Options(const YAML::Node& node) : options_(node) {}
 
-  Ptr<Options> clone() const { return New<Options>(YAML::Clone(options_)); }
+  Options clone() const {
+    auto options = Options();
+    options.options_ = YAML::Clone(options_);
+    return options;
+  }
 
   YAML::Node& getYaml() { return options_; }
   const YAML::Node& getYaml() const { return options_; }
