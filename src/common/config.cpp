@@ -3,11 +3,11 @@
 #include "common/logging.h"
 #include "common/utils.h"
 #include "common/version.h"
+#include "common/regex.h"
 
 #include <algorithm>
 #include <set>
 #include <string>
-#include <regex>
 
 namespace marian {
 
@@ -36,7 +36,7 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
     std::string quote; // attempt to quote special chars
     if (arg.empty() || arg.find_first_of(" #`\"'\\${}|&^?*!()%><") != std::string::npos)
       quote = "'";
-    arg = std::regex_replace(arg, std::regex("'"), "'\\''");
+    arg = regex::regex_replace(arg, std::regex("'"), "'\\''");
     if (!cmdLine.empty())
       cmdLine.push_back(' ');
     cmdLine += quote + arg + quote;
