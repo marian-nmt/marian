@@ -90,6 +90,9 @@ public:
     return out;
   }
 
+  static std::vector<DeviceId> getDevices(Ptr<Options> options,
+                                          size_t myMPIRank = 0,
+                                          size_t numMPIProcesses = 1);
 private:
   YAML::Node config_;
 
@@ -97,6 +100,7 @@ private:
   void override(const YAML::Node& params);
 
   void log();
+
 };
 
 /**

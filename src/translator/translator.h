@@ -44,7 +44,7 @@ public:
       shortlistGenerator_ = New<data::LexicalShortlistGenerator>(
           options_, srcVocab, trgVocab_, 0, 1, vocabs.front() == vocabs.back());
 
-    auto devices = options_->getDevices();
+    auto devices = Config::getDevices(options_);
 
     ThreadPool threadPool(devices.size(), devices.size());
     scorers_.resize(devices.size());
@@ -79,7 +79,7 @@ public:
     data::BatchGenerator<data::Corpus> bg(corpus_, options_);
 
     // @TODO: make this a class member. We only need the size actually.
-    auto numDevices = options_->getDevices().size();
+    auto numDevices = Config::getDevices(options_).size();
 
     ThreadPool threadPool(numDevices, numDevices);
 
@@ -144,7 +144,8 @@ private:
 public:
   virtual ~TranslateService() {}
 
-  TranslateService(Ptr<Options> options) : options_(options), devices_(options_->getDevices()) {
+  TranslateService(Ptr<Options> options)
+      : options_(options), devices_(Config::getDevices(options_)) {
     init();
   }
 

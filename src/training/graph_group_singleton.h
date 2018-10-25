@@ -26,7 +26,7 @@ public:
   SingletonGraph(Ptr<Options> config)
       : GraphGroup(config),
         ExponentialSmoothing(options_->get<float>("exponential-smoothing")) {
-    auto deviceId = options_->getDevices()[0]; // TODO: check that only one
+    auto deviceId = Config::getDevices(options_)[0]; // TODO: check that only one
     graph_ = New<ExpressionGraph>();
     graph_->setDevice(deviceId);
     graph_->getBackend()->setClip(options_->get<float>("clip-gemm"));

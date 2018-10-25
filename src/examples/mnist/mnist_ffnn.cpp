@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
   if(options->get<std::string>("type") != "mnist-lenet")
     options->set("type", "mnist-ffnn");
 
-  auto devices = options->getDevices();
+  auto devices = Config::getDevices(options);
 
   if(devices.size() > 1) {
     if(options->get<bool>("sync-sgd"))

@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
     New<Train<SyncGraphGroup>>(options)->run();
   }
   else {
-    auto devices = options->getDevices();
+    auto devices = Config::getDevices(options);
     if(devices.size() == 1) {
       LOG(warn, "[training] Using SingletonGraph trainer.");
       New<Train<SingletonGraph>>(options)->run();

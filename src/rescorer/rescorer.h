@@ -2,6 +2,7 @@
 
 #include "marian.h"
 
+#include "common/config.h"
 #include "common/options.h"
 #include "data/batch_generator.h"
 #include "data/corpus.h"
@@ -60,7 +61,7 @@ public:
       corpus_ = New<Corpus>(options_);
     corpus_->prepare();
 
-    auto devices = options_->getDevices();
+    auto devices = Config::getDevices(options_);
 
     for(auto device : devices) {
       auto graph = New<ExpressionGraph>(true, options_->get<bool>("optimize"));

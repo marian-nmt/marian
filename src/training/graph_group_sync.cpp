@@ -9,7 +9,7 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Options> config)
 
   mpi_ = initMPI(/*multiThreaded=*/false); // when not running under MPI, this will be a fake object that represents a one-MPI-process setup
 
-  devices_ = options_->getDevices(mpi_->myMPIRank(), mpi_->numMPIProcesses());
+  devices_ = Config::getDevices(options_, mpi_->myMPIRank(), mpi_->numMPIProcesses());
   for(auto device : devices_) {
     auto graph = New<ExpressionGraph>();
     graph->setDevice(device);

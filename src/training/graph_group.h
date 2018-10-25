@@ -134,7 +134,7 @@ public:
 
     // Set up devices for this node
     std::vector<size_t> devices; // set of GPU device ids for this MPI process
-    for (auto& d : options_->getDevices())
+    for (auto& d : Config::getDevices(options_))
       devices.push_back(d.no);
     loadDeviceConfig(devices); // set up numberClientsOfNodes_[] and devices_[]
 
