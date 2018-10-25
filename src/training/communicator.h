@@ -8,9 +8,6 @@
 #if MPI_FOUND
 #include "mpi.h"
 #endif
-#ifdef __unix__
-#include <unistd.h>
-#endif
 // clang-format on
 
 namespace marian {
@@ -79,24 +76,7 @@ public:
     v.resize(vecLen);
     bCast(v.data(), v.size(), getDataType(v.data()), rootRank, comm);
   }
-  std::string idStr() const { // helper to identify the node in logs
-    return hostnameAndProcessId() + " MPI rank " + std::to_string(myMPIRank()) + " out of " + std::to_string(numMPIProcesses());
-  }
-protected:
-  static std::string hostnameAndProcessId() { // helper to get hostname:pid
-#ifdef _WIN32
-    std::string hostname = getenv("COMPUTERNAME");
-    auto processId = GetCurrentProcessId();
-#else
-    static std::string hostname = [](){ // not sure if gethostname() is expensive. This way we call it only once.
-      char hostnamebuf[HOST_NAME_MAX + 1] = { 0 };
-      gethostname(hostnamebuf, sizeof(hostnamebuf));
-      return std::string(hostnamebuf);
-    }();
-    auto processId = getpid();
-#endif
-    return hostname + ":" + std::to_string(processId);
-  }
+  std::string idStr() const;
 };
 
 Ptr<IMPIWrapper> initMPI(bool multiThreaded);

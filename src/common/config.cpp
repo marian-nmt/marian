@@ -29,7 +29,7 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
   createLoggers(this);
 
   // echo version and command line
-  LOG(info, "[marian] {}", buildVersion());
+  LOG(info, "[marian] Marian {}", buildVersion());
   std::string cmdLine;
   for (int i = 0; i < argc; i++) {
     std::string arg = argv[i];
@@ -41,6 +41,9 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
       cmdLine.push_back(' ');
     cmdLine += quote + arg + quote;
   }
+  std::string hostname; int pid; std::tie
+  (hostname, pid) = utils::hostnameAndProcessId();
+  LOG(info, "[marian] Running on {} as process {} with command line:", hostname, pid);
   LOG(info, "[marian] {}", cmdLine);
 
   // set random seed

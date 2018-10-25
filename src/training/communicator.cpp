@@ -1,4 +1,5 @@
 #include "training/communicator.h"
+#include "common/utils.h"
 
 #if defined(CUDA_FOUND) && defined(USE_NCCL)
 #include "training/communicator_nccl.h"
@@ -42,6 +43,12 @@ Ptr<ICommunicator> createCommunicator(
   noNccl; // (unused)
   return New<DefaultCommunicator>(graphs, mpi);
 #endif
+}
+
+std::string IMPIWrapper::idStr() const { // helper to identify the node in logs
+  std::string hostname; int pid; std::tie
+  (hostname, pid) = utils::hostnameAndProcessId();
+  return hostname + ":" + std::to_string(pid) + " MPI rank " + std::to_string(myMPIRank()) + " out of " + std::to_string(numMPIProcesses());
 }
 
 #if MPI_FOUND
