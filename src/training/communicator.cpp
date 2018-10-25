@@ -98,8 +98,12 @@ public:
     // log hostnames in order, and test
     for (size_t r = 0; r < numMPIProcesses(); r++) {
       MPIWrapper::barrier();
-      if (r == MPIWrapper::myMPIRank())
-        LOG(info, "[mpi] initialized {} processes", MPIWrapper::numMPIProcesses());
+      if (r == MPIWrapper::myMPIRank() && MPIWrapper::numMPIProcesses() > 1) {
+        std::string hostname; int pid; std::tie
+        (hostname, pid) = utils::hostnameAndProcessId();
+        LOG(info, "[mpi] Initialized as rank {} out of {} processes on {} as process {}",
+                  MPIWrapper::myMPIRank(), MPIWrapper::numMPIProcesses(), hostname, pid);
+      }
       MPIWrapper::barrier();
     }
   }

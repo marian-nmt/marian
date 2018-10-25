@@ -226,7 +226,7 @@ endif(COMPILE_EXAMPLES)
 
 # Generate project_version.h to reflect our version number
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/common/project_version.h.in
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/common/project_version.h @ONLY)
+               ${CMAKE_CURRENT_SOURCE_DIR}/src/common/project_version.h @ONLY)
 
 # Compile source files
 include_directories(${marian_SOURCE_DIR}/src)
