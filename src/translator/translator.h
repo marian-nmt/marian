@@ -26,11 +26,12 @@ private:
   Ptr<Vocab> trgVocab_;
   Ptr<data::ShortlistGenerator> shortlistGenerator_;
 
+  size_t numDevices_;
+
 public:
   Translate(Ptr<Options> options) : options_(options) {
     // This is currently safe as the translator is either created stand-alone or
-    // or config is created anew from Options in the validator. @TODO: make sure
-    // it stays safe when Config/Options get unified.
+    // or config is created anew from Options in the validator
     options_->set("inference", true);
 
     corpus_ = New<data::Corpus>(options_, true);
@@ -45,16 +46,16 @@ public:
           options_, srcVocab, trgVocab_, 0, 1, vocabs.front() == vocabs.back());
 
     auto devices = Config::getDevices(options_);
+    numDevices_ = devices.size();
 
-    ThreadPool threadPool(devices.size(), devices.size());
-    scorers_.resize(devices.size());
-    graphs_.resize(devices.size());
+    ThreadPool threadPool(numDevices_, numDevices_);
+    scorers_.resize(numDevices_);
+    graphs_.resize(numDevices_);
 
     size_t id = 0;
     for(auto device : devices) {
       auto task = [&](DeviceId device, size_t id) {
-        auto graph
-            = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
+        auto graph = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
         graph->setDevice(device);
         graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
@@ -78,10 +79,7 @@ public:
   void run() override {
     data::BatchGenerator<data::Corpus> bg(corpus_, options_);
 
-    // @TODO: make this a class member. We only need the size actually.
-    auto numDevices = Config::getDevices(options_).size();
-
-    ThreadPool threadPool(numDevices, numDevices);
+    ThreadPool threadPool(numDevices_, numDevices_);
 
     size_t batchId = 0;
     auto collector = New<OutputCollector>(options_->get<std::string>("output"));
@@ -97,8 +95,8 @@ public:
         thread_local std::vector<Ptr<Scorer>> scorers;
 
         if(!graph) {
-          graph = graphs_[id % numDevices];
-          scorers = scorers_[id % numDevices];
+          graph = graphs_[id % numDevices_];
+          scorers = scorers_[id % numDevices_];
         }
 
         auto search = New<Search>(options_, scorers, trgVocab_->getEosId(), trgVocab_->getUnkId());
@@ -137,17 +135,15 @@ private:
   std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<std::vector<Ptr<Scorer>>> scorers_;
 
-  std::vector<DeviceId> devices_;
   std::vector<Ptr<Vocab>> srcVocabs_;
   Ptr<Vocab> trgVocab_;
+
+  size_t numDevices_;
 
 public:
   virtual ~TranslateService() {}
 
-  TranslateService(Ptr<Options> options)
-      : options_(options), devices_(Config::getDevices(options_)) {
-    init();
-  }
+  TranslateService(Ptr<Options> options) : options_(options) { init(); }
 
   void init() override {
     // initialize vocabs
@@ -165,8 +161,12 @@ public:
     trgVocab_ = New<Vocab>(options_, vocabPaths.size() - 1);
     trgVocab_->load(vocabPaths.back());
 
+    // get device IDs
+    auto devices = Config::getDevices(options_);
+    numDevices_ = devices.size();
+
     // initialize scorers
-    for(auto device : devices_) {
+    for(auto device : devices) {
       auto graph = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
       graph->setDevice(device);
       graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
@@ -191,7 +191,7 @@ public:
     batchGenerator.prepare(false);
 
     {
-      ThreadPool threadPool_(devices_.size(), devices_.size());
+      ThreadPool threadPool_(numDevices_, numDevices_);
 
       for(auto batch : batchGenerator) {
 
@@ -200,8 +200,8 @@ public:
           thread_local std::vector<Ptr<Scorer>> scorers;
 
           if(!graph) {
-            graph = graphs_[id % devices_.size()];
-            scorers = scorers_[id % devices_.size()];
+            graph = graphs_[id % numDevices_];
+            scorers = scorers_[id % numDevices_];
           }
 
           auto search = New<Search>(options_, scorers, trgVocab_->getEosId(), trgVocab_->getUnkId());
