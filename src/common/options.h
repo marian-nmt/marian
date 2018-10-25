@@ -37,8 +37,8 @@ public:
 
   Ptr<Options> clone() const { return New<Options>(YAML::Clone(options_)); }
 
-  YAML::Node& getOptions() { return options_; }
-  const YAML::Node& getOptions() const { return options_; }
+  YAML::Node& getYaml() { return options_; }
+  const YAML::Node& getYaml() const { return options_; }
 
   void parse(const std::string& yaml) {
     auto node = YAML::Load(yaml);
@@ -62,7 +62,7 @@ public:
   }
 
   void merge(const YAML::Node& node, bool overwrite = false) { merge(node, overwrite); }
-  void merge(Ptr<Options> options) { merge(options->getOptions()); }
+  void merge(Ptr<Options> options) { merge(options->getYaml()); }
 
   std::string str() {
     std::stringstream ss;

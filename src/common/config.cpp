@@ -21,7 +21,7 @@ Config::Config(int argc,
 }
 
 Config::Config(const Config& other) : config_(YAML::Clone(other.config_)) {}
-Config::Config(const Options& options) : config_(YAML::Clone(options.getOptions())) {}
+Config::Config(const Options& options) : config_(YAML::Clone(options.getYaml())) {}
 
 void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
   auto parser = ConfigParser(argc, argv, mode, validate);
