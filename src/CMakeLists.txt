@@ -77,6 +77,9 @@ add_library(marian STATIC
   training/validator.cpp
   training/communicator.cpp
 
+  # this is only compiled to catch build errors, but not linked
+  microsoft/quicksand.cpp
+
   $<TARGET_OBJECTS:libyaml-cpp>
   $<TARGET_OBJECTS:SQLiteCpp>
 )
