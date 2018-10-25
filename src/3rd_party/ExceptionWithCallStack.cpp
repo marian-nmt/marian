@@ -10,7 +10,9 @@
 #pragma comment(lib, "Dbghelp.lib")
 #pragma warning(push)
 #pragma warning(disable: 4091) // 'typedef ': ignored on left of '' when no variable is declared
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <Windows.h>
 #include "DbgHelp.h"
 #pragma warning(pop)

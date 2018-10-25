@@ -6,7 +6,14 @@
 #include "tensors/tensor_operators.h"
 #include "optimizers/optimizers.h"
 #if MPI_FOUND
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsuggest-override"
+#endif
 #include "mpi.h"
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 #endif
 #ifdef __unix__
 #include <unistd.h>

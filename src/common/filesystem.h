@@ -4,7 +4,15 @@
 // into one place. Marian should call functions only from this file. boost::filesystem will
 // be removed. This needs to be portable to Windows too.
 
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsuggest-override"
+#endif
 #include <boost/filesystem.hpp>
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 namespace marian {
 namespace filesystem {

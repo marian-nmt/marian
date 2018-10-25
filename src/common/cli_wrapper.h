@@ -41,7 +41,7 @@ typedef CLI::Range range;
 class CLIFormatter : public CLI::Formatter {
 public:
   CLIFormatter(size_t columnWidth, size_t screenWidth);
-  virtual std::string make_option_desc(const CLI::Option *) const;
+  virtual std::string make_option_desc(const CLI::Option *) const override;
 
 private:
   size_t screenWidth_{0};

@@ -34,19 +34,19 @@ private:
 
 public:
   
-  virtual bool equal(const BatchIterator& other) const {
+  virtual bool equal(const BatchIterator& other) const override {
     // iterators are only equal if they point at the same batch or both have nullptr
     return current_ == other.current_;
   }
 
   // Just returns the batch pointer
-  virtual const typename BatchGenerator::BatchPtr& dereference() const {
+  virtual const typename BatchGenerator::BatchPtr& dereference() const override {
     return current_;
   }
 
   // sets current pointer to the next batch pointer, will be nullptr when no
   // batches are available. This will evaluate to false in a for loop.
-  virtual void increment() {
+  virtual void increment() override {
     current_ = bg_->next();
   };
 };
