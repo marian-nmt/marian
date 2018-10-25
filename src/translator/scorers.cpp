@@ -61,7 +61,7 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options) {
     std::string fname = "F" + std::to_string(i);
 
     // load options specific for the scorer
-    auto modelOptions = New<Options>(*options);
+    auto modelOptions = New<Options>(options->clone());
     try {
       if(!options->get<bool>("ignore-model-config")) {
         YAML::Node modelYaml;
@@ -91,7 +91,7 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<c
     std::string fname = "F" + std::to_string(i);
 
     // load options specific for the scorer
-    auto modelOptions = New<Options>(*options);
+    auto modelOptions = New<Options>(options->clone());
     try {
       if(!options->get<bool>("ignore-model-config")) {
         YAML::Node modelYaml;

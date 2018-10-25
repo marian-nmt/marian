@@ -60,8 +60,8 @@ public:
   Validator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, bool lowerIsBetter = true)
       : ValidatorBase(lowerIsBetter),
         vocabs_(vocabs),
-        // options_ is a copy of global options, so it can be safely modified within the class
-        options_(New<Options>(*options)) {
+        // options_ is a clone of global options, so it can be safely modified within the class
+        options_(options->clone()) {
     // set options common for all validators
     options_->set("inference", true);
     if(options_->has("valid-max-length"))

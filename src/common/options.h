@@ -33,7 +33,9 @@ protected:
 
 public:
   Options() {}
-  Options(const Options& other) : options_(YAML::Clone(other.options_)) {}
+  Options(const YAML::Node& node) : options_(node) {}
+
+  Ptr<Options> clone() const { return New<Options>(YAML::Clone(options_)); }
 
   YAML::Node& getOptions() { return options_; }
   const YAML::Node& getOptions() const { return options_; }
@@ -59,7 +61,7 @@ public:
         options_[it.first.as<std::string>()] = YAML::Clone(it.second);
   }
 
-  void merge(const YAML::Node& yaml, bool overwrite = false) { merge(yaml, overwrite); }
+  void merge(const YAML::Node& node, bool overwrite = false) { merge(node, overwrite); }
   void merge(Ptr<Options> options) { merge(options->getOptions()); }
 
   std::string str() {
