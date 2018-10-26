@@ -29,10 +29,20 @@ private:
 public:
   Translate(Ptr<Config> options)
       : options_(options),
-        corpus_(New<data::Corpus>(options_, true)),
-        trgVocab_(New<Vocab>()) {
+        corpus_(New<data::Corpus>(options_, true)) {
 
+    // This is currently safe as the translator is either created stand-alone or
+    // or config is created anew from Options in the validator. @TODO: make sure
+    // it stays safe when Config/Options get unified. 
+    options_->set("inference", true);
+    
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
+
+    // @TODO: to be fixed and removed.
+    auto topt = New<Options>();
+    topt->merge(options_);
+    trgVocab_ = New<Vocab>(topt, vocabs.size() - 1);
+
     trgVocab_->load(vocabs.back());
 
     auto srcVocab = corpus_->getVocabs()[0];
@@ -75,9 +85,9 @@ public:
   void run() override {
     data::BatchGenerator<data::Corpus> bg(corpus_, options_);
 
-    auto devices = options_->getDevices();
+    auto numDevices = options_->getDevices().size(); // @TODO: make this a class member. We only need the size actually.
 
-    ThreadPool threadPool(devices.size(), devices.size());
+    ThreadPool threadPool(numDevices, numDevices);
 
     size_t batchId = 0;
     auto collector = New<OutputCollector>(options_->get<std::string>("output"));
@@ -97,8 +107,8 @@ public:
         thread_local std::vector<Ptr<Scorer>> scorers;
 
         if(!graph) {
-          graph = graphs_[id % devices.size()];
-          scorers = scorers_[id % devices.size()];
+          graph = graphs_[id % numDevices];
+          scorers = scorers_[id % numDevices];
         }
 
         auto search = New<Search>(
@@ -148,20 +158,28 @@ public:
 
   TranslateService(Ptr<Config> options)
       : options_(options),
-        devices_(options_->getDevices()),
-        trgVocab_(New<Vocab>()) {
+        devices_(options_->getDevices()) {
     init();
   }
 
   void init() override {
     // initialize vocabs
+    options_->set("inference", true);
+
     auto vocabPaths = options_->get<std::vector<std::string>>("vocabs");
     std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
+
+    // @TODO: Ugly hack to convery Config to Options, to be removed.
+    auto topt = New<Options>();
+    topt->merge(options_);
+
     for(size_t i = 0; i < vocabPaths.size() - 1; ++i) {
-      Ptr<Vocab> vocab = New<Vocab>();
+      Ptr<Vocab> vocab = New<Vocab>(topt, i);
       vocab->load(vocabPaths[i], maxVocabs[i]);
       srcVocabs_.emplace_back(vocab);
     }
+
+    trgVocab_ = New<Vocab>(topt, vocabPaths.size() - 1);
     trgVocab_->load(vocabPaths.back());
 
     // initialize scorers

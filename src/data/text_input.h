@@ -30,7 +30,6 @@ class TextInput : public DatasetBase<SentenceTuple, TextIterator, CorpusBatch> {
 private:
   std::vector<UPtr<std::istringstream>> files_;
   std::vector<Ptr<Vocab>> vocabs_;
-  Ptr<Config> options_;
 
   size_t pos_{0};
 

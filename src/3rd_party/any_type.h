@@ -88,7 +88,7 @@ public:
     p = nullptr;
   }
 
-  bool empty() const { return p; }
+  bool empty() const { return !!p; }
 
   template <typename T>
   bool is() const {

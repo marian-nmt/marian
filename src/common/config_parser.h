@@ -49,7 +49,6 @@ public:
   void parseOptions(int argc, char** argv, bool validate);
 
   YAML::Node getConfig() const;
-  std::vector<DeviceId> getDevices();
 
 private:
   cli::mode mode_;
@@ -78,7 +77,7 @@ private:
   void addSuboptionsDevices(cli::CLIWrapper&);
   void addSuboptionsBatching(cli::CLIWrapper&);
   void addSuboptionsInputLength(cli::CLIWrapper&);
-
+  void addSuboptionsULR(cli::CLIWrapper&);
   void expandAliases(cli::CLIWrapper&);
 
   // Extract paths to all config files found in the config object.

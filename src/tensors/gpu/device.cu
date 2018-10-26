@@ -8,29 +8,33 @@ namespace marian {
 namespace gpu {
 
 Device::~Device() {
-  cudaSetDevice(deviceId_.no);
+  // Note: The CUDA_CHECKs here are not throwing, but will terminate the program.
+  CUDA_CHECK(cudaSetDevice(deviceId_.no));
   if(data_) {
     CUDA_CHECK(cudaFree(data_));
   }
-  cudaDeviceSynchronize();
+  CUDA_CHECK(cudaDeviceSynchronize());
 }
 
 void Device::reserve(size_t size) {
   size = align(size);
-  cudaSetDevice(deviceId_.no);
+  CUDA_CHECK(cudaSetDevice(deviceId_.no));
 
   ABORT_IF(size < size_ || size == 0,
            "New size must be larger than old size and larger than 0");
 
   if(data_) {
-    // Allocate memory by going through host memory
-    uint8_t *temp = new uint8_t[size_];
-    CUDA_CHECK(cudaMemcpy(temp, data_, size_, cudaMemcpyDeviceToHost));
+    // Allocate memory while temporarily parking original content in host memory
+    std::vector<uint8_t> temp(size_);
+    CUDA_CHECK(cudaMemcpy(temp.data(), data_, size_, cudaMemcpyDeviceToHost));
     CUDA_CHECK(cudaFree(data_));
+    LOG(debug, "[memory] Re-allocating from {} to {} bytes on device {}", size_, size, deviceId_.no);
     CUDA_CHECK(cudaMalloc(&data_, size));
-    CUDA_CHECK(cudaMemcpy(data_, temp, size_, cudaMemcpyHostToDevice));
-    delete[] temp;
+    CUDA_CHECK(cudaMemcpy(data_, temp.data(), size_, cudaMemcpyHostToDevice));
+    //logCallStack(0);
   } else {
+    // No data_ yet: Just alloc.
+    LOG(debug, "[memory] Allocating {} bytes in device {}", size, deviceId_.no);
     CUDA_CHECK(cudaMalloc(&data_, size));
   }
 

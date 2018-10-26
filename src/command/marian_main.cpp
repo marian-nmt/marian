@@ -17,6 +17,8 @@
 #include "marian_conv.cpp"
 #undef main
 
+#include "3rd_party/ExceptionWithCallStack.h"
+
 int main(int argc, char** argv) {
   using namespace marian;
 
@@ -30,7 +32,7 @@ int main(int argc, char** argv) {
     // else if (cmd == "score")     return mainScorer(argc, argv);
     else if (cmd == "vocab")     return mainVocab(argc, argv);
     else if (cmd == "convert")   return mainConv(argc, argv);
-    std::cerr << "Command must be train, decode, score, vocab, or convert.";
+    std::cerr << "Command must be train, decode, score, vocab, or convert." << std::endl;
     exit(1);
   } else
     return mainTrainer(argc, argv);

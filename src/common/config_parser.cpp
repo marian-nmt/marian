@@ -253,7 +253,11 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "If this parameter is not supplied we look for vocabulary files "
       "source.{yml,json} and target.{yml,json}. "
       "If these files do not exist they are created");
-
+#ifdef USE_SENTENCEPIECE
+  cli.add<std::vector<float>>("--sentencepiece-alphas",
+                              "Sampling factors for SentencePieceVocab;"
+                              "i-th factor corresponds to i-th vocabulary");
+#endif
   // scheduling options
   cli.add<size_t>("--after-epochs,-e",
       "Finish after this many epochs, 0 is infinity");
@@ -262,6 +266,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<size_t>("--disp-freq",
       "Display information every  arg  updates",
       1000);
+  cli.add<size_t>("--disp-first",
+      "Display nformation for the first  arg  updates");
   cli.add<bool>("--disp-label-counts",
       "Display label counts when logging loss progress");
   cli.add<size_t>("--save-freq",
@@ -343,10 +349,9 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<float>("--exponential-smoothing",
      "Maintain smoothed version of parameters for validation and saving with smoothing factor. 0 to disable",
      0)->implicit_val("1e-4");
-
-  // options for additional training data
-  cli.add_nondefault<std::string>("--guided-alignment",
-     "Path to a file with word alignments. Use guided alignment to guide attention");
+  cli.add<std::string>("--guided-alignment",
+     "Path to a file with word alignments. Use guided alignment to guide attention or 'none'", 
+     "none");
   cli.add<std::string>("--guided-alignment-cost",
      "Cost type for guided alignment: ce (cross-entropy), mse (mean square error), mult (multiplication)",
      "ce");
@@ -370,10 +375,12 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "Fix target embeddings. Affects all decoders");
 
   cli.add<bool>("--multi-node",
-     "Enable multi-node training through MPI");
+     "Enable asynchronous multi-node training through MPI (and legacy sync if combined with --sync-sgd)");
   cli.add<bool>("--multi-node-overlap",
      "Overlap model computations with MPI communication",
      true);
+  // add ULR settings
+  addSuboptionsULR(cli);
   // clang-format on
 }
 
@@ -447,7 +454,6 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
       "stdout");
   cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --input");
-
   // decoding options
   cli.add<size_t>("--beam-size,-b",
       "Beam size used during search with validating translator",
@@ -481,10 +487,16 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
      "Use softmax shortlist: path first best prune");
   cli.add_nondefault<std::vector<float>>("--weights",
       "Scorer weights");
+  cli.add<bool>("--output-sampling",
+      "Noise output layer with gumbel noise",
+       false);
 
   // TODO: the options should be available only in server
   cli.add_nondefault<size_t>("--port,-p",
       "Port number for web socket server");
+  // add ULR settings
+  addSuboptionsULR(cli);
+
   // clang-format on
 }
 
@@ -524,8 +536,10 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
 void ConfigParser::addSuboptionsDevices(cli::CLIWrapper& cli) {
   // clang-format off
   cli.add<std::vector<std::string>>("--devices,-d",
-      "GPUs to use for training",
+      "Specifies GPU ID(s) to use for training. Defaults to 0..num-devices-1",
       std::vector<std::string>({"0"}));
+  cli.add_nondefault<size_t>("--num-devices",
+      "Number of GPUs to use for this process. Defaults to length(devices) or 1.");
 #ifdef USE_NCCL
   if(mode_ == cli::mode::training)
     cli.add<bool>("--no-nccl",
@@ -734,43 +748,32 @@ YAML::Node ConfigParser::getConfig() const {
   return config_;
 }
 
-std::vector<DeviceId> ConfigParser::getDevices() {
-  std::vector<DeviceId> devices;
-
-  try {
-    std::string devicesStr
-        = utils::join(config_["devices"].as<std::vector<std::string>>());
-
-    if(mode_ == cli::mode::training && get<bool>("multi-node")) {
-      auto parts = utils::split(devicesStr, ":");
-      for(size_t i = 1; i < parts.size(); ++i) {
-        std::string part = parts[i];
-        utils::trim(part);
-        auto ds = utils::split(part, " ");
-        if(i < parts.size() - 1)
-          ds.pop_back();
-
-        // does this make sense?
-        devices.push_back({ds.size(), DeviceType::gpu});
-        for(auto d : ds)
-          devices.push_back({(size_t)std::stoull(d), DeviceType::gpu});
-      }
-    } else {
-      for(auto d : utils::split(devicesStr))
-        devices.push_back({(size_t)std::stoull(d), DeviceType::gpu});
-    }
-
-    if(config_["cpu-threads"].as<size_t>() > 0) {
-      devices.clear();
-      for(size_t i = 0; i < config_["cpu-threads"].as<size_t>(); ++i)
-        devices.push_back({i, DeviceType::cpu});
-    }
-
-  } catch(...) {
-    ABORT("Problem parsing devices, please report an issue on github");
-  }
-
-  return devices;
+void ConfigParser::addSuboptionsULR(cli::CLIWrapper& cli) {
+  // support for universal encoder ULR https://arxiv.org/pdf/1802.05368.pdf
+  cli.add<bool>("--ulr",
+      "Is ULR (Universal Language Representation) enabled?",
+      false);
+  // reading pre-trained universal embedings for multi-sources
+  // note that source and target here is relative to ULR not the translation  langs
+  //queries: EQ in Fig2 :  is the unified embbedins projected to one space.
+  //"Path to file with universal sources embeddings from projection into universal space")
+  cli.add<std::string>("--ulr-query-vectors",
+      "Path to file with universal sources embeddings from projection into universal space",
+      "");
+  //keys: EK in Fig2 :  is the keys of the target  embbedins projected to unified  space (i.e. ENU in multi-lingual case)
+  cli.add<std::string>("--ulr-keys-vectors",
+      "Path to file with universal sources embeddings of traget keys from projection into universal space",
+      "");
+  cli.add<bool>("--ulr-trainable-transformation",
+      "Is Query Transformation Matrix A trainable ?",
+      false);
+  cli.add<int>("--ulr-dim-emb",
+      "ULR mono embed dim");
+  cli.add<float>("--ulr-dropout",
+      "ULR dropout on embeddings attentions: default is no dropuout",
+      0.0f);
+  cli.add<float>("--ulr-softmax-temperature",
+      "ULR softmax temperature to control randomness of predictions- deafult is 1.0: no temperature ",
+      1.0f);
 }
-
 }  // namespace marian

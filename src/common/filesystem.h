@@ -81,7 +81,7 @@ namespace filesystem {
   }
 
   static inline bool canWrite(const Path& p) {
-    return (bool)(boost::filesystem::status(p.getBoost()).permissions() & boost::filesystem::owner_write);
+    return (boost::filesystem::status(p.getBoost()).permissions() & boost::filesystem::owner_write) != 0;
   }
 
   // concatenation?

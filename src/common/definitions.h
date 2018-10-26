@@ -1,21 +1,22 @@
 #pragma once
 
+#include "common/logging.h"
+#include "shape.h"
+
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "common/logging.h"
-#include "shape.h"
-
-#define THREAD_GUARD(body) std::thread([&]() { body; }).join()
+//#define THREAD_GUARD(body) std::thread([&]() { body; }).join()
+#define THREAD_GUARD(body) [&]() { body; }() // test if THREAD_GUARD is neccessary, remove if no problems occur.
 #define NodeOp(op) [=]() { op; }
 
 namespace marian {
 
 // Type to be used for all index types, e.g. for integer tensors for rows operator.
-// size_t would seem to be the natural choice of over uint32_t but has usually 8 bytes
+// size_t would seem to be the natural choice over uint32_t but has usually 8 bytes
 // while uint32_t has 4 bytes. This type will be often exchanged between CPU and GPU.
 // This minimizes bandwith at little cost.
 typedef uint32_t IndexType;

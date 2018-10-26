@@ -490,7 +490,7 @@ struct RowsNodeOp : public NaryNodeOp {
 struct SelectNodeOp : public NaryNodeOp {
   SelectNodeOp(Expr a, Expr indices, int axis)
       : NaryNodeOp({a, indices}, newShape(a, axis, indices->shape().elements())),
-        axis_{a->shape().axis(axis)} {
+        axis_(a->shape().axis(axis)) {
     matchOrAbort<IndexType>(indices->value_type());
   }
 

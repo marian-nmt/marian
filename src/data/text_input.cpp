@@ -27,14 +27,14 @@ TextInput::TextInput(std::vector<std::string> inputs,
                      Ptr<Config> options)
     // TODO: fix this: input text is stored in an inherited variable named
     // paths_ that is very confusing
-    : DatasetBase(inputs),
-      vocabs_(vocabs),
-      options_(options) {
+    : DatasetBase(inputs, options),
+      vocabs_(vocabs) {
   for(const auto& text : paths_)
     files_.emplace_back(new std::istringstream(text));
 }
 
 SentenceTuple TextInput::next() {
+  // @TODO: This code mixes two patterns (while and early exit). Fix that.
   bool cont = true;
   while(cont) {
     // get index of the current sentence
@@ -46,7 +46,7 @@ SentenceTuple TextInput::next() {
       std::string line;
       io::InputFileStream dummyStream(*files_[i]);
       if(io::getline(dummyStream, line)) {
-        Words words = (*vocabs_[i])(line);
+        Words words = vocabs_[i]->encode(line, /*addEOS =*/ true, /*inference =*/ inference_);
         if(words.empty())
           words.push_back(0);
         tup.push_back(words);

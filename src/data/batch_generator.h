@@ -1,16 +1,17 @@
 #pragma once
 
-#include <condition_variable>
-#include <deque>
-#include <functional>
-#include <mutex>
-#include <queue>
-
 #include "common/config.h"
 #include "data/batch_stats.h"
 #include "data/rng_engine.h"
 #include "training/training_state.h"
 #include "data/iterator_facade.h"
+#include "3rd_party/threadpool.h"
+
+#include <condition_variable>
+#include <deque>
+#include <functional>
+#include <mutex>
+#include <queue>
 
 namespace marian {
 namespace data {
@@ -55,8 +56,8 @@ class BatchGenerator : public RNGEngine {
 public:
   typedef typename DataSet::batch_ptr BatchPtr;
 
-  typedef typename DataSet::sample sample;
-  typedef std::vector<sample> samples;
+  typedef typename DataSet::sample Sample;
+  typedef std::vector<Sample> Samples;     // @TODO: type names should be capitalized
 
   typedef BatchIterator<BatchGenerator> iterator;
   friend iterator;
@@ -70,41 +71,39 @@ protected:
 private:
   Ptr<BatchStats> stats_;
 
-  int batchSize_{1};
+  // state of fetching
+  std::deque<BatchPtr> bufferedBatches_; // current swath of batches that next() reads from
 
+  // state of reading
   typename DataSet::iterator current_;
-  bool newlyPrepared_{true};
+  bool newlyPrepared_{ true }; // prepare() was just called: we need to reset current_  --@TODO: can we just reset it directly?
 
-  size_t maxiBatchSize_;
-  std::deque<BatchPtr> bufferedBatches_;
-  BatchPtr currentBatch_;
+  // variables for multi-threaded pre-fetching
+  mutable ThreadPool threadPool_; // (we only use one thread, but keep it around)
+  std::future<std::deque<BatchPtr>> futureBufferedBatches_; // next swath of batches is returned via this
 
-  mutable std::mutex loadMutex_;
-  mutable std::condition_variable loadCondition_;
-  bool loadingSamples_{false};
-  bool hadData_{false};
+  // this runs on a bg thread; sequencing is handled by caller, but locking is done in here
+  std::deque<BatchPtr> fetchBatches() {
+    //LOG(info, "fillBatches entered");
+    typedef typename Sample::value_type Item;
+    auto itemCmp = [](const Item& sa, const Item& sb) { return sa.size() < sb.size(); }; // sort by element length, not content
 
-  void fillBatches(bool shuffle = true) {
-    typedef typename sample::value_type Item;
-    auto itemCmp
-        = [](const Item& sa, const Item& sb) { return sa.size() < sb.size(); };
-
-    auto cmpSrc = [itemCmp](const sample& a, const sample& b) {
+    auto cmpSrc = [itemCmp](const Sample& a, const Sample& b) {
       return std::lexicographical_compare(
           a.begin(), a.end(), b.begin(), b.end(), itemCmp);
     };
 
-    auto cmpTrg = [itemCmp](const sample& a, const sample& b) {
+    auto cmpTrg = [itemCmp](const Sample& a, const Sample& b) {
       return std::lexicographical_compare(
           a.rbegin(), a.rend(), b.rbegin(), b.rend(), itemCmp);
     };
 
-    auto cmpNone = [](const sample& a, const sample& b) { return &a < &b; };
+    auto cmpNone = [](const Sample& a, const Sample& b) { return &a < &b; }; // instead sort by address, so we have something to work with
 
-    typedef std::function<bool(const sample&, const sample&)> cmp_type;
-    typedef std::priority_queue<sample, samples, cmp_type> sample_queue;
+    typedef std::function<bool(const Sample&, const Sample&)> cmp_type;
+    typedef std::priority_queue<Sample, Samples, cmp_type> sample_queue;
 
-    std::unique_ptr<sample_queue> maxiBatch;
+    std::unique_ptr<sample_queue> maxiBatch; // priority queue, shortest first
 
     if(options_->has("maxi-batch-sort")) {
       if(options_->get<std::string>("maxi-batch-sort") == "src")
@@ -132,157 +131,130 @@ private:
         ++current_;
     }
     size_t sets = 0;
-    while(current_ != data_->end() && maxiBatch->size() < maxSize) {
+    while(current_ != data_->end() && maxiBatch->size() < maxSize) { // loop over data
       maxiBatch->push(*current_);
-      
-      // if(maxiBatch->size() % 100000 == 0)
-      //   LOG(info, "Preloaded samples: {}", maxiBatch->size());
-
       sets = current_->size();
-      // do not consume more than required for the maxi batch as this causes
-      // that line-by-line translation is delayed by one sentence
-      bool last = maxiBatch->size() == maxSize;
+        // do not consume more than required for the maxi batch as this causes
+        // that line-by-line translation is delayed by one sentence
+        bool last = maxiBatch->size() == maxSize;
       if(!last)
-        ++current_;
+        ++current_; // this actually reads the next line and pre-processes it
     }
+    size_t numSentencesRead = maxiBatch->size();
 
     // LOG(info, "Turning samples into batches");
 
-    samples batchVector;
-    int currentWords = 0;
-    std::vector<size_t> lengths(sets, 0);
+    // construct the actual batches and place them in the queue
+    Samples batchVector;
+    size_t currentWords = 0;
+    std::vector<size_t> lengths(sets, 0); // records maximum length observed within current batch
 
-    std::vector<BatchPtr> tempBatches;
+    std::deque<BatchPtr> tempBatches;
 
-    // while there are sentences in the queue
-    while(!maxiBatch->empty()) {
+    // process all loaded sentences in order of increasing length
+    // @TODO: we could just use a vector and do a sort() here; would make the cost more explicit
+    //LOG(info, "begin form batches, #lines = {}", maxiBatch->size());
+    const size_t mbWords = options_->get<size_t>("mini-batch-words", 0);
+    const bool useDynamicBatching = options_->has("mini-batch-fit");
+    BatchStats::const_iterator cachedStatsIter;
+    if (stats_)
+      cachedStatsIter = stats_->begin();
+    while(!maxiBatch->empty()) { // while there are sentences in the queue
       // push item onto batch
       batchVector.push_back(maxiBatch->top());
-      currentWords += (int)batchVector.back()[0].size();
-      maxiBatch->pop();
+      maxiBatch->pop(); // fetch next-shortest
 
-      // Batch size based on sentences
-      bool makeBatch = batchVector.size() == maxBatchSize;
+      // have we reached sufficient amount of data to form a batch?
+      bool makeBatch;
+      if(useDynamicBatching && stats_) { // batch size based on dynamic batching
+        for(size_t i = 0; i < sets; ++i)
+          if(batchVector.back()[i].size() > lengths[i])
+            lengths[i] = batchVector.back()[i].size(); // record max lengths so far
 
-      // Batch size based on words
-      if(options_->has("mini-batch-words")) {
-        int mbWords = options_->get<int>("mini-batch-words");
-        if(mbWords > 0)
-          makeBatch = currentWords > mbWords;
-      }
-
-      if(options_->has("mini-batch-fit")) {
-        // Dynamic batching
-        if(stats_) {
-          for(size_t i = 0; i < sets; ++i)
-            if(batchVector.back()[i].size() > lengths[i])
-              lengths[i] = batchVector.back()[i].size();
-
-          maxBatchSize = stats_->getBatchSize(lengths);
-
-          if(batchVector.size() > maxBatchSize) {
-            maxiBatch->push(batchVector.back());
-            batchVector.pop_back();
-            makeBatch = true;
-          } else {
-            makeBatch = batchVector.size() == maxBatchSize;
-          }
+        maxBatchSize = stats_->findBatchSize(lengths, cachedStatsIter);
+        // this optimization makes no difference indeed
+#if 1     // sanity check: would we find the same entry if searching from the start?
+        auto it = stats_->lower_bound(lengths);
+        auto maxBatchSize1 = stats_->findBatchSize(lengths, it);
+        ABORT_IF(maxBatchSize != maxBatchSize1, "findBatchSize iter caching logic is borked");
+#endif
+        makeBatch = batchVector.size() >= maxBatchSize;
+        // if last added sentence caused a bump then we likely have bad padding, so rather move it into the next batch
+        if(batchVector.size() > maxBatchSize) {
+          maxiBatch->push(batchVector.back());
+          batchVector.pop_back();
         }
       }
+      else if(mbWords > 0) {
+        currentWords += batchVector.back()[0].size(); // count words based on first stream =source  --@TODO: shouldn't we count based on labels?
+        makeBatch = currentWords > mbWords; // Batch size based on sentences
+      }
+      else
+        makeBatch = batchVector.size() == maxBatchSize; // Batch size based on words
 
-      // if batch has desired size create a real batch
+      // if we reached the desired batch size then create a real batch
       if(makeBatch) {
         tempBatches.push_back(data_->toBatch(batchVector));
 
         // prepare for next batch
         batchVector.clear();
         currentWords = 0;
-        lengths.clear();
-        lengths.resize(sets, 0);
+        lengths.assign(sets, 0);
+        if (stats_)
+          cachedStatsIter = stats_->begin();
       }
     }
 
     // turn rest into batch
     if(!batchVector.empty())
       tempBatches.push_back(data_->toBatch(batchVector));
+    //LOG(info, "end form batches, #tempBatches = {}", tempBatches.size());
 
-    if(shuffle) {
-      // shuffle the batches
+    // Shuffle the batches
+    if(shuffle_) {
       std::shuffle(tempBatches.begin(), tempBatches.end(), eng_);
     }
-
-    // Wait here until batch buffer is empty;   
-    // LOG(info, "Waiting for buffer to be empty");
-    std::unique_lock<std::mutex> lock(loadMutex_);
-    loadCondition_.wait(
-        lock, [this] { return bufferedBatches_.empty(); });
-  
-    // put batches onto queue
-    // exclusive lock
-    // LOG(info, "Dumping batches to buffer");
-    for(const auto& batch : tempBatches)
-      bufferedBatches_.push_back(batch);
-    // LOG(info, "Done dumping batches");
-    
-    loadingSamples_ = false;
-    hadData_ = tempBatches.size() > 0;
-
-    // Buffer is full now, everyone else can carry on
-    loadCondition_.notify_all();
+    LOG(debug, "[data] fetched {} batches with {} sentences.", tempBatches.size(), numSentencesRead);
+    return tempBatches;
   }
 
-    BatchPtr next() {
-    // Start preloading batches and inform that loading is happening.
-    // Detach the loading process so it's not blocking batch processing.
-    {
-      std::unique_lock<std::mutex> lock(loadMutex_);
-      if(!loadingSamples_ && hadData_) {
-        loadingSamples_ = true;
-        std::thread([this]() { 
-          fillBatches(shuffle_); 
-        }).detach();
-      }
-    }
-    
-    // If there are no batches, but loading is happening,
-    // wait for loading to finish. 
-    {
-      std::unique_lock<std::mutex> lock(loadMutex_);
-      loadCondition_.wait(lock, [this] { 
-        return !(loadingSamples_ && bufferedBatches_.empty()); 
-      });
-    }
+  // this starts fillBatches() as a background operation
+  void fetchBatchesAsync() {
+    ABORT_IF(futureBufferedBatches_.valid(), "attempted to restart futureBufferedBatches_ while still running");
+    futureBufferedBatches_ = threadPool_.enqueue([this]() {
+      return fetchBatches();
+    });
+  }
 
-    std::unique_lock<std::mutex> lock(loadMutex_);
-    // Try to consume a batch
+  BatchPtr next() {
     if(bufferedBatches_.empty()) {
-      // There was no batch in the buffer despite preloading -> end of epoch
-      return nullptr;
-    }
-    else {
-      auto batch = bufferedBatches_.front();
-      bufferedBatches_.pop_front();
-
-      // if(bufferedBatches_.size() % 100 == 0)
-      //   LOG(info, "Buffered batches left {}", bufferedBatches_.size());
-
-      // If there are no batches left, notify everyone who's waiting.
-      // This will either dump buffered batches into the current queue,
-      // or switch to the next epoch in the next call.
-      if(bufferedBatches_.empty()) {
-        // LOG(info, "Empty batches, notifying");
-        loadCondition_.notify_all();
+      // out of data: need to get next batch from background thread
+      // We only get here if the future has been scheduled to run; it must be valid.
+      ABORT_IF(!futureBufferedBatches_.valid(), "attempted to wait for futureBufferedBatches_ when none pending");
+      bufferedBatches_ = std::move(futureBufferedBatches_.get());
+      // if bg thread returns an empty swath, we hit the end of the epoch
+      if (bufferedBatches_.empty()) {
+        return nullptr;
       }
-
-      return batch;
+      // and kick off the next bg operation
+      fetchBatchesAsync();
     }
+    auto batch = bufferedBatches_.front();
+    bufferedBatches_.pop_front();
+    return batch;
   }
 
 public:
+
   BatchGenerator(Ptr<DataSet> data,
                  Ptr<Config> options,
                  Ptr<BatchStats> stats = nullptr)
-      : data_(data), options_(options), stats_(stats) {}
+      : data_(data), options_(options), stats_(stats), threadPool_(1) {}
+
+  ~BatchGenerator() {
+    if (futureBufferedBatches_.valid()) // bg thread holds a reference to 'this',
+      futureBufferedBatches_.get();     // so must wait for it to complete
+  }
 
   iterator begin() {
     return iterator(this, next());
@@ -303,7 +275,8 @@ public:
     // @TODO: solve this better, maybe use options
     shuffle_ = shuffle;
 
-    fillBatches(shuffle);
+    // start the background pre-fetch operation
+    fetchBatchesAsync();
   }
 
   // Used to restore the state of a BatchGenerator after

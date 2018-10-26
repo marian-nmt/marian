@@ -7,6 +7,8 @@ using namespace marian;
 void tests(DeviceType device) {
   auto floatApprox = [](float x, float y) { return x == Approx(y); };
 
+  Config::seed = 1234;
+
   auto graph = New<ExpressionGraph>();
   graph->setDevice({0, device});
   graph->reserveWorkspaceMB(16);
@@ -150,14 +152,19 @@ void tests(DeviceType device) {
     graph->clear();
     values.clear();
 
-    Config::seed = 1234;
-
+#ifdef CUDA_FOUND
     std::vector<float> vLn({
-      -1.20521, -0.321409, -0.0363369, 1.56296,
-      0.332987, -0.613398, -1.17766, 1.45807,
-      -0.731601, -0.187812, -0.766431, 1.68584,
-      -1.31923, -0.059028, 1.49732, -0.119065
+      -1.1962, 1.43061, 0.380288, -0.614697, 0.816638, 0.622649,
+      -1.69679, 0.257504, -1.12563, -0.151387, 1.61181, -0.334796,
+      1.07207, -0.622614, 0.862014, -1.31147
     });
+#else
+    std::vector<float> vLn({
+      -1.49821, -0.152206, 0.394932, 1.25548, -1.51701, -0.28032,
+      0.9483, 0.849025, 0.855183, 1.11657, -0.788354, -1.1834,
+      -0.85939, -1.13109, 0.972076, 1.01841
+    });
+#endif
 
     auto a = graph->constant({2, 2, 4}, inits::glorot_uniform);
 
@@ -169,7 +176,6 @@ void tests(DeviceType device) {
     graph->forward();
 
     CHECK(ln->shape() == Shape({2, 2, 4}));
-
 
     ln->val()->get(values);
     CHECK( std::equal(values.begin(), values.end(),

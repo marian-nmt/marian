@@ -28,12 +28,11 @@ const SentenceTuple& CorpusIterator::dereference() const {
   return tup_;
 }
 
-CorpusBase::CorpusBase(std::vector<std::string> paths,
-                       std::vector<Ptr<Vocab>> vocabs,
+CorpusBase::CorpusBase(const std::vector<std::string>& paths,
+                       const std::vector<Ptr<Vocab>>& vocabs,
                        Ptr<Config> options)
-    : DatasetBase(paths),
+    : DatasetBase(paths, options),
       vocabs_(vocabs),
-      options_(options),
       maxLength_(options_->get<size_t>("max-length")),
       maxLengthCrop_(options_->get<bool>("max-length-crop")),
       rightLeft_(options_->get<bool>("right-left")) {
@@ -47,7 +46,7 @@ CorpusBase::CorpusBase(std::vector<std::string> paths,
 }
 
 CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
-    : options_(options),
+    : DatasetBase(options),
       maxLength_(options_->get<size_t>("max-length")),
       maxLengthCrop_(options_->get<bool>("max-length-crop")),
       rightLeft_(options_->get<bool>("right-left")) {
@@ -69,22 +68,19 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
 
   std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
 
+  auto topt = New<Options>();
+  topt->merge(options_);
+
   // training or scoring
   if(training) {
-    std::vector<Vocab> vocabs;
-
     if(vocabPaths.empty()) {
       if(maxVocabs.size() < paths_.size())
         maxVocabs.resize(paths_.size(), 0);
 
       // Create vocabs if not provided
       for(size_t i = 0; i < paths_.size(); ++i) {
-        Ptr<Vocab> vocab = New<Vocab>();
+        Ptr<Vocab> vocab = New<Vocab>(topt, i);
         int vocSize = vocab->loadOrCreate("", paths_[i], maxVocabs[i]);
-        LOG(info,
-            "[data] Setting vocabulary size for input {} to {}",
-            i,
-            vocSize);
         options_->get()["dim-vocabs"][i] = vocSize;
 
         options_->get()["vocabs"].push_back(paths_[i] + ".yml");
@@ -96,13 +92,10 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
         maxVocabs.resize(paths_.size(), 0);
 
       for(size_t i = 0; i < vocabPaths.size(); ++i) {
-        Ptr<Vocab> vocab = New<Vocab>();
-        int vocSize
-            = vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
-        LOG(info,
-            "[data] Setting vocabulary size for input {} to {}",
-            i,
-            vocSize);
+        Ptr<Vocab> vocab = New<Vocab>(topt, i);
+        int vocSize = vocab->loadOrCreate(vocabPaths[i],
+                                          paths_[i],
+                                          maxVocabs[i]);
         options_->get()["dim-vocabs"][i] = vocSize;
 
         vocabs_.emplace_back(vocab);
@@ -118,12 +111,8 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
       maxVocabs.resize(paths_.size(), 0);
 
     for(size_t i = 0; i + 1 < vocabPaths.size(); ++i) {
-      Ptr<Vocab> vocab = New<Vocab>();
+      Ptr<Vocab> vocab = New<Vocab>(topt, i);
       int vocSize = vocab->load(vocabPaths[i], maxVocabs[i]);
-      LOG(info,
-          "[data] Setting vocabulary size for input {} to {}",
-          i,
-          vocSize);
       options_->get()["dim-vocabs"][i] = vocSize;
 
       vocabs_.emplace_back(vocab);
@@ -145,7 +134,7 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
            files_.size(),
            vocabs_.size());
 
-  if(training && options_->has("guided-alignment")) {
+  if(training && options_->get("guided-alignment", std::string("none")) != "none") {
     auto path = options_->get<std::string>("guided-alignment");
 
     ABORT_IF(!filesystem::exists(path), "Alignment file does not exist");
@@ -173,7 +162,11 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
 void CorpusBase::addWordsToSentenceTuple(const std::string& line,
                                          size_t i,
                                          SentenceTuple& tup) const {
-  Words words = (*vocabs_[i])(line);
+  
+  // This turns a string in to a sequence of numerical word ids. Depending
+  // on the vocabulary type, this can be non-trivial, e.g. when SentencePiece
+  // is used. 
+  Words words = vocabs_[i]->encode(line, /*addEOS =*/ true, inference_);
 
   if(words.empty())
     words.push_back(0);
@@ -232,7 +225,7 @@ void CorpusBase::addAlignmentsToBatch(Ptr<CorpusBatch> batch,
       aligns[idx] = 1.f;
     }
   }
-  batch->setGuidedAlignment(aligns);
+  batch->setGuidedAlignment(std::move(aligns));
 }
 
 void CorpusBase::addWeightsToBatch(Ptr<CorpusBatch> batch,

@@ -59,7 +59,7 @@ public:
                           state->getTargetMask(),
                           weights);
 
-    if(options_->has("guided-alignment") && !inference_) {
+    if(options_->get("guided-alignment", std::string("none")) != "none" && !inference_) {
       auto alignments = encdec->getDecoders()[0]->getAlignments();
       ABORT_IF(alignments.empty(), "Model does not seem to support alignments");
 
@@ -111,11 +111,30 @@ public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) = 0;
 };
 
-class LogsoftmaxStep : public CostStep {
+class LogSoftmaxStep : public CostStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     // decoder needs normalized probabilities (note: skipped if beam 1 and --skip-cost)
-    state->setLogProbs(logsoftmax(state->getLogProbs()));
+    auto logits = state->getLogProbs();
+    
+    auto logprobs = logsoftmax(logits);
+
+    state->setLogProbs(logprobs);
+    return state;
+  }
+};
+
+// Gumbel-max noising for sampling during beam-search
+// Seems to work well enough with beam-size=1. Turn on
+// with --output-sampling during translation with marian-decoder
+class GumbelSoftmaxStep : public CostStep {
+public:
+  virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
+    auto logits = state->getLogProbs();
+    
+    auto logprobs = logsoftmax(logits + constant_like(logits, inits::gumbel));
+
+    state->setLogProbs(logprobs);
     return state;
   }
 };
@@ -204,7 +223,10 @@ inline Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec,
     case usage::scoring:
       return New<Scorer>(encdec, New<EncoderDecoderCE>(options));
     case usage::translation:
-      return New<Stepwise>(encdec, New<LogsoftmaxStep>());
+      if(options->get<bool>("output-sampling", false))
+        return New<Stepwise>(encdec, New<GumbelSoftmaxStep>());
+      else
+        return New<Stepwise>(encdec, New<LogSoftmaxStep>());
     case usage::raw:
     default: return encdec;
   }

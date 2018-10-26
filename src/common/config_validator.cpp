@@ -37,6 +37,8 @@ void ConfigValidator::validateOptions(cli::mode mode) const {
 void ConfigValidator::validateOptionsTranslation() const {
   auto models = get<std::vector<std::string>>("models");
   auto configs = get<std::vector<std::string>>("config");
+
+  // @TODO: Review usage of THROW_IF. Added issue on github.
   UTIL_THROW_IF2(
       models.empty() && configs.empty(),
       "You need to provide at least one model file or a config file");
@@ -114,6 +116,14 @@ void ConfigValidator::validateOptionsTraining() const {
           && get<std::vector<size_t>>("lr-decay-start").size() != 1,
       "Single decay strategies require only one value specified with "
       "--lr-decay-start option");
+
+  // validate ULR options
+  UTIL_THROW_IF2(
+      (has("ulr")  && get<bool>("ulr") && 
+      (get<std::string>("ulr-query-vectors") == ""
+          || get<std::string>("ulr-keys-vectors") == "")),
+      "ULR enablign requires query and keys vectors specified with "
+      "--ulr-query-vectors and --ulr-keys-vectors option");
 }
 
 void ConfigValidator::validateDevices(cli::mode mode) const {
@@ -136,6 +146,8 @@ void ConfigValidator::validateDevices(cli::mode mode) const {
                  "the argument '(" + devices
                      + ")' for option '--devices' is invalid. "
                      + help);
+
+
 }
 
 }  // namespace marian

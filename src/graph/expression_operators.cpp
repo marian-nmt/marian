@@ -55,13 +55,22 @@ Expr operator-(Expr a) {
   return Expression<NegNodeOp>(a);
 };
 
-Expr softmax(Expr a) {
+Expr softmax(Expr a, int axis /*=-1*/)
+{
+  // @TODO: move axis parameter down into the kernel
+  if (axis != -1)
+  {
+    return swapAxes(softmax(swapAxes(a,
+                                     axis, -1),
+                            /*axis=*/-1),
+                    axis, -1);
+  }
   return Expression<SoftmaxNodeOp>(a);
 }
 
-Expr softmax(Expr a, Expr zeroOneMask) {
+Expr softmax(Expr a, Expr zeroOneMask, int axis /*=-1*/) {
   auto logMask = (1 - zeroOneMask) * -99999999.f;
-  return softmax(a + logMask);
+  return softmax(a + logMask, axis);
 }
 
 Expr logsoftmax(Expr a) {
@@ -200,6 +209,12 @@ Expr flatten(Expr a) {
 Expr flatten_2d(Expr a) {
   Shape shape = {a->shape().elements() / a->shape()[-1], a->shape()[-1]};
   return Expression<ReshapeNodeOp>(a, shape);
+}
+
+Expr constant_like(Expr a, const NodeInitializer& init) {
+  const auto& shape = a->shape();
+  auto graph = a->graph();
+  return graph->constant(shape, init);
 }
 
 Expr rows(Expr a, Expr indices) {
@@ -375,6 +390,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
 }
 
 // swap the last two axes
+// @TODO: change to swapAxes(a, -1, -2)
 Expr transpose(Expr a) {
   std::vector<int> axes(a->shape().size());
   for(int i = 0; i < axes.size(); ++i) {
@@ -389,6 +405,20 @@ Expr transpose(Expr a) {
 
 Expr transpose(Expr a, const std::vector<int>& axes) {
   return Expression<TransposeNodeOp>(a, axes);
+}
+
+Expr swapAxes(Expr x, int axis1, int axis2)
+{
+  axis1 = x->shape().axis(axis1);
+  axis2 = x->shape().axis(axis2);
+  if (axis1 == axis2)
+    return x;
+  // TODO: This is code dup from transpose(x). Implement transpose(x) as swapAxes(x, 0, 1)
+  std::vector<int> axes(x->shape().size());
+  for (int i = 0; i < axes.size(); ++i)
+    axes[i] = i;
+  std::swap(axes[axis1], axes[axis2]);
+  return transpose(x, axes);
 }
 
 Expr step(Expr a, int step, int axis) {
