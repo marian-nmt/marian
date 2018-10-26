@@ -30,7 +30,14 @@ public:
   void load(Ptr<ExpressionGraph> graph,
             const std::string& name,
             bool /*markedReloaded*/ = true) override {
-    graph->load(name, nameMap_, true, {"decoder_c_tt"});
+    auto items = io::loadItems(name);
+    for(auto it = items.begin(); it != items.end(); ++it) {
+      if(it->name == "decoder_c_tt") {
+        items.erase(it);
+        break;
+      }
+    }
+    graph->load(name, items, nameMap_, true);
   }
 
   void save(Ptr<ExpressionGraph> graph,

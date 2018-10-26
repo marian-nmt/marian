@@ -454,17 +454,13 @@ private:
   // convert all parameters into an array of IoItem elements, for saving
   void itemsToParameters(const std::vector<io::Item>& ioItems,
                          const std::map<std::string, std::string>& nameMap,
-                         bool markReloaded = true,
-                         const std::unordered_set<std::string>& skipItems = {}) {
+                         bool markReloaded = true) {
     setReloaded(false);
     for(auto& item : ioItems) {
       std::string pName = item.name;
 
       // skip over special parameters starting with "special:"
       if(pName.substr(0, 8) == "special:")
-        continue;
-      // skip over items that should not be added into the graph
-      if(skipItems.count(pName))
         continue;
 
       auto it = nameMap.find(pName);
@@ -479,28 +475,31 @@ private:
 
 public:
   void load(const std::string& name,
+            const std::vector<io::Item>& items,
             const std::map<std::string, std::string>& nameMap,
-            bool markReloaded = true,
-            const std::unordered_set<std::string>& skipItems = {}) {
+            bool markReloaded = true) {
     LOG(info, "Loading model from {}", name);
-    itemsToParameters(io::loadItems(name), nameMap, markReloaded, skipItems);
+    itemsToParameters(items, nameMap, markReloaded);
   }
 
   void load(const std::string& name, bool markReloaded = true) {
     std::map<std::string, std::string> emptyNameMap;
-    load(name, emptyNameMap, markReloaded);
+    auto items = io::loadItems(name);
+    load(name, items, emptyNameMap, markReloaded);
   }
 
   void load(const void* ptr,
+            const std::vector<io::Item>& items,
             const std::map<std::string, std::string>& nameMap,
             bool markReloaded = true) {
     LOG(info, "Loading model from buffer at {}", ptr);
-    itemsToParameters(io::loadItems(ptr), nameMap, markReloaded);
+    itemsToParameters(items, nameMap, markReloaded);
   }
 
   void load(const void* ptr, bool markReloaded = true) {
     std::map<std::string, std::string> emptyNameMap;
-    load(ptr, emptyNameMap, markReloaded);
+    auto items = io::loadItems(ptr);
+    load(ptr, items, emptyNameMap, markReloaded);
   }
 
   void mmap(const void* ptr,
