@@ -75,7 +75,9 @@ void addMetaToItems(const std::string& meta,
   items.push_back(item);
 }
 
-void loadItemsFromNpz(const std::string& fileName, std::vector<Item>& items) {
+void loadItemsFromNpz(const std::string& fileName,
+                      std::vector<Item>& items,
+                      const std::map<std::string, std::string>& nameMap) {
   auto numpy = cnpy::npz_load(fileName);
   for(auto it : numpy) {
     Shape shape;
@@ -85,12 +87,13 @@ void loadItemsFromNpz(const std::string& fileName, std::vector<Item>& items) {
       shape.set(1, (size_t)it.second->shape[0]);
     } else {
       shape.resize(it.second->shape.size());
-      for(int i = 0; i < it.second->shape.size(); ++i)
+      for(size_t i = 0; i < it.second->shape.size(); ++i)
         shape.set(i, (size_t)it.second->shape[i]);
     }
 
     Item item;
-    item.name = it.first;
+    auto nIt = nameMap.find(it.first);
+    item.name = (nIt == nameMap.end()) ? it.first : nIt->second;
     item.shape = shape;
     item.bytes.swap(it.second->bytes);
 
@@ -98,10 +101,11 @@ void loadItemsFromNpz(const std::string& fileName, std::vector<Item>& items) {
   }
 }
 
-std::vector<Item> loadItems(const std::string& fileName) {
+std::vector<Item> loadItems(const std::string& fileName,
+                            const std::map<std::string, std::string>& nameMap /*= {}*/) {
   std::vector<Item> items;
   if(isNpz(fileName)) {
-    loadItemsFromNpz(fileName, items);
+    loadItemsFromNpz(fileName, items, nameMap);
   } else if(isBin(fileName)) {
     binary::loadItems(fileName, items);
   } else {

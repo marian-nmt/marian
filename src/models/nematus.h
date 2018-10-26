@@ -29,15 +29,17 @@ public:
 
   void load(Ptr<ExpressionGraph> graph,
             const std::string& name,
-            bool /*markedReloaded*/ = true) override {
-    auto items = io::loadItems(name);
+            bool markReloaded = true) override {
+    // load items from .npz file mapping names
+    auto items = io::loadItems(name, nameMap_);
+    // remove a dummy matrix 'decoder_c_tt' from items to avoid creating isolated node
     for(auto it = items.begin(); it != items.end(); ++it) {
       if(it->name == "decoder_c_tt") {
         items.erase(it);
         break;
       }
     }
-    graph->load(name, items, nameMap_, true);
+    graph->load(name, items, markReloaded);
   }
 
   void save(Ptr<ExpressionGraph> graph,

@@ -19,19 +19,16 @@ namespace io {
 bool isNpz(const std::string& fileName);
 bool isBin(const std::string& fileName);
 
-void getYamlFromModel(YAML::Node& yaml,
-                      const std::string& varName,
-                      const std::string& fileName);
-
-void getYamlFromModel(YAML::Node& yaml,
-                      const std::string& varName,
-                      const void* ptr);
+void getYamlFromModel(YAML::Node& yaml, const std::string& varName, const std::string& fileName);
+void getYamlFromModel(YAML::Node& yaml, const std::string& varName, const void* ptr);
 
 void addMetaToItems(const std::string& meta,
                     const std::string& varName,
                     std::vector<io::Item>& items);
 
-std::vector<Item> loadItems(const std::string& fileName);
+std::vector<Item> loadItems(const std::string& fileName,
+                            const std::map<std::string, std::string>& nameMap
+                            = std::map<std::string, std::string>());
 
 std::vector<Item> loadItems(const void* ptr);
 

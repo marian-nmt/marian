@@ -451,22 +451,14 @@ public:
   void setThrowNaN(bool throwNaN) { throwNaN_ = throwNaN; }
 
 private:
-  // convert all parameters into an array of IoItem elements, for saving
-  void itemsToParameters(const std::vector<io::Item>& ioItems,
-                         const std::map<std::string, std::string>& nameMap,
-                         bool markReloaded = true) {
+  // convert all parameters into an array of IoItem elements, for loading
+  void itemsToParameters(const std::vector<io::Item>& ioItems, bool markReloaded = true) {
     setReloaded(false);
     for(auto& item : ioItems) {
       std::string pName = item.name;
-
       // skip over special parameters starting with "special:"
       if(pName.substr(0, 8) == "special:")
         continue;
-
-      auto it = nameMap.find(pName);
-      if(it != nameMap.end())
-        pName = it->second;
-
       param(pName, item.shape, inits::from_item(item));
     }
     if(markReloaded)
@@ -474,37 +466,27 @@ private:
   }
 
 public:
-  void load(const std::string& name,
-            const std::vector<io::Item>& items,
-            const std::map<std::string, std::string>& nameMap,
-            bool markReloaded = true) {
+  void load(const std::string& name, const std::vector<io::Item>& items, bool markReloaded = true) {
     LOG(info, "Loading model from {}", name);
-    itemsToParameters(items, nameMap, markReloaded);
+    itemsToParameters(items, markReloaded);
   }
 
   void load(const std::string& name, bool markReloaded = true) {
-    std::map<std::string, std::string> emptyNameMap;
     auto items = io::loadItems(name);
-    load(name, items, emptyNameMap, markReloaded);
+    load(name, items, markReloaded);
   }
 
-  void load(const void* ptr,
-            const std::vector<io::Item>& items,
-            const std::map<std::string, std::string>& nameMap,
-            bool markReloaded = true) {
+  void load(const void* ptr, const std::vector<io::Item>& items, bool markReloaded = true) {
     LOG(info, "Loading model from buffer at {}", ptr);
-    itemsToParameters(items, nameMap, markReloaded);
+    itemsToParameters(items, markReloaded);
   }
 
   void load(const void* ptr, bool markReloaded = true) {
-    std::map<std::string, std::string> emptyNameMap;
     auto items = io::loadItems(ptr);
-    load(ptr, items, emptyNameMap, markReloaded);
+    load(ptr, items, markReloaded);
   }
 
-  void mmap(const void* ptr,
-            const std::map<std::string, std::string>& nameMap,
-            bool markReloaded = true) {
+  void mmap(const void* ptr, bool markReloaded = true) {
     ABORT_IF(backend_->getDeviceId().type != DeviceType::cpu || !inferenceOnly_,
              "Memory mapping only supported for CPU inference mode");
 
@@ -512,12 +494,7 @@ public:
     params_->init(backend_);
 
     LOG(info, "Memory mapping model at {}", ptr);
-    itemsToParameters(io::mmapItems(ptr), nameMap, markReloaded);
-  }
-
-  void mmap(const void* ptr, bool markReloaded = true) {
-    std::map<std::string, std::string> emptyNameMap;
-    mmap(ptr, emptyNameMap, markReloaded);
+    itemsToParameters(io::mmapItems(ptr), markReloaded);
   }
 
 private:
