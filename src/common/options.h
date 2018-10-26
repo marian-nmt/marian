@@ -33,12 +33,12 @@ protected:
 
 public:
   Options() {}
+  Options(const Options& other) : options_(YAML::Clone(other.options_)) {}
 
-  Options clone() const {
-    auto options = Options();
-    options.options_ = YAML::Clone(options_);
-    return options;
-  }
+  /**
+   * @brief Return a copy of the object that can be safely modified.
+   */
+  Options clone() const { return Options(*this); }
 
   YAML::Node& getYaml() { return options_; }
   const YAML::Node& getYaml() const { return options_; }
