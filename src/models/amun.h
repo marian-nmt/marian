@@ -155,8 +155,8 @@ public:
     ctt.name = "decoder_c_tt";
     ctt.shape = Shape({1, 0});
     ctt.bytes.emplace_back(0);
-
-    graph->save(name, getModelParametersAsString(), nameMap, {ctt});
+    std::vector<io::Item> items = {ctt};
+    graph->save(name, getModelParametersAsString(), items, nameMap);
 
     if(saveTranslatorConfig) {
       createAmunConfig(name);

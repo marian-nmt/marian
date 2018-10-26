@@ -526,16 +526,12 @@ private:
                          const std::map<std::string, std::string>& nameMap);
 
 public:
-  void save(const std::string& name,
-            const std::string& meta,
-            const std::map<std::string, std::string>& nameMap,
-            const std::vector<io::Item>& extraItems = {}) {
+  void save(const std::string& name, const std::string& meta = "") {
     // LOG(info, "Saving model to {}", name);
 
+    std::map<std::string, std::string> emptyNameMap;
     std::vector<io::Item> ioItems;
-    parametersToItems(ioItems, nameMap);
-    if(!extraItems.empty())
-      ioItems.insert(ioItems.end(), extraItems.begin(), extraItems.end());
+    parametersToItems(ioItems, emptyNameMap);
     if(!meta.empty())
       io::addMetaToItems(meta, "special:model.yml", ioItems);
     io::saveItems(name, ioItems);
@@ -543,19 +539,14 @@ public:
     // LOG(info, "Saved {} items.", ioItems.size());
   }
 
-  void save(const std::string& name) {
-    std::map<std::string, std::string> emptyNameMap;
-    save(name, "", emptyNameMap);
-  }
-
-  void save(const std::string& name, const std::string& meta) {
-    std::map<std::string, std::string> emptyNameMap;
-    save(name, meta, emptyNameMap);
-  }
-
   void save(const std::string& name,
+            const std::string& meta,
+            std::vector<io::Item>& ioItems,
             const std::map<std::string, std::string>& nameMap) {
-    save(name, "", nameMap);
+    parametersToItems(ioItems, nameMap);
+    if(!meta.empty())
+      io::addMetaToItems(meta, "special:model.yml", ioItems);
+    io::saveItems(name, ioItems);
   }
 };
 
