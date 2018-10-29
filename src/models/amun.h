@@ -152,13 +152,23 @@ public:
            {"encoder_bi_r_gamma1", "encoder_r_gamma1"},
            {"encoder_bi_r_gamma2", "encoder_r_gamma2"}};
 
-    // a dummy matrix 'decoder_c_tt' required for Amun and Nematus
-    io::Item ctt;
-    ctt.name = "decoder_c_tt";
-    ctt.shape = Shape({1, 0});
-    ctt.bytes.emplace_back(0);
-    std::vector<io::Item> items = {ctt};
-    graph->save(name, getModelParametersAsString(), items, nameMap);
+    // get parameters from the graph to items
+    std::vector<io::Item> ioItems;
+    graph->parametersToItems(ioItems);
+    // replace names to be compatible with Nematus
+    for(auto& item : ioItems) {
+      auto newItemName = nameMap.find(item.name);
+      if(newItemName != nameMap.end())
+        item.name = newItemName->second;
+    }
+    // add a dummy matrix 'decoder_c_tt' required for Amun and Nematus
+    ioItems.emplace_back();
+    ioItems.back().name = "decoder_c_tt";
+    ioItems.back().shape = Shape({1, 0});
+    ioItems.back().bytes.emplace_back(0);
+
+    io::addMetaToItems(getModelParametersAsString(), "special:model.yml", ioItems);
+    io::saveItems(name, ioItems);
 
     if(saveTranslatorConfig) {
       createAmunConfig(name);

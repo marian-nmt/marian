@@ -497,33 +497,20 @@ public:
     itemsToParameters(io::mmapItems(ptr), markReloaded);
   }
 
-private:
-  // convert all parameters into an array of io::Item elements, for saving
-  void parametersToItems(std::vector<io::Item>& ioItems,
-                         const std::map<std::string, std::string>& nameMap);
-
 public:
+  // convert all parameters into an array of io::Item elements, for saving
+  void parametersToItems(std::vector<io::Item>& ioItems);
+
   void save(const std::string& name, const std::string& meta = "") {
     // LOG(info, "Saving model to {}", name);
 
-    std::map<std::string, std::string> emptyNameMap;
     std::vector<io::Item> ioItems;
-    parametersToItems(ioItems, emptyNameMap);
+    parametersToItems(ioItems);
     if(!meta.empty())
       io::addMetaToItems(meta, "special:model.yml", ioItems);
     io::saveItems(name, ioItems);
 
     // LOG(info, "Saved {} items.", ioItems.size());
-  }
-
-  void save(const std::string& name,
-            const std::string& meta,
-            std::vector<io::Item>& ioItems,
-            const std::map<std::string, std::string>& nameMap) {
-    parametersToItems(ioItems, nameMap);
-    if(!meta.empty())
-      io::addMetaToItems(meta, "special:model.yml", ioItems);
-    io::saveItems(name, ioItems);
   }
 };
 
