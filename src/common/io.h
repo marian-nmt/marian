@@ -26,10 +26,7 @@ void addMetaToItems(const std::string& meta,
                     const std::string& varName,
                     std::vector<io::Item>& items);
 
-std::vector<Item> loadItems(const std::string& fileName,
-                            const std::map<std::string, std::string>& nameMap
-                            = std::map<std::string, std::string>());
-
+std::vector<Item> loadItems(const std::string& fileName);
 std::vector<Item> loadItems(const void* ptr);
 
 std::vector<Item> mmapItems(const void* ptr);

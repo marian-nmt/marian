@@ -90,16 +90,20 @@ public:
       nameMap["Wemb"] = "Wemb";
 
     LOG(info, "Loading model from {}", name);
-    // load items from .npz file mapping names
-    auto items = io::loadItems(name, nameMap);
-    // remove a dummy matrix 'decoder_c_tt' from items to avoid creating isolated node
-    for(auto it = items.begin(); it != items.end(); ++it) {
+    // load items from .npz file
+    auto ioItems = io::loadItems(name);
+    // map names and remove a dummy matrix 'decoder_c_tt' from items to avoid creating isolated node
+    for(auto it = ioItems.begin(); it != ioItems.end();) {
       if(it->name == "decoder_c_tt") {
-        items.erase(it);
-        break;
+        it = ioItems.erase(it);
       }
+      auto pair = nameMap.find(it->name);
+      if(pair != nameMap.end())
+        it->name = pair->second;
+      ++it;
     }
-    graph->itemsToParameters(items);
+    // load items into the graph
+    graph->itemsToParameters(ioItems);
   }
 
   void save(Ptr<ExpressionGraph> graph,
