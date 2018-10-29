@@ -9,8 +9,7 @@ namespace marian {
 class Nematus : public EncoderDecoder {
 public:
   template <class... Args>
-  Nematus(Ptr<Options> options)
-      : EncoderDecoder(options), nameMap_(createNameMap()) {
+  Nematus(Ptr<Options> options) : EncoderDecoder(options), nameMap_(createNameMap()) {
     ABORT_IF(options_->get<std::string>("enc-type") != "bidirectional",
              "--type nematus does not currently support other encoder "
              "type than bidirectional, use --type s2s");
@@ -45,13 +44,20 @@ public:
   void save(Ptr<ExpressionGraph> graph,
             const std::string& name,
             bool saveTranslatorConfig = false) override {
+    LOG(info, "Saving model to {}", name);
+
+    // prepare reversed map
+    if(nameMapRev_.empty())
+      for(const auto& kv : nameMap_)
+        nameMapRev_.insert({kv.second, kv.first});
+
     // get parameters from the graph to items
     std::vector<io::Item> ioItems;
     graph->parametersToItems(ioItems);
     // replace names to be compatible with Nematus
     for(auto& item : ioItems) {
-      auto newItemName = nameMap_.find(item.name);
-      if(newItemName != nameMap_.end())
+      auto newItemName = nameMapRev_.find(item.name);
+      if(newItemName != nameMapRev_.end())
         item.name = newItemName->second;
     }
     // add a dummy matrix 'decoder_c_tt' required for Amun and Nematus
@@ -126,10 +132,8 @@ private:
       std::string num1 = std::to_string(i);
       std::string num2 = std::to_string(i + 1);
       for(auto suf : suffixes) {
-        nameMap.insert(
-            {"encoder" + suf + "_drt_" + num1, "encoder_bi_cell" + num2 + suf});
-        nameMap.insert({"encoder_r" + suf + "_drt_" + num1,
-                        "encoder_bi_r_cell" + num2 + suf});
+        nameMap.insert({"encoder" + suf + "_drt_" + num1, "encoder_bi_cell" + num2 + suf});
+        nameMap.insert({"encoder_r" + suf + "_drt_" + num1, "encoder_bi_r_cell" + num2 + suf});
       }
     }
     // add mapping for deep decoder cells
@@ -137,8 +141,7 @@ private:
       std::string num1 = std::to_string(i - 2);
       std::string num2 = std::to_string(i);
       for(auto suf : suffixes)
-        nameMap.insert(
-            {"decoder" + suf + "_nl_drt_" + num1, "decoder_cell" + num2 + suf});
+        nameMap.insert({"decoder" + suf + "_nl_drt_" + num1, "decoder_cell" + num2 + suf});
     }
     // add mapping for normalization layers
     std::map<std::string, std::string> nameMapCopy(nameMap);
