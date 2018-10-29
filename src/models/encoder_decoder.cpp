@@ -1,5 +1,6 @@
 #include "encoder_decoder.h"
 #include "common/cli_helper.h"
+#include "common/version.h"
 
 namespace marian {
 
@@ -87,7 +88,7 @@ Config::YamlNode EncoderDecoder::getModelParameters() {
   if(options_->has("original-type"))
     modelParams["type"] = options_->getOptions()["original-type"];
 
-  modelParams["version"] = PROJECT_VERSION_FULL;
+  modelParams["version"] = buildVersion();
   return modelParams;
 }
 

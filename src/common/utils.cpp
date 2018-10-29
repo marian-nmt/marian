@@ -7,6 +7,9 @@
 #include <array>
 #include <iostream>
 #include <sstream>
+#ifdef __unix__
+#include <unistd.h>
+#endif
 
 namespace marian {
 namespace utils {
@@ -116,6 +119,21 @@ std::string exec(const std::string& cmd) {
       result += buffer.data();
   }
   return result;
+}
+
+std::pair<std::string, int> hostnameAndProcessId() { // helper to get hostname:pid
+#ifdef _WIN32
+  std::string hostname = getenv("COMPUTERNAME");
+  auto processId = (int)GetCurrentProcessId();
+#else
+  static std::string hostname = [](){ // not sure if gethostname() is expensive. This way we call it only once.
+    char hostnamebuf[HOST_NAME_MAX + 1] = { 0 };
+    gethostname(hostnamebuf, sizeof(hostnamebuf));
+    return std::string(hostnamebuf);
+  }();
+  auto processId = (int)getpid();
+#endif
+  return{ hostname, processId };
 }
 
 }  // namespace utils

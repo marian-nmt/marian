@@ -1,5 +1,6 @@
 # Config files from CMake
-src/common/version.h
+src/common/project_version.h
+src/common/git_revision.h
 
 *.vcxproj.user
 /vs/x64

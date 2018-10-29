@@ -3,6 +3,7 @@
 #include "common/logging.h"
 #include "common/utils.h"
 #include "common/version.h"
+#include "common/regex.h"
 
 #include <algorithm>
 #include <set>
@@ -26,6 +27,24 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
   config_ = parser.getConfig();
 
   createLoggers(this);
+
+  // echo version and command line
+  LOG(info, "[marian] Marian {}", buildVersion());
+  std::string cmdLine;
+  for (int i = 0; i < argc; i++) {
+    std::string arg = argv[i];
+    std::string quote; // attempt to quote special chars
+    if (arg.empty() || arg.find_first_of(" #`\"'\\${}|&^?*!()%><") != std::string::npos)
+      quote = "'";
+    arg = regex::regex_replace(arg, std::regex("'"), "'\\''");
+    if (!cmdLine.empty())
+      cmdLine.push_back(' ');
+    cmdLine += quote + arg + quote;
+  }
+  std::string hostname; int pid; std::tie
+  (hostname, pid) = utils::hostnameAndProcessId();
+  LOG(info, "[marian] Running on {} as process {} with command line:", hostname, pid);
+  LOG(info, "[marian] {}", cmdLine);
 
   // set random seed
   if(get<size_t>("seed") == 0)
@@ -56,6 +75,7 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
     }
   }
 
+  // echo full configuration
   log();
 
   // Log version of Marian that has been used to create the model.
@@ -65,12 +85,12 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
   if(has("version")) {
     auto version = get<std::string>("version");
 
-    if(mode == cli::mode::training && version != PROJECT_VERSION_FULL)
+    if(mode == cli::mode::training && version != buildVersion())
       LOG(info,
           "[config] Loaded model has been created with Marian {}, "
           "will be overwritten with current version {} at saving",
           version,
-          PROJECT_VERSION_FULL);
+          buildVersion());
     else
       LOG(info,
           "[config] Loaded model has been created with Marian {}",
@@ -80,7 +100,7 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
   else if(mode == cli::mode::training) {
     LOG(info,
         "[config] Model is being created with Marian {}",
-        PROJECT_VERSION_FULL);
+        buildVersion());
   }
 }
 

@@ -6,6 +6,7 @@ include_directories(3rd_party/SQLiteCpp/include)
 include_directories(3rd_party/sentencepiece)
 
 add_library(marian STATIC
+  common/version.cpp
   common/utils.cpp
   common/logging.cpp
   common/cli_helper.cpp
@@ -83,6 +84,17 @@ add_library(marian STATIC
   $<TARGET_OBJECTS:libyaml-cpp>
   $<TARGET_OBJECTS:SQLiteCpp>
 )
+
+# Generate git_revision.h to reflect current git revision information
+# [https://stackoverflow.com/questions/1435953/how-can-i-pass-git-sha1-to-compiler-as-definition-using-cmake]
+# Git updates .git/logs/HEAD file whenever you pull or commit something.
+add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/common/git_revision.h
+  COMMAND git log -1 --pretty=format:\#define\ GIT_REVISION\ \"\%h\ \%ai\" > ${CMAKE_CURRENT_SOURCE_DIR}/common/git_revision.h
+  DEPENDS ${CMAKE_SOURCE_DIR}/.git/logs/HEAD
+  VERBATIM
+)
+add_custom_target(marian_version DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/common/git_revision.h)
+add_dependencies(marian marian_version) # marian must depend on it so that it gets created first
 
 if(CUDA_FOUND)
 cuda_add_library(marian_cuda

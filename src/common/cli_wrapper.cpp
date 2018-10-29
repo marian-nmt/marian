@@ -120,7 +120,7 @@ void CLIWrapper::parse(int argc, char **argv) {
 
   // handle --version flag
   if(optVersion_->count()) {
-    std::cerr << PROJECT_VERSION_FULL << std::endl;
+    std::cerr << buildVersion() << std::endl;
     exit(0);
   }
 }

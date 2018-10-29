@@ -265,6 +265,9 @@
     <ClCompile Include="..\src\data\sentencepiece_vocab.cpp">
       <Filter>data</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\common\version.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -697,9 +700,6 @@
     <ClInclude Include="..\src\common\utils.h">
       <Filter>common</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\common\version.h">
-      <Filter>common</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\data\alignment.h">
       <Filter>data</Filter>
     </ClInclude>
@@ -1086,6 +1086,12 @@
     </ClInclude>
     <ClInclude Include="..\src\tensors\rand.h">
       <Filter>tensors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\project_version.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\version.h">
+      <Filter>common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
