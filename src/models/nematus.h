@@ -28,7 +28,8 @@ public:
 
   void load(Ptr<ExpressionGraph> graph,
             const std::string& name,
-            bool markReloaded = true) override {
+            bool /*markReloaded*/ = true) override {
+    LOG(info, "Loading model from {}", name);
     // load items from .npz file mapping names
     auto items = io::loadItems(name, nameMap_);
     // remove a dummy matrix 'decoder_c_tt' from items to avoid creating isolated node
@@ -38,7 +39,7 @@ public:
         break;
       }
     }
-    graph->load(name, items, markReloaded);
+    graph->itemsToParameters(items);
   }
 
   void save(Ptr<ExpressionGraph> graph,

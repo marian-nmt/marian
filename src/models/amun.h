@@ -89,6 +89,7 @@ public:
     if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
       nameMap["Wemb"] = "Wemb";
 
+    LOG(info, "Loading model from {}", name);
     // load items from .npz file mapping names
     auto items = io::loadItems(name, nameMap);
     // remove a dummy matrix 'decoder_c_tt' from items to avoid creating isolated node
@@ -98,7 +99,7 @@ public:
         break;
       }
     }
-    graph->load(name, items);
+    graph->itemsToParameters(items);
   }
 
   void save(Ptr<ExpressionGraph> graph,

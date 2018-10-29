@@ -450,7 +450,7 @@ public:
 
   void setThrowNaN(bool throwNaN) { throwNaN_ = throwNaN; }
 
-private:
+public:
   // convert all parameters into an array of IoItem elements, for loading
   void itemsToParameters(const std::vector<io::Item>& ioItems, bool markReloaded = true) {
     setReloaded(false);
@@ -465,25 +465,14 @@ private:
       setReloaded(true);
   }
 
-public:
-  void load(const std::string& name, const std::vector<io::Item>& items, bool markReloaded = true) {
-    LOG(info, "Loading model from {}", name);
-    itemsToParameters(items, markReloaded);
-  }
-
   void load(const std::string& name, bool markReloaded = true) {
-    auto items = io::loadItems(name);
-    load(name, items, markReloaded);
-  }
-
-  void load(const void* ptr, const std::vector<io::Item>& items, bool markReloaded = true) {
-    LOG(info, "Loading model from buffer at {}", ptr);
-    itemsToParameters(items, markReloaded);
+    LOG(info, "Loading model from {}", name);
+    itemsToParameters(io::loadItems(name), markReloaded);
   }
 
   void load(const void* ptr, bool markReloaded = true) {
-    auto items = io::loadItems(ptr);
-    load(ptr, items, markReloaded);
+    LOG(info, "Loading model from buffer at {}", ptr);
+    itemsToParameters(io::loadItems(ptr), markReloaded);
   }
 
   void mmap(const void* ptr, bool markReloaded = true) {
