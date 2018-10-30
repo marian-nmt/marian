@@ -100,13 +100,13 @@ std::string EncoderDecoder::getModelParametersAsString() {
 
 void EncoderDecoder::load(Ptr<ExpressionGraph> graph,
                           const std::string& name,
-                          bool markedReloaded) {
+                          bool markedReloaded) const {
   graph->load(name, markedReloaded && !opt<bool>("ignore-model-config", false));
 }
 
 void EncoderDecoder::mmap(Ptr<ExpressionGraph> graph,
                           const void* ptr,
-                          bool markedReloaded) {
+                          bool markedReloaded) const {
   graph->mmap(ptr, markedReloaded && !opt<bool>("ignore-model-config", false));
 }
 

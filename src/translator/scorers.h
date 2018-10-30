@@ -9,9 +9,9 @@ namespace marian {
 
 class ScorerState {
 public:
-  virtual Expr getLogProbs() = 0;
+  virtual Expr getLogProbs() const = 0;
 
-  virtual float breakDown(size_t i) { return getLogProbs()->val()->get(i); }
+  virtual float breakDown(size_t i) const { return getLogProbs()->val()->get(i); }
 
   virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch){};
 };
@@ -25,22 +25,22 @@ public:
   Scorer(const std::string& name, float weight)
       : name_(name), weight_(weight) {}
 
-  std::string getName() { return name_; }
-  float getWeight() { return weight_; }
+  std::string getName() const { return name_; }
+  float getWeight() const { return weight_; }
 
-  virtual void clear(Ptr<ExpressionGraph>) = 0;
+  virtual void clear(Ptr<ExpressionGraph>) const = 0;
   virtual Ptr<ScorerState> startState(Ptr<ExpressionGraph>,
-                                      Ptr<data::CorpusBatch>)
+                                      Ptr<data::CorpusBatch>) const
       = 0;
   virtual Ptr<ScorerState> step(Ptr<ExpressionGraph>,
                                 Ptr<ScorerState>,
                                 const std::vector<IndexType>&,
                                 const std::vector<IndexType>&,
                                 int dimBatch,
-                                int beamSize)
+                                int beamSize) const
       = 0;
 
-  virtual void init(Ptr<ExpressionGraph> graph) {}
+  virtual void init(Ptr<ExpressionGraph> graph) const {}
 
   virtual void setShortlistGenerator(
       Ptr<data::ShortlistGenerator> shortlistGenerator){};
@@ -57,7 +57,7 @@ public:
 
   virtual Ptr<DecoderState> getState() { return state_; }
 
-  virtual Expr getLogProbs() override { return state_->getLogProbs(); };
+  virtual Expr getLogProbs() const override { return state_->getLogProbs(); };
 
   virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) override {
     state_->blacklist(totalCosts, batch);
@@ -89,7 +89,7 @@ public:
         encdec_(std::static_pointer_cast<EncoderDecoderBase>(encdec)),
         ptr_{ptr} {}
 
-  virtual void init(Ptr<ExpressionGraph> graph) override {
+  virtual void init(Ptr<ExpressionGraph> graph) const override {
     graph->switchParams(getName());
     if(ptr_)
       encdec_->mmap(graph, ptr_);
@@ -97,13 +97,13 @@ public:
       encdec_->load(graph, fname_);
   }
 
-  virtual void clear(Ptr<ExpressionGraph> graph) override {
+  virtual void clear(Ptr<ExpressionGraph> graph) const override {
     graph->switchParams(getName());
     encdec_->clear(graph);
   }
 
   virtual Ptr<ScorerState> startState(Ptr<ExpressionGraph> graph,
-                                      Ptr<data::CorpusBatch> batch) override {
+                                      Ptr<data::CorpusBatch> batch) const override {
     graph->switchParams(getName());
     return New<ScorerWrapperState>(encdec_->startState(graph, batch));
   }
@@ -113,7 +113,7 @@ public:
                                 const std::vector<IndexType>& hypIndices,
                                 const std::vector<IndexType>& embIndices,
                                 int dimBatch,
-                                int beamSize) override {
+                                int beamSize) const override {
     graph->switchParams(getName());
     auto wrapperState = std::dynamic_pointer_cast<ScorerWrapperState>(state);
     auto newState = encdec_->step(graph, wrapperState->getState(), hypIndices, embIndices, dimBatch, beamSize);

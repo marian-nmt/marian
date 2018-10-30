@@ -30,6 +30,7 @@ protected:
   YAML::Node options_;
 
 public:
+  const YAML::Node& getOptions() const { return options_; }
   YAML::Node& getOptions() { return options_; }
 
   void parse(const std::string& yaml) {
@@ -38,11 +39,11 @@ public:
       options_[it.first.as<std::string>()] = YAML::Clone(it.second);
   }
 
-  void merge(Ptr<Options> options) { merge(options->getOptions()); }
+  void merge(Ptr<Options const> options) { merge(options->getOptions()); }
 
-  void merge(Ptr<Config> config) { merge(config->get()); }
+  void merge(Ptr<Config const> config) { merge(config->get()); }
 
-  void merge(YAML::Node& node) {
+  void merge(const YAML::Node& node) {
     for(auto it : node)
       if(!options_[it.first.as<std::string>()])
         options_[it.first.as<std::string>()] = YAML::Clone(it.second);

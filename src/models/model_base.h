@@ -19,7 +19,7 @@ class ModelBase {
 public:
   virtual void load(Ptr<ExpressionGraph>,
                     const std::string&,
-                    bool markReloaded = true)
+                    bool markReloaded = true) const
       = 0;
   virtual void save(Ptr<ExpressionGraph>,
                     const std::string&,

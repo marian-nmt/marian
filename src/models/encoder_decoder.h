@@ -13,12 +13,12 @@ class EncoderDecoderBase : public models::ModelBase {
 public:
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
-                    bool markedReloaded = true) override
+                    bool markedReloaded = true) const override 
       = 0;
 
   virtual void mmap(Ptr<ExpressionGraph> graph,
                     const void* ptr,
-                    bool markedReloaded = true)
+                    bool markedReloaded = true) const
       = 0;
 
   virtual void save(Ptr<ExpressionGraph> graph,
@@ -97,11 +97,11 @@ public:
 
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
-                    bool markedReloaded = true) override;
+                    bool markedReloaded = true) const override;
 
   virtual void mmap(Ptr<ExpressionGraph> graph,
                     const void* ptr,
-                    bool markedReloaded = true) override;
+                    bool markedReloaded = true) const override;
 
   virtual void save(Ptr<ExpressionGraph> graph,
                     const std::string& name,
@@ -110,12 +110,12 @@ public:
   virtual void clear(Ptr<ExpressionGraph> graph) override;
 
   template <typename T>
-  T opt(const std::string& key) {
+  T opt(const std::string& key) const {
     return options_->get<T>(key);
   }
 
   template <typename T>
-  T opt(const std::string& key, const T& def) {
+  T opt(const std::string& key, const T& def) const {
     return options_->get<T>(key, def);
   }
 

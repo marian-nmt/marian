@@ -37,7 +37,7 @@ public:
 
   void load(Ptr<ExpressionGraph> graph,
             const std::string& name,
-            bool /*markedReloaded*/ = true) override {
+            bool /*markedReloaded*/ = true) const override {
     std::map<std::string, std::string> nameMap
         = {{"decoder_U", "decoder_cell1_U"},
            {"decoder_Ux", "decoder_cell1_Ux"},
