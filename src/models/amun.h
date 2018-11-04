@@ -103,7 +103,7 @@ public:
       ++it;
     }
     // load items into the graph
-    graph->itemsToParameters(ioItems);
+    graph->load(ioItems);
   }
 
   void save(Ptr<ExpressionGraph> graph,
@@ -159,7 +159,7 @@ public:
 
     // get parameters from the graph to items
     std::vector<io::Item> ioItems;
-    graph->parametersToItems(ioItems);
+    graph->save(ioItems);
     // replace names to be compatible with Nematus
     for(auto& item : ioItems) {
       auto newItemName = nameMap.find(item.name);

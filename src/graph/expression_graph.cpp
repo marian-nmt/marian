@@ -29,7 +29,7 @@ void ExpressionGraph::checkNan(Tensor t) {
   // ABORT_IF(throwNaN_ && IsNan(t), "Tensor has NaN");
 }
 
-void ExpressionGraph::parametersToItems(std::vector<io::Item>& ioItems) {
+void ExpressionGraph::save(std::vector<io::Item>& ioItems) {
   for(auto p : params()->getMap()) {
     std::string pName = p.first;
 

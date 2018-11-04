@@ -452,7 +452,7 @@ public:
 
 public:
   // convert all parameters into an array of IoItem elements, for loading
-  void itemsToParameters(const std::vector<io::Item>& ioItems, bool markReloaded = true) {
+  void load(const std::vector<io::Item>& ioItems, bool markReloaded = true) {
     setReloaded(false);
     for(auto& item : ioItems) {
       std::string pName = item.name;
@@ -467,12 +467,12 @@ public:
 
   void load(const std::string& name, bool markReloaded = true) {
     LOG(info, "Loading model from {}", name);
-    itemsToParameters(io::loadItems(name), markReloaded);
+    load(io::loadItems(name), markReloaded);
   }
 
   void load(const void* ptr, bool markReloaded = true) {
     LOG(info, "Loading model from buffer at {}", ptr);
-    itemsToParameters(io::loadItems(ptr), markReloaded);
+    load(io::loadItems(ptr), markReloaded);
   }
 
   void mmap(const void* ptr, bool markReloaded = true) {
@@ -483,18 +483,18 @@ public:
     params_->init(backend_);
 
     LOG(info, "Memory mapping model at {}", ptr);
-    itemsToParameters(io::mmapItems(ptr), markReloaded);
+    load(io::mmapItems(ptr), markReloaded);
   }
 
 public:
   // convert all parameters into an array of io::Item elements, for saving
-  void parametersToItems(std::vector<io::Item>& ioItems);
+  void save(std::vector<io::Item>& ioItems);
 
   void save(const std::string& name, const std::string& meta = "") {
     // LOG(info, "Saving model to {}", name);
 
     std::vector<io::Item> ioItems;
-    parametersToItems(ioItems);
+    save(ioItems);
     if(!meta.empty())
       io::addMetaToItems(meta, "special:model.yml", ioItems);
     io::saveItems(name, ioItems);
