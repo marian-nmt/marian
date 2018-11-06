@@ -198,15 +198,15 @@ public:
 
     ABORT_IF(!dir.empty() && !filesystem::isDirectory(dir),
             "Specified vocab directory {} does not exist",
-            (std::string)dir);
+            dir.string());
 
     ABORT_IF(!dir.empty() && !filesystem::canWrite(dir),
             "No write permission in vocab directory {}",
-            (std::string)dir);
+            dir.string());
 
     ABORT_IF(filesystem::exists(vocabPath),
             "DefaultVocab file '{}' exists. Not overwriting",
-            (std::string)vocabPath);
+            path.string());
 
     io::InputFileStream trainStrm(trainPath);
     io::OutputFileStream vocabStrm(vocabPath);
