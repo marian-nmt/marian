@@ -18,10 +18,12 @@ void AVX_Quantize16(const float* input,
                     int16_t* output,
                     float quant_mult,
                     std::size_t size);
+
 void AVX_Quantize8(const float* input,
                    int8_t* output,
                    float quant_mult,
                    std::size_t size);
+
 void AVX_MatrixMult16(const __m512i* A,
                       const __m512i* B,
                       float* C,
@@ -29,6 +31,7 @@ void AVX_MatrixMult16(const __m512i* A,
                       int num_A_rows,
                       int num_B_rows,
                       int width);
+
 void AVX_MatrixMult8(const __m512i* A,
                      const __m512i* B,
                      float* C,
@@ -43,6 +46,7 @@ void SSE_Quantize16(const float* input,
                     float quant_mult,
                     int num_rows,
                     int width);
+
 void SSE_MatrixMult16(const __m128i* A,
                       const __m128i* B,
                       float* C,
@@ -73,7 +77,7 @@ void Quantize8(marian::Tensor out,
   AVX_Quantize8(
       in->data(), out->data<int8_t>(), quant_mult, in->shape().elements());
 #else
-    out; in; clipValue;
+  out; in; clipValue;
   ABORT("8-bit is currently only AVX512");
 #endif
 }
@@ -176,7 +180,7 @@ void ProdInt8(marian::Tensor C,
                   num_B_rows,
                   width);
 #else
-    C; A; B; scale; clipValue;
+  C; A; B; scale; clipValue;
   ABORT("8-bit is currently only AVX512");
 #endif
 }

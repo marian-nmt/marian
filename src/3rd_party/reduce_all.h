@@ -11,8 +11,9 @@
 
 #pragma once
 
-#include <device_functions.h>
 #include "tensors/tensor.h"
+
+#include <cuda_runtime.h>
 
 namespace marian {
 
