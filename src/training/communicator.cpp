@@ -148,16 +148,21 @@ public:
 #pragma warning(disable: 4100) // unreferenced formal parameter
   // most functions are no-ops when applied to a single process
   virtual void barrier(MPI_Comm comm) const override {
+    comm;
   }
   virtual void bCast(void* buf, size_t count, MPI_Datatype datatype, size_t rootRank, MPI_Comm comm) const override {
+    buf; count; datatype; rootRank; comm;
   }
   virtual void sSend(void* buf, size_t count, MPI_Datatype datatype, size_t destRank, int tag, MPI_Comm comm) const override {
+    buf; count; datatype; destRank; tag; comm;
   }
   virtual void recv(void* buf, size_t count, MPI_Datatype datatype, size_t sourceRank, int tag, MPI_Comm comm, MPI_Status* status) const override {
+    buf; count; datatype; sourceRank; tag; comm;
     // @TODO: fill in status
     ABORT_IF(status != MPI_STATUS_IGNORE, "FakeMPIWrapper::recv() does not yet implement returning a status object");
   }
   virtual void allReduce(const void* sendbuf, void* recvbuf, size_t count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) const override {
+    count; datatype; op; comm;
     // @TODO: There is only one place where this is called with sendbuf != recvbuf, which is sync multi-node.
     //        I think that can be changed to use the same buffer. Then we should change this API
     //        to only accept one parameter, and remove this error check can be removed.

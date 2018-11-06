@@ -92,7 +92,7 @@ public:
   }
 
   virtual void add_input(Expr input) {
-    inputs_.push_back([input](Ptr<rnn::RNN> rnn) { return input; });
+    inputs_.push_back([input](Ptr<rnn::RNN> /*rnn*/) { return input; });
   }
 };
 

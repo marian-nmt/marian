@@ -19,10 +19,10 @@ static ref<7> _7;
 static ref<8> _8;
 static ref<9> _9;
 
-static C<0> _0c;
-static C<1> _1c;
-static C<2> _2c;
-static C<-1> _1cneg;
-static C<-2> _2cneg;
+const C<0> _0c;
+const C<1> _1c;
+const C<2> _2c;
+const C<-1> _1cneg;
+const C<-2> _2cneg;
 }  // namespace functional
 }  // namespace marian

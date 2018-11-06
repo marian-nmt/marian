@@ -25,7 +25,7 @@ Expr ExpressionGraph::dropout(float prob, const Shape& shape) {
 }
 
 void ExpressionGraph::checkNan(Tensor t) {
-  ABORT_IF(throwNaN_, "Not implemented");
+  ABORT_IF(throwNaN_, "Not implemented"); t;
   // ABORT_IF(throwNaN_ && IsNan(t), "Tensor has NaN");
 }
 

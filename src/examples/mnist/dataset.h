@@ -135,7 +135,7 @@ private:
 
 public:
   MNISTData(std::vector<std::string> paths,
-            std::vector<Ptr<Vocab>> vocabs = {},
+            std::vector<Ptr<Vocab>> /*vocabs*/ = {},
             Ptr<Config> options = nullptr)
       : Dataset(paths, options), IMAGE_MAGIC_NUMBER(2051), LABEL_MAGIC_NUMBER(2049) {
     loadData();
@@ -154,7 +154,7 @@ public:
     }
   }
 
-  Example next() override {}
+  Example next() override { return{ }; } //@TODO: this return was added to fix a warning. Is it correct?
 
 private:
   typedef unsigned char uchar;

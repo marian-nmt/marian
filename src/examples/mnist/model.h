@@ -58,24 +58,24 @@ public:
 
   virtual Expr build(Ptr<ExpressionGraph> graph,
                      Ptr<data::Batch> batch,
-                     bool clean = false) override {
+                     bool /*clean*/ = false) override {
     return construct(graph, batch, inference_);
   }
 
-  void load(Ptr<ExpressionGraph> graph, const std::string& name, bool) override {
+  void load(Ptr<ExpressionGraph> /*graph*/, const std::string& /*name*/, bool) override {
     LOG(critical, "Loading MNIST model is not supported");
   }
 
-  void save(Ptr<ExpressionGraph> graph, const std::string& name, bool) override {
+  void save(Ptr<ExpressionGraph> /*graph*/, const std::string& /*name*/, bool) override {
     LOG(critical, "Saving MNIST model is not supported");
   }
 
-  void save(Ptr<ExpressionGraph> graph, const std::string& name) {
+  void save(Ptr<ExpressionGraph> /*graph*/, const std::string& /*name*/) {
     LOG(critical, "Saving MNIST model is not supported");
   }
 
-  Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph,
-                                     size_t multiplier) {
+  Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> /*graph*/,
+                                     size_t /*multiplier*/) {
     LOG(critical, "Collecting stats in MNIST model is not supported");
     return nullptr;
   }
@@ -98,7 +98,7 @@ protected:
    */
   virtual Expr construct(Ptr<ExpressionGraph> g,
                          Ptr<data::Batch> batch,
-                         bool inference = false) {
+                         bool /*inference*/ = false) {
     const std::vector<int> dims = {784, 2048, 2048, 10};
 
     // Start with an empty expression graph

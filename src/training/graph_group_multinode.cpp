@@ -269,7 +269,7 @@ void MultiNodeGraphGroup::launchServerThread() {
         size_t size = shardSizes_[gpu];
 
         threads.emplace_back(std::thread(
-            [=](int gpu, size_t offset, size_t size, size_t batchWords) {
+            [=](int gpu, size_t offset, size_t size) {
               std::lock_guard<std::mutex> guard(shardMutex_[gpu]);
 
               // Copy grads to appropriate GPU
@@ -292,8 +292,7 @@ void MultiNodeGraphGroup::launchServerThread() {
             },
             gpu,
             offset,
-            size,
-            messageInfo[MSG_INFO_BATCHWORDS_]));
+            size));
 
         offset += size;
       }

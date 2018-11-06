@@ -20,8 +20,8 @@ namespace cli {
 //
 // TODO: make use of it in the current CLI or remove. This is an old code used
 // for boost::program_options and might not be needed anymore.
-static uint16_t guess_terminal_width(uint16_t max_width = 0,
-                                     uint16_t default_width = 180);
+//static uint16_t guess_terminal_width(uint16_t max_width = 0,
+//                                     uint16_t default_width = 180);
 
 // TODO: use validators in ConfigParser
 namespace validators {
