@@ -390,8 +390,8 @@ private:
 public:
   BleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options, bool detok = false)
       : Validator(vocabs, options, false),
-        quiet_(options_->get<bool>("quiet-translation")),
-        detok_(detok) {
+        detok_(detok),
+        quiet_(options_->get<bool>("quiet-translation")) {
     Ptr<Options> opts = New<Options>();
     opts->merge(options);
     opts->set("inference", true);

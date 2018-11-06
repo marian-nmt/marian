@@ -268,6 +268,15 @@
     <ClCompile Include="..\src\common\version.cpp">
       <Filter>common</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\examples\iris\helper.cpp">
+      <Filter>examples\iris</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\examples\iris\iris.cpp">
+      <Filter>examples\iris</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\examples\mnist\mnist_ffnn.cpp">
+      <Filter>examples\mnist</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -1093,6 +1102,21 @@
     <ClInclude Include="..\src\common\version.h">
       <Filter>common</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\examples\mnist\dataset.h">
+      <Filter>examples\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\examples\mnist\model.h">
+      <Filter>examples\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\examples\mnist\model_lenet.h">
+      <Filter>examples\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\examples\mnist\training.h">
+      <Filter>examples\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\examples\mnist\validator.h">
+      <Filter>examples\mnist</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
@@ -1212,11 +1236,40 @@
     <Filter Include="microsoft">
       <UniqueIdentifier>{bf291eae-3de9-4294-b5aa-07ab631951e1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="examples">
+      <UniqueIdentifier>{3dbe1ce2-4645-42d0-99b1-0989e42cd7df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="examples\iris">
+      <UniqueIdentifier>{c1ebcdfa-3994-4430-aad0-0d9d54cf10e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="examples\mnist">
+      <UniqueIdentifier>{55dd3952-a6fd-41d8-b99c-306b9e6c348d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorConfig" />
     <None Include="..\src\training\communicator_nccl.h">
       <Filter>training</Filter>
     </None>
+    <None Include="..\src\examples\cmake_install.cmake">
+      <Filter>examples</Filter>
+    </None>
+    <None Include="..\src\examples\Makefile">
+      <Filter>examples</Filter>
+    </None>
+    <None Include="..\src\examples\README.md">
+      <Filter>examples</Filter>
+    </None>
+    <None Include="..\src\examples\iris\iris.data">
+      <Filter>examples\iris</Filter>
+    </None>
+    <None Include="..\src\examples\mnist\download.sh">
+      <Filter>examples\mnist</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\src\examples\CMakeLists.txt">
+      <Filter>examples</Filter>
+    </Text>
   </ItemGroup>
 </Project>

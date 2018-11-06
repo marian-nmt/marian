@@ -106,7 +106,7 @@ class ThreadPool {
 
 // the constructor just launches some amount of workers
 inline ThreadPool::ThreadPool(size_t threads, size_t in_bound)
-  : stop(false), bound(in_bound) {
+  : bound(in_bound), stop(false) {
     reserve(threads);
 }
 

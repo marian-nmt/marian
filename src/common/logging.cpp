@@ -133,9 +133,9 @@ static void setErrorHandlers() {
   struct sigaction sa = { 0 };
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = SA_SIGINFO;
-  sa.sa_sigaction = [](int signal, siginfo_t *si, void *arg) { ABORT("Segmentation fault"); };
+  sa.sa_sigaction = [](int /*signal*/, siginfo_t*, void*) { ABORT("Segmentation fault"); };
   sigaction(SIGSEGV, &sa, NULL);
-  sa.sa_sigaction = [](int signal, siginfo_t *si, void *arg) { ABORT("Floating-point exception"); };
+  sa.sa_sigaction = [](int /*signal*/, siginfo_t*, void*) { ABORT("Floating-point exception"); };
   sigaction(SIGFPE, &sa, NULL);
 #endif
 }

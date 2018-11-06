@@ -7,6 +7,7 @@
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wsuggest-override"
 #endif
 #include <boost/filesystem.hpp>

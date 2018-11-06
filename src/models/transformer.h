@@ -200,7 +200,7 @@ public:
 
   // determine the multiplicative-attention probability and performs the associative lookup as well
   // q, k, and v have already been split into multiple heads, undergone any desired linear transform.
-  Expr Attention(std::string prefix,
+  Expr Attention(std::string /*prefix*/,
                  Expr q,              // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]
                  Expr k,              // [-4: batch size, -3: num heads, -2: max src length, -1: split vector dim]
                  Expr v,              // [-4: batch size, -3: num heads, -2: max src length, -1: split vector dim]
@@ -444,7 +444,7 @@ public:
                        const rnn::State& prevDecoderState,
                        std::string prefix,
                        Expr input,
-                       Expr selfMask,
+                       Expr /*selfMask*/,
                        int /*startPos*/) const {
     float dropoutRnn = inference_ ? 0.f : opt<float>("dropout-rnn");
 
@@ -609,7 +609,7 @@ private:
   Ptr<mlp::MLP> output_;
 
 private:
-  void LazyCreateOutputLayer(std::string prefix)
+  void LazyCreateOutputLayer()
   {
     if(output_) // create it lazily
       return;
@@ -667,7 +667,7 @@ public:
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state) override {
     ABORT_IF(graph != graph_, "An inconsistent graph parameter was passed to step().");
-    LazyCreateOutputLayer(prefix_ + "_ff_logit_out");
+    LazyCreateOutputLayer();
     return step(state);
   }
 

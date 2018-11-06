@@ -288,7 +288,7 @@ public:
     }
   }
 
-  Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) override {
+  Ptr<Shortlist> generate(Ptr<data::CorpusBatch> /*batch*/) override {
     std::vector<Word> tmp;
     return New<Shortlist>(idx_, tmp, reverseIdx_);
   }
