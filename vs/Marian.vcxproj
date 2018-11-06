@@ -444,6 +444,14 @@
     <ClInclude Include="..\src\tensors\cpu\sharp\int_gemm.h" />
     <ClInclude Include="..\src\tensors\device.h" />
     <ClInclude Include="..\src\tensors\dispatch.h" />
+    <ClInclude Include="..\src\tensors\gpu\add.h" />
+    <ClInclude Include="..\src\tensors\gpu\algorithm.h" />
+    <ClInclude Include="..\src\tensors\gpu\backend.h" />
+    <ClInclude Include="..\src\tensors\gpu\cuda_helpers.h" />
+    <ClInclude Include="..\src\tensors\gpu\cudnn_wrappers.h" />
+    <ClInclude Include="..\src\tensors\gpu\element.h" />
+    <ClInclude Include="..\src\tensors\gpu\prod.h" />
+    <ClInclude Include="..\src\tensors\gpu\sparse.h" />
     <ClInclude Include="..\src\tensors\memory_piece.h" />
     <ClInclude Include="..\src\tensors\rand.h" />
     <ClInclude Include="..\src\tensors\tensor.h" />
@@ -481,6 +489,32 @@
     <ClInclude Include="..\src\translator\translator.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\src\tensors\gpu\add.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\tensors\gpu\add.inc" />
+    <None Include="..\src\tensors\gpu\algorithm.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\tensors\gpu\cudnn_wrappers.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\tensors\gpu\device.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\tensors\gpu\element.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\tensors\gpu\element.inc" />
+    <None Include="..\src\tensors\gpu\prod.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\tensors\gpu\sparse.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\tensors\gpu\tensor_operators.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
     <None Include="..\src\training\communicator_nccl.h" />
     <None Include=".editorConfig" />
   </ItemGroup>

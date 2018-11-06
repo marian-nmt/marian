@@ -2,8 +2,8 @@
 #include "common/logging.h"
 #include "cuda_runtime.h"
 
-// fixes a missing constant in CUDA device code (specific to MSVC compiler)
-static __constant__ float CUDA_FLT_MAX = 1.70141e+38;
+// fixes a missing constant in CUDA device code
+#define CUDA_FLT_MAX 1.70141e+38; // note: 'static __constant__' causes a warning on gcc; non-static fails CUDA, so #define instead
 const int MAX_THREADS = 512;
 const int MAX_BLOCKS = 65535;
 
