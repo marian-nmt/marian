@@ -211,6 +211,7 @@ find_package(Boost COMPONENTS ${BOOST_COMPONENTS})
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
   set(EXT_LIBS ${EXT_LIBS} ${Boost_LIBRARIES})
+  set(EXT_LIBS ${EXT_LIBS} ${ZLIB_LIBRARIES}) # hack for static compilation
 else(Boost_FOUND)
   message(SEND_ERROR "Cannot find Boost libraries. Terminating.")
 endif(Boost_FOUND)

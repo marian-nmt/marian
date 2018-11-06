@@ -5,6 +5,7 @@
 
 #include "tensors/cpu/backend.h"
 #include "tensors/tensor.h"
+#include "tensors/tensor_allocator.h"
 
 #if MKL_FOUND
 #include <mkl.h>

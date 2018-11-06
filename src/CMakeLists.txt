@@ -38,6 +38,7 @@ add_library(marian STATIC
   tensors/cpu/prod.cpp
   tensors/cpu/tensor_operators.cpp
 
+  tensors/cpu/sharp/int_gemm.cpp
   tensors/cpu/sharp/avx_gemm.cpp
   tensors/cpu/sharp/sse_gemm.cpp
 
