@@ -64,30 +64,44 @@ public:
             bool lowerIsBetter = true)
       : ValidatorBase(lowerIsBetter), vocabs_(vocabs), options_(options) {}
 
-  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
-    using namespace data;
-
-    for(auto graph : graphs)
-      graph->setInference(true);
+protected:
+  void createBatchGenerator(bool isTranslating) {
+    // Create the BatchGenerator. Note that ScriptValidator does not use batchGenerator_.
 
     // Update validation options
     auto opts = New<Config>(*options_);
     opts->set("inference", true);
-    opts->set("max-length", options_->get<size_t>("valid-max-length"));
-    if(options_->has("valid-mini-batch"))
-      opts->set("mini-batch", options_->get<size_t>("valid-mini-batch"));
-    opts->set("mini-batch-sort", "src");
+
+    if (isTranslating) { // TranslationValidator and BleuValidator
+      opts->set("max-length", 1000);
+      opts->set("mini-batch", options_->get<int>("valid-mini-batch"));
+      opts->set("maxi-batch", 10);
+    }
+    else { // CrossEntropyValidator
+      opts->set("max-length", options_->get<size_t>("valid-max-length"));
+      if(options_->has("valid-mini-batch"))
+        opts->set("mini-batch", options_->get<size_t>("valid-mini-batch"));
+      opts->set("mini-batch-sort", "src");
+    }
 
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     auto corpus = New<DataSet>(validPaths, vocabs_, opts);
 
-    // Generate batches
-    auto batchGenerator = New<BatchGenerator<DataSet>>(corpus, opts);
-    batchGenerator->prepare(false);
+    // Create batch generator
+    batchGenerator_ = New<data::BatchGenerator<DataSet>>(corpus, opts);
+  }
+public:
+
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
+
+    for(auto graph : graphs)
+      graph->setInference(true);
+
+    batchGenerator_->prepare(false);
 
     // Validate on batches
-    float val = validateBG(graphs, batchGenerator);
+    float val = validateBG(graphs);
     updateStalled(graphs, val);
 
     for(auto graph : graphs)
@@ -100,9 +114,9 @@ protected:
   std::vector<Ptr<Vocab>> vocabs_;
   Ptr<Config> options_;
   Ptr<models::ModelBase> builder_;
+  Ptr<data::BatchGenerator<DataSet>> batchGenerator_;
 
-  virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>&,
-                           Ptr<data::BatchGenerator<DataSet>>)
+  virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>&)
       = 0;
 
   void updateStalled(const std::vector<Ptr<ExpressionGraph>>& graphs,
@@ -128,6 +142,8 @@ class CrossEntropyValidator : public Validator<data::Corpus> {
 public:
   CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Config> options)
       : Validator(vocabs, options) {
+    createBatchGenerator(/*isTranslating=*/false);
+
     Ptr<Options> opts = New<Options>();
     opts->merge(options);
     opts->set("inference", true);
@@ -138,9 +154,7 @@ public:
   std::string type() override { return options_->get<std::string>("cost-type"); }
 
 protected:
-  virtual float validateBG(
-      const std::vector<Ptr<ExpressionGraph>>& graphs,
-      Ptr<data::BatchGenerator<data::Corpus>> batchGenerator) override {
+  virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     auto ctype = options_->get<std::string>("cost-type");
 
     float cost = 0;
@@ -157,7 +171,7 @@ protected:
       opts->set("cost-type", "ce-sum");
 
       TaskBarrier taskBarrier;
-      for(auto batch : *batchGenerator) {
+      for(auto batch : *batchGenerator_) {
         auto task = [=, &cost, &samples, &words](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local auto builder
@@ -223,9 +237,7 @@ public:
   std::string type() override { return "valid-script"; }
 
 protected:
-  virtual float validateBG(
-      const std::vector<Ptr<ExpressionGraph>>& /*graphs*/,
-      Ptr<data::BatchGenerator<data::Corpus>> /*batchGenerator*/) override {
+  virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& /*graphs*/) override {
     return 0;
   }
 };
@@ -243,30 +255,20 @@ public:
     if(!options_->has("valid-script-path"))
       LOG_VALID(warn,
                 "No post-processing script given for validating translator");
+
+    createBatchGenerator(/*isTranslating=*/true);
   }
 
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     using namespace data;
 
-    // Temporary options for translation
-    auto opts = New<Config>(*options_);
-    opts->set("inference", true);
-    opts->set("mini-batch", options_->get<int>("valid-mini-batch"));
-    opts->set("maxi-batch", 10);
-    opts->set("max-length", 1000);
-
-    // Create corpus
-    auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
-    std::vector<std::string> paths(validPaths.begin(), validPaths.end());
-    auto corpus = New<data::Corpus>(paths, vocabs_, opts);
-
     // Generate batches
-    auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, opts);
-    batchGenerator->prepare(false);
+    batchGenerator_->prepare(false);
 
     // Create scorer
     auto model = options_->get<std::string>("model");
 
+    // Temporary options for translation
     auto mopts = New<Options>();
     mopts->merge(options_);
     mopts->set("inference", true);
@@ -317,7 +319,7 @@ public:
       tOptions->merge(options_);
 
       TaskBarrier taskBarrier;
-      for(auto batch : *batchGenerator) {
+      for(auto batch : *batchGenerator_) {
         auto task = [=](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local Ptr<Scorer> scorer;
@@ -375,9 +377,7 @@ public:
 protected:
   bool quiet_{false};
 
-  virtual float validateBG(
-      const std::vector<Ptr<ExpressionGraph>>& /*graphs*/,
-      Ptr<data::BatchGenerator<data::Corpus>> /*batchGenerator*/) override {
+  virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& /*graphs*/) override {
     return 0;
   }
 };
@@ -407,30 +407,20 @@ public:
              "Detokenizing BLEU validator expects the target vocabulary to be SentencePieceVocab. "
              "Marian has not been compiled with SentencePieceVocab support.");
 #endif
+
+    createBatchGenerator(/*isTranslating=*/true);
   }
 
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     using namespace data;
 
-    // Temporary options for translation
-    auto opts = New<Config>(*options_);
-    opts->set("inference", true);
-    opts->set("mini-batch", options_->get<int>("valid-mini-batch"));
-    opts->set("maxi-batch", 10);
-    opts->set("max-length", 1000);
-
-    // Create corpus
-    auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
-    std::vector<std::string> paths(validPaths.begin(), validPaths.end());
-    auto corpus = New<data::Corpus>(paths, vocabs_, opts);
-
     // Generate batches
-    auto batchGenerator = New<BatchGenerator<data::Corpus>>(corpus, opts);
-    batchGenerator->prepare(false);
+    batchGenerator_->prepare(false);
 
     // Create scorer
     auto model = options_->get<std::string>("model");
 
+    // Temporary options for translation
     auto mopts = New<Options>();
     mopts->merge(options_);
     mopts->set("inference", true);
@@ -481,7 +471,7 @@ public:
       tOptions->merge(options_);
 
       TaskBarrier taskBarrier;
-      for(auto batch : *batchGenerator) {
+      for(auto batch : *batchGenerator_) {
         auto task = [=, &stats](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local Ptr<Scorer> scorer;
@@ -651,9 +641,7 @@ protected:
     return std::exp(logbleu + brev_penalty) * 100;
   }
 
-  virtual float validateBG(
-      const std::vector<Ptr<ExpressionGraph>>& /*graphs*/,
-      Ptr<data::BatchGenerator<data::Corpus>> /*batchGenerator*/) override {
+  virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& /*graphs*/) override {
     return 0;
   }
 };
