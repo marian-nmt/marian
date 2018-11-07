@@ -14,7 +14,7 @@
 int main(int argc, char** argv) {
   using namespace marian;
 
-  auto options = New<Config>(argc, argv);
+  auto options = parseOptions(argc, argv);
 
   // selects MultiNodeGraphGroup family
   // Note: --sync-sgd without --multi-node also supports MPI now, using the SyncGraphGroup.
@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
     New<Train<SyncGraphGroup>>(options)->run();
   }
   else {
-    auto devices = options->getDevices();
+    auto devices = Config::getDevices(options);
     if(devices.size() == 1) {
       LOG(warn, "[training] Using SingletonGraph trainer.");
       New<Train<SingletonGraph>>(options)->run();

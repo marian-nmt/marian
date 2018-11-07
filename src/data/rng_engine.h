@@ -17,7 +17,6 @@ protected:
 
 public:
   RNGEngine() : eng_((unsigned int)Config::seed) {}
-  RNGEngine(size_t eng) : eng_((unsigned int)eng) {}
 
   std::string getRNGState() {
     std::ostringstream oss;

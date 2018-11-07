@@ -35,7 +35,7 @@ NodeInitializer dropout(float prob);
 
 void gumbel(Tensor t);
 
-static inline void dummy(Tensor t) {}
+static inline void dummy(Tensor) {}
 
 NodeInitializer from_vector(const std::vector<float>& v);
 NodeInitializer from_vector(const std::vector<IndexType>& v);

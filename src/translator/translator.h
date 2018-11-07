@@ -18,7 +18,7 @@ namespace marian {
 template <class Search>
 class Translate : public ModelTask {
 private:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<std::vector<Ptr<Scorer>>> scorers_;
 
@@ -26,42 +26,36 @@ private:
   Ptr<Vocab> trgVocab_;
   Ptr<data::ShortlistGenerator> shortlistGenerator_;
 
+  size_t numDevices_;
+
 public:
-  Translate(Ptr<Config> options)
-      : options_(options),
-        corpus_(New<data::Corpus>(options_, true)) {
-
+  Translate(Ptr<Options> options) : options_(options) {
     // This is currently safe as the translator is either created stand-alone or
-    // or config is created anew from Options in the validator. @TODO: make sure
-    // it stays safe when Config/Options get unified. 
+    // or config is created anew from Options in the validator
     options_->set("inference", true);
-    
+
+    corpus_ = New<data::Corpus>(options_, true);
+
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
-
-    // @TODO: to be fixed and removed.
-    auto topt = New<Options>();
-    topt->merge(options_);
-    trgVocab_ = New<Vocab>(topt, vocabs.size() - 1);
-
+    trgVocab_ = New<Vocab>(options_, vocabs.size() - 1);
     trgVocab_->load(vocabs.back());
-
     auto srcVocab = corpus_->getVocabs()[0];
 
     if(options_->has("shortlist"))
       shortlistGenerator_ = New<data::LexicalShortlistGenerator>(
           options_, srcVocab, trgVocab_, 0, 1, vocabs.front() == vocabs.back());
 
-    auto devices = options_->getDevices();
+    auto devices = Config::getDevices(options_);
+    numDevices_ = devices.size();
 
-    ThreadPool threadPool(devices.size(), devices.size());
-    scorers_.resize(devices.size());
-    graphs_.resize(devices.size());
+    ThreadPool threadPool(numDevices_, numDevices_);
+    scorers_.resize(numDevices_);
+    graphs_.resize(numDevices_);
 
     size_t id = 0;
     for(auto device : devices) {
       auto task = [&](DeviceId device, size_t id) {
-        auto graph
-            = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
+        auto graph = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
         graph->setDevice(device);
         graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
@@ -85,9 +79,7 @@ public:
   void run() override {
     data::BatchGenerator<data::Corpus> bg(corpus_, options_);
 
-    auto numDevices = options_->getDevices().size(); // @TODO: make this a class member. We only need the size actually.
-
-    ThreadPool threadPool(numDevices, numDevices);
+    ThreadPool threadPool(numDevices_, numDevices_);
 
     size_t batchId = 0;
     auto collector = New<OutputCollector>(options_->get<std::string>("output"));
@@ -97,23 +89,17 @@ public:
 
     bg.prepare(false);
 
-    // @TODO: unify this and get rid of Config object.
-    auto tOptions = New<Options>();
-    tOptions->merge(options_);
-
     for(auto batch : bg) {
       auto task = [=](size_t id) {
         thread_local Ptr<ExpressionGraph> graph;
         thread_local std::vector<Ptr<Scorer>> scorers;
 
         if(!graph) {
-          graph = graphs_[id % numDevices];
-          scorers = scorers_[id % numDevices];
+          graph = graphs_[id % numDevices_];
+          scorers = scorers_[id % numDevices_];
         }
 
-        auto search = New<Search>(
-            tOptions, scorers, trgVocab_->getEosId(), trgVocab_->getUnkId());
-
+        auto search = New<Search>(options_, scorers, trgVocab_->getEosId(), trgVocab_->getUnkId());
         auto histories = search->search(graph, batch);
 
         for(auto history : histories) {
@@ -145,22 +131,19 @@ public:
 template <class Search>
 class TranslateService : public ModelServiceTask {
 private:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<std::vector<Ptr<Scorer>>> scorers_;
 
-  std::vector<DeviceId> devices_;
   std::vector<Ptr<Vocab>> srcVocabs_;
   Ptr<Vocab> trgVocab_;
+
+  size_t numDevices_;
 
 public:
   virtual ~TranslateService() {}
 
-  TranslateService(Ptr<Config> options)
-      : options_(options),
-        devices_(options_->getDevices()) {
-    init();
-  }
+  TranslateService(Ptr<Options> options) : options_(options) { init(); }
 
   void init() override {
     // initialize vocabs
@@ -169,21 +152,21 @@ public:
     auto vocabPaths = options_->get<std::vector<std::string>>("vocabs");
     std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
 
-    // @TODO: Ugly hack to convery Config to Options, to be removed.
-    auto topt = New<Options>();
-    topt->merge(options_);
-
     for(size_t i = 0; i < vocabPaths.size() - 1; ++i) {
-      Ptr<Vocab> vocab = New<Vocab>(topt, i);
+      Ptr<Vocab> vocab = New<Vocab>(options_, i);
       vocab->load(vocabPaths[i], maxVocabs[i]);
       srcVocabs_.emplace_back(vocab);
     }
 
-    trgVocab_ = New<Vocab>(topt, vocabPaths.size() - 1);
+    trgVocab_ = New<Vocab>(options_, vocabPaths.size() - 1);
     trgVocab_->load(vocabPaths.back());
 
+    // get device IDs
+    auto devices = Config::getDevices(options_);
+    numDevices_ = devices.size();
+
     // initialize scorers
-    for(auto device : devices_) {
+    for(auto device : devices) {
       auto graph = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
       graph->setDevice(device);
       graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
@@ -198,23 +181,17 @@ public:
   }
 
   std::string run(const std::string& input) override {
-    auto corpus_ = New<data::TextInput>(
-        std::vector<std::string>({input}), srcVocabs_, options_);
-
+    auto corpus_ = New<data::TextInput>(std::vector<std::string>({input}), srcVocabs_, options_);
     data::BatchGenerator<data::TextInput> batchGenerator(corpus_, options_);
 
     auto collector = New<StringCollector>();
     auto printer = New<OutputPrinter>(options_, trgVocab_);
     size_t batchId = 0;
 
-    // @TODO: unify this and get rid of Config object.
-    auto tOptions = New<Options>();
-    tOptions->merge(options_);
-
     batchGenerator.prepare(false);
 
     {
-      ThreadPool threadPool_(devices_.size(), devices_.size());
+      ThreadPool threadPool_(numDevices_, numDevices_);
 
       for(auto batch : batchGenerator) {
 
@@ -223,12 +200,11 @@ public:
           thread_local std::vector<Ptr<Scorer>> scorers;
 
           if(!graph) {
-            graph = graphs_[id % devices_.size()];
-            scorers = scorers_[id % devices_.size()];
+            graph = graphs_[id % numDevices_];
+            scorers = scorers_[id % numDevices_];
           }
 
-          auto search = New<Search>(
-              tOptions, scorers, trgVocab_->getEosId(), trgVocab_->getUnkId());
+          auto search = New<Search>(options_, scorers, trgVocab_->getEosId(), trgVocab_->getUnkId());
           auto histories = search->search(graph, batch);
 
           for(auto history : histories) {

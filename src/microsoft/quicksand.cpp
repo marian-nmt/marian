@@ -77,11 +77,11 @@ public:
       if(io::isBin(models[i]) && ptrs_[i] != nullptr) {
         // if file ends in *.bin and has been mapped by QuickSAND
         scorers_.push_back(New<ScorerWrapper>(
-          encdec, "F" + std::to_string(scorers_.size()), 1, ptrs[i]));
+          encdec, "F" + std::to_string(scorers_.size()), /*weight=*/1.0f, ptrs[i]));
       } else {
         // it's a *.npz file or has not been mapped by QuickSAND
         scorers_.push_back(New<ScorerWrapper>(
-          encdec, "F" + std::to_string(scorers_.size()), 1, models[i]));
+          encdec, "F" + std::to_string(scorers_.size()), /*weight=*/1.0f, models[i]));
       }
     }
 
@@ -90,11 +90,11 @@ public:
     }
   }
 
-  void setWorkspace(uint8_t* data, size_t size) { device_->set(data, size); }
+  void setWorkspace(uint8_t* data, size_t size) override { device_->set(data, size); }
 
   QSNBestBatch decode(const QSBatch& qsBatch,
                       size_t maxLength,
-                      const std::unordered_set<Word>& shortlist) {
+                      const std::unordered_set<Word>& shortlist) override {
     if(shortlist.size() > 0) {
       auto shortListGen = New<data::FakeShortlistGenerator>(shortlist);
       for(auto scorer : scorers_)

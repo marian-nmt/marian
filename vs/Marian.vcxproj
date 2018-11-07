@@ -131,6 +131,7 @@
     <ClCompile Include="..\src\common\logging.cpp" />
     <ClCompile Include="..\src\common\config.cpp" />
     <ClCompile Include="..\src\common\config_parser.cpp" />
+    <ClCompile Include="..\src\common\version.cpp" />
     <ClCompile Include="..\src\data\alignment.cpp" />
     <ClCompile Include="..\src\data\default_vocab.cpp" />
     <ClCompile Include="..\src\data\sentencepiece_vocab.cpp" />
@@ -145,7 +146,7 @@
     <ClCompile Include="..\src\layers\loss.cpp" />
     <ClCompile Include="..\src\layers\weight.cpp" />
     <ClCompile Include="..\src\microsoft\quicksand.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\src\tensors\backend.cpp" />
     <ClCompile Include="..\src\tensors\cpu\device.cpp" />
@@ -219,6 +220,7 @@
     <ClInclude Include="..\src\common\io_item.h" />
     <ClInclude Include="..\src\common\timer.h" />
     <ClInclude Include="..\src\common\types.h" />
+    <ClInclude Include="..\src\common\version.h" />
     <ClInclude Include="..\src\layers\loss.h" />
     <ClInclude Include="..\src\layers\weight.h" />
     <ClInclude Include="..\src\marian.h" />
@@ -371,7 +373,7 @@
     <ClInclude Include="..\src\common\regex.h" />
     <ClInclude Include="..\src\common\shape.h" />
     <ClInclude Include="..\src\common\utils.h" />
-    <ClInclude Include="..\src\common\version.h" />
+    <ClInclude Include="..\src\common\project_version.h" />
     <ClInclude Include="..\src\data\alignment.h" />
     <ClInclude Include="..\src\data\batch.h" />
     <ClInclude Include="..\src\data\batch_generator.h" />
@@ -442,6 +444,14 @@
     <ClInclude Include="..\src\tensors\cpu\sharp\int_gemm.h" />
     <ClInclude Include="..\src\tensors\device.h" />
     <ClInclude Include="..\src\tensors\dispatch.h" />
+    <ClInclude Include="..\src\tensors\gpu\add.h" />
+    <ClInclude Include="..\src\tensors\gpu\algorithm.h" />
+    <ClInclude Include="..\src\tensors\gpu\backend.h" />
+    <ClInclude Include="..\src\tensors\gpu\cuda_helpers.h" />
+    <ClInclude Include="..\src\tensors\gpu\cudnn_wrappers.h" />
+    <ClInclude Include="..\src\tensors\gpu\element.h" />
+    <ClInclude Include="..\src\tensors\gpu\prod.h" />
+    <ClInclude Include="..\src\tensors\gpu\sparse.h" />
     <ClInclude Include="..\src\tensors\memory_piece.h" />
     <ClInclude Include="..\src\tensors\rand.h" />
     <ClInclude Include="..\src\tensors\tensor.h" />
@@ -479,6 +489,32 @@
     <ClInclude Include="..\src\translator\translator.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\src\tensors\gpu\add.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\tensors\gpu\add.inc" />
+    <None Include="..\src\tensors\gpu\algorithm.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\tensors\gpu\cudnn_wrappers.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\tensors\gpu\device.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\tensors\gpu\element.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\tensors\gpu\element.inc" />
+    <None Include="..\src\tensors\gpu\prod.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\tensors\gpu\sparse.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\tensors\gpu\tensor_operators.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
     <None Include="..\src\training\communicator_nccl.h" />
     <None Include=".editorConfig" />
   </ItemGroup>

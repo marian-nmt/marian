@@ -5,14 +5,14 @@
 namespace marian {
 namespace data {
 
-CorpusSQLite::CorpusSQLite(Ptr<Config> options, bool translate /*= false*/)
+CorpusSQLite::CorpusSQLite(Ptr<Options> options, bool translate /*= false*/)
     : CorpusBase(options, translate), seed_(Config::seed) {
   fillSQLite();
 }
 
 CorpusSQLite::CorpusSQLite(const std::vector<std::string>& paths,
                            const std::vector<Ptr<Vocab>>& vocabs,
-                           Ptr<Config> options)
+                           Ptr<Options> options)
     : CorpusBase(paths, vocabs, options), seed_(Config::seed) {
   fillSQLite();
 }
@@ -47,8 +47,7 @@ void CorpusSQLite::fillSQLite() {
     } else {
       LOG(info, "[sqlite] Creating persistent database {}", path);
 
-      db_.reset(new SQLite::Database(
-          path, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE));
+      db_.reset(new SQLite::Database(path, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE));
       db_->exec("PRAGMA temp_store_directory = '" + tempDir + "';");
 
       fill = true;
@@ -135,10 +134,8 @@ SentenceTuple CorpusSQLite::next() {
 
 void CorpusSQLite::shuffle() {
   LOG(info, "[sqlite] Selecting shuffled data");
-  select_.reset(
-      new SQLite::Statement(*db_,
-                            "select * from lines order by random_seed("
-                                + std::to_string(seed_) + ");"));
+  select_.reset(new SQLite::Statement(
+      *db_, "select * from lines order by random_seed(" + std::to_string(seed_) + ");"));
 }
 
 void CorpusSQLite::reset() {
@@ -148,10 +145,8 @@ void CorpusSQLite::reset() {
 
 void CorpusSQLite::restore(Ptr<TrainingState> ts) {
   for(size_t i = 0; i < ts->epochs - 1; ++i) {
-    select_.reset(
-        new SQLite::Statement(*db_,
-                              "select _id from lines order by random_seed("
-                                  + std::to_string(seed_) + ");"));
+    select_.reset(new SQLite::Statement(
+        *db_, "select _id from lines order by random_seed(" + std::to_string(seed_) + ");"));
     select_->executeStep();
     reset();
   }

@@ -33,7 +33,7 @@ class SyncGraphGroup : public GraphGroup, public ExponentialSmoothing {
   void swapParamsAvg() { if (mvAvg_ && paramsAvg_.size() > 0) comm_->swapParams(paramsAvg_); } // note: must call this on all MPI ranks in parallel
 
 public:
-  SyncGraphGroup(Ptr<Config> config);
+  SyncGraphGroup(Ptr<Options> config);
 
   void setScheduler(Ptr<Scheduler> scheduler) override;
 

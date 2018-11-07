@@ -265,6 +265,9 @@
     <ClCompile Include="..\src\data\sentencepiece_vocab.cpp">
       <Filter>data</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\common\version.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -697,9 +700,6 @@
     <ClInclude Include="..\src\common\utils.h">
       <Filter>common</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\common\version.h">
-      <Filter>common</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\data\alignment.h">
       <Filter>data</Filter>
     </ClInclude>
@@ -1087,6 +1087,36 @@
     <ClInclude Include="..\src\tensors\rand.h">
       <Filter>tensors</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\common\project_version.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\version.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\gpu\add.h">
+      <Filter>tensors\gpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\gpu\algorithm.h">
+      <Filter>tensors\gpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\gpu\backend.h">
+      <Filter>tensors\gpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\gpu\cuda_helpers.h">
+      <Filter>tensors\gpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\gpu\cudnn_wrappers.h">
+      <Filter>tensors\gpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\gpu\element.h">
+      <Filter>tensors\gpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\gpu\prod.h">
+      <Filter>tensors\gpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\gpu\sparse.h">
+      <Filter>tensors\gpu</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
@@ -1206,11 +1236,53 @@
     <Filter Include="microsoft">
       <UniqueIdentifier>{bf291eae-3de9-4294-b5aa-07ab631951e1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="examples">
+      <UniqueIdentifier>{3dbe1ce2-4645-42d0-99b1-0989e42cd7df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="examples\iris">
+      <UniqueIdentifier>{c1ebcdfa-3994-4430-aad0-0d9d54cf10e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="examples\mnist">
+      <UniqueIdentifier>{55dd3952-a6fd-41d8-b99c-306b9e6c348d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tensors\gpu">
+      <UniqueIdentifier>{812ce3ca-6b91-4881-8ef6-692ebe7b0cce}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorConfig" />
     <None Include="..\src\training\communicator_nccl.h">
       <Filter>training</Filter>
+    </None>
+    <None Include="..\src\tensors\gpu\add.cu">
+      <Filter>tensors\gpu</Filter>
+    </None>
+    <None Include="..\src\tensors\gpu\add.inc">
+      <Filter>tensors\gpu</Filter>
+    </None>
+    <None Include="..\src\tensors\gpu\algorithm.cu">
+      <Filter>tensors\gpu</Filter>
+    </None>
+    <None Include="..\src\tensors\gpu\cudnn_wrappers.cu">
+      <Filter>tensors\gpu</Filter>
+    </None>
+    <None Include="..\src\tensors\gpu\device.cu">
+      <Filter>tensors\gpu</Filter>
+    </None>
+    <None Include="..\src\tensors\gpu\element.cu">
+      <Filter>tensors\gpu</Filter>
+    </None>
+    <None Include="..\src\tensors\gpu\element.inc">
+      <Filter>tensors\gpu</Filter>
+    </None>
+    <None Include="..\src\tensors\gpu\prod.cu">
+      <Filter>tensors\gpu</Filter>
+    </None>
+    <None Include="..\src\tensors\gpu\sparse.cu">
+      <Filter>tensors\gpu</Filter>
+    </None>
+    <None Include="..\src\tensors\gpu\tensor_operators.cu">
+      <Filter>tensors\gpu</Filter>
     </None>
   </ItemGroup>
 </Project>

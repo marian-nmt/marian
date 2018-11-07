@@ -10,7 +10,9 @@
 #pragma comment(lib, "Dbghelp.lib")
 #pragma warning(push)
 #pragma warning(disable: 4091) // 'typedef ': ignored on left of '' when no variable is declared
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <Windows.h>
 #include "DbgHelp.h"
 #pragma warning(pop)
@@ -140,12 +142,11 @@ static string MakeFunctionNameStandOut(string origName)
 /// </summary>
 static void CollectCallStack(size_t skipLevels, bool makeFunctionNamesStandOut, const function<void(string)>& write)
 {
-    static const int MAX_CALLERS = 62;
-    static const unsigned short MAX_CALL_STACK_DEPTH = 20;
-
     write("\n[CALL STACK]\n");
 
 #ifdef _WIN32
+    static const int MAX_CALLERS = 62;
+    static const unsigned short MAX_CALL_STACK_DEPTH = 20;
 
     // RtlCaptureStackBackTrace() is a kernel API without default binding, we must manually determine its function pointer.
     typedef USHORT(WINAPI * CaptureStackBackTraceType)(__in ULONG, __in ULONG, __out PVOID*, __out_opt PULONG);

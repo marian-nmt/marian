@@ -1,5 +1,6 @@
 #include "encoder_decoder.h"
 #include "common/cli_helper.h"
+#include "common/version.h"
 
 namespace marian {
 
@@ -82,12 +83,12 @@ void EncoderDecoder::createDecoderConfig(const std::string& name) {
 Config::YamlNode EncoderDecoder::getModelParameters() {
   Config::YamlNode modelParams;
   for(auto& key : modelFeatures_)
-    modelParams[key] = options_->getOptions()[key];
+    modelParams[key] = options_->getYaml()[key];
 
   if(options_->has("original-type"))
-    modelParams["type"] = options_->getOptions()["original-type"];
+    modelParams["type"] = options_->getYaml()["original-type"];
 
-  modelParams["version"] = PROJECT_VERSION_FULL;
+  modelParams["version"] = buildVersion();
   return modelParams;
 }
 

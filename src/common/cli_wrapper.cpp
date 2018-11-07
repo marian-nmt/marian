@@ -95,7 +95,7 @@ CLIWrapper::CLIWrapper(Ptr<marian::Options> options,
                        const std::string &footer,
                        size_t columnWidth,
                        size_t screenWidth)
-    : CLIWrapper(options->getOptions(),
+    : CLIWrapper(options->getYaml(),
                  description,
                  header,
                  footer,
@@ -120,7 +120,7 @@ void CLIWrapper::parse(int argc, char **argv) {
 
   // handle --version flag
   if(optVersion_->count()) {
-    std::cerr << PROJECT_VERSION_FULL << std::endl;
+    std::cerr << buildVersion() << std::endl;
     exit(0);
   }
 }

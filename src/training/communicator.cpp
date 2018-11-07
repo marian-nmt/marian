@@ -1,4 +1,5 @@
 #include "training/communicator.h"
+#include "common/utils.h"
 
 #if defined(CUDA_FOUND) && defined(USE_NCCL)
 #include "training/communicator_nccl.h"
@@ -42,6 +43,12 @@ Ptr<ICommunicator> createCommunicator(
   noNccl; // (unused)
   return New<DefaultCommunicator>(graphs, mpi);
 #endif
+}
+
+std::string IMPIWrapper::idStr() const { // helper to identify the node in logs
+  std::string hostname; int pid; std::tie
+  (hostname, pid) = utils::hostnameAndProcessId();
+  return hostname + ":" + std::to_string(pid) + " MPI rank " + std::to_string(myMPIRank()) + " out of " + std::to_string(numMPIProcesses());
 }
 
 #if MPI_FOUND
@@ -91,8 +98,12 @@ public:
     // log hostnames in order, and test
     for (size_t r = 0; r < numMPIProcesses(); r++) {
       MPIWrapper::barrier();
-      if (r == MPIWrapper::myMPIRank())
-        LOG(info, "[mpi] initialized {} processes", MPIWrapper::numMPIProcesses());
+      if (r == MPIWrapper::myMPIRank() && MPIWrapper::numMPIProcesses() > 1) {
+        std::string hostname; int pid; std::tie
+        (hostname, pid) = utils::hostnameAndProcessId();
+        LOG(info, "[mpi] Initialized as rank {} out of {} processes on {} as process {}",
+                  MPIWrapper::myMPIRank(), MPIWrapper::numMPIProcesses(), hostname, pid);
+      }
       MPIWrapper::barrier();
     }
   }
@@ -137,16 +148,21 @@ public:
 #pragma warning(disable: 4100) // unreferenced formal parameter
   // most functions are no-ops when applied to a single process
   virtual void barrier(MPI_Comm comm) const override {
+    comm;
   }
   virtual void bCast(void* buf, size_t count, MPI_Datatype datatype, size_t rootRank, MPI_Comm comm) const override {
+    buf; count; datatype; rootRank; comm;
   }
   virtual void sSend(void* buf, size_t count, MPI_Datatype datatype, size_t destRank, int tag, MPI_Comm comm) const override {
+    buf; count; datatype; destRank; tag; comm;
   }
   virtual void recv(void* buf, size_t count, MPI_Datatype datatype, size_t sourceRank, int tag, MPI_Comm comm, MPI_Status* status) const override {
+    buf; count; datatype; sourceRank; tag; comm;
     // @TODO: fill in status
     ABORT_IF(status != MPI_STATUS_IGNORE, "FakeMPIWrapper::recv() does not yet implement returning a status object");
   }
   virtual void allReduce(const void* sendbuf, void* recvbuf, size_t count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) const override {
+    count; datatype; op; comm;
     // @TODO: There is only one place where this is called with sendbuf != recvbuf, which is sync multi-node.
     //        I think that can be changed to use the same buffer. Then we should change this API
     //        to only accept one parameter, and remove this error check can be removed.

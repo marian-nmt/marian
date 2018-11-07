@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/config.h"
+#include "common/options.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
 #include "data/alignment.h"
@@ -12,7 +12,7 @@ namespace marian {
 
 class ScoreCollector {
 public:
-  ScoreCollector(const Ptr<Config>& options);
+  ScoreCollector(const Ptr<Options>& options);
 
   virtual void Write(long id, const std::string& message);
   virtual void Write(long id,
@@ -45,7 +45,7 @@ class ScoreCollectorNBest : public ScoreCollector {
 public:
   ScoreCollectorNBest() = delete;
 
-  ScoreCollectorNBest(const Ptr<Config>& options);
+  ScoreCollectorNBest(const Ptr<Options>& options);
   ScoreCollectorNBest(const ScoreCollectorNBest&) = delete;
 
   virtual void Write(long id,

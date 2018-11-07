@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/config.h"
+#include "common/options.h"
 #include "training/training_state.h"
 #include "training/validator.h"
 #include "training/communicator.h"
@@ -9,7 +9,7 @@ namespace marian {
 
 class Scheduler : public TrainingObserver {
 private:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
   std::vector<Ptr<ValidatorBase>> validators_;
 
   bool first_{true};
@@ -46,7 +46,7 @@ private:
   }
 
 public:
-  Scheduler(Ptr<Config> options, Ptr<TrainingState> state)
+  Scheduler(Ptr<Options> options, Ptr<TrainingState> state)
       : options_(options), state_(state) {
     state_->eta = getLearningRate(*state);
   }
@@ -305,9 +305,9 @@ public:
 
   void save(const std::string& name) {
     // Save config options
-    YAML::Node config = options_->get();
+    YAML::Node yaml = options_->getYaml();
     std::ofstream fout(name + ".yml");
-    fout << config;
+    fout << yaml;
     // Save training progress
     state_->save(name + ".progress.yml");
   }

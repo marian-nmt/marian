@@ -13,7 +13,7 @@ public:
 
   virtual float breakDown(size_t i) { return getLogProbs()->val()->get(i); }
 
-  virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch){};
+  virtual void blacklist(Expr /*totalCosts*/, Ptr<data::CorpusBatch> /*batch*/){};
 };
 
 class Scorer {
@@ -40,11 +40,11 @@ public:
                                 int beamSize)
       = 0;
 
-  virtual void init(Ptr<ExpressionGraph> graph) {}
+  virtual void init(Ptr<ExpressionGraph>) {}
 
-  virtual void setShortlistGenerator(
-      Ptr<data::ShortlistGenerator> shortlistGenerator){};
+  virtual void setShortlistGenerator(Ptr<data::ShortlistGenerator> /*shortlistGenerator*/){};
   virtual Ptr<data::Shortlist> getShortlist() { return nullptr; };
+
   virtual std::vector<float> getAlignment() { return {}; };
 };
 
@@ -137,15 +137,15 @@ public:
 Ptr<Scorer> scorerByType(const std::string& fname,
                          float weight,
                          const std::string& model,
-                         Ptr<Config> config);
+                         Ptr<Options> config);
 
-std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options);
+std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options);
 
 Ptr<Scorer> scorerByType(const std::string& fname,
                          float weight,
                          const void* ptr,
-                         Ptr<Config> config);
+                         Ptr<Options> config);
 
-std::vector<Ptr<Scorer>> createScorers(Ptr<Config> options,
-                                       const std::vector<const void*>& ptrs);
+std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<const void*>& ptrs);
+
 }  // namespace marian
