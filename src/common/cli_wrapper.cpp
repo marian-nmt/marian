@@ -139,10 +139,7 @@ void CLIWrapper::overwriteDefault(const YAML::Node &node) {
   // iterate requested default values
   for(auto it : node) {
     auto key = it.first.as<std::string>();
-    // warn if the option for which the default value we are setting for has
-    // been not defined
-    if(allVars_.count(key) == 0)
-      ABORT_IF(!allVars_.count(key), "The following option was not expected: '{}'", key);
+    ABORT_IF(!allVars_.count(key), "The following option was not expected: '{}'", key);
     // if we have an option but it was not specified on command-line
     if(allVars_.count(key) > 0 && opts_.at(key)->empty()) {
       config_[key] = YAML::Clone(it.second);
