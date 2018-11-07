@@ -1,5 +1,6 @@
 #include "encoder_decoder.h"
 #include "common/cli_helper.h"
+#include "common/version.h"
 
 namespace marian {
 
@@ -82,12 +83,12 @@ void EncoderDecoder::createDecoderConfig(const std::string& name) {
 Config::YamlNode EncoderDecoder::getModelParameters() {
   Config::YamlNode modelParams;
   for(auto& key : modelFeatures_)
-    modelParams[key] = options_->getOptions()[key];
+    modelParams[key] = options_->getYaml()[key];
 
   if(options_->has("original-type"))
-    modelParams["type"] = options_->getOptions()["original-type"];
+    modelParams["type"] = options_->getYaml()["original-type"];
 
-  modelParams["version"] = PROJECT_VERSION_FULL;
+  modelParams["version"] = buildVersion();
   return modelParams;
 }
 
@@ -101,12 +102,16 @@ std::string EncoderDecoder::getModelParametersAsString() {
 void EncoderDecoder::load(Ptr<ExpressionGraph> graph,
                           const std::string& name,
                           bool markedReloaded) const {
+  // Changes only the graph instance, but not the EncoderDecoder instance,
+  // so this function can be declared const.
   graph->load(name, markedReloaded && !opt<bool>("ignore-model-config", false));
 }
 
 void EncoderDecoder::mmap(Ptr<ExpressionGraph> graph,
                           const void* ptr,
                           bool markedReloaded) const {
+  // Changes only the graph instance, but not the EncoderDecoder instance,
+  // so this function can be declared const.
   graph->mmap(ptr, markedReloaded && !opt<bool>("ignore-model-config", false));
 }
 
