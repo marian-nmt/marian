@@ -34,8 +34,7 @@ public:
   typedef Data::const_iterator const_iterator;
 
   /** @brief Constructs a new Input object with the specified Shape */
-  Input(const Shape& shape)
-      : shape_(shape), data_(new Data(shape_.elements(), 0.0f)) {}
+  Input(const Shape& shape) : shape_(shape), data_(new Data(shape_.elements(), 0.0f)) {}
 
   Data::iterator begin() { return data_->begin(); }
   Data::iterator end() { return data_->end(); }
@@ -80,14 +79,13 @@ public:
   }
 };
 
-class Dataset : public DatasetBase<Example, ExampleIterator, DataBatch>,
-                public RNGEngine {
+class Dataset : public DatasetBase<Example, ExampleIterator, DataBatch>, public RNGEngine {
 protected:
   Examples examples_;
 
 public:
-  Dataset(const std::vector<std::string>& paths, Ptr<Config> options)
-  : DatasetBase(paths, options) {}
+  Dataset(const std::vector<std::string>& paths, Ptr<Options> options)
+      : DatasetBase(paths, options) {}
 
   virtual void loadData() = 0;
 
@@ -136,7 +134,7 @@ private:
 public:
   MNISTData(std::vector<std::string> paths,
             std::vector<Ptr<Vocab>> /*vocabs*/ = {},
-            Ptr<Config> options = nullptr)
+            Ptr<Options> options = nullptr)
       : Dataset(paths, options), IMAGE_MAGIC_NUMBER(2051), LABEL_MAGIC_NUMBER(2049) {
     loadData();
   }

@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
   using namespace marian;
 
   // Initialize translation task
-  auto options = New<Config>(argc, argv, cli::mode::translation, true);
+  auto options = parseOptions(argc, argv, cli::mode::translation, true);
   auto task = New<TranslateService<BeamSearch>>(options);
 
   // Initialize web server

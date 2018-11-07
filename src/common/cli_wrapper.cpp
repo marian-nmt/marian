@@ -95,7 +95,7 @@ CLIWrapper::CLIWrapper(Ptr<marian::Options> options,
                        const std::string &footer,
                        size_t columnWidth,
                        size_t screenWidth)
-    : CLIWrapper(options->getOptions(),
+    : CLIWrapper(options->getYaml(),
                  description,
                  header,
                  footer,

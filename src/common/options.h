@@ -2,7 +2,6 @@
 
 #include <sstream>
 #include <string>
-#include "common/config.h"
 #include "common/definitions.h"
 
 #include "3rd_party/yaml-cpp/yaml.h"
@@ -25,12 +24,24 @@
 
 namespace marian {
 
+/**
+ * Container for options stored as key-value pairs. Keys are unique strings.
+ */
 class Options {
 protected:
   YAML::Node options_;
 
 public:
-  YAML::Node& getOptions() { return options_; }
+  Options() {}
+  Options(const Options& other) : options_(YAML::Clone(other.options_)) {}
+
+  /**
+   * @brief Return a copy of the object that can be safely modified.
+   */
+  Options clone() const { return Options(*this); }
+
+  YAML::Node& getYaml() { return options_; }
+  const YAML::Node& getYaml() const { return options_; }
 
   void parse(const std::string& yaml) {
     auto node = YAML::Load(yaml);
@@ -38,15 +49,23 @@ public:
       options_[it.first.as<std::string>()] = YAML::Clone(it.second);
   }
 
-  void merge(Ptr<Options> options) { merge(options->getOptions()); }
-
-  void merge(Ptr<Config> config) { merge(config->get()); }
-
-  void merge(YAML::Node& node) {
+  /**
+   * @brief Splice options from a YAML node
+   *
+   * By default, only options with keys that do not already exist in options_ are extracted from
+   * node. These options are cloned if overwirte is true.
+   *
+   * @param node a YAML node to transfer the options from
+   * @param overwrite overwrite all options
+   */
+  void merge(YAML::Node& node, bool overwrite = false) {
     for(auto it : node)
-      if(!options_[it.first.as<std::string>()])
+      if(overwrite || !options_[it.first.as<std::string>()])
         options_[it.first.as<std::string>()] = YAML::Clone(it.second);
   }
+
+  void merge(const YAML::Node& node, bool overwrite = false) { merge(node, overwrite); }
+  void merge(Ptr<Options> options) { merge(options->getYaml()); }
 
   std::string str() {
     std::stringstream ss;
@@ -75,4 +94,5 @@ public:
 
   bool has(const std::string& key) const { return options_[key]; }
 };
+
 }  // namespace marian
