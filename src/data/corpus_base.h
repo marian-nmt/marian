@@ -88,7 +88,18 @@ public:
    * For sentence-level weights the vector contains only one element.
    */
   const std::vector<float>& getWeights() const { return weights_; }
-  void setWeights(const std::vector<float>& weights) { weights_ = weights; }
+  void setWeights(const std::vector<float>& weights) {
+    auto numTrgWords = back().size();
+    auto numWeights = weights.size();
+    if(numWeights != 1 && numWeights != numTrgWords && numWeights != numTrgWords - 1)
+      LOG(warn,
+          "[warn] "
+          "Number of weights ({}) does not match the number of target words ({}) for line #{}",
+          numWeights,
+          numTrgWords,
+          id_);
+    weights_ = weights;
+  }
 
   const WordAlignment& getAlignment() const { return alignment_; }
   void setAlignment(const WordAlignment& alignment) { alignment_ = alignment; }

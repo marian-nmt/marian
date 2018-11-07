@@ -194,8 +194,7 @@ void CorpusBase::addAlignmentToSentenceTuple(const std::string& line,
   tup.setAlignment(align);
 }
 
-void CorpusBase::addWeightsToSentenceTuple(const std::string& line,
-                                           SentenceTuple& tup) const {
+void CorpusBase::addWeightsToSentenceTuple(const std::string& line, SentenceTuple& tup) const {
   auto elements = utils::split(line, " ");
 
   if(!elements.empty()) {
