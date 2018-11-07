@@ -1,4 +1,5 @@
 #include "common/cli_wrapper.h"
+#include "common/logging.h"
 #include "common/options.h"
 #include "common/version.h"
 
@@ -141,7 +142,7 @@ void CLIWrapper::overwriteDefault(const YAML::Node &node) {
     // warn if the option for which the default value we are setting for has
     // been not defined
     if(allVars_.count(key) == 0)
-      LOG(warn, "Default value for an undefined option with key '{}'", key);
+      ABORT_IF(!allVars_.count(key), "The following option was not expected: '{}'", key);
     // if we have an option but it was not specified on command-line
     if(allVars_.count(key) > 0 && opts_.at(key)->empty()) {
       config_[key] = YAML::Clone(it.second);
