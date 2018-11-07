@@ -4,7 +4,19 @@
 // into one place. Marian should call functions only from this file. boost::filesystem will
 // be removed. This needs to be portable to Windows too.
 
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wsuggest-override"
+#endif
 #include <boost/filesystem.hpp>
+#ifdef __GNUC__
+// "ignored -Wunused-variable" above ignores 'static const' declarations (where 'static'
+// is not needed). We work around by referencing the offending variables in dummy code.
+static inline void boost_dummy_filesystem() { boost::system::posix_category; boost::system::errno_ecat; boost::system::native_ecat; }
+#pragma GCC diagnostic pop
+#endif
 
 namespace marian {
 namespace filesystem {

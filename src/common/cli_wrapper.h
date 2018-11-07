@@ -4,7 +4,6 @@
 #include "3rd_party/any_type.h"
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/definitions.h"
-#include "common/logging.h"
 
 #include <iostream>
 #include <map>
@@ -20,8 +19,8 @@ namespace cli {
 //
 // TODO: make use of it in the current CLI or remove. This is an old code used
 // for boost::program_options and might not be needed anymore.
-static uint16_t guess_terminal_width(uint16_t max_width = 0,
-                                     uint16_t default_width = 180);
+//static uint16_t guess_terminal_width(uint16_t max_width = 0,
+//                                     uint16_t default_width = 180);
 
 // TODO: use validators in ConfigParser
 namespace validators {
@@ -41,7 +40,7 @@ typedef CLI::Range range;
 class CLIFormatter : public CLI::Formatter {
 public:
   CLIFormatter(size_t columnWidth, size_t screenWidth);
-  virtual std::string make_option_desc(const CLI::Option *) const;
+  virtual std::string make_option_desc(const CLI::Option *) const override;
 
 private:
   size_t screenWidth_{0};

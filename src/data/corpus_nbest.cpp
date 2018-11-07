@@ -6,12 +6,12 @@
 namespace marian {
 namespace data {
 
-CorpusNBest::CorpusNBest(Ptr<Config> options, bool translate /*= false*/)
+CorpusNBest::CorpusNBest(Ptr<Options> options, bool translate /*= false*/)
     : CorpusBase(options, translate) {}
 
 CorpusNBest::CorpusNBest(std::vector<std::string> paths,
                          std::vector<Ptr<Vocab>> vocabs,
-                         Ptr<Config> options)
+                         Ptr<Options> options)
     : CorpusBase(paths, vocabs, options) {}
 
 int numFromNbest(const std::string& line) {

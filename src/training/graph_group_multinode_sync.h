@@ -131,12 +131,12 @@ public:
   /**
    * (Constructor) Call super class and initialize client graphs and builders.
    */
-  MultiNodeGraphGroupSync(Ptr<Config> options)
+  MultiNodeGraphGroupSync(Ptr<Options> options)
       : Base(options),
         tau_{options_->get<size_t>("optimizer-delay")},
+        syncOptimizer_{Optimizer(options_)},
         movingAvg_{options_->get<float>("exponential-smoothing") > 0},
-        mvDecay_{options_->get<float>("exponential-smoothing")},
-        syncOptimizer_{Optimizer(options_)} {
+        mvDecay_{options_->get<float>("exponential-smoothing")} {
   }
 
   /**

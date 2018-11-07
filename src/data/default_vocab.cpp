@@ -43,8 +43,8 @@ private:
   };
 
 public:
-  virtual const std::string& canonicalExtension() const { return suffixes_[0]; }
-  virtual const std::vector<std::string>& suffixes() const { return suffixes_; }
+  virtual const std::string& canonicalExtension() const override { return suffixes_[0]; }
+  virtual const std::vector<std::string>& suffixes() const override { return suffixes_; }
 
   virtual Word operator[](const std::string& word) const override {
     auto it = str2id_.find(word);
@@ -54,34 +54,34 @@ public:
       return unkId_;
   }
 
-  Words encode(const std::string& line, bool addEOS, bool /*inference*/) const {
+  Words encode(const std::string& line, bool addEOS, bool /*inference*/) const override {
     std::vector<std::string> lineTokens;
     utils::split(line, lineTokens, " ");
     return (*this)(lineTokens, addEOS);
   }
 
-  std::string decode(const Words& sentence, bool ignoreEOS) const {
+  std::string decode(const Words& sentence, bool ignoreEOS) const override {
     std::string line;
     auto tokens = (*this)(sentence, ignoreEOS);
     return utils::join(tokens, " ");
   }
 
-  virtual std::string type() const { return "DefaultVocab"; }
+  virtual std::string type() const override { return "DefaultVocab"; }
 
   virtual Word getEosId() const override { return eosId_; }
   virtual Word getUnkId() const override { return unkId_; }
 
 
-  const std::string& operator[](Word id) const {
+  const std::string& operator[](Word id) const override {
     ABORT_IF(id >= id2str_.size(), "Unknown word id: ", id);
     return id2str_[id];
   }
 
-  size_t size() const {
+  size_t size() const override {
     return id2str_.size();
   }
 
-  int load(const std::string& vocabPath, int max) {
+  int load(const std::string& vocabPath, int max) override {
     bool isJson = regex::regex_search(vocabPath, regex::regex("\\.(json|yaml|yml)$"));
     LOG(info,
         "[data] Loading vocabulary from {} file {}",
@@ -183,12 +183,12 @@ public:
   }
 
   // for fakeBatch()
-  void createFake() {
+  void createFake() override {
     eosId_ = insertWord(DEFAULT_EOS_ID, DEFAULT_EOS_STR);
     unkId_ = insertWord(DEFAULT_UNK_ID, DEFAULT_UNK_STR);
   }
 
-  void create(const std::string& vocabPath, const std::string& trainPath) {
+  void create(const std::string& vocabPath, const std::string& trainPath) override {
     LOG(info, "[data] Creating vocabulary {} from {}", vocabPath, trainPath);
 
     filesystem::Path path(vocabPath);
@@ -198,15 +198,15 @@ public:
 
     ABORT_IF(!dir.empty() && !filesystem::isDirectory(dir),
             "Specified vocab directory {} does not exist",
-            (std::string)dir);
+            dir.string());
 
     ABORT_IF(!dir.empty() && !filesystem::canWrite(dir),
             "No write permission in vocab directory {}",
-            (std::string)dir);
+            dir.string());
 
     ABORT_IF(filesystem::exists(vocabPath),
             "DefaultVocab file '{}' exists. Not overwriting",
-            (std::string)vocabPath);
+            path.string());
 
     io::InputFileStream trainStrm(trainPath);
     io::OutputFileStream vocabStrm(vocabPath);
@@ -215,7 +215,7 @@ public:
 
   void create(io::InputFileStream& trainStrm,
               io::OutputFileStream& vocabStrm,
-              size_t maxSize = 0) {
+              size_t maxSize = 0) override {
     std::string line;
     std::unordered_map<std::string, size_t> counter;
 

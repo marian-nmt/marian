@@ -44,7 +44,8 @@ namespace marian {
 
 class ThreadPool {
  public:
-    explicit ThreadPool(size_t threads, size_t bound /* bound on size, or 0 for unbounded */ = 0);
+    explicit ThreadPool(size_t threads = 0, size_t bound /* bound on size, or 0 for unbounded */ = 0);
+    void reserve(size_t threads);
 
     template<class F, class... Args>
     auto enqueue(F&& f, Args&&... args)
@@ -89,7 +90,7 @@ class ThreadPool {
  private:
     // need to keep track of threads so we can join them
     std::vector<std::thread> workers;
-    // the task queue
+    // the queue of pending tasks
     std::queue< std::function<void()> > tasks;
 
     // synchronization
@@ -105,8 +106,13 @@ class ThreadPool {
 
 // the constructor just launches some amount of workers
 inline ThreadPool::ThreadPool(size_t threads, size_t in_bound)
-  : stop(false), bound(in_bound) {
-    for (size_t i = 0; i < threads; ++i)
+  : bound(in_bound), stop(false) {
+    reserve(threads);
+}
+
+// allow callers to increase the number of threads after the fact
+inline void ThreadPool::reserve(size_t threads) {
+    while (workers.size() < threads)
       workers.emplace_back(
           [this] {
               for(;;) {
@@ -130,7 +136,7 @@ inline ThreadPool::ThreadPool(size_t threads, size_t in_bound)
 
 // add new work item to the pool
 template<class F, class... Args>
-auto ThreadPool::enqueue(F&& f, Args&&... args)
+inline auto ThreadPool::enqueue(F&& f, Args&&... args)
     -> std::future<typename std::result_of<F(Args...)>::type>
 {
   using return_type = typename std::result_of<F(Args...)>::type;
@@ -172,5 +178,24 @@ inline ThreadPool::~ThreadPool() {
   if(!stop)
     join_all();
 }
+
+// helper class to wait for procedural tasks (no return value) submitted into the ThreadPool
+// Usage:
+// {
+//  TaskBarrier taskBarrier;
+//  taskBarrier.push_back(threadPool.emplace_back(...)); // multiple
+// } // ~TaskBarrier() will wait for all submitted tasks to complete
+class TaskBarrier {
+  std::vector<std::future<void>> futures;
+public:
+  void push_back(std::future<void>&& future) {
+    futures.emplace_back(std::move(future));
+  }
+  ~TaskBarrier() { // destructor waits until all results are available
+    for (auto&& future : futures)
+      future.wait();
+  }
+
+};
 
 }

@@ -4,9 +4,9 @@
 #include "common/cli_helper.h"
 #include "common/config_parser.h"
 #include "common/io.h"
+#include "common/options.h"
 
-// TODO: why are these needed by a config parser? Can they be removed for Linux
-// as well?
+// TODO: why are these needed by a config parser? Can they be removed for Linux as well?
 #ifndef _WIN32
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -28,6 +28,10 @@ namespace marian {
 //  - representing a set of options
 //  - interpreting these options in the context of Marian
 // It is not clear which class does what, which class knows what.
+//
+// TODO: At the moment Config is an intermediate object used to get an Options object from
+// ConfigParser by calling parseOptions(). This should be either renamed and heavily refactorized or
+// (better) be build into ConfigParser.
 class Config {
 public:
   static size_t seed;
@@ -41,6 +45,7 @@ public:
          bool validate = true);
 
   Config(const Config& other);
+  Config(const Options& options);
 
   void initialize(int argc, char** argv, cli::mode mode, bool validate);
 
@@ -85,6 +90,9 @@ public:
     return out;
   }
 
+  static std::vector<DeviceId> getDevices(Ptr<Options> options,
+                                          size_t myMPIRank = 0,
+                                          size_t numMPIProcesses = 1);
 private:
   YAML::Node config_;
 
@@ -92,5 +100,22 @@ private:
   void override(const YAML::Node& params);
 
   void log();
+
 };
+
+/**
+ * Parse the command line options.
+ *
+ * @param argc number of arguments passed to the program
+ * @param argv array of command-line arguments
+ * @param mode change the set of available command-line options, e.g. training, translation, etc.
+ * @param validate validate parsed options and abort on failure
+ *
+ * @return parsed otions
+ */
+Ptr<Options> parseOptions(int argc,
+                          char** argv,
+                          cli::mode mode = cli::mode::training,
+                          bool validate = true);
+
 }  // namespace marian

@@ -126,8 +126,8 @@ public:
         comms_(graphs.size()),
         streams_(graphs.size()),
         devices_(graphs.size()),
-        threadPool_(graphs.size(), graphs.size()), threadResults_(graphs.size()),
-        mpi_(mpi) {
+        mpi_(mpi),
+        threadPool_(graphs.size(), graphs.size()), threadResults_(graphs.size()) {
     mpiBarrier(); // barrier to group the multiple log messages from MPI processes
     LOG(info, "[comm] Using NCCL {} {}for GPU communication",
         ncclVersionString(),

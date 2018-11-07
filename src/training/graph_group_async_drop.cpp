@@ -106,8 +106,10 @@ void AsyncGraphGroupDrop::init(Ptr<data::Batch> batch) {
 
       // prepare droppers
       std::vector<GradientDrop> tmpDropper;
-      for(auto device : devices_)
+      for(auto device : devices_) {
+        device; // @TODO: 'device' is not used. Is this nested loop correct? 
         tmpDropper.push_back(PrepareGradientDrop(graphs_[i]->getDeviceId()));
+      }
       droppers_.push_back(tmpDropper);
 
       // sparsetensor to store sparsified gradients per-device per-shard

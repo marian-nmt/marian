@@ -30,7 +30,7 @@ const SentenceTuple& CorpusIterator::dereference() const {
 
 CorpusBase::CorpusBase(const std::vector<std::string>& paths,
                        const std::vector<Ptr<Vocab>>& vocabs,
-                       Ptr<Config> options)
+                       Ptr<Options> options)
     : DatasetBase(paths, options),
       vocabs_(vocabs),
       maxLength_(options_->get<size_t>("max-length")),
@@ -45,7 +45,7 @@ CorpusBase::CorpusBase(const std::vector<std::string>& paths,
   }
 }
 
-CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
+CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
     : DatasetBase(options),
       maxLength_(options_->get<size_t>("max-length")),
       maxLengthCrop_(options_->get<bool>("max-length-crop")),
@@ -66,10 +66,8 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
              "Number of corpus files and vocab files does not agree");
   }
 
+  // @TODO: check if size_t can be used instead of int
   std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
-
-  auto topt = New<Options>();
-  topt->merge(options_);
 
   // training or scoring
   if(training) {
@@ -79,11 +77,14 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
 
       // Create vocabs if not provided
       for(size_t i = 0; i < paths_.size(); ++i) {
-        Ptr<Vocab> vocab = New<Vocab>(topt, i);
+        Ptr<Vocab> vocab = New<Vocab>(options_, i);
         int vocSize = vocab->loadOrCreate("", paths_[i], maxVocabs[i]);
-        options_->get()["dim-vocabs"][i] = vocSize;
+        // TODO: this is not nice as it modifies the option object and needs to expose the changes
+        // outside the corpus as models need to know about the vocabulary size; extract the vocab
+        // creation functionality from the class.
+        options_->getYaml()["dim-vocabs"][i] = vocSize;
 
-        options_->get()["vocabs"].push_back(paths_[i] + ".yml");
+        options_->getYaml()["vocabs"].push_back(paths_[i] + ".yml");
         vocabs_.emplace_back(vocab);
       }
     } else {
@@ -92,11 +93,12 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
         maxVocabs.resize(paths_.size(), 0);
 
       for(size_t i = 0; i < vocabPaths.size(); ++i) {
-        Ptr<Vocab> vocab = New<Vocab>(topt, i);
-        int vocSize = vocab->loadOrCreate(vocabPaths[i],
-                                          paths_[i],
-                                          maxVocabs[i]);
-        options_->get()["dim-vocabs"][i] = vocSize;
+        Ptr<Vocab> vocab = New<Vocab>(options_, i);
+        int vocSize = vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
+        // TODO: this is not nice as it modifies the option object and needs to expose the changes
+        // outside the corpus as models need to know about the vocabulary size; extract the vocab
+        // creation functionality from the class.
+        options_->getYaml()["dim-vocabs"][i] = vocSize;
 
         vocabs_.emplace_back(vocab);
       }
@@ -111,9 +113,9 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
       maxVocabs.resize(paths_.size(), 0);
 
     for(size_t i = 0; i + 1 < vocabPaths.size(); ++i) {
-      Ptr<Vocab> vocab = New<Vocab>(topt, i);
+      Ptr<Vocab> vocab = New<Vocab>(options_, i);
       int vocSize = vocab->load(vocabPaths[i], maxVocabs[i]);
-      options_->get()["dim-vocabs"][i] = vocSize;
+      options_->getYaml()["dim-vocabs"][i] = vocSize;
 
       vocabs_.emplace_back(vocab);
     }
@@ -162,10 +164,10 @@ CorpusBase::CorpusBase(Ptr<Config> options, bool translate)
 void CorpusBase::addWordsToSentenceTuple(const std::string& line,
                                          size_t i,
                                          SentenceTuple& tup) const {
-  
+
   // This turns a string in to a sequence of numerical word ids. Depending
   // on the vocabulary type, this can be non-trivial, e.g. when SentencePiece
-  // is used. 
+  // is used.
   Words words = vocabs_[i]->encode(line, /*addEOS =*/ true, inference_);
 
   if(words.empty())
@@ -192,8 +194,7 @@ void CorpusBase::addAlignmentToSentenceTuple(const std::string& line,
   tup.setAlignment(align);
 }
 
-void CorpusBase::addWeightsToSentenceTuple(const std::string& line,
-                                           SentenceTuple& tup) const {
+void CorpusBase::addWeightsToSentenceTuple(const std::string& line, SentenceTuple& tup) const {
   auto elements = utils::split(line, " ");
 
   if(!elements.empty()) {

@@ -34,7 +34,7 @@ class SparseTensorBase : public std::enable_shared_from_this<SparseTensorBase> {
 
 public:
   SparseTensorBase(int capacity, Ptr<Backend> backend)
-      : backend_(backend), capacity_(capacity) {
+      : capacity_(capacity), backend_(backend) {
     data_ = newData<float>(capacity, backend);
     indices_ = newData<int>(capacity, backend);
   }

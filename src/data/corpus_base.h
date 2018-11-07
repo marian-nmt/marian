@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
 #include "common/options.h"
@@ -89,7 +88,18 @@ public:
    * For sentence-level weights the vector contains only one element.
    */
   const std::vector<float>& getWeights() const { return weights_; }
-  void setWeights(const std::vector<float>& weights) { weights_ = weights; }
+  void setWeights(const std::vector<float>& weights) {
+    auto numTrgWords = back().size();
+    auto numWeights = weights.size();
+    if(numWeights != 1 && numWeights != numTrgWords && numWeights != numTrgWords - 1)
+      LOG(warn,
+          "[warn] "
+          "Number of weights ({}) does not match the number of target words ({}) for line #{}",
+          numWeights,
+          numTrgWords,
+          id_);
+    weights_ = weights;
+  }
 
   const WordAlignment& getAlignment() const { return alignment_; }
   void setAlignment(const WordAlignment& alignment) { alignment_ = alignment; }
@@ -489,11 +499,12 @@ class CorpusBase
     : public DatasetBase<SentenceTuple, CorpusIterator, CorpusBatch>,
       public RNGEngine {
 public:
-  CorpusBase(Ptr<Config> options, bool translate = false);
+  // @TODO: check if translate can be replaced by an option in options
+  CorpusBase(Ptr<Options> options, bool translate = false);
 
   CorpusBase(const std::vector<std::string>& paths,
              const std::vector<Ptr<Vocab>>& vocabs,
-             Ptr<Config> options);
+             Ptr<Options> options);
 
   virtual std::vector<Ptr<Vocab>>& getVocabs() = 0;
 

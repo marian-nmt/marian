@@ -60,7 +60,7 @@ public:
    */
   void merge(const YAML::Node& node, bool overwrite = false) {
     for(auto it : node)
-      if(!options_[it.first.as<std::string>()])
+      if(overwrite || !options_[it.first.as<std::string>()])
         options_[it.first.as<std::string>()] = YAML::Clone(it.second);
   }
 

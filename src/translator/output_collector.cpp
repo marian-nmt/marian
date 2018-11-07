@@ -6,7 +6,7 @@
 
 namespace marian {
 
-OutputCollector::OutputCollector(std::string outFile = "stdout")
+OutputCollector::OutputCollector(std::string outFile)
   : nextId_(0),
     outStrm_(new io::OutputFileStream(std::cout)),
     printing_(new DefaultPrinting()) {

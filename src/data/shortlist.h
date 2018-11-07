@@ -37,12 +37,14 @@ public:
 
   // Writes text version of (possibly) pruned short list to file
   // with given prefix and implementation-specific suffixes.
-  virtual void dump(const std::string& prefix) = 0;
+  virtual void dump(const std::string& /*prefix*/) {
+    ABORT("Not implemented");
+  }
 };
 
 class SampledShortlistGenerator : public ShortlistGenerator {
 private:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
   size_t maxVocab_{50000};
 
   size_t total_{10000};
@@ -56,7 +58,7 @@ private:
   std::mt19937 gen_;
 
 public:
-  SampledShortlistGenerator(Ptr<Config> options,
+  SampledShortlistGenerator(Ptr<Options> options,
                             size_t srcIdx = 0,
                             size_t trgIdx = 1,
                             bool shared = false)
@@ -109,15 +111,11 @@ public:
 
     return New<Shortlist>(idx, mapped, reverseMap);
   }
-
-  virtual void dump(const std::string& /*prefix*/) {
-    ABORT("Not implemented");
-  }
 };
 
 class LexicalShortlistGenerator : public ShortlistGenerator {
 private:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
   Ptr<Vocab> srcVocab_;
   Ptr<Vocab> trgVocab_;
 
@@ -172,7 +170,7 @@ private:
   }
 
 public:
-  LexicalShortlistGenerator(Ptr<Config> options,
+  LexicalShortlistGenerator(Ptr<Options> options,
                             Ptr<Vocab> srcVocab,
                             Ptr<Vocab> trgVocab,
                             size_t srcIdx = 0,
@@ -209,7 +207,7 @@ public:
       dump(dumpPath);
   }
 
-  void dump(const std::string& prefix) {
+  virtual void dump(const std::string& prefix) override {
     // Dump top most frequent words from target vocabulary
     LOG(info, "[data] Saving shortlist dump to {}", prefix + ".{top,dic}");
     io::OutputFileStream outTop(prefix + ".top");
@@ -290,7 +288,7 @@ public:
     }
   }
 
-  Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) override {
+  Ptr<Shortlist> generate(Ptr<data::CorpusBatch> /*batch*/) override {
     std::vector<Word> tmp;
     return New<Shortlist>(idx_, tmp, reverseIdx_);
   }

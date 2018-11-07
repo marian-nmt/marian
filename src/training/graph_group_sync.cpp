@@ -2,14 +2,14 @@
 
 namespace marian {
 
-SyncGraphGroup::SyncGraphGroup(Ptr<Config> config)
+SyncGraphGroup::SyncGraphGroup(Ptr<Options> config)
     : GraphGroup(config),
       ExponentialSmoothing{options_->get<float>("exponential-smoothing")},
       delay_{options_->get<size_t>("optimizer-delay")} { // @TODO: rename to something else; delay means delayed updated, not accumulation
 
   mpi_ = initMPI(/*multiThreaded=*/false); // when not running under MPI, this will be a fake object that represents a one-MPI-process setup
 
-  devices_ = options_->getDevices(mpi_->myMPIRank(), mpi_->numMPIProcesses());
+  devices_ = Config::getDevices(options_, mpi_->myMPIRank(), mpi_->numMPIProcesses());
   for(auto device : devices_) {
     auto graph = New<ExpressionGraph>();
     graph->setDevice(device);
@@ -18,7 +18,7 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Config> config)
 
     graphs_.push_back(graph);
     shardOpt_.push_back(Optimizer(options_));
-    builders_.push_back(models::from_config(options_, models::usage::training));
+    builders_.push_back(models::from_options(options_, models::usage::training));
   }
 
   // Note: We may well end up with only one MPI process or only one graph per worker.
