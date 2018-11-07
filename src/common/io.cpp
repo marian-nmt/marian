@@ -85,7 +85,7 @@ void loadItemsFromNpz(const std::string& fileName, std::vector<Item>& items) {
       shape.set(1, (size_t)it.second->shape[0]);
     } else {
       shape.resize(it.second->shape.size());
-      for(int i = 0; i < it.second->shape.size(); ++i)
+      for(size_t i = 0; i < it.second->shape.size(); ++i)
         shape.set(i, (size_t)it.second->shape[i]);
     }
 
@@ -93,7 +93,6 @@ void loadItemsFromNpz(const std::string& fileName, std::vector<Item>& items) {
     item.name = it.first;
     item.shape = shape;
     item.bytes.swap(it.second->bytes);
-
     items.emplace_back(std::move(item));
   }
 }

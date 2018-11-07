@@ -89,7 +89,21 @@ public:
     if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
       nameMap["Wemb"] = "Wemb";
 
-    graph->load(name, nameMap);
+    LOG(info, "Loading model from {}", name);
+    // load items from .npz file
+    auto ioItems = io::loadItems(name);
+    // map names and remove a dummy matrix 'decoder_c_tt' from items to avoid creating isolated node
+    for(auto it = ioItems.begin(); it != ioItems.end();) {
+      if(it->name == "decoder_c_tt") {
+        it = ioItems.erase(it);
+      }
+      auto pair = nameMap.find(it->name);
+      if(pair != nameMap.end())
+        it->name = pair->second;
+      ++it;
+    }
+    // load items into the graph
+    graph->load(ioItems);
   }
 
   void save(Ptr<ExpressionGraph> graph,
@@ -143,7 +157,23 @@ public:
            {"encoder_bi_r_gamma1", "encoder_r_gamma1"},
            {"encoder_bi_r_gamma2", "encoder_r_gamma2"}};
 
-    graph->save(name, getModelParametersAsString(), nameMap);
+    // get parameters from the graph to items
+    std::vector<io::Item> ioItems;
+    graph->save(ioItems);
+    // replace names to be compatible with Nematus
+    for(auto& item : ioItems) {
+      auto newItemName = nameMap.find(item.name);
+      if(newItemName != nameMap.end())
+        item.name = newItemName->second;
+    }
+    // add a dummy matrix 'decoder_c_tt' required for Amun and Nematus
+    ioItems.emplace_back();
+    ioItems.back().name = "decoder_c_tt";
+    ioItems.back().shape = Shape({1, 0});
+    ioItems.back().bytes.emplace_back(0);
+
+    io::addMetaToItems(getModelParametersAsString(), "special:model.yml", ioItems);
+    io::saveItems(name, ioItems);
 
     if(saveTranslatorConfig) {
       createAmunConfig(name);
