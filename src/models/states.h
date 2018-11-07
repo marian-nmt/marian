@@ -97,6 +97,6 @@ public:
   // Set current target token position in state when decoding
   void setPosition(size_t position) { position_ = position; }
 
-  virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) {}
+  virtual void blacklist(Expr /*totalCosts*/, Ptr<data::CorpusBatch> /*batch*/) {}
 };
 }  // namespace marian

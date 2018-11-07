@@ -17,7 +17,7 @@ private:
   std::vector<int> shape_;
 
 public:
-  Shape() : shape_{1} {}
+  Shape() : shape_({1}) {}
 
   Shape(std::initializer_list<int> il) : Shape() {
     shape_.resize(il.size());

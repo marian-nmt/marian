@@ -16,7 +16,14 @@
 #pragma warning(disable: 4706) // assignment within conditional expression
 #include <boost/iostreams/filter/gzip.hpp>
 #pragma warning(pop)
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsuggest-override"
+#endif
 #include <boost/iostreams/filtering_stream.hpp>
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 #include <iostream>
 #include <memory>
 

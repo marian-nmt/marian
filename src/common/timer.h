@@ -1,7 +1,9 @@
 #pragma once
 
 #include <boost/timer/timer.hpp>
-#include <boost/chrono.hpp> // (needed on Windows only to resolve a link error)
+#ifdef _MSC_VER
+#include <boost/chrono.hpp> // (needed on Windows only to resolve a link error, but causes a warning on Linux)
+#endif
 
 namespace marian {
 namespace timer {

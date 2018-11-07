@@ -27,8 +27,7 @@ public:
   DatasetBase(std::vector<std::string> paths, Ptr<Options> options)
       : paths_(paths),
         options_(options),
-        inference_(options != nullptr ? options->get<bool>("inference", false)
-                                      : false) {}
+        inference_(options != nullptr ? options->get<bool>("inference", false) : false) {}
 
   DatasetBase(Ptr<Options> options) : DatasetBase({}, options) {}
 

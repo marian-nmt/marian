@@ -32,8 +32,8 @@ protected:
 public:
   AsyncGraphGroupDrop(Ptr<Options> options)
       : AsyncGraphGroup(options),
+        dropping_warmup{options->get<size_t>("grad-dropping-warmup")},
         droping_rate{options->get<float>("grad-dropping-rate")},
-        dropping_momentum{options->get<float>("grad-dropping-momentum")},
-        dropping_warmup{options->get<size_t>("grad-dropping-warmup")} {}
+        dropping_momentum{options->get<float>("grad-dropping-momentum")} {}
 };
 }  // namespace marian

@@ -13,7 +13,8 @@
 
 char cnpy::BigEndianTest() {
     unsigned char x[] = {1,0};
-    short y = *(short*) x;
+    short y;
+    memcpy(&y, x, sizeof(y));
     return y == 1 ? '<' : '>';
 }
 

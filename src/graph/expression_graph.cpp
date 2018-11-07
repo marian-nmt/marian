@@ -25,13 +25,11 @@ Expr ExpressionGraph::dropout(float prob, const Shape& shape) {
 }
 
 void ExpressionGraph::checkNan(Tensor t) {
-  ABORT_IF(throwNaN_, "Not implemented");
+  ABORT_IF(throwNaN_, "Not implemented"); t;
   // ABORT_IF(throwNaN_ && IsNan(t), "Tensor has NaN");
 }
 
-void ExpressionGraph::parametersToItems(
-    std::vector<io::Item>& ioItems,
-    const std::map<std::string, std::string>& nameMap) {
+void ExpressionGraph::save(std::vector<io::Item>& ioItems) {
   for(auto p : params()->getMap()) {
     std::string pName = p.first;
 
@@ -39,10 +37,6 @@ void ExpressionGraph::parametersToItems(
       if(pName.substr(0, namespace_.size() + 2) == namespace_ + "::")
         pName = pName.substr(namespace_.size() + 2);
     }
-
-    auto it = nameMap.find(pName);
-    if(it != nameMap.end())
-      pName = it->second;
 
     ABORT_IF(p.second->val()->type() != Type::float32,
              "Only float32 supported at the moment");

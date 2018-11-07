@@ -37,7 +37,9 @@ public:
 
   // Writes text version of (possibly) pruned short list to file
   // with given prefix and implementation-specific suffixes.
-  virtual void dump(const std::string& prefix) = 0;
+  virtual void dump(const std::string& /*prefix*/) {
+    ABORT("Not implemented");
+  }
 };
 
 class SampledShortlistGenerator : public ShortlistGenerator {
@@ -108,10 +110,6 @@ public:
     }
 
     return New<Shortlist>(idx, mapped, reverseMap);
-  }
-
-  virtual void dump(const std::string& /*prefix*/) {
-    ABORT("Not implemented");
   }
 };
 
@@ -209,7 +207,7 @@ public:
       dump(dumpPath);
   }
 
-  void dump(const std::string& prefix) {
+  virtual void dump(const std::string& prefix) override {
     // Dump top most frequent words from target vocabulary
     LOG(info, "[data] Saving shortlist dump to {}", prefix + ".{top,dic}");
     io::OutputFileStream outTop(prefix + ".top");
@@ -290,7 +288,7 @@ public:
     }
   }
 
-  Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) override {
+  Ptr<Shortlist> generate(Ptr<data::CorpusBatch> /*batch*/) override {
     std::vector<Word> tmp;
     return New<Shortlist>(idx_, tmp, reverseIdx_);
   }

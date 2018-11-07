@@ -15,7 +15,8 @@ class Options;
 
 namespace quicksand {
 
-typedef size_t Word;
+typedef uint32_t IndexType;
+typedef IndexType Word;
 typedef std::vector<Word> Words;
 typedef std::vector<Words> QSBatch;
 typedef std::vector<std::set<std::pair<size_t, float>>> AlignmentSets; // [tgtPos] -> set of (srcPos, score)
@@ -43,7 +44,7 @@ public:
 
   virtual QSNBestBatch decode(const QSBatch& qsBatch,
                               size_t maxLength,
-                              const std::unordered_set<size_t>& shortlist)
+                              const std::unordered_set<Word>& shortlist)
       = 0;
 
   virtual void setWorkspace(uint8_t* data, size_t size) = 0;

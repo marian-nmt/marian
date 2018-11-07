@@ -224,6 +224,11 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
 }
 
 void SyncGraphGroup::load() /*override*/ {
+
+  // This function loads the main parameters in the graphs.
+  // In case of exponential smoothing, we also need to restore paramsAvg_.
+  // That is done lazily inside initializeAvg(), see there.
+
   if(!options_->get<bool>("no-reload")) {
     std::string name = options_->get<std::string>("model");
 

@@ -31,6 +31,7 @@ protected:
   float lastBest_;
   size_t stalled_{0};
   std::mutex mutex_;
+  ThreadPool threadPool_;
 
 public:
   ValidatorBase(bool lowerIsBetter) : lowerIsBetter_(lowerIsBetter), lastBest_{initScore()} {}
@@ -151,8 +152,9 @@ protected:
     size_t batchId = 0;
 
     {
-      ThreadPool threadPool(graphs.size(), graphs.size());
+      threadPool_.reserve(graphs.size());
 
+      TaskBarrier taskBarrier;
       for(auto batch : *batchGenerator) {
         auto task = [=, &cost, &samples, &words](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
@@ -172,9 +174,10 @@ protected:
           words += batch->back()->batchWords();
         };
 
-        threadPool.enqueue(task, batchId);
+        taskBarrier.push_back(threadPool_.enqueue(task, batchId));
         batchId++;
       }
+      // ~TaskBarrier waits until all are done
     }
 
     // get back to the original cost type
@@ -284,10 +287,10 @@ public:
       else
         collector->setPrintingStrategy(New<GeometricPrinting>());
 
+      threadPool_.reserve(graphs.size());
+
       size_t sentenceId = 0;
-
-      ThreadPool threadPool(graphs.size(), graphs.size());
-
+      TaskBarrier taskBarrier;
       for(auto batch : *batchGenerator) {
         auto task = [=](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
@@ -315,9 +318,10 @@ public:
           }
         };
 
-        threadPool.enqueue(task, sentenceId);
+        taskBarrier.push_back(threadPool_.enqueue(task, sentenceId));
         sentenceId++;
       }
+      // ~TaskBarrier waits until all are done
     }
 
     if(!quiet_)
@@ -426,10 +430,10 @@ public:
       else
         collector->setPrintingStrategy(New<GeometricPrinting>());
 
+      threadPool_.reserve(graphs.size());
+
       size_t sentenceId = 0;
-
-      ThreadPool threadPool(graphs.size(), graphs.size());
-
+      TaskBarrier taskBarrier;
       for(auto batch : *batchGenerator) {
         auto task = [=, &stats](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
@@ -464,9 +468,10 @@ public:
           }
         };
 
-        threadPool.enqueue(task, sentenceId);
+        taskBarrier.push_back(threadPool_.enqueue(task, sentenceId));
         sentenceId++;
       }
+      // ~TaskBarrier waits until all are done
     }
 
     if(!quiet_)

@@ -4,6 +4,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 project(marian CXX C)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(BUILD_ARCH native CACHE STRING "Compile for this CPU architecture.")
 
 # Custom CMake options
 option(COMPILE_EXAMPLES "Compile examples" OFF)
@@ -37,11 +38,10 @@ if(MSVC)
 
   set(CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} /LTCG:incremental")
 else()
-  set(CMAKE_CXX_FLAGS_RELEASE         " -std=c++11 -O3 -Ofast -m64 -pthread -march=native -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
-  set(CMAKE_CXX_FLAGS_NONATIVE        " -std=c++11 -O3 -Ofast -m64 -pthread -march=x86-64 -mavx -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
-  set(CMAKE_CXX_FLAGS_DEBUG           " -std=c++11 -g -rdynamic -O0 -pthread -fPIC -Wno-unused-result -Wno-deprecated -Wno-deprecated-gpu-targets")
+  set(CMAKE_CXX_FLAGS_RELEASE         " -std=c++11 -O3 -Ofast -m64 -pthread -march=${BUILD_ARCH} -msse4.1 -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Werror -Wno-pragmas")
+  set(CMAKE_CXX_FLAGS_DEBUG           " -std=c++11 -g -rdynamic -O0 -pthread -Wl,--no-as-needed -fPIC -Wno-unused-result -Wno-deprecated -Werror -Wno-pragmas")
   set(CMAKE_CXX_FLAGS_ST              "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG")
-  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO  "${CMAKE_CXX_FLAGS_RELEASE} -pg -g -rdynamic")
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO  "${CMAKE_CXX_FLAGS_RELEASE} -pg -g -rdynamic -Wall -Wextra -Wsuggest-override -Wno-unused-value -Wno-unknown-pragmas -Wno-sign-compare -Wno-missing-field-initializers")
   set(CMAKE_CXX_FLAGS_PROFILE         "${CMAKE_CXX_FLAGS_RELEASE} -pg -g -rdynamic")
   set(CMAKE_CXX_FLAGS_PROFGEN         "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-generate -fprofile-correction")
   set(CMAKE_CXX_FLAGS_PROFUSE         "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-use -fprofile-correction")
@@ -117,7 +117,7 @@ else(CMAKE_BUILD_TYPE STREQUAL "Debug")
   list(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -O3; -g; --use_fast_math; -arch=sm_30; -gencode=arch=compute_30,code=sm_30; -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52; -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61; -gencode=arch=compute_61,code=compute_61 ;)
 endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
 if(NOT MSVC)
-  list(APPEND CUDA_NVCC_FLAGS -std=c++11; -Xcompiler\ -fPIC; )
+  list(APPEND CUDA_NVCC_FLAGS -std=c++11; -Xcompiler\ -fPIC; -Xcompiler\ -Wno-unused-result; -Xcompiler\ -Wno-deprecated; -Xcompiler\ -Wno-pragmas; -Xcompiler\ -Wno-unused-value; -Xcompiler\ -Werror;)
 else()
   list(APPEND CUDA_NVCC_FLAGS -Xcompiler\ /FS; )
 endif()
@@ -211,6 +211,7 @@ find_package(Boost COMPONENTS ${BOOST_COMPONENTS})
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
   set(EXT_LIBS ${EXT_LIBS} ${Boost_LIBRARIES})
+  set(EXT_LIBS ${EXT_LIBS} ${ZLIB_LIBRARIES}) # hack for static compilation
 else(Boost_FOUND)
   message(SEND_ERROR "Cannot find Boost libraries. Terminating.")
 endif(Boost_FOUND)
@@ -223,10 +224,11 @@ if(COMPILE_EXAMPLES)
   add_definitions(-DCOMPILE_EXAMPLES=1)
 endif(COMPILE_EXAMPLES)
 
-# Compile source files
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/common/version.h.in
-               ${CMAKE_CURRENT_SOURCE_DIR}/src/common/version.h @ONLY)
+# Generate project_version.h to reflect our version number
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/common/project_version.h.in
+               ${CMAKE_CURRENT_SOURCE_DIR}/src/common/project_version.h @ONLY)
 
+# Compile source files
 include_directories(${marian_SOURCE_DIR}/src)
 add_subdirectory(src)
 
