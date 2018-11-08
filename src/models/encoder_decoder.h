@@ -13,17 +13,17 @@ class EncoderDecoderBase : public models::ModelBase {
 public:
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
-                    bool markedReloaded = true) override
+                    bool markedReloaded = true) const override 
       = 0;
 
   virtual void mmap(Ptr<ExpressionGraph> graph,
                     const void* ptr,
-                    bool markedReloaded = true)
+                    bool markedReloaded = true) const
       = 0;
 
   virtual void save(Ptr<ExpressionGraph> graph,
                     const std::string& name,
-                    bool saveTranslatorConfig = false) override
+                    bool saveTranslatorConfig = false) const override
       = 0;
 
   virtual void clear(Ptr<ExpressionGraph> graph) override = 0;
@@ -75,10 +75,10 @@ protected:
 
   std::set<std::string> modelFeatures_;
 
-  Config::YamlNode getModelParameters();
-  std::string getModelParametersAsString();
+  Config::YamlNode getModelParameters() const;
+  std::string getModelParametersAsString() const;
 
-  virtual void createDecoderConfig(const std::string& name);
+  virtual void createDecoderConfig(const std::string& name) const;
 
 public:
   typedef data::Corpus dataset_type;
@@ -97,25 +97,25 @@ public:
 
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
-                    bool markedReloaded = true) override;
+                    bool markedReloaded = true) const override;
 
   virtual void mmap(Ptr<ExpressionGraph> graph,
                     const void* ptr,
-                    bool markedReloaded = true) override;
+                    bool markedReloaded = true) const override;
 
   virtual void save(Ptr<ExpressionGraph> graph,
                     const std::string& name,
-                    bool saveTranslatorConfig = false) override;
+                    bool saveTranslatorConfig = false) const override;
 
   virtual void clear(Ptr<ExpressionGraph> graph) override;
 
   template <typename T>
-  T opt(const std::string& key) {
+  T opt(const std::string& key) const {
     return options_->get<T>(key);
   }
 
   template <typename T>
-  T opt(const std::string& key, const T& def) {
+  T opt(const std::string& key, const T& def) const {
     return options_->get<T>(key, def);
   }
 

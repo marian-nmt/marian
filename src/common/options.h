@@ -58,16 +58,15 @@ public:
    * @param node a YAML node to transfer the options from
    * @param overwrite overwrite all options
    */
-  void merge(YAML::Node& node, bool overwrite = false) {
+  void merge(const YAML::Node& node, bool overwrite = false) {
     for(auto it : node)
       if(overwrite || !options_[it.first.as<std::string>()])
         options_[it.first.as<std::string>()] = YAML::Clone(it.second);
   }
 
-  void merge(const YAML::Node& node, bool overwrite = false) { merge(node, overwrite); }
-  void merge(Ptr<Options> options) { merge(options->getYaml()); }
+  void merge(Ptr<Options const> options) { merge(options->getYaml()); }
 
-  std::string str() {
+  std::string str() const {
     std::stringstream ss;
     ss << options_;
     return ss.str();
@@ -79,13 +78,13 @@ public:
   }
 
   template <typename T>
-  T get(const std::string& key) {
+  T get(const std::string& key) const {
     ABORT_IF(!has(key), "Required option '{}' has not been set", key);
     return options_[key].as<T>();
   }
 
   template <typename T>
-  T get(const std::string& key, T defaultValue) {
+  T get(const std::string& key, T defaultValue) const {
     if(has(key))
       return options_[key].as<T>();
     else

@@ -61,7 +61,7 @@ void EncoderDecoder::push_back(Ptr<DecoderBase> decoder) {
   decoders_.push_back(decoder);
 }
 
-void EncoderDecoder::createDecoderConfig(const std::string& name) {
+void EncoderDecoder::createDecoderConfig(const std::string& name) const {
   Config::YamlNode decoder;
   decoder["models"] = std::vector<std::string>({name});
   decoder["vocabs"] = options_->get<std::vector<std::string>>("vocabs");
@@ -80,7 +80,7 @@ void EncoderDecoder::createDecoderConfig(const std::string& name) {
   out << decoder;
 }
 
-Config::YamlNode EncoderDecoder::getModelParameters() {
+Config::YamlNode EncoderDecoder::getModelParameters() const {
   Config::YamlNode modelParams;
   for(auto& key : modelFeatures_)
     modelParams[key] = options_->getYaml()[key];
@@ -92,7 +92,7 @@ Config::YamlNode EncoderDecoder::getModelParameters() {
   return modelParams;
 }
 
-std::string EncoderDecoder::getModelParametersAsString() {
+std::string EncoderDecoder::getModelParametersAsString() const {
   auto yaml = getModelParameters();
   YAML::Emitter out;
   cli::OutputYaml(yaml, out);
@@ -101,19 +101,23 @@ std::string EncoderDecoder::getModelParametersAsString() {
 
 void EncoderDecoder::load(Ptr<ExpressionGraph> graph,
                           const std::string& name,
-                          bool markedReloaded) {
+                          bool markedReloaded) const {
+  // Changes only the graph instance, but not the EncoderDecoder instance,
+  // so this function can be declared const.
   graph->load(name, markedReloaded && !opt<bool>("ignore-model-config", false));
 }
 
 void EncoderDecoder::mmap(Ptr<ExpressionGraph> graph,
                           const void* ptr,
-                          bool markedReloaded) {
+                          bool markedReloaded) const {
+  // Changes only the graph instance, but not the EncoderDecoder instance,
+  // so this function can be declared const.
   graph->mmap(ptr, markedReloaded && !opt<bool>("ignore-model-config", false));
 }
 
 void EncoderDecoder::save(Ptr<ExpressionGraph> graph,
                           const std::string& name,
-                          bool saveTranslatorConfig) {
+                          bool saveTranslatorConfig) const {
   // ignore config for now
   LOG(info, "Saving model weights and runtime parameters to {}", name);
 
