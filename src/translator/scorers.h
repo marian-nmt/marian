@@ -29,6 +29,8 @@ public:
   float getWeight() const { return weight_; }
 
   virtual void clear(Ptr<ExpressionGraph>) const = 0;
+  // clears graph, doesn't change Scorer state, therefore const.
+  
   virtual Ptr<ScorerState> startState(Ptr<ExpressionGraph>,
                                       Ptr<data::CorpusBatch>) const
       = 0;
