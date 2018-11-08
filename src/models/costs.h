@@ -91,7 +91,7 @@ public:
 
   virtual void save(Ptr<ExpressionGraph> graph,
                     const std::string& name,
-                    bool saveTranslatorConfig = false) override {
+                    bool saveTranslatorConfig = false) const override {
     model_->save(graph, name, saveTranslatorConfig);
   }
 
@@ -165,7 +165,7 @@ public:
 
   virtual void save(Ptr<ExpressionGraph> graph,
                     const std::string& name,
-                    bool saveTranslatorConfig = false) override {
+                    bool saveTranslatorConfig = false) const override {
     encdec_->save(graph, name, saveTranslatorConfig);
   }
 

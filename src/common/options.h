@@ -66,7 +66,7 @@ public:
 
   void merge(Ptr<Options const> options) { merge(options->getYaml()); }
 
-  std::string str() {
+  std::string str() const {
     std::stringstream ss;
     ss << options_;
     return ss.str();
@@ -78,13 +78,13 @@ public:
   }
 
   template <typename T>
-  T get(const std::string& key) {
+  T get(const std::string& key) const {
     ABORT_IF(!has(key), "Required option '{}' has not been set", key);
     return options_[key].as<T>();
   }
 
   template <typename T>
-  T get(const std::string& key, T defaultValue) {
+  T get(const std::string& key, T defaultValue) const {
     if(has(key))
       return options_[key].as<T>();
     else

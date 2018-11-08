@@ -23,7 +23,7 @@ public:
 
   virtual void save(Ptr<ExpressionGraph> graph,
                     const std::string& name,
-                    bool saveTranslatorConfig = false) override
+                    bool saveTranslatorConfig = false) const override
       = 0;
 
   virtual void clear(Ptr<ExpressionGraph> graph) override = 0;
@@ -75,10 +75,10 @@ protected:
 
   std::set<std::string> modelFeatures_;
 
-  Config::YamlNode getModelParameters();
-  std::string getModelParametersAsString();
+  Config::YamlNode getModelParameters() const;
+  std::string getModelParametersAsString() const;
 
-  virtual void createDecoderConfig(const std::string& name);
+  virtual void createDecoderConfig(const std::string& name) const;
 
 public:
   typedef data::Corpus dataset_type;
@@ -105,7 +105,7 @@ public:
 
   virtual void save(Ptr<ExpressionGraph> graph,
                     const std::string& name,
-                    bool saveTranslatorConfig = false) override;
+                    bool saveTranslatorConfig = false) const override;
 
   virtual void clear(Ptr<ExpressionGraph> graph) override;
 

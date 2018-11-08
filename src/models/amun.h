@@ -110,7 +110,7 @@ public:
 
   void save(Ptr<ExpressionGraph> graph,
             const std::string& name,
-            bool saveTranslatorConfig = false) override {
+            bool saveTranslatorConfig = false) const override {
     LOG(info, "Saving model to {}", name);
 
     std::map<std::string, std::string> nameMap
@@ -184,7 +184,7 @@ public:
   }
 
 private:
-  void createAmunConfig(const std::string& name) {
+  void createAmunConfig(const std::string& name) const {
     Config::YamlNode amun;
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
     amun["source-vocab"] = vocabs[0];
