@@ -392,6 +392,7 @@ public:
   }
 
   Ptr<Parameters>& params() { return params_; }
+  Ptr<const Parameters> params() const { return params_; }
 
   Expr add(Expr node) {
     auto found = tensors_->findOrRemember(node);
@@ -488,9 +489,9 @@ public:
 
 public:
   // convert all parameters into an array of io::Item elements, for saving
-  void save(std::vector<io::Item>& ioItems);
-
-  void save(const std::string& name, const std::string& meta = "") {
+  void save(std::vector<io::Item>& ioItems) const;
+  
+  void save(const std::string& name, const std::string& meta = "") const {
     // LOG(info, "Saving model to {}", name);
 
     std::vector<io::Item> ioItems;

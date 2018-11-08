@@ -33,6 +33,7 @@ public:
   auto end() -> decltype(params_.begin()) { return params_.end(); }
 
   auto getMap() -> decltype(named_)& { return named_; }
+  auto getMap() const -> const decltype(named_)& { return named_; }
 
   Expr get(const std::string& name) {
     auto it = named_.find(name);
