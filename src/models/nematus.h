@@ -28,9 +28,7 @@ public:
 
   void load(Ptr<ExpressionGraph> graph,
             const std::string& name,
-            bool /*markReloaded*/ = true) const override {
-    // Changes only the graph instance, but not *this, so this member function
-    // can be declared const.
+            bool /*markReloaded*/ = true) override {
     LOG(info, "Loading model from {}", name);
     // load items from .npz file
     auto ioItems = io::loadItems(name);
@@ -50,28 +48,21 @@ public:
 
   void save(Ptr<ExpressionGraph> graph,
             const std::string& name,
-            bool saveTranslatorConfig = false) const override {
+            bool saveTranslatorConfig = false) override {
     LOG(info, "Saving model to {}", name);
 
     // prepare reversed map
-    // nameMapRev used to be a private member. Since it is used only
-    // in this function, and having it as a private member prevents this member
-    // function from being declared const, I have made it a local variable.
-    // Within the scope of saving a model, the map inversion cost is negligible.
-    // (alternatively, we could create it once after createing nameMap_).
-    // Conceptually, saving a model should not change it, so save(...) const is
-    // warranted. - UG
-    std::map<std::string, std::string> nameMapRev;
+    if(nameMapRev_.empty())
       for(const auto& kv : nameMap_)
-        nameMapRev.insert({kv.second, kv.first});
+        nameMapRev_.insert({kv.second, kv.first});
 
     // get parameters from the graph to items
     std::vector<io::Item> ioItems;
     graph->save(ioItems);
     // replace names to be compatible with Nematus
     for(auto& item : ioItems) {
-      auto newItemName = nameMapRev.find(item.name);
-      if(newItemName != nameMapRev.end())
+      auto newItemName = nameMapRev_.find(item.name);
+      if(newItemName != nameMapRev_.end())
         item.name = newItemName->second;
     }
     // add a dummy matrix 'decoder_c_tt' required for Amun and Nematus
@@ -91,7 +82,7 @@ public:
 
 private:
   std::map<std::string, std::string> nameMap_;
-  // std::map<std::string, std::string> nameMapRev_;
+  std::map<std::string, std::string> nameMapRev_;
 
   std::map<std::string, std::string> createNameMap() {
     std::map<std::string, std::string> nameMap
@@ -171,7 +162,7 @@ private:
     return nameMap;
   }
 
-  void createAmunConfig(const std::string& name) const {
+  void createAmunConfig(const std::string& name) {
     Config::YamlNode amun;
     // Amun has only CPU decoder for deep Nematus models
     amun["cpu-threads"] = 16;

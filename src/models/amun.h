@@ -37,9 +37,7 @@ public:
 
   void load(Ptr<ExpressionGraph> graph,
             const std::string& name,
-            bool /*markedReloaded*/ = true) const override {
-    // This function only changes the graph instance, but not the Amun
-    // instance, so this function can be declared const.
+            bool /*markedReloaded*/ = true) override {
     std::map<std::string, std::string> nameMap
         = {{"decoder_U", "decoder_cell1_U"},
            {"decoder_Ux", "decoder_cell1_Ux"},
@@ -110,7 +108,7 @@ public:
 
   void save(Ptr<ExpressionGraph> graph,
             const std::string& name,
-            bool saveTranslatorConfig = false) const override {
+            bool saveTranslatorConfig = false) override {
     LOG(info, "Saving model to {}", name);
 
     std::map<std::string, std::string> nameMap
@@ -184,7 +182,7 @@ public:
   }
 
 private:
-  void createAmunConfig(const std::string& name) const {
+  void createAmunConfig(const std::string& name) {
     Config::YamlNode amun;
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
     amun["source-vocab"] = vocabs[0];

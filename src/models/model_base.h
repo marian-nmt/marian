@@ -19,13 +19,12 @@ class ModelBase {
 public:
   virtual void load(Ptr<ExpressionGraph>,
                     const std::string&,
-                    bool markReloaded = true) const 
-      = 0; // changes graph but not model, therefore declared const
-  
+                    bool markReloaded = true)
+      = 0;
   virtual void save(Ptr<ExpressionGraph>,
                     const std::string&,
-                    bool saveTranslatorConfig = false) const
-      = 0; // doesn't change the model, therefore const
+                    bool saveTranslatorConfig = false)
+      = 0;
 
   virtual Expr build(Ptr<ExpressionGraph> graph,
                      Ptr<data::Batch> batch,
