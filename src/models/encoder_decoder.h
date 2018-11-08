@@ -21,7 +21,7 @@ public:
                     bool markedReloaded = true) const
       = 0;
 
-  virtual void save(Ptr<ExpressionGraph> graph,
+  virtual void save(Ptr<const ExpressionGraph> graph,
                     const std::string& name,
                     bool saveTranslatorConfig = false) const override
       = 0;
@@ -103,7 +103,7 @@ public:
                     const void* ptr,
                     bool markedReloaded = true) const override;
 
-  virtual void save(Ptr<ExpressionGraph> graph,
+  virtual void save(Ptr<const ExpressionGraph> graph,
                     const std::string& name,
                     bool saveTranslatorConfig = false) const override;
 

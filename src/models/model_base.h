@@ -22,7 +22,7 @@ public:
                     bool markReloaded = true) const 
       = 0; // changes graph but not model, therefore declared const
   
-  virtual void save(Ptr<ExpressionGraph>,
+  virtual void save(Ptr<const ExpressionGraph>,
                     const std::string&,
                     bool saveTranslatorConfig = false) const
       = 0; // doesn't change the model, therefore const

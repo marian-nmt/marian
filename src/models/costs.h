@@ -89,7 +89,7 @@ public:
     model_->load(graph, name, markedReloaded);
   };
 
-  virtual void save(Ptr<ExpressionGraph> graph,
+  virtual void save(Ptr<const ExpressionGraph> graph,
                     const std::string& name,
                     bool saveTranslatorConfig = false) const override {
     model_->save(graph, name, saveTranslatorConfig);
@@ -163,7 +163,7 @@ public:
     encdec_->mmap(graph, ptr, markedReloaded);
   };
 
-  virtual void save(Ptr<ExpressionGraph> graph,
+  virtual void save(Ptr<const ExpressionGraph> graph,
                     const std::string& name,
                     bool saveTranslatorConfig = false) const override {
     encdec_->save(graph, name, saveTranslatorConfig);
