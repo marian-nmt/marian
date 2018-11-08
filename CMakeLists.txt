@@ -38,14 +38,14 @@ if(MSVC)
 
   set(CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} /LTCG:incremental")
 else()
-  set(CMAKE_CXX_FLAGS_RELEASE         " -std=c++11 -O3 -Ofast -m64 -pthread -march=${BUILD_ARCH} -msse4.1 -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Werror -Wno-pragmas")
+  set(CMAKE_CXX_FLAGS                 " -std=c++11 -O3 -Ofast -m64 -pthread -march=${BUILD_ARCH} -msse4.1 -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Werror -Wno-pragmas")
+  set(CMAKE_CXX_FLAGS_RELEASE         "${CMAKE_CXX_FLAGS} -g -rdynamic")
   set(CMAKE_CXX_FLAGS_DEBUG           " -std=c++11 -g -rdynamic -O0 -pthread -Wl,--no-as-needed -fPIC -Wno-unused-result -Wno-deprecated -Werror -Wno-pragmas")
-  set(CMAKE_CXX_FLAGS_ST              "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG")
+  set(CMAKE_CXX_FLAGS_SLIM            "${CMAKE_CXX_FLAGS} -DNDEBUG")
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO  "${CMAKE_CXX_FLAGS_RELEASE} -pg -g -rdynamic -Wall -Wextra -Wsuggest-override -Wno-unused-value -Wno-unknown-pragmas -Wno-sign-compare -Wno-missing-field-initializers")
   set(CMAKE_CXX_FLAGS_PROFILE         "${CMAKE_CXX_FLAGS_RELEASE} -pg -g -rdynamic")
   set(CMAKE_CXX_FLAGS_PROFGEN         "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-generate -fprofile-correction")
   set(CMAKE_CXX_FLAGS_PROFUSE         "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-use -fprofile-correction")
-  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE})
 endif()
 
 # Downloading SentencePiece if requested and set to compile with it.
