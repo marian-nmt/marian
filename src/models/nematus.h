@@ -46,7 +46,7 @@ public:
     graph->load(ioItems);
   }
 
-  void save(Ptr<const ExpressionGraph> graph,
+  void save(Ptr<ExpressionGraph> graph,
             const std::string& name,
             bool saveTranslatorConfig = false) override {
     LOG(info, "Saving model to {}", name);

@@ -111,7 +111,7 @@ void EncoderDecoder::mmap(Ptr<ExpressionGraph> graph,
   graph->mmap(ptr, markedReloaded && !opt<bool>("ignore-model-config", false));
 }
 
-void EncoderDecoder::save(Ptr<const ExpressionGraph> graph,
+void EncoderDecoder::save(Ptr<ExpressionGraph> graph,
                           const std::string& name,
                           bool saveTranslatorConfig) {
   // ignore config for now
