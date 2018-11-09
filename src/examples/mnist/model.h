@@ -62,15 +62,15 @@ public:
     return construct(graph, batch, inference_);
   }
 
-  void load(Ptr<ExpressionGraph> /*graph*/, const std::string& /*name*/, bool) override {
+  void load(Ptr<ExpressionGraph> /*graph*/, const std::string& /*name*/, bool) const override {
     LOG(critical, "Loading MNIST model is not supported");
   }
 
-  void save(Ptr<ExpressionGraph> /*graph*/, const std::string& /*name*/, bool) override {
+  void save(Ptr<const ExpressionGraph> /*graph*/, const std::string& /*name*/, bool) const override {
     LOG(critical, "Saving MNIST model is not supported");
   }
 
-  void save(Ptr<ExpressionGraph> /*graph*/, const std::string& /*name*/) {
+  void save(Ptr<const ExpressionGraph> /*graph*/, const std::string& /*name*/) const {
     LOG(critical, "Saving MNIST model is not supported");
   }
 
