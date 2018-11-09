@@ -243,7 +243,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<std::string>("--cost-type",
       "Optimization criterion: ce-mean, ce-mean-words, ce-sum, perplexity", "ce-mean");
   cli.add<bool>("--overwrite",
-      "Overwrite model with following checkpoints");
+      "Do not create model checkpoints, only overwrite main model file with last checkpoint. "
+      "Reduces disk usage");
   cli.add<bool>("--no-reload",
       "Do not load existing model specified in --model arg");
   cli.add<std::vector<std::string>>("--train-sets,-t",
