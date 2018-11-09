@@ -561,13 +561,16 @@ void ConfigParser::addSuboptionsDevices(cli::CLIWrapper& cli) {
 void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
   int defaultMiniBatch = (mode_ == cli::mode::translation) ? 1 : 64;
   int defaultMaxiBatch = (mode_ == cli::mode::translation) ? 1 : 100;
-  std::string defaultMaxiBatchSort
-      = (mode_ == cli::mode::translation) ? "none" : "trg";
+  std::string defaultMaxiBatchSort = (mode_ == cli::mode::translation) ? "none" : "trg";
 
   // clang-format off
   cli.add<int>("--mini-batch",
-      "Size of mini-batch used during update",
-      defaultMiniBatch);
+               (mode_ == cli::mode::translation)
+                   ? "Size of mini-batch used during batched translation" :
+               (mode_ == cli::mode::scoring)
+                   ? "Size of mini-batch used during batched scoring"
+                   : "Size of mini-batch used during update",
+               defaultMiniBatch);
   cli.add<int>("--mini-batch-words",
       "Set mini-batch size based on words instead of sentences");
 
