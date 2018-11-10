@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Word alignment generation in scorer
 - Attention output generation in decoder and scorer with `--alignment soft`
+- Support for SentencePiece vocabularies and run-time segmentation/desegmentation
+- Synchronous multi-node training
 
 ### Fixed
 - Delayed output in line-by-line translation
@@ -17,6 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Generated word alignments include alignments for target EOS tokens
 - Boost::program_options has been replaced by another CLI library
+- Replace boost::file_system with Pathie
 - Expansion of unambiguous command-line arguments is no longer supported
 
 ## [1.6.0] - 2018-08-08
