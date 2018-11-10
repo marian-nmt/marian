@@ -109,7 +109,7 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
     ABORT_IF(eofsHit != 0, "not all input files have the same number of lines");
   }
   size_t numSentences = corpus[0].size();
-  LOG(info, "[data] Done reading {} sentences.", numSentences);
+  LOG(info, "[data] Done reading {} sentences", numSentences);
 
   // randomize sequence ids, and remember them
   ids_.resize(numSentences);
@@ -126,7 +126,7 @@ void Corpus::shuffleFiles(const std::vector<std::string>& paths) {
       out << corpusStream[id] << std::endl;
     }
   }
-  LOG(info, "[data] Done shuffling {} sentences.", numSentences);
+  LOG(info, "[data] Done shuffling {} sentences", numSentences);
 
   // replace files_[] by the tempfiles we just created
   for(size_t i = 0; i < numStreams; ++i) {

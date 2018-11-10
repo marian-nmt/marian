@@ -375,7 +375,7 @@ public:
 #else
     ABORT_IF(detok_,
              "Detokenizing BLEU validator expects the target vocabulary to be SentencePieceVocab. "
-             "Marian has not been compiled with SentencePieceVocab support.");
+             "Marian has not been compiled with SentencePieceVocab support");
 #endif
   }
 

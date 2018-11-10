@@ -143,7 +143,7 @@ public:
    * Update any client model with given batch if batch is assigned to this node.
    */
   void update(Ptr<data::Batch> batch) override {
-    ABORT_IF(finalized_, "Training has already finished.");
+    ABORT_IF(finalized_, "Training has already finished");
     if(batchIter_ % mpi_->numMPIProcesses() == mpi_->myMPIRank()) {  // Only take batch assigned to this node
       execute(batch);
     }
