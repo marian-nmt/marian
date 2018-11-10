@@ -170,7 +170,7 @@ if(COMPILE_CPU)
   endif(MKL_FOUND)
 endif(COMPILE_CPU)
 
-set(BOOST_COMPONENTS timer iostreams filesystem system)
+set(BOOST_COMPONENTS timer iostreams filesystem system chrono)
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
   add_definitions(-DUSE_BOOST_REGEX=1)
   set(BOOST_COMPONENTS ${BOOST_COMPONENTS} regex)
