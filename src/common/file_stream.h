@@ -145,9 +145,9 @@ public:
 
 class InputFileStream {
 public:
-  InputFileStream(const std::string& file) : file_(file), ifstream_(file_.getBoost()) {
+  InputFileStream(const std::string& file) : file_(file), ifstream_(file_.string()) {
     ABORT_IF(
-        !marian::filesystem::exists(file_), "File '{}' does not exist", file);
+        !marian::filesystem::exists(file_), "File '{}' could not be opened", file);
 
     if(file_.extension() == marian::filesystem::Path(std::string(".gz")))
       istream_.push(boost::iostreams::gzip_decompressor());
@@ -251,9 +251,9 @@ static inline InputFileStream& getline(InputFileStream& in, std::string& line, c
 
 class OutputFileStream {
 public:
-  OutputFileStream(const std::string& file) : file_(file), ofstream_(file_.getBoost()) {
+  OutputFileStream(const std::string& file) : file_(file), ofstream_(file_.string()) {
     ABORT_IF(
-        !marian::filesystem::exists(file_), "File '{}' does not exist", file);
+        !marian::filesystem::exists(file_), "File '{}' could not be opened", file);
 
     if(file_.extension() == marian::filesystem::Path(std::string(".gz")))
       ostream_.push(boost::iostreams::gzip_compressor());
