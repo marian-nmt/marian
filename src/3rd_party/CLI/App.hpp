@@ -1591,6 +1591,7 @@ class App {
 
         // Unlimited vector parser
         if(num < 0) {
+            bool emptyVectorArgs = true;
             while(!args.empty() && _recognize(args.back()) == detail::Classifer::NONE) {
                 if(collected >= -num) {
                     // We could break here for allow extras, but we don't
@@ -1603,12 +1604,22 @@ class App {
                 parse_order_.push_back(op.get());
                 args.pop_back();
                 collected++;
+                emptyVectorArgs = false;
             }
 
             // Allow -- to end an unlimited list and "eat" it
             if(!args.empty() && _recognize(args.back()) == detail::Classifer::POSITIONAL_MARK)
                 args.pop_back();
 
+            if(emptyVectorArgs) {
+                if(op->get_implicit()) {
+                    op->add_result(op->get_implicitval());
+                    parse_order_.push_back(op.get());
+                } else if (op->get_expected() < 0) {
+                    parse_order_.push_back(op.get());
+                    throw ArgumentMismatch(op->get_name(), op->get_expected(), 0);
+                }
+            }
         } else {
             while(num > 0 && !args.empty()) {
                 num--;
