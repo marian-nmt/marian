@@ -24,6 +24,7 @@ private:
   void validateOptionsScoring() const;
   void validateOptionsTraining() const;
 
+  void validateModelExtension(cli::mode mode) const;
   void validateDevices(cli::mode mode) const;
 
 public:

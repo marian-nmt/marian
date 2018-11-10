@@ -136,5 +136,10 @@ std::pair<std::string, int> hostnameAndProcessId() { // helper to get hostname:p
   return{ hostname, processId };
 }
 
+bool endsWith(const std::string& text, const std::string& suffix) {
+  return text.size() >= suffix.size()
+         && !text.compare(text.size() - suffix.size(), suffix.size(), suffix);
+}
+
 }  // namespace utils
 }  // namespace marian

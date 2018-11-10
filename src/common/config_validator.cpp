@@ -31,6 +31,7 @@ void ConfigValidator::validateOptions(cli::mode mode) const {
       break;
   }
 
+  validateModelExtension(mode);
   validateDevices(mode);
 }
 
@@ -77,9 +78,8 @@ void ConfigValidator::validateOptionsTraining() const {
   auto trainSets = get<std::vector<std::string>>("train-sets");
 
   UTIL_THROW_IF2(
-      has("embedding-vectors")
-          && get<std::vector<std::string>>("embedding-vectors").size()
-                 != trainSets.size(),
+      has("embedding-vectors") && get<std::vector<std::string>>("embedding-vectors").size()
+                                  != trainSets.size(),
       "There should be as many embedding vector files as training sets");
 
   filesystem::Path modelPath(get<std::string>("model"));
@@ -95,9 +95,8 @@ void ConfigValidator::validateOptionsTraining() const {
   UTIL_THROW_IF2(!modelDir.empty() && !filesystem::canWrite(modelDir),
                  "No write permission in model directory");
 
-  UTIL_THROW_IF2(has("valid-sets")
-                     && get<std::vector<std::string>>("valid-sets").size()
-                            != trainSets.size(),
+  UTIL_THROW_IF2(has("valid-sets") && get<std::vector<std::string>>("valid-sets").size()
+                                      != trainSets.size(),
                  "There should be as many validation sets as training sets");
 
   // validations for learning rate decaying
@@ -119,11 +118,23 @@ void ConfigValidator::validateOptionsTraining() const {
 
   // validate ULR options
   UTIL_THROW_IF2(
-      (has("ulr")  && get<bool>("ulr") && 
-      (get<std::string>("ulr-query-vectors") == ""
-          || get<std::string>("ulr-keys-vectors") == "")),
+      (has("ulr") && get<bool>("ulr") && (get<std::string>("ulr-query-vectors") == ""
+                                          || get<std::string>("ulr-keys-vectors") == "")),
       "ULR enablign requires query and keys vectors specified with "
       "--ulr-query-vectors and --ulr-keys-vectors option");
+}
+
+void ConfigValidator::validateModelExtension(cli::mode mode) const {
+  std::vector<std::string> models;
+  if(mode == cli::mode::translation)
+    models = get<std::vector<std::string>>("models");
+  else
+    models.push_back(get<std::string>("model"));
+
+  for(const auto& modelPath : models)
+    UTIL_THROW_IF2(!(utils::endsWith(modelPath, ".npz") || utils::endsWith(modelPath, ".bin")),
+                   "Unknown model format for file '" + std::string(modelPath)
+                       + "'. Supported file extensions: .npz, .bin");
 }
 
 void ConfigValidator::validateDevices(cli::mode mode) const {
@@ -143,11 +154,7 @@ void ConfigValidator::validateDevices(cli::mode mode) const {
   }
 
   UTIL_THROW_IF2(!regex::regex_match(devices, pattern),
-                 "the argument '(" + devices
-                     + ")' for option '--devices' is invalid. "
-                     + help);
-
-
+                 "the argument '(" + devices + ")' for option '--devices' is invalid. " + help);
 }
 
 }  // namespace marian
