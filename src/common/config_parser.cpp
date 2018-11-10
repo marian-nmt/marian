@@ -89,10 +89,10 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
   // clang-format off
   if(mode_ == cli::mode::translation) {
     cli.add<std::vector<std::string>>("--models,-m",
-      "Paths to model(s) to be loaded");
+      "Paths to model(s) to be loaded. Supported file extensions: .npz, .bin");
   } else {
     cli.add<std::string>("--model,-m",
-      "Path prefix for model to be saved/resumed",
+      "Path prefix for model to be saved/resumed. Supported file extensions: .npz, .bin",
       "model.npz");
 
     if(mode_ == cli::mode::training) {
