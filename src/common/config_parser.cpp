@@ -565,6 +565,7 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
 
   // clang-format off
   cli.add<int>("--mini-batch",
+               // set accurate help messages for translation, scoring, or training
                (mode_ == cli::mode::translation)
                    ? "Size of mini-batch used during batched translation" :
                (mode_ == cli::mode::scoring)
