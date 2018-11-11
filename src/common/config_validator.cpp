@@ -1,5 +1,4 @@
 #include "common/config_validator.h"
-#include "3rd_party/exception.h"
 #include "common/logging.h"
 #include "common/regex.h"
 #include "common/utils.h"

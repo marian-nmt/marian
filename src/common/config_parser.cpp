@@ -6,7 +6,6 @@
 #include "common/file_stream.h"
 #include "common/logging.h"
 #include "common/utils.h"
-#include "3rd_party/exception.h"
 
 #include <algorithm>
 #include <set>

@@ -1,6 +1,5 @@
 #include "common/utils.h"
 #include "common/logging.h"
-#include "3rd_party/exception.h"
 #include "CLI/StringTools.hpp"
 
 #include <stdio.h>
