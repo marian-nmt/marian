@@ -81,12 +81,6 @@ namespace filesystem {
     return p.getImpl().is_directory();
   }
 
-  static inline bool canWrite(const Path& p) {
-    // @TODO: check this.
-    return true;
-    //return (boost::filesystem::status(p.getBoost()).permissions() & boost::filesystem::owner_write) != 0;
-  }
-
   static inline Path operator/ (const Path& lhs, const Path& rhs) {
     return Path(lhs.getImpl() / rhs.getImpl());
   }

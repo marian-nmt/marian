@@ -200,10 +200,6 @@ public:
             "Specified vocab directory {} does not exist",
             dir.string());
 
-    ABORT_IF(!dir.empty() && !filesystem::canWrite(dir),
-            "No write permission in vocab directory {}",
-            dir.string());
-
     ABORT_IF(filesystem::exists(vocabPath),
             "DefaultVocab file '{}' exists. Not overwriting",
             path.string());
