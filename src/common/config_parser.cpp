@@ -666,14 +666,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
 
   if(doValidate) {
-    try {
-      ConfigValidator validator(config_);
-      validator.validateOptions(mode_);
-    } catch(util::Exception& e) {
-      std::cerr << "Error: " << e.what() << std::endl << std::endl;
-      std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
-      exit(1);
-    }
+    // this aborts the program on first validation error
+    ConfigValidator(config_).validateOptions(mode_);
   }
 
   // remove extra config files from the config to avoid redundancy
