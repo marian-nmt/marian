@@ -274,8 +274,7 @@ public:
     // progress heartbeat for MS-internal Philly compute cluster
     // This environment variable exists when running on the cluster.
     if((!mpi || mpi->myMPIRank() == 0) && getenv("PHILLY_JOB_ID")
-        // @TODO: use std::chrono::minutes
-       && heartBeatTimer_.elapsed<std::chrono::duration<double, std::ratio<60>>>() >= 10) {
+       && heartBeatTimer_.elapsed<std::chrono::minutes>() >= 10) {
       printf("PROGRESS: %.2f%%\nEVALERR: %.7f\n", (double)state_->epochs, state_->costSum / state_->costCount), fflush(stdout);
 #if 0
       LOG(info, "heart beat after {} updates", state_->batches);

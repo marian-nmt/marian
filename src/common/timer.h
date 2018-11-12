@@ -48,11 +48,12 @@ public:
   // Get the time elapsed without stopping the timer.
   // If the template type is not specified, it returns the time counts as represented by
   // std::chrono::seconds
-  template <class Duration = std::chrono::duration<double>>
-  typename Duration::rep elapsed() const {
+  template <class Duration = std::chrono::seconds>
+  double elapsed() const {
+    using duration_double = std::chrono::duration<double, typename Duration::period>;
     if(stopped_)
-      return std::chrono::duration_cast<Duration>(time_).count();
-    return Duration(clock::now() - start_).count();
+      return std::chrono::duration_cast<duration_double>(time_).count();
+    return std::chrono::duration_cast<duration_double>(clock::now() - start_).count();
   }
 
   // Default desctructor
