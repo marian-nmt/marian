@@ -379,7 +379,8 @@ public:
     return constant(shape, inits::zeros);
   }
 
-  Expr dropout(float prob, const Shape& shape);
+  // prob = dropProb, e.g. 0.1 means 90% of values are kept
+  Expr dropout(float dropProb, const Shape& shape);
 
   Expr get(std::string name) {
     if(!namespace_.empty())
