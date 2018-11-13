@@ -107,7 +107,7 @@ Ptr<data::BatchStats> SyncGraphGroup::collectStats() {
 }
 
 void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
-  ABORT_IF(finalized_, "Training has already finished.");
+  ABORT_IF(finalized_, "Training has already finished");
 
   // distribute the batch over (delay, local device, MPI rank)
   size_t numSubBatches = delay_ * devices_.size() * mpi_->numMPIProcesses();
@@ -124,7 +124,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
 
   // Upon very first execution, reset everything
   if(first_) {
-    LOG(debug, "[{}] Processing first minibatch. Batches are processed as {} processes x {} GPUs/process x {} delay steps.",
+    LOG(debug, "[{}] Processing first minibatch. Batches are processed as {} processes x {} GPUs/process x {} delay steps",
          mpi_->idStr(), mpi_->numMPIProcesses(), devices_.size(), delay_);
     initialize(subBatches.front());
     if(mvAvg_ && paramsAvg_.empty())
