@@ -165,12 +165,6 @@ public:
     return istream_->widen(c);
   }
 
-  bool isOpen() const {
-    auto fstream = dynamic_cast<const std::ifstream*>(istream_.get());
-    ABORT_IF(fstream == nullptr, "Could not convert istream to ifstream");
-    return fstream->is_open();
-  }
-
   std::string path() { return file_.string(); }
 
   bool empty() { return istream_->peek() == std::ifstream::traits_type::eof(); }
