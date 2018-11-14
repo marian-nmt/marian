@@ -21,7 +21,11 @@ private:
   std::vector<UPtr<io::TemporaryFile>> tempFiles_;
   std::vector<size_t> ids_;
 
-  void shuffleFiles(const std::vector<std::string>& paths);
+  // for shuffle-in-ram
+  bool shuffleInRAM_{false};
+  std::vector<std::vector<std::string>> corpusInRAM_; // // [stream][id] full copy of all data files
+
+  void shuffleData(const std::vector<std::string>& paths);
 
 public:
   Corpus(Ptr<Config> options, bool translate = false);
