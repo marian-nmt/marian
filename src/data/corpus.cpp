@@ -29,7 +29,8 @@ SentenceTuple Corpus::next() {
     // fill up the sentence tuple with sentences from all input files
     SentenceTuple tup(curId);
     size_t eofsHit = 0;
-    for(size_t i = 0; i < (corpusInRAM_.empty() ? files_.size() : corpusInRAM_.size()); ++i) {
+    size_t numStreams = corpusInRAM_.empty() ? files_.size() : corpusInRAM_.size();
+    for(size_t i = 0; i < numStreams; ++i) {
       std::string line;
 
       // fetch line, from cached copy in RAM or actual file
@@ -58,7 +59,7 @@ SentenceTuple Corpus::next() {
       }
     }
 
-    if (eofsHit == files_.size())
+    if (eofsHit == numStreams)
       return SentenceTuple(0);
     ABORT_IF(eofsHit != 0, "not all input files have the same number of lines");
 
