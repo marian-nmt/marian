@@ -21,9 +21,9 @@ public:
 
 // support for scheduling parameters that can be expressed with a unit, such as --lr-decay-inv-sqrt
 enum class SchedulingUnit {
-  labels,  // "t": number of target labels seen so far
-  updates, // "u": number of updates so far (batches)
-  epochs   // "e": number of epochs begun so far (very first epoch is 1)
+  trgLabels, // "t": number of target labels seen so far
+  updates,   // "u": number of updates so far (batches)
+  epochs     // "e": number of epochs begun so far (very first epoch is 1)
 };
 struct SchedulingParameter {
   size_t n{0};                                  // number of steps measured in 'unit'
@@ -33,12 +33,14 @@ struct SchedulingParameter {
   // Examples of valid inputs: "16000u" (16000 updates), "32000000t" (32 million target labels), "100e" (100 epochs).
   static SchedulingParameter parse(std::string param) {
     SchedulingParameter res;
-    if (!param.empty()) {
+    if (!param.empty() && param.back() >= 'a') {
       switch (param.back()) {
-      case 't': param.pop_back(); res.unit = SchedulingUnit::labels;  break;
-      case 'u': param.pop_back(); res.unit = SchedulingUnit::updates; break;
-      case 'e': param.pop_back(); res.unit = SchedulingUnit::epochs;  break;
+      case 't': res.unit = SchedulingUnit::trgLabels; break;
+      case 'u': res.unit = SchedulingUnit::updates;   break;
+      case 'e': res.unit = SchedulingUnit::epochs;    break;
+      default: ABORT("invalid unit '{}' in {}", param.back(), param);
       }
+      param.pop_back();
     }
     res.n = (size_t)std::stoull(param);
     return res;
@@ -48,9 +50,9 @@ struct SchedulingParameter {
 
   operator std::string() const { // convert back for storing in config
     switch (unit) {
-    case SchedulingUnit::labels : return std::to_string(n) + "t";
-    case SchedulingUnit::updates: return std::to_string(n) + "u";
-    case SchedulingUnit::epochs : return std::to_string(n) + "e";
+    case SchedulingUnit::trgLabels: return std::to_string(n) + "t";
+    case SchedulingUnit::updates  : return std::to_string(n) + "u";
+    case SchedulingUnit::epochs   : return std::to_string(n) + "e";
     default: ABORT("corrupt enum value");
     }
   }
@@ -119,9 +121,9 @@ public:
   // return the totals count that corresponds to the given unit (batches, labels, or epochs)
   size_t getProgressIn(SchedulingUnit u) const {
     switch (u) {
-    case SchedulingUnit::labels:  return labelsTotal;
-    case SchedulingUnit::updates: return batches;
-    case SchedulingUnit::epochs:  return epochs;
+    case SchedulingUnit::trgLabels: return labelsTotal;
+    case SchedulingUnit::updates  : return batches;
+    case SchedulingUnit::epochs   : return epochs;
     default: ABORT("corrupt enum value");
     }
   }
@@ -136,9 +138,9 @@ public:
 
   size_t getPreviousProgressIn(SchedulingUnit u) const {
     switch (u) {
-    case SchedulingUnit::labels:  return prevLabelsTotal;
-    case SchedulingUnit::updates: return prevBatches;
-    case SchedulingUnit::epochs:  return prevEpochs;
+    case SchedulingUnit::trgLabels: return prevLabelsTotal;
+    case SchedulingUnit::updates  : return prevBatches;
+    case SchedulingUnit::epochs   : return prevEpochs;
     default: ABORT("corrupt enum value");
     }
   }
