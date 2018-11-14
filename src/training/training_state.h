@@ -19,18 +19,58 @@ public:
   virtual void actAfterLoaded(TrainingState&) {}
 };
 
+// support for scheduling parameters that can be expressed with a unit, such as --lr-decay-inv-sqrt
+enum class SchedulingUnit {
+  labels,  // "l": number of target labels seen so far
+  updates, // "u": number of updates (batches)
+  epochs   // "e": number of epochs
+};
+struct SchedulingParameter {
+  size_t n{0};                                  // number of steps measured in 'unit'
+  SchedulingUnit unit{SchedulingUnit::updates}; // unit of value
+
+  // parses scheduling parameters of the form NU where N=unsigned int and U=unit
+  // Examples of valid inputs: "16000u" (16000 updates), "32000000l" (32 million labels), "100e" (100 epochs).
+  static SchedulingParameter parse(std::string param) {
+    SchedulingParameter res;
+    if (!param.empty()) {
+      switch (param.back()) {
+      case 'l': param.pop_back(); res.unit = SchedulingUnit::labels;  break;
+      case 'u': param.pop_back(); res.unit = SchedulingUnit::updates; break;
+      case 'e': param.pop_back(); res.unit = SchedulingUnit::epochs;  break;
+      }
+    }
+    res.n = (size_t)std::stoull(param);
+    return res;
+  }
+
+  operator bool() const { return n > 0; } // check whether it is specified
+
+  operator std::string() const { // convert back for storing in config
+    switch (unit) {
+    case SchedulingUnit::labels : return std::to_string(n) + "l";
+    case SchedulingUnit::updates: return std::to_string(n) + "u";
+    case SchedulingUnit::epochs : return std::to_string(n) + "e";
+    default: ABORT("corrupt enum value");
+    }
+  }
+};
+
 class TrainingState {
 public:
   // Current epoch
   size_t epochs{1};
-  // The total number of batches   --@TODO: rename to 'updates'
+  // The total number of batches (=updates) processed since beginning of training   --@TODO: rename to 'updates'
   size_t batches{0};
-  // The number of batches seen in this epoch
+  // The number of batches seen in this epoch  --@TODO: rename to 'updatesEpoch' or 'updatesInCurrentEpoch'
   size_t batchesEpoch{0};
-  // The number of samples seen in this epoch
+  // The number of sentences seen in this epoch  --@TODO: rename to 'sentencesEpoch'
   size_t samplesEpoch{0};
-  // Number of word labels seen since beginning of training
+  // Number of word labels processed since beginning of training
   size_t labelsTotal{0};
+
+  // Values before previous update() call
+  size_t prevLabelsTotal{0}, prevBatches{0}, prevEpochs{0};
 
   // The number of stalled validations
   size_t stalled{0};
@@ -48,7 +88,7 @@ public:
   float eta;
   // Multiplication factor for learning rate
   float factor{1.f};
-  size_t warmupStart{0};
+  SchedulingParameter warmupStart; // has same unit as lr-warmup
 
   // Sum of costs since last display
   float costSum{0};
@@ -74,6 +114,47 @@ public:
   void registerObserver(Ptr<TrainingObserver> observer) {
     observers_.push_back(observer);
     observers_.back()->init(*this);
+  }
+
+  // return the totals count that corresponds to the given unit (batches, labels, or epochs)
+  size_t getProgressIn(SchedulingUnit u) const {
+    switch (u) {
+    case SchedulingUnit::labels:  return labelsTotal;
+    case SchedulingUnit::updates: return batches;
+    case SchedulingUnit::epochs:  return epochs;
+    default: ABORT("corrupt enum value");
+    }
+  }
+
+  // update() first calls this
+  // This is to make sure that enteredNewPeriodOf() can detect a transition intoa new period
+  void rememberPreviousProgress() {
+    prevLabelsTotal = labelsTotal;
+    prevBatches     = batches;
+    prevEpochs      = epochs;
+  }
+
+  size_t getPreviousProgressIn(SchedulingUnit u) const {
+    switch (u) {
+    case SchedulingUnit::labels:  return prevLabelsTotal;
+    case SchedulingUnit::updates: return prevBatches;
+    case SchedulingUnit::epochs:  return prevEpochs;
+    default: ABORT("corrupt enum value");
+    }
+  }
+
+  // tests whether we entered a new period, e.g. disp-freq, according to the
+  // unit in which that parameter is given
+  // This function assumes that rememberPreviousProgress() is called between calls to this,
+  // which is called from update(). This prevents
+  bool enteredNewPeriodOf(std::string schedulingParam) const {
+    auto period = SchedulingParameter::parse(schedulingParam);
+    auto previousProgress = getPreviousProgressIn(period.unit);
+    auto progress = getProgressIn(period.unit);
+    // We need to consider a few edge cases:
+    //  - this will be called many times within the same epoch
+    //  - labelsTotal does not increment by 1, so simple modulus does not work
+    return period && progress / period.n != previousProgress / period.n;
   }
 
   void newEpoch() {
@@ -119,8 +200,10 @@ public:
     // (different serialization name for back compat)
     samplesEpoch = config["samples"].as<size_t>();
     // (optional for back compat)
-    labelsTotal
-        = config["labels-total"] ? config["labels-total"].as<size_t>() : 0;
+    labelsTotal     = config["labels-total"]      ? config["labels-total"].as<size_t>()      : 0;
+    prevLabelsTotal = config["prev-labels-total"] ? config["prev-labels-total"].as<size_t>() : 0;
+    prevBatches     = config["prev-batches"]      ? config["prev-batches"].as<size_t>()      : 0;
+    prevEpochs      = config["prev-epochs"]       ? config["prev-epochs"].as<size_t>()       : 0;
 
     stalled = config["stalled"].as<size_t>();
     maxStalled = config["stalled-max"].as<size_t>();
@@ -131,7 +214,7 @@ public:
 
     eta = config["eta"].as<float>();
     factor = config["eta-factor"].as<float>();
-    warmupStart = config["warmup-start"].as<size_t>();
+    warmupStart = SchedulingParameter::parse(config["warmup-start"].as<std::string>());
 
     costSum = config["cost-sum"].as<float>();
     // (different serialization name for back compat)
@@ -151,6 +234,9 @@ public:
     config["batches-epoch"] = batchesEpoch;
     config["samples"] = samplesEpoch;
     config["labels-total"] = labelsTotal;
+    config["prev-labels-total"] = prevLabelsTotal;
+    config["prev-batches"] = prevBatches;
+    config["prev-epochs"] = prevEpochs;
 
     config["stalled"] = stalled;
     config["stalled-max"] = maxStalled;
@@ -161,7 +247,7 @@ public:
 
     config["eta"] = eta;
     config["eta-factor"] = factor;
-    config["warmup-start"] = warmupStart;
+    config["warmup-start"] = std::string(warmupStart);
 
     config["cost-sum"] = costSum;
     config["disp-samples"] = costCount;

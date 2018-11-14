@@ -7,6 +7,7 @@
 #include <array>
 #include <iostream>
 #include <sstream>
+#include <string>
 #ifdef __unix__
 #include <unistd.h>
 #endif
@@ -134,6 +135,14 @@ std::pair<std::string, int> hostnameAndProcessId() { // helper to get hostname:p
   auto processId = (int)getpid();
 #endif
   return{ hostname, processId };
+}
+
+// format a long number with comma separators
+std::string withCommas(size_t n) {
+  std::string res = std::to_string(n);
+  for (int i = (int)res.size() - 3; i > 0; i -= 3)
+    res.insert(i, ",");
+  return res;
 }
 
 }  // namespace utils
