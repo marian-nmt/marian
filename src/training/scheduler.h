@@ -32,7 +32,7 @@ private:
     float mult2 = 1.f;
     auto decayGoogle = SchedulingParameter::parse(options_->get<std::string>("lr-decay-inv-sqrt"));
     if(decayGoogle) {
-      mult2 = std::min(1.f, (float)(std::sqrt(decayGoogle.n) / std::sqrt(state.batches)));
+      mult2 = std::min(1.f, (float)(std::sqrt(decayGoogle.n) / std::sqrt(state.getProgressIn(decayGoogle.unit))));
     }
 
     baselr = baselr * mult1 * mult2;
@@ -363,7 +363,7 @@ public:
 
         if(options_->get<bool>("lr-decay-repeat-warmup")) {
           LOG(info, "Restarting learning rate warmup");
-          state.warmupStart.n = state.getProgressIn(state.warmupStart.unit);
+          state.warmupStart.n = state.getProgressIn(SchedulingParameter::parse(options_->get<std::string>("lr-warmup")).unit);
         }
       }
     }
@@ -396,7 +396,7 @@ public:
 
           if(options_->get<bool>("lr-decay-repeat-warmup")) {
             LOG(info, "Restarting learning rate warmup");
-            state.warmupStart.n = state.getProgressIn(state.warmupStart.unit);
+            state.warmupStart.n = state.getProgressIn(SchedulingParameter::parse(options_->get<std::string>("lr-warmup")).unit);
           }
         }
       }
@@ -404,12 +404,12 @@ public:
 
     if(first_ && options_->get<bool>("lr-warmup-at-reload")) {
       LOG(info, "Restarting learning rate warmup");
-      state.warmupStart.n = state.getProgressIn(state.warmupStart.unit);
+      state.warmupStart.n = state.getProgressIn(SchedulingParameter::parse(options_->get<std::string>("lr-warmup")).unit);
     }
 
     if(options_->get<bool>("lr-warmup-cycle")) {
       if(state_->enteredNewPeriodOf(options_->get<std::string>("lr-warmup")))
-        state.warmupStart.n = state.getProgressIn(state.warmupStart.unit);
+        state.warmupStart.n = state.getProgressIn(SchedulingParameter::parse(options_->get<std::string>("lr-warmup")).unit);
     }
 
     first_ = false;
@@ -440,7 +440,7 @@ public:
 
           if(options_->get<bool>("lr-decay-repeat-warmup")) {
             LOG(info, "Restarting learning rate warmup");
-            state.warmupStart.n = state.getProgressIn(state.warmupStart.unit);
+            state.warmupStart.n = state.getProgressIn(SchedulingParameter::parse(options_->get<std::string>("lr-warmup")).unit);
           }
         }
       }
