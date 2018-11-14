@@ -21,21 +21,21 @@ public:
 
 // support for scheduling parameters that can be expressed with a unit, such as --lr-decay-inv-sqrt
 enum class SchedulingUnit {
-  labels,  // "l": number of target labels seen so far
-  updates, // "u": number of updates (batches)
-  epochs   // "e": number of epochs
+  labels,  // "t": number of target labels seen so far
+  updates, // "u": number of updates so far (batches)
+  epochs   // "e": number of epochs begun so far (very first epoch is 1)
 };
 struct SchedulingParameter {
   size_t n{0};                                  // number of steps measured in 'unit'
   SchedulingUnit unit{SchedulingUnit::updates}; // unit of value
 
   // parses scheduling parameters of the form NU where N=unsigned int and U=unit
-  // Examples of valid inputs: "16000u" (16000 updates), "32000000l" (32 million labels), "100e" (100 epochs).
+  // Examples of valid inputs: "16000u" (16000 updates), "32000000t" (32 million target labels), "100e" (100 epochs).
   static SchedulingParameter parse(std::string param) {
     SchedulingParameter res;
     if (!param.empty()) {
       switch (param.back()) {
-      case 'l': param.pop_back(); res.unit = SchedulingUnit::labels;  break;
+      case 't': param.pop_back(); res.unit = SchedulingUnit::labels;  break;
       case 'u': param.pop_back(); res.unit = SchedulingUnit::updates; break;
       case 'e': param.pop_back(); res.unit = SchedulingUnit::epochs;  break;
       }
@@ -48,7 +48,7 @@ struct SchedulingParameter {
 
   operator std::string() const { // convert back for storing in config
     switch (unit) {
-    case SchedulingUnit::labels : return std::to_string(n) + "l";
+    case SchedulingUnit::labels : return std::to_string(n) + "t";
     case SchedulingUnit::updates: return std::to_string(n) + "u";
     case SchedulingUnit::epochs : return std::to_string(n) + "e";
     default: ABORT("corrupt enum value");

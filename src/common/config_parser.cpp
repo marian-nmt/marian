@@ -264,14 +264,14 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<size_t>("--after-batches",
       "Finish after this many batch updates, 0 is infinity");
   cli.add<std::string/*SchedulerPeriod*/>("--disp-freq",
-      "Display information every  arg  updates (append 'l' or 'e' for every  arg  labels or epochs)",
+      "Display information every  arg  updates (append 't' for every  arg  target labels)",
       "1000u");
   cli.add<size_t>("--disp-first",
       "Display nformation for the first  arg  updates");
   cli.add<bool>("--disp-label-counts",
       "Display label counts when logging loss progress");
   cli.add<std::string/*SchedulerPeriod*/>("--save-freq",
-      "Save model file every  arg  updates (append 'l' or 'e' for every  arg  labels or epochs)",
+      "Save model file every  arg  updates (append 't' for every  arg  target labels)",
       "10000u");
 
   addSuboptionsInputLength(cli);
@@ -330,10 +330,10 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<bool>("--lr-decay-repeat-warmup",
      "Repeat learning rate warmup when learning rate is decayed");
   cli.add<std::string/*SchedulerPeriod*/>("--lr-decay-inv-sqrt",
-     "Decrease learning rate at arg / sqrt(no. batches) starting at arg");
+     "Decrease learning rate at arg / sqrt(no. batches) starting at arg  (append 't' or 'e' for sqrt(target labels or epochs))");
 
   cli.add<std::string/*SchedulerPeriod*/>("--lr-warmup",
-     "Increase learning rate linearly for arg first batches (append 'l' or 'e' for arg first labels or epochs)");
+     "Increase learning rate linearly for  arg  first batches (append 't' for  arg  first target labels)");
   cli.add<float>("--lr-warmup-start-rate",
      "Start value for learning rate warmup");
   cli.add<bool>("--lr-warmup-cycle",
@@ -391,7 +391,7 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
   cli.add_nondefault<std::vector<std::string>>("--valid-sets",
       "Paths to validation corpora: source target");
   cli.add<std::string/*SchedulerPeriod*/>("--valid-freq",
-      "Validate model every  arg  updates (append 'l' or 'e' for every  arg  labels or epochs)",
+      "Validate model every  arg  updates (append 't' for every  arg  target labels)",
       "10000u");
   cli.add<std::vector<std::string>>("--valid-metrics",
       "Metric to use during validation: cross-entropy, perplexity, valid-script, translation."
