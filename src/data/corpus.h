@@ -39,7 +39,7 @@ public:
    *
    * @return A tuple representing parallel sentences.
    */
-  sample next() override;
+  Sample next() override;
 
   void shuffle() override;
 
@@ -53,7 +53,7 @@ public:
 
   std::vector<Ptr<Vocab>>& getVocabs() override { return vocabs_; }
 
-  batch_ptr toBatch(const std::vector<sample>& batchVector) override {
+  batch_ptr toBatch(const std::vector<Sample>& batchVector) override {
     size_t batchSize = batchVector.size();
 
     std::vector<size_t> sentenceIds;

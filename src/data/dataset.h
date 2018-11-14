@@ -21,7 +21,6 @@ public:
   typedef Batch batch_type;
   typedef Ptr<Batch> batch_ptr;
   typedef Iterator iterator;
-  typedef Sample sample;
 
   // @TODO: get rid of Config in favor of Options!
   DatasetBase(std::vector<std::string> paths, Ptr<Config> options)
@@ -38,7 +37,7 @@ public:
 
   virtual Sample next() = 0;
 
-  virtual batch_ptr toBatch(const std::vector<sample>&) = 0;
+  virtual batch_ptr toBatch(const std::vector<Sample>&) = 0;
 
   virtual void reset() {}
   virtual void prepare() {}
