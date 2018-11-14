@@ -143,17 +143,22 @@ public:
     }
   }
 
-  // tests whether we entered a new period, e.g. disp-freq, according to the
-  // unit in which that parameter is given
-  // This function assumes that rememberPreviousProgress() is called between calls to this,
-  // which is called from update(). This prevents
+  // Tests whether we entered a new period, e.g. disp-freq, according to the
+  // unit in which that parameter is given. There are a few edge cases:
+  //  - this function will be called many times within the same epoch
+  //  - labelsTotal does not increment by 1, so simple modulus does not work
+  // So instead of modulus==0, this function compares the previous progress/period
+  // to the current, and triggers if they differ (i.e. the border between two
+  // periods was crossed). This requires that rememberPreviousProgress() is called
+  // between calls to this. We call it from update(). Unfortunately, newEpoch()
+  // is called at the wrong place for this to work, so SchedulingUnit::epoch is forbidden
+  // for periods.
   bool enteredNewPeriodOf(std::string schedulingParam) const {
     auto period = SchedulingParameter::parse(schedulingParam);
+    ABORT_IF(period.unit == SchedulingUnit::epochs,
+        "Unit {} is not supported for frequency parameters (the one(s) with value {})", schedulingParam);
     auto previousProgress = getPreviousProgressIn(period.unit);
     auto progress = getProgressIn(period.unit);
-    // We need to consider a few edge cases:
-    //  - this will be called many times within the same epoch
-    //  - labelsTotal does not increment by 1, so simple modulus does not work
     return period && progress / period.n != previousProgress / period.n;
   }
 

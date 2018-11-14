@@ -163,7 +163,7 @@ public:
   }
 
   void update(float cost, const std::vector<Ptr<data::Batch>>& batches, Ptr<IMPIWrapper> mpi = nullptr) {
-    state_->rememberPreviousProgress(); // @BUGBUG: this does not allow to trigger output on epoch increase, as that happens at the wrong place
+    state_->rememberPreviousProgress(); // note: epoch increases happen at the wrong place, hence -freq parameters do not support epoch units
     state_->validated = false;
 
     size_t batchSize = 0;    // number of sentences in batch
