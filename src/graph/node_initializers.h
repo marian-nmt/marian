@@ -31,7 +31,7 @@ void glorot_normal(Tensor t);
 
 NodeInitializer bernoulli(float p, float scale = 1.f);
 
-NodeInitializer dropout(float prob);
+NodeInitializer dropout(float dropProb);
 
 void gumbel(Tensor t);
 

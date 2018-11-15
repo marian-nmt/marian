@@ -213,7 +213,7 @@ void CorpusBase::addWeightsToSentenceTuple(const std::string& line, SentenceTupl
 }
 
 void CorpusBase::addAlignmentsToBatch(Ptr<CorpusBatch> batch,
-                                      const std::vector<sample>& batchVector) {
+                                      const std::vector<Sample>& batchVector) {
   int srcWords = (int)batch->front()->batchWidth();
   int trgWords = (int)batch->back()->batchWidth();
   int dimBatch = (int)batch->getSentenceIds().size();
@@ -230,7 +230,7 @@ void CorpusBase::addAlignmentsToBatch(Ptr<CorpusBatch> batch,
 }
 
 void CorpusBase::addWeightsToBatch(Ptr<CorpusBatch> batch,
-                                   const std::vector<sample>& batchVector) {
+                                   const std::vector<Sample>& batchVector) {
   int dimBatch = (int)batch->size();
   int trgWords = (int)batch->back()->batchWidth();
 
