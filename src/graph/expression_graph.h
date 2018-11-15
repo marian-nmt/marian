@@ -370,6 +370,17 @@ public:
                     inits::from_vector(indicesVector),
                     Type::uint32);
   }
+  // this version sets up the shape such that the indices are in a given axis
+  // Use this if you want to pass these indices to select().
+  // indexee shape = (3, 2, 5, 2); axis = 1 -> resulting shape = (1, size of indicesVector, 1, 1)
+  Expr indices(const std::vector<IndexType>& indicesVector, Expr indexee, int axis = -1) {
+    Shape shape;
+    shape.resize(indexee->shape().size());
+    shape.set(axis, indicesVector.size());
+    return constant(Shape(shape),
+                    inits::from_vector(indicesVector),
+                    Type::uint32);
+  }
 
   Expr ones(const Shape& shape) {
     return constant(shape, inits::ones);
