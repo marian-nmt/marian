@@ -152,6 +152,7 @@
     <ClCompile Include="..\src\tensors\cpu\device.cpp" />
     <ClCompile Include="..\src\tensors\cpu\prod.cpp" />
     <ClCompile Include="..\src\tensors\cpu\sharp\avx_gemm.cpp" />
+    <ClCompile Include="..\src\tensors\cpu\sharp\int_gemm.cpp" />
     <ClCompile Include="..\src\tensors\cpu\sharp\sse_gemm.cpp" />
     <ClCompile Include="..\src\tensors\cpu\tensor_operators.cpp" />
     <ClCompile Include="..\src\graph\expression_graph.cpp" />
