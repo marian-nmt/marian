@@ -130,21 +130,16 @@ std::string CLIWrapper::failureMessage(const CLI::App *app,
                                        const CLI::Error &e) {
   std::string header = "Error: " + std::string(e.what()) + "\n";
   if(app->get_help_ptr() != nullptr)
-    header += "Run with " + app->get_help_ptr()->get_name()
-              + " for more information.\n";
+    header += "Run with " + app->get_help_ptr()->get_name() + " for more information.\n";
   return header;
 }
 
-void CLIWrapper::overwriteDefault(const YAML::Node &node) {
-  // iterate requested default values
-  for(auto it : node) {
-    auto key = it.first.as<std::string>();
-    ABORT_IF(!allVars_.count(key), "The following option was not expected: '{}'", key);
-    // if we have an option but it was not specified on command-line
-    if(allVars_.count(key) > 0 && opts_.at(key)->empty()) {
-      config_[key] = YAML::Clone(it.second);
-    }
-  }
+std::unordered_set<std::string> CLIWrapper::getParsedOptionNames() const {
+  std::unordered_set<std::string> keys;
+  for(const auto &pair : allVars_)
+    if(!opts_.at(pair.first)->empty())
+      keys.emplace(pair.first);
+  return keys;
 }
 
 }  // namespace cli

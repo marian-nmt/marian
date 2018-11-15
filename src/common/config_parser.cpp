@@ -605,6 +605,9 @@ void ConfigParser::addSuboptionsInputLength(cli::CLIWrapper& cli) {
 void ConfigParser::expandAliases(cli::CLIWrapper& cli) {
   YAML::Node config;
 
+  // @TODO: Aliases should be (?) proceeded in the same order as they were specified via the
+  // command-line, not arbitrary?
+
   if(config_["best-deep"].as<bool>()) {
     config["layer-normalization"] = true;
     config["tied-embeddings"] = true;
@@ -617,11 +620,18 @@ void ConfigParser::expandAliases(cli::CLIWrapper& cli) {
     config["skip"] = true;
   }
 
-  // @TODO: Quite sure CLIWrapper should not do that;
-  // that's semantics that seem to belong into the current class
-  // and has not really anything to do with CLI proper.
-  if(config)
-    cli.overwriteDefault(config);
+  if(config) {
+    auto cmdOptions = cli.getParsedOptionNames();
+    for(auto it : config) {
+      auto key = it.first.as<std::string>();
+      // skip options specified via command-line to allow overwriting options implicitly set through
+      // aliases
+      if(cmdOptions.count(key))
+        continue;
+      ABORT_IF(!config_[key], "Unknown key '{}', check if aliases consist of correct options", key);
+      config_[key] = YAML::Clone(it.second);
+    }
+  }
 }
 
 void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
@@ -656,8 +666,16 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   auto configPaths = findConfigPaths();
   if(!configPaths.empty()) {
     auto config = loadConfigFiles(configPaths);
-    // combine loaded options with the main config object
-    cli.overwriteDefault(config);
+    auto cmdOptions = cli.getParsedOptionNames();
+    // combine options loaded from config files with the main config object
+    for(auto it : config) {
+      auto key = it.first.as<std::string>();
+      // skip options specified via command-line to allow overwriting options from config files
+      if(cmdOptions.count(key))
+        continue;
+      ABORT_IF(!config_[key], "The option '{}' from a config file was not expected", key);
+      config_[key] = YAML::Clone(it.second);
+    }
   }
 
   if(get<bool>("interpolate-env-vars")) {

@@ -8,6 +8,7 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <unordered_set>
 
 namespace marian {
 
@@ -223,15 +224,11 @@ public:
   void parse(int argc, char **argv);
 
   /**
-   * @brief Overwrite values for unparsed options
+   * @brief Get names of parsed command-line options
    *
-   * Default values are overwritten with the options found in the config
-   * provided as the argument, while parsed command-line options remain
-   * unchanged
-   *
-   * @param node YAML config with new default values for options
+   * @param set of option names that were present at command-line
    */
-  void overwriteDefault(const YAML::Node &node);
+  std::unordered_set<std::string> getParsedOptionNames() const;
 
 private:
   template <
