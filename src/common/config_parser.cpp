@@ -330,10 +330,12 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<bool>("--lr-decay-repeat-warmup",
      "Repeat learning rate warmup when learning rate is decayed");
   cli.add<std::string/*SchedulerPeriod*/>("--lr-decay-inv-sqrt",
-     "Decrease learning rate at arg / sqrt(no. batches) starting at arg  (append 't' or 'e' for sqrt(target labels or epochs))");
+     "Decrease learning rate at arg / sqrt(no. batches) starting at arg  (append 't' or 'e' for sqrt(target labels or epochs))",
+      "0");
 
   cli.add<std::string/*SchedulerPeriod*/>("--lr-warmup",
-     "Increase learning rate linearly for  arg  first batches (append 't' for  arg  first target labels)");
+     "Increase learning rate linearly for  arg  first batches (append 't' for  arg  first target labels)",
+      "0");
   cli.add<float>("--lr-warmup-start-rate",
      "Start value for learning rate warmup");
   cli.add<bool>("--lr-warmup-cycle",
