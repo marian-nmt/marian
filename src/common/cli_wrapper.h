@@ -48,6 +48,15 @@ private:
 };
 
 /**
+ * The helper structure storing an option object, the associated variable and creation index.
+ */
+struct CLIOptionTuple {
+  CLI::Option* opt;
+  Ptr<any_type> var;
+  size_t idx;
+};
+
+/**
  * @brief The class used to define and parse command-line arguments.
  *
  * It is a wrapper around https://github.com/CLIUtils/CLI11 that stores defined
@@ -64,22 +73,19 @@ private:
  */
 class CLIWrapper {
 private:
-  // Map with option names and option values
-  std::map<std::string, Ptr<any_type>> allVars_;
-  // Map with option names and objects
-  std::map<std::string, CLI::Option *> opts_;
-  // List of option names in the same order as they are defined
-  std::vector<std::string> order_;
+  // Map with option names and option tuples
+  std::map<std::string, CLIOptionTuple> options_;
   // Command-line argument parser
   Ptr<CLI::App> app_;
+  // Number of created options
+  size_t counter_{0};
 
   // Name of the default option group
   std::string defaultGroup_{""};
   // Name of the current option group
   std::string currentGroup_{""};
 
-  // If this is a wrapper then this should just be a reference,
-  // then we do not have the added level of containment.
+  // Reference to the main config object
   YAML::Node &config_;
 
   // Option for --version flag. This is a special flag and similarly to --help,
@@ -226,28 +232,31 @@ public:
   std::string dumpConfig() const;
 
 private:
-  template <
-      typename T,
-      // options with numeric and string-like values
-      CLI::enable_if_t<!CLI::is_bool<T>::value && !CLI::is_vector<T>::value,
-                       CLI::detail::enabler> = CLI::detail::dummy>
+  std::vector<std::string> getOrderedOptionNames() const;
+
+  template <typename T,
+            // options with numeric and string-like values
+            CLI::enable_if_t<!CLI::is_bool<T>::value && !CLI::is_vector<T>::value,
+                             CLI::detail::enabler> = CLI::detail::dummy>
   CLI::Option *add_option(const std::string &key,
                           const std::string &args,
                           const std::string &help,
                           T val,
                           bool defaulted,
                           bool addToConfig) {
-    order_.push_back(key);
     // define YAML entry if requested
     if(addToConfig)
       config_[key] = val;
-    // create variable for the option
-    allVars_.insert(std::make_pair(key, std::make_shared<any_type>(val)));
+
+    // create option tuple
+    CLIOptionTuple option;
+    option.idx = counter_++;
+    option.var = std::make_shared<any_type>(val);
 
     // callback function collecting a command-line argument
     CLI::callback_t fun = [this, key](CLI::results_t res) {
       // get variable associated with the option
-      auto &var = allVars_[key]->as<T>();
+      auto &var = options_[key].var->as<T>();
       // store parser result in var
       auto ret = CLI::detail::lexical_cast(res[0], var);
       // update YAML entry
@@ -268,9 +277,10 @@ private:
       opt->default_str(ss.str());
     }
 
-    // store option object
-    opts_.insert(std::make_pair(key, opt));
-    return opts_[key];
+    // store option tuple
+    option.opt = opt;
+    options_.insert(std::make_pair(key, option));
+    return options_[key].opt;
   }
 
   template <typename T,
@@ -283,17 +293,19 @@ private:
                           T val,
                           bool defaulted,
                           bool addToConfig) {
-    order_.push_back(key);
     // define YAML entry if requested
     if(addToConfig)
       config_[key] = val;
-    // create variable for the option
-    allVars_.insert(std::make_pair(key, std::make_shared<any_type>(val)));
+
+    // create option tuple
+    CLIOptionTuple option;
+    option.idx = counter_++;
+    option.var = std::make_shared<any_type>(val);
 
     // callback function collecting command-line arguments
     CLI::callback_t fun = [this, key](CLI::results_t res) {
       // get vector variable associated with the option
-      auto &vec = allVars_[key]->as<T>();
+      auto &vec = options_[key].var->as<T>();
       vec.clear();
       bool ret = true;
       // handle '[]' as an empty vector
@@ -324,9 +336,10 @@ private:
     if(defaulted)
       opt->default_str(CLI::detail::join(val));
 
-    // store option object
-    opts_.insert(std::make_pair(key, opt));
-    return opts_[key];
+    // store option tuple
+    option.opt = opt;
+    options_.insert(std::make_pair(key, option));
+    return options_[key].opt;
   }
 
   template <typename T,
@@ -339,12 +352,14 @@ private:
                           T val,
                           bool defaulted,
                           bool addToConfig) {
-    order_.push_back(key);
     // define YAML entry if requested
     if(addToConfig)
       config_[key] = val;
-    // create variable for the option
-    allVars_.insert(std::make_pair(key, std::make_shared<any_type>(val)));
+
+    // create option tuple
+    CLIOptionTuple option;
+    option.idx = counter_++;
+    option.var = std::make_shared<any_type>(val);
 
     // callback function setting the flag
     CLI::callback_t fun = [this, key](CLI::results_t res) {
@@ -352,10 +367,10 @@ private:
       auto val = res[0];
       auto ret = true;
       if(val == "true" || val == "on" || val == "yes" || val == "1") {
-        allVars_[key]->as<T>() = true;
+        options_[key].var->as<T>() = true;
         config_[key] = true;
       } else if(val == "false" || val == "off" || val == "no" || val == "0") {
-        allVars_[key]->as<T>() = false;
+        options_[key].var->as<T>() = false;
         config_[key] = false;
       } else {
         ret = false;
@@ -373,9 +388,10 @@ private:
     // allow to use the flag without any argument
     opt->implicit_val("true");
 
-    // store option object
-    opts_.insert(std::make_pair(key, opt));
-    return opts_[key];
+    // store option tuple
+    option.opt = opt;
+    options_.insert(std::make_pair(key, option));
+    return options_[key].opt;
   }
 };
 

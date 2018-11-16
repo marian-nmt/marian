@@ -138,9 +138,21 @@ std::string CLIWrapper::failureMessage(const CLI::App *app,
 
 std::unordered_set<std::string> CLIWrapper::getParsedOptionNames() const {
   std::unordered_set<std::string> keys;
-  for(const auto &pair : allVars_)
-    if(!opts_.at(pair.first)->empty())
-      keys.emplace(pair.first);
+  for(const auto &it : options_)
+    if(!it.second.opt->empty())
+      keys.emplace(it.first);
+  return keys;
+}
+
+std::vector<std::string> CLIWrapper::getOrderedOptionNames() const {
+  std::vector<std::string> keys;
+  // extract all option names
+  for(auto const &it : options_)
+    keys.push_back(it.first);
+  // sort option names by creation index
+  sort(keys.begin(), keys.end(), [this](const std::string &a, const std::string &b) {
+    return options_.at(a).idx < options_.at(b).idx;
+  });
   return keys;
 }
 
@@ -150,11 +162,11 @@ std::string CLIWrapper::dumpConfig() const {
                        + " with version " + buildVersion());
   out << YAML::BeginMap;
   std::string comment;
-  for(const auto &key : order_) {
+  for(const auto &key : getOrderedOptionNames()) {
     // do not proceed keys that are removed from config_
     if(!config_[key])
       continue;
-    auto group = opts_.at(key)->get_group();
+    auto group = options_.at(key).opt->get_group();
     if(comment != group) {
       if(!comment.empty())
         out << YAML::Newline;
