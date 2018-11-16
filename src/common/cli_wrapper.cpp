@@ -3,6 +3,7 @@
 #include "common/logging.h"
 #include "common/options.h"
 #include "common/version.h"
+#include "common/timer.h"
 
 namespace marian {
 namespace cli {
@@ -146,7 +147,8 @@ std::unordered_set<std::string> CLIWrapper::getParsedOptionNames() const {
 
 std::string CLIWrapper::dumpConfig(bool skipDefault /*= false*/) const {
     YAML::Emitter out;
-    out << YAML::Comment("Marian config file generated with " + buildVersion());
+    out << YAML::Comment("Marian config file generated at " + timer::currentDate() + " with "
+                         + buildVersion());
     out << YAML::BeginMap;
     std::string comment;
     for(const auto &key : order_) {
