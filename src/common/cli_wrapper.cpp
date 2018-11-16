@@ -149,18 +149,17 @@ std::string CLIWrapper::dumpConfig(bool skipDefault /*= false*/) const {
     out << YAML::Comment("Marian config file generated with " + buildVersion());
     out << YAML::BeginMap;
     std::string comment;
-    for(const auto &pair : opts_) {
-      auto key = pair.first;
+    for(const auto &key : order_) {
       // do not proceed keys that are removed from config_
       if(!config_[key])
         continue;
-      //auto group = pair.second->get_group();
-      //if(comment != group) {
-        //if(!comment.empty())
-          //out << YAML::Newline;
-        //comment = group;
-        //out << YAML::Comment(group);
-      //}
+      auto group = opts_.at(key)->get_group();
+      if(comment != group) {
+        if(!comment.empty())
+          out << YAML::Newline;
+        comment = group;
+        out << YAML::Comment(group);
+      }
       out << YAML::Key;
       out << key;
       out << YAML::Value;

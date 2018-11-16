@@ -68,6 +68,8 @@ private:
   std::map<std::string, Ptr<any_type>> allVars_;
   // Map with option names and objects
   std::map<std::string, CLI::Option *> opts_;
+  // List of option names in the same order as they are defined
+  std::vector<std::string> order_;
   // Command-line argument parser
   Ptr<CLI::App> app_;
 
@@ -234,6 +236,7 @@ private:
                           T val,
                           bool defaulted,
                           bool addToConfig) {
+    order_.push_back(key);
     // define YAML entry if requested
     if(addToConfig)
       config_[key] = val;
@@ -279,6 +282,7 @@ private:
                           T val,
                           bool defaulted,
                           bool addToConfig) {
+    order_.push_back(key);
     // define YAML entry if requested
     if(addToConfig)
       config_[key] = val;
@@ -334,6 +338,7 @@ private:
                           T val,
                           bool defaulted,
                           bool addToConfig) {
+    order_.push_back(key);
     // define YAML entry if requested
     if(addToConfig)
       config_[key] = val;
