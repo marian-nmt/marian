@@ -144,31 +144,30 @@ std::unordered_set<std::string> CLIWrapper::getParsedOptionNames() const {
   return keys;
 }
 
-
-std::string CLIWrapper::dumpConfig(bool skipDefault /*= false*/) const {
-    YAML::Emitter out;
-    out << YAML::Comment("Marian config file generated at " + timer::currentDate() + " with "
-                         + buildVersion());
-    out << YAML::BeginMap;
-    std::string comment;
-    for(const auto &key : order_) {
-      // do not proceed keys that are removed from config_
-      if(!config_[key])
-        continue;
-      auto group = opts_.at(key)->get_group();
-      if(comment != group) {
-        if(!comment.empty())
-          out << YAML::Newline;
-        comment = group;
-        out << YAML::Comment(group);
-      }
-      out << YAML::Key;
-      out << key;
-      out << YAML::Value;
-      cli::OutputYaml(config_[key], out);
+std::string CLIWrapper::dumpConfig() const {
+  YAML::Emitter out;
+  out << YAML::Comment("Marian configuration file generated at " + timer::currentDate()
+                       + " with version " + buildVersion());
+  out << YAML::BeginMap;
+  std::string comment;
+  for(const auto &key : order_) {
+    // do not proceed keys that are removed from config_
+    if(!config_[key])
+      continue;
+    auto group = opts_.at(key)->get_group();
+    if(comment != group) {
+      if(!comment.empty())
+        out << YAML::Newline;
+      comment = group;
+      out << YAML::Comment(group);
     }
-    out << YAML::EndMap;
-    return out.c_str();
+    out << YAML::Key;
+    out << key;
+    out << YAML::Value;
+    cli::OutputYaml(config_[key], out);
+  }
+  out << YAML::EndMap;
+  return out.c_str();
 }
 
 }  // namespace cli

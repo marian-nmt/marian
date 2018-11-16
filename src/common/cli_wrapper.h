@@ -222,7 +222,8 @@ public:
    */
   std::unordered_set<std::string> getParsedOptionNames() const;
 
-  std::string dumpConfig(bool skipDefault = false) const;
+  // Get textual YAML representation of the config
+  std::string dumpConfig() const;
 
 private:
   template <
