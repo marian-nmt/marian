@@ -692,9 +692,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
 
   if(get<bool>("dump-config")) {
     config_.remove("dump-config");
-    YAML::Emitter emit;
-    cli::OutputYaml(config_, emit);
-    std::cout << emit.c_str() << std::endl;
+    std::cout << cli.dumpConfig() << std::endl;
     exit(0);
   }
 

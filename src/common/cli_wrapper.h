@@ -64,7 +64,7 @@ private:
  */
 class CLIWrapper {
 private:
-  // [option name] -> option value
+  // Map with option names and option values
   std::map<std::string, Ptr<any_type>> allVars_;
   // Map with option names and objects
   std::map<std::string, CLI::Option *> opts_;
@@ -120,16 +120,7 @@ public:
    * @brief Create an instance of the command-line argument parser,
    * short-cuft for Options object.
    *
-   * Option --help, -h is automatically added.
-   *
-   * @param options A smart pointer to the Options object containing the
-   *  to-be-wrapped yaml tree
-   * @param description Program description
-   * @param header Header text for the main option group
-   * @param footer Text displayed after the list of options
-   * @param columnWidth Width of the column with option names
-   * @param screenWidth Maximum allowed width for help messages, 0 means no
-   *  limit
+   * @see Other constructor
    */
   CLIWrapper(Ptr<Options> options,
              const std::string &description = "",
@@ -202,8 +193,7 @@ public:
    * have a default value or be non-defaulted
    */
   template <typename T>
-  CLI::Option *add_nondefault(const std::string &args,
-                              const std::string &help) {
+  CLI::Option *add_nondefault(const std::string &args, const std::string &help) {
     return add_option<T>(keyName(args),
                          args,
                          help,
@@ -229,6 +219,8 @@ public:
    * @param set of option names that were present at command-line
    */
   std::unordered_set<std::string> getParsedOptionNames() const;
+
+  std::string dumpConfig(bool skipDefault = false) const;
 
 private:
   template <

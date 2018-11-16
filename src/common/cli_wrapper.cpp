@@ -1,4 +1,5 @@
 #include "common/cli_wrapper.h"
+#include "common/cli_helper.h"
 #include "common/logging.h"
 #include "common/options.h"
 #include "common/version.h"
@@ -140,6 +141,33 @@ std::unordered_set<std::string> CLIWrapper::getParsedOptionNames() const {
     if(!opts_.at(pair.first)->empty())
       keys.emplace(pair.first);
   return keys;
+}
+
+
+std::string CLIWrapper::dumpConfig(bool skipDefault /*= false*/) const {
+    YAML::Emitter out;
+    out << YAML::Comment("Marian config file generated with " + buildVersion());
+    out << YAML::BeginMap;
+    std::string comment;
+    for(const auto &pair : opts_) {
+      auto key = pair.first;
+      // do not proceed keys that are removed from config_
+      if(!config_[key])
+        continue;
+      //auto group = pair.second->get_group();
+      //if(comment != group) {
+        //if(!comment.empty())
+          //out << YAML::Newline;
+        //comment = group;
+        //out << YAML::Comment(group);
+      //}
+      out << YAML::Key;
+      out << key;
+      out << YAML::Value;
+      cli::OutputYaml(config_[key], out);
+    }
+    out << YAML::EndMap;
+    return out.c_str();
 }
 
 }  // namespace cli
