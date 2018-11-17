@@ -53,7 +53,8 @@ private:
 struct CLIOptionTuple {
   CLI::Option* opt;
   Ptr<any_type> var;
-  size_t idx;
+  size_t idx{0};
+  bool modified{false};
 };
 
 /**
@@ -221,17 +222,15 @@ public:
   // Parse command-line arguments. Handles --help and --version options
   void parse(int argc, char **argv);
 
-  /**
-   * @brief Get names of parsed command-line options
-   *
-   * @param set of option names that were present at command-line
-   */
-  std::unordered_set<std::string> getParsedOptionNames() const;
+  bool updateConfig(const YAML::Node &config);
 
   // Get textual YAML representation of the config
-  std::string dumpConfig() const;
+  std::string dumpConfig(bool skipDefault = false) const;
 
 private:
+  // Get names of options passed via command-line
+  std::unordered_set<std::string> getParsedOptionNames() const;
+  // Get option names in the same order as they are created
   std::vector<std::string> getOrderedOptionNames() const;
 
   template <typename T,
@@ -255,6 +254,7 @@ private:
 
     // callback function collecting a command-line argument
     CLI::callback_t fun = [this, key](CLI::results_t res) {
+      options_[key].modified = true;
       // get variable associated with the option
       auto &var = options_[key].var->as<T>();
       // store parser result in var
@@ -304,6 +304,7 @@ private:
 
     // callback function collecting command-line arguments
     CLI::callback_t fun = [this, key](CLI::results_t res) {
+      options_[key].modified = true;
       // get vector variable associated with the option
       auto &vec = options_[key].var->as<T>();
       vec.clear();
@@ -363,6 +364,7 @@ private:
 
     // callback function setting the flag
     CLI::callback_t fun = [this, key](CLI::results_t res) {
+      options_[key].modified = true;
       // get parser result, it is safe as boolean options have an implicit value
       auto val = res[0];
       auto ret = true;

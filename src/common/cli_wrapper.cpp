@@ -136,6 +136,52 @@ std::string CLIWrapper::failureMessage(const CLI::App *app,
   return header;
 }
 
+bool CLIWrapper::updateConfig(const YAML::Node &config) {
+  bool success = true;
+  auto cmdOptions = getParsedOptionNames();
+  for(auto it : config) {
+    auto key = it.first.as<std::string>();
+    // skip options specified via command-line to allow overwriting them
+    if(cmdOptions.count(key))
+      continue;
+    if(config_[key]) {
+      config_[key] = YAML::Clone(it.second);
+      options_[key].modified = true;
+    } else {
+      success = false;
+    }
+  }
+  return success;
+}
+
+std::string CLIWrapper::dumpConfig(bool skipDefault /*= false*/) const {
+  YAML::Emitter out;
+  out << YAML::Comment("Marian configuration file generated at " + timer::currentDate()
+                       + " with version " + buildVersion());
+  out << YAML::BeginMap;
+  std::string comment;
+  for(const auto &key : getOrderedOptionNames()) {
+    // do not proceed keys that are removed from config_
+    if(!config_[key])
+      continue;
+    if(skipDefault && !options_.at(key).modified)
+      continue;
+    auto group = options_.at(key).opt->get_group();
+    if(comment != group) {
+      if(!comment.empty())
+        out << YAML::Newline;
+      comment = group;
+      out << YAML::Comment(group);
+    }
+    out << YAML::Key;
+    out << key;
+    out << YAML::Value;
+    cli::OutputYaml(config_[key], out);
+  }
+  out << YAML::EndMap;
+  return out.c_str();
+}
+
 std::unordered_set<std::string> CLIWrapper::getParsedOptionNames() const {
   std::unordered_set<std::string> keys;
   for(const auto &it : options_)
@@ -154,32 +200,6 @@ std::vector<std::string> CLIWrapper::getOrderedOptionNames() const {
     return options_.at(a).idx < options_.at(b).idx;
   });
   return keys;
-}
-
-std::string CLIWrapper::dumpConfig() const {
-  YAML::Emitter out;
-  out << YAML::Comment("Marian configuration file generated at " + timer::currentDate()
-                       + " with version " + buildVersion());
-  out << YAML::BeginMap;
-  std::string comment;
-  for(const auto &key : getOrderedOptionNames()) {
-    // do not proceed keys that are removed from config_
-    if(!config_[key])
-      continue;
-    auto group = options_.at(key).opt->get_group();
-    if(comment != group) {
-      if(!comment.empty())
-        out << YAML::Newline;
-      comment = group;
-      out << YAML::Comment(group);
-    }
-    out << YAML::Key;
-    out << key;
-    out << YAML::Value;
-    cli::OutputYaml(config_[key], out);
-  }
-  out << YAML::EndMap;
-  return out.c_str();
 }
 
 }  // namespace cli

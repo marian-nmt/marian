@@ -77,8 +77,9 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
      "allow the use of environment variables in paths, of the form ${VAR_NAME}");
   cli.add<bool>("--relative-paths",
      "All paths are relative to the config file location");
-  cli.add<bool>("--dump-config",
-     "Dump current (modified) configuration to stdout and exit");
+  cli.add_nondefault<std::string>("--dump-config",
+     "Dump current (modified) configuration to stdout and exit. Possible values: full, minimal")
+    ->implicit_val("full");
   // clang-format on
 }
 
@@ -621,16 +622,8 @@ void ConfigParser::expandAliases(cli::CLIWrapper& cli) {
   }
 
   if(config) {
-    auto cmdOptions = cli.getParsedOptionNames();
-    for(auto it : config) {
-      auto key = it.first.as<std::string>();
-      // skip options specified via command-line to allow overwriting options implicitly set through
-      // aliases
-      if(cmdOptions.count(key))
-        continue;
-      ABORT_IF(!config_[key], "Unknown key '{}', check if aliases consist of correct options", key);
-      config_[key] = YAML::Clone(it.second);
-    }
+    auto success = cli.updateConfig(config);
+    ABORT_IF(!success, "Unknown option(s) in aliases, check if aliases consist of correct options");
   }
 }
 
@@ -666,16 +659,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   auto configPaths = findConfigPaths();
   if(!configPaths.empty()) {
     auto config = loadConfigFiles(configPaths);
-    auto cmdOptions = cli.getParsedOptionNames();
-    // combine options loaded from config files with the main config object
-    for(auto it : config) {
-      auto key = it.first.as<std::string>();
-      // skip options specified via command-line to allow overwriting options from config files
-      if(cmdOptions.count(key))
-        continue;
-      ABORT_IF(!config_[key], "The option '{}' from a config file was not expected", key);
-      config_[key] = YAML::Clone(it.second);
-    }
+    auto success = cli.updateConfig(config);
+    ABORT_IF(!success, "There are option(s) in a config file are not expected");
   }
 
   if(get<bool>("interpolate-env-vars")) {
@@ -690,9 +675,10 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   // remove extra config files from the config to avoid redundancy
   config_.remove("config");
 
-  if(get<bool>("dump-config")) {
+  if(has("dump-config")) {
+    bool skipDefault = get<std::string>("dump-config") == "minimal";
     config_.remove("dump-config");
-    std::cout << cli.dumpConfig() << std::endl;
+    std::cout << cli.dumpConfig(skipDefault) << std::endl;
     exit(0);
   }
 
