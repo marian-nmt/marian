@@ -10,7 +10,7 @@
 namespace marian {
 namespace data {
 
-template <class Sample, class Iterator, class Batch>
+template <class SampleType, class Iterator, class Batch>
 class DatasetBase {
 protected:
   std::vector<std::string> paths_;
@@ -22,7 +22,7 @@ public:
   typedef Batch batch_type;
   typedef Ptr<Batch> batch_ptr;
   typedef Iterator iterator;
-  typedef Sample sample;
+  typedef SampleType Sample;
 
   DatasetBase(std::vector<std::string> paths, Ptr<Options> options)
       : paths_(paths),
@@ -37,7 +37,7 @@ public:
 
   virtual Sample next() = 0;
 
-  virtual batch_ptr toBatch(const std::vector<sample>&) = 0;
+  virtual batch_ptr toBatch(const std::vector<Sample>&) = 0;
 
   virtual void reset() {}
   virtual void prepare() {}

@@ -66,9 +66,9 @@ NodeInitializer bernoulli(float prob, float scale) {
   };
 }
 
-NodeInitializer dropout(float prob) {
-  return [prob](Tensor t) {
-    Dropout(t, prob);
+NodeInitializer dropout(float dropProb) {
+  return [dropProb](Tensor t) {
+    Dropout(t, dropProb);
   };
 }
 

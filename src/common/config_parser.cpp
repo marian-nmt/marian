@@ -589,6 +589,9 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
   cli.add<std::string>("--maxi-batch-sort",
       "Sorting strategy for maxi-batch: none, src, trg (not available for decoder)",
       defaultMaxiBatchSort);
+
+  cli.add<bool>("--shuffle-in-ram",
+      "Keep shuffled corpus in RAM, do not write to temp file");
   // clang-format on
 }
 
