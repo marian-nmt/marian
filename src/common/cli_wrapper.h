@@ -51,7 +51,7 @@ private:
  * The helper structure storing an option object, the associated variable and creation index.
  */
 struct CLIOptionTuple {
-  CLI::Option* opt;
+  CLI::Option *opt;
   Ptr<any_type> var;
   size_t idx{0};
   bool modified{false};
@@ -75,11 +75,11 @@ struct CLIOptionTuple {
 class CLIWrapper {
 private:
   // Map with option names and option tuples
-  std::map<std::string, CLIOptionTuple> options_;
+  std::unordered_map<std::string, CLIOptionTuple> options_;
+  // Counter for created options
+  size_t counter_{0};
   // Command-line argument parser
   Ptr<CLI::App> app_;
-  // Number of created options
-  size_t counter_{0};
 
   // Name of the default option group
   std::string defaultGroup_{""};
@@ -91,17 +91,17 @@ private:
 
   // Option for --version flag. This is a special flag and similarly to --help,
   // the key "version" will be not added into the YAML config
-  CLI::Option* optVersion_;
+  CLI::Option *optVersion_;
 
   static std::string failureMessage(const CLI::App *app, const CLI::Error &e);
 
-  // Extract an option name from comma-separated list of command-line arguments,
-  // e.g. 'help' from '--help,-h'
+  // Extract option name from a comma-separated list of long and short options, e.g. 'help' from
+  // '--help,-h'
   std::string keyName(const std::string &args) const {
     // re-use existing functions from CLI11 to keep option names consistent
-    return std::get<1>(CLI::detail::get_names(CLI::detail::split_names(
-                           args)))  // get long names only
-        .front();                   // get first long name
+    return std::get<1>(
+               CLI::detail::get_names(CLI::detail::split_names(args)))  // get long names only
+        .front();                                                       // get first long name
   }
 
 public:
@@ -122,7 +122,7 @@ public:
              const std::string &description = "",
              const std::string &header = "General options",
              const std::string &footer = "",
-             size_t columnWidth = 35,
+             size_t columnWidth = 40,
              size_t screenWidth = 0);
 
   /**
@@ -212,8 +212,7 @@ public:
   }
 
   /**
-   * Switch to different option group or to the default group if
-   * argument is empty.
+   * Switch to different option group or to the default group if argument is empty.
    *
    * @param name Header of the option group
    */
@@ -222,6 +221,16 @@ public:
   // Parse command-line arguments. Handles --help and --version options
   void parse(int argc, char **argv);
 
+  /*
+   * @brief Overwrite values for unparsed options
+   *
+   * Default values are overwritten with the options from the config provided, while parsed
+   * command-line options remain unchanged.
+   * This should be a preferred way of updating config options as the class keeps track of options,
+   * which values have changed.
+   *
+   * @param node YAML config with new default values for options
+   */
   bool updateConfig(const YAML::Node &config);
 
   // Get textual YAML representation of the config
@@ -285,8 +294,7 @@ private:
 
   template <typename T,
             // options with vector values
-            CLI::enable_if_t<CLI::is_vector<T>::value,
-                             CLI::detail::enabler> = CLI::detail::dummy>
+            CLI::enable_if_t<CLI::is_vector<T>::value, CLI::detail::enabler> = CLI::detail::dummy>
   CLI::Option *add_option(const std::string &key,
                           const std::string &args,
                           const std::string &help,
@@ -345,8 +353,7 @@ private:
 
   template <typename T,
             // options with boolean values, called flags in CLI11
-            CLI::enable_if_t<CLI::is_bool<T>::value,
-                             CLI::detail::enabler> = CLI::detail::dummy>
+            CLI::enable_if_t<CLI::is_bool<T>::value, CLI::detail::enabler> = CLI::detail::dummy>
   CLI::Option *add_option(const std::string &key,
                           const std::string &args,
                           const std::string &help,

@@ -2,8 +2,8 @@
 #include "common/cli_helper.h"
 #include "common/logging.h"
 #include "common/options.h"
-#include "common/version.h"
 #include "common/timer.h"
+#include "common/version.h"
 
 namespace marian {
 namespace cli {
@@ -87,8 +87,7 @@ CLIWrapper::CLIWrapper(YAML::Node &config,
   app_->formatter(fmt);
 
   // add --version option
-  optVersion_
-      = app_->add_flag("--version", "Print the version number and exit");
+  optVersion_ = app_->add_flag("--version", "Print the version number and exit");
   optVersion_->group(defaultGroup_);
 }
 
@@ -98,20 +97,12 @@ CLIWrapper::CLIWrapper(Ptr<marian::Options> options,
                        const std::string &footer,
                        size_t columnWidth,
                        size_t screenWidth)
-    : CLIWrapper(options->getYaml(),
-                 description,
-                 header,
-                 footer,
-                 columnWidth,
-                 screenWidth) {}
+    : CLIWrapper(options->getYaml(), description, header, footer, columnWidth, screenWidth) {}
 
 CLIWrapper::~CLIWrapper() {}
 
 void CLIWrapper::switchGroup(const std::string &name) {
-  if(name.empty())
-    currentGroup_ = defaultGroup_;
-  else
-    currentGroup_ = name;
+  currentGroup_ = name.empty() ? defaultGroup_ : name;
 }
 
 void CLIWrapper::parse(int argc, char **argv) {
@@ -128,8 +119,7 @@ void CLIWrapper::parse(int argc, char **argv) {
   }
 }
 
-std::string CLIWrapper::failureMessage(const CLI::App *app,
-                                       const CLI::Error &e) {
+std::string CLIWrapper::failureMessage(const CLI::App *app, const CLI::Error &e) {
   std::string header = "Error: " + std::string(e.what()) + "\n";
   if(app->get_help_ptr() != nullptr)
     header += "Run with " + app->get_help_ptr()->get_name() + " for more information.\n";
