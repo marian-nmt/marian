@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/config.h"
+#include "common/options.h"
 #include "graph/expression_graph.h"
 #include "optimizers/clippers.h"
 #include "tensors/backend.h"
@@ -192,5 +192,5 @@ Ptr<OptimizerBase> Optimizer(float eta,
   return opt;
 }
 
-Ptr<OptimizerBase> Optimizer(Ptr<Config> options);
+Ptr<OptimizerBase> Optimizer(Ptr<Options> options);
 }  // namespace marian

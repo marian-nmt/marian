@@ -4,9 +4,9 @@
 #include <iostream>
 #include <random>
 
-#include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
+#include "common/options.h"
 #include "data/alignment.h"
 #include "data/batch.h"
 #include "data/corpus_base.h"
@@ -24,13 +24,14 @@ private:
   std::vector<std::string> lastLines_;
 
 public:
-  CorpusNBest(Ptr<Config> options, bool translate = false);
+  // @TODO: check if translate can be replaced by an option in options
+  CorpusNBest(Ptr<Options> options, bool translate = false);
 
   CorpusNBest(std::vector<std::string> paths,
               std::vector<Ptr<Vocab>> vocabs,
-              Ptr<Config> options);
+              Ptr<Options> options);
 
-  sample next() override;
+  Sample next() override;
 
   void shuffle() override {}
 
@@ -44,7 +45,7 @@ public:
 
   std::vector<Ptr<Vocab>>& getVocabs() override { return vocabs_; }
 
-  batch_ptr toBatch(const std::vector<sample>& batchVector) override {
+  batch_ptr toBatch(const std::vector<Sample>& batchVector) override {
     size_t batchSize = batchVector.size();
 
     std::vector<size_t> sentenceIds;

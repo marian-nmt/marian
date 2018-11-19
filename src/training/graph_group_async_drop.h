@@ -30,7 +30,7 @@ protected:
                    int device_id) override;
 
 public:
-  AsyncGraphGroupDrop(Ptr<Config> options)
+  AsyncGraphGroupDrop(Ptr<Options> options)
       : AsyncGraphGroup(options),
         dropping_warmup{options->get<size_t>("grad-dropping-warmup")},
         droping_rate{options->get<float>("grad-dropping-rate")},

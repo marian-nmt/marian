@@ -1,6 +1,5 @@
 #include "common/utils.h"
 #include "common/logging.h"
-#include "3rd_party/exception.h"
 #include "CLI/StringTools.hpp"
 
 #include <stdio.h>
@@ -143,6 +142,11 @@ std::string withCommas(size_t n) {
   for (int i = (int)res.size() - 3; i > 0; i -= 3)
     res.insert(i, ",");
   return res;
+}
+
+bool endsWith(const std::string& text, const std::string& suffix) {
+  return text.size() >= suffix.size()
+         && !text.compare(text.size() - suffix.size(), suffix.size(), suffix);
 }
 
 }  // namespace utils

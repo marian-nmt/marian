@@ -351,7 +351,7 @@ public:
   /**
    * (Constructor) Call super class and initialize client graphs and builders.
    */
-  MultiNodeGraphGroup(Ptr<Config> options)
+  MultiNodeGraphGroup(Ptr<Options> options)
       : Base(options),
         clientCommOverlap{options_->get<bool>("multi-node-overlap")},
         tau_{options_->get<size_t>("optimizer-delay")} { }
@@ -376,7 +376,7 @@ public:
    * Update any client model with given batch if batch is assigned to this node.
    */
   void update(Ptr<data::Batch> batch) override {
-    ABORT_IF(finalized_, "Training has already finished.");
+    ABORT_IF(finalized_, "Training has already finished");
     // Only take batch assigned to this node
     if(batchIter_ % mpi_->numMPIProcesses() == (size_t)mpi_->myMPIRank()) {
       execute(batch);

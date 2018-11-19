@@ -7,7 +7,7 @@
 
 namespace marian {
 
-ScoreCollector::ScoreCollector(const Ptr<Config>& options)
+ScoreCollector::ScoreCollector(const Ptr<Options>& options)
     : nextId_(0),
       outStrm_(new io::OutputFileStream(std::cout)),
       alignment_(options->get<std::string>("alignment", "")),
@@ -72,7 +72,7 @@ std::string ScoreCollector::getAlignment(const data::SoftAlignment& align) {
   return "";
 }
 
-ScoreCollectorNBest::ScoreCollectorNBest(const Ptr<Config>& options)
+ScoreCollectorNBest::ScoreCollectorNBest(const Ptr<Options>& options)
     : ScoreCollector(options),
       nBestList_(options->get<std::vector<std::string>>("train-sets").back()),
       fname_(options->get<std::string>("n-best-feature")) {

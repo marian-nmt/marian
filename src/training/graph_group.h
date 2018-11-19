@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/definitions.h"
+#include "common/options.h"
 #include "data/batch_generator.h"
 #include "graph/expression_graph.h"
 #include "models/model_base.h"
@@ -16,15 +17,13 @@ namespace marian {
  */
 class GraphGroup {
 protected:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
   Ptr<OptimizerBase> opt_;   // the optimizer
   Ptr<Scheduler> scheduler_; // scheduler that keeps track of how much has been processed
   bool finalized_{false};    // 'true' if training has completed (further updates are no longer allowed)
 
 public:
-  GraphGroup(Ptr<Config> options)
-      : options_(options),
-        opt_(Optimizer(options)) {}
+  GraphGroup(Ptr<Options> options) : options_(options), opt_(Optimizer(options)) {}
 
   virtual ~GraphGroup() {}
 
@@ -127,7 +126,7 @@ protected:
   std::vector<Ptr<ExpressionGraph>> clientGraphs_; // [num local GPUs]
 
 public:
-  MultiNodeGraphGroupBase(Ptr<Config> options)
+  MultiNodeGraphGroupBase(Ptr<Options> options)
     : Base(options) {
 
     // Setup MPI
@@ -135,7 +134,7 @@ public:
 
     // Set up devices for this node
     std::vector<size_t> devices; // set of GPU device ids for this MPI process
-    for (auto& d : options_->getDevices())
+    for (auto& d : Config::getDevices(options_))
       devices.push_back(d.no);
     loadDeviceConfig(devices); // set up numberClientsOfNodes_[] and devices_[]
 
@@ -144,8 +143,7 @@ public:
       clientGraphs_.push_back(New<ExpressionGraph>());
       clientGraphs_[i]->setDevice({ devices_[i], DeviceType::gpu });
       clientGraphs_[i]->reserveWorkspaceMB(options_->get<size_t>("workspace"));
-      clientBuilders_.push_back(
-        models::from_config(options_, models::usage::training));
+      clientBuilders_.push_back(models::from_options(options_, models::usage::training));
     }
   }
 

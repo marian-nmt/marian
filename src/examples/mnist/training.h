@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/config.h"
+#include "common/options.h"
 #include "models/model_task.h"
 #include "training/scheduler.h"
 
@@ -12,10 +12,10 @@ namespace marian {
 template <class ModelWrapper>
 class TrainMNIST : public ModelTask {
 private:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
 
 public:
-  TrainMNIST(Ptr<Config> options) : options_(options) {}
+  TrainMNIST(Ptr<Options> options) : options_(options) {}
 
   void run() override {
     using namespace data;
@@ -23,8 +23,7 @@ public:
     // Prepare data set
     auto paths = options_->get<std::vector<std::string>>("train-sets");
     auto dataset = New<data::MNISTData>(paths);
-    auto batchGenerator
-        = New<BatchGenerator<data::MNISTData>>(dataset, options_, nullptr);
+    auto batchGenerator = New<BatchGenerator<data::MNISTData>>(dataset, options_, nullptr);
 
     // Prepare scheduler with validators
     auto trainState = New<TrainingState>(options_->get<float>("learn-rate"));
