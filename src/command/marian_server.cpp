@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
   using namespace marian;
 
   // Initialize translation task
-  auto options = New<Config>(argc, argv, cli::mode::translation, true);
+  auto options = parseOptions(argc, argv, cli::mode::translation, true);
   auto task = New<TranslateService<BeamSearch>>(options);
 
   // Initialize web server
@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
     auto outputText = task->run(inputText);
     LOG(info, "Best translation: {}", outputText);
     *sendStream << outputText << std::endl;
-    LOG(info, "Translation took: {}", timer.format(5, "%ws"));
+    LOG(info, "Translation took: {:.5f}s", timer.elapsed());
 
     // Send translation back
     connection->send(sendStream, [](const SimpleWeb::error_code &ec) {

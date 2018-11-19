@@ -370,6 +370,17 @@ public:
                     inits::from_vector(indicesVector),
                     Type::uint32);
   }
+  // this version sets up the shape such that the indices are in a given axis
+  // Use this if you want to pass these indices to select().
+  // indexee shape = (3, 2, 5, 2); axis = 1 -> resulting shape = (1, size of indicesVector, 1, 1)
+  Expr indices(const std::vector<IndexType>& indicesVector, Expr indexee, int axis = -1) {
+    Shape shape;
+    shape.resize(indexee->shape().size());
+    shape.set(axis, indicesVector.size());
+    return constant(Shape(shape),
+                    inits::from_vector(indicesVector),
+                    Type::uint32);
+  }
 
   Expr ones(const Shape& shape) {
     return constant(shape, inits::ones);
@@ -379,7 +390,8 @@ public:
     return constant(shape, inits::zeros);
   }
 
-  Expr dropout(float prob, const Shape& shape);
+  // prob = dropProb, e.g. 0.1 means 90% of values are kept
+  Expr dropout(float dropProb, const Shape& shape);
 
   Expr get(std::string name) {
     if(!namespace_.empty())
@@ -450,57 +462,32 @@ public:
 
   void setThrowNaN(bool throwNaN) { throwNaN_ = throwNaN; }
 
-private:
-  // convert all parameters into an array of IoItem elements, for saving
-  void itemsToParameters(const std::vector<io::Item>& ioItems,
-                         const std::map<std::string, std::string>& nameMap,
-                         bool markReloaded = true) {
+public:
+  // convert all parameters into an array of IoItem elements, for loading
+  void load(const std::vector<io::Item>& ioItems, bool markReloaded = true) {
     setReloaded(false);
     for(auto& item : ioItems) {
       std::string pName = item.name;
-
       // skip over special parameters starting with "special:"
       if(pName.substr(0, 8) == "special:")
         continue;
-
-      auto it = nameMap.find(pName);
-      if(it != nameMap.end())
-        pName = it->second;
-
       param(pName, item.shape, inits::from_item(item));
     }
     if(markReloaded)
       setReloaded(true);
   }
 
-public:
-  void load(const std::string& name,
-            const std::map<std::string, std::string>& nameMap,
-            bool markReloaded = true) {
-    LOG(info, "Loading model from {}", name);
-    itemsToParameters(io::loadItems(name), nameMap, markReloaded);
-  }
-
   void load(const std::string& name, bool markReloaded = true) {
-    std::map<std::string, std::string> emptyNameMap;
-    load(name, emptyNameMap, markReloaded);
-  }
-
-  void load(const void* ptr,
-            const std::map<std::string, std::string>& nameMap,
-            bool markReloaded = true) {
-    LOG(info, "Loading model from buffer at {}", ptr);
-    itemsToParameters(io::loadItems(ptr), nameMap, markReloaded);
+    LOG(info, "Loading model from {}", name);
+    load(io::loadItems(name), markReloaded);
   }
 
   void load(const void* ptr, bool markReloaded = true) {
-    std::map<std::string, std::string> emptyNameMap;
-    load(ptr, emptyNameMap, markReloaded);
+    LOG(info, "Loading model from buffer at {}", ptr);
+    load(io::loadItems(ptr), markReloaded);
   }
 
-  void mmap(const void* ptr,
-            const std::map<std::string, std::string>& nameMap,
-            bool markReloaded = true) {
+  void mmap(const void* ptr, bool markReloaded = true) {
     ABORT_IF(backend_->getDeviceId().type != DeviceType::cpu || !inferenceOnly_,
              "Memory mapping only supported for CPU inference mode");
 
@@ -508,47 +495,23 @@ public:
     params_->init(backend_);
 
     LOG(info, "Memory mapping model at {}", ptr);
-    itemsToParameters(io::mmapItems(ptr), nameMap, markReloaded);
+    load(io::mmapItems(ptr), markReloaded);
   }
-
-  void mmap(const void* ptr, bool markReloaded = true) {
-    std::map<std::string, std::string> emptyNameMap;
-    mmap(ptr, emptyNameMap, markReloaded);
-  }
-
-private:
-  // convert all parameters into an array of io::Item elements, for saving
-  void parametersToItems(std::vector<io::Item>& ioItems,
-                         const std::map<std::string, std::string>& nameMap);
 
 public:
-  void save(const std::string& name,
-            const std::string& meta,
-            const std::map<std::string, std::string>& nameMap) {
+  // convert all parameters into an array of io::Item elements, for saving
+  void save(std::vector<io::Item>& ioItems);
+
+  void save(const std::string& name, const std::string& meta = "") {
     // LOG(info, "Saving model to {}", name);
 
     std::vector<io::Item> ioItems;
-    parametersToItems(ioItems, nameMap);
+    save(ioItems);
     if(!meta.empty())
       io::addMetaToItems(meta, "special:model.yml", ioItems);
     io::saveItems(name, ioItems);
 
     // LOG(info, "Saved {} items.", ioItems.size());
-  }
-
-  void save(const std::string& name) {
-    std::map<std::string, std::string> emptyNameMap;
-    save(name, "", emptyNameMap);
-  }
-
-  void save(const std::string& name, const std::string& meta) {
-    std::map<std::string, std::string> emptyNameMap;
-    save(name, meta, emptyNameMap);
-  }
-
-  void save(const std::string& name,
-            const std::map<std::string, std::string>& nameMap) {
-    save(name, "", nameMap);
   }
 };
 

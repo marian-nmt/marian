@@ -7,11 +7,11 @@
 int main(int argc, char** argv) {
   using namespace marian;
 
-  auto options = New<Config>(argc, argv, cli::mode::scoring);
+  auto options = parseOptions(argc, argv, cli::mode::scoring);
 
   timer::Timer timer;
   New<Rescore<Rescorer>>(options)->run();
-  LOG(info, "Total time: {}", timer.format());
+  LOG(info, "Total time: {:.5f}s wall", timer.elapsed());
 
   return 0;
 }

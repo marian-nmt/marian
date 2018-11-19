@@ -4,9 +4,9 @@
 #include <iostream>
 #include <random>
 
-#include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
+#include "common/options.h"
 #include "data/alignment.h"
 #include "data/batch.h"
 #include "data/corpus_base.h"
@@ -21,14 +21,19 @@ private:
   std::vector<UPtr<io::TemporaryFile>> tempFiles_;
   std::vector<size_t> ids_;
 
-  void shuffleFiles(const std::vector<std::string>& paths);
+  // for shuffle-in-ram
+  bool shuffleInRAM_{false};
+  std::vector<std::vector<std::string>> corpusInRAM_; // // [stream][id] full copy of all data files
+
+  void shuffleData(const std::vector<std::string>& paths);
 
 public:
-  Corpus(Ptr<Config> options, bool translate = false);
+  // @TODO: check if translate can be replaced by an option in options
+  Corpus(Ptr<Options> options, bool translate = false);
 
   Corpus(std::vector<std::string> paths,
          std::vector<Ptr<Vocab>> vocabs,
-         Ptr<Config> options);
+         Ptr<Options> options);
 
   /**
    * @brief Iterates sentence tuples in the corpus.
@@ -39,7 +44,7 @@ public:
    *
    * @return A tuple representing parallel sentences.
    */
-  sample next() override;
+  Sample next() override;
 
   void shuffle() override;
 
@@ -53,7 +58,7 @@ public:
 
   std::vector<Ptr<Vocab>>& getVocabs() override { return vocabs_; }
 
-  batch_ptr toBatch(const std::vector<sample>& batchVector) override {
+  batch_ptr toBatch(const std::vector<Sample>& batchVector) override {
     size_t batchSize = batchVector.size();
 
     std::vector<size_t> sentenceIds;

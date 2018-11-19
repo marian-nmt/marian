@@ -4,7 +4,6 @@
 #include "3rd_party/any_type.h"
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/definitions.h"
-#include "common/logging.h"
 
 #include <iostream>
 #include <map>
