@@ -38,7 +38,7 @@ public:
 
   TextInput(std::vector<std::string> inputs,
             std::vector<Ptr<Vocab>> vocabs,
-            Ptr<Config> options);
+            Ptr<Options> options);
 
   Sample next() override;
 

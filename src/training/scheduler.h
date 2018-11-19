@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/config.h"
+#include "common/options.h"
 #include "training/training_state.h"
 #include "training/validator.h"
 #include "training/communicator.h"
@@ -9,7 +9,7 @@ namespace marian {
 
 class Scheduler : public TrainingObserver {
 private:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
   std::vector<Ptr<ValidatorBase>> validators_;
 
   bool first_{true};
@@ -46,7 +46,7 @@ private:
   }
 
 public:
-  Scheduler(Ptr<Config> options, Ptr<TrainingState> state)
+  Scheduler(Ptr<Options> options, Ptr<TrainingState> state)
       : options_(options), state_(state) {
     state_->eta = getLearningRate(*state);
   }
@@ -205,8 +205,8 @@ public:
 
     state_->newBatch();
 
-    if(state_->batches %  options_->get<size_t>("disp-freq") == 0 ||
-       state_->batches <= options_->get<size_t>("disp-first")) {
+    if(state_->batches % options_->get<size_t>("disp-freq") == 0
+       || state_->batches <= options_->get<size_t>("disp-first")) {
       // if MPI then aggregate precise cost across workers
       if (mpi) {
         //LOG(info, "all-reducing cost from {}", state_->costSum);
@@ -217,11 +217,9 @@ public:
       if (mpi && mpi->myMPIRank() != 0)
         ; // skip the report on alternate worker processes
       else if(dispLabelCounts) {
-        if(options_->get<bool>(
-               "lr-report")) {  // if true then show the learning rate
+        if(options_->get<bool>("lr-report")) {  // if true then show the learning rate
           LOG(info,
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} "
-              ": {:.2f} "
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {:.2f}s : {:.2f} "
               "words/s : L.r. {:.4e}",
               state_->epochs,
               state_->batches,
@@ -229,13 +227,12 @@ public:
               state_->costSum / state_->costCount,
               state_->costCount,  // show cost as "av * count"
               state_->labelsTotal,
-              timer_.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer_.format(5, "%w")),
+              timer_.elapsed(),
+              state_->wordsDisp / timer_.elapsed(),
               state_->eta);
         } else {
           LOG(info,
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} "
-              ": {:.2f} "
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {:.2f}s : {:.2f} "
               "words/s",
               state_->epochs,
               state_->batches,
@@ -243,31 +240,30 @@ public:
               state_->costSum / state_->costCount,
               state_->costCount,
               state_->labelsTotal,
-              timer_.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer_.format(5, "%w")));
+              timer_.elapsed(),
+              state_->wordsDisp / timer_.elapsed());
         }
       } else {
         if(options_->get<bool>("lr-report")) {
           LOG(info,
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
-              "words/s : L.r. {:.4e}",
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {:2f}s : {:.2f} words/s : L.r. "
+              "{:.4e}",
               state_->epochs,
               state_->batches,
               state_->samplesEpoch,
               state_->costSum / state_->costCount,
-              timer_.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer_.format(5, "%w")),
+              timer_.elapsed(),
+              state_->wordsDisp / timer_.elapsed(),
               state_->eta);
         } else {
           LOG(info,
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
-              "words/s",
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {:.2f}s : {:.2f} words/s",
               state_->epochs,
               state_->batches,
               state_->samplesEpoch,
               state_->costSum / state_->costCount,
-              timer_.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer_.format(5, "%w")));
+              timer_.elapsed(),
+              state_->wordsDisp / timer_.elapsed());
         }
       }
       timer_.start();
@@ -277,9 +273,8 @@ public:
     }
     // progress heartbeat for MS-internal Philly compute cluster
     // This environment variable exists when running on the cluster.
-    using namespace std::chrono;
-    if((!mpi || mpi->myMPIRank() == 0) && getenv("PHILLY_JOB_ID") &&
-        duration_cast<minutes>(nanoseconds(heartBeatTimer_.elapsed().user)).count() >= 10) {
+    if((!mpi || mpi->myMPIRank() == 0) && getenv("PHILLY_JOB_ID")
+       && heartBeatTimer_.elapsed<std::chrono::minutes>() >= 10) {
       printf("PROGRESS: %.2f%%\nEVALERR: %.7f\n", (double)state_->epochs, state_->costSum / state_->costCount), fflush(stdout);
 #if 0
       LOG(info, "heart beat after {} updates", state_->batches);
@@ -305,9 +300,9 @@ public:
 
   void save(const std::string& name) {
     // Save config options
-    YAML::Node config = options_->get();
+    YAML::Node yaml = options_->getYaml();
     std::ofstream fout(name + ".yml");
-    fout << config;
+    fout << yaml;
     // Save training progress
     state_->save(name + ".progress.yml");
   }

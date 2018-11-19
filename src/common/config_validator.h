@@ -7,8 +7,7 @@ namespace marian {
 
 // TODO: Finally refactorize Config, Options, ConfigParser and ConfigValidator
 // classes.
-class ConfigValidator
-{
+class ConfigValidator {
 private:
   const YAML::Node& config_;
 
@@ -24,12 +23,14 @@ private:
   void validateOptionsScoring() const;
   void validateOptionsTraining() const;
 
+  void validateModelExtension(cli::mode mode) const;
   void validateDevices(cli::mode mode) const;
 
 public:
   ConfigValidator(const YAML::Node& config);
   virtual ~ConfigValidator();
 
+  // Validate options according to the given mode. Abort on first validation error
   void validateOptions(cli::mode mode) const;
 };
 

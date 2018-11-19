@@ -72,10 +72,10 @@ namespace marian {
   } while(0)
 
 typedef std::shared_ptr<spdlog::logger> Logger;
-Logger stderrLogger(const std::string&,
-                    const std::string&,
-                    const std::vector<std::string>& = {},
-                    bool quiet = false);
+Logger createStderrLogger(const std::string&,
+                          const std::string&,
+                          const std::vector<std::string>& = {},
+                          bool quiet = false);
 
 namespace marian {
 class Config;
@@ -91,7 +91,7 @@ void checkedLog(std::string logger, std::string level, Args... args) {
       // second one. Otherwise this will throw an exception.
       Logger errlog = spdlog::get("error");
       if(!errlog)
-        errlog = stderrLogger("error", "Error: %v - aborting");
+        errlog = createStderrLogger("error", "Error: %v - aborting");
       errlog->critical(args...);
     }
     // @TODO: should other loggers do something? This seems to be

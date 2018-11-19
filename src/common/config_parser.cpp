@@ -6,7 +6,6 @@
 #include "common/file_stream.h"
 #include "common/logging.h"
 #include "common/utils.h"
-#include "3rd_party/exception.h"
 
 #include <algorithm>
 #include <set>
@@ -89,10 +88,10 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
   // clang-format off
   if(mode_ == cli::mode::translation) {
     cli.add<std::vector<std::string>>("--models,-m",
-      "Paths to model(s) to be loaded");
+      "Paths to model(s) to be loaded. Supported file extensions: .npz, .bin");
   } else {
     cli.add<std::string>("--model,-m",
-      "Path prefix for model to be saved/resumed",
+      "Path prefix for model to be saved/resumed. Supported file extensions: .npz, .bin",
       "model.npz");
 
     if(mode_ == cli::mode::training) {
@@ -243,7 +242,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<std::string>("--cost-type",
       "Optimization criterion: ce-mean, ce-mean-words, ce-sum, perplexity", "ce-mean");
   cli.add<bool>("--overwrite",
-      "Overwrite model with following checkpoints");
+      "Do not create model checkpoints, only overwrite main model file with last checkpoint. "
+      "Reduces disk usage");
   cli.add<bool>("--no-reload",
       "Do not load existing model specified in --model arg");
   cli.add<std::vector<std::string>>("--train-sets,-t",
@@ -350,7 +350,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "Maintain smoothed version of parameters for validation and saving with smoothing factor. 0 to disable",
      0)->implicit_val("1e-4");
   cli.add<std::string>("--guided-alignment",
-     "Path to a file with word alignments. Use guided alignment to guide attention or 'none'", 
+     "Path to a file with word alignments. Use guided alignment to guide attention or 'none'",
      "none");
   cli.add<std::string>("--guided-alignment-cost",
      "Cost type for guided alignment: ce (cross-entropy), mse (mean square error), mult (multiplication)",
@@ -539,7 +539,7 @@ void ConfigParser::addSuboptionsDevices(cli::CLIWrapper& cli) {
       "Specifies GPU ID(s) to use for training. Defaults to 0..num-devices-1",
       std::vector<std::string>({"0"}));
   cli.add_nondefault<size_t>("--num-devices",
-      "Number of GPUs to use for this process. Defaults to length(devices) or 1.");
+      "Number of GPUs to use for this process. Defaults to length(devices) or 1");
 #ifdef USE_NCCL
   if(mode_ == cli::mode::training)
     cli.add<bool>("--no-nccl",
@@ -560,13 +560,17 @@ void ConfigParser::addSuboptionsDevices(cli::CLIWrapper& cli) {
 void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
   int defaultMiniBatch = (mode_ == cli::mode::translation) ? 1 : 64;
   int defaultMaxiBatch = (mode_ == cli::mode::translation) ? 1 : 100;
-  std::string defaultMaxiBatchSort
-      = (mode_ == cli::mode::translation) ? "none" : "trg";
+  std::string defaultMaxiBatchSort = (mode_ == cli::mode::translation) ? "none" : "trg";
 
   // clang-format off
   cli.add<int>("--mini-batch",
-      "Size of mini-batch used during update",
-      defaultMiniBatch);
+               // set accurate help messages for translation, scoring, or training
+               (mode_ == cli::mode::translation)
+                   ? "Size of mini-batch used during batched translation" :
+               (mode_ == cli::mode::scoring)
+                   ? "Size of mini-batch used during batched scoring"
+                   : "Size of mini-batch used during update",
+               defaultMiniBatch);
   cli.add<int>("--mini-batch-words",
       "Set mini-batch size based on words instead of sentences");
 
@@ -664,14 +668,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
 
   if(doValidate) {
-    try {
-      ConfigValidator validator(config_);
-      validator.validateOptions(mode_);
-    } catch(util::Exception& e) {
-      std::cerr << "Error: " << e.what() << std::endl << std::endl;
-      std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
-      exit(1);
-    }
+    // this aborts the program on first validation error
+    ConfigValidator(config_).validateOptions(mode_);
   }
 
   // remove extra config files from the config to avoid redundancy

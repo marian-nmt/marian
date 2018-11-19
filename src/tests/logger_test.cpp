@@ -38,5 +38,5 @@ int main() {
 
   marian::timer::Timer timer;
 
-  info->info("time is {} bla {:.2f}", timer.format(5, "%w"), .7);
+  info->info("time is {:.5f} bla {:.2f}", timer.elapsed(), .7);
 }

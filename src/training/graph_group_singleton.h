@@ -23,20 +23,24 @@ private:
   void execute(Ptr<data::Batch> batch);
 
 public:
-  SingletonGraph(Ptr<Config> config)
+  SingletonGraph(Ptr<Options> config)
       : GraphGroup(config),
         ExponentialSmoothing(options_->get<float>("exponential-smoothing")) {
-    auto deviceId = options_->getDevices()[0]; // TODO: check that only one
+    // Get device ID
+    auto devices = Config::getDevices(options_);
+    ABORT_IF(devices.size() != 1, "Only one device ID should be provided for singleton training");
+    auto deviceId = devices[0];
+    // Initialize graph
     graph_ = New<ExpressionGraph>();
     graph_->setDevice(deviceId);
     graph_->getBackend()->setClip(options_->get<float>("clip-gemm"));
     graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
     opt_ = Optimizer(options_);
-    builder_ = models::from_config(options_, models::usage::training);
+    builder_ = models::from_options(options_, models::usage::training);
   }
 
   void update(Ptr<data::Batch> batch) override {
-    ABORT_IF(finalized_, "Training has already finished.");
+    ABORT_IF(finalized_, "Training has already finished");
     execute(batch);
   }
 

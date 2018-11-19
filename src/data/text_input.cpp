@@ -24,7 +24,7 @@ const SentenceTuple& TextIterator::dereference() const {
 
 TextInput::TextInput(std::vector<std::string> inputs,
                      std::vector<Ptr<Vocab>> vocabs,
-                     Ptr<Config> options)
+                     Ptr<Options> options)
     // TODO: fix this: input text is stored in an inherited variable named
     // paths_ that is very confusing
     : DatasetBase(inputs, options),

@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
   //w.get<color>("enum");
 
   YAML::Emitter emit;
-  OutputYaml(options->getOptions(), emit);
+  OutputYaml(options->getYaml(), emit);
   std::cout << emit.c_str() << std::endl;
   return 0;
 }

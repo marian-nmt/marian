@@ -52,10 +52,10 @@ protected:
   void execute(Ptr<data::Batch> batch);
 
 public:
-  AsyncGraphGroup(Ptr<Config> config);
+  AsyncGraphGroup(Ptr<Options> config);
 
   void update(Ptr<data::Batch> batch) override {
-    ABORT_IF(finalized_, "Training has already finished.");
+    ABORT_IF(finalized_, "Training has already finished");
     execute(batch);
   }
 

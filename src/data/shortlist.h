@@ -44,7 +44,7 @@ public:
 
 class SampledShortlistGenerator : public ShortlistGenerator {
 private:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
   size_t maxVocab_{50000};
 
   size_t total_{10000};
@@ -58,7 +58,7 @@ private:
   std::mt19937 gen_;
 
 public:
-  SampledShortlistGenerator(Ptr<Config> options,
+  SampledShortlistGenerator(Ptr<Options> options,
                             size_t srcIdx = 0,
                             size_t trgIdx = 1,
                             bool shared = false)
@@ -115,7 +115,7 @@ public:
 
 class LexicalShortlistGenerator : public ShortlistGenerator {
 private:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
   Ptr<Vocab> srcVocab_;
   Ptr<Vocab> trgVocab_;
 
@@ -170,7 +170,7 @@ private:
   }
 
 public:
-  LexicalShortlistGenerator(Ptr<Config> options,
+  LexicalShortlistGenerator(Ptr<Options> options,
                             Ptr<Vocab> srcVocab,
                             Ptr<Vocab> trgVocab,
                             size_t srcIdx = 0,

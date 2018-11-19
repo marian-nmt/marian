@@ -9,8 +9,7 @@ namespace marian {
 class Nematus : public EncoderDecoder {
 public:
   template <class... Args>
-  Nematus(Ptr<Options> options)
-      : EncoderDecoder(options), nameMap_(createNameMap()) {
+  Nematus(Ptr<Options> options) : EncoderDecoder(options), nameMap_(createNameMap()) {
     ABORT_IF(options_->get<std::string>("enc-type") != "bidirectional",
              "--type nematus does not currently support other encoder "
              "type than bidirectional, use --type s2s");
@@ -29,14 +28,52 @@ public:
 
   void load(Ptr<ExpressionGraph> graph,
             const std::string& name,
-            bool /*markedReloaded*/ = true) override {
-    graph->load(name, nameMap_);
+            bool /*markReloaded*/ = true) override {
+    LOG(info, "Loading model from {}", name);
+    // load items from .npz file
+    auto ioItems = io::loadItems(name);
+    // map names and remove a dummy matrix 'decoder_c_tt' from items to avoid creating isolated node
+    for(auto it = ioItems.begin(); it != ioItems.end();) {
+      if(it->name == "decoder_c_tt") {
+        it = ioItems.erase(it);
+      }
+      auto pair = nameMap_.find(it->name);
+      if(pair != nameMap_.end())
+        it->name = pair->second;
+      ++it;
+    }
+    // load items into the graph
+    graph->load(ioItems);
   }
 
   void save(Ptr<ExpressionGraph> graph,
             const std::string& name,
             bool saveTranslatorConfig = false) override {
-    graph->save(name, getModelParametersAsString(), nameMap_);
+    LOG(info, "Saving model to {}", name);
+
+    // prepare reversed map
+    if(nameMapRev_.empty())
+      for(const auto& kv : nameMap_)
+        nameMapRev_.insert({kv.second, kv.first});
+
+    // get parameters from the graph to items
+    std::vector<io::Item> ioItems;
+    graph->save(ioItems);
+    // replace names to be compatible with Nematus
+    for(auto& item : ioItems) {
+      auto newItemName = nameMapRev_.find(item.name);
+      if(newItemName != nameMapRev_.end())
+        item.name = newItemName->second;
+    }
+    // add a dummy matrix 'decoder_c_tt' required for Amun and Nematus
+    ioItems.emplace_back();
+    ioItems.back().name = "decoder_c_tt";
+    ioItems.back().shape = Shape({1, 0});
+    ioItems.back().bytes.emplace_back(0);
+
+    io::addMetaToItems(getModelParametersAsString(), "special:model.yml", ioItems);
+    io::saveItems(name, ioItems);
+
     if(saveTranslatorConfig) {
       createAmunConfig(name);
       createDecoderConfig(name);
@@ -100,10 +137,8 @@ private:
       std::string num1 = std::to_string(i);
       std::string num2 = std::to_string(i + 1);
       for(auto suf : suffixes) {
-        nameMap.insert(
-            {"encoder" + suf + "_drt_" + num1, "encoder_bi_cell" + num2 + suf});
-        nameMap.insert({"encoder_r" + suf + "_drt_" + num1,
-                        "encoder_bi_r_cell" + num2 + suf});
+        nameMap.insert({"encoder" + suf + "_drt_" + num1, "encoder_bi_cell" + num2 + suf});
+        nameMap.insert({"encoder_r" + suf + "_drt_" + num1, "encoder_bi_r_cell" + num2 + suf});
       }
     }
     // add mapping for deep decoder cells
@@ -111,8 +146,7 @@ private:
       std::string num1 = std::to_string(i - 2);
       std::string num2 = std::to_string(i);
       for(auto suf : suffixes)
-        nameMap.insert(
-            {"decoder" + suf + "_nl_drt_" + num1, "decoder_cell" + num2 + suf});
+        nameMap.insert({"decoder" + suf + "_nl_drt_" + num1, "decoder_cell" + num2 + suf});
     }
     // add mapping for normalization layers
     std::map<std::string, std::string> nameMapCopy(nameMap);

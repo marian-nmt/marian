@@ -14,10 +14,10 @@ namespace marian {
 template <class ModelWrapper>
 class Train : public ModelTask {
 private:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
 
 public:
-  Train(Ptr<Config> options) : options_(options) {}
+  Train(Ptr<Options> options) : options_(options) {}
 
   void run() override {
     using namespace data;
@@ -74,7 +74,7 @@ public:
       restored = false;
 
       // @TODO: try to use for(auto ...)
-      for(auto batchIt = std::begin(*batchGenerator); 
+      for(auto batchIt = std::begin(*batchGenerator);
           batchIt != std::end(*batchGenerator) && scheduler->keepGoing();
           batchIt++) {
         model->update(*batchIt);

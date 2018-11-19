@@ -9,12 +9,12 @@
 namespace marian {
 namespace data {
 
-Corpus::Corpus(Ptr<Config> options, bool translate /*= false*/)
+Corpus::Corpus(Ptr<Options> options, bool translate /*= false*/)
     : CorpusBase(options, translate), shuffleInRAM_(options_->get<bool>("shuffle-in-ram")) {}
 
 Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
-               Ptr<Config> options)
+               Ptr<Options> options)
     : CorpusBase(paths, vocabs, options), shuffleInRAM_(options_->get<bool>("shuffle-in-ram")) {}
 
 SentenceTuple Corpus::next() {
@@ -135,6 +135,7 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
     LOG(info, "[data] Done reading {} sentences.", corpus[0].size());
   }
   size_t numSentences = corpus[0].size();
+  LOG(info, "[data] Done reading {} sentences", numSentences);
 
   // randomize sequence ids, and remember them
   ids_.resize(numSentences);

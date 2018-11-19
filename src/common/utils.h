@@ -35,5 +35,7 @@ std::string exec(const std::string& cmd);
 
 std::pair<std::string, int> hostnameAndProcessId();
 
+bool endsWith(const std::string& text, const std::string& suffix);
+
 }  // namespace utils
 }  // namespace marian

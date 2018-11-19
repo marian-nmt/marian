@@ -1,6 +1,5 @@
 #include "common/utils.h"
 #include "common/logging.h"
-#include "3rd_party/exception.h"
 #include "CLI/StringTools.hpp"
 
 #include <stdio.h>
@@ -134,6 +133,11 @@ std::pair<std::string, int> hostnameAndProcessId() { // helper to get hostname:p
   auto processId = (int)getpid();
 #endif
   return{ hostname, processId };
+}
+
+bool endsWith(const std::string& text, const std::string& suffix) {
+  return text.size() >= suffix.size()
+         && !text.compare(text.size() - suffix.size(), suffix.size(), suffix);
 }
 
 }  // namespace utils
