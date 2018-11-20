@@ -132,7 +132,6 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
       ABORT_IF(eofsHit != 0, "Not all input files have the same number of lines");
     }
     files_.clear();
-    LOG(info, "[data] Done reading {} sentences.", corpus[0].size());
   }
   size_t numSentences = corpus[0].size();
   LOG(info, "[data] Done reading {} sentences", numSentences);
