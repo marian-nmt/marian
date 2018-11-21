@@ -116,30 +116,12 @@
     <ClCompile Include="..\src\3rd_party\yaml-cpp\binary_renamed.cpp" />
     <ClCompile Include="..\src\3rd_party\yaml-cpp\yaml-node.cpp" />
     <ClInclude Include="..\src\3rd_party\ExceptionWithCallStack.h" />
-    <ClInclude Include="..\src\command\marian_decoder.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\src\command\marian_scorer.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\src\command\marian_vocab.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\src\command\marian_conv.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClCompile Include="..\src\command\marian_main.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClInclude Include="..\src\command\marian_train.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClInclude>
+    <ClInclude Include="..\src\command\marian.cpp" />
+    <ClInclude Include="..\src\command\marian_decoder.cpp" />
+    <ClInclude Include="..\src\command\marian_scorer.cpp" />
+    <ClInclude Include="..\src\command\marian_vocab.cpp" />
+    <ClInclude Include="..\src\command\marian_conv.cpp" />
+    <ClCompile Include="..\src\command\marian_main.cpp" />
     <ClCompile Include="..\src\common\binary.cpp" />
     <ClCompile Include="..\src\common\cli_helper.cpp" />
     <ClCompile Include="..\src\common\cli_wrapper.cpp" />

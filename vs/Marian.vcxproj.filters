@@ -268,9 +268,6 @@
     <ClCompile Include="..\src\common\version.cpp">
       <Filter>common</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\command\marian_train.cpp">
-      <Filter>command</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -1049,6 +1046,9 @@
       <Filter>training</Filter>
     </ClInclude>
     <ClInclude Include="..\src\command\marian_vocab.cpp">
+      <Filter>command</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\command\marian.cpp">
       <Filter>command</Filter>
     </ClInclude>
     <ClInclude Include="..\src\command\marian_decoder.cpp">
