@@ -116,12 +116,12 @@
     <ClCompile Include="..\src\3rd_party\yaml-cpp\binary_renamed.cpp" />
     <ClCompile Include="..\src\3rd_party\yaml-cpp\yaml-node.cpp" />
     <ClInclude Include="..\src\3rd_party\ExceptionWithCallStack.h" />
-    <ClInclude Include="..\src\command\marian.cpp" />
+    <ClInclude Include="..\src\command\marian_train.cpp" />
     <ClInclude Include="..\src\command\marian_decoder.cpp" />
     <ClInclude Include="..\src\command\marian_scorer.cpp" />
     <ClInclude Include="..\src\command\marian_vocab.cpp" />
     <ClInclude Include="..\src\command\marian_conv.cpp" />
-    <ClCompile Include="..\src\command\marian_main.cpp" />
+    <ClCompile Include="..\src\command\marian.cpp" />
     <ClCompile Include="..\src\common\binary.cpp" />
     <ClCompile Include="..\src\common\cli_helper.cpp" />
     <ClCompile Include="..\src\common\cli_wrapper.cpp" />
@@ -148,10 +148,12 @@
     <ClCompile Include="..\src\microsoft\quicksand.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\src\rescorer\score_collector.cpp" />
     <ClCompile Include="..\src\tensors\backend.cpp" />
     <ClCompile Include="..\src\tensors\cpu\device.cpp" />
     <ClCompile Include="..\src\tensors\cpu\prod.cpp" />
     <ClCompile Include="..\src\tensors\cpu\sharp\avx_gemm.cpp" />
+    <ClCompile Include="..\src\tensors\cpu\sharp\int_gemm.cpp" />
     <ClCompile Include="..\src\tensors\cpu\sharp\sse_gemm.cpp" />
     <ClCompile Include="..\src\tensors\cpu\tensor_operators.cpp" />
     <ClCompile Include="..\src\graph\expression_graph.cpp" />
