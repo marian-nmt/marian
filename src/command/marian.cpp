@@ -1,53 +1,66 @@
 #include "marian.h"
 
-// This contains the main function for the aggregate command line that allows to specify
-// one of the Marian executables as the first argument. This is done by including all
-// individual .cpp files into a single .cpp, using a #define to rename the respective
-// main functions.
-// For example, the following two are equivalent:
-//  marian-scorer ARGS
-//  marian score  ARGS
-// The supported sub-commands are:
-//  train
-//  decode
-//  score
-//  vocab
-//  convert
-// Currently, marian_server is not supported, since it is a special use case with lots of extra dependencies.
+#include "training/graph_group_async.h"
+#include "training/graph_group_multinode_sync.h"
+#include "training/graph_group_singleton.h"
+#include "training/graph_group_sync.h"
+#include "training/training.h"
 
-#define main mainTrainer
-#include "marian_train.cpp"
-#undef main
-#define main mainDecoder
-#include "marian_decoder.cpp"
-#undef main
-#define main mainScorer
-#include "marian_scorer.cpp"
-#undef main
-#define main mainVocab
-#include "marian_vocab.cpp"
-#undef main
-#define main mainConv
-#include "marian_conv.cpp"
-#undef main
-
-#include "3rd_party/ExceptionWithCallStack.h"
+#ifdef CUDA_FOUND
+#include "training/graph_group_async_drop.h"
+#include "training/graph_group_multinode.h"
+#endif
 
 int main(int argc, char** argv) {
   using namespace marian;
 
-  if(argc > 1 && argv[1][0] != '-') {
-    std::string cmd = argv[1];
-    argc--;
-    argv[1] = argv[0];
-    argv++;
-    if(cmd == "train")           return mainTrainer(argc, argv);
-    else if(cmd == "decode")     return mainDecoder(argc, argv);
-    else if (cmd == "score")     return mainScorer(argc, argv);
-    else if (cmd == "vocab")     return mainVocab(argc, argv);
-    else if (cmd == "convert")   return mainConv(argc, argv);
-    std::cerr << "Command must be train, decode, score, vocab, or convert." << std::endl;
-    exit(1);
-  } else
-    return mainTrainer(argc, argv);
+  auto options = New<Config>(argc, argv);
+
+  // selects MultiNodeGraphGroup family
+  // Note: --sync-sgd without --multi-node also supports MPI now, using the SyncGraphGroup.
+  // This means we have two redundant implementations of multi-node sync-sgd. Note that the
+  // MultiNodeGraphGroup family is out of date. Therefore, the goal is to remove MultiNodeGraphGroupSync.
+  if(options->get<bool>("multi-node")) {
+    LOG(warn, "[experimental] Old multi-node training implementations. These are presently not up-to-date.");
+
+    if(options->get<bool>("sync-sgd")) {
+      LOG(warn, "[training] Using MultiNodeGraphGroupSync trainer.");
+      New<Train<MultiNodeGraphGroupSync>>(options)->run();
+    } else {
+#ifdef CUDA_FOUND
+      LOG(warn, "[training] Using MultiNodeGraphGroup trainer.");
+      New<Train<MultiNodeGraphGroup>>(options)->run();
+#else
+      ABORT("Asynchronous multi-node training requires CUDA");
+#endif
+    }
+  }
+  // --sync-sgd always selects SyncGraphGroup
+  // If given, then this implementation is used for all combinations of
+  // (single, multiple) MPI processes x (single, multiple) GPUs per MPI process.
+  // This variant is presently up-to-date and best supported.
+  else if (options->get<bool>("sync-sgd")) {
+    LOG(warn, "[training] Using SyncGraphGroup trainer.");
+    New<Train<SyncGraphGroup>>(options)->run();
+  }
+  else {
+    auto devices = options->getDevices();
+    if(devices.size() == 1) {
+      LOG(warn, "[training] Using SingletonGraph trainer.");
+      New<Train<SingletonGraph>>(options)->run();
+    } else {
+      if(options->get<float>("grad-dropping-rate") > 0.0) {
+#ifdef CUDA_FOUND
+        LOG(warn, "[training] Using AsyncGraphGroupDrop trainer.");
+        New<Train<AsyncGraphGroupDrop>>(options)->run();
+#else
+        ABORT("Asynchronous training with gradient dropping requires CUDA");
+#endif
+      } else {
+        New<Train<AsyncGraphGroup>>(options)->run();
+      }
+    }
+  }
+
+  return 0;
 }
