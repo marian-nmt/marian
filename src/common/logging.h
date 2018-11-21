@@ -72,10 +72,10 @@ namespace marian {
   } while(0)
 
 typedef std::shared_ptr<spdlog::logger> Logger;
-Logger stderrLogger(const std::string&,
-                    const std::string&,
-                    const std::vector<std::string>& = {},
-                    bool quiet = false);
+Logger createStderrLogger(const std::string&,
+                          const std::string&,
+                          const std::vector<std::string>& = {},
+                          bool quiet = false);
 
 namespace marian {
 class Config;
@@ -86,9 +86,17 @@ void checkedLog(std::string logger, std::string level, Args... args) {
   Logger log = spdlog::get(logger);
   if(!log) {
     if(level == "critical") {
-      auto errlog = stderrLogger("error", "Error: %v - aborting");
+      // log and errlog are not the same, hence we need to check
+      // if an error logger exists first and not try to create a
+      // second one. Otherwise this will throw an exception.
+      Logger errlog = spdlog::get("error");
+      if(!errlog)
+        errlog = createStderrLogger("error", "Error: %v - aborting");
       errlog->critical(args...);
     }
+    // @TODO: should other loggers do something? This seems to be
+    // a sink state when logs are not intialized. Critical errors
+    // should log nevertheless, non-critical go unreported.
     return;
   }
 

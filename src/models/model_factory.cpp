@@ -284,10 +284,5 @@ Ptr<ModelBase> from_options(Ptr<Options> options, usage use) {
   return by_type(type, use, options);
 }
 
-Ptr<ModelBase> from_config(Ptr<Config> config, usage use) {
-  Ptr<Options> options = New<Options>();
-  options->merge(config);
-  return from_options(options, use);
-}
 }  // namespace models
 }  // namespace marian

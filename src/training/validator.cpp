@@ -4,7 +4,7 @@ namespace marian {
 
 std::vector<Ptr<Validator<data::Corpus>>> Validators(
     std::vector<Ptr<Vocab>> vocabs,
-    Ptr<Config> config) {
+    Ptr<Options> config) {
   std::vector<Ptr<Validator<data::Corpus>>> validators;
 
   auto validMetrics = config->get<std::vector<std::string>>("valid-metrics");
@@ -13,9 +13,8 @@ std::vector<Ptr<Validator<data::Corpus>>> Validators(
       = {"cross-entropy", "ce-mean", "ce-sum", "ce-mean-words", "perplexity"};
 
   for(auto metric : validMetrics) {
-    if(std::find(ceMetrics.begin(), ceMetrics.end(), metric)
-       != ceMetrics.end()) {
-      Ptr<Config> opts = New<Config>(*config);
+    if(std::find(ceMetrics.begin(), ceMetrics.end(), metric) != ceMetrics.end()) {
+      Ptr<Options> opts = New<Options>(*config);
       opts->set("cost-type", metric);
 
       auto validator = New<CrossEntropyValidator>(vocabs, opts);

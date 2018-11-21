@@ -14,10 +14,10 @@ namespace marian {
 template <class ModelWrapper>
 class Train : public ModelTask {
 private:
-  Ptr<Config> options_;
+  Ptr<Options> options_;
 
 public:
-  Train(Ptr<Config> options) : options_(options) {}
+  Train(Ptr<Options> options) : options_(options) {}
 
   void run() override {
     using namespace data;
@@ -50,7 +50,7 @@ public:
     auto scheduler = New<Scheduler>(options_, trainState);
 
     if((options_->has("valid-sets") || options_->has("valid-script-path"))
-       && options_->get<size_t>("valid-freq") > 0) {
+       && SchedulingParameter::parse(options_->get<std::string>("valid-freq"))) {
       for(auto validator : Validators(dataset->getVocabs(), options_))
         scheduler->addValidator(validator);
     }
@@ -74,7 +74,7 @@ public:
       restored = false;
 
       // @TODO: try to use for(auto ...)
-      for(auto batchIt = std::begin(*batchGenerator); 
+      for(auto batchIt = std::begin(*batchGenerator);
           batchIt != std::end(*batchGenerator) && scheduler->keepGoing();
           batchIt++) {
         model->update(*batchIt);

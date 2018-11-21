@@ -9,12 +9,12 @@
 int main(int argc, char** argv) {
   using namespace marian;
 
-  auto options = New<Config>(argc, argv, cli::mode::translation);
+  auto options = parseOptions(argc, argv, cli::mode::translation);
   auto task = New<Translate<BeamSearch>>(options);
 
   timer::Timer timer;
   task->run();
-  LOG(info, "Total time: {}", timer.format());
+  LOG(info, "Total time: {:.5f}s wall", timer.elapsed());
 
   return 0;
 }
