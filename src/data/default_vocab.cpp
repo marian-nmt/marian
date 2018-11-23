@@ -30,14 +30,14 @@ private:
 
   class VocabFreqOrderer {
   private:
-    std::unordered_map<std::string, size_t>& counter_;
+    const std::unordered_map<std::string, size_t>& counter_;
 
   public:
-    VocabFreqOrderer(std::unordered_map<std::string, size_t>& counter)
+    VocabFreqOrderer(const std::unordered_map<std::string, size_t>& counter)
         : counter_(counter) {}
 
     bool operator()(const std::string& a, const std::string& b) const {
-      return counter_[a] > counter_[b] || (counter_[a] == counter_[b] && a < b);
+      return counter_.at(a) > counter_.at(b) || (counter_.at(a) == counter_.at(b) && a < b);
     }
   };
 
@@ -181,51 +181,9 @@ public:
     unkId_ = insertWord(DEFAULT_UNK_ID, DEFAULT_UNK_STR);
   }
 
-  void create(const std::string& vocabPath, const std::string& trainPath) override {
-    LOG(info, "[data] Creating vocabulary {} from {}", vocabPath, trainPath);
-
-    filesystem::Path path(vocabPath);
-    auto dir = path.parentPath();
-    if(dir.empty())
-      dir = filesystem::currentPath();
-
-    ABORT_IF(!dir.empty() && !filesystem::isDirectory(dir),
-            "Specified vocab directory {} does not exist",
-            dir.string());
-
-    ABORT_IF(!dir.empty() && !filesystem::canWrite(dir),
-            "No write permission in vocab directory {}",
-            dir.string());
-
-    ABORT_IF(filesystem::exists(vocabPath),
-            "DefaultVocab file '{}' exists. Not overwriting",
-            path.string());
-
-    io::InputFileStream trainStrm(trainPath);
-    io::OutputFileStream vocabStrm(vocabPath);
-    create(trainStrm, vocabStrm);
-  }
-
-  void create(io::InputFileStream& trainStrm,
-              io::OutputFileStream& vocabStrm,
+  void create(const std::unordered_map<std::string, size_t>& counter,
+              const std::string& vocabPath,
               size_t maxSize = 0) override {
-    std::string line;
-    std::unordered_map<std::string, size_t> counter;
-
-    std::unordered_set<Word> seenSpecial;
-
-    while(getline((std::istream&)trainStrm, line)) {
-      std::vector<std::string> toks;
-      utils::split(line, toks, " ");
-
-      for(const std::string& tok : toks) {
-        auto iter = counter.find(tok);
-        if(iter == counter.end())
-          counter[tok] = 1;
-        else
-          iter->second++;
-      }
-    }
 
     std::vector<std::string> vocabVec;
     for(auto& p : counter)
@@ -245,6 +203,7 @@ public:
     for(size_t i = 0; i < vocabSize; ++i)
       vocabYaml.force_insert(vocabVec[i], i + maxSpec + 1);
 
+    io::OutputFileStream vocabStrm(vocabPath);
     vocabStrm << vocabYaml;
   }
 

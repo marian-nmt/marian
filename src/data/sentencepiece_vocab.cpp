@@ -2,7 +2,7 @@
 
 #ifdef USE_SENTENCEPIECE
 #include "sentencepiece/src/sentencepiece_processor.h"
-#endif 
+#endif
 
 #include "common/options.h"
 #include "common/logging.h"
@@ -58,14 +58,10 @@ public:
   virtual Word getEosId() const override { return (Word)spm_->eos_id(); }
   virtual Word getUnkId() const override { return (Word)spm_->unk_id(); }
 
-  void create(const std::string& /*vocabPath*/, const std::string& /*trainPath*/) {
-    ABORT("[data] Training of SentencePieceVocab not yet supported");
-  }
-
-  void create(io::InputFileStream& /*trainStrm*/,
-              io::OutputFileStream& /*vocabStrm*/,
-              size_t /*maxSize*/) {
-    ABORT("[data] Training of SentencePieceVocab not yet supported");
+  void create(const std::unordered_map<std::string, size_t>& counter,
+              const std::string& vocabPath,
+              size_t maxSize) override {
+    ABORT("[data] Creating SentencePieceVocab not supported");
   }
 
   void createFake() {

@@ -57,18 +57,10 @@ int Vocab::load(const std::string& vocabPath, int max) {
   return vImpl_->load(vocabPath, max);
 }
 
-void Vocab::create(const std::string& vocabPath, const std::string& trainPath) {
+void Vocab::create(const std::string& vocabPath, const std::string& trainPath, size_t maxSize) {
   if(!vImpl_)
     vImpl_ = createVocab(vocabPath, options_, batchIndex_);
-  vImpl_->create(vocabPath, trainPath);
-}
-
-void Vocab::create(io::InputFileStream& trainStrm,
-                   io::OutputFileStream& vocabStrm,
-                   size_t maxSize) {
-  if(!vImpl_)
-    vImpl_ = createDefaultVocab(); // Only DefaultVocab can be built from streams
-  vImpl_->create(trainStrm, vocabStrm, maxSize);
+  vImpl_->create(vocabPath, trainPath, maxSize);
 }
 
 void Vocab::createFake() {
