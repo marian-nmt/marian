@@ -117,10 +117,6 @@ public:
       auto str = pair.first;
       auto id = pair.second;
 
-      if(SPEC2SYM.count(str)) {
-        seenSpecial.insert(id);
-      }
-
       // note: this requires ids to be sorted by frequency
       if(!max || id < (Word)max) {
         insertWord(id, str);
@@ -174,8 +170,6 @@ public:
       };
       // @TODO: the hard-att code has not yet been updated to accept EOS at any id
       requireWord(DEFAULT_EOS_ID, DEFAULT_EOS_STR);
-      for(auto id : seenSpecial)
-        requireWord(id, SYM2SPEC.at(id));
     }
 
     return std::max((int)id2str_.size(), max);
@@ -222,17 +216,9 @@ public:
 
     while(getline((std::istream&)trainStrm, line)) {
       std::vector<std::string> toks;
-
-      // we do not want any unexpected behavior during creation
-      // e.g. sampling, hence use inference mode
       utils::split(line, toks, " ");
 
       for(const std::string& tok : toks) {
-        if(SPEC2SYM.count(tok)) {
-          seenSpecial.insert(SPEC2SYM.at(tok));
-          continue;
-        }
-
         auto iter = counter.find(tok);
         if(iter == counter.end())
           counter[tok] = 1;
@@ -251,14 +237,7 @@ public:
     vocabYaml.force_insert(DEFAULT_EOS_STR, DEFAULT_EOS_ID);
     vocabYaml.force_insert(DEFAULT_UNK_STR, DEFAULT_UNK_ID);
 
-    for(auto word : seenSpecial)
-      vocabYaml.force_insert(SYM2SPEC.at(word), word);
-
     Word maxSpec = 1;
-    for(auto i : seenSpecial)
-      if(i > maxSpec)
-        maxSpec = i;
-
     auto vocabSize = vocabVec.size();
     if(maxSize > maxSpec)
       vocabSize = std::min(maxSize - maxSpec - 1, vocabVec.size());
