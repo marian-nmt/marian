@@ -181,8 +181,8 @@ public:
     unkId_ = insertWord(DEFAULT_UNK_ID, DEFAULT_UNK_STR);
   }
 
-  void create(const std::unordered_map<std::string, size_t>& counter,
-              const std::string& vocabPath,
+  void create(const std::string& vocabPath,
+              const std::unordered_map<std::string, size_t>& counter,
               size_t maxSize = 0) override {
 
     std::vector<std::string> vocabVec;

@@ -29,12 +29,12 @@ public:
     }
   }
 
-  virtual void create(const std::unordered_map<std::string, size_t>& counter,
-                      const std::string& vocabPath,
+  virtual void create(const std::string& vocabPath,
+                      const std::unordered_map<std::string, size_t>& counter,
                       size_t maxSize = 0) = 0;
 
-  void create(const std::vector<std::string>& trainPaths,
-              const std::string& vocabPath,
+  void create(const std::string& vocabPath,
+              const std::vector<std::string>& trainPaths,
               size_t maxSize = 0) {
 
     LOG(info, "[data] Creating vocabulary {} from {}",
@@ -59,13 +59,13 @@ public:
     std::unordered_map<std::string, size_t> counter;
     for(const auto& trainPath : trainPaths)
       addCounts(counter, trainPath);
-    create(counter, vocabPath, maxSize);
+    create(vocabPath, counter, maxSize);
   }
 
-  void create(const std::string& trainPath,
-              const std::string& vocabPath,
+  void create(const std::string& vocabPath,
+              const std::string& trainPath,
               size_t maxSize = 0) {
-    create({trainPath}, vocabPath, maxSize);
+    create(vocabPath, std::vector<std::string>({trainPath}), maxSize);
   }
 
   // return canonical suffix for given type of vocabulary

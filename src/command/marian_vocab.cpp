@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
   LOG(info, "Creating vocabulary...");
 
   auto vocab = New<Vocab>(options, 0);
-  vocab->create("stdin", "stdout", options->get<size_t>("max-size"));
+  vocab->create("stdout", "stdin", options->get<size_t>("max-size"));
 
   LOG(info, "Finished");
 

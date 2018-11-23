@@ -58,8 +58,8 @@ public:
   virtual Word getEosId() const override { return (Word)spm_->eos_id(); }
   virtual Word getUnkId() const override { return (Word)spm_->unk_id(); }
 
-  void create(const std::unordered_map<std::string, size_t>& counter,
-              const std::string& vocabPath,
+  void create(const std::string& vocabPath,
+              const std::unordered_map<std::string, size_t>& counter,
               size_t maxSize) override {
     ABORT("[data] Creating SentencePieceVocab not supported");
   }
