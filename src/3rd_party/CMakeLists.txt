@@ -32,7 +32,6 @@ if(USE_SENTENCEPIECE)
 
 endif(USE_SENTENCEPIECE)
 
-
 include_directories(./SQLiteCpp/include)
 include_directories(./CLI)
 

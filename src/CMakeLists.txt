@@ -159,7 +159,6 @@ if(USE_STATIC_LIBS)
                 "marian-conv"
     DEPENDS marian_train marian_decoder marian_scorer marian_vocab marian_conv)
   add_custom_target(marian_tgz DEPENDS "${CMAKE_BINARY_DIR}/marian.tgz")
-
   add_custom_target(philly DEPENDS marian_tgz marian_zip)
 endif()
 
@@ -172,7 +171,7 @@ endif(COMPILE_SERVER)
 foreach(exec ${EXECUTABLES})
   target_link_libraries(${exec} marian ${EXT_LIBS} ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
   if(CUDA_FOUND)
-    target_link_libraries(${exec} marian marian_cuda ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+    target_link_libraries(${exec} marian marian_cuda nccl ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
     cuda_add_cublas_to_target(${exec})
   endif(CUDA_FOUND)
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
