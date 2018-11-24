@@ -64,7 +64,7 @@ if(USE_SENTENCEPIECE)
 
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_SENTENCEPIECE")
   LIST(APPEND CUDA_NVCC_FLAGS -DUSE_SENTENCEPIECE; )
-  set(EXT_LIBS ${EXT_LIBS} sentencepiece)
+  set(EXT_LIBS ${EXT_LIBS} sentencepiece sentencepiece_train)
 endif()
 
 
