@@ -181,9 +181,9 @@ public:
     unkId_ = insertWord(DEFAULT_UNK_ID, DEFAULT_UNK_STR);
   }
 
-  void create(const std::string& vocabPath,
-              const std::unordered_map<std::string, size_t>& counter,
-              size_t maxSize = 0) override {
+  virtual void create(const std::string& vocabPath,
+                      const std::unordered_map<std::string, size_t>& counter,
+                      size_t maxSize = 0) override {
 
     std::vector<std::string> vocabVec;
     for(auto& p : counter)
@@ -203,8 +203,11 @@ public:
     for(size_t i = 0; i < vocabSize; ++i)
       vocabYaml.force_insert(vocabVec[i], i + maxSpec + 1);
 
-    io::OutputFileStream vocabStrm(vocabPath);
-    vocabStrm << vocabYaml;
+    std::unique_ptr<io::OutputFileStream> vocabStrm(
+      vocabPath == "stdout" ? new io::OutputFileStream(std::cout)
+                            : new io::OutputFileStream(vocabPath)
+    );
+    *vocabStrm << vocabYaml;
   }
 
 private:

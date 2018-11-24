@@ -13,9 +13,13 @@ public:
 
   void addCounts(std::unordered_map<std::string, size_t>& counter,
                  const std::string& trainPath) {
+    std::unique_ptr<io::InputFileStream> trainStrm(
+      trainPath == "stdin" ? new io::InputFileStream(std::cin)
+                           : new io::InputFileStream(trainPath)
+    );
+
     std::string line;
-    io::InputFileStream trainStrm(trainPath);
-    while(getline(trainStrm, line)) {
+    while(getline(*trainStrm, line)) {
       std::vector<std::string> toks;
       utils::split(line, toks, " ");
 
@@ -33,9 +37,9 @@ public:
                       const std::unordered_map<std::string, size_t>& counter,
                       size_t maxSize = 0) = 0;
 
-  void create(const std::string& vocabPath,
-              const std::vector<std::string>& trainPaths,
-              size_t maxSize = 0) {
+  virtual void create(const std::string& vocabPath,
+                      const std::vector<std::string>& trainPaths,
+                      size_t maxSize = 0) {
 
     LOG(info, "[data] Creating vocabulary {} from {}",
               vocabPath,
@@ -62,9 +66,9 @@ public:
     create(vocabPath, counter, maxSize);
   }
 
-  void create(const std::string& vocabPath,
-              const std::string& trainPath,
-              size_t maxSize = 0) {
+  virtual void create(const std::string& vocabPath,
+                      const std::string& trainPath,
+                      size_t maxSize = 0) {
     create(vocabPath, std::vector<std::string>({trainPath}), maxSize);
   }
 
