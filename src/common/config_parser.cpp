@@ -257,6 +257,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<std::vector<float>>("--sentencepiece-alphas",
                               "Sampling factors for SentencePieceVocab;"
                               "i-th factor corresponds to i-th vocabulary");
+  cli.add<std::string>("--sentencepiece-options",
+                       "Pass-through command-line options to SentencePiece trainer");
 #endif
   // scheduling options
   cli.add<size_t>("--after-epochs,-e",

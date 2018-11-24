@@ -182,8 +182,61 @@ public:
   }
 
   virtual void create(const std::string& vocabPath,
-                      const std::unordered_map<std::string, size_t>& counter,
-                      size_t maxSize = 0) override {
+                      const std::vector<std::string>& trainPaths,
+                      size_t maxSize = 0) {
+
+    LOG(info, "[data] Creating vocabulary {} from {}",
+              vocabPath,
+              utils::join(trainPaths, ", "));
+
+    if(vocabPath != "stdout") {
+      filesystem::Path path(vocabPath);
+      auto dir = path.parentPath();
+      if(dir.empty())
+        dir = filesystem::currentPath();
+
+      ABORT_IF(!dir.empty() && !filesystem::isDirectory(dir),
+              "Specified vocab directory {} does not exist",
+              dir.string());
+
+      ABORT_IF(filesystem::exists(vocabPath),
+              "Vocabulary file '{}' exists. Not overwriting",
+              path.string());
+    }
+
+    std::unordered_map<std::string, size_t> counter;
+    for(const auto& trainPath : trainPaths)
+      addCounts(counter, trainPath);
+    create(vocabPath, counter, maxSize);
+  }
+
+private:
+
+  void addCounts(std::unordered_map<std::string, size_t>& counter,
+                 const std::string& trainPath) {
+    std::unique_ptr<io::InputFileStream> trainStrm(
+      trainPath == "stdin" ? new io::InputFileStream(std::cin)
+                           : new io::InputFileStream(trainPath)
+    );
+
+    std::string line;
+    while(getline(*trainStrm, line)) {
+      std::vector<std::string> toks;
+      utils::split(line, toks, " ");
+
+      for(const std::string& tok : toks) {
+        auto iter = counter.find(tok);
+        if(iter == counter.end())
+          counter[tok] = 1;
+        else
+          iter->second++;
+      }
+    }
+  }
+
+  void create(const std::string& vocabPath,
+              const std::unordered_map<std::string, size_t>& counter,
+              size_t maxSize = 0) {
 
     std::vector<std::string> vocabVec;
     for(auto& p : counter)
@@ -210,7 +263,6 @@ public:
     *vocabStrm << vocabYaml;
   }
 
-private:
   Words operator()(const std::vector<std::string>& lineTokens,
                    bool addEOS) const {
     Words words(lineTokens.size());

@@ -5,6 +5,7 @@
 #include "sentencepiece/src/sentencepiece_trainer.h"
 #endif
 
+#include "common/config.h"
 #include "common/options.h"
 #include "common/logging.h"
 #include "common/filesystem.h"
@@ -31,9 +32,12 @@ private:
   Ptr<Options> options_;
   size_t batchIndex_{0};
 
+  std::mt19937 generator_;
+  std::uniform_int_distribution<int> randInt_; // from 0 to INT_MAX
+
 public:
   SentencePieceVocab(Ptr<Options> options, size_t batchIndex)
-    : options_(options), batchIndex_(batchIndex) {
+    : options_(options), batchIndex_(batchIndex), generator_(Config::seed) {
 
     if(options_->has("sentencepiece-alphas")) {
       auto alphas = options_->get<std::vector<float>>("sentencepiece-alphas");
@@ -61,35 +65,73 @@ public:
   virtual Word getEosId() const override { return (Word)spm_->eos_id(); }
   virtual Word getUnkId() const override { return (Word)spm_->unk_id(); }
 
+  void resevoirSampling(std::vector<std::string>& sample, size_t& seenLines,
+                        const std::string& trainPath, size_t maxLines, size_t maxBytes) {
+    std::unique_ptr<io::InputFileStream> trainStrm(
+      trainPath == "stdin" ? new io::InputFileStream(std::cin)
+                           : new io::InputFileStream(trainPath)
+    );
+
+    std::string line;
+    while(getline(*trainStrm, line)) {
+      if(line.size() < maxBytes) {
+        if(sample.size() < maxLines) {
+          sample.push_back(line);
+        }
+        else {
+          size_t i = randInt_(generator_) % (seenLines + 1);
+          if(i < maxLines)
+            sample[i] = line;
+        }
+        seenLines++;
+      }
+    }
+  }
+
   void create(const std::string& vocabPath,
-              const std::unordered_map<std::string, size_t>& counter,
-              size_t /*maxSize*/) override {
+              const std::vector<std::string>& trainPaths,
+              size_t maxSize) override {
 
-    // Create temporary tsv file with vocabulary counts
-    io::TemporaryFile temp(options_->get<std::string>("tempdir"), false);
-    std::string fileName = temp.getFileName();
+    size_t defaultMaxSize = 32000;
+    size_t maxLines = 10000000;
+    size_t maxBytes = 2048;
 
-    LOG(info, "[data] Creating tsv in temporary file {}", fileName);
-
-    {
-      io::OutputFileStream out(temp);
-      for(const auto& it : counter)
-        out << it.first << "\t" << it.second << std::endl;
+    if(maxSize == 0) {
+      LOG(info, "[data] Vocabulary size is undefined (set with --dim-vocabs ...) - setting to {}", defaultMaxSize);
+      maxSize = defaultMaxSize;
     }
 
-    // @TODO: expose parameters
-    // @TODO: compute joint vocabs
+    // Iterate over all input files and collect a representative sample via reservoir sampling.
+    // The sample will first grow to the desired size and next keep sampling with decreasing
+    // probability in the hope to get a uniform sample from the union of all files.
+    std::vector<std::string> sample;
+    size_t seenLines = 0;
+    LOG(info, "[data] Sampling {} lines from {}", maxLines, utils::join(trainPaths, ", "));
+    for(const auto& trainPath : trainPaths)
+      resevoirSampling(sample, seenLines, trainPath, maxLines, maxBytes);
 
+    // Create temporary file to hold the sample for the SentencePiece trainer
+    io::TemporaryFile temp(options_->get<std::string>("tempdir"), false);
+    std::string tempFileName = temp.getFileName();
+    LOG(info, "[data] Creating temporary file {}", tempFileName);
+    {
+      io::OutputFileStream out(temp);
+      for(const auto& line : sample)
+        out << line << std::endl;
+    }
+
+    // Compose the SentencePiece training command from filenames and parameters
+    std::string sentencePieceOptions = options_->get<std::string>("sentencepiece-options");
     std::stringstream command;
     command
-      << " --input_format=tsv"
       << " --bos_id=-1 --eos_id=0 --unk_id=1"
-      << " --input="        << fileName
+      << " --input="        << tempFileName
       << " --model_prefix=" << vocabPath
-      << " --vocab_size=1000";
+      << " --vocab_size="   << maxSize
+      << " " << sentencePieceOptions;
 
+    // Train the SentencePiece model
     const auto status = sentencepiece::SentencePieceTrainer::Train(command.str());
-
     ABORT_IF(!status.ok(),
              "SentencePieceVocab error: {}",
              status.ToString());
