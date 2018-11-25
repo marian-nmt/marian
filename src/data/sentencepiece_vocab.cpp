@@ -65,8 +65,13 @@ public:
   virtual Word getEosId() const override { return (Word)spm_->eos_id(); }
   virtual Word getUnkId() const override { return (Word)spm_->unk_id(); }
 
+  // Sample from one file, based on first algorithm from:
+  // https://en.wikipedia.org/wiki/Reservoir_sampling
   void resevoirSampling(std::vector<std::string>& sample, size_t& seenLines,
                         const std::string& trainPath, size_t maxLines, size_t maxBytes) {
+
+    ABORT_IF(maxLines == 0, "Sample needs to be larger 0");
+
     std::unique_ptr<io::InputFileStream> trainStrm(
       trainPath == "stdin" ? new io::InputFileStream(std::cin)
                            : new io::InputFileStream(trainPath)
@@ -75,7 +80,7 @@ public:
     std::string line;
     while(getline(*trainStrm, line)) {
       if(line.size() < maxBytes) {
-        if(maxLines == 0 || sample.size() < maxLines) {
+        if(sample.size() < maxLines) {
           sample.push_back(line);
         }
         else {
@@ -109,6 +114,7 @@ public:
     return sample.size();
   }
 
+  // Just concatenate all files to a temporary file so SentencePiece can consume it.
   size_t dumpAll(io::TemporaryFile& temp,
                  const std::vector<std::string>& trainPaths,
                  size_t maxBytes) {
@@ -157,8 +163,7 @@ public:
     else
       seenLines = resevoirSamplingAll(temp, trainPaths, maxLines, maxBytes);
 
-    // Compose the SentencePiece training command from filenames and parameters
-    std::string sentencePieceOptions = options_->get<std::string>("sentencepiece-options");
+    // Compose the SentencePiece training command from filenames and parameters0
     std::stringstream command;
     command
       << " --bos_id=-1 --eos_id=0 --unk_id=1" // these should not be changed as they match Marian defaults
@@ -167,7 +172,7 @@ public:
       << " --vocab_size="          << maxSize
       << " --max_sentence_length=" << maxBytes
       << " --input_sentence_size=" << seenLines
-      << " " << sentencePieceOptions;
+      << " " << options_->get<std::string>("sentencepiece-options"); // these are SentencePiece command line options
 
     // Train the SentencePiece model
     const auto status = sentencepiece::SentencePieceTrainer::Train(command.str());
