@@ -75,7 +75,7 @@ public:
     std::string line;
     while(getline(*trainStrm, line)) {
       if(line.size() < maxBytes) {
-        if(sample.size() < maxLines) {
+        if(maxLines == 0 || sample.size() < maxLines) {
           sample.push_back(line);
         }
         else {
@@ -88,46 +88,85 @@ public:
     }
   }
 
+  // Iterate over all input files and collect a representative sample via reservoir sampling.
+  // The sample will first grow to the desired size and next keep sampling with decreasing
+  // probability in the hope to get a uniform sample from the union of all files.
+  size_t resevoirSamplingAll(io::TemporaryFile& temp,
+                             const std::vector<std::string>& trainPaths,
+                             size_t maxLines, size_t maxBytes) {
+    LOG(info, "[SentencePiece] Sampling at most {} lines from {}", maxLines, utils::join(trainPaths, ", "));
+
+    std::vector<std::string> sample;
+    size_t seenLines = 0;
+    for(const auto& trainPath : trainPaths)
+      resevoirSampling(sample, seenLines, trainPath, maxLines, maxBytes);
+
+    io::OutputFileStream out(temp);
+    for(const auto& line : sample)
+        out << line << std::endl;
+
+    LOG(info, "[SentencePiece] Selected {} lines", sample.size());
+    return sample.size();
+  }
+
+  size_t dumpAll(io::TemporaryFile& temp,
+                 const std::vector<std::string>& trainPaths,
+                 size_t maxBytes) {
+    LOG(info, "[SentencePiece] Selecting all lines from {}", utils::join(trainPaths, ", "));
+
+    size_t seenLines = 0;
+    std::string line;
+    io::OutputFileStream out(temp);
+    for(const auto& trainPath : trainPaths) {
+      io::InputFileStream in(trainPath);
+      while(getline(in, line)) {
+        if(line.size() < maxBytes) {
+          out << line << std::endl;
+          seenLines++;
+        }
+      }
+    }
+
+    LOG(info, "[SentencePiece] Selected {} lines", seenLines);
+    return seenLines;
+  }
+
   void create(const std::string& vocabPath,
               const std::vector<std::string>& trainPaths,
               size_t maxSize) override {
 
     size_t defaultMaxSize = 32000;
-    size_t maxLines = 10000000;
+    size_t maxLines = options_->get<size_t>("sentencepiece-max-lines");
     size_t maxBytes = 2048;
 
+    LOG(info, "[SentencePiece] Training SentencePiece vocabulary {}", vocabPath);
+
     if(maxSize == 0) {
-      LOG(info, "[data] Vocabulary size is undefined (set with --dim-vocabs ...) - setting to {}", defaultMaxSize);
+      LOG(info, "[SentencePiece] Vocabulary size is undefined (set with --dim-vocabs ...) - setting to {}", defaultMaxSize);
       maxSize = defaultMaxSize;
     }
-
-    // Iterate over all input files and collect a representative sample via reservoir sampling.
-    // The sample will first grow to the desired size and next keep sampling with decreasing
-    // probability in the hope to get a uniform sample from the union of all files.
-    std::vector<std::string> sample;
-    size_t seenLines = 0;
-    LOG(info, "[data] Sampling {} lines from {}", maxLines, utils::join(trainPaths, ", "));
-    for(const auto& trainPath : trainPaths)
-      resevoirSampling(sample, seenLines, trainPath, maxLines, maxBytes);
 
     // Create temporary file to hold the sample for the SentencePiece trainer
     io::TemporaryFile temp(options_->get<std::string>("tempdir"), false);
     std::string tempFileName = temp.getFileName();
-    LOG(info, "[data] Creating temporary file {}", tempFileName);
-    {
-      io::OutputFileStream out(temp);
-      for(const auto& line : sample)
-        out << line << std::endl;
-    }
+    LOG(info, "[SentencePiece] Creating temporary file {}", tempFileName);
+
+    size_t seenLines = 0;
+    if(maxLines == 0)
+      seenLines = dumpAll(temp, trainPaths, maxBytes);
+    else
+      seenLines = resevoirSamplingAll(temp, trainPaths, maxLines, maxBytes);
 
     // Compose the SentencePiece training command from filenames and parameters
     std::string sentencePieceOptions = options_->get<std::string>("sentencepiece-options");
     std::stringstream command;
     command
-      << " --bos_id=-1 --eos_id=0 --unk_id=1"
-      << " --input="        << tempFileName
-      << " --model_prefix=" << vocabPath
-      << " --vocab_size="   << maxSize
+      << " --bos_id=-1 --eos_id=0 --unk_id=1" // these should not be changed as they match Marian defaults
+      << " --input="               << tempFileName
+      << " --model_prefix="        << vocabPath
+      << " --vocab_size="          << maxSize
+      << " --max_sentence_length=" << maxBytes
+      << " --input_sentence_size=" << seenLines
       << " " << sentencePieceOptions;
 
     // Train the SentencePiece model
@@ -136,19 +175,19 @@ public:
              "SentencePieceVocab error: {}",
              status.ToString());
 
-    LOG(info, "[data] Removing {}", vocabPath + ".vocab");
+    LOG(info, "[SentencePiece] Removing {}", vocabPath + ".vocab");
     ABORT_IF(remove((vocabPath + ".vocab").c_str()) != 0,
              "Could not remove {}",
              vocabPath + ".vocab");
 
-    LOG(info, "[data] Renaming {} to {}", vocabPath + ".model", vocabPath);
+    LOG(info, "[SentencePiece] Renaming {} to {}", vocabPath + ".model", vocabPath);
     ABORT_IF(rename((vocabPath + ".model").c_str(), vocabPath.c_str()) != 0,
              "Could not rename {} to {}",
              vocabPath + ".model", vocabPath);
   }
 
   void createFake() {
-    ABORT("[data] Fake SentencePieceVocab not supported");
+    ABORT("[SentencePiece] Fake SentencePieceVocab not supported");
   }
 
   Word operator[](const std::string& token) const {
