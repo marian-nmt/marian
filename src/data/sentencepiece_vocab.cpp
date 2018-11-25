@@ -67,7 +67,7 @@ public:
 
   // Sample from one file, based on first algorithm from:
   // https://en.wikipedia.org/wiki/Reservoir_sampling
-  void resevoirSampling(std::vector<std::string>& sample, size_t& seenLines,
+  void reservoirSampling(std::vector<std::string>& sample, size_t& seenLines,
                         const std::string& trainPath, size_t maxLines, size_t maxBytes) {
 
     ABORT_IF(maxLines == 0, "Sample needs to be larger 0");
@@ -96,7 +96,7 @@ public:
   // Iterate over all input files and collect a representative sample via reservoir sampling.
   // The sample will first grow to the desired size and next keep sampling with decreasing
   // probability in the hope to get a uniform sample from the union of all files.
-  size_t resevoirSamplingAll(io::TemporaryFile& temp,
+  size_t reservoirSamplingAll(io::TemporaryFile& temp,
                              const std::vector<std::string>& trainPaths,
                              size_t maxLines, size_t maxBytes) {
     LOG(info, "[SentencePiece] Sampling at most {} lines from {}", maxLines, utils::join(trainPaths, ", "));
@@ -104,7 +104,7 @@ public:
     std::vector<std::string> sample;
     size_t seenLines = 0;
     for(const auto& trainPath : trainPaths)
-      resevoirSampling(sample, seenLines, trainPath, maxLines, maxBytes);
+      reservoirSampling(sample, seenLines, trainPath, maxLines, maxBytes);
 
     io::OutputFileStream out(temp);
     for(const auto& line : sample)
@@ -161,7 +161,7 @@ public:
     if(maxLines == 0)
       seenLines = dumpAll(temp, trainPaths, maxBytes);
     else
-      seenLines = resevoirSamplingAll(temp, trainPaths, maxLines, maxBytes);
+      seenLines = reservoirSamplingAll(temp, trainPaths, maxLines, maxBytes);
 
     // Compose the SentencePiece training command from filenames and parameters0
     std::stringstream command;
