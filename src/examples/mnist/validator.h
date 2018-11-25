@@ -15,6 +15,7 @@ namespace marian {
 class AccuracyValidator : public Validator<data::MNISTData> {
 public:
   AccuracyValidator(Ptr<Options> options) : Validator(std::vector<Ptr<Vocab>>(), options, false) {
+    createBatchGenerator(/*isTranslating=*/false);
     builder_ = models::from_options(options, models::usage::scoring);
   }
 
@@ -25,12 +26,11 @@ public:
   std::string type() override { return "accuracy"; }
 
 protected:
-  virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& graphs,
-                           Ptr<data::BatchGenerator<data::MNISTData>> batchGenerator) override {
+  virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     float correct = 0;
     size_t samples = 0;
 
-    for(auto batch : *batchGenerator) {
+    for(auto batch : *batchGenerator_) {
       auto probs = builder_->build(graphs[0], batch, true);
       graphs[0]->forward();
 

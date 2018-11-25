@@ -264,16 +264,16 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "Finish after this many epochs, 0 is infinity");
   cli.add<size_t>("--after-batches",
       "Finish after this many batch updates, 0 is infinity");
-  cli.add<size_t>("--disp-freq",
-      "Display information every  arg  updates",
-      1000);
+  cli.add<std::string/*SchedulerPeriod*/>("--disp-freq",
+      "Display information every  arg  updates (append 't' for every  arg  target labels)",
+      "1000u");
   cli.add<size_t>("--disp-first",
       "Display nformation for the first  arg  updates");
   cli.add<bool>("--disp-label-counts",
       "Display label counts when logging loss progress");
-  cli.add<size_t>("--save-freq",
-      "Save model file every  arg  updates",
-      10000);
+  cli.add<std::string/*SchedulerPeriod*/>("--save-freq",
+      "Save model file every  arg  updates (append 't' for every  arg  target labels)",
+      "10000u");
 
   addSuboptionsInputLength(cli);
 
@@ -316,12 +316,12 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "Report learning rate for each update");
 
   cli.add<double>("--lr-decay",
-     "Decay factor for learning rate: lr = lr * arg (0 to disable)");
+     "Per-update decay factor for learning rate: lr <- lr * arg (0 to disable)");
   cli.add<std::string>("--lr-decay-strategy",
      "Strategy for learning rate decaying: epoch, batches, stalled, epoch+batches, epoch+stalled",
      "epoch+stalled");
   cli.add<std::vector<size_t>>("--lr-decay-start",
-     "The first number of epoch/batches/stalled validations to start learning rate decaying",
+     "The first number of (epoch, batches, stalled) validations to start learning rate decaying (tuple)",
      std::vector<size_t>({10,1}));
   cli.add<size_t>("--lr-decay-freq",
      "Learning rate decaying frequency for batches, requires --lr-decay-strategy to be batches",
@@ -330,11 +330,13 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "Reset running statistics of optimizer whenever learning rate decays");
   cli.add<bool>("--lr-decay-repeat-warmup",
      "Repeat learning rate warmup when learning rate is decayed");
-  cli.add<size_t>("--lr-decay-inv-sqrt",
-     "Decrease learning rate at arg / sqrt(no. updates) starting at arg");
+  cli.add<std::string/*SchedulerPeriod*/>("--lr-decay-inv-sqrt",
+     "Decrease learning rate at arg / sqrt(no. batches) starting at arg  (append 't' or 'e' for sqrt(target labels or epochs))",
+      "0");
 
-  cli.add<size_t>("--lr-warmup",
-     "Increase learning rate linearly for arg first steps");
+  cli.add<std::string/*SchedulerPeriod*/>("--lr-warmup",
+     "Increase learning rate linearly for  arg  first batches (append 't' for  arg  first target labels)",
+      "0");
   cli.add<float>("--lr-warmup-start-rate",
      "Start value for learning rate warmup");
   cli.add<bool>("--lr-warmup-cycle",
@@ -391,9 +393,9 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
   // clang-format off
   cli.add_nondefault<std::vector<std::string>>("--valid-sets",
       "Paths to validation corpora: source target");
-  cli.add<size_t>("--valid-freq",
-      "Validate model every  arg  updates",
-      10000);
+  cli.add<std::string/*SchedulerPeriod*/>("--valid-freq",
+      "Validate model every  arg  updates (append 't' for every  arg  target labels)",
+      "10000u");
   cli.add<std::vector<std::string>>("--valid-metrics",
       "Metric to use during validation: cross-entropy, perplexity, valid-script, translation."
       " Multiple metrics can be specified",
