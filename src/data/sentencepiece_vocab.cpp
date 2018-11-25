@@ -79,7 +79,7 @@ public:
 
     std::string line;
     while(getline(*trainStrm, line)) {
-      if(line.size() < maxBytes) {
+      if(line.size() > 0 && line.size() < maxBytes) {
         if(sample.size() < maxLines) {
           sample.push_back(line);
         }
@@ -126,7 +126,7 @@ public:
     for(const auto& trainPath : trainPaths) {
       io::InputFileStream in(trainPath);
       while(getline(in, line)) {
-        if(line.size() < maxBytes) {
+        if(line.size() > 0 && line.size() < maxBytes) {
           out << line << std::endl;
           seenLines++;
         }
