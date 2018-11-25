@@ -641,9 +641,7 @@ void ConfigParser::addSuboptionsULR(cli::CLIWrapper& cli) {
 
 void ConfigParser::expandAliases(cli::CLIWrapper& cli) {
   YAML::Node config;
-
-  // @TODO: Aliases should be (?) proceeded in the same order as they were specified via the
-  // command-line, not arbitrary?
+  // The order of aliases does matter as later options overwrite earlier
 
   if(config_["best-deep"].as<bool>()) {
     config["layer-normalization"] = true;
@@ -696,7 +694,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   if(!configPaths.empty()) {
     auto config = loadConfigFiles(configPaths);
     auto success = cli.updateConfig(config);
-    ABORT_IF(!success, "There are option(s) in a config file are not expected");
+    ABORT_IF(!success, "There are option(s) in a config file that are not expected");
   }
 
   if(get<bool>("interpolate-env-vars")) {
