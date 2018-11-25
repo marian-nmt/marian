@@ -96,6 +96,9 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
       if(maxVocabs.size() < vocabPaths.size())
         maxVocabs.resize(paths_.size(), 0);
 
+      // Group training files based on vocabulary path. If the same
+      // vocab path corresponds to different training files, this means
+      // that a single vocab should combine tokens from all files.
       typedef std::pair<std::set<std::string>, size_t> PathsAndSize;
       std::map<std::string, PathsAndSize> groupVocab;
       for(size_t i = 0; i < vocabPaths.size(); ++i) {
@@ -106,6 +109,9 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
 
       for(size_t i = 0; i < vocabPaths.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>(options_, i);
+
+        // Get the set of files that corresponds to the vocab. If the next file is the same vocab,
+        // it wild not be created again, but just correctly loaded.
         auto pathsAndSize = groupVocab[vocabPaths[i]];
         std::vector<std::string> groupedPaths(pathsAndSize.first.begin(), pathsAndSize.first.end());
         int vocSize = vocab->loadOrCreate(vocabPaths[i], groupedPaths, pathsAndSize.second);
