@@ -1,6 +1,5 @@
 #include "data/vocab_base.h"
 
-#include "3rd_party/exception.h"
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/logging.h"
 #include "common/regex.h"

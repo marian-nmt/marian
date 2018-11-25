@@ -40,7 +40,7 @@ public:
   }
 
   void update(Ptr<data::Batch> batch) override {
-    ABORT_IF(finalized_, "Training has already finished.");
+    ABORT_IF(finalized_, "Training has already finished");
     execute(batch);
   }
 

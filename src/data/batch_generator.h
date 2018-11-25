@@ -55,7 +55,7 @@ class BatchGenerator : public RNGEngine {
 public:
   typedef typename DataSet::batch_ptr BatchPtr;
 
-  typedef typename DataSet::sample Sample;
+  typedef typename DataSet::Sample Sample;
   typedef std::vector<Sample> Samples;     // @TODO: type names should be capitalized
 
   typedef BatchIterator<BatchGenerator> iterator;
