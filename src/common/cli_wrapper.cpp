@@ -134,7 +134,7 @@ bool CLIWrapper::updateConfig(const YAML::Node &config) {
     // skip options specified via command-line to allow overwriting them
     if(cmdOptions.count(key))
       continue;
-    if(config_[key]) {
+    if(options_.count(key)) {
       config_[key] = YAML::Clone(it.second);
       options_[key].modified = true;
     } else {
