@@ -249,7 +249,7 @@ public:
   }
 
 };
-#endif
+#endif // USE_SENTENCEPIECE
 
 Ptr<VocabBase> createSentencePieceVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
   bool isSentencePiece = regex::regex_search(vocabPath, regex::regex("\\.(spm)$"));
