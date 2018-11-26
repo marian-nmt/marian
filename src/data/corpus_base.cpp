@@ -96,7 +96,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
       if(maxVocabs.size() < vocabPaths.size())
         maxVocabs.resize(paths_.size(), 0);
 
-      // Helper opject to for grouping training data based on file name
+      // Helper object to for grouping training data based on vocabulary file name
       struct PathsAndSize {
         std::set<std::string> paths; // contains all paths that are used for training the vocabulary
         size_t size;                 // contains the maximum vocabulary size
@@ -120,6 +120,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
         auto pathsAndSize = groupVocab[vocabPaths[i]];
         std::vector<std::string> groupedPaths(pathsAndSize.paths.begin(), pathsAndSize.paths.end());
         int vocSize = vocab->loadOrCreate(vocabPaths[i], groupedPaths, pathsAndSize.size);
+        
         // TODO: this is not nice as it modifies the option object and needs to expose the changes
         // outside the corpus as models need to know about the vocabulary size; extract the vocab
         // creation functionality from the class.
