@@ -96,15 +96,20 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
       if(maxVocabs.size() < vocabPaths.size())
         maxVocabs.resize(paths_.size(), 0);
 
+      // Helper opject to for grouping training data based on file name
+      struct PathsAndSize {
+        std::set<std::string> paths; // contains all paths that are used for training the vocabulary
+        size_t size;                 // contains the maximum vocabulary size
+      };
+      
       // Group training files based on vocabulary path. If the same
       // vocab path corresponds to different training files, this means
       // that a single vocab should combine tokens from all files.
-      typedef std::pair<std::set<std::string>, size_t> PathsAndSize;
       std::map<std::string, PathsAndSize> groupVocab;
       for(size_t i = 0; i < vocabPaths.size(); ++i) {
-        groupVocab[vocabPaths[i]].first.insert(paths_[i]);
-        if(groupVocab[vocabPaths[i]].second < maxVocabs[i])
-          groupVocab[vocabPaths[i]].second = maxVocabs[i];
+        groupVocab[vocabPaths[i]].paths.insert(paths_[i]);
+        if(groupVocab[vocabPaths[i]].size < maxVocabs[i])
+          groupVocab[vocabPaths[i]].size = maxVocabs[i];
       }
 
       for(size_t i = 0; i < vocabPaths.size(); ++i) {
@@ -113,8 +118,8 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
         // Get the set of files that corresponds to the vocab. If the next file is the same vocab,
         // it wild not be created again, but just correctly loaded.
         auto pathsAndSize = groupVocab[vocabPaths[i]];
-        std::vector<std::string> groupedPaths(pathsAndSize.first.begin(), pathsAndSize.first.end());
-        int vocSize = vocab->loadOrCreate(vocabPaths[i], groupedPaths, pathsAndSize.second);
+        std::vector<std::string> groupedPaths(pathsAndSize.paths.begin(), pathsAndSize.paths.end());
+        int vocSize = vocab->loadOrCreate(vocabPaths[i], groupedPaths, pathsAndSize.size);
         // TODO: this is not nice as it modifies the option object and needs to expose the changes
         // outside the corpus as models need to know about the vocabulary size; extract the vocab
         // creation functionality from the class.

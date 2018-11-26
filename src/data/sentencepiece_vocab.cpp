@@ -48,7 +48,7 @@ public:
 
       if(alpha_ > 0)
         LOG(debug,
-            "Setting SentencePieceVocab sampling factor to {} for input {}",
+            "Setting SentencePiece vocabulary sampling factor to {} for input {}",
             alpha_,
             batchIndex_);
     }
@@ -178,7 +178,7 @@ public:
     // Train the SentencePiece model
     const auto status = sentencepiece::SentencePieceTrainer::Train(command.str());
     ABORT_IF(!status.ok(),
-             "SentencePieceVocab error: {}",
+             "SentencePiece vocabulary error: {}",
              status.ToString());
 
     LOG(info, "[SentencePiece] Removing {}", vocabPath + ".vocab");
@@ -193,7 +193,7 @@ public:
   }
 
   void createFake() {
-    ABORT("[SentencePiece] Fake SentencePieceVocab not supported");
+    ABORT("[SentencePiece] Fake SentencePiece vocabulary not supported");
   }
 
   Word operator[](const std::string& token) const {
@@ -232,17 +232,17 @@ public:
   }
 
   int load(const std::string& vocabPath, int /*max*/) {
-    LOG(info, "[data] Loading SentencePieceVocab from file {}", vocabPath);
+    LOG(info, "[data] Loading SentencePiece vocabulary from file {}", vocabPath);
 
     ABORT_IF(!filesystem::exists(vocabPath),
-             "SentencePieceVocab file {} does not exits",
+             "SentencePiece vocabulary file {} does not exits",
              vocabPath);
 
     spm_.reset(new sentencepiece::SentencePieceProcessor());
     const auto status = spm_->Load(vocabPath);
 
     ABORT_IF(!status.ok(),
-             "SentencePieceVocab error: {}",
+             "SentencePiece vocabulary error: {}",
              status.ToString());
 
     return spm_->GetPieceSize();
