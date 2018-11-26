@@ -105,7 +105,7 @@ public:
     size_t seenLines = 0;
     for(const auto& trainPath : trainPaths)
       reservoirSampling(sample, seenLines, trainPath, maxLines, maxBytes);
-    std::random_shuffle(sample.begin(), sample.end());
+    std::shuffle(sample.begin(), sample.end(), generator_);
 
     io::OutputFileStream out(temp);
     for(const auto& line : sample)
