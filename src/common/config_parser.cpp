@@ -255,7 +255,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "If these files do not exist they are created");
 #ifdef USE_SENTENCEPIECE
   cli.add<std::vector<float>>("--sentencepiece-alphas",
-      "Sampling factors for SentencePieceVocab; i-th factor corresponds to i-th vocabulary");
+      "Sampling factors for SentencePiece vocabulary; i-th factor corresponds to i-th vocabulary");
   cli.add<std::string>("--sentencepiece-options",
       "Pass-through command-line options to SentencePiece trainer");
   cli.add<size_t>("--sentencepiece-max-lines",
