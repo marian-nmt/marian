@@ -40,7 +40,7 @@ namespace io {
 
 class TemporaryFile {
 private:
-  int fd_;
+  int fd_{-1};
   bool unlink_;
   std::string name_;
 

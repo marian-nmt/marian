@@ -38,7 +38,7 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
     std::string quote; // attempt to quote special chars
     if (arg.empty() || arg.find_first_of(" #`\"'\\${}|&^?*!()%><") != std::string::npos)
       quote = "'";
-    arg = regex::regex_replace(arg, std::regex("'"), "'\\''");
+    arg = regex::regex_replace(arg, regex::regex("'"), "'\\''");
     if (!cmdLine.empty())
       cmdLine.push_back(' ');
     cmdLine += quote + arg + quote;

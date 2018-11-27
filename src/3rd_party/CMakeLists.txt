@@ -5,7 +5,6 @@ add_subdirectory(./yaml-cpp)
 add_subdirectory(./SQLiteCpp)
 
 if(USE_SENTENCEPIECE)
-
   if(USE_STATIC_LIBS)
     set(_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
     if(WIN32)
@@ -29,7 +28,6 @@ if(USE_SENTENCEPIECE)
   if(USE_STATIC_LIBS)
     set(CMAKE_FIND_LIBRARY_SUFFIXES ${_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
   endif()
-
 endif(USE_SENTENCEPIECE)
 
 
