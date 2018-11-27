@@ -51,20 +51,9 @@ endif()
 # Downloading SentencePiece if requested and set to compile with it.
 # Requires all the dependencies imposed by SentencePiece
 if(USE_SENTENCEPIECE)
-  message(STATUS "Using SentencePiece from our fork https://github.com/marian-nmt/sentencepiece.git")
-  if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/3rd_party/sentencepiece)
-    execute_process(COMMAND git clone https://github.com/marian-nmt/sentencepiece.git
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/3rd_party
-                    RESULT_VARIABLE git_result
-                    ERROR_QUIET)
-    message(STATUS "Downloaded SentencePiece [code: ${git_result}]")
-  else()
-    message(STATUS "It seems that SentencePiece has already been downloaded. Reusing.")
-  endif()
-
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_SENTENCEPIECE")
   LIST(APPEND CUDA_NVCC_FLAGS -DUSE_SENTENCEPIECE; )
-  set(EXT_LIBS ${EXT_LIBS} sentencepiece)
+  set(EXT_LIBS ${EXT_LIBS} sentencepiece sentencepiece_train)
 endif()
 
 

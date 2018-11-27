@@ -77,8 +77,9 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
      "allow the use of environment variables in paths, of the form ${VAR_NAME}");
   cli.add<bool>("--relative-paths",
      "All paths are relative to the config file location");
-  cli.add<bool>("--dump-config",
-     "Dump current (modified) configuration to stdout and exit");
+  cli.add_nondefault<std::string>("--dump-config",
+     "Dump current (modified) configuration to stdout and exit. Possible values: full, minimal")
+    ->implicit_val("full");
   // clang-format on
 }
 
@@ -255,8 +256,13 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "If these files do not exist they are created");
 #ifdef USE_SENTENCEPIECE
   cli.add<std::vector<float>>("--sentencepiece-alphas",
-                              "Sampling factors for SentencePieceVocab;"
-                              "i-th factor corresponds to i-th vocabulary");
+      "Sampling factors for SentencePiece vocabulary; i-th factor corresponds to i-th vocabulary");
+  cli.add<std::string>("--sentencepiece-options",
+      "Pass-through command-line options to SentencePiece trainer");
+  cli.add<size_t>("--sentencepiece-max-lines",
+      "Maximum lines to train SentencePiece vocabulary, selected with sampling from all data. "
+      "When set to 0 all lines are going to be used.",
+      10000000);
 #endif
   // scheduling options
   cli.add<size_t>("--after-epochs,-e",
@@ -607,8 +613,40 @@ void ConfigParser::addSuboptionsInputLength(cli::CLIWrapper& cli) {
   // clang-format on
 }
 
+void ConfigParser::addSuboptionsULR(cli::CLIWrapper& cli) {
+  // clang-format off
+  // support for universal encoder ULR https://arxiv.org/pdf/1802.05368.pdf
+  cli.add<bool>("--ulr",
+      "Enable ULR (Universal Language Representation)",
+      false);
+  // reading pre-trained universal embeddings for multi-sources.
+  // Note that source and target here is relative to ULR not the translation langs
+  // queries: EQ in Fig2 : is the unified embeddings projected to one space.
+  cli.add<std::string>("--ulr-query-vectors",
+      "Path to file with universal sources embeddings from projection into universal space",
+      "");
+  // keys: EK in Fig2 : is the keys of the target embbedings projected to unified space (i.e. ENU in
+  // multi-lingual case)
+  cli.add<std::string>("--ulr-keys-vectors",
+      "Path to file with universal sources embeddings of traget keys from projection into universal space",
+      "");
+  cli.add<bool>("--ulr-trainable-transformation",
+      "Make Query Transformation Matrix A trainable",
+      false);
+  cli.add<int>("--ulr-dim-emb",
+      "ULR monolingual embeddings dimension");
+  cli.add<float>("--ulr-dropout",
+      "ULR dropout on embeddings attentions. Default is no dropout",
+      0.0f);
+  cli.add<float>("--ulr-softmax-temperature",
+      "ULR softmax temperature to control randomness of predictions. Deafult is 1.0: no temperature",
+      1.0f);
+  // clang-format on
+}
+
 void ConfigParser::expandAliases(cli::CLIWrapper& cli) {
   YAML::Node config;
+  // The order of aliases does matter as later options overwrite earlier
 
   if(config_["best-deep"].as<bool>()) {
     config["layer-normalization"] = true;
@@ -622,11 +660,10 @@ void ConfigParser::expandAliases(cli::CLIWrapper& cli) {
     config["skip"] = true;
   }
 
-  // @TODO: Quite sure CLIWrapper should not do that;
-  // that's semantics that seem to belong into the current class
-  // and has not really anything to do with CLI proper.
-  if(config)
-    cli.overwriteDefault(config);
+  if(config) {
+    auto success = cli.updateConfig(config);
+    ABORT_IF(!success, "Unknown option(s) in aliases, check if aliases consist of correct options");
+  }
 }
 
 void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
@@ -661,8 +698,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   auto configPaths = findConfigPaths();
   if(!configPaths.empty()) {
     auto config = loadConfigFiles(configPaths);
-    // combine loaded options with the main config object
-    cli.overwriteDefault(config);
+    auto success = cli.updateConfig(config);
+    ABORT_IF(!success, "There are option(s) in a config file that are not expected");
   }
 
   if(get<bool>("interpolate-env-vars")) {
@@ -677,11 +714,10 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   // remove extra config files from the config to avoid redundancy
   config_.remove("config");
 
-  if(get<bool>("dump-config")) {
+  if(has("dump-config")) {
+    bool skipDefault = get<std::string>("dump-config") == "minimal";
     config_.remove("dump-config");
-    YAML::Emitter emit;
-    cli::OutputYaml(config_, emit);
-    std::cout << emit.c_str() << std::endl;
+    std::cout << cli.dumpConfig(skipDefault) << std::endl;
     exit(0);
   }
 
@@ -714,8 +750,7 @@ std::vector<std::string> ConfigParser::findConfigPaths() {
   return paths;
 }
 
-YAML::Node ConfigParser::loadConfigFiles(
-    const std::vector<std::string>& paths) {
+YAML::Node ConfigParser::loadConfigFiles(const std::vector<std::string>& paths) {
   YAML::Node configAll;
 
   for(auto& path : paths) {
@@ -749,34 +784,5 @@ YAML::Node ConfigParser::loadConfigFiles(
 
 YAML::Node ConfigParser::getConfig() const {
   return config_;
-}
-
-void ConfigParser::addSuboptionsULR(cli::CLIWrapper& cli) {
-  // support for universal encoder ULR https://arxiv.org/pdf/1802.05368.pdf
-  cli.add<bool>("--ulr",
-      "Is ULR (Universal Language Representation) enabled?",
-      false);
-  // reading pre-trained universal embedings for multi-sources
-  // note that source and target here is relative to ULR not the translation  langs
-  //queries: EQ in Fig2 :  is the unified embbedins projected to one space.
-  //"Path to file with universal sources embeddings from projection into universal space")
-  cli.add<std::string>("--ulr-query-vectors",
-      "Path to file with universal sources embeddings from projection into universal space",
-      "");
-  //keys: EK in Fig2 :  is the keys of the target  embbedins projected to unified  space (i.e. ENU in multi-lingual case)
-  cli.add<std::string>("--ulr-keys-vectors",
-      "Path to file with universal sources embeddings of traget keys from projection into universal space",
-      "");
-  cli.add<bool>("--ulr-trainable-transformation",
-      "Is Query Transformation Matrix A trainable ?",
-      false);
-  cli.add<int>("--ulr-dim-emb",
-      "ULR mono embed dim");
-  cli.add<float>("--ulr-dropout",
-      "ULR dropout on embeddings attentions: default is no dropuout",
-      0.0f);
-  cli.add<float>("--ulr-softmax-temperature",
-      "ULR softmax temperature to control randomness of predictions- deafult is 1.0: no temperature ",
-      1.0f);
 }
 }  // namespace marian
