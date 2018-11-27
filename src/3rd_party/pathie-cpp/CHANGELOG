@@ -1,0 +1,52 @@
+-- Version 0.1.0 (2017-10-28) --
+
+* Add Pathie::Tempdir and Pathie::Tempfile classes for
+  creating temporary directories and files.
+* Add Pathie::entry_iterator, Path::begin_entries(), and
+  Path::end_entries(). These allow you to use real C++
+  iterators for working with directory entries.
+* Change Path::find() to take a callback instead of std::function to
+  make it compile under C++98.
+* Add Path::operator/=.
+* Add `const' qualifier to Path::fopen() and Path::touch() as these
+  methods leave the path itself unchanged.
+* Add C++98 compatibility (instead of just C++11).
+* Mark stream replacements as experimental. They are mostly untested
+  and I don't really use them.
+* Add PATHIE_BUILD_STREAM_REPLACEMENTS for building the stream
+  replacements.
+* Rename build option ASSUME_UTF8_ON_UNIX to
+  PATHIE_ASSUME_UTF8_ON_UNIX.
+* Switch license from GPL3 to BSD-2clause.
+* Drop support for expanding "~username/foo" constructs. This
+  nonstandard extension was unportable and caused problems when
+  linking Pathie statically.
+* Add Path::utf8_str() method.
+* Restructure header #include order. Pathie now requires you
+  to specify the exact header to include (e.g. <pathie/path.hpp>)
+  instead of one global header. There was no point in having the
+  stream replacements included if not required.
+* Fix compilation problem with _PATHIE_UNIX not being defined
+* Do not include <windows.h> in Pathie public headers. This caused
+  problems in some circumstances when a certain macro combination
+  of windows.h was needed.
+* Remove config.hpp. This caused confusion when the library was used.
+  Build configuration now only happens via comandline options.
+* Drop shaky support for NTFS symlinks. It never worked really well
+  anyway.
+
+-- Version 0.0.3 (2015-04-30) --
+
+* Don't use CMake's global configuration variables, allowing pathie to
+  be built as a subproject.
+* Fix compilation error on systems that do not automatically
+  #include <stdexcept>.
+
+-- Version 0.0.2 (2015-02-16) --
+
+* Fix installation error on config.hpp
+* Add message that C++11 is required for compilation
+
+-- Version 0.0.1 (2015-02-13) --
+
+First public release.

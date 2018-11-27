@@ -205,7 +205,7 @@ public:
               "Vocabulary file '{}' exists. Not overwriting",
               path.string());
     }
-
+    
     std::unordered_map<std::string, size_t> counter;
     for(const auto& trainPath : trainPaths)
       addCounts(counter, trainPath);

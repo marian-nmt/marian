@@ -1,38 +1,20 @@
 #pragma once
 
-// @TODO: this file still contains lots of stuff from boost::filesystem and boost::iostreams,
-// this has to be figured out.
-
 #include "common/filesystem.h"
 #include "common/logging.h"
 #include "common/definitions.h"
+#include "3rd_party/zstr/zstr.hpp"
 
-#include <boost/filesystem/fstream.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
-#pragma warning(push)
-#pragma warning(disable: 4458) // declaration of 'traits_type' hides class member
-#pragma warning(disable: 4456) // declaration of 'c' hides previous local declaration
-#pragma warning(disable: 4244) // conversion from 'int' to 'char', possible loss of data
-#pragma warning(disable: 4706) // assignment within conditional expression
-#include <boost/iostreams/filter/gzip.hpp>
-#pragma warning(pop)
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsuggest-override"
-#endif
-#include <boost/iostreams/filtering_stream.hpp>
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#include <boost/iostreams/stream_buffer.hpp>
+
 #include <iostream>
 #include <memory>
 
 #ifdef _MSC_VER
-
 #include <fcntl.h>
 #include <io.h>
 #include <stdlib.h>
-
 #endif
 
 namespace marian {
@@ -145,79 +127,77 @@ public:
 
 class InputFileStream {
 public:
-  InputFileStream(const std::string& file) : file_(file), ifstream_(file_.getBoost()) {
-    ABORT_IF(
-        !marian::filesystem::exists(file_), "File '{}' does not exist", file);
+  InputFileStream(const std::string& file)
+  : file_(file) {
+    ABORT_IF(!marian::filesystem::exists(file_), "File '{}' could not be opened", file);
 
-    if(file_.extension() == marian::filesystem::Path(std::string(".gz")))
-      istream_.push(boost::iostreams::gzip_decompressor());
-    istream_.push(ifstream_);
+    if(file_.extension() == marian::filesystem::Path(".gz"))
+      istream_.reset(new zstr::ifstream(file_.string()));
+    else
+      istream_.reset(new std::ifstream(file_.string()));
   }
 
   InputFileStream(TemporaryFile& tempfile)
       : fds_(tempfile.getFileDescriptor(), boost::iostreams::never_close_handle) {
     lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
-    istream_.push(fds_, 1024);
+
+    namespace bio = boost::iostreams;
+    fdsBuffer_.reset(new bio::stream_buffer<bio::file_descriptor_source>(fds_));
+    istream_.reset(new std::istream(fdsBuffer_.get()));
   }
 
-  InputFileStream(std::istream& strm) { istream_.push(strm, 0); }
+  InputFileStream(std::istream& strm)
+  : istream_(new std::istream(strm.rdbuf())) {}
 
-  operator std::istream&() { return istream_; }
+  operator std::istream&() { return *istream_; }
 
-  operator bool() { return (bool)istream_; }
+  operator bool() { return (bool)*istream_; }
 
   bool bad() const {
-    return istream_.bad();
+    return istream_->bad();
   }
 
   bool fail() const {
-    return istream_.fail();
+    return istream_->fail();
   }
 
   char widen(char c) {
-    return istream_.widen(c);
-  }
-
-  bool isOpen() const {
-    return ifstream_.is_open();
+    return istream_->widen(c);
   }
 
   std::string path() { return file_.string(); }
 
-  bool empty() { return ifstream_.peek() == std::ifstream::traits_type::eof(); }
+  bool empty() { return istream_->peek() == std::ifstream::traits_type::eof(); }
 
   void setbufsize(size_t size) const {
-    ifstream_.rdbuf()->pubsetbuf(0, 0);
-    //readBuf_ = std::make_unique<char[]>(size);
+    istream_->rdbuf()->pubsetbuf(0, 0);
     readBuf_.reset(new char[size]);
-    ifstream_.rdbuf()->pubsetbuf(readBuf_.get(), 0);
+    istream_->rdbuf()->pubsetbuf(readBuf_.get(), 0);
   }
 
   template <typename T>
   friend InputFileStream& operator>>(InputFileStream& stream, T& t) {
-    stream.istream_ >> t;
+    *stream.istream_ >> t;
     // bad() seems to be correct here. Should not abort on EOF.
-    ABORT_IF(stream.bad(),
-             "Error reading from file '{}'",
-             stream.path());
+    ABORT_IF(stream.bad(), "Error reading from file '{}'", stream.path());
     return stream;
   }
 
   template <typename T>
   size_t read(T* ptr, size_t num = 1) {
-    istream_.read((char*)ptr, num * sizeof(T));
+    istream_->read((char*)ptr, num * sizeof(T));
     // fail() seems to be correct here. Failure to read should abort.
-    ABORT_IF(fail(),
-             "Error reading from file '{}'",
-             path());
+    ABORT_IF(fail(), "Error reading from file '{}'", path());
     return num * sizeof(T);
   }
 
 private:
   marian::filesystem::Path file_;
-  boost::filesystem::ifstream ifstream_;
+  std::unique_ptr<std::istream> istream_;
+
   boost::iostreams::file_descriptor_source fds_;
-  boost::iostreams::filtering_istream istream_;
+  std::unique_ptr<boost::iostreams::stream_buffer<boost::iostreams::file_descriptor_source>> fdsBuffer_;
+
   mutable UPtr<char[]> readBuf_; // for setbuf()
 };
 
@@ -226,9 +206,7 @@ private:
 static inline InputFileStream& getline(InputFileStream& in, std::string& line) {
   std::getline((std::istream&)in, line);
   // bad() seems to be correct here. Should not abort on EOF.
-  ABORT_IF(in.bad(),
-           "Error reading from file '{}'",
-           in.path());
+  ABORT_IF(in.bad(), "Error reading from file '{}'", in.path());
   // strip terminal CR if present
   if(in && !line.empty() && line.back() == in.widen('\r'))
     line.pop_back();
@@ -240,9 +218,7 @@ static inline InputFileStream& getline(InputFileStream& in, std::string& line) {
 static inline InputFileStream& getline(InputFileStream& in, std::string& line, char delim) {
   std::getline((std::istream&)in, line, delim);
   // bad() seems to be correct here. Should not abort on EOF.
-  ABORT_IF(in.bad(),
-           "Error reading from file '{}'",
-           in.path());
+  ABORT_IF(in.bad(), "Error reading from file '{}'", in.path());
   // strip terminal CR if present
   if(in && !line.empty() && line.back() == in.widen('\r'))
     line.pop_back();
@@ -251,62 +227,61 @@ static inline InputFileStream& getline(InputFileStream& in, std::string& line, c
 
 class OutputFileStream {
 public:
-  OutputFileStream(const std::string& file) : file_(file), ofstream_(file_.getBoost()) {
-    ABORT_IF(
-        !marian::filesystem::exists(file_), "File '{}' does not exist", file);
+  OutputFileStream(const std::string& file) : file_(file) {
+    if(file_.extension() == marian::filesystem::Path(".gz"))
+      ostream_.reset(new zstr::ofstream(file_.string()));
+    else
+      ostream_.reset(new std::ofstream(file_.string()));
 
-    if(file_.extension() == marian::filesystem::Path(std::string(".gz")))
-      ostream_.push(boost::iostreams::gzip_compressor());
-    ostream_.push(ofstream_);
+    ABORT_IF(!marian::filesystem::exists(file_), "File '{}' could not be opened", file);
   }
 
   OutputFileStream(TemporaryFile& tempfile)
       : fds_(tempfile.getFileDescriptor(), boost::iostreams::never_close_handle) {
     lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
-    ostream_.push(fds_, 1024);
+
+    namespace bio = boost::iostreams;
+    fdsBuffer_.reset(new bio::stream_buffer<bio::file_descriptor_sink>(fds_));
+    ostream_.reset(new std::ostream(fdsBuffer_.get()));
   }
 
-  OutputFileStream(std::ostream& strm) { ostream_.push(strm, 0); }
+  OutputFileStream(std::ostream& strm) {
+    ostream_.reset(new std::ostream(strm.rdbuf()));
+  }
 
-  operator std::ostream&() { return ostream_; }
+  operator std::ostream&() { return *ostream_; }
 
-  operator bool() { return (bool)ostream_; }
+  operator bool() { return (bool)*ostream_; }
 
   bool bad() const {
-    return ostream_.bad();
+    return ostream_->bad();
   }
 
   bool fail() const {
-    return ostream_.fail();
+    return ostream_->fail();
   }
 
   template <typename T>
   friend OutputFileStream& operator<<(OutputFileStream& stream, const T& t) {
-    stream.ostream_ << t;
+    *stream.ostream_ << t;
     // fail() seems to be correct here. Failure to write should abort.
-    ABORT_IF(stream.fail(),
-             "Error writing to file '{}'",
-             stream.path());
+    ABORT_IF(stream.fail(), "Error writing to file '{}'", stream.path());
     return stream;
   }
 
   // handle things like std::endl which is actually a function not a value
   friend OutputFileStream& operator<<(OutputFileStream& stream, std::ostream& (*var)(std::ostream&)) {
-    stream.ostream_ << var;
+    *stream.ostream_ << var;
     // fail() seems to be correct here. Failure to write should abort.
-    ABORT_IF(stream.fail(),
-             "Error writing to file '{}'",
-             stream.path());
+    ABORT_IF(stream.fail(), "Error writing to file '{}'", stream.path());
     return stream;
   }
 
   template <typename T>
   size_t write(const T* ptr, size_t num = 1) {
-    ostream_.write((char*)ptr, num * sizeof(T));
+    ostream_->write((char*)ptr, num * sizeof(T));
     // fail() seems to be correct here. Failure to write should abort.
-    ABORT_IF(fail(),
-             "Error writing to file '{}'",
-             path());
+    ABORT_IF(fail(), "Error writing to file '{}'", path());
     return num * sizeof(T);
   }
 
@@ -314,9 +289,10 @@ public:
 
 private:
   marian::filesystem::Path file_;
-  boost::filesystem::ofstream ofstream_;
+  std::unique_ptr<std::ostream> ostream_;
+
   boost::iostreams::file_descriptor_sink fds_;
-  boost::iostreams::filtering_ostream ostream_;
+  std::unique_ptr<boost::iostreams::stream_buffer<boost::iostreams::file_descriptor_sink>> fdsBuffer_;
 };
 
 }

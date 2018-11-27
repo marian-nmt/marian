@@ -150,9 +150,11 @@ void switchtoMultinodeLogging(std::string nodeIdStr) {
 
 
 namespace marian {
-  void noinline logCallStack(size_t skipLevels)
-  {
-    auto callStack = ::Microsoft::MSR::CNTK::DebugUtil::GetCallStack(skipLevels + 2, /*makeFunctionNamesStandOut=*/true);
-    checkedLog("general", "critical", "Call stack:{}", callStack);
+  std::string getCallStack(size_t skipLevels) {
+    return ::Microsoft::MSR::CNTK::DebugUtil::GetCallStack(skipLevels + 2, /*makeFunctionNamesStandOut=*/true);
+  }
+
+  void noinline logCallStack(size_t skipLevels) {
+    checkedLog("general", "critical", getCallStack(skipLevels));
   }
 }

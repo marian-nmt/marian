@@ -83,6 +83,7 @@ add_library(marian STATIC
 
   $<TARGET_OBJECTS:libyaml-cpp>
   $<TARGET_OBJECTS:SQLiteCpp>
+  $<TARGET_OBJECTS:pathie-cpp>
 )
 
 # Generate git_revision.h to reflect current git revision information

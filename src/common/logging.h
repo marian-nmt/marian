@@ -6,6 +6,7 @@
 
 namespace marian {
   void logCallStack(size_t skipLevels);
+  std::string getCallStack(size_t skipLevels);
 }
 
 /**
@@ -46,13 +47,19 @@ namespace marian {
  *
  * @param ... Message text and variables
  */
-#define ABORT(...)                                                      \
-  do {                                                                  \
-    checkedLog("general", "critical", __VA_ARGS__);                     \
-    ::marian::logCallStack(/*skipLevels=*/0);                           \
-    std::cerr << "Aborted from " << FUNCTION_NAME << " in " << __FILE__ \
-              << ": " << __LINE__ << std::endl;                         \
-    std::abort();                                                       \
+#define ABORT(...)                                                             \
+  do {                                                                         \
+    auto logger = spdlog::get("general");                                      \
+    if(logger == nullptr)                                                      \
+      logger = createStderrLogger("general", "[%Y-%m-%d %T] Error: %v");       \
+    else                                                                       \
+      logger->set_pattern("[%Y-%m-%d %T] Error: %v");                          \
+    checkedLog("general", "critical", __VA_ARGS__);                            \
+    checkedLog("general", "critical", "Aborted from {} in {}:{}",              \
+               FUNCTION_NAME, __FILE__, __LINE__);                             \
+    logger->set_pattern("%v");                                                 \
+    checkedLog("general", "critical", marian::getCallStack(/*skipLevels=*/0)); \
+    std::abort();                                                              \
   } while(0)
 
 /**
@@ -85,18 +92,6 @@ template <class... Args>
 void checkedLog(std::string logger, std::string level, Args... args) {
   Logger log = spdlog::get(logger);
   if(!log) {
-    if(level == "critical") {
-      // log and errlog are not the same, hence we need to check
-      // if an error logger exists first and not try to create a
-      // second one. Otherwise this will throw an exception.
-      Logger errlog = spdlog::get("error");
-      if(!errlog)
-        errlog = createStderrLogger("error", "Error: %v - aborting");
-      errlog->critical(args...);
-    }
-    // @TODO: should other loggers do something? This seems to be
-    // a sink state when logs are not intialized. Critical errors
-    // should log nevertheless, non-critical go unreported.
     return;
   }
 

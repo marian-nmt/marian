@@ -84,9 +84,6 @@ void ConfigValidator::validateOptionsTraining() const {
   ABORT_IF(!modelDir.empty() && !filesystem::isDirectory(modelDir),
            "Model directory does not exist");
 
-  ABORT_IF(!modelDir.empty() && !filesystem::canWrite(modelDir),
-           "No write permission in model directory");
-
   ABORT_IF(
       has("valid-sets") && get<std::vector<std::string>>("valid-sets").size() != trainSets.size(),
       "There should be as many validation sets as training sets");
