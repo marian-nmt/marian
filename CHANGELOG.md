@@ -7,11 +7,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.7.0] - 2018-11-27
+
 ### Added
 - Word alignment generation in scorer
 - Attention output generation in decoder and scorer with `--alignment soft`
 - Support for SentencePiece vocabularies and run-time segmentation/desegmentation
-- Synchronous multi-node training
+- Support for SentencePiece vocabulary training during model training
+- Group training files by filename when creating vocabularies for joint vocabularies
+- Updated examples
+- Synchronous multi-node training (early version)
 
 ### Fixed
 - Delayed output in line-by-line translation
