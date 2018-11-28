@@ -402,8 +402,8 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
       "Validate model every  arg  updates (append 't' for every  arg  target labels)",
       "10000u");
   cli.add<std::vector<std::string>>("--valid-metrics",
-      "Metric to use during validation: cross-entropy, perplexity, valid-script, translation."
-      " Multiple metrics can be specified",
+      "Metric to use during validation: cross-entropy, ce-mean-words, perplexity, valid-script, "
+      " translation, bleu, bleu-detok. Multiple metrics can be specified",
       std::vector<std::string>({"cross-entropy"}));
   cli.add<size_t>("--early-stopping",
      "Stop if the first validation metric does not improve for  arg  consecutive validation steps",
