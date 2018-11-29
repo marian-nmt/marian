@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+- Errors due to warnings
+
+### Changed
+- Set nearly all warnings as errors for Marian's own targets. Disable warnings for 3rd party.
+
 ## [1.7.0] - 2018-11-27
 
 ### Added
