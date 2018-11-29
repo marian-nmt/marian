@@ -185,7 +185,7 @@ public:
 
   virtual void create(const std::string& vocabPath,
                       const std::vector<std::string>& trainPaths,
-                      size_t maxSize = 0) {
+                      size_t maxSize = 0) override {
 
     LOG(info, "[data] Creating vocabulary {} from {}",
               vocabPath,

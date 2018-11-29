@@ -953,6 +953,7 @@ struct HighwayNodeOp : public NaryNodeOp {
 };
 
 #ifdef CUDNN
+
 class ConvolutionOp : public NaryNodeOp {
 public:
   ConvolutionOp(const std::vector<Expr>& nodes,
@@ -970,12 +971,12 @@ public:
     conv_.getOutputShape(nodes[0]->shape(), shape_);
   }
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     return {NodeOp(conv_.forward(
         child(0)->val(), child(1)->val(), child(2)->val(), val_))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     return {NodeOp(conv_.backward(child(0)->val(),
                                   child(0)->grad(),
                                   child(1)->val(),
@@ -984,7 +985,7 @@ public:
                                   adj_))};
   }
 
-  const std::string type() { return "layer_convolution"; }
+  const std::string type() override { return "layer_convolution"; }
 
 protected:
   ConvolutionWrapper conv_;

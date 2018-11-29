@@ -362,10 +362,10 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "none");
   cli.add<std::string>("--guided-alignment-cost",
      "Cost type for guided alignment: ce (cross-entropy), mse (mean square error), mult (multiplication)",
-     "ce");
+     "mse");
   cli.add<double>("--guided-alignment-weight",
      "Weight for guided alignment cost",
-     1);
+     0.1);
   cli.add_nondefault<std::string>("--data-weighting",
      "Path to a file with sentence or word weights");
   cli.add<std::string>("--data-weighting-type",
@@ -402,8 +402,8 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
       "Validate model every  arg  updates (append 't' for every  arg  target labels)",
       "10000u");
   cli.add<std::vector<std::string>>("--valid-metrics",
-      "Metric to use during validation: cross-entropy, perplexity, valid-script, translation."
-      " Multiple metrics can be specified",
+      "Metric to use during validation: cross-entropy, ce-mean-words, perplexity, valid-script, "
+      " translation, bleu, bleu-detok. Multiple metrics can be specified",
       std::vector<std::string>({"cross-entropy"}));
   cli.add<size_t>("--early-stopping",
      "Stop if the first validation metric does not improve for  arg  consecutive validation steps",

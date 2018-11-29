@@ -12,7 +12,7 @@ public:
   CharS2SEncoder(Ptr<Options> options) : EncoderS2S(options) {}
 
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
-                                  Ptr<data::CorpusBatch> batch) {
+                                  Ptr<data::CorpusBatch> batch) override {
     auto embeddings = buildSourceEmbeddings(graph);
 
     // select embeddings that occur in the batch

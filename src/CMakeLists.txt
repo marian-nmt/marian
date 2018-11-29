@@ -85,6 +85,7 @@ add_library(marian STATIC
   $<TARGET_OBJECTS:SQLiteCpp>
   $<TARGET_OBJECTS:pathie-cpp>
 )
+target_compile_options(marian PUBLIC ${ALL_WARNINGS})
 
 # Generate git_revision.h to reflect current git revision information
 # [https://stackoverflow.com/questions/1435953/how-can-i-pass-git-sha1-to-compiler-as-definition-using-cmake]
@@ -111,6 +112,8 @@ cuda_add_library(marian_cuda
   training/gradient_dropping/gpu/dropper.cu
   training/gradient_dropping/gpu/sparse_algorithm.cu
   STATIC)
+  
+  target_compile_options(marian_cuda PUBLIC ${ALL_WARNINGS})
 endif(CUDA_FOUND)
 
 set_target_properties(marian PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
@@ -118,18 +121,23 @@ set_target_properties(marian PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY
 
 add_executable(marian_train command/marian_main.cpp)
 set_target_properties(marian_train PROPERTIES OUTPUT_NAME marian)
+target_compile_options(marian_train PUBLIC ${ALL_WARNINGS})
 
 add_executable(marian_decoder command/marian_decoder.cpp)
 set_target_properties(marian_decoder PROPERTIES OUTPUT_NAME marian-decoder)
+target_compile_options(marian_decoder PUBLIC ${ALL_WARNINGS})
 
 add_executable(marian_scorer command/marian_scorer.cpp)
 set_target_properties(marian_scorer PROPERTIES OUTPUT_NAME marian-scorer)
+target_compile_options(marian_scorer PUBLIC ${ALL_WARNINGS})
 
 add_executable(marian_vocab command/marian_vocab.cpp)
 set_target_properties(marian_vocab PROPERTIES OUTPUT_NAME marian-vocab)
+target_compile_options(marian_vocab PUBLIC ${ALL_WARNINGS})
 
 add_executable(marian_conv command/marian_conv.cpp)
 set_target_properties(marian_conv PROPERTIES OUTPUT_NAME marian-conv)
+target_compile_options(marian_conv PUBLIC ${ALL_WARNINGS})
 
 set(EXECUTABLES ${EXECUTABLES} marian_train marian_decoder marian_scorer marian_vocab marian_conv)
 
@@ -167,6 +175,7 @@ endif()
 if(COMPILE_SERVER)
   add_executable(marian_server command/marian_server.cpp)
   set_target_properties(marian_server PROPERTIES OUTPUT_NAME marian-server)
+  target_compile_options(marian_server PUBLIC ${ALL_WARNINGS})
   set(EXECUTABLES ${EXECUTABLES} marian_server)
 endif(COMPILE_SERVER)
 
