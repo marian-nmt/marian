@@ -99,7 +99,7 @@ void Prod(marian::Tensor C,
 }
 
 void ProdBatched(marian::Tensor C,
-                 Ptr<Allocator> allocator,
+                 Ptr<Allocator> /*allocator*/,
                  const marian::Tensor A,
                  const marian::Tensor B,
                  bool transA,
@@ -150,7 +150,7 @@ void ProdBatched(marian::Tensor C,
           (int)ldc);
   }
 #else
-  C; allocator; A; B; transA; transB; beta; scalar;
+  C; A; B; transA; transB; beta; scalar;
   ABORT("You need to compile with MKL in order to use the CPU version");
 #endif
 }

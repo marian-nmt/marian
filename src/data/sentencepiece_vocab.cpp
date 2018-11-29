@@ -12,6 +12,7 @@
 #include "common/regex.h"
 
 #include <sstream>
+#include <random>
 
 namespace marian {
 
@@ -55,12 +56,12 @@ public:
 
   }
 
-  virtual const std::string& canonicalExtension() const { return suffixes_[0]; }
-  virtual const std::vector<std::string>& suffixes() const { return suffixes_; }
+  virtual const std::string& canonicalExtension() const override { return suffixes_[0]; }
+  virtual const std::vector<std::string>& suffixes() const override { return suffixes_; }
 
   virtual std::string suffix() { return suffixes_[0]; };
 
-  virtual std::string type() const { return "SentencePieceVocab"; }
+  virtual std::string type() const override { return "SentencePieceVocab"; }
 
   virtual Word getEosId() const override { return (Word)spm_->eos_id(); }
   virtual Word getUnkId() const override { return (Word)spm_->unk_id(); }
@@ -192,20 +193,20 @@ public:
              vocabPath + ".model", vocabPath);
   }
 
-  void createFake() {
+  void createFake() override {
     ABORT("[SentencePiece] Fake SentencePiece vocabulary not supported");
   }
 
-  Word operator[](const std::string& token) const {
+  Word operator[](const std::string& token) const override {
     return (Word)spm_->PieceToId(token);
   }
 
-  const std::string& operator[](Word id) const {
+  const std::string& operator[](Word id) const override {
     ABORT_IF(id >= size(), "Unknown word id: ", id);
     return spm_->IdToPiece(id);
   }
 
-  Words encode(const std::string& line, bool addEOS, bool inference) const {
+  Words encode(const std::string& line, bool addEOS, bool inference) const override {
     std::vector<int> spmIds;
     if(inference || alpha_ == 0)
       spm_->Encode(line, &spmIds);
@@ -219,7 +220,7 @@ public:
     return words;
   }
 
-  std::string decode(const Words& sentence, bool ignoreEOS) const {
+  std::string decode(const Words& sentence, bool /*ignoreEOS*/) const override {
     std::string line;
     // convert vector of Word to vector of int
     std::vector<int> spmSentence(sentence.begin(), sentence.end());
@@ -227,11 +228,11 @@ public:
     return line;
   }
 
-  size_t size() const {
+  size_t size() const override {
     return spm_->GetPieceSize();
   }
 
-  int load(const std::string& vocabPath, int /*max*/) {
+  int load(const std::string& vocabPath, int /*max*/) override {
     LOG(info, "[data] Loading SentencePiece vocabulary from file {}", vocabPath);
 
     ABORT_IF(!filesystem::exists(vocabPath),
