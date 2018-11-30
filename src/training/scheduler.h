@@ -246,8 +246,7 @@ public:
       } else {
         if(options_->get<bool>("lr-report")) {
           LOG(info,
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {:2f}s : {:.2f} words/s : L.r. "
-              "{:.4e}",
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} : Time {:.2f}s : {:.2f} words/s : L.r. {:.4e}",
               state_->epochs,
               state_->batches,
               utils::withCommas(state_->samplesEpoch),
@@ -257,7 +256,7 @@ public:
               state_->eta);
         } else {
           LOG(info,
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {:.2f}s : {:.2f} words/s",
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} : Time {:.2f}s : {:.2f} words/s",
               state_->epochs,
               state_->batches,
               utils::withCommas(state_->samplesEpoch),

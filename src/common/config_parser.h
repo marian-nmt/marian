@@ -63,7 +63,7 @@ private:
   // Abort if not set.
   template <typename T>
   T get(const std::string& key) const {
-    ABORT_IF(!has(key), "CLI object has no key {}", key);
+    ABORT_IF(!has(key), "CLI object has no key '{}'", key);
     return config_[key].as<T>();
   }
 

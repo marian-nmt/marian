@@ -7,9 +7,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+- Errors due to warnings
+
+### Changed
+- Set nearly all warnings as errors for Marian's own targets. Disable warnings for 3rd party.
+
+## [1.7.0] - 2018-11-27
+
 ### Added
 - Word alignment generation in scorer
 - Attention output generation in decoder and scorer with `--alignment soft`
+- Support for SentencePiece vocabularies and run-time segmentation/desegmentation
+- Support for SentencePiece vocabulary training during model training
+- Group training files by filename when creating vocabularies for joint vocabularies
+- Updated examples
+- Synchronous multi-node training (early version)
 
 ### Fixed
 - Delayed output in line-by-line translation
@@ -17,6 +30,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Generated word alignments include alignments for target EOS tokens
 - Boost::program_options has been replaced by another CLI library
+- Replace boost::file_system with Pathie
 - Expansion of unambiguous command-line arguments is no longer supported
 
 ## [1.6.0] - 2018-08-08

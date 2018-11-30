@@ -1,6 +1,8 @@
 #include "common/cli_wrapper.h"
+#include "common/cli_helper.h"
 #include "common/logging.h"
 #include "common/options.h"
+#include "common/timer.h"
 #include "common/version.h"
 
 namespace marian {
@@ -85,8 +87,7 @@ CLIWrapper::CLIWrapper(YAML::Node &config,
   app_->formatter(fmt);
 
   // add --version option
-  optVersion_
-      = app_->add_flag("--version", "Print the version number and exit");
+  optVersion_ = app_->add_flag("--version", "Print the version number and exit");
   optVersion_->group(defaultGroup_);
 }
 
@@ -96,20 +97,12 @@ CLIWrapper::CLIWrapper(Ptr<marian::Options> options,
                        const std::string &footer,
                        size_t columnWidth,
                        size_t screenWidth)
-    : CLIWrapper(options->getYaml(),
-                 description,
-                 header,
-                 footer,
-                 columnWidth,
-                 screenWidth) {}
+    : CLIWrapper(options->getYaml(), description, header, footer, columnWidth, screenWidth) {}
 
 CLIWrapper::~CLIWrapper() {}
 
 void CLIWrapper::switchGroup(const std::string &name) {
-  if(name.empty())
-    currentGroup_ = defaultGroup_;
-  else
-    currentGroup_ = name;
+  currentGroup_ = name.empty() ? defaultGroup_ : name;
 }
 
 void CLIWrapper::parse(int argc, char **argv) {
@@ -126,25 +119,77 @@ void CLIWrapper::parse(int argc, char **argv) {
   }
 }
 
-std::string CLIWrapper::failureMessage(const CLI::App *app,
-                                       const CLI::Error &e) {
+std::string CLIWrapper::failureMessage(const CLI::App *app, const CLI::Error &e) {
   std::string header = "Error: " + std::string(e.what()) + "\n";
   if(app->get_help_ptr() != nullptr)
-    header += "Run with " + app->get_help_ptr()->get_name()
-              + " for more information.\n";
+    header += "Run with " + app->get_help_ptr()->get_name() + " for more information.\n";
   return header;
 }
 
-void CLIWrapper::overwriteDefault(const YAML::Node &node) {
-  // iterate requested default values
-  for(auto it : node) {
+bool CLIWrapper::updateConfig(const YAML::Node &config) {
+  bool success = true;
+  auto cmdOptions = getParsedOptionNames();
+  for(auto it : config) {
     auto key = it.first.as<std::string>();
-    ABORT_IF(!allVars_.count(key), "The following option was not expected: '{}'", key);
-    // if we have an option but it was not specified on command-line
-    if(allVars_.count(key) > 0 && opts_.at(key)->empty()) {
+    // skip options specified via command-line to allow overwriting them
+    if(cmdOptions.count(key))
+      continue;
+    if(options_.count(key)) {
       config_[key] = YAML::Clone(it.second);
+      options_[key].modified = true;
+    } else {
+      success = false;
     }
   }
+  return success;
+}
+
+std::string CLIWrapper::dumpConfig(bool skipDefault /*= false*/) const {
+  YAML::Emitter out;
+  out << YAML::Comment("Marian configuration file generated at " + timer::currentDate()
+                       + " with version " + buildVersion());
+  out << YAML::BeginMap;
+  std::string comment;
+  for(const auto &key : getOrderedOptionNames()) {
+    // do not proceed keys that are removed from config_
+    if(!config_[key])
+      continue;
+    if(skipDefault && !options_.at(key).modified)
+      continue;
+    auto group = options_.at(key).opt->get_group();
+    if(comment != group) {
+      if(!comment.empty())
+        out << YAML::Newline;
+      comment = group;
+      out << YAML::Comment(group);
+    }
+    out << YAML::Key;
+    out << key;
+    out << YAML::Value;
+    cli::OutputYaml(config_[key], out);
+  }
+  out << YAML::EndMap;
+  return out.c_str();
+}
+
+std::unordered_set<std::string> CLIWrapper::getParsedOptionNames() const {
+  std::unordered_set<std::string> keys;
+  for(const auto &it : options_)
+    if(!it.second.opt->empty())
+      keys.emplace(it.first);
+  return keys;
+}
+
+std::vector<std::string> CLIWrapper::getOrderedOptionNames() const {
+  std::vector<std::string> keys;
+  // extract all option names
+  for(auto const &it : options_)
+    keys.push_back(it.first);
+  // sort option names by creation index
+  sort(keys.begin(), keys.end(), [this](const std::string &a, const std::string &b) {
+    return options_.at(a).idx < options_.at(b).idx;
+  });
+  return keys;
 }
 
 }  // namespace cli
