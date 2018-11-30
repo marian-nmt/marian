@@ -81,8 +81,8 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
       // Create vocabs if not provided
       for(size_t i = 0; i < paths_.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>(options_, i);
-        std::vector<std::string> trainPath = { paths_[i] };
-        int vocSize = vocab->loadOrCreate("", trainPath, maxVocabs[i]);
+        std::vector<std::string> trainPaths = { paths_[i] };
+        int vocSize = vocab->loadOrCreate("", trainPaths, maxVocabs[i]);
         // TODO: this is not nice as it modifies the option object and needs to expose the changes
         // outside the corpus as models need to know about the vocabulary size; extract the vocab
         // creation functionality from the class.

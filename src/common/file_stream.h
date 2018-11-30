@@ -133,9 +133,10 @@ class InputFileStream {
 public:
   InputFileStream(const std::string& file)
   : file_(file) {
-    ABORT_IF(!marian::filesystem::exists(file_), "File '{}' could not be opened", file);
+    ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
 
     if(file_.extension() == marian::filesystem::Path(".gz"))
+      // @TODO: consider make_unique for next refactoring
       istream_.reset(new zstr::ifstream(file_.string()));
     else
       istream_.reset(new std::ifstream(file_.string()));

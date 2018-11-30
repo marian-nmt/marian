@@ -36,36 +36,6 @@ private:
   std::mt19937 generator_;
   std::uniform_int_distribution<int> randInt_; // from 0 to INT_MAX
 
-public:
-  SentencePieceVocab(Ptr<Options> options, size_t batchIndex)
-    : options_(options), batchIndex_(batchIndex), generator_(Config::seed) {
-
-    if(options_->has("sentencepiece-alphas")) {
-      auto alphas = options_->get<std::vector<float>>("sentencepiece-alphas");
-      if(alphas.size() <= batchIndex)
-        alpha_ = 0.f;
-      else
-        alpha_ = alphas[batchIndex_];
-
-      if(alpha_ > 0)
-        LOG(debug,
-            "Setting SentencePiece vocabulary sampling factor to {} for input {}",
-            alpha_,
-            batchIndex_);
-    }
-
-  }
-
-  virtual const std::string& canonicalExtension() const override { return suffixes_[0]; }
-  virtual const std::vector<std::string>& suffixes() const override { return suffixes_; }
-
-  virtual std::string suffix() { return suffixes_[0]; };
-
-  virtual std::string type() const override { return "SentencePieceVocab"; }
-
-  virtual Word getEosId() const override { return (Word)spm_->eos_id(); }
-  virtual Word getUnkId() const override { return (Word)spm_->unk_id(); }
-
   // Sample from one file, based on first algorithm from:
   // https://en.wikipedia.org/wiki/Reservoir_sampling
   void reservoirSampling(std::vector<std::string>& sample, size_t& seenLines,
@@ -138,6 +108,36 @@ public:
     LOG(info, "[SentencePiece] Selected {} lines", seenLines);
     return seenLines;
   }
+
+public:
+  SentencePieceVocab(Ptr<Options> options, size_t batchIndex)
+    : options_(options), batchIndex_(batchIndex), generator_(Config::seed) {
+
+    if(options_->has("sentencepiece-alphas")) {
+      auto alphas = options_->get<std::vector<float>>("sentencepiece-alphas");
+      if(alphas.size() <= batchIndex)
+        alpha_ = 0.f;
+      else
+        alpha_ = alphas[batchIndex_];
+
+      if(alpha_ > 0)
+        LOG(debug,
+            "Setting SentencePiece vocabulary sampling factor to {} for input {}",
+            alpha_,
+            batchIndex_);
+    }
+
+  }
+
+  virtual const std::string& canonicalExtension() const override { return suffixes_[0]; }
+  virtual const std::vector<std::string>& suffixes() const override { return suffixes_; }
+
+  virtual std::string suffix() { return suffixes_[0]; };
+
+  virtual std::string type() const override { return "SentencePieceVocab"; }
+
+  virtual Word getEosId() const override { return (Word)spm_->eos_id(); }
+  virtual Word getUnkId() const override { return (Word)spm_->unk_id(); }
 
   void create(const std::string& vocabPath,
               const std::vector<std::string>& trainPaths,

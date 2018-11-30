@@ -47,6 +47,9 @@ private:
   size_t screenWidth_{0};
 };
 
+// @TODO: in this file review the use of naked pointers. We use Ptr<Type> anywhere else,
+// what's up with that?
+
 /**
  * The helper structure storing an option object, the associated variable and creation index.
  */

@@ -150,7 +150,7 @@ void switchtoMultinodeLogging(std::string nodeIdStr) {
 
 
 namespace marian {
-  std::string getCallStack(size_t skipLevels) {
+  std::string noinline getCallStack(size_t skipLevels) {
     return ::Microsoft::MSR::CNTK::DebugUtil::GetCallStack(skipLevels + 2, /*makeFunctionNamesStandOut=*/true);
   }
 

@@ -52,8 +52,12 @@ public:
     ABORT_IF(options_->has("summary") && options_->has("alignment"),
              "Alignments can not be produced with summarized score");
 
+    ABORT_IF(options_->has("summary") && options_->get<bool>("normalize"),
+             "Normalization by length cannot be used with summary scores");
+
     options_->set("inference", true);
-    options_->set("cost-type", "ce-rescore");
+    // @TODO: make normalize here a float and pass into loss to compute the same way as in decoding
+    options_->set("cost-type", options_->get<bool>("normalize") ? "ce-rescore-mean" : "ce-rescore");
 
     if(options_->get<bool>("n-best"))
       corpus_ = New<CorpusNBest>(options_);
@@ -97,6 +101,8 @@ public:
 
     std::string alignment = options_->get<std::string>("alignment", "");
     bool summarize = options_->has("summary");
+    bool normalize = options_->get<bool>("normalize");
+
     std::string summary = summarize ? options_->get<std::string>("summary") : "cross-entropy";
 
     float sumCost = 0;
@@ -118,7 +124,11 @@ public:
             builder = models_[id % graphs_.size()];
           }
 
+          // @TODO: normalize by length as in normalize
+          // Once we have Frank's concept of ce-sum with sample size by words we will return a pair
+          // here which will make it trivial to report all variants. 
           auto costNode = builder->build(graph, batch);
+
           graph->forward();
 
           std::vector<float> scores;
@@ -141,11 +151,27 @@ public:
               output->Write((long)batch->getSentenceIds()[i], scores[i], aligns[i]);
             }
           }
+
+          // progress heartbeat for MS-internal Philly compute cluster
+          // otherwise this job may be killed prematurely if no log for 4 hrs
+          if (getenv("PHILLY_JOB_ID")   // this environment variable exists when running on the cluster
+              && id % 1000 == 0)  // hard beat once every 1000 batches
+          {
+            auto progress = id / 10000.f; //fake progress for now, becomes >100 after 1M batches
+            fprintf(stdout, "PROGRESS: %.2f%%\n", progress);
+            fflush(stdout);
+          }
         };
 
-        pool.enqueue(task, batchId % graphs_.size());
-        batchId++;
+        pool.enqueue(task, batchId++);
       }
+    }
+
+    if(normalize) {
+      LOG(info, "Total normalized log probs {} : Total sentences {} : Total words {}", sumCost, sumSamples, sumWords);
+      LOG(warn, "Sum of normalized log probs is a sum of averages");
+    } else {
+      LOG(info, "Total log probs {} : Total sentences {} : Total words {}", sumCost, sumSamples, sumWords);
     }
 
     if(summarize) {

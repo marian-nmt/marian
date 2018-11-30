@@ -458,7 +458,7 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
       "Paths to input file(s), stdin by default",
       std::vector<std::string>({"stdin"}));
   cli.add<std::string>("--output,-o",
-      "Paths to output file(s), stdout by default",
+      "Path to output file, stdout by default",
       "stdout");
   cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --input");
@@ -517,6 +517,9 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
   // TODO: move options like vocabs and train-sets to a separate procedure as they are defined twice
   cli.add<std::vector<std::string>>("--train-sets,-t",
       "Paths to corpora to be scored: source target");
+  cli.add<std::string>("--output,-o",
+      "Path to output file, stdout by default",
+      "stdout");
   cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --train-sets."
       " If this parameter is not supplied we look for vocabulary files source.{yml,json} and target.{yml,json}."
@@ -525,6 +528,8 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
       "Score n-best list instead of plain text corpus");
   cli.add<std::string>("--n-best-feature",
       "Feature name to be inserted into n-best list", "Score");
+  cli.add<bool>("--normalize,-n",
+      "Divide translation score by translation length");
   cli.add_nondefault<std::string>("--summary",
       "Only print total cost, possible values: cross-entropy (ce-mean), ce-mean-words, ce-sum, perplexity")
       ->implicit_val("cross-entropy");
