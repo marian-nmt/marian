@@ -79,15 +79,12 @@ void setSparse(Ptr<Backend> backend,
 
 template <typename T>
 __global__ void gSwap(T* d_v1, T* d_v2, int size) {
-  auto blocks = gridDim.x;
   auto threadsPerBlock = blockDim.x;
-  for(int bid = 0; bid < size; bid += threadsPerBlock * blocks) {
-    int index = bid + threadIdx.x + threadsPerBlock * blockIdx.x;
-    if(index < size) {
-      T temp = d_v1[index];
-      d_v1[index] = d_v2[index];
-      d_v2[index] = temp;
-    }
+  int index = threadIdx.x + threadsPerBlock * blockIdx.x;
+  if(index < size) {
+    T temp = d_v1[index];
+    d_v1[index] = d_v2[index];
+    d_v2[index] = temp;  
   }
 }
 

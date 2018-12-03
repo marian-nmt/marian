@@ -248,8 +248,11 @@ public:
 
   void swap(Tensor in) {
     ABORT_IF(in->shape() != shape(), "Can only swap tensors with equal shapes ({} != {})", in->shape(), shape());
-    ABORT_IF(in->type() != type_, "Can only swap tensors of the same type ()", in->type(), type_); 
 
+    ABORT_IF(!matchType<float>(type_),
+             "Requested type ({}) and underlying type ({}) do not match",
+             request<float>(),
+             type_);
 
     if(in->getBackend()->getDeviceId().type == DeviceType::cpu
        && backend_->getDeviceId().type == DeviceType::cpu) {
@@ -257,7 +260,16 @@ public:
     }
 #ifdef CUDA_FOUND
     else {
-      gpu::swap_ranges(backend_, in->data(), in->data() + in->size(), data());
+      if(backend_->getDeviceId().no != in->getBackend()->getDeviceId().no) {
+        // if we live on two different GPUs go through CPU RAM
+        std::vector<float> temp;
+        get(temp);
+        copyFrom(in);
+        in->set(temp);
+      } else {
+        // we live on the same GPU, do an element-wise swap
+        gpu::swap_ranges(backend_, in->data(), in->data() + in->size(), data());
+      }
     }
 #endif
   }
