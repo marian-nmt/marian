@@ -246,6 +246,22 @@ public:
 #endif
   }
 
+  void swap(Tensor in) {
+    ABORT_IF(in->shape() != shape(), "Can only swap tensors with equal shapes ({} != {})", in->shape(), shape());
+    ABORT_IF(in->type() != type_, "Can only swap tensors of the same type ()", in->type(), type_); 
+
+
+    if(in->getBackend()->getDeviceId().type == DeviceType::cpu
+       && backend_->getDeviceId().type == DeviceType::cpu) {
+      std::swap_ranges(in->data(), in->data() + in->size(), data());
+    }
+#ifdef CUDA_FOUND
+    else {
+      gpu::swap_ranges(backend_, in->data(), in->data() + in->size(), data());
+    }
+#endif
+  }
+
   template <typename T>
   std::string debug() {
     ABORT_IF(!matchType<T>(type_),
