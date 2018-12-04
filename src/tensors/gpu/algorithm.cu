@@ -49,7 +49,7 @@ void fill(Ptr<Backend> backend, T* begin, T* end, T value) {
   if (size == 0)
     return;
   CUDA_CHECK(cudaSetDevice(backend->getDeviceId().no));
-  int threadsPerBlock = std::min(512, size);
+  int threadsPerBlock = std::min(MAX_THREADS, size);
   int blocks = (size / threadsPerBlock) + (size % threadsPerBlock != 0); // @TODO: (size+threadsPerBlock-1)/threadsPerBlock or CeilDiv(a,b)
   gFill<<<blocks, threadsPerBlock>>>(begin, size, value);
   CUDA_CHECK(cudaStreamSynchronize(0));
@@ -76,5 +76,46 @@ void setSparse(Ptr<Backend> backend,
   // gpu::SetSparse(data, keys, values);
   CUDA_CHECK(cudaStreamSynchronize(0));
 }
+
+template <typename T>
+__global__ void gSwap(T* d_v1, T* d_v2, int size) {
+  auto threadsPerBlock = blockDim.x;
+  int index = threadIdx.x + threadsPerBlock * blockIdx.x;
+  if(index < size) {
+    T temp = d_v1[index];
+    d_v1[index] = d_v2[index];
+    d_v2[index] = temp;  
+  }
+}
+
+template <typename T>
+void swap_ranges(Ptr<Backend> backend, T* begin, T* end, T* dest) {
+  int size = end - begin;
+  if (size == 0)
+    return;
+  
+  CUDA_CHECK(cudaSetDevice(backend->getDeviceId().no));
+  int threadsPerBlock = std::min(MAX_THREADS, size);
+  int blocks = (size / threadsPerBlock) + (size % threadsPerBlock != 0); // @TODO: (size+threadsPerBlock-1)/threadsPerBlock or CeilDiv(a,b)
+  gSwap<<<blocks, threadsPerBlock>>>(begin, dest, size);
+  CUDA_CHECK(cudaStreamSynchronize(0));
+}
+
+// clang-format off
+template void swap_ranges<int8_t>(Ptr<Backend>, int8_t*, int8_t*, int8_t*);
+template void swap_ranges<int16_t>(Ptr<Backend>, int16_t*, int16_t*, int16_t*);
+template void swap_ranges<int32_t>(Ptr<Backend>, int32_t*, int32_t*, int32_t*);
+template void swap_ranges<int64_t>(Ptr<Backend>, int64_t*, int64_t*, int64_t*);
+
+template void swap_ranges<uint8_t>(Ptr<Backend>, uint8_t*, uint8_t*, uint8_t*);
+template void swap_ranges<uint16_t>(Ptr<Backend>, uint16_t*, uint16_t*, uint16_t*);
+template void swap_ranges<uint32_t>(Ptr<Backend>, uint32_t*, uint32_t*, uint32_t*);
+template void swap_ranges<uint64_t>(Ptr<Backend>, uint64_t*, uint64_t*, uint64_t*);
+
+template void swap_ranges<char>(Ptr<Backend>, char*, char*, char*);
+template void swap_ranges<float>(Ptr<Backend>, float*, float*, float*);
+template void swap_ranges<double>(Ptr<Backend>, double*, double*, double*);
+// clang-format on
+
 }  // namespace gpu
 }  // namespace marian
