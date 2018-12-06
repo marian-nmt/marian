@@ -4,3 +4,6 @@
 [submodule "src/3rd_party/sentencepiece"]
 	path = src/3rd_party/sentencepiece
 	url = https://github.com/marian-nmt/sentencepiece
+[submodule "src/3rd_party/nccl"]
+	path = src/3rd_party/nccl
+	url = https://github.com/marian-nmt/nccl
