@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - Errors due to warnings
+- Fixed issue concerning failed saving with single GPU training and --sync-sgd option. 
 
 ### Changed
 - Set nearly all warnings as errors for Marian's own targets. Disable warnings for 3rd party.
