@@ -91,22 +91,26 @@ if(CUDA_FOUND)
     endif(CUDNN_FOUND)
   endif(USE_CUDNN)
 
-  if(USE_NCCL)
-    find_package(NCCL)
-    if(NCCL_FOUND)
-      include_directories(${NCCL_INCLUDE_DIR})
-      set(EXT_LIBS ${EXT_LIBS} ${NCCL_LIBRARIES})
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_NCCL")
-      LIST(APPEND CUDA_NVCC_FLAGS -DUSE_NCCL; )
-    endif(NCCL_FOUND)
-  endif(USE_NCCL)
-
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCUDA_FOUND")
   list(APPEND CUDA_NVCC_FLAGS -DCUDA_FOUND; )
 
   if(MSVC)
     list(APPEND CUDA_NVCC_FLAGS -DBOOST_PP_VARIADICS=0; )
   endif()
+
+  if(USE_NCCL)
+    set(NCCL_STATIC "${CMAKE_CURRENT_SOURCE_DIR}/src/3rd_party/nccl/build/lib/libnccl_static.a")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_NCCL")
+    LIST(APPEND CUDA_NVCC_FLAGS -DUSE_NCCL; )
+
+    add_custom_command(OUTPUT ${NCCL_STATIC}
+                       COMMAND make
+                       WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/3rd_party/nccl")
+    add_custom_target(nccl_target DEPENDS ${NCCL_STATIC})
+    add_library(nccl STATIC IMPORTED)
+    set_target_properties(nccl PROPERTIES IMPORTED_LOCATION ${NCCL_STATIC})
+    add_dependencies(nccl nccl_target)
+  endif(USE_NCCL)
 
 else(CUDA_FOUND)
   message(FATAL_ERROR "CUDA has not been found, set -DCOMPILE_CUDA=off to avoid this check and to compile the CPU version only")

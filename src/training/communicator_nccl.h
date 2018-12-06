@@ -5,7 +5,7 @@
 #include "tensors/gpu/cuda_helpers.h"
 
 #include "cuda_runtime.h"
-#include "nccl.h"
+#include "nccl/build/include/nccl.h"
 #if (NCCL_MAJOR<3 || NCCL_MINOR<2)
 #define ncclGetVersion(pv) (*(pv) = (NCCL_MAJOR * 1000 + NCCL_MINOR * 100 + NCCL_PATCH))
 #endif

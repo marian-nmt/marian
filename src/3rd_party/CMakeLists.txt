@@ -31,7 +31,6 @@ if(USE_SENTENCEPIECE)
   endif()
 endif(USE_SENTENCEPIECE)
 
-
 include_directories(./SQLiteCpp/include)
 include_directories(./CLI)
 include_directories(./pathie-cpp/include)
