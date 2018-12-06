@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.5.1)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
+if (POLICY CMP0074)
+  cmake_policy(SET CMP0074 NEW) # CMake 3.12
+endif ()
+
+
 project(marian CXX C)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -38,33 +43,33 @@ if(MSVC)
 
   set(CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} /LTCG:incremental")
 else()
-  set(CMAKE_CXX_FLAGS                 " -std=c++11 -O3 -Ofast -m64 -pthread -march=${BUILD_ARCH} -msse4.1 -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC -Wno-unused-result -Wno-deprecated -Werror -Wno-pragmas")
+  set(DISABLE_GLOBALLY "-Wno-unused-result")
+
+  # These are used in src/CMakeLists.txt on a per-target basis
+  list(APPEND ALL_WARNINGS -Wall; -Werror; -Wno-unused-result; -Wno-deprecated; -Wno-pragmas; -Wno-unused-parameter; -Wextra; -Wno-unused-function;
+                           -Wno-unused-value; -Wno-unknown-pragmas; -Wno-sign-compare; -Wno-missing-field-initializers)
+
+  # This warning does not exist prior to gcc 5.0
+  if(CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.0)
+    list(APPEND ALL_WARNINGS -Wsuggest-override)
+  endif()
+
+  set(CMAKE_CXX_FLAGS                 "-std=c++11 -O3 -Ofast -m64 -pthread -march=${BUILD_ARCH} -msse4.1 -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC ${DISABLE_GLOBALLY}")
   set(CMAKE_CXX_FLAGS_RELEASE         "${CMAKE_CXX_FLAGS} -g -rdynamic")
-  set(CMAKE_CXX_FLAGS_DEBUG           " -std=c++11 -g -rdynamic -O0 -pthread -Wl,--no-as-needed -fPIC -Wno-unused-result -Wno-deprecated -Werror -Wno-pragmas")
+  set(CMAKE_CXX_FLAGS_DEBUG           "-std=c++11 -g -rdynamic -O0 -pthread -Wl,--no-as-needed -fPIC -Wno-unused-result -Wno-deprecated -Werror -Wno-pragmas")
   set(CMAKE_CXX_FLAGS_SLIM            "${CMAKE_CXX_FLAGS} -DNDEBUG")
-  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO  "${CMAKE_CXX_FLAGS_RELEASE} -pg -g -rdynamic -Wall -Wextra -Wsuggest-override -Wno-unused-value -Wno-unknown-pragmas -Wno-sign-compare -Wno-missing-field-initializers")
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO  "${CMAKE_CXX_FLAGS} -g -rdynamic")
   set(CMAKE_CXX_FLAGS_PROFILE         "${CMAKE_CXX_FLAGS_RELEASE} -pg -g -rdynamic")
   set(CMAKE_CXX_FLAGS_PROFGEN         "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-generate -fprofile-correction")
   set(CMAKE_CXX_FLAGS_PROFUSE         "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-use -fprofile-correction")
-endif()
+  endif()
 
 # Downloading SentencePiece if requested and set to compile with it.
 # Requires all the dependencies imposed by SentencePiece
 if(USE_SENTENCEPIECE)
-  message(STATUS "Using SentencePiece from our fork https://github.com/marian-nmt/sentencepiece.git")
-  if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/3rd_party/sentencepiece)
-    execute_process(COMMAND git clone https://github.com/marian-nmt/sentencepiece.git
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/3rd_party
-                    RESULT_VARIABLE git_result
-                    ERROR_QUIET)
-    message(STATUS "Downloaded SentencePiece [code: ${git_result}]")
-  else()
-    message(STATUS "It seems that SentencePiece has already been downloaded. Reusing.")
-  endif()
-
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_SENTENCEPIECE")
   LIST(APPEND CUDA_NVCC_FLAGS -DUSE_SENTENCEPIECE; )
-  set(EXT_LIBS ${EXT_LIBS} sentencepiece)
+  set(EXT_LIBS ${EXT_LIBS} sentencepiece sentencepiece_train)
 endif()
 
 
@@ -121,6 +126,7 @@ else(CMAKE_BUILD_TYPE STREQUAL "Debug")
   list(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -O3; -g; --use_fast_math; -arch=sm_30; -gencode=arch=compute_30,code=sm_30; -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52; -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61; -gencode=arch=compute_61,code=compute_61 ;)
 endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
 if(NOT MSVC)
+  # @TODO: add warnings here too
   list(APPEND CUDA_NVCC_FLAGS -std=c++11; -Xcompiler\ -fPIC; -Xcompiler\ -Wno-unused-result; -Xcompiler\ -Wno-deprecated; -Xcompiler\ -Wno-pragmas; -Xcompiler\ -Wno-unused-value; -Xcompiler\ -Werror;)
 else()
   list(APPEND CUDA_NVCC_FLAGS -Xcompiler\ /FS; )

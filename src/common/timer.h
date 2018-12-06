@@ -12,6 +12,14 @@
 namespace marian {
 namespace timer {
 
+// Helper function to get the current date and time
+static std::string currentDate() {
+  std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+  char date[100] = {0};
+  std::strftime(date, sizeof(date), "%F %X %z", std::localtime(&now));
+  return date;
+}
+
 // Timer measures elapsed time.
 // This is a wrapper around std::chrono providing wall time only
 class Timer {

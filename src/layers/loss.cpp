@@ -15,6 +15,8 @@ Ptr<LossBase> LossFactory(Ptr<Options> options, bool inference) {
     return New<PerplexityLoss>(smoothing);
   } else if(costType == "ce-rescore") {
     return New<CrossEntropyRescoreLoss>(smoothing);
+  } else if(costType == "ce-rescore-mean") {
+    return New<CrossEntropyRescoreMeanLoss>(smoothing);
   } else {  // same as ce-mean
     return New<CrossEntropyMeanLoss>(smoothing);
   }
@@ -108,4 +110,14 @@ Expr CrossEntropyRescoreLoss::getCost(Expr logits,
   auto ce = getCrossEntropy(logits, indices, mask, weights);
   return -sum(ce, /*axis =*/ -3);
 }
+
+Expr CrossEntropyRescoreMeanLoss::getCost(Expr logits,
+                                          Expr indices,
+                                          Expr mask,
+                                          Expr weights) {
+  auto ce = getCrossEntropy(logits, indices, mask, weights);
+  // divide by number of words in sentence
+  return -sum(ce, /*axis =*/ -3) / sum(mask, /*axis =*/ -3);
+}
+
 }  // namespace marian

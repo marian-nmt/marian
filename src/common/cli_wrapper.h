@@ -8,6 +8,7 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <unordered_set>
 
 namespace marian {
 
@@ -46,6 +47,19 @@ private:
   size_t screenWidth_{0};
 };
 
+// @TODO: in this file review the use of naked pointers. We use Ptr<Type> anywhere else,
+// what's up with that?
+
+/**
+ * The helper structure storing an option object, the associated variable and creation index.
+ */
+struct CLIOptionTuple {
+  CLI::Option *opt;
+  Ptr<any_type> var;
+  size_t idx{0};
+  bool modified{false};
+};
+
 /**
  * @brief The class used to define and parse command-line arguments.
  *
@@ -63,10 +77,10 @@ private:
  */
 class CLIWrapper {
 private:
-  // [option name] -> option value
-  std::map<std::string, Ptr<any_type>> allVars_;
-  // Map with option names and objects
-  std::map<std::string, CLI::Option *> opts_;
+  // Map with option names and option tuples
+  std::unordered_map<std::string, CLIOptionTuple> options_;
+  // Counter for created options
+  size_t counter_{0};
   // Command-line argument parser
   Ptr<CLI::App> app_;
 
@@ -75,23 +89,22 @@ private:
   // Name of the current option group
   std::string currentGroup_{""};
 
-  // If this is a wrapper then this should just be a reference,
-  // then we do not have the added level of containment.
+  // Reference to the main config object
   YAML::Node &config_;
 
   // Option for --version flag. This is a special flag and similarly to --help,
   // the key "version" will be not added into the YAML config
-  CLI::Option* optVersion_;
+  CLI::Option *optVersion_;
 
   static std::string failureMessage(const CLI::App *app, const CLI::Error &e);
 
-  // Extract an option name from comma-separated list of command-line arguments,
-  // e.g. 'help' from '--help,-h'
+  // Extract option name from a comma-separated list of long and short options, e.g. 'help' from
+  // '--help,-h'
   std::string keyName(const std::string &args) const {
     // re-use existing functions from CLI11 to keep option names consistent
-    return std::get<1>(CLI::detail::get_names(CLI::detail::split_names(
-                           args)))  // get long names only
-        .front();                   // get first long name
+    return std::get<1>(
+               CLI::detail::get_names(CLI::detail::split_names(args)))  // get long names only
+        .front();                                                       // get first long name
   }
 
 public:
@@ -112,23 +125,14 @@ public:
              const std::string &description = "",
              const std::string &header = "General options",
              const std::string &footer = "",
-             size_t columnWidth = 35,
+             size_t columnWidth = 40,
              size_t screenWidth = 0);
 
   /**
    * @brief Create an instance of the command-line argument parser,
    * short-cuft for Options object.
    *
-   * Option --help, -h is automatically added.
-   *
-   * @param options A smart pointer to the Options object containing the
-   *  to-be-wrapped yaml tree
-   * @param description Program description
-   * @param header Header text for the main option group
-   * @param footer Text displayed after the list of options
-   * @param columnWidth Width of the column with option names
-   * @param screenWidth Maximum allowed width for help messages, 0 means no
-   *  limit
+   * @see Other constructor
    */
   CLIWrapper(Ptr<Options> options,
              const std::string &description = "",
@@ -201,8 +205,7 @@ public:
    * have a default value or be non-defaulted
    */
   template <typename T>
-  CLI::Option *add_nondefault(const std::string &args,
-                              const std::string &help) {
+  CLI::Option *add_nondefault(const std::string &args, const std::string &help) {
     return add_option<T>(keyName(args),
                          args,
                          help,
@@ -212,8 +215,7 @@ public:
   }
 
   /**
-   * Switch to different option group or to the default group if
-   * argument is empty.
+   * Switch to different option group or to the default group if argument is empty.
    *
    * @param name Header of the option group
    */
@@ -222,23 +224,31 @@ public:
   // Parse command-line arguments. Handles --help and --version options
   void parse(int argc, char **argv);
 
-  /**
+  /*
    * @brief Overwrite values for unparsed options
    *
-   * Default values are overwritten with the options found in the config
-   * provided as the argument, while parsed command-line options remain
-   * unchanged
+   * Default values are overwritten with the options from the config provided, while parsed
+   * command-line options remain unchanged.
+   * This should be a preferred way of updating config options as the class keeps track of options,
+   * which values have changed.
    *
    * @param node YAML config with new default values for options
    */
-  void overwriteDefault(const YAML::Node &node);
+  bool updateConfig(const YAML::Node &config);
+
+  // Get textual YAML representation of the config
+  std::string dumpConfig(bool skipDefault = false) const;
 
 private:
-  template <
-      typename T,
-      // options with numeric and string-like values
-      CLI::enable_if_t<!CLI::is_bool<T>::value && !CLI::is_vector<T>::value,
-                       CLI::detail::enabler> = CLI::detail::dummy>
+  // Get names of options passed via command-line
+  std::unordered_set<std::string> getParsedOptionNames() const;
+  // Get option names in the same order as they are created
+  std::vector<std::string> getOrderedOptionNames() const;
+
+  template <typename T,
+            // options with numeric and string-like values
+            CLI::enable_if_t<!CLI::is_bool<T>::value && !CLI::is_vector<T>::value,
+                             CLI::detail::enabler> = CLI::detail::dummy>
   CLI::Option *add_option(const std::string &key,
                           const std::string &args,
                           const std::string &help,
@@ -248,13 +258,17 @@ private:
     // define YAML entry if requested
     if(addToConfig)
       config_[key] = val;
-    // create variable for the option
-    allVars_.insert(std::make_pair(key, std::make_shared<any_type>(val)));
+
+    // create option tuple
+    CLIOptionTuple option;
+    option.idx = counter_++;
+    option.var = std::make_shared<any_type>(val);
 
     // callback function collecting a command-line argument
     CLI::callback_t fun = [this, key](CLI::results_t res) {
+      options_[key].modified = true;
       // get variable associated with the option
-      auto &var = allVars_[key]->as<T>();
+      auto &var = options_[key].var->as<T>();
       // store parser result in var
       auto ret = CLI::detail::lexical_cast(res[0], var);
       // update YAML entry
@@ -275,15 +289,15 @@ private:
       opt->default_str(ss.str());
     }
 
-    // store option object
-    opts_.insert(std::make_pair(key, opt));
-    return opts_[key];
+    // store option tuple
+    option.opt = opt;
+    options_.insert(std::make_pair(key, option));
+    return options_[key].opt;
   }
 
   template <typename T,
             // options with vector values
-            CLI::enable_if_t<CLI::is_vector<T>::value,
-                             CLI::detail::enabler> = CLI::detail::dummy>
+            CLI::enable_if_t<CLI::is_vector<T>::value, CLI::detail::enabler> = CLI::detail::dummy>
   CLI::Option *add_option(const std::string &key,
                           const std::string &args,
                           const std::string &help,
@@ -293,13 +307,17 @@ private:
     // define YAML entry if requested
     if(addToConfig)
       config_[key] = val;
-    // create variable for the option
-    allVars_.insert(std::make_pair(key, std::make_shared<any_type>(val)));
+
+    // create option tuple
+    CLIOptionTuple option;
+    option.idx = counter_++;
+    option.var = std::make_shared<any_type>(val);
 
     // callback function collecting command-line arguments
     CLI::callback_t fun = [this, key](CLI::results_t res) {
+      options_[key].modified = true;
       // get vector variable associated with the option
-      auto &vec = allVars_[key]->as<T>();
+      auto &vec = options_[key].var->as<T>();
       vec.clear();
       bool ret = true;
       // handle '[]' as an empty vector
@@ -330,15 +348,15 @@ private:
     if(defaulted)
       opt->default_str(CLI::detail::join(val));
 
-    // store option object
-    opts_.insert(std::make_pair(key, opt));
-    return opts_[key];
+    // store option tuple
+    option.opt = opt;
+    options_.insert(std::make_pair(key, option));
+    return options_[key].opt;
   }
 
   template <typename T,
             // options with boolean values, called flags in CLI11
-            CLI::enable_if_t<CLI::is_bool<T>::value,
-                             CLI::detail::enabler> = CLI::detail::dummy>
+            CLI::enable_if_t<CLI::is_bool<T>::value, CLI::detail::enabler> = CLI::detail::dummy>
   CLI::Option *add_option(const std::string &key,
                           const std::string &args,
                           const std::string &help,
@@ -348,19 +366,23 @@ private:
     // define YAML entry if requested
     if(addToConfig)
       config_[key] = val;
-    // create variable for the option
-    allVars_.insert(std::make_pair(key, std::make_shared<any_type>(val)));
+
+    // create option tuple
+    CLIOptionTuple option;
+    option.idx = counter_++;
+    option.var = std::make_shared<any_type>(val);
 
     // callback function setting the flag
     CLI::callback_t fun = [this, key](CLI::results_t res) {
+      options_[key].modified = true;
       // get parser result, it is safe as boolean options have an implicit value
       auto val = res[0];
       auto ret = true;
       if(val == "true" || val == "on" || val == "yes" || val == "1") {
-        allVars_[key]->as<T>() = true;
+        options_[key].var->as<T>() = true;
         config_[key] = true;
       } else if(val == "false" || val == "off" || val == "no" || val == "0") {
-        allVars_[key]->as<T>() = false;
+        options_[key].var->as<T>() = false;
         config_[key] = false;
       } else {
         ret = false;
@@ -378,9 +400,10 @@ private:
     // allow to use the flag without any argument
     opt->implicit_val("true");
 
-    // store option object
-    opts_.insert(std::make_pair(key, opt));
-    return opts_[key];
+    // store option tuple
+    option.opt = opt;
+    options_.insert(std::make_pair(key, option));
+    return options_[key].opt;
   }
 };
 

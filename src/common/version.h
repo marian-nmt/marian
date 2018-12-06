@@ -3,5 +3,5 @@
 #include <string>
 
 namespace marian {
-    std::string buildVersion();
+  std::string buildVersion();
 }
