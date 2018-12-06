@@ -99,17 +99,27 @@ if(CUDA_FOUND)
   endif()
 
   if(USE_NCCL)
-    set(NCCL_STATIC "${CMAKE_CURRENT_SOURCE_DIR}/src/3rd_party/nccl/build/lib/libnccl_static.a")
+    # define and set the include dir for the generated nccl.h header
+    set(NCCL_HEADER_LOCATION "${CMAKE_CURRENT_BINARY_DIR}/nccl/include")
+    include_directories(${NCCL_HEADER_LOCATION})
+
+    # set the path for the generated static lib
+    set(NCCL_STATIC "${CMAKE_CURRENT_BINARY_DIR}/nccl/lib/libnccl_static.a")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_NCCL")
+    
     LIST(APPEND CUDA_NVCC_FLAGS -DUSE_NCCL; )
 
+    # sets output to build, passes cuda location from FindCUDA, sets c++ compiler to the same one CMake uses. 
     add_custom_command(OUTPUT ${NCCL_STATIC}
-                       COMMAND make
+                       COMMAND make src.build BUILDDIR="${CMAKE_CURRENT_BINARY_DIR}/nccl" CUDA_HOME="${CUDA_TOOLKIT_ROOT_DIR}" CXX="${CMAKE_CXX_COMPILER}"
                        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/3rd_party/nccl")
     add_custom_target(nccl_target DEPENDS ${NCCL_STATIC})
     add_library(nccl STATIC IMPORTED)
     set_target_properties(nccl PROPERTIES IMPORTED_LOCATION ${NCCL_STATIC})
     add_dependencies(nccl nccl_target)
+    
+    # adds the resulting files to be removed by `make clean`
+    set_directory_properties(PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${CMAKE_CURRENT_BINARY_DIR}/nccl)
   endif(USE_NCCL)
 
 else(CUDA_FOUND)
