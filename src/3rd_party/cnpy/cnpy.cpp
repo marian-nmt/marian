@@ -103,6 +103,9 @@ void cnpy::parse_npy_header(FILE* fp, unsigned int& word_size, unsigned int*& sh
     word_size = atoi(str_ws.substr(0,loc2).c_str());
 }
 
+// make compiler happy, otherwise warns with "variable set but not used"
+#define _unused(x) ((void)(x))
+
 void cnpy::parse_zip_footer(FILE* fp, unsigned short& nrecs, unsigned int& global_header_size, unsigned int& global_header_offset)
 {
     std::vector<char> footer(22);
@@ -124,6 +127,13 @@ void cnpy::parse_zip_footer(FILE* fp, unsigned short& nrecs, unsigned int& globa
     assert(disk_start == 0);
     assert(nrecs_on_disk == nrecs);
     assert(comment_len == 0);
+
+    // make compiler happy, otherwise warns with "variable set but not used"
+    // on the other hand it seems having the asserts in here is useful. 
+    _unused(disk_no);
+    _unused(disk_start);
+    _unused(nrecs_on_disk);
+    _unused(comment_len);
 }
 
 cnpy::NpyArrayPtr load_the_npy_file(FILE* fp) {
