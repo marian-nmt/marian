@@ -4,6 +4,7 @@ include_directories(.)
 add_subdirectory(./yaml-cpp)
 add_subdirectory(./SQLiteCpp)
 add_subdirectory(./pathie-cpp)
+add_subdirectory(./zlib)
 
 if(USE_SENTENCEPIECE)
   if(USE_STATIC_LIBS)
@@ -34,3 +35,6 @@ endif(USE_SENTENCEPIECE)
 include_directories(./SQLiteCpp/include)
 include_directories(./CLI)
 include_directories(./pathie-cpp/include)
+
+include_directories(./zlib)
+
