@@ -12,16 +12,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(BUILD_ARCH native CACHE STRING "Compile for this CPU architecture.")
 
 # Custom CMake options
-option(COMPILE_EXAMPLES "Compile examples" OFF)
-option(COMPILE_TESTS "Compile tests" OFF)
-option(COMPILE_SERVER "Compile marian-server" ON)
 option(COMPILE_CPU "Compile CPU version" ON)
 option(COMPILE_CUDA "Compile GPU version" ON)
-option(USE_STATIC_LIBS "Compile GPU version" OFF)
+option(USE_SENTENCEPIECE "Download and compile SentencePiece" OFF)
+option(USE_STATIC_LIBS "Link statically against non-system libs" OFF)
 option(USE_CUDNN "Use CUDNN library" OFF)
 option(USE_NCCL "Use NCCL library" ON)
 option(USE_MPI "Use MPI library" OFF)
-option(USE_SENTENCEPIECE "Download and compile SentencePiece" OFF)
+option(COMPILE_EXAMPLES "Compile examples" OFF)
+option(COMPILE_TESTS "Compile tests" OFF)
+option(COMPILE_SERVER "Compile marian-server" ON)
 
 # Project versioning
 find_package(Git QUIET)
