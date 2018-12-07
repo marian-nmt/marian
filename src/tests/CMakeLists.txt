@@ -43,7 +43,7 @@ foreach(exec
     )
     target_link_libraries(${exec} marian ${EXT_LIBS} Catch)
     if(CUDA_FOUND)
-      target_link_libraries(${exec} marian marian_cuda nccl ${EXT_LIBS} Catch)
+      target_link_libraries(${exec} marian marian_cuda ${EXT_LIBS} Catch)
       cuda_add_cublas_to_target(${exec})
     endif(CUDA_FOUND)
 

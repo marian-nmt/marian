@@ -109,14 +109,22 @@ if(CUDA_FOUND)
     
     LIST(APPEND CUDA_NVCC_FLAGS -DUSE_NCCL; )
 
+    # @TODO: Figure out how to set this to suppress PTXAS warning.
+    #set(CUDA8_GENCODE, "-gencode=arch=compute_35,code=sm_35 -gencode=arch=compute_50,code=sm_50 -gencode=arch=compute_60,code=sm_60 -gencode=arch=compute_61,code=sm_61")
+
     # sets output to build, passes cuda location from FindCUDA, sets c++ compiler to the same one CMake uses. 
     add_custom_command(OUTPUT ${NCCL_STATIC}
-                       COMMAND make src.build BUILDDIR="${CMAKE_CURRENT_BINARY_DIR}/nccl" CUDA_HOME="${CUDA_TOOLKIT_ROOT_DIR}" CXX="${CMAKE_CXX_COMPILER}"
+                       COMMAND make src.build 
+                       BUILDDIR="${CMAKE_CURRENT_BINARY_DIR}/nccl"
+                       CUDA_HOME="${CUDA_TOOLKIT_ROOT_DIR}"
+                       #CUDA8_GENCODE="$CUDA8_GENCODE"
+                       CXX="${CMAKE_CXX_COMPILER}"
                        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/3rd_party/nccl")
     add_custom_target(nccl_target DEPENDS ${NCCL_STATIC})
     add_library(nccl STATIC IMPORTED)
     set_target_properties(nccl PROPERTIES IMPORTED_LOCATION ${NCCL_STATIC})
     add_dependencies(nccl nccl_target)
+    set(EXT_LIBS ${EXT_LIBS} nccl)
     
     # adds the resulting files to be removed by `make clean`
     set_directory_properties(PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${CMAKE_CURRENT_BINARY_DIR}/nccl)
