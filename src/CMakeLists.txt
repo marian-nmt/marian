@@ -112,7 +112,7 @@ cuda_add_library(marian_cuda
   training/gradient_dropping/gpu/dropper.cu
   training/gradient_dropping/gpu/sparse_algorithm.cu
   STATIC)
-  
+
   target_compile_options(marian_cuda PUBLIC ${ALL_WARNINGS})
 endif(CUDA_FOUND)
 
@@ -182,7 +182,6 @@ foreach(exec ${EXECUTABLES})
   target_link_libraries(${exec} marian ${EXT_LIBS} ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
   if(CUDA_FOUND)
     target_link_libraries(${exec} marian marian_cuda ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
-    cuda_add_cublas_to_target(${exec})
   endif(CUDA_FOUND)
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endforeach(exec)

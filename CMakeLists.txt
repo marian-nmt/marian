@@ -77,9 +77,26 @@ endif()
 set(EXT_LIBS ${EXT_LIBS} ${CMAKE_DL_LIBS})
 
 if(COMPILE_CUDA)
+
+if(USE_STATIC_LIBS)
+  set(_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
+  if(WIN32)
+    list(INSERT CMAKE_FIND_LIBRARY_SUFFIXES 0 .lib .a)
+  else()
+    set(CMAKE_FIND_LIBRARY_SUFFIXES .a _static.a)
+  endif()
+endif()
+
 find_package(CUDA "8.0")
 if(CUDA_FOUND)
-  set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY})
+  if(USE_STATIC_LIBS)
+    find_library(CUDA_culibos_LIBRARY NAMES culibos PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib64)
+    set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_culibos_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})
+    message("-- Found CUDA libraries: ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_culibos_LIBRARY} ${CUDA_CUBLAS_LIBRARIES}")
+  else(USE_STATIC_LIBS)
+    set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})
+    message("-- Found CUDA libraries: ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES}")
+endif(USE_STATIC_LIBS)
 
   if(USE_CUDNN)
     find_package(CUDNN "7.0")
@@ -106,15 +123,15 @@ if(CUDA_FOUND)
     # set the path for the generated static lib
     set(NCCL_STATIC "${CMAKE_CURRENT_BINARY_DIR}/nccl/lib/libnccl_static.a")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_NCCL")
-    
+
     LIST(APPEND CUDA_NVCC_FLAGS -DUSE_NCCL; )
 
     # disables compilation for sm_30 to avoid ptxas warning... that's general Kepler support. But K80s are supported for instance by sm_35
     set(GENCODE "-gencode=arch=compute_35,code=sm_35 -gencode=arch=compute_50,code=sm_50 -gencode=arch=compute_60,code=sm_60 -gencode=arch=compute_61,code=sm_61")
 
-    # sets output to build, passes cuda location from FindCUDA, sets c++ compiler to the same one CMake uses. 
+    # sets output to build, passes cuda location from FindCUDA, sets c++ compiler to the same one CMake uses.
     add_custom_command(OUTPUT ${NCCL_STATIC}
-                       COMMAND make src.build 
+                       COMMAND make src.build
                        BUILDDIR=${CMAKE_CURRENT_BINARY_DIR}/nccl
                        CUDA_HOME=${CUDA_TOOLKIT_ROOT_DIR}
                        CUDA8_GENCODE=${GENCODE}
@@ -125,10 +142,14 @@ if(CUDA_FOUND)
     set_target_properties(nccl PROPERTIES IMPORTED_LOCATION ${NCCL_STATIC})
     add_dependencies(nccl nccl_target)
     set(EXT_LIBS ${EXT_LIBS} nccl)
-    
+
     # adds the resulting files to be removed by `make clean`
     set_directory_properties(PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${CMAKE_CURRENT_BINARY_DIR}/nccl)
   endif(USE_NCCL)
+
+if(USE_STATIC_LIBS)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ${_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
+endif()
 
 else(CUDA_FOUND)
   message(FATAL_ERROR "CUDA has not been found, set -DCOMPILE_CUDA=off to avoid this check and to compile the CPU version only")
