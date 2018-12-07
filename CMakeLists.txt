@@ -12,16 +12,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(BUILD_ARCH native CACHE STRING "Compile for this CPU architecture.")
 
 # Custom CMake options
-option(COMPILE_EXAMPLES "Compile examples" OFF)
-option(COMPILE_TESTS "Compile tests" OFF)
-option(COMPILE_SERVER "Compile marian-server" ON)
 option(COMPILE_CPU "Compile CPU version" ON)
 option(COMPILE_CUDA "Compile GPU version" ON)
-option(USE_STATIC_LIBS "Compile GPU version" OFF)
+option(USE_SENTENCEPIECE "Download and compile SentencePiece" OFF)
+option(USE_STATIC_LIBS "Link statically against non-system libs" OFF)
 option(USE_CUDNN "Use CUDNN library" OFF)
 option(USE_NCCL "Use NCCL library" ON)
 option(USE_MPI "Use MPI library" OFF)
-option(USE_SENTENCEPIECE "Download and compile SentencePiece" OFF)
+option(COMPILE_EXAMPLES "Compile examples" OFF)
+option(COMPILE_TESTS "Compile tests" OFF)
+option(COMPILE_SERVER "Compile marian-server" ON)
 
 # Project versioning
 find_package(Git QUIET)
@@ -32,6 +32,37 @@ message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 
 execute_process(COMMAND git submodule update --init --recursive --no-fetch
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Detect support CPU instrinsics for the current platform. This will 
+# only by used with BUILD_ARCH=native. For overridden BUILD_ARCH we 
+# minimally use -msse4.1. This seems to work with MKL.
+set(INTRINSICS "")
+if(BUILD_ARCH STREQUAL "native")
+  message(STATUS "Checking support for CPU intrinsics")
+  include(FindSSE)
+  if(SSE2_FOUND)
+    message(STATUS "SSE2 support found")
+    set(INTRINSICS "${INTRINSICS} -msse2")
+  endif(SSE2_FOUND)
+  if(SSE3_FOUND)
+    message(STATUS "SSE3 support found")
+    set(INTRINSICS "${INTRINSICS} -msse3")
+  endif(SSE3_FOUND)
+  if(SSE4_1_FOUND)
+    message(STATUS "SSE4.1 support found")
+    set(INTRINSICS "${INTRINSICS} -msse4.1")
+  endif(SSE4_1_FOUND)
+  if(AVX_FOUND)
+    message(STATUS "AVX support found")
+    set(INTRINSICS "${INTRINSICS} -mavx")
+  endif(AVX_FOUND)
+  if(AVX2_FOUND)
+    message(STATUS "AVX2 support found")
+    set(INTRINSICS "${INTRINSICS} -mavx2")
+  endif(AVX2_FOUND)
+else()
+  set(INTRINSICS "-msse4.1")
+endif()
 
 # Set compilation flags
 if(MSVC)
@@ -47,14 +78,14 @@ else()
 
   # These are used in src/CMakeLists.txt on a per-target basis
   list(APPEND ALL_WARNINGS -Wall; -Werror; -Wno-unused-result; -Wno-deprecated; -Wno-pragmas; -Wno-unused-parameter; -Wextra; -Wno-unused-function;
-                           -Wno-unused-value; -Wno-unknown-pragmas; -Wno-sign-compare; -Wno-missing-field-initializers)
+                           -Wno-unused-value; -Wno-unknown-pragmas; -Wno-sign-compare; -Wno-missing-field-initializers;)
 
   # This warning does not exist prior to gcc 5.0
   if(CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.0)
     list(APPEND ALL_WARNINGS -Wsuggest-override)
   endif()
 
-  set(CMAKE_CXX_FLAGS                 "-std=c++11 -O3 -Ofast -m64 -pthread -march=${BUILD_ARCH} -msse4.1 -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC ${DISABLE_GLOBALLY}")
+  set(CMAKE_CXX_FLAGS                 "-std=c++11 -O3 -Ofast -m64 -pthread -march=${BUILD_ARCH} ${INTRINSICS} -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC ${DISABLE_GLOBALLY}")
   set(CMAKE_CXX_FLAGS_RELEASE         "${CMAKE_CXX_FLAGS} -g -rdynamic")
   set(CMAKE_CXX_FLAGS_DEBUG           "-std=c++11 -g -rdynamic -O0 -pthread -Wl,--no-as-needed -fPIC -Wno-unused-result -Wno-deprecated -Werror -Wno-pragmas")
   set(CMAKE_CXX_FLAGS_SLIM            "${CMAKE_CXX_FLAGS} -DNDEBUG")
@@ -77,9 +108,26 @@ endif()
 set(EXT_LIBS ${EXT_LIBS} ${CMAKE_DL_LIBS})
 
 if(COMPILE_CUDA)
+
+if(USE_STATIC_LIBS)
+  set(_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
+  if(WIN32)
+    list(INSERT CMAKE_FIND_LIBRARY_SUFFIXES 0 .lib .a)
+  else()
+    set(CMAKE_FIND_LIBRARY_SUFFIXES .a _static.a)
+  endif()
+endif()
+
 find_package(CUDA "8.0")
 if(CUDA_FOUND)
-  set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY})
+  if(USE_STATIC_LIBS)
+    find_library(CUDA_culibos_LIBRARY NAMES culibos PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib64)
+    set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_culibos_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})
+    message(STATUS "Found CUDA libraries: ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_culibos_LIBRARY} ${CUDA_CUBLAS_LIBRARIES}")
+  else(USE_STATIC_LIBS)
+    set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})
+    message(STATUS "Found CUDA libraries: ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES}")
+endif(USE_STATIC_LIBS)
 
   if(USE_CUDNN)
     find_package(CUDNN "7.0")
@@ -91,22 +139,53 @@ if(CUDA_FOUND)
     endif(CUDNN_FOUND)
   endif(USE_CUDNN)
 
-  if(USE_NCCL)
-    find_package(NCCL)
-    if(NCCL_FOUND)
-      include_directories(${NCCL_INCLUDE_DIR})
-      set(EXT_LIBS ${EXT_LIBS} ${NCCL_LIBRARIES})
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_NCCL")
-      LIST(APPEND CUDA_NVCC_FLAGS -DUSE_NCCL; )
-    endif(NCCL_FOUND)
-  endif(USE_NCCL)
-
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCUDA_FOUND")
   list(APPEND CUDA_NVCC_FLAGS -DCUDA_FOUND; )
 
   if(MSVC)
     list(APPEND CUDA_NVCC_FLAGS -DBOOST_PP_VARIADICS=0; )
   endif()
+
+  # We compile NCCL ourselves, using the NVidia Makefile rather than CMake, this requires to pass a couple of parameters from
+  # Cmake. This is also fairly untested, let's hope it does not explode. 
+  # @TODO: Make sure it does not use pre-installed NCCL headers
+  if(USE_NCCL)
+    # define and set the include dir for the generated nccl.h header
+    set(NCCL_HEADER_LOCATION "${CMAKE_CURRENT_BINARY_DIR}/nccl/include")
+    include_directories(${NCCL_HEADER_LOCATION})
+
+    # set the path for the generated static lib
+    set(NCCL_LIB_STATIC "${CMAKE_CURRENT_BINARY_DIR}/nccl/lib/libnccl_static.a")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_NCCL")
+
+    LIST(APPEND CUDA_NVCC_FLAGS -DUSE_NCCL; )
+
+    # disables compilation for sm_30 to avoid ptxas warning... that's general Kepler support. But K80s are supported for instance by sm_35
+    set(GENCODE "-gencode=arch=compute_35,code=sm_35 -gencode=arch=compute_50,code=sm_50 -gencode=arch=compute_60,code=sm_60 -gencode=arch=compute_61,code=sm_61")
+
+    # We build using NVidia's custom makefile, for that we pass a number of variables from CMake.
+    # Sets output to the chosen build folder, i.e. where the binaries and objects are generated.
+    # Also passes CUDA location from FindCUDA, sets c++ compiler to the same one CMake uses.
+    add_custom_command(OUTPUT ${NCCL_LIB_STATIC}
+                       COMMAND make src.build
+                       BUILDDIR=${CMAKE_CURRENT_BINARY_DIR}/nccl
+                       CUDA_HOME=${CUDA_TOOLKIT_ROOT_DIR}
+                       CUDA8_GENCODE=${GENCODE}
+                       CXX=${CMAKE_CXX_COMPILER}
+                       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/3rd_party/nccl)
+    add_custom_target(nccl_target DEPENDS ${NCCL_LIB_STATIC})
+    add_library(nccl STATIC IMPORTED)
+    set_target_properties(nccl PROPERTIES IMPORTED_LOCATION ${NCCL_LIB_STATIC})
+    add_dependencies(nccl nccl_target)
+    set(EXT_LIBS ${EXT_LIBS} nccl)
+
+    # adds the resulting files to be removed by `make clean`
+    set_directory_properties(PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${CMAKE_CURRENT_BINARY_DIR}/nccl)
+  endif(USE_NCCL)
+
+if(USE_STATIC_LIBS)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ${_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
+endif()
 
 else(CUDA_FOUND)
   message(FATAL_ERROR "CUDA has not been found, set -DCOMPILE_CUDA=off to avoid this check and to compile the CPU version only")
@@ -180,9 +259,9 @@ set(BOOST_COMPONENTS timer iostreams filesystem system chrono)
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
   add_definitions(-DUSE_BOOST_REGEX=1)
   set(BOOST_COMPONENTS ${BOOST_COMPONENTS} regex)
-  message("-- Using boost::regex")
+  message(STATUS "Using boost::regex")
 else()
-  message("-- Using std::regex")
+  message(STATUS "Using std::regex")
 endif()
 
 if(COMPILE_SERVER)
