@@ -166,7 +166,7 @@ endif(USE_STATIC_LIBS)
     # We build using NVidia's custom makefile, for that we pass a number of variables from CMake.
     # Sets output to the chosen build folder, i.e. where the binaries and objects are generated.
     # Also passes CUDA location from FindCUDA, sets c++ compiler to the same one CMake uses.
-    add_custom_command(OUTPUT ${NCCL_STATIC}
+    add_custom_command(OUTPUT ${NCCL_LIB_STATIC}
                        COMMAND make src.build
                        BUILDDIR=${CMAKE_CURRENT_BINARY_DIR}/nccl
                        CUDA_HOME=${CUDA_TOOLKIT_ROOT_DIR}
