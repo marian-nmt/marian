@@ -15,6 +15,12 @@ Device::~Device() {
   size_ = 0;
 }
 
+// allocate function for tensor reserve() below. 
+// Needed for AVX512, while not available on all compilers. It seems clang
+// does not have aligned_alloc for all cstlib versions. If AVX512 is not used
+// a simple malloc is probably fine. 
+// Should generate a runtime error otherwise as we have a check in the AVX512 
+// functions which tests for alignment. 
 #ifdef _WIN32
 #define MALLOC(size) _aligned_alloc(size, alignment_)
 #elif __GNUC__
