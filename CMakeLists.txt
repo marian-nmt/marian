@@ -33,8 +33,8 @@ message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 execute_process(COMMAND git submodule update --init --recursive --no-fetch
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
-# Detect support CPU instrinsics for the current platform. This will 
-# only by used with BUILD_ARCH=native. For overridden BUILD_ARCH we 
+# Detect support CPU instrinsics for the current platform. This will
+# only by used with BUILD_ARCH=native. For overridden BUILD_ARCH we
 # minimally use -msse4.1. This seems to work with MKL.
 set(INTRINSICS "")
 if(BUILD_ARCH STREQUAL "native")
@@ -147,7 +147,7 @@ endif(USE_STATIC_LIBS)
   endif()
 
   # We compile NCCL ourselves, using the NVidia Makefile rather than CMake, this requires to pass a couple of parameters from
-  # Cmake. This is also fairly untested, let's hope it does not explode. 
+  # Cmake. This is also fairly untested, let's hope it does not explode.
   # @TODO: Make sure it does not use pre-installed NCCL headers
   if(USE_NCCL)
     # define and set the include dir for the generated nccl.h header
@@ -167,7 +167,7 @@ endif(USE_STATIC_LIBS)
     # Sets output to the chosen build folder, i.e. where the binaries and objects are generated.
     # Also passes CUDA location from FindCUDA, sets c++ compiler to the same one CMake uses.
     add_custom_command(OUTPUT ${NCCL_LIB_STATIC}
-                       COMMAND make src.build
+                       COMMAND ${CMAKE_MAKE_PROGRAM} src.build
                        BUILDDIR=${CMAKE_CURRENT_BINARY_DIR}/nccl
                        CUDA_HOME=${CUDA_TOOLKIT_ROOT_DIR}
                        CUDA8_GENCODE=${GENCODE}
