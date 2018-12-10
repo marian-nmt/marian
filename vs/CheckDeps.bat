@@ -2,8 +2,8 @@
 :: Usage: CheckDeps.bat
 ::
 :: This script is used to verify that all the dependencies required to build Marian are available.
-:: The Cuda SDK, the CuDNN library and the Intel MKL must be installed beforehand by the user.
-:: The Boost, zlib and OpenSSH libraries, if not found, will be installed by this script using vcpkg
+:: The Cuda SDK and the Intel MKL must be installed beforehand by the user.
+:: The Boost and OpenSSH libraries, if not found, will be installed by this script using vcpkg
 ::
 ::
 @echo off
@@ -27,7 +27,6 @@ set ROOT=%~dp0
 ::----------------------------------------------------------------------------------------------
 ::set BOOST_INCLUDEDIR=
 ::set BOOST_LIBRARYDIR=
-::set ZLIB_ROOT=
 ::set OPENSSL_ROOT_DIR=
 
 
@@ -44,7 +43,6 @@ set ROOT=%~dp0
 
 
 if "%BOOST_INCLUDEDIR%" == "" goto :needVcPkg
-if "%ZLIB_ROOT%" == "" goto :needVcPkg
 if "%OPENSSL_ROOT_DIR%" == "" goto :needVcPkg
 
 goto :checkDeps
@@ -110,43 +108,30 @@ set CMAKE_OPT=
 ::
 echo.
 echo ... CUDA
-if "%CUDA_PATH%"=="" (
-    echo The CUDA_PATH environment variable is not defined: please make sure CUDA 8.0+ is installed.
-    exit /b 1
-)
-if not exist "%CUDA_PATH%" (
-    echo CUDA_PATH is set to a non existing path:
-    echo %CUDA_PATH%
-    echo Please make sure CUDA 8.0+ is properly installed.
-    exit /b 1
-)
-if not exist "%CUDA_PATH%\include\cuda.h" (
-    echo CUDA header files were not found in this folder:
-    echo    "%CUDA_PATH%"
-    echo Please make sure CUDA 8.0+ is properly installed.
-    exit /b 1
-)
-if not exist "%CUDA_PATH%\lib\x64\cuda.lib" (
-    echo CUDA library files were not found in this folder:
-    echo    "%CUDA_PATH%"
-    echo Please make sure CUDA 8.0+ is properly installed.
-    exit /b 1
-)
+REM if "%CUDA_PATH%"=="" (
+REM     echo The CUDA_PATH environment variable is not defined: please make sure CUDA 8.0+ is installed.
+REM     exit /b 1
+REM )
+REM if not exist "%CUDA_PATH%" (
+REM     echo CUDA_PATH is set to a non existing path:
+REM     echo %CUDA_PATH%
+REM     echo Please make sure CUDA 8.0+ is properly installed.
+REM     exit /b 1
+REM )
+REM if not exist "%CUDA_PATH%\include\cuda.h" (
+REM     echo CUDA header files were not found in this folder:
+REM     echo    "%CUDA_PATH%"
+REM     echo Please make sure CUDA 8.0+ is properly installed.
+REM     exit /b 1
+REM )
+REM if not exist "%CUDA_PATH%\lib\x64\cuda.lib" (
+REM     echo CUDA library files were not found in this folder:
+REM     echo    "%CUDA_PATH%"
+REM     echo Please make sure CUDA 8.0+ is properly installed.
+REM     exit /b 1
+REM )
 
 echo Found Cuda SDK in %CUDA_PATH%
-
-
-:: -------------------------
-:: CuDNN is installed manually into CUDA directories.
-echo.
-echo ... CUDNN
-if not exist "%CUDA_PATH%\lib\x64\cudnn.lib" (
-    echo The CuDNN library was not found. Please make sure it is installed correctly in your CUDA setup.
-    exit /b 1
-)
-
-echo Found CuDNN library in %CUDA_PATH%\lib\x64
-
 
 :: -------------------------
 :: The MKL setup does not set any environment variable to the installation path.
@@ -178,7 +163,6 @@ if not exist "%MKLROOT%\lib\intel64\mkl_core.lib" (
 )
 
 echo Found Intel MKL library in %MKLROOT%
-
 
 :: -------------------------
 :: BOOST_INCLUDEDIR and BOOST_LIBRARYDIR can be both set to an existing Boost installation.
@@ -220,41 +204,6 @@ if not exist "%BOOST_LIBRARYDIR%\boost_*.lib" (
 
 echo Found Boost headers in "%BOOST_INCLUDEDIR%" and libs in "%BOOST_LIBRARYDIR%"
 
-
-:: -------------------------
-:: ZLIB_ROOT can be set to an existing zlib installation.
-:: If not, we use vcpkg to install the library
-::
-echo.
-echo ... zlib
-if "%ZLIB_ROOT%"=="" (
-    %VCPKG% install zlib
-    set ZLIB_ROOT=%VCPKG_INSTALL%
-)
-
-if not exist "%ZLIB_ROOT%" (
-    echo ZLIB_ROOT is set to a non existing path:
-    echo    "%ZLIB_ROOT%"
-    echo Please set ZLIB_ROOT to the installation path of the zlib library.
-    exit /b 1
-)
-if not exist "%ZLIB_ROOT%\include\zlib.h" (
-    echo zlib header files were not found in this folder:
-    echo    "%ZLIB_ROOT%"
-    echo Please make sure zlib is correctly installed.
-    exit /b 1
-)
-if not exist "%ZLIB_ROOT%\lib\zlib.lib" (
-    echo zlib library file were not found in this folder:
-    echo    "%ZLIB_ROOT%"
-    echo Please make sure zlib is correctly installed.
-    exit /b 1
-)
-
-echo Found zlib library in "%ZLIB_ROOT%"
-
-
-
 :: -------------------------
 :: OPENSSL_ROOT_DIR can be set to an existing OpenSSL installation.
 :: If not, we use vcpkg to install the library
@@ -266,27 +215,26 @@ if "%OPENSSL_ROOT_DIR%"=="" (
     set OPENSSL_ROOT_DIR=%VCPKG_INSTALL%
 )
 
-if not exist "%OPENSSL_ROOT_DIR%" (
-    echo OPENSSL_ROOT_DIR is set to a non existing path:
-    echo "%OPENSSL_ROOT_DIR%"
-    echo Please set OPENSSL_ROOT_DIR to the installation path of the OpenSLL library.
-    exit /b 1
-)
-if not exist "%OPENSSL_ROOT_DIR%\include\openssl\opensslv.h" (
-    echo OpenSSL header files were not found in this folder:
-    echo    "%OPENSSL_ROOT_DIR%"
-    echo Please make sure OpenSSL is correctly installed.
-    exit /b 1
-)
-if not exist "%OPENSSL_ROOT_DIR%\lib\ssleay32.lib" (
-    echo OpenSSL library file were not found in this folder:
-    echo    "%OPENSSL_ROOT_DIR%"
-    echo Please make sure OpenSSL is correctly installed.
-    exit /b 1
+REM if not exist "%OPENSSL_ROOT_DIR%" (
+REM     echo OPENSSL_ROOT_DIR is set to a non existing path:
+REM     echo "%OPENSSL_ROOT_DIR%"
+REM     echo Please set OPENSSL_ROOT_DIR to the installation path of the OpenSLL library.
+REM     exit /b 1
+REM )
+REM if not exist "%OPENSSL_ROOT_DIR%\include\openssl\opensslv.h" (
+REM     echo OpenSSL header files were not found in this folder:
+REM     echo    "%OPENSSL_ROOT_DIR%"
+REM     echo Please make sure OpenSSL is correctly installed.
+REM     exit /b 1
+REM )
+REM if not exist "%OPENSSL_ROOT_DIR%\lib\ssleay32.lib" (
+REM     echo OpenSSL library file were not found in this folder:
+REM     echo    "%OPENSSL_ROOT_DIR%"
+REM     echo Please make sure OpenSSL is correctly installed.
+REM     exit /b 1
 )
 
 echo Found OpenSSL library in "%OPENSSL_ROOT_DIR%"
-
 
 echo.
 echo.
@@ -296,7 +244,6 @@ echo             MKLROOT ^| %MKLROOT%
 echo          VCPKG_ROOT ^| %VCPKG_ROOT%
 echo    BOOST_INCLUDEDIR ^| %BOOST_INCLUDEDIR%
 echo    BOOST_LIBRARYDIR ^| %BOOST_LIBRARYDIR%
-echo           ZLIB_ROOT ^| %ZLIB_ROOT%
 echo    OPENSSL_ROOT_DIR ^| %OPENSSL_ROOT_DIR%
 echo --------------------------------------------------
 echo.

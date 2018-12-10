@@ -6,7 +6,7 @@ file(GLOB ZLIB_INC *.h)
 add_library(zlib OBJECT ${ZLIB_SRC} ${ZLIB_INC})
 
 if(MSVC)
-  target_compile_options(zlib PUBLIC /p:NoWarn=4996)
+  target_compile_options(zlib PUBLIC /wd"4996" /wd"4267")
 else()
   target_compile_options(zlib PUBLIC -Wno-implicit-function-declaration)
 endif()

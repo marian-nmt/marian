@@ -39,12 +39,12 @@
  */
 std::string Pathie::utf16_to_utf8(std::wstring str)
 {
-  int size = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), str.length(), NULL, 0, NULL, NULL);
+  int size = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), (int)str.length(), NULL, 0, NULL, NULL);
 
   char* utf8 = (char*) malloc(size); // sizeof(char) = 1 per ANSI C standard.
   memset(utf8, 0, size);
 
-  size = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), str.length(), utf8, size,  NULL, NULL);
+  size = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), (int)str.length(), utf8, size,  NULL, NULL);
 
   if (size == 0)
     throw(Pathie::WindowsError(GetLastError()));
@@ -61,12 +61,12 @@ std::string Pathie::utf16_to_utf8(std::wstring str)
  */
 std::wstring Pathie::utf8_to_utf16(std::string str)
 {
-  int count = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), str.length(), NULL, 0);
+  int count = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.length(), NULL, 0);
 
   wchar_t* utf16 = (wchar_t*) malloc(count * sizeof(wchar_t));
   memset(utf16, 0, count * sizeof(wchar_t));
 
-  count = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), str.length(), utf16, count);
+  count = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.length(), utf16, count);
 
   if (count == 0)
     throw(Pathie::WindowsError(GetLastError()));

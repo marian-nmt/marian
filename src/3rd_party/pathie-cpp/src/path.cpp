@@ -51,6 +51,7 @@
 #include <shlwapi.h>
 //#include <ntifs.h> // Currently not in msys2
 
+// @TODO: This is a hack to make it compile under Windows, check if this is save.
 #define F_OK    0
 
 #elif defined(_PATHIE_UNIX)
@@ -161,7 +162,7 @@ void Path::sanitize()
   }
 
   // Remove trailing slash if any (except for the filesystem root)
-  long len = m_path.length();
+  long len = (long)m_path.length();
 #if defined(_PATHIE_UNIX)
   if (len > 1 && m_path[len - 1] == '/')
     m_path = m_path.substr(0, len - 1);
@@ -2922,6 +2923,7 @@ Path Path::global_appentries_dir(localpathtype local)
 #else
 #error Unsupported system.
 #endif
+  local; // make compiler happy
 }
 
 /**
@@ -2954,6 +2956,7 @@ Path Path::global_immutable_data_dir(localpathtype local)
 #else
 #error Unsupported system.
 #endif
+  local; // make compiler happy
 }
 
 /**
@@ -2986,6 +2989,7 @@ Path Path::global_mutable_data_dir(localpathtype local)
 #else
 #error Unsupported system
 #endif
+  local; // make compiler happy
 }
 
 /**
@@ -3015,6 +3019,7 @@ Path Path::global_cache_dir(localpathtype local)
 #else
 #error Unsupported system.
 #endif
+  local; // make compiler happy
 }
 
 /**
@@ -3047,6 +3052,7 @@ Path Path::global_runtime_dir(localpathtype local)
 #else
 #error Unsupported system.
 #endif
+  local; // make compiler happy
 }
 
 /**
@@ -3080,6 +3086,7 @@ Path Path::global_config_dir(localpathtype local)
 #else
 #error Unsupported system.
 #endif
+  local; // make compiler happy
 }
 
 /**
@@ -3229,6 +3236,7 @@ std::vector<Path> Path::glob(const std::string& pattern, int flags /* = 0 */)
 #else
 #error Unsupported system.
 #endif
+  flags; // make compiler happy
 }
 
 ///@}
@@ -3278,6 +3286,7 @@ bool Path::fnmatch(const std::string& pattern, int flags /* = 0 */) const
 #else
 #error Unsupported system.
 #endif
+  flags; // make compiler happy
 }
 
 /**
