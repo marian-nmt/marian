@@ -12,7 +12,6 @@ foreach(test ${UNIT_TESTS})
 
     if(CUDA_FOUND)
       target_link_libraries("run_${test}" marian marian_cuda ${EXT_LIBS} Catch)
-      cuda_add_cublas_to_target("run_${test}")
     endif(CUDA_FOUND)
 
     add_test(NAME ${test} COMMAND "run_${test}")
@@ -29,7 +28,6 @@ if(CUDA_FOUND)
 add_executable(pooling_test pooling_test.cpp)
 target_link_libraries(pooling_test marian ${EXT_LIBS} Catch)
 target_link_libraries(pooling_test marian marian_cuda ${EXT_LIBS} Catch)
-cuda_add_cublas_to_target(pooling_test)
 endif(CUDA_FOUND)
 
 add_executable(sqlite_test sqlite_test.cpp)
@@ -44,7 +42,6 @@ foreach(exec
     target_link_libraries(${exec} marian ${EXT_LIBS} Catch)
     if(CUDA_FOUND)
       target_link_libraries(${exec} marian marian_cuda ${EXT_LIBS} Catch)
-      cuda_add_cublas_to_target(${exec})
     endif(CUDA_FOUND)
 
     set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")

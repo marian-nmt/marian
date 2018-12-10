@@ -1,6 +1,14 @@
 #pragma once
 
+#ifdef _GNUC_
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsuggest-override"
+#endif
 #include <boost/timer/timer.hpp>
+#ifdef _GNUC_
+#pragma GCC diagnostic pop
+#endif
+
 #ifdef _MSC_VER
 // (needed on Windows only to resolve a link error, but causes a warning on Linux)
 #include <boost/chrono.hpp>
