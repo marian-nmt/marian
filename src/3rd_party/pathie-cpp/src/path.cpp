@@ -51,6 +51,8 @@
 #include <shlwapi.h>
 //#include <ntifs.h> // Currently not in msys2
 
+#define F_OK    0
+
 #elif defined(_PATHIE_UNIX)
 #include <unistd.h>
 #include <limits.h>

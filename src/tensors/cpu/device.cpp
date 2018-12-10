@@ -22,7 +22,7 @@ Device::~Device() {
 // Should generate a runtime error otherwise as we have a check in the AVX512 
 // functions which tests for alignment. 
 #ifdef _WIN32
-#define MALLOC(size) _aligned_alloc(size, alignment_)
+#define MALLOC(size) _aligned_malloc(size, alignment_)
 #elif __GNUC__
 #define MALLOC(size) aligned_alloc(alignment_, size)
 #else
