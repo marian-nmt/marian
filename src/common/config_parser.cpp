@@ -352,7 +352,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<double>("--label-smoothing",
      "Epsilon for label smoothing (0 to disable)");
   cli.add<float>("--clip-norm",
-     "Clip gradient norm to  argcli.add<int>(0 to disable)",
+     "Clip gradient norm to  arg  (0 to disable)",
      1.f);
   cli.add<float>("--exponential-smoothing",
      "Maintain smoothed version of parameters for validation and saving with smoothing factor. 0 to disable",
