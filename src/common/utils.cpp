@@ -26,21 +26,25 @@ void trimLeft(std::string& s) {
   CLI::detail::ltrim(s, " \t\n");
 }
 
-// @TODO: use more functions from CLI instead of own implementations
 void split(const std::string& line,
            std::vector<std::string>& pieces,
            const std::string del /*= " "*/,
-           bool keepEmpty) {
+           bool keepEmpty /*= false*/,
+           bool anyOf /*= false*/) {
   size_t begin = 0;
   size_t pos = 0;
   std::string token;
-  while((pos = line.find(del, begin)) != std::string::npos) {
+  size_t delSize = anyOf ? 1 : del.size();
+  while(true) {
+    pos = anyOf ? line.find_first_of(del, begin) : line.find(del, begin);
+    if(pos == std::string::npos)
+      break;
     if(pos >= begin) {
       token = line.substr(begin, pos - begin);
       if(token.size() > 0 || keepEmpty)
         pieces.push_back(token);
     }
-    begin = pos + del.size();
+    begin = pos + delSize;
   }
   if(pos >= begin) {
     token = line.substr(begin, pos - begin);
@@ -51,45 +55,27 @@ void split(const std::string& line,
 
 std::vector<std::string> split(const std::string& line,
                                const std::string del /*= " "*/,
-                               bool keepEmpty) {
+                               bool keepEmpty /*= false*/,
+                               bool anyOf /*= false*/) {
   std::vector<std::string> pieces;
-  split(line, pieces, del, keepEmpty);
+  split(line, pieces, del, keepEmpty, anyOf);
   return pieces;
 }
 
-// @TODO: splitAny() shares all but 2 expressions with split(). Merge them.
 void splitAny(const std::string& line,
               std::vector<std::string>& pieces,
               const std::string del /*= " "*/,
-              bool keepEmpty) {
-  size_t begin = 0;
-  size_t pos = 0;
-  std::string token;
-  while((pos = line.find_first_of(del, begin)) != std::string::npos) {
-    if(pos >= begin) {
-      token = line.substr(begin, pos - begin);
-      if(token.size() > 0 || keepEmpty)
-        pieces.push_back(token);
-    }
-    begin = pos + 1;
-  }
-  if(pos >= begin) {
-    token = line.substr(begin, pos - begin);
-    if(token.size() > 0 || keepEmpty)
-      pieces.push_back(token);
-  }
+              bool keepEmpty /*= false*/) {
+  split(line, pieces, del, keepEmpty, /*anyOf =*/true);
 }
 
 std::vector<std::string> splitAny(const std::string& line,
                                   const std::string del /*= " "*/,
-                                  bool keepEmpty) {
-  std::vector<std::string> pieces;
-  splitAny(line, pieces, del, keepEmpty);
-  return pieces;
+                                  bool keepEmpty /*= false*/) {
+  return split(line, del, keepEmpty, /*anyOf =*/true);
 }
 
-std::string join(const std::vector<std::string>& words,
-                 const std::string& del /*= " "*/) {
+std::string join(const std::vector<std::string>& words, const std::string& del /*= " "*/) {
   std::stringstream ss;
   if(words.empty()) {
     return "";
