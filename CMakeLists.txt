@@ -110,6 +110,10 @@ set(EXT_LIBS ${EXT_LIBS} ${CMAKE_DL_LIBS})
 if(COMPILE_CUDA)
 
 if(USE_STATIC_LIBS)
+  # link statically to stdlib libraries
+  set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
+
+  # look for libraries that have .a suffix
   set(_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
   if(WIN32)
     list(INSERT CMAKE_FIND_LIBRARY_SUFFIXES 0 .lib .a)
