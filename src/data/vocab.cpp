@@ -28,7 +28,7 @@ int Vocab::loadOrCreate(const std::string& vocabPath,
         trainPaths[0]);
 
     vImpl_ = createDefaultVocab();
-    size = vImpl_->findAndLoad(trainPaths[0], maxSize);
+    size = vImpl_->findAndLoad(trainPaths[0], (int)maxSize);
 
     if(size == 0) {
       auto newVocabPath = trainPaths[0] + vImpl_->canonicalExtension();
@@ -55,7 +55,7 @@ int Vocab::loadOrCreate(const std::string& vocabPath,
 int Vocab::load(const std::string& vocabPath, size_t maxSize) {
   if(!vImpl_)
     vImpl_ = createVocab(vocabPath, options_, batchIndex_);
-  return vImpl_->load(vocabPath, maxSize);
+  return vImpl_->load(vocabPath, (int)maxSize);
 }
 
 void Vocab::create(const std::string& vocabPath,

@@ -4,15 +4,11 @@
 #include "common/logging.h"
 #include "common/definitions.h"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsuggest-override"
-#include "3rd_party/zstr/zstr.hpp"
-#pragma GCC diagnostic pop
-
 #ifdef _GNUC_
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsuggest-override"
 #endif
+#include "3rd_party/zstr/zstr.hpp"
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/stream_buffer.hpp>
 #ifdef _GNUC_

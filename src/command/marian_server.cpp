@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
 
   // Initialize web server
   WSServer server;
-  server.config.port = options->get<size_t>("port", 8080);
+  server.config.port = (short)options->get<size_t>("port", 8080);
 
   auto &translate = server.endpoint["^/translate/?$"];
 

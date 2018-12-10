@@ -5,6 +5,8 @@ file(GLOB ZLIB_INC *.h)
 # add sources of the wrapper as a "SQLiteCpp" static library
 add_library(zlib OBJECT ${ZLIB_SRC} ${ZLIB_INC})
 
-if(NOT MSVC)
+if(MSVC)
+  target_compile_options(zlib PUBLIC /p:NoWarn=4996)
+else()
   target_compile_options(zlib PUBLIC -Wno-implicit-function-declaration)
 endif()
