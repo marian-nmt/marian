@@ -327,11 +327,7 @@ CUDNNWrapper::CUDNNWrapper() {
       "-DUSE_CUDNN=on)");
 }
 
-CUDNNWrapper::~CUDNNWrapper() {
-  ABORT(
-      "To use convolution and pooling, recompile with CUDNN (cmake flag "
-      "-DUSE_CUDNN=on)");
-}
+CUDNNWrapper::~CUDNNWrapper() {}
 
 ConvolutionWrapper::ConvolutionWrapper(const Shape&,
                                        const Shape&,
@@ -367,11 +363,7 @@ void ConvolutionWrapper::backward(Tensor,
       "-DUSE_CUDNN=on)");
 }
 
-ConvolutionWrapper::~ConvolutionWrapper() {
-  ABORT(
-      "To use convolution and pooling, recompile with CUDNN (cmake flag "
-      "-DUSE_CUDNN=on)");
-}
+ConvolutionWrapper::~ConvolutionWrapper() {}
 
 PoolingWrapper::PoolingWrapper(int, int, int, int, int, int, std::string) {
   ABORT(
@@ -397,11 +389,7 @@ void PoolingWrapper::backward(Tensor, Tensor, Tensor, Tensor) {
       "-DUSE_CUDNN=on)");
 }
 
-PoolingWrapper::~PoolingWrapper() {
-  ABORT(
-      "To use convolution and pooling, recompile with CUDNN (cmake flag "
-      "-DUSE_CUDNN=on)");
-}
+PoolingWrapper::~PoolingWrapper() {}
 
 #endif
 }  // namespace marian
