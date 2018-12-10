@@ -270,7 +270,7 @@ void Adam::resetStats() {
 }
 
 Ptr<OptimizerBase> Optimizer(Ptr<Options> options) {
-  float lrate = (float)options->get<double>("learn-rate"); // @TODO: should this be <float>?
+  float lrate = options->get<float>("learn-rate");
   auto params = options->has("optimizer-params")
                     ? options->get<std::vector<float>>("optimizer-params")
                     : std::vector<float>({});

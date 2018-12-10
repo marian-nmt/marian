@@ -314,9 +314,9 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "Use synchronous SGD instead of asynchronous for multi-gpu training");
 
   // learning rate options
-  cli.add<double>("--learn-rate,-l",
+  cli.add<float>("--learn-rate,-l",
      "Learning rate",
-     0.0001);
+     0.0001f);
   cli.add<bool>("--lr-report",
      "Report learning rate for each update");
 
