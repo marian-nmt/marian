@@ -145,9 +145,7 @@ private:
 public:
   virtual ~TranslateService() {}
 
-  TranslateService(Ptr<Options> options) : options_(options) { init(); }
-
-  void init() override {
+  TranslateService(Ptr<Options> options) : options_(options) {
     // initialize vocabs
     options_->set("inference", true);
 
