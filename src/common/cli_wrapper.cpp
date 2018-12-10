@@ -135,6 +135,10 @@ void CLIWrapper::updateConfig(const YAML::Node &config, const std::string& error
     // skip options specified via command-line to allow overwriting them
     if(cmdOptions.count(key))
       continue;
+    // skip special option "version" that possibly can be loaded from model.npz:special.yml
+    if(key == "version")
+      continue;
+
     if(options_.count(key)) {
       config_[key] = YAML::Clone(it.second);
       options_[key].modified = true;
@@ -142,7 +146,7 @@ void CLIWrapper::updateConfig(const YAML::Node &config, const std::string& error
       invalidKeys.push_back(key);
     }
   }
-  ABORT_IF(!invalidKeys.empty(), errorMsg + std::string(": ") + utils::join(invalidKeys, ", "));
+  ABORT_IF(!invalidKeys.empty(), errorMsg + ": " + utils::join(invalidKeys, ", "));
 }
 
 std::string CLIWrapper::dumpConfig(bool skipDefault /*= false*/) const {

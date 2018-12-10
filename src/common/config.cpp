@@ -95,15 +95,14 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
           version,
           buildVersion());
     else
-      LOG(info,
-          "[config] Loaded model has been created with Marian {}",
-          version);
+      LOG(info, "[config] Loaded model has been created with Marian {}", version);
+
+    // Remove "version" from config to make it consistent among different start-up scenarios
+    config_.remove("version");
   }
   // If this is a newly started training
   else if(mode == cli::mode::training) {
-    LOG(info,
-        "[config] Model is being created with Marian {}",
-        buildVersion());
+    LOG(info, "[config] Model is being created with Marian {}", buildVersion());
   }
 }
 
