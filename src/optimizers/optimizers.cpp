@@ -276,7 +276,7 @@ Ptr<OptimizerBase> Optimizer(Ptr<Options> options) {
                     : std::vector<float>({});
 
   Ptr<ClipperBase> clipper = nullptr;
-  float clipNorm = (float)options->get<double>("clip-norm"); // @TODO: should this be <float>?
+  float clipNorm = options->get<float>("clip-norm");
   if(clipNorm > 0)
     clipper = Clipper<Norm>(clipNorm);
 
