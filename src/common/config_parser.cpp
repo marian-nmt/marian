@@ -666,8 +666,7 @@ void ConfigParser::expandAliases(cli::CLIWrapper& cli) {
   }
 
   if(config) {
-    cli.updateConfig(config,
-                     "Unknown option(s) in aliases, check if aliases consist of correct options");
+    cli.updateConfig(config, "Unknown option(s) in aliases");
   }
 }
 
