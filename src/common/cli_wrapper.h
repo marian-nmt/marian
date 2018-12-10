@@ -9,6 +9,7 @@
 #include <map>
 #include <string>
 #include <unordered_set>
+#include <vector>
 
 namespace marian {
 
@@ -232,9 +233,11 @@ public:
    * This should be a preferred way of updating config options as the class keeps track of options,
    * which values have changed.
    *
-   * @param node YAML config with new default values for options
+   * @param config YAML config with new default values for options
+   * @param errorMsg error message printed if config contains undefined keys. The message is
+   *   appended with ": * <comma-separated list of invalid options>"
    */
-  bool updateConfig(const YAML::Node &config);
+  void updateConfig(const YAML::Node &config, const std::string &errorMsg);
 
   // Get textual YAML representation of the config
   std::string dumpConfig(bool skipDefault = false) const;

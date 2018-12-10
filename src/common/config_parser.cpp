@@ -666,8 +666,8 @@ void ConfigParser::expandAliases(cli::CLIWrapper& cli) {
   }
 
   if(config) {
-    auto success = cli.updateConfig(config);
-    ABORT_IF(!success, "Unknown option(s) in aliases, check if aliases consist of correct options");
+    cli.updateConfig(config,
+                     "Unknown option(s) in aliases, check if aliases consist of correct options");
   }
 }
 
@@ -703,8 +703,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   auto configPaths = findConfigPaths();
   if(!configPaths.empty()) {
     auto config = loadConfigFiles(configPaths);
-    auto success = cli.updateConfig(config);
-    ABORT_IF(!success, "There are option(s) in a config file that are not expected");
+    cli.updateConfig(config, "There are option(s) in a config file that are not expected");
   }
 
   if(get<bool>("interpolate-env-vars")) {

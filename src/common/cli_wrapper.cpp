@@ -3,6 +3,7 @@
 #include "common/logging.h"
 #include "common/options.h"
 #include "common/timer.h"
+#include "common/utils.h"
 #include "common/version.h"
 
 namespace marian {
@@ -126,8 +127,8 @@ std::string CLIWrapper::failureMessage(const CLI::App *app, const CLI::Error &e)
   return header;
 }
 
-bool CLIWrapper::updateConfig(const YAML::Node &config) {
-  bool success = true;
+void CLIWrapper::updateConfig(const YAML::Node &config, const std::string& errorMsg) {
+  std::vector<std::string> invalidKeys;
   auto cmdOptions = getParsedOptionNames();
   for(auto it : config) {
     auto key = it.first.as<std::string>();
@@ -138,10 +139,10 @@ bool CLIWrapper::updateConfig(const YAML::Node &config) {
       config_[key] = YAML::Clone(it.second);
       options_[key].modified = true;
     } else {
-      success = false;
+      invalidKeys.push_back(key);
     }
   }
-  return success;
+  ABORT_IF(!invalidKeys.empty(), errorMsg + std::string(": ") + utils::join(invalidKeys, ", "));
 }
 
 std::string CLIWrapper::dumpConfig(bool skipDefault /*= false*/) const {
