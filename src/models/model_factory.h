@@ -53,7 +53,5 @@ typedef Accumulator<EncoderDecoderFactory> encoder_decoder;
 Ptr<ModelBase> by_type(std::string type, usage, Ptr<Options> options);
 
 Ptr<ModelBase> from_options(Ptr<Options> options, usage);
-
-Ptr<ModelBase> from_config(Ptr<Config> config, usage);
 }  // namespace models
 }  // namespace marian
