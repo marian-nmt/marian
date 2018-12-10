@@ -36,7 +36,7 @@ private:
     VocabFreqOrderer(const std::unordered_map<std::string, size_t>& counter)
             : counter_(counter) {}
 
-    // order first by decreasing frequency, 
+    // order first by decreasing frequency,
     // if frequencies are the same order lexicographically by vocabulary string
     bool operator()(const std::string& a, const std::string& b) const {
       return counter_.at(a) > counter_.at(b) || (counter_.at(a) == counter_.at(b) && a < b);
@@ -56,8 +56,7 @@ public:
   }
 
   Words encode(const std::string& line, bool addEOS, bool /*inference*/) const override {
-    std::vector<std::string> lineTokens;
-    utils::split(line, lineTokens, " ");
+    auto lineTokens = utils::split(line, " ");
     return (*this)(lineTokens, addEOS);
   }
 
@@ -205,7 +204,7 @@ public:
               "Vocabulary file '{}' exists. Not overwriting",
               path.string());
     }
-    
+
     std::unordered_map<std::string, size_t> counter;
     for(const auto& trainPath : trainPaths)
       addCounts(counter, trainPath);
@@ -223,8 +222,7 @@ private:
 
     std::string line;
     while(getline(*trainStrm, line)) {
-      std::vector<std::string> toks;
-      utils::split(line, toks, " ");
+      auto toks = utils::split(line, " ");
 
       for(const std::string& tok : toks) {
         auto iter = counter.find(tok);

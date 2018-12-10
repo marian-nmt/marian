@@ -155,10 +155,9 @@ void Config::log() {
   std::string configString = out.c_str();
 
   // print YAML prepending each line with [config]
-  std::vector<std::string> results;
-  utils::split(configString, results, "\n");
-  for(auto& r : results)
-    LOG(info, "[config] {}", r);
+  auto lines = utils::split(configString, "\n");
+  for(auto& line : lines)
+    LOG(info, "[config] {}", line);
 }
 
 // Parse the device-spec parameters (--num-devices, --devices, --cpu-threads) into an array of
