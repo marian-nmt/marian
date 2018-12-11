@@ -236,6 +236,13 @@ REM     exit /b 1
 
 echo Found OpenSSL library in "%OPENSSL_ROOT_DIR%"
 
+%VCPKG% install protobuf protobuf:x64-windows
+echo %VCPKG%
+echo %VCPKG_INSTALL%
+md %VCPKG_INSTALL%\bin
+copy %VCPKG_INSTALL%\tools\protobuf\protoc.exe %VCPKG_INSTALL%\bin\protoc.exe
+set CMAKE_PREFIX_PATH=%VCPKG_INSTALL%
+
 echo.
 echo.
 echo --------------------------------------------------
@@ -245,6 +252,7 @@ echo          VCPKG_ROOT ^| %VCPKG_ROOT%
 echo    BOOST_INCLUDEDIR ^| %BOOST_INCLUDEDIR%
 echo    BOOST_LIBRARYDIR ^| %BOOST_LIBRARYDIR%
 echo    OPENSSL_ROOT_DIR ^| %OPENSSL_ROOT_DIR%
+echo   CMAKE_PREFIX_PATH ^| %CMAKE_PREFIX_PATH%
 echo --------------------------------------------------
 echo.
 echo.
