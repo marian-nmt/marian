@@ -318,7 +318,7 @@ public:
   }
 
   void actAfterEpoch(TrainingState& state) override {
-    float factor = (float)options_->get<double>("lr-decay"); // @TODO: <float>?
+    float factor = options_->get<float>("lr-decay");
 
     float baselr = getLearningRate(state);
     state.eta = baselr * state.factor;
@@ -352,10 +352,7 @@ public:
       if(decay) {
         state.factor *= factor;
         state.eta = baselr * state.factor;
-        LOG(info,
-            "Decaying learning rate to {} in epoch {}",
-            state.eta,
-            state.epochs);
+        LOG(info, "Decaying learning rate to {} in epoch {}", state.eta, state.epochs);
 
         state.reset = options_->get<bool>("lr-decay-reset-optimizer");
         if(state.reset)
@@ -370,7 +367,7 @@ public:
   }
 
   void actAfterBatches(TrainingState& state) override {
-    float factor = (float)options_->get<double>("lr-decay"); // @TODO: <float>?
+    float factor = options_->get<float>("lr-decay");
     state.reset = false;
 
     float baselr = getLearningRate(state);
@@ -416,7 +413,7 @@ public:
   }
 
   void actAfterStalled(TrainingState& state) override {
-    float factor = (float)options_->get<double>("lr-decay"); // @TODO: <float>?
+    float factor = options_->get<float>("lr-decay");
     state.reset = false;
 
     float baselr = getLearningRate(state);

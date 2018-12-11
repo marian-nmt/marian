@@ -89,7 +89,7 @@ void ConfigValidator::validateOptionsTraining() const {
       "There should be as many validation sets as training sets");
 
   // validations for learning rate decaying
-  ABORT_IF(get<double>("lr-decay") > 1.0, "Learning rate decay factor greater than 1.0 is unusual");
+  ABORT_IF(get<float>("lr-decay") > 1.f, "Learning rate decay factor greater than 1.0 is unusual");
 
   auto strategy = get<std::string>("lr-decay-strategy");
 

@@ -320,7 +320,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<bool>("--lr-report",
      "Report learning rate for each update");
 
-  cli.add<double>("--lr-decay",
+  cli.add<float>("--lr-decay",
      "Per-update decay factor for learning rate: lr <- lr * arg (0 to disable)");
   cli.add<std::string>("--lr-decay-strategy",
      "Strategy for learning rate decaying: epoch, batches, stalled, epoch+batches, epoch+stalled",
