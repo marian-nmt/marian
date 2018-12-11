@@ -16,7 +16,8 @@ private:
 
   Ptr<TrainingState> state_;
 
-  timer::Timer timer_, heartBeatTimer_;
+  timer::Timer timer_;
+  timer::Timer heartBeatTimer_;
 
   float getLearningRate(TrainingState& state) {
     float baselr = options_->get<float>("learn-rate");
@@ -24,7 +25,8 @@ private:
     float mult1 = 1.f;
     auto warmup = SchedulingParameter::parse(options_->get<std::string>("lr-warmup"));
     if(warmup) {
-      ABORT_IF(state.warmupStart && state.warmupStart.unit != warmup.unit, "lr-warmup and warmup-start must have the same unit");
+      ABORT_IF(state.warmupStart && state.warmupStart.unit != warmup.unit,
+               "lr-warmup and warmup-start must have the same unit");
       auto bno = state.getProgressIn(warmup.unit) - state.warmupStart.n;
       mult1 = std::min(1.f, (float)bno / (float)warmup.n);
     }
@@ -32,7 +34,9 @@ private:
     float mult2 = 1.f;
     auto decayGoogle = SchedulingParameter::parse(options_->get<std::string>("lr-decay-inv-sqrt"));
     if(decayGoogle) {
-      mult2 = std::min(1.f, (float)(std::sqrt(decayGoogle.n) / std::sqrt(state.getProgressIn(decayGoogle.unit))));
+      mult2 = std::min(
+          1.f,
+          (float)(std::sqrt(decayGoogle.n) / std::sqrt(state.getProgressIn(decayGoogle.unit))));
     }
 
     baselr = baselr * mult1 * mult2;
@@ -45,8 +49,7 @@ private:
   }
 
 public:
-  Scheduler(Ptr<Options> options, Ptr<TrainingState> state)
-      : options_(options), state_(state) {
+  Scheduler(Ptr<Options> options, Ptr<TrainingState> state) : options_(options), state_(state) {
     state_->eta = getLearningRate(*state);
   }
 
@@ -163,14 +166,15 @@ public:
   }
 
   void update(float cost, const std::vector<Ptr<data::Batch>>& batches, Ptr<IMPIWrapper> mpi = nullptr) {
-    state_->rememberPreviousProgress(); // note: epoch increases happen at the wrong place, hence -freq parameters do not support epoch units
+    state_->rememberPreviousProgress();  // note: epoch increases happen at the wrong place, hence
+                                         // -freq parameters do not support epoch units
     state_->validated = false;
 
     size_t batchSize = 0;    // number of sentences in batch
     size_t batchLabels = 0;  // number of target words in batch
 
     for(const auto& batch : batches) {
-      if (batch) { // (nullptr is allowed as result of split)
+      if(batch) { // (nullptr is allowed as result of split)
         batchSize += batch->size();
         batchLabels += batch->words(-1);
       }
@@ -178,8 +182,9 @@ public:
 
     // extrapolate cost across MPI processes, so that we have numbers in the right range
     // When doing the actual log, we then aggregate across MPI processes to get the accurate number.
-    if (mpi)
-      cost *= mpi->numMPIProcesses(); // @BUGBUG: this is presently correct for ce-sum, but possibly not the av-based losses
+    if(mpi)
+      cost *= mpi->numMPIProcesses();  // @BUGBUG: this is presently correct for ce-sum, but
+                                       // possibly not the av-based losses
 
     // reconstruct sum cost, for displaying epoch-level averages instead of minibatch-level
     auto costType = options_->get<std::string>("cost-type");
@@ -208,13 +213,13 @@ public:
     if(state_->enteredNewPeriodOf(options_->get<std::string>("disp-freq")) ||
        state_->batches <= options_->get<size_t>("disp-first")) {
       // if MPI then aggregate precise cost across workers
-      if (mpi) {
+      if(mpi) {
         //LOG(info, "all-reducing cost from {}", state_->costSum);
         state_->costSum /= mpi->numMPIProcesses(); // undo the extra scaling
         mpi->allReduce(&state_->costSum, &state_->costSum, 1, MPI_FLOAT, MPI_SUM);
         //LOG(info, "all-reduced cost to {}", state_->costSum);
       }
-      if (mpi && mpi->myMPIRank() != 0)
+      if(mpi && mpi->myMPIRank() != 0)
         ; // skip the report on alternate worker processes
       else if(dispLabelCounts) {
         if(options_->get<bool>("lr-report")) {  // if true then show the learning rate
@@ -419,8 +424,7 @@ public:
 
     if(factor > 0.0) {
       if(options_->get<std::string>("lr-decay-strategy") == "stalled") {
-        size_t startStalled
-            = options_->get<std::vector<size_t>>("lr-decay-start").front();
+        size_t startStalled = options_->get<std::vector<size_t>>("lr-decay-start").front();
         if(startStalled && state.stalled && state.stalled % startStalled == 0) {
           state.factor *= factor;
           state.eta = baselr * state.factor;
