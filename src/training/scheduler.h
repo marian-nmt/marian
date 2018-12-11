@@ -41,6 +41,7 @@ private:
 
     baselr = baselr * mult1 * mult2;
 
+    // TODO: why lr-warmup-start-rate is extracted from options_ instead of using state.warmupStart?
     float lrStart = options_->get<float>("lr-warmup-start-rate");
     if(lrStart > 0)
       baselr = baselr - lrStart * mult1 * mult2 + lrStart * mult2;
@@ -393,6 +394,7 @@ public:
 
           if(options_->get<bool>("lr-decay-repeat-warmup")) {
             LOG(info, "Restarting learning rate warmup");
+            // TODO: avoid repeating this many times and minimize calls to options_->get
             state.warmupStart.n = state.getProgressIn(SchedulingParameter::parse(options_->get<std::string>("lr-warmup")).unit);
           }
         }
