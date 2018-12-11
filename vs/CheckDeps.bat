@@ -236,12 +236,18 @@ REM     exit /b 1
 
 echo Found OpenSSL library in "%OPENSSL_ROOT_DIR%"
 
-%VCPKG% install protobuf protobuf:x64-windows
-echo %VCPKG%
-echo %VCPKG_INSTALL%
-md %VCPKG_INSTALL%\bin
-copy %VCPKG_INSTALL%\tools\protobuf\protoc.exe %VCPKG_INSTALL%\bin\protoc.exe
-set CMAKE_PREFIX_PATH=%VCPKG_INSTALL%
+set _CL_=/utf-8
+set LIBRARY_PATH=%CURRENT_PATH%\deps\proto
+
+mkdir build
+cd build
+git clone https://github.com/protocolbuffers/protobuf
+cd protobuf
+git checkout v.3.6.1
+cd cmake
+cmake . -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=%LIBRARY_PATH%
+cmake --build . --config Release --target install
+cd ..\..\..
 
 echo.
 echo.
