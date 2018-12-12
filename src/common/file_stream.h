@@ -9,8 +9,15 @@
 #include "3rd_party/zstr/zstr.hpp"
 #pragma GCC diagnostic pop
 
+#ifdef _GNUC_
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsuggest-override"
+#endif
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/stream_buffer.hpp>
+#ifdef _GNUC_
+#pragma GCC diagnostic pop
+#endif
 
 #include <iostream>
 #include <memory>

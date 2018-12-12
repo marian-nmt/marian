@@ -7,10 +7,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+- Automatic detection of CPU intrisics when building with -arch=native 
+
 ### Fixed
+- Fixed handling of "dump-config: false" in YAML config
 - Errors due to warnings
+- Fixed issue concerning failed saving with single GPU training and --sync-sgd option. 
 
 ### Changed
+- Add zlib source to Marian's source tree, builds now as object lib
+- -DUSE_STATIC_LIBS=on now also looks for static versions of CUDA libraries
+- Include NCCL build from github.com/marian-nmt/nccl and compile within source tree
 - Set nearly all warnings as errors for Marian's own targets. Disable warnings for 3rd party.
 
 ## [1.7.0] - 2018-11-27

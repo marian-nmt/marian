@@ -719,7 +719,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   // remove extra config files from the config to avoid redundancy
   config_.remove("config");
 
-  if(has("dump-config")) {
+  if(has("dump-config") && get<std::string>("dump-config") != "false") {
     bool skipDefault = get<std::string>("dump-config") == "minimal";
     config_.remove("dump-config");
     std::cout << cli.dumpConfig(skipDefault) << std::endl;
