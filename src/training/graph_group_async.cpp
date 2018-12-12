@@ -325,7 +325,7 @@ void AsyncGraphGroup::load() {
             setFn(i, data.begin() + begin, data.begin() + end);
           }
         });
-    } else if(options_->has("pretrained-model")) {
+    } else if(options_->nonempty("pretrained-model")) {
       std::string nameInit = options_->get<std::string>("pretrained-model");
       LOG(info,
           "Initialize model weights with the pre-trained model {}",

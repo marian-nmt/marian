@@ -50,7 +50,7 @@ public:
     if(options_->has("embedding-fix-trg"))
       yEmbFactory("fixed", opt<bool>("embedding-fix-trg"));
 
-    if(options_->has("embedding-vectors")) {
+    if(options_->nonempty("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
       yEmbFactory("embFile", embFiles[batchIndex_])  //
           ("normalization", opt<bool>("embedding-normalization"));

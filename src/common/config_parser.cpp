@@ -97,7 +97,7 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "model.npz");
 
     if(mode_ == cli::mode::training) {
-      cli.add_nondefault<std::string>("--pretrained-model",
+      cli.add<std::string>("--pretrained-model",
         "Path prefix for pre-trained model to initialize model weights");
     }
   }
@@ -305,7 +305,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<std::string>("--optimizer,-o",
      "Optimization algorithm: sgd, adagrad, adam",
      "adam");
-  cli.add_nondefault<std::vector<float>>("--optimizer-params",
+  cli.add<std::vector<float>>("--optimizer-params",
      "Parameters for optimization algorithm, e.g. betas for adam");
   cli.add<size_t>("--optimizer-delay",
      "SGD update delay, 1 = no delay",
@@ -552,7 +552,7 @@ void ConfigParser::addSuboptionsDevices(cli::CLIWrapper& cli) {
   cli.add<std::vector<std::string>>("--devices,-d",
       "Specifies GPU ID(s) to use for training. Defaults to 0..num-devices-1",
       std::vector<std::string>({"0"}));
-  cli.add_nondefault<size_t>("--num-devices",
+  cli.add<size_t>("--num-devices",
       "Number of GPUs to use for this process. Defaults to length(devices) or 1");
 #ifdef USE_NCCL
   if(mode_ == cli::mode::training)

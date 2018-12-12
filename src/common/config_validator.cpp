@@ -72,7 +72,8 @@ void ConfigValidator::validateOptionsTraining() const {
   auto trainSets = get<std::vector<std::string>>("train-sets");
 
   ABORT_IF(has("embedding-vectors")
-               && get<std::vector<std::string>>("embedding-vectors").size() != trainSets.size(),
+               && get<std::vector<std::string>>("embedding-vectors").size() != trainSets.size()
+               && !get<std::vector<std::string>>("embedding-vectors").empty(),
            "There should be as many embedding vector files as training sets");
 
   filesystem::Path modelPath(get<std::string>("model"));

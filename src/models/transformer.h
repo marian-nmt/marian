@@ -500,13 +500,13 @@ public:
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[subBatchIndex];
     int dimEmb = opt<int>("dim-emb");
     auto embFactory = embedding(graph_)("dimVocab", dimVoc)("dimEmb", dimEmb);
-    if (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
+    if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
       embFactory("prefix", "Wemb");
     else
       embFactory("prefix", prefix_ + "_Wemb");
-    if (options_->has("embedding-fix-src"))
+    if(options_->has("embedding-fix-src"))
       embFactory("fixed", opt<bool>("embedding-fix-src"));
-    if (options_->has("embedding-vectors")) {
+    if(options_->nonempty("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
       embFactory("embFile", embFiles[subBatchIndex])
                 ("normalization", opt<bool>("embedding-normalization"));
