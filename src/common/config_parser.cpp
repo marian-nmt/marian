@@ -560,12 +560,12 @@ void ConfigParser::addSuboptionsDevices(cli::CLIWrapper& cli) {
 #endif
 #ifdef CUDA_FOUND
   cli.add<size_t>("--cpu-threads",
-      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
-      ->default_val("0")->implicit_val("1");
+      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation",
+      0)->implicit_val("1");
 #else
   cli.add<size_t>("--cpu-threads",
-      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
-      ->default_val("1");
+      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation",
+      1);
 #endif
   // clang-format on
 }
