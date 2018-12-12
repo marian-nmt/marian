@@ -71,7 +71,8 @@ void createLoggers(const marian::Config* config) {
 #endif
   }
 
-  if(config && !config->get<std::string>("valid-log").empty()) {
+  // valid-log is available only for training
+  if(config && config->has("valid-log") && !config->get<std::string>("valid-log").empty()) {
     validLogs.push_back(config->get<std::string>("valid-log"));
   }
 
