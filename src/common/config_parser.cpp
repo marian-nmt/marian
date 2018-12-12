@@ -58,12 +58,12 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   cli.add<size_t>("--workspace,-w",
       "Preallocate  arg  MB of work space",
       defaultWorkspace);
-  cli.add_nondefault<std::string>("--log",
+  cli.add<std::string>("--log",
      "Log training process information to file given by  arg");
   cli.add<std::string>("--log-level",
      "Set verbosity level of logging: trace, debug, info, warn, err(or), critical, off",
      "info");
-  cli.add_nondefault<std::string>("--log-time-zone",
+  cli.add<std::string>("--log-time-zone",
      "Set time zone for the date shown on logging");
   cli.add<bool>("--quiet",
      "Suppress all logging to stderr. Logging to files still works");
