@@ -73,7 +73,7 @@ void Quantize8(marian::Tensor out,
                const marian::Tensor in,
                float clipValue) {
 #ifdef __AVX512F__
-  float quant_mult = 127.0 / clipValue;
+  float quant_mult = 127.0f / clipValue;
   AVX_Quantize8(
       in->data(), out->data<int8_t>(), quant_mult, in->shape().elements());
 #else
@@ -165,8 +165,8 @@ void ProdInt8(marian::Tensor C,
 #ifdef __AVX512F__
   // This would be easy...
   ABORT_IF(scale != 1, "Scale other than 1 not supported");
-  float quant_mult = 127.0 / clipValue;
-  float unquant_mult = 1.0 / (quant_mult * quant_mult);
+  float quant_mult = 127.0f / clipValue;
+  float unquant_mult = 1.0f / (quant_mult * quant_mult);
 
   float* fC = C->data();
   int num_A_rows = A->shape().elements() / A->shape()[-1];

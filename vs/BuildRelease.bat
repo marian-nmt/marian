@@ -17,10 +17,6 @@ if "%BUILD_ROOT%"=="" set BUILD_ROOT=%ROOT%build
 call CreateVSProjects.bat %BUILD_ROOT%
 if errorlevel 1 exit /b 1
 
-set _CL_=/utf-8
-
-REM -DCMAKE_INSTALL_PREFIX=%LIBRARY_PATH%
-
-cmake --build %BUILD_ROOT% --config Release 
+cmake --build %BUILD_ROOT% --config Release
 
 exit /b 0

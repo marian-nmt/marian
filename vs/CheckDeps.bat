@@ -108,30 +108,12 @@ set CMAKE_OPT=
 ::
 echo.
 echo ... CUDA
-REM if "%CUDA_PATH%"=="" (
-REM     echo The CUDA_PATH environment variable is not defined: please make sure CUDA 8.0+ is installed.
-REM     exit /b 1
-REM )
-REM if not exist "%CUDA_PATH%" (
-REM     echo CUDA_PATH is set to a non existing path:
-REM     echo %CUDA_PATH%
-REM     echo Please make sure CUDA 8.0+ is properly installed.
-REM     exit /b 1
-REM )
-REM if not exist "%CUDA_PATH%\include\cuda.h" (
-REM     echo CUDA header files were not found in this folder:
-REM     echo    "%CUDA_PATH%"
-REM     echo Please make sure CUDA 8.0+ is properly installed.
-REM     exit /b 1
-REM )
-REM if not exist "%CUDA_PATH%\lib\x64\cuda.lib" (
-REM     echo CUDA library files were not found in this folder:
-REM     echo    "%CUDA_PATH%"
-REM     echo Please make sure CUDA 8.0+ is properly installed.
-REM     exit /b 1
-REM )
-
-echo Found Cuda SDK in %CUDA_PATH%
+if "%CUDA_PATH%"=="" (
+    echo The CUDA_PATH environment variable is not defined: this will compile only the CPU version.
+)
+else (
+    echo Found Cuda SDK in %CUDA_PATH%
+)
 
 :: -------------------------
 :: The MKL setup does not set any environment variable to the installation path.
@@ -215,39 +197,20 @@ if "%OPENSSL_ROOT_DIR%"=="" (
     set OPENSSL_ROOT_DIR=%VCPKG_INSTALL%
 )
 
-REM if not exist "%OPENSSL_ROOT_DIR%" (
-REM     echo OPENSSL_ROOT_DIR is set to a non existing path:
-REM     echo "%OPENSSL_ROOT_DIR%"
-REM     echo Please set OPENSSL_ROOT_DIR to the installation path of the OpenSLL library.
-REM     exit /b 1
-REM )
-REM if not exist "%OPENSSL_ROOT_DIR%\include\openssl\opensslv.h" (
-REM     echo OpenSSL header files were not found in this folder:
-REM     echo    "%OPENSSL_ROOT_DIR%"
-REM     echo Please make sure OpenSSL is correctly installed.
-REM     exit /b 1
-REM )
-REM if not exist "%OPENSSL_ROOT_DIR%\lib\ssleay32.lib" (
-REM     echo OpenSSL library file were not found in this folder:
-REM     echo    "%OPENSSL_ROOT_DIR%"
-REM     echo Please make sure OpenSSL is correctly installed.
-REM     exit /b 1
-)
-
-echo Found OpenSSL library in "%OPENSSL_ROOT_DIR%"
-
-set _CL_=/utf-8
-set LIBRARY_PATH=%CURRENT_PATH%\deps\proto
-
+if not exist "%VCPKG_INSTALL%/bin/protoc.exe" (
 mkdir build
 cd build
 git clone https://github.com/protocolbuffers/protobuf
 cd protobuf
-git checkout v.3.6.1
+git checkout v3.6.1
 cd cmake
-cmake . -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=%LIBRARY_PATH%
+cmake . -A x64 -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=%VCPKG_INSTALL%
 cmake --build . --config Release --target install
 cd ..\..\..
+
+)
+
+set CMAKE_PREFIX_PATH=%VCPKG_INSTALL%
 
 echo.
 echo.
