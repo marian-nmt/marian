@@ -59,35 +59,35 @@ bool setLoggingLevel(spdlog::logger& logger, std::string const level) {
 }
 
 static void setErrorHandlers();
-void createLoggers(const marian::Config* options) {
+void createLoggers(const marian::Config* config) {
   std::vector<std::string> generalLogs;
   std::vector<std::string> validLogs;
 
-  if(options && !options->get<std::string>("log").empty()) {
-    generalLogs.push_back(options->get<std::string>("log"));
+  if(config && !config->get<std::string>("log").empty()) {
+    generalLogs.push_back(config->get<std::string>("log"));
 #ifndef _WIN32
     // can't open the same file twice in Windows for some reason
-    validLogs.push_back(options->get<std::string>("log"));
+    validLogs.push_back(config->get<std::string>("log"));
 #endif
   }
 
-  if(options && !options->get<std::string>("valid-log").empty()) {
-    validLogs.push_back(options->get<std::string>("valid-log"));
+  if(config && !config->get<std::string>("valid-log").empty()) {
+    validLogs.push_back(config->get<std::string>("valid-log"));
   }
 
-  bool quiet = options && options->get<bool>("quiet");
+  bool quiet = config && config->get<bool>("quiet");
   Logger general{createStderrLogger("general", "[%Y-%m-%d %T] %v", generalLogs, quiet)};
   Logger valid{createStderrLogger("valid", "[%Y-%m-%d %T] [valid] %v", validLogs, quiet)};
 
-  if(options && options->has("log-level")) {
-    std::string loglevel = options->get<std::string>("log-level");
+  if(config && config->has("log-level")) {
+    std::string loglevel = config->get<std::string>("log-level");
     if(!setLoggingLevel(*general, loglevel))
       return;
     setLoggingLevel(*valid, loglevel);
   }
 
-  if(options && !options->get<std::string>("log-time-zone").empty()) {
-    std::string timezone = options->get<std::string>("log-time-zone");
+  if(config && !config->get<std::string>("log-time-zone").empty()) {
+    std::string timezone = config->get<std::string>("log-time-zone");
 #ifdef _WIN32
 #define setenv(var, val, over) SetEnvironmentVariableA(var, val) // ignoring over flag
 #endif
