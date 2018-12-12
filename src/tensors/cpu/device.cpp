@@ -29,6 +29,12 @@ Device::~Device() {
 #define MALLOC(size) malloc(size)
 #endif
 
+#ifdef _WIN32
+#define FREE(ptr) _aligned_free(ptr)
+#else
+#define FREE(ptr) free(ptr)
+#endif
+
 void Device::reserve(size_t size) {
   size = align(size);
   ABORT_IF(size < size_ || size == 0,
@@ -37,7 +43,7 @@ void Device::reserve(size_t size) {
   if(data_) {
     uint8_t *temp = static_cast<uint8_t*>(MALLOC(size));
     std::copy(data_, data_ + size_, temp);
-    free(data_);
+    FREE(data_);
     data_ = temp;
   } else {
     data_ = static_cast<uint8_t*>(MALLOC(size));
