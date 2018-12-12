@@ -367,7 +367,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<double>("--guided-alignment-weight",
      "Weight for guided alignment cost",
      0.1);
-  cli.add_nondefault<std::string>("--data-weighting",
+  cli.add<std::string>("--data-weighting",
      "Path to a file with sentence or word weights");
   cli.add<std::string>("--data-weighting-type",
      "Processing level for data weighting: sentence, word",
