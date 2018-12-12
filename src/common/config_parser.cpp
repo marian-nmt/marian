@@ -77,8 +77,9 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
      "allow the use of environment variables in paths, of the form ${VAR_NAME}");
   cli.add<bool>("--relative-paths",
      "All paths are relative to the config file location");
-  cli.add_nondefault<std::string>("--dump-config",
-     "Dump current (modified) configuration to stdout and exit. Possible values: full, minimal")
+  cli.add<std::string>("--dump-config",
+     "Dump current (modified) configuration to stdout and exit. Possible values: full, minimal",
+     "false")
     ->implicit_val("full");
   // clang-format on
 }
@@ -717,7 +718,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   // remove extra config files from the config to avoid redundancy
   config_.remove("config");
 
-  if(has("dump-config") && get<std::string>("dump-config") != "false") {
+  if(get<std::string>("dump-config") != "false") {
     bool skipDefault = get<std::string>("dump-config") == "minimal";
     config_.remove("dump-config");
     std::cout << cli.dumpConfig(skipDefault) << std::endl;
