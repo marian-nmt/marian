@@ -71,7 +71,7 @@ void createLoggers(const marian::Config* options) {
 #endif
   }
 
-  if(options && options->has("valid-log") && !options->get<std::string>("valid-log").empty()) {
+  if(options && !options->get<std::string>("valid-log").empty()) {
     validLogs.push_back(options->get<std::string>("valid-log"));
   }
 

@@ -446,7 +446,7 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
 
   cli.add<bool>("--keep-best",
       "Keep best model for each validation metric");
-  cli.add_nondefault<std::string>("--valid-log",
+  cli.add<std::string>("--valid-log",
      "Log validation scores to file given by  arg");
   // clang-format on
 }
