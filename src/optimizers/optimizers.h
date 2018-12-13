@@ -21,19 +21,29 @@ public:
   OptimizerBase(float eta, Ptr<ClipperBase> clipper = nullptr)
       : eta_(eta), clipper_(clipper) {}
 
-  void update(Ptr<ExpressionGraph> graph) {
+  static constexpr size_t mbSizeNotProvided = SIZE_MAX;
+
+  void update(Ptr<ExpressionGraph> graph, size_t mbSize = mbSizeNotProvided) {
     Tensor p = graph->params()->vals();
     Tensor g = graph->params()->grads();
 
-    update(p, g);
+    update(p, g, mbSize);
   }
 
-  void update(Tensor params, Tensor grads) {
+  void update(Tensor params, Tensor grads, size_t mbSize = mbSizeNotProvided) {
     if(clipper_)
       clipper_->clip(grads);
 
-    // In case we want to add a multiply factor to our learning rate
-    updateImpl(params, grads);
+    size_t refMBSize = refMBSize_;
+    if (refMBSize == 0) { // optimizer not configured to use hyper-parameter auto-adjustment
+      refMBSize = mbSize = 1; // neutral settings that keep the standard behavior
+    }
+    else { // optimizer is configured to auto-adjust hyper-parameters
+      ABORT_IF(mbSize == mbSizeNotProvided, "Using rational optimizer auto-adjustment with trainer that does not provide MB size");
+      // note: this behavior is only meaningful if using the ce-sum criterion
+    }
+
+    updateImpl(params, grads, mbSize, refMBSize);
   }
 
   virtual void init(TrainingState& state) override {
@@ -78,7 +88,7 @@ public:
                     bool /*isMainProcess*/ = true) {}
 
 protected:
-  virtual void updateImpl(Tensor params, Tensor grads) = 0;
+  virtual void updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t refMBSize) = 0;
   virtual void parseParams(const std::vector<float>& params) = 0;
   virtual void resetStats() = 0;
 
@@ -86,6 +96,8 @@ protected:
   float eta_;
   // Clip gradient norm
   Ptr<ClipperBase> clipper_;
+  // Reference MB size. This enables automatic adjustment of optimizer hyper-parameters to MB size.
+  size_t refMBSize_{0}; // 0 means no adjustment
 };
 
 /**
@@ -97,7 +109,7 @@ public:
       : OptimizerBase(eta, clipper) {}
 
 private:
-  void updateImpl(Tensor params, Tensor grads) override;
+  void updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t refMBSize) override;
 
   virtual void parseParams(const std::vector<float>& /*params*/) override {}
   virtual void resetStats() override {}
@@ -123,7 +135,7 @@ public:
             bool /*isMainProcess*/ = true) override;
 
 private:
-  void updateImpl(Tensor params, Tensor grads) override;
+  void updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t refMBSize) override;
   void resetStats() override;
 
   void parseParams(const std::vector<float>& params) override {
@@ -140,11 +152,13 @@ private:
  * @brief Adam optimizer
  *
  * https://arxiv.org/pdf/1412.6980v8.pdf
+ *
+ * with Frank's modifications for automatic hyper-parameter adjustment.
  */
 class Adam : public OptimizerBase {
 public:
   Adam(float eta, Ptr<ClipperBase> clipper = nullptr)
-      : OptimizerBase(eta, clipper), t_(0) {}
+      : OptimizerBase(eta, clipper) {}
 
   void load(const std::string& name,
             const std::vector<Ptr<OptimizerBase>>& opts,
@@ -156,9 +170,11 @@ public:
             bool isMainProcess = true) override;
 
 private:
-  void updateImpl(Tensor params, Tensor grads) override;
+  void updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t refMBSize) override;
   void resetStats() override;
 
+  // Adam parameters:
+  // [beta1, beta2, eps, w, refMBSize]
   virtual void parseParams(const std::vector<float>& params) override {
     if(params.size() > 0)
       beta1_ = params[0];
@@ -169,15 +185,29 @@ private:
 
     // weighted decay for AdamW, to be explored, disabled by default
     if(params.size() > 3)
-      w_ = params[3];
+      w_ = params[3]; // default (disabled): 0
+
+    // automatic learning-rate adjustment
+    // If users provide, in addition to the hyper-parameters, a reference minibatch size,
+    // that these hyper-parameters were originally tuned for, then the learning-rate gets
+    // adjusted accordingly. Note: Requires user to also use ce-sum criterion.
+    if(params.size() > 4) {
+      refMBSize_ = (size_t)params[4]; // default (disabled): 0
+      LOG(info, "Note: Modified Adam optimizer: automatically adjusting learning rate as if minibatch size was {}", refMBSize_);
+    }
   }
 
+  // hyper-parameters
   float beta1_ = 0.9f;
   float beta2_ = 0.999f;
   float eps_ = 1e-8f;
   float w_ = 0.0f;
-  size_t t_;
 
+  // CPU-side running accumulators
+  double denom1_ = 0;
+  double denom2_ = 0;
+
+  // GPU-side running accumulators
   Ptr<TensorAllocator> alloc_;
   Tensor mt_;
   Tensor vt_;

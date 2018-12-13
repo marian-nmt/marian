@@ -4,7 +4,7 @@ namespace marian {
 
 SyncGraphGroup::SyncGraphGroup(Ptr<Options> config)
     : GraphGroup(config),
-      ExponentialSmoothing{options_->get<float>("exponential-smoothing")},
+      ExponentialSmoothing(config),
       delay_{options_->get<size_t>("optimizer-delay")} { // @TODO: rename to something else; delay means delayed updated, not accumulation
 
   mpi_ = initMPI(/*multiThreaded=*/false); // when not running under MPI, this will be a fake object that represents a one-MPI-process setup
@@ -25,9 +25,16 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Options> config)
   // This part of the code will not special-case any of this here.
   // Rather, it is assumed that the communicator knows to reduce unnecessary transfers to no-ops.
   comm_ = createCommunicator(graphs_, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/mpi_);
+
+  auto type = utils::toUpper(devices_.front().typeAsString()) + "s";
+  if (mpi_->numMPIProcesses() > 1)
+    LOG(info, "[training] Using {} {}, distributed over {} MPI processes", mpi_->numMPIProcesses() * devices_.size(), type, mpi_->numMPIProcesses());
+  else
+    LOG(info, "[training] Using {} {}", devices_.size(), type);
 }
 
 void SyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) /*override*/ {
+  validate();
   scheduler_ = scheduler;
   // optimizer has to be registered last to see changes of learning rate
   // @TODO: ^^Fix this comment. Either it refers to the scheduler, or it should be moved. Which one?
@@ -101,31 +108,144 @@ void SyncGraphGroup::initializeAvg() {
 }
 
 Ptr<data::BatchStats> SyncGraphGroup::collectStats() {
-  // @TODO: This should only run on MPI process 0. Also we can share vv this vv expression with update().
-  size_t multiplier = devices_.size() * mpi_->numMPIProcesses() * delay_;
-  return GraphGroup::collectStats(graphs_[0], builders_[0], multiplier);
+  // @TODO: This is an incompatible change. Decide how to handle that.
+  //size_t multiplier = devices_.size() * mpi_->numMPIProcesses() * delay_;
+  return GraphGroup::collectStats(graphs_[0], builders_[0]/*, multiplier*/);
 }
 
-void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
-  ABORT_IF(finalized_, "Training has already finished");
+// helper for MB scaling: quantize the ratio with a given error margin
+static double roundUpRatio(double ratio) {
+  if (ratio == 0)
+    return ratio;
+  // find largest power of two that fits into ratio
+  double p = 1;
+  while (p*2 < ratio)
+    p *= 2;
+  // round up to nearest multiple of a largest power of 2 where relative error is within margin
+  // 25% error margin seems acceptable:
+  //  - using a 25% larger MB size should not break convergence
+  //  - @TODO: not using the first 25% of the next block is OK since those are dominated by data exchange
+  double maxError = 0.25;
+  while (p >= 1) {
+    double proposedRatio = ceil(ratio / p) * p;
+    double error = (proposedRatio - ratio) / ratio;
+    if (fabs(error) <= maxError)
+      return proposedRatio;
+    p /= 2;
+  }
+  return ratio;
+}
 
-  // distribute the batch over (delay, local device, MPI rank)
-  size_t numSubBatches = delay_ * devices_.size() * mpi_->numMPIProcesses();
-  auto subBatches = batch->split(numSubBatches);
-  subBatches.resize(numSubBatches); // pad with nullptrs if out of data
+// helper routine that handles accumulation and load-balancing of sub-batches to fill all devices
+// It adds 'newBatch' to 'pendingBatches_', and if sufficient batches have been queued, then
+// returns 'pendingBatches_' in 'subBatches' and resets it. If not, it returns false.
+bool SyncGraphGroup::tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr<data::Batch>>& subBatches) {
+  pendingBatches_.push_back(newBatch);
+  size_t warpSize = devices_.size() * mpi_->numMPIProcesses(); // warp := set of batches processed concurrently across GPus and workers
+
+  size_t pendingTrgWords = 0; // diagnosics only: compute how many target labels are pending so far
+  for (const auto& batch : pendingBatches_)
+    pendingTrgWords += batch->wordsTrg();
+
+  // MB-size warm-up and dynamic scaling
+  double ratio;
+  bool isDynamic = scheduler_->tryGetDynamicMBSizeMultiplier(ratio);
+  if (isDynamic)
+    ratio = roundUpRatio(ratio); // round up to full batches if within a certain error margin  --@BUGBUG: Not invariant w.r.t. GPU size, as ratio is relative to what fits into 1 GPU
+  else   // if dynamic scaling not enabled, then fill each GPU with a batch
+    ratio = (double)(delay_ * warpSize);
+  if (pendingBatches_.size() < ratio)
+    return false; // not enough data yet
+
+  // now we have enough to fill at least 'ratio' batches
+  if (pendingBatches_.size() == ratio)
+    return true; // nothing to do, e.g. warm-up not enabled
+
+  // warm-up is happening
+  LOG_ONCE(info, "[training] Mini-batch-warmup enabled");
+
+  // shorten all batches a little to accurately reflect ratio
+  // e.g. ratio = 3.3 for 4 batches: Reduce each by 3.3/4
+  // Alternatively, we could just shorten the last 'warp', but that would not be invariant to warp size.
+  size_t before = 0, after = 0;
+  for (auto& batch : pendingBatches_) {
+    auto reducedBatchSize = (size_t)ceil((double)batch->size() * ratio / (double)pendingBatches_.size());
+    size_t minSize = 1;
+    if (pendingBatches_.size() == 1) { // enforce a minimum (only needed/correct if still in first batch)
+      size_t minTrgWords = 256;    // don't go below this number of target words, as it seems excessive  --@TODO: parameterize?
+      minSize = 1 + (minTrgWords * batch->size() - 1) / batch->wordsTrg(); // approximately convert minTrgWords into a #sentences
+    }
+    reducedBatchSize = std::max(reducedBatchSize, minSize);
+    before += batch->wordsTrg();
+    if (reducedBatchSize < batch->size())
+      batch = batch->split(/*numSubBatches=*/1, reducedBatchSize).front();
+    after += batch->wordsTrg();
+  }
+
+  // load-balance: distribute the last numWarps-group's batches over GPUs
+  // This is tricky since batches do not have the same length, therefore we can only split, but not merge.
+  auto numWarps = (pendingBatches_.size() - 1) / warpSize + 1; // = ceil(#buffers / (#GPUs * #workers))
+  auto availableBatches = numWarps * warpSize; // we got this many GPUs anyways, so we better make use of them
+  if (pendingBatches_.size() < availableBatches) {
+    // we are not using all available GPUs -> try to load-balance a bit better
+    auto fullBatches = (numWarps - 1) * warpSize;
+    auto expandLast = pendingBatches_.size() - fullBatches;
+    auto toLast = availableBatches - fullBatches;
+    LOG(info, "attempt to redistribute {} last batches over {}", expandLast, toLast);
+    auto splitInto = toLast / expandLast; // unfortunately we can only split in integer ratios
+    // @TODO: We can do better since the last batch is typically smaller.
+    if (splitInto > 1) {
+      // split each of last numWarps's batches into 'splitInto' batches
+      // pop them first
+      std::vector<Ptr<data::Batch>> batchesToSplit;
+      while (pendingBatches_.size() > fullBatches) {
+        batchesToSplit.push_back(pendingBatches_.back());
+        pendingBatches_.pop_back();
+      }
+      // now split them
+      for (auto& batchToSplit : batchesToSplit) {
+        LOG(info, "{}-way splitting batchToSplit with size {}", splitInto, batchToSplit->size());
+        auto splitBatches = batchToSplit->split(splitInto);
+        for (auto& splitBatch : splitBatches) {
+          LOG(info, " -> getting batchToSplit with size {}", splitBatch->size());
+          pendingBatches_.push_back(splitBatch);
+        }
+      }
+    }
+    ABORT_IF(pendingBatches_.size() > availableBatches, "somehow split into too many batches??");
+  }
+  subBatches = std::move(pendingBatches_);
+
+  // @TODO: sort by width, so that in case of delay > 1, each GPU gets about the same size
+  return true;
+}
+
+void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
+  validate();
+
+  std::vector<Ptr<data::Batch>> subBatches;
+  bool gotSubBatches = tryGetSubBatches(newBatch, subBatches);
+
+  // not enough data yet: return right away
+  if (!gotSubBatches)
+    return;
 
   // Helper to access the subBatches array
-  auto getSubBatch = [&](size_t t, size_t localDeviceIndex, size_t rank) {
+  auto getSubBatch = [&](size_t t, size_t localDeviceIndex, size_t rank) -> Ptr<data::Batch> {
     // 't' (the delay) should be slowest changing dimension. If subBatches are sorted by
     // length, then grouping sentences of similar length into the same delay step can
     // reduce unnecessary time spent in padding.
-    return subBatches[(t * mpi_->numMPIProcesses() + rank) * devices_.size() + localDeviceIndex];
+    auto index = (t * mpi_->numMPIProcesses() + rank) * devices_.size() + localDeviceIndex;
+    if (index < subBatches.size())
+      return subBatches[index];
+    else
+      return nullptr;
   };
 
   // Upon very first execution, reset everything
   if(first_) {
-    LOG(debug, "[{}] Processing first minibatch. Batches are processed as {} processes x {} GPUs/process x {} delay steps",
-         mpi_->idStr(), mpi_->numMPIProcesses(), devices_.size(), delay_);
+    LOG(info, "[training] Processing first minibatch. Batches are processed as {} processes x {} GPUs/process",
+        mpi_->numMPIProcesses(), devices_.size());
     initialize(subBatches.front());
     if(mvAvg_ && paramsAvg_.empty())
       initializeAvg();
@@ -133,33 +253,34 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
   }
 
   // Compute gradients
-  // This happens in multiple steps in case of delay_ > 1.
+  // This happens in multiple steps in case of delay > 1.
   std::vector<float> localDeviceCosts(devices_.size(), 0.f); // [local device index] aggregate cost for each local device
-  for (size_t t = 0; t < delay_; t++) {
+  for (size_t t = 0; getSubBatch(t, 0, 0); t++) { // @TODO: rename 't' to 'delay'
     // Execute single forward/backward step
     auto forwardBackward = [&](size_t localDeviceIndex, size_t /*begin*/, size_t /*end*/) {
       auto graph = graphs_[localDeviceIndex];
       auto subBatch = getSubBatch(t, localDeviceIndex, mpi_->myMPIRank());
 
       if(subBatch) {
-        timer::Timer timer;
         auto costNode = builders_[localDeviceIndex]->build(graph, subBatch);
-        //LOG(info, timer.format(2, "after build: %ws"));
         graph->forward();
-        //LOG(info, timer.format(2, "after forward (no sync): %ws"));
         localDeviceCosts[localDeviceIndex] += costNode->scalar();
         graph->backward(/*zero=*/t == 0); // only reset gradients to 0 if t = 0
-        //LOG(info, timer.format(2, "after backward (no sync): %ws"));
-        //localDeviceCosts[localDeviceIndex] += costNode->scalar(); // moved here for time measurements; @TODO: move this back
-        //LOG(info, timer.format(2, "after scalar() (that's a sync): %ws"));
       }
       else { // empty batch: execute do-nothing fw-bw step for proper inits and resets
+#if 1   // @TODO: double-check whether the #else branch is the same; and if so, use it instead
+        graph->params()->allocateBackward();
+        if (t == 0) // these have already been sized
+          graph->params()->set_zero_adjoint();
+#else
+        graph->clear(); // instead of build()
         graph->forward();
         graph->backward(/*zero=*/t == 0);
+#endif
       }
     };
 
-    comm_->foreach(forwardBackward); // compute gradients in parallel on each device. Aggregate if delay_ > 1.
+    comm_->foreach(forwardBackward); // compute gradients in parallel on each device. Aggregate if delay > 1.
   }
   // At this point, each device on each MPI process has a gradient aggregated over a subset of the sub-batches.
 
@@ -177,23 +298,25 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
       Element(_1 = _1 / (float)div, curGrad);
     }
 
+    // determine num words for dynamic hyper-parameter adjustment
+    size_t mbWords = OptimizerBase::mbSizeNotProvided;
+    if (options_->get<std::string>("cost-type") == "ce-sum") { // presently only supported for ce-sum
+      mbWords = 0;
+      for (const auto& batch : subBatches)
+        mbWords += batch->words(-1);  // @TODO: use wordsTrg (it's the same)
+    }
+
     // actual model update
-    shardOpt_[idx]->update(curParam, curGrad);
+    shardOpt_[idx]->update(curParam, curGrad, mbWords);
 
     if(mvAvg_)
       updateAvgParams(
-          paramsAvg_[idx], curParam, scheduler_->numberOfBatches());
+          paramsAvg_[idx], curParam, scheduler_->numberOfBatches(), mbWords);
   };
 
-  timer::Timer timer;
   comm_->scatterReduce(); // reduce gradients across all devices (globally) into shards
-  //LOG(info, timer.format(2, "after scatterReduce (has sync): %ws"));
   comm_->foreach(update); // per-shard model-update
-  //LOG(info, timer.format(2, "after model update (no sync): %ws"));
-  //graphs_.front()->getBackend()->synchronize(); // @TODO: This is strictly for time measurement. Make sure it doesn't accidentally stay in here!!
-  //LOG(info, timer.format(2, "after model update sync (which is unnecessary except for time measurements): %ws"));
   comm_->allGather();     // distribute param value shards back
-  //LOG(info, timer.format(2, "after allGather (has sync): %ws"));
 
   // cost across all local devices (scheduler will aggregate cross-process)
   float localCost = 0;
@@ -202,7 +325,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
 
   // if localCost is average-based, we need to turn the sum over devices into an average as well
   if(options_->get<std::string>("cost-type") != "ce-sum")
-    localCost /= numSubBatches;
+    localCost /= subBatches.size();
 
   if(scheduler_) {
     // track and log localCost
@@ -224,6 +347,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
 }
 
 void SyncGraphGroup::load() /*override*/ {
+  validate();
 
   // This function loads the main parameters in the graphs.
   // In case of exponential smoothing, we also need to restore paramsAvg_.
@@ -253,10 +377,11 @@ void SyncGraphGroup::load() /*override*/ {
         [&](const std::vector<float>& optimizerStateVector, const OptimizerBase::ScatterStateSetFunc& setShardFn) {
           comm_->scatterState(optimizerStateVector, setShardFn);
         });
+      LOG(info, "[training] Model reloaded from {}", name);
     } else if(options_->has("pretrained-model")) {
       std::string nameInit = options_->get<std::string>("pretrained-model");
       LOG(info,
-          "Initialize model weights with the pre-trained model {}",
+          "[training] Initializing model weights with the pre-trained model {}",
           nameInit);
 
       size_t i = 0;
@@ -267,44 +392,34 @@ void SyncGraphGroup::load() /*override*/ {
 }
 
 void SyncGraphGroup::save(bool final) /*override*/ {
+  validate();
   barrier(); // (for better grouping of log messages)
-  //LOG(info, "[{}] save() line {}!", this->mpi_->idStr(), __LINE__);
   // do final validation
   if(final && scheduler_) {
     // bring the smoothed model in
     // Note that it is sharded. For multi-node, it is sharded over multiple machines, so this is a network access.
     // Also note that the swap must run on all MPI processes concurrently, although only one actually validates.
-    //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
     swapParamsAvg();
-    //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
     if (isMainProcess()) // in multi-node, only first MPI process saves the model (they are all identical)
       scheduler_->validate(graphs_, true);
-    //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
     swapParamsAvg();
-    //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   }
 
   std::string name = options_->get<std::string>("model");
 
-  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   barrier(); // (for better grouping of log messages)
-  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   // if smoothing then save original (unsmoothed) parameters as well
-  // @TODO: Check whether we are reloading the correct file (the unsmoothed one).
   if(mvAvg_ && paramsAvg_.size() > 0 && isMainProcess()) // only save from one MPI process
     // Save the original parameters in model.npz.orig.npz
     builders_[0]->save(graphs_[0], name + ".orig.npz", true);
 
   // Temporarily switch to the averaged parameters
   // Note: the smoothed model is sharded across GPUs, and across MPI processes if applicable. This brings it into MPI process[*].device[*]
-  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   swapParamsAvg();
-  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
 
   // save main model file
   if (isMainProcess()) { // only save from one MPI process
     // if not overwrite then save a copy with number of updates in the model pathname
-    //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
     if(!options_->get<bool>("overwrite") && !final) {
       std::string numberOfBatches
           = scheduler_ ? std::to_string(scheduler_->numberOfBatches())
@@ -313,40 +428,34 @@ void SyncGraphGroup::save(bool final) /*override*/ {
       nameOverwrite.replace(name.size() - 4, 4, ".iter" + numberOfBatches + ".npz"); // @TODO: use insert?
       builders_[0]->save(graphs_[0], nameOverwrite);
     }
-    //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
     // save main model file
     builders_[0]->save(graphs_[0], name, true);
-    //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
     // save scheduler-related state
     if (scheduler_)
       scheduler_->save(name);
-    //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   }
 
   // Switch back to the original parameters
-  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   swapParamsAvg();
-  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
 
-#if 0 // temporary, for testing of saving distributed models; must be identical to .orig.npz
-  if(mvAvg_ && paramsAvg_.size() > 0 && isMainProcess())
-    builders_[0]->save(graphs_[0], name + ".orig_after_swapping.npz", true);
-#endif
-  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   barrier(); // (for better grouping of log messages)
-  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
 
   // persist optimizer state
-  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_,
     [&](const OptimizerBase::GatherStateGetFunc& getShardFn) {
       return comm_->gatherState(getShardFn);
     },
     isMainProcess());
-  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
 
   barrier(); // (for better grouping of log messages)
-  //LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
+}
+
+void SyncGraphGroup::finalize() /*override*/ {
+  validate();
+  finalizeMPI(std::move(mpi_));
+  Base::finalize();
 }
 
 }  // namespace marian

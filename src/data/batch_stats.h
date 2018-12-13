@@ -49,6 +49,19 @@ public:
       map_[lengths] = batchSize;
   }
 
+  // return a rough minibatch size in labels
+  // We average over all (batch sizes * max trg length).
+  size_t estimateTypicalTrgWords() const {
+    size_t sum = 0;
+    for (const auto& entry : map_) {
+      auto maxTrgLength = entry.first.back();
+      auto numSentences = entry.second;
+      auto numLabels = numSentences * maxTrgLength;
+      sum += numLabels;
+    }
+    return sum / map_.size();
+  }
+
   // helpers for multi-node  --note: presently unused, but keeping them around for later use
   // serialize into a flat vector, for MPI data exchange
   std::vector<size_t> flatten() const {

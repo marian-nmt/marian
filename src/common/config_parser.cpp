@@ -335,9 +335,10 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "Reset running statistics of optimizer whenever learning rate decays");
   cli.add<bool>("--lr-decay-repeat-warmup",
      "Repeat learning rate warmup when learning rate is decayed");
-  cli.add<std::string/*SchedulerPeriod*/>("--lr-decay-inv-sqrt",
-     "Decrease learning rate at arg / sqrt(no. batches) starting at arg  (append 't' or 'e' for sqrt(target labels or epochs))",
-      "0");
+  cli.add<std::vector<std::string/*SchedulerPeriod*/>>("--lr-decay-inv-sqrt",
+     "Decrease learning rate at arg / sqrt(no. batches) starting at arg  (append 't' or 'e' for sqrt(target labels or epochs)). "
+      "Add second argument to define the starting point",
+      {"0"});
 
   cli.add<std::string/*SchedulerPeriod*/>("--lr-warmup",
      "Increase learning rate linearly for  arg  first batches (append 't' for  arg  first target labels)",
@@ -354,9 +355,10 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<double>("--clip-norm",
      "Clip gradient norm to  argcli.add<int>(0 to disable)",
      1.f);
-  cli.add<float>("--exponential-smoothing",
-     "Maintain smoothed version of parameters for validation and saving with smoothing factor. 0 to disable",
-     0)->implicit_val("1e-4");
+  cli.add<std::vector<float>>("--exponential-smoothing",
+     "Maintain smoothed version of parameters for validation and saving with smoothing factor. 0 to disable. "
+     "Add a second number to specify a reference batch size (in target words).",
+     { 0.f })->implicit_val("1e-4");
   cli.add<std::string>("--guided-alignment",
      "Path to a file with word alignments. Use guided alignment to guide attention or 'none'",
      "none");
@@ -604,6 +606,13 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
 
   cli.add<bool>("--shuffle-in-ram",
       "Keep shuffled corpus in RAM, do not write to temp file");
+
+  cli.add<std::vector<std::string/*SchedulerPeriod*/>>("--mini-batch-warmup",
+      "linear ramp-up of MB size, up to this #updates (append 't' for up to this #target labels);"
+      "optional second number is reference batch size at which to stop scaling up (instead of full batch size)",
+      {"0"});
+  cli.add<bool>("--mini-batch-track-lr",
+      "Dynamically track mini-batch size inverse to actual learning rate (not considering lr-warmup)");
   // clang-format on
 }
 

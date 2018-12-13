@@ -203,7 +203,6 @@ public:
 
   void swapParams(const std::vector<Tensor>& paramShards) const override {
     // Update all graphs with parameter shard
-    
     auto gather = [this, paramShards](size_t idx, size_t begin, size_t end) {
       ABORT_IF(end - begin != paramShards[idx]->size(), "inconsistent shard size (swapParams, [{}], {} vs {})??", idx, end-begin, paramShards[idx]->size());
       // Copy parameter shard to each graph, apart from last graph

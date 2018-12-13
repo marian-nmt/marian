@@ -102,7 +102,7 @@ void Corpus::restore(Ptr<TrainingState> ts) {
 }
 
 void Corpus::shuffleData(const std::vector<std::string>& paths) {
-  LOG(info, "[data] Shuffling files");
+  LOG(info, "[data] Shuffling data");
 
   size_t numStreams = paths.size();
 

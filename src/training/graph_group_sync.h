@@ -7,6 +7,7 @@
 namespace marian {
 
 class SyncGraphGroup : public GraphGroup, public ExponentialSmoothing {
+  using Base = GraphGroup;
   const size_t delay_{ 1 }; // optimizer-delay parameter
 
   Ptr<ICommunicator> comm_; // [not null] communicator, e.g. NCCLCommunicator
@@ -23,7 +24,10 @@ class SyncGraphGroup : public GraphGroup, public ExponentialSmoothing {
   std::vector<Ptr<TensorAllocator>> paramsAllocs_; // [deviceIndex] we must hold a reference to the memory until this class dies
   // @TODO: move this nto ExponentialSmoothing, together with paramsAvg_?
 
-  bool first_{ true }; // gets interpreted and cleared by update()
+  // state for update()
+  bool first_{ true };                           // gets interpreted and cleared by update()
+  std::vector<Ptr<data::Batch>> pendingBatches_; // in case of delay, multi-worker, and/or multi-GPU, we buffer up batches
+  size_t typicalTrgWords_{};                     // typical batch size in words (labels); remembered from collectStats()
 
   void initialize(const Ptr<data::Batch>& exampleBatch);
   void initializeAvg();
@@ -31,6 +35,8 @@ class SyncGraphGroup : public GraphGroup, public ExponentialSmoothing {
   bool isMainProcess() const { return mpi_->myMPIRank() == 0; } // (we need this test a few times)
   void barrier() const { mpi_->barrier(); } // (we need this several times)
   void swapParamsAvg() { if (mvAvg_ && paramsAvg_.size() > 0) comm_->swapParams(paramsAvg_); } // note: must call this on all MPI ranks in parallel
+
+  bool tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr<data::Batch>>& subBatches);
 
 public:
   SyncGraphGroup(Ptr<Options> config);
@@ -41,6 +47,8 @@ public:
 
   void load() override;
   void save(bool final = false) override;
+
+  void finalize() override;
 
   Ptr<data::BatchStats> collectStats();
   // @TODO: consider to make this a virtual as well? Currently it is a template dispatch

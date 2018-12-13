@@ -2,6 +2,7 @@
 
 #include "common/definitions.h"
 #include "common/filesystem.h"
+#include "common/utils.h"
 
 #include <fstream>
 #include <vector>
@@ -42,7 +43,9 @@ struct SchedulingParameter {
       }
       param.pop_back();
     }
-    res.n = (size_t)std::stoull(param);
+    double number = utils::parseNumber(param);
+    res.n = (size_t)number;
+    ABORT_IF(number != (double)res.n, "Scheduling parameters must be whole numbers");
     return res;
   }
 
@@ -62,9 +65,9 @@ class TrainingState {
 public:
   // Current epoch
   size_t epochs{1};
-  // The total number of batches (=updates) processed since beginning of training   --@TODO: rename to 'updates'
+  // The total number of updates since beginning of training   --@TODO: rename to 'updates'
   size_t batches{0};
-  // The number of batches seen in this epoch  --@TODO: rename to 'updatesEpoch' or 'updatesInCurrentEpoch'
+  // The number of batches seen in this epoch  --note: not updates; an update can consist of multiple batches
   size_t batchesEpoch{0};
   // The number of sentences seen in this epoch  --@TODO: rename to 'sentencesEpoch'
   size_t samplesEpoch{0};
@@ -172,9 +175,9 @@ public:
     batchesEpoch = 0;
   }
 
-  void newBatch() {
+  void newUpdate(size_t batchesInUpdate) {
     ++batches;
-    ++batchesEpoch;
+    batchesEpoch += batchesInUpdate;
     loaded = false;
     validated = false;
     for(auto observer : observers_)

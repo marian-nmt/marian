@@ -42,7 +42,7 @@ public:
     Shape outShape = shapeA;
     outShape.set(outShape.size() - 1, shapeB[shapeB.size() - 1]);
     ABORT_IF(shapeA[shapeA.size() - 1] != shapeB[shapeB.size() - 2],
-             "matrix product requires dimensions to match");
+             "Matrix product requires dimensions to match");
     return outShape;
   }
 
@@ -165,7 +165,7 @@ public:
     Shape outShape = shapeA;
     outShape.set(outShape.size() - 1, shapeB[shapeB.size() - 1]);
     ABORT_IF(shapeA[shapeA.size() - 1] != shapeB[shapeB.size() - 2],
-             "matrix product requires dimensions to match");
+             "Matrix product requires dimensions to match");
     return outShape;
   }
 
@@ -309,7 +309,7 @@ public:
     Shape outShape = shapeA;
     outShape.set(-1, shapeB[-1]);
     ABORT_IF(shapeA[-1] != shapeB[-2],
-             "matrix product requires dimensions to match");
+             "Batched matrix product requires dimensions to match");
     return outShape;
   }
 

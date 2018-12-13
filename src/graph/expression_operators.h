@@ -66,9 +66,9 @@ Expr operator/(Expr a, float b);
 
 Expr logaddexp(Expr a, Expr b);
 
-Expr max(Expr a, Expr b);  // TODO: haggle over the name (max vs. elementMax)
+Expr maximum(Expr a, Expr b);
 
-Expr min(Expr a, Expr b);  // TODO: haggle over the name
+Expr minimum(Expr a, Expr b);
 
 Expr dot(Expr a,
          Expr b,

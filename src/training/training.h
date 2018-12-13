@@ -56,7 +56,9 @@ public:
     }
 
     auto batchGenerator = New<CorpusBatchGenerator>(dataset, options_, stats);
+
     scheduler->registerTrainingObserver(batchGenerator);
+    scheduler->setTypicalTrgBatchWords(batchGenerator->estimateTypicalTrgBatchWords()); // needed for dynamic MB scaling
 
     auto model = New<ModelWrapper>(options_);
     model->setScheduler(scheduler);
@@ -85,12 +87,14 @@ public:
     }
     scheduler->finished();
 
-    model->finalize();
-
     // Avoid saving the model twice if it has been loaded and training did not
     // progress
     if(!trainState->loaded)
       model->save(true);
+
+    // finalize, including communicating successful completion to MPI
+    // @BUGBUG: This is wrong for async, but needed for sync. How to solve it?
+    model->finalize();
   }
 };
 }  // namespace marian

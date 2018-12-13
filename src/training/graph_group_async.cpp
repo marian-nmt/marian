@@ -7,7 +7,7 @@ namespace marian {
 
 AsyncGraphGroup::AsyncGraphGroup(Ptr<Options> config)
     : GraphGroup(config),
-      ExponentialSmoothing{options_->get<float>("exponential-smoothing")},
+      ExponentialSmoothing(options_),
       devices_{Config::getDevices(options_)},
       shardSync_(devices_.size()),
       optimizerDelay_{options_->get<size_t>("optimizer-delay")} {

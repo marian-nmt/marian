@@ -84,7 +84,7 @@ void createLoggers(const marian::Config* options) {
 
   bool quiet = options && options->get<bool>("quiet");
   Logger general{
-      createStderrLogger("general", "[%Y-%m-%d %T] %v", generalLogs, quiet)};
+      createStderrLogger("general", "[%Y-%m-%d %T %t] %v", generalLogs, quiet)};
   Logger valid{
       createStderrLogger("valid", "[%Y-%m-%d %T] [valid] %v", validLogs, quiet)};
 
@@ -115,7 +115,7 @@ static void unhandledException() {
       throw; // rethrow so that we can get access to what()
     }
     catch (const std::exception& e) {
-      ABORT("Unhandled {}: {}", typeid(e).name(), e.what());
+      ABORT("Unhandled exception of type '{}': {}", typeid(e).name(), e.what());
     }
     catch (...) {
       ABORT("Unhandled exception");
@@ -145,7 +145,7 @@ static void setErrorHandlers() {
 void switchtoMultinodeLogging(std::string nodeIdStr) {
   Logger log = spdlog::get("general");
   if (log)
-    log->set_pattern("[%Y-%m-%d %T " + nodeIdStr + "] %v");
+    log->set_pattern("[%Y-%m-%d %T " + nodeIdStr + ":%t] %v");
 }
 
 

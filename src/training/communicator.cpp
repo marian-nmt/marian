@@ -72,7 +72,7 @@ class MPIWrapper : public IMPIWrapper
 
 public:
   MPIWrapper(bool multiThreaded) {
-    int requiredThreadingMode = multiThreaded ? MPI_THREAD_MULTIPLE : MPI_THREAD_SINGLE;
+    int requiredThreadingMode = multiThreaded ? MPI_THREAD_MULTIPLE : MPI_THREAD_FUNNELED; // FUNNELED means only one thread ever calls MPI
 
     int argc = 1; char* argv[] = { const_cast<char*>("this.exe") }; char** argvp = argv; // dummy argc/argv since MPI_Init needs something here
     int providedThreadingMode;
@@ -124,6 +124,8 @@ public:
     HANDLE_MPI_ERROR(MPI_Recv(buf, (int)count, datatype, (int)sourceRank, tag, comm, status));
   }
   virtual void allReduce(const void* sendbuf, void* recvbuf, size_t count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) const override {
+    if (sendbuf == recvbuf)
+      sendbuf = MPI_IN_PLACE; // MSMPI requires this
     HANDLE_MPI_ERROR(MPI_Allreduce(sendbuf, recvbuf, (int)count, datatype, op, comm));
   }
   virtual void finalize() override {
