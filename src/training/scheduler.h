@@ -63,9 +63,13 @@ private:
   }
 
 public:
+  // @TODO: move this out from here
   void setTypicalTrgBatchWords(size_t typicalTrgBatchWords) { // needed for tryGetDynamicMBSizeMultiplier()
     typicalTrgBatchWords_ = typicalTrgBatchWords;
     LOG(info, "batch size estimate is {} target words", typicalTrgBatchWords_);
+  }
+  size_t getTypicalTrgBatchWords(size_t typicalTrgBatchWords) { // needed for tryGetDynamicMBSizeMultiplier()
+    return typicalTrgBatchWords;
   }
 
   // determine dynamic MB size, if respective parameters are given (return false if not)
@@ -86,17 +90,6 @@ public:
       progressRatio = std::sqrt(progressRatio);
     // apply ratio to actual batch size
     ratio *= progressRatio;
-
-    // @TODO: move this out, and just return ratio instead
-    // adjust for reference batch size if given
-    // At progress == mbWarmup.n (ratio=1), we would like to have refBatchLabels instead of whichever
-    // the actual batch size is. We approximate the latter as typicalTrgBatchWords_, and scale ratio accordingly.
-    auto refBatchLabels = options_->get<size_t>("mini-batch-words-ref");
-    if (refBatchLabels != 0) {
-      LOG_ONCE(info, "[scheduler] Scaling to {} reference labels. Typical actual batch words is {}", refBatchLabels, typicalTrgBatchWords_);
-      ABORT_IF(typicalTrgBatchWords_ == 0, "dynamic scaling with words target requires MB size to be known in words"); // happens if MB size is specified in sentences
-      ratio *= (double)refBatchLabels / (double)typicalTrgBatchWords_;
-    }
 
     // dynamic MB-size tracking with learning rate
     // As LR goes down, MB gets ramped up by the same ratio, which has been found to be safe.

@@ -354,7 +354,7 @@ public:
   MultiNodeGraphGroup(Ptr<Options> options)
       : Base(options),
         clientCommOverlap{options_->get<bool>("multi-node-overlap")},
-        tau_{options_->get<size_t>("optimizer-delay")} { }
+        tau_{(size_t)options_->get<double>("optimizer-delay")} { }
 
   /**
    * (Destructor) Shut down server shard thread and (if comm. overlap enabled)

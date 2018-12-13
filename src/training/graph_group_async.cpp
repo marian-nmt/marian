@@ -11,7 +11,7 @@ AsyncGraphGroup::AsyncGraphGroup(Ptr<Options> config)
       devices_{Config::getDevices(options_)},
       shardSync_(devices_.size()),
       optimizerDelay_((size_t)options_->get<double>("optimizer-delay")) {
-  ABORT_IF((double)optimizerDelay_ != options_->get<double>("optimizer-delay"), "AsyncGraphGroup does not support fractional values for --optimizer-delay");
+  ABORT_IF((double)optimizerDelay_ != options_->get<double>("optimizer-delay"), "AsyncGraphGroup presently does not implement fractional values for --optimizer-delay");
   pool_.reset(new ThreadPool(devices_.size(), devices_.size()));
 
   for(auto device : devices_) {

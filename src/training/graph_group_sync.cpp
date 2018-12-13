@@ -154,7 +154,18 @@ bool SyncGraphGroup::tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr
     ratio = roundUpRatio(ratio); // round up to full batches if within a certain error margin  --@BUGBUG: Not invariant w.r.t. GPU size, as ratio is relative to what fits into 1 GPU
   else   // if dynamic scaling not enabled, then fill each GPU with a batch
     ratio = delay_ * (double)warpSize; // note: delay_ may be fractional
-  // @TODO: adjust ratio here for reference MB size; i.e. also for optimizer-delay
+
+  // adjust for reference batch size if given
+  // At progress == mbWarmup.n (ratio=1), we would like to have refBatchLabels instead of whichever
+  // the actual batch size is. We approximate the latter as typicalTrgBatchWords, and scale ratio accordingly.
+  auto refBatchLabels = options_->get<size_t>("mini-batch-words-ref");
+  if (refBatchLabels != 0) {
+    auto typicalTrgBatchWords = scheduler_->getTypicalTrgBatchWords();
+    LOG_ONCE(info, "[scheduler] Scaling to {} reference labels. Typical actual batch words is {}", refBatchLabels, typicalTrgBatchWords);
+    ABORT_IF(typicalTrgBatchWords == 0, "dynamic scaling with words target requires MB size to be known in words"); // happens if MB size is specified in sentences
+    ratio *= (double)refBatchLabels / (double)typicalTrgBatchWords;
+  }
+
   if (pendingBatches_.size() < ratio)
     return false; // not enough data yet
 
