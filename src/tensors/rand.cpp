@@ -71,7 +71,7 @@ void StdlibRandomGenerator::normal(Tensor tensor, float mean, float stddev) {
 CurandRandomGenerator::CurandRandomGenerator(size_t seed, DeviceId deviceId)
 : RandomGenerator(seed), deviceId_(deviceId) {
     if(deviceId_.type == DeviceType::gpu) {
-      cudaSetDevice(deviceId_.no);
+      cudaSetDevice((int)deviceId_.no);
       CURAND_CHECK(curandCreateGenerator(&generator_, CURAND_RNG_PSEUDO_DEFAULT));
     }
     else {
@@ -82,7 +82,7 @@ CurandRandomGenerator::CurandRandomGenerator(size_t seed, DeviceId deviceId)
 
 CurandRandomGenerator::~CurandRandomGenerator() {
     if(deviceId_.type == DeviceType::gpu)
-      cudaSetDevice(deviceId_.no);
+      cudaSetDevice((int)deviceId_.no);
     CURAND_CHECK(curandDestroyGenerator(generator_));
 }
 

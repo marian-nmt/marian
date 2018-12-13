@@ -58,6 +58,7 @@ add_library(marian STATIC
 
   models/model_factory.cpp
   models/encoder_decoder.cpp
+  models/transformer_stub.cpp
 
   rescorer/score_collector.cpp
 

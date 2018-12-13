@@ -17,6 +17,6 @@ if "%BUILD_ROOT%"=="" set BUILD_ROOT=%ROOT%build
 call CreateVSProjects.bat %BUILD_ROOT%
 if errorlevel 1 exit /b 1
 
-cmake --build %BUILD_ROOT% --config Release 
+cmake --build %BUILD_ROOT% --config Release
 
 exit /b 0
