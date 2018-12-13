@@ -108,7 +108,7 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "amun");
   cli.add<std::vector<int>>("--dim-vocabs",
       "Maximum items in vocabulary ordered by rank, 0 uses all items in the provided/created vocabulary file",
-      std::vector<int>({0, 0}));
+      {0, 0});
   cli.add<int>("--dim-emb",
       "Size of embedding vector",
       512);
@@ -205,11 +205,11 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "Number of highway network layers after max-pooling in char-s2s model",
       4);
   cli.add<std::vector<int>>("--char-conv-filters-num",
-      "Numbers of convolution filters of correspoding width in char-s2s model",
-      std::vector<int>({200, 200, 250, 250, 300, 300, 300, 300}));
+      "Numbers of convolution filters of corresponding width in char-s2s model",
+      {200, 200, 250, 250, 300, 300, 300, 300});
   cli.add<std::vector<int>>("--char-conv-filters-widths",
       "Convolution window widths in char-s2s model",
-      std::vector<int>({1, 2, 3, 4, 5, 6, 7, 8}));
+      {1, 2, 3, 4, 5, 6, 7, 8});
 #endif
 
   if(mode_ == cli::mode::training) {
@@ -305,17 +305,19 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "Optimization algorithm: sgd, adagrad, adam",
      "adam");
   cli.add_nondefault<std::vector<float>>("--optimizer-params",
-     "Parameters for optimization algorithm, e.g. betas for adam");
-  cli.add<size_t>("--optimizer-delay",
-     "SGD update delay, 1 = no delay",
-     1);
+     "Parameters for optimization algorithm, e.g. betas for Adam. "
+      "Auto-adjusted to --mini-batch-words-ref if given");
+  cli.add<double>("--optimizer-delay",
+     "SGD update delay, 1 = no delay. Can be fractional, e.g. 0.1 to use only 10% of each batch",
+     1.);
 
   cli.add<bool>("--sync-sgd",
      "Use synchronous SGD instead of asynchronous for multi-gpu training");
 
   // learning rate options
   cli.add<double>("--learn-rate,-l",
-     "Learning rate",
+     "Learning rate. "
+      "Auto-adjusted to --mini-batch-words-ref if given",
      0.0001);
   cli.add<bool>("--lr-report",
      "Report learning rate for each update");
@@ -327,7 +329,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "epoch+stalled");
   cli.add<std::vector<size_t>>("--lr-decay-start",
      "The first number of (epoch, batches, stalled) validations to start learning rate decaying (tuple)",
-     std::vector<size_t>({10,1}));
+     {10,1});
   cli.add<size_t>("--lr-decay-freq",
      "Learning rate decaying frequency for batches, requires --lr-decay-strategy to be batches",
      50000);
@@ -337,8 +339,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "Repeat learning rate warmup when learning rate is decayed");
   cli.add<std::vector<std::string/*SchedulerPeriod*/>>("--lr-decay-inv-sqrt",
      "Decrease learning rate at arg / sqrt(no. batches) starting at arg  (append 't' or 'e' for sqrt(target labels or epochs)). "
-      "Add second argument to define the starting point",
-      {"0"});
+     "Add second argument to define the starting point (default: same as first value)",
+     {"0"});
 
   cli.add<std::string/*SchedulerPeriod*/>("--lr-warmup",
      "Increase learning rate linearly for  arg  first batches (append 't' for  arg  first target labels)",
@@ -355,10 +357,10 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<double>("--clip-norm",
      "Clip gradient norm to  argcli.add<int>(0 to disable)",
      1.f);
-  cli.add<std::vector<float>>("--exponential-smoothing",
+  cli.add<float>("--exponential-smoothing",
      "Maintain smoothed version of parameters for validation and saving with smoothing factor. 0 to disable. "
-     "Add a second number to specify a reference batch size (in target words).",
-     { 0.f })->implicit_val("1e-4");
+      "Auto-adjusted to --mini-batch-words-ref if given.",
+     0.f)->implicit_val("1e-4");
   cli.add<std::string>("--guided-alignment",
      "Path to a file with word alignments. Use guided alignment to guide attention or 'none'",
      "none");
@@ -405,8 +407,8 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
       "10000u");
   cli.add<std::vector<std::string>>("--valid-metrics",
       "Metric to use during validation: cross-entropy, ce-mean-words, perplexity, valid-script, "
-      " translation, bleu, bleu-detok. Multiple metrics can be specified",
-      std::vector<std::string>({"cross-entropy"}));
+      "translation, bleu, bleu-detok. Multiple metrics can be specified",
+      {"cross-entropy"});
   cli.add<size_t>("--early-stopping",
      "Stop if the first validation metric does not improve for  arg  consecutive validation steps",
      10);
@@ -458,7 +460,7 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   // clang-format off
   cli.add<std::vector<std::string>>("--input,-i",
       "Paths to input file(s), stdin by default",
-      std::vector<std::string>({"stdin"}));
+      {"stdin"});
   cli.add<std::string>("--output,-o",
       "Path to output file, stdout by default",
       "stdout");
@@ -496,10 +498,10 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   cli.add_nondefault<std::vector<std::string>>("--shortlist",
      "Use softmax shortlist: path first best prune");
   cli.add_nondefault<std::vector<float>>("--weights",
-      "Scorer weights");
+     "Scorer weights");
   cli.add<bool>("--output-sampling",
-      "Noise output layer with gumbel noise",
-       false);
+     "Noise output layer with gumbel noise",
+      false);
 
   // TODO: the options should be available only in server
   cli.add_nondefault<size_t>("--port,-p",
@@ -523,9 +525,9 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
       "Path to output file, stdout by default",
       "stdout");
   cli.add<std::vector<std::string>>("--vocabs,-v",
-      "Paths to vocabulary files have to correspond to --train-sets."
-      " If this parameter is not supplied we look for vocabulary files source.{yml,json} and target.{yml,json}."
-      " If these files do not exists they are created");
+      "Paths to vocabulary files have to correspond to --train-sets. "
+      "If this parameter is not supplied we look for vocabulary files source.{yml,json} and target.{yml,json}. "
+      "If these files do not exists they are created");
   cli.add<bool>("--n-best",
       "Score n-best list instead of plain text corpus");
   cli.add<std::string>("--n-best-feature",
@@ -552,7 +554,7 @@ void ConfigParser::addSuboptionsDevices(cli::CLIWrapper& cli) {
   // clang-format off
   cli.add<std::vector<std::string>>("--devices,-d",
       "Specifies GPU ID(s) to use for training. Defaults to 0..num-devices-1",
-      std::vector<std::string>({"0"}));
+      {"0"});
   cli.add_nondefault<size_t>("--num-devices",
       "Number of GPUs to use for this process. Defaults to length(devices) or 1");
 #ifdef USE_NCCL
@@ -607,9 +609,12 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
   cli.add<bool>("--shuffle-in-ram",
       "Keep shuffled corpus in RAM, do not write to temp file");
 
-  cli.add<std::vector<std::string/*SchedulerPeriod*/>>("--mini-batch-warmup",
-      "linear ramp-up of MB size, up to this #updates (append 't' for up to this #target labels);"
-      "optional second number is reference batch size at which to stop scaling up (instead of full batch size)",
+  cli.add<int>("--mini-batch-words-ref",
+      "If given, the following hyper parameters are adjusted as-if we had this mini-batch size: "
+      "--learn-rate, --optimizer-params, --exponential-smoothing, --mini-batch-warmup");
+  cli.add<std::string/*SchedulerPeriod*/>("--mini-batch-warmup",
+      "Linear ramp-up of MB size, up to this #updates (append 't' for up to this #target labels). "
+      "Auto-adjusted to --mini-batch-words-ref if given",
       {"0"});
   cli.add<bool>("--mini-batch-track-lr",
       "Dynamically track mini-batch size inverse to actual learning rate (not considering lr-warmup)");

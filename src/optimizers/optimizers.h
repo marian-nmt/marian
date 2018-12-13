@@ -18,8 +18,16 @@ namespace marian {
  */
 class OptimizerBase : public TrainingObserver {
 public:
-  OptimizerBase(float eta, Ptr<ClipperBase> clipper = nullptr)
-      : eta_(eta), clipper_(clipper) {}
+  OptimizerBase(float eta, size_t refMBWordsParam, Ptr<ClipperBase> clipper)
+      : eta_(eta), clipper_(clipper), refMBWordsParam_(refMBWordsParam) {
+
+    // automatic learning-rate adjustment
+    // If users provide, in addition to the hyper-parameters, a reference minibatch size,
+    // that these hyper-parameters were originally tuned for, then the learning-rate gets
+    // adjusted accordingly. Note: Requires user to also use ce-sum criterion.
+    if (refMBWordsParam_ != 0)
+      LOG(info, "Note: Learning rate gets automatically adjusted as if minibatch size was {}", refMBWordsParam_);
+  }
 
   static constexpr size_t mbSizeNotProvided = SIZE_MAX;
 
@@ -34,16 +42,16 @@ public:
     if(clipper_)
       clipper_->clip(grads);
 
-    size_t refMBSize = refMBSize_;
-    if (refMBSize == 0) { // optimizer not configured to use hyper-parameter auto-adjustment
-      refMBSize = mbSize = 1; // neutral settings that keep the standard behavior
+    size_t refMBWords = refMBWordsParam_;
+    if (refMBWords == 0) { // optimizer not configured to use hyper-parameter auto-adjustment
+      refMBWords = mbSize = 1; // neutral settings that keep the standard behavior
     }
     else { // optimizer is configured to auto-adjust hyper-parameters
       ABORT_IF(mbSize == mbSizeNotProvided, "Using rational optimizer auto-adjustment with trainer that does not provide MB size");
       // note: this behavior is only meaningful if using the ce-sum criterion
     }
 
-    updateImpl(params, grads, mbSize, refMBSize);
+    updateImpl(params, grads, mbSize, refMBWords);
   }
 
   virtual void init(TrainingState& state) override {
@@ -68,7 +76,7 @@ public:
       resetStats();
   }
 
-  void setParams(const std::vector<float>& params) { parseParams(params); }
+  virtual void setParams(const std::vector<float>& params) = 0;
 
   typedef std::function<void(size_t /*localDeviceIndex*/,
                              std::vector<float>::const_iterator /*begin*/,
@@ -88,8 +96,7 @@ public:
                     bool /*isMainProcess*/ = true) {}
 
 protected:
-  virtual void updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t refMBSize) = 0;
-  virtual void parseParams(const std::vector<float>& params) = 0;
+  virtual void updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t refMBWords) = 0;
   virtual void resetStats() = 0;
 
   // Learning rate
@@ -97,7 +104,7 @@ protected:
   // Clip gradient norm
   Ptr<ClipperBase> clipper_;
   // Reference MB size. This enables automatic adjustment of optimizer hyper-parameters to MB size.
-  size_t refMBSize_{0}; // 0 means no adjustment
+  size_t refMBWordsParam_{0}; // 0 means no adjustment
 };
 
 /**
@@ -105,13 +112,13 @@ protected:
  */
 class Sgd : public OptimizerBase {
 public:
-  Sgd(float eta, Ptr<ClipperBase> clipper = nullptr)
-      : OptimizerBase(eta, clipper) {}
+  Sgd(float eta, size_t refMBWordsParam = 0, Ptr<ClipperBase> clipper = nullptr)
+      : OptimizerBase(eta, refMBWordsParam, clipper) {}
 
+  virtual void setParams(const std::vector<float>& /*params*/) override {}
 private:
-  void updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t refMBSize) override;
+  void updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t refMBWords) override;
 
-  virtual void parseParams(const std::vector<float>& /*params*/) override {}
   virtual void resetStats() override {}
 };
 
@@ -122,8 +129,8 @@ private:
  */
 class Adagrad : public OptimizerBase {
 public:
-  Adagrad(float eta, Ptr<ClipperBase> clipper = nullptr)
-      : OptimizerBase(eta, clipper) {}
+  Adagrad(float eta, size_t refMBWordsParam = 0, Ptr<ClipperBase> clipper = nullptr)
+      : OptimizerBase(eta, refMBWordsParam, clipper) {}
 
   void load(const std::string& name,
             const std::vector<Ptr<OptimizerBase>>& opts,
@@ -134,14 +141,14 @@ public:
             const GatherStateFunc& gatherFn,
             bool /*isMainProcess*/ = true) override;
 
-private:
-  void updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t refMBSize) override;
-  void resetStats() override;
-
-  void parseParams(const std::vector<float>& params) override {
+  void setParams(const std::vector<float>& params) override {
     if(params.size() > 0)
       eps_ = params[0];
   }
+
+private:
+  void updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t refMBWords) override;
+  void resetStats() override;
 
   float eps_ = 1e-8f;
   Ptr<TensorAllocator> alloc_;
@@ -157,8 +164,8 @@ private:
  */
 class Adam : public OptimizerBase {
 public:
-  Adam(float eta, Ptr<ClipperBase> clipper = nullptr)
-      : OptimizerBase(eta, clipper) {}
+  Adam(float eta, size_t refMBWordsParam = 0, Ptr<ClipperBase> clipper = nullptr)
+      : OptimizerBase(eta, refMBWordsParam, clipper) {}
 
   void load(const std::string& name,
             const std::vector<Ptr<OptimizerBase>>& opts,
@@ -170,12 +177,12 @@ public:
             bool isMainProcess = true) override;
 
 private:
-  void updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t refMBSize) override;
+  void updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t refMBWords) override;
   void resetStats() override;
 
   // Adam parameters:
-  // [beta1, beta2, eps, w, refMBSize]
-  virtual void parseParams(const std::vector<float>& params) override {
+  // [beta1, beta2, eps, w, refMBWords]
+  virtual void setParams(const std::vector<float>& params) override {
     if(params.size() > 0)
       beta1_ = params[0];
     if(params.size() > 1)
@@ -186,15 +193,6 @@ private:
     // weighted decay for AdamW, to be explored, disabled by default
     if(params.size() > 3)
       w_ = params[3]; // default (disabled): 0
-
-    // automatic learning-rate adjustment
-    // If users provide, in addition to the hyper-parameters, a reference minibatch size,
-    // that these hyper-parameters were originally tuned for, then the learning-rate gets
-    // adjusted accordingly. Note: Requires user to also use ce-sum criterion.
-    if(params.size() > 4) {
-      refMBSize_ = (size_t)params[4]; // default (disabled): 0
-      LOG(info, "Note: Modified Adam optimizer: automatically adjusting learning rate as if minibatch size was {}", refMBSize_);
-    }
   }
 
   // hyper-parameters
@@ -214,10 +212,10 @@ private:
 };
 
 template <class Algorithm>
-Ptr<OptimizerBase> Optimizer(float eta,
+Ptr<OptimizerBase> Optimizer(float eta, size_t refMBWordsParam = 0,
                              Ptr<ClipperBase> clipper = nullptr,
                              std::vector<float> params = {}) {
-  auto opt = Ptr<OptimizerBase>(new Algorithm(eta, clipper));
+  auto opt = Ptr<OptimizerBase>(new Algorithm(eta, refMBWordsParam, clipper));
   opt->setParams(params);
   return opt;
 }

@@ -70,9 +70,7 @@ public:
 
   // determine dynamic MB size, if respective parameters are given (return false if not)
   bool tryGetDynamicMBSizeMultiplier(double /*out*/ &ratio) const {
-    auto mbWarmupOpts = options_->get<std::vector<std::string>>("mini-batch-warmup");
-    ABORT_IF(mbWarmupOpts.empty() || mbWarmupOpts.size() > 2, "--mini-batch-warmup argument must be one or two numbers with units");
-    auto mbWarmup = SchedulingParameter::parse(mbWarmupOpts[0]);
+    auto mbWarmup = SchedulingParameter::parse(options_->get<std::string>("mini-batch-warmup"));
     if (!mbWarmup)
       return false;
 
@@ -89,13 +87,14 @@ public:
     // apply ratio to actual batch size
     ratio *= progressRatio;
 
+    // @TODO: move this out
     // adjust for reference batch size if given
     // At progress == mbWarmup.n (ratio=1), we would like to have refBatchLabels instead of whichever
     // the actual batch size is. We approximate the latter as typicalTrgBatchWords_, and scale ratio accordingly.
-    if (mbWarmupOpts.size() > 1) {
-      ABORT_IF(typicalTrgBatchWords_ == 0, "dynamic scaling with words target requires MB size to be known in words"); // happens if MB size is specified in sentences
-      auto refBatchLabels = (size_t)std::stoull(mbWarmupOpts[1]);
+    auto refBatchLabels = options_->get<size_t>("mini-batch-words-ref");
+    if (refBatchLabels != 0) {
       LOG_ONCE(info, "[scheduler] Scaling to {} reference labels. Typical actual batch words is {}", refBatchLabels, typicalTrgBatchWords_);
+      ABORT_IF(typicalTrgBatchWords_ == 0, "dynamic scaling with words target requires MB size to be known in words"); // happens if MB size is specified in sentences
       ratio *= (double)refBatchLabels / (double)typicalTrgBatchWords_;
     }
 

@@ -6,8 +6,8 @@
 
 namespace marian {
 
-void Sgd::updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t refMBSize) {
-  actualMBSize, refMBSize; // (no correction for base update needed beyond using ce-sum)
+void Sgd::updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t refMBWords) {
+  actualMBSize, refMBWords; // (no correction for base update needed beyond using ce-sum)
   using namespace functional;
   Element(_1 -= eta_ * _2,
           params,
@@ -18,8 +18,8 @@ void Sgd::updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t re
 
 // Adagrad
 
-void Adagrad::updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t refMBSize) {
-  ABORT_IF(actualMBSize != refMBSize, "Adagrad does not support rational hyper-parameter adjustment");
+void Adagrad::updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t refMBWords) {
+  ABORT_IF(actualMBSize != refMBWords, "Adagrad does not support rational hyper-parameter adjustment");
   if(!alloc_)
     alloc_ = New<TensorAllocator>(params->getBackend());
 
@@ -124,7 +124,7 @@ void Adagrad::resetStats() {
 
 // Adam
 
-void Adam::updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t refMBSize) {
+void Adam::updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t refMBWords) {
   // lazy allocation
   if(!alloc_)
     alloc_ = New<TensorAllocator>(params->getBackend());
@@ -138,7 +138,7 @@ void Adam::updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t r
     vt_->set(0.f);
   }
 
-  double Tref = (double)refMBSize;
+  double Tref = (double)refMBWords;
   double T    = (double)actualMBSize;
 
   // adjust for minibatch-size changes if Adam parameters are given a reference size (else do nothing)
@@ -305,7 +305,7 @@ void Adam::resetStats() {
   if(vt_)
     vt_->set(0.f);
 
-  denom1_ = 0; // @BUGBUG: or 1 or refMBSize if so specified. Fix once we have proper parameterization for that.
+  denom1_ = 0; // @BUGBUG: or 1 or refMBWords if so specified. Fix once we have proper parameterization for that.
   denom2_ = 0;
 }
 
@@ -314,6 +314,7 @@ Ptr<OptimizerBase> Optimizer(Ptr<Options> options) {
   auto params = options->has("optimizer-params")
                     ? options->get<std::vector<float>>("optimizer-params")
                     : std::vector<float>({});
+  size_t refMBWordsParam = options->get<size_t>("mini-batch-words-ref"); // adjust hyper-parameters as if our MB size (in target labels) was this value
 
   Ptr<ClipperBase> clipper = nullptr;
   float clipNorm = (float)options->get<double>("clip-norm"); // @TODO: should this be <float>?
@@ -323,13 +324,13 @@ Ptr<OptimizerBase> Optimizer(Ptr<Options> options) {
   auto opt = options->get<std::string>("optimizer");
 
   if(opt == "sgd") {
-    return Optimizer<Sgd>(lrate, clipper, params);
+    return Optimizer<Sgd>(lrate, refMBWordsParam, clipper, params);
   } else if(opt == "adagrad") {
-    return Optimizer<Adagrad>(lrate, clipper, params);
+    return Optimizer<Adagrad>(lrate, refMBWordsParam, clipper, params);
   } else if(opt == "adam") {
-    return Optimizer<Adam>(lrate, clipper, params); // @TODO: parse the parameters here, or just pass the options object
+    return Optimizer<Adam>(lrate, refMBWordsParam, clipper, params);
   } else {
-    ABORT("Unknown optimizer: {}", opt);
+    ABORT("Unknown optimizer kind: {}", opt);
   }
 }
 }  // namespace marian

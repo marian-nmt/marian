@@ -14,11 +14,8 @@ namespace marian {
 class ExponentialSmoothing {
 public:
     ExponentialSmoothing(Ptr<Options> options) {
-      auto args = options->get<std::vector<float>>("exponential-smoothing");
-      ABORT_IF(args.size() < 1 || args.size() > 2, "exponential-smoothing parameter must be one or two numbers");
-      mvDecayBy_ = args[0];
-      if (args.size() > 1)
-        refBatchTrgWords_ = (size_t)args[1];
+      mvDecayBy_ = options->get<float>("exponential-smoothing");
+      refBatchTrgWords_ = options->get<size_t>("mini-batch-words-ref"); // adjust as if our MB size (in target labels) was this value
       mvAvg_ = (mvDecayBy_ > 0);
     }
 
