@@ -85,9 +85,10 @@ void ConfigValidator::validateOptionsTraining() const {
   ABORT_IF(!modelDir.empty() && !filesystem::isDirectory(modelDir),
            "Model directory does not exist");
 
-  ABORT_IF(
-      has("valid-sets") && get<std::vector<std::string>>("valid-sets").size() != trainSets.size(),
-      "There should be as many validation sets as training sets");
+  ABORT_IF(has("valid-sets")
+               && get<std::vector<std::string>>("valid-sets").size() != trainSets.size()
+               && !get<std::vector<std::string>>("valid-sets").empty(),
+           "There should be as many validation sets as training sets");
 
   // validations for learning rate decaying
   ABORT_IF(get<float>("lr-decay") > 1.f, "Learning rate decay factor greater than 1.0 is unusual");

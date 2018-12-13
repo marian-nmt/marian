@@ -49,7 +49,7 @@ public:
     auto trainState = New<TrainingState>(options_->get<float>("learn-rate"));
     auto scheduler = New<Scheduler>(options_, trainState);
 
-    if((options_->has("valid-sets") || options_->has("valid-script-path"))
+    if((options_->nonempty("valid-sets") || options_->nonempty("valid-script-path"))
        && SchedulingParameter::parse(options_->get<std::string>("valid-freq"))) {
       for(auto validator : Validators(dataset->getVocabs(), options_))
         scheduler->addValidator(validator);

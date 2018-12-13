@@ -374,7 +374,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "sentence");
 
   // embedding options
-  cli.add_nondefault<std::vector<std::string>>("--embedding-vectors",
+  cli.add<std::vector<std::string>>("--embedding-vectors",
      "Paths to files with custom source and target embedding vectors");
   cli.add<bool>("--embedding-normalization",
      "Normalize values from custom embedding vectors to [-1, 1]");
@@ -397,7 +397,7 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
   cli.switchGroup("Validation set options");
 
   // clang-format off
-  cli.add_nondefault<std::vector<std::string>>("--valid-sets",
+  cli.add<std::vector<std::string>>("--valid-sets",
       "Paths to validation corpora: source target");
   cli.add<std::string/*SchedulerPeriod*/>("--valid-freq",
       "Validate model every  arg  updates (append 't' for every  arg  target labels)",
@@ -436,12 +436,12 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
       1000);
 
   // options for validation script
-  cli.add_nondefault<std::string>("--valid-script-path",
+  cli.add<std::string>("--valid-script-path",
      "Path to external validation script."
      " It should print a single score to stdout."
      " If the option is used with validating translation, the output"
      " translation file will be passed as a first argument");
-  cli.add_nondefault<std::string>("--valid-translation-output",
+  cli.add<std::string>("--valid-translation-output",
      "Path to store the translation");
 
   cli.add<bool>("--keep-best",
@@ -492,9 +492,9 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   cli.add<bool>("--skip-cost",
       "Ignore model cost during translation, not recommended for beam-size > 1");
 
-  cli.add_nondefault<std::vector<std::string>>("--shortlist",
+  cli.add<std::vector<std::string>>("--shortlist",
      "Use softmax shortlist: path first best prune");
-  cli.add_nondefault<std::vector<float>>("--weights",
+  cli.add<std::vector<float>>("--weights",
       "Scorer weights");
   cli.add<bool>("--output-sampling",
       "Noise output layer with gumbel noise",
