@@ -178,9 +178,11 @@ public:
   bool empty() { return istream_->peek() == std::ifstream::traits_type::eof(); }
 
   void setbufsize(size_t size) const {
+#ifdef 0 // this is buggy, do nothing
     istream_->rdbuf()->pubsetbuf(0, 0);
     readBuf_.reset(new char[size]);
     istream_->rdbuf()->pubsetbuf(readBuf_.get(), 0);
+#endif
   }
 
   template <typename T>
