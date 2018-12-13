@@ -16,7 +16,7 @@ size_t Config::seed = (size_t)time(0);
 
 Config::Config(int argc,
                char** argv,
-               cli::mode mode /*= cli::mode::training*/,
+               cli::mode mode,
                bool validate /*= true*/) {
   initialize(argc, argv, mode, validate);
 }
@@ -56,7 +56,17 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
   }
 
   // load model parameters
-  if(mode != cli::mode::translation) {
+  if(mode == cli::mode::translation || mode == cli::mode::server) {
+    auto model = get<std::vector<std::string>>("models")[0];
+    try {
+      if(!get<bool>("ignore-model-config"))
+        loadModelParameters(model);
+    } catch(std::runtime_error& ) {
+      LOG(info, "[config] No model configuration found in model file");
+    }
+  }
+  // if cli::mode::training or cli::mode::scoring
+  else {
     auto model = get<std::string>("model");
     if(filesystem::exists(model) && !get<bool>("no-reload")) {
       try {
@@ -65,16 +75,6 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
       } catch(std::runtime_error&) {
         LOG(info, "[config] No model configuration found in model file");
       }
-    }
-  }
-  // if cli::mode::translation
-  else {
-    auto model = get<std::vector<std::string>>("models")[0];
-    try {
-      if(!get<bool>("ignore-model-config"))
-        loadModelParameters(model);
-    } catch(std::runtime_error& ) {
-      LOG(info, "[config] No model configuration found in model file");
     }
   }
 
@@ -264,7 +264,7 @@ std::vector<DeviceId> Config::getDevices(Ptr<Options> options,
 
 Ptr<Options> parseOptions(int argc,
                           char** argv,
-                          cli::mode mode /*= cli::mode::training*/,
+                          cli::mode mode,
                           bool validate /*= true*/) {
   auto config = New<Config>(argc, argv, mode, validate);
   auto options = New<Options>();

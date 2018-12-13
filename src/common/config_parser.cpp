@@ -85,6 +85,14 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   // clang-format on
 }
 
+void ConfigParser::addOptionsServer(cli::CLIWrapper& cli) {
+  // clang-format off
+  cli.add<size_t>("--port,-p",
+      "Port number for web socket server",
+      8080);
+  // clang-format on
+}
+
 void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
   cli.switchGroup("Model options");
 
@@ -499,9 +507,6 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
       "Noise output layer with gumbel noise",
        false);
 
-  // TODO: the options should be available only in server
-  cli.add_nondefault<size_t>("--port,-p",
-      "Port number for web socket server");
   // add ULR settings
   addSuboptionsULR(cli);
 
@@ -561,7 +566,8 @@ void ConfigParser::addSuboptionsDevices(cli::CLIWrapper& cli) {
 #ifdef CUDA_FOUND
   cli.add<size_t>("--cpu-threads",
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation",
-      0)->implicit_val("1");
+      0)
+    ->implicit_val("1");
 #else
   cli.add<size_t>("--cpu-threads",
       "Use CPU-based computation with this many independent threads, 0 means GPU-based computation",
@@ -678,6 +684,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
                       40);
 
   addOptionsGeneral(cli);
+  if(modeServer_)
+    addOptionsServer(cli);
   addOptionsModel(cli);
 
   // clang-format off
@@ -691,6 +699,9 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
       break;
     case cli::mode::scoring:
       addOptionsScoring(cli);
+      break;
+    default:
+      ABORT("wrong CLI mode");
       break;
   }
   // clang-format on
