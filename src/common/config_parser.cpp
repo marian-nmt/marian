@@ -281,7 +281,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "Display information every  arg  updates (append 't' for every  arg  target labels)",
       "1000u");
   cli.add<size_t>("--disp-first",
-      "Display nformation for the first  arg  updates");
+      "Display information for the first  arg  updates");
   cli.add<bool>("--disp-label-counts",
       "Display label counts when logging loss progress");
   cli.add<std::string/*SchedulerPeriod*/>("--save-freq",
