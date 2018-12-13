@@ -159,8 +159,7 @@ public:
                          args,
                          help,
                          val,
-                         /*defaulted =*/true,
-                         /*addToConfig =*/true);
+                         /*defaulted =*/true);
   }
 
   /**
@@ -186,33 +185,7 @@ public:
                          args,
                          help,
                          T(),
-                         /*defaulted =*/false,
-                         /*addToConfig =*/true);
-  }
-
-  /**
-   * @brief Define a non-defaulted option
-   *
-   * The option will not be present in the config file unless given as a
-   * command-line argument.
-   *
-   * @param args Comma-separated list of short and long option names
-   * @param help Help message
-   *
-   * @return Option object
-   *
-   * @TODO: consider removing this method during final refactorization of
-   * command-line/config parsers in the future as all options should either
-   * have a default value or be non-defaulted
-   */
-  template <typename T>
-  CLI::Option *add_nondefault(const std::string &args, const std::string &help) {
-    return add_option<T>(keyName(args),
-                         args,
-                         help,
-                         T(),
-                         /*defaulted =*/false,
-                         /*addToConfig =*/false);
+                         /*defaulted =*/false);
   }
 
   /**
@@ -256,11 +229,9 @@ private:
                           const std::string &args,
                           const std::string &help,
                           T val,
-                          bool defaulted,
-                          bool addToConfig) {
-    // define YAML entry if requested
-    if(addToConfig)
-      config_[key] = val;
+                          bool defaulted) {
+    // add key to YAML
+    config_[key] = val;
 
     // create option tuple
     CLIOptionTuple option;
@@ -305,11 +276,9 @@ private:
                           const std::string &args,
                           const std::string &help,
                           T val,
-                          bool defaulted,
-                          bool addToConfig) {
-    // define YAML entry if requested
-    if(addToConfig)
-      config_[key] = val;
+                          bool defaulted) {
+    // add key to YAML
+    config_[key] = val;
 
     // create option tuple
     CLIOptionTuple option;
@@ -364,11 +333,9 @@ private:
                           const std::string &args,
                           const std::string &help,
                           T val,
-                          bool defaulted,
-                          bool addToConfig) {
-    // define YAML entry if requested
-    if(addToConfig)
-      config_[key] = val;
+                          bool defaulted) {
+    // add key to YAML
+    config_[key] = val;
 
     // create option tuple
     CLIOptionTuple option;
