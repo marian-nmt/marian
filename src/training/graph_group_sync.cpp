@@ -5,7 +5,7 @@ namespace marian {
 SyncGraphGroup::SyncGraphGroup(Ptr<Options> config)
     : GraphGroup(config),
       ExponentialSmoothing(config),
-      delay_{options_->get<size_t>("optimizer-delay")} { // @TODO: rename to something else; delay means delayed updated, not accumulation
+      delay_{options_->get<double>("optimizer-delay")} { // @TODO: rename to something else; delay means delayed updated, not accumulation
 
   mpi_ = initMPI(/*multiThreaded=*/false); // when not running under MPI, this will be a fake object that represents a one-MPI-process setup
 
@@ -153,7 +153,8 @@ bool SyncGraphGroup::tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr
   if (isDynamic)
     ratio = roundUpRatio(ratio); // round up to full batches if within a certain error margin  --@BUGBUG: Not invariant w.r.t. GPU size, as ratio is relative to what fits into 1 GPU
   else   // if dynamic scaling not enabled, then fill each GPU with a batch
-    ratio = (double)(delay_ * warpSize);
+    ratio = delay_ * (double)warpSize; // note: delay_ may be fractional
+  // @TODO: adjust ratio here for reference MB size; i.e. also for optimizer-delay
   if (pendingBatches_.size() < ratio)
     return false; // not enough data yet
 

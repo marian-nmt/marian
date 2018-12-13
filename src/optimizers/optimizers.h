@@ -19,7 +19,7 @@ namespace marian {
 class OptimizerBase : public TrainingObserver {
 public:
   OptimizerBase(float eta, size_t refMBWordsParam, Ptr<ClipperBase> clipper)
-      : eta_(eta), clipper_(clipper), refMBWordsParam_(refMBWordsParam) {
+      : eta_(eta), refMBWordsParam_(refMBWordsParam), clipper_(clipper) {
 
     // automatic learning-rate adjustment
     // If users provide, in addition to the hyper-parameters, a reference minibatch size,
@@ -101,10 +101,10 @@ protected:
 
   // Learning rate
   float eta_;
-  // Clip gradient norm
-  Ptr<ClipperBase> clipper_;
   // Reference MB size. This enables automatic adjustment of optimizer hyper-parameters to MB size.
   size_t refMBWordsParam_{0}; // 0 means no adjustment
+  // Clip gradient norm
+  Ptr<ClipperBase> clipper_;
 };
 
 /**

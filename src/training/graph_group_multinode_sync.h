@@ -133,7 +133,7 @@ public:
    */
   MultiNodeGraphGroupSync(Ptr<Options> options)
       : Base(options),
-        tau_{options_->get<size_t>("optimizer-delay")},
+        tau_{(size_t)options_->get<double>("optimizer-delay")},
         syncOptimizer_{Optimizer(options_)},
         movingAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")} {

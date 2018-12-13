@@ -87,7 +87,7 @@ public:
     // apply ratio to actual batch size
     ratio *= progressRatio;
 
-    // @TODO: move this out
+    // @TODO: move this out, and just return ratio instead
     // adjust for reference batch size if given
     // At progress == mbWarmup.n (ratio=1), we would like to have refBatchLabels instead of whichever
     // the actual batch size is. We approximate the latter as typicalTrgBatchWords_, and scale ratio accordingly.

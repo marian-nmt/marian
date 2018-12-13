@@ -8,7 +8,7 @@ namespace marian {
 
 class SyncGraphGroup : public GraphGroup, public ExponentialSmoothing {
   using Base = GraphGroup;
-  const size_t delay_{ 1 }; // optimizer-delay parameter
+  const double delay_{1.}; // optimizer-delay parameter. Fractional means to use a fraction of whatever the MB size is
 
   Ptr<ICommunicator> comm_; // [not null] communicator, e.g. NCCLCommunicator
   Ptr<IMPIWrapper> mpi_;    // [not null] all MPI-like communication goes through this (this is a dummy implementation if no MPI run)

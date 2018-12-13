@@ -37,6 +37,6 @@ protected:
 
   bool mvAvg_{false};
   float mvDecayBy_{1e-4f};     // decay prior model by this factor
-  size_t refBatchTrgWords_{0}; // mvDecayBy_ is specified for this batch size (in target words)
+  size_t refBatchTrgWords_{0}; // mvDecayBy_ is specified for this batch size (in target words) (0 means not specified)
 };
 }  // namespace marian
