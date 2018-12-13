@@ -147,6 +147,8 @@ public:
   /**
    * @brief Define an option with a default value
    *
+   * Explicit default values will appear in help messages.
+   *
    * @param args Comma-separated list of short and long option names
    * @param help Help message
    * @param val Default value
@@ -155,11 +157,11 @@ public:
    */
   template <typename T>
   CLI::Option *add(const std::string &args, const std::string &help, T val) {
-    return add_option<T>(keyName(args),
-                         args,
-                         help,
-                         val,
-                         /*defaulted =*/true);
+    return addOption<T>(keyName(args),
+                        args,
+                        help,
+                        val,
+                        /*defaulted =*/true);
   }
 
   /**
@@ -171,6 +173,8 @@ public:
    * option is 0, for a string is an empty string, and for a vector is an empty
    * vector.
    *
+   * Implicit default values will *NOT* appear in help messages.
+   *
    * @param args Comma-separated list of short and long option names
    * @param help Help message
    *
@@ -181,11 +185,11 @@ public:
    */
   template <typename T>
   CLI::Option *add(const std::string &args, const std::string &help) {
-    return add_option<T>(keyName(args),
-                         args,
-                         help,
-                         T(),
-                         /*defaulted =*/false);
+    return addOption<T>(keyName(args),
+                        args,
+                        help,
+                        T(),
+                        /*defaulted =*/false);
   }
 
   /**
@@ -225,11 +229,11 @@ private:
             // options with numeric and string-like values
             CLI::enable_if_t<!CLI::is_bool<T>::value && !CLI::is_vector<T>::value,
                              CLI::detail::enabler> = CLI::detail::dummy>
-  CLI::Option *add_option(const std::string &key,
-                          const std::string &args,
-                          const std::string &help,
-                          T val,
-                          bool defaulted) {
+  CLI::Option *addOption(const std::string &key,
+                         const std::string &args,
+                         const std::string &help,
+                         T val,
+                         bool defaulted) {
     // add key to YAML
     config_[key] = val;
 
@@ -272,11 +276,11 @@ private:
   template <typename T,
             // options with vector values
             CLI::enable_if_t<CLI::is_vector<T>::value, CLI::detail::enabler> = CLI::detail::dummy>
-  CLI::Option *add_option(const std::string &key,
-                          const std::string &args,
-                          const std::string &help,
-                          T val,
-                          bool defaulted) {
+  CLI::Option *addOption(const std::string &key,
+                         const std::string &args,
+                         const std::string &help,
+                         T val,
+                         bool defaulted) {
     // add key to YAML
     config_[key] = val;
 
@@ -329,11 +333,11 @@ private:
   template <typename T,
             // options with boolean values, called flags in CLI11
             CLI::enable_if_t<CLI::is_bool<T>::value, CLI::detail::enabler> = CLI::detail::dummy>
-  CLI::Option *add_option(const std::string &key,
-                          const std::string &args,
-                          const std::string &help,
-                          T val,
-                          bool defaulted) {
+  CLI::Option *addOption(const std::string &key,
+                         const std::string &args,
+                         const std::string &help,
+                         T val,
+                         bool defaulted) {
     // add key to YAML
     config_[key] = val;
 

@@ -79,8 +79,7 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   cli.add<bool>("--relative-paths",
      "All paths are relative to the config file location");
   cli.add<std::string>("--dump-config",
-     "Dump current (modified) configuration to stdout and exit. Possible values: full, minimal",
-     "false")
+     "Dump current (modified) configuration to stdout and exit. Possible values: full, minimal")
     ->implicit_val("full");
   // clang-format on
 }
@@ -628,8 +627,7 @@ void ConfigParser::addSuboptionsULR(cli::CLIWrapper& cli) {
   // clang-format off
   // support for universal encoder ULR https://arxiv.org/pdf/1802.05368.pdf
   cli.add<bool>("--ulr",
-      "Enable ULR (Universal Language Representation)",
-      false);
+      "Enable ULR (Universal Language Representation)");
   // reading pre-trained universal embeddings for multi-sources.
   // Note that source and target here is relative to ULR not the translation langs
   // queries: EQ in Fig2 : is the unified embeddings projected to one space.
@@ -642,8 +640,7 @@ void ConfigParser::addSuboptionsULR(cli::CLIWrapper& cli) {
       "Path to file with universal sources embeddings of traget keys from projection into universal space",
       "");
   cli.add<bool>("--ulr-trainable-transformation",
-      "Make Query Transformation Matrix A trainable",
-      false);
+      "Make Query Transformation Matrix A trainable");
   cli.add<int>("--ulr-dim-emb",
       "ULR monolingual embeddings dimension");
   cli.add<float>("--ulr-dropout",
@@ -728,7 +725,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   // remove extra config files from the config to avoid redundancy
   config_.remove("config");
 
-  if(get<std::string>("dump-config") != "false") {
+  if(!get<std::string>("dump-config").empty() && get<std::string>("dump-config") != "false") {
     bool skipDefault = get<std::string>("dump-config") == "minimal";
     config_.remove("dump-config");
     std::cout << cli.dumpConfig(skipDefault) << std::endl;
