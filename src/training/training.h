@@ -58,10 +58,10 @@ public:
     auto batchGenerator = New<CorpusBatchGenerator>(dataset, options_, stats);
 
     scheduler->registerTrainingObserver(batchGenerator);
-    scheduler->setTypicalTrgBatchWords(batchGenerator->estimateTypicalTrgBatchWords()); // needed for dynamic MB scaling
 
     auto model = New<ModelWrapper>(options_);
     model->setScheduler(scheduler);
+    model->setTypicalTrgBatchWords(batchGenerator->estimateTypicalTrgBatchWords()); // needed for dynamic MB scaling
     model->load();
 
     // @TODO: shuffle_ as a private attribute in BG
@@ -69,16 +69,19 @@ public:
     bool restored = !options_->get<bool>("no-restore-corpus")
                     && batchGenerator->restore(trainState, shuffle);
 
+    // -- main training loop
     scheduler->started();
     while(scheduler->keepGoing()) {
       if(!restored)
         batchGenerator->prepare(shuffle);
       restored = false;
 
-      // @TODO: try to use for(auto ...)
-      for(auto batchIt = std::begin(*batchGenerator);
-          batchIt != std::end(*batchGenerator) && scheduler->keepGoing();
+      // main training loop for one epoch
+      for(auto batchIt = std::begin(*batchGenerator); // @TODO: try to use for(auto ...)
+          batchIt != std::end(*batchGenerator);
           batchIt++) {
+        if (!scheduler->keepGoing())
+          break;
         model->update(*batchIt);
       }
 

@@ -13,7 +13,6 @@ private:
   std::vector<Ptr<ValidatorBase>> validators_;
 
   bool first_{true};
-  size_t typicalTrgBatchWords_{0}; // for dynamic batch sizing
 
   Ptr<TrainingState> state_;
 
@@ -63,15 +62,6 @@ private:
   }
 
 public:
-  // @TODO: move this out from here
-  void setTypicalTrgBatchWords(size_t typicalTrgBatchWords) { // needed for tryGetDynamicMBSizeMultiplier()
-    typicalTrgBatchWords_ = typicalTrgBatchWords;
-    LOG(info, "batch size estimate is {} target words", typicalTrgBatchWords_);
-  }
-  size_t getTypicalTrgBatchWords(size_t typicalTrgBatchWords) { // needed for tryGetDynamicMBSizeMultiplier()
-    return typicalTrgBatchWords;
-  }
-
   // determine dynamic MB size, if respective parameters are given (return false if not)
   bool tryGetDynamicMBSizeMultiplier(double /*out*/ &ratio) const {
     auto mbWarmup = SchedulingParameter::parse(options_->get<std::string>("mini-batch-warmup"));

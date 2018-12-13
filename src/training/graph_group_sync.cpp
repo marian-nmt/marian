@@ -57,10 +57,10 @@ void SyncGraphGroup::initialize(const Ptr<data::Batch>& exampleBatch) {
   ThreadPool pool(graphs_.size() - 1, graphs_.size() - 1);
   for(size_t i = 1; i < graphs_.size(); ++i) {
     auto init = [&](size_t i) {
-      // initialize t-th graph and weights
+      // initialize i-th graph and weights
       builders_[i]->build(graphs_[i], exampleBatch);
       graphs_[i]->forward();
-      // overwrite weights of t-th graph with weights from 0th graph
+      // overwrite weights of i-th graph with weights from 0-th graph
       graphs_[i]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
     };
     pool.enqueue(init, i);
@@ -143,10 +143,6 @@ bool SyncGraphGroup::tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr
   pendingBatches_.push_back(newBatch);
   size_t warpSize = devices_.size() * mpi_->numMPIProcesses(); // warp := set of batches processed concurrently across GPus and workers
 
-  size_t pendingTrgWords = 0; // diagnosics only: compute how many target labels are pending so far
-  for (const auto& batch : pendingBatches_)
-    pendingTrgWords += batch->wordsTrg();
-
   // MB-size warm-up and dynamic scaling
   double ratio;
   bool isDynamic = scheduler_->tryGetDynamicMBSizeMultiplier(ratio);
@@ -160,10 +156,9 @@ bool SyncGraphGroup::tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr
   // the actual batch size is. We approximate the latter as typicalTrgBatchWords, and scale ratio accordingly.
   auto refBatchLabels = options_->get<size_t>("mini-batch-words-ref");
   if (refBatchLabels != 0) {
-    auto typicalTrgBatchWords = scheduler_->getTypicalTrgBatchWords();
-    LOG_ONCE(info, "[scheduler] Scaling to {} reference labels. Typical actual batch words is {}", refBatchLabels, typicalTrgBatchWords);
-    ABORT_IF(typicalTrgBatchWords == 0, "dynamic scaling with words target requires MB size to be known in words"); // happens if MB size is specified in sentences
-    ratio *= (double)refBatchLabels / (double)typicalTrgBatchWords;
+    LOG_ONCE(info, "[scheduler] Scaling to {} reference labels. Typical actual batch words is {}", refBatchLabels, typicalTrgBatchWords_);
+    ABORT_IF(typicalTrgBatchWords_ == 0, "dynamic scaling with words target requires MB size to be known in words"); // happens if MB size is specified in sentences
+    ratio *= (double)refBatchLabels / (double)typicalTrgBatchWords_;
   }
 
   if (pendingBatches_.size() < ratio)
@@ -243,11 +238,11 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
     return;
 
   // Helper to access the subBatches array
-  auto getSubBatch = [&](size_t t, size_t localDeviceIndex, size_t rank) -> Ptr<data::Batch> {
-    // 't' (the delay) should be slowest changing dimension. If subBatches are sorted by
+  auto getSubBatch = [&](size_t delay, size_t localDeviceIndex, size_t rank) -> Ptr<data::Batch> {
+    // 'delay' should be slowest changing dimension. If subBatches are sorted by
     // length, then grouping sentences of similar length into the same delay step can
     // reduce unnecessary time spent in padding.
-    auto index = (t * mpi_->numMPIProcesses() + rank) * devices_.size() + localDeviceIndex;
+    auto index = (delay * mpi_->numMPIProcesses() + rank) * devices_.size() + localDeviceIndex;
     if (index < subBatches.size())
       return subBatches[index];
     else
@@ -267,27 +262,27 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
   // Compute gradients
   // This happens in multiple steps in case of delay > 1.
   std::vector<float> localDeviceCosts(devices_.size(), 0.f); // [local device index] aggregate cost for each local device
-  for (size_t t = 0; getSubBatch(t, 0, 0); t++) { // @TODO: rename 't' to 'delay'
+  for (size_t delay = 0; getSubBatch(delay, 0, 0); delay++) {
     // Execute single forward/backward step
     auto forwardBackward = [&](size_t localDeviceIndex, size_t /*begin*/, size_t /*end*/) {
       auto graph = graphs_[localDeviceIndex];
-      auto subBatch = getSubBatch(t, localDeviceIndex, mpi_->myMPIRank());
+      auto subBatch = getSubBatch(delay, localDeviceIndex, mpi_->myMPIRank());
 
       if(subBatch) {
         auto costNode = builders_[localDeviceIndex]->build(graph, subBatch);
         graph->forward();
         localDeviceCosts[localDeviceIndex] += costNode->scalar();
-        graph->backward(/*zero=*/t == 0); // only reset gradients to 0 if t = 0
+        graph->backward(/*zero=*/delay == 0); // only reset gradients to 0 if delay = 0
       }
       else { // empty batch: execute do-nothing fw-bw step for proper inits and resets
 #if 1   // @TODO: double-check whether the #else branch is the same; and if so, use it instead
         graph->params()->allocateBackward();
-        if (t == 0) // these have already been sized
+        if (delay == 0) // these have already been sized
           graph->params()->set_zero_adjoint();
 #else
         graph->clear(); // instead of build()
         graph->forward();
-        graph->backward(/*zero=*/t == 0);
+        graph->backward(/*zero=*/delay == 0);
 #endif
       }
     };

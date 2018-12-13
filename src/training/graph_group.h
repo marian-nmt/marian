@@ -21,6 +21,7 @@ protected:
   Ptr<OptimizerBase> opt_;   // the optimizer
   Ptr<Scheduler> scheduler_; // scheduler that keeps track of how much has been processed
   bool finalized_{false};    // 'true' if training has completed (further updates are no longer allowed)
+  size_t typicalTrgBatchWords_{ 0 }; // for dynamic batch sizing
 
 public:
   GraphGroup(Ptr<Options> options) : options_(options), opt_(Optimizer(options)) {}
@@ -109,6 +110,10 @@ public:
       maxBatch = start;
     }
     return stats;
+  }
+
+  void setTypicalTrgBatchWords(size_t typicalTrgBatchWords) { // needed for dynamic MB scaling
+    typicalTrgBatchWords_ = typicalTrgBatchWords;
   }
 };
 
