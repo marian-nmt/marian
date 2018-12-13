@@ -4,18 +4,14 @@
 #include "common/logging.h"
 #include "common/definitions.h"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsuggest-override"
-#include "3rd_party/zstr/zstr.hpp"
-#pragma GCC diagnostic pop
-
-#ifdef _GNUC_
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsuggest-override"
 #endif
+#include "3rd_party/zstr/zstr.hpp"
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/stream_buffer.hpp>
-#ifdef _GNUC_
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
 
@@ -182,9 +178,11 @@ public:
   bool empty() { return istream_->peek() == std::ifstream::traits_type::eof(); }
 
   void setbufsize(size_t size) const {
+#ifdef 0 // this is buggy, do nothing
     istream_->rdbuf()->pubsetbuf(0, 0);
     readBuf_.reset(new char[size]);
     istream_->rdbuf()->pubsetbuf(readBuf_.get(), 0);
+#endif
   }
 
   template <typename T>

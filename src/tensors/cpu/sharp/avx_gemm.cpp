@@ -99,7 +99,8 @@ union IntAccess {
  *       _mm512_sra_epi32(sum, shift16));
  */
 inline void Convert32Sum(__m512i &sum) {
-  sum = _mm512_madd_epi16(sum, _mm512_set1_epi16(1));
+  short one = 1;
+  sum = _mm512_madd_epi16(sum, _mm512_set1_epi16(one));
 }
 
 // Two sum version.
@@ -114,7 +115,7 @@ inline ReducedPair Reduce16to32(__m512i sum1, __m512i sum2) {
                                     _mm512_unpacklo_epi32(sum1, sum2));
   // 1 2 1 2 1 2 1 2
   __m256i halves = _mm256_add_epi32(_mm512_castsi512_si256(pack12),
-                                    _mm512_extracti64x4_epi64(pack12, 1));
+                                    _mm512_extracti64x4_epi64(pack12, (short)1));
   // 1 2 1 2
   IntAccess a;
   a.as_n = _mm_add_epi32(_mm256_castsi256_si128(halves),
@@ -144,7 +145,7 @@ inline __m128i Reduce32(__m512i sum1,
                                       _mm512_unpacklo_epi64(pack12, pack34));
   // Cut the register into halves and sum those.  1 2 3 4 1 2 3 4
   __m256i halves = _mm256_add_epi32(_mm512_castsi512_si256(pack1234),
-                                    _mm512_extracti64x4_epi64(pack1234, 1));
+                                    _mm512_extracti64x4_epi64(pack1234, (short)1));
   // Again: cut the register into halves and sum those. 1 2 3 4
   return _mm_add_epi32(_mm256_castsi256_si128(halves),
                        _mm256_extracti128_si256(halves, 1));
@@ -175,14 +176,14 @@ inline int32_t Reduce32(__m256i halves) {
 inline int32_t Reduce32(__m512i sum1) {
   // Fold register over itself.
   return Reduce32(_mm256_add_epi32(_mm512_castsi512_si256(sum1),
-                                   _mm512_extracti64x4_epi64(sum1, 1)));
+                                   _mm512_extracti64x4_epi64(sum1, (short)1)));
 }
 
 inline int32_t Reduce16to32(__m512i sum1) {
   Convert32Sum(sum1);
   // Fold register over itself.
   return Reduce32(_mm256_add_epi32(_mm512_castsi512_si256(sum1),
-                                   _mm512_extracti64x4_epi64(sum1, 1)));
+                                   _mm512_extracti64x4_epi64(sum1, (short)1)));
 }
 
 class ScatterPut {
@@ -204,7 +205,7 @@ public:
     float_sums = _mm_mul_ps(float_sums, unquant_mult_sse_);
 #ifdef __AVX512VL__
     // The scatter instruction requires avx512vl
-    _mm_i32scatter_ps(base, num_b_rows_scatter_, float_sums, 1);
+    _mm_i32scatter_ps(base, num_b_rows_scatter_, float_sums, (short)1);
 #else
     FloatAccess a;
     // Get floats for each of the sums to write.
@@ -398,6 +399,7 @@ inline void Accum(const __m512i zeros,
   // Choosing to approximate and do adds.
   // Perhaps every so often we could accumulate by Convert32Sum
   sum = _mm512_adds_epi16(sum, multiplied);
+  b; // make compiler happy
 }
 
 }  // namespace
