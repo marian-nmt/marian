@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Automatic detection of CPU intrisics when building with -arch=native 
 
 ### Fixed
+- Windows build with recent changes
+- Bug with read-ahead buffer
 - Fixed handling of "dump-config: false" in YAML config
 - Errors due to warnings
 - Fixed issue concerning failed saving with single GPU training and --sync-sgd option. 

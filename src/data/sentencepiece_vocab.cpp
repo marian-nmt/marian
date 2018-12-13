@@ -111,7 +111,7 @@ private:
 
 public:
   SentencePieceVocab(Ptr<Options> options, size_t batchIndex)
-    : options_(options), batchIndex_(batchIndex), generator_(Config::seed) {
+    : options_(options), batchIndex_(batchIndex), generator_((uint32_t)Config::seed) {
 
     if(options_->has("sentencepiece-alphas")) {
       auto alphas = options_->get<std::vector<float>>("sentencepiece-alphas");
@@ -232,7 +232,7 @@ public:
     return spm_->GetPieceSize();
   }
 
-  int load(const std::string& vocabPath, int /*max*/) override {
+  size_t load(const std::string& vocabPath, size_t /*maxSize*/) override {
     LOG(info, "[data] Loading SentencePiece vocabulary from file {}", vocabPath);
 
     ABORT_IF(!filesystem::exists(vocabPath),

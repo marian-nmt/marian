@@ -87,7 +87,7 @@ public:
              request<T>(),
              type_);
 
-    T temp;
+    T temp = 0;
     if(backend_->getDeviceId().type == DeviceType::cpu) {
       std::copy(data<T>() + i, data<T>() + i + 1, &temp);
     }

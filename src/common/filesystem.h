@@ -7,11 +7,17 @@
 // @TODO: go back to canonical names for functions and objects
 // as specified in C++17 so it becomes easy to move in the future
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsuggest-override"
+#endif
+
 #include "3rd_party/pathie-cpp/include/path.hpp"
 #include "3rd_party/pathie-cpp/include/errors.hpp"
+
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
 namespace marian {
 namespace filesystem {

@@ -240,7 +240,7 @@ void MultiNodeGraphGroup::launchServerThread() {
 #if CUDA_FOUND
   serverShardThread_ = new std::thread([this] {
     // keep track of number of nodes still communicating with this shard
-    int nCommunicatingNodes = mpi_->numMPIProcesses();
+    int nCommunicatingNodes = (int)mpi_->numMPIProcesses();
     MPI_Status status;
     do {
       // Receive grads from any client
@@ -401,7 +401,7 @@ void MultiNodeGraphGroup::synchronizeWithServerShards(Tensor newGrads,
         using namespace functional;
         Element(_1 += _2, accGradients[node], accGradientBuffer[node]);
         // Accumulate total batch word
-        totalBatchWords[node] += batchWords;
+        totalBatchWords[node] += (int)batchWords;
         delay_count[node]++;
 
         if(delay_count[node] < tau_)
@@ -461,8 +461,8 @@ void MultiNodeGraphGroup::synchronizeWithServerShards(Tensor newGrads,
       size_t localOffset = offset;
       std::vector<std::thread> threads;
 
-      for(int gpu = 0; gpu < devices_.size(); gpu++) {
-        size_t gpuSize = shardSizes_[gpu];
+      for(int gpui = 0; gpui < devices_.size(); gpui++) {
+        size_t gpuSize = shardSizes_[gpui];
 
         threads.emplace_back(std::thread(
             [=](int gpu, size_t offset, size_t size) {
@@ -477,7 +477,7 @@ void MultiNodeGraphGroup::synchronizeWithServerShards(Tensor newGrads,
               // Copy params back to current GPU
               oldParams->subtensor(offset, size)->copyFrom(shardParams_[gpu]);
             },
-            gpu,
+            gpui,
             localOffset,
             gpuSize));
 
