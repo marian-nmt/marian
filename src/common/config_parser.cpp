@@ -479,7 +479,7 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
       "Allow unknown words to appear in output");
   cli.add<bool>("--n-best",
       "Generate n-best list");
-  cli.add_nondefault<std::string>("--alignment",
+  cli.add<std::string>("--alignment",
      "Return word alignment. Possible values: 0.0-1.0, hard, soft")
     ->implicit_val("1");
 
@@ -531,10 +531,10 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
       "Feature name to be inserted into n-best list", "Score");
   cli.add<bool>("--normalize,-n",
       "Divide translation score by translation length");
-  cli.add_nondefault<std::string>("--summary",
+  cli.add<std::string>("--summary",
       "Only print total cost, possible values: cross-entropy (ce-mean), ce-mean-words, ce-sum, perplexity")
       ->implicit_val("cross-entropy");
-  cli.add_nondefault<std::string>("--alignment",
+  cli.add<std::string>("--alignment",
      "Return word alignments. Possible values: 0.0-1.0, hard, soft")
      ->implicit_val("1"),
 
