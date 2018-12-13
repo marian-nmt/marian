@@ -22,11 +22,17 @@ Device::~Device() {
 // Should generate a runtime error otherwise as we have a check in the AVX512 
 // functions which tests for alignment. 
 #ifdef _WIN32
-#define MALLOC(size) _aligned_alloc(size, alignment_)
+#define MALLOC(size) _aligned_malloc(size, alignment_)
 #elif __GNUC__
 #define MALLOC(size) aligned_alloc(alignment_, size)
 #else
 #define MALLOC(size) malloc(size)
+#endif
+
+#ifdef _WIN32
+#define FREE(ptr) _aligned_free(ptr)
+#else
+#define FREE(ptr) free(ptr)
 #endif
 
 void Device::reserve(size_t size) {
@@ -37,7 +43,7 @@ void Device::reserve(size_t size) {
   if(data_) {
     uint8_t *temp = static_cast<uint8_t*>(MALLOC(size));
     std::copy(data_, data_ + size_, temp);
-    free(data_);
+    FREE(data_);
     data_ = temp;
   } else {
     data_ = static_cast<uint8_t*>(MALLOC(size));

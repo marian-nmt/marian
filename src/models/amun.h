@@ -170,7 +170,7 @@ public:
     ioItems.emplace_back();
     ioItems.back().name = "decoder_c_tt";
     ioItems.back().shape = Shape({1, 0});
-    ioItems.back().bytes.emplace_back(0);
+    ioItems.back().bytes.emplace_back((char)0);
 
     io::addMetaToItems(getModelParametersAsString(), "special:model.yml", ioItems);
     io::saveItems(name, ioItems);

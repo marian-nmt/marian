@@ -3,21 +3,21 @@
 
 ## Install prerequisites
 
-The following SDK are required to build Marian with GPU support
+The following SDK are required to build Marian with GPU support. At least one of them needs to be installed. If only CUDA is installed but not MKL,
+a GPU-only version will be build. If only MKL is installed and not CUDA, only the CPU version will be built. So if you are interested in only one
+functionality, you can ommit one of them. Install both for full functionality. 
 
-   - [Cuda 9.2+](https://developer.nvidia.com/cuda-downloads?target_os=Windows&target_arch=x86_64&target_version=10&target_type=exelocal)
+   - [Cuda 10](https://developer.nvidia.com/cuda-downloads?target_os=Windows&target_arch=x86_64&target_version=10&target_type=exelocal)
         - Base installer
-        - Patches
-
-   - [CuDNN 7.1+](https://developer.nvidia.com/rdp/cudnn-download)
-        - Requires nVidia Developper account
 
    - [MKL](https://software.intel.com/en-us/mkl)
 
 
-__Note: Patch for CUDA error: Unsupported Visual Studio Version Error__
+__Note: Patch for CUDA 9.2 error: Unsupported Visual Studio Version Error__
 
-The latest versions of Visual Studio 2017 are not officially supported by CUDA. Two fixes are proposed:
+This seems to work fine with CUDA 10.0.
+
+When using CUDA 9.2, the latest versions of Visual Studio 2017 are not officially supported by CUDA. Two fixes are proposed:
 
    - Downgrade Visual Studio to a supported version
 
@@ -31,15 +31,13 @@ The latest versions of Visual Studio 2017 are not officially supported by CUDA. 
 
 For more information, read this [nVidia forum](https://devtalk.nvidia.com/default/topic/1022648/cuda-setup-and-installation/cuda-9-unsupported-visual-studio-version-error/4)
 
-
 ---
 ## Check dependencies : `CheckDeps.bat`
 
-In addition to the 3 previous prerequisites, Marian needs 3 libraries that you may already have on your system:
+In addition to the 2 previous prerequisites, Marian needs 2 libraries that you may already have on your system:
 
     - Boost (1.58+)
-    - zlib
-    - OpenSSL
+    - OpenSSL (optional for server)
 
 The script `CheckDeps.bat` can be used to verify that all dependencies are found on your system. If not, it will use the `vcpkg` library manager to download and manage your dependencies for CMake.
 
@@ -50,7 +48,6 @@ If you already have a working `vcpkg` installation, this script can use it:
 
 If you prefer to manage yourself the dependencies, you can edit the script file to set the following variables to the respective installation paths. These variable can also be already set in your environment.
 - `BOOST_INCLUDE_PATH` and `BOOST_LIB_PATH`
-- `ZLIB_ROOT`
 - `OPENSSL_PATH`
 
 ---
@@ -136,12 +133,15 @@ If you have a previous version of Visual Studio, you will need to use CMake to g
 The provided script `CreateVSProjects.bat` runs the dependency checks then invokes CMake with the right parameters to create the solutions for Visual Studio.
 
 
-### 3. Use MSBuild : `Build.bat`
+### 3. Use MSBuild : `BuildRelease.bat`
 
-The last alternative is to use the script `Build.bat` that will:
+The last alternative is to use the script `BuildRelease.bat` that will:
 - Check the dependencies
 - Create the VS project files
 - Invoke MSBuild on these projects to build the targets in Release.
+
+<!-- 
+This is interesting for developers, hiding away from users.
 
 ---
 ## Changes from the master branch
@@ -195,6 +195,6 @@ This part gives more information on all changes done in this PR. Refer to [this 
    I also handled the case of the default value for the `base` parameter: the path `\tmp` doesnot exist on Windows, so it is replaced by the value of the `%TMP%` environment variable in `NormalizeTempPrefix`.
 
 11. __Revert commit #2f8b093 + Fix copy/paste error while fixing #301 + restrict fix to MSVC compiler.__  
-   cf [Issue #301](https://github.com/marian-nmt/marian-dev/issues/301)  
+   cf [Issue #301](https://github.com/marian-nmt/marian-dev/issues/301)   -->
    
    

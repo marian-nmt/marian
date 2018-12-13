@@ -82,7 +82,7 @@ public:
     return id2str_.size();
   }
 
-  int load(const std::string& vocabPath, int max) override {
+  size_t load(const std::string& vocabPath, size_t maxSize) override {
     bool isJson = regex::regex_search(vocabPath, regex::regex("\\.(json|yaml|yml)$"));
     LOG(info,
         "[data] Loading vocabulary from {} file {}",
@@ -120,7 +120,7 @@ public:
       auto id = pair.second;
 
       // note: this requires ids to be sorted by frequency
-      if(!max || id < (Word)max) {
+      if(!maxSize || id < (Word)maxSize) {
         insertWord(id, str);
       }
     }
@@ -174,7 +174,7 @@ public:
       requireWord(DEFAULT_EOS_ID, DEFAULT_EOS_STR);
     }
 
-    return std::max((int)id2str_.size(), max);
+    return std::max(id2str_.size(), maxSize);
   }
 
   // for fakeBatch()

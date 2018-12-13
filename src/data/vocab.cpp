@@ -12,7 +12,7 @@ Ptr<VocabBase> createVocab(const std::string& vocabPath, Ptr<Options> options, s
   return vocab ? vocab : createDefaultVocab();
 }
 
-int Vocab::loadOrCreate(const std::string& vocabPath,
+size_t Vocab::loadOrCreate(const std::string& vocabPath,
                         const std::vector<std::string>& trainPaths,
                         size_t maxSize) {
   size_t size = 0;
@@ -49,13 +49,13 @@ int Vocab::loadOrCreate(const std::string& vocabPath,
     size = load(vocabPath, maxSize);
   }
   LOG(info, "[data] Setting vocabulary size for input {} to {}", batchIndex_, size);
-  return (int)size;
+  return size;
 }
 
-int Vocab::load(const std::string& vocabPath, size_t maxSize) {
+size_t Vocab::load(const std::string& vocabPath, size_t maxSize) {
   if(!vImpl_)
     vImpl_ = createVocab(vocabPath, options_, batchIndex_);
-  return vImpl_->load(vocabPath, maxSize);
+  return vImpl_->load(vocabPath, (int)maxSize);
 }
 
 void Vocab::create(const std::string& vocabPath,
