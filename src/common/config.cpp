@@ -33,13 +33,13 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
   // echo version and command line
   LOG(info, "[marian] Marian {}", buildVersion());
   std::string cmdLine;
-  for (int i = 0; i < argc; i++) {
+  for(int i = 0; i < argc; i++) {
     std::string arg = argv[i];
     std::string quote; // attempt to quote special chars
-    if (arg.empty() || arg.find_first_of(" #`\"'\\${}|&^?*!()%><") != std::string::npos)
+    if(arg.empty() || arg.find_first_of(" #`\"'\\${}|&^?*!()%><") != std::string::npos)
       quote = "'";
     arg = regex::regex_replace(arg, regex::regex("'"), "'\\''");
-    if (!cmdLine.empty())
+    if(!cmdLine.empty())
       cmdLine.push_back(' ');
     cmdLine += quote + arg + quote;
   }

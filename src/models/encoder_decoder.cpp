@@ -23,7 +23,6 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
                     "skip",
                     "layer-normalization",
                     "right-left",
-                    "special-vocab",
                     "tied-embeddings",
                     "tied-embeddings-src",
                     "tied-embeddings-all"};

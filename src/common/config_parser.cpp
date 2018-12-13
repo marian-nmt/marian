@@ -22,7 +22,8 @@
 
 namespace marian {
 
-// TODO: move to CLIWrapper
+// TODO: Move this to CLIWrapper and allow to mark options as paths in the same place they are
+// defined
 // clang-format off
 const std::set<std::string> PATHS = {
   "model",
@@ -146,8 +147,6 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "Train right-to-left model");
   cli.add<bool>("--best-deep",
       "Use Edinburgh deep RNN configuration (s2s)");
-  cli.add_nondefault<std::vector<size_t>>("--special-vocab",
-      "Model-specific special vocabulary ids");
   cli.add<bool>("--tied-embeddings",
       "Tie target embeddings and output embeddings in output layer");
   cli.add<bool>("--tied-embeddings-src",
