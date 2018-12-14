@@ -182,7 +182,7 @@ bool SyncGraphGroup::tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr
   // if dynamic and mini-batch-fit, then we get batches in the size of what fits into one GPU
   pendingBatches_.push_back(newBatch);
 
-  // what ratio do we want, based on current training progress schedule?
+  // what ratio (how many batches in reader's batch size) do we want, based on current training progress schedule?
   double ratio = scheduler_->getDynamicMBSizeMultiplier();
 
   // relative to what base? (what does ratio == 1 mean)

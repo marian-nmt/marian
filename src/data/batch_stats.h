@@ -56,8 +56,7 @@ public:
     for (const auto& entry : map_) {
       auto maxTrgLength = entry.first.back();
       auto numSentences = entry.second;
-      auto numLabels = numSentences * maxTrgLength;
-      sum += numLabels;
+      sum += numSentences * maxTrgLength;
     }
     return sum / map_.size();
   }
