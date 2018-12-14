@@ -303,6 +303,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
         auto costNode = builders_[localDeviceIndex]->build(graph, subBatch);
         graph->forward();
         localDeviceCosts[localDeviceIndex] += costNode->scalar();
+        //graph->backward(/*zero=*/warp == 0); // gradients are reset by the scatterReduce op
         graph->backward(/*zero=*/false); // gradients are reset by the scatterReduce op
       }
       else { // empty batch: execute do-nothing fw-bw step for proper inits and resets
@@ -346,6 +347,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
 
     // actual model update
     shardOpt_[idx]->update(curParam, curGrad, mbWords);
+    curGrad->set(0.f);
 
     if(mvAvg_)
       updateAvgParams(
