@@ -303,17 +303,17 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
         auto costNode = builders_[localDeviceIndex]->build(graph, subBatch);
         graph->forward();
         localDeviceCosts[localDeviceIndex] += costNode->scalar();
-        graph->backward(/*zero=*/warp == 0); // only reset gradients to 0 if warp = 0
+        graph->backward(/*zero=*/false); // gradients are reset by the scatterReduce op
       }
       else { // empty batch: execute do-nothing fw-bw step for proper inits and resets
 #if 1   // @TODO: double-check whether the #else branch is the same; and if so, use it instead
         graph->params()->allocateBackward();
-        if (warp == 0) // these have already been sized
-          graph->params()->set_zero_adjoint();
+        //if (warp == 0) // these have already been sized
+        //  graph->params()->set_zero_adjoint();
 #else
         graph->clear(); // instead of build()
         graph->forward();
-        graph->backward(/*zero=*/warp == 0);
+        graph->backward(/*zero=*/false);
 #endif
       }
     };
@@ -352,9 +352,9 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
           paramsAvg_[idx], curParam, scheduler_->numberOfBatches(), mbWords);
   };
 
-  comm_->scatterReduce(); // reduce gradients across all devices (globally) into shards
+  comm_->scatterReduceAndResetGrads(); // reduce gradients across all devices (globally) into shards
   comm_->foreach(update); // per-shard model-update
-  comm_->allGather();     // distribute param value shards back
+  comm_->allGatherParams();     // distribute param value shards back
 
   // cost across all local devices (scheduler will aggregate cross-process)
   float localCost = 0;

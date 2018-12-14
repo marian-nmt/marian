@@ -219,7 +219,7 @@ public:
         threadResults_[i].wait();
   }
 
-  void scatterReduce() const override {
+  void scatterReduceAndResetGrads() const override {
     synchronizeAllOnNullStream();
 
     groupStart();
@@ -237,12 +237,20 @@ public:
     }
     groupEnd();
     synchronizeAll();
+
+    // reset gradients
+    // In the future, we can keep quantization residuals here straight in the grads themselves.
+    auto resetGrads = [&](size_t localDeviceIndex, size_t /*begin*/, size_t /*end*/) {
+      auto graph = graphs_[localDeviceIndex];
+      graph->params()->set_zero_adjoint();
+    };
+    foreach(resetGrads);
   }
 
   // This distributes all 64 model shards to all 64 GPUs.
-  // @TODO: For unknown reasons, this takes longer than any other operation incl. scatterReduce().
+  // @TODO: For unknown reasons, this takes longer than any other operation incl. scatterReduceAndResetGrads().
   //        But both should have the same number of data transfers of the same size.
-  void allGather() const override {
+  void allGatherParams() const override {
     synchronizeAllOnNullStream();
 
     groupStart();
