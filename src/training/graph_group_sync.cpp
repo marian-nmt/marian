@@ -45,28 +45,34 @@ void SyncGraphGroup::setScheduler(Ptr<Scheduler> scheduler) /*override*/ {
 }
 
 void SyncGraphGroup::initialize(const Ptr<data::Batch>& exampleBatch) {
-  // Initialize 0th graph with random weights in one forward step
-  // @TODO: Why do we need the THREAD_GUARD here? Why not run this on the main thread?
-  THREAD_GUARD({
-    builders_[0]->build(graphs_[0], exampleBatch);
-    graphs_[0]->forward();
+  // Initialize graphs with random weights in one forward step
+  // Also allocate and clear the gradients
+  comm_->foreach([&](size_t i, size_t /*begin*/, size_t /*end*/) {
+    builders_[i]->build(graphs_[i], exampleBatch);
+    graphs_[i]->forward();
+    graphs_[i]->params()->allocateBackward();
+    graphs_[i]->params()->set_zero_adjoint();
   });
 
-  // Copy weights from 0th graph to all other graphs
+  // Copy weights from 0-th graph to all other graphs
   // to have equal weights across devices
-  ThreadPool pool(graphs_.size() - 1, graphs_.size() - 1);
-  for(size_t i = 1; i < graphs_.size(); ++i) {
-    auto init = [&](size_t i) {
-      // initialize i-th graph and weights
-      builders_[i]->build(graphs_[i], exampleBatch);
-      graphs_[i]->forward();
-      // overwrite weights of i-th graph with weights from 0-th graph
+  comm_->foreach([&](size_t i, size_t /*begin*/, size_t /*end*/) {
+    if (i > 0)
       graphs_[i]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
-    };
-    pool.enqueue(init, i);
-  }
-  // ThreadPool destructor waits until completion of all tasks.
-  // @TODO: can we use comm_->foreach()?
+  });
+  //ThreadPool pool(graphs_.size() - 1, graphs_.size() - 1);
+  //for(size_t i = 1; i < graphs_.size(); ++i) {
+  //  auto init = [&](size_t i) {
+  //    // initialize i-th graph and weights
+  //    builders_[i]->build(graphs_[i], exampleBatch);
+  //    graphs_[i]->forward();
+  //    // overwrite weights of i-th graph with weights from 0-th graph
+  //    graphs_[i]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
+  //  };
+  //  pool.enqueue(init, i);
+  //}
+  //// ThreadPool destructor waits until completion of all tasks.
+  //// @TODO: can we use comm_->foreach()?
 }
 
 void SyncGraphGroup::initializeAvg() {
@@ -308,7 +314,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
       }
       else { // empty batch: execute do-nothing fw-bw step for proper inits and resets
 #if 1   // @TODO: double-check whether the #else branch is the same; and if so, use it instead
-        graph->params()->allocateBackward();
+        //graph->params()->allocateBackward();
         //if (warp == 0) // these have already been sized
         //  graph->params()->set_zero_adjoint();
 #else
@@ -355,8 +361,8 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
   };
 
   comm_->scatterReduceAndResetGrads(); // reduce gradients across all devices (globally) into shards
-  comm_->foreach(update); // per-shard model-update
-  comm_->allGatherParams();     // distribute param value shards back
+  comm_->foreach(update);              // per-shard model-update
+  comm_->allGatherParams();            // distribute param value shards back
 
   // cost across all local devices (scheduler will aggregate cross-process)
   float localCost = 0;

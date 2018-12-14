@@ -73,7 +73,6 @@ public:
       for(auto p : params_)
         if(!p->grad())
           grads_->allocate(p->grad(), p->shape());
-      grads()->set(0.f);
     }
   }
 
