@@ -108,9 +108,17 @@ void SyncGraphGroup::initializeAvg() {
 }
 
 Ptr<data::BatchStats> SyncGraphGroup::collectStats() {
-  // @TODO: This is an incompatible change. Decide how to handle that.
-  //size_t multiplier = devices_.size() * mpi_->numMPIProcesses() * delay_;
-  return GraphGroup::collectStats(graphs_[0], builders_[0]/*, multiplier*/);
+  // This function determines the granularity in which the reader provides data.
+  // If no mini-batch-fit, then user provides a constant number. It reads that much. We won't get into this function.
+  // If mini-batch-fit, then we get here and set miniBatchFitMultiplier_. Then...
+  // If dynamic MB scaling, then we want fine-grained minibatches of the size of one GPU.
+  // If not, we prefer a single large batch that can be split into equal-size parts over GPUs,
+  // so that we have perfect load balancing and read precisely as much as we need (no waste).
+  double multiplier = devices_.size() * mpi_->numMPIProcesses() * delay_;
+  bool isDynamic = scheduler_->isDynamicMBSizeScaling();
+  double readerMultiplier = isDynamic ? 1. : multiplier; // multiplier applied already by reader
+  updateMultiplier_ = isDynamic ? multiplier : 1.;       // multiplier applied later in update()
+  return GraphGroup::collectStats(graphs_[0], builders_[0], readerMultiplier);
 }
 
 // helper for MB scaling: quantize the ratio with a given error margin
@@ -140,76 +148,99 @@ static double roundUpRatio(double ratio) {
 // It adds 'newBatch' to 'pendingBatches_', and if sufficient batches have been queued, then
 // returns 'pendingBatches_' in 'subBatches' and resets it. If not, it returns false.
 bool SyncGraphGroup::tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr<data::Batch>>& subBatches) {
-  pendingBatches_.push_back(newBatch);
+  // The reader delivers in chunks of these sizes, according to case:
+  //  - no dynamic MB-size scaling:
+  //     - reader batch size = update batch size, with...
+  //     - mini-batch-fit:
+  //        - update batch size = what fits into all GPUs, times decay_ to allow experimenting with fractional sizes
+  //     - no mini-batch-fit:
+  //        - update batch size = user-specified size (user guarantees that it fits if distributed over delay_ GPUs)
+  //  - dynamic MB-size scaling:
+  //     - update batch size = aggregate reader batch size * (dynamic progress-based ratio * reference adjustment), with...
+  //     - mini-batch-fit:
+  //        - aggregate reader batch size = equal to what fits into one GPU * warpSize * delay_
+  //     - no mini-batch-fit:
+  //        - aggregate reader batch size = user-specified size (user guarantees that it fits if distributed over delay_ GPUs)
+  //     - reference adjustment =
+  //        - reference batch size specified: (reference batch size / typical aggregate reader batch size)
+  //        - no ref size specified: 1
+
   size_t warpSize = devices_.size() * mpi_->numMPIProcesses(); // warp := set of batches processed concurrently across GPus and workers
 
-  // MB-size warm-up and dynamic scaling
-  double ratio;
-  bool isDynamic = scheduler_->tryGetDynamicMBSizeMultiplier(ratio);
-  if (isDynamic)
-    ratio = roundUpRatio(ratio); // round up to full batches if within a certain error margin  --@BUGBUG: Not invariant w.r.t. GPU size, as ratio is relative to what fits into 1 GPU
-  else   // if dynamic scaling not enabled, then fill each GPU with a batch
-    ratio = delay_ * (double)warpSize; // note: delay_ may be fractional
+  // if not dynamic then return the big batch, but first split it over GPUs as it may be too large
+  if (!scheduler_->isDynamicMBSizeScaling()) {
+    // If mini-batch-fit, then the read batch is (devices_.size() * mpi_->numMPIProcesses() * delay_)
+    // times what fits one GPU. If not mini-batch-fit, it is whatever the user has specified, which
+    // is the user's responsibility to guarantee that it fits into 'delay_' warps.
+    // Distribute evenly over all GPUs we have, using multiple warps if needed.
+    size_t numWarps = (size_t)ceil(delay_);
+    subBatches = newBatch->split(numWarps * warpSize);
+    return true;
+  }
+  LOG_ONCE(info, "[training] Dynamic mini-batch scaling enabled");
 
-  // adjust for reference batch size if given
-  // At progress == mbWarmup.n (ratio=1), we would like to have refBatchLabels instead of whichever
-  // the actual batch size is. We approximate the latter as typicalTrgBatchWords, and scale ratio accordingly.
+  // if dynamic and mini-batch-fit, then we get batches in the size of what fits into one GPU
+  pendingBatches_.push_back(newBatch);
+
+  // what ratio do we want, based on current training progress schedule?
+  double ratio = scheduler_->getDynamicMBSizeMultiplier();
+
+  // relative to what base? (what does ratio == 1 mean)
+  ratio *= updateMultiplier_; // if mini-batch-fit, this is = warpSize * delay_, otherwise 1
+
+  // If a reference is given, then at progress == mbWarmup.n (ratio=1), we would like to have refBatchLabels instead of whichever
+  // the actual batch size is. Since we cannot know the future actual batch sizes that will be delivered
+  // by the reader, we approximate them with (typicalTrgBatchWords * updateMultiplier), and scale ratio accordingly.
   auto refBatchLabels = options_->get<size_t>("mini-batch-words-ref");
   if (refBatchLabels != 0) {
-    LOG_ONCE(info, "[scheduler] Scaling to {} reference labels. Typical actual batch words is {}", refBatchLabels, typicalTrgBatchWords_);
-    ABORT_IF(typicalTrgBatchWords_ == 0, "dynamic scaling with words target requires MB size to be known in words"); // happens if MB size is specified in sentences
-    ratio *= (double)refBatchLabels / (double)typicalTrgBatchWords_;
+    LOG_ONCE(info, "[scheduler] Scaling to {} reference labels, using actual-batch-word estimate of {}", refBatchLabels, typicalTrgBatchWords_);
+    ABORT_IF(typicalTrgBatchWords_ == 0, "Dynamic scaling with words target requires MB size to be known in words"); // happens if MB size is specified in sentences
+    ratio *= (double)refBatchLabels / (double)(typicalTrgBatchWords_ * updateMultiplier_);
   }
+
+  // round up to full batches if within a certain error margin  --@BUGBUG: Not invariant w.r.t. GPU size, as ratio is relative to what fits into 1 GPU
+  ratio = roundUpRatio(ratio);
 
   if (pendingBatches_.size() < ratio)
     return false; // not enough data yet
 
   // now we have enough to fill at least 'ratio' batches
-  if (pendingBatches_.size() == ratio)
-    return true; // nothing to do, e.g. warm-up not enabled
+  // @BUGBUG: We do not handle the case that fixed MB size * ratio exceeds GPU memory (we'd need to split that).
 
-  // warm-up is happening
-  LOG_ONCE(info, "[training] Mini-batch-warmup enabled");
-
-  // shorten all batches a little to accurately reflect ratio
-  // e.g. ratio = 3.3 for 4 batches: Reduce each by 3.3/4
+  // in fact, we got too much, so make up for it by shortening all batches to accurately reflect desried ratio
+  // e.g. ratio = 3.3 for 4 batches -> Reduce each by 3.3/4
   // Alternatively, we could just shorten the last 'warp', but that would not be invariant to warp size.
-  size_t before = 0, after = 0;
   for (auto& batch : pendingBatches_) {
     auto reducedBatchSize = (size_t)ceil((double)batch->size() * ratio / (double)pendingBatches_.size());
     size_t minSize = 1;
     if (pendingBatches_.size() == 1) { // enforce a minimum (only needed/correct if still in first batch)
-      size_t minTrgWords = 256;    // don't go below this number of target words, as it seems excessive  --@TODO: parameterize?
+      size_t minTrgWords = 256;        // don't go below this number of target words, as it seems excessive  --@TODO: parameterize?
       minSize = 1 + (minTrgWords * batch->size() - 1) / batch->wordsTrg(); // approximately convert minTrgWords into a #sentences
     }
     reducedBatchSize = std::max(reducedBatchSize, minSize);
-    before += batch->wordsTrg();
     if (reducedBatchSize < batch->size())
       batch = batch->split(/*numSubBatches=*/1, reducedBatchSize).front();
-    after += batch->wordsTrg();
   }
 
   // load-balance: distribute the last numWarps-group's batches over GPUs
   // This is tricky since batches do not have the same length, therefore we can only split, but not merge.
   auto numWarps = (pendingBatches_.size() - 1) / warpSize + 1; // = ceil(#buffers / (#GPUs * #workers))
-  auto availableBatches = numWarps * warpSize; // we got this many GPUs anyways, so we better make use of them
-  if (pendingBatches_.size() < availableBatches) {
-    // we are not using all available GPUs -> try to load-balance a bit better
-    auto fullBatches = (numWarps - 1) * warpSize;
-    auto expandLast = pendingBatches_.size() - fullBatches;
-    auto toLast = availableBatches - fullBatches;
-    LOG(info, "attempt to redistribute {} last batches over {}", expandLast, toLast);
-    auto splitInto = toLast / expandLast; // unfortunately we can only split in integer ratios
-    // @TODO: We can do better since the last batch is typically smaller.
-    if (splitInto > 1) {
+  auto availableGPUSlots = numWarps * warpSize; // we will run this many GPUs: better use them all
+  if (pendingBatches_.size() < availableGPUSlots) {
+    // last warp does not use all available GPUs: try to re-balance
+    auto fullWarpsBatches = (numWarps - 1) * warpSize; // number of batches in all but the last warp. Those warps that are fully used.
+    auto lastWarpSize = pendingBatches_.size() - fullWarpsBatches; // the last warp is possibly not fully used
+    LOG(info, "attempt to redistribute {} last batches over {}", lastWarpSize, warpSize);
+    auto splitInto = warpSize / lastWarpSize;
+    if (splitInto > 1) { // unfortunately we can only split in integer ratios
       // split each of last numWarps's batches into 'splitInto' batches
       // pop them first
       std::vector<Ptr<data::Batch>> batchesToSplit;
-      while (pendingBatches_.size() > fullBatches) {
+      while (pendingBatches_.size() > fullWarpsBatches) {
         batchesToSplit.push_back(pendingBatches_.back());
         pendingBatches_.pop_back();
       }
-      // now split them
+      // now split them and push them back
       for (auto& batchToSplit : batchesToSplit) {
         LOG(info, "{}-way splitting batchToSplit with size {}", splitInto, batchToSplit->size());
         auto splitBatches = batchToSplit->split(splitInto);
@@ -219,7 +250,7 @@ bool SyncGraphGroup::tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr
         }
       }
     }
-    ABORT_IF(pendingBatches_.size() > availableBatches, "somehow split into too many batches??");
+    ABORT_IF(pendingBatches_.size() > availableGPUSlots, "somehow split into too many batches??");
   }
   subBatches = std::move(pendingBatches_);
 
@@ -238,15 +269,15 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
     return;
 
   // Helper to access the subBatches array
-  auto getSubBatch = [&](size_t delay, size_t localDeviceIndex, size_t rank) -> Ptr<data::Batch> {
-    // 'delay' should be slowest changing dimension. If subBatches are sorted by
+  auto getSubBatch = [&](size_t warp, size_t localDeviceIndex, size_t rank) -> Ptr<data::Batch> {
+    // Warp should be slowest changing dimension. If subBatches are sorted by
     // length, then grouping sentences of similar length into the same delay step can
     // reduce unnecessary time spent in padding.
-    auto index = (delay * mpi_->numMPIProcesses() + rank) * devices_.size() + localDeviceIndex;
+    auto index = (warp * mpi_->numMPIProcesses() + rank) * devices_.size() + localDeviceIndex;
     if (index < subBatches.size())
       return subBatches[index];
     else
-      return nullptr;
+      return nullptr; // null if we reached beyond the end
   };
 
   // Upon very first execution, reset everything
@@ -262,27 +293,27 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
   // Compute gradients
   // This happens in multiple steps in case of delay > 1.
   std::vector<float> localDeviceCosts(devices_.size(), 0.f); // [local device index] aggregate cost for each local device
-  for (size_t delay = 0; getSubBatch(delay, 0, 0); delay++) {
+  for (size_t warp = 0; getSubBatch(warp, 0, 0); warp++) {
     // Execute single forward/backward step
     auto forwardBackward = [&](size_t localDeviceIndex, size_t /*begin*/, size_t /*end*/) {
       auto graph = graphs_[localDeviceIndex];
-      auto subBatch = getSubBatch(delay, localDeviceIndex, mpi_->myMPIRank());
+      auto subBatch = getSubBatch(warp, localDeviceIndex, mpi_->myMPIRank());
 
       if(subBatch) {
         auto costNode = builders_[localDeviceIndex]->build(graph, subBatch);
         graph->forward();
         localDeviceCosts[localDeviceIndex] += costNode->scalar();
-        graph->backward(/*zero=*/delay == 0); // only reset gradients to 0 if delay = 0
+        graph->backward(/*zero=*/warp == 0); // only reset gradients to 0 if warp = 0
       }
       else { // empty batch: execute do-nothing fw-bw step for proper inits and resets
 #if 1   // @TODO: double-check whether the #else branch is the same; and if so, use it instead
         graph->params()->allocateBackward();
-        if (delay == 0) // these have already been sized
+        if (warp == 0) // these have already been sized
           graph->params()->set_zero_adjoint();
 #else
         graph->clear(); // instead of build()
         graph->forward();
-        graph->backward(/*zero=*/delay == 0);
+        graph->backward(/*zero=*/warp == 0);
 #endif
       }
     };

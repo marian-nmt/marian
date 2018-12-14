@@ -21,7 +21,7 @@ protected:
   Ptr<OptimizerBase> opt_;   // the optimizer
   Ptr<Scheduler> scheduler_; // scheduler that keeps track of how much has been processed
   bool finalized_{false};    // 'true' if training has completed (further updates are no longer allowed)
-  size_t typicalTrgBatchWords_{ 0 }; // for dynamic batch sizing
+  size_t typicalTrgBatchWords_{ 0 }; // for dynamic batch sizing: typical batch size in words
 
 public:
   GraphGroup(Ptr<Options> options) : options_(options), opt_(Optimizer(options)) {}
@@ -56,7 +56,7 @@ public:
   // @TODO: Can this be made const? It seems wrong to have a stateful method that still returns a result.
   virtual Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph,
                                              Ptr<models::ModelBase> model,
-                                             size_t multiplier = 1) {
+                                             double multiplier = 1.) {
     auto stats = New<data::BatchStats>();
 
     size_t numFiles

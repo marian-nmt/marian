@@ -308,7 +308,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "Parameters for optimization algorithm, e.g. betas for Adam. "
       "Auto-adjusted to --mini-batch-words-ref if given");
   cli.add<double>("--optimizer-delay",
-     "SGD update delay, 1 = no delay. Can be fractional, e.g. 0.1 to use only 10% of each batch",
+     "SGD update delay (#batches between updates). 1 = no delay. Can be fractional, e.g. 0.1 to use only 10% of each batch",
      1.);
 
   cli.add<bool>("--sync-sgd",

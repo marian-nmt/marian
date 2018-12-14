@@ -34,6 +34,9 @@ public:
 
     dataset->prepare();
 
+    auto trainState = New<TrainingState>(options_->get<float>("learn-rate"));
+    auto scheduler = New<Scheduler>(options_, trainState);
+
     Ptr<BatchStats> stats;
     if(options_->get<bool>("mini-batch-fit")) {
       LOG(info,
@@ -42,12 +45,10 @@ public:
           options_->get<size_t>("mini-batch-fit-step"));
       // @TODO, better fake batch with vocabulary
       auto model = New<ModelWrapper>(options_);
-      THREAD_GUARD(stats = model->collectStats());
+      model->setScheduler(scheduler); // collectStats() needs to know about dynamic MB scaling
+      stats = model->collectStats();
       LOG(info, "[batching] Done");
     }
-
-    auto trainState = New<TrainingState>(options_->get<float>("learn-rate"));
-    auto scheduler = New<Scheduler>(options_, trainState);
 
     if((options_->has("valid-sets") || options_->has("valid-script-path"))
        && SchedulingParameter::parse(options_->get<std::string>("valid-freq"))) {

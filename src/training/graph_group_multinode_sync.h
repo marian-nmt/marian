@@ -222,7 +222,7 @@ public:
    */
   Ptr<data::BatchStats> collectStats() {
     return GraphGroup::collectStats(
-        clientGraphs_[0], clientBuilders_[0], devices_.size());
+        clientGraphs_[0], clientBuilders_[0], (double)devices_.size());
   }
 };
 }  // namespace marian

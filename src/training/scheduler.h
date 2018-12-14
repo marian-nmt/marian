@@ -62,24 +62,30 @@ private:
   }
 
 public:
-  // determine dynamic MB size, if respective parameters are given (return false if not)
-  bool tryGetDynamicMBSizeMultiplier(double /*out*/ &ratio) const {
+  // test if any parameters specify dynamic MB scaling
+  bool isDynamicMBSizeScaling() const {
     auto mbWarmup = SchedulingParameter::parse(options_->get<std::string>("mini-batch-warmup"));
-    if (!mbWarmup)
-      return false;
+    auto mbTracking = options_->get<bool>("mini-batch-track-lr");
+    return mbWarmup || mbTracking;
+  }
 
-    ratio = 1.0;
-    // mini-batch-warmup
-    LOG_ONCE(info, "[scheduler] Mini-batch size warmup {}", std::string(mbWarmup));
+  // determine dynamic MB scaling factor
+  double getDynamicMBSizeMultiplier() const {
+    double ratio = 1.0;
 
-    // This scales MB size up from the start.
-    // now scale batch size relative to progress within warm-up period
-    size_t progress = state_->getProgressIn(mbWarmup.unit); // number of updates/labels processed
-    auto progressRatio = (double)progress / (double)mbWarmup.n; // where are we relatively within target warm-up period
-    if (mbWarmup.unit == SchedulingUnit::trgLabels)
-      progressRatio = std::sqrt(progressRatio);
-    // apply ratio to actual batch size
-    ratio *= progressRatio;
+    auto mbWarmup = SchedulingParameter::parse(options_->get<std::string>("mini-batch-warmup"));
+    if (mbWarmup) {
+      // mini-batch-warmup
+      LOG_ONCE(info, "[scheduler] Mini-batch size warmup {}", std::string(mbWarmup));
+      // This scales MB size up from the start, relative to progress within warm-up period.
+      size_t progress = state_->getProgressIn(mbWarmup.unit); // number of updates/labels processed
+      auto progressRatio = (double)progress / (double)mbWarmup.n; // where are we relatively within target warm-up period
+      // if unit is labels, then account for the fact that our increment itself is not constant
+      if (mbWarmup.unit == SchedulingUnit::trgLabels)
+        progressRatio = std::sqrt(progressRatio);
+      // apply ratio to actual batch size
+      ratio *= progressRatio;
+    }
 
     // dynamic MB-size tracking with learning rate
     // As LR goes down, MB gets ramped up by the same ratio, which has been found to be safe.
@@ -90,7 +96,7 @@ public:
         LOG_ONCE(info, "[scheduler] Dynamic mini-batch size adjustment enabled and kicking in");
       ratio /= lrFactor;
     }
-    return true;
+    return ratio;
   }
 
   Scheduler(Ptr<Options> options, Ptr<TrainingState> state)

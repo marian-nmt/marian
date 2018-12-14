@@ -26,8 +26,9 @@ class SyncGraphGroup : public GraphGroup, public ExponentialSmoothing {
 
   // state for update()
   bool first_{ true };                           // gets interpreted and cleared by update()
-  std::vector<Ptr<data::Batch>> pendingBatches_; // in case of delay, multi-worker, and/or multi-GPU, we buffer up batches
-  size_t typicalTrgWords_{};                     // typical batch size in words (labels); remembered from collectStats()
+  std::vector<Ptr<data::Batch>> pendingBatches_; // in case of dynamic MB-size scaling, we temporarly buffer up batches across update() calls until enough
+  size_t typicalTrgWords_{};                     // typical batch size in words (labels), 0 if unknown (e.g. specified in sentences)
+  double updateMultiplier_{1};                  // multiplier not applied in collectStats() (no multiplier if not mini-batch-fit)
 
   void initialize(const Ptr<data::Batch>& exampleBatch);
   void initializeAvg();
