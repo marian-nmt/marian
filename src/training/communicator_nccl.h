@@ -240,9 +240,14 @@ public:
 
     // reset gradients
     // In the future, we can keep quantization residuals here straight in the grads themselves.
-    auto resetGrads = [&](size_t localDeviceIndex, size_t /*begin*/, size_t /*end*/) {
-      auto graph = graphs_[localDeviceIndex];
-      graph->params()->set_zero_adjoint();
+    auto resetGrads = [&](size_t i, size_t begin, size_t end) {
+      auto grads = graphs_[i]->params()->grads();
+      auto size = grads->size();
+      // reset everything outside the shard that we reduce in
+      if (begin > 0)
+        grads->subtensor(0, begin)->set(0.f);
+      if (end < size)
+        grads->subtensor(end, size - end)->set(0.f);
     };
     foreach(resetGrads);
   }
