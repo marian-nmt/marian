@@ -330,9 +330,9 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
   // At this point, each device on each MPI process has a gradient aggregated over a subset of the sub-batches.
 
   // Update parameter shard with gradient shard
-  auto update = [&](size_t idx, size_t begin, size_t end) {
-    auto curGrad = graphs_[idx]->params()->grads()->subtensor(begin, end-begin);
-    auto curParam = graphs_[idx]->params()->vals()->subtensor(begin, end-begin);
+  auto update = [&](size_t i, size_t begin, size_t end) {
+    auto curGrad = graphs_[i]->params()->grads()->subtensor(begin, end-begin);
+    auto curParam = graphs_[i]->params()->vals()->subtensor(begin, end-begin);
 
     // if individual gradients were averages, then need to average again over all subBatches
     auto div = subBatches.size();
@@ -348,16 +348,16 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
     if (options_->get<std::string>("cost-type") == "ce-sum") { // presently only supported for ce-sum
       mbWords = 0;
       for (const auto& batch : subBatches)
-        mbWords += batch->words(-1);  // @TODO: use wordsTrg (it's the same)
+        mbWords += batch->wordsTrg();
     }
 
     // actual model update
-    shardOpt_[idx]->update(curParam, curGrad, mbWords);
+    shardOpt_[i]->update(curParam, curGrad, mbWords);
     curGrad->set(0.f);
 
     if(mvAvg_)
       updateAvgParams(
-          paramsAvg_[idx], curParam, scheduler_->numberOfBatches(), mbWords);
+          paramsAvg_[i], curParam, scheduler_->numberOfBatches(), mbWords);
   };
 
   comm_->scatterReduceAndResetGrads(); // reduce gradients across all devices (globally) into shards
