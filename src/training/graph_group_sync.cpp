@@ -231,12 +231,12 @@ bool SyncGraphGroup::tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr
   // load-balance: distribute the last numWarps-group's batches over GPUs
   // This is tricky since batches do not have the same length, therefore we can only split, but not merge.
   auto numWarps = (pendingBatches_.size() - 1) / warpSize + 1; // = ceil(#buffers / (#GPUs * #workers))
-  auto availableGPUSlots = numWarps * warpSize; // we will run this many GPUs: better use them all
-  if (pendingBatches_.size() < availableGPUSlots) {
+  auto availableDevices = numWarps * warpSize; // we will run this many GPUs: better use them all
+  if (pendingBatches_.size() < availableDevices) {
     // last warp does not use all available GPUs: try to re-balance
     auto fullWarpsBatches = (numWarps - 1) * warpSize; // number of batches in all but the last warp. Those warps that are fully used.
     auto lastWarpSize = pendingBatches_.size() - fullWarpsBatches; // the last warp is possibly not fully used
-    LOG(info, "attempt to redistribute {} last batches over {}", lastWarpSize, warpSize);
+    LOG(info, "attempt to redistribute last {} batches over {} devices", lastWarpSize, warpSize);
     auto splitInto = warpSize / lastWarpSize;
     if (splitInto > 1) { // unfortunately we can only split in integer ratios
       // split each of last numWarps's batches into 'splitInto' batches
@@ -256,7 +256,7 @@ bool SyncGraphGroup::tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr
         }
       }
     }
-    ABORT_IF(pendingBatches_.size() > availableGPUSlots, "somehow split into too many batches??");
+    ABORT_IF(pendingBatches_.size() > availableDevices, "somehow split into too many batches??");
   }
   subBatches = std::move(pendingBatches_);
 

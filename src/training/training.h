@@ -47,7 +47,7 @@ public:
       auto model = New<ModelWrapper>(options_);
       model->setScheduler(scheduler); // collectStats() needs to know about dynamic MB scaling
       stats = model->collectStats();
-      LOG(info, "[batching] Done");
+      LOG(info, "[batching] Done. Typical MB size is {} target words", stats->estimateTypicalTrgWords());
     }
 
     if((options_->has("valid-sets") || options_->has("valid-script-path"))

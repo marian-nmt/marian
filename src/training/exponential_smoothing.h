@@ -24,6 +24,7 @@ protected:
     double beta = 1. - mvDecayBy_;
     // correction term if batch size is different from what mvDecayBy_ was specified for
     if (refBatchTrgWords_) {
+      LOG_ONCE(info, "Exponential smoothing gets automatically adjusted as if update size was {} target words", refBatchTrgWords_);
       ABORT_IF(actualBatchTrgWords == OptimizerBase::mbSizeNotProvided,
                "This graph-group type does not support reference batch size specification for exponential-smoothing");
       beta = pow(beta, (double)actualBatchTrgWords / (double)refBatchTrgWords_);
