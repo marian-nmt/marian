@@ -37,7 +37,7 @@ class SyncGraphGroup : public GraphGroup, public ExponentialSmoothing {
   void barrier() const { mpi_->barrier(); } // (we need this several times)
   void swapParamsAvg() { if (mvAvg_ && paramsAvg_.size() > 0) comm_->swapParams(paramsAvg_); } // note: must call this on all MPI ranks in parallel
 
-  bool tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr<data::Batch>>& subBatches);
+  bool tryGetSubBatches(Ptr<data::Batch> newBatch, double overstuff, std::vector<Ptr<data::Batch>>& subBatches, size_t& numReadBatches);
 
 public:
   SyncGraphGroup(Ptr<Options> config);

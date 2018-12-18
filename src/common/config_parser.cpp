@@ -618,6 +618,9 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
       {"0"});
   cli.add<bool>("--mini-batch-track-lr",
       "Dynamically track mini-batch size inverse to actual learning rate (not considering lr-warmup)");
+  cli.add<double>("--mini-batch-overstuff",
+      "Stuff this much more data into a minibatch, but scale down the LR and progress counter",
+      1.0);
   // clang-format on
 }
 

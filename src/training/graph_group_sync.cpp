@@ -153,7 +153,8 @@ static double roundUpRatio(double ratio) {
 // helper routine that handles accumulation and load-balancing of sub-batches to fill all devices
 // It adds 'newBatch' to 'pendingBatches_', and if sufficient batches have been queued, then
 // returns 'pendingBatches_' in 'subBatches' and resets it. If not, it returns false.
-bool SyncGraphGroup::tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr<data::Batch>>& subBatches) {
+bool SyncGraphGroup::tryGetSubBatches(Ptr<data::Batch> newBatch, double overstuff,
+    std::vector<Ptr<data::Batch>>& subBatches, size_t& numReadBatches) {
   // The reader delivers in chunks of these sizes, according to case:
   //  - no dynamic MB-size scaling:
   //     - reader batch size = update batch size, with...
@@ -181,6 +182,7 @@ bool SyncGraphGroup::tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr
     // Distribute evenly over all GPUs we have, using multiple warps if needed.
     size_t numWarps = (size_t)ceil(delay_);
     subBatches = newBatch->split(numWarps * warpSize);
+    numReadBatches = 1;
     return true;
   }
   LOG_ONCE(info, "[training] Dynamic mini-batch scaling enabled");
@@ -204,6 +206,9 @@ bool SyncGraphGroup::tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr
     ratio *= (double)refBatchLabels / (double)(typicalTrgBatchWords_ * updateMultiplier_);
   }
 
+  // overstuff: blow up ratio by a factor, which we later factor into the learning rate
+  ratio *= overstuff;
+
   // round up to full batches if within a certain error margin  --@BUGBUG: Not invariant w.r.t. GPU size, as ratio is relative to what fits into 1 GPU
   ratio = roundUpRatio(ratio);
 
@@ -213,7 +218,9 @@ bool SyncGraphGroup::tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr
   // now we have enough to fill at least 'ratio' batches
   // @BUGBUG: We do not handle the case that fixed MB size * ratio exceeds GPU memory (we'd need to split that).
 
-  // in fact, we got too much, so make up for it by shortening all batches to accurately reflect desried ratio
+  numReadBatches = pendingBatches_.size(); // remember original batch-counter increment from reader (which is not always the same as subBatches.size() in the end)
+
+  // in fact, we got too much, so make up for it by shortening all batches to accurately reflect desired ratio
   // e.g. ratio = 3.3 for 4 batches -> Reduce each by 3.3/4
   // Alternatively, we could just shorten the last 'warp', but that would not be invariant to warp size.
   for (auto& batch : pendingBatches_) {
@@ -267,12 +274,28 @@ bool SyncGraphGroup::tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr
 void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
   validate();
 
+  double overstuff = options_->get<double>("mini-batch-overstuff");
+  if (overstuff != 1)
+    LOG_ONCE(info, "Overstuffing minibatches by a factor of {}", overstuff);
   std::vector<Ptr<data::Batch>> subBatches;
-  bool gotSubBatches = tryGetSubBatches(newBatch, subBatches);
+  size_t numReadBatches; // actual #batches delivered by reader, for restoring from checkpoint   --@TODO: reader should checkpoint itself; should not go via the scheduler
+  bool gotSubBatches = tryGetSubBatches(newBatch, overstuff, subBatches, numReadBatches);
 
   // not enough data yet: return right away
   if (!gotSubBatches)
     return;
+
+  // determine num words for dynamic hyper-parameter adjustment
+  // @TODO: We can return these directly from tryGetSubBatches()
+  size_t batchSize = 0;
+  size_t batchTrgWords = 0;
+  for (const auto& batch : subBatches) {
+    batchSize     += batch->size();
+    batchTrgWords += batch->wordsTrg();
+  }
+  // effective batch size: batch should be weighted like this
+  size_t effectiveBatchTrgWords = (size_t)ceil(batchTrgWords / overstuff);
+  size_t effectiveBatchSize     = (size_t)ceil(batchSize     / overstuff);
 
   // Helper to access the subBatches array
   auto getSubBatch = [&](size_t warp, size_t localDeviceIndex, size_t rank) -> Ptr<data::Batch> {
@@ -301,7 +324,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
   std::vector<float> localDeviceCosts(devices_.size(), 0.f); // [local device index] aggregate cost for each local device
   for (size_t warp = 0; getSubBatch(warp, 0, 0); warp++) {
     // Execute single forward/backward step
-    auto forwardBackward = [&](size_t localDeviceIndex, size_t /*begin*/, size_t /*end*/) {
+    comm_->foreach([&](size_t localDeviceIndex, size_t /*begin*/, size_t /*end*/) { // parallel across devices. Aggregate for warp > 1.
       auto graph = graphs_[localDeviceIndex];
       auto subBatch = getSubBatch(warp, localDeviceIndex, mpi_->myMPIRank());
 
@@ -323,41 +346,37 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
         graph->backward(/*zero=*/false);
 #endif
       }
-    };
-
-    comm_->foreach(forwardBackward); // compute gradients in parallel on each device. Aggregate if delay > 1.
+    });
   }
   // At this point, each device on each MPI process has a gradient aggregated over a subset of the sub-batches.
+
+  // If individual gradients were averages, then need to average again over all subBatches
+  auto div = subBatches.size();
+  if (options_->get<std::string>("cost-type") == "ce-sum")
+    div = 1;
 
   // Update parameter shard with gradient shard
   auto update = [&](size_t i, size_t begin, size_t end) {
     auto curGrad = graphs_[i]->params()->grads()->subtensor(begin, end-begin);
     auto curParam = graphs_[i]->params()->vals()->subtensor(begin, end-begin);
 
-    // if individual gradients were averages, then need to average again over all subBatches
-    auto div = subBatches.size();
-    if (options_->get<std::string>("cost-type") == "ce-sum")
-      div = 1;
     if(div != 1) {
       using namespace functional;
-      Element(_1 = _1 / (float)div, curGrad);
-    }
-
-    // determine num words for dynamic hyper-parameter adjustment
-    size_t mbWords = OptimizerBase::mbSizeNotProvided;
-    if (options_->get<std::string>("cost-type") == "ce-sum") { // presently only supported for ce-sum
-      mbWords = 0;
-      for (const auto& batch : subBatches)
-        mbWords += batch->wordsTrg();
+      Element(_1 = _1 / (float)div, curGrad);   // average once again in case of ce-mean*
     }
 
     // actual model update
-    shardOpt_[i]->update(curParam, curGrad, mbWords);
+    auto updateTrgWords =
+        /*if*/(options_->get<std::string>("cost-type") == "ce-sum") ?
+          effectiveBatchTrgWords // if overstuffing then scale the LR down by that factor  --@TODO: how about momentum?
+        /*else*/:
+          OptimizerBase::mbSizeNotProvided;
+    shardOpt_[i]->update(curParam, curGrad, updateTrgWords);
     curGrad->set(0.f);
 
     if(mvAvg_)
       updateAvgParams(
-          paramsAvg_[i], curParam, scheduler_->numberOfBatches(), mbWords);
+          paramsAvg_[i], curParam, scheduler_->numberOfBatches(), updateTrgWords);
   };
 
   comm_->scatterReduceAndResetGrads(); // reduce gradients across all devices (globally) into shards
@@ -375,7 +394,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
 
   if(scheduler_) {
     // track and log localCost
-    scheduler_->update(localCost, subBatches, mpi_);
+    scheduler_->update(localCost, numReadBatches, effectiveBatchSize, effectiveBatchTrgWords, mpi_);
 
     // save intermediate model (and optimizer state) to file
     if(scheduler_->saving())
