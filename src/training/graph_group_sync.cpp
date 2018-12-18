@@ -331,7 +331,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
       if(subBatch) {
         auto costNode = builders_[localDeviceIndex]->build(graph, subBatch);
         graph->forward();
-        localDeviceCosts[localDeviceIndex] += costNode->scalar();
+        localDeviceCosts[localDeviceIndex] += costNode->scalar() / overstuff;
         //graph->backward(/*zero=*/warp == 0); // gradients are reset by the scatterReduce op
         graph->backward(/*zero=*/false); // gradients are reset by the scatterReduce op
       }
