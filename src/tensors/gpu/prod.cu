@@ -16,7 +16,7 @@ static void setTensorMode(cublasHandle_t cublasHandle) {
   if (mode == 0) { // multi-thread note: this is sort-of thread-safe, since multiple threads would determine the same value
     const char* var = getenv("ENABLE_CUBLAS_TENSOR_OP_MATH_FP32");
     if (!var)
-      var = "0";
+      var = "1";
     switch(var[0]) {
     case '0': mode = -1; break;
     case '1': mode =  1; break;
@@ -32,7 +32,7 @@ static void setTensorMode(cublasHandle_t cublasHandle) {
       }
     }
     if (mode > 0)
-      LOG(info, "TensorCores enabled");
+      LOG(info, "16-bit TensorCores enabled for float32 matrix operations");
   }
   cublasSetMathMode(cublasHandle, mode > 0 ? CUBLAS_TENSOR_OP_MATH : CUBLAS_DEFAULT_MATH);
 }

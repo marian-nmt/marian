@@ -236,7 +236,7 @@ bool SyncGraphGroup::tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr
     // last warp does not use all available GPUs: try to re-balance
     auto fullWarpsBatches = (numWarps - 1) * warpSize; // number of batches in all but the last warp. Those warps that are fully used.
     auto lastWarpSize = pendingBatches_.size() - fullWarpsBatches; // the last warp is possibly not fully used
-    LOG(info, "attempt to redistribute last {} batches over {} devices", lastWarpSize, warpSize);
+    //LOG(info, "attempting to redistribute last {} batches over {} devices", lastWarpSize, warpSize);
     auto splitInto = warpSize / lastWarpSize;
     if (splitInto > 1) { // unfortunately we can only split in integer ratios
       // split each of last numWarps's batches into 'splitInto' batches
@@ -248,10 +248,10 @@ bool SyncGraphGroup::tryGetSubBatches(Ptr<data::Batch> newBatch, std::vector<Ptr
       }
       // now split them and push them back
       for (auto& batchToSplit : batchesToSplit) {
-        LOG(info, "{}-way splitting batchToSplit with size {}", splitInto, batchToSplit->size());
+        //LOG(info, "{}-way splitting batchToSplit with size {}", splitInto, batchToSplit->size());
         auto splitBatches = batchToSplit->split(splitInto);
         for (auto& splitBatch : splitBatches) {
-          LOG(info, " -> getting batchToSplit with size {}", splitBatch->size());
+          //LOG(info, " -> getting batchToSplit with size {}", splitBatch->size());
           pendingBatches_.push_back(splitBatch);
         }
       }
@@ -288,7 +288,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
 
   // Upon very first execution, reset everything
   if(first_) {
-    LOG(info, "[training] Processing first minibatch. Batches are processed as {} processes x {} GPUs/process",
+    LOG(info, "[training] Batches are processed as {} process(es) x {} devices/process",
         mpi_->numMPIProcesses(), devices_.size());
     initialize(subBatches.front());
     if(mvAvg_ && paramsAvg_.empty())
