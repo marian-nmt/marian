@@ -298,6 +298,7 @@ private:
   marian::filesystem::Path file_;
   std::unique_ptr<std::ostream> ostream_;
 
+
   boost::iostreams::file_descriptor_sink fds_;
   std::unique_ptr<boost::iostreams::stream_buffer<boost::iostreams::file_descriptor_sink>> fdsBuffer_;
 };
