@@ -10,7 +10,10 @@ bool ConfigValidator::has(const std::string& key) const {
   return config_[key];
 }
 
-ConfigValidator::ConfigValidator(const YAML::Node& config) : config_(config) {}
+ConfigValidator::ConfigValidator(const YAML::Node& config)
+    : config_(config),
+      dump_(config["dump-config"] && !config["dump-config"].as<std::string>().empty()
+            && config["dump-config"].as<std::string>() != "false") {}
 
 ConfigValidator::~ConfigValidator() {}
 
@@ -55,6 +58,10 @@ void ConfigValidator::validateOptionsTranslation() const {
 }
 
 void ConfigValidator::validateOptionsParallelData() const {
+  // Do not check these constraints if only goal is to dump config
+  if(dump_)
+    return;
+
   auto trainSets = get<std::vector<std::string>>("train-sets");
   ABORT_IF(trainSets.empty(), "No train sets given in config file or on command line");
 

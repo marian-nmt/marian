@@ -5,11 +5,10 @@
 
 namespace marian {
 
-// TODO: Finally refactorize Config, Options, ConfigParser and ConfigValidator
-// classes.
 class ConfigValidator {
 private:
   const YAML::Node& config_;
+  bool dump_{false};
 
   bool has(const std::string& key) const;
 
