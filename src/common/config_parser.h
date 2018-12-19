@@ -77,11 +77,12 @@ private:
   void addOptionsTranslation(cli::CLIWrapper&);
   void addOptionsScoring(cli::CLIWrapper&);
 
+  void addAliases(cli::CLIWrapper&);
+
   void addSuboptionsDevices(cli::CLIWrapper&);
   void addSuboptionsBatching(cli::CLIWrapper&);
   void addSuboptionsInputLength(cli::CLIWrapper&);
   void addSuboptionsULR(cli::CLIWrapper&);
-  void expandAliases(cli::CLIWrapper&);
 
   // Extract paths to all config files found in the config object.
   // Look at --config option and model.npz.yml files.
