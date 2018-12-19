@@ -79,7 +79,8 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   cli.add<bool>("--relative-paths",
      "All paths are relative to the config file location");
   cli.add<std::string>("--dump-config",
-     "Dump current (modified) configuration to stdout and exit. Possible values: full, minimal")
+     "Dump current (modified) configuration to stdout and exit. "
+     "Possible values: full, minimal, explain")
     ->implicit_val("full");
   // clang-format on
 }
@@ -761,17 +762,24 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   // remove extra config files from the config to avoid redundancy
   config_.remove("config");
 
-  // TODO: Consider expanding aliases after dumping config
+  if(!get<std::string>("dump-config").empty() && get<std::string>("dump-config") != "false") {
+    auto type = get<std::string>("dump-config");
+    config_.remove("dump-config");
+
+    if(type == "explain") {
+      cli.parseAliases(config_);
+      config_.remove("best-deep");
+      config_.remove("problem");
+    }
+
+    bool minimal = (type == "minimal" || type == "explain");
+    std::cout << cli.dumpConfig(minimal) << std::endl;
+    exit(0);
+  }
+
   cli.parseAliases(config_);
   config_.remove("best-deep");
   config_.remove("problem");
-
-  if(!get<std::string>("dump-config").empty() && get<std::string>("dump-config") != "false") {
-    bool skipDefault = get<std::string>("dump-config") == "minimal";
-    config_.remove("dump-config");
-    std::cout << cli.dumpConfig(skipDefault) << std::endl;
-    exit(0);
-  }
 }
 
 std::vector<std::string> ConfigParser::findConfigPaths() {
