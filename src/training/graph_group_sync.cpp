@@ -351,9 +351,9 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
   // At this point, each device on each MPI process has a gradient aggregated over a subset of the sub-batches.
 
   // If individual gradients were averages, then need to average again over all subBatches
-  auto div = subBatches.size();
+  float div = (float)subBatches.size();
   if (options_->get<std::string>("cost-type") == "ce-sum")
-    div = 1;
+    div = (float)overstuff;
 
   // Update parameter shard with gradient shard
   auto update = [&](size_t i, size_t begin, size_t end) {
@@ -362,7 +362,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> newBatch) /*override*/ {
 
     if(div != 1) {
       using namespace functional;
-      Element(_1 = _1 / (float)div, curGrad);   // average once again in case of ce-mean*
+      Element(_1 = _1 / div, curGrad);   // average once again in case of ce-mean*
     }
 
     // actual model update
