@@ -213,20 +213,17 @@ public:
   }
 
   void update(float cost, Ptr<data::Batch> batch) {
-    update(cost, std::vector<Ptr<data::Batch>>({batch}));
+    update(cost,
+        /*numReadBatches=*/1, /*batchSize=*/batch->size(), /*batchLabels=*/batch->wordsTrg());
   }
 
-  void update(float cost, const std::vector<Ptr<data::Batch>>& batches, Ptr<IMPIWrapper> mpi = nullptr) {
+  void update(float cost,
+              size_t numReadBatches, // number of batches read by the reader (for seeking in case of restart)
+              size_t batchSize,      // total number of sentences in batch
+              size_t batchLabels,    // total number of target words in batch
+              Ptr<IMPIWrapper> mpi = nullptr) {
     state_->rememberPreviousProgress(); // note: epoch increases happen at the wrong place, hence -freq parameters do not support epoch units
     state_->validated = false;
-
-    size_t batchSize = 0;    // number of sentences in batch
-    size_t batchLabels = 0;  // number of target words in batch
-
-    for(const auto& batch : batches) {
-      batchSize += batch->size();
-      batchLabels += batch->words(-1);
-    }
 
     // Since batchLabels is counted across all MPI processes, we also should temporarily
     // extrapolate cost across MPI processes, to have numbers in the right range.
@@ -256,7 +253,7 @@ public:
     state_->samplesEpoch += batchSize;   // sentences processed in this epoch
     state_->labelsTotal  += batchLabels; // total labels processed
 
-    state_->newUpdate(batches.size());
+    state_->newUpdate(numReadBatches);
 
     if(state_->enteredNewPeriodOf(options_->get<std::string>("disp-freq")) ||
        state_->batches <= options_->get<size_t>("disp-first")) {

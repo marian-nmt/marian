@@ -138,8 +138,8 @@ void Adam::updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t r
     vt_->set(0.f);
   }
 
-  double Tref = (double)refMBWords;
   double T    = (double)actualMBSize;
+  double Tref = (double)refMBWords;
 
   // adjust for minibatch-size changes if Adam parameters are given a reference size (else do nothing)
   double eta   = eta_ * (T/Tref);
