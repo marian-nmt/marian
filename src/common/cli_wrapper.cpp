@@ -135,8 +135,28 @@ bool CLIWrapper::updateConfig(const YAML::Node &config) {
     if(cmdOptions.count(key))
       continue;
     if(options_.count(key)) {
-      config_[key] = YAML::Clone(it.second);
-      options_[key].modified = true;
+      // this is a default value, so it has a node type
+      if(config_[key]) { // types don't match, handle this
+        if(config_[key].Type() != it.second.Type()) {
+          // default value is a sequence and incoming node is a scalar, hence we can upcast to single element sequence
+          if(config_[key].Type() == YAML::NodeType::Sequence && it.second.Type() == YAML::NodeType::Scalar) {
+            YAML::Node sequence;
+            sequence.push_back(YAML::Clone(it.second));
+            
+            // overwrite so default values are replaced too
+            config_[key] = sequence;
+            options_[key].modified = true;
+          } else { // Cannot convert other non-matching types, e.g. scalar <- list should fail
+            success = false;
+          }
+        } else { // types match, go ahead
+          config_[key] = YAML::Clone(it.second);
+          options_[key].modified = true;
+        }
+      } else {
+        config_[key] = YAML::Clone(it.second);
+        options_[key].modified = true;
+      }
     } else {
       success = false;
     }
