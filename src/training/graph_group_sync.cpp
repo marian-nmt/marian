@@ -346,32 +346,24 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
   // Compute gradients
   // This happens in multiple steps in case of delay > 1.
   std::vector<float> localDeviceCosts(devices_.size(), 0.f); // [local device index] aggregate cost for each local device
-  for (size_t warp = 0; getSubBatch(warp, 0, 0); warp++) {
-    // Execute single forward/backward step
-    comm_->foreach([&](size_t localDeviceIndex, size_t /*begin*/, size_t /*end*/) { // parallel across devices. Aggregate for warp > 1.
-      auto graph = graphs_[localDeviceIndex];
+  comm_->foreach([&](size_t localDeviceIndex, size_t /*begin*/, size_t /*end*/) { // parallel across devices. Aggregate for warp > 1.
+    auto graph = graphs_[localDeviceIndex];
+    // reset gradient  --presently done outside
+    //graph->params()->allocateBackward();
+    //if (warp == 0) // these have already been sized
+    //  graph->params()->set_zero_adjoint();
+    for (size_t warp = 0; ; warp++) {
+      // Execute single forward/backward step
       auto subBatch = getSubBatch(warp, localDeviceIndex, mpi_->myMPIRank());
+      if (!subBatch)
+        break;
 
-      if(subBatch) {
-        auto costNode = builders_[localDeviceIndex]->build(graph, subBatch);
-        graph->forward();
-        localDeviceCosts[localDeviceIndex] += costNode->scalar() / (float)overstuff;
-        //graph->backward(/*zero=*/warp == 0); // gradients are reset by the scatterReduce op
-        graph->backward(/*zero=*/false); // gradients are reset by the scatterReduce op
-      }
-      else { // empty batch: execute do-nothing fw-bw step for proper inits and resets
-#if 1   // @TODO: double-check whether the #else branch is the same; and if so, use it instead
-        //graph->params()->allocateBackward();
-        //if (warp == 0) // these have already been sized
-        //  graph->params()->set_zero_adjoint();
-#else
-        graph->clear(); // instead of build()
-        graph->forward();
-        graph->backward(/*zero=*/false);
-#endif
-      }
-    });
-  }
+      auto costNode = builders_[localDeviceIndex]->build(graph, subBatch);
+      graph->forward();
+      localDeviceCosts[localDeviceIndex] += costNode->scalar() / (float)overstuff;
+      graph->backward(/*zero=*/false); // (gradients are reset before we get here)
+    }
+  });
   // At this point, each device on each MPI process has a gradient aggregated over a subset of the sub-batches.
 
   // If individual gradients were averages, then need to average again over all subBatches
