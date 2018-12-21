@@ -2,12 +2,9 @@
 
 namespace marian {
 
-SyncGraphGroup::SyncGraphGroup(Ptr<Options> config)
-    : GraphGroup(config),
-      ExponentialSmoothing(config),
-      delay_{options_->get<double>("optimizer-delay")} { // @TODO: rename to something else; delay means delayed updated, not accumulation
-
-  mpi_ = initMPI(/*multiThreaded=*/false); // when not running under MPI, this will be a fake object that represents a one-MPI-process setup
+SyncGraphGroup::SyncGraphGroup(Ptr<Options> config, Ptr<IMPIWrapper> mpi)
+    : GraphGroup(config), ExponentialSmoothing(config),
+      delay_{options_->get<double>("optimizer-delay")}, mpi_(mpi) { // @TODO: rename delay_ to something else; delay means delayed updated, not accumulation
 
   devices_ = Config::getDevices(options_, mpi_->myMPIRank(), mpi_->numMPIProcesses());
   for(auto device : devices_) {
@@ -533,14 +530,6 @@ void SyncGraphGroup::save(bool final) /*override*/ {
 void SyncGraphGroup::finalize() /*override*/ {
   validate();
   Base::finalize();
-}
-
-SyncGraphGroup::~SyncGraphGroup() /*override*/ {
-  comm_ = nullptr;
-  static int c = 0;
-  c++;
-  if (c == 2) // HACKHACK: MPI can only be closed once
-    finalizeMPI(std::move(mpi_));
 }
 
 }  // namespace marian

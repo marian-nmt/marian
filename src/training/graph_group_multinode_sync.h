@@ -131,8 +131,8 @@ public:
   /**
    * (Constructor) Call super class and initialize client graphs and builders.
    */
-  MultiNodeGraphGroupSync(Ptr<Options> options)
-      : Base(options),
+  MultiNodeGraphGroupSync(Ptr<Options> options, Ptr<IMPIWrapper> mpi)
+      : Base(options, mpi),
         tau_{(size_t)options_->get<double>("optimizer-delay")},
         syncOptimizer_{Optimizer(options_)},
         movingAvg_{options_->get<float>("exponential-smoothing") > 0},

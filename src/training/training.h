@@ -36,15 +36,15 @@ public:
 
     auto trainState = New<TrainingState>(options_->get<float>("learn-rate"));
     auto scheduler = New<Scheduler>(options_, trainState);
+    auto mpi = initMPI(/*multiThreaded=*/!options_->get<bool>("sync-sgd")); // @TODO: do we need the multiThreaded distinction at all?
 
     Ptr<BatchStats> stats;
     if(options_->get<bool>("mini-batch-fit")) {
       LOG(info,
-          "[batching] Collecting statistics for batch fitting with step size "
-          "{}",
+          "[batching] Collecting statistics for batch fitting with step size {}",
           options_->get<size_t>("mini-batch-fit-step"));
       // @TODO, better fake batch with vocabulary
-      auto model = New<ModelWrapper>(options_);
+      auto model = New<ModelWrapper>(options_, mpi);
       model->setScheduler(scheduler); // collectStats() needs to know about dynamic MB scaling
       stats = model->collectStats();
       LOG(info, "[batching] Done. Typical MB size is {} target words", stats->estimateTypicalTrgWords());
@@ -60,7 +60,7 @@ public:
 
     scheduler->registerTrainingObserver(batchGenerator);
 
-    auto model = New<ModelWrapper>(options_);
+    auto model = New<ModelWrapper>(options_, mpi);
     model->setScheduler(scheduler);
     model->setTypicalTrgBatchWords(batchGenerator->estimateTypicalTrgBatchWords()); // needed for dynamic MB scaling
     model->load();
@@ -91,12 +91,15 @@ public:
     }
     scheduler->finished();
 
-    model->finalize();
+    model->finalize(); // allow async to sync before final save   --@TODO: rename, or move into save()
 
-    // Avoid saving the model twice if it has been loaded and training did not
-    // progress
+    // Avoid saving the model twice if it has been loaded and training did not progress
     if(!trainState->loaded)
       model->save(true);
+
+    // Signal success to a potential MPI runner
+    model = nullptr; // release any reference to MPI that model may hold
+    finalizeMPI(std::move(mpi));
   }
 };
 }  // namespace marian

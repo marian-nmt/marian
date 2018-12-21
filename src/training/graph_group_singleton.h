@@ -23,9 +23,10 @@ private:
   void execute(Ptr<data::Batch> batch);
 
 public:
-  SingletonGraph(Ptr<Options> config)
+  SingletonGraph(Ptr<Options> config, Ptr<IMPIWrapper> mpi)
       : GraphGroup(config),
         ExponentialSmoothing(config) {
+    ABORT_IF(mpi->numMPIProcesses() != 1, "SingletonGraph does not support multiple MPI processes");
     // Get device ID
     auto devices = Config::getDevices(options_);
     ABORT_IF(devices.size() != 1, "Only one device ID should be provided for singleton training");

@@ -41,7 +41,7 @@ class SyncGraphGroup : public GraphGroup, public ExponentialSmoothing {
   void update(std::vector<Ptr<data::Batch>> subBatches, size_t numReadBatches);
 
 public:
-  SyncGraphGroup(Ptr<Options> config);
+  SyncGraphGroup(Ptr<Options> config, Ptr<IMPIWrapper> mpi);
 
   void setScheduler(Ptr<Scheduler> scheduler) override;
 
@@ -54,7 +54,5 @@ public:
 
   Ptr<data::BatchStats> collectStats();
   // @TODO: consider to make this a virtual as well? Currently it is a template dispatch
-
-  ~SyncGraphGroup() override;
 };
 }  // namespace marian
