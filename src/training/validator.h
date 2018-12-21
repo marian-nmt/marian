@@ -137,7 +137,7 @@ protected:
       lastBest_ = val;
       if(options_->get<bool>("keep-best"))
         keepBest(graphs);
-    } else if (lastBest_ != val) { // (special case 0 at start)  @TODO: needed? Seems stall count gets reset each time it does improve. If not needed, remove "if(...)" again.
+    } else /* if (lastBest_ != val) */ { // (special case 0 at start)  @TODO: needed? Seems stall count gets reset each time it does improve. If not needed, remove "if(...)" again.
       stalled_++;
     }
   }
