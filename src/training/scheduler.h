@@ -18,7 +18,28 @@ private:
 
   timer::Timer timer_, heartBeatTimer_;
 
-  float getLearningRate(TrainingState& state) {
+  // determine LR decay factor from --lr-decay-inv-sqrt option
+  float getLearningRateDecayFactor(const TrainingState& state) const {
+    auto args = options_->get<std::vector<std::string>>("lr-decay-inv-sqrt");
+    ABORT_IF(args.empty() || args.size() > 2, "--lr-decay-inv-sqrt argument must be one or two numbers with units");
+    auto decayGoogle = SchedulingParameter::parse(args[0]);
+    size_t progress = state.getProgressIn(decayGoogle.unit);
+    size_t start = decayGoogle.n;
+    if (args.size() > 1) {
+      auto decayStart = SchedulingParameter::parse(args[1]);
+      ABORT_IF(decayStart && decayStart.unit != decayGoogle.unit, "both --lr-decay-inv-sqrt arguments must have the same unit");
+      start = decayStart.n;
+    }
+    if (decayGoogle && progress > start) {
+      progress = progress - start + decayGoogle.n; // shift so that we get 1 at progress==start
+      return (float)(std::sqrt((double)decayGoogle.n / (double)progress));
+    }
+    else
+      return 1.f;
+  }
+
+  // determine the dynamically adjusted learning rate, incl. warm-up and decay
+  float getLearningRate(const TrainingState& state) const {
     float baselr = options_->get<float>("learn-rate");
 
     float mult1 = 1.f;
@@ -29,11 +50,7 @@ private:
       mult1 = std::min(1.f, (float)bno / (float)warmup.n);
     }
 
-    float mult2 = 1.f;
-    auto decayGoogle = SchedulingParameter::parse(options_->get<std::string>("lr-decay-inv-sqrt"));
-    if(decayGoogle) {
-      mult2 = std::min(1.f, (float)(std::sqrt(decayGoogle.n) / std::sqrt(state.getProgressIn(decayGoogle.unit))));
-    }
+    float mult2 = getLearningRateDecayFactor(state);
 
     baselr = baselr * mult1 * mult2;
 
@@ -45,6 +62,43 @@ private:
   }
 
 public:
+  // test if any parameters specify dynamic MB scaling
+  bool isDynamicMBSizeScaling() const {
+    auto mbWarmup = SchedulingParameter::parse(options_->get<std::string>("mini-batch-warmup"));
+    auto mbTracking = options_->get<bool>("mini-batch-track-lr");
+    return mbWarmup || mbTracking;
+  }
+
+  // determine dynamic MB scaling factor
+  double getDynamicMBSizeMultiplier() const {
+    double ratio = 1.0;
+
+    auto mbWarmup = SchedulingParameter::parse(options_->get<std::string>("mini-batch-warmup"));
+    if (mbWarmup) {
+      // mini-batch-warmup
+      LOG_ONCE(info, "[scheduler] Mini-batch size warmup {}", std::string(mbWarmup));
+      // This scales MB size up from the start, relative to progress within warm-up period.
+      size_t progress = state_->getProgressIn(mbWarmup.unit); // number of updates/labels processed
+      auto progressRatio = (double)progress / (double)mbWarmup.n; // where are we relatively within target warm-up period
+      // if unit is labels, then account for the fact that our increment itself is not constant
+      if (mbWarmup.unit == SchedulingUnit::trgLabels)
+        progressRatio = std::sqrt(progressRatio);
+      // apply ratio to actual batch size
+      ratio *= progressRatio;
+    }
+
+    // dynamic MB-size tracking with learning rate
+    // As LR goes down, MB gets ramped up by the same ratio, which has been found to be safe.
+    auto mbTracking = options_->get<bool>("mini-batch-track-lr");
+    if (mbTracking) {
+      auto lrFactor = getLearningRateDecayFactor(*state_);
+      if (lrFactor != 1)
+        LOG_ONCE(info, "[scheduler] Dynamic mini-batch size adjustment enabled and kicking in");
+      ratio /= lrFactor;
+    }
+    return ratio;
+  }
+
   Scheduler(Ptr<Options> options, Ptr<TrainingState> state)
       : options_(options), state_(state) {
     state_->eta = getLearningRate(*state);
@@ -120,12 +174,12 @@ public:
       float value = validator->validate(graphs);
       if(validator->stalled() > 0) {
         LOG_VALID(info,
-                  "Ep. {} : Up. {} : {} : {} : stalled {} times",
+                  "Ep. {} : Up. {} : {} : {} : stalled {} times",  /*"(last best: {})",*/ // @TODO (LOGGING CHANGE)
                   state_->epochs,
                   state_->batches,
                   validator->type(),
                   value,
-                  validator->stalled());
+                  validator->stalled() /*, validator->lastBest()*/); // @TODO (LOGGING CHANGE)
       } else {
         LOG_VALID(info,
                   "Ep. {} : Up. {} : {} : {} : new best",
@@ -159,24 +213,20 @@ public:
   }
 
   void update(float cost, Ptr<data::Batch> batch) {
-    update(cost, std::vector<Ptr<data::Batch>>({batch}));
+    update(cost,
+        /*numReadBatches=*/1, /*batchSize=*/batch->size(), /*batchLabels=*/batch->wordsTrg());
   }
 
-  void update(float cost, const std::vector<Ptr<data::Batch>>& batches, Ptr<IMPIWrapper> mpi = nullptr) {
+  void update(float cost,
+              size_t numReadBatches, // number of batches read by the reader (for seeking in case of restart)
+              size_t batchSize,      // total number of sentences in batch
+              size_t batchLabels,    // total number of target words in batch
+              Ptr<IMPIWrapper> mpi = nullptr) {
     state_->rememberPreviousProgress(); // note: epoch increases happen at the wrong place, hence -freq parameters do not support epoch units
     state_->validated = false;
 
-    size_t batchSize = 0;    // number of sentences in batch
-    size_t batchLabels = 0;  // number of target words in batch
-
-    for(const auto& batch : batches) {
-      if (batch) { // (nullptr is allowed as result of split)
-        batchSize += batch->size();
-        batchLabels += batch->words(-1);
-      }
-    }
-
-    // extrapolate cost across MPI processes, so that we have numbers in the right range
+    // Since batchLabels is counted across all MPI processes, we also should temporarily
+    // extrapolate cost across MPI processes, to have numbers in the right range.
     // When doing the actual log, we then aggregate across MPI processes to get the accurate number.
     if (mpi)
       cost *= mpi->numMPIProcesses(); // @BUGBUG: this is presently correct for ce-sum, but possibly not the av-based losses
@@ -203,42 +253,42 @@ public:
     state_->samplesEpoch += batchSize;   // sentences processed in this epoch
     state_->labelsTotal  += batchLabels; // total labels processed
 
-    state_->newBatch();
+    state_->newUpdate(numReadBatches);
 
     if(state_->enteredNewPeriodOf(options_->get<std::string>("disp-freq")) ||
        state_->batches <= options_->get<size_t>("disp-first")) {
       // if MPI then aggregate precise cost across workers
       if (mpi) {
-        //LOG(info, "all-reducing cost from {}", state_->costSum);
         state_->costSum /= mpi->numMPIProcesses(); // undo the extra scaling
         mpi->allReduce(&state_->costSum, &state_->costSum, 1, MPI_FLOAT, MPI_SUM);
-        //LOG(info, "all-reduced cost to {}", state_->costSum);
       }
       if (mpi && mpi->myMPIRank() != 0)
         ; // skip the report on alternate worker processes
       else if(dispLabelCounts) {
         if(options_->get<bool>("lr-report")) {  // if true then show the learning rate
           LOG(info,
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {:.2f}s : {:.2f} "
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} @ {} after {} : Time {:.2f}s : {:.2f} "
               "words/s : L.r. {:.4e}",
               state_->epochs,
               state_->batches,
               utils::withCommas(state_->samplesEpoch),
               state_->costSum / state_->costCount,
               utils::withCommas(state_->costCount),  // show cost as "av * count"
+              batchLabels,
               utils::withCommas(state_->labelsTotal),
               timer_.elapsed(),
               state_->wordsDisp / timer_.elapsed(),
               state_->eta);
         } else {
           LOG(info,
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {:.2f}s : {:.2f} "
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} @ {} after {} : Time {:.2f}s : {:.2f} "
               "words/s",
               state_->epochs,
               state_->batches,
               utils::withCommas(state_->samplesEpoch),
               state_->costSum / state_->costCount,
               utils::withCommas(state_->costCount),
+              batchLabels,
               utils::withCommas(state_->labelsTotal),
               timer_.elapsed(),
               state_->wordsDisp / timer_.elapsed());
@@ -272,12 +322,14 @@ public:
     }
     // progress heartbeat for MS-internal Philly compute cluster
     // This environment variable exists when running on the cluster.
+    using namespace std::chrono;
     if((!mpi || mpi->myMPIRank() == 0) && getenv("PHILLY_JOB_ID")
        && heartBeatTimer_.elapsed<std::chrono::minutes>() >= 10) {
-      printf("PROGRESS: %.2f%%\nEVALERR: %.7f\n", (double)state_->epochs, state_->costSum / state_->costCount), fflush(stdout);
-#if 0
-      LOG(info, "heart beat after {} updates", state_->batches);
-#endif
+      printf("PROGRESS: %.2f%%\nEVALERR: %.7f%%\n",
+          (double)state_->epochs,
+          state_->costSum / state_->costCount / (mpi ? mpi->numMPIProcesses() : 1));
+      fflush(stdout);
+      std::cout << "MBSIZE: " << batchLabels << " after " << state_->batches << " updates = " << state_->labelsTotal << " labels" << std::endl << std::flush;
       heartBeatTimer_.start();
     }
   }

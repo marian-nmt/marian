@@ -133,7 +133,7 @@ public:
    */
   MultiNodeGraphGroupSync(Ptr<Options> options)
       : Base(options),
-        tau_{options_->get<size_t>("optimizer-delay")},
+        tau_{(size_t)options_->get<double>("optimizer-delay")},
         syncOptimizer_{Optimizer(options_)},
         movingAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")} {
@@ -143,7 +143,7 @@ public:
    * Update any client model with given batch if batch is assigned to this node.
    */
   void update(Ptr<data::Batch> batch) override {
-    ABORT_IF(finalized_, "Training has already finished");
+    validate();
     if(batchIter_ % mpi_->numMPIProcesses() == mpi_->myMPIRank()) {  // Only take batch assigned to this node
       execute(batch);
     }
@@ -222,7 +222,7 @@ public:
    */
   Ptr<data::BatchStats> collectStats() {
     return GraphGroup::collectStats(
-        clientGraphs_[0], clientBuilders_[0], devices_.size());
+        clientGraphs_[0], clientBuilders_[0], (double)devices_.size());
   }
 };
 }  // namespace marian

@@ -137,7 +137,7 @@ protected:
       lastBest_ = val;
       if(options_->get<bool>("keep-best"))
         keepBest(graphs);
-    } else {
+    } else /* if (lastBest_ != val) */ { // (special case 0 at start)  @TODO: needed? Seems stall count gets reset each time it does improve. If not needed, remove "if(...)" again.
       stalled_++;
     }
   }
@@ -166,7 +166,6 @@ public:
 
 protected:
   virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
-
     auto ctype = options_->get<std::string>("cost-type");
     options_->set("cost-type", "ce-sum");
 

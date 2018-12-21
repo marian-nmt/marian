@@ -37,8 +37,8 @@ public:
   virtual void foreach(const ForeachFunc& func, bool parallel = true) const = 0;
   // @TODO: We probably can still share foreach() between the two implementations. Just need to move some helper functions from the .cu file.
 
-  virtual void scatterReduce() const = 0; // reduce param gradients and scatter into gradient shards
-  virtual void allGather() const = 0;     // redistribute value shards into param values
+  virtual void scatterReduceAndResetGrads() const = 0; // reduce param gradients and scatter into gradient shards
+  virtual void allGatherParams() const = 0;     // redistribute value shards into param values
 
   virtual void swapParams(const std::vector<Tensor>& paramShards) const = 0;
 
@@ -153,7 +153,7 @@ public:
       t.join();
   }
 
-  void scatterReduce() const override {
+  void scatterReduceAndResetGrads() const override {
     const_cast<DefaultCommunicator*>(this)->lazyInit();
 
     int totalSize = (int)graphs_[0]->params()->vals()->size();
@@ -178,7 +178,7 @@ public:
     foreach(scatter);
   }
 
-  void allGather() const override {
+  void allGatherParams() const override {
     int totalSize = (int)graphs_[0]->params()->vals()->size();
     int shardSize = (int)ceil(totalSize / (float)graphs_.size());
 
@@ -203,7 +203,6 @@ public:
 
   void swapParams(const std::vector<Tensor>& paramShards) const override {
     // Update all graphs with parameter shard
-    
     auto gather = [this, paramShards](size_t idx, size_t begin, size_t end) {
       ABORT_IF(end - begin != paramShards[idx]->size(), "inconsistent shard size (swapParams, [{}], {} vs {})??", idx, end-begin, paramShards[idx]->size());
       // Copy parameter shard to each graph, apart from last graph

@@ -31,9 +31,6 @@
     <ClCompile Include="..\src\3rd_party\cnpy\cnpy.cpp">
       <Filter>3rd_party\cnpy</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\3rd_party\svd\svd.cpp">
-      <Filter>3rd_party\svd</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\tensors\backend.cpp">
       <Filter>tensors</Filter>
     </ClCompile>
@@ -421,8 +418,26 @@
     <ClCompile Include="..\src\rescorer\score_collector.cpp">
       <Filter>rescorer</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\command\marian_train.cpp">
-      <Filter>command</Filter>
+    <ClCompile Include="..\src\3rd_party\pathie-cpp\src\entry_iterator.cpp">
+      <Filter>3rd_party\pathie-cpp\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\pathie-cpp\src\errors.cpp">
+      <Filter>3rd_party\pathie-cpp\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\pathie-cpp\src\path.cpp">
+      <Filter>3rd_party\pathie-cpp\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\pathie-cpp\src\pathie.cpp">
+      <Filter>3rd_party\pathie-cpp\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\pathie-cpp\src\pathie_ifstream.cpp">
+      <Filter>3rd_party\pathie-cpp\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\pathie-cpp\src\pathie_ofstream.cpp">
+      <Filter>3rd_party\pathie-cpp\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\pathie-cpp\src\temp.cpp">
+      <Filter>3rd_party\pathie-cpp\src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -639,12 +654,6 @@
     </ClInclude>
     <ClInclude Include="..\src\3rd_party\spdlog\tests\utils.h">
       <Filter>3rd_party\spdlog\tests</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\3rd_party\svd\defs_and_types.h">
-      <Filter>3rd_party\svd</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\3rd_party\svd\svd.h">
-      <Filter>3rd_party\svd</Filter>
     </ClInclude>
     <ClInclude Include="..\src\3rd_party\yaml-cpp\anchor.h">
       <Filter>3rd_party\yaml-cpp</Filter>
@@ -986,9 +995,6 @@
       <Filter>models</Filter>
     </ClInclude>
     <ClInclude Include="..\src\models\encoder_decoder.h">
-      <Filter>models</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\models\hardatt.h">
       <Filter>models</Filter>
     </ClInclude>
     <ClInclude Include="..\src\models\model_base.h">
@@ -1345,6 +1351,118 @@
     <ClInclude Include="..\src\3rd_party\sentencepiece\src\word_model_trainer.h">
       <Filter>3rd_party\sentencepiece\src</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\command\marian_train.cpp" />
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\collectives.h">
+      <Filter>3rd_party\nccl\src\collectives</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\all_gather.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\all_reduce.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\broadcast.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\common.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\common_kernel.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\ll_kernel.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\primitives.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\reduce.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\reduce_kernel.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\reduce_scatter.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\bootstrap.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\common_coll.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\core.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\debug.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\enqueue.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\group.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\ibvwrap.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\nccl_net.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\net.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\nvlink.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\nvmlwrap.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\param.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\ring.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\rings.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\shm.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\socket.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\topo.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\transport.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\utils.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\pathie-cpp\include\entry_iterator.hpp">
+      <Filter>3rd_party\pathie-cpp\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\pathie-cpp\include\errors.hpp">
+      <Filter>3rd_party\pathie-cpp\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\pathie-cpp\include\path.hpp">
+      <Filter>3rd_party\pathie-cpp\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\pathie-cpp\include\pathie.hpp">
+      <Filter>3rd_party\pathie-cpp\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\pathie-cpp\include\pathie_ifstream.hpp">
+      <Filter>3rd_party\pathie-cpp\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\pathie-cpp\include\pathie_ofstream.hpp">
+      <Filter>3rd_party\pathie-cpp\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\pathie-cpp\include\temp.hpp">
+      <Filter>3rd_party\pathie-cpp\include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
@@ -1385,9 +1503,6 @@
     </Filter>
     <Filter Include="3rd_party\spdlog\tests">
       <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0041}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="3rd_party\svd">
-      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0044}</UniqueIdentifier>
     </Filter>
     <Filter Include="3rd_party\yaml-cpp">
       <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0047}</UniqueIdentifier>
@@ -1482,6 +1597,36 @@
     <Filter Include="3rd_party\sentencepiece\src">
       <UniqueIdentifier>{638bf0e1-4f83-4b37-9077-2be549d75909}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rd_party\nccl">
+      <UniqueIdentifier>{0ba105eb-79fb-4e2a-8940-f1ecebbcd4fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\nccl\src">
+      <UniqueIdentifier>{fbc17f5e-3f10-44a9-b3ad-66ce12573174}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\nccl\src\collectives">
+      <UniqueIdentifier>{c6036c35-5848-4fd5-b1a0-59e2042cbb69}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\nccl\src\misc">
+      <UniqueIdentifier>{7b9a131d-9e0a-4c28-8a51-08232ff2e35e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\nccl\src\transport">
+      <UniqueIdentifier>{0bd9cca8-660b-46f6-aac6-691fb50245f0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\nccl\src\include">
+      <UniqueIdentifier>{2beba56f-5dda-4994-bef0-16170b6552b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\nccl\src\collectives\device">
+      <UniqueIdentifier>{ac585624-4e66-42cd-8e4e-62cb90029610}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\pathie-cpp">
+      <UniqueIdentifier>{825beb7c-2997-408b-af81-34ab5f14593a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\pathie-cpp\include">
+      <UniqueIdentifier>{db1dd5a2-f331-495d-9e3b-6dc1c01528ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\pathie-cpp\src">
+      <UniqueIdentifier>{5d5ee615-192f-4b7f-bdfd-fb8316ceabc8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorConfig" />
@@ -1524,10 +1669,109 @@
     <None Include="..\src\3rd_party\sentencepiece\src\sentencepiece_model.proto">
       <Filter>3rd_party\sentencepiece\src</Filter>
     </None>
+    <None Include="..\src\3rd_party\nccl\src\bootstrap.cu">
+      <Filter>3rd_party\nccl\src</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\init.cu">
+      <Filter>3rd_party\nccl\src</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\Makefile">
+      <Filter>3rd_party\nccl\src</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\nccl.h.in">
+      <Filter>3rd_party\nccl\src</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\ring.cu">
+      <Filter>3rd_party\nccl\src</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\transport.cu">
+      <Filter>3rd_party\nccl\src</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\all_gather.cu">
+      <Filter>3rd_party\nccl\src\collectives</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\all_reduce.cu">
+      <Filter>3rd_party\nccl\src\collectives</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\broadcast.cu">
+      <Filter>3rd_party\nccl\src\collectives</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\reduce.cu">
+      <Filter>3rd_party\nccl\src\collectives</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\reduce_scatter.cu">
+      <Filter>3rd_party\nccl\src\collectives</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\device\all_gather.cu">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\device\all_reduce.cu">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\device\broadcast.cu">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\device\functions.cu">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\device\Makefile">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\device\reduce.cu">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\device\reduce_scatter.cu">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\misc\enqueue.cu">
+      <Filter>3rd_party\nccl\src\misc</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\misc\group.cu">
+      <Filter>3rd_party\nccl\src\misc</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\misc\ibvwrap.cu">
+      <Filter>3rd_party\nccl\src\misc</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\misc\nvmlwrap.cu">
+      <Filter>3rd_party\nccl\src\misc</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\misc\rings.cu">
+      <Filter>3rd_party\nccl\src\misc</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\misc\utils.cu">
+      <Filter>3rd_party\nccl\src\misc</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\transport\net.cu">
+      <Filter>3rd_party\nccl\src\transport</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\transport\net_ib.cu">
+      <Filter>3rd_party\nccl\src\transport</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\transport\net_socket.cu">
+      <Filter>3rd_party\nccl\src\transport</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\transport\p2p.cu">
+      <Filter>3rd_party\nccl\src\transport</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\transport\shm.cu">
+      <Filter>3rd_party\nccl\src\transport</Filter>
+    </None>
+    <None Include="..\src\3rd_party\pathie-cpp\CHANGELOG">
+      <Filter>3rd_party\pathie-cpp</Filter>
+    </None>
+    <None Include="..\src\3rd_party\pathie-cpp\LICENSE">
+      <Filter>3rd_party\pathie-cpp</Filter>
+    </None>
+    <None Include="..\src\3rd_party\pathie-cpp\README.md">
+      <Filter>3rd_party\pathie-cpp</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\src\3rd_party\sentencepiece\src\CMakeLists.txt">
       <Filter>3rd_party\sentencepiece\src</Filter>
+    </Text>
+    <Text Include="..\src\3rd_party\pathie-cpp\CMakeLists.txt">
+      <Filter>3rd_party\pathie-cpp</Filter>
     </Text>
   </ItemGroup>
 </Project>

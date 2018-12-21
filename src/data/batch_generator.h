@@ -56,7 +56,7 @@ public:
   typedef typename DataSet::batch_ptr BatchPtr;
 
   typedef typename DataSet::Sample Sample;
-  typedef std::vector<Sample> Samples;     // @TODO: type names should be capitalized
+  typedef std::vector<Sample> Samples;
 
   typedef BatchIterator<BatchGenerator> iterator;
   friend iterator;
@@ -83,7 +83,6 @@ private:
 
   // this runs on a bg thread; sequencing is handled by caller, but locking is done in here
   std::deque<BatchPtr> fetchBatches() {
-    //LOG(info, "fillBatches entered");
     typedef typename Sample::value_type Item;
     auto itemCmp = [](const Item& sa, const Item& sb) { return sa.size() < sb.size(); }; // sort by element length, not content
 
@@ -118,8 +117,6 @@ private:
     size_t maxBatchSize = options_->get<int>("mini-batch");
     size_t maxSize = maxBatchSize * options_->get<int>("maxi-batch");
 
-    // LOG(info, "Preloading batches");
-
     // consume data from corpus into maxi-batch (single sentences)
     // sorted into specified order (due to queue)
     if(newlyPrepared_) {
@@ -141,8 +138,6 @@ private:
     }
     size_t numSentencesRead = maxiBatch->size();
 
-    // LOG(info, "Turning samples into batches");
-
     // construct the actual batches and place them in the queue
     Samples batchVector;
     size_t currentWords = 0;
@@ -152,7 +147,6 @@ private:
 
     // process all loaded sentences in order of increasing length
     // @TODO: we could just use a vector and do a sort() here; would make the cost more explicit
-    //LOG(info, "begin form batches, #lines = {}", maxiBatch->size());
     const size_t mbWords = options_->get<size_t>("mini-batch-words", 0);
     const bool useDynamicBatching = options_->has("mini-batch-fit");
     BatchStats::const_iterator cachedStatsIter;
@@ -205,15 +199,25 @@ private:
     }
 
     // turn rest into batch
+    // @BUGBUG: This can create a very small batch, which with ce-mean-words can artificially
+    // inflate the contribution of the sames in the batch, causing instability.
+    // I think a good alternative would be to carry over the left-over sentences into the next round.
     if(!batchVector.empty())
       tempBatches.push_back(data_->toBatch(batchVector));
-    //LOG(info, "end form batches, #tempBatches = {}", tempBatches.size());
 
     // Shuffle the batches
     if(shuffle_) {
       std::shuffle(tempBatches.begin(), tempBatches.end(), eng_);
     }
-    LOG(debug, "[data] fetched {} batches with {} sentences.", tempBatches.size(), numSentencesRead);
+    double totalSent{}, totalLabels{};
+    for (auto& b : tempBatches) {
+      totalSent += (double)b->size();
+      totalLabels += (double)b->words(-1);
+    }
+    auto totalDenom = tempBatches.empty() ? 1 : tempBatches.size(); // (make 0/0 = 0)
+    LOG(debug, "[data] fetched {} batches with {} sentences. Per batch: {} sentences, {} labels.",
+        tempBatches.size(), numSentencesRead,
+        (double)totalSent / (double)totalDenom, (double)totalLabels / (double)totalDenom);
     return tempBatches;
   }
 
@@ -299,6 +303,18 @@ public:
       next();
 
     return true;
+  }
+
+  // this is needed for dynamic MB scaling. Returns 0 if size is not known in words.
+  size_t estimateTypicalTrgBatchWords() const {
+    const size_t mbWords = options_->get<size_t>("mini-batch-words", 0);
+    const bool useDynamicBatching = options_->has("mini-batch-fit");
+    if (useDynamicBatching && stats_)
+      return stats_->estimateTypicalTrgWords();
+    else if (mbWords)
+      return mbWords;
+    else
+      return 0;
   }
 };
 

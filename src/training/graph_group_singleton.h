@@ -25,7 +25,7 @@ private:
 public:
   SingletonGraph(Ptr<Options> config)
       : GraphGroup(config),
-        ExponentialSmoothing(options_->get<float>("exponential-smoothing")) {
+        ExponentialSmoothing(config) {
     // Get device ID
     auto devices = Config::getDevices(options_);
     ABORT_IF(devices.size() != 1, "Only one device ID should be provided for singleton training");
@@ -40,7 +40,7 @@ public:
   }
 
   void update(Ptr<data::Batch> batch) override {
-    ABORT_IF(finalized_, "Training has already finished");
+    validate();
     execute(batch);
   }
 

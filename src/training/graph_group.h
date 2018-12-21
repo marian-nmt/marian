@@ -21,6 +21,7 @@ protected:
   Ptr<OptimizerBase> opt_;   // the optimizer
   Ptr<Scheduler> scheduler_; // scheduler that keeps track of how much has been processed
   bool finalized_{false};    // 'true' if training has completed (further updates are no longer allowed)
+  size_t typicalTrgBatchWords_{ 0 }; // for dynamic batch sizing: typical batch size in words
 
 public:
   GraphGroup(Ptr<Options> options) : options_(options), opt_(Optimizer(options)) {}
@@ -32,6 +33,10 @@ public:
   virtual void load() = 0;
 
   virtual void save(bool isFinal = false) = 0;
+
+  void validate() {
+    ABORT_IF(finalized_, "Training has already finished.");
+  }
 
   virtual void finalize() {
     finalized_ = true;
@@ -48,9 +53,10 @@ public:
    * The actual allowed size is then determined by multiplying it with the
    * number of devices, which is passed in as the 'multiplier'.
    */
+  // @TODO: Can this be made const? It seems wrong to have a stateful method that still returns a result.
   virtual Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph,
                                              Ptr<models::ModelBase> model,
-                                             size_t multiplier = 1) {
+                                             double multiplier = 1.) {
     auto stats = New<data::BatchStats>();
 
     size_t numFiles
@@ -104,6 +110,10 @@ public:
       maxBatch = start;
     }
     return stats;
+  }
+
+  void setTypicalTrgBatchWords(size_t typicalTrgBatchWords) { // needed for dynamic MB scaling
+    typicalTrgBatchWords_ = typicalTrgBatchWords;
   }
 };
 
@@ -194,10 +204,8 @@ public:
   }
 
   virtual void finalize() override {
-    if (mpi_) {
+    if (mpi_)
       finalizeMPI(std::move(mpi_));
-      ABORT_IF(mpi_, "MPI not finalized??");
-    }
     Base::finalize();
   }
 };
