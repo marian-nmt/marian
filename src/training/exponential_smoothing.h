@@ -28,6 +28,10 @@ protected:
       ABORT_IF(actualBatchTrgWords == OptimizerBase::mbSizeNotProvided,
                "This graph-group type does not support reference batch size specification for exponential-smoothing");
       beta = pow(beta, (double)actualBatchTrgWords / (double)refBatchTrgWords_);
+      // If actual size differs from reference, then try to estimate the equivalent number of batches.
+      // E.g. if MB size is growing over time, then this is an overestimate, which would diminish the
+      // effect overly quickly, but in a range where that should be OK.
+      batches = std::max(batches, batches * actualBatchTrgWords / refBatchTrgWords_); // @BUGBUG: Does not consider that batch size is changing
     }
     // reduce effect of decay parameter in early training stages
     float decayBy = std::max(1.f - (float)beta,

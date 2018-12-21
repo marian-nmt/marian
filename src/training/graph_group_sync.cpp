@@ -344,14 +344,13 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
   }
 
   // Compute gradients
-  // This happens in multiple steps in case of delay > 1.
   std::vector<float> localDeviceCosts(devices_.size(), 0.f); // [local device index] aggregate cost for each local device
   comm_->foreach([&](size_t localDeviceIndex, size_t /*begin*/, size_t /*end*/) { // parallel across devices. Aggregate for warp > 1.
     auto graph = graphs_[localDeviceIndex];
     // reset gradient  --presently done outside
     //graph->params()->allocateBackward();
-    //if (warp == 0) // these have already been sized
-    //  graph->params()->set_zero_adjoint();
+    //graph->params()->set_zero_adjoint();
+    // This happens in multiple steps if there are more subbatches than devices.
     for (size_t warp = 0; ; warp++) {
       // Execute single forward/backward step
       auto subBatch = getSubBatch(warp, localDeviceIndex, mpi_->myMPIRank());
@@ -535,10 +534,13 @@ void SyncGraphGroup::finalize() /*override*/ {
   validate();
   Base::finalize();
 }
- 
+
 SyncGraphGroup::~SyncGraphGroup() /*override*/ {
   comm_ = nullptr;
-  finalizeMPI(std::move(mpi_));
+  static int c = 0;
+  c++;
+  if (c == 2) // HACKHACK: MPI can only be closed once
+    finalizeMPI(std::move(mpi_));
 }
 
 }  // namespace marian
