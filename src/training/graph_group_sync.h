@@ -53,5 +53,7 @@ public:
 
   Ptr<data::BatchStats> collectStats();
   // @TODO: consider to make this a virtual as well? Currently it is a template dispatch
+
+  ~SyncGraphGroup() override;
 };
 }  // namespace marian

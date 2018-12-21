@@ -438,7 +438,7 @@ void SyncGraphGroup::load() /*override*/ {
 }
 
 void SyncGraphGroup::save(bool final) /*override*/ {
-  validate();
+  // validate(); @TODO: get rid of this everywhere (SyncGraphGroup)
   barrier(); // (for better grouping of log messages)
   // do final validation
   if(final && scheduler_) {
@@ -487,21 +487,23 @@ void SyncGraphGroup::save(bool final) /*override*/ {
   barrier(); // (for better grouping of log messages)
 
   // persist optimizer state
-  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
   shardOpt_[0]->save(name + ".optimizer.npz", shardOpt_,
     [&](const OptimizerBase::GatherStateGetFunc& getShardFn) {
       return comm_->gatherState(getShardFn);
     },
     isMainProcess());
-  LOG(info, "[{}] save() line {}", this->mpi_->idStr(), __LINE__);
-
+  
   barrier(); // (for better grouping of log messages)
 }
 
 void SyncGraphGroup::finalize() /*override*/ {
   validate();
-  finalizeMPI(std::move(mpi_));
   Base::finalize();
+}
+ 
+SyncGraphGroup::~SyncGraphGroup() /*override*/ {
+  comm_ = nullptr;
+  finalizeMPI(std::move(mpi_));
 }
 
 }  // namespace marian

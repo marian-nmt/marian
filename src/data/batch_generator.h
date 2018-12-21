@@ -215,7 +215,7 @@ private:
       totalLabels += (double)b->words(-1);
     }
     auto totalDenom = tempBatches.empty() ? 1 : tempBatches.size(); // (make 0/0 = 0)
-    LOG(info, "[data] fetched {} batches with {} sentences. Per batch: {} sentences, {} labels.",
+    LOG(debug, "[data] fetched {} batches with {} sentences. Per batch: {} sentences, {} labels.",
         tempBatches.size(), numSentencesRead,
         (double)totalSent / (double)totalDenom, (double)totalLabels / (double)totalDenom);
     return tempBatches;
