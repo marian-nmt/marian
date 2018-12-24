@@ -229,8 +229,10 @@ public:
   // Parse command-line arguments. Handles --help and --version options
   void parse(int argc, char **argv);
 
+  // Expand aliases based on arguments parsed with parse(int, char**) method
   void parseAliases(const YAML::Node &config) {
     for(const auto& alias : aliases_) {
+      // note: options values are always compared as strings
       if(config[alias.key] && config[alias.key].as<std::string>() == alias.value) {
           updateConfig(alias.config,
                        "Unknown option(s) in alias '" + alias.key + ": " + alias.value + "'");
