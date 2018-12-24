@@ -399,8 +399,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   // add ULR settings
   addSuboptionsULR(cli);
 
-  cli.add<std::string>("--problem",
-     "Use predefined set of options. Possible values: transformer");
+  cli.add<std::vector<std::string>>("--problem",
+     "Use predefined set of options. Possible values: transformer, transformer-big");
   // clang-format on
 }
 

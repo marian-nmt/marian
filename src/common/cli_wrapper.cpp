@@ -134,12 +134,23 @@ void CLIWrapper::parseAliases() {
 
   std::set<std::string> aliasKeys;
   for(const auto& alias : aliases_) {
-    // Note: options values are always compared as strings
-    if(config_[alias.key] && config_[alias.key].as<std::string>() == alias.value) {
+    if(config_[alias.key]) {
+      bool expand = false;
+      if(config_[alias.key].IsSequence()) {
+        // Note: options values are always extracted as vectors and compared as strings
+        auto aliasOpts = config_[alias.key].as<std::vector<std::string>>();
+        expand = std::find(aliasOpts.begin(), aliasOpts.end(), alias.value) != aliasOpts.end();
+      } else {
+        // Note: options values are always compared as strings
+        expand = config_[alias.key].as<std::string>() == alias.value;
+      }
+
+      if(expand) {
         updateConfig(alias.config,
                      "Unknown option(s) in alias '" + alias.key + ": " + alias.value + "'");
+      }
+      aliasKeys.insert(alias.key);
     }
-    aliasKeys.insert(alias.key);
   }
 
   // Remove aliases from the config
