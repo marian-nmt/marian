@@ -701,8 +701,8 @@ void ConfigParser::addAliases(cli::CLIWrapper& cli) {
     config["lr-warmup"] = 8000;
     config["lr-decay-inv-sqrt"] = 8000;
     config["transformer-dropout"] = 0.1;
-    config["transformer-attention-dropout"] = 0.1;
-    config["transformer-ffn-dropout"] = 0.1;
+    config["transformer-dropout-attention"] = 0.1;
+    config["transformer-dropout-ffn"] = 0.1;
     config["label-smoothing"] = 0.1;
     config["clip-norm"] = 5;
   });
