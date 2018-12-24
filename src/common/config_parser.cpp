@@ -767,9 +767,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     config_.remove("dump-config");
 
     if(type == "explain") {
-      cli.parseAliases(config_);
-      config_.remove("best-deep");
-      config_.remove("problem");
+      cli.parseAliases();
     }
 
     bool minimal = (type == "minimal" || type == "explain");
@@ -777,9 +775,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     exit(0);
   }
 
-  cli.parseAliases(config_);
-  config_.remove("best-deep");
-  config_.remove("problem");
+  cli.parseAliases();
 }
 
 std::vector<std::string> ConfigParser::findConfigPaths() {

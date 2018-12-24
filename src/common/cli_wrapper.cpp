@@ -128,6 +128,27 @@ void CLIWrapper::parse(int argc, char **argv) {
   }
 }
 
+void CLIWrapper::parseAliases() {
+  if(aliases_.empty())
+    return;
+
+  std::set<std::string> aliasKeys;
+  for(const auto& alias : aliases_) {
+    // Note: options values are always compared as strings
+    if(config_[alias.key] && config_[alias.key].as<std::string>() == alias.value) {
+        updateConfig(alias.config,
+                     "Unknown option(s) in alias '" + alias.key + ": " + alias.value + "'");
+    }
+    aliasKeys.insert(alias.key);
+  }
+
+  // Remove aliases from the config
+  for(const auto& key : aliasKeys) {
+    config_.remove(key);
+  }
+}
+
+
 std::string CLIWrapper::failureMessage(const CLI::App *app, const CLI::Error &e) {
   std::string header = "Error: " + std::string(e.what()) + "\n";
   if(app->get_help_ptr() != nullptr)
