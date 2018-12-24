@@ -499,7 +499,8 @@ class CorpusBase
     : public DatasetBase<SentenceTuple, CorpusIterator, CorpusBatch>,
       public RNGEngine {
 public:
-  // @TODO: check if translate can be replaced by an option in options
+  typedef SentenceTuple Sample;
+
   CorpusBase(Ptr<Options> options, bool translate = false);
 
   CorpusBase(const std::vector<std::string>& paths,
@@ -551,10 +552,10 @@ protected:
                                  SentenceTuple& tup) const;
 
   void addAlignmentsToBatch(Ptr<CorpusBatch> batch,
-                            const std::vector<sample>& batchVector);
+                            const std::vector<Sample>& batchVector);
 
   void addWeightsToBatch(Ptr<CorpusBatch> batch,
-                         const std::vector<sample>& batchVector);
+                         const std::vector<Sample>& batchVector);
 };
 
 class CorpusIterator : public IteratorFacade<CorpusIterator, SentenceTuple> {

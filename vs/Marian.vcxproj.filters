@@ -31,9 +31,6 @@
     <ClCompile Include="..\src\3rd_party\cnpy\cnpy.cpp">
       <Filter>3rd_party\cnpy</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\3rd_party\exception.cpp">
-      <Filter>3rd_party</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\3rd_party\svd\svd.cpp">
       <Filter>3rd_party\svd</Filter>
     </ClCompile>
@@ -267,6 +264,165 @@
     </ClCompile>
     <ClCompile Include="..\src\common\version.cpp">
       <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\cpu\sharp\int_gemm.cpp">
+      <Filter>tensors\cpu\sharp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\bpe_model.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\bpe_model_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\bpe_model_trainer.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\bpe_model_trainer_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\builder.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\builder_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\char_model.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\char_model_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\char_model_trainer.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\char_model_trainer_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\compile_charsmap_main.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\error.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\filesystem.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\filesystem_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\flags.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\flags_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\freelist_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\model_factory.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\model_factory_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\model_interface.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\model_interface_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\normalizer.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\normalizer_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\sentencepiece_processor.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\sentencepiece_processor_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\sentencepiece_trainer.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\sentencepiece_trainer_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\spm_decode_main.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\spm_encode_main.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\spm_export_vocab_main.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\spm_normalize_main.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\spm_train_main.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\test_main.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\testharness.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\trainer_factory.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\trainer_factory_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\trainer_interface.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\trainer_interface_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\unicode_script.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\unicode_script_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\word_model_trainer_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\unigram_model.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\unigram_model_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\unigram_model_trainer.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\unigram_model_trainer_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\util.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\util_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\word_model.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\word_model_test.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\sentencepiece\src\word_model_trainer.cc">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rescorer\score_collector.cpp">
+      <Filter>rescorer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\command\marian_train.cpp">
+      <Filter>command</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1048,9 +1204,6 @@
     <ClInclude Include="..\src\command\marian_vocab.cpp">
       <Filter>command</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\command\marian.cpp">
-      <Filter>command</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\command\marian_decoder.cpp">
       <Filter>command</Filter>
     </ClInclude>
@@ -1116,6 +1269,81 @@
     </ClInclude>
     <ClInclude Include="..\src\tensors\gpu\sparse.h">
       <Filter>tensors\gpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\bpe_model.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\bpe_model_trainer.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\builder.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\char_model.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\char_model_trainer.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\common.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\filesystem.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\flags.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\freelist.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\model_factory.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\model_interface.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\normalization_rule.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\normalizer.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\sentencepiece_processor.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\sentencepiece_trainer.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\testharness.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\trainer_factory.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\trainer_interface.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\unicode_script.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\unicode_script_map.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\unigram_model.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\unigram_model_trainer.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\util.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\word_model.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sentencepiece\src\word_model_trainer.h">
+      <Filter>3rd_party\sentencepiece\src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1248,6 +1476,12 @@
     <Filter Include="tensors\gpu">
       <UniqueIdentifier>{812ce3ca-6b91-4881-8ef6-692ebe7b0cce}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rd_party\sentencepiece">
+      <UniqueIdentifier>{32fc95ea-1fd8-4900-890b-982491feb6d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\sentencepiece\src">
+      <UniqueIdentifier>{638bf0e1-4f83-4b37-9077-2be549d75909}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorConfig" />
@@ -1284,5 +1518,16 @@
     <None Include="..\src\tensors\gpu\tensor_operators.cu">
       <Filter>tensors\gpu</Filter>
     </None>
+    <None Include="..\src\3rd_party\sentencepiece\src\sentencepiece.proto">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </None>
+    <None Include="..\src\3rd_party\sentencepiece\src\sentencepiece_model.proto">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\src\3rd_party\sentencepiece\src\CMakeLists.txt">
+      <Filter>3rd_party\sentencepiece\src</Filter>
+    </Text>
   </ItemGroup>
 </Project>

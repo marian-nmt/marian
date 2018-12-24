@@ -12,63 +12,64 @@ Ptr<VocabBase> createVocab(const std::string& vocabPath, Ptr<Options> options, s
   return vocab ? vocab : createDefaultVocab();
 }
 
-int Vocab::loadOrCreate(const std::string& vocabPath,
-                        const std::string& trainPath,
-                        int max) {
+size_t Vocab::loadOrCreate(const std::string& vocabPath,
+                        const std::vector<std::string>& trainPaths,
+                        size_t maxSize) {
   size_t size = 0;
   if(vocabPath.empty()) {
     // No vocabulary path was given, attempt to first find a vocabulary
-    // for trainPath + possible suffixes. If not found attempt to create
-    // as trainPath + canonical suffix.
+    // for trainPaths[0] + possible suffixes. If not found attempt to create
+    // as trainPaths[0] + canonical suffix.
+    // Only search based on first path, maybe disable this at all?
 
     LOG(info,
         "No vocabulary path given; "
         "trying to find default vocabulary based on data path {}",
-        trainPath);
+        trainPaths[0]);
 
     vImpl_ = createDefaultVocab();
-    size = vImpl_->findAndLoad(trainPath, max);
+    size = vImpl_->findAndLoad(trainPaths[0], maxSize);
 
     if(size == 0) {
-      auto path = trainPath + vImpl_->canonicalExtension();
+      auto newVocabPath = trainPaths[0] + vImpl_->canonicalExtension();
       LOG(info,
           "No vocabulary path given; "
-          "trying to find vocabulary based on data path {}",
-          trainPath);
-      vImpl_->create(path, trainPath);
-      size = vImpl_->load(path, max);
+          "trying to create vocabulary based on data paths {}",
+          utils::join(trainPaths, ", "));
+      create(newVocabPath, trainPaths, maxSize);
+      size = load(newVocabPath, maxSize);
     }
   } else {
     if(!filesystem::exists(vocabPath)) {
       // Vocabulary path was given, but no vocabulary present,
       // attempt to create in specified location.
-      create(vocabPath, trainPath);
+      create(vocabPath, trainPaths, maxSize);
     }
     // Vocabulary path exists, attempting to load
-    size = load(vocabPath, max);
+    size = load(vocabPath, maxSize);
   }
   LOG(info, "[data] Setting vocabulary size for input {} to {}", batchIndex_, size);
-  return (int)size;
+  return size;
 }
 
-int Vocab::load(const std::string& vocabPath, int max) {
+size_t Vocab::load(const std::string& vocabPath, size_t maxSize) {
   if(!vImpl_)
     vImpl_ = createVocab(vocabPath, options_, batchIndex_);
-  return vImpl_->load(vocabPath, max);
+  return vImpl_->load(vocabPath, (int)maxSize);
 }
 
-void Vocab::create(const std::string& vocabPath, const std::string& trainPath) {
-  if(!vImpl_)
-    vImpl_ = createVocab(vocabPath, options_, batchIndex_);
-  vImpl_->create(vocabPath, trainPath);
-}
-
-void Vocab::create(io::InputFileStream& trainStrm,
-                   io::OutputFileStream& vocabStrm,
+void Vocab::create(const std::string& vocabPath,
+                   const std::vector<std::string>& trainPaths,
                    size_t maxSize) {
   if(!vImpl_)
-    vImpl_ = createDefaultVocab(); // Only DefaultVocab can be built from streams
-  vImpl_->create(trainStrm, vocabStrm, maxSize);
+    vImpl_ = createVocab(vocabPath, options_, batchIndex_);
+  vImpl_->create(vocabPath, trainPaths, maxSize);
+}
+
+void Vocab::create(const std::string& vocabPath,
+                   const std::string& trainPath,
+                   size_t maxSize) {
+  create(vocabPath, std::vector<std::string>({trainPath}), maxSize);
 }
 
 void Vocab::createFake() {

@@ -1,28 +1,28 @@
 #pragma once
 
-#include "common/definitions.h"
-#include "common/file_stream.h"
 #include "data/types.h"
+#include "common/definitions.h"
+#include "common/utils.h"
+#include "common/file_stream.h"
 
 namespace marian {
 
 class VocabBase {
 public:
-  virtual int load(const std::string& vocabPath, int max = 0) = 0;
-  virtual void create(const std::string& vocabPath, const std::string& trainPath) = 0;
+  virtual size_t load(const std::string& vocabPath, size_t maxSize = 0) = 0;
 
-  virtual void create(io::InputFileStream& trainStrm,
-                      io::OutputFileStream& vocabStrm,
-                      size_t maxSize = 0) = 0;
+  virtual void create(const std::string& vocabPath,
+                      const std::vector<std::string>& trainPaths,
+                      size_t maxSize) = 0;
 
   // return canonical suffix for given type of vocabulary
   virtual const std::string& canonicalExtension() const = 0;
   virtual const std::vector<std::string>& suffixes() const = 0;
 
-  int findAndLoad(const std::string& path, int max) {
+  size_t findAndLoad(const std::string& path, size_t maxSize) {
     for(auto suffix : suffixes())
       if(filesystem::exists(path + suffix))
-        return load(path + suffix, max);
+        return load(path + suffix, maxSize);
     return 0;
   }
 

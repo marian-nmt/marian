@@ -6,7 +6,6 @@
 #include "models/costs.h"
 
 #include "models/amun.h"
-#include "models/hardatt.h"
 #include "models/nematus.h"
 #include "models/s2s.h"
 #include "models/transformer_factory.h"
@@ -47,11 +46,6 @@ Ptr<DecoderBase> DecoderFactory::construct() {
   if(options_->get<std::string>("type") == "transformer")
     // return New<DecoderTransformer>(options_);
     return NewDecoderTransformer(options_);
-  if(options_->get<std::string>("type") == "hard-att")
-    return New<DecoderHardAtt>(options_);
-  if(options_->get<std::string>("type") == "hard-soft-att")
-    return New<DecoderHardAtt>(options_);
-
   ABORT("Unknown decoder type");
 }
 
@@ -120,24 +114,6 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
             .construct();
   }
 
-  if(type == "hard-att") {
-    return models::encoder_decoder()(options)
-        ("usage", use)
-        ("original-type", type)
-            .push_back(models::encoder()("type", "s2s"))
-            .push_back(models::decoder()("type", "hard-att"))
-            .construct();
-  }
-
-  if(type == "hard-soft-att") {
-    return models::encoder_decoder()(options)
-        ("usage", use)
-        ("original-type", type)
-            .push_back(models::encoder()("type", "s2s"))
-            .push_back(models::decoder()("type", "hard-soft-att"))
-            .construct();
-  }
-
   if(type == "multi-s2s") {
     size_t numEncoders = 2;
     auto ms2sFactory = models::encoder_decoder()(options)
@@ -168,25 +144,6 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
     }
 
     ms2sFactory.push_back(models::decoder()("index", numEncoders));
-
-    return ms2sFactory.construct();
-  }
-
-  if(type == "multi-hard-att") {
-    size_t numEncoders = 2;
-    auto ms2sFactory = models::encoder_decoder()(options)
-        ("usage", use)
-        ("type", "s2s")
-        ("original-type", type);
-
-    for(size_t i = 0; i < numEncoders; ++i) {
-      auto prefix = "encoder" + std::to_string(i + 1);
-      ms2sFactory.push_back(models::encoder()("prefix", prefix)("index", i));
-    }
-
-    ms2sFactory.push_back(models::decoder()
-                          ("index", numEncoders)
-                          ("type", "hard-soft-att"));
 
     return ms2sFactory.construct();
   }

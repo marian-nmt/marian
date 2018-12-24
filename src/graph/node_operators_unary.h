@@ -881,16 +881,16 @@ public:
                  strideWidth,
                  mode) {}
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     return {NodeOp(pooling_.forward(child(0)->val(), val_))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     return {NodeOp(
         pooling_.backward(child(0)->val(), child(0)->grad(), val_, adj_))};
   }
 
-  const std::string type() { return "layer_pooling"; }
+  const std::string type() override { return "layer_pooling"; }
 
 protected:
   PoolingWrapper pooling_;

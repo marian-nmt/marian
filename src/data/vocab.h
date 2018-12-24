@@ -25,16 +25,19 @@ public:
   Vocab(Ptr<Options> options, size_t batchIndex)
   : options_(options), batchIndex_(batchIndex) {}
 
-  int loadOrCreate(const std::string& vocabPath,
-                   const std::string& textPath,
-                   int max = 0);
+  size_t loadOrCreate(const std::string& vocabPath,
+                      const std::vector<std::string>& trainPaths,
+                      size_t maxSize = 0);
 
-  int load(const std::string& vocabPath, int max = 0);
-  void create(const std::string& vocabPath, const std::string& trainPath);
+  size_t load(const std::string& vocabPath, size_t maxSize = 0);
 
-  void create(io::InputFileStream& trainStrm,
-              io::OutputFileStream& vocabStrm,
-              size_t maxSize = 0);
+  void create(const std::string& vocabPath,
+              const std::vector<std::string>& trainPaths,
+              size_t maxSize);
+
+  void create(const std::string& vocabPath,
+              const std::string& trainPath,
+              size_t maxSize);
 
   // string token to token id
   Word operator[](const std::string& word) const;

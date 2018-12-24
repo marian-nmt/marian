@@ -480,7 +480,7 @@ public:
 
   // returns the embedding matrix based on options
   // and based on batchIndex_.
-  
+
   std::vector<Expr> ULREmbeddings() const {
     // standard encoder word embeddings
     int dimSrcVoc = opt<std::vector<int>>("dim-vocabs")[0];  //ULR multi-lingual src
@@ -494,7 +494,7 @@ public:
                                            ("ulrKeysFile", opt<std::string>("ulr-keys-vectors"));
     return embFactory.construct();
   }
-  
+
   Expr wordEmbeddings(size_t subBatchIndex) const {
     // standard encoder word embeddings
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[subBatchIndex];
@@ -666,7 +666,7 @@ public:
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state) override {
-    ABORT_IF(graph != graph_, "An inconsistent graph parameter was passed to step().");
+    ABORT_IF(graph != graph_, "An inconsistent graph parameter was passed to step()");
     LazyCreateOutputLayer();
     return step(state);
   }

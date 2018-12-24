@@ -245,7 +245,7 @@ Expr select(Expr a, Expr indices, int axis) {
 }
 
 Expr select(Expr a, const std::vector<IndexType>& indices, int axis) {
-  auto indexExpr = a->graph()->indices(indices);
+  auto indexExpr = a->graph()->indices(indices, a, axis);
   return select(a, indexExpr, axis);
 }
 

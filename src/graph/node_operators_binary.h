@@ -487,9 +487,47 @@ struct RowsNodeOp : public NaryNodeOp {
   const std::string color() override { return "orange"; }
 };
 
+// This operation indexes a tensor along an axis.
+// This is similar to the common gather() operation in other toolkits.
+// For example, this can be used for:
+//  - Same index applied to all batch items (today's select()):
+//    'index' has 1 in the axes that match batch axes in the input, and axis set to the one axis that gets selected over.
+//    Example: Selecting Transformer head 0, i.e. return a[:,1,:,:]
+//      axis = -3
+//      a  : (B,  H , S, T)     B=batch dim, H=#heads, S=src length, T=trg length
+//      idx: (   #1#, 1, 1)     #1# denotes 'axis'. All values are zero.
+//      out: (B,  1 , S, T)     out[b, 0, s, t] == a[b, idx[/*0,*/ 0, s, t], s, t]
+//  - Same data with batched indices (today's rows()):
+//    'data' has 1 in the batch axes.
+//    Example: Embedding lookup as done today using rows():
+//      axis = -2
+//      e  : (     V , E)        V=vocab size, E=embedding dimension
+//      idx: (#(B*S)#, 1)        B=batch size, S=source length, idx values are in range 0..V-1
+//      out: ( (B*S) , E)        out[b, s, e] == e[/*0,*/ idx[b, s, 0], e]
+//  - Batched selection (x-ent scenario): Both 'index' and 'data' have matching batch axes.
+//    Example: Cross-entropy loss as -select(logSoftmax(logits), groundTruth, axis=-1):
+//      axis = -1
+//      lp : (B, T,  V )        B=batch size, T=trg length, V=vocab size
+//      idx: (B, T, #1#)        idx values are in range 0..V-1
+//      out: (B, T,  1 )        out[b,t,0] == lp[b, t, idx[b, t, 0]]
+// Example for 2D tensor with axis=0:
+//  | t[index[0, 0] 0]   t[index[0, 1] 1] |
+//  | t[index[1, 0] 0]   t[index[1, 1] 1] |
+// And for axis 1:
+//  | t[0 index[0, 0]]   t[0 index[0, 1]] |
+//  | t[1 index[1, 0]]   t[1 index[1, 1]] |
+// For a 3-D tensor the output is specified by:
+//  out[i][j][k] = input[index[i][j][k]][j][k]  # if dim == 0
+//  out[i][j][k] = input[i][index[i][j][k]][k]  # if dim == 1
+//  out[i][j][k] = input[i][j][index[i][j][k]]  # if dim == 2
+// If 'a' and 'indices' do not have the same rank, then negative 'axis' is
+// interpreted relative to 'a', and 'indices' must have the resulting axis.
+// Broadcasting is supported as usual.
+// @TODO: The current implementation does not support batched indices (third scenario above).
+//        I.e. all axes of 'indices' except 'axis' must have dimension 1.
 struct SelectNodeOp : public NaryNodeOp {
   SelectNodeOp(Expr a, Expr indices, int axis)
-      : NaryNodeOp({a, indices}, newShape(a, axis, indices->shape().elements())),
+      : NaryNodeOp({a, indices}, newShape(a, indices, axis), a->value_type()),
         axis_(a->shape().axis(axis)) {
     matchOrAbort<IndexType>(indices->value_type());
   }
@@ -504,10 +542,20 @@ struct SelectNodeOp : public NaryNodeOp {
         Insert(child(0)->grad(), adj_, child(1)->val(), axis_))};
   }
 
-  Shape newShape(Expr a, int axis, size_t num) {
+  Shape newShape(Expr a, Expr indices, int axis) {
+    axis = a->shape().axis(axis);
+    auto indicesRank = indices->shape().size();
+    ABORT_IF(axis >= indicesRank, "Axis {} is invalid for indices shape {}", axis, std::string(indices->shape()));
     Shape shape = a->shape();
-    axis = shape.axis(axis);
-    shape.set(axis, num);
+    if (shape.size() < indicesRank) // pad
+      shape.resize(indicesRank);
+    shape.set(axis, indices->shape()[axis]);
+#if 1 // presently, this implementation does not support batched indices
+    for (size_t i = 0; i < indicesRank; ++i) {
+      ABORT_IF(indices->shape()[i] != 1 && i + shape.size() - indicesRank != axis,
+               "Presently, select() does not implement batched indices");
+    }
+#endif
     return shape;
   }
 
@@ -905,6 +953,7 @@ struct HighwayNodeOp : public NaryNodeOp {
 };
 
 #ifdef CUDNN
+
 class ConvolutionOp : public NaryNodeOp {
 public:
   ConvolutionOp(const std::vector<Expr>& nodes,
@@ -922,12 +971,12 @@ public:
     conv_.getOutputShape(nodes[0]->shape(), shape_);
   }
 
-  NodeOps forwardOps() {
+  NodeOps forwardOps() override {
     return {NodeOp(conv_.forward(
         child(0)->val(), child(1)->val(), child(2)->val(), val_))};
   }
 
-  NodeOps backwardOps() {
+  NodeOps backwardOps() override {
     return {NodeOp(conv_.backward(child(0)->val(),
                                   child(0)->grad(),
                                   child(1)->val(),
@@ -936,7 +985,7 @@ public:
                                   adj_))};
   }
 
-  const std::string type() { return "layer_convolution"; }
+  const std::string type() override { return "layer_convolution"; }
 
 protected:
   ConvolutionWrapper conv_;

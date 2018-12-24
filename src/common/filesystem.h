@@ -1,66 +1,63 @@
 #pragma once
 
-// @TODO: This is a temporary file to move every function from boost::filesystem used in Marian
-// into one place. Marian should call functions only from this file. boost::filesystem will
-// be removed. This needs to be portable to Windows too.
+// This is a shallow wrapper around a filesystem path library.
+// We used this to wrap boost::filesystem, now we are wrapping
+// Pathie, a small open source lib.
 
+// @TODO: go back to canonical names for functions and objects
+// as specified in C++17 so it becomes easy to move in the future
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wsuggest-override"
 #endif
-#include <boost/filesystem.hpp>
+
+#include "3rd_party/pathie-cpp/include/path.hpp"
+#include "3rd_party/pathie-cpp/include/errors.hpp"
+
 #ifdef __GNUC__
-// "ignored -Wunused-variable" above ignores 'static const' declarations (where 'static'
-// is not needed). We work around by referencing the offending variables in dummy code.
-static inline void boost_dummy_filesystem() { boost::system::posix_category; boost::system::errno_ecat; boost::system::native_ecat; }
 #pragma GCC diagnostic pop
 #endif
 
 namespace marian {
 namespace filesystem {
 
-  struct Path {
+  class Path {
     private:
-      boost::filesystem::path path;
+      Pathie::Path path;
 
     public:
       Path() {}
       Path(const Path& p) : path{p.path} {}
       Path(const std::string& s) : path{s} {}
-      Path(const boost::filesystem::path& p) : path{p} {}
+      Path(const Pathie::Path& p) : path{p} {}
 
       Path parentPath() const {
-        return Path{path.parent_path()};
+        return Path(path.parent());
       }
 
       Path filename() const {
-        return Path{path.filename()};
+        return Path(path.basename());
       }
 
       Path extension() const {
-        return Path{path.extension()};
+        return Path(path.extension());
       }
 
       bool empty() const {
-        return path.empty();
+        return path.str().empty();
       }
 
-      const boost::filesystem::path& getBoost() const {
+      const Pathie::Path& getImpl() const {
         return path;
       }
 
-      operator std::string&() {
-        return (std::string&)path;
-      }
-
       operator std::string() const {
-        return path.string();
+        return path.str();
       }
 
       std::string string() const {
-        return path.string();
+        return path.str();
       }
 
       bool operator==(const Path& p) const {
@@ -73,35 +70,31 @@ namespace filesystem {
   };
 
   static inline Path currentPath() {
-    return Path{boost::filesystem::current_path()};
+    return Path(Pathie::Path::pwd());
   }
 
-  static inline Path canonical(const Path& p, const Path& dir) {
-    return Path{ boost::filesystem::canonical(p.getBoost(), dir.getBoost()) };
+  static inline Path canonical(const Path& p, const Path& base) {
+    // create absolute base path
+    return p.getImpl().absolute(base.getImpl()).expand();
   }
 
   static inline bool exists(const Path& p) {
-    return boost::filesystem::exists(p.getBoost());
+    return p.getImpl().exists();
   }
 
   static inline size_t fileSize(const Path& p) {
-    return boost::filesystem::file_size(p.getBoost());
+    return p.getImpl().size();
   }
 
   static inline bool isDirectory(const Path& p) {
-    return boost::filesystem::is_directory(p.getBoost());
+    return p.getImpl().is_directory();
   }
 
-  static inline bool canWrite(const Path& p) {
-    return (boost::filesystem::status(p.getBoost()).permissions() & boost::filesystem::owner_write) != 0;
-  }
-
-  // concatenation?
   static inline Path operator/ (const Path& lhs, const Path& rhs) {
-    return lhs.getBoost() / rhs.getBoost();
+    return Path(lhs.getImpl() / rhs.getImpl());
   }
 
-  using FilesystemError = boost::filesystem::filesystem_error;
+  using FilesystemError = Pathie::PathieError;
 
 }
 }

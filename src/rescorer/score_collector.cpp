@@ -9,9 +9,14 @@ namespace marian {
 
 ScoreCollector::ScoreCollector(const Ptr<Options>& options)
     : nextId_(0),
-      outStrm_(new io::OutputFileStream(std::cout)),
       alignment_(options->get<std::string>("alignment", "")),
-      alignmentThreshold_(getAlignmentThreshold(alignment_)) {}
+      alignmentThreshold_(getAlignmentThreshold(alignment_)) {
+
+    if(options->get<std::string>("output") == "stdout")
+      outStrm_.reset(new io::OutputFileStream(std::cout));
+    else
+      outStrm_.reset(new io::OutputFileStream(options->get<std::string>("output")));
+  }
 
 void ScoreCollector::Write(long id, const std::string& message) {
   std::lock_guard<std::mutex> lock(mutex_);

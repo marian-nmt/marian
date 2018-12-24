@@ -66,5 +66,11 @@ public:
   Expr getCost(Expr logits, Expr indices, Expr mask, Expr weights) override;
 };
 
+class CrossEntropyRescoreMeanLoss : public LossBase {
+public:
+  explicit CrossEntropyRescoreMeanLoss(float smoothing = 0) : LossBase(smoothing){};
+  Expr getCost(Expr logits, Expr indices, Expr mask, Expr weights) override;
+};
+
 Ptr<LossBase> LossFactory(Ptr<Options> options, bool inference);
 }  // namespace marian

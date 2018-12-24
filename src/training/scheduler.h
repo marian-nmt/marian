@@ -21,19 +21,18 @@ private:
   float getLearningRate(TrainingState& state) {
     float baselr = options_->get<float>("learn-rate");
 
-    auto bno = state.batches - state.warmupStart;
-
-    size_t warmup = options_->get<size_t>("lr-warmup");
     float mult1 = 1.f;
-    if(warmup > 0) {
-      mult1 = std::min(1.f, (float)bno / (float)warmup);
+    auto warmup = SchedulingParameter::parse(options_->get<std::string>("lr-warmup"));
+    if(warmup) {
+      ABORT_IF(state.warmupStart && state.warmupStart.unit != warmup.unit, "lr-warmup and warmup-start must have the same unit");
+      auto bno = state.getProgressIn(warmup.unit) - state.warmupStart.n;
+      mult1 = std::min(1.f, (float)bno / (float)warmup.n);
     }
 
-    size_t decayGoogle = options_->get<size_t>("lr-decay-inv-sqrt");
     float mult2 = 1.f;
-    if(decayGoogle > 0) {
-      mult2 = std::min(
-          1.f, (float)(std::sqrt(decayGoogle) / std::sqrt(state.batches)));
+    auto decayGoogle = SchedulingParameter::parse(options_->get<std::string>("lr-decay-inv-sqrt"));
+    if(decayGoogle) {
+      mult2 = std::min(1.f, (float)(std::sqrt(decayGoogle.n) / std::sqrt(state.getProgressIn(decayGoogle.unit))));
     }
 
     baselr = baselr * mult1 * mult2;
@@ -95,12 +94,12 @@ public:
 
   bool validating() {
     return (!validators_.empty()
-            && state_->batches % options_->get<size_t>("valid-freq") == 0
+            && state_->enteredNewPeriodOf(options_->get<std::string>("valid-freq"))
             && keepGoing());
   }
 
   bool saving() {
-    return (state_->batches % options_->get<size_t>("save-freq") == 0);
+    return state_->enteredNewPeriodOf(options_->get<std::string>("save-freq"));
   }
 
   void validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
@@ -108,7 +107,7 @@ public:
     // Do not validate if already validated (for instance, after the model is
     // loaded) or if validation is scheduled for another update
     if(state_->validated
-       || (state_->batches % options_->get<size_t>("valid-freq") != 0
+       || (!state_->enteredNewPeriodOf(options_->get<std::string>("valid-freq"))
            && !final))
       return;
 
@@ -164,6 +163,7 @@ public:
   }
 
   void update(float cost, const std::vector<Ptr<data::Batch>>& batches, Ptr<IMPIWrapper> mpi = nullptr) {
+    state_->rememberPreviousProgress(); // note: epoch increases happen at the wrong place, hence -freq parameters do not support epoch units
     state_->validated = false;
 
     size_t batchSize = 0;    // number of sentences in batch
@@ -205,7 +205,7 @@ public:
 
     state_->newBatch();
 
-    if(state_->batches %  options_->get<size_t>("disp-freq") == 0 ||
+    if(state_->enteredNewPeriodOf(options_->get<std::string>("disp-freq")) ||
        state_->batches <= options_->get<size_t>("disp-first")) {
       // if MPI then aggregate precise cost across workers
       if (mpi) {
@@ -217,57 +217,52 @@ public:
       if (mpi && mpi->myMPIRank() != 0)
         ; // skip the report on alternate worker processes
       else if(dispLabelCounts) {
-        if(options_->get<bool>(
-               "lr-report")) {  // if true then show the learning rate
+        if(options_->get<bool>("lr-report")) {  // if true then show the learning rate
           LOG(info,
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} "
-              ": {:.2f} "
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {:.2f}s : {:.2f} "
               "words/s : L.r. {:.4e}",
               state_->epochs,
               state_->batches,
-              state_->samplesEpoch,
+              utils::withCommas(state_->samplesEpoch),
               state_->costSum / state_->costCount,
-              state_->costCount,  // show cost as "av * count"
-              state_->labelsTotal,
-              timer_.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer_.format(5, "%w")),
+              utils::withCommas(state_->costCount),  // show cost as "av * count"
+              utils::withCommas(state_->labelsTotal),
+              timer_.elapsed(),
+              state_->wordsDisp / timer_.elapsed(),
               state_->eta);
         } else {
           LOG(info,
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {} "
-              ": {:.2f} "
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} * {} after {} : Time {:.2f}s : {:.2f} "
               "words/s",
               state_->epochs,
               state_->batches,
-              state_->samplesEpoch,
+              utils::withCommas(state_->samplesEpoch),
               state_->costSum / state_->costCount,
-              state_->costCount,
-              state_->labelsTotal,
-              timer_.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer_.format(5, "%w")));
+              utils::withCommas(state_->costCount),
+              utils::withCommas(state_->labelsTotal),
+              timer_.elapsed(),
+              state_->wordsDisp / timer_.elapsed());
         }
       } else {
         if(options_->get<bool>("lr-report")) {
           LOG(info,
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
-              "words/s : L.r. {:.4e}",
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} : Time {:.2f}s : {:.2f} words/s : L.r. {:.4e}",
               state_->epochs,
               state_->batches,
-              state_->samplesEpoch,
+              utils::withCommas(state_->samplesEpoch),
               state_->costSum / state_->costCount,
-              timer_.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer_.format(5, "%w")),
+              timer_.elapsed(),
+              state_->wordsDisp / timer_.elapsed(),
               state_->eta);
         } else {
           LOG(info,
-              "Ep. {} : Up. {} : Sen. {} : Cost {:.2f} : Time {} : {:.2f} "
-              "words/s",
+              "Ep. {} : Up. {} : Sen. {} : Cost {:.8f} : Time {:.2f}s : {:.2f} words/s",
               state_->epochs,
               state_->batches,
-              state_->samplesEpoch,
+              utils::withCommas(state_->samplesEpoch),
               state_->costSum / state_->costCount,
-              timer_.format(2, "%ws"),
-              state_->wordsDisp / std::stof(timer_.format(5, "%w")));
+              timer_.elapsed(),
+              state_->wordsDisp / timer_.elapsed());
         }
       }
       timer_.start();
@@ -277,9 +272,8 @@ public:
     }
     // progress heartbeat for MS-internal Philly compute cluster
     // This environment variable exists when running on the cluster.
-    using namespace std::chrono;
-    if((!mpi || mpi->myMPIRank() == 0) && getenv("PHILLY_JOB_ID") &&
-        duration_cast<minutes>(nanoseconds(heartBeatTimer_.elapsed().user)).count() >= 10) {
+    if((!mpi || mpi->myMPIRank() == 0) && getenv("PHILLY_JOB_ID")
+       && heartBeatTimer_.elapsed<std::chrono::minutes>() >= 10) {
       printf("PROGRESS: %.2f%%\nEVALERR: %.7f\n", (double)state_->epochs, state_->costSum / state_->costCount), fflush(stdout);
 #if 0
       LOG(info, "heart beat after {} updates", state_->batches);
@@ -364,7 +358,7 @@ public:
 
         if(options_->get<bool>("lr-decay-repeat-warmup")) {
           LOG(info, "Restarting learning rate warmup");
-          state.warmupStart = state.batches;
+          state.warmupStart.n = state.getProgressIn(SchedulingParameter::parse(options_->get<std::string>("lr-warmup")).unit);
         }
       }
     }
@@ -378,10 +372,9 @@ public:
     state.eta = baselr * state.factor;
 
     if(factor > 0.0) {
-      if("batches" == options_->get<std::string>("lr-decay-strategy")) {
-        size_t start
-            = options_->get<std::vector<size_t>>("lr-decay-start").front();
-        size_t freq = options_->get<size_t>("lr-decay-freq");
+      if(options_->get<std::string>("lr-decay-strategy") == "batches") {
+        size_t start = options_->get<std::vector<size_t>>("lr-decay-start").front();
+        size_t freq  = options_->get<size_t>("lr-decay-freq"); // note: unlike e.g. disp-freq, this is always in batches
 
         if(start > 0 && freq > 0 && state.batches >= start
            && ((state.batches - start) % freq == 0)) {
@@ -398,7 +391,7 @@ public:
 
           if(options_->get<bool>("lr-decay-repeat-warmup")) {
             LOG(info, "Restarting learning rate warmup");
-            state.warmupStart = state.batches;
+            state.warmupStart.n = state.getProgressIn(SchedulingParameter::parse(options_->get<std::string>("lr-warmup")).unit);
           }
         }
       }
@@ -406,13 +399,12 @@ public:
 
     if(first_ && options_->get<bool>("lr-warmup-at-reload")) {
       LOG(info, "Restarting learning rate warmup");
-      state.warmupStart = state.batches;
+      state.warmupStart.n = state.getProgressIn(SchedulingParameter::parse(options_->get<std::string>("lr-warmup")).unit);
     }
 
     if(options_->get<bool>("lr-warmup-cycle")) {
-      size_t warmup = options_->get<size_t>("lr-warmup");
-      if(warmup > 0 && state.batches % warmup == 0)
-        state.warmupStart = state.batches;
+      if(state_->enteredNewPeriodOf(options_->get<std::string>("lr-warmup")))
+        state.warmupStart.n = state.getProgressIn(SchedulingParameter::parse(options_->get<std::string>("lr-warmup")).unit);
     }
 
     first_ = false;
@@ -443,7 +435,7 @@ public:
 
           if(options_->get<bool>("lr-decay-repeat-warmup")) {
             LOG(info, "Restarting learning rate warmup");
-            state.warmupStart = state.batches;
+            state.warmupStart.n = state.getProgressIn(SchedulingParameter::parse(options_->get<std::string>("lr-warmup")).unit);
           }
         }
       }

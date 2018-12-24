@@ -203,25 +203,18 @@ public:
 
   void swapParams(const std::vector<Tensor>& paramShards) const override {
     // Update all graphs with parameter shard
-    ABORT_IF(graphs_.size() < 2, "Swap requires at least two graphs");
-
+    
     auto gather = [this, paramShards](size_t idx, size_t begin, size_t end) {
-      ABORT_IF(end-begin != paramShards[idx]->size(), "inconsistent shard size (swapParams, [{}], {} vs {})??", idx, end-begin, paramShards[idx]->size());
+      ABORT_IF(end - begin != paramShards[idx]->size(), "inconsistent shard size (swapParams, [{}], {} vs {})??", idx, end-begin, paramShards[idx]->size());
       // Copy parameter shard to each graph, apart from last graph
       for(int i = 0; i < (int)graphs_.size() - 1; ++i) {
-        auto subParam
-            = graphs_[i]->params()->vals()->subtensor(begin, paramShards[idx]->size());
+        auto subParam = graphs_[i]->params()->vals()->subtensor(begin, paramShards[idx]->size());
         subParam->copyFrom(paramShards[idx]);
       }
 
-      // Back-up shard from last graph
-      auto subParamLast =
-          graphs_.back()->params()->vals()->subtensor(begin, paramShards[idx]->size());
-      paramShards[idx]->copyFrom(subParamLast);
-
-      auto subParamFirst
-          = graphs_[0]->params()->vals()->subtensor(begin, paramShards[idx]->size());
-      subParamLast->copyFrom(subParamFirst);
+      // Swap shard with corresponding share from last graph
+      auto subParamLast = graphs_.back()->params()->vals()->subtensor(begin, paramShards[idx]->size());
+      paramShards[idx]->swap(subParamLast);
     };
     // Execute for each shard
     foreach(gather);

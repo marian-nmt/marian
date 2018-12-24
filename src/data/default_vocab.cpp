@@ -1,6 +1,5 @@
 #include "data/vocab_base.h"
 
-#include "3rd_party/exception.h"
 #include "3rd_party/yaml-cpp/yaml.h"
 #include "common/logging.h"
 #include "common/regex.h"
@@ -31,14 +30,16 @@ private:
 
   class VocabFreqOrderer {
   private:
-    std::unordered_map<std::string, size_t>& counter_;
+    const std::unordered_map<std::string, size_t>& counter_;
 
   public:
-    VocabFreqOrderer(std::unordered_map<std::string, size_t>& counter)
-        : counter_(counter) {}
+    VocabFreqOrderer(const std::unordered_map<std::string, size_t>& counter)
+            : counter_(counter) {}
 
+    // order first by decreasing frequency, 
+    // if frequencies are the same order lexicographically by vocabulary string
     bool operator()(const std::string& a, const std::string& b) const {
-      return counter_[a] > counter_[b] || (counter_[a] == counter_[b] && a < b);
+      return counter_.at(a) > counter_.at(b) || (counter_.at(a) == counter_.at(b) && a < b);
     }
   };
 
@@ -81,7 +82,7 @@ public:
     return id2str_.size();
   }
 
-  int load(const std::string& vocabPath, int max) override {
+  size_t load(const std::string& vocabPath, size_t maxSize) override {
     bool isJson = regex::regex_search(vocabPath, regex::regex("\\.(json|yaml|yml)$"));
     LOG(info,
         "[data] Loading vocabulary from {} file {}",
@@ -118,12 +119,8 @@ public:
       auto str = pair.first;
       auto id = pair.second;
 
-      if(SPEC2SYM.count(str)) {
-        seenSpecial.insert(id);
-      }
-
       // note: this requires ids to be sorted by frequency
-      if(!max || id < (Word)max) {
+      if(!maxSize || id < (Word)maxSize) {
         insertWord(id, str);
       }
     }
@@ -175,11 +172,9 @@ public:
       };
       // @TODO: the hard-att code has not yet been updated to accept EOS at any id
       requireWord(DEFAULT_EOS_ID, DEFAULT_EOS_STR);
-      for(auto id : seenSpecial)
-        requireWord(id, SYM2SPEC.at(id));
     }
 
-    return std::max((int)id2str_.size(), max);
+    return std::max(id2str_.size(), maxSize);
   }
 
   // for fakeBatch()
@@ -188,52 +183,50 @@ public:
     unkId_ = insertWord(DEFAULT_UNK_ID, DEFAULT_UNK_STR);
   }
 
-  void create(const std::string& vocabPath, const std::string& trainPath) override {
-    LOG(info, "[data] Creating vocabulary {} from {}", vocabPath, trainPath);
+  virtual void create(const std::string& vocabPath,
+                      const std::vector<std::string>& trainPaths,
+                      size_t maxSize = 0) override {
 
-    filesystem::Path path(vocabPath);
-    auto dir = path.parentPath();
-    if(dir.empty())
-      dir = filesystem::currentPath();
+    LOG(info, "[data] Creating vocabulary {} from {}",
+              vocabPath,
+              utils::join(trainPaths, ", "));
 
-    ABORT_IF(!dir.empty() && !filesystem::isDirectory(dir),
-            "Specified vocab directory {} does not exist",
-            dir.string());
+    if(vocabPath != "stdout") {
+      filesystem::Path path(vocabPath);
+      auto dir = path.parentPath();
+      if(dir.empty())
+        dir = filesystem::currentPath();
 
-    ABORT_IF(!dir.empty() && !filesystem::canWrite(dir),
-            "No write permission in vocab directory {}",
-            dir.string());
+      ABORT_IF(!dir.empty() && !filesystem::isDirectory(dir),
+              "Specified vocab directory {} does not exist",
+              dir.string());
 
-    ABORT_IF(filesystem::exists(vocabPath),
-            "DefaultVocab file '{}' exists. Not overwriting",
-            path.string());
-
-    io::InputFileStream trainStrm(trainPath);
-    io::OutputFileStream vocabStrm(vocabPath);
-    create(trainStrm, vocabStrm);
+      ABORT_IF(filesystem::exists(vocabPath),
+              "Vocabulary file '{}' exists. Not overwriting",
+              path.string());
+    }
+    
+    std::unordered_map<std::string, size_t> counter;
+    for(const auto& trainPath : trainPaths)
+      addCounts(counter, trainPath);
+    create(vocabPath, counter, maxSize);
   }
 
-  void create(io::InputFileStream& trainStrm,
-              io::OutputFileStream& vocabStrm,
-              size_t maxSize = 0) override {
+private:
+
+  void addCounts(std::unordered_map<std::string, size_t>& counter,
+                 const std::string& trainPath) {
+    std::unique_ptr<io::InputFileStream> trainStrm(
+      trainPath == "stdin" ? new io::InputFileStream(std::cin)
+                           : new io::InputFileStream(trainPath)
+    );
+
     std::string line;
-    std::unordered_map<std::string, size_t> counter;
-
-    std::unordered_set<Word> seenSpecial;
-
-    while(getline((std::istream&)trainStrm, line)) {
+    while(getline(*trainStrm, line)) {
       std::vector<std::string> toks;
-
-      // we do not want any unexpected behavior during creation
-      // e.g. sampling, hence use inference mode
       utils::split(line, toks, " ");
 
       for(const std::string& tok : toks) {
-        if(SPEC2SYM.count(tok)) {
-          seenSpecial.insert(SPEC2SYM.at(tok));
-          continue;
-        }
-
         auto iter = counter.find(tok);
         if(iter == counter.end())
           counter[tok] = 1;
@@ -241,6 +234,11 @@ public:
           iter->second++;
       }
     }
+  }
+
+  void create(const std::string& vocabPath,
+              const std::unordered_map<std::string, size_t>& counter,
+              size_t maxSize = 0) {
 
     std::vector<std::string> vocabVec;
     for(auto& p : counter)
@@ -252,14 +250,7 @@ public:
     vocabYaml.force_insert(DEFAULT_EOS_STR, DEFAULT_EOS_ID);
     vocabYaml.force_insert(DEFAULT_UNK_STR, DEFAULT_UNK_ID);
 
-    for(auto word : seenSpecial)
-      vocabYaml.force_insert(SYM2SPEC.at(word), word);
-
     Word maxSpec = 1;
-    for(auto i : seenSpecial)
-      if(i > maxSpec)
-        maxSpec = i;
-
     auto vocabSize = vocabVec.size();
     if(maxSize > maxSpec)
       vocabSize = std::min(maxSize - maxSpec - 1, vocabVec.size());
@@ -267,10 +258,13 @@ public:
     for(size_t i = 0; i < vocabSize; ++i)
       vocabYaml.force_insert(vocabVec[i], i + maxSpec + 1);
 
-    vocabStrm << vocabYaml;
+    std::unique_ptr<io::OutputFileStream> vocabStrm(
+      vocabPath == "stdout" ? new io::OutputFileStream(std::cout)
+                            : new io::OutputFileStream(vocabPath)
+    );
+    *vocabStrm << vocabYaml;
   }
 
-private:
   Words operator()(const std::vector<std::string>& lineTokens,
                    bool addEOS) const {
     Words words(lineTokens.size());

@@ -62,5 +62,3 @@ examples/mnist/*ubyte
 .vs
 .vscode
 
-# SentencePiece is automatically downloaded when requested
-src/3rd_party/sentencepiece/

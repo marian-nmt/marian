@@ -56,15 +56,6 @@ public:
 
   virtual size_t size() { return shape_.elements(); }
 
-  virtual float scalar() {
-    ABORT_IF(!matchType<float>(type_),
-             "Requested type ({}) and underlying type ({}) do not match",
-             request<float>(),
-             type_);
-    ABORT_IF(size() != 1, "Tensor is not a scalar");
-    return get(0);
-  }
-
   template <typename T>
   T scalar() {
     ABORT_IF(!matchType<T>(type_),
@@ -76,6 +67,10 @@ public:
     return get<T>(0);
   }
 
+  virtual float scalar() {
+    return scalar<float>();
+  }
+
   Ptr<Backend> getBackend() { return backend_; }
   DeviceId getDeviceId() { return backend_->getDeviceId(); }
 
@@ -85,24 +80,6 @@ public:
     return New<TensorBase>(mem, Shape{1, (int)size}, backend_);
   }
 
-  float get(size_t i) {
-    ABORT_IF(!matchType<float>(type_),
-             "Requested type ({}) and underlying type ({}) do not match",
-             request<float>(),
-             type_);
-
-    float temp = 0; // (initialize to keep compiler happy)
-    if(backend_->getDeviceId().type == DeviceType::cpu) {
-      std::copy(data() + i, data() + i + 1, &temp);
-    }
-#ifdef CUDA_FOUND
-    else {
-      gpu::copy(backend_, data() + i, data() + i + 1, &temp);
-    }
-#endif
-    return temp;
-  }
-
   template <typename T>
   T get(size_t i) {
     ABORT_IF(!matchType<T>(type_),
@@ -110,7 +87,7 @@ public:
              request<T>(),
              type_);
 
-    T temp;
+    T temp = 0;
     if(backend_->getDeviceId().type == DeviceType::cpu) {
       std::copy(data<T>() + i, data<T>() + i + 1, &temp);
     }
@@ -120,6 +97,10 @@ public:
     }
 #endif
     return temp;
+  }
+
+  float get(size_t i) {
+    return get<float>(i);
   }
 
   template <typename T>
@@ -228,24 +209,95 @@ public:
 #endif
   }
 
+  template <typename T>
   void copyFrom(Tensor in) {
-    // @TODO: solve this later
-    ABORT_IF(!matchType<float>(type_),
+    ABORT_IF(in->shape() != shape_, "Can only copy tensors with equal shapes ({} != {})", in->shape(), shape_);
+    ABORT_IF(in->type()  != type_,  "Can only copy tensors with equal types ({} != {})",  in->type(),  type_);
+    ABORT_IF(!matchType<T>(type_),
              "Requested type ({}) and underlying type ({}) do not match",
-             request<float>(),
+             request<T>(),
              type_);
 
     if(in->getBackend()->getDeviceId().type == DeviceType::cpu
        && backend_->getDeviceId().type == DeviceType::cpu) {
-      std::copy(in->data(), in->data() + in->size(), data());
+      std::copy(in->data<T>(), in->data<T>() + in->size(), data<T>());
     }
 #ifdef CUDA_FOUND
     else {
-      gpu::copy(backend_, in->data(), in->data() + in->size(), data());
+      gpu::copy(backend_, in->data<T>(), in->data<T>() + in->size(), data<T>());
     }
 #endif
   }
 
+  void copyFrom(Tensor in) {
+     switch(type_) {
+      case Type::int8:    copyFrom<int8_t>(in);  break;
+      case Type::int16:   copyFrom<int16_t>(in); break;
+      case Type::int32:   copyFrom<int32_t>(in); break;
+      case Type::int64:   copyFrom<int64_t>(in); break;
+
+      case Type::uint8:   copyFrom<uint8_t>(in);  break;
+      case Type::uint16:  copyFrom<uint16_t>(in); break;
+      case Type::uint32:  copyFrom<uint32_t>(in); break;
+      case Type::uint64:  copyFrom<uint64_t>(in); break;
+
+      case Type::float32: copyFrom<float>(in);  break;
+      case Type::float64: copyFrom<double>(in); break;
+
+      default: ABORT("Unknown type {}", type_);
+    }
+  }
+
+  // Swaps the contents of the current tensor with the argument tensor
+  template <typename T>
+  void swap(Tensor swapee) {
+    ABORT_IF(swapee->shape() != shape_, "Can only swap tensors with equal shapes ({} != {})", swapee->shape(), shape_);
+    ABORT_IF(swapee->type()  != type_,  "Can only swap tensors with equal types ({} != {})",  swapee->type(),  type_);
+    ABORT_IF(!matchType<T>(type_),
+             "Requested type ({}) and underlying type ({}) do not match",
+             request<T>(),
+             type_);
+
+    // we live on CPUs; just use stdlib
+    if(swapee->getBackend()->getDeviceId().type == DeviceType::cpu
+       && backend_->getDeviceId().type == DeviceType::cpu) {
+      std::swap_ranges(swapee->data<T>(), swapee->data<T>() + swapee->size(), data<T>());
+    }
+#ifdef CUDA_FOUND
+    else {
+      if(backend_->getDeviceId() == swapee->getBackend()->getDeviceId()) {
+        // we live on the same GPU; do an element-wise swap
+        gpu::swap_ranges(backend_, swapee->data<T>(), swapee->data<T>() + swapee->size(), data<T>());
+      } else {
+        // we live on two different GPUs or devices; go through CPU RAM
+        std::vector<T> temp;
+        get(temp);
+        copyFrom(swapee);
+        swapee->set(temp);
+      }
+    }
+#endif
+  }
+
+  void swap(Tensor swapee) {
+     switch(type_) {
+      case Type::int8:    swap<int8_t>(swapee);  break;
+      case Type::int16:   swap<int16_t>(swapee); break;
+      case Type::int32:   swap<int32_t>(swapee); break;
+      case Type::int64:   swap<int64_t>(swapee); break;
+
+      case Type::uint8:   swap<uint8_t>(swapee);  break;
+      case Type::uint16:  swap<uint16_t>(swapee); break;
+      case Type::uint32:  swap<uint32_t>(swapee); break;
+      case Type::uint64:  swap<uint64_t>(swapee); break;
+
+      case Type::float32: swap<float>(swapee);  break;
+      case Type::float64: swap<double>(swapee); break;
+
+      default: ABORT("Unknown type {}", type_);
+    }
+  }
+  
   template <typename T>
   std::string debug() {
     ABORT_IF(!matchType<T>(type_),

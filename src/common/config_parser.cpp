@@ -6,7 +6,6 @@
 #include "common/file_stream.h"
 #include "common/logging.h"
 #include "common/utils.h"
-#include "3rd_party/exception.h"
 
 #include <algorithm>
 #include <set>
@@ -78,8 +77,9 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
      "allow the use of environment variables in paths, of the form ${VAR_NAME}");
   cli.add<bool>("--relative-paths",
      "All paths are relative to the config file location");
-  cli.add<bool>("--dump-config",
-     "Dump current (modified) configuration to stdout and exit");
+  cli.add_nondefault<std::string>("--dump-config",
+     "Dump current (modified) configuration to stdout and exit. Possible values: full, minimal")
+    ->implicit_val("full");
   // clang-format on
 }
 
@@ -89,10 +89,10 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
   // clang-format off
   if(mode_ == cli::mode::translation) {
     cli.add<std::vector<std::string>>("--models,-m",
-      "Paths to model(s) to be loaded");
+      "Paths to model(s) to be loaded. Supported file extensions: .npz, .bin");
   } else {
     cli.add<std::string>("--model,-m",
-      "Path prefix for model to be saved/resumed",
+      "Path prefix for model to be saved/resumed. Supported file extensions: .npz, .bin",
       "model.npz");
 
     if(mode_ == cli::mode::training) {
@@ -243,7 +243,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<std::string>("--cost-type",
       "Optimization criterion: ce-mean, ce-mean-words, ce-sum, perplexity", "ce-mean");
   cli.add<bool>("--overwrite",
-      "Overwrite model with following checkpoints");
+      "Do not create model checkpoints, only overwrite main model file with last checkpoint. "
+      "Reduces disk usage");
   cli.add<bool>("--no-reload",
       "Do not load existing model specified in --model arg");
   cli.add<std::vector<std::string>>("--train-sets,-t",
@@ -255,24 +256,29 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "If these files do not exist they are created");
 #ifdef USE_SENTENCEPIECE
   cli.add<std::vector<float>>("--sentencepiece-alphas",
-                              "Sampling factors for SentencePieceVocab;"
-                              "i-th factor corresponds to i-th vocabulary");
+      "Sampling factors for SentencePiece vocabulary; i-th factor corresponds to i-th vocabulary");
+  cli.add<std::string>("--sentencepiece-options",
+      "Pass-through command-line options to SentencePiece trainer");
+  cli.add<size_t>("--sentencepiece-max-lines",
+      "Maximum lines to train SentencePiece vocabulary, selected with sampling from all data. "
+      "When set to 0 all lines are going to be used.",
+      10000000);
 #endif
   // scheduling options
   cli.add<size_t>("--after-epochs,-e",
       "Finish after this many epochs, 0 is infinity");
   cli.add<size_t>("--after-batches",
       "Finish after this many batch updates, 0 is infinity");
-  cli.add<size_t>("--disp-freq",
-      "Display information every  arg  updates",
-      1000);
+  cli.add<std::string/*SchedulerPeriod*/>("--disp-freq",
+      "Display information every  arg  updates (append 't' for every  arg  target labels)",
+      "1000u");
   cli.add<size_t>("--disp-first",
       "Display nformation for the first  arg  updates");
   cli.add<bool>("--disp-label-counts",
       "Display label counts when logging loss progress");
-  cli.add<size_t>("--save-freq",
-      "Save model file every  arg  updates",
-      10000);
+  cli.add<std::string/*SchedulerPeriod*/>("--save-freq",
+      "Save model file every  arg  updates (append 't' for every  arg  target labels)",
+      "10000u");
 
   addSuboptionsInputLength(cli);
 
@@ -315,12 +321,12 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "Report learning rate for each update");
 
   cli.add<double>("--lr-decay",
-     "Decay factor for learning rate: lr = lr * arg (0 to disable)");
+     "Per-update decay factor for learning rate: lr <- lr * arg (0 to disable)");
   cli.add<std::string>("--lr-decay-strategy",
      "Strategy for learning rate decaying: epoch, batches, stalled, epoch+batches, epoch+stalled",
      "epoch+stalled");
   cli.add<std::vector<size_t>>("--lr-decay-start",
-     "The first number of epoch/batches/stalled validations to start learning rate decaying",
+     "The first number of (epoch, batches, stalled) validations to start learning rate decaying (tuple)",
      std::vector<size_t>({10,1}));
   cli.add<size_t>("--lr-decay-freq",
      "Learning rate decaying frequency for batches, requires --lr-decay-strategy to be batches",
@@ -329,11 +335,13 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "Reset running statistics of optimizer whenever learning rate decays");
   cli.add<bool>("--lr-decay-repeat-warmup",
      "Repeat learning rate warmup when learning rate is decayed");
-  cli.add<size_t>("--lr-decay-inv-sqrt",
-     "Decrease learning rate at arg / sqrt(no. updates) starting at arg");
+  cli.add<std::string/*SchedulerPeriod*/>("--lr-decay-inv-sqrt",
+     "Decrease learning rate at arg / sqrt(no. batches) starting at arg  (append 't' or 'e' for sqrt(target labels or epochs))",
+      "0");
 
-  cli.add<size_t>("--lr-warmup",
-     "Increase learning rate linearly for arg first steps");
+  cli.add<std::string/*SchedulerPeriod*/>("--lr-warmup",
+     "Increase learning rate linearly for  arg  first batches (append 't' for  arg  first target labels)",
+      "0");
   cli.add<float>("--lr-warmup-start-rate",
      "Start value for learning rate warmup");
   cli.add<bool>("--lr-warmup-cycle",
@@ -354,10 +362,10 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "none");
   cli.add<std::string>("--guided-alignment-cost",
      "Cost type for guided alignment: ce (cross-entropy), mse (mean square error), mult (multiplication)",
-     "ce");
+     "mse");
   cli.add<double>("--guided-alignment-weight",
      "Weight for guided alignment cost",
-     1);
+     0.1);
   cli.add_nondefault<std::string>("--data-weighting",
      "Path to a file with sentence or word weights");
   cli.add<std::string>("--data-weighting-type",
@@ -390,12 +398,12 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
   // clang-format off
   cli.add_nondefault<std::vector<std::string>>("--valid-sets",
       "Paths to validation corpora: source target");
-  cli.add<size_t>("--valid-freq",
-      "Validate model every  arg  updates",
-      10000);
+  cli.add<std::string/*SchedulerPeriod*/>("--valid-freq",
+      "Validate model every  arg  updates (append 't' for every  arg  target labels)",
+      "10000u");
   cli.add<std::vector<std::string>>("--valid-metrics",
-      "Metric to use during validation: cross-entropy, perplexity, valid-script, translation."
-      " Multiple metrics can be specified",
+      "Metric to use during validation: cross-entropy, ce-mean-words, perplexity, valid-script, "
+      " translation, bleu, bleu-detok. Multiple metrics can be specified",
       std::vector<std::string>({"cross-entropy"}));
   cli.add<size_t>("--early-stopping",
      "Stop if the first validation metric does not improve for  arg  consecutive validation steps",
@@ -450,7 +458,7 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
       "Paths to input file(s), stdin by default",
       std::vector<std::string>({"stdin"}));
   cli.add<std::string>("--output,-o",
-      "Paths to output file(s), stdout by default",
+      "Path to output file, stdout by default",
       "stdout");
   cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --input");
@@ -509,6 +517,9 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
   // TODO: move options like vocabs and train-sets to a separate procedure as they are defined twice
   cli.add<std::vector<std::string>>("--train-sets,-t",
       "Paths to corpora to be scored: source target");
+  cli.add<std::string>("--output,-o",
+      "Path to output file, stdout by default",
+      "stdout");
   cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --train-sets."
       " If this parameter is not supplied we look for vocabulary files source.{yml,json} and target.{yml,json}."
@@ -517,6 +528,8 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
       "Score n-best list instead of plain text corpus");
   cli.add<std::string>("--n-best-feature",
       "Feature name to be inserted into n-best list", "Score");
+  cli.add<bool>("--normalize,-n",
+      "Divide translation score by translation length");
   cli.add_nondefault<std::string>("--summary",
       "Only print total cost, possible values: cross-entropy (ce-mean), ce-mean-words, ce-sum, perplexity")
       ->implicit_val("cross-entropy");
@@ -539,7 +552,7 @@ void ConfigParser::addSuboptionsDevices(cli::CLIWrapper& cli) {
       "Specifies GPU ID(s) to use for training. Defaults to 0..num-devices-1",
       std::vector<std::string>({"0"}));
   cli.add_nondefault<size_t>("--num-devices",
-      "Number of GPUs to use for this process. Defaults to length(devices) or 1.");
+      "Number of GPUs to use for this process. Defaults to length(devices) or 1");
 #ifdef USE_NCCL
   if(mode_ == cli::mode::training)
     cli.add<bool>("--no-nccl",
@@ -560,13 +573,17 @@ void ConfigParser::addSuboptionsDevices(cli::CLIWrapper& cli) {
 void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
   int defaultMiniBatch = (mode_ == cli::mode::translation) ? 1 : 64;
   int defaultMaxiBatch = (mode_ == cli::mode::translation) ? 1 : 100;
-  std::string defaultMaxiBatchSort
-      = (mode_ == cli::mode::translation) ? "none" : "trg";
+  std::string defaultMaxiBatchSort = (mode_ == cli::mode::translation) ? "none" : "trg";
 
   // clang-format off
   cli.add<int>("--mini-batch",
-      "Size of mini-batch used during update",
-      defaultMiniBatch);
+               // set accurate help messages for translation, scoring, or training
+               (mode_ == cli::mode::translation)
+                   ? "Size of mini-batch used during batched translation" :
+               (mode_ == cli::mode::scoring)
+                   ? "Size of mini-batch used during batched scoring"
+                   : "Size of mini-batch used during update",
+               defaultMiniBatch);
   cli.add<int>("--mini-batch-words",
       "Set mini-batch size based on words instead of sentences");
 
@@ -584,6 +601,9 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
   cli.add<std::string>("--maxi-batch-sort",
       "Sorting strategy for maxi-batch: none, src, trg (not available for decoder)",
       defaultMaxiBatchSort);
+
+  cli.add<bool>("--shuffle-in-ram",
+      "Keep shuffled corpus in RAM, do not write to temp file");
   // clang-format on
 }
 
@@ -598,8 +618,40 @@ void ConfigParser::addSuboptionsInputLength(cli::CLIWrapper& cli) {
   // clang-format on
 }
 
+void ConfigParser::addSuboptionsULR(cli::CLIWrapper& cli) {
+  // clang-format off
+  // support for universal encoder ULR https://arxiv.org/pdf/1802.05368.pdf
+  cli.add<bool>("--ulr",
+      "Enable ULR (Universal Language Representation)",
+      false);
+  // reading pre-trained universal embeddings for multi-sources.
+  // Note that source and target here is relative to ULR not the translation langs
+  // queries: EQ in Fig2 : is the unified embeddings projected to one space.
+  cli.add<std::string>("--ulr-query-vectors",
+      "Path to file with universal sources embeddings from projection into universal space",
+      "");
+  // keys: EK in Fig2 : is the keys of the target embbedings projected to unified space (i.e. ENU in
+  // multi-lingual case)
+  cli.add<std::string>("--ulr-keys-vectors",
+      "Path to file with universal sources embeddings of traget keys from projection into universal space",
+      "");
+  cli.add<bool>("--ulr-trainable-transformation",
+      "Make Query Transformation Matrix A trainable",
+      false);
+  cli.add<int>("--ulr-dim-emb",
+      "ULR monolingual embeddings dimension");
+  cli.add<float>("--ulr-dropout",
+      "ULR dropout on embeddings attentions. Default is no dropout",
+      0.0f);
+  cli.add<float>("--ulr-softmax-temperature",
+      "ULR softmax temperature to control randomness of predictions. Deafult is 1.0: no temperature",
+      1.0f);
+  // clang-format on
+}
+
 void ConfigParser::expandAliases(cli::CLIWrapper& cli) {
   YAML::Node config;
+  // The order of aliases does matter as later options overwrite earlier
 
   if(config_["best-deep"].as<bool>()) {
     config["layer-normalization"] = true;
@@ -613,11 +665,10 @@ void ConfigParser::expandAliases(cli::CLIWrapper& cli) {
     config["skip"] = true;
   }
 
-  // @TODO: Quite sure CLIWrapper should not do that;
-  // that's semantics that seem to belong into the current class
-  // and has not really anything to do with CLI proper.
-  if(config)
-    cli.overwriteDefault(config);
+  if(config) {
+    auto success = cli.updateConfig(config);
+    ABORT_IF(!success, "Unknown option(s) in aliases, check if aliases consist of correct options");
+  }
 }
 
 void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
@@ -652,8 +703,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   auto configPaths = findConfigPaths();
   if(!configPaths.empty()) {
     auto config = loadConfigFiles(configPaths);
-    // combine loaded options with the main config object
-    cli.overwriteDefault(config);
+    auto success = cli.updateConfig(config);
+    ABORT_IF(!success, "There are option(s) in a config file that are not expected");
   }
 
   if(get<bool>("interpolate-env-vars")) {
@@ -661,24 +712,17 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
 
   if(doValidate) {
-    try {
-      ConfigValidator validator(config_);
-      validator.validateOptions(mode_);
-    } catch(util::Exception& e) {
-      std::cerr << "Error: " << e.what() << std::endl << std::endl;
-      std::cerr << "Usage: " + std::string(argv[0]) + " [options]" << std::endl;
-      exit(1);
-    }
+    // this aborts the program on first validation error
+    ConfigValidator(config_).validateOptions(mode_);
   }
 
   // remove extra config files from the config to avoid redundancy
   config_.remove("config");
 
-  if(get<bool>("dump-config")) {
+  if(has("dump-config") && get<std::string>("dump-config") != "false") {
+    bool skipDefault = get<std::string>("dump-config") == "minimal";
     config_.remove("dump-config");
-    YAML::Emitter emit;
-    cli::OutputYaml(config_, emit);
-    std::cout << emit.c_str() << std::endl;
+    std::cout << cli.dumpConfig(skipDefault) << std::endl;
     exit(0);
   }
 
@@ -711,8 +755,7 @@ std::vector<std::string> ConfigParser::findConfigPaths() {
   return paths;
 }
 
-YAML::Node ConfigParser::loadConfigFiles(
-    const std::vector<std::string>& paths) {
+YAML::Node ConfigParser::loadConfigFiles(const std::vector<std::string>& paths) {
   YAML::Node configAll;
 
   for(auto& path : paths) {
@@ -746,34 +789,5 @@ YAML::Node ConfigParser::loadConfigFiles(
 
 YAML::Node ConfigParser::getConfig() const {
   return config_;
-}
-
-void ConfigParser::addSuboptionsULR(cli::CLIWrapper& cli) {
-  // support for universal encoder ULR https://arxiv.org/pdf/1802.05368.pdf
-  cli.add<bool>("--ulr",
-      "Is ULR (Universal Language Representation) enabled?",
-      false);
-  // reading pre-trained universal embedings for multi-sources
-  // note that source and target here is relative to ULR not the translation  langs
-  //queries: EQ in Fig2 :  is the unified embbedins projected to one space.
-  //"Path to file with universal sources embeddings from projection into universal space")
-  cli.add<std::string>("--ulr-query-vectors",
-      "Path to file with universal sources embeddings from projection into universal space",
-      "");
-  //keys: EK in Fig2 :  is the keys of the target  embbedins projected to unified  space (i.e. ENU in multi-lingual case)
-  cli.add<std::string>("--ulr-keys-vectors",
-      "Path to file with universal sources embeddings of traget keys from projection into universal space",
-      "");
-  cli.add<bool>("--ulr-trainable-transformation",
-      "Is Query Transformation Matrix A trainable ?",
-      false);
-  cli.add<int>("--ulr-dim-emb",
-      "ULR mono embed dim");
-  cli.add<float>("--ulr-dropout",
-      "ULR dropout on embeddings attentions: default is no dropuout",
-      0.0f);
-  cli.add<float>("--ulr-softmax-temperature",
-      "ULR softmax temperature to control randomness of predictions- deafult is 1.0: no temperature ",
-      1.0f);
 }
 }  // namespace marian

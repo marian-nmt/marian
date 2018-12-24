@@ -28,8 +28,6 @@ add_library(marian STATIC
   data/text_input.cpp
 
   3rd_party/cnpy/cnpy.cpp
-  3rd_party/exception.cpp
-  3rd_party/svd/svd.cpp
   3rd_party/ExceptionWithCallStack.cpp
 
   tensors/backend.cpp
@@ -60,6 +58,7 @@ add_library(marian STATIC
 
   models/model_factory.cpp
   models/encoder_decoder.cpp
+  models/transformer_stub.cpp
 
   rescorer/score_collector.cpp
 
@@ -84,7 +83,10 @@ add_library(marian STATIC
 
   $<TARGET_OBJECTS:libyaml-cpp>
   $<TARGET_OBJECTS:SQLiteCpp>
+  $<TARGET_OBJECTS:pathie-cpp>
+  $<TARGET_OBJECTS:zlib>
 )
+target_compile_options(marian PUBLIC ${ALL_WARNINGS})
 
 # Generate git_revision.h to reflect current git revision information
 # [https://stackoverflow.com/questions/1435953/how-can-i-pass-git-sha1-to-compiler-as-definition-using-cmake]
@@ -111,25 +113,32 @@ cuda_add_library(marian_cuda
   training/gradient_dropping/gpu/dropper.cu
   training/gradient_dropping/gpu/sparse_algorithm.cu
   STATIC)
+
+  target_compile_options(marian_cuda PUBLIC ${ALL_WARNINGS})
 endif(CUDA_FOUND)
 
 set_target_properties(marian PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set_target_properties(marian PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
-add_executable(marian_train command/marian.cpp)
+add_executable(marian_train command/marian_main.cpp)
 set_target_properties(marian_train PROPERTIES OUTPUT_NAME marian)
+target_compile_options(marian_train PUBLIC ${ALL_WARNINGS})
 
 add_executable(marian_decoder command/marian_decoder.cpp)
 set_target_properties(marian_decoder PROPERTIES OUTPUT_NAME marian-decoder)
+target_compile_options(marian_decoder PUBLIC ${ALL_WARNINGS})
 
 add_executable(marian_scorer command/marian_scorer.cpp)
 set_target_properties(marian_scorer PROPERTIES OUTPUT_NAME marian-scorer)
+target_compile_options(marian_scorer PUBLIC ${ALL_WARNINGS})
 
 add_executable(marian_vocab command/marian_vocab.cpp)
 set_target_properties(marian_vocab PROPERTIES OUTPUT_NAME marian-vocab)
+target_compile_options(marian_vocab PUBLIC ${ALL_WARNINGS})
 
 add_executable(marian_conv command/marian_conv.cpp)
 set_target_properties(marian_conv PROPERTIES OUTPUT_NAME marian-conv)
+target_compile_options(marian_conv PUBLIC ${ALL_WARNINGS})
 
 set(EXECUTABLES ${EXECUTABLES} marian_train marian_decoder marian_scorer marian_vocab marian_conv)
 
@@ -160,13 +169,13 @@ if(USE_STATIC_LIBS)
                 "marian-conv"
     DEPENDS marian_train marian_decoder marian_scorer marian_vocab marian_conv)
   add_custom_target(marian_tgz DEPENDS "${CMAKE_BINARY_DIR}/marian.tgz")
-
   add_custom_target(philly DEPENDS marian_tgz marian_zip)
-endif()
+endif(USE_STATIC_LIBS)
 
 if(COMPILE_SERVER)
   add_executable(marian_server command/marian_server.cpp)
   set_target_properties(marian_server PROPERTIES OUTPUT_NAME marian-server)
+  target_compile_options(marian_server PUBLIC ${ALL_WARNINGS})
   set(EXECUTABLES ${EXECUTABLES} marian_server)
 endif(COMPILE_SERVER)
 
@@ -174,7 +183,6 @@ foreach(exec ${EXECUTABLES})
   target_link_libraries(${exec} marian ${EXT_LIBS} ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
   if(CUDA_FOUND)
     target_link_libraries(${exec} marian marian_cuda ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
-    cuda_add_cublas_to_target(${exec})
   endif(CUDA_FOUND)
   set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endforeach(exec)

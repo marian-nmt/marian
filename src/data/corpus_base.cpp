@@ -75,10 +75,14 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
       if(maxVocabs.size() < paths_.size())
         maxVocabs.resize(paths_.size(), 0);
 
+      LOG(info, "No vocabulary files given, trying to find or build based on training data. "
+                "Vocabularies will be built separately for each file.");
+
       // Create vocabs if not provided
       for(size_t i = 0; i < paths_.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>(options_, i);
-        int vocSize = vocab->loadOrCreate("", paths_[i], maxVocabs[i]);
+        std::vector<std::string> trainPaths = { paths_[i] };
+        size_t vocSize = vocab->loadOrCreate("", trainPaths, maxVocabs[i]);
         // TODO: this is not nice as it modifies the option object and needs to expose the changes
         // outside the corpus as models need to know about the vocabulary size; extract the vocab
         // creation functionality from the class.
@@ -92,9 +96,31 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
       if(maxVocabs.size() < vocabPaths.size())
         maxVocabs.resize(paths_.size(), 0);
 
+      // Helper object to for grouping training data based on vocabulary file name
+      struct PathsAndSize {
+        std::set<std::string> paths; // contains all paths that are used for training the vocabulary
+        size_t size;                 // contains the maximum vocabulary size
+      };
+      
+      // Group training files based on vocabulary path. If the same
+      // vocab path corresponds to different training files, this means
+      // that a single vocab should combine tokens from all files.
+      std::map<std::string, PathsAndSize> groupVocab;
+      for(size_t i = 0; i < vocabPaths.size(); ++i) {
+        groupVocab[vocabPaths[i]].paths.insert(paths_[i]);
+        if(groupVocab[vocabPaths[i]].size < maxVocabs[i])
+          groupVocab[vocabPaths[i]].size = maxVocabs[i];
+      }
+
       for(size_t i = 0; i < vocabPaths.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>(options_, i);
-        int vocSize = vocab->loadOrCreate(vocabPaths[i], paths_[i], maxVocabs[i]);
+
+        // Get the set of files that corresponds to the vocab. If the next file is the same vocab,
+        // it wild not be created again, but just correctly loaded.
+        auto pathsAndSize = groupVocab[vocabPaths[i]];
+        std::vector<std::string> groupedPaths(pathsAndSize.paths.begin(), pathsAndSize.paths.end());
+        size_t vocSize = vocab->loadOrCreate(vocabPaths[i], groupedPaths, pathsAndSize.size);
+        
         // TODO: this is not nice as it modifies the option object and needs to expose the changes
         // outside the corpus as models need to know about the vocabulary size; extract the vocab
         // creation functionality from the class.
@@ -114,7 +140,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
 
     for(size_t i = 0; i + 1 < vocabPaths.size(); ++i) {
       Ptr<Vocab> vocab = New<Vocab>(options_, i);
-      int vocSize = vocab->load(vocabPaths[i], maxVocabs[i]);
+      size_t vocSize = vocab->load(vocabPaths[i], maxVocabs[i]);
       options_->getYaml()["dim-vocabs"][i] = vocSize;
 
       vocabs_.emplace_back(vocab);
@@ -213,7 +239,7 @@ void CorpusBase::addWeightsToSentenceTuple(const std::string& line, SentenceTupl
 }
 
 void CorpusBase::addAlignmentsToBatch(Ptr<CorpusBatch> batch,
-                                      const std::vector<sample>& batchVector) {
+                                      const std::vector<Sample>& batchVector) {
   int srcWords = (int)batch->front()->batchWidth();
   int trgWords = (int)batch->back()->batchWidth();
   int dimBatch = (int)batch->getSentenceIds().size();
@@ -230,7 +256,7 @@ void CorpusBase::addAlignmentsToBatch(Ptr<CorpusBatch> batch,
 }
 
 void CorpusBase::addWeightsToBatch(Ptr<CorpusBatch> batch,
-                                   const std::vector<sample>& batchVector) {
+                                   const std::vector<Sample>& batchVector) {
   int dimBatch = (int)batch->size();
   int trgWords = (int)batch->back()->batchWidth();
 
