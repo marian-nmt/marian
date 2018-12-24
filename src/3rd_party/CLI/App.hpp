@@ -1613,8 +1613,10 @@ class App {
 
             if(emptyVectorArgs) {
                 if(op->get_implicit()) {
-                    op->add_result(op->get_implicitval());
-                    parse_order_.push_back(op.get());
+                    for(const auto& ival : detail::split_up(op->get_implicitval())) {
+                        op->add_result(ival);
+                        parse_order_.push_back(op.get());
+                    }
                 } else if (op->get_expected() < 0) {
                     parse_order_.push_back(op.get());
                     throw ArgumentMismatch(op->get_name(), op->get_expected(), 0);
