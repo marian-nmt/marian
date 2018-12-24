@@ -337,7 +337,7 @@ public:
       batch->setGuidedAlignment(std::move(alignment));
     }
 
-    if(options->has("data-weighting")) {
+    if(options->nonempty("data-weighting")) {
       auto weightsSize = batchSize;
       if(options->get<std::string>("data-weighting-type") != "sentence")
         weightsSize *= lengths.back();

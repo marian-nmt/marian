@@ -22,7 +22,8 @@
 
 namespace marian {
 
-// TODO: move to CLIWrapper
+// TODO: Move this to CLIWrapper and allow to mark options as paths in the same place they are
+// defined
 // clang-format off
 const std::set<std::string> PATHS = {
   "model",
@@ -58,12 +59,12 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   cli.add<size_t>("--workspace,-w",
       "Preallocate  arg  MB of work space",
       defaultWorkspace);
-  cli.add_nondefault<std::string>("--log",
+  cli.add<std::string>("--log",
      "Log training process information to file given by  arg");
   cli.add<std::string>("--log-level",
      "Set verbosity level of logging: trace, debug, info, warn, err(or), critical, off",
      "info");
-  cli.add_nondefault<std::string>("--log-time-zone",
+  cli.add<std::string>("--log-time-zone",
      "Set time zone for the date shown on logging");
   cli.add<bool>("--quiet",
      "Suppress all logging to stderr. Logging to files still works");
@@ -77,9 +78,17 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
      "allow the use of environment variables in paths, of the form ${VAR_NAME}");
   cli.add<bool>("--relative-paths",
      "All paths are relative to the config file location");
-  cli.add_nondefault<std::string>("--dump-config",
+  cli.add<std::string>("--dump-config",
      "Dump current (modified) configuration to stdout and exit. Possible values: full, minimal")
     ->implicit_val("full");
+  // clang-format on
+}
+
+void ConfigParser::addOptionsServer(cli::CLIWrapper& cli) {
+  // clang-format off
+  cli.add<size_t>("--port,-p",
+      "Port number for web socket server",
+      8080);
   // clang-format on
 }
 
@@ -96,7 +105,7 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "model.npz");
 
     if(mode_ == cli::mode::training) {
-      cli.add_nondefault<std::string>("--pretrained-model",
+      cli.add<std::string>("--pretrained-model",
         "Path prefix for pre-trained model to initialize model weights");
     }
   }
@@ -145,8 +154,6 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "Train right-to-left model");
   cli.add<bool>("--best-deep",
       "Use Edinburgh deep RNN configuration (s2s)");
-  cli.add_nondefault<std::vector<size_t>>("--special-vocab",
-      "Model-specific special vocabulary ids");
   cli.add<bool>("--tied-embeddings",
       "Tie target embeddings and output embeddings in output layer");
   cli.add<bool>("--tied-embeddings-src",
@@ -273,7 +280,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "Display information every  arg  updates (append 't' for every  arg  target labels)",
       "1000u");
   cli.add<size_t>("--disp-first",
-      "Display nformation for the first  arg  updates");
+      "Display information for the first  arg  updates");
   cli.add<bool>("--disp-label-counts",
       "Display label counts when logging loss progress");
   cli.add<std::string/*SchedulerPeriod*/>("--save-freq",
@@ -304,7 +311,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<std::string>("--optimizer,-o",
      "Optimization algorithm: sgd, adagrad, adam",
      "adam");
-  cli.add_nondefault<std::vector<float>>("--optimizer-params",
+  cli.add<std::vector<float>>("--optimizer-params",
      "Parameters for optimization algorithm, e.g. betas for adam");
   cli.add<size_t>("--optimizer-delay",
      "SGD update delay, 1 = no delay",
@@ -366,14 +373,14 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<double>("--guided-alignment-weight",
      "Weight for guided alignment cost",
      0.1);
-  cli.add_nondefault<std::string>("--data-weighting",
+  cli.add<std::string>("--data-weighting",
      "Path to a file with sentence or word weights");
   cli.add<std::string>("--data-weighting-type",
      "Processing level for data weighting: sentence, word",
      "sentence");
 
   // embedding options
-  cli.add_nondefault<std::vector<std::string>>("--embedding-vectors",
+  cli.add<std::vector<std::string>>("--embedding-vectors",
      "Paths to files with custom source and target embedding vectors");
   cli.add<bool>("--embedding-normalization",
      "Normalize values from custom embedding vectors to [-1, 1]");
@@ -396,7 +403,7 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
   cli.switchGroup("Validation set options");
 
   // clang-format off
-  cli.add_nondefault<std::vector<std::string>>("--valid-sets",
+  cli.add<std::vector<std::string>>("--valid-sets",
       "Paths to validation corpora: source target");
   cli.add<std::string/*SchedulerPeriod*/>("--valid-freq",
       "Validate model every  arg  updates (append 't' for every  arg  target labels)",
@@ -435,17 +442,17 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
       1000);
 
   // options for validation script
-  cli.add_nondefault<std::string>("--valid-script-path",
+  cli.add<std::string>("--valid-script-path",
      "Path to external validation script."
      " It should print a single score to stdout."
      " If the option is used with validating translation, the output"
      " translation file will be passed as a first argument");
-  cli.add_nondefault<std::string>("--valid-translation-output",
+  cli.add<std::string>("--valid-translation-output",
      "Path to store the translation");
 
   cli.add<bool>("--keep-best",
       "Keep best model for each validation metric");
-  cli.add_nondefault<std::string>("--valid-log",
+  cli.add<std::string>("--valid-log",
      "Log validation scores to file given by  arg");
   // clang-format on
 }
@@ -478,7 +485,7 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
       "Allow unknown words to appear in output");
   cli.add<bool>("--n-best",
       "Generate n-best list");
-  cli.add_nondefault<std::string>("--alignment",
+  cli.add<std::string>("--alignment",
      "Return word alignment. Possible values: 0.0-1.0, hard, soft")
     ->implicit_val("1");
 
@@ -491,17 +498,14 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   cli.add<bool>("--skip-cost",
       "Ignore model cost during translation, not recommended for beam-size > 1");
 
-  cli.add_nondefault<std::vector<std::string>>("--shortlist",
+  cli.add<std::vector<std::string>>("--shortlist",
      "Use softmax shortlist: path first best prune");
-  cli.add_nondefault<std::vector<float>>("--weights",
+  cli.add<std::vector<float>>("--weights",
       "Scorer weights");
   cli.add<bool>("--output-sampling",
       "Noise output layer with gumbel noise",
        false);
 
-  // TODO: the options should be available only in server
-  cli.add_nondefault<size_t>("--port,-p",
-      "Port number for web socket server");
   // add ULR settings
   addSuboptionsULR(cli);
 
@@ -530,10 +534,10 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
       "Feature name to be inserted into n-best list", "Score");
   cli.add<bool>("--normalize,-n",
       "Divide translation score by translation length");
-  cli.add_nondefault<std::string>("--summary",
+  cli.add<std::string>("--summary",
       "Only print total cost, possible values: cross-entropy (ce-mean), ce-mean-words, ce-sum, perplexity")
       ->implicit_val("cross-entropy");
-  cli.add_nondefault<std::string>("--alignment",
+  cli.add<std::string>("--alignment",
      "Return word alignments. Possible values: 0.0-1.0, hard, soft")
      ->implicit_val("1"),
 
@@ -551,7 +555,7 @@ void ConfigParser::addSuboptionsDevices(cli::CLIWrapper& cli) {
   cli.add<std::vector<std::string>>("--devices,-d",
       "Specifies GPU ID(s) to use for training. Defaults to 0..num-devices-1",
       std::vector<std::string>({"0"}));
-  cli.add_nondefault<size_t>("--num-devices",
+  cli.add<size_t>("--num-devices",
       "Number of GPUs to use for this process. Defaults to length(devices) or 1");
 #ifdef USE_NCCL
   if(mode_ == cli::mode::training)
@@ -560,12 +564,13 @@ void ConfigParser::addSuboptionsDevices(cli::CLIWrapper& cli) {
 #endif
 #ifdef CUDA_FOUND
   cli.add<size_t>("--cpu-threads",
-      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
-      ->default_val("0")->implicit_val("1");
+      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation",
+      0)
+    ->implicit_val("1");
 #else
   cli.add<size_t>("--cpu-threads",
-      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation")
-      ->default_val("1");
+      "Use CPU-based computation with this many independent threads, 0 means GPU-based computation",
+      1);
 #endif
   // clang-format on
 }
@@ -622,8 +627,7 @@ void ConfigParser::addSuboptionsULR(cli::CLIWrapper& cli) {
   // clang-format off
   // support for universal encoder ULR https://arxiv.org/pdf/1802.05368.pdf
   cli.add<bool>("--ulr",
-      "Enable ULR (Universal Language Representation)",
-      false);
+      "Enable ULR (Universal Language Representation)");
   // reading pre-trained universal embeddings for multi-sources.
   // Note that source and target here is relative to ULR not the translation langs
   // queries: EQ in Fig2 : is the unified embeddings projected to one space.
@@ -636,8 +640,7 @@ void ConfigParser::addSuboptionsULR(cli::CLIWrapper& cli) {
       "Path to file with universal sources embeddings of traget keys from projection into universal space",
       "");
   cli.add<bool>("--ulr-trainable-transformation",
-      "Make Query Transformation Matrix A trainable",
-      false);
+      "Make Query Transformation Matrix A trainable");
   cli.add<int>("--ulr-dim-emb",
       "ULR monolingual embeddings dimension");
   cli.add<float>("--ulr-dropout",
@@ -678,6 +681,8 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
                       40);
 
   addOptionsGeneral(cli);
+  if(modeServer_)
+    addOptionsServer(cli);
   addOptionsModel(cli);
 
   // clang-format off
@@ -691,6 +696,9 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
       break;
     case cli::mode::scoring:
       addOptionsScoring(cli);
+      break;
+    default:
+      ABORT("wrong CLI mode");
       break;
   }
   // clang-format on
@@ -717,7 +725,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   // remove extra config files from the config to avoid redundancy
   config_.remove("config");
 
-  if(has("dump-config") && get<std::string>("dump-config") != "false") {
+  if(!get<std::string>("dump-config").empty() && get<std::string>("dump-config") != "false") {
     bool skipDefault = get<std::string>("dump-config") == "minimal";
     config_.remove("dump-config");
     std::cout << cli.dumpConfig(skipDefault) << std::endl;

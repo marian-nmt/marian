@@ -49,10 +49,10 @@ private:
 
 public:
   Rescore(Ptr<Options> options) : options_(options) {
-    ABORT_IF(options_->has("summary") && options_->has("alignment"),
+    ABORT_IF(options_->nonempty("summary") && options_->nonempty("alignment"),
              "Alignments can not be produced with summarized score");
 
-    ABORT_IF(options_->has("summary") && options_->get<bool>("normalize"),
+    ABORT_IF(options_->nonempty("summary") && options_->get<bool>("normalize"),
              "Normalization by length cannot be used with summary scores");
 
     options_->set("inference", true);
@@ -99,11 +99,10 @@ public:
                                            New<ScoreCollectorNBest>(options_))
                                      : New<ScoreCollector>(options_);
 
-    std::string alignment = options_->get<std::string>("alignment", "");
-    bool summarize = options_->has("summary");
+    auto alignment = options_->get<std::string>("alignment", "");
+    auto summary = options_->get<std::string>("summary", "");
+    bool summarize = !summary.empty();
     bool normalize = options_->get<bool>("normalize");
-
-    std::string summary = summarize ? options_->get<std::string>("summary") : "cross-entropy";
 
     float sumCost = 0;
     size_t sumWords = 0;
@@ -126,7 +125,7 @@ public:
 
           // @TODO: normalize by length as in normalize
           // Once we have Frank's concept of ce-sum with sample size by words we will return a pair
-          // here which will make it trivial to report all variants. 
+          // here which will make it trivial to report all variants.
           auto costNode = builder->build(graph, batch);
 
           graph->forward();

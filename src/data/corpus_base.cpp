@@ -174,7 +174,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
     ABORT_IF(files_.back()->empty(), "File with alignments '{}' is empty", path);
   }
 
-  if(training && options_->has("data-weighting")) {
+  if(training && options_->nonempty("data-weighting")) {
     auto path = options_->get<std::string>("data-weighting");
 
     ABORT_IF(!filesystem::exists(path), "Weight file does not exist");

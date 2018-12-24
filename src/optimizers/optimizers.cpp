@@ -271,9 +271,7 @@ void Adam::resetStats() {
 
 Ptr<OptimizerBase> Optimizer(Ptr<Options> options) {
   float lrate = options->get<float>("learn-rate");
-  auto params = options->has("optimizer-params")
-                    ? options->get<std::vector<float>>("optimizer-params")
-                    : std::vector<float>({});
+  auto params = options->get<std::vector<float>>("optimizer-params", std::vector<float>({}));
 
   Ptr<ClipperBase> clipper = nullptr;
   float clipNorm = options->get<float>("clip-norm");

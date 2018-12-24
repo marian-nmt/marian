@@ -33,9 +33,9 @@ public:
     loss_ = LossFactory(options_, inference_);
 
     toBeWeighted_
-        = (options_->has("data-weighting") && !inference_)
-          || (options_->has("dynamic-weighting")
-              && options_->get<bool>("dynamic-weighting") && !inference_);
+        = (options_->nonempty("data-weighting") && !inference_)
+          || (options_->has("dynamic-weighting") && options_->get<bool>("dynamic-weighting")
+              && !inference_);
     if(toBeWeighted_)
       weighter_ = WeightingFactory(options_);
   }
@@ -116,7 +116,7 @@ public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     // decoder needs normalized probabilities (note: skipped if beam 1 and --skip-cost)
     auto logits = state->getLogProbs();
-    
+
     auto logprobs = logsoftmax(logits);
 
     state->setLogProbs(logprobs);
@@ -131,7 +131,7 @@ class GumbelSoftmaxStep : public CostStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     auto logits = state->getLogProbs();
-    
+
     auto logprobs = logsoftmax(logits + constant_like(logits, inits::gumbel));
 
     state->setLogProbs(logprobs);

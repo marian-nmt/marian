@@ -136,7 +136,7 @@ public:
         auto score = std::get<2>(result);
         // determine alignment if present
         AlignmentSets alignmentSets;
-        if (options_->has("alignment"))
+        if (options_->nonempty("alignment"))
         {
           float alignmentThreshold;
           auto alignment = options_->get<std::string>("alignment"); // @TODO: this logic now exists three times in Marian
