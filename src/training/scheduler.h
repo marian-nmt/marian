@@ -174,12 +174,12 @@ public:
       float value = validator->validate(graphs);
       if(validator->stalled() > 0) {
         LOG_VALID(info,
-                  "Ep. {} : Up. {} : {} : {} : stalled {} times",  /*"(last best: {})",*/ // @TODO (LOGGING CHANGE)
+                  "Ep. {} : Up. {} : {} : {} : stalled {} times (last best: {})",
                   state_->epochs,
                   state_->batches,
                   validator->type(),
                   value,
-                  validator->stalled() /*, validator->lastBest()*/); // @TODO (LOGGING CHANGE)
+                  validator->stalled(), validator->lastBest());
       } else {
         LOG_VALID(info,
                   "Ep. {} : Up. {} : {} : {} : new best",
