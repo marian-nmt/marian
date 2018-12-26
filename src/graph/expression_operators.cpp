@@ -107,6 +107,27 @@ Expr minimum(Expr a, Expr b) {
   return Expression<MinimumNodeOp>(a, b);
 }
 
+Expr lt(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b, -1, false); }
+Expr eq(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b,  0, false); }
+Expr gt(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b,  1, false); }
+Expr ge(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b, -1,  true); }
+Expr ne(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b,  0,  true); }
+Expr le(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b,  1,  true); }
+
+Expr lt(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b, -1, false); }
+Expr eq(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b,  0, false); }
+Expr gt(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b,  1, false); }
+Expr ge(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b, -1,  true); }
+Expr ne(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b,  0,  true); }
+Expr le(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b,  1,  true); }
+
+Expr lt(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()), -1, false); }
+Expr eq(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()),  0, false); }
+Expr gt(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()),  1, false); }
+Expr ge(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()), -1,  true); }
+Expr ne(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()),  0,  true); }
+Expr le(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()),  1,  true); }
+
 /*********************************************************/
 
 Expr operator+(Expr a, float b) {
