@@ -66,9 +66,32 @@ Expr operator/(Expr a, float b);
 
 Expr logaddexp(Expr a, Expr b);
 
+// Note: Following numpy, minimum() is element-wise, while min() is along an axis in both Numpy and PyTorch.
 Expr maximum(Expr a, Expr b);
-
 Expr minimum(Expr a, Expr b);
+
+// Note: We cannot overload the relational operators, as they also mean something for Expr itself.
+// Note: These names follow PyTorch convention.
+Expr lt(Expr a, Expr b);
+Expr eq(Expr a, Expr b);
+Expr gt(Expr a, Expr b);
+Expr ge(Expr a, Expr b);
+Expr ne(Expr a, Expr b);
+Expr le(Expr a, Expr b);
+
+Expr lt(float a, Expr b);
+Expr eq(float a, Expr b);
+Expr gt(float a, Expr b);
+Expr ge(float a, Expr b);
+Expr ne(float a, Expr b);
+Expr le(float a, Expr b);
+
+Expr lt(Expr a, float b);
+Expr eq(Expr a, float b);
+Expr gt(Expr a, float b);
+Expr ge(Expr a, float b);
+Expr ne(Expr a, float b);
+Expr le(Expr a, float b);
 
 Expr dot(Expr a,
          Expr b,

@@ -1,11 +1,13 @@
 #include "catch.hpp"
 #include "graph/expression_graph.h"
 #include "graph/expression_operators.h"
+#include <cmath>
 
 using namespace marian;
 
 void tests(DeviceType device) {
-  auto floatApprox = [](float x, float y) { return x == Approx(y); };
+  auto floatApprox = [](float x, float y) -> bool { return x == Approx(y); };
+  auto floatEqual  = [](float x, float y) -> bool { return x == y; };
 
   Config::seed = 1234;
 
@@ -38,38 +40,46 @@ void tests(DeviceType device) {
     std::vector<float> vA({1, -2, 3, -4});
     std::vector<float> vB({0.5, 1.5});
 
-    std::vector<float> vAdd({1.5, -0.5, 3.5, -2.5});
-    std::vector<float> vMinus({-0.5, 3.5, -2.5, 5.5});
-    std::vector<float> vMult({0.5, -3.0, 1.5, -6.0});
-    std::vector<float> vDiv({2.0f, -1.33333f, 6.0f, -2.66667f});
-
     auto a = graph->constant({2, 2, 1}, inits::from_vector(vA));
     auto b = graph->constant({2, 1}, inits::from_vector(vB));
 
-    auto add = a + b;
-    auto minus = b - a;
-    auto mult = a * b;
-    auto div = a / b;
+    auto compare = [&](Expr res, std::function<float(float,float)> f, bool exactMatch) -> bool {
+      if (res->shape() != Shape({ 2, 2, 1 }))
+          return false;
+      res->val()->get(values);
+      std::vector<float> ref{f(vA[0], vB[0]), f(vA[1], vB[1]), f(vA[2], vB[0]), f(vA[3], vB[1])};
+      return std::equal(values.begin(), values.end(), ref.begin(), exactMatch ? floatEqual : floatApprox);
+    };
+
+    auto rplus  = a + b;
+    auto rminus = a - b;
+    auto rmult  = a * b;
+    auto rdiv   = a / b;
+    auto rlae   = logaddexp(a, b);
+    auto rmax   = maximum(a, b);
+    auto rmin   = minimum(a, b);
+    auto rlt    = lt(a, b);
+    auto req    = eq(a, b);
+    auto rgt    = gt(a, b);
+    auto rge    = ge(a, b);
+    auto rne    = ne(a, b);
+    auto rle    = le(a, b);
 
     graph->forward();
 
-    CHECK(add->shape() == Shape({2, 2, 1}));
-    CHECK(minus->shape() == Shape({2, 2, 1}));
-    CHECK(mult->shape() == Shape({2, 2, 1}));
-    CHECK(div->shape() == Shape({2, 2, 1}));
-
-    add->val()->get(values);
-    CHECK( values == vAdd );
-
-    minus->val()->get(values);
-    CHECK( values == vMinus );
-
-    mult->val()->get(values);
-    CHECK( values == vMult );
-
-    div->val()->get(values);
-    CHECK( std::equal(values.begin(), values.end(),
-                      vDiv.begin(), floatApprox) );
+    CHECK(compare(rplus,  [](float a, float b) {return a + b;}, true));
+    CHECK(compare(rminus, [](float a, float b) {return a - b;}, true));
+    CHECK(compare(rmult,  [](float a, float b) {return a * b;}, true));
+    CHECK(compare(rdiv,   [](float a, float b) {return a / b;}, /*exactMatch=*/false));
+    CHECK(compare(rlae,   [](float a, float b) {return logf(expf(a) + expf(b));}, /*exactMatch=*/false));
+    CHECK(compare(rmax,   [](float a, float b) {return std::max(a, b);}, true));
+    CHECK(compare(rmin,   [](float a, float b) {return std::min(a, b);}, true));
+    CHECK(compare(rlt,    [](float a, float b) {return a <  b;}, true));
+    CHECK(compare(req,    [](float a, float b) {return a == b;}, true));
+    CHECK(compare(rgt,    [](float a, float b) {return a >  b;}, true));
+    CHECK(compare(rge,    [](float a, float b) {return a >= b;}, true));
+    CHECK(compare(rne,    [](float a, float b) {return a != b;}, true));
+    CHECK(compare(rle,    [](float a, float b) {return a <= b;}, true));
   }
 
   SECTION("transposing and reshaping") {
