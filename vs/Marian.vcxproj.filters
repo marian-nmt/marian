@@ -478,9 +478,6 @@
     <ClInclude Include="..\src\3rd_party\catch.hpp">
       <Filter>3rd_party</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\3rd_party\exception.h">
-      <Filter>3rd_party</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\3rd_party\reduce_all.h">
       <Filter>3rd_party</Filter>
     </ClInclude>

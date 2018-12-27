@@ -691,7 +691,6 @@
     <ClInclude Include="..\src\layers\weight.h" />
     <ClInclude Include="..\src\marian.h" />
     <ClInclude Include="..\src\3rd_party\catch.hpp" />
-    <ClInclude Include="..\src\3rd_party\exception.h" />
     <ClInclude Include="..\src\3rd_party\reduce_all.h" />
     <ClInclude Include="..\src\3rd_party\threadpool.h" />
     <ClInclude Include="..\src\3rd_party\cnpy\cnpy.h" />

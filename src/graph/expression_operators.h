@@ -134,6 +134,8 @@ Expr constant_like(Expr a, const NodeInitializer& init);
 Expr flatten(Expr a);
 Expr flatten_2d(Expr a);
 
+Expr stopGradient(Expr a);
+
 Expr rows(Expr a, Expr indices);
 Expr rows(Expr a, const std::vector<IndexType>& indices);
 
@@ -163,7 +165,13 @@ Expr scalar_product(Expr a, Expr b, int ax = 0);
 
 Expr weighted_average(Expr in, Expr weights, int ax = 0);
 
-Expr step(Expr a, int step, int axis);
+Expr sliceView(Expr a, const Slice& slice, int axis);
+static inline Expr narrow(Expr a, size_t start, size_t length, int axis) { // PyTorch name
+  return sliceView(a, Slice((int)start, (int)(start + length)), axis);
+}
+static inline Expr step(Expr a, int step, int axis) {
+  return sliceView(a, Slice(step), axis);
+}
 
 Expr sqrt(Expr a, float eps = 0.f);
 Expr square(Expr a);

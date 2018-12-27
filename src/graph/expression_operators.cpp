@@ -232,6 +232,13 @@ Expr flatten_2d(Expr a) {
   return Expression<ReshapeNodeOp>(a, shape);
 }
 
+Expr stopGradient(Expr a) {
+  // implemented as a dummy reshape that is not trainable
+  auto res = reshape(a, a->shape());
+  res->setTrainable(false);
+  return res;
+}
+
 Expr constant_like(Expr a, const NodeInitializer& init) {
   const auto& shape = a->shape();
   auto graph = a->graph();
@@ -442,8 +449,8 @@ Expr swapAxes(Expr x, int axis1, int axis2)
   return transpose(x, axes);
 }
 
-Expr step(Expr a, int step, int axis) {
-  return Expression<StepNodeOp>(a, step, axis);
+Expr sliceView(Expr a, const Slice& slice, int axis) { // numpy __getitem__ semantics
+  return Expression<SliceViewNodeOp>(a, slice, axis);
 }
 
 Expr cross_entropy(Expr a, Expr indices) {
