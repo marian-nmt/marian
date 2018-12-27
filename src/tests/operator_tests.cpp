@@ -568,7 +568,7 @@ void tests(DeviceType device) {
     auto D3 = select(C, Indices({0,2}), 1);
 
     auto S1 = step(A, 2, 0);
-    auto S2 = narrow(A, 1, -1, 0);
+    auto S2 = narrow(A, 1, 2, 0);
     auto S3 = sliceView(A, Slice(-2, Slice::END), 0);
 
     graph->forward();
@@ -613,7 +613,7 @@ void tests(DeviceType device) {
     S2->val()->get(values);
     CHECK(values == vS2);
 
-    CHECK(S3->shape() == Shape({3,3})); // -> 2,3
+    CHECK(S3->shape() == Shape({2,3}));
     S3->val()->get(values);
     CHECK(values == vS3);
   }

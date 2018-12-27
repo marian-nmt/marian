@@ -166,8 +166,8 @@ Expr scalar_product(Expr a, Expr b, int ax = 0);
 Expr weighted_average(Expr in, Expr weights, int ax = 0);
 
 Expr sliceView(Expr a, const Slice& slice, int axis);
-static inline Expr narrow(Expr a, int start, int length, int axis) { // PyTorch name
-  return sliceView(a, Slice(start, start + length), axis);
+static inline Expr narrow(Expr a, size_t start, size_t length, int axis) { // PyTorch name
+  return sliceView(a, Slice((int)start, (int)(start + length)), axis);
 }
 static inline Expr step(Expr a, int step, int axis) {
   return sliceView(a, Slice(step), axis);
