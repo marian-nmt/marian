@@ -107,6 +107,27 @@ Expr minimum(Expr a, Expr b) {
   return Expression<MinimumNodeOp>(a, b);
 }
 
+Expr lt(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b, -1, false); }
+Expr eq(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b,  0, false); }
+Expr gt(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b,  1, false); }
+Expr ge(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b, -1,  true); }
+Expr ne(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b,  0,  true); }
+Expr le(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b,  1,  true); }
+
+Expr lt(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b, -1, false); }
+Expr eq(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b,  0, false); }
+Expr gt(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b,  1, false); }
+Expr ge(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b, -1,  true); }
+Expr ne(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b,  0,  true); }
+Expr le(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b,  1,  true); }
+
+Expr lt(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()), -1, false); }
+Expr eq(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()),  0, false); }
+Expr gt(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()),  1, false); }
+Expr ge(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()), -1,  true); }
+Expr ne(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()),  0,  true); }
+Expr le(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()),  1,  true); }
+
 /*********************************************************/
 
 Expr operator+(Expr a, float b) {
@@ -209,6 +230,13 @@ Expr flatten(Expr a) {
 Expr flatten_2d(Expr a) {
   Shape shape = {a->shape().elements() / a->shape()[-1], a->shape()[-1]};
   return Expression<ReshapeNodeOp>(a, shape);
+}
+
+Expr stopGradient(Expr a) {
+  // implemented as a dummy reshape that is not trainable
+  auto res = reshape(a, a->shape());
+  res->setTrainable(false);
+  return res;
 }
 
 Expr constant_like(Expr a, const NodeInitializer& init) {
@@ -421,8 +449,8 @@ Expr swapAxes(Expr x, int axis1, int axis2)
   return transpose(x, axes);
 }
 
-Expr step(Expr a, int step, int axis) {
-  return Expression<StepNodeOp>(a, step, axis);
+Expr sliceView(Expr a, const Slice& slice, int axis) { // numpy __getitem__ semantics
+  return Expression<SliceViewNodeOp>(a, slice, axis);
 }
 
 Expr cross_entropy(Expr a, Expr indices) {

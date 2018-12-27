@@ -66,9 +66,32 @@ Expr operator/(Expr a, float b);
 
 Expr logaddexp(Expr a, Expr b);
 
+// Note: Following numpy, minimum() is element-wise, while min() is along an axis in both Numpy and PyTorch.
 Expr maximum(Expr a, Expr b);
-
 Expr minimum(Expr a, Expr b);
+
+// Note: We cannot overload the relational operators, as they also mean something for Expr itself.
+// Note: These names follow PyTorch convention.
+Expr lt(Expr a, Expr b);
+Expr eq(Expr a, Expr b);
+Expr gt(Expr a, Expr b);
+Expr ge(Expr a, Expr b);
+Expr ne(Expr a, Expr b);
+Expr le(Expr a, Expr b);
+
+Expr lt(float a, Expr b);
+Expr eq(float a, Expr b);
+Expr gt(float a, Expr b);
+Expr ge(float a, Expr b);
+Expr ne(float a, Expr b);
+Expr le(float a, Expr b);
+
+Expr lt(Expr a, float b);
+Expr eq(Expr a, float b);
+Expr gt(Expr a, float b);
+Expr ge(Expr a, float b);
+Expr ne(Expr a, float b);
+Expr le(Expr a, float b);
 
 Expr dot(Expr a,
          Expr b,
@@ -111,6 +134,8 @@ Expr constant_like(Expr a, const NodeInitializer& init);
 Expr flatten(Expr a);
 Expr flatten_2d(Expr a);
 
+Expr stopGradient(Expr a);
+
 Expr rows(Expr a, Expr indices);
 Expr rows(Expr a, const std::vector<IndexType>& indices);
 
@@ -140,7 +165,13 @@ Expr scalar_product(Expr a, Expr b, int ax = 0);
 
 Expr weighted_average(Expr in, Expr weights, int ax = 0);
 
-Expr step(Expr a, int step, int axis);
+Expr sliceView(Expr a, const Slice& slice, int axis);
+static inline Expr narrow(Expr a, size_t start, size_t length, int axis) { // PyTorch name
+  return sliceView(a, Slice((int)start, (int)(start + length)), axis);
+}
+static inline Expr step(Expr a, int step, int axis) {
+  return sliceView(a, Slice(step), axis);
+}
 
 Expr sqrt(Expr a, float eps = 0.f);
 Expr square(Expr a);
