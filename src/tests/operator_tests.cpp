@@ -102,6 +102,8 @@ void tests(DeviceType device) {
     auto t4 = transpose(reshape(a, {2, 1, 2, 2}), {1, 3, 2, 0});
     auto t5 = transpose(reshape(a, {2, 1, 2, 2}), {2, 0, 1, 3});
 
+    auto t6 = stopGradient(a);
+
     graph->forward();
 
     CHECK(t1->shape() == Shape({4, 2}));
@@ -109,6 +111,7 @@ void tests(DeviceType device) {
     CHECK(t3->shape() == Shape({2, 2, 2}));
     CHECK(t4->shape() == Shape({1, 2, 2, 2}));
     CHECK(t5->shape() == Shape({2, 2, 1, 2}));
+    CHECK(t6->shape() == a->shape());
 
     t1->val()->get(values);
     CHECK( values == vT1 );
@@ -124,6 +127,10 @@ void tests(DeviceType device) {
 
     t5->val()->get(values);
     CHECK( values == vT5 );
+
+    t6->val()->get(values);
+    CHECK(values == vA);
+    CHECK(!t6->trainable());
   }
 
   SECTION("softmax and logsoftmax") {
@@ -531,7 +538,7 @@ void tests(DeviceType device) {
     CHECK( values == values2 );
   }
 
-  SECTION("select operator") {
+  SECTION("select, step, sliceView operators") {
     using Indices = std::vector<IndexType>;
 
     graph->clear();
@@ -545,6 +552,9 @@ void tests(DeviceType device) {
     std::vector<float> vD1(vB4);
     std::vector<float> vD2({5, -6, 11, -12});
     std::vector<float> vD3({1, -2, 5, -6, 7, -8, 11, -12});
+    std::vector<float> vS1({7, -8, 9});
+    std::vector<float> vS2({-4, 5, -6, 7, -8, 9});
+    std::vector<float> vS3({7, -8, 9, -10, 11, -12});
 
     auto A = graph->param("4x3", {4,3}, inits::from_vector(in));
     auto B1 = select(A, Indices({0}), 0);
@@ -556,6 +566,11 @@ void tests(DeviceType device) {
     auto D1 = select(C, Indices({0}), 0);
     auto D2 = select(C, Indices({2}), -2);
     auto D3 = select(C, Indices({0,2}), 1);
+
+    auto S1 = step(A, 2, 0);
+    auto S2 = narrow(A, 1, -1, 0);
+    auto S3 = sliceView(A, Slice(-2, Slice::END), 0);
+
     graph->forward();
 
     CHECK(B1->shape() == Shape({1, 3}));
@@ -587,6 +602,20 @@ void tests(DeviceType device) {
     CHECK(D3->shape() == Shape({2, 2, 2}));
     D3->val()->get(values);
     CHECK( values == vD3 );
+
+    values.clear();
+
+    CHECK(S1->shape() == Shape({1,3}));
+    S1->val()->get(values);
+    CHECK(values == vS1);
+
+    CHECK(S2->shape() == Shape({2,3}));
+    S2->val()->get(values);
+    CHECK(values == vS2);
+
+    CHECK(S3->shape() == Shape({3,3})); // -> 2,3
+    S3->val()->get(values);
+    CHECK(values == vS3);
   }
 
   SECTION("rows/cols as select operations") {
