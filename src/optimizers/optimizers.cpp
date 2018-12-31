@@ -169,6 +169,28 @@ void Adam::updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t r
           vt_     // =_3
           );
 
+  // log the magnitude (with good ole CPU code)
+  static int logCount = 0;
+  logCount++;
+  if (logCount <= 10 || logCount % 100 == 0) {
+    std::vector<float> g, mt, vt;
+    grads->get(g); mt_->get(mt); vt_->get(vt);
+    size_t n = g.size(); ABORT_IF(mt.size() != g.size() || vt.size() != g.size(), "mismatching sizes??");
+    double gs = 0, ms = 0; // square sum
+    for (size_t i = 0; i < n; i++) {
+      auto gi = g[i] / T;        // raw average gradient
+      auto mi = mt[i] / denom1f; // momentum-smoothed average gradient
+      auto di = sqrtf(vt[i] / denom2f) + eps_;
+      gi /= di; // RMS-normalize both
+      mi /= di;
+      gs += gi * gi;
+      ms += mi * mi;
+    }
+    auto grms = std::sqrt(gs / n);  // hmm... expecting 1.0 here, no?
+    auto mrms = std::sqrt(ms / n);
+    LOG(info, "Adam[{}]: grms = {}, mrms = {}", logCount, grms, mrms);
+  }
+
   params->getBackend()->synchronize(); // @TODO: This should not be in here. Maybe in the wrapper. Why is it needed at all?
 }
 

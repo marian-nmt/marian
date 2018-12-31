@@ -83,13 +83,13 @@ public:
       // if unit is labels, then account for the fact that our increment itself is not constant
       if (mbWarmup.unit == SchedulingUnit::trgLabels)
         progressRatio = std::sqrt(progressRatio);
-      // soften the very initial ramp-up if requested
       if (progressRatio < 1) {
+        // soften the very initial ramp-up if requested
         double exp = options_->get<double>("mini-batch-warmup-exp");
         progressRatio = pow(progressRatio, exp); // e.g. 1.5 => linear ramp-up -> sublinear ramp-up
+        // apply ratio to actual batch size
+        ratio *= progressRatio;
       }
-      // apply ratio to actual batch size
-      ratio *= progressRatio;
     }
 
     // dynamic MB-size tracking with learning rate
