@@ -89,9 +89,12 @@ public:
   // Reset optimizer parameters
   bool reset{false};
 
-  // Learning rate
+  // Current learning rate, representing all adjustment processes and factors
   float eta;
-  // Multiplication factor for learning rate
+  void updateEta(float dynamicBaseLR) { // note: no other function may write to 'eta' (besides load())
+    eta = dynamicBaseLR * factor;
+  }
+  // State-based multiplication factor for learning rate
   float factor{1.f};
   SchedulingParameter warmupStart; // has same unit as lr-warmup
 
@@ -114,7 +117,9 @@ public:
   // Set flag if the model was validated in the current batch
   bool validated{false};
 
-  TrainingState(float learnRate) : eta(learnRate) {}
+  TrainingState(float learnRate) {
+    updateEta(learnRate);
+  }
 
   void registerObserver(Ptr<TrainingObserver> observer) {
     observers_.push_back(observer);
