@@ -110,7 +110,7 @@ public:
  */
 class SubBatch {
 private:
-  std::vector<Word> indices_;
+  std::vector<Words> indices_;
   std::vector<float> mask_;
 
   size_t size_;
@@ -128,7 +128,7 @@ public:
    * @param width Number of words in the longest sentence
    */
   SubBatch(size_t size, size_t width, const Ptr<Vocab>& vocab)
-      : indices_(size * width, 0),
+      : indices_(1, Words(size * width, 0)),
         mask_(size * width, 0),
         size_(size),
         width_(width),
@@ -142,7 +142,12 @@ public:
    * idx_{w,0},idx_{w,1},\dots,idx_{w,s}\f$, where \f$w\f$ is the number of
    * words (width) and \f$s\f$ is the number of sentences (size).
    */
-  std::vector<Word>& data() { return indices_; }
+  std::vector<Word>& data() { return indices_[0]; }
+  std::vector<Word>& data(int index) { return indices_[index]; }
+
+  void setNumFactors(size_t num) { indices_.resize(num, Words(size_ * width_, 0)); } // @TODO: for now factors have no vocabulary, they are generated from the other inputs
+  size_t numFactors() { return indices_.size(); }
+
   /**
    * @brief Flat masking vector; 0 is used for masked words.
    *
@@ -204,8 +209,9 @@ public:
       size_t words = 0;
       for(size_t j = 0; j < subWidth; ++j) {
         for(size_t i = 0; i < size; ++i) {
-          sb->data()[j * size + i] = indices_[j * size_ + (pos + i)];
-          sb->mask()[j * size + i] =    mask_[j * size_ + (pos + i)];
+          for(size_t k = 0; k < sb->numFactors(); ++k)
+            sb->data(k)[j * size + i] = indices_[k][j * size_ + (pos + i)];
+          sb->mask()[j * size + i] = mask_[j * size_ + (pos + i)];
 
           if(mask_[j * size_ + (pos + i)] != 0)
             words++;

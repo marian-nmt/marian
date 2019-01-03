@@ -93,12 +93,20 @@ public:
     auto enccls = std::static_pointer_cast<EncoderClassifier>(model);
     auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
 
-    auto state = enccls->apply(graph, corpusBatch, clearGraph);
+    auto states = enccls->apply(graph, corpusBatch, clearGraph);
 
-    Expr cost = loss_->getCost(state->getLogProbs(),
-                               state->getTargetIndices(),
+    Expr cost = loss_->getCost(states[0]->getLogProbs(),
+                               states[0]->getTargetIndices(),
                                /*mask=*/nullptr,
                                /*weights=*/nullptr);
+
+    // multi-objective training
+    for(int i = 1; i < states.size(); ++i) {
+      cost = cost + loss_->getCost(states[i]->getLogProbs(),
+                                   states[i]->getTargetIndices(),
+                                   /*mask=*/nullptr,
+                                   /*weights=*/nullptr);
+    }
 
     return cost;
   }

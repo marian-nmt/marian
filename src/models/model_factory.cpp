@@ -51,8 +51,10 @@ Ptr<DecoderBase> DecoderFactory::construct() {
 }
 
 Ptr<ClassifierBase> ClassifierFactory::construct() {
-  if(options_->get<std::string>("type") == "bert")
+  if(options_->get<std::string>("type") == "bert-masked-lm")
     return New<BertMaskedLM>(options_);
+  if(options_->get<std::string>("type") == "bert-classifier")
+    return New<BertClassifier>(options_);
   ABORT("Unknown classifier type");
 }
 
@@ -218,10 +220,19 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
   }
 
   if(type == "bert") {
-    return models::encoder_classifier()(options)
-        ("usage", use)
-        .push_back(models::encoder()("type", "transformer")("original-type", type))
-        .push_back(models::classifier()("index", 2)) // indices 0 and 1 used by encoder
+    return models::encoder_classifier()(options) //
+        ("usage", use)                           //
+        .push_back(models::encoder()             //
+                    ("type", "transformer")      //
+                    ("original-type", type)      //
+                    ("index", 0))                // close to original transformer encoder
+        .push_back(models::classifier()          //
+                    ("type", "bert-masked-lm")   //
+                    ("index", 1))                // multi-task learning with MaskedLM
+        .push_back(models::classifier()          //
+                    ("type", "bert-classifier")  //
+                    ("bert-classes", 2)          //
+                    ("index", 2))                // and next sentence prediction 
         .construct();
   }
 

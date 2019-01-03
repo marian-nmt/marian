@@ -30,7 +30,7 @@ public:
 
   virtual void clear(Ptr<ExpressionGraph> graph) override = 0;
 
-  virtual Ptr<ClassifierState> apply(Ptr<ExpressionGraph>, Ptr<data::CorpusBatch>, bool) = 0;
+  virtual std::vector<Ptr<ClassifierState>> apply(Ptr<ExpressionGraph>, Ptr<data::CorpusBatch>, bool) = 0;
 
 
   virtual Expr build(Ptr<ExpressionGraph> graph,
@@ -178,7 +178,7 @@ public:
 
   /*********************************************************************/
 
-  Ptr<ClassifierState> apply(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch, bool clearGraph) override {
+  std::vector<Ptr<ClassifierState>> apply(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch, bool clearGraph) override {
     if(clearGraph)
       clear(graph);
 
@@ -186,15 +186,20 @@ public:
     for(auto& encoder : encoders_)
         encoderStates.push_back(encoder->build(graph, batch));
 
-    return classifiers_[0]->apply(graph, batch, encoderStates);
+    std::vector<Ptr<ClassifierState>> classifierStates;
+    for(auto& classifier : classifiers_)
+      classifierStates.push_back(classifier->apply(graph, batch, encoderStates));
+    
+    return classifierStates;
   }
 
   virtual Expr build(Ptr<ExpressionGraph> graph,
                      Ptr<data::CorpusBatch> batch,
                      bool clearGraph = true) override {
-    auto state = apply(graph, batch, clearGraph);
+    ABORT("Don't use this");
+    auto states = apply(graph, batch, clearGraph);
     // returns raw logits
-    return state->getLogProbs();                  
+    return states[0]->getLogProbs();
   }
 
   virtual Expr build(Ptr<ExpressionGraph> graph,

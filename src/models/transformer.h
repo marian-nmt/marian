@@ -25,7 +25,7 @@ class Transformer : public EncoderOrDecoderBase {
   typedef EncoderOrDecoderBase Base;
 
 protected:
-  using Base::options_; using Base::inference_;
+  using Base::options_; using Base::inference_; using Base::batchIndex_;
   std::unordered_map<std::string, Expr> cache_;
 
   // attention weights produced by step()
@@ -87,29 +87,22 @@ public:
     return embeddings;
   }
 
-  Expr addSentenceEmbeddings(Expr input, int start, Ptr<data::CorpusBatch> batch) const {
-    Expr embeddings = input;
+  Expr addSentenceEmbeddings(Expr embeddings, int start, Ptr<data::CorpusBatch> batch) const {
+    int dimEmb = embeddings->shape()[-1];
 
-    // do nothing if we are not training with sentence pairs
-    if(opt<bool>("bert-sentencepair", false)) {
-      int dimEmb = input->shape()[-1];
+    auto sentenceEmbeddings = embedding(graph_)
+                                ("prefix", "Wsent")
+                                ("dimVocab", 2) // sentence A or sentence B
+                                ("dimEmb", dimEmb)
+                                .construct();
 
-      auto sentEmbFactory = embedding(graph_)
-                            ("prefix", "Wsent")
-                            ("dimVocab", 2) // sentence A or sentence B
-                            ("dimEmb", dimEmb)
-                            .construct();
-
-      const auto& sentenceIndices = (*batch)[1]->data(); // @TODO: do not use constant index
-      
-      // @TODO: note this is going to be really slow due to atomicAdd in backward step
-      // with only two classes;
-      // instead two masked reduce operations, maybe in parallel streams?
-      auto signal = rows(sentEmbFactory, graph_->indices(sentenceIndices)); 
-
-      embeddings = embeddings + signal;
-    }
-    return embeddings;
+    const auto& sentenceIndices = (*batch)[batchIndex_]->data(1);
+    
+    // @TODO: note this is going to be really slow due to atomicAdd in backward step
+    // with only two classes;
+    // instead two masked reduce operations, maybe in parallel streams?
+    auto signal = rows(sentenceEmbeddings, graph_->indices(sentenceIndices)); 
+    return embeddings + signal;
   }
 
   Expr addSpecialEmbeddings(Expr input, int start = 0, Ptr<data::CorpusBatch> batch = nullptr) const {
@@ -118,7 +111,7 @@ public:
 
     input = addPositionalEmbeddings(input, start, learnedPosEmbeddings);
 
-    if(iAmBert && batch)
+    if(iAmBert)
       input = addSentenceEmbeddings(input, start, batch);
 
     return input;
@@ -555,7 +548,10 @@ public:
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[subBatchIndex];
     int dimEmb = opt<int>("dim-emb");
     auto embFactory = embedding(graph_)("dimVocab", dimVoc)("dimEmb", dimEmb);
-    if (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
+
+    bool iAmBert = opt<std::string>("original-type") == "bert";
+
+    if (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all") || iAmBert)
       embFactory("prefix", "Wemb");
     else
       embFactory("prefix", prefix_ + "_Wemb");

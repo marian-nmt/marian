@@ -42,8 +42,7 @@ public:
     ABORT_IF(encoderStates.size() != 1, "Currently we only support a single encoder BERT model");
 
     auto context = encoderStates[0]->getContext();
-    auto classEmbeddings = step(context, /*i=*/0, /*axis=*/-2); // [CLS] symbol is first symbol in each sequence
-
+    
     // Since this is a classifier we are not masking anything on the target. We can (mis)use the mask to hold 
     // indices of words in the encoder that have been masked out for BERT's masked LM training. 
     // Masks are floats, hence the conversion to IndexType.
@@ -51,32 +50,27 @@ public:
     std::vector<IndexType> maskedRows(maskedRowsFloats.size());
     std::copy(maskedRowsFloats.begin(), maskedRowsFloats.end(), maskedRows.begin());
 
-    classEmbeddings = rows(classEmbeddings, graph->indices(maskedRows)); // subselect stuff that has actually been masked out;
+    auto classEmbeddings = rows(context, graph->indices(maskedRows)); // subselect stuff that has actually been masked out;
     
     int dimModel = classEmbeddings->shape()[-1];
 
-    int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[0]; // set to first one, @TODO: make this modular.
+    int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_ - 1]; // unsafe
 
     auto layerTanh = mlp::dense(graph)   //
         ("dim", dimModel)                //
         ("activation", mlp::act::tanh); //
 
     auto layerOut = mlp::output(graph)  //
-        ("dim", dimTrgVoc);
+        ("dim", dimVoc);
 
-    if(opt<bool>("tied-embeddings") || opt<bool>("tied-embeddings-all")) {
-      std::string tiedPrefix = prefix_ + "_Wemb";
-      if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
-        tiedPrefix = "Wemb";
-      layerOut.tie_transposed("W", tiedPrefix);
-    }
+    layerOut.tie_transposed("W", "Wemb"); // We are a BERT model, hence tie with input
 
     // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
     // assemble layers into MLP and apply to embeddings, decoder context and
     // aligned source context
     auto output = mlp::mlp(graph)                 //
         ("prefix", prefix_ + "_ff_logit_bert_out") //
-        .push_back(layerTanh)                      //
+        .push_back(layerTanh)                      // @TODO: do we actually need this?
         .push_back(layerOut)                       //
         .construct();
     
@@ -96,6 +90,7 @@ public:
 };
 
 // This is a model that uses a pre-trained BERT model to build a classifier on top of the encoder
+// Can be used for next sentence prediction task
 class BertClassifier : public ClassifierBase {
 public:
   BertClassifier(Ptr<Options> options) : ClassifierBase(options) {}
@@ -114,7 +109,7 @@ public:
                     ("prefix", prefix_ + "_ff_logit")             //
                     .push_back(mlp::dense(graph)                  //
                                  ("dim", dimModel)                //
-                                 ("activation", mlp::act::tanh))  //
+                                 ("activation", mlp::act::tanh))  // @TODO: do we actually need this?
                     .push_back(mlp::dense(graph)                  //
                                  ("dim", dimTrgCls))              //
                     .construct();
@@ -124,7 +119,7 @@ public:
     auto state = New<ClassifierState>();
     state->setLogProbs(logits);
 
-    // filled externally
+    // filled externally, for BERT these are NextSentence prediction labels
     const auto& classLabels = (*bertBatch)[batchIndex_]->data();
     state->setTargetIndices(graph->indices(classLabels));
 
