@@ -24,6 +24,8 @@ public:
         inference_(options->get<bool>("inference", false)),
         batchIndex_(options->get<size_t>("index", 1)) {}
 
+  virtual ~DecoderBase() {}
+
   virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph>,
                                        Ptr<data::CorpusBatch> batch,
                                        std::vector<Ptr<EncoderState>>&)

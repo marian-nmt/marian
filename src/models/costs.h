@@ -5,6 +5,7 @@
 #include "layers/loss.h"
 #include "layers/weight.h"
 #include "models/encoder_decoder.h"
+#include "models/encoder_classifier.h"
 
 namespace marian {
 namespace models {
@@ -69,6 +70,37 @@ public:
     } else {
       return cost;
     }
+  }
+};
+
+class EncoderClassifierCE : public CostBase {
+protected:
+  Ptr<Options> options_;
+  bool inference_{false};
+  Ptr<LossBase> loss_;
+
+public:
+  EncoderClassifierCE(Ptr<Options> options)
+      : options_(options), inference_(options->get<bool>("inference", false)) {
+    loss_ = LossFactory(options_, inference_);
+  }
+
+  Expr apply(Ptr<ModelBase> model,
+             Ptr<ExpressionGraph> graph,
+             Ptr<data::Batch> batch,
+             bool clearGraph = true) override {
+
+    auto enccls = std::static_pointer_cast<EncoderClassifier>(model);
+    auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
+
+    auto state = enccls->apply(graph, corpusBatch, clearGraph);
+
+    Expr cost = loss_->getCost(state->getLogProbs(),
+                               state->getTargetIndices(),
+                               /*mask=*/nullptr,
+                               /*weights=*/nullptr);
+
+    return cost;
   }
 };
 
@@ -231,5 +263,20 @@ inline Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec,
     default: return encdec;
   }
 }
+
+inline Ptr<ModelBase> add_cost(Ptr<EncoderClassifier> enccls,
+                               Ptr<Options> options) {
+  switch(options->get<usage>("usage", usage::raw)) {
+    case usage::training:
+      return New<Trainer>(enccls, New<EncoderClassifierCE>(options));
+    case usage::scoring:
+      return New<Scorer>(enccls, New<EncoderClassifierCE>(options));
+    case usage::translation:
+      ABORT("Classifier cannot be used for translation");
+    case usage::raw:
+    default: return enccls;
+  }
+}
+
 }  // namespace models
 }  // namespace marian

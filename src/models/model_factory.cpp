@@ -1,7 +1,8 @@
 #include "marian.h"
 
-#include "models/encoder_decoder.h"
 #include "models/model_factory.h"
+#include "models/encoder_decoder.h"
+#include "models/encoder_classifier.h"
 
 #include "models/costs.h"
 
@@ -49,6 +50,13 @@ Ptr<DecoderBase> DecoderFactory::construct() {
   ABORT("Unknown decoder type");
 }
 
+Ptr<ClassifierBase> ClassifierFactory::construct() {
+  if(options_->get<std::string>("type") == "bert")
+    return New<BertMaskedLM>(options_);
+  ABORT("Unknown classifier type");
+}
+
+
 Ptr<ModelBase> EncoderDecoderFactory::construct() {
   Ptr<EncoderDecoder> encdec;
 
@@ -67,6 +75,18 @@ Ptr<ModelBase> EncoderDecoderFactory::construct() {
     encdec->push_back(df(options_).construct());
 
   return add_cost(encdec, options_);
+}
+
+Ptr<ModelBase> EncoderClassifierFactory::construct() {
+  auto enccls = New<EncoderClassifier>(options_);
+
+  for(auto& ef : encoders_)
+    enccls->push_back(ef(options_).construct());
+
+  for(auto& cf : classifiers_)
+    enccls->push_back(cf(options_).construct());
+
+  return add_cost(enccls, options_);
 }
 
 Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
@@ -195,6 +215,14 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
                        ("index", idx)
                        ("dim-vocabs", dimVocabs))
             .construct();
+  }
+
+  if(type == "bert") {
+    return models::encoder_classifier()(options)
+        ("usage", use)
+        .push_back(models::encoder()("type", "transformer")("original-type", type))
+        .push_back(models::classifier()("index", 2)) // indices 0 and 1 used by encoder
+        .construct();
   }
 
 #ifdef COMPILE_EXAMPLES

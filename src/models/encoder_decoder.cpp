@@ -1,4 +1,4 @@
-#include "encoder_decoder.h"
+#include "models/encoder_decoder.h"
 #include "common/cli_helper.h"
 #include "common/version.h"
 

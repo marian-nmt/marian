@@ -47,26 +47,81 @@ public:
 
   static Expr transposeTimeBatch(Expr input) { return transpose(input, {0, 2, 1, 3}); }
 
-  Expr addPositionalEmbeddings(Expr input, int start = 0) const {
+  Expr addPositionalEmbeddings(Expr input, int start = 0, bool learnedPosEmbeddings = false) const {
     int dimEmb   = input->shape()[-1];
     int dimWords = input->shape()[-3];
 
-    float num_timescales = (float)dimEmb / 2;
-    float log_timescale_increment = std::log(10000.f) / (num_timescales - 1.f);
+    Expr embeddings = input;
+    if(learnedPosEmbeddings) {
+      int maxLength = opt<int>("max-length");
 
-    std::vector<float> vPos(dimEmb * dimWords, 0);
-    for(int p = start; p < dimWords + start; ++p) {
-      for(int i = 0; i < num_timescales; ++i) {
-        float v = p * std::exp(i * -log_timescale_increment);
-        vPos[(p - start) * dimEmb + i] = std::sin(v);
-        vPos[(p - start) * dimEmb + (int)num_timescales + i] = std::cos(v); // @TODO: is int vs. float correct for num_timescales?
+      auto posEmbFactory = embedding(graph_)
+                            ("prefix", "Wpos") // share positional embeddings across all encoders/decorders
+                            ("dimVocab", maxLength)
+                            ("dimEmb", dimEmb)
+                            .construct();
+
+      std::vector<IndexType> positions(dimWords);
+      std::iota(positions.begin(), positions.end(), 0); // fill with increasing numbers until current length
+
+      auto signal = rows(posEmbFactory, graph_->indices(positions));
+      embeddings = embeddings + signal;
+    } else {
+      float num_timescales = (float)dimEmb / 2;
+      float log_timescale_increment = std::log(10000.f) / (num_timescales - 1.f);
+
+      std::vector<float> vPos(dimEmb * dimWords, 0);
+      for(int p = start; p < dimWords + start; ++p) {
+        for(int i = 0; i < num_timescales; ++i) {
+          float v = p * std::exp(i * -log_timescale_increment);
+          vPos[(p - start) * dimEmb + i] = std::sin(v);
+          vPos[(p - start) * dimEmb + (int)num_timescales + i] = std::cos(v); // @TODO: is int vs. float correct for num_timescales?
+        }
       }
+
+      // shared across batch entries
+      auto signal = graph_->constant({dimWords, 1, dimEmb}, inits::from_vector(vPos));
+      embeddings = embeddings + signal;
     }
 
-    // shared across batch entries
-    auto signal
-        = graph_->constant({dimWords, 1, dimEmb}, inits::from_vector(vPos));
-    return input + signal;
+    return embeddings;
+  }
+
+  Expr addSentenceEmbeddings(Expr input, int start, Ptr<data::CorpusBatch> batch) const {
+    Expr embeddings = input;
+
+    // do nothing if we are not training with sentence pairs
+    if(opt<bool>("bert-sentencepair", false)) {
+      int dimEmb = input->shape()[-1];
+
+      auto sentEmbFactory = embedding(graph_)
+                            ("prefix", "Wsent")
+                            ("dimVocab", 2) // sentence A or sentence B
+                            ("dimEmb", dimEmb)
+                            .construct();
+
+      const auto& sentenceIndices = (*batch)[1]->data(); // @TODO: do not use constant index
+      
+      // @TODO: note this is going to be really slow due to atomicAdd in backward step
+      // with only two classes;
+      // instead two masked reduce operations, maybe in parallel streams?
+      auto signal = rows(sentEmbFactory, graph_->indices(sentenceIndices)); 
+
+      embeddings = embeddings + signal;
+    }
+    return embeddings;
+  }
+
+  Expr addSpecialEmbeddings(Expr input, int start = 0, Ptr<data::CorpusBatch> batch = nullptr) const {
+    bool iAmBert = opt<std::string>("original-type", "undefined") == "bert";
+    bool learnedPosEmbeddings = opt<bool>("transformer-learned-positions", false) || iAmBert;
+
+    input = addPositionalEmbeddings(input, start, learnedPosEmbeddings);
+
+    if(iAmBert && batch)
+      input = addSentenceEmbeddings(input, start, batch);
+
+    return input;
   }
 
   Expr triangleMask(int length) const {
@@ -532,8 +587,7 @@ public:
       std::tie(batchEmbeddings, batchMask)
         = EncoderBase::ulrLookup(graph_, embeddings, batch);
     }
-    else
-    {
+    else {
       auto embeddings = wordEmbeddings(batchIndex_);
       std::tie(batchEmbeddings, batchMask)
         = EncoderBase::lookup(graph_, embeddings, batch);
@@ -546,7 +600,9 @@ public:
     }
     // according to paper embeddings are scaled up by \sqrt(d_m)
     auto scaledEmbeddings = std::sqrt((float)dimEmb) * batchEmbeddings;
-    scaledEmbeddings = addPositionalEmbeddings(scaledEmbeddings);
+    
+    scaledEmbeddings = addSpecialEmbeddings(scaledEmbeddings, /*start=*/0, batch);
+
     // reorganize batch and timestep
     scaledEmbeddings = atleast_nd(scaledEmbeddings, 4);
     batchMask = atleast_nd(batchMask, 4);
@@ -698,7 +754,7 @@ public:
     int startPos = (int)state->getPosition();
 
     scaledEmbeddings
-      = addPositionalEmbeddings(scaledEmbeddings, startPos);
+      = addSpecialEmbeddings(scaledEmbeddings, startPos);
 
     scaledEmbeddings = atleast_nd(scaledEmbeddings, 4);
 

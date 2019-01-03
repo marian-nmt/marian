@@ -80,6 +80,8 @@ public:
         inference_(options->get<bool>("inference", false)),
         batchIndex_(options->get<size_t>("index", 0)) {}
 
+  virtual ~EncoderBase() {}
+
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph>, Ptr<data::CorpusBatch>)
       = 0;
 

@@ -2,10 +2,10 @@
 
 #include "marian.h"
 
-#include "decoder.h"
-#include "encoder.h"
-#include "model_base.h"
-#include "states.h"
+#include "models/decoder.h"
+#include "models/encoder.h"
+#include "models/model_base.h"
+#include "models/states.h"
 
 namespace marian {
 
