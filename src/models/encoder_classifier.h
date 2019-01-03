@@ -178,7 +178,7 @@ public:
 
   /*********************************************************************/
 
-  std::vector<Ptr<ClassifierState>> apply(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch, bool clearGraph) override {
+  virtual std::vector<Ptr<ClassifierState>> apply(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch, bool clearGraph) override {
     if(clearGraph)
       clear(graph);
 

@@ -11,6 +11,7 @@
 #include "models/encoder.h"
 #include "models/states.h"
 #include "models/transformer_factory.h"
+#include "models/bert.h"
 #include "rnn/constructors.h"
 
 namespace marian {
@@ -88,6 +89,10 @@ public:
   }
 
   Expr addSentenceEmbeddings(Expr embeddings, int start, Ptr<data::CorpusBatch> batch) const {
+    Ptr<data::BertBatch> bertBatch = std::dynamic_pointer_cast<data::BertBatch>(batch);
+
+    ABORT_IF(!bertBatch, "Batch could not be converted for BERT training");
+
     int dimEmb = embeddings->shape()[-1];
 
     auto sentenceEmbeddings = embedding(graph_)
@@ -96,12 +101,11 @@ public:
                                 ("dimEmb", dimEmb)
                                 .construct();
 
-    const auto& sentenceIndices = (*batch)[batchIndex_]->data(1);
-    
     // @TODO: note this is going to be really slow due to atomicAdd in backward step
     // with only two classes;
     // instead two masked reduce operations, maybe in parallel streams?
-    auto signal = rows(sentenceEmbeddings, graph_->indices(sentenceIndices)); 
+    auto sentenceIndices = graph_->indices(bertBatch->bertSentenceIndices());
+    auto signal = rows(sentenceEmbeddings, sentenceIndices); 
     return embeddings + signal;
   }
 

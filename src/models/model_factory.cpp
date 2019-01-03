@@ -3,6 +3,7 @@
 #include "models/model_factory.h"
 #include "models/encoder_decoder.h"
 #include "models/encoder_classifier.h"
+#include "models/bert.h"
 
 #include "models/costs.h"
 
@@ -80,7 +81,12 @@ Ptr<ModelBase> EncoderDecoderFactory::construct() {
 }
 
 Ptr<ModelBase> EncoderClassifierFactory::construct() {
-  auto enccls = New<EncoderClassifier>(options_);
+  Ptr<EncoderClassifier> enccls;
+  if(options_->get<std::string>("type") == "bert") {
+    enccls = New<BertEncoderClassifier>(options_);
+  } else {
+    enccls = New<EncoderClassifier>(options_);
+  } 
 
   for(auto& ef : encoders_)
     enccls->push_back(ef(options_).construct());
@@ -227,12 +233,12 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
                     ("original-type", type)      //
                     ("index", 0))                // close to original transformer encoder
         .push_back(models::classifier()          //
-                    ("type", "bert-masked-lm")   //
-                    ("index", 1))                // multi-task learning with MaskedLM
-        .push_back(models::classifier()          //
                     ("type", "bert-classifier")  //
-                    ("bert-classes", 2)          //
-                    ("index", 2))                // and next sentence prediction 
+                    ("classifier-classes", 2)    //
+                    ("index", 1))                // next sentence prediction 
+        .push_back(models::classifier()          //
+                    ("type", "bert-masked-lm")   //
+                    ("index", 0))                // multi-task learning with MaskedLM
         .construct();
   }
 
