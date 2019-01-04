@@ -11,7 +11,6 @@
 #include "models/encoder.h"
 #include "models/states.h"
 #include "models/transformer_factory.h"
-#include "models/bert.h"
 #include "rnn/constructors.h"
 
 namespace marian {
@@ -88,36 +87,10 @@ public:
     return embeddings;
   }
 
-  Expr addSentenceEmbeddings(Expr embeddings, int start, Ptr<data::CorpusBatch> batch) const {
-    Ptr<data::BertBatch> bertBatch = std::dynamic_pointer_cast<data::BertBatch>(batch);
-
-    ABORT_IF(!bertBatch, "Batch could not be converted for BERT training");
-
-    int dimEmb = embeddings->shape()[-1];
-
-    auto sentenceEmbeddings = embedding(graph_)
-                                ("prefix", "Wsent")
-                                ("dimVocab", 2) // sentence A or sentence B
-                                ("dimEmb", dimEmb)
-                                .construct();
-
-    // @TODO: note this is going to be really slow due to atomicAdd in backward step
-    // with only two classes;
-    // instead two masked reduce operations, maybe in parallel streams?
-    auto sentenceIndices = graph_->indices(bertBatch->bertSentenceIndices());
-    auto signal = rows(sentenceEmbeddings, sentenceIndices); 
-    return embeddings + signal;
-  }
-
-  Expr addSpecialEmbeddings(Expr input, int start = 0, Ptr<data::CorpusBatch> batch = nullptr) const {
-    bool iAmBert = opt<std::string>("original-type", "undefined") == "bert";
-    bool learnedPosEmbeddings = opt<bool>("transformer-learned-positions", false) || iAmBert;
-
+  virtual Expr addSpecialEmbeddings(Expr input, int start = 0, Ptr<data::CorpusBatch> batch = nullptr) const {
+    batch;
+    bool learnedPosEmbeddings = opt<bool>("transformer-learned-positions", false);
     input = addPositionalEmbeddings(input, start, learnedPosEmbeddings);
-
-    if(iAmBert)
-      input = addSentenceEmbeddings(input, start, batch);
-
     return input;
   }
 
@@ -529,6 +502,7 @@ public:
 class EncoderTransformer : public Transformer<EncoderBase> {
 public:
   EncoderTransformer(Ptr<Options> options) : Transformer(options) {}
+  virtual ~EncoderTransformer() {}
 
   // returns the embedding matrix based on options
   // and based on batchIndex_.
@@ -569,13 +543,13 @@ public:
     return embFactory.construct();
   }
 
-  Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
-                          Ptr<data::CorpusBatch> batch) override {
+  virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::CorpusBatch> batch) override {
     graph_ = graph;
     return apply(batch);
   }
 
-  Ptr<EncoderState> apply(Ptr<data::CorpusBatch> batch) {
+  virtual Ptr<EncoderState> apply(Ptr<data::CorpusBatch> batch) {
     int dimEmb = opt<int>("dim-emb");
     int dimBatch = (int)batch->size();
     int dimSrcWords = (int)(*batch)[batchIndex_]->batchWidth();
@@ -637,7 +611,7 @@ public:
     return New<EncoderState>(context, batchMask, batch);
   }
 
-  void clear() override {}
+  virtual void clear() override {}
 };
 
 class TransformerState : public DecoderState {
@@ -753,9 +727,7 @@ public:
     // Used for position embeddings and creating new decoder states.
     int startPos = (int)state->getPosition();
 
-    scaledEmbeddings
-      = addSpecialEmbeddings(scaledEmbeddings, startPos);
-
+    scaledEmbeddings = addSpecialEmbeddings(scaledEmbeddings, startPos);
     scaledEmbeddings = atleast_nd(scaledEmbeddings, 4);
 
     // reorganize batch and timestep

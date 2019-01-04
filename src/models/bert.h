@@ -2,6 +2,7 @@
 
 #include "data/corpus_base.h"
 #include "models/encoder_classifier.h"
+#include "models/transformer.h"
 
 namespace marian {
 namespace data {
@@ -36,6 +37,38 @@ public:
   std::vector<Ptr<ClassifierState>> apply(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch, bool clearGraph) override {
     Ptr<data::BertBatch> bertBatch = New<data::BertBatch>(batch); // intercept batch and anotate with BERT-specific concepts
     return EncoderClassifier::apply(graph, bertBatch, clearGraph);
+  }
+};
+
+class BertEncoder : public EncoderTransformer {
+public:
+  BertEncoder(Ptr<Options> options) : EncoderTransformer(options) {}
+
+  Expr addSentenceEmbeddings(Expr embeddings, int start, Ptr<data::CorpusBatch> batch) const {
+    Ptr<data::BertBatch> bertBatch = std::dynamic_pointer_cast<data::BertBatch>(batch);
+
+    ABORT_IF(!bertBatch, "Batch could not be converted for BERT training");
+
+    int dimEmb = embeddings->shape()[-1];
+
+    auto sentenceEmbeddings = embedding(graph_)
+                                ("prefix", "Wsent")
+                                ("dimVocab", 2) // sentence A or sentence B
+                                ("dimEmb", dimEmb)
+                                .construct();
+
+    // @TODO: note this is going to be really slow due to atomicAdd in backward step
+    // with only two classes;
+    // instead two masked reduce operations, maybe in parallel streams?
+    auto sentenceIndices = graph_->indices(bertBatch->bertSentenceIndices());
+    auto signal = rows(sentenceEmbeddings, sentenceIndices); 
+    return embeddings + signal;
+  }
+
+  virtual Expr addSpecialEmbeddings(Expr input, int start = 0, Ptr<data::CorpusBatch> batch = nullptr) const override {
+    input = addPositionalEmbeddings(input, start, true); // true for BERT
+    input = addSentenceEmbeddings(input, start, batch);
+    return input;
   }
 };
 

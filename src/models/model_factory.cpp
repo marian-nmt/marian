@@ -39,6 +39,10 @@ Ptr<EncoderBase> EncoderFactory::construct() {
     // return New<EncoderTransformer>(options_);
     return NewEncoderTransformer(options_);
 
+  if(options_->get<std::string>("type") == "bert-encoder")
+    // return New<EncoderTransformer>(options_);
+    return New<BertEncoder>(options_);
+
   ABORT("Unknown encoder type");
 }
 
@@ -229,8 +233,7 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
     return models::encoder_classifier()(options) //
         ("usage", use)                           //
         .push_back(models::encoder()             //
-                    ("type", "transformer")      //
-                    ("original-type", type)      //
+                    ("type", "bert-encoder")     //
                     ("index", 0))                // close to original transformer encoder
         .push_back(models::classifier()          //
                     ("type", "bert-classifier")  //
