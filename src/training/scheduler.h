@@ -83,19 +83,14 @@ public:
     if (mbWarmup) {
       // mini-batch-warmup
       LOG_ONCE(info, "[scheduler] Mini-batch size warmup {}", std::string(mbWarmup));
-      // This scales MB size up from the start, relative to progress within warm-up period.
+      // This ramps up MB size at start, relative to progress within warm-up period.
       size_t progress = state_->getProgressIn(mbWarmup.unit); // number of updates/labels processed
       auto progressRatio = (double)progress / (double)mbWarmup.n; // where are we relatively within target warm-up period
       // if unit is labels, then account for the fact that our increment itself is not constant
       if (mbWarmup.unit == SchedulingUnit::trgLabels)
         progressRatio = std::sqrt(progressRatio);
-      if (progressRatio < 1) {
-        // soften the very initial ramp-up if requested
-        double exp = options_->get<double>("mini-batch-warmup-exp");
-        progressRatio = pow(progressRatio, exp); // e.g. 1.5 => linear ramp-up -> sublinear ramp-up
-        // apply ratio to actual batch size
+      if (progressRatio < 1)
         ratio *= progressRatio;
-      }
     }
 
     // dynamic MB-size tracking with learning rate
