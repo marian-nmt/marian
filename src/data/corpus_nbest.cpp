@@ -61,9 +61,9 @@ SentenceTuple CorpusNBest::next() {
                    "Too few lines in input {}",
                    i);
         }
-        addWordsToSentenceTuple(lastLines_[i], i, tup);
+        addWordsToSentenceTuple(lastLines_[i], i, tup, addEOS_[i]);
       }
-      addWordsToSentenceTuple(curr_text, last, tup);
+      addWordsToSentenceTuple(curr_text, last, tup, addEOS_[last]);
       lastNum_ = curr_num;
     }
 

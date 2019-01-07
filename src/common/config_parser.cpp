@@ -143,6 +143,10 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "Enable layer normalization");
   cli.add<bool>("--right-left",
       "Train right-to-left model");
+  cli.add<std::vector<std::string>>("--input-types",
+      "Provide type of input data if different than 'sequence'. "
+      "Possible values: sequence, labels. You need to provide one type per input.",
+      {});
   cli.add<bool>("--best-deep",
       "Use Edinburgh deep RNN configuration (s2s)");
   cli.add_nondefault<std::vector<size_t>>("--special-vocab",

@@ -513,6 +513,12 @@ protected:
   std::vector<UPtr<io::InputFileStream>> files_;
   std::vector<Ptr<Vocab>> vocabs_;
 
+  /**
+   * brief Determines if a EOS symbol should be added. By default this is true for any sequence,
+   * but should be false for instance for classifier labels. This is set per input stream, hence a vector.
+   */
+  std::vector<bool> addEOS_; 
+
   size_t pos_{0};
 
   size_t maxLength_{0};
@@ -537,7 +543,8 @@ protected:
    */
   void addWordsToSentenceTuple(const std::string& line,
                                size_t i,
-                               SentenceTuple& tup) const;
+                               SentenceTuple& tup,
+                               bool addEOS) const;
   /**
    * @brief Helper function parsing a line with word alignments and adding them
    * to the sentence tuple.

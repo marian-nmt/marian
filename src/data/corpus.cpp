@@ -55,7 +55,7 @@ SentenceTuple Corpus::next() {
       } else if(i > 0 && i == weightFileIdx_) {
         addWeightsToSentenceTuple(line, tup);
       } else {
-        addWordsToSentenceTuple(line, i, tup);
+        addWordsToSentenceTuple(line, i, tup, addEOS_[i]);
       }
     }
 

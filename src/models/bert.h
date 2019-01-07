@@ -85,7 +85,7 @@ public:
     auto classEmbeddings = step(context, /*i=*/0, /*axis=*/-2); // [CLS] symbol is first symbol in each sequence
     
     int dimModel = classEmbeddings->shape()[-1];
-    int dimTrgCls = opt<int>("classifier-classes");
+    int dimTrgCls = opt<std::vector<int>>("dim-vocabs")[batchIndex_]; // Target vocab is used as class labels
 
     auto output = mlp::mlp(graph)                                 //
                     ("prefix", prefix_ + "_ff_logit")             //
@@ -143,10 +143,10 @@ public:
     // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
     // assemble layers into MLP and apply to embeddings, decoder context and
     // aligned source context
-    auto output = mlp::mlp(graph)                 //
+    auto output = mlp::mlp(graph)                      //
         ("prefix", prefix_ + "_ff_logit_maskedlm_out") //
-        .push_back(layerTanh)                      // @TODO: do we actually need this?
-        .push_back(layerOut)                       //
+        .push_back(layerTanh)                          // @TODO: do we actually need this?
+        .push_back(layerOut)                           //
         .construct();
     
     auto logits = output->apply(classEmbeddings);

@@ -237,11 +237,22 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
                     ("index", 0))                // close to original transformer encoder
         .push_back(models::classifier()          //
                     ("type", "bert-classifier")  //
-                    ("classifier-classes", 2)    //
                     ("index", 1))                // next sentence prediction 
         .push_back(models::classifier()          //
                     ("type", "bert-masked-lm")   //
                     ("index", 0))                // multi-task learning with MaskedLM
+        .construct();
+  }
+
+  if(type == "bert-classifier") {
+    return models::encoder_classifier()(options) //
+        ("usage", use)                           //
+        .push_back(models::encoder()             //
+                    ("type", "bert-encoder")     //
+                    ("index", 0))                // close to original transformer encoder
+        .push_back(models::classifier()          //
+                    ("type", "bert-classifier")  //
+                    ("index", 1))                // next sentence prediction 
         .construct();
   }
 
