@@ -18,8 +18,8 @@ private:
 
   timer::Timer timer_, heartBeatTimer_;
 
-  // determine LR decay factor from --lr-decay-inv-sqrt option
-  float getLearningRateDecayFactor(const TrainingState& state) const {
+  // determine scheduled LR decay factor (--lr-decay-inv-sqrt option)
+  float getScheduledLRDecayFactor(const TrainingState& state) const {
     auto args = options_->get<std::vector<std::string>>("lr-decay-inv-sqrt");
     ABORT_IF(args.empty() || args.size() > 2, "--lr-decay-inv-sqrt argument must be one or two numbers with units");
     auto decayGoogle = SchedulingParameter::parse(args[0]);
@@ -38,27 +38,33 @@ private:
       return 1.f;
   }
 
-  // determine the dynamically adjusted learning rate, incl. warm-up and decay
-  float getLearningRate(const TrainingState& state) const {
+  // update current learning rate in state.eta
+  // This considers
+  //  - base LR (--learn-rate)
+  //  - LR warm-up (--lr-warmup, --lr=warmup-start-rate)
+  //  - scheduled LR decay (--lr-decay-inv-sqrt)
+  //  - state-based LR decay (--lr-decay, --lr-decay-strategy)
+  void updateLearningRate(TrainingState& state) const {
     float baselr = options_->get<float>("learn-rate");
 
-    float mult1 = 1.f;
-    auto warmup = SchedulingParameter::parse(options_->get<std::string>("lr-warmup"));
-    if(warmup) {
-      ABORT_IF(state.warmupStart && state.warmupStart.unit != warmup.unit, "lr-warmup and warmup-start must have the same unit");
-      auto bno = state.getProgressIn(warmup.unit) - state.warmupStart.n;
-      mult1 = std::min(1.f, (float)bno / (float)warmup.n);
+    // warm-up factor
+    float warmupFactor = 1.f;
+    auto warmupParam = SchedulingParameter::parse(options_->get<std::string>("lr-warmup"));
+    if(warmupParam) {
+      ABORT_IF(state.warmupStart && state.warmupStart.unit != warmupParam.unit, "lr-warmup and warmup-start must have the same unit");
+      auto bno = state.getProgressIn(warmupParam.unit) - state.warmupStart.n;
+      warmupFactor = std::min(1.f, (float)bno / (float)warmupParam.n);
     }
 
-    float mult2 = getLearningRateDecayFactor(state);
-
-    baselr = baselr * mult1 * mult2;
-
     float lrStart = options_->get<float>("lr-warmup-start-rate");
-    if(lrStart > 0)
-      baselr = baselr - lrStart * mult1 * mult2 + lrStart * mult2;
+    baselr = lrStart + (baselr - lrStart) * warmupFactor; // linear interpolation between lr-warmup-start-rate to learn-rate
 
-    return baselr;
+    // schedule-based decay factor (--lr-decay-inv-sqrt)
+    float scheduledDecayFactor = getScheduledLRDecayFactor(state);
+    baselr = baselr * scheduledDecayFactor;
+
+    // factor in state-based decay and set final LR as state.eta
+    state.updateEta(baselr);
   }
 
 public:
@@ -91,7 +97,7 @@ public:
     // As LR goes down, MB gets ramped up by the same ratio, which has been found to be safe.
     auto mbTracking = options_->get<bool>("mini-batch-track-lr");
     if (mbTracking) {
-      auto lrFactor = getLearningRateDecayFactor(*state_);
+      auto lrFactor = getScheduledLRDecayFactor(*state_) * state_->factor; // (don't include lr-warmup)
       if (lrFactor != 1)
         LOG_ONCE(info, "[scheduler] Dynamic mini-batch size adjustment enabled and kicking in");
       ratio /= lrFactor;
@@ -101,7 +107,8 @@ public:
 
   Scheduler(Ptr<Options> options, Ptr<TrainingState> state)
       : options_(options), state_(state) {
-    state_->eta = getLearningRate(*state);
+    ABORT_IF(state_->factor != 1, "state.factor unexpectedly not 1 at this point??");
+    updateLearningRate(*state);
   }
 
   bool keepGoing() {
@@ -367,8 +374,7 @@ public:
   void actAfterEpoch(TrainingState& state) override {
     float factor = (float)options_->get<double>("lr-decay"); // @TODO: <float>?
 
-    float baselr = getLearningRate(state);
-    state.eta = baselr * state.factor;
+    updateLearningRate(state);
 
     if(factor > 0.0) {
       bool decay = false;
@@ -398,7 +404,7 @@ public:
 
       if(decay) {
         state.factor *= factor;
-        state.eta = baselr * state.factor;
+        updateLearningRate(state);
         LOG(info,
             "Decaying learning rate to {} in epoch {}",
             state.eta,
@@ -420,8 +426,7 @@ public:
     float factor = (float)options_->get<double>("lr-decay"); // @TODO: <float>?
     state.reset = false;
 
-    float baselr = getLearningRate(state);
-    state.eta = baselr * state.factor;
+    updateLearningRate(state);
 
     if(factor > 0.0) {
       if(options_->get<std::string>("lr-decay-strategy") == "batches") {
@@ -431,7 +436,7 @@ public:
         if(start > 0 && freq > 0 && state.batches >= start
            && ((state.batches - start) % freq == 0)) {
           state.factor *= factor;
-          state.eta = baselr * state.factor;
+          updateLearningRate(state);
           LOG(info,
               "Decaying learning rate to {} after {} batches",
               state.eta,
@@ -466,8 +471,7 @@ public:
     float factor = (float)options_->get<double>("lr-decay"); // @TODO: <float>?
     state.reset = false;
 
-    float baselr = getLearningRate(state);
-    state.eta = baselr * state.factor;
+    updateLearningRate(state);
 
     if(factor > 0.0) {
       if(options_->get<std::string>("lr-decay-strategy") == "stalled") {
@@ -475,7 +479,7 @@ public:
             = options_->get<std::vector<size_t>>("lr-decay-start").front();
         if(startStalled && state.stalled && state.stalled % startStalled == 0) {
           state.factor *= factor;
-          state.eta = baselr * state.factor;
+          updateLearningRate(state);
           LOG(info,
               "Decaying learning rate to {} after stalled {} time(s)",
               state.eta,
