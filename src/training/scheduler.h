@@ -486,7 +486,7 @@ public:
           state.factor *= factor;
           updateLearningRate(state);
           LOG(info,
-              "Decaying learning rate to {} after stalled {} time(s)",
+              "Decaying learning rate to {} after having stalled {} time(s)",
               state.eta,
               state.stalled);
 
