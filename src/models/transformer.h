@@ -65,6 +65,7 @@ public:
       std::iota(positions.begin(), positions.end(), 0); // fill with increasing numbers until current length
 
       auto signal = rows(posEmbFactory, graph_->indices(positions));
+      signal = reshape(signal, {dimWords, 1, dimEmb});
       embeddings = embeddings + signal;
     } else {
       float num_timescales = (float)dimEmb / 2;
@@ -527,9 +528,7 @@ public:
     int dimEmb = opt<int>("dim-emb");
     auto embFactory = embedding(graph_)("dimVocab", dimVoc)("dimEmb", dimEmb);
 
-    bool iAmBert = opt<std::string>("original-type") == "bert";
-
-    if (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all") || iAmBert)
+    if (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
       embFactory("prefix", "Wemb");
     else
       embFactory("prefix", prefix_ + "_Wemb");

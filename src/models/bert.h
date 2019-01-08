@@ -40,6 +40,7 @@ public:
   }
 };
 
+// @TODO: this should be in transformer.h
 class BertEncoder : public EncoderTransformer {
 public:
   BertEncoder(Ptr<Options> options) : EncoderTransformer(options) {}
@@ -50,6 +51,8 @@ public:
     ABORT_IF(!bertBatch, "Batch could not be converted for BERT training");
 
     int dimEmb = embeddings->shape()[-1];
+    int dimBatch = embeddings->shape()[-2];
+    int dimWords = embeddings->shape()[-3];
 
     auto sentenceEmbeddings = embedding(graph_)
                                 ("prefix", "Wsent")
@@ -62,6 +65,7 @@ public:
     // instead two masked reduce operations, maybe in parallel streams?
     auto sentenceIndices = graph_->indices(bertBatch->bertSentenceIndices());
     auto signal = rows(sentenceEmbeddings, sentenceIndices); 
+    signal = reshape(signal, {dimWords, dimBatch, dimEmb});
     return embeddings + signal;
   }
 
@@ -87,13 +91,14 @@ public:
     int dimModel = classEmbeddings->shape()[-1];
     int dimTrgCls = opt<std::vector<int>>("dim-vocabs")[batchIndex_]; // Target vocab is used as class labels
 
-    auto output = mlp::mlp(graph)                                 //
-                    ("prefix", prefix_ + "_ff_logit")             //
-                    .push_back(mlp::dense(graph)                  //
-                                 ("dim", dimModel)                //
-                                 ("activation", mlp::act::tanh))  // @TODO: do we actually need this?
-                    .push_back(mlp::dense(graph)                  //
-                                 ("dim", dimTrgCls))              //
+    auto output = mlp::mlp(graph)                                     //
+                    .push_back(mlp::dense(graph)                      //
+                                 ("prefix", prefix_ + "_ff_logit_l1") //
+                                 ("dim", dimModel)                    //
+                                 ("activation", mlp::act::tanh))      // @TODO: do we actually need this?
+                    .push_back(mlp::output(graph)                      //
+                                 ("dim", dimTrgCls))                  //
+                                 ("prefix", prefix_ + "_ff_logit_l2") //
                     .construct();
     
     auto logits = output->apply(classEmbeddings); // class logits for each batch entry

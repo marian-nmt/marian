@@ -43,6 +43,23 @@ CorpusBase::CorpusBase(const std::vector<std::string>& paths,
     files_.emplace_back(new io::InputFileStream(path));
     ABORT_IF(files_.back()->empty(), "File '{}' is empty", path);
   }
+
+  addEOS_.resize(paths_.size(), true);
+  // @TODo: think if this should be checked and processed here or in a validation step in config?
+  auto inputTypes = options_->get<std::vector<std::string>>("input-types", {}); // empty list by default
+  ABORT_IF(inputTypes.size() > 0 && inputTypes.size() != paths_.size(), 
+           "Input types are specified ({}) you need to specify one per input ({})", 
+           inputTypes.size(), 
+           paths_.size());
+  // Currently input types affects only EOS symbol
+  for(int i = 0; i < inputTypes.size(); ++i)
+    if(inputTypes[i] == "labels")
+      addEOS_[i] = false;
+    else if(inputTypes[i] == "sequence")
+      addEOS_[i] = true;
+    else
+      ABORT("Unknown input type {}: {}", i, inputTypes[i]);
+
 }
 
 CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
@@ -58,8 +75,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
     paths_ = options_->get<std::vector<std::string>>("input");
 
   addEOS_.resize(paths_.size(), true);
-
-  // @TODO: think if this should be checked and processed here or in a validation step in config?
+  // @TODo: think if this should be checked and processed here or in a validation step in config?
   auto inputTypes = options_->get<std::vector<std::string>>("input-types", {}); // empty list by default
   ABORT_IF(inputTypes.size() > 0 && inputTypes.size() != paths_.size(), 
            "Input types are specified ({}) you need to specify one per input ({})", 
