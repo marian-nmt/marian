@@ -351,8 +351,8 @@ public:
   /**
    * (Constructor) Call super class and initialize client graphs and builders.
    */
-  MultiNodeGraphGroup(Ptr<Options> options)
-      : Base(options),
+  MultiNodeGraphGroup(Ptr<Options> options, Ptr<IMPIWrapper> mpi)
+      : Base(options, mpi),
         clientCommOverlap{options_->get<bool>("multi-node-overlap")},
         tau_{(size_t)options_->get<double>("optimizer-delay")} { }
 

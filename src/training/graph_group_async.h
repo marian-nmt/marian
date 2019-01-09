@@ -52,7 +52,7 @@ protected:
   void execute(Ptr<data::Batch> batch);
 
 public:
-  AsyncGraphGroup(Ptr<Options> config);
+  AsyncGraphGroup(Ptr<Options> config, Ptr<IMPIWrapper> mpi);
 
   void update(Ptr<data::Batch> batch) override {
     validate();

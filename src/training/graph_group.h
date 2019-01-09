@@ -136,11 +136,8 @@ protected:
   std::vector<Ptr<ExpressionGraph>> clientGraphs_; // [num local GPUs]
 
 public:
-  MultiNodeGraphGroupBase(Ptr<Options> options)
-    : Base(options) {
-
-    // Setup MPI
-    setupMPI();
+  MultiNodeGraphGroupBase(Ptr<Options> options, Ptr<IMPIWrapper> mpi)
+    : Base(options), mpi_(mpi) {
 
     // Set up devices for this node
     std::vector<size_t> devices; // set of GPU device ids for this MPI process
@@ -155,13 +152,6 @@ public:
       clientGraphs_[i]->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       clientBuilders_.push_back(models::from_options(options_, models::usage::training));
     }
-  }
-
-  /**
-   * Setup MPI world size and rank of this node.
-   */
-  void setupMPI() {
-    mpi_ = initMPI(/*multiThreaded=*/!options_->get<bool>("sync-sgd"));
   }
 
   /**
