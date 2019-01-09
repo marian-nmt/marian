@@ -563,6 +563,15 @@
     <ClCompile Include="..\src\data\corpus_nbest.cpp" />
     <ClCompile Include="..\src\data\text_input.cpp" />
     <ClCompile Include="..\src\3rd_party\cnpy\cnpy.cpp" />
+    <ClCompile Include="..\src\examples\iris\helper.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\examples\iris\iris.cpp" />
+    <ClCompile Include="..\src\examples\mnist\mnist_ffnn.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\src\layers\loss.cpp" />
     <ClCompile Include="..\src\layers\weight.cpp" />
     <ClCompile Include="..\src\microsoft\quicksand.cpp">
@@ -687,6 +696,11 @@
     <ClInclude Include="..\src\common\timer.h" />
     <ClInclude Include="..\src\common\types.h" />
     <ClInclude Include="..\src\common\version.h" />
+    <ClInclude Include="..\src\examples\mnist\dataset.h" />
+    <ClInclude Include="..\src\examples\mnist\model.h" />
+    <ClInclude Include="..\src\examples\mnist\model_lenet.h" />
+    <ClInclude Include="..\src\examples\mnist\training.h" />
+    <ClInclude Include="..\src\examples\mnist\validator.h" />
     <ClInclude Include="..\src\layers\loss.h" />
     <ClInclude Include="..\src\layers\weight.h" />
     <ClInclude Include="..\src\marian.h" />
@@ -1049,6 +1063,11 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
+    <None Include="..\src\examples\cmake_install.cmake" />
+    <None Include="..\src\examples\iris\iris.data" />
+    <None Include="..\src\examples\Makefile" />
+    <None Include="..\src\examples\mnist\download.sh" />
+    <None Include="..\src\examples\README.md" />
     <None Include="..\src\tensors\gpu\add.cu">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </None>
@@ -1097,6 +1116,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </Text>
+    <Text Include="..\src\examples\CMakeLists.txt" />
     <Text Include="..\src\tests\CMakeLists.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

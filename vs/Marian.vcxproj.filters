@@ -472,6 +472,15 @@
     <ClCompile Include="..\src\tests\sqlite_test.cpp">
       <Filter>tests</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\examples\mnist\mnist_ffnn.cpp">
+      <Filter>examples\mnist</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\examples\iris\helper.cpp">
+      <Filter>examples\iris</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\examples\iris\iris.cpp">
+      <Filter>examples\iris</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -1493,6 +1502,21 @@
     <ClInclude Include="..\src\3rd_party\pathie-cpp\include\temp.hpp">
       <Filter>3rd_party\pathie-cpp\include</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\examples\mnist\dataset.h">
+      <Filter>examples\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\examples\mnist\model.h">
+      <Filter>examples\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\examples\mnist\model_lenet.h">
+      <Filter>examples\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\examples\mnist\training.h">
+      <Filter>examples\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\examples\mnist\validator.h">
+      <Filter>examples\mnist</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
@@ -1810,6 +1834,21 @@
     <None Include="..\src\tests\tensor_test.cu">
       <Filter>tests</Filter>
     </None>
+    <None Include="..\src\examples\mnist\download.sh">
+      <Filter>examples\mnist</Filter>
+    </None>
+    <None Include="..\src\examples\iris\iris.data">
+      <Filter>examples\iris</Filter>
+    </None>
+    <None Include="..\src\examples\cmake_install.cmake">
+      <Filter>examples</Filter>
+    </None>
+    <None Include="..\src\examples\Makefile">
+      <Filter>examples</Filter>
+    </None>
+    <None Include="..\src\examples\README.md">
+      <Filter>examples</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\src\3rd_party\sentencepiece\src\CMakeLists.txt">
@@ -1820,6 +1859,9 @@
     </Text>
     <Text Include="..\src\tests\CMakeLists.txt">
       <Filter>tests</Filter>
+    </Text>
+    <Text Include="..\src\examples\CMakeLists.txt">
+      <Filter>examples</Filter>
     </Text>
   </ItemGroup>
 </Project>
