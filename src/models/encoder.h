@@ -12,26 +12,8 @@ protected:
   bool inference_{false};
   size_t batchIndex_{0};
 
-  // @TODO: This used to be virtual, but is never overridden.
-  // virtual
-  std::tuple<Expr, Expr> lookup(Ptr<ExpressionGraph> graph,
-    Expr srcEmbeddings,
-    Ptr<data::CorpusBatch> batch) const {
-    auto subBatch = (*batch)[batchIndex_];
-    int dimBatch = (int)subBatch->batchSize();
-    int dimEmb = srcEmbeddings->shape()[-1];
-    int dimWords = (int)subBatch->batchWidth();
-    auto chosenEmbeddings = rows(srcEmbeddings, subBatch->data());
-    auto batchEmbeddings = reshape(chosenEmbeddings, { dimWords, dimBatch, dimEmb });
-    auto batchMask = graph->constant({ dimWords, dimBatch, 1 },
-                                     inits::from_vector(subBatch->mask()));
-
-    return std::make_tuple(batchEmbeddings, batchMask);
-  }
-
-  std::tuple<Expr, Expr> ulrLookup(Ptr<ExpressionGraph> graph,
-      std::vector<Expr> urlEmbeddings,
-    Ptr<data::CorpusBatch> batch) const {
+  std::tuple<Expr, Expr> ulrLookup(std::vector<Expr> urlEmbeddings, Ptr<data::CorpusBatch> batch) const {
+    auto graph = urlEmbeddings.front()->graph();
     auto subBatch = (*batch)[batchIndex_];
     // is their a better way to do this?
     assert(urlEmbeddings.size() == 6);

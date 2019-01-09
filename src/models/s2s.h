@@ -119,7 +119,7 @@ public:
     return context;
   }
 
-  Expr buildSourceEmbeddings(Ptr<ExpressionGraph> graph) {
+  Ptr<IEmbedding> buildSourceEmbeddings(Ptr<ExpressionGraph> graph) {
     // create source embeddings
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");
@@ -153,9 +153,8 @@ public:
     auto embeddings = buildSourceEmbeddings(graph);
 
     // select embeddings that occur in the batch
-    Expr batchEmbeddings, batchMask;
-    std::tie(batchEmbeddings, batchMask)
-        = EncoderBase::lookup(graph, embeddings, batch);
+    Expr batchEmbeddings, batchMask; std::tie
+    (batchEmbeddings, batchMask) = embeddings->apply((*batch)[batchIndex_]);
 
     // apply dropout over source words
     float dropProb = inference_ ? 0 : opt<float>("dropout-src");

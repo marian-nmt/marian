@@ -495,7 +495,7 @@ public:
     return embFactory.construct();
   }
 
-  Expr wordEmbeddings(size_t subBatchIndex) const {
+  Ptr<IEmbedding> createWordEmbeddingLayer(size_t subBatchIndex) const {
     // standard encoder word embeddings
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[subBatchIndex];
     int dimEmb = opt<int>("dim-emb");
@@ -530,13 +530,12 @@ public:
     if (options_->has("ulr") && options_->get<bool>("ulr") == true) {
       auto embeddings = ULREmbeddings(); // embedding uses ULR
       std::tie(batchEmbeddings, batchMask)
-        = EncoderBase::ulrLookup(graph_, embeddings, batch);
+        = EncoderBase::ulrLookup(embeddings, batch);
     }
     else
     {
-      auto embeddings = wordEmbeddings(batchIndex_);
-      std::tie(batchEmbeddings, batchMask)
-        = EncoderBase::lookup(graph_, embeddings, batch);
+      auto embedding = createWordEmbeddingLayer(batchIndex_);
+      std::tie(batchEmbeddings, batchMask) = embedding->apply((*batch)[batchIndex_]);
     }
     // apply dropout over source words
     float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");

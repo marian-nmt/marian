@@ -17,15 +17,14 @@ enum struct act : int { linear, tanh, sigmoid, ReLU, LeakyReLU, PReLU, swish };
 YAML_REGISTER_TYPE(marian::mlp::act, int)
 
 namespace marian {
-namespace mlp {
 
-class Layer {
+class BaseLayer {   // @TODO: better name. Ideally change uses of Layer to IUnaryLayer; then explicit derive from IUnaryLayer in each layer
 protected:
   Ptr<ExpressionGraph> graph_;
   Ptr<Options> options_;
 
 public:
-  Layer(Ptr<ExpressionGraph> graph, Ptr<Options> options)
+  BaseLayer(Ptr<ExpressionGraph> graph, Ptr<Options> options)
       : graph_(graph), options_(options) {}
 
   template <typename T>
@@ -37,9 +36,17 @@ public:
   T opt(const std::string key, T defaultValue) {
     return options_->get<T>(key, defaultValue);
   }
+};
 
+namespace mlp {
+struct IUnaryLayer {
   virtual Expr apply(const std::vector<Expr>&) = 0;
   virtual Expr apply(Expr) = 0;
+};
+
+class Layer : public BaseLayer, public IUnaryLayer {
+public:
+  Layer(Ptr<ExpressionGraph> graph, Ptr<Options> options) : BaseLayer(graph, options) { }
 };
 
 class Dense : public Layer {
@@ -162,10 +169,16 @@ public:
 
 }  // namespace mlp
 
-struct EmbeddingFactory : public Factory {
-  EmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
+struct IEmbedding {
+  virtual std::tuple<Expr/*embeddings*/, Expr/*mask*/> apply(Ptr<data::SubBatch> subBatch) const = 0;
+  // alternative version from index vector, and with batch dim
+  virtual Expr apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const = 0;
+};
 
-  Expr construct() {
+class Embedding : public BaseLayer, public IEmbedding {
+  Expr E_;
+public:
+  Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options) : BaseLayer(graph, options) {
     std::string name = opt<std::string>("prefix");
     int dimVoc = opt<int>("dimVocab");
     int dimEmb = opt<int>("dimEmb");
@@ -173,18 +186,45 @@ struct EmbeddingFactory : public Factory {
     bool fixed = opt<bool>("fixed", false);
 
     NodeInitializer initFunc = inits::glorot_uniform;
-  if (options_->has("embFile")) {
-    std::string file = opt<std::string>("embFile");
-    if (!file.empty()) {
-      bool norm = opt<bool>("normalization", false);
-      initFunc = inits::from_word2vec(file, dimVoc, dimEmb, norm);
+    if (options_->has("embFile")) {
+      std::string file = opt<std::string>("embFile");
+      if (!file.empty()) {
+        bool norm = opt<bool>("normalization", false);
+        initFunc = inits::from_word2vec(file, dimVoc, dimEmb, norm);
+      }
     }
+
+    E_ = graph_->param(name, {dimVoc, dimEmb}, initFunc, fixed);
   }
-  
-    return graph_->param(name, {dimVoc, dimEmb}, initFunc, fixed);
+
+  std::tuple<Expr/*embeddings*/, Expr/*mask*/> apply(Ptr<data::SubBatch> subBatch) const override final {
+    auto graph = E_->graph();
+    int dimBatch = (int)subBatch->batchSize();
+    int dimEmb = E_->shape()[-1];
+    int dimWords = (int)subBatch->batchWidth();
+    // @TODO: merge this with below. Currently can't only due to the extra beam dimension
+    auto chosenEmbeddings = rows(E_, subBatch->data());
+    auto batchEmbeddings = reshape(chosenEmbeddings, { dimWords, dimBatch, dimEmb });
+    auto batchMask = graph->constant({ dimWords, dimBatch, 1 },
+                                     inits::from_vector(subBatch->mask()));
+    return std::make_tuple(batchEmbeddings, batchMask);
+  }
+
+  // special version used in decoding
+  Expr apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const override final {
+    int dimEmb = E_->shape()[-1];
+    auto selectedEmbs = rows(E_, embIdx);
+    return reshape(selectedEmbs, { dimBeam, 1, dimBatch, dimEmb });
   }
 };
 
+struct EmbeddingFactory : public Factory {
+  EmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
+
+  Ptr<IEmbedding> construct() {
+    return New<Embedding>(graph_, options_);
+  }
+};
 
 struct ULREmbeddingFactory : public Factory {
 ULREmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
