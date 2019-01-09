@@ -18,15 +18,16 @@ YAML_REGISTER_TYPE(marian::mlp::act, int)
 
 namespace marian {
 
-// Each layer consists of Layer and one or more apply() functions according to
-// a layer-type specific interface (different layers may require different signatures).
-class Layer {
+// Each layer consists of LayerBase and IXXXLayer which defines one or more apply()
+// functions for the respective layer type (different layers may require different signatures).
+// This base class contains configuration info for creating parameters and executing apply().
+class LayerBase {
 protected:
   Ptr<ExpressionGraph> graph_;
   Ptr<Options> options_;
 
 public:
-  Layer(Ptr<ExpressionGraph> graph, Ptr<Options> options)
+  LayerBase(Ptr<ExpressionGraph> graph, Ptr<Options> options)
       : graph_(graph), options_(options) {}
 
   template <typename T>
@@ -40,17 +41,24 @@ public:
   }
 };
 
-// Simplest layer interface: Unary function.
+// Simplest layer interface: Unary function
 struct IUnaryLayer {
   virtual Expr apply(Expr) = 0;
   virtual Expr apply(const std::vector<Expr>&) = 0;
 };
 
+// Embedding from corpus sub-batch to (emb, mask)
+struct IEmbeddingLayer {
+  virtual std::tuple<Expr/*embeddings*/, Expr/*mask*/> apply(Ptr<data::SubBatch> subBatch) const = 0;
+  // alternative version from index vector, and with batch dim
+  virtual Expr apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const = 0;
+};
+
 namespace mlp {
-class Dense : public Layer, public IUnaryLayer {
+class Dense : public LayerBase, public IUnaryLayer {
 public:
   Dense(Ptr<ExpressionGraph> graph, Ptr<Options> options)
-      : Layer(graph, options) {}
+      : LayerBase(graph, options) {}
 
   Expr apply(const std::vector<Expr>& inputs) override {
     ABORT_IF(inputs.empty(), "No inputs");
@@ -114,7 +122,7 @@ public:
   Expr apply(Expr input) override { return apply(std::vector<Expr>({input})); }
 };
 
-class Output : public Layer, public IUnaryLayer {
+class Output : public LayerBase, public IUnaryLayer {
 private:
   std::map<std::string, Expr> tiedParams_;
   Ptr<data::Shortlist> shortlist_;
@@ -125,7 +133,7 @@ private:
 
 public:
   Output(Ptr<ExpressionGraph> graph, Ptr<Options> options)
-      : Layer(graph, options) {}
+      : LayerBase(graph, options) {}
 
   void tie_transposed(const std::string& param, const std::string& tied) {
     tiedParams_[param] = graph_->get(tied);
@@ -167,16 +175,10 @@ public:
 
 }  // namespace mlp
 
-struct IEmbedding {
-  virtual std::tuple<Expr/*embeddings*/, Expr/*mask*/> apply(Ptr<data::SubBatch> subBatch) const = 0;
-  // alternative version from index vector, and with batch dim
-  virtual Expr apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const = 0;
-};
-
-class Embedding : public Layer, public IEmbedding {
+class Embedding : public LayerBase, public IEmbeddingLayer {
   Expr E_;
 public:
-  Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options) : Layer(graph, options) {
+  Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options) : LayerBase(graph, options) {
     std::string name = opt<std::string>("prefix");
     int dimVoc = opt<int>("dimVocab");
     int dimEmb = opt<int>("dimEmb");
@@ -216,25 +218,16 @@ public:
   }
 };
 
-struct EmbeddingFactory : public Factory {
-  EmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
-
-  Ptr<IEmbedding> construct() {
-    return New<Embedding>(graph_, options_);
-  }
-};
-
-struct ULREmbeddingFactory : public Factory {
-ULREmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
-
-  std::vector<Expr> construct() {
+class ULREmbedding : public LayerBase, public IEmbeddingLayer {
+  std::vector<Expr> ulrEmbeddings_; // @TODO: These can now better be written as 6 named class members
+public:
+  ULREmbedding(Ptr<ExpressionGraph> graph, Ptr<Options> options) : LayerBase(graph, options) {
     std::string name = "url_embed"; //opt<std::string>("prefix");
     int dimKeys = opt<int>("dimTgtVoc");
     int dimQueries = opt<int>("dimSrcVoc");
     int dimEmb = opt<int>("dimEmb");
     int dimUlrEmb =  opt<int>("dimUlrEmb"); // ULR mono embed size
     bool fixed = opt<bool>("fixed", false);
-    std::vector<Expr> ulrEmbeds;
     NodeInitializer initFunc = inits::glorot_uniform;
     std::string queryFile = opt<std::string>("ulrQueryFile");
     std::string keyFile = opt<std::string>("ulrKeysFile");
@@ -244,23 +237,23 @@ ULREmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
       name = "ulr_query";
       fixed = true;
       auto query_embed = graph_->param(name, { dimQueries, dimUlrEmb }, initFunc, fixed);
-      ulrEmbeds.push_back(query_embed);
+      ulrEmbeddings_.push_back(query_embed);
       // keys embeds
       initFunc = inits::from_word2vec(keyFile, dimKeys, dimUlrEmb, false);
       name = "ulr_keys";
       fixed = true;
       auto key_embed = graph_->param(name, { dimKeys, dimUlrEmb }, initFunc, fixed);
-      ulrEmbeds.push_back(key_embed);
+      ulrEmbeddings_.push_back(key_embed);
       // actual  trainable embedding
       initFunc = inits::glorot_uniform;
       name = "ulr_embed";
       fixed = false;
       auto ulr_embed = graph_->param(name, {dimKeys , dimEmb }, initFunc, fixed);  // note the reverse dim
-      ulrEmbeds.push_back(ulr_embed);
+      ulrEmbeddings_.push_back(ulr_embed);
       // init  trainable src embedding
       name = "ulr_src_embed";
       auto ulr_src_embed = graph_->param(name, { dimQueries, dimEmb }, initFunc, fixed);
-      ulrEmbeds.push_back(ulr_src_embed);
+      ulrEmbeddings_.push_back(ulr_src_embed);
       // ulr transformation matrix
       //initFunc = inits::eye(1.f); // identity matrix  - is it ok to init wiht identity or shall we make this to the fixed case only
       if (trainTrans) {
@@ -273,18 +266,77 @@ ULREmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
         fixed = true;
       }
       name = "ulr_transform";
-      auto ulr_transform = graph_->param(name, { dimUlrEmb, dimUlrEmb }, initFunc, fixed);
-      ulrEmbeds.push_back(ulr_transform);
+      auto ulrTransform = graph_->param(name, { dimUlrEmb, dimUlrEmb }, initFunc, fixed);
+      ulrEmbeddings_.push_back(ulrTransform);
 
       initFunc = inits::from_value(1.f);  // TBD: we should read sharable flags here - 1 means all sharable - 0 means no universal embeddings - should be zero for top freq only
       fixed = true;
       name = "ulr_shared";
       auto share_embed = graph_->param(name, { dimQueries, 1 }, initFunc, fixed);
-      ulrEmbeds.push_back(share_embed);
-
+      ulrEmbeddings_.push_back(share_embed);
     }
+  }
 
-    return ulrEmbeds;
+  std::tuple<Expr/*embeddings*/, Expr/*mask*/> apply(Ptr<data::SubBatch> subBatch) const override final {
+    auto queryEmbed   = ulrEmbeddings_[0]; // Q : dimQueries*dimUlrEmb
+    auto keyEmbed     = ulrEmbeddings_[1]; // K : dimKeys*dimUlrEmb
+    auto uniEmbed     = ulrEmbeddings_[2]; // E : dimQueries*dimEmb
+    auto srcEmbed     = ulrEmbeddings_[3]; // I : dimQueries*dimEmb
+    auto ulrTransform = ulrEmbeddings_[4]; // A : dimUlrEmb *dimUlrEmb
+    auto ulrSharable  = ulrEmbeddings_[5]; // alpha : dimQueries*1
+    int dimBatch = (int)subBatch->batchSize();
+    int dimEmb = uniEmbed->shape()[-1];
+    int dimWords = (int)subBatch->batchWidth();
+    // D = K.A.QT
+    // dimm(K) = univ_tok_vocab*uni_embed_size
+    // dim A = uni_embed_size*uni_embed_size
+    // dim Q: uni_embed_size * total_merged_vocab_size
+    // dim D = univ_tok_vocab * total_merged_vocab_size
+    // note all above can be precombuted and serialized if A is not trainiable and during decoding (TBD)
+    // here we need to handle the mini-batch
+    // extract raws corresponding to Xs in this minibatch from Q
+    auto queryEmbeddings = rows(queryEmbed, subBatch->data());
+    auto srcEmbeddings = rows(srcEmbed, subBatch->data());   // extract trainable src embeddings
+    auto alpha = rows(ulrSharable, subBatch->data());  // extract sharable flags
+    auto qt = dot(queryEmbeddings, ulrTransform, false, false);  //A: transform embeddings based on similarity A :  dimUlrEmb*dimUlrEmb
+    auto sqrtDim=std::sqrt((float)queryEmbeddings->shape()[-1]);
+    qt = qt/sqrtDim;  // normalize accordin to embed size to avoid dot prodcut growing large in magnitude with larger embeds sizes
+    auto z = dot(qt, keyEmbed, false, true);      // query-key similarity 
+    float dropProb = this->options_->get<float>("ulr-dropout", 0.0f);  // default no dropout
+    z = dropout(z, dropProb);
+    float tau = this->options_->get<float>("ulr-softmax-temperature", 1.0f);  // default no temperature
+    // temperature in softmax is to control randomness of predictions
+    // high temperature Softmax outputs are more close to each other
+    // low temperatures the softmax become more similar to  "hardmax" 
+    auto weights = softmax(z / tau);  // assume default  is dim=-1, what about temprature? - scaler ??
+    auto chosenEmbeddings = dot(weights, uniEmbed);  // AVERAGE 
+    auto chosenEmbeddings_mix = srcEmbeddings + alpha * chosenEmbeddings;  // this should be elementwise  broadcast
+    auto batchEmbeddings = reshape(chosenEmbeddings_mix, { dimWords, dimBatch, dimEmb });
+    auto graph = ulrEmbeddings_.front()->graph();
+    auto batchMask = graph->constant({ dimWords, dimBatch, 1 },
+                                     inits::from_vector(subBatch->mask()));
+    return std::make_tuple(batchEmbeddings, batchMask);
+  }
+
+  Expr apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const override final {
+    embIdx; dimBatch; dimBeam;
+    ABORT("not implemented"); // ULR cannot be used for decoding
+  }
+};
+
+struct EmbeddingFactory : public Factory {
+  EmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
+
+  Ptr<IEmbeddingLayer> construct() {
+    return New<Embedding>(graph_, options_);
+  }
+};
+
+struct ULREmbeddingFactory : public Factory {
+  ULREmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
+
+  Ptr<IEmbeddingLayer> construct() {
+    return New<ULREmbedding>(graph_, options_);
   }
 };
 

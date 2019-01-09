@@ -481,7 +481,7 @@ public:
   // returns the embedding matrix based on options
   // and based on batchIndex_.
 
-  std::vector<Expr> ULREmbeddings() const {
+  Ptr<IEmbeddingLayer> createULREmbeddingLayer() const {
     // standard encoder word embeddings
     int dimSrcVoc = opt<std::vector<int>>("dim-vocabs")[0];  //ULR multi-lingual src
     int dimTgtVoc = opt<std::vector<int>>("dim-vocabs")[1];  //ULR monon tgt
@@ -495,7 +495,7 @@ public:
     return embFactory.construct();
   }
 
-  Ptr<IEmbedding> createWordEmbeddingLayer(size_t subBatchIndex) const {
+  Ptr<IEmbeddingLayer> createWordEmbeddingLayer(size_t subBatchIndex) const {
     // standard encoder word embeddings
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[subBatchIndex];
     int dimEmb = opt<int>("dim-emb");
@@ -527,16 +527,12 @@ public:
     // create the embedding matrix, considering tying and some other options
     // embed the source words in the batch
     Expr batchEmbeddings, batchMask;
-    if (options_->has("ulr") && options_->get<bool>("ulr") == true) {
-      auto embeddings = ULREmbeddings(); // embedding uses ULR
-      std::tie(batchEmbeddings, batchMask)
-        = EncoderBase::ulrLookup(embeddings, batch);
-    }
+    Ptr<IEmbeddingLayer> embedding;
+    if (options_->has("ulr") && options_->get<bool>("ulr") == true)
+      embedding = createULREmbeddingLayer(); // embedding uses ULR
     else
-    {
-      auto embedding = createWordEmbeddingLayer(batchIndex_);
-      std::tie(batchEmbeddings, batchMask) = embedding->apply((*batch)[batchIndex_]);
-    }
+      embedding = createWordEmbeddingLayer(batchIndex_);
+    std::tie(batchEmbeddings, batchMask) = embedding->apply((*batch)[batchIndex_]);
     // apply dropout over source words
     float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");
     if(dropoutSrc) {
