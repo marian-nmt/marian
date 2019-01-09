@@ -10,7 +10,7 @@ namespace models {
 
 class EncoderFactory : public Factory {
 public:
-  EncoderFactory(Ptr<ExpressionGraph> graph = nullptr) : Factory(graph) {}
+  EncoderFactory(Ptr<ExpressionGraph> graph = nullptr) : Factory() {}
 
   virtual Ptr<EncoderBase> construct(Ptr<ExpressionGraph> graph);
 };
@@ -19,7 +19,7 @@ typedef Accumulator<EncoderFactory> encoder;
 
 class DecoderFactory : public Factory {
 public:
-  DecoderFactory(Ptr<ExpressionGraph> graph = nullptr) : Factory(graph) {}
+  DecoderFactory(Ptr<ExpressionGraph> graph = nullptr) : Factory() {}
 
   virtual Ptr<DecoderBase> construct(Ptr<ExpressionGraph> graph);
 };
@@ -33,7 +33,7 @@ private:
 
 public:
   EncoderDecoderFactory(Ptr<ExpressionGraph> graph = nullptr)
-      : Factory(graph) {}
+      : Factory() {}
 
   Accumulator<EncoderDecoderFactory> push_back(encoder enc) {
     encoders_.push_back(enc);

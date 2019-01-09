@@ -15,7 +15,7 @@ protected:
   Ptr<EncoderState> state_;
 
 public:
-  AttentionFactory(Ptr<ExpressionGraph> graph) : InputFactory(graph) {}
+//  AttentionFactory(Ptr<ExpressionGraph> graph) : InputFactory(graph) {}
 
   Ptr<CellInput> construct(Ptr<ExpressionGraph> graph) override {
     ABORT_IF(!state_, "EncoderState not set");

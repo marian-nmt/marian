@@ -8,7 +8,7 @@ namespace marian {
 namespace rnn {
 
 struct StackableFactory : public Factory {
-  StackableFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
+  StackableFactory() : Factory() {}
   StackableFactory(const StackableFactory&) = default;
   StackableFactory(StackableFactory&&) = default;
 
@@ -26,7 +26,6 @@ struct StackableFactory : public Factory {
 };
 
 struct InputFactory : public StackableFactory {
-  InputFactory(Ptr<ExpressionGraph> graph) : StackableFactory(graph) {}
   virtual Ptr<CellInput> construct(Ptr<ExpressionGraph> graph) = 0;
 };
 
@@ -35,8 +34,6 @@ protected:
   std::vector<std::function<Expr(Ptr<rnn::RNN>)>> inputs_;
 
 public:
-  CellFactory(Ptr<ExpressionGraph> graph) : StackableFactory(graph) {}
-
   virtual Ptr<Cell> construct(Ptr<ExpressionGraph> graph) {
     std::string type = options_->get<std::string>("type");
     if(type == "gru") {
@@ -81,7 +78,7 @@ public:
   }
 
   CellFactory clone() {
-    CellFactory aClone(nullptr);
+    CellFactory aClone;
     aClone.options_->merge(options_);
     aClone.inputs_ = inputs_;
     return aClone;
@@ -103,8 +100,6 @@ protected:
   std::vector<Ptr<StackableFactory>> stackableFactories_;
 
 public:
-  StackedCellFactory(Ptr<ExpressionGraph> graph) : CellFactory(graph) {}
-
   Ptr<Cell> construct(Ptr<ExpressionGraph> graph) override {
     auto stacked = New<StackedCell>(graph, options_);
 
@@ -150,8 +145,6 @@ protected:
   std::vector<Ptr<CellFactory>> layerFactories_;
 
 public:
-  RNNFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
-
   Ptr<RNN> construct(Ptr<ExpressionGraph> graph) {
     auto rnn = New<RNN>(graph, options_);
     for(size_t i = 0; i < layerFactories_.size(); ++i) {
@@ -194,7 +187,7 @@ public:
   }
 
   RNNFactory clone() {
-    RNNFactory aClone(nullptr);
+    RNNFactory aClone;
     aClone.options_->merge(options_);
     for(auto lf : layerFactories_)
       aClone.push_back(lf->clone());

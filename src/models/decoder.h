@@ -38,8 +38,8 @@ public:
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");
 
-    auto yEmbFactory = embedding(graph)  //
-        ("dimVocab", dimVoc)             //
+    auto yEmbFactory = embedding()  //
+        ("dimVocab", dimVoc)        //
         ("dimEmb", dimEmb);
 
     if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
@@ -90,8 +90,8 @@ public:
       selectedEmbs = graph->constant({1, 1, dimBatch, dimTrgEmb}, inits::zeros);
     } else {
       // embeddings are loaded from model during translation, no fixing required
-      auto yEmbFactory = embedding(graph)  //
-          ("dimVocab", dimTrgVoc)          //
+      auto yEmbFactory = embedding()  //
+          ("dimVocab", dimTrgVoc)     //
           ("dimEmb", dimTrgEmb);
   
       if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))

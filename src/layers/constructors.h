@@ -10,7 +10,7 @@ namespace mlp {
  * Base class for layer factories, can be used in a multi-layer network factory.
  */
 struct LayerFactory : public Factory {
-  LayerFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
+  LayerFactory() : Factory() {}
   LayerFactory(const LayerFactory&) = default;
   LayerFactory(LayerFactory&&) = default;
 
@@ -34,15 +34,12 @@ struct LayerFactory : public Factory {
  */
 class DenseFactory : public LayerFactory {
 public:
-  DenseFactory(Ptr<ExpressionGraph> graph) : LayerFactory(graph) {}
-
   Ptr<IUnaryLayer> construct(Ptr<ExpressionGraph> graph) override {
-    auto dense = New<Dense>(graph, options_);
-    return dense;
+    return New<Dense>(graph, options_);
   }
 
   DenseFactory clone() {
-    DenseFactory aClone(nullptr);
+    DenseFactory aClone;
     aClone.options_->merge(options_);
     return aClone;
   }
@@ -60,8 +57,6 @@ protected:
   Ptr<data::Shortlist> shortlist_;
 
 public:
-  OutputFactory(Ptr<ExpressionGraph> graph) : LayerFactory(graph) {}
-
   Accumulator<OutputFactory> tie_transposed(const std::string& param,
                                             const std::string& tied) {
     tiedParamsTransposed_.push_back({param, tied});
@@ -82,7 +77,7 @@ public:
   }
 
   OutputFactory clone() {
-    OutputFactory aClone(nullptr);
+    OutputFactory aClone;
     aClone.options_->merge(options_);
     aClone.tiedParamsTransposed_ = tiedParamsTransposed_;
     aClone.shortlist_ = shortlist_;
@@ -135,8 +130,6 @@ private:
   std::vector<Ptr<LayerFactory>> layers_;
 
 public:
-  MLPFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
-
   Ptr<MLP> construct(Ptr<ExpressionGraph> graph) {
     auto mlp = New<MLP>(graph, options_);
     for(auto layer : layers_) {

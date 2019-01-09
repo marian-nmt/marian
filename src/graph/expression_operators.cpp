@@ -512,12 +512,12 @@ Expr highway(const std::string prefix, Expr x) {
   // clang-format off
   size_t outDim = x->shape()[-1];
   auto graph = x->graph();
-  auto g = mlp::dense(graph)
+  auto g = mlp::dense()
       ("prefix", prefix + "_highway_d1")
       ("dim", outDim)
       ("activation", mlp::act::sigmoid)
       .construct(graph)->apply(x);
-  auto relued = mlp::dense(x->graph())
+  auto relued = mlp::dense()
       ("prefix", prefix + "_highway_d2")
       ("dim", outDim)
       ("activation", mlp::act::ReLU)
