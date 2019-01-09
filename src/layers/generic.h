@@ -18,13 +18,15 @@ YAML_REGISTER_TYPE(marian::mlp::act, int)
 
 namespace marian {
 
-class BaseLayer {   // @TODO: better name. Ideally change uses of Layer to IUnaryLayer; then explicit derive from IUnaryLayer in each layer
+// Each layer consists of Layer and one or more apply() functions according to
+// a layer-type specific interface (different layers may require different signatures).
+class Layer {
 protected:
   Ptr<ExpressionGraph> graph_;
   Ptr<Options> options_;
 
 public:
-  BaseLayer(Ptr<ExpressionGraph> graph, Ptr<Options> options)
+  Layer(Ptr<ExpressionGraph> graph, Ptr<Options> options)
       : graph_(graph), options_(options) {}
 
   template <typename T>
@@ -38,18 +40,14 @@ public:
   }
 };
 
-namespace mlp {
+// Simplest layer interface: Unary function.
 struct IUnaryLayer {
-  virtual Expr apply(const std::vector<Expr>&) = 0;
   virtual Expr apply(Expr) = 0;
+  virtual Expr apply(const std::vector<Expr>&) = 0;
 };
 
-class Layer : public BaseLayer, public IUnaryLayer {
-public:
-  Layer(Ptr<ExpressionGraph> graph, Ptr<Options> options) : BaseLayer(graph, options) { }
-};
-
-class Dense : public Layer {
+namespace mlp {
+class Dense : public Layer, public IUnaryLayer {
 public:
   Dense(Ptr<ExpressionGraph> graph, Ptr<Options> options)
       : Layer(graph, options) {}
@@ -116,7 +114,7 @@ public:
   Expr apply(Expr input) override { return apply(std::vector<Expr>({input})); }
 };
 
-class Output : public Layer {
+class Output : public Layer, public IUnaryLayer {
 private:
   std::map<std::string, Expr> tiedParams_;
   Ptr<data::Shortlist> shortlist_;
@@ -175,10 +173,10 @@ struct IEmbedding {
   virtual Expr apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const = 0;
 };
 
-class Embedding : public BaseLayer, public IEmbedding {
+class Embedding : public Layer, public IEmbedding {
   Expr E_;
 public:
-  Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options) : BaseLayer(graph, options) {
+  Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options) : Layer(graph, options) {
     std::string name = opt<std::string>("prefix");
     int dimVoc = opt<int>("dimVocab");
     int dimEmb = opt<int>("dimEmb");

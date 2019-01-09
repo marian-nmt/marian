@@ -26,7 +26,7 @@ struct LayerFactory : public Factory {
     return as<Cast>() != nullptr;
   }
 
-  virtual Ptr<Layer> construct() = 0;
+  virtual Ptr<IUnaryLayer> construct() = 0;
 };
 
 /**
@@ -36,7 +36,7 @@ class DenseFactory : public LayerFactory {
 public:
   DenseFactory(Ptr<ExpressionGraph> graph) : LayerFactory(graph) {}
 
-  Ptr<Layer> construct() override {
+  Ptr<IUnaryLayer> construct() override {
     auto dense = New<Dense>(graph_, options_);
     return dense;
   }
@@ -73,7 +73,7 @@ public:
     return Accumulator<OutputFactory>(*this);
   }
 
-  Ptr<Layer> construct() override {
+  Ptr<IUnaryLayer> construct() override {
     auto output = New<Output>(graph_, options_);
     for(auto& p : tiedParamsTransposed_)
       output->tie_transposed(p.first, p.second);
@@ -101,7 +101,7 @@ protected:
   Ptr<ExpressionGraph> graph_;
   Ptr<Options> options_;
 
-  std::vector<Ptr<Layer>> layers_;
+  std::vector<Ptr<IUnaryLayer>> layers_;
 
 public:
   MLP(Ptr<ExpressionGraph> graph, Ptr<Options> options)
@@ -123,7 +123,7 @@ public:
     return output;
   }
 
-  void push_back(Ptr<Layer> layer) { layers_.push_back(layer); }
+  void push_back(Ptr<IUnaryLayer> layer) { layers_.push_back(layer); }
 };
 
 /**
