@@ -53,8 +53,7 @@ public:
                                              size_t multiplier = 1) {
     auto stats = New<data::BatchStats>();
 
-    size_t numFiles
-        = options_->get<std::vector<std::string>>("train-sets").size();
+    size_t numFiles = options_->get<std::vector<std::string>>("train-sets").size();
 
     // Initialize first batch to step size
     size_t first = options_->get<size_t>("mini-batch-fit-step");
@@ -65,31 +64,42 @@ public:
     size_t maxLength = options_->get<size_t>("max-length");
     maxLength = (size_t)(std::ceil(maxLength / (float)step) * step);
 
-    // @TODO: ugly
-    auto toptions = New<Options>();
-    toptions->merge(options_);
+    // restrict maximum length for labels to 1
+    std::vector<size_t> localMaxes(numFiles, maxLength);
+    auto inputTypes = options_->get<std::vector<std::string>>("input-types", {});
+    for(int i = 0; i < inputTypes.size(); ++i)
+      if(inputTypes[i] == "labels")
+        localMaxes[i] = 1;
+    
 
     size_t maxBatch = 512;
     bool fits = true;
     while(fits) {
       std::vector<size_t> lengths(numFiles, first);
-      auto batch = data::CorpusBatch::fakeBatch(lengths, maxBatch, toptions);
+      for(int j = 0; j < lengths.size(); ++j) // apply length restrictions
+        lengths[j] = std::min(lengths[j], localMaxes[j]);
+
+      auto batch = data::CorpusBatch::fakeBatch(lengths, maxBatch, options_);
       auto cost = model->build(graph, batch);
       fits = graph->fits();
       if(fits)
         maxBatch *= 2;
     }
 
+    // Do a binary search for maxmimum batch size that fits into given workspace memory 
+    // for a tested sentence length. 
     for(size_t i = step; i <= maxLength; i += step) {
       size_t start = 1;
       size_t end = maxBatch;
 
       std::vector<size_t> lengths(numFiles, i);
+      for(int j = 0; j < lengths.size(); ++j)  // apply length restrictions
+        lengths[j] = std::min(lengths[j], localMaxes[j]);
       fits = true;
 
       do {
         size_t current = (start + end) / 2;
-        auto batch = data::CorpusBatch::fakeBatch(lengths, current, toptions);
+        auto batch = data::CorpusBatch::fakeBatch(lengths, current, options_);
         auto cost = model->build(graph, batch);
         fits = graph->fits();
 

@@ -661,36 +661,34 @@ void GRUFastBackward(std::vector<Tensor> outputs,
   }
 }
 
-void CrossEntropyPick(Tensor out_, Tensor in_, Tensor pick_) {
-  matchOrAbort<IndexType>(pick_->type());
+void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
+  matchOrAbort<IndexType>(pick->type());
 
-  float* out = out_->data();
   // Shape& outShape = out_->shape();
-  const float* in = in_->data();
-  Shape& inShape = in_->shape();
+  Shape& inShape = in->shape();
 
   int rows = inShape.elements() / inShape.back();
   int cols = inShape.back();
 
-#pragma omp parallel for
+  #pragma omp parallel for
   for(int j = 0; j < rows; ++j) {
-    const float* sp = in + j * cols;
+    const float* sp = in->data() + j * cols;
     float max = sp[0];
-#pragma omp simd reduction(max : max)
+    #pragma omp simd reduction(max : max)
     for(int i = 1; i < cols; ++i) {
       max = std::max(max, sp[i]);
     }
 
     float sum = 0.f;
-#pragma omp simd reduction(+ : sum)
+    #pragma omp simd reduction(+ : sum)
     for(int i = 0; i < cols; ++i) {
       sum += std::exp(sp[i] - max);
     }
 
     // cross-entropy
-    int i = (int)pick_->data<IndexType>()[j];
+    IndexType i = pick->data<IndexType>()[j];
     // This appears to be safe i.e. that i >= 0 && i < cols is known
-    out[j] = std::log(sum) - sp[i] + max;
+    out->data()[j] = std::log(sum) - sp[i] + max;
   }
 }
 

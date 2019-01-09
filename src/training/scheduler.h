@@ -10,11 +10,11 @@ namespace marian {
 class Scheduler : public TrainingObserver {
 private:
   Ptr<Options> options_;
+  Ptr<TrainingState> state_;
   std::vector<Ptr<ValidatorBase>> validators_;
 
   bool first_{true};
-
-  Ptr<TrainingState> state_;
+  int dispIndex_{-1};
 
   timer::Timer timer_, heartBeatTimer_;
 
@@ -46,7 +46,8 @@ private:
 
 public:
   Scheduler(Ptr<Options> options, Ptr<TrainingState> state)
-      : options_(options), state_(state) {
+      : options_(options), state_(state),
+        dispIndex_{options_->get<int>("disp-wps-index", -1)} {
     state_->eta = getLearningRate(*state);
   }
 
@@ -168,11 +169,13 @@ public:
 
     size_t batchSize = 0;    // number of sentences in batch
     size_t batchLabels = 0;  // number of target words in batch
+    size_t batchDisp = 0;    // number of words in chosen sub-batch, last by default unless set differently in dispIndex_. Used for displaying speed.
 
     for(const auto& batch : batches) {
       if (batch) { // (nullptr is allowed as result of split)
-        batchSize += batch->size();
+        batchSize   += batch->size();
         batchLabels += batch->words(-1);
+        batchDisp   += batch->words(dispIndex_);
       }
     }
 
@@ -199,7 +202,8 @@ public:
       state_->costSum   += cost * batchSize;
       state_->costCount += batchSize;
     }
-    state_->wordsDisp    += batchLabels; // target words processed since last display, for speed display
+
+    state_->wordsDisp    += batchDisp;   // words at given input processed since last display, for speed display
     state_->samplesEpoch += batchSize;   // sentences processed in this epoch
     state_->labelsTotal  += batchLabels; // total labels processed
 

@@ -280,6 +280,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "Display nformation for the first  arg  updates");
   cli.add<bool>("--disp-label-counts",
       "Display label counts when logging loss progress");
+  cli.add<int>("--disp-wps-index",
+      "Display words-per-second ratio based on i-th sub-batch (-1 is last)", -1);
   cli.add<std::string/*SchedulerPeriod*/>("--save-freq",
       "Save model file every  arg  updates (append 't' for every  arg  target labels)",
       "10000u");

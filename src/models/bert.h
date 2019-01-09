@@ -86,7 +86,7 @@ public:
     ABORT_IF(encoderStates.size() != 1, "Currently we only support a single encoder BERT model");
 
     auto context = encoderStates[0]->getContext();
-    auto classEmbeddings = step(context, /*i=*/0, /*axis=*/-2); // [CLS] symbol is first symbol in each sequence
+    auto classEmbeddings = step(context, /*i=*/0, /*axis=*/-3); // [CLS] symbol is first symbol in each sequence
     
     int dimModel = classEmbeddings->shape()[-1];
     int dimTrgCls = opt<std::vector<int>>("dim-vocabs")[batchIndex_]; // Target vocab is used as class labels

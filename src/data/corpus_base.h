@@ -47,7 +47,7 @@ public:
   /**
    * @brief Adds a new sentence at the end of the tuple.
    *
-   * @param words A vector of word indexes.
+   * @param words A vector of word indices.
    */
   void push_back(const Words& words) { tuple_.push_back(words); }
 
@@ -460,7 +460,7 @@ public:
     std::cerr << "batches: " << sets() << std::endl;
 
     if(!sentenceIds_.empty()) {
-      std::cerr << "indexes: ";
+      std::cerr << "indices: ";
       for(auto id : sentenceIds_)
         std::cerr << id << " ";
       std::cerr << std::endl;

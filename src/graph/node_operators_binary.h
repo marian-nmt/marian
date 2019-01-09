@@ -821,6 +821,9 @@ struct MinimumNodeOp : public ElementBinaryNodeOp {
 struct CrossEntropyNodeOp : public NaryNodeOp {
   CrossEntropyNodeOp(Expr a, Expr indices) : NaryNodeOp({a, indices}, newShape(a)) {
     matchOrAbort<IndexType>(indices->value_type());
+    int rows   = a->shape().elements() / a->shape()[-1];
+    int labels = indices->shape().elements();
+    ABORT_IF(rows != labels, "Number of examples and labels does not match: {} != {}", rows, labels);
   }
 
   Shape newShape(Expr a) {

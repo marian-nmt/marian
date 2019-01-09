@@ -64,14 +64,14 @@ Expr CrossEntropyMeanWordsLoss::getCost(Expr logits,
                                         Expr mask,
                                         Expr weights) {
   auto ce = getCrossEntropy(logits, indices, mask, weights);
-  // if(weights) {
-  //   return (sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
-  //          / sum(sum(mask * weights, /*axis =*/ -3), /*axis =*/ -2));
-  // }
-  // else {
+  if(mask) {
     return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2) // sum CE over all words in the batch
            / sum(sum(mask, /*axis =*/ -3), /*axis =*/ -2); // divide by number of words (sum over mask)
-  // }
+  } else {
+    return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2) // sum CE over all words in the batch
+           / ce->shape().elements(); // no mask, hence divide by all number of all elements
+  }
+
 }
 
 Expr CrossEntropySumLoss::getCost(Expr logits,
@@ -79,13 +79,7 @@ Expr CrossEntropySumLoss::getCost(Expr logits,
                                   Expr mask,
                                   Expr weights) {
   auto ce = getCrossEntropy(logits, indices, mask, weights);
-  // if(weights) {
-  //   return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
-  //          / mean(mean(mask * weights, /*axis =*/ -3), /*axis =*/ -2);
-  // }
-  // else {
-    return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2);
-  // }
+  return sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2);
 }
 
 Expr PerplexityLoss::getCost(Expr logits,
@@ -93,14 +87,13 @@ Expr PerplexityLoss::getCost(Expr logits,
                              Expr mask,
                              Expr weights) {
   auto ce = getCrossEntropy(logits, indices, mask, weights);
-  // if(weights) {
-  //   return exp(sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2)
-  //              / sum(sum(mask * weights, /*axis =*/ -3), /*axis =*/ -2));
-  // }
-  // else {
+  if(mask) {
     return exp(sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2) // sum CE over all words in the batch
                / sum(sum(mask, /*axis =*/ -3), /*axis =*/ -2)); // divide by number of words (sum over mask)
-  // }
+  } else {
+    return exp(sum(sum(ce, /*axis =*/ -3), /*axis =*/ -2) // sum CE over all words in the batch
+               / ce->shape().elements()); // divide by number of words (sum over mask)
+  }
 }
 
 Expr CrossEntropyRescoreLoss::getCost(Expr logits,
@@ -117,7 +110,11 @@ Expr CrossEntropyRescoreMeanLoss::getCost(Expr logits,
                                           Expr weights) {
   auto ce = getCrossEntropy(logits, indices, mask, weights);
   // divide by number of words in sentence
-  return -sum(ce, /*axis =*/ -3) / sum(mask, /*axis =*/ -3);
+  if(mask) {
+    return -sum(ce, /*axis =*/ -3) / sum(mask, /*axis =*/ -3);
+  } else {
+    return -sum(ce, /*axis =*/ -3) / ce->shape()[-3];
+  }
 }
 
 }  // namespace marian
