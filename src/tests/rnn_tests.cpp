@@ -51,7 +51,7 @@ void tests(DeviceType type) {
           .push_back(rnn::cell(graph)) //
           .construct();
 
-    auto output = rnn->transduce(input);
+    auto output = rnn.construct()->transduce(input);
 
     graph->forward();
 
@@ -161,8 +161,8 @@ void tests(DeviceType type) {
         rnnBw.push_back(stacked);
       }
 
-      auto context = concatenate({rnnFw->transduce(input, mask),
-                                  rnnBw->transduce(input, mask)},
+      auto context = concatenate({rnnFw.construct()->transduce(input, mask),
+                                  rnnBw.construct()->transduce(input, mask)},
                                   /*axis =*/ input->shape().size() - 1);
 
       if(second > 0) {
@@ -188,7 +188,7 @@ void tests(DeviceType type) {
         }
 
         // transduce context to new context
-        context = rnnUni->transduce(context);
+        context = rnnUni.construct()->transduce(context);
       }
       return context;
     };

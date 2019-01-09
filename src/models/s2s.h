@@ -86,8 +86,8 @@ public:
       rnnBw.push_back(stacked);
     }
 
-    auto context = concatenate({rnnFw->transduce(embeddings, mask),
-                                rnnBw->transduce(embeddings, mask)},
+    auto context = concatenate({rnnFw.construct()->transduce(embeddings, mask),
+                                rnnBw.construct()->transduce(embeddings, mask)},
                                /*axis =*/ -1);
 
     if(second > 0) {
@@ -114,7 +114,7 @@ public:
       }
 
       // transduce context to new context
-      context = rnnUni->transduce(context);
+      context = rnnUni.construct()->transduce(context);
     }
     return context;
   }
@@ -269,7 +269,7 @@ public:
                && opt<std::string>("original-type") == "nematus")  //
       );
 
-      start = mlp->apply(meanContexts);
+      start = mlp.construct()->apply(meanContexts);
     } else {
       int dimBatch = (int)batch->size();
       int dimRnn = opt<int>("dim-rnn");

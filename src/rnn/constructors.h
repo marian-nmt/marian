@@ -187,8 +187,6 @@ public:
     return rnn;
   }
 
-  Ptr<RNN> operator->() { return construct(); }
-
   template <class F>
   Accumulator<RNNFactory> push_back(const F& f) {
     layerFactories_.push_back(New<F>(f));

@@ -146,8 +146,6 @@ public:
     return mlp;
   }
 
-  Ptr<MLP> operator->() { return construct(); }
-
   template <class LF>
   Accumulator<MLPFactory> push_back(const LF& lf) {
     layers_.push_back(New<LF>(lf));

@@ -61,7 +61,7 @@ void tests(DeviceType type) {
           .push_back(rnn::cell(graph)) //
           .construct();
 
-    auto context = rnn->transduce(input, mask);
+    auto context = rnn.construct()->transduce(input, mask);
 
     auto encState = New<EncoderState>(context, mask, nullptr);
 
