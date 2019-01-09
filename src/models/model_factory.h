@@ -12,7 +12,7 @@ class EncoderFactory : public Factory {
 public:
   EncoderFactory(Ptr<ExpressionGraph> graph = nullptr) : Factory(graph) {}
 
-  virtual Ptr<EncoderBase> construct();
+  virtual Ptr<EncoderBase> construct(Ptr<ExpressionGraph> graph);
 };
 
 typedef Accumulator<EncoderFactory> encoder;
@@ -21,7 +21,7 @@ class DecoderFactory : public Factory {
 public:
   DecoderFactory(Ptr<ExpressionGraph> graph = nullptr) : Factory(graph) {}
 
-  virtual Ptr<DecoderBase> construct();
+  virtual Ptr<DecoderBase> construct(Ptr<ExpressionGraph> graph);
 };
 
 typedef Accumulator<DecoderFactory> decoder;
@@ -45,7 +45,7 @@ public:
     return Accumulator<EncoderDecoderFactory>(*this);
   }
 
-  virtual Ptr<ModelBase> construct();
+  virtual Ptr<ModelBase> construct(Ptr<ExpressionGraph> graph);
 };
 
 typedef Accumulator<EncoderDecoderFactory> encoder_decoder;

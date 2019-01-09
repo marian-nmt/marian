@@ -327,16 +327,16 @@ public:
 struct EmbeddingFactory : public Factory {
   EmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
 
-  Ptr<IEmbeddingLayer> construct() {
-    return New<Embedding>(graph_, options_);
+  Ptr<IEmbeddingLayer> construct(Ptr<ExpressionGraph> graph) {
+    return New<Embedding>(graph, options_);
   }
 };
 
 struct ULREmbeddingFactory : public Factory {
   ULREmbeddingFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
 
-  Ptr<IEmbeddingLayer> construct() {
-    return New<ULREmbedding>(graph_, options_);
+  Ptr<IEmbeddingLayer> construct(Ptr<ExpressionGraph> graph) {
+    return New<ULREmbedding>(graph, options_);
   }
 };
 

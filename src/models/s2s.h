@@ -86,8 +86,8 @@ public:
       rnnBw.push_back(stacked);
     }
 
-    auto context = concatenate({rnnFw.construct()->transduce(embeddings, mask),
-                                rnnBw.construct()->transduce(embeddings, mask)},
+    auto context = concatenate({rnnFw.construct(graph)->transduce(embeddings, mask),
+                                rnnBw.construct(graph)->transduce(embeddings, mask)},
                                /*axis =*/ -1);
 
     if(second > 0) {
@@ -114,7 +114,7 @@ public:
       }
 
       // transduce context to new context
-      context = rnnUni.construct()->transduce(context);
+      context = rnnUni.construct(graph)->transduce(context);
     }
     return context;
   }
@@ -143,7 +143,7 @@ public:
           ("normalization", opt<bool>("embedding-normalization"));
     }
 
-    return embFactory.construct();
+    return embFactory.construct(graph);
   }
 
   EncoderS2S(Ptr<Options> options) : EncoderBase(options) {}
@@ -235,7 +235,7 @@ private:
       rnn.push_back(highCell);
     }
 
-    return rnn.construct();
+    return rnn.construct(graph);
   }
 
 public:
@@ -266,9 +266,10 @@ public:
           ("nematus-normalization",
            options_->has("original-type")
                && opt<std::string>("original-type") == "nematus")  //
-      );
+      )
+      .construct(graph);
 
-      start = mlp.construct()->apply(meanContexts);
+      start = mlp->apply(meanContexts);
     } else {
       int dimBatch = (int)batch->size();
       int dimRnn = opt<int>("dim-rnn");
@@ -351,7 +352,7 @@ public:
       output_ = mlp::mlp(graph)         //
                     .push_back(hidden)  //
                     .push_back(last)
-                    .construct();
+                    .construct(graph);
     }
 
     Expr logits;

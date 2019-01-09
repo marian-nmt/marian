@@ -26,7 +26,7 @@ struct LayerFactory : public Factory {
     return as<Cast>() != nullptr;
   }
 
-  virtual Ptr<IUnaryLayer> construct() = 0;
+  virtual Ptr<IUnaryLayer> construct(Ptr<ExpressionGraph> graph) = 0;
 };
 
 /**
@@ -36,13 +36,13 @@ class DenseFactory : public LayerFactory {
 public:
   DenseFactory(Ptr<ExpressionGraph> graph) : LayerFactory(graph) {}
 
-  Ptr<IUnaryLayer> construct() override {
-    auto dense = New<Dense>(graph_, options_);
+  Ptr<IUnaryLayer> construct(Ptr<ExpressionGraph> graph) override {
+    auto dense = New<Dense>(graph, options_);
     return dense;
   }
 
   DenseFactory clone() {
-    DenseFactory aClone(graph_);
+    DenseFactory aClone(nullptr);
     aClone.options_->merge(options_);
     return aClone;
   }
@@ -73,8 +73,8 @@ public:
     return Accumulator<OutputFactory>(*this);
   }
 
-  Ptr<IUnaryLayer> construct() override {
-    auto output = New<Output>(graph_, options_);
+  Ptr<IUnaryLayer> construct(Ptr<ExpressionGraph> graph) override {
+    auto output = New<Output>(graph, options_);
     for(auto& p : tiedParamsTransposed_)
       output->tie_transposed(p.first, p.second);
     output->set_shortlist(shortlist_);
@@ -82,7 +82,7 @@ public:
   }
 
   OutputFactory clone() {
-    OutputFactory aClone(graph_);
+    OutputFactory aClone(nullptr);
     aClone.options_->merge(options_);
     aClone.tiedParamsTransposed_ = tiedParamsTransposed_;
     aClone.shortlist_ = shortlist_;
@@ -137,11 +137,11 @@ private:
 public:
   MLPFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
 
-  Ptr<MLP> construct() {
-    auto mlp = New<MLP>(graph_, options_);
+  Ptr<MLP> construct(Ptr<ExpressionGraph> graph) {
+    auto mlp = New<MLP>(graph, options_);
     for(auto layer : layers_) {
       layer->getOptions()->merge(options_);
-      mlp->push_back(layer->construct());
+      mlp->push_back(layer->construct(graph));
     }
     return mlp;
   }

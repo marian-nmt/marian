@@ -456,7 +456,7 @@ public:
         ("dropout", dropoutRnn)                                    //
         ("layer-normalization", opt<bool>("layer-normalization"))  //
         .push_back(rnn::cell(graph_))                              //
-        .construct();
+        .construct(graph_);
 
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
     auto opsPre = opt<std::string>("transformer-preprocess");
@@ -492,7 +492,7 @@ public:
                                            ("ulrTrainTransform", opt<bool>("ulr-trainable-transformation"))
                                            ("ulrQueryFile", opt<std::string>("ulr-query-vectors"))
                                            ("ulrKeysFile", opt<std::string>("ulr-keys-vectors"));
-    return embFactory.construct();
+    return embFactory.construct(graph_);
   }
 
   Ptr<IEmbeddingLayer> createWordEmbeddingLayer(size_t subBatchIndex) const {
@@ -511,7 +511,7 @@ public:
       embFactory("embFile", embFiles[subBatchIndex])
                 ("normalization", opt<bool>("embedding-normalization"));
     }
-    return embFactory.construct();
+    return embFactory.construct(graph_);
   }
 
   Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
@@ -630,7 +630,7 @@ private:
     // aligned source context
     output_ = mlp::mlp(graph_)      //
                   .push_back(layerOut)  //
-                  .construct();
+                  .construct(graph_);
   }
 
 public:

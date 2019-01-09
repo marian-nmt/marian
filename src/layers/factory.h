@@ -7,11 +7,11 @@ namespace marian {
 class Factory : public std::enable_shared_from_this<Factory> {
 protected:
   Ptr<Options> options_;
-  Ptr<ExpressionGraph> graph_;
+  //Ptr<ExpressionGraph> graph_;
 
 public:
   Factory(Ptr<ExpressionGraph> graph)
-      : options_(New<Options>()), graph_(graph) {}
+      : options_(New<Options>())/*, graph_(graph)*/ {}
 
   virtual ~Factory() {}
 

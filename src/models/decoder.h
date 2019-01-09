@@ -56,7 +56,7 @@ public:
           ("normalization", opt<bool>("embedding-normalization"));
     }
 
-    auto yEmb = yEmbFactory.construct();
+    auto yEmb = yEmbFactory.construct(graph);
 
     auto subBatch = (*batch)[batchIndex_];
 
@@ -99,7 +99,7 @@ public:
       else
         yEmbFactory("prefix", prefix_ + "_Wemb");
   
-      auto yEmb = yEmbFactory.construct();
+      auto yEmb = yEmbFactory.construct(graph);
 
       selectedEmbs = yEmb->apply(embIdx, dimBatch, dimBeam);
     }
