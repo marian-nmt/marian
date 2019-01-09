@@ -218,6 +218,94 @@ protected:
   }
 };
 
+class AccuracyValidator : public Validator<data::Corpus> {
+public:
+  AccuracyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
+      : Validator(vocabs, options, /*lowerIsBetter=*/false) {
+    createBatchGenerator(/*isTranslating=*/false);
+
+    // @TODO: check if this is required.
+    Ptr<Options> opts = New<Options>();
+    opts->merge(options);
+    opts->set("inference", true);
+    builder_ = models::from_options(opts, models::usage::raw);
+  }
+
+  std::string type() override { return "accuracy"; }
+
+protected:
+  virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
+
+    size_t correct     = 0;
+    size_t totalLabels = 0;
+    size_t batchId     = 0;
+
+    {
+      threadPool_.reserve(graphs.size());
+
+      TaskBarrier taskBarrier;
+      for(auto batch : *batchGenerator_) {
+        auto task = [=, &correct, &totalLabels](size_t id) {
+          thread_local Ptr<ExpressionGraph> graph;
+          thread_local auto builder = models::from_options(options_, models::usage::raw);
+
+          if(!graph) {
+            graph = graphs[id % graphs.size()];
+          }
+
+          // Future: requires argmax implementation and integer arithmetics
+          // builder->clear(graph);
+          // auto predicted = argmax(builder->build(graph, batch), /*axis*/-1);
+          // auto labels    = graph->indices(batch->back()->data());
+          // auto correct   = sum(flatten(predicted) == labels);
+          // graph->forward();
+
+          // std::unique_lock<std::mutex> lock(mutex_);
+          // totalLabels += labels->shape().elements(); 
+          // correct     += correct->scalar<int>();          
+          
+          builder->clear(graph);
+          auto logits = builder->build(graph, batch);
+          graph->forward();
+
+          std::vector<float> vLogits;
+          logits->val()->get(vLogits);
+          const auto& labels = batch->back()->data();
+
+          IndexType cols = logits->shape()[-1];
+
+          size_t thisCorrect = 0;
+          size_t thisLabels  = labels.size();
+
+          for(int i = 0; i < thisLabels; ++i) {
+            // CPU-side Argmax
+            IndexType bestIndex = 0;
+            float bestValue = std::numeric_limits<float>::lowest();
+            for(IndexType j = 0; j < cols; ++j) {
+              float currValue = vLogits[i * cols + j];
+              if(currValue > bestValue) {
+                bestValue = currValue;
+                bestIndex = j;
+              }
+            }
+            thisCorrect += (size_t)(bestIndex == labels[i]);
+          }
+
+          std::unique_lock<std::mutex> lock(mutex_);
+          totalLabels += thisLabels; 
+          correct     += thisCorrect;
+        };
+
+        taskBarrier.push_back(threadPool_.enqueue(task, batchId));
+        batchId++;
+      }
+      // ~TaskBarrier waits until all are done
+    }
+
+    return (float)correct / (float)totalLabels;
+  }
+};
+
 class ScriptValidator : public Validator<data::Corpus> {
 public:
   ScriptValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)

@@ -96,7 +96,7 @@ public:
                                  ("prefix", prefix_ + "_ff_logit_l1") //
                                  ("dim", dimModel)                    //
                                  ("activation", mlp::act::tanh))      // @TODO: do we actually need this?
-                    .push_back(mlp::output(graph)                      //
+                    .push_back(mlp::output(graph)                     //
                                  ("dim", dimTrgCls))                  //
                                  ("prefix", prefix_ + "_ff_logit_l2") //
                     .construct();

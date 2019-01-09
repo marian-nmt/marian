@@ -197,7 +197,6 @@ public:
   virtual Expr build(Ptr<ExpressionGraph> graph,
                      Ptr<data::CorpusBatch> batch,
                      bool clearGraph = true) override {
-    ABORT("Don't use this");
     auto states = apply(graph, batch, clearGraph);
     // returns raw logits
     return states[0]->getLogProbs();

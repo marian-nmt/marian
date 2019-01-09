@@ -31,6 +31,9 @@ std::vector<Ptr<Validator<data::Corpus>>> Validators(
     } else if(metric == "bleu-detok") {
       auto validator = New<BleuValidator>(vocabs, config, true);
       validators.push_back(validator);
+    } else if(metric == "accuracy") {
+      auto validator = New<AccuracyValidator>(vocabs, config);
+      validators.push_back(validator);
     } else {
       LOG_VALID(warn, "Unrecognized validation metric: {}", metric);
     }
