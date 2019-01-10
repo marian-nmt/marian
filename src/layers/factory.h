@@ -31,6 +31,14 @@ public:
   }
 };
 
+// simplest form of Factory that just passes on options to the constructor of a layer type
+template<class Class>
+struct ConstructingFactory : public Factory {
+  Ptr<Class> construct(Ptr<ExpressionGraph> graph) {
+    return New<Class>(graph, options_);
+  }
+};
+
 template <class BaseFactory>
 class Accumulator : public BaseFactory {
   typedef BaseFactory Factory;

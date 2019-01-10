@@ -55,6 +55,7 @@ struct IEmbeddingLayer {
 };
 
 namespace mlp {
+
 class Dense : public LayerBase, public IUnaryLayer {
 public:
   Dense(Ptr<ExpressionGraph> graph, Ptr<Options> options)
@@ -98,7 +99,6 @@ public:
 
           outputs.push_back(layerNorm(dot(in, W), gamma, b));
         }
-
       } else {
         outputs.push_back(affine(in, W, b));
       }
@@ -219,7 +219,7 @@ public:
 };
 
 class ULREmbedding : public LayerBase, public IEmbeddingLayer {
-  std::vector<Expr> ulrEmbeddings_; // @TODO: These can now better be written as 6 named class members
+  std::vector<Expr> ulrEmbeddings_; // @TODO: These could now better be written as 6 named class members
 public:
   ULREmbedding(Ptr<ExpressionGraph> graph, Ptr<Options> options) : LayerBase(graph, options) {
     std::string name = "url_embed"; //opt<std::string>("prefix");
@@ -324,17 +324,8 @@ public:
   }
 };
 
-struct EmbeddingFactory : public Factory {
-  Ptr<IEmbeddingLayer> construct(Ptr<ExpressionGraph> graph) {
-    return New<Embedding>(graph, options_);
-  }
-};
-
-struct ULREmbeddingFactory : public Factory {
-  Ptr<IEmbeddingLayer> construct(Ptr<ExpressionGraph> graph) {
-    return New<ULREmbedding>(graph, options_);
-  }
-};
+typedef ConstructingFactory<Embedding> EmbeddingFactory;
+typedef ConstructingFactory<ULREmbedding> ULREmbeddingFactory;
 
 typedef Accumulator<EmbeddingFactory> embedding;
 typedef Accumulator<ULREmbeddingFactory> ulr_embedding;
