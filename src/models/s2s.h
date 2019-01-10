@@ -340,7 +340,7 @@ public:
         std::string tiedPrefix = prefix_ + "_Wemb";
         if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
           tiedPrefix = "Wemb";
-        last.tie_transposed("W", tiedPrefix);
+        last.tie_transposed(tiedPrefix);
       }
 
       if(shortlist_)

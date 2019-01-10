@@ -619,7 +619,7 @@ private:
       std::string tiedPrefix = prefix_ + "_Wemb";
       if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
         tiedPrefix = "Wemb";
-      layerOut.tie_transposed("W", tiedPrefix);
+      layerOut.tie_transposed(tiedPrefix);
     }
 
     if(shortlist_)

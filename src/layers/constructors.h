@@ -57,9 +57,8 @@ protected:
   Ptr<data::Shortlist> shortlist_;
 
 public:
-  Accumulator<OutputFactory> tie_transposed(const std::string& param,
-                                            const std::string& tied) {
-    tiedParamsTransposed_.push_back({param, tied});
+  Accumulator<OutputFactory> tie_transposed(const std::string& tied) {
+    tiedParamsTransposed_.push_back({"W", tied});
     return Accumulator<OutputFactory>(*this);
   }
 
@@ -71,7 +70,7 @@ public:
   Ptr<IUnaryLayer> construct(Ptr<ExpressionGraph> graph) override {
     auto output = New<Output>(graph, options_);
     for(auto& p : tiedParamsTransposed_)
-      output->tie_transposed(p.first, p.second);
+      output->tie_transposed(p.second);
     output->set_shortlist(shortlist_);
     return output;
   }

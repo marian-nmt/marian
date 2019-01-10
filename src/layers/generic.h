@@ -135,8 +135,8 @@ public:
   Output(Ptr<ExpressionGraph> graph, Ptr<Options> options)
       : LayerBase(graph, options) {}
 
-  void tie_transposed(const std::string& param, const std::string& tied) {
-    tiedParams_[param] = graph_->get(tied);
+  void tie_transposed(const std::string& tied) {
+    tiedParams_["W"] = graph_->get(tied);
   }
 
   void set_shortlist(Ptr<data::Shortlist> shortlist) { shortlist_ = shortlist; }
