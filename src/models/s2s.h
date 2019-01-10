@@ -340,11 +340,11 @@ public:
         std::string tiedPrefix = prefix_ + "_Wemb";
         if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
           tiedPrefix = "Wemb";
-        last.tie_transposed(tiedPrefix);
+        last.tieTransposed(tiedPrefix);
       }
 
       if(shortlist_)
-        last.set_shortlist(shortlist_);
+        last.setShortlist(shortlist_);
 
       // assemble layers into MLP and apply to embeddings, decoder context and
       // aligned source context

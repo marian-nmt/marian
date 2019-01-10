@@ -53,32 +53,31 @@ typedef Accumulator<DenseFactory> dense;
  */
 class OutputFactory : public LayerFactory {
 protected:
-  std::vector<std::pair<std::string, std::string>> tiedParamsTransposed_;
+  std::string tiedTransposedName_;
   Ptr<data::Shortlist> shortlist_;
 
 public:
-  Accumulator<OutputFactory> tie_transposed(const std::string& tied) {
-    tiedParamsTransposed_.push_back({"W", tied});
+  Accumulator<OutputFactory> tieTransposed(const std::string& tied) {
+    tiedTransposedName_ = tied;
     return Accumulator<OutputFactory>(*this);
   }
 
-  Accumulator<OutputFactory> set_shortlist(Ptr<data::Shortlist> shortlist) {
+  Accumulator<OutputFactory> setShortlist(Ptr<data::Shortlist> shortlist) {
     shortlist_ = shortlist;
     return Accumulator<OutputFactory>(*this);
   }
 
   Ptr<IUnaryLayer> construct(Ptr<ExpressionGraph> graph) override {
     auto output = New<Output>(graph, options_);
-    for(auto& p : tiedParamsTransposed_)
-      output->tie_transposed(p.second);
-    output->set_shortlist(shortlist_);
+    output->tieTransposed(graph->get(tiedTransposedName_));
+    output->setShortlist(shortlist_);
     return output;
   }
 
   OutputFactory clone() {
     OutputFactory aClone;
     aClone.options_->merge(options_);
-    aClone.tiedParamsTransposed_ = tiedParamsTransposed_;
+    aClone.tiedTransposedName_ = tiedTransposedName_;
     aClone.shortlist_ = shortlist_;
     return aClone;
   }

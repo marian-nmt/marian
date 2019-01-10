@@ -619,11 +619,11 @@ private:
       std::string tiedPrefix = prefix_ + "_Wemb";
       if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
         tiedPrefix = "Wemb";
-      layerOut.tie_transposed(tiedPrefix);
+      layerOut.tieTransposed(tiedPrefix);
     }
 
     if(shortlist_)
-      layerOut.set_shortlist(shortlist_);
+      layerOut.setShortlist(shortlist_);
 
     // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
     // assemble layers into MLP and apply to embeddings, decoder context and

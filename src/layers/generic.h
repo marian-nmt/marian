@@ -124,7 +124,7 @@ public:
 
 class Output : public LayerBase, public IUnaryLayer {
 private:
-  std::map<std::string, Expr> tiedParams_;
+  Expr tiedParam_;
   Ptr<data::Shortlist> shortlist_;
 
   Expr W_;
@@ -135,25 +135,24 @@ public:
   Output(Ptr<ExpressionGraph> graph, Ptr<Options> options)
       : LayerBase(graph, options) {}
 
-  void tie_transposed(const std::string& tied) {
-    tiedParams_["W"] = graph_->get(tied);
+  void tieTransposed(Expr tied) {
+    tiedParam_ = tied;
   }
 
-  void set_shortlist(Ptr<data::Shortlist> shortlist) { shortlist_ = shortlist; }
+  void setShortlist(Ptr<data::Shortlist> shortlist) { shortlist_ = shortlist; }
 
   Expr apply(Expr input) override {
     if(!W_) {
       auto name = options_->get<std::string>("prefix");
       auto dim = options_->get<int>("dim");
-      std::string nameW = "W";
 
-      if(tiedParams_.count(nameW)) {
+      if(tiedParam_) {
         transposeW_ = true;
-        W_ = tiedParams_[nameW];
+        W_ = tiedParam_;
         if(shortlist_)
           W_ = rows(W_, shortlist_->indices());
       } else {
-        W_ = graph_->param(name + "_" + nameW,
+        W_ = graph_->param(name + "_W",
                            {input->shape()[-1], dim},
                            inits::glorot_uniform);
         if(shortlist_)
