@@ -315,12 +315,14 @@ public:
 
     size_t idx = 0;
     for(auto len : lengths) {
-      // data: gets initialized to 0. No EOS symbol is distinguished.
       auto sb = New<SubBatch>(batchSize, len, vocabs[idx]);
       // set word indices to different values to avoid same hashes
-      std::fill(sb->data().begin(), sb->data().end(), (unsigned int)idx++);
+      // rand() is OK, this does not affect state in any way
+      std::transform(sb->data().begin(), sb->data().end(), sb->data().begin(),
+                     [&](Word) { return rand() % vocabs[idx]->size(); }); 
       // mask: no items ask being masked out
       std::fill(sb->mask().begin(), sb->mask().end(), 1.f);
+      idx++;
 
       batches.push_back(sb);
     }

@@ -87,13 +87,13 @@ public:
     
     for(int i : selected) {
       maskedPositions_.push_back(i);        // where is the original word?
-      maskedWords_.push_back(words[i]);   // what is the original word?
+      maskedWords_.push_back(words[i]);     // what is the original word?
       words[i] = maskOut(words[i], maskId); // mask that position
     }
   }
 
   const std::vector<IndexType>& bertMaskedPositions() { return maskedPositions_; }
-  const std::vector<IndexType>& bertMaskedWords()   { return maskedWords_; }
+  const std::vector<IndexType>& bertMaskedWords()     { return maskedWords_; }
   const std::vector<IndexType>& bertSentenceIndices() { return sentenceIndices_; }
 };
 
