@@ -229,35 +229,43 @@ void CSRProd(marian::Tensor C,
              const marian::Tensor& A_values,
              const marian::Tensor& A_indices,
              const marian::Tensor& A_offsets,
-             const marian::Tensor& B) {
+             const marian::Tensor& B,
+             bool transA, float beta) {
   cudaSetDevice(C->getDeviceId().no);
   auto cusparseHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
                               ->getCusparseHandle();
-  const auto& shapeB = B->shape();
   const auto& shapeC = C->shape();
-  int k = (int)shapeB[0];                         // number of columns of sparse matrix A = #rows of B
-  int n = (int)shapeB.elements() / k;             // number of columns of dense matrices B and C
-  int m = (int)A_offsets->shape().elements() - 1; // number of rows of sparse matrix A
-  ABORT_IF(m != shapeC[0], "CSR matrix has wrong number of rows");
+  const auto& shapeB = B->shape();
+  auto numValues  = A_values->shape().elements();
+  auto numOffsets = A_offsets->shape().elements() - 1; // -1 since last value is length
+  auto rowsC = shapeC[0];
+  auto colsC = shapeC.elements() / rowsC;
+  auto rowsB = shapeB[0];
+  auto colsB = shapeB.elements() / rowsB;
+  auto rowsA = transA ? rowsB : numOffsets; // we don't know the dimension of the sparse axis from A directly
+  auto colsA = transA ? numOffsets : rowsB;
+  ABORT_IF((transA ? colsA : rowsA) != rowsC || (transA ? rowsA : colsA) != rowsB || colsB != colsC, "Inconsistent dimensions in CSR product");
   ABORT_IF(A_values->shape() != A_indices->shape(), "CSR constituents has inconsistent dimensions");
-  int nnz = (int)A_values->shape().elements();
   float alpha = 1;
-  float beta = 0;
   cusparseMatDescr_t descrA;
   cusparseCreateMatDescr(&descrA);
   cusparseSetMatType     (descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
   cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO);
   auto rc = cusparseScsrmm(cusparseHandle, 
-      /*transA=*/ CUSPARSE_OPERATION_NON_TRANSPOSE,
-      m, n, k, nnz, &alpha, descrA,
+      transA ? CUSPARSE_OPERATION_TRANSPOSE : CUSPARSE_OPERATION_NON_TRANSPOSE,
+      /*m=*/ rowsA, // #rows of sparse A
+      /*n=*/ colsB, // #cols of dense B and C
+      /*k=*/ colsA, // #cols of sparse A
+      /*nnz=*/ (int)numValues,
+      &alpha, descrA,
       /*csrValA=*/          A_values->data<float>(),
       /*csrRowPtrA=*/ (int*)A_indices->data<IndexType>(),
       /*csrColIndA=*/ (int*)A_offsets->data<IndexType>(),
       B->data(),
-      /*ldb=*/ k,
+      /*ldb=*/ rowsB,
       &beta,
       C->data(),
-      /*ldc=*/ m);
+      /*ldc=*/ rowsC);
   cusparseDestroyMatDescr(descrA);
 }
 

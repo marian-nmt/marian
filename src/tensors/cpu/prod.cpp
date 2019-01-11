@@ -171,8 +171,9 @@ void CSRProd(marian::Tensor C,
              const marian::Tensor& A_values,
              const marian::Tensor& A_indices,
              const marian::Tensor& A_offsets,
-             const marian::Tensor& B) {
-  C, A_values, A_indices, A_offsets, B;
+             const marian::Tensor& B,
+             bool transA, float beta) {
+  C, A_values, A_indices, A_offsets, B, transA, beta;
   ABORT("CSRProd is not yet implemented for CPU");
 }
 

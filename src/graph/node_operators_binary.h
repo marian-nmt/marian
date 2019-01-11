@@ -428,40 +428,21 @@ public:
   NodeOps forwardOps() override {
     // C = dot(A, B)
     return {NodeOp(CSRProd(val_,
-                           child(0)->val(),
-                           child(1)->val(),
-                           child(2)->val(),
-                           child(3)->val()))};
+                           child(0)->val(), child(1)->val(), child(2)->val(), child(3)->val(),
+                           /*transA=*/false, /*beta=*/0))};
   }
 
   NodeOps backwardOps() override {
-#if 1
-    return {}; // this is coming next
-#else
-    return {NodeOp(Prod(child(0)->grad(),
-                        adj_,
-                        child(1)->val(),
-                        false,
-                        true,
-                        1.0,
-                        scalar_)),
-            NodeOp(Prod(child(1)->grad(),
-                        child(0)->val(),
-                        adj_,
-                        true,
-                        false,
-                        1.0,
-                        scalar_))};
-#endif
+    return {nullptr, // can't backprop into the sparse matrix, as it would be dense
+            NodeOp(CSRProd(child(1)->grad(),
+                           child(0)->val(), child(1)->val(), child(2)->val(), adj_,
+                           /*transA=*/true, /*beta=*/1))};
   }
 
   const std::string type() override { return "•"; }
 
   const std::string color() override { return "orange"; }
 };
-
-
-
 
 struct ScalarProductNodeOp : public NaryNodeOp {
   ScalarProductNodeOp(Expr a, Expr b, int axis)
