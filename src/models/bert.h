@@ -13,7 +13,7 @@ private:
   std::mt19937& eng_;
   
   std::vector<IndexType> maskedPositions_;
-  std::vector<IndexType> maskedIndices_;
+  std::vector<IndexType> maskedWords_;
   std::vector<IndexType> sentenceIndices_;
 
   std::string maskSymbol_;
@@ -87,13 +87,13 @@ public:
     
     for(int i : selected) {
       maskedPositions_.push_back(i);        // where is the original word?
-      maskedIndices_.push_back(words[i]);   // what is the original word?
+      maskedWords_.push_back(words[i]);   // what is the original word?
       words[i] = maskOut(words[i], maskId); // mask that position
     }
   }
 
   const std::vector<IndexType>& bertMaskedPositions() { return maskedPositions_; }
-  const std::vector<IndexType>& bertMaskedIndices()   { return maskedIndices_; }
+  const std::vector<IndexType>& bertMaskedWords()   { return maskedWords_; }
   const std::vector<IndexType>& bertSentenceIndices() { return sentenceIndices_; }
 };
 
@@ -206,7 +206,7 @@ public:
     auto context = encoderStates[0]->getContext();
 
     auto bertMaskedPositions = graph->indices(bertBatch->bertMaskedPositions()); // positions in batch of masked entries
-    auto bertMaskedIndices   = graph->indices(bertBatch->bertMaskedIndices());   // vocab ids of entries that have been masked
+    auto bertMaskedWords     = graph->indices(bertBatch->bertMaskedWords());   // vocab ids of entries that have been masked
 
     int dimModel = context->shape()[-1];
     int dimBatch = context->shape()[-2];
@@ -237,7 +237,7 @@ public:
 
     auto state = New<ClassifierState>();
     state->setLogProbs(logits);
-    state->setTargetIndices(bertMaskedIndices);
+    state->setTargetIndices(bertMaskedWords);
 
     return state;
   }
