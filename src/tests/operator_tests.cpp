@@ -317,11 +317,6 @@ void tests(DeviceType device) {
     auto A = graph->param("A", {2, 2, 3}, inits::from_vector(vA));
     auto B = graph->param("B", {3, 2}, inits::from_vector(vB));
     auto C = dot(A, B);
-    graph->forward();
-
-    CHECK(C->shape() == Shape({2, 2, 2}));
-    C->val()->get(values);
-    CHECK(values == vC);
 
     // CSR dot product
     std::vector<float> vS({1, 0, 0, 1,
@@ -335,7 +330,7 @@ void tests(DeviceType device) {
     std::vector<float> SV;
     std::vector<IndexType> SI, SO;
     SO.push_back((IndexType)SI.size());
-    for (IndexType i = 0; i < 2; i++) {    // convert to CSR
+    for (IndexType i = 0; i < 2; i++) {    // convert to CSR!
       for (IndexType j = 0; j < 4; j++) {
         auto k = 4 * i + j;
         if (vS[k] != 0) {
@@ -345,12 +340,19 @@ void tests(DeviceType device) {
       }
       SO.push_back((IndexType)SI.size());
     }
-    auto R = graph->param("A", {4, 3}, inits::from_vector(vR));
+    auto R = graph->param("R", {4, 3}, inits::from_vector(vR));
     auto SxR = csr_dot(
           graph->constant({ (int)SV.size() }, inits::from_vector(SV), Type::float32),
           graph->constant({ (int)SI.size() }, inits::from_vector(SI), Type::uint32),
           graph->constant({ (int)SO.size() }, inits::from_vector(SO), Type::uint32),
-          A);
+          R);
+
+    graph->forward();
+
+    CHECK(C->shape() == Shape({ 2, 2, 2 }));
+    C->val()->get(values);
+    CHECK(values == vC);
+
     CHECK(SxR->shape() == Shape({2, 3}));
     SxR->val()->get(values);
     CHECK(values == vSxR);
