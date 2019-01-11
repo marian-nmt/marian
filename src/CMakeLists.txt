@@ -47,6 +47,7 @@ add_library(marian STATIC
   graph/node_initializers.cpp
 
   layers/convolution.cpp
+  layers/generic.cpp
   layers/loss.cpp
   layers/weight.cpp
 

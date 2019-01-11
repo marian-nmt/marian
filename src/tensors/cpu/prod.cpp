@@ -167,5 +167,14 @@ void ProdWithBias(marian::Tensor C,
   cpu::int16::AddBias(C, bias);
 }
 
+void CSRProd(marian::Tensor C,
+             const marian::Tensor& A_values,
+             const marian::Tensor& A_indices,
+             const marian::Tensor& A_offsets,
+             const marian::Tensor& B) {
+  C, A_values, A_indices, A_offsets, B;
+  ABORT("CSRProd is not yet implemented for CPU");
+}
+
 }  // namespace cpu
 }  // namespace marian

@@ -112,6 +112,8 @@ Expr affine(Expr a,
             bool transB = false,
             float scalar = 1.f);
 
+Expr csr_dot(Expr Avalues, Expr Aindices, Expr Aoffsets, Expr B);
+
 Expr transpose(Expr a);
 Expr transpose(Expr a, const std::vector<int>& axes);
 

@@ -409,6 +409,60 @@ public:
   const std::string color() override { return "orange"; }
 };
 
+class CSRDotNodeOp : public NaryNodeOp {
+public:
+  CSRDotNodeOp(Expr A_values, Expr A_indices, Expr A_offsets, Expr B)
+      : NaryNodeOp({ A_values, A_indices, A_offsets, B }, newShape(A_values, A_indices, A_offsets, B)) {
+    matchOrAbort<IndexType>(A_indices->value_type());
+    matchOrAbort<IndexType>(A_offsets->value_type());
+  }
+
+  Shape newShape(Expr A_values, Expr A_indices, Expr A_offsets, Expr B) {
+    ABORT_IF(A_values->shape().size() != 1 || A_indices->shape().size() != 1 || A_offsets->shape().size() != 1,
+        "Sparse matrix components must all be vectors.");
+    auto outShape = B->shape();
+    outShape.set(0, A_offsets->shape()[0] - 1); // A_offsets = A.numRows + 1
+    return outShape;
+  }
+
+  NodeOps forwardOps() override {
+    // C = dot(A, B)
+    return {NodeOp(CSRProd(val_,
+                           child(0)->val(),
+                           child(1)->val(),
+                           child(2)->val(),
+                           child(3)->val()))};
+  }
+
+  NodeOps backwardOps() override {
+#if 1
+    return {}; // this is coming next
+#else
+    return {NodeOp(Prod(child(0)->grad(),
+                        adj_,
+                        child(1)->val(),
+                        false,
+                        true,
+                        1.0,
+                        scalar_)),
+            NodeOp(Prod(child(1)->grad(),
+                        child(0)->val(),
+                        adj_,
+                        true,
+                        false,
+                        1.0,
+                        scalar_))};
+#endif
+  }
+
+  const std::string type() override { return "•"; }
+
+  const std::string color() override { return "orange"; }
+};
+
+
+
+
 struct ScalarProductNodeOp : public NaryNodeOp {
   ScalarProductNodeOp(Expr a, Expr b, int axis)
       : NaryNodeOp({a, b}, newShape(a, b, axis)) {}

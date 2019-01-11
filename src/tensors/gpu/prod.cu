@@ -1,5 +1,6 @@
 
 #include <cublas_v2.h>
+#include <cusparse.h>
 
 // clang-format off
 #include "tensors/gpu/prod.h"
@@ -222,6 +223,42 @@ void ProdBatched(marian::Tensor C,
   allocator->free(mp_aptr);
   allocator->free(mp_bptr);
   allocator->free(mp_cptr);
+}
+
+void CSRProd(marian::Tensor C,
+             const marian::Tensor& A_values,
+             const marian::Tensor& A_indices,
+             const marian::Tensor& A_offsets,
+             const marian::Tensor& B) {
+  cudaSetDevice(C->getDeviceId().no);
+  auto cusparseHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
+                              ->getCusparseHandle();
+  const auto& shapeB = B->shape();
+  const auto& shapeC = C->shape();
+  int k = (int)shapeB[0];                         // number of columns of sparse matrix A = #rows of B
+  int n = (int)shapeB.elements() / k;             // number of columns of dense matrices B and C
+  int m = (int)A_offsets->shape().elements() - 1; // number of rows of sparse matrix A
+  ABORT_IF(m != shapeC[0], "CSR matrix has wrong number of rows");
+  ABORT_IF(A_values->shape() != A_indices->shape(), "CSR constituents has inconsistent dimensions");
+  int nnz = (int)A_values->shape().elements();
+  float alpha = 1;
+  float beta = 0;
+  cusparseMatDescr_t descrA;
+  cusparseCreateMatDescr(&descrA);
+  cusparseSetMatType     (descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
+  cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO);
+  auto rc = cusparseScsrmm(cusparseHandle, 
+      /*transA=*/ CUSPARSE_OPERATION_NON_TRANSPOSE,
+      m, n, k, nnz, &alpha, descrA,
+      /*csrValA=*/          A_values->data<float>(),
+      /*csrRowPtrA=*/ (int*)A_indices->data<IndexType>(),
+      /*csrColIndA=*/ (int*)A_offsets->data<IndexType>(),
+      B->data(),
+      /*ldb=*/ k,
+      &beta,
+      C->data(),
+      /*ldc=*/ m);
+  cusparseDestroyMatDescr(descrA);
 }
 
 }  // namespace gpu

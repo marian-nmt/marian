@@ -176,38 +176,11 @@ public:
 
 class Embedding : public LayerBase, public IEmbeddingLayer {
   Expr E_;
+  Ptr<class EmbeddingFactorMapping> embeddingFactorMapping_;
 public:
-  Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options) : LayerBase(graph, options) {
-    std::string name = opt<std::string>("prefix");
-    int dimVoc = opt<int>("dimVocab");
-    int dimEmb = opt<int>("dimEmb");
+  Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options);
 
-    bool fixed = opt<bool>("fixed", false);
-
-    NodeInitializer initFunc = inits::glorot_uniform;
-    if (options_->has("embFile")) {
-      std::string file = opt<std::string>("embFile");
-      if (!file.empty()) {
-        bool norm = opt<bool>("normalization", false);
-        initFunc = inits::from_word2vec(file, dimVoc, dimEmb, norm);
-      }
-    }
-
-    E_ = graph_->param(name, {dimVoc, dimEmb}, initFunc, fixed);
-  }
-
-  std::tuple<Expr/*embeddings*/, Expr/*mask*/> apply(Ptr<data::SubBatch> subBatch) const override final {
-    auto graph = E_->graph();
-    int dimBatch = (int)subBatch->batchSize();
-    int dimEmb = E_->shape()[-1];
-    int dimWords = (int)subBatch->batchWidth();
-    // @TODO: merge this with below. Currently can't only due to the extra beam dimension
-    auto chosenEmbeddings = rows(E_, subBatch->data());
-    auto batchEmbeddings = reshape(chosenEmbeddings, { dimWords, dimBatch, dimEmb });
-    auto batchMask = graph->constant({ dimWords, dimBatch, 1 },
-                                     inits::from_vector(subBatch->mask()));
-    return std::make_tuple(batchEmbeddings, batchMask);
-  }
+  std::tuple<Expr/*embeddings*/, Expr/*mask*/> apply(Ptr<data::SubBatch> subBatch) const override final;
 
   // special version used in decoding
   Expr apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const override final {

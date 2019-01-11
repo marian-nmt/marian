@@ -481,6 +481,9 @@
     <ClCompile Include="..\src\examples\iris\iris.cpp">
       <Filter>examples\iris</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\layers\generic.cpp">
+      <Filter>layers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />

@@ -30,6 +30,7 @@ const std::set<std::string> PATHS = {
   "train-sets",
   "vocabs",
   "embedding-vectors",
+  "embedding-factors",
   "valid-sets",
   "valid-script-path",
   "valid-log",
@@ -385,6 +386,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "Fix source embeddings. Affects all encoders");
   cli.add<bool>("--embedding-fix-trg",
      "Fix target embeddings. Affects all decoders");
+  cli.add_nondefault<std::vector<std::string>>("--embedding-factors",
+     "Paths to (factor map, factor list) file for factored embeddings");
 
   cli.add<bool>("--multi-node",
      "Enable asynchronous multi-node training through MPI (and legacy sync if combined with --sync-sgd)");
