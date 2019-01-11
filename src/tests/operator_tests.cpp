@@ -340,21 +340,27 @@ void tests(DeviceType device) {
       }
       SO.push_back((IndexType)SI.size());
     }
+    auto S = graph->param("S", {2, 4}, inits::from_vector(vS));
     auto R = graph->param("R", {4, 3}, inits::from_vector(vR));
-    auto SxR = csr_dot(
-          graph->constant({ (int)SV.size() }, inits::from_vector(SV), Type::float32),
-          graph->constant({ (int)SI.size() }, inits::from_vector(SI), Type::uint32),
-          graph->constant({ (int)SO.size() }, inits::from_vector(SO), Type::uint32),
+    auto SxRs = csr_dot(
+          graph->constant({(int)SV.size()}, inits::from_vector(SV), Type::float32),
+          graph->constant({(int)SI.size()}, inits::from_vector(SI), Type::uint32),
+          graph->constant({(int)SO.size()}, inits::from_vector(SO), Type::uint32),
           R);
+    auto SxRd = dot(S, R);
 
     graph->forward();
 
-    CHECK(C->shape() == Shape({ 2, 2, 2 }));
+    CHECK(C->shape() == Shape({2, 2, 2}));
     C->val()->get(values);
     CHECK(values == vC);
 
-    CHECK(SxR->shape() == Shape({2, 3}));
-    SxR->val()->get(values);
+    CHECK(SxRd->shape() == Shape({2, 3}));
+    SxRd->val()->get(values);
+    CHECK(values == vSxR);
+
+    CHECK(SxRs->shape() == Shape({2, 3}));
+    SxRs->val()->get(values);
     CHECK(values == vSxR);
   }
 
