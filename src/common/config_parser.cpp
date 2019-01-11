@@ -200,6 +200,8 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
   cli.add<std::string>("--transformer-postprocess",
       "Operation after each transformer layer: d = dropout, a = add, n = normalize",
       "dan");
+  cli.add<bool>("--transformer-learned-positions",
+      "Use learned positional embeddings instead of trigonometric embeddings");
 
   cli.add<std::string>("--bert-mask-symbol", "Masking symbol for BERT masked-LM training", "[MASK]");
   cli.add<std::string>("--bert-sep-symbol", "Sentence separator symbol for BERT next sentence prediction training", "[SEP]");

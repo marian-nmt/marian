@@ -9,6 +9,6 @@
 //#include "layers/factory.h"
 
 namespace marian {
-Ptr<EncoderBase> NewEncoderTransformer(Ptr<Options> options);
-Ptr<DecoderBase> NewDecoderTransformer(Ptr<Options> options);
+static Ptr<EncoderBase> NewEncoderTransformer(Ptr<Options> options);
+static Ptr<DecoderBase> NewDecoderTransformer(Ptr<Options> options);
 }  // namespace marian

@@ -42,6 +42,8 @@ NodeInitializer from_vector(const std::vector<IndexType>& v);
 
 NodeInitializer from_item(const io::Item& item);
 
+NodeInitializer positions(int start);
+
 NodeInitializer from_sparse_vector(
     std::pair<std::vector<size_t>, std::vector<float>>& v);
 

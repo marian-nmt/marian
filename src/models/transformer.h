@@ -68,20 +68,8 @@ public:
       signal = reshape(signal, {dimWords, 1, dimEmb});
       embeddings = embeddings + signal;
     } else {
-      float num_timescales = (float)dimEmb / 2;
-      float log_timescale_increment = std::log(10000.f) / (num_timescales - 1.f);
-
-      std::vector<float> vPos(dimEmb * dimWords, 0);
-      for(int p = start; p < dimWords + start; ++p) {
-        for(int i = 0; i < num_timescales; ++i) {
-          float v = p * std::exp(i * -log_timescale_increment);
-          vPos[(p - start) * dimEmb + i] = std::sin(v);
-          vPos[(p - start) * dimEmb + (int)num_timescales + i] = std::cos(v); // @TODO: is int vs. float correct for num_timescales?
-        }
-      }
-
-      // shared across batch entries
-      auto signal = graph_->constant({dimWords, 1, dimEmb}, inits::from_vector(vPos));
+      auto signal = graph_->constant({dimWords, 1, dimEmb},
+                                     inits::positions(start));
       embeddings = embeddings + signal;
     }
 
@@ -573,7 +561,7 @@ public:
     }
     // according to paper embeddings are scaled up by \sqrt(d_m)
     auto scaledEmbeddings = std::sqrt((float)dimEmb) * batchEmbeddings;
-    
+
     scaledEmbeddings = addSpecialEmbeddings(scaledEmbeddings, /*start=*/0, batch);
 
     // reorganize batch and timestep

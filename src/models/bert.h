@@ -11,7 +11,7 @@ namespace data {
 class BertBatch : public CorpusBatch {
 private:
   std::mt19937& eng_;
-  
+
   std::vector<IndexType> maskedPositions_;
   std::vector<IndexType> maskedWords_;
   std::vector<IndexType> sentenceIndices_;
@@ -35,7 +35,7 @@ private:
       Word randWord = (*randomWord_)(eng_);
       if(dontMask_.count(randWord) > 0) // the random word is a forbidden word
         return mask;                    // hence return mask symbol
-      else 
+      else
         return randWord;                // else return the random word
     } else { // for 80% of words apply mask symbol
       return mask;
@@ -43,11 +43,11 @@ private:
   }
 
 public:
-  BertBatch(Ptr<CorpusBatch> batch, 
+  BertBatch(Ptr<CorpusBatch> batch,
             std::mt19937& engine,
             float maskFraction,
-            const std::string& maskSymbol, 
-            const std::string& sepSymbol, 
+            const std::string& maskSymbol,
+            const std::string& sepSymbol,
             const std::string& clsSymbol)
     : CorpusBatch(*batch), eng_(engine),
       maskSymbol_(maskSymbol), sepSymbol_(sepSymbol), clsSymbol_(clsSymbol) {
@@ -68,7 +68,7 @@ public:
 
     ABORT_IF(sepId == subBatch->vocab()->getUnkId(),
              "BERT separator symbol {} not found in vocabulary", sepSymbol_);
-    
+
     ABORT_IF(clsId == subBatch->vocab()->getUnkId(),
              "BERT class symbol {} not found in vocabulary", clsSymbol_);
 
@@ -84,11 +84,25 @@ public:
         selected.push_back(i);
     std::shuffle(selected.begin(), selected.end(), eng_);
     selected.resize(std::ceil(selected.size() * maskFraction)); // select first x percent from shuffled indices
-    
+
     for(int i : selected) {
       maskedPositions_.push_back(i);        // where is the original word?
       maskedWords_.push_back(words[i]);     // what is the original word?
       words[i] = maskOut(words[i], maskId); // mask that position
+    }
+
+    int dimBatch = subBatch->batchSize();
+    int dimWords = subBatch->batchWidth();
+
+    sentenceIndices_.resize(words.size());
+    std::vector<IndexType> sentPos(dimBatch, 0);
+    for(int i = 0; i < dimWords; ++i) {
+      for(int j = 0; j < dimBatch; ++j) {
+        int k = i * dimBatch + j;
+        sentenceIndices_[k] = sentPos[j];
+        if(words[k] == sepId)
+          sentPos[j]++;
+      }
     }
   }
 
@@ -101,7 +115,7 @@ public:
 
 class BertEncoderClassifier : public EncoderClassifier, public data::RNGEngine {
 public:
-  BertEncoderClassifier(Ptr<Options> options) 
+  BertEncoderClassifier(Ptr<Options> options)
   : EncoderClassifier(options) {}
 
   std::vector<Ptr<ClassifierState>> apply(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch, bool clearGraph) override {
@@ -114,6 +128,11 @@ public:
                                           opt<std::string>("bert-class-symbol"));
     return EncoderClassifier::apply(graph, bertBatch, clearGraph);
   }
+
+  // for externally created BertBatch for instance in BertValidator
+  std::vector<Ptr<ClassifierState>> apply(Ptr<ExpressionGraph> graph, Ptr<data::BertBatch> bertBatch, bool clearGraph) {
+    return EncoderClassifier::apply(graph, bertBatch, clearGraph);
+  }
 };
 
 // @TODO: this should be in transformer.h
@@ -121,7 +140,9 @@ class BertEncoder : public EncoderTransformer {
 public:
   BertEncoder(Ptr<Options> options) : EncoderTransformer(options) {}
 
-  Expr addSentenceEmbeddings(Expr embeddings, int start, Ptr<data::CorpusBatch> batch) const {
+  Expr addSentenceEmbeddings(Expr embeddings,
+                             Ptr<data::CorpusBatch> batch,
+                             bool learnedPosEmbeddings) const {
     Ptr<data::BertBatch> bertBatch = std::dynamic_pointer_cast<data::BertBatch>(batch);
 
     ABORT_IF(!bertBatch, "Batch could not be converted for BERT training");
@@ -130,24 +151,29 @@ public:
     int dimBatch = embeddings->shape()[-2];
     int dimWords = embeddings->shape()[-3];
 
-    auto sentenceEmbeddings = embedding(graph_)
-                                ("prefix", "Wsent")
-                                ("dimVocab", 2) // sentence A or sentence B
-                                ("dimEmb", dimEmb)
-                                .construct();
+    Expr sentenceEmbeddings;
+    if(learnedPosEmbeddings) {
+      sentenceEmbeddings = embedding(graph_)
+                               ("prefix", "Wsent")
+                               ("dimVocab", 2) // sentence A or sentence B
+                               ("dimEmb", dimEmb)
+                               .construct();
+    } else {
+      // trigonometric positions, no backprob
+      sentenceEmbeddings = graph_->constant({2, dimEmb}, inits::positions(0));
+    }
 
-    // @TODO: note this is going to be really slow due to atomicAdd in backward step
-    // with only two classes;
-    // instead two masked reduce operations, maybe in parallel streams?
     auto sentenceIndices = graph_->indices(bertBatch->bertSentenceIndices());
+
     auto signal = rows(sentenceEmbeddings, sentenceIndices);
     signal = reshape(signal, {dimWords, dimBatch, dimEmb});
     return embeddings + signal;
   }
 
   virtual Expr addSpecialEmbeddings(Expr input, int start = 0, Ptr<data::CorpusBatch> batch = nullptr) const override {
-    input = addPositionalEmbeddings(input, start, true); // true for BERT
-    input = addSentenceEmbeddings(input, start, batch);
+    bool learnedPosEmbeddings = opt<bool>("transformer-learned-positions", true);
+    input = addPositionalEmbeddings(input, start, learnedPosEmbeddings);
+    input = addSentenceEmbeddings(input, batch, learnedPosEmbeddings);
     return input;
   }
 };

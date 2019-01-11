@@ -157,6 +157,27 @@ NodeInitializer from_item(const io::Item& item) {
   }
 }
 
+NodeInitializer positions(int start) {
+  return [start](Tensor t) {
+    int dimEmb   = t->shape()[-1];
+    int dimWords = t->size() / dimEmb;
+
+    float numTimescales = (float)dimEmb / 2;
+    float logTimescaleIncrement = std::log(10000.f) / (numTimescales - 1.f);
+
+    std::vector<float> vPos(dimEmb * dimWords, 0);
+    for(int p = start; p < dimWords + start; ++p) {
+      for(int i = 0; i < numTimescales; ++i) {
+        float v = p * std::exp(i * -logTimescaleIncrement);
+        vPos[(p - start) * dimEmb + i                     ] = std::sin(v);
+        vPos[(p - start) * dimEmb + (int)numTimescales + i] = std::cos(v); // @TODO: is int vs. float correct for num_timescales?
+      }
+    }
+
+    from_vector(vPos)(t);
+  };
+}
+
 }  // namespace inits
 
 }  // namespace marian

@@ -233,7 +233,7 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
     return models::encoder_classifier()(options) //
         ("usage", use)                           //
         .push_back(models::encoder()             //
-                    ("type", "transformer")      // @TODO: replace with 'bert-encoder'
+                    ("type", "bert-encoder")     // @TODO: replace with 'bert-encoder'
                     ("index", 0))                // close to original transformer encoder
         .push_back(models::classifier()          //
                     ("type", "bert-masked-lm")   //
