@@ -37,6 +37,8 @@ void CSRProd(marian::Tensor C,
              const marian::Tensor& A_values,
              const marian::Tensor& A_indices,
              const marian::Tensor& A_offsets,
-             const marian::Tensor& B);
+             const marian::Tensor& B,
+             bool transA,
+             float beta = 0);
 }  // namespace gpu
 }  // namespace marian

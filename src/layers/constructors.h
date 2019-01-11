@@ -147,4 +147,10 @@ public:
 // @TODO: change naming convention.
 typedef Accumulator<MLPFactory> mlp;
 }  // namespace mlp
+
+typedef ConstructingFactory<Embedding> EmbeddingFactory;
+typedef ConstructingFactory<ULREmbedding> ULREmbeddingFactory;
+
+typedef Accumulator<EmbeddingFactory> embedding;
+typedef Accumulator<ULREmbeddingFactory> ulr_embedding;
 }  // namespace marian

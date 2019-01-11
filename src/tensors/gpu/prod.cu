@@ -24,18 +24,18 @@ static void setTensorMode(cublasHandle_t cublasHandle) {
     default: ABORT("Invalid ENABLE_CUBLAS_TENSOR_OP_MATH_FP32={}", var);
     }
     if (mode > 0) { // try whether it can be set   --@TODO: check whether this actually works
-      cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
+      CUBLAS_CHECK(cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH));
       cublasMath_t actual = CUBLAS_DEFAULT_MATH;
       cublasGetMathMode(cublasHandle, &actual);
       if (actual != CUBLAS_TENSOR_OP_MATH) {
-        LOG(info, "WARNING: TensorCores requested but not available");
+        LOG(warn, "[gpu] TensorCores requested but not available");
         mode = -1;
       }
     }
     if (mode > 0)
-      LOG(info, "16-bit TensorCores enabled for float32 matrix operations");
+      LOG(info, "[gpu] 16-bit TensorCores enabled for float32 matrix operations");
   }
-  cublasSetMathMode(cublasHandle, mode > 0 ? CUBLAS_TENSOR_OP_MATH : CUBLAS_DEFAULT_MATH);
+  CUBLAS_CHECK(cublasSetMathMode(cublasHandle, mode > 0 ? CUBLAS_TENSOR_OP_MATH : CUBLAS_DEFAULT_MATH));
 }
 
 void Prod(marian::Tensor C,
@@ -76,7 +76,7 @@ void Prod(marian::Tensor C,
   //cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
 #endif
 
-  cublasSgemm(cublasHandle,
+  CUBLAS_CHECK(cublasSgemm(cublasHandle,
               opB,
               opA,
               n,
@@ -89,7 +89,7 @@ void Prod(marian::Tensor C,
               lda,
               &beta,
               C->data(),
-              ldc);
+              ldc));
 #if CUDA_VERSION >= 9000
   cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
 #endif
@@ -108,6 +108,7 @@ __global__ void gAddBias(float* out,
   }
 }
 
+#if 0 // @TODO: remove, then rename from .cu to .cpp
 void AddBias(marian::Tensor C, const marian::Tensor bias) {
   cudaSetDevice(C->getDeviceId().no);
 
@@ -117,9 +118,9 @@ void AddBias(marian::Tensor C, const marian::Tensor bias) {
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-  gAddBias<<<blocks, threads>>>(C->data(), bias->data(), length, cols);
+  gAddBias<<<blocks, threads>>>(C->data(), bias->data(), length, cols); // @TODO: CUDA_CHECK
 
-  cudaStreamSynchronize(0);
+  CUDA_CHECK(cudaStreamSynchronize(0)); // @BUGBUG: Should not be here. Prod() also does not have this.
 }
 
 void ProdWithBias(marian::Tensor C,
@@ -133,6 +134,7 @@ void ProdWithBias(marian::Tensor C,
   marian::gpu::Prod(C, A, B, transA, transB, beta, scalar);
   marian::gpu::AddBias(C, bias);
 }
+#endif
 
 void ProdBatched(marian::Tensor C,
                  Ptr<Allocator> allocator,
@@ -201,7 +203,7 @@ void ProdBatched(marian::Tensor C,
   setTensorMode(cublasHandle);
   //cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
 #endif
-  cublasSgemmBatched(cublasHandle,
+  CUBLAS_CHECK(cublasSgemmBatched(cublasHandle,
                      opB,
                      opA,
                      n,
@@ -215,7 +217,7 @@ void ProdBatched(marian::Tensor C,
                      &beta,
                      mp_cptr->data<float*>(),
                      ldc,
-                     batchC);
+                     batchC));
 #if CUDA_VERSION >= 9000
   cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
 #endif
@@ -230,7 +232,8 @@ void CSRProd(marian::Tensor C,
              const marian::Tensor& A_indices,
              const marian::Tensor& A_offsets,
              const marian::Tensor& B,
-             bool transA, float beta) {
+             bool transA,
+             float beta) {
   cudaSetDevice(C->getDeviceId().no);
   auto cusparseHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
                               ->getCusparseHandle();
@@ -248,10 +251,10 @@ void CSRProd(marian::Tensor C,
   ABORT_IF(A_values->shape() != A_indices->shape(), "CSR constituents has inconsistent dimensions");
   float alpha = 1;
   cusparseMatDescr_t descrA;
-  cusparseCreateMatDescr(&descrA);
+  CUSPARSE_CHECK(cusparseCreateMatDescr(&descrA));
   cusparseSetMatType     (descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
   cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO);
-  auto rc = cusparseScsrmm(cusparseHandle, 
+  CUSPARSE_CHECK(cusparseScsrmm(cusparseHandle, 
       transA ? CUSPARSE_OPERATION_TRANSPOSE : CUSPARSE_OPERATION_NON_TRANSPOSE,
       /*m=*/ rowsA, // #rows of sparse A
       /*n=*/ colsB, // #cols of dense B and C
@@ -265,7 +268,7 @@ void CSRProd(marian::Tensor C,
       /*ldb=*/ rowsB,
       &beta,
       C->data(),
-      /*ldc=*/ rowsC);
+      /*ldc=*/ rowsC));
   cusparseDestroyMatDescr(descrA);
 }
 

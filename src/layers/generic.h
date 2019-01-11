@@ -295,10 +295,4 @@ public:
     ABORT("not implemented"); // ULR cannot be used for decoding
   }
 };
-
-typedef ConstructingFactory<Embedding> EmbeddingFactory;
-typedef ConstructingFactory<ULREmbedding> ULREmbeddingFactory;
-
-typedef Accumulator<EmbeddingFactory> embedding;
-typedef Accumulator<ULREmbeddingFactory> ulr_embedding;
 }  // namespace marian

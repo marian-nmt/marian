@@ -302,9 +302,17 @@ void tests(DeviceType device) {
     graph->clear();
     values.clear();
 
-    std::vector<float> vA({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
-    std::vector<float> vB({1, 2, 3, 4, 5, 6});
-    std::vector<float> vC({22, 28, 49, 64, 76, 100, 103, 136});
+    std::vector<float> vA({1, 2, 3,
+                           4, 5, 6,
+                           7, 8, 9,
+                           10, 11, 12});
+    std::vector<float> vB({1, 2,
+                           3, 4,
+                           5, 6});
+    std::vector<float> vC({22, 28,
+                           49, 64,
+                           76, 100,
+                           103, 136});
 
     auto A = graph->param("A", {2, 2, 3}, inits::from_vector(vA));
     auto B = graph->param("B", {3, 2}, inits::from_vector(vB));
@@ -314,6 +322,38 @@ void tests(DeviceType device) {
     CHECK(C->shape() == Shape({2, 2, 2}));
     C->val()->get(values);
     CHECK(values == vC);
+
+    // CSR dot product
+    std::vector<float> vS({1, 0, 0, 1,
+                           0, 0, 1, 2});
+    std::vector<float> vR({1, 2, 3,
+                           4, 5, 6,
+                           7, 8, 9,
+                           10, 11, 12});
+    std::vector<float> vSxR({11, 13, 15,
+                             27, 30, 33.1});
+    std::vector<float> SV;
+    std::vector<IndexType> SI, SO;
+    SO.push_back((IndexType)SI.size());
+    for (IndexType i = 0; i < 2; i++) {    // convert to CSR
+      for (IndexType j = 0; j < 4; j++) {
+        auto k = 4 * i + j;
+        if (vS[k] != 0) {
+          SV.push_back(vS[k]);
+          SI.push_back(j);
+        }
+      }
+      SO.push_back((IndexType)SI.size());
+    }
+    auto R = graph->param("A", {4, 3}, inits::from_vector(vR));
+    auto SxR = csr_dot(
+          graph->constant({ (int)SV.size() }, inits::from_vector(SV), Type::float32),
+          graph->constant({ (int)SI.size() }, inits::from_vector(SI), Type::uint32),
+          graph->constant({ (int)SO.size() }, inits::from_vector(SO), Type::uint32),
+          A);
+    CHECK(SxR->shape() == Shape({2, 3}));
+    SxR->val()->get(values);
+    CHECK(values == vSxR);
   }
 
   SECTION("affine transformation") {

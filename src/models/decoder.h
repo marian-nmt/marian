@@ -4,6 +4,7 @@
 #include "states.h"
 
 #include "data/shortlist.h"
+#include "layers/constructors.h"
 #include "layers/generic.h"
 
 namespace marian {
@@ -31,6 +32,7 @@ public:
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
 
+  std::vector<Ptr<IEmbeddingLayer>> embedding_; // @TODO: move away, also rename
   virtual void embeddingsFromBatch(Ptr<ExpressionGraph> graph,
                                    Ptr<DecoderState> state,
                                    Ptr<data::CorpusBatch> batch) {
@@ -38,30 +40,32 @@ public:
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");
 
-    auto yEmbFactory = embedding()  //
-        ("dimVocab", dimVoc)        //
-        ("dimEmb", dimEmb);
-
-    if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
-      yEmbFactory("prefix", "Wemb");
-    else
-      yEmbFactory("prefix", prefix_ + "_Wemb");
-
-    if(options_->has("embedding-fix-trg"))
-      yEmbFactory("fixed", opt<bool>("embedding-fix-trg"));
-
-    if(options_->has("embedding-vectors")) {
-      auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
-      yEmbFactory("embFile", embFiles[batchIndex_])  //
-          ("normalization", opt<bool>("embedding-normalization"));
+    // @TODO: code dup with EncoderTransformer
+    if (embedding_.empty() || !embedding_[batchIndex_]) { // lazy
+      embedding_.resize(batch->sets());
+      auto embFactory = embedding()("dimVocab", dimVoc)("dimEmb", dimEmb);
+      if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
+        embFactory("prefix", "Wemb");
+      else
+        embFactory("prefix", prefix_ + "_Wemb");
+      if(options_->has("embedding-fix-trg"))
+        embFactory("fixed", opt<bool>("embedding-fix-trg"));
+      if(options_->has("embedding-vectors")) {
+        auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
+        embFactory("embFile", embFiles[batchIndex_])  //
+            ("normalization", opt<bool>("embedding-normalization"));
+      }
+      if (options_->has("embedding-factors")) {
+        embFactory("embedding-factors", opt<std::vector<std::string>>("embedding-factors"));
+        embFactory("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]);
+      }
+      embedding_[batchIndex_] = embFactory.construct(graph);
     }
-
-    auto yEmb = yEmbFactory.construct(graph);
 
     auto subBatch = (*batch)[batchIndex_];
 
     Expr y, yMask; std::tie
-    (y, yMask) = yEmb->apply(subBatch);
+    (y, yMask) = embedding_[batchIndex_]->apply(subBatch);
 
     Expr yData;
     if(shortlist_) {

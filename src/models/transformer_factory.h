@@ -1,3 +1,4 @@
+// @TODO: rename to transformer.h eventually. This is not a Factory as in factory.h.
 #pragma once
 
 #include "marian.h"

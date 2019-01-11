@@ -124,6 +124,7 @@ public:
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");
 
+    // @TODO: code dup with Decider and EncoderTransformer; actually diverged by now. Unify this.
     auto embFactory = embedding()  //
         ("dimVocab", dimVoc)       //
         ("dimEmb", dimEmb);

@@ -419,7 +419,9 @@ public:
 
   Shape newShape(Expr A_values, Expr A_indices, Expr A_offsets, Expr B) {
     ABORT_IF(A_values->shape().size() != 1 || A_indices->shape().size() != 1 || A_offsets->shape().size() != 1,
-        "Sparse matrix components must all be vectors.");
+        "Sparse matrix components must all be vectors");
+    ABORT_IF(A_values->shape() != A_indices->shape(),
+        "Sparse matrix values and indices must have the same shape");
     auto outShape = B->shape();
     outShape.set(0, A_offsets->shape()[0] - 1); // A_offsets = A.numRows + 1
     return outShape;
@@ -434,9 +436,13 @@ public:
 
   NodeOps backwardOps() override {
     return {nullptr, // can't backprop into the sparse matrix, as it would be dense
+#if 0
+        nullptr};
+#else
             NodeOp(CSRProd(child(1)->grad(),
                            child(0)->val(), child(1)->val(), child(2)->val(), adj_,
                            /*transA=*/true, /*beta=*/1))};
+#endif
   }
 
   const std::string type() override { return "•"; }

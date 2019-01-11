@@ -6,7 +6,6 @@
 #include "marian.h"
 
 #include "layers/constructors.h"
-#include "layers/factory.h"
 #include "models/decoder.h"
 #include "models/encoder.h"
 #include "models/states.h"
@@ -495,7 +494,7 @@ public:
     return embFactory.construct(graph_);
   }
 
-  Ptr<IEmbeddingLayer> createWordEmbeddingLayer(size_t subBatchIndex) const {
+  Ptr<IEmbeddingLayer> createSourceEmbeddingLayer(size_t subBatchIndex) const {
     // standard encoder word embeddings
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[subBatchIndex];
     int dimEmb = opt<int>("dim-emb");
@@ -512,7 +511,7 @@ public:
                 ("normalization", opt<bool>("embedding-normalization"));
     }
     if (options_->has("embedding-factors")) {
-      embFactory("embedding-factors", opt<std::string>("embedding-factors"));
+      embFactory("embedding-factors", opt<std::vector<std::string>>("embedding-factors"));
       embFactory("vocab", opt<std::vector<std::string>>("vocabs")[subBatchIndex]);
     }
     return embFactory.construct(graph_);
@@ -524,6 +523,7 @@ public:
     return apply(batch);
   }
 
+  std::vector<Ptr<IEmbeddingLayer>> embedding_; // @TODO: move away, also rename
   Ptr<EncoderState> apply(Ptr<data::CorpusBatch> batch) {
     int dimEmb = opt<int>("dim-emb");
     int dimBatch = (int)batch->size();
@@ -531,12 +531,15 @@ public:
     // create the embedding matrix, considering tying and some other options
     // embed the source words in the batch
     Expr batchEmbeddings, batchMask;
-    Ptr<IEmbeddingLayer> embedding;
-    if (options_->has("ulr") && options_->get<bool>("ulr") == true)
-      embedding = createULREmbeddingLayer(); // embedding uses ULR
-    else
-      embedding = createWordEmbeddingLayer(batchIndex_);
-    std::tie(batchEmbeddings, batchMask) = embedding->apply((*batch)[batchIndex_]);
+
+    if (embedding_.empty() || !embedding_[batchIndex_]) { // lazy
+      embedding_.resize(batch->sets());
+      if (options_->has("ulr") && options_->get<bool>("ulr") == true)
+        embedding_[batchIndex_] = createULREmbeddingLayer(); // embedding uses ULR
+      else
+        embedding_[batchIndex_] = createSourceEmbeddingLayer(batchIndex_);
+    }
+    std::tie(batchEmbeddings, batchMask) = embedding_[batchIndex_]->apply((*batch)[batchIndex_]);
     // apply dropout over source words
     float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");
     if(dropoutSrc) {
