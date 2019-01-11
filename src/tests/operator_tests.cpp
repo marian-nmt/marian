@@ -320,18 +320,20 @@ void tests(DeviceType device) {
 
     // CSR dot product
     std::vector<float> vS({1, 0, 0, 1,
-                           0, 0, 1, 2});
-    std::vector<float> vR({1, 2, 3,
-                           4, 5, 6,
-                           7, 8, 9,
-                           10, 11, 12});
-    std::vector<float> vSxR({11, 13, 15,
-                             27, 30, 33.1});
-    std::vector<float> SV;
+                           0, 0, 1, 1.5});
+    std::vector<float> vR({1, 2, 3, 1.2, 5.6,
+                           4, 5, 6, 2.3, 6.7,
+                           7, 8, 9, 3.4, 7.8,
+                           1, 1, 2, 4.5, 8.9});
+    std::vector<float> vSxR({2.0, 3.0,  5.0,  5.7 , 14.5 ,
+                             8.5, 9.5, 12.0, 10.15, 21.15});
+    auto S = graph->param("S", { 2, 4 }, inits::from_vector(vS));
+    auto R = graph->param("R", { 4, 5 }, inits::from_vector(vR));
+    std::vector<float> SV;    // create CSR version of S
     std::vector<IndexType> SI, SO;
     SO.push_back((IndexType)SI.size());
-    for (IndexType i = 0; i < 2; i++) {    // convert to CSR!
-      for (IndexType j = 0; j < 4; j++) {
+    for (IndexType i = 0; i < S->shape()[0]; i++) {
+      for (IndexType j = 0; j < S->shape()[1]; j++) {
         auto k = 4 * i + j;
         if (vS[k] != 0) {
           SV.push_back(vS[k]);
@@ -340,8 +342,6 @@ void tests(DeviceType device) {
       }
       SO.push_back((IndexType)SI.size());
     }
-    auto S = graph->param("S", {2, 4}, inits::from_vector(vS));
-    auto R = graph->param("R", {4, 3}, inits::from_vector(vR));
     auto SxRs = csr_dot(
           graph->constant({(int)SV.size()}, inits::from_vector(SV), Type::float32),
           graph->constant({(int)SI.size()}, inits::from_vector(SI), Type::uint32),
@@ -355,11 +355,11 @@ void tests(DeviceType device) {
     C->val()->get(values);
     CHECK(values == vC);
 
-    CHECK(SxRd->shape() == Shape({2, 3}));
+    CHECK(SxRd->shape() == Shape({2, 5}));
     SxRd->val()->get(values);
     CHECK(values == vSxR);
 
-    CHECK(SxRs->shape() == Shape({2, 3}));
+    CHECK(SxRs->shape() == Shape({2, 5}));
     SxRs->val()->get(values);
     CHECK(values == vSxR);
   }

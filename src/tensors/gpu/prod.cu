@@ -250,11 +250,32 @@ void CSRProd(marian::Tensor C,
   ABORT_IF((transA ? colsA : rowsA) != rowsC || (transA ? rowsA : colsA) != rowsB || colsB != colsC, "Inconsistent dimensions in CSR product");
   ABORT_IF(A_values->shape() != A_indices->shape(), "CSR constituents has inconsistent dimensions");
   float alpha = 1;
+#if 1
+  // Marian uses row-major storage, but CUSPARSE/CUBLAS assume column-major.
+  // Hence, we compute C = spA * B as C' = B' * spA'. where B' and C' are
+  // column-major views on the data of B and C, and likewise, spA' is
+  // the CSR matrix reinterpreted as a CSC matrix.
+  CUSPARSE_CHECK(cusparseSgemmi(cusparseHandle,
+      /*m=*/ colsB, // #rows of A = #cols of row-major B
+      /*n=*/ rowsC, // #cols of B and C = #rows of row-major C
+      /*k=*/ rowsB, // #cols of A = #rows of row-major B
+      /*nnz=*/ (int)numValues,
+      &alpha,
+      /*A=*/ B->data(),
+      /*lda=*/ colsB, // stride
+      /*cscValB=*/          A_values->data<float>(),  // second arg
+      /*cscRowPtrB=*/ (int*)A_offsets->data<IndexType>(),
+      /*cscColIndB=*/ (int*)A_indices->data<IndexType>(),
+      &beta,
+      C->data(),
+      /*ldc=*/ colsC)); // stride
+#else
+  // Incorrect code that assumes col-major matrices. Reuse that later for dense x sparse.
   cusparseMatDescr_t descrA;
   CUSPARSE_CHECK(cusparseCreateMatDescr(&descrA));
   cusparseSetMatType     (descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
   cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO);
-  CUSPARSE_CHECK(cusparseScsrmm(cusparseHandle, 
+  CUSPARSE_CHECK(cusparseScsrmm(cusparseHandle,
       transA ? CUSPARSE_OPERATION_TRANSPOSE : CUSPARSE_OPERATION_NON_TRANSPOSE,
       /*m=*/ rowsA, // #rows of sparse A
       /*n=*/ colsB, // #cols of dense B and C
@@ -270,6 +291,7 @@ void CSRProd(marian::Tensor C,
       C->data(),
       /*ldc=*/ rowsC));
   cusparseDestroyMatDescr(descrA);
+#endif
 }
 
 }  // namespace gpu
