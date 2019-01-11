@@ -125,8 +125,8 @@ public:
       });
   }
 
-  Ptr<data::BatchStats> collectStats() {
-    return GraphGroup::collectStats(graph_, builder_);
+  Ptr<data::BatchStats> collectStats(const std::vector<Ptr<Vocab>>& vocabs) {
+    return GraphGroup::collectStats(graph_, builder_, vocabs);
   }
 
   virtual void finalize() override { finalized_ = true; }

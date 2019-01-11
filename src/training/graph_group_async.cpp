@@ -254,8 +254,8 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
 
       if(optimizerDelay_ > 1) {
         std::vector<size_t> fakeLength = {1, 1};
-        auto fb = data::CorpusBatch::fakeBatch(
-            fakeLength, num_seen_sentences, NULL);
+        std::vector<Ptr<Vocab>> vocabs;
+        auto fb = data::CorpusBatch::fakeBatch(fakeLength, vocabs, num_seen_sentences, NULL);
         fb->front()->setWords(num_seen_words);
         scheduler_->update(cost, fb);
 

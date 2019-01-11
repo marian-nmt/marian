@@ -90,7 +90,7 @@ Ptr<ModelBase> EncoderClassifierFactory::construct() {
     enccls = New<BertEncoderClassifier>(options_);
   } else {
     enccls = New<EncoderClassifier>(options_);
-  } 
+  }
 
   for(auto& ef : encoders_)
     enccls->push_back(ef(options_).construct());
@@ -233,14 +233,14 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
     return models::encoder_classifier()(options) //
         ("usage", use)                           //
         .push_back(models::encoder()             //
-                    ("type", "bert-encoder")     // transformer encoder for now
+                    ("type", "transformer")      // @TODO: replace with 'bert-encoder'
                     ("index", 0))                // close to original transformer encoder
-        .push_back(models::classifier()          //
-                    ("type", "bert-classifier")  //
-                    ("index", 1))                // next sentence prediction 
         .push_back(models::classifier()          //
                     ("type", "bert-masked-lm")   //
                     ("index", 0))                // multi-task learning with MaskedLM
+        .push_back(models::classifier()          //
+                    ("type", "bert-classifier")  //
+                    ("index", 1))                // next sentence prediction
         .construct();
   }
 
@@ -248,11 +248,11 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
     return models::encoder_classifier()(options) //
         ("usage", use)                           //
         .push_back(models::encoder()             //
-                    ("type", "transformer")     //
+                    ("type", "transformer")      //
                     ("index", 0))                // close to original transformer encoder
         .push_back(models::classifier()          //
                     ("type", "bert-classifier")  //
-                    ("index", 1))                // next sentence prediction 
+                    ("index", 1))                // next sentence prediction
         .construct();
   }
 

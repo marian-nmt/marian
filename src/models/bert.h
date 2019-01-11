@@ -3,24 +3,93 @@
 #include "data/corpus_base.h"
 #include "models/encoder_classifier.h"
 #include "models/transformer.h"
+#include "data/rng_engine.h"
 
 namespace marian {
 namespace data {
 
 class BertBatch : public CorpusBatch {
 private:
+  std::mt19937& eng_;
+  
   std::vector<IndexType> maskedPositions_;
   std::vector<IndexType> maskedIndices_;
   std::vector<IndexType> sentenceIndices_;
 
-  void init() {
-    ABORT("Not implemented");
+  std::string maskSymbol_;
+  std::string sepSymbol_;
+  std::string clsSymbol_;
+
+  std::unique_ptr<std::uniform_int_distribution<Word>> randomWord_;
+  std::unique_ptr<std::uniform_int_distribution<int>> randomPercent_;
+
+  std::unordered_set<Word> dontMask_;
+
+  Word maskOut(Word word, Word mask) {
+    auto subBatch = subBatches_.front();
+
+    int r = (*randomPercent_)(eng_);
+    if (r < 10) { // for 10% of cases return same word
+      return word;
+    } else if (r < 20) { // for 10% return random word
+      Word randWord = (*randomWord_)(eng_);
+      if(dontMask_.count(randWord) > 0) // the random word is a forbidden word
+        return mask;                    // hence return mask symbol
+      else 
+        return randWord;                // else return the random word
+    } else { // for 80% of words apply mask symbol
+      return mask;
+    }
   }
 
 public:
-  BertBatch(Ptr<CorpusBatch> batch) : CorpusBatch(*batch) {
-    std::cerr << "Creating BERT batch" << std::endl;
-    init();
+  BertBatch(Ptr<CorpusBatch> batch, 
+            std::mt19937& engine,
+            float maskFraction,
+            const std::string& maskSymbol, 
+            const std::string& sepSymbol, 
+            const std::string& clsSymbol)
+    : CorpusBatch(*batch), eng_(engine),
+      maskSymbol_(maskSymbol), sepSymbol_(sepSymbol), clsSymbol_(clsSymbol) {
+
+    auto subBatch = subBatches_.front();
+
+    randomWord_.reset(new std::uniform_int_distribution<Word>(0, subBatch->vocab()->size()));
+    randomPercent_.reset(new std::uniform_int_distribution<int>(0, 100));
+
+    auto& words = subBatch->data();
+
+    Word maskId  = (*subBatch->vocab())[maskSymbol_];
+    Word clsId   = (*subBatch->vocab())[clsSymbol_];
+    Word sepId   = (*subBatch->vocab())[sepSymbol_];
+
+    ABORT_IF(maskId == subBatch->vocab()->getUnkId(),
+             "BERT masking symbol {} not found in vocabulary", maskSymbol_);
+
+    ABORT_IF(sepId == subBatch->vocab()->getUnkId(),
+             "BERT separator symbol {} not found in vocabulary", sepSymbol_);
+    
+    ABORT_IF(clsId == subBatch->vocab()->getUnkId(),
+             "BERT class symbol {} not found in vocabulary", clsSymbol_);
+
+    dontMask_.insert(clsId); // don't mask class token
+    dontMask_.insert(sepId); // don't mask separator token
+    dontMask_.insert(subBatch->vocab()->getEosId()); // don't mask </s>
+    // it's ok to mask <unk>
+
+    std::vector<int> selected;
+    selected.reserve(words.size());
+    for(int i = 0; i < words.size(); ++i) // collect words among which we will mask
+      if(dontMask_.count(words[i]) == 0)  // do not add indices of special words
+        selected.push_back(i);
+    std::shuffle(selected.begin(), selected.end(), eng_);
+    selected.resize(std::ceil(selected.size() * maskFraction)); // select first x percent from shuffled indices
+    
+    for(int i : selected) {
+      maskedPositions_.push_back(i);        // where is the original word?
+      maskedIndices_.push_back(words[i]);   // what is the original word?
+      words[i] = maskOut(words[i], maskId); // mask that position
+    }
   }
 
   const std::vector<IndexType>& bertMaskedPositions() { return maskedPositions_; }
@@ -30,12 +99,19 @@ public:
 
 }
 
-class BertEncoderClassifier : public EncoderClassifier {
+class BertEncoderClassifier : public EncoderClassifier, public data::RNGEngine {
 public:
-  BertEncoderClassifier(Ptr<Options> options) : EncoderClassifier(options) {}
+  BertEncoderClassifier(Ptr<Options> options) 
+  : EncoderClassifier(options) {}
 
   std::vector<Ptr<ClassifierState>> apply(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch, bool clearGraph) override {
-    Ptr<data::BertBatch> bertBatch = New<data::BertBatch>(batch); // intercept batch and anotate with BERT-specific concepts
+    // intercept batch and anotate with BERT-specific concepts
+    auto bertBatch = New<data::BertBatch>(batch,
+                                          eng_,
+                                          opt<float>("bert-masking-fraction"),
+                                          opt<std::string>("bert-mask-symbol"),
+                                          opt<std::string>("bert-sep-symbol"),
+                                          opt<std::string>("bert-class-symbol"));
     return EncoderClassifier::apply(graph, bertBatch, clearGraph);
   }
 };
@@ -64,7 +140,7 @@ public:
     // with only two classes;
     // instead two masked reduce operations, maybe in parallel streams?
     auto sentenceIndices = graph_->indices(bertBatch->bertSentenceIndices());
-    auto signal = rows(sentenceEmbeddings, sentenceIndices); 
+    auto signal = rows(sentenceEmbeddings, sentenceIndices);
     signal = reshape(signal, {dimWords, dimBatch, dimEmb});
     return embeddings + signal;
   }
@@ -87,7 +163,7 @@ public:
 
     auto context = encoderStates[0]->getContext();
     auto classEmbeddings = step(context, /*i=*/0, /*axis=*/-3); // [CLS] symbol is first symbol in each sequence
-    
+
     int dimModel = classEmbeddings->shape()[-1];
     int dimTrgCls = opt<std::vector<int>>("dim-vocabs")[batchIndex_]; // Target vocab is used as class labels
 
@@ -100,9 +176,9 @@ public:
                                  ("dim", dimTrgCls))                  //
                                  ("prefix", prefix_ + "_ff_logit_l2") //
                     .construct();
-    
+
     auto logits = output->apply(classEmbeddings); // class logits for each batch entry
-    
+
     auto state = New<ClassifierState>();
     state->setLogProbs(logits);
 
@@ -128,20 +204,24 @@ public:
     ABORT_IF(encoderStates.size() != 1, "Currently we only support a single encoder BERT model");
 
     auto context = encoderStates[0]->getContext();
-    
+
     auto bertMaskedPositions = graph->indices(bertBatch->bertMaskedPositions()); // positions in batch of masked entries
     auto bertMaskedIndices   = graph->indices(bertBatch->bertMaskedIndices());   // vocab ids of entries that have been masked
-    
-    auto classEmbeddings = rows(context, bertMaskedPositions); // subselect stuff that has actually been masked out;
-    
-    int dimModel = classEmbeddings->shape()[-1];
 
-    int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_]; 
+    int dimModel = context->shape()[-1];
+    int dimBatch = context->shape()[-2];
+    int dimTime  = context->shape()[-3];
+
+    auto maskedEmbeddings = rows(reshape(context, {dimBatch * dimTime, dimModel}), bertMaskedPositions); // subselect stuff that has actually been masked out;
+
+    int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
     auto layerTanh = mlp::dense(graph)    //
+        ("prefix", prefix_ + "_ff_logit_maskedlm_out_l1") //
         ("dim", dimModel)                 //
         ("activation", mlp::act::tanh);   //
     auto layerOut = mlp::output(graph)    //
+        ("prefix", prefix_ + "_ff_logit_maskedlm_out_l2") //
         ("dim", dimVoc);                  //
     layerOut.tie_transposed("W", "Wemb"); // We are a BERT model, hence tie with input
 
@@ -149,13 +229,12 @@ public:
     // assemble layers into MLP and apply to embeddings, decoder context and
     // aligned source context
     auto output = mlp::mlp(graph)                      //
-        ("prefix", prefix_ + "_ff_logit_maskedlm_out") //
         .push_back(layerTanh)                          // @TODO: do we actually need this?
         .push_back(layerOut)                           //
         .construct();
-    
-    auto logits = output->apply(classEmbeddings);
-    
+
+    auto logits = output->apply(maskedEmbeddings);
+
     auto state = New<ClassifierState>();
     state->setLogProbs(logits);
     state->setTargetIndices(bertMaskedIndices);

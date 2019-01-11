@@ -50,6 +50,7 @@ public:
    */
   virtual Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph,
                                              Ptr<models::ModelBase> model,
+                                             const std::vector<Ptr<Vocab>>& vocabs,
                                              size_t multiplier = 1) {
     auto stats = New<data::BatchStats>();
 
@@ -79,7 +80,7 @@ public:
       for(int j = 0; j < lengths.size(); ++j) // apply length restrictions
         lengths[j] = std::min(lengths[j], localMaxes[j]);
 
-      auto batch = data::CorpusBatch::fakeBatch(lengths, maxBatch, options_);
+      auto batch = data::CorpusBatch::fakeBatch(lengths, vocabs, maxBatch, options_);
       auto cost = model->build(graph, batch);
       fits = graph->fits();
       if(fits)
@@ -99,7 +100,7 @@ public:
 
       do {
         size_t current = (start + end) / 2;
-        auto batch = data::CorpusBatch::fakeBatch(lengths, current, options_);
+        auto batch = data::CorpusBatch::fakeBatch(lengths, vocabs, current, options_);
         auto cost = model->build(graph, batch);
         fits = graph->fits();
 

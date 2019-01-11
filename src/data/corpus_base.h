@@ -226,7 +226,7 @@ public:
  * such as guided alignments and sentence or word-leve weighting.
  */
 class CorpusBatch : public Batch {
-private:
+protected:
   std::vector<Ptr<SubBatch>> subBatches_;
   std::vector<float> guidedAlignment_;
   std::vector<float> dataWeights_;
@@ -307,17 +307,16 @@ public:
    *
    * @return Fake batch of the same size as the real batch.
    */
-  static Ptr<CorpusBatch> fakeBatch(std::vector<size_t>& lengths,
+  static Ptr<CorpusBatch> fakeBatch(const std::vector<size_t>& lengths,
+                                    const std::vector<Ptr<Vocab>>& vocabs, 
                                     size_t batchSize,
                                     Ptr<Options> options) {
     std::vector<Ptr<SubBatch>> batches;
 
     size_t idx = 0;
     for(auto len : lengths) {
-      auto vocab = New<Vocab>(options, 0);
-      vocab->createFake();
       // data: gets initialized to 0. No EOS symbol is distinguished.
-      auto sb = New<SubBatch>(batchSize, len, vocab);
+      auto sb = New<SubBatch>(batchSize, len, vocabs[idx]);
       // set word indices to different values to avoid same hashes
       std::fill(sb->data().begin(), sb->data().end(), (unsigned int)idx++);
       // mask: no items ask being masked out

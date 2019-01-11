@@ -74,7 +74,7 @@ public:
 
 
   const std::string& operator[](Word id) const override {
-    ABORT_IF(id >= id2str_.size(), "Unknown word id: ", id);
+    ABORT_IF(id >= id2str_.size(), "Unknown word id: {}", id);
     return id2str_[id];
   }
 

@@ -100,10 +100,10 @@ void SyncGraphGroup::initializeAvg() {
   comm_->foreach(init, /*parallel=*/false); // @TODO: is sequential operation necessary here? (is the allocation stuff sufficiently reentrant or thread-separated?)
 }
 
-Ptr<data::BatchStats> SyncGraphGroup::collectStats() {
+Ptr<data::BatchStats> SyncGraphGroup::collectStats(const std::vector<Ptr<Vocab>>& vocabs) {
   // @TODO: This should only run on MPI process 0. Also we can share vv this vv expression with update().
   size_t multiplier = devices_.size() * mpi_->numMPIProcesses() * delay_;
-  return GraphGroup::collectStats(graphs_[0], builders_[0], multiplier);
+  return GraphGroup::collectStats(graphs_[0], builders_[0], vocabs, multiplier);
 }
 
 void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {

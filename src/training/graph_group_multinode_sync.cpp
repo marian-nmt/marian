@@ -224,8 +224,7 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
 
     if(tau_ > 1) {
       std::vector<size_t> fakeLength = {1, 1};
-      auto fb
-          = data::CorpusBatch::fakeBatch(fakeLength, num_seen_sentences, NULL);
+      auto fb = data::CorpusBatch::fakeBatch(fakeLength, std::vector<Ptr<Vocab>>(), num_seen_sentences, NULL);
       fb->front()->setWords(num_seen_words);
       scheduler_->update(cost, fb);
     } else {

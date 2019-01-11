@@ -201,6 +201,10 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "Operation after each transformer layer: d = dropout, a = add, n = normalize",
       "dan");
 
+  cli.add<std::string>("--bert-mask-symbol", "Masking symbol for BERT masked-LM training", "[MASK]");
+  cli.add<std::string>("--bert-sep-symbol", "Sentence separator symbol for BERT next sentence prediction training", "[SEP]");
+  cli.add<std::string>("--bert-class-symbol", "Class symbol BERT classifier training", "[CLS]");
+  cli.add<float>("--bert-masking-fraction", "Fraction of masked out tokens during training", 0.15);
 #ifdef CUDNN
   cli.add<int>("--char-stride",
       "Width of max-pooling layer after convolution layer in char-s2s model",
@@ -280,8 +284,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "Display nformation for the first  arg  updates");
   cli.add<bool>("--disp-label-counts",
       "Display label counts when logging loss progress");
-  cli.add<int>("--disp-wps-index",
-      "Display words-per-second ratio based on i-th sub-batch (-1 is last)", -1);
+  cli.add<int>("--disp-label-index",
+      "Display label counts based on i-th sub-batch (-1 is last)", -1);
   cli.add<std::string/*SchedulerPeriod*/>("--save-freq",
       "Save model file every  arg  updates (append 't' for every  arg  target labels)",
       "10000u");

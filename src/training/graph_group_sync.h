@@ -42,7 +42,7 @@ public:
   void load() override;
   void save(bool final = false) override;
 
-  Ptr<data::BatchStats> collectStats();
+  Ptr<data::BatchStats> collectStats(const std::vector<Ptr<Vocab>>&);
   // @TODO: consider to make this a virtual as well? Currently it is a template dispatch
 };
 }  // namespace marian
