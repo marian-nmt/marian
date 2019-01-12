@@ -15,6 +15,7 @@ protected:
   std::string prefix_{"decoder"};
   bool inference_{false};
   size_t batchIndex_{1};
+  std::vector<Ptr<IEmbeddingLayer>> embedding_; // @TODO: find a more grammattical name
 
   Ptr<data::Shortlist> shortlist_;
 
@@ -32,17 +33,13 @@ public:
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
 
-  std::vector<Ptr<IEmbeddingLayer>> embedding_; // @TODO: move away, also rename
-  virtual void embeddingsFromBatch(Ptr<ExpressionGraph> graph,
-                                   Ptr<DecoderState> state,
-                                   Ptr<data::CorpusBatch> batch) {
-
-    int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
-    int dimEmb = opt<int>("dim-emb");
-
+  void lazyCreateEmbedding(Ptr<ExpressionGraph> graph) {
     // @TODO: code dup with EncoderTransformer
-    if (embedding_.empty() || !embedding_[batchIndex_]) { // lazy
-      embedding_.resize(batch->sets());
+    if (embedding_.size() <= batchIndex_ || !embedding_[batchIndex_]) { // lazy
+      if (embedding_.size() <= batchIndex_)
+        embedding_.resize(batchIndex_ + 1);
+      int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
+      int dimEmb = opt<int>("dim-emb");
       auto embFactory = embedding()("dimVocab", dimVoc)("dimEmb", dimEmb);
       if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
         embFactory("prefix", "Wemb");
@@ -61,9 +58,14 @@ public:
       }
       embedding_[batchIndex_] = embFactory.construct(graph);
     }
+  }
 
+  virtual void embeddingsFromBatch(Ptr<ExpressionGraph> graph,
+                                   Ptr<DecoderState> state,
+                                   Ptr<data::CorpusBatch> batch) {
     auto subBatch = (*batch)[batchIndex_];
 
+    lazyCreateEmbedding(graph);
     Expr y, yMask; std::tie
     (y, yMask) = embedding_[batchIndex_]->apply(subBatch);
 
@@ -86,26 +88,13 @@ public:
                                         const std::vector<IndexType>& embIdx,
                                         int dimBatch,
                                         int dimBeam) {
-    int dimTrgEmb = opt<int>("dim-emb");
-    int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
-
     Expr selectedEmbs;
     if(embIdx.empty()) {
-      selectedEmbs = graph->constant({1, 1, dimBatch, dimTrgEmb}, inits::zeros);
+      int dimEmb = opt<int>("dim-emb");
+      selectedEmbs = graph->constant({1, 1, dimBatch, dimEmb}, inits::zeros);
     } else {
-      // embeddings are loaded from model during translation, no fixing required
-      auto yEmbFactory = embedding()  //
-          ("dimVocab", dimTrgVoc)     //
-          ("dimEmb", dimTrgEmb);
-  
-      if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
-        yEmbFactory("prefix", "Wemb");
-      else
-        yEmbFactory("prefix", prefix_ + "_Wemb");
-  
-      auto yEmb = yEmbFactory.construct(graph);
-
-      selectedEmbs = yEmb->apply(embIdx, dimBatch, dimBeam);
+      lazyCreateEmbedding(graph);
+      selectedEmbs = embedding_[batchIndex_]->apply(embIdx, dimBatch, dimBeam);
     }
     state->setTargetEmbeddings(selectedEmbs);
   }

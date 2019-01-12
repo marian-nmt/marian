@@ -177,17 +177,14 @@ public:
 class Embedding : public LayerBase, public IEmbeddingLayer {
   Expr E_;
   Ptr<class EmbeddingFactorMapping> embeddingFactorMapping_;
+  Expr multiRows(const std::vector<IndexType>& data) const;
 public:
   Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options);
 
   std::tuple<Expr/*embeddings*/, Expr/*mask*/> apply(Ptr<data::SubBatch> subBatch) const override final;
 
   // special version used in decoding
-  Expr apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const override final {
-    int dimEmb = E_->shape()[-1];
-    auto selectedEmbs = rows(E_, embIdx);
-    return reshape(selectedEmbs, { dimBeam, 1, dimBatch, dimEmb });
-  }
+  Expr apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const override final;
 };
 
 class ULREmbedding : public LayerBase, public IEmbeddingLayer {
