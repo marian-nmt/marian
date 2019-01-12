@@ -420,8 +420,8 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
 // multiply a CSR matrix A with a matrix B
 // A[i,j] is at A_values[A_offsets[i]+k], where k is position of j in A_indices[A_offsets[i]:A_offsets[i+1]]
 // Result shape is (Aoffsets.size() - 1, B->shape(-1))
-Expr csr_dot(Expr A_values, Expr A_indices, Expr A_offsets, Expr B) {
-  return Expression<CSRDotNodeOp>(A_values, A_indices, A_offsets, B);
+Expr csr_dot(const Shape& A_shape, Expr A_values, Expr A_indices, Expr A_offsets, Expr B, bool transA /*= false*/) {
+  return Expression<CSRDotNodeOp>(A_shape, A_values, A_indices, A_offsets, B, transA);
 }
 
 // swap the last two axes

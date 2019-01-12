@@ -168,6 +168,7 @@ void ProdWithBias(marian::Tensor C,
 }
 
 void CSRProd(marian::Tensor C,
+             Ptr<Allocator> /*allocator*/,
              const marian::Tensor& A_values,
              const marian::Tensor& A_indices,
              const marian::Tensor& A_offsets,

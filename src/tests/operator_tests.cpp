@@ -15,7 +15,7 @@ void tests(DeviceType device) {
   graph->setDevice({0, device});
   graph->reserveWorkspaceMB(16);
 
-  std::vector<float> values;
+  std::vector<float> values, values2;
 
   SECTION("scalar multiplication") {
     graph->clear();
@@ -325,8 +325,6 @@ void tests(DeviceType device) {
                            4, 5, 6, 2.3, 6.7,
                            7, 8, 9, 3.4, 7.8,
                            1, 1, 2, 4.5, 8.9});
-    std::vector<float> vSxR({2.0, 3.0,  5.0,  5.7 , 14.5 ,
-                             8.5, 9.5, 12.0, 10.15, 21.15});
     auto S = graph->param("S", { 2, 4 }, inits::from_vector(vS));
     auto R = graph->param("R", { 4, 5 }, inits::from_vector(vR));
     std::vector<float> SV;    // create CSR version of S
@@ -343,25 +341,36 @@ void tests(DeviceType device) {
       SO.push_back((IndexType)SI.size());
     }
     auto SxRs = csr_dot(
+          S->shape(),
           graph->constant({(int)SV.size()}, inits::from_vector(SV), Type::float32),
           graph->constant({(int)SI.size()}, inits::from_vector(SI), Type::uint32),
           graph->constant({(int)SO.size()}, inits::from_vector(SO), Type::uint32),
           R);
     auto SxRd = dot(S, R);
+    auto STxRs = csr_dot(   // and transpose; use result of previous since dimensions match
+          S->shape(),
+          graph->constant({(int)SV.size()}, inits::from_vector(SV), Type::float32),
+          graph->constant({(int)SI.size()}, inits::from_vector(SI), Type::uint32),
+          graph->constant({(int)SO.size()}, inits::from_vector(SO), Type::uint32),
+          SxRd, /*transA=*/true);
+    auto STxRd = dot(S, SxRd, /*transA=*/true);
+
+    CHECK(C->shape() == Shape({2, 2, 2}));
+    CHECK(SxRs->shape() == SxRd->shape());
+    CHECK(STxRs->shape() == STxRd->shape());
 
     graph->forward();
 
-    CHECK(C->shape() == Shape({2, 2, 2}));
     C->val()->get(values);
     CHECK(values == vC);
 
-    CHECK(SxRd->shape() == Shape({2, 5}));
-    SxRd->val()->get(values);
-    CHECK(values == vSxR);
+    SxRd->val()->get(values2); // dense
+    SxRs->val()->get(values);  // sparse
+    CHECK(values == values2);  // must be the same
 
-    CHECK(SxRs->shape() == Shape({2, 5}));
-    SxRs->val()->get(values);
-    CHECK(values == vSxR);
+    STxRd->val()->get(values2);
+    STxRs->val()->get(values);
+    CHECK(values == values2);
   }
 
   SECTION("affine transformation") {
