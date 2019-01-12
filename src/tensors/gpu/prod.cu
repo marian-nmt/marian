@@ -251,7 +251,6 @@ void CSRProd(marian::Tensor C,
   // sparse arrays
   auto numValues  = A_values->shape().elements();
   auto numOffsets = A_offsets->shape().elements() - 1; // -1 since last value is length
-  LOG(info, "n={}, transA={}, rowsB={}, rowsC={}", numOffsets,transA, rowsB, rowsC);
   ABORT_IF(numOffsets != (transA ? rowsB : rowsC), "CSR offset array dimension mismatch: n={}, transA={}, rowsB={}, rowsC={}", numOffsets,transA, rowsB, rowsC);
   ABORT_IF(numOffsets != (transA ? rowsB : rowsC), "CSR offset array dimension mismatch");
   ABORT_IF(A_values->shape() != A_indices->shape(), "CSR values and indices must have the same size");
@@ -261,22 +260,40 @@ void CSRProd(marian::Tensor C,
   // column-major views on the data of B and C, and likewise, spA' is
   // the CSR matrix reinterpreted as a CSC matrix.
   if (transA) {
-   //// transpose the second argument
-   //ABORT("not implemented");
-   //CUSPARSE_CHECK(cusparseSgemmi(cusparseHandle,
-   //    /*m=*/ colsB, // #rows of A = #cols of row-major B
-   //    /*n=*/ rowsC, // #cols of B and C = #rows of row-major C
-   //    /*k=*/ rowsB, // #cols of A = #rows of row-major B
-   //    /*nnz=*/ (int)numValues,
-   //    &alpha,
-   //    /*A=*/ B->data(),
-   //    /*lda=*/ colsB, // stride
-   //    /*cscValB=*/          A_values->data<float>(),  // second arg   --these get replaced
-   //    /*cscRowPtrB=*/ (int*)A_offsets->data<IndexType>(),
-   //    /*cscColIndB=*/ (int*)A_indices->data<IndexType>(),
-   //    &beta,
-   //    C->data(),
-   //    /*ldc=*/ colsC)); // stride
+    // cusparse does not support this specific version of transpose; do it explicitly
+    auto At_values  = allocator->alloc<float>(numValues);
+    auto At_indices = allocator->alloc<int>(numValues);
+    auto At_offsets = allocator->alloc<int>(colsA + 1);
+    // transpose the second argument
+    CUSPARSE_CHECK(cusparseScsr2csc(cusparseHandle,
+        /*m=*/ rowsA, // number of rows of matrix
+        /*n=*/ colsA, // number of columns of matrix
+        /*nnz=*/ (int)numValues,
+        /*csrcVal=*/          A_values->data<float>(),  // second arg
+        /*csrcRowPtr=*/ (int*)A_offsets->data<IndexType>(),
+        /*csrcColInd=*/ (int*)A_indices->data<IndexType>(),
+        /*cscVal=*/    At_values->data<float>(),  // transposed version goes here
+        /*cscRowInd=*/ At_indices->data<int>(),
+        /*cscColPtr=*/ At_offsets->data<int>(),
+        /*copyValues=*/ CUSPARSE_ACTION_NUMERIC,
+        /*idxBase=*/ CUSPARSE_INDEX_BASE_ZERO));
+    CUSPARSE_CHECK(cusparseSgemmi(cusparseHandle,
+        /*m=*/ colsB, // #rows of A = #cols of row-major B
+        /*n=*/ rowsC, // #cols of B and C = #rows of row-major C
+        /*k=*/ rowsB, // #cols of A = #rows of row-major B
+        /*nnz=*/ (int)numValues,
+        &alpha,
+        /*A=*/ B->data(),
+        /*lda=*/ colsB, // stride
+        /*cscValB=*/    At_values->data<float>(),  // second arg, transposed
+        /*cscRowPtrB=*/ At_offsets->data<int>(),
+        /*cscColIndB=*/ At_indices->data<int>(),
+        &beta,
+        C->data(),
+        /*ldc=*/ colsC)); // stride
+    allocator->free(At_values);
+    allocator->free(At_indices);
+    allocator->free(At_offsets);
   }
   else {
     CUSPARSE_CHECK(cusparseSgemmi(cusparseHandle,
