@@ -15,7 +15,7 @@ void tests(DeviceType device) {
   graph->setDevice({0, device});
   graph->reserveWorkspaceMB(16);
 
-  std::vector<float> values;
+  std::vector<float> values, values2;
 
   SECTION("scalar multiplication") {
     graph->clear();
@@ -302,18 +302,75 @@ void tests(DeviceType device) {
     graph->clear();
     values.clear();
 
-    std::vector<float> vA({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
-    std::vector<float> vB({1, 2, 3, 4, 5, 6});
-    std::vector<float> vC({22, 28, 49, 64, 76, 100, 103, 136});
+    std::vector<float> vA({1, 2, 3,
+                           4, 5, 6,
+                           7, 8, 9,
+                           10, 11, 12});
+    std::vector<float> vB({1, 2,
+                           3, 4,
+                           5, 6});
+    std::vector<float> vC({22, 28,
+                           49, 64,
+                           76, 100,
+                           103, 136});
 
     auto A = graph->param("A", {2, 2, 3}, inits::from_vector(vA));
     auto B = graph->param("B", {3, 2}, inits::from_vector(vB));
     auto C = dot(A, B);
-    graph->forward();
+
+    // CSR dot product
+    std::vector<float> vS({1, 0, 0, 1,
+                           0, 0, 1, 1.5});
+    std::vector<float> vR({1, 2, 3, 1.2, 5.6,
+                           4, 5, 6, 2.3, 6.7,
+                           7, 8, 9, 3.4, 7.8,
+                           1, 1, 2, 4.5, 8.9});
+    auto S = graph->param("S", { 2, 4 }, inits::from_vector(vS));
+    auto R = graph->param("R", { 4, 5 }, inits::from_vector(vR));
+    std::vector<float> SV;    // create CSR version of S
+    std::vector<IndexType> SI, SO;
+    SO.push_back((IndexType)SI.size());
+    for (IndexType i = 0; i < S->shape()[0]; i++) {
+      for (IndexType j = 0; j < S->shape()[1]; j++) {
+        auto k = 4 * i + j;
+        if (vS[k] != 0) {
+          SV.push_back(vS[k]);
+          SI.push_back(j);
+        }
+      }
+      SO.push_back((IndexType)SI.size());
+    }
+    auto SxRs = csr_dot(
+          S->shape(),
+          graph->constant({(int)SV.size()}, inits::from_vector(SV), Type::float32),
+          graph->constant({(int)SI.size()}, inits::from_vector(SI), Type::uint32),
+          graph->constant({(int)SO.size()}, inits::from_vector(SO), Type::uint32),
+          R);
+    auto SxRd = dot(S, R);
+    auto STxRs = csr_dot(   // and transpose; use result of previous since dimensions match
+          S->shape(),
+          graph->constant({(int)SV.size()}, inits::from_vector(SV), Type::float32),
+          graph->constant({(int)SI.size()}, inits::from_vector(SI), Type::uint32),
+          graph->constant({(int)SO.size()}, inits::from_vector(SO), Type::uint32),
+          SxRd, /*transA=*/true);
+    auto STxRd = dot(S, SxRd, /*transA=*/true);
 
     CHECK(C->shape() == Shape({2, 2, 2}));
+    CHECK(SxRs->shape() == SxRd->shape());
+    CHECK(STxRs->shape() == STxRd->shape());
+
+    graph->forward();
+
     C->val()->get(values);
     CHECK(values == vC);
+
+    SxRd->val()->get(values2); // dense
+    SxRs->val()->get(values);  // sparse
+    CHECK(values == values2);  // must be the same
+
+    STxRd->val()->get(values2);
+    STxRs->val()->get(values);
+    CHECK(values == values2);
   }
 
   SECTION("affine transformation") {

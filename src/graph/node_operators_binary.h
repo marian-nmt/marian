@@ -128,7 +128,7 @@ public:
                         scalar_))};
   }
 
-  const std::string type() override { return "•"; }
+  const std::string type() override { return "dot"; }
 
   const std::string color() override { return "orange"; }
 };
@@ -404,7 +404,53 @@ public:
                                scalar_))};
   }
 
-  const std::string type() override { return "•"; }
+  const std::string type() override { return "bdot"; }
+
+  const std::string color() override { return "orange"; }
+};
+
+class CSRDotNodeOp : public NaryNodeOp {
+  bool transA_;
+public:
+  CSRDotNodeOp(const Shape& A_shape, Expr A_values, Expr A_indices, Expr A_offsets, Expr B, bool transA)
+      : NaryNodeOp({ A_values, A_indices, A_offsets, B }, newShape(A_shape, A_values, A_indices, A_offsets, B, transA)), transA_(transA) {
+    matchOrAbort<IndexType>(A_indices->value_type());
+    matchOrAbort<IndexType>(A_offsets->value_type());
+  }
+
+  Shape newShape(const Shape& A_shape, Expr A_values, Expr A_indices, Expr A_offsets, Expr B, bool transA) {
+    ABORT_IF(A_values->shape().size() != 1 || A_indices->shape().size() != 1 || A_offsets->shape().size() != 1,
+        "Sparse matrix components must all be vectors");
+    ABORT_IF(A_values->shape() != A_indices->shape(),
+        "Sparse matrix values and indices must have the same shape");
+    ABORT_IF(A_shape.size() != 2,
+        "Sparse matrix must have rank 2");
+    ABORT_IF(A_offsets->shape()[0] - 1 != A_shape[0],
+        "Sparse matrix offset vector has incorrect size");
+    auto outShape = B->shape();
+    outShape.set(0, transA ? A_shape[1] : A_shape[0]);
+    return outShape;
+  }
+
+  NodeOps forwardOps() override {
+    // C = dot(A, B)
+    return {NodeOp(CSRProd(val_,
+                           graph()->allocator(),
+                           child(0)->val(), child(1)->val(), child(2)->val(),
+                           child(3)->val(),
+                           /*transA=*/transA_, /*beta=*/0))};
+  }
+
+  NodeOps backwardOps() override {
+    return {nullptr, // can't backprop into the sparse matrix (the gradient is dense)
+            NodeOp(CSRProd(child(3)->grad(), // child(3) = B
+                           graph()->allocator(),
+                           child(0)->val(), child(1)->val(), child(2)->val(), // children(0..2) = A
+                           adj_,
+                           /*transA=*/!transA_, /*beta=*/1))};
+  }
+
+  const std::string type() override { return "csr_dot"; }
 
   const std::string color() override { return "orange"; }
 };

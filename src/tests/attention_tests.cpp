@@ -53,15 +53,15 @@ void tests(DeviceType type) {
     auto mask = graph->constant({dimTime, dimBatch, 1},
                                 inits::from_vector(vMask));
 
-    auto rnn = rnn::rnn(graph)         //
+    auto rnn = rnn::rnn()         //
           ("prefix", "rnntest")        //
           ("type", "gru")              //
           ("dimInput", 16)             //
           ("dimState", 8)              //
-          .push_back(rnn::cell(graph)) //
-          .construct();
+          .push_back(rnn::cell()) //
+          .construct(graph);
 
-    auto context = rnn.construct()->transduce(input, mask);
+    auto context = rnn->transduce(input, mask);
 
     auto encState = New<EncoderState>(context, mask, nullptr);
 

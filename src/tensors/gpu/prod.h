@@ -33,5 +33,13 @@ void ProdBatched(marian::Tensor C,
                  bool transB,
                  float beta = 0,
                  float scalar = 1);
+void CSRProd(marian::Tensor C,
+             Ptr<Allocator> allocator,
+             const marian::Tensor& A_values,
+             const marian::Tensor& A_indices,
+             const marian::Tensor& A_offsets,
+             const marian::Tensor& B,
+             bool transA,
+             float beta = 0);
 }  // namespace gpu
 }  // namespace marian
