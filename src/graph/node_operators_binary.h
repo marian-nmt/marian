@@ -436,15 +436,17 @@ public:
     // C = dot(A, B)
     return {NodeOp(CSRProd(val_,
                            graph()->allocator(),
-                           child(0)->val(), child(1)->val(), child(2)->val(), child(3)->val(),
+                           child(0)->val(), child(1)->val(), child(2)->val(),
+                           child(3)->val(),
                            /*transA=*/transA_, /*beta=*/0))};
   }
 
   NodeOps backwardOps() override {
-    return {nullptr, // can't backprop into the sparse matrix, as it would be dense
-            NodeOp(CSRProd(child(1)->grad(),
+    return {nullptr, // can't backprop into the sparse matrix (the gradient is dense)
+            NodeOp(CSRProd(child(3)->grad(), // child(3) = B
                            graph()->allocator(),
-                           child(0)->val(), child(1)->val(), child(2)->val(), adj_,
+                           child(0)->val(), child(1)->val(), child(2)->val(), // children(0..2) = A
+                           adj_,
                            /*transA=*/!transA_, /*beta=*/1))};
   }
 
