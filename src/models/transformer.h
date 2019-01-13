@@ -67,9 +67,11 @@ public:
       auto signal = rows(posEmbFactory, graph_->indices(positions));
       signal = reshape(signal, {dimWords, 1, dimEmb});
       embeddings = embeddings + signal;
-    } else {
+    } else {      
       auto signal = graph_->constant({dimWords, 1, dimEmb},
                                      inits::positions(start));
+      // according to paper embeddings are scaled up by \sqrt(d_m)
+      embeddings = std::sqrt((float)dimEmb) * embeddings;
       embeddings = embeddings + signal;
     }
 
@@ -537,7 +539,6 @@ public:
   }
 
   virtual Ptr<EncoderState> apply(Ptr<data::CorpusBatch> batch) {
-    int dimEmb = opt<int>("dim-emb");
     int dimBatch = (int)batch->size();
     int dimSrcWords = (int)(*batch)[batchIndex_]->batchWidth();
     // create the embedding matrix, considering tying and some other options
@@ -559,15 +560,13 @@ public:
       int srcWords = batchEmbeddings->shape()[-3];
       batchEmbeddings = dropout(batchEmbeddings, dropoutSrc, {srcWords, 1, 1});
     }
-    // according to paper embeddings are scaled up by \sqrt(d_m)
-    auto scaledEmbeddings = std::sqrt((float)dimEmb) * batchEmbeddings;
-
-    scaledEmbeddings = addSpecialEmbeddings(scaledEmbeddings, /*start=*/0, batch);
+    
+    batchEmbeddings = addSpecialEmbeddings(batchEmbeddings, /*start=*/0, batch);
 
     // reorganize batch and timestep
-    scaledEmbeddings = atleast_nd(scaledEmbeddings, 4);
+    batchEmbeddings = atleast_nd(batchEmbeddings, 4);
     batchMask = atleast_nd(batchMask, 4);
-    auto layer = transposeTimeBatch(scaledEmbeddings); // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
+    auto layer = transposeTimeBatch(batchEmbeddings); // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
     auto layerMask
       = reshape(transposeTimeBatch(batchMask), {1, dimBatch, 1, dimSrcWords}); // [-4: beam depth=1, -3: batch size, -2: vector dim=1, -1: max length]
 
