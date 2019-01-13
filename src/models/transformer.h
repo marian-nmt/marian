@@ -627,6 +627,14 @@ private:
       if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
         tiedPrefix = "Wemb";
       layerOut.tieTransposed(tiedPrefix);
+      // factored embeddings, simplistic version (which just adds the logits, like multiplying probs)
+      //  z = h @ W        // h:[B x D] ; W:[D x V] -> [B x V]
+      // with factors:
+      //  z = h @ W @ M'        // h:[B x D] ; W:[D x U] ; M':[U x V]  -> [B x V]
+      // i.e. multiOutput():
+      //  output = dot_csr(output, M, transB=true)
+      // Should biases be done afterwards? Or maybe at two places?
+      // note: need to also specify output factors separately if not tied-embeddings or tied-embeddings-all
     }
 
     if(shortlist_)
