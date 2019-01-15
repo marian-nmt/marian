@@ -12,7 +12,6 @@ namespace marian {
 
   class EmbeddingFactorMapping {
     Vocab factorVocab_;                        // [factor name] -> factor index = row of E_
-    Shape mappingShape;
     std::vector<std::vector<Word>> factorMap_; // [word index] -> set of factor indices
     std::vector<int> factorRefCounts_;         // [factor index] -> how often this factor is referenced in factorMap_
   public:
@@ -33,7 +32,7 @@ namespace marian {
       factorVocab_.load(factorVocabPath);
       // load and parse factorMap
       factorMap_.resize(vocab.size());
-      factorRefCounts_.resize(vocab.size());
+      factorRefCounts_.resize(factorVocab_.size());
       std::vector<std::string> tokens;
       io::InputFileStream in(mapPath);
       std::string line;
@@ -51,7 +50,6 @@ namespace marian {
         numTotalFactors += tokens.size() - 1;
       }
       LOG(info, "[embedding] Factored-embedding map read with total/unique of {}/{} factors for {} words", numTotalFactors, factorVocab_.size(), vocab.size());
-      mappingShape = Shape({ (int)vocab.size(), (int)factorVocab_.size() });
     }
 
     size_t factorVocabSize() const { return factorVocab_.size(); }
@@ -70,13 +68,13 @@ namespace marian {
         const auto& m = factorMap_[v];
         for (auto u : m) {
           indices.push_back(u);
-          weights.push_back(1.0f/(float)factorRefCounts_[u]);
+          weights.push_back(1.0f/*/(float)factorRefCounts_[u]*/);
         }
         offsets.push_back((IndexType)indices.size()); // next matrix row begins at this offset
       }
       return
           std::tuple<Shape, std::vector<float>/*weights*/, std::vector<IndexType>/*indices*/, std::vector<IndexType>/*offsets*/> // (needed for unknown reasons)
-          { mappingShape, weights, indices, offsets };
+          { Shape({(int)words.size(), (int)factorVocab_.size()}), weights, indices, offsets };
     }
   };
 
@@ -112,11 +110,19 @@ namespace marian {
     auto graph = E_->graph();
     Shape shape; std::vector<float> weights;  std::vector<IndexType> indices, offsets; std::tie
     (shape, weights, indices, offsets) = embeddingFactorMapping_->csr_rows(data);
+#if 0   // tests for special case of nop-op
+    ABORT_IF(data != indices, "bang");
+    for (size_t i = 0; i < offsets.size(); i++)
+      ABORT_IF(offsets[i] != i, "boom");
+    for (size_t i = 0; i < weights.size(); i++)
+      ABORT_IF(weights[i] != 1, "oops");
+#endif
     // multi-hot factor vectors are represented as a sparse CSR matrix
     // [row index = word position index] -> set of factor indices for word at this position
+    ABORT_IF(shape != Shape({(int)offsets.size()-1/*=rows of CSR*/, E_->shape()[0]}), "shape mismatch??");
     return csr_dot( // the CSR matrix is passed in pieces
-        Shape({(int)offsets.size()-1/*=rows of CSR*/, E_->shape()[0]}),
-        graph->constant({(int)indices.size()}, inits::from_vector(weights), Type::float32),
+        shape,
+        graph->constant({(int)weights.size()}, inits::from_vector(weights), Type::float32),
         graph->constant({(int)indices.size()}, inits::from_vector(indices), Type::uint32),
         graph->constant({(int)offsets.size()}, inits::from_vector(offsets), Type::uint32),
         E_);

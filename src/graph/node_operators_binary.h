@@ -428,6 +428,8 @@ public:
     ABORT_IF(A_offsets->shape()[0] - 1 != A_shape[0],
         "Sparse matrix offset vector has incorrect size");
     auto outShape = B->shape();
+    ABORT_IF((transA ? A_shape[0] : A_shape[1] != B->shape()[0]),
+        "Matrix product requires dimensions to match");
     outShape.set(0, transA ? A_shape[1] : A_shape[0]);
     return outShape;
   }
@@ -442,7 +444,9 @@ public:
   }
 
   NodeOps backwardOps() override {
-    return {nullptr, // can't backprop into the sparse matrix (the gradient is dense)
+    return {nullptr, // can't backprop into the sparse matrix pieces (the gradient is dense)
+            nullptr,
+            nullptr,
             NodeOp(CSRProd(child(3)->grad(), // child(3) = B
                            graph()->allocator(),
                            child(0)->val(), child(1)->val(), child(2)->val(), // children(0..2) = A
