@@ -428,8 +428,10 @@ public:
         "Sparse matrix must have rank 2");
     ABORT_IF(S_offsets->shape()[0] - 1 != S_shape[0],
         "Sparse matrix offset vector has incorrect size");
-    ABORT_IF(swapOperands, "swapOperands not yet implemented");
     auto outShape = D->shape();
+    ABORT_IF(swapOperands, "swapOperands not yet implemented");
+    ABORT_IF((transS ? S_shape[0] : S_shape[1] != D->shape()[0]),
+             "Matrix product requires dimensions to match");
     outShape.set(0, transS ? S_shape[1] : S_shape[0]);
     return outShape;
   }
