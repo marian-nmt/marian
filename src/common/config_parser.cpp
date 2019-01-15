@@ -763,14 +763,14 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   config_.remove("config");
 
   if(!get<std::string>("dump-config").empty() && get<std::string>("dump-config") != "false") {
-    auto type = get<std::string>("dump-config");
+    auto dumpMode = get<std::string>("dump-config");
     config_.remove("dump-config");
 
-    if(type == "explain") {
+    if(dumpMode == "explain") {
       cli.parseAliases();
     }
 
-    bool minimal = (type == "minimal" || type == "explain");
+    bool minimal = (dumpMode == "minimal" || dumpMode == "explain");
     std::cout << cli.dumpConfig(minimal) << std::endl;
     exit(0);
   }

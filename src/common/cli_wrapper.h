@@ -92,7 +92,6 @@ private:
   // Command-line argument parser
   Ptr<CLI::App> app_;
 
-
   // Name of the default option group
   std::string defaultGroup_{""};
   // Name of the current option group
