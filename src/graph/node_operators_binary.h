@@ -429,10 +429,9 @@ public:
     ABORT_IF(S_offsets->shape()[0] - 1 != S_shape[0],
         "Sparse matrix offset vector has incorrect size");
     auto outShape = D->shape();
-    ABORT_IF(swapOperands, "swapOperands not yet implemented");
-    ABORT_IF((transS ? S_shape[0] : S_shape[1] != D->shape()[0]),
+    ABORT_IF(S_shape[transS == swapOperands ? 1 : 0] != outShape[-(int)swapOperands],
              "Matrix product requires dimensions to match");
-    outShape.set(0, transS ? S_shape[1] : S_shape[0]);
+    outShape.set(-(int)swapOperands, S_shape[transS != swapOperands]);
     return outShape;
   }
 
