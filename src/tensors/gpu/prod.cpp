@@ -239,32 +239,40 @@ void CSRProd(marian::Tensor C,
   cudaSetDevice(C->getDeviceId().no);
   auto cusparseHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
                               ->getCusparseHandle();
-  // dimensions
+  // interpret tensor dimensions as matrix dimensions
   const auto& shapeC = C->shape();
   const auto& shapeD = D->shape();
-  ABORT_IF(swapOperands, "swapOperands not yet implemented");
-  auto rowsC = shapeC[0];
+  // If swapOperands, S and D are swapped (C = D x S instead of C = S x D).
+  // In that case, in the next 6 lines, please read all dimensions as if they were reversed in order.
+  auto rowsC = shapeC[-(int)swapOperands];
   auto colsC = shapeC.elements() / rowsC;
-  auto rowsD = shapeD[0];
+  auto rowsD = shapeD[-(int)swapOperands];
   auto colsD = shapeD.elements() / rowsD;
-  auto rowsS = transS ? rowsD : rowsC;
-  auto colsS = transS ? rowsC : rowsD;
-  ABORT_IF((transS ? colsS : rowsS) != rowsC || (transS ? rowsS : colsS) != rowsD || colsD != colsC, "Inconsistent dimensions in CSR product");
+  auto rowsS = transS != swapOperands ? rowsD : rowsC;
+  auto colsS = transS != swapOperands ? rowsC : rowsD;
+  ABORT_IF(colsD != colsC, "Inconsistent outer dimensions in CSR product");
+  if (swapOperands) { // make rowsX actual row dimensions again, likewise colsX
+    std::swap(rowsC, colsC);
+    std::swap(rowsD, colsD);
+    std::swap(rowsS, colsS);
+  }
   // sparse arrays
   auto numValues  = S_values->shape().elements();
   auto numOffsets = S_offsets->shape().elements() - 1; // -1 since last value is length
-  ABORT_IF(numOffsets != rowsS, "CSR offset array dimension mismatch");
+  ABORT_IF(numOffsets != rowsS, "Unexpected number of rows in CSR argument");
   ABORT_IF(S_values->shape() != S_indices->shape(), "CSR values and indices must have the same size");
   float alpha = 1;
   // Marian uses row-major storage, but CUSPARSE/CUBLAS assume column-major.
   // Hence, we compute C = S * D as C' = D' * S'. where D' and C' are
   // column-major views on the data of D and C, and likewise, S' is
   // the CSR matrix reinterpreted as a CSC matrix.
+  Ptr<MemoryPiece> St_values, St_indices, St_offsets;
   if (transS) {
-    // cusparse does not support this specific version of transpose; do it explicitly
-    auto St_values  = allocator->alloc<float>(numValues);
-    auto St_indices = allocator->alloc<int>(numValues);
-    auto St_offsets = allocator->alloc<int>(colsS + 1);
+    // Cusparse gemmi() does not support this specific version of transpose, and csrmm() is non-deterministic.
+    // Hence, we transpose the matrix explicitly.
+    St_values  = allocator->alloc<float>(numValues);
+    St_indices = allocator->alloc<int>(numValues);
+    St_offsets = allocator->alloc<int>(colsS + 1);
     // transpose the second argument
     CUSPARSE_CHECK(cusparseScsr2csc(cusparseHandle,
         /*m=*/ rowsS, // number of rows of matrix
@@ -278,23 +286,9 @@ void CSRProd(marian::Tensor C,
         /*cscColPtr=*/ St_offsets->data<int>(),
         /*copyValues=*/ CUSPARSE_ACTION_NUMERIC,
         /*idxBase=*/ CUSPARSE_INDEX_BASE_ZERO));
-    CUSPARSE_CHECK(cusparseSgemmi(cusparseHandle,
-        /*m=*/ colsD, // #rows of A = #cols of row-major D
-        /*n=*/ rowsC, // #cols of D and C = #rows of row-major C
-        /*k=*/ rowsD, // #cols of A = #rows of row-major D
-        /*nnz=*/ (int)numValues,
-        &alpha,
-        /*A=*/ D->data(),
-        /*lda=*/ colsD, // stride
-        /*cscValB=*/    St_values->data<float>(),  // second arg, transposed
-        /*cscRowPtrB=*/ St_offsets->data<int>(),
-        /*cscColIndB=*/ St_indices->data<int>(),
-        &beta,
-        C->data(),
-        /*ldc=*/ colsC)); // stride
-    allocator->free(St_values);
-    allocator->free(St_indices);
-    allocator->free(St_offsets);
+  }
+  if (swapOperands) {
+    ABORT("CSRProd does not yet implement swapOperands");
   }
   else {
     CUSPARSE_CHECK(cusparseSgemmi(cusparseHandle,
@@ -305,13 +299,16 @@ void CSRProd(marian::Tensor C,
         &alpha,
         /*A=*/ D->data(),
         /*lda=*/ colsD, // stride
-        /*cscValB=*/          S_values->data<float>(),  // second arg
-        /*cscRowPtrB=*/ (int*)S_offsets->data<IndexType>(),
-        /*cscColIndB=*/ (int*)S_indices->data<IndexType>(),
+        /*cscValB=*/    transS ? St_values ->data<float>() :       S_values ->data<float>(),  // second arg
+        /*cscRowPtrB=*/ transS ? St_offsets->data<int>()   : (int*)S_offsets->data<IndexType>(),
+        /*cscColIndB=*/ transS ? St_indices->data<int>()   : (int*)S_indices->data<IndexType>(),
         &beta,
         C->data(),
         /*ldc=*/ colsC)); // stride
   }
+  if(St_values ) allocator->free(St_values );
+  if(St_indices) allocator->free(St_indices);
+  if(St_offsets) allocator->free(St_offsets);
 #if 0
   // Incorrect code that assumes col-major matrices. Reuse that later for dense x sparse.
   cusparseMatDescr_t descrA;

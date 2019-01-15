@@ -409,6 +409,8 @@ public:
   const std::string color() override { return "orange"; }
 };
 
+// Note: To reduce code duplication, we use the same NodeOp for C = op(S) x D and C = D x op(S).
+// Set swapOperands to select the latter.
 class CSRDotNodeOp : public NaryNodeOp {
   bool transS_;
   bool swapOperands_;
@@ -436,8 +438,6 @@ public:
   }
 
   NodeOps forwardOps() override {
-    // C = dot(D, S) if swapOperands else
-    // C = dot(A, D)
     return {NodeOp(CSRProd(val_,
                            graph()->allocator(),
                            child(0)->val(), child(1)->val(), child(2)->val(),
