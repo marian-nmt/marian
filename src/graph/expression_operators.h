@@ -113,6 +113,7 @@ Expr affine(Expr a,
             float scalar = 1.f);
 
 Expr csr_dot(const Shape& A_shape, Expr Avalues, Expr Aindices, Expr Aoffsets, Expr B, bool transA = false);
+Expr dot_csr(Expr A, const Shape& B_shape, Expr B_values, Expr B_indices, Expr B_offsets, bool transB = false);
 
 Expr transpose(Expr a);
 Expr transpose(Expr a, const std::vector<int>& axes);

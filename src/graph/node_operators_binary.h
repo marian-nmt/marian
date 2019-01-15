@@ -410,44 +410,49 @@ public:
 };
 
 class CSRDotNodeOp : public NaryNodeOp {
-  bool transA_;
+  bool transS_;
+  bool swapOperands_;
 public:
-  CSRDotNodeOp(const Shape& A_shape, Expr A_values, Expr A_indices, Expr A_offsets, Expr B, bool transA)
-      : NaryNodeOp({ A_values, A_indices, A_offsets, B }, newShape(A_shape, A_values, A_indices, A_offsets, B, transA)), transA_(transA) {
-    matchOrAbort<IndexType>(A_indices->value_type());
-    matchOrAbort<IndexType>(A_offsets->value_type());
+  CSRDotNodeOp(const Shape& S_shape, Expr S_values, Expr S_indices, Expr S_offsets, Expr D, bool transS, bool swapOperands)
+      : NaryNodeOp({ S_values, S_indices, S_offsets, D }, newShape(S_shape, S_values, S_indices, S_offsets, D, transS, swapOperands)), transS_(transS) {
+    matchOrAbort<IndexType>(S_indices->value_type());
+    matchOrAbort<IndexType>(S_offsets->value_type());
   }
 
-  Shape newShape(const Shape& A_shape, Expr A_values, Expr A_indices, Expr A_offsets, Expr B, bool transA) {
-    ABORT_IF(A_values->shape().size() != 1 || A_indices->shape().size() != 1 || A_offsets->shape().size() != 1,
+  Shape newShape(const Shape& S_shape, Expr S_values, Expr S_indices, Expr S_offsets, Expr D, bool transS, bool swapOperands) {
+    ABORT_IF(S_values->shape().size() != 1 || S_indices->shape().size() != 1 || S_offsets->shape().size() != 1,
         "Sparse matrix components must all be vectors");
-    ABORT_IF(A_values->shape() != A_indices->shape(),
+    ABORT_IF(S_values->shape() != S_indices->shape(),
         "Sparse matrix values and indices must have the same shape");
-    ABORT_IF(A_shape.size() != 2,
+    ABORT_IF(S_shape.size() != 2,
         "Sparse matrix must have rank 2");
-    ABORT_IF(A_offsets->shape()[0] - 1 != A_shape[0],
+    ABORT_IF(S_offsets->shape()[0] - 1 != S_shape[0],
         "Sparse matrix offset vector has incorrect size");
-    auto outShape = B->shape();
-    outShape.set(0, transA ? A_shape[1] : A_shape[0]);
+    ABORT_IF(swapOperands, "swapOperands not yet implemented");
+    auto outShape = D->shape();
+    outShape.set(0, transS ? S_shape[1] : S_shape[0]);
     return outShape;
   }
 
   NodeOps forwardOps() override {
-    // C = dot(A, B)
+    // C = dot(D, S) if swapOperands else
+    // C = dot(A, D)
     return {NodeOp(CSRProd(val_,
                            graph()->allocator(),
                            child(0)->val(), child(1)->val(), child(2)->val(),
                            child(3)->val(),
-                           /*transA=*/transA_, /*beta=*/0))};
+                           /*transS=*/transS_, /*swapOperands=*/swapOperands_, /*beta=*/0))};
   }
 
   NodeOps backwardOps() override {
     return {nullptr, // can't backprop into the sparse matrix (the gradient is dense)
-            NodeOp(CSRProd(child(3)->grad(), // child(3) = B
+            nullptr,
+            nullptr,
+            NodeOp(CSRProd(child(3)->grad(), // child(3) = D
                            graph()->allocator(),
                            child(0)->val(), child(1)->val(), child(2)->val(), // children(0..2) = A
                            adj_,
-                           /*transA=*/!transA_, /*beta=*/1))};
+                           /*transS=*/!transS_, /*swapOperands=*/swapOperands_, /*beta=*/1))};
   }
 
   const std::string type() override { return "csr_dot"; }

@@ -1088,7 +1088,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </None>
     <None Include="..\src\tensors\gpu\element.inc" />
-    <None Include="..\src\tensors\gpu\prod.cu">
+    <None Include="..\src\tensors\gpu\prod.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </None>
     <None Include="..\src\tensors\gpu\sparse.cu">

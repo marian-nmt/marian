@@ -95,6 +95,7 @@ void Prod(marian::Tensor C,
 #endif
 }
 
+#if 0 // @TODO: remove, then rename from .cu to .cpp
 __global__ void gAddBias(float* out,
                          const float* bias,
                          size_t length,
@@ -108,7 +109,6 @@ __global__ void gAddBias(float* out,
   }
 }
 
-#if 0 // @TODO: remove, then rename from .cu to .cpp
 void AddBias(marian::Tensor C, const marian::Tensor bias) {
   cudaSetDevice(C->getDeviceId().no);
 
@@ -229,84 +229,85 @@ void ProdBatched(marian::Tensor C,
 
 void CSRProd(marian::Tensor C,
              Ptr<Allocator> allocator,
-             const marian::Tensor& A_values,
-             const marian::Tensor& A_indices,
-             const marian::Tensor& A_offsets,
-             const marian::Tensor& B,
-             bool transA,
+             const marian::Tensor& S_values,
+             const marian::Tensor& S_indices,
+             const marian::Tensor& S_offsets,
+             const marian::Tensor& D,
+             bool transS,
+             bool swapOperands,
              float beta) {
   cudaSetDevice(C->getDeviceId().no);
   auto cusparseHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
                               ->getCusparseHandle();
   // dimensions
   const auto& shapeC = C->shape();
-  const auto& shapeB = B->shape();
+  const auto& shapeD = D->shape();
+  ABORT_IF(swapOperands, "swapOperands not yet implemented");
   auto rowsC = shapeC[0];
   auto colsC = shapeC.elements() / rowsC;
-  auto rowsB = shapeB[0];
-  auto colsB = shapeB.elements() / rowsB;
-  auto rowsA = transA ? rowsB : rowsC;
-  auto colsA = transA ? rowsC : rowsB;
-  ABORT_IF((transA ? colsA : rowsA) != rowsC || (transA ? rowsA : colsA) != rowsB || colsB != colsC, "Inconsistent dimensions in CSR product");
+  auto rowsD = shapeD[0];
+  auto colsD = shapeD.elements() / rowsD;
+  auto rowsS = transS ? rowsD : rowsC;
+  auto colsS = transS ? rowsC : rowsD;
+  ABORT_IF((transS ? colsS : rowsS) != rowsC || (transS ? rowsS : colsS) != rowsD || colsD != colsC, "Inconsistent dimensions in CSR product");
   // sparse arrays
-  auto numValues  = A_values->shape().elements();
-  auto numOffsets = A_offsets->shape().elements() - 1; // -1 since last value is length
-  ABORT_IF(numOffsets != (transA ? rowsB : rowsC), "CSR offset array dimension mismatch: n={}, transA={}, rowsB={}, rowsC={}", numOffsets,transA, rowsB, rowsC);
-  ABORT_IF(numOffsets != (transA ? rowsB : rowsC), "CSR offset array dimension mismatch");
-  ABORT_IF(A_values->shape() != A_indices->shape(), "CSR values and indices must have the same size");
+  auto numValues  = S_values->shape().elements();
+  auto numOffsets = S_offsets->shape().elements() - 1; // -1 since last value is length
+  ABORT_IF(numOffsets != rowsS, "CSR offset array dimension mismatch");
+  ABORT_IF(S_values->shape() != S_indices->shape(), "CSR values and indices must have the same size");
   float alpha = 1;
   // Marian uses row-major storage, but CUSPARSE/CUBLAS assume column-major.
-  // Hence, we compute C = spA * B as C' = B' * spA'. where B' and C' are
-  // column-major views on the data of B and C, and likewise, spA' is
+  // Hence, we compute C = S * D as C' = D' * S'. where D' and C' are
+  // column-major views on the data of D and C, and likewise, S' is
   // the CSR matrix reinterpreted as a CSC matrix.
-  if (transA) {
+  if (transS) {
     // cusparse does not support this specific version of transpose; do it explicitly
-    auto At_values  = allocator->alloc<float>(numValues);
-    auto At_indices = allocator->alloc<int>(numValues);
-    auto At_offsets = allocator->alloc<int>(colsA + 1);
+    auto St_values  = allocator->alloc<float>(numValues);
+    auto St_indices = allocator->alloc<int>(numValues);
+    auto St_offsets = allocator->alloc<int>(colsS + 1);
     // transpose the second argument
     CUSPARSE_CHECK(cusparseScsr2csc(cusparseHandle,
-        /*m=*/ rowsA, // number of rows of matrix
-        /*n=*/ colsA, // number of columns of matrix
+        /*m=*/ rowsS, // number of rows of matrix
+        /*n=*/ colsS, // number of columns of matrix
         /*nnz=*/ (int)numValues,
-        /*csrcVal=*/          A_values->data<float>(),  // second arg
-        /*csrcRowPtr=*/ (int*)A_offsets->data<IndexType>(),
-        /*csrcColInd=*/ (int*)A_indices->data<IndexType>(),
-        /*cscVal=*/    At_values->data<float>(),  // transposed version goes here
-        /*cscRowInd=*/ At_indices->data<int>(),
-        /*cscColPtr=*/ At_offsets->data<int>(),
+        /*csrcVal=*/          S_values->data<float>(),  // second arg
+        /*csrcRowPtr=*/ (int*)S_offsets->data<IndexType>(),
+        /*csrcColInd=*/ (int*)S_indices->data<IndexType>(),
+        /*cscVal=*/    St_values->data<float>(),  // transposed version goes here
+        /*cscRowInd=*/ St_indices->data<int>(),
+        /*cscColPtr=*/ St_offsets->data<int>(),
         /*copyValues=*/ CUSPARSE_ACTION_NUMERIC,
         /*idxBase=*/ CUSPARSE_INDEX_BASE_ZERO));
     CUSPARSE_CHECK(cusparseSgemmi(cusparseHandle,
-        /*m=*/ colsB, // #rows of A = #cols of row-major B
-        /*n=*/ rowsC, // #cols of B and C = #rows of row-major C
-        /*k=*/ rowsB, // #cols of A = #rows of row-major B
+        /*m=*/ colsD, // #rows of A = #cols of row-major D
+        /*n=*/ rowsC, // #cols of D and C = #rows of row-major C
+        /*k=*/ rowsD, // #cols of A = #rows of row-major D
         /*nnz=*/ (int)numValues,
         &alpha,
-        /*A=*/ B->data(),
-        /*lda=*/ colsB, // stride
-        /*cscValB=*/    At_values->data<float>(),  // second arg, transposed
-        /*cscRowPtrB=*/ At_offsets->data<int>(),
-        /*cscColIndB=*/ At_indices->data<int>(),
+        /*A=*/ D->data(),
+        /*lda=*/ colsD, // stride
+        /*cscValB=*/    St_values->data<float>(),  // second arg, transposed
+        /*cscRowPtrB=*/ St_offsets->data<int>(),
+        /*cscColIndB=*/ St_indices->data<int>(),
         &beta,
         C->data(),
         /*ldc=*/ colsC)); // stride
-    allocator->free(At_values);
-    allocator->free(At_indices);
-    allocator->free(At_offsets);
+    allocator->free(St_values);
+    allocator->free(St_indices);
+    allocator->free(St_offsets);
   }
   else {
     CUSPARSE_CHECK(cusparseSgemmi(cusparseHandle,
-        /*m=*/ colsB, // #rows of A = #cols of row-major B
-        /*n=*/ rowsC, // #cols of B and C = #rows of row-major C
-        /*k=*/ rowsB, // #cols of A = #rows of row-major B
+        /*m=*/ colsD, // #rows of A = #cols of row-major D
+        /*n=*/ rowsC, // #cols of D and C = #rows of row-major C
+        /*k=*/ rowsD, // #cols of A = #rows of row-major D
         /*nnz=*/ (int)numValues,
         &alpha,
-        /*A=*/ B->data(),
-        /*lda=*/ colsB, // stride
-        /*cscValB=*/          A_values->data<float>(),  // second arg
-        /*cscRowPtrB=*/ (int*)A_offsets->data<IndexType>(),
-        /*cscColIndB=*/ (int*)A_indices->data<IndexType>(),
+        /*A=*/ D->data(),
+        /*lda=*/ colsD, // stride
+        /*cscValB=*/          S_values->data<float>(),  // second arg
+        /*cscRowPtrB=*/ (int*)S_offsets->data<IndexType>(),
+        /*cscColIndB=*/ (int*)S_indices->data<IndexType>(),
         &beta,
         C->data(),
         /*ldc=*/ colsC)); // stride
@@ -318,17 +319,17 @@ void CSRProd(marian::Tensor C,
   cusparseSetMatType     (descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
   cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO);
   CUSPARSE_CHECK(cusparseScsrmm(cusparseHandle,
-      transA ? CUSPARSE_OPERATION_TRANSPOSE : CUSPARSE_OPERATION_NON_TRANSPOSE,
-      /*m=*/ rowsA, // #rows of sparse A
-      /*n=*/ colsB, // #cols of dense B and C
-      /*k=*/ colsA, // #cols of sparse A
+      transS ? CUSPARSE_OPERATION_TRANSPOSE : CUSPARSE_OPERATION_NON_TRANSPOSE,
+      /*m=*/ rowsS, // #rows of sparse A
+      /*n=*/ colsD, // #cols of dense D and C
+      /*k=*/ colsS, // #cols of sparse A
       /*nnz=*/ (int)numValues,
       &alpha, descrA,
-      /*csrValA=*/          A_values->data<float>(),
-      /*csrRowPtrA=*/ (int*)A_offsets->data<IndexType>(),
-      /*csrColIndA=*/ (int*)A_indices->data<IndexType>(),
-      B->data(),
-      /*ldb=*/ rowsB,
+      /*csrValA=*/          S_values->data<float>(),
+      /*csrRowPtrA=*/ (int*)S_offsets->data<IndexType>(),
+      /*csrColIndA=*/ (int*)S_indices->data<IndexType>(),
+      D->data(),
+      /*ldb=*/ rowsD,
       &beta,
       C->data(),
       /*ldc=*/ rowsC));
