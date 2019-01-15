@@ -227,6 +227,8 @@ void ProdBatched(marian::Tensor C,
   allocator->free(mp_cptr);
 }
 
+// C = op(S) x D if not swapOperands else C = D x op(S)
+// op(S) = S if not transA else S^T
 void CSRProd(marian::Tensor C,
              Ptr<Allocator> allocator,
              const marian::Tensor& S_values,
@@ -262,10 +264,6 @@ void CSRProd(marian::Tensor C,
   ABORT_IF(numOffsets != rowsS, "Unexpected number of rows in CSR argument");
   ABORT_IF(S_values->shape() != S_indices->shape(), "CSR values and indices must have the same size");
   float alpha = 1;
-  // Marian uses row-major storage, but CUSPARSE/CUBLAS assume column-major.
-  // Hence, we compute C = S * D as C' = D' * S'. where D' and C' are
-  // column-major views on the data of D and C, and likewise, S' is
-  // the CSR matrix reinterpreted as a CSC matrix.
   Ptr<MemoryPiece> St_values, St_indices, St_offsets;
   if (transS) {
     // Cusparse gemmi() does not support this specific version of transpose, and csrmm() is non-deterministic.
@@ -288,13 +286,16 @@ void CSRProd(marian::Tensor C,
         /*idxBase=*/ CUSPARSE_INDEX_BASE_ZERO));
   }
   if (swapOperands) {
+    // C = D x S
     ABORT("CSRProd does not yet implement swapOperands");
   }
   else {
+    // C = S x D for row-major matrices
+    // Implemented via cusparse as C' = D' x S' where C' and D' are column-major.
     CUSPARSE_CHECK(cusparseSgemmi(cusparseHandle,
-        /*m=*/ colsD, // #rows of A = #cols of row-major D
-        /*n=*/ rowsC, // #cols of D and C = #rows of row-major C
-        /*k=*/ rowsD, // #cols of A = #rows of row-major D
+        /*m=*/ colsD, // #rows of first (col-major) factor = #cols of row-major D
+        /*n=*/ rowsC, // #cols of second (sparse) factor and (col-major) result = #rows of row-major C
+        /*k=*/ rowsD, // #cols of first (col-major) factor = #rows of row-major D
         /*nnz=*/ (int)numValues,
         &alpha,
         /*A=*/ D->data(),
