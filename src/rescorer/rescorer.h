@@ -29,7 +29,7 @@ public:
     builder_->load(graph, modelFile);
   }
 
-  Expr build(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
+  Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
     return builder_->build(graph, batch);
   }
 
@@ -126,13 +126,13 @@ public:
 
           // @TODO: normalize by length as in normalize
           // Once we have Frank's concept of ce-sum with sample size by words we will return a pair
-          // here which will make it trivial to report all variants. 
+          // here which will make it trivial to report all variants.
           auto costNode = builder->build(graph, batch);
 
           graph->forward();
 
           std::vector<float> scores;
-          costNode->val()->get(scores);
+          costNode->loss(scores);
 
           // soft alignments for each sentence in the batch
           std::vector<data::SoftAlignment> aligns(batch->size());

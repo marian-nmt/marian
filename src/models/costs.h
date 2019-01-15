@@ -12,11 +12,10 @@ namespace models {
 
 class CostBase {
 public:
-  virtual Expr apply(Ptr<ModelBase> model,
-                     Ptr<ExpressionGraph> graph,
-                     Ptr<data::Batch> batch,
-                     bool clearGraph = true)
-      = 0;
+  virtual Ptr<MultiRationalLoss> apply(Ptr<ModelBase> model,
+                                       Ptr<ExpressionGraph> graph,
+                                       Ptr<data::Batch> batch,
+                                       bool clearGraph = true) = 0;
 };
 
 class EncoderDecoderCE : public CostBase {
@@ -25,13 +24,13 @@ protected:
 
   bool inference_{false};
   bool toBeWeighted_{false};
-  Ptr<LossBase> loss_;
+  Ptr<LabelwiseLoss> loss_;
   Ptr<WeightingBase> weighter_;
 
 public:
   EncoderDecoderCE(Ptr<Options> options)
       : options_(options), inference_(options->get<bool>("inference", false)) {
-    loss_ = LossFactory(options_, inference_);
+    loss_ = newLoss(options_, inference_);
 
     toBeWeighted_
         = (options_->has("data-weighting") && !inference_)
@@ -41,7 +40,7 @@ public:
       weighter_ = WeightingFactory(options_);
   }
 
-  Expr apply(Ptr<ModelBase> model,
+  Ptr<MultiRationalLoss> apply(Ptr<ModelBase> model,
              Ptr<ExpressionGraph> graph,
              Ptr<data::Batch> batch,
              bool clearGraph = true) override {
@@ -54,11 +53,16 @@ public:
     if(toBeWeighted_)
       weights = weighter_->getWeights(graph, corpusBatch);
 
-    Expr cost;
-    cost = loss_->getCost(state->getLogProbs(),
-                          state->getTargetIndices(),
-                          state->getTargetMask(),
-                          weights);
+    // multi-objective training
+    Ptr<MultiRationalLoss> multiLoss = newMultiLoss(options_);
+
+    // @TODO: adapt to multi-objective training
+    auto partialLoss = loss_->apply(state->getLogProbs(),
+                                    state->getTargetIndices(),
+                                    state->getTargetMask(),
+                                    weights);
+    multiLoss->push_back(partialLoss);
+  
 
     if(options_->get("guided-alignment", std::string("none")) != "none" && !inference_) {
       auto alignments = encdec->getDecoders()[0]->getAlignments();
@@ -66,9 +70,12 @@ public:
 
       auto att = concatenate(alignments, /*axis =*/ -1);
 
-      return cost + guidedAlignmentCost(graph, corpusBatch, options_, att);
+      // @TODO: represent this as an multi-objective training loss, which it actually is
+      // return multiLoss.loss() + guidedAlignmentCost(graph, corpusBatch, options_, att);
+      ABORT("Fix me");
+      return multiLoss;
     } else {
-      return cost;
+      return multiLoss;
     }
   }
 };
@@ -77,15 +84,15 @@ class EncoderClassifierCE : public CostBase {
 protected:
   Ptr<Options> options_;
   bool inference_{false};
-  Ptr<LossBase> loss_;
+  Ptr<LabelwiseLoss> loss_;
 
 public:
   EncoderClassifierCE(Ptr<Options> options)
       : options_(options), inference_(options->get<bool>("inference", false)) {
-    loss_ = LossFactory(options_, inference_);
+    loss_ = newLoss(options_, inference_);
   }
 
-  Expr apply(Ptr<ModelBase> model,
+  Ptr<MultiRationalLoss> apply(Ptr<ModelBase> model,
              Ptr<ExpressionGraph> graph,
              Ptr<data::Batch> batch,
              bool clearGraph = true) override {
@@ -94,21 +101,17 @@ public:
     auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
 
     auto states = enccls->apply(graph, corpusBatch, clearGraph);
-
-    Expr cost = loss_->getCost(states[0]->getLogProbs(),
-                               states[0]->getTargetIndices(),
-                               /*mask=*/nullptr,
-                               /*weights=*/nullptr);
-
+    
     // multi-objective training
-    for(int i = 1; i < states.size(); ++i) {
-      cost = cost + loss_->getCost(states[i]->getLogProbs(),
-                                   states[i]->getTargetIndices(),
-                                   /*mask=*/nullptr,
-                                   /*weights=*/nullptr);
+    Ptr<MultiRationalLoss> multiLoss = newMultiLoss(options_);
+    for(int i = 0; i < states.size(); ++i) {
+      auto partialLoss = loss_->apply(states[i]->getLogProbs(),
+                                      states[i]->getTargetIndices(),
+                                      /*mask=*/nullptr,
+                                      /*weights=*/nullptr);
+      multiLoss->push_back(partialLoss);
     }
-
-    return cost;
+    return multiLoss;
   }
 };
 
@@ -135,9 +138,9 @@ public:
     model_->save(graph, name, saveTranslatorConfig);
   }
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::Batch> batch,
-                     bool clearGraph = true) override {
+  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::Batch> batch,
+                                  bool clearGraph = true) override {
     return cost_->apply(model_, graph, batch, clearGraph);
   };
 
@@ -156,7 +159,7 @@ public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     // decoder needs normalized probabilities (note: skipped if beam 1 and --skip-cost)
     auto logits = state->getLogProbs();
-    
+
     auto logprobs = logsoftmax(logits);
 
     state->setLogProbs(logprobs);
@@ -171,7 +174,7 @@ class GumbelSoftmaxStep : public CostStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     auto logits = state->getLogProbs();
-    
+
     auto logprobs = logsoftmax(logits + constant_like(logits, inits::gumbel));
 
     state->setLogProbs(logprobs);
@@ -211,9 +214,9 @@ public:
 
   virtual void clear(Ptr<ExpressionGraph> graph) override { encdec_->clear(graph); }
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::Batch> batch,
-                     bool clearGraph = true) override {
+  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::Batch> batch,
+                                  bool clearGraph = true) override {
     auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
     return build(graph, corpusBatch, clearGraph);
   }
@@ -234,9 +237,9 @@ public:
     return cost_->apply(nextState);
   }
 
-  virtual Expr build(Ptr<ExpressionGraph> /*graph*/,
-                     Ptr<data::CorpusBatch> /*batch*/,
-                     bool /*clearGraph*/ = true) override {
+  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> /*graph*/,
+                                  Ptr<data::CorpusBatch> /*batch*/,
+                                  bool /*clearGraph*/ = true) override {
     ABORT("Wrong wrapper. Use models::Trainer or models::Scorer");
     return nullptr;
   }

@@ -134,7 +134,8 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
 
   // Compute gradients
   // This happens in multiple steps in case of delay_ > 1.
-  std::vector<float> localDeviceCosts(devices_.size(), 0.f); // [local device index] aggregate cost for each local device
+  std::vector<StaticLoss> localDeviceCosts(devices_.size());
+
   for (size_t t = 0; t < delay_; t++) {
     // Execute single forward/backward step
     auto forwardBackward = [&](size_t localDeviceIndex, size_t /*begin*/, size_t /*end*/) {
@@ -143,11 +144,12 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
 
       if(subBatch) {
         timer::Timer timer;
-        auto costNode = builders_[localDeviceIndex]->build(graph, subBatch);
+        auto rationalLoss = builders_[localDeviceIndex]->build(graph, subBatch);
         //LOG(info, timer.format(2, "after build: %ws"));
         graph->forward();
         //LOG(info, timer.format(2, "after forward (no sync): %ws"));
-        localDeviceCosts[localDeviceIndex] += costNode->scalar();
+        localDeviceCosts[localDeviceIndex] += *rationalLoss; // converts dynamic RationalLoss to StaticLoss
+
         graph->backward(/*zero=*/t == 0); // only reset gradients to 0 if t = 0
         //LOG(info, timer.format(2, "after backward (no sync): %ws"));
         //localDeviceCosts[localDeviceIndex] += costNode->scalar(); // moved here for time measurements; @TODO: move this back
@@ -168,15 +170,6 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
     auto curGrad = graphs_[idx]->params()->grads()->subtensor(begin, end-begin);
     auto curParam = graphs_[idx]->params()->vals()->subtensor(begin, end-begin);
 
-    // if individual gradients were averages, then need to average again over all subBatches
-    auto div = subBatches.size();
-    if (options_->get<std::string>("cost-type") == "ce-sum")
-      div = 1;
-    if(div != 1) {
-      using namespace functional;
-      Element(_1 = _1 / (float)div, curGrad);
-    }
-
     // actual model update
     shardOpt_[idx]->update(curParam, curGrad);
 
@@ -196,17 +189,13 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
   //LOG(info, timer.format(2, "after allGather (has sync): %ws"));
 
   // cost across all local devices (scheduler will aggregate cross-process)
-  float localCost = 0;
+  StaticLoss localLoss;
   for(auto& c : localDeviceCosts) // localDeviceCosts is already summed up over delay steps
-    localCost += c;
-
-  // if localCost is average-based, we need to turn the sum over devices into an average as well
-  if(options_->get<std::string>("cost-type") != "ce-sum")
-    localCost /= numSubBatches;
+    localLoss += c;
 
   if(scheduler_) {
-    // track and log localCost
-    scheduler_->update(localCost, subBatches, mpi_);
+    // track and log localLoss, @TODO: rather pass StaticLoss object
+    scheduler_->update(localLoss.loss, localLoss.labels, subBatches, mpi_);
 
     // save intermediate model (and optimizer state) to file
     if(scheduler_->saving())

@@ -537,7 +537,7 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
     }
 
     graph->forward();
-    cost += costNode->scalar();
+    cost += costNode->loss<float>();
     num_seen_words += batch->words();
     num_seen_sentences += batch->size();
     graph->backward();

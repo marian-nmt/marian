@@ -190,13 +190,14 @@ protected:
           }
 
           builder->clear(graph);
-          auto costNode = builder->build(graph, batch);
+          auto loss = builder->build(graph, batch);
           graph->forward();
 
           std::unique_lock<std::mutex> lock(mutex_);
-          cost += costNode->scalar();
+          cost  += loss->loss<float>();
+          words += (size_t)loss->labels<float>();
+
           samples += batch->size();
-          words += batch->back()->batchWords();
         };
 
         taskBarrier.push_back(threadPool_.enqueue(task, batchId));
@@ -254,7 +255,7 @@ protected:
             graph = graphs[id % graphs.size()];
           }
 
-          // Future: requires argmax implementation and integer arithmetics
+          // @TODO: requires argmax implementation and integer arithmetics
           // builder->clear(graph);
           // auto predicted = argmax(builder->build(graph, batch), /*axis*/-1);
           // auto labels    = graph->indices(batch->back()->data());
@@ -263,20 +264,21 @@ protected:
 
           // std::unique_lock<std::mutex> lock(mutex_);
           // totalLabels += labels->shape().elements();
-          // correct     += correct->scalar<int>();
+          // correct     += correct->scalar<IndexType>();
 
           builder->clear(graph);
-          auto logits = builder->build(graph, batch);
+          Expr logits = builder->build(graph, batch)->loss();
           graph->forward();
 
           std::vector<float> vLogits;
           logits->val()->get(vLogits);
-          const auto& labels = batch->back()->data();
+
+          const auto& groundTruth = batch->back()->data();
 
           IndexType cols = logits->shape()[-1];
 
           size_t thisCorrect = 0;
-          size_t thisLabels  = labels.size();
+          size_t thisLabels  = groundTruth.size();
 
           for(int i = 0; i < thisLabels; ++i) {
             // CPU-side Argmax
@@ -289,7 +291,7 @@ protected:
                 bestIndex = j;
               }
             }
-            thisCorrect += (size_t)(bestIndex == labels[i]);
+            thisCorrect += (size_t)(bestIndex == groundTruth[i]);
           }
 
           std::unique_lock<std::mutex> lock(mutex_);

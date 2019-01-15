@@ -33,15 +33,13 @@ public:
   virtual std::vector<Ptr<ClassifierState>> apply(Ptr<ExpressionGraph>, Ptr<data::CorpusBatch>, bool) = 0;
 
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::Batch> batch,
-                     bool clearGraph = true) override
-      = 0;
+  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::Batch> batch,
+                                  bool clearGraph = true) override = 0;
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::CorpusBatch> batch,
-                     bool clearGraph = true)
-      = 0;
+  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::CorpusBatch> batch,
+                                  bool clearGraph = true) = 0;
 
   virtual Ptr<Options> getOptions() = 0;
 };
@@ -194,17 +192,17 @@ public:
     return classifierStates;
   }
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::CorpusBatch> batch,
-                     bool clearGraph = true) override {
+  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::CorpusBatch> batch,
+                                  bool clearGraph = true) override {
     auto states = apply(graph, batch, clearGraph);
     // returns raw logits
-    return states[0]->getLogProbs();
+    return New<RationalLoss>(states[0]->getLogProbs(), nullptr); // @TODO: this should explode
   }
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::Batch> batch,
-                     bool clearGraph = true) override {
+  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::Batch> batch,
+                                  bool clearGraph = true) override {
     auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
     return build(graph, corpusBatch, clearGraph);
   }

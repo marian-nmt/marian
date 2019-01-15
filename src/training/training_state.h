@@ -99,6 +99,8 @@ public:
   size_t costCount{0};
   // Number of words seen since last display, for speed measurement
   size_t wordsDisp{0};
+  // Number of samples/sentences seen since last display
+  size_t samplesCount{0};
 
   // The state of the random number generator from a batch generator
   std::string seedBatch;

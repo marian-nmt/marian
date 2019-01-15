@@ -195,7 +195,7 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
       graph->forward();
       {
         std::lock_guard<std::mutex> guard(sumCostMutex_);
-        cost += costNode->scalar();
+        cost += costNode->loss<float>();
         num_seen_words += batch->words();
         num_seen_sentences += batch->size();
       }

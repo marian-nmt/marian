@@ -211,7 +211,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
     }
 
     graph->forward();
-    cost += costNode->scalar();
+    cost += costNode->loss<float>();
     graph->backward();
 
     Tensor gradients;

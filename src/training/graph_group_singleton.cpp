@@ -13,7 +13,7 @@ void SingletonGraph::execute(Ptr<data::Batch> batch) {
   auto costNode = builder_->build(graph_, batch);
 
   graph_->forward();
-  float cost = costNode->scalar();
+  float cost = costNode->loss<float>();
   graph_->backward();
 
   // Get batch stats

@@ -55,19 +55,25 @@ public:
     if(learnedPosEmbeddings) {
       int maxLength = opt<int>("max-length");
 
+      // Hack for translating with length longer than trained embeddings
+      Expr seenEmb = graph_->get("Wpos");
+      int numPos = seenEmb ? seenEmb->shape()[-2] : maxLength;
+
       auto posEmbFactory = embedding(graph_)
                             ("prefix", "Wpos") // share positional embeddings across all encoders/decorders
-                            ("dimVocab", maxLength)
+                            ("dimVocab", numPos)
                             ("dimEmb", dimEmb)
                             .construct();
 
-      std::vector<IndexType> positions(dimWords);
-      std::iota(positions.begin(), positions.end(), 0); // fill with increasing numbers until current length
+      // fill with increasing numbers until current length or maxPos
+      std::vector<IndexType> positions(dimWords, numPos - 1);
+      for(int i = 0; i < std::min(dimWords, numPos); ++i)
+        positions[i] = i;
 
       auto signal = rows(posEmbFactory, graph_->indices(positions));
       signal = reshape(signal, {dimWords, 1, dimEmb});
       embeddings = embeddings + signal;
-    } else {      
+    } else {
       auto signal = graph_->constant({dimWords, 1, dimEmb},
                                      inits::positions(start));
       // according to paper embeddings are scaled up by \sqrt(d_m)
@@ -560,7 +566,7 @@ public:
       int srcWords = batchEmbeddings->shape()[-3];
       batchEmbeddings = dropout(batchEmbeddings, dropoutSrc, {srcWords, 1, 1});
     }
-    
+
     batchEmbeddings = addSpecialEmbeddings(batchEmbeddings, /*start=*/0, batch);
 
     // reorganize batch and timestep
