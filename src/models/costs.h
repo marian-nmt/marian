@@ -14,6 +14,11 @@ namespace models {
 // Using MultiRationalLoss is a first improvement, but we can probably
 // unify classifier and decoder costs. Also rethink step-wise cost.
 
+// @TODO: inheritance and polymorphism is used here in a rather unclear way.
+// E.g. returns Ptr<MultiRationalLoss> which should be Ptr<RationalLoss>?
+// Other functions return RationalLoss directly without Ptr<...>, but also 
+// they do not need polymorphism here. 
+
 class CostBase {
 public:
   virtual Ptr<MultiRationalLoss> apply(Ptr<ModelBase> model,
@@ -28,6 +33,8 @@ protected:
 
   bool inference_{false};
   bool toBeWeighted_{false};
+
+  // @TODO: single loss seems wrong
   Ptr<LabelwiseLoss> loss_;
   Ptr<WeightingBase> weighter_;
 
@@ -68,14 +75,14 @@ public:
     multiLoss->push_back(partialLoss);
   
     if(options_->get("guided-alignment", std::string("none")) != "none" && !inference_) {
-      auto alignments = encdec->getDecoders()[0]->getAlignments();
-      ABORT_IF(alignments.empty(), "Model does not seem to support alignments");
+      auto attentionVectors = encdec->getDecoders()[0]->getAlignments();
+      ABORT_IF(attentionVectors.empty(), "Model does not seem to support alignments");
 
-      auto att = concatenate(alignments, /*axis =*/ -1);
+      auto attention = concatenate(attentionVectors, /*axis =*/ -1);
 
-      auto alignmentLoss = guidedAlignmentCost(graph, corpusBatch, options_, att);
+      auto alignmentLoss = guidedAlignmentCost(graph, corpusBatch, options_, attention);
       multiLoss->push_back(alignmentLoss);
-      
+
       return multiLoss;
     } else {
       return multiLoss;
@@ -87,6 +94,9 @@ class EncoderClassifierCE : public CostBase {
 protected:
   Ptr<Options> options_;
   bool inference_{false};
+
+  // @TODO: single loss seems wrong, especially since we support multiple objectives here,
+  // also not sure this needs to be a member at all. 
   Ptr<LabelwiseLoss> loss_;
 
 public:
