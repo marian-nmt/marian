@@ -81,9 +81,8 @@ protected:
 public:
   MultiRationalLoss() : RationalLoss() {}
 
-  MultiRationalLoss(const RationalLoss& rl)
-    : RationalLoss(rl.loss(), rl.labels()) {
-    partialLosses_.push_back(rl);
+  MultiRationalLoss(const RationalLoss& rl) : RationalLoss() {
+    this->push_back(rl);
   }
 
   void push_back(const RationalLoss& current) {
@@ -211,11 +210,8 @@ public:
                      Expr mask = nullptr, Expr labelWeights = nullptr) {
     Expr loss = compute(logits, labelIndices, mask, labelWeights);
 
-    Expr labels;
-    if(mask)
-      labels = mask;
-    else
-      labels = constant_like(loss, inits::ones); // we have no mask, assume all items are labels
+    Expr labels = mask ? mask                              // mask can be used as element-wise label count with broadcasting
+                       : constant_like(loss, inits::ones); // we have no mask, assume all items are labels
 
     return reduce(loss, labels);
   }

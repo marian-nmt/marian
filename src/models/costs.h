@@ -10,6 +10,10 @@
 namespace marian {
 namespace models {
 
+// @TODO: this whole file is an unholy mess and needs to be refactored.
+// Using MultiRationalLoss is a first improvement, but we can probably
+// unify classifier and decoder costs. Also rethink step-wise cost.
+
 class CostBase {
 public:
   virtual Ptr<MultiRationalLoss> apply(Ptr<ModelBase> model,
@@ -56,14 +60,13 @@ public:
     // multi-objective training
     Ptr<MultiRationalLoss> multiLoss = newMultiLoss(options_);
 
-    // @TODO: adapt to multi-objective training
+    // @TODO: adapt to multi-objective training with multiple decoders
     auto partialLoss = loss_->apply(state->getLogProbs(),
                                     state->getTargetIndices(),
                                     state->getTargetMask(),
                                     weights);
     multiLoss->push_back(partialLoss);
   
-
     if(options_->get("guided-alignment", std::string("none")) != "none" && !inference_) {
       auto alignments = encdec->getDecoders()[0]->getAlignments();
       ABORT_IF(alignments.empty(), "Model does not seem to support alignments");

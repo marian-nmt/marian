@@ -49,7 +49,7 @@ private:
     ss << "Cost ";
     ss << std::setprecision(8) << std::fixed;
 
-    // @TODO: put a single loss formatting funciton into loss.h and reuse here to avoid code duplication
+    // @TODO: put a single loss formatting function into loss.h and reuse here to avoid code duplication
     // @TODO: use dispLabelCounts with any display type?
     if(lossType == "ce-mean-words")
       ss << state->costSum / state->costCount;
@@ -60,11 +60,11 @@ private:
          << " after "
          << utils::withCommas(state->labelsTotal);
     else if(lossType == "ce-sum" && !dispLabelCounts)
-      ss << state->costSum;
+      ss << state->costSum / state->updatesDisp; // average over batches
     else if(lossType == "perplexity")
       ss << std::exp(state->costSum / state->costCount);
     else if(lossType == "cross-entropy" || lossType == "ce-mean") // backwards-compat, @TODO: get rid of this?
-      ss << state->costSum / state->samplesCount;
+      ss << state->costSum / state->samplesDisp;
     else
       ABORT("Unknown loss type {}", lossType);
 
@@ -187,7 +187,7 @@ public:
   }
 
   void update(float cost, Ptr<data::Batch> batch) {
-    ABORT("Fix me");
+    // @TODO: Check me and eventually remove me, currently here for back-compat.
     update(cost, batch->words(-1), std::vector<Ptr<data::Batch>>({batch}));
   }
 
@@ -213,9 +213,11 @@ public:
 
     state_->costSum      += cost;        // aggregate sum cost since last display
     state_->costCount    += batchLabels; // cost gets normalized w.r.t. this in display
-    state_->samplesCount += batchSize;
 
+    state_->updatesDisp  += 1;
+    state_->samplesDisp  += batchSize;
     state_->wordsDisp    += batchWords;  // words at given input processed since last display, for speed display
+
     state_->samplesEpoch += batchSize;   // sentences processed in this epoch
     state_->labelsTotal  += batchLabels; // total labels processed
 
@@ -261,7 +263,9 @@ public:
       timer_.start();
       state_->costSum      = 0;
       state_->costCount    = 0;
-      state_->samplesCount = 0;
+
+      state_->updatesDisp  = 0;
+      state_->samplesDisp  = 0;
       state_->wordsDisp    = 0;
     }
 
@@ -284,10 +288,12 @@ public:
 
     if(options_->get<bool>("no-restore-corpus")) {
       state_->samplesEpoch = 0;
-      state_->costSum = 0;
-      state_->costCount = 0;
-      state_->samplesCount = 0;
-      state_->wordsDisp = 0;
+      state_->costSum      = 0;
+      state_->costCount    = 0;
+
+      state_->updatesDisp  = 0;
+      state_->samplesDisp  = 0;
+      state_->wordsDisp    = 0;
     }
 
     state_->newLoad();

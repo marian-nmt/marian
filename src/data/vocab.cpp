@@ -13,11 +13,10 @@ Ptr<VocabBase> createVocab(const std::string& vocabPath, Ptr<Options> options, s
   if(vocab) {
     return vocab; // this is defined which means that a sentencepiece vocabulary could be created, so return it
   } else {
-    auto inputType = options->get<std::vector<std::string>>("input-types")[batchIndex];
-    if(inputType == "labels")
-      return createLabelsVocab();
-    else
-      return createDefaultVocab();
+    // check type of input, if not given, assume "sequence"
+    auto inputTypes = options->get<std::vector<std::string>>("input-types", {});
+    std::string inputType = inputTypes.size() > batchIndex ? inputTypes[batchIndex] : "sequence";
+    return inputType == "labels" ? createLabelsVocab() : createDefaultVocab();
   }
 }
 

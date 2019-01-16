@@ -250,8 +250,10 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
 void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.switchGroup("Training options");
   // clang-format off
-  cli.add<std::string>("--cost-type",
+  cli.add<std::string>("--cost-type", // @TODO: rename to loss-type
       "Optimization criterion: ce-mean, ce-mean-words, ce-sum, perplexity", "ce-mean");
+  cli.add<std::string>("--multi-loss-type",
+      "How to accumulate multi-objective losses: sum, scaled, mean", "sum");
   cli.add<bool>("--overwrite",
       "Do not create model checkpoints, only overwrite main model file with last checkpoint. "
       "Reduces disk usage");

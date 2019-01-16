@@ -52,6 +52,7 @@ public:
     int dimWords = input->shape()[-3];
 
     Expr embeddings = input;
+
     if(learnedPosEmbeddings) {
       int maxLength = opt<int>("max-length");
 
@@ -84,11 +85,9 @@ public:
     return embeddings;
   }
 
-  virtual Expr addSpecialEmbeddings(Expr input, int start = 0, Ptr<data::CorpusBatch> batch = nullptr) const {
-    batch;
+  virtual Expr addSpecialEmbeddings(Expr input, int start = 0, Ptr<data::CorpusBatch> /*batch*/ = nullptr) const {
     bool learnedPosEmbeddings = opt<bool>("transformer-learned-positions", false);
-    input = addPositionalEmbeddings(input, start, learnedPosEmbeddings);
-    return input;
+    return addPositionalEmbeddings(input, start, learnedPosEmbeddings);
   }
 
   Expr triangleMask(int length) const {
@@ -706,20 +705,16 @@ public:
 
     //************************************************************************//
 
-    int dimEmb = embeddings->shape()[-1];
     int dimBeam = 1;
     if(embeddings->shape().size() > 3)
       dimBeam = embeddings->shape()[-4];
-
-    // according to paper embeddings are scaled by \sqrt(d_m)
-    auto scaledEmbeddings = std::sqrt((float)dimEmb) * embeddings;
 
     // set current target token position during decoding or training. At training
     // this should be 0. During translation the current length of the translation.
     // Used for position embeddings and creating new decoder states.
     int startPos = (int)state->getPosition();
 
-    scaledEmbeddings = addSpecialEmbeddings(scaledEmbeddings, startPos);
+    auto scaledEmbeddings = addSpecialEmbeddings(embeddings, startPos);
     scaledEmbeddings = atleast_nd(scaledEmbeddings, 4);
 
     // reorganize batch and timestep
