@@ -416,7 +416,8 @@ class CSRDotNodeOp : public NaryNodeOp {
   bool swapOperands_;
 public:
   CSRDotNodeOp(const Shape& S_shape, Expr S_values, Expr S_indices, Expr S_offsets, Expr D, bool transS, bool swapOperands)
-      : NaryNodeOp({ S_values, S_indices, S_offsets, D }, newShape(S_shape, S_values, S_indices, S_offsets, D, transS, swapOperands)), transS_(transS) {
+      : NaryNodeOp({ S_values, S_indices, S_offsets, D }, newShape(S_shape, S_values, S_indices, S_offsets, D, transS, swapOperands)),
+                   transS_(transS), swapOperands_(swapOperands){
     matchOrAbort<IndexType>(S_indices->value_type());
     matchOrAbort<IndexType>(S_offsets->value_type());
   }
