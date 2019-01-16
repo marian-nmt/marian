@@ -43,7 +43,7 @@ public:
       LOG(info,
           "[batching] Collecting statistics for batch fitting with step size {}",
           options_->get<size_t>("mini-batch-fit-step"));
-      // @TODO this should receive a function object that can generate a fake batch
+      // @TODO this should receive a function object that can generate a fake batch;
       // that way vocabs would not be exposed. 
       auto model = New<ModelWrapper>(options_, mpi);
       model->setScheduler(scheduler); // collectStats() needs to know about dynamic MB scaling
