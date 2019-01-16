@@ -134,7 +134,7 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
 
   // Compute gradients
   // This happens in multiple steps in case of delay_ > 1.
-  std::vector<StaticLoss> localDeviceCosts(devices_.size());
+  std::vector<StaticLoss> localDeviceLosses(devices_.size());
 
   for (size_t t = 0; t < delay_; t++) {
     // Execute single forward/backward step
@@ -148,11 +148,11 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
         //LOG(info, timer.format(2, "after build: %ws"));
         graph->forward();
         //LOG(info, timer.format(2, "after forward (no sync): %ws"));
-        localDeviceCosts[localDeviceIndex] += *rationalLoss; // converts dynamic RationalLoss to StaticLoss
+        localDeviceLosses[localDeviceIndex] += *rationalLoss; // converts dynamic RationalLoss to StaticLoss
 
         graph->backward(/*zero=*/t == 0); // only reset gradients to 0 if t = 0
         //LOG(info, timer.format(2, "after backward (no sync): %ws"));
-        //localDeviceCosts[localDeviceIndex] += costNode->scalar(); // moved here for time measurements; @TODO: move this back
+        //localDeviceLosses[localDeviceIndex] += costNode->scalar(); // moved here for time measurements; @TODO: move this back
         //LOG(info, timer.format(2, "after scalar() (that's a sync): %ws"));
       }
       else { // empty batch: execute do-nothing fw-bw step for proper inits and resets
@@ -190,12 +190,11 @@ void SyncGraphGroup::update(Ptr<data::Batch> batch) /*override*/ {
 
   // cost across all local devices (scheduler will aggregate cross-process)
   StaticLoss localLoss;
-  for(auto& c : localDeviceCosts) // localDeviceCosts is already summed up over delay steps
-    localLoss += c;
+  for(auto& l : localDeviceLosses) // localDeviceLosses is already summed up over delay steps
+    localLoss += l;
 
   if(scheduler_) {
-    // track and log localLoss, @TODO: rather pass StaticLoss object
-    scheduler_->update(localLoss.loss, localLoss.labels, subBatches, mpi_);
+    scheduler_->update(localLoss, subBatches, mpi_);
 
     // save intermediate model (and optimizer state) to file
     if(scheduler_->saving())

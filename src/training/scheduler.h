@@ -4,6 +4,7 @@
 #include "training/training_state.h"
 #include "training/validator.h"
 #include "training/communicator.h"
+#include "layers/loss.h"
 
 namespace marian {
 
@@ -187,17 +188,15 @@ public:
     return 0;
   }
 
-  void update(float cost, Ptr<data::Batch> batch) {
-    // @TODO: Check me and eventually remove me, currently here for back-compat.
-    update(cost, batch->words(-1), std::vector<Ptr<data::Batch>>({batch}));
+  void update(StaticLoss rationalLoss, Ptr<data::Batch> batch) {
+    update(rationalLoss, std::vector<Ptr<data::Batch>>({batch}));
   }
 
-  void update(float cost, float labels, const std::vector<Ptr<data::Batch>>& batches, Ptr<IMPIWrapper> mpi = nullptr) {
+  void update(StaticLoss rationalLoss, const std::vector<Ptr<data::Batch>>& batches, Ptr<IMPIWrapper> mpi = nullptr) {
     state_->rememberPreviousProgress(); // note: epoch increases happen at the wrong place, hence -freq parameters do not support epoch units
     state_->validated = false;
 
     size_t batchSize = 0;    // number of sentences in batch
-    size_t batchLabels = (size_t)labels;  // number of target words in batch
     size_t batchWords  = 0;
 
     for(const auto& batch : batches) {
@@ -210,17 +209,17 @@ public:
     // extrapolate cost across MPI processes, so that we have numbers in the right range
     // When doing the actual log, we then aggregate across MPI processes to get the accurate number.
     if (mpi)
-      cost *= mpi->numMPIProcesses();
+      rationalLoss.loss *= mpi->numMPIProcesses();
 
-    state_->costSum      += cost;        // aggregate sum cost since last display
-    state_->costCount    += batchLabels; // cost gets normalized w.r.t. this in display
+    state_->costSum      += rationalLoss.loss;   // aggregate sum cost since last display
+    state_->costCount    += rationalLoss.labels; // cost gets normalized w.r.t. this in display
 
     state_->updatesDisp  += 1;
     state_->samplesDisp  += batchSize;
-    state_->wordsDisp    += batchWords;  // words at given input processed since last display, for speed display
+    state_->wordsDisp    += batchWords;          // words at given input processed since last display, for speed display
 
-    state_->samplesEpoch += batchSize;   // sentences processed in this epoch
-    state_->labelsTotal  += batchLabels; // total labels processed
+    state_->samplesEpoch += batchSize;           // sentences processed in this epoch
+    state_->labelsTotal  += rationalLoss.labels; // total labels processed
 
     state_->newBatch();
 
