@@ -40,6 +40,7 @@ void CSRProd(marian::Tensor C,
              const marian::Tensor& A_offsets,
              const marian::Tensor& B,
              bool transA,
+             bool swapOperands,
              float beta = 0);
 }  // namespace gpu
 }  // namespace marian
