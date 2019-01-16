@@ -267,7 +267,8 @@ void CSRProd(marian::Tensor C,
   Ptr<MemoryPiece> St_values, St_indices, St_offsets;
   if (transS != swapOperands) {
     // Cusparse gemmi() does not support this specific version of transpose, and csrmm() is non-deterministic.
-    // Hence, we transpose the matrix explicitly. Note that gemmi() expects a CSC, while csrmm() a CSR.
+    // Hence, we transpose the matrix explicitly.
+    // Note that gemmi() expects a CSC, while csrmm() a CSR; hence, the strange condition (transS != swapOperands) above.
     St_values  = allocator->alloc<float>(numValues);
     St_indices = allocator->alloc<int>(numValues);
     St_offsets = allocator->alloc<int>(colsS + 1);
@@ -276,7 +277,7 @@ void CSRProd(marian::Tensor C,
         /*m=*/ rowsS, // number of rows of matrix
         /*n=*/ colsS, // number of columns of matrix
         /*nnz=*/ (int)numValues,
-        /*csrcVal=*/          S_values->data<float>(),  // second arg
+        /*csrcVal=*/          S_values ->data<float>(),
         /*csrcRowPtr=*/ (int*)S_offsets->data<IndexType>(),
         /*csrcColInd=*/ (int*)S_indices->data<IndexType>(),
         /*cscVal=*/    St_values ->data<float>(),  // transposed version goes here
@@ -284,11 +285,12 @@ void CSRProd(marian::Tensor C,
         /*cscColPtr=*/ St_offsets->data<int>(),
         /*copyValues=*/ CUSPARSE_ACTION_NUMERIC,
         /*idxBase=*/ CUSPARSE_INDEX_BASE_ZERO));
-    std::swap(rowsS, colsS); // dims of the explicitly transposed object
+    std::swap(rowsS, colsS); // these variables now represent the dims of the explicitly transposed object
   }
   if (swapOperands) {
     // C = D x S for row-major matrices
-    // Implemented via cusparse as C' = S' x D' ("csrmm") where C' and D' are column-major, and S' is CSC.
+    // Implemented via cusparse as C' = S' x D' ("csrmm") where C' and D' are column-major,
+    // and S' is CSR (if not transS then we make a transposed copy).
     cusparseMatDescr_t descrA;
     CUSPARSE_CHECK(cusparseCreateMatDescr(&descrA));
     cusparseSetMatType     (descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
@@ -300,7 +302,7 @@ void CSRProd(marian::Tensor C,
         /*k=*/ colsS, // #cols of first (CSR) factor
         /*nnz=*/ (int)numValues,
         &alpha, descrA,
-        /*csrValA=*/    St_values  ? St_values ->data<float>() :       S_values ->data<float>(),  // second arg
+        /*csrValA=*/    St_values  ? St_values ->data<float>() :       S_values ->data<float>(),
         /*csrRowPtrA=*/ St_offsets ? St_offsets->data<int>()   : (int*)S_offsets->data<IndexType>(),
         /*csrColIndA=*/ St_indices ? St_indices->data<int>()   : (int*)S_indices->data<IndexType>(),
         D->data(),
@@ -321,7 +323,7 @@ void CSRProd(marian::Tensor C,
         &alpha,
         /*A=*/ D->data(),
         /*lda=*/ colsD, // stride
-        /*cscValB=*/    St_values  ? St_values ->data<float>() :       S_values ->data<float>(),  // second arg
+        /*cscValB=*/    St_values  ? St_values ->data<float>() :       S_values ->data<float>(),
         /*cscRowPtrB=*/ St_offsets ? St_offsets->data<int>()   : (int*)S_offsets->data<IndexType>(),
         /*cscColIndB=*/ St_indices ? St_indices->data<int>()   : (int*)S_indices->data<IndexType>(),
         &beta,
