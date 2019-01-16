@@ -237,9 +237,11 @@ public:
     warmupStart = SchedulingParameter::parse(config["warmup-start"].as<std::string>());
 
     costSum = config["cost-sum"].as<float>();
-    // (different serialization name for back compat)
-    costCount = config["disp-samples"].as<size_t>();
+    costCount = config["cost-count"].as<size_t>();
+
     wordsDisp = config["disp-words"].as<size_t>();
+    samplesDisp = config["disp-samples"].as<size_t>();
+    updatesDisp = config["disp-updates"].as<size_t>();
 
     seedBatch = config["seed-batch"].as<std::string>();
     seedCorpus = config["seed-corpus"].as<std::string>();
@@ -270,7 +272,10 @@ public:
     config["warmup-start"] = std::string(warmupStart);
 
     config["cost-sum"] = costSum;
-    config["disp-samples"] = costCount;
+    config["cost-count"] = costCount;
+
+    config["disp-updates"] = updatesDisp;
+    config["disp-samples"] = samplesDisp;
     config["disp-words"] = wordsDisp;
 
     config["seed-batch"] = seedBatch;
