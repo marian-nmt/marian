@@ -63,7 +63,7 @@ public:
       tensors_->allocate(node->grad(), node->shape(), node->value_type());
   }
 
-  void free(Tensor& tensor) { tensors_->free(tensor); }
+  void free(const Tensor& tensor) { tensors_->free(tensor); }
 
   // @TODO: get rid of this, not really used or can be done better
   Ptr<Allocator> allocator() { return tensors_->allocator(); }
@@ -437,7 +437,7 @@ public:
       tensors_->allocateBackward(node);
   }
 
-  void free(Tensor& tensor) {
+  void free(const Tensor& tensor) {
     if(tensors_)
       tensors_->free(tensor);
   }

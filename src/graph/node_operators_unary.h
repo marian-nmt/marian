@@ -737,29 +737,36 @@ public:
   }
 };
 
-class StepNodeOp : public UnaryNodeOp {
+// narrow an axis to [begin, end)
+// The resulting object must be consecutive in memory.
+class SliceViewNodeOp : public UnaryNodeOp {
 private:
-  Expr stepNode_;
-  int step_;
-  int axis_;
+  Expr viewedNode_; // viewed underlying node
+  Slice slice_;     // index range
+  int axis_;        // and axis along which it is viewed
+  size_t byteOffset_, byteSize_; // viewed segment in bytes (memory-consecutive)
 
 public:
-  StepNodeOp(Expr a, int step, int axis)
-      : UnaryNodeOp(a, newShape(a, axis)), stepNode_(a), step_(step) {
+  SliceViewNodeOp(Expr a, Slice slice, int axis)
+      : UnaryNodeOp(a, newShape(a, slice, axis)), viewedNode_(a), slice_(slice), axis_(axis) {
     Node::destroy_ = false;
+    auto byteStride = a->shape().stride(axis) * sizeOf(value_type());
+    byteOffset_ = slice.begin * byteStride;
+    byteSize_ = shape()[axis] * byteStride;
   }
 
-  Shape newShape(Expr a, int axis) {
-    Shape outShape = a->shape();
-
-    axis_ = outShape.axis(axis);
-#if 0  // this check currently fails in translation; I think should not fail for
-       // step==0
-    for(int i = 0; i < axis_; ++i)
-      ABORT_IF(outShape[i] != 1, "non-consecutive slices are presently not supported by step()");
-#endif
-    outShape.set(axis_, 1);
-
+  static Shape newShape(Expr a, Slice& slice, int& axis) { // note: normalizes slice and axis in-place
+    const auto& shape = a->shape();
+    axis  = shape.axis(axis);         // normalize negative axis
+    slice = shape.slice(slice, axis); // normalize negative slice values
+    // enforce consecutive memory
+    if (slice.begin != 0 || slice.end != shape[axis] || slice.stride != 1) { // unless it's a no-op
+      ABORT_IF(slice.stride != 1, "Strides other than 1 are presently not supported by sliceView()");
+      for(int i = 0; i < axis; ++i)
+        ABORT_IF(shape[i] != 1, "Non-consecutive slices are presently not supported by sliceView()");
+    }
+    Shape outShape = shape;
+    outShape.set(axis, slice.end - slice.begin);
     return outShape;
   }
 
@@ -769,36 +776,34 @@ public:
   void forward() override {}
   void backward() override {}
 
-  void init_dependent() override { stepNode_->init_dependent(); }
+  void init_dependent() override { viewedNode_->init_dependent(); }
 
-  void set_zero_adjoint() override { stepNode_->set_zero_adjoint(); }
+  void set_zero_adjoint() override { viewedNode_->set_zero_adjoint(); } // lazily allocate and zero out gradient (only runs once)
 
   Tensor& val() override {
-    auto childVal = stepNode_->val();
-    size_t offset = step_ * shape().elements() * sizeof(float);
-    auto mem = New<MemoryPiece>(childVal->memory()->data() + offset,
-                                childVal->memory()->size());
+    auto childVal = viewedNode_->val();
+    auto mem = New<MemoryPiece>(childVal->memory()->data() + byteOffset_, byteSize_);
     val_.reset(new TensorBase(mem, shape(), childVal->getBackend()));
     return val_;
   };
 
   Tensor& grad() override {
-    auto childGrad = stepNode_->grad();
-    size_t offset = step_ * shape().elements() * sizeof(float);
-    auto mem = New<MemoryPiece>(childGrad->memory()->data() + offset,
-                                childGrad->memory()->size());
+    auto childGrad = viewedNode_->grad();
+    auto mem = New<MemoryPiece>(childGrad->memory()->data() + byteOffset_, byteSize_);
     adj_.reset(new TensorBase(mem, shape(), childGrad->getBackend()));
     return adj_;
   };
 
-  const std::string type() override { return "step"; }
+  const std::string type() override { return "sliceView"; }
 
   const std::string color() override { return "grey"; }
 
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      util::hash_combine(hash_, step_);
+      util::hash_combine(hash_, slice_.begin);
+      util::hash_combine(hash_, slice_.end);
+      util::hash_combine(hash_, slice_.stride);
       util::hash_combine(hash_, axis_);
     }
     return hash_;
@@ -807,10 +812,10 @@ public:
   virtual bool equal(Expr node) override {
     if(!NaryNodeOp::equal(node))
       return false;
-    Ptr<StepNodeOp> cnode = std::dynamic_pointer_cast<StepNodeOp>(node);
+    Ptr<SliceViewNodeOp> cnode = std::dynamic_pointer_cast<SliceViewNodeOp>(node);
     if(!cnode)
       return false;
-    if(step_ != cnode->step_)
+    if(slice_ != cnode->slice_)
       return false;
     if(axis_ != cnode->axis_)
       return false;

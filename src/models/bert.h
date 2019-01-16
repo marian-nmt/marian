@@ -151,22 +151,22 @@ public:
     int dimBatch = embeddings->shape()[-2];
     int dimWords = embeddings->shape()[-3];
 
-    Expr sentenceEmbeddings;
+    Expr signal;
     if(learnedPosEmbeddings) {
-      sentenceEmbeddings = embedding(graph_)
+      auto sentenceEmbeddings = embedding()
                                ("prefix", "Wsent")
                                ("dimVocab", 2) // sentence A or sentence B
                                ("dimEmb", dimEmb)
-                               .construct();
+                               .construct(graph_);
+      signal = sentenceEmbeddings->apply(bertBatch->bertSentenceIndices(), {dimWords, dimBatch, dimEmb});
     } else {
+      // @TODO: factory for postional embeddings?
       // trigonometric positions, no backprob
-      sentenceEmbeddings = graph_->constant({2, dimEmb}, inits::positions(0));
+      auto sentenceEmbeddingsExpr = graph_->constant({2, dimEmb}, inits::positions(0));
+      signal = rows(sentenceEmbeddingsExpr, bertBatch->bertSentenceIndices());
+      signal = reshape(signal, {dimWords, dimBatch, dimEmb});
     }
 
-    auto sentenceIndices = graph_->indices(bertBatch->bertSentenceIndices());
-
-    auto signal = rows(sentenceEmbeddings, sentenceIndices);
-    signal = reshape(signal, {dimWords, dimBatch, dimEmb});
     return embeddings + signal;
   }
 
@@ -193,15 +193,15 @@ public:
     int dimModel = classEmbeddings->shape()[-1];
     int dimTrgCls = opt<std::vector<int>>("dim-vocabs")[batchIndex_]; // Target vocab is used as class labels
 
-    auto output = mlp::mlp(graph)                                     //
-                    .push_back(mlp::dense(graph)                      //
+    auto output = mlp::mlp()                                     //
+                    .push_back(mlp::dense()                      //
                                  ("prefix", prefix_ + "_ff_logit_l1") //
                                  ("dim", dimModel)                    //
                                  ("activation", mlp::act::tanh))      // @TODO: do we actually need this?
-                    .push_back(mlp::output(graph)                     //
+                    .push_back(mlp::output()                     //
                                  ("dim", dimTrgCls))                  //
                                  ("prefix", prefix_ + "_ff_logit_l2") //
-                    .construct();
+                    .construct(graph);
 
     auto logits = output->apply(classEmbeddings); // class logits for each batch entry
 
@@ -242,22 +242,22 @@ public:
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
-    auto layerTanh = mlp::dense(graph)    //
+    auto layerTanh = mlp::dense()    //
         ("prefix", prefix_ + "_ff_logit_maskedlm_out_l1") //
         ("dim", dimModel)                 //
         ("activation", mlp::act::tanh);   //
-    auto layerOut = mlp::output(graph)    //
+    auto layerOut = mlp::output()    //
         ("prefix", prefix_ + "_ff_logit_maskedlm_out_l2") //
         ("dim", dimVoc);                  //
-    layerOut.tie_transposed("W", "Wemb"); // We are a BERT model, hence tie with input
+    layerOut.tieTransposed("Wemb"); // We are a BERT model, hence tie with input
 
     // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
     // assemble layers into MLP and apply to embeddings, decoder context and
     // aligned source context
-    auto output = mlp::mlp(graph)                      //
+    auto output = mlp::mlp()                      //
         .push_back(layerTanh)                          // @TODO: do we actually need this?
         .push_back(layerOut)                           //
-        .construct();
+        .construct(graph);
 
     auto logits = output->apply(maskedEmbeddings);
 

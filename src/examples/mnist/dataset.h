@@ -63,7 +63,7 @@ public:
 
   void push_back(Input input) { inputs_.push_back(input); }
 
-  virtual std::vector<Ptr<Batch>> split(size_t /*n*/) override { ABORT("Not implemented"); }
+  virtual std::vector<Ptr<Batch>> split(size_t /*n*/, size_t /*sizeLimit*/) override { ABORT("Not implemented"); }
 
   Data& features() { return inputs_[0].data(); }
 

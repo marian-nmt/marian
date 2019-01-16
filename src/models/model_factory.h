@@ -11,27 +11,28 @@ namespace models {
 
 class EncoderFactory : public Factory {
 public:
-  EncoderFactory(Ptr<ExpressionGraph> graph = nullptr) : Factory(graph) {}
+  EncoderFactory(Ptr<ExpressionGraph> graph = nullptr) : Factory() {}
 
-  virtual Ptr<EncoderBase> construct();
+  virtual Ptr<EncoderBase> construct(Ptr<ExpressionGraph> graph);
 };
 
 typedef Accumulator<EncoderFactory> encoder;
 
 class DecoderFactory : public Factory {
 public:
-  DecoderFactory(Ptr<ExpressionGraph> graph = nullptr) : Factory(graph) {}
+  DecoderFactory(Ptr<ExpressionGraph> graph = nullptr) : Factory() {}
 
-  virtual Ptr<DecoderBase> construct();
+  virtual Ptr<DecoderBase> construct(Ptr<ExpressionGraph> graph);
 };
 
 typedef Accumulator<DecoderFactory> decoder;
 
 class ClassifierFactory : public Factory {
 public:
-  ClassifierFactory(Ptr<ExpressionGraph> graph = nullptr) : Factory(graph) {}
+  ClassifierFactory(Ptr<ExpressionGraph> graph = nullptr) 
+     : Factory() {}
 
-  virtual Ptr<ClassifierBase> construct();
+  virtual Ptr<ClassifierBase> construct(Ptr<ExpressionGraph> graph);
 };
 
 typedef Accumulator<ClassifierFactory> classifier;
@@ -43,7 +44,7 @@ private:
 
 public:
   EncoderDecoderFactory(Ptr<ExpressionGraph> graph = nullptr)
-      : Factory(graph) {}
+      : Factory() {}
 
   Accumulator<EncoderDecoderFactory> push_back(encoder enc) {
     encoders_.push_back(enc);
@@ -55,7 +56,7 @@ public:
     return Accumulator<EncoderDecoderFactory>(*this);
   }
 
-  virtual Ptr<ModelBase> construct();
+  virtual Ptr<ModelBase> construct(Ptr<ExpressionGraph> graph);
 };
 
 typedef Accumulator<EncoderDecoderFactory> encoder_decoder;
@@ -67,7 +68,7 @@ private:
 
 public:
   EncoderClassifierFactory(Ptr<ExpressionGraph> graph = nullptr)
-      : Factory(graph) {}
+      : Factory() {}
 
   Accumulator<EncoderClassifierFactory> push_back(encoder enc) {
     encoders_.push_back(enc);
@@ -79,7 +80,7 @@ public:
     return Accumulator<EncoderClassifierFactory>(*this);
   }
 
-  virtual Ptr<ModelBase> construct();
+  virtual Ptr<ModelBase> construct(Ptr<ExpressionGraph> graph);
 };
 
 typedef Accumulator<EncoderClassifierFactory> encoder_classifier;

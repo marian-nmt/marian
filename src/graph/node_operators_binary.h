@@ -42,7 +42,7 @@ public:
     Shape outShape = shapeA;
     outShape.set(outShape.size() - 1, shapeB[shapeB.size() - 1]);
     ABORT_IF(shapeA[shapeA.size() - 1] != shapeB[shapeB.size() - 2],
-             "matrix product requires dimensions to match");
+             "Matrix product requires dimensions to match");
     return outShape;
   }
 
@@ -165,7 +165,7 @@ public:
     Shape outShape = shapeA;
     outShape.set(outShape.size() - 1, shapeB[shapeB.size() - 1]);
     ABORT_IF(shapeA[shapeA.size() - 1] != shapeB[shapeB.size() - 2],
-             "matrix product requires dimensions to match");
+             "Matrix product requires dimensions to match");
     return outShape;
   }
 
@@ -309,7 +309,7 @@ public:
     Shape outShape = shapeA;
     outShape.set(-1, shapeB[-1]);
     ABORT_IF(shapeA[-1] != shapeB[-2],
-             "matrix product requires dimensions to match");
+             "Batched matrix product requires dimensions to match");
     return outShape;
   }
 
@@ -812,6 +812,35 @@ struct MinimumNodeOp : public ElementBinaryNodeOp {
   }
 
   const std::string type() override { return "min"; }
+};
+
+struct CmpNodeOp : public ElementBinaryNodeOp {
+  CmpNodeOp(Expr a, Expr b, int cmp_, bool not_) : ElementBinaryNodeOp(a, b), cmp_(cmp_), not_(not_) {
+    setTrainable(false); // has no gradient
+  }
+
+  NodeOps forwardOps() override {
+    using namespace functional;
+
+    return {
+      NodeOp(Element(_1 = ((((_2 > _3) - (_2 < _3)) == (float)cmp_) != not_),
+             val_, child(0)->val(), child(1)->val()))};
+  }
+
+  NodeOps backwardOps() override { return {}; }
+
+  const std::string type() override {
+    switch (cmp_) {
+    case -1: return not_ ? "ge" : "lt";
+    case  0: return not_ ? "ne" : "eq";
+    case  1: return not_ ? "le" : "gt";
+    }
+    ABORT("Should not get here??");
+  }
+
+private:
+  int cmp_;  // -1: less; 0: equal; 1: greater
+  bool not_; // invert result if true
 };
 
 // In each j-th row, take the corresponding j-th label index i from indices and compute:

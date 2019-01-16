@@ -149,5 +149,40 @@ bool endsWith(const std::string& text, const std::string& suffix) {
          && !text.compare(text.size() - suffix.size(), suffix.size(), suffix);
 }
 
+std::string toUpper(const std::string& s) {
+  std::locale loc;
+  std::string res; res.reserve(s.capacity());
+  for (auto c : s) // @BUGBUG: This won't work with UTF-8 characters.
+    res.push_back((char)std::toupper(c, loc));
+  return res;
+}
+
+double parseDouble(std::string s) {
+  double res;
+  char c; // dummy char--if we succeed to parse this, then there were extraneous characters after the number
+  auto rc = sscanf(s.c_str(), "%lf%c", &res, &c);
+  ABORT_IF(rc != 1, "Mal-formed number: {}", s);
+  return res;
+}
+
+// parses a user-friendly number that can have commas and (some) units
+double parseNumber(std::string param) {
+  // get unit prefix
+  double factor = 1.;
+  if (!param.empty() && param.back() >= 'A') {
+    switch (param.back()) {
+    case 'k': factor = 1.e3;  break;
+    case 'M': factor = 1.e6;  break;
+    case 'G': factor = 1.e9;  break;
+    case 'T': factor = 1.e12; break;
+    default: ABORT("Invalid or unsupported unit prefix '{}' in {}", param.back(), param);
+    }
+    param.pop_back();
+  }
+  // we allow users to place commas in numbers (note: we are not actually verifying that they are in the right place)
+  std::remove_if(param.begin(), param.end(), [](char c) { return c == ','; });
+  return factor * parseDouble(param);
+}
+
 }  // namespace utils
 }  // namespace marian

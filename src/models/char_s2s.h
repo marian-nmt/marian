@@ -13,12 +13,11 @@ public:
 
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
                                   Ptr<data::CorpusBatch> batch) override {
-    auto embeddings = buildSourceEmbeddings(graph);
+    auto embedding = createSourceEmbedding(graph);
 
     // select embeddings that occur in the batch
-    Expr batchEmbeddings, batchMask;
-    std::tie(batchEmbeddings, batchMask)
-        = EncoderBase::lookup(graph, embeddings, batch);
+    Expr batchEmbeddings, batchMask; std::tie
+    (batchEmbeddings, batchMask) = embedding->apply(batch->front());
 
     // apply dropout over source words
     float dropProb = inference_ ? 0 : opt<float>("dropout-src");

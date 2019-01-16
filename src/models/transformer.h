@@ -60,11 +60,11 @@ public:
       Expr seenEmb = graph_->get("Wpos");
       int numPos = seenEmb ? seenEmb->shape()[-2] : maxLength;
 
-      auto posEmbFactory = embedding(graph_)
+      auto posEmbFactory = embedding()
                             ("prefix", "Wpos") // share positional embeddings across all encoders/decorders
                             ("dimVocab", numPos)
                             ("dimEmb", dimEmb)
-                            .construct();
+                            .construct(graph_);
 
       // fill with increasing numbers until current length or maxPos
       std::vector<IndexType> positions(dimWords, numPos - 1);
@@ -72,8 +72,7 @@ public:
         positions[i] = i;
 
       // @TODO : test if embeddings should be scaled here too!
-      auto signal = rows(posEmbFactory, graph_->indices(positions));
-      signal = reshape(signal, {dimWords, 1, dimEmb});
+      auto signal = posEmbFactory->apply(positions, {dimWords, 1, dimEmb});
       embeddings = embeddings + signal;
     } else {
       auto signal = graph_->constant({dimWords, 1, dimEmb},
@@ -470,15 +469,15 @@ public:
                        int /*startPos*/) const {
     float dropoutRnn = inference_ ? 0.f : opt<float>("dropout-rnn");
 
-    auto rnn = rnn::rnn(graph_)                                    //
+    auto rnn = rnn::rnn()                                          //
         ("type", opt<std::string>("dec-cell"))                     //
         ("prefix", prefix)                                         //
         ("dimInput", opt<int>("dim-emb"))                          //
         ("dimState", opt<int>("dim-emb"))                          //
         ("dropout", dropoutRnn)                                    //
         ("layer-normalization", opt<bool>("layer-normalization"))  //
-        .push_back(rnn::cell(graph_))                              //
-        .construct();
+        .push_back(rnn::cell())                                    //
+        .construct(graph_);
 
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
     auto opsPre = opt<std::string>("transformer-preprocess");
@@ -504,26 +503,25 @@ public:
   // returns the embedding matrix based on options
   // and based on batchIndex_.
 
-  std::vector<Expr> ULREmbeddings() const {
+  Ptr<IEmbeddingLayer> createULREmbeddingLayer() const {
     // standard encoder word embeddings
     int dimSrcVoc = opt<std::vector<int>>("dim-vocabs")[0];  //ULR multi-lingual src
     int dimTgtVoc = opt<std::vector<int>>("dim-vocabs")[1];  //ULR monon tgt
     int dimEmb = opt<int>("dim-emb");
     int dimUlrEmb = opt<int>("ulr-dim-emb");
-    auto embFactory = ulr_embedding(graph_)("dimSrcVoc", dimSrcVoc)("dimTgtVoc", dimTgtVoc)
-                                           ("dimUlrEmb", dimUlrEmb)("dimEmb", dimEmb)
-                                           ("ulrTrainTransform", opt<bool>("ulr-trainable-transformation"))
-                                           ("ulrQueryFile", opt<std::string>("ulr-query-vectors"))
-                                           ("ulrKeysFile", opt<std::string>("ulr-keys-vectors"));
-    return embFactory.construct();
+    auto embFactory = ulr_embedding()("dimSrcVoc", dimSrcVoc)("dimTgtVoc", dimTgtVoc)
+                                     ("dimUlrEmb", dimUlrEmb)("dimEmb", dimEmb)
+                                     ("ulrTrainTransform", opt<bool>("ulr-trainable-transformation"))
+                                     ("ulrQueryFile", opt<std::string>("ulr-query-vectors"))
+                                     ("ulrKeysFile", opt<std::string>("ulr-keys-vectors"));
+    return embFactory.construct(graph_);
   }
 
-  Expr wordEmbeddings(size_t subBatchIndex) const {
+  Ptr<IEmbeddingLayer> createWordEmbeddingLayer(size_t subBatchIndex) const {
     // standard encoder word embeddings
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[subBatchIndex];
     int dimEmb = opt<int>("dim-emb");
-    auto embFactory = embedding(graph_)("dimVocab", dimVoc)("dimEmb", dimEmb);
-
+    auto embFactory = embedding()("dimVocab", dimVoc)("dimEmb", dimEmb);
     if (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
       embFactory("prefix", "Wemb");
     else
@@ -535,7 +533,7 @@ public:
       embFactory("embFile", embFiles[subBatchIndex])
                 ("normalization", opt<bool>("embedding-normalization"));
     }
-    return embFactory.construct();
+    return embFactory.construct(graph_);
   }
 
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
@@ -550,16 +548,13 @@ public:
     // create the embedding matrix, considering tying and some other options
     // embed the source words in the batch
     Expr batchEmbeddings, batchMask;
-    if (options_->has("ulr") && options_->get<bool>("ulr") == true) {
-      auto embeddings = ULREmbeddings(); // embedding uses ULR
-      std::tie(batchEmbeddings, batchMask)
-        = EncoderBase::ulrLookup(graph_, embeddings, batch);
-    }
-    else {
-      auto embeddings = wordEmbeddings(batchIndex_);
-      std::tie(batchEmbeddings, batchMask)
-        = EncoderBase::lookup(graph_, embeddings, batch);
-    }
+    Ptr<IEmbeddingLayer> embedding;
+    if (options_->has("ulr") && options_->get<bool>("ulr") == true)
+      embedding = createULREmbeddingLayer(); // embedding uses ULR
+    else
+      embedding = createWordEmbeddingLayer(batchIndex_);
+    std::tie(batchEmbeddings, batchMask) = embedding->apply((*batch)[batchIndex_]);
+
     // apply dropout over source words
     float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");
     if(dropoutSrc) {
@@ -638,7 +633,7 @@ private:
 
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
-    auto layerOut = mlp::output(graph_)        //
+    auto layerOut = mlp::output()              //
         ("prefix", prefix_ + "_ff_logit_out")  //
         ("dim", dimTrgVoc);
 
@@ -646,18 +641,18 @@ private:
       std::string tiedPrefix = prefix_ + "_Wemb";
       if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
         tiedPrefix = "Wemb";
-      layerOut.tie_transposed("W", tiedPrefix);
+      layerOut.tieTransposed(tiedPrefix);
     }
 
     if(shortlist_)
-      layerOut.set_shortlist(shortlist_);
+      layerOut.setShortlist(shortlist_);
 
     // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
     // assemble layers into MLP and apply to embeddings, decoder context and
     // aligned source context
-    output_ = mlp::mlp(graph_)      //
+    output_ = mlp::mlp()                //
                   .push_back(layerOut)  //
-                  .construct();
+                  .construct(graph_);
   }
 
 public:
