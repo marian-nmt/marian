@@ -71,6 +71,7 @@ public:
       for(int i = 0; i < std::min(dimWords, numPos); ++i)
         positions[i] = i;
 
+      // @TODO : test if embeddings should be scaled here too!
       auto signal = rows(posEmbFactory, graph_->indices(positions));
       signal = reshape(signal, {dimWords, 1, dimEmb});
       embeddings = embeddings + signal;

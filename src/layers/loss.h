@@ -179,7 +179,7 @@ public:
 Ptr<MultiRationalLoss> newMultiLoss(Ptr<Options> options);
 
 //***********************************************************************************//
-// This needs some to be refactored. Currentl easiest route for backwards compat. 
+// This needs some to be refactored. Currentl easiest route for backwards compat.
 
 class LabelwiseLoss {
 protected:
@@ -206,8 +206,8 @@ public:
   LabelwiseLoss(const std::vector<int>& axes)
   : axes_(axes) { }
 
-  RationalLoss apply(Expr logits, Expr labelIndices,
-                     Expr mask = nullptr, Expr labelWeights = nullptr) {
+  virtual RationalLoss apply(Expr logits, Expr labelIndices,
+                             Expr mask = nullptr, Expr labelWeights = nullptr) {
     Expr loss = compute(logits, labelIndices, mask, labelWeights);
 
     Expr labels = mask ? mask                              // mask can be used as element-wise label count with broadcasting
@@ -230,7 +230,7 @@ public:
 protected:
   float smoothing_;
 
-  Expr compute(Expr logits, Expr labelIndices,
+  virtual Expr compute(Expr logits, Expr labelIndices,
                Expr mask = nullptr, Expr labelWeights = nullptr) override {
     Expr ce = cross_entropy(logits, labelIndices);
 
@@ -252,8 +252,14 @@ protected:
 
 class RescorerLoss : public CrossEntropyLoss {
 public:
-  // sentence-wise CE, hence reduce only over time axis.
+  // sentence-wise CE, hence reduce only over time axis. CE reduces over last axis (-1)
   RescorerLoss() : CrossEntropyLoss(/*axes=*/{-3}, /*smoothing=*/0.f) {}
+
+  virtual RationalLoss apply(Expr logits, Expr labelIndices,
+                             Expr mask = nullptr, Expr labelWeights = nullptr) override {
+    auto ce = CrossEntropyLoss::apply(logits, labelIndices, mask, labelWeights);
+    return RationalLoss(-ce.loss(), ce.labels()); // we report logprobs, hence negate
+  }
 };
 
 Ptr<LabelwiseLoss> newLoss(Ptr<Options> options, bool inference);
