@@ -73,9 +73,9 @@ public:
 
       auto att = concatenate(alignments, /*axis =*/ -1);
 
-      // @TODO: represent this as an multi-objective training loss, which it actually is
-      // return multiLoss.loss() + guidedAlignmentCost(graph, corpusBatch, options_, att);
-      ABORT("Fix me");
+      auto alignmentLoss = guidedAlignmentCost(graph, corpusBatch, options_, att);
+      multiLoss->push_back(alignmentLoss);
+      
       return multiLoss;
     } else {
       return multiLoss;

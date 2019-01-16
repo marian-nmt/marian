@@ -1,6 +1,6 @@
 #pragma once
 
-#include "marian.h"
+#include "graph/expression_operators.h"
 
 namespace marian {
 
@@ -233,7 +233,7 @@ protected:
   float smoothing_;
 
   virtual Expr compute(Expr logits, Expr labelIndices,
-               Expr mask = nullptr, Expr labelWeights = nullptr) override {
+                       Expr mask = nullptr, Expr labelWeights = nullptr) override {
     Expr ce = cross_entropy(logits, labelIndices);
 
     if(smoothing_ > 0) {

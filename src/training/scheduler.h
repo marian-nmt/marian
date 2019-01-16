@@ -51,6 +51,7 @@ private:
 
     // @TODO: put a single loss formatting function into loss.h and reuse here to avoid code duplication
     // @TODO: use dispLabelCounts with any display type?
+    // @TODO: bugbug cost-type ce-mean-words with multi-loss-type mean divides too much in display
     if(lossType == "ce-mean-words")
       ss << state->costSum / state->costCount;
     else if(lossType == "ce-sum" && dispLabelCounts)
