@@ -54,7 +54,8 @@ public:
   }
 };
 
-// POD for accumulating loss values after backprop
+// POD for accumulating loss values after forward/backward and to-be-used in
+// Scheduler for updating statistics.
 struct StaticLoss {
   float loss;
   float labels;
@@ -179,7 +180,8 @@ public:
 Ptr<MultiRationalLoss> newMultiLoss(Ptr<Options> options);
 
 //***********************************************************************************//
-// This needs some to be refactored. Currentl easiest route for backwards compat.
+// This needs some to be refactored. Currently easiest route for backwards compat, but
+// still feels somewhat hacky.
 
 class LabelwiseLoss {
 protected:
