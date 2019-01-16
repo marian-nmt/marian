@@ -54,6 +54,8 @@ struct IEmbeddingLayer {
   virtual Expr apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const = 0;
 };
 
+class EmbeddingFactorMapping;
+
 namespace mlp {
 
 class Dense : public LayerBase, public IUnaryLayer {
@@ -126,11 +128,13 @@ class Output : public LayerBase, public IUnaryLayer {
 private:
   Expr tiedParam_;
   Ptr<data::Shortlist> shortlist_;
+  Ptr<EmbeddingFactorMapping > embeddingFactorMapping_;
 
   Expr W_;
   Expr b_;
   bool transposeW_{false};
 
+  void lazyConstruct(int inputDim);
 public:
   Output(Ptr<ExpressionGraph> graph, Ptr<Options> options)
       : LayerBase(graph, options) {}
@@ -141,31 +145,7 @@ public:
 
   void setShortlist(Ptr<data::Shortlist> shortlist) { shortlist_ = shortlist; }
 
-  Expr apply(Expr input) override {
-    if(!W_) {
-      auto name = options_->get<std::string>("prefix");
-      auto dim = options_->get<int>("dim");
-
-      if(tiedParam_) {
-        transposeW_ = true;
-        W_ = tiedParam_;
-        if(shortlist_)
-          W_ = rows(W_, shortlist_->indices());
-      } else {
-        W_ = graph_->param(name + "_W",
-                           {input->shape()[-1], dim},
-                           inits::glorot_uniform);
-        if(shortlist_)
-          W_ = cols(W_, shortlist_->indices());
-      }
-
-      b_ = graph_->param(name + "_b", {1, dim}, inits::zeros);
-      if(shortlist_)
-        b_ = cols(b_, shortlist_->indices());
-    }
-
-    return affine(input, W_, b_, false, transposeW_);
-  }
+  Expr apply(Expr input) override;
 
   virtual Expr apply(const std::vector<Expr>& /*inputs*/) override {
     ABORT("Not implemented");
@@ -176,7 +156,7 @@ public:
 
 class Embedding : public LayerBase, public IEmbeddingLayer {
   Expr E_;
-  Ptr<class EmbeddingFactorMapping> embeddingFactorMapping_;
+  Ptr<EmbeddingFactorMapping> embeddingFactorMapping_;
   Expr multiRows(const std::vector<IndexType>& data) const;
 public:
   Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options);

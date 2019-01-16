@@ -627,18 +627,22 @@ private:
       if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
         tiedPrefix = "Wemb";
       layerOut.tieTransposed(tiedPrefix);
+    }
+
+    if(shortlist_)
+      layerOut.setShortlist(shortlist_);
+
+    if (options_->has("embedding-factors")) {
       // factored embeddings, simplistic version (which just adds the logits, like multiplying probs)
       //  z = h @ W        // h:[B x D] ; W:[D x V] -> [B x V]
       // with factors:
       //  z = h @ W @ M'        // h:[B x D] ; W:[D x U] ; M':[U x V]  -> [B x V]
       // i.e. multiOutput():
       //  output = dot_csr(output, M, transB=true)
-      // Should biases be done afterwards? Or maybe at two places?
-      // note: need to also specify output factors separately if not tied-embeddings or tied-embeddings-all
+      // @BUGBUG: need to specify output factors separately if not tied-embeddings or tied-embeddings-all
+      layerOut("embedding-factors", opt<std::vector<std::string>>("embedding-factors"));
+      layerOut("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]);
     }
-
-    if(shortlist_)
-      layerOut.setShortlist(shortlist_);
 
     // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
     // assemble layers into MLP and apply to embeddings, decoder context and
