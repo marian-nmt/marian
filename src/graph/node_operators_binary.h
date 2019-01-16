@@ -433,7 +433,7 @@ public:
         "Sparse matrix offset vector has incorrect size");
     auto outShape = D->shape();
     ABORT_IF(S_shape[transS == swapOperands ? 1 : 0] != outShape[-(int)swapOperands],
-             "Matrix product requires inner dimensions to match {} {} {} {}", transS, swapOperands, std::string(S_shape), std::string(outShape));
+             "Matrix product requires inner dimensions to match");
     outShape.set(-(int)swapOperands, S_shape[transS != swapOperands]);
     return outShape;
   }
