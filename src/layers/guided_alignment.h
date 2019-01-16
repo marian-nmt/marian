@@ -9,6 +9,10 @@ static inline RationalLoss guidedAlignmentCost(Ptr<ExpressionGraph> graph,
                                                Ptr<Options> options,
                                                Expr attention) {
 
+  // @TODO: there should be positional masking here ... on the other hand, positions that are not 
+  // in a sentence should always agree (both being 0). Lack of masking affects label count only which is 
+  // probably negligible?
+
   // @TODO: change "cost" to "loss"
   std::string guidedLossType = options->get<std::string>("guided-alignment-cost");
   float guidedScalar = options->get<float>("guided-alignment-weight");
@@ -28,12 +32,12 @@ static inline RationalLoss guidedAlignmentCost(Ptr<ExpressionGraph> graph,
   
   alignmentLoss = guidedScalar * alignmentLoss; // weigh by scalar
 
-  // every position is a label as they should all agree
-  float numLabels = alignment->shape().elements();
+  // every position is a label as they should all agree, see caveat at the top.
+  size_t numLabels = alignment->shape().elements();
   
-  // create label node
-  Expr labels = graph->constant({1}, inits::from_value(numLabels));
-  labels = guidedScalar * labels; // also weigh by scalar so labels and cost are in the same domain
+  // Create label node, also weigh by scalar so labels and cost are in the same domain.
+  // Fractional label counts are OK
+  Expr labels = graph->constant({1}, inits::from_value(guidedScalar * numLabels)); // @TODO: introduce graph->value(...) ?
 
   return RationalLoss(alignmentLoss, labels);
 }
