@@ -127,10 +127,10 @@ public:
     for(int i = 0; i < dimWords; ++i) {   // advance word-wise
       for(int j = 0; j < dimBatch; ++j) { // scan batch-wise
         int k = i * dimBatch + j;
+        ABORT_IF(sentPos[j] > 1, "Currently we only support sequences of up to two sentences in BERT, not {}", sentPos[j] + 1);
         sentenceIndices_[k] = sentPos[j]; // set to current sentence position for batch entry
         if(words[k] == sepId) {           // if current word is a separator 
           sentPos[j]++;                   // then increase sentence position for batch entry (probably to B [1])
-          ABORT_IF(sentPos[j] > 1, "Currently we only support sequences of up to two sentences in BERT, not {}", sentPos[j]);
         }
       }
     }
