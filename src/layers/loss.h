@@ -4,6 +4,18 @@
 
 namespace marian {
 
+/**
+ * We represent loss as pair of expressions, where loss_ is usually a sum
+ * of all accumulated loss values per label and labels_ is the total number
+ * of labels over which the loss was collected.
+ *
+ * These two values can then be used to represent various cost variants -
+ * for instance label-wise cross-entropy or perplexity. Optimization is
+ * only performed with regard to the summed loss_.
+ *
+ * Since both, loss_ and labels_ are dynamic graph nodes they can be further
+ * combined into larger structures. See multi-objective losses below.
+ */
 class RationalLoss {
 protected:
   Expr loss_;
@@ -14,6 +26,10 @@ protected:
 public:
   RationalLoss(Expr loss, Expr labels)
   : loss_(loss), labels_(labels) {}
+
+  RationalLoss(Expr loss, float labels)
+  : loss_(loss),
+    labels_(loss->graph()->constant({1}, inits::from_value(labels))) {}
 
   RationalLoss(const RationalLoss& other)
   : loss_(other.loss_), labels_(other.labels_) {}
@@ -54,16 +70,20 @@ public:
   }
 };
 
-// POD for accumulating loss values after forward/backward and to-be-used in
-// Scheduler for updating statistics.
+/**
+ * POD for accumulating loss values after forward/backward used in
+ * Scheduler for updating statistics. This can only be used after a
+ * successful forward step in a computation graph that owns the assigned
+ * RationalLoss object.
+ */
 struct StaticLoss {
   float loss;
   float labels;
 
   StaticLoss() : loss(0.f), labels(0.f) {}
 
-  StaticLoss(const RationalLoss& rl)
-  : loss(rl.loss<float>()), labels(rl.labels<float>()) {}
+  StaticLoss(const RationalLoss& dynamic)
+  : loss(dynamic.loss<float>()), labels(dynamic.labels<float>()) {}
 
   StaticLoss& operator +=(const StaticLoss& other) {
     loss = loss + other.loss;
@@ -72,11 +92,22 @@ struct StaticLoss {
   }
 };
 
+/**
+ * Base class for multi-objective losses which is a list of RationalLoss
+ * but also defines how to accumulate that list into a single RationalLoss
+ */
 class MultiRationalLoss : public RationalLoss {
 protected:
   std::vector<RationalLoss> partialLosses_;
 
+  /**
+   * Accumulation rule for losses
+   */
   virtual Expr accumulateLoss(const RationalLoss& current) = 0;
+
+  /**
+   * Accumulation rule for labels
+   */
   virtual Expr accumulateLabels(const RationalLoss& current) = 0;
 
 public:
@@ -110,6 +141,11 @@ public:
 
 };
 
+/**
+ * Simple sum of losses.
+ * Using this makes sense when the two loss types are similar in scale and
+ * number of labels. For instance two decoders over similarly sized vocabularies
+ */
 class SumMultiRationalLoss : public MultiRationalLoss {
 private:
   virtual Expr accumulateLoss(const RationalLoss& current) override {
@@ -131,27 +167,20 @@ public:
   SumMultiRationalLoss(const RationalLoss& rl) : MultiRationalLoss(rl) {}
 };
 
-class MeanMultiRationalLoss : public MultiRationalLoss {
-private:
-  virtual Expr accumulateLoss(const RationalLoss& current) override {
-    if(loss_)
-      return loss_ + current.loss() / current.labels();
-    else
-      return current.loss() / current.labels();
-  }
-
-  virtual Expr accumulateLabels(const RationalLoss& current) override {
-    if(labels_)
-      return labels_ + 1.f; // broadcast to size
-    else
-      return current.labels() / current.labels(); // 1, but with correct size
-  }
-
-public:
-  MeanMultiRationalLoss() : MultiRationalLoss() {}
-  MeanMultiRationalLoss(const RationalLoss& rl) : MultiRationalLoss(rl) {}
-};
-
+/**
+ * Scaled sum of losses.
+ * This can weigh losses equally by choosing the first loss_0 as a reference
+ * and scaling all remaining losses loss_i by labels_0 / labels_i. Labels are
+ * summed up by the same rule. By this we simulate a sum of losses at similar
+ * scales. Dividing by scaled label counts yields a value close to an equally
+ * weighted sum of means.
+ *
+ * L = sum_i^N L_i + N/M sum_j^M L_j
+ *
+ * We set labels to N. When reporting L/N this is equvalient to sum of means.
+ * Compare to sum of means below where N is factored into the loss, but labels
+ * are set to 1.
+ */
 class ScaledMultiRationalLoss : public MultiRationalLoss {
 private:
   virtual Expr accumulateLoss(const RationalLoss& current) override {
@@ -165,10 +194,9 @@ private:
 
   virtual Expr accumulateLabels(const RationalLoss& current) override {
     if(labels_) {
-      const auto& first = partialLosses_.front();
-      return labels_ + first.labels() / current.labels(); // fractional label counts are OK
+      return labels_; // Keep first label count // or: labels_ + first.labels() / current.labels();
     } else {
-      return current.labels();
+      return current.labels(); // This is the first loss
     }
   }
 
@@ -177,12 +205,50 @@ public:
   ScaledMultiRationalLoss(const RationalLoss& rl) : MultiRationalLoss(rl) {}
 };
 
+/**
+ * Sum of mean losses.
+ * Not really a rational loss as labels are factored into loss. Contribution of
+ * losses is equal, same as for ScaledMultiRationalLoss, just divided by different
+ * number of labels. See:
+ *
+ * L = (1/N sum_i^N L_i + 1/M sum_j^M L_j) = (sum_i^N L_i + N/M sum_j^M L_j) / N
+ *
+ * We set labels to 1. During reporting, we would see the same numbers, but gradients
+ * are scaled diffrently which may result in different learning curves.
+ */
+class MeanMultiRationalLoss : public MultiRationalLoss {
+private:
+  virtual Expr accumulateLoss(const RationalLoss& current) override {
+    if(loss_)
+      return loss_ + current.loss() / current.labels();
+    else
+      return current.loss() / current.labels();
+  }
+
+  virtual Expr accumulateLabels(const RationalLoss& current) override {
+    if(labels_)
+      return labels_; // keep the existing '1'
+    else
+      return current.labels()->graph()->ones({1}); // just '1' as labels are factored into loss_
+  }
+
+public:
+  MeanMultiRationalLoss() : MultiRationalLoss() {}
+  MeanMultiRationalLoss(const RationalLoss& rl) : MultiRationalLoss(rl) {}
+};
+
+/**
+ * Factory for multi-objective rational loss functions
+ */
 Ptr<MultiRationalLoss> newMultiLoss(Ptr<Options> options);
 
 //***********************************************************************************//
 // This needs some to be refactored. Currently easiest route for backwards compat, but
 // still feels somewhat hacky.
 
+/**
+ * Computes loss per label and then reduces to RationalLoss
+ */
 class LabelwiseLoss {
 protected:
   std::vector<int> axes_;
@@ -219,6 +285,9 @@ public:
   }
 };
 
+/**
+ * Cross entropy loss across last axis, summed up over batch and time dimensions
+ */
 class CrossEntropyLoss : public LabelwiseLoss {
 public:
   CrossEntropyLoss(float smoothing)
@@ -252,6 +321,9 @@ protected:
   }
 };
 
+/**
+ * Cross entropy in rescorer used for computing sentences-level log probabilities
+ */
 class RescorerLoss : public CrossEntropyLoss {
 public:
   // sentence-wise CE, hence reduce only over time axis. CE reduces over last axis (-1)
@@ -264,6 +336,9 @@ public:
   }
 };
 
+/**
+ * Factory for label-wise loss functions
+ */
 Ptr<LabelwiseLoss> newLoss(Ptr<Options> options, bool inference);
 
 }  // namespace marian
