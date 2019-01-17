@@ -130,7 +130,7 @@ public:
         sentenceIndices_[k] = sentPos[j]; // set to current sentence position for batch entry
         if(words[k] == sepId) {           // if current word is a separator 
           sentPos[j]++;                   // then increase sentence position for batch entry (probably to B [1])
-          ABORT_IF(sentPos[j] > 1, "Currently we only support sequences of up to two sentences in BERT, not {}", sentPos[i]);
+          ABORT_IF(sentPos[j] > 1, "Currently we only support sequences of up to two sentences in BERT, not {}", sentPos[j]);
         }
       }
     }
