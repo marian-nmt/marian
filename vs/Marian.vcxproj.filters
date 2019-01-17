@@ -1711,9 +1711,6 @@
     <None Include="..\src\tensors\gpu\element.inc">
       <Filter>tensors\gpu</Filter>
     </None>
-    <None Include="..\src\tensors\gpu\prod.cu">
-      <Filter>tensors\gpu</Filter>
-    </None>
     <None Include="..\src\tensors\gpu\sparse.cu">
       <Filter>tensors\gpu</Filter>
     </None>
@@ -1848,6 +1845,9 @@
     </None>
     <None Include="..\src\examples\README.md">
       <Filter>examples</Filter>
+    </None>
+    <None Include="..\src\tensors\gpu\prod.cpp">
+      <Filter>tensors\gpu</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

@@ -12,20 +12,20 @@ void trimRight(std::string& s);
 
 void split(const std::string& line,
            std::vector<std::string>& pieces,
-           const std::string del = " ",
+           const std::string& del = " ",
            bool keepEmpty = false);
 
 std::vector<std::string> split(const std::string& line,
-                               const std::string del = " ",
+                               const std::string& del = " ",
                                bool keepEmpty = false);
 
 void splitAny(const std::string& line,
               std::vector<std::string>& pieces,
-              const std::string del = " ",
+              const std::string& del = " ",
               bool keepEmpty = false);
 
 std::vector<std::string> splitAny(const std::string& line,
-                                  const std::string del = " ",
+                                  const std::string& del = " ",
                                   bool keepEmpty = false);
 
 std::string join(const std::vector<std::string>& words,

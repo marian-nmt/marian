@@ -29,7 +29,7 @@ void trimLeft(std::string& s) {
 // @TODO: use more functions from CLI instead of own implementations
 void split(const std::string& line,
            std::vector<std::string>& pieces,
-           const std::string del /*= " "*/,
+           const std::string& del /*= " "*/,
            bool keepEmpty) {
   size_t begin = 0;
   size_t pos = 0;
@@ -50,7 +50,7 @@ void split(const std::string& line,
 }
 
 std::vector<std::string> split(const std::string& line,
-                               const std::string del /*= " "*/,
+                               const std::string& del /*= " "*/,
                                bool keepEmpty) {
   std::vector<std::string> pieces;
   split(line, pieces, del, keepEmpty);
@@ -60,7 +60,7 @@ std::vector<std::string> split(const std::string& line,
 // @TODO: splitAny() shares all but 2 expressions with split(). Merge them.
 void splitAny(const std::string& line,
               std::vector<std::string>& pieces,
-              const std::string del /*= " "*/,
+              const std::string& del /*= " "*/,
               bool keepEmpty) {
   size_t begin = 0;
   size_t pos = 0;
@@ -81,7 +81,7 @@ void splitAny(const std::string& line,
 }
 
 std::vector<std::string> splitAny(const std::string& line,
-                                  const std::string del /*= " "*/,
+                                  const std::string& del /*= " "*/,
                                   bool keepEmpty) {
   std::vector<std::string> pieces;
   splitAny(line, pieces, del, keepEmpty);

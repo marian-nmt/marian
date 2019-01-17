@@ -6,6 +6,7 @@
 
 #include <cuda.h>
 #include <cublas_v2.h>
+#include <cusparse.h>
 #include <curand.h>
 
 namespace marian {
@@ -15,11 +16,13 @@ class Backend : public marian::Backend {
 public:
   Backend(DeviceId deviceId, size_t seed) : marian::Backend(deviceId, seed) {
     setDevice();
-    setHandles();
+    cublasCreate(&cublasHandle_);
+    cusparseCreate(&cusparseHandle_);
   }
 
   ~Backend() {
     setDevice();
+    cusparseDestroy(cusparseHandle_);
     cublasDestroy(cublasHandle_);
   }
 
@@ -28,19 +31,11 @@ public:
   void synchronize() override { cudaStreamSynchronize(0); }
 
   cublasHandle_t getCublasHandle() { return cublasHandle_; }
+  cusparseHandle_t getCusparseHandle() { return cusparseHandle_; }
 
 private:
   cublasHandle_t cublasHandle_;
-
-  void setHandles() {
-    cublasHandle_ = create_handle();
-  }
-
-  cublasHandle_t create_handle() {
-    cublasHandle_t cublasHandle;
-    cublasCreate(&cublasHandle);
-    return cublasHandle;
-  }
+  cusparseHandle_t cusparseHandle_;
 };
 }  // namespace gpu
 }  // namespace marian
