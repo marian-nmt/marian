@@ -124,47 +124,74 @@ public:
 
 class Output : public LayerBase, public IUnaryLayer {
 private:
-  Expr tiedParam_;
-  Ptr<data::Shortlist> shortlist_;
-
-  Expr W_;
+  Expr W_;  // parameters held by this layer
   Expr b_;
+  Expr cachedShortW_;   // short-listed version, cached (cleared by clear())
+  Expr cachedShortb_;   // these match the current value of shortlist_
+
+  // optional parameters set/updated after construction
+  Expr tiedParam_;
   bool transposeW_{false};
+  Ptr<data::Shortlist> shortlist_;
 
 public:
   Output(Ptr<ExpressionGraph> graph, Ptr<Options> options)
-      : LayerBase(graph, options) {}
-
-  void tieTransposed(Expr tied) {
-    tiedParam_ = tied;
+      : LayerBase(graph, options) {
+    clear();
   }
 
-  void setShortlist(Ptr<data::Shortlist> shortlist) { shortlist_ = shortlist; }
+  void tieTransposed(Expr tied) {
+    if (W_)
+      ABORT_IF(tiedParam_.get() != tied.get(), "Tied output projection cannot be changed once weights have been created");
+    else
+      tiedParam_ = tied;
+  }
+
+  void setShortlist(Ptr<data::Shortlist> shortlist) {
+    if (shortlist_)
+      ABORT_IF(shortlist.get() != shortlist_.get(), "Output shortlist cannot be changed except after clear()");
+    else {
+      ABORT_IF(cachedShortW_ || cachedShortb_, "No shortlist but cached parameters??");
+      shortlist_ = shortlist;
+    }
+    // cachedShortW_ and cachedShortb_ will be created lazily inside apply()
+  }
+
+  // this is expected to be called in sync with graph->clear(), which invalidates
+  // cachedShortW_ and cachedShortb_ in the graph's short-term cache
+  void clear() {
+    shortlist_ = nullptr;
+    cachedShortW_ = nullptr;
+    cachedShortb_ = nullptr;
+  }
 
   Expr apply(Expr input) override {
-    if(!W_) {
+    if(!W_) { // create lazily because we need input's dimension
       auto name = options_->get<std::string>("prefix");
       auto dim = options_->get<int>("dim");
 
       if(tiedParam_) {
-        transposeW_ = true;
         W_ = tiedParam_;
-        if(shortlist_)
-          W_ = rows(W_, shortlist_->indices());
+        transposeW_ = true;
       } else {
-        W_ = graph_->param(name + "_W",
-                           {input->shape()[-1], dim},
-                           inits::glorot_uniform);
-        if(shortlist_)
-          W_ = cols(W_, shortlist_->indices());
+        W_ = graph_->param(name + "_W", {input->shape()[-1], dim}, inits::glorot_uniform);
+        transposeW_ = false;
       }
-
       b_ = graph_->param(name + "_b", {1, dim}, inits::zeros);
-      if(shortlist_)
-        b_ = cols(b_, shortlist_->indices());
     }
 
-    return affine(input, W_, b_, false, transposeW_);
+    if (shortlist_) {
+      if (!cachedShortW_) { // short versions of parameters are cached within one batch, then clear()ed
+        if(transposeW_)
+          cachedShortW_ = rows(W_, shortlist_->indices());
+        else
+          cachedShortW_ = cols(W_, shortlist_->indices());
+        cachedShortb_ = cols(b_, shortlist_->indices());
+      }
+      return affine(input, cachedShortW_, cachedShortb_, false, transposeW_);
+    }
+    else
+      return affine(input, W_, b_, false, transposeW_);
   }
 
   virtual Expr apply(const std::vector<Expr>& /*inputs*/) override {
