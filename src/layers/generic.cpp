@@ -133,7 +133,9 @@ namespace marian {
 
     Expr Output::apply(Expr input) /*override*/ {
       lazyConstruct(input->shape()[-1]);
+
       auto y = affine(input, W_, b_, false, transposeW_);
+
       if (embeddingFactorMapping_) {
         auto graph = input->graph();
         auto factorMatrix = embeddingFactorMapping_->getFactorMatrix(); // [V x U]
@@ -145,6 +147,7 @@ namespace marian {
             graph->constant({(int)factorMatrix.offsets.size()}, inits::from_vector(factorMatrix.offsets), Type::uint32),
             /*transB=*/ true); // -> [B x V]
       }
+
       return y;
     }
   }
