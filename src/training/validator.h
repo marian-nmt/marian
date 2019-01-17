@@ -168,11 +168,10 @@ public:
 protected:
   virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     auto ctype = options_->get<std::string>("cost-type");
-    options_->set("cost-type", "ce-sum");
+    options_->set("cost-type", "ce-sum"); // @TODO: check if still needed, most likely not.
 
-    float cost = 0;
+    StaticLoss loss;
     size_t samples = 0;
-    size_t words = 0;
     size_t batchId = 0;
 
     {
@@ -180,7 +179,7 @@ protected:
 
       TaskBarrier taskBarrier;
       for(auto batch : *batchGenerator_) {
-        auto task = [=, &cost, &samples, &words](size_t id) {
+        auto task = [=, &loss, &samples](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local auto builder = models::from_options(options_, models::usage::scoring);
 
@@ -189,13 +188,11 @@ protected:
           }
 
           builder->clear(graph);
-          auto loss = builder->build(graph, batch);
+          auto dynamicLoss = builder->build(graph, batch);
           graph->forward();
 
           std::unique_lock<std::mutex> lock(mutex_);
-          cost  += loss->loss<float>();
-          words += (size_t)loss->labels<float>();
-
+          loss  += *dynamicLoss;
           samples += batch->size();
         };
 
@@ -206,16 +203,16 @@ protected:
     }
 
     // get back to the original cost type
-    options_->set("cost-type", ctype);
+    options_->set("cost-type", ctype); // @TODO: check if still needed, most likely not.
 
     if(ctype == "perplexity")
-      return std::exp(cost / words);
+      return std::exp(loss.loss / loss.labels);
     if(ctype == "ce-mean-words")
-      return cost / words;
+      return loss.loss / loss.labels;
     if(ctype == "ce-sum")
-      return cost;
+      return loss.loss;
     else
-      return cost / samples;
+      return loss.loss / samples; // @TODO: back-compat, to be removed
   }
 };
 
