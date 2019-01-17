@@ -121,7 +121,8 @@ public:
     int dimBatch = subBatch->batchSize();
     int dimWords = subBatch->batchWidth();
 
-    int maxSentPos = 1; // Currently only two sentences allowed, if another separator is seen do not increase position index beyond 1
+    int maxSentPos = 2; // Currently only two sentences allowed A at [0] and B at [1] and padding at [2]
+    // If another separator is seen do not increase position index beyond 2 but use padding.
     // @TODO: make this configurable, see below for NextSentencePredictions task where we also restrict to 2.
 
     // create indices for BERT sentence embeddings A and B
@@ -132,7 +133,7 @@ public:
         int k = i * dimBatch + j;
         sentenceIndices_[k] = sentPos[j]; // set to current sentence position for batch entry, max position 1.
         if(words[k] == sepId && sentPos[j] < maxSentPos) { // if current word is a separator and not beyond range
-          sentPos[j]++;                   // then increase sentence position for batch entry (probably to B [1])
+          sentPos[j]++;                   // then increase sentence position for batch entry (to B [1])
         }
       }
     }
@@ -195,7 +196,7 @@ public:
     if(learnedPosEmbeddings) {
       auto sentenceEmbeddings = embedding()
                                ("prefix", "Wsent")
-                               ("dimVocab", 2) // sentence A or sentence B, @TODO: should rather be a parameter
+                               ("dimVocab", 3) // sentence A or sentence B plus padding, @TODO: should rather be a parameter
                                ("dimEmb", dimEmb)
                                .construct(graph_);
       signal = sentenceEmbeddings->apply(bertBatch->bertSentenceIndices(), {dimWords, dimBatch, dimEmb});
