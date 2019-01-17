@@ -156,7 +156,7 @@ public:
     // intercept batch and anotate with BERT-specific concepts
     auto bertBatch = New<data::BertBatch>(batch,
                                           eng_,
-                                          opt<float>("bert-masking-fraction"),
+                                          opt<float>("bert-masking-fraction", 0.15f), // 15% by default according to paper
                                           opt<std::string>("bert-mask-symbol"),
                                           opt<std::string>("bert-sep-symbol"),
                                           opt<std::string>("bert-class-symbol"));
@@ -219,7 +219,9 @@ public:
 /**
  * BERT-specific classifier 
  * Can be used for next sentence prediction task or other fine-tuned down-stream tasks
- * Does not actually need a BertBatch, works with CorpusBatch
+ * Does not actually need a BertBatch, works with CorpusBatch.
+ * 
+ * @TODO: This is in fact so generic that we might move it out of here as the typical classifier implementation
  */
 class BertClassifier : public ClassifierBase {
 public:

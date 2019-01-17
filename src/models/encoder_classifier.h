@@ -9,6 +9,14 @@
 
 namespace marian {
 
+/**
+ * Combines sequence encoders with generic classifiers
+ * Can be used to train sequence classifiers like language detection, BERT-next-sentence-prediction etc.
+ * Already has support for multi-objective training. 
+ * 
+ * @TODO: this should probably be unified somehow with EncoderDecoder which could allow for deocder/classifier
+ * multi-objective training.
+ */
 class EncoderClassifierBase : public models::ModelBase {
 public:
   virtual ~EncoderClassifierBase() {}
@@ -75,8 +83,6 @@ protected:
     cli::OutputYaml(yaml, out);
     return std::string(out.c_str());
   }
-
-//   virtual void createClassifierConfig(const std::string& name) {}
 
 public:
   typedef data::Corpus dataset_type;
@@ -197,7 +203,7 @@ public:
                                   bool clearGraph = true) override {
     auto states = apply(graph, batch, clearGraph);
     // returns raw logits
-    return New<RationalLoss>(states[0]->getLogProbs(), nullptr); // @TODO: this should explode
+    return New<RationalLoss>(states[0]->getLogProbs(), nullptr); // @TODO: Check if this is actually used
   }
 
   virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,

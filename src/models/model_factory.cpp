@@ -36,11 +36,9 @@ Ptr<EncoderBase> EncoderFactory::construct(Ptr<ExpressionGraph> graph) {
 #endif
 
   if(options_->get<std::string>("type") == "transformer")
-    // return New<EncoderTransformer>(options_);
     return NewEncoderTransformer(options_);
 
   if(options_->get<std::string>("type") == "bert-encoder")
-    // return New<EncoderTransformer>(options_);
     return New<BertEncoder>(options_);
 
   ABORT("Unknown encoder type");
@@ -50,7 +48,6 @@ Ptr<DecoderBase> DecoderFactory::construct(Ptr<ExpressionGraph> graph) {
   if(options_->get<std::string>("type") == "s2s")
     return New<DecoderS2S>(options_);
   if(options_->get<std::string>("type") == "transformer")
-    // return New<DecoderTransformer>(options_);
     return NewDecoderTransformer(options_);
   ABORT("Unknown decoder type");
 }
@@ -229,12 +226,12 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
             .construct(graph);
   }
 
-  if(type == "bert") {
+  if(type == "bert") {                           // for full BERT training
     return models::encoder_classifier()(options) //
         ("usage", use)                           //
         .push_back(models::encoder()             //
-                    ("type", "bert-encoder")     // @TODO: replace with 'bert-encoder'
-                    ("index", 0))                // close to original transformer encoder
+                    ("type", "bert-encoder")     // close to original transformer encoder
+                    ("index", 0))                // 
         .push_back(models::classifier()          //
                     ("type", "bert-masked-lm")   //
                     ("index", 0))                // multi-task learning with MaskedLM
@@ -244,11 +241,11 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
         .construct(graph);
   }
 
-  if(type == "bert-classifier") {
+  if(type == "bert-classifier") {                // for BERT fine-tuning on non-BERT classification task
     return models::encoder_classifier()(options) //
         ("usage", use)                           //
         .push_back(models::encoder()             //
-                    ("type", "transformer")      //
+                    ("type", "bert-encoder")     //
                     ("index", 0))                // close to original transformer encoder
         .push_back(models::classifier()          //
                     ("type", "bert-classifier")  //

@@ -7,6 +7,10 @@
 
 namespace marian {
 
+/**
+ * Simple base class for Classifiers
+ * Currently only implementations are in bert.h
+ */
 class ClassifierBase {
 protected:
   Ptr<Options> options_;
