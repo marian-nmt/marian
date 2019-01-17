@@ -257,6 +257,10 @@ public:
     update(rationalLoss, /*numReadBatches=*/1, /*batchSize=*/batch->size(), /*batchLabels=*/batch->wordsTrg());
   }
 
+  // @TODO: go back to function which takes batch as an argument? The current arguments make it hard to choose
+  // which subbatch should be used for speed display. For sequence-classifiers it's more interesting to see the 
+  // source-words consumed rather than the labels. We have a CLI option '--disp-label-index' (bad name?) which is 
+  // now defunct.
   void update(StaticLoss rationalLoss, 
               size_t numReadBatches, // number of batches read by the reader (for seeking in case of restart)
               size_t batchSize,      // total number of sentences in batch

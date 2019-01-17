@@ -100,6 +100,10 @@ public:
   virtual void blacklist(Expr /*totalCosts*/, Ptr<data::CorpusBatch> /*batch*/) {}
 };
 
+/**
+ * Classifier output based on DecoderState
+ * @TODO: should be unified with DecoderState or not be used at all as Classifier do not really have stateful output.
+ */
 class ClassifierState {
 private:
   Expr logProbs_;
