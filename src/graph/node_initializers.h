@@ -42,8 +42,6 @@ NodeInitializer from_vector(const std::vector<IndexType>& v);
 
 NodeInitializer from_item(const io::Item& item);
 
-NodeInitializer positions(int start);
-
 NodeInitializer from_sparse_vector(
     std::pair<std::vector<size_t>, std::vector<float>>& v);
 
@@ -53,6 +51,16 @@ NodeInitializer from_word2vec(const std::string& file,
                               int dimVoc,
                               int dimEmb,
                               bool normalize = false);
+
+/**
+ * Computes Google's trigonometric positional embeddings 
+ * starting from position 'start' taking into account
+ * batch and time dimensions of the tensor.
+ * 
+ * Expected layout tensor layout {time, batch, model}
+ */
+NodeInitializer positions(int start);
+
 }  // namespace inits
 
 }  // namespace marian
