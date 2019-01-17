@@ -117,7 +117,7 @@ void tests(DeviceType type) {
       auto backward = type == "alternating" ? rnn::dir::alternating_backward
                                             : rnn::dir::backward;
 
-      auto rnnFw = rnn::rnn()           //
+      auto rnnFw = rnn::rnn()                //
           ("type", cellType)                 //
           ("direction", forward)             //
           ("dimInput", dimEmb)               //
@@ -139,12 +139,13 @@ void tests(DeviceType type) {
         rnnFw.push_back(stacked);
       }
 
-      auto rnnBw = rnn::rnn()            //
-          ("type", cellType)                  //
-          ("direction", backward)             //
-          ("dimInput", dimEmb)                //
-          ("dimState", dimRnn)                //
-          ("layer-normalization", layerNorm)  //
+
+      auto rnnBw = rnn::rnn()                //
+          ("type", cellType)                 //
+          ("direction", backward)            //
+          ("dimInput", dimEmb)               //
+          ("dimState", dimRnn)               //
+          ("layer-normalization", layerNorm) //
           ("skip", skip);
 
       for(int i = 1; i <= first; ++i) {
@@ -170,11 +171,11 @@ void tests(DeviceType type) {
         // previous bidirectional RNN through multiple layers
 
         // construct RNN first
-        auto rnnUni = rnn::rnn()           //
-            ("type", cellType)                  //
-            ("dimInput", 2 * dimRnn)            //
-            ("dimState", dimRnn)                //
-            ("layer-normalization", layerNorm)  //
+        auto rnnUni = rnn::rnn()               //
+            ("type", cellType)                 //
+            ("dimInput", 2 * dimRnn)           //
+            ("dimState", dimRnn)               //
+            ("layer-normalization", layerNorm) //
             ("skip", skip);
 
         for(int i = first + 1; i <= second + first; ++i) {

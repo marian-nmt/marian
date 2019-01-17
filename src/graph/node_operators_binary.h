@@ -42,7 +42,7 @@ public:
     Shape outShape = shapeA;
     outShape.set(outShape.size() - 1, shapeB[shapeB.size() - 1]);
     ABORT_IF(shapeA[shapeA.size() - 1] != shapeB[shapeB.size() - 2],
-             "Matrix product requires dimensions to match");
+             "Matrix product requires inner dimensions to match");
     return outShape;
   }
 
@@ -128,7 +128,7 @@ public:
                         scalar_))};
   }
 
-  const std::string type() override { return "•"; }
+  const std::string type() override { return "dot"; }
 
   const std::string color() override { return "orange"; }
 };
@@ -165,7 +165,7 @@ public:
     Shape outShape = shapeA;
     outShape.set(outShape.size() - 1, shapeB[shapeB.size() - 1]);
     ABORT_IF(shapeA[shapeA.size() - 1] != shapeB[shapeB.size() - 2],
-             "Matrix product requires dimensions to match");
+             "Matrix product requires inner dimensions to match");
     return outShape;
   }
 
@@ -309,7 +309,7 @@ public:
     Shape outShape = shapeA;
     outShape.set(-1, shapeB[-1]);
     ABORT_IF(shapeA[-1] != shapeB[-2],
-             "Batched matrix product requires dimensions to match");
+             "Batched matrix product requires inner dimensions to match");
     return outShape;
   }
 
@@ -404,7 +404,60 @@ public:
                                scalar_))};
   }
 
-  const std::string type() override { return "•"; }
+  const std::string type() override { return "bdot"; }
+
+  const std::string color() override { return "orange"; }
+};
+
+// Note: To reduce code duplication, we use the same NodeOp for C = op(S) x D and C = D x op(S).
+// Set swapOperands to select the latter.
+class CSRDotNodeOp : public NaryNodeOp {
+  bool transS_;
+  bool swapOperands_;
+public:
+  CSRDotNodeOp(const Shape& S_shape, Expr S_values, Expr S_indices, Expr S_offsets, Expr D, bool transS, bool swapOperands)
+      : NaryNodeOp({ S_values, S_indices, S_offsets, D }, newShape(S_shape, S_values, S_indices, S_offsets, D, transS, swapOperands)),
+                   transS_(transS), swapOperands_(swapOperands){
+    matchOrAbort<IndexType>(S_indices->value_type());
+    matchOrAbort<IndexType>(S_offsets->value_type());
+  }
+
+  Shape newShape(const Shape& S_shape, Expr S_values, Expr S_indices, Expr S_offsets, Expr D, bool transS, bool swapOperands) {
+    ABORT_IF(S_values->shape().size() != 1 || S_indices->shape().size() != 1 || S_offsets->shape().size() != 1,
+        "Sparse matrix components must all be vectors");
+    ABORT_IF(S_values->shape() != S_indices->shape(),
+        "Sparse matrix values and indices must have the same shape");
+    ABORT_IF(S_shape.size() != 2,
+        "Sparse matrix must have rank 2");
+    ABORT_IF(S_offsets->shape()[0] - 1 != S_shape[0],
+        "Sparse matrix offset vector has incorrect size");
+    auto outShape = D->shape();
+    ABORT_IF(S_shape[transS == swapOperands ? 1 : 0] != outShape[-(int)swapOperands],
+             "Matrix product requires inner dimensions to match");
+    outShape.set(-(int)swapOperands, S_shape[transS != swapOperands]);
+    return outShape;
+  }
+
+  NodeOps forwardOps() override {
+    return {NodeOp(CSRProd(val_,
+                           graph()->allocator(),
+                           child(0)->val(), child(1)->val(), child(2)->val(),
+                           child(3)->val(),
+                           /*transS=*/transS_, /*swapOperands=*/swapOperands_, /*beta=*/0))};
+  }
+
+  NodeOps backwardOps() override {
+    return {nullptr, // can't backprop into the sparse matrix (the gradient is dense)
+            nullptr,
+            nullptr,
+            NodeOp(CSRProd(child(3)->grad(), // child(3) = D
+                           graph()->allocator(),
+                           child(0)->val(), child(1)->val(), child(2)->val(), // children(0..2) = A
+                           adj_,
+                           /*transS=*/!transS_, /*swapOperands=*/swapOperands_, /*beta=*/1))};
+  }
+
+  const std::string type() override { return "csr_dot"; }
 
   const std::string color() override { return "orange"; }
 };

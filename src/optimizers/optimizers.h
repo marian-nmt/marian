@@ -26,7 +26,7 @@ public:
     // that these hyper-parameters were originally tuned for, then the learning-rate gets
     // adjusted accordingly. Note: Requires user to also use ce-sum criterion.
     if (refMBWordsParam_ != 0)
-      LOG(info, "Note: Learning rate gets automatically adjusted as if minibatch size was {}", refMBWordsParam_);
+      LOG(info, "[optimizers] Learning rate gets automatically adjusted as if minibatch size was {}", refMBWordsParam_);
   }
 
   static constexpr size_t mbSizeNotProvided = SIZE_MAX;

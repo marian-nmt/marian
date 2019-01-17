@@ -417,6 +417,19 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
   }
 }
 
+// multiply a CSR matrix A with a matrix B
+// A[i,j] is at A_values[A_offsets[i]+k], where k is position of j in A_indices[A_offsets[i]:A_offsets[i+1]]
+// @TODO: Define a proper sparse tensor type.
+Expr csr_dot(const Shape& A_shape, Expr A_values, Expr A_indices, Expr A_offsets, Expr B, bool transA /*= false*/) {
+  return Expression<CSRDotNodeOp>(A_shape, A_values, A_indices, A_offsets, B, transA, /*swapOperands=*/false);
+}
+
+// multiply a matrix A with a CSR matrix B
+// @TODO: Define a proper sparse tensor type.
+Expr dot_csr(Expr A, const Shape& B_shape, Expr B_values, Expr B_indices, Expr B_offsets, bool transB /*= false*/) {
+  return Expression<CSRDotNodeOp>(B_shape, B_values, B_indices, B_offsets, A, transB, /*swapOperands=*/true);
+}
+
 // swap the last two axes
 // @TODO: change to swapAxes(a, -1, -2)
 Expr transpose(Expr a) {
