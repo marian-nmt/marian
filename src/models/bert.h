@@ -121,15 +121,17 @@ public:
     int dimBatch = subBatch->batchSize();
     int dimWords = subBatch->batchWidth();
 
+    int maxSentPos = 1; // Currently only two sentences allowed, if another separator is seen do not increase position index beyond 1
+    // @TODO: make this configurable, see below for NextSentencePredictions task where we also restrict to 2.
+
     // create indices for BERT sentence embeddings A and B
     sentenceIndices_.resize(words.size()); // each word is either in sentence A or B
     std::vector<IndexType> sentPos(dimBatch, 0); // initialize each batch entry with being A [0]
     for(int i = 0; i < dimWords; ++i) {   // advance word-wise
       for(int j = 0; j < dimBatch; ++j) { // scan batch-wise
         int k = i * dimBatch + j;
-        ABORT_IF(sentPos[j] > 1, "Currently we only support sequences of up to two sentences in BERT, not {}", sentPos[j] + 1);
-        sentenceIndices_[k] = sentPos[j]; // set to current sentence position for batch entry
-        if(words[k] == sepId) {           // if current word is a separator 
+        sentenceIndices_[k] = sentPos[j]; // set to current sentence position for batch entry, max position 1.
+        if(words[k] == sepId && sentPos[j] < maxSentPos) { // if current word is a separator and not beyond range
           sentPos[j]++;                   // then increase sentence position for batch entry (probably to B [1])
         }
       }
