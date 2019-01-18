@@ -84,6 +84,8 @@ Ptr<ModelBase> EncoderClassifierFactory::construct(Ptr<ExpressionGraph> graph) {
   Ptr<EncoderClassifier> enccls;
   if(options_->get<std::string>("type") == "bert") {
     enccls = New<BertEncoderClassifier>(options_);
+  } else if(options_->get<std::string>("type") == "bert-classifier") {
+    enccls = New<BertEncoderClassifier>(options_);
   } else {
     enccls = New<EncoderClassifier>(options_);
   }
@@ -228,6 +230,7 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
 
   if(type == "bert") {                           // for full BERT training
     return models::encoder_classifier()(options) //
+        ("original-type", "bert")                // so we can query this
         ("usage", use)                           //
         .push_back(models::encoder()             //
                     ("type", "bert-encoder")     // close to original transformer encoder
@@ -243,6 +246,7 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
 
   if(type == "bert-classifier") {                // for BERT fine-tuning on non-BERT classification task
     return models::encoder_classifier()(options) //
+        ("original-type", "bert-classifier")     // so we can query this
         ("usage", use)                           //
         .push_back(models::encoder()             //
                     ("type", "bert-encoder")     //
