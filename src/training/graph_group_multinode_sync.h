@@ -220,9 +220,9 @@ public:
   /**
    * Collect statistics from first client's graph.
    */
-  Ptr<data::BatchStats> collectStats() {
+  Ptr<data::BatchStats> collectStats(const std::vector<Ptr<Vocab>>& vocabs) {
     return GraphGroup::collectStats(
-        clientGraphs_[0], clientBuilders_[0], (double)devices_.size());
+        clientGraphs_[0], clientBuilders_[0], vocabs, (double)devices_.size());
   }
 };
 }  // namespace marian

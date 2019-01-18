@@ -25,7 +25,7 @@ class Transformer : public EncoderOrDecoderBase {
   typedef EncoderOrDecoderBase Base;
 
 protected:
-  using Base::options_; using Base::inference_;
+  using Base::options_; using Base::inference_; using Base::batchIndex_;
   std::unordered_map<std::string, Expr> cache_;
 
   // attention weights produced by step()
@@ -47,26 +47,51 @@ public:
 
   static Expr transposeTimeBatch(Expr input) { return transpose(input, {0, 2, 1, 3}); }
 
-  Expr addPositionalEmbeddings(Expr input, int start = 0) const {
+  Expr addPositionalEmbeddings(Expr input, int start = 0, bool learnedPosEmbeddings = false) const {
     int dimEmb   = input->shape()[-1];
     int dimWords = input->shape()[-3];
 
-    float num_timescales = (float)dimEmb / 2;
-    float log_timescale_increment = std::log(10000.f) / (num_timescales - 1.f);
+    Expr embeddings = input;
 
-    std::vector<float> vPos(dimEmb * dimWords, 0);
-    for(int p = start; p < dimWords + start; ++p) {
-      for(int i = 0; i < num_timescales; ++i) {
-        float v = p * std::exp(i * -log_timescale_increment);
-        vPos[(p - start) * dimEmb + i] = std::sin(v);
-        vPos[(p - start) * dimEmb + (int)num_timescales + i] = std::cos(v); // @TODO: is int vs. float correct for num_timescales?
-      }
+    if(learnedPosEmbeddings) {
+      int maxLength = opt<int>("max-length");
+
+      // Hack for translating with length longer than trained embeddings
+      // We check if the embedding matrix "Wpos" already exist so we can
+      // check the number of positions in that loaded parameter. 
+      // We then have to restict the maximum length to the maximum positon
+      // and positions beyond this will be the maximum position.
+      Expr seenEmb = graph_->get("Wpos");
+      int numPos = seenEmb ? seenEmb->shape()[-2] : maxLength;
+
+      auto embeddingLayer = embedding()
+                            ("prefix", "Wpos") // share positional embeddings across all encoders/decorders
+                            ("dimVocab", numPos)
+                            ("dimEmb", dimEmb)
+                            .construct(graph_);
+
+      // fill with increasing numbers until current length or maxPos
+      std::vector<IndexType> positions(dimWords, numPos - 1);
+      for(int i = 0; i < std::min(dimWords, numPos); ++i)
+        positions[i] = i;
+
+      // @TODO : test if embeddings should be scaled here too!
+      auto signal = embeddingLayer->apply(positions, {dimWords, 1, dimEmb});
+      embeddings = embeddings + signal;
+    } else {
+      auto signal = graph_->constant({dimWords, 1, dimEmb},
+                                     inits::sinusoidalPositionEmbeddings(start));
+      // according to paper embeddings are scaled up by \sqrt(d_m)
+      embeddings = std::sqrt((float)dimEmb) * embeddings;
+      embeddings = embeddings + signal;
     }
 
-    // shared across batch entries
-    auto signal
-        = graph_->constant({dimWords, 1, dimEmb}, inits::from_vector(vPos));
-    return input + signal;
+    return embeddings;
+  }
+
+  virtual Expr addSpecialEmbeddings(Expr input, int start = 0, Ptr<data::CorpusBatch> /*batch*/ = nullptr) const {
+    bool trainPosEmbeddings = opt<bool>("transformer-train-positions", false);
+    return addPositionalEmbeddings(input, start, trainPosEmbeddings);
   }
 
   Expr triangleMask(int length) const {
@@ -477,6 +502,7 @@ public:
 class EncoderTransformer : public Transformer<EncoderBase> {
 public:
   EncoderTransformer(Ptr<Options> options) : Transformer(options) {}
+  virtual ~EncoderTransformer() {}
 
   // returns the embedding matrix based on options
   // and based on batchIndex_.
@@ -514,14 +540,13 @@ public:
     return embFactory.construct(graph_);
   }
 
-  Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
-                          Ptr<data::CorpusBatch> batch) override {
+  virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::CorpusBatch> batch) override {
     graph_ = graph;
     return apply(batch);
   }
 
-  Ptr<EncoderState> apply(Ptr<data::CorpusBatch> batch) {
-    int dimEmb = opt<int>("dim-emb");
+  virtual Ptr<EncoderState> apply(Ptr<data::CorpusBatch> batch) {
     int dimBatch = (int)batch->size();
     int dimSrcWords = (int)(*batch)[batchIndex_]->batchWidth();
     // create the embedding matrix, considering tying and some other options
@@ -533,19 +558,20 @@ public:
     else
       embedding = createWordEmbeddingLayer(batchIndex_);
     std::tie(batchEmbeddings, batchMask) = embedding->apply((*batch)[batchIndex_]);
+
     // apply dropout over source words
     float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");
     if(dropoutSrc) {
       int srcWords = batchEmbeddings->shape()[-3];
       batchEmbeddings = dropout(batchEmbeddings, dropoutSrc, {srcWords, 1, 1});
     }
-    // according to paper embeddings are scaled up by \sqrt(d_m)
-    auto scaledEmbeddings = std::sqrt((float)dimEmb) * batchEmbeddings;
-    scaledEmbeddings = addPositionalEmbeddings(scaledEmbeddings);
+
+    batchEmbeddings = addSpecialEmbeddings(batchEmbeddings, /*start=*/0, batch);
+
     // reorganize batch and timestep
-    scaledEmbeddings = atleast_nd(scaledEmbeddings, 4);
+    batchEmbeddings = atleast_nd(batchEmbeddings, 4);
     batchMask = atleast_nd(batchMask, 4);
-    auto layer = transposeTimeBatch(scaledEmbeddings); // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
+    auto layer = transposeTimeBatch(batchEmbeddings); // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
     auto layerMask
       = reshape(transposeTimeBatch(batchMask), {1, dimBatch, 1, dimSrcWords}); // [-4: beam depth=1, -3: batch size, -2: vector dim=1, -1: max length]
 
@@ -576,7 +602,7 @@ public:
     return New<EncoderState>(context, batchMask, batch);
   }
 
-  void clear() override {}
+  virtual void clear() override {}
 };
 
 class TransformerState : public DecoderState {
@@ -679,22 +705,16 @@ public:
 
     //************************************************************************//
 
-    int dimEmb = embeddings->shape()[-1];
     int dimBeam = 1;
     if(embeddings->shape().size() > 3)
       dimBeam = embeddings->shape()[-4];
-
-    // according to paper embeddings are scaled by \sqrt(d_m)
-    auto scaledEmbeddings = std::sqrt((float)dimEmb) * embeddings;
 
     // set current target token position during decoding or training. At training
     // this should be 0. During translation the current length of the translation.
     // Used for position embeddings and creating new decoder states.
     int startPos = (int)state->getPosition();
 
-    scaledEmbeddings
-      = addPositionalEmbeddings(scaledEmbeddings, startPos);
-
+    auto scaledEmbeddings = addSpecialEmbeddings(embeddings, startPos);
     scaledEmbeddings = atleast_nd(scaledEmbeddings, 4);
 
     // reorganize batch and timestep

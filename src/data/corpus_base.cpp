@@ -43,6 +43,8 @@ CorpusBase::CorpusBase(const std::vector<std::string>& paths,
     files_.emplace_back(new io::InputFileStream(path));
     ABORT_IF(files_.back()->empty(), "File '{}' is empty", path);
   }
+
+  initEOS();
 }
 
 CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
@@ -56,6 +58,8 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
     paths_ = options_->get<std::vector<std::string>>("train-sets");
   else
     paths_ = options_->get<std::vector<std::string>>("input");
+
+  initEOS();
 
   std::vector<std::string> vocabPaths;
   if(!options_->get<std::vector<std::string>>("vocabs").empty())
@@ -188,13 +192,13 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
 }
 
 void CorpusBase::addWordsToSentenceTuple(const std::string& line,
-                                         size_t i,
+                                         size_t batchIndex,
                                          SentenceTuple& tup) const {
 
   // This turns a string in to a sequence of numerical word ids. Depending
   // on the vocabulary type, this can be non-trivial, e.g. when SentencePiece
   // is used.
-  Words words = vocabs_[i]->encode(line, /*addEOS =*/ true, inference_);
+  Words words = vocabs_[batchIndex]->encode(line, /*addEOS =*/ addEOS_[batchIndex], inference_);
 
   if(words.empty())
     words.push_back(0);
@@ -279,5 +283,27 @@ void CorpusBase::addWeightsToBatch(Ptr<CorpusBatch> batch,
 
   batch->setDataWeights(weights);
 }
+
+void CorpusBase::initEOS() {
+  // Labels fed into sub-batches that are just class-labels, not sequence labels do not require to
+  // add a EOS symbol. Hence decision to add EOS is now based on input stream positions and correspoding
+  // input type. 
+  
+  addEOS_.resize(paths_.size(), true);
+  // @TODO: think if this should be checked and processed here or in a validation step in config?
+  auto inputTypes = options_->get<std::vector<std::string>>("input-types", {}); // empty list by default
+  ABORT_IF(inputTypes.size() > 0 && inputTypes.size() != paths_.size(), 
+          "Input types have been specified ({}), you need to specify one per input ({})", 
+          inputTypes.size(), 
+          paths_.size());
+  for(int i = 0; i < inputTypes.size(); ++i)
+    if(inputTypes[i] == "class")
+      addEOS_[i] = false;
+    else if(inputTypes[i] == "sequence")
+      addEOS_[i] = true;
+    else
+      ABORT("Unknown input type {}: {}", i, inputTypes[i]);
+}
+
 }  // namespace data
 }  // namespace marian

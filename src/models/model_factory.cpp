@@ -1,7 +1,9 @@
 #include "marian.h"
 
-#include "models/encoder_decoder.h"
 #include "models/model_factory.h"
+#include "models/encoder_decoder.h"
+#include "models/encoder_classifier.h"
+#include "models/bert.h"
 
 #include "models/costs.h"
 
@@ -34,8 +36,10 @@ Ptr<EncoderBase> EncoderFactory::construct(Ptr<ExpressionGraph> graph) {
 #endif
 
   if(options_->get<std::string>("type") == "transformer")
-    // return New<EncoderTransformer>(options_);
     return NewEncoderTransformer(options_);
+
+  if(options_->get<std::string>("type") == "bert-encoder")
+    return New<BertEncoder>(options_);
 
   ABORT("Unknown encoder type");
 }
@@ -44,9 +48,16 @@ Ptr<DecoderBase> DecoderFactory::construct(Ptr<ExpressionGraph> graph) {
   if(options_->get<std::string>("type") == "s2s")
     return New<DecoderS2S>(options_);
   if(options_->get<std::string>("type") == "transformer")
-    // return New<DecoderTransformer>(options_);
     return NewDecoderTransformer(options_);
   ABORT("Unknown decoder type");
+}
+
+Ptr<ClassifierBase> ClassifierFactory::construct(Ptr<ExpressionGraph> /*graph*/) {
+  if(options_->get<std::string>("type") == "bert-masked-lm")
+    return New<BertMaskedLM>(options_);
+  if(options_->get<std::string>("type") == "bert-classifier")
+    return New<BertClassifier>(options_);
+  ABORT("Unknown classifier type");
 }
 
 Ptr<ModelBase> EncoderDecoderFactory::construct(Ptr<ExpressionGraph> graph) {
@@ -67,6 +78,23 @@ Ptr<ModelBase> EncoderDecoderFactory::construct(Ptr<ExpressionGraph> graph) {
     encdec->push_back(df(options_).construct(graph));
 
   return add_cost(encdec, options_);
+}
+
+Ptr<ModelBase> EncoderClassifierFactory::construct(Ptr<ExpressionGraph> graph) {
+  Ptr<EncoderClassifier> enccls;
+  if(options_->get<std::string>("type") == "bert") {
+    enccls = New<BertEncoderClassifier>(options_);
+  } else {
+    enccls = New<EncoderClassifier>(options_);
+  }
+
+  for(auto& ef : encoders_)
+    enccls->push_back(ef(options_).construct(graph));
+
+  for(auto& cf : classifiers_)
+    enccls->push_back(cf(options_).construct(graph));
+
+  return add_cost(enccls, options_);
 }
 
 Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
@@ -196,6 +224,33 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
                        ("index", idx)
                        ("dim-vocabs", dimVocabs))
             .construct(graph);
+  }
+
+  if(type == "bert") {                           // for full BERT training
+    return models::encoder_classifier()(options) //
+        ("usage", use)                           //
+        .push_back(models::encoder()             //
+                    ("type", "bert-encoder")     // close to original transformer encoder
+                    ("index", 0))                // 
+        .push_back(models::classifier()          //
+                    ("type", "bert-masked-lm")   //
+                    ("index", 0))                // multi-task learning with MaskedLM
+        .push_back(models::classifier()          //
+                    ("type", "bert-classifier")  //
+                    ("index", 1))                // next sentence prediction
+        .construct(graph);
+  }
+
+  if(type == "bert-classifier") {                // for BERT fine-tuning on non-BERT classification task
+    return models::encoder_classifier()(options) //
+        ("usage", use)                           //
+        .push_back(models::encoder()             //
+                    ("type", "bert-encoder")     //
+                    ("index", 0))                // close to original transformer encoder
+        .push_back(models::classifier()          //
+                    ("type", "bert-classifier")  //
+                    ("index", 1))                // next sentence prediction
+        .construct(graph);
   }
 
 #ifdef COMPILE_EXAMPLES

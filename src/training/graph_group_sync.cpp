@@ -110,7 +110,7 @@ void SyncGraphGroup::initializeAvg() {
   comm_->foreach(init, /*parallel=*/false); // @TODO: is sequential operation necessary here? (is the allocation stuff sufficiently reentrant or thread-separated?)
 }
 
-Ptr<data::BatchStats> SyncGraphGroup::collectStats() {
+Ptr<data::BatchStats> SyncGraphGroup::collectStats(const std::vector<Ptr<Vocab>>& vocabs) {
   // This function determines the granularity in which the reader provides data.
   // If no mini-batch-fit, then user provides a constant number. It reads that much. We won't get into this function.
   // If mini-batch-fit, then we get here and set miniBatchFitMultiplier_. Then...
@@ -121,7 +121,7 @@ Ptr<data::BatchStats> SyncGraphGroup::collectStats() {
   bool isDynamic = scheduler_->isDynamicMBSizeScaling();
   double readerMultiplier = isDynamic ? 1. : multiplier; // multiplier applied already by reader
   updateMultiplier_ = isDynamic ? multiplier : 1.;       // multiplier applied later in update()
-  return GraphGroup::collectStats(graphs_[0], builders_[0], readerMultiplier);
+  return GraphGroup::collectStats(graphs_[0], builders_[0], vocabs, readerMultiplier);
 }
 
 // helper for MB scaling: quantize the ratio with a given error margin
@@ -341,7 +341,7 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
   }
 
   // Compute gradients
-  std::vector<float> localDeviceCosts(devices_.size(), 0.f); // [local device index] aggregate cost for each local device
+  std::vector<StaticLoss> localDeviceLosses(devices_.size()); // [local device index] aggregate cost for each local device
   comm_->foreach([&](size_t localDeviceIndex, size_t /*begin*/, size_t /*end*/) { // parallel across devices. Aggregate for warp > 1.
     auto graph = graphs_[localDeviceIndex];
     // reset gradient  --presently done outside
@@ -354,27 +354,29 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
       if (!subBatch)
         break;
 
-      auto costNode = builders_[localDeviceIndex]->build(graph, subBatch);
+      auto rationalLoss = builders_[localDeviceIndex]->build(graph, subBatch);
       graph->forward();
-      localDeviceCosts[localDeviceIndex] += costNode->scalar() / (float)overstuff;
+      
+      StaticLoss tempLoss = *rationalLoss; // needed for overstuff
+      tempLoss.loss /= (float)overstuff; // @TODO: @fseide: scale only loss? should this scale labels too?
+
+      localDeviceLosses[localDeviceIndex] += tempLoss;
       graph->backward(/*zero=*/false); // (gradients are reset before we get here)
     }
   });
   // At this point, each device on each MPI process has a gradient aggregated over a subset of the sub-batches.
 
-  // If individual gradients were averages, then need to average again over all subBatches
-  float div = (float)subBatches.size();
-  if (options_->get<std::string>("cost-type") == "ce-sum")
-    div = (float)overstuff; // (note: with Adam, a constant here makes no difference)
+  // only needed for overstuff now
+  float div = (float)overstuff; // (note: with Adam, a constant here makes no difference)
 
   // Update parameter shard with gradient shard
-  auto update = [&](size_t i, size_t begin, size_t end) {
-    auto curGrad = graphs_[i]->params()->grads()->subtensor(begin, end-begin);
-    auto curParam = graphs_[i]->params()->vals()->subtensor(begin, end-begin);
+  auto update = [&](size_t idx, size_t begin, size_t end) {
+    auto curGrad = graphs_[idx]->params()->grads()->subtensor(begin, end-begin);
+    auto curParam = graphs_[idx]->params()->vals()->subtensor(begin, end-begin);
 
-    if(div != 1) {
+    if(div != 1.f) {
       using namespace functional;
-      Element(_1 = _1 / div, curGrad);   // average once again for ce-mean*, or scale down if overstuffed for ce-sum
+      Element(_1 = _1 / div, curGrad);   // average if overstuffed
     }
 
     // actual model update
@@ -383,12 +385,12 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
           effectiveBatchTrgWords // if overstuffing then bring the count back to the original value
         /*else*/:
           OptimizerBase::mbSizeNotProvided;
-    shardOpt_[i]->update(curParam, curGrad, updateTrgWords);
+    shardOpt_[idx]->update(curParam, curGrad, updateTrgWords);
     curGrad->set(0.f);
 
     if(mvAvg_)
       updateAvgParams(
-          paramsAvg_[i], curParam, scheduler_->numberOfBatches(), updateTrgWords);
+          paramsAvg_[idx], curParam, scheduler_->numberOfBatches(), updateTrgWords);
   };
 
   comm_->scatterReduceAndResetGrads(); // reduce gradients across all devices (globally) into shards
@@ -396,17 +398,13 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
   comm_->allGatherParams();            // distribute param value shards back
 
   // cost across all local devices (scheduler will aggregate cross-process)
-  float localCost = 0;
-  for(auto& c : localDeviceCosts) // localDeviceCosts is already summed up over delay steps
-    localCost += c;
-
-  // if localCost is average-based, we need to turn the sum over devices into an average as well
-  if(options_->get<std::string>("cost-type") != "ce-sum")
-    localCost /= subBatches.size();
+  StaticLoss localLoss;
+  for(auto& l : localDeviceLosses) // localDeviceLosses is already summed up over delay steps
+    localLoss += l;
 
   if(scheduler_) {
-    // track and log localCost
-    scheduler_->update(localCost, numReadBatches, effectiveBatchSize, effectiveBatchTrgWords, mpi_);
+    // track and log localLoss
+    scheduler_->update(localLoss, numReadBatches, effectiveBatchSize, effectiveBatchTrgWords, mpi_);
 
     // save intermediate model (and optimizer state) to file
     if(scheduler_->saving())

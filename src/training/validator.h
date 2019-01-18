@@ -15,6 +15,7 @@
 #include "translator/output_collector.h"
 #include "translator/output_printer.h"
 #include "translator/scorers.h"
+#include "models/bert.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -167,11 +168,10 @@ public:
 protected:
   virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     auto ctype = options_->get<std::string>("cost-type");
-    options_->set("cost-type", "ce-sum");
+    options_->set("cost-type", "ce-sum"); // @TODO: check if still needed, most likely not.
 
-    float cost = 0;
+    StaticLoss loss;
     size_t samples = 0;
-    size_t words = 0;
     size_t batchId = 0;
 
     {
@@ -179,7 +179,7 @@ protected:
 
       TaskBarrier taskBarrier;
       for(auto batch : *batchGenerator_) {
-        auto task = [=, &cost, &samples, &words](size_t id) {
+        auto task = [=, &loss, &samples](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local auto builder = models::from_options(options_, models::usage::scoring);
 
@@ -188,13 +188,12 @@ protected:
           }
 
           builder->clear(graph);
-          auto costNode = builder->build(graph, batch);
+          auto dynamicLoss = builder->build(graph, batch);
           graph->forward();
 
           std::unique_lock<std::mutex> lock(mutex_);
-          cost += costNode->scalar();
+          loss  += *dynamicLoss;
           samples += batch->size();
-          words += batch->back()->batchWords();
         };
 
         taskBarrier.push_back(threadPool_.enqueue(task, batchId));
@@ -204,18 +203,217 @@ protected:
     }
 
     // get back to the original cost type
-    options_->set("cost-type", ctype);
+    options_->set("cost-type", ctype); // @TODO: check if still needed, most likely not.
 
     if(ctype == "perplexity")
-      return std::exp(cost / words);
+      return std::exp(loss.loss / loss.count);
     if(ctype == "ce-mean-words")
-      return cost / words;
+      return loss.loss / loss.count;
     if(ctype == "ce-sum")
-      return cost;
+      return loss.loss;
     else
-      return cost / samples;
+      return loss.loss / samples; // @TODO: back-compat, to be removed
   }
 };
+
+// Used for validating with classifiers. Compute prediction accuary versus groundtruth for a set of classes
+class AccuracyValidator : public Validator<data::Corpus> {
+public:
+  AccuracyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
+      : Validator(vocabs, options, /*lowerIsBetter=*/false) {
+    createBatchGenerator(/*isTranslating=*/false);
+
+    // @TODO: check if this is required.
+    Ptr<Options> opts = New<Options>();
+    opts->merge(options);
+    opts->set("inference", true);
+    builder_ = models::from_options(opts, models::usage::raw);
+  }
+
+  std::string type() override { return "accuracy"; }
+
+protected:
+  virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
+
+    size_t correct     = 0;
+    size_t totalLabels = 0;
+    size_t batchId     = 0;
+
+    {
+      threadPool_.reserve(graphs.size());
+
+      TaskBarrier taskBarrier;
+      for(auto batch : *batchGenerator_) {
+        auto task = [=, &correct, &totalLabels](size_t id) {
+          thread_local Ptr<ExpressionGraph> graph;
+          thread_local auto builder = models::from_options(options_, models::usage::raw);
+
+          if(!graph) {
+            graph = graphs[id % graphs.size()];
+          }
+
+          // @TODO: requires argmax implementation and integer arithmetics
+          // builder->clear(graph);
+          // auto predicted = argmax(builder->build(graph, batch), /*axis*/-1);
+          // auto labels    = graph->indices(batch->back()->data());
+          // auto correct   = sum(flatten(predicted) == labels);
+          // graph->forward();
+
+          // std::unique_lock<std::mutex> lock(mutex_);
+          // totalLabels += labels->shape().elements();
+          // correct     += correct->scalar<IndexType>();
+
+          builder->clear(graph);
+          Expr logits = builder->build(graph, batch)->loss();
+          graph->forward();
+
+          std::vector<float> vLogits;
+          logits->val()->get(vLogits);
+
+          const auto& groundTruth = batch->back()->data();
+
+          IndexType cols = logits->shape()[-1];
+
+          size_t thisCorrect = 0;
+          size_t thisLabels  = groundTruth.size();
+
+          for(int i = 0; i < thisLabels; ++i) {
+            // CPU-side Argmax
+            IndexType bestIndex = 0;
+            float bestValue = std::numeric_limits<float>::lowest();
+            for(IndexType j = 0; j < cols; ++j) {
+              float currValue = vLogits[i * cols + j];
+              if(currValue > bestValue) {
+                bestValue = currValue;
+                bestIndex = j;
+              }
+            }
+            thisCorrect += (size_t)(bestIndex == groundTruth[i]);
+          }
+
+          std::unique_lock<std::mutex> lock(mutex_);
+          totalLabels += thisLabels;
+          correct     += thisCorrect;
+        };
+
+        taskBarrier.push_back(threadPool_.enqueue(task, batchId));
+        batchId++;
+      }
+      // ~TaskBarrier waits until all are done
+    }
+
+    return (float)correct / (float)totalLabels;
+  }
+};
+
+class BertAccuracyValidator : public Validator<data::Corpus> {
+private:
+  bool evalMaskedLM_{true};
+
+public:
+  BertAccuracyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, bool evalMaskedLM)
+      : Validator(vocabs, options, /*lowerIsBetter=*/false),
+        evalMaskedLM_(evalMaskedLM) {
+    createBatchGenerator(/*isTranslating=*/false);
+
+    // @TODO: check if this is required.
+    Ptr<Options> opts = New<Options>();
+    opts->merge(options);
+    opts->set("inference", true);
+    builder_ = models::from_options(opts, models::usage::raw);
+  }
+
+  std::string type() override {
+    if(evalMaskedLM_)
+      return "bert-lm-accuracy";
+    else
+      return "bert-sentence-accuracy";
+  }
+
+protected:
+  virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
+
+    size_t correct     = 0;
+    size_t totalLabels = 0;
+    size_t batchId     = 0;
+
+    {
+      threadPool_.reserve(graphs.size());
+
+      TaskBarrier taskBarrier;
+      for(auto batch : *batchGenerator_) {
+        auto task = [=, &correct, &totalLabels](size_t id) {
+          thread_local Ptr<ExpressionGraph> graph;
+          thread_local auto builder = models::from_options(options_, models::usage::raw);
+          thread_local std::unique_ptr<std::mt19937> engine;
+
+          if(!graph) {
+            graph = graphs[id % graphs.size()];
+          }
+
+          if(!engine)
+            engine.reset(new std::mt19937(Config::seed + id));
+
+          auto bertBatch = New<data::BertBatch>(batch,
+                                                *engine,
+                                                options_->get<float>("bert-masking-fraction"),
+                                                options_->get<std::string>("bert-mask-symbol"),
+                                                options_->get<std::string>("bert-sep-symbol"),
+                                                options_->get<std::string>("bert-class-symbol"));
+
+          builder->clear(graph);
+          auto classifierStates = std::dynamic_pointer_cast<BertEncoderClassifier>(builder)->apply(graph, bertBatch, true);
+          graph->forward();
+
+          auto maskedLMLogits = classifierStates[0]->getLogProbs();
+          const auto& maskedLMLabels = bertBatch->bertMaskedWords();
+
+          auto sentenceLogits = classifierStates[1]->getLogProbs();
+          const auto& sentenceLabels = bertBatch->back()->data();
+
+          auto count = [=, &correct, &totalLabels](Expr logits, const std::vector<IndexType>& labels) {
+            IndexType cols = logits->shape()[-1];
+            size_t thisCorrect = 0;
+            size_t thisLabels  = labels.size();
+
+            std::vector<float> vLogits;
+            logits->val()->get(vLogits);
+
+            for(int i = 0; i < thisLabels; ++i) {
+              // CPU-side Argmax
+              IndexType bestIndex = 0;
+              float bestValue = std::numeric_limits<float>::lowest();
+              for(IndexType j = 0; j < cols; ++j) {
+                float currValue = vLogits[i * cols + j];
+                if(currValue > bestValue) {
+                  bestValue = currValue;
+                  bestIndex = j;
+                }
+              }
+              thisCorrect += (size_t)(bestIndex == labels[i]);
+            }
+
+            std::unique_lock<std::mutex> lock(mutex_);
+            totalLabels += thisLabels;
+            correct     += thisCorrect;
+          };
+
+          if(evalMaskedLM_)
+            count(maskedLMLogits, maskedLMLabels);
+          else
+            count(sentenceLogits, sentenceLabels);
+        };
+
+        taskBarrier.push_back(threadPool_.enqueue(task, batchId));
+        batchId++;
+      }
+      // ~TaskBarrier waits until all are done
+    }
+
+    return (float)correct / (float)totalLabels;
+  }
+};
+
 
 class ScriptValidator : public Validator<data::Corpus> {
 public:

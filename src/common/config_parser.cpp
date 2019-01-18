@@ -143,6 +143,10 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "Enable layer normalization");
   cli.add<bool>("--right-left",
       "Train right-to-left model");
+  cli.add<std::vector<std::string>>("--input-types",
+      "Provide type of input data if different than 'sequence'. "
+      "Possible values: sequence, class. You need to provide one type per input.",
+      {});
   cli.add<bool>("--best-deep",
       "Use Edinburgh deep RNN configuration (s2s)");
   cli.add_nondefault<std::vector<size_t>>("--special-vocab",
@@ -196,7 +200,13 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
   cli.add<std::string>("--transformer-postprocess",
       "Operation after each transformer layer: d = dropout, a = add, n = normalize",
       "dan");
+  cli.add<bool>("--transformer-train-positions",
+      "Train positional embeddings instead of using static sinusoidal embeddings");
 
+  cli.add<std::string>("--bert-mask-symbol", "Masking symbol for BERT masked-LM training", "[MASK]");
+  cli.add<std::string>("--bert-sep-symbol", "Sentence separator symbol for BERT next sentence prediction training", "[SEP]");
+  cli.add<std::string>("--bert-class-symbol", "Class symbol BERT classifier training", "[CLS]");
+  cli.add<float>("--bert-masking-fraction", "Fraction of masked out tokens during training", 0.15);
 #ifdef CUDNN
   cli.add<int>("--char-stride",
       "Width of max-pooling layer after convolution layer in char-s2s model",
@@ -240,8 +250,10 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
 void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.switchGroup("Training options");
   // clang-format off
-  cli.add<std::string>("--cost-type",
+  cli.add<std::string>("--cost-type", // @TODO: rename to loss-type
       "Optimization criterion: ce-mean, ce-mean-words, ce-sum, perplexity", "ce-mean");
+  cli.add<std::string>("--multi-loss-type",
+      "How to accumulate multi-objective losses: sum, scaled, mean", "sum");
   cli.add<bool>("--overwrite",
       "Do not create model checkpoints, only overwrite main model file with last checkpoint. "
       "Reduces disk usage");
@@ -276,6 +288,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "Display nformation for the first  arg  updates");
   cli.add<bool>("--disp-label-counts",
       "Display label counts when logging loss progress");
+  cli.add<int>("--disp-label-index",
+      "Display label counts based on i-th input stream (-1 is last)", -1);
   cli.add<std::string/*SchedulerPeriod*/>("--save-freq",
       "Save model file every  arg  updates (append 't' for every  arg  target labels)",
       "10000u");
