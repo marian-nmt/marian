@@ -37,8 +37,9 @@ public:
     // use CE loss
 
     auto loss = sum(cross_entropy(top->loss(), labels), /*axis =*/ 0);
-    
-    return New<SumMultiRationalLoss>(RationalLoss({loss, (float)vLabels.size()}));
+    auto multiLoss = New<SumMultiRationalLoss>();
+    multiLoss->push_back({loss, (float)vLabels.size()});
+    return multiLoss;
   }
 };
 
