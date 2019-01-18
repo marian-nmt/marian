@@ -37,9 +37,7 @@ static inline RationalLoss guidedAlignmentCost(Ptr<ExpressionGraph> graph,
   
   // Create label node, also weigh by scalar so labels and cost are in the same domain.
   // Fractional label counts are OK
-  Expr labels = graph->constant({1}, inits::from_value(guidedScalar * numLabels)); // @TODO: introduce graph->value(...) ?
-
-  return RationalLoss(alignmentLoss, labels);
+  return RationalLoss(alignmentLoss, guidedScalar * numLabels);
 }
 
 }  // namespace marian

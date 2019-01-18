@@ -82,14 +82,14 @@ public:
 
       auto alignmentLoss = guidedAlignmentCost(graph, corpusBatch, options_, attention);
       multiLoss->push_back(alignmentLoss);
-
-      return multiLoss;
-    } else {
-      return multiLoss;
     }
+    
+    return multiLoss;
+    
   }
 };
 
+// Wraps an EncoderClassifier so it can produce a cost from raw logits. @TODO: Needs refactoring
 class EncoderClassifierCE : public CostBase {
 protected:
   Ptr<Options> options_;
@@ -284,7 +284,8 @@ inline Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec,
       else
         return New<Stepwise>(encdec, New<LogSoftmaxStep>());
     case usage::raw:
-    default: return encdec;
+    default: 
+      return encdec;
   }
 }
 
@@ -298,7 +299,8 @@ inline Ptr<ModelBase> add_cost(Ptr<EncoderClassifier> enccls,
     case usage::translation:
       ABORT("Classifier cannot be used for translation");
     case usage::raw:
-    default: return enccls;
+    default: 
+      return enccls;
   }
 }
 

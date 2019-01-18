@@ -157,7 +157,8 @@ NodeInitializer from_item(const io::Item& item) {
   }
 }
 
-NodeInitializer positions(int start) {
+// Computes Google's sinusoidal position embeddings 
+NodeInitializer sinusoidalPositionEmbeddings(int start) {
   return [start](Tensor t) {
     int dimEmb   = t->shape()[-1];
     int dimWords = t->size() / dimEmb;

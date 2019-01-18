@@ -37,13 +37,8 @@ public:
     // use CE loss
 
     auto loss = sum(cross_entropy(top->loss(), labels), /*axis =*/ 0);
-    auto labelsNum = graph->constant({1}, inits::from_value((float)vLabels.size()));
-
-    // @TODO: simplify this
-    auto multiLoss = New<SumMultiRationalLoss>();
-    multiLoss->push_back({loss, labelsNum});
-
-    return multiLoss;
+    
+    return New<SumMultiRationalLoss>(RationalLoss({loss, (float)vLabels.size()}));
   }
 };
 

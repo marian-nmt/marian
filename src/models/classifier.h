@@ -8,7 +8,7 @@
 namespace marian {
 
 /**
- * Simple base class for Classifiers
+ * Simple base class for Classifiers to be used in EncoderClassifier framework
  * Currently only implementations are in bert.h
  */
 class ClassifierBase {
@@ -34,6 +34,7 @@ public:
     return options_->get<T>(key);
   }
 
+  // Should be used to clear any batch-wise temporary objects if present
   virtual void clear() = 0;
 };
 

@@ -145,7 +145,7 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "Train right-to-left model");
   cli.add<std::vector<std::string>>("--input-types",
       "Provide type of input data if different than 'sequence'. "
-      "Possible values: sequence, labels. You need to provide one type per input.",
+      "Possible values: sequence, class. You need to provide one type per input.",
       {});
   cli.add<bool>("--best-deep",
       "Use Edinburgh deep RNN configuration (s2s)");
@@ -200,8 +200,8 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
   cli.add<std::string>("--transformer-postprocess",
       "Operation after each transformer layer: d = dropout, a = add, n = normalize",
       "dan");
-  cli.add<bool>("--transformer-learned-positions",
-      "Use learned positional embeddings instead of trigonometric embeddings");
+  cli.add<bool>("--transformer-train-positions",
+      "Train positional embeddings instead of using static sinusoidal embeddings");
 
   cli.add<std::string>("--bert-mask-symbol", "Masking symbol for BERT masked-LM training", "[MASK]");
   cli.add<std::string>("--bert-sep-symbol", "Sentence separator symbol for BERT next sentence prediction training", "[SEP]");
@@ -289,7 +289,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<bool>("--disp-label-counts",
       "Display label counts when logging loss progress");
   cli.add<int>("--disp-label-index",
-      "Display label counts based on i-th sub-batch (-1 is last)", -1);
+      "Display label counts based on i-th input stream (-1 is last)", -1);
   cli.add<std::string/*SchedulerPeriod*/>("--save-freq",
       "Save model file every  arg  updates (append 't' for every  arg  target labels)",
       "10000u");

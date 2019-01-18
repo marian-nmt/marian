@@ -202,9 +202,8 @@ public:
     int dimBatch = (int)subBatch->batchSize();
     int dimEmb = E_->shape()[-1];
     int dimWords = (int)subBatch->batchWidth();
-    // @TODO: merge this with below. Currently can't only due to the extra beam dimension
-    auto chosenEmbeddings = rows(E_, subBatch->data());
-    auto batchEmbeddings = reshape(chosenEmbeddings, { dimWords, dimBatch, dimEmb });
+
+    auto batchEmbeddings = apply(subBatch->data(), { dimWords, dimBatch, dimEmb });
     auto batchMask = graph->constant({ dimWords, dimBatch, 1 },
                                      inits::from_vector(subBatch->mask()));
     return std::make_tuple(batchEmbeddings, batchMask);

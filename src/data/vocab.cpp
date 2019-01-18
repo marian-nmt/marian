@@ -4,7 +4,7 @@
 namespace marian {
 
 Ptr<VocabBase> createDefaultVocab();
-Ptr<VocabBase> createLabelsVocab();
+Ptr<VocabBase> createClassVocab();
 Ptr<VocabBase> createSentencePieceVocab(const std::string& /*vocabPath*/, Ptr<Options>, size_t /*batchIndex*/);
 
 // @TODO: make each vocab peek on type
@@ -16,7 +16,7 @@ Ptr<VocabBase> createVocab(const std::string& vocabPath, Ptr<Options> options, s
     // check type of input, if not given, assume "sequence"
     auto inputTypes = options->get<std::vector<std::string>>("input-types", {});
     std::string inputType = inputTypes.size() > batchIndex ? inputTypes[batchIndex] : "sequence";
-    return inputType == "labels" ? createLabelsVocab() : createDefaultVocab();
+    return inputType == "class" ? createClassVocab() : createDefaultVocab();
   }
 }
 

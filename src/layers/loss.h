@@ -18,8 +18,8 @@ namespace marian {
  */
 class RationalLoss {
 protected:
-  Expr loss_;
-  Expr labels_;
+  Expr loss_;   // numerator
+  Expr labels_; // denominator
 
   RationalLoss() = default; // protected
 

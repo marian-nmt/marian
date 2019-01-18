@@ -12,8 +12,8 @@ namespace marian {
 /**
  * Combines sequence encoders with generic classifiers
  * Can be used to train sequence classifiers like language detection, BERT-next-sentence-prediction etc.
- * Already has support for multi-objective training. 
- * 
+ * Already has support for multi-objective training.
+ *
  * @TODO: this should probably be unified somehow with EncoderDecoder which could allow for deocder/classifier
  * multi-objective training.
  */
@@ -128,6 +128,7 @@ public:
     modelFeatures_.insert("transformer-decoder-autoreg");
     modelFeatures_.insert("transformer-tied-layers");
     modelFeatures_.insert("transformer-guided-alignment-layer");
+    modelFeatures_.insert("transformer-train-positions");
   }
 
   virtual Ptr<Options> getOptions() override { return options_; }
@@ -194,7 +195,7 @@ public:
     std::vector<Ptr<ClassifierState>> classifierStates;
     for(auto& classifier : classifiers_)
       classifierStates.push_back(classifier->apply(graph, batch, encoderStates));
-    
+
     return classifierStates;
   }
 

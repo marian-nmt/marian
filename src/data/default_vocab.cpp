@@ -285,7 +285,7 @@ private:
 
 // This is a vocabulary class that does not enforce </s> or <unk>. 
 // This is used for class lists in a classifier. 
-class LabelsVocab : public DefaultVocab {
+class ClassVocab : public DefaultVocab {
 private:
   virtual void addRequiredVocabulary(const std::string& vocabPath, bool isJson) override {} // Do nothing.
 };
@@ -294,8 +294,8 @@ Ptr<VocabBase> createDefaultVocab() {
   return New<DefaultVocab>();
 }
 
-Ptr<VocabBase> createLabelsVocab() {
-  return New<LabelsVocab>();
+Ptr<VocabBase> createClassVocab() {
+  return New<ClassVocab>();
 }
 
 }

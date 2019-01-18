@@ -44,6 +44,7 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
   modelFeatures_.insert("transformer-decoder-autoreg");
   modelFeatures_.insert("transformer-tied-layers");
   modelFeatures_.insert("transformer-guided-alignment-layer");
+  modelFeatures_.insert("transformer-train-positions");
 }
 
 std::vector<Ptr<EncoderBase>>& EncoderDecoder::getEncoders() {

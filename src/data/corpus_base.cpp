@@ -44,22 +44,7 @@ CorpusBase::CorpusBase(const std::vector<std::string>& paths,
     ABORT_IF(files_.back()->empty(), "File '{}' is empty", path);
   }
 
-  addEOS_.resize(paths_.size(), true);
-  // @TODo: think if this should be checked and processed here or in a validation step in config?
-  auto inputTypes = options_->get<std::vector<std::string>>("input-types", {}); // empty list by default
-  ABORT_IF(inputTypes.size() > 0 && inputTypes.size() != paths_.size(), 
-           "Input types are specified ({}) you need to specify one per input ({})", 
-           inputTypes.size(), 
-           paths_.size());
-  // Currently input types affects only EOS symbol
-  for(int i = 0; i < inputTypes.size(); ++i)
-    if(inputTypes[i] == "labels")
-      addEOS_[i] = false;
-    else if(inputTypes[i] == "sequence")
-      addEOS_[i] = true;
-    else
-      ABORT("Unknown input type {}: {}", i, inputTypes[i]);
-
+  initEOS();
 }
 
 CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
@@ -74,9 +59,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
   else
     paths_ = options_->get<std::vector<std::string>>("input");
 
-  addEOS_.resize(paths_.size(), true);
-  // @TODo: think if this should be checked and processed here or in a validation step in config?
-  auto inputTypes = options_->get<std::vector<std::string>>("input-types", {}); // empty list by default
+  initEOS();
 
   std::vector<std::string> vocabPaths;
   if(!options_->get<std::vector<std::string>>("vocabs").empty())
@@ -150,19 +133,6 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
         vocabs_.emplace_back(vocab);
       }
     }
-
-    ABORT_IF(inputTypes.size() > 0 && inputTypes.size() != paths_.size(), 
-           "Input types are specified ({}) you need to specify one per input ({})", 
-            inputTypes.size(), 
-            paths_.size());
-    // Currently input types affects only EOS symbol
-    for(int i = 0; i < inputTypes.size(); ++i)
-      if(inputTypes[i] == "labels")
-        addEOS_[i] = false;
-      else if(inputTypes[i] == "sequence")
-        addEOS_[i] = true;
-      else
-        ABORT("Unknown input type {}: {}", i, inputTypes[i]);
   }
 
   if(translate) {
@@ -222,14 +192,13 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
 }
 
 void CorpusBase::addWordsToSentenceTuple(const std::string& line,
-                                         size_t i,
-                                         SentenceTuple& tup,
-                                         bool addEOS) const {
+                                         size_t batchIndex,
+                                         SentenceTuple& tup) const {
 
   // This turns a string in to a sequence of numerical word ids. Depending
   // on the vocabulary type, this can be non-trivial, e.g. when SentencePiece
   // is used.
-  Words words = vocabs_[i]->encode(line, /*addEOS =*/ addEOS, inference_);
+  Words words = vocabs_[batchIndex]->encode(line, /*addEOS =*/ addEOS_[batchIndex], inference_);
 
   if(words.empty())
     words.push_back(0);
@@ -314,5 +283,27 @@ void CorpusBase::addWeightsToBatch(Ptr<CorpusBatch> batch,
 
   batch->setDataWeights(weights);
 }
+
+void CorpusBase::initEOS() {
+  // Labels fed into sub-batches that are just class-labels, not sequence labels do not require to
+  // add a EOS symbol. Hence decision to add EOS is now based on input stream positions and correspoding
+  // input type. 
+  
+  addEOS_.resize(paths_.size(), true);
+  // @TODO: think if this should be checked and processed here or in a validation step in config?
+  auto inputTypes = options_->get<std::vector<std::string>>("input-types", {}); // empty list by default
+  ABORT_IF(inputTypes.size() > 0 && inputTypes.size() != paths_.size(), 
+          "Input types have been specified ({}), you need to specify one per input ({})", 
+          inputTypes.size(), 
+          paths_.size());
+  for(int i = 0; i < inputTypes.size(); ++i)
+    if(inputTypes[i] == "class")
+      addEOS_[i] = false;
+    else if(inputTypes[i] == "sequence")
+      addEOS_[i] = true;
+    else
+      ABORT("Unknown input type {}: {}", i, inputTypes[i]);
+}
+
 }  // namespace data
 }  // namespace marian

@@ -316,16 +316,16 @@ public:
                                     Ptr<Options> options) {
     std::vector<Ptr<SubBatch>> batches;
 
-    size_t idx = 0;
+    size_t batchIndex = 0;
     for(auto len : lengths) {
-      auto sb = New<SubBatch>(batchSize, len, vocabs[idx]);
+      auto sb = New<SubBatch>(batchSize, len, vocabs[batchIndex]);
       // set word indices to different values to avoid same hashes
       // rand() is OK, this does not affect state in any way
       std::transform(sb->data().begin(), sb->data().end(), sb->data().begin(),
-                     [&](Word) { return rand() % vocabs[idx]->size(); }); 
+                     [&](Word) { return rand() % vocabs[batchIndex]->size(); }); 
       // mask: no items ask being masked out
       std::fill(sb->mask().begin(), sb->mask().end(), 1.f);
-      idx++;
+      batchIndex++;
 
       batches.push_back(sb);
     }
@@ -544,13 +544,17 @@ protected:
   size_t alignFileIdx_{0};
 
   /**
+   * @brief Determine if EOS symbol should be added to input
+   */
+  void initEOS();
+
+  /**
    * @brief Helper function converting a line of text into words using the i-th
    * vocabulary and adding them to the sentence tuple.
    */
   void addWordsToSentenceTuple(const std::string& line,
-                               size_t i,
-                               SentenceTuple& tup,
-                               bool addEOS) const;
+                               size_t batchIndex,
+                               SentenceTuple& tup) const;
   /**
    * @brief Helper function parsing a line with word alignments and adding them
    * to the sentence tuple.

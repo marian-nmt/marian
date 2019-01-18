@@ -7,9 +7,9 @@
 
 namespace marian {
 
-/** 
+/**
  * This file contains nearly all BERT-related code and adds BERT-funtionality
- * on top of existing classes like TansformerEncoder and Classifier. 
+ * on top of existing classes like TansformerEncoder and Classifier.
  */
 
 namespace data {
@@ -17,15 +17,13 @@ namespace data {
 /**
  * BERT-specific mini-batch that computes masking for Masked LM training.
  * Expects symbols [MASK], [SEP], [CLS] to be present in vocabularies unless
- * other symbols are specified on the command line.
- * 
+ * other symbols are specified in the config.
+ *
  * This takes a normal CorpusBatch and extends it with additional data. Luckily
  * all the BERT-functionality can be inferred from a CorpusBatch alone.
  */
 class BertBatch : public CorpusBatch {
 private:
-  std::mt19937& eng_;
-
   std::vector<IndexType> maskedPositions_;
   std::vector<IndexType> maskedWords_;
   std::vector<IndexType> sentenceIndices_;
@@ -38,23 +36,24 @@ private:
   std::unique_ptr<std::uniform_int_distribution<Word>> randomWord_;
 
   // Selects a random integer between 0 and 99
-  std::unique_ptr<std::uniform_int_distribution<int>> randomPercent_;
+  std::unique_ptr<std::uniform_real_distribution<float>> randomPercent_;
 
   // Word ids of words that should not be masked, e.g. separators, padding
   std::unordered_set<Word> dontMask_;
 
-  // Masking function
-  Word maskOut(Word word, Word mask) {
+  // Masking function, i.e. replaces a chosen word with either
+  // a [MASK] symbol, itself or a random word
+  Word maskOut(Word word, Word mask, std::mt19937& engine) {
     auto subBatch = subBatches_.front();
 
     // @TODO: turn those threshold into parameters, adjustable from command line
-    int r = (*randomPercent_)(eng_);
-    if (r < 10) { // for 10% of cases return same word
+    float r = (*randomPercent_)(engine);
+    if (r < 0.1f) { // for 10% of cases return same word
       return word;
-    } else if (r < 20) { // for 10% return random word
-      Word randWord = (*randomWord_)(eng_);
-      if(dontMask_.count(randWord) > 0) // the random word is a forbidden word
-        return mask;                    // hence return mask symbol
+    } else if (r < 0.2f) { // for 10% return random word
+      Word randWord = (*randomWord_)(engine);
+      if(dontMask_.count(randWord) > 0) // some words, e.g. [CLS] or </s>, may not be used as random words
+        return mask;                    // for those, return the mask symbol instead
       else
         return randWord;                // else return the random word
     } else { // for 80% of words apply mask symbol
@@ -72,36 +71,38 @@ public:
             const std::string& maskSymbol,
             const std::string& sepSymbol,
             const std::string& clsSymbol)
-    : CorpusBatch(*batch), eng_(engine),
+    : CorpusBatch(*batch),
       maskSymbol_(maskSymbol), sepSymbol_(sepSymbol), clsSymbol_(clsSymbol) {
 
+    // BERT expects a textual first stream and a second stream with class labels
     auto subBatch = subBatches_.front();
+    const auto& vocab = *subBatch->vocab();
 
     // Initialize to sample random vocab id
-    randomWord_.reset(new std::uniform_int_distribution<Word>(0, subBatch->vocab()->size()));
+    randomWord_.reset(new std::uniform_int_distribution<Word>(0, vocab.size()));
 
     // Intialize to sample random percentage
-    randomPercent_.reset(new std::uniform_int_distribution<int>(0, 100));
+    randomPercent_.reset(new std::uniform_real_distribution<float>(0.f, 1.f));
 
     auto& words = subBatch->data();
 
     // Get word id of special symbols
-    Word maskId  = (*subBatch->vocab())[maskSymbol_];
-    Word clsId   = (*subBatch->vocab())[clsSymbol_];
-    Word sepId   = (*subBatch->vocab())[sepSymbol_];
+    Word maskId  = vocab[maskSymbol_];
+    Word clsId   = vocab[clsSymbol_];
+    Word sepId   = vocab[sepSymbol_];
 
-    ABORT_IF(maskId == subBatch->vocab()->getUnkId(),
+    ABORT_IF(maskId == vocab.getUnkId(),
              "BERT masking symbol {} not found in vocabulary", maskSymbol_);
 
-    ABORT_IF(sepId == subBatch->vocab()->getUnkId(),
+    ABORT_IF(sepId == vocab.getUnkId(),
              "BERT separator symbol {} not found in vocabulary", sepSymbol_);
 
-    ABORT_IF(clsId == subBatch->vocab()->getUnkId(),
+    ABORT_IF(clsId == vocab.getUnkId(),
              "BERT class symbol {} not found in vocabulary", clsSymbol_);
 
     dontMask_.insert(clsId); // don't mask class token
     dontMask_.insert(sepId); // don't mask separator token
-    dontMask_.insert(subBatch->vocab()->getEosId()); // don't mask </s>
+    dontMask_.insert(vocab.getEosId()); // don't mask </s>
     // it's ok to mask <unk>
 
     std::vector<int> selected;
@@ -109,13 +110,13 @@ public:
     for(int i = 0; i < words.size(); ++i) // collect words among which we will mask
       if(dontMask_.count(words[i]) == 0)  // do not add indices of special words
         selected.push_back(i);
-    std::shuffle(selected.begin(), selected.end(), eng_); // randomize positions
+    std::shuffle(selected.begin(), selected.end(), engine); // randomize positions
     selected.resize(std::ceil(selected.size() * maskFraction)); // select first x percent from shuffled indices
 
     for(int i : selected) {
-      maskedPositions_.push_back(i);        // where is the original word?
-      maskedWords_.push_back(words[i]);     // what is the original word?
-      words[i] = maskOut(words[i], maskId); // mask that position
+      maskedPositions_.push_back(i);                // where is the original word?
+      maskedWords_.push_back(words[i]);             // what is the original word?
+      words[i] = maskOut(words[i], maskId, engine); // mask that position
     }
 
     int dimBatch = subBatch->batchSize();
@@ -148,15 +149,15 @@ public:
 
 /**
  * BERT-specific version of EncoderClassifier, mostly here to automatically convert a
- * CorpusBatch to BertBatch. 
+ * CorpusBatch to BertBatch.
  */
-class BertEncoderClassifier : public EncoderClassifier, public data::RNGEngine {
+class BertEncoderClassifier : public EncoderClassifier, public data::RNGEngine { // @TODO: this random engine is not being serialized right now
 public:
   BertEncoderClassifier(Ptr<Options> options)
   : EncoderClassifier(options) {}
 
   std::vector<Ptr<ClassifierState>> apply(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch, bool clearGraph) override {
-    // intercept batch and anotate with BERT-specific concepts
+    // intercept batch and annotate with BERT-specific concepts
     auto bertBatch = New<data::BertBatch>(batch,
                                           eng_,
                                           opt<float>("bert-masking-fraction", 0.15f), // 15% by default according to paper
@@ -175,7 +176,7 @@ public:
 /**
  * BERT-specific modifications to EncoderTransformer
  * Actually all that is needed is to intercept the creation of special embeddings,
- * here sentence embeddings for sentence A and B. 
+ * here sentence embeddings for sentence A and B.
  */
 class BertEncoder : public EncoderTransformer {
 public:
@@ -201,9 +202,9 @@ public:
                                .construct(graph_);
       signal = sentenceEmbeddings->apply(bertBatch->bertSentenceIndices(), {dimWords, dimBatch, dimEmb});
     } else {
-      // @TODO: factory for postional embeddings?
-      // trigonometric positions, no backprob
-      auto sentenceEmbeddingsExpr = graph_->constant({2, dimEmb}, inits::positions(0));
+      // @TODO: factory for positional embeddings?
+      // constant sinusoidal position embeddings, no backprob
+      auto sentenceEmbeddingsExpr = graph_->constant({2, dimEmb}, inits::sinusoidalPositionEmbeddings(0));
       signal = rows(sentenceEmbeddingsExpr, bertBatch->bertSentenceIndices());
       signal = reshape(signal, {dimWords, dimBatch, dimEmb});
     }
@@ -212,18 +213,18 @@ public:
   }
 
   virtual Expr addSpecialEmbeddings(Expr input, int start = 0, Ptr<data::CorpusBatch> batch = nullptr) const override {
-    bool learnedPosEmbeddings = opt<bool>("transformer-learned-positions", true);
-    input = addPositionalEmbeddings(input, start, learnedPosEmbeddings);
-    input = addSentenceEmbeddings(input, batch, learnedPosEmbeddings); // @TODO: separately set learnable pos and sent embeddings
+    bool trainPosEmbeddings = opt<bool>("transformer-train-positions", true);
+    input = addPositionalEmbeddings(input, start, trainPosEmbeddings);
+    input = addSentenceEmbeddings(input, batch, trainPosEmbeddings); // @TODO: separately set learnable pos and sent embeddings
     return input;
   }
 };
 
 /**
- * BERT-specific classifier 
+ * BERT-specific classifier
  * Can be used for next sentence prediction task or other fine-tuned down-stream tasks
  * Does not actually need a BertBatch, works with CorpusBatch.
- * 
+ *
  * @TODO: This is in fact so generic that we might move it out of here as the typical classifier implementation
  */
 class BertClassifier : public ClassifierBase {
@@ -266,9 +267,8 @@ public:
 
 /**
  * This is a model that pretrains BERT for classification.
- * This is also a Classifier, but compared to the one above needs the BERT-specific information from BertBatch
- * as this is self-generating its labels from the source. Labels are dynamically created as complements of the
- * masking process. 
+ * This is also a Classifier, but compared to the BertClassifier above needs the BERT-specific information from BertBatch
+ * as this is self-generating its labels from the source. Labels are dynamically created as complements of the masking process.
  */
 class BertMaskedLM : public ClassifierBase {
 public:
@@ -277,7 +277,7 @@ public:
   Ptr<ClassifierState> apply(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch, const std::vector<Ptr<EncoderState>>& encoderStates) override {
     Ptr<data::BertBatch> bertBatch = std::dynamic_pointer_cast<data::BertBatch>(batch);
 
-    ABORT_IF(!bertBatch, "Batch could not be converted to batch for BERT training");
+    ABORT_IF(!bertBatch, "Batch must be BertBatch for BERT training");
     ABORT_IF(encoderStates.size() != 1, "Currently we only support a single encoder BERT model");
 
     auto context = encoderStates[0]->getContext();
@@ -289,7 +289,7 @@ public:
     int dimBatch = context->shape()[-2];
     int dimTime  = context->shape()[-3];
 
-    auto maskedEmbeddings = rows(reshape(context, {dimBatch * dimTime, dimModel}), bertMaskedPositions); // subselect stuff that has actually been masked out;
+    auto maskedEmbeddings = rows(reshape(context, {dimBatch * dimTime, dimModel}), bertMaskedPositions); // subselect stuff that has actually been masked out
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
@@ -302,15 +302,14 @@ public:
         ("dim", dimVoc);                  //
     layerOut.tieTransposed("Wemb"); // We are a BERT model, hence tie with input, @TODO: check if this is actually what Google does
 
-    // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
     // assemble layers into MLP and apply to embeddings, decoder context and
     // aligned source context
     auto output = mlp::mlp()  //
-        .push_back(layerTanh) // 
+        .push_back(layerTanh) //
         .push_back(layerOut)  //
         .construct(graph);
 
-    auto logits = output->apply(maskedEmbeddings);
+    auto logits = output->apply(maskedEmbeddings); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
 
     auto state = New<ClassifierState>();
     state->setLogProbs(logits);

@@ -76,7 +76,7 @@ public:
       embeddings = embeddings + signal;
     } else {
       auto signal = graph_->constant({dimWords, 1, dimEmb},
-                                     inits::positions(start));
+                                     inits::sinusoidalPositionEmbeddings(start));
       // according to paper embeddings are scaled up by \sqrt(d_m)
       embeddings = std::sqrt((float)dimEmb) * embeddings;
       embeddings = embeddings + signal;
@@ -86,8 +86,8 @@ public:
   }
 
   virtual Expr addSpecialEmbeddings(Expr input, int start = 0, Ptr<data::CorpusBatch> /*batch*/ = nullptr) const {
-    bool learnedPosEmbeddings = opt<bool>("transformer-learned-positions", false);
-    return addPositionalEmbeddings(input, start, learnedPosEmbeddings);
+    bool trainPosEmbeddings = opt<bool>("transformer-train-positions", false);
+    return addPositionalEmbeddings(input, start, trainPosEmbeddings);
   }
 
   Expr triangleMask(int length) const {
