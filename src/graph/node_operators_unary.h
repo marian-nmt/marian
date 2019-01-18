@@ -412,20 +412,40 @@ struct LogSoftmaxNodeOp : public UnaryNodeOp {
   const std::string type() override { return "logsoftmax"; }
 };
 
+enum class ReduceNodeOpCode {
+  sum, mean, min, max, logSumExp
+};
+
 struct SumNodeOp : public UnaryNodeOp {
   int axis_;
+  ReduceNodeOpCode opCode_;
 
-  SumNodeOp(Expr a, int axis) : UnaryNodeOp(a, newShape(a, axis)) {}
+  SumNodeOp(Expr a, int axis, ReduceNodeOpCode opCode)
+      : UnaryNodeOp(a, newShape(a, axis)), opCode_(opCode){}
 
   NodeOps forwardOps() override {
     using namespace functional;
 
-    return {NodeOp(Reduce(_1, val_, child(0)->val()))};
+    switch (opCode_) {
+    case ReduceNodeOpCode::sum:
+      return {NodeOp(Reduce(_1, val_, child(0)->val()))};
+    case ReduceNodeOpCode::mean:
+      return {NodeOp(Reduce(_1, (float)val_->shape().elements() / (float)child(0)->shape().elements(), val_, child(0)->val()))};
+    default:
+      ABORT("Unexpected reduction op-code {}", (int)opCode_);
+    }
   }
 
   NodeOps backwardOps() override {
     using namespace functional;
-    return {NodeOp(Add(_1, child(0)->grad(), adj_))};
+    switch (opCode_) {
+    case ReduceNodeOpCode::sum:
+      return {NodeOp(Add(_1, child(0)->grad(), adj_))};
+    case ReduceNodeOpCode::mean:
+      return {NodeOp(Add(_1, (float)val_->shape().elements() / (float)child(0)->shape().elements(), child(0)->grad(), adj_))};
+    default:
+      ABORT("Unexpected reduction op-code {}", (int)opCode_);
+    }
   }
 
   Shape newShape(Expr a, int axis) {
@@ -436,7 +456,16 @@ struct SumNodeOp : public UnaryNodeOp {
     return shape;
   }
 
-  const std::string type() override { return "sum"; }
+  const std::string type() override {
+    switch (opCode_) {
+    case ReduceNodeOpCode::sum:
+      return "sum";
+    case ReduceNodeOpCode::mean:
+      return "mean";
+    default:
+      ABORT("Unexpected reduction op-code {}", (int)opCode_);
+    }
+  }
 
   const std::string color() override { return "orange"; }
 
@@ -444,6 +473,7 @@ struct SumNodeOp : public UnaryNodeOp {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
       util::hash_combine(hash_, axis_);
+      util::hash_combine(hash_, (int)opCode_);
     }
     return hash_;
   }
@@ -454,59 +484,7 @@ struct SumNodeOp : public UnaryNodeOp {
     Ptr<SumNodeOp> cnode = std::dynamic_pointer_cast<SumNodeOp>(node);
     if(!cnode)
       return false;
-    if(axis_ != cnode->axis_)
-      return false;
-    return true;
-  }
-};
-
-struct MeanNodeOp : public UnaryNodeOp {
-  int axis_;
-
-  MeanNodeOp(Expr a, int axis) : UnaryNodeOp(a, newShape(a, axis)) {}
-
-  NodeOps forwardOps() override {
-    using namespace functional;
-    int left = child(0)->shape().elements() / val_->shape().elements();
-    float scale = 1.f / left;
-
-    return {NodeOp(Reduce(_1, scale, val_, child(0)->val()))};
-  }
-
-  NodeOps backwardOps() override {
-    using namespace functional;
-    int left = child(0)->shape().elements() / val_->shape().elements();
-    float scale = 1.f / left;
-
-    return {NodeOp(Add(_1, scale, child(0)->grad(), adj_))};
-  }
-
-  Shape newShape(Expr a, int axis) {
-    Shape shape = a->shape();
-    axis_ = shape.axis(axis);
-    shape.set(axis_, 1);
-    return shape;
-  }
-
-  const std::string type() override { return "mean"; }
-
-  const std::string color() override { return "orange"; }
-
-  virtual size_t hash() override {
-    if(!hash_) {
-      hash_ = NaryNodeOp::hash();
-      util::hash_combine(hash_, axis_);
-    }
-    return hash_;
-  }
-
-  virtual bool equal(Expr node) override {
-    if(!NaryNodeOp::equal(node))
-      return false;
-    Ptr<MeanNodeOp> cnode = std::dynamic_pointer_cast<MeanNodeOp>(node);
-    if(!cnode)
-      return false;
-    if(axis_ != cnode->axis_)
+    if(axis_ != cnode->axis_ || opCode_ != cnode->opCode_)
       return false;
     return true;
   }

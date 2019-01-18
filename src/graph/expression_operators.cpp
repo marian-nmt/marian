@@ -278,11 +278,16 @@ Expr select(Expr a, const std::vector<IndexType>& indices, int axis) {
 }
 
 Expr sum(Expr a, int ax) {
-  return Expression<SumNodeOp>(a, ax);
+  return Expression<SumNodeOp>(a, ax, ReduceNodeOpCode::sum);
+}
+
+// log(sum(exp(a)))
+Expr logSumExp(Expr a, int ax) {
+  return Expression<SumNodeOp>(a, ax, ReduceNodeOpCode::logSumExp);
 }
 
 Expr mean(Expr a, int ax) {
-  return Expression<MeanNodeOp>(a, ax);
+  return Expression<SumNodeOp>(a, ax, ReduceNodeOpCode::mean);
 }
 
 Expr scalar_product(Expr a, Expr b, int ax) {
