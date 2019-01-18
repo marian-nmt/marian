@@ -50,8 +50,9 @@ struct IUnaryLayer {
 // Embedding from corpus sub-batch to (emb, mask)
 struct IEmbeddingLayer {
   virtual std::tuple<Expr/*embeddings*/, Expr/*mask*/> apply(Ptr<data::SubBatch> subBatch) const = 0;
-  // alternative version from index vector, and with batch dim
-  virtual Expr apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const = 0;
+  
+  // alternative version from index vector, and with batch dims/shape
+  virtual Expr apply(const std::vector<IndexType>& embIdx, const Shape& shape) const = 0;
 };
 
 namespace mlp {
@@ -228,19 +229,17 @@ public:
     int dimBatch = (int)subBatch->batchSize();
     int dimEmb = E_->shape()[-1];
     int dimWords = (int)subBatch->batchWidth();
-    // @TODO: merge this with below. Currently can't only due to the extra beam dimension
-    auto chosenEmbeddings = rows(E_, subBatch->data());
-    auto batchEmbeddings = reshape(chosenEmbeddings, { dimWords, dimBatch, dimEmb });
+
+    auto batchEmbeddings = apply(subBatch->data(), { dimWords, dimBatch, dimEmb });
     auto batchMask = graph->constant({ dimWords, dimBatch, 1 },
                                      inits::from_vector(subBatch->mask()));
     return std::make_tuple(batchEmbeddings, batchMask);
   }
 
-  // special version used in decoding
-  Expr apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const override final {
-    int dimEmb = E_->shape()[-1];
+  // special version used in decoding or for learned positional embeddings
+  Expr apply(const std::vector<IndexType>& embIdx, const Shape& shape) const override final {
     auto selectedEmbs = rows(E_, embIdx);
-    return reshape(selectedEmbs, { dimBeam, 1, dimBatch, dimEmb });
+    return reshape(selectedEmbs, shape);
   }
 };
 
@@ -344,9 +343,9 @@ public:
     return std::make_tuple(batchEmbeddings, batchMask);
   }
 
-  Expr apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const override final {
-    embIdx; dimBatch; dimBeam;
-    ABORT("not implemented"); // ULR cannot be used for decoding
+  Expr apply(const std::vector<IndexType>& embIdx, const Shape& shape) const override final {
+    shape;
+    ABORT("not implemented"); // @TODO: implement me
   }
 };
 

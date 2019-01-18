@@ -51,6 +51,21 @@ NodeInitializer from_word2vec(const std::string& file,
                               int dimVoc,
                               int dimEmb,
                               bool normalize = false);
+
+/**
+ * Computes Google's sinusoidal position embeddings 
+ * starting from position 'start' taking into account
+ * batch and time dimensions of the tensor.
+ * 
+ * Expected tensor layout {-2: time, -1: model}
+ * 
+ * Usually gets later reshaped to {time, 1, model} and 
+ * added with a broadcast to learned embeddings. Positional
+ * embeddings are the same for each batch entry and change 
+ * over time.
+ */
+NodeInitializer sinusoidalPositionEmbeddings(int start);
+
 }  // namespace inits
 
 }  // namespace marian

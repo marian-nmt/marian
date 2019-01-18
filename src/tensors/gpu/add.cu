@@ -1,8 +1,3 @@
-/* All or part of this file was contributed by Intel under license:
- *   Copyright (C) 2017-2018 Intel Corporation
- *   SPDX-License-Identifier: MIT
- */
-
 #include "tensors/gpu/add.h"
 
 #include "tensors/gpu/cuda_helpers.h"

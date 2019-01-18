@@ -139,6 +139,7 @@ void tests(DeviceType type) {
         rnnFw.push_back(stacked);
       }
 
+
       auto rnnBw = rnn::rnn()                //
           ("type", cellType)                 //
           ("direction", backward)            //

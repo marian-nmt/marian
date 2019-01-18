@@ -175,7 +175,7 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
 
   static int t = 0;
 
-  static float cost = 0;
+  static StaticLoss loss;
   static size_t num_seen_words = 0;
   static size_t num_seen_sentences = 0;
 
@@ -185,7 +185,7 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
       auto graph = clientGraphs_[my_id];
       auto builder = clientBuilders_[my_id];
 
-      auto costNode = builder->build(graph, batch);
+      auto lossNode = builder->build(graph, batch);
 
       if(t == 0) {
         if(my_id != 0)
@@ -195,7 +195,7 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
       graph->forward();
       {
         std::lock_guard<std::mutex> guard(sumCostMutex_);
-        cost += costNode->scalar();
+        loss += *lossNode;
         num_seen_words += batch->words();
         num_seen_sentences += batch->size();
       }
@@ -219,22 +219,18 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
 
   // Run scheduler (if enabled)
   if(t % tau_ == 0 && scheduler_) {
-    if(options_->get<std::string>("cost-type") != "ce-sum")
-      cost /= (tau_ * devices_.size());
-
     if(tau_ > 1) {
       std::vector<size_t> fakeLength = {1, 1};
-      auto fb
-          = data::CorpusBatch::fakeBatch(fakeLength, num_seen_sentences, NULL);
+      auto fb = data::CorpusBatch::fakeBatch(fakeLength, std::vector<Ptr<Vocab>>(), num_seen_sentences, NULL);
       fb->front()->setWords(num_seen_words);
-      scheduler_->update(cost, fb);
+      scheduler_->update(loss, fb);
     } else {
-      scheduler_->update(cost, fullBatch);
+      scheduler_->update(loss, fullBatch);
     }
 
     num_seen_words = 0;
     num_seen_sentences = 0;
-    cost = 0;
+    loss.reset();
 
     if((scheduler_->saving() || scheduler_->validating())) {
       // wait until other nodes are ready

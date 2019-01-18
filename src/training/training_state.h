@@ -100,11 +100,16 @@ public:
 
   // Sum of costs since last display
   float costSum{0};
-  // Number of words/labels/samples (depending on cost-type) aggregated in
+  // Number of labels aggregated in
   // costSum since last display
   size_t costCount{0};
-  // Number of words seen since last display, for speed measurement
+
+  // Number of words seen since last display
   size_t wordsDisp{0};
+  // Number of samples/sentences seen since last display
+  size_t samplesDisp{0};
+  // Number of updates seen since last display
+  size_t updatesDisp{0};
 
   // The state of the random number generator from a batch generator
   std::string seedBatch;
@@ -232,9 +237,11 @@ public:
     warmupStart = SchedulingParameter::parse(config["warmup-start"].as<std::string>());
 
     costSum = config["cost-sum"].as<float>();
-    // (different serialization name for back compat)
-    costCount = config["disp-samples"].as<size_t>();
+    costCount = config["cost-count"].as<size_t>();
+
     wordsDisp = config["disp-words"].as<size_t>();
+    samplesDisp = config["disp-samples"].as<size_t>();
+    updatesDisp = config["disp-updates"].as<size_t>();
 
     seedBatch = config["seed-batch"].as<std::string>();
     seedCorpus = config["seed-corpus"].as<std::string>();
@@ -265,7 +272,10 @@ public:
     config["warmup-start"] = std::string(warmupStart);
 
     config["cost-sum"] = costSum;
-    config["disp-samples"] = costCount;
+    config["cost-count"] = costCount;
+
+    config["disp-updates"] = updatesDisp;
+    config["disp-samples"] = samplesDisp;
     config["disp-words"] = wordsDisp;
 
     config["seed-batch"] = seedBatch;

@@ -50,9 +50,9 @@ public:
   void load() override;
   void save(bool final = false) override;
 
+  Ptr<data::BatchStats> collectStats(const std::vector<Ptr<Vocab>>&);
   void finalize() override;
 
-  Ptr<data::BatchStats> collectStats();
   // @TODO: consider to make this a virtual as well? Currently it is a template dispatch
 };
 }  // namespace marian
