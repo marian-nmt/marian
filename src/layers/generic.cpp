@@ -33,6 +33,12 @@ namespace marian {
     //  - all factors not matching a prefix get lumped into yet another class (the lemmas)
     //  - factor vocab must be sorted such that all groups are consecutive
     //  - result of Output layer is nevertheless logits, not a normalized probability, due to the sigmoid entries
+    // Factor normalization
+    //  - f = h * E' + b                    // hidden state projected onto all factors
+    //  - f: [B x U]                        // U = number of factor units
+    //  - normalization terms Z: [B x G]    // G = number of groups
+    //  - factor group matrix F: [U x G]    // [u,g] 1 if factor u is in group g (one-hot); computed once
+    //  - z = f - Z * F' = affine(Z, F, f, transB=true, alpha=-1)   // This does it with only one extra copy
     EmbeddingFactorMapping(Ptr<Options> options) : factorVocab_(New<Options>(), 0) {
       std::vector<std::string> paths = options->get<std::vector<std::string>>("embedding-factors");
       ABORT_IF(paths.size() != 2, "--embedding-factors expects two paths");
@@ -96,7 +102,7 @@ namespace marian {
         groupCounts[g]++;
       }
       for (size_t g = 0; g < numGroups; g++) { // detect non-overlapping groups
-        ABORT_IF(groupRanges_[g].second - groupRanges_[g].first != groupCounts[g], "Factor group '{}' members are not consecutive in the factor vocabulary", groupPrefixes[g]);
+        //ABORT_IF(groupRanges_[g].second - groupRanges_[g].first != groupCounts[g], "Factor group '{}' members are not consecutive in the factor vocabulary", groupPrefixes[g]);
         LOG(info, "[embedding] Factor group '{}' has {} members ({})",
             groupPrefixes[g], groupCounts[g], groupCounts[g] == 1 ? "sigmoid" : "softmax");
       }

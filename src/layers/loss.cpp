@@ -31,6 +31,7 @@ Expr LossBase::getCrossEntropy(Expr logits,
   if(smoothing_ > 0) {
     // @TODO: add this to CE kernels instead
     auto ceq = mean(logsoftmax(logits), /*axis=*/ -1);
+    //auto ceq = mean(logits, /*axis=*/ -1) - logsum(logits), /*axis=*/ -1);
     ce = (1 - smoothing_) * ce - smoothing_ * ceq;
   }
 
