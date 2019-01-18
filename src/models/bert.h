@@ -119,6 +119,28 @@ public:
       words[i] = maskOut(words[i], maskId, engine); // mask that position
     }
 
+    annotateSentenceIndices();
+  }
+
+  BertBatch(Ptr<CorpusBatch> batch,
+            const std::string& sepSymbol,
+            const std::string& clsSymbol)
+    : CorpusBatch(*batch),
+      maskSymbol_("dummy"), sepSymbol_(sepSymbol), clsSymbol_(clsSymbol) {
+    annotateSentenceIndices();
+  }
+
+  void annotateSentenceIndices() {
+    // BERT expects a textual first stream and a second stream with class labels
+    auto subBatch = subBatches_.front();
+    const auto& vocab = *subBatch->vocab();
+    auto& words = subBatch->data();
+
+    // Get word id of special symbols
+    Word sepId   = vocab[sepSymbol_];
+    ABORT_IF(sepId == vocab.getUnkId(),
+             "BERT separator symbol {} not found in vocabulary", sepSymbol_);
+
     int dimBatch = subBatch->batchSize();
     int dimWords = subBatch->batchWidth();
 
@@ -157,13 +179,25 @@ public:
   : EncoderClassifier(options) {}
 
   std::vector<Ptr<ClassifierState>> apply(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch, bool clearGraph) override {
+    std::string modelType = opt<std::string>("type");
+
     // intercept batch and annotate with BERT-specific concepts
-    auto bertBatch = New<data::BertBatch>(batch,
-                                          eng_,
-                                          opt<float>("bert-masking-fraction", 0.15f), // 15% by default according to paper
-                                          opt<std::string>("bert-mask-symbol"),
-                                          opt<std::string>("bert-sep-symbol"),
-                                          opt<std::string>("bert-class-symbol"));
+    Ptr<data::BertBatch> bertBatch;
+    if(modelType == "bert") { // full BERT pre-training
+      bertBatch = New<data::BertBatch>(batch,
+                                       eng_,
+                                       opt<float>("bert-masking-fraction", 0.15f), // 15% by default according to paper
+                                       opt<std::string>("bert-mask-symbol"),
+                                       opt<std::string>("bert-sep-symbol"),
+                                       opt<std::string>("bert-class-symbol"));
+    } else if(modelType == "bert-classifier") { // we are probably fine-tuning a BERT model for a classification task
+      bertBatch = New<data::BertBatch>(batch, 
+                                       opt<std::string>("bert-sep-symbol"),
+                                       opt<std::string>("bert-class-symbol")); // only annotate sentence separators
+    } else {
+      ABORT("Unknown BERT-style model: {}", modelType);
+    }
+
     return EncoderClassifier::apply(graph, bertBatch, clearGraph);
   }
 
@@ -185,9 +219,9 @@ public:
   Expr addSentenceEmbeddings(Expr embeddings,
                              Ptr<data::CorpusBatch> batch,
                              bool learnedPosEmbeddings) const {
+    
     Ptr<data::BertBatch> bertBatch = std::dynamic_pointer_cast<data::BertBatch>(batch);
-
-    ABORT_IF(!bertBatch, "Batch could not be converted for BERT training");
+    ABORT_IF(!bertBatch, "Batch must be BertBatch for BERT training or fine-tuning");
 
     int dimEmb = embeddings->shape()[-1];
     int dimBatch = embeddings->shape()[-2];
@@ -240,14 +274,18 @@ public:
     int dimModel = classEmbeddings->shape()[-1];
     int dimTrgCls = opt<std::vector<int>>("dim-vocabs")[batchIndex_]; // Target vocab is used as class labels
 
+    std::string finetune = "";
+    if(opt<std::string>("original-type") == "bert-classifier") // seems we are fine-tuning
+      finetune = "_finetune"; // change name so we do not relead BERT output layers for fine-tuning
+
     auto output = mlp::mlp()                                          //
                     .push_back(mlp::dense()                           //
-                                 ("prefix", prefix_ + "_ff_logit_l1") //
+                                 ("prefix", prefix_ + finetune + "_ff_logit_l1") //
                                  ("dim", dimModel)                    //
                                  ("activation", mlp::act::tanh))      // @TODO: do we actually need this?
                     .push_back(mlp::output()                          //
                                  ("dim", dimTrgCls))                  //
-                                 ("prefix", prefix_ + "_ff_logit_l2") //
+                                 ("prefix", prefix_ + finetune + "_ff_logit_l2") //
                     .construct(graph);
 
     auto logits = output->apply(classEmbeddings); // class logits for each batch entry

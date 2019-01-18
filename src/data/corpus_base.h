@@ -546,7 +546,7 @@ protected:
   /**
    * @brief Determine if EOS symbol should be added to input
    */
-  void initEOS();
+  void initEOS(bool training);
 
   /**
    * @brief Helper function converting a line of text into words using the i-th

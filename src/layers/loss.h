@@ -128,12 +128,12 @@ public:
   MultiRationalLoss() : RationalLoss() {}
 
   MultiRationalLoss(const RationalLoss& rl) : RationalLoss() {
-    this->push_back(rl);
+    push_back(rl);
   }
 
-  void push_back(const RationalLoss& current) {
+  virtual void push_back(const RationalLoss& current) {
     loss_   = accumulateLoss(current);
-    count_ = accumulateCount(current);
+    count_ =  accumulateCount(current);
     partialLosses_.push_back(current);
   }
 

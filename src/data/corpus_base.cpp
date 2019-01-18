@@ -44,7 +44,7 @@ CorpusBase::CorpusBase(const std::vector<std::string>& paths,
     ABORT_IF(files_.back()->empty(), "File '{}' is empty", path);
   }
 
-  initEOS();
+  initEOS(/*training=*/true);
 }
 
 CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
@@ -59,7 +59,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
   else
     paths_ = options_->get<std::vector<std::string>>("input");
 
-  initEOS();
+  initEOS(training);
 
   std::vector<std::string> vocabPaths;
   if(!options_->get<std::vector<std::string>>("vocabs").empty())
@@ -284,7 +284,7 @@ void CorpusBase::addWeightsToBatch(Ptr<CorpusBatch> batch,
   batch->setDataWeights(weights);
 }
 
-void CorpusBase::initEOS() {
+void CorpusBase::initEOS(bool training = true) {
   // Labels fed into sub-batches that are just class-labels, not sequence labels do not require to
   // add a EOS symbol. Hence decision to add EOS is now based on input stream positions and correspoding
   // input type. 
@@ -292,11 +292,20 @@ void CorpusBase::initEOS() {
   addEOS_.resize(paths_.size(), true);
   // @TODO: think if this should be checked and processed here or in a validation step in config?
   auto inputTypes = options_->get<std::vector<std::string>>("input-types", {}); // empty list by default
-  ABORT_IF(inputTypes.size() > 0 && inputTypes.size() != paths_.size(), 
-          "Input types have been specified ({}), you need to specify one per input ({})", 
-          inputTypes.size(), 
-          paths_.size());
-  for(int i = 0; i < inputTypes.size(); ++i)
+  
+  // make sure there is an input type for each path
+  ABORT_IF(inputTypes.size() > 0 && inputTypes.size() < paths_.size(), 
+           "Input types have been specified ({}), you need to specify one per input ({})", 
+           inputTypes.size(), 
+           paths_.size());
+
+  // make sure there is an equal number of input types and paths when training
+  ABORT_IF(training && inputTypes.size() > 0 && inputTypes.size() != paths_.size(), 
+           "Input types have been specified ({}), you need to specify one per input ({})", 
+           inputTypes.size(), 
+           paths_.size());
+  
+  for(int i = 0; i < paths_.size(); ++i)
     if(inputTypes[i] == "class")
       addEOS_[i] = false;
     else if(inputTypes[i] == "sequence")
