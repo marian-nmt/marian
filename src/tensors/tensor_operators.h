@@ -85,7 +85,7 @@ void Reduce(Functor functor, marian::Tensor out, Tensors... tensors) {
 }
 
 template <class Functor, class AggFunctor, class... Tensors>
-void Reduce(Functor functor, float aggInit, AggFunctor aggFunctor,
+void Reduce(Functor functor, AggFunctor aggFunctor, float aggInit,
             marian::Tensor out,
             Tensors... tensors) {
   out->set(aggInit);

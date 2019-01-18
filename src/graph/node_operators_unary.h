@@ -437,17 +437,17 @@ struct ReduceNodeOp : public UnaryNodeOp {
       return {NodeOp(Reduce(_1, 1.0f / (float)reducedDim_, val_, child(0)->val()))};
     case ReduceNodeOpCode::std:
       return {NodeOp(Reduce(_1 * _1, 1.0f / (float)reducedDim_, val_, child(0)->val());
-                     Element(_1 = sqrt(_1), val_, val_))};
+                     Element(_1 = sqrt(_1), val_))};
     case ReduceNodeOpCode::var:
       return {NodeOp(Reduce(_1 * _1, 1.0f / (float)reducedDim_, val_, child(0)->val()))};
     case ReduceNodeOpCode::min:
-      return {NodeOp(Reduce(_1, std::numeric_limits<float>::max(), min(_1,_2), val_, child(0)->val()))};
+      return {NodeOp(Reduce(_1, min(_1,_2), std::numeric_limits<float>::max(), val_, child(0)->val()))};
     case ReduceNodeOpCode::max:
-      return {NodeOp(Reduce(_1, std::numeric_limits<float>::lowest(), max(_1,_2), val_, child(0)->val()))};
+      return {NodeOp(Reduce(_1, max(_1,_2), std::numeric_limits<float>::lowest(), val_, child(0)->val()))};
     case ReduceNodeOpCode::prod:
-      return {NodeOp(Reduce(_1, 1.0f, _1 * _2, val_, child(0)->val()))};
+      return {NodeOp(Reduce(_1, _1 * _2, 1.0f, val_, child(0)->val()))};
     case ReduceNodeOpCode::logSumExp:
-      return {NodeOp(Reduce(_1, std::numeric_limits<float>::lowest(), logaddexp(_1,_2), val_, child(0)->val()))};
+      return {NodeOp(Reduce(_1, logaddexp(_1,_2), std::numeric_limits<float>::lowest(), val_, child(0)->val()))};
     default:
       ABORT("Unexpected reduction op-code {}", (int)opCode_);
     }
@@ -460,11 +460,12 @@ struct ReduceNodeOp : public UnaryNodeOp {
       return {NodeOp(Add(_1, child(0)->grad(), adj_))};
     case ReduceNodeOpCode::mean:
       return {NodeOp(Add(_1, 1.0f / (float)reducedDim_, child(0)->grad(), adj_))};
-    //case ReduceNodeOpCode::std:
-    //case ReduceNodeOpCode::var:
-    //case ReduceNodeOpCode::min:
-    //case ReduceNodeOpCode::max:
-    //case ReduceNodeOpCode::logSumExp:
+    case ReduceNodeOpCode::std:
+    case ReduceNodeOpCode::var:
+    case ReduceNodeOpCode::min:
+    case ReduceNodeOpCode::max:
+    case ReduceNodeOpCode::logSumExp:
+      ABORT("Reduction op-code for {} not yet implemented", type());
     default:
       ABORT("Unexpected reduction op-code {}", (int)opCode_);
     }
