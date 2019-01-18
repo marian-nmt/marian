@@ -18,7 +18,7 @@ namespace marian {
  */
 class RationalLoss {
 protected:
-  Expr loss_;   // numerator
+  Expr loss_;  // numerator
   Expr count_; // denominator
 
   RationalLoss() = default; // protected
@@ -79,8 +79,8 @@ public:
  * RationalLoss object.
  */
 struct StaticLoss {
-  float loss;
-  float count;
+  float loss;  // numerator
+  float count; // denominator
 
   StaticLoss() : loss(0.f), count(0.f) {}
 
@@ -100,6 +100,7 @@ struct StaticLoss {
 };
 
 /**
+ * @brief Base class for multi-objective losses
  * Base class for multi-objective losses which is a list of RationalLoss
  * but also defines how to accumulate that list into a single RationalLoss
  */
@@ -108,18 +109,18 @@ protected:
   std::vector<RationalLoss> partialLosses_;
 
   /**
-   * Accumulation rule for losses
+   * @brief Accumulation rule for losses
    * In the default case this would just be a sum, see SumMultiRationalLoss, but there are 
-   * special cases like ScaledMultiRationalLoss or MeanMultiRationalLoss (see below) where
-   * the accumulation is more complex.
+   * special cases like ScaledMultiRationalLoss (scale other loses according to first label count) 
+   * or MeanMultiRationalLoss (sum of means) where the accumulation is more complex.
    */
   virtual Expr accumulateLoss(const RationalLoss& current) = 0;
 
   /**
-   * Accumulation rule for labels
+   * @brief Accumulation rule for labels
    * Similar as above, the naive case is summation, but for instance MeanMultiRationalLoss
    * is including all label counts in the loss hence label counts are always just 1 which is
-   * passed throught without summation or other modifications.
+   * passed through without summation or other modifications.
    */
   virtual Expr accumulateCount(const RationalLoss& current) = 0;
 
@@ -155,7 +156,7 @@ public:
 };
 
 /**
- * Simple sum of losses.
+ * @brief Simple sum of losses.
  * Using this makes sense when the two loss types are similar in scale and
  * number of labels. For instance two decoders over similarly sized vocabularies
  */
@@ -181,7 +182,7 @@ public:
 };
 
 /**
- * Scaled sum of losses.
+ * @brief Scaled sum of losses.
  * This can weigh losses equally by choosing the first loss_0 as a reference
  * and scaling all remaining losses loss_i by count_0 / count_i. Labels are
  * summed up by the same rule. By this we simulate a sum of losses at similar
@@ -219,7 +220,7 @@ public:
 };
 
 /**
- * Sum of mean losses.
+ * @brief Sum of mean losses.
  * Not really a rational loss as labels are factored into loss. Contribution of
  * losses is equal, same as for ScaledMultiRationalLoss, just divided by different
  * number of labels. See:
@@ -251,7 +252,7 @@ public:
 };
 
 /**
- * Factory for multi-objective rational loss functions
+ * @brief Factory for multi-objective rational loss functions
  */
 Ptr<MultiRationalLoss> newMultiLoss(Ptr<Options> options);
 
@@ -260,7 +261,7 @@ Ptr<MultiRationalLoss> newMultiLoss(Ptr<Options> options);
 // still feels somewhat hacky.
 
 /**
- * Computes loss per given groundtruth label and then reduces to RationalLoss
+ * @brief Computes loss per given groundtruth label and then reduces to RationalLoss
  */
 class LabelwiseLoss {
 protected:
@@ -313,7 +314,7 @@ public:
 };
 
 /**
- * Cross entropy loss across last axis, summed up over batch and time dimensions
+ * @brief Cross entropy loss across last axis, summed up over batch and time dimensions
  */
 class CrossEntropyLoss : public LabelwiseLoss {
 public:
@@ -357,7 +358,7 @@ protected:
 };
 
 /**
- * Cross entropy in rescorer used for computing sentences-level log probabilities
+ * @brief Cross entropy in rescorer used for computing sentences-level log probabilities
  */
 class RescorerLoss : public CrossEntropyLoss {
 public:
@@ -372,7 +373,7 @@ public:
 };
 
 /**
- * Factory for label-wise loss functions
+ * @brief Factory for label-wise loss functions
  */
 Ptr<LabelwiseLoss> newLoss(Ptr<Options> options, bool inference);
 
