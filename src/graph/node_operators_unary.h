@@ -441,13 +441,13 @@ struct ReduceNodeOp : public UnaryNodeOp {
     case ReduceNodeOpCode::var:
       return {NodeOp(Reduce(_1 * _1, 1.0f / (float)reducedDim_, val_, child(0)->val()))};
     case ReduceNodeOpCode::min:
-      return {NodeOp(Reduce(_1, FLT_MAX, min(_1,_2), val_, child(0)->val()))};
+      return {NodeOp(Reduce(_1, std::numeric_limits<float>::max(), min(_1,_2), val_, child(0)->val()))};
     case ReduceNodeOpCode::max:
-      return {NodeOp(Reduce(_1, -FLT_MAX, max(_1,_2), val_, child(0)->val()))};
+      return {NodeOp(Reduce(_1, std::numeric_limits<float>::lowest(), max(_1,_2), val_, child(0)->val()))};
     case ReduceNodeOpCode::prod:
       return {NodeOp(Reduce(_1, 1.0f, _1 * _2, val_, child(0)->val()))};
     case ReduceNodeOpCode::logSumExp:
-      return {NodeOp(Reduce(_1, -FLT_MAX, logaddexp(_1,_2), val_, child(0)->val()))};
+      return {NodeOp(Reduce(_1, std::numeric_limits<float>::lowest(), logaddexp(_1,_2), val_, child(0)->val()))};
     default:
       ABORT("Unexpected reduction op-code {}", (int)opCode_);
     }
