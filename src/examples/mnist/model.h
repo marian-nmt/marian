@@ -54,7 +54,7 @@ public:
     
     // @TODO: simplify this
     auto multiLoss = New<SumMultiRationalLoss>();
-    multiLoss->push_back({logsoftmax(top->loss()), top->labels()});
+    multiLoss->push_back({logsoftmax(top->loss()), top->count()});
     return multiLoss;
   }
 };
@@ -72,9 +72,9 @@ public:
                      bool /*clean*/ = false) override {
     
     auto loss   = construct(graph, batch, inference_); // @TODO: unify nomenclature, e.g. rather use apply
-    auto labels = graph->constant({(int)batch->size(), 1}, inits::from_value(1.f));
+    auto count = graph->constant({(int)batch->size(), 1}, inits::from_value(1.f));
 
-    return New<RationalLoss>(loss, labels);
+    return New<RationalLoss>(loss, count);
   }
 
   void load(Ptr<ExpressionGraph> /*graph*/, const std::string& /*name*/, bool) override {

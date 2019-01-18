@@ -6,33 +6,33 @@ namespace marian {
 
 /**
  * We represent loss as pair of expressions, where loss_ is usually a sum
- * of all accumulated loss values per label and labels_ is the total number
+ * of all accumulated loss values per label and count_ is the total number
  * of labels over which the loss was collected.
  *
  * These two values can then be used to represent various cost variants -
  * for instance label-wise cross-entropy or perplexity. Optimization is
  * only performed with regard to the summed loss_.
  *
- * Since both, loss_ and labels_ are dynamic graph nodes they can be further
+ * Since both, loss_ and count_ are dynamic graph nodes they can be further
  * combined into larger structures. See multi-objective losses below.
  */
 class RationalLoss {
 protected:
   Expr loss_;   // numerator
-  Expr labels_; // denominator
+  Expr count_; // denominator
 
   RationalLoss() = default; // protected
 
 public:
-  RationalLoss(Expr loss, Expr labels)
-  : loss_(loss), labels_(labels) {}
+  RationalLoss(Expr loss, Expr count)
+  : loss_(loss), count_(count) {}
 
-  RationalLoss(Expr loss, float labels)
+  RationalLoss(Expr loss, float count)
   : loss_(loss),
-    labels_(constant_like(loss, inits::from_value(labels))) {}
+    count_(constant_like(loss, inits::from_value(count))) {}
 
   RationalLoss(const RationalLoss& other)
-  : loss_(other.loss_), labels_(other.labels_) {}
+  : loss_(other.loss_), count_(other.count_) {}
 
   virtual ~RationalLoss() = default;
 
@@ -50,25 +50,25 @@ public:
     return loss_->val()->scalar<T>();
   }
 
-  Expr labels() const { return labels_; }
+  Expr count() const { return count_; }
 
   template <typename T>
-  void labels(std::vector<T>& labels) const {
-    ABORT_IF(!labels_, "Labels have not been defined");
-    labels_->val()->get(labels);
+  void count(std::vector<T>& labels) const {
+    ABORT_IF(!count_, "Labels have not been defined");
+    count_->val()->get(labels);
   }
 
   template <typename T>
-  T labels() const { // this will fail if loss is not a single value
-    ABORT_IF(!labels_, "Labels have not been defined");
-    return labels_->val()->scalar<T>();
+  T count() const { // this will fail if loss is not a single value
+    ABORT_IF(!count_, "Labels have not been defined");
+    return count_->val()->scalar<T>();
   }
 
   // @TODO: add a funtion for returning maybe ratio?
 
   size_t size() const {
-    ABORT_IF(!labels_, "Labels have not been defined");
-    return labels_->shape().elements();
+    ABORT_IF(!count_, "Labels have not been defined");
+    return count_->shape().elements();
   }
 };
 
@@ -80,26 +80,25 @@ public:
  */
 struct StaticLoss {
   float loss;
-  float labels;
+  float count;
 
-  StaticLoss() : loss(0.f), labels(0.f) {}
+  StaticLoss() : loss(0.f), count(0.f) {}
 
   StaticLoss(const RationalLoss& dynamic)
-  : loss(dynamic.loss<float>()), labels(dynamic.labels<float>()) {}
+  : loss(dynamic.loss<float>()), count(dynamic.count<float>()) {}
 
   StaticLoss& operator +=(const StaticLoss& other) {
     loss = loss + other.loss;
-    labels = labels + other.labels;
+    count = count + other.count;
     return *this;
   }
 
   void reset() {
     loss = 0.f;
-    labels = 0.f;
+    count = 0.f;
   }
 };
 
-// @TODO: overthink interface
 /**
  * Base class for multi-objective losses which is a list of RationalLoss
  * but also defines how to accumulate that list into a single RationalLoss
@@ -110,13 +109,19 @@ protected:
 
   /**
    * Accumulation rule for losses
+   * In the default case this would just be a sum, see SumMultiRationalLoss, but there are 
+   * special cases like ScaledMultiRationalLoss or MeanMultiRationalLoss (see below) where
+   * the accumulation is more complex.
    */
   virtual Expr accumulateLoss(const RationalLoss& current) = 0;
 
   /**
    * Accumulation rule for labels
+   * Similar as above, the naive case is summation, but for instance MeanMultiRationalLoss
+   * is including all label counts in the loss hence label counts are always just 1 which is
+   * passed throught without summation or other modifications.
    */
-  virtual Expr accumulateLabels(const RationalLoss& current) = 0;
+  virtual Expr accumulateCount(const RationalLoss& current) = 0;
 
 public:
   MultiRationalLoss() : RationalLoss() {}
@@ -127,7 +132,7 @@ public:
 
   void push_back(const RationalLoss& current) {
     loss_   = accumulateLoss(current);
-    labels_ = accumulateLabels(current);
+    count_ = accumulateCount(current);
     partialLosses_.push_back(current);
   }
 
@@ -163,11 +168,11 @@ private:
       return current.loss();
   }
 
-  virtual Expr accumulateLabels(const RationalLoss& current) override {
-    if(labels_)
-      return labels_ + current.labels();
+  virtual Expr accumulateCount(const RationalLoss& current) override {
+    if(count_)
+      return count_ + current.count();
     else
-      return current.labels();
+      return current.count();
   }
 
 public:
@@ -178,7 +183,7 @@ public:
 /**
  * Scaled sum of losses.
  * This can weigh losses equally by choosing the first loss_0 as a reference
- * and scaling all remaining losses loss_i by labels_0 / labels_i. Labels are
+ * and scaling all remaining losses loss_i by count_0 / count_i. Labels are
  * summed up by the same rule. By this we simulate a sum of losses at similar
  * scales. Dividing by scaled label counts yields a value close to an equally
  * weighted sum of means.
@@ -194,17 +199,17 @@ private:
   virtual Expr accumulateLoss(const RationalLoss& current) override {
     if(loss_) {
       const auto& first = partialLosses_.front();
-      return loss_ + first.labels() * (current.loss() / current.labels()); // scale up/down to match scale of first loss
+      return loss_ + first.count() * (current.loss() / current.count()); // scale up/down to match scale of first loss
     } else {
       return current.loss(); // first reference loss, keeps to scale with this one
     }
   }
 
-  virtual Expr accumulateLabels(const RationalLoss& current) override {
-    if(labels_) {
-      return labels_; // Keep first label count // or: labels_ + first.labels() / current.labels();
+  virtual Expr accumulateCount(const RationalLoss& current) override {
+    if(count_) {
+      return count_; // Keep first label count // or: count_ + first.count() / current.count();
     } else {
-      return current.labels(); // This is the first loss
+      return current.count(); // This is the first loss
     }
   }
 
@@ -228,16 +233,16 @@ class MeanMultiRationalLoss : public MultiRationalLoss {
 private:
   virtual Expr accumulateLoss(const RationalLoss& current) override {
     if(loss_)
-      return loss_ + current.loss() / current.labels();
+      return loss_ + current.loss() / current.count();
     else
-      return current.loss() / current.labels();
+      return current.loss() / current.count();
   }
 
-  virtual Expr accumulateLabels(const RationalLoss& current) override {
-    if(labels_)
-      return labels_; // keep the existing '1'
+  virtual Expr accumulateCount(const RationalLoss& current) override {
+    if(count_)
+      return count_; // keep the existing '1'
     else
-      return current.labels()->graph()->ones({1}); // just '1' as labels are factored into loss_
+      return current.count()->graph()->ones({1}); // just '1' as labels are factored into loss_
   }
 
 public:
@@ -362,7 +367,7 @@ public:
   virtual RationalLoss apply(Expr logits, Expr labelIndices,
                              Expr mask = nullptr, Expr labelWeights = nullptr) override {
     auto ce = CrossEntropyLoss::apply(logits, labelIndices, mask, labelWeights);
-    return RationalLoss(ce.loss(), ce.labels());
+    return RationalLoss(ce.loss(), ce.count());
   }
 };
 

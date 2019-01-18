@@ -277,14 +277,14 @@ public:
       rationalLoss.loss *= mpi->numMPIProcesses();
 
     state_->costSum      += rationalLoss.loss;   // aggregate sum cost since last display
-    state_->costCount    += rationalLoss.labels; // cost gets normalized w.r.t. this in display
+    state_->costCount    += rationalLoss.count; // cost gets normalized w.r.t. this in display
 
     state_->updatesDisp  += 1;
     state_->samplesDisp  += batchSize;
     state_->wordsDisp    += batchLabels;  //@TODO: this is wrong        // words at given input processed since last display, for speed display
 
     state_->samplesEpoch += batchSize;           // sentences processed in this epoch
-    state_->labelsTotal  += rationalLoss.labels; // total labels processed
+    state_->labelsTotal  += rationalLoss.count; // total labels processed
 
     state_->newUpdate(numReadBatches);
 

@@ -206,9 +206,9 @@ protected:
     options_->set("cost-type", ctype); // @TODO: check if still needed, most likely not.
 
     if(ctype == "perplexity")
-      return std::exp(loss.loss / loss.labels);
+      return std::exp(loss.loss / loss.count);
     if(ctype == "ce-mean-words")
-      return loss.loss / loss.labels;
+      return loss.loss / loss.count;
     if(ctype == "ce-sum")
       return loss.loss;
     else
