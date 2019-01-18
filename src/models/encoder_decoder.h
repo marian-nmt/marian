@@ -34,7 +34,9 @@ public:
 
   virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
                                   Ptr<data::CorpusBatch> batch,
-                                  bool clearGraph = true) = 0;  virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
+                                  bool clearGraph = true) = 0;  
+                                  
+  virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
                                        Ptr<data::CorpusBatch> batch) = 0;
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,

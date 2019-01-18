@@ -661,8 +661,8 @@ void GRUFastBackward(std::vector<Tensor> outputs,
   }
 }
 
-void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
-  matchOrAbort<IndexType>(pick->type());
+void CrossEntropyPick(Tensor out, Tensor in, Tensor labelIndices) {
+  matchOrAbort<IndexType>(labelIndices->type());
 
   // Shape& outShape = out_->shape();
   Shape& inShape = in->shape();
@@ -685,31 +685,28 @@ void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
       sum += std::exp(sp[i] - max);
     }
 
-    // cross-entropy
-    IndexType i = pick->data<IndexType>()[j];
+    // Groundtruth label index
+    IndexType i = labelIndices->data<IndexType>()[j];
     // This appears to be safe i.e. that i >= 0 && i < cols is known
     out->data()[j] = std::log(sum) - sp[i] + max;
   }
 }
 
-void CrossEntropyPickBackward(Tensor out_,
-                              Tensor adj_,
-                              Tensor a,
-                              Tensor pick_) {
+void CrossEntropyPickBackward(Tensor out,
+                              Tensor adj,
+                              Tensor in,
+                              Tensor labelIndices) {
 
-  matchOrAbort<IndexType>(pick_->type());
-  float* out = out_->data();
-  Shape& outShape = out_->shape();
-  const float* adj = adj_->data();
-  const float* in = a->data();
+  matchOrAbort<IndexType>(labelIndices->type());
+  Shape& outShape = out->shape();
 
   int rows = outShape.elements() / outShape.back();
   int cols = outShape.back();
 
 #pragma omp parallel for
   for(int j = 0; j < rows; ++j) {
-    const float* sp = in + j * cols;
-    float* so = out + j * cols;
+    const float* sp = in->data() + j * cols;
+    float* so = out->data() + j * cols;
 
     float max = sp[0];
     for(int i = 1; i < cols; ++i) {
@@ -723,8 +720,8 @@ void CrossEntropyPickBackward(Tensor out_,
 
     // cross-entropy
     for(int i = 0; i < cols; ++i) {
-      float sub = (float)(i == (int)pick_->data<IndexType>()[j]);
-      so[i] += adj[j] * (std::exp(sp[i] - max) / sum - sub);
+      float sub = (float)(i == (int)labelIndices->data<IndexType>()[j]); // delta, true if label index and column index match
+      so[i] += adj->data()[j] * (std::exp(sp[i] - max) / sum - sub);
     }
   }
 }

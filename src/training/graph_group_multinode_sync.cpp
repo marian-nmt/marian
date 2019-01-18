@@ -230,7 +230,7 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
 
     num_seen_words = 0;
     num_seen_sentences = 0;
-    loss = StaticLoss();
+    loss.reset();
 
     if((scheduler_->saving() || scheduler_->validating())) {
       // wait until other nodes are ready

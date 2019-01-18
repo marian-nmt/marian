@@ -71,7 +71,7 @@ public:
                      Ptr<data::Batch> batch,
                      bool /*clean*/ = false) override {
     
-    auto loss   = construct(graph, batch, inference_);
+    auto loss   = construct(graph, batch, inference_); // @TODO: unify nomenclature, e.g. rather use apply
     auto labels = graph->constant({(int)batch->size(), 1}, inits::from_value(1.f));
 
     return New<RationalLoss>(loss, labels);

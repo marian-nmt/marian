@@ -71,7 +71,7 @@ public:
     size_t maxLength = options_->get<size_t>("max-length");
     maxLength = (size_t)(std::ceil(maxLength / (float)step) * step);
 
-    // restrict maximum length for class labels to 1
+    // this should be only one class label per line on input, hence restricting length to 1
     std::vector<size_t> localMaxes(numFiles, maxLength);
     auto inputTypes = options_->get<std::vector<std::string>>("input-types", {});
     for(int i = 0; i < inputTypes.size(); ++i)

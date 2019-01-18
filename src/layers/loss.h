@@ -29,7 +29,7 @@ public:
 
   RationalLoss(Expr loss, float labels)
   : loss_(loss),
-    labels_(loss->graph()->constant({1}, inits::from_value(labels))) {}
+    labels_(constant_like(loss, inits::from_value(labels))) {}
 
   RationalLoss(const RationalLoss& other)
   : loss_(other.loss_), labels_(other.labels_) {}
@@ -64,6 +64,8 @@ public:
     return labels_->val()->scalar<T>();
   }
 
+  // @TODO: add a funtion for returning maybe ratio?
+
   size_t size() const {
     ABORT_IF(!labels_, "Labels have not been defined");
     return labels_->shape().elements();
@@ -90,8 +92,14 @@ struct StaticLoss {
     labels = labels + other.labels;
     return *this;
   }
+
+  void reset() {
+    loss = 0.f;
+    labels = 0.f;
+  }
 };
 
+// @TODO: overthink interface
 /**
  * Base class for multi-objective losses which is a list of RationalLoss
  * but also defines how to accumulate that list into a single RationalLoss
@@ -214,7 +222,7 @@ public:
  * L = (1/N sum_i^N L_i + 1/M sum_j^M L_j) = (sum_i^N L_i + N/M sum_j^M L_j) / N
  *
  * We set labels to 1. During reporting, we would see the same numbers, but gradients
- * are scaled diffrently which may result in different learning curves.
+ * are scaled differently which may result in different learning curves.
  */
 class MeanMultiRationalLoss : public MultiRationalLoss {
 private:
@@ -243,11 +251,11 @@ public:
 Ptr<MultiRationalLoss> newMultiLoss(Ptr<Options> options);
 
 //***********************************************************************************//
-// This needs some to be refactored. Currently easiest route for backwards compat, but
+// This needs to be refactored. Currently easiest route for backwards compat, but
 // still feels somewhat hacky.
 
 /**
- * Computes loss per label and then reduces to RationalLoss
+ * Computes loss per given groundtruth label and then reduces to RationalLoss
  */
 class LabelwiseLoss {
 protected:
@@ -256,6 +264,7 @@ protected:
   virtual Expr compute(Expr logits, Expr labelIndices,
                        Expr mask = nullptr, Expr labelWeights = nullptr) = 0;
 
+  // label counts are available, reduce together with loss to obtain counts
   RationalLoss reduce(Expr loss, Expr labels) {
     ABORT_IF(!loss, "Loss has not been computed");
     ABORT_IF(!labels, "Labels have not been computed");
@@ -270,6 +279,19 @@ protected:
     return RationalLoss(lossSum, labelsSum);
   }
 
+  // label counts are not available, assume every element of tensor corresponds to label count 1
+  RationalLoss reduce(Expr loss) {
+    ABORT_IF(!loss, "Loss has not been computed");
+
+    Expr  lossSum    = loss;
+    for(int i = 0; i < axes_.size(); ++i)
+      lossSum = sum(lossSum, axes_[i]);
+
+    // reduction factor tells how over how many labels we reduced in total.
+    float reducedLabels = (float)loss->shape().elements() / (float)lossSum->shape().elements(); 
+    return RationalLoss(lossSum, reducedLabels);
+  }
+
 public:
   LabelwiseLoss(const std::vector<int>& axes)
   : axes_(axes) { }
@@ -278,10 +300,10 @@ public:
                              Expr mask = nullptr, Expr labelWeights = nullptr) {
     Expr loss = compute(logits, labelIndices, mask, labelWeights);
 
-    Expr labels = mask ? mask                              // mask can be used as element-wise label count with broadcasting
-                       : constant_like(loss, inits::ones); // we have no mask, assume all items are labels
-
-    return reduce(loss, labels);
+    if(mask)
+      return reduce(loss, mask); // mask can be used as element-wise label count with broadcasting
+    else
+      return reduce(loss); // we have no mask, assume all items are labels
   }
 };
 
@@ -290,25 +312,33 @@ public:
  */
 class CrossEntropyLoss : public LabelwiseLoss {
 public:
-  CrossEntropyLoss(float smoothing)
+  CrossEntropyLoss(float labelSmoothing)
   : LabelwiseLoss(/*axes=*/{-2, -3}), // cross-entropy already reduces over axis -1
-    smoothing_(smoothing) {}
+    labelSmoothing_(labelSmoothing) {}
 
-  CrossEntropyLoss(const std::vector<int>& axes, float smoothing)
+  CrossEntropyLoss(const std::vector<int>& axes, float labelSmoothing)
   : LabelwiseLoss(axes), // cross-entropy already reduces over axis -1
-    smoothing_(smoothing) {}
+    labelSmoothing_(labelSmoothing) {}
 
 protected:
-  float smoothing_;
+  float labelSmoothing_; // interpolation factor for label smoothing, see below
 
   virtual Expr compute(Expr logits, Expr labelIndices,
                        Expr mask = nullptr, Expr labelWeights = nullptr) override {
     Expr ce = cross_entropy(logits, labelIndices);
 
-    if(smoothing_ > 0) {
+    if(labelSmoothing_ > 0) {
       // @TODO: add this to CE kernels instead
+      
+      // Label smoothing (see https://arxiv.org/pdf/1512.00567.pdf, section 7)
+      // We compute smoothed H(q',p) = (1 - eps) * H(q,p) + eps * H(u,p) where H(q,p) is the normal cross-entropy
+      // and H(u,p) penalizes deviation of p from u, u being uniform distribution over vocab V => u_v = 1/|V|.
+      // H(u,p) = - \sum_{v \in V} u_v * \log p_v = - 1/|V| \sum_{v \in V} \log \softmax_v => -mean(logsoftmax(logits))
+      // ceq = -H(u,p) - avoid one kernel call by negating in the interpolation below
       Expr ceq = mean(logsoftmax(logits), /*axis=*/ -1);
-      ce = (1 - smoothing_) * ce - smoothing_ * ceq;
+
+      // H(q',p) = (1 - eps) * H(q,p) - eps * -H(u,p)
+      ce = (1 - labelSmoothing_) * ce - labelSmoothing_ * ceq;
     }
 
     if(mask)
@@ -332,7 +362,7 @@ public:
   virtual RationalLoss apply(Expr logits, Expr labelIndices,
                              Expr mask = nullptr, Expr labelWeights = nullptr) override {
     auto ce = CrossEntropyLoss::apply(logits, labelIndices, mask, labelWeights);
-    return RationalLoss(-ce.loss(), ce.labels()); // we report logprobs, hence negate
+    return RationalLoss(ce.loss(), ce.labels());
   }
 };
 

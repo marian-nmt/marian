@@ -206,14 +206,14 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
       builder = builders_[i++];
     }
 
-    auto lossNode = builder->build(graph, batch);
+    Ptr<RationalLoss> dynamicLoss = builder->build(graph, batch);
 
     if(t % optimizerDelay_ == 0) {
       fetchParams(graph->params()->vals(), params_, t_id);
     }
 
     graph->forward();
-    loss += *lossNode;
+    loss += *dynamicLoss;
     graph->backward();
 
     Tensor gradients;
@@ -265,8 +265,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
         scheduler_->update(loss, batch);
       }
 
-      loss.loss = 0;
-      loss.labels = 0;
+      loss.reset();
 
       if(scheduler_->saving() || scheduler_->validating()) {
         // Wait with validation or saving until all other threads are done with

@@ -105,7 +105,7 @@ public:
 
     std::string summary = summarize ? options_->get<std::string>("summary") : "cross-entropy";
 
-    float sumCost = 0;
+    float sumLoss = 0;
     size_t sumWords = 0;
     size_t sumSamples = 0;
     size_t batchId = 0;
@@ -115,7 +115,7 @@ public:
       ThreadPool pool(graphs_.size(), graphs_.size());
 
       for(auto batch : *batchGenerator) {
-        auto task = [=, &sumCost, &sumWords, &sumSamples, &smutex](size_t id) {
+        auto task = [=, &sumLoss, &sumWords, &sumSamples, &smutex](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local Ptr<Model> builder;
 
@@ -127,12 +127,12 @@ public:
           // @TODO: normalize by length as in normalize
           // Once we have Frank's concept of ce-sum with sample size by words we will return a pair
           // here which will make it trivial to report all variants.
-          auto costNode = builder->build(graph, batch);
+          auto dynamicLoss = builder->build(graph, batch);
 
           graph->forward();
 
           std::vector<float> scores;
-          costNode->loss(scores);
+          dynamicLoss->loss(scores);
 
           // soft alignments for each sentence in the batch
           std::vector<data::SoftAlignment> aligns(batch->size());
@@ -142,13 +142,15 @@ public:
 
           std::unique_lock<std::mutex> lock(smutex);
           for(auto s : scores)
-            sumCost += s;
+            sumLoss += s; 
           sumWords += batch->back()->batchWords();
           sumSamples += batch->size();
 
           if(!summarize) {
             for(size_t i = 0; i < batch->size(); ++i) {
-              output->Write((long)batch->getSentenceIds()[i], scores[i], aligns[i]);
+              output->Write((long)batch->getSentenceIds()[i], 
+                             -1.f * scores[i], // report logProb while score is CE, hence negate
+                             aligns[i]);
             }
           }
 
@@ -168,22 +170,22 @@ public:
     }
 
     if(normalize) {
-      LOG(info, "Total normalized log probs {} : Total sentences {} : Total words {}", sumCost, sumSamples, sumWords);
+      LOG(info, "Total normalized log probs {} : Total sentences {} : Total words {}", sumLoss, sumSamples, sumWords);
       LOG(warn, "Sum of normalized log probs is a sum of averages");
     } else {
-      LOG(info, "Total log probs {} : Total sentences {} : Total words {}", sumCost, sumSamples, sumWords);
+      LOG(info, "Total log probs {} : Total sentences {} : Total words {}", sumLoss, sumSamples, sumWords);
     }
 
-    if(summarize) {
+    if(summarize) { // @TODO: use one function from loss
       float cost = 0;
       if(summary == "perplexity")
-        cost = std::exp(-(float)sumCost / (float)sumWords);
+        cost = std::exp(sumLoss / (float)sumWords);
       else if(summary == "ce-sum")
-        cost = -sumCost;
+        cost = sumLoss;
       else if(summary == "ce-mean-words")
-        cost = -(float)sumCost / (float)sumWords;
+        cost = sumLoss / (float)sumWords;
       else
-        cost = -sumCost / sumSamples;
+        cost = sumLoss / sumSamples;
 
       LOG(info, "Reporting {} summary", summary);
       std::cout << cost << std::endl;

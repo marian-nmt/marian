@@ -57,10 +57,14 @@ public:
       int maxLength = opt<int>("max-length");
 
       // Hack for translating with length longer than trained embeddings
+      // We check if the embedding matrix "Wpos" already exist so we can
+      // check the number of positions in that loaded parameter. 
+      // We then have to restict the maximum length to the maximum positon
+      // and positions beyond this will be the maximum position.
       Expr seenEmb = graph_->get("Wpos");
       int numPos = seenEmb ? seenEmb->shape()[-2] : maxLength;
 
-      auto posEmbFactory = embedding()
+      auto embeddingLayer = embedding()
                             ("prefix", "Wpos") // share positional embeddings across all encoders/decorders
                             ("dimVocab", numPos)
                             ("dimEmb", dimEmb)
@@ -72,7 +76,7 @@ public:
         positions[i] = i;
 
       // @TODO : test if embeddings should be scaled here too!
-      auto signal = posEmbFactory->apply(positions, {dimWords, 1, dimEmb});
+      auto signal = embeddingLayer->apply(positions, {dimWords, 1, dimEmb});
       embeddings = embeddings + signal;
     } else {
       auto signal = graph_->constant({dimWords, 1, dimEmb},

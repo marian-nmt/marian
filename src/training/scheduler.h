@@ -68,10 +68,10 @@ private:
     state.updateEta(baselr);
   }
 
-  std::string displayLoss(std::string lossType, 
-                          bool dispLabelCounts, 
-                          size_t batchLabels, 
-                          Ptr<TrainingState> state) {
+  std::string formatLoss(std::string lossType, 
+                         bool dispLabelCounts, 
+                         size_t batchLabels, 
+                         Ptr<TrainingState> state) {
     std::stringstream ss;
     ss << "Cost ";
     ss << std::setprecision(8) << std::fixed;
@@ -308,7 +308,7 @@ public:
             state_->epochs,
             state_->batches,
             utils::withCommas(state_->samplesEpoch),
-            displayLoss(lossType, dispLabelCounts, batchLabels, state_),
+            formatLoss(lossType, dispLabelCounts, batchLabels, state_),
             timer_.elapsed(),
             state_->wordsDisp / timer_.elapsed(),
             state_->eta);
@@ -318,7 +318,7 @@ public:
             state_->epochs,
             state_->batches,
             utils::withCommas(state_->samplesEpoch),
-            displayLoss(lossType, dispLabelCounts, 0, state_), // ignore batchLabels
+            formatLoss(lossType, dispLabelCounts, 0, state_), // ignore batchLabels
             timer_.elapsed(),
             state_->wordsDisp / timer_.elapsed());
       }

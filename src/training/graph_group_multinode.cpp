@@ -604,8 +604,7 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
 
       num_seen_words = 0;
       num_seen_sentences = 0;
-      loss.loss = 0; 
-      loss.labels = 0;
+      loss.reset();
 
       if((scheduler_->saving() || scheduler_->validating())) {
         // Wait with validation or saving until all other threads are done with
