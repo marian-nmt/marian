@@ -28,10 +28,11 @@ namespace marian {
     // Factors are grouped
     //  - user specifies list-factor prefixes; all factors beginning with that prefix are in the same group
     //  - factors within a group as multi-class and normalized that way
-    //  - groups of size 1 are interpreted as sigmoids
+    //  - groups of size 1 are interpreted as sigmoids, multiply with P(u) / P(u-1)
     //  - one prefix must not contain another
     //  - all factors not matching a prefix get lumped into yet another class (the lemmas)
     //  - factor vocab must be sorted such that all groups are consecutive
+    //  - result of Output layer is nevertheless logits, not a normalized probability, due to the sigmoid entries
     EmbeddingFactorMapping(Ptr<Options> options) : factorVocab_(New<Options>(), 0) {
       std::vector<std::string> paths = options->get<std::vector<std::string>>("embedding-factors");
       ABORT_IF(paths.size() != 2, "--embedding-factors expects two paths");
