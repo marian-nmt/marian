@@ -413,15 +413,19 @@ struct LogSoftmaxNodeOp : public UnaryNodeOp {
 };
 
 enum class ReduceNodeOpCode {
-  sum, mean, min, max, logSumExp
+  sum, mean, std, var, min, max, prod, logSumExp
 };
 
-struct SumNodeOp : public UnaryNodeOp {
+struct ReduceNodeOp : public UnaryNodeOp {
   int axis_;
   ReduceNodeOpCode opCode_;
+  int reducedDim_; // dimension of axis being reduced, e.g. used in mean()
 
-  SumNodeOp(Expr a, int axis, ReduceNodeOpCode opCode)
-      : UnaryNodeOp(a, newShape(a, axis)), opCode_(opCode){}
+  ReduceNodeOp(Expr a, int axis, ReduceNodeOpCode opCode)
+      : UnaryNodeOp(a, newShape(a, axis)), opCode_(opCode)
+  {
+    reducedDim_ = child(0)->shape().elements() / val_->shape().elements(); // e.g. used in mean()
+  }
 
   NodeOps forwardOps() override {
     using namespace functional;
@@ -430,7 +434,20 @@ struct SumNodeOp : public UnaryNodeOp {
     case ReduceNodeOpCode::sum:
       return {NodeOp(Reduce(_1, val_, child(0)->val()))};
     case ReduceNodeOpCode::mean:
-      return {NodeOp(Reduce(_1, (float)val_->shape().elements() / (float)child(0)->shape().elements(), val_, child(0)->val()))};
+      return {NodeOp(Reduce(_1, 1.0f / (float)reducedDim_, val_, child(0)->val()))};
+    case ReduceNodeOpCode::std:
+      return {NodeOp(Reduce(_1 * _1, 1.0f / (float)reducedDim_, val_, child(0)->val());
+                     Element(_1 = sqrt(_1), val_, val_))};
+    case ReduceNodeOpCode::var:
+      return {NodeOp(Reduce(_1 * _1, 1.0f / (float)reducedDim_, val_, child(0)->val()))};
+    case ReduceNodeOpCode::min:
+      return {NodeOp(Reduce(_1, FLT_MAX, min(_1,_2), val_, child(0)->val()))};
+    case ReduceNodeOpCode::max:
+      return {NodeOp(Reduce(_1, -FLT_MAX, max(_1,_2), val_, child(0)->val()))};
+    case ReduceNodeOpCode::prod:
+      return {NodeOp(Reduce(_1, 1.0f, _1 * _2, val_, child(0)->val()))};
+    case ReduceNodeOpCode::logSumExp:
+      return {NodeOp(Reduce(_1, -FLT_MAX, logaddexp(_1,_2), val_, child(0)->val()))};
     default:
       ABORT("Unexpected reduction op-code {}", (int)opCode_);
     }
@@ -442,7 +459,12 @@ struct SumNodeOp : public UnaryNodeOp {
     case ReduceNodeOpCode::sum:
       return {NodeOp(Add(_1, child(0)->grad(), adj_))};
     case ReduceNodeOpCode::mean:
-      return {NodeOp(Add(_1, (float)val_->shape().elements() / (float)child(0)->shape().elements(), child(0)->grad(), adj_))};
+      return {NodeOp(Add(_1, 1.0f / (float)reducedDim_, child(0)->grad(), adj_))};
+    //case ReduceNodeOpCode::std:
+    //case ReduceNodeOpCode::var:
+    //case ReduceNodeOpCode::min:
+    //case ReduceNodeOpCode::max:
+    //case ReduceNodeOpCode::logSumExp:
     default:
       ABORT("Unexpected reduction op-code {}", (int)opCode_);
     }
@@ -458,12 +480,15 @@ struct SumNodeOp : public UnaryNodeOp {
 
   const std::string type() override {
     switch (opCode_) {
-    case ReduceNodeOpCode::sum:
-      return "sum";
-    case ReduceNodeOpCode::mean:
-      return "mean";
-    default:
-      ABORT("Unexpected reduction op-code {}", (int)opCode_);
+    case ReduceNodeOpCode::sum:       return "sum";
+    case ReduceNodeOpCode::mean:      return "mean";
+    case ReduceNodeOpCode::std:       return "std";
+    case ReduceNodeOpCode::var:       return "var";
+    case ReduceNodeOpCode::min:       return "min";
+    case ReduceNodeOpCode::max:       return "max";
+    case ReduceNodeOpCode::prod:      return "prod";
+    case ReduceNodeOpCode::logSumExp: return "logSumExp";
+    default: ABORT("Unexpected reduction op-code {}", (int)opCode_);
     }
   }
 
@@ -481,7 +506,7 @@ struct SumNodeOp : public UnaryNodeOp {
   virtual bool equal(Expr node) override {
     if(!NaryNodeOp::equal(node))
       return false;
-    Ptr<SumNodeOp> cnode = std::dynamic_pointer_cast<SumNodeOp>(node);
+    Ptr<ReduceNodeOp> cnode = std::dynamic_pointer_cast<ReduceNodeOp>(node);
     if(!cnode)
       return false;
     if(axis_ != cnode->axis_ || opCode_ != cnode->opCode_)
