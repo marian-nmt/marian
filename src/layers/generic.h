@@ -126,24 +126,48 @@ public:
 
 class Output : public LayerBase, public IUnaryLayer {
 private:
-  Expr tiedParam_;
-  Ptr<data::Shortlist> shortlist_;
+  Expr W_;  // parameters held by this layer
+  Expr b_;
+  Expr cachedShortW_;   // short-listed version, cached (cleared by clear())
+  Expr cachedShortb_;   // these match the current value of shortlist_
   Ptr<EmbeddingFactorMapping > embeddingFactorMapping_;
 
-  Expr W_;
-  Expr b_;
+  // optional parameters set/updated after construction
+  Expr tiedParam_;
   bool transposeW_{false};
+  Ptr<data::Shortlist> shortlist_;
 
   void lazyConstruct(int inputDim);
 public:
   Output(Ptr<ExpressionGraph> graph, Ptr<Options> options)
-      : LayerBase(graph, options) {}
-
-  void tieTransposed(Expr tied) {
-    tiedParam_ = tied;
+      : LayerBase(graph, options) {
+    clear();
   }
 
-  void setShortlist(Ptr<data::Shortlist> shortlist) { shortlist_ = shortlist; }
+  void tieTransposed(Expr tied) {
+    if (W_)
+      ABORT_IF(tiedParam_.get() != tied.get(), "Tied output projection cannot be changed once weights have been created");
+    else
+      tiedParam_ = tied;
+  }
+
+  void setShortlist(Ptr<data::Shortlist> shortlist) {
+    if (shortlist_)
+      ABORT_IF(shortlist.get() != shortlist_.get(), "Output shortlist cannot be changed except after clear()");
+    else {
+      ABORT_IF(cachedShortW_ || cachedShortb_, "No shortlist but cached parameters??");
+      shortlist_ = shortlist;
+    }
+    // cachedShortW_ and cachedShortb_ will be created lazily inside apply()
+  }
+
+  // this is expected to be called in sync with graph->clear(), which invalidates
+  // cachedShortW_ and cachedShortb_ in the graph's short-term cache
+  void clear() {
+    shortlist_ = nullptr;
+    cachedShortW_ = nullptr;
+    cachedShortb_ = nullptr;
+  }
 
   Expr apply(Expr input) override;
 

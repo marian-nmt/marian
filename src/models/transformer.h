@@ -608,17 +608,17 @@ public:
 
 class DecoderTransformer : public Transformer<DecoderBase> {
 private:
-  Ptr<mlp::MLP> output_;
+  Ptr<mlp::Output> output_;
 
 private:
-  void LazyCreateOutputLayer()
+  void lazyCreateOutputLayer()
   {
     if(output_) // create it lazily
       return;
 
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
-    auto layerOut = mlp::output()              //
+    auto outputFactory = mlp::output()         //
         ("prefix", prefix_ + "_ff_logit_out")  //
         ("dim", dimTrgVoc);
 
@@ -626,11 +626,8 @@ private:
       std::string tiedPrefix = prefix_ + "_Wemb";
       if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
         tiedPrefix = "Wemb";
-      layerOut.tieTransposed(tiedPrefix);
+      outputFactory.tieTransposed(tiedPrefix);
     }
-
-    if(shortlist_)
-      layerOut.setShortlist(shortlist_);
 
     if (options_->has("embedding-factors")) {
       // factored embeddings, simplistic version (which just adds the logits, like multiplying probs)
@@ -640,16 +637,11 @@ private:
       // i.e. multiOutput():
       //  output = dot_csr(output, M, transB=true)
       // @BUGBUG: need to specify output factors separately if not tied-embeddings or tied-embeddings-all
-      layerOut("embedding-factors", opt<std::vector<std::string>>("embedding-factors"));
-      layerOut("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]);
+      outputFactory("embedding-factors", opt<std::vector<std::string>>("embedding-factors"));
+      outputFactory("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]);
     }
 
-    // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
-    // assemble layers into MLP and apply to embeddings, decoder context and
-    // aligned source context
-    output_ = mlp::mlp()                //
-                  .push_back(layerOut)  //
-                  .construct(graph_);
+    output_ = std::dynamic_pointer_cast<mlp::Output>(outputFactory.construct(graph_)); // (construct() returns only the underlying interface)
   }
 
 public:
@@ -681,7 +673,7 @@ public:
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state) override {
     ABORT_IF(graph != graph_, "An inconsistent graph parameter was passed to step()");
-    LazyCreateOutputLayer();
+    lazyCreateOutputLayer();
     return step(state);
   }
 
@@ -837,7 +829,9 @@ public:
     //************************************************************************//
 
     // final feed-forward layer (output)
-    Expr logits = output_->apply(decoderContext); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
+    if(shortlist_)
+      output_->setShortlist(shortlist_);
+    Expr logits = output_->apply(decoderContext); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab or shortlist dim]
 
     // return unormalized(!) probabilities
     Ptr<DecoderState> nextState;
@@ -859,7 +853,8 @@ public:
   }
 
   void clear() override {
-    output_ = nullptr;
+    if (output_)
+      output_->clear();
     cache_.clear();
     alignments_.clear();
   }

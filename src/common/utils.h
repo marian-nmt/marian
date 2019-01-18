@@ -36,6 +36,7 @@ std::string exec(const std::string& cmd);
 std::pair<std::string, int> hostnameAndProcessId();
 
 std::string withCommas(size_t n);
+bool beginsWith(const std::string& text, const std::string& prefix);
 bool endsWith(const std::string& text, const std::string& suffix);
 
 std::string toUpper(const std::string& s);

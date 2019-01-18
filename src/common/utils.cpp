@@ -144,6 +144,11 @@ std::string withCommas(size_t n) {
   return res;
 }
 
+bool beginsWith(const std::string& text, const std::string& prefix) {
+  return text.size() >= prefix.size()
+         && !text.compare(0, prefix.size(), prefix);
+}
+
 bool endsWith(const std::string& text, const std::string& suffix) {
   return text.size() >= suffix.size()
          && !text.compare(text.size() - suffix.size(), suffix.size(), suffix);

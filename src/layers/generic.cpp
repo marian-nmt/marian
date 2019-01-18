@@ -2,6 +2,8 @@
 
 #include "layers/generic.h"
 
+using std::size_t; // not sure why this is needed
+
 namespace marian {
   struct CSRSparseTensor { // simplistic for now
     Shape shape;
@@ -23,9 +25,13 @@ namespace marian {
     // listPath = path to file that lists all FACTOR names
     // vocab = original vocabulary
     // Note: The WORD field in the map file is redundant. It is required for consistency checking only.
-    // Note: Presently, this implementation has the following short-comings
-    //  - we do not group factors (to normalize the probs); instead we assume that the global softmax will normalize correctly
-    //  - we do not handle binary features differently; we'd need to apply sigmoid(x) / sigmoid(-x)
+    // Factors are grouped
+    //  - user specifies list-factor prefixes; all factors beginning with that prefix are in the same group
+    //  - factors within a group as multi-class and normalized that way
+    //  - groups of size 1 are interpreted as sigmoids
+    //  - one prefix must not contain another
+    //  - all factors not matching a prefix get lumped into yet another class (the lemmas)
+    //  - factor vocab must be sorted such that all groups are consecutive
     EmbeddingFactorMapping(Ptr<Options> options) : factorVocab_(New<Options>(), 0) {
       std::vector<std::string> paths = options->get<std::vector<std::string>>("embedding-factors");
       ABORT_IF(paths.size() != 2, "--embedding-factors expects two paths");
@@ -38,10 +44,11 @@ namespace marian {
       Vocab vocab(New<Options>(), 0);
       vocab.load(vocabPath);
       factorVocab_.load(factorVocabPath);
+      Word numFactors = (Word)factorVocab_.size();
 
       // load and parse factorMap
       factorMap_.resize(vocab.size());
-      factorRefCounts_.resize(factorVocab_.size());
+      factorRefCounts_.resize(numFactors);
       std::vector<std::string> tokens;
       io::InputFileStream in(mapPath);
       std::string line;
@@ -58,7 +65,40 @@ namespace marian {
         }
         numTotalFactors += tokens.size() - 1;
       }
-      LOG(info, "[embedding] Factored-embedding map read with total/unique of {}/{} factors for {} words", numTotalFactors, factorVocab_.size(), vocab.size());
+      LOG(info, "[embedding] Factored-embedding map read with total/unique of {}/{} factors for {} words", numTotalFactors, numFactors, vocab.size());
+
+      // form groups
+      // @TODO: hard-coded for these initial experiments
+      std::vector<std::string> groupPrefixes = {
+        "@C",
+        "@GL", "@GR"
+      };
+      groupPrefixes.insert(groupPrefixes.begin(), "(unassigned)");     // first group is fallback for normal words (the string is only used for messages)
+      size_t numGroups = groupPrefixes.size();
+      factorGroups_.resize(numFactors, 0);
+      for (size_t g = 1; g < groupPrefixes.size(); g++) { // set group labels; what does not match any prefix will stay in group 0
+        const auto& groupPrefix = groupPrefixes[g];
+        for (Word u = 0; u < numFactors; u++)
+          if (utils::beginsWith(factorVocab_[u], groupPrefix)) {
+            ABORT_IF(factorGroups_[u] != 0, "Factor {} matches multiple groups, incl. {}", factorVocab_[u], groupPrefix);
+            factorGroups_[u] = g;
+          }
+      }
+      groupRanges_.resize(numGroups, { SIZE_MAX, (size_t)0 });
+      std::vector<size_t> groupCounts(numGroups); // number of group members
+      for (Word u = 0; u < numFactors; u++) { // determine ranges; these must be non-overlapping, verified via groupCounts
+        auto g = factorGroups_[u];
+        if (groupRanges_[g].first > u)
+            groupRanges_[g].first = u;
+        if (groupRanges_[g].second < u + 1)
+            groupRanges_[g].second = u + 1;
+        groupCounts[g]++;
+      }
+      for (size_t g = 0; g < numGroups; g++) { // detect non-overlapping groups
+        ABORT_IF(groupRanges_[g].second - groupRanges_[g].first != groupCounts[g], "Factor group '{}' members are not consecutive in the factor vocabulary", groupPrefixes[g]);
+        LOG(info, "[embedding] Factor group '{}' has {} members ({})",
+            groupPrefixes[g], groupCounts[g], groupCounts[g] == 1 ? "sigmoid" : "softmax");
+      }
 
       // create the factor matrix
       std::vector<IndexType> data(vocab.size());
@@ -89,12 +129,14 @@ namespace marian {
       return { Shape({(int)words.size(), (int)factorVocab_.size()}), weights, indices, offsets };
     }
 
-    const CSRData& getFactorMatrix() const { return factorMatrix_; }
+    const CSRData& getFactorMatrix() const { return factorMatrix_; } // [v,u] (sparse) -> =1 if u is factor of v
   private:
-    Vocab factorVocab_;                        // [factor name] -> factor index = row of E_
-    std::vector<std::vector<Word>> factorMap_; // [word index] -> set of factor indices
-    std::vector<int> factorRefCounts_;         // [factor index] -> how often this factor is referenced in factorMap_
-    CSRData factorMatrix_;                     // [v,u] (sparse) -> =1 if u is factor of v
+    Vocab factorVocab_;                                  // [factor name] -> factor index = row of E_
+    std::vector<std::vector<Word>> factorMap_;           // [word index] -> set of factor indices
+    std::vector<int> factorRefCounts_;                   // [factor index] -> how often this factor is referenced in factorMap_
+    CSRData factorMatrix_;                               // [v,u] (sparse) -> =1 if u is factor of v
+    std::vector<size_t> factorGroups_;                   // [u] -> group id of factor u
+    std::vector<std::pair<size_t, size_t>> groupRanges_; // [group id] -> (u_begin,u_end) index range of factors u for this group. These don't overlap.
   };
 
   namespace mlp {
@@ -114,41 +156,46 @@ namespace marian {
       }
 
       if(tiedParam_) {
-        transposeW_ = true;
         W_ = tiedParam_;
-        if(shortlist_)
-          W_ = rows(W_, shortlist_->indices());
+        transposeW_ = true;
       } else {
-        W_ = graph_->param(name + "_W",
-                           {inputDim, dim},
-                           inits::glorot_uniform);
-        if(shortlist_)
-          W_ = cols(W_, shortlist_->indices());
+        W_ = graph_->param(name + "_W", {inputDim, dim}, inits::glorot_uniform);
+        transposeW_ = false;
       }
 
       b_ = graph_->param(name + "_b", {1, dim}, inits::zeros);
-      if(shortlist_)
-        b_ = cols(b_, shortlist_->indices());
     }
 
     Expr Output::apply(Expr input) /*override*/ {
       lazyConstruct(input->shape()[-1]);
 
-      auto y = affine(input, W_, b_, false, transposeW_);
-
-      if (embeddingFactorMapping_) {
-        auto graph = input->graph();
-        auto factorMatrix = embeddingFactorMapping_->getFactorMatrix(); // [V x U]
-        y = dot_csr( // the CSR matrix is passed in pieces
-            y,  // [B x U]
-            factorMatrix.shape,
-            graph->constant({(int)factorMatrix.weights.size()}, inits::from_vector(factorMatrix.weights), Type::float32),
-            graph->constant({(int)factorMatrix.indices.size()}, inits::from_vector(factorMatrix.indices), Type::uint32),
-            graph->constant({(int)factorMatrix.offsets.size()}, inits::from_vector(factorMatrix.offsets), Type::uint32),
-            /*transB=*/ true); // -> [B x V]
+      if (shortlist_) {
+        if (!cachedShortW_) { // short versions of parameters are cached within one batch, then clear()ed
+          if(transposeW_)
+            cachedShortW_ = rows(W_, shortlist_->indices());
+          else
+            cachedShortW_ = cols(W_, shortlist_->indices());
+          cachedShortb_ = cols(b_, shortlist_->indices());
+        }
+        return affine(input, cachedShortW_, cachedShortb_, false, transposeW_);
       }
+      else {
+        auto y = affine(input, W_, b_, false, transposeW_);
 
-      return y;
+        if (embeddingFactorMapping_) { // note: presently mutually incompatible with shortlist_
+          auto graph = input->graph();
+          auto factorMatrix = embeddingFactorMapping_->getFactorMatrix(); // [V x U]
+          y = dot_csr( // the CSR matrix is passed in pieces
+              y,  // [B x U]
+              factorMatrix.shape,
+              graph->constant({(int)factorMatrix.weights.size()}, inits::from_vector(factorMatrix.weights), Type::float32),
+              graph->constant({(int)factorMatrix.indices.size()}, inits::from_vector(factorMatrix.indices), Type::uint32),
+              graph->constant({(int)factorMatrix.offsets.size()}, inits::from_vector(factorMatrix.offsets), Type::uint32),
+              /*transB=*/ true); // -> [B x V]
+        }
+
+        return y;
+      }
     }
   }
 
