@@ -245,36 +245,40 @@ Expr constant_like(Expr a, const NodeInitializer& init) {
   return graph->constant(shape, init);
 }
 
+Expr gather(Expr a, Expr indices, int axis) {
+  return Expression<GatherNodeOp>(a, indices, axis);
+}
+
+Expr index_select(Expr a, const std::vector<IndexType>& indices, int axis) {
+  auto indexExpr = a->graph()->indices(indices, a, axis);
+  return gather(a, indexExpr, axis);
+}
+
 Expr rows(Expr a, Expr indices) {
-  // @TODO:: replace with `select(a, indices, -2)`
-  // as soon as select is efficient enough
-  return Expression<RowsNodeOp>(a, indices);
+    // @TODO:: replace with `index_select(a, indices, -2)`
+    // as soon as select is efficient enough
+    return Expression<RowsNodeOp>(a, indices);
 }
 
 Expr rows(Expr a, const std::vector<IndexType>& indices) {
-  auto indexExpr = a->graph()->indices(indices);
-  return rows(a, indexExpr);
+    auto indexExpr = a->graph()->indices(indices);
+    return rows(a, indexExpr);
 }
 
-
 Expr cols(Expr a, Expr indices) {
-  // @TODO:: replace with `select(a, indices, -1)`
-  // as soon as select is efficient enough
-  return Expression<ColsNodeOp>(a, indices);
+    // @TODO:: replace with `index_select(a, indices, -1)`
+    // as soon as select is efficient enough
+    return Expression<ColsNodeOp>(a, indices);
 }
 
 Expr cols(Expr a, const std::vector<IndexType>& indices) {
-  auto indexExpr = a->graph()->indices(indices);
-  return cols(a, indexExpr);
+    auto indexExpr = a->graph()->indices(indices);
+    return cols(a, indexExpr);
 }
 
-Expr select(Expr a, Expr indices, int axis) {
-  return Expression<SelectNodeOp>(a, indices, axis);
-}
-
-Expr select(Expr a, const std::vector<IndexType>& indices, int axis) {
-  auto indexExpr = a->graph()->indices(indices, a, axis);
-  return select(a, indexExpr, axis);
+Expr sliceView(Expr a, const Slice& slice, int axis) { // numpy __getitem__ semantics
+  // @TODO: If not memory-consecutive then fall back to index_select
+  return Expression<SliceViewNodeOp>(a, slice, axis);
 }
 
 Expr sum(Expr a, int ax) {
@@ -460,10 +464,6 @@ Expr swapAxes(Expr x, int axis1, int axis2)
     axes[i] = i;
   std::swap(axes[axis1], axes[axis2]);
   return transpose(x, axes);
-}
-
-Expr sliceView(Expr a, const Slice& slice, int axis) { // numpy __getitem__ semantics
-  return Expression<SliceViewNodeOp>(a, slice, axis);
 }
 
 Expr cross_entropy(Expr a, Expr indices) {

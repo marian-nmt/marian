@@ -540,8 +540,8 @@ struct RowsNodeOp : public NaryNodeOp {
   const std::string color() override { return "orange"; }
 };
 
-// This operation indexes a tensor along an axis.
-// This is similar to the common gather() operation in other toolkits.
+// This operation gathers elements of a tensor along an axis.
+// This is like PyTorch gather(), except that Marian also implements broadcasting.
 // For example, this can be used for:
 //  - Same index applied to all batch items (today's select()):
 //    'index' has 1 in the axes that match batch axes in the input, and axis set to the one axis that gets selected over.
@@ -574,12 +574,14 @@ struct RowsNodeOp : public NaryNodeOp {
 //  out[i][j][k] = input[i][index[i][j][k]][k]  # if dim == 1
 //  out[i][j][k] = input[i][j][index[i][j][k]]  # if dim == 2
 // If 'a' and 'indices' do not have the same rank, then negative 'axis' is
-// interpreted relative to 'a', and 'indices' must have the resulting axis.
-// Broadcasting is supported as usual.
+// interpreted relative to 'a'; then both shapes are left-padded to the same rank;
+// and indexing happens along the axis that corresponds to 'axis' in the padded shapes.
+// Broadcasting is supported as usual. This way, this function can implement both
+// batched and non-batched selection.
 // @TODO: The current implementation does not support batched indices (third scenario above).
 //        I.e. all axes of 'indices' except 'axis' must have dimension 1.
-struct SelectNodeOp : public NaryNodeOp {
-  SelectNodeOp(Expr a, Expr indices, int axis)
+struct GatherNodeOp : public NaryNodeOp {
+  GatherNodeOp(Expr a, Expr indices, int axis)
       : NaryNodeOp({a, indices}, newShape(a, indices, axis), a->value_type()),
         axis_(a->shape().axis(axis)) {
     matchOrAbort<IndexType>(indices->value_type());
@@ -628,7 +630,7 @@ struct SelectNodeOp : public NaryNodeOp {
   virtual bool equal(Expr node) override {
     if(!NaryNodeOp::equal(node))
       return false;
-    Ptr<SelectNodeOp> cnode = std::dynamic_pointer_cast<SelectNodeOp>(node);
+    Ptr<GatherNodeOp> cnode = std::dynamic_pointer_cast<GatherNodeOp>(node);
     if(!cnode)
       return false;
     if(axis_ != cnode->axis_)

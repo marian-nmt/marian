@@ -139,14 +139,29 @@ Expr flatten_2d(Expr a);
 
 Expr stopGradient(Expr a);
 
+Expr gather(Expr a, Expr indices, int axis);
+Expr index_select(Expr a, const std::vector<IndexType>& indices, int axis);
+static inline Expr index_select(Expr a, int index, int axis) {
+  // Until Marian supports strides, use this for indexing non-memory-consecutive
+  // slices, while sliceView() can be used for memory-consecutive ones.
+  return index_select(a, std::vector<IndexType>({(IndexType)index}), axis);
+}
+
 Expr rows(Expr a, Expr indices);
 Expr rows(Expr a, const std::vector<IndexType>& indices);
 
 Expr cols(Expr a, Expr indices);
 Expr cols(Expr a, const std::vector<IndexType>& indices);
 
-Expr select(Expr a, Expr indices, int axis);
-Expr select(Expr a, const std::vector<IndexType>& indices, int axis);
+Expr sliceView(Expr a, const Slice& slice, int axis);
+
+static inline Expr narrow(Expr a, size_t start, size_t length, int axis) { // PyTorch name
+  return sliceView(a, Slice((int)start, (int)(start + length)), axis);
+}
+
+static inline Expr step(Expr a, int step, int axis) {
+  return sliceView(a, Slice(step), axis);
+}
 
 /*********************************************************/
 
@@ -167,14 +182,6 @@ Expr cross_entropy(Expr a, Expr b);
 Expr scalar_product(Expr a, Expr b, int ax = 0);
 
 Expr weighted_average(Expr in, Expr weights, int ax = 0);
-
-Expr sliceView(Expr a, const Slice& slice, int axis);
-static inline Expr narrow(Expr a, size_t start, size_t length, int axis) { // PyTorch name
-  return sliceView(a, Slice((int)start, (int)(start + length)), axis);
-}
-static inline Expr step(Expr a, int step, int axis) {
-  return sliceView(a, Slice(step), axis);
-}
 
 Expr sqrt(Expr a, float eps = 0.f);
 Expr square(Expr a);
