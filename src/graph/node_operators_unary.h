@@ -495,8 +495,8 @@ struct ReduceNodeOp : public UnaryNodeOp {
     switch (opCode_) {
     case ReduceNodeOpCode::sum:       return "sum";
     case ReduceNodeOpCode::mean:      return "mean";
-    case ReduceNodeOpCode::rms:      return "rms";
-    case ReduceNodeOpCode::meanSqr:      return "meanSqr";
+    case ReduceNodeOpCode::rms:       return "rms";
+    case ReduceNodeOpCode::meanSqr:   return "meanSqr";
     case ReduceNodeOpCode::min:       return "min";
     case ReduceNodeOpCode::max:       return "max";
     case ReduceNodeOpCode::prod:      return "prod";
