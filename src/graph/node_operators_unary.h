@@ -424,7 +424,8 @@ struct ReduceNodeOp : public UnaryNodeOp {
   ReduceNodeOp(Expr a, int axis, ReduceNodeOpCode opCode)
       : UnaryNodeOp(a, newShape(a, axis)), opCode_(opCode)
   {
-    reducedDim_ = child(0)->shape().elements() / val_->shape().elements(); // e.g. used in mean()
+    reducedDim_ = a->shape()[axis]; // e.g. used in mean()
+    ABORT_IF(reducedDim_ != a->shape().elements() / shape().elements(), "bug in determining reducedDim");
   }
 
   NodeOps forwardOps() override {
