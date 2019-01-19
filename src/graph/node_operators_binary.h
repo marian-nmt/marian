@@ -541,7 +541,7 @@ struct RowsNodeOp : public NaryNodeOp {
 };
 
 // This operation gathers elements of a tensor along an axis.
-// This is like PyTorch gather(), except that Marian also implements broadcasting.
+// This is like PyTorch gather().
 // For example, this can be used for:
 //  - Same index applied to all batch items (today's select()):
 //    'index' has 1 in the axes that match batch axes in the input, and axis set to the one axis that gets selected over.
@@ -573,11 +573,7 @@ struct RowsNodeOp : public NaryNodeOp {
 //  out[i][j][k] = input[index[i][j][k]][j][k]  # if dim == 0
 //  out[i][j][k] = input[i][index[i][j][k]][k]  # if dim == 1
 //  out[i][j][k] = input[i][j][index[i][j][k]]  # if dim == 2
-// If 'a' and 'indices' do not have the same rank, then negative 'axis' is
-// interpreted relative to 'a'; then both shapes are left-padded to the same rank;
-// and indexing happens along the axis that corresponds to 'axis' in the padded shapes.
-// Broadcasting is supported as usual. This way, this function can implement both
-// batched and non-batched selection.
+// 'a' and 'indices' must have the same rank.
 // @TODO: The current implementation does not support batched indices (third scenario above).
 //        I.e. all axes of 'indices' except 'axis' must have dimension 1.
 struct GatherNodeOp : public NaryNodeOp {
@@ -598,16 +594,14 @@ struct GatherNodeOp : public NaryNodeOp {
   }
 
   Shape newShape(Expr a, Expr indices, int axis) {
-    axis = a->shape().axis(axis);
-    auto indicesRank = indices->shape().size();
-    ABORT_IF(axis >= indicesRank, "Axis {} is invalid for indices shape {}", axis, std::string(indices->shape()));
     Shape shape = a->shape();
-    if (shape.size() < indicesRank) // pad
-      shape.resize(indicesRank);
+    auto rank = shape.size();
+    ABORT_IF(rank != indices->shape().size(), "Mismatching shapes for input ({}) and indices ({})", std::string(shape), std::string(indices->shape()));
+    axis = a->shape().axis(axis);
     shape.set(axis, indices->shape()[axis]);
 #if 1 // presently, this implementation does not support batched indices
-    for (size_t i = 0; i < indicesRank; ++i) {
-      ABORT_IF(indices->shape()[i] != 1 && i + shape.size() - indicesRank != axis,
+    for (size_t i = 0; i < rank; ++i) {
+      ABORT_IF(indices->shape()[i] != 1 && i != axis,
                "Presently, select() does not implement batched indices");
     }
 #endif
