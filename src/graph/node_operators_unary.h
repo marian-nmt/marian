@@ -413,7 +413,7 @@ struct LogSoftmaxNodeOp : public UnaryNodeOp {
 };
 
 enum class ReduceNodeOpCode {
-  sum, mean, rms, sumSqr, min, max, prod, logSumExp
+  sum, mean, rms, meanSqr, min, max, prod, logSumExp
 };
 
 struct ReduceNodeOp : public UnaryNodeOp {
@@ -439,7 +439,7 @@ struct ReduceNodeOp : public UnaryNodeOp {
     case ReduceNodeOpCode::rms:
       return {NodeOp(Reduce(_1 * _1, 1.0f / (float)reducedDim_, val_, child(0)->val());
                      Element(_1 = sqrt(_1), val_))};
-    case ReduceNodeOpCode::sumSqr:
+    case ReduceNodeOpCode::meanSqr:
       return {NodeOp(Reduce(_1 * _1, 1.0f / (float)reducedDim_, val_, child(0)->val()))};
     case ReduceNodeOpCode::min:
       return {NodeOp(Reduce(_1, min(_1,_2), std::numeric_limits<float>::max(), val_, child(0)->val()))};
@@ -466,7 +466,7 @@ struct ReduceNodeOp : public UnaryNodeOp {
       // dJ/dx_i = dJ/dy * 0.5 (sum_j x_j^2)^-0.5 * 2 x_i = dJ/dy * x_i / y  --@REVIEW: is this correct?
       // @TODO: do we need protection against div by 0? L'hospital rule?
       return {NodeOp(Add(_1 * _2 / _3, child(0)->grad(), adj_, child(0)->val(), val_))};
-    case ReduceNodeOpCode::sumSqr: // WARNING: UNTESTED!!
+    case ReduceNodeOpCode::meanSqr: // WARNING: UNTESTED!!
       // y = sum_j x_j^2
       // dJ/dx_i = dJ/dy * sum_j dx_j^2/dx_i = dJ/dy * 2 dx_i  --@REVIEW: is this correct?
       return {NodeOp(Add(_1 * 2.0f * _2, child(0)->grad(), adj_, child(0)->val()))};
@@ -496,7 +496,7 @@ struct ReduceNodeOp : public UnaryNodeOp {
     case ReduceNodeOpCode::sum:       return "sum";
     case ReduceNodeOpCode::mean:      return "mean";
     case ReduceNodeOpCode::rms:      return "rms";
-    case ReduceNodeOpCode::sumSqr:      return "sumSqr";
+    case ReduceNodeOpCode::meanSqr:      return "meanSqr";
     case ReduceNodeOpCode::min:       return "min";
     case ReduceNodeOpCode::max:       return "max";
     case ReduceNodeOpCode::prod:      return "prod";
