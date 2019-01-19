@@ -461,19 +461,23 @@ struct ReduceNodeOp : public UnaryNodeOp {
       return {NodeOp(Add(_1, child(0)->grad(), adj_))};
     case ReduceNodeOpCode::mean:
       return {NodeOp(Add(_1, 1.0f / (float)reducedDim_, child(0)->grad(), adj_))};
-    case ReduceNodeOpCode::rms:
-    case ReduceNodeOpCode::sumSqr:
-      ABORT("Gradient of reduction op-code for {} not yet implemented", type());
-    case ReduceNodeOpCode::min:
-    case ReduceNodeOpCode::max:
-      return {NodeOp(Add((_1 == _2) * _3,  // adj_ gets routed into the min/max value  --@REVIEW: is this correct?
-                         child(0)->grad(), child(0)->val(), val_, adj_))};
-    case ReduceNodeOpCode::logSumExp:       // y = log(sum_j exp(x_j))
-      return {NodeOp(Add(_1 * exp(_2 - _3), // dJ/dx_i = dJ/dy * 1/(sum_j exp(x_j)) exp(x_i) = dJ/dy * exp(x_i - y))
-                         child(0)->grad(),  // out = dJ/dx_i
-                         adj_,              // _1 = dJ/dy
-                         child(0)->val(),   // _2 = x_i
-                         val_))};           // _3 = y
+    case ReduceNodeOpCode::rms: // WARNING: UNTESTED!!
+      // y = (sum_j x_j^2)^0.5
+      // dJ/dx_i = dJ/dy * 0.5 (sum_j x_j^2)^-0.5 * 2 x_i = dJ/dy * x_i / y  --@REVIEW: is this correct?
+      // @TODO: do we need protection against div by 0? L'hospital rule?
+      return {NodeOp(Add(_1 * _2 / _3, child(0)->grad(), adj_, child(0)->val(), val_))};
+    case ReduceNodeOpCode::sumSqr: // WARNING: UNTESTED!!
+      // y = sum_j x_j^2
+      // dJ/dx_i = dJ/dy * sum_j dx_j^2/dx_i = dJ/dy * 2 dx_i  --@REVIEW: is this correct?
+      return {NodeOp(Add(_1 * 2.0f * _2, child(0)->grad(), adj_, child(0)->val()))};
+    case ReduceNodeOpCode::min:  // WARNING: UNTESTED!!
+    case ReduceNodeOpCode::max:  // WARNING: UNTESTED!!
+      // adj_ gets routed into the min/max value  --@REVIEW: is this correct?
+      return {NodeOp(Add((_1 == _2) * _3, child(0)->grad(), child(0)->val(), val_, adj_))};
+    case ReduceNodeOpCode::logSumExp:
+      // y = log(sum_j exp(x_j))
+       // dJ/dx_i = dJ/dy * 1/(sum_j exp(x_j)) exp(x_i) = dJ/dy * exp(x_i - y))  --@REVIEW: is this correct?
+      return {NodeOp(Add(_1 * exp(_2 - _3), child(0)->grad(), adj_, child(0)->val(), val_))};
     default:
       ABORT("Unexpected reduction op-code {}", (int)opCode_);
     }
