@@ -204,12 +204,19 @@ void tests(DeviceType device) {
     graph->clear();
     values.clear();
 
-    std::vector<float> vA({1, 2, 3, 4, 5, 6, 7, 8});
-    std::vector<float> vS1({6, 8, 10, 12});
-    std::vector<float> vS2({10, 26});
-
-    std::vector<float> vW({2.77778f, 6.77778f});
-
+    std::vector<float> vA({1, 6, 3, 8,
+                           5, 2, 7, 4});
+    // import numpy as np
+    // a = np.array([[1, 6, 3, 8], [5, 2, 7, 4]])
+    std::vector<float> vS1({6, 8, 10, 12});              // s1 = np.sum(a, axis=0)
+    std::vector<float> vS2({18, 18});                    // np.sum(a, axis = 1)
+    std::vector<float> vS4({2.6925824f, 1.80277564f});   // np.std(a, axis = 1)
+    std::vector<float> vV5({7.25, 3.25});                // np.var(a, axis = 1)
+    std::vector<float> vM6({8, 7});                      // np.max(a, axis = 1)
+    std::vector<float> vM7({1, 2});                      // np.min(a, axis = 1)
+    std::vector<float> vP8({144, 280});                  // np.prod(a, axis = 1)
+    std::vector<float> vL9({8.13364336f, 7.17551536f});  // np.log(np.sum(np.exp(a), axis=1))
+    std::vector<float> vW({5.0f, 4.55555556f});          // np.mean(a*s1,axis=-1) / np.mean(s1,axis=-1)
 
     auto a = graph->constant({2, 4}, inits::from_vector(vA));
 
@@ -217,6 +224,14 @@ void tests(DeviceType device) {
     auto s2 = sum(a, /*axis=*/ 1);
 
     auto m3 = mean(s1, /*axis=*/ 1);
+
+    auto s4 = marian::std(a, /*axis=*/ 1);
+    auto v5 = var(a, /*axis=*/ 1);
+
+    auto m6 = max(a, /*axis=*/ 1);
+    auto m7 = min(a, /*axis=*/ 1);
+    auto p8 = prod(a, /*axis=*/ 1);
+    auto l9 = logsumexp(a, /*axis=*/ 1);
 
     auto sp = scalar_product(s2, s2, /*axis=*/ 0);
 
@@ -227,21 +242,30 @@ void tests(DeviceType device) {
     CHECK(s1->shape() == Shape({1, 4}));
     CHECK(s2->shape() == Shape({2, 1}));
     CHECK(m3->shape() == Shape({1, 1}));
+    CHECK(s4->shape() == Shape({2, 1}));
+    CHECK(v5->shape() == Shape({2, 1}));
+    CHECK(m6->shape() == Shape({2, 1}));
+    CHECK(m7->shape() == Shape({2, 1}));
+    CHECK(p8->shape() == Shape({2, 1}));
+    CHECK(l9->shape() == Shape({2, 1}));
     CHECK(sp->shape() == Shape({1, 1}));
     CHECK(wa->shape() == Shape({2, 1}));
 
-    s1->val()->get(values);
-    CHECK( values == vS1 );
+    s1->val()->get(values); CHECK(values == vS1);
+    s2->val()->get(values); CHECK(values == vS2);
 
-    s2->val()->get(values);
-    CHECK( values == vS2 );
+    CHECK(m3->val()->scalar() == 9);
 
-    CHECK( m3->val()->scalar() == 9 );
-    CHECK( sp->val()->scalar() == 776 );
+    s4->val()->get(values); CHECK(std::equal(values.begin(), values.end(), vS4.begin(), floatApprox));
+    v5->val()->get(values); CHECK(values == vV5);
+    m6->val()->get(values); CHECK(values == vM6);
+    m7->val()->get(values); CHECK(values == vM7);
+    p8->val()->get(values); CHECK(values == vP8);
+    l9->val()->get(values); CHECK(std::equal(values.begin(), values.end(), vL9.begin(), floatApprox));
 
-    wa->val()->get(values);
-    CHECK( std::equal(values.begin(), values.end(),
-                      vW.begin(), floatApprox) );
+    CHECK(sp->val()->scalar() == 648);
+
+    wa->val()->get(values); CHECK(std::equal(values.begin(), values.end(), vW.begin(), floatApprox));
   }
 
   SECTION("concatenation") {
