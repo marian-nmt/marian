@@ -286,11 +286,11 @@ Expr mean(Expr a, int ax) {
 }
 
 Expr std(Expr a, int ax) {
-  return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::std);
+  return Expression<ReduceNodeOp>(a - mean(a,ax), ax, ReduceNodeOpCode::rms);
 }
 
 Expr var(Expr a, int ax) {
-  return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::var);
+  return Expression<ReduceNodeOp>(a - mean(a, ax), ax, ReduceNodeOpCode::sumSqr);
 }
 
 Expr max(Expr a, int ax) {

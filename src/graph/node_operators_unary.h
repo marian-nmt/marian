@@ -413,7 +413,7 @@ struct LogSoftmaxNodeOp : public UnaryNodeOp {
 };
 
 enum class ReduceNodeOpCode {
-  sum, mean, std, var, min, max, prod, logSumExp
+  sum, mean, rms, sumSqr, min, max, prod, logSumExp
 };
 
 struct ReduceNodeOp : public UnaryNodeOp {
@@ -436,10 +436,10 @@ struct ReduceNodeOp : public UnaryNodeOp {
       return {NodeOp(Reduce(_1, val_, child(0)->val()))};
     case ReduceNodeOpCode::mean:
       return {NodeOp(Reduce(_1, 1.0f / (float)reducedDim_, val_, child(0)->val()))};
-    case ReduceNodeOpCode::std:
+    case ReduceNodeOpCode::rms:
       return {NodeOp(Reduce(_1 * _1, 1.0f / (float)reducedDim_, val_, child(0)->val());
                      Element(_1 = sqrt(_1), val_))};
-    case ReduceNodeOpCode::var:
+    case ReduceNodeOpCode::sumSqr:
       return {NodeOp(Reduce(_1 * _1, 1.0f / (float)reducedDim_, val_, child(0)->val()))};
     case ReduceNodeOpCode::min:
       return {NodeOp(Reduce(_1, min(_1,_2), std::numeric_limits<float>::max(), val_, child(0)->val()))};
@@ -461,12 +461,18 @@ struct ReduceNodeOp : public UnaryNodeOp {
       return {NodeOp(Add(_1, child(0)->grad(), adj_))};
     case ReduceNodeOpCode::mean:
       return {NodeOp(Add(_1, 1.0f / (float)reducedDim_, child(0)->grad(), adj_))};
-    case ReduceNodeOpCode::std:
-    case ReduceNodeOpCode::var:
+    case ReduceNodeOpCode::rms:
+    case ReduceNodeOpCode::sumSqr:
     case ReduceNodeOpCode::min:
     case ReduceNodeOpCode::max:
     case ReduceNodeOpCode::logSumExp:
       ABORT("Reduction op-code for {} not yet implemented", type());
+// NDArrayView::NumericOperation({ const_cast<NDArrayView*>(outputGradientValue)->shared_from_this(),
+//                                 const_cast<NDArrayView*>( inputValues[0]    )->shared_from_this(),
+//                                 const_cast<NDArrayView*>(outputValue        )->shared_from_this() }, alpha,
+//                               Microsoft::MSR::CNTK::ElementWiseOperator::opElementwiseProductWithExpOfDiff,
+//                               gradient, beta,
+//                               Microsoft::MSR::CNTK::ElementWiseOperator::opSum);
     default:
       ABORT("Unexpected reduction op-code {}", (int)opCode_);
     }
@@ -484,8 +490,8 @@ struct ReduceNodeOp : public UnaryNodeOp {
     switch (opCode_) {
     case ReduceNodeOpCode::sum:       return "sum";
     case ReduceNodeOpCode::mean:      return "mean";
-    case ReduceNodeOpCode::std:       return "std";
-    case ReduceNodeOpCode::var:       return "var";
+    case ReduceNodeOpCode::rms:      return "rms";
+    case ReduceNodeOpCode::sumSqr:      return "sumSqr";
     case ReduceNodeOpCode::min:       return "min";
     case ReduceNodeOpCode::max:       return "max";
     case ReduceNodeOpCode::prod:      return "prod";
