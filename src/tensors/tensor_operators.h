@@ -63,7 +63,7 @@ template <class Functor, class AggFunctor, class... Tensors>
 void Aggregate(Functor functor, float aggInit, AggFunctor aggFunctor, marian::Tensor out, Tensors... tensors) {
 #ifdef CUDA_FOUND
   if(out->getBackend()->getDeviceId().type == DeviceType::gpu)
-    gpu::Aggregate(functor, aggInit, aggFunctor, out, tensors...);
+    gpu::Aggregate(functor, aggInit, aggFunctor, 1.0f, out, tensors...);
   else
 #endif
     cpu::Aggregate(functor, aggInit, aggFunctor, 1.0f, out, tensors...);
