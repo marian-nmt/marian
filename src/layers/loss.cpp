@@ -26,18 +26,25 @@ Expr LossBase::getCrossEntropy(Expr logits,
                                Expr indices,
                                Expr mask,
                                Expr weights) {
-  auto ce = cross_entropy(logits, indices);
-  //auto ce = rows(logits, indices) - logsumexp(logits, /*axis=*/ -1);
 
+  Expr ce;
   if(smoothing_ > 0) {
     // @TODO: add this to CE kernels instead
 #if 0
+    ce = cross_entropy(logits, indices);
     auto ceq = mean(logsoftmax(logits), /*axis=*/ -1);
-#else   // alternative that is cheaper memory-wise
-    auto ceq = mean(logits, /*axis=*/ -1) - logsumexp(logits, /*axis=*/ -1);
-#endif
     ce = (1 - smoothing_) * ce - smoothing_ * ceq;
+#else   // alternative that is cheaper memory-wise
+    ce = cross_entropy(logits, indices);
+    auto ceq = mean(logits, /*axis=*/ -1) - logsumexp(logits, /*axis=*/ -1);
+    //auto ceq = mean(logits, /*axis=*/ -1) - Z;
+    //ce = (1 - smoothing_) * cols(logits, indices)   // ce term
+    //     - smoothing_ * mean(logits, /*axis=*/ -1)  // smoothing term
+    //     - logsumexp(logits, /*axis=*/ -1);         // denominator
+#endif
   }
+  else
+      ce = cross_entropy(logits, indices);
 
   if(mask)
     ce = ce * mask;
