@@ -169,19 +169,5 @@ __HDI__ float loops(Functor functor, float aggInit, AggFunctor aggFunctor,
   functional::Array<int, K> acc = {0};
   return Loop<N, N, K>::result(functor, aggInit, aggFunctor, in, acc, length, dim);
 }
-
-
-// dummy until changed Add to Agg
-template <size_t N, size_t K, class Functor>
-__HDI__ float loops(Functor functor,
-                    functional::Array<functional::Tensor<float>, K>& in,
-                    const functional::Array<int, N>& length,
-                    const functional::Array<int, N>& dim) {
-    (void)functor; (void)in; (void)length; (void)dim;
-    return 0;
-}
-
-
-
 }  // namespace functional
 }  // namespace marian

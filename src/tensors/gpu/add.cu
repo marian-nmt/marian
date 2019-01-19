@@ -17,7 +17,7 @@ namespace marian {
 namespace gpu {
 
 template <size_t K, class Functor, class AggFunctor>
-__global__ void gAggregateGeneric(Functor functor, AggFunctor aggFunctor,
+__global__ void gAggregateGeneric(Functor functor, float aggInit, AggFunctor aggFunctor,
                             const functional::Shape full,
                             functional::Tensor<float> out,
                             functional::Array<functional::Tensor<float>, K> ins,
@@ -37,10 +37,10 @@ __global__ void gAggregateGeneric(Functor functor, AggFunctor aggFunctor,
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < outLength) {
       if(same) {
-        out[index] += functional::apply(functor, ins, index) * scale;
+        out[index] = aggFunctor(out[index], functional::apply(functor, ins, index) * scale);
       } else {
         out.shape().dims(index, dims);
-        out[index] += functional::loops(functor, ins, len, dims) * scale;
+        out[index] = aggFunctor(out[index], functional::loops(functor, aggInit, aggFunctor, ins, len, dims) * scale);
       }
     }
   }
@@ -67,7 +67,7 @@ __global__ void gAggregateEqual(Functor functor, AggFunctor aggFunctor,
           indices[i] = ins[i].shape().bindex(dims);
       }
 
-      out[index] += functional::apply(functor, ins, indices) * scale;
+      out[index] = aggFunctor(out[index], functional::apply(functor, ins, indices) * scale);
     }
   }
 }
@@ -96,7 +96,7 @@ __global__ void gAggregateReduce(Functor functor, float aggInit, AggFunctor aggF
         for(int tid = 0; tid < cols; tid += blockDim.x) {
           int id = tid + threadIdx.x;
           if(id < cols)
-            _sum[threadIdx.x] += functional::apply(functor, ins, j * cols + id);
+            _sum[threadIdx.x] = aggFunctor(_sum[threadIdx.x], functional::apply(functor, ins, j * cols + id));
         }
       } else {
         functional::Array<int, functional::Shape::size()> dims;
@@ -109,7 +109,7 @@ __global__ void gAggregateReduce(Functor functor, float aggInit, AggFunctor aggF
             functional::Array<int, K> indices;
             for(int i = 0; i < K; ++i)
               indices[i] = ins[i].shape().bindex(dims);
-            _sum[threadIdx.x] += functional::apply(functor, ins, indices);
+            _sum[threadIdx.x] = aggFunctor(_sum[threadIdx.x], functional::apply(functor, ins, indices));
           }
         }
       }
@@ -119,12 +119,12 @@ __global__ void gAggregateReduce(Functor functor, float aggInit, AggFunctor aggF
         __syncthreads();
         int skip = (len + 1) >> 1;
         if(threadIdx.x < (len >> 1)) {
-          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+          _sum[threadIdx.x] = aggFunctor(_sum[threadIdx.x], _sum[threadIdx.x + skip]);
         }
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      out[j] += _sum[0] * scale;
+      out[j] = aggFunctor(out[j], _sum[0] * scale);
     }
   }
 }
@@ -166,7 +166,7 @@ void Aggregate(Functor functor, float aggInit, AggFunctor aggFunctor, float scal
     int blocks
         = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-    gAggregateGeneric<<<blocks, threads>>>(functor, aggFunctor, full, gOut, gIns, scale);
+    gAggregateGeneric<<<blocks, threads>>>(functor, aggInit, aggFunctor, full, gOut, gIns, scale);
   }
 }
 
@@ -210,7 +210,7 @@ void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
     int blocks
         = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-    gAggregateGeneric<<<blocks, threads>>>(functor, addFunctor, full, gOut, gIns, scale);
+    gAggregateGeneric<<<blocks, threads>>>(functor, 0, addFunctor, full, gOut, gIns, scale);
   }
 }
 
