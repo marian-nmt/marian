@@ -463,16 +463,17 @@ struct ReduceNodeOp : public UnaryNodeOp {
       return {NodeOp(Add(_1, 1.0f / (float)reducedDim_, child(0)->grad(), adj_))};
     case ReduceNodeOpCode::rms:
     case ReduceNodeOpCode::sumSqr:
+      ABORT("Gradient of reduction op-code for {} not yet implemented", type());
     case ReduceNodeOpCode::min:
     case ReduceNodeOpCode::max:
-    case ReduceNodeOpCode::logSumExp:
-      ABORT("Reduction op-code for {} not yet implemented", type());
-// NDArrayView::NumericOperation({ const_cast<NDArrayView*>(outputGradientValue)->shared_from_this(),
-//                                 const_cast<NDArrayView*>( inputValues[0]    )->shared_from_this(),
-//                                 const_cast<NDArrayView*>(outputValue        )->shared_from_this() }, alpha,
-//                               Microsoft::MSR::CNTK::ElementWiseOperator::opElementwiseProductWithExpOfDiff,
-//                               gradient, beta,
-//                               Microsoft::MSR::CNTK::ElementWiseOperator::opSum);
+      return {NodeOp(Add((_1 == _2) * _3,  // adj_ gets routed into the min/max value  --@REVIEW: is this correct?
+                         child(0)->grad(), child(0)->val(), val_, adj_))};
+    case ReduceNodeOpCode::logSumExp:       // y = log(sum_j exp(x_j))
+      return {NodeOp(Add(_1 * exp(_2 - _3), // dJ/dx_i = dJ/dy * 1/(sum_j exp(x_j)) exp(x_i) = dJ/dy * exp(x_i - y))
+                         child(0)->grad(),  // out = dJ/dx_i
+                         adj_,              // _1 = dJ/dy
+                         child(0)->val(),   // _2 = x_i
+                         val_))};           // _3 = y
     default:
       ABORT("Unexpected reduction op-code {}", (int)opCode_);
     }
