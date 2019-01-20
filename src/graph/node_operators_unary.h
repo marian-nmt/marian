@@ -781,14 +781,14 @@ public:
   Tensor& val() override {
     auto childVal = viewedNode_->val();
     auto mem = New<MemoryPiece>(childVal->memory()->data() + byteOffset_, byteSize_);
-    val_.reset(new TensorBase(mem, shape(), childVal->getBackend()));
+    val_.reset(new TensorBase(mem, shape(), childVal->type(), childVal->getBackend()));
     return val_;
   };
 
   Tensor& grad() override {
     auto childGrad = viewedNode_->grad();
     auto mem = New<MemoryPiece>(childGrad->memory()->data() + byteOffset_, byteSize_);
-    adj_.reset(new TensorBase(mem, shape(), childGrad->getBackend()));
+    adj_.reset(new TensorBase(mem, shape(), childGrad->type(), childGrad->getBackend()));
     return adj_;
   };
 

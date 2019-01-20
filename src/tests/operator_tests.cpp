@@ -632,7 +632,6 @@ void tests(DeviceType device) {
     std::vector<float> vS3({7, -8, 9, -10, 11, -12});
 
     auto A = graph->param("4x3", {4,3}, inits::from_vector(in));
-    // @TODO: split this into index_select() and gather()
     auto B1 = index_select(A, Indices({0}), 0);
     auto B2 = index_select(A, 0, 1);
     auto B3 = index_select(A, 1, -1);
