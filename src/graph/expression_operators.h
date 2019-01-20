@@ -140,18 +140,28 @@ Expr flatten_2d(Expr a);
 Expr stopGradient(Expr a);
 
 Expr gather(Expr a, Expr indices, int axis);
+
+Expr index_select(Expr a, Expr indices, int axis);
+
+// convenience wrappers for index_select()
 Expr index_select(Expr a, const std::vector<IndexType>& indices, int axis);
-static inline Expr index_select(Expr a, int index, int axis) {
+static inline Expr index_select(Expr a, int index, int axis) { // scalar index version
   // Until Marian supports strides, use this for indexing non-memory-consecutive
   // slices, while sliceView() can be used for memory-consecutive ones.
   return index_select(a, std::vector<IndexType>({(IndexType)index}), axis);
 }
-
-Expr rows(Expr a, Expr indices);
-Expr rows(Expr a, const std::vector<IndexType>& indices);
-
-Expr cols(Expr a, Expr indices);
-Expr cols(Expr a, const std::vector<IndexType>& indices);
+static inline Expr rows(Expr a, Expr indices) {
+  return index_select(a, indices, 0);
+}
+static inline Expr rows(Expr a, const std::vector<IndexType>& indices) {
+  return index_select(a, indices, 0);
+}
+static inline Expr cols(Expr a, Expr indices) {
+  return index_select(a, indices, -1);
+}
+static inline Expr cols(Expr a, const std::vector<IndexType>& indices) {
+  return index_select(a, indices, -1);
+}
 
 Expr sliceView(Expr a, const Slice& slice, int axis);
 

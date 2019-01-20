@@ -635,7 +635,6 @@ struct TransposeNodeOp : public UnaryNodeOp {
     return {NodeOp(TransposeNDGrad(child(0)->grad(), adj_, axesBw_))};
   }
 
-  template <class... Args>
   Shape newShape(Expr a, const std::vector<int>& axes) {
     Shape shape = a->shape();
 
@@ -680,8 +679,7 @@ private:
   Expr reshapee_;
 
 public:
-  template <typename... Args>
-  ReshapeNodeOp(Expr a, Shape shape) : UnaryNodeOp(a, shape), reshapee_(a) {
+  ReshapeNodeOp(Expr a, Shape shape) : UnaryNodeOp(a, shape, a->value_type()), reshapee_(a) {
     Node::destroy_ = false;
   }
 
@@ -700,14 +698,14 @@ public:
   Tensor& val() override {
     auto childVal = reshapee_->val();
     val_.reset(
-        new TensorBase(childVal->memory(), shape(), childVal->getBackend()));
+        new TensorBase(childVal->memory(), shape(), childVal->type(), childVal->getBackend()));
     return val_;
   };
 
   Tensor& grad() override {
     auto childGrad = reshapee_->grad();
     adj_.reset(
-        new TensorBase(childGrad->memory(), shape(), childGrad->getBackend()));
+        new TensorBase(childGrad->memory(), shape(), childGrad->type(), childGrad->getBackend()));
     return adj_;
   };
 
@@ -748,7 +746,7 @@ private:
 
 public:
   SliceViewNodeOp(Expr a, Slice slice, int axis)
-      : UnaryNodeOp(a, newShape(a, slice, axis)), viewedNode_(a), slice_(slice), axis_(axis) {
+      : UnaryNodeOp(a, newShape(a, slice, axis), a->value_type()), viewedNode_(a), slice_(slice), axis_(axis) {
     Node::destroy_ = false;
     auto byteStride = a->shape().stride(axis) * sizeOf(value_type());
     byteOffset_ = slice.begin * byteStride;

@@ -634,13 +634,13 @@ void tests(DeviceType device) {
     auto A = graph->param("4x3", {4,3}, inits::from_vector(in));
     // @TODO: split this into index_select() and gather()
     auto B1 = index_select(A, Indices({0}), 0);
-    auto B2 = index_select(A, Indices({0}), 1);
-    auto B3 = index_select(A, Indices({1}), -1);
+    auto B2 = index_select(A, 0, 1);
+    auto B3 = index_select(A, 1, -1);
     auto B4 = index_select(A, Indices({0, 1}), 0);
 
     auto C = graph->param("2x3x2", {2, 3, 2}, inits::from_vector(in));
-    auto D1 = index_select(C, Indices({0}), 0);
-    auto D2 = index_select(C, Indices({2}), -2);
+    auto D1 = index_select(C, 0, 0);
+    auto D2 = index_select(C, 2, -2);
     auto D3 = index_select(C, Indices({0,2}), 1);
 
     auto S1 = step(A, 2, 0);
@@ -694,19 +694,19 @@ void tests(DeviceType device) {
     CHECK(values == vS3);
   }
 
-  SECTION("rows/cols as index_select operations") {
+  SECTION("rows/cols as gather operations") {
     graph->clear();
     values.clear();
     std::vector<float> values2;
 
     std::vector<float> vA({0, .3333, -.2, -.3, 0, 4.5, 5.2, -10, 101.45, -100.05, 0, 1.05e-5});
-    std::vector<IndexType> idx({0, 2});
+    std::vector<IndexType> indices({0, 2});
 
     auto A = graph->param("4x3", {4, 3}, inits::from_vector(vA));
-    auto B1 = rows(A, idx);
-    auto B2 = index_select(A, idx, 0);
-    auto C1 = cols(A, idx);
-    auto C2 = index_select(A, idx, 1);
+    auto B1 = rows(A, indices);
+    auto B2 = gather(A, graph->indices(indices, A, 0), 0);
+    auto C1 = cols(A, indices);
+    auto C2 = gather(A, graph->indices(indices, A, 1), 1);
     graph->forward();
 
     CHECK(B1->shape() == B2->shape());

@@ -514,7 +514,7 @@ struct ScalarProductNodeOp : public NaryNodeOp {
 struct RowsNodeOp : public NaryNodeOp {
   RowsNodeOp(Expr a, Expr indices)
       : NaryNodeOp({a, indices}, newShape(a, indices->shape().elements())) {
-      matchOrAbort<IndexType>(indices->value_type());
+    matchOrAbort<IndexType>(indices->value_type());
   }
 
   NodeOps forwardOps() override {
@@ -526,7 +526,6 @@ struct RowsNodeOp : public NaryNodeOp {
     return {NodeOp(PasteRows(child(0)->grad(), adj_, child(1)->val()))};
   }
 
-  template <class... Args>
   Shape newShape(Expr a, size_t num) {
     Shape shape = a->shape();
     ABORT_IF(shape.size() != 2,
@@ -595,6 +594,7 @@ struct GatherNodeOp : public NaryNodeOp {
 
   Shape newShape(Expr a, Expr indices, int axis) {
     Shape shape = a->shape();
+    axis = shape.axis(axis);
     auto rank = shape.size();
     ABORT_IF(rank != indices->shape().size(), "Mismatching shapes for input ({}) and indices ({})", std::string(shape), std::string(indices->shape()));
     axis = a->shape().axis(axis);
@@ -649,7 +649,6 @@ struct ColsNodeOp : public NaryNodeOp {
     return {NodeOp(PasteCols(child(0)->grad(), adj_, child(1)->val()))};
   }
 
-  template <class... Args>
   Shape newShape(Expr a, size_t num) {
     Shape shape = a->shape();
     shape.set(1, num);

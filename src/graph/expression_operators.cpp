@@ -249,35 +249,30 @@ Expr gather(Expr a, Expr indices, int axis) {
   return Expression<GatherNodeOp>(a, indices, axis);
 }
 
+Expr index_select(Expr a, Expr indices, int axis) {
+  ABORT_IF(indices->shape().size() != 1, "Indices must be a 1D tensor");
+  // We have specialized kernels for non-batched indexing of first or last axis of a 2D tensor.
+  auto rank = a->shape().size();
+  if (rank == 2) {
+    if (axis == 0)
+      return Expression<RowsNodeOp>(a, indices);
+    else if (axis == -1 || axis == 1)
+      return Expression<ColsNodeOp>(a, indices);
+  }
+  // Delegate to gather() for any other axis or non-matrix input.
+  Shape shape;
+  shape.resize(a->shape().size());
+  shape.set(axis, indices->shape()[0]);
+  indices = reshape(indices, shape); // move index to axis
+  return gather(a, indices, axis);
+}
 Expr index_select(Expr a, const std::vector<IndexType>& indices, int axis) {
-  auto indexExpr = a->graph()->indices(indices, a, axis);
-  return gather(a, indexExpr, axis);
-}
-
-Expr rows(Expr a, Expr indices) {
-    // @TODO:: replace with `index_select(a, indices, -2)`
-    // as soon as select is efficient enough
-    return Expression<RowsNodeOp>(a, indices);
-}
-
-Expr rows(Expr a, const std::vector<IndexType>& indices) {
-    auto indexExpr = a->graph()->indices(indices);
-    return rows(a, indexExpr);
-}
-
-Expr cols(Expr a, Expr indices) {
-    // @TODO:: replace with `index_select(a, indices, -1)`
-    // as soon as select is efficient enough
-    return Expression<ColsNodeOp>(a, indices);
-}
-
-Expr cols(Expr a, const std::vector<IndexType>& indices) {
-    auto indexExpr = a->graph()->indices(indices);
-    return cols(a, indexExpr);
+  auto indexExpr = a->graph()->indices(indices);
+  return index_select(a, indexExpr, axis);
 }
 
 Expr sliceView(Expr a, const Slice& slice, int axis) { // numpy __getitem__ semantics
-  // @TODO: If not memory-consecutive then fall back to index_select
+  // @TODO: If not memory-consecutive then fall back to index_select(a, slice, axis)
   return Expression<SliceViewNodeOp>(a, slice, axis);
 }
 
