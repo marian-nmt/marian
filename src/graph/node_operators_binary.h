@@ -542,7 +542,7 @@ struct RowsNodeOp : public NaryNodeOp {
 // This operation gathers elements of a tensor along an axis.
 // This is like PyTorch gather().
 // For example, this can be used for:
-//  - Same index applied to all batch items (today's select()):
+//  - Same index applied to all batch items:
 //    'index' has 1 in the axes that match batch axes in the input, and axis set to the one axis that gets selected over.
 //    Example: Selecting Transformer head 0, i.e. return a[:,1,:,:]
 //      axis = -3
@@ -557,7 +557,7 @@ struct RowsNodeOp : public NaryNodeOp {
 //      idx: (#(B*S)#, 1)        B=batch size, S=source length, idx values are in range 0..V-1
 //      out: ( (B*S) , E)        out[b, s, e] == e[/*0,*/ idx[b, s, 0], e]
 //  - Batched selection (x-ent scenario): Both 'index' and 'data' have matching batch axes.
-//    Example: Cross-entropy loss as -select(logSoftmax(logits), groundTruth, axis=-1):
+//    Example: Cross-entropy loss as -gather(logSoftmax(logits), groundTruth, axis=-1):
 //      axis = -1
 //      lp : (B, T,  V )        B=batch size, T=trg length, V=vocab size
 //      idx: (B, T, #1#)        idx values are in range 0..V-1
@@ -596,19 +596,23 @@ struct GatherNodeOp : public NaryNodeOp {
     Shape shape = a->shape();
     axis = shape.axis(axis);
     auto rank = shape.size();
-    ABORT_IF(rank != indices->shape().size(), "Mismatching shapes for input ({}) and indices ({})", std::string(shape), std::string(indices->shape()));
+    ABORT_IF(rank != indices->shape().size(), "Mismatching ranks for input ({}) and indices ({})", std::string(shape), std::string(indices->shape()));
     axis = a->shape().axis(axis);
     shape.set(axis, indices->shape()[axis]);
-#if 1 // presently, this implementation does not support batched indices
     for (size_t i = 0; i < rank; ++i) {
-      ABORT_IF(indices->shape()[i] != 1 && i != axis,
-               "Presently, select() does not implement batched indices");
-    }
+      if (i != axis) {
+        ABORT_IF(indices->shape()[i] != shape[i] && indices->shape()[i] != 1,
+            "Dimensions must match or broadcast for input ({}) and indices ({})", std::string(shape), std::string(indices->shape()));
+#if 1 // presently, this implementation does not support batched indices
+        ABORT_IF(indices->shape()[i] != 1,
+            "Presently, gather() does not implement batched indices");
 #endif
+      }
+    }
     return shape;
   }
 
-  const std::string type() override { return "select"; }
+  const std::string type() override { return "gather"; }
 
   const std::string color() override { return "orange"; }
 

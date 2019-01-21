@@ -145,32 +145,28 @@ Expr index_select(Expr a, Expr indices, int axis);
 
 // convenience wrappers for index_select()
 Expr index_select(Expr a, const std::vector<IndexType>& indices, int axis);
-static inline Expr index_select(Expr a, int index, int axis) { // scalar index version
-  // Until Marian supports strides, use this for indexing non-memory-consecutive
-  // slices, while sliceView() can be used for memory-consecutive ones.
-  return index_select(a, std::vector<IndexType>({(IndexType)index}), axis);
-}
 static inline Expr rows(Expr a, Expr indices) {
   return index_select(a, indices, 0);
 }
-static inline Expr rows(Expr a, const std::vector<IndexType>& indices) {
-  return index_select(a, indices, 0);
+static inline Expr rows(Expr a, const std::vector<IndexType>& indexVector) {
+  return index_select(a, indexVector, 0);
 }
 static inline Expr cols(Expr a, Expr indices) {
   return index_select(a, indices, -1);
 }
-static inline Expr cols(Expr a, const std::vector<IndexType>& indices) {
-  return index_select(a, indices, -1);
+static inline Expr cols(Expr a, const std::vector<IndexType>& indexVector) {
+  return index_select(a, indexVector, -1);
 }
 
-Expr sliceView(Expr a, const Slice& slice, int axis);
+Expr slice(Expr a, Slice slice, int axis);
+
+// convenience wrappers for slice()
+static inline Expr step(Expr a, int step, int axis) { // @TODO: name is too narrow
+  return slice(a, Slice(step), axis);
+}
 
 static inline Expr narrow(Expr a, size_t start, size_t length, int axis) { // PyTorch name
-  return sliceView(a, Slice((int)start, (int)(start + length)), axis);
-}
-
-static inline Expr step(Expr a, int step, int axis) {
-  return sliceView(a, Slice(step), axis);
+  return slice(a, Slice((int)start, (int)(start + length)), axis);
 }
 
 /*********************************************************/
