@@ -199,28 +199,39 @@ namespace marian {
         return affine(input, cachedShortW_, cachedShortb_, false, transposeW_);
       }
       else if (embeddingFactorMapping_) {
+        auto graph = input->graph();
         auto y = affine(input, W_, b_, false, transposeW_); // [B... x U]
 
-        auto graph = input->graph();
+        // denominators (only for groups that don't normalize out naturally by the final softmax())
+        const auto& groupRanges = embeddingFactorMapping_->groupRanges_; // @TODO: factor this properly
+        auto numGroups = groupRanges.size();
+        for (size_t g = 0; g < numGroups; g++) {
+          if (!embeddingFactorMapping_->groupNeedsNormalization_[g]) // @TODO: if we ever need it, we can combine multiple
+              continue;
+          auto range = groupRanges[g];
+          // need to compute log denominator over y[range] and subtract it from y[range]
+          auto groupY = slice(y, Slice((int)range.first, (int)range.second), /*axis=*/-1); // [B... x Ug]
+          auto groupZ = logsumexp(groupY, /*axis=*/-1); // [B... x 1]
+          // y: [B... x U]
+          // m: [1 x U]         // ones at positions of group members
+          auto yDim = y->shape()[-1];
+          std::vector<float> mVec(yDim, 0.0f);
+          for (size_t i = range.first; i < range.second; i++)
+            mVec[i] = 1.0f;
+          auto m = graph->constant({1, yDim}, inits::from_vector(mVec));
+          auto Z = dot(groupZ, m);
+          y = y - Z;
+        }
+
+        // sum up the unit logits across factors for each target word
         auto factorMatrix = embeddingFactorMapping_->getFactorMatrix(); // [V x U]
-        y = dot_csr( // the CSR matrix is passed in pieces
+        y = dot_csr(
             y,  // [B x U]
             factorMatrix.shape,
             graph->constant({(int)factorMatrix.weights.size()}, inits::from_vector(factorMatrix.weights), Type::float32),
             graph->constant({(int)factorMatrix.indices.size()}, inits::from_vector(factorMatrix.indices), Type::uint32),
             graph->constant({(int)factorMatrix.offsets.size()}, inits::from_vector(factorMatrix.offsets), Type::uint32),
             /*transB=*/ true); // -> [B x V]
-
-        // apply normalization factors
-        const auto& groupRanges = embeddingFactorMapping_->groupRanges_; // @TODO: factor this properly
-        auto numGroups = groupRanges.size();
-        for (size_t g = 0; g < numGroups; g++) {
-          if (!embeddingFactorMapping_->groupNeedsNormalization_[g])
-              continue;
-          auto range = groupRanges[g];
-          // need to compute log denominator over y[range] and subtract it from y[range]
-          auto groupLogits = narrow(y, range.first, range.second, /*axis=*/-1);
-        }
 
         return y;
       }
