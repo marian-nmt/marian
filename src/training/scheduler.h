@@ -15,7 +15,6 @@ private:
   std::vector<Ptr<ValidatorBase>> validators_;
 
   bool first_{true};
-  int dispIndex_{-1};
 
   timer::Timer timer_, heartBeatTimer_;
 
@@ -68,9 +67,9 @@ private:
     state.updateEta(baselr);
   }
 
-  std::string formatLoss(std::string lossType, 
-                         bool dispLabelCounts, 
-                         size_t batchLabels, 
+  std::string formatLoss(std::string lossType,
+                         bool dispLabelCounts,
+                         size_t batchLabels,
                          Ptr<TrainingState> state) {
     std::stringstream ss;
     ss << "Cost ";
@@ -139,8 +138,7 @@ public:
   }
 
   Scheduler(Ptr<Options> options, Ptr<TrainingState> state)
-      : options_(options), state_(state), 
-        dispIndex_{options_->get<int>("disp-label-index", -1)} {
+      : options_(options), state_(state) {
     ABORT_IF(state_->factor != 1, "state.factor unexpectedly not 1 at this point??");
     updateLearningRate(*state);
   }
@@ -258,10 +256,9 @@ public:
   }
 
   // @TODO: go back to function which takes batch as an argument? The current arguments make it hard to choose
-  // which subbatch should be used for speed display. For sequence-classifiers it's more interesting to see the 
-  // source-words consumed rather than the labels. We have a CLI option '--disp-label-index' (bad name?) which is 
-  // now defunct.
-  void update(StaticLoss rationalLoss, 
+  // which subbatch should be used for speed display. For sequence-classifiers it's more interesting to see the
+  // source-words consumed rather than the labels.
+  void update(StaticLoss rationalLoss,
               size_t numReadBatches, // number of batches read by the reader (for seeking in case of restart)
               size_t batchSize,      // total number of sentences in batch
               size_t batchLabels,    // total number of target words in batch
