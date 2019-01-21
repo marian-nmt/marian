@@ -37,6 +37,7 @@ Expr LossBase::getCrossEntropy(Expr logits,
 #else   // alternative that is cheaper memory-wise
     ce = cross_entropy(logits, indices);
     auto ceq = mean(logits, /*axis=*/ -1) - logsumexp(logits, /*axis=*/ -1);
+    ce = (1 - smoothing_) * ce - smoothing_ * ceq;
     //auto ceq = mean(logits, /*axis=*/ -1) - Z;
     //ce = (1 - smoothing_) * cols(logits, indices)   // ce term
     //     - smoothing_ * mean(logits, /*axis=*/ -1)  // smoothing term
@@ -44,7 +45,7 @@ Expr LossBase::getCrossEntropy(Expr logits,
 #endif
   }
   else
-      ce = cross_entropy(logits, indices);
+    ce = cross_entropy(logits, indices);
 
   if(mask)
     ce = ce * mask;

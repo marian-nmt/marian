@@ -101,10 +101,20 @@ namespace marian {
             groupRanges_[g].second = u + 1;
         groupCounts[g]++;
       }
+      // determine if a factor needs explicit softmax normalization
+      groupNeedsNormalization_.resize(numGroups, false);
       for (size_t g = 0; g < numGroups; g++) { // detect non-overlapping groups
-        //ABORT_IF(groupRanges_[g].second - groupRanges_[g].first != groupCounts[g], "Factor group '{}' members are not consecutive in the factor vocabulary", groupPrefixes[g]);
         LOG(info, "[embedding] Factor group '{}' has {} members ({})",
             groupPrefixes[g], groupCounts[g], groupCounts[g] == 1 ? "sigmoid" : "softmax");
+        // any factor that is not referenced in all words and is not a sigmoid needs normalization
+        if (g == 0) // @TODO: For now we assume that the main factor is used in all words. Test this.
+          continue;
+        if (groupCounts[g] == 1) // sigmoid factors have no normalizer
+          continue;
+        groupNeedsNormalization_[g] = true; // needed
+        ABORT_IF(groupRanges_[g].second - groupRanges_[g].first != groupCounts[g],
+                 "Factor group '{}' members should be consecutive in the factor vocabulary", groupPrefixes[g]);
+        LOG(info, "[embedding] Factor group '{}' needs needs explicit normalization ({}..{})", groupPrefixes[g], groupRanges_[g].first, groupRanges_[g].second-1);
       }
 
       // create the factor matrix
@@ -143,7 +153,9 @@ namespace marian {
     std::vector<int> factorRefCounts_;                   // [factor index] -> how often this factor is referenced in factorMap_
     CSRData factorMatrix_;                               // [v,u] (sparse) -> =1 if u is factor of v
     std::vector<size_t> factorGroups_;                   // [u] -> group id of factor u
+  public: // @TODO: temporarily; later factor this properly
     std::vector<std::pair<size_t, size_t>> groupRanges_; // [group id] -> (u_begin,u_end) index range of factors u for this group. These don't overlap.
+    std::vector<bool> groupNeedsNormalization_;          // [group id] -> true if explicit softmax normalization is necessary
   };
 
   namespace mlp {
@@ -186,23 +198,34 @@ namespace marian {
         }
         return affine(input, cachedShortW_, cachedShortb_, false, transposeW_);
       }
-      else {
-        auto y = affine(input, W_, b_, false, transposeW_);
+      else if (embeddingFactorMapping_) {
+        auto y = affine(input, W_, b_, false, transposeW_); // [B... x U]
 
-        if (embeddingFactorMapping_) { // note: presently mutually incompatible with shortlist_
-          auto graph = input->graph();
-          auto factorMatrix = embeddingFactorMapping_->getFactorMatrix(); // [V x U]
-          y = dot_csr( // the CSR matrix is passed in pieces
-              y,  // [B x U]
-              factorMatrix.shape,
-              graph->constant({(int)factorMatrix.weights.size()}, inits::from_vector(factorMatrix.weights), Type::float32),
-              graph->constant({(int)factorMatrix.indices.size()}, inits::from_vector(factorMatrix.indices), Type::uint32),
-              graph->constant({(int)factorMatrix.offsets.size()}, inits::from_vector(factorMatrix.offsets), Type::uint32),
-              /*transB=*/ true); // -> [B x V]
+        auto graph = input->graph();
+        auto factorMatrix = embeddingFactorMapping_->getFactorMatrix(); // [V x U]
+        y = dot_csr( // the CSR matrix is passed in pieces
+            y,  // [B x U]
+            factorMatrix.shape,
+            graph->constant({(int)factorMatrix.weights.size()}, inits::from_vector(factorMatrix.weights), Type::float32),
+            graph->constant({(int)factorMatrix.indices.size()}, inits::from_vector(factorMatrix.indices), Type::uint32),
+            graph->constant({(int)factorMatrix.offsets.size()}, inits::from_vector(factorMatrix.offsets), Type::uint32),
+            /*transB=*/ true); // -> [B x V]
+
+        // apply normalization factors
+        const auto& groupRanges = embeddingFactorMapping_->groupRanges_; // @TODO: factor this properly
+        auto numGroups = groupRanges.size();
+        for (size_t g = 0; g < numGroups; g++) {
+          if (!embeddingFactorMapping_->groupNeedsNormalization_[g])
+              continue;
+          auto range = groupRanges[g];
+          // need to compute log denominator over y[range] and subtract it from y[range]
+          auto groupLogits = narrow(y, range.first, range.second, /*axis=*/-1);
         }
 
         return y;
       }
+      else
+        return affine(input, W_, b_, false, transposeW_);
     }
   }
 
