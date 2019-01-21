@@ -234,11 +234,13 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
         ("usage", use)                           //
         .push_back(models::encoder()             //
                     ("type", "bert-encoder")     // close to original transformer encoder
-                    ("index", 0))                // 
+                    ("index", 0))                //
         .push_back(models::classifier()          //
+                    ("prefix", "masked-lm")      // prefix for parameter names
                     ("type", "bert-masked-lm")   //
                     ("index", 0))                // multi-task learning with MaskedLM
         .push_back(models::classifier()          //
+                    ("prefix", "next-sentence")  // prefix for parameter names
                     ("type", "bert-classifier")  //
                     ("index", 1))                // next sentence prediction
         .construct(graph);
@@ -246,7 +248,7 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
 
   if(type == "bert-classifier") {                // for BERT fine-tuning on non-BERT classification task
     return models::encoder_classifier()(options) //
-        ("original-type", "bert-classifier")     // so we can query this
+        ("original-type", "bert-classifier")     // so we can query this if needed
         ("usage", use)                           //
         .push_back(models::encoder()             //
                     ("type", "bert-encoder")     //

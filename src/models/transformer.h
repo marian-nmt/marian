@@ -47,18 +47,18 @@ public:
 
   static Expr transposeTimeBatch(Expr input) { return transpose(input, {0, 2, 1, 3}); }
 
-  Expr addPositionalEmbeddings(Expr input, int start = 0, bool learnedPosEmbeddings = false) const {
+  Expr addPositionalEmbeddings(Expr input, int start = 0, bool trainPosEmbeddings = false) const {
     int dimEmb   = input->shape()[-1];
     int dimWords = input->shape()[-3];
 
     Expr embeddings = input;
 
-    if(learnedPosEmbeddings) {
+    if(trainPosEmbeddings) {
       int maxLength = opt<int>("max-length");
 
       // Hack for translating with length longer than trained embeddings
       // We check if the embedding matrix "Wpos" already exist so we can
-      // check the number of positions in that loaded parameter. 
+      // check the number of positions in that loaded parameter.
       // We then have to restict the maximum length to the maximum positon
       // and positions beyond this will be the maximum position.
       Expr seenEmb = graph_->get("Wpos");
@@ -75,14 +75,15 @@ public:
       for(int i = 0; i < std::min(dimWords, numPos); ++i)
         positions[i] = i;
 
-      // @TODO : test if embeddings should be scaled here too!
       auto signal = embeddingLayer->apply(positions, {dimWords, 1, dimEmb});
       embeddings = embeddings + signal;
     } else {
-      auto signal = graph_->constant({dimWords, 1, dimEmb},
-                                     inits::sinusoidalPositionEmbeddings(start));
+      // @TODO : test if embeddings should be scaled when trainable
       // according to paper embeddings are scaled up by \sqrt(d_m)
       embeddings = std::sqrt((float)dimEmb) * embeddings;
+
+      auto signal = graph_->constant({dimWords, 1, dimEmb},
+                                     inits::sinusoidalPositionEmbeddings(start));
       embeddings = embeddings + signal;
     }
 

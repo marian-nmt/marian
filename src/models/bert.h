@@ -191,7 +191,7 @@ public:
                                        opt<std::string>("bert-sep-symbol"),
                                        opt<std::string>("bert-class-symbol"));
     } else if(modelType == "bert-classifier") { // we are probably fine-tuning a BERT model for a classification task
-      bertBatch = New<data::BertBatch>(batch, 
+      bertBatch = New<data::BertBatch>(batch,
                                        opt<std::string>("bert-sep-symbol"),
                                        opt<std::string>("bert-class-symbol")); // only annotate sentence separators
     } else {
@@ -219,7 +219,7 @@ public:
   Expr addSentenceEmbeddings(Expr embeddings,
                              Ptr<data::CorpusBatch> batch,
                              bool learnedPosEmbeddings) const {
-    
+
     Ptr<data::BertBatch> bertBatch = std::dynamic_pointer_cast<data::BertBatch>(batch);
     ABORT_IF(!bertBatch, "Batch must be BertBatch for BERT training or fine-tuning");
 
@@ -274,18 +274,14 @@ public:
     int dimModel = classEmbeddings->shape()[-1];
     int dimTrgCls = opt<std::vector<int>>("dim-vocabs")[batchIndex_]; // Target vocab is used as class labels
 
-    std::string finetune = "";
-    if(opt<std::string>("original-type") == "bert-classifier") // seems we are fine-tuning
-      finetune = "_finetune"; // change name so we do not relead BERT output layers for fine-tuning
-
     auto output = mlp::mlp()                                          //
                     .push_back(mlp::dense()                           //
-                                 ("prefix", prefix_ + finetune + "_ff_logit_l1") //
+                                 ("prefix", prefix_ + "_ff_logit_l1") //
                                  ("dim", dimModel)                    //
                                  ("activation", mlp::act::tanh))      // @TODO: do we actually need this?
                     .push_back(mlp::output()                          //
                                  ("dim", dimTrgCls))                  //
-                                 ("prefix", prefix_ + finetune + "_ff_logit_l2") //
+                                 ("prefix", prefix_ + "_ff_logit_l2") //
                     .construct(graph);
 
     auto logits = output->apply(classEmbeddings); // class logits for each batch entry
@@ -332,11 +328,11 @@ public:
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
     auto layerTanh = mlp::dense()                         //
-        ("prefix", prefix_ + "_ff_logit_maskedlm_out_l1") //
+        ("prefix", prefix_ + "_ff_logit_l1") //
         ("dim", dimModel)                                 //
         ("activation", mlp::act::tanh);                   // @TODO: again, check if this layer is present in original code
     auto layerOut = mlp::output()                         //
-        ("prefix", prefix_ + "_ff_logit_maskedlm_out_l2") //
+        ("prefix", prefix_ + "_ff_logit_l2") //
         ("dim", dimVoc);                  //
     layerOut.tieTransposed("Wemb"); // We are a BERT model, hence tie with input, @TODO: check if this is actually what Google does
 
