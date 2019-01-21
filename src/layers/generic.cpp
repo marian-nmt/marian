@@ -33,12 +33,6 @@ namespace marian {
     //  - all factors not matching a prefix get lumped into yet another class (the lemmas)
     //  - factor vocab must be sorted such that all groups are consecutive
     //  - result of Output layer is nevertheless logits, not a normalized probability, due to the sigmoid entries
-    // Factor normalization
-    //  - f = h * E' + b                    // hidden state projected onto all factors
-    //  - f: [B x U]                        // U = number of factor units
-    //  - normalization terms Z: [B x G]    // G = number of groups
-    //  - factor group matrix F: [U x G]    // [u,g] 1 if factor u is in group g (one-hot); computed once
-    //  - z = f - Z * F' = affine(Z, F, f, transB=true, alpha=-1)   // This does it with only one extra copy
     EmbeddingFactorMapping(Ptr<Options> options) : factorVocab_(New<Options>(), 0) {
       std::vector<std::string> paths = options->get<std::vector<std::string>>("embedding-factors");
       ABORT_IF(paths.size() != 2, "--embedding-factors expects two paths");
@@ -200,7 +194,7 @@ namespace marian {
       }
       else if (embeddingFactorMapping_) {
         auto graph = input->graph();
-        auto y = affine(input, W_, b_, false, transposeW_); // [B... x U]
+        auto y = affine(input, W_, b_, false, transposeW_); // [B... x U] factor logits
 
         // denominators (only for groups that don't normalize out naturally by the final softmax())
         const auto& groupRanges = embeddingFactorMapping_->groupRanges_; // @TODO: factor this properly
@@ -209,17 +203,17 @@ namespace marian {
           if (!embeddingFactorMapping_->groupNeedsNormalization_[g]) // @TODO: if we ever need it, we can combine multiple
               continue;
           auto range = groupRanges[g];
-          // need to compute log denominator over y[range] and subtract it from y[range]
-          auto groupY = slice(y, Slice((int)range.first, (int)range.second), /*axis=*/-1); // [B... x Ug]
-          auto groupZ = logsumexp(groupY, /*axis=*/-1); // [B... x 1]
           // y: [B... x U]
           // m: [1 x U]         // ones at positions of group members
           auto yDim = y->shape()[-1];
-          std::vector<float> mVec(yDim, 0.0f);
+          std::vector<float> mVec(yDim, 0.0f); // @TODO: This vector should be produced by embeddingFactorMapping_
           for (size_t i = range.first; i < range.second; i++)
             mVec[i] = 1.0f;
-          auto m = graph->constant({1, yDim}, inits::from_vector(mVec));
-          auto Z = dot(groupZ, m);
+          // need to compute log denominator over y[range] and subtract it from y[range]
+          auto groupY = slice(y, Slice((int)range.first, (int)range.second), /*axis=*/-1); // [B... x Ug]
+          auto groupZ = logsumexp(groupY, /*axis=*/-1); // [B... x 1]
+          auto m = graph->constant({ 1, (int)mVec.size() }, inits::from_vector(mVec)); // [1 x U]
+          auto Z = dot(groupZ, m); // [B... x U]
           y = y - Z;
         }
 
