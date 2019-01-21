@@ -55,7 +55,6 @@ void Adagrad::load(const std::string& name,
 
   std::vector<float> vGt;
 
-  // @TODO: use new IO
   auto items = io::loadItems(name);
   for(auto item : items) {
     // get the size of gt_
@@ -64,8 +63,7 @@ void Adagrad::load(const std::string& name,
     // extract data into vectors
     if(item.name == "adagrad_gt") {
       vGt.resize(totalSize);
-      std::copy(
-          (float*)item.data(), ((float*)item.data()) + totalSize, vGt.begin());
+      std::copy((float*)item.data(), ((float*)item.data()) + totalSize, vGt.begin());
     }
   }
   if(vGt.empty()) {
@@ -79,7 +77,7 @@ void Adagrad::load(const std::string& name,
     if(!opt->gt_) {
       if(!opt->alloc_)
         opt->alloc_ = New<TensorAllocator>(backends[localDeviceIndex]);
-      auto size = end-begin;
+      auto size = end - begin;
       opt->alloc_->reserveExact(sizeof(float) * size);
       opt->alloc_->allocate(opt->gt_, {1, (int)size});
     }
@@ -111,8 +109,7 @@ void Adagrad::save(const std::string& name,
   item.shape = Shape({1, (int)vGt.size()});
   item.type = Type::float32;
   item.bytes.resize(vGt.size() * sizeOf(item.type));
-  std::copy(
-      (char*)vGt.data(), (char*)(vGt.data() + vGt.size()), item.bytes.begin());
+  std::copy((char*)vGt.data(), (char*)(vGt.data() + vGt.size()), item.bytes.begin());
 
   io::saveItems(name, {item});
 }
