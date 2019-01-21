@@ -613,84 +613,84 @@ void tests(DeviceType device) {
     CHECK( values == values2 );
   }
 
-  SECTION("select, step, sliceView operators") {
-    using Indices = std::vector<IndexType>;
+  SECTION("select, step, slice operators") {
+    using IndexVector = std::vector<IndexType>;
 
     graph->clear();
     values.clear();
 
-    std::vector<float> in({1, -2, 3, -4, 5, -6, 7, -8, 9, -10, 11, -12});
+    std::vector<float> vA({  1, -2,   3,
+                            -4,  5,  -6,
+                             7, -8,   9,
+                           -10, 11, -12});
+    std::vector<float> vC({ 1,  -2, // C = np.array([1, -2, 3, -4, 5, -6, 7, -8, 9, -10, 11, -12]).reshape((2, 3, 2))
+                            3,  -4,
+                            5,  -6,
+
+                            7,  -8,
+                            9, -10,
+                           11, -12 });
     std::vector<float> vB1({1, -2, 3});
     std::vector<float> vB2({1, -4, 7, -10});
     std::vector<float> vB3({-2, 5, -8, 11});
     std::vector<float> vB4({1, -2, 3, -4, 5, -6});
     std::vector<float> vD1(vB4);
     std::vector<float> vD2({5, -6, 11, -12});
-    std::vector<float> vD3({1, -2, 5, -6, 7, -8, 11, -12});
+    std::vector<float> vD3({1, -2, 5, -6, 7, -8, 11, -12}); // C[:,(0,2),:]
+    //std::vector<float> vD4({5, -6, 3, -4, 7, -8, 11, -12}); // [C[0,(2,1),:],C[1,(0,2),:]]
     std::vector<float> vS1({7, -8, 9});
     std::vector<float> vS2({-4, 5, -6, 7, -8, 9});
     std::vector<float> vS3({7, -8, 9, -10, 11, -12});
 
-    auto A = graph->param("4x3", {4,3}, inits::from_vector(in));
-    auto B1 = index_select(A, Indices({0}), 0);
-    auto B2 = index_select(A, 0, 1);
-    auto B3 = index_select(A, 1, -1);
-    auto B4 = index_select(A, Indices({0, 1}), 0);
+    auto A = graph->param("4x3", {4,3}, inits::from_vector(vA));
+    auto B1a = index_select(A, IndexVector({0}), 0); // always uses gather()
+    auto B1b = step(A, 0, 0);                        // memory-consecutive view
+    auto B2  = step(A, 0, 1);                        // not memory-consecutive
+    auto B3  = step(A, 1, -1);
+    auto B4a = index_select(A, IndexVector({0, 1}), 0);
+    auto B4b = slice(A, Slice(0, 2), 0); // this is memory-consecutive
+    auto B5  = slice(A, Slice(0, 4), 0); // this is a no-op
+    CHECK(B1a->type() == "rows");      // actually optimized to rows()
+    CHECK(B1b->type() == "sliceView"); // must use view
+    CHECK(B2->type() == "gather");     // cannot use view
+    CHECK(B4a->type() == "rows");
+    CHECK(B4b->type() == "sliceView"); // must use view
+    CHECK(B5.get() == A.get());        // must be no-op
 
-    auto C = graph->param("2x3x2", {2, 3, 2}, inits::from_vector(in));
-    auto D1 = index_select(C, 0, 0);
-    auto D2 = index_select(C, 2, -2);
-    auto D3 = index_select(C, Indices({0,2}), 1);
+    auto C = graph->param("2x3x2", {2, 3, 2}, inits::from_vector(vC));
+    auto D1 = step(C, 0, 0);
+    auto D2 = step(C, 2, -2);
+    auto D3 = index_select(C, IndexVector({0, 2}), 1); // C[:,(0,2),:]
+    CHECK(D1->type() == "sliceView");
+    CHECK(D2->type() == "gather");
+    // enable this once gather() supports batched indices:
+    //auto D4 = gather(C, graph->constant({2, 2, 1}, // [C[0,(2,1),:],C[1,(0,2),:]]
+    //                                    inits::from_vector(std::vector<IndexType>{
+    //                                      2, 1,
+    //                                      0, 2 }),
+    //                                    Type::uint32), 1);
 
     auto S1 = step(A, 2, 0);
     auto S2 = narrow(A, 1, 2, 0);
-    auto S3 = sliceView(A, Slice(-2, Slice::END), 0);
+    auto S3 = slice(A, Slice(-2, Slice::END), 0);
 
     graph->forward();
 
-    CHECK(B1->shape() == Shape({1, 3}));
-    B1->val()->get(values);
-    CHECK( values == vB1 );
+    CHECK(B1a->shape() == Shape({1, 3})); B1a->val()->get(values); CHECK( values == vB1 );
+    CHECK(B1b->shape() == Shape({1, 3})); B1b->val()->get(values); CHECK( values == vB1 );
+    CHECK(B2->shape() == Shape({4, 1})); B2->val()->get(values); CHECK( values == vB2 );
+    CHECK(B3->shape() == Shape({4, 1})); B3->val()->get(values); CHECK( values == vB3 );
+    CHECK(B4a->shape() == Shape({2, 3})); B4a->val()->get(values); CHECK( values == vB4 );
+    CHECK(B4b->shape() == Shape({2, 3})); B4b->val()->get(values); CHECK( values == vB4 );
 
-    CHECK(B2->shape() == Shape({4, 1}));
-    B2->val()->get(values);
-    CHECK( values == vB2 );
+    CHECK(D1->shape() == Shape({1, 3, 2})); D1->val()->get(values); CHECK( values == vD1 );
+    CHECK(D2->shape() == Shape({2, 1, 2})); D2->val()->get(values); CHECK( values == vD2 );
+    CHECK(D3->shape() == Shape({2, 2, 2})); D3->val()->get(values); CHECK( values == vD3 );
+    //CHECK(D4->shape() == Shape({2, 2, 2})); D4->val()->get(values); CHECK( values == vD4 );
 
-    CHECK(B3->shape() == Shape({4, 1}));
-    B3->val()->get(values);
-    CHECK( values == vB3 );
-
-    CHECK(B4->shape() == Shape({2, 3}));
-    B4->val()->get(values);
-    CHECK( values == vB4 );
-
-    values.clear();
-
-    CHECK(D1->shape() == Shape({1, 3, 2}));
-    D1->val()->get(values);
-    CHECK( values == vD1 );
-
-    CHECK(D2->shape() == Shape({2, 1, 2}));
-    D2->val()->get(values);
-    CHECK( values == vD2 );
-
-    CHECK(D3->shape() == Shape({2, 2, 2}));
-    D3->val()->get(values);
-    CHECK( values == vD3 );
-
-    values.clear();
-
-    CHECK(S1->shape() == Shape({1,3}));
-    S1->val()->get(values);
-    CHECK(values == vS1);
-
-    CHECK(S2->shape() == Shape({2,3}));
-    S2->val()->get(values);
-    CHECK(values == vS2);
-
-    CHECK(S3->shape() == Shape({2,3}));
-    S3->val()->get(values);
-    CHECK(values == vS3);
+    CHECK(S1->shape() == Shape({1,3})); S1->val()->get(values); CHECK(values == vS1);
+    CHECK(S2->shape() == Shape({2,3})); S2->val()->get(values); CHECK(values == vS2);
+    CHECK(S3->shape() == Shape({2,3})); S3->val()->get(values); CHECK(values == vS3);
   }
 
   SECTION("rows/cols as gather operations") {

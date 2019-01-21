@@ -245,10 +245,12 @@ Expr constant_like(Expr a, const NodeInitializer& init) {
   return graph->constant(shape, init);
 }
 
+// gather() -- gather arbitrary elements along an axis; batched or non-batched
 Expr gather(Expr a, Expr indices, int axis) {
   return Expression<GatherNodeOp>(a, indices, axis);
 }
 
+// index_select() -- gather arbitrary elements along an axis; unbatched (indices are specified as a 1D vector)
 Expr index_select(Expr a, Expr indices, int axis) {
   ABORT_IF(indices->shape().size() != 1, "Indices must be a 1D tensor");
   // We have specialized kernels for non-batched indexing of first or last axis of a 2D tensor.
@@ -271,9 +273,36 @@ Expr index_select(Expr a, const std::vector<IndexType>& indices, int axis) {
   return index_select(a, indexExpr, axis);
 }
 
-Expr sliceView(Expr a, const Slice& slice, int axis) { // numpy __getitem__ semantics
-  // @TODO: If not memory-consecutive then fall back to index_select(a, slice, axis)
+static Expr sliceCopy(Expr a, const Slice& slice, int axis) { // copy a Slice via gather()
+  ABORT_IF(slice.stride < 0, "Negative strides are not supported yet");
+  ABORT_IF(slice.begin == slice.end, "Empty slices are not allowed"); // @TODO: Or are they?
+  std::vector<IndexType> indices;
+  indices.reserve((slice.end - slice.begin - 1) / slice.stride + 1);
+  for (int i = slice.begin; i < slice.end; i += slice.stride)
+    indices.push_back((IndexType)i);
+  return gather(a, a->graph()->indices(indices, a, axis), axis);
+}
+
+static Expr sliceView(Expr a, const Slice& slice, int axis) { // view a slice (must be memory-consecutive)
   return Expression<SliceViewNodeOp>(a, slice, axis);
+}
+
+// slice() -- gather a slice along an axis (step size > 1 allowed)
+Expr slice(Expr a, Slice slice, int axis) { // numpy __getslice__ semantics, but with axis parameter
+  const auto& shape = a->shape();
+  axis  = shape.axis(axis);         // normalize negative axis
+  slice = shape.slice(slice, axis); // normalize negative slice values
+  if (slice.begin == 0 && slice.end == shape[axis] && slice.stride == 1)
+    return a; // it's a no-op
+#if 1 // until strided views are supported, non-consecutive slices are implemented via gather()
+  if (slice.stride != 1)
+    return sliceCopy(a, slice, axis);
+  for (int i = 0; i < axis; ++i) {
+    if (shape[i] != 1)  // this makes it non-consecutive
+      return sliceCopy(a, slice, axis);
+  }
+#endif
+  return sliceView(a, slice, axis);
 }
 
 Expr sum(Expr a, int ax) {

@@ -194,7 +194,7 @@ public:
     // @TODO: make splitting obsolete
     alignments_.clear();
     for(int i = 0; i < trgWords; ++i) {
-      alignments_.push_back(index_select(head0, i, -1)); // [tgt index][-4: beam depth, -3: max src length, -2: batch size, -1: 1]
+      alignments_.push_back(marian::step(head0, i, -1)); // [tgt index][-4: beam depth, -3: max src length, -2: batch size, -1: 1]
     }
   }
 
