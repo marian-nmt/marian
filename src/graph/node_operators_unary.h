@@ -635,7 +635,6 @@ struct TransposeNodeOp : public UnaryNodeOp {
     return {NodeOp(TransposeNDGrad(child(0)->grad(), adj_, axesBw_))};
   }
 
-  template <class... Args>
   Shape newShape(Expr a, const std::vector<int>& axes) {
     Shape shape = a->shape();
 
@@ -680,8 +679,7 @@ private:
   Expr reshapee_;
 
 public:
-  template <typename... Args>
-  ReshapeNodeOp(Expr a, Shape shape) : UnaryNodeOp(a, shape), reshapee_(a) {
+  ReshapeNodeOp(Expr a, Shape shape) : UnaryNodeOp(a, shape, a->value_type()), reshapee_(a) {
     Node::destroy_ = false;
   }
 
@@ -700,14 +698,14 @@ public:
   Tensor& val() override {
     auto childVal = reshapee_->val();
     val_.reset(
-        new TensorBase(childVal->memory(), shape(), childVal->getBackend()));
+        new TensorBase(childVal->memory(), shape(), childVal->type(), childVal->getBackend()));
     return val_;
   };
 
   Tensor& grad() override {
     auto childGrad = reshapee_->grad();
     adj_.reset(
-        new TensorBase(childGrad->memory(), shape(), childGrad->getBackend()));
+        new TensorBase(childGrad->memory(), shape(), childGrad->type(), childGrad->getBackend()));
     return adj_;
   };
 
@@ -747,15 +745,15 @@ private:
   size_t byteOffset_, byteSize_; // viewed segment in bytes (memory-consecutive)
 
 public:
-  SliceViewNodeOp(Expr a, Slice slice, int axis)
-      : UnaryNodeOp(a, newShape(a, slice, axis)), viewedNode_(a), slice_(slice), axis_(axis) {
+  SliceViewNodeOp(Expr a, int axis, Slice slice)
+      : UnaryNodeOp(a, newShape(a, axis, slice), a->value_type()), viewedNode_(a), slice_(slice), axis_(axis) {
     Node::destroy_ = false;
     auto byteStride = a->shape().stride(axis) * sizeOf(value_type());
     byteOffset_ = slice.begin * byteStride;
     byteSize_ = shape()[axis] * byteStride;
   }
 
-  static Shape newShape(Expr a, Slice& slice, int& axis) { // note: normalizes slice and axis in-place
+  static Shape newShape(Expr a, int& axis, Slice& slice) { // note: normalizes slice and axis in-place
     const auto& shape = a->shape();
     axis  = shape.axis(axis);         // normalize negative axis
     slice = shape.slice(slice, axis); // normalize negative slice values
@@ -783,14 +781,14 @@ public:
   Tensor& val() override {
     auto childVal = viewedNode_->val();
     auto mem = New<MemoryPiece>(childVal->memory()->data() + byteOffset_, byteSize_);
-    val_.reset(new TensorBase(mem, shape(), childVal->getBackend()));
+    val_.reset(new TensorBase(mem, shape(), childVal->type(), childVal->getBackend()));
     return val_;
   };
 
   Tensor& grad() override {
     auto childGrad = viewedNode_->grad();
     auto mem = New<MemoryPiece>(childGrad->memory()->data() + byteOffset_, byteSize_);
-    adj_.reset(new TensorBase(mem, shape(), childGrad->getBackend()));
+    adj_.reset(new TensorBase(mem, shape(), childGrad->type(), childGrad->getBackend()));
     return adj_;
   };
 

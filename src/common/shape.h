@@ -17,7 +17,7 @@ struct Slice // Python-like slice/index descriptor
   Slice(int b, int e, int s) : begin(b), end(e), stride(s) {}
   Slice(int b, int e) : Slice(b, e, 1) {}
   Slice() : Slice(0, END) {}
-  Slice(int i) : Slice(i, i + 1) {}
+  explicit Slice(int i) : Slice(i, i + 1) {}
   Slice(const Slice& other) : Slice(other.begin, other.end, other.stride) {}
   const Slice& operator=(const Slice& other) { begin = other.begin; end = other.end; stride = other.stride; return *this; }
   const Slice& operator=(int i) { begin = i; end = i + 1; stride = 1; return *this; }

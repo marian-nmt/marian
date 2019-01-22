@@ -139,14 +139,36 @@ Expr flatten_2d(Expr a);
 
 Expr stopGradient(Expr a);
 
-Expr rows(Expr a, Expr indices);
-Expr rows(Expr a, const std::vector<IndexType>& indices);
+Expr gather(Expr a, int axis, Expr indices);
 
-Expr cols(Expr a, Expr indices);
-Expr cols(Expr a, const std::vector<IndexType>& indices);
+// Warning: Don't try to pass a scalar literal 0 as indices; it will compile but pass nullptr...
+Expr index_select(Expr a, int axis, Expr indices);
 
-Expr select(Expr a, Expr indices, int axis);
-Expr select(Expr a, const std::vector<IndexType>& indices, int axis);
+// convenience wrappers for index_select()
+Expr index_select(Expr a, int axis, const std::vector<IndexType>& indices);
+static inline Expr rows(Expr a, Expr indices) {
+  return index_select(a, 0, indices);
+}
+static inline Expr rows(Expr a, const std::vector<IndexType>& indexVector) {
+  return index_select(a, 0, indexVector);
+}
+static inline Expr cols(Expr a, Expr indices) {
+  return index_select(a, -1, indices);
+}
+static inline Expr cols(Expr a, const std::vector<IndexType>& indexVector) {
+  return index_select(a, -1, indexVector);
+}
+
+Expr slice(Expr a, int axis, Slice slice);
+
+// convenience wrappers for slice()
+static inline Expr slice(Expr a, int axis, int index) { // single index  @NOTE: This was formerlly called step()
+  return slice(a, axis, Slice(index));
+}
+
+static inline Expr narrow(Expr a, int axis, size_t start, size_t length) { // PyTorch name
+  return slice(a, axis, Slice((int)start, (int)(start + length)));
+}
 
 /*********************************************************/
 
@@ -167,14 +189,6 @@ Expr cross_entropy(Expr a, Expr b);
 Expr scalar_product(Expr a, Expr b, int ax = 0);
 
 Expr weighted_average(Expr in, Expr weights, int ax = 0);
-
-Expr sliceView(Expr a, const Slice& slice, int axis);
-static inline Expr narrow(Expr a, size_t start, size_t length, int axis) { // PyTorch name
-  return sliceView(a, Slice((int)start, (int)(start + length)), axis);
-}
-static inline Expr step(Expr a, int step, int axis) {
-  return sliceView(a, Slice(step), axis);
-}
 
 Expr sqrt(Expr a, float eps = 0.f);
 Expr square(Expr a);
