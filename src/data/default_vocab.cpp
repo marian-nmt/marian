@@ -16,7 +16,7 @@
 namespace marian {
 
 class DefaultVocab : public VocabBase {
-private:
+protected:
   typedef std::map<std::string, Word> Str2Id;
   Str2Id str2id_;
 
@@ -36,7 +36,7 @@ private:
     VocabFreqOrderer(const std::unordered_map<std::string, size_t>& counter)
             : counter_(counter) {}
 
-    // order first by decreasing frequency, 
+    // order first by decreasing frequency,
     // if frequencies are the same order lexicographically by vocabulary string
     bool operator()(const std::string& a, const std::string& b) const {
       return counter_.at(a) > counter_.at(b) || (counter_.at(a) == counter_.at(b) && a < b);
@@ -157,7 +157,7 @@ public:
               "Vocabulary file '{}' exists. Not overwriting",
               path.string());
     }
-    
+
     std::unordered_map<std::string, size_t> counter;
     for(const auto& trainPath : trainPaths)
       addCounts(counter, trainPath);
@@ -221,9 +221,9 @@ private:
     }
   }
 
-  void create(const std::string& vocabPath,
-              const std::unordered_map<std::string, size_t>& counter,
-              size_t maxSize = 0) {
+  virtual void create(const std::string& vocabPath,
+                      const std::unordered_map<std::string, size_t>& counter,
+                      size_t maxSize = 0) {
 
     std::vector<std::string> vocabVec;
     for(auto& p : counter)
@@ -283,11 +283,37 @@ private:
   };
 };
 
-// This is a vocabulary class that does not enforce </s> or <unk>. 
-// This is used for class lists in a classifier. 
+// This is a vocabulary class that does not enforce </s> or <unk>.
+// This is used for class lists in a classifier.
 class ClassVocab : public DefaultVocab {
 private:
-  virtual void addRequiredVocabulary(const std::string& vocabPath, bool isJson) override {} // Do nothing.
+  // Do nothing.
+  virtual void addRequiredVocabulary(const std::string& vocabPath, bool isJson) override {}
+
+  // Not adding special class labels, only seen classes.
+  virtual void create(const std::string& vocabPath,
+                      const std::unordered_map<std::string, size_t>& counter,
+                      size_t maxSize = 0) override {
+
+    std::vector<std::string> vocabVec;
+    for(auto& p : counter)
+      vocabVec.push_back(p.first);
+    std::sort(vocabVec.begin(), vocabVec.end(), VocabFreqOrderer(counter));
+
+    ABORT_IF(maxSize != 0 && vocabVec.size() != maxSize,
+             "Class vocab maxSize given ({}) has to match class vocab size ({})",
+             maxSize, vocabVec.size());
+
+    YAML::Node vocabYaml;
+    for(size_t i = 0; i < vocabVec.size(); ++i)
+      vocabYaml.force_insert(vocabVec[i], i);
+
+    std::unique_ptr<io::OutputFileStream> vocabStrm(
+      vocabPath == "stdout" ? new io::OutputFileStream(std::cout)
+                            : new io::OutputFileStream(vocabPath)
+    );
+    *vocabStrm << vocabYaml;
+  }
 };
 
 Ptr<VocabBase> createDefaultVocab() {

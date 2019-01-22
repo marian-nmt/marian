@@ -191,7 +191,7 @@ public:
                                        opt<std::string>("bert-sep-symbol"),
                                        opt<std::string>("bert-class-symbol"));
     } else if(modelType == "bert-classifier") { // we are probably fine-tuning a BERT model for a classification task
-      bertBatch = New<data::BertBatch>(batch, 
+      bertBatch = New<data::BertBatch>(batch,
                                        opt<std::string>("bert-sep-symbol"),
                                        opt<std::string>("bert-class-symbol")); // only annotate sentence separators
     } else {
@@ -219,7 +219,7 @@ public:
   Expr addSentenceEmbeddings(Expr embeddings,
                              Ptr<data::CorpusBatch> batch,
                              bool learnedPosEmbeddings) const {
-    
+
     Ptr<data::BertBatch> bertBatch = std::dynamic_pointer_cast<data::BertBatch>(batch);
     ABORT_IF(!bertBatch, "Batch must be BertBatch for BERT training or fine-tuning");
 
@@ -274,18 +274,14 @@ public:
     int dimModel = classEmbeddings->shape()[-1];
     int dimTrgCls = opt<std::vector<int>>("dim-vocabs")[batchIndex_]; // Target vocab is used as class labels
 
-    std::string finetune = "";
-    if(opt<std::string>("original-type") == "bert-classifier") // seems we are fine-tuning
-      finetune = "_finetune"; // change name so we do not relead BERT output layers for fine-tuning
-
     auto output = mlp::mlp()                                          //
                     .push_back(mlp::dense()                           //
-                                 ("prefix", prefix_ + finetune + "_ff_logit_l1") //
+                                 ("prefix", prefix_ + "_ff_logit_l1") //
                                  ("dim", dimModel)                    //
                                  ("activation", mlp::act::tanh))      // @TODO: do we actually need this?
                     .push_back(mlp::output()                          //
                                  ("dim", dimTrgCls))                  //
-                                 ("prefix", prefix_ + finetune + "_ff_logit_l2") //
+                                 ("prefix", prefix_ + "_ff_logit_l2") //
                     .construct(graph);
 
     auto logits = output->apply(classEmbeddings); // class logits for each batch entry
@@ -327,27 +323,40 @@ public:
     int dimBatch = context->shape()[-2];
     int dimTime  = context->shape()[-3];
 
-    auto maskedEmbeddings = rows(reshape(context, {dimBatch * dimTime, dimModel}), bertMaskedPositions); // subselect stuff that has actually been masked out
+    auto maskedContext = rows(reshape(context, {dimBatch * dimTime, dimModel}), bertMaskedPositions); // subselect stuff that has actually been masked out
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
-    auto layerTanh = mlp::dense()                         //
-        ("prefix", prefix_ + "_ff_logit_maskedlm_out_l1") //
-        ("dim", dimModel)                                 //
-        ("activation", mlp::act::tanh);                   // @TODO: again, check if this layer is present in original code
-    auto layerOut = mlp::output()                         //
-        ("prefix", prefix_ + "_ff_logit_maskedlm_out_l2") //
-        ("dim", dimVoc);                  //
-    layerOut.tieTransposed("Wemb"); // We are a BERT model, hence tie with input, @TODO: check if this is actually what Google does
+    std::string activationType = opt<std::string>("transformer-ffn-activation");
+    mlp::act activation;
+    if(activationType == "relu")
+      activation = mlp::act::ReLU;
+    else if(activationType == "swish")
+      activation = mlp::act::swish;
+    else
+      ABORT("Activation function {} not supported in BERT masked LM", activationType);
 
-    // assemble layers into MLP and apply to embeddings, decoder context and
-    // aligned source context
-    auto output = mlp::mlp()  //
-        .push_back(layerTanh) //
-        .push_back(layerOut)  //
-        .construct(graph);
+    auto layer1 = mlp::mlp()
+      .push_back(mlp::dense()
+                 ("prefix", prefix_ + "_ff_logit_l1")
+                 ("dim", dimModel)
+                 ("activation", activation))
+                 .construct(graph);
 
-    auto logits = output->apply(maskedEmbeddings); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
+    auto intermediate = layer1->apply(maskedContext);
+
+    auto gamma = graph->param(prefix_ + "_ff_ln_scale", {1, dimModel}, inits::ones);
+    auto beta  = graph->param(prefix_ + "_ff_ln_bias",  {1, dimModel}, inits::zeros);
+    intermediate = layerNorm(intermediate, gamma, beta);
+
+    auto layer2 = mlp::mlp()
+      .push_back(mlp::output()
+                 ("prefix", prefix_ + "_ff_logit_l2")
+                 ("dim", dimVoc)
+                 .tieTransposed("Wemb"))
+      .construct(graph);
+
+    auto logits = layer2->apply(intermediate); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
 
     auto state = New<ClassifierState>();
     state->setLogProbs(logits);

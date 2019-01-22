@@ -470,12 +470,14 @@ Expr cross_entropy(Expr a, Expr indices) {
   return Expression<CrossEntropyNodeOp>(a, indices);
 }
 
-Expr plus(const std::vector<Expr>&) {
-  ABORT("Not implemented");
+Expr plus(const std::vector<Expr>& nodes) {
+  ABORT_IF(nodes.size() > 1, "Not implemented");
+  return nodes[0];
 }
 
-Expr swish(const std::vector<Expr>&) {
-  ABORT("Not implemented");
+Expr swish(const std::vector<Expr>& nodes) {
+  ABORT_IF(nodes.size() > 1, "Not implemented");
+  return swish(nodes[0]);
 }
 
 Expr tanh(const std::vector<Expr>& nodes) {
@@ -486,8 +488,9 @@ Expr sigmoid(const std::vector<Expr>&) {
   ABORT("Not implemented");
 }
 
-Expr relu(const std::vector<Expr>&) {
-  ABORT("Not implemented");
+Expr relu(const std::vector<Expr>& nodes) {
+  ABORT_IF(nodes.size() > 1, "Not implemented");
+  return relu(nodes[0]);
 }
 
 Expr leakyrelu(const std::vector<Expr>&) {

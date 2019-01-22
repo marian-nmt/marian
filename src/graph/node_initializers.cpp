@@ -50,14 +50,48 @@ NodeInitializer normal(float mean, float stddev) {
   };
 }
 
+// @TODO: replace with parametered version below
 void glorot_uniform(Tensor tensor) {
   float scale = sqrtf(6.0f / (tensor->shape()[-2] + tensor->shape()[-1]));
   uniform(-scale, scale)(tensor);
 }
 
+NodeInitializer glorot_uniform2(bool fanIn, bool fanOut) {
+  return [fanIn, fanOut](Tensor tensor) {
+    float scale = 1.f;
+    if(fanIn && fanOut)
+      scale = sqrtf(6.0f / (tensor->shape()[-2] + tensor->shape()[-1]));
+    else if(!fanIn && fanOut)
+      scale = sqrtf(3.0f / tensor->shape()[-1]);
+    else if(fanIn && !fanOut)
+      scale = sqrtf(3.0f / tensor->shape()[-2]);
+    else
+      ABORT("You need to set fanIn or fanOut or both to true");
+
+    uniform(-scale, scale)(tensor);
+  };
+}
+
+// @TODO: replace with parametered version below
 void glorot_normal(Tensor tensor) {
   float scale = sqrtf(2.0f / (tensor->shape()[-2] + tensor->shape()[-1]));
   normal(0.f, scale)(tensor);
+}
+
+NodeInitializer glorot_normal2(bool fanIn, bool fanOut) {
+  return [fanIn, fanOut](Tensor tensor) {
+    float scale = 1.f;
+    if(fanIn && fanOut)
+      scale = sqrtf(2.0f / (tensor->shape()[-2] + tensor->shape()[-1]));
+    else if(!fanIn && fanOut)
+      scale = sqrtf(1.0f / tensor->shape()[-1]);
+    else if(fanIn && !fanOut)
+      scale = sqrtf(1.0f / tensor->shape()[-2]);
+    else
+      ABORT("You need to set fanIn or fanOut or both to true");
+
+    normal(0.f, scale)(tensor);
+  };
 }
 
 NodeInitializer bernoulli(float prob, float scale) {
@@ -157,7 +191,7 @@ NodeInitializer from_item(const io::Item& item) {
   }
 }
 
-// Computes Google's sinusoidal position embeddings 
+// Computes Google's sinusoidal position embeddings
 NodeInitializer sinusoidalPositionEmbeddings(int start) {
   return [start](Tensor t) {
     int dimEmb   = t->shape()[-1];
