@@ -215,6 +215,12 @@ namespace marian {
           auto m = graph->constant({ 1, (int)mVec.size() }, inits::from_vector(mVec)); // [1 x U]
           auto Z = dot(groupZ, m); // [B... x U]
           y = y - Z;
+#if 0
+          // and a log-linear weight
+          auto name = options_->get<std::string>("prefix");
+          auto llWeight = graph->param(name + "_llWeight_" + std::to_string(g), {}, inits::from_value(1.0f));
+          y = y * ((llWeight  - 1) * m + 1);
+#endif
         }
 
         // sum up the unit logits across factors for each target word
