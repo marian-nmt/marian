@@ -139,34 +139,35 @@ Expr flatten_2d(Expr a);
 
 Expr stopGradient(Expr a);
 
-Expr gather(Expr a, Expr indices, int axis);
+Expr gather(Expr a, int axis, Expr indices);
 
-Expr index_select(Expr a, Expr indices, int axis);
+// Warning: Don't try to pass a scalar literal 0 as indices; it will compile but pass nullptr...
+Expr index_select(Expr a, int axis, Expr indices);
 
 // convenience wrappers for index_select()
-Expr index_select(Expr a, const std::vector<IndexType>& indices, int axis);
+Expr index_select(Expr a, int axis, const std::vector<IndexType>& indices);
 static inline Expr rows(Expr a, Expr indices) {
-  return index_select(a, indices, 0);
+  return index_select(a, 0, indices);
 }
 static inline Expr rows(Expr a, const std::vector<IndexType>& indexVector) {
-  return index_select(a, indexVector, 0);
+  return index_select(a, 0, indexVector);
 }
 static inline Expr cols(Expr a, Expr indices) {
-  return index_select(a, indices, -1);
+  return index_select(a, -1, indices);
 }
 static inline Expr cols(Expr a, const std::vector<IndexType>& indexVector) {
-  return index_select(a, indexVector, -1);
+  return index_select(a, -1, indexVector);
 }
 
-Expr slice(Expr a, Slice slice, int axis);
+Expr slice(Expr a, int axis, Slice slice);
 
 // convenience wrappers for slice()
-static inline Expr step(Expr a, int step, int axis) { // @TODO: name is too narrow
-  return slice(a, Slice(step), axis);
+static inline Expr slice(Expr a, int axis, int index) { // single index  @NOTE: This was formerlly called step()
+  return slice(a, axis, Slice(index));
 }
 
-static inline Expr narrow(Expr a, size_t start, size_t length, int axis) { // PyTorch name
-  return slice(a, Slice((int)start, (int)(start + length)), axis);
+static inline Expr narrow(Expr a, int axis, size_t start, size_t length) { // PyTorch name
+  return slice(a, axis, Slice((int)start, (int)(start + length)));
 }
 
 /*********************************************************/

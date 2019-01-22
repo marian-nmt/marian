@@ -246,17 +246,17 @@ Expr constant_like(Expr a, const NodeInitializer& init) {
 }
 
 // gather() -- gather arbitrary elements along an axis; batched or non-batched
-Expr gather(Expr a, Expr indices, int axis) {
-  return Expression<GatherNodeOp>(a, indices, axis);
+Expr gather(Expr a, int axis, Expr indices) {
+  return Expression<GatherNodeOp>(a, axis, indices);
 }
 
 // index_select() -- gather arbitrary elements along an axis; unbatched (indices are specified as a 1D vector)
-Expr index_select(Expr a, Expr indices, int axis) {
+Expr index_select(Expr a, int axis, Expr indices) {
   ABORT_IF(indices->shape().size() != 1, "Indices must be a 1D tensor");
   // We have specialized kernels for non-batched indexing of first or last axis of a 2D tensor.
   auto rank = a->shape().size();
   if (rank == 2) {
-    if (axis == 0)
+    if (axis == 0 || axis == 2)
       return Expression<RowsNodeOp>(a, indices);
     else if (axis == -1 || axis == 1)
       return Expression<ColsNodeOp>(a, indices);
@@ -266,29 +266,29 @@ Expr index_select(Expr a, Expr indices, int axis) {
   shape.resize(a->shape().size());
   shape.set(axis, indices->shape()[0]);
   indices = reshape(indices, shape); // move index to axis
-  return gather(a, indices, axis);
+  return gather(a, axis, indices);
 }
-Expr index_select(Expr a, const std::vector<IndexType>& indices, int axis) {
+Expr index_select(Expr a, int axis, const std::vector<IndexType>& indices) {
   auto indexExpr = a->graph()->indices(indices);
-  return index_select(a, indexExpr, axis);
+  return index_select(a, axis, indexExpr);
 }
 
-static Expr sliceCopy(Expr a, const Slice& slice, int axis) { // copy a Slice via gather()
+static Expr sliceCopy(Expr a, int axis, const Slice& slice) { // copy a Slice via gather()
   ABORT_IF(slice.stride < 0, "Negative strides are not supported yet");
   ABORT_IF(slice.begin == slice.end, "Empty slices are not allowed"); // @TODO: Or are they?
   std::vector<IndexType> indices;
   indices.reserve((slice.end - slice.begin - 1) / slice.stride + 1);
   for (int i = slice.begin; i < slice.end; i += slice.stride)
     indices.push_back((IndexType)i);
-  return gather(a, a->graph()->indices(indices, a, axis), axis);
+  return gather(a, axis, a->graph()->indices(indices, a, axis));
 }
 
-static Expr sliceView(Expr a, const Slice& slice, int axis) { // view a slice (must be memory-consecutive)
-  return Expression<SliceViewNodeOp>(a, slice, axis);
+static Expr sliceView(Expr a, int axis, const Slice& slice) { // view a slice (must be memory-consecutive)
+  return Expression<SliceViewNodeOp>(a, axis, slice);
 }
 
 // slice() -- gather a slice along an axis (step size > 1 allowed)
-Expr slice(Expr a, Slice slice, int axis) { // numpy __getslice__ semantics, but with axis parameter
+Expr slice(Expr a, int axis, Slice slice) { // numpy __getslice__ semantics, but with axis parameter
   const auto& shape = a->shape();
   axis  = shape.axis(axis);         // normalize negative axis
   slice = shape.slice(slice, axis); // normalize negative slice values
@@ -296,13 +296,13 @@ Expr slice(Expr a, Slice slice, int axis) { // numpy __getslice__ semantics, but
     return a; // it's a no-op
 #if 1 // until strided views are supported, non-consecutive slices are implemented via gather()
   if (slice.stride != 1)
-    return sliceCopy(a, slice, axis);
+    return sliceCopy(a, axis, slice);
   for (int i = 0; i < axis; ++i) {
     if (shape[i] != 1)  // this makes it non-consecutive
-      return sliceCopy(a, slice, axis);
+      return sliceCopy(a, axis, slice);
   }
 #endif
-  return sliceView(a, slice, axis);
+  return sliceView(a, axis, slice);
 }
 
 Expr sum(Expr a, int ax) {

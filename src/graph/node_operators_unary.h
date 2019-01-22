@@ -745,15 +745,15 @@ private:
   size_t byteOffset_, byteSize_; // viewed segment in bytes (memory-consecutive)
 
 public:
-  SliceViewNodeOp(Expr a, Slice slice, int axis)
-      : UnaryNodeOp(a, newShape(a, slice, axis), a->value_type()), viewedNode_(a), slice_(slice), axis_(axis) {
+  SliceViewNodeOp(Expr a, int axis, Slice slice)
+      : UnaryNodeOp(a, newShape(a, axis, slice), a->value_type()), viewedNode_(a), slice_(slice), axis_(axis) {
     Node::destroy_ = false;
     auto byteStride = a->shape().stride(axis) * sizeOf(value_type());
     byteOffset_ = slice.begin * byteStride;
     byteSize_ = shape()[axis] * byteStride;
   }
 
-  static Shape newShape(Expr a, Slice& slice, int& axis) { // note: normalizes slice and axis in-place
+  static Shape newShape(Expr a, int& axis, Slice& slice) { // note: normalizes slice and axis in-place
     const auto& shape = a->shape();
     axis  = shape.axis(axis);         // normalize negative axis
     slice = shape.slice(slice, axis); // normalize negative slice values
