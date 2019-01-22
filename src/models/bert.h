@@ -323,27 +323,40 @@ public:
     int dimBatch = context->shape()[-2];
     int dimTime  = context->shape()[-3];
 
-    auto maskedEmbeddings = rows(reshape(context, {dimBatch * dimTime, dimModel}), bertMaskedPositions); // subselect stuff that has actually been masked out
+    auto maskedContext = rows(reshape(context, {dimBatch * dimTime, dimModel}), bertMaskedPositions); // subselect stuff that has actually been masked out
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
-    auto layerTanh = mlp::dense()                         //
-        ("prefix", prefix_ + "_ff_logit_l1") //
-        ("dim", dimModel)                                 //
-        ("activation", mlp::act::tanh);                   // @TODO: again, check if this layer is present in original code
-    auto layerOut = mlp::output()                         //
-        ("prefix", prefix_ + "_ff_logit_l2") //
-        ("dim", dimVoc);                  //
-    layerOut.tieTransposed("Wemb"); // We are a BERT model, hence tie with input, @TODO: check if this is actually what Google does
+    std::string activationType = opt<std::string>("transformer-ffn-activation");
+    mlp::act activation;
+    if(activationType == "relu")
+      activation = mlp::act::ReLU;
+    else if(activationType == "swish")
+      activation = mlp::act::swish;
+    else
+      ABORT("Activation function {} not supported in BERT masked LM", activationType);
 
-    // assemble layers into MLP and apply to embeddings, decoder context and
-    // aligned source context
-    auto output = mlp::mlp()  //
-        .push_back(layerTanh) //
-        .push_back(layerOut)  //
-        .construct(graph);
+    auto layer1 = mlp::mlp()
+      .push_back(mlp::dense()
+                 ("prefix", prefix_ + "_ff_logit_l1")
+                 ("dim", dimModel)
+                 ("activation", activation))
+                 .construct(graph);
 
-    auto logits = output->apply(maskedEmbeddings); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
+    auto intermediate = layer1->apply(maskedContext);
+
+    auto gamma = graph->param(prefix_ + "_ff_ln_scale", {1, dimModel}, inits::ones);
+    auto beta  = graph->param(prefix_ + "_ff_ln_bias",  {1, dimModel}, inits::zeros);
+    intermediate = layerNorm(intermediate, gamma, beta);
+
+    auto layer2 = mlp::mlp()
+      .push_back(mlp::output()
+                 ("prefix", prefix_ + "_ff_logit_l2")
+                 ("dim", dimVoc)
+                 .tieTransposed("Wemb"))
+      .construct(graph);
+
+    auto logits = layer2->apply(intermediate); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
 
     auto state = New<ClassifierState>();
     state->setLogProbs(logits);

@@ -470,8 +470,9 @@ Expr cross_entropy(Expr a, Expr indices) {
   return Expression<CrossEntropyNodeOp>(a, indices);
 }
 
-Expr plus(const std::vector<Expr>&) {
-  ABORT("Not implemented");
+Expr plus(const std::vector<Expr>& nodes) {
+  ABORT_IF(nodes.size() > 1, "Not implemented");
+  return nodes[0];
 }
 
 Expr swish(const std::vector<Expr>& nodes) {
