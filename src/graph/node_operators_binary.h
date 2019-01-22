@@ -576,8 +576,8 @@ struct RowsNodeOp : public NaryNodeOp {
 // @TODO: The current implementation does not support batched indices (third scenario above).
 //        I.e. all axes of 'indices' except 'axis' must have dimension 1.
 struct GatherNodeOp : public NaryNodeOp {
-  GatherNodeOp(Expr a, Expr indices, int axis)
-      : NaryNodeOp({a, indices}, newShape(a, indices, axis), a->value_type()),
+  GatherNodeOp(Expr a, int axis, Expr indices)
+      : NaryNodeOp({a, indices}, newShape(a, axis, indices), a->value_type()),
         axis_(a->shape().axis(axis)) {
     matchOrAbort<IndexType>(indices->value_type());
   }
@@ -592,7 +592,7 @@ struct GatherNodeOp : public NaryNodeOp {
         Insert(child(0)->grad(), adj_, child(1)->val(), axis_))};
   }
 
-  Shape newShape(Expr a, Expr indices, int axis) {
+  Shape newShape(Expr a, int axis, Expr indices) {
     Shape shape = a->shape();
     axis = shape.axis(axis);
     auto rank = shape.size();

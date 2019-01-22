@@ -75,11 +75,11 @@ private:
 
       std::vector<Expr> steps(xWs.size());
       std::transform(xWs.begin(), xWs.end(), steps.begin(), [j](Expr e) {
-        return step(e, j, -3);
+        return slice(e, -3, j);
       });
 
       if(mask)
-        state = cell_->applyState(steps, state, step(mask, j, -3));
+        state = cell_->applyState(steps, state, slice(mask, -3, j));
       else
         state = cell_->applyState(steps, state);
 
