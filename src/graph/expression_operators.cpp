@@ -256,7 +256,7 @@ Expr index_select(Expr a, int axis, Expr indices) {
   // We have specialized kernels for non-batched indexing of first or last axis of a 2D tensor.
   auto rank = a->shape().size();
   if (rank == 2) {
-    if (axis == 0 || axis == 2)
+    if (axis == 0 || axis == -2)
       return Expression<RowsNodeOp>(a, indices);
     else if (axis == -1 || axis == 1)
       return Expression<ColsNodeOp>(a, indices);
