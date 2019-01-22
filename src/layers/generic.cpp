@@ -210,7 +210,7 @@ namespace marian {
           for (size_t i = range.first; i < range.second; i++)
             mVec[i] = 1.0f;
           // need to compute log denominator over y[range] and subtract it from y[range]
-          auto groupY = slice(y, Slice((int)range.first, (int)range.second), /*axis=*/-1); // [B... x Ug]
+          auto groupY = slice(y, /*axis=*/-1, Slice((int)range.first, (int)range.second)); // [B... x Ug]
           auto groupZ = logsumexp(groupY, /*axis=*/-1); // [B... x 1]
           auto m = graph->constant({ 1, (int)mVec.size() }, inits::from_vector(mVec)); // [1 x U]
           auto Z = dot(groupZ, m); // [B... x U]
