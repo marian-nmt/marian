@@ -148,8 +148,6 @@ void Adam::updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t r
   denom1_ = (beta1 * denom1_) + (1 - beta1); // momentum smoothing
   denom2_ = (beta2 * denom2_) + (1 - beta2); // RMS normalization
 
-  LOG_ONCE(info, "[adam] First update: Tref = {}, T = {}, eta = {} -> {}, beta = {}, {}", Tref, T, eta_, eta, beta1, beta2);
-
   // numerators. Divide by T to convert ce-sum gradient to avg gradient.
   using namespace functional;
   Element(_1 = ((float)beta1 * _1) + float((1 - beta1) / T    ) *  _2,       mt_, grads); // momentum smoothing. At steady state: =smoothed avg gradient
