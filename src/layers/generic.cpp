@@ -196,6 +196,7 @@ namespace marian {
         auto graph = input->graph();
         auto y = affine(input, W_, b_, false, transposeW_); // [B... x U] factor logits
 
+#if 0
         // denominators (only for groups that don't normalize out naturally by the final softmax())
         const auto& groupRanges = embeddingFactorMapping_->groupRanges_; // @TODO: factor this properly
         auto numGroups = groupRanges.size();
@@ -212,6 +213,7 @@ namespace marian {
           // need to compute log denominator over y[range] and subtract it from y[range]
           auto groupY = slice(y, /*axis=*/-1, Slice((int)range.first, (int)range.second)); // [B... x Ug]
           auto groupZ = logsumexp(groupY, /*axis=*/-1); // [B... x 1]
+          //auto groupZ = slice(groupY - logsoftmax(groupY), /*axis=*/-1, 0); // [B... x 1]
           auto m = graph->constant({ 1, (int)mVec.size() }, inits::from_vector(mVec)); // [1 x U]
           auto Z = dot(groupZ, m); // [B... x U]
           y = y - Z;
@@ -222,6 +224,7 @@ namespace marian {
           y = y * ((llWeight  - 1) * m + 1);
 #endif
         }
+#endif
 
         // sum up the unit logits across factors for each target word
         auto factorMatrix = embeddingFactorMapping_->getFactorMatrix(); // [V x U]

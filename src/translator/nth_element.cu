@@ -416,7 +416,7 @@ private:
 
   DeviceId deviceId_;
 
-  const int MAX_VOCAB_SIZE = 100000;
+  const int MAX_VOCAB_SIZE = 500000;
 
   const int BLOCK_SIZE = 512;
   const int NUM_BLOCKS;
