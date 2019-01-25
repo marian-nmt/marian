@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - Automatic detection of CPU intrisics when building with -arch=native 
+- First version of BERT-training and BERT-classifier, currently not compatible with TF models
 
 ### Fixed
 - Windows build with recent changes
