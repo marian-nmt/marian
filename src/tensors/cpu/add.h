@@ -15,8 +15,8 @@ namespace marian {
 
 namespace cpu {
 
-template <size_t K, class Functor>
-void gAddGeneric(Functor functor,
+template <size_t K, class Functor, class AggFunctor>
+void gAggregateGeneric(Functor functor, float aggInit, AggFunctor aggFunctor,
                  const functional::Shape full,
                  functional::Tensor<float> out,
                  functional::Array<functional::Tensor<float>, K> ins,
@@ -34,16 +34,16 @@ void gAddGeneric(Functor functor,
   functional::Array<int, N> dims;
   for(int index = 0; index < outLength; ++index) {
     if(same) {
-      out[index] += functional::apply(functor, ins, index) * scale;
+      out[index] = aggFunctor(out[index], functional::apply(functor, ins, index) * scale);
     } else {
       out.shape().dims(index, dims);
-      out[index] += functional::loops(functor, ins, len, dims) * scale;
+      out[index] = aggFunctor(out[index], functional::loops(functor, aggInit, aggFunctor, ins, len, dims) * scale);
     }
   }
 }
 
-template <size_t K, class Functor>
-void gAddEqual(Functor functor,
+template <size_t K, class Functor, class AggFunctor>
+void gAggregateEqual(Functor functor, AggFunctor aggFunctor,
                functional::Tensor<float> out,
                functional::Array<functional::Tensor<float>, K> ins,
                float scale,
@@ -61,12 +61,12 @@ void gAddEqual(Functor functor,
         indices[i] = ins[i].shape().bindex(dims);
     }
 
-    out[index] += functional::apply(functor, ins, indices) * scale;
+    out[index] = aggFunctor(out[index], functional::apply(functor, ins, indices) * scale);
   }
 }
 
-template <size_t K, class Functor>
-void gAddReduce(Functor functor,
+template <size_t K, class Functor, class AggFunctor>
+void gAggregateReduce(Functor functor, float aggInit, AggFunctor aggFunctor,
                 const functional::Shape full,
                 functional::Tensor<float> out,
                 functional::Array<functional::Tensor<float>, K> ins,
@@ -79,10 +79,10 @@ void gAddReduce(Functor functor,
     same = same && ins[i].shape().elements() == full.elements();
 
   for(int j = 0; j < rows; ++j) {
-    float sum = 0;
+    float colSum = aggInit;
     if(same) {
       for(int id = 0; id < cols; ++id)
-        sum += functional::apply(functor, ins, j * cols + id);
+        colSum = aggFunctor(colSum, functional::apply(functor, ins, j * cols + id));
     } else {
       functional::Array<int, functional::Shape::size()> dims;
       for(int id = 0; id < cols; ++id) {
@@ -90,15 +90,15 @@ void gAddReduce(Functor functor,
         functional::Array<int, K> indices;
         for(size_t i = 0; i < K; ++i)
           indices[i] = ins[i].shape().bindex(dims);
-        sum += functional::apply(functor, ins, indices);
+        colSum = aggFunctor(colSum, functional::apply(functor, ins, indices));
       }
     }
-    out[j] += sum * scale;
+    out[j] = aggFunctor(out[j], colSum * scale);
   }
 }
 
-template <class Functor, class... Tensors>
-void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
+template <class Functor, class AggFunctor, class... Tensors>
+void Aggregate(Functor functor, float aggInit, AggFunctor aggFunctor, float scale, marian::Tensor out, Tensors... tensors) {
   auto full = marian::Shape::broadcast({out, tensors...});
 
   //int length = out->shape().elements();
@@ -111,15 +111,16 @@ void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
   if(full.back() != 1 && out->shape().back() == 1) {
     //size_t m = full.elements() / length;
     //size_t k = full.back();
-    cpu::gAddReduce(functor, full, gOut, gIns, scale);
+    cpu::gAggregateReduce(functor, aggInit, aggFunctor, full, gOut, gIns, scale);
   } else if(out->shape() == full) {
     bool broadcast = false;
     for(size_t i = 0; i < K; ++i)
       broadcast = broadcast || gOut.shape() != gIns[i].shape();
-    cpu::gAddEqual(functor, gOut, gIns, scale, broadcast);
+    cpu::gAggregateEqual(functor, aggFunctor, gOut, gIns, scale, broadcast);
   } else {
-    cpu::gAddGeneric(functor, full, gOut, gIns, scale);
+    cpu::gAggregateGeneric(functor, aggInit, aggFunctor, full, gOut, gIns, scale);
   }
 }
+
 }  // namespace cpu
 }  // namespace marian

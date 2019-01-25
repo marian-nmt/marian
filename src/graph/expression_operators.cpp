@@ -245,44 +245,97 @@ Expr constant_like(Expr a, const NodeInitializer& init) {
   return graph->constant(shape, init);
 }
 
-Expr rows(Expr a, Expr indices) {
-  // @TODO:: replace with `select(a, indices, -2)`
-  // as soon as select is efficient enough
-  return Expression<RowsNodeOp>(a, indices);
+// gather() -- gather arbitrary elements along an axis; batched or non-batched
+Expr gather(Expr a, int axis, Expr indices) {
+  return Expression<GatherNodeOp>(a, axis, indices);
 }
 
-Expr rows(Expr a, const std::vector<IndexType>& indices) {
+// index_select() -- gather arbitrary elements along an axis; unbatched (indices are specified as a 1D vector)
+Expr index_select(Expr a, int axis, Expr indices) {
+  ABORT_IF(indices->shape().size() != 1, "Indices must be a 1D tensor");
+  // We have specialized kernels for non-batched indexing of first or last axis of a 2D tensor.
+  auto rank = a->shape().size();
+  if (rank == 2) {
+    if (axis == 0 || axis == -2)
+      return Expression<RowsNodeOp>(a, indices);
+    else if (axis == -1 || axis == 1)
+      return Expression<ColsNodeOp>(a, indices);
+  }
+  // Delegate to gather() for any other axis or non-matrix input.
+  Shape shape;
+  shape.resize(a->shape().size());
+  shape.set(axis, indices->shape()[0]);
+  indices = reshape(indices, shape); // move index to axis
+  return gather(a, axis, indices);
+}
+Expr index_select(Expr a, int axis, const std::vector<IndexType>& indices) {
   auto indexExpr = a->graph()->indices(indices);
-  return rows(a, indexExpr);
+  return index_select(a, axis, indexExpr);
 }
 
-
-Expr cols(Expr a, Expr indices) {
-  // @TODO:: replace with `select(a, indices, -1)`
-  // as soon as select is efficient enough
-  return Expression<ColsNodeOp>(a, indices);
+static Expr sliceCopy(Expr a, int axis, const Slice& slice) { // copy a Slice via gather()
+  ABORT_IF(slice.stride < 0, "Negative strides are not supported yet");
+  ABORT_IF(slice.begin == slice.end, "Empty slices are not allowed"); // @TODO: Or are they?
+  std::vector<IndexType> indices;
+  indices.reserve((slice.end - slice.begin - 1) / slice.stride + 1);
+  for (int i = slice.begin; i < slice.end; i += slice.stride)
+    indices.push_back((IndexType)i);
+  return gather(a, axis, a->graph()->indices(indices, a, axis));
 }
 
-Expr cols(Expr a, const std::vector<IndexType>& indices) {
-  auto indexExpr = a->graph()->indices(indices);
-  return cols(a, indexExpr);
+static Expr sliceView(Expr a, int axis, const Slice& slice) { // view a slice (must be memory-consecutive)
+  return Expression<SliceViewNodeOp>(a, axis, slice);
 }
 
-Expr select(Expr a, Expr indices, int axis) {
-  return Expression<SelectNodeOp>(a, indices, axis);
-}
-
-Expr select(Expr a, const std::vector<IndexType>& indices, int axis) {
-  auto indexExpr = a->graph()->indices(indices, a, axis);
-  return select(a, indexExpr, axis);
+// slice() -- gather a slice along an axis (step size > 1 allowed)
+Expr slice(Expr a, int axis, Slice slice) { // numpy __getslice__ semantics, but with axis parameter
+  const auto& shape = a->shape();
+  axis  = shape.axis(axis);         // normalize negative axis
+  slice = shape.slice(slice, axis); // normalize negative slice values
+  if (slice.begin == 0 && slice.end == shape[axis] && slice.stride == 1)
+    return a; // it's a no-op
+#if 1 // until strided views are supported, non-consecutive slices are implemented via gather()
+  if (slice.stride != 1)
+    return sliceCopy(a, axis, slice);
+  for (int i = 0; i < axis; ++i) {
+    if (shape[i] != 1)  // this makes it non-consecutive
+      return sliceCopy(a, axis, slice);
+  }
+#endif
+  return sliceView(a, axis, slice);
 }
 
 Expr sum(Expr a, int ax) {
-  return Expression<SumNodeOp>(a, ax);
+  return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::sum);
 }
 
 Expr mean(Expr a, int ax) {
-  return Expression<MeanNodeOp>(a, ax);
+  return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::mean);
+}
+
+Expr std(Expr a, int ax) {
+  return Expression<ReduceNodeOp>(a - mean(a,ax), ax, ReduceNodeOpCode::rms);
+}
+
+Expr var(Expr a, int ax) {
+  return Expression<ReduceNodeOp>(a - mean(a, ax), ax, ReduceNodeOpCode::meanSqr);
+}
+
+Expr max(Expr a, int ax) {
+  return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::max);
+}
+
+Expr min(Expr a, int ax) {
+  return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::min);
+}
+
+Expr prod(Expr a, int ax) {
+  return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::prod);
+}
+
+// log(sum(exp(a)))
+Expr logsumexp(Expr a, int ax) {
+  return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::logSumExp);
 }
 
 Expr scalar_product(Expr a, Expr b, int ax) {
@@ -460,10 +513,6 @@ Expr swapAxes(Expr x, int axis1, int axis2)
     axes[i] = i;
   std::swap(axes[axis1], axes[axis2]);
   return transpose(x, axes);
-}
-
-Expr sliceView(Expr a, const Slice& slice, int axis) { // numpy __getitem__ semantics
-  return Expression<SliceViewNodeOp>(a, slice, axis);
 }
 
 Expr cross_entropy(Expr a, Expr indices) {

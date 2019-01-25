@@ -514,7 +514,7 @@ struct ScalarProductNodeOp : public NaryNodeOp {
 struct RowsNodeOp : public NaryNodeOp {
   RowsNodeOp(Expr a, Expr indices)
       : NaryNodeOp({a, indices}, newShape(a, indices->shape().elements())) {
-      matchOrAbort<IndexType>(indices->value_type());
+    matchOrAbort<IndexType>(indices->value_type());
   }
 
   NodeOps forwardOps() override {
@@ -526,7 +526,6 @@ struct RowsNodeOp : public NaryNodeOp {
     return {NodeOp(PasteRows(child(0)->grad(), adj_, child(1)->val()))};
   }
 
-  template <class... Args>
   Shape newShape(Expr a, size_t num) {
     Shape shape = a->shape();
     ABORT_IF(shape.size() != 2,
@@ -540,10 +539,10 @@ struct RowsNodeOp : public NaryNodeOp {
   const std::string color() override { return "orange"; }
 };
 
-// This operation indexes a tensor along an axis.
-// This is similar to the common gather() operation in other toolkits.
+// This operation gathers elements of a tensor along an axis.
+// This is like PyTorch gather().
 // For example, this can be used for:
-//  - Same index applied to all batch items (today's select()):
+//  - Same index applied to all batch items:
 //    'index' has 1 in the axes that match batch axes in the input, and axis set to the one axis that gets selected over.
 //    Example: Selecting Transformer head 0, i.e. return a[:,1,:,:]
 //      axis = -3
@@ -558,7 +557,7 @@ struct RowsNodeOp : public NaryNodeOp {
 //      idx: (#(B*S)#, 1)        B=batch size, S=source length, idx values are in range 0..V-1
 //      out: ( (B*S) , E)        out[b, s, e] == e[/*0,*/ idx[b, s, 0], e]
 //  - Batched selection (x-ent scenario): Both 'index' and 'data' have matching batch axes.
-//    Example: Cross-entropy loss as -select(logSoftmax(logits), groundTruth, axis=-1):
+//    Example: Cross-entropy loss as -gather(logSoftmax(logits), groundTruth, axis=-1):
 //      axis = -1
 //      lp : (B, T,  V )        B=batch size, T=trg length, V=vocab size
 //      idx: (B, T, #1#)        idx values are in range 0..V-1
@@ -573,14 +572,12 @@ struct RowsNodeOp : public NaryNodeOp {
 //  out[i][j][k] = input[index[i][j][k]][j][k]  # if dim == 0
 //  out[i][j][k] = input[i][index[i][j][k]][k]  # if dim == 1
 //  out[i][j][k] = input[i][j][index[i][j][k]]  # if dim == 2
-// If 'a' and 'indices' do not have the same rank, then negative 'axis' is
-// interpreted relative to 'a', and 'indices' must have the resulting axis.
-// Broadcasting is supported as usual.
+// 'a' and 'indices' must have the same rank.
 // @TODO: The current implementation does not support batched indices (third scenario above).
 //        I.e. all axes of 'indices' except 'axis' must have dimension 1.
-struct SelectNodeOp : public NaryNodeOp {
-  SelectNodeOp(Expr a, Expr indices, int axis)
-      : NaryNodeOp({a, indices}, newShape(a, indices, axis), a->value_type()),
+struct GatherNodeOp : public NaryNodeOp {
+  GatherNodeOp(Expr a, int axis, Expr indices)
+      : NaryNodeOp({a, indices}, newShape(a, axis, indices), a->value_type()),
         axis_(a->shape().axis(axis)) {
     matchOrAbort<IndexType>(indices->value_type());
   }
@@ -595,24 +592,27 @@ struct SelectNodeOp : public NaryNodeOp {
         Insert(child(0)->grad(), adj_, child(1)->val(), axis_))};
   }
 
-  Shape newShape(Expr a, Expr indices, int axis) {
-    axis = a->shape().axis(axis);
-    auto indicesRank = indices->shape().size();
-    ABORT_IF(axis >= indicesRank, "Axis {} is invalid for indices shape {}", axis, std::string(indices->shape()));
+  Shape newShape(Expr a, int axis, Expr indices) {
     Shape shape = a->shape();
-    if (shape.size() < indicesRank) // pad
-      shape.resize(indicesRank);
+    axis = shape.axis(axis);
+    auto rank = shape.size();
+    ABORT_IF(rank != indices->shape().size(), "Mismatching ranks for input ({}) and indices ({})", std::string(shape), std::string(indices->shape()));
+    axis = a->shape().axis(axis);
     shape.set(axis, indices->shape()[axis]);
+    for (size_t i = 0; i < rank; ++i) {
+      if (i != axis) {
+        ABORT_IF(indices->shape()[i] != shape[i] && indices->shape()[i] != 1,
+            "Dimensions must match or broadcast for input ({}) and indices ({})", std::string(shape), std::string(indices->shape()));
 #if 1 // presently, this implementation does not support batched indices
-    for (size_t i = 0; i < indicesRank; ++i) {
-      ABORT_IF(indices->shape()[i] != 1 && i + shape.size() - indicesRank != axis,
-               "Presently, select() does not implement batched indices");
-    }
+        ABORT_IF(indices->shape()[i] != 1,
+            "Presently, gather() does not implement batched indices");
 #endif
+      }
+    }
     return shape;
   }
 
-  const std::string type() override { return "select"; }
+  const std::string type() override { return "gather"; }
 
   const std::string color() override { return "orange"; }
 
@@ -628,7 +628,7 @@ struct SelectNodeOp : public NaryNodeOp {
   virtual bool equal(Expr node) override {
     if(!NaryNodeOp::equal(node))
       return false;
-    Ptr<SelectNodeOp> cnode = std::dynamic_pointer_cast<SelectNodeOp>(node);
+    Ptr<GatherNodeOp> cnode = std::dynamic_pointer_cast<GatherNodeOp>(node);
     if(!cnode)
       return false;
     if(axis_ != cnode->axis_)
@@ -653,7 +653,6 @@ struct ColsNodeOp : public NaryNodeOp {
     return {NodeOp(PasteCols(child(0)->grad(), adj_, child(1)->val()))};
   }
 
-  template <class... Args>
   Shape newShape(Expr a, size_t num) {
     Shape shape = a->shape();
     shape.set(1, num);
