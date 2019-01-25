@@ -173,6 +173,13 @@ static inline Expr narrow(Expr a, int axis, size_t start, size_t length) { // Py
 /*********************************************************/
 
 Expr sum(Expr a, int ax = 0);
+Expr mean(Expr a, int ax = 0);
+Expr std(Expr a, int ax);
+Expr var(Expr a, int ax);
+Expr max(Expr a, int ax);
+Expr min(Expr a, int ax);
+Expr prod(Expr a, int ax);
+Expr logsumexp(Expr a, int ax);
 
 Expr softmax(Expr x, int axis = -1);
 
@@ -181,8 +188,6 @@ Expr softmax(Expr x, int axis = -1);
 Expr softmax(Expr a, Expr zeroOneMask, int axis = -1);
 
 Expr logsoftmax(Expr a);
-
-Expr mean(Expr a, int ax = 0);
 
 Expr cross_entropy(Expr a, Expr b);
 

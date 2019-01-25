@@ -51,12 +51,22 @@ void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
     gpu::Add(functor, scale, out, tensors...);
   else
 #endif
-    cpu::Add(functor, scale, out, tensors...);
+    cpu::Aggregate(functor, 0.0f, functional::_1 + functional::_2, scale, out, tensors...);
 }
 
 template <class Functor, class... Tensors>
 void Add(Functor functor, marian::Tensor out, Tensors... tensors) {
   Add(functor, 1, out, tensors...);
+}
+
+template <class Functor, class AggFunctor, class... Tensors>
+void Aggregate(Functor functor, float aggInit, AggFunctor aggFunctor, marian::Tensor out, Tensors... tensors) {
+#ifdef CUDA_FOUND
+  if(out->getBackend()->getDeviceId().type == DeviceType::gpu)
+    gpu::Aggregate(functor, aggInit, aggFunctor, 1.0f, out, tensors...);
+  else
+#endif
+    cpu::Aggregate(functor, aggInit, aggFunctor, 1.0f, out, tensors...);
 }
 
 template <class Functor, class... Tensors>
@@ -72,6 +82,14 @@ template <class Functor, class... Tensors>
 void Reduce(Functor functor, marian::Tensor out, Tensors... tensors) {
   out->set(0.f);
   Add(functor, out, tensors...);
+}
+
+template <class Functor, class AggFunctor, class... Tensors>
+void Reduce(Functor functor, AggFunctor aggFunctor, float aggInit,
+            marian::Tensor out,
+            Tensors... tensors) {
+  out->set(aggInit);
+  Aggregate(functor, aggInit, aggFunctor, out, tensors...);
 }
 
 // clang-format off
