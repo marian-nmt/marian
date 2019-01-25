@@ -170,6 +170,7 @@ std::string CLIWrapper::failureMessage(const CLI::App *app, const CLI::Error &e)
 void CLIWrapper::updateConfig(const YAML::Node &config, const std::string& errorMsg) {
   std::vector<std::string> invalidKeys;
   auto cmdOptions = getParsedOptionNames();
+
   for(auto it : config) {
     auto key = it.first.as<std::string>();
     // skip options specified via command-line to allow overwriting them
@@ -180,12 +181,33 @@ void CLIWrapper::updateConfig(const YAML::Node &config, const std::string& error
       continue;
 
     if(options_.count(key)) {
-      config_[key] = YAML::Clone(it.second);
-      options_[key].modified = true;
+      if(config_[key]) { // it exists, so this is a default value, hence it has a node type
+        if(config_[key].Type() != it.second.Type()) { // types don't match, handle this
+          // default value is a sequence and incoming node is a scalar, hence we can upcast to
+          // single element sequence
+          if(config_[key].Type() == YAML::NodeType::Sequence
+             && it.second.Type() == YAML::NodeType::Scalar) {
+            // create single element sequence
+            YAML::Node sequence;
+            sequence.push_back(YAML::Clone(it.second));
+            config_[key] = sequence; // overwrite to replace default values
+            options_[key].modified = true;
+          } else { // Cannot convert other non-matching types, e.g. scalar <- list should fail
+            ABORT("Cannot convert values for the option: " + key);
+          }
+        } else { // types match, go ahead
+          config_[key] = YAML::Clone(it.second);
+          options_[key].modified = true;
+        }
+      } else {
+        config_[key] = YAML::Clone(it.second);
+        options_[key].modified = true;
+      }
     } else {
       invalidKeys.push_back(key);
     }
   }
+
   ABORT_IF(!invalidKeys.empty(), errorMsg + ": " + utils::join(invalidKeys, ", "));
 }
 

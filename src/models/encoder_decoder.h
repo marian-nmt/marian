@@ -2,10 +2,10 @@
 
 #include "marian.h"
 
-#include "decoder.h"
-#include "encoder.h"
-#include "model_base.h"
-#include "states.h"
+#include "models/decoder.h"
+#include "models/encoder.h"
+#include "models/model_base.h"
+#include "models/states.h"
 
 namespace marian {
 
@@ -28,14 +28,16 @@ public:
 
   virtual void clear(Ptr<ExpressionGraph> graph) override = 0;
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::Batch> batch,
-                     bool clearGraph = true) override
-      = 0;
+  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::Batch> batch,
+                                  bool clearGraph = true) override = 0;
 
+  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::CorpusBatch> batch,
+                                  bool clearGraph = true) = 0;  
+                                  
   virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
-                                       Ptr<data::CorpusBatch> batch)
-      = 0;
+                                       Ptr<data::CorpusBatch> batch) = 0;
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state,
@@ -45,10 +47,6 @@ public:
                                  int beamSize)
       = 0;
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::CorpusBatch> batch,
-                     bool clearGraph = true)
-      = 0;
 
   virtual Ptr<Options> getOptions() = 0;
 
@@ -158,13 +156,13 @@ public:
                                     Ptr<data::CorpusBatch> batch,
                                     bool clearGraph = true);
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::CorpusBatch> batch,
-                     bool clearGraph = true) override;
+  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::CorpusBatch> batch,
+                                  bool clearGraph = true) override;
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::Batch> batch,
-                     bool clearGraph = true) override;
+  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::Batch> batch,
+                                  bool clearGraph = true) override;
 };
 
 }  // namespace marian

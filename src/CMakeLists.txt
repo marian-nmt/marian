@@ -103,7 +103,7 @@ if(CUDA_FOUND)
 cuda_add_library(marian_cuda
   tensors/gpu/device.cu
   tensors/gpu/algorithm.cu
-  tensors/gpu/prod.cu
+  tensors/gpu/prod.cpp
   tensors/gpu/element.cu
   tensors/gpu/add.cu
   tensors/gpu/tensor_operators.cu

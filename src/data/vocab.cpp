@@ -4,17 +4,25 @@
 namespace marian {
 
 Ptr<VocabBase> createDefaultVocab();
+Ptr<VocabBase> createClassVocab();
 Ptr<VocabBase> createSentencePieceVocab(const std::string& /*vocabPath*/, Ptr<Options>, size_t /*batchIndex*/);
 
 // @TODO: make each vocab peek on type
 Ptr<VocabBase> createVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
   auto vocab = createSentencePieceVocab(vocabPath, options, batchIndex);
-  return vocab ? vocab : createDefaultVocab();
+  if(vocab) {
+    return vocab; // this is defined which means that a sentencepiece vocabulary could be created, so return it
+  } else {
+    // check type of input, if not given, assume "sequence"
+    auto inputTypes = options->get<std::vector<std::string>>("input-types", {});
+    std::string inputType = inputTypes.size() > batchIndex ? inputTypes[batchIndex] : "sequence";
+    return inputType == "class" ? createClassVocab() : createDefaultVocab();
+  }
 }
 
 size_t Vocab::loadOrCreate(const std::string& vocabPath,
-                        const std::vector<std::string>& trainPaths,
-                        size_t maxSize) {
+                           const std::vector<std::string>& trainPaths,
+                           size_t maxSize) {
   size_t size = 0;
   if(vocabPath.empty()) {
     // No vocabulary path was given, attempt to first find a vocabulary

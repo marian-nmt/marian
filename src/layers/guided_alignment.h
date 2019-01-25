@@ -1,53 +1,43 @@
 #pragma once
 
-#include "marian.h"
+#include "layers/loss.h"
 
 namespace marian {
 
-static inline Expr guidedAlignmentCost(Ptr<ExpressionGraph> graph,
-                                       Ptr<data::CorpusBatch> batch,
-                                       Ptr<Options> options,
-                                       Expr att) {
-  int dimBatch = att->shape()[-2];
-  int dimSrc = att->shape()[-3];
-  int dimTrg = att->shape()[-1];
+static inline RationalLoss guidedAlignmentCost(Ptr<ExpressionGraph> graph,
+                                               Ptr<data::CorpusBatch> batch,
+                                               Ptr<Options> options,
+                                               Expr attention) {
 
-  //debug(att, "Attention");
+  // @TODO: there should be positional masking here ... on the other hand, positions that are not 
+  // in a sentence should always agree (both being 0). Lack of masking affects label count only which is 
+  // probably negligible?
 
-  auto aln = graph->constant(att->shape(),
-                             inits::from_vector(batch->getGuidedAlignment()));
-
-  //debug(aln, "Alignment");
-
-  std::string guidedCostType
-      = options->get<std::string>("guided-alignment-cost");
-
-  std::string costType = options->get<std::string>("cost-type");
-
-  int div = 1;
-  if(costType == "ce-mean-words") {
-    div = dimBatch * dimSrc * dimTrg;
-  } else if(costType == "perplexity") {
-    div = dimBatch * dimSrc * dimTrg;
-  } else if(costType == "ce-sum") {
-    div = 1;
-  } else {
-    div = dimBatch;
-  }
-
-  Expr alnCost;
-  float epsilon = 1e-6f;
-  if(guidedCostType == "mse") {
-    alnCost = sum(flatten(square(att - aln))) / (float)(2 * div);
-  } else if(guidedCostType == "mult") {
-    alnCost = -log(sum(flatten(att * aln)) + epsilon) / (float)div;
-  } else if(guidedCostType == "ce") {
-    alnCost = -sum(flatten(aln * log(att + epsilon))) / (float)div;
-  } else {
-    ABORT("Unknown alignment cost type");
-  }
-
+  // @TODO: change "cost" to "loss"
+  std::string guidedLossType = options->get<std::string>("guided-alignment-cost");
   float guidedScalar = options->get<float>("guided-alignment-weight");
-  return guidedScalar * alnCost;
+  
+  float epsilon = 1e-6f;
+  Expr alignment = constant_like(attention, inits::from_vector(batch->getGuidedAlignment()));
+  Expr alignmentLoss; // sum up loss over all attention/alignment positions
+  if(guidedLossType == "mse") {
+    alignmentLoss = sum(flatten(square(attention - alignment))) / 2.f;
+  } else if(guidedLossType == "mult") {
+    alignmentLoss = -log(sum(flatten(attention * alignment)) + epsilon);
+  } else if(guidedLossType == "ce") {
+    alignmentLoss = -sum(flatten(alignment * log(attention + epsilon)));
+  } else {
+    ABORT("Unknown alignment cost type: {}", guidedLossType);
+  }
+  
+  alignmentLoss = guidedScalar * alignmentLoss; // weigh by scalar
+
+  // every position is a label as they should all agree, see caveat at the top.
+  size_t numLabels = alignment->shape().elements();
+  
+  // Create label node, also weigh by scalar so labels and cost are in the same domain.
+  // Fractional label counts are OK
+  return RationalLoss(alignmentLoss, guidedScalar * numLabels);
 }
+
 }  // namespace marian

@@ -16,7 +16,7 @@
 namespace marian {
 
 class DefaultVocab : public VocabBase {
-private:
+protected:
   typedef std::map<std::string, Word> Str2Id;
   Str2Id str2id_;
 
@@ -73,7 +73,7 @@ public:
 
 
   const std::string& operator[](Word id) const override {
-    ABORT_IF(id >= id2str_.size(), "Unknown word id: ", id);
+    ABORT_IF(id >= id2str_.size(), "Unknown word id: {}", id);
     return id2str_[id];
   }
 
@@ -111,8 +111,6 @@ public:
       ABORT_IF(in.bad(), "DefaultVocabulary file {} could not be read", vocabPath);
     }
 
-    std::unordered_set<Word> seenSpecial;
-
     id2str_.reserve(vocab.size());
     for(auto&& pair : vocab) {
       auto str = pair.first;
@@ -125,59 +123,13 @@ public:
     }
     ABORT_IF(id2str_.empty(), "Empty vocabulary: ", vocabPath);
 
-    // look up ids for </s> and <unk>, which are required
-    // The name backCompatStr is alternatively accepted for Yaml vocabs if id
-    // equals backCompatId.
-    auto getRequiredWordId = [&](const std::string& str,
-                                const std::string& backCompatStr,
-                                Word backCompatId) {
-      // back compat with Nematus Yaml dicts
-      if(isJson) {
-        // if word id 0 or 1 is either empty or has the Nematus-convention string,
-        // then use it
-        if(backCompatId < id2str_.size()
-          && (id2str_[backCompatId].empty()
-              || id2str_[backCompatId] == backCompatStr)) {
-          LOG(info,
-              "[data] Using unused word id {} for {}",
-              backCompatStr,
-              backCompatId,
-              str);
-          return backCompatId;
-        }
-      }
-      auto iter = str2id_.find(str);
-      ABORT_IF(iter == str2id_.end(),
-              "DefaultVocabulary file {} is expected to contain an entry for {}",
-              vocabPath,
-              str);
-      return iter->second;
-    };
-    eosId_ = getRequiredWordId(DEFAULT_EOS_STR, NEMATUS_EOS_STR, DEFAULT_EOS_ID);
-    unkId_ = getRequiredWordId(DEFAULT_UNK_STR, NEMATUS_UNK_STR, DEFAULT_UNK_ID);
-
-    // some special symbols for hard attention
-    if(!seenSpecial.empty()) {
-      auto requireWord = [&](Word id, const std::string& str) {
-        auto iter = str2id_.find(str);
-        // word already in vocab: must be at right index, else fail
-        if(iter != str2id_.end())
-          ABORT_IF(iter->second != id,
-                  "special vocabulary entry '{}' is expected to have id {}",
-                  str,
-                  id);
-        else
-          insertWord(id, str);
-      };
-      // @TODO: the hard-att code has not yet been updated to accept EOS at any id
-      requireWord(DEFAULT_EOS_ID, DEFAULT_EOS_STR);
-    }
+    addRequiredVocabulary(vocabPath, isJson);
 
     return std::max(id2str_.size(), maxSize);
   }
 
   // for fakeBatch()
-  void createFake() override {
+  virtual void createFake() override {
     eosId_ = insertWord(DEFAULT_EOS_ID, DEFAULT_EOS_STR);
     unkId_ = insertWord(DEFAULT_UNK_ID, DEFAULT_UNK_STR);
   }
@@ -213,6 +165,39 @@ public:
 
 private:
 
+  virtual void addRequiredVocabulary(const std::string& vocabPath, bool isJson) {
+    // look up ids for </s> and <unk>, which are required
+    // The name backCompatStr is alternatively accepted for Yaml vocabs if id
+    // equals backCompatId.
+    auto getRequiredWordId = [&](const std::string& str,
+                                const std::string& backCompatStr,
+                                Word backCompatId) {
+      // back compat with Nematus Yaml dicts
+      if(isJson) {
+        // if word id 0 or 1 is either empty or has the Nematus-convention string,
+        // then use it
+        if(backCompatId < id2str_.size()
+          && (id2str_[backCompatId].empty()
+              || id2str_[backCompatId] == backCompatStr)) {
+          LOG(info,
+              "[data] Using unused word id {} for {}",
+              backCompatStr,
+              backCompatId,
+              str);
+          return backCompatId;
+        }
+      }
+      auto iter = str2id_.find(str);
+      ABORT_IF(iter == str2id_.end(),
+              "DefaultVocabulary file {} is expected to contain an entry for {}",
+              vocabPath,
+              str);
+      return iter->second;
+    };
+    eosId_ = getRequiredWordId(DEFAULT_EOS_STR, NEMATUS_EOS_STR, DEFAULT_EOS_ID);
+    unkId_ = getRequiredWordId(DEFAULT_UNK_STR, NEMATUS_UNK_STR, DEFAULT_UNK_ID);
+  }
+
   void addCounts(std::unordered_map<std::string, size_t>& counter,
                  const std::string& trainPath) {
     std::unique_ptr<io::InputFileStream> trainStrm(
@@ -234,9 +219,9 @@ private:
     }
   }
 
-  void create(const std::string& vocabPath,
-              const std::unordered_map<std::string, size_t>& counter,
-              size_t maxSize = 0) {
+  virtual void create(const std::string& vocabPath,
+                      const std::unordered_map<std::string, size_t>& counter,
+                      size_t maxSize = 0) {
 
     std::vector<std::string> vocabVec;
     for(auto& p : counter)
@@ -296,8 +281,45 @@ private:
   };
 };
 
+// This is a vocabulary class that does not enforce </s> or <unk>.
+// This is used for class lists in a classifier.
+class ClassVocab : public DefaultVocab {
+private:
+  // Do nothing.
+  virtual void addRequiredVocabulary(const std::string& vocabPath, bool isJson) override {}
+
+  // Not adding special class labels, only seen classes.
+  virtual void create(const std::string& vocabPath,
+                      const std::unordered_map<std::string, size_t>& counter,
+                      size_t maxSize = 0) override {
+
+    std::vector<std::string> vocabVec;
+    for(auto& p : counter)
+      vocabVec.push_back(p.first);
+    std::sort(vocabVec.begin(), vocabVec.end(), VocabFreqOrderer(counter));
+
+    ABORT_IF(maxSize != 0 && vocabVec.size() != maxSize,
+             "Class vocab maxSize given ({}) has to match class vocab size ({})",
+             maxSize, vocabVec.size());
+
+    YAML::Node vocabYaml;
+    for(size_t i = 0; i < vocabVec.size(); ++i)
+      vocabYaml.force_insert(vocabVec[i], i);
+
+    std::unique_ptr<io::OutputFileStream> vocabStrm(
+      vocabPath == "stdout" ? new io::OutputFileStream(std::cout)
+                            : new io::OutputFileStream(vocabPath)
+    );
+    *vocabStrm << vocabYaml;
+  }
+};
+
 Ptr<VocabBase> createDefaultVocab() {
   return New<DefaultVocab>();
+}
+
+Ptr<VocabBase> createClassVocab() {
+  return New<ClassVocab>();
 }
 
 }
