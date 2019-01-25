@@ -290,7 +290,7 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
         ("original-type", type)
             .push_back(models::encoder()("type", "char-s2s"))
             .push_back(models::decoder()("type", "s2s"))
-            .construct();
+            .construct(graph);
   }
 #endif
 
