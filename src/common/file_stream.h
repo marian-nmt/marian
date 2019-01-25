@@ -206,8 +206,6 @@ private:
   boost::iostreams::file_descriptor_source fds_;
   mutable std::vector<char> readBuf_; // for setbuf()
   std::unique_ptr<boost::iostreams::stream_buffer<boost::iostreams::file_descriptor_source>> fdsBuffer_;
-
-
 };
 
 // wrapper around std::getline() that handles Windows input files with extra CR

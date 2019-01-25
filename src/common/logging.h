@@ -21,6 +21,16 @@ namespace marian {
  */
 #define LOG(level, ...) checkedLog("general", #level, __VA_ARGS__)
 
+// variant that prints the log message only upon the first time the call site is executed
+#define LOG_ONCE(level, ...) do { \
+  static bool logged = false;     \
+  if (!logged)                    \
+  {                               \
+    logged = true;                \
+    LOG(level, __VA_ARGS__);      \
+  }                               \
+} while(0)
+
 /**
  * Prints logging message regarding validation into stderr and a file specified
  * with `--valid-log` option.

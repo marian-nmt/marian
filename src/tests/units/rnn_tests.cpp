@@ -43,13 +43,13 @@ void tests(DeviceType type) {
     auto input = graph->constant({4, 1, 4},
                                  inits::glorot_uniform);
 
-    auto rnn = rnn::rnn(graph)         //
-          ("prefix", "rnntest")        //
-          ("type", "tanh")             //
-          ("dimInput", 4)              //
-          ("dimState", 4)              //
-          .push_back(rnn::cell(graph)) //
-          .construct();
+    auto rnn = rnn::rnn()         //
+          ("prefix", "rnntest")   //
+          ("type", "tanh")        //
+          ("dimInput", 4)         //
+          ("dimState", 4)         //
+          .push_back(rnn::cell()) //
+          .construct(graph);
 
     auto output = rnn->transduce(input);
 
@@ -117,7 +117,7 @@ void tests(DeviceType type) {
       auto backward = type == "alternating" ? rnn::dir::alternating_backward
                                             : rnn::dir::backward;
 
-      auto rnnFw = rnn::rnn(graph)           //
+      auto rnnFw = rnn::rnn()                //
           ("type", cellType)                 //
           ("direction", forward)             //
           ("dimInput", dimEmb)               //
@@ -126,7 +126,7 @@ void tests(DeviceType type) {
           ("skip", skip);
 
       for(int i = 1; i <= first; ++i) {
-        auto stacked = rnn::stacked_cell(graph);
+        auto stacked = rnn::stacked_cell();
         for(int j = 1; j <= cellDepth; ++j) {
           std::string paramPrefix = prefix + "_bi";
           if(i > 1)
@@ -134,21 +134,22 @@ void tests(DeviceType type) {
           if(i > 1 || j > 1)
             paramPrefix += "_cell" + std::to_string(j);
 
-          stacked.push_back(rnn::cell(graph)("prefix", paramPrefix));
+          stacked.push_back(rnn::cell()("prefix", paramPrefix));
         }
         rnnFw.push_back(stacked);
       }
 
-      auto rnnBw = rnn::rnn(graph)            //
-          ("type", cellType)                  //
-          ("direction", backward)             //
-          ("dimInput", dimEmb)                //
-          ("dimState", dimRnn)                //
-          ("layer-normalization", layerNorm)  //
+
+      auto rnnBw = rnn::rnn()                //
+          ("type", cellType)                 //
+          ("direction", backward)            //
+          ("dimInput", dimEmb)               //
+          ("dimState", dimRnn)               //
+          ("layer-normalization", layerNorm) //
           ("skip", skip);
 
       for(int i = 1; i <= first; ++i) {
-        auto stacked = rnn::stacked_cell(graph);
+        auto stacked = rnn::stacked_cell();
         for(int j = 1; j <= cellDepth; ++j) {
           std::string paramPrefix = prefix + "_bi_r";
           if(i > 1)
@@ -156,13 +157,13 @@ void tests(DeviceType type) {
           if(i > 1 || j > 1)
             paramPrefix += "_cell" + std::to_string(j);
 
-          stacked.push_back(rnn::cell(graph)("prefix", paramPrefix));
+          stacked.push_back(rnn::cell()("prefix", paramPrefix));
         }
         rnnBw.push_back(stacked);
       }
 
-      auto context = concatenate({rnnFw->transduce(input, mask),
-                                  rnnBw->transduce(input, mask)},
+      auto context = concatenate({rnnFw.construct(graph)->transduce(input, mask),
+                                  rnnBw.construct(graph)->transduce(input, mask)},
                                   /*axis =*/ input->shape().size() - 1);
 
       if(second > 0) {
@@ -170,25 +171,25 @@ void tests(DeviceType type) {
         // previous bidirectional RNN through multiple layers
 
         // construct RNN first
-        auto rnnUni = rnn::rnn(graph)           //
-            ("type", cellType)                  //
-            ("dimInput", 2 * dimRnn)            //
-            ("dimState", dimRnn)                //
-            ("layer-normalization", layerNorm)  //
+        auto rnnUni = rnn::rnn()               //
+            ("type", cellType)                 //
+            ("dimInput", 2 * dimRnn)           //
+            ("dimState", dimRnn)               //
+            ("layer-normalization", layerNorm) //
             ("skip", skip);
 
         for(int i = first + 1; i <= second + first; ++i) {
-          auto stacked = rnn::stacked_cell(graph);
+          auto stacked = rnn::stacked_cell();
           for(int j = 1; j <= cellDepth; ++j) {
             std::string paramPrefix = prefix + "_l" + std::to_string(i) + "_cell"
                                       + std::to_string(j);
-            stacked.push_back(rnn::cell(graph)("prefix", paramPrefix));
+            stacked.push_back(rnn::cell()("prefix", paramPrefix));
           }
           rnnUni.push_back(stacked);
         }
 
         // transduce context to new context
-        context = rnnUni->transduce(context);
+        context = rnnUni.construct(graph)->transduce(context);
       }
       return context;
     };

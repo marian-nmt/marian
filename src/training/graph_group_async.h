@@ -52,10 +52,10 @@ protected:
   void execute(Ptr<data::Batch> batch);
 
 public:
-  AsyncGraphGroup(Ptr<Options> config);
+  AsyncGraphGroup(Ptr<Options> config, Ptr<IMPIWrapper> mpi);
 
   void update(Ptr<data::Batch> batch) override {
-    ABORT_IF(finalized_, "Training has already finished");
+    validate();
     execute(batch);
   }
 
@@ -63,8 +63,9 @@ public:
   void save(bool final = false) override;
   void save(Ptr<ExpressionGraph>, bool final = false);
 
-  Ptr<data::BatchStats> collectStats() {
-    return GraphGroup::collectStats(graphs_[0], builders_[0]);
+  // @TODO: give it a fake batch generator which own vocabs instead of passing vocabs
+  Ptr<data::BatchStats> collectStats(const std::vector<Ptr<Vocab>>& vocabs) {
+    return GraphGroup::collectStats(graphs_[0], builders_[0], vocabs);
   }
 
   virtual void finalize() override;

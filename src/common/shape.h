@@ -12,6 +12,22 @@
 
 namespace marian {
 
+struct Slice // Python-like slice/index descriptor
+{
+  Slice(int b, int e, int s) : begin(b), end(e), stride(s) {}
+  Slice(int b, int e) : Slice(b, e, 1) {}
+  Slice() : Slice(0, END) {}
+  explicit Slice(int i) : Slice(i, i + 1) {}
+  Slice(const Slice& other) : Slice(other.begin, other.end, other.stride) {}
+  const Slice& operator=(const Slice& other) { begin = other.begin; end = other.end; stride = other.stride; return *this; }
+  const Slice& operator=(int i) { begin = i; end = i + 1; stride = 1; return *this; }
+  bool operator==(const Slice& other) const { return begin == other.begin && end == other.end && stride == other.stride; }
+  bool operator!=(const Slice& other) const { return !(*this == other); }
+  /*const*/ int begin, end, stride;
+  static const int END = INT_MAX;
+};
+typedef std::vector<Slice> Slices;
+
 struct Shape {
 private:
   std::vector<int> shape_;
@@ -145,6 +161,17 @@ public:
       return (int)size() + ax;
     else
       return ax;
+  }
+
+  Slice slice(Slice slice, int ax) const { // interpret negative and special values in Slice
+    int n = dim(ax);
+    if (slice.begin < 0)
+      slice.begin += n;
+    if (slice.end < 0)
+      slice.end += n;
+    else if (slice.end == Slice::END)
+      slice.end = n;
+    return slice;
   }
 
   static Shape broadcast(const std::vector<Shape>& shapes) {

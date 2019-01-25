@@ -1,4 +1,4 @@
-#include "encoder_decoder.h"
+#include "models/encoder_decoder.h"
 #include "common/cli_helper.h"
 #include "common/version.h"
 
@@ -42,6 +42,7 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
   modelFeatures_.insert("transformer-decoder-autoreg");
   modelFeatures_.insert("transformer-tied-layers");
   modelFeatures_.insert("transformer-guided-alignment-layer");
+  modelFeatures_.insert("transformer-train-positions");
 }
 
 std::vector<Ptr<EncoderBase>>& EncoderDecoder::getEncoders() {
@@ -181,16 +182,16 @@ Ptr<DecoderState> EncoderDecoder::stepAll(Ptr<ExpressionGraph> graph,
   return nextState;
 }
 
-Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
-                           Ptr<data::CorpusBatch> batch,
-                           bool clearGraph) {
+Ptr<RationalLoss> EncoderDecoder::build(Ptr<ExpressionGraph> graph,
+                                        Ptr<data::CorpusBatch> batch,
+                                        bool clearGraph) {
   auto state = stepAll(graph, batch, clearGraph);
 
   // returns raw logits
-  return state->getLogProbs();
+  return New<RationalLoss>(state->getLogProbs(), state->getTargetMask()); // @TODO: hacky hack hack
 }
 
-Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
+Ptr<RationalLoss> EncoderDecoder::build(Ptr<ExpressionGraph> graph,
                            Ptr<data::Batch> batch,
                            bool clearGraph) {
   auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);

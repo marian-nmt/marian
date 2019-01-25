@@ -74,7 +74,7 @@ public:
     }
   }
 
-  void free(Tensor& t) { allocator_->free(t->memory()); }
+  void free(const Tensor& t) { allocator_->free(t->memory()); }
 
   Tensor asTensor() {
     auto mem = allocator_->memory();

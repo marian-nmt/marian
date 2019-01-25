@@ -13,6 +13,12 @@ const int MAX_BLOCKS = 65535;
         "CUDA error {} '{}' - {}:{}: {}", rc, cudaGetErrorString(rc),  __FILE__, __LINE__, #expr); \
 } while(0)
 
+#define CUBLAS_CHECK(expr) do {                                              \
+  cublasStatus_t rc = (expr);                                                \
+  ABORT_IF(rc != CUBLAS_STATUS_SUCCESS,                                      \
+           "Cublas Error: {} - {}:{}: {}", rc, __FILE__, __LINE__, #expr);   \
+} while(0)
+
 #define CUSPARSE_CHECK(expr) do {                                              \
   cusparseStatus_t rc = (expr);                                                \
   ABORT_IF(rc != CUSPARSE_STATUS_SUCCESS,                                      \
