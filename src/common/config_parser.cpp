@@ -399,7 +399,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   // add ULR settings
   addSuboptionsULR(cli);
 
-  cli.add<std::vector<std::string>>("--problem",
+  cli.add<std::vector<std::string>>("--task",
      "Use predefined set of options. Possible values: transformer, transformer-big");
   // clang-format on
 }
@@ -672,7 +672,7 @@ void ConfigParser::addAliases(cli::CLIWrapper& cli) {
     config["skip"] = true;
   });
 
-  cli.alias("problem", "transformer", [](YAML::Node& config) {
+  cli.alias("task", "transformer", [](YAML::Node& config) {
     config["type"] = "transformer";
     config["enc-depth"] = 6;
     config["dec-depth"] = 6;
@@ -686,7 +686,7 @@ void ConfigParser::addAliases(cli::CLIWrapper& cli) {
     config["clip-norm"] = 5;
   });
 
-  cli.alias("problem", "transformer-big", [](YAML::Node& config) {
+  cli.alias("task", "transformer-big", [](YAML::Node& config) {
     config["type"] = "transformer";
     config["enc-depth"] = 6;
     config["dec-depth"] = 6;
