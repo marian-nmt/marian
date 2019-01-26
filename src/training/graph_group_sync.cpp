@@ -453,7 +453,7 @@ void SyncGraphGroup::load() /*override*/ {
           comm_->scatterState(optimizerStateVector, setShardFn);
         });
       LOG(info, "[training] Model reloaded from {}", name);
-    } else if(options_->nonempty("pretrained-model")) {
+    } else if(options_->hasAndNotEmpty("pretrained-model")) {
       std::string nameInit = options_->get<std::string>("pretrained-model");
       LOG(info,
           "[training] Initializing model weights with the pre-trained model {}",

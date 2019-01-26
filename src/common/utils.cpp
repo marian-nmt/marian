@@ -147,8 +147,7 @@ std::string toUpper(const std::string& s) {
 
 double parseDouble(std::string s) {
   double res;
-  char c;  // dummy char -- if we succeed to parse this, then there were extraneous characters after
-           // the number
+  char c;  // dummy char -- if we succeed to parse this, then there were extraneous characters after the number
   auto rc = sscanf(s.c_str(), "%lf%c", &res, &c);
   ABORT_IF(rc != 1, "Mal-formed number: {}", s);
   return res;
@@ -160,9 +159,9 @@ double parseNumber(std::string param) {
   double factor = 1.;
   if(!param.empty() && param.back() >= 'A') {
     switch(param.back()) {
-      case 'k': factor = 1.e3; break;
-      case 'M': factor = 1.e6; break;
-      case 'G': factor = 1.e9; break;
+      case 'k': factor = 1.e3;  break;
+      case 'M': factor = 1.e6;  break;
+      case 'G': factor = 1.e9;  break;
       case 'T': factor = 1.e12; break;
       default: ABORT("Invalid or unsupported unit prefix '{}' in {}", param.back(), param);
     }
