@@ -62,6 +62,9 @@ while found:
             found = True
             break
 
+if config["enc-depth"] != bertConfig["num_hidden_layers"]:
+    sys.exit("Number of layers in JSON config (%s) and number of layers found in checkpoint (%s) do not match!" % (config["enc-depth"], bertConfig["num_hidden_layers"]))
+
 configYamlStr = yaml.dump(config, default_flow_style=False)
 desc = list(configYamlStr)
 npDesc = np.chararray((len(desc),))
