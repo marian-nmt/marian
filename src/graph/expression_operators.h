@@ -17,6 +17,9 @@ Expr sigmoid(const std::vector<Expr>&);
 Expr swish(Expr a);
 Expr swish(const std::vector<Expr>&);
 
+Expr gelu(Expr a);
+Expr gelu(const std::vector<Expr>&);
+
 Expr tanh(const std::vector<Expr>&);
 
 template <typename... Args>

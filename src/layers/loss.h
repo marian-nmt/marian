@@ -331,6 +331,7 @@ protected:
 
   virtual Expr compute(Expr logits, Expr labelIndices,
                        Expr mask = nullptr, Expr labelWeights = nullptr) override {
+    logits = atleast_3d(logits); // safeguard against 2d classifier output, adds 1 on the left, non-op.
     Expr ce = cross_entropy(logits, labelIndices);
 
     if(labelSmoothing_ > 0) {

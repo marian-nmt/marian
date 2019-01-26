@@ -144,7 +144,7 @@ public:
     int dimBatch = subBatch->batchSize();
     int dimWords = subBatch->batchWidth();
 
-    int maxSentPos = 2; // Currently only two sentences allowed A at [0] and B at [1] and padding at [2]
+    int maxSentPos = 1; // Currently only two sentences allowed A at [0] and B at [1] and padding at [2]
     // If another separator is seen do not increase position index beyond 2 but use padding.
     // @TODO: make this configurable, see below for NextSentencePredictions task where we also restrict to 2.
 
@@ -231,7 +231,7 @@ public:
     if(learnedPosEmbeddings) {
       auto sentenceEmbeddings = embedding()
                                ("prefix", "Wsent")
-                               ("dimVocab", 3) // sentence A or sentence B plus padding, @TODO: should rather be a parameter
+                               ("dimVocab", 2) // sentence A or sentence B plus padding, @TODO: should rather be a parameter
                                ("dimEmb", dimEmb)
                                .construct(graph_);
       signal = sentenceEmbeddings->apply(bertBatch->bertSentenceIndices(), {dimWords, dimBatch, dimEmb});
@@ -327,23 +327,23 @@ public:
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
-    std::string activationType = opt<std::string>("transformer-ffn-activation");
-    mlp::act activation;
-    if(activationType == "relu")
-      activation = mlp::act::ReLU;
-    else if(activationType == "swish")
-      activation = mlp::act::swish;
-    else
-      ABORT("Activation function {} not supported in BERT masked LM", activationType);
-
     auto layer1 = mlp::mlp()
       .push_back(mlp::dense()
                  ("prefix", prefix_ + "_ff_logit_l1")
-                 ("dim", dimModel)
-                 ("activation", activation))
+                 ("dim", dimModel))
                  .construct(graph);
 
     auto intermediate = layer1->apply(maskedContext);
+
+    std::string activationType = opt<std::string>("transformer-ffn-activation");
+    if(activationType == "relu")
+      intermediate = relu(intermediate);
+    else if(activationType == "swish")
+      intermediate = swish(intermediate);
+    else if(activationType == "gelu")
+      intermediate = gelu(intermediate);
+    else
+      ABORT("Activation function {} not supported in BERT masked LM", activationType);
 
     auto gamma = graph->param(prefix_ + "_ff_ln_scale", {1, dimModel}, inits::ones);
     auto beta  = graph->param(prefix_ + "_ff_ln_bias",  {1, dimModel}, inits::zeros);

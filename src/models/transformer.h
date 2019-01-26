@@ -375,6 +375,8 @@ public:
       return (ActivationFunction*)relu;
     else if (actName == "swish")
       return (ActivationFunction*)swish;
+    else if (actName == "gelu")
+      return (ActivationFunction*)gelu;
     ABORT("Invalid activation name '{}'", actName);
   }
 
