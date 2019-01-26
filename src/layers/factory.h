@@ -7,11 +7,12 @@ namespace marian {
 class Factory : public std::enable_shared_from_this<Factory> {
 protected:
   Ptr<Options> options_;
-  Ptr<ExpressionGraph> graph_;
 
 public:
-  Factory(Ptr<ExpressionGraph> graph)
-      : options_(New<Options>()), graph_(graph) {}
+  Factory() : options_(New<Options>()) {}
+  Factory(Ptr<Options> options) : Factory() {
+    options_->merge(options);
+  }
 
   virtual ~Factory() {}
 
@@ -30,13 +31,20 @@ public:
   }
 };
 
+// simplest form of Factory that just passes on options to the constructor of a layer type
+template<class Class>
+struct ConstructingFactory : public Factory {
+  Ptr<Class> construct(Ptr<ExpressionGraph> graph) {
+    return New<Class>(graph, options_);
+  }
+};
+
 template <class BaseFactory>
 class Accumulator : public BaseFactory {
   typedef BaseFactory Factory;
 
 public:
-  Accumulator() : Factory(nullptr) {}
-  Accumulator(Ptr<ExpressionGraph> graph) : Factory(graph) {}
+  Accumulator() : Factory() {}
   Accumulator(const Factory& factory) : Factory(factory) {}
   Accumulator(const Accumulator&) = default;
   Accumulator(Accumulator&&) = default;

@@ -39,14 +39,26 @@ public:
     return it->second;
   }
 
-  void add(Ptr<data::CorpusBatch> batch, size_t multiplier = 1) {
+  void add(Ptr<data::CorpusBatch> batch, double multiplier = 1.) {
     std::vector<size_t> lengths;
     for(size_t i = 0; i < batch->sets(); ++i)
       lengths.push_back((*batch)[i]->batchWidth());
-    size_t batchSize = batch->size() * multiplier;
+    size_t batchSize = (size_t)ceil((double)batch->size() * multiplier);
 
     if(map_[lengths] < batchSize)
       map_[lengths] = batchSize;
+  }
+
+  // return a rough minibatch size in labels
+  // We average over all (batch sizes * max trg length).
+  size_t estimateTypicalTrgWords() const {
+    size_t sum = 0;
+    for (const auto& entry : map_) {
+      auto maxTrgLength = entry.first.back();
+      auto numSentences = entry.second;
+      sum += numSentences * maxTrgLength;
+    }
+    return sum / map_.size();
   }
 
   // helpers for multi-node  --note: presently unused, but keeping them around for later use

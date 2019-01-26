@@ -10,10 +10,8 @@ void SingletonGraph::setScheduler(Ptr<Scheduler> scheduler) {
 }
 
 void SingletonGraph::execute(Ptr<data::Batch> batch) {
-  auto costNode = builder_->build(graph_, batch);
-
+  auto lossNode = builder_->build(graph_, batch);
   graph_->forward();
-  float cost = costNode->scalar();
   graph_->backward();
 
   // Get batch stats
@@ -34,7 +32,7 @@ void SingletonGraph::execute(Ptr<data::Batch> batch) {
   }
 
   if(scheduler_) {
-    scheduler_->update(cost, batch);
+    scheduler_->update(*lossNode, batch);
 
     if(scheduler_->validating()) {
       if(mvAvg_) {

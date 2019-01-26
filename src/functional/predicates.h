@@ -98,15 +98,12 @@ BINARY(Div, operator/, x / y);
 
 BINARY(LogAddExp,
        logaddexp,
-       (/*if*/ (x < y)
-            ?  // Note: This may not be ideal for CUDA; cf. CNTK implementation
-            (y + log1pf(expf(x - y)))
-            /*else*/
-            : (x + log1pf(expf(y - x)))));
-BINARY(Maximum,
-       max,
-       (x > y) ? y : x);  // note: std::max not available on CUDA it seems
-BINARY(Minimum, min, (x < y) ? y : x);
+       (/*if*/ (x < y) ?  // Note: This may not be ideal for CUDA; cf. CNTK implementation
+          (y + log1pf(expf(x - y)))
+        /*else*/ :
+          (x + log1pf(expf(y - x)))));
+BINARY(Maximum, max, (x > y) ? x : y);  // Note: std::max not available on CUDA it seems
+BINARY(Minimum, min, (x < y) ? x : y);
 
 UNARY(Negate, operator!, !x);
 BINARY(Eq, operator==, x == y);

@@ -2,6 +2,7 @@
 
 #include "common/definitions.h"
 #include "common/filesystem.h"
+#include "common/utils.h"
 
 #include <fstream>
 #include <vector>
@@ -42,7 +43,9 @@ struct SchedulingParameter {
       }
       param.pop_back();
     }
-    res.n = (size_t)std::stoull(param);
+    double number = utils::parseNumber(param);
+    res.n = (size_t)number;
+    ABORT_IF(number != (double)res.n, "Scheduling parameters must be whole numbers");
     return res;
   }
 
@@ -62,9 +65,9 @@ class TrainingState {
 public:
   // Current epoch
   size_t epochs{1};
-  // The total number of batches (=updates) processed since beginning of training   --@TODO: rename to 'updates'
+  // The total number of updates since beginning of training   --@TODO: rename to 'updates'
   size_t batches{0};
-  // The number of batches seen in this epoch  --@TODO: rename to 'updatesEpoch' or 'updatesInCurrentEpoch'
+  // The number of batches seen in this epoch  --note: not updates; an update can consist of multiple batches
   size_t batchesEpoch{0};
   // The number of sentences seen in this epoch  --@TODO: rename to 'sentencesEpoch'
   size_t samplesEpoch{0};
@@ -86,19 +89,27 @@ public:
   // Reset optimizer parameters
   bool reset{false};
 
-  // Learning rate
+  // Current learning rate, representing all adjustment processes and factors
   float eta;
-  // Multiplication factor for learning rate
+  void updateEta(float dynamicBaseLR) { // note: no other function may write to 'eta' (besides load())
+    eta = dynamicBaseLR * factor;
+  }
+  // State-based multiplication factor for learning rate
   float factor{1.f};
   SchedulingParameter warmupStart; // has same unit as lr-warmup
 
   // Sum of costs since last display
   float costSum{0};
-  // Number of words/labels/samples (depending on cost-type) aggregated in
+  // Number of labels aggregated in
   // costSum since last display
   size_t costCount{0};
-  // Number of words seen since last display, for speed measurement
+
+  // Number of words seen since last display
   size_t wordsDisp{0};
+  // Number of samples/sentences seen since last display
+  size_t samplesDisp{0};
+  // Number of updates seen since last display
+  size_t updatesDisp{0};
 
   // The state of the random number generator from a batch generator
   std::string seedBatch;
@@ -111,7 +122,9 @@ public:
   // Set flag if the model was validated in the current batch
   bool validated{false};
 
-  TrainingState(float learnRate) : eta(learnRate) {}
+  TrainingState(float learnRate) {
+    updateEta(learnRate);
+  }
 
   void registerObserver(Ptr<TrainingObserver> observer) {
     observers_.push_back(observer);
@@ -172,9 +185,9 @@ public:
     batchesEpoch = 0;
   }
 
-  void newBatch() {
+  void newUpdate(size_t batchesInUpdate) {
     ++batches;
-    ++batchesEpoch;
+    batchesEpoch += batchesInUpdate;
     loaded = false;
     validated = false;
     for(auto observer : observers_)
@@ -224,9 +237,11 @@ public:
     warmupStart = SchedulingParameter::parse(config["warmup-start"].as<std::string>());
 
     costSum = config["cost-sum"].as<float>();
-    // (different serialization name for back compat)
-    costCount = config["disp-samples"].as<size_t>();
+    costCount = config["cost-count"].as<size_t>();
+
     wordsDisp = config["disp-words"].as<size_t>();
+    samplesDisp = config["disp-samples"].as<size_t>();
+    updatesDisp = config["disp-updates"].as<size_t>();
 
     seedBatch = config["seed-batch"].as<std::string>();
     seedCorpus = config["seed-corpus"].as<std::string>();
@@ -257,7 +272,10 @@ public:
     config["warmup-start"] = std::string(warmupStart);
 
     config["cost-sum"] = costSum;
-    config["disp-samples"] = costCount;
+    config["cost-count"] = costCount;
+
+    config["disp-updates"] = updatesDisp;
+    config["disp-samples"] = samplesDisp;
     config["disp-words"] = wordsDisp;
 
     config["seed-batch"] = seedBatch;

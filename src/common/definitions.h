@@ -51,8 +51,16 @@ struct DeviceId {
   DeviceId() : no{0}, type{DeviceType::gpu} {}
   DeviceId(size_t no_, DeviceType type_) : no(no_), type(type_) {}
 
+  std::string typeAsString() const {
+    return (type == DeviceType::gpu ? "gpu" : "cpu");
+  }
+
+  operator std::string() const {
+    return typeAsString() + std::to_string(no);
+  }
+
   friend std::ostream& operator<<(std::ostream& out, DeviceId deviceId) {
-    out << (deviceId.type == DeviceType::gpu ? "gpu" : "cpu") << deviceId.no;
+    out << std::string(deviceId);
     return out;
   }
 

@@ -99,4 +99,31 @@ public:
 
   virtual void blacklist(Expr /*totalCosts*/, Ptr<data::CorpusBatch> /*batch*/) {}
 };
+
+/**
+ * Classifier output based on DecoderState
+ * @TODO: should be unified with DecoderState or not be used at all as Classifier do not really have stateful output.
+ */
+class ClassifierState {
+private:
+  Expr logProbs_;
+  std::vector<Ptr<EncoderState>> encStates_;
+  Ptr<data::CorpusBatch> batch_;
+
+  Expr targetMask_;
+  Expr targetIndices_;
+
+public:
+  virtual Expr getLogProbs() const { return logProbs_; }
+  virtual void setLogProbs(Expr logProbs) { logProbs_ = logProbs; }
+
+  virtual Expr getTargetIndices() const { return targetIndices_; };
+
+  virtual void setTargetIndices(Expr targetIndices) { targetIndices_ = targetIndices; }
+
+  virtual Expr getTargetMask() const { return targetMask_; };
+
+  virtual void setTargetMask(Expr targetMask) { targetMask_ = targetMask; }
+};
+
 }  // namespace marian

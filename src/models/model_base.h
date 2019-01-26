@@ -2,6 +2,7 @@
 
 #include <string>
 #include "marian.h"
+#include "layers/loss.h"
 
 namespace marian {
 namespace models {
@@ -26,9 +27,9 @@ public:
                     bool saveTranslatorConfig = false)
       = 0;
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::Batch> batch,
-                     bool clearGraph = true)
+  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::Batch> batch,
+                                  bool clearGraph = true)
       = 0;
 
   virtual void clear(Ptr<ExpressionGraph> graph) = 0;
