@@ -92,6 +92,7 @@ public:
     : options_(options),
       prefix_(options->get<std::string>("prefix", "")),
       inference_(options->get<bool>("inference", false)) {
+
     modelFeatures_ = {"type",
                     "dim-vocabs",
                     "dim-emb",
@@ -128,7 +129,9 @@ public:
     modelFeatures_.insert("transformer-decoder-autoreg");
     modelFeatures_.insert("transformer-tied-layers");
     modelFeatures_.insert("transformer-guided-alignment-layer");
-    modelFeatures_.insert("transformer-train-positions");
+    modelFeatures_.insert("transformer-train-position-embeddings");
+    modelFeatures_.insert("bert-train-type-embeddings");
+    modelFeatures_.insert("bert-type-vocab-size");
   }
 
   virtual Ptr<Options> getOptions() override { return options_; }

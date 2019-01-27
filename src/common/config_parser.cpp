@@ -200,13 +200,16 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
   cli.add<std::string>("--transformer-postprocess",
       "Operation after each transformer layer: d = dropout, a = add, n = normalize",
       "dan");
-  cli.add<bool>("--transformer-train-positions",
+  cli.add<bool>("--transformer-train-position-embeddings",
       "Train positional embeddings instead of using static sinusoidal embeddings");
 
   cli.add<std::string>("--bert-mask-symbol", "Masking symbol for BERT masked-LM training", "[MASK]");
   cli.add<std::string>("--bert-sep-symbol", "Sentence separator symbol for BERT next sentence prediction training", "[SEP]");
   cli.add<std::string>("--bert-class-symbol", "Class symbol BERT classifier training", "[CLS]");
   cli.add<float>("--bert-masking-fraction", "Fraction of masked out tokens during training", 0.15);
+  cli.add<bool>("--bert-train-type-embeddings", "Train bert type embeddings, set to false to use static sinusoidal embeddings", true);
+  cli.add<int>("--bert-type-vocab-size", "Size of BERT type vocab (sentence A and B)", 2);
+
 #ifdef CUDNN
   cli.add<int>("--char-stride",
       "Width of max-pooling layer after convolution layer in char-s2s model",

@@ -44,11 +44,12 @@ config["transformer-dim-ffn"] = tfModel["bert/encoder/layer_0/intermediate/dense
 config["transformer-ffn-activation"] = bertConfig["hidden_act"]
 config["transformer-ffn-depth"] = 2
 config["transformer-heads"] = bertConfig["num_attention_heads"]
-config["transformer-train-positions"] = True
-config["transformer-token-types"] = tfModel["bert/embeddings/token_type_embeddings:0"].shape[0]
+config["transformer-train-position-embeddings"] = True
 config["transformer-preprocess"] = ""
 config["transformer-postprocess"] = "dan"
 config["transformer-postprocess-emb"] = "nd"
+config["bert-train-type-embeddings"] = True
+config["bert-type-vocab-size"] = tfModel["bert/embeddings/token_type_embeddings:0"].shape[0]
 config["version"] = "bert4marian.py conversion"
 
 # check number of layers
@@ -78,7 +79,7 @@ marianModel["special:model.yml"] = npDesc
 # Embedding layers
 marianModel["Wemb"]  = tfModel["bert/embeddings/word_embeddings:0"]
 marianModel["Wpos"]  = tfModel["bert/embeddings/position_embeddings:0"]
-marianModel["Wsent"] = tfModel["bert/embeddings/token_type_embeddings:0"]
+marianModel["Wtype"] = tfModel["bert/embeddings/token_type_embeddings:0"]
 marianModel["encoder_emb_ln_scale_pre"] = tfModel["bert/embeddings/LayerNorm/gamma:0"]
 marianModel["encoder_emb_ln_bias_pre"]  = tfModel["bert/embeddings/LayerNorm/beta:0"]
 
