@@ -10,6 +10,10 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Options> config, Ptr<IMPIWrapper> mpi)
   for(auto device : devices_) {
     auto graph = New<ExpressionGraph>();
     graph->setDevice(device);
+
+    if(options_->get<bool>("check-nan"))
+      graph->setThrowNan(true);
+
     graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
     graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
 
@@ -366,7 +370,7 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
       bool hasNan = false, hasInf = false;
       IsNan(graph->params()->grads(), graph->allocator(), hasNan, hasInf, /*zero=*/true);
       if(hasNan || hasInf) {
-        LOG(warn, "Seen Nan ({}) or Inf ({}) in gradient, zeroed offending gradient", hasNan, hasInf);
+        LOG(warn, "Seen Nan ({}) or Inf ({}) in gradient, zeroed out offending gradient", hasNan, hasInf);
       }
     }
   });
@@ -408,6 +412,8 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
   for(auto& l : localDeviceLosses) // localDeviceLosses is already summed up over delay steps
     if(std::isfinite((float)l.loss))
       localLoss += l;
+    else 
+      LOG(warn, "Seen non-finite loss, offending gradients have been zeroed out");
 
   if(scheduler_) {
     // track and log localLoss
