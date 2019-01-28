@@ -43,6 +43,12 @@ io::Item itemFromTensor(Tensor t, const std::string name, Ptr<Backend> backend) 
   return item;
 }
 
+void recChildren(Expr node, std::vector<io::Item>& items, Ptr<Backend> backend) {
+  items.push_back(itemFromTensor(node->val(), "node" + std::to_string(node->getId()), backend));
+  for(auto&& child : node->children())
+    recChildren(child, items, backend);
+}
+
 void ExpressionGraph::forwardNext() {
   // @TODO: check if allocation works properly
   tensors_->clearShorttermMemory();
@@ -57,22 +63,20 @@ void ExpressionGraph::forwardNext() {
       bool isNan = false, isInf = false;
       checkNan(v->val(), isNan, isInf);
       if(isNan || isInf) {
-        std::vector<io::Item> ioItems;
         LOG(critical, "Detected NaN ({}) or Inf ({}) in value (forward pass)", isNan, isInf);
         LOG(critical, "\tType: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
             v->type(), v->shape(), v->name(), v->getId(), v->hash());
         LOG(critical, "Value debug {}", v->val()->debug());
-
-        ioItems.push_back(itemFromTensor(v->val(), "value", backend_));
 
         LOG(critical, "Children: {}", v->children().size());
         for(auto&& child : v->children()) {
           LOG(critical, "\tType: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
             child->type(), child->shape(), child->name(), child->getId(), child->hash());
           LOG(critical, "Value debug {}", child->val()->debug());
-          ioItems.push_back(itemFromTensor(child->val(), "child_" + std::to_string(child->hash()), backend_));
         }
 
+        std::vector<io::Item> ioItems;
+        recChildren(v, ioItems, backend_);
         io::saveItems("dump-for-nans.npz", ioItems);
 
         ABORT("Aborting");
