@@ -29,6 +29,11 @@ Expr LossBase::getCrossEntropy(Expr logits,
 
   Expr ce;
   if(smoothing_ > 0) {
+    // ce = sum_i y^_i log y_i(z)_i
+    // with smoothing:
+    // ce' = sum_i ((1-smoothing_) y^_i + smoothing_/N) log y_i(z)_i
+    //     = (1-smoothing_) sum_i y^_i log y_i(z)_i + smoothing_ mean_i log y_i(z)_i
+    //     = (1-smoothing_) ce + smoothing_ mean_i log y_i(z)_i
     // @TODO: add this to CE kernels instead
 #if 0
     ce = cross_entropy(logits, indices);

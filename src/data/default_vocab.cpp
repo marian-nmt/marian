@@ -107,7 +107,8 @@ public:
         ABORT_IF(line.empty(),
                 "DefaultVocabulary file {} must not contain empty lines",
                 vocabPath);
-        vocab.insert({line, (Word)vocab.size()});
+        auto wasInserted = vocab.insert({line, (Word)vocab.size()}).second;
+        ABORT_IF(!wasInserted, "Duplicate vocabulary entry {}", line);
       }
       ABORT_IF(in.bad(), "DefaultVocabulary file {} could not be read", vocabPath);
     }

@@ -108,6 +108,8 @@ typedef Trainer Scorer;
 
 class CostStep {
 public:
+  // @BUGBUG: This is not a function application. Rather, it updates 'state' in-place.
+  // Suggest to call it updateState, and not return the state object.
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) = 0;
 };
 

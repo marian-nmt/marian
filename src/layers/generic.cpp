@@ -100,10 +100,12 @@ namespace marian {
       for (size_t g = 0; g < numGroups; g++) { // detect non-overlapping groups
         LOG(info, "[embedding] Factor group '{}' has {} members ({})",
             groupPrefixes[g], groupCounts[g], groupCounts[g] == 1 ? "sigmoid" : "softmax");
-        // any factor that is not referenced in all words and is not a sigmoid needs normalization
-        if (g == 0) // @TODO: For now we assume that the main factor is used in all words. Test this.
+        if (groupCounts[g] == 0) // factor group is unused  --@TODO: once this is not hard-coded, this is an error condition
           continue;
-        if (groupCounts[g] == 1) // sigmoid factors have no normalizer
+        // any factor that is not referenced in all words and is not a sigmoid needs normalization
+        //if (g == 0) // @TODO: For now we assume that the main factor is used in all words. Test this.
+        //  continue;
+        if (groupCounts[g] == 1) // sigmoid factors have no normalizer  --@BUGBUG: This is not even possible I think. We need the counter-class.
           continue;
         groupNeedsNormalization_[g] = true; // needed
         ABORT_IF(groupRanges_[g].second - groupRanges_[g].first != groupCounts[g],
@@ -196,7 +198,7 @@ namespace marian {
         auto graph = input->graph();
         auto y = affine(input, W_, b_, false, transposeW_); // [B... x U] factor logits
 
-#if 0
+#if 1
         // denominators (only for groups that don't normalize out naturally by the final softmax())
         const auto& groupRanges = embeddingFactorMapping_->groupRanges_; // @TODO: factor this properly
         auto numGroups = groupRanges.size();
@@ -217,7 +219,7 @@ namespace marian {
           auto m = graph->constant({ 1, (int)mVec.size() }, inits::from_vector(mVec)); // [1 x U]
           auto Z = dot(groupZ, m); // [B... x U]
           y = y - Z;
-#if 0
+#if 1
           // and a log-linear weight
           auto name = options_->get<std::string>("prefix");
           auto llWeight = graph->param(name + "_llWeight_" + std::to_string(g), {}, inits::from_value(1.0f));
