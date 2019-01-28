@@ -151,6 +151,35 @@ namespace marian {
     std::vector<std::vector<float>> mVecs_;              // [group id][u] -> 1 if factor is member of group
   };
 
+  Expr Logits::crossEntropy(Expr indices, float smoothing) const {
+    auto logits = getLogits();
+    Expr ce;
+    if(smoothing > 0) {
+      // ce = sum_i y^_i log y_i(z)_i
+      // with smoothing:
+      // ce' = sum_i ((1-smoothing_) y^_i + smoothing_/N) log y_i(z)_i
+      //     = (1-smoothing_) sum_i y^_i log y_i(z)_i + smoothing_ mean_i log y_i(z)_i
+      //     = (1-smoothing_) ce + smoothing_ mean_i log y_i(z)_i
+      // @TODO: add this to CE kernels instead
+#if 0
+      ce = cross_entropy(logits, indices);
+      auto ceq = mean(logsoftmax(logits), /*axis=*/ -1);
+      ce = (1 - smoothing_) * ce - smoothing_ * ceq;
+#else   // alternative that is cheaper memory-wise
+      ce = cross_entropy(logits, indices);
+      auto ceq = mean(logits, /*axis=*/ -1) - logsumexp(logits, /*axis=*/ -1);
+      ce = (1 - smoothing) * ce - smoothing * ceq;
+      //auto ceq = mean(logits, /*axis=*/ -1) - Z;
+      //ce = (1 - smoothing_) * cols(logits, indices)   // ce term
+      //     - smoothing_ * mean(logits, /*axis=*/ -1)  // smoothing term
+      //     - logsumexp(logits, /*axis=*/ -1);         // denominator
+#endif
+    }
+    else
+      ce = cross_entropy(logits, indices);
+    return ce;
+  }
+
   Expr Logits::getLogits() const {
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
     if (!embeddingFactorMapping_) {

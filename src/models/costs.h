@@ -54,7 +54,7 @@ public:
       weights = weighter_->getWeights(graph, corpusBatch);
 
     Expr cost;
-    cost = loss_->getCost(state->getLogProbs().getLogits(),
+    cost = loss_->getCost(state->getLogProbs(),
                           state->getTargetIndices(),
                           state->getTargetMask(),
                           weights);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "marian.h"
+#include "layers/generic.h" // @HACK for Frank's factoring hack
 
 namespace marian {
 class LossBase {
@@ -10,8 +11,8 @@ protected:
 public:
   explicit LossBase(float smoothing = 0) : smoothing_(smoothing){};
 
-  Expr getCrossEntropy(Expr logits, Expr indices, Expr mask, Expr weights);
-  virtual Expr getCost(Expr logits,
+  Expr getCrossEntropy(const Logits& logits, Expr indices, Expr mask, Expr weights);
+  virtual Expr getCost(const Logits& logits,
                        Expr indices,
                        Expr mask,
                        Expr weights = nullptr)
@@ -26,7 +27,7 @@ public:
 class CrossEntropyMeanLoss : public LossBase {
 public:
   explicit CrossEntropyMeanLoss(float smoothing = 0) : LossBase(smoothing){};
-  Expr getCost(Expr logits, Expr indices, Expr mask, Expr weights) override;
+  Expr getCost(const Logits& logits, Expr indices, Expr mask, Expr weights) override;
 };
 
 /*
@@ -36,7 +37,7 @@ class CrossEntropyMeanWordsLoss : public LossBase {
 public:
   explicit CrossEntropyMeanWordsLoss(float smoothing = 0)
       : LossBase(smoothing){};
-  Expr getCost(Expr logits, Expr indices, Expr mask, Expr weights) override;
+  Expr getCost(const Logits& logits, Expr indices, Expr mask, Expr weights) override;
 };
 
 /*
@@ -45,7 +46,7 @@ public:
 class CrossEntropySumLoss : public LossBase {
 public:
   explicit CrossEntropySumLoss(float smoothing = 0) : LossBase(smoothing){};
-  Expr getCost(Expr logits, Expr indices, Expr mask, Expr weights) override;
+  Expr getCost(const Logits& logits, Expr indices, Expr mask, Expr weights) override;
 };
 
 /*
@@ -54,7 +55,7 @@ public:
 class PerplexityLoss : public LossBase {
 public:
   explicit PerplexityLoss(float smoothing = 0) : LossBase(smoothing){};
-  Expr getCost(Expr logits, Expr indices, Expr mask, Expr weights) override;
+  Expr getCost(const Logits& logits, Expr indices, Expr mask, Expr weights) override;
 };
 
 /*
@@ -63,13 +64,13 @@ public:
 class CrossEntropyRescoreLoss : public LossBase {
 public:
   explicit CrossEntropyRescoreLoss(float smoothing = 0) : LossBase(smoothing){};
-  Expr getCost(Expr logits, Expr indices, Expr mask, Expr weights) override;
+  Expr getCost(const Logits& logits, Expr indices, Expr mask, Expr weights) override;
 };
 
 class CrossEntropyRescoreMeanLoss : public LossBase {
 public:
   explicit CrossEntropyRescoreMeanLoss(float smoothing = 0) : LossBase(smoothing){};
-  Expr getCost(Expr logits, Expr indices, Expr mask, Expr weights) override;
+  Expr getCost(const Logits& logits, Expr indices, Expr mask, Expr weights) override;
 };
 
 Ptr<LossBase> LossFactory(Ptr<Options> options, bool inference);

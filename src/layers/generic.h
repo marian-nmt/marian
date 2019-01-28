@@ -69,6 +69,7 @@ public:
     Logits(std::vector<Expr>&& logits, Ptr<EmbeddingFactorMapping> embeddingFactorMapping) // factored-output constructor
       : logits_(std::move(logits)), embeddingFactorMapping_(embeddingFactorMapping) {}
     Expr getLogits() const;
+    Expr crossEntropy(Expr indices,  float smoothing) const;
     void assign(const Logits& other) {
       ABORT_IF(!empty() && getNumFactors() != other.getNumFactors(),
                "Logits assignment cannot change number of factors");

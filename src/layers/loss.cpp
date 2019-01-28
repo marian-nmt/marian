@@ -22,35 +22,11 @@ Ptr<LossBase> LossFactory(Ptr<Options> options, bool inference) {
   }
 }
 
-Expr LossBase::getCrossEntropy(Expr logits,
+Expr LossBase::getCrossEntropy(const Logits& logits1,
                                Expr indices,
                                Expr mask,
                                Expr weights) {
-
-  Expr ce;
-  if(smoothing_ > 0) {
-    // ce = sum_i y^_i log y_i(z)_i
-    // with smoothing:
-    // ce' = sum_i ((1-smoothing_) y^_i + smoothing_/N) log y_i(z)_i
-    //     = (1-smoothing_) sum_i y^_i log y_i(z)_i + smoothing_ mean_i log y_i(z)_i
-    //     = (1-smoothing_) ce + smoothing_ mean_i log y_i(z)_i
-    // @TODO: add this to CE kernels instead
-#if 0
-    ce = cross_entropy(logits, indices);
-    auto ceq = mean(logsoftmax(logits), /*axis=*/ -1);
-    ce = (1 - smoothing_) * ce - smoothing_ * ceq;
-#else   // alternative that is cheaper memory-wise
-    ce = cross_entropy(logits, indices);
-    auto ceq = mean(logits, /*axis=*/ -1) - logsumexp(logits, /*axis=*/ -1);
-    ce = (1 - smoothing_) * ce - smoothing_ * ceq;
-    //auto ceq = mean(logits, /*axis=*/ -1) - Z;
-    //ce = (1 - smoothing_) * cols(logits, indices)   // ce term
-    //     - smoothing_ * mean(logits, /*axis=*/ -1)  // smoothing term
-    //     - logsumexp(logits, /*axis=*/ -1);         // denominator
-#endif
-  }
-  else
-    ce = cross_entropy(logits, indices);
+  auto ce = logits1.crossEntropy(indices, smoothing_);
 
   if(mask)
     ce = ce * mask;
@@ -61,7 +37,7 @@ Expr LossBase::getCrossEntropy(Expr logits,
   return ce;
 }
 
-Expr CrossEntropyMeanLoss::getCost(Expr logits,
+Expr CrossEntropyMeanLoss::getCost(const Logits& logits,
                                    Expr indices,
                                    Expr mask,
                                    Expr weights) {
@@ -77,7 +53,7 @@ Expr CrossEntropyMeanLoss::getCost(Expr logits,
   // }
 }
 
-Expr CrossEntropyMeanWordsLoss::getCost(Expr logits,
+Expr CrossEntropyMeanWordsLoss::getCost(const Logits& logits,
                                         Expr indices,
                                         Expr mask,
                                         Expr weights) {
@@ -92,7 +68,7 @@ Expr CrossEntropyMeanWordsLoss::getCost(Expr logits,
   // }
 }
 
-Expr CrossEntropySumLoss::getCost(Expr logits,
+Expr CrossEntropySumLoss::getCost(const Logits& logits,
                                   Expr indices,
                                   Expr mask,
                                   Expr weights) {
@@ -106,7 +82,7 @@ Expr CrossEntropySumLoss::getCost(Expr logits,
   // }
 }
 
-Expr PerplexityLoss::getCost(Expr logits,
+Expr PerplexityLoss::getCost(const Logits& logits,
                              Expr indices,
                              Expr mask,
                              Expr weights) {
@@ -121,7 +97,7 @@ Expr PerplexityLoss::getCost(Expr logits,
   // }
 }
 
-Expr CrossEntropyRescoreLoss::getCost(Expr logits,
+Expr CrossEntropyRescoreLoss::getCost(const Logits& logits,
                                       Expr indices,
                                       Expr mask,
                                       Expr weights) {
@@ -129,7 +105,7 @@ Expr CrossEntropyRescoreLoss::getCost(Expr logits,
   return -sum(ce, /*axis =*/ -3);
 }
 
-Expr CrossEntropyRescoreMeanLoss::getCost(Expr logits,
+Expr CrossEntropyRescoreMeanLoss::getCost(const Logits& logits,
                                           Expr indices,
                                           Expr mask,
                                           Expr weights) {
