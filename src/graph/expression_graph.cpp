@@ -43,10 +43,11 @@ io::Item itemFromTensor(Tensor t, const std::string name, Ptr<Backend> backend) 
   return item;
 }
 
-void recChildren(Expr node, std::vector<io::Item>& items, Ptr<Backend> backend) {
-  items.push_back(itemFromTensor(node->val(), "node" + std::to_string(node->getId()), backend));
+void recChildren(Expr node, const std::string& parent, std::vector<io::Item>& items, Ptr<Backend> backend) {
+  std::string name = node->type() + "_" + std::to_string(node->getId()) + "_p:" + parent;
+  items.push_back(itemFromTensor(node->val(), name, backend));
   for(auto&& child : node->children())
-    recChildren(child, items, backend);
+    recChildren(child, std::to_string(node->getId()), items, backend);
 }
 
 void ExpressionGraph::forwardNext() {
@@ -76,7 +77,7 @@ void ExpressionGraph::forwardNext() {
         }
 
         std::vector<io::Item> ioItems;
-        recChildren(v, ioItems, backend_);
+        recChildren(v, "root", ioItems, backend_);
         io::saveItems("dump-for-nans.npz", ioItems);
 
         ABORT("Aborting");
