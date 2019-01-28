@@ -54,30 +54,22 @@ struct IEmbeddingLayer {
   virtual Expr apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const = 0;
 };
 
+class EmbeddingFactorMapping;
+
 // @HACK: Frank's quick implementation of factored outputs. To be re-thought once it works.
 // Output layer returns a Logits object, which is able to compute some things on the fly
 // for factored embeddings.
 class Logits {
     Logits& operator=(const Logits& other) = default;
 public:
-    Logits(Expr logits) {
+    Logits(Expr logits) { // single-output constructor
       if (logits)
         logits_.push_back(logits);
     }
-    Expr getLogits() const {
-      ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
-      // lazily compute logits
-      // @BUGBUG: This is completely wrong, we must use the factor information and map the dimensions
-      Expr res;
-      for (size_t i = 0; i < getNumFactors(); i++) {
-        auto logits = logits_[i];
-        if (!weights_.empty() && weights_[i]) // log-linear weights
-          logits = logits * weights_[i];
-        res = res ? res + logits : logits;
-      }
-      return res;
-    }
-    void assign(const Logits& other) { // @TODO: forbid changing the number of contributions
+    Logits(std::vector<Expr>&& logits, Ptr<EmbeddingFactorMapping> embeddingFactorMapping) // factored-output constructor
+      : logits_(std::move(logits)), embeddingFactorMapping_(embeddingFactorMapping) {}
+    Expr getLogits() const;
+    void assign(const Logits& other) {
       ABORT_IF(!empty() && getNumFactors() != other.getNumFactors(),
                "Logits assignment cannot change number of factors");
       *this = other;
@@ -86,7 +78,7 @@ public:
     bool empty() const { return logits_.empty(); }
 private:
     std::vector<Expr> logits_;
-    std::vector<Expr> weights_;
+    Ptr<EmbeddingFactorMapping> embeddingFactorMapping_;
 };
 
 // Unary function that returns a Logits object
@@ -94,8 +86,6 @@ struct IUnaryLogitLayer {
   virtual Logits apply(Expr) = 0;
   virtual Logits apply(const std::vector<Expr>&) = 0;
 };
-
-class EmbeddingFactorMapping;
 
 namespace mlp {
 

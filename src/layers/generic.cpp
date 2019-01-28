@@ -151,6 +151,52 @@ namespace marian {
     std::vector<std::vector<float>> mVecs_;              // [group id][u] -> 1 if factor is member of group
   };
 
+  Expr Logits::getLogits() const {
+    ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
+    if (!embeddingFactorMapping_) {
+      ABORT_IF(logits_.size() != 1, "Factors without factor mappings??");
+      return logits_.front();
+    }
+
+    // lazily compute combined logits from factors
+    auto y = concatenate(logits_, /*axis=*/ -1);
+
+    // sum up the unit logits across factors for each target word
+    auto graph = y->graph();
+    auto factorMatrix = embeddingFactorMapping_->getFactorMatrix(); // [V x U]
+    y = dot_csr(
+        y,  // [B x U]
+        factorMatrix.shape,
+        graph->constant({(int)factorMatrix.weights.size()}, inits::from_vector(factorMatrix.weights), Type::float32),
+        graph->constant({(int)factorMatrix.indices.size()}, inits::from_vector(factorMatrix.indices), Type::uint32),
+        graph->constant({(int)factorMatrix.offsets.size()}, inits::from_vector(factorMatrix.offsets), Type::uint32),
+        /*transB=*/ true); // -> [B x V]
+
+    return y;
+#if 0
+        // denominators
+        const auto& mVecs = embeddingFactorMapping_->mVecs_;
+        for (size_t g = 0; g < numGroups; g++) {
+          auto range = groupRanges[g];
+          // y: [B... x U]
+          // m: [1 x U]         // ones at positions of group members
+          // need to compute log denominator over y[range] and subtract it from y[range]
+          //auto groupY = slice(y, /*axis=*/-1, Slice((int)range.first, (int)range.second)); // [B... x Ug]
+          //auto groupZ = logsumexp(groupY, /*axis=*/-1); // [B... x 1]
+          ////auto groupZ = slice(groupY - logsoftmax(groupY), /*axis=*/-1, 0); // [B... x 1]
+          const auto& mVec = mVecs[g];
+          auto m = graph->constant({ 1, (int)mVec.size() }, inits::from_vector(mVec)); // [1 x U]
+          //auto Z = dot(groupZ, m); // [B... x U]
+          //y = y - Z;
+          // and a log-linear weight
+          auto name = options_->get<std::string>("prefix");
+          auto groupLLWeights[g] = graph->param(name + "_llWeight_" + std::to_string(g), {}, inits::from_value(1.0f));
+          y = y * ((groupLLWeights[g] - 1) * m + 1);
+          // @BUGBUG: Global softmax no longer normalizes, due to words that lack some factors.
+        }
+#endif
+  }
+
   namespace mlp {
     /*private*/ void Output::lazyConstruct(int inputDim) {
       // We must construct lazily since we won't know tying nor input dim in constructor.
@@ -199,7 +245,6 @@ namespace marian {
         auto numGroups = groupRanges.size();
         std::vector<Expr> groupYs(numGroups);
         std::vector<Expr> groupLLWeights(numGroups);
-#if 1
         for (size_t g = 0; g < numGroups; g++) {
           auto range = groupRanges[g];
           ABORT_IF(g > 0 && groupRanges[g].first != groupRanges[g-1].second, "Factor groups must be consecutive"); // we could sort groupYs though
@@ -219,46 +264,7 @@ namespace marian {
           // @TODO: normalize again. Do I need the first normalization?
           groupYs[g] = groupY;
         }
-        auto y = concatenate(groupYs, /*axis=*/ -1);
-#else
-        auto y = affine(input, W_, b_, false, transposeW_); // [B... x U] factor logits
-#endif
-        // @TODO: next, do normalization per group
-
-#if 0
-        // denominators
-        const auto& mVecs = embeddingFactorMapping_->mVecs_;
-        for (size_t g = 0; g < numGroups; g++) {
-          auto range = groupRanges[g];
-          // y: [B... x U]
-          // m: [1 x U]         // ones at positions of group members
-          // need to compute log denominator over y[range] and subtract it from y[range]
-          //auto groupY = slice(y, /*axis=*/-1, Slice((int)range.first, (int)range.second)); // [B... x Ug]
-          //auto groupZ = logsumexp(groupY, /*axis=*/-1); // [B... x 1]
-          ////auto groupZ = slice(groupY - logsoftmax(groupY), /*axis=*/-1, 0); // [B... x 1]
-          const auto& mVec = mVecs[g];
-          auto m = graph->constant({ 1, (int)mVec.size() }, inits::from_vector(mVec)); // [1 x U]
-          //auto Z = dot(groupZ, m); // [B... x U]
-          //y = y - Z;
-          // and a log-linear weight
-          auto name = options_->get<std::string>("prefix");
-          auto groupLLWeights[g] = graph->param(name + "_llWeight_" + std::to_string(g), {}, inits::from_value(1.0f));
-          y = y * ((groupLLWeights[g] - 1) * m + 1);
-          // @BUGBUG: Global softmax no longer normalizes, due to words that lack some factors.
-        }
-#endif
-
-        // sum up the unit logits across factors for each target word
-        auto factorMatrix = embeddingFactorMapping_->getFactorMatrix(); // [V x U]
-        y = dot_csr(
-            y,  // [B x U]
-            factorMatrix.shape,
-            graph->constant({(int)factorMatrix.weights.size()}, inits::from_vector(factorMatrix.weights), Type::float32),
-            graph->constant({(int)factorMatrix.indices.size()}, inits::from_vector(factorMatrix.indices), Type::uint32),
-            graph->constant({(int)factorMatrix.offsets.size()}, inits::from_vector(factorMatrix.offsets), Type::uint32),
-            /*transB=*/ true); // -> [B x V]
-
-        return y;
+        return Logits(std::move(groupYs), embeddingFactorMapping_);
       }
       else
         return affine(input, W_, b_, false, transposeW_);
