@@ -60,16 +60,33 @@ struct IEmbeddingLayer {
 class Logits {
     Logits& operator=(const Logits& other) = default;
 public:
-    Logits(Expr logits) : logits_(logits) {
+    Logits(Expr logits) {
+      if (logits)
+        logits_.push_back(logits);
     }
     Expr getLogits() const {
-      return logits_;
+      ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
+      // lazily compute logits
+      // @BUGBUG: This is completely wrong, we must use the factor information and map the dimensions
+      Expr res;
+      for (size_t i = 0; i < getNumFactors(); i++) {
+        auto logits = logits_[i];
+        if (!weights_.empty() && weights_[i]) // log-linear weights
+          logits = logits * weights_[i];
+        res = res ? res + logits : logits;
+      }
+      return res;
     }
     void assign(const Logits& other) { // @TODO: forbid changing the number of contributions
+      ABORT_IF(!empty() && getNumFactors() != other.getNumFactors(),
+               "Logits assignment cannot change number of factors");
       *this = other;
     }
+    size_t getNumFactors() const { return logits_.size(); }
+    bool empty() const { return logits_.empty(); }
 private:
-    Expr logits_;
+    std::vector<Expr> logits_;
+    std::vector<Expr> weights_;
 };
 
 // Unary function that returns a Logits object
