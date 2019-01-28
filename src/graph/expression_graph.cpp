@@ -28,6 +28,68 @@ void ExpressionGraph::checkNan(Tensor t, bool& isNan, bool& isInf, bool zero) {
   IsNan(t, allocator(), isNan, isInf, zero);
 }
 
+io::Item itemFromTensor(Tensor t, const std::string name, Ptr<Backend> backend) {
+  io::Item item;
+  item.name  = name;
+  item.shape = t->shape();
+  item.type  = t->type();
+
+  size_t bytesWithoutPadding = t->shape().elements() * sizeOf(t->type());
+  item.bytes.resize(bytesWithoutPadding);
+  copy(backend,
+        (char*)t->data(),
+        (char*)t->data() + bytesWithoutPadding,
+        item.bytes.data());
+  return item;
+}
+
+void ExpressionGraph::forwardNext() {
+  // @TODO: check if allocation works properly
+  tensors_->clearShorttermMemory();
+
+  while(!nodesForward_.empty()) {
+    auto v = nodesForward_.front();
+    v->allocate();
+    v->init();
+    v->forward();
+
+    if(v->trainable() && throwNan_) {
+      bool isNan = false, isInf = false;
+      checkNan(v->val(), isNan, isInf);
+      if(isNan || isInf) {
+        std::vector<io::Item> ioItems;
+        LOG(critical, "Detected NaN ({}) or Inf ({}) in value (forward pass)", isNan, isInf);
+        LOG(critical, "\tType: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
+            v->type(), v->shape(), v->name(), v->getId(), v->hash());
+        LOG(critical, "Value debug {}", v->val()->debug());
+
+        ioItems.push_back(itemFromTensor(v->val(), "value", backend_));
+
+        LOG(critical, "Children: {}", v->children().size());
+        for(auto&& child : v->children()) {
+          LOG(critical, "\tType: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
+            child->type(), child->shape(), child->name(), child->getId(), child->hash());
+          LOG(critical, "Value debug {}", child->val()->debug());
+          ioItems.push_back(itemFromTensor(v->val(), "child_" + std::to_string(child->hash()), backend_));
+        }
+
+        io::saveItems("dump-for-nans.npz", ioItems);
+
+        ABORT("Aborting");
+      }
+    }
+
+    if(v->marked_for_debug()) {
+      LOG(info, "Debug: {} op={}", v->debug_message(), v->type());
+      LOG(info, v->val()->debug());
+    }
+
+    if(inferenceOnly_)
+      v->children().clear();
+    nodesForward_.pop_front();
+  }
+}
+
 void ExpressionGraph::backward(bool zero, float clipValue) {
   if(topNodes_.size() > 1) {
     LOG(critical, "There are more ({}) than one top most nodes for backward pass:", topNodes_.size());

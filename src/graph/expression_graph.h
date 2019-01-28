@@ -219,44 +219,7 @@ public:
 
   void checkNan(Tensor t, bool& isNan, bool& isInf, bool zero = false);
 
-  void forwardNext() {
-    // @TODO: check if allocation works properly
-    tensors_->clearShorttermMemory();
-
-    while(!nodesForward_.empty()) {
-      auto v = nodesForward_.front();
-      v->allocate();
-      v->init();
-      v->forward();
-
-      if(v->trainable() && throwNan_) {
-        bool isNan = false, isInf = false;
-        checkNan(v->val(), isNan, isInf);
-        if(isNan || isInf) {
-          LOG(critical, "Detected NaN ({}) or Inf ({}) in value (forward pass)", isNan, isInf);
-          LOG(critical, "\tType: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
-              v->type(), v->shape(), v->name(), v->getId(), v->hash());
-          LOG(critical, "Value debug {}", v->val()->debug());
-          LOG(critical, "Children: {}", v->children().size());
-          for(auto&& child : v->children()) {
-            LOG(critical, "\tType: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
-              child->type(), child->shape(), child->name(), child->getId(), child->hash());
-            LOG(critical, "Value debug {}", child->val()->debug());
-          }
-          ABORT("Aborting");
-        }
-      }
-
-      if(v->marked_for_debug()) {
-        LOG(info, "Debug: {} op={}", v->debug_message(), v->type());
-        LOG(info, v->val()->debug());
-      }
-
-      if(inferenceOnly_)
-        v->children().clear();
-      nodesForward_.pop_front();
-    }
-  }
+  void forwardNext();
 
   void backward(bool zero = true, float clipValue = 0.f);
 
