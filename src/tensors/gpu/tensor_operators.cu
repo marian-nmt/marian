@@ -28,18 +28,23 @@ __device__ inline float stableSigmoid(float x) {
 }
 
 template <typename T>
-__global__ void gIsNan(const T* in, int length, bool* isNan, bool* isInf) {
+__global__ void gIsNan(T* in, int length, bool* isNan, bool* isInf, bool zero) {
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      if(isnan((float)in[index])) *isNan = true;
-      if(isinf((float)in[index])) *isInf = true;
-      //if(isinf2(in[index])) *isInf = true;
+      if(isnan((float)in[index])) {
+        if(zero) in[index] = (T)0.f;
+        *isNan = true; 
+      }
+      else if(isinf((float)in[index])) { 
+        if(zero) in[index] = (T)0.f;
+        *isInf = true;
+      }
     }
   }
 }
 
-void IsNan(const Tensor in, Ptr<Allocator> allocator, bool& isNan, bool& isInf) {
+void IsNan(Tensor in, Ptr<Allocator> allocator, bool& isNan, bool& isInf, bool zero) {
   cudaSetDevice(in->getDeviceId().no);
 
   int length = in->size();
@@ -53,7 +58,7 @@ void IsNan(const Tensor in, Ptr<Allocator> allocator, bool& isNan, bool& isInf) 
   fill(in->getBackend(), dIsNan, dIsNan + 2, false);
 
   if(in->type() == Type::float32) {
-    gIsNan<<<blocks, threads>>>(in->data<float>(), length, dIsNan, dIsInf);
+    gIsNan<<<blocks, threads>>>(in->data<float>(), length, dIsNan, dIsInf, zero);
   } else {
     ABORT("IsNan for type {} not implemented", in->type());
   }

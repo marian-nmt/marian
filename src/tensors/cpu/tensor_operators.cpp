@@ -14,7 +14,7 @@ namespace marian {
 
 namespace cpu {
 
-void IsNan(const Tensor in, Ptr<Allocator> allocator, bool& isNan, bool& isInf) {
+void IsNan(const Tensor in, Ptr<Allocator> allocator, bool& isNan, bool& isInf, bool zero) {
   ABORT("Not implemented");
 }
 

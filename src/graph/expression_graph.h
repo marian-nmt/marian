@@ -136,7 +136,7 @@ private:
   bool reloaded_{false};
   std::string namespace_;
 
-  bool throwNaN_{false};
+  bool throwNan_{false};
 
 protected:
   // Delete, copy and move constructors
@@ -217,7 +217,7 @@ public:
     forwardNext();
   }
 
-  void checkNan(Tensor t);
+  void checkNan(Tensor t, bool& isNan, bool& isInf, bool zero = false);
 
   void forwardNext() {
     // @TODO: check if allocation works properly
@@ -229,12 +229,27 @@ public:
       v->init();
       v->forward();
 
-      checkNan(v->val());
+      if(v->trainable() && throwNan_) {
+        bool isNan = false, isInf = false;
+        checkNan(v->val(), isNan, isInf);
+        if(isNan || isInf) {
+          LOG(critical, "Detected NaN ({}) or Inf ({}) in value (forward pass)", isNan, isInf);
+          LOG(critical, "\tType: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
+              v->type(), v->shape(), v->name(), v->getId(), v->hash());
+          LOG(critical, "Value debug {}", v->val()->debug());
+          LOG(critical, "Children: {}", v->children().size());
+          for(auto&& child : v->children()) {
+            LOG(critical, "\tType: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
+              child->type(), child->shape(), child->name(), child->getId(), child->hash());
+            LOG(critical, "Value debug {}", child->val()->debug());
+          }
+          ABORT("Aborting");
+        }
+      }
 
       if(v->marked_for_debug()) {
-        std::cerr << "Debug: " << v->debug_message() << " op=" << v->type()
-                  << std::endl;
-        std::cerr << v->val()->debug() << std::endl;
+        LOG(info, "Debug: {} op={}", v->debug_message(), v->type());
+        LOG(info, v->val()->debug());
       }
 
       if(inferenceOnly_)
@@ -243,55 +258,7 @@ public:
     }
   }
 
-  void backward(bool zero = true) {
-    if(topNodes_.size() > 1) {
-      LOG(critical, "There are more ({}) than one top most node for backward step:", topNodes_.size());
-      for(auto node : topNodes_) {
-        LOG(critical,
-            "\tType: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
-            node->type(),
-            node->shape(),
-            node->name(),
-            node->getId(),
-            node->hash());
-      }
-      ABORT("Aborting");
-    }
-
-    params_->allocateBackward();
-    if(zero)
-      params_->set_zero_adjoint();
-
-    for(auto&& v : topNodes_)
-      v->init_dependent();
-
-    // named_.clear();
-    topNodes_.clear();
-
-    tensors_->clearShorttermMemory();
-
-    while(!nodesBackward_.empty()) {
-      auto v = nodesBackward_.back();
-      nodesBackward_.pop_back();
-
-      for(auto&& child : v->children()) {
-        if(child->trainable() && child->type() != "param")
-          child->set_zero_adjoint();
-      }
-
-      if(v->trainable())
-        v->backward();
-
-      checkNan(v->grad());
-
-      if(v->trainable() && v->marked_for_debug()) {
-        std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
-        std::cerr << v->grad()->debug() << std::endl;
-      }
-
-      v->children().clear();
-    }
-  }
+  void backward(bool zero = true, float clipValue = 0.f);
 
   std::string graphviz() {
     std::stringstream ss;
@@ -460,7 +427,8 @@ public:
 
   void setReloaded(bool reloaded) { reloaded_ = reloaded; }
 
-  void setThrowNaN(bool throwNaN) { throwNaN_ = throwNaN; }
+  void setThrowNan(bool throwNan) { throwNan_ = throwNan; }
+  bool getThrowNan() { return throwNan_; }
 
 public:
   // convert all parameters into an array of IoItem elements, for loading

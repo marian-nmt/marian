@@ -358,16 +358,15 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
       graph->forward();
 
       StaticLoss tempLoss = *rationalLoss; // needed for overstuff
-      tempLoss.loss /= (float)overstuff; // @TODO: @fseide: scale only loss? should this scale labels too?
+      tempLoss.loss /= (float)overstuff; 
 
       localDeviceLosses[localDeviceIndex] += tempLoss;
       graph->backward(/*zero=*/false); // (gradients are reset before we get here)
 
       bool hasNan = false, hasInf = false;
-      IsNan(graph->params()->grads(), graph->allocator(), hasNan, hasInf);
+      IsNan(graph->params()->grads(), graph->allocator(), hasNan, hasInf, /*zero=*/true);
       if(hasNan || hasInf) {
-        LOG(warn, "Seen Nan ({}) or Inf ({}) in gradient, zeroing gradient", hasNan, hasInf);
-        graph->params()->grads()->set(0.f);
+        LOG(warn, "Seen Nan ({}) or Inf ({}) in gradient, zeroed offending gradient", hasNan, hasInf);
       }
     }
   });
@@ -407,7 +406,8 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
   // cost across all local devices (scheduler will aggregate cross-process)
   StaticLoss localLoss;
   for(auto& l : localDeviceLosses) // localDeviceLosses is already summed up over delay steps
-    localLoss += l;
+    if(std::isfinite((float)l.loss))
+      localLoss += l;
 
   if(scheduler_) {
     // track and log localLoss
