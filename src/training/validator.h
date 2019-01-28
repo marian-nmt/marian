@@ -188,7 +188,7 @@ protected:
           }
 
           builder->clear(graph);
-          auto costNode = builder->build(graph, batch);
+          auto costNode = builder->build(graph, batch).getLogits();
           graph->forward();
 
           std::unique_lock<std::mutex> lock(mutex_);

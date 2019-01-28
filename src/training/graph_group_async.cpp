@@ -206,7 +206,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
       builder = builders_[i++];
     }
 
-    auto costNode = builder->build(graph, batch);
+    auto costNode = builder->build(graph, batch).getLogits();
 
     if(t % optimizerDelay_ == 0) {
       fetchParams(graph->params()->vals(), params_, t_id);

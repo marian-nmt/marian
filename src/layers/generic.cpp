@@ -181,7 +181,7 @@ namespace marian {
       b_ = graph_->param(name + "_b", {1, dim}, inits::zeros);
     }
 
-    Expr Output::apply(Expr input) /*override*/ {
+    Logits Output::apply(Expr input) /*override*/ {
       lazyConstruct(input->shape()[-1]);
 
       if (shortlist_) {

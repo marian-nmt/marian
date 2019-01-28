@@ -182,7 +182,7 @@ Ptr<DecoderState> EncoderDecoder::stepAll(Ptr<ExpressionGraph> graph,
   return nextState;
 }
 
-Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
+Logits EncoderDecoder::build(Ptr<ExpressionGraph> graph,
                            Ptr<data::CorpusBatch> batch,
                            bool clearGraph) {
   auto state = stepAll(graph, batch, clearGraph);
@@ -191,7 +191,7 @@ Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
   return state->getLogProbs();
 }
 
-Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
+Logits EncoderDecoder::build(Ptr<ExpressionGraph> graph,
                            Ptr<data::Batch> batch,
                            bool clearGraph) {
   auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);

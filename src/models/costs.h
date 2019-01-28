@@ -54,7 +54,7 @@ public:
       weights = weighter_->getWeights(graph, corpusBatch);
 
     Expr cost;
-    cost = loss_->getCost(state->getLogProbs(),
+    cost = loss_->getCost(state->getLogProbs().getLogits(),
                           state->getTargetIndices(),
                           state->getTargetMask(),
                           weights);
@@ -95,7 +95,7 @@ public:
     model_->save(graph, name, saveTranslatorConfig);
   }
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
+  virtual Logits build(Ptr<ExpressionGraph> graph,
                      Ptr<data::Batch> batch,
                      bool clearGraph = true) override {
     return cost_->apply(model_, graph, batch, clearGraph);
@@ -117,7 +117,8 @@ class LogSoftmaxStep : public CostStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     // decoder needs normalized probabilities (note: skipped if beam 1 and --skip-cost)
-    auto logits = state->getLogProbs();
+    // @TODO: @HACK must know about individual parts; make it a loop
+    auto logits = state->getLogProbs().getLogits();
     
     auto logprobs = logsoftmax(logits);
 
@@ -132,7 +133,8 @@ public:
 class GumbelSoftmaxStep : public CostStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
-    auto logits = state->getLogProbs();
+    // @TODO: @HACK must know about individual parts; make it a loop
+    auto logits = state->getLogProbs().getLogits();
     
     auto logprobs = logsoftmax(logits + constant_like(logits, inits::gumbel));
 
@@ -173,7 +175,7 @@ public:
 
   virtual void clear(Ptr<ExpressionGraph> graph) override { encdec_->clear(graph); }
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
+  virtual Logits build(Ptr<ExpressionGraph> graph,
                      Ptr<data::Batch> batch,
                      bool clearGraph = true) override {
     auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
@@ -196,11 +198,10 @@ public:
     return cost_->apply(nextState);
   }
 
-  virtual Expr build(Ptr<ExpressionGraph> /*graph*/,
+  virtual Logits build(Ptr<ExpressionGraph> /*graph*/,
                      Ptr<data::CorpusBatch> /*batch*/,
                      bool /*clearGraph*/ = true) override {
     ABORT("Wrong wrapper. Use models::Trainer or models::Scorer");
-    return nullptr;
   }
 
   virtual Ptr<Options> getOptions() override { return encdec_->getOptions(); };

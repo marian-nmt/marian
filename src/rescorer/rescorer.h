@@ -30,7 +30,7 @@ public:
   }
 
   Expr build(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
-    return builder_->build(graph, batch);
+    return builder_->build(graph, batch).getLogits();
   }
 
   data::SoftAlignment getAlignment() {

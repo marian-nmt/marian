@@ -527,7 +527,7 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
       builder = clientBuilders_[i++];
     }
 
-    auto costNode = builder->build(graph, batch);
+    auto costNode = builder->build(graph, batch).getLogits();
 
     if(t == 0) {
       mpi_->barrier();

@@ -185,7 +185,7 @@ void MultiNodeGraphGroupSync::execute(Ptr<data::Batch> fullBatch) {
       auto graph = clientGraphs_[my_id];
       auto builder = clientBuilders_[my_id];
 
-      auto costNode = builder->build(graph, batch);
+      auto costNode = builder->build(graph, batch).getLogits();
 
       if(t == 0) {
         if(my_id != 0)

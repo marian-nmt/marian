@@ -22,7 +22,7 @@ public:
              Ptr<ExpressionGraph> graph,
              Ptr<data::Batch> batch,
              bool clearGraph = true) override {
-    auto top = model->build(graph, batch, clearGraph);
+    auto top = model->build(graph, batch, clearGraph).getLogits();
 
     auto vfLabels = std::static_pointer_cast<data::DataBatch>(batch)->labels();
 
@@ -43,7 +43,7 @@ public:
              Ptr<ExpressionGraph> graph,
              Ptr<data::Batch> batch,
              bool clearGraph = true) override {
-    auto top = model->build(graph, batch, clearGraph);
+    auto top = model->build(graph, batch, clearGraph).getLogits();
     return logsoftmax(top);
   }
 };
@@ -56,7 +56,7 @@ public:
   MnistFeedForwardNet(Ptr<Options> options, Args... args)
       : options_(options), inference_(options->get<bool>("inference", false)) {}
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
+  virtual Logits build(Ptr<ExpressionGraph> graph,
                      Ptr<data::Batch> batch,
                      bool /*clean*/ = false) override {
     return construct(graph, batch, inference_);

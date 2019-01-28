@@ -354,7 +354,7 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
       if (!subBatch)
         break;
 
-      auto costNode = builders_[localDeviceIndex]->build(graph, subBatch);
+      auto costNode = builders_[localDeviceIndex]->build(graph, subBatch).getLogits();
       graph->forward();
       localDeviceCosts[localDeviceIndex] += costNode->scalar() / (float)overstuff;
       graph->backward(/*zero=*/false); // (gradients are reset before we get here)

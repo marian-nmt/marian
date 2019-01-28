@@ -10,7 +10,7 @@ void SingletonGraph::setScheduler(Ptr<Scheduler> scheduler) {
 }
 
 void SingletonGraph::execute(Ptr<data::Batch> batch) {
-  auto costNode = builder_->build(graph_, batch);
+  auto costNode = builder_->build(graph_, batch).getLogits();
 
   graph_->forward();
   float cost = costNode->scalar();

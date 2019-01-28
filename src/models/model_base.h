@@ -2,6 +2,7 @@
 
 #include <string>
 #include "marian.h"
+#include "layers/generic.h" // @HACK for Frank's factored embeddings/Logits class
 
 namespace marian {
 namespace models {
@@ -26,7 +27,7 @@ public:
                     bool saveTranslatorConfig = false)
       = 0;
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
+  virtual Logits build(Ptr<ExpressionGraph> graph,
                      Ptr<data::Batch> batch,
                      bool clearGraph = true)
       = 0;

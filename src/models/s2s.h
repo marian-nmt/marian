@@ -278,7 +278,7 @@ public:
     }
 
     rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
-    return New<DecoderState>(startStates, nullptr, encStates, batch);
+    return New<DecoderState>(startStates, Logits(nullptr), encStates, batch);
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
@@ -347,12 +347,17 @@ public:
       if(shortlist_)
         last.setShortlist(shortlist_);
 
+#if 1
+      hidden; last;
+      ABORT("@TODO: adapt s2s to Logits return type");
+#else
       // assemble layers into MLP and apply to embeddings, decoder context and
       // aligned source context
       output_ = mlp::mlp()              //
                     .push_back(hidden)  //
                     .push_back(last)
                     .construct(graph);
+#endif
     }
 
     Expr logits;

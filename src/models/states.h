@@ -1,6 +1,7 @@
 #pragma once
 
 #include "marian.h"
+#include "layers/generic.h" // @HACK: for factored embeddings only so far
 #include "rnn/types.h"
 
 namespace marian {
@@ -29,7 +30,7 @@ public:
 class DecoderState {
 protected:
   rnn::States states_; // states of individual decoder layers
-  Expr logProbs_;
+  Logits logProbs_;
   std::vector<Ptr<EncoderState>> encStates_;
   Ptr<data::CorpusBatch> batch_;
 
@@ -42,7 +43,7 @@ protected:
 
 public:
   DecoderState(const rnn::States& states,
-               Expr logProbs,
+               Logits logProbs,
                const std::vector<Ptr<EncoderState>>& encStates,
                Ptr<data::CorpusBatch> batch)
       : states_(states), logProbs_(logProbs), encStates_(encStates), batch_(batch) {}
@@ -52,8 +53,8 @@ public:
     return encStates_;
   }
 
-  virtual Expr getLogProbs() const { return logProbs_; }
-  virtual void setLogProbs(Expr logProbs) { logProbs_ = logProbs; }
+  virtual Logits getLogProbs() const { return logProbs_; }
+  virtual void setLogProbs(Logits logProbs) { logProbs_ = logProbs; }
 
   // @TODO: should this be a constructor? Then derived classes can call this without the New<> in the loop
   virtual Ptr<DecoderState> select(const std::vector<IndexType>& selIdx,

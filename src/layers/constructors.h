@@ -51,7 +51,26 @@ typedef Accumulator<DenseFactory> dense;
 /**
  * Factory for output layers, can be used in a multi-layer network factory.
  */
-class OutputFactory : public LayerFactory {
+struct LogitLayerFactory : public Factory {
+  LogitLayerFactory() : Factory() {}
+  LogitLayerFactory(const LogitLayerFactory&) = default;
+  LogitLayerFactory(LogitLayerFactory&&) = default;
+
+  virtual ~LogitLayerFactory() {}
+
+  template <typename Cast>
+  inline Ptr<Cast> as() {
+    return std::dynamic_pointer_cast<Cast>(shared_from_this());
+  }
+
+  template <typename Cast>
+  inline bool is() {
+    return as<Cast>() != nullptr;
+  }
+
+  virtual Ptr<IUnaryLogitLayer> construct(Ptr<ExpressionGraph> graph) = 0;
+};
+class OutputFactory : public LogitLayerFactory {
 protected:
   std::string tiedTransposedName_;
   Ptr<data::Shortlist> shortlist_;
@@ -67,7 +86,7 @@ public:
     return Accumulator<OutputFactory>(*this);
   }
 
-  Ptr<IUnaryLayer> construct(Ptr<ExpressionGraph> graph) override {
+  Ptr<IUnaryLogitLayer> construct(Ptr<ExpressionGraph> graph) override {
     auto output = New<Output>(graph, options_);
     output->tieTransposed(graph->get(tiedTransposedName_));
     output->setShortlist(shortlist_);

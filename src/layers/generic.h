@@ -54,6 +54,26 @@ struct IEmbeddingLayer {
   virtual Expr apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const = 0;
 };
 
+// @HACK: Frank's quick implementation of factored outputs. To be re-thought once it works.
+// Output layer returns a Logits object, which is able to compute some things on the fly
+// for factored embeddings.
+class Logits {
+public:
+    Logits(Expr logits) : logits_(logits) {
+    }
+    Expr getLogits() const {
+      return logits_;
+    }
+private:
+    Expr logits_;
+};
+
+// Unary function that returns a Logits object
+struct IUnaryLogitLayer {
+  virtual Logits apply(Expr) = 0;
+  virtual Logits apply(const std::vector<Expr>&) = 0;
+};
+
 class EmbeddingFactorMapping;
 
 namespace mlp {
@@ -124,7 +144,7 @@ public:
   Expr apply(Expr input) override { return apply(std::vector<Expr>({input})); }
 };
 
-class Output : public LayerBase, public IUnaryLayer {
+class Output : public LayerBase, public IUnaryLogitLayer {
 private:
   Expr W_;  // parameters held by this layer
   Expr b_;
@@ -169,9 +189,9 @@ public:
     cachedShortb_ = nullptr;
   }
 
-  Expr apply(Expr input) override;
+  Logits apply(Expr input) override;
 
-  virtual Expr apply(const std::vector<Expr>& /*inputs*/) override {
+  virtual Logits apply(const std::vector<Expr>& /*inputs*/) override {
     ABORT("Not implemented");
   };
 };

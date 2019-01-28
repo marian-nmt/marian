@@ -589,7 +589,7 @@ public:
 class TransformerState : public DecoderState {
 public:
   TransformerState(const rnn::States& states,
-                   Expr logProbs,
+                   Logits logProbs,
                    const std::vector<Ptr<EncoderState>>& encStates,
                    Ptr<data::CorpusBatch> batch)
       : DecoderState(states, logProbs, encStates, batch) {}
@@ -662,11 +662,11 @@ public:
       rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
 
       // don't use TransformerState for RNN layers
-      return New<DecoderState>(startStates, nullptr, encStates, batch);
+      return New<DecoderState>(startStates, Logits(nullptr), encStates, batch);
     }
     else {
       rnn::States startStates;
-      return New<TransformerState>(startStates, nullptr, encStates, batch);
+      return New<TransformerState>(startStates, Logits(nullptr), encStates, batch);
     }
   }
 
@@ -831,7 +831,7 @@ public:
     // final feed-forward layer (output)
     if(shortlist_)
       output_->setShortlist(shortlist_);
-    Expr logits = output_->apply(decoderContext); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab or shortlist dim]
+    auto logits = output_->apply(decoderContext); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab or shortlist dim]
 
     // return unormalized(!) probabilities
     Ptr<DecoderState> nextState;
