@@ -95,22 +95,19 @@ namespace marian {
             groupRanges_[g].second = u + 1;
         groupCounts[g]++;
       }
-      // determine if a factor needs explicit softmax normalization
-      groupNeedsNormalization_.resize(numGroups, false);
+      // create the flag vectors for normalization   --@TODO: maybe we won't need them anymore
+      mVecs_.resize(numGroups);
       for (size_t g = 0; g < numGroups; g++) { // detect non-overlapping groups
         LOG(info, "[embedding] Factor group '{}' has {} members ({})",
             groupPrefixes[g], groupCounts[g], groupCounts[g] == 1 ? "sigmoid" : "softmax");
         if (groupCounts[g] == 0) // factor group is unused  --@TODO: once this is not hard-coded, this is an error condition
           continue;
-        // any factor that is not referenced in all words and is not a sigmoid needs normalization
-        //if (g == 0) // @TODO: For now we assume that the main factor is used in all words. Test this.
-        //  continue;
-        if (groupCounts[g] == 1) // sigmoid factors have no normalizer  --@BUGBUG: This is not even possible I think. We need the counter-class.
-          continue;
-        groupNeedsNormalization_[g] = true; // needed
         ABORT_IF(groupRanges_[g].second - groupRanges_[g].first != groupCounts[g],
                  "Factor group '{}' members should be consecutive in the factor vocabulary", groupPrefixes[g]);
-        LOG(info, "[embedding] Factor group '{}' needs needs explicit normalization ({}..{})", groupPrefixes[g], groupRanges_[g].first, groupRanges_[g].second-1);
+        auto& mVec = mVecs_[g];
+        mVec.resize(numFactors, 0.0f);
+        for (size_t i = groupRanges_[g].first; i < groupRanges_[g].second; i++)
+          mVec[i] = 1.0f;
       }
 
       // create the factor matrix
@@ -151,7 +148,7 @@ namespace marian {
     std::vector<size_t> factorGroups_;                   // [u] -> group id of factor u
   public: // @TODO: temporarily; later factor this properly
     std::vector<std::pair<size_t, size_t>> groupRanges_; // [group id] -> (u_begin,u_end) index range of factors u for this group. These don't overlap.
-    std::vector<bool> groupNeedsNormalization_;          // [group id] -> true if explicit softmax normalization is necessary
+    std::vector<std::vector<float>> mVecs_;              // [group id][u] -> 1 if factor is member of group
   };
 
   namespace mlp {
@@ -198,35 +195,27 @@ namespace marian {
         auto graph = input->graph();
         auto y = affine(input, W_, b_, false, transposeW_); // [B... x U] factor logits
 
-#if 1
         // denominators (only for groups that don't normalize out naturally by the final softmax())
         const auto& groupRanges = embeddingFactorMapping_->groupRanges_; // @TODO: factor this properly
         auto numGroups = groupRanges.size();
+        const auto& mVecs = embeddingFactorMapping_->mVecs_;
         for (size_t g = 0; g < numGroups; g++) {
-          if (!embeddingFactorMapping_->groupNeedsNormalization_[g]) // @TODO: if we ever need it, we can combine multiple
-              continue;
           auto range = groupRanges[g];
           // y: [B... x U]
           // m: [1 x U]         // ones at positions of group members
-          auto yDim = y->shape()[-1];
-          std::vector<float> mVec(yDim, 0.0f); // @TODO: This vector should be produced by embeddingFactorMapping_
-          for (size_t i = range.first; i < range.second; i++)
-            mVec[i] = 1.0f;
           // need to compute log denominator over y[range] and subtract it from y[range]
           auto groupY = slice(y, /*axis=*/-1, Slice((int)range.first, (int)range.second)); // [B... x Ug]
           auto groupZ = logsumexp(groupY, /*axis=*/-1); // [B... x 1]
           //auto groupZ = slice(groupY - logsoftmax(groupY), /*axis=*/-1, 0); // [B... x 1]
+          const auto& mVec = mVecs[g];
           auto m = graph->constant({ 1, (int)mVec.size() }, inits::from_vector(mVec)); // [1 x U]
           auto Z = dot(groupZ, m); // [B... x U]
           y = y - Z;
-#if 1
           // and a log-linear weight
           auto name = options_->get<std::string>("prefix");
           auto llWeight = graph->param(name + "_llWeight_" + std::to_string(g), {}, inits::from_value(1.0f));
           y = y * ((llWeight  - 1) * m + 1);
-#endif
         }
-#endif
 
         // sum up the unit logits across factors for each target word
         auto factorMatrix = embeddingFactorMapping_->getFactorMatrix(); // [V x U]
