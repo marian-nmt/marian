@@ -193,11 +193,30 @@ namespace marian {
       }
       else if (embeddingFactorMapping_) {
         auto graph = input->graph();
-        auto y = affine(input, W_, b_, false, transposeW_); // [B... x U] factor logits
 
-        // denominators (only for groups that don't normalize out naturally by the final softmax())
+        // project each factor
         const auto& groupRanges = embeddingFactorMapping_->groupRanges_; // @TODO: factor this properly
         auto numGroups = groupRanges.size();
+        std::vector<Expr> groupYs(numGroups);
+#if 1
+        for (size_t g = 0; g < numGroups; g++) {
+          auto range = groupRanges[g];
+          ABORT_IF(g > 0 && groupRanges[g].first != groupRanges[g-1].second, "Factor groups must be consecutive"); // we could sort groupYs though
+          // slice this group's section out of W_
+          // @TODO: This is highly inefficient if not tied. We should always transpose Output's matrix.
+          auto groupW = slice(W_, transposeW_ ? 0 : -1, Slice((int)range.first, (int)range.second));
+          //LOG(info, "slice() -> {}, {}", groupW->type(), std::string(groupW->shape()));
+          auto groupB = slice(b_, -1, Slice((int)range.first, (int)range.second)); // @TODO: b_ should be a vector, not a matrix
+          auto groupY = affine(input, groupW, groupB, false, transposeW_); // [B... x U] factor logits
+          groupYs[g] = groupY;
+        }
+        auto y = concatenate(groupYs, /*axis=*/ -1);
+#else
+        auto y = affine(input, W_, b_, false, transposeW_); // [B... x U] factor logits
+#endif
+        // @TODO: next, do normalization per group
+
+        // denominators
         const auto& mVecs = embeddingFactorMapping_->mVecs_;
         for (size_t g = 0; g < numGroups; g++) {
           auto range = groupRanges[g];
@@ -215,6 +234,7 @@ namespace marian {
           auto name = options_->get<std::string>("prefix");
           auto llWeight = graph->param(name + "_llWeight_" + std::to_string(g), {}, inits::from_value(1.0f));
           y = y * ((llWeight  - 1) * m + 1);
+          // @BUGBUG: Global softmax no longer normalizes, due to words that lack some factors.
         }
 
         // sum up the unit logits across factors for each target word
