@@ -54,7 +54,7 @@ public:
   }
 
   virtual Logits getLogProbs() const { return logProbs_; }
-  virtual void setLogProbs(Logits logProbs) { logProbs_ = logProbs; }
+  virtual void setLogProbs(Logits logProbs) { logProbs_.assign(logProbs); }
 
   // @TODO: should this be a constructor? Then derived classes can call this without the New<> in the loop
   virtual Ptr<DecoderState> select(const std::vector<IndexType>& selIdx,

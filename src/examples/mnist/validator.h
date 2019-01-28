@@ -31,7 +31,7 @@ protected:
     size_t samples = 0;
 
     for(auto batch : *batchGenerator_) {
-      auto probs = builder_->build(graphs[0], batch, true);
+      auto probs = builder_->build(graphs[0], batch, true).getLogits();
       graphs[0]->forward();
 
       std::vector<float> scores;

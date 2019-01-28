@@ -58,11 +58,15 @@ struct IEmbeddingLayer {
 // Output layer returns a Logits object, which is able to compute some things on the fly
 // for factored embeddings.
 class Logits {
+    Logits& operator=(const Logits& other) = default;
 public:
     Logits(Expr logits) : logits_(logits) {
     }
     Expr getLogits() const {
       return logits_;
+    }
+    void assign(const Logits& other) { // @TODO: forbid changing the number of contributions
+      *this = other;
     }
 private:
     Expr logits_;
