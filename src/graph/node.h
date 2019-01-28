@@ -100,6 +100,8 @@ public:
   virtual bool marked_for_debug() override { return markedForDebug_; }
   virtual const std::string& debug_message() override { return debugMessage_; }
 
+  virtual void dump(const std::string& filename) override;
+
   virtual size_t allocate() override;
 
   virtual void free() override;

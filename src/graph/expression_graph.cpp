@@ -70,7 +70,7 @@ void ExpressionGraph::forwardNext() {
           LOG(critical, "\tType: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
             child->type(), child->shape(), child->name(), child->getId(), child->hash());
           LOG(critical, "Value debug {}", child->val()->debug());
-          ioItems.push_back(itemFromTensor(v->val(), "child_" + std::to_string(child->hash()), backend_));
+          ioItems.push_back(itemFromTensor(child->val(), "child_" + std::to_string(child->hash()), backend_));
         }
 
         io::saveItems("dump-for-nans.npz", ioItems);
