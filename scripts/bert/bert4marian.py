@@ -113,6 +113,7 @@ for layer in range(config["enc-depth"]):
     marianModel[marianPrefix + "_ffn_ffn_ln_scale"] = tfModel[tfPrefix + "/output/LayerNorm/gamma:0"]
     marianModel[marianPrefix + "_ffn_ffn_ln_bias"]  = tfModel[tfPrefix + "/output/LayerNorm/beta:0"]
 
+    # Training objectives
     # Masked-LM output layer
     marianModel["masked-lm_ff_logit_l1_W"] = tfModel["cls/predictions/transform/dense/kernel:0"]
     marianModel["masked-lm_ff_logit_l1_b"] = tfModel["cls/predictions/transform/dense/bias:0"]

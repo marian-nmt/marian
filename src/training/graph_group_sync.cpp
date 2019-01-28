@@ -356,12 +356,19 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
 
       auto rationalLoss = builders_[localDeviceIndex]->build(graph, subBatch);
       graph->forward();
-      
+
       StaticLoss tempLoss = *rationalLoss; // needed for overstuff
       tempLoss.loss /= (float)overstuff; // @TODO: @fseide: scale only loss? should this scale labels too?
 
       localDeviceLosses[localDeviceIndex] += tempLoss;
       graph->backward(/*zero=*/false); // (gradients are reset before we get here)
+
+      bool hasNan = false, hasInf = false;
+      IsNan(graph->params()->grads(), graph->allocator(), hasNan, hasInf);
+      if(hasNan || hasInf) {
+        LOG(warn, "Seen Nan ({}) or Inf ({}) in gradient, zeroing gradient", hasNan, hasInf);
+        graph->params()->grads()->set(0.f);
+      }
     }
   });
   // At this point, each device on each MPI process has a gradient aggregated over a subset of the sub-batches.
@@ -521,7 +528,7 @@ void SyncGraphGroup::save(bool final) /*override*/ {
       return comm_->gatherState(getShardFn);
     },
     isMainProcess());
-  
+
   barrier(); // (for better grouping of log messages)
 }
 

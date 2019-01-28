@@ -27,14 +27,43 @@ __device__ inline float stableSigmoid(float x) {
   }
 }
 
-bool IsNan(Tensor in) {
-  // cudaSetDevice(in->getDeviceId().no);
-  // thrust::device_ptr<float> begin = thrust::device_pointer_cast(in->data());
-  // thrust::device_ptr<float> end
-  //    = thrust::device_pointer_cast(in->data() + in->size());
-  // return thrust::transform_reduce(
-  //    begin, end, isnan_test(), 0, thrust::plus<bool>());
-  return false;
+template <typename T>
+__global__ void gIsNan(const T* in, int length, bool* isNan, bool* isInf) {
+  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
+    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+    if(index < length) {
+      if(isnan((float)in[index])) *isNan = true;
+      if(isinf((float)in[index])) *isInf = true;
+      //if(isinf2(in[index])) *isInf = true;
+    }
+  }
+}
+
+void IsNan(const Tensor in, Ptr<Allocator> allocator, bool& isNan, bool& isInf) {
+  cudaSetDevice(in->getDeviceId().no);
+
+  int length = in->size();
+
+  int threads = std::min(MAX_THREADS, length);
+  int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
+
+  auto mem = allocator->alloc<bool>(2);
+  bool* dIsNan = &mem->data<bool>()[0];
+  bool* dIsInf = &mem->data<bool>()[1];
+  fill(in->getBackend(), dIsNan, dIsNan + 2, false);
+
+  if(in->type() == Type::float32) {
+    gIsNan<<<blocks, threads>>>(in->data<float>(), length, dIsNan, dIsInf);
+  } else {
+    ABORT("IsNan for type {} not implemented", in->type());
+  }
+
+  CudaCopy(dIsNan, dIsNan + 1, &isNan);
+  CudaCopy(dIsInf, dIsInf + 1, &isInf);
+
+  allocator->free(mem);
+
+  cudaStreamSynchronize(0);
 }
 
 void ConcatCont(Tensor out, const std::vector<Tensor>& inputs, int axis) {
@@ -1176,9 +1205,9 @@ __global__ void gCrossEntropyPick(float* out,
 }
 
 // In each j-th row, take the corresponding j-th label index i from indices and compute:
-// For each vocabulary item v, the only non-zero element in a row in the sum is the item 
-// that matches the label indexed by i (the picked element). 
-// C = sum_{v in V}(-logsoftmax(A) * delta(v, i) = -logsoftmax(A)[i] 
+// For each vocabulary item v, the only non-zero element in a row in the sum is the item
+// that matches the label indexed by i (the picked element).
+// C = sum_{v in V}(-logsoftmax(A) * delta(v, i) = -logsoftmax(A)[i]
 void CrossEntropyPick(Tensor out, Tensor in, Tensor indices) {
   matchOrAbort<IndexType>(indices->type());
 
