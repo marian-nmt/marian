@@ -136,7 +136,7 @@ private:
   bool reloaded_{false};
   std::string namespace_;
 
-  bool throwNan_{false};
+  bool throwNaN_{false};
 
 protected:
   // Delete, copy and move constructors
@@ -217,11 +217,81 @@ public:
     forwardNext();
   }
 
-  void checkNan(Tensor t, bool& isNan, bool& isInf, bool zero = false);
+  void checkNan(Tensor t);
 
-  void forwardNext();
+  void forwardNext() {
+    // @TODO: check if allocation works properly
+    tensors_->clearShorttermMemory();
 
-  void backward(bool zero = true, float clipValue = 0.f);
+    while(!nodesForward_.empty()) {
+      auto v = nodesForward_.front();
+      v->allocate();
+      v->init();
+      v->forward();
+
+      checkNan(v->val());
+
+      if(v->marked_for_debug()) {
+        std::cerr << "Debug: " << v->debug_message() << " op=" << v->type()
+                  << std::endl;
+        std::cerr << v->val()->debug() << std::endl;
+      }
+
+      if(inferenceOnly_)
+        v->children().clear();
+      nodesForward_.pop_front();
+    }
+  }
+
+  void backward(bool zero = true) {
+    if(topNodes_.size() > 1) {
+      LOG(critical, "There are more ({}) than one top most node for backward step:", topNodes_.size());
+      for(auto node : topNodes_) {
+        LOG(critical,
+            "\tType: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
+            node->type(),
+            node->shape(),
+            node->name(),
+            node->getId(),
+            node->hash());
+      }
+      ABORT("Aborting");
+    }
+
+    params_->allocateBackward();
+    if(zero)
+      params_->set_zero_adjoint();
+
+    for(auto&& v : topNodes_)
+      v->init_dependent();
+
+    // named_.clear();
+    topNodes_.clear();
+
+    tensors_->clearShorttermMemory();
+
+    while(!nodesBackward_.empty()) {
+      auto v = nodesBackward_.back();
+      nodesBackward_.pop_back();
+
+      for(auto&& child : v->children()) {
+        if(child->trainable() && child->type() != "param")
+          child->set_zero_adjoint();
+      }
+
+      if(v->trainable())
+        v->backward();
+
+      checkNan(v->grad());
+
+      if(v->trainable() && v->marked_for_debug()) {
+        std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
+        std::cerr << v->grad()->debug() << std::endl;
+      }
+
+      v->children().clear();
+    }
+  }
 
   std::string graphviz() {
     std::stringstream ss;
@@ -390,8 +460,7 @@ public:
 
   void setReloaded(bool reloaded) { reloaded_ = reloaded; }
 
-  void setThrowNan(bool throwNan) { throwNan_ = throwNan; }
-  bool getThrowNan() { return throwNan_; }
+  void setThrowNaN(bool throwNaN) { throwNaN_ = throwNaN; }
 
 public:
   // convert all parameters into an array of IoItem elements, for loading

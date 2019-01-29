@@ -2,8 +2,6 @@
 #include "graph/auto_tuner.h"
 #include "graph/expression_graph.h"
 #include "tensors/backend.h"
-#include "tensors/tensor_operators.h"
-#include "common/io.h"
 
 namespace marian {
 
@@ -84,22 +82,5 @@ void Node::record(Ptr<AutoTunerRecorder> recorder,
   recorder_ = recorder;
   recorderHash_ = recorderHash;
   recorderStop_ = stop;
-}
-
-void Node::dump(const std::string& filename) {
-  io::Item item;
-  item.name  = "dump";
-  item.shape = val_->shape();
-  item.type  = val_->type();
-
-  size_t bytesWithoutPadding = val_->shape().elements() * sizeOf(val_->type());
-  item.bytes.resize(bytesWithoutPadding);
-  copy(graph()->getBackend(),
-        (char*)val_->data(),
-        (char*)val_->data() + bytesWithoutPadding,
-        item.bytes.data());
-  
-  std::vector<io::Item> items({item});
-  io::saveItems(filename, items);
 }
 }  // namespace marian

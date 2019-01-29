@@ -71,8 +71,6 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
     "Suppress logging for translation");
   cli.add<size_t>("--seed",
     "Seed for all random number generators. 0 means initialize randomly");  
-  cli.add<bool>("--check-nan",
-    "Check for NaNs or Infs in forward and backward pass. Will abort when found.");
   cli.add<float>("--clip-gemm",
     "If not 0 clip GEMM input values to +/- arg");
   cli.add<bool>("--interpolate-env-vars",

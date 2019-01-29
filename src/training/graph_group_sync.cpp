@@ -10,10 +10,6 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Options> config, Ptr<IMPIWrapper> mpi)
   for(auto device : devices_) {
     auto graph = New<ExpressionGraph>();
     graph->setDevice(device);
-
-    if(options_->get<bool>("check-nan"))
-      graph->setThrowNan(true);
-
     graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
     graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
 
@@ -360,18 +356,12 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
 
       auto rationalLoss = builders_[localDeviceIndex]->build(graph, subBatch);
       graph->forward();
-
+      
       StaticLoss tempLoss = *rationalLoss; // needed for overstuff
-      tempLoss.loss /= (float)overstuff; 
+      tempLoss.loss /= (float)overstuff; // @TODO: @fseide: scale only loss? should this scale labels too?
 
       localDeviceLosses[localDeviceIndex] += tempLoss;
       graph->backward(/*zero=*/false); // (gradients are reset before we get here)
-
-      bool hasNan = false, hasInf = false;
-      IsNan(graph->params()->grads(), graph->allocator(), hasNan, hasInf, /*zero=*/true);
-      if(hasNan || hasInf) {
-        LOG(warn, "Seen Nan ({}) or Inf ({}) in gradient, zeroed out offending gradient", hasNan, hasInf);
-      }
     }
   });
   // At this point, each device on each MPI process has a gradient aggregated over a subset of the sub-batches.
@@ -410,10 +400,7 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
   // cost across all local devices (scheduler will aggregate cross-process)
   StaticLoss localLoss;
   for(auto& l : localDeviceLosses) // localDeviceLosses is already summed up over delay steps
-    if(std::isfinite((float)l.loss))
-      localLoss += l;
-    else 
-      LOG(warn, "Seen non-finite loss, offending gradients have been zeroed out");
+    localLoss += l;
 
   if(scheduler_) {
     // track and log localLoss
@@ -534,7 +521,7 @@ void SyncGraphGroup::save(bool final) /*override*/ {
       return comm_->gatherState(getShardFn);
     },
     isMainProcess());
-
+  
   barrier(); // (for better grouping of log messages)
 }
 

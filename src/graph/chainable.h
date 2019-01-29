@@ -96,8 +96,6 @@ public:
   virtual const std::string& name() const = 0;
 
   virtual void debug(const std::string& message) = 0;
-  virtual void dump(const std::string& filename) = 0;
-
   virtual bool marked_for_debug() = 0;
   virtual const std::string& debug_message() = 0;
 
