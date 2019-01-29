@@ -513,7 +513,7 @@ struct ScalarProductNodeOp : public NaryNodeOp {
 
 struct RowsNodeOp : public NaryNodeOp {
   RowsNodeOp(Expr a, Expr indices)
-      : NaryNodeOp({a, indices}, newShape(a, indices->shape().elements())) {
+      : NaryNodeOp({a, indices}, newShape(a, indices->shape().elements()), a->value_type()) {
     matchOrAbort<IndexType>(indices->value_type());
   }
 
@@ -641,7 +641,7 @@ struct GatherNodeOp : public NaryNodeOp {
 
 struct ColsNodeOp : public NaryNodeOp {
   ColsNodeOp(Expr a, Expr indices)
-    : NaryNodeOp({a, indices}, newShape(a, indices->shape().elements())) {
+    : NaryNodeOp({a, indices}, newShape(a, indices->shape().elements()), a->value_type()) {
     matchOrAbort<IndexType>(indices->value_type());
   }
 

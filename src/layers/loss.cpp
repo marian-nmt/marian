@@ -22,11 +22,23 @@ Ptr<LossBase> LossFactory(Ptr<Options> options, bool inference) {
   }
 }
 
-Expr LossBase::getCrossEntropy(const Logits& logits1,
+Expr LossBase::getCrossEntropy(const Logits& logits,
                                Expr indices,
                                Expr mask,
                                Expr weights) {
-  auto ce = logits1.crossEntropy(indices, smoothing_);
+  auto ce = logits.getLoss(indices, [&](Expr logits, Expr indices) {
+    Expr ce = cross_entropy(logits, indices);
+    if (smoothing_ > 0) {
+      // ce = sum_i y^_i log y_i(z)_i
+      // with smoothing:
+      // ce' = sum_i ((1-smoothing_) y^_i + smoothing_/N) log y_i(z)_i
+      //     = (1-smoothing_) sum_i y^_i log y_i(z)_i + smoothing_ mean_i log y_i(z)_i
+      //     = (1-smoothing_) ce + smoothing_ mean_i log y_i(z)_i
+      auto ceq = mean(logits, /*axis=*/ -1) - logsumexp(logits, /*axis=*/ -1);
+      ce = (1 - smoothing_) * ce - smoothing_ * ceq;
+    }
+    return ce;
+  });
 
   if(mask)
     ce = ce * mask;

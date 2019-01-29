@@ -44,11 +44,12 @@ namespace marian {
       // Specifically, it means that the factorVocab_ must contain </s> and "<unk>".
       Vocab vocab(New<Options>(), 0);
       vocab.load(vocabPath);
+      auto vocabSize = vocab.size();
       factorVocab_.load(factorVocabPath);
       Word numFactors = (Word)factorVocab_.size();
 
       // load and parse factorMap
-      factorMap_.resize(vocab.size());
+      factorMap_.resize(vocabSize);
       factorRefCounts_.resize(numFactors);
       std::vector<std::string> tokens;
       io::InputFileStream in(mapPath);
@@ -60,13 +61,12 @@ namespace marian {
         ABORT_IF(tokens.size() < 2 || tokens.front() != vocab[v], "Factor map must list words in same order as vocab, and have at least one factor per word", mapPath);
         for (size_t i = 1; i < tokens.size(); i++) {
           auto u = factorVocab_[tokens[i]];
-          auto& m = factorMap_[v];
-          m.push_back(u);
+          factorMap_[v].push_back(u);
           factorRefCounts_[u]++;
         }
         numTotalFactors += tokens.size() - 1;
       }
-      LOG(info, "[embedding] Factored-embedding map read with total/unique of {}/{} factors for {} words", numTotalFactors, numFactors, vocab.size());
+      LOG(info, "[embedding] Factored-embedding map read with total/unique of {}/{} factors for {} words", numTotalFactors, numFactors, vocabSize);
 
       // form groups
       // @TODO: hard-coded for these initial experiments
@@ -85,6 +85,7 @@ namespace marian {
             factorGroups_[u] = g;
           }
       }
+      // determine group index ranges
       groupRanges_.resize(numGroups, { SIZE_MAX, (size_t)0 });
       std::vector<size_t> groupCounts(numGroups); // number of group members
       for (Word u = 0; u < numFactors; u++) { // determine ranges; these must be non-overlapping, verified via groupCounts
@@ -95,8 +96,18 @@ namespace marian {
             groupRanges_[g].second = u + 1;
         groupCounts[g]++;
       }
-      // create the flag vectors for normalization   --@TODO: maybe we won't need them anymore
-      mVecs_.resize(numGroups);
+      // create mappings needed for normalization in factored outputs
+      factorMasks_  .resize(numGroups, std::vector<float>(vocabSize, 0));     // [g][v] 1.0 if word v has factor g
+      factorIndices_.resize(numGroups, std::vector<IndexType>(vocabSize, 0)); // [g][v] index of factor (or any valid index if it does not have it; we use 0)
+      for (Word v = 0; v < vocabSize; v++) {
+        for (auto u : factorMap_[v]) {
+          auto g = factorGroups_[u]; // convert u to relative u within factor group range
+          ABORT_IF(u < groupRanges_[g].first || u >= groupRanges_[g].second, "Invalid factorGroups_ entry??");
+          factorIndices_[g][v] = (IndexType)(u - groupRanges_[g].first);
+          factorMasks_[g][v] = 1.0f;
+        }
+      }
+      //mVecs_.resize(numGroups); // @TODO: no longer needed, delete soon
       for (size_t g = 0; g < numGroups; g++) { // detect non-overlapping groups
         LOG(info, "[embedding] Factor group '{}' has {} members ({})",
             groupPrefixes[g], groupCounts[g], groupCounts[g] == 1 ? "sigmoid" : "softmax");
@@ -104,16 +115,16 @@ namespace marian {
           continue;
         ABORT_IF(groupRanges_[g].second - groupRanges_[g].first != groupCounts[g],
                  "Factor group '{}' members should be consecutive in the factor vocabulary", groupPrefixes[g]);
-        auto& mVec = mVecs_[g];
-        mVec.resize(numFactors, 0.0f);
-        for (size_t i = groupRanges_[g].first; i < groupRanges_[g].second; i++)
-          mVec[i] = 1.0f;
+        //auto& mVec = mVecs_[g];
+        //mVec.resize(numFactors, 0.0f);
+        //for (size_t i = groupRanges_[g].first; i < groupRanges_[g].second; i++)
+        //  mVec[i] = 1.0f;
       }
 
-      // create the factor matrix
-      std::vector<IndexType> data(vocab.size());
+      // create the global factor matrix, which is used for factored embeddings
+      std::vector<IndexType> data(vocabSize);
       std::iota(data.begin(), data.end(), 0);
-      factorMatrix_ = csr_rows(data); // [V x U]
+      globalFactorMatrix_ = csr_rows(data); // [V x U]
     }
 
     size_t factorVocabSize() const { return factorVocab_.size(); }
@@ -139,45 +150,52 @@ namespace marian {
       return { Shape({(int)words.size(), (int)factorVocab_.size()}), weights, indices, offsets };
     }
 
-    const CSRData& getFactorMatrix() const { return factorMatrix_; } // [v,u] (sparse) -> =1 if u is factor of v
+    const CSRData& getGlobalFactorMatrix() const { return globalFactorMatrix_; }   // [v,u] (sparse) -> =1 if u is factor of v
+    size_t getNumGroups() const { return groupRanges_.size(); }
+    std::pair<size_t, size_t>     getGroupRange(size_t g)    const { return groupRanges_[g]; }   // [g] -> (u_begin, u_end)
+    const std::vector<float>&     getFactorMasks(size_t g)   const { return factorMasks_[g]; }   // [g][v] 1.0 if word v has factor g
+    const std::vector<IndexType>& getFactorIndices(size_t g) const { return factorIndices_[g]; } // [g][v] local index u_g = u - u_g,begin of factor g for word v; 0 if not a factor
   private:
     Vocab factorVocab_;                                  // [factor name] -> factor index = row of E_
-    std::vector<std::vector<Word>> factorMap_;           // [word index] -> set of factor indices
-    std::vector<int> factorRefCounts_;                   // [factor index] -> how often this factor is referenced in factorMap_
-    CSRData factorMatrix_;                               // [v,u] (sparse) -> =1 if u is factor of v
+    std::vector<std::vector<Word>> factorMap_;           // [word index v] -> set of factor indices u
+    std::vector<int> factorRefCounts_;                   // [factor index u] -> how often factor u is referenced in factorMap_
+    CSRData globalFactorMatrix_;                         // [v,u] (sparse) -> =1 if u is factor of v
     std::vector<size_t> factorGroups_;                   // [u] -> group id of factor u
-  public: // @TODO: temporarily; later factor this properly
-    std::vector<std::pair<size_t, size_t>> groupRanges_; // [group id] -> (u_begin,u_end) index range of factors u for this group. These don't overlap.
-    std::vector<std::vector<float>> mVecs_;              // [group id][u] -> 1 if factor is member of group
+    std::vector<std::pair<size_t, size_t>> groupRanges_; // [group id g] -> (u_begin,u_end) index range of factors u for this group. These don't overlap.
+    std::vector<std::vector<float>>     factorMasks_;    // [g][v] 1.0 if word v has factor g
+    std::vector<std::vector<IndexType>> factorIndices_;  // [g][v] relative index u - u_begin of factor g (or any valid index if it does not have it; we use 0)
+  //public: // @TODO: temporarily; later factor this properly
+    //std::vector<std::vector<float>> mVecs_;              // [group id][u] -> 1 if factor is member of group
   };
 
-  Expr Logits::crossEntropy(Expr indices, float smoothing) const {
-    auto logits = getLogits();
-    Expr ce;
-    if(smoothing > 0) {
-      // ce = sum_i y^_i log y_i(z)_i
-      // with smoothing:
-      // ce' = sum_i ((1-smoothing_) y^_i + smoothing_/N) log y_i(z)_i
-      //     = (1-smoothing_) sum_i y^_i log y_i(z)_i + smoothing_ mean_i log y_i(z)_i
-      //     = (1-smoothing_) ce + smoothing_ mean_i log y_i(z)_i
-      // @TODO: add this to CE kernels instead
-#if 0
-      ce = cross_entropy(logits, indices);
-      auto ceq = mean(logsoftmax(logits), /*axis=*/ -1);
-      ce = (1 - smoothing_) * ce - smoothing_ * ceq;
-#else   // alternative that is cheaper memory-wise
-      ce = cross_entropy(logits, indices);
-      auto ceq = mean(logits, /*axis=*/ -1) - logsumexp(logits, /*axis=*/ -1);
-      ce = (1 - smoothing) * ce - smoothing * ceq;
-      //auto ceq = mean(logits, /*axis=*/ -1) - Z;
-      //ce = (1 - smoothing_) * cols(logits, indices)   // ce term
-      //     - smoothing_ * mean(logits, /*axis=*/ -1)  // smoothing term
-      //     - logsumexp(logits, /*axis=*/ -1);         // denominator
-#endif
+  Expr Logits::getLoss(Expr indices, const std::function<Expr(Expr/*logits*/, Expr/*indices*/)>& lossFn) const {
+    ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
+    if (!embeddingFactorMapping_) {
+      ABORT_IF(logits_.size() != 1, "Factors without factor mappings??");
+      return lossFn(logits_.front(), indices);
     }
-    else
-      ce = cross_entropy(logits, indices);
-    return ce;
+
+    // accumulate all CEs for all words that have the factor
+    // Memory-wise, this is cheap, all temp objects below are batches of scalars or lookup vectors.
+    auto graph = indices->graph();
+    Expr loss;
+    auto numGroups = embeddingFactorMapping_->getNumGroups();
+    for (size_t g = 0; g < numGroups; g++) {
+      indices; // [B... * 1] all batch items flattened
+      auto factorMaskVector  = embeddingFactorMapping_->getFactorMasks(g);   // [v] 1.0 if v has factor of group g
+      auto factorIndexVector = embeddingFactorMapping_->getFactorIndices(g); // [v] index of factor for word v in group p; must be 0 if factor is not used
+      auto factorMaskMatrix  = graph->constant({(int)factorMaskVector.size(),  1}, inits::from_vector(factorMaskVector),  Type::float32); // [V x 1]
+      auto factorIndexMatrix = graph->constant({(int)factorIndexVector.size(), 1}, inits::from_vector(factorIndexVector), Type::uint32);  // [V x 1(Ug)]
+      auto factorIndex  = rows(factorIndexMatrix, indices); // [B... * 1(Ug)] map word indices to factor indices (indices into factorLogits)
+      auto factorMask   = rows(factorMaskMatrix,  indices); // [B... * 1]     flag whether word has the factor in the first place
+      auto factorLogits = logits_[g];                       // [B... * Ug]
+      // @TODO: no need to normalize factors before here
+      // For each location in [B...] select [indices[B...]]. If not using factor, select [0] and mask it out next.
+      auto factorLoss = lossFn(factorLogits, factorIndex);  // [B... x 1]
+      factorLoss = factorLoss * reshape(factorMask, factorLoss->shape()); // mask out factor for words that do not have that factor
+      loss = loss ? (loss + factorLoss) : factorLoss; // [B... x 1]
+    }
+    return loss;
   }
 
   Expr Logits::getLogits() const {
@@ -192,7 +210,7 @@ namespace marian {
 
     // sum up the unit logits across factors for each target word
     auto graph = y->graph();
-    auto factorMatrix = embeddingFactorMapping_->getFactorMatrix(); // [V x U]
+    auto factorMatrix = embeddingFactorMapping_->getGlobalFactorMatrix(); // [V x U]
     y = dot_csr(
         y,  // [B x U]
         factorMatrix.shape,
@@ -270,13 +288,12 @@ namespace marian {
         auto graph = input->graph();
 
         // project each factor
-        const auto& groupRanges = embeddingFactorMapping_->groupRanges_; // @TODO: factor this properly
-        auto numGroups = groupRanges.size();
+        auto numGroups = embeddingFactorMapping_->getNumGroups();
         std::vector<Expr> groupYs(numGroups);
         std::vector<Expr> groupLLWeights(numGroups);
         for (size_t g = 0; g < numGroups; g++) {
-          auto range = groupRanges[g];
-          ABORT_IF(g > 0 && groupRanges[g].first != groupRanges[g-1].second, "Factor groups must be consecutive"); // we could sort groupYs though
+          auto range = embeddingFactorMapping_->getGroupRange(g);
+          ABORT_IF(g > 0 && range.first != embeddingFactorMapping_->getGroupRange(g-1).second, "Factor groups must be consecutive"); // we could sort groupYs though
           // slice this group's section out of W_
           // @TODO: This is highly inefficient if not tied. We should always transpose Output's matrix.
           auto groupW = slice(W_, transposeW_ ? 0 : -1, Slice((int)range.first, (int)range.second));
