@@ -615,6 +615,8 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
 
   cli.add<bool>("--shuffle-in-ram",
       "Keep shuffled corpus in RAM, do not write to temp file");
+  cli.add<size_t>("--all-caps-every",
+      "When forming minibatches, preprocess every Nth line on the fly to all-caps. Assumes UTF-8");
 
   cli.add<int>("--mini-batch-words-ref",
       "If given, the following hyper parameters are adjusted as-if we had this mini-batch size: "

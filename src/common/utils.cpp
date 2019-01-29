@@ -10,6 +10,8 @@
 #ifdef __unix__
 #include <unistd.h>
 #endif
+#include <codecvt>
+#include <locale>
 
 namespace marian {
 namespace utils {
@@ -154,12 +156,24 @@ bool endsWith(const std::string& text, const std::string& suffix) {
          && !text.compare(text.size() - suffix.size(), suffix.size(), suffix);
 }
 
-std::string toUpper(const std::string& s) {
-  std::locale loc;
-  std::string res; res.reserve(s.capacity());
-  for (auto c : s) // @BUGBUG: This won't work with UTF-8 characters.
-    res.push_back((char)std::toupper(c, loc));
-  return res;
+static std::wstring utf8ToWString(std::string const& s) {
+  std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+  return converter.from_bytes(s);
+}
+
+static std::string toUTF8String(std::wstring const& s) {
+  std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+  return converter.to_bytes(s);
+}
+
+std::locale const utf8("en_US.UTF-8");
+
+// convert a UTF-8 string to all-caps
+std::string utf8ToUpper(const std::string& s) {
+  auto ws = utf8ToWString(s);
+  for (auto& c : ws)
+    c = std::toupper(c, utf8);
+  return toUTF8String(ws);
 }
 
 double parseDouble(std::string s) {

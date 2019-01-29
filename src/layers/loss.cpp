@@ -26,16 +26,18 @@ Expr LossBase::getCrossEntropy(const Logits& logits,
                                Expr indices,
                                Expr mask,
                                Expr weights) {
+  // logits may be factored; in that case, the getLoss() function computes one loss for each, and sums them up
   auto ce = logits.getLoss(indices, [&](Expr logits, Expr indices) {
     Expr ce = cross_entropy(logits, indices);
     if (smoothing_ > 0) {
-      // ce = sum_i y^_i log y_i(z)_i
+      // ce = -sum_i y^_i log y_i(z)
       // with smoothing:
-      // ce' = sum_i ((1-smoothing_) y^_i + smoothing_/N) log y_i(z)_i
-      //     = (1-smoothing_) sum_i y^_i log y_i(z)_i + smoothing_ mean_i log y_i(z)_i
-      //     = (1-smoothing_) ce + smoothing_ mean_i log y_i(z)_i
+      // ce' = -sum_i ((1-smoothing_) y^_i + smoothing_/N) log y_i(z)
+      //     = -(1-smoothing_) sum_i y^_i log y_i(z) - smoothing_ mean_i log y_i(z)
+      //     = (1-smoothing_) ce - smoothing_ mean_i log y_i(z)
       auto ceq = mean(logits, /*axis=*/ -1) - logsumexp(logits, /*axis=*/ -1);
-      ce = (1 - smoothing_) * ce - smoothing_ * ceq;
+      //ce = (1 - smoothing_) * ce - smoothing_ * ceq;
+      ce = ce - smoothing_ * (ce + ceq); // writing it this way saves one op :)
     }
     return ce;
   });

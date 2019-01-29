@@ -130,9 +130,9 @@ private:
     while(current_ != data_->end() && maxiBatch->size() < maxSize) { // loop over data
       maxiBatch->push(*current_);
       sets = current_->size();
-        // do not consume more than required for the maxi batch as this causes
-        // that line-by-line translation is delayed by one sentence
-        bool last = maxiBatch->size() == maxSize;
+      // do not consume more than required for the maxi batch as this causes
+      // that line-by-line translation is delayed by one sentence
+      bool last = maxiBatch->size() == maxSize;
       if(!last)
         ++current_; // this actually reads the next line and pre-processes it
     }

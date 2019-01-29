@@ -23,7 +23,7 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Options> config, Ptr<IMPIWrapper> mpi)
   // Rather, it is assumed that the communicator knows to reduce unnecessary transfers to no-ops.
   comm_ = createCommunicator(graphs_, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/mpi_);
 
-  auto type = utils::toUpper(devices_.front().typeAsString()) + "s";
+  auto type = utils::utf8ToUpper(devices_.front().typeAsString()) + "s";
   if (mpi_->numMPIProcesses() > 1)
     LOG(info, "[training] Using {} {}, distributed over {} MPI processes", mpi_->numMPIProcesses() * devices_.size(), type, mpi_->numMPIProcesses());
   else

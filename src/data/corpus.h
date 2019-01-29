@@ -27,6 +27,10 @@ private:
 
   void shuffleData(const std::vector<std::string>& paths);
 
+  // for pre-processing
+  size_t allCapsEvery_{0};
+  void preprocessLine(std::string& line, size_t streamId);
+
 public:
   // @TODO: check if translate can be replaced by an option in options
   Corpus(Ptr<Options> options, bool translate = false);

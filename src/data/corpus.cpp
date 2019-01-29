@@ -10,12 +10,17 @@ namespace marian {
 namespace data {
 
 Corpus::Corpus(Ptr<Options> options, bool translate /*= false*/)
-    : CorpusBase(options, translate), shuffleInRAM_(options_->get<bool>("shuffle-in-ram")) {}
+    : CorpusBase(options, translate), shuffleInRAM_(options_->get<bool>("shuffle-in-ram")), allCapsEvery_(options_->get<bool>("all-caps-every")) {}
 
 Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
                Ptr<Options> options)
-    : CorpusBase(paths, vocabs, options), shuffleInRAM_(options_->get<bool>("shuffle-in-ram")) {}
+    : CorpusBase(paths, vocabs, options), shuffleInRAM_(options_->get<bool>("shuffle-in-ram")), allCapsEvery_(options_->get<bool>("all-caps-every") {}
+
+void Corpus::preprocessLine(std::string& line, size_t streamId) {
+  if (allCapsEvery_ != 0 && pos_ % allCapsEvery_ == 0)
+    line = utils::toAllCapsUTF8(line);
+}
 
 SentenceTuple Corpus::next() {
   for (;;) { // (this is a retry loop for skipping invalid sentences)
@@ -55,6 +60,7 @@ SentenceTuple Corpus::next() {
       } else if(i > 0 && i == weightFileIdx_) {
         addWeightsToSentenceTuple(line, tup);
       } else {
+        preprocessLine(line, i);
         addWordsToSentenceTuple(line, i, tup);
       }
     }

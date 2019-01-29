@@ -107,6 +107,13 @@ namespace marian {
           factorMasks_[g][v] = 1.0f;
         }
       }
+      //for (Word v = 0; v < vocabSize; v++) {
+      //  LOG(info, "'{}': {}*{} {}*{} {}*{} {}*{}", vocab[v],
+      //      factorMasks_[0][v], factorIndices_[0][v],
+      //      factorMasks_[1][v], factorIndices_[1][v],
+      //      factorMasks_[2][v], factorIndices_[2][v],
+      //      factorMasks_[3][v], factorIndices_[3][v]);
+      //}
       //mVecs_.resize(numGroups); // @TODO: no longer needed, delete soon
       for (size_t g = 0; g < numGroups; g++) { // detect non-overlapping groups
         LOG(info, "[embedding] Factor group '{}' has {} members ({})",
@@ -193,7 +200,9 @@ namespace marian {
       // @TODO: no need to normalize factors before here
       // For each location in [B...] select [indices[B...]]. If not using factor, select [0] and mask it out next.
       auto factorLoss = lossFn(factorLogits, factorIndex);  // [B... x 1]
-      factorLoss = factorLoss * reshape(factorMask, factorLoss->shape()); // mask out factor for words that do not have that factor
+      auto xxx = reshape(factorMask, factorLoss->shape());
+      //factorLoss->debug("factorLoss");
+      factorLoss = factorLoss * xxx;// reshape(factorMask, factorLoss->shape()); // mask out factor for words that do not have that factor
       loss = loss ? (loss + factorLoss) : factorLoss; // [B... x 1]
     }
     return loss;
@@ -293,28 +302,24 @@ namespace marian {
 
         // project each factor
         auto numGroups = embeddingFactorMapping_->getNumGroups();
-        std::vector<Expr> groupYs(numGroups);
-        std::vector<Expr> groupLLWeights(numGroups);
+        std::vector<Expr> allLogits(numGroups);
         for (size_t g = 0; g < numGroups; g++) {
           auto range = embeddingFactorMapping_->getGroupRange(g);
           ABORT_IF(g > 0 && range.first != embeddingFactorMapping_->getGroupRange(g-1).second, "Factor groups must be consecutive"); // we could sort groupYs though
           // slice this group's section out of W_
           // @TODO: This is highly inefficient if not tied. We should always transpose Output's matrix.
-          auto groupW = slice(W_, transposeW_ ? 0 : -1, Slice((int)range.first, (int)range.second));
-          //LOG(info, "slice() -> {}, {}", groupW->type(), std::string(groupW->shape()));
-          auto groupB = slice(b_, -1, Slice((int)range.first, (int)range.second)); // @TODO: b_ should be a vector, not a matrix
-          auto groupY = affine(input, groupW, groupB, false, transposeW_); // [B... x U] factor logits
-          // normalize
-          groupY = logsoftmax(groupY);
-          // log-linear weight   --@TODO: pre-create in constructor
+          auto factorW = slice(W_, transposeW_ ? 0 : -1, Slice((int)range.first, (int)range.second));
+          auto factorB = slice(b_, -1, Slice((int)range.first, (int)range.second)); // @TODO: b_ should be a vector, not a matrix
+          auto factorLogits = affine(input, factorW, factorB, false, transposeW_); // [B... x U] factor logits
+          // log-linear weight
+          // @TODO: The weight should not be needed, since it could learn it into the embeddings. Maybe it doesn't.
+          // @TODO? If we move the weight before affine(), it would use less memory at least for the main factor.
           auto name = options_->get<std::string>("prefix");
-          groupLLWeights[g] = graph->param(name + "_llWeight_" + std::to_string(g), {}, inits::from_value(1.0f));
-          groupY = groupY * groupLLWeights[g];
-          // @BUGBUG: Global softmax no longer normalizes, due to words that lack some factors.
-          // @TODO: normalize again. Do I need the first normalization?
-          groupYs[g] = groupY;
+          auto llWeight = graph->param(name + "_llWeight_" + std::to_string(g), {}, inits::from_value(1.0f));
+          factorLogits = factorLogits * llWeight; // -a constant, which is OK for logits
+          allLogits[g] = factorLogits;
         }
-        return Logits(std::move(groupYs), embeddingFactorMapping_);
+        return Logits(std::move(allLogits), embeddingFactorMapping_);
       }
       else
         return affine(input, W_, b_, false, transposeW_);
