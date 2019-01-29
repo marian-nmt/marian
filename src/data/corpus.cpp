@@ -15,11 +15,11 @@ Corpus::Corpus(Ptr<Options> options, bool translate /*= false*/)
 Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
                Ptr<Options> options)
-    : CorpusBase(paths, vocabs, options), shuffleInRAM_(options_->get<bool>("shuffle-in-ram")), allCapsEvery_(options_->get<bool>("all-caps-every") {}
+    : CorpusBase(paths, vocabs, options), shuffleInRAM_(options_->get<bool>("shuffle-in-ram")), allCapsEvery_(options_->get<bool>("all-caps-every")) {}
 
-void Corpus::preprocessLine(std::string& line, size_t streamId) {
+void Corpus::preprocessLine(std::string& line, size_t /*streamId*/) {
   if (allCapsEvery_ != 0 && pos_ % allCapsEvery_ == 0)
-    line = utils::toAllCapsUTF8(line);
+    line = utils::utf8ToUpper(line);
 }
 
 SentenceTuple Corpus::next() {
