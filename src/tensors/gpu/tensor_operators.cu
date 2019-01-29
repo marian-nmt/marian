@@ -420,7 +420,7 @@ __global__ void gSoftmax(float* out,
 
       extern __shared__ float _share[];
 
-      float* _max = _share + blockDim.x;
+      float* _max = _share;
       _max[threadIdx.x] = -CUDA_FLT_MAX;  // mask
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
@@ -503,7 +503,7 @@ __global__ void gLogSoftmax(float* out,
 
       extern __shared__ float _share[];
 
-      float* _max = _share + blockDim.x;
+      float* _max = _share;
       _max[threadIdx.x] = sp[threadIdx.x];
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
@@ -584,7 +584,7 @@ __global__ void gSoftmaxGrad(float* grad,
     int j = bid + blockIdx.x;
     if(j < rows) {
       extern __shared__ float _share[];
-      float* _sum = _share + blockDim.x;
+      float* _sum = _share;
 
       float* gradRow = grad + j * cols;
       const float* adjRow = adj + j * cols;
@@ -629,7 +629,7 @@ void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
 
   int blocks = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, k);
-  int shared = sizeof(float) * threads * 2;
+  int shared = sizeof(float) * threads;
   gSoftmaxGrad<<<blocks, threads, shared>>>(
       grad->data(), adj->data(), val->data(), m, k);
 }
@@ -643,7 +643,7 @@ __global__ void gLogSoftmaxGrad(float* grad,
     int j = bid + blockIdx.x;
     if(j < rows) {
       extern __shared__ float _share[];
-      float* _sum = _share + blockDim.x;
+      float* _sum = _share;
 
       float* gradRow = grad + j * cols;
       const float* adjRow = adj + j * cols;
@@ -686,7 +686,7 @@ void LogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
 
   int blocks = std::min(MAX_BLOCKS, m);
   int threads = std::min(MAX_THREADS, k);
-  int shared = sizeof(float) * threads * 2;
+  int shared = sizeof(float) * threads;
   gLogSoftmaxGrad<<<blocks, threads, shared>>>(
       grad->data(), adj->data(), val->data(), m, k);
 }
@@ -1153,7 +1153,7 @@ __global__ void gCrossEntropyPick(float* out,
       const float* sp = in + j * cols;
 
       extern __shared__ float _share[];
-      float* _max = _share + blockDim.x;
+      float* _max = _share;
 
       _max[threadIdx.x] = sp[threadIdx.x];
       for(int tid = 1; tid < cols; tid += blockDim.x) {
@@ -1243,7 +1243,7 @@ __global__ void gCrossEntropyPickBackward(float* out,
       float* so = out + j * cols;
 
       extern __shared__ float _share[];
-      float* _max = _share + blockDim.x;
+      float* _max = _share;
 
       _max[threadIdx.x] = sp[threadIdx.x];
       for(int tid = 1; tid < cols; tid += blockDim.x) {
@@ -1358,7 +1358,7 @@ __global__ void gAtt(float* out,
       const float* stateRow = state + ((j / (b * t)) * b + j % b) * cols;
 
       extern __shared__ float _share[];
-      float* _sum = _share + blockDim.x;
+      float* _sum = _share;
 
       _sum[threadIdx.x] = 0.0;
       for(int tid = 0; tid < cols; tid += blockDim.x) {
@@ -1395,7 +1395,7 @@ void Att(Tensor out, Tensor va, Tensor context, Tensor state) {
 
   int blocks = std::min(MAX_BLOCKS, (int)m);
   int threads = std::min(MAX_THREADS, (int)k);
-  int shared = sizeof(float) * threads * 2;
+  int shared = sizeof(float) * threads;
 
   gAtt<<<blocks, threads, shared>>>(
       out->data(), va->data(), context->data(), state->data(), m, k, b, t);
@@ -1485,7 +1485,7 @@ __global__ void gLNormalization(float* out,
       float* so = out + j * cols;
       const float* sp = in + j * cols;
 
-      float* _sum = _share + blockDim.x;
+      float* _sum = _share;
       _sum[threadIdx.x] = 0.0f;
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
