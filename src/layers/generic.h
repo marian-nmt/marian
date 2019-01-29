@@ -71,8 +71,8 @@ public:
     Expr getLogits() const;
     Expr getLoss(Expr indices, const std::function<Expr(Expr/*logits*/,Expr/*indices*/)>& lossFn) const;
     void assign(const Logits& other) {
-      ABORT_IF(!empty() && getNumFactors() != other.getNumFactors(),
-               "Logits assignment cannot change number of factors");
+      //ABORT_IF(!empty() && getNumFactors() != other.getNumFactors(),
+      //         "Logits assignment cannot change number of factors");
       *this = other;
     }
     size_t getNumFactors() const { return logits_.size(); }

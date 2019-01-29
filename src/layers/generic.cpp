@@ -169,6 +169,7 @@ namespace marian {
   };
 
   Expr Logits::getLoss(Expr indices, const std::function<Expr(Expr/*logits*/, Expr/*indices*/)>& lossFn) const {
+    LOG_ONCE(info, "[logits] getLoss() for {} factors", logits_.size());
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
     if (!embeddingFactorMapping_) {
       ABORT_IF(logits_.size() != 1, "Factors without factor mappings??");
@@ -206,7 +207,10 @@ namespace marian {
     }
 
     // lazily compute combined logits from factors
-    auto y = concatenate(logits_, /*axis=*/ -1);
+    std::vector<Expr> logProbs(logits_.size());
+    for (size_t g = 0; g < logits_.size(); g++)
+        logProbs[g] = logsoftmax(logits_[g]);
+    auto y = concatenate(logProbs, /*axis=*/ -1);
 
     // sum up the unit logits across factors for each target word
     auto graph = y->graph();
