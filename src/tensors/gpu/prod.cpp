@@ -178,53 +178,65 @@ void ProdBatched(marian::Tensor C,
   int strideC = n * m;
   int batchC = std::max(batchA, batchB);
 
-  std::vector<const float*> aptr;
-  std::vector<const float*> bptr;
-  std::vector<float*> cptr;
+  // std::vector<const float*> aptr;
+  // std::vector<const float*> bptr;
+  // std::vector<float*> cptr;
 
-  for(int i = 0; i < batchC; i++) {
-    aptr.push_back(A->data() + (i % batchA) * strideA);
-    bptr.push_back(B->data() + (i % batchB) * strideB);
-    cptr.push_back(C->data() + i * strideC);
-  }
+  // for(int i = 0; i < batchC; i++) {
+  //   aptr.push_back(A->data() + (i % batchA) * strideA);
+  //   bptr.push_back(B->data() + (i % batchB) * strideB);
+  //   cptr.push_back(C->data() + i * strideC);
+  // }
 
-  auto mp_aptr = allocator->alloc<const float*>(aptr.size());
-  CudaCopy(
-      aptr.data(), aptr.data() + aptr.size(), mp_aptr->data<const float*>());
+  // auto mp_aptr = allocator->alloc<const float*>(aptr.size());
+  // CudaCopy(aptr.data(), aptr.data() + aptr.size(), mp_aptr->data<const float*>());
 
-  auto mp_bptr = allocator->alloc<const float*>(bptr.size());
-  CudaCopy(
-      bptr.data(), bptr.data() + bptr.size(), mp_bptr->data<const float*>());
+  // auto mp_bptr = allocator->alloc<const float*>(bptr.size());
+  // CudaCopy(bptr.data(), bptr.data() + bptr.size(), mp_bptr->data<const float*>());
 
-  auto mp_cptr = allocator->alloc<float*>(cptr.size());
-  CudaCopy(cptr.data(), cptr.data() + cptr.size(), mp_cptr->data<float*>());
+  // auto mp_cptr = allocator->alloc<float*>(cptr.size());
+  // CudaCopy(cptr.data(), cptr.data() + cptr.size(), mp_cptr->data<float*>());
 
 #if CUDA_VERSION >= 9000
   setTensorMode(cublasHandle);
   //cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
 #endif
-  CUBLAS_CHECK(cublasSgemmBatched(cublasHandle,
-                     opB,
-                     opA,
-                     n,
-                     m,
-                     k,
-                     &alpha,
-                     mp_bptr->data<const float*>(),
-                     ldb,
-                     mp_aptr->data<const float*>(),
-                     lda,
-                     &beta,
-                     mp_cptr->data<float*>(),
-                     ldc,
-                     batchC));
+  // CUBLAS_CHECK(cublasSgemmBatched(cublasHandle,
+  //                    opB,
+  //                    opA,
+  //                    n,
+  //                    m,
+  //                    k,
+  //                    &alpha,
+  //                    mp_bptr->data<const float*>(),
+  //                    ldb,
+  //                    mp_aptr->data<const float*>(),
+  //                    lda,
+  //                    &beta,
+  //                    mp_cptr->data<float*>(),
+  //                    ldc,
+  //                    batchC));
+
+cublasSgemmStridedBatched(cublasHandle,
+                      opB, opA,
+                      n, m, k,
+                      &alpha,
+                      B->data(), ldb, strideB,
+                      A->data(), lda, strideA,
+                      &beta,
+                      C->data(), ldc, strideC,
+                      batchC);
+
+
 #if CUDA_VERSION >= 9000
   cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
 #endif
 
-  allocator->free(mp_aptr);
-  allocator->free(mp_bptr);
-  allocator->free(mp_cptr);
+  // allocator->free(mp_aptr);
+  // allocator->free(mp_bptr);
+  // allocator->free(mp_cptr);
+
+  cudaStreamSynchronize(0);
 }
 
 // C = op(S) x D if not swapOperands else C = D x op(S)
