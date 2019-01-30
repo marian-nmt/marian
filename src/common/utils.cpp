@@ -166,10 +166,9 @@ static std::string toUTF8String(std::wstring const& s) {
   return converter.to_bytes(s);
 }
 
-std::locale const utf8("en_US.UTF-8");
-
 // convert a UTF-8 string to all-caps
 std::string utf8ToUpper(const std::string& s) {
+  std::locale const utf8("en_US.UTF-8");
   auto ws = utf8ToWString(s);
   for (auto& c : ws)
     c = std::toupper(c, utf8);
