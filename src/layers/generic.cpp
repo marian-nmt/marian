@@ -314,9 +314,9 @@ namespace marian {
           // log-linear weight
           // @TODO: The weight should not be needed, since it could learn it into the embeddings. Maybe it doesn't.
           // @TODO? If we move the weight before affine(), it would use less memory at least for the main factor.
-          auto name = options_->get<std::string>("prefix");
-          auto llWeight = graph->param(name + "_llWeight_" + std::to_string(g), {}, inits::from_value(1.0f));
-          factorLogits = factorLogits * llWeight; // -a constant, which is OK for logits
+          //auto name = options_->get<std::string>("prefix");
+          //auto llWeight = graph->param(name + "_llWeight_" + std::to_string(g), {}, inits::from_value(1.0f));
+          //factorLogits = factorLogits * llWeight; // -a constant, which is OK for logits
           allLogits[g] = factorLogits;
         }
         return Logits(std::move(allLogits), embeddingFactorMapping_);
