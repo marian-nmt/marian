@@ -438,6 +438,7 @@ __global__ void gSoftmax(float* out,
           so[id] = so[id] / _sum[0];
         }
       }
+      __syncthreads();
     }
   }
 }
@@ -521,6 +522,7 @@ __global__ void gLogSoftmax(float* out,
         if(id < cols)
           so[id] -= __logf(_sum[0]);
       }
+      __syncthreads();
     }
   }
 }
@@ -580,6 +582,7 @@ __global__ void gSoftmaxGrad(float* grad,
             gradRow[id] += val;
         }
       }
+      __syncthreads();
     }
   }
 }
@@ -636,6 +639,7 @@ __global__ void gLogSoftmaxGrad(float* grad,
         if(id < cols)
           gradRow[id] += adjRow[id] - (expf(valRow[id]) * _sum[0]);
       }
+      __syncthreads();
     }
   }
 }

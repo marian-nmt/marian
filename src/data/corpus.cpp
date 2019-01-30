@@ -17,10 +17,13 @@ Corpus::Corpus(std::vector<std::string> paths,
                Ptr<Options> options)
     : CorpusBase(paths, vocabs, options), shuffleInRAM_(options_->get<bool>("shuffle-in-ram")), allCapsEvery_(options_->get<size_t>("all-caps-every")) {}
 
-void Corpus::preprocessLine(std::string& line, size_t /*streamId*/) {
+void Corpus::preprocessLine(std::string& line, size_t streamId) {
   if (allCapsEvery_ != 0 && pos_ % allCapsEvery_ == 0) {
     line = utils::utf8ToUpper(line);
-    LOG_ONCE(info, "all-caps'ed line to {}", line);
+    if (streamId == 0)
+      LOG_ONCE(info, "[data] source all-caps'ed line to {}", line);
+    else
+      LOG_ONCE(info, "[data] target all-caps'ed line to {}", line);
   }
 }
 
