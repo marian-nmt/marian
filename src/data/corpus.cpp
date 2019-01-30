@@ -18,8 +18,10 @@ Corpus::Corpus(std::vector<std::string> paths,
     : CorpusBase(paths, vocabs, options), shuffleInRAM_(options_->get<bool>("shuffle-in-ram")), allCapsEvery_(options_->get<bool>("all-caps-every")) {}
 
 void Corpus::preprocessLine(std::string& line, size_t /*streamId*/) {
-  if (allCapsEvery_ != 0 && pos_ % allCapsEvery_ == 0)
+  if (allCapsEvery_ != 0 && pos_ % allCapsEvery_ == 0) {
     line = utils::utf8ToUpper(line);
+    LOG_ONCE(info, "all-caps'ed line to {}", line);
+  }
 }
 
 SentenceTuple Corpus::next() {

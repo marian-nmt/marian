@@ -30,14 +30,14 @@ Expr LossBase::getCrossEntropy(const Logits& logits,
   auto ce = logits.getLoss(indices, [&](Expr logits, Expr indices) {
     Expr ce = cross_entropy(logits, indices);
     if (smoothing_ > 0) {
-      // ce = -sum_i y^_i log y_i(z)
+      // ce = -sum_i y^_i log y_i(h)
       // with smoothing:
-      // ce' = -sum_i ((1-smoothing_) y^_i + smoothing_/N) log y_i(z)
-      //     = -(1-smoothing_) sum_i y^_i log y_i(z) - smoothing_ mean_i log y_i(z)
-      //     = (1-smoothing_) ce - smoothing_ mean_i log y_i(z)
-      auto ceq = mean(logits, /*axis=*/ -1) - logsumexp(logits, /*axis=*/ -1);
-      //ce = (1 - smoothing_) * ce - smoothing_ * ceq;
-      ce = ce - smoothing_ * (ce + ceq); // writing it this way saves one op :)
+      // ce' = -sum_i ((1-smoothing_) y^_i + smoothing_/N) log y_i(h)
+      //     = -(1-smoothing_) sum_i y^_i log y_i(h) - smoothing_ mean_i log y_i(h)
+      //     = (1-smoothing_) ce - smoothing_ mean_i log y_i(h)
+      auto ceqNeg = mean(logits, /*axis=*/ -1) - logsumexp(logits, /*axis=*/ -1);
+      ce = (1 - smoothing_) * ce - smoothing_ * ceqNeg;
+      //ce = ce - smoothing_ * (ce + ceqNeg); // writing it this way saves one op :)
     }
     return ce;
   });
