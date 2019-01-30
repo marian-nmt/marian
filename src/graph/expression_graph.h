@@ -316,6 +316,13 @@ public:
     dot.close();
   }
 
+  Expr tryFindParam(const std::string& pname) const {
+    std::string name = pname;
+    if(!namespace_.empty())
+      name = namespace_ + "::" + name;
+    return params_->get(name);
+  }
+
   Expr param(const std::string& pname,
              const Shape& shape,
              const NodeInitializer& init,
