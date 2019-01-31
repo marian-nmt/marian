@@ -1522,6 +1522,9 @@
     <ClInclude Include="..\src\models\transformer.h">
       <Filter>models</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\models\bert.h">
+      <Filter>models</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">

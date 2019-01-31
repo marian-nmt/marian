@@ -2,7 +2,7 @@
 
 #include "data/corpus_base.h"
 #include "models/encoder_classifier.h"
-#include "models/transformer.h"
+#include "models/transformer.h"   // @BUGBUG: transformer.h is large and was meant to be compiled separately
 #include "data/rng_engine.h"
 
 namespace marian {
@@ -211,6 +211,8 @@ public:
  * BERT-specific modifications to EncoderTransformer
  * Actually all that is needed is to intercept the creation of special embeddings,
  * here sentence embeddings for sentence A and B.
+ * @BUGBUG: transformer.h was meant to be compiled separately. I.e., one cannot derive from it.
+ *          Is there a way to maybe instead include a reference in here, instead of deriving from it?
  */
 class BertEncoder : public EncoderTransformer {
 public:
