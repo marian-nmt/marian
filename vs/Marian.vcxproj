@@ -580,6 +580,7 @@
     <ClCompile Include="..\src\microsoft\quicksand.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\src\models\transformer_stub.cpp" />
     <ClCompile Include="..\src\rescorer\score_collector.cpp" />
     <ClCompile Include="..\src\tensors\backend.cpp" />
     <ClCompile Include="..\src\tensors\cpu\device.cpp" />
@@ -905,7 +906,7 @@
     <ClInclude Include="..\src\models\nematus.h" />
     <ClInclude Include="..\src\models\s2s.h" />
     <ClInclude Include="..\src\models\states.h" />
-    <ClCompile Include="..\src\models\transformer.h" />
+    <ClInclude Include="..\src\models\transformer.h" />
     <ClInclude Include="..\src\models\experimental\lex_probs.h" />
     <ClInclude Include="..\src\models\transformer_factory.h" />
     <ClInclude Include="..\src\optimizers\clippers.h" />
