@@ -316,13 +316,6 @@ public:
     dot.close();
   }
 
-  Expr tryFindParam(const std::string& pname) const {
-    std::string name = pname;
-    if(!namespace_.empty())
-      name = namespace_ + "::" + name;
-    return params_->get(name);
-  }
-
   Expr param(const std::string& pname,
              const Shape& shape,
              const NodeInitializer& init,
@@ -407,7 +400,7 @@ public:
     auto e = params_->get(name);
     if(e)
       return e;
-    return Expr();
+    return Expr();  // @TODO: how is this different from just returning 'e'?
   }
 
   Ptr<Parameters>& params() { return params_; }

@@ -128,6 +128,7 @@ private:
   // parameters held by this layer
   Expr Wt_; // weight matrix is stored transposed for efficiency
   Expr b_;
+  bool isLegacyUntransposedW{false}; // legacy-model emulation: W is stored in non-transposed form
   Expr cachedShortWt_;  // short-listed version, cached (cleared by clear())
   Expr cachedShortb_;   // these match the current value of shortlist_
 
@@ -174,9 +175,11 @@ public:
       if(tiedParam_) {
         Wt_ = tiedParam_;
       } else {
-        auto W = graph_->tryFindParam(name + "_W"); // support of legacy models that did not transpose
-        if (W)
-          Wt_ = transpose(W); // legacy
+        auto W = graph_->get(name + "_W"); // support of legacy models that did not transpose
+        if (W) {
+          Wt_ = W;
+          isLegacyUntransposedW = true;
+        }
         else // this is the regular case:
           Wt_ = graph_->param(name + "_Wt", {input->shape()[-1], dim}, inits::glorot_uniform);
       }
@@ -185,13 +188,13 @@ public:
 
     if (shortlist_) {
       if (!cachedShortWt_) { // short versions of parameters are cached within one batch, then clear()ed
-        cachedShortWt_ = rows(Wt_, shortlist_->indices());
-        cachedShortb_  = cols(b_ , shortlist_->indices());
+        cachedShortWt_ = index_select(Wt_, isLegacyUntransposedW ? -1 : 0, shortlist_->indices());
+        cachedShortb_  = index_select(b_ ,                             -1, shortlist_->indices());
       }
-      return affine(input, cachedShortWt_, cachedShortb_, false, /*transB=*/true);
+      return affine(input, cachedShortWt_, cachedShortb_, false, /*transB=*/isLegacyUntransposedW ? false : true);
     }
     else
-      return affine(input, Wt_, b_, false, /*transB=*/true);
+      return affine(input, Wt_, b_, false, /*transB=*/isLegacyUntransposedW ? false : true);
   }
 
   virtual Expr apply(const std::vector<Expr>& /*inputs*/) override {
