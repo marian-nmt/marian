@@ -201,11 +201,11 @@ void CorpusBase::addWordsToSentenceTuple(const std::string& line,
   Words words = vocabs_[batchIndex]->encode(line, /*addEOS =*/ addEOS_[batchIndex], inference_);
 
   if(words.empty())
-    words.push_back(0);
+    words.push_back(Word::NONE);
 
   if(maxLengthCrop_ && words.size() > maxLength_) {
     words.resize(maxLength_);
-    words.back() = 0;
+    words.back() = Word::NONE;
   }
 
   if(rightLeft_)

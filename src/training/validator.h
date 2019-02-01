@@ -279,16 +279,16 @@ protected:
 
           for(int i = 0; i < thisLabels; ++i) {
             // CPU-side Argmax
-            IndexType bestIndex = 0;
+            Word bestWord = Word::NONE;
             float bestValue = std::numeric_limits<float>::lowest();
             for(IndexType j = 0; j < cols; ++j) {
               float currValue = vLogits[i * cols + j];
               if(currValue > bestValue) {
                 bestValue = currValue;
-                bestIndex = j;
+                bestWord = Word::fromWordIndex(j);
               }
             }
-            thisCorrect += (size_t)(bestIndex == groundTruth[i]);
+            thisCorrect += (size_t)(bestWord == groundTruth[i]);
           }
 
           std::unique_lock<std::mutex> lock(mutex_);
@@ -390,7 +390,7 @@ protected:
                   bestIndex = j;
                 }
               }
-              thisCorrect += (size_t)(bestIndex == labels[i].getWordIndex());
+              thisCorrect += (size_t)(bestIndex == labels[i].toWordIndex());
             }
 
             std::unique_lock<std::mutex> lock(mutex_);

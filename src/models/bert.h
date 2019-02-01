@@ -51,7 +51,7 @@ private:
     if (r < 0.1f) { // for 10% of cases return same word
       return word;
     } else if (r < 0.2f) { // for 10% return random word
-      Word randWord = (*randomWord_)(engine);
+      Word randWord = Word::fromWordIndex((*randomWord_)(engine));
       if(dontMask_.count(randWord) > 0) // some words, e.g. [CLS] or </s>, may not be used as random words
         return mask;                    // for those, return the mask symbol instead
       else

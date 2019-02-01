@@ -48,7 +48,7 @@ SentenceTuple TextInput::next() {
       if(io::getline(dummyStream, line)) {
         Words words = vocabs_[i]->encode(line, /*addEOS =*/ true, /*inference =*/ inference_);
         if(words.empty())
-          words.push_back(0);
+          words.push_back(Word::NONE);
         tup.push_back(words);
       }
     }

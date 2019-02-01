@@ -14,20 +14,20 @@ namespace marian {
 typedef IndexType WordIndex;    // WordIndex is used for words or tokens arranged in consecutive order
 class Word {                    // Word is an abstraction of a unique id, not necessarily consecutive
   WordIndex wordId_;
+  explicit Word(std::size_t wordId) : wordId_((WordIndex)wordId) {}
 public:
-  // back compat with WordIndex
-  Word(std::size_t wordId) : wordId_((WordIndex)wordId) {} // @TODO: make explicit, or make private
-  operator WordIndex() const { return getWordIndex(); }
+  static Word fromWordIndex(std::size_t wordId) { return Word(wordId); }
+  const WordIndex& toWordIndex() const { return wordId_; }
+  std::string toString() const { return std::to_string(wordId_); }
 
   // needed for STL containers
   Word() : wordId_((WordIndex)-1) {}
   bool operator==(const Word& other) const { return wordId_ == other.wordId_; }
+  bool operator!=(const Word& other) const { return !(*this == other); }
+  bool operator<(const Word& other) const { return wordId_ < other.wordId_; }
   std::size_t hash() const { return std::hash<WordIndex>{}(wordId_); }
 
-  // main methods and constants
-  static Word From(std::size_t wordId) { return Word(wordId); }
-  const WordIndex& getWordIndex() const { return wordId_; }
-
+  // constants
   static Word NONE; // @TODO: decide whether we need this, in additional Word()
   // EOS and UNK are placed in these positions in Marian-generated vocabs
   static Word DEFAULT_EOS_ID;
@@ -39,7 +39,10 @@ typedef std::vector<Word> Words;
 
 // Helper to map a Word vector to a WordIndex vector
 static inline std::vector<WordIndex> toWordIndexVector(const Words& words) {
-  return std::vector<WordIndex>(words.begin(), words.end());
+  std::vector<WordIndex> res;
+  std::transform(words.begin(), words.end(), std::back_inserter(res),
+                 [](const Word& word) -> WordIndex { return word.toWordIndex(); });
+  return res;
 }
 
 // names of EOS and UNK symbols

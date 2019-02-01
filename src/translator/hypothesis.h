@@ -8,7 +8,7 @@ namespace marian {
 
 class Hypothesis {
 public:
-  Hypothesis() : prevHyp_(nullptr), prevIndex_(0), word_(0), pathScore_(0.0) {}
+  Hypothesis() : prevHyp_(nullptr), prevIndex_(0), word_(Word::NONE), pathScore_(0.0) {}
 
   Hypothesis(const Ptr<Hypothesis> prevHyp,
              Word word,

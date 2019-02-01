@@ -128,7 +128,7 @@ public:
    * @param width Number of words in the longest sentence
    */
   SubBatch(size_t size, size_t width, const Ptr<Vocab>& vocab)
-      : indices_(size * width, 0),
+      : indices_(size * width, Word::NONE),
         mask_(size * width, 0),
         size_(size),
         width_(width),
@@ -322,7 +322,7 @@ public:
       // set word indices to different values to avoid same hashes
       // rand() is OK, this does not affect state in any way
       std::transform(sb->data().begin(), sb->data().end(), sb->data().begin(),
-                     [&](Word) -> Word { return rand() % vocabs[batchIndex]->size(); });
+                     [&](Word) -> Word { return Word::fromWordIndex(rand() % vocabs[batchIndex]->size()); });
       // mask: no items ask being masked out
       std::fill(sb->mask().begin(), sb->mask().end(), 1.f);
       batchIndex++;
@@ -484,7 +484,7 @@ public:
           if (vocab)
             std::cerr << (*vocab)[w] << " ";
           else
-            std::cerr << w << " "; // if not loaded then print numeric id instead
+            std::cerr << w.toString() << " "; // if not loaded then print numeric id instead
         }
         std::cerr << std::endl;
       }

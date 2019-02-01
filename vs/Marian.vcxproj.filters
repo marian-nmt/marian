@@ -1857,6 +1857,12 @@
     <None Include="..\src\tensors\gpu\prod.cpp">
       <Filter>tensors\gpu</Filter>
     </None>
+    <None Include="..\src\translator\helpers.cu">
+      <Filter>translator</Filter>
+    </None>
+    <None Include="..\src\translator\nth_element.cu">
+      <Filter>translator</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\src\3rd_party\sentencepiece\src\CMakeLists.txt">

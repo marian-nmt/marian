@@ -25,7 +25,7 @@ void SetColumn(Tensor in_, size_t col, float value) {
 }
 
 void suppressWord(Expr logProbs, Word id) {
-  SetColumn(logProbs->val(), id, std::numeric_limits<float>::lowest());
+  SetColumn(logProbs->val(), id.toWordIndex(), std::numeric_limits<float>::lowest());
 }
 }  // namespace cpu
 

@@ -79,12 +79,12 @@ public:
 
     // add all words from ground truth
     for(auto i : trgBatch->data())
-      idxSet.insert(i.getWordIndex());
+      idxSet.insert(i.toWordIndex());
 
     // add all words from source
     if(shared_)
       for(auto i : srcBatch->data())
-        idxSet.insert(i.getWordIndex());
+        idxSet.insert(i.toWordIndex());
 
     std::uniform_int_distribution<> dis((int)firstNum_, (int)maxVocab_);
     while(idxSet.size() < total_ && idxSet.size() < maxVocab_)
@@ -106,7 +106,7 @@ public:
     std::vector<WordIndex> mapped;
     for(auto i : trgBatch->data()) {
       // mapped postions for cross-entropy
-      mapped.push_back(pos[i]);
+      mapped.push_back(pos[i.toWordIndex()]);
     }
 
     return New<Shortlist>(idx, mapped, reverseMap);
@@ -138,8 +138,8 @@ private:
       if(src == "NULL" || trg == "NULL")
         continue;
 
-      auto sId = (*srcVocab_)[src].getWordIndex();
-      auto tId = (*trgVocab_)[trg].getWordIndex();
+      auto sId = (*srcVocab_)[src].toWordIndex();
+      auto tId = (*trgVocab_)[trg].toWordIndex();
 
       if(data_.size() <= sId)
         data_.resize(sId + 1);
@@ -212,14 +212,14 @@ public:
     LOG(info, "[data] Saving shortlist dump to {}", prefix + ".{top,dic}");
     io::OutputFileStream outTop(prefix + ".top");
     for(WordIndex i = 0; i < firstNum_ && i < trgVocab_->size(); ++i)
-      outTop << (*trgVocab_)[i] << std::endl;
+      outTop << (*trgVocab_)[Word::fromWordIndex(i)] << std::endl;
 
     // Dump translation pairs from dictionary
     io::OutputFileStream outDic(prefix + ".dic");
     for(WordIndex srcId = 0; srcId < data_.size(); srcId++) {
       for(auto& it : data_[srcId]) {
         auto trgId = it.first;
-        outDic << (*srcVocab_)[srcId] << "\t" << (*trgVocab_)[trgId] << std::endl;
+        outDic << (*srcVocab_)[Word::fromWordIndex(srcId)] << "\t" << (*trgVocab_)[Word::fromWordIndex(trgId)] << std::endl;
       }
     }
   }
@@ -235,12 +235,12 @@ public:
 
     // add all words from ground truth
     // for(auto i : trgBatch->data())
-    //  idxSet.insert(i.getWordIndex());
+    //  idxSet.insert(i.toWordIndex());
 
     // collect unique words form source
     std::unordered_set<WordIndex> srcSet;
     for(auto i : srcBatch->data())
-      srcSet.insert(i);
+      srcSet.insert(i.toWordIndex());
 
     // add aligned target words
     for(auto i : srcSet) {

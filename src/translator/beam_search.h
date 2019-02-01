@@ -49,7 +49,7 @@ public:
     for(size_t i = 0; i < keys.size(); ++i) {
       // Keys contains indices to vocab items in the entire beam.
       // Values can be between 0 and beamSize * vocabSize.
-      Word embIdx = (Word)(keys[i] % vocabSize);
+      Word embIdx = Word::fromWordIndex(keys[i] % vocabSize);
       auto beamIdx = i / beamSize;
 
       // Retrieve short list for final softmax (based on words aligned
@@ -57,7 +57,7 @@ public:
       // in the sub-selected vocabulary matrix back to their original positions.
       auto shortlist = scorers_[0]->getShortlist();
       if(shortlist)
-        embIdx = shortlist->reverseMap(embIdx); // @TODO: should reverseMap accept a size_t or a Word?
+        embIdx = Word::fromWordIndex(shortlist->reverseMap(embIdx.toWordIndex())); // @TODO: should reverseMap accept a size_t or a Word?
 
       if(newBeams[beamIdx].size() < beams[beamIdx].size()) {
         auto& beam = beams[beamIdx];
@@ -85,7 +85,7 @@ public:
           std::vector<float> breakDown(states.size(), 0);
           beam[beamHypIdx]->GetScoreBreakdown().resize(states.size(), 0);
           for(size_t j = 0; j < states.size(); ++j) {
-            size_t key = embIdx + hypIdxTrans * vocabSize;
+            size_t key = embIdx.toWordIndex() + hypIdxTrans * vocabSize;
             breakDown[j] = states[j]->breakDown(key)
                            + beam[beamHypIdx]->GetScoreBreakdown()[j];
           }
@@ -252,7 +252,7 @@ public:
 
       //**********************************************************************
       // suppress specific symbols if not at right positions
-      if(trgUnkId_ != -1 && options_->has("allow-unk")
+      if(trgUnkId_ != Word::NONE && options_->has("allow-unk")
          && !options_->get<bool>("allow-unk"))
         suppressWord(pathScores, trgUnkId_);
       for(auto state : states)

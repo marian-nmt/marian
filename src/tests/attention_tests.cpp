@@ -12,7 +12,7 @@ void tests(DeviceType type) {
 
   Config::seed = 1234;
 
-  Words vWords = {
+  std::vector<WordIndex> vWords = {
     43, 2, 83, 78,
     6, 38, 80, 40,
     40, 70, 26, 60,
@@ -49,7 +49,7 @@ void tests(DeviceType type) {
                             {128, dimEmb},
                             inits::glorot_uniform);
 
-    auto input = reshape(rows(emb, toWordIndexVector(vWords)), {dimTime, dimBatch, dimEmb});
+    auto input = reshape(rows(emb, vWords), {dimTime, dimBatch, dimEmb});
     auto mask = graph->constant({dimTime, dimBatch, 1},
                                 inits::from_vector(vMask));
 

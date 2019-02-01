@@ -72,8 +72,8 @@ public:
   virtual Word getEosId() const override { return eosId_; }
   virtual Word getUnkId() const override { return unkId_; }
 
-
-  const std::string& operator[](Word id) const override {
+  const std::string& operator[](Word word) const override {
+    auto id = word.toWordIndex();
     ABORT_IF(id >= id2str_.size(), "Unknown word id: {}", id);
     return id2str_[id];
   }
@@ -97,7 +97,7 @@ public:
     if(isJson) {
       YAML::Node vocabNode = YAML::Load(io::InputFileStream(vocabPath));
       for(auto&& pair : vocabNode)
-        vocab.insert({pair.first.as<std::string>(), Word(pair.second.as<IndexType>())});
+        vocab.insert({pair.first.as<std::string>(), Word::fromWordIndex(pair.second.as<IndexType>())});
     }
     // read from flat text file
     else {
@@ -107,7 +107,7 @@ public:
         ABORT_IF(line.empty(),
                 "DefaultVocabulary file {} must not contain empty lines",
                 vocabPath);
-        vocab.insert({line, Word(vocab.size())});
+        vocab.insert({line, Word::fromWordIndex(vocab.size())});
       }
       ABORT_IF(in.bad(), "DefaultVocabulary file {} could not be read", vocabPath);
     }
@@ -118,7 +118,7 @@ public:
       auto id = pair.second;
 
       // note: this requires ids to be sorted by frequency
-      if(!maxSize || id < (Word)maxSize) {
+      if(!maxSize || id.toWordIndex() < maxSize) {
         insertWord(id, str);
       }
     }
@@ -171,12 +171,13 @@ private:
     // The name backCompatStr is alternatively accepted for Yaml vocabs if id
     // equals backCompatId.
     auto getRequiredWordId = [&](const std::string& str,
-                                const std::string& backCompatStr,
-                                Word backCompatId) {
+                                 const std::string& backCompatStr,
+                                 Word backCompatWord) -> Word {
       // back compat with Nematus Yaml dicts
       if(isJson) {
         // if word id 0 or 1 is either empty or has the Nematus-convention string,
         // then use it
+        auto backCompatId = backCompatWord.toWordIndex();
         if(backCompatId < id2str_.size()
           && (id2str_[backCompatId].empty()
               || id2str_[backCompatId] == backCompatStr)) {
@@ -185,7 +186,7 @@ private:
               backCompatStr,
               backCompatId,
               str);
-          return backCompatId;
+          return backCompatWord;
         }
       }
       auto iter = str2id_.find(str);
@@ -232,10 +233,10 @@ private:
     std::sort(vocabVec.begin(), vocabVec.end(), VocabFreqOrderer(counter));
 
     YAML::Node vocabYaml;
-    vocabYaml.force_insert(DEFAULT_EOS_STR, Word::DEFAULT_EOS_ID.getWordIndex());
-    vocabYaml.force_insert(DEFAULT_UNK_STR, Word::DEFAULT_UNK_ID.getWordIndex());
+    vocabYaml.force_insert(DEFAULT_EOS_STR, Word::DEFAULT_EOS_ID.toWordIndex());
+    vocabYaml.force_insert(DEFAULT_UNK_STR, Word::DEFAULT_UNK_ID.toWordIndex());
 
-    Word maxSpec = 1;
+    WordIndex maxSpec = 1;
     auto vocabSize = vocabVec.size();
     if(maxSize > maxSpec)
       vocabSize = std::min(maxSize - maxSpec - 1, vocabVec.size());
@@ -274,12 +275,13 @@ private:
   }
 
   // helper to insert a word into str2id_[] and id2str_[]
-  Word insertWord(Word id, const std::string& str) {
-    str2id_[str] = id;
+  Word insertWord(Word word, const std::string& str) {
+    str2id_[str] = word;
+    auto id = word.toWordIndex();
     if(id >= id2str_.size())
       id2str_.resize(id + 1);
     id2str_[id] = str;
-    return id;
+    return word;
   };
 };
 
