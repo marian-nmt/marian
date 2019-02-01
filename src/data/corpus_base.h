@@ -128,7 +128,7 @@ public:
    * @param width Number of words in the longest sentence
    */
   SubBatch(size_t size, size_t width, const Ptr<Vocab>& vocab)
-      : indices_(size * width, Word::NONE),
+      : indices_(size * width, Word::ZERO), // note: for gaps, we must use a valid index
         mask_(size * width, 0),
         size_(size),
         width_(width),

@@ -29,6 +29,7 @@ public:
 
   // constants
   static Word NONE; // @TODO: decide whether we need this, in additional Word()
+  static Word ZERO; // an invalid word that nevertheless can safely be looked up (and then masked out)
   // EOS and UNK are placed in these positions in Marian-generated vocabs
   static Word DEFAULT_EOS_ID;
   static Word DEFAULT_UNK_ID;

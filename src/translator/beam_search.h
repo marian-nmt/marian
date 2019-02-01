@@ -217,7 +217,7 @@ public:
               beamScores.push_back(hyp->GetPathScore());
             } else {  // dummy hypothesis
               hypIndices.push_back(0);
-              predWords.push_back(Word::NONE);  // (unused)
+              predWords.push_back(Word::ZERO);  // (unused)
               beamScores.push_back(-9999);
             }
           }

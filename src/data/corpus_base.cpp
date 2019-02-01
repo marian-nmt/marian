@@ -201,11 +201,11 @@ void CorpusBase::addWordsToSentenceTuple(const std::string& line,
   Words words = vocabs_[batchIndex]->encode(line, /*addEOS =*/ addEOS_[batchIndex], inference_);
 
   if(words.empty())
-    words.push_back(Word::NONE);
+    words.push_back(Word::ZERO);
 
   if(maxLengthCrop_ && words.size() > maxLength_) {
     words.resize(maxLength_);
-    words.back() = Word::NONE;
+    words.back() = Word::ZERO;  // @TODO: What does this do? Meant as sent-end token??
   }
 
   if(rightLeft_)
