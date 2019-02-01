@@ -371,7 +371,7 @@ protected:
           auto sentenceLogits = classifierStates[1]->getLogProbs();
           const auto& sentenceLabels = bertBatch->back()->data();
 
-          auto count = [=, &correct, &totalLabels](Expr logits, const std::vector<IndexType>& labels) {
+          auto count = [=, &correct, &totalLabels](Expr logits, const Words& labels) {
             IndexType cols = logits->shape()[-1];
             size_t thisCorrect = 0;
             size_t thisLabels  = labels.size();
@@ -390,7 +390,7 @@ protected:
                   bestIndex = j;
                 }
               }
-              thisCorrect += (size_t)(bestIndex == labels[i]);
+              thisCorrect += (size_t)(bestIndex == labels[i].getWordIndex());
             }
 
             std::unique_lock<std::mutex> lock(mutex_);

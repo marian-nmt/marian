@@ -151,10 +151,10 @@ public:
           // convert to QuickSAND format
           alignmentSets.resize(words.size());
           for (const auto& p : align) // @TODO: Does the feature_model param max_alignment_links apply here?
-              alignmentSets[p.tgtPos].insert({p.srcPos, p.prob});
+            alignmentSets[p.tgtPos].insert({p.srcPos, p.prob});
         }
         // form hypothesis to return
-        qsNbest.emplace_back(words, std::move(alignmentSets), score);
+        qsNbest.emplace_back(toWordIndexVector(words), std::move(alignmentSets), score);
       }
       qsNbestBatch.push_back(qsNbest);
     }

@@ -152,7 +152,7 @@ Ptr<DecoderState> EncoderDecoder::startState(Ptr<ExpressionGraph> graph,
 Ptr<DecoderState> EncoderDecoder::step(Ptr<ExpressionGraph> graph,
                                        Ptr<DecoderState> state,
                                        const std::vector<IndexType>& hypIndices, // [beamIndex * activeBatchSize + batchIndex]
-                                       const std::vector<IndexType>& embIndices, // [beamIndex * activeBatchSize + batchIndex]
+                                       const Words& words,                       // [beamIndex * activeBatchSize + batchIndex]
                                        int dimBatch,
                                        int beamSize) {
   // create updated state that reflects reordering and dropping of hypotheses
@@ -160,7 +160,7 @@ Ptr<DecoderState> EncoderDecoder::step(Ptr<ExpressionGraph> graph,
 
   // Fill stte with embeddings based on last prediction
   decoders_[0]->embeddingsFromPrediction(
-      graph, state, embIndices, dimBatch, beamSize);
+      graph, state, words, dimBatch, beamSize);
   auto nextState = decoders_[0]->step(graph, state);
 
   return nextState;

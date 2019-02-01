@@ -15,14 +15,14 @@ private:
   Ptr<Options> options_;
   std::vector<Ptr<Scorer>> scorers_;
   size_t beamSize_;
-  Word trgEosId_ = (Word)-1;
-  Word trgUnkId_ = (Word)-1;
+  Word trgEosId_{Word::NONE};
+  Word trgUnkId_{Word::NONE};
 
 public:
   BeamSearch(Ptr<Options> options,
              const std::vector<Ptr<Scorer>>& scorers,
              Word trgEosId,
-             Word trgUnkId = -1)
+             Word trgUnkId = Word::NONE)
       : options_(options),
         scorers_(scorers),
         beamSize_(options_->has("beam-size")
@@ -197,7 +197,7 @@ public:
       // create constant containing previous path scores for current beam
       // also create mapping of hyp indices, which are not 1:1 if sentences complete
       std::vector<IndexType> hypIndices; // [beamIndex * activeBatchSize + batchIndex] backpointers, concatenated over beam positions. Used for reordering hypotheses
-      std::vector<IndexType> embIndices;
+      Words predWords;
       Expr prevPathScores; // [beam, 1, 1, 1]
       if(first) {
         // no scores yet
@@ -213,11 +213,11 @@ public:
             if(i < beam.size()) {
               auto hyp = beam[i];
               hypIndices.push_back((IndexType)hyp->GetPrevStateIndex()); // backpointer
-              embIndices.push_back(hyp->GetWord());
+              predWords.push_back(hyp->GetWord());
               beamScores.push_back(hyp->GetPathScore());
             } else {  // dummy hypothesis
               hypIndices.push_back(0);
-              embIndices.push_back(0);  // (unused)
+              predWords.push_back(Word::NONE);  // (unused)
               beamScores.push_back(-9999);
             }
           }
@@ -233,7 +233,7 @@ public:
 
       for(size_t i = 0; i < scorers_.size(); ++i) {
         states[i] = scorers_[i]->step(
-            graph, states[i], hypIndices, embIndices, dimBatch, (int)localBeamSize);
+            graph, states[i], hypIndices, predWords, dimBatch, (int)localBeamSize);
 
         if(scorers_[i]->getWeight() != 1.f)
           pathScores = pathScores + scorers_[i]->getWeight() * states[i]->getLogProbs();

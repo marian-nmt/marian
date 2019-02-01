@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/logging.h"
-#include "shape.h"
+#include "shape.h" // @TODO: why not common/shape.h?
 
 #include <functional>
 #include <iostream>

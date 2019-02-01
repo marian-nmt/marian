@@ -25,7 +25,7 @@ namespace data {
 class BertBatch : public CorpusBatch {
 private:
   std::vector<IndexType> maskedPositions_;
-  std::vector<IndexType> maskedWords_;
+  Words maskedWords_;
   std::vector<IndexType> sentenceIndices_;
 
   std::string maskSymbol_;
@@ -33,7 +33,7 @@ private:
   std::string clsSymbol_;
 
   // Selects a random word from the vocabulary
-  std::unique_ptr<std::uniform_int_distribution<Word>> randomWord_;
+  std::unique_ptr<std::uniform_int_distribution<WordIndex>> randomWord_;
 
   // Selects a random integer between 0 and 99
   std::unique_ptr<std::uniform_real_distribution<float>> randomPercent_;
@@ -79,7 +79,7 @@ public:
     const auto& vocab = *subBatch->vocab();
 
     // Initialize to sample random vocab id
-    randomWord_.reset(new std::uniform_int_distribution<Word>(0, (Word)vocab.size()));
+    randomWord_.reset(new std::uniform_int_distribution<WordIndex>(0, (WordIndex)vocab.size()));
 
     // Intialize to sample random percentage
     randomPercent_.reset(new std::uniform_real_distribution<float>(0.f, 1.f));
@@ -163,7 +163,7 @@ public:
   }
 
   const std::vector<IndexType>& bertMaskedPositions() { return maskedPositions_; }
-  const std::vector<IndexType>& bertMaskedWords()     { return maskedWords_; }
+  const Words& bertMaskedWords() { return maskedWords_; }
   const std::vector<IndexType>& bertSentenceIndices() { return sentenceIndices_; }
 };
 
@@ -236,7 +236,7 @@ public:
                                ("dimVocab", 3) // sentence A or sentence B plus padding, @TODO: should rather be a parameter
                                ("dimEmb", dimEmb)
                                .construct(graph_);
-      signal = sentenceEmbeddings->apply(bertBatch->bertSentenceIndices(), {dimWords, dimBatch, dimEmb});
+      signal = sentenceEmbeddings->applyIndices(bertBatch->bertSentenceIndices(), {dimWords, dimBatch, dimEmb});
     } else {
       // @TODO: factory for positional embeddings?
       // constant sinusoidal position embeddings, no backprob
@@ -293,7 +293,7 @@ public:
 
     // Filled externally, for BERT these are NextSentence prediction labels
     const auto& classLabels = (*batch)[batchIndex_]->data();
-    state->setTargetIndices(graph->indices(classLabels));
+    state->setTargetIndices(graph->indices(toWordIndexVector(classLabels)));
 
     return state;
   }
@@ -319,7 +319,7 @@ public:
     auto context = encoderStates[0]->getContext();
 
     auto bertMaskedPositions = graph->indices(bertBatch->bertMaskedPositions()); // positions in batch of masked entries
-    auto bertMaskedWords     = graph->indices(bertBatch->bertMaskedWords());   // vocab ids of entries that have been masked
+    auto bertMaskedWords     = graph->indices(toWordIndexVector(bertBatch->bertMaskedWords()));   // vocab ids of entries that have been masked
 
     int dimModel = context->shape()[-1];
     int dimBatch = context->shape()[-2];

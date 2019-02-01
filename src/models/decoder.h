@@ -69,7 +69,7 @@ public:
     if(shortlist_) {
       yData = graph->indices(shortlist_->mappedIndices());
     } else {
-      yData = graph->indices(subBatch->data());
+      yData = graph->indices(toWordIndexVector(subBatch->data()));
     }
 
     auto yShifted = shift(y, {1, 0, 0});
@@ -81,14 +81,14 @@ public:
 
   virtual void embeddingsFromPrediction(Ptr<ExpressionGraph> graph,
                                         Ptr<DecoderState> state,
-                                        const std::vector<IndexType>& embIdx,
+                                        const Words& words,
                                         int dimBatch,
                                         int dimBeam) {
     int dimTrgEmb = opt<int>("dim-emb");
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
     Expr selectedEmbs;
-    if(embIdx.empty()) {
+    if(words.empty()) {
       selectedEmbs = graph->constant({1, 1, dimBatch, dimTrgEmb}, inits::zeros);
     } else {
       // embeddings are loaded from model during translation, no fixing required
@@ -103,7 +103,7 @@ public:
   
       auto yEmb = yEmbFactory.construct(graph);
 
-      selectedEmbs = yEmb->apply(embIdx, {dimBeam, 1, dimBatch, dimTrgEmb});
+      selectedEmbs = yEmb->apply(words, {dimBeam, 1, dimBatch, dimTrgEmb});
     }
     state->setTargetEmbeddings(selectedEmbs);
   }

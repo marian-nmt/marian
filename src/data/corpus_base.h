@@ -110,7 +110,7 @@ public:
  */
 class SubBatch {
 private:
-  std::vector<Word> indices_;
+  Words indices_;
   std::vector<float> mask_;
 
   size_t size_;
@@ -142,7 +142,7 @@ public:
    * idx_{w,0},idx_{w,1},\dots,idx_{w,s}\f$, where \f$w\f$ is the number of
    * words (width) and \f$s\f$ is the number of sentences (size).
    */
-  std::vector<Word>& data() { return indices_; }
+  Words& data() { return indices_; }
   /**
    * @brief Flat masking vector; 0 is used for masked words.
    *

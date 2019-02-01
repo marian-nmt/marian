@@ -42,7 +42,7 @@ public:
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state,
                                  const std::vector<IndexType>& hypIndices,
-                                 const std::vector<IndexType>& embIndices,
+                                 const Words& words,
                                  int dimBatch,
                                  int beamSize)
       = 0;
@@ -148,7 +148,7 @@ public:
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state,
                                  const std::vector<IndexType>& hypIndices,
-                                 const std::vector<IndexType>& embIndices,
+                                 const Words& words,
                                  int dimBatch,
                                  int beamSize) override;
 

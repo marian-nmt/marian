@@ -23,8 +23,8 @@ protected:
   typedef std::vector<std::string> Id2Str;
   Id2Str id2str_;
 
-  Word eosId_ = (Word)-1;
-  Word unkId_ = (Word)-1;
+  Word eosId_ = Word::NONE;
+  Word unkId_ = Word::NONE;
 
   std::vector<std::string> suffixes_ = { ".yml", ".yaml", ".json" };
 
@@ -97,7 +97,7 @@ public:
     if(isJson) {
       YAML::Node vocabNode = YAML::Load(io::InputFileStream(vocabPath));
       for(auto&& pair : vocabNode)
-        vocab.insert({pair.first.as<std::string>(), pair.second.as<Word>()});
+        vocab.insert({pair.first.as<std::string>(), Word(pair.second.as<IndexType>())});
     }
     // read from flat text file
     else {
@@ -107,7 +107,7 @@ public:
         ABORT_IF(line.empty(),
                 "DefaultVocabulary file {} must not contain empty lines",
                 vocabPath);
-        vocab.insert({line, (Word)vocab.size()});
+        vocab.insert({line, Word(vocab.size())});
       }
       ABORT_IF(in.bad(), "DefaultVocabulary file {} could not be read", vocabPath);
     }
@@ -131,8 +131,8 @@ public:
 
   // for fakeBatch()
   virtual void createFake() override {
-    eosId_ = insertWord(DEFAULT_EOS_ID, DEFAULT_EOS_STR);
-    unkId_ = insertWord(DEFAULT_UNK_ID, DEFAULT_UNK_STR);
+    eosId_ = insertWord(Word::DEFAULT_EOS_ID, DEFAULT_EOS_STR);
+    unkId_ = insertWord(Word::DEFAULT_UNK_ID, DEFAULT_UNK_STR);
   }
 
   virtual void create(const std::string& vocabPath,
@@ -195,8 +195,8 @@ private:
               str);
       return iter->second;
     };
-    eosId_ = getRequiredWordId(DEFAULT_EOS_STR, NEMATUS_EOS_STR, DEFAULT_EOS_ID);
-    unkId_ = getRequiredWordId(DEFAULT_UNK_STR, NEMATUS_UNK_STR, DEFAULT_UNK_ID);
+    eosId_ = getRequiredWordId(DEFAULT_EOS_STR, NEMATUS_EOS_STR, Word::DEFAULT_EOS_ID);
+    unkId_ = getRequiredWordId(DEFAULT_UNK_STR, NEMATUS_UNK_STR, Word::DEFAULT_UNK_ID);
   }
 
   void addCounts(std::unordered_map<std::string, size_t>& counter,
@@ -232,8 +232,8 @@ private:
     std::sort(vocabVec.begin(), vocabVec.end(), VocabFreqOrderer(counter));
 
     YAML::Node vocabYaml;
-    vocabYaml.force_insert(DEFAULT_EOS_STR, DEFAULT_EOS_ID);
-    vocabYaml.force_insert(DEFAULT_UNK_STR, DEFAULT_UNK_ID);
+    vocabYaml.force_insert(DEFAULT_EOS_STR, Word::DEFAULT_EOS_ID.getWordIndex());
+    vocabYaml.force_insert(DEFAULT_UNK_STR, Word::DEFAULT_UNK_ID.getWordIndex());
 
     Word maxSpec = 1;
     auto vocabSize = vocabVec.size();

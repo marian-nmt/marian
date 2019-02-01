@@ -3,6 +3,10 @@
 
 namespace marian {
 
+Word Word::NONE = Word();
+Word Word::DEFAULT_EOS_ID = Word(0);
+Word Word::DEFAULT_UNK_ID = Word(1);
+
 Ptr<VocabBase> createDefaultVocab();
 Ptr<VocabBase> createClassVocab();
 Ptr<VocabBase> createSentencePieceVocab(const std::string& /*vocabPath*/, Ptr<Options>, size_t /*batchIndex*/);

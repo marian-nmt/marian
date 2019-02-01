@@ -73,9 +73,9 @@ public:
       // fill with increasing numbers until current length or maxPos
       std::vector<IndexType> positions(dimWords, numPos - 1);
       for(int i = 0; i < std::min(dimWords, numPos); ++i)
-        positions[i] = i;
+        positions[i] = i; // @TODO: use std::iota()?
 
-      auto signal = embeddingLayer->apply(positions, {dimWords, 1, dimEmb});
+      auto signal = embeddingLayer->applyIndices(positions, {dimWords, 1, dimEmb});
       embeddings = embeddings + signal;
     } else {
       // @TODO : test if embeddings should be scaled when trainable
