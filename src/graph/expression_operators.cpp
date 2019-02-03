@@ -250,7 +250,12 @@ Expr gather(Expr a, int axis, Expr indices) {
   return Expression<GatherNodeOp>(a, axis, indices);
 }
 
-// index_select() -- gather arbitrary elements along an axis; unbatched (indices are specified as a 1D vector)
+// index_select() -- gather arbitrary elements along an axis from an unbatched
+// input 'a'. Indices are specified as a 1D vector.
+// This is used e.g. for embedding lookup.
+// Note: To use a batch of index vectors, reshape them into a single vector,
+// call index_select(), then reshape the result back. Reshapes are cheap.
+// This function has the same semantics as PyTorch operation of the same name.
 Expr index_select(Expr a, int axis, Expr indices) {
   ABORT_IF(indices->shape().size() != 1, "Indices must be a 1D tensor");
   // We have specialized kernels for non-batched indexing of first or last axis of a 2D tensor.

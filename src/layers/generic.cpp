@@ -197,12 +197,10 @@ namespace marian {
       auto factorIndex  = rows(factorIndexMatrix, indices); // [B... * 1(Ug)] map word indices to factor indices (indices into factorLogits)
       auto factorMask   = rows(factorMaskMatrix,  indices); // [B... * 1]     flag whether word has the factor in the first place
       auto factorLogits = logits_[g];                       // [B... * Ug]
-      // @TODO: no need to normalize factors before here
       // For each location in [B...] select [indices[B...]]. If not using factor, select [0] and mask it out next.
       auto factorLoss = lossFn(factorLogits, factorIndex);  // [B... x 1]
-      auto xxx = reshape(factorMask, factorLoss->shape());
       //factorLoss->debug("factorLoss");
-      factorLoss = factorLoss * xxx;// reshape(factorMask, factorLoss->shape()); // mask out factor for words that do not have that factor
+      factorLoss = factorLoss * reshape(factorMask, factorLoss->shape()); // mask out factor for words that do not have that factor
       loss = loss ? (loss + factorLoss) : factorLoss; // [B... x 1]
     }
     return loss;
@@ -215,10 +213,10 @@ namespace marian {
       return logits_.front();
     }
 
-    // lazily compute combined logits from factors
+    // compute normalized factor log probs
     std::vector<Expr> logProbs(logits_.size());
     for (size_t g = 0; g < logits_.size(); g++)
-        logProbs[g] = logsoftmax(logits_[g]);
+      logProbs[g] = logsoftmax(logits_[g]);
     auto y = concatenate(logProbs, /*axis=*/ -1);
 
     // sum up the unit logits across factors for each target word
@@ -300,7 +298,7 @@ namespace marian {
       else if (embeddingFactorMapping_) {
         auto graph = input->graph();
 
-        // project each factor
+        // project each factor separately
         auto numGroups = embeddingFactorMapping_->getNumGroups();
         std::vector<Expr> allLogits(numGroups);
         for (size_t g = 0; g < numGroups; g++) {
@@ -309,14 +307,8 @@ namespace marian {
           // slice this group's section out of W_
           // @TODO: This is highly inefficient if not tied. We should always transpose Output's matrix.
           auto factorW = slice(W_, transposeW_ ? 0 : -1, Slice((int)range.first, (int)range.second));
-          auto factorB = slice(b_, -1, Slice((int)range.first, (int)range.second)); // @TODO: b_ should be a vector, not a matrix
+          auto factorB = slice(b_, -1, Slice((int)range.first, (int)range.second)); // @TODO: b_ should be a vector, not a matrix; but shotlists use cols() in, which requires a matrix
           auto factorLogits = affine(input, factorW, factorB, false, transposeW_); // [B... x U] factor logits
-          // log-linear weight
-          // @TODO: The weight should not be needed, since it could learn it into the embeddings. Maybe it doesn't.
-          // @TODO? If we move the weight before affine(), it would use less memory at least for the main factor.
-          //auto name = options_->get<std::string>("prefix");
-          //auto llWeight = graph->param(name + "_llWeight_" + std::to_string(g), {}, inits::from_value(1.0f));
-          //factorLogits = factorLogits * llWeight; // -a constant, which is OK for logits
           allLogits[g] = factorLogits;
         }
         return Logits(std::move(allLogits), embeddingFactorMapping_);
