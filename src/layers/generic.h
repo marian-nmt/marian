@@ -176,7 +176,7 @@ public:
         Wt_ = tiedParam_;
       } else {
         if (graph_->get(name + "_W")) { // support of legacy models that did not transpose
-          Wt_ = graph_->param(name + "_Wt", {dim, input->shape()[-1]}, inits::glorot_uniform);
+          Wt_ = graph_->param(name + "_W", {dim, input->shape()[-1]}, inits::glorot_uniform);
           isLegacyUntransposedW = true;
         }
         else // this is the regular case:
