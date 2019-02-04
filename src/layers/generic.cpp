@@ -1,6 +1,7 @@
 #include "marian.h"
 
 #include "layers/generic.h"
+#include "layers/loss.h"
 
 using std::size_t; // not sure why this is needed
 
@@ -175,12 +176,16 @@ namespace marian {
     //std::vector<std::vector<float>> mVecs_;              // [group id][u] -> 1 if factor is member of group
   };
 
-  Ptr<RationalLoss> Logits::applyLossFunction(Expr indices, const std::function<Ptr<RationalLoss>(Ptr<RationalLoss>/*logits*/, Expr/*indices*/)>& lossFn) const {
+  Logits::Logits(Expr logits) : Logits(New<RationalLoss>(logits, nullptr)) {} // single-output constructor from Expr only (RationalLoss has no count)
+
+  // This function assumes that the object holds one or more factor logits.
+  // It applies the supplied loss function to each, and then returns the aggregate loss over all factors.
+  Expr Logits::applyLossFunction(Expr indices, const std::function<Expr(Expr/*logits*/, Expr/*indices*/)>& lossFn) const {
     LOG_ONCE(info, "[logits] applyLossFunction() for {} factors", logits_.size());
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
     if (!embeddingFactorMapping_) {
       ABORT_IF(logits_.size() != 1, "Factors without factor mappings??");
-      return lossFn(logits_.front(), indices);
+      return lossFn(logits_.front()->loss(), indices);
     }
 
     // accumulate all CEs for all words that have the factor
@@ -198,13 +203,14 @@ namespace marian {
       auto factorMask   = rows(factorMaskMatrix,  indices); // [B... * 1]     flag whether word has the factor in the first place
       auto factorLogits = logits_[g];                       // [B... * Ug]
       // For each location in [B...] select [indices[B...]]. If not using factor, select [0] and mask it out next.
-      auto factorLoss = lossFn(factorLogits, factorIndex)->loss(); // [B... x 1]
+      auto factorLoss = lossFn(factorLogits->loss(), factorIndex); // [B... x 1]
       factorLoss = factorLoss * reshape(factorMask, factorLoss->shape()); // mask out factor for words that do not have that factor
       loss = loss ? (loss + factorLoss) : factorLoss; // [B... x 1]
     }
-    return New<RationalLoss>(loss, logits_.front()->count());
+    return loss;
   }
 
+  // This function assumes this object holds a single factor that represents a rational loss (with count).
   Ptr<RationalLoss> Logits::getRationalLoss() const {
     //return New<RationalLoss>(getLogits(), logits_.front()->count());
     ABORT_IF(logits_.size() != 1 || embeddingFactorMapping_, "getRationalLoss() cannot be used on multi-factor outputs");
@@ -212,6 +218,8 @@ namespace marian {
     return logits_.front();
   }
 
+  // This function assumes that the object holds one or more factor logits, which are summed up
+  // into output-vocab logits according to the factored model (with correct normalization of factors).
   Expr Logits::getLogits() const {
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
     if (!embeddingFactorMapping_) {
@@ -237,28 +245,13 @@ namespace marian {
         /*transB=*/ true); // -> [B x V]
 
     return y;
-#if 0
-        // denominators
-        const auto& mVecs = embeddingFactorMapping_->mVecs_;
-        for (size_t g = 0; g < numGroups; g++) {
-          auto range = groupRanges[g];
-          // y: [B... x U]
-          // m: [1 x U]         // ones at positions of group members
-          // need to compute log denominator over y[range] and subtract it from y[range]
-          //auto groupY = slice(y, /*axis=*/-1, Slice((int)range.first, (int)range.second)); // [B... x Ug]
-          //auto groupZ = logsumexp(groupY, /*axis=*/-1); // [B... x 1]
-          ////auto groupZ = slice(groupY - logsoftmax(groupY), /*axis=*/-1, 0); // [B... x 1]
-          const auto& mVec = mVecs[g];
-          auto m = graph->constant({ 1, (int)mVec.size() }, inits::from_vector(mVec)); // [1 x U]
-          //auto Z = dot(groupZ, m); // [B... x U]
-          //y = y - Z;
-          // and a log-linear weight
-          auto name = options_->get<std::string>("prefix");
-          auto groupLLWeights[g] = graph->param(name + "_llWeight_" + std::to_string(g), {}, inits::from_value(1.0f));
-          y = y * ((groupLLWeights[g] - 1) * m + 1);
-          // @BUGBUG: Global softmax no longer normalizes, due to words that lack some factors.
-        }
-#endif
+  }
+
+  Logits Logits::withCounts(const Expr& count) const { // create new Logits with 'count' implanted into all logits_
+    std::vector<Ptr<RationalLoss>> newLogits;
+    for (const auto& l : logits_)
+      newLogits.emplace_back(New<RationalLoss>(l->loss(), count));
+    return Logits(std::move(newLogits), embeddingFactorMapping_);
   }
 
   namespace mlp {

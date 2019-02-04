@@ -4,7 +4,6 @@
 
 #include "data/shortlist.h"
 #include "layers/factory.h"
-#include "layers/loss.h"
 
 namespace marian {
 namespace mlp {
@@ -63,6 +62,7 @@ class EmbeddingFactorMapping;
 // @HACK: Frank's quick implementation of factored outputs. To be re-thought once it works.
 // Output layer returns a Logits object, which is able to compute some things on the fly
 // for factored embeddings.
+class RationalLoss;
 class Logits {
     Logits& operator=(const Logits& other) = default;
 public:
@@ -70,12 +70,12 @@ public:
     Logits(Ptr<RationalLoss> logits) { // single-output constructor
       logits_.push_back(logits);
     }
-    Logits(Expr logits) : Logits(New<RationalLoss>(logits, nullptr)) {} // single-output constructor from Expr only (RationalLoss has no count)
+    Logits(Expr logits); // single-output constructor from Expr only (RationalLoss has no count)
     Logits(std::vector<Ptr<RationalLoss>>&& logits, Ptr<EmbeddingFactorMapping> embeddingFactorMapping) // factored-output constructor
       : logits_(std::move(logits)), embeddingFactorMapping_(embeddingFactorMapping) {}
     Expr getLogits() const; // assume it holds logits: get them, possibly aggregating over factors
     Ptr<RationalLoss> getRationalLoss() const; // assume it holds a loss: get that
-    Ptr<RationalLoss> applyLossFunction(Expr indices, const std::function<Ptr<RationalLoss>(Ptr<RationalLoss>/*logits*/,Expr/*indices*/)>& lossFn) const;
+    Expr applyLossFunction(Expr indices, const std::function<Expr(Expr/*logits*/,Expr/*indices*/)>& lossFn) const;
     void assign(const Logits& other) {
       //ABORT_IF(!empty() && getNumFactors() != other.getNumFactors(),
       //         "Logits assignment cannot change number of factors");
@@ -83,12 +83,7 @@ public:
     }
     size_t getNumFactors() const { return logits_.size(); }
     bool empty() const { return logits_.empty(); }
-    Logits withCounts(const Expr& count) const { // create new Logits with 'count' implanted into all logits_
-      std::vector<Ptr<RationalLoss>> newLogits;
-      for (const auto& l : logits_)
-        newLogits.emplace_back(New<RationalLoss>(l->loss(), count));
-      return Logits(std::move(newLogits), embeddingFactorMapping_);
-    }
+    Logits withCounts(const Expr& count) const; // create new Logits with 'count' implanted into all logits_
 private:
     // @HACK: The interplay between Logits and RationalLoss is weird. Here, we allow RationalLoss with count == nullptr.
     std::vector<Ptr<RationalLoss>> logits_;

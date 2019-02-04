@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graph/expression_operators.h"
+#include "layers/generic.h" // for Logits (Frank's factor hack)
 
 namespace marian {
 
@@ -269,7 +270,7 @@ class LabelwiseLoss {
 protected:
   std::vector<int> axes_;
 
-  virtual Expr compute(Expr logits, Expr labelIndices,
+  virtual Expr compute(Logits logits, Expr labelIndices,
                        Expr mask = nullptr, Expr labelWeights = nullptr) = 0;
 
   // label counts are available, reduce together with loss to obtain counts
@@ -304,7 +305,7 @@ public:
   LabelwiseLoss(const std::vector<int>& axes)
   : axes_(axes) { }
 
-  virtual RationalLoss apply(Expr logits, Expr labelIndices,
+  virtual RationalLoss apply(Logits logits, Expr labelIndices,
                              Expr mask = nullptr, Expr labelWeights = nullptr) {
     Expr loss = compute(logits, labelIndices, mask, labelWeights);
 
@@ -331,23 +332,23 @@ public:
 protected:
   float labelSmoothing_; // interpolation factor for label smoothing, see below
 
-  virtual Expr compute(Expr logits, Expr labelIndices,
+  virtual Expr compute(Logits logits, Expr labelIndices,
                        Expr mask = nullptr, Expr labelWeights = nullptr) override {
-    Expr ce = cross_entropy(logits, labelIndices);
-
-    if(labelSmoothing_ > 0) {
-      // @TODO: add this to CE kernels instead
-      
-      // Label smoothing (see https://arxiv.org/pdf/1512.00567.pdf, section 7)
-      // We compute smoothed H(q',p) = (1 - eps) * H(q,p) + eps * H(u,p) where H(q,p) is the normal cross-entropy
-      // and H(u,p) penalizes deviation of p from u, u being uniform distribution over vocab V => u_v = 1/|V|.
-      // H(u,p) = - \sum_{v \in V} u_v * \log p_v = - 1/|V| \sum_{v \in V} \log \softmax_v => -mean(logsoftmax(logits))
-      // ceq = -H(u,p) - avoid one kernel call by negating in the interpolation below
-      Expr ceq = mean(logsoftmax(logits), /*axis=*/ -1);
-
-      // H(q',p) = (1 - eps) * H(q,p) - eps * -H(u,p)
-      ce = (1 - labelSmoothing_) * ce - labelSmoothing_ * ceq;
-    }
+    // logits may be factored; in that case, the getLoss() function computes one loss for each, and sums them up
+    auto ce = logits.applyLossFunction(labelIndices, [&](Expr logits, Expr indices) {
+      Expr ce = cross_entropy(logits, indices);
+      if (labelSmoothing_ > 0) {
+        // ce = -sum_i y^_i log y_i(h)
+        // with smoothing:
+        // ce' = -sum_i ((1-labelSmoothing_) y^_i + labelSmoothing_/N) log y_i(h)
+        //     = -(1-labelSmoothing_) sum_i y^_i log y_i(h) - labelSmoothing_ mean_i log y_i(h)
+        //     = (1-labelSmoothing_) ce - labelSmoothing_ mean_i log y_i(h)
+        auto ceqNeg = mean(logits, /*axis=*/ -1) - logsumexp(logits, /*axis=*/ -1);
+        ce = (1 - labelSmoothing_) * ce - labelSmoothing_ * ceqNeg;
+        //ce = ce - labelSmoothing_ * (ce + ceqNeg); // writing it this way saves one op :)
+      }
+      return ce;
+    });
 
     if(mask)
       ce = ce * mask;
@@ -367,7 +368,7 @@ public:
   // sentence-wise CE, hence reduce only over time axis. CE reduces over last axis (-1)
   RescorerLoss() : CrossEntropyLoss(/*axes=*/{-3}, /*smoothing=*/0.f) {}
 
-  virtual RationalLoss apply(Expr logits, Expr labelIndices,
+  virtual RationalLoss apply(Logits logits, Expr labelIndices,
                              Expr mask = nullptr, Expr labelWeights = nullptr) override {
     auto ce = CrossEntropyLoss::apply(logits, labelIndices, mask, labelWeights);
     return RationalLoss(ce.loss(), ce.count());
