@@ -332,7 +332,8 @@ namespace marian {
     }
 
     // Embedding layer initialization should depend only on embedding size, hence fanIn=false
-    NodeInitializer initFunc = inits::glorot_uniform2(/*fanIn=*/false, /*fanOut=*/true);
+    //NodeInitializer initFunc = inits::glorot_uniform2(/*fanIn=*/false, /*fanOut=*/true);
+    NodeInitializer initFunc = inits::glorot_uniform;
     if (options_->has("embFile")) {
       std::string file = opt<std::string>("embFile");
       if (!file.empty()) {
