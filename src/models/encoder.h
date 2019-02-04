@@ -18,8 +18,9 @@ public:
         inference_(options->get<bool>("inference", false)),
         batchIndex_(options->get<size_t>("index", 0)) {}
 
-  virtual Ptr<EncoderState> build(Ptr<ExpressionGraph>, Ptr<data::CorpusBatch>) // @TODO: rename to apply()?
-      = 0;
+  virtual ~EncoderBase() {}
+
+  virtual Ptr<EncoderState> build(Ptr<ExpressionGraph>, Ptr<data::CorpusBatch>) = 0;
 
   template <typename T>
   T opt(const std::string& key) const {

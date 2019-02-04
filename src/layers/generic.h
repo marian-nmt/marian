@@ -4,6 +4,7 @@
 
 #include "data/shortlist.h"
 #include "layers/factory.h"
+#include "layers/loss.h"
 
 namespace marian {
 namespace mlp {
@@ -50,8 +51,11 @@ struct IUnaryLayer {
 // Embedding from corpus sub-batch to (emb, mask)
 struct IEmbeddingLayer {
   virtual std::tuple<Expr/*embeddings*/, Expr/*mask*/> apply(Ptr<data::SubBatch> subBatch) const = 0;
-  // alternative version from index vector, and with batch dim
-  virtual Expr apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const = 0;
+
+  virtual Expr apply(const Words& embIdx, const Shape& shape) const = 0;
+
+  // alternative from indices directly
+  virtual Expr applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const = 0;
 };
 
 class EmbeddingFactorMapping;
@@ -62,14 +66,16 @@ class EmbeddingFactorMapping;
 class Logits {
     Logits& operator=(const Logits& other) = default;
 public:
-    Logits(Expr logits) { // single-output constructor
-      if (logits)
-        logits_.push_back(logits);
+    Logits() {}
+    Logits(Ptr<RationalLoss> logits) { // single-output constructor
+      logits_.push_back(logits);
     }
-    Logits(std::vector<Expr>&& logits, Ptr<EmbeddingFactorMapping> embeddingFactorMapping) // factored-output constructor
+    Logits(Expr logits) : Logits(New<RationalLoss>(logits, nullptr)) {} // single-output constructor from Expr only (RationalLoss has no count)
+    Logits(std::vector<Ptr<RationalLoss>>&& logits, Ptr<EmbeddingFactorMapping> embeddingFactorMapping) // factored-output constructor
       : logits_(std::move(logits)), embeddingFactorMapping_(embeddingFactorMapping) {}
-    Expr getLogits() const;
-    Expr getLoss(Expr indices, const std::function<Expr(Expr/*logits*/,Expr/*indices*/)>& lossFn) const;
+    Expr getLogits() const; // assume it holds logits: get them, possibly aggregating over factors
+    Ptr<RationalLoss> getRationalLoss() const; // assume it holds a loss: get that
+    Ptr<RationalLoss> applyLossFunction(Expr indices, const std::function<Ptr<RationalLoss>(Ptr<RationalLoss>/*logits*/,Expr/*indices*/)>& lossFn) const;
     void assign(const Logits& other) {
       //ABORT_IF(!empty() && getNumFactors() != other.getNumFactors(),
       //         "Logits assignment cannot change number of factors");
@@ -77,8 +83,15 @@ public:
     }
     size_t getNumFactors() const { return logits_.size(); }
     bool empty() const { return logits_.empty(); }
+    Logits withCounts(const Expr& count) const { // create new Logits with 'count' implanted into all logits_
+      std::vector<Ptr<RationalLoss>> newLogits;
+      for (const auto& l : logits_)
+        newLogits.emplace_back(New<RationalLoss>(l->loss(), count));
+      return Logits(std::move(newLogits), embeddingFactorMapping_);
+    }
 private:
-    std::vector<Expr> logits_;
+    // @HACK: The interplay between Logits and RationalLoss is weird. Here, we allow RationalLoss with count == nullptr.
+    std::vector<Ptr<RationalLoss>> logits_;
     Ptr<EmbeddingFactorMapping> embeddingFactorMapping_;
 };
 
@@ -158,15 +171,16 @@ public:
 
 class Output : public LayerBase, public IUnaryLogitLayer {
 private:
-  Expr W_;  // parameters held by this layer
+  // parameters held by this layer
+  Expr Wt_; // weight matrix is stored transposed for efficiency
   Expr b_;
-  Expr cachedShortW_;   // short-listed version, cached (cleared by clear())
+  bool isLegacyUntransposedW{false}; // legacy-model emulation: W is stored in non-transposed form
+  Expr cachedShortWt_;  // short-listed version, cached (cleared by clear())
   Expr cachedShortb_;   // these match the current value of shortlist_
   Ptr<EmbeddingFactorMapping > embeddingFactorMapping_;
 
   // optional parameters set/updated after construction
   Expr tiedParam_;
-  bool transposeW_{false};
   Ptr<data::Shortlist> shortlist_;
 
   void lazyConstruct(int inputDim);
@@ -177,7 +191,7 @@ public:
   }
 
   void tieTransposed(Expr tied) {
-    if (W_)
+    if (Wt_)
       ABORT_IF(tiedParam_.get() != tied.get(), "Tied output projection cannot be changed once weights have been created");
     else
       tiedParam_ = tied;
@@ -187,18 +201,18 @@ public:
     if (shortlist_)
       ABORT_IF(shortlist.get() != shortlist_.get(), "Output shortlist cannot be changed except after clear()");
     else {
-      ABORT_IF(cachedShortW_ || cachedShortb_, "No shortlist but cached parameters??");
+      ABORT_IF(cachedShortWt_ || cachedShortb_, "No shortlist but cached parameters??");
       shortlist_ = shortlist;
     }
-    // cachedShortW_ and cachedShortb_ will be created lazily inside apply()
+    // cachedShortWt_ and cachedShortb_ will be created lazily inside apply()
   }
 
   // this is expected to be called in sync with graph->clear(), which invalidates
-  // cachedShortW_ and cachedShortb_ in the graph's short-term cache
+  // cachedShortWt_ and cachedShortb_ in the graph's short-term cache
   void clear() {
     shortlist_ = nullptr;
-    cachedShortW_ = nullptr;
-    cachedShortb_ = nullptr;
+    cachedShortWt_ = nullptr;
+    cachedShortb_  = nullptr;
   }
 
   Logits apply(Expr input) override;
@@ -219,8 +233,9 @@ public:
 
   std::tuple<Expr/*embeddings*/, Expr/*mask*/> apply(Ptr<data::SubBatch> subBatch) const override final;
 
-  // special version used in decoding
-  Expr apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const override final;
+  Expr apply(const Words& words, const Shape& shape) const override final;
+
+  Expr applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const override final;
 };
 
 class ULREmbedding : public LayerBase, public IEmbeddingLayer {
@@ -233,7 +248,10 @@ public:
     int dimEmb = opt<int>("dimEmb");
     int dimUlrEmb =  opt<int>("dimUlrEmb"); // ULR mono embed size
     bool fixed = opt<bool>("fixed", false);
-    NodeInitializer initFunc = inits::glorot_uniform;
+
+    // Embedding layer initialization should depend only on embedding size, hence fanIn=false
+    NodeInitializer initFunc = inits::glorot_uniform2(/*fanIn=*/false, /*fanOut=*/true);
+
     std::string queryFile = opt<std::string>("ulrQueryFile");
     std::string keyFile = opt<std::string>("ulrKeysFile");
     bool trainTrans = opt<bool>("ulrTrainTransform", false);
@@ -300,21 +318,22 @@ public:
     // note all above can be precombuted and serialized if A is not trainiable and during decoding (TBD)
     // here we need to handle the mini-batch
     // extract raws corresponding to Xs in this minibatch from Q
-    auto queryEmbeddings = rows(queryEmbed, subBatch->data());
-    auto srcEmbeddings = rows(srcEmbed, subBatch->data());   // extract trainable src embeddings
-    auto alpha = rows(ulrSharable, subBatch->data());  // extract sharable flags
+    auto embIdx = toWordIndexVector(subBatch->data());
+    auto queryEmbeddings = rows(queryEmbed, embIdx);
+    auto srcEmbeddings = rows(srcEmbed, embIdx);   // extract trainable src embeddings
+    auto alpha = rows(ulrSharable, embIdx);  // extract sharable flags
     auto qt = dot(queryEmbeddings, ulrTransform, false, false);  //A: transform embeddings based on similarity A :  dimUlrEmb*dimUlrEmb
     auto sqrtDim=std::sqrt((float)queryEmbeddings->shape()[-1]);
     qt = qt/sqrtDim;  // normalize accordin to embed size to avoid dot prodcut growing large in magnitude with larger embeds sizes
-    auto z = dot(qt, keyEmbed, false, true);      // query-key similarity 
+    auto z = dot(qt, keyEmbed, false, true);      // query-key similarity
     float dropProb = this->options_->get<float>("ulr-dropout", 0.0f);  // default no dropout
     z = dropout(z, dropProb);
     float tau = this->options_->get<float>("ulr-softmax-temperature", 1.0f);  // default no temperature
     // temperature in softmax is to control randomness of predictions
     // high temperature Softmax outputs are more close to each other
-    // low temperatures the softmax become more similar to  "hardmax" 
+    // low temperatures the softmax become more similar to  "hardmax"
     auto weights = softmax(z / tau);  // assume default  is dim=-1, what about temprature? - scaler ??
-    auto chosenEmbeddings = dot(weights, uniEmbed);  // AVERAGE 
+    auto chosenEmbeddings = dot(weights, uniEmbed);  // AVERAGE
     auto chosenEmbeddings_mix = srcEmbeddings + alpha * chosenEmbeddings;  // this should be elementwise  broadcast
     auto batchEmbeddings = reshape(chosenEmbeddings_mix, { dimWords, dimBatch, dimEmb });
     auto graph = ulrEmbeddings_.front()->graph();
@@ -323,9 +342,13 @@ public:
     return std::make_tuple(batchEmbeddings, batchMask);
   }
 
-  Expr apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const override final {
-    embIdx; dimBatch; dimBeam;
-    ABORT("not implemented"); // ULR cannot be used for decoding
+  Expr apply(const Words& words, const Shape& shape) const override final {
+    return applyIndices(toWordIndexVector(words), shape);
+  }
+
+  Expr applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const override final {
+    embIdx; shape;
+    ABORT("not implemented"); // @TODO: implement me
   }
 };
 }  // namespace marian

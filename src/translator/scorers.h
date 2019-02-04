@@ -35,7 +35,7 @@ public:
   virtual Ptr<ScorerState> step(Ptr<ExpressionGraph>,
                                 Ptr<ScorerState>,
                                 const std::vector<IndexType>&,
-                                const std::vector<IndexType>&,
+                                const Words&,
                                 int dimBatch,
                                 int beamSize)
       = 0;
@@ -111,12 +111,12 @@ public:
   virtual Ptr<ScorerState> step(Ptr<ExpressionGraph> graph,
                                 Ptr<ScorerState> state,
                                 const std::vector<IndexType>& hypIndices,
-                                const std::vector<IndexType>& embIndices,
+                                const Words& words,
                                 int dimBatch,
                                 int beamSize) override {
     graph->switchParams(getName());
     auto wrapperState = std::dynamic_pointer_cast<ScorerWrapperState>(state);
-    auto newState = encdec_->step(graph, wrapperState->getState(), hypIndices, embIndices, dimBatch, beamSize);
+    auto newState = encdec_->step(graph, wrapperState->getState(), hypIndices, words, dimBatch, beamSize);
     return New<ScorerWrapperState>(newState);
   }
 

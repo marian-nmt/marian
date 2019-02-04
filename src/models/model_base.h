@@ -2,6 +2,7 @@
 
 #include <string>
 #include "marian.h"
+#include "layers/loss.h"
 #include "layers/generic.h" // @HACK for Frank's factored embeddings/Logits class
 
 namespace marian {

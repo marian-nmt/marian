@@ -47,7 +47,7 @@ public:
   /**
    * @brief Adds a new sentence at the end of the tuple.
    *
-   * @param words A vector of word indexes.
+   * @param words A vector of word indices.
    */
   void push_back(const Words& words) { tuple_.push_back(words); }
 
@@ -110,7 +110,7 @@ public:
  */
 class SubBatch {
 private:
-  std::vector<Word> indices_;
+  Words indices_;
   std::vector<float> mask_;
 
   size_t size_;
@@ -128,7 +128,7 @@ public:
    * @param width Number of words in the longest sentence
    */
   SubBatch(size_t size, size_t width, const Ptr<Vocab>& vocab)
-      : indices_(size * width, 0),
+      : indices_(size * width, Word::ZERO), // note: for gaps, we must use a valid index
         mask_(size * width, 0),
         size_(size),
         width_(width),
@@ -142,7 +142,7 @@ public:
    * idx_{w,0},idx_{w,1},\dots,idx_{w,s}\f$, where \f$w\f$ is the number of
    * words (width) and \f$s\f$ is the number of sentences (size).
    */
-  std::vector<Word>& data() { return indices_; }
+  Words& data() { return indices_; }
   /**
    * @brief Flat masking vector; 0 is used for masked words.
    *
@@ -229,7 +229,7 @@ public:
  * such as guided alignments and sentence or word-leve weighting.
  */
 class CorpusBatch : public Batch {
-private:
+protected:
   std::vector<Ptr<SubBatch>> subBatches_;
   std::vector<float> guidedAlignment_;
   std::vector<float> dataWeights_;
@@ -310,21 +310,22 @@ public:
    *
    * @return Fake batch of the same size as the real batch.
    */
-  static Ptr<CorpusBatch> fakeBatch(std::vector<size_t>& lengths,
+  static Ptr<CorpusBatch> fakeBatch(const std::vector<size_t>& lengths,
+                                    const std::vector<Ptr<Vocab>>& vocabs, 
                                     size_t batchSize,
                                     Ptr<Options> options) {
     std::vector<Ptr<SubBatch>> batches;
 
-    size_t idx = 0;
+    size_t batchIndex = 0;
     for(auto len : lengths) {
-      auto vocab = New<Vocab>(options, 0);
-      vocab->createFake();
-      // data: gets initialized to 0. No EOS symbol is distinguished.
-      auto sb = New<SubBatch>(batchSize, len, vocab);
+      auto sb = New<SubBatch>(batchSize, len, vocabs[batchIndex]);
       // set word indices to different values to avoid same hashes
-      std::fill(sb->data().begin(), sb->data().end(), (unsigned int)idx++);
+      // rand() is OK, this does not affect state in any way
+      std::transform(sb->data().begin(), sb->data().end(), sb->data().begin(),
+                     [&](Word) -> Word { return Word::fromWordIndex(rand() % vocabs[batchIndex]->size()); });
       // mask: no items ask being masked out
       std::fill(sb->mask().begin(), sb->mask().end(), 1.f);
+      batchIndex++;
 
       batches.push_back(sb);
     }
@@ -465,7 +466,7 @@ public:
     std::cerr << "batches: " << sets() << std::endl;
 
     if(!sentenceIds_.empty()) {
-      std::cerr << "indexes: ";
+      std::cerr << "indices: ";
       for(auto id : sentenceIds_)
         std::cerr << id << " ";
       std::cerr << std::endl;
@@ -483,7 +484,7 @@ public:
           if (vocab)
             std::cerr << (*vocab)[w] << " ";
           else
-            std::cerr << w << " "; // if not loaded then print numeric id instead
+            std::cerr << w.toString() << " "; // if not loaded then print numeric id instead
         }
         std::cerr << std::endl;
       }
@@ -518,6 +519,12 @@ protected:
   std::vector<UPtr<io::InputFileStream>> files_;
   std::vector<Ptr<Vocab>> vocabs_;
 
+  /**
+   * brief Determines if a EOS symbol should be added. By default this is true for any sequence,
+   * but should be false for instance for classifier labels. This is set per input stream, hence a vector.
+   */
+  std::vector<bool> addEOS_; 
+
   size_t pos_{0};
 
   size_t maxLength_{0};
@@ -537,11 +544,16 @@ protected:
   size_t alignFileIdx_{0};
 
   /**
+   * @brief Determine if EOS symbol should be added to input
+   */
+  void initEOS(bool training);
+
+  /**
    * @brief Helper function converting a line of text into words using the i-th
    * vocabulary and adding them to the sentence tuple.
    */
   void addWordsToSentenceTuple(const std::string& line,
-                               size_t i,
+                               size_t batchIndex,
                                SentenceTuple& tup) const;
   /**
    * @brief Helper function parsing a line with word alignments and adding them

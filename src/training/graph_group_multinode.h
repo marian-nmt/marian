@@ -454,8 +454,8 @@ public:
   /**
    * Collect statistics from first client's graph.
    */
-  Ptr<data::BatchStats> collectStats() {
-    return GraphGroup::collectStats(clientGraphs_[0], clientBuilders_[0]);
+  Ptr<data::BatchStats> collectStats(const std::vector<Ptr<Vocab>>& vocabs) {
+    return GraphGroup::collectStats(clientGraphs_[0], clientBuilders_[0], vocabs);
   }
 };
 }  // namespace marian

@@ -46,7 +46,7 @@ namespace marian {
       vocab.load(vocabPath);
       auto vocabSize = vocab.size();
       factorVocab_.load(factorVocabPath);
-      Word numFactors = (Word)factorVocab_.size();
+      auto numFactors = factorVocab_.size();
 
       // load and parse factorMap
       factorMap_.resize(vocabSize);
@@ -55,12 +55,12 @@ namespace marian {
       io::InputFileStream in(mapPath);
       std::string line;
       size_t numTotalFactors = 0;
-      for (Word v = 0; io::getline(in, line); v++) {
+      for (WordIndex v = 0; io::getline(in, line); v++) {
         tokens.clear(); // @BUGBUG: should be done in split()
         utils::splitAny(line, tokens, " \t");
-        ABORT_IF(tokens.size() < 2 || tokens.front() != vocab[v], "Factor map must list words in same order as vocab, and have at least one factor per word", mapPath);
+        ABORT_IF(tokens.size() < 2 || tokens.front() != vocab[Word::fromWordIndex(v)], "Factor map must list words in same order as vocab, and have at least one factor per word", mapPath);
         for (size_t i = 1; i < tokens.size(); i++) {
-          auto u = factorVocab_[tokens[i]];
+          auto u = factorVocab_[tokens[i]].toWordIndex();
           factorMap_[v].push_back(u);
           factorRefCounts_[u]++;
         }
@@ -79,16 +79,16 @@ namespace marian {
       factorGroups_.resize(numFactors, 0);
       for (size_t g = 1; g < groupPrefixes.size(); g++) { // set group labels; what does not match any prefix will stay in group 0
         const auto& groupPrefix = groupPrefixes[g];
-        for (Word u = 0; u < numFactors; u++)
-          if (utils::beginsWith(factorVocab_[u], groupPrefix)) {
-            ABORT_IF(factorGroups_[u] != 0, "Factor {} matches multiple groups, incl. {}", factorVocab_[u], groupPrefix);
+        for (WordIndex u = 0; u < numFactors; u++)
+          if (utils::beginsWith(factorVocab_[Word::fromWordIndex(u)], groupPrefix)) {
+            ABORT_IF(factorGroups_[u] != 0, "Factor {} matches multiple groups, incl. {}", factorVocab_[Word::fromWordIndex(u)], groupPrefix);
             factorGroups_[u] = g;
           }
       }
       // determine group index ranges
       groupRanges_.resize(numGroups, { SIZE_MAX, (size_t)0 });
       std::vector<size_t> groupCounts(numGroups); // number of group members
-      for (Word u = 0; u < numFactors; u++) { // determine ranges; these must be non-overlapping, verified via groupCounts
+      for (WordIndex u = 0; u < numFactors; u++) { // determine ranges; these must be non-overlapping, verified via groupCounts
         auto g = factorGroups_[u];
         if (groupRanges_[g].first > u)
             groupRanges_[g].first = u;
@@ -99,7 +99,7 @@ namespace marian {
       // create mappings needed for normalization in factored outputs
       factorMasks_  .resize(numGroups, std::vector<float>(vocabSize, 0));     // [g][v] 1.0 if word v has factor g
       factorIndices_.resize(numGroups, std::vector<IndexType>(vocabSize, 0)); // [g][v] index of factor (or any valid index if it does not have it; we use 0)
-      for (Word v = 0; v < vocabSize; v++) {
+      for (WordIndex v = 0; v < vocabSize; v++) {
         for (auto u : factorMap_[v]) {
           auto g = factorGroups_[u]; // convert u to relative u within factor group range
           ABORT_IF(u < groupRanges_[g].first || u >= groupRanges_[g].second, "Invalid factorGroups_ entry??");
@@ -164,7 +164,7 @@ namespace marian {
     const std::vector<IndexType>& getFactorIndices(size_t g) const { return factorIndices_[g]; } // [g][v] local index u_g = u - u_g,begin of factor g for word v; 0 if not a factor
   private:
     Vocab factorVocab_;                                  // [factor name] -> factor index = row of E_
-    std::vector<std::vector<Word>> factorMap_;           // [word index v] -> set of factor indices u
+    std::vector<std::vector<WordIndex>> factorMap_;      // [word index v] -> set of factor indices u
     std::vector<int> factorRefCounts_;                   // [factor index u] -> how often factor u is referenced in factorMap_
     CSRData globalFactorMatrix_;                         // [v,u] (sparse) -> =1 if u is factor of v
     std::vector<size_t> factorGroups_;                   // [u] -> group id of factor u
@@ -175,8 +175,8 @@ namespace marian {
     //std::vector<std::vector<float>> mVecs_;              // [group id][u] -> 1 if factor is member of group
   };
 
-  Expr Logits::getLoss(Expr indices, const std::function<Expr(Expr/*logits*/, Expr/*indices*/)>& lossFn) const {
-    LOG_ONCE(info, "[logits] getLoss() for {} factors", logits_.size());
+  Ptr<RationalLoss> Logits::applyLossFunction(Expr indices, const std::function<Ptr<RationalLoss>(Ptr<RationalLoss>/*logits*/, Expr/*indices*/)>& lossFn) const {
+    LOG_ONCE(info, "[logits] applyLossFunction() for {} factors", logits_.size());
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
     if (!embeddingFactorMapping_) {
       ABORT_IF(logits_.size() != 1, "Factors without factor mappings??");
@@ -198,25 +198,31 @@ namespace marian {
       auto factorMask   = rows(factorMaskMatrix,  indices); // [B... * 1]     flag whether word has the factor in the first place
       auto factorLogits = logits_[g];                       // [B... * Ug]
       // For each location in [B...] select [indices[B...]]. If not using factor, select [0] and mask it out next.
-      auto factorLoss = lossFn(factorLogits, factorIndex);  // [B... x 1]
-      //factorLoss->debug("factorLoss");
+      auto factorLoss = lossFn(factorLogits, factorIndex)->loss(); // [B... x 1]
       factorLoss = factorLoss * reshape(factorMask, factorLoss->shape()); // mask out factor for words that do not have that factor
       loss = loss ? (loss + factorLoss) : factorLoss; // [B... x 1]
     }
-    return loss;
+    return New<RationalLoss>(loss, logits_.front()->count());
+  }
+
+  Ptr<RationalLoss> Logits::getRationalLoss() const {
+    //return New<RationalLoss>(getLogits(), logits_.front()->count());
+    ABORT_IF(logits_.size() != 1 || embeddingFactorMapping_, "getRationalLoss() cannot be used on multi-factor outputs");
+    ABORT_IF(!logits_.front()->count(), "getRationalLoss() used on rational loss without count");
+    return logits_.front();
   }
 
   Expr Logits::getLogits() const {
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
     if (!embeddingFactorMapping_) {
       ABORT_IF(logits_.size() != 1, "Factors without factor mappings??");
-      return logits_.front();
+      return logits_.front()->loss();
     }
 
     // compute normalized factor log probs
     std::vector<Expr> logProbs(logits_.size());
     for (size_t g = 0; g < logits_.size(); g++)
-      logProbs[g] = logsoftmax(logits_[g]);
+      logProbs[g] = logsoftmax(logits_[g]->loss());
     auto y = concatenate(logProbs, /*axis=*/ -1);
 
     // sum up the unit logits across factors for each target word
@@ -258,63 +264,64 @@ namespace marian {
   namespace mlp {
     /*private*/ void Output::lazyConstruct(int inputDim) {
       // We must construct lazily since we won't know tying nor input dim in constructor.
-      if (W_)
+      if (Wt_)
         return;
 
       auto name = options_->get<std::string>("prefix");
-      auto dim = options_->get<int>("dim");
+      auto numOutputClasses = options_->get<int>("dim");
 
       if (options_->has("embedding-factors")) {
         ABORT_IF(shortlist_, "Shortlists are presently not compatible with factored embeddings");
         embeddingFactorMapping_ = New<EmbeddingFactorMapping>(options_);
-        dim = (int)embeddingFactorMapping_->factorVocabSize();
+        numOutputClasses = (int)embeddingFactorMapping_->factorVocabSize();
         LOG(info, "[embedding] Factored outputs enabled");
       }
 
       if(tiedParam_) {
-        W_ = tiedParam_;
-        transposeW_ = true;
+        Wt_ = tiedParam_;
       } else {
-        W_ = graph_->param(name + "_W", {inputDim, dim}, inits::glorot_uniform);
-        transposeW_ = false;
+        if (graph_->get(name + "_W")) { // support of legacy models that did not transpose
+          Wt_ = graph_->param(name + "_W", {inputDim, numOutputClasses}, inits::glorot_uniform);
+          isLegacyUntransposedW = true;
+        }
+        else // this is the regular case:
+          Wt_ = graph_->param(name + "_Wt", {numOutputClasses, inputDim}, inits::glorot_uniform);
       }
 
-      b_ = graph_->param(name + "_b", {1, dim}, inits::zeros);
+      b_ = graph_->param(name + "_b", {1, numOutputClasses}, inits::zeros);
     }
 
     Logits Output::apply(Expr input) /*override*/ {
       lazyConstruct(input->shape()[-1]);
 
       if (shortlist_) {
-        if (!cachedShortW_) { // short versions of parameters are cached within one batch, then clear()ed
-          if(transposeW_)
-            cachedShortW_ = rows(W_, shortlist_->indices());
-          else
-            cachedShortW_ = cols(W_, shortlist_->indices());
-          cachedShortb_ = cols(b_, shortlist_->indices());
+        if (!cachedShortWt_) { // short versions of parameters are cached within one batch, then clear()ed
+          cachedShortWt_ = index_select(Wt_, isLegacyUntransposedW ? -1 : 0, shortlist_->indices());
+          cachedShortb_  = index_select(b_ ,                             -1, shortlist_->indices());
         }
-        return affine(input, cachedShortW_, cachedShortb_, false, transposeW_);
+        return affine(input, cachedShortWt_, cachedShortb_, false, /*transB=*/isLegacyUntransposedW ? false : true);
       }
       else if (embeddingFactorMapping_) {
         auto graph = input->graph();
 
         // project each factor separately
         auto numGroups = embeddingFactorMapping_->getNumGroups();
-        std::vector<Expr> allLogits(numGroups);
+        std::vector<Ptr<RationalLoss>> allLogits(numGroups);
         for (size_t g = 0; g < numGroups; g++) {
           auto range = embeddingFactorMapping_->getGroupRange(g);
           ABORT_IF(g > 0 && range.first != embeddingFactorMapping_->getGroupRange(g-1).second, "Factor groups must be consecutive"); // we could sort groupYs though
           // slice this group's section out of W_
           // @TODO: This is highly inefficient if not tied. We should always transpose Output's matrix.
-          auto factorW = slice(W_, transposeW_ ? 0 : -1, Slice((int)range.first, (int)range.second));
-          auto factorB = slice(b_, -1, Slice((int)range.first, (int)range.second)); // @TODO: b_ should be a vector, not a matrix; but shotlists use cols() in, which requires a matrix
-          auto factorLogits = affine(input, factorW, factorB, false, transposeW_); // [B... x U] factor logits
-          allLogits[g] = factorLogits;
+          auto factorWt = slice(Wt_, isLegacyUntransposedW ? -1 : 0, Slice((int)range.first, (int)range.second));
+          auto factorB  = slice(b_,                              -1, Slice((int)range.first, (int)range.second));
+          // @TODO: b_ should be a vector, not a matrix; but shotlists use cols() in, which requires a matrix
+          auto factorLogits = affine(input, factorWt, factorB, false, /*transB=*/isLegacyUntransposedW ? false : true); // [B... x U] factor logits
+          allLogits[g] = New<RationalLoss>(factorLogits, nullptr);
         }
         return Logits(std::move(allLogits), embeddingFactorMapping_);
       }
       else
-        return affine(input, W_, b_, false, transposeW_);
+        return affine(input, Wt_, b_, false, /*transB=*/isLegacyUntransposedW ? false : true);
     }
   }
 
@@ -331,7 +338,8 @@ namespace marian {
       LOG(info, "[embedding] Factored embeddings enabled");
     }
 
-    NodeInitializer initFunc = inits::glorot_uniform;
+    // Embedding layer initialization should depend only on embedding size, hence fanIn=false
+    NodeInitializer initFunc = inits::glorot_uniform2(/*fanIn=*/false, /*fanOut=*/true);
     if (options_->has("embFile")) {
       std::string file = opt<std::string>("embFile");
       if (!file.empty()) {
@@ -393,25 +401,31 @@ namespace marian {
     //        - but forward pass weighs them down, so that all factors are in a similar numeric range
     //        - if it is required to be in a different range, the embeddings can still learn that, but more slowly
 
-    Expr chosenEmbeddings;
+#if 1
+    auto batchEmbeddings = apply(subBatch->data(), {dimWords, dimBatch, dimEmb});
+#else
+    Expr selectedEmbs;
     if (embeddingFactorMapping_)
-      chosenEmbeddings = multiRows(subBatch->data());
+      selectedEmbs = multiRows(subBatch->data());
     else
-      chosenEmbeddings = rows(E_, subBatch->data());
-
-    auto batchEmbeddings = reshape(chosenEmbeddings, { dimWords, dimBatch, dimEmb });
-    auto batchMask = graph->constant({ dimWords, dimBatch, 1 },
+      selectedEmbs = rows(E_, subBatch->data());
+    auto batchEmbeddings = reshape(selectedEmbs, { dimWords, dimBatch, dimEmb });
+#endif
+    auto batchMask = graph->constant({dimWords, dimBatch, 1},
                                      inits::from_vector(subBatch->mask()));
     return std::make_tuple(batchEmbeddings, batchMask);
   }
 
-  Expr Embedding::apply(const std::vector<IndexType>& embIdx, int dimBatch, int dimBeam) const /*override final*/ {
-    int dimEmb = E_->shape()[-1];
-    Expr chosenEmbeddings;
+  Expr Embedding::apply(const Words& words, const Shape& shape) const /*override final*/ {
+    return applyIndices(toWordIndexVector(words), shape);
+  }
+
+  Expr Embedding::applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const /*override final*/ {
+    Expr selectedEmbs;
     if (embeddingFactorMapping_)
-      chosenEmbeddings = multiRows(embIdx);
+      selectedEmbs = multiRows(embIdx);
     else
-      chosenEmbeddings = rows(E_, embIdx);
-    return reshape(chosenEmbeddings, { dimBeam, 1, dimBatch, dimEmb });
+      selectedEmbs = rows(E_, embIdx);
+    return reshape(selectedEmbs, shape);
   }
 }  // namespace marian

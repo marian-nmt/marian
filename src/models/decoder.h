@@ -26,6 +26,8 @@ public:
         inference_(options->get<bool>("inference", false)),
         batchIndex_(options->get<size_t>("index", 1)) {}
 
+  virtual ~DecoderBase() {}
+
   virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph>,
                                        Ptr<data::CorpusBatch> batch,
                                        std::vector<Ptr<EncoderState>>&)
@@ -73,7 +75,7 @@ public:
     if(shortlist_) {
       yData = graph->indices(shortlist_->mappedIndices());
     } else {
-      yData = graph->indices(subBatch->data());
+      yData = graph->indices(toWordIndexVector(subBatch->data()));
     }
 
     auto yShifted = shift(y, {1, 0, 0});
@@ -85,16 +87,16 @@ public:
 
   virtual void embeddingsFromPrediction(Ptr<ExpressionGraph> graph,
                                         Ptr<DecoderState> state,
-                                        const std::vector<IndexType>& embIdx,
+                                        const Words& words,
                                         int dimBatch,
                                         int dimBeam) {
     Expr selectedEmbs;
-    if(embIdx.empty()) {
-      int dimEmb = opt<int>("dim-emb");
+    int dimEmb = opt<int>("dim-emb");
+    if(words.empty()) {
       selectedEmbs = graph->constant({1, 1, dimBatch, dimEmb}, inits::zeros);
     } else {
       lazyCreateEmbedding(graph);
-      selectedEmbs = embedding_[batchIndex_]->apply(embIdx, dimBatch, dimBeam);
+      selectedEmbs = embedding_[batchIndex_]->apply(words, {dimBeam, 1, dimBatch, dimEmb});
     }
     state->setTargetEmbeddings(selectedEmbs);
   }

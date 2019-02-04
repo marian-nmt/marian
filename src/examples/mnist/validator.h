@@ -12,9 +12,9 @@ using namespace marian;
 
 namespace marian {
 
-class AccuracyValidator : public Validator<data::MNISTData> {
+class MNISTAccuracyValidator : public Validator<data::MNISTData> {
 public:
-  AccuracyValidator(Ptr<Options> options) : Validator(std::vector<Ptr<Vocab>>(), options, false) {
+  MNISTAccuracyValidator(Ptr<Options> options) : Validator(std::vector<Ptr<Vocab>>(), options, false) {
     createBatchGenerator(/*isTranslating=*/false);
     builder_ = models::from_options(options, models::usage::scoring);
   }

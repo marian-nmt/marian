@@ -1,4 +1,4 @@
-#include "encoder_decoder.h"
+#include "models/encoder_decoder.h"
 #include "common/cli_helper.h"
 #include "common/version.h"
 
@@ -23,6 +23,7 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
                     "skip",
                     "layer-normalization",
                     "right-left",
+                    "input-types",
                     "special-vocab",
                     "tied-embeddings",
                     "tied-embeddings-src",
@@ -43,6 +44,7 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
   modelFeatures_.insert("transformer-decoder-autoreg");
   modelFeatures_.insert("transformer-tied-layers");
   modelFeatures_.insert("transformer-guided-alignment-layer");
+  modelFeatures_.insert("transformer-train-positions");
 }
 
 std::vector<Ptr<EncoderBase>>& EncoderDecoder::getEncoders() {
@@ -150,7 +152,7 @@ Ptr<DecoderState> EncoderDecoder::startState(Ptr<ExpressionGraph> graph,
 Ptr<DecoderState> EncoderDecoder::step(Ptr<ExpressionGraph> graph,
                                        Ptr<DecoderState> state,
                                        const std::vector<IndexType>& hypIndices, // [beamIndex * activeBatchSize + batchIndex]
-                                       const std::vector<IndexType>& embIndices, // [beamIndex * activeBatchSize + batchIndex]
+                                       const Words& words,                       // [beamIndex * activeBatchSize + batchIndex]
                                        int dimBatch,
                                        int beamSize) {
   // create updated state that reflects reordering and dropping of hypotheses
@@ -158,7 +160,7 @@ Ptr<DecoderState> EncoderDecoder::step(Ptr<ExpressionGraph> graph,
 
   // Fill stte with embeddings based on last prediction
   decoders_[0]->embeddingsFromPrediction(
-      graph, state, embIndices, dimBatch, beamSize);
+      graph, state, words, dimBatch, beamSize);
   auto nextState = decoders_[0]->step(graph, state);
 
   return nextState;
@@ -188,7 +190,7 @@ Logits EncoderDecoder::build(Ptr<ExpressionGraph> graph,
   auto state = stepAll(graph, batch, clearGraph);
 
   // returns raw logits
-  return state->getLogProbs();
+  return state->getLogProbs().withCounts(state->getTargetMask()); // @TODO: hacky hack hack
 }
 
 Logits EncoderDecoder::build(Ptr<ExpressionGraph> graph,

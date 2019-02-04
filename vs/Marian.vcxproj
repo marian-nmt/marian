@@ -581,6 +581,7 @@
     <ClCompile Include="..\src\microsoft\quicksand.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\src\models\transformer_stub.cpp" />
     <ClCompile Include="..\src\rescorer\score_collector.cpp" />
     <ClCompile Include="..\src\tensors\backend.cpp" />
     <ClCompile Include="..\src\tensors\cpu\device.cpp" />
@@ -895,6 +896,7 @@
     <ClInclude Include="..\src\layers\word2vec_reader.h" />
     <ClInclude Include="..\src\microsoft\quicksand.h" />
     <ClInclude Include="..\src\models\amun.h" />
+    <ClInclude Include="..\src\models\bert.h" />
     <ClInclude Include="..\src\models\char_s2s.h" />
     <ClInclude Include="..\src\models\costs.h" />
     <ClInclude Include="..\src\models\decoder.h" />
@@ -906,7 +908,7 @@
     <ClInclude Include="..\src\models\nematus.h" />
     <ClInclude Include="..\src\models\s2s.h" />
     <ClInclude Include="..\src\models\states.h" />
-    <ClCompile Include="..\src\models\transformer.h" />
+    <ClInclude Include="..\src\models\transformer.h" />
     <ClInclude Include="..\src\models\experimental\lex_probs.h" />
     <ClInclude Include="..\src\models\transformer_factory.h" />
     <ClInclude Include="..\src\optimizers\clippers.h" />
@@ -1112,10 +1114,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
     <None Include="..\src\training\communicator_nccl.h" />
-    <None Include="..\src\translator\nth_element.cu">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </None>
+    <None Include="..\src\translator\helpers.cu" />
+    <None Include="..\src\translator\nth_element.cu" />
     <None Include=".editorConfig" />
   </ItemGroup>
   <ItemGroup>

@@ -8,20 +8,23 @@
 #include "graph/expression_graph.h"
 #include "models/costs.h"
 #include "models/model_base.h"
+#include "layers/loss.h"
 
 #include "examples/mnist/dataset.h"
 
 namespace marian {
 namespace models {
 
+// @TODO: looking at this file, simplify the new RationalLoss idea. Here it gets too complicated
+
 class MNISTCrossEntropyCost : public CostBase {
 public:
   MNISTCrossEntropyCost() {}
 
-  Expr apply(Ptr<ModelBase> model,
-             Ptr<ExpressionGraph> graph,
-             Ptr<data::Batch> batch,
-             bool clearGraph = true) override {
+  Ptr<MultiRationalLoss> apply(Ptr<ModelBase> model,
+                               Ptr<ExpressionGraph> graph,
+                               Ptr<data::Batch> batch,
+                               bool clearGraph = true) override {
     auto top = model->build(graph, batch, clearGraph).getLogits();
 
     auto vfLabels = std::static_pointer_cast<data::DataBatch>(batch)->labels();
@@ -31,7 +34,12 @@ public:
     auto labels = graph->indices(vLabels);
 
     // Define a top-level node for training
-    return mean(cross_entropy(top, labels), /*axis =*/ 0);
+    // use CE loss
+
+    auto loss = sum(cross_entropy(top, labels), /*axis =*/ 0);
+    auto multiLoss = New<SumMultiRationalLoss>();
+    multiLoss->push_back({loss, (float)vLabels.size()});
+    return multiLoss;
   }
 };
 
@@ -39,12 +47,16 @@ class MNISTLogsoftmax : public CostBase {
 public:
   MNISTLogsoftmax() {}
 
-  Expr apply(Ptr<ModelBase> model,
+  Ptr<MultiRationalLoss> apply(Ptr<ModelBase> model,
              Ptr<ExpressionGraph> graph,
              Ptr<data::Batch> batch,
              bool clearGraph = true) override {
-    auto top = model->build(graph, batch, clearGraph).getLogits();
-    return logsoftmax(top);
+    auto top = model->build(graph, batch, clearGraph).getRationalLoss();
+    
+    // @TODO: simplify this
+    auto multiLoss = New<SumMultiRationalLoss>();
+    multiLoss->push_back({logsoftmax(top->loss()), top->count()});
+    return multiLoss;
   }
 };
 
@@ -59,7 +71,11 @@ public:
   virtual Logits build(Ptr<ExpressionGraph> graph,
                      Ptr<data::Batch> batch,
                      bool /*clean*/ = false) override {
-    return construct(graph, batch, inference_);
+    
+    auto loss   = construct(graph, batch, inference_); // @TODO: unify nomenclature, e.g. rather use apply
+    auto count = graph->constant({(int)batch->size(), 1}, inits::from_value(1.f));
+
+    return New<RationalLoss>(loss, count);
   }
 
   void load(Ptr<ExpressionGraph> /*graph*/, const std::string& /*name*/, bool) override {

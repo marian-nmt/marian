@@ -109,7 +109,7 @@ public:
         const auto& sent = qsBatch[j];
         if(i < sent.size()) {
           size_t idx = i * batchSize + j;
-          subBatch->data()[idx] = (unsigned int)sent[i];
+          subBatch->data()[idx] = marian::Word::fromWordIndex(sent[i]);
           subBatch->mask()[idx] = 1;
         }
       }
@@ -122,7 +122,7 @@ public:
     batch->setSentenceIds(sentIds);
 
     // decode
-    auto search = New<BeamSearch>(options_, scorers_, eos_);
+    auto search = New<BeamSearch>(options_, scorers_, marian::Word::fromWordIndex(eos_));
     Histories histories = search->search(graph_, batch);
 
     // convert to QuickSAND format
@@ -151,10 +151,10 @@ public:
           // convert to QuickSAND format
           alignmentSets.resize(words.size());
           for (const auto& p : align) // @TODO: Does the feature_model param max_alignment_links apply here?
-              alignmentSets[p.tgtPos].insert({p.srcPos, p.prob});
+            alignmentSets[p.tgtPos].insert({p.srcPos, p.prob});
         }
         // form hypothesis to return
-        qsNbest.emplace_back(words, std::move(alignmentSets), score);
+        qsNbest.emplace_back(toWordIndexVector(words), std::move(alignmentSets), score);
       }
       qsNbestBatch.push_back(qsNbest);
     }

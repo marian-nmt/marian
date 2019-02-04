@@ -278,7 +278,7 @@ public:
     }
 
     rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
-    return New<DecoderState>(startStates, Logits(nullptr), encStates, batch);
+    return New<DecoderState>(startStates, Logits(), encStates, batch);
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,

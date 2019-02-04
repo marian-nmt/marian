@@ -15,14 +15,14 @@ private:
   Ptr<Options> options_;
   std::vector<Ptr<Scorer>> scorers_;
   size_t beamSize_;
-  Word trgEosId_ = (Word)-1;
-  Word trgUnkId_ = (Word)-1;
+  Word trgEosId_{Word::NONE};
+  Word trgUnkId_{Word::NONE};
 
 public:
   BeamSearch(Ptr<Options> options,
              const std::vector<Ptr<Scorer>>& scorers,
              Word trgEosId,
-             Word trgUnkId = -1)
+             Word trgUnkId = Word::NONE)
       : options_(options),
         scorers_(scorers),
         beamSize_(options_->has("beam-size")
@@ -49,7 +49,7 @@ public:
     for(size_t i = 0; i < keys.size(); ++i) {
       // Keys contains indices to vocab items in the entire beam.
       // Values can be between 0 and beamSize * vocabSize.
-      Word embIdx = (Word)(keys[i] % vocabSize);
+      Word embIdx = Word::fromWordIndex(keys[i] % vocabSize);
       auto beamIdx = i / beamSize;
 
       // Retrieve short list for final softmax (based on words aligned
@@ -57,7 +57,7 @@ public:
       // in the sub-selected vocabulary matrix back to their original positions.
       auto shortlist = scorers_[0]->getShortlist();
       if(shortlist)
-        embIdx = shortlist->reverseMap(embIdx); // @TODO: should reverseMap accept a size_t or a Word?
+        embIdx = Word::fromWordIndex(shortlist->reverseMap(embIdx.toWordIndex())); // @TODO: should reverseMap accept a size_t or a Word?
 
       if(newBeams[beamIdx].size() < beams[beamIdx].size()) {
         auto& beam = beams[beamIdx];
@@ -85,7 +85,7 @@ public:
           std::vector<float> breakDown(states.size(), 0);
           beam[beamHypIdx]->GetScoreBreakdown().resize(states.size(), 0);
           for(size_t j = 0; j < states.size(); ++j) {
-            size_t key = embIdx + hypIdxTrans * vocabSize;
+            size_t key = embIdx.toWordIndex() + hypIdxTrans * vocabSize;
             breakDown[j] = states[j]->breakDown(key)
                            + beam[beamHypIdx]->GetScoreBreakdown()[j];
           }
@@ -197,7 +197,7 @@ public:
       // create constant containing previous path scores for current beam
       // also create mapping of hyp indices, which are not 1:1 if sentences complete
       std::vector<IndexType> hypIndices; // [beamIndex * activeBatchSize + batchIndex] backpointers, concatenated over beam positions. Used for reordering hypotheses
-      std::vector<IndexType> embIndices;
+      Words predWords;
       Expr prevPathScores; // [beam, 1, 1, 1]
       if(first) {
         // no scores yet
@@ -213,11 +213,11 @@ public:
             if(i < beam.size()) {
               auto hyp = beam[i];
               hypIndices.push_back((IndexType)hyp->GetPrevStateIndex()); // backpointer
-              embIndices.push_back(hyp->GetWord());
+              predWords.push_back(hyp->GetWord());
               beamScores.push_back(hyp->GetPathScore());
             } else {  // dummy hypothesis
               hypIndices.push_back(0);
-              embIndices.push_back(0);  // (unused)
+              predWords.push_back(Word::ZERO);  // (unused)
               beamScores.push_back(-9999);
             }
           }
@@ -233,7 +233,7 @@ public:
 
       for(size_t i = 0; i < scorers_.size(); ++i) {
         states[i] = scorers_[i]->step(
-            graph, states[i], hypIndices, embIndices, dimBatch, (int)localBeamSize);
+            graph, states[i], hypIndices, predWords, dimBatch, (int)localBeamSize);
 
         if(scorers_[i]->getWeight() != 1.f)
           pathScores = pathScores + scorers_[i]->getWeight() * states[i]->getLogProbs();
@@ -252,7 +252,7 @@ public:
 
       //**********************************************************************
       // suppress specific symbols if not at right positions
-      if(trgUnkId_ != -1 && options_->has("allow-unk")
+      if(trgUnkId_ != Word::NONE && options_->has("allow-unk")
          && !options_->get<bool>("allow-unk"))
         suppressWord(pathScores, trgUnkId_);
       for(auto state : states)
