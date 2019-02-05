@@ -129,6 +129,10 @@ public:
     modelFeatures_.insert("transformer-tied-layers");
     modelFeatures_.insert("transformer-guided-alignment-layer");
     modelFeatures_.insert("transformer-train-positions");
+
+    modelFeatures_.insert("ulr");
+    modelFeatures_.insert("ulr-trainable-transformation");
+    modelFeatures_.insert("ulr-dim-emb");
   }
 
   virtual Ptr<Options> getOptions() override { return options_; }

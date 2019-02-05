@@ -45,6 +45,10 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
   modelFeatures_.insert("transformer-tied-layers");
   modelFeatures_.insert("transformer-guided-alignment-layer");
   modelFeatures_.insert("transformer-train-positions");
+
+  modelFeatures_.insert("ulr");
+  modelFeatures_.insert("ulr-trainable-transformation");
+  modelFeatures_.insert("ulr-dim-emb");
 }
 
 std::vector<Ptr<EncoderBase>>& EncoderDecoder::getEncoders() {
