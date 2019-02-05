@@ -1,4 +1,22 @@
 #!/usr/bin/env python3
+"""
+This script takes a Tensorflow BERT checkpoint and a model description in a JSON file and converts
+it to a Marian weight file with numpy weights and an internal YAML description.
+
+This works with checkpoints from https://github.com/google-research/bert
+
+Assmung a BERT checkpoint like this:
+drwxr-xr-x 2 marcinjd marcinjd 4.0K Nov 23 16:39 .
+-rw-r--r-- 1 marcinjd marcinjd  521 Nov 23 16:38 bert_config.json
+-rw-r--r-- 1 marcinjd marcinjd 682M Nov 23 16:39 bert_model.ckpt.data-00000-of-00001
+-rw-r--r-- 1 marcinjd marcinjd 8.5K Nov 23 16:39 bert_model.ckpt.index
+-rw-r--r-- 1 marcinjd marcinjd 888K Nov 23 16:39 bert_model.ckpt.meta
+-rw-r--r-- 1 marcinjd marcinjd 973K Nov 23 16:37 vocab.txt
+
+usage:
+
+./bert.py --bert_prefix bert_model.ckpt  --bert_config bert_config.json --marian bert.npz
+"""
 
 import tensorflow as tf
 import numpy as np

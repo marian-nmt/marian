@@ -18,7 +18,6 @@ void IsNan(const Tensor in, Ptr<Allocator> allocator, bool& isNan, bool& isInf, 
   ABORT("Not implemented");
 }
 
-
 inline float stableSigmoid(float x) {
   if(x >= 0) {
     float z = expf(-x);
