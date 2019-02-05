@@ -15,7 +15,7 @@
 
 namespace marian {
 
-class DefaultVocab : public VocabBase {
+class DefaultVocab : public IVocab {
 protected:
   typedef std::map<std::string, Word> Str2Id;
   Str2Id str2id_;
@@ -318,11 +318,11 @@ private:
   }
 };
 
-Ptr<VocabBase> createDefaultVocab() {
+Ptr<IVocab> createDefaultVocab() {
   return New<DefaultVocab>();
 }
 
-Ptr<VocabBase> createClassVocab() {
+Ptr<IVocab> createClassVocab() {
   return New<ClassVocab>();
 }
 

@@ -700,6 +700,7 @@
     <ClInclude Include="..\src\common\timer.h" />
     <ClInclude Include="..\src\common\types.h" />
     <ClInclude Include="..\src\common\version.h" />
+    <ClInclude Include="..\src\data\vocab_base.h" />
     <ClInclude Include="..\src\examples\mnist\dataset.h" />
     <ClInclude Include="..\src\examples\mnist\model.h" />
     <ClInclude Include="..\src\examples\mnist\model_lenet.h" />

@@ -1525,6 +1525,9 @@
     <ClInclude Include="..\src\models\bert.h">
       <Filter>models</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\data\vocab_base.h">
+      <Filter>data</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
