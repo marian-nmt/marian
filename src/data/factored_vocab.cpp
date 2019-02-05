@@ -100,7 +100,6 @@ namespace marian {
   //      factorMasks_[2][v], factorIndices_[2][v],
   //      factorMasks_[3][v], factorIndices_[3][v]);
   //}
-  //mVecs_.resize(numGroups); // @TODO: no longer needed, delete soon
   for (size_t g = 0; g < numGroups; g++) { // detect non-overlapping groups
     LOG(info, "[embedding] Factor group '{}' has {} members ({})",
         groupPrefixes[g], groupCounts[g], groupCounts[g] == 1 ? "sigmoid" : "softmax");
@@ -115,8 +114,11 @@ namespace marian {
   std::iota(data.begin(), data.end(), 0);
   globalFactorMatrix_ = csr_rows(data); // [V x U]
 
-  ABORT_IF(maxSizeUnused != 0 && maxSizeUnused != vocabSize, "Factored vocabulary does not allow on-the-fly clipping to a maximum vocab size (to {})", maxSizeUnused);
-  return vocabSize; // @TODO: return the actual virtual unrolled vocab size, which eventually we will know here
+  eosId_ = vocab_.getEosId();
+  unkId_ = vocab_.getUnkId();
+
+  ABORT_IF(maxSizeUnused != 0 && maxSizeUnused != size(), "Factored vocabulary does not allow on-the-fly clipping to a maximum vocab size (to {})", maxSizeUnused);
+  return size();
 }
 
 /*virtual*/ Word FactoredVocab::operator[](const std::string& word) const /*override final*/ {
