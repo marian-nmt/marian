@@ -556,6 +556,7 @@
     <ClCompile Include="..\src\common\version.cpp" />
     <ClCompile Include="..\src\data\alignment.cpp" />
     <ClCompile Include="..\src\data\default_vocab.cpp" />
+    <ClCompile Include="..\src\data\factored_vocab.cpp" />
     <ClCompile Include="..\src\data\sentencepiece_vocab.cpp" />
     <ClCompile Include="..\src\data\vocab.cpp" />
     <ClCompile Include="..\src\data\corpus_base.cpp" />
@@ -701,6 +702,7 @@
     <ClInclude Include="..\src\common\timer.h" />
     <ClInclude Include="..\src\common\types.h" />
     <ClInclude Include="..\src\common\version.h" />
+    <ClInclude Include="..\src\data\factored_vocab.h" />
     <ClInclude Include="..\src\data\vocab_base.h" />
     <ClInclude Include="..\src\examples\mnist\dataset.h" />
     <ClInclude Include="..\src\examples\mnist\model.h" />

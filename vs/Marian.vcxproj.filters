@@ -484,6 +484,9 @@
     <ClCompile Include="..\src\layers\generic.cpp">
       <Filter>layers</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\data\factored_vocab.cpp">
+      <Filter>data</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -1529,6 +1532,9 @@
       <Filter>models</Filter>
     </ClInclude>
     <ClInclude Include="..\src\data\vocab_base.h">
+      <Filter>data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\data\factored_vocab.h">
       <Filter>data</Filter>
     </ClInclude>
   </ItemGroup>
