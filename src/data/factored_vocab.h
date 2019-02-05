@@ -22,7 +22,7 @@ public:
     std::vector<IndexType> offsets;
   };
 
-  FactoredVocab(Ptr<Options> options) : options_(options), vocab_(New<Options>(), 0), factorVocab_(New<Options>(), 0) { }
+  FactoredVocab() : vocab_(New<Options>(), 0), factorVocab_(New<Options>(), 0) { }
 
   // from IVocab:
   virtual size_t load(const std::string& factoredVocabPath, size_t maxSizeUnused = 0) override final;
@@ -50,9 +50,8 @@ public:
   const std::vector<float>&     getFactorMasks(size_t g)   const { return factorMasks_[g]; }   // [g][v] 1.0 if word v has factor g
   const std::vector<IndexType>& getFactorIndices(size_t g) const { return factorIndices_[g]; } // [g][v] local index u_g = u - u_g,begin of factor g for word v; 0 if not a factor
 
+  static Ptr<FactoredVocab> tryCreateAndLoad(const std::string& path); // load from "vocab" option if it specifies a factored vocab
 private:
-  Ptr<Options> options_;
-
   // main vocab
   Word eosId_{};
   Word unkId_{};

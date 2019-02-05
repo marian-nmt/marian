@@ -30,7 +30,6 @@ const std::set<std::string> PATHS = {
   "train-sets",
   "vocabs",
   "embedding-vectors",
-  "embedding-factors",
   "valid-sets",
   "valid-script-path",
   "valid-log",
@@ -400,8 +399,6 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "Fix source embeddings. Affects all encoders");
   cli.add<bool>("--embedding-fix-trg",
      "Fix target embeddings. Affects all decoders");
-  cli.add_nondefault<std::vector<std::string>>("--embedding-factors",
-     "Paths to (factor map, factor list) file for factored embeddings");
 
   cli.add<bool>("--multi-node",
      "Enable asynchronous multi-node training through MPI (and legacy sync if combined with --sync-sgd)");
@@ -483,8 +480,6 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
       "stdout");
   cli.add<std::vector<std::string>>("--vocabs,-v",
       "Paths to vocabulary files have to correspond to --input");
-  cli.add_nondefault<std::vector<std::string>>("--embedding-factors",
-      "Paths to (factor map, factor list) file for factored embeddings");
   // decoding options
   cli.add<size_t>("--beam-size,-b",
       "Beam size used during search with validating translator",
@@ -547,8 +542,6 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
       "Paths to vocabulary files have to correspond to --train-sets. "
       "If this parameter is not supplied we look for vocabulary files source.{yml,json} and target.{yml,json}. "
       "If these files do not exists they are created");
-  cli.add_nondefault<std::vector<std::string>>("--embedding-factors",
-      "Paths to (factor map, factor list) file for factored embeddings");
   cli.add<bool>("--n-best",
       "Score n-best list instead of plain text corpus");
   cli.add<std::string>("--n-best-feature",

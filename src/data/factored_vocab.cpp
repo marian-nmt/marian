@@ -167,10 +167,23 @@ FactoredVocab::CSRData FactoredVocab::csr_rows(const std::vector<IndexType>& wor
   return { Shape({(int)words.size(), (int)factorVocab_.size()}), weights, indices, offsets };
 }
 
-Ptr<IVocab> createFactoredVocab(const std::string& vocabPath, Ptr<Options> options) {
+// Helper to construct and load a FactordVocab from a path is given (non-empty) and if it specifies a factored vocab.
+// This is used by the Embedding and Output layers.
+/*static*/ Ptr<FactoredVocab> FactoredVocab::tryCreateAndLoad(const std::string& path) {
+  Ptr<FactoredVocab> res;
+  if (!path.empty()) {
+    res = std::static_pointer_cast<FactoredVocab>(createFactoredVocab(path)); // this checks the file extension
+    if (res)
+      res->load(path); // or throw
+  }
+  return res;
+}
+
+// Note: This does not actually load it, only checks the path for the type.
+Ptr<IVocab> createFactoredVocab(const std::string& vocabPath) {
   bool isFactoredVocab = regex::regex_search(vocabPath, regex::regex("\\.(fm)$"));
   if(isFactoredVocab)
-    return New<FactoredVocab>(options);
+    return New<FactoredVocab>();
   else
     return nullptr;
 }

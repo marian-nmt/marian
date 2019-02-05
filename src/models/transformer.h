@@ -537,10 +537,7 @@ public:
       embFactory("embFile", embFiles[subBatchIndex])
                 ("normalization", opt<bool>("embedding-normalization"));
     }
-    if (options_->has("embedding-factors")) {
-      embFactory("embedding-factors", opt<std::vector<std::string>>("embedding-factors"));
-      embFactory("vocab", opt<std::vector<std::string>>("vocabs")[subBatchIndex]);
-    }
+    embFactory("vocab", opt<std::vector<std::string>>("vocabs")[subBatchIndex]); // for factored embeddings
     return embFactory.construct(graph_);
   }
 
@@ -655,17 +652,7 @@ private:
       outputFactory.tieTransposed(tiedPrefix);
     }
 
-    if (options_->has("embedding-factors")) {
-      // factored embeddings, simplistic version (which just adds the logits, like multiplying probs)
-      //  z = h @ W        // h:[B x D] ; W:[D x V] -> [B x V]
-      // with factors:
-      //  z = h @ W @ M'        // h:[B x D] ; W:[D x U] ; M':[U x V]  -> [B x V]
-      // i.e. multiOutput():
-      //  output = dot_csr(output, M, transB=true)
-      // @BUGBUG: need to specify output factors separately if not tied-embeddings or tied-embeddings-all
-      outputFactory("embedding-factors", opt<std::vector<std::string>>("embedding-factors"));
-      outputFactory("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]);
-    }
+    outputFactory("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored outputs
 
     output_ = std::dynamic_pointer_cast<mlp::Output>(outputFactory.construct(graph_)); // (construct() returns only the underlying interface)
   }

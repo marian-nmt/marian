@@ -54,10 +54,7 @@ public:
         embFactory("embFile", embFiles[batchIndex_])  //
             ("normalization", opt<bool>("embedding-normalization"));
       }
-      if (options_->has("embedding-factors")) {
-        embFactory("embedding-factors", opt<std::vector<std::string>>("embedding-factors"));
-        embFactory("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]);
-      }
+      embFactory("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored embeddings
       embedding_[batchIndex_] = embFactory.construct(graph);
     }
   }

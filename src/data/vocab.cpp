@@ -15,7 +15,7 @@ Ptr<IVocab> createVocab(const std::string& vocabPath, Ptr<Options> options, size
   if(vocab)
     return vocab; // this is defined which means that a sentencepiece vocabulary could be created, so return it
   // try factored
-  vocab = createFactoredVocab(vocabPath, options);
+  vocab = createFactoredVocab(vocabPath);
   if (vocab)
     return vocab;
   // regular vocab

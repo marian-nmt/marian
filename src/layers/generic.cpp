@@ -104,13 +104,8 @@ namespace marian {
       auto name = options_->get<std::string>("prefix");
       auto numOutputClasses = options_->get<int>("dim");
 
-      if (options_->has("embedding-factors")) {
-        std::vector<std::string> paths = options_->get<std::vector<std::string>>("embedding-factors");
-        factoredVocab_ = std::static_pointer_cast<FactoredVocab>(createFactoredVocab(paths[0], options_));
-      }
+      factoredVocab_ = FactoredVocab::tryCreateAndLoad(options_->get<std::string>("vocab", ""));
       if (factoredVocab_) {
-        std::vector<std::string> paths = options_->get<std::vector<std::string>>("embedding-factors");
-        factoredVocab_->load(paths[0]);
         ABORT_IF(shortlist_, "Shortlists are presently not compatible with factored embeddings");
         numOutputClasses = (int)factoredVocab_->factorVocabSize();
         LOG(info, "[embedding] Factored outputs enabled");
@@ -171,13 +166,8 @@ namespace marian {
 
     bool fixed = opt<bool>("fixed", false);
 
-    if (options_->has("embedding-factors")) {
-      std::vector<std::string> paths = options_->get<std::vector<std::string>>("embedding-factors");
-      factoredVocab_ = std::static_pointer_cast<FactoredVocab>(createFactoredVocab(paths[0], options_));
-    }
+    factoredVocab_ = FactoredVocab::tryCreateAndLoad(options_->get<std::string>("vocab", ""));
     if (factoredVocab_) {
-      std::vector<std::string> paths = options_->get<std::vector<std::string>>("embedding-factors");
-      factoredVocab_->load(paths[0]);
       dimVoc = (int)factoredVocab_->factorVocabSize();
       LOG(info, "[embedding] Factored embeddings enabled");
     }

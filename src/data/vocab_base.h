@@ -50,6 +50,6 @@ class Options;
 Ptr<IVocab> createDefaultVocab();
 Ptr<IVocab> createClassVocab();
 Ptr<IVocab> createSentencePieceVocab(const std::string& vocabPath, Ptr<Options>, size_t batchIndex);
-Ptr<IVocab> createFactoredVocab(const std::string& vocabPath, Ptr<Options>);
+Ptr<IVocab> createFactoredVocab(const std::string& vocabPath);
 
 }
