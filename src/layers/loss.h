@@ -110,8 +110,8 @@ protected:
 
   /**
    * @brief Accumulation rule for losses
-   * In the default case this would just be a sum, see SumMultiRationalLoss, but there are 
-   * special cases like ScaledMultiRationalLoss (scale other loses according to first label count) 
+   * In the default case this would just be a sum, see SumMultiRationalLoss, but there are
+   * special cases like ScaledMultiRationalLoss (scale other loses according to first label count)
    * or MeanMultiRationalLoss (sum of means) where the accumulation is more complex.
    */
   virtual Expr accumulateLoss(const RationalLoss& current) = 0;
@@ -294,7 +294,7 @@ protected:
       lossSum = sum(lossSum, axes_[i]);
 
     // reduction factor tells how over how many labels we reduced in total.
-    float reducedLabels = (float)loss->shape().elements() / (float)lossSum->shape().elements(); 
+    float reducedLabels = (float)loss->shape().elements() / (float)lossSum->shape().elements();
     return RationalLoss(lossSum, reducedLabels);
   }
 
@@ -331,11 +331,15 @@ protected:
 
   virtual Expr compute(Expr logits, Expr labelIndices,
                        Expr mask = nullptr, Expr labelWeights = nullptr) override {
+    logits = atleast_3d(logits); // we always assuma a time and batch dimension exists.
+    // for bert training or classification the time dimension is lot.
+    // Here safeguard against 2d classifier output, adds 1 on the left, non-op.
+
     Expr ce = cross_entropy(logits, labelIndices);
 
     if(labelSmoothing_ > 0) {
       // @TODO: add this to CE kernels instead
-      
+
       // Label smoothing (see https://arxiv.org/pdf/1512.00567.pdf, section 7)
       // We compute smoothed H(q',p) = (1 - eps) * H(q,p) + eps * H(u,p) where H(q,p) is the normal cross-entropy
       // and H(u,p) penalizes deviation of p from u, u being uniform distribution over vocab V => u_v = 1/|V|.

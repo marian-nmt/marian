@@ -56,8 +56,7 @@ public:
   }
 
   Words encode(const std::string& line, bool addEOS, bool /*inference*/) const override {
-    std::vector<std::string> lineTokens;
-    utils::split(line, lineTokens, " ");
+    auto lineTokens = utils::split(line, " ");
     return (*this)(lineTokens, addEOS);
   }
 
@@ -107,7 +106,9 @@ public:
         ABORT_IF(line.empty(),
                 "DefaultVocabulary file {} must not contain empty lines",
                 vocabPath);
-        vocab.insert({line, (Word)vocab.size()});
+        auto wasInserted = vocab.insert({line, (Word)vocab.size()}).second;
+        ABORT_IF(!wasInserted, "Duplicate vocabulary entry {}", line);
+
       }
       ABORT_IF(in.bad(), "DefaultVocabulary file {} could not be read", vocabPath);
     }
@@ -208,8 +209,7 @@ private:
 
     std::string line;
     while(getline(*trainStrm, line)) {
-      std::vector<std::string> toks;
-      utils::split(line, toks, " ");
+      auto toks = utils::split(line, " ");
 
       for(const std::string& tok : toks) {
         auto iter = counter.find(tok);
@@ -288,7 +288,7 @@ private:
 class ClassVocab : public DefaultVocab {
 private:
   // Do nothing.
-  virtual void addRequiredVocabulary(const std::string& vocabPath, bool isJson) override {}
+  virtual void addRequiredVocabulary(const std::string& vocabPath, bool isJson) override { vocabPath; isJson; }
 
   // Not adding special class labels, only seen classes.
   virtual void create(const std::string& vocabPath,

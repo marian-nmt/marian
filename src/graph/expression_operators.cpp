@@ -51,6 +51,10 @@ Expr swish(Expr a) {
   return Expression<SwishNodeOp>(a);
 }
 
+Expr gelu(Expr a) {
+  return Expression<SwishNodeOp>(a, 1.702f);
+}
+
 Expr operator-(Expr a) {
   return Expression<NegNodeOp>(a);
 };
@@ -527,6 +531,11 @@ Expr plus(const std::vector<Expr>& nodes) {
 Expr swish(const std::vector<Expr>& nodes) {
   ABORT_IF(nodes.size() > 1, "Not implemented");
   return swish(nodes[0]);
+}
+
+Expr gelu(const std::vector<Expr>& nodes) {
+  ABORT_IF(nodes.size() > 1, "Not implemented");
+  return gelu(nodes[0]);
 }
 
 Expr tanh(const std::vector<Expr>& nodes) {

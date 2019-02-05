@@ -136,7 +136,7 @@ public:
     if(options_->has("embedding-fix-src"))
       embFactory("fixed", opt<bool>("embedding-fix-src"));
 
-    if(options_->has("embedding-vectors")) {
+    if(options_->hasAndNotEmpty("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
       embFactory                              //
           ("embFile", embFiles[batchIndex_])  //

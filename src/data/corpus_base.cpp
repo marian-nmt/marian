@@ -126,8 +126,8 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
         size_t vocSize = vocab->loadOrCreate(vocabPaths[i], groupedPaths, pathsAndSize.size);
 
         // TODO: this is not nice as it modifies the option object and needs to expose the changes
-        // outside the corpus as models need to know about the vocabulary size; extract the vocab
-        // creation functionality from the class.
+        // outside the corpus, because models need to know about the vocabulary size; extract the
+        // vocab creation functionality from the class.
         options_->getYaml()["dim-vocabs"][i] = vocSize;
 
         vocabs_.emplace_back(vocab);
@@ -178,7 +178,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
     ABORT_IF(files_.back()->empty(), "File with alignments '{}' is empty", path);
   }
 
-  if(training && options_->has("data-weighting")) {
+  if(training && options_->hasAndNotEmpty("data-weighting")) {
     auto path = options_->get<std::string>("data-weighting");
 
     ABORT_IF(!filesystem::exists(path), "Weight file does not exist");

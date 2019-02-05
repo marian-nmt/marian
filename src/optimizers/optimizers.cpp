@@ -305,14 +305,13 @@ void Adam::resetStats() {
 }
 
 Ptr<OptimizerBase> Optimizer(Ptr<Options> options) {
-  float lrate = (float)options->get<double>("learn-rate"); // @TODO: should this be <float>?
-  auto params = options->has("optimizer-params")
-                    ? options->get<std::vector<float>>("optimizer-params")
-                    : std::vector<float>({});
-  size_t refMBWordsParam = options->get<size_t>("mini-batch-words-ref"); // adjust hyper-parameters as if our MB size (in target labels) was this value
+  float lrate = options->get<float>("learn-rate");
+  auto params = options->get<std::vector<float>>("optimizer-params", std::vector<float>({}));
+  // adjust hyper-parameters as if our MB size (in target labels) was this value
+  size_t refMBWordsParam = options->get<size_t>("mini-batch-words-ref");
 
   Ptr<ClipperBase> clipper = nullptr;
-  float clipNorm = (float)options->get<double>("clip-norm"); // @TODO: should this be <float>?
+  float clipNorm = options->get<float>("clip-norm");
   if(clipNorm > 0)
     clipper = Clipper<Norm>(clipNorm);
 

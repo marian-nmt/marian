@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed handling of "dump-config: false" in YAML config
 - Errors due to warnings
 - Fixed issue concerning failed saving with single GPU training and --sync-sgd option. 
+- Fixed NaN problem when training with Tensor Cores on Volta GPUs
 
 ### Changed
 - Add zlib source to Marian's source tree, builds now as object lib

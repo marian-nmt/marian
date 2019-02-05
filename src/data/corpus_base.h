@@ -311,7 +311,7 @@ public:
    * @return Fake batch of the same size as the real batch.
    */
   static Ptr<CorpusBatch> fakeBatch(const std::vector<size_t>& lengths,
-                                    const std::vector<Ptr<Vocab>>& vocabs, 
+                                    const std::vector<Ptr<Vocab>>& vocabs,
                                     size_t batchSize,
                                     Ptr<Options> options) {
     std::vector<Ptr<SubBatch>> batches;
@@ -322,7 +322,7 @@ public:
       // set word indices to different values to avoid same hashes
       // rand() is OK, this does not affect state in any way
       std::transform(sb->data().begin(), sb->data().end(), sb->data().begin(),
-                     [&](Word) { return rand() % vocabs[batchIndex]->size(); }); 
+                     [&](Word) -> Word { return rand() % vocabs[batchIndex]->size(); });
       // mask: no items ask being masked out
       std::fill(sb->mask().begin(), sb->mask().end(), 1.f);
       batchIndex++;
@@ -341,7 +341,7 @@ public:
       batch->setGuidedAlignment(std::move(alignment));
     }
 
-    if(options->has("data-weighting")) {
+    if(options->hasAndNotEmpty("data-weighting")) {
       auto weightsSize = batchSize;
       if(options->get<std::string>("data-weighting-type") != "sentence")
         weightsSize *= lengths.back();
@@ -521,9 +521,10 @@ protected:
 
   /**
    * brief Determines if a EOS symbol should be added. By default this is true for any sequence,
-   * but should be false for instance for classifier labels. This is set per input stream, hence a vector.
+   * but should be false for instance for classifier labels. This is set per input stream, hence a
+   * vector.
    */
-  std::vector<bool> addEOS_; 
+  std::vector<bool> addEOS_;
 
   size_t pos_{0};
 

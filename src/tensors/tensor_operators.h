@@ -34,6 +34,8 @@ void copy(Ptr<Backend> backend, const InIt beg, const InIt end, OutIt it) {
     std::copy(beg, end, it);
 }
 
+DISPATCH5(IsNan, const Tensor, Ptr<Allocator>, bool&, bool&, bool);
+
 template <class Functor, class... Tensors>
 void Element(Functor functor, marian::Tensor out, Tensors... tensors) {
 #ifdef CUDA_FOUND

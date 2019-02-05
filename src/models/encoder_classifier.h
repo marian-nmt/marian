@@ -92,7 +92,7 @@ public:
     : options_(options),
       prefix_(options->get<std::string>("prefix", "")),
       inference_(options->get<bool>("inference", false)) {
-    modelFeatures_ = {"type",
+  modelFeatures_ = {"type",
                     "dim-vocabs",
                     "dim-emb",
                     "dim-rnn",
@@ -128,7 +128,14 @@ public:
     modelFeatures_.insert("transformer-decoder-autoreg");
     modelFeatures_.insert("transformer-tied-layers");
     modelFeatures_.insert("transformer-guided-alignment-layer");
-    modelFeatures_.insert("transformer-train-positions");
+    modelFeatures_.insert("transformer-train-position-embeddings");
+
+    modelFeatures_.insert("bert-train-type-embeddings");
+    modelFeatures_.insert("bert-type-vocab-size");
+
+    modelFeatures_.insert("ulr");
+    modelFeatures_.insert("ulr-trainable-transformation");
+    modelFeatures_.insert("ulr-dim-emb");
   }
 
   virtual Ptr<Options> getOptions() override { return options_; }
@@ -153,7 +160,7 @@ public:
 
   void save(Ptr<ExpressionGraph> graph,
             const std::string& name,
-            bool saveModelConfig) override {
+            bool /*saveModelConfig*/) override {
     LOG(info, "Saving model weights and runtime parameters to {}", name);
     graph->save(name , getModelParametersAsString());
   }

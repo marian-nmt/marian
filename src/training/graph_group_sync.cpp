@@ -356,7 +356,7 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
 
       auto rationalLoss = builders_[localDeviceIndex]->build(graph, subBatch);
       graph->forward();
-      
+
       StaticLoss tempLoss = *rationalLoss; // needed for overstuff
       tempLoss.loss /= (float)overstuff; // @TODO: @fseide: scale only loss? should this scale labels too?
 
@@ -453,7 +453,7 @@ void SyncGraphGroup::load() /*override*/ {
           comm_->scatterState(optimizerStateVector, setShardFn);
         });
       LOG(info, "[training] Model reloaded from {}", name);
-    } else if(options_->has("pretrained-model")) {
+    } else if(options_->hasAndNotEmpty("pretrained-model")) {
       std::string nameInit = options_->get<std::string>("pretrained-model");
       LOG(info,
           "[training] Initializing model weights with the pre-trained model {}",
@@ -521,7 +521,7 @@ void SyncGraphGroup::save(bool final) /*override*/ {
       return comm_->gatherState(getShardFn);
     },
     isMainProcess());
-  
+
   barrier(); // (for better grouping of log messages)
 }
 

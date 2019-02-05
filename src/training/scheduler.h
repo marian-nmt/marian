@@ -16,7 +16,8 @@ private:
 
   bool first_{true};
 
-  timer::Timer timer_, heartBeatTimer_;
+  timer::Timer timer_;
+  timer::Timer heartBeatTimer_;
 
   // determine scheduled LR decay factor (--lr-decay-inv-sqrt option)
   float getScheduledLRDecayFactor(const TrainingState& state) const {
@@ -27,7 +28,8 @@ private:
     size_t start = decayGoogle.n;
     if (args.size() > 1) {
       auto decayStart = SchedulingParameter::parse(args[1]);
-      ABORT_IF(decayStart && decayStart.unit != decayGoogle.unit, "both --lr-decay-inv-sqrt arguments must have the same unit");
+      ABORT_IF(decayStart && decayStart.unit != decayGoogle.unit,
+               "both --lr-decay-inv-sqrt arguments must have the same unit");
       start = decayStart.n;
     }
     if (decayGoogle && progress > start) {
@@ -51,13 +53,16 @@ private:
     float warmupFactor = 1.f;
     auto warmupParam = SchedulingParameter::parse(options_->get<std::string>("lr-warmup"));
     if(warmupParam) {
-      ABORT_IF(state.warmupStart && state.warmupStart.unit != warmupParam.unit, "lr-warmup and warmup-start must have the same unit");
+      ABORT_IF(state.warmupStart && state.warmupStart.unit != warmupParam.unit,
+               "lr-warmup and warmup-start must have the same unit");
       auto bno = state.getProgressIn(warmupParam.unit) - state.warmupStart.n;
       warmupFactor = std::min(1.f, (float)bno / (float)warmupParam.n);
     }
 
+    // TODO: why lr-warmup-start-rate is extracted from options_ instead of using state.warmupStart?
     float lrStart = options_->get<float>("lr-warmup-start-rate");
-    baselr = lrStart + (baselr - lrStart) * warmupFactor; // linear interpolation between lr-warmup-start-rate to learn-rate
+    baselr = lrStart + (baselr - lrStart) * warmupFactor; // linear interpolation between
+                                                          // lr-warmup-start-rate to learn-rate
 
     // schedule-based decay factor (--lr-decay-inv-sqrt)
     float scheduledDecayFactor = getScheduledLRDecayFactor(state);
@@ -200,8 +205,7 @@ public:
     // Do not validate if already validated (for instance, after the model is
     // loaded) or if validation is scheduled for another update
     if(state_->validated
-       || (!state_->enteredNewPeriodOf(options_->get<std::string>("valid-freq"))
-           && !final))
+       || (!state_->enteredNewPeriodOf(options_->get<std::string>("valid-freq")) && !final))
       return;
 
     bool firstValidator = true;
@@ -255,33 +259,35 @@ public:
     update(rationalLoss, /*numReadBatches=*/1, /*batchSize=*/batch->size(), /*batchLabels=*/batch->wordsTrg());
   }
 
-  // @TODO: go back to function which takes batch as an argument? The current arguments make it hard to choose
-  // which subbatch should be used for speed display. For sequence-classifiers it's more interesting to see the
-  // source-words consumed rather than the labels.
+  // @TODO: go back to function which takes batch as an argument? The current arguments make it hard
+  // to choose which subbatch should be used for speed display. For sequence-classifiers it's more interesting
+  // to see the source-words consumed rather than the labels.
   void update(StaticLoss rationalLoss,
               size_t numReadBatches, // number of batches read by the reader (for seeking in case of restart)
               size_t batchSize,      // total number of sentences in batch
               size_t batchLabels,    // total number of target words in batch
               Ptr<IMPIWrapper> mpi = nullptr) {
-
-    state_->rememberPreviousProgress(); // note: epoch increases happen at the wrong place, hence -freq parameters do not support epoch units
+    state_->rememberPreviousProgress();  // note: epoch increases happen at the wrong place, hence
+                                         // -freq parameters do not support epoch units
     state_->validated = false;
 
     // Since batchLabels is counted across all MPI processes, we also should temporarily
     // extrapolate cost across MPI processes, to have numbers in the right range.
     // When doing the actual log, we then aggregate across MPI processes to get the accurate number.
-    if (mpi)
+    if(mpi)
       rationalLoss.loss *= mpi->numMPIProcesses();
 
+    // @BUGBUG: rationalLoss.count is float, not a count. Possible solution: make (costSum, costCount) a StaticLoss object as well
     state_->costSum      += rationalLoss.loss;   // aggregate sum cost since last display
-    state_->costCount    += rationalLoss.count; // cost gets normalized w.r.t. this in display
+    state_->costCount    += (size_t)rationalLoss.count; // cost gets normalized w.r.t. this in display
 
     state_->updatesDisp  += 1;
     state_->samplesDisp  += batchSize;
     state_->wordsDisp    += batchLabels;  //@TODO: this is wrong        // words at given input processed since last display, for speed display
 
-    state_->samplesEpoch += batchSize;           // sentences processed in this epoch
-    state_->labelsTotal  += rationalLoss.count; // total labels processed
+    state_->samplesEpoch += batchSize;          // sentences processed in this epoch
+    // @BUGBUG: rationalLoss.count is float, not a count
+    state_->labelsTotal  += (size_t)rationalLoss.count; // total labels processed
 
     state_->newUpdate(numReadBatches);
 
@@ -292,12 +298,12 @@ public:
     if(state_->enteredNewPeriodOf(options_->get<std::string>("disp-freq")) ||
        state_->batches <= options_->get<size_t>("disp-first")) {
       // if MPI then aggregate precise cost across workers
-      if (mpi) {
+      if(mpi) {
         state_->costSum /= mpi->numMPIProcesses(); // undo the extra scaling
         mpi->allReduce(&state_->costSum, &state_->costSum, 1, MPI_FLOAT, MPI_SUM);
       }
 
-      if (mpi && mpi->myMPIRank() != 0) {
+      if(mpi && mpi->myMPIRank() != 0) {
         // skip the report on alternate worker processes
       } else if(options_->get<bool>("lr-report")) {
         LOG(info,
@@ -378,7 +384,7 @@ public:
   }
 
   void actAfterEpoch(TrainingState& state) override {
-    float factor = (float)options_->get<double>("lr-decay"); // @TODO: <float>?
+    float factor = options_->get<float>("lr-decay");
 
     updateLearningRate(state);
 
@@ -411,10 +417,7 @@ public:
       if(decay) {
         state.factor *= factor;
         updateLearningRate(state);
-        LOG(info,
-            "Decaying learning rate to {} in epoch {}",
-            state.eta,
-            state.epochs);
+        LOG(info, "Decaying learning rate to {} in epoch {}", state.eta, state.epochs);
 
         state.reset = options_->get<bool>("lr-decay-reset-optimizer");
         if(state.reset)
@@ -429,7 +432,7 @@ public:
   }
 
   void actAfterBatches(TrainingState& state) override {
-    float factor = (float)options_->get<double>("lr-decay"); // @TODO: <float>?
+    float factor = options_->get<float>("lr-decay");
     state.reset = false;
 
     updateLearningRate(state);
@@ -443,10 +446,7 @@ public:
            && ((state.batches - start) % freq == 0)) {
           state.factor *= factor;
           updateLearningRate(state);
-          LOG(info,
-              "Decaying learning rate to {} after {} batches",
-              state.eta,
-              state.batches);
+          LOG(info, "Decaying learning rate to {} after {} batches", state.eta, state.batches);
 
           state.reset = options_->get<bool>("lr-decay-reset-optimizer");
           if(state.reset)
@@ -454,6 +454,7 @@ public:
 
           if(options_->get<bool>("lr-decay-repeat-warmup")) {
             LOG(info, "Restarting learning rate warmup");
+            // TODO: avoid repeating this many times and minimize calls to options_->get
             state.warmupStart.n = state.getProgressIn(SchedulingParameter::parse(options_->get<std::string>("lr-warmup")).unit);
           }
         }
@@ -474,15 +475,14 @@ public:
   }
 
   void actAfterStalled(TrainingState& state) override {
-    float factor = (float)options_->get<double>("lr-decay"); // @TODO: <float>?
+    float factor = options_->get<float>("lr-decay");
     state.reset = false;
 
     updateLearningRate(state);
 
     if(factor > 0.0) {
       if(options_->get<std::string>("lr-decay-strategy") == "stalled") {
-        size_t startStalled
-            = options_->get<std::vector<size_t>>("lr-decay-start").front();
+        size_t startStalled = options_->get<std::vector<size_t>>("lr-decay-start").front();
         if(startStalled && state.stalled && state.stalled % startStalled == 0) {
           state.factor *= factor;
           updateLearningRate(state);

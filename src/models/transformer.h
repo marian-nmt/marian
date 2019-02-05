@@ -375,6 +375,8 @@ public:
       return (ActivationFunction*)relu;
     else if (actName == "swish")
       return (ActivationFunction*)swish;
+    else if (actName == "gelu")
+      return (ActivationFunction*)gelu;
     ABORT("Invalid activation name '{}'", actName);
   }
 
@@ -527,13 +529,13 @@ public:
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[subBatchIndex];
     int dimEmb = opt<int>("dim-emb");
     auto embFactory = embedding()("dimVocab", dimVoc)("dimEmb", dimEmb);
-    if (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
+    if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
       embFactory("prefix", "Wemb");
     else
       embFactory("prefix", prefix_ + "_Wemb");
-    if (options_->has("embedding-fix-src"))
+    if(options_->has("embedding-fix-src"))
       embFactory("fixed", opt<bool>("embedding-fix-src"));
-    if (options_->has("embedding-vectors")) {
+    if(options_->hasAndNotEmpty("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
       embFactory("embFile", embFiles[subBatchIndex])
                 ("normalization", opt<bool>("embedding-normalization"));
@@ -797,7 +799,7 @@ public:
           // decoding or scoring return the attention weights of one head of the last layer.
           // @TODO: maybe allow to return average or max over all heads?
           bool saveAttentionWeights = false;
-          if(j == 0 && (options_->get("guided-alignment", std::string("none")) != "none" || options_->has("alignment"))) {
+          if(j == 0 && (options_->get("guided-alignment", std::string("none")) != "none" || options_->hasAndNotEmpty("alignment"))) {
             size_t attLayer = decDepth - 1;
             std::string gaStr = options_->get<std::string>("transformer-guided-alignment-layer", "last");
             if(gaStr != "last")
