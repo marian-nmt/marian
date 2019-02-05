@@ -31,7 +31,13 @@ namespace marian {
   // Specifically, it means that the factorVocab_ must contain </s> and "<unk>".
   vocab_.load(vocabPath);
   auto vocabSize = vocab_.size();
-  factorVocab_.load(factorVocabPath);
+
+  std::string line;
+
+  // load factor vocabulary
+  io::InputFileStream fin(factorVocabPath);
+  for (WordIndex v = 0; io::getline(fin, line); v++)
+    factorVocab_.add(line);
   auto numFactors = factorVocab_.size();
 
   // load and parse factorMap
@@ -39,14 +45,13 @@ namespace marian {
   factorRefCounts_.resize(numFactors);
   std::vector<std::string> tokens;
   io::InputFileStream in(mapPath);
-  std::string line;
   size_t numTotalFactors = 0;
   for (WordIndex v = 0; io::getline(in, line); v++) {
     tokens.clear(); // @BUGBUG: should be done in split()
     utils::splitAny(line, tokens, " \t");
     ABORT_IF(tokens.size() < 2 || tokens.front() != vocab_[Word::fromWordIndex(v)], "Factor map must list words in same order as vocab, and have at least one factor per word", mapPath);
     for (size_t i = 1; i < tokens.size(); i++) {
-      auto u = factorVocab_[tokens[i]].toWordIndex();
+      auto u = factorVocab_[tokens[i]];
       factorMap_[v].push_back(u);
       factorRefCounts_[u]++;
     }
@@ -66,8 +71,8 @@ namespace marian {
   for (size_t g = 1; g < groupPrefixes.size(); g++) { // set group labels; what does not match any prefix will stay in group 0
     const auto& groupPrefix = groupPrefixes[g];
     for (WordIndex u = 0; u < numFactors; u++)
-      if (utils::beginsWith(factorVocab_[Word::fromWordIndex(u)], groupPrefix)) {
-        ABORT_IF(factorGroups_[u] != 0, "Factor {} matches multiple groups, incl. {}", factorVocab_[Word::fromWordIndex(u)], groupPrefix);
+      if (utils::beginsWith(factorVocab_[u], groupPrefix)) {
+        ABORT_IF(factorGroups_[u] != 0, "Factor {} matches multiple groups, incl. {}", factorVocab_[u], groupPrefix);
         factorGroups_[u] = g;
       }
   }

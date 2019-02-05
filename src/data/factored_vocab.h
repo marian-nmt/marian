@@ -22,7 +22,7 @@ public:
     std::vector<IndexType> offsets;
   };
 
-  FactoredVocab() : vocab_(New<Options>(), 0), factorVocab_(New<Options>(), 0) { }
+  FactoredVocab() : vocab_(New<Options>(), 0) { }
 
   // from IVocab:
   virtual size_t load(const std::string& factoredVocabPath, size_t maxSizeUnused = 0) override final;
@@ -52,13 +52,39 @@ public:
 
   static Ptr<FactoredVocab> tryCreateAndLoad(const std::string& path); // load from "vocab" option if it specifies a factored vocab
 private:
+  class WordLUT { // map between strings and WordIndex
+    std::map<std::string, WordIndex> str2index_;
+    std::vector<std::string> index2str_;
+  public:
+    void add(const std::string& word) {
+      auto index = (WordIndex)index2str_.size();
+      auto wasInserted = str2index_.insert(std::make_pair(word, index)).second;
+      ABORT_IF(!wasInserted, "Duplicate vocab entry for '{}'", word);
+      index2str_.push_back(word);
+    }
+    const std::string& operator[](WordIndex index) const { return index2str_[index]; }
+    WordIndex operator[](const std::string& word) const {
+      auto iter = str2index_.find(word);
+      ABORT_IF(iter == str2index_.end(), "Token '{}' not found in vocabulary", word);
+      return iter->second;
+    }
+    bool tryFind(const std::string& word, WordIndex& index) const {
+      auto iter = str2index_.find(word);
+      if (iter == str2index_.end())
+        return false;
+      index = iter->second;
+      return true;
+    }
+    size_t size() const { return index2str_.size(); }
+  };
+
   // main vocab
   Word eosId_{};
   Word unkId_{};
   Vocab vocab_;
 
   // factors
-  Vocab factorVocab_;                                  // [factor name] -> factor index = row of E_
+  WordLUT factorVocab_;                                // [factor name] -> factor index = row of E_
   std::vector<std::vector<WordIndex>> factorMap_;      // [word index v] -> set of factor indices u
   std::vector<int> factorRefCounts_;                   // [factor index u] -> how often factor u is referenced in factorMap_
   CSRData globalFactorMatrix_;                         // [v,u] (sparse) -> =1 if u is factor of v
