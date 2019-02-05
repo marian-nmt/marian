@@ -16,7 +16,7 @@ size_t Config::seed = (size_t)time(0);
 
 Config::Config(int argc,
                char** argv,
-               cli::mode mode /*= cli::mode::training*/,
+               cli::mode mode,
                bool validate /*= true*/) {
   initialize(argc, argv, mode, validate);
 }
@@ -33,13 +33,13 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
   // echo version and command line
   LOG(info, "[marian] Marian {}", buildVersion());
   std::string cmdLine;
-  for (int i = 0; i < argc; i++) {
+  for(int i = 0; i < argc; i++) {
     std::string arg = argv[i];
     std::string quote; // attempt to quote special chars
-    if (arg.empty() || arg.find_first_of(" #`\"'\\${}|&^?*!()%><") != std::string::npos)
+    if(arg.empty() || arg.find_first_of(" #`\"'\\${}|&^?*!()%><") != std::string::npos)
       quote = "'";
     arg = regex::regex_replace(arg, regex::regex("'"), "'\\''");
-    if (!cmdLine.empty())
+    if(!cmdLine.empty())
       cmdLine.push_back(' ');
     cmdLine += quote + arg + quote;
   }
@@ -56,7 +56,17 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
   }
 
   // load model parameters
-  if(mode != cli::mode::translation) {
+  if(mode == cli::mode::translation || mode == cli::mode::server) {
+    auto model = get<std::vector<std::string>>("models")[0];
+    try {
+      if(!get<bool>("ignore-model-config"))
+        loadModelParameters(model);
+    } catch(std::runtime_error& ) {
+      LOG(info, "[config] No model configuration found in model file");
+    }
+  }
+  // if cli::mode::training or cli::mode::scoring
+  else {
     auto model = get<std::string>("model");
     if(filesystem::exists(model) && !get<bool>("no-reload")) {
       try {
@@ -65,16 +75,6 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
       } catch(std::runtime_error&) {
         LOG(info, "[config] No model configuration found in model file");
       }
-    }
-  }
-  // if cli::mode::translation
-  else {
-    auto model = get<std::vector<std::string>>("models")[0];
-    try {
-      if(!get<bool>("ignore-model-config"))
-        loadModelParameters(model);
-    } catch(std::runtime_error& ) {
-      LOG(info, "[config] No model configuration found in model file");
     }
   }
 
@@ -95,15 +95,14 @@ void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
           version,
           buildVersion());
     else
-      LOG(info,
-          "[config] Loaded model has been created with Marian {}",
-          version);
+      LOG(info, "[config] Loaded model has been created with Marian {}", version);
+
+    // Remove "version" from config to make it consistent among different start-up scenarios
+    config_.remove("version");
   }
   // If this is a newly started training
   else if(mode == cli::mode::training) {
-    LOG(info,
-        "[config] Model is being created with Marian {}",
-        buildVersion());
+    LOG(info, "[config] Model is being created with Marian {}", buildVersion());
   }
 }
 
@@ -156,10 +155,9 @@ void Config::log() {
   std::string configString = out.c_str();
 
   // print YAML prepending each line with [config]
-  std::vector<std::string> results;
-  utils::split(configString, results, "\n");
-  for(auto& r : results)
-    LOG(info, "[config] {}", r);
+  auto lines = utils::split(configString, "\n");
+  for(auto& line : lines)
+    LOG(info, "[config] {}", line);
 }
 
 // Parse the device-spec parameters (--num-devices, --devices, --cpu-threads) into an array of
@@ -266,7 +264,7 @@ std::vector<DeviceId> Config::getDevices(Ptr<Options> options,
 
 Ptr<Options> parseOptions(int argc,
                           char** argv,
-                          cli::mode mode /*= cli::mode::training*/,
+                          cli::mode mode,
                           bool validate /*= true*/) {
   auto config = New<Config>(argc, argv, mode, validate);
   auto options = New<Options>();

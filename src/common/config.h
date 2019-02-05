@@ -115,7 +115,7 @@ private:
  */
 Ptr<Options> parseOptions(int argc,
                           char** argv,
-                          cli::mode mode = cli::mode::training,
+                          cli::mode mode,
                           bool validate = true);
 
 }  // namespace marian

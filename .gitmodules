@@ -1,6 +1,9 @@
 [submodule "examples"]
 	path = examples
 	url = https://github.com/marian-nmt/marian-examples
+[submodule "regression-tests"]
+	path = regression-tests
+	url = https://github.com/marian-nmt/marian-regression-tests
 [submodule "src/3rd_party/sentencepiece"]
 	path = src/3rd_party/sentencepiece
 	url = https://github.com/marian-nmt/sentencepiece

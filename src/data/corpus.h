@@ -98,7 +98,7 @@ public:
 
     if(options_->get("guided-alignment", std::string("none")) != "none" && alignFileIdx_)
       addAlignmentsToBatch(batch, batchVector);
-    if(options_->has("data-weighting") && weightFileIdx_)
+    if(options_->hasAndNotEmpty("data-weighting") && weightFileIdx_)
       addWeightsToBatch(batch, batchVector);
 
     return batch;

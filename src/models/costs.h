@@ -16,8 +16,8 @@ namespace models {
 
 // @TODO: inheritance and polymorphism is used here in a rather unclear way.
 // E.g. returns Ptr<MultiRationalLoss> which should be Ptr<RationalLoss>?
-// Other functions return RationalLoss directly without Ptr<...>, but also 
-// they do not need polymorphism here. 
+// Other functions return RationalLoss directly without Ptr<...>, but also
+// they do not need polymorphism here.
 
 class CostBase {
 public:
@@ -44,9 +44,9 @@ public:
     loss_ = newLoss(options_, inference_);
 
     toBeWeighted_
-        = (options_->has("data-weighting") && !inference_)
-          || (options_->has("dynamic-weighting")
-              && options_->get<bool>("dynamic-weighting") && !inference_);
+        = (options_->hasAndNotEmpty("data-weighting") && !inference_)
+          || (options_->has("dynamic-weighting") && options_->get<bool>("dynamic-weighting")
+              && !inference_);
     if(toBeWeighted_)
       weighter_ = WeightingFactory(options_);
   }
@@ -73,7 +73,7 @@ public:
                                     state->getTargetMask(),
                                     weights);
     multiLoss->push_back(partialLoss);
-  
+
     if(options_->get("guided-alignment", std::string("none")) != "none" && !inference_) {
       auto attentionVectors = encdec->getDecoders()[0]->getAlignments();
       ABORT_IF(attentionVectors.empty(), "Model does not seem to support alignments");
@@ -83,9 +83,8 @@ public:
       auto alignmentLoss = guidedAlignmentCost(graph, corpusBatch, options_, attention);
       multiLoss->push_back(alignmentLoss);
     }
-    
+
     return multiLoss;
-    
   }
 };
 
@@ -96,7 +95,7 @@ protected:
   bool inference_{false};
 
   // @TODO: single loss seems wrong, especially since we support multiple objectives here,
-  // also not sure this needs to be a member at all. 
+  // also not sure this needs to be a member at all.
   Ptr<LabelwiseLoss> loss_;
 
 public:
@@ -114,7 +113,7 @@ public:
     auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
 
     auto states = enccls->apply(graph, corpusBatch, clearGraph);
-    
+
     // multi-objective training
     Ptr<MultiRationalLoss> multiLoss = newMultiLoss(options_);
     for(int i = 0; i < states.size(); ++i) {
@@ -284,7 +283,7 @@ inline Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec,
       else
         return New<Stepwise>(encdec, New<LogSoftmaxStep>());
     case usage::raw:
-    default: 
+    default:
       return encdec;
   }
 }
@@ -299,7 +298,7 @@ inline Ptr<ModelBase> add_cost(Ptr<EncoderClassifier> enccls,
     case usage::translation:
       ABORT("Classifier cannot be used for translation");
     case usage::raw:
-    default: 
+    default:
       return enccls;
   }
 }

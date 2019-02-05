@@ -9,7 +9,6 @@ struct ModelTask {
 };
 
 struct ModelServiceTask {
-  virtual void init() = 0;
   virtual std::string run(const std::string&) = 0;
 };
 }  // namespace marian
