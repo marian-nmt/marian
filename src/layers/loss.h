@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graph/expression_operators.h"
+#include "data/types.h"
 
 namespace marian {
 
@@ -267,7 +268,7 @@ class LabelwiseLoss {
 protected:
   std::vector<int> axes_;
 
-  virtual Expr compute(Expr logits, Expr labelIndices,
+  virtual Expr compute(Expr logits, const Words& labels,
                        Expr mask = nullptr, Expr labelWeights = nullptr) = 0;
 
   // label counts are available, reduce together with loss to obtain counts
@@ -302,9 +303,9 @@ public:
   LabelwiseLoss(const std::vector<int>& axes)
   : axes_(axes) { }
 
-  virtual RationalLoss apply(Expr logits, Expr labelIndices,
+  virtual RationalLoss apply(Expr logits, const Words& labels,
                              Expr mask = nullptr, Expr labelWeights = nullptr) {
-    Expr loss = compute(logits, labelIndices, mask, labelWeights);
+    Expr loss = compute(logits, labels, mask, labelWeights);
 
     if(mask)
       return reduce(loss, mask); // mask can be used as element-wise label count with broadcasting
@@ -329,8 +330,9 @@ public:
 protected:
   float labelSmoothing_; // interpolation factor for label smoothing, see below
 
-  virtual Expr compute(Expr logits, Expr labelIndices,
+  virtual Expr compute(Expr logits, const Words& labels,
                        Expr mask = nullptr, Expr labelWeights = nullptr) override {
+    auto labelIndices = logits->graph()->indices(labels);
     Expr ce = cross_entropy(logits, labelIndices);
 
     if(labelSmoothing_ > 0) {
@@ -365,9 +367,9 @@ public:
   // sentence-wise CE, hence reduce only over time axis. CE reduces over last axis (-1)
   RescorerLoss() : CrossEntropyLoss(/*axes=*/{-3}, /*smoothing=*/0.f) {}
 
-  virtual RationalLoss apply(Expr logits, Expr labelIndices,
+  virtual RationalLoss apply(Expr logits, const Words& labels,
                              Expr mask = nullptr, Expr labelWeights = nullptr) override {
-    auto ce = CrossEntropyLoss::apply(logits, labelIndices, mask, labelWeights);
+    auto ce = CrossEntropyLoss::apply(logits, labels, mask, labelWeights);
     return RationalLoss(ce.loss(), ce.count());
   }
 };

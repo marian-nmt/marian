@@ -179,7 +179,7 @@ Ptr<DecoderState> EncoderDecoder::stepAll(Ptr<ExpressionGraph> graph,
   decoders_[0]->embeddingsFromBatch(graph, state, batch);
   auto nextState = decoders_[0]->step(graph, state);
   nextState->setTargetMask(state->getTargetMask());
-  nextState->setTargetIndices(state->getTargetIndices());
+  nextState->setTargetWords(state->getTargetWords());
 
   return nextState;
 }
