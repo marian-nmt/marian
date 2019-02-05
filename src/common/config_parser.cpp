@@ -54,31 +54,31 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
 
   // clang-format off
   cli.add<std::vector<std::string>>("--config,-c",
-     "Configuration file(s). If multiple, later overrides earlier");
+    "Configuration file(s). If multiple, later overrides earlier");
   cli.add<size_t>("--workspace,-w",
-      "Preallocate  arg  MB of work space",
-      defaultWorkspace);
+    "Preallocate  arg  MB of work space",
+    defaultWorkspace);
   cli.add_nondefault<std::string>("--log",
-     "Log training process information to file given by  arg");
+    "Log training process information to file given by  arg");
   cli.add<std::string>("--log-level",
-     "Set verbosity level of logging: trace, debug, info, warn, err(or), critical, off",
-     "info");
+    "Set verbosity level of logging: trace, debug, info, warn, err(or), critical, off",
+    "info");
   cli.add_nondefault<std::string>("--log-time-zone",
-     "Set time zone for the date shown on logging");
+    "Set time zone for the date shown on logging");
   cli.add<bool>("--quiet",
-     "Suppress all logging to stderr. Logging to files still works");
+    "Suppress all logging to stderr. Logging to files still works");
   cli.add<bool>("--quiet-translation",
-     "Suppress logging for translation");
+    "Suppress logging for translation");
   cli.add<size_t>("--seed",
-     "Seed for all random number generators. 0 means initialize randomly");
+    "Seed for all random number generators. 0 means initialize randomly");
   cli.add<float>("--clip-gemm",
-     "If not 0 clip GEMM input values to +/- arg");
+    "If not 0 clip GEMM input values to +/- arg");
   cli.add<bool>("--interpolate-env-vars",
-     "allow the use of environment variables in paths, of the form ${VAR_NAME}");
+    "allow the use of environment variables in paths, of the form ${VAR_NAME}");
   cli.add<bool>("--relative-paths",
-     "All paths are relative to the config file location");
+    "All paths are relative to the config file location");
   cli.add_nondefault<std::string>("--dump-config",
-     "Dump current (modified) configuration to stdout and exit. Possible values: full, minimal")
+    "Dump current (modified) configuration to stdout and exit. Possible values: full, minimal")
     ->implicit_val("full");
   // clang-format on
 }
@@ -200,13 +200,15 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
   cli.add<std::string>("--transformer-postprocess",
       "Operation after each transformer layer: d = dropout, a = add, n = normalize",
       "dan");
-  cli.add<bool>("--transformer-train-positions",
+  cli.add<bool>("--transformer-train-position-embeddings",
       "Train positional embeddings instead of using static sinusoidal embeddings");
 
   cli.add<std::string>("--bert-mask-symbol", "Masking symbol for BERT masked-LM training", "[MASK]");
   cli.add<std::string>("--bert-sep-symbol", "Sentence separator symbol for BERT next sentence prediction training", "[SEP]");
   cli.add<std::string>("--bert-class-symbol", "Class symbol BERT classifier training", "[CLS]");
   cli.add<float>("--bert-masking-fraction", "Fraction of masked out tokens during training", 0.15f);
+  cli.add<bool>("--bert-train-type-embeddings", "Train bert type embeddings, set to false to use static sinusoidal embeddings", true);
+  cli.add<int>("--bert-type-vocab-size", "Size of BERT type vocab (sentence A and B)", 2);
 #ifdef CUDNN
   cli.add<int>("--char-stride",
       "Width of max-pooling layer after convolution layer in char-s2s model",

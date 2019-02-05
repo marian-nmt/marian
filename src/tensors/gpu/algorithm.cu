@@ -55,6 +55,7 @@ void fill(Ptr<Backend> backend, T* begin, T* end, T value) {
   CUDA_CHECK(cudaStreamSynchronize(0));
 }
 
+template void fill<bool>(Ptr<Backend>, bool*, bool*, bool);
 template void fill<int8_t>(Ptr<Backend>, int8_t*, int8_t*, int8_t);
 template void fill<int16_t>(Ptr<Backend>, int16_t*, int16_t*, int16_t);
 template void fill<int32_t>(Ptr<Backend>, int32_t*, int32_t*, int32_t);
@@ -84,7 +85,7 @@ __global__ void gSwap(T* d_v1, T* d_v2, int size) {
   if(index < size) {
     T temp = d_v1[index];
     d_v1[index] = d_v2[index];
-    d_v2[index] = temp;  
+    d_v2[index] = temp;
   }
 }
 
@@ -93,7 +94,7 @@ void swap_ranges(Ptr<Backend> backend, T* begin, T* end, T* dest) {
   int size = end - begin;
   if (size == 0)
     return;
-  
+
   CUDA_CHECK(cudaSetDevice(backend->getDeviceId().no));
   int threadsPerBlock = std::min(MAX_THREADS, size);
   int blocks = (size / threadsPerBlock) + (size % threadsPerBlock != 0); // @TODO: (size+threadsPerBlock-1)/threadsPerBlock or CeilDiv(a,b)

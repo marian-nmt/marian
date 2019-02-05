@@ -14,6 +14,10 @@ namespace marian {
 
 namespace cpu {
 
+void IsNan(const Tensor in, Ptr<Allocator> allocator, bool& isNan, bool& isInf, bool zero) {
+  ABORT("Not implemented");
+}
+
 inline float stableSigmoid(float x) {
   if(x >= 0) {
     float z = expf(-x);
@@ -394,7 +398,7 @@ void CopyRows(Tensor out_,
   for(size_t j = 0; j < rows; ++j) {
     size_t dst = j;
 
-    // @TODO: consider moving type checking to this function 
+    // @TODO: consider moving type checking to this function
     // instead of matchOrAbort above
     size_t src = (size_t)indices->data<IndexType>()[j];
 
@@ -494,7 +498,7 @@ void Select(Tensor out,
 
   functional::Array<int, functional::Shape::size()> dims;
   int axisCPU = (int)(axis + functional::Shape::size() - out->shape().size());
-  
+
   for(int index = 0; index < length; ++index) {
     outShape.dims(index, dims);
     dims[axisCPU] = (int)indices->data<IndexType>()[dims[axisCPU]];
