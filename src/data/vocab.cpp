@@ -10,15 +10,19 @@ Word Word::DEFAULT_UNK_ID = Word(1);
 
 // @TODO: make each vocab peek on type
 Ptr<IVocab> createVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
+  // try SentencePiece
   auto vocab = createSentencePieceVocab(vocabPath, options, batchIndex);
-  if(vocab) {
+  if(vocab)
     return vocab; // this is defined which means that a sentencepiece vocabulary could be created, so return it
-  } else {
-    // check type of input, if not given, assume "sequence"
-    auto inputTypes = options->get<std::vector<std::string>>("input-types", {});
-    std::string inputType = inputTypes.size() > batchIndex ? inputTypes[batchIndex] : "sequence";
-    return inputType == "class" ? createClassVocab() : createDefaultVocab();
-  }
+  // try factored
+  vocab = createFactoredVocab(vocabPath, options);
+  if (vocab)
+    return vocab;
+  // regular vocab
+  // check type of input, if not given, assume "sequence"
+  auto inputTypes = options->get<std::vector<std::string>>("input-types", {});
+  std::string inputType = inputTypes.size() > batchIndex ? inputTypes[batchIndex] : "sequence";
+  return inputType == "class" ? createClassVocab() : createDefaultVocab();
 }
 
 size_t Vocab::loadOrCreate(const std::string& vocabPath,

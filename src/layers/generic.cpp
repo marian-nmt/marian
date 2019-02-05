@@ -106,7 +106,7 @@ namespace marian {
 
       if (options_->has("embedding-factors")) {
         std::vector<std::string> paths = options_->get<std::vector<std::string>>("embedding-factors");
-        factoredVocab_ = createFactoredVocab(paths[0], options_);
+        factoredVocab_ = std::static_pointer_cast<FactoredVocab>(createFactoredVocab(paths[0], options_));
       }
       if (factoredVocab_) {
         std::vector<std::string> paths = options_->get<std::vector<std::string>>("embedding-factors");
@@ -173,7 +173,7 @@ namespace marian {
 
     if (options_->has("embedding-factors")) {
       std::vector<std::string> paths = options_->get<std::vector<std::string>>("embedding-factors");
-      factoredVocab_ = createFactoredVocab(paths[0], options_);
+      factoredVocab_ = std::static_pointer_cast<FactoredVocab>(createFactoredVocab(paths[0], options_));
     }
     if (factoredVocab_) {
       std::vector<std::string> paths = options_->get<std::vector<std::string>>("embedding-factors");

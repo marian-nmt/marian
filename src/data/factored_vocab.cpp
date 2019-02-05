@@ -21,11 +21,11 @@ namespace marian {
 //  - factor vocab must be sorted such that all groups are consecutive
 //  - result of Output layer is nevertheless logits, not a normalized probability, due to the sigmoid entries
 /*virtual*/ size_t FactoredVocab::load(const std::string& factoredVocabPath, size_t maxSizeUnused /*= 0*/) /*override final*/ {
-  ABORT_IF(maxSizeUnused != 0, "Factored vocabulary does not allow on-the-fly clipping to a maximum vocab size");
   auto mapPath = factoredVocabPath;
   auto factorVocabPath = mapPath;
   factorVocabPath.back() = 'l'; // map .fm to .fl
-  auto vocabPath = options_->get<std::string>("vocab");    // @TODO: This should go away; esp. to allow per-stream vocabs
+  auto vocabPath = factorVocabPath;
+  vocabPath[vocabPath.size() - 2] = 'w'; // map .fl to .wl  --@TODO: This should go away; esp. to allow per-stream vocabs
 
   // Note: We misuse the Vocab class a little.
   // Specifically, it means that the factorVocab_ must contain </s> and "<unk>".
@@ -115,10 +115,12 @@ namespace marian {
   std::iota(data.begin(), data.end(), 0);
   globalFactorMatrix_ = csr_rows(data); // [V x U]
 
+  ABORT_IF(maxSizeUnused != 0 && maxSizeUnused != vocabSize, "Factored vocabulary does not allow on-the-fly clipping to a maximum vocab size (to {})", maxSizeUnused);
   return vocabSize; // @TODO: return the actual virtual unrolled vocab size, which eventually we will know here
 }
 
 /*virtual*/ Word FactoredVocab::operator[](const std::string& word) const /*override final*/ {
+  ABORT("operator[] called indeed");
   return vocab_[word];
 }
 
@@ -163,7 +165,7 @@ FactoredVocab::CSRData FactoredVocab::csr_rows(const std::vector<IndexType>& wor
   return { Shape({(int)words.size(), (int)factorVocab_.size()}), weights, indices, offsets };
 }
 
-Ptr<FactoredVocab> createFactoredVocab(const std::string& vocabPath, Ptr<Options> options) {
+Ptr<IVocab> createFactoredVocab(const std::string& vocabPath, Ptr<Options> options) {
   bool isFactoredVocab = regex::regex_search(vocabPath, regex::regex("\\.(fm)$"));
   if(isFactoredVocab)
     return New<FactoredVocab>(options);
