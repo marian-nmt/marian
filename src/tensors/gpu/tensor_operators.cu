@@ -571,7 +571,7 @@ __global__ void gLogSoftmax(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols)
-          so[id] = __logf(_sum[0]);
+          so[id] -= __logf(_sum[0]);
       }
     }
     __syncthreads();

@@ -121,6 +121,7 @@ __global__ void gAggregateReduce(Functor functor, float aggInit, AggFunctor aggF
       __syncthreads();
       out[j] = aggFunctor(out[j], _sum[0] * scale);
     }
+    __syncthreads();
   }
 }
 
