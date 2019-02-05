@@ -29,9 +29,8 @@ namespace marian {
 
   // Note: We misuse the Vocab class a little.
   // Specifically, it means that the factorVocab_ must contain </s> and "<unk>".
-  Vocab vocab(New<Options>(), 0);
-  vocab.load(vocabPath);
-  auto vocabSize = vocab.size();
+  vocab_.load(vocabPath);
+  auto vocabSize = vocab_.size();
   factorVocab_.load(factorVocabPath);
   auto numFactors = factorVocab_.size();
 
@@ -45,7 +44,7 @@ namespace marian {
   for (WordIndex v = 0; io::getline(in, line); v++) {
     tokens.clear(); // @BUGBUG: should be done in split()
     utils::splitAny(line, tokens, " \t");
-    ABORT_IF(tokens.size() < 2 || tokens.front() != vocab[Word::fromWordIndex(v)], "Factor map must list words in same order as vocab, and have at least one factor per word", mapPath);
+    ABORT_IF(tokens.size() < 2 || tokens.front() != vocab_[Word::fromWordIndex(v)], "Factor map must list words in same order as vocab, and have at least one factor per word", mapPath);
     for (size_t i = 1; i < tokens.size(); i++) {
       auto u = factorVocab_[tokens[i]].toWordIndex();
       factorMap_[v].push_back(u);
@@ -109,10 +108,6 @@ namespace marian {
       continue;
     ABORT_IF(groupRanges_[g].second - groupRanges_[g].first != groupCounts[g],
              "Factor group '{}' members should be consecutive in the factor vocabulary", groupPrefixes[g]);
-    //auto& mVec = mVecs_[g];
-    //mVec.resize(numFactors, 0.0f);
-    //for (size_t i = groupRanges_[g].first; i < groupRanges_[g].second; i++)
-    //  mVec[i] = 1.0f;
   }
 
   // create the global factor matrix, which is used for factored embeddings
@@ -120,35 +115,31 @@ namespace marian {
   std::iota(data.begin(), data.end(), 0);
   globalFactorMatrix_ = csr_rows(data); // [V x U]
 
-  return factorVocabSize(); // @TODO: return the actual virtual unrolled vocab size, which eventually we will know here
+  return vocabSize; // @TODO: return the actual virtual unrolled vocab size, which eventually we will know here
 }
 
 /*virtual*/ Word FactoredVocab::operator[](const std::string& word) const /*override final*/ {
-  word;
-  return Word();
+  return vocab_[word];
 }
 
 /*virtual*/ Words FactoredVocab::encode(const std::string& line, bool addEOS /*= true*/, bool inference /*= false*/) const /*override final*/ {
-  line; addEOS; inference;
-  return {};
+  return vocab_.encode(line, addEOS, inference);
 }
 
 /*virtual*/ std::string FactoredVocab::decode(const Words& sentence, bool ignoreEos /*= true*/) const /*override final*/ {
-  sentence; ignoreEos;
-  return {};
+  return vocab_.decode(sentence, ignoreEos);
 }
 
 /*virtual*/ const std::string& FactoredVocab::operator[](Word id) const /*override final*/ {
-  id;
-  static std::string x;
-  return x;
+  return vocab_[id];
 }
 
 /*virtual*/ size_t FactoredVocab::size() const /*override final*/ {
-  return 0;
+  return vocab_.size();
 }
 
 /*virtual*/ void FactoredVocab::createFake() /*override final*/ {
+  return vocab_.createFake();
 }
 
 // create a CSR matrix M[V,U] from indices[] with

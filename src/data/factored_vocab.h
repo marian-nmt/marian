@@ -22,11 +22,10 @@ public:
     std::vector<IndexType> offsets;
   };
 
-  FactoredVocab(Ptr<Options> options) : options_(options), factorVocab_(New<Options>(), 0) { }
+  FactoredVocab(Ptr<Options> options) : options_(options), vocab_(New<Options>(), 0), factorVocab_(New<Options>(), 0) { }
 
   // from IVocab:
   virtual size_t load(const std::string& factoredVocabPath, size_t maxSizeUnused = 0) override final;
-
   virtual void create(const std::string& vocabPath, const std::vector<std::string>& trainPaths, size_t maxSize) override final { vocabPath, trainPaths, maxSize; ABORT("Factored vocab cannot be created on the fly"); }
   virtual const std::string& canonicalExtension() const override final { return suffixes()[0]; }
   virtual const std::vector<std::string>& suffixes() const override final { const static std::vector<std::string> exts{".fm"}; return exts; }
@@ -57,6 +56,7 @@ private:
   // main vocab
   Word eosId_{};
   Word unkId_{};
+  Vocab vocab_;
 
   // factors
   Vocab factorVocab_;                                  // [factor name] -> factor index = row of E_
