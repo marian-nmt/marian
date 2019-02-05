@@ -65,18 +65,18 @@ public:
     Expr y, yMask; std::tie
     (y, yMask) = yEmb->apply(subBatch);
 
-    Expr yData;
-    if(shortlist_) {
-      yData = graph->indices(shortlist_->mappedIndices());
-    } else {
-      yData = graph->indices(toWordIndexVector(subBatch->data()));
-    }
+    const Words& data =
+      /*if*/ (shortlist_) ?
+        shortlist_->mappedIndices()
+      /*else*/ :
+        subBatch->data();
+    Expr yData = graph->indices(toWordIndexVector(data));
 
     auto yShifted = shift(y, {1, 0, 0});
 
     state->setTargetEmbeddings(yShifted);
     state->setTargetMask(yMask);
-    state->setTargetIndices(yData);
+    state->setTargetWords(data);
   }
 
   virtual void embeddingsFromPrediction(Ptr<ExpressionGraph> graph,

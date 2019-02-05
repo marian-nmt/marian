@@ -15,19 +15,19 @@ namespace data {
 class Shortlist {
 private:
   std::vector<WordIndex> indices_;
-  std::vector<WordIndex> mappedIndices_;
+  Words mappedIndices_;
   std::vector<WordIndex> reverseMap_;
 
 public:
   Shortlist(const std::vector<WordIndex>& indices,
-            const std::vector<WordIndex>& mappedIndices,
+            const Words& mappedIndices,
             const std::vector<WordIndex>& reverseMap)
       : indices_(indices),
         mappedIndices_(mappedIndices),
         reverseMap_(reverseMap) {}
 
-  std::vector<WordIndex>& indices() { return indices_; }
-  std::vector<WordIndex>& mappedIndices() { return mappedIndices_; }
+  const std::vector<WordIndex>& indices() const { return indices_; }
+  const Words& mappedIndices() const { return mappedIndices_; }
   WordIndex reverseMap(WordIndex idx) { return reverseMap_[idx]; }
 };
 
@@ -103,10 +103,10 @@ public:
       reverseMap.push_back(idx[i]);
     }
 
-    std::vector<WordIndex> mapped;
+    Words mapped;
     for(auto i : trgBatch->data()) {
       // mapped postions for cross-entropy
-      mapped.push_back(pos[i.toWordIndex()]);
+      mapped.push_back(Word::fromWordIndex(pos[i.toWordIndex()]));
     }
 
     return New<Shortlist>(idx, mapped, reverseMap);
@@ -263,7 +263,7 @@ public:
       reverseMap.push_back(idx[i]);
     }
 
-    std::vector<WordIndex> mapped;
+    Words mapped;
     // for(auto i : trgBatch->data()) {
     // mapped postions for cross-entropy
     // mapped.push_back(pos[i]);
@@ -289,7 +289,7 @@ public:
   }
 
   Ptr<Shortlist> generate(Ptr<data::CorpusBatch> /*batch*/) override {
-    std::vector<WordIndex> tmp;
+    Words tmp;
     return New<Shortlist>(idx_, tmp, reverseIdx_);
   }
 };
