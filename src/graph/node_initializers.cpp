@@ -195,7 +195,7 @@ NodeInitializer from_item(const io::Item& item) {
 NodeInitializer sinusoidalPositionEmbeddings(int start) {
   return [start](Tensor t) {
     int dimEmb   = t->shape()[-1];
-    int dimWords = t->size() / dimEmb;
+    int dimWords = (int)t->size() / dimEmb;
 
     float numTimescales = (float)dimEmb / 2;
     float logTimescaleIncrement = std::log(10000.f) / (numTimescales - 1.f);

@@ -273,15 +273,17 @@ public:
     if (mpi)
       rationalLoss.loss *= mpi->numMPIProcesses();
 
+    // @BUGBUG: rationalLoss.count is float, not a count. Possible solution: make (costSum, costCount) a StaticLoss object as well
     state_->costSum      += rationalLoss.loss;   // aggregate sum cost since last display
-    state_->costCount    += rationalLoss.count; // cost gets normalized w.r.t. this in display
+    state_->costCount    += (size_t)rationalLoss.count; // cost gets normalized w.r.t. this in display
 
     state_->updatesDisp  += 1;
     state_->samplesDisp  += batchSize;
     state_->wordsDisp    += batchLabels;  //@TODO: this is wrong        // words at given input processed since last display, for speed display
 
-    state_->samplesEpoch += batchSize;           // sentences processed in this epoch
-    state_->labelsTotal  += rationalLoss.count; // total labels processed
+    state_->samplesEpoch += batchSize;          // sentences processed in this epoch
+    // @BUGBUG: rationalLoss.count is float, not a count
+    state_->labelsTotal  += (size_t)rationalLoss.count; // total labels processed
 
     state_->newUpdate(numReadBatches);
 

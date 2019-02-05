@@ -206,7 +206,7 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
   cli.add<std::string>("--bert-mask-symbol", "Masking symbol for BERT masked-LM training", "[MASK]");
   cli.add<std::string>("--bert-sep-symbol", "Sentence separator symbol for BERT next sentence prediction training", "[SEP]");
   cli.add<std::string>("--bert-class-symbol", "Class symbol BERT classifier training", "[CLS]");
-  cli.add<float>("--bert-masking-fraction", "Fraction of masked out tokens during training", 0.15);
+  cli.add<float>("--bert-masking-fraction", "Fraction of masked out tokens during training", 0.15f);
 #ifdef CUDNN
   cli.add<int>("--char-stride",
       "Width of max-pooling layer after convolution layer in char-s2s model",
