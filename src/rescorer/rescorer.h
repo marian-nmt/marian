@@ -49,10 +49,10 @@ private:
 
 public:
   Rescore(Ptr<Options> options) : options_(options) {
-    ABORT_IF(options_->has("summary") && options_->has("alignment"),
+    ABORT_IF(options_->hasAndNotEmpty("summary") && options_->hasAndNotEmpty("alignment"),
              "Alignments can not be produced with summarized score");
 
-    ABORT_IF(options_->has("summary") && options_->get<bool>("normalize"),
+    ABORT_IF(options_->hasAndNotEmpty("summary") && options_->get<bool>("normalize"),
              "Normalization by length cannot be used with summary scores");
 
     options_->set("inference", true);
@@ -99,11 +99,10 @@ public:
                                            New<ScoreCollectorNBest>(options_))
                                      : New<ScoreCollector>(options_);
 
-    std::string alignment = options_->get<std::string>("alignment", "");
-    bool summarize = options_->has("summary");
+    auto alignment = options_->get<std::string>("alignment", "");
+    auto summary = options_->get<std::string>("summary", "");
+    bool summarize = !summary.empty();
     bool normalize = options_->get<bool>("normalize");
-
-    std::string summary = summarize ? options_->get<std::string>("summary") : "cross-entropy";
 
     float sumLoss = 0;
     size_t sumWords = 0;
@@ -142,13 +141,13 @@ public:
 
           std::unique_lock<std::mutex> lock(smutex);
           for(auto s : scores)
-            sumLoss += s; 
+            sumLoss += s;
           sumWords += batch->back()->batchWords();
           sumSamples += batch->size();
 
           if(!summarize) {
             for(size_t i = 0; i < batch->size(); ++i) {
-              output->Write((long)batch->getSentenceIds()[i], 
+              output->Write((long)batch->getSentenceIds()[i],
                              -1.f * scores[i], // report logProb while score is CE, hence negate
                              aligns[i]);
             }

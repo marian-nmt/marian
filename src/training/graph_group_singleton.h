@@ -70,7 +70,7 @@ public:
           /*scatterStateFn=*/[&](const std::vector<float>& data, const OptimizerBase::ScatterStateSetFunc& setFn) {
             setFn(/*localDeviceIndex=*/0, data.begin(), data.end());
           });
-      } else if(options_->has("pretrained-model")) {
+      } else if(options_->hasAndNotEmpty("pretrained-model")) {
         std::string init = options_->get<std::string>("pretrained-model");
         LOG(info,
             "Initialize model weights with the pre-trained model {}",

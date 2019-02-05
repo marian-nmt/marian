@@ -53,7 +53,7 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options) {
   auto models = options->get<std::vector<std::string>>("models");
 
   std::vector<float> weights(models.size(), 1.f);
-  if(options->has("weights"))
+  if(options->hasAndNotEmpty("weights"))
     weights = options->get<std::vector<float>>("weights");
 
   size_t i = 0;
@@ -83,7 +83,7 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<c
   std::vector<Ptr<Scorer>> scorers;
 
   std::vector<float> weights(ptrs.size(), 1.f);
-  if(options->has("weights"))
+  if(options->hasAndNotEmpty("weights"))
     weights = options->get<std::vector<float>>("weights");
 
   size_t i = 0;

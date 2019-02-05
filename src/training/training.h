@@ -44,14 +44,14 @@ public:
           "[batching] Collecting statistics for batch fitting with step size {}",
           options_->get<size_t>("mini-batch-fit-step"));
       // @TODO this should receive a function object that can generate a fake batch;
-      // that way vocabs would not be exposed. 
+      // that way vocabs would not be exposed.
       auto model = New<ModelWrapper>(options_, mpi);
       model->setScheduler(scheduler); // collectStats() needs to know about dynamic MB scaling
       stats = model->collectStats(dataset->getVocabs());
       LOG(info, "[batching] Done. Typical MB size is {} target words", stats->estimateTypicalTrgWords());
     }
 
-    if((options_->has("valid-sets") || options_->has("valid-script-path"))
+    if((options_->hasAndNotEmpty("valid-sets") || options_->hasAndNotEmpty("valid-script-path"))
        && SchedulingParameter::parse(options_->get<std::string>("valid-freq"))) {
       for(auto validator : Validators(dataset->getVocabs(), options_))
         scheduler->addValidator(validator);
