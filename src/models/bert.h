@@ -295,7 +295,7 @@ public:
 
     // Filled externally, for BERT these are NextSentence prediction labels
     const auto& classLabels = (*batch)[batchIndex_]->data();
-    state->setTargetIndices(graph->indices(toWordIndexVector(classLabels)));
+    state->setTargetWords(classLabels);
 
     return state;
   }
@@ -320,8 +320,8 @@ public:
 
     auto context = encoderStates[0]->getContext();
 
-    auto bertMaskedPositions = graph->indices(bertBatch->bertMaskedPositions()); // positions in batch of masked entries
-    auto bertMaskedWords     = graph->indices(toWordIndexVector(bertBatch->bertMaskedWords()));   // vocab ids of entries that have been masked
+    auto bertMaskedPositions    = graph->indices(bertBatch->bertMaskedPositions()); // positions in batch of masked entries
+    const auto& bertMaskedWords = bertBatch->bertMaskedWords();   // vocab ids of entries that have been masked
 
     int dimModel = context->shape()[-1];
     int dimBatch = context->shape()[-2];
@@ -366,7 +366,7 @@ public:
 
     auto state = New<ClassifierState>();
     state->setLogProbs(logits);
-    state->setTargetIndices(bertMaskedWords);
+    state->setTargetWords(bertMaskedWords);
 
     return state;
   }

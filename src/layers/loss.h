@@ -2,6 +2,7 @@
 
 #include "graph/expression_operators.h"
 #include "layers/generic.h" // for Logits (Frank's factor hack)
+#include "data/types.h"
 
 namespace marian {
 
@@ -270,7 +271,7 @@ class LabelwiseLoss {
 protected:
   std::vector<int> axes_;
 
-  virtual Expr compute(Logits logits, Expr labelIndices,
+  virtual Expr compute(Logits logits, const Words& labels,
                        Expr mask = nullptr, Expr labelWeights = nullptr) = 0;
 
   // label counts are available, reduce together with loss to obtain counts
@@ -305,9 +306,9 @@ public:
   LabelwiseLoss(const std::vector<int>& axes)
   : axes_(axes) { }
 
-  virtual RationalLoss apply(Logits logits, Expr labelIndices,
+  virtual RationalLoss apply(Logits logits, const Words& labels,
                              Expr mask = nullptr, Expr labelWeights = nullptr) {
-    Expr loss = compute(logits, labelIndices, mask, labelWeights);
+    Expr loss = compute(logits, labels, mask, labelWeights);
 
     if(mask)
       return reduce(loss, mask); // mask can be used as element-wise label count with broadcasting
@@ -332,10 +333,10 @@ public:
 protected:
   float labelSmoothing_; // interpolation factor for label smoothing, see below
 
-  virtual Expr compute(Logits logits, Expr labelIndices,
+  virtual Expr compute(Logits logits, const Words& labels,
                        Expr mask = nullptr, Expr labelWeights = nullptr) override {
     // logits may be factored; in that case, the getLoss() function computes one loss for each, and sums them up
-    auto ce = logits.applyLossFunction(labelIndices, [&](Expr logits, Expr indices) {
+    auto ce = logits.applyLossFunction(labels, [&](Expr logits, Expr indices) {
       Expr ce = cross_entropy(logits, indices);
       if (labelSmoothing_ > 0) {
         // ce = -sum_i y^_i log y_i(h)
@@ -368,9 +369,9 @@ public:
   // sentence-wise CE, hence reduce only over time axis. CE reduces over last axis (-1)
   RescorerLoss() : CrossEntropyLoss(/*axes=*/{-3}, /*smoothing=*/0.f) {}
 
-  virtual RationalLoss apply(Logits logits, Expr labelIndices,
+  virtual RationalLoss apply(Logits logits, const Words& labels,
                              Expr mask = nullptr, Expr labelWeights = nullptr) override {
-    auto ce = CrossEntropyLoss::apply(logits, labelIndices, mask, labelWeights);
+    auto ce = CrossEntropyLoss::apply(logits, labels, mask, labelWeights);
     return RationalLoss(ce.loss(), ce.count());
   }
 };

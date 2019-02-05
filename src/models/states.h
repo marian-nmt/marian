@@ -36,7 +36,7 @@ protected:
 
   Expr targetEmbeddings_;
   Expr targetMask_;
-  Expr targetIndices_;
+  Words targetWords_;
 
   // Keep track of current target token position during translation
   size_t position_{0};
@@ -76,11 +76,8 @@ public:
     targetEmbeddings_ = targetEmbeddings;
   }
 
-  virtual Expr getTargetIndices() const { return targetIndices_; };
-
-  virtual void setTargetIndices(Expr targetIndices) {
-    targetIndices_ = targetIndices;
-  }
+  virtual const Words& getTargetWords() const { return targetWords_; };
+  virtual void setTargetWords(const Words& targetWords) { targetWords_ = targetWords; }
 
   virtual Expr getTargetMask() const { return targetMask_; };
 
@@ -112,15 +109,14 @@ private:
   Ptr<data::CorpusBatch> batch_;
 
   Expr targetMask_;
-  Expr targetIndices_;
+  Words targetWords_;
 
 public:
   virtual Expr getLogProbs() const { return logProbs_; }
   virtual void setLogProbs(Expr logProbs) { logProbs_ = logProbs; }
 
-  virtual Expr getTargetIndices() const { return targetIndices_; };
-
-  virtual void setTargetIndices(Expr targetIndices) { targetIndices_ = targetIndices; }
+  virtual const Words& getTargetWords() const { return targetWords_; };
+  virtual void setTargetWords(const Words& targetWords) { targetWords_ = targetWords; }
 
   virtual Expr getTargetMask() const { return targetMask_; };
 

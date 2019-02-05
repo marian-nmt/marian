@@ -180,7 +180,11 @@ namespace marian {
 
   // This function assumes that the object holds one or more factor logits.
   // It applies the supplied loss function to each, and then returns the aggregate loss over all factors.
-  Expr Logits::applyLossFunction(Expr indices, const std::function<Expr(Expr/*logits*/, Expr/*indices*/)>& lossFn) const {
+  Expr Logits::applyLossFunction(const Words& labels, const std::function<Expr(Expr/*logits*/, Expr/*indices*/)>& lossFn) const {
+    ABORT_IF(logits_.empty(), "Empty logits object??");
+    auto graph = logits_.front()->loss()->graph();
+    Expr indices = graph->indices(toWordIndexVector(labels));
+
     LOG_ONCE(info, "[logits] applyLossFunction() for {} factors", logits_.size());
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
     if (!embeddingFactorMapping_) {
@@ -190,7 +194,6 @@ namespace marian {
 
     // accumulate all CEs for all words that have the factor
     // Memory-wise, this is cheap, all temp objects below are batches of scalars or lookup vectors.
-    auto graph = indices->graph();
     Expr loss;
     auto numGroups = embeddingFactorMapping_->getNumGroups();
     for (size_t g = 0; g < numGroups; g++) {
