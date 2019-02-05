@@ -13,7 +13,7 @@
 
 namespace marian {
 
-class FactoredVocab /*: public IVocab*/ {
+class FactoredVocab : public IVocab {
 public:
   struct CSRData {
     Shape shape;
@@ -21,6 +21,11 @@ public:
     std::vector<IndexType> indices;
     std::vector<IndexType> offsets;
   };
+
+  FactoredVocab(Ptr<Options> options) : options_(options), factorVocab_(New<Options>(), 0) { }
+
+  // from IVocab:
+
   // mapPath = path to file with entries in order of vocab entries of the form
   //   WORD FACTOR1 FACTOR2 FACTOR3...
   // listPath = path to file that lists all FACTOR names
@@ -34,11 +39,12 @@ public:
   //  - all factors not matching a prefix get lumped into yet another class (the lemmas)
   //  - factor vocab must be sorted such that all groups are consecutive
   //  - result of Output layer is nevertheless logits, not a normalized probability, due to the sigmoid entries
-  FactoredVocab(const std::string& factoredVocabPath, Ptr<Options> options) : factorVocab_(New<Options>(), 0) {
+  virtual size_t load(const std::string& factoredVocabPath, size_t maxSizeUnused = 0) override final {
+    ABORT_IF(maxSizeUnused != 0, "Factored vocabulary does not allow on-the-fly clipping to a maximum vocab size");
     auto mapPath = factoredVocabPath;
     auto factorVocabPath = mapPath;
     factorVocabPath.back() = 'l'; // map .fm to .fl
-    auto vocabPath = options->get<std::string>("vocab");    // @TODO: This should go away; esp. to allow per-stream vocabs
+    auto vocabPath = options_->get<std::string>("vocab");    // @TODO: This should go away; esp. to allow per-stream vocabs
 
     // Note: We misuse the Vocab class a little.
     // Specifically, it means that the factorVocab_ must contain </s> and "<unk>".
@@ -132,7 +138,22 @@ public:
     std::vector<IndexType> data(vocabSize);
     std::iota(data.begin(), data.end(), 0);
     globalFactorMatrix_ = csr_rows(data); // [V x U]
+
+    return factorVocabSize(); // @TODO: return the actual virtual unrolled vocab size, which eventually we will know here
   }
+
+  virtual void create(const std::string& vocabPath, const std::vector<std::string>& trainPaths, size_t maxSize) override final { vocabPath, trainPaths, maxSize; ABORT("Factored vocab cannot be created on the fly"); }
+  virtual const std::string& canonicalExtension() const override final { return suffixes()[0]; }
+  virtual const std::vector<std::string>& suffixes() const override final { const static std::vector<std::string> exts{".fm"}; return exts; }
+  virtual Word operator[](const std::string& word) const override final;
+  virtual Words encode(const std::string& line, bool addEOS = true, bool inference = false) const override final;
+  virtual std::string decode(const Words& sentence, bool ignoreEos = true) const override final;
+  virtual const std::string& operator[](Word id) const override final;
+  virtual size_t size() const override final;
+  virtual std::string type() const override final { return "FactoredVocab"; }
+  virtual Word getEosId() const override { return eosId_; }
+  virtual Word getUnkId() const override { return unkId_; }
+  virtual void createFake() override final;
 
   size_t factorVocabSize() const { return factorVocab_.size(); }
 
@@ -162,7 +183,14 @@ public:
   std::pair<size_t, size_t>     getGroupRange(size_t g)    const { return groupRanges_[g]; }   // [g] -> (u_begin, u_end)
   const std::vector<float>&     getFactorMasks(size_t g)   const { return factorMasks_[g]; }   // [g][v] 1.0 if word v has factor g
   const std::vector<IndexType>& getFactorIndices(size_t g) const { return factorIndices_[g]; } // [g][v] local index u_g = u - u_g,begin of factor g for word v; 0 if not a factor
+
 private:
+  Ptr<Options> options_;
+  // main vocab
+  Word eosId_ = Word::NONE;
+  Word unkId_ = Word::NONE;
+
+  // factors
   Vocab factorVocab_;                                  // [factor name] -> factor index = row of E_
   std::vector<std::vector<WordIndex>> factorMap_;      // [word index v] -> set of factor indices u
   std::vector<int> factorRefCounts_;                   // [factor index u] -> how often factor u is referenced in factorMap_

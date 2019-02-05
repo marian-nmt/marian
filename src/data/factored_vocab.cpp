@@ -132,10 +132,38 @@ Word Vocab::getEosId() const { return vImpl_->getEosId(); }
 Word Vocab::getUnkId() const { return vImpl_->getUnkId(); }
 #endif
 
+/*virtual*/ Word FactoredVocab::operator[](const std::string& word) const /*override final*/ {
+  word;
+  return Word();
+}
+
+/*virtual*/ Words FactoredVocab::encode(const std::string& line, bool addEOS /*= true*/, bool inference /*= false*/) const /*override final*/ {
+  line; addEOS; inference;
+  return {};
+}
+
+/*virtual*/ std::string FactoredVocab::decode(const Words& sentence, bool ignoreEos /*= true*/) const /*override final*/ {
+  sentence; ignoreEos;
+  return {};
+}
+
+/*virtual*/ const std::string& FactoredVocab::operator[](Word id) const /*override final*/ {
+  id;
+  static std::string x;
+  return x;
+}
+
+/*virtual*/ size_t FactoredVocab::size() const /*override final*/ {
+  return 0;
+}
+
+/*virtual*/ void FactoredVocab::createFake() /*override final*/ {
+}
+
 Ptr<FactoredVocab> createFactoredVocab(const std::string& vocabPath, Ptr<Options> options) {
   bool isFactoredVocab = regex::regex_search(vocabPath, regex::regex("\\.(fm)$"));
   if(isFactoredVocab)
-    return New<FactoredVocab>(vocabPath, options);
+    return New<FactoredVocab>(options);
   else
     return nullptr;
 }

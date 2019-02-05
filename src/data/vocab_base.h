@@ -19,7 +19,7 @@ public:
   virtual const std::string& canonicalExtension() const = 0;
   virtual const std::vector<std::string>& suffixes() const = 0;
 
-  size_t findAndLoad(const std::string& path, size_t maxSize) {
+  size_t findAndLoad(const std::string& path, size_t maxSize) { // @TODO: Only used in one place; just inline it there -> true interface
     for(auto suffix : suffixes())
       if(filesystem::exists(path + suffix))
         return load(path + suffix, maxSize);

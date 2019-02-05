@@ -126,7 +126,6 @@ public:
             alpha_,
             batchIndex_);
     }
-
   }
 
   virtual const std::string& canonicalExtension() const override { return suffixes_[0]; }
