@@ -8,10 +8,6 @@ Word Word::ZERO = Word(0);
 Word Word::DEFAULT_EOS_ID = Word(0);
 Word Word::DEFAULT_UNK_ID = Word(1);
 
-Ptr<IVocab> createDefaultVocab();
-Ptr<IVocab> createClassVocab();
-Ptr<IVocab> createSentencePieceVocab(const std::string& /*vocabPath*/, Ptr<Options>, size_t /*batchIndex*/);
-
 // @TODO: make each vocab peek on type
 Ptr<IVocab> createVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
   auto vocab = createSentencePieceVocab(vocabPath, options, batchIndex);

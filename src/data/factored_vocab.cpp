@@ -1,9 +1,13 @@
-#if 0
-#include "data/vocab.h"
 #include "data/vocab_base.h"
+#include "common/definitions.h"
+#include "data/types.h"
+#include "common/options.h"
+#include "common/regex.h"
+#include "data/factored_vocab.h"
 
 namespace marian {
 
+#if 0
 Word Word::NONE = Word();
 Word Word::ZERO = Word(0);
 Word Word::DEFAULT_EOS_ID = Word(0);
@@ -126,6 +130,14 @@ Word Vocab::getEosId() const { return vImpl_->getEosId(); }
 
 // return UNK symbol id
 Word Vocab::getUnkId() const { return vImpl_->getUnkId(); }
+#endif
+
+Ptr<FactoredVocab> createFactoredPieceVocab(const std::string& vocabPath, Ptr<Options> options) {
+  bool isSentencePiece = regex::regex_search(vocabPath, regex::regex("\\.(fm)$"));
+  if(isSentencePiece)
+    return New<FactoredVocab>(options);
+  else
+    return nullptr;
+}
 
 }  // namespace marian
-#endif

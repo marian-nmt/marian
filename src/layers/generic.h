@@ -57,7 +57,7 @@ struct IEmbeddingLayer {
   virtual Expr applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const = 0;
 };
 
-class EmbeddingFactorMapping;
+class FactoredVocab;
 
 // @HACK: Frank's quick implementation of factored outputs. To be re-thought once it works.
 // Output layer returns a Logits object, which is able to compute some things on the fly
@@ -71,8 +71,8 @@ public:
       logits_.push_back(logits);
     }
     Logits(Expr logits); // single-output constructor from Expr only (RationalLoss has no count)
-    Logits(std::vector<Ptr<RationalLoss>>&& logits, Ptr<EmbeddingFactorMapping> embeddingFactorMapping) // factored-output constructor
-      : logits_(std::move(logits)), embeddingFactorMapping_(embeddingFactorMapping) {}
+    Logits(std::vector<Ptr<RationalLoss>>&& logits, Ptr<FactoredVocab> embeddingFactorMapping) // factored-output constructor
+      : logits_(std::move(logits)), factoredVocab_(embeddingFactorMapping) {}
     Expr getLogits() const; // assume it holds logits: get them, possibly aggregating over factors
     Ptr<RationalLoss> getRationalLoss() const; // assume it holds a loss: get that
     Expr applyLossFunction(const Words& labels, const std::function<Expr(Expr/*logits*/,Expr/*indices*/)>& lossFn) const;
@@ -87,7 +87,7 @@ public:
 private:
     // @HACK: The interplay between Logits and RationalLoss is weird. Here, we allow RationalLoss with count == nullptr.
     std::vector<Ptr<RationalLoss>> logits_;
-    Ptr<EmbeddingFactorMapping> embeddingFactorMapping_;
+    Ptr<FactoredVocab> factoredVocab_;
 };
 
 // Unary function that returns a Logits object
@@ -172,7 +172,7 @@ private:
   bool isLegacyUntransposedW{false}; // legacy-model emulation: W is stored in non-transposed form
   Expr cachedShortWt_;  // short-listed version, cached (cleared by clear())
   Expr cachedShortb_;   // these match the current value of shortlist_
-  Ptr<EmbeddingFactorMapping > embeddingFactorMapping_;
+  Ptr<FactoredVocab > factoredVocab_;
 
   // optional parameters set/updated after construction
   Expr tiedParam_;
@@ -221,7 +221,7 @@ public:
 
 class Embedding : public LayerBase, public IEmbeddingLayer {
   Expr E_;
-  Ptr<EmbeddingFactorMapping> embeddingFactorMapping_;
+  Ptr<FactoredVocab> factoredVocab_;
   Expr multiRows(const std::vector<IndexType>& data) const;
 public:
   Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options);

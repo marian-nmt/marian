@@ -25,7 +25,7 @@ namespace marian {
 
     LOG_ONCE(info, "[logits] applyLossFunction() for {} factors", logits_.size());
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
-    if (!embeddingFactorMapping_) {
+    if (!factoredVocab_) {
       ABORT_IF(logits_.size() != 1, "Factors without factor mappings??");
       return lossFn(logits_.front()->loss(), indices);
     }
@@ -33,11 +33,11 @@ namespace marian {
     // accumulate all CEs for all words that have the factor
     // Memory-wise, this is cheap, all temp objects below are batches of scalars or lookup vectors.
     Expr loss;
-    auto numGroups = embeddingFactorMapping_->getNumGroups();
+    auto numGroups = factoredVocab_->getNumGroups();
     for (size_t g = 0; g < numGroups; g++) {
       indices; // [B... * 1] all batch items flattened
-      auto factorMaskVector  = embeddingFactorMapping_->getFactorMasks(g);   // [v] 1.0 if v has factor of group g
-      auto factorIndexVector = embeddingFactorMapping_->getFactorIndices(g); // [v] index of factor for word v in group p; must be 0 if factor is not used
+      auto factorMaskVector  = factoredVocab_->getFactorMasks(g);   // [v] 1.0 if v has factor of group g
+      auto factorIndexVector = factoredVocab_->getFactorIndices(g); // [v] index of factor for word v in group p; must be 0 if factor is not used
       auto factorMaskMatrix  = graph->constant({(int)factorMaskVector.size(),  1}, inits::from_vector(factorMaskVector),  Type::float32); // [V x 1]
       auto factorIndexMatrix = graph->constant({(int)factorIndexVector.size(), 1}, inits::from_vector(factorIndexVector), Type::uint32);  // [V x 1(Ug)]
       auto factorIndex  = rows(factorIndexMatrix, indices); // [B... * 1(Ug)] map word indices to factor indices (indices into factorLogits)
@@ -54,7 +54,7 @@ namespace marian {
   // This function assumes this object holds a single factor that represents a rational loss (with count).
   Ptr<RationalLoss> Logits::getRationalLoss() const {
     //return New<RationalLoss>(getLogits(), logits_.front()->count());
-    ABORT_IF(logits_.size() != 1 || embeddingFactorMapping_, "getRationalLoss() cannot be used on multi-factor outputs");
+    ABORT_IF(logits_.size() != 1 || factoredVocab_, "getRationalLoss() cannot be used on multi-factor outputs");
     ABORT_IF(!logits_.front()->count(), "getRationalLoss() used on rational loss without count");
     return logits_.front();
   }
@@ -63,7 +63,7 @@ namespace marian {
   // into output-vocab logits according to the factored model (with correct normalization of factors).
   Expr Logits::getLogits() const {
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
-    if (!embeddingFactorMapping_) {
+    if (!factoredVocab_) {
       ABORT_IF(logits_.size() != 1, "Factors without factor mappings??");
       return logits_.front()->loss();
     }
@@ -76,7 +76,7 @@ namespace marian {
 
     // sum up the unit logits across factors for each target word
     auto graph = y->graph();
-    auto factorMatrix = embeddingFactorMapping_->getGlobalFactorMatrix(); // [V x U]
+    auto factorMatrix = factoredVocab_->getGlobalFactorMatrix(); // [V x U]
     y = dot_csr(
         y,  // [B x U]
         factorMatrix.shape,
@@ -92,7 +92,7 @@ namespace marian {
     std::vector<Ptr<RationalLoss>> newLogits;
     for (const auto& l : logits_)
       newLogits.emplace_back(New<RationalLoss>(l->loss(), count));
-    return Logits(std::move(newLogits), embeddingFactorMapping_);
+    return Logits(std::move(newLogits), factoredVocab_);
   }
 
   namespace mlp {
@@ -106,8 +106,8 @@ namespace marian {
 
       if (options_->has("embedding-factors")) {
         ABORT_IF(shortlist_, "Shortlists are presently not compatible with factored embeddings");
-        embeddingFactorMapping_ = New<EmbeddingFactorMapping>(options_);
-        numOutputClasses = (int)embeddingFactorMapping_->factorVocabSize();
+        factoredVocab_ = New<FactoredVocab>(options_);
+        numOutputClasses = (int)factoredVocab_->factorVocabSize();
         LOG(info, "[embedding] Factored outputs enabled");
       }
 
@@ -135,15 +135,15 @@ namespace marian {
         }
         return affine(input, cachedShortWt_, cachedShortb_, false, /*transB=*/isLegacyUntransposedW ? false : true);
       }
-      else if (embeddingFactorMapping_) {
+      else if (factoredVocab_) {
         auto graph = input->graph();
 
         // project each factor separately
-        auto numGroups = embeddingFactorMapping_->getNumGroups();
+        auto numGroups = factoredVocab_->getNumGroups();
         std::vector<Ptr<RationalLoss>> allLogits(numGroups);
         for (size_t g = 0; g < numGroups; g++) {
-          auto range = embeddingFactorMapping_->getGroupRange(g);
-          ABORT_IF(g > 0 && range.first != embeddingFactorMapping_->getGroupRange(g-1).second, "Factor groups must be consecutive"); // we could sort groupYs though
+          auto range = factoredVocab_->getGroupRange(g);
+          ABORT_IF(g > 0 && range.first != factoredVocab_->getGroupRange(g-1).second, "Factor groups must be consecutive"); // we could sort groupYs though
           // slice this group's section out of W_
           // @TODO: This is highly inefficient if not tied. We should always transpose Output's matrix.
           auto factorWt = slice(Wt_, isLegacyUntransposedW ? -1 : 0, Slice((int)range.first, (int)range.second));
@@ -152,7 +152,7 @@ namespace marian {
           auto factorLogits = affine(input, factorWt, factorB, false, /*transB=*/isLegacyUntransposedW ? false : true); // [B... x U] factor logits
           allLogits[g] = New<RationalLoss>(factorLogits, nullptr);
         }
-        return Logits(std::move(allLogits), embeddingFactorMapping_);
+        return Logits(std::move(allLogits), factoredVocab_);
       }
       else
         return affine(input, Wt_, b_, false, /*transB=*/isLegacyUntransposedW ? false : true);
@@ -167,8 +167,8 @@ namespace marian {
     bool fixed = opt<bool>("fixed", false);
 
     if (options_->has("embedding-factors")) {
-      embeddingFactorMapping_ = New<EmbeddingFactorMapping>(options_);
-      dimVoc = (int)embeddingFactorMapping_->factorVocabSize();
+      factoredVocab_ = New<FactoredVocab>(options_);
+      dimVoc = (int)factoredVocab_->factorVocabSize();
       LOG(info, "[embedding] Factored embeddings enabled");
     }
 
@@ -190,7 +190,7 @@ namespace marian {
   /*private*/ Expr Embedding::multiRows(const std::vector<IndexType>& data) const
   {
     auto graph = E_->graph();
-    auto factoredData = embeddingFactorMapping_->csr_rows(data);
+    auto factoredData = factoredVocab_->csr_rows(data);
     // multi-hot factor vectors are represented as a sparse CSR matrix
     // [row index = word position index] -> set of factor indices for word at this position
     ABORT_IF(factoredData.shape != Shape({(int)factoredData.offsets.size()-1/*=rows of CSR*/, E_->shape()[0]}), "shape mismatch??");
@@ -240,7 +240,7 @@ namespace marian {
     auto batchEmbeddings = apply(subBatch->data(), {dimWords, dimBatch, dimEmb});
 #else
     Expr selectedEmbs;
-    if (embeddingFactorMapping_)
+    if (factoredVocab_)
       selectedEmbs = multiRows(subBatch->data());
     else
       selectedEmbs = rows(E_, subBatch->data());
@@ -257,7 +257,7 @@ namespace marian {
 
   Expr Embedding::applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const /*override final*/ {
     Expr selectedEmbs;
-    if (embeddingFactorMapping_)
+    if (factoredVocab_)
       selectedEmbs = multiRows(embIdx);
     else
       selectedEmbs = rows(E_, embIdx);

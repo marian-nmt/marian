@@ -6,12 +6,15 @@
 
 #include "common/definitions.h"
 #include "data/types.h"
+#include "data/vocab.h"
+
+#include <numeric> // for std::iota()
 
 namespace marian {
 
 class IVocab;
 
-class EmbeddingFactorMapping {
+class FactoredVocab {
 public:
   struct CSRData {
     Shape shape;
@@ -32,7 +35,7 @@ public:
   //  - all factors not matching a prefix get lumped into yet another class (the lemmas)
   //  - factor vocab must be sorted such that all groups are consecutive
   //  - result of Output layer is nevertheless logits, not a normalized probability, due to the sigmoid entries
-  EmbeddingFactorMapping(Ptr<Options> options) : factorVocab_(New<Options>(), 0) {
+  FactoredVocab(Ptr<Options> options) : factorVocab_(New<Options>(), 0) {
     std::vector<std::string> paths = options->get<std::vector<std::string>>("embedding-factors");
     ABORT_IF(paths.size() != 2, "--embedding-factors expects two paths");
     auto mapPath = paths[0];
