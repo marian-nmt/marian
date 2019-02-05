@@ -19,7 +19,7 @@ namespace marian {
 #ifdef USE_SENTENCEPIECE
 
 // Wrapper around https://github.com/google/sentencepiece
-class SentencePieceVocab : public VocabBase {
+class SentencePieceVocab : public IVocab {
 private:
   // Actual SentencePiece processor object
   UPtr<sentencepiece::SentencePieceProcessor> spm_;
@@ -252,7 +252,7 @@ public:
 };
 #endif // USE_SENTENCEPIECE
 
-Ptr<VocabBase> createSentencePieceVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
+Ptr<IVocab> createSentencePieceVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
   bool isSentencePiece = regex::regex_search(vocabPath, regex::regex("\\.(spm)$"));
   if(isSentencePiece) {
 #ifdef USE_SENTENCEPIECE

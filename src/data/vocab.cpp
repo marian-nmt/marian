@@ -8,12 +8,12 @@ Word Word::ZERO = Word(0);
 Word Word::DEFAULT_EOS_ID = Word(0);
 Word Word::DEFAULT_UNK_ID = Word(1);
 
-Ptr<VocabBase> createDefaultVocab();
-Ptr<VocabBase> createClassVocab();
-Ptr<VocabBase> createSentencePieceVocab(const std::string& /*vocabPath*/, Ptr<Options>, size_t /*batchIndex*/);
+Ptr<IVocab> createDefaultVocab();
+Ptr<IVocab> createClassVocab();
+Ptr<IVocab> createSentencePieceVocab(const std::string& /*vocabPath*/, Ptr<Options>, size_t /*batchIndex*/);
 
 // @TODO: make each vocab peek on type
-Ptr<VocabBase> createVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
+Ptr<IVocab> createVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
   auto vocab = createSentencePieceVocab(vocabPath, options, batchIndex);
   if(vocab) {
     return vocab; // this is defined which means that a sentencepiece vocabulary could be created, so return it
