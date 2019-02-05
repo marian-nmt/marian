@@ -132,10 +132,10 @@ Word Vocab::getEosId() const { return vImpl_->getEosId(); }
 Word Vocab::getUnkId() const { return vImpl_->getUnkId(); }
 #endif
 
-Ptr<FactoredVocab> createFactoredPieceVocab(const std::string& vocabPath, Ptr<Options> options) {
-  bool isSentencePiece = regex::regex_search(vocabPath, regex::regex("\\.(fm)$"));
-  if(isSentencePiece)
-    return New<FactoredVocab>(options);
+Ptr<FactoredVocab> createFactoredVocab(const std::string& vocabPath, Ptr<Options> options) {
+  bool isFactoredVocab = regex::regex_search(vocabPath, regex::regex("\\.(fm)$"));
+  if(isFactoredVocab)
+    return New<FactoredVocab>(vocabPath, options);
   else
     return nullptr;
 }

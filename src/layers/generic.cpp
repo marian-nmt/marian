@@ -105,8 +105,11 @@ namespace marian {
       auto numOutputClasses = options_->get<int>("dim");
 
       if (options_->has("embedding-factors")) {
+        std::vector<std::string> paths = options_->get<std::vector<std::string>>("embedding-factors");
+        factoredVocab_ = createFactoredVocab(paths[0], options_);
+      }
+      if (factoredVocab_) {
         ABORT_IF(shortlist_, "Shortlists are presently not compatible with factored embeddings");
-        factoredVocab_ = New<FactoredVocab>(options_);
         numOutputClasses = (int)factoredVocab_->factorVocabSize();
         LOG(info, "[embedding] Factored outputs enabled");
       }
@@ -167,7 +170,10 @@ namespace marian {
     bool fixed = opt<bool>("fixed", false);
 
     if (options_->has("embedding-factors")) {
-      factoredVocab_ = New<FactoredVocab>(options_);
+      std::vector<std::string> paths = options_->get<std::vector<std::string>>("embedding-factors");
+      factoredVocab_ = createFactoredVocab(paths[0], options_);
+    }
+    if (factoredVocab_) {
       dimVoc = (int)factoredVocab_->factorVocabSize();
       LOG(info, "[embedding] Factored embeddings enabled");
     }

@@ -7,14 +7,13 @@
 #include "common/definitions.h"
 #include "data/types.h"
 #include "data/vocab.h"
+#include "data/vocab_base.h"
 
 #include <numeric> // for std::iota()
 
 namespace marian {
 
-class IVocab;
-
-class FactoredVocab {
+class FactoredVocab /*: public IVocab*/ {
 public:
   struct CSRData {
     Shape shape;
@@ -35,12 +34,11 @@ public:
   //  - all factors not matching a prefix get lumped into yet another class (the lemmas)
   //  - factor vocab must be sorted such that all groups are consecutive
   //  - result of Output layer is nevertheless logits, not a normalized probability, due to the sigmoid entries
-  FactoredVocab(Ptr<Options> options) : factorVocab_(New<Options>(), 0) {
-    std::vector<std::string> paths = options->get<std::vector<std::string>>("embedding-factors");
-    ABORT_IF(paths.size() != 2, "--embedding-factors expects two paths");
-    auto mapPath = paths[0];
-    auto factorVocabPath = paths[1];
-    auto vocabPath = options->get<std::string>("vocab");
+  FactoredVocab(const std::string& factoredVocabPath, Ptr<Options> options) : factorVocab_(New<Options>(), 0) {
+    auto mapPath = factoredVocabPath;
+    auto factorVocabPath = mapPath;
+    factorVocabPath.back() = 'l'; // map .fm to .fl
+    auto vocabPath = options->get<std::string>("vocab");    // @TODO: This should go away; esp. to allow per-stream vocabs
 
     // Note: We misuse the Vocab class a little.
     // Specifically, it means that the factorVocab_ must contain </s> and "<unk>".
