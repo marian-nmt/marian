@@ -80,7 +80,7 @@ public:
     const auto& vocab = *subBatch->vocab();
 
     // Initialize to sample random vocab id
-    randomWord_.reset(new std::uniform_int_distribution<Word>(0, vocab.size()));
+    randomWord_.reset(new std::uniform_int_distribution<Word>(0, (Word)vocab.size()));
 
     // Intialize to sample random percentage
     randomPercent_.reset(new std::uniform_real_distribution<float>(0.f, 1.f));
@@ -112,7 +112,7 @@ public:
       if(dontMask_.count(words[i]) == 0)  // do not add indices of special words
         selected.push_back(i);
     std::shuffle(selected.begin(), selected.end(), engine); // randomize positions
-    selected.resize(std::ceil(selected.size() * maskFraction)); // select first x percent from shuffled indices
+    selected.resize((size_t)std::ceil(selected.size() * maskFraction)); // select first x percent from shuffled indices
 
     for(int i : selected) {
       maskedPositions_.push_back(i);                // where is the original word?
@@ -143,12 +143,10 @@ public:
     ABORT_IF(sepId == vocab.getUnkId(),
              "BERT separator symbol {} not found in vocabulary", sepSymbol_);
 
-    int dimBatch = subBatch->batchSize();
-    int dimWords = subBatch->batchWidth();
+    int dimBatch = (int)subBatch->batchSize();
+    int dimWords = (int)subBatch->batchWidth();
 
-    int maxSentPos = dimTypeVocab; // Currently only two sentences allowed A at [0] and B at [1] and padding at [2]
-    // If another separator is seen do not increase position index beyond 2 but use padding.
-    // @TODO: make this configurable, see below for NextSentencePredictions task where we also restrict to 2.
+    const size_t maxSentPos = dimTypeVocab;
 
     // create indices for BERT sentence embeddings A and B
     sentenceIndices_.resize(words.size()); // each word is either in sentence A or B

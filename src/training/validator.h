@@ -352,7 +352,7 @@ protected:
           }
 
           if(!engine)
-            engine.reset(new std::mt19937(Config::seed + id));
+            engine.reset(new std::mt19937((unsigned int)(Config::seed + id)));
 
           auto bertBatch = New<data::BertBatch>(batch,
                                                 *engine,

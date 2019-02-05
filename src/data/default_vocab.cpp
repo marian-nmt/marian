@@ -290,7 +290,7 @@ private:
 class ClassVocab : public DefaultVocab {
 private:
   // Do nothing.
-  virtual void addRequiredVocabulary(const std::string& vocabPath, bool isJson) override {}
+  virtual void addRequiredVocabulary(const std::string& vocabPath, bool isJson) override { vocabPath; isJson; }
 
   // Not adding special class labels, only seen classes.
   virtual void create(const std::string& vocabPath,

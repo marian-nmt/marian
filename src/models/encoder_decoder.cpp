@@ -50,8 +50,13 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
   modelFeatures_.insert("transformer-tied-layers");
   modelFeatures_.insert("transformer-guided-alignment-layer");
   modelFeatures_.insert("transformer-train-position-embeddings");
+
   modelFeatures_.insert("bert-train-type-embeddings");
   modelFeatures_.insert("bert-type-vocab-size");
+
+  modelFeatures_.insert("ulr");
+  modelFeatures_.insert("ulr-trainable-transformation");
+  modelFeatures_.insert("ulr-dim-emb");
 }
 
 std::vector<Ptr<EncoderBase>>& EncoderDecoder::getEncoders() {

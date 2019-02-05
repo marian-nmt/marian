@@ -70,7 +70,7 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   cli.add<bool>("--quiet-translation",
     "Suppress logging for translation");
   cli.add<size_t>("--seed",
-    "Seed for all random number generators. 0 means initialize randomly");  
+    "Seed for all random number generators. 0 means initialize randomly");
   cli.add<float>("--clip-gemm",
     "If not 0 clip GEMM input values to +/- arg");
   cli.add<bool>("--interpolate-env-vars",
@@ -206,10 +206,9 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
   cli.add<std::string>("--bert-mask-symbol", "Masking symbol for BERT masked-LM training", "[MASK]");
   cli.add<std::string>("--bert-sep-symbol", "Sentence separator symbol for BERT next sentence prediction training", "[SEP]");
   cli.add<std::string>("--bert-class-symbol", "Class symbol BERT classifier training", "[CLS]");
-  cli.add<float>("--bert-masking-fraction", "Fraction of masked out tokens during training", 0.15);
+  cli.add<float>("--bert-masking-fraction", "Fraction of masked out tokens during training", 0.15f);
   cli.add<bool>("--bert-train-type-embeddings", "Train bert type embeddings, set to false to use static sinusoidal embeddings", true);
   cli.add<int>("--bert-type-vocab-size", "Size of BERT type vocab (sentence A and B)", 2);
-
 #ifdef CUDNN
   cli.add<int>("--char-stride",
       "Width of max-pooling layer after convolution layer in char-s2s model",
