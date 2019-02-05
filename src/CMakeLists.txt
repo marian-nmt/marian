@@ -4,6 +4,7 @@ include_directories(.)
 include_directories(3rd_party)
 include_directories(3rd_party/SQLiteCpp/include)
 include_directories(3rd_party/sentencepiece)
+include_directories(${CMAKE_BINARY_DIR}/local/include)
 
 add_library(marian STATIC
   common/version.cpp
@@ -98,6 +99,8 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/common/git_revision.h
 )
 add_custom_target(marian_version DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/common/git_revision.h)
 add_dependencies(marian marian_version) # marian must depend on it so that it gets created first
+# make sure all local dependencies are installed first before this is built
+add_dependencies(marian 3rd_party_installs)
 
 if(CUDA_FOUND)
 cuda_add_library(marian_cuda
@@ -115,6 +118,8 @@ cuda_add_library(marian_cuda
   STATIC)
 
   target_compile_options(marian_cuda PUBLIC ${ALL_WARNINGS})
+  # make sure all local dependencies are installed first before this is built
+  add_dependencies(marian_cuda 3rd_party_installs)
 endif(CUDA_FOUND)
 
 set_target_properties(marian PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
