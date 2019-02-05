@@ -7,130 +7,121 @@
 
 namespace marian {
 
-#if 0
-Word Word::NONE = Word();
-Word Word::ZERO = Word(0);
-Word Word::DEFAULT_EOS_ID = Word(0);
-Word Word::DEFAULT_UNK_ID = Word(1);
+// mapPath = path to file with entries in order of vocab entries of the form
+//   WORD FACTOR1 FACTOR2 FACTOR3...
+// listPath = path to file that lists all FACTOR names
+// vocab = original vocabulary
+// Note: The WORD field in the map file is redundant. It is required for consistency checking only.
+// Factors are grouped
+//  - user specifies list-factor prefixes; all factors beginning with that prefix are in the same group
+//  - factors within a group as multi-class and normalized that way
+//  - groups of size 1 are interpreted as sigmoids, multiply with P(u) / P(u-1)
+//  - one prefix must not contain another
+//  - all factors not matching a prefix get lumped into yet another class (the lemmas)
+//  - factor vocab must be sorted such that all groups are consecutive
+//  - result of Output layer is nevertheless logits, not a normalized probability, due to the sigmoid entries
+/*virtual*/ size_t FactoredVocab::load(const std::string& factoredVocabPath, size_t maxSizeUnused /*= 0*/) /*override final*/ {
+  ABORT_IF(maxSizeUnused != 0, "Factored vocabulary does not allow on-the-fly clipping to a maximum vocab size");
+  auto mapPath = factoredVocabPath;
+  auto factorVocabPath = mapPath;
+  factorVocabPath.back() = 'l'; // map .fm to .fl
+  auto vocabPath = options_->get<std::string>("vocab");    // @TODO: This should go away; esp. to allow per-stream vocabs
 
-Ptr<IVocab> createDefaultVocab();
-Ptr<IVocab> createClassVocab();
-Ptr<IVocab> createSentencePieceVocab(const std::string& /*vocabPath*/, Ptr<Options>, size_t /*batchIndex*/);
+  // Note: We misuse the Vocab class a little.
+  // Specifically, it means that the factorVocab_ must contain </s> and "<unk>".
+  Vocab vocab(New<Options>(), 0);
+  vocab.load(vocabPath);
+  auto vocabSize = vocab.size();
+  factorVocab_.load(factorVocabPath);
+  auto numFactors = factorVocab_.size();
 
-// @TODO: make each vocab peek on type
-Ptr<IVocab> createVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
-  auto vocab = createSentencePieceVocab(vocabPath, options, batchIndex);
-  if(vocab) {
-    return vocab; // this is defined which means that a sentencepiece vocabulary could be created, so return it
-  } else {
-    // check type of input, if not given, assume "sequence"
-    auto inputTypes = options->get<std::vector<std::string>>("input-types", {});
-    std::string inputType = inputTypes.size() > batchIndex ? inputTypes[batchIndex] : "sequence";
-    return inputType == "class" ? createClassVocab() : createDefaultVocab();
-  }
-}
-
-size_t Vocab::loadOrCreate(const std::string& vocabPath,
-                           const std::vector<std::string>& trainPaths,
-                           size_t maxSize) {
-  size_t size = 0;
-  if(vocabPath.empty()) {
-    // No vocabulary path was given, attempt to first find a vocabulary
-    // for trainPaths[0] + possible suffixes. If not found attempt to create
-    // as trainPaths[0] + canonical suffix.
-    // Only search based on first path, maybe disable this at all?
-
-    LOG(info,
-        "No vocabulary path given; "
-        "trying to find default vocabulary based on data path {}",
-        trainPaths[0]);
-
-    vImpl_ = createDefaultVocab();
-    size = vImpl_->findAndLoad(trainPaths[0], maxSize);
-
-    if(size == 0) {
-      auto newVocabPath = trainPaths[0] + vImpl_->canonicalExtension();
-      LOG(info,
-          "No vocabulary path given; "
-          "trying to create vocabulary based on data paths {}",
-          utils::join(trainPaths, ", "));
-      create(newVocabPath, trainPaths, maxSize);
-      size = load(newVocabPath, maxSize);
+  // load and parse factorMap
+  factorMap_.resize(vocabSize);
+  factorRefCounts_.resize(numFactors);
+  std::vector<std::string> tokens;
+  io::InputFileStream in(mapPath);
+  std::string line;
+  size_t numTotalFactors = 0;
+  for (WordIndex v = 0; io::getline(in, line); v++) {
+    tokens.clear(); // @BUGBUG: should be done in split()
+    utils::splitAny(line, tokens, " \t");
+    ABORT_IF(tokens.size() < 2 || tokens.front() != vocab[Word::fromWordIndex(v)], "Factor map must list words in same order as vocab, and have at least one factor per word", mapPath);
+    for (size_t i = 1; i < tokens.size(); i++) {
+      auto u = factorVocab_[tokens[i]].toWordIndex();
+      factorMap_[v].push_back(u);
+      factorRefCounts_[u]++;
     }
-  } else {
-    if(!filesystem::exists(vocabPath)) {
-      // Vocabulary path was given, but no vocabulary present,
-      // attempt to create in specified location.
-      create(vocabPath, trainPaths, maxSize);
-    }
-    // Vocabulary path exists, attempting to load
-    size = load(vocabPath, maxSize);
+    numTotalFactors += tokens.size() - 1;
   }
-  LOG(info, "[data] Setting vocabulary size for input {} to {}", batchIndex_, size);
-  return size;
+  LOG(info, "[embedding] Factored-embedding map read with total/unique of {}/{} factors for {} words", numTotalFactors, numFactors, vocabSize);
+
+  // form groups
+  // @TODO: hard-coded for these initial experiments
+  std::vector<std::string> groupPrefixes = {
+    "@C",
+    "@GL", "@GR"
+  };
+  groupPrefixes.insert(groupPrefixes.begin(), "(unassigned)");     // first group is fallback for normal words (the string is only used for messages)
+  size_t numGroups = groupPrefixes.size();
+  factorGroups_.resize(numFactors, 0);
+  for (size_t g = 1; g < groupPrefixes.size(); g++) { // set group labels; what does not match any prefix will stay in group 0
+    const auto& groupPrefix = groupPrefixes[g];
+    for (WordIndex u = 0; u < numFactors; u++)
+      if (utils::beginsWith(factorVocab_[Word::fromWordIndex(u)], groupPrefix)) {
+        ABORT_IF(factorGroups_[u] != 0, "Factor {} matches multiple groups, incl. {}", factorVocab_[Word::fromWordIndex(u)], groupPrefix);
+        factorGroups_[u] = g;
+      }
+  }
+  // determine group index ranges
+  groupRanges_.resize(numGroups, { SIZE_MAX, (size_t)0 });
+  std::vector<size_t> groupCounts(numGroups); // number of group members
+  for (WordIndex u = 0; u < numFactors; u++) { // determine ranges; these must be non-overlapping, verified via groupCounts
+    auto g = factorGroups_[u];
+    if (groupRanges_[g].first > u)
+        groupRanges_[g].first = u;
+    if (groupRanges_[g].second < u + 1)
+        groupRanges_[g].second = u + 1;
+    groupCounts[g]++;
+  }
+  // create mappings needed for normalization in factored outputs
+  factorMasks_  .resize(numGroups, std::vector<float>(vocabSize, 0));     // [g][v] 1.0 if word v has factor g
+  factorIndices_.resize(numGroups, std::vector<IndexType>(vocabSize, 0)); // [g][v] index of factor (or any valid index if it does not have it; we use 0)
+  for (WordIndex v = 0; v < vocabSize; v++) {
+    for (auto u : factorMap_[v]) {
+      auto g = factorGroups_[u]; // convert u to relative u within factor group range
+      ABORT_IF(u < groupRanges_[g].first || u >= groupRanges_[g].second, "Invalid factorGroups_ entry??");
+      factorIndices_[g][v] = (IndexType)(u - groupRanges_[g].first);
+      factorMasks_[g][v] = 1.0f;
+    }
+  }
+  //for (Word v = 0; v < vocabSize; v++) {
+  //  LOG(info, "'{}': {}*{} {}*{} {}*{} {}*{}", vocab[v],
+  //      factorMasks_[0][v], factorIndices_[0][v],
+  //      factorMasks_[1][v], factorIndices_[1][v],
+  //      factorMasks_[2][v], factorIndices_[2][v],
+  //      factorMasks_[3][v], factorIndices_[3][v]);
+  //}
+  //mVecs_.resize(numGroups); // @TODO: no longer needed, delete soon
+  for (size_t g = 0; g < numGroups; g++) { // detect non-overlapping groups
+    LOG(info, "[embedding] Factor group '{}' has {} members ({})",
+        groupPrefixes[g], groupCounts[g], groupCounts[g] == 1 ? "sigmoid" : "softmax");
+    if (groupCounts[g] == 0) // factor group is unused  --@TODO: once this is not hard-coded, this is an error condition
+      continue;
+    ABORT_IF(groupRanges_[g].second - groupRanges_[g].first != groupCounts[g],
+             "Factor group '{}' members should be consecutive in the factor vocabulary", groupPrefixes[g]);
+    //auto& mVec = mVecs_[g];
+    //mVec.resize(numFactors, 0.0f);
+    //for (size_t i = groupRanges_[g].first; i < groupRanges_[g].second; i++)
+    //  mVec[i] = 1.0f;
+  }
+
+  // create the global factor matrix, which is used for factored embeddings
+  std::vector<IndexType> data(vocabSize);
+  std::iota(data.begin(), data.end(), 0);
+  globalFactorMatrix_ = csr_rows(data); // [V x U]
+
+  return factorVocabSize(); // @TODO: return the actual virtual unrolled vocab size, which eventually we will know here
 }
-
-size_t Vocab::load(const std::string& vocabPath, size_t maxSize) {
-  if(!vImpl_)
-    vImpl_ = createVocab(vocabPath, options_, batchIndex_);
-  return vImpl_->load(vocabPath, (int)maxSize);
-}
-
-void Vocab::create(const std::string& vocabPath,
-                   const std::vector<std::string>& trainPaths,
-                   size_t maxSize) {
-  if(!vImpl_)
-    vImpl_ = createVocab(vocabPath, options_, batchIndex_);
-  vImpl_->create(vocabPath, trainPaths, maxSize);
-}
-
-void Vocab::create(const std::string& vocabPath,
-                   const std::string& trainPath,
-                   size_t maxSize) {
-  create(vocabPath, std::vector<std::string>({trainPath}), maxSize);
-}
-
-void Vocab::createFake() {
-  if(!vImpl_)
-    vImpl_ = createDefaultVocab(); // DefaultVocab is OK here
-  vImpl_->createFake();
-}
-
-// string token to token id
-Word Vocab::operator[](const std::string& word) const {
-  return vImpl_->operator[](word);
-}
-
-// token id to string token
-const std::string& Vocab::operator[](Word id) const {
-  return vImpl_->operator[](id);
-}
-
-// line of text to list of token ids, can perform tokenization
-Words Vocab::encode(const std::string& line,
-              bool addEOS,
-              bool inference) const {
-  return vImpl_->encode(line, addEOS, inference);
-}
-
-// list of token ids to single line, can perform detokenization
-std::string Vocab::decode(const Words& sentence,
-                    bool ignoreEOS) const {
-  return vImpl_->decode(sentence, ignoreEOS);
-}
-
-// number of vocabulary items
-size_t Vocab::size() const { return vImpl_->size(); }
-
-// number of vocabulary items
-std::string Vocab::type() const { return vImpl_->type(); }
-
-// return EOS symbol id
-Word Vocab::getEosId() const { return vImpl_->getEosId(); }
-
-// return UNK symbol id
-Word Vocab::getUnkId() const { return vImpl_->getUnkId(); }
-#endif
 
 /*virtual*/ Word FactoredVocab::operator[](const std::string& word) const /*override final*/ {
   word;
@@ -158,6 +149,27 @@ Word Vocab::getUnkId() const { return vImpl_->getUnkId(); }
 }
 
 /*virtual*/ void FactoredVocab::createFake() /*override final*/ {
+}
+
+// create a CSR matrix M[V,U] from indices[] with
+// M[v,u] = 1/c(u) if factor u is a factor of word v, and c(u) is how often u is referenced
+FactoredVocab::CSRData FactoredVocab::csr_rows(const std::vector<IndexType>& words) const {
+  std::vector<float> weights;
+  std::vector<IndexType> indices;
+  std::vector<IndexType> offsets;
+  offsets.reserve(words.size() + 1);
+  indices.reserve(words.size()); // (at least this many)
+  // loop over all input words, and select the corresponding set of unit indices into CSR format
+  offsets.push_back((IndexType)indices.size());
+  for (auto v : words) {
+    const auto& m = factorMap_[v];
+    for (auto u : m) {
+      indices.push_back(u);
+      weights.push_back(1.0f/*/(float)factorRefCounts_[u]*/);
+    }
+    offsets.push_back((IndexType)indices.size()); // next matrix row begins at this offset
+  }
+  return { Shape({(int)words.size(), (int)factorVocab_.size()}), weights, indices, offsets };
 }
 
 Ptr<FactoredVocab> createFactoredVocab(const std::string& vocabPath, Ptr<Options> options) {
