@@ -62,7 +62,6 @@ public:
   }
 
   std::string decode(const Words& sentence, bool ignoreEOS) const override {
-    std::string line;
     auto tokens = (*this)(sentence, ignoreEOS);
     return utils::join(tokens, " ");
   }

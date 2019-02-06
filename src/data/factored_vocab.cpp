@@ -27,18 +27,13 @@ namespace marian {
   auto vocabPath = factorVocabPath;
   vocabPath[vocabPath.size() - 2] = 'w'; // map .fl to .wl  --@TODO: This should go away; esp. to allow per-stream vocabs
 
-  // Note: We misuse the Vocab class a little.
-  // Specifically, it means that the factorVocab_ must contain </s> and "<unk>".
-  vocab_.load(vocabPath);
-  auto vocabSize = vocab_.size();
-
   std::string line;
 
+  // load main vocabulary   --@TODO: This will go away soon.
+  auto vocabSize = vocab_.load(vocabPath);
+
   // load factor vocabulary
-  io::InputFileStream fin(factorVocabPath);
-  for (WordIndex v = 0; io::getline(fin, line); v++)
-    factorVocab_.add(line);
-  auto numFactors = factorVocab_.size();
+  auto numFactors = factorVocab_.load(factorVocabPath);
 
   // load and parse factorMap
   factorMap_.resize(vocabSize);
@@ -49,7 +44,7 @@ namespace marian {
   for (WordIndex v = 0; io::getline(in, line); v++) {
     tokens.clear(); // @BUGBUG: should be done in split()
     utils::splitAny(line, tokens, " \t");
-    ABORT_IF(tokens.size() < 2 || tokens.front() != vocab_[Word::fromWordIndex(v)], "Factor map must list words in same order as vocab, and have at least one factor per word", mapPath);
+    ABORT_IF(tokens.size() < 2 || tokens.front() != vocab_[v], "Factor map must list words in same order as vocab, and have at least one factor per word", mapPath);
     for (size_t i = 1; i < tokens.size(); i++) {
       auto u = factorVocab_[tokens[i]];
       factorMap_[v].push_back(u);
@@ -119,36 +114,57 @@ namespace marian {
   std::iota(data.begin(), data.end(), 0);
   globalFactorMatrix_ = csr_rows(data); // [V x U]
 
-  eosId_ = vocab_.getEosId();
-  unkId_ = vocab_.getUnkId();
+  // </s> and <unk> must exist in the vocabulary
+  eosId_ = Word::fromWordIndex(vocab_[DEFAULT_EOS_STR]);
+  unkId_ = Word::fromWordIndex(vocab_[DEFAULT_UNK_STR]);
 
   ABORT_IF(maxSizeUnused != 0 && maxSizeUnused != size(), "Factored vocabulary does not allow on-the-fly clipping to a maximum vocab size (to {})", maxSizeUnused);
   return size();
 }
 
 /*virtual*/ Word FactoredVocab::operator[](const std::string& word) const /*override final*/ {
-  ABORT("operator[] called indeed");
-  return vocab_[word];
+  WordIndex index;
+  bool found = vocab_.tryFind(word, index);
+  if (found)
+    return Word::fromWordIndex(index);
+  else
+    return getUnkId();
 }
 
-/*virtual*/ Words FactoredVocab::encode(const std::string& line, bool addEOS /*= true*/, bool inference /*= false*/) const /*override final*/ {
-  return vocab_.encode(line, addEOS, inference);
+/*virtual*/ Words FactoredVocab::encode(const std::string& line, bool addEOS /*= true*/, bool /*inference*/ /*= false*/) const /*override final*/ {
+  std::vector<std::string> lineTokens;
+  utils::split(line, lineTokens, " ");
+  Words res; res.reserve(lineTokens.size() + addEOS);
+  for (const auto& tok : lineTokens)
+    res.push_back((*this)[tok]);
+  if (addEOS)
+    res.push_back(getEosId());
+  return res;
 }
 
-/*virtual*/ std::string FactoredVocab::decode(const Words& sentence, bool ignoreEos /*= true*/) const /*override final*/ {
-  return vocab_.decode(sentence, ignoreEos);
+/*virtual*/ std::string FactoredVocab::decode(const Words& sentence, bool ignoreEOS /*= true*/) const /*override final*/ {
+  std::vector<std::string> decoded;
+  decoded.reserve(sentence.size());
+  for(auto w : sentence) {
+    if((w != getEosId() || !ignoreEOS))
+      decoded.push_back((*this)[w]);
+  }
+  return utils::join(decoded, " ");
 }
 
 /*virtual*/ const std::string& FactoredVocab::operator[](Word id) const /*override final*/ {
-  return vocab_[id];
+  return vocab_[id.toWordIndex()];
 }
 
 /*virtual*/ size_t FactoredVocab::size() const /*override final*/ {
   return vocab_.size();
 }
 
+// This creates a fake vocabulary fro use in fakeBatch().
+// @TODO: This may become more complex.
 /*virtual*/ void FactoredVocab::createFake() /*override final*/ {
-  return vocab_.createFake();
+  eosId_ = Word::fromWordIndex(vocab_.add(DEFAULT_EOS_STR));
+  unkId_ = Word::fromWordIndex(vocab_.add(DEFAULT_UNK_STR));
 }
 
 // create a CSR matrix M[V,U] from indices[] with
