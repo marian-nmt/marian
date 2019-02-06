@@ -48,9 +48,18 @@ public:
   const std::vector<IndexType>& getFactorIndices(size_t g) const { return factorIndices_[g]; } // [g][v] local index u_g = u - u_g,begin of factor g for word v; 0 if not a factor
   const std::vector<float>& getGapLogMask() const { return gapLogMask_; } // [v] -inf if v is a gap entry, else 0
 
+  // convert representations
+  Word factors2word(const std::vector<size_t>& factors);
+  WordIndex factorUnits2wordIndex(const std::vector<WordIndex>& factorUnits);
+  void word2factors(Word word, std::vector<size_t>& factors);
+  size_t getFactor(Word word, size_t groupIndex);
+  bool hasFactor(Word word, size_t groupIndex);
+  std::pair<WordIndex, bool> getFactorUnit(Word word, size_t groupIndex);
+
   static Ptr<FactoredVocab> tryCreateAndLoad(const std::string& path); // load from "vocab" option if it specifies a factored vocab
 private:
   void constructGroupInfoFromFactorVocab();
+  void constructFactorIndexConversion();
   void constructNormalizationInfoForVocab();
 private:
   class WordLUT { // map between strings and WordIndex
