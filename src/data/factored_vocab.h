@@ -41,7 +41,7 @@ public:
 
   CSRData csr_rows(const std::vector<IndexType>& words) const;
 
-  const CSRData& getGlobalFactorMatrix() const { return globalFactorMatrix_; }   // [v,u] (sparse) -> =1 if u is factor of v
+  const CSRData& getGlobalFactorMatrix() const { return globalFactorMatrix_; }   // [v,u] (sparse) -> =1 if u is factor of v  --only used in getLogits()
   size_t getNumGroups() const { return groupRanges_.size(); }
   std::pair<size_t, size_t>     getGroupRange(size_t g)    const { return groupRanges_[g]; }   // [g] -> (u_begin, u_end)
   const std::vector<float>&     getFactorMasks(size_t g)   const { return factorMasks_[g]; }   // [g][v] 1.0 if word v has factor g
@@ -49,23 +49,35 @@ public:
 
   static Ptr<FactoredVocab> tryCreateAndLoad(const std::string& path); // load from "vocab" option if it specifies a factored vocab
 private:
+  void constructGroupInfoFromFactorVocab();
+  void constructNormalizationInfoForVocab();
+private:
   class WordLUT { // map between strings and WordIndex
     std::map<std::string, WordIndex> str2index_;
     std::vector<std::string> index2str_;
   public:
-    WordIndex add(const std::string& word) {
-      auto index = (WordIndex)index2str_.size();
+    WordIndex add(const std::string& word, WordIndex index) {
+      ABORT_IF(word.empty(), "Attempted to add the empty word to a dictionary");
       auto wasInserted = str2index_.insert(std::make_pair(word, index)).second;
       ABORT_IF(!wasInserted, "Duplicate vocab entry for '{}'", word);
-      index2str_.push_back(word);
+      while (index2str_.size() <= index)
+        index2str_.emplace_back(); // @TODO: what's the right way to get linear complexity in steps?
+      if (!index2str_[index].empty())
+        ABORT_IF(!wasInserted, "Duplicate vocab entry for index {} (new: '{}'; existing: '{}')", index, word, index2str_[index]);
+      index2str_[index] = word;
       return index;
     }
-    const std::string& operator[](WordIndex index) const { return index2str_[index]; }
+    const std::string& operator[](WordIndex index) const {
+      const auto& word = index2str_[index];
+      ABORT_IF(word.empty(), "Invalid access to dictionary gap item");
+      return word;
+    }
     WordIndex operator[](const std::string& word) const {
       auto iter = str2index_.find(word);
       ABORT_IF(iter == str2index_.end(), "Token '{}' not found in vocabulary", word);
       return iter->second;
     }
+    bool isGap(WordIndex index) const { return index2str_[index].empty(); }
     bool tryFind(const std::string& word, WordIndex& index) const {
       auto iter = str2index_.find(word);
       if (iter == str2index_.end())
@@ -73,12 +85,17 @@ private:
       index = iter->second;
       return true;
     }
-    size_t size() const { return index2str_.size(); }
+    void resize(size_t num) {
+      ABORT_IF(num < index2str_.size(), "Word table cannot be shrunk");
+      index2str_.resize(num); // gets filled up with gap items (empty strings)
+    }
+    size_t size() const { return index2str_.size(); } // nominal size including gap items
+    size_t numValid() const { return str2index_.size(); } // actual non-gaps items
     size_t load(const std::string& path) {
       std::string line;
       io::InputFileStream in(path);
       for (WordIndex v = 0; io::getline(in, line); v++)
-        add(line);
+        add(line, v);
       return size();
     }
   };
@@ -90,6 +107,7 @@ private:
 
   // factors
   WordLUT factorVocab_;                                // [factor name] -> factor index = row of E_
+  std::vector<std::string> groupPrefixes_;             // [group id g] shared prefix of factors (used for grouping)
   std::vector<std::vector<WordIndex>> factorMap_;      // [word index v] -> set of factor indices u
   std::vector<int> factorRefCounts_;                   // [factor index u] -> how often factor u is referenced in factorMap_
   CSRData globalFactorMatrix_;                         // [v,u] (sparse) -> =1 if u is factor of v

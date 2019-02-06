@@ -26,42 +26,60 @@ namespace marian {
   factorVocabPath.back() = 'l'; // map .fm to .fl
 
   // load factor vocabulary
-  auto numFactors = factorVocab_.load(factorVocabPath);
-  factorRefCounts_.resize(numFactors);
+  factorVocab_.load(factorVocabPath);
+  groupPrefixes_ = { "(lemma)", "@C", "@GL", "@GR" }; // @TODO: hard-coded for these initial experiments
+
+  // construct mapping tables for factors
+  constructGroupInfoFromFactorVocab();
 
   // load and parse factorMap
+  auto factorVocabSize = factorVocab_.size();
+  factorRefCounts_.resize(factorVocabSize);
   std::vector<std::string> tokens;
   std::string line;
   size_t numTotalFactors = 0;
   io::InputFileStream in(mapPath);
   for (WordIndex v = 0; io::getline(in, line); v++) {
+    // parse the line, of the form WORD FACTOR1 FACTOR2 FACTOR1 ...
+    // where FACTOR1 is the lemma, a factor that all words have.
+    // Not every word has all other factors, so the n-th item is not always the same factor.
     utils::splitAny(line, tokens, " \t");
-    vocab_.add(tokens.front());
     ABORT_IF(tokens.size() < 2, "Factor map must have at least one factor per word", mapPath);
     std::vector<WordIndex> factors;
-    for (size_t i = 1; i < tokens.size(); i++) {
+    for (size_t i = 1/*first factor*/; i < tokens.size(); i++) {
       auto u = factorVocab_[tokens[i]];
       factors.push_back(u);
       factorRefCounts_[u]++;
     }
     factorMap_.emplace_back(std::move(factors));
+    // add to vocab
+    WordIndex index = v;
+    // @TODO: map factors to non-dense integer
+    vocab_.add(tokens.front(), index);
     numTotalFactors += tokens.size() - 1;
   }
-  auto vocabSize = vocab_.size();
-  LOG(info, "[embedding] Factored-embedding map read with total/unique of {}/{} factors for {} words", numTotalFactors, numFactors, vocabSize);
+  LOG(info, "[embedding] Factored-embedding map read with total/unique of {}/{} factors for {} valid words (in space of {})",
+      numTotalFactors, factorVocabSize, vocab_.numValid(), vocab_.size());
 
+  // create mappings needed for normalization in factored outputs
+  constructNormalizationInfoForVocab();
+
+  // </s> and <unk> must exist in the vocabulary
+  eosId_ = Word::fromWordIndex(vocab_[DEFAULT_EOS_STR]);
+  unkId_ = Word::fromWordIndex(vocab_[DEFAULT_UNK_STR]);
+
+  ABORT_IF(maxSizeUnused != 0 && maxSizeUnused != size(), "Factored vocabulary does not allow on-the-fly clipping to a maximum vocab size (to {})", maxSizeUnused);
+  return size();
+}
+
+void FactoredVocab::constructGroupInfoFromFactorVocab() {
   // form groups
-  // @TODO: hard-coded for these initial experiments
-  std::vector<std::string> groupPrefixes = {
-    "@C",
-    "@GL", "@GR"
-  };
-  groupPrefixes.insert(groupPrefixes.begin(), "(unassigned)");     // first group is fallback for normal words (the string is only used for messages)
-  size_t numGroups = groupPrefixes.size();
-  factorGroups_.resize(numFactors, 0);
-  for (size_t g = 1; g < groupPrefixes.size(); g++) { // set group labels; what does not match any prefix will stay in group 0
-    const auto& groupPrefix = groupPrefixes[g];
-    for (WordIndex u = 0; u < numFactors; u++)
+  size_t numGroups = groupPrefixes_.size();
+  size_t factorVocabSize = factorVocab_.size();
+  factorGroups_.resize(factorVocabSize, 0);
+  for (size_t g = 1; g < groupPrefixes_.size(); g++) { // set group labels; what does not match any prefix will stay in group 0
+    const auto& groupPrefix = groupPrefixes_[g];
+    for (WordIndex u = 0; u < factorVocabSize; u++)
       if (utils::beginsWith(factorVocab_[u], groupPrefix)) {
         ABORT_IF(factorGroups_[u] != 0, "Factor {} matches multiple groups, incl. {}", factorVocab_[u], groupPrefix);
         factorGroups_[u] = g;
@@ -70,7 +88,7 @@ namespace marian {
   // determine group index ranges
   groupRanges_.resize(numGroups, { SIZE_MAX, (size_t)0 });
   std::vector<size_t> groupCounts(numGroups); // number of group members
-  for (WordIndex u = 0; u < numFactors; u++) { // determine ranges; these must be non-overlapping, verified via groupCounts
+  for (WordIndex u = 0; u < factorVocabSize; u++) { // determine ranges; these must be non-overlapping, verified via groupCounts
     auto g = factorGroups_[u];
     if (groupRanges_[g].first > u)
         groupRanges_[g].first = u;
@@ -78,7 +96,19 @@ namespace marian {
         groupRanges_[g].second = u + 1;
     groupCounts[g]++;
   }
+  for (size_t g = 0; g < numGroups; g++) { // detect non-overlapping groups
+    LOG(info, "[embedding] Factor group '{}' has {} members", groupPrefixes_[g], groupCounts[g]);
+    if (groupCounts[g] == 0) // factor group is unused  --@TODO: once this is not hard-coded, this is an error condition
+      continue;
+    ABORT_IF(groupRanges_[g].second - groupRanges_[g].first != groupCounts[g],
+             "Factor group '{}' members should be consecutive in the factor vocabulary", groupPrefixes_[g]);
+  }
+}
+
+void FactoredVocab::constructNormalizationInfoForVocab() {
   // create mappings needed for normalization in factored outputs
+  size_t numGroups = groupPrefixes_.size();
+  size_t vocabSize = vocab_.size();
   factorMasks_  .resize(numGroups, std::vector<float>(vocabSize, 0));     // [g][v] 1.0 if word v has factor g
   factorIndices_.resize(numGroups, std::vector<IndexType>(vocabSize, 0)); // [g][v] index of factor (or any valid index if it does not have it; we use 0)
   for (WordIndex v = 0; v < vocabSize; v++) {
@@ -96,26 +126,11 @@ namespace marian {
   //      factorMasks_[2][v], factorIndices_[2][v],
   //      factorMasks_[3][v], factorIndices_[3][v]);
   //}
-  for (size_t g = 0; g < numGroups; g++) { // detect non-overlapping groups
-    LOG(info, "[embedding] Factor group '{}' has {} members ({})",
-        groupPrefixes[g], groupCounts[g], groupCounts[g] == 1 ? "sigmoid" : "softmax");
-    if (groupCounts[g] == 0) // factor group is unused  --@TODO: once this is not hard-coded, this is an error condition
-      continue;
-    ABORT_IF(groupRanges_[g].second - groupRanges_[g].first != groupCounts[g],
-             "Factor group '{}' members should be consecutive in the factor vocabulary", groupPrefixes[g]);
-  }
 
-  // create the global factor matrix, which is used for factored embeddings
+  // create the global factor matrix, which is used for getLogits()
   std::vector<IndexType> data(vocabSize);
   std::iota(data.begin(), data.end(), 0);
   globalFactorMatrix_ = csr_rows(data); // [V x U]
-
-  // </s> and <unk> must exist in the vocabulary
-  eosId_ = Word::fromWordIndex(vocab_[DEFAULT_EOS_STR]);
-  unkId_ = Word::fromWordIndex(vocab_[DEFAULT_UNK_STR]);
-
-  ABORT_IF(maxSizeUnused != 0 && maxSizeUnused != size(), "Factored vocabulary does not allow on-the-fly clipping to a maximum vocab size (to {})", maxSizeUnused);
-  return size();
 }
 
 /*virtual*/ Word FactoredVocab::operator[](const std::string& word) const /*override final*/ {
@@ -125,6 +140,14 @@ namespace marian {
     return Word::fromWordIndex(index);
   else
     return getUnkId();
+}
+
+/*virtual*/ const std::string& FactoredVocab::operator[](Word id) const /*override final*/ {
+  return vocab_[id.toWordIndex()];
+}
+
+/*virtual*/ size_t FactoredVocab::size() const /*override final*/ {
+  return vocab_.size();
 }
 
 /*virtual*/ Words FactoredVocab::encode(const std::string& line, bool addEOS /*= true*/, bool /*inference*/ /*= false*/) const /*override final*/ {
@@ -148,19 +171,11 @@ namespace marian {
   return utils::join(decoded, " ");
 }
 
-/*virtual*/ const std::string& FactoredVocab::operator[](Word id) const /*override final*/ {
-  return vocab_[id.toWordIndex()];
-}
-
-/*virtual*/ size_t FactoredVocab::size() const /*override final*/ {
-  return vocab_.size();
-}
-
 // This creates a fake vocabulary fro use in fakeBatch().
 // @TODO: This may become more complex.
 /*virtual*/ void FactoredVocab::createFake() /*override final*/ {
-  eosId_ = Word::fromWordIndex(vocab_.add(DEFAULT_EOS_STR));
-  unkId_ = Word::fromWordIndex(vocab_.add(DEFAULT_UNK_STR));
+  eosId_ = Word::fromWordIndex(vocab_.add(DEFAULT_EOS_STR, 0));
+  unkId_ = Word::fromWordIndex(vocab_.add(DEFAULT_UNK_STR, 1));
 }
 
 // create a CSR matrix M[V,U] from indices[] with
@@ -173,8 +188,8 @@ FactoredVocab::CSRData FactoredVocab::csr_rows(const std::vector<IndexType>& wor
   indices.reserve(words.size()); // (at least this many)
   // loop over all input words, and select the corresponding set of unit indices into CSR format
   offsets.push_back((IndexType)indices.size());
-  for (auto v : words) {
-    const auto& m = factorMap_[v];
+  for (auto w : words) {
+    const auto& m = factorMap_[w];
     for (auto u : m) {
       indices.push_back(u);
       weights.push_back(1.0f/*/(float)factorRefCounts_[u]*/);
