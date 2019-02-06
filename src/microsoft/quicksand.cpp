@@ -43,7 +43,7 @@ public:
                     const std::vector<const void*>& ptrs,
                     Word eos)
       : IBeamSearchDecoder(options, ptrs, eos) {
-    
+
     // setting 16-bit optimization to false for now. Re-enable with better caching or pre-computation
     graph_ = New<ExpressionGraph>(/*inference=*/true, /*optimize=*/false);
 
@@ -136,7 +136,7 @@ public:
         auto score = std::get<2>(result);
         // determine alignment if present
         AlignmentSets alignmentSets;
-        if (options_->has("alignment"))
+        if (options_->hasAndNotEmpty("alignment"))
         {
           float alignmentThreshold;
           auto alignment = options_->get<std::string>("alignment"); // @TODO: this logic now exists three times in Marian

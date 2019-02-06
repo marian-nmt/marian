@@ -256,7 +256,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
         std::vector<Ptr<Vocab>> vocabs;
         auto fb = data::CorpusBatch::fakeBatch(fakeLength, vocabs, num_seen_sentences, NULL);
         fb->front()->setWords(num_seen_words);
-        
+
         scheduler_->update(loss, fb);
 
         num_seen_words = 0;
@@ -325,7 +325,7 @@ void AsyncGraphGroup::load() {
             setFn(i, data.begin() + begin, data.begin() + end);
           }
         });
-    } else if(options_->has("pretrained-model")) {
+    } else if(options_->hasAndNotEmpty("pretrained-model")) {
       std::string nameInit = options_->get<std::string>("pretrained-model");
       LOG(info,
           "Initialize model weights with the pre-trained model {}",

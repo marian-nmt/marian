@@ -70,7 +70,8 @@ public:
             float maskFraction,
             const std::string& maskSymbol,
             const std::string& sepSymbol,
-            const std::string& clsSymbol)
+            const std::string& clsSymbol,
+            int dimTypeVocab)
     : CorpusBatch(*batch),
       maskSymbol_(maskSymbol), sepSymbol_(sepSymbol), clsSymbol_(clsSymbol) {
 
@@ -119,18 +120,19 @@ public:
       words[i] = maskOut(words[i], maskId, engine); // mask that position
     }
 
-    annotateSentenceIndices();
+    annotateSentenceIndices(dimTypeVocab);
   }
 
   BertBatch(Ptr<CorpusBatch> batch,
             const std::string& sepSymbol,
-            const std::string& clsSymbol)
+            const std::string& clsSymbol,
+            int dimTypeVocab)
     : CorpusBatch(*batch),
       maskSymbol_("dummy"), sepSymbol_(sepSymbol), clsSymbol_(clsSymbol) {
-    annotateSentenceIndices();
+    annotateSentenceIndices(dimTypeVocab);
   }
 
-  void annotateSentenceIndices() {
+  void annotateSentenceIndices(int dimTypeVocab) {
     // BERT expects a textual first stream and a second stream with class labels
     auto subBatch = subBatches_.front();
     const auto& vocab = *subBatch->vocab();
@@ -144,9 +146,7 @@ public:
     int dimBatch = (int)subBatch->batchSize();
     int dimWords = (int)subBatch->batchWidth();
 
-    const size_t maxSentPos = 2; // Currently only two sentences allowed A at [0] and B at [1] and padding at [2]
-    // If another separator is seen do not increase position index beyond 2 but use padding.
-    // @TODO: make this configurable, see below for NextSentencePredictions task where we also restrict to 2.
+    const size_t maxSentPos = dimTypeVocab;
 
     // create indices for BERT sentence embeddings A and B
     sentenceIndices_.resize(words.size()); // each word is either in sentence A or B
@@ -180,6 +180,7 @@ public:
 
   std::vector<Ptr<ClassifierState>> apply(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch, bool clearGraph) override {
     std::string modelType = opt<std::string>("type");
+    int dimTypeVocab = opt<int>("bert-type-vocab-size");
 
     // intercept batch and annotate with BERT-specific concepts
     Ptr<data::BertBatch> bertBatch;
@@ -189,11 +190,13 @@ public:
                                        opt<float>("bert-masking-fraction", 0.15f), // 15% by default according to paper
                                        opt<std::string>("bert-mask-symbol"),
                                        opt<std::string>("bert-sep-symbol"),
-                                       opt<std::string>("bert-class-symbol"));
+                                       opt<std::string>("bert-class-symbol"),
+                                       dimTypeVocab);
     } else if(modelType == "bert-classifier") { // we are probably fine-tuning a BERT model for a classification task
       bertBatch = New<data::BertBatch>(batch,
                                        opt<std::string>("bert-sep-symbol"),
-                                       opt<std::string>("bert-class-symbol")); // only annotate sentence separators
+                                       opt<std::string>("bert-class-symbol"),
+                                       dimTypeVocab); // only annotate sentence separators
     } else {
       ABORT("Unknown BERT-style model: {}", modelType);
     }
@@ -221,7 +224,6 @@ public:
   Expr addSentenceEmbeddings(Expr embeddings,
                              Ptr<data::CorpusBatch> batch,
                              bool learnedPosEmbeddings) const {
-
     Ptr<data::BertBatch> bertBatch = std::dynamic_pointer_cast<data::BertBatch>(batch);
     ABORT_IF(!bertBatch, "Batch must be BertBatch for BERT training or fine-tuning");
 
@@ -229,11 +231,13 @@ public:
     int dimBatch = embeddings->shape()[-2];
     int dimWords = embeddings->shape()[-3];
 
+    int dimTypeVocab = opt<int>("bert-type-vocab-size", 2);
+
     Expr signal;
     if(learnedPosEmbeddings) {
       auto sentenceEmbeddings = embedding()
-                               ("prefix", "Wsent")
-                               ("dimVocab", 3) // sentence A or sentence B plus padding, @TODO: should rather be a parameter
+                               ("prefix", "Wtype")
+                               ("dimVocab", dimTypeVocab) // sentence A or sentence B
                                ("dimEmb", dimEmb)
                                .construct(graph_);
       signal = sentenceEmbeddings->applyIndices(bertBatch->bertSentenceIndices(), {dimWords, dimBatch, dimEmb});
@@ -249,9 +253,10 @@ public:
   }
 
   virtual Expr addSpecialEmbeddings(Expr input, int start = 0, Ptr<data::CorpusBatch> batch = nullptr) const override {
-    bool trainPosEmbeddings = opt<bool>("transformer-train-positions", true);
+    bool trainPosEmbeddings = opt<bool>("transformer-train-position-embeddings", true);
+    bool trainTypeEmbeddings = opt<bool>("bert-train-type-embeddings", true);
     input = addPositionalEmbeddings(input, start, trainPosEmbeddings);
-    input = addSentenceEmbeddings(input, batch, trainPosEmbeddings); // @TODO: separately set learnable pos and sent embeddings
+    input = addSentenceEmbeddings(input, batch, trainTypeEmbeddings);
     return input;
   }
 };
@@ -329,23 +334,23 @@ public:
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
-    std::string activationType = opt<std::string>("transformer-ffn-activation");
-    mlp::act activation;
-    if(activationType == "relu")
-      activation = mlp::act::ReLU;
-    else if(activationType == "swish")
-      activation = mlp::act::swish;
-    else
-      ABORT("Activation function {} not supported in BERT masked LM", activationType);
-
     auto layer1 = mlp::mlp()
       .push_back(mlp::dense()
                  ("prefix", prefix_ + "_ff_logit_l1")
-                 ("dim", dimModel)
-                 ("activation", activation))
+                 ("dim", dimModel))
                  .construct(graph);
 
     auto intermediate = layer1->apply(maskedContext);
+
+    std::string activationType = opt<std::string>("transformer-ffn-activation");
+    if(activationType == "relu")
+      intermediate = relu(intermediate);
+    else if(activationType == "swish")
+      intermediate = swish(intermediate);
+    else if(activationType == "gelu")
+      intermediate = gelu(intermediate);
+    else
+      ABORT("Activation function {} not supported in BERT masked LM", activationType);
 
     auto gamma = graph->param(prefix_ + "_ff_ln_scale", {1, dimModel}, inits::ones);
     auto beta  = graph->param(prefix_ + "_ff_ln_bias",  {1, dimModel}, inits::zeros);

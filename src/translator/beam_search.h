@@ -42,7 +42,7 @@ public:
     Beams newBeams(beams.size());
 
     std::vector<float> align;
-    if(options_->has("alignment"))
+    if(options_->hasAndNotEmpty("alignment"))
       // Use alignments from the first scorer, even if ensemble
       align = scorers_[0]->getAlignment();
 

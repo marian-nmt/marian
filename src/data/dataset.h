@@ -15,6 +15,7 @@ class DatasetBase {
 protected:
   std::vector<std::string> paths_;
   Ptr<Options> options_;
+
   // Data processing may differ in training/inference settings
   bool inference_{false};
 

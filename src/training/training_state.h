@@ -26,20 +26,22 @@ enum class SchedulingUnit {
   updates,   // "u": number of updates so far (batches)
   epochs     // "e": number of epochs begun so far (very first epoch is 1)
 };
+
 struct SchedulingParameter {
   size_t n{0};                                  // number of steps measured in 'unit'
   SchedulingUnit unit{SchedulingUnit::updates}; // unit of value
 
   // parses scheduling parameters of the form NU where N=unsigned int and U=unit
-  // Examples of valid inputs: "16000u" (16000 updates), "32000000t" (32 million target labels), "100e" (100 epochs).
+  // Examples of valid inputs: "16000u" (16000 updates), "32000000t" (32 million target labels),
+  // "100e" (100 epochs).
   static SchedulingParameter parse(std::string param) {
     SchedulingParameter res;
-    if (!param.empty() && param.back() >= 'a') {
-      switch (param.back()) {
-      case 't': res.unit = SchedulingUnit::trgLabels; break;
-      case 'u': res.unit = SchedulingUnit::updates;   break;
-      case 'e': res.unit = SchedulingUnit::epochs;    break;
-      default: ABORT("invalid unit '{}' in {}", param.back(), param);
+    if(!param.empty() && param.back() >= 'a') {
+      switch(param.back()) {
+        case 't': res.unit = SchedulingUnit::trgLabels; break;
+        case 'u': res.unit = SchedulingUnit::updates;   break;
+        case 'e': res.unit = SchedulingUnit::epochs;    break;
+        default: ABORT("invalid unit '{}' in {}", param.back(), param);
       }
       param.pop_back();
     }
@@ -52,11 +54,11 @@ struct SchedulingParameter {
   operator bool() const { return n > 0; } // check whether it is specified
 
   operator std::string() const { // convert back for storing in config
-    switch (unit) {
-    case SchedulingUnit::trgLabels: return std::to_string(n) + "t";
-    case SchedulingUnit::updates  : return std::to_string(n) + "u";
-    case SchedulingUnit::epochs   : return std::to_string(n) + "e";
-    default: ABORT("corrupt enum value");
+    switch(unit) {
+      case SchedulingUnit::trgLabels: return std::to_string(n) + "t";
+      case SchedulingUnit::updates  : return std::to_string(n) + "u";
+      case SchedulingUnit::epochs   : return std::to_string(n) + "e";
+      default: ABORT("corrupt enum value for scheduling unit");
     }
   }
 };
@@ -133,11 +135,11 @@ public:
 
   // return the totals count that corresponds to the given unit (batches, labels, or epochs)
   size_t getProgressIn(SchedulingUnit u) const {
-    switch (u) {
-    case SchedulingUnit::trgLabels: return labelsTotal;
-    case SchedulingUnit::updates  : return batches;
-    case SchedulingUnit::epochs   : return epochs;
-    default: ABORT("corrupt enum value");
+    switch(u) {
+      case SchedulingUnit::trgLabels: return labelsTotal;
+      case SchedulingUnit::updates  : return batches;
+      case SchedulingUnit::epochs   : return epochs;
+      default: ABORT("corrupt enum value");
     }
   }
 
@@ -150,11 +152,11 @@ public:
   }
 
   size_t getPreviousProgressIn(SchedulingUnit u) const {
-    switch (u) {
-    case SchedulingUnit::trgLabels: return prevLabelsTotal;
-    case SchedulingUnit::updates  : return prevBatches;
-    case SchedulingUnit::epochs   : return prevEpochs;
-    default: ABORT("corrupt enum value");
+    switch(u) {
+      case SchedulingUnit::trgLabels: return prevLabelsTotal;
+      case SchedulingUnit::updates  : return prevBatches;
+      case SchedulingUnit::epochs   : return prevEpochs;
+      default: ABORT("corrupt enum value");
     }
   }
 
@@ -162,6 +164,7 @@ public:
   // unit in which that parameter is given. There are a few edge cases:
   //  - this function will be called many times within the same epoch
   //  - labelsTotal does not increment by 1, so simple modulus does not work
+  //
   // So instead of modulus==0, this function compares the previous progress/period
   // to the current, and triggers if they differ (i.e. the border between two
   // periods was crossed). This requires that rememberPreviousProgress() is called
@@ -171,7 +174,8 @@ public:
   bool enteredNewPeriodOf(std::string schedulingParam) const {
     auto period = SchedulingParameter::parse(schedulingParam);
     ABORT_IF(period.unit == SchedulingUnit::epochs,
-        "Unit {} is not supported for frequency parameters (the one(s) with value {})", schedulingParam);
+             "Unit {} is not supported for frequency parameters (the one(s) with value {})",
+             schedulingParam);
     auto previousProgress = getPreviousProgressIn(period.unit);
     auto progress = getProgressIn(period.unit);
     return period && progress / period.n != previousProgress / period.n;
@@ -217,13 +221,16 @@ public:
     epochs = config["epochs"].as<size_t>();
     batches = config["batches"].as<size_t>();
     batchesEpoch = config["batches-epoch"].as<size_t>();
-    // (different serialization name for back compat)
+    // different serialization name for backward compatibility
     samplesEpoch = config["samples"].as<size_t>();
-    // (optional for back compat)
+
+    // clang-format off
+    // optional for backward compatibility
     labelsTotal     = config["labels-total"]      ? config["labels-total"].as<size_t>()      : 0;
     prevLabelsTotal = config["prev-labels-total"] ? config["prev-labels-total"].as<size_t>() : 0;
     prevBatches     = config["prev-batches"]      ? config["prev-batches"].as<size_t>()      : 0;
     prevEpochs      = config["prev-epochs"]       ? config["prev-epochs"].as<size_t>()       : 0;
+    // clang-format on
 
     stalled = config["stalled"].as<size_t>();
     maxStalled = config["stalled-max"].as<size_t>();

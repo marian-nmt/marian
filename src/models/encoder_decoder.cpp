@@ -8,26 +8,31 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
     : options_(options),
       prefix_(options->get<std::string>("prefix", "")),
       inference_(options->get<bool>("inference", false)) {
-  modelFeatures_ = {"type",
-                    "dim-vocabs",
-                    "dim-emb",
-                    "dim-rnn",
-                    "enc-cell",
-                    "enc-type",
-                    "enc-cell-depth",
-                    "enc-depth",
-                    "dec-depth",
-                    "dec-cell",
-                    "dec-cell-base-depth",
-                    "dec-cell-high-depth",
-                    "skip",
-                    "layer-normalization",
-                    "right-left",
-                    "input-types",
-                    "special-vocab",
-                    "tied-embeddings",
-                    "tied-embeddings-src",
-                    "tied-embeddings-all"};
+
+  std::vector<std::string> encoderDecoderModelFeatures =
+    {"type",
+     "dim-vocabs",
+     "dim-emb",
+     "dim-rnn",
+     "enc-cell",
+     "enc-type",
+     "enc-cell-depth",
+     "enc-depth",
+     "dec-depth",
+     "dec-cell",
+     "dec-cell-base-depth",
+     "dec-cell-high-depth",
+     "skip",
+     "layer-normalization",
+     "right-left",
+     "input-types",
+     "special-vocab",
+     "tied-embeddings",
+     "tied-embeddings-src",
+     "tied-embeddings-all"};
+
+  for(auto feature : encoderDecoderModelFeatures)
+    modelFeatures_.insert(feature);
 
   modelFeatures_.insert("transformer-heads");
   modelFeatures_.insert("transformer-no-projection");
@@ -44,7 +49,14 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
   modelFeatures_.insert("transformer-decoder-autoreg");
   modelFeatures_.insert("transformer-tied-layers");
   modelFeatures_.insert("transformer-guided-alignment-layer");
-  modelFeatures_.insert("transformer-train-positions");
+  modelFeatures_.insert("transformer-train-position-embeddings");
+
+  modelFeatures_.insert("bert-train-type-embeddings");
+  modelFeatures_.insert("bert-type-vocab-size");
+
+  modelFeatures_.insert("ulr");
+  modelFeatures_.insert("ulr-trainable-transformation");
+  modelFeatures_.insert("ulr-dim-emb");
 }
 
 std::vector<Ptr<EncoderBase>>& EncoderDecoder::getEncoders() {
