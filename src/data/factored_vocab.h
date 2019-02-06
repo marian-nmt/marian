@@ -63,8 +63,7 @@ private:
       ABORT_IF(!wasInserted, "Duplicate vocab entry for '{}'", word);
       while (index2str_.size() <= index)
         index2str_.emplace_back(); // @TODO: what's the right way to get linear complexity in steps?
-      if (!index2str_[index].empty())
-        ABORT_IF(!wasInserted, "Duplicate vocab entry for index {} (new: '{}'; existing: '{}')", index, word, index2str_[index]);
+      ABORT_IF(!index2str_[index].empty(), "Duplicate vocab entry for index {} (new: '{}'; existing: '{}')", index, word, index2str_[index]);
       index2str_[index] = word;
       return index;
     }
