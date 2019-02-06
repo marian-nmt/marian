@@ -168,9 +168,6 @@ endif(USE_STATIC_LIBS)
     list(APPEND CUDA_NVCC_FLAGS -DBOOST_PP_VARIADICS=0; )
   endif()
 
-  # We compile NCCL ourselves, using the NVidia Makefile rather than CMake, this requires to pass a couple of parameters from
-  # Cmake. This is also fairly untested, let's hope it does not explode.
-  # @TODO: Make sure it does not use pre-installed NCCL headers
   if(USE_NCCL)
     add_library(nccl STATIC IMPORTED)
     set(EXT_LIBS ${EXT_LIBS} nccl)
