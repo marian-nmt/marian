@@ -400,7 +400,7 @@ public:
     auto e = params_->get(name);
     if(e)
       return e;
-    return Expr();
+    return Expr();  // @TODO: how is this different from just returning 'e'?
   }
 
   Ptr<Parameters>& params() { return params_; }

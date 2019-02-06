@@ -32,7 +32,7 @@ message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 
 execute_process(COMMAND git submodule update --init --recursive --no-fetch
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
- 
+
 # Set compilation flags
 if(MSVC)
 # These are used in src/CMakeLists.txt on a per-target basis
@@ -42,7 +42,7 @@ if(MSVC)
   # C4310: cast truncates constant value
   # C4324: 'marian::cpu::int16::`anonymous-namespace'::ScatterPut': structure was padded due to alignment specifier
   set(DISABLE_GLOBALLY "/wd\"4310\" /wd\"4324\"")
-  
+
   set(INTRINSICS "/arch:AVX")
 
   # Or maybe use these?
@@ -57,7 +57,7 @@ if(MSVC)
   set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS} /DEBUG /LTCG:incremental /INCREMENTAL:NO /NODEFAULTLIB:MSVCRT /ignore:4049")
   set(CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} /LTCG:incremental")
 
-  find_library(SHLWAPI Shlwapi.lib) 
+  find_library(SHLWAPI Shlwapi.lib)
   set(EXT_LIBS ${EXT_LIBS} SHLWAPI)
 else()
 
@@ -168,41 +168,11 @@ endif(USE_STATIC_LIBS)
     list(APPEND CUDA_NVCC_FLAGS -DBOOST_PP_VARIADICS=0; )
   endif()
 
-  # We compile NCCL ourselves, using the NVidia Makefile rather than CMake, this requires to pass a couple of parameters from
-  # Cmake. This is also fairly untested, let's hope it does not explode.
-  # @TODO: Make sure it does not use pre-installed NCCL headers
   if(USE_NCCL)
-    # define and set the include dir for the generated nccl.h header
-    set(NCCL_HEADER_LOCATION "${CMAKE_CURRENT_BINARY_DIR}/nccl/include")
-    include_directories(${NCCL_HEADER_LOCATION})
-
-    # set the path for the generated static lib
-    set(NCCL_LIB_STATIC "${CMAKE_CURRENT_BINARY_DIR}/nccl/lib/libnccl_static.a")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_NCCL")
-
-    LIST(APPEND CUDA_NVCC_FLAGS -DUSE_NCCL; )
-
-    # disables compilation for sm_30 to avoid ptxas warning... that's general Kepler support. But K80s are supported for instance by sm_35
-    set(GENCODE "-gencode=arch=compute_35,code=sm_35 -gencode=arch=compute_50,code=sm_50 -gencode=arch=compute_60,code=sm_60 -gencode=arch=compute_61,code=sm_61")
-
-    # We build using NVidia's custom makefile, for that we pass a number of variables from CMake.
-    # Sets output to the chosen build folder, i.e. where the binaries and objects are generated.
-    # Also passes CUDA location from FindCUDA, sets c++ compiler to the same one CMake uses.
-    add_custom_command(OUTPUT ${NCCL_LIB_STATIC}
-                       COMMAND ${CMAKE_MAKE_PROGRAM} src.build
-                       BUILDDIR=${CMAKE_CURRENT_BINARY_DIR}/nccl
-                       CUDA_HOME=${CUDA_TOOLKIT_ROOT_DIR}
-                       CUDA8_GENCODE=${GENCODE}
-                       CXX=${CMAKE_CXX_COMPILER}
-                       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/3rd_party/nccl)
-    add_custom_target(nccl_target DEPENDS ${NCCL_LIB_STATIC})
     add_library(nccl STATIC IMPORTED)
-    set_target_properties(nccl PROPERTIES IMPORTED_LOCATION ${NCCL_LIB_STATIC})
-    add_dependencies(nccl nccl_target)
     set(EXT_LIBS ${EXT_LIBS} nccl)
-
-    # adds the resulting files to be removed by `make clean`
-    set_directory_properties(PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${CMAKE_CURRENT_BINARY_DIR}/nccl)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_NCCL")
+    LIST(APPEND CUDA_NVCC_FLAGS -DUSE_NCCL; )
   endif(USE_NCCL)
 
 if(USE_STATIC_LIBS)

@@ -351,14 +351,15 @@ protected:
           }
 
           if(!engine)
-            engine.reset(new std::mt19937(Config::seed + id));
+            engine.reset(new std::mt19937((unsigned int)(Config::seed + id)));
 
           auto bertBatch = New<data::BertBatch>(batch,
                                                 *engine,
                                                 options_->get<float>("bert-masking-fraction"),
                                                 options_->get<std::string>("bert-mask-symbol"),
                                                 options_->get<std::string>("bert-sep-symbol"),
-                                                options_->get<std::string>("bert-class-symbol"));
+                                                options_->get<std::string>("bert-class-symbol"),
+                                                options_->get<int>("bert-type-vocab-size"));
 
           builder->clear(graph);
           auto classifierStates = std::dynamic_pointer_cast<BertEncoderClassifier>(builder)->apply(graph, bertBatch, true);

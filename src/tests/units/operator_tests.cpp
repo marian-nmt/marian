@@ -342,77 +342,86 @@ void tests(DeviceType device) {
     auto B = graph->param("B", {3, 2}, inits::from_vector(vB));
     auto C = dot(A, B);
 
-    // CSR dot product, tested against dense product on the same values
-    // std::vector<float> vS({1, 0, 0, 1,          // sparse
-    //                        0, 0, 1, 1.5});
-    // std::vector<float> vD({1, 2, 3, 1.2, 5.6,   // dense
-    //                        4, 5, 6, 2.3, 6.7,
-    //                        7, 8, 9, 3.4, 7.8,
-    //                        1, 1, 2, 4.5, 8.9});
-    // auto S  = graph->param("S",  { 2, 4 }, inits::from_vector(vS));
-    // auto D  = graph->param("D",  { 4, 5 }, inits::from_vector(vD));
-    // auto DT = graph->param("DT", { 5, 4 }, inits::from_vector(vD)); // example matrix with transposed dimensions
-    // std::vector<float> SV;    // create CSR version of S
-    // std::vector<IndexType> SI, SO;
-    // SO.push_back((IndexType)SI.size());
-    // for (IndexType i = 0; i < S->shape()[0]; i++) {
-    //   for (IndexType j = 0; j < S->shape()[1]; j++) {
-    //     auto k = 4 * i + j;
-    //     if (vS[k] != 0) {
-    //       SV.push_back(vS[k]);
-    //       SI.push_back(j);
-    //     }
-    //   }
-    //   SO.push_back((IndexType)SI.size());
-    // }
-
-    // auto SxDd    = dot(S, D);
-    // auto STxSxDd = dot(S, SxDd, /*transA=*/true);
-    // auto SxDs = csr_dot( // sparse x dense
-    //       S->shape(),
-    //       graph->constant({(int)SV.size()}, inits::from_vector(SV), Type::float32),
-    //       graph->constant({(int)SI.size()}, inits::from_vector(SI), Type::uint32),
-    //       graph->constant({(int)SO.size()}, inits::from_vector(SO), Type::uint32),
-    //       D);
-    // auto STxSxDs = csr_dot(   // transpose(sparse) x dense; we use result of previous since dimensions match
-    //       S->shape(),
-    //       graph->constant({(int)SV.size()}, inits::from_vector(SV), Type::float32),
-    //       graph->constant({(int)SI.size()}, inits::from_vector(SI), Type::uint32),
-    //       graph->constant({(int)SO.size()}, inits::from_vector(SO), Type::uint32),
-    //       SxDd, /*transS=*/true);
-
-    // auto DTxSTd   = dot(DT,     S, /*transA=*/false, /*transB=*/true);
-    // auto DTxSTxSd = dot(DTxSTd, S);
-    // auto DTxSTs = dot_csr( // dense x sparse
-    //       DT,
-    //       S->shape(),
-    //       graph->constant({(int)SV.size()}, inits::from_vector(SV), Type::float32),
-    //       graph->constant({(int)SI.size()}, inits::from_vector(SI), Type::uint32),
-    //       graph->constant({(int)SO.size()}, inits::from_vector(SO), Type::uint32),
-    //       /*transS=*/true);
-    // auto DTxSTxSs = dot_csr( // dense x transpose(sparse)
-    //       DTxSTd,
-    //       S->shape(),
-    //       graph->constant({(int)SV.size()}, inits::from_vector(SV), Type::float32),
-    //       graph->constant({(int)SI.size()}, inits::from_vector(SI), Type::uint32),
-    //       graph->constant({(int)SO.size()}, inits::from_vector(SO), Type::uint32));
-
     CHECK(C->shape() == Shape({2, 2, 2}));
-    // CHECK(SxDs->shape() == SxDd->shape());
-    // CHECK(STxSxDs->shape() == STxSxDd->shape());
-    // CHECK(DTxSTs->shape() == DTxSTd->shape());
-    // CHECK(DTxSTxSs->shape() == DTxSTxSd->shape());
 
     graph->forward();
 
     C->val()->get(values);
     CHECK(values == vC);
+  }
 
-    // dense and sparse operation results must be the same
-    // SxDd    ->val()->get(values2); SxDs    ->val()->get(values); CHECK(values == values2);
-    // STxSxDd ->val()->get(values2); STxSxDs ->val()->get(values); CHECK(values == values2);
-    // DTxSTd  ->val()->get(values2); DTxSTs  ->val()->get(values); CHECK(values == values2);
-    // DTxSTxSd->val()->get(values2); DTxSTxSs->val()->get(values); CHECK(values == values2);
+  if(device == DeviceType::gpu) {
+    SECTION("csr-dot product") {
+      graph->clear();
+      values.clear();
+      // CSR dot product, tested against dense product on the same values
+      std::vector<float> vS({1, 0, 0, 1,          // sparse
+                            0, 0, 1, 1.5});
+      std::vector<float> vD({1, 2, 3, 1.2, 5.6,   // dense
+                            4, 5, 6, 2.3, 6.7,
+                            7, 8, 9, 3.4, 7.8,
+                            1, 1, 2, 4.5, 8.9});
+      auto S  = graph->param("S",  { 2, 4 }, inits::from_vector(vS));
+      auto D  = graph->param("D",  { 4, 5 }, inits::from_vector(vD));
+      auto DT = graph->param("DT", { 5, 4 }, inits::from_vector(vD)); // example matrix with transposed dimensions
+      std::vector<float> SV;    // create CSR version of S
+      std::vector<IndexType> SI, SO;
+      SO.push_back((IndexType)SI.size());
+      for (IndexType i = 0; i < S->shape()[0]; i++) {
+        for (IndexType j = 0; j < S->shape()[1]; j++) {
+          auto k = 4 * i + j;
+          if (vS[k] != 0) {
+            SV.push_back(vS[k]);
+            SI.push_back(j);
+          }
+        }
+        SO.push_back((IndexType)SI.size());
+      }
+
+      auto SxDd    = dot(S, D);
+      auto STxSxDd = dot(S, SxDd, /*transA=*/true);
+      auto SxDs = csr_dot( // sparse x dense
+            S->shape(),
+            graph->constant({(int)SV.size()}, inits::from_vector(SV), Type::float32),
+            graph->constant({(int)SI.size()}, inits::from_vector(SI), Type::uint32),
+            graph->constant({(int)SO.size()}, inits::from_vector(SO), Type::uint32),
+            D);
+      auto STxSxDs = csr_dot(   // transpose(sparse) x dense; we use result of previous since dimensions match
+            S->shape(),
+            graph->constant({(int)SV.size()}, inits::from_vector(SV), Type::float32),
+            graph->constant({(int)SI.size()}, inits::from_vector(SI), Type::uint32),
+            graph->constant({(int)SO.size()}, inits::from_vector(SO), Type::uint32),
+            SxDd, /*transS=*/true);
+
+      auto DTxSTd   = dot(DT,     S, /*transA=*/false, /*transB=*/true);
+      auto DTxSTxSd = dot(DTxSTd, S);
+      auto DTxSTs = dot_csr( // dense x sparse
+            DT,
+            S->shape(),
+            graph->constant({(int)SV.size()}, inits::from_vector(SV), Type::float32),
+            graph->constant({(int)SI.size()}, inits::from_vector(SI), Type::uint32),
+            graph->constant({(int)SO.size()}, inits::from_vector(SO), Type::uint32),
+            /*transS=*/true);
+      auto DTxSTxSs = dot_csr( // dense x transpose(sparse)
+            DTxSTd,
+            S->shape(),
+            graph->constant({(int)SV.size()}, inits::from_vector(SV), Type::float32),
+            graph->constant({(int)SI.size()}, inits::from_vector(SI), Type::uint32),
+            graph->constant({(int)SO.size()}, inits::from_vector(SO), Type::uint32));
+
+      CHECK(SxDs->shape() == SxDd->shape());
+      CHECK(STxSxDs->shape() == STxSxDd->shape());
+      CHECK(DTxSTs->shape() == DTxSTd->shape());
+      CHECK(DTxSTxSs->shape() == DTxSTxSd->shape());
+
+      graph->forward();
+
+      // dense and sparse operation results must be the same
+      SxDd    ->val()->get(values2); SxDs    ->val()->get(values); CHECK(values == values2);
+      STxSxDd ->val()->get(values2); STxSxDs ->val()->get(values); CHECK(values == values2);
+      DTxSTd  ->val()->get(values2); DTxSTs  ->val()->get(values); CHECK(values == values2);
+      DTxSTxSd->val()->get(values2); DTxSTxSs->val()->get(values); CHECK(values == values2);
+    }
   }
 
   SECTION("affine transformation") {

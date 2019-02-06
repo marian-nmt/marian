@@ -125,14 +125,15 @@ public:
 
 class Output : public LayerBase, public IUnaryLayer {
 private:
-  Expr W_;  // parameters held by this layer
+  // parameters held by this layer
+  Expr Wt_; // weight matrix is stored transposed for efficiency
   Expr b_;
-  Expr cachedShortW_;   // short-listed version, cached (cleared by clear())
+  bool isLegacyUntransposedW{false}; // legacy-model emulation: W is stored in non-transposed form
+  Expr cachedShortWt_;  // short-listed version, cached (cleared by clear())
   Expr cachedShortb_;   // these match the current value of shortlist_
 
   // optional parameters set/updated after construction
   Expr tiedParam_;
-  bool transposeW_{false};
   Ptr<data::Shortlist> shortlist_;
 
 public:
@@ -142,7 +143,7 @@ public:
   }
 
   void tieTransposed(Expr tied) {
-    if (W_)
+    if (Wt_)
       ABORT_IF(tiedParam_.get() != tied.get(), "Tied output projection cannot be changed once weights have been created");
     else
       tiedParam_ = tied;
@@ -152,47 +153,47 @@ public:
     if (shortlist_)
       ABORT_IF(shortlist.get() != shortlist_.get(), "Output shortlist cannot be changed except after clear()");
     else {
-      ABORT_IF(cachedShortW_ || cachedShortb_, "No shortlist but cached parameters??");
+      ABORT_IF(cachedShortWt_ || cachedShortb_, "No shortlist but cached parameters??");
       shortlist_ = shortlist;
     }
-    // cachedShortW_ and cachedShortb_ will be created lazily inside apply()
+    // cachedShortWt_ and cachedShortb_ will be created lazily inside apply()
   }
 
   // this is expected to be called in sync with graph->clear(), which invalidates
-  // cachedShortW_ and cachedShortb_ in the graph's short-term cache
+  // cachedShortWt_ and cachedShortb_ in the graph's short-term cache
   void clear() {
     shortlist_ = nullptr;
-    cachedShortW_ = nullptr;
-    cachedShortb_ = nullptr;
+    cachedShortWt_ = nullptr;
+    cachedShortb_  = nullptr;
   }
 
   Expr apply(Expr input) override {
-    if(!W_) { // create lazily because we need input's dimension
+    if(!Wt_) { // create lazily because we need input's dimension
       auto name = options_->get<std::string>("prefix");
       auto dim = options_->get<int>("dim");
 
       if(tiedParam_) {
-        W_ = tiedParam_;
-        transposeW_ = true;
+        Wt_ = tiedParam_;
       } else {
-        W_ = graph_->param(name + "_W", {input->shape()[-1], dim}, inits::glorot_uniform);
-        transposeW_ = false;
+        if (graph_->get(name + "_W")) { // support of legacy models that did not transpose
+          Wt_ = graph_->param(name + "_W", {input->shape()[-1], dim}, inits::glorot_uniform2(/*fanIn=*/true, /*fanOut=*/false)); // @TODO: unify initializers, already done in other branch
+          isLegacyUntransposedW = true;
+        }
+        else // this is the regular case:
+          Wt_ = graph_->param(name + "_Wt", {dim, input->shape()[-1]}, inits::glorot_uniform2(/*fanIn=*/false, /*fanOut=*/true)); // @TODO: unify initializers, already done in other branch
       }
       b_ = graph_->param(name + "_b", {1, dim}, inits::zeros);
     }
 
     if (shortlist_) {
-      if (!cachedShortW_) { // short versions of parameters are cached within one batch, then clear()ed
-        if(transposeW_)
-          cachedShortW_ = rows(W_, shortlist_->indices());
-        else
-          cachedShortW_ = cols(W_, shortlist_->indices());
-        cachedShortb_ = cols(b_, shortlist_->indices());
+      if (!cachedShortWt_) { // short versions of parameters are cached within one batch, then clear()ed
+        cachedShortWt_ = index_select(Wt_, isLegacyUntransposedW ? -1 : 0, shortlist_->indices());
+        cachedShortb_  = index_select(b_ ,                             -1, shortlist_->indices());
       }
-      return affine(input, cachedShortW_, cachedShortb_, false, transposeW_);
+      return affine(input, cachedShortWt_, cachedShortb_, false, /*transB=*/isLegacyUntransposedW ? false : true);
     }
     else
-      return affine(input, W_, b_, false, transposeW_);
+      return affine(input, Wt_, b_, false, /*transB=*/isLegacyUntransposedW ? false : true);
   }
 
   virtual Expr apply(const std::vector<Expr>& /*inputs*/) override {
@@ -349,7 +350,7 @@ public:
   }
 
   Expr apply(const std::vector<IndexType>& embIdx, const Shape& shape) const override final {
-    shape;
+    embIdx; shape;
     ABORT("not implemented"); // @TODO: implement me
   }
 };
