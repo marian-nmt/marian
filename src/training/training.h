@@ -51,7 +51,7 @@ public:
       LOG(info, "[batching] Done. Typical MB size is {} target words", stats->estimateTypicalTrgWords());
     }
 
-    if((options_->nonempty("valid-sets") || options_->nonempty("valid-script-path"))
+    if((options_->hasAndNotEmpty("valid-sets") || options_->hasAndNotEmpty("valid-script-path"))
        && SchedulingParameter::parse(options_->get<std::string>("valid-freq"))) {
       for(auto validator : Validators(dataset->getVocabs(), options_))
         scheduler->addValidator(validator);

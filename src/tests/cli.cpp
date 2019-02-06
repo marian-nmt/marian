@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
   std::cout << emit.c_str() << std::endl;
 
   std::cout << "===" << std::endl;
-  std::cout << "vec/str.nonempty? " << options->nonempty("vec") << " " << options->nonempty("str") << std::endl;
+  std::cout << "vec/str.hasAndNotEmpty? " << options->hasAndNotEmpty("vec") << " " << options->hasAndNotEmpty("str") << std::endl;
   std::cout << "vec/str.has?      " << options->has("vec") << " " << options->has("str") << std::endl;
 
   return 0;

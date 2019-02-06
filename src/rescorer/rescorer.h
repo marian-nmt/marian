@@ -49,10 +49,10 @@ private:
 
 public:
   Rescore(Ptr<Options> options) : options_(options) {
-    ABORT_IF(options_->nonempty("summary") && options_->nonempty("alignment"),
+    ABORT_IF(options_->hasAndNotEmpty("summary") && options_->hasAndNotEmpty("alignment"),
              "Alignments can not be produced with summarized score");
 
-    ABORT_IF(options_->nonempty("summary") && options_->get<bool>("normalize"),
+    ABORT_IF(options_->hasAndNotEmpty("summary") && options_->get<bool>("normalize"),
              "Normalization by length cannot be used with summary scores");
 
     options_->set("inference", true);

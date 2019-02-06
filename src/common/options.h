@@ -102,7 +102,7 @@ public:
    *
    * @return true if the option is defined and is a nonempty sequence or string
    */
-  bool nonempty(const std::string& key) const {
+  bool hasAndNotEmpty(const std::string& key) const {
     if(!has(key)) {
       return false;
     }

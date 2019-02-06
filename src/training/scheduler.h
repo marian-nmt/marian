@@ -282,8 +282,7 @@ public:
 
     state_->updatesDisp  += 1;
     state_->samplesDisp  += batchSize;
-    state_->wordsDisp    += batchLabels;        // words at given input processed since last display, for speed display
-                                                // @TODO: this is wrong
+    state_->wordsDisp    += batchLabels;        // @TODO: this is wrong // words at given input processed since last display, for speed display
     state_->samplesEpoch += batchSize;          // sentences processed in this epoch
     state_->labelsTotal  += rationalLoss.count; // total labels processed
 

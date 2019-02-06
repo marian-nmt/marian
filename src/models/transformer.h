@@ -533,7 +533,7 @@ public:
       embFactory("prefix", prefix_ + "_Wemb");
     if(options_->has("embedding-fix-src"))
       embFactory("fixed", opt<bool>("embedding-fix-src"));
-    if(options_->nonempty("embedding-vectors")) {
+    if(options_->hasAndNotEmpty("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
       embFactory("embFile", embFiles[subBatchIndex])
                 ("normalization", opt<bool>("embedding-normalization"));
@@ -797,7 +797,7 @@ public:
           // decoding or scoring return the attention weights of one head of the last layer.
           // @TODO: maybe allow to return average or max over all heads?
           bool saveAttentionWeights = false;
-          if(j == 0 && (options_->get("guided-alignment", std::string("none")) != "none" || options_->nonempty("alignment"))) {
+          if(j == 0 && (options_->get("guided-alignment", std::string("none")) != "none" || options_->hasAndNotEmpty("alignment"))) {
             size_t attLayer = decDepth - 1;
             std::string gaStr = options_->get<std::string>("transformer-guided-alignment-layer", "last");
             if(gaStr != "last")

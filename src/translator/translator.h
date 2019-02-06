@@ -41,7 +41,7 @@ public:
     trgVocab_->load(vocabs.back());
     auto srcVocab = corpus_->getVocabs()[0];
 
-    if(options_->nonempty("shortlist"))
+    if(options_->hasAndNotEmpty("shortlist"))
       shortlistGenerator_ = New<data::LexicalShortlistGenerator>(
           options_, srcVocab, trgVocab_, 0, 1, vocabs.front() == vocabs.back());
 
