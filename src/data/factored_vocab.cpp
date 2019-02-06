@@ -24,34 +24,30 @@ namespace marian {
   auto mapPath = factoredVocabPath;
   auto factorVocabPath = mapPath;
   factorVocabPath.back() = 'l'; // map .fm to .fl
-  auto vocabPath = factorVocabPath;
-  vocabPath[vocabPath.size() - 2] = 'w'; // map .fl to .wl  --@TODO: This should go away; esp. to allow per-stream vocabs
-
-  std::string line;
-
-  // load main vocabulary   --@TODO: This will go away soon.
-  auto vocabSize = vocab_.load(vocabPath);
 
   // load factor vocabulary
   auto numFactors = factorVocab_.load(factorVocabPath);
+  factorRefCounts_.resize(numFactors);
 
   // load and parse factorMap
-  factorMap_.resize(vocabSize);
-  factorRefCounts_.resize(numFactors);
   std::vector<std::string> tokens;
-  io::InputFileStream in(mapPath);
+  std::string line;
   size_t numTotalFactors = 0;
+  io::InputFileStream in(mapPath);
   for (WordIndex v = 0; io::getline(in, line); v++) {
-    tokens.clear(); // @BUGBUG: should be done in split()
     utils::splitAny(line, tokens, " \t");
-    ABORT_IF(tokens.size() < 2 || tokens.front() != vocab_[v], "Factor map must list words in same order as vocab, and have at least one factor per word", mapPath);
+    vocab_.add(tokens.front());
+    ABORT_IF(tokens.size() < 2, "Factor map must have at least one factor per word", mapPath);
+    std::vector<WordIndex> factors;
     for (size_t i = 1; i < tokens.size(); i++) {
       auto u = factorVocab_[tokens[i]];
-      factorMap_[v].push_back(u);
+      factors.push_back(u);
       factorRefCounts_[u]++;
     }
+    factorMap_.emplace_back(std::move(factors));
     numTotalFactors += tokens.size() - 1;
   }
+  auto vocabSize = vocab_.size();
   LOG(info, "[embedding] Factored-embedding map read with total/unique of {}/{} factors for {} words", numTotalFactors, numFactors, vocabSize);
 
   // form groups
