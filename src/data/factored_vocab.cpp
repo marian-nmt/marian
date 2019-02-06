@@ -33,6 +33,9 @@ namespace marian {
   constructGroupInfoFromFactorVocab();
 
   // load and parse factorMap
+  auto elements = factorShape_.elements();
+  vocab_.resize(elements);
+  factorMap_.resize(elements);
   auto factorVocabSize = factorVocab_.size();
   factorRefCounts_.resize(factorVocabSize);
   std::vector<std::string> tokens;
@@ -51,15 +54,15 @@ namespace marian {
       factors.push_back(u);
       factorRefCounts_[u]++;
     }
-    factorMap_.emplace_back(std::move(factors));
-    // add to vocab
     WordIndex index = v;
     // @TODO: map factors to non-dense integer
+    factorMap_[index] = std::move(factors);
+    // add to vocab
     vocab_.add(tokens.front(), index);
     numTotalFactors += tokens.size() - 1;
   }
   LOG(info, "[embedding] Factored-embedding map read with total/unique of {}/{} factors for {} valid words (in space of {})",
-      numTotalFactors, factorVocabSize, vocab_.numValid(), vocab_.size());
+      numTotalFactors, factorVocabSize, vocab_.numValid(), size());
 
   // create mappings needed for normalization in factored outputs
   constructNormalizationInfoForVocab();
@@ -68,7 +71,11 @@ namespace marian {
   eosId_ = Word::fromWordIndex(vocab_[DEFAULT_EOS_STR]);
   unkId_ = Word::fromWordIndex(vocab_[DEFAULT_UNK_STR]);
 
-  ABORT_IF(maxSizeUnused != 0 && maxSizeUnused != size(), "Factored vocabulary does not allow on-the-fly clipping to a maximum vocab size (to {})", maxSizeUnused);
+#if 1   // dim-vocabs stores numValid() in legacy model files, and would now have been size()
+  if (maxSizeUnused == vocab_.numValid())
+    maxSizeUnused = vocab_.size();
+#endif
+  ABORT_IF(maxSizeUnused != 0 && maxSizeUnused != size(), "Factored vocabulary does not allow on-the-fly clipping to a maximum vocab size (from {} to {})", size(), maxSizeUnused);
   return size();
 }
 
@@ -87,7 +94,7 @@ void FactoredVocab::constructGroupInfoFromFactorVocab() {
   }
   // determine group index ranges
   groupRanges_.resize(numGroups, { SIZE_MAX, (size_t)0 });
-  std::vector<size_t> groupCounts(numGroups); // number of group members
+  std::vector<int> groupCounts(numGroups); // number of group members
   for (WordIndex u = 0; u < factorVocabSize; u++) { // determine ranges; these must be non-overlapping, verified via groupCounts
     auto g = factorGroups_[u];
     if (groupRanges_[g].first > u)
@@ -103,6 +110,7 @@ void FactoredVocab::constructGroupInfoFromFactorVocab() {
     ABORT_IF(groupRanges_[g].second - groupRanges_[g].first != groupCounts[g],
              "Factor group '{}' members should be consecutive in the factor vocabulary", groupPrefixes_[g]);
   }
+  factorShape_ = Shape(std::move(groupCounts));
 }
 
 void FactoredVocab::constructNormalizationInfoForVocab() {
@@ -111,12 +119,14 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
   size_t vocabSize = vocab_.size();
   factorMasks_  .resize(numGroups, std::vector<float>(vocabSize, 0));     // [g][v] 1.0 if word v has factor g
   factorIndices_.resize(numGroups, std::vector<IndexType>(vocabSize, 0)); // [g][v] index of factor (or any valid index if it does not have it; we use 0)
+  gapLogMask_.resize(vocabSize, -1e8f);
   for (WordIndex v = 0; v < vocabSize; v++) {
     for (auto u : factorMap_[v]) {
       auto g = factorGroups_[u]; // convert u to relative u within factor group range
       ABORT_IF(u < groupRanges_[g].first || u >= groupRanges_[g].second, "Invalid factorGroups_ entry??");
       factorIndices_[g][v] = (IndexType)(u - groupRanges_[g].first);
       factorMasks_[g][v] = 1.0f;
+      gapLogMask_[v] = 0.0f; // valid entry
     }
   }
   //for (Word v = 0; v < vocabSize; v++) {

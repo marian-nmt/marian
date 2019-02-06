@@ -46,6 +46,7 @@ public:
   std::pair<size_t, size_t>     getGroupRange(size_t g)    const { return groupRanges_[g]; }   // [g] -> (u_begin, u_end)
   const std::vector<float>&     getFactorMasks(size_t g)   const { return factorMasks_[g]; }   // [g][v] 1.0 if word v has factor g
   const std::vector<IndexType>& getFactorIndices(size_t g) const { return factorIndices_[g]; } // [g][v] local index u_g = u - u_g,begin of factor g for word v; 0 if not a factor
+  const std::vector<float>& getGapLogMask() const { return gapLogMask_; } // [v] -inf if v is a gap entry, else 0
 
   static Ptr<FactoredVocab> tryCreateAndLoad(const std::string& path); // load from "vocab" option if it specifies a factored vocab
 private:
@@ -113,8 +114,10 @@ private:
   CSRData globalFactorMatrix_;                         // [v,u] (sparse) -> =1 if u is factor of v
   std::vector<size_t> factorGroups_;                   // [u] -> group id of factor u
   std::vector<std::pair<size_t, size_t>> groupRanges_; // [group id g] -> (u_begin,u_end) index range of factors u for this group. These don't overlap.
+  Shape factorShape_;                                  // [g] number of factors in each factor group
   std::vector<std::vector<float>>     factorMasks_;    // [g][v] 1.0 if word v has factor g
   std::vector<std::vector<IndexType>> factorIndices_;  // [g][v] relative index u - u_begin of factor g (or any valid index if it does not have it; we use 0)
+  std::vector<float> gapLogMask_;                      // [v] -1e8 if this is a gap, else 0
 };
 
 }  // namespace marian

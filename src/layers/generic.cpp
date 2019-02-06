@@ -84,6 +84,10 @@ namespace marian {
         graph->constant({(int)factorMatrix.offsets.size()}, inits::from_vector(factorMatrix.offsets), Type::uint32),
         /*transB=*/ true); // -> [B x V]
 
+    // mask out gaps
+    auto gapLogMask = factoredVocab_->getGapLogMask(); // [V]
+    y = y + graph->constant({ (int)gapLogMask.size() }, inits::from_vector(gapLogMask), Type::float32);
+
     return y;
   }
 
