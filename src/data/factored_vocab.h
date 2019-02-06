@@ -61,7 +61,8 @@ private:
   void constructGroupInfoFromFactorVocab();
   void constructFactorIndexConversion();
   void constructNormalizationInfoForVocab();
-  WordIndex factorUnits2wordIndex(const std::vector<WordIndex>& factorUnits);
+  Word factorUnits2word(const std::vector<WordIndex>& factorUnits);
+  std::string word2string(Word word);
 private:
   class WordLUT { // map between strings and WordIndex
     std::map<std::string, WordIndex> str2index_;
