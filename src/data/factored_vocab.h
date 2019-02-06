@@ -34,7 +34,7 @@ public:
   virtual std::string type() const override final { return "FactoredVocab"; }
   virtual Word getEosId() const override final { return eosId_; }
   virtual Word getUnkId() const override final { return unkId_; }
-  virtual void createFake() override final;
+  virtual void createFake() override final { ABORT("[data] Fake FactoredVocab vocabulary not supported"); }
 
   // factor-specific. These methods are consumed by Output and Embedding.
   size_t factorVocabSize() const { return factorVocab_.size(); }

@@ -120,8 +120,6 @@ void FactoredVocab::constructGroupInfoFromFactorVocab() {
   factorStrides_.resize(factorShape_.size(), 1);
   for (size_t g = factorStrides_.size() - 1; g --> 0; )
     factorStrides_[g] = factorStrides_[g + 1] * (size_t)factorShape_[g + 1];
-  for (auto str : factorStrides_)
-    LOG(info, "stride {}", str);
 }
 
 void FactoredVocab::constructNormalizationInfoForVocab() {
@@ -190,13 +188,6 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
       decoded.push_back((*this)[w]);
   }
   return utils::join(decoded, " ");
-}
-
-// This creates a fake vocabulary fro use in fakeBatch().
-// @TODO: This may become more complex.
-/*virtual*/ void FactoredVocab::createFake() /*override final*/ {
-  eosId_ = Word::fromWordIndex(vocab_.add(DEFAULT_EOS_STR, 0));
-  unkId_ = Word::fromWordIndex(vocab_.add(DEFAULT_UNK_STR, 1));
 }
 
 // create a CSR matrix M[V,U] from indices[] with
