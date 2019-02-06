@@ -146,7 +146,7 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
   //      factorMasks_[3][v], factorIndices_[3][v]);
   //}
 
-  // create the global factor matrix, which is used for getLogits()
+  // create the global factor matrix, which is used for getLogits() only
   std::vector<IndexType> data(vocabSize);
   std::iota(data.begin(), data.end(), 0);
   globalFactorMatrix_ = csr_rows(data); // [V x U]

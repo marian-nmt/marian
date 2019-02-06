@@ -76,6 +76,7 @@ public:
     Expr getLogits() const; // assume it holds logits: get them, possibly aggregating over factors
     Ptr<RationalLoss> getRationalLoss() const; // assume it holds a loss: get that
     Expr applyLossFunction(const Words& labels, const std::function<Expr(Expr/*logits*/,Expr/*indices*/)>& lossFn) const;
+    float getLogitAt(size_t i) const { return getLogits()->val()->get(i); } // @TODO: avoid the fully expanded logits
     void assign(const Logits& other) {
       //ABORT_IF(!empty() && getNumFactors() != other.getNumFactors(),
       //         "Logits assignment cannot change number of factors");

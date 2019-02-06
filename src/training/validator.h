@@ -216,7 +216,7 @@ protected:
   }
 };
 
-// Used for validating with classifiers. Compute prediction accuary versus groundtruth for a set of classes
+// Used for validating with classifiers. Compute prediction accuracy versus ground truth for a set of classes
 class AccuracyValidator : public Validator<data::Corpus> {
 public:
   AccuracyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)

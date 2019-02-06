@@ -235,10 +235,7 @@ public:
         states[i] = scorers_[i]->step(
             graph, states[i], hypIndices, predWords, dimBatch, (int)localBeamSize);
 
-        if(scorers_[i]->getWeight() != 1.f)
-          pathScores = pathScores + scorers_[i]->getWeight() * states[i]->getLogProbs();
-        else
-          pathScores = pathScores + states[i]->getLogProbs();
+        pathScores = pathScores + scorers_[i]->getWeight() * states[i]->getLogProbs().getLogits();
       }
 
       // make beams continuous

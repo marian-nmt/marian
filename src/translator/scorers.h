@@ -9,9 +9,9 @@ namespace marian {
 
 class ScorerState {
 public:
-  virtual Expr getLogProbs() = 0;
+  virtual Logits getLogProbs() = 0;
 
-  virtual float breakDown(size_t i) { return getLogProbs()->val()->get(i); }
+  virtual float breakDown(size_t i) { return getLogProbs().getLogitAt(i); }
 
   virtual void blacklist(Expr /*totalCosts*/, Ptr<data::CorpusBatch> /*batch*/){};
 };
@@ -57,7 +57,7 @@ public:
 
   virtual Ptr<DecoderState> getState() { return state_; }
 
-  virtual Expr getLogProbs() override { return state_->getLogProbs().getLogits(); };
+  virtual Logits getLogProbs() override { return state_->getLogProbs(); };
 
   virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) override {
     state_->blacklist(totalCosts, batch);

@@ -131,31 +131,49 @@ Expr le(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant(
 /*********************************************************/
 
 Expr operator+(Expr a, float b) {
-  return Expression<ScalarAddNodeOp>(a, b);
+  if (b == 0)
+    return a;
+  else
+    return Expression<ScalarAddNodeOp>(a, b);
 }
 
 Expr operator+(float a, Expr b) {
-  return Expression<ScalarAddNodeOp>(b, a);
+  if (a == 0)
+    return b;
+  else
+    return Expression<ScalarAddNodeOp>(b, a);
 }
 
 Expr operator-(Expr a, float b) {
-  return Expression<ScalarAddNodeOp>(a, -b);
+  if (b == 0)
+    return a;
+  else
+    return Expression<ScalarAddNodeOp>(a, -b);
 }
 
 Expr operator-(float a, Expr b) {
-  return Expression<ScalarAddNodeOp>(-b, a);
+  if (a == 0)
+    return -b;
+  else
+    return Expression<ScalarAddNodeOp>(-b, a);
 }
 
 Expr operator*(float a, Expr b) {
-  return Expression<ScalarMultNodeOp>(b, a);
+  if (a == 1.0f)
+    return b;
+  else
+    return Expression<ScalarMultNodeOp>(b, a);
 }
 
 Expr operator*(Expr a, float b) {
-  return Expression<ScalarMultNodeOp>(a, b);
+  if (b == 1.0f)
+    return a;
+  else
+    return Expression<ScalarMultNodeOp>(a, b);
 }
 
 Expr operator/(Expr a, float b) {
-  return Expression<ScalarMultNodeOp>(a, 1.f / b);
+  return a * (1.f / b);
 }
 
 // TODO: efficient version of this without constant()
