@@ -68,7 +68,7 @@ public:
     Ptr<MultiRationalLoss> multiLoss = newMultiLoss(options_);
 
     // @TODO: adapt to multi-objective training with multiple decoders
-    auto partialLoss = loss_->apply(state->getLogProbs().getLogits(),
+    auto partialLoss = loss_->apply(state->getLogProbs(),
                                     state->getTargetWords(),
                                     state->getTargetMask(),
                                     weights);
