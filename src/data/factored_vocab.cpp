@@ -115,6 +115,7 @@ void FactoredVocab::constructGroupInfoFromFactorVocab() {
   constructFactorIndexConversion();
 }
 
+// create factorShape_ and factorStrides_, for mapping between flat (non-dense) ids and factor arrays
 void FactoredVocab::constructFactorIndexConversion() {
   std::vector<int> shape;
   for (const auto& r : groupRanges_)
@@ -132,23 +133,27 @@ Word FactoredVocab::factors2word(const std::vector<size_t>& factorIndices /* [nu
   ABORT_IF(factorIndices.size() != numGroups, "Factor indices array size must be same as number of factor groups");
   for (size_t g = 0; g < numGroups; g++) {
     auto factorIndex = factorIndices[g];
-    ABORT_IF(factorIndex >= (size_t)factorShape_[g], "Factor index out of range");
+    if (factorIndex == FACTOR_NOT_APPLICABLE || factorIndex == FACTOR_NOT_SPECIFIED)
+      factorIndex = (size_t)factorShape_[g] - 1; // sentinel for "unused" or "not specified"
+    else
+      ABORT_IF(factorIndex >= (size_t)factorShape_[g] - 1, "Factor index out of range");
     index += factorIndex * factorStrides_[g];
   }
   return Word::fromWordIndex(index);
 }
 
 // like factors2word, except that factors are expressed as global unit indices, and result is just the WordIndex
-// @BUGBUG: need to encode factors that are not used ==> change to unroll explicitly, then call factors2Word()
+// This is only used during initialization, so it's OK if it is a little inefficient.
 WordIndex FactoredVocab::factorUnits2wordIndex(const std::vector<WordIndex>& factorUnits) {
-  size_t index = 0;
+  // convert to fully unrolled factors representation
+  std::vector<size_t> factorIndices(getNumGroups(), FACTOR_NOT_APPLICABLE); // default for unused factors
   for (auto u : factorUnits) {
     auto g = factorGroups_[u]; // convert u to relative u within factor group range
     ABORT_IF(u < groupRanges_[g].first || u >= groupRanges_[g].second, "Invalid factorGroups_ entry??");
     auto factorIndex = u - groupRanges_[g].first;
-    index += factorIndex * factorStrides_[g];
+    factorIndices[g] = factorIndex;
   }
-  return (WordIndex)index;
+  return factors2word(factorIndices).toWordIndex();
 }
 
 void FactoredVocab::word2factors(Word word, std::vector<size_t>& factorIndices /* [numGroups] */) {
@@ -161,12 +166,6 @@ void FactoredVocab::word2factors(Word word, std::vector<size_t>& factorIndices /
 size_t FactoredVocab::getFactor(Word word, size_t groupIndex) {
   word; groupIndex;
   //size_t factorIndex = 0;
-  ABORT("Not implemented");
-}
-
-// @TODO: or just map to sentinel values for FACTOR_NOT_APPLICABLE and FACTOR_NOT_SPECIFIED
-bool FactoredVocab::hasFactor(Word word, size_t groupIndex) {
-  word; groupIndex;
   ABORT("Not implemented");
 }
 

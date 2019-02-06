@@ -50,17 +50,18 @@ public:
 
   // convert representations
   Word factors2word(const std::vector<size_t>& factors);
-  WordIndex factorUnits2wordIndex(const std::vector<WordIndex>& factorUnits);
   void word2factors(Word word, std::vector<size_t>& factors);
   size_t getFactor(Word word, size_t groupIndex);
-  bool hasFactor(Word word, size_t groupIndex);
   std::pair<WordIndex, bool> getFactorUnit(Word word, size_t groupIndex);
+  static constexpr size_t FACTOR_NOT_APPLICABLE = (SIZE_MAX - 1);
+  static constexpr size_t FACTOR_NOT_SPECIFIED  = (SIZE_MAX - 2);
 
   static Ptr<FactoredVocab> tryCreateAndLoad(const std::string& path); // load from "vocab" option if it specifies a factored vocab
 private:
   void constructGroupInfoFromFactorVocab();
   void constructFactorIndexConversion();
   void constructNormalizationInfoForVocab();
+  WordIndex factorUnits2wordIndex(const std::vector<WordIndex>& factorUnits);
 private:
   class WordLUT { // map between strings and WordIndex
     std::map<std::string, WordIndex> str2index_;
