@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Automatic detection of CPU intrisics when building with -arch=native 
 - First version of BERT-training and BERT-classifier, currently not compatible with TF models
 - New reduction operators
+- Use Cmake's ExternalProject to build NCCL and potentially other external libs. 
 
 ### Fixed
 - Windows build with recent changes
@@ -21,6 +22,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed NaN problem when training with Tensor Cores on Volta GPUs
 
 ### Changed
+- Update NCCL to 2.4.2
 - Add zlib source to Marian's source tree, builds now as object lib
 - -DUSE_STATIC_LIBS=on now also looks for static versions of CUDA libraries
 - Include NCCL build from github.com/marian-nmt/nccl and compile within source tree
