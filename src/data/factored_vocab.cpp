@@ -54,11 +54,17 @@ namespace marian {
       factors.push_back(u);
       factorRefCounts_[u]++;
     }
-    WordIndex index = v;
+    size_t index = 0;
+    for (auto u : factors) {
+      auto g = factorGroups_[u]; // convert u to relative u within factor group range
+      ABORT_IF(u < groupRanges_[g].first || u >= groupRanges_[g].second, "Invalid factorGroups_ entry??");
+      auto factorIndex = u - groupRanges_[g].first;
+      index += factorIndex * factorStrides_[g];
+    }
     // @TODO: map factors to non-dense integer
     factorMap_[index] = std::move(factors);
     // add to vocab
-    vocab_.add(tokens.front(), index);
+    vocab_.add(tokens.front(), (WordIndex)index);
     numTotalFactors += tokens.size() - 1;
   }
   LOG(info, "[embedding] Factored-embedding map read with total/unique of {}/{} factors for {} valid words (in space of {})",
@@ -111,6 +117,11 @@ void FactoredVocab::constructGroupInfoFromFactorVocab() {
              "Factor group '{}' members should be consecutive in the factor vocabulary", groupPrefixes_[g]);
   }
   factorShape_ = Shape(std::move(groupCounts));
+  factorStrides_.resize(factorShape_.size(), 1);
+  for (size_t g = factorStrides_.size() - 1; g --> 0; )
+    factorStrides_[g] = factorStrides_[g + 1] * (size_t)factorShape_[g + 1];
+  for (auto str : factorStrides_)
+    LOG(info, "stride {}", str);
 }
 
 void FactoredVocab::constructNormalizationInfoForVocab() {

@@ -115,6 +115,7 @@ private:
   std::vector<size_t> factorGroups_;                   // [u] -> group id of factor u
   std::vector<std::pair<size_t, size_t>> groupRanges_; // [group id g] -> (u_begin,u_end) index range of factors u for this group. These don't overlap.
   Shape factorShape_;                                  // [g] number of factors in each factor group
+  std::vector<size_t> factorStrides_;                  // [g] stride for factor dimension
   std::vector<std::vector<float>>     factorMasks_;    // [g][v] 1.0 if word v has factor g
   std::vector<std::vector<IndexType>> factorIndices_;  // [g][v] relative index u - u_begin of factor g (or any valid index if it does not have it; we use 0)
   std::vector<float> gapLogMask_;                      // [v] -1e8 if this is a gap, else 0
