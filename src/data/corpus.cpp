@@ -27,9 +27,9 @@ void Corpus::preprocessLine(std::string& line, size_t streamId) {
   if (allCapsEvery_ != 0 && pos_ % allCapsEvery_ == 0 && !inference_) {
     line = utils::utf8ToUpper(line);
     if (streamId == 0)
-      LOG_ONCE(info, "[data] source all-caps'ed line to {}", line);
+      LOG_ONCE(info, "[data] Source all-caps'ed line to: {}", line);
     else
-      LOG_ONCE(info, "[data] target all-caps'ed line to {}", line);
+      LOG_ONCE(info, "[data] Target all-caps'ed line to: {}", line);
   }
   else if (titleCaseEvery_ != 0 && pos_ % titleCaseEvery_ == 1 && !inference_
       
@@ -38,9 +38,9 @@ void Corpus::preprocessLine(std::string& line, size_t streamId) {
       ) {
     line = utils::toEnglishTitleCase(line);
     if (streamId == 0)
-      LOG_ONCE(info, "[data] source English-title-case'd line to {}", line);
+      LOG_ONCE(info, "[data] Source English-title-case'd line to: {}", line);
     else
-      LOG_ONCE(info, "[data] target English-title-case'd line to {}", line);
+      LOG_ONCE(info, "[data] Target English-title-case'd line to: {}", line);
   }
 }
 

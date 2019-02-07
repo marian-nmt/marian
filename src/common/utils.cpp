@@ -213,6 +213,7 @@ std::string toEnglishTitleCase(const std::string& s) {
   const std::set<std::string> exceptions = { // from moses-scripts/scripts/recaser/detruecase.perl
     "a","after","against","al-.+","and","any","as","at","be","because","between","by","during","el-.+","for","from","his","in","is","its","last","not","of","off","on","than","the","their","this","to","was","were","which","will","with"
   };
+  const std::set<char> wordPredChars = {' ', '"', '\'', '-'}; // only capitalize words if following these characters (to avoid upper-casing word-internal SPM units)
   // These are tokenization heuristics, which may be incomplete.
   size_t epos = 0;
   for(size_t pos = epos; pos < res.size(); pos = epos) {
@@ -224,10 +225,15 @@ std::string toEnglishTitleCase(const std::string& s) {
     if (epos == std::string::npos)
       epos = res.size();
     auto word = res.substr(pos, epos - pos);
-    // upper-case the word, unless it is in the exception list
-    if (res[pos] >= 'a' && res[pos] <= 'z' && exceptions.find(word) == exceptions.end()) {
-      res[pos] -= 'A' - 'a';
-    }
+    // further checks of the word
+    if (res[pos] < 'a' || res[pos] > 'z') // skip if already upper-case
+      continue;
+    if (pos > 0 && wordPredChars.find(res[pos-1]) == wordPredChars.end()) // skip if unexpected char before the word
+      continue;
+    if (exceptions.find(word) != exceptions.end()) // skip if in the exception list
+      continue;
+    // upper-case it
+    res[pos] -= 'a' - 'A';
   }
   return res;
 }

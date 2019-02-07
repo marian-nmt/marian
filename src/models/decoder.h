@@ -49,7 +49,7 @@ public:
         embFactory("prefix", prefix_ + "_Wemb");
       if(options_->has("embedding-fix-trg"))
         embFactory("fixed", opt<bool>("embedding-fix-trg"));
-      if(options_->has("embedding-vectors")) {
+      if(options_->hasAndNotEmpty("embedding-vectors")) {
         auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
         embFactory("embFile", embFiles[batchIndex_])  //
             ("normalization", opt<bool>("embedding-normalization"));
