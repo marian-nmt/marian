@@ -25,7 +25,7 @@ public:
   History(size_t lineNo, float alpha = 1.f, float wp_ = 0.f);
 
   void add(const Beam& beam, Word trgEosId, bool last = false) {
-    if(beam.back()->GetPrevHyp() != nullptr) {
+    if(beam.back()->getPrevHyp() != nullptr) {
       for(size_t j = 0; j < beam.size(); ++j)
         if(beam[j]->getWord() == trgEosId || last) {
           float pathScore =
@@ -52,7 +52,7 @@ public:
       // std::cerr << "h: " << start << " " << j << " " << c << std::endl;
 
       // trace back best path
-      Words targetWords = bestHyp->TracebackWords();
+      Words targetWords = bestHyp->tracebackWords();
 
       // note: bestHyp->getPathScore() is not normalized, while bestHypCoord.normalizedPathScore is
       nbest.emplace_back(targetWords, bestHyp, bestHypCoord.normalizedPathScore);

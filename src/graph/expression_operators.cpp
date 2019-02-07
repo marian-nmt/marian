@@ -536,7 +536,7 @@ Expr swapAxes(Expr x, int axis1, int axis2)
     return x;
   // TODO: This is code dup from transpose(x). Implement transpose(x) as swapAxes(x, 0, 1)
   std::vector<int> axes(x->shape().size());
-  for (int i = 0; i < axes.size(); ++i)
+  for (int i = 0; i < axes.size(); ++i) // @TODO: use std::iota()
     axes[i] = i;
   std::swap(axes[axis1], axes[axis2]);
   return transpose(x, axes);

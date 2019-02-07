@@ -41,11 +41,11 @@ public:
         bestn << " ||| " << getAlignment(hypo);
 
       bestn << " |||";
-      if(hypo->GetScoreBreakdown().empty()) {
+      if(hypo->getScoreBreakdown().empty()) {
         bestn << " F0=" << hypo->getPathScore();
       } else {
-        for(size_t j = 0; j < hypo->GetScoreBreakdown().size(); ++j) {
-          bestn << " F" << j << "= " << hypo->GetScoreBreakdown()[j];
+        for(size_t j = 0; j < hypo->getScoreBreakdown().size(); ++j) {
+          bestn << " F" << j << "= " << hypo->getScoreBreakdown()[j];
         }
       }
 
