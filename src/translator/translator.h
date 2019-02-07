@@ -41,7 +41,7 @@ public:
     trgVocab_->load(vocabs.back());
     auto srcVocab = corpus_->getVocabs()[0];
 
-    if(options_->has("shortlist"))
+    if(options_->hasAndNotEmpty("shortlist"))
       shortlistGenerator_ = New<data::LexicalShortlistGenerator>(
           options_, srcVocab, trgVocab_, 0, 1, vocabs.front() == vocabs.back());
 
@@ -106,7 +106,7 @@ public:
           std::stringstream best1;
           std::stringstream bestn;
           printer->print(history, best1, bestn);
-          collector->Write((long)history->GetLineNum(),
+          collector->Write((long)history->getLineNum(),
                            best1.str(),
                            bestn.str(),
                            options_->get<bool>("n-best"));
@@ -145,9 +145,7 @@ private:
 public:
   virtual ~TranslateService() {}
 
-  TranslateService(Ptr<Options> options) : options_(options) { init(); }
-
-  void init() override {
+  TranslateService(Ptr<Options> options) : options_(options) {
     // initialize vocabs
     options_->set("inference", true);
 
@@ -213,7 +211,7 @@ public:
             std::stringstream best1;
             std::stringstream bestn;
             printer->print(history, best1, bestn);
-            collector->add((long)history->GetLineNum(), best1.str(), bestn.str());
+            collector->add((long)history->getLineNum(), best1.str(), bestn.str());
           }
         };
 

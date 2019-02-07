@@ -1,49 +1,25 @@
 # Unit tests
-set(UNIT_TESTS
-    graph_tests
-    operator_tests
-    rnn_tests
-    attention_tests
-)
-
-foreach(test ${UNIT_TESTS})
-    add_executable("run_${test}" run_tests.cpp "${test}.cpp")
-    target_link_libraries("run_${test}" marian ${EXT_LIBS} Catch)
-
-    if(CUDA_FOUND)
-      target_link_libraries("run_${test}" marian marian_cuda ${EXT_LIBS} Catch)
-    endif(CUDA_FOUND)
-
-    add_test(NAME ${test} COMMAND "run_${test}")
-endforeach(test)
+add_subdirectory(units)
 
 
 # Testing apps
-add_executable(logger_test logger_test.cpp)
-add_executable(dropout_test dropout_test.cpp)
-add_executable(prod_test prod.cpp)
-add_executable(cli_test cli_test.cpp)
+set(APP_TESTS
+    logger
+    dropout
+    sqlite
+    prod
+    cli
+    pooling
+)
 
-if(CUDA_FOUND)
-add_executable(pooling_test pooling_test.cpp)
-target_link_libraries(pooling_test marian ${EXT_LIBS} Catch)
-target_link_libraries(pooling_test marian marian_cuda ${EXT_LIBS} Catch)
-endif(CUDA_FOUND)
+foreach(test ${APP_TESTS})
+  add_executable("test_${test}" "${test}.cpp")
 
-add_executable(sqlite_test sqlite_test.cpp)
+  if(CUDA_FOUND)
+    target_link_libraries("test_${test}" marian marian_cuda ${EXT_LIBS})
+  else(CUDA_FOUND)
+    target_link_libraries("test_${test}" marian ${EXT_LIBS})
+  endif(CUDA_FOUND)
 
-foreach(exec
-        logger_test
-        dropout_test
-        sqlite_test
-        prod_test
-        cli_test
-    )
-    target_link_libraries(${exec} marian ${EXT_LIBS} Catch)
-    if(CUDA_FOUND)
-      target_link_libraries(${exec} marian marian_cuda ${EXT_LIBS} Catch)
-    endif(CUDA_FOUND)
-
-    set_target_properties(${exec} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-endforeach(exec)
-
+  set_target_properties("test_${test}" PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+endforeach(test)

@@ -56,8 +56,7 @@ public:
   }
 
   Words encode(const std::string& line, bool addEOS, bool /*inference*/) const override {
-    std::vector<std::string> lineTokens;
-    utils::split(line, lineTokens, " ");
+    auto lineTokens = utils::split(line, " ");
     return (*this)(lineTokens, addEOS);
   }
 
@@ -209,8 +208,7 @@ private:
 
     std::string line;
     while(getline(*trainStrm, line)) {
-      std::vector<std::string> toks;
-      utils::split(line, toks, " ");
+      auto toks = utils::split(line, " ");
 
       for(const std::string& tok : toks) {
         auto iter = counter.find(tok);

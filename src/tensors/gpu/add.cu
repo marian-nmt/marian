@@ -84,7 +84,7 @@ __global__ void gAggregateReduce(Functor functor, float aggInit, AggFunctor aggF
     int j = bid + blockIdx.x;
     if(j < rows) {
       extern __shared__ float _share[];
-      float* _sum = _share + blockDim.x;
+      float* _sum = _share;
 
       if(same) {
         _sum[threadIdx.x] = aggInit;
@@ -121,6 +121,7 @@ __global__ void gAggregateReduce(Functor functor, float aggInit, AggFunctor aggF
       __syncthreads();
       out[j] = aggFunctor(out[j], _sum[0] * scale);
     }
+    __syncthreads();
   }
 }
 
@@ -143,7 +144,7 @@ void Aggregate(Functor functor, float aggInit, AggFunctor aggFunctor, float scal
 
     int blocks = std::min(MAX_BLOCKS, (int)m);
     int threads = std::min(MAX_THREADS, (int)k);
-    int shared = sizeof(float) * threads * 2;
+    int shared = sizeof(float) * threads;
 
     gAggregateReduce<<<blocks, threads, shared>>>(functor, aggInit, aggFunctor, full, gOut, gIns, scale);
 
@@ -187,7 +188,7 @@ void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
 
     int blocks = std::min(MAX_BLOCKS, (int)m);
     int threads = std::min(MAX_THREADS, (int)k);
-    int shared = sizeof(float) * threads * 2;
+    int shared = sizeof(float) * threads;
 
     gAggregateReduce<<<blocks, threads, shared>>>(functor, 0, addFunctor, full, gOut, gIns, scale);
 

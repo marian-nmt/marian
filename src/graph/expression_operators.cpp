@@ -51,6 +51,10 @@ Expr swish(Expr a) {
   return Expression<SwishNodeOp>(a);
 }
 
+Expr gelu(Expr a) {
+  return Expression<SwishNodeOp>(a, 1.702f);
+}
+
 Expr operator-(Expr a) {
   return Expression<NegNodeOp>(a);
 };
@@ -532,7 +536,7 @@ Expr swapAxes(Expr x, int axis1, int axis2)
     return x;
   // TODO: This is code dup from transpose(x). Implement transpose(x) as swapAxes(x, 0, 1)
   std::vector<int> axes(x->shape().size());
-  for (int i = 0; i < axes.size(); ++i)
+  for (int i = 0; i < axes.size(); ++i) // @TODO: use std::iota()
     axes[i] = i;
   std::swap(axes[axis1], axes[axis2]);
   return transpose(x, axes);
@@ -550,6 +554,11 @@ Expr plus(const std::vector<Expr>& nodes) {
 Expr swish(const std::vector<Expr>& nodes) {
   ABORT_IF(nodes.size() > 1, "Not implemented");
   return swish(nodes[0]);
+}
+
+Expr gelu(const std::vector<Expr>& nodes) {
+  ABORT_IF(nodes.size() > 1, "Not implemented");
+  return gelu(nodes[0]);
 }
 
 Expr tanh(const std::vector<Expr>& nodes) {

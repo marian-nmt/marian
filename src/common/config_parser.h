@@ -14,7 +14,7 @@
 namespace marian {
 
 namespace cli {
-enum struct mode { training, translation, scoring };
+enum struct mode { training, translation, scoring, server };
 }  // namespace cli
 
 /**
@@ -25,7 +25,8 @@ enum struct mode { training, translation, scoring };
 class ConfigParser {
 public:
   ConfigParser(int argc, char** argv, cli::mode mode, bool validate = false)
-      : mode_(mode) {
+      : modeServer_(mode == cli::mode::server),
+        mode_(mode == cli::mode::server ? cli::mode::translation : mode) {
     parseOptions(argc, argv, validate);
   }
 
@@ -51,6 +52,7 @@ public:
   YAML::Node getConfig() const;
 
 private:
+  bool modeServer_;
   cli::mode mode_;
   YAML::Node config_;
 
@@ -68,6 +70,7 @@ private:
   }
 
   void addOptionsGeneral(cli::CLIWrapper&);
+  void addOptionsServer(cli::CLIWrapper&);
   void addOptionsModel(cli::CLIWrapper&);
   void addOptionsTraining(cli::CLIWrapper&);
   void addOptionsValidation(cli::CLIWrapper&);

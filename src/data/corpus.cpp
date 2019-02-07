@@ -28,7 +28,7 @@ void Corpus::preprocessLine(std::string& line, size_t streamId) {
 }
 
 SentenceTuple Corpus::next() {
-  for (;;) { // (this is a retry loop for skipping invalid sentences)
+  for(;;) { // (this is a retry loop for skipping invalid sentences)
     // get index of the current sentence
     size_t curId = pos_; // note: at end, pos_  == total size
     // if corpus has been shuffled, ids_ contains sentence indexes

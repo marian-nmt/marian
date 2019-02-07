@@ -182,8 +182,7 @@ public:
         srcIdx_(srcIdx),
         trgIdx_(trgIdx),
         shared_(shared) {
-    std::vector<std::string> vals
-        = options_->get<std::vector<std::string>>("shortlist");
+    std::vector<std::string> vals = options_->get<std::vector<std::string>>("shortlist");
 
     ABORT_IF(vals.empty(), "No path to filter path given");
     std::string fname = vals[0];

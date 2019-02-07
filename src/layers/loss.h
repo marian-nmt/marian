@@ -114,8 +114,8 @@ protected:
 
   /**
    * @brief Accumulation rule for losses
-   * In the default case this would just be a sum, see SumMultiRationalLoss, but there are 
-   * special cases like ScaledMultiRationalLoss (scale other loses according to first label count) 
+   * In the default case this would just be a sum, see SumMultiRationalLoss, but there are
+   * special cases like ScaledMultiRationalLoss (scale other loses according to first label count)
    * or MeanMultiRationalLoss (sum of means) where the accumulation is more complex.
    */
   virtual Expr accumulateLoss(const RationalLoss& current) = 0;
@@ -298,7 +298,7 @@ protected:
       lossSum = sum(lossSum, axes_[i]);
 
     // reduction factor tells how over how many labels we reduced in total.
-    float reducedLabels = (float)loss->shape().elements() / (float)lossSum->shape().elements(); 
+    float reducedLabels = (float)loss->shape().elements() / (float)lossSum->shape().elements();
     return RationalLoss(lossSum, reducedLabels);
   }
 
@@ -337,6 +337,9 @@ protected:
                        Expr mask = nullptr, Expr labelWeights = nullptr) override {
     // logits may be factored; in that case, the getLoss() function computes one loss for each, and sums them up
     auto ce = logits.applyLossFunction(labels, [&](Expr logits, Expr indices) {
+      logits = atleast_3d(logits); // we always assuma a time and batch dimension exists.
+      // for bert training or classification the time dimension is lot.
+      // Here safeguard against 2d classifier output, adds 1 on the left, non-op.      Expr ce = cross_entropy(logits, indices);
       Expr ce = cross_entropy(logits, indices);
       if (labelSmoothing_ > 0) {
         // ce = -sum_i y^_i log y_i(h)

@@ -105,7 +105,6 @@ protected:
 public:
 
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
-
     for(auto graph : graphs)
       graph->setInference(true);
 
@@ -359,7 +358,8 @@ protected:
                                                 options_->get<float>("bert-masking-fraction"),
                                                 options_->get<std::string>("bert-mask-symbol"),
                                                 options_->get<std::string>("bert-sep-symbol"),
-                                                options_->get<std::string>("bert-class-symbol"));
+                                                options_->get<std::string>("bert-class-symbol"),
+                                                options_->get<int>("bert-type-vocab-size"));
 
           builder->clear(graph);
           auto classifierStates = std::dynamic_pointer_cast<BertEncoderClassifier>(builder)->apply(graph, bertBatch, true);
@@ -421,7 +421,8 @@ public:
       : Validator(vocabs, options, false) {
     builder_ = models::from_options(options_, models::usage::raw);
 
-    ABORT_IF(!options_->has("valid-script-path"), "valid-script metric but no script given");
+    ABORT_IF(!options_->hasAndNotEmpty("valid-script-path"),
+             "valid-script metric but no script given");
   }
 
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
@@ -452,9 +453,8 @@ public:
         quiet_(options_->get<bool>("quiet-translation")) {
     builder_ = models::from_options(options_, models::usage::translation);
 
-    if(!options_->has("valid-script-path"))
-      LOG_VALID(warn,
-                "No post-processing script given for validating translator");
+    if(!options_->hasAndNotEmpty("valid-script-path"))
+      LOG_VALID(warn, "No post-processing script given for validating translator");
 
     createBatchGenerator(/*isTranslating=*/true);
   }
@@ -484,7 +484,7 @@ public:
     std::string fileName;
     Ptr<io::TemporaryFile> tempFile;
 
-    if(options_->has("valid-translation-output")) {
+    if(options_->hasAndNotEmpty("valid-translation-output")) {
       fileName = options_->get<std::string>("valid-translation-output");
     } else {
       tempFile.reset(new io::TemporaryFile(options_->get<std::string>("tempdir"), false));
@@ -500,7 +500,9 @@ public:
     timer::Timer timer;
     {
       auto printer = New<OutputPrinter>(options_, vocabs_.back());
-      auto collector = options_->has("valid-translation-output")
+      // @TODO: This can be simplified. If there is no "valid-translation-output", fileName already
+      // contains the name of temporary file that should be used?
+      auto collector = options_->hasAndNotEmpty("valid-translation-output")
                            ? New<OutputCollector>(fileName)
                            : New<OutputCollector>(*tempFile);
 
@@ -533,7 +535,7 @@ public:
             std::stringstream best1;
             std::stringstream bestn;
             printer->print(history, best1, bestn);
-            collector->Write((long)history->GetLineNum(),
+            collector->Write((long)history->getLineNum(),
                              best1.str(),
                              bestn.str(),
                              options_->get<bool>("n-best"));
@@ -555,7 +557,7 @@ public:
     float val = 0.0f;
 
     // Run post-processing script if given
-    if(options_->has("valid-script-path")) {
+    if(options_->hasAndNotEmpty("valid-script-path")) {
       auto command = options_->get<std::string>("valid-script-path") + " " + fileName;
       auto valStr = utils::exec(command);
       val = (float)std::atof(valStr.c_str());
@@ -639,7 +641,7 @@ public:
       auto printer = New<OutputPrinter>(options_, vocabs_.back());
 
       Ptr<OutputCollector> collector;
-      if(options_->has("valid-translation-output")) {
+      if(options_->hasAndNotEmpty("valid-translation-output")) {
         auto fileName = options_->get<std::string>("valid-translation-output");
         collector = New<OutputCollector>(fileName); // for debugging
       }
@@ -675,14 +677,14 @@ public:
           size_t no = 0;
           std::lock_guard<std::mutex> statsLock(mutex_);
           for(auto history : histories) {
-            auto result = history->Top();
+            auto result = history->top();
             const auto& words = std::get<0>(result);
             updateStats(stats, words, batch, no, vocabs_.back()->getEosId());
 
             std::stringstream best1;
             std::stringstream bestn;
             printer->print(history, best1, bestn);
-            collector->Write((long)history->GetLineNum(),
+            collector->Write((long)history->getLineNum(),
                              best1.str(),
                              bestn.str(),
                              /*nbest=*/ false);
