@@ -7,6 +7,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <set>
 #ifdef __unix__
 #include <unistd.h>
 #endif
@@ -201,6 +202,35 @@ std::string utf8ToUpper(const std::string& s) {
   return toUTF8String(ws);
 }
 #endif
+
+// convert an English sentence to title case
+// Since title case is an English thing, we only consider ASCII characters.
+std::string toEnglishTitleCase(const std::string& s) {
+  auto res = s;
+  // process token by token
+  const std::string wordStartChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const std::string wordInternalChars = wordStartChars + "'"; // don't title-case letters after word-internal apostrophe
+  const std::set<std::string> exceptions = { // from moses-scripts/scripts/recaser/detruecase.perl
+    "a","after","against","al-.+","and","any","as","at","be","because","between","by","during","el-.+","for","from","his","in","is","its","last","not","of","off","on","than","the","their","this","to","was","were","which","will","with"
+  };
+  // These are tokenization heuristics, which may be incomplete.
+  size_t epos = 0;
+  for(size_t pos = epos; pos < res.size(); pos = epos) {
+    // locate the next word
+    pos = res.find_first_of(wordStartChars, pos); // find first letter
+    if (pos == std::string::npos)
+      break;
+    epos = res.find_first_not_of(wordInternalChars, pos + 1); // find first non-letter
+    if (epos == std::string::npos)
+      epos = res.size();
+    auto word = res.substr(pos, epos - pos);
+    // upper-case the word, unless it is in the exception list
+    if (res[pos] >= 'a' && res[pos] <= 'z' && exceptions.find(word) == exceptions.end()) {
+      res[pos] -= 'A' - 'a';
+    }
+  }
+  return res;
+}
 
 double parseDouble(std::string s) {
   double res;

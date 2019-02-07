@@ -68,6 +68,10 @@ public:
 
   // create fake vocabulary for collecting batch statistics
   void createFake();
+
+  // give access to base implementation. Returns null if not the requested type.
+  template<class VocabType> // e.g. FactoredVocab
+  Ptr<VocabType> tryAs() const { return std::dynamic_pointer_cast<VocabType>(vImpl_); }
 };
 
 }  // namespace marian

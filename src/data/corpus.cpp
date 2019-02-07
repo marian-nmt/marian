@@ -10,12 +10,18 @@ namespace marian {
 namespace data {
 
 Corpus::Corpus(Ptr<Options> options, bool translate /*= false*/)
-    : CorpusBase(options, translate), shuffleInRAM_(options_->get<bool>("shuffle-in-ram")), allCapsEvery_(options_->get<size_t>("all-caps-every")) {}
+    : CorpusBase(options, translate),
+        shuffleInRAM_(options_->get<bool>("shuffle-in-ram")),
+        allCapsEvery_(options_->get<size_t>("all-caps-every")),
+        titleCaseEvery_(options_->get<size_t>("english-title-case-every")) {}
 
 Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
                Ptr<Options> options)
-    : CorpusBase(paths, vocabs, options), shuffleInRAM_(options_->get<bool>("shuffle-in-ram")), allCapsEvery_(options_->get<size_t>("all-caps-every")) {}
+    : CorpusBase(paths, vocabs, options),
+        shuffleInRAM_(options_->get<bool>("shuffle-in-ram")),
+        allCapsEvery_(options_->get<size_t>("all-caps-every")),
+        titleCaseEvery_(options_->get<size_t>("english-title-case-every")) {}
 
 void Corpus::preprocessLine(std::string& line, size_t streamId) {
   if (allCapsEvery_ != 0 && pos_ % allCapsEvery_ == 0 && !inference_) {
@@ -24,6 +30,17 @@ void Corpus::preprocessLine(std::string& line, size_t streamId) {
       LOG_ONCE(info, "[data] source all-caps'ed line to {}", line);
     else
       LOG_ONCE(info, "[data] target all-caps'ed line to {}", line);
+  }
+  else if (titleCaseEvery_ != 0 && pos_ % titleCaseEvery_ == 1 && !inference_
+      
+      &&   streamId == 0       // @HACK: Hard-coding EN-X direction for now; needs an option in the future
+      
+      ) {
+    line = utils::toEnglishTitleCase(line);
+    if (streamId == 0)
+      LOG_ONCE(info, "[data] source English-title-case'd line to {}", line);
+    else
+      LOG_ONCE(info, "[data] target English-title-case'd line to {}", line);
   }
 }
 

@@ -29,6 +29,7 @@ private:
 
   // for pre-processing
   size_t allCapsEvery_{0};
+  size_t titleCaseEvery_{0};
   void preprocessLine(std::string& line, size_t streamId);
 
 public:

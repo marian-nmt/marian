@@ -172,10 +172,11 @@ public:
   // main decoding function
   Histories search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
     // @TODO: EOS id does not need to be stored in this object, since it is available from vocab()
-    ABORT_IF(batch->back()->vocab()->getEosId() == trgEosId_);
+    ABORT_IF(batch->back()->vocab()->getEosId() != trgEosId_, "Batch uses different EOS token than was passed to BeamSearch originally");
 
-    auto factoredVocab = std::dynamic_pointer_cast<FactoredVocab>(batch->back()->vocab());
+    auto factoredVocab = batch->back()->vocab()->tryAs<FactoredVocab>();
     size_t numFactors = factoredVocab ? factoredVocab->getNumGroups() : 1;
+    numFactors;
 
     const int dimBatch = (int)batch->size();
 

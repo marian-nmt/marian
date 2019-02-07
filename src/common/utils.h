@@ -39,6 +39,8 @@ bool beginsWith(const std::string& text, const std::string& prefix);
 bool endsWith(const std::string& text, const std::string& suffix);
 
 std::string utf8ToUpper(const std::string& s);
+std::string toEnglishTitleCase(const std::string& s);
+
 double parseDouble(std::string s);
 double parseNumber(std::string s);
 
