@@ -305,6 +305,46 @@ FactoredVocab::CSRData FactoredVocab::csr_rows(const std::vector<IndexType>& wor
   return res;
 }
 
+// WordLUT
+WordIndex FactoredVocab::WordLUT::add(const std::string& word, WordIndex index) {
+  ABORT_IF(word.empty(), "Attempted to add the empty word to a dictionary");
+  auto wasInserted = str2index_.insert(std::make_pair(word, index)).second;
+  ABORT_IF(!wasInserted, "Duplicate vocab entry for '{}'", word);
+  while (index2str_.size() <= index)
+    index2str_.emplace_back(); // @TODO: what's the right way to get linear complexity in steps?
+  ABORT_IF(!index2str_[index].empty(), "Duplicate vocab entry for index {} (new: '{}'; existing: '{}')", index, word, index2str_[index]);
+  index2str_[index] = word;
+  return index;
+}
+const std::string& FactoredVocab::WordLUT::operator[](WordIndex index) const {
+  const auto& word = index2str_[index];
+  ABORT_IF(word.empty(), "Invalid access to dictionary gap item");
+  return word;
+}
+WordIndex FactoredVocab::WordLUT::operator[](const std::string& word) const {
+  auto iter = str2index_.find(word);
+  ABORT_IF(iter == str2index_.end(), "Token '{}' not found in vocabulary", word);
+  return iter->second;
+}
+bool FactoredVocab::WordLUT::tryFind(const std::string& word, WordIndex& index) const {
+  auto iter = str2index_.find(word);
+  if (iter == str2index_.end())
+    return false;
+  index = iter->second;
+  return true;
+}
+void FactoredVocab::WordLUT::resize(size_t num) {
+  ABORT_IF(num < index2str_.size(), "Word table cannot be shrunk");
+  index2str_.resize(num); // gets filled up with gap items (empty strings)
+}
+size_t FactoredVocab::WordLUT::load(const std::string& path) {
+  std::string line;
+  io::InputFileStream in(path);
+  for (WordIndex v = 0; io::getline(in, line); v++)
+    add(line, v);
+  return size();
+}
+
 // Note: This does not actually load it, only checks the path for the type.
 Ptr<IVocab> createFactoredVocab(const std::string& vocabPath) {
   bool isFactoredVocab = regex::regex_search(vocabPath, regex::regex("\\.(fm)$"));

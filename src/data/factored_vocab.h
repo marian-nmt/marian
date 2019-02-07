@@ -1,6 +1,7 @@
 // Implementation of an IVocab that represents a factored representation.
-// This is accessed via the IVocab interface, and also by Embedding and Output
-// layers directly.
+// This is accessed via the IVocab interface for the base vocab functionality,
+// and via dynamic_cast to FactoredVocab for factored-specific things used by
+// the Embedding and Output layers.
 
 #pragma once
 
@@ -68,47 +69,15 @@ private:
     std::map<std::string, WordIndex> str2index_;
     std::vector<std::string> index2str_;
   public:
-    WordIndex add(const std::string& word, WordIndex index) {
-      ABORT_IF(word.empty(), "Attempted to add the empty word to a dictionary");
-      auto wasInserted = str2index_.insert(std::make_pair(word, index)).second;
-      ABORT_IF(!wasInserted, "Duplicate vocab entry for '{}'", word);
-      while (index2str_.size() <= index)
-        index2str_.emplace_back(); // @TODO: what's the right way to get linear complexity in steps?
-      ABORT_IF(!index2str_[index].empty(), "Duplicate vocab entry for index {} (new: '{}'; existing: '{}')", index, word, index2str_[index]);
-      index2str_[index] = word;
-      return index;
-    }
-    const std::string& operator[](WordIndex index) const {
-      const auto& word = index2str_[index];
-      ABORT_IF(word.empty(), "Invalid access to dictionary gap item");
-      return word;
-    }
-    WordIndex operator[](const std::string& word) const {
-      auto iter = str2index_.find(word);
-      ABORT_IF(iter == str2index_.end(), "Token '{}' not found in vocabulary", word);
-      return iter->second;
-    }
+    WordIndex add(const std::string& word, WordIndex index);
+    const std::string& operator[](WordIndex index) const;
+    WordIndex operator[](const std::string& word) const;
     bool isGap(WordIndex index) const { return index2str_[index].empty(); }
-    bool tryFind(const std::string& word, WordIndex& index) const {
-      auto iter = str2index_.find(word);
-      if (iter == str2index_.end())
-        return false;
-      index = iter->second;
-      return true;
-    }
-    void resize(size_t num) {
-      ABORT_IF(num < index2str_.size(), "Word table cannot be shrunk");
-      index2str_.resize(num); // gets filled up with gap items (empty strings)
-    }
+    bool tryFind(const std::string& word, WordIndex& index) const;
+    void resize(size_t num);
     size_t size() const { return index2str_.size(); } // nominal size including gap items
     size_t numValid() const { return str2index_.size(); } // actual non-gaps items
-    size_t load(const std::string& path) {
-      std::string line;
-      io::InputFileStream in(path);
-      for (WordIndex v = 0; io::getline(in, line); v++)
-        add(line, v);
-      return size();
-    }
+    size_t load(const std::string& path);
   };
 
   // main vocab

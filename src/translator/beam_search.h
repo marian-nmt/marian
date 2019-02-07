@@ -4,6 +4,7 @@
 #include "marian.h"
 #include "translator/history.h"
 #include "translator/scorers.h"
+#include "data/factored_vocab.h"
 
 #include "translator/helpers.h"
 #include "translator/nth_element.h"
@@ -68,7 +69,7 @@ public:
         const auto keyBatchIdx   = hypIdx / (first ? 1 : beamSize);
         const auto keyBeamHypIdx = hypIdx % (first ? 1 : beamSize);
         const auto hypIdxTrans = keyBeamHypIdx * dimBatch + keyBatchIdx;
-        ABORT_IF(keyBeamHypIdx >= (int)beam.size(), "Beam hyp index exceeds beam size??"); // not possible, as beamSize = max(beams[.].size())
+        ABORT_IF(keyBeamHypIdx >= (int)beam.size(), "Beam hyp index exceeds beam size??"); // @TODO: is this possible? Should be, but does not seem to trigger.
 #else
         const auto keyBatchIdx = hypIdx / beamSize; // @REVIEW: is this actually keyBatchIdx?
         size_t keyBeamHypIdx = hypIdx % beamSize;
@@ -92,7 +93,7 @@ public:
           wordIdx = shortlist->reverseMap(wordIdx); // @TODO: should reverseMap accept a size_t or a Word?
         // now wordIdx is a regular Word again
 
-        auto hyp = New<Hypothesis>(beam[keyBeamHypIdx], wordIdx, (IndexType)hypIdxTrans, pathScore);
+        auto hyp = New<Hypothesis>(beam[keyBeamHypIdx], Word::fromWordIndex(wordIdx), (IndexType)hypIdxTrans, pathScore);
 
         // Set score breakdown for n-best lists
         if(options_->get<bool>("n-best")) {
@@ -170,6 +171,12 @@ public:
   //**********************************************************************
   // main decoding function
   Histories search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
+    // @TODO: EOS id does not need to be stored in this object, since it is available from vocab()
+    ABORT_IF(batch->back()->vocab()->getEosId() == trgEosId_);
+
+    auto factoredVocab = std::dynamic_pointer_cast<FactoredVocab>(batch->back()->vocab());
+    size_t numFactors = factoredVocab ? factoredVocab->getNumGroups() : 1;
+
     const int dimBatch = (int)batch->size();
 
     auto getNBestList = createGetNBestListFn(beamSize_, dimBatch, graph->getDeviceId());
@@ -281,8 +288,8 @@ public:
       }
 
       // make beams continuous
-      expandedPathScores = swapAxes(expandedPathScores, 0, 2); // -> [dimBatch, 1, localBeamSize, dimVocab]
-      //if(dimBatch > 1 && localBeamSize > 1)
+      if(dimBatch > 1 && localBeamSize > 1)
+        expandedPathScores = swapAxes(expandedPathScores, 0, 2); // -> [dimBatch, 1, localBeamSize, dimVocab]
       //  expandedPathScores = transpose(expandedPathScores, {2, 1, 0, 3}); // -> [dimBatch, 1, localBeamSize, dimVocab]
 
       // perform NN computation
