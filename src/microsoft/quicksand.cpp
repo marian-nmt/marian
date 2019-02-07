@@ -129,7 +129,7 @@ public:
     QSNBestBatch qsNbestBatch;
     for(const auto& history : histories) { // loop over batch entries
       QSNBest qsNbest;
-      NBestList nbestHyps = history->NBest(SIZE_MAX); // request as many N as we have
+      NBestList nbestHyps = history->nBest(SIZE_MAX); // request as many N as we have
       for (const Result& result : nbestHyps) { // loop over N-best entries
         // get hypothesis word sequence and normalized sentence score
         auto words = std::get<0>(result);

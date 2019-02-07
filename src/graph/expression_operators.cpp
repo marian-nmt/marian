@@ -135,31 +135,49 @@ Expr le(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant(
 /*********************************************************/
 
 Expr operator+(Expr a, float b) {
-  return Expression<ScalarAddNodeOp>(a, b);
+  if (b == 0)
+    return a;
+  else
+    return Expression<ScalarAddNodeOp>(a, b);
 }
 
 Expr operator+(float a, Expr b) {
-  return Expression<ScalarAddNodeOp>(b, a);
+  if (a == 0)
+    return b;
+  else
+    return Expression<ScalarAddNodeOp>(b, a);
 }
 
 Expr operator-(Expr a, float b) {
-  return Expression<ScalarAddNodeOp>(a, -b);
+  if (b == 0)
+    return a;
+  else
+    return Expression<ScalarAddNodeOp>(a, -b);
 }
 
 Expr operator-(float a, Expr b) {
-  return Expression<ScalarAddNodeOp>(-b, a);
+  if (a == 0)
+    return -b;
+  else
+    return Expression<ScalarAddNodeOp>(-b, a);
 }
 
 Expr operator*(float a, Expr b) {
-  return Expression<ScalarMultNodeOp>(b, a);
+  if (a == 1.0f)
+    return b;
+  else
+    return Expression<ScalarMultNodeOp>(b, a);
 }
 
 Expr operator*(Expr a, float b) {
-  return Expression<ScalarMultNodeOp>(a, b);
+  if (b == 1.0f)
+    return a;
+  else
+    return Expression<ScalarMultNodeOp>(a, b);
 }
 
 Expr operator/(Expr a, float b) {
-  return Expression<ScalarMultNodeOp>(a, 1.f / b);
+  return a * (1.f / b);
 }
 
 // TODO: efficient version of this without constant()
@@ -254,7 +272,12 @@ Expr gather(Expr a, int axis, Expr indices) {
   return Expression<GatherNodeOp>(a, axis, indices);
 }
 
-// index_select() -- gather arbitrary elements along an axis; unbatched (indices are specified as a 1D vector)
+// index_select() -- gather arbitrary elements along an axis from an unbatched
+// input 'a'. Indices are specified as a 1D vector.
+// This is used e.g. for embedding lookup.
+// Note: To use a batch of index vectors, reshape them into a single vector,
+// call index_select(), then reshape the result back. Reshapes are cheap.
+// This function has the same semantics as PyTorch operation of the same name.
 Expr index_select(Expr a, int axis, Expr indices) {
   ABORT_IF(indices->shape().size() != 1, "Indices must be a 1D tensor");
   // We have specialized kernels for non-batched indexing of first or last axis of a 2D tensor.

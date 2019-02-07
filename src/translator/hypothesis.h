@@ -6,6 +6,11 @@
 
 namespace marian {
 
+// one single (possibly partial) hypothesis in beam search
+// key elements:
+//  - the word that this hyp ends with
+//  - the aggregate score up to and including the word
+//  - back pointer to previous hypothesis for traceback
 class Hypothesis {
 public:
   Hypothesis() : prevHyp_(nullptr), prevIndex_(0), word_(0), pathScore_(0.0) {}
@@ -18,11 +23,11 @@ public:
 
   const Ptr<Hypothesis> GetPrevHyp() const { return prevHyp_; }
 
-  Word GetWord() const { return word_; }
+  Word getWord() const { return word_; }
 
-  IndexType GetPrevStateIndex() const { return prevIndex_; }
+  IndexType getPrevStateIndex() const { return prevIndex_; }
 
-  float GetPathScore() const { return pathScore_; }
+  float getPathScore() const { return pathScore_; }
 
   std::vector<float>& GetScoreBreakdown() { return scoreBreakdown_; }
   std::vector<float>& GetAlignment() { return alignment_; }
@@ -34,8 +39,8 @@ public:
   {
       Words targetWords;
       for (auto hyp = this; hyp->GetPrevHyp(); hyp = hyp->GetPrevHyp().get()) {
-          targetWords.push_back(hyp->GetWord());
-          // std::cerr << hyp->GetWord() << " " << hyp << std::endl;
+          targetWords.push_back(hyp->getWord());
+          // std::cerr << hyp->getWord() << " " << hyp << std::endl;
       }
       std::reverse(targetWords.begin(), targetWords.end());
       return targetWords;
