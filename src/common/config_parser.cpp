@@ -694,8 +694,9 @@ void ConfigParser::addSuboptionsULR(cli::CLIWrapper& cli) {
 }
 
 void ConfigParser::addAliases(cli::CLIWrapper& cli) {
-  // The order of aliases does matter as later options overwrite earlier
+  // The order of aliases does matter as later options in the command line overwrite earlier
 
+  // Options reconstructing the BiDeep architecture proposed in http://www.aclweb.org/anthology/W17-4710
   cli.alias("best-deep", "true", [](YAML::Node& config) {
     config["layer-normalization"] = true;
     config["tied-embeddings"] = true;
@@ -708,6 +709,8 @@ void ConfigParser::addAliases(cli::CLIWrapper& cli) {
     config["skip"] = true;
   });
 
+  // Architecture and proposed training settings for a Transformer BASE model introduced in
+  // https://papers.nips.cc/paper/7181-attention-is-all-you-need.pdf
   cli.alias("task", "transformer", [](YAML::Node& config) {
     config["type"] = "transformer";
     config["enc-depth"] = 6;
@@ -722,6 +725,8 @@ void ConfigParser::addAliases(cli::CLIWrapper& cli) {
     config["clip-norm"] = 5;
   });
 
+  // Architecture and proposed training settings for a Transformer BIG model introduced in
+  // https://papers.nips.cc/paper/7181-attention-is-all-you-need.pdf
   cli.alias("task", "transformer-big", [](YAML::Node& config) {
     config["type"] = "transformer";
     config["enc-depth"] = 6;

@@ -51,7 +51,7 @@ private:
 // @TODO: in this file review the use of naked pointers. We use Ptr<Type> anywhere else,
 // what's up with that?
 
-// The helper structure storing an option object, the associated variable and creation index
+// Helper structure storing an option object, the associated variable and creation index
 struct CLIOptionTuple {
   CLI::Option *opt;
   Ptr<any_type> var;
@@ -59,11 +59,12 @@ struct CLIOptionTuple {
   bool modified{false};
 };
 
-// Helper structure used for aliases and storing an option key, value, and YAML node
+// Helper structure used for aliases storing an option key, value, and options to be expanded in the
+// form of a YAML config
 struct CLIAliasTuple {
-  std::string key;
-  std::string value;
-  YAML::Node config;
+  std::string key;    // alias option name
+  std::string value;  // value for the alias option indicating that it should be expanded
+  YAML::Node config;  // config with options that the alias adds
 };
 
 /**
@@ -200,13 +201,24 @@ public:
   }
 
   /**
-   * @brief Define an alias that is a shortcut for a set of options
+   * @brief Transform the option into an alias that is a shortcut for a set of options
    *
-   * Option values are compared as std::string.
+   * An alias sets one or more options to predefined values. The options expanded by the alias are
+   * provided as a function setting a temporary YAML config.
    *
-   * @param key Option name
+   * The alias option has to be first defined using `add<T>()`. Otherwise, the program will abort.
+   *
+   * Defining more than one alias for the same `key` but different `value` is allowed.
+   *
+   * Option values are compared as std::string. If the alias option is a vector, the alias will be
+   * triggered if `value` exists in that vector at least once.
+   *
+   * Options set directly via command line have precedence over options defined in an alias, i.e. an
+   * option added via alias can be overwritten by setting a specific option via command line.
+   *
+   * @param key Alias option name
    * @param value Option value that trigger the alias
-   * @param fun Function initializing options
+   * @param fun Function setting a temporary YAML config with options expanded by alias
    */
   void alias(const std::string &key,
              const std::string &value,
@@ -231,7 +243,8 @@ public:
   /**
    * @brief Expand aliases based on arguments parsed with parse(int, char**)
    *
-   * Should be called after parse(int, char**) to take an effect.
+   * Should be called after parse(int, char**) to take an effect.  If any alias tries to expand an
+   * undefined option, the method will abort.
    *
    * All options defined as aliases are removed from the config object.
    */
@@ -240,10 +253,9 @@ public:
   /*
    * @brief Overwrite values for unparsed options
    *
-   * Default values are overwritten with the options from the config provided, while parsed
-   * command-line options remain unchanged.
-   * This should be a preferred way of updating config options as the class keeps track of options,
-   * which values have changed.
+   * Default values are overwritten with the options from the provided config, while parsed
+   * command-line options remain unchanged.  This should be a preferred way of updating config
+   * options as the class keeps track of options, which values have changed.
    *
    * @param config YAML config with new default values for options
    * @param errorMsg error message printed if config contains undefined keys. The message is
