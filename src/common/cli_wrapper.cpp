@@ -167,17 +167,10 @@ void CLIWrapper::parseAliases() {
     }
   }
 
-  // Remove aliases from the global config to avoid redundancy when dumping/reading config files
+  // Remove aliases from the global config to avoid redundancy when writing/reading config files
   for(const auto &key : parsedAliases) {
     config_.remove(key);
   }
-}
-
-std::string CLIWrapper::failureMessage(const CLI::App *app, const CLI::Error &e) {
-  std::string header = "Error: " + std::string(e.what()) + "\n";
-  if(app->get_help_ptr() != nullptr)
-    header += "Run with " + app->get_help_ptr()->get_name() + " for more information.\n";
-  return header;
 }
 
 void CLIWrapper::updateConfig(const YAML::Node &config, const std::string &errorMsg) {
@@ -226,18 +219,21 @@ void CLIWrapper::updateConfig(const YAML::Node &config, const std::string &error
   ABORT_IF(!unknownOpts.empty(), errorMsg + ": " + utils::join(unknownOpts, ", "));
 }
 
-std::string CLIWrapper::dumpConfig(bool skipDefault /*= false*/) const {
+std::string CLIWrapper::dumpConfig(bool skipUnmodified /*= false*/) const {
   YAML::Emitter out;
   out << YAML::Comment("Marian configuration file generated at " + timer::currentDate()
                        + " with version " + buildVersion());
   out << YAML::BeginMap;
   std::string comment;
+  // Iterate option names in the same order as they have been created
   for(const auto &key : getOrderedOptionNames()) {
-    // do not proceed keys that are removed from config_
+    // Do not dump options that were removed from config_
     if(!config_[key])
       continue;
-    if(skipDefault && !options_.at(key).modified)
+    // Do not dump options that were not passed via the command line
+    if(skipUnmodified && !options_.at(key).modified)
       continue;
+    // Put the group name as a comment before the first option in the group
     auto group = options_.at(key).opt->get_group();
     if(comment != group) {
       if(!comment.empty())
@@ -272,6 +268,13 @@ std::vector<std::string> CLIWrapper::getOrderedOptionNames() const {
     return options_.at(a).idx < options_.at(b).idx;
   });
   return keys;
+}
+
+std::string CLIWrapper::failureMessage(const CLI::App *app, const CLI::Error &e) {
+  std::string header = "Error: " + std::string(e.what()) + "\n";
+  if(app->get_help_ptr() != nullptr)
+    header += "Run with " + app->get_help_ptr()->get_name() + " for more information.\n";
+  return header;
 }
 
 }  // namespace cli
