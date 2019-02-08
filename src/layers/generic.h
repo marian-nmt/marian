@@ -85,7 +85,7 @@ public:
       MaskedFactorIndices() {}
       MaskedFactorIndices(const Words& words) { indices = toWordIndexVector(words); } // we can leave masks uninitialized for this special use case
     };
-    std::vector<MaskedFactorIndices> factorize(const Words& words) const; // breaks encoded Word into individual factor indices
+    std::vector<MaskedFactorIndices> factorizeWords(const Words& words) const; // breaks encoded Word into individual factor indices
     float getLogitAt(size_t i) const { return getLogits()->val()->get(i); } // @TODO: avoid the fully expanded logits
 
     void assign(const Logits& other) { // @TODO: we can remove this

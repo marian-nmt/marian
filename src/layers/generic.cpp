@@ -39,8 +39,7 @@ namespace marian {
     auto numGroups = factoredVocab_->getNumGroups();
 
     // split labels into individual factor labels
-    // @TODO: Is there value in having factorize() return Exprs? That would allow to move some stuff to GPU.
-    auto allMaskedFactoredLabels = factorize(labels); // [numGroups][labels.size()] = [numGroups][B... flattened]
+    auto allMaskedFactoredLabels = factorizeWords(labels); // [numGroups][labels.size()] = [numGroups][B... flattened]
 
     //Expr indices = this->indices(toWordIndexVector(labels));
     // accumulate all CEs for all words that have the factor
@@ -116,7 +115,7 @@ namespace marian {
     masks.push_back((float)isValid);
   }
 
-  std::vector<Logits::MaskedFactorIndices> Logits::factorize(const Words& words) const { // [numGroups][words.size()] -> breaks encoded Word into individual factor indices
+  std::vector<Logits::MaskedFactorIndices> Logits::factorizeWords(const Words& words) const { // [numGroups][words.size()] -> breaks encoded Word into individual factor indices
     if (!factoredVocab_) {
       ABORT_IF(logits_.size() != 1, "Factors without factor mappings??");
       return {MaskedFactorIndices(words)};

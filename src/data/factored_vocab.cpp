@@ -206,17 +206,17 @@ std::pair<WordIndex, bool> FactoredVocab::getFactorUnit(Word word, size_t groupI
 
 void FactoredVocab::constructNormalizationInfoForVocab() {
   // create mappings needed for normalization in factored outputs
-  size_t numGroups = groupPrefixes_.size();
+  //size_t numGroups = groupPrefixes_.size();
   size_t vocabSize = vocab_.size();
-  factorMasks_  .resize(numGroups, std::vector<float>(vocabSize, 0));     // [g][v] 1.0 if word v has factor g
-  factorIndices_.resize(numGroups, std::vector<IndexType>(vocabSize, 0)); // [g][v] index of factor (or any valid index if it does not have it; we use 0)
+  //factorMasks_  .resize(numGroups, std::vector<float>(vocabSize, 0));     // [g][v] 1.0 if word v has factor g
+  //factorIndices_.resize(numGroups, std::vector<IndexType>(vocabSize, 0)); // [g][v] index of factor (or any valid index if it does not have it; we use 0)
   gapLogMask_.resize(vocabSize, -1e8f);
   for (WordIndex v = 0; v < vocabSize; v++) {
     for (auto u : factorMap_[v]) {
       auto g = factorGroups_[u]; // convert u to relative u within factor group range
       ABORT_IF(u < groupRanges_[g].first || u >= groupRanges_[g].second, "Invalid factorGroups_ entry??");
-      factorIndices_[g][v] = (IndexType)(u - groupRanges_[g].first);
-      factorMasks_[g][v] = 1.0f;
+      //factorIndices_[g][v] = (IndexType)(u - groupRanges_[g].first);
+      //factorMasks_[g][v] = 1.0f;
       gapLogMask_[v] = 0.0f; // valid entry
     }
   }
