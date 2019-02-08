@@ -40,7 +40,8 @@ public:
                const std::vector<Ptr<ScorerState /*const*/>>& states,
                const size_t beamSize,
                const bool first,
-               Ptr<data::CorpusBatch /*const*/> batch) const {
+               Ptr<data::CorpusBatch /*const*/> batch, // for alignments only
+               Ptr<FactoredVocab/*const*/> factoredVocab) const {
     std::vector<float> align;
     if(options_->hasAndNotEmpty("alignment"))
       align = scorers_[0]->getAlignment(); // use alignments from the first scorer, even if ensemble
@@ -70,14 +71,14 @@ public:
       ABORT_IF(beamHypIdx >= (int)beam.size(), "Out of bounds beamHypIdx value in key??");
 
       // map wordIdx to word
+      Word word;
       // If short list has been set, then wordIdx is an index into the short-listed word set,
       // rather than the true word index.
       auto shortlist = scorers_[0]->getShortlist();
-      Word word =
-        /*if*/(shortlist) ?
-          Word::fromWordIndex(shortlist->reverseMap(wordIdx))
-        /*else*/:
-          Word::fromWordIndex(wordIdx);
+      if (shortlist)
+        word = Word::fromWordIndex(shortlist->reverseMap(wordIdx));
+      else
+        word = Word::fromWordIndex(wordIdx);
 
       auto hyp = New<Hypothesis>(beam[beamHypIdx], word, beamHypIdx, pathScore);
 
@@ -161,8 +162,10 @@ public:
     ABORT_IF(batch->back()->vocab()->getEosId() != trgEosId_, "Batch uses different EOS token than was passed to BeamSearch originally");
 
     auto factoredVocab = batch->back()->vocab()->tryAs<FactoredVocab>();
-    size_t numFactors = factoredVocab ? factoredVocab->getNumGroups() : 1;
-    numFactors;
+#if 1   // use '1' here to disable factored decoding, e.g. for comparisons
+    factoredVocab.reset();
+#endif
+    size_t numFactorGroups = factoredVocab ? factoredVocab->getNumGroups() : 1;
 
     const int dimBatch = (int)batch->size();
 
@@ -213,6 +216,10 @@ public:
     // main loop over output time steps
     for (size_t t = 0; ; t++) {
       ABORT_IF(dimBatch != beams.size(), "Lost a batch entry??");
+
+      // for factored vocabs, we do one factor at a time, but without updating the decoder model for secondary factors
+      auto factorGroup = t % numFactorGroups;
+
       // determine beam size for next output time step, as max over still-active sentences
       // E.g. if all batch entries are down from beam 5 to no more than 4 surviving hyps, then
       // switch to beam of 4 for all. If all are done, then beam ends up being 0, and we are done.
@@ -227,9 +234,9 @@ public:
 
       //**********************************************************************
       // create constant containing previous path scores for current beam
-      // Also create mapping of hyp indices, which are not 1:1 if sentences complete.
-      std::vector<IndexType> hypIndices; // [localBeamsize, 1, dimBatch, 1] (flattened) tensor index ((beamHypIdx, batchIdx), flattened) of prev hyp that a hyp originated from, for reordering
-      std::vector<Word> prevWords;       // [localBeamsize, 1, dimBatch, 1] (flattened) word that a hyp ended in
+      // Also create mapping of hyp indices, for reordering the decoder-state tensors.
+      std::vector<IndexType> hypIndices; // [localBeamsize, 1, dimBatch, 1] (flattened) tensor index ((beamHypIdx, batchIdx), flattened) of prev hyp that a hyp originated from
+      std::vector<Word> prevWords;       // [localBeamsize, 1, dimBatch, 1] (flattened) word that a hyp ended in, for advancing the decoder-model's history
       Expr prevPathScores;               // [localBeamSize, 1, dimBatch, 1], path score that a hyp ended in (last axis will broadcast into vocab size when adding expandedPathScores)
       if(t == 0) { // no scores yet
         prevPathScores = graph->constant({1, 1, 1, 1}, inits::from_value(0));
@@ -258,20 +265,39 @@ public:
       // compute expanded path scores with word prediction probs from all scorers
       auto expandedPathScores = prevPathScores; // will become [localBeamSize, 1, dimBatch, dimVocab]
       for(size_t i = 0; i < scorers_.size(); ++i) {
-        // compute output probabilities for current output time step
-        //  - uses hypIndices[index in beam, 1, batch index, 1] to reorder decoder state to reflect the top-N in beams[][]
-        //  - adds prevWords [index in beam, 1, batch index, 1] to the decoder model's target history
-        //  - performs one step of the decoder model
-        //  - returns new NN state for use in next output time step
-        //  - returns vector of prediction probabilities over output vocab via newState
-        auto newState = scorers_[i]->step(
-            graph, states[i], hypIndices, prevWords, dimBatch, (int)localBeamSize);
+        Expr logProbs, factorMasks;
+        if (factorGroup == 0) {
+          // compute output probabilities for current output time step
+          //  - uses hypIndices[index in beam, 1, batch index, 1] to reorder decoder state to reflect the top-N in beams[][]
+          //  - adds prevWords [index in beam, 1, batch index, 1] to the decoder model's target history
+          //  - performs one step of the decoder model
+          //  - returns new NN state for use in next output time step
+          //  - returns vector of prediction probabilities over output vocab via newState
+          // update state in-place for next output time step
+          states[i] = scorers_[i]->step(graph, states[i], hypIndices, prevWords, dimBatch, (int)localBeamSize);
+        }
+        else {
+            // add secondary factors
+            // For those, we don't update the decoder-model state in any way.
+            // Instead, we just keep expanding with the factors.
+            // Considerations:
+            //  - not all scores should get a factor
+            //    We need a [localBeamSize, 1, dimBatch, 1] tensor that knows whether a factor is applicable
+            //    by considering the lemma at each (beamHypIdx, batchIdx). prevWords is already in the right order.
+            //  - factors are incorporated one step at a time; so we will have temporary Word entries
+            //    in hyps with some factors set to FACTOR_NOT_SPECIFIED.
+            //  - we did not rearrange the tensors in the decoder model's state
 
+            // ...
+        }
         // expand all hypotheses, [localBeamSize, 1, dimBatch, 1] -> [localBeamSize, 1, dimBatch, dimVocab]
-        expandedPathScores = expandedPathScores + scorers_[i]->getWeight() * newState->getLogProbs().getLogits();
-
-        // update state in-place for next output time step
-        states[i] = newState;
+        if (numFactorGroups == 1)
+          logProbs = states[i]->getLogProbs().getLogits(); // [localBeamSize, 1, dimBatch, dimVocab]
+        else
+          logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup); // [localBeamSize, 1, dimBatch, dimVocab]
+        if (factorMasks)
+          logProbs = logProbs * factorMasks; // those hyps that don't have a factor get multiplied with 0
+        expandedPathScores = expandedPathScores + scorers_[i]->getWeight() * logProbs;
       }
 
       // make beams continuous
@@ -305,33 +331,33 @@ public:
       // Now, nBestPathScores contain N-best expandedPathScores, and nBestKeys for each their original location (batchIdx, beamHypIdx, word).
 
       // combine N-best sets with existing search space (beams) to updated search space
-      beams = toHyps(nBestKeys, nBestPathScores,
-                     /*dimTrgVoc=*/expandedPathScores->shape()[-1],
-                     beams,
-                     states,           // used for keeping track of per-ensemble-member path score
-                     localBeamSize,    // used in the encoding of the (batchIdx, beamHypIdx, word) tuples
-                     /*first=*/t == 0, // used to indicate originating beamSize of 1
-                     batch);
+      auto newBeams = toHyps(nBestKeys, nBestPathScores,
+                             /*dimTrgVoc=*/expandedPathScores->shape()[-1],
+                             beams,
+                             states,           // used for keeping track of per-ensemble-member path score
+                             localBeamSize,    // used in the encoding of the (batchIdx, beamHypIdx, word) tuples
+                             /*first=*/t == 0, // used to indicate originating beamSize of 1
+                             batch, factoredVocab);
 
       // remove all hyps that end in EOS
       // The position of a hyp in the beam may change.
-      const auto purgedBeams = purgeBeams(beams);
+      const auto purgedNewBeams = purgeBeams(newBeams);
 
-      // add updated search space (beams) to search grid (histories) for traceback
+      // add updated search space (newBeams) to search grid (histories) for traceback
       bool maxLengthReached = false;
       for(int i = 0; i < dimBatch; ++i) {
         // if this batch entry has surviving hyps then add them to the traceback grid
-        if(!beams[i].empty()) {
+        if(!newBeams[i].empty()) {
           if (histories[i]->size() >= options_->get<float>("max-length-factor") * batch->front()->batchWidth())
             maxLengthReached = true;
-          histories[i]->add(beams[i], trgEosId_, purgedBeams[i].empty() || maxLengthReached);
+          histories[i]->add(newBeams[i], trgEosId_, purgedNewBeams[i].empty() || maxLengthReached);
         }
       }
       if (maxLengthReached) // early exit if max length limit was reached
         break;
 
       // this is the search space for the next output time step
-      beams = purgedBeams;
+      beams = purgedNewBeams;
     } // end of main loop over output time steps
 
     return histories; // [dimBatch][t][N best hyps]
