@@ -133,10 +133,6 @@ void CLIWrapper::parseAliases() {
   if(aliases_.empty())
     return;
 
-  // Names of all triggered/expanded aliases will be collected and removed from the config at the
-  // end.  We keep them in a set as multiple aliases can be defined for one option name (aka `key`).
-  std::set<std::string> parsedAliases;
-
   // Iterate all known aliases, each alias has a key, value, and config
   for(const auto &alias : aliases_) {
     // Check if the alias option exists in the config (it may come from command line or a config
@@ -157,23 +153,22 @@ void CLIWrapper::parseAliases() {
 
       if(expand) {
         // Update global config options with the config associated with the alias. Abort if the
-        // alias contains an undefined option
+        // alias contains an undefined option.
         updateConfig(alias.config,
+                     // Priority of each expanded option is the same as the priority of the alias
+                     options_[alias.key].priority,
                      "Unknown option(s) in alias '" + alias.key + ": " + alias.value + "'");
       }
-
-      // Collect the alias option as they will be removed at the end
-      parsedAliases.insert(alias.key);
     }
   }
 
   // Remove aliases from the global config to avoid redundancy when writing/reading config files
-  for(const auto &key : parsedAliases) {
-    config_.remove(key);
+  for(const auto &alias : aliases_) {
+    config_.remove(alias.key);
   }
 }
 
-void CLIWrapper::updateConfig(const YAML::Node &config, const std::string &errorMsg) {
+void CLIWrapper::updateConfig(const YAML::Node &config, int priority, const std::string &errorMsg) {
   auto cmdOptions = getParsedOptionNames();
   // Keep track of unrecognized options from the provided config
   std::vector<std::string> unknownOpts;
@@ -191,10 +186,14 @@ void CLIWrapper::updateConfig(const YAML::Node &config, const std::string &error
 
     // Check if an incoming option has been defined in CLI
     if(options_.count(key)) {
+      // Do not proceed if the priority of incoming option is not greater than the existing option
+      if(priority <= options_[key].priority) {
+        continue;
+      }
       // Check if the option exists in the global config and types match
       if(config_[key] && config_[key].Type() == it.second.Type()) {
         config_[key] = YAML::Clone(it.second);
-        options_[key].modified = true;
+        options_[key].priority = priority;
         // If types doesn't match, try to convert
       } else {
         // Default value is a sequence and incoming node is a scalar, hence we can upcast to
@@ -205,7 +204,7 @@ void CLIWrapper::updateConfig(const YAML::Node &config, const std::string &error
           YAML::Node sequence;
           sequence.push_back(YAML::Clone(it.second));
           config_[key] = sequence;  // overwrite to replace default values
-          options_[key].modified = true;
+          options_[key].priority = priority;
         } else {
           // Cannot convert other non-matching types, e.g. scalar <- list should fail
           ABORT("Cannot convert values for the option: " + key);
@@ -231,7 +230,7 @@ std::string CLIWrapper::dumpConfig(bool skipUnmodified /*= false*/) const {
     if(!config_[key])
       continue;
     // Do not dump options that were not passed via the command line
-    if(skipUnmodified && !options_.at(key).modified)
+    if(skipUnmodified && options_.at(key).priority == 0)
       continue;
     // Put the group name as a comment before the first option in the group
     auto group = options_.at(key).opt->get_group();

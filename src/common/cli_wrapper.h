@@ -37,7 +37,7 @@ struct CLIOptionTuple {
   CLI::Option *opt;     // a pointer to an option object from CLI11
   Ptr<any_type> var;    // value assigned to the option via command-line
   size_t idx{0};        // order in which the option was created
-  bool modified{false}; // whether the option occurred as a command-line argument or not
+  int priority{0};      // priority: 0 - default value, 1 - from config, 2 - from command line
 };
 
 // Helper tuple for aliases storing an option key, value, and options to be expanded
@@ -227,18 +227,22 @@ public:
    */
   void parseAliases();
 
-  /*
-   * @brief Overwrite values for unparsed options
+  /**
+   * @brief Overwrite options with lower priority
    *
-   * Default values are overwritten with the options from the provided config, while parsed
-   * command-line options remain unchanged.  This should be a preferred way of updating config
-   * options as the class keeps track of options, which values have changed.
+   * Values for options with lower priority than the provided priority remain unchanged. This allows
+   * for overwritting default options by options from config files, or both by options provided in
+   * the command line.
+   *
+   * This should be a preferred way of updating config options as the class keeps track of options,
+   * which values have changed.
    *
    * @param config YAML config with new default values for options
+   * @param priority priority of incoming options
    * @param errorMsg error message printed if config contains undefined keys. The message is
    *   appended with ": <comma-separated list of invalid options>"
    */
-  void updateConfig(const YAML::Node &config, const std::string &errorMsg);
+  void updateConfig(const YAML::Node &config, int priority, const std::string &errorMsg);
 
   // Get textual YAML representation of the config
   std::string dumpConfig(bool skipUnmodified = false) const;
@@ -263,7 +267,7 @@ private:
 
     // callback function collecting a command-line argument
     CLI::callback_t fun = [this, key](CLI::results_t res) {
-      options_[key].modified = true;
+      options_[key].priority = 2;
       // get variable associated with the option
       auto &var = options_[key].var->as<T>();
       // store parser result in var
@@ -310,7 +314,7 @@ private:
 
     // callback function collecting command-line arguments
     CLI::callback_t fun = [this, key](CLI::results_t res) {
-      options_[key].modified = true;
+      options_[key].priority = 2;
       // get vector variable associated with the option
       auto &vec = options_[key].var->as<T>();
       vec.clear();
@@ -367,7 +371,7 @@ private:
 
     // callback function setting the flag
     CLI::callback_t fun = [this, key](CLI::results_t res) {
-      options_[key].modified = true;
+      options_[key].priority = 2;
       // get parser result, it is safe as boolean options have an implicit value
       auto val = res[0];
       auto ret = true;
