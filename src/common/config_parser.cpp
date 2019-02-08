@@ -797,8 +797,6 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
 
   if(doValidate) {
-    // TODO: Do not check some constraints if --dump-config, e.g. -t
-    // this aborts the program on first validation error
     ConfigValidator(config_).validateOptions(mode_);
   }
 
