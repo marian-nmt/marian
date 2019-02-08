@@ -43,8 +43,7 @@ public:
                Ptr<data::CorpusBatch /*const*/> batch) const {
     std::vector<float> align;
     if(options_->hasAndNotEmpty("alignment"))
-      // Use alignments from the first scorer, even if ensemble
-      align = scorers_[0]->getAlignment();
+      align = scorers_[0]->getAlignment(); // use alignments from the first scorer, even if ensemble
 
     const auto dimBatch = beams.size();
     Beams newBeams(dimBatch);
@@ -53,7 +52,7 @@ public:
       // Keys contains indices to vocab items in the entire beam.
       // Values can be between 0 and beamSize * vocabSize.
       const float pathScore = nBestPathScores[i];
-      const auto  key       = nBestKeys[i]; // key = pathScore's location, as (batchIdx, beamHypIdx, word idx) flattened
+      const auto  key       = nBestKeys[i]; // key = pathScore's tensor location, as (batchIdx, beamHypIdx, word idx) flattened
 
       // decompose key into individual indices (batchIdx, beamHypIdx, wordIdx)
       const auto wordIdx    = (WordIndex)(key % vocabSize);
@@ -80,16 +79,17 @@ public:
         /*else*/:
           Word::fromWordIndex(wordIdx);
 
-      auto hyp = New<Hypothesis>(beam[beamHypIdx], word, /*experimental dummy*/0, beamHypIdx, pathScore);
+      auto hyp = New<Hypothesis>(beam[beamHypIdx], word, beamHypIdx, pathScore);
 
       // Set score breakdown for n-best lists
       if(options_->get<bool>("n-best")) {
         std::vector<float> breakDown(states.size(), 0);
         beam[beamHypIdx]->getScoreBreakdown().resize(states.size(), 0); // @TODO: Why? Can we just guard the read-out below, then make it const? Or getScoreBreakdown(j)?
         for(size_t j = 0; j < states.size(); ++j) {
-          size_t flattenedLogitIndex = (beamHypIdx * dimBatch + batchIdx) * vocabSize + wordIdx;  // (beam idx, batch idx, word idx)
+          size_t flattenedLogitIndex = (beamHypIdx * dimBatch + batchIdx) * vocabSize + wordIdx;  // (beam idx, batch idx, word idx); note: beam and batch are transposed, compared to 'key'
           // @BUGBUG: This ^^ used to use wordIdx after de-shortlisting, which seems wrong. If it was right though, change wordIdx to word.toWordIndex().
           breakDown[j] = states[j]->breakDown(flattenedLogitIndex) + beam[beamHypIdx]->getScoreBreakdown()[j];
+          // @TODO: pass those 3 indices directly into breakDown
         }
         hyp->setScoreBreakdown(breakDown);
       }
@@ -229,9 +229,9 @@ public:
       //**********************************************************************
       // create constant containing previous path scores for current beam
       // Also create mapping of hyp indices, which are not 1:1 if sentences complete.
-      std::vector<IndexType> hypIndices; // [localBeamsize, 1, dimBatch, 1] (flattened) index of prev hyp that the current hyp originated from
-      std::vector<Word> prevWords;       // [localBeamsize, 1, dimBatch, 1] (flattened) predecessor word
-      Expr prevPathScores;               // [localBeamSize, 1, dimBatch, 1], where the last axis broadcasts into vocab size when adding expandedPathScores
+      std::vector<IndexType> hypIndices; // [localBeamsize, 1, dimBatch, 1] (flattened) tensor index ((beamHypIdx, batchIdx), flattened) of prev hyp that a hyp originated from, for reordering
+      std::vector<Word> prevWords;       // [localBeamsize, 1, dimBatch, 1] (flattened) word that a hyp ended in
+      Expr prevPathScores;               // [localBeamSize, 1, dimBatch, 1], path score that a hyp ended in (last axis will broadcast into vocab size when adding expandedPathScores)
       if(t == 0) { // no scores yet
         prevPathScores = graph->constant({1, 1, 1, 1}, inits::from_value(0));
       } else {
@@ -241,7 +241,7 @@ public:
             auto& beam = beams[batchIdx];
             if(beamHypIdx < beam.size()) {
               auto hyp = beam[beamHypIdx];
-              hypIndices.push_back((IndexType)(hyp->getPrevStateIndex() * dimBatch + batchIdx)); // flattened index for index_select() operation
+              hypIndices.push_back((IndexType)(hyp->getPrevStateIndex() * dimBatch + batchIdx)); // (beamHypIdx, batchIdx), flattened, for index_select() operation
               prevWords .push_back(hyp->getWord());
               prevScores.push_back(hyp->getPathScore());
             } else {  // pad to localBeamSize (dummy hypothesis)
@@ -260,7 +260,7 @@ public:
       auto expandedPathScores = prevPathScores; // will become [localBeamSize, 1, dimBatch, dimVocab]
       for(size_t i = 0; i < scorers_.size(); ++i) {
         // compute output probabilities for current output time step
-        //  - uses hypIndices[index in beam, 1, batch index, 1] to reorder hypotheses
+        //  - uses hypIndices[index in beam, 1, batch index, 1] to reorder decoder state to reflect the top-N in beams[][]
         //  - adds prevWords [index in beam, 1, batch index, 1] to the decoder model's target history
         //  - performs one step of the decoder model
         //  - returns new NN state for use in next output time step
