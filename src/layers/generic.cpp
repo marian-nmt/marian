@@ -137,6 +137,13 @@ namespace marian {
     return res;
   }
 
+  // use first factor of each word to determine whether it has a specific factor
+  std::vector<float> Logits::getFactorMasks(const Words& words, size_t factorGroup) const { // 1.0 for words that do have this factor; else 0
+    std::vector<float> res;
+    ABORT("FINISH THIS");
+    return res;
+  }
+
   Logits Logits::withCounts(const Expr& count) const { // create new Logits with 'count' implanted into all logits_
     std::vector<Ptr<RationalLoss>> newLogits;
     for (const auto& l : logits_)

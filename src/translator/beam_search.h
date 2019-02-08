@@ -257,8 +257,7 @@ public:
             }
           }
         }
-        prevPathScores = graph->constant({(int)localBeamSize, 1, dimBatch, 1},
-                                    inits::from_vector(prevScores));
+        prevPathScores = graph->constant({(int)localBeamSize, 1, dimBatch, 1}, inits::from_vector(prevScores));
       }
 
       //**********************************************************************
@@ -286,9 +285,12 @@ public:
             //    by considering the lemma at each (beamHypIdx, batchIdx). prevWords is already in the right order.
             //  - factors are incorporated one step at a time; so we will have temporary Word entries
             //    in hyps with some factors set to FACTOR_NOT_SPECIFIED.
+            // TODO:
             //  - we did not rearrange the tensors in the decoder model's state
-
-            // ...
+            //  - initial word should set lemma by all other factors as unspecified
+            //  - toHyp() should implant factors
+            auto factorMaskVector = states[i]->getLogProbs().getFactorMasks(prevWords, factorGroup);
+            factorMasks = graph->constant({(int)localBeamSize, 1, dimBatch, 1}, inits::from_vector(factorMaskVector));
         }
         // expand all hypotheses, [localBeamSize, 1, dimBatch, 1] -> [localBeamSize, 1, dimBatch, dimVocab]
         if (numFactorGroups == 1)
