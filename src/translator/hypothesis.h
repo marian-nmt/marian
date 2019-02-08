@@ -13,19 +13,19 @@ namespace marian {
 //  - back pointer to previous hypothesis for traceback
 class Hypothesis {
 public:
-  Hypothesis() : prevHyp_(nullptr), prevIndex_(0), word_(Word::ZERO), pathScore_(0.0) {}
+  Hypothesis() : prevHyp_(nullptr), prevBeamHypIdx_(0), word_(Word::ZERO), pathScore_(0.0) {}
 
   Hypothesis(const Ptr<Hypothesis> prevHyp,
              Word word,
-             IndexType prevIndex, // (beamHypIdx, batchIdx) flattened as beamHypIdx * dimBatch + batchIdx
+             size_t prevBeamHypIdx, // beam-hyp index that this hypothesis originated from
              float pathScore)
-      : prevHyp_(prevHyp), prevIndex_(prevIndex), word_(word), pathScore_(pathScore) {}
+      : prevHyp_(prevHyp), prevBeamHypIdx_(prevBeamHypIdx), word_(word), pathScore_(pathScore) {}
 
   const Ptr<Hypothesis> getPrevHyp() const { return prevHyp_; }
 
   Word getWord() const { return word_; }
 
-  IndexType getPrevStateIndex() const { return prevIndex_; }
+  size_t getPrevStateIndex() const { return prevBeamHypIdx_; }
 
   float getPathScore() const { return pathScore_; }
 
@@ -61,7 +61,7 @@ public:
 
 private:
   const Ptr<Hypothesis> prevHyp_;
-  const IndexType prevIndex_;
+  const size_t prevBeamHypIdx_;
   const Word word_;
   const float pathScore_;
 

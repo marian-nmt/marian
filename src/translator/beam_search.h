@@ -63,28 +63,13 @@ public:
         // decompose key into individual indices
         WordIndex  wordIdx = (WordIndex)(key % vocabSize);
         const auto hypIdx  =            (key / vocabSize);
-#if 1
         // further decompose hypIdx, taking into account that the very first entry had beam size 1
-        // and compose a new hypIdx that assumes actual beamSize
-        const auto keyBatchIdx   = hypIdx / (first ? 1 : beamSize);
-        const auto keyBeamHypIdx = hypIdx % (first ? 1 : beamSize);
-        const auto hypIdxTrans = keyBeamHypIdx * dimBatch + keyBatchIdx;
-        ABORT_IF(keyBeamHypIdx >= (int)beam.size(), "Beam hyp index exceeds beam size??"); // @TODO: is this possible? Should be, but does not seem to trigger.
-#else
-        const auto keyBatchIdx = hypIdx / beamSize; // @REVIEW: is this actually keyBatchIdx?
-        size_t keyBeamHypIdx = hypIdx % beamSize;
+        // and compose a new hypIdx that assumes actual beamSize and refers to a transposed object
+        const auto beamHypIdx = hypIdx % (first ? 1 : beamSize);
+        const auto batchIdx1  = hypIdx / (first ? 1 : beamSize); // (only for checking; must be same as batchIdx)
+        ABORT_IF(batchIdx1 != batchIdx || beamHypIdx >= (int)beam.size(), "Inconsistent (beamHypIdx, batchIdx) value in key??");
+        const auto hypIdxTrans = beamHypIdx * dimBatch + batchIdx;
 
-        auto hypIdxTrans = keyBatchIdx + keyBeamHypIdx * dimBatch;
-        if(first)
-          hypIdxTrans = hypIdx; // == keyBeamHypIdx + keyBatchIdx * beamSize? or was beamSize=1, and keyBeamHypIdx = 0?
-
-        ABORT_IF(keyBeamHypIdx >= (int)beam.size(), "Beam hyp index exceeds beam size??");
-        //if(keyBeamHypIdx >= (int)beam.size())  // @TODO: What is this condition? Cf. keyBeamHypIdx = hypIdx % beamSize; beamSize = max(beams[.].size())
-        //  keyBeamHypIdx = keyBeamHypIdx % beam.size();
-
-        if(first)
-          keyBeamHypIdx = 0;
-#endif
         // Retrieve short list for final softmax (based on words aligned
         // to source sentences). If short list has been set, map the indices
         // in the sub-selected vocabulary matrix back to their original positions.
@@ -93,22 +78,22 @@ public:
           wordIdx = shortlist->reverseMap(wordIdx); // @TODO: should reverseMap accept a size_t or a Word?
         // now wordIdx is a regular Word again
 
-        auto hyp = New<Hypothesis>(beam[keyBeamHypIdx], Word::fromWordIndex(wordIdx), (IndexType)hypIdxTrans, pathScore);
+        auto hyp = New<Hypothesis>(beam[beamHypIdx], Word::fromWordIndex(wordIdx), beamHypIdx, pathScore);
 
         // Set score breakdown for n-best lists
         if(options_->get<bool>("n-best")) {
           std::vector<float> breakDown(states.size(), 0);
-          beam[keyBeamHypIdx]->getScoreBreakdown().resize(states.size(), 0); // @TODO: Why? Can we just guard the read-out below, then make it const? Or getScoreBreakdown(j)?
+          beam[beamHypIdx]->getScoreBreakdown().resize(states.size(), 0); // @TODO: Why? Can we just guard the read-out below, then make it const? Or getScoreBreakdown(j)?
           for(size_t j = 0; j < states.size(); ++j) {
             size_t key1 = hypIdxTrans * vocabSize + wordIdx;
-            breakDown[j] = states[j]->breakDown(key1) + beam[keyBeamHypIdx]->getScoreBreakdown()[j];
+            breakDown[j] = states[j]->breakDown(key1) + beam[beamHypIdx]->getScoreBreakdown()[j];
           }
           hyp->setScoreBreakdown(breakDown);
         }
 
         // Set alignments
         if(!align.empty()) {
-          hyp->setAlignment(getAlignmentsForHypothesis(align, batch, (int)keyBeamHypIdx, (int)batchIdx));
+          hyp->setAlignment(getAlignmentsForHypothesis(align, batch, (int)beamHypIdx, (int)batchIdx));
         }
 
         newBeam.push_back(hyp);
@@ -249,12 +234,12 @@ public:
         prevPathScores = graph->constant({1, 1, 1, 1}, inits::from_value(0));
       } else {
         std::vector<float> prevScores;
-        for(size_t beamIndex = 0; beamIndex < localBeamSize; ++beamIndex) {
-          for(int batchIndex = 0; batchIndex < dimBatch; ++batchIndex) { // loop over batch entries (active sentences)
-            auto& beam = beams[batchIndex];
-            if(beamIndex < beam.size()) {
-              auto hyp = beam[beamIndex];
-              hypIndices.push_back((IndexType)hyp->getPrevStateIndex()); // index where to find prev hyp (beamHypIdx, batchIdx), =beamHypIdx * dimBatch + batchIdx
+        for(size_t beamHypIdx = 0; beamHypIdx < localBeamSize; ++beamHypIdx) {
+          for(int batchIdx = 0; batchIdx < dimBatch; ++batchIdx) { // loop over batch entries (active sentences)
+            auto& beam = beams[batchIdx];
+            if(beamHypIdx < beam.size()) {
+              auto hyp = beam[beamHypIdx];
+              hypIndices.push_back((IndexType)(hyp->getPrevStateIndex() * dimBatch + batchIdx)); // flattened index for index_select() operation
               prevWords .push_back(hyp->getWord());
               prevScores.push_back(hyp->getPathScore());
             } else {  // pad to localBeamSize (dummy hypothesis)
