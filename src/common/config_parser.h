@@ -14,6 +14,7 @@
 namespace marian {
 
 namespace cli {
+// CLI mode
 enum struct mode { training, translation, scoring, server };
 }  // namespace cli
 

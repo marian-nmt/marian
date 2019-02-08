@@ -16,6 +16,30 @@ namespace marian {
 class Options;
 
 namespace cli {
+
+// Option priority
+enum struct Priority { DefaultValue = 0, ConfigFile = 1, CommandLine = 2 };
+
+/**
+ * Helper tuple storing an option object, the associated variable and creation index
+ *
+ * Note: bare pointers are used for CLI::Option objects as this comes from the CLI11 library.
+ * Removing it would require deep modifications in the 3rd party library, what we want to avoid.
+ */
+struct CLIOptionTuple {
+  CLI::Option *opt;     // a pointer to an option object from CLI11
+  Ptr<any_type> var;    // value assigned to the option via command-line
+  size_t idx{0};        // order in which the option was created
+  Priority priority{cli::Priority::DefaultValue};
+};
+
+// Helper tuple for aliases storing the alias name, value, and options to be expanded
+struct CLIAliasTuple {
+  std::string key;    // alias option name
+  std::string value;  // value for the alias option indicating that it should be expanded
+  YAML::Node config;  // config with options that the alias adds
+};
+
 // The helper class for cli::CLIWrapper handling formatting of options and their descriptions.
 class CLIFormatter : public CLI::Formatter {
 public:
@@ -25,28 +49,6 @@ public:
 private:
   size_t screenWidth_{0};
 };
-
-
-/**
- * Helper tuple storing an option object, the associated variable and creation index
- *
- * Note: a bare pointer is used for the CLI::Option as this comes from the CLI11 library. Removing
- * it would need deep modifications in the 3rd party library, that is not desirable.
- */
-struct CLIOptionTuple {
-  CLI::Option *opt;     // a pointer to an option object from CLI11
-  Ptr<any_type> var;    // value assigned to the option via command-line
-  size_t idx{0};        // order in which the option was created
-  int priority{0};      // priority: 0 - default value, 1 - from config, 2 - from command line
-};
-
-// Helper tuple for aliases storing an option key, value, and options to be expanded
-struct CLIAliasTuple {
-  std::string key;    // alias option name
-  std::string value;  // value for the alias option indicating that it should be expanded
-  YAML::Node config;  // config with options that the alias adds
-};
-
 
 /**
  * @brief The class used to define and parse command-line arguments.
@@ -242,7 +244,7 @@ public:
    * @param errorMsg error message printed if config contains undefined keys. The message is
    *   appended with ": <comma-separated list of invalid options>"
    */
-  void updateConfig(const YAML::Node &config, int priority, const std::string &errorMsg);
+  void updateConfig(const YAML::Node &config, cli::Priority priority, const std::string &errorMsg);
 
   // Get textual YAML representation of the config
   std::string dumpConfig(bool skipUnmodified = false) const;
@@ -267,7 +269,7 @@ private:
 
     // callback function collecting a command-line argument
     CLI::callback_t fun = [this, key](CLI::results_t res) {
-      options_[key].priority = 2;
+      options_[key].priority = cli::Priority::CommandLine;
       // get variable associated with the option
       auto &var = options_[key].var->as<T>();
       // store parser result in var
@@ -314,7 +316,7 @@ private:
 
     // callback function collecting command-line arguments
     CLI::callback_t fun = [this, key](CLI::results_t res) {
-      options_[key].priority = 2;
+      options_[key].priority = cli::Priority::CommandLine;
       // get vector variable associated with the option
       auto &vec = options_[key].var->as<T>();
       vec.clear();
@@ -371,7 +373,7 @@ private:
 
     // callback function setting the flag
     CLI::callback_t fun = [this, key](CLI::results_t res) {
-      options_[key].priority = 2;
+      options_[key].priority = cli::Priority::CommandLine;
       // get parser result, it is safe as boolean options have an implicit value
       auto val = res[0];
       auto ret = true;
