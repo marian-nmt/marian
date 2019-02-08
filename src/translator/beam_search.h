@@ -87,9 +87,8 @@ public:
         beam[beamHypIdx]->getScoreBreakdown().resize(states.size(), 0); // @TODO: Why? Can we just guard the read-out below, then make it const? Or getScoreBreakdown(j)?
         for(size_t j = 0; j < states.size(); ++j) {
           size_t flattenedLogitIndex = (beamHypIdx * dimBatch + batchIdx) * vocabSize + wordIdx;  // (beam idx, batch idx, word idx); note: beam and batch are transposed, compared to 'key'
-          // @BUGBUG: This ^^ used to use wordIdx after de-shortlisting, which seems wrong. If it was right though, change wordIdx to word.toWordIndex().
           breakDown[j] = states[j]->breakDown(flattenedLogitIndex) + beam[beamHypIdx]->getScoreBreakdown()[j];
-          // @TODO: pass those 3 indices directly into breakDown
+          // @TODO: pass those 3 indices directly into breakDown (state knows the dimensions)
         }
         hyp->setScoreBreakdown(breakDown);
       }
