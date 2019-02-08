@@ -13,13 +13,14 @@ namespace marian {
 //  - back pointer to previous hypothesis for traceback
 class Hypothesis {
 public:
-  Hypothesis() : prevHyp_(nullptr), prevBeamHypIdx_(0), word_(Word::ZERO), pathScore_(0.0) {}
+  Hypothesis() : prevHyp_(nullptr), beamHypIdx_(0), prevBeamHypIdx_(0), word_(Word::ZERO), pathScore_(0.0) {}
 
   Hypothesis(const Ptr<Hypothesis> prevHyp,
              Word word,
+             size_t beamHypIdx, // EXPERIMENTAL, UNUSED. which beam does this come from? (beamHypIdx, word) indexes the logit tensor
              size_t prevBeamHypIdx, // beam-hyp index that this hypothesis originated from
              float pathScore)
-      : prevHyp_(prevHyp), prevBeamHypIdx_(prevBeamHypIdx), word_(word), pathScore_(pathScore) {}
+      : prevHyp_(prevHyp), beamHypIdx_(beamHypIdx), prevBeamHypIdx_(prevBeamHypIdx), word_(word), pathScore_(pathScore) {}
 
   const Ptr<Hypothesis> getPrevHyp() const { return prevHyp_; }
 
@@ -40,8 +41,8 @@ public:
   {
       Words targetWords;
       for (auto hyp = this; hyp->getPrevHyp(); hyp = hyp->getPrevHyp().get()) {
-          targetWords.push_back(hyp->getWord());
-          // std::cerr << hyp->getWord() << " " << hyp << std::endl;
+        targetWords.push_back(hyp->getWord());
+        // std::cerr << hyp->getWord() << " " << hyp << std::endl;
       }
       std::reverse(targetWords.begin(), targetWords.end());
       return targetWords;
@@ -61,6 +62,7 @@ public:
 
 private:
   const Ptr<Hypothesis> prevHyp_;
+  const size_t beamHypIdx_; // EXPERIMENTAL, UNUSED
   const size_t prevBeamHypIdx_;
   const Word word_;
   const float pathScore_;

@@ -41,63 +41,65 @@ public:
                const size_t beamSize,
                const bool first,
                Ptr<data::CorpusBatch /*const*/> batch) const {
-    const auto dimBatch = beams.size();
-    Beams newBeams(dimBatch);
-
     std::vector<float> align;
     if(options_->hasAndNotEmpty("alignment"))
       // Use alignments from the first scorer, even if ensemble
       align = scorers_[0]->getAlignment();
 
+    const auto dimBatch = beams.size();
+    Beams newBeams(dimBatch);
+
     for(size_t i = 0; i < nBestKeys.size(); ++i) { // [dimBatch, beamSize] flattened
       // Keys contains indices to vocab items in the entire beam.
       // Values can be between 0 and beamSize * vocabSize.
-      const auto batchIdx = i / beamSize; // and i % beamSize is the beam hyp index
+      const float pathScore = nBestPathScores[i];
+      const auto  key       = nBestKeys[i]; // key = pathScore's location, as (batchIdx, beamHypIdx, word idx) flattened
+
+      // decompose key into individual indices (batchIdx, beamHypIdx, wordIdx)
+      const auto wordIdx    = (WordIndex)(key % vocabSize);
+      const auto beamHypIdx =            (key / vocabSize) % (first ? 1 : beamSize);
+      const auto batchIdx   =            (key / vocabSize) / (first ? 1 : beamSize);
+
+      ABORT_IF(i / beamSize != batchIdx, "Inconsistent batchIdx value in key??");
+
       const auto& beam = beams[batchIdx];
       auto& newBeam = newBeams[batchIdx];
 
-      if(newBeam.size() < beam.size()) {
-        const float pathScore = nBestPathScores[i];
-        const auto  key       = nBestKeys[i]; // key = pathScore's location, as ((batchIdx, beamHypIdx) flattened, word idx) flattened
+      if (newBeam.size() >= beam.size()) // @TODO: Why this condition? It does happen. Why?
+        continue;
 
-        // decompose key into individual indices
-        WordIndex  wordIdx = (WordIndex)(key % vocabSize);
-        const auto hypIdx  =            (key / vocabSize);
-        // further decompose hypIdx, taking into account that the very first entry had beam size 1
-        // and compose a new hypIdx that assumes actual beamSize and refers to a transposed object
-        const auto beamHypIdx = hypIdx % (first ? 1 : beamSize);
-        const auto batchIdx1  = hypIdx / (first ? 1 : beamSize); // (only for checking; must be same as batchIdx)
-        ABORT_IF(batchIdx1 != batchIdx || beamHypIdx >= (int)beam.size(), "Inconsistent (beamHypIdx, batchIdx) value in key??");
-        const auto hypIdxTrans = beamHypIdx * dimBatch + batchIdx;
+      ABORT_IF(beamHypIdx >= (int)beam.size(), "Out of bounds beamHypIdx value in key??");
 
-        // Retrieve short list for final softmax (based on words aligned
-        // to source sentences). If short list has been set, map the indices
-        // in the sub-selected vocabulary matrix back to their original positions.
-        auto shortlist = scorers_[0]->getShortlist();
-        if(shortlist)
-          wordIdx = shortlist->reverseMap(wordIdx); // @TODO: should reverseMap accept a size_t or a Word?
-        // now wordIdx is a regular Word again
+      // map wordIdx to word
+      // If short list has been set, then wordIdx is an index into the short-listed word set,
+      // rather than the true word index.
+      auto shortlist = scorers_[0]->getShortlist();
+      Word word =
+        /*if*/(shortlist) ?
+          Word::fromWordIndex(shortlist->reverseMap(wordIdx))
+        /*else*/:
+          Word::fromWordIndex(wordIdx);
 
-        auto hyp = New<Hypothesis>(beam[beamHypIdx], Word::fromWordIndex(wordIdx), beamHypIdx, pathScore);
+      auto hyp = New<Hypothesis>(beam[beamHypIdx], word, /*experimental dummy*/0, beamHypIdx, pathScore);
 
-        // Set score breakdown for n-best lists
-        if(options_->get<bool>("n-best")) {
-          std::vector<float> breakDown(states.size(), 0);
-          beam[beamHypIdx]->getScoreBreakdown().resize(states.size(), 0); // @TODO: Why? Can we just guard the read-out below, then make it const? Or getScoreBreakdown(j)?
-          for(size_t j = 0; j < states.size(); ++j) {
-            size_t key1 = hypIdxTrans * vocabSize + wordIdx;
-            breakDown[j] = states[j]->breakDown(key1) + beam[beamHypIdx]->getScoreBreakdown()[j];
-          }
-          hyp->setScoreBreakdown(breakDown);
+      // Set score breakdown for n-best lists
+      if(options_->get<bool>("n-best")) {
+        std::vector<float> breakDown(states.size(), 0);
+        beam[beamHypIdx]->getScoreBreakdown().resize(states.size(), 0); // @TODO: Why? Can we just guard the read-out below, then make it const? Or getScoreBreakdown(j)?
+        for(size_t j = 0; j < states.size(); ++j) {
+          size_t flattenedLogitIndex = (beamHypIdx * dimBatch + batchIdx) * vocabSize + wordIdx;  // (beam idx, batch idx, word idx)
+          // @BUGBUG: This ^^ used to use wordIdx after de-shortlisting, which seems wrong. If it was right though, change wordIdx to word.toWordIndex().
+          breakDown[j] = states[j]->breakDown(flattenedLogitIndex) + beam[beamHypIdx]->getScoreBreakdown()[j];
         }
-
-        // Set alignments
-        if(!align.empty()) {
-          hyp->setAlignment(getAlignmentsForHypothesis(align, batch, (int)beamHypIdx, (int)batchIdx));
-        }
-
-        newBeam.push_back(hyp);
+        hyp->setScoreBreakdown(breakDown);
       }
+
+      // Set alignments
+      if(!align.empty()) {
+        hyp->setAlignment(getAlignmentsForHypothesis(align, batch, (int)beamHypIdx, (int)batchIdx));
+      }
+
+      newBeam.push_back(hyp);
     }
     return newBeams;
   }
