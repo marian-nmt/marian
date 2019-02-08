@@ -693,62 +693,6 @@ void ConfigParser::addSuboptionsULR(cli::CLIWrapper& cli) {
   // clang-format on
 }
 
-void ConfigParser::addAliases(cli::CLIWrapper& cli) {
-  // The order of aliases does matter as later options in the command line overwrite earlier
-
-  // Options reconstructing the BiDeep architecture proposed in http://www.aclweb.org/anthology/W17-4710
-  cli.alias("best-deep", "true", [](YAML::Node& config) {
-    config["layer-normalization"] = true;
-    config["tied-embeddings"] = true;
-    config["enc-type"] = "alternating";
-    config["enc-cell-depth"] = 2;
-    config["enc-depth"] = 4;
-    config["dec-cell-base-depth"] = 4;
-    config["dec-cell-high-depth"] = 2;
-    config["dec-depth"] = 4;
-    config["skip"] = true;
-  });
-
-  // Architecture and proposed training settings for a Transformer BASE model introduced in
-  // https://papers.nips.cc/paper/7181-attention-is-all-you-need.pdf
-  cli.alias("task", "transformer", [](YAML::Node& config) {
-    config["type"] = "transformer";
-    config["enc-depth"] = 6;
-    config["dec-depth"] = 6;
-    config["transformer-heads"] = 8;
-    config["learn-rate"] = 0.0003;
-    config["cost-type"] = "ce-mean-words";
-    config["lr-warmup"] = 16000;
-    config["lr-decay-inv-sqrt"] = 16000;
-    config["transformer-dropout"] = 0.1;
-    config["label-smoothing"] = 0.1;
-    config["clip-norm"] = 5;
-  });
-
-  // Architecture and proposed training settings for a Transformer BIG model introduced in
-  // https://papers.nips.cc/paper/7181-attention-is-all-you-need.pdf
-  cli.alias("task", "transformer-big", [](YAML::Node& config) {
-    config["type"] = "transformer";
-    config["enc-depth"] = 6;
-    config["dec-depth"] = 6;
-    config["dim-emb"] = 1024;
-    config["transformer-dim-ffn"] = 4096;
-    config["transformer-heads"] = 16;
-    config["transformer-postprocess"] = "dan";
-    config["transformer-preprocess"] = "d";
-    config["transformer-ffn-activation"] = "relu";
-    config["learn-rate"] = 0.0002;
-    config["cost-type"] = "ce-mean-words";
-    config["lr-warmup"] = 8000;
-    config["lr-decay-inv-sqrt"] = 8000;
-    config["transformer-dropout"] = 0.1;
-    config["transformer-dropout-attention"] = 0.1;
-    config["transformer-dropout-ffn"] = 0.1;
-    config["label-smoothing"] = 0.1;
-    config["clip-norm"] = 5;
-  });
-}
-
 void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   cli::CLIWrapper cli(config_,
                       "Marian: Fast Neural Machine Translation in C++",
