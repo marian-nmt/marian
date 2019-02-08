@@ -242,7 +242,7 @@ public:
       //**********************************************************************
       // create constant containing previous path scores for current beam
       // Also create mapping of hyp indices, which are not 1:1 if sentences complete.
-      std::vector<IndexType> hypIndices; // [localBeamsize, 1, dimBatch, 1] (flattened) index of hyp that the new top N originated from
+      std::vector<IndexType> hypIndices; // [localBeamsize, 1, dimBatch, 1] (flattened) index of prev hyp that the current hyp originated from
       std::vector<Word> prevWords;       // [localBeamsize, 1, dimBatch, 1] (flattened) predecessor word
       Expr prevPathScores;               // [localBeamSize, 1, dimBatch, 1], where the last axis broadcasts into vocab size when adding expandedPathScores
       if(t == 0) { // no scores yet

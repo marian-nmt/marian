@@ -76,13 +76,19 @@ namespace marian {
     return logits_.front();
   }
 
+  // get logits for one factor group
+  Expr Logits::getFactoredLogits(size_t groupIndex) const {
+    ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
+    return logits_[groupIndex]->loss();
+  }
+
   // This function assumes that the object holds one or more factor logits, which are summed up
   // into output-vocab logits according to the factored model (with correct normalization of factors).
   Expr Logits::getLogits() const {
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
     if (!factoredVocab_) {
       ABORT_IF(logits_.size() != 1, "Factors without factor mappings??");
-      return logits_.front()->loss();
+      return getFactoredLogits(0);
     }
 
     // compute normalized factor log probs

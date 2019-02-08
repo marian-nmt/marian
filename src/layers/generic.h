@@ -64,7 +64,6 @@ class FactoredVocab;
 // for factored embeddings.
 class RationalLoss;
 class Logits {
-    Logits& operator=(const Logits& other) = default;
 public:
     Logits() {}
     Logits(Ptr<RationalLoss> logits) { // single-output constructor
@@ -74,6 +73,7 @@ public:
     Logits(std::vector<Ptr<RationalLoss>>&& logits, Ptr<FactoredVocab> embeddingFactorMapping) // factored-output constructor
       : logits_(std::move(logits)), factoredVocab_(embeddingFactorMapping) {}
     Expr getLogits() const; // assume it holds logits: get them, possibly aggregating over factors
+    Expr getFactoredLogits(size_t groupIndex) const; // get logits for only one factor group
     Ptr<RationalLoss> getRationalLoss() const; // assume it holds a loss: get that
     Expr applyLossFunction(const Words& labels, const std::function<Expr(Expr/*logits*/,Expr/*indices*/)>& lossFn) const;
 
@@ -87,13 +87,7 @@ public:
     };
     std::vector<MaskedFactorIndices> factorizeWords(const Words& words) const; // breaks encoded Word into individual factor indices
     float getLogitAt(size_t i) const { return getLogits()->val()->get(i); } // @TODO: avoid the fully expanded logits
-
-    void assign(const Logits& other) { // @TODO: we can remove this
-      //ABORT_IF(!empty() && getNumFactors() != other.getNumFactors(),
-      //         "Logits assignment cannot change number of factors");
-      *this = other;
-    }
-    size_t getNumFactors() const { return logits_.size(); }
+    size_t getNumFactorGroups() const { return logits_.size(); }
     bool empty() const { return logits_.empty(); }
     Logits withCounts(const Expr& count) const; // create new Logits with 'count' implanted into all logits_
 private:
@@ -106,7 +100,7 @@ private:
 private:
     // members
     // @HACK: The interplay between Logits and RationalLoss is weird. Here, we allow RationalLoss with count == nullptr.
-    std::vector<Ptr<RationalLoss>> logits_;
+    std::vector<Ptr<RationalLoss>> logits_; // [group id][B..., num factors in group]
     Ptr<FactoredVocab> factoredVocab_;
 };
 
