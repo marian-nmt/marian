@@ -16,35 +16,54 @@ namespace marian {
 
   Logits::Logits(Expr logits) : Logits(New<RationalLoss>(logits, nullptr)) {} // single-output constructor from Expr only (RationalLoss has no count)
 
+  Ptr<ExpressionGraph> Logits::graph() const {
+    ABORT_IF(logits_.empty(), "Empty logits object??");
+    return logits_.front()->loss()->graph();
+  }
+
   // This function assumes that the object holds one or more factor logits.
   // It applies the supplied loss function to each, and then returns the aggregate loss over all factors.
   Expr Logits::applyLossFunction(const Words& labels, const std::function<Expr(Expr/*logits*/, Expr/*indices*/)>& lossFn) const {
-    ABORT_IF(logits_.empty(), "Empty logits object??");
-    auto graph = logits_.front()->loss()->graph();
-    Expr indices = graph->indices(toWordIndexVector(labels));
-
     LOG_ONCE(info, "[logits] applyLossFunction() for {} factors", logits_.size());
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
+
+    auto firstLogits = logits_.front()->loss();
+    ABORT_IF(labels.size() * firstLogits->shape()[-1] != firstLogits->shape().elements(), "Labels not matching logits shape??");
+
+    // base case (no factors)
     if (!factoredVocab_) {
       ABORT_IF(logits_.size() != 1, "Factors without factor mappings??");
-      return lossFn(logits_.front()->loss(), indices);
+      return lossFn(firstLogits, indices(toWordIndexVector(labels)));
     }
 
+    auto numGroups = factoredVocab_->getNumGroups();
+
+    // split labels into individual factor labels
+    // @TODO: Is there value in having factorize() return Exprs? That would allow to move some stuff to GPU.
+    auto allMaskedFactoredLabels = factorize(labels); // [numGroups][labels.size()] = [numGroups][B... flattened]
+
+    //Expr indices = this->indices(toWordIndexVector(labels));
     // accumulate all CEs for all words that have the factor
     // Memory-wise, this is cheap, all temp objects below are batches of scalars or lookup vectors.
     Expr loss;
-    auto numGroups = factoredVocab_->getNumGroups();
     for (size_t g = 0; g < numGroups; g++) {
+      const auto& maskedFactoredLabels = allMaskedFactoredLabels[g]; // array of (word index, mask)
+#if 1
+      auto factorIndices = indices (maskedFactoredLabels.indices); // [B... flattened] factor-label indices, or 0 if factor does not apply
+      auto factorMask    = constant(maskedFactoredLabels.masks);   // [B... flattened] loss values get multiplied with 0 for labels that don't have this factor
+#else // @TODO: if this^^ works, we can remove the stuff below (quite a bit code)
+      maskedFactoredLabels;
       indices; // [B... * 1] all batch items flattened
       auto factorMaskVector  = factoredVocab_->getFactorMasks(g);   // [v] 1.0 if v has factor of group g
       auto factorIndexVector = factoredVocab_->getFactorIndices(g); // [v] index of factor for word v in group p; must be 0 if factor is not used
-      auto factorMaskMatrix  = graph->constant({(int)factorMaskVector.size(),  1}, inits::from_vector(factorMaskVector),  Type::float32); // [V x 1]
-      auto factorIndexMatrix = graph->constant({(int)factorIndexVector.size(), 1}, inits::from_vector(factorIndexVector), Type::uint32);  // [V x 1(Ug)]
-      auto factorIndex  = rows(factorIndexMatrix, indices); // [B... * 1(Ug)] map word indices to factor indices (indices into factorLogits)
-      auto factorMask   = rows(factorMaskMatrix,  indices); // [B... * 1]     flag whether word has the factor in the first place
-      auto factorLogits = logits_[g];                       // [B... * Ug]
+      auto factorMaskMatrix  = constant({(int)factorMaskVector.size(),  1}, factorMaskVector);  // [V x 1]
+      auto factorIndexMatrix = constant({(int)factorIndexVector.size(), 1}, factorIndexVector); // [V x 1(Ug)]
+      auto factorIndices = rows(factorIndexMatrix, indices); // [B... * 1(Ug)] map word indices to factor indices (indices into factorLogits)
+      auto factorMask    = rows(factorMaskMatrix,  indices); // [B... * 1]     flag whether word has the factor in the first place
+#endif
+      auto factorLogits = logits_[g];                       // [B... * Ug] label-wise loss values (not aggregated yet)
       // For each location in [B...] select [indices[B...]]. If not using factor, select [0] and mask it out next.
-      auto factorLoss = lossFn(factorLogits->loss(), factorIndex); // [B... x 1]
+      auto factorLoss = lossFn(factorLogits->loss(), factorIndices); // [B... x 1]
       factorLoss = factorLoss * reshape(factorMask, factorLoss->shape()); // mask out factor for words that do not have that factor
       loss = loss ? (loss + factorLoss) : factorLoss; // [B... x 1]
     }
@@ -89,6 +108,28 @@ namespace marian {
     y = y + graph->constant({ (int)gapLogMask.size() }, inits::from_vector(gapLogMask), Type::float32);
 
     return y;
+  }
+
+  void Logits::MaskedFactorIndices::push_back(size_t factorIndex) {
+    bool isValid = FactoredVocab::isFactorValid(factorIndex);
+    indices.push_back(isValid ? (WordIndex)factorIndex : 0);
+    masks.push_back((float)isValid);
+  }
+
+  std::vector<Logits::MaskedFactorIndices> Logits::factorize(const Words& words) const { // [numGroups][words.size()] -> breaks encoded Word into individual factor indices
+    if (!factoredVocab_) {
+      ABORT_IF(logits_.size() != 1, "Factors without factor mappings??");
+      return {MaskedFactorIndices(words)};
+    }
+    auto numGroups = factoredVocab_->getNumGroups();
+    std::vector<MaskedFactorIndices> res(numGroups);
+    for (size_t g = 0; g < numGroups; g++) {
+      auto& resg = res[g];
+      resg.reserve(words.size());
+      for (const auto& word : words)
+        resg.push_back(factoredVocab_->getFactor(word, g));
+    }
+    return res;
   }
 
   Logits Logits::withCounts(const Expr& count) const { // create new Logits with 'count' implanted into all logits_

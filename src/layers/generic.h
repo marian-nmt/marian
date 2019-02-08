@@ -76,8 +76,19 @@ public:
     Expr getLogits() const; // assume it holds logits: get them, possibly aggregating over factors
     Ptr<RationalLoss> getRationalLoss() const; // assume it holds a loss: get that
     Expr applyLossFunction(const Words& labels, const std::function<Expr(Expr/*logits*/,Expr/*indices*/)>& lossFn) const;
+
+    struct MaskedFactorIndices {
+      std::vector<WordIndex> indices; // factor index, or 0 if masked
+      std::vector<float> masks;
+      void reserve(size_t n) { indices.reserve(n); masks.reserve(n); }
+      void push_back(size_t factorIndex); // push back into both arrays, setting mask and index to 0 for invalid entries
+      MaskedFactorIndices() {}
+      MaskedFactorIndices(const Words& words) { indices = toWordIndexVector(words); } // we can leave masks uninitialized for this special use case
+    };
+    std::vector<MaskedFactorIndices> factorize(const Words& words) const; // breaks encoded Word into individual factor indices
     float getLogitAt(size_t i) const { return getLogits()->val()->get(i); } // @TODO: avoid the fully expanded logits
-    void assign(const Logits& other) {
+
+    void assign(const Logits& other) { // @TODO: we can remove this
       //ABORT_IF(!empty() && getNumFactors() != other.getNumFactors(),
       //         "Logits assignment cannot change number of factors");
       *this = other;
@@ -86,6 +97,14 @@ public:
     bool empty() const { return logits_.empty(); }
     Logits withCounts(const Expr& count) const; // create new Logits with 'count' implanted into all logits_
 private:
+    // helper functions
+    Ptr<ExpressionGraph> graph() const;
+    Expr constant(const Shape& shape, const std::vector<float>&    data) const { return graph()->constant(shape, inits::from_vector(data), Type::float32); }
+    Expr constant(const Shape& shape, const std::vector<uint32_t>& data) const { return graph()->constant(shape, inits::from_vector(data), Type::uint32);  }
+    template<typename T> Expr constant(const std::vector<T>& data) const { return constant(Shape{(int)data.size()}, data); } // same as constant() but assuming vector
+    Expr indices(const std::vector<uint32_t>& data) const { return graph()->indices(data); } // actually the same as constant(data) for this data type
+private:
+    // members
     // @HACK: The interplay between Logits and RationalLoss is weird. Here, we allow RationalLoss with count == nullptr.
     std::vector<Ptr<RationalLoss>> logits_;
     Ptr<FactoredVocab> factoredVocab_;

@@ -56,6 +56,7 @@ public:
   std::pair<WordIndex, bool> getFactorUnit(Word word, size_t groupIndex);
   static constexpr size_t FACTOR_NOT_APPLICABLE = (SIZE_MAX - 1);
   static constexpr size_t FACTOR_NOT_SPECIFIED  = (SIZE_MAX - 2);
+  static bool isFactorValid(size_t factorIndex) { return factorIndex < FACTOR_NOT_SPECIFIED; }
 
   static Ptr<FactoredVocab> tryCreateAndLoad(const std::string& path); // load from "vocab" option if it specifies a factored vocab
 private:
