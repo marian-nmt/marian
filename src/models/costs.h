@@ -172,12 +172,7 @@ class LogSoftmaxStep : public CostStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     // decoder needs normalized probabilities (note: skipped if beam 1 and --skip-cost)
-    // @TODO: @HACK must know about individual parts; make it a loop
-    auto logits = state->getLogProbs().getLogits();
-    
-    auto logprobs = logsoftmax(logits);
-
-    state->setLogProbs(logprobs);
+    state->setLogProbs(state->getLogProbs().applyUnaryFunction(logsoftmax));
     return state;
   }
 };

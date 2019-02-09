@@ -181,6 +181,7 @@ Word FactoredVocab::lemma2Word(size_t factor0Index) const {
 // replace a factor that is FACTOR_NOT_SPECIFIED by a specified one
 // This is used in beam search, where factors are searched one after another.
 Word FactoredVocab::expandFactoredWord(Word word, size_t groupIndex, size_t factorIndex) const {
+  LOG(info, "expand {} + [{}]={}", word2string(word), groupIndex, factorIndex);
   ABORT_IF(groupIndex == 0, "Cannot add or change lemma in a partial Word");
   ABORT_IF(!isFactorValid(factorIndex), "Cannot add unspecified or n/a factor to a partial Word");
   std::vector<size_t> factorIndices;
@@ -190,7 +191,8 @@ Word FactoredVocab::expandFactoredWord(Word word, size_t groupIndex, size_t fact
   ABORT_IF(factorIndices[groupIndex] == FACTOR_NOT_APPLICABLE, "Cannot add a factor that the lemma does not have");
   ABORT_IF(factorIndices[groupIndex] != FACTOR_NOT_SPECIFIED, "Cannot modify a specified factor in a partial Word");
   factorIndices[groupIndex] = factorIndex;
-  return factors2word(factorIndices);
+  word = factors2word(factorIndices);
+  LOG(info, "to {}", word2string(word));
 }
 
 size_t FactoredVocab::factorUnit2FactorIndex(WordIndex u) const {
@@ -213,7 +215,7 @@ void FactoredVocab::word2factors(Word word, std::vector<size_t>& factorIndices /
 #endif
 }
 
-std::string FactoredVocab::word2string(Word word) {
+std::string FactoredVocab::word2string(Word word) const {
   std::vector<size_t> factorIndices;
   word2factors(word, factorIndices);
   std::string res;
@@ -232,13 +234,13 @@ std::string FactoredVocab::word2string(Word word) {
 
 size_t FactoredVocab::getFactor(Word word, size_t groupIndex) const {
   size_t index = word.toWordIndex();
+  size_t factor0Index = index / factorStrides_[0];
   index = index / factorStrides_[groupIndex];
   index = index % (size_t)factorShape_[groupIndex];
   if (index == (size_t)factorShape_[groupIndex] - 1) { // special sentinel value for unspecified or not-applicable
     if (groupIndex == 0) // lemma itself is always applicable, hence 'not specified'
       index = FACTOR_NOT_SPECIFIED;
     else { // not lemma: check whether lemma of word has this factor group
-      size_t factor0Index = word.toWordIndex() / factorStrides_[0];
       if (lemmaHasFactorGroup(factor0Index, groupIndex))
         index = FACTOR_NOT_SPECIFIED;
       else
@@ -246,7 +248,6 @@ size_t FactoredVocab::getFactor(Word word, size_t groupIndex) const {
     }
   }
   else { // regular value: consistency check if lemma really has this factor group
-    size_t factor0Index = word.toWordIndex() / factorStrides_[0];
     ABORT_IF(factor0Index == (size_t)factorShape_[0] - 1, "Word has specified factor but no lemma??");
     ABORT_IF(!lemmaHasFactorGroup(factor0Index, groupIndex), "Word has a specified factor for a lemma that does not have that factor group??");
   }

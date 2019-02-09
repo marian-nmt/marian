@@ -139,12 +139,23 @@ namespace marian {
 
   // use first factor of each word to determine whether it has a specific factor
   std::vector<float> Logits::getFactorMasks(const Words& words, size_t factorGroup) const { // 1.0 for words that do have this factor; else 0
-    words; factorGroup;
     std::vector<float> res;
-    ABORT("FINISH THIS");
+    res.reserve(words.size());
+    for (const auto& word : words) {
+      auto lemma = factoredVocab_->getFactor(word, 0);
+      res.push_back((float)factoredVocab_->lemmaHasFactorGroup(lemma, factorGroup));
+    }
     return res;
   }
 
+  Logits Logits::applyUnaryFunction(const std::function<Expr(Expr)>& f) const { // clone this but apply f to all loss values
+    std::vector<Ptr<RationalLoss>> newLogits;
+    for (const auto& l : logits_)
+      newLogits.emplace_back(New<RationalLoss>(f(l->loss()), l->count()));
+    return Logits(std::move(newLogits), factoredVocab_);
+  }
+
+  // @TODO: code dup with above; we can merge it into applyToRationalLoss()
   Logits Logits::withCounts(const Expr& count) const { // create new Logits with 'count' implanted into all logits_
     std::vector<Ptr<RationalLoss>> newLogits;
     for (const auto& l : logits_)

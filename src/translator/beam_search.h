@@ -59,6 +59,7 @@ public:
       const auto wordIdx    = (WordIndex)(key % vocabSize);
       const auto beamHypIdx =            (key / vocabSize) % (first ? 1 : beamSize);
       const auto batchIdx   =            (key / vocabSize) / (first ? 1 : beamSize);
+      LOG(info, "key = (batch {}, beam {}, word {})", batchIdx, beamHypIdx, wordIdx);
 
       ABORT_IF(i / beamSize != batchIdx, "Inconsistent batchIdx value in key??");
 
@@ -170,7 +171,7 @@ public:
     ABORT_IF(batch->back()->vocab()->getEosId() != trgEosId_, "Batch uses different EOS token than was passed to BeamSearch originally");
 
     auto factoredVocab = batch->back()->vocab()->tryAs<FactoredVocab>();
-#if 1   // use '1' here to disable factored decoding, e.g. for comparisons
+#if 0   // use '1' here to disable factored decoding, e.g. for comparisons
     factoredVocab.reset();
 #endif
     size_t numFactorGroups = factoredVocab ? factoredVocab->getNumGroups() : 1;
@@ -332,7 +333,7 @@ public:
       // perform beam search
 
       // find N best amongst the (localBeamSize * dimVocab) hypotheses
-      std::vector<unsigned int> nBestKeys; // [dimBatch, localBeamSize] flattened -> ((batchIdx, beamHypIdx) flattened, word idx) flattened
+      std::vector<unsigned int> nBestKeys; // [dimBatch, localBeamSize] flattened -> (batchIdx, beamHypIdx, word idx) flattened
       std::vector<float> nBestPathScores;  // [dimBatch, localBeamSize] flattened
       getNBestList(/*beamSizes=*/std::vector<size_t>(dimBatch, localBeamSize), // output layout of (nBestPathScores, nBestKeys)  --@REVIEW: correct?
                    /*in*/ expandedPathScores->val(),                           // [dimBatch, 1, localBeamSize, dimVocab or dimShortlist]
