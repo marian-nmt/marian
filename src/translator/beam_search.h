@@ -217,6 +217,14 @@ public:
       histories[i]->add(beams[i], trgEosId_);
 
     // the decoder maintains the following state:
+    //  - beams : array [dimBatch] of  array [localBeamSize] of Hypothesis
+    //     - current output time step's set of active hypotheses, aka active search space
+    //     - gets replaced at the end of each output time step
+    //  - states[.] : ScorerState
+    //     - NN state
+    //     - one per scorer, e.g. 2 for ensemble of 2
+    //     - gets replaced in each output time step
+    // and it forms the following return value
     //  - histories : array [dimBatch] of History
     //    with History : vector [t] of array [localBeamSize] of Hypothesis
     //    with Hypothesis : (last word, aggregate score, prev Hypothesis)
@@ -224,19 +232,12 @@ public:
     //     - stores traceback information
     //     - gets added to in each output time step
     //     - the final version is the return value of this function
-    //  - beams : array [dimBatch] of  array [localBeamSize] of Hypothesis
-    //     - current output time step's set of active hypotheses, aka active search space
-    //     - gets replaced at the end of each output time step
-    //  - states[.] : ScorerState
-    //     - NN state
-    //     - one per scorer, e.g. 2 for ensemble of 2
-    //     - gets replaced at the end of each output time step
 
     // main loop over output time steps
     for (size_t t = 0; ; t++) {
       ABORT_IF(dimBatch != beams.size(), "Lost a batch entry??");
 
-      // for factored vocabs, we do one factor at a time, but without updating the decoder model for secondary factors
+      // for factored vocabs, we do one factor at a time, but without updating the scorer for secondary factors
       auto factorGroup = t % numFactorGroups;
 
       // determine beam size for next output time step, as max over still-active sentences
@@ -286,9 +287,9 @@ public:
         Expr logProbs, factorMasks;
         if (factorGroup == 0) {
           // compute output probabilities for current output time step
-          //  - uses hypIndices[index in beam, 1, batch index, 1] to reorder decoder state to reflect the top-N in beams[][]
-          //  - adds prevWords [index in beam, 1, batch index, 1] to the decoder model's target history
-          //  - performs one step of the decoder model
+          //  - uses hypIndices[index in beam, 1, batch index, 1] to reorder scorer state to reflect the top-N in beams[][]
+          //  - adds prevWords [index in beam, 1, batch index, 1] to the scorer's target history
+          //  - performs one step of the scorer
           //  - returns new NN state for use in next output time step
           //  - returns vector of prediction probabilities over output vocab via newState
           // update state in-place for next output time step
@@ -305,7 +306,7 @@ public:
             //  - factors are incorporated one step at a time; so we will have temporary Word entries
             //    in hyps with some factors set to FACTOR_NOT_SPECIFIED.
             // TODO:
-            //  - we did not rearrange the tensors in the decoder model's state
+            //  - we did not rearrange the tensors in the scorer's state
             for (auto word : prevWords)
                 LOG(info, "prevWords[]={}", factoredVocab->word2string(word));
             auto factorMaskVector = states[i]->getLogProbs().getFactorMasks(prevWords, factorGroup);
