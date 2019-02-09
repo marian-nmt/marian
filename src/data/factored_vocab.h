@@ -53,7 +53,7 @@ public:
   Word factors2word(const std::vector<size_t>& factors) const;
   void word2factors(Word word, std::vector<size_t>& factors) const;
   Word lemma2Word(size_t factor0Index) const;
-  Word addFactor(Word word, size_t groupIndex, size_t factor0Index) const;
+  Word expandFactoredWord(Word word, size_t groupIndex, size_t factorIndex) const;
   size_t getFactor(Word word, size_t groupIndex) const;
   std::pair<WordIndex, bool> getFactorUnit(Word word, size_t groupIndex) const;
   bool lemmaHasFactorGroup(size_t factor0Index, size_t g) const { return lemmaHasFactorGroup_[factor0Index][g]; }

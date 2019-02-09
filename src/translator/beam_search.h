@@ -77,13 +77,16 @@ public:
       auto shortlist = scorers_[0]->getShortlist();
       if (shortlist)
         word = Word::fromWordIndex(shortlist->reverseMap(wordIdx));
+      else if (factoredVocab) {
+        // For factored decoding, the word is built over multiple decoding steps,
+        // starting with the lemma, then adding factors one by one.
+        if (factorGroup == 0)
+          word = factoredVocab->lemma2Word(wordIdx);
+        else
+          word = factoredVocab->expandFactoredWord(beam[beamHypIdx]->getPrevHyp()->getWord(), factorGroup, wordIdx);
+      }
       else
-        // @TODO: implant factor here into existing one--what is the wordIdx?
-        //  - factoredVocab->expandFactoredWord(beam[beamHypIdx]->getWord(), factorIndex, groupIndex)
-        //     - if groupIndex = 0 then create a new partially set factor tuple with a lemma, and all others unspecified or not applicable
-        //     - if additional factor, then add it in if applicable
         word = Word::fromWordIndex(wordIdx);
-      factoredVocab; factorGroup;
 
       auto hyp = New<Hypothesis>(beam[beamHypIdx], word, beamHypIdx, pathScore);
 
@@ -171,6 +174,8 @@ public:
     factoredVocab.reset();
 #endif
     size_t numFactorGroups = factoredVocab ? factoredVocab->getNumGroups() : 1;
+    if (numFactorGroups == 1) // if no factors then reset
+      factoredVocab.reset();
 
     const int dimBatch = (int)batch->size();
 
@@ -292,9 +297,6 @@ public:
             //    in hyps with some factors set to FACTOR_NOT_SPECIFIED.
             // TODO:
             //  - we did not rearrange the tensors in the decoder model's state
-            //  - toHyps():
-            //     - initial word should set lemma by all other factors as unspecified
-            //     - implant factors for subsequent words
             auto factorMaskVector = states[i]->getLogProbs().getFactorMasks(prevWords, factorGroup);
             factorMasks = graph->constant({(int)localBeamSize, 1, dimBatch, 1}, inits::from_vector(factorMaskVector));
         }

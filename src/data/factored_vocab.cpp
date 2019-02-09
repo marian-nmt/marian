@@ -180,7 +180,7 @@ Word FactoredVocab::lemma2Word(size_t factor0Index) const {
 
 // replace a factor that is FACTOR_NOT_SPECIFIED by a specified one
 // This is used in beam search, where factors are searched one after another.
-Word FactoredVocab::addFactor(Word word, size_t groupIndex, size_t factorIndex) const {
+Word FactoredVocab::expandFactoredWord(Word word, size_t groupIndex, size_t factorIndex) const {
   ABORT_IF(groupIndex == 0, "Cannot add or change lemma in a partial Word");
   ABORT_IF(!isFactorValid(factorIndex), "Cannot add unspecified or n/a factor to a partial Word");
   std::vector<size_t> factorIndices;
