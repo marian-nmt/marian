@@ -50,10 +50,13 @@ public:
   const std::vector<float>& getGapLogMask() const { return gapLogMask_; } // [v] -inf if v is a gap entry, else 0
 
   // convert representations
-  Word factors2word(const std::vector<size_t>& factors);
-  void word2factors(Word word, std::vector<size_t>& factors);
-  size_t getFactor(Word word, size_t groupIndex);
-  std::pair<WordIndex, bool> getFactorUnit(Word word, size_t groupIndex);
+  Word factors2word(const std::vector<size_t>& factors) const;
+  void word2factors(Word word, std::vector<size_t>& factors) const;
+  Word lemma2Word(size_t factor0Index) const;
+  Word addFactor(Word word, size_t groupIndex, size_t factor0Index) const;
+  size_t getFactor(Word word, size_t groupIndex) const;
+  std::pair<WordIndex, bool> getFactorUnit(Word word, size_t groupIndex) const;
+  bool lemmaHasFactorGroup(size_t factor0Index, size_t g) const { return lemmaHasFactorGroup_[factor0Index][g]; }
   static constexpr size_t FACTOR_NOT_APPLICABLE = (SIZE_MAX - 1);
   static constexpr size_t FACTOR_NOT_SPECIFIED  = (SIZE_MAX - 2);
   static bool isFactorValid(size_t factorIndex) { return factorIndex < FACTOR_NOT_SPECIFIED; }
@@ -63,7 +66,7 @@ private:
   void constructGroupInfoFromFactorVocab();
   void constructFactorIndexConversion();
   void constructNormalizationInfoForVocab();
-  Word factorUnits2word(const std::vector<WordIndex>& factorUnits);
+  size_t factorUnit2FactorIndex(WordIndex u) const;
   std::string word2string(Word word);
 private:
   class WordLUT { // map between strings and WordIndex
@@ -94,6 +97,7 @@ private:
   CSRData globalFactorMatrix_;                         // [v,u] (sparse) -> =1 if u is factor of v
   std::vector<size_t> factorGroups_;                   // [u] -> group id of factor u
   std::vector<std::pair<size_t, size_t>> groupRanges_; // [group id g] -> (u_begin,u_end) index range of factors u for this group. These don't overlap.
+  std::vector<std::vector<bool>>lemmaHasFactorGroup_;  // [factor 0 index][g] -> true if lemma has factor group
   Shape factorShape_;                                  // [g] number of factors in each factor group
   std::vector<size_t> factorStrides_;                  // [g] stride for factor dimension
   //std::vector<std::vector<float>>     factorMasks_;    // [g][v] 1.0 if word v has factor g

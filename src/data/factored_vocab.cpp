@@ -39,6 +39,7 @@ namespace marian {
   factorMap_.resize(elements);
   auto factorVocabSize = factorVocab_.size();
   factorRefCounts_.resize(factorVocabSize);
+  lemmaHasFactorGroup_.resize(groupRanges_[0].second - groupRanges_[0].first);
   std::vector<std::string> tokens;
   std::string line;
   size_t numTotalFactors = 0;
@@ -46,7 +47,7 @@ namespace marian {
   for (WordIndex v = 0; io::getline(in, line); v++) {
     // parse the line, of the form WORD FACTOR1 FACTOR2 FACTOR1 ...
     // where FACTOR1 is the lemma, a factor that all words have.
-    // Not every word has all other factors, so the n-th item is not always the same factor.
+    // Not every word has all other factors, so the n-th item is not always in the same factor group.
     utils::splitAny(line, tokens, " \t");
     ABORT_IF(tokens.size() < 2, "Factor map must have at least one factor per word", mapPath);
     std::vector<WordIndex> factorUnits;
@@ -55,14 +56,29 @@ namespace marian {
       factorUnits.push_back(u);
       factorRefCounts_[u]++;
     }
-    auto index = factorUnits2word(factorUnits).toWordIndex();
-    // @TODO: map factors to non-dense integer
-    factorMap_[index] = std::move(factorUnits);
-    // add to vocab
-    vocab_.add(tokens.front(), index);
+    // convert to fully unrolled factors representation
+    std::vector<size_t> factorIndices(groupRanges_.size(), FACTOR_NOT_APPLICABLE); // default for unused factors
+    std::vector<bool> hasFactorGroupFlags(groupRanges_.size(), false);
+    for (auto u : factorUnits) {
+      factorIndices[factorGroups_[u]] = factorUnit2FactorIndex(u);
+      hasFactorGroupFlags[factorGroups_[u]] = true;
+    }
+    // record which lemma has what factor groups
+    ABORT_IF(!hasFactorGroupFlags[0], "Factor map does not specify a lemma (factor of first group) for word {}", tokens.front());
+    auto& lemmaFlags = lemmaHasFactorGroup_[factorIndices[0]];
+    if (lemmaFlags.empty())
+      lemmaFlags = std::move(hasFactorGroupFlags);
+    else
+      ABORT_IF(lemmaFlags != hasFactorGroupFlags, "Inconsistent factor groups used for word {}", tokens.front());
+    // map factors to non-dense integer
+    auto word = factors2word(factorIndices);
+    auto wordIndex = word.toWordIndex();
+    factorMap_[wordIndex] = std::move(factorUnits);
+    // add to vocab (the wordIndex are not dense, so the vocab will have holes)
+    vocab_.add(tokens.front(), wordIndex);
     numTotalFactors += tokens.size() - 1;
     if (v % 5000 == 0)
-      LOG(info, "{} -> {}", tokens.front(), word2string(Word::fromWordIndex(index)));
+      LOG(info, "{} -> {}", tokens.front(), word2string(word));
   }
   LOG(info, "[embedding] Factored-embedding map read with total/unique of {}/{} factors for {} valid words (in space of {})",
       numTotalFactors, factorVocabSize, vocab_.numValid(), size());
@@ -130,13 +146,18 @@ void FactoredVocab::constructFactorIndexConversion() {
 }
 
 // encode factors into a Word struct
-Word FactoredVocab::factors2word(const std::vector<size_t>& factorIndices /* [numGroups] */) {
+Word FactoredVocab::factors2word(const std::vector<size_t>& factorIndices /* [numGroups] */) const {
   size_t index = 0;
   size_t numGroups = getNumGroups();
   ABORT_IF(factorIndices.size() != numGroups, "Factor indices array size must be same as number of factor groups");
   for (size_t g = 0; g < numGroups; g++) {
     auto factorIndex = factorIndices[g];
-    if (factorIndex == FACTOR_NOT_APPLICABLE || factorIndex == FACTOR_NOT_SPECIFIED) // @TODO: check validity. If word has the factor, then N/A is invalid
+    if (factorIndex != FACTOR_NOT_SPECIFIED) { // check validity
+      auto factor0Index = factorIndices[0]; // lemma
+      ABORT_IF(factor0Index == FACTOR_NOT_SPECIFIED, "Without lemma, no other factor may be specified");
+      ABORT_IF(lemmaHasFactorGroup(factor0Index, g) == (factorIndex == FACTOR_NOT_APPLICABLE), "Lemma {} does not have factor group {}", factor0Index, g);
+    }
+    if (factorIndex == FACTOR_NOT_APPLICABLE || factorIndex == FACTOR_NOT_SPECIFIED)
       factorIndex = (size_t)factorShape_[g] - 1; // sentinel for "unused" or "not specified"
     else
       ABORT_IF(factorIndex >= (size_t)factorShape_[g] - 1, "Factor index out of range");
@@ -145,21 +166,41 @@ Word FactoredVocab::factors2word(const std::vector<size_t>& factorIndices /* [nu
   return Word::fromWordIndex(index);
 }
 
-// like factors2word, except that factors are expressed as global unit indices, and result is just the WordIndex
-// This is only used during initialization, so it's OK if it is a little inefficient.
-Word FactoredVocab::factorUnits2word(const std::vector<WordIndex>& factorUnits) {
-  // convert to fully unrolled factors representation
-  std::vector<size_t> factorIndices(getNumGroups(), FACTOR_NOT_APPLICABLE); // default for unused factors
-  for (auto u : factorUnits) {
-    auto g = factorGroups_[u]; // convert u to relative u within factor group range
-    ABORT_IF(u < groupRanges_[g].first || u >= groupRanges_[g].second, "Invalid factorGroups_ entry??");
-    auto factorIndex = u - groupRanges_[g].first;
-    factorIndices[g] = factorIndex;
+Word FactoredVocab::lemma2Word(size_t factor0Index) const {
+  size_t numGroups = getNumGroups();
+  std::vector<size_t> factorIndices;
+  factorIndices.reserve(numGroups);
+  factorIndices.push_back(factor0Index);
+  for (size_t g = 1; g < numGroups; g++) {
+    auto index = lemmaHasFactorGroup(factor0Index, g) ? FACTOR_NOT_SPECIFIED : FACTOR_NOT_APPLICABLE;
+    factorIndices.push_back(index);
   }
   return factors2word(factorIndices);
 }
 
-void FactoredVocab::word2factors(Word word, std::vector<size_t>& factorIndices /* [numGroups] */) {
+// replace a factor that is FACTOR_NOT_SPECIFIED by a specified one
+// This is used in beam search, where factors are searched one after another.
+Word FactoredVocab::addFactor(Word word, size_t groupIndex, size_t factorIndex) const {
+  ABORT_IF(groupIndex == 0, "Cannot add or change lemma in a partial Word");
+  ABORT_IF(!isFactorValid(factorIndex), "Cannot add unspecified or n/a factor to a partial Word");
+  std::vector<size_t> factorIndices;
+  word2factors(word, factorIndices);
+  auto factor0Index = factorIndices[0];
+  ABORT_IF(!isFactorValid(factor0Index), "Cannot add factor to a partial Word without lemma");
+  ABORT_IF(factorIndices[groupIndex] == FACTOR_NOT_APPLICABLE, "Cannot add a factor that the lemma does not have");
+  ABORT_IF(factorIndices[groupIndex] != FACTOR_NOT_SPECIFIED, "Cannot modify a specified factor in a partial Word");
+  factorIndices[groupIndex] = factorIndex;
+  return factors2word(factorIndices);
+}
+
+size_t FactoredVocab::factorUnit2FactorIndex(WordIndex u) const {
+  auto g = factorGroups_[u]; // convert u to relative u within factor group range
+  ABORT_IF(u < groupRanges_[g].first || u >= groupRanges_[g].second, "Invalid factorGroups_ entry??");
+  return u - groupRanges_[g].first;
+}
+
+
+void FactoredVocab::word2factors(Word word, std::vector<size_t>& factorIndices /* [numGroups] */) const {
   size_t numGroups = getNumGroups();
   factorIndices.resize(numGroups);
   for (size_t g = 0; g < numGroups; g++) {
@@ -189,17 +230,30 @@ std::string FactoredVocab::word2string(Word word) {
   return res + ")";
 }
 
-size_t FactoredVocab::getFactor(Word word, size_t groupIndex) {
+size_t FactoredVocab::getFactor(Word word, size_t groupIndex) const {
   size_t index = word.toWordIndex();
   index = index / factorStrides_[groupIndex];
   index = index % (size_t)factorShape_[groupIndex];
-  if (index == (size_t)factorShape_[groupIndex] - 1) {
-    index = FACTOR_NOT_APPLICABLE; // @BUGBUG: We should check here which one it is.
+  if (index == (size_t)factorShape_[groupIndex] - 1) { // special sentinel value for unspecified or not-applicable
+    if (groupIndex == 0) // lemma itself is always applicable, hence 'not specified'
+      index = FACTOR_NOT_SPECIFIED;
+    else { // not lemma: check whether lemma of word has this factor group
+      size_t factor0Index = word.toWordIndex() / factorStrides_[0];
+      if (lemmaHasFactorGroup(factor0Index, groupIndex))
+        index = FACTOR_NOT_SPECIFIED;
+      else
+        index = FACTOR_NOT_APPLICABLE;
+    }
+  }
+  else { // regular value: consistency check if lemma really has this factor group
+    size_t factor0Index = word.toWordIndex() / factorStrides_[0];
+    ABORT_IF(factor0Index == (size_t)factorShape_[0] - 1, "Word has specified factor but no lemma??");
+    ABORT_IF(!lemmaHasFactorGroup(factor0Index, groupIndex), "Word has a specified factor for a lemma that does not have that factor group??");
   }
   return index;
 }
 
-std::pair<WordIndex, bool> FactoredVocab::getFactorUnit(Word word, size_t groupIndex) {
+std::pair<WordIndex, bool> FactoredVocab::getFactorUnit(Word word, size_t groupIndex) const {
   word; groupIndex;
   ABORT("Not implemented");
 }

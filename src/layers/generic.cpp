@@ -139,6 +139,7 @@ namespace marian {
 
   // use first factor of each word to determine whether it has a specific factor
   std::vector<float> Logits::getFactorMasks(const Words& words, size_t factorGroup) const { // 1.0 for words that do have this factor; else 0
+    words; factorGroup;
     std::vector<float> res;
     ABORT("FINISH THIS");
     return res;

@@ -41,7 +41,7 @@ public:
                const size_t beamSize,
                const bool first,
                Ptr<data::CorpusBatch /*const*/> batch, // for alignments only
-               Ptr<FactoredVocab/*const*/> factoredVocab) const {
+               Ptr<FactoredVocab/*const*/> factoredVocab, size_t factorGroup) const {
     std::vector<float> align;
     if(options_->hasAndNotEmpty("alignment"))
       align = scorers_[0]->getAlignment(); // use alignments from the first scorer, even if ensemble
@@ -78,7 +78,12 @@ public:
       if (shortlist)
         word = Word::fromWordIndex(shortlist->reverseMap(wordIdx));
       else
+        // @TODO: implant factor here into existing one--what is the wordIdx?
+        //  - factoredVocab->expandFactoredWord(beam[beamHypIdx]->getWord(), factorIndex, groupIndex)
+        //     - if groupIndex = 0 then create a new partially set factor tuple with a lemma, and all others unspecified or not applicable
+        //     - if additional factor, then add it in if applicable
         word = Word::fromWordIndex(wordIdx);
+      factoredVocab; factorGroup;
 
       auto hyp = New<Hypothesis>(beam[beamHypIdx], word, beamHypIdx, pathScore);
 
@@ -287,8 +292,9 @@ public:
             //    in hyps with some factors set to FACTOR_NOT_SPECIFIED.
             // TODO:
             //  - we did not rearrange the tensors in the decoder model's state
-            //  - initial word should set lemma by all other factors as unspecified
-            //  - toHyp() should implant factors
+            //  - toHyps():
+            //     - initial word should set lemma by all other factors as unspecified
+            //     - implant factors for subsequent words
             auto factorMaskVector = states[i]->getLogProbs().getFactorMasks(prevWords, factorGroup);
             factorMasks = graph->constant({(int)localBeamSize, 1, dimBatch, 1}, inits::from_vector(factorMaskVector));
         }
@@ -339,7 +345,7 @@ public:
                              states,           // used for keeping track of per-ensemble-member path score
                              localBeamSize,    // used in the encoding of the (batchIdx, beamHypIdx, word) tuples
                              /*first=*/t == 0, // used to indicate originating beamSize of 1
-                             batch, factoredVocab);
+                             batch, factoredVocab, factorGroup);
 
       // remove all hyps that end in EOS
       // The position of a hyp in the beam may change.
