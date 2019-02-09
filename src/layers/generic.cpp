@@ -3,6 +3,7 @@
 #include "layers/generic.h"
 #include "layers/loss.h"
 #include "data/factored_vocab.h"
+#include "rnn/types.h" // for State::select()
 
 using std::size_t; // not sure why this is needed
 
@@ -77,9 +78,13 @@ namespace marian {
   }
 
   // get logits for one factor group
-  Expr Logits::getFactoredLogits(size_t groupIndex) const {
+  Expr Logits::getFactoredLogits(size_t groupIndex, const std::vector<IndexType>& selIdx /*= {}*/, size_t beamSize /*= 0*/) const {
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
-    return logits_[groupIndex]->loss();
+    auto sel = logits_[groupIndex]->loss(); // [localBeamSize, 1, dimBatch, dimFactorVocab]
+    // if selIdx are given, then we must reshuffle accordingly
+    if (!selIdx.empty()) // use the same function that shuffles decoder state
+      sel = rnn::State::select(sel, selIdx, (int)beamSize, /*isBatchMajor=*/false);
+    return sel;
   }
 
   // This function assumes that the object holds one or more factor logits, which are summed up

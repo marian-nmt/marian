@@ -306,9 +306,15 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
     return getUnkId();
 }
 
-/*virtual*/ const std::string& FactoredVocab::operator[](Word id) const /*override final*/ {
-  LOG(info, "Looking up Word {}={}", id.toWordIndex(), word2string(id));
-  return vocab_[id.toWordIndex()];
+/*virtual*/ const std::string& FactoredVocab::operator[](Word word) const /*overrworde final*/ {
+  LOG(info, "Looking up Word {}={}", word.toWordIndex(), word2string(word));
+#if 1 // @BUGBUG: our manually prepared dict does not contain @CI tags for single letters, but it's a valid factor
+  if (vocab_.isGap(word.toWordIndex())) {
+    LOG(info, "Factor combination {} missing in external dict, generating fake entry", word2string(word));
+    const_cast<WordLUT&>(vocab_).add("??" + word2string(word), word.toWordIndex());
+  }
+#endif
+  return vocab_[word.toWordIndex()];
 }
 
 /*virtual*/ size_t FactoredVocab::size() const /*override final*/ {
@@ -382,7 +388,7 @@ WordIndex FactoredVocab::WordLUT::add(const std::string& word, WordIndex index) 
 }
 const std::string& FactoredVocab::WordLUT::operator[](WordIndex index) const {
   const auto& word = index2str_[index];
-  ABORT_IF(word.empty(), "Invalid access to dictionary gap item");
+  //ABORT_IF(word.empty(), "Invalid access to dictionary gap item");
   return word;
 }
 WordIndex FactoredVocab::WordLUT::operator[](const std::string& word) const {

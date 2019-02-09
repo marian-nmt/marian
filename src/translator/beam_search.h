@@ -72,6 +72,7 @@ public:
       ABORT_IF(beamHypIdx >= (int)beam.size(), "Out of bounds beamHypIdx value in key??");
 
       // map wordIdx to word
+      auto prevHyp = beam[beamHypIdx];
       Word word;
       // If short list has been set, then wordIdx is an index into the short-listed word set,
       // rather than the true word index.
@@ -92,12 +93,13 @@ public:
           if (factoredVocab->canExpandFactoredWord(word, factorGroup))
             word = factoredVocab->expandFactoredWord(word, factorGroup, wordIdx);
           // @TODO: maybe factor the two above into a single function; for now, I want the extra checks
+          prevHyp = prevHyp->getPrevHyp(); // short-circuit the backpointer, so that the traceback doesnot contain partially factored words
         }
       }
       else
         word = Word::fromWordIndex(wordIdx);
 
-      auto hyp = New<Hypothesis>(beam[beamHypIdx], word, beamHypIdx, pathScore);
+      auto hyp = New<Hypothesis>(prevHyp, word, beamHypIdx, pathScore);
 
       // Set score breakdown for n-best lists
       if(options_->get<bool>("n-best")) {
@@ -237,9 +239,6 @@ public:
     for (size_t t = 0; ; t++) {
       ABORT_IF(dimBatch != beams.size(), "Lost a batch entry??");
 
-      // for factored vocabs, we do one factor at a time, but without updating the scorer for secondary factors
-      auto factorGroup = t % numFactorGroups;
-
       // determine beam size for next output time step, as max over still-active sentences
       // E.g. if all batch entries are down from beam 5 to no more than 4 surviving hyps, then
       // switch to beam of 4 for all. If all are done, then beam ends up being 0, and we are done.
@@ -251,6 +250,11 @@ public:
       // done if all batch entries have reached EOS on all beam entries
       if (localBeamSize == 0)
         break;
+
+      // BEGIN FOR factorGroup = 0 .. numFactorGroups-1
+      // @TODO: use an explicit nested loop here for factors
+      // for factored vocabs, we do one factor at a time, but without updating the scorer for secondary factors
+      auto factorGroup = t % numFactorGroups;
 
       //**********************************************************************
       // create constant containing previous path scores for current beam
@@ -294,31 +298,31 @@ public:
           //  - returns vector of prediction probabilities over output vocab via newState
           // update state in-place for next output time step
           states[i] = scorers_[i]->step(graph, states[i], hypIndices, prevWords, dimBatch, (int)localBeamSize);
+          if (numFactorGroups == 1)
+            logProbs = states[i]->getLogProbs().getLogits(); // [localBeamSize, 1, dimBatch, dimVocab]
+          else
+            logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup); // [localBeamSize, 1, dimBatch, dimVocab]
         }
         else {
-            // add secondary factors
-            // For those, we don't update the decoder-model state in any way.
-            // Instead, we just keep expanding with the factors.
-            // Considerations:
-            //  - not all scores should get a factor
-            //    We need a [localBeamSize, 1, dimBatch, 1] tensor that knows whether a factor is applicable
-            //    by considering the lemma at each (beamHypIdx, batchIdx). prevWords is already in the right order.
-            //  - factors are incorporated one step at a time; so we will have temporary Word entries
-            //    in hyps with some factors set to FACTOR_NOT_SPECIFIED.
-            // TODO:
-            //  - we did not rearrange the tensors in the scorer's state
-            for (auto word : prevWords)
-                LOG(info, "prevWords[]={}", factoredVocab->word2string(word));
-            auto factorMaskVector = states[i]->getLogProbs().getFactorMasks(prevWords, factorGroup);
-            factorMasks = graph->constant({(int)localBeamSize, 1, dimBatch, 1}, inits::from_vector(factorMaskVector));
+          // add secondary factors
+          // For those, we don't update the decoder-model state in any way.
+          // Instead, we just keep expanding with the factors.
+          // Considerations:
+          //  - not all scores should get a factor
+          //    We need a [localBeamSize, 1, dimBatch, 1] tensor that knows whether a factor is applicable
+          //    by considering the lemma at each (beamHypIdx, batchIdx). prevWords is already in the right order.
+          //  - factors are incorporated one step at a time; so we will have temporary Word entries
+          //    in hyps with some factors set to FACTOR_NOT_SPECIFIED.
+          // TODO:
+          //  - we did not rearrange the tensors in the scorer's state
+          logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup, hypIndices, localBeamSize); // [localBeamSize, 1, dimBatch, dimVocab]
+          for (auto word : prevWords)
+            LOG(info, "prevWords[]={}", factoredVocab->word2string(word));
+          auto factorMaskVector = states[i]->getLogProbs().getFactorMasks(prevWords, factorGroup);
+          factorMasks = graph->constant({(int)localBeamSize, 1, dimBatch, 1}, inits::from_vector(factorMaskVector));
+          logProbs = logProbs * factorMasks; // those hyps that don't have a factor get multiplied with 0
         }
         // expand all hypotheses, [localBeamSize, 1, dimBatch, 1] -> [localBeamSize, 1, dimBatch, dimVocab]
-        if (numFactorGroups == 1)
-          logProbs = states[i]->getLogProbs().getLogits(); // [localBeamSize, 1, dimBatch, dimVocab]
-        else
-          logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup); // [localBeamSize, 1, dimBatch, dimVocab]
-        if (factorMasks)
-          logProbs = logProbs * factorMasks; // those hyps that don't have a factor get multiplied with 0
         expandedPathScores = expandedPathScores + scorers_[i]->getWeight() * logProbs;
       }
 
@@ -361,11 +365,17 @@ public:
                              /*first=*/t == 0, // used to indicate originating beamSize of 1
                              batch, factoredVocab, factorGroup);
 
+      if (factorGroup != numFactorGroups - 1) { // skip adding to history and skip purging for partially factored words
+        beams = newBeams;
+        continue;
+      }
+      // END FOR factorGroup = 0 .. numFactorGroups-1
+
       // remove all hyps that end in EOS
       // The position of a hyp in the beam may change.
       const auto purgedNewBeams = purgeBeams(newBeams);
 
-      // add updated search space (newBeams) to search grid (histories) for traceback
+      // add updated search space (newBeams) to our return value
       bool maxLengthReached = false;
       for(int i = 0; i < dimBatch; ++i) {
         // if this batch entry has surviving hyps then add them to the traceback grid
