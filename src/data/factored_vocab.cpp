@@ -193,6 +193,7 @@ Word FactoredVocab::expandFactoredWord(Word word, size_t groupIndex, size_t fact
   factorIndices[groupIndex] = factorIndex;
   word = factors2word(factorIndices);
   LOG(info, "to {}", word2string(word));
+  return word;
 }
 
 size_t FactoredVocab::factorUnit2FactorIndex(WordIndex u) const {
@@ -216,18 +217,25 @@ void FactoredVocab::word2factors(Word word, std::vector<size_t>& factorIndices /
 }
 
 std::string FactoredVocab::word2string(Word word) const {
-  std::vector<size_t> factorIndices;
-  word2factors(word, factorIndices);
-  std::string res;
+  // this function has some code dup, so that we can bypass some checks for debugging
   size_t numGroups = getNumGroups();
+  size_t factor0Index = word.toWordIndex() / factorStrides_[0];
+  std::string res;
   for (size_t g = 0; g < numGroups; g++) {
     res.append(res.empty() ? "(" : ", ");
-    auto factorIndex = factorIndices[g];
-    switch (factorIndex) {
-    case FACTOR_NOT_APPLICABLE: res.append("n/a"); break;
-    case FACTOR_NOT_SPECIFIED: res.append("?"); break;
-    default: res.append(factorVocab_[(WordIndex)(factorIndex + groupRanges_[g].first)]); break;
+    size_t index = word.toWordIndex();
+    index = index / factorStrides_[g];
+    index = index % (size_t)factorShape_[g];
+    if (index == (size_t)factorShape_[g] - 1) { // special sentinel value for unspecified or not-applicable
+      if (factor0Index >= (size_t)factorShape_[0])
+        res.append("(lemma oob)");
+      else if (lemmaHasFactorGroup(factor0Index, g))
+        res.append("?");
+      else
+        res.append("n/a");
     }
+    else
+      res.append(factorVocab_[(WordIndex)(index + groupRanges_[g].first)]);
   }
   return res + ")";
 }
@@ -299,6 +307,7 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
 }
 
 /*virtual*/ const std::string& FactoredVocab::operator[](Word id) const /*override final*/ {
+  LOG(info, "Looking up Word {}={}", id.toWordIndex(), word2string(id));
   return vocab_[id.toWordIndex()];
 }
 

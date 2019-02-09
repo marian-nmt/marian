@@ -81,10 +81,18 @@ public:
       else if (factoredVocab) {
         // For factored decoding, the word is built over multiple decoding steps,
         // starting with the lemma, then adding factors one by one.
-        if (factorGroup == 0)
+        if (factorGroup == 0) {
           word = factoredVocab->lemma2Word(wordIdx);
-        else
-          word = factoredVocab->expandFactoredWord(beam[beamHypIdx]->getPrevHyp()->getWord(), factorGroup, wordIdx);
+          LOG(info, "new lemma {}={}", word.toWordIndex(), factoredVocab->word2string(word));
+        }
+        else {
+          LOG(info, "expand word {}={} with factor[{}] {}", beam[beamHypIdx]->getWord().toWordIndex(),
+              factoredVocab->word2string(beam[beamHypIdx]->getWord()), factorGroup, wordIdx);
+          word = beam[beamHypIdx]->getWord();
+          if (factoredVocab->canExpandFactoredWord(word, factorGroup))
+            word = factoredVocab->expandFactoredWord(word, factorGroup, wordIdx);
+          // @TODO: maybe factor the two above into a single function; for now, I want the extra checks
+        }
       }
       else
         word = Word::fromWordIndex(wordIdx);
@@ -298,6 +306,8 @@ public:
             //    in hyps with some factors set to FACTOR_NOT_SPECIFIED.
             // TODO:
             //  - we did not rearrange the tensors in the decoder model's state
+            for (auto word : prevWords)
+                LOG(info, "prevWords[]={}", factoredVocab->word2string(word));
             auto factorMaskVector = states[i]->getLogProbs().getFactorMasks(prevWords, factorGroup);
             factorMasks = graph->constant({(int)localBeamSize, 1, dimBatch, 1}, inits::from_vector(factorMaskVector));
         }

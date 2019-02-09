@@ -54,20 +54,22 @@ public:
   void word2factors(Word word, std::vector<size_t>& factors) const;
   Word lemma2Word(size_t factor0Index) const;
   Word expandFactoredWord(Word word, size_t groupIndex, size_t factorIndex) const;
+  bool canExpandFactoredWord(Word word, size_t groupIndex) const { return lemmaHasFactorGroup(getFactor(word, 0), groupIndex); }
   size_t getFactor(Word word, size_t groupIndex) const;
   std::pair<WordIndex, bool> getFactorUnit(Word word, size_t groupIndex) const;
   bool lemmaHasFactorGroup(size_t factor0Index, size_t g) const { return lemmaHasFactorGroup_[factor0Index][g]; }
+
   static constexpr size_t FACTOR_NOT_APPLICABLE = (SIZE_MAX - 1);
   static constexpr size_t FACTOR_NOT_SPECIFIED  = (SIZE_MAX - 2);
   static bool isFactorValid(size_t factorIndex) { return factorIndex < FACTOR_NOT_SPECIFIED; }
 
   static Ptr<FactoredVocab> tryCreateAndLoad(const std::string& path); // load from "vocab" option if it specifies a factored vocab
+  std::string word2string(Word word) const; // (diagnostics only)
 private:
   void constructGroupInfoFromFactorVocab();
   void constructFactorIndexConversion();
   void constructNormalizationInfoForVocab();
   size_t factorUnit2FactorIndex(WordIndex u) const;
-  std::string word2string(Word word) const;
 private:
   class WordLUT { // map between strings and WordIndex
     std::map<std::string, WordIndex> str2index_;
