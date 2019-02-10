@@ -94,6 +94,8 @@ public:
           if (factoredVocab->canExpandFactoredWord(word, factorGroup))
             word = factoredVocab->expandFactoredWord(word, factorGroup, wordIdx);
           // @TODO: maybe factor the two above into a single function; for now, I want the extra checks
+          else
+            ABORT_IF(prevHyp->getPathScore() != pathScore, "Score changed despite factor not applicable??");
           prevBeamHypIdx = prevHyp->getPrevStateIndex();
           prevHyp = prevHyp->getPrevHyp(); // short-circuit the backpointer, so that the traceback doesnot contain partially factored words
         }
@@ -331,6 +333,8 @@ public:
       // make beams continuous
       if(dimBatch > 1 && localBeamSize > 1)
         expandedPathScores = swapAxes(expandedPathScores, 0, 2); // -> [dimBatch, 1, localBeamSize, dimVocab]
+      else // (avoid copy if we can)
+        expandedPathScores = reshape(expandedPathScores, {dimBatch, 1, (int)localBeamSize, expandedPathScores->shape()[-1]}); // -> [dimBatch, 1, localBeamSize, dimVocab]
       //  expandedPathScores = transpose(expandedPathScores, {2, 1, 0, 3}); // -> [dimBatch, 1, localBeamSize, dimVocab]
 
       // perform NN computation

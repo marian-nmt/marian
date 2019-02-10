@@ -78,6 +78,8 @@ Expr softmax(Expr a, Expr zeroOneMask, int axis /*=-1*/) {
 }
 
 Expr logsoftmax(Expr a) {
+  if (a->type() == "logsoftmax") // logsoftmax(logsoftmax(x)) == logsoftmax(x)
+    return a;
   return Expression<LogSoftmaxNodeOp>(a);
 }
 
