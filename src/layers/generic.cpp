@@ -81,6 +81,23 @@ namespace marian {
   Expr Logits::getFactoredLogits(size_t groupIndex, const std::vector<IndexType>& selIdx /*= {}*/, size_t beamSize /*= 0*/) const {
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
     auto sel = logits_[groupIndex]->loss(); // [localBeamSize, 1, dimBatch, dimFactorVocab]
+
+
+    // normalize for decoding:
+    //  - all secondary factors: subtract their max
+    //  - lemma: add all maxes of applicable factors
+    if (groupIndex > 0) {
+      sel = sel - max(sel, -1);
+    }
+    else {
+      auto numGroups = getNumFactorGroups();
+      for (size_t g = 1; g < numGroups; g++) {
+        auto factorMaxima = max(logits_[g]->loss(), -1);
+        auto factorMasks = constant(getFactorMasks(g));
+        sel = sel + factorMaxima * factorMasks; // those lemmas that don't have a factor get multiplied with 0
+      }
+    }
+
     // if selIdx are given, then we must reshuffle accordingly
     if (!selIdx.empty()) // use the same function that shuffles decoder state
       sel = rnn::State::select(sel, selIdx, (int)beamSize, /*isBatchMajor=*/false);
@@ -148,6 +165,18 @@ namespace marian {
     res.reserve(words.size());
     for (const auto& word : words) {
       auto lemma = factoredVocab_->getFactor(word, 0);
+      res.push_back((float)factoredVocab_->lemmaHasFactorGroup(lemma, factorGroup));
+    }
+    return res;
+  }
+
+  // same but for lemma
+  std::vector<float> Logits::getFactorMasks(size_t factorGroup) const { // 1.0 for words that do have this factor; else 0
+    size_t numLemmas = factoredVocab_->getGroupRange(0).second - factoredVocab_->getGroupRange(0).first;
+    std::vector<float> res;
+    res.reserve(numLemmas);
+    // @TODO: we should rearange lemmaHasFactorGroup as vector[groups[lemma] of float; then move this into FactoredVocab
+    for (size_t lemma = 0; lemma < numLemmas; lemma++) {
       res.push_back((float)factoredVocab_->lemmaHasFactorGroup(lemma, factorGroup));
     }
     return res;

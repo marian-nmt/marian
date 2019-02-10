@@ -356,6 +356,7 @@ public:
       // find N best amongst the (localBeamSize * dimVocab) hypotheses
       std::vector<unsigned int> nBestKeys; // [dimBatch, localBeamSize] flattened -> (batchIdx, beamHypIdx, word idx) flattened
       std::vector<float> nBestPathScores;  // [dimBatch, localBeamSize] flattened
+      // @TODO: getNBestList() API is redundant; input dimensions are known from expandedPathScores(); but no way to specify target N different from input N
       getNBestList(/*beamSizes=*/std::vector<size_t>(dimBatch, localBeamSize), // output layout of (nBestPathScores, nBestKeys)  --@REVIEW: correct?
                    /*in*/ expandedPathScores->val(),                           // [dimBatch, 1, localBeamSize, dimVocab or dimShortlist]
                    /*out*/ nBestPathScores, /*out*/ nBestKeys,
