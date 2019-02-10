@@ -73,6 +73,7 @@ public:
 
       // map wordIdx to word
       auto prevHyp = beam[beamHypIdx];
+      auto prevBeamHypIdx = beamHypIdx;
       Word word;
       // If short list has been set, then wordIdx is an index into the short-listed word set,
       // rather than the true word index.
@@ -93,13 +94,14 @@ public:
           if (factoredVocab->canExpandFactoredWord(word, factorGroup))
             word = factoredVocab->expandFactoredWord(word, factorGroup, wordIdx);
           // @TODO: maybe factor the two above into a single function; for now, I want the extra checks
+          prevBeamHypIdx = prevHyp->getPrevStateIndex();
           prevHyp = prevHyp->getPrevHyp(); // short-circuit the backpointer, so that the traceback doesnot contain partially factored words
         }
       }
       else
         word = Word::fromWordIndex(wordIdx);
 
-      auto hyp = New<Hypothesis>(prevHyp, word, beamHypIdx, pathScore);
+      auto hyp = New<Hypothesis>(prevHyp, word, prevBeamHypIdx, pathScore);
 
       // Set score breakdown for n-best lists
       if(options_->get<bool>("n-best")) {
