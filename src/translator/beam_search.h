@@ -264,10 +264,7 @@ public:
       }
 
       // make beams continuous
-      if(dimBatch > 1 && localBeamSize > 1)
-        expandedPathScores = swapAxes(expandedPathScores, 0, 2); // -> [dimBatch, 1, localBeamSize, dimVocab]
-      else // (avoid copy if we can)
-        expandedPathScores = reshape(expandedPathScores, {expandedPathScores->shape()[-2], 1, expandedPathScores->shape()[-4], expandedPathScores->shape()[-1]});
+      expandedPathScores = swapAxes(expandedPathScores, 0, 2); // -> [dimBatch, 1, localBeamSize, dimVocab]
 
       // perform NN computation
       if(t == 0)
