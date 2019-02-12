@@ -19,6 +19,8 @@ private:
   Word trgEosId_{Word::NONE};
   Word trgUnkId_{Word::NONE};
 
+  static constexpr auto INVALID_PATH_SCORE = -9999;// .0f;
+
 public:
   BeamSearch(Ptr<Options> options,
              const std::vector<Ptr<Scorer>>& scorers,
@@ -69,7 +71,9 @@ public:
       if (newBeam.size() >= beam.size()) // @TODO: Why this condition? It does happen. Why?
         continue;
 
-      ABORT_IF(beamHypIdx >= (int)beam.size(), "Out of bounds beamHypIdx value in key??");
+      if (beamHypIdx >= (int)beam.size() && pathScore <= INVALID_PATH_SCORE) // (dummy slot)
+        continue;
+      ABORT_IF(beamHypIdx >= (int)beam.size(), "Out of bounds beamHypIdx value {} in key?? word={}, batch={}, pathScore={}", beamHypIdx, wordIdx, batchIdx, pathScore);
 
       // map wordIdx to word
       auto prevHyp = beam[beamHypIdx];
@@ -136,7 +140,7 @@ public:
           LOG(info, "Checking {}", factoredVocab->word2string(word));
           if (factoredVocab->canExpandFactoredWord(word, factorGroup)) // handled above
             continue;
-          LOG(info, "Expanded {}", factoredVocab->word2string(word));
+          LOG(info, "Forwarded {}", factoredVocab->word2string(word));
           newBeam.push_back(beamHyp);
         }
         if (newBeam.size() > beamSize) {
@@ -306,8 +310,8 @@ public:
               prevScores.push_back(hyp->getPathScore());
             } else {  // pad to localBeamSize (dummy hypothesis)
               hypIndices.push_back(0);
-              prevWords.push_back(Word::ZERO);  // (unused)
-              prevScores.push_back(-9999);
+              prevWords.push_back(trgEosId_);  // (unused, but must be valid)
+              prevScores.push_back(INVALID_PATH_SCORE);
             }
           }
         }
@@ -355,7 +359,7 @@ public:
             LOG(info, "prevWords[{},{}]={} -> {}", t/numFactorGroups, factorGroup, factoredVocab->word2string(prevWords[kk]), prevScores[kk]);
           auto factorMaskVector = states[i]->getLogProbs().getFactorMasks(prevWords, factorGroup);
           for (auto& m : factorMaskVector)
-            m = m ? 0.f : -9999.f; // block hyps that do not have the factor; these are short-circuited directly
+            m = m ? 0.f : INVALID_PATH_SCORE; // block hyps that do not have the factor; these are short-circuited directly
           auto logFactorMasks = graph->constant({(int)localBeamSize, 1, dimBatch, 1}, inits::from_vector(factorMaskVector));
           logProbs = logProbs + logFactorMasks; // those hyps that don't have a factor get multiplied with 0
         }
