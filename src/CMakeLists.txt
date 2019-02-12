@@ -94,6 +94,7 @@ target_compile_options(marian PUBLIC ${ALL_WARNINGS})
 # [https://stackoverflow.com/questions/1435953/how-can-i-pass-git-sha1-to-compiler-as-definition-using-cmake]
 # Git updates .git/logs/HEAD file whenever you pull or commit something.
 add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/common/git_revision.h
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMAND git log -1 --pretty=format:\#define\ GIT_REVISION\ \"\%h\ \%ai\" > ${CMAKE_CURRENT_SOURCE_DIR}/common/git_revision.h
   DEPENDS ${CMAKE_SOURCE_DIR}/.git/logs/HEAD
   VERBATIM
