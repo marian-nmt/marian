@@ -299,9 +299,11 @@ public:
       std::vector<IndexType> hypIndices; // [localBeamsize, 1, dimBatch, 1] (flattened) tensor index ((beamHypIdx, batchIdx), flattened) of prev hyp that a hyp originated from
       std::vector<Word> prevWords;       // [localBeamsize, 1, dimBatch, 1] (flattened) word that a hyp ended in, for advancing the decoder-model's history
       Expr prevPathScores;               // [localBeamSize, 1, dimBatch, 1], path score that a hyp ended in (last axis will broadcast into vocab size when adding expandedPathScores)
+      bool anyCanExpand = false; // stays false if all hyps are invalid factor expansions
       std::vector<float> prevScores; // @TODO: remove here again
       if(t == 0 && factorGroup == 0) { // no scores yet
         prevPathScores = graph->constant({1, 1, 1, 1}, inits::from_value(0));
+        anyCanExpand = true;
       } else {
         //std::vector<float> prevScores;
         for(size_t beamHypIdx = 0; beamHypIdx < localBeamSize; ++beamHypIdx) {
@@ -309,9 +311,12 @@ public:
             auto& beam = beams[batchIdx];
             if(beamHypIdx < beam.size()) {
               auto hyp = beam[beamHypIdx];
+              auto word = hyp->getWord();
+              auto canExpand = (!factoredVocab || factoredVocab->canExpandFactoredWord(hyp->getWord(), factorGroup));
+              anyCanExpand |= canExpand;
               hypIndices.push_back((IndexType)(hyp->getPrevStateIndex() * dimBatch + batchIdx)); // (beamHypIdx, batchIdx), flattened, for index_select() operation
-              prevWords .push_back(hyp->getWord());
-              prevScores.push_back((factoredVocab && !factoredVocab->canExpandFactoredWord(hyp->getWord(), factorGroup)) ? INVALID_PATH_SCORE : hyp->getPathScore());
+              prevWords .push_back(word);
+              prevScores.push_back(canExpand ? hyp->getPathScore() : INVALID_PATH_SCORE);
             } else {  // pad to localBeamSize (dummy hypothesis)
               hypIndices.push_back(0);
               prevWords.push_back(trgEosId_);  // (unused, but must be valid)
@@ -321,6 +326,8 @@ public:
         }
         prevPathScores = graph->constant({(int)localBeamSize, 1, dimBatch, 1}, inits::from_vector(prevScores));
       }
+      if (!anyCanExpand) // all words cannot expand this factor: skip
+        continue;
 
       //**********************************************************************
       // compute expanded path scores with word prediction probs from all scorers
@@ -340,7 +347,7 @@ public:
           //      factoredVocab ? factoredVocab->word2string(prevWords[kk]) : (*batch->back()->vocab())[prevWords[kk]],
           //      prevScores[kk]);
           states[i] = scorers_[i]->step(graph, states[i], hypIndices, prevWords, dimBatch, (int)localBeamSize);
-          if (numFactorGroups == 1)
+          if (numFactorGroups == 1) // @TODO: this branch can go away
             logProbs = states[i]->getLogProbs().getLogits(); // [localBeamSize, 1, dimBatch, dimVocab]
           else
             logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup); // [localBeamSize, 1, dimBatch, dimVocab]
