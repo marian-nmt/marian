@@ -279,6 +279,7 @@ public:
                 size_t maxBatchSize,
                 DeviceId deviceId)
       : deviceId_(deviceId),
+        maxBeamSize_(maxBeamSize), maxBatchSize_(maxBatchSize),
         NUM_BLOCKS(std::min(
             500,
             int(maxBeamSize* MAX_VOCAB_SIZE / (2 * BLOCK_SIZE))
@@ -316,9 +317,9 @@ public:
   }
 
 private:
-  void getNBestList(float* probs,
-                    const std::vector<int>& batchFirstElementIdxs,
-                    const std::vector<int>& cummulatedBeamSizes) {
+  void selectNBest(float* probs,
+                   const std::vector<int>& batchFirstElementIdxs,
+                   const std::vector<int>& cumulativeBeamSizes) {
     cudaSetDevice(deviceId_.no);
     CUDA_CHECK(cudaMemcpyAsync(d_batchPosition,
                                batchFirstElementIdxs.data(),
@@ -326,8 +327,8 @@ private:
                                cudaMemcpyHostToDevice,
                                /* stream_ */ 0));
     CUDA_CHECK(cudaMemcpyAsync(d_cumBeamSizes,
-                               cummulatedBeamSizes.data(),
-                               cummulatedBeamSizes.size() * sizeof(int),
+                               cumulativeBeamSizes.data(),
+                               cumulativeBeamSizes.size() * sizeof(int),
                                cudaMemcpyHostToDevice,
                                /* stream_ */ 0));
 
@@ -353,26 +354,37 @@ private:
   }
 
 public:
-  void getNBestList(const std::vector<size_t>& beamSizes,
-                    Tensor Probs,
+  // @BUGBUG: This API mixes input and output beam size.
+  void getNBestList(Tensor scores,
+                    size_t N,
                     std::vector<float>& outCosts,
                     std::vector<unsigned>& outKeys,
                     const bool isFirst) {
     cudaSetDevice(deviceId_.no);
 
-    std::vector<int> cummulatedBeamSizes(beamSizes.size() + 1, 0);
+    const auto vocabSize = scores->shape()[-1];
+    const auto inputN    = scores->shape()[-2];
+    const auto dimBatch  = scores->shape()[-4];
+    ABORT_IF(inputN != (isFirst ? 1 : N), "Input tensor has wrong beam dim??"); // @TODO: Remove isFirst argument altogether
+    ABORT_IF(vocabSize > MAX_VOCAB_SIZE, "GetNBestList(): actual vocab size exceeds MAX_VOCAB_SIZE");
+    ABORT_IF(dimBatch > maxBatchSize_, "GetNBestList(): actual batch size exceeds initialization parameter");
+    ABORT_IF(N > maxBeamSize_, "GetNBestList(): actual beam size exceeds initialization parameter"); // @TODO: or inputN?
+
+    const std::vector<size_t> beamSizes(dimBatch, N);
+    std::vector<int> cumulativeBeamSizes(beamSizes.size() + 1, 0);
     std::vector<int> batchFirstElementIdxs(beamSizes.size() + 1, 0);
 
-    const size_t vocabSize = Probs->shape()[-1];
-
-    for(size_t i = 0; i < beamSizes.size(); ++i) {
-      cummulatedBeamSizes[i + 1] = cummulatedBeamSizes[i] + beamSizes[i];
-      batchFirstElementIdxs[i + 1]
-          += ((isFirst) ? (i + 1) : cummulatedBeamSizes[i + 1]) * vocabSize;
+    for(size_t batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) {
+      cumulativeBeamSizes[batchIdx + 1] = cumulativeBeamSizes[batchIdx] + beamSizes[batchIdx];
+      ABORT_IF(cumulativeBeamSizes[batchIdx + 1] != (batchIdx + 1) * N, "cumulativeBeamSizes wrong??");
+      batchFirstElementIdxs[batchIdx + 1]
+          += ((isFirst) ? (batchIdx + 1) : cumulativeBeamSizes[batchIdx + 1]) * vocabSize;
+      ABORT_IF((isFirst ? batchIdx + 1 : cumulativeBeamSizes[batchIdx + 1]) != (batchIdx + 1) * inputN, "inputN wrong??");
     }
 
-    getNBestList(Probs->data(), batchFirstElementIdxs, cummulatedBeamSizes);
-    getPairs(cummulatedBeamSizes.back(), outKeys, outCosts);
+    selectNBest(scores->data(), batchFirstElementIdxs, cumulativeBeamSizes);
+    getPairs(cumulativeBeamSizes.back(), outKeys, outCosts);
+    ABORT_IF(cumulativeBeamSizes.back() != dimBatch * N, "cumulativeBeamSizes.back() wrong??");
   }
 
 private:
@@ -417,6 +429,8 @@ private:
   DeviceId deviceId_;
 
   const int MAX_VOCAB_SIZE = 100000;
+  size_t maxBeamSize_;
+  size_t maxBatchSize_;
 
   const int BLOCK_SIZE = 512;
   const int NUM_BLOCKS;
@@ -440,12 +454,8 @@ private:
 // Returns a lambda with the same signature as the getNBestList() function.
 GetNBestListFn createGetNBestListGPUFn(size_t beamSize, size_t dimBatch, DeviceId deviceId) {
   auto nth = New<NthElementGPU>(beamSize, dimBatch, deviceId);
-  return [nth](const std::vector<size_t>& beamSizes,
-      Tensor logProbs,
-      std::vector<float>& outCosts,
-      std::vector<unsigned>& outKeys,
-      const bool isFirst) {
-      return nth->getNBestList(beamSizes, logProbs, outCosts, outKeys, isFirst);
+  return [nth](Tensor logProbs, size_t N, std::vector<float>& outCosts, std::vector<unsigned>& outKeys, const bool isFirst) {
+    return nth->getNBestList(logProbs, N, outCosts, outKeys, isFirst);
   };
 }
 

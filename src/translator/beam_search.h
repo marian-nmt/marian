@@ -34,8 +34,8 @@ public:
         trgUnkId_(trgUnkId) {}
 
   // combine new expandedPathScores and previous beams into new set of beams
-  Beams toHyps(const std::vector<unsigned int> nBestKeys, // [dimBatch, beamSize] flattened -> ((batchIdx, beamHypIdx) flattened, word idx) flattened
-               const std::vector<float> nBestPathScores,  // [dimBatch, beamSize] flattened
+  Beams toHyps(const std::vector<unsigned int>& nBestKeys, // [dimBatch, beamSize] flattened -> ((batchIdx, beamHypIdx) flattened, word idx) flattened
+               const std::vector<float>& nBestPathScores,  // [dimBatch, beamSize] flattened
                const size_t vocabSize,
                const Beams& beams,
                const std::vector<Ptr<ScorerState /*const*/>>& states,
@@ -70,7 +70,7 @@ public:
       if (pathScore <= INVALID_PATH_SCORE) // (unused slot)
         continue;
 
-      ABORT_IF(beamHypIdx >= (int)beam.size(), "Out of bounds beamHypIdx??");
+      ABORT_IF(beamHypIdx >= beam.size(), "Out of bounds beamHypIdx??");
 
       // Map wordIdx to word
       Word word;
@@ -82,7 +82,7 @@ public:
       else
         word = wordIdx;
 
-      auto hyp = New<Hypothesis>(beam[beamHypIdx], word, beamHypIdx, pathScore);
+      auto hyp = New<Hypothesis>(beam[beamHypIdx], word, (IndexType)beamHypIdx, pathScore);
 
       // Set score breakdown for n-best lists
       if(options_->get<bool>("n-best")) {
@@ -239,7 +239,7 @@ public:
             } else {  // pad to localBeamSize (dummy hypothesis)
               hypIndices.push_back(0);
               prevWords.push_back(trgEosId_);  // (unused, but let's use a valid value)
-              prevScores.push_back(INVALID_PATH_SCORE);
+              prevScores.push_back((float)INVALID_PATH_SCORE);
             }
           }
         }
@@ -288,9 +288,8 @@ public:
       // find N best amongst the (localBeamSize * dimVocab) hypotheses
       std::vector<unsigned int> nBestKeys; // [dimBatch, localBeamSize] flattened -> (batchIdx, beamHypIdx, word idx) flattened
       std::vector<float> nBestPathScores;  // [dimBatch, localBeamSize] flattened
-      // @TODO: getNBestList() API is redundant; input dimensions are known from expandedPathScores(); but no way to specify target N different from input N
-      getNBestList(/*beamSizes=*/std::vector<size_t>(dimBatch, localBeamSize), // output layout of (nBestPathScores, nBestKeys)  --@REVIEW: correct?
-                   /*in*/ expandedPathScores->val(),                           // [dimBatch, 1, localBeamSize, dimVocab or dimShortlist]
+      getNBestList(/*in*/ expandedPathScores->val(),                           // [dimBatch, 1, localBeamSize, dimVocab or dimShortlist]
+                   /*N=*/localBeamSize,
                    /*out*/ nBestPathScores, /*out*/ nBestKeys,
                    /*first=*/t == 0); // @TODO: Why is this passed? To know that the beam size is 1 for first step, for flattened hyp index?
       // Now, nBestPathScores contain N-best expandedPathScores for each batch and beam,

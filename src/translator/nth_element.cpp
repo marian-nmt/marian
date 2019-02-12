@@ -14,22 +14,18 @@ namespace marian {
 class NthElementCPU {
   std::vector<int> h_res_idx;
   std::vector<float> h_res;
-  size_t lastN;
+  size_t maxBeamSize_;
+  size_t maxBatchSize_;
+  //size_t lastN_;
 
 public:
-  NthElementCPU() = delete;
+  NthElementCPU() {}
   NthElementCPU(const NthElementCPU& copy) = delete;
 
-  NthElementCPU(size_t maxBeamSize, size_t maxBatchSize) {
-    size_t maxSize = maxBeamSize * maxBatchSize;
-    h_res.resize(maxSize);
-    h_res_idx.resize(maxSize);
-  }
-
 private:
-  void getNBestList(float* scores,
-                    const std::vector<int>& batchFirstElementIdxs,
-                    const std::vector<int>& cumulativeBeamSizes) {
+    void selectNBest(float* scores,
+                     const std::vector<int>& batchFirstElementIdxs,
+                     const std::vector<int>& cumulativeBeamSizes) {
     /* For each batch, select the max N elements, where N is the beam size for
      * this batch. Locally record these elements (their current value and index
      * in 'scores') before updating each element to a large negative value, such
@@ -62,23 +58,38 @@ private:
   }
 
 public:
-  void getNBestList(const std::vector<size_t>& beamSizes,
-                                   Tensor scores,
-                                   std::vector<float>& outPathScores,
-                                   std::vector<unsigned>& outKeys,
-                                   const bool isFirst) {
+  // @BUGBUG: This API mixes input and output beam size.
+  void getNBestList(Tensor scores, // [dimBatch, 1, beamSize, dimVocab or dimShortlist]
+                    size_t N,
+                    std::vector<float>& outPathScores,
+                    std::vector<unsigned>& outKeys,
+                    const bool isFirst) {
+    const auto vocabSize = scores->shape()[-1];
+    const auto inputN    = scores->shape()[-2];
+    const auto dimBatch  = scores->shape()[-4];
+    ABORT_IF(inputN != (isFirst ? 1 : N), "Input tensor has wrong beam dim??");
+    ABORT_IF(dimBatch > maxBatchSize_, "GetNBestList(): actual batch size exceeds initialization parameter");
+    ABORT_IF(N > maxBeamSize_, "GetNBestList(): actual beam size exceeds initialization parameter"); // @TODO: or inputN?
+
+    const std::vector<size_t> beamSizes(dimBatch, N);
     std::vector<int> cumulativeBeamSizes(beamSizes.size() + 1, 0);
     std::vector<int> batchFirstElementIdxs(beamSizes.size() + 1, 0);
 
-    auto vocabSize = scores->shape()[-1];
-    for(int i = 0; i < beamSizes.size(); ++i) {
-      cumulativeBeamSizes[i + 1] = cumulativeBeamSizes[i] + (int)beamSizes[i];
-      batchFirstElementIdxs[i + 1]
-          += (isFirst ? i + 1 : cumulativeBeamSizes[i + 1]) * vocabSize;
+    for(int batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) {
+      cumulativeBeamSizes[batchIdx + 1] = cumulativeBeamSizes[batchIdx] + (int)beamSizes[batchIdx];
+      ABORT_IF(cumulativeBeamSizes[batchIdx + 1] != (batchIdx + 1) * N, "cumulativeBeamSizes wrong??");
+      batchFirstElementIdxs[batchIdx + 1]
+          += (isFirst ? batchIdx + 1 : cumulativeBeamSizes[batchIdx + 1]) * vocabSize;
+      ABORT_IF((isFirst ? batchIdx + 1 : cumulativeBeamSizes[batchIdx + 1]) != (batchIdx + 1) * inputN, "inputN wrong??");
     }
 
-    getNBestList(scores->data(), batchFirstElementIdxs, cumulativeBeamSizes);
+    size_t maxSize = N * dimBatch;
+    h_res.resize(maxSize);
+    h_res_idx.resize(maxSize);
+
+    selectNBest(scores->data(), batchFirstElementIdxs, cumulativeBeamSizes);
     getPairs(cumulativeBeamSizes.back(), outKeys, outPathScores);
+    ABORT_IF(cumulativeBeamSizes.back() != dimBatch * N, "cumulativeBeamSizes.back() wrong??");
   }
 
 private:
@@ -87,14 +98,14 @@ private:
                 std::vector<float>& outValues) {
     std::copy(h_res_idx.begin(), h_res_idx.begin() + number, std::back_inserter(outKeys));
     std::copy(h_res    .begin(), h_res    .begin() + number, std::back_inserter(outValues));
-    lastN = number;
+    //lastN_ = number;
   }
 
-  void getValueByKey(std::vector<float>& out, float* d_in) {
-    for(size_t i = 0; i < lastN; ++i) {
-      out[i] = d_in[h_res_idx[i]];
-    }
-  }
+  //void getValueByKey(std::vector<float>& out, float* d_in) {
+  //  for(size_t i = 0; i < lastN_; ++i) {
+  //    out[i] = d_in[h_res_idx[i]];
+  //  }
+  //}
 };
 
 #ifdef CUDA_FOUND
@@ -108,15 +119,11 @@ GetNBestListFn createGetNBestListFn(size_t beamSize, size_t dimBatch, DeviceId d
   if(deviceId.type == DeviceType::gpu)
     return createGetNBestListGPUFn(beamSize, dimBatch, deviceId);
 #else
-    deviceId; // (unused)
+  deviceId; beamSize; dimBatch; // (unused)
 #endif
-  auto nth = New<NthElementCPU>(beamSize, dimBatch);
-  return [nth](const std::vector<size_t>& beamSizes,
-      Tensor logProbs,
-      std::vector<float>& outCosts,
-      std::vector<unsigned>& outKeys,
-      const bool isFirst) {
-      return nth->getNBestList(beamSizes, logProbs, outCosts, outKeys, isFirst);
+  auto nth = New<NthElementCPU>();
+  return [nth](Tensor logProbs, size_t N, std::vector<float>& outCosts, std::vector<unsigned>& outKeys, const bool isFirst) {
+    return nth->getNBestList(logProbs, N, outCosts, outKeys, isFirst);
   };
 }
 
