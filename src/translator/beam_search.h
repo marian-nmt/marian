@@ -71,8 +71,10 @@ public:
       if (newBeam.size() >= beam.size()) // @TODO: Why this condition? It does happen. Why?
         continue;
 
-      if (beamHypIdx >= (int)beam.size() && pathScore <= INVALID_PATH_SCORE) // (dummy slot)
+      if (pathScore <= INVALID_PATH_SCORE) // (dummy slot or word that cannot be expanded by current factor)
         continue;
+      //if (beamHypIdx >= (int)beam.size() && pathScore <= INVALID_PATH_SCORE) // (dummy slot)
+      //  continue;
       ABORT_IF(beamHypIdx >= (int)beam.size(), "Out of bounds beamHypIdx value {} in key?? word={}, batch={}, pathScore={}", beamHypIdx, wordIdx, batchIdx, pathScore);
 
       // map wordIdx to word
@@ -95,11 +97,12 @@ public:
           //LOG(info, "expand word {}={} with factor[{}] {}", beam[beamHypIdx]->getWord().toWordIndex(),
           //    factoredVocab->word2string(beam[beamHypIdx]->getWord()), factorGroup, wordIdx);
           word = beam[beamHypIdx]->getWord();
-          if (factoredVocab->canExpandFactoredWord(word, factorGroup))
+          ABORT_IF(!factoredVocab->canExpandFactoredWord(word, factorGroup), "A word without this factor snuck through to here??");
+          //if (factoredVocab->canExpandFactoredWord(word, factorGroup))
             word = factoredVocab->expandFactoredWord(word, factorGroup, wordIdx);
           // @TODO: maybe factor the two above into a single function; for now, I want the extra checks
-          else
-            continue; // skip if word does not have this factor
+          //else
+          //  continue; // skip if word does not have this factor
             //ABORT_IF(prevHyp->getPathScore() != pathScore, "Score changed despite factor not applicable??");
           prevBeamHypIdx = prevHyp->getPrevStateIndex();
           prevHyp = prevHyp->getPrevHyp(); // short-circuit the backpointer, so that the traceback doesnot contain partially factored words
