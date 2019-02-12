@@ -18,6 +18,8 @@ private:
   Word trgEosId_ = (Word)-1;
   Word trgUnkId_ = (Word)-1;
 
+  static constexpr auto INVALID_PATH_SCORE = -9999;
+
 public:
   BeamSearch(Ptr<Options> options,
              const std::vector<Ptr<Scorer>>& scorers,
@@ -40,78 +42,66 @@ public:
                const size_t beamSize,
                const bool first,
                Ptr<data::CorpusBatch /*const*/> batch) const {
+    std::vector<float> align;
+    if(options_->hasAndNotEmpty("alignment"))
+      align = scorers_[0]->getAlignment(); // use alignments from the first scorer, even if ensemble
+
     const auto dimBatch = beams.size();
     Beams newBeams(dimBatch);
 
-    std::vector<float> align;
-    if(options_->hasAndNotEmpty("alignment"))
-      // Use alignments from the first scorer, even if ensemble
-      align = scorers_[0]->getAlignment();
-
     for(size_t i = 0; i < nBestKeys.size(); ++i) { // [dimBatch, beamSize] flattened
-      // Keys contains indices to vocab items in the entire beam.
-      // Values can be between 0 and beamSize * vocabSize.
-      const auto batchIdx = i / beamSize; // and i % beamSize is the beam hyp index
+      // Keys encode batchIdx, beamHypIdx, and word index in the entire beam.
+      // They can be between 0 and beamSize * vocabSize-1.
+      const auto  key       = nBestKeys[i];
+      const float pathScore = nBestPathScores[i]; // expanded path score for (batchIdx, beamHypIdx, word)
+
+      // decompose key into individual indices (batchIdx, beamHypIdx, wordIdx)
+      const auto wordIdx    = (Word)(key % vocabSize);
+      const auto beamHypIdx =       (key / vocabSize) % (first ? 1 : beamSize);
+      const auto batchIdx   =       (key / vocabSize) / (first ? 1 : beamSize);
+
+      ABORT_IF(i / beamSize != batchIdx, "Inconsistent batchIdx value in key??");
+
       const auto& beam = beams[batchIdx];
       auto& newBeam = newBeams[batchIdx];
 
-      if(newBeam.size() < beam.size()) {
-        const float pathScore = nBestPathScores[i];
-        const auto  key       = nBestKeys[i]; // key = pathScore's location, as ((batchIdx, beamHypIdx) flattened, word idx) flattened
+      if (newBeam.size() >= beam.size()) // @TODO: Why this condition? It does happen. Why?
+        continue;
+      if (pathScore <= INVALID_PATH_SCORE) // (unused slot)
+        continue;
 
-        // decompose key into individual indices
-        Word       wordIdx = (Word)(key % vocabSize);
-        const auto hypIdx  =       (key / vocabSize);
-#if 1
-        // further decompose hypIdx, taking into account that the very first entry had beam size 1
-        // and compose a new hypIdx that assumes actual beamSize
-        const auto keyBatchIdx   = hypIdx / (first ? 1 : beamSize);
-        const auto keyBeamHypIdx = hypIdx % (first ? 1 : beamSize);
-        const auto hypIdxTrans = keyBeamHypIdx * dimBatch + keyBatchIdx;
-        ABORT_IF(keyBeamHypIdx >= (int)beam.size(), "Beam hyp index exceeds beam size??"); // not possible, as beamSize = max(beams[.].size())
-#else
-        const auto keyBatchIdx = hypIdx / beamSize; // @REVIEW: is this actually keyBatchIdx?
-        size_t keyBeamHypIdx = hypIdx % beamSize;
+      ABORT_IF(beamHypIdx >= (int)beam.size(), "Out of bounds beamHypIdx??");
 
-        auto hypIdxTrans = keyBatchIdx + keyBeamHypIdx * dimBatch;
-        if(first)
-          hypIdxTrans = hypIdx; // == keyBeamHypIdx + keyBatchIdx * beamSize? or was beamSize=1, and keyBeamHypIdx = 0?
+      // Map wordIdx to word
+      Word word;
+      // If short list has been set, then wordIdx is an index into the short-listed word set,
+      // rather than the true word index.
+      auto shortlist = scorers_[0]->getShortlist();
+      if (shortlist)
+        word = shortlist->reverseMap(wordIdx);
+      else
+        word = wordIdx;
 
-        ABORT_IF(keyBeamHypIdx >= (int)beam.size(), "Beam hyp index exceeds beam size??");
-        //if(keyBeamHypIdx >= (int)beam.size())  // @TODO: What is this condition? Cf. keyBeamHypIdx = hypIdx % beamSize; beamSize = max(beams[.].size())
-        //  keyBeamHypIdx = keyBeamHypIdx % beam.size();
+      auto hyp = New<Hypothesis>(beam[beamHypIdx], word, beamHypIdx, pathScore);
 
-        if(first)
-          keyBeamHypIdx = 0;
-#endif
-        // Retrieve short list for final softmax (based on words aligned
-        // to source sentences). If short list has been set, map the indices
-        // in the sub-selected vocabulary matrix back to their original positions.
-        auto shortlist = scorers_[0]->getShortlist();
-        if(shortlist)
-          wordIdx = shortlist->reverseMap(wordIdx); // @TODO: should reverseMap accept a size_t or a Word?
-        // now wordIdx is a regular Word again
-
-        auto hyp = New<Hypothesis>(beam[keyBeamHypIdx], wordIdx, (IndexType)hypIdxTrans, pathScore);
-
-        // Set score breakdown for n-best lists
-        if(options_->get<bool>("n-best")) {
-          std::vector<float> breakDown(states.size(), 0);
-          beam[keyBeamHypIdx]->getScoreBreakdown().resize(states.size(), 0); // @TODO: Why? Can we just guard the read-out below, then make it const? Or getScoreBreakdown(j)?
-          for(size_t j = 0; j < states.size(); ++j) {
-            size_t key1 = hypIdxTrans * vocabSize + wordIdx;
-            breakDown[j] = states[j]->breakDown(key1) + beam[keyBeamHypIdx]->getScoreBreakdown()[j];
-          }
-          hyp->setScoreBreakdown(breakDown);
+      // Set score breakdown for n-best lists
+      if(options_->get<bool>("n-best")) {
+        std::vector<float> breakDown(states.size(), 0);
+        beam[beamHypIdx]->getScoreBreakdown().resize(states.size(), 0); // @TODO: Why? Can we just guard the read-out below, then make it const? Or getScoreBreakdown(j)?
+        for(size_t j = 0; j < states.size(); ++j) {
+          size_t flattenedLogitIndex = (beamHypIdx * dimBatch + batchIdx) * vocabSize + wordIdx; // (beam idx, batch idx, word idx); note: beam and batch are transposed, compared to 'key'
+          breakDown[j] = states[j]->breakDown(flattenedLogitIndex) + beam[beamHypIdx]->getScoreBreakdown()[j];
+          // @TODO: pass those 3 indices directly into breakDown (state knows the dimensions)
         }
-
-        // Set alignments
-        if(!align.empty()) {
-          hyp->setAlignment(getAlignmentsForHypothesis(align, batch, (int)keyBeamHypIdx, (int)batchIdx));
-        }
-
-        newBeam.push_back(hyp);
+        hyp->setScoreBreakdown(breakDown);
       }
+
+      // Set alignments
+      if(!align.empty()) {
+        hyp->setAlignment(getAlignmentsForHypothesis(align, batch, (int)beamHypIdx, (int)batchIdx));
+      }
+
+      newBeam.push_back(hyp);
     }
     return newBeams;
   }
@@ -170,6 +160,9 @@ public:
   //**********************************************************************
   // main decoding function
   Histories search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
+    ABORT_IF(batch->back()->vocab() && batch->back()->vocab()->getEosId() != trgEosId_,
+        "Batch uses different EOS token than was passed to BeamSearch originally");
+
     const int dimBatch = (int)batch->size();
 
     auto getNBestList = createGetNBestListFn(beamSize_, dimBatch, graph->getDeviceId());
@@ -200,21 +193,15 @@ public:
     for(int i = 0; i < dimBatch; ++i)
       histories[i]->add(beams[i], trgEosId_);
 
-    // the decoder maintains the following state:
-    //  - histories : array [dimBatch] of History
-    //    with History : vector [t] of array [localBeamSize] of Hypothesis
-    //    with Hypothesis : (last word, aggregate score, prev Hypothesis)
-    //     - search grid
-    //     - stores traceback information
-    //     - gets added to in each output time step
-    //     - the final version is the return value of this function
-    //  - beams : array [dimBatch] of  array [localBeamSize] of Hypothesis
+    // the decoder updates the following state information in each output time step:
+    //  - beams: array [dimBatch] of array [localBeamSize] of Hypothesis
     //     - current output time step's set of active hypotheses, aka active search space
-    //     - gets replaced at the end of each output time step
-    //  - states[.] : ScorerState
-    //     - NN state
-    //     - one per scorer, e.g. 2 for ensemble of 2
-    //     - gets replaced at the end of each output time step
+    //  - states[.]: ScorerState
+    //     - NN state; one per scorer, e.g. 2 for ensemble of 2
+    // and it forms the following return value
+    //  - histories: array [dimBatch] of History
+    //    with History: vector [t] of array [localBeamSize] of Hypothesis
+    //    with Hypothesis: (last word, aggregate score, prev Hypothesis)
 
     // main loop over output time steps
     for (size_t t = 0; ; t++) {
@@ -233,57 +220,54 @@ public:
 
       //**********************************************************************
       // create constant containing previous path scores for current beam
-      // Also create mapping of hyp indices, which are not 1:1 if sentences complete.
-      std::vector<IndexType> hypIndices; // [localBeamsize, 1, dimBatch, 1] (flattened) index of hyp that the new top N originated from
-      std::vector<Word> prevWords;       // [localBeamsize, 1, dimBatch, 1] (flattened) predecessor word
-      Expr prevPathScores;               // [localBeamSize, 1, dimBatch, 1], where the last axis broadcasts into vocab size when adding expandedPathScores
+      // Also create mapping of hyp indices, for reordering the decoder-state tensors.
+      std::vector<IndexType> hypIndices; // [localBeamsize, 1, dimBatch, 1] (flattened) tensor index ((beamHypIdx, batchIdx), flattened) of prev hyp that a hyp originated from
+      std::vector<Word> prevWords;       // [localBeamsize, 1, dimBatch, 1] (flattened) word that a hyp ended in, for advancing the decoder-model's history
+      Expr prevPathScores;               // [localBeamSize, 1, dimBatch, 1], path score that a hyp ended in (last axis will broadcast into vocab size when adding expandedPathScores)
       if(t == 0) { // no scores yet
         prevPathScores = graph->constant({1, 1, 1, 1}, inits::from_value(0));
       } else {
         std::vector<float> prevScores;
-        for(size_t beamIndex = 0; beamIndex < localBeamSize; ++beamIndex) {
-          for(int batchIndex = 0; batchIndex < dimBatch; ++batchIndex) { // loop over batch entries (active sentences)
-            auto& beam = beams[batchIndex];
-            if(beamIndex < beam.size()) {
-              auto hyp = beam[beamIndex];
-              hypIndices.push_back((IndexType)hyp->getPrevStateIndex()); // index where to find prev hyp (beamHypIdx, batchIdx), =beamHypIdx * dimBatch + batchIdx
+        for(size_t beamHypIdx = 0; beamHypIdx < localBeamSize; ++beamHypIdx) {
+          for(int batchIdx = 0; batchIdx < dimBatch; ++batchIdx) { // loop over batch entries (active sentences)
+            auto& beam = beams[batchIdx];
+            if(beamHypIdx < beam.size()) {
+              auto hyp = beam[beamHypIdx];
+              hypIndices.push_back((IndexType)(hyp->getPrevStateIndex() * dimBatch + batchIdx)); // (beamHypIdx, batchIdx), flattened, for index_select() operation
               prevWords .push_back(hyp->getWord());
               prevScores.push_back(hyp->getPathScore());
             } else {  // pad to localBeamSize (dummy hypothesis)
               hypIndices.push_back(0);
-              prevWords .push_back(Word{});  // (unused)
-              prevScores.push_back(-9999);
+              prevWords.push_back(trgEosId_);  // (unused, but let's use a valid value)
+              prevScores.push_back(INVALID_PATH_SCORE);
             }
           }
         }
-        prevPathScores = graph->constant({(int)localBeamSize, 1, dimBatch, 1},
-                                    inits::from_vector(prevScores));
+        prevPathScores = graph->constant({(int)localBeamSize, 1, dimBatch, 1}, inits::from_vector(prevScores));
       }
 
       //**********************************************************************
       // compute expanded path scores with word prediction probs from all scorers
       auto expandedPathScores = prevPathScores; // will become [localBeamSize, 1, dimBatch, dimVocab]
+      Expr logProbs;
       for(size_t i = 0; i < scorers_.size(); ++i) {
         // compute output probabilities for current output time step
-        //  - uses hypIndices[index in beam, 1, batch index, 1] to reorder hypotheses
-        //  - adds prevWords [index in beam, 1, batch index, 1] to the decoder model's target history
-        //  - performs one step of the decoder model
+        //  - uses hypIndices[index in beam, 1, batch index, 1] to reorder scorer state to reflect the top-N in beams[][]
+        //  - adds prevWords [index in beam, 1, batch index, 1] to the scorer's target history
+        //  - performs one step of the scorer
         //  - returns new NN state for use in next output time step
         //  - returns vector of prediction probabilities over output vocab via newState
-        auto newState = scorers_[i]->step(
-            graph, states[i], hypIndices, prevWords, dimBatch, (int)localBeamSize);
-
+        states[i] = scorers_[i]->step(graph, states[i], hypIndices, prevWords, dimBatch, (int)localBeamSize);
+        logProbs = states[i]->getLogProbs(); // [localBeamSize, 1, dimBatch, dimVocab]
         // expand all hypotheses, [localBeamSize, 1, dimBatch, 1] -> [localBeamSize, 1, dimBatch, dimVocab]
-        expandedPathScores = expandedPathScores + scorers_[i]->getWeight() * newState->getLogProbs();
-
-        // update state in-place for next output time step
-        states[i] = newState;
+        expandedPathScores = expandedPathScores + scorers_[i]->getWeight() * logProbs;
       }
 
       // make beams continuous
-      expandedPathScores = swapAxes(expandedPathScores, 0, 2); // -> [dimBatch, 1, localBeamSize, dimVocab]
-      //if(dimBatch > 1 && localBeamSize > 1)
-      //  expandedPathScores = transpose(expandedPathScores, {2, 1, 0, 3}); // -> [dimBatch, 1, localBeamSize, dimVocab]
+      if(dimBatch > 1 && localBeamSize > 1)
+        expandedPathScores = swapAxes(expandedPathScores, 0, 2); // -> [dimBatch, 1, localBeamSize, dimVocab]
+      else // (avoid copy if we can)
+        expandedPathScores = reshape(expandedPathScores, {dimBatch, 1, (int)localBeamSize, expandedPathScores->shape()[-1]});
 
       // perform NN computation
       if(t == 0)
@@ -302,13 +286,15 @@ public:
       // perform beam search
 
       // find N best amongst the (localBeamSize * dimVocab) hypotheses
-      std::vector<unsigned int> nBestKeys; // [dimBatch, localBeamSize] flattened -> ((batchIdx, beamHypIdx) flattened, word idx) flattened
+      std::vector<unsigned int> nBestKeys; // [dimBatch, localBeamSize] flattened -> (batchIdx, beamHypIdx, word idx) flattened
       std::vector<float> nBestPathScores;  // [dimBatch, localBeamSize] flattened
+      // @TODO: getNBestList() API is redundant; input dimensions are known from expandedPathScores(); but no way to specify target N different from input N
       getNBestList(/*beamSizes=*/std::vector<size_t>(dimBatch, localBeamSize), // output layout of (nBestPathScores, nBestKeys)  --@REVIEW: correct?
                    /*in*/ expandedPathScores->val(),                           // [dimBatch, 1, localBeamSize, dimVocab or dimShortlist]
                    /*out*/ nBestPathScores, /*out*/ nBestKeys,
                    /*first=*/t == 0); // @TODO: Why is this passed? To know that the beam size is 1 for first step, for flattened hyp index?
-      // Now, nBestPathScores contain N-best expandedPathScores, and nBestKeys for each their original location (batchIdx, beamHypIdx, word).
+      // Now, nBestPathScores contain N-best expandedPathScores for each batch and beam,
+      // and nBestKeys for each their original location (batchIdx, beamHypIdx, word).
 
       // combine N-best sets with existing search space (beams) to updated search space
       beams = toHyps(nBestKeys, nBestPathScores,
@@ -321,23 +307,23 @@ public:
 
       // remove all hyps that end in EOS
       // The position of a hyp in the beam may change.
-      const auto purgedBeams = purgeBeams(beams);
+      const auto purgedNewBeams = purgeBeams(beams);
 
-      // add updated search space (beams) to search grid (histories) for traceback
+      // add updated search space (beams) to our return value
       bool maxLengthReached = false;
       for(int i = 0; i < dimBatch; ++i) {
         // if this batch entry has surviving hyps then add them to the traceback grid
         if(!beams[i].empty()) {
           if (histories[i]->size() >= options_->get<float>("max-length-factor") * batch->front()->batchWidth())
             maxLengthReached = true;
-          histories[i]->add(beams[i], trgEosId_, purgedBeams[i].empty() || maxLengthReached);
+          histories[i]->add(beams[i], trgEosId_, purgedNewBeams[i].empty() || maxLengthReached);
         }
       }
       if (maxLengthReached) // early exit if max length limit was reached
         break;
 
       // this is the search space for the next output time step
-      beams = purgedBeams;
+      beams = purgedNewBeams;
     } // end of main loop over output time steps
 
     return histories; // [dimBatch][t][N best hyps]
