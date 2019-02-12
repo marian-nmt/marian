@@ -61,7 +61,7 @@ public:
       const auto wordIdx    = (WordIndex)(key % vocabSize);
       const auto beamHypIdx =            (key / vocabSize) % (first ? 1 : beamSize);
       const auto batchIdx   =            (key / vocabSize) / (first ? 1 : beamSize);
-      LOG(info, "key = (batch {}, beam {}, word {})", batchIdx, beamHypIdx, wordIdx);
+      //LOG(info, "key = (batch {}, beam {}, word {})", batchIdx, beamHypIdx, wordIdx);
 
       ABORT_IF(i / beamSize != batchIdx, "Inconsistent batchIdx value in key??");
 
@@ -89,11 +89,11 @@ public:
         // starting with the lemma, then adding factors one by one.
         if (factorGroup == 0) {
           word = factoredVocab->lemma2Word(wordIdx);
-          LOG(info, "new lemma {}={}", word.toWordIndex(), factoredVocab->word2string(word));
+          //LOG(info, "new lemma {}={}", word.toWordIndex(), factoredVocab->word2string(word));
         }
         else {
-          LOG(info, "expand word {}={} with factor[{}] {}", beam[beamHypIdx]->getWord().toWordIndex(),
-              factoredVocab->word2string(beam[beamHypIdx]->getWord()), factorGroup, wordIdx);
+          //LOG(info, "expand word {}={} with factor[{}] {}", beam[beamHypIdx]->getWord().toWordIndex(),
+          //    factoredVocab->word2string(beam[beamHypIdx]->getWord()), factorGroup, wordIdx);
           word = beam[beamHypIdx]->getWord();
           if (factoredVocab->canExpandFactoredWord(word, factorGroup))
             word = factoredVocab->expandFactoredWord(word, factorGroup, wordIdx);
@@ -137,18 +137,18 @@ public:
         auto& newBeam = newBeams[batchIdx];
         for (const auto& beamHyp : beam) {
           auto word = beamHyp->getWord();
-          LOG(info, "Checking {}", factoredVocab->word2string(word));
+          //LOG(info, "Checking {}", factoredVocab->word2string(word));
           if (factoredVocab->canExpandFactoredWord(word, factorGroup)) // handled above
             continue;
           LOG(info, "Forwarded {}", factoredVocab->word2string(word));
           newBeam.push_back(beamHyp);
         }
         if (newBeam.size() > beamSize) {
-          LOG(info, "Size {}, sorting...", newBeam.size());
+          //LOG(info, "Size {}, sorting...", newBeam.size());
           std::nth_element(newBeam.begin(), newBeam.begin() + beamSize, newBeam.end(), [](Ptr<Hypothesis> a, Ptr<Hypothesis> b) {
-            return a->getPathScore() > b->getPathScore();
+            return a->getPathScore() > b->getPathScore(); // (sort highest score first)
           });
-          LOG(info, "Size {}, sorted...", newBeam.size());
+          //LOG(info, "Size {}, sorted...", newBeam.size());
           newBeam.resize(beamSize); // @TODO: needed?
         }
       }
@@ -331,16 +331,16 @@ public:
           //  - returns new NN state for use in next output time step
           //  - returns vector of prediction probabilities over output vocab via newState
           // update state in-place for next output time step
-          if (t > 0) for (size_t kk = 0; kk < prevWords.size(); kk++)
-            LOG(info, "prevWords[{},{}]={} -> {}", t/numFactorGroups, factorGroup,
-                factoredVocab ? factoredVocab->word2string(prevWords[kk]) : (*batch->back()->vocab())[prevWords[kk]],
-                prevScores[kk]);
+          //if (t > 0) for (size_t kk = 0; kk < prevWords.size(); kk++)
+          //  LOG(info, "prevWords[{},{}]={} -> {}", t/numFactorGroups, factorGroup,
+          //      factoredVocab ? factoredVocab->word2string(prevWords[kk]) : (*batch->back()->vocab())[prevWords[kk]],
+          //      prevScores[kk]);
           states[i] = scorers_[i]->step(graph, states[i], hypIndices, prevWords, dimBatch, (int)localBeamSize);
           if (numFactorGroups == 1)
             logProbs = states[i]->getLogProbs().getLogits(); // [localBeamSize, 1, dimBatch, dimVocab]
           else
             logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup); // [localBeamSize, 1, dimBatch, dimVocab]
-          logProbs->debug("logProbs");
+          //logProbs->debug("logProbs");
         }
         else {
           // add secondary factors
@@ -355,8 +355,8 @@ public:
           // TODO:
           //  - we did not rearrange the tensors in the scorer's state
           logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup, hypIndices, localBeamSize); // [localBeamSize, 1, dimBatch, dimVocab]
-          for (size_t kk = 0; kk < prevWords.size(); kk++)
-            LOG(info, "prevWords[{},{}]={} -> {}", t/numFactorGroups, factorGroup, factoredVocab->word2string(prevWords[kk]), prevScores[kk]);
+          //for (size_t kk = 0; kk < prevWords.size(); kk++)
+          //  LOG(info, "prevWords[{},{}]={} -> {}", t/numFactorGroups, factorGroup, factoredVocab->word2string(prevWords[kk]), prevScores[kk]);
           auto factorMaskVector = states[i]->getLogProbs().getFactorMasks(prevWords, factorGroup);
           for (auto& m : factorMaskVector)
             m = m ? 0.f : INVALID_PATH_SCORE; // block hyps that do not have the factor; these are short-circuited directly
@@ -365,7 +365,7 @@ public:
         }
         // expand all hypotheses, [localBeamSize, 1, dimBatch, 1] -> [localBeamSize, 1, dimBatch, dimVocab]
         expandedPathScores = expandedPathScores + scorers_[i]->getWeight() * logProbs;
-        logProbs->debug("logProbs");
+        //logProbs->debug("logProbs");
       }
 
       // make beams continuous
@@ -374,7 +374,7 @@ public:
       else // (avoid copy if we can)
         expandedPathScores = reshape(expandedPathScores, {dimBatch, 1, (int)localBeamSize, expandedPathScores->shape()[-1]}); // -> [dimBatch, 1, localBeamSize, dimVocab]
       //  expandedPathScores = transpose(expandedPathScores, {2, 1, 0, 3}); // -> [dimBatch, 1, localBeamSize, dimVocab]
-      expandedPathScores->debug("expandedPathScores");
+      //expandedPathScores->debug("expandedPathScores");
 
       // perform NN computation
       if(t == 0)

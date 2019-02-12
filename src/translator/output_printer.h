@@ -72,7 +72,7 @@ public:
       best1 << " ||| " << getAlignment(hypo);
     }
 
-    best1 << " |sc=" << std::get<1>(result)->getPathScore();
+    //best1 << " |sc=" << std::get<1>(result)->getPathScore();
 
     best1 << std::flush;
   }
