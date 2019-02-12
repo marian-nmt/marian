@@ -19,7 +19,7 @@ private:
   Word trgEosId_{Word::NONE};
   Word trgUnkId_{Word::NONE};
 
-  static constexpr auto INVALID_PATH_SCORE = -9999;// .0f;
+  static constexpr auto INVALID_PATH_SCORE = -9999;
 
 public:
   BeamSearch(Ptr<Options> options,
@@ -35,9 +35,10 @@ public:
         trgUnkId_(trgUnkId) {}
 
   // combine new expandedPathScores and previous beams into new set of beams
-  Beams toHyps(const std::vector<unsigned int> nBestKeys, // [dimBatch, beamSize] flattened -> ((batchIdx, beamHypIdx) flattened, word idx) flattened
-               const std::vector<float> nBestPathScores,  // [dimBatch, beamSize] flattened
-               const size_t vocabSize,
+  Beams toHyps(const std::vector<unsigned int>& nBestKeys, // [dimBatch, beamSize] flattened -> ((batchIdx, beamHypIdx) flattened, word idx) flattened
+               const std::vector<float>& nBestPathScores,  // [dimBatch, beamSize] flattened
+               const size_t inputBeamSize, // for interpretation of nBestKeys
+               const size_t vocabSize,     // ditto.
                const Beams& beams,
                const std::vector<Ptr<ScorerState /*const*/>>& states,
                const size_t beamSize,
@@ -52,8 +53,8 @@ public:
     Beams newBeams(dimBatch);
 
     for(size_t i = 0; i < nBestKeys.size(); ++i) { // [dimBatch, beamSize] flattened
-      // Keys contains indices to vocab items in the entire beam.
-      // Values can be between 0 and beamSize * vocabSize.
+      // Keys encode batchIdx, beamHypIdx, and word index in the entire beam.
+      // They can be between 0 and beamSize * vocabSize-1.
       const float pathScore = nBestPathScores[i];
       const auto  key       = nBestKeys[i]; // key = pathScore's tensor location, as (batchIdx, beamHypIdx, word idx) flattened
 
@@ -213,8 +214,8 @@ public:
   //**********************************************************************
   // main decoding function
   Histories search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
-    // @TODO: EOS id does not need to be stored in this object, since it is available from vocab()
-    ABORT_IF(batch->back()->vocab()->getEosId() != trgEosId_, "Batch uses different EOS token than was passed to BeamSearch originally");
+    ABORT_IF(batch->back()->vocab() && batch->back()->vocab()->getEosId() != trgEosId_,
+        "Batch uses different EOS token than was passed to BeamSearch originally");
 
     auto factoredVocab = batch->back()->vocab()->tryAs<FactoredVocab>();
 #if 0   // use '1' here to disable factored decoding, e.g. for comparisons
@@ -254,22 +255,15 @@ public:
     for(int i = 0; i < dimBatch; ++i)
       histories[i]->add(beams[i], trgEosId_);
 
-    // the decoder maintains the following state:
-    //  - beams : array [dimBatch] of  array [localBeamSize] of Hypothesis
+    // the decoder updates the following state information in each output time step:
+    //  - beams: array [dimBatch] of array [localBeamSize] of Hypothesis
     //     - current output time step's set of active hypotheses, aka active search space
-    //     - gets replaced at the end of each output time step
-    //  - states[.] : ScorerState
-    //     - NN state
-    //     - one per scorer, e.g. 2 for ensemble of 2
-    //     - gets replaced in each output time step
+    //  - states[.]: ScorerState
+    //     - NN state; one per scorer, e.g. 2 for ensemble of 2
     // and it forms the following return value
-    //  - histories : array [dimBatch] of History
-    //    with History : vector [t] of array [localBeamSize] of Hypothesis
-    //    with Hypothesis : (last word, aggregate score, prev Hypothesis)
-    //     - search grid
-    //     - stores traceback information
-    //     - gets added to in each output time step
-    //     - the final version is the return value of this function
+    //  - histories: array [dimBatch] of History
+    //    with History: vector [t] of array [localBeamSize] of Hypothesis
+    //    with Hypothesis: (last word, aggregate score, prev Hypothesis)
 
     // main loop over output time steps
     for (size_t t = 0; ; t++) {
@@ -320,7 +314,7 @@ public:
             } else {  // pad to localBeamSize (dummy hypothesis)
               hypIndices.push_back(0);
               prevWords.push_back(trgEosId_);  // (unused, but must be valid)
-              prevScores.push_back(INVALID_PATH_SCORE);
+              prevScores.push_back((float)INVALID_PATH_SCORE);
             }
           }
         }
@@ -375,16 +369,10 @@ public:
         }
         // expand all hypotheses, [localBeamSize, 1, dimBatch, 1] -> [localBeamSize, 1, dimBatch, dimVocab]
         expandedPathScores = expandedPathScores + scorers_[i]->getWeight() * logProbs;
-        //logProbs->debug("logProbs");
       }
 
       // make beams continuous
-      if(dimBatch > 1 && localBeamSize > 1)
-        expandedPathScores = swapAxes(expandedPathScores, 0, 2); // -> [dimBatch, 1, localBeamSize, dimVocab]
-      else // (avoid copy if we can)
-        expandedPathScores = reshape(expandedPathScores, {dimBatch, 1, (int)localBeamSize, expandedPathScores->shape()[-1]}); // -> [dimBatch, 1, localBeamSize, dimVocab]
-      //  expandedPathScores = transpose(expandedPathScores, {2, 1, 0, 3}); // -> [dimBatch, 1, localBeamSize, dimVocab]
-      //expandedPathScores->debug("expandedPathScores");
+      expandedPathScores = swapAxes(expandedPathScores, 0, 2); // -> [dimBatch, 1, localBeamSize, dimVocab]
 
       // perform NN computation
       if(t == 0 && factorGroup == 0)
@@ -405,21 +393,22 @@ public:
       // find N best amongst the (localBeamSize * dimVocab) hypotheses
       std::vector<unsigned int> nBestKeys; // [dimBatch, localBeamSize] flattened -> (batchIdx, beamHypIdx, word idx) flattened
       std::vector<float> nBestPathScores;  // [dimBatch, localBeamSize] flattened
-      // @TODO: getNBestList() API is redundant; input dimensions are known from expandedPathScores(); but no way to specify target N different from input N
-      getNBestList(/*beamSizes=*/std::vector<size_t>(dimBatch, localBeamSize), // output layout of (nBestPathScores, nBestKeys)  --@REVIEW: correct?
-                   /*in*/ expandedPathScores->val(),                           // [dimBatch, 1, localBeamSize, dimVocab or dimShortlist]
+      getNBestList(/*in*/ expandedPathScores->val(), // [dimBatch, 1, localBeamSize, dimVocab or dimShortlist]
+                   /*N=*/localBeamSize,              // desired beam size
                    /*out*/ nBestPathScores, /*out*/ nBestKeys,
-                   /*first=*/t == 0 && factorGroup == 0); // @TODO: Why is this passed? To know that the beam size is 1 for first step, for flattened hyp index?
-      // Now, nBestPathScores contain N-best expandedPathScores, and nBestKeys for each their original location (batchIdx, beamHypIdx, word).
+                   /*first=*/t == 0 && factorGroup == 0); // @TODO: this is only used for checking presently, and should be removed altogether
+      // Now, nBestPathScores contain N-best expandedPathScores for each batch and beam,
+      // and nBestKeys for each their original location (batchIdx, beamHypIdx, word).
 
       // combine N-best sets with existing search space (beams) to updated search space
       beams = toHyps(nBestKeys, nBestPathScores,
-                     /*dimTrgVoc=*/expandedPathScores->shape()[-1],
+                     /*inputBeamSize*/expandedPathScores->shape()[-2], // used for interpretation of keys
+                     /*vocabSize=*/expandedPathScores->shape()[-1],    // used for interpretation of keys
                      beams,
-                     states,           // used for keeping track of per-ensemble-member path score
-                     localBeamSize,    // used in the encoding of the (batchIdx, beamHypIdx, word) tuples
-                     /*first=*/t == 0 && factorGroup == 0, // used to indicate originating beamSize of 1
-                     batch, factoredVocab, factorGroup);
+                     states,    // used for keeping track of per-ensemble-member path score
+                     batch,     // only used for propagating alignment info
+
+                     factoredVocab, factorGroup);
       } // END FOR factorGroup = 0 .. numFactorGroups-1
 
       // remove all hyps that end in EOS

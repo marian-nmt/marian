@@ -215,6 +215,8 @@ Expr repeat(Expr a, size_t repeats, int ax) {
 }
 
 Expr reshape(Expr a, Shape shape) {
+  if (a->shape() == shape)
+    return a;
   return Expression<ReshapeNodeOp>(a, shape);
 }
 
@@ -258,7 +260,7 @@ Expr flatten_2d(Expr a) {
 
 Expr stopGradient(Expr a) {
   // implemented as a dummy reshape that is not trainable
-  auto res = reshape(a, a->shape());
+  auto res = Expression<ReshapeNodeOp>(a, a->shape());
   res->setTrainable(false);
   return res;
 }
@@ -532,12 +534,27 @@ Expr transpose(Expr a, const std::vector<int>& axes) {
 
 Expr swapAxes(Expr x, int axis1, int axis2)
 {
-  axis1 = x->shape().axis(axis1);
-  axis2 = x->shape().axis(axis2);
+  const auto& shape = x->shape();
+  axis1 = shape.axis(axis1);
+  axis2 = shape.axis(axis2);
   if (axis1 == axis2)
     return x;
+  if (shape[axis1] == 1 || shape[axis2] == 1) { // can we use a reshape instead?
+    if (axis1 > axis2)
+      std::swap(axis1, axis2);
+    bool canReshape = true;
+    for (int ax = axis1 + 1; ax < axis2 && canReshape; ax++)
+      canReshape &= (shape[ax] == 1);
+    if (canReshape) {
+      auto newShape = shape;
+      newShape.set(axis1, shape[axis2]);
+      newShape.set(axis2, shape[axis1]);
+      //LOG(info, "SwapAxes() did a reshape from {} to {}", shape.toString(), newShape.toString());
+      return reshape(x, newShape);
+    }
+  }
   // TODO: This is code dup from transpose(x). Implement transpose(x) as swapAxes(x, 0, 1)
-  std::vector<int> axes(x->shape().size());
+  std::vector<int> axes(shape.size());
   for (int i = 0; i < axes.size(); ++i) // @TODO: use std::iota()
     axes[i] = i;
   std::swap(axes[axis1], axes[axis2]);

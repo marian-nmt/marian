@@ -34,9 +34,9 @@ protected:
   std::vector<Ptr<EncoderState>> encStates_;
   Ptr<data::CorpusBatch> batch_;
 
-  Expr targetEmbeddings_;
+  Expr targetHistoryEmbeddings_; // decoder history (teacher-forced or from decoding), embedded
   Expr targetMask_;
-  Words targetWords_;
+  Words targetWords_;            // target labels
 
   // Keep track of current target token position during translation
   size_t position_{0};
@@ -70,17 +70,13 @@ public:
 
   virtual const rnn::States& getStates() const { return states_; }
 
-  virtual Expr getTargetEmbeddings() const { return targetEmbeddings_; };
-
-  virtual void setTargetEmbeddings(Expr targetEmbeddings) {
-    targetEmbeddings_ = targetEmbeddings;
-  }
+  virtual Expr getTargetHistoryEmbeddings() const { return targetHistoryEmbeddings_; };
+  virtual void setTargetHistoryEmbeddings(Expr targetHistoryEmbeddings) { targetHistoryEmbeddings_ = targetHistoryEmbeddings; }
 
   virtual const Words& getTargetWords() const { return targetWords_; };
   virtual void setTargetWords(const Words& targetWords) { targetWords_ = targetWords; }
 
   virtual Expr getTargetMask() const { return targetMask_; };
-
   virtual void setTargetMask(Expr targetMask) { targetMask_ = targetMask; }
 
   virtual const Words& getSourceWords() const {
