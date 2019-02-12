@@ -95,7 +95,8 @@ public:
             word = factoredVocab->expandFactoredWord(word, factorGroup, wordIdx);
           // @TODO: maybe factor the two above into a single function; for now, I want the extra checks
           else
-            ABORT_IF(prevHyp->getPathScore() != pathScore, "Score changed despite factor not applicable??");
+            continue; // skip if word does not have this factor
+            //ABORT_IF(prevHyp->getPathScore() != pathScore, "Score changed despite factor not applicable??");
           prevBeamHypIdx = prevHyp->getPrevStateIndex();
           prevHyp = prevHyp->getPrevHyp(); // short-circuit the backpointer, so that the traceback doesnot contain partially factored words
         }
@@ -123,6 +124,30 @@ public:
       }
 
       newBeam.push_back(hyp);
+    }
+
+    // also propagate factored hypotheses that do not get expanded in this step as they don't have this factor
+    if (factorGroup > 0) {
+      for (size_t batchIdx = 0; batchIdx < beams.size(); batchIdx++) {
+        const auto& beam = beams[batchIdx];
+        auto& newBeam = newBeams[batchIdx];
+        for (const auto& beamHyp : beam) {
+          auto word = beamHyp->getWord();
+          LOG(info, "Checking {}", factoredVocab->word2string(word));
+          if (factoredVocab->canExpandFactoredWord(word, factorGroup)) // handled above
+            continue;
+          LOG(info, "Expanded {}", factoredVocab->word2string(word));
+          newBeam.push_back(beamHyp);
+        }
+        if (newBeam.size() > beamSize) {
+          LOG(info, "Size {}, sorting...", newBeam.size());
+          std::nth_element(newBeam.begin(), newBeam.begin() + beamSize, newBeam.end(), [](Ptr<Hypothesis> a, Ptr<Hypothesis> b) {
+            return a->getPathScore() > b->getPathScore();
+          });
+          LOG(info, "Size {}, sorted...", newBeam.size());
+          newBeam.resize(beamSize); // @TODO: needed?
+        }
+      }
     }
     return newBeams;
   }
@@ -266,10 +291,11 @@ public:
       std::vector<IndexType> hypIndices; // [localBeamsize, 1, dimBatch, 1] (flattened) tensor index ((beamHypIdx, batchIdx), flattened) of prev hyp that a hyp originated from
       std::vector<Word> prevWords;       // [localBeamsize, 1, dimBatch, 1] (flattened) word that a hyp ended in, for advancing the decoder-model's history
       Expr prevPathScores;               // [localBeamSize, 1, dimBatch, 1], path score that a hyp ended in (last axis will broadcast into vocab size when adding expandedPathScores)
+      std::vector<float> prevScores; // @TODO: remove here again
       if(t == 0) { // no scores yet
         prevPathScores = graph->constant({1, 1, 1, 1}, inits::from_value(0));
       } else {
-        std::vector<float> prevScores;
+        //std::vector<float> prevScores;
         for(size_t beamHypIdx = 0; beamHypIdx < localBeamSize; ++beamHypIdx) {
           for(int batchIdx = 0; batchIdx < dimBatch; ++batchIdx) { // loop over batch entries (active sentences)
             auto& beam = beams[batchIdx];
@@ -291,8 +317,8 @@ public:
       //**********************************************************************
       // compute expanded path scores with word prediction probs from all scorers
       auto expandedPathScores = prevPathScores; // will become [localBeamSize, 1, dimBatch, dimVocab]
+      Expr logProbs;
       for(size_t i = 0; i < scorers_.size(); ++i) {
-        Expr logProbs, factorMasks;
         if (factorGroup == 0) {
           // compute output probabilities for current output time step
           //  - uses hypIndices[index in beam, 1, batch index, 1] to reorder scorer state to reflect the top-N in beams[][]
@@ -301,11 +327,16 @@ public:
           //  - returns new NN state for use in next output time step
           //  - returns vector of prediction probabilities over output vocab via newState
           // update state in-place for next output time step
+          if (t > 0) for (size_t kk = 0; kk < prevWords.size(); kk++)
+            LOG(info, "prevWords[{},{}]={} -> {}", t/numFactorGroups, factorGroup,
+                factoredVocab ? factoredVocab->word2string(prevWords[kk]) : (*batch->back()->vocab())[prevWords[kk]],
+                prevScores[kk]);
           states[i] = scorers_[i]->step(graph, states[i], hypIndices, prevWords, dimBatch, (int)localBeamSize);
           if (numFactorGroups == 1)
             logProbs = states[i]->getLogProbs().getLogits(); // [localBeamSize, 1, dimBatch, dimVocab]
           else
             logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup); // [localBeamSize, 1, dimBatch, dimVocab]
+          logProbs->debug("logProbs");
         }
         else {
           // add secondary factors
@@ -320,14 +351,17 @@ public:
           // TODO:
           //  - we did not rearrange the tensors in the scorer's state
           logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup, hypIndices, localBeamSize); // [localBeamSize, 1, dimBatch, dimVocab]
-          for (auto word : prevWords)
-            LOG(info, "prevWords[]={}", factoredVocab->word2string(word));
+          for (size_t kk = 0; kk < prevWords.size(); kk++)
+            LOG(info, "prevWords[{},{}]={} -> {}", t/numFactorGroups, factorGroup, factoredVocab->word2string(prevWords[kk]), prevScores[kk]);
           auto factorMaskVector = states[i]->getLogProbs().getFactorMasks(prevWords, factorGroup);
-          factorMasks = graph->constant({(int)localBeamSize, 1, dimBatch, 1}, inits::from_vector(factorMaskVector));
-          logProbs = logProbs * factorMasks; // those hyps that don't have a factor get multiplied with 0
+          for (auto& m : factorMaskVector)
+            m = m ? 0.f : -9999.f; // block hyps that do not have the factor; these are short-circuited directly
+          auto logFactorMasks = graph->constant({(int)localBeamSize, 1, dimBatch, 1}, inits::from_vector(factorMaskVector));
+          logProbs = logProbs + logFactorMasks; // those hyps that don't have a factor get multiplied with 0
         }
         // expand all hypotheses, [localBeamSize, 1, dimBatch, 1] -> [localBeamSize, 1, dimBatch, dimVocab]
         expandedPathScores = expandedPathScores + scorers_[i]->getWeight() * logProbs;
+        logProbs->debug("logProbs");
       }
 
       // make beams continuous
@@ -336,6 +370,7 @@ public:
       else // (avoid copy if we can)
         expandedPathScores = reshape(expandedPathScores, {dimBatch, 1, (int)localBeamSize, expandedPathScores->shape()[-1]}); // -> [dimBatch, 1, localBeamSize, dimVocab]
       //  expandedPathScores = transpose(expandedPathScores, {2, 1, 0, 3}); // -> [dimBatch, 1, localBeamSize, dimVocab]
+      expandedPathScores->debug("expandedPathScores");
 
       // perform NN computation
       if(t == 0)

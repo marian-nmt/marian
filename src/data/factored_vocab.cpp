@@ -307,7 +307,7 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
 }
 
 /*virtual*/ const std::string& FactoredVocab::operator[](Word word) const /*overrworde final*/ {
-  LOG(info, "Looking up Word {}={}", word.toWordIndex(), word2string(word));
+  //LOG(info, "Looking up Word {}={}", word.toWordIndex(), word2string(word));
 #if 1 // @BUGBUG: our manually prepared dict does not contain @CI tags for single letters, but it's a valid factor
   if (vocab_.isGap(word.toWordIndex())) {
     LOG(info, "Factor combination {} missing in external dict, generating fake entry", word2string(word));
