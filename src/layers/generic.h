@@ -87,7 +87,7 @@ public:
       MaskedFactorIndices(const Words& words) { indices = toWordIndexVector(words); } // we can leave masks uninitialized for this special use case
     };
     std::vector<MaskedFactorIndices> factorizeWords(const Words& words) const; // breaks encoded Word into individual factor indices
-    std::vector<float> getFactorMasks(const Words& words, size_t factorGroup) const;
+    //std::vector<float> getFactorMasks(const Words& words, size_t factorGroup) const;
     std::vector<float> getFactorMasks(size_t factorGroup) const;
     float getLogitAt(size_t i) const { return getLogits()->val()->get(i); } // used for breakDown() only; @TODO: avoid the fully expanded logits; pass separate indices instead of 'i'
     size_t getNumFactorGroups() const { return logits_.size(); }

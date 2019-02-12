@@ -159,19 +159,19 @@ namespace marian {
     return res;
   }
 
-  // use first factor of each word to determine whether it has a specific factor
-  std::vector<float> Logits::getFactorMasks(const Words& words, size_t factorGroup) const { // 1.0 for words that do have this factor; else 0
-    std::vector<float> res;
-    res.reserve(words.size());
-    for (const auto& word : words) {
-      auto lemma = factoredVocab_->getFactor(word, 0);
-      res.push_back((float)factoredVocab_->lemmaHasFactorGroup(lemma, factorGroup));
-    }
-    return res;
-  }
+  //// use first factor of each word to determine whether it has a specific factor
+  //std::vector<float> Logits::getFactorMasks(const Words& words, size_t factorGroup) const { // 1.0 for words that do have this factor; else 0
+  //  std::vector<float> res;
+  //  res.reserve(words.size());
+  //  for (const auto& word : words) {
+  //    auto lemma = factoredVocab_->getFactor(word, 0);
+  //    res.push_back((float)factoredVocab_->lemmaHasFactorGroup(lemma, factorGroup));
+  //  }
+  //  return res;
+  //}
 
-  // same but for lemma
-  std::vector<float> Logits::getFactorMasks(size_t factorGroup) const { // 1.0 for words that do have this factor; else 0
+  // return a vector of 1 or 0 indicating for each lemma whether it has a specific factor
+  std::vector<float> Logits::getFactorMasks(size_t factorGroup) const { // [lemmaIndex] -> 1.0 for words that do have this factor; else 0
     size_t numLemmas = factoredVocab_->getGroupRange(0).second - factoredVocab_->getGroupRange(0).first;
     std::vector<float> res;
     res.reserve(numLemmas);

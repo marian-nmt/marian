@@ -308,7 +308,7 @@ public:
               auto hyp = beam[beamHypIdx];
               hypIndices.push_back((IndexType)(hyp->getPrevStateIndex() * dimBatch + batchIdx)); // (beamHypIdx, batchIdx), flattened, for index_select() operation
               prevWords .push_back(hyp->getWord());
-              prevScores.push_back(hyp->getPathScore());
+              prevScores.push_back((factoredVocab && !factoredVocab->canExpandFactoredWord(hyp->getWord(), factorGroup)) ? INVALID_PATH_SCORE : hyp->getPathScore());
             } else {  // pad to localBeamSize (dummy hypothesis)
               hypIndices.push_back(0);
               prevWords.push_back(trgEosId_);  // (unused, but must be valid)
@@ -353,16 +353,15 @@ public:
           //    by considering the lemma at each (beamHypIdx, batchIdx). prevWords is already in the right order.
           //  - factors are incorporated one step at a time; so we will have temporary Word entries
           //    in hyps with some factors set to FACTOR_NOT_SPECIFIED.
-          // TODO:
-          //  - we did not rearrange the tensors in the scorer's state
           logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup, hypIndices, localBeamSize); // [localBeamSize, 1, dimBatch, dimVocab]
+          // Note: pathScores was set to INVALID_PATH_SCORE if this path cannot expanded by this factor; toHyps() handles that special case on the side
           //for (size_t kk = 0; kk < prevWords.size(); kk++)
           //  LOG(info, "prevWords[{},{}]={} -> {}", t/numFactorGroups, factorGroup, factoredVocab->word2string(prevWords[kk]), prevScores[kk]);
-          auto factorMaskVector = states[i]->getLogProbs().getFactorMasks(prevWords, factorGroup);
-          for (auto& m : factorMaskVector)
-            m = m ? 0.f : INVALID_PATH_SCORE; // block hyps that do not have the factor; these are short-circuited directly
-          auto logFactorMasks = graph->constant({(int)localBeamSize, 1, dimBatch, 1}, inits::from_vector(factorMaskVector));
-          logProbs = logProbs + logFactorMasks; // those hyps that don't have a factor get multiplied with 0
+          //auto factorMaskVector = states[i]->getLogProbs().getFactorMasks(prevWords, factorGroup);
+          //for (auto& m : factorMaskVector)
+          //  m = m ? 0.f : INVALID_PATH_SCORE; // block hyps that do not have the factor; these are short-circuited directly
+          //auto logFactorMasks = graph->constant({(int)localBeamSize, 1, dimBatch, 1}, inits::from_vector(factorMaskVector));
+          //logProbs = logProbs + logFactorMasks; // those hyps that don't have a factor get multiplied with 0
         }
         // expand all hypotheses, [localBeamSize, 1, dimBatch, 1] -> [localBeamSize, 1, dimBatch, dimVocab]
         expandedPathScores = expandedPathScores + scorers_[i]->getWeight() * logProbs;
