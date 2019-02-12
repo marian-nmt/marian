@@ -140,7 +140,7 @@ public:
           //LOG(info, "Checking {}", factoredVocab->word2string(word));
           if (factoredVocab->canExpandFactoredWord(word, factorGroup)) // handled above
             continue;
-          LOG(info, "Forwarded {}", factoredVocab->word2string(word));
+          //LOG(info, "Forwarded {}", factoredVocab->word2string(word));
           newBeam.push_back(beamHyp);
         }
         if (newBeam.size() > beamSize) {
@@ -284,10 +284,11 @@ public:
       if (localBeamSize == 0)
         break;
 
+      for (size_t factorGroup = 0; factorGroup < numFactorGroups; factorGroup++) {
       // BEGIN FOR factorGroup = 0 .. numFactorGroups-1
       // @TODO: use an explicit nested loop here for factors
       // for factored vocabs, we do one factor at a time, but without updating the scorer for secondary factors
-      auto factorGroup = t % numFactorGroups;
+      //auto factorGroup = t % numFactorGroups;
 
       //**********************************************************************
       // create constant containing previous path scores for current beam
@@ -296,7 +297,7 @@ public:
       std::vector<Word> prevWords;       // [localBeamsize, 1, dimBatch, 1] (flattened) word that a hyp ended in, for advancing the decoder-model's history
       Expr prevPathScores;               // [localBeamSize, 1, dimBatch, 1], path score that a hyp ended in (last axis will broadcast into vocab size when adding expandedPathScores)
       std::vector<float> prevScores; // @TODO: remove here again
-      if(t == 0) { // no scores yet
+      if(t == 0 && factorGroup == 0) { // no scores yet
         prevPathScores = graph->constant({1, 1, 1, 1}, inits::from_value(0));
       } else {
         //std::vector<float> prevScores;
@@ -377,7 +378,7 @@ public:
       //expandedPathScores->debug("expandedPathScores");
 
       // perform NN computation
-      if(t == 0)
+      if(t == 0 && factorGroup == 0)
         graph->forward();
       else
         graph->forwardNext();
@@ -399,36 +400,31 @@ public:
       getNBestList(/*beamSizes=*/std::vector<size_t>(dimBatch, localBeamSize), // output layout of (nBestPathScores, nBestKeys)  --@REVIEW: correct?
                    /*in*/ expandedPathScores->val(),                           // [dimBatch, 1, localBeamSize, dimVocab or dimShortlist]
                    /*out*/ nBestPathScores, /*out*/ nBestKeys,
-                   /*first=*/t == 0); // @TODO: Why is this passed? To know that the beam size is 1 for first step, for flattened hyp index?
+                   /*first=*/t == 0 && factorGroup == 0); // @TODO: Why is this passed? To know that the beam size is 1 for first step, for flattened hyp index?
       // Now, nBestPathScores contain N-best expandedPathScores, and nBestKeys for each their original location (batchIdx, beamHypIdx, word).
 
       // combine N-best sets with existing search space (beams) to updated search space
-      auto newBeams = toHyps(nBestKeys, nBestPathScores,
-                             /*dimTrgVoc=*/expandedPathScores->shape()[-1],
-                             beams,
-                             states,           // used for keeping track of per-ensemble-member path score
-                             localBeamSize,    // used in the encoding of the (batchIdx, beamHypIdx, word) tuples
-                             /*first=*/t == 0, // used to indicate originating beamSize of 1
-                             batch, factoredVocab, factorGroup);
-
-      if (factorGroup != numFactorGroups - 1) { // skip adding to history and skip purging for partially factored words
-        beams = newBeams;
-        continue;
-      }
-      // END FOR factorGroup = 0 .. numFactorGroups-1
+      beams = toHyps(nBestKeys, nBestPathScores,
+                     /*dimTrgVoc=*/expandedPathScores->shape()[-1],
+                     beams,
+                     states,           // used for keeping track of per-ensemble-member path score
+                     localBeamSize,    // used in the encoding of the (batchIdx, beamHypIdx, word) tuples
+                     /*first=*/t == 0 && factorGroup == 0, // used to indicate originating beamSize of 1
+                     batch, factoredVocab, factorGroup);
+      } // END FOR factorGroup = 0 .. numFactorGroups-1
 
       // remove all hyps that end in EOS
       // The position of a hyp in the beam may change.
-      const auto purgedNewBeams = purgeBeams(newBeams);
+      const auto purgedNewBeams = purgeBeams(beams);
 
-      // add updated search space (newBeams) to our return value
+      // add updated search space (beams) to our return value
       bool maxLengthReached = false;
       for(int i = 0; i < dimBatch; ++i) {
         // if this batch entry has surviving hyps then add them to the traceback grid
-        if(!newBeams[i].empty()) {
+        if(!beams[i].empty()) {
           if (histories[i]->size() >= options_->get<float>("max-length-factor") * batch->front()->batchWidth())
             maxLengthReached = true;
-          histories[i]->add(newBeams[i], trgEosId_, purgedNewBeams[i].empty() || maxLengthReached);
+          histories[i]->add(beams[i], trgEosId_, purgedNewBeams[i].empty() || maxLengthReached);
         }
       }
       if (maxLengthReached) // early exit if max length limit was reached
