@@ -5,18 +5,19 @@
 
 namespace marian {
 
-// TODO: Finally refactorize Config, Options, ConfigParser and ConfigValidator
-// classes.
 class ConfigValidator {
 private:
   const YAML::Node& config_;
 
   bool has(const std::string& key) const;
-
   template <typename T>
   T get(const std::string& key) const {
     return config_[key].as<T>();
   }
+
+  // The option --dump-config is used, so alleviate some constraints, e.g. we don't want to require
+  // --train-sets or --vocabs
+  bool dumpConfigOnly_{false};
 
   void validateOptionsTranslation() const;
   void validateOptionsParallelData() const;
