@@ -43,7 +43,7 @@ private:
       std::vector<int>::iterator middle = begin + beamSize;
       std::vector<int>::iterator end = idxs.begin() + batchFirstElementIdxs[batchIdx + 1];
       std::partial_sort(
-          begin, middle, end, [=](int a, int b) { return scores[a] > scores[b]; });
+          begin, middle, end, [&](int a, int b) { return scores[a] > scores[b]; });
 
       while(begin != middle) {
         int idx = *begin++;
@@ -67,33 +67,32 @@ public:
     const auto dimBatch  = scores->shape()[-4];
     ABORT_IF(inputN != (isFirst ? 1 : N), "Input tensor has wrong beam dim??");
 
-    const std::vector<size_t> beamSizes(dimBatch, N);
-    std::vector<int> cumulativeBeamSizes(beamSizes.size() + 1, 0);
-    std::vector<int> batchFirstElementIdxs(beamSizes.size() + 1, 0);
+    std::vector<int> cumulativeBeamSizes(dimBatch + 1, 0);
+    std::vector<int> batchFirstElementIdxs(dimBatch + 1, 0);
 
-    for(int batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) {
-      cumulativeBeamSizes[batchIdx + 1] = cumulativeBeamSizes[batchIdx] + (int)beamSizes[batchIdx];
+    for(int batchIdx = 0; batchIdx < dimBatch; ++batchIdx) {
+      cumulativeBeamSizes[batchIdx + 1] = cumulativeBeamSizes[batchIdx] + (int)N;
       ABORT_IF(cumulativeBeamSizes[batchIdx + 1] != (batchIdx + 1) * N, "cumulativeBeamSizes wrong??");
       batchFirstElementIdxs[batchIdx + 1]
           += (isFirst ? batchIdx + 1 : cumulativeBeamSizes[batchIdx + 1]) * vocabSize;
       ABORT_IF((isFirst ? batchIdx + 1 : cumulativeBeamSizes[batchIdx + 1]) != (batchIdx + 1) * inputN, "inputN wrong??");
     }
+    ABORT_IF(cumulativeBeamSizes.back() != dimBatch * N, "cumulativeBeamSizes.back() wrong??");
 
     size_t maxSize = N * dimBatch;
     h_res.resize(maxSize);
     h_res_idx.resize(maxSize);
 
     selectNBest(scores->data(), batchFirstElementIdxs, cumulativeBeamSizes);
-    getPairs(cumulativeBeamSizes.back(), outKeys, outPathScores);
-    ABORT_IF(cumulativeBeamSizes.back() != dimBatch * N, "cumulativeBeamSizes.back() wrong??");
+    getPairs(/*cumulativeBeamSizes.back(),*/ outKeys, outPathScores);
   }
 
 private:
-  void getPairs(size_t number,
+  void getPairs(/*size_t number,*/
                 std::vector<unsigned>& outKeys,
                 std::vector<float>& outValues) {
-    std::copy(h_res_idx.begin(), h_res_idx.begin() + number, std::back_inserter(outKeys));
-    std::copy(h_res    .begin(), h_res    .begin() + number, std::back_inserter(outValues));
+    std::copy(h_res_idx.begin(), h_res_idx.end(), std::back_inserter(outKeys));
+    std::copy(h_res    .begin(), h_res    .end(), std::back_inserter(outValues));
     //lastN_ = number;
   }
 
