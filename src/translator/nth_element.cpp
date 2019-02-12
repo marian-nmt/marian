@@ -56,7 +56,6 @@ private:
   }
 
 public:
-  // @BUGBUG: This API mixes input and output beam size.
   void getNBestList(Tensor scores, // [dimBatch, 1, beamSize, dimVocab or dimShortlist]
                     size_t N,
                     std::vector<float>& outPathScores,
@@ -65,17 +64,24 @@ public:
     const auto vocabSize = scores->shape()[-1];
     const auto inputN    = scores->shape()[-2];
     const auto dimBatch  = scores->shape()[-4];
-    ABORT_IF(inputN != (isFirst ? 1 : N), "Input tensor has wrong beam dim??");
+    ABORT_IF(inputN != (isFirst ? 1 : N), "Input tensor has wrong beam dim??"); // @TODO: Remove isFirst argument altogether
 
     std::vector<int> cumulativeBeamSizes(dimBatch + 1, 0);
     std::vector<int> batchFirstElementIdxs(dimBatch + 1, 0);
 
     for(int batchIdx = 0; batchIdx < dimBatch; ++batchIdx) {
+#if 1
+      cumulativeBeamSizes[batchIdx + 1] = (batchIdx + 1) * (int)N;
+      batchFirstElementIdxs[batchIdx + 1] += (batchIdx + 1) * inputN * vocabSize;
+      ABORT_IF(cumulativeBeamSizes[batchIdx + 1] != cumulativeBeamSizes[batchIdx] + (int)N, "cumulativeBeamSizes wrong??");
+      ABORT_IF((isFirst ? batchIdx + 1 : cumulativeBeamSizes[batchIdx + 1]) != (batchIdx + 1) * inputN, "inputN wrong??");
+#else
       cumulativeBeamSizes[batchIdx + 1] = cumulativeBeamSizes[batchIdx] + (int)N;
       ABORT_IF(cumulativeBeamSizes[batchIdx + 1] != (batchIdx + 1) * N, "cumulativeBeamSizes wrong??");
       batchFirstElementIdxs[batchIdx + 1]
           += (isFirst ? batchIdx + 1 : cumulativeBeamSizes[batchIdx + 1]) * vocabSize;
       ABORT_IF((isFirst ? batchIdx + 1 : cumulativeBeamSizes[batchIdx + 1]) != (batchIdx + 1) * inputN, "inputN wrong??");
+#endif
     }
     ABORT_IF(cumulativeBeamSizes.back() != dimBatch * N, "cumulativeBeamSizes.back() wrong??");
 

@@ -354,7 +354,6 @@ private:
   }
 
 public:
-  // @BUGBUG: This API mixes input and output beam size.
   void getNBestList(Tensor scores,
                     size_t N,
                     std::vector<float>& outCosts,
@@ -375,15 +374,22 @@ public:
     std::vector<int> batchFirstElementIdxs(beamSizes.size() + 1, 0);
 
     for(size_t batchIdx = 0; batchIdx < beamSizes.size(); ++batchIdx) {
+#if 1
+      cumulativeBeamSizes[batchIdx + 1] = (batchIdx + 1) * (int)N;
+      batchFirstElementIdxs[batchIdx + 1] += (batchIdx + 1) * inputN * vocabSize;
+      ABORT_IF(cumulativeBeamSizes[batchIdx + 1] != cumulativeBeamSizes[batchIdx] + (int)N, "cumulativeBeamSizes wrong??");
+      ABORT_IF((isFirst ? batchIdx + 1 : cumulativeBeamSizes[batchIdx + 1]) != (batchIdx + 1) * inputN, "inputN wrong??");
+#else
       cumulativeBeamSizes[batchIdx + 1] = cumulativeBeamSizes[batchIdx] + beamSizes[batchIdx];
       ABORT_IF(cumulativeBeamSizes[batchIdx + 1] != (batchIdx + 1) * N, "cumulativeBeamSizes wrong??");
       batchFirstElementIdxs[batchIdx + 1]
           += ((isFirst) ? (batchIdx + 1) : cumulativeBeamSizes[batchIdx + 1]) * vocabSize;
       ABORT_IF((isFirst ? batchIdx + 1 : cumulativeBeamSizes[batchIdx + 1]) != (batchIdx + 1) * inputN, "inputN wrong??");
+#endif
     }
 
     selectNBest(scores->data(), batchFirstElementIdxs, cumulativeBeamSizes);
-    getPairs(cumulativeBeamSizes.back(), outKeys, outCosts);
+    getPairs(dimBatch * N, outKeys, outCosts);
     ABORT_IF(cumulativeBeamSizes.back() != dimBatch * N, "cumulativeBeamSizes.back() wrong??");
   }
 
@@ -409,22 +415,22 @@ private:
       outValues.push_back(h_res[i]);
     }
 
-    lastN = number;
+    //lastN = number;
   }
 
-  void getValueByKey(std::vector<float>& out, float* d_in) {
-    cudaSetDevice(deviceId_.no);
-
-    gGetValueByKey<<<1, lastN, 0, /* stream_ */ 0>>>(
-        d_in, d_breakdown, h_res_idx, lastN);
-
-    CUDA_CHECK(cudaMemcpyAsync(out.data(),
-                               d_breakdown,
-                               lastN * sizeof(float),
-                               cudaMemcpyDeviceToHost,
-                               /* stream_ */ 0));
-    CUDA_CHECK(cudaStreamSynchronize(/* stream_ */ 0));
-  }
+  //void getValueByKey(std::vector<float>& out, float* d_in) {
+  //  cudaSetDevice(deviceId_.no);
+  //
+  //  gGetValueByKey<<<1, lastN, 0, /* stream_ */ 0>>>(
+  //      d_in, d_breakdown, h_res_idx, lastN);
+  //
+  //  CUDA_CHECK(cudaMemcpyAsync(out.data(),
+  //                             d_breakdown,
+  //                             lastN * sizeof(float),
+  //                             cudaMemcpyDeviceToHost,
+  //                             /* stream_ */ 0));
+  //  CUDA_CHECK(cudaStreamSynchronize(/* stream_ */ 0));
+  //}
 
   DeviceId deviceId_;
 
@@ -447,7 +453,7 @@ private:
   float* d_breakdown;
   int* d_batchPosition;
   int* d_cumBeamSizes;
-  size_t lastN;
+  //size_t lastN;
 };
 
 // factory function

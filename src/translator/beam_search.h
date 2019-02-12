@@ -36,11 +36,10 @@ public:
   // combine new expandedPathScores and previous beams into new set of beams
   Beams toHyps(const std::vector<unsigned int>& nBestKeys, // [dimBatch, beamSize] flattened -> ((batchIdx, beamHypIdx) flattened, word idx) flattened
                const std::vector<float>& nBestPathScores,  // [dimBatch, beamSize] flattened
-               const size_t vocabSize,
+               const size_t inputBeamSize, // for interpretation of nBestKeys
+               const size_t vocabSize,     // ditto.
                const Beams& beams,
                const std::vector<Ptr<ScorerState /*const*/>>& states,
-               const size_t beamSize,
-               const bool first,
                Ptr<data::CorpusBatch /*const*/> batch) const {
     std::vector<float> align;
     if(options_->hasAndNotEmpty("alignment"))
@@ -49,7 +48,7 @@ public:
     const auto dimBatch = beams.size();
     Beams newBeams(dimBatch);
 
-    for(size_t i = 0; i < nBestKeys.size(); ++i) { // [dimBatch, beamSize] flattened
+    for(size_t i = 0; i < nBestKeys.size(); ++i) {
       // Keys encode batchIdx, beamHypIdx, and word index in the entire beam.
       // They can be between 0 and beamSize * vocabSize-1.
       const auto  key       = nBestKeys[i];
@@ -57,10 +56,8 @@ public:
 
       // decompose key into individual indices (batchIdx, beamHypIdx, wordIdx)
       const auto wordIdx    = (Word)(key % vocabSize);
-      const auto beamHypIdx =       (key / vocabSize) % (first ? 1 : beamSize);
-      const auto batchIdx   =       (key / vocabSize) / (first ? 1 : beamSize);
-
-      ABORT_IF(i / beamSize != batchIdx, "Inconsistent batchIdx value in key??");
+      const auto beamHypIdx =       (key / vocabSize) % inputBeamSize;
+      const auto batchIdx   =       (key / vocabSize) / inputBeamSize;
 
       const auto& beam = beams[batchIdx];
       auto& newBeam = newBeams[batchIdx];
@@ -285,21 +282,20 @@ public:
       // find N best amongst the (localBeamSize * dimVocab) hypotheses
       std::vector<unsigned int> nBestKeys; // [dimBatch, localBeamSize] flattened -> (batchIdx, beamHypIdx, word idx) flattened
       std::vector<float> nBestPathScores;  // [dimBatch, localBeamSize] flattened
-      getNBestList(/*in*/ expandedPathScores->val(),                           // [dimBatch, 1, localBeamSize, dimVocab or dimShortlist]
-                   /*N=*/localBeamSize,
+      getNBestList(/*in*/ expandedPathScores->val(), // [dimBatch, 1, localBeamSize, dimVocab or dimShortlist]
+                   /*N=*/localBeamSize,              // desired beam size
                    /*out*/ nBestPathScores, /*out*/ nBestKeys,
-                   /*first=*/t == 0); // @TODO: Why is this passed? To know that the beam size is 1 for first step, for flattened hyp index?
+                   /*first=*/t == 0); // @TODO: this is only used for checking presently, and should be removed altogether
       // Now, nBestPathScores contain N-best expandedPathScores for each batch and beam,
       // and nBestKeys for each their original location (batchIdx, beamHypIdx, word).
 
       // combine N-best sets with existing search space (beams) to updated search space
       beams = toHyps(nBestKeys, nBestPathScores,
-                     /*dimTrgVoc=*/expandedPathScores->shape()[-1],
+                     /*inputBeamSize*/expandedPathScores->shape()[-2], // used for interpretation of keys
+                     /*vocabSize=*/expandedPathScores->shape()[-1],    // used for interpretation of keys
                      beams,
-                     states,           // used for keeping track of per-ensemble-member path score
-                     localBeamSize,    // used in the encoding of the (batchIdx, beamHypIdx, word) tuples
-                     /*first=*/t == 0, // used to indicate originating beamSize of 1
-                     batch);
+                     states,    // only used for keeping track of per-ensemble-member path score
+                     batch);    // only used for propagating alignment info
 
       // remove all hyps that end in EOS
       // The position of a hyp in the beam may change.
