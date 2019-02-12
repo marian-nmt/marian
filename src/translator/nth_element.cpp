@@ -14,8 +14,6 @@ namespace marian {
 class NthElementCPU {
   std::vector<int> h_res_idx;
   std::vector<float> h_res;
-  size_t maxBeamSize_;
-  size_t maxBatchSize_;
   //size_t lastN_;
 
 public:
@@ -68,8 +66,6 @@ public:
     const auto inputN    = scores->shape()[-2];
     const auto dimBatch  = scores->shape()[-4];
     ABORT_IF(inputN != (isFirst ? 1 : N), "Input tensor has wrong beam dim??");
-    ABORT_IF(dimBatch > maxBatchSize_, "GetNBestList(): actual batch size exceeds initialization parameter");
-    ABORT_IF(N > maxBeamSize_, "GetNBestList(): actual beam size exceeds initialization parameter"); // @TODO: or inputN?
 
     const std::vector<size_t> beamSizes(dimBatch, N);
     std::vector<int> cumulativeBeamSizes(beamSizes.size() + 1, 0);
