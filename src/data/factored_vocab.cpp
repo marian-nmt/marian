@@ -361,6 +361,21 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
   return vocab_.size();
 }
 
+// generate a valid random factored word (used by collectStats())
+/*virtual*/ Word FactoredVocab::randWord() const /*override final*/ {
+  auto numGroups = getNumGroups();
+  std::vector<size_t> factorIndices; factorIndices.reserve(numGroups);
+  for (size_t g = 0; g < numGroups; g++) {
+    size_t factorIndex;
+    if (g == 0 || lemmaHasFactorGroup(factorIndices[0], g))
+      factorIndex = rand() % (factorShape_[g] - 1);
+    else
+      factorIndex = FACTOR_NOT_APPLICABLE;
+    factorIndices.push_back(factorIndex);
+  }
+  return factors2word(factorIndices);
+}
+
 /*virtual*/ Words FactoredVocab::encode(const std::string& line, bool addEOS /*= true*/, bool /*inference*/ /*= false*/) const /*override final*/ {
   std::vector<std::string> lineTokens;
   utils::split(line, lineTokens, " ");

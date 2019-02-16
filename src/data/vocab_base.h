@@ -44,6 +44,10 @@ public:
   virtual Word getUnkId() const = 0;
 
   virtual void createFake() = 0;
+
+  virtual Word randWord() const {
+    return Word::fromWordIndex(rand() % size());
+  }
 };
 
 class Options;

@@ -36,6 +36,7 @@ public:
   virtual Word getEosId() const override final { return eosId_; }
   virtual Word getUnkId() const override final { return unkId_; }
   virtual void createFake() override final { ABORT("[data] Fake FactoredVocab vocabulary not supported"); }
+  virtual Word randWord() const override final;
 
   // factor-specific. These methods are consumed by Output and Embedding.
   size_t factorVocabSize() const { return factorVocab_.size(); }

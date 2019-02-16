@@ -77,7 +77,6 @@ public:
     for(int i = 0; i < inputTypes.size(); ++i)
       if(inputTypes[i] == "class")
         localMaxes[i] = 1;
-    
 
     size_t maxBatch = 512;
     bool fits = true;

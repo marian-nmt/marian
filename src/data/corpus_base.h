@@ -322,7 +322,7 @@ public:
       // set word indices to different values to avoid same hashes
       // rand() is OK, this does not affect state in any way
       std::transform(sb->data().begin(), sb->data().end(), sb->data().begin(),
-                     [&](Word) -> Word { return Word::fromWordIndex(rand() % vocabs[batchIndex]->size()); });
+                     [&](Word) -> Word { return vocabs[batchIndex]->randWord(); });
       // mask: no items ask being masked out
       std::fill(sb->mask().begin(), sb->mask().end(), 1.f);
       batchIndex++;

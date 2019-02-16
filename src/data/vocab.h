@@ -69,6 +69,9 @@ public:
   // create fake vocabulary for collecting batch statistics
   void createFake();
 
+  // generate a fake word (using rand())
+  Word randWord();
+
   // give access to base implementation. Returns null if not the requested type.
   template<class VocabType> // e.g. FactoredVocab
   Ptr<VocabType> tryAs() const { return std::dynamic_pointer_cast<VocabType>(vImpl_); }

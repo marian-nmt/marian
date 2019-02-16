@@ -91,6 +91,10 @@ void Vocab::createFake() {
   vImpl_->createFake();
 }
 
+Word Vocab::randWord() {
+  return vImpl_->randWord();
+}
+
 // string token to token id
 Word Vocab::operator[](const std::string& word) const {
   return vImpl_->operator[](word);
