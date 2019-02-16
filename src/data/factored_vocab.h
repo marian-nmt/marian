@@ -56,7 +56,7 @@ public:
   Word expandFactoredWord(Word word, size_t groupIndex, size_t factorIndex) const;
   bool canExpandFactoredWord(Word word, size_t groupIndex) const { return lemmaHasFactorGroup(getFactor(word, 0), groupIndex); }
   size_t getFactor(Word word, size_t groupIndex) const;
-  std::pair<WordIndex, bool> getFactorUnit(Word word, size_t groupIndex) const;
+  //std::pair<WordIndex, bool> getFactorUnit(Word word, size_t groupIndex) const;
   bool lemmaHasFactorGroup(size_t factor0Index, size_t g) const { return lemmaHasFactorGroup_[factor0Index][g]; }
 
   static constexpr size_t FACTOR_NOT_APPLICABLE = (SIZE_MAX - 1);
@@ -94,8 +94,7 @@ private:
   // factors
   WordLUT factorVocab_;                                // [factor name] -> factor index = row of E_
   std::vector<std::string> groupPrefixes_;             // [group id g] shared prefix of factors (used for grouping)
-  std::vector<std::vector<WordIndex>> factorMap_;      // [word index v] -> set of factor indices u
-  std::vector<int> factorRefCounts_;                   // [factor index u] -> how often factor u is referenced in factorMap_
+  //std::vector<std::vector<WordIndex>> factorMap_;      // [word index v] -> set of factor indices u
   CSRData globalFactorMatrix_;                         // [v,u] (sparse) -> =1 if u is factor of v
   std::vector<size_t> factorGroups_;                   // [u] -> group id of factor u
   std::vector<std::pair<size_t, size_t>> groupRanges_; // [group id g] -> (u_begin,u_end) index range of factors u for this group. These don't overlap.

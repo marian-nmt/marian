@@ -32,13 +32,13 @@ namespace marian {
   // construct mapping tables for factors
   constructGroupInfoFromFactorVocab();
   constructFactorIndexConversion();
+  auto numGroups = getNumGroups();
 
   // load and parse factorMap
-  auto elements = factorShape_.elements();
-  vocab_.resize(elements);
-  factorMap_.resize(elements);
+  auto vocabSize = factorShape_.elements(); // size of vocab space including gaps
+  vocab_.resize(vocabSize);
+  //factorMap_.resize(vocabSize);
   auto factorVocabSize = factorVocab_.size();
-  factorRefCounts_.resize(factorVocabSize);
   lemmaHasFactorGroup_.resize(groupRanges_[0].second - groupRanges_[0].first);
   std::vector<std::string> tokens;
   std::string line;
@@ -55,7 +55,6 @@ namespace marian {
     for (size_t i = 1/*first factor*/; i < tokens.size(); i++) {
       auto u = factorVocab_[tokens[i]];
       factorUnits.push_back(u);
-      factorRefCounts_[u]++;
     }
     // convert to fully unrolled factors representation
     std::vector<size_t> factorIndices(groupRanges_.size(), FACTOR_NOT_APPLICABLE); // default for unused factors
@@ -74,7 +73,7 @@ namespace marian {
     // map factors to non-dense integer
     auto word = factors2word(factorIndices);
     auto wordIndex = word.toWordIndex();
-    factorMap_[wordIndex] = std::move(factorUnits);
+    //factorMap_[wordIndex] = std::move(factorUnits);
     // add to vocab (the wordIndex are not dense, so the vocab will have holes)
     vocab_.add(tokens.front(), wordIndex);
     numTotalFactors += tokens.size() - 1;
@@ -83,6 +82,24 @@ namespace marian {
   }
   LOG(info, "[embedding] Factored-embedding map read with total/unique of {}/{} factors for {} valid words (in space of {})",
       numTotalFactors, factorVocabSize, vocab_.numValid(), size());
+
+  // enumerate all combinations of factors for each lemma
+  // @TODO: switch to factor-spec, which no longer enumerates all combinations. Then don't set vocab string here.
+  for (size_t v = 0; v < vocabSize; v++) {
+    auto word = Word::fromWordIndex(v);
+    bool isValid = true;
+    for (size_t g = 0; isValid && g < numGroups; g++) {
+      auto factorIndex = getFactor(word, g);
+      // @TODO: we have a hack in getFactor() to return not-specified if factor is specified but not applicable, making it invalid
+      isValid = factorIndex != FACTOR_NOT_SPECIFIED; // FACTOR_NOT_APPLICABLE is a valid value
+    }
+    if (isValid != !vocab_.isGap((WordIndex)v))
+    {
+      //LOG(info, "WARNING: Factored vocab mismatch for {}: isValid={}, isGap={}", word2string(word), isValid, vocab_.isGap((WordIndex)v));
+      if (isValid) // add the missing word (albeit with a poor grapheme)
+        (*this)[word];
+    }
+  }
 
   // create mappings needed for normalization in factored outputs
   constructNormalizationInfoForVocab();
@@ -96,7 +113,8 @@ namespace marian {
   if (maxSizeUnused == vocab_.numValid())
     maxSizeUnused = vocab_.size();
 #endif
-  ABORT_IF(maxSizeUnused != 0 && maxSizeUnused != size(), "Factored vocabulary does not allow on-the-fly clipping to a maximum vocab size (from {} to {})", size(), maxSizeUnused);
+  //ABORT_IF(maxSizeUnused != 0 && maxSizeUnused != size(), "Factored vocabulary does not allow on-the-fly clipping to a maximum vocab size (from {} to {})", size(), maxSizeUnused);
+  // @TODO: ^^ disabled now that we are generating the full combination of factors; reenable once we have consistent setups again
   return size();
 }
 
@@ -258,15 +276,18 @@ size_t FactoredVocab::getFactor(Word word, size_t groupIndex) const {
   }
   else { // regular value: consistency check if lemma really has this factor group
     ABORT_IF(factor0Index == (size_t)factorShape_[0] - 1, "Word has specified factor but no lemma??");
-    ABORT_IF(!lemmaHasFactorGroup(factor0Index, groupIndex), "Word has a specified factor for a lemma that does not have that factor group??");
+    //ABORT_IF(!lemmaHasFactorGroup(factor0Index, groupIndex), "Word has a specified factor for a lemma that does not have that factor group??");
+    if (!lemmaHasFactorGroup(factor0Index, groupIndex))
+      index = FACTOR_NOT_SPECIFIED;
+    // @TODO: ^^ needed for determining all valid vocab entries; can we pass a flag in to allow this?
   }
   return index;
 }
 
-std::pair<WordIndex, bool> FactoredVocab::getFactorUnit(Word word, size_t groupIndex) const {
-  word; groupIndex;
-  ABORT("Not implemented");
-}
+//std::pair<WordIndex, bool> FactoredVocab::getFactorUnit(Word word, size_t groupIndex) const {
+//  word; groupIndex;
+//  ABORT("Not implemented");
+//}
 
 void FactoredVocab::constructNormalizationInfoForVocab() {
   // create mappings needed for normalization in factored outputs
@@ -276,6 +297,10 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
   //factorIndices_.resize(numGroups, std::vector<IndexType>(vocabSize, 0)); // [g][v] index of factor (or any valid index if it does not have it; we use 0)
   gapLogMask_.resize(vocabSize, -1e8f);
   for (WordIndex v = 0; v < vocabSize; v++) {
+#if 1 // @TODO: TEST THIS again by disabling factored decoding in beam_search.h
+    if (!vocab_.isGap(v))
+      gapLogMask_[v] = 0.0f; // valid entry
+#else
     for (auto u : factorMap_[v]) {
       auto g = factorGroups_[u]; // convert u to relative u within factor group range
       ABORT_IF(u < groupRanges_[g].first || u >= groupRanges_[g].second, "Invalid factorGroups_ entry??");
@@ -283,6 +308,7 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
       //factorMasks_[g][v] = 1.0f;
       gapLogMask_[v] = 0.0f; // valid entry
     }
+#endif
   }
   //for (Word v = 0; v < vocabSize; v++) {
   //  LOG(info, "'{}': {}*{} {}*{} {}*{} {}*{}", vocab[v],
@@ -296,7 +322,7 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
   // For invalid words, this leaves empty matrix rows, which are later masked by adding gapLogMask.
   Words data;
   for (size_t v = 0; v < vocabSize; v++) // note: this loops over the entire vocab space, incl. gaps
-      data.push_back(Word::fromWordIndex(v));
+    data.push_back(Word::fromWordIndex(v));
   globalFactorMatrix_ = csr_rows(data); // [V x U]
 }
 
@@ -313,7 +339,7 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
   //LOG(info, "Looking up Word {}={}", word.toWordIndex(), word2string(word));
 #if 1 // @BUGBUG: our manually prepared dict does not contain @CI tags for single letters, but it's a valid factor
   if (vocab_.isGap(word.toWordIndex())) {
-    LOG(info, "Factor combination {} missing in external dict, generating fake entry", word2string(word));
+    LOG_ONCE(info, "Factor combination {} missing in external dict, generating fake entry (only showing this warning once)", word2string(word));
     const_cast<WordLUT&>(vocab_).add("??" + word2string(word), word.toWordIndex());
   }
 #endif
@@ -367,10 +393,11 @@ FactoredVocab::CSRData FactoredVocab::csr_rows(const Words& words) const {
         indices.push_back(u);
 #else
 #if 1 // special handling of the missing single capitalized letters
+      // costs about 0.1 BLEU when original model never saw this combination (which is quite nicely low)
       // @TODO: remove this once we use the factor-spec file
       const auto& lemma = factorVocab_[(WordIndex)(factorIndices[0] + groupRanges_[0].first)];
       if (lemma.size() == 1 && factorIndices[1]/*@C*/ == 1/*@CI*/) // skip one-letter factors with 
-          LOG(info, "Suppressing embedding for word {}", word2string(word));
+          LOG_ONCE(info, "Suppressing embedding for word {} (only showing this warning once)", word2string(word));
       else
 #endif
       for (size_t g = 0; g < numGroups; g++) { // @TODO: make this faster by having a list of all factors to consider for a lemma?
@@ -380,7 +407,7 @@ FactoredVocab::CSRData FactoredVocab::csr_rows(const Words& words) const {
           continue;
         indices.push_back((IndexType)(factorIndex + groupRanges_[g].first)); // map to unit index
 #endif
-        weights.push_back(1.0f/*/(float)factorRefCounts_[u]*/);
+        weights.push_back(1.0f);
       }
     }
     offsets.push_back((IndexType)indices.size()); // next matrix row begins at this offset
