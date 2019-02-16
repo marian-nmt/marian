@@ -75,7 +75,11 @@ namespace marian {
     auto wordIndex = word.toWordIndex();
     //factorMap_[wordIndex] = std::move(factorUnits);
     // add to vocab (the wordIndex are not dense, so the vocab will have holes)
+    //if (tokens.front().front() == '<') // all others are auto-expanded
+    // for now add what we get, and then expand more below
     vocab_.add(tokens.front(), wordIndex);
+    if (tokens.front() != word2string(word))
+      LOG_ONCE(info, "[embedding] Word name in .wl file {} differs from canonical form {} (this warning is only shown once)", tokens.front(), word2string(word));
     numTotalFactors += tokens.size() - 1;
     if (v % 5000 == 0)
       LOG(info, "{} -> {}", tokens.front(), word2string(word));
@@ -246,7 +250,7 @@ std::string FactoredVocab::word2string(Word word) const {
   size_t factor0Index = word.toWordIndex() / factorStrides_[0];
   std::string res;
   for (size_t g = 0; g < numGroups; g++) {
-    res.append(res.empty() ? "(" : ", ");
+    //res.append(res.empty() ? "(" : ", ");
     size_t index = word.toWordIndex();
     index = index / factorStrides_[g];
     index = index % (size_t)factorShape_[g];
@@ -255,13 +259,14 @@ std::string FactoredVocab::word2string(Word word) const {
         res.append("(lemma oob)");
       else if (lemmaHasFactorGroup(factor0Index, g))
         res.append("?");
-      else
-        res.append("n/a");
+      //else
+      //  res.append("n/a");
     }
     else
       res.append(factorVocab_[(WordIndex)(index + groupRanges_[g].first)]);
   }
-  return res + ")";
+  //res.append(")");
+  return res;
 }
 
 size_t FactoredVocab::getFactor(Word word, size_t groupIndex) const {
@@ -345,7 +350,8 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
 #if 1 // @BUGBUG: our manually prepared dict does not contain @CI tags for single letters, but it's a valid factor
   if (vocab_.isGap(word.toWordIndex())) {
     LOG_ONCE(info, "Factor combination {} missing in external dict, generating fake entry (only showing this warning once)", word2string(word));
-    const_cast<WordLUT&>(vocab_).add("??" + word2string(word), word.toWordIndex());
+    //const_cast<WordLUT&>(vocab_).add("??" + word2string(word), word.toWordIndex());
+    const_cast<WordLUT&>(vocab_).add(word2string(word), word.toWordIndex());
   }
 #endif
   return vocab_[word.toWordIndex()];
