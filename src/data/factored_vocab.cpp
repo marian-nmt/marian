@@ -85,6 +85,7 @@ namespace marian {
 
   // enumerate all combinations of factors for each lemma
   // @TODO: switch to factor-spec, which no longer enumerates all combinations. Then don't set vocab string here.
+  size_t numMissing = 0;
   for (size_t v = 0; v < vocabSize; v++) {
     auto word = Word::fromWordIndex(v);
     bool isValid = true;
@@ -93,13 +94,17 @@ namespace marian {
       // @TODO: we have a hack in getFactor() to return not-specified if factor is specified but not applicable, making it invalid
       isValid = factorIndex != FACTOR_NOT_SPECIFIED; // FACTOR_NOT_APPLICABLE is a valid value
     }
-    if (isValid != !vocab_.isGap((WordIndex)v))
-    {
+    if (isValid != !vocab_.isGap((WordIndex)v)) {
       //LOG(info, "WARNING: Factored vocab mismatch for {}: isValid={}, isGap={}", word2string(word), isValid, vocab_.isGap((WordIndex)v));
-      if (isValid) // add the missing word (albeit with a poor grapheme)
+      if (isValid) { // add the missing word (albeit with a poor grapheme)
         (*this)[word];
+        // @TODO: ^^disabled to test getLogits(), which no longer works with this enabled (I guess since model has not seen the new units)
+        numMissing++;
+      }
     }
   }
+  if (numMissing > 0)
+    LOG(info, "[embedding] completed {} factor combinations missing from the original vocab file", numMissing);
 
   // create mappings needed for normalization in factored outputs
   constructNormalizationInfoForVocab();
