@@ -40,7 +40,7 @@ public:
   // factor-specific. These methods are consumed by Output and Embedding.
   size_t factorVocabSize() const { return factorVocab_.size(); }
 
-  CSRData csr_rows(const std::vector<IndexType>& words) const;
+  CSRData csr_rows(const Words& words) const;
 
   const CSRData& getGlobalFactorMatrix() const { return globalFactorMatrix_; }   // [v,u] (sparse) -> =1 if u is factor of v  --only used in getLogits()
   size_t getNumGroups() const { return groupRanges_.size(); }

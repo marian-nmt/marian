@@ -48,6 +48,7 @@ namespace marian {
     // parse the line, of the form WORD FACTOR1 FACTOR2 FACTOR1 ...
     // where FACTOR1 is the lemma, a factor that all words have.
     // Not every word has all other factors, so the n-th item is not always in the same factor group.
+    // @TODO: change to just use the .wl file, and manually split at @
     utils::splitAny(line, tokens, " \t");
     ABORT_IF(tokens.size() < 2, "Factor map must have at least one factor per word", mapPath);
     std::vector<WordIndex> factorUnits;
@@ -270,7 +271,7 @@ std::pair<WordIndex, bool> FactoredVocab::getFactorUnit(Word word, size_t groupI
 void FactoredVocab::constructNormalizationInfoForVocab() {
   // create mappings needed for normalization in factored outputs
   //size_t numGroups = groupPrefixes_.size();
-  size_t vocabSize = vocab_.size();
+  size_t vocabSize = size();
   //factorMasks_  .resize(numGroups, std::vector<float>(vocabSize, 0));     // [g][v] 1.0 if word v has factor g
   //factorIndices_.resize(numGroups, std::vector<IndexType>(vocabSize, 0)); // [g][v] index of factor (or any valid index if it does not have it; we use 0)
   gapLogMask_.resize(vocabSize, -1e8f);
@@ -292,8 +293,10 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
   //}
 
   // create the global factor matrix, which is used for getLogits() only
-  std::vector<IndexType> data(vocabSize);
-  std::iota(data.begin(), data.end(), 0);
+  // For invalid words, this leaves empty matrix rows, which are later masked by adding gapLogMask.
+  Words data;
+  for (size_t v = 0; v < vocabSize; v++) // note: this loops over the entire vocab space, incl. gaps
+      data.push_back(Word::fromWordIndex(v));
   globalFactorMatrix_ = csr_rows(data); // [V x U]
 }
 
@@ -342,9 +345,10 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
   return utils::join(decoded, " ");
 }
 
-// create a CSR matrix M[V,U] from indices[] with
+// create a CSR matrix M[V,U] from words[] with
 // M[v,u] = 1/c(u) if factor u is a factor of word v, and c(u) is how often u is referenced
-FactoredVocab::CSRData FactoredVocab::csr_rows(const std::vector<IndexType>& words) const {
+FactoredVocab::CSRData FactoredVocab::csr_rows(const Words& words) const {
+  auto numGroups = getNumGroups();
   std::vector<float> weights;
   std::vector<IndexType> indices;
   std::vector<IndexType> offsets;
@@ -352,11 +356,32 @@ FactoredVocab::CSRData FactoredVocab::csr_rows(const std::vector<IndexType>& wor
   indices.reserve(words.size()); // (at least this many)
   // loop over all input words, and select the corresponding set of unit indices into CSR format
   offsets.push_back((IndexType)indices.size());
-  for (auto w : words) {
-    const auto& m = factorMap_[w];
-    for (auto u : m) {
-      indices.push_back(u);
-      weights.push_back(1.0f/*/(float)factorRefCounts_[u]*/);
+  std::vector<size_t> factorIndices;
+  for (auto word : words) {
+    if (!vocab_.isGap(word.toWordIndex())) { // skip invalid combinations in the space (can only happen during initialization)  --@TODO: add a check?
+      word2factors(word, factorIndices);
+#if 0 // original code; enable this to try
+      numGroups;
+      const auto& m = factorMap_[word.toWordIndex()];
+      for (auto u : m) {
+        indices.push_back(u);
+#else
+#if 1 // special handling of the missing single capitalized letters
+      // @TODO: remove this once we use the factor-spec file
+      const auto& lemma = factorVocab_[(WordIndex)(factorIndices[0] + groupRanges_[0].first)];
+      if (lemma.size() == 1 && factorIndices[1]/*@C*/ == 1/*@CI*/) // skip one-letter factors with 
+          LOG(info, "Suppressing embedding for word {}", word2string(word));
+      else
+#endif
+      for (size_t g = 0; g < numGroups; g++) { // @TODO: make this faster by having a list of all factors to consider for a lemma?
+        auto factorIndex = factorIndices[g];
+        ABORT_IF(factorIndex == FACTOR_NOT_SPECIFIED, "Attempted to embed a word with a factor not specified");
+        if (factorIndex == FACTOR_NOT_APPLICABLE)
+          continue;
+        indices.push_back((IndexType)(factorIndex + groupRanges_[g].first)); // map to unit index
+#endif
+        weights.push_back(1.0f/*/(float)factorRefCounts_[u]*/);
+      }
     }
     offsets.push_back((IndexType)indices.size()); // next matrix row begins at this offset
   }

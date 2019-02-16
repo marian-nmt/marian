@@ -239,7 +239,7 @@ public:
 class Embedding : public LayerBase, public IEmbeddingLayer {
   Expr E_;
   Ptr<FactoredVocab> factoredVocab_;
-  Expr multiRows(const std::vector<IndexType>& data) const;
+  Expr multiRows(const Words& data) const;
 public:
   Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options);
 

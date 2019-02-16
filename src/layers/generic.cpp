@@ -289,7 +289,7 @@ namespace marian {
   }
 
   // helper to embed a sequence of words (given as indices) via factored embeddings
-  /*private*/ Expr Embedding::multiRows(const std::vector<IndexType>& data) const
+  /*private*/ Expr Embedding::multiRows(const Words& data) const
   {
     auto graph = E_->graph();
     auto factoredData = factoredVocab_->csr_rows(data);
@@ -354,15 +354,16 @@ namespace marian {
   }
 
   Expr Embedding::apply(const Words& words, const Shape& shape) const /*override final*/ {
-    return applyIndices(toWordIndexVector(words), shape);
+    Expr selectedEmbs;
+    if (factoredVocab_)
+      selectedEmbs = multiRows(words);
+    else
+      selectedEmbs = rows(E_, toWordIndexVector(words));
+    return reshape(selectedEmbs, shape);
   }
 
   Expr Embedding::applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const /*override final*/ {
-    Expr selectedEmbs;
-    if (factoredVocab_)
-      selectedEmbs = multiRows(embIdx);
-    else
-      selectedEmbs = rows(E_, embIdx);
-    return reshape(selectedEmbs, shape);
+    ABORT_IF(factoredVocab_ /*&& factoredVocab_->getNumGroups() > 1*/, "Embedding: applyIndices must not be used with a factored vocabulary");
+    return reshape(rows(E_, embIdx), shape);
   }
 }  // namespace marian
