@@ -403,7 +403,7 @@ FactoredVocab::CSRData FactoredVocab::csr_rows(const Words& words) const {
       for (auto u : m) {
         indices.push_back(u);
 #else
-#if 1 // special handling of the missing single capitalized letters
+#if 0 // special handling of the missing single capitalized letters
       // costs about 0.1 BLEU when original model never saw this combination (which is quite nicely low)
       // @TODO: remove this once we use the factor-spec file
       const auto& lemma = factorVocab_[(WordIndex)(factorIndices[0] + groupRanges_[0].first)];
