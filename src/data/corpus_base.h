@@ -319,8 +319,7 @@ public:
     size_t batchIndex = 0;
     for(auto len : lengths) {
       auto sb = New<SubBatch>(batchSize, len, vocabs[batchIndex]);
-      // set word indices to different values to avoid same hashes
-      // rand() is OK, this does not affect state in any way
+      // set word indices to random values (not actually needed with current version  --@marcinjd: please confirm)
       std::transform(sb->data().begin(), sb->data().end(), sb->data().begin(),
                      [&](Word) -> Word { return vocabs[batchIndex]->randWord(); });
       // mask: no items ask being masked out

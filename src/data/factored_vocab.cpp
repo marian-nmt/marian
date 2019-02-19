@@ -81,8 +81,8 @@ namespace marian {
     if (tokens.front() != word2string(word))
       LOG_ONCE(info, "[embedding] Word name in .wl file {} differs from canonical form {} (this warning is only shown once)", tokens.front(), word2string(word));
     numTotalFactors += tokens.size() - 1;
-    if (v % 5000 == 0)
-      LOG(info, "{} -> {}", tokens.front(), word2string(word));
+    //if (v % 5000 == 0)
+    //  LOG(info, "{} -> {}", tokens.front(), word2string(word));
   }
   LOG(info, "[embedding] Factored-embedding map read with total/unique of {}/{} factors for {} valid words (in space of {})",
       numTotalFactors, factorVocabSize, vocab_.numValid(), size());
@@ -101,7 +101,8 @@ namespace marian {
     if (isValid != !vocab_.isGap((WordIndex)v)) {
       //LOG(info, "WARNING: Factored vocab mismatch for {}: isValid={}, isGap={}", word2string(word), isValid, vocab_.isGap((WordIndex)v));
       if (isValid) { // add the missing word (albeit with a poor grapheme)
-        (*this)[word];
+        vocab_.add(word2string(word), word.toWordIndex());
+        //(*this)[word];
         // @TODO: ^^disabled to test getLogits(), which no longer works with this enabled (I guess since model has not seen the new units)
         numMissing++;
       }
@@ -342,7 +343,8 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
   if (found)
     return Word::fromWordIndex(index);
   else
-    return getUnkId();
+    ABORT("Unknown word {}", word);
+    //return getUnkId();
 }
 
 /*virtual*/ const std::string& FactoredVocab::operator[](Word word) const /*overrworde final*/ {
@@ -436,6 +438,13 @@ FactoredVocab::CSRData FactoredVocab::csr_rows(const Words& words) const {
         weights.push_back(1.0f);
       }
     }
+#if 1
+    else {
+      // push a dummy entry. Not sure if this is needed.
+      indices.push_back(0);
+      weights.push_back(0.0f);
+    }
+#endif
     offsets.push_back((IndexType)indices.size()); // next matrix row begins at this offset
   }
   return { Shape({(int)words.size(), (int)factorVocab_.size()}), weights, indices, offsets };
