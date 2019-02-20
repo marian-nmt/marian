@@ -60,7 +60,7 @@ public:
       const auto wordIdx    = (WordIndex)(key % vocabSize);
       const auto beamHypIdx =            (key / vocabSize) % inputBeamSize;
       const auto batchIdx   =            (key / vocabSize) / inputBeamSize;
-      //LOG(info, "key = (batch {}, beam {}, word {})", batchIdx, beamHypIdx, wordIdx);
+      LOG(info, "key = (batch {}, beam {}, word {}) -> {}", batchIdx, beamHypIdx, wordIdx, pathScore);
 
       const auto& beam = beams[batchIdx];
       auto& newBeam = newBeams[batchIdx];
@@ -86,11 +86,11 @@ public:
         // starting with the lemma, then adding factors one by one.
         if (factorGroup == 0) {
           word = factoredVocab->lemma2Word(wordIdx);
-          //LOG(info, "new lemma {}={}", word.toWordIndex(), factoredVocab->word2string(word));
+          LOG(info, "new lemma {}={}", word.toWordIndex(), factoredVocab->word2string(word));
         }
         else {
-          //LOG(info, "expand word {}={} with factor[{}] {}", beam[beamHypIdx]->getWord().toWordIndex(),
-          //    factoredVocab->word2string(beam[beamHypIdx]->getWord()), factorGroup, wordIdx);
+          LOG(info, "expand word {}={} with factor[{}] {}", beam[beamHypIdx]->getWord().toWordIndex(),
+              factoredVocab->word2string(beam[beamHypIdx]->getWord()), factorGroup, wordIdx);
           word = beam[beamHypIdx]->getWord();
           ABORT_IF(!factoredVocab->canExpandFactoredWord(word, factorGroup), "A word without this factor snuck through to here??");
           word = factoredVocab->expandFactoredWord(word, factorGroup, wordIdx);
@@ -130,10 +130,10 @@ public:
         auto& newBeam = newBeams[batchIdx];
         for (const auto& beamHyp : beam) {
           auto word = beamHyp->getWord();
-          //LOG(info, "Checking {}", factoredVocab->word2string(word));
+          LOG(info, "Checking {}", factoredVocab->word2string(word));
           if (factoredVocab->canExpandFactoredWord(word, factorGroup)) // handled above
             continue;
-          //LOG(info, "Forwarded {}", factoredVocab->word2string(word));
+          LOG(info, "Forwarded {}", factoredVocab->word2string(word));
           newBeam.push_back(beamHyp);
         }
         if (newBeam.size() > beam.size()) {
@@ -141,7 +141,7 @@ public:
           std::nth_element(newBeam.begin(), newBeam.begin() + beam.size(), newBeam.end(), [](Ptr<Hypothesis> a, Ptr<Hypothesis> b) {
             return a->getPathScore() > b->getPathScore(); // (sort highest score first)
           });
-          //LOG(info, "Size {}, sorted...", newBeam.size());
+          LOG(info, "Size {}, sorted...", newBeam.size());
           newBeam.resize(beam.size());
         }
       }
@@ -217,6 +217,7 @@ public:
     const int dimBatch = (int)batch->size();
 
     auto getNBestList = createGetNBestListFn(beamSize_, dimBatch, graph->getDeviceId());
+    auto getNBestListCPU = createGetNBestListFn(beamSize_, dimBatch, DeviceId(0, DeviceType::cpu));
 
     for(auto scorer : scorers_) {
       scorer->clear(graph);
@@ -290,6 +291,7 @@ public:
               auto hyp = beam[beamHypIdx];
               auto word = hyp->getWord();
               auto canExpand = (!factoredVocab || factoredVocab->canExpandFactoredWord(hyp->getWord(), factorGroup));
+              LOG(info, "[{}, {}] Can expand {} with {} -> {}", batchIdx, beamHypIdx, (*batch->back()->vocab())[hyp->getWord()], factorGroup, canExpand);
               anyCanExpand |= canExpand;
               hypIndices.push_back((IndexType)(hyp->getPrevStateIndex() * dimBatch + batchIdx)); // (beamHypIdx, batchIdx), flattened, for index_select() operation
               prevWords .push_back(word);
@@ -348,6 +350,7 @@ public:
 
       // make beams continuous
       expandedPathScores = swapAxes(expandedPathScores, 0, 2); // -> [dimBatch, 1, localBeamSize, dimVocab]
+      expandedPathScores->debug("expandedPathScores");
 
       // perform NN computation
       if(t == 0 && factorGroup == 0)
@@ -357,13 +360,20 @@ public:
 
       //**********************************************************************
       // suppress specific symbols if not at right positions
-      if(trgUnkId_ != Word::NONE && options_->has("allow-unk") && !options_->get<bool>("allow-unk"))
-        suppressWord(expandedPathScores, trgUnkId_);
+      if(trgUnkId_ != Word::NONE && options_->has("allow-unk") && !options_->get<bool>("allow-unk") && factorGroup == 0)
+        suppressWord(expandedPathScores, factoredVocab ? factoredVocab->getUnkIndex() : trgUnkId_.toWordIndex());
       for(auto state : states)
         state->blacklist(expandedPathScores, batch);
 
       //**********************************************************************
       // perform beam search
+
+      std::vector<unsigned int> nBestKeysCPU; // [dimBatch, localBeamSize] flattened -> (batchIdx, beamHypIdx, word idx) flattened
+      std::vector<float> nBestPathScoresCPU;  // [dimBatch, localBeamSize] flattened
+      getNBestListCPU(/*in*/ expandedPathScores->val(), // [dimBatch, 1, localBeamSize, dimVocab or dimShortlist]
+          /*N=*/localBeamSize,              // desired beam size
+          /*out*/ nBestPathScoresCPU, /*out*/ nBestKeysCPU,
+          /*first=*/t == 0 && factorGroup == 0); // @TODO: this is only used for checking presently, and should be removed altogether
 
       // find N best amongst the (localBeamSize * dimVocab) hypotheses
       std::vector<unsigned int> nBestKeys; // [dimBatch, localBeamSize] flattened -> (batchIdx, beamHypIdx, word idx) flattened
@@ -374,6 +384,13 @@ public:
                    /*first=*/t == 0 && factorGroup == 0); // @TODO: this is only used for checking presently, and should be removed altogether
       // Now, nBestPathScores contain N-best expandedPathScores for each batch and beam,
       // and nBestKeys for each their original location (batchIdx, beamHypIdx, word).
+      ABORT_IF(nBestKeys.size() != nBestKeysCPU.size(), "Inconsistent getNth size");
+      for (size_t u = 0; u < nBestKeys.size(); u++) {
+          //if (nBestKeysCPU[u] != nBestKeys[u] || nBestPathScoresCPU[u] != nBestPathScores[u])
+              LOG(info, "Inconsistent result [{}]: {} vs {} , {} vs {}", u, nBestKeysCPU[u], nBestKeys[u], nBestPathScoresCPU[u], nBestPathScores[u]);
+      }
+      //nBestKeys = nBestKeysCPU;
+      //nBestPathScores = nBestPathScoresCPU;
 
       // combine N-best sets with existing search space (beams) to updated search space
       beams = toHyps(nBestKeys, nBestPathScores,

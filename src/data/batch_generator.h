@@ -96,7 +96,7 @@ private:
           a.rbegin(), a.rend(), b.rbegin(), b.rend(), itemCmp);
     };
 
-    auto cmpNone = [](const Sample& a, const Sample& b) { return &a < &b; }; // instead sort by address, so we have something to work with
+    auto cmpNone = [](const Sample& a, const Sample& b) { return a.getId() > b.getId(); }; // sort in order of original ids = original data order unless shuffling
 
     typedef std::function<bool(const Sample&, const Sample&)> cmp_type;
     typedef std::priority_queue<Sample, Samples, cmp_type> sample_queue;
