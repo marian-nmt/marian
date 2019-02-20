@@ -130,4 +130,10 @@ Word Vocab::getEosId() const { return vImpl_->getEosId(); }
 // return UNK symbol id
 Word Vocab::getUnkId() const { return vImpl_->getUnkId(); }
 
+// for corpus augmentation: convert string to all-caps
+std::string Vocab::toUpper(const std::string& line) const { return vImpl_->toUpper(line); }
+
+// for corpus augmentation: convert string to title case
+std::string Vocab::toEnglishTitleCase(const std::string& line) const { return vImpl_->toEnglishTitleCase(line); }
+
 }  // namespace marian

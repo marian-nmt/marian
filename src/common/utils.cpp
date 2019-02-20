@@ -238,6 +238,16 @@ std::string toEnglishTitleCase(const std::string& s) {
   return res;
 }
 
+std::string findReplace(const std::string& in, const std::string& what, const std::string& withWhat, bool all /*= false*/) {
+  std::string res = in;
+  for(size_t pos = res.find(what); pos != std::string::npos; pos = res.find(what, pos + withWhat.length())) {
+    res.replace(pos, what.length(), withWhat);
+    if (!all)
+      break;
+  }
+  return res;
+}
+
 double parseDouble(std::string s) {
   double res;
   char c;  // dummy char -- if we succeed to parse this, then there were extraneous characters after the number

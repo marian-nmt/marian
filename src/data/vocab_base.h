@@ -43,6 +43,9 @@ public:
   virtual Word getEosId() const = 0;
   virtual Word getUnkId() const = 0;
 
+  virtual std::string toUpper(const std::string& line) const { return utils::utf8ToUpper(line); }
+  virtual std::string toEnglishTitleCase(const std::string& line) const { return utils::toEnglishTitleCase(line); }
+
   virtual void createFake() = 0;
 
   virtual Word randWord() const {

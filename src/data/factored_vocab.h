@@ -35,6 +35,8 @@ public:
   virtual std::string type() const override final { return "FactoredVocab"; }
   virtual Word getEosId() const override final { return eosId_; }
   virtual Word getUnkId() const override final { return unkId_; }
+  virtual std::string toUpper(const std::string& line) const override final;
+  virtual std::string toEnglishTitleCase(const std::string& line) const override final;
   WordIndex getUnkIndex() const { return (WordIndex)getFactor(getUnkId(), 0); } // used in decoding
   virtual void createFake() override final { ABORT("[data] Fake FactoredVocab vocabulary not supported"); }
   virtual Word randWord() const override final;

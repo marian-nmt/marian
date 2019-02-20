@@ -66,6 +66,12 @@ public:
   // return UNK symbol id
   Word getUnkId() const;
 
+  // for corpus augmentation: convert string to all-caps
+  std::string toUpper(const std::string& line) const;
+
+  // for corpus augmentation: convert string to title case
+  std::string toEnglishTitleCase(const std::string& line) const;
+
   // create fake vocabulary for collecting batch statistics
   void createFake();
 

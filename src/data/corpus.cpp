@@ -25,7 +25,7 @@ Corpus::Corpus(std::vector<std::string> paths,
 
 void Corpus::preprocessLine(std::string& line, size_t streamId) {
   if (allCapsEvery_ != 0 && pos_ % allCapsEvery_ == 0 && !inference_) {
-    line = utils::utf8ToUpper(line);
+    line = vocabs_[streamId]->toUpper(line);
     if (streamId == 0)
       LOG_ONCE(info, "[data] Source all-caps'ed line to: {}", line);
     else
@@ -36,7 +36,7 @@ void Corpus::preprocessLine(std::string& line, size_t streamId) {
       &&   streamId == 0       // @HACK: Hard-coding EN-X direction for now; needs an option in the future
       
       ) {
-    line = utils::toEnglishTitleCase(line);
+    line = vocabs_[streamId]->toEnglishTitleCase(line);
     if (streamId == 0)
       LOG_ONCE(info, "[data] Source English-title-case'd line to: {}", line);
     else

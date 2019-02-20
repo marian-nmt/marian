@@ -117,7 +117,7 @@ namespace marian {
   // </s> and <unk> must exist in the vocabulary
   eosId_ = Word::fromWordIndex(vocab_[DEFAULT_EOS_STR]);
   unkId_ = Word::fromWordIndex(vocab_[DEFAULT_UNK_STR]);
-  LOG(info, "eos: {}; unk: {}", word2string(eosId_), word2string(unkId_));
+  //LOG(info, "eos: {}; unk: {}", word2string(eosId_), word2string(unkId_));
 
 #if 1   // dim-vocabs stores numValid() in legacy model files, and would now have been size()
   if (maxSizeUnused == vocab_.numValid())
@@ -361,6 +361,15 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
 
 /*virtual*/ size_t FactoredVocab::size() const /*override final*/ {
   return vocab_.size();
+}
+
+/*virtual*/ std::string FactoredVocab::toUpper(const std::string& line) const /*override final*/ {
+  return utils::findReplace(utils::findReplace(line, "@CI", "@CA", /*all=*/true), "@CN", "@CA", /*all=*/true);
+}
+
+/*virtual*/ std::string FactoredVocab::toEnglishTitleCase(const std::string& line) const /*override final*/ {
+  // @BUGBUG: does not handle the special words that should remain lower-case
+  return utils::findReplace(line, "@CN@GL-", "@CI@GL-", /*all=*/true);
 }
 
 // generate a valid random factored word (used by collectStats())
