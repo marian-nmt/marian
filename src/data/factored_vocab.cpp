@@ -351,7 +351,7 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
   //LOG(info, "Looking up Word {}={}", word.toWordIndex(), word2string(word));
 #if 1 // @BUGBUG: our manually prepared dict does not contain @CI tags for single letters, but it's a valid factor
   if (vocab_.isGap(word.toWordIndex())) {
-    LOG_ONCE(info, "Factor combination {} missing in external dict, generating fake entry (only showing this warning once)", word2string(word));
+    LOG/*_ONCE*/(info, "Factor combination {} missing in external dict, generating fake entry (only showing this warning once)", word2string(word));
     //const_cast<WordLUT&>(vocab_).add("??" + word2string(word), word.toWordIndex());
     const_cast<WordLUT&>(vocab_).add(word2string(word), word.toWordIndex());
   }
@@ -466,7 +466,7 @@ FactoredVocab::CSRData FactoredVocab::csr_rows(const Words& words) const {
 WordIndex FactoredVocab::WordLUT::add(const std::string& word, WordIndex index) {
   ABORT_IF(word.empty(), "Attempted to add the empty word to a dictionary");
   auto wasInserted = str2index_.insert(std::make_pair(word, index)).second;
-  ABORT_IF(!wasInserted, "Duplicate vocab entry for '{}'", word);
+  ABORT_IF(!wasInserted, "Duplicate vocab entry for '{}', new index {} vs. existing index {}", word, index, str2index_[word]);
   while (index2str_.size() <= index)
     index2str_.emplace_back(); // @TODO: what's the right way to get linear complexity in steps?
   ABORT_IF(!index2str_[index].empty(), "Duplicate vocab entry for index {} (new: '{}'; existing: '{}')", index, word, index2str_[index]);
