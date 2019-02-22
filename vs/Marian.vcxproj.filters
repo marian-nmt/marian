@@ -1522,6 +1522,12 @@
     <ClInclude Include="..\src\examples\mnist\validator.h">
       <Filter>examples\mnist</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\models\classifier.h">
+      <Filter>models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\models\encoder_classifier.h">
+      <Filter>models</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\command\marian_train.cpp">
       <Filter>command</Filter>
     </ClInclude>

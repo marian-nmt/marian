@@ -74,7 +74,7 @@ public:
       : logits_(std::move(logits)), factoredVocab_(embeddingFactorMapping) {}
     Expr getLogits() const; // assume it holds logits: get them, possibly aggregating over factors
     Expr getFactoredLogits(size_t groupIndex, const std::vector<IndexType>& hypIndices = {}, size_t beamSize = 0) const; // get logits for only one factor group, with optional reshuffle
-    Ptr<RationalLoss> getRationalLoss() const; // assume it holds a loss: get that
+    //Ptr<RationalLoss> getRationalLoss() const; // assume it holds a loss: get that
     Expr applyLossFunction(const Words& labels, const std::function<Expr(Expr/*logits*/,Expr/*indices*/)>& lossFn) const;
     Logits applyUnaryFunction(const std::function<Expr(Expr)>& f) const; // clone this but apply f to all loss values
 
@@ -103,7 +103,7 @@ private:
 private:
     // members
     // @HACK: The interplay between Logits and RationalLoss is weird. Here, we allow RationalLoss with count == nullptr.
-    std::vector<Ptr<RationalLoss>> logits_; // [group id][B..., num factors in group]
+    std::vector<Ptr<RationalLoss>> logits_; // [group id][B..., num factors in group]  --@TODO: we don't use the RationalLoss component anymore, can be removed again
     Ptr<FactoredVocab> factoredVocab_;
 };
 

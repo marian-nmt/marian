@@ -77,7 +77,7 @@ Ptr<ModelBase> EncoderDecoderFactory::construct(Ptr<ExpressionGraph> graph) {
   for(auto& df : decoders_)
     encdec->push_back(df(options_).construct(graph));
 
-  return add_cost(encdec, options_);
+  return encdec;
 }
 
 Ptr<ModelBase> EncoderClassifierFactory::construct(Ptr<ExpressionGraph> graph) {
@@ -96,10 +96,10 @@ Ptr<ModelBase> EncoderClassifierFactory::construct(Ptr<ExpressionGraph> graph) {
   for(auto& cf : classifiers_)
     enccls->push_back(cf(options_).construct(graph));
 
-  return add_cost(enccls, options_);
+  return enccls;
 }
 
-Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
+Ptr<ModelBase> createBaseModelByType(std::string type, usage use, Ptr<Options> options) {
   Ptr<ExpressionGraph> graph = nullptr; // graph unknown at this stage
   // clang-format off
   if(type == "s2s" || type == "amun" || type == "nematus") {
@@ -259,31 +259,7 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
         .construct(graph);
   }
 
-#ifdef COMPILE_EXAMPLES
-  // @TODO: examples should be compiled optionally
-  if(type == "mnist-ffnn") {
-    auto mnist = New<MnistFeedForwardNet>(options);
-    if(use == usage::scoring)
-      return New<Scorer>(mnist, New<MNISTLogsoftmax>());
-    else if(use == usage::training)
-      return New<Trainer>(mnist, New<MNISTCrossEntropyCost>());
-    else
-      return mnist;
-  }
-#endif
-
 #ifdef CUDNN
-#ifdef COMPILE_EXAMPLES
-  if(type == "mnist-lenet") {
-    auto mnist = New<MnistLeNet>(options);
-    if(use == usage::scoring)
-      return New<Scorer>(mnist, New<MNISTLogsoftmax>());
-    else if(use == usage::training)
-      return New<Trainer>(mnist, New<MNISTCrossEntropyCost>());
-    else
-      return mnist;
-  }
-#endif
   if(type == "char-s2s") {
     return models::encoder_decoder()(options)
         ("usage", use)
@@ -298,9 +274,59 @@ Ptr<ModelBase> by_type(std::string type, usage use, Ptr<Options> options) {
   ABORT("Unknown model type: {}", type);
 }
 
-Ptr<ModelBase> from_options(Ptr<Options> options, usage use) {
+Ptr<ModelBase> createModelFromOptions(Ptr<Options> options, usage use) {
   std::string type = options->get<std::string>("type");
-  return by_type(type, use, options);
+  auto baseModel = createBaseModelByType(type, use, options);
+
+  // add (log)softmax if requested
+  if (use == usage::translation) {
+    if(std::dynamic_pointer_cast<EncoderDecoder>(baseModel)) {
+      if(options->get<bool>("output-sampling", false))
+        return New<Stepwise>(std::dynamic_pointer_cast<EncoderDecoder>(baseModel), New<GumbelSoftmaxStep>());
+      else
+        return New<Stepwise>(std::dynamic_pointer_cast<EncoderDecoder>(baseModel), New<LogSoftmaxStep>());
+    }
+#ifdef COMPILE_EXAMPLES
+    // note: 'usage::translation' here means 'inference'
+    else if (std::dynamic_pointer_cast<MnistFeedForwardNet>(baseModel))
+      return New<Scorer>(baseModel, New<MNISTLogsoftmax>());
+#ifdef CUDNN
+    else if (std::dynamic_pointer_cast<MnistLeNet>(baseModel))
+      return New<Scorer>(baseModel, New<MNISTLogsoftmax>());
+#endif
+#endif
+    else
+      ABORT("'usage' parameter 'translation' cannot be applied to model type: {}", type);
+  }
+  else if (use == usage::raw)
+    return baseModel;
+  else
+    ABORT("'Usage' parameter must be 'translation' or 'raw'");
+}
+
+Ptr<CriterionBase> createCriterionFromOptions(Ptr<Options> options, usage use) {
+  std::string type = options->get<std::string>("type");
+  auto baseModel = createBaseModelByType(type, use, options);
+
+  // add cost function
+  ABORT_IF(use != usage::training && use != usage::scoring, "'Usage' parameter must be 'training' or 'scoring'");
+  // note: usage::scoring means "score the loss function", hence it uses a Trainer (not Scorer, which is for decoding)
+  // @TODO: Should we define a new class that does not compute gradients?
+  if (std::dynamic_pointer_cast<EncoderDecoder>(baseModel))
+    return New<Trainer>(baseModel, New<EncoderDecoderCE>(options));
+  else if (std::dynamic_pointer_cast<EncoderClassifier>(baseModel))
+    return New<Trainer>(baseModel, New<EncoderClassifierCE>(options));
+#ifdef COMPILE_EXAMPLES
+  // @TODO: examples should be compiled optionally
+  else if (std::dynamic_pointer_cast<MnistFeedForwardNet>(baseModel))
+    return New<Trainer>(baseModel, New<MNISTCrossEntropyCost>());
+#ifdef CUDNN
+  else if (std::dynamic_pointer_cast<MnistLeNet>(baseModel))
+    return New<Trainer>(baseModel, New<MNISTCrossEntropyCost>());
+#endif
+#endif
+  else
+    ABORT("Criterion function unknown for model type: {}", type);
 }
 
 }  // namespace models

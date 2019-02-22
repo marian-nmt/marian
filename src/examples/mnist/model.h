@@ -43,20 +43,16 @@ public:
   }
 };
 
-class MNISTLogsoftmax : public CostBase {
+class MNISTLogsoftmax : public LogProbBase {
 public:
   MNISTLogsoftmax() {}
 
-  Ptr<MultiRationalLoss> apply(Ptr<ModelBase> model,
+  Logits apply(Ptr<ModelBase> model,
              Ptr<ExpressionGraph> graph,
              Ptr<data::Batch> batch,
              bool clearGraph = true) override {
-    auto top = model->build(graph, batch, clearGraph).getRationalLoss();
-    
-    // @TODO: simplify this
-    auto multiLoss = New<SumMultiRationalLoss>();
-    multiLoss->push_back({logsoftmax(top->loss()), top->count()});
-    return multiLoss;
+    auto top = model->build(graph, batch, clearGraph);
+    return top.applyUnaryFunction(logsoftmax);
   }
 };
 
@@ -72,10 +68,7 @@ public:
                      Ptr<data::Batch> batch,
                      bool /*clean*/ = false) override {
     
-    auto loss   = construct(graph, batch, inference_); // @TODO: unify nomenclature, e.g. rather use apply
-    auto count = graph->constant({(int)batch->size(), 1}, inits::from_value(1.f));
-
-    return New<RationalLoss>(loss, count);
+    return apply(graph, batch, inference_);
   }
 
   void load(Ptr<ExpressionGraph> /*graph*/, const std::string& /*name*/, bool) override {
@@ -103,8 +96,7 @@ protected:
   bool inference_{false};
 
   /**
-   * @brief Constructs an expression graph representing a feed-forward
-   * classifier.
+   * @brief Builds an expression graph representing a feed-forward classifier.
    *
    * @param dims number of nodes in each layer of the feed-forward classifier
    * @param batch a batch of training or testing examples
@@ -112,9 +104,9 @@ protected:
    *
    * @return a shared pointer to the newly constructed expression graph
    */
-  virtual Expr construct(Ptr<ExpressionGraph> g,
-                         Ptr<data::Batch> batch,
-                         bool /*inference*/ = false) {
+  virtual Expr apply(Ptr<ExpressionGraph> g,
+                     Ptr<data::Batch> batch,
+                     bool /*inference*/ = false) {
     const std::vector<int> dims = {784, 2048, 2048, 10};
 
     // Start with an empty expression graph

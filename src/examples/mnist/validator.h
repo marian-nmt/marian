@@ -12,11 +12,11 @@ using namespace marian;
 
 namespace marian {
 
-class MNISTAccuracyValidator : public Validator<data::MNISTData> {
+class MNISTAccuracyValidator : public Validator<data::MNISTData, models::ModelBase> {
 public:
   MNISTAccuracyValidator(Ptr<Options> options) : Validator(std::vector<Ptr<Vocab>>(), options, false) {
     createBatchGenerator(/*isTranslating=*/false);
-    builder_ = models::from_options(options, models::usage::scoring);
+    builder_ = models::createModelFromOptions(options, models::usage::translation);
   }
 
   virtual void keepBest(const std::vector<Ptr<ExpressionGraph>>& graphs) override {

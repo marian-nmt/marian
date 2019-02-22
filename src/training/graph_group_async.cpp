@@ -23,7 +23,7 @@ AsyncGraphGroup::AsyncGraphGroup(Ptr<Options> config, Ptr<IMPIWrapper> mpi)
     graphs_.push_back(graph);
     shardOpt_.push_back(Optimizer(options_));
 
-    builders_.push_back(models::from_options(options_, models::usage::training));
+    builders_.push_back(models::createCriterionFromOptions(options_, models::usage::training));
   }
 }
 
@@ -189,7 +189,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
   auto task = [this](Ptr<data::Batch> batch) {
     static size_t i = 0;
     thread_local Ptr<ExpressionGraph> graph;
-    thread_local Ptr<models::ModelBase> builder;
+    thread_local Ptr<models::CriterionBase> builder;
     thread_local size_t t = 0;
     thread_local size_t num_seen_words = 0;
     thread_local size_t num_seen_sentences = 0;
@@ -206,7 +206,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
       builder = builders_[i++];
     }
 
-    Ptr<RationalLoss> dynamicLoss = builder->build(graph, batch).getRationalLoss();
+    Ptr<RationalLoss> dynamicLoss = builder->build(graph, batch);
 
     if(t % optimizerDelay_ == 0) {
       fetchParams(graph->params()->vals(), params_, t_id);

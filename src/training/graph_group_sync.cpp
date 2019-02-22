@@ -15,7 +15,7 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Options> config, Ptr<IMPIWrapper> mpi)
 
     graphs_.push_back(graph);
     shardOpt_.push_back(Optimizer(options_));
-    builders_.push_back(models::from_options(options_, models::usage::training));
+    builders_.push_back(models::createCriterionFromOptions(options_, models::usage::training));
   }
 
   // Note: We may well end up with only one MPI process or only one graph per worker.
@@ -354,7 +354,7 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
       if (!subBatch)
         break;
 
-      auto rationalLoss = builders_[localDeviceIndex]->build(graph, subBatch).getRationalLoss();
+      auto rationalLoss = builders_[localDeviceIndex]->build(graph, subBatch);
       graph->forward();
 
       StaticLoss tempLoss = *rationalLoss; // needed for overstuff

@@ -71,11 +71,11 @@ namespace marian {
   }
 
   // This function assumes this object holds a single factor that represents a rational loss (with count).
-  Ptr<RationalLoss> Logits::getRationalLoss() const {
-    ABORT_IF(logits_.size() != 1 || factoredVocab_, "getRationalLoss() cannot be used on multi-factor outputs");
-    ABORT_IF(!logits_.front()->count(), "getRationalLoss() used on rational loss without count");
-    return logits_.front();
-  }
+  //Ptr<RationalLoss> Logits::getRationalLoss() const {
+  //  ABORT_IF(logits_.size() != 1 || factoredVocab_, "getRationalLoss() cannot be used on multi-factor outputs");
+  //  ABORT_IF(!logits_.front()->count(), "getRationalLoss() used on rational loss without count");
+  //  return logits_.front();
+  //}
 
   // get logits for one factor group
   Expr Logits::getFactoredLogits(size_t groupIndex, const std::vector<IndexType>& selIdx /*= {}*/, size_t beamSize /*= 0*/) const {

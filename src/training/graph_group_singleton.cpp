@@ -10,7 +10,7 @@ void SingletonGraph::setScheduler(Ptr<Scheduler> scheduler) {
 }
 
 void SingletonGraph::execute(Ptr<data::Batch> batch) {
-  auto lossNode = builder_->build(graph_, batch).getRationalLoss();
+  auto lossNode = builder_->build(graph_, batch);
   graph_->forward();
   graph_->backward();
 

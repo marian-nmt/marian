@@ -55,7 +55,7 @@ public:
    */
   // @TODO: Can this be made const? It seems wrong to have a stateful method that still returns a result.
   virtual Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph,
-                                             Ptr<models::ModelBase> model,
+                                             Ptr<models::CriterionBase> model,
                                              const std::vector<Ptr<Vocab>>& vocabs,
                                              double multiplier = 1.) {
     auto stats = New<data::BatchStats>();
@@ -140,7 +140,7 @@ protected:
   std::vector<size_t> devices_; // [num local GPUs]
 
   /** Graph builders for clients (which run forward and backward passes). */
-  std::vector<Ptr<models::ModelBase>> clientBuilders_;
+  std::vector<Ptr<models::CriterionBase>> clientBuilders_;
 
   /** Graphs of clients. One entry per GPU on this node. */
   std::vector<Ptr<ExpressionGraph>> clientGraphs_; // [num local GPUs]
@@ -160,7 +160,7 @@ public:
       clientGraphs_.push_back(New<ExpressionGraph>());
       clientGraphs_[i]->setDevice({ devices_[i], DeviceType::gpu });
       clientGraphs_[i]->reserveWorkspaceMB(options_->get<size_t>("workspace"));
-      clientBuilders_.push_back(models::from_options(options_, models::usage::training));
+      clientBuilders_.push_back(models::createCriterionFromOptions(options_, models::usage::training));
     }
   }
 

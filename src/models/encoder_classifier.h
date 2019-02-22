@@ -211,7 +211,7 @@ public:
                        bool clearGraph = true) override {
     auto states = apply(graph, batch, clearGraph);
     // returns raw logits
-    return New<RationalLoss>(states[0]->getLogProbs(), nullptr); // @TODO: Check if this is actually used
+    return states[0]->getLogProbs();
   }
 
   virtual Logits build(Ptr<ExpressionGraph> graph,

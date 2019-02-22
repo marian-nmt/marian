@@ -17,7 +17,7 @@ Ptr<Scorer> scorerByType(const std::string& fname,
   }
 
   bool skipCost = options->get<bool>("skip-cost");
-  auto encdec = models::from_options(
+  auto encdec = models::createModelFromOptions(
       options, skipCost ? models::usage::raw : models::usage::translation);
 
   LOG(info, "Loading scorer of type {} as feature {}", type, fname);
@@ -39,7 +39,7 @@ Ptr<Scorer> scorerByType(const std::string& fname,
   }
 
   bool skipCost = options->get<bool>("skip-cost");
-  auto encdec = models::from_options(
+  auto encdec = models::createModelFromOptions(
       options, skipCost ? models::usage::raw : models::usage::translation);
 
   LOG(info, "Loading scorer of type {} as feature {}", type, fname);

@@ -19,22 +19,22 @@ using namespace data;
 
 class Rescorer {
 private:
-  Ptr<models::ModelBase> builder_;
+  Ptr<models::CriterionBase> builder_;
 
 public:
   Rescorer(Ptr<Options> options)
-      : builder_(models::from_options(options, models::usage::scoring)) {}
+      : builder_(models::createCriterionFromOptions(options, models::usage::scoring)) {}
 
   void load(Ptr<ExpressionGraph> graph, const std::string& modelFile) {
     builder_->load(graph, modelFile);
   }
 
   Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
-    return builder_->build(graph, batch).getRationalLoss();
+    return builder_->build(graph, batch);
   }
 
   data::SoftAlignment getAlignment() {
-    auto model = std::static_pointer_cast<models::Scorer>(builder_)->getModel();
+    auto model = std::static_pointer_cast<models::Trainer>(builder_)->getModel();
     return std::static_pointer_cast<EncoderDecoderBase>(model)->getAlignment();
   }
 };
