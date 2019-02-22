@@ -23,7 +23,7 @@ private:
 
 public:
   Rescorer(Ptr<Options> options)
-      : builder_(models::from_options(options, models::usage::scoring)) {}
+      : builder_(models::createModelFromOptions(options, models::usage::scoring)) {}
 
   void load(Ptr<ExpressionGraph> graph, const std::string& modelFile) {
     builder_->load(graph, modelFile);

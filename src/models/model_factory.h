@@ -85,8 +85,10 @@ public:
 
 typedef Accumulator<EncoderClassifierFactory> encoder_classifier;
 
-Ptr<ModelBase> by_type(std::string type, usage, Ptr<Options> options);
+Ptr<ModelBase> createBaseModelByType(std::string type, usage, Ptr<Options> options);
 
-Ptr<ModelBase> from_options(Ptr<Options> options, usage);
+Ptr<ModelBase> createModelFromOptions(Ptr<Options> options, usage);
+
+Ptr<CriterionBase> createCriterionFromOptions(Ptr<Options> options, usage);
 }  // namespace models
 }  // namespace marian

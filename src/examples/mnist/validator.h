@@ -16,7 +16,7 @@ class MNISTAccuracyValidator : public Validator<data::MNISTData> {
 public:
   MNISTAccuracyValidator(Ptr<Options> options) : Validator(std::vector<Ptr<Vocab>>(), options, false) {
     createBatchGenerator(/*isTranslating=*/false);
-    builder_ = models::from_options(options, models::usage::scoring);
+    builder_ = models::createModelFromOptions(options, models::usage::scoring);
   }
 
   virtual void keepBest(const std::vector<Ptr<ExpressionGraph>>& graphs) override {

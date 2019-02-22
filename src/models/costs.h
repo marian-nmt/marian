@@ -127,7 +127,7 @@ public:
   }
 };
 
-class Trainer : public ModelBase {
+class Trainer : public CriterionBase {
 protected:
   Ptr<ModelBase> model_;
   Ptr<CostBase> cost_;
@@ -159,7 +159,40 @@ public:
   virtual void clear(Ptr<ExpressionGraph> graph) override { model_->clear(graph); };
 };
 
-typedef Trainer Scorer;
+// @TODO: Name 'scorer' is ambiguous: Does it compute scores for all classes, or the loss value for the ground truth?
+//        Beam search uses it for the former meaning, while 'marian score' and validation in the latter.
+//        This class is for the former use. The latter is done using Trainer.
+class Scorer : public ModelBase {
+protected:
+  Ptr<ModelBase> model_;
+  Ptr<CostBase> cost_;
+
+public:
+  Scorer(Ptr<ModelBase> model, Ptr<CostBase> cost)
+      : model_(model), cost_(cost) {}
+
+  Ptr<ModelBase> getModel() { return model_; }
+
+  virtual void load(Ptr<ExpressionGraph> graph,
+                    const std::string& name,
+                    bool markedReloaded = true) override {
+    model_->load(graph, name, markedReloaded);
+  };
+
+  virtual void save(Ptr<ExpressionGraph> graph,
+                    const std::string& name,
+                    bool saveTranslatorConfig = false) override {
+    model_->save(graph, name, saveTranslatorConfig);
+  }
+
+  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::Batch> batch,
+                                  bool clearGraph = true) override {
+    return cost_->apply(model_, graph, batch, clearGraph);
+  };
+
+  virtual void clear(Ptr<ExpressionGraph> graph) override { model_->clear(graph); };
+};
 
 class CostStep {
 public:
@@ -269,39 +302,6 @@ public:
 
   virtual data::SoftAlignment getAlignment() override { return encdec_->getAlignment(); }
 };
-
-inline Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec,
-                               Ptr<Options> options) {
-  switch(options->get<usage>("usage", usage::raw)) {
-    case usage::training:
-      return New<Trainer>(encdec, New<EncoderDecoderCE>(options));
-    case usage::scoring:
-      return New<Scorer>(encdec, New<EncoderDecoderCE>(options));
-    case usage::translation:
-      if(options->get<bool>("output-sampling", false))
-        return New<Stepwise>(encdec, New<GumbelSoftmaxStep>());
-      else
-        return New<Stepwise>(encdec, New<LogSoftmaxStep>());
-    case usage::raw:
-    default:
-      return encdec;
-  }
-}
-
-inline Ptr<ModelBase> add_cost(Ptr<EncoderClassifier> enccls,
-                               Ptr<Options> options) {
-  switch(options->get<usage>("usage", usage::raw)) {
-    case usage::training:
-      return New<Trainer>(enccls, New<EncoderClassifierCE>(options));
-    case usage::scoring:
-      return New<Scorer>(enccls, New<EncoderClassifierCE>(options));
-    case usage::translation:
-      ABORT("Classifier cannot be used for translation");
-    case usage::raw:
-    default:
-      return enccls;
-  }
-}
 
 }  // namespace models
 }  // namespace marian

@@ -14,7 +14,7 @@ class SyncGraphGroup : public GraphGroup, public ExponentialSmoothing {
   Ptr<IMPIWrapper> mpi_;    // [not null] all MPI-like communication goes through this (this is a dummy implementation if no MPI run)
 
   std::vector<DeviceId> devices_;                  // [deviceIndex]
-  std::vector<Ptr<models::ModelBase>> builders_;   // [deviceIndex]
+  std::vector<Ptr<models::CriterionBase>> builders_;   // [deviceIndex]
   std::vector<Ptr<ExpressionGraph>> graphs_;       // [deviceIndex]
 
   std::vector<Ptr<OptimizerBase>> shardOpt_;       // [deviceIndex]

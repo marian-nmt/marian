@@ -72,7 +72,7 @@ public:
 
       std::cerr << modelOpts->str() << std::flush;
 
-      auto encdec = models::from_options(modelOpts, models::usage::translation);
+      auto encdec = models::createModelFromOptions(modelOpts, models::usage::translation);
 
       if(io::isBin(models[i]) && ptrs_[i] != nullptr) {
         // if file ends in *.bin and has been mapped by QuickSAND
