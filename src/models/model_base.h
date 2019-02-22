@@ -28,9 +28,9 @@ public:
                     bool saveTranslatorConfig = false)
       = 0;
 
-  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
-                                  Ptr<data::Batch> batch,
-                                  bool clearGraph = true)
+  virtual Expr build(Ptr<ExpressionGraph> graph,
+                          Ptr<data::Batch> batch,
+                          bool clearGraph = true)
       = 0;
 
   virtual void clear(Ptr<ExpressionGraph> graph) = 0;

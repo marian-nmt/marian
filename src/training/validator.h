@@ -56,7 +56,7 @@ public:
   }
 };
 
-template <class DataSet>
+template <class DataSet, class BuilderType>
 class Validator : public ValidatorBase {
 public:
   Validator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, bool lowerIsBetter = true)
@@ -123,7 +123,7 @@ public:
 protected:
   std::vector<Ptr<Vocab>> vocabs_;
   Ptr<Options> options_;
-  Ptr<models::ModelBase> builder_;
+  Ptr<BuilderType> builder_;
   Ptr<data::BatchGenerator<DataSet>> batchGenerator_;
 
   virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>&)
@@ -148,7 +148,7 @@ protected:
   }
 };
 
-class CrossEntropyValidator : public Validator<data::Corpus> {
+class CrossEntropyValidator : public Validator<data::Corpus, models::CriterionBase> {
 public:
   CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options) {
@@ -159,7 +159,7 @@ public:
     opts->merge(options);
     opts->set("inference", true);
     opts->set("cost-type", "ce-sum");
-    builder_ = models::createModelFromOptions(opts, models::usage::scoring);
+    builder_ = models::createCriterionFromOptions(opts, models::usage::scoring);
   }
 
   std::string type() override { return options_->get<std::string>("cost-type"); }
@@ -180,7 +180,7 @@ protected:
       for(auto batch : *batchGenerator_) {
         auto task = [=, &loss, &samples](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
-          thread_local auto builder = models::createModelFromOptions(options_, models::usage::scoring);
+          thread_local auto builder = models::createCriterionFromOptions(options_, models::usage::scoring);
 
           if(!graph) {
             graph = graphs[id % graphs.size()];
@@ -215,8 +215,8 @@ protected:
   }
 };
 
-// Used for validating with classifiers. Compute prediction accuary versus groundtruth for a set of classes
-class AccuracyValidator : public Validator<data::Corpus> {
+// Used for validating with classifiers. Compute prediction accuracy versus ground truth for a set of classes
+class AccuracyValidator : public Validator<data::Corpus, models::ModelBase> {
 public:
   AccuracyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options, /*lowerIsBetter=*/false) {
@@ -263,7 +263,7 @@ protected:
           // correct     += correct->scalar<IndexType>();
 
           builder->clear(graph);
-          Expr logits = builder->build(graph, batch)->loss();
+          Expr logits = builder->build(graph, batch);
           graph->forward();
 
           std::vector<float> vLogits;
@@ -305,7 +305,7 @@ protected:
   }
 };
 
-class BertAccuracyValidator : public Validator<data::Corpus> {
+class BertAccuracyValidator : public Validator<data::Corpus, models::ModelBase> {
 private:
   bool evalMaskedLM_{true};
 
@@ -415,7 +415,7 @@ protected:
 };
 
 
-class ScriptValidator : public Validator<data::Corpus> {
+class ScriptValidator : public Validator<data::Corpus, models::ModelBase> {
 public:
   ScriptValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options, false) {
@@ -446,7 +446,7 @@ protected:
   }
 };
 
-class TranslationValidator : public Validator<data::Corpus> {
+class TranslationValidator : public Validator<data::Corpus, models::ModelBase> {
 public:
   TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options, false),
@@ -578,7 +578,7 @@ protected:
 };
 
 // @TODO: combine with TranslationValidator (above) to avoid code duplication
-class BleuValidator : public Validator<data::Corpus> {
+class BleuValidator : public Validator<data::Corpus, models::ModelBase> {
 private:
   bool detok_{false};
 
@@ -844,7 +844,7 @@ protected:
  *
  * @return Vector of validator objects
  */
-std::vector<Ptr<Validator<data::Corpus>>> Validators(
+std::vector<Ptr<ValidatorBase/*<data::Corpus>*/>> Validators(
     std::vector<Ptr<Vocab>> vocabs,
     Ptr<Options> config);
 }  // namespace marian

@@ -159,17 +159,25 @@ public:
   virtual void clear(Ptr<ExpressionGraph> graph) override { model_->clear(graph); };
 };
 
+class LogProbBase {
+public:
+  virtual Expr apply(Ptr<ModelBase> model,
+                     Ptr<ExpressionGraph> graph,
+                     Ptr<data::Batch> batch,
+                     bool clearGraph = true) = 0;
+};
+
 // @TODO: Name 'scorer' is ambiguous: Does it compute scores for all classes, or the loss value for the ground truth?
 //        Beam search uses it for the former meaning, while 'marian score' and validation in the latter.
 //        This class is for the former use. The latter is done using Trainer.
 class Scorer : public ModelBase {
 protected:
   Ptr<ModelBase> model_;
-  Ptr<CostBase> cost_;
+  Ptr<LogProbBase> logProb_;
 
 public:
-  Scorer(Ptr<ModelBase> model, Ptr<CostBase> cost)
-      : model_(model), cost_(cost) {}
+  Scorer(Ptr<ModelBase> model, Ptr<LogProbBase> cost)
+      : model_(model), logProb_(cost) {}
 
   Ptr<ModelBase> getModel() { return model_; }
 
@@ -185,10 +193,10 @@ public:
     model_->save(graph, name, saveTranslatorConfig);
   }
 
-  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
-                                  Ptr<data::Batch> batch,
-                                  bool clearGraph = true) override {
-    return cost_->apply(model_, graph, batch, clearGraph);
+  virtual Expr build(Ptr<ExpressionGraph> graph,
+                     Ptr<data::Batch> batch,
+                     bool clearGraph = true) override {
+    return logProb_->apply(model_, graph, batch, clearGraph);
   };
 
   virtual void clear(Ptr<ExpressionGraph> graph) override { model_->clear(graph); };
@@ -259,9 +267,9 @@ public:
 
   virtual void clear(Ptr<ExpressionGraph> graph) override { encdec_->clear(graph); }
 
-  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
-                                  Ptr<data::Batch> batch,
-                                  bool clearGraph = true) override {
+  virtual Expr build(Ptr<ExpressionGraph> graph,
+                     Ptr<data::Batch> batch,
+                     bool clearGraph = true) override {
     auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
     return build(graph, corpusBatch, clearGraph);
   }
@@ -282,9 +290,9 @@ public:
     return cost_->apply(nextState);
   }
 
-  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> /*graph*/,
-                                  Ptr<data::CorpusBatch> /*batch*/,
-                                  bool /*clearGraph*/ = true) override {
+  virtual Expr build(Ptr<ExpressionGraph> /*graph*/,
+                     Ptr<data::CorpusBatch> /*batch*/,
+                     bool /*clearGraph*/ = true) override {
     ABORT("Wrong wrapper. Use models::Trainer or models::Scorer");
     return nullptr;
   }

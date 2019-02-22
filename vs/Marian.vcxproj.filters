@@ -1517,6 +1517,15 @@
     <ClInclude Include="..\src\examples\mnist\validator.h">
       <Filter>examples\mnist</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\models\bert.h">
+      <Filter>models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\models\classifier.h">
+      <Filter>models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\models\encoder_classifier.h">
+      <Filter>models</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
