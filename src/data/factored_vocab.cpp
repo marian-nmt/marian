@@ -447,7 +447,7 @@ FactoredVocab::CSRData FactoredVocab::csr_rows(const Words& words) const {
         weights.push_back(1.0f);
       }
     }
-#if 1
+#if 0 // @BUGBUG: No, this is wrong! The vector must be 1s, since we use it in backprop transposition.
     else {
       // push a dummy entry. Not sure if this is needed.
       indices.push_back(0);

@@ -66,10 +66,10 @@ class RationalLoss;
 class Logits {
 public:
     Logits() {}
-    Logits(Ptr<RationalLoss> logits) { // single-output constructor
+    explicit Logits(Ptr<RationalLoss> logits) { // single-output constructor
       logits_.push_back(logits);
     }
-    Logits(Expr logits); // single-output constructor from Expr only (RationalLoss has no count)
+    explicit Logits(Expr logits); // single-output constructor from Expr only (RationalLoss has no count)
     Logits(std::vector<Ptr<RationalLoss>>&& logits, Ptr<FactoredVocab> embeddingFactorMapping) // factored-output constructor
       : logits_(std::move(logits)), factoredVocab_(embeddingFactorMapping) {}
     Expr getLogits() const; // assume it holds logits: get them, possibly aggregating over factors

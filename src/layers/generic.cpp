@@ -235,7 +235,7 @@ namespace marian {
           cachedShortWt_ = index_select(Wt_, isLegacyUntransposedW ? -1 : 0, shortlist_->indices());
           cachedShortb_  = index_select(b_ ,                             -1, shortlist_->indices());
         }
-        return affine(input, cachedShortWt_, cachedShortb_, false, /*transB=*/isLegacyUntransposedW ? false : true);
+        return Logits(affine(input, cachedShortWt_, cachedShortb_, false, /*transB=*/isLegacyUntransposedW ? false : true));
       }
       else if (factoredVocab_) {
         auto graph = input->graph();
@@ -257,7 +257,7 @@ namespace marian {
         return Logits(std::move(allLogits), factoredVocab_);
       }
       else
-        return affine(input, Wt_, b_, false, /*transB=*/isLegacyUntransposedW ? false : true);
+        return Logits(affine(input, Wt_, b_, false, /*transB=*/isLegacyUntransposedW ? false : true));
     }
   }
 

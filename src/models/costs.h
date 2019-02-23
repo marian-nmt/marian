@@ -117,7 +117,7 @@ public:
     // multi-objective training
     Ptr<MultiRationalLoss> multiLoss = newMultiLoss(options_);
     for(int i = 0; i < states.size(); ++i) {
-      auto partialLoss = loss_->apply(states[i]->getLogProbs(),
+      auto partialLoss = loss_->apply(Logits(states[i]->getLogProbs()),
                                       states[i]->getTargetWords(),
                                       /*mask=*/nullptr,
                                       /*weights=*/nullptr);

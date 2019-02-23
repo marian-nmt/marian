@@ -68,7 +68,7 @@ public:
                      Ptr<data::Batch> batch,
                      bool /*clean*/ = false) override {
     
-    return apply(graph, batch, inference_);
+    return Logits(apply(graph, batch, inference_));
   }
 
   void load(Ptr<ExpressionGraph> /*graph*/, const std::string& /*name*/, bool) override {

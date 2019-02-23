@@ -368,7 +368,7 @@ public:
 
     // return unormalized(!) probabilities
     auto nextState = New<DecoderState>(
-        decoderStates, logits, state->getEncoderStates(), state->getBatch());
+        decoderStates, Logits(logits), state->getEncoderStates(), state->getBatch());
 
     // Advance current target token position by one
     nextState->setPosition(state->getPosition() + 1);

@@ -13,6 +13,13 @@
 #define THREAD_GUARD(body) [&]() { body; }() // test if THREAD_GUARD is neccessary, remove if no problems occur.
 #define NodeOp(op) [=]() { op; }
 
+// helper macro to disable optimization (gcc only)
+#ifdef _GNUC_
+#define DONT_OPTIMIZE __attribute__((optimize("O0")))
+#else
+#define DONT_OPTIMIZE // silently ignore on Visual Studio, where this is less of a problem
+#endif
+
 namespace marian {
 
 // Type to be used for all index types, e.g. for integer tensors for rows operator.
