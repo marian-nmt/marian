@@ -20,7 +20,7 @@
 INCLUDE(CheckFunctionExists)
 INCLUDE(CheckIncludeFile)
 
-MACRO(CHECK_ALL_LIBRARIES LIBRARIES _prefix _name _flags _list _include _search_include)
+MACRO(CHECK_ALL_LIBRARIES LIBRARIES INCLUDE _prefix _name _flags _list _include _search_include)
   # This macro checks for the existence of the combination of fortran libraries
   # given by _list.  If the combination is found, this macro checks (using the 
   # Check_Fortran_Function_Exists macro) whether can link against that library
@@ -83,6 +83,7 @@ MACRO(CHECK_ALL_LIBRARIES LIBRARIES _prefix _name _flags _list _include _search_
       MESSAGE(STATUS "Checking for [${__list}] -- includes found")
       SET(${_prefix}_INCLUDE_DIR ${${_prefix}${_combined_name}_INCLUDE})
       SET(${_prefix}_INCLUDE_FILE ${_include})
+      SET(${INCLUDE} ${${_prefix}_INCLUDE_DIR})
     ELSE(${_prefix}${_combined_name}_INCLUDE)
       MESSAGE(STATUS "Checking for [${__list}] -- includes not found")
       SET(_libraries_work FALSE)
@@ -115,11 +116,13 @@ ENDMACRO(CHECK_ALL_LIBRARIES)
 
 SET(CBLAS_LINKER_FLAGS)
 SET(CBLAS_LIBRARIES)
+SET(CBLAS_INCLUDE_DIR)
 
 # CBLAS in openBLAS
 IF(NOT CBLAS_LIBRARIES)
   CHECK_ALL_LIBRARIES(
     CBLAS_LIBRARIES
+    CBLAS_INCLUDE_DIR
     cblas
     cblas_sgemm
     ""
@@ -135,6 +138,7 @@ ENDIF(NOT CBLAS_LIBRARIES)
 IF(NOT CBLAS_LIBRARIES)
   CHECK_ALL_LIBRARIES(
     CBLAS_LIBRARIES
+    CBLAS_INCLUDE_DIR
     cblas
     cblas_sgemm
     ""
@@ -150,6 +154,7 @@ ENDIF(NOT CBLAS_LIBRARIES)
 IF(NOT CBLAS_LIBRARIES)
   CHECK_ALL_LIBRARIES(
     CBLAS_LIBRARIES
+    CBLAS_INCLUDE_DIR
     cblas
     cblas_sgemm
     ""
@@ -174,7 +179,7 @@ ENDIF(NOT CBLAS_FOUND AND CBLAS_FIND_REQUIRED)
 IF(NOT CBLAS_FIND_QUIETLY)
   IF(CBLAS_FOUND)
     MESSAGE(STATUS "CBLAS library found: " ${CBLAS_LIBRARIES})
-    #MESSAGE(STATUS )
+    MESSAGE(STATUS "cblas.h include directory: " ${CBLAS_INCLUDE_DIR})
   ELSE(CBLAS_FOUND)
     MESSAGE(STATUS "CBLAS library not found. Please specify library location")
   ENDIF(CBLAS_FOUND)
