@@ -5,12 +5,14 @@
 
 namespace marian {
 
-AsyncGraphGroup::AsyncGraphGroup(Ptr<Options> config)
+AsyncGraphGroup::AsyncGraphGroup(Ptr<Options> config, Ptr<IMPIWrapper> mpi)
     : GraphGroup(config),
-      ExponentialSmoothing{options_->get<float>("exponential-smoothing")},
+      ExponentialSmoothing(options_),
       devices_{Config::getDevices(options_)},
       shardSync_(devices_.size()),
-      optimizerDelay_{options_->get<size_t>("optimizer-delay")} {
+      optimizerDelay_((size_t)options_->get<double>("optimizer-delay")) {
+  ABORT_IF(mpi->numMPIProcesses() != 1, "AsyncGraphGroup presently does not support multiple MPI processes");
+  ABORT_IF((double)optimizerDelay_ != options_->get<double>("optimizer-delay"), "AsyncGraphGroup presently does not implement fractional values for --optimizer-delay");
   pool_.reset(new ThreadPool(devices_.size(), devices_.size()));
 
   for(auto device : devices_) {
@@ -192,7 +194,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
     thread_local size_t num_seen_words = 0;
     thread_local size_t num_seen_sentences = 0;
     thread_local int t_id = 0;
-    thread_local float cost = 0;
+    thread_local StaticLoss loss;
 
     thread_local Tensor accGradients;
     thread_local Ptr<TensorAllocator> accAlloc;
@@ -204,14 +206,14 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
       builder = builders_[i++];
     }
 
-    auto costNode = builder->build(graph, batch);
+    Ptr<RationalLoss> dynamicLoss = builder->build(graph, batch);
 
     if(t % optimizerDelay_ == 0) {
       fetchParams(graph->params()->vals(), params_, t_id);
     }
 
     graph->forward();
-    cost += costNode->scalar();
+    loss += *dynamicLoss;
     graph->backward();
 
     Tensor gradients;
@@ -249,23 +251,21 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
       // Wait until the thread that wants to do validation is finished.
       pool_->wait_for_one(lock);
 
-      if(options_->get<std::string>("cost-type") != "ce-sum")
-        cost /= optimizerDelay_;
-
       if(optimizerDelay_ > 1) {
         std::vector<size_t> fakeLength = {1, 1};
-        auto fb = data::CorpusBatch::fakeBatch(
-            fakeLength, num_seen_sentences, NULL);
+        std::vector<Ptr<Vocab>> vocabs;
+        auto fb = data::CorpusBatch::fakeBatch(fakeLength, vocabs, num_seen_sentences, NULL);
         fb->front()->setWords(num_seen_words);
-        scheduler_->update(cost, fb);
+
+        scheduler_->update(loss, fb);
 
         num_seen_words = 0;
         num_seen_sentences = 0;
       } else {
-        scheduler_->update(cost, batch);
+        scheduler_->update(loss, batch);
       }
 
-      cost = 0;
+      loss.reset();
 
       if(scheduler_->saving() || scheduler_->validating()) {
         // Wait with validation or saving until all other threads are done with
@@ -325,7 +325,7 @@ void AsyncGraphGroup::load() {
             setFn(i, data.begin() + begin, data.begin() + end);
           }
         });
-    } else if(options_->has("pretrained-model")) {
+    } else if(options_->hasAndNotEmpty("pretrained-model")) {
       std::string nameInit = options_->get<std::string>("pretrained-model");
       LOG(info,
           "Initialize model weights with the pre-trained model {}",

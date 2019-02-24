@@ -343,31 +343,52 @@ private:
  * in an expression graph.
  *
  * This node implements the activation function
- * \f$ f(x) = x \cdot \sigma(x) \f$
+ * \f$ f(x) = x \cdot \sigma(bx) \f$
  * and its derivative
- * \f$ f^\prime(x) = f(x) + \sigma(x)(1 - f(x)) \f$ .
+ * \f$ f^\prime(x) = bf(x) + \sigma(bx)(1 - bf(x)) \f$ .
  *
  */
 struct SwishNodeOp : public UnaryNodeOp {
-  SwishNodeOp(Expr a) : UnaryNodeOp(a) {}
+  SwishNodeOp(Expr a, float b = 1.f) : UnaryNodeOp(a), b_{b} {}
 
   NodeOps forwardOps() override {
     using namespace functional;
-    return {NodeOp(Element(_1 = _2 * sigmoid(_2), val_, child(0)->val()))};
+    return {NodeOp(Element(_1 = _2 * sigmoid(b_ * _2), val_, child(0)->val()))};
   }
 
   NodeOps backwardOps() override {
     using namespace functional;
-    // dJ/dx += dJ/df * ( f(x) + sigma(x) * (1 - f(x)) )
-    return {NodeOp(Add(_1 * (_3 + sigmoid(_2) * (1.f - _3)),
+    // dJ/dx += dJ/df * (b*f(x) + sigmoid(b*x) * (1 - b*f(x)))
+    return {NodeOp(Add(_1 * (b_ * _3 + sigmoid(b_ * _2) * (1.f - (b_ * _3))),
                        child(0)->grad(),  // dJ/dx
                        adj_,              // _1 := dJ/df
                        child(0)->val(),   // _2 := x
-                       val_               // _3 := f(x) = x*sigma(x)
+                       val_               // _3 := f(x) = x*sigmoid(b*x)
                        ))};
   }
 
   const std::string type() override { return "swish"; }
+
+  virtual size_t hash() override {
+    if(!hash_) {
+      hash_ = NaryNodeOp::hash();
+      util::hash_combine(hash_, b_);
+    }
+    return hash_;
+  }
+
+  virtual bool equal(Expr node) override {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    Ptr<SwishNodeOp> cnode = std::dynamic_pointer_cast<SwishNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(b_ != cnode->b_)
+      return false;
+    return true;
+  }
+
+  float b_;
 };
 
 struct SoftmaxNodeOp : public UnaryNodeOp {
@@ -412,83 +433,98 @@ struct LogSoftmaxNodeOp : public UnaryNodeOp {
   const std::string type() override { return "logsoftmax"; }
 };
 
-struct SumNodeOp : public UnaryNodeOp {
-  int axis_;
-
-  SumNodeOp(Expr a, int axis) : UnaryNodeOp(a, newShape(a, axis)) {}
-
-  NodeOps forwardOps() override {
-    using namespace functional;
-
-    return {NodeOp(Reduce(_1, val_, child(0)->val()))};
-  }
-
-  NodeOps backwardOps() override {
-    using namespace functional;
-    return {NodeOp(Add(_1, child(0)->grad(), adj_))};
-  }
-
-  Shape newShape(Expr a, int axis) {
-    Shape shape = a->shape();
-    axis_ = shape.axis(axis);
-
-    shape.set(axis_, 1);
-    return shape;
-  }
-
-  const std::string type() override { return "sum"; }
-
-  const std::string color() override { return "orange"; }
-
-  virtual size_t hash() override {
-    if(!hash_) {
-      hash_ = NaryNodeOp::hash();
-      util::hash_combine(hash_, axis_);
-    }
-    return hash_;
-  }
-
-  virtual bool equal(Expr node) override {
-    if(!NaryNodeOp::equal(node))
-      return false;
-    Ptr<SumNodeOp> cnode = std::dynamic_pointer_cast<SumNodeOp>(node);
-    if(!cnode)
-      return false;
-    if(axis_ != cnode->axis_)
-      return false;
-    return true;
-  }
+enum class ReduceNodeOpCode {
+  sum, mean, rms, meanSqr, min, max, prod, logSumExp
 };
 
-struct MeanNodeOp : public UnaryNodeOp {
+struct ReduceNodeOp : public UnaryNodeOp {
   int axis_;
+  ReduceNodeOpCode opCode_;
+  int reducedDim_; // dimension of axis being reduced, e.g. used in mean()
 
-  MeanNodeOp(Expr a, int axis) : UnaryNodeOp(a, newShape(a, axis)) {}
+  ReduceNodeOp(Expr a, int axis, ReduceNodeOpCode opCode)
+      : UnaryNodeOp(a, newShape(a, axis)), opCode_(opCode)
+  {
+    reducedDim_ = a->shape()[axis]; // e.g. used in mean()
+    ABORT_IF(reducedDim_ != a->shape().elements() / shape().elements(), "bug in determining reducedDim");
+  }
 
   NodeOps forwardOps() override {
     using namespace functional;
-    int left = child(0)->shape().elements() / val_->shape().elements();
-    float scale = 1.f / left;
 
-    return {NodeOp(Reduce(_1, scale, val_, child(0)->val()))};
+    switch (opCode_) {
+    case ReduceNodeOpCode::sum:
+      return {NodeOp(Reduce(_1, val_, child(0)->val()))};
+    case ReduceNodeOpCode::mean:
+      return {NodeOp(Reduce(_1, 1.0f / (float)reducedDim_, val_, child(0)->val()))};
+    case ReduceNodeOpCode::rms:
+      return {NodeOp(Reduce(_1 * _1, 1.0f / (float)reducedDim_, val_, child(0)->val());
+                     Element(_1 = sqrt(_1), val_))};
+    case ReduceNodeOpCode::meanSqr:
+      return {NodeOp(Reduce(_1 * _1, 1.0f / (float)reducedDim_, val_, child(0)->val()))};
+    case ReduceNodeOpCode::min:
+      return {NodeOp(Reduce(_1, min(_1,_2), std::numeric_limits<float>::max(), val_, child(0)->val()))};
+    case ReduceNodeOpCode::max:
+      return {NodeOp(Reduce(_1, max(_1,_2), std::numeric_limits<float>::lowest(), val_, child(0)->val()))};
+    case ReduceNodeOpCode::prod:
+      return {NodeOp(Reduce(_1, _1 * _2, 1.0f, val_, child(0)->val()))};
+    case ReduceNodeOpCode::logSumExp:
+      return {NodeOp(Reduce(_1, logaddexp(_1,_2), std::numeric_limits<float>::lowest(), val_, child(0)->val()))};
+    default:
+      ABORT("Unexpected reduction op-code {}", (int)opCode_);
+    }
   }
 
   NodeOps backwardOps() override {
     using namespace functional;
-    int left = child(0)->shape().elements() / val_->shape().elements();
-    float scale = 1.f / left;
-
-    return {NodeOp(Add(_1, scale, child(0)->grad(), adj_))};
+    switch (opCode_) {
+    case ReduceNodeOpCode::sum:
+      return {NodeOp(Add(_1, child(0)->grad(), adj_))};
+    case ReduceNodeOpCode::mean:
+      return {NodeOp(Add(_1, 1.0f / (float)reducedDim_, child(0)->grad(), adj_))};
+    case ReduceNodeOpCode::rms: // WARNING: UNTESTED!!
+      // y = (sum_j x_j^2)^0.5
+      // dJ/dx_i = dJ/dy * 0.5 (sum_j x_j^2)^-0.5 * 2 x_i = dJ/dy * x_i / y  --@REVIEW: is this correct?
+      // @TODO: do we need protection against div by 0? L'hospital rule?
+      return {NodeOp(Add(_1 * _2 / _3, child(0)->grad(), adj_, child(0)->val(), val_))};
+    case ReduceNodeOpCode::meanSqr: // WARNING: UNTESTED!!
+      // y = sum_j x_j^2
+      // dJ/dx_i = dJ/dy * sum_j dx_j^2/dx_i = dJ/dy * 2 dx_i  --@REVIEW: is this correct?
+      return {NodeOp(Add(_1 * 2.0f * _2, child(0)->grad(), adj_, child(0)->val()))};
+    case ReduceNodeOpCode::min:  // WARNING: UNTESTED!!
+    case ReduceNodeOpCode::max:  // WARNING: UNTESTED!!
+      // adj_ gets routed into the min/max value  --@REVIEW: is this correct?
+      return {NodeOp(Add((_1 == _2) * _3, child(0)->grad(), child(0)->val(), val_, adj_))};
+    case ReduceNodeOpCode::logSumExp:
+      // y = log(sum_j exp(x_j))
+       // dJ/dx_i = dJ/dy * 1/(sum_j exp(x_j)) exp(x_i) = dJ/dy * exp(x_i - y))  --@REVIEW: is this correct?
+      return {NodeOp(Add(_1 * exp(_2 - _3), child(0)->grad(), adj_, child(0)->val(), val_))};
+    default:
+      ABORT("Unexpected reduction op-code {}", (int)opCode_);
+    }
   }
 
   Shape newShape(Expr a, int axis) {
     Shape shape = a->shape();
     axis_ = shape.axis(axis);
+
     shape.set(axis_, 1);
     return shape;
   }
 
-  const std::string type() override { return "mean"; }
+  const std::string type() override {
+    switch (opCode_) {
+    case ReduceNodeOpCode::sum:       return "sum";
+    case ReduceNodeOpCode::mean:      return "mean";
+    case ReduceNodeOpCode::rms:       return "rms";
+    case ReduceNodeOpCode::meanSqr:   return "meanSqr";
+    case ReduceNodeOpCode::min:       return "min";
+    case ReduceNodeOpCode::max:       return "max";
+    case ReduceNodeOpCode::prod:      return "prod";
+    case ReduceNodeOpCode::logSumExp: return "logSumExp";
+    default: ABORT("Unexpected reduction op-code {}", (int)opCode_);
+    }
+  }
 
   const std::string color() override { return "orange"; }
 
@@ -496,6 +532,7 @@ struct MeanNodeOp : public UnaryNodeOp {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
       util::hash_combine(hash_, axis_);
+      util::hash_combine(hash_, (int)opCode_);
     }
     return hash_;
   }
@@ -503,10 +540,10 @@ struct MeanNodeOp : public UnaryNodeOp {
   virtual bool equal(Expr node) override {
     if(!NaryNodeOp::equal(node))
       return false;
-    Ptr<MeanNodeOp> cnode = std::dynamic_pointer_cast<MeanNodeOp>(node);
+    Ptr<ReduceNodeOp> cnode = std::dynamic_pointer_cast<ReduceNodeOp>(node);
     if(!cnode)
       return false;
-    if(axis_ != cnode->axis_)
+    if(axis_ != cnode->axis_ || opCode_ != cnode->opCode_)
       return false;
     return true;
   }
@@ -635,7 +672,6 @@ struct TransposeNodeOp : public UnaryNodeOp {
     return {NodeOp(TransposeNDGrad(child(0)->grad(), adj_, axesBw_))};
   }
 
-  template <class... Args>
   Shape newShape(Expr a, const std::vector<int>& axes) {
     Shape shape = a->shape();
 
@@ -680,8 +716,7 @@ private:
   Expr reshapee_;
 
 public:
-  template <typename... Args>
-  ReshapeNodeOp(Expr a, Shape shape) : UnaryNodeOp(a, shape), reshapee_(a) {
+  ReshapeNodeOp(Expr a, Shape shape) : UnaryNodeOp(a, shape, a->value_type()), reshapee_(a) {
     Node::destroy_ = false;
   }
 
@@ -700,14 +735,14 @@ public:
   Tensor& val() override {
     auto childVal = reshapee_->val();
     val_.reset(
-        new TensorBase(childVal->memory(), shape(), childVal->getBackend()));
+        new TensorBase(childVal->memory(), shape(), childVal->type(), childVal->getBackend()));
     return val_;
   };
 
   Tensor& grad() override {
     auto childGrad = reshapee_->grad();
     adj_.reset(
-        new TensorBase(childGrad->memory(), shape(), childGrad->getBackend()));
+        new TensorBase(childGrad->memory(), shape(), childGrad->type(), childGrad->getBackend()));
     return adj_;
   };
 
@@ -737,29 +772,36 @@ public:
   }
 };
 
-class StepNodeOp : public UnaryNodeOp {
+// narrow an axis to [begin, end)
+// The resulting object must be consecutive in memory.
+class SliceViewNodeOp : public UnaryNodeOp {
 private:
-  Expr stepNode_;
-  int step_;
-  int axis_;
+  Expr viewedNode_; // viewed underlying node
+  Slice slice_;     // index range
+  int axis_;        // and axis along which it is viewed
+  size_t byteOffset_, byteSize_; // viewed segment in bytes (memory-consecutive)
 
 public:
-  StepNodeOp(Expr a, int step, int axis)
-      : UnaryNodeOp(a, newShape(a, axis)), stepNode_(a), step_(step) {
+  SliceViewNodeOp(Expr a, int axis, Slice slice)
+      : UnaryNodeOp(a, newShape(a, axis, slice), a->value_type()), viewedNode_(a), slice_(slice), axis_(axis) {
     Node::destroy_ = false;
+    auto byteStride = a->shape().stride(axis) * sizeOf(value_type());
+    byteOffset_ = slice.begin * byteStride;
+    byteSize_ = shape()[axis] * byteStride;
   }
 
-  Shape newShape(Expr a, int axis) {
-    Shape outShape = a->shape();
-
-    axis_ = outShape.axis(axis);
-#if 0  // this check currently fails in translation; I think should not fail for
-       // step==0
-    for(int i = 0; i < axis_; ++i)
-      ABORT_IF(outShape[i] != 1, "non-consecutive slices are presently not supported by step()");
-#endif
-    outShape.set(axis_, 1);
-
+  static Shape newShape(Expr a, int& axis, Slice& slice) { // note: normalizes slice and axis in-place
+    const auto& shape = a->shape();
+    axis  = shape.axis(axis);         // normalize negative axis
+    slice = shape.slice(slice, axis); // normalize negative slice values
+    // enforce consecutive memory
+    if (slice.begin != 0 || slice.end != shape[axis] || slice.stride != 1) { // unless it's a no-op
+      ABORT_IF(slice.stride != 1, "Strides other than 1 are presently not supported by sliceView()");
+      for(int i = 0; i < axis; ++i)
+        ABORT_IF(shape[i] != 1, "Non-consecutive slices are presently not supported by sliceView()");
+    }
+    Shape outShape = shape;
+    outShape.set(axis, slice.end - slice.begin);
     return outShape;
   }
 
@@ -769,36 +811,34 @@ public:
   void forward() override {}
   void backward() override {}
 
-  void init_dependent() override { stepNode_->init_dependent(); }
+  void init_dependent() override { viewedNode_->init_dependent(); }
 
-  void set_zero_adjoint() override { stepNode_->set_zero_adjoint(); }
+  void set_zero_adjoint() override { viewedNode_->set_zero_adjoint(); } // lazily allocate and zero out gradient (only runs once)
 
   Tensor& val() override {
-    auto childVal = stepNode_->val();
-    size_t offset = step_ * shape().elements() * sizeof(float);
-    auto mem = New<MemoryPiece>(childVal->memory()->data() + offset,
-                                childVal->memory()->size());
-    val_.reset(new TensorBase(mem, shape(), childVal->getBackend()));
+    auto childVal = viewedNode_->val();
+    auto mem = New<MemoryPiece>(childVal->memory()->data() + byteOffset_, byteSize_);
+    val_.reset(new TensorBase(mem, shape(), childVal->type(), childVal->getBackend()));
     return val_;
   };
 
   Tensor& grad() override {
-    auto childGrad = stepNode_->grad();
-    size_t offset = step_ * shape().elements() * sizeof(float);
-    auto mem = New<MemoryPiece>(childGrad->memory()->data() + offset,
-                                childGrad->memory()->size());
-    adj_.reset(new TensorBase(mem, shape(), childGrad->getBackend()));
+    auto childGrad = viewedNode_->grad();
+    auto mem = New<MemoryPiece>(childGrad->memory()->data() + byteOffset_, byteSize_);
+    adj_.reset(new TensorBase(mem, shape(), childGrad->type(), childGrad->getBackend()));
     return adj_;
   };
 
-  const std::string type() override { return "step"; }
+  const std::string type() override { return "sliceView"; }
 
   const std::string color() override { return "grey"; }
 
   virtual size_t hash() override {
     if(!hash_) {
       hash_ = NaryNodeOp::hash();
-      util::hash_combine(hash_, step_);
+      util::hash_combine(hash_, slice_.begin);
+      util::hash_combine(hash_, slice_.end);
+      util::hash_combine(hash_, slice_.stride);
       util::hash_combine(hash_, axis_);
     }
     return hash_;
@@ -807,10 +847,10 @@ public:
   virtual bool equal(Expr node) override {
     if(!NaryNodeOp::equal(node))
       return false;
-    Ptr<StepNodeOp> cnode = std::dynamic_pointer_cast<StepNodeOp>(node);
+    Ptr<SliceViewNodeOp> cnode = std::dynamic_pointer_cast<SliceViewNodeOp>(node);
     if(!cnode)
       return false;
-    if(step_ != cnode->step_)
+    if(slice_ != cnode->slice_)
       return false;
     if(axis_ != cnode->axis_)
       return false;

@@ -16,7 +16,7 @@
 namespace marian {
 
 class DefaultVocab : public VocabBase {
-private:
+protected:
   typedef std::map<std::string, Word> Str2Id;
   Str2Id str2id_;
 
@@ -36,7 +36,7 @@ private:
     VocabFreqOrderer(const std::unordered_map<std::string, size_t>& counter)
             : counter_(counter) {}
 
-    // order first by decreasing frequency, 
+    // order first by decreasing frequency,
     // if frequencies are the same order lexicographically by vocabulary string
     bool operator()(const std::string& a, const std::string& b) const {
       return counter_.at(a) > counter_.at(b) || (counter_.at(a) == counter_.at(b) && a < b);
@@ -56,8 +56,7 @@ public:
   }
 
   Words encode(const std::string& line, bool addEOS, bool /*inference*/) const override {
-    std::vector<std::string> lineTokens;
-    utils::split(line, lineTokens, " ");
+    auto lineTokens = utils::split(line, " ");
     return (*this)(lineTokens, addEOS);
   }
 
@@ -74,7 +73,7 @@ public:
 
 
   const std::string& operator[](Word id) const override {
-    ABORT_IF(id >= id2str_.size(), "Unknown word id: ", id);
+    ABORT_IF(id >= id2str_.size(), "Unknown word id: {}", id);
     return id2str_[id];
   }
 
@@ -107,12 +106,12 @@ public:
         ABORT_IF(line.empty(),
                 "DefaultVocabulary file {} must not contain empty lines",
                 vocabPath);
-        vocab.insert({line, (Word)vocab.size()});
+        auto wasInserted = vocab.insert({line, (Word)vocab.size()}).second;
+        ABORT_IF(!wasInserted, "Duplicate vocabulary entry {}", line);
+
       }
       ABORT_IF(in.bad(), "DefaultVocabulary file {} could not be read", vocabPath);
     }
-
-    std::unordered_set<Word> seenSpecial;
 
     id2str_.reserve(vocab.size());
     for(auto&& pair : vocab) {
@@ -126,6 +125,49 @@ public:
     }
     ABORT_IF(id2str_.empty(), "Empty vocabulary: ", vocabPath);
 
+    addRequiredVocabulary(vocabPath, isJson);
+
+    return std::max(id2str_.size(), maxSize);
+  }
+
+  // for fakeBatch()
+  virtual void createFake() override {
+    eosId_ = insertWord(DEFAULT_EOS_ID, DEFAULT_EOS_STR);
+    unkId_ = insertWord(DEFAULT_UNK_ID, DEFAULT_UNK_STR);
+  }
+
+  virtual void create(const std::string& vocabPath,
+                      const std::vector<std::string>& trainPaths,
+                      size_t maxSize = 0) override {
+
+    LOG(info, "[data] Creating vocabulary {} from {}",
+              vocabPath,
+              utils::join(trainPaths, ", "));
+
+    if(vocabPath != "stdout") {
+      filesystem::Path path(vocabPath);
+      auto dir = path.parentPath();
+      if(dir.empty())
+        dir = filesystem::currentPath();
+
+      ABORT_IF(!dir.empty() && !filesystem::isDirectory(dir),
+              "Specified vocab directory {} does not exist",
+              dir.string());
+
+      ABORT_IF(filesystem::exists(vocabPath),
+              "Vocabulary file '{}' exists. Not overwriting",
+              path.string());
+    }
+
+    std::unordered_map<std::string, size_t> counter;
+    for(const auto& trainPath : trainPaths)
+      addCounts(counter, trainPath);
+    create(vocabPath, counter, maxSize);
+  }
+
+private:
+
+  virtual void addRequiredVocabulary(const std::string& vocabPath, bool isJson) {
     // look up ids for </s> and <unk>, which are required
     // The name backCompatStr is alternatively accepted for Yaml vocabs if id
     // equals backCompatId.
@@ -156,63 +198,7 @@ public:
     };
     eosId_ = getRequiredWordId(DEFAULT_EOS_STR, NEMATUS_EOS_STR, DEFAULT_EOS_ID);
     unkId_ = getRequiredWordId(DEFAULT_UNK_STR, NEMATUS_UNK_STR, DEFAULT_UNK_ID);
-
-    // some special symbols for hard attention
-    if(!seenSpecial.empty()) {
-      auto requireWord = [&](Word id, const std::string& str) {
-        auto iter = str2id_.find(str);
-        // word already in vocab: must be at right index, else fail
-        if(iter != str2id_.end())
-          ABORT_IF(iter->second != id,
-                  "special vocabulary entry '{}' is expected to have id {}",
-                  str,
-                  id);
-        else
-          insertWord(id, str);
-      };
-      // @TODO: the hard-att code has not yet been updated to accept EOS at any id
-      requireWord(DEFAULT_EOS_ID, DEFAULT_EOS_STR);
-    }
-
-    return std::max(id2str_.size(), maxSize);
   }
-
-  // for fakeBatch()
-  void createFake() override {
-    eosId_ = insertWord(DEFAULT_EOS_ID, DEFAULT_EOS_STR);
-    unkId_ = insertWord(DEFAULT_UNK_ID, DEFAULT_UNK_STR);
-  }
-
-  virtual void create(const std::string& vocabPath,
-                      const std::vector<std::string>& trainPaths,
-                      size_t maxSize = 0) override {
-
-    LOG(info, "[data] Creating vocabulary {} from {}",
-              vocabPath,
-              utils::join(trainPaths, ", "));
-
-    if(vocabPath != "stdout") {
-      filesystem::Path path(vocabPath);
-      auto dir = path.parentPath();
-      if(dir.empty())
-        dir = filesystem::currentPath();
-
-      ABORT_IF(!dir.empty() && !filesystem::isDirectory(dir),
-              "Specified vocab directory {} does not exist",
-              dir.string());
-
-      ABORT_IF(filesystem::exists(vocabPath),
-              "Vocabulary file '{}' exists. Not overwriting",
-              path.string());
-    }
-    
-    std::unordered_map<std::string, size_t> counter;
-    for(const auto& trainPath : trainPaths)
-      addCounts(counter, trainPath);
-    create(vocabPath, counter, maxSize);
-  }
-
-private:
 
   void addCounts(std::unordered_map<std::string, size_t>& counter,
                  const std::string& trainPath) {
@@ -223,8 +209,7 @@ private:
 
     std::string line;
     while(getline(*trainStrm, line)) {
-      std::vector<std::string> toks;
-      utils::split(line, toks, " ");
+      auto toks = utils::split(line, " ");
 
       for(const std::string& tok : toks) {
         auto iter = counter.find(tok);
@@ -236,9 +221,9 @@ private:
     }
   }
 
-  void create(const std::string& vocabPath,
-              const std::unordered_map<std::string, size_t>& counter,
-              size_t maxSize = 0) {
+  virtual void create(const std::string& vocabPath,
+                      const std::unordered_map<std::string, size_t>& counter,
+                      size_t maxSize = 0) {
 
     std::vector<std::string> vocabVec;
     for(auto& p : counter)
@@ -298,8 +283,45 @@ private:
   };
 };
 
+// This is a vocabulary class that does not enforce </s> or <unk>.
+// This is used for class lists in a classifier.
+class ClassVocab : public DefaultVocab {
+private:
+  // Do nothing.
+  virtual void addRequiredVocabulary(const std::string& vocabPath, bool isJson) override { vocabPath; isJson; }
+
+  // Not adding special class labels, only seen classes.
+  virtual void create(const std::string& vocabPath,
+                      const std::unordered_map<std::string, size_t>& counter,
+                      size_t maxSize = 0) override {
+
+    std::vector<std::string> vocabVec;
+    for(auto& p : counter)
+      vocabVec.push_back(p.first);
+    std::sort(vocabVec.begin(), vocabVec.end(), VocabFreqOrderer(counter));
+
+    ABORT_IF(maxSize != 0 && vocabVec.size() != maxSize,
+             "Class vocab maxSize given ({}) has to match class vocab size ({})",
+             maxSize, vocabVec.size());
+
+    YAML::Node vocabYaml;
+    for(size_t i = 0; i < vocabVec.size(); ++i)
+      vocabYaml.force_insert(vocabVec[i], i);
+
+    std::unique_ptr<io::OutputFileStream> vocabStrm(
+      vocabPath == "stdout" ? new io::OutputFileStream(std::cout)
+                            : new io::OutputFileStream(vocabPath)
+    );
+    *vocabStrm << vocabYaml;
+  }
+};
+
 Ptr<VocabBase> createDefaultVocab() {
   return New<DefaultVocab>();
+}
+
+Ptr<VocabBase> createClassVocab() {
+  return New<ClassVocab>();
 }
 
 }

@@ -63,8 +63,8 @@ public:
 
     std::vector<size_t> sentenceIds;
 
-    std::vector<int> maxDims;
-    for(auto& ex : batchVector) {
+    std::vector<int> maxDims;       // @TODO: What's this? widths? maxLengths?
+    for(auto& ex : batchVector) {   // @TODO: rename 'ex' to 'sample' or 'sentenceTuple'
       if(maxDims.size() < ex.size())
         maxDims.resize(ex.size(), 0);
       for(size_t i = 0; i < ex.size(); ++i) {
@@ -98,7 +98,7 @@ public:
 
     if(options_->get("guided-alignment", std::string("none")) != "none" && alignFileIdx_)
       addAlignmentsToBatch(batch, batchVector);
-    if(options_->has("data-weighting") && weightFileIdx_)
+    if(options_->hasAndNotEmpty("data-weighting") && weightFileIdx_)
       addWeightsToBatch(batch, batchVector);
 
     return batch;

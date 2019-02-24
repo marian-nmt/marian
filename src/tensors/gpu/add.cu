@@ -1,8 +1,3 @@
-/* All or part of this file was contributed by Intel under license:
- *   Copyright (C) 2017-2018 Intel Corporation
- *   SPDX-License-Identifier: MIT
- */
-
 #include "tensors/gpu/add.h"
 
 #include "tensors/gpu/cuda_helpers.h"
@@ -16,8 +11,8 @@ namespace marian {
 
 namespace gpu {
 
-template <size_t K, class Functor>
-__global__ void gAddGeneric(Functor functor,
+template <size_t K, class Functor, class AggFunctor>
+__global__ void gAggregateGeneric(Functor functor, float aggInit, AggFunctor aggFunctor,
                             const functional::Shape full,
                             functional::Tensor<float> out,
                             functional::Array<functional::Tensor<float>, K> ins,
@@ -37,17 +32,17 @@ __global__ void gAddGeneric(Functor functor,
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < outLength) {
       if(same) {
-        out[index] += functional::apply(functor, ins, index) * scale;
+        out[index] = aggFunctor(out[index], functional::apply(functor, ins, index) * scale);
       } else {
         out.shape().dims(index, dims);
-        out[index] += functional::loops(functor, ins, len, dims) * scale;
+        out[index] = aggFunctor(out[index], functional::loops(functor, aggInit, aggFunctor, ins, len, dims) * scale);
       }
     }
   }
 }
 
-template <size_t K, class Functor>
-__global__ void gAddEqual(Functor functor,
+template <size_t K, class Functor, class AggFunctor>
+__global__ void gAggregateEqual(Functor functor, AggFunctor aggFunctor,
                           functional::Tensor<float> out,
                           functional::Array<functional::Tensor<float>, K> ins,
                           float scale,
@@ -67,13 +62,13 @@ __global__ void gAddEqual(Functor functor,
           indices[i] = ins[i].shape().bindex(dims);
       }
 
-      out[index] += functional::apply(functor, ins, indices) * scale;
+      out[index] = aggFunctor(out[index], functional::apply(functor, ins, indices) * scale);
     }
   }
 }
 
-template <size_t K, class Functor>
-__global__ void gAddReduce(Functor functor,
+template <size_t K, class Functor, class AggFunctor>
+__global__ void gAggregateReduce(Functor functor, float aggInit, AggFunctor aggFunctor,
                            const functional::Shape full,
                            functional::Tensor<float> out,
                            functional::Array<functional::Tensor<float>, K> ins,
@@ -89,18 +84,18 @@ __global__ void gAddReduce(Functor functor,
     int j = bid + blockIdx.x;
     if(j < rows) {
       extern __shared__ float _share[];
-      float* _sum = _share + blockDim.x;
+      float* _sum = _share;
 
       if(same) {
-        _sum[threadIdx.x] = 0;
+        _sum[threadIdx.x] = aggInit;
         for(int tid = 0; tid < cols; tid += blockDim.x) {
           int id = tid + threadIdx.x;
           if(id < cols)
-            _sum[threadIdx.x] += functional::apply(functor, ins, j * cols + id);
+            _sum[threadIdx.x] = aggFunctor(_sum[threadIdx.x], functional::apply(functor, ins, j * cols + id));
         }
       } else {
         functional::Array<int, functional::Shape::size()> dims;
-        _sum[threadIdx.x] = 0;
+        _sum[threadIdx.x] = aggInit;
 
         for(int tid = 0; tid < cols; tid += blockDim.x) {
           int id = tid + threadIdx.x;
@@ -109,7 +104,7 @@ __global__ void gAddReduce(Functor functor,
             functional::Array<int, K> indices;
             for(int i = 0; i < K; ++i)
               indices[i] = ins[i].shape().bindex(dims);
-            _sum[threadIdx.x] += functional::apply(functor, ins, indices);
+            _sum[threadIdx.x] = aggFunctor(_sum[threadIdx.x], functional::apply(functor, ins, indices));
           }
         }
       }
@@ -119,18 +114,19 @@ __global__ void gAddReduce(Functor functor,
         __syncthreads();
         int skip = (len + 1) >> 1;
         if(threadIdx.x < (len >> 1)) {
-          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+          _sum[threadIdx.x] = aggFunctor(_sum[threadIdx.x], _sum[threadIdx.x + skip]);
         }
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      out[j] += _sum[0] * scale;
+      out[j] = aggFunctor(out[j], _sum[0] * scale);
     }
+    __syncthreads();
   }
 }
 
-template <class Functor, class... Tensors>
-void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
+template <class Functor, class AggFunctor, class... Tensors>
+void Aggregate(Functor functor, float aggInit, AggFunctor aggFunctor, float scale, marian::Tensor out, Tensors... tensors) {
   cudaSetDevice(out->getDeviceId().no);
 
   auto full = marian::Shape::broadcast({out, tensors...});
@@ -148,9 +144,9 @@ void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
 
     int blocks = std::min(MAX_BLOCKS, (int)m);
     int threads = std::min(MAX_THREADS, (int)k);
-    int shared = sizeof(float) * threads * 2;
+    int shared = sizeof(float) * threads;
 
-    gAddReduce<<<blocks, threads, shared>>>(functor, full, gOut, gIns, scale);
+    gAggregateReduce<<<blocks, threads, shared>>>(functor, aggInit, aggFunctor, full, gOut, gIns, scale);
 
   } else if(out->shape() == full) {
     int threads = std::min(MAX_THREADS, length);
@@ -160,13 +156,57 @@ void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
     bool broadcast = false;
     for(int i = 0; i < K; ++i)
       broadcast = broadcast || gOut.shape() != gIns[i].shape();
-    gAddEqual<<<blocks, threads>>>(functor, gOut, gIns, scale, broadcast);
+    gAggregateEqual<<<blocks, threads>>>(functor, aggFunctor, gOut, gIns, scale, broadcast);
   } else {
     int threads = std::min(MAX_THREADS, length);
     int blocks
         = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
-    gAddGeneric<<<blocks, threads>>>(functor, full, gOut, gIns, scale);
+    gAggregateGeneric<<<blocks, threads>>>(functor, aggInit, aggFunctor, full, gOut, gIns, scale);
+  }
+}
+
+// @TODO: this is a duplicate; can be removed, but need to redo all the add.inc entries...
+template <class Functor, class... Tensors>
+void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
+  cudaSetDevice(out->getDeviceId().no);
+
+  auto full = marian::Shape::broadcast({out, tensors...});
+
+  int length = out->shape().elements();
+
+  constexpr size_t K = sizeof...(Tensors);
+
+  functional::Tensor<float> gOut = out;
+  functional::Array<functional::Tensor<float>, K> gIns = {tensors...};
+
+  auto addFunctor = functional::_1 + functional::_2;
+
+  if(full.back() != 1 && out->shape().back() == 1) {
+    size_t m = full.elements() / length;
+    size_t k = full.back();
+
+    int blocks = std::min(MAX_BLOCKS, (int)m);
+    int threads = std::min(MAX_THREADS, (int)k);
+    int shared = sizeof(float) * threads;
+
+    gAggregateReduce<<<blocks, threads, shared>>>(functor, 0, addFunctor, full, gOut, gIns, scale);
+
+  } else if(out->shape() == full) {
+    int threads = std::min(MAX_THREADS, length);
+    int blocks
+        = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
+
+    bool broadcast = false;
+    for(int i = 0; i < K; ++i)
+      broadcast = broadcast || gOut.shape() != gIns[i].shape();
+    gAggregateEqual<<<blocks, threads>>>(functor, addFunctor, gOut, gIns, scale, broadcast);
+  } else {
+    int threads = std::min(MAX_THREADS, length);
+    int blocks
+        = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
+
+    gAggregateGeneric<<<blocks, threads>>>(functor, 0, addFunctor, full, gOut, gIns, scale);
   }
 }
 

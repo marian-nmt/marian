@@ -47,7 +47,7 @@ public:
   /**
    * @brief Adds a new sentence at the end of the tuple.
    *
-   * @param words A vector of word indexes.
+   * @param words A vector of word indices.
    */
   void push_back(const Words& words) { tuple_.push_back(words); }
 
@@ -164,48 +164,51 @@ public:
    */
   size_t batchWidth() { return width_; };
   /**
-   * @brief The total number of words in the batch, considering the mask.
+   * @brief The total number of words in the batch (not counting masked-out words).
    */
   size_t batchWords() { return words_; }
 
   /**
-   * @brief Splits the subbatch into subbatches of equal size.
+   * @brief Splits the stream into sub-batches of equal size (except for last).
    *
-   * @param n Number of splits
+   * @param n number of sub-batches to split into
    *
-   * @return Vector of pointers to new subbatches.
+   * @param sizeLimit Pretend the batch only has this many sentences. Used for MB-size ramp-up.
+   *
+   * @return Vector of pointers to new sub-batches (or nullptrs where run out of sub-batches)
    *
    * @see marian::data::Batch::split(size_t n)
    */
-  std::vector<Ptr<SubBatch>> split(size_t n) {
-    ABORT_IF(size_ == 0, "Encoutered sub-batch size of 0");
+  std::vector<Ptr<SubBatch>> split(size_t n, size_t sizeLimit /*or SIZE_MAX*/) {
+    ABORT_IF(size_ == 0, "Encountered sub-batch size of 0");
 
-    size_t subSize = (size_t)(std::ceil(size_ / (float)n));
+    auto size = std::min(size_, sizeLimit); // if limit is given then pretend the batch only has that many sentences
+    size_t targetSubSize = (size_t)(std::ceil(size / (float)n)); // aim at forming sub-batches of this #sentences
 
     std::vector<Ptr<SubBatch>> splits;
-    for(size_t pos = 0; pos < size_; pos += subSize) {
-      size_t size = std::min(subSize, size_ - pos);
+    for(size_t pos = 0; pos < size; pos += targetSubSize) { // loop over ranges of size targetSubSize to form sub-batches of this size
+      size_t subSize = std::min(targetSubSize, size - pos); // actual number of sentences can be smaller at the end
 
-      // determine actual width
+      // determine actual width (=max length) of this sub-batch, which may be smaller than the overall max length
       size_t subWidth = 0;
       for(size_t j = 0; j < width_; ++j) {
-        for(size_t i = 0; i < size; ++i) {
+        for(size_t i = 0; i < subSize; ++i) {
           if(mask_[j * size_ + (pos + i)] != 0)
             if (subWidth < j + 1)
               subWidth = j + 1;
         }
       }
       //if (subWidth < width_)
-      //  LOG(info, "[data] sub-batch {} of {} wide batch has effective width of {}", pos / subSize, width_, subWidth);
+      //  LOG(info, "[data] sub-batch {} of {} wide batch has effective width of {}", pos / targetSize, width_, subWidth);
 
       // create sub-batch
-      auto sb = New<SubBatch>(size, subWidth, vocab_);
+      auto sb = New<SubBatch>(subSize, subWidth, vocab_);
 
       size_t words = 0;
       for(size_t j = 0; j < subWidth; ++j) {
-        for(size_t i = 0; i < size; ++i) {
-          sb->data()[j * size + i] = indices_[j * size_ + (pos + i)];
-          sb->mask()[j * size + i] =    mask_[j * size_ + (pos + i)];
+        for(size_t i = 0; i < subSize; ++i) {
+          sb->data()[j * subSize + i] = indices_[j * size_ + (pos + i)];
+          sb->mask()[j * subSize + i] =    mask_[j * size_ + (pos + i)];
 
           if(mask_[j * size_ + (pos + i)] != 0)
             words++;
@@ -226,7 +229,7 @@ public:
  * such as guided alignments and sentence or word-leve weighting.
  */
 class CorpusBatch : public Batch {
-private:
+protected:
   std::vector<Ptr<SubBatch>> subBatches_;
   std::vector<float> guidedAlignment_;
   std::vector<float> dataWeights_;
@@ -263,8 +266,8 @@ public:
   size_t size() const override { return subBatches_[0]->batchSize(); }
 
   /**
-   * @brief The total number of words for the longest sentence in the batch plus
-   * one. Pass which=0 for source and -1 for target.
+   * @brief The total number of words in the batch (not counting masked-out words).
+   * Pass which=0 for source words and -1 for target words.
    */
   size_t words(int which = 0) const override {
     return subBatches_[which >= 0 ? which
@@ -307,21 +310,22 @@ public:
    *
    * @return Fake batch of the same size as the real batch.
    */
-  static Ptr<CorpusBatch> fakeBatch(std::vector<size_t>& lengths,
+  static Ptr<CorpusBatch> fakeBatch(const std::vector<size_t>& lengths,
+                                    const std::vector<Ptr<Vocab>>& vocabs,
                                     size_t batchSize,
                                     Ptr<Options> options) {
     std::vector<Ptr<SubBatch>> batches;
 
-    size_t idx = 0;
+    size_t batchIndex = 0;
     for(auto len : lengths) {
-      auto vocab = New<Vocab>(options, 0);
-      vocab->createFake();
-      // data: gets initialized to 0. No EOS symbol is distinguished.
-      auto sb = New<SubBatch>(batchSize, len, vocab);
+      auto sb = New<SubBatch>(batchSize, len, vocabs[batchIndex]);
       // set word indices to different values to avoid same hashes
-      std::fill(sb->data().begin(), sb->data().end(), (unsigned int)idx++);
+      // rand() is OK, this does not affect state in any way
+      std::transform(sb->data().begin(), sb->data().end(), sb->data().begin(),
+                     [&](Word) -> Word { return rand() % vocabs[batchIndex]->size(); });
       // mask: no items ask being masked out
       std::fill(sb->mask().begin(), sb->mask().end(), 1.f);
+      batchIndex++;
 
       batches.push_back(sb);
     }
@@ -337,7 +341,7 @@ public:
       batch->setGuidedAlignment(std::move(alignment));
     }
 
-    if(options->has("data-weighting")) {
+    if(options->hasAndNotEmpty("data-weighting")) {
       auto weightsSize = batchSize;
       if(options->get<std::string>("data-weighting-type") != "sentence")
         weightsSize *= lengths.back();
@@ -349,25 +353,27 @@ public:
   }
 
   /**
-   * @brief Splits the batch into batches of equal size.
+   * @brief Splits the batch into batches of equal size (except for last).
    *
-   * @param n number of splits
+   * @param n number of sub-batches to split into
    *
-   * @return Vector of pointers to new batches.
+   * @param sizeLimit Clip batch content to the first sizeLimit sentences in the batch
+   *
+   * @return Vector of pointers to new sub-batches (or nullptrs where run out of sub-batches)
    *
    * @see marian::data::SubBatch::split(size_t n)
    */
-  std::vector<Ptr<Batch>> split(size_t n) override {
+  std::vector<Ptr<Batch>> split(size_t n, size_t sizeLimit /*=SIZE_MAX*/) override {
     ABORT_IF(size() == 0, "Encoutered batch size of 0");
 
-    std::vector<std::vector<Ptr<SubBatch>>> subs;
-    // split each subbatch separately
-    for(auto subBatch : subBatches_) {
-      size_t i = 0;
-      for(auto splitSubBatch : subBatch->split(n)) {
+    std::vector<std::vector<Ptr<SubBatch>>> subs; // [subBatchIndex][streamIndex]
+    // split each stream separately
+    for(auto batchStream : subBatches_) {
+      size_t i = 0; // index into split batch
+      for(auto splitSubBatch : batchStream->split(n, sizeLimit)) {
         if(subs.size() <= i)
           subs.resize(i + 1);
-        subs[i++].push_back(splitSubBatch);
+        subs[i++].push_back(splitSubBatch); // this forms tuples across streams
       }
     }
 
@@ -460,7 +466,7 @@ public:
     std::cerr << "batches: " << sets() << std::endl;
 
     if(!sentenceIds_.empty()) {
-      std::cerr << "indexes: ";
+      std::cerr << "indices: ";
       for(auto id : sentenceIds_)
         std::cerr << id << " ";
       std::cerr << std::endl;
@@ -513,6 +519,13 @@ protected:
   std::vector<UPtr<io::InputFileStream>> files_;
   std::vector<Ptr<Vocab>> vocabs_;
 
+  /**
+   * brief Determines if a EOS symbol should be added. By default this is true for any sequence,
+   * but should be false for instance for classifier labels. This is set per input stream, hence a
+   * vector.
+   */
+  std::vector<bool> addEOS_;
+
   size_t pos_{0};
 
   size_t maxLength_{0};
@@ -532,11 +545,16 @@ protected:
   size_t alignFileIdx_{0};
 
   /**
+   * @brief Determine if EOS symbol should be added to input
+   */
+  void initEOS(bool training);
+
+  /**
    * @brief Helper function converting a line of text into words using the i-th
    * vocabulary and adding them to the sentence tuple.
    */
   void addWordsToSentenceTuple(const std::string& line,
-                               size_t i,
+                               size_t batchIndex,
                                SentenceTuple& tup) const;
   /**
    * @brief Helper function parsing a line with word alignments and adding them

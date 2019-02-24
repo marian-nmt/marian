@@ -14,6 +14,10 @@ namespace marian {
 
 namespace cpu {
 
+void IsNan(const Tensor in, Ptr<Allocator> allocator, bool& isNan, bool& isInf, bool zero) {
+  ABORT("Not implemented");
+}
+
 inline float stableSigmoid(float x) {
   if(x >= 0) {
     float z = expf(-x);
@@ -394,7 +398,7 @@ void CopyRows(Tensor out_,
   for(size_t j = 0; j < rows; ++j) {
     size_t dst = j;
 
-    // @TODO: consider moving type checking to this function 
+    // @TODO: consider moving type checking to this function
     // instead of matchOrAbort above
     size_t src = (size_t)indices->data<IndexType>()[j];
 
@@ -494,7 +498,7 @@ void Select(Tensor out,
 
   functional::Array<int, functional::Shape::size()> dims;
   int axisCPU = (int)(axis + functional::Shape::size() - out->shape().size());
-  
+
   for(int index = 0; index < length; ++index) {
     outShape.dims(index, dims);
     dims[axisCPU] = (int)indices->data<IndexType>()[dims[axisCPU]];
@@ -661,57 +665,52 @@ void GRUFastBackward(std::vector<Tensor> outputs,
   }
 }
 
-void CrossEntropyPick(Tensor out_, Tensor in_, Tensor pick_) {
-  matchOrAbort<IndexType>(pick_->type());
+void CrossEntropyPick(Tensor out, Tensor in, Tensor labelIndices) {
+  matchOrAbort<IndexType>(labelIndices->type());
 
-  float* out = out_->data();
   // Shape& outShape = out_->shape();
-  const float* in = in_->data();
-  Shape& inShape = in_->shape();
+  Shape& inShape = in->shape();
 
   int rows = inShape.elements() / inShape.back();
   int cols = inShape.back();
 
-#pragma omp parallel for
+  #pragma omp parallel for
   for(int j = 0; j < rows; ++j) {
-    const float* sp = in + j * cols;
+    const float* sp = in->data() + j * cols;
     float max = sp[0];
-#pragma omp simd reduction(max : max)
+    #pragma omp simd reduction(max : max)
     for(int i = 1; i < cols; ++i) {
       max = std::max(max, sp[i]);
     }
 
     float sum = 0.f;
-#pragma omp simd reduction(+ : sum)
+    #pragma omp simd reduction(+ : sum)
     for(int i = 0; i < cols; ++i) {
       sum += std::exp(sp[i] - max);
     }
 
-    // cross-entropy
-    int i = (int)pick_->data<IndexType>()[j];
+    // Groundtruth label index
+    IndexType i = labelIndices->data<IndexType>()[j];
     // This appears to be safe i.e. that i >= 0 && i < cols is known
-    out[j] = std::log(sum) - sp[i] + max;
+    out->data()[j] = std::log(sum) - sp[i] + max;
   }
 }
 
-void CrossEntropyPickBackward(Tensor out_,
-                              Tensor adj_,
-                              Tensor a,
-                              Tensor pick_) {
+void CrossEntropyPickBackward(Tensor out,
+                              Tensor adj,
+                              Tensor in,
+                              Tensor labelIndices) {
 
-  matchOrAbort<IndexType>(pick_->type());
-  float* out = out_->data();
-  Shape& outShape = out_->shape();
-  const float* adj = adj_->data();
-  const float* in = a->data();
+  matchOrAbort<IndexType>(labelIndices->type());
+  Shape& outShape = out->shape();
 
   int rows = outShape.elements() / outShape.back();
   int cols = outShape.back();
 
 #pragma omp parallel for
   for(int j = 0; j < rows; ++j) {
-    const float* sp = in + j * cols;
-    float* so = out + j * cols;
+    const float* sp = in->data() + j * cols;
+    float* so = out->data() + j * cols;
 
     float max = sp[0];
     for(int i = 1; i < cols; ++i) {
@@ -725,8 +724,8 @@ void CrossEntropyPickBackward(Tensor out_,
 
     // cross-entropy
     for(int i = 0; i < cols; ++i) {
-      float sub = (float)(i == (int)pick_->data<IndexType>()[j]);
-      so[i] += adj[j] * (std::exp(sp[i] - max) / sum - sub);
+      float sub = (float)(i == (int)labelIndices->data<IndexType>()[j]); // delta, true if label index and column index match
+      so[i] += adj->data()[j] * (std::exp(sp[i] - max) / sum - sub);
     }
   }
 }

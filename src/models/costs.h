@@ -5,17 +5,26 @@
 #include "layers/loss.h"
 #include "layers/weight.h"
 #include "models/encoder_decoder.h"
+#include "models/encoder_classifier.h"
 
 namespace marian {
 namespace models {
 
+// @TODO: this whole file is an unholy mess and needs to be refactored.
+// Using MultiRationalLoss is a first improvement, but we can probably
+// unify classifier and decoder costs. Also rethink step-wise cost.
+
+// @TODO: inheritance and polymorphism is used here in a rather unclear way.
+// E.g. returns Ptr<MultiRationalLoss> which should be Ptr<RationalLoss>?
+// Other functions return RationalLoss directly without Ptr<...>, but also
+// they do not need polymorphism here.
+
 class CostBase {
 public:
-  virtual Expr apply(Ptr<ModelBase> model,
-                     Ptr<ExpressionGraph> graph,
-                     Ptr<data::Batch> batch,
-                     bool clearGraph = true)
-      = 0;
+  virtual Ptr<MultiRationalLoss> apply(Ptr<ModelBase> model,
+                                       Ptr<ExpressionGraph> graph,
+                                       Ptr<data::Batch> batch,
+                                       bool clearGraph = true) = 0;
 };
 
 class EncoderDecoderCE : public CostBase {
@@ -24,23 +33,25 @@ protected:
 
   bool inference_{false};
   bool toBeWeighted_{false};
-  Ptr<LossBase> loss_;
+
+  // @TODO: single loss seems wrong
+  Ptr<LabelwiseLoss> loss_;
   Ptr<WeightingBase> weighter_;
 
 public:
   EncoderDecoderCE(Ptr<Options> options)
       : options_(options), inference_(options->get<bool>("inference", false)) {
-    loss_ = LossFactory(options_, inference_);
+    loss_ = newLoss(options_, inference_);
 
     toBeWeighted_
-        = (options_->has("data-weighting") && !inference_)
-          || (options_->has("dynamic-weighting")
-              && options_->get<bool>("dynamic-weighting") && !inference_);
+        = (options_->hasAndNotEmpty("data-weighting") && !inference_)
+          || (options_->has("dynamic-weighting") && options_->get<bool>("dynamic-weighting")
+              && !inference_);
     if(toBeWeighted_)
       weighter_ = WeightingFactory(options_);
   }
 
-  Expr apply(Ptr<ModelBase> model,
+  Ptr<MultiRationalLoss> apply(Ptr<ModelBase> model,
              Ptr<ExpressionGraph> graph,
              Ptr<data::Batch> batch,
              bool clearGraph = true) override {
@@ -53,22 +64,66 @@ public:
     if(toBeWeighted_)
       weights = weighter_->getWeights(graph, corpusBatch);
 
-    Expr cost;
-    cost = loss_->getCost(state->getLogProbs(),
-                          state->getTargetIndices(),
-                          state->getTargetMask(),
-                          weights);
+    // multi-objective training
+    Ptr<MultiRationalLoss> multiLoss = newMultiLoss(options_);
+
+    // @TODO: adapt to multi-objective training with multiple decoders
+    auto partialLoss = loss_->apply(state->getLogProbs(),
+                                    state->getTargetIndices(),
+                                    state->getTargetMask(),
+                                    weights);
+    multiLoss->push_back(partialLoss);
 
     if(options_->get("guided-alignment", std::string("none")) != "none" && !inference_) {
-      auto alignments = encdec->getDecoders()[0]->getAlignments();
-      ABORT_IF(alignments.empty(), "Model does not seem to support alignments");
+      auto attentionVectors = encdec->getDecoders()[0]->getAlignments();
+      ABORT_IF(attentionVectors.empty(), "Model does not seem to support alignments");
 
-      auto att = concatenate(alignments, /*axis =*/ -1);
+      auto attention = concatenate(attentionVectors, /*axis =*/ -1);
 
-      return cost + guidedAlignmentCost(graph, corpusBatch, options_, att);
-    } else {
-      return cost;
+      auto alignmentLoss = guidedAlignmentCost(graph, corpusBatch, options_, attention);
+      multiLoss->push_back(alignmentLoss);
     }
+
+    return multiLoss;
+  }
+};
+
+// Wraps an EncoderClassifier so it can produce a cost from raw logits. @TODO: Needs refactoring
+class EncoderClassifierCE : public CostBase {
+protected:
+  Ptr<Options> options_;
+  bool inference_{false};
+
+  // @TODO: single loss seems wrong, especially since we support multiple objectives here,
+  // also not sure this needs to be a member at all.
+  Ptr<LabelwiseLoss> loss_;
+
+public:
+  EncoderClassifierCE(Ptr<Options> options)
+      : options_(options), inference_(options->get<bool>("inference", false)) {
+    loss_ = newLoss(options_, inference_);
+  }
+
+  Ptr<MultiRationalLoss> apply(Ptr<ModelBase> model,
+             Ptr<ExpressionGraph> graph,
+             Ptr<data::Batch> batch,
+             bool clearGraph = true) override {
+
+    auto enccls = std::static_pointer_cast<EncoderClassifier>(model);
+    auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
+
+    auto states = enccls->apply(graph, corpusBatch, clearGraph);
+
+    // multi-objective training
+    Ptr<MultiRationalLoss> multiLoss = newMultiLoss(options_);
+    for(int i = 0; i < states.size(); ++i) {
+      auto partialLoss = loss_->apply(states[i]->getLogProbs(),
+                                      states[i]->getTargetIndices(),
+                                      /*mask=*/nullptr,
+                                      /*weights=*/nullptr);
+      multiLoss->push_back(partialLoss);
+    }
+    return multiLoss;
   }
 };
 
@@ -95,9 +150,9 @@ public:
     model_->save(graph, name, saveTranslatorConfig);
   }
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::Batch> batch,
-                     bool clearGraph = true) override {
+  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::Batch> batch,
+                                  bool clearGraph = true) override {
     return cost_->apply(model_, graph, batch, clearGraph);
   };
 
@@ -116,7 +171,7 @@ public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     // decoder needs normalized probabilities (note: skipped if beam 1 and --skip-cost)
     auto logits = state->getLogProbs();
-    
+
     auto logprobs = logsoftmax(logits);
 
     state->setLogProbs(logprobs);
@@ -131,7 +186,7 @@ class GumbelSoftmaxStep : public CostStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     auto logits = state->getLogProbs();
-    
+
     auto logprobs = logsoftmax(logits + constant_like(logits, inits::gumbel));
 
     state->setLogProbs(logprobs);
@@ -171,9 +226,9 @@ public:
 
   virtual void clear(Ptr<ExpressionGraph> graph) override { encdec_->clear(graph); }
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::Batch> batch,
-                     bool clearGraph = true) override {
+  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::Batch> batch,
+                                  bool clearGraph = true) override {
     auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
     return build(graph, corpusBatch, clearGraph);
   }
@@ -194,9 +249,9 @@ public:
     return cost_->apply(nextState);
   }
 
-  virtual Expr build(Ptr<ExpressionGraph> /*graph*/,
-                     Ptr<data::CorpusBatch> /*batch*/,
-                     bool /*clearGraph*/ = true) override {
+  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> /*graph*/,
+                                  Ptr<data::CorpusBatch> /*batch*/,
+                                  bool /*clearGraph*/ = true) override {
     ABORT("Wrong wrapper. Use models::Trainer or models::Scorer");
     return nullptr;
   }
@@ -228,8 +283,25 @@ inline Ptr<ModelBase> add_cost(Ptr<EncoderDecoder> encdec,
       else
         return New<Stepwise>(encdec, New<LogSoftmaxStep>());
     case usage::raw:
-    default: return encdec;
+    default:
+      return encdec;
   }
 }
+
+inline Ptr<ModelBase> add_cost(Ptr<EncoderClassifier> enccls,
+                               Ptr<Options> options) {
+  switch(options->get<usage>("usage", usage::raw)) {
+    case usage::training:
+      return New<Trainer>(enccls, New<EncoderClassifierCE>(options));
+    case usage::scoring:
+      return New<Scorer>(enccls, New<EncoderClassifierCE>(options));
+    case usage::translation:
+      ABORT("Classifier cannot be used for translation");
+    case usage::raw:
+    default:
+      return enccls;
+  }
+}
+
 }  // namespace models
 }  // namespace marian

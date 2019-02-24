@@ -43,6 +43,8 @@ CorpusBase::CorpusBase(const std::vector<std::string>& paths,
     files_.emplace_back(new io::InputFileStream(path));
     ABORT_IF(files_.back()->empty(), "File '{}' is empty", path);
   }
+
+  initEOS(/*training=*/true);
 }
 
 CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
@@ -56,6 +58,8 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
     paths_ = options_->get<std::vector<std::string>>("train-sets");
   else
     paths_ = options_->get<std::vector<std::string>>("input");
+
+  initEOS(training);
 
   std::vector<std::string> vocabPaths;
   if(!options_->get<std::vector<std::string>>("vocabs").empty())
@@ -101,7 +105,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
         std::set<std::string> paths; // contains all paths that are used for training the vocabulary
         size_t size;                 // contains the maximum vocabulary size
       };
-      
+
       // Group training files based on vocabulary path. If the same
       // vocab path corresponds to different training files, this means
       // that a single vocab should combine tokens from all files.
@@ -120,10 +124,10 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
         auto pathsAndSize = groupVocab[vocabPaths[i]];
         std::vector<std::string> groupedPaths(pathsAndSize.paths.begin(), pathsAndSize.paths.end());
         size_t vocSize = vocab->loadOrCreate(vocabPaths[i], groupedPaths, pathsAndSize.size);
-        
+
         // TODO: this is not nice as it modifies the option object and needs to expose the changes
-        // outside the corpus as models need to know about the vocabulary size; extract the vocab
-        // creation functionality from the class.
+        // outside the corpus, because models need to know about the vocabulary size; extract the
+        // vocab creation functionality from the class.
         options_->getYaml()["dim-vocabs"][i] = vocSize;
 
         vocabs_.emplace_back(vocab);
@@ -174,7 +178,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
     ABORT_IF(files_.back()->empty(), "File with alignments '{}' is empty", path);
   }
 
-  if(training && options_->has("data-weighting")) {
+  if(training && options_->hasAndNotEmpty("data-weighting")) {
     auto path = options_->get<std::string>("data-weighting");
 
     ABORT_IF(!filesystem::exists(path), "Weight file does not exist");
@@ -188,13 +192,13 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
 }
 
 void CorpusBase::addWordsToSentenceTuple(const std::string& line,
-                                         size_t i,
+                                         size_t batchIndex,
                                          SentenceTuple& tup) const {
 
   // This turns a string in to a sequence of numerical word ids. Depending
   // on the vocabulary type, this can be non-trivial, e.g. when SentencePiece
   // is used.
-  Words words = vocabs_[i]->encode(line, /*addEOS =*/ true, inference_);
+  Words words = vocabs_[batchIndex]->encode(line, /*addEOS =*/ addEOS_[batchIndex], inference_);
 
   if(words.empty())
     words.push_back(0);
@@ -279,5 +283,41 @@ void CorpusBase::addWeightsToBatch(Ptr<CorpusBatch> batch,
 
   batch->setDataWeights(weights);
 }
+
+void CorpusBase::initEOS(bool training = true) {
+  // Labels fed into sub-batches that are just class-labels, not sequence labels do not require to
+  // add a EOS symbol. Hence decision to add EOS is now based on input stream positions and correspoding
+  // input type.
+
+  addEOS_.resize(paths_.size(), true);
+  // @TODO: think if this should be checked and processed here or in a validation step in config?
+  auto inputTypes = options_->get<std::vector<std::string>>("input-types", {}); // empty list by default
+
+  // make sure there is an input type for each path
+  ABORT_IF(inputTypes.size() > 0 && inputTypes.size() < paths_.size(),
+           "Input types have been specified ({}), you need to specify one per input ({})",
+           inputTypes.size(),
+           paths_.size());
+
+  // make sure there is an equal number of input types and paths when training
+  ABORT_IF(training && inputTypes.size() > 0 && inputTypes.size() != paths_.size(),
+           "Input types have been specified ({}), you need to specify one per input ({})",
+           inputTypes.size(),
+           paths_.size());
+
+  for(int i = 0; i < paths_.size(); ++i)
+    if(inputTypes.size() > i) {
+      if(inputTypes[i] == "class")
+        addEOS_[i] = false;
+      else if(inputTypes[i] == "sequence")
+        addEOS_[i] = true;
+      else
+        ABORT("Unknown input type {}: {}", i, inputTypes[i]);
+    } else {
+      // No input type specified, assuming "sequence"
+      addEOS_[i] = true;
+    }
+}
+
 }  // namespace data
 }  // namespace marian

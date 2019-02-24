@@ -5,6 +5,8 @@
 // ExceptionWithCallStack.h - debug util functions
 //
 
+#pragma once
+
 #include <string>
 
 namespace Microsoft { namespace MSR { namespace CNTK {

@@ -34,6 +34,8 @@ void copy(Ptr<Backend> backend, const InIt beg, const InIt end, OutIt it) {
     std::copy(beg, end, it);
 }
 
+DISPATCH5(IsNan, const Tensor, Ptr<Allocator>, bool&, bool&, bool);
+
 template <class Functor, class... Tensors>
 void Element(Functor functor, marian::Tensor out, Tensors... tensors) {
 #ifdef CUDA_FOUND
@@ -51,12 +53,22 @@ void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
     gpu::Add(functor, scale, out, tensors...);
   else
 #endif
-    cpu::Add(functor, scale, out, tensors...);
+    cpu::Aggregate(functor, 0.0f, functional::_1 + functional::_2, scale, out, tensors...);
 }
 
 template <class Functor, class... Tensors>
 void Add(Functor functor, marian::Tensor out, Tensors... tensors) {
   Add(functor, 1, out, tensors...);
+}
+
+template <class Functor, class AggFunctor, class... Tensors>
+void Aggregate(Functor functor, float aggInit, AggFunctor aggFunctor, marian::Tensor out, Tensors... tensors) {
+#ifdef CUDA_FOUND
+  if(out->getBackend()->getDeviceId().type == DeviceType::gpu)
+    gpu::Aggregate(functor, aggInit, aggFunctor, 1.0f, out, tensors...);
+  else
+#endif
+    cpu::Aggregate(functor, aggInit, aggFunctor, 1.0f, out, tensors...);
 }
 
 template <class Functor, class... Tensors>
@@ -74,9 +86,18 @@ void Reduce(Functor functor, marian::Tensor out, Tensors... tensors) {
   Add(functor, out, tensors...);
 }
 
+template <class Functor, class AggFunctor, class... Tensors>
+void Reduce(Functor functor, AggFunctor aggFunctor, float aggInit,
+            marian::Tensor out,
+            Tensors... tensors) {
+  out->set(aggInit);
+  Aggregate(functor, aggInit, aggFunctor, out, tensors...);
+}
+
 // clang-format off
 DISPATCH7(Prod, marian::Tensor, const marian::Tensor&, const marian::Tensor&, bool, bool, float, float)
 DISPATCH8(ProdBatched, marian::Tensor, Ptr<Allocator>, const marian::Tensor, const marian::Tensor, bool, bool, float, float)
+DISPATCH9(CSRProd, marian::Tensor, Ptr<Allocator>, const marian::Tensor&, const marian::Tensor&, const marian::Tensor&, const marian::Tensor&, bool, bool, float)
 
 DISPATCH2(Softmax, marian::Tensor, marian::Tensor)
 DISPATCH3(SoftmaxGrad, marian::Tensor, marian::Tensor, marian::Tensor)

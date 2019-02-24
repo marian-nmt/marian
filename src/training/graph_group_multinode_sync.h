@@ -131,9 +131,9 @@ public:
   /**
    * (Constructor) Call super class and initialize client graphs and builders.
    */
-  MultiNodeGraphGroupSync(Ptr<Options> options)
-      : Base(options),
-        tau_{options_->get<size_t>("optimizer-delay")},
+  MultiNodeGraphGroupSync(Ptr<Options> options, Ptr<IMPIWrapper> mpi)
+      : Base(options, mpi),
+        tau_{(size_t)options_->get<double>("optimizer-delay")},
         syncOptimizer_{Optimizer(options_)},
         movingAvg_{options_->get<float>("exponential-smoothing") > 0},
         mvDecay_{options_->get<float>("exponential-smoothing")} {
@@ -143,7 +143,7 @@ public:
    * Update any client model with given batch if batch is assigned to this node.
    */
   void update(Ptr<data::Batch> batch) override {
-    ABORT_IF(finalized_, "Training has already finished");
+    validate();
     if(batchIter_ % mpi_->numMPIProcesses() == mpi_->myMPIRank()) {  // Only take batch assigned to this node
       execute(batch);
     }
@@ -163,7 +163,7 @@ public:
         size_t i = 0;
         for(auto graph : clientGraphs_)
           clientBuilders_[i++]->load(graph, name);
-      } else if(options_->has("pretrained-model")) {
+      } else if(options_->hasAndNotEmpty("pretrained-model")) {
         std::string init = options_->get<std::string>("pretrained-model");
         LOG(info,
             "Initialize model weights with the pre-trained model {}",
@@ -220,9 +220,9 @@ public:
   /**
    * Collect statistics from first client's graph.
    */
-  Ptr<data::BatchStats> collectStats() {
+  Ptr<data::BatchStats> collectStats(const std::vector<Ptr<Vocab>>& vocabs) {
     return GraphGroup::collectStats(
-        clientGraphs_[0], clientBuilders_[0], devices_.size());
+        clientGraphs_[0], clientBuilders_[0], vocabs, (double)devices_.size());
   }
 };
 }  // namespace marian

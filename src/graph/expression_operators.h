@@ -17,6 +17,9 @@ Expr sigmoid(const std::vector<Expr>&);
 Expr swish(Expr a);
 Expr swish(const std::vector<Expr>&);
 
+Expr gelu(Expr a);
+Expr gelu(const std::vector<Expr>&);
+
 Expr tanh(const std::vector<Expr>&);
 
 template <typename... Args>
@@ -66,9 +69,32 @@ Expr operator/(Expr a, float b);
 
 Expr logaddexp(Expr a, Expr b);
 
-Expr max(Expr a, Expr b);  // TODO: haggle over the name (max vs. elementMax)
+// Note: Following numpy, minimum() is element-wise, while min() is along an axis in both Numpy and PyTorch.
+Expr maximum(Expr a, Expr b);
+Expr minimum(Expr a, Expr b);
 
-Expr min(Expr a, Expr b);  // TODO: haggle over the name
+// Note: We cannot overload the relational operators, as they also mean something for Expr itself.
+// Note: These names follow PyTorch convention.
+Expr lt(Expr a, Expr b);
+Expr eq(Expr a, Expr b);
+Expr gt(Expr a, Expr b);
+Expr ge(Expr a, Expr b);
+Expr ne(Expr a, Expr b);
+Expr le(Expr a, Expr b);
+
+Expr lt(float a, Expr b);
+Expr eq(float a, Expr b);
+Expr gt(float a, Expr b);
+Expr ge(float a, Expr b);
+Expr ne(float a, Expr b);
+Expr le(float a, Expr b);
+
+Expr lt(Expr a, float b);
+Expr eq(Expr a, float b);
+Expr gt(Expr a, float b);
+Expr ge(Expr a, float b);
+Expr ne(Expr a, float b);
+Expr le(Expr a, float b);
 
 Expr dot(Expr a,
          Expr b,
@@ -88,6 +114,9 @@ Expr affine(Expr a,
             bool transA = false,
             bool transB = false,
             float scalar = 1.f);
+
+Expr csr_dot(const Shape& A_shape, Expr Avalues, Expr Aindices, Expr Aoffsets, Expr B, bool transA = false);
+Expr dot_csr(Expr A, const Shape& B_shape, Expr B_values, Expr B_indices, Expr B_offsets, bool transB = false);
 
 Expr transpose(Expr a);
 Expr transpose(Expr a, const std::vector<int>& axes);
@@ -111,18 +140,49 @@ Expr constant_like(Expr a, const NodeInitializer& init);
 Expr flatten(Expr a);
 Expr flatten_2d(Expr a);
 
-Expr rows(Expr a, Expr indices);
-Expr rows(Expr a, const std::vector<IndexType>& indices);
+Expr stopGradient(Expr a);
 
-Expr cols(Expr a, Expr indices);
-Expr cols(Expr a, const std::vector<IndexType>& indices);
+Expr gather(Expr a, int axis, Expr indices);
 
-Expr select(Expr a, Expr indices, int axis);
-Expr select(Expr a, const std::vector<IndexType>& indices, int axis);
+// Warning: Don't try to pass a scalar literal 0 as indices; it will compile but pass nullptr...
+Expr index_select(Expr a, int axis, Expr indices);
+
+// convenience wrappers for index_select()
+Expr index_select(Expr a, int axis, const std::vector<IndexType>& indices);
+static inline Expr rows(Expr a, Expr indices) {
+  return index_select(a, 0, indices);
+}
+static inline Expr rows(Expr a, const std::vector<IndexType>& indexVector) {
+  return index_select(a, 0, indexVector);
+}
+static inline Expr cols(Expr a, Expr indices) {
+  return index_select(a, -1, indices);
+}
+static inline Expr cols(Expr a, const std::vector<IndexType>& indexVector) {
+  return index_select(a, -1, indexVector);
+}
+
+Expr slice(Expr a, int axis, Slice slice);
+
+// convenience wrappers for slice()
+static inline Expr slice(Expr a, int axis, int index) { // single index  @NOTE: This was formerlly called step()
+  return slice(a, axis, Slice(index));
+}
+
+static inline Expr narrow(Expr a, int axis, size_t start, size_t length) { // PyTorch name
+  return slice(a, axis, Slice((int)start, (int)(start + length)));
+}
 
 /*********************************************************/
 
 Expr sum(Expr a, int ax = 0);
+Expr mean(Expr a, int ax = 0);
+Expr std(Expr a, int ax);
+Expr var(Expr a, int ax);
+Expr max(Expr a, int ax);
+Expr min(Expr a, int ax);
+Expr prod(Expr a, int ax);
+Expr logsumexp(Expr a, int ax);
 
 Expr softmax(Expr x, int axis = -1);
 
@@ -132,15 +192,11 @@ Expr softmax(Expr a, Expr zeroOneMask, int axis = -1);
 
 Expr logsoftmax(Expr a);
 
-Expr mean(Expr a, int ax = 0);
-
 Expr cross_entropy(Expr a, Expr b);
 
 Expr scalar_product(Expr a, Expr b, int ax = 0);
 
 Expr weighted_average(Expr in, Expr weights, int ax = 0);
-
-Expr step(Expr a, int step, int axis);
 
 Expr sqrt(Expr a, float eps = 0.f);
 Expr square(Expr a);

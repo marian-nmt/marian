@@ -18,7 +18,7 @@ Corpus::Corpus(std::vector<std::string> paths,
     : CorpusBase(paths, vocabs, options), shuffleInRAM_(options_->get<bool>("shuffle-in-ram")) {}
 
 SentenceTuple Corpus::next() {
-  for (;;) { // (this is a retry loop for skipping invalid sentences)
+  for(;;) { // (this is a retry loop for skipping invalid sentences)
     // get index of the current sentence
     size_t curId = pos_; // note: at end, pos_  == total size
     // if corpus has been shuffled, ids_ contains sentence indexes
@@ -102,7 +102,7 @@ void Corpus::restore(Ptr<TrainingState> ts) {
 }
 
 void Corpus::shuffleData(const std::vector<std::string>& paths) {
-  LOG(info, "[data] Shuffling files");
+  LOG(info, "[data] Shuffling data");
 
   size_t numStreams = paths.size();
 

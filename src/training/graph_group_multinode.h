@@ -351,10 +351,10 @@ public:
   /**
    * (Constructor) Call super class and initialize client graphs and builders.
    */
-  MultiNodeGraphGroup(Ptr<Options> options)
-      : Base(options),
+  MultiNodeGraphGroup(Ptr<Options> options, Ptr<IMPIWrapper> mpi)
+      : Base(options, mpi),
         clientCommOverlap{options_->get<bool>("multi-node-overlap")},
-        tau_{options_->get<size_t>("optimizer-delay")} { }
+        tau_{(size_t)options_->get<double>("optimizer-delay")} { }
 
   /**
    * (Destructor) Shut down server shard thread and (if comm. overlap enabled)
@@ -376,7 +376,7 @@ public:
    * Update any client model with given batch if batch is assigned to this node.
    */
   void update(Ptr<data::Batch> batch) override {
-    ABORT_IF(finalized_, "Training has already finished");
+    validate();
     // Only take batch assigned to this node
     if(batchIter_ % mpi_->numMPIProcesses() == (size_t)mpi_->myMPIRank()) {
       execute(batch);
@@ -397,7 +397,7 @@ public:
         size_t i = 0;
         for(auto graph : clientGraphs_)
           clientBuilders_[i++]->load(graph, name);
-      } else if(options_->has("pretrained-model")) {
+      } else if(options_->hasAndNotEmpty("pretrained-model")) {
         std::string init = options_->get<std::string>("pretrained-model");
         LOG(info,
             "Initialize model weights with the pre-trained model {}",
@@ -454,8 +454,8 @@ public:
   /**
    * Collect statistics from first client's graph.
    */
-  Ptr<data::BatchStats> collectStats() {
-    return GraphGroup::collectStats(clientGraphs_[0], clientBuilders_[0]);
+  Ptr<data::BatchStats> collectStats(const std::vector<Ptr<Vocab>>& vocabs) {
+    return GraphGroup::collectStats(clientGraphs_[0], clientBuilders_[0], vocabs);
   }
 };
 }  // namespace marian

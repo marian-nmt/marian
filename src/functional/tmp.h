@@ -81,6 +81,27 @@ struct FApply<4, Functor> {
   }
 };
 
+template <class Functor>
+struct FApply<5, Functor> {
+  __HDI__ static float apply(
+      Functor functor,
+      functional::Array<functional::Tensor<float>, 5>& in,
+      const functional::Array<int, 5>& indices) {
+    return functor(in[0][indices[0]],
+                   in[1][indices[1]],
+                   in[2][indices[2]],
+                   in[3][indices[3]],
+                   in[4][indices[4]]);
+  }
+
+  __HDI__ static float apply(
+      Functor functor,
+      functional::Array<functional::Tensor<float>, 5>& in,
+      int index) {
+    return functor(in[0][index], in[1][index], in[2][index], in[3][index], in[4][index]);
+  }
+};
+
 template <size_t K, class Functor>
 __HDI__ float apply(Functor functor,
                     functional::Array<functional::Tensor<float>, K>& in,
@@ -97,55 +118,56 @@ __HDI__ float apply(Functor functor,
 
 /******************************************************************************/
 
+// @TODO: Rename this. It is a reduction loop.
 template <size_t n, size_t N, size_t K>
 struct Loop {
-  template <class Functor>
+  template <class Functor, class AggFunctor>
   __HDI__ static float result(
-      Functor functor,
+      Functor functor, float aggInit, AggFunctor aggFunctor,
       functional::Array<functional::Tensor<float>, K>& in,
       const functional::Array<int, K>& pAcc,
       const functional::Array<int, N>& length,
       const functional::Array<int, N>& dim) {
-    float sum = 0;
+    float agg = aggInit;
     functional::Array<int, K> acc;
     for(int i = 0; i < length[N - n]; ++i) {
       for(size_t j = 0; j < K; ++j) {
         acc[j] = pAcc[j] + (dim[N - n] + i) * in[j].shape().bstride(N - n);
       }
-      sum += Loop<n - 1, N, K>::result(functor, in, acc, length, dim);
+      agg = aggFunctor(agg, Loop<n - 1, N, K>::result(functor, aggInit, aggFunctor, in, acc, length, dim));
     }
-    return sum;
+    return agg;
   }
 };
 
 template <size_t N, size_t K>
 struct Loop<1, N, K> {
-  template <class Functor>
+  template <class Functor, class AggFunctor>
   __HDI__ static float result(
-      Functor functor,
+      Functor functor, float aggInit, AggFunctor aggFunctor,
       functional::Array<functional::Tensor<float>, K>& in,
       const functional::Array<int, K>& pAcc,
       const functional::Array<int, N>& length,
       const functional::Array<int, N>& dim) {
-    float sum = 0;
+    float agg = aggInit;
     functional::Array<int, K> acc;
     for(int i = 0; i < length[N - 1]; ++i) {
       for(size_t j = 0; j < K; ++j) {
         acc[j] = pAcc[j] + (dim[N - 1] + i) * in[j].shape().bstride(N - 1);
       }
-      sum += apply<K>(functor, in, acc);
+      agg = aggFunctor(agg, apply<K>(functor, in, acc));
     }
-    return sum;
+    return agg;
   }
 };
 
-template <size_t N, size_t K, class Functor>
-__HDI__ float loops(Functor functor,
+template <size_t N, size_t K, class Functor, class AggFunctor>
+__HDI__ float loops(Functor functor, float aggInit, AggFunctor aggFunctor,
                     functional::Array<functional::Tensor<float>, K>& in,
                     const functional::Array<int, N>& length,
                     const functional::Array<int, N>& dim) {
   functional::Array<int, K> acc = {0};
-  return Loop<N, N, K>::result(functor, in, acc, length, dim);
+  return Loop<N, N, K>::result(functor, aggInit, aggFunctor, in, acc, length, dim);
 }
 }  // namespace functional
 }  // namespace marian

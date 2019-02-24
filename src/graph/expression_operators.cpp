@@ -51,6 +51,10 @@ Expr swish(Expr a) {
   return Expression<SwishNodeOp>(a);
 }
 
+Expr gelu(Expr a) {
+  return Expression<SwishNodeOp>(a, 1.702f);
+}
+
 Expr operator-(Expr a) {
   return Expression<NegNodeOp>(a);
 };
@@ -106,6 +110,27 @@ Expr maximum(Expr a, Expr b) {
 Expr minimum(Expr a, Expr b) {
   return Expression<MinimumNodeOp>(a, b);
 }
+
+Expr lt(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b, -1, false); }
+Expr eq(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b,  0, false); }
+Expr gt(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b,  1, false); }
+Expr ge(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b, -1,  true); }
+Expr ne(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b,  0,  true); }
+Expr le(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b,  1,  true); }
+
+Expr lt(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b, -1, false); }
+Expr eq(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b,  0, false); }
+Expr gt(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b,  1, false); }
+Expr ge(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b, -1,  true); }
+Expr ne(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b,  0,  true); }
+Expr le(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b,  1,  true); }
+
+Expr lt(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()), -1, false); }
+Expr eq(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()),  0, false); }
+Expr gt(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()),  1, false); }
+Expr ge(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()), -1,  true); }
+Expr ne(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()),  0,  true); }
+Expr le(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()),  1,  true); }
 
 /*********************************************************/
 
@@ -211,50 +236,110 @@ Expr flatten_2d(Expr a) {
   return Expression<ReshapeNodeOp>(a, shape);
 }
 
+Expr stopGradient(Expr a) {
+  // implemented as a dummy reshape that is not trainable
+  auto res = reshape(a, a->shape());
+  res->setTrainable(false);
+  return res;
+}
+
 Expr constant_like(Expr a, const NodeInitializer& init) {
   const auto& shape = a->shape();
   auto graph = a->graph();
   return graph->constant(shape, init);
 }
 
-Expr rows(Expr a, Expr indices) {
-  // @TODO:: replace with `select(a, indices, -2)`
-  // as soon as select is efficient enough
-  return Expression<RowsNodeOp>(a, indices);
+// gather() -- gather arbitrary elements along an axis; batched or non-batched
+Expr gather(Expr a, int axis, Expr indices) {
+  return Expression<GatherNodeOp>(a, axis, indices);
 }
 
-Expr rows(Expr a, const std::vector<IndexType>& indices) {
+// index_select() -- gather arbitrary elements along an axis; unbatched (indices are specified as a 1D vector)
+Expr index_select(Expr a, int axis, Expr indices) {
+  ABORT_IF(indices->shape().size() != 1, "Indices must be a 1D tensor");
+  // We have specialized kernels for non-batched indexing of first or last axis of a 2D tensor.
+  auto rank = a->shape().size();
+  if (rank == 2) {
+    if (axis == 0 || axis == -2)
+      return Expression<RowsNodeOp>(a, indices);
+    else if (axis == -1 || axis == 1)
+      return Expression<ColsNodeOp>(a, indices);
+  }
+  // Delegate to gather() for any other axis or non-matrix input.
+  Shape shape;
+  shape.resize(a->shape().size());
+  shape.set(axis, indices->shape()[0]);
+  indices = reshape(indices, shape); // move index to axis
+  return gather(a, axis, indices);
+}
+Expr index_select(Expr a, int axis, const std::vector<IndexType>& indices) {
   auto indexExpr = a->graph()->indices(indices);
-  return rows(a, indexExpr);
+  return index_select(a, axis, indexExpr);
 }
 
-
-Expr cols(Expr a, Expr indices) {
-  // @TODO:: replace with `select(a, indices, -1)`
-  // as soon as select is efficient enough
-  return Expression<ColsNodeOp>(a, indices);
+static Expr sliceCopy(Expr a, int axis, const Slice& slice) { // copy a Slice via gather()
+  ABORT_IF(slice.stride < 0, "Negative strides are not supported yet");
+  ABORT_IF(slice.begin == slice.end, "Empty slices are not allowed"); // @TODO: Or are they?
+  std::vector<IndexType> indices;
+  indices.reserve((slice.end - slice.begin - 1) / slice.stride + 1);
+  for (int i = slice.begin; i < slice.end; i += slice.stride)
+    indices.push_back((IndexType)i);
+  return gather(a, axis, a->graph()->indices(indices, a, axis));
 }
 
-Expr cols(Expr a, const std::vector<IndexType>& indices) {
-  auto indexExpr = a->graph()->indices(indices);
-  return cols(a, indexExpr);
+static Expr sliceView(Expr a, int axis, const Slice& slice) { // view a slice (must be memory-consecutive)
+  return Expression<SliceViewNodeOp>(a, axis, slice);
 }
 
-Expr select(Expr a, Expr indices, int axis) {
-  return Expression<SelectNodeOp>(a, indices, axis);
-}
-
-Expr select(Expr a, const std::vector<IndexType>& indices, int axis) {
-  auto indexExpr = a->graph()->indices(indices, a, axis);
-  return select(a, indexExpr, axis);
+// slice() -- gather a slice along an axis (step size > 1 allowed)
+Expr slice(Expr a, int axis, Slice slice) { // numpy __getslice__ semantics, but with axis parameter
+  const auto& shape = a->shape();
+  axis  = shape.axis(axis);         // normalize negative axis
+  slice = shape.slice(slice, axis); // normalize negative slice values
+  if (slice.begin == 0 && slice.end == shape[axis] && slice.stride == 1)
+    return a; // it's a no-op
+#if 1 // until strided views are supported, non-consecutive slices are implemented via gather()
+  if (slice.stride != 1)
+    return sliceCopy(a, axis, slice);
+  for (int i = 0; i < axis; ++i) {
+    if (shape[i] != 1)  // this makes it non-consecutive
+      return sliceCopy(a, axis, slice);
+  }
+#endif
+  return sliceView(a, axis, slice);
 }
 
 Expr sum(Expr a, int ax) {
-  return Expression<SumNodeOp>(a, ax);
+  return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::sum);
 }
 
 Expr mean(Expr a, int ax) {
-  return Expression<MeanNodeOp>(a, ax);
+  return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::mean);
+}
+
+Expr std(Expr a, int ax) {
+  return Expression<ReduceNodeOp>(a - mean(a,ax), ax, ReduceNodeOpCode::rms);
+}
+
+Expr var(Expr a, int ax) {
+  return Expression<ReduceNodeOp>(a - mean(a, ax), ax, ReduceNodeOpCode::meanSqr);
+}
+
+Expr max(Expr a, int ax) {
+  return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::max);
+}
+
+Expr min(Expr a, int ax) {
+  return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::min);
+}
+
+Expr prod(Expr a, int ax) {
+  return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::prod);
+}
+
+// log(sum(exp(a)))
+Expr logsumexp(Expr a, int ax) {
+  return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::logSumExp);
 }
 
 Expr scalar_product(Expr a, Expr b, int ax) {
@@ -389,6 +474,19 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
   }
 }
 
+// multiply a CSR matrix A with a matrix B
+// A[i,j] is at A_values[A_offsets[i]+k], where k is position of j in A_indices[A_offsets[i]:A_offsets[i+1]]
+// @TODO: Define a proper sparse tensor type.
+Expr csr_dot(const Shape& A_shape, Expr A_values, Expr A_indices, Expr A_offsets, Expr B, bool transA /*= false*/) {
+  return Expression<CSRDotNodeOp>(A_shape, A_values, A_indices, A_offsets, B, transA, /*swapOperands=*/false);
+}
+
+// multiply a matrix A with a CSR matrix B
+// @TODO: Define a proper sparse tensor type.
+Expr dot_csr(Expr A, const Shape& B_shape, Expr B_values, Expr B_indices, Expr B_offsets, bool transB /*= false*/) {
+  return Expression<CSRDotNodeOp>(B_shape, B_values, B_indices, B_offsets, A, transB, /*swapOperands=*/true);
+}
+
 // swap the last two axes
 // @TODO: change to swapAxes(a, -1, -2)
 Expr transpose(Expr a) {
@@ -421,20 +519,23 @@ Expr swapAxes(Expr x, int axis1, int axis2)
   return transpose(x, axes);
 }
 
-Expr step(Expr a, int step, int axis) {
-  return Expression<StepNodeOp>(a, step, axis);
-}
-
 Expr cross_entropy(Expr a, Expr indices) {
   return Expression<CrossEntropyNodeOp>(a, indices);
 }
 
-Expr plus(const std::vector<Expr>&) {
-  ABORT("Not implemented");
+Expr plus(const std::vector<Expr>& nodes) {
+  ABORT_IF(nodes.size() > 1, "Not implemented");
+  return nodes[0];
 }
 
-Expr swish(const std::vector<Expr>&) {
-  ABORT("Not implemented");
+Expr swish(const std::vector<Expr>& nodes) {
+  ABORT_IF(nodes.size() > 1, "Not implemented");
+  return swish(nodes[0]);
+}
+
+Expr gelu(const std::vector<Expr>& nodes) {
+  ABORT_IF(nodes.size() > 1, "Not implemented");
+  return gelu(nodes[0]);
 }
 
 Expr tanh(const std::vector<Expr>& nodes) {
@@ -445,8 +546,9 @@ Expr sigmoid(const std::vector<Expr>&) {
   ABORT("Not implemented");
 }
 
-Expr relu(const std::vector<Expr>&) {
-  ABORT("Not implemented");
+Expr relu(const std::vector<Expr>& nodes) {
+  ABORT_IF(nodes.size() > 1, "Not implemented");
+  return relu(nodes[0]);
 }
 
 Expr leakyrelu(const std::vector<Expr>&) {
@@ -483,16 +585,17 @@ Expr highway(Expr y, Expr x, Expr t) {
 Expr highway(const std::string prefix, Expr x) {
   // clang-format off
   size_t outDim = x->shape()[-1];
-  auto g = mlp::dense(x->graph())
+  auto graph = x->graph();
+  auto g = mlp::dense()
       ("prefix", prefix + "_highway_d1")
       ("dim", outDim)
       ("activation", mlp::act::sigmoid)
-      .construct()->apply(x);
-  auto relued = mlp::dense(x->graph())
+      .construct(graph)->apply(x);
+  auto relued = mlp::dense()
       ("prefix", prefix + "_highway_d2")
       ("dim", outDim)
       ("activation", mlp::act::ReLU)
-      .construct()->apply(x);
+      .construct(graph)->apply(x);
   return (g * relued) + ((1 - g) * x);
   // clang-format on
 }

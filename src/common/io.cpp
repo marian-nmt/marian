@@ -128,10 +128,12 @@ void saveItemsNpz(const std::string& fileName, const std::vector<Item>& items) {
   std::vector<cnpy::NpzItem> npzItems;
   for(auto& item : items) {
     std::vector<unsigned int> shape(item.shape.begin(), item.shape.end());
-    char type = 'f';
+    char type;
 
     if(item.type == Type::float32)
       type = cnpy::map_type(typeid(float));
+    else if(item.type == Type::float64)
+      type = cnpy::map_type(typeid(double));
     else if(item.type == Type::int8)
       type = cnpy::map_type(typeid(char));
     else

@@ -11,10 +11,12 @@
 #include "training/graph_group_multinode.h"
 #endif
 
+#include "3rd_party/ExceptionWithCallStack.h"
+
 int main(int argc, char** argv) {
   using namespace marian;
 
-  auto options = parseOptions(argc, argv);
+  auto options = parseOptions(argc, argv, cli::mode::training);
 
   // selects MultiNodeGraphGroup family
   //

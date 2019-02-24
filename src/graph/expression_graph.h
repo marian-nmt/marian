@@ -63,7 +63,7 @@ public:
       tensors_->allocate(node->grad(), node->shape(), node->value_type());
   }
 
-  void free(Tensor& tensor) { tensors_->free(tensor); }
+  void free(const Tensor& tensor) { tensors_->free(tensor); }
 
   // @TODO: get rid of this, not really used or can be done better
   Ptr<Allocator> allocator() { return tensors_->allocator(); }
@@ -371,7 +371,7 @@ public:
                     Type::uint32);
   }
   // this version sets up the shape such that the indices are in a given axis
-  // Use this if you want to pass these indices to select().
+  // Use this if you want to pass these indices to gather().
   // indexee shape = (3, 2, 5, 2); axis = 1 -> resulting shape = (1, size of indicesVector, 1, 1)
   Expr indices(const std::vector<IndexType>& indicesVector, Expr indexee, int axis = -1) {
     Shape shape;
@@ -400,7 +400,7 @@ public:
     auto e = params_->get(name);
     if(e)
       return e;
-    return Expr();
+    return Expr();  // @TODO: how is this different from just returning 'e'?
   }
 
   Ptr<Parameters>& params() { return params_; }
@@ -437,7 +437,7 @@ public:
       tensors_->allocateBackward(node);
   }
 
-  void free(Tensor& tensor) {
+  void free(const Tensor& tensor) {
     if(tensors_)
       tensors_->free(tensor);
   }

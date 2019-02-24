@@ -126,6 +126,7 @@ private:
       throw AllocationException(available_, size);
     }
 
+    // @TODO: compact memory before re-allocation attempt, maybe by left shifting memory over currently largest gap
     while(it == gaps_.end()) {
       grow(step_);
       it = std::lower_bound(gaps_.begin(), gaps_.end(), Gap(nullptr, size));
