@@ -27,7 +27,8 @@ namespace marian {
 
   // load factor vocabulary
   factorVocab_.load(factorVocabPath);
-  groupPrefixes_ = { "(lemma)", "@C", "@GL", "@GR", "@WB", "@WE", "@CB", "@CE" }; // @TODO: hard-coded for these initial experiments
+  groupPrefixes_ = { "(lemma)", "@C", "@GL", "@GR", "@WB",/* "@WE",*/ "@CB"/*, "@CE"*/ }; // @TODO: hard-coded for these initial experiments
+  // @TODO: add checks for empty factor groups until it stops crashing
 
   // construct mapping tables for factors
   constructGroupInfoFromFactorVocab();
@@ -154,6 +155,14 @@ void FactoredVocab::constructGroupInfoFromFactorVocab() {
         groupRanges_[g].second = u + 1;
     groupCounts[g]++;
   }
+  //for (size_t g = 0; g < numGroups; g++) { // fix up empty entries
+  //  LOG(info, "GROUP {}: {} {}", groupPrefixes_[g], groupRanges_[g].first, groupRanges_[g].second);
+  //  //if (groupCounts[g] == 0) {
+  //  //  ABORT("Group {} has no members", groupPrefixes_[g]);
+  //  //  //groupRanges_[g].first = g > 0 ? groupRanges_[g-1].second : 0;
+  //  //  //groupRanges_[g].second = groupRanges_[g].first;
+  //  //}
+  //}
   for (size_t g = 0; g < numGroups; g++) { // detect non-overlapping groups
     LOG(info, "[embedding] Factor group '{}' has {} members", groupPrefixes_[g], groupCounts[g]);
     if (groupCounts[g] == 0) // factor group is unused  --@TODO: once this is not hard-coded, this is an error condition
