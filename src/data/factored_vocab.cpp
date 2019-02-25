@@ -27,7 +27,7 @@ namespace marian {
 
   // load factor vocabulary
   factorVocab_.load(factorVocabPath);
-  groupPrefixes_ = { "(lemma)", "@C", "@GL", "@GR" }; // @TODO: hard-coded for these initial experiments
+  groupPrefixes_ = { "(lemma)", "@C", "@GL", "@GR", "@WB", "@WE" }; // @TODO: hard-coded for these initial experiments
 
   // construct mapping tables for factors
   constructGroupInfoFromFactorVocab();
@@ -369,7 +369,8 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
 
 /*virtual*/ std::string FactoredVocab::toEnglishTitleCase(const std::string& line) const /*override final*/ {
   // @BUGBUG: does not handle the special words that should remain lower-case
-  return utils::findReplace(line, "@CN@GL-", "@CI@GL-", /*all=*/true);
+  // note: this presently supports both @WB and @GL- (legacy)
+  return utils::findReplace(utils::findReplace(line, "@CN@WB", "@CI@WB", /*all=*/true), "@CN@GL-", "@CI@GL-", /*all=*/true);
 }
 
 // generate a valid random factored word (used by collectStats())
