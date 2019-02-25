@@ -27,7 +27,7 @@ namespace marian {
 
   // load factor vocabulary
   factorVocab_.load(factorVocabPath);
-  groupPrefixes_ = { "(lemma)", "@C", "@GL", "@GR", "@WB", "@WE" }; // @TODO: hard-coded for these initial experiments
+  groupPrefixes_ = { "(lemma)", "@C", "@GL", "@GR", "@WB", "@WE", "@CB", "@CE" }; // @TODO: hard-coded for these initial experiments
 
   // construct mapping tables for factors
   constructGroupInfoFromFactorVocab();
@@ -137,7 +137,9 @@ void FactoredVocab::constructGroupInfoFromFactorVocab() {
     const auto& groupPrefix = groupPrefixes_[g];
     for (WordIndex u = 0; u < factorVocabSize; u++)
       if (utils::beginsWith(factorVocab_[u], groupPrefix)) {
-        ABORT_IF(factorGroups_[u] != 0, "Factor {} matches multiple groups, incl. {}", factorVocab_[u], groupPrefix);
+        //ABORT_IF(factorGroups_[u] != 0, "Factor {} matches multiple groups, incl. {}", factorVocab_[u], groupPrefix);
+        if(factorGroups_[u] != 0)
+          LOG(info, "Factor {} matches multiple groups, incl. {}, using {}", factorVocab_[u], groupPrefixes_[factorGroups_[u]], groupPrefix);
         factorGroups_[u] = g;
       }
   }
