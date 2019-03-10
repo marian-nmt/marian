@@ -894,6 +894,7 @@
     <ClInclude Include="..\src\layers\word2vec_reader.h" />
     <ClInclude Include="..\src\microsoft\quicksand.h" />
     <ClInclude Include="..\src\models\amun.h" />
+    <ClInclude Include="..\src\models\bert.h" />
     <ClInclude Include="..\src\models\char_s2s.h" />
     <ClInclude Include="..\src\models\costs.h" />
     <ClInclude Include="..\src\models\decoder.h" />
