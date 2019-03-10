@@ -397,7 +397,7 @@ public:
         size_t i = 0;
         for(auto graph : clientGraphs_)
           clientBuilders_[i++]->load(graph, name);
-      } else if(options_->has("pretrained-model")) {
+      } else if(options_->hasAndNotEmpty("pretrained-model")) {
         std::string init = options_->get<std::string>("pretrained-model");
         LOG(info,
             "Initialize model weights with the pre-trained model {}",

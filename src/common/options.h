@@ -92,6 +92,31 @@ public:
       return defaultValue;
   }
 
+  /**
+   * @brief Check if a sequence or string option is defined and nonempty
+   *
+   * Aborts if the option does not store a sequence or string value. Returns false if an option with
+   * the given key does not exist.
+   *
+   * @param key option name
+   *
+   * @return true if the option is defined and is a nonempty sequence or string
+   */
+  bool hasAndNotEmpty(const std::string& key) const {
+    if(!has(key)) {
+      return false;
+    }
+    if(options_[key].IsSequence()) {
+      return options_[key].size() != 0;
+    }
+    try {
+      return !options_[key].as<std::string>().empty();
+    } catch(const YAML::BadConversion& e) {
+      ABORT("Option '{}' is neither a sequence nor a text");
+    }
+    return false;
+  }
+
   bool has(const std::string& key) const { return options_[key]; }
 };
 

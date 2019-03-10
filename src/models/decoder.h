@@ -52,7 +52,7 @@ public:
     if(options_->has("embedding-fix-trg"))
       yEmbFactory("fixed", opt<bool>("embedding-fix-trg"));
 
-    if(options_->has("embedding-vectors")) {
+    if(options_->hasAndNotEmpty("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
       yEmbFactory("embFile", embFiles[batchIndex_])  //
           ("normalization", opt<bool>("embedding-normalization"));
@@ -95,12 +95,12 @@ public:
       auto yEmbFactory = embedding()  //
           ("dimVocab", dimTrgVoc)     //
           ("dimEmb", dimTrgEmb);
-  
+
       if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
         yEmbFactory("prefix", "Wemb");
       else
         yEmbFactory("prefix", prefix_ + "_Wemb");
-  
+
       auto yEmb = yEmbFactory.construct(graph);
 
       selectedEmbs = yEmb->apply(embIdx, {dimBeam, 1, dimBatch, dimTrgEmb});

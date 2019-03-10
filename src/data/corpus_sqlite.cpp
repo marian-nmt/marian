@@ -25,8 +25,7 @@ void CorpusSQLite::fillSQLite() {
   if(options_->get<std::string>("sqlite") == "temporary") {
     LOG(info, "[sqlite] Creating temporary database in {}", tempDir);
 
-    db_.reset(
-        new SQLite::Database("", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE));
+    db_.reset(new SQLite::Database("", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE));
     db_->exec("PRAGMA temp_store_directory = '" + tempDir + "';");
 
     fill = true;

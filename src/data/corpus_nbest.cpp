@@ -15,8 +15,7 @@ CorpusNBest::CorpusNBest(std::vector<std::string> paths,
     : CorpusBase(paths, vocabs, options) {}
 
 int numFromNbest(const std::string& line) {
-  std::vector<std::string> fields;
-  utils::split(line, fields, " ||| ", true);
+  auto fields = utils::split(line, " ||| ", true);
   ABORT_IF(fields.size() < 4,
            "Too few fields ({}) in line \"{}\", is this a correct n-best list?",
            fields.size(),
@@ -25,8 +24,7 @@ int numFromNbest(const std::string& line) {
 }
 
 std::string lineFromNbest(const std::string& line) {
-  std::vector<std::string> fields;
-  utils::split(line, fields, " ||| ", true);
+  auto fields = utils::split(line, " ||| ", true);
   ABORT_IF(fields.size() < 4,
            "Too few fields ({}) in line \"{}\", is this a correct n-best list?",
            fields.size(),
