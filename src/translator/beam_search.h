@@ -18,7 +18,7 @@ private:
   Word trgEosId_ = (Word)-1;
   Word trgUnkId_ = (Word)-1;
 
-  static constexpr auto INVALID_PATH_SCORE = -9999;
+  static constexpr auto INVALID_PATH_SCORE = -9999; // (@TODO: change to -9999.0 once C++ allows that)
 
 public:
   BeamSearch(Ptr<Options> options,
@@ -36,7 +36,7 @@ public:
   // combine new expandedPathScores and previous beams into new set of beams
   Beams toHyps(const std::vector<unsigned int>& nBestKeys, // [dimBatch, beamSize] flattened -> ((batchIdx, beamHypIdx) flattened, word idx) flattened
                const std::vector<float>& nBestPathScores,  // [dimBatch, beamSize] flattened
-               const size_t inputBeamSize, // for interpretation of nBestKeys
+               const size_t nBestBeamSize, // for interpretation of nBestKeys
                const size_t vocabSize,     // ditto.
                const Beams& beams,
                const std::vector<Ptr<ScorerState /*const*/>>& states,
@@ -46,23 +46,24 @@ public:
       align = scorers_[0]->getAlignment(); // use alignments from the first scorer, even if ensemble
 
     const auto dimBatch = beams.size();
-    Beams newBeams(dimBatch);
+    Beams newBeams(dimBatch);   // return value of this function goes here
 
     for(size_t i = 0; i < nBestKeys.size(); ++i) {
       // Keys encode batchIdx, beamHypIdx, and word index in the entire beam.
-      // They can be between 0 and beamSize * vocabSize-1.
+      // They can be between 0 and (vocabSize * nBestBeamSize * batchSize)-1.
+      // (beamHypIdx refers to the GPU tensors, *not* the beams[] array; they are not the same in case of purging)
       const auto  key       = nBestKeys[i];
       const float pathScore = nBestPathScores[i]; // expanded path score for (batchIdx, beamHypIdx, word)
 
       // decompose key into individual indices (batchIdx, beamHypIdx, wordIdx)
       const auto wordIdx    = (Word)(key % vocabSize);
-      const auto beamHypIdx =       (key / vocabSize) % inputBeamSize;
-      const auto batchIdx   =       (key / vocabSize) / inputBeamSize;
+      const auto beamHypIdx =       (key / vocabSize) % nBestBeamSize;
+      const auto batchIdx   =       (key / vocabSize) / nBestBeamSize;
 
       const auto& beam = beams[batchIdx];
       auto& newBeam = newBeams[batchIdx];
 
-      if (newBeam.size() >= beam.size()) // @TODO: Why this condition? It does happen. Why?
+      if (newBeam.size() >= beam.size()) // getNBestList() generates N for all batch entries incl. those that already have a narrower beam
         continue;
       if (pathScore <= INVALID_PATH_SCORE) // (unused slot)
         continue;
@@ -183,14 +184,11 @@ public:
     }
 
     Beams beams(dimBatch, Beam(beamSize_, New<Hypothesis>())); // array [dimBatch] of array [localBeamSize] of Hypothesis
-    //Beams beams(dimBatch); // array [dimBatch] of array [localBeamSize] of Hypothesis
-    //for(auto& beam : beams)
-    //  beam.resize(beamSize_, New<Hypothesis>());
 
     for(int i = 0; i < dimBatch; ++i)
       histories[i]->add(beams[i], trgEosId_);
 
-    // the decoder updates the following state information in each output time step:
+    // the decoding process updates the following state information in each output time step:
     //  - beams: array [dimBatch] of array [localBeamSize] of Hypothesis
     //     - current output time step's set of active hypotheses, aka active search space
     //  - states[.]: ScorerState
@@ -230,7 +228,7 @@ public:
             auto& beam = beams[batchIdx];
             if(beamHypIdx < beam.size()) {
               auto hyp = beam[beamHypIdx];
-              hypIndices.push_back((IndexType)(hyp->getPrevStateIndex() * dimBatch + batchIdx)); // (beamHypIdx, batchIdx), flattened, for index_select() operation
+              hypIndices.push_back((IndexType)(hyp->getPrevBeamHypIndex() * dimBatch + batchIdx)); // (beamHypIdx, batchIdx), flattened, for index_select() operation
               prevWords .push_back(hyp->getWord());
               prevScores.push_back(hyp->getPathScore());
             } else {  // pad to localBeamSize (dummy hypothesis)
@@ -291,11 +289,11 @@ public:
 
       // combine N-best sets with existing search space (beams) to updated search space
       beams = toHyps(nBestKeys, nBestPathScores,
-                     /*inputBeamSize*/expandedPathScores->shape()[-2], // used for interpretation of keys
+                     /*nBestBeamSize*/expandedPathScores->shape()[-2], // used for interpretation of keys
                      /*vocabSize=*/expandedPathScores->shape()[-1],    // used for interpretation of keys
                      beams,
-                     states,    // only used for keeping track of per-ensemble-member path score
-                     batch);    // only used for propagating alignment info
+                     states,    // only used with nbest, for keeping track of per-ensemble-member path score
+                     batch);    // only used when propagating alignment info
 
       // remove all hyps that end in EOS
       // The position of a hyp in the beam may change.
