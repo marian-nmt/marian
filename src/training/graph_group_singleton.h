@@ -37,7 +37,7 @@ public:
     graph_->getBackend()->setClip(options_->get<float>("clip-gemm"));
     graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
     opt_ = Optimizer(options_);
-    builder_ = models::createCriterionFromOptions(options_, models::usage::training);
+    builder_ = models::createCriterionFunctionFromOptions(options_, models::usage::training);
   }
 
   void update(Ptr<data::Batch> batch) override {

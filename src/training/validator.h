@@ -159,7 +159,7 @@ public:
     opts->merge(options);
     opts->set("inference", true);
     opts->set("cost-type", "ce-sum");
-    builder_ = models::createCriterionFromOptions(opts, models::usage::scoring);
+    builder_ = models::createCriterionFunctionFromOptions(opts, models::usage::scoring);
   }
 
   std::string type() override { return options_->get<std::string>("cost-type"); }
@@ -180,7 +180,7 @@ protected:
       for(auto batch : *batchGenerator_) {
         auto task = [=, &loss, &samples](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
-          thread_local auto builder = models::createCriterionFromOptions(options_, models::usage::scoring);
+          thread_local auto builder = models::createCriterionFunctionFromOptions(options_, models::usage::scoring);
 
           if(!graph) {
             graph = graphs[id % graphs.size()];

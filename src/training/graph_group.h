@@ -161,7 +161,7 @@ public:
       clientGraphs_.push_back(New<ExpressionGraph>());
       clientGraphs_[i]->setDevice({ devices_[i], DeviceType::gpu });
       clientGraphs_[i]->reserveWorkspaceMB(options_->get<size_t>("workspace"));
-      clientBuilders_.push_back(models::createCriterionFromOptions(options_, models::usage::training));
+      clientBuilders_.push_back(models::createCriterionFunctionFromOptions(options_, models::usage::training));
     }
   }
 

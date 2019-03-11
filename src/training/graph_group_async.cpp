@@ -23,7 +23,7 @@ AsyncGraphGroup::AsyncGraphGroup(Ptr<Options> config, Ptr<IMPIWrapper> mpi)
     graphs_.push_back(graph);
     shardOpt_.push_back(Optimizer(options_));
 
-    builders_.push_back(models::createCriterionFromOptions(options_, models::usage::training));
+    builders_.push_back(models::createCriterionFunctionFromOptions(options_, models::usage::training));
   }
 }
 

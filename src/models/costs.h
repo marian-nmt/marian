@@ -22,12 +22,12 @@ namespace models {
 class ICost {
 public:
   virtual Ptr<MultiRationalLoss> apply(Ptr<IModel> model,
-                                       Ptr<ExpressionGraph> graph,
+                                       Ptr<ExpressionGraph> graph, // @TODO: why needed? Can it be gotten from model?
                                        Ptr<data::Batch> batch,
                                        bool clearGraph = true) = 0;
 };
 
-class EncoderDecoderCE : public ICost {
+class EncoderDecoderCECost : public ICost {
 protected:
   Ptr<Options> options_;
 
@@ -39,7 +39,7 @@ protected:
   Ptr<WeightingBase> weighter_;
 
 public:
-  EncoderDecoderCE(Ptr<Options> options)
+  EncoderDecoderCECost(Ptr<Options> options)
       : options_(options), inference_(options->get<bool>("inference", false)) {
     loss_ = newLoss(options_, inference_);
 
@@ -89,7 +89,7 @@ public:
 };
 
 // Wraps an EncoderClassifier so it can produce a cost from raw logits. @TODO: Needs refactoring
-class EncoderClassifierCE : public ICost {
+class EncoderClassifierCECost : public ICost {
 protected:
   Ptr<Options> options_;
   bool inference_{false};
@@ -99,7 +99,7 @@ protected:
   Ptr<LabelwiseLoss> loss_;
 
 public:
-  EncoderClassifierCE(Ptr<Options> options)
+  EncoderClassifierCECost(Ptr<Options> options)
       : options_(options), inference_(options->get<bool>("inference", false)) {
     loss_ = newLoss(options_, inference_);
   }
@@ -202,12 +202,12 @@ public:
   virtual void clear(Ptr<ExpressionGraph> graph) override { model_->clear(graph); };
 };
 
-class LogProbStep {
+class ILogProbStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) = 0;
 };
 
-class LogSoftmaxStep : public LogProbStep {
+class LogSoftmaxStep : public ILogProbStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     // decoder needs normalized probabilities (note: skipped if beam 1 and --skip-cost)
@@ -223,7 +223,7 @@ public:
 // Gumbel-max noising for sampling during beam-search
 // Seems to work well enough with beam-size=1. Turn on
 // with --output-sampling during translation with marian-decoder
-class GumbelSoftmaxStep : public LogProbStep {
+class GumbelSoftmaxStep : public ILogProbStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     auto logits = state->getLogProbs();
@@ -235,16 +235,16 @@ public:
   }
 };
 
-// class to wrap an EncoderDecoderBase and a LogProbStep that are executed in sequence,
+// class to wrap an EncoderDecoderBase and a ILogProbStep that are executed in sequence,
 // wrapped again in the EncoderDecoderBase interface
 // @TODO: seems we are conflating an interface defition with its implementation?
 class Stepwise : public EncoderDecoderBase {
 protected:
   Ptr<EncoderDecoderBase> encdec_;
-  Ptr<LogProbStep> cost_;
+  Ptr<ILogProbStep> cost_;
 
 public:
-  Stepwise(Ptr<EncoderDecoderBase> encdec, Ptr<LogProbStep> cost)
+  Stepwise(Ptr<EncoderDecoderBase> encdec, Ptr<ILogProbStep> cost)
       : encdec_(encdec), cost_(cost) {}
 
   virtual void load(Ptr<ExpressionGraph> graph,

@@ -313,7 +313,7 @@ Ptr<IModel> createModelFromOptions(Ptr<Options> options, usage use) {
     ABORT("'Usage' parameter must be 'translation' or 'raw'");
 }
 
-Ptr<ICriterionFunction> createCriterionFromOptions(Ptr<Options> options, usage use) {
+Ptr<ICriterionFunction> createCriterionFunctionFromOptions(Ptr<Options> options, usage use) {
   std::string type = options->get<std::string>("type");
   auto baseModel = createBaseModelByType(type, use, options);
 
@@ -322,9 +322,9 @@ Ptr<ICriterionFunction> createCriterionFromOptions(Ptr<Options> options, usage u
   // note: usage::scoring means "score the loss function", hence it uses a Trainer (not Scorer, which is for decoding)
   // @TODO: Should we define a new class that does not compute gradients?
   if (std::dynamic_pointer_cast<EncoderDecoder>(baseModel))
-    return New<Trainer>(baseModel, New<EncoderDecoderCE>(options));
+    return New<Trainer>(baseModel, New<EncoderDecoderCECost>(options));
   else if (std::dynamic_pointer_cast<EncoderClassifier>(baseModel))
-    return New<Trainer>(baseModel, New<EncoderClassifierCE>(options));
+    return New<Trainer>(baseModel, New<EncoderClassifierCECost>(options));
 #ifdef COMPILE_EXAMPLES
   // @TODO: examples should be compiled optionally
   else if (std::dynamic_pointer_cast<MnistFeedForwardNet>(baseModel))

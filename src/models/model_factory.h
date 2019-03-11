@@ -89,6 +89,6 @@ Ptr<IModel> createBaseModelByType(std::string type, usage, Ptr<Options> options)
 
 Ptr<IModel> createModelFromOptions(Ptr<Options> options, usage);
 
-Ptr<ICriterionFunction> createCriterionFromOptions(Ptr<Options> options, usage);
+Ptr<ICriterionFunction> createCriterionFunctionFromOptions(Ptr<Options> options, usage);
 }  // namespace models
 }  // namespace marian
