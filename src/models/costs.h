@@ -19,15 +19,15 @@ namespace models {
 // Other functions return RationalLoss directly without Ptr<...>, but also
 // they do not need polymorphism here.
 
-class CostBase {
+class ICost {
 public:
-  virtual Ptr<MultiRationalLoss> apply(Ptr<ModelBase> model,
+  virtual Ptr<MultiRationalLoss> apply(Ptr<IModel> model,
                                        Ptr<ExpressionGraph> graph,
                                        Ptr<data::Batch> batch,
                                        bool clearGraph = true) = 0;
 };
 
-class EncoderDecoderCE : public CostBase {
+class EncoderDecoderCE : public ICost {
 protected:
   Ptr<Options> options_;
 
@@ -51,7 +51,7 @@ public:
       weighter_ = WeightingFactory(options_);
   }
 
-  Ptr<MultiRationalLoss> apply(Ptr<ModelBase> model,
+  Ptr<MultiRationalLoss> apply(Ptr<IModel> model,
              Ptr<ExpressionGraph> graph,
              Ptr<data::Batch> batch,
              bool clearGraph = true) override {
@@ -89,7 +89,7 @@ public:
 };
 
 // Wraps an EncoderClassifier so it can produce a cost from raw logits. @TODO: Needs refactoring
-class EncoderClassifierCE : public CostBase {
+class EncoderClassifierCE : public ICost {
 protected:
   Ptr<Options> options_;
   bool inference_{false};
@@ -104,7 +104,7 @@ public:
     loss_ = newLoss(options_, inference_);
   }
 
-  Ptr<MultiRationalLoss> apply(Ptr<ModelBase> model,
+  Ptr<MultiRationalLoss> apply(Ptr<IModel> model,
              Ptr<ExpressionGraph> graph,
              Ptr<data::Batch> batch,
              bool clearGraph = true) override {
@@ -127,16 +127,16 @@ public:
   }
 };
 
-class Trainer : public CriterionBase {
+class Trainer : public ICriterionFunction {
 protected:
-  Ptr<ModelBase> model_;
-  Ptr<CostBase> cost_;
+  Ptr<IModel> model_;
+  Ptr<ICost> cost_;
 
 public:
-  Trainer(Ptr<ModelBase> model, Ptr<CostBase> cost)
+  Trainer(Ptr<IModel> model, Ptr<ICost> cost)
       : model_(model), cost_(cost) {}
 
-  Ptr<ModelBase> getModel() { return model_; }
+  Ptr<IModel> getModel() { return model_; }
 
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
@@ -159,9 +159,9 @@ public:
   virtual void clear(Ptr<ExpressionGraph> graph) override { model_->clear(graph); };
 };
 
-class LogProbBase {
+class ILogProb {
 public:
-  virtual Expr apply(Ptr<ModelBase> model,
+  virtual Expr apply(Ptr<IModel> model,
                      Ptr<ExpressionGraph> graph,
                      Ptr<data::Batch> batch,
                      bool clearGraph = true) = 0;
@@ -170,16 +170,16 @@ public:
 // @TODO: Name 'scorer' is ambiguous: Does it compute scores for all classes, or the loss value for the ground truth?
 //        Beam search uses it for the former meaning, while 'marian score' and validation in the latter.
 //        This class is for the former use. The latter is done using Trainer.
-class Scorer : public ModelBase {
+class Scorer : public IModel {
 protected:
-  Ptr<ModelBase> model_;
-  Ptr<LogProbBase> logProb_;
+  Ptr<IModel> model_;
+  Ptr<ILogProb> logProb_;
 
 public:
-  Scorer(Ptr<ModelBase> model, Ptr<LogProbBase> cost)
+  Scorer(Ptr<IModel> model, Ptr<ILogProb> cost)
       : model_(model), logProb_(cost) {}
 
-  Ptr<ModelBase> getModel() { return model_; }
+  Ptr<IModel> getModel() { return model_; }
 
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
@@ -202,12 +202,12 @@ public:
   virtual void clear(Ptr<ExpressionGraph> graph) override { model_->clear(graph); };
 };
 
-class CostStep {
+class LogProbStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) = 0;
 };
 
-class LogSoftmaxStep : public CostStep {
+class LogSoftmaxStep : public LogProbStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     // decoder needs normalized probabilities (note: skipped if beam 1 and --skip-cost)
@@ -223,7 +223,7 @@ public:
 // Gumbel-max noising for sampling during beam-search
 // Seems to work well enough with beam-size=1. Turn on
 // with --output-sampling during translation with marian-decoder
-class GumbelSoftmaxStep : public CostStep {
+class GumbelSoftmaxStep : public LogProbStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     auto logits = state->getLogProbs();
@@ -235,16 +235,16 @@ public:
   }
 };
 
-// class to wrap an EncoderDecoderBase and a CostStep that are executed in sequence,
+// class to wrap an EncoderDecoderBase and a LogProbStep that are executed in sequence,
 // wrapped again in the EncoderDecoderBase interface
 // @TODO: seems we are conflating an interface defition with its implementation?
 class Stepwise : public EncoderDecoderBase {
 protected:
   Ptr<EncoderDecoderBase> encdec_;
-  Ptr<CostStep> cost_;
+  Ptr<LogProbStep> cost_;
 
 public:
-  Stepwise(Ptr<EncoderDecoderBase> encdec, Ptr<CostStep> cost)
+  Stepwise(Ptr<EncoderDecoderBase> encdec, Ptr<LogProbStep> cost)
       : encdec_(encdec), cost_(cost) {}
 
   virtual void load(Ptr<ExpressionGraph> graph,

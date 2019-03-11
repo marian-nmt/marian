@@ -60,7 +60,7 @@ Ptr<ClassifierBase> ClassifierFactory::construct(Ptr<ExpressionGraph> /*graph*/)
   ABORT("Unknown classifier type");
 }
 
-Ptr<ModelBase> EncoderDecoderFactory::construct(Ptr<ExpressionGraph> graph) {
+Ptr<IModel> EncoderDecoderFactory::construct(Ptr<ExpressionGraph> graph) {
   Ptr<EncoderDecoder> encdec;
 
   if(options_->get<std::string>("type") == "amun")
@@ -80,7 +80,7 @@ Ptr<ModelBase> EncoderDecoderFactory::construct(Ptr<ExpressionGraph> graph) {
   return encdec;
 }
 
-Ptr<ModelBase> EncoderClassifierFactory::construct(Ptr<ExpressionGraph> graph) {
+Ptr<IModel> EncoderClassifierFactory::construct(Ptr<ExpressionGraph> graph) {
   Ptr<EncoderClassifier> enccls;
   if(options_->get<std::string>("type") == "bert") {
     enccls = New<BertEncoderClassifier>(options_);
@@ -99,7 +99,7 @@ Ptr<ModelBase> EncoderClassifierFactory::construct(Ptr<ExpressionGraph> graph) {
   return enccls;
 }
 
-Ptr<ModelBase> createBaseModelByType(std::string type, usage use, Ptr<Options> options) {
+Ptr<IModel> createBaseModelByType(std::string type, usage use, Ptr<Options> options) {
   Ptr<ExpressionGraph> graph = nullptr; // graph unknown at this stage
   // clang-format off
   if(type == "s2s" || type == "amun" || type == "nematus") {
@@ -283,7 +283,7 @@ Ptr<ModelBase> createBaseModelByType(std::string type, usage use, Ptr<Options> o
     ABORT("Unknown model type: {}", type);
 }
 
-Ptr<ModelBase> createModelFromOptions(Ptr<Options> options, usage use) {
+Ptr<IModel> createModelFromOptions(Ptr<Options> options, usage use) {
   std::string type = options->get<std::string>("type");
   auto baseModel = createBaseModelByType(type, use, options);
 
@@ -313,7 +313,7 @@ Ptr<ModelBase> createModelFromOptions(Ptr<Options> options, usage use) {
     ABORT("'Usage' parameter must be 'translation' or 'raw'");
 }
 
-Ptr<CriterionBase> createCriterionFromOptions(Ptr<Options> options, usage use) {
+Ptr<ICriterionFunction> createCriterionFromOptions(Ptr<Options> options, usage use) {
   std::string type = options->get<std::string>("type");
   auto baseModel = createBaseModelByType(type, use, options);
 

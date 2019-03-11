@@ -189,7 +189,7 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
   auto task = [this](Ptr<data::Batch> batch) {
     static size_t i = 0;
     thread_local Ptr<ExpressionGraph> graph;
-    thread_local Ptr<models::CriterionBase> builder;
+    thread_local Ptr<models::ICriterionFunction> builder;
     thread_local size_t t = 0;
     thread_local size_t num_seen_words = 0;
     thread_local size_t num_seen_sentences = 0;

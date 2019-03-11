@@ -19,7 +19,7 @@ using namespace data;
 
 class Rescorer {
 private:
-  Ptr<models::CriterionBase> builder_;
+  Ptr<models::ICriterionFunction> builder_;
 
 public:
   Rescorer(Ptr<Options> options)

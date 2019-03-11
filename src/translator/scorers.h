@@ -72,7 +72,7 @@ private:
   const void* ptr_;
 
 public:
-  ScorerWrapper(Ptr<models::ModelBase> encdec,
+  ScorerWrapper(Ptr<models::IModel> encdec,
                 const std::string& name,
                 float weight,
                 const std::string& fname)
@@ -81,7 +81,7 @@ public:
         fname_(fname),
         ptr_{0} {}
 
-  ScorerWrapper(Ptr<models::ModelBase> encdec,
+  ScorerWrapper(Ptr<models::IModel> encdec,
                 const std::string& name,
                 float weight,
                 const void* ptr)

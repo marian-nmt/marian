@@ -16,7 +16,7 @@ public:
   virtual void setScheduler(Ptr<Scheduler> scheduler) override;
 
 private:
-  Ptr<models::CriterionBase> builder_;
+  Ptr<models::ICriterionFunction> builder_;
   Ptr<ExpressionGraph> graph_;
   Ptr<ExpressionGraph> graphAvg_;
 

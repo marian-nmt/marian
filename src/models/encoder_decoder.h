@@ -9,7 +9,7 @@
 
 namespace marian {
 
-class EncoderDecoderBase : public models::ModelBase {
+class EncoderDecoderBase : public models::IModel {
 public:
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,

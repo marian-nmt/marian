@@ -148,7 +148,7 @@ protected:
   }
 };
 
-class CrossEntropyValidator : public Validator<data::Corpus, models::CriterionBase> {
+class CrossEntropyValidator : public Validator<data::Corpus, models::ICriterionFunction> {
 public:
   CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options) {
@@ -216,7 +216,7 @@ protected:
 };
 
 // Used for validating with classifiers. Compute prediction accuracy versus ground truth for a set of classes
-class AccuracyValidator : public Validator<data::Corpus, models::ModelBase> {
+class AccuracyValidator : public Validator<data::Corpus, models::IModel> {
 public:
   AccuracyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options, /*lowerIsBetter=*/false) {
@@ -305,7 +305,7 @@ protected:
   }
 };
 
-class BertAccuracyValidator : public Validator<data::Corpus, models::ModelBase> {
+class BertAccuracyValidator : public Validator<data::Corpus, models::IModel> {
 private:
   bool evalMaskedLM_{true};
 
@@ -415,7 +415,7 @@ protected:
 };
 
 
-class ScriptValidator : public Validator<data::Corpus, models::ModelBase> {
+class ScriptValidator : public Validator<data::Corpus, models::IModel> {
 public:
   ScriptValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options, false) {
@@ -446,7 +446,7 @@ protected:
   }
 };
 
-class TranslationValidator : public Validator<data::Corpus, models::ModelBase> {
+class TranslationValidator : public Validator<data::Corpus, models::IModel> {
 public:
   TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options, false),
@@ -578,7 +578,7 @@ protected:
 };
 
 // @TODO: combine with TranslationValidator (above) to avoid code duplication
-class BleuValidator : public Validator<data::Corpus, models::ModelBase> {
+class BleuValidator : public Validator<data::Corpus, models::IModel> {
 private:
   bool detok_{false};
 

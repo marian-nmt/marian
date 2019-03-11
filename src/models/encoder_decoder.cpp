@@ -202,7 +202,7 @@ Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
   auto state = stepAll(graph, batch, clearGraph);
 
   // returns raw logits
-  return state->getLogProbs();  // , state->getTargetMask()); // @TODO: hacky hack hack
+  return state->getLogProbs();
 }
 
 Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
