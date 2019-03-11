@@ -109,7 +109,10 @@ public:
         beam[beamHypIdx]->getScoreBreakdown().resize(states.size(), 0); // @TODO: Why? Can we just guard the read-out below, then make it const? Or getScoreBreakdown(j)?
         for(size_t j = 0; j < states.size(); ++j) {
           size_t flattenedLogitIndex = (beamHypIdx * dimBatch + batchIdx) * vocabSize + wordIdx;  // (beam idx, batch idx, word idx); note: beam and batch are transposed, compared to 'key'
+          flattenedLogitIndex;
+#if 0   // @BUGBUG: This currently segfaults with factors.
           breakDown[j] = states[j]->breakDown(flattenedLogitIndex) + beam[beamHypIdx]->getScoreBreakdown()[j];
+#endif
           // @TODO: pass those 3 indices directly into breakDown (state knows the dimensions)
         }
         hyp->setScoreBreakdown(breakDown);

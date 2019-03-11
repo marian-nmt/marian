@@ -655,6 +655,7 @@ private:
     }
 
     outputFactory("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored outputs
+    outputFactory("lemma-dim-emb", opt<int>("lemma-dim-emb", 0)); // for factored outputs
 
     output_ = std::dynamic_pointer_cast<mlp::Output>(outputFactory.construct(graph_)); // (construct() returns only the underlying interface)
   }

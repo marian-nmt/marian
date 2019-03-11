@@ -47,6 +47,8 @@ namespace marian {
     // Memory-wise, this is cheap, all temp objects below are batches of scalars or lookup vectors.
     Expr loss;
     for (size_t g = 0; g < numGroups; g++) {
+      if (!logits_[g])
+        continue; // empty factor  --@TODO: handle this more nicely
       const auto& maskedFactoredLabels = allMaskedFactoredLabels[g]; // array of (word index, mask)
 #if 1
       auto factorIndices = indices (maskedFactoredLabels.indices); // [B... flattened] factor-label indices, or 0 if factor does not apply
@@ -242,19 +244,51 @@ namespace marian {
 
         // project each factor separately
         auto numGroups = factoredVocab_->getNumGroups();
-        std::vector<Ptr<RationalLoss>> allLogits(numGroups);
+        std::vector<Ptr<RationalLoss>> allLogits(numGroups, nullptr); // (note: null entries for absent factors)
+        Expr input1 = input;
+        Expr Plemma = nullptr;
         for (size_t g = 0; g < numGroups; g++) {
           auto range = factoredVocab_->getGroupRange(g);
-          //if (range.first == SIZE_MAX)
-          //  continue;
-          ABORT_IF(g > 0 && range.first != factoredVocab_->getGroupRange(g-1).second, "Factor groups must be consecutive (group {} vs predecessor)", g); // we could sort groupYs though
+          if (g > 0 && range.first == range.second) // empty entry
+            continue;
+          ABORT_IF(g > 0 && range.first != factoredVocab_->getGroupRange(g-1).second, "Factor groups must be consecutive (group {} vs predecessor)", g);
           // slice this group's section out of W_
-          // @TODO: This is highly inefficient if not tied. We should always transpose Output's matrix.
           auto factorWt = slice(Wt_, isLegacyUntransposedW ? -1 : 0, Slice((int)range.first, (int)range.second));
           auto factorB  = slice(b_,                              -1, Slice((int)range.first, (int)range.second));
           // @TODO: b_ should be a vector, not a matrix; but shotlists use cols() in, which requires a matrix
-          auto factorLogits = affine(input, factorWt, factorB, false, /*transB=*/isLegacyUntransposedW ? false : true); // [B... x U] factor logits
+          auto factorLogits = affine(input1, factorWt, factorB, false, /*transB=*/isLegacyUntransposedW ? false : true); // [B... x U] factor logits
+          // optionally add lemma-dependent bias
+          if (Plemma) { // [B... x U0]
+            int lemmaVocabDim = Plemma->shape()[-1];
+            int factorVocabDim = factorLogits->shape()[-1];
+            auto name = options_->get<std::string>("prefix");
+            Expr lemmaBt = graph_->param(name + "_lemmaBt_" + std::to_string(g), {factorVocabDim, lemmaVocabDim}, inits::zeros/*glorot_uniform*/); // [U x U0] U0=#lemmas one bias per class per lemma
+            auto b = dot(Plemma, lemmaBt, false, true); // [B... x U]
+            factorLogits = factorLogits + b;
+          }
           allLogits[g] = New<RationalLoss>(factorLogits, nullptr);
+          // optionally add a soft embedding of lemma back to create some lemma dependency
+          // @TODO: if this works, move it into lazyConstruct
+          const int lemmaDimEmb = options_->get<int>("lemma-dim-emb", 0);
+          if (lemmaDimEmb < 0 && g == 0) {
+            LOG_ONCE(info, "[embedding] using lemma-dependent bias");
+            factorLogits = logsoftmax(factorLogits); // explicitly, since we do that again later
+            auto z = /*stopGradient*/(factorLogits);
+            Plemma = exp(z); // [B... x U]
+          }
+          if (lemmaDimEmb > 0 && g == 0) {
+            LOG_ONCE(info, "[embedding] enabled re-embedding of lemma, at dim {}", lemmaDimEmb);
+            int lemmaVocabDim = factorLogits->shape()[-1];
+            int inputDim  = input1->shape()[-1];
+            auto name = options_->get<std::string>("prefix");
+            factorLogits = logsoftmax(factorLogits); // explicitly, since we do that again later
+            Expr lemmaEt = graph_->param(name + "_lemmaEt", { lemmaDimEmb, lemmaVocabDim }, inits::glorot_uniform); // [L x U] L=lemmaDimEmb; transposed for speed
+            auto e = dot(exp(factorLogits), lemmaEt, false, true); // [B... x L]
+            //e = tanh(e); // make it non-scale-preserving
+            Expr lemmaWt = inputDim == lemmaDimEmb ? nullptr : graph_->param(name + "_lemmaWt", { inputDim,  lemmaDimEmb }, inits::glorot_uniform); // [D x L] D=hidden-vector dimension
+            auto f = lemmaWt ? dot(e, lemmaWt, false, true) : e; // [B... x D]
+            input1 = input1 + f; // augment the original hidden vector with this additional information
+          }
         }
         return Logits(std::move(allLogits), factoredVocab_);
       }

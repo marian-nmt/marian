@@ -121,6 +121,9 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
   cli.add<int>("--dim-emb",
       "Size of embedding vector",
       512);
+  cli.add<int>("--lemma-dim-emb",
+      "Re-embedding dimension of lemma in factors",
+      0);
   cli.add<int>("--dim-rnn",
       "Size of rnn hidden state", 1024);
   cli.add<std::string>("--enc-type",

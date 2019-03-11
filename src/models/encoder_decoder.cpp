@@ -57,6 +57,7 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
   modelFeatures_.insert("ulr");
   modelFeatures_.insert("ulr-trainable-transformation");
   modelFeatures_.insert("ulr-dim-emb");
+  modelFeatures_.insert("lemma-dim-emb");
 }
 
 std::vector<Ptr<EncoderBase>>& EncoderDecoder::getEncoders() {
