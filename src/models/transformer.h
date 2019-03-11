@@ -688,8 +688,8 @@ public:
   }
 
   Ptr<DecoderState> step(Ptr<DecoderState> state) {
-    auto embeddings  = state->getTargetEmbeddings(); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vector dim]
-    auto decoderMask = state->getTargetMask();       // [max length, batch size, 1]  --this is a hypothesis
+    auto embeddings  = state->getTargetHistoryEmbeddings(); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vector dim]
+    auto decoderMask = state->getTargetMask();              // [max length, batch size, 1]  --this is a hypothesis
 
     // dropout target words
     float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
@@ -863,17 +863,6 @@ public:
     alignments_.clear();
   }
 };
-
-// factory functions
-Ptr<EncoderBase> NewEncoderTransformer(Ptr<Options> options)
-{
-  return New<EncoderTransformer>(options);
-}
-
-Ptr<DecoderBase> NewDecoderTransformer(Ptr<Options> options)
-{
-  return New<DecoderTransformer>(options);
-}
 
 // clang-format on
 

@@ -129,7 +129,7 @@ public:
     QSNBestBatch qsNbestBatch;
     for(const auto& history : histories) { // loop over batch entries
       QSNBest qsNbest;
-      NBestList nbestHyps = history->NBest(SIZE_MAX); // request as many N as we have
+      NBestList nbestHyps = history->nBest(SIZE_MAX); // request as many N as we have
       for (const Result& result : nbestHyps) { // loop over N-best entries
         // get hypothesis word sequence and normalized sentence score
         auto words = std::get<0>(result);
@@ -147,7 +147,7 @@ public:
           else
             alignmentThreshold = std::max(std::stof(alignment), 0.f);
           auto hyp = std::get<1>(result);
-          data::WordAlignment align = data::ConvertSoftAlignToHardAlign(hyp->TracebackAlignment(), alignmentThreshold);
+          data::WordAlignment align = data::ConvertSoftAlignToHardAlign(hyp->tracebackAlignment(), alignmentThreshold);
           // convert to QuickSAND format
           alignmentSets.resize(words.size());
           for (const auto& p : align) // @TODO: Does the feature_model param max_alignment_links apply here?
