@@ -48,23 +48,23 @@ public:
     const auto dimBatch = beams.size();
     Beams newBeams(dimBatch);
 
-    for(size_t i = 0; i < nBestKeys.size(); ++i) {
+    for(size_t i = 0; i < nBestKeys.size(); ++i) { // [dimBatch, beamSize] flattened
       // Keys encode batchIdx, beamHypIdx, and word index in the entire beam.
       // They can be between 0 and beamSize * vocabSize-1.
-      const auto  key       = nBestKeys[i];
-      const float pathScore = nBestPathScores[i]; // expanded path score for (batchIdx, beamHypIdx, word)
+      const float pathScore = nBestPathScores[i];
+      const auto  key       = nBestKeys[i]; // key = pathScore's tensor location, as (batchIdx, beamHypIdx, word idx) flattened
 
       // decompose key into individual indices (batchIdx, beamHypIdx, wordIdx)
-      const auto wordIdx    = (Word)(key % vocabSize);
-      const auto beamHypIdx =       (key / vocabSize) % inputBeamSize;
-      const auto batchIdx   =       (key / vocabSize) / inputBeamSize;
+      const auto wordIdx    = (WordIndex)(key % vocabSize);
+      const auto beamHypIdx =            (key / vocabSize) % inputBeamSize;
+      const auto batchIdx   =            (key / vocabSize) / inputBeamSize;
 
       const auto& beam = beams[batchIdx];
       auto& newBeam = newBeams[batchIdx];
 
-      if (newBeam.size() >= beam.size()) // @TODO: Why this condition? It does happen. Why?
+      if (newBeam.size() >= beam.size()) // getNBestList() generates N for all batch entries incl. those that already have a narrower beam
         continue;
-      if (pathScore <= INVALID_PATH_SCORE) // (unused slot)
+      if (pathScore <= INVALID_PATH_SCORE) // (dummy slot or word that cannot be expanded by current factor)
         continue;
 
       ABORT_IF(beamHypIdx >= beam.size(), "Out of bounds beamHypIdx??");
@@ -75,9 +75,9 @@ public:
       // rather than the true word index.
       auto shortlist = scorers_[0]->getShortlist();
       if (shortlist)
-        word = shortlist->reverseMap(wordIdx);
+        word = Word::fromWordIndex(shortlist->reverseMap(wordIdx));
       else
-        word = wordIdx;
+        word = Word::fromWordIndex(wordIdx);
 
       auto hyp = New<Hypothesis>(beam[beamHypIdx], word, (IndexType)beamHypIdx, pathScore);
 
@@ -183,9 +183,6 @@ public:
     }
 
     Beams beams(dimBatch, Beam(beamSize_, New<Hypothesis>())); // array [dimBatch] of array [localBeamSize] of Hypothesis
-    //Beams beams(dimBatch); // array [dimBatch] of array [localBeamSize] of Hypothesis
-    //for(auto& beam : beams)
-    //  beam.resize(beamSize_, New<Hypothesis>());
 
     for(int i = 0; i < dimBatch; ++i)
       histories[i]->add(beams[i], trgEosId_);
