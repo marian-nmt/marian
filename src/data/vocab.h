@@ -7,7 +7,7 @@
 
 namespace marian {
 
-class VocabBase;
+class IVocab;
 
 // Wrapper around vocabulary types. Can choose underlying
 // vocabulary implementation (vImpl_) based on speficied path
@@ -17,7 +17,7 @@ class VocabBase;
 // * SentencePiece with suffix *.spm (works, but has to be created outside Marian)
 class Vocab {
 private:
-  Ptr<VocabBase> vImpl_;
+  Ptr<IVocab> vImpl_;
   Ptr<Options> options_;
   size_t batchIndex_;
 
@@ -42,8 +42,8 @@ public:
   // string token to token id
   Word operator[](const std::string& word) const;
 
-  // token id to string token
-  const std::string& operator[](Word id) const;
+  // token index to string token
+  const std::string& operator[](Word word) const;
 
   // line of text to list of token ids, can perform tokenization
   Words encode(const std::string& line,

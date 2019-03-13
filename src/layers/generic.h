@@ -51,8 +51,10 @@ struct IUnaryLayer {
 struct IEmbeddingLayer {
   virtual std::tuple<Expr/*embeddings*/, Expr/*mask*/> apply(Ptr<data::SubBatch> subBatch) const = 0;
 
-  // alternative version from index vector, and with batch dims/shape
-  virtual Expr apply(const std::vector<IndexType>& embIdx, const Shape& shape) const = 0;
+  virtual Expr apply(const Words& embIdx, const Shape& shape) const = 0;
+
+  // alternative from indices directly
+  virtual Expr applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const = 0;
 };
 
 namespace mlp {
@@ -239,8 +241,11 @@ public:
     return std::make_tuple(batchEmbeddings, batchMask);
   }
 
-  // special version used in decoding or for learned positional embeddings
-  Expr apply(const std::vector<IndexType>& embIdx, const Shape& shape) const override final {
+  Expr apply(const Words& words, const Shape& shape) const override final {
+    return applyIndices(toWordIndexVector(words), shape);
+  }
+
+  Expr applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const override final {
     auto selectedEmbs = rows(E_, embIdx);
     return reshape(selectedEmbs, shape);
   }
@@ -326,9 +331,10 @@ public:
     // note all above can be precombuted and serialized if A is not trainiable and during decoding (TBD)
     // here we need to handle the mini-batch
     // extract raws corresponding to Xs in this minibatch from Q
-    auto queryEmbeddings = rows(queryEmbed, subBatch->data());
-    auto srcEmbeddings = rows(srcEmbed, subBatch->data());   // extract trainable src embeddings
-    auto alpha = rows(ulrSharable, subBatch->data());  // extract sharable flags
+    auto embIdx = toWordIndexVector(subBatch->data());
+    auto queryEmbeddings = rows(queryEmbed, embIdx);
+    auto srcEmbeddings = rows(srcEmbed, embIdx);   // extract trainable src embeddings
+    auto alpha = rows(ulrSharable, embIdx);  // extract sharable flags
     auto qt = dot(queryEmbeddings, ulrTransform, false, false);  //A: transform embeddings based on similarity A :  dimUlrEmb*dimUlrEmb
     auto sqrtDim=std::sqrt((float)queryEmbeddings->shape()[-1]);
     qt = qt/sqrtDim;  // normalize accordin to embed size to avoid dot prodcut growing large in magnitude with larger embeds sizes
@@ -349,7 +355,11 @@ public:
     return std::make_tuple(batchEmbeddings, batchMask);
   }
 
-  Expr apply(const std::vector<IndexType>& embIdx, const Shape& shape) const override final {
+  Expr apply(const Words& words, const Shape& shape) const override final {
+    return applyIndices(toWordIndexVector(words), shape);
+  }
+
+  Expr applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const override final {
     embIdx; shape;
     ABORT("not implemented"); // @TODO: implement me
   }

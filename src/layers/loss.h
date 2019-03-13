@@ -332,7 +332,7 @@ protected:
 
   virtual Expr compute(Expr logits, const Words& labels,
                        Expr mask = nullptr, Expr labelWeights = nullptr) override {
-    auto labelIndices = logits->graph()->indices(labels);
+    auto labelIndices = logits->graph()->indices(toWordIndexVector(labels));
     logits = atleast_3d(logits); // we always assuma a time and batch dimension exists.
     // for bert training or classification the time dimension is lot.
     // Here safeguard against 2d classifier output, adds 1 on the left, non-op.

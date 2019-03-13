@@ -110,7 +110,7 @@ public:
  */
 class SubBatch {
 private:
-  std::vector<Word> indices_;
+  Words indices_;
   std::vector<float> mask_;
 
   size_t size_;
@@ -128,7 +128,7 @@ public:
    * @param width Number of words in the longest sentence
    */
   SubBatch(size_t size, size_t width, const Ptr<Vocab>& vocab)
-      : indices_(size * width, 0),
+      : indices_(size * width, Word::ZERO), // note: for gaps, we must use a valid index
         mask_(size * width, 0),
         size_(size),
         width_(width),
@@ -142,7 +142,7 @@ public:
    * idx_{w,0},idx_{w,1},\dots,idx_{w,s}\f$, where \f$w\f$ is the number of
    * words (width) and \f$s\f$ is the number of sentences (size).
    */
-  std::vector<Word>& data() { return indices_; }
+  Words& data() { return indices_; }
   /**
    * @brief Flat masking vector; 0 is used for masked words.
    *
@@ -322,7 +322,7 @@ public:
       // set word indices to different values to avoid same hashes
       // rand() is OK, this does not affect state in any way
       std::transform(sb->data().begin(), sb->data().end(), sb->data().begin(),
-                     [&](Word) -> Word { return rand() % vocabs[batchIndex]->size(); });
+                     [&](Word) -> Word { return Word::fromWordIndex(rand() % vocabs[batchIndex]->size()); });
       // mask: no items ask being masked out
       std::fill(sb->mask().begin(), sb->mask().end(), 1.f);
       batchIndex++;
@@ -484,7 +484,7 @@ public:
           if (vocab)
             std::cerr << (*vocab)[w] << " ";
           else
-            std::cerr << w << " "; // if not loaded then print numeric id instead
+            std::cerr << w.toString() << " "; // if not loaded then print numeric id instead
         }
         std::cerr << std::endl;
       }

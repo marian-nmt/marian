@@ -56,7 +56,7 @@ public:
   }
 };
 
-template <class DataSet>
+template <class DataSet, class BuilderType>
 class Validator : public ValidatorBase {
 public:
   Validator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, bool lowerIsBetter = true)
@@ -123,7 +123,7 @@ public:
 protected:
   std::vector<Ptr<Vocab>> vocabs_;
   Ptr<Options> options_;
-  Ptr<models::ModelBase> builder_;
+  Ptr<BuilderType> builder_;
   Ptr<data::BatchGenerator<DataSet>> batchGenerator_;
 
   virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>&)
@@ -148,7 +148,7 @@ protected:
   }
 };
 
-class CrossEntropyValidator : public Validator<data::Corpus> {
+class CrossEntropyValidator : public Validator<data::Corpus, models::ICriterionFunction> {
 public:
   CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options) {
@@ -159,7 +159,7 @@ public:
     opts->merge(options);
     opts->set("inference", true);
     opts->set("cost-type", "ce-sum");
-    builder_ = models::from_options(opts, models::usage::scoring);
+    builder_ = models::createCriterionFunctionFromOptions(opts, models::usage::scoring);
   }
 
   std::string type() override { return options_->get<std::string>("cost-type"); }
@@ -180,7 +180,7 @@ protected:
       for(auto batch : *batchGenerator_) {
         auto task = [=, &loss, &samples](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
-          thread_local auto builder = models::from_options(options_, models::usage::scoring);
+          thread_local auto builder = models::createCriterionFunctionFromOptions(options_, models::usage::scoring);
 
           if(!graph) {
             graph = graphs[id % graphs.size()];
@@ -215,8 +215,8 @@ protected:
   }
 };
 
-// Used for validating with classifiers. Compute prediction accuary versus groundtruth for a set of classes
-class AccuracyValidator : public Validator<data::Corpus> {
+// Used for validating with classifiers. Compute prediction accuracy versus ground truth for a set of classes
+class AccuracyValidator : public Validator<data::Corpus, models::IModel> {
 public:
   AccuracyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options, /*lowerIsBetter=*/false) {
@@ -226,7 +226,7 @@ public:
     Ptr<Options> opts = New<Options>();
     opts->merge(options);
     opts->set("inference", true);
-    builder_ = models::from_options(opts, models::usage::raw);
+    builder_ = models::createModelFromOptions(opts, models::usage::raw);
   }
 
   std::string type() override { return "accuracy"; }
@@ -245,7 +245,7 @@ protected:
       for(auto batch : *batchGenerator_) {
         auto task = [=, &correct, &totalLabels](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
-          thread_local auto builder = models::from_options(options_, models::usage::raw);
+          thread_local auto builder = models::createModelFromOptions(options_, models::usage::raw);
 
           if(!graph) {
             graph = graphs[id % graphs.size()];
@@ -263,7 +263,7 @@ protected:
           // correct     += correct->scalar<IndexType>();
 
           builder->clear(graph);
-          Expr logits = builder->build(graph, batch)->loss();
+          Expr logits = builder->build(graph, batch);
           graph->forward();
 
           std::vector<float> vLogits;
@@ -278,16 +278,16 @@ protected:
 
           for(int i = 0; i < thisLabels; ++i) {
             // CPU-side Argmax
-            IndexType bestIndex = 0;
+            Word bestWord = Word::NONE;
             float bestValue = std::numeric_limits<float>::lowest();
             for(IndexType j = 0; j < cols; ++j) {
               float currValue = vLogits[i * cols + j];
               if(currValue > bestValue) {
                 bestValue = currValue;
-                bestIndex = j;
+                bestWord = Word::fromWordIndex(j);
               }
             }
-            thisCorrect += (size_t)(bestIndex == groundTruth[i]);
+            thisCorrect += (size_t)(bestWord == groundTruth[i]);
           }
 
           std::unique_lock<std::mutex> lock(mutex_);
@@ -305,7 +305,7 @@ protected:
   }
 };
 
-class BertAccuracyValidator : public Validator<data::Corpus> {
+class BertAccuracyValidator : public Validator<data::Corpus, models::IModel> {
 private:
   bool evalMaskedLM_{true};
 
@@ -319,7 +319,7 @@ public:
     Ptr<Options> opts = New<Options>();
     opts->merge(options);
     opts->set("inference", true);
-    builder_ = models::from_options(opts, models::usage::raw);
+    builder_ = models::createModelFromOptions(opts, models::usage::raw);
   }
 
   std::string type() override {
@@ -343,7 +343,7 @@ protected:
       for(auto batch : *batchGenerator_) {
         auto task = [=, &correct, &totalLabels](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
-          thread_local auto builder = models::from_options(options_, models::usage::raw);
+          thread_local auto builder = models::createModelFromOptions(options_, models::usage::raw);
           thread_local std::unique_ptr<std::mt19937> engine;
 
           if(!graph) {
@@ -371,7 +371,7 @@ protected:
           auto sentenceLogits = classifierStates[1]->getLogProbs();
           const auto& sentenceLabels = bertBatch->back()->data();
 
-          auto count = [=, &correct, &totalLabels](Expr logits, const std::vector<IndexType>& labels) {
+          auto count = [=, &correct, &totalLabels](Expr logits, const Words& labels) {
             IndexType cols = logits->shape()[-1];
             size_t thisCorrect = 0;
             size_t thisLabels  = labels.size();
@@ -390,7 +390,7 @@ protected:
                   bestIndex = j;
                 }
               }
-              thisCorrect += (size_t)(bestIndex == labels[i]);
+              thisCorrect += (size_t)(bestIndex == labels[i].toWordIndex());
             }
 
             std::unique_lock<std::mutex> lock(mutex_);
@@ -415,11 +415,11 @@ protected:
 };
 
 
-class ScriptValidator : public Validator<data::Corpus> {
+class ScriptValidator : public Validator<data::Corpus, models::IModel> {
 public:
   ScriptValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options, false) {
-    builder_ = models::from_options(options_, models::usage::raw);
+    builder_ = models::createModelFromOptions(options_, models::usage::raw);
 
     ABORT_IF(!options_->hasAndNotEmpty("valid-script-path"),
              "valid-script metric but no script given");
@@ -446,12 +446,12 @@ protected:
   }
 };
 
-class TranslationValidator : public Validator<data::Corpus> {
+class TranslationValidator : public Validator<data::Corpus, models::IModel> {
 public:
   TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options, false),
         quiet_(options_->get<bool>("quiet-translation")) {
-    builder_ = models::from_options(options_, models::usage::translation);
+    builder_ = models::createModelFromOptions(options_, models::usage::translation);
 
     if(!options_->hasAndNotEmpty("valid-script-path"))
       LOG_VALID(warn, "No post-processing script given for validating translator");
@@ -475,7 +475,7 @@ public:
 
     std::vector<Ptr<Scorer>> scorers;
     for(auto graph : graphs) {
-      auto builder = models::from_options(options_, models::usage::translation);
+      auto builder = models::createModelFromOptions(options_, models::usage::translation);
       Ptr<Scorer> scorer = New<ScorerWrapper>(builder, "", 1.0f, model);
       scorers.push_back(scorer);
     }
@@ -578,7 +578,7 @@ protected:
 };
 
 // @TODO: combine with TranslationValidator (above) to avoid code duplication
-class BleuValidator : public Validator<data::Corpus> {
+class BleuValidator : public Validator<data::Corpus, models::IModel> {
 private:
   bool detok_{false};
 
@@ -587,7 +587,7 @@ public:
       : Validator(vocabs, options, false),
         detok_(detok),
         quiet_(options_->get<bool>("quiet-translation")) {
-    builder_ = models::from_options(options_, models::usage::translation);
+    builder_ = models::createModelFromOptions(options_, models::usage::translation);
 
 #ifdef USE_SENTENCEPIECE
     auto vocab = vocabs_.back();
@@ -619,7 +619,7 @@ public:
 
     std::vector<Ptr<Scorer>> scorers;
     for(auto graph : graphs) {
-      auto builder = models::from_options(options_, models::usage::translation);
+      auto builder = models::createModelFromOptions(options_, models::usage::translation);
       Ptr<Scorer> scorer = New<ScorerWrapper>(builder, "", 1.0f, model);
       scorers.push_back(scorer);
     }
@@ -844,7 +844,7 @@ protected:
  *
  * @return Vector of validator objects
  */
-std::vector<Ptr<Validator<data::Corpus>>> Validators(
+std::vector<Ptr<ValidatorBase/*<data::Corpus>*/>> Validators(
     std::vector<Ptr<Vocab>> vocabs,
     Ptr<Options> config);
 }  // namespace marian

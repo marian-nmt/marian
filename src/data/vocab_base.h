@@ -7,7 +7,7 @@
 
 namespace marian {
 
-class VocabBase {
+class IVocab {
 public:
   virtual size_t load(const std::string& vocabPath, size_t maxSize = 0) = 0;
 
