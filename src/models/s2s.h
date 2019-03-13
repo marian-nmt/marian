@@ -283,7 +283,7 @@ public:
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state) override {
 
-    auto embeddings = state->getTargetEmbeddings();
+    auto embeddings = state->getTargetHistoryEmbeddings();
 
     // dropout target words
     float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");

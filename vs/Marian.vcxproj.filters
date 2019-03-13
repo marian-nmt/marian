@@ -202,9 +202,6 @@
     <ClCompile Include="..\src\tensors\cpu\sharp\sse_gemm.cpp">
       <Filter>tensors\cpu\sharp</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\models\transformer.h">
-      <Filter>models</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\common\io.cpp">
       <Filter>common</Filter>
     </ClCompile>
@@ -480,6 +477,9 @@
     </ClCompile>
     <ClCompile Include="..\src\examples\iris\iris.cpp">
       <Filter>examples\iris</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\transformer_stub.cpp">
+      <Filter>models</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1524,6 +1524,9 @@
       <Filter>models</Filter>
     </ClInclude>
     <ClInclude Include="..\src\models\encoder_classifier.h">
+      <Filter>models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\models\transformer.h">
       <Filter>models</Filter>
     </ClInclude>
   </ItemGroup>

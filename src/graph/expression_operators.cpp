@@ -135,31 +135,49 @@ Expr le(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant(
 /*********************************************************/
 
 Expr operator+(Expr a, float b) {
-  return Expression<ScalarAddNodeOp>(a, b);
+  if (b == 0)
+    return a;
+  else
+    return Expression<ScalarAddNodeOp>(a, b);
 }
 
 Expr operator+(float a, Expr b) {
-  return Expression<ScalarAddNodeOp>(b, a);
+  if (a == 0)
+    return b;
+  else
+    return Expression<ScalarAddNodeOp>(b, a);
 }
 
 Expr operator-(Expr a, float b) {
-  return Expression<ScalarAddNodeOp>(a, -b);
+  if (b == 0)
+    return a;
+  else
+    return Expression<ScalarAddNodeOp>(a, -b);
 }
 
 Expr operator-(float a, Expr b) {
-  return Expression<ScalarAddNodeOp>(-b, a);
+  if (a == 0)
+    return -b;
+  else
+    return Expression<ScalarAddNodeOp>(-b, a);
 }
 
 Expr operator*(float a, Expr b) {
-  return Expression<ScalarMultNodeOp>(b, a);
+  if (a == 1.0f)
+    return b;
+  else
+    return Expression<ScalarMultNodeOp>(b, a);
 }
 
 Expr operator*(Expr a, float b) {
-  return Expression<ScalarMultNodeOp>(a, b);
+  if (b == 1.0f)
+    return a;
+  else
+    return Expression<ScalarMultNodeOp>(a, b);
 }
 
 Expr operator/(Expr a, float b) {
-  return Expression<ScalarMultNodeOp>(a, 1.f / b);
+  return a * (1.f / b);
 }
 
 // TODO: efficient version of this without constant()
@@ -195,6 +213,8 @@ Expr repeat(Expr a, size_t repeats, int ax) {
 }
 
 Expr reshape(Expr a, Shape shape) {
+  if (a->shape() == shape)
+    return a;
   return Expression<ReshapeNodeOp>(a, shape);
 }
 
@@ -238,7 +258,7 @@ Expr flatten_2d(Expr a) {
 
 Expr stopGradient(Expr a) {
   // implemented as a dummy reshape that is not trainable
-  auto res = reshape(a, a->shape());
+  auto res = Expression<ReshapeNodeOp>(a, a->shape());
   res->setTrainable(false);
   return res;
 }
@@ -254,7 +274,12 @@ Expr gather(Expr a, int axis, Expr indices) {
   return Expression<GatherNodeOp>(a, axis, indices);
 }
 
-// index_select() -- gather arbitrary elements along an axis; unbatched (indices are specified as a 1D vector)
+// index_select() -- gather arbitrary elements along an axis from an unbatched
+// input 'a'. Indices are specified as a 1D vector.
+// This is used e.g. for embedding lookup.
+// Note: To use a batch of index vectors, reshape them into a single vector,
+// call index_select(), then reshape the result back. Reshapes are cheap.
+// This function has the same semantics as PyTorch operation of the same name.
 Expr index_select(Expr a, int axis, Expr indices) {
   ABORT_IF(indices->shape().size() != 1, "Indices must be a 1D tensor");
   // We have specialized kernels for non-batched indexing of first or last axis of a 2D tensor.
@@ -507,13 +532,28 @@ Expr transpose(Expr a, const std::vector<int>& axes) {
 
 Expr swapAxes(Expr x, int axis1, int axis2)
 {
-  axis1 = x->shape().axis(axis1);
-  axis2 = x->shape().axis(axis2);
+  const auto& shape = x->shape();
+  axis1 = shape.axis(axis1);
+  axis2 = shape.axis(axis2);
   if (axis1 == axis2)
     return x;
+  if (shape[axis1] == 1 || shape[axis2] == 1) { // can we use a reshape instead?
+    if (axis1 > axis2)
+      std::swap(axis1, axis2);
+    bool canReshape = true;
+    for (int ax = axis1 + 1; ax < axis2 && canReshape; ax++)
+      canReshape &= (shape[ax] == 1);
+    if (canReshape) {
+      auto newShape = shape;
+      newShape.set(axis1, shape[axis2]);
+      newShape.set(axis2, shape[axis1]);
+      //LOG(info, "SwapAxes() did a reshape from {} to {}", shape.toString(), newShape.toString());
+      return reshape(x, newShape);
+    }
+  }
   // TODO: This is code dup from transpose(x). Implement transpose(x) as swapAxes(x, 0, 1)
-  std::vector<int> axes(x->shape().size());
-  for (int i = 0; i < axes.size(); ++i)
+  std::vector<int> axes(shape.size());
+  for (int i = 0; i < axes.size(); ++i) // @TODO: use std::iota()
     axes[i] = i;
   std::swap(axes[axis1], axes[axis2]);
   return transpose(x, axes);
