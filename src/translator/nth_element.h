@@ -10,8 +10,8 @@
 
 namespace marian {
 
-typedef std::function<void(const std::vector<size_t>& beamSizes,
-                           Tensor logProbs,
+typedef std::function<void(Tensor logProbs,
+                           size_t N,
                            std::vector<float>& outCosts,
                            std::vector<unsigned>& outKeys,
                            const bool isFirst)> GetNBestListFn;

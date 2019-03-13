@@ -717,6 +717,8 @@ private:
 
 public:
   ReshapeNodeOp(Expr a, Shape shape) : UnaryNodeOp(a, shape, a->value_type()), reshapee_(a) {
+    ABORT_IF(a->shape().elements() != shape.elements(),
+             "Reshape must not change the number of elements (from {} to {})", a->shape().toString(), shape.toString());
     Node::destroy_ = false;
   }
 

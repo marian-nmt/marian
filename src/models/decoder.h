@@ -74,7 +74,7 @@ public:
 
     auto yShifted = shift(y, {1, 0, 0});
 
-    state->setTargetEmbeddings(yShifted);
+    state->setTargetHistoryEmbeddings(yShifted);
     state->setTargetMask(yMask);
     state->setTargetWords(data);
   }
@@ -105,7 +105,7 @@ public:
 
       selectedEmbs = yEmb->apply(words, {dimBeam, 1, dimBatch, dimTrgEmb});
     }
-    state->setTargetEmbeddings(selectedEmbs);
+    state->setTargetHistoryEmbeddings(selectedEmbs);
   }
 
   virtual const std::vector<Expr> getAlignments(int /*i*/ = 0) { return {}; };

@@ -535,7 +535,7 @@ public:
             std::stringstream best1;
             std::stringstream bestn;
             printer->print(history, best1, bestn);
-            collector->Write((long)history->GetLineNum(),
+            collector->Write((long)history->getLineNum(),
                              best1.str(),
                              bestn.str(),
                              options_->get<bool>("n-best"));
@@ -677,14 +677,14 @@ public:
           size_t no = 0;
           std::lock_guard<std::mutex> statsLock(mutex_);
           for(auto history : histories) {
-            auto result = history->Top();
+            auto result = history->top();
             const auto& words = std::get<0>(result);
             updateStats(stats, words, batch, no, vocabs_.back()->getEosId());
 
             std::stringstream best1;
             std::stringstream bestn;
             printer->print(history, best1, bestn);
-            collector->Write((long)history->GetLineNum(),
+            collector->Write((long)history->getLineNum(),
                              best1.str(),
                              bestn.str(),
                              /*nbest=*/ false);
