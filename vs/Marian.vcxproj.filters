@@ -1528,6 +1528,12 @@
     <ClInclude Include="..\src\data\vocab_base.h">
       <Filter>data</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\models\classifier.h">
+      <Filter>models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\models\encoder_classifier.h">
+      <Filter>models</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\models\transformer.h">
       <Filter>models</Filter>
     </ClInclude>

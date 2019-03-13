@@ -512,7 +512,7 @@ void MultiNodeGraphGroup::execute(Ptr<data::Batch> batch) {
   auto task = [this](Ptr<data::Batch> batch) {
     static size_t i = 0;
     thread_local Ptr<ExpressionGraph> graph;
-    thread_local Ptr<models::ModelBase> builder;
+    thread_local Ptr<models::ICriterionFunction> builder;
     thread_local size_t my_id = 0;
     thread_local size_t t = 0;
     // only for scheduler statistic

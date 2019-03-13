@@ -9,7 +9,7 @@
 
 namespace marian {
 
-class EncoderDecoderBase : public models::ModelBase {
+class EncoderDecoderBase : public models::IModel {
 public:
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
@@ -28,13 +28,13 @@ public:
 
   virtual void clear(Ptr<ExpressionGraph> graph) override = 0;
 
-  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
-                                  Ptr<data::Batch> batch,
-                                  bool clearGraph = true) override = 0;
+  virtual Expr build(Ptr<ExpressionGraph> graph,
+                     Ptr<data::Batch> batch,
+                     bool clearGraph = true) override = 0;
 
-  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
-                                  Ptr<data::CorpusBatch> batch,
-                                  bool clearGraph = true) = 0;  
+  virtual Expr build(Ptr<ExpressionGraph> graph,
+                     Ptr<data::CorpusBatch> batch,
+                     bool clearGraph = true) = 0;  
                                   
   virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
                                        Ptr<data::CorpusBatch> batch) = 0;
@@ -156,13 +156,13 @@ public:
                                     Ptr<data::CorpusBatch> batch,
                                     bool clearGraph = true);
 
-  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
-                                  Ptr<data::CorpusBatch> batch,
-                                  bool clearGraph = true) override;
+  virtual Expr build(Ptr<ExpressionGraph> graph,
+                          Ptr<data::CorpusBatch> batch,
+                          bool clearGraph = true) override;
 
-  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
-                                  Ptr<data::Batch> batch,
-                                  bool clearGraph = true) override;
+  virtual Expr build(Ptr<ExpressionGraph> graph,
+                          Ptr<data::Batch> batch,
+                          bool clearGraph = true) override;
 };
 
 }  // namespace marian

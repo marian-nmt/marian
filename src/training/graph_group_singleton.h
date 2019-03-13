@@ -16,7 +16,7 @@ public:
   virtual void setScheduler(Ptr<Scheduler> scheduler) override;
 
 private:
-  Ptr<models::ModelBase> builder_;
+  Ptr<models::ICriterionFunction> builder_;
   Ptr<ExpressionGraph> graph_;
   Ptr<ExpressionGraph> graphAvg_;
 
@@ -37,7 +37,7 @@ public:
     graph_->getBackend()->setClip(options_->get<float>("clip-gemm"));
     graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
     opt_ = Optimizer(options_);
-    builder_ = models::from_options(options_, models::usage::training);
+    builder_ = models::createCriterionFunctionFromOptions(options_, models::usage::training);
   }
 
   void update(Ptr<data::Batch> batch) override {
