@@ -21,14 +21,12 @@ public:
   NthElementCPU(const NthElementCPU& copy) = delete;
 
 private:
-    void selectNBest(float* scores,
+    void selectNBest(const float* scores,
                      const std::vector<int>& batchFirstElementIdxs,
                      const std::vector<int>& cumulativeBeamSizes) {
-    /* For each batch, select the max N elements, where N is the beam size for
-     * this batch. Locally record these elements (their current value and index
-     * in 'scores') before updating each element to a large negative value, such
-     * that they won't be a maximum if we're called again on the same input.
-     */
+    // For each batch, select the max N elements, where N is the beam size for
+    // this batch. Locally record these elements (their current value and index
+    // in 'scores').
 
     int numProbs = batchFirstElementIdxs.back();
     std::vector<int> idxs(numProbs);
@@ -49,7 +47,7 @@ private:
         int idx = *begin++;
         h_res_idx[pos] = idx;
         h_res[pos] = scores[idx];
-        scores[idx] = std::numeric_limits<float>::lowest();
+        //scores[idx] = std::numeric_limits<float>::lowest();
         ++pos;
       }
     }
