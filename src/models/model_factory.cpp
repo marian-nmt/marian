@@ -60,7 +60,7 @@ Ptr<ClassifierBase> ClassifierFactory::construct(Ptr<ExpressionGraph> /*graph*/)
   ABORT("Unknown classifier type");
 }
 
-Ptr<ModelBase> EncoderDecoderFactory::construct(Ptr<ExpressionGraph> graph) {
+Ptr<IModel> EncoderDecoderFactory::construct(Ptr<ExpressionGraph> graph) {
   Ptr<EncoderDecoder> encdec;
 
   if(options_->get<std::string>("type") == "amun")
@@ -80,7 +80,7 @@ Ptr<ModelBase> EncoderDecoderFactory::construct(Ptr<ExpressionGraph> graph) {
   return encdec;
 }
 
-Ptr<ModelBase> EncoderClassifierFactory::construct(Ptr<ExpressionGraph> graph) {
+Ptr<IModel> EncoderClassifierFactory::construct(Ptr<ExpressionGraph> graph) {
   Ptr<EncoderClassifier> enccls;
   if(options_->get<std::string>("type") == "bert") {
     enccls = New<BertEncoderClassifier>(options_);
@@ -99,19 +99,19 @@ Ptr<ModelBase> EncoderClassifierFactory::construct(Ptr<ExpressionGraph> graph) {
   return enccls;
 }
 
-Ptr<ModelBase> createBaseModelByType(std::string type, usage use, Ptr<Options> options) {
+Ptr<IModel> createBaseModelByType(std::string type, usage use, Ptr<Options> options) {
   Ptr<ExpressionGraph> graph = nullptr; // graph unknown at this stage
   // clang-format off
   if(type == "s2s" || type == "amun" || type == "nematus") {
     return models::encoder_decoder()(options)
         ("usage", use)
         ("original-type", type)
-            .push_back(models::encoder()("type", "s2s"))
-            .push_back(models::decoder()("type", "s2s"))
-            .construct(graph);
+        .push_back(models::encoder()("type", "s2s"))
+        .push_back(models::decoder()("type", "s2s"))
+        .construct(graph);
   }
 
-  if(type == "transformer") {
+  else if(type == "transformer") {
     return models::encoder_decoder()(options)
         ("usage", use)
         .push_back(models::encoder()("type", "transformer"))
@@ -119,16 +119,16 @@ Ptr<ModelBase> createBaseModelByType(std::string type, usage use, Ptr<Options> o
         .construct(graph);
   }
 
-  if(type == "transformer_s2s") {
+  else if(type == "transformer_s2s") {
     return models::encoder_decoder()(options)
         ("usage", use)
         ("original-type", type)
-            .push_back(models::encoder()("type", "transformer"))
-            .push_back(models::decoder()("type", "s2s"))
-            .construct(graph);
+        .push_back(models::encoder()("type", "transformer"))
+        .push_back(models::decoder()("type", "s2s"))
+        .construct(graph);
   }
 
-  if(type == "lm") {
+  else if(type == "lm") {
     auto idx = options->has("index") ? options->get<size_t>("index") : 0;
     std::vector<int> dimVocabs = options->get<std::vector<int>>("dim-vocabs");
     int vocab = dimVocabs[0];
@@ -139,13 +139,13 @@ Ptr<ModelBase> createBaseModelByType(std::string type, usage use, Ptr<Options> o
         ("usage", use)
         ("type", "s2s")
         ("original-type", type)
-            .push_back(models::decoder()
-                       ("index", idx)
-                       ("dim-vocabs", dimVocabs))
-            .construct(graph);
+        .push_back(models::decoder()
+                   ("index", idx)
+                   ("dim-vocabs", dimVocabs))
+        .construct(graph);
   }
 
-  if(type == "multi-s2s") {
+  else if(type == "multi-s2s") {
     size_t numEncoders = 2;
     auto ms2sFactory = models::encoder_decoder()(options)
         ("usage", use)
@@ -162,7 +162,7 @@ Ptr<ModelBase> createBaseModelByType(std::string type, usage use, Ptr<Options> o
     return ms2sFactory.construct(graph);
   }
 
-  if(type == "shared-multi-s2s") {
+  else if(type == "shared-multi-s2s") {
     size_t numEncoders = 2;
     auto ms2sFactory = models::encoder_decoder()(options)
         ("usage", use)
@@ -179,7 +179,7 @@ Ptr<ModelBase> createBaseModelByType(std::string type, usage use, Ptr<Options> o
     return ms2sFactory.construct(graph);
   }
 
-  if(type == "multi-transformer") {
+  else if(type == "multi-transformer") {
     size_t numEncoders = 2;
     auto mtransFactory = models::encoder_decoder()(options)
         ("usage", use)
@@ -195,7 +195,7 @@ Ptr<ModelBase> createBaseModelByType(std::string type, usage use, Ptr<Options> o
     return mtransFactory.construct(graph);
   }
 
-  if(type == "shared-multi-transformer") {
+  else if(type == "shared-multi-transformer") {
     size_t numEncoders = 2;
     auto mtransFactory = models::encoder_decoder()(options)
         ("usage", use)
@@ -211,7 +211,7 @@ Ptr<ModelBase> createBaseModelByType(std::string type, usage use, Ptr<Options> o
     return mtransFactory.construct(graph);
   }
 
-  if(type == "lm-transformer") {
+  else if(type == "lm-transformer") {
     auto idx = options->has("index") ? options->get<size_t>("index") : 0;
     std::vector<int> dimVocabs = options->get<std::vector<int>>("dim-vocabs");
     int vocab = dimVocabs[0];
@@ -222,59 +222,68 @@ Ptr<ModelBase> createBaseModelByType(std::string type, usage use, Ptr<Options> o
         ("usage", use)
         ("type", "transformer")
         ("original-type", type)
-            .push_back(models::decoder()
-                       ("index", idx)
-                       ("dim-vocabs", dimVocabs))
-            .construct(graph);
+        .push_back(models::decoder()
+                   ("index", idx)
+                   ("dim-vocabs", dimVocabs))
+        .construct(graph);
   }
 
-  if(type == "bert") {                           // for full BERT training
+  else if(type == "bert") {                      // for full BERT training
     return models::encoder_classifier()(options) //
         ("original-type", "bert")                // so we can query this
         ("usage", use)                           //
         .push_back(models::encoder()             //
-                    ("type", "bert-encoder")     // close to original transformer encoder
-                    ("index", 0))                //
+                   ("type", "bert-encoder")      // close to original transformer encoder
+                   ("index", 0))                 //
         .push_back(models::classifier()          //
-                    ("prefix", "masked-lm")      // prefix for parameter names
-                    ("type", "bert-masked-lm")   //
-                    ("index", 0))                // multi-task learning with MaskedLM
+                   ("prefix", "masked-lm")       // prefix for parameter names
+                   ("type", "bert-masked-lm")    //
+                   ("index", 0))                 // multi-task learning with MaskedLM
         .push_back(models::classifier()          //
-                    ("prefix", "next-sentence")  // prefix for parameter names
-                    ("type", "bert-classifier")  //
-                    ("index", 1))                // next sentence prediction
+                   ("prefix", "next-sentence")   // prefix for parameter names
+                   ("type", "bert-classifier")   //
+                   ("index", 1))                 // next sentence prediction
         .construct(graph);
   }
 
-  if(type == "bert-classifier") {                // for BERT fine-tuning on non-BERT classification task
+  else if(type == "bert-classifier") {           // for BERT fine-tuning on non-BERT classification task
     return models::encoder_classifier()(options) //
         ("original-type", "bert-classifier")     // so we can query this if needed
         ("usage", use)                           //
         .push_back(models::encoder()             //
-                    ("type", "bert-encoder")     //
-                    ("index", 0))                // close to original transformer encoder
+                   ("type", "bert-encoder")      //
+                   ("index", 0))                 // close to original transformer encoder
         .push_back(models::classifier()          //
-                    ("type", "bert-classifier")  //
-                    ("index", 1))                // next sentence prediction
+                   ("type", "bert-classifier")   //
+                   ("index", 1))                 // next sentence prediction
         .construct(graph);
   }
 
+#ifdef COMPILE_EXAMPLES
+  else if(type == "mnist-ffnn")
+    return New<MnistFeedForwardNet>(options);
+#endif
 #ifdef CUDNN
-  if(type == "char-s2s") {
+#ifdef COMPILE_EXAMPLES
+  else if(type == "mnist-lenet")
+    return New<MnistLeNet>(options);
+#endif
+  else if(type == "char-s2s") {
     return models::encoder_decoder()(options)
         ("usage", use)
         ("original-type", type)
-            .push_back(models::encoder()("type", "char-s2s"))
-            .push_back(models::decoder()("type", "s2s"))
-            .construct(graph);
+        .push_back(models::encoder()("type", "char-s2s"))
+        .push_back(models::decoder()("type", "s2s"))
+        .construct(graph);
   }
 #endif
 
   // clang-format on
-  ABORT("Unknown model type: {}", type);
+  else
+    ABORT("Unknown model type: {}", type);
 }
 
-Ptr<ModelBase> createModelFromOptions(Ptr<Options> options, usage use) {
+Ptr<IModel> createModelFromOptions(Ptr<Options> options, usage use) {
   std::string type = options->get<std::string>("type");
   auto baseModel = createBaseModelByType(type, use, options);
 
@@ -304,7 +313,7 @@ Ptr<ModelBase> createModelFromOptions(Ptr<Options> options, usage use) {
     ABORT("'Usage' parameter must be 'translation' or 'raw'");
 }
 
-Ptr<CriterionBase> createCriterionFromOptions(Ptr<Options> options, usage use) {
+Ptr<ICriterionFunction> createCriterionFunctionFromOptions(Ptr<Options> options, usage use) {
   std::string type = options->get<std::string>("type");
   auto baseModel = createBaseModelByType(type, use, options);
 
@@ -313,9 +322,9 @@ Ptr<CriterionBase> createCriterionFromOptions(Ptr<Options> options, usage use) {
   // note: usage::scoring means "score the loss function", hence it uses a Trainer (not Scorer, which is for decoding)
   // @TODO: Should we define a new class that does not compute gradients?
   if (std::dynamic_pointer_cast<EncoderDecoder>(baseModel))
-    return New<Trainer>(baseModel, New<EncoderDecoderCE>(options));
+    return New<Trainer>(baseModel, New<EncoderDecoderCECost>(options));
   else if (std::dynamic_pointer_cast<EncoderClassifier>(baseModel))
-    return New<Trainer>(baseModel, New<EncoderClassifierCE>(options));
+    return New<Trainer>(baseModel, New<EncoderClassifierCECost>(options));
 #ifdef COMPILE_EXAMPLES
   // @TODO: examples should be compiled optionally
   else if (std::dynamic_pointer_cast<MnistFeedForwardNet>(baseModel))

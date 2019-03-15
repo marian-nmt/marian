@@ -17,7 +17,7 @@ namespace marian {
  * @TODO: this should probably be unified somehow with EncoderDecoder which could allow for deocder/classifier
  * multi-objective training.
  */
-class EncoderClassifierBase : public models::ModelBase {
+class EncoderClassifierBase : public models::IModel {
 public:
   virtual ~EncoderClassifierBase() {}
 

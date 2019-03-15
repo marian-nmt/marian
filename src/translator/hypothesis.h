@@ -6,7 +6,7 @@
 
 namespace marian {
 
-// one single (possibly partial) hypothesis in beam search
+// one single (partial or full) hypothesis in beam search
 // key elements:
 //  - the word that this hyp ends with
 //  - the aggregate score up to and including the word
@@ -29,7 +29,7 @@ public:
 
   float getPathScore() const { return pathScore_; }
 
-  std::vector<float>& getScoreBreakdown() { return scoreBreakdown_; }
+  std::vector<float>& getScoreBreakdown() { return scoreBreakdown_; } // @TODO: make this const
   void setScoreBreakdown(const std::vector<float>& scoreBreaddown) { scoreBreakdown_ = scoreBreaddown; }
 
   const std::vector<float>& getAlignment() { return alignment_; }

@@ -15,9 +15,9 @@ public:
   virtual void clear(Ptr<ExpressionGraph> graph) override { graph->clear(); };
 
 protected:
-  virtual Expr construct(Ptr<ExpressionGraph> g,
-                         Ptr<data::Batch> batch,
-                         bool inference = false) override {
+  virtual Expr apply(Ptr<ExpressionGraph> g,
+                     Ptr<data::Batch> batch,
+                     bool inference = false) override {
     const std::vector<int> dims = {784, 128, 10};
 
     // Start with an empty expression graph

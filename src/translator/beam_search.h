@@ -19,7 +19,7 @@ private:
   Word trgEosId_{Word::NONE};
   Word trgUnkId_{Word::NONE};
 
-  static constexpr auto INVALID_PATH_SCORE = -9999;
+  static constexpr auto INVALID_PATH_SCORE = -9999; // (@TODO: change to -9999.0 once C++ allows that)
 
 public:
   BeamSearch(Ptr<Options> options,
@@ -37,7 +37,7 @@ public:
   // combine new expandedPathScores and previous beams into new set of beams
   Beams toHyps(const std::vector<unsigned int>& nBestKeys, // [dimBatch, beamSize] flattened -> ((batchIdx, beamHypIdx) flattened, word idx) flattened
                const std::vector<float>& nBestPathScores,  // [dimBatch, beamSize] flattened
-               const size_t inputBeamSize, // for interpretation of nBestKeys
+               const size_t nBestBeamSize, // for interpretation of nBestKeys
                const size_t vocabSize,     // ditto.
                const Beams& beams,
                const std::vector<Ptr<ScorerState /*const*/>>& states,
@@ -48,19 +48,19 @@ public:
       align = scorers_[0]->getAlignment(); // use alignments from the first scorer, even if ensemble
 
     const auto dimBatch = beams.size();
-    Beams newBeams(dimBatch);
+    Beams newBeams(dimBatch);   // return value of this function goes here
 
     for(size_t i = 0; i < nBestKeys.size(); ++i) { // [dimBatch, beamSize] flattened
       // Keys encode batchIdx, beamHypIdx, and word index in the entire beam.
-      // They can be between 0 and beamSize * vocabSize-1.
-      const float pathScore = nBestPathScores[i];
-      const auto  key       = nBestKeys[i]; // key = pathScore's tensor location, as (batchIdx, beamHypIdx, word idx) flattened
+      // They can be between 0 and (vocabSize * nBestBeamSize * batchSize)-1.
+      // (beamHypIdx refers to the GPU tensors, *not* the beams[] array; they are not the same in case of purging)
+      const auto  key       = nBestKeys[i];
+      const float pathScore = nBestPathScores[i]; // expanded path score for (batchIdx, beamHypIdx, word)
 
       // decompose key into individual indices (batchIdx, beamHypIdx, wordIdx)
       const auto wordIdx    = (WordIndex)(key % vocabSize);
-      const auto beamHypIdx =            (key / vocabSize) % inputBeamSize;
-      const auto batchIdx   =            (key / vocabSize) / inputBeamSize;
-      //LOG(info, "key = (batch {}, beam {}, word {}) -> {}", batchIdx, beamHypIdx, wordIdx, pathScore);
+      const auto beamHypIdx =            (key / vocabSize) % nBestBeamSize;
+      const auto batchIdx   =            (key / vocabSize) / nBestBeamSize;
 
       const auto& beam = beams[batchIdx];
       auto& newBeam = newBeams[batchIdx];
@@ -70,7 +70,7 @@ public:
       if (pathScore <= INVALID_PATH_SCORE) // (dummy slot or word that cannot be expanded by current factor)
         continue;
 
-      ABORT_IF(beamHypIdx >= (int)beam.size(), "Out of bounds beamHypIdx value {} in key?? word={}, batch={}, pathScore={}", beamHypIdx, wordIdx, batchIdx, pathScore);
+      ABORT_IF(beamHypIdx >= beam.size(), "Out of bounds beamHypIdx??");
 
       // map wordIdx to word
       auto prevHyp = beam[beamHypIdx];
@@ -81,23 +81,6 @@ public:
       auto shortlist = scorers_[0]->getShortlist();
       if (shortlist)
         word = Word::fromWordIndex(shortlist->reverseMap(wordIdx));
-      else if (factoredVocab) {
-        // For factored decoding, the word is built over multiple decoding steps,
-        // starting with the lemma, then adding factors one by one.
-        if (factorGroup == 0) {
-          word = factoredVocab->lemma2Word(wordIdx);
-          //LOG(info, "new lemma {}={}", word.toWordIndex(), factoredVocab->word2string(word));
-        }
-        else {
-          //LOG(info, "expand word {}={} with factor[{}] {}", beam[beamHypIdx]->getWord().toWordIndex(),
-          //    factoredVocab->word2string(beam[beamHypIdx]->getWord()), factorGroup, wordIdx);
-          word = beam[beamHypIdx]->getWord();
-          ABORT_IF(!factoredVocab->canExpandFactoredWord(word, factorGroup), "A word without this factor snuck through to here??");
-          word = factoredVocab->expandFactoredWord(word, factorGroup, wordIdx);
-          prevBeamHypIdx = prevHyp->getPrevStateIndex();
-          prevHyp = prevHyp->getPrevHyp(); // short-circuit the backpointer, so that the traceback doesnot contain partially factored words
-        }
-      }
       else
         word = Word::fromWordIndex(wordIdx);
 
@@ -244,7 +227,7 @@ public:
     for(int i = 0; i < dimBatch; ++i)
       histories[i]->add(beams[i], trgEosId_);
 
-    // the decoder updates the following state information in each output time step:
+    // the decoding process updates the following state information in each output time step:
     //  - beams: array [dimBatch] of array [localBeamSize] of Hypothesis
     //     - current output time step's set of active hypotheses, aka active search space
     //  - states[.]: ScorerState
@@ -381,7 +364,7 @@ public:
 
       // combine N-best sets with existing search space (beams) to updated search space
       beams = toHyps(nBestKeys, nBestPathScores,
-                     /*inputBeamSize*/expandedPathScores->shape()[-2], // used for interpretation of keys
+                     /*nBestBeamSize*/expandedPathScores->shape()[-2], // used for interpretation of keys
                      /*vocabSize=*/expandedPathScores->shape()[-1],    // used for interpretation of keys
                      beams,
                      states,    // used for keeping track of per-ensemble-member path score

@@ -17,11 +17,11 @@ namespace models {
 
 // @TODO: looking at this file, simplify the new RationalLoss idea. Here it gets too complicated
 
-class MNISTCrossEntropyCost : public CostBase {
+class MNISTCrossEntropyCost : public ICost {
 public:
   MNISTCrossEntropyCost() {}
 
-  Ptr<MultiRationalLoss> apply(Ptr<ModelBase> model,
+  Ptr<MultiRationalLoss> apply(Ptr<IModel> model,
                                Ptr<ExpressionGraph> graph,
                                Ptr<data::Batch> batch,
                                bool clearGraph = true) override {
@@ -43,11 +43,11 @@ public:
   }
 };
 
-class MNISTLogsoftmax : public LogProbBase {
+class MNISTLogsoftmax : public ILogProb {
 public:
   MNISTLogsoftmax() {}
 
-  Logits apply(Ptr<ModelBase> model,
+  Logits apply(Ptr<IModel> model,
              Ptr<ExpressionGraph> graph,
              Ptr<data::Batch> batch,
              bool clearGraph = true) override {
@@ -56,7 +56,7 @@ public:
   }
 };
 
-class MnistFeedForwardNet : public ModelBase {
+class MnistFeedForwardNet : public IModel {
 public:
   typedef data::MNISTData dataset_type;
 

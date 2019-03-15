@@ -18,7 +18,7 @@ namespace marian {
 namespace models {
 
 // model = input -> predictions
-class ModelBase {
+class IModel {
 public:
   virtual void load(Ptr<ExpressionGraph>,
                     const std::string&,
@@ -38,7 +38,8 @@ public:
 };
 
 // criterion = (input, reference) -> loss
-class CriterionBase {
+// @TODO: Is there a better name?
+class ICriterionFunction {
 public:
   virtual void load(Ptr<ExpressionGraph>,
                     const std::string&,

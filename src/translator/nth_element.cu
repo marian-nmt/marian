@@ -367,7 +367,7 @@ public:
     ABORT_IF(inputN != (isFirst ? 1 : N), "Input tensor has wrong beam dim??"); // @TODO: Remove isFirst argument altogether
     ABORT_IF(vocabSize > MAX_VOCAB_SIZE, "GetNBestList(): actual vocab size {} exceeds MAX_VOCAB_SIZE of {}", vocabSize, MAX_VOCAB_SIZE);
     ABORT_IF(dimBatch > maxBatchSize_, "GetNBestList(): actual batch size {} exceeds initialization parameter {}", dimBatch, maxBatchSize_);
-    ABORT_IF(N > maxBeamSize_, "GetNBestList(): actual beam size {} exceeds initialization parameter {}", N, maxBeamSize_); // @TODO: or inputN?
+    ABORT_IF(std::max(N, (size_t)inputN) > maxBeamSize_, "GetNBestList(): actual beam size {} exceeds initialization parameter {}", N, maxBeamSize_);
 
     const std::vector<size_t> beamSizes(dimBatch, N);
     std::vector<int> cumulativeBeamSizes(beamSizes.size() + 1, 0);
@@ -440,19 +440,19 @@ private:
 
   const int BLOCK_SIZE = 512;
   const int NUM_BLOCKS;
-  int* d_ind;
 
-  float* d_out;
+  int* d_ind;           // [maxBatchSize * NUM_BLOCKS]
+  float* d_out;         // [maxBatchSize * NUM_BLOCKS]
 
-  int* d_res_idx;
-  float* d_res;
+  int* d_res_idx;       // [maxBatchSize * maxBeamSize]
+  float* d_res;         // [maxBatchSize * maxBeamSize]
 
-  int* h_res_idx;
-  float* h_res;
+  int* h_res_idx;       // [maxBeamSize * maxBatchSize]
+  float* h_res;         // [maxBeamSize * maxBatchSize]
 
-  float* d_breakdown;
-  int* d_batchPosition;
-  int* d_cumBeamSizes;
+  float* d_breakdown;   // [maxBeamSize]
+  int* d_batchPosition; // [maxBatchSize + 1]
+  int* d_cumBeamSizes;  // [maxBatchSize + 1]
   //size_t lastN;
 };
 

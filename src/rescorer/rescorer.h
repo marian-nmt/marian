@@ -19,11 +19,11 @@ using namespace data;
 
 class Rescorer {
 private:
-  Ptr<models::CriterionBase> builder_;
+  Ptr<models::ICriterionFunction> builder_;
 
 public:
   Rescorer(Ptr<Options> options)
-      : builder_(models::createCriterionFromOptions(options, models::usage::scoring)) {}
+      : builder_(models::createCriterionFunctionFromOptions(options, models::usage::scoring)) {}
 
   void load(Ptr<ExpressionGraph> graph, const std::string& modelFile) {
     builder_->load(graph, modelFile);
