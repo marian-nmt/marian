@@ -29,6 +29,16 @@ public:
   T opt(const std::string& key, T defaultValue) {
     return options_->get<T>(key, defaultValue);
   }
+
+  template <typename Cast>
+  inline Ptr<Cast> as() {
+    return std::dynamic_pointer_cast<Cast>(shared_from_this());
+  }
+
+  template <typename Cast>
+  inline bool is() {
+    return as<Cast>() != nullptr;
+  }
 };
 
 // simplest form of Factory that just passes on options to the constructor of a layer type

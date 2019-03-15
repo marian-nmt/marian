@@ -347,28 +347,23 @@ public:
       if(shortlist_)
         last.setShortlist(shortlist_);
 
-#if 1
-      hidden; last;
-      ABORT("@TODO: adapt s2s to Logits return type");
-#else
       // assemble layers into MLP and apply to embeddings, decoder context and
       // aligned source context
       output_ = mlp::mlp()              //
                     .push_back(hidden)  //
                     .push_back(last)
                     .construct(graph);
-#endif
     }
 
-    Expr logits;
+    Logits logits;
     if(alignedContext)
-      logits = output_->apply(embeddings, decoderContext, alignedContext);
+      logits = output_->applyAsLogits({embeddings, decoderContext, alignedContext});
     else
-      logits = output_->apply(embeddings, decoderContext);
+      logits = output_->applyAsLogits({embeddings, decoderContext});
 
     // return unormalized(!) probabilities
     auto nextState = New<DecoderState>(
-        decoderStates, Logits(logits), state->getEncoderStates(), state->getBatch());
+      decoderStates, logits, state->getEncoderStates(), state->getBatch());
 
     // Advance current target token position by one
     nextState->setPosition(state->getPosition() + 1);

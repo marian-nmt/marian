@@ -10,21 +10,21 @@ namespace mlp {
  * Base class for layer factories, can be used in a multi-layer network factory.
  */
 struct LayerFactory : public Factory {
-  LayerFactory() : Factory() {}
-  LayerFactory(const LayerFactory&) = default;
-  LayerFactory(LayerFactory&&) = default;
+  //LayerFactory() : Factory() {}
+  //LayerFactory(const LayerFactory&) = default;
+  //LayerFactory(LayerFactory&&) = default;
+  //
+  //virtual ~LayerFactory() {}
 
-  virtual ~LayerFactory() {}
-
-  template <typename Cast>
-  inline Ptr<Cast> as() {
-    return std::dynamic_pointer_cast<Cast>(shared_from_this());
-  }
-
-  template <typename Cast>
-  inline bool is() {
-    return as<Cast>() != nullptr;
-  }
+  //template <typename Cast>
+  //inline Ptr<Cast> as() {
+  //  return std::dynamic_pointer_cast<Cast>(shared_from_this());
+  //}
+  //
+  //template <typename Cast>
+  //inline bool is() {
+  //  return as<Cast>() != nullptr;
+  //}
 
   virtual Ptr<IUnaryLayer> construct(Ptr<ExpressionGraph> graph) = 0;
 };
@@ -52,21 +52,21 @@ typedef Accumulator<DenseFactory> dense;
  * Factory for output layers, can be used in a multi-layer network factory.
  */
 struct LogitLayerFactory : public Factory {
-  LogitLayerFactory() : Factory() {}
-  LogitLayerFactory(const LogitLayerFactory&) = default;
-  LogitLayerFactory(LogitLayerFactory&&) = default;
-
-  virtual ~LogitLayerFactory() {}
-
-  template <typename Cast>
-  inline Ptr<Cast> as() {
-    return std::dynamic_pointer_cast<Cast>(shared_from_this());
-  }
-
-  template <typename Cast>
-  inline bool is() {
-    return as<Cast>() != nullptr;
-  }
+  //LogitLayerFactory() : Factory() {}
+  //LogitLayerFactory(const LogitLayerFactory&) = default;
+  //LogitLayerFactory(LogitLayerFactory&&) = default;
+  //
+  //virtual ~LogitLayerFactory() {}
+  //
+  //template <typename Cast>
+  //inline Ptr<Cast> as() {
+  //  return std::dynamic_pointer_cast<Cast>(shared_from_this());
+  //}
+  //
+  //template <typename Cast>
+  //inline bool is() {
+  //  return as<Cast>() != nullptr;
+  //}
 
   virtual Ptr<IUnaryLogitLayer> construct(Ptr<ExpressionGraph> graph) = 0;
 };
@@ -108,7 +108,7 @@ typedef Accumulator<OutputFactory> output;
 /**
  * Multi-layer network, holds and applies layers.
  */
-class MLP {
+class MLP : public IUnaryLogitLayer {
 protected:
   Ptr<ExpressionGraph> graph_;
   Ptr<Options> options_;
@@ -119,10 +119,7 @@ public:
   MLP(Ptr<ExpressionGraph> graph, Ptr<Options> options)
       : graph_(graph), options_(options) {}
 
-  template <typename... Args>
-  Expr apply(Args... args) {
-    std::vector<Expr> av = {args...};
-
+  Expr apply(const std::vector<Expr>& av) {
     Expr output;
     if(av.size() == 1)
       output = layers_[0]->apply(av[0]);
@@ -135,7 +132,32 @@ public:
     return output;
   }
 
+  Logits applyAsLogits(const std::vector<Expr>& av) {
+    auto lastLayer = std::dynamic_pointer_cast<IUnaryLogitLayer>(layers_.back());
+    ABORT_IF(!lastLayer, "MLP::applyAsLogits() applied but last MLP layer is not IUnaryLogitLayer");
+    if (layers_.size() == 1) {
+      if (av.size() == 1)
+        return lastLayer->applyAsLogits(av[0]);
+      else
+        return lastLayer->applyAsLogits(av);
+    }
+    else {
+      Expr output;
+      if (av.size() == 1)
+        output = layers_[0]->apply(av[0]);
+      else
+        output = layers_[0]->apply(av);
+      for (size_t i = 1; i < layers_.size() - 1; ++i)
+        output = layers_[i]->apply(output);
+      return lastLayer->applyAsLogits(output);
+    }
+  }
+
+  Expr apply(Expr e) { return apply(std::vector<Expr>{ e }); }
+  Logits applyAsLogits(Expr e) { return applyAsLogits(std::vector<Expr>{ e }); }
+
   void push_back(Ptr<IUnaryLayer> layer) { layers_.push_back(layer); }
+  void push_back(Ptr<IUnaryLogitLayer> layer) { layers_.push_back(layer); }
 };
 
 /**
@@ -159,6 +181,28 @@ public:
   template <class LF>
   Accumulator<MLPFactory> push_back(const LF& lf) {
     layers_.push_back(New<LF>(lf));
+    return Accumulator<MLPFactory>(*this);
+  }
+
+  // special case for last layer, which may be a IUnaryLogitLayer. Requires some hackery
+private:
+  template<class WrappedFactory>
+  class AsLayerFactory : public LayerFactory {
+      WrappedFactory us;
+  public:
+      AsLayerFactory(const WrappedFactory& wrapped) : us(wrapped) {}
+      Ptr<IUnaryLayer> construct(Ptr<ExpressionGraph> graph) override final {
+          auto p = std::static_pointer_cast<IUnaryLayer>(us.construct(graph));
+          ABORT_IF(!p, "Attempted to cast a Factory to LayerFactory that isn't one");
+          return p;
+      }
+  };
+  template<class WrappedFactory>
+  static inline AsLayerFactory<WrappedFactory> asLayerFactory(const WrappedFactory& wrapped) { return wrapped; }
+public:
+  Accumulator<MLPFactory> push_back(const Accumulator<OutputFactory>& lf) {
+    push_back(AsLayerFactory<OutputFactory>(lf));
+    //layers_.push_back(New<AsLayerFactory<OutputFactory>>(asLayerFactory((OutputFactory&)lf)));
     return Accumulator<MLPFactory>(*this);
   }
 };

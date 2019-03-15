@@ -334,7 +334,7 @@ public:
 
     auto maskedContext = rows(reshape(context, {dimBatch * dimTime, dimModel}), bertMaskedPositions); // subselect stuff that has actually been masked out
 
-//    int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
+    int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
     auto layer1 = mlp::mlp()
       .push_back(mlp::dense()
@@ -359,12 +359,10 @@ public:
     intermediate = layerNorm(intermediate, gamma, beta);
 
     auto layer2 = mlp::mlp()
-#if 0 // @TODO: Not supported presently since Output has a different signature now
       .push_back(mlp::output()
                  ("prefix", prefix_ + "_ff_logit_l2")
                  ("dim", dimVoc)
                  .tieTransposed("Wemb"))
-#endif
       .construct(graph);
 
     auto logits = layer2->apply(intermediate); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]

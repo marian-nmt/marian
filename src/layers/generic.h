@@ -44,7 +44,10 @@ public:
 // Simplest layer interface: Unary function
 struct IUnaryLayer {
   virtual Expr apply(Expr) = 0;
-  virtual Expr apply(const std::vector<Expr>&) = 0;
+  virtual Expr apply(const std::vector<Expr>& es) {
+    ABORT_IF(es.size() > 1, "Not implemented"); // simple stub
+    return apply(es.front());
+  }
 };
 
 // Embedding from corpus sub-batch to (emb, mask)
@@ -108,9 +111,15 @@ private:
 };
 
 // Unary function that returns a Logits object
-struct IUnaryLogitLayer {
-  virtual Logits apply(Expr) = 0;
-  virtual Logits apply(const std::vector<Expr>&) = 0;
+// Also implements IUnaryLayer, since Logits can be cast to Expr.
+struct IUnaryLogitLayer : public IUnaryLayer {
+  virtual Logits applyAsLogits(Expr) = 0;
+  virtual Logits applyAsLogits(const std::vector<Expr>& es) {
+    ABORT_IF(es.size() > 1, "Not implemented"); // simple stub
+    return applyAsLogits(es.front());
+  }
+  virtual Expr apply(Expr e) override { return applyAsLogits(e).getLogits(); }
+  virtual Expr apply(const std::vector<Expr>& es) override { return applyAsLogits(es).getLogits(); }
 };
 
 namespace mlp {
@@ -227,11 +236,7 @@ public:
     cachedShortb_  = nullptr;
   }
 
-  Logits apply(Expr input) override;
-
-  virtual Logits apply(const std::vector<Expr>& /*inputs*/) override {
-    ABORT("Not implemented");
-  };
+  Logits applyAsLogits(Expr input) override final;
 };
 
 }  // namespace mlp

@@ -841,16 +841,16 @@ public:
     // final feed-forward layer (output)
     if(shortlist_)
       output_->setShortlist(shortlist_);
-    auto logits = output_->apply(decoderContext); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab or shortlist dim]
+    auto logits = output_->applyAsLogits(decoderContext); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab or shortlist dim]
 
     // return unormalized(!) probabilities
     Ptr<DecoderState> nextState;
     if (opt<std::string>("transformer-decoder-autoreg", "self-attention") == "rnn") {
       nextState = New<DecoderState>(
-          decoderStates, logits, state->getEncoderStates(), state->getBatch());
+        decoderStates, logits, state->getEncoderStates(), state->getBatch());
     } else {
       nextState = New<TransformerState>(
-          decoderStates, logits, state->getEncoderStates(), state->getBatch());
+        decoderStates, logits, state->getEncoderStates(), state->getBatch());
     }
     nextState->setPosition(state->getPosition() + 1);
     return nextState;
