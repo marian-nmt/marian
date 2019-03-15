@@ -119,7 +119,7 @@ public:
   MLP(Ptr<ExpressionGraph> graph, Ptr<Options> options)
       : graph_(graph), options_(options) {}
 
-  Expr apply(const std::vector<Expr>& av) {
+  Expr apply(const std::vector<Expr>& av) override {
     Expr output;
     if(av.size() == 1)
       output = layers_[0]->apply(av[0]);
@@ -132,7 +132,8 @@ public:
     return output;
   }
 
-  Logits applyAsLogits(const std::vector<Expr>& av) {
+  Logits applyAsLogits(const std::vector<Expr>& av) override {
+    // same as apply() except  for the last layer, we invoke applyAsLogits(), which has a different return type
     auto lastLayer = std::dynamic_pointer_cast<IUnaryLogitLayer>(layers_.back());
     ABORT_IF(!lastLayer, "MLP::applyAsLogits() applied but last MLP layer is not IUnaryLogitLayer");
     if (layers_.size() == 1) {
@@ -153,8 +154,8 @@ public:
     }
   }
 
-  Expr apply(Expr e) { return apply(std::vector<Expr>{ e }); }
-  Logits applyAsLogits(Expr e) { return applyAsLogits(std::vector<Expr>{ e }); }
+  Expr apply(Expr e) override { return apply(std::vector<Expr>{ e }); }
+  Logits applyAsLogits(Expr e) override { return applyAsLogits(std::vector<Expr>{ e }); }
 
   void push_back(Ptr<IUnaryLayer> layer) { layers_.push_back(layer); }
   void push_back(Ptr<IUnaryLogitLayer> layer) { layers_.push_back(layer); }
