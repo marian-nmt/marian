@@ -8,12 +8,26 @@
 namespace marian {
 
 /*virtual*/ size_t FactoredVocab::load(const std::string& modelPath, size_t maxSizeUnused /*= 0*/) /*override final*/ {
-  // load factor vocabulary
-  auto factorVocabPath = modelPath;
-  factorVocabPath.back() = 'l'; // map .fm to .fl
-  factorVocab_.load(factorVocabPath);
-  groupPrefixes_ = { "(lemma)", "@C", "@GL", "@GR", "@WB"/*, "@WE"*/, "@CB"/*, "@CE"*/ }; // @TODO: hard-coded for these initial experiments
-  // @TODO: add checks for empty factor groups until it stops crashing (training already works; decoder still crashes)
+  std::vector<std::vector<std::string>> factorMapTokenized;
+
+  if (utils::endsWith(modelPath, ".fsv")) {
+    ABORT("Not implemented yet");
+  } else {  // legacy for old configs
+    // load factor vocabulary
+    auto factorVocabPath = modelPath;
+    factorVocabPath.back() = 'l'; // map .fm to .fl
+    factorVocab_.load(factorVocabPath);
+    groupPrefixes_ = { "(lemma)", "@C", "@GL", "@GR", "@WB"/*, "@WE"*/, "@CB"/*, "@CE"*/ }; // @TODO: hard-coded for these initial experiments
+    // @TODO: add checks for empty factor groups until it stops crashing (training already works; decoder still crashes)
+
+    std::vector<std::string> tokBuf;
+    std::string line;
+    io::InputFileStream in(modelPath);
+    for (WordIndex v = 0; io::getline(in, line); v++) {
+      utils::splitAny(line, tokBuf, " \t");
+      factorMapTokenized.push_back(tokBuf);
+    }
+  }
 
   // construct mapping tables for factors
   constructGroupInfoFromFactorVocab();
@@ -36,16 +50,13 @@ namespace marian {
   //factorMap_.resize(vocabSize);
   auto factorVocabSize = factorVocab_.size();
   lemmaHasFactorGroup_.resize(groupRanges_[0].second - groupRanges_[0].first);
-  std::vector<std::string> tokens;
-  std::string line;
   size_t numTotalFactors = 0;
-  io::InputFileStream in(modelPath);
-  for (WordIndex v = 0; io::getline(in, line); v++) {
+  for (WordIndex v = 0; v < factorMapTokenized.size(); v++) {
+    const auto& tokens = factorMapTokenized[v];
     // parse the line, of the form WORD FACTOR1 FACTOR2 FACTOR1 ...
     // where FACTOR1 is the lemma, a factor that all words have.
     // Not every word has all other factors, so the n-th item is not always in the same factor group.
     // @TODO: change to just use the .wl file, and manually split at @
-    utils::splitAny(line, tokens, " \t");
     ABORT_IF(tokens.size() < 2, "Factor map must have at least one factor per word", modelPath);
     std::vector<WordIndex> factorUnits;
     for (size_t i = 1/*first factor*/; i < tokens.size(); i++) {
