@@ -26,7 +26,7 @@ public:
   virtual size_t load(const std::string& factoredVocabPath, size_t maxSizeUnused = 0) override final;
   virtual void create(const std::string& vocabPath, const std::vector<std::string>& trainPaths, size_t maxSize) override final { vocabPath, trainPaths, maxSize; ABORT("Factored vocab cannot be created on the fly"); }
   virtual const std::string& canonicalExtension() const override final { return suffixes()[0]; }
-  virtual const std::vector<std::string>& suffixes() const override final { const static std::vector<std::string> exts{".fm"}; return exts; }
+  virtual const std::vector<std::string>& suffixes() const override final;
   virtual Word operator[](const std::string& word) const override final;
   virtual Words encode(const std::string& line, bool addEOS = true, bool inference = false) const override final;
   virtual std::string decode(const Words& sentence, bool ignoreEos = true) const override final;

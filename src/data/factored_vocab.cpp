@@ -7,25 +7,10 @@
 
 namespace marian {
 
-// mapPath = path to file with entries in order of vocab entries of the form
-//   WORD FACTOR1 FACTOR2 FACTOR3...
-// listPath = path to file that lists all FACTOR names
-// vocab = original vocabulary
-// Note: The WORD field in the map file is redundant. It is required for consistency checking only.
-// Factors are grouped
-//  - user specifies list-factor prefixes; all factors beginning with that prefix are in the same group
-//  - factors within a group as multi-class and normalized that way
-//  - groups of size 1 are interpreted as sigmoids, multiply with P(u) / P(u-1)
-//  - one prefix must not contain another
-//  - all factors not matching a prefix get lumped into yet another class (the lemmas)
-//  - factor vocab must be sorted such that all groups are consecutive
-//  - result of Output layer is nevertheless logits, not a normalized probability, due to the sigmoid entries
-/*virtual*/ size_t FactoredVocab::load(const std::string& factoredVocabPath, size_t maxSizeUnused /*= 0*/) /*override final*/ {
-  auto mapPath = factoredVocabPath;
-  auto factorVocabPath = mapPath;
-  factorVocabPath.back() = 'l'; // map .fm to .fl
-
+/*virtual*/ size_t FactoredVocab::load(const std::string& modelPath, size_t maxSizeUnused /*= 0*/) /*override final*/ {
   // load factor vocabulary
+  auto factorVocabPath = modelPath;
+  factorVocabPath.back() = 'l'; // map .fm to .fl
   factorVocab_.load(factorVocabPath);
   groupPrefixes_ = { "(lemma)", "@C", "@GL", "@GR", "@WB"/*, "@WE"*/, "@CB"/*, "@CE"*/ }; // @TODO: hard-coded for these initial experiments
   // @TODO: add checks for empty factor groups until it stops crashing (training already works; decoder still crashes)
@@ -36,6 +21,16 @@ namespace marian {
   auto numGroups = getNumGroups();
 
   // load and parse factorMap
+  // modelPath = path to file with entries in order of vocab entries of the form
+  //   WORD FACTOR1 FACTOR2 FACTOR3...
+  // Factors are grouped
+  //  - user specifies list-factor prefixes; all factors beginning with that prefix are in the same group
+  //  - factors within a group as multi-class and normalized that way
+  //  - groups of size 1 are interpreted as sigmoids, multiply with P(u) / P(u-1)
+  //  - one prefix must not contain another
+  //  - all factors not matching a prefix get lumped into yet another class (the lemmas)
+  //  - factor vocab must be sorted such that all groups are consecutive
+  //  - result of Output layer is nevertheless logits, not a normalized probability, due to the sigmoid entries
   auto vocabSize = factorShape_.elements(); // size of vocab space including gaps
   vocab_.resize(vocabSize);
   //factorMap_.resize(vocabSize);
@@ -44,14 +39,14 @@ namespace marian {
   std::vector<std::string> tokens;
   std::string line;
   size_t numTotalFactors = 0;
-  io::InputFileStream in(mapPath);
+  io::InputFileStream in(modelPath);
   for (WordIndex v = 0; io::getline(in, line); v++) {
     // parse the line, of the form WORD FACTOR1 FACTOR2 FACTOR1 ...
     // where FACTOR1 is the lemma, a factor that all words have.
     // Not every word has all other factors, so the n-th item is not always in the same factor group.
     // @TODO: change to just use the .wl file, and manually split at @
     utils::splitAny(line, tokens, " \t");
-    ABORT_IF(tokens.size() < 2, "Factor map must have at least one factor per word", mapPath);
+    ABORT_IF(tokens.size() < 2, "Factor map must have at least one factor per word", modelPath);
     std::vector<WordIndex> factorUnits;
     for (size_t i = 1/*first factor*/; i < tokens.size(); i++) {
       auto u = factorVocab_[tokens[i]];
@@ -519,13 +514,18 @@ size_t FactoredVocab::WordLUT::load(const std::string& path) {
   return size();
 }
 
+const static std::vector<std::string> exts{ ".fsv", ".fm"/*legacy*/ };
+
 // Note: This does not actually load it, only checks the path for the type.
 Ptr<IVocab> createFactoredVocab(const std::string& vocabPath) {
-  bool isFactoredVocab = regex::regex_search(vocabPath, regex::regex("\\.(fm)$"));
+  bool isFactoredVocab = std::any_of(exts.begin(), exts.end(), [&](const std::string& ext) { return utils::endsWith(vocabPath, ext); });
   if(isFactoredVocab)
     return New<FactoredVocab>();
   else
     return nullptr;
+}
+/*virtual*/ const std::vector<std::string>& FactoredVocab::suffixes() const /*override final*/ {
+  return exts;
 }
 
 }  // namespace marian
