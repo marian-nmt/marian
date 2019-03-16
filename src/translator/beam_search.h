@@ -81,6 +81,23 @@ public:
       auto shortlist = scorers_[0]->getShortlist();
       if (shortlist)
         word = Word::fromWordIndex(shortlist->reverseMap(wordIdx));
+      else if (factoredVocab) {
+        // For factored decoding, the word is built over multiple decoding steps,
+        // starting with the lemma, then adding factors one by one.
+        if (factorGroup == 0) {
+          word = factoredVocab->lemma2Word(wordIdx);
+          //LOG(info, "new lemma {}={}", word.toWordIndex(), factoredVocab->word2string(word));
+        }
+        else {
+          //LOG(info, "expand word {}={} with factor[{}] {}", beam[beamHypIdx]->getWord().toWordIndex(),
+          //    factoredVocab->word2string(beam[beamHypIdx]->getWord()), factorGroup, wordIdx);
+          word = beam[beamHypIdx]->getWord();
+          ABORT_IF(!factoredVocab->canExpandFactoredWord(word, factorGroup), "A word without this factor snuck through to here??");
+          word = factoredVocab->expandFactoredWord(word, factorGroup, wordIdx);
+          prevBeamHypIdx = prevHyp->getPrevStateIndex();
+          prevHyp = prevHyp->getPrevHyp(); // short-circuit the backpointer, so that the traceback doesnot contain partially factored words
+        }
+      }
       else
         word = Word::fromWordIndex(wordIdx);
 
