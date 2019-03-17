@@ -10,7 +10,6 @@ Ptr<LabelwiseLoss> newLoss(Ptr<Options> options, bool inference) {
   if(costType == "ce-rescore") {
     return New<RescorerLoss>();
   } else if(costType == "ce-rescore-mean") {
-    ABORT("Check me");
     return New<RescorerLoss>();
   } else {  // same as ce-mean
     return New<CrossEntropyLoss>(smoothing);
