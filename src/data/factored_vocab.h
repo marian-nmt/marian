@@ -96,6 +96,7 @@ private:
   WordLUT vocab_;
 
   // factors
+  char factorSeparator_ = '|';                         // separator symbol for parsing factored words
   WordLUT factorVocab_;                                // [factor name] -> factor index = row of E_
   std::vector<std::string> groupPrefixes_;             // [group id g] shared prefix of factors (used for grouping)
   //std::vector<std::vector<WordIndex>> factorMap_;      // [word index v] -> set of factor indices u

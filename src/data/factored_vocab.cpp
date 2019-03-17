@@ -9,19 +9,98 @@ namespace marian {
 
 /*virtual*/ size_t FactoredVocab::load(const std::string& modelPath, size_t maxSizeUnused /*= 0*/) /*override final*/ {
   std::vector<std::vector<std::string>> factorMapTokenized;
-
+  std::string line;
+  std::vector<std::string> tokBuf;
   if (utils::endsWith(modelPath, ".fsv")) {
-    ABORT("Not implemented yet");
+    // this is a fake parser for the generic factor spec, which makes a few hard assumptions:
+    //     - all types starting with _ except _has_* are factor names
+    //     - X : _x makes surface form X part of prob distribution _x except for _has_*
+    //     - X : _has_x adds factor "x" to lemma X
+    //     - _x <-> form only allows "_x <->" or "_x <-> _has_x" (same x), and is otherwise unused
+    //     - _lemma is special
+    // The current version of the code just converts it internally to the legacy form.
+    // Once the legacy form is no longer needed, must of this can be simplified a lot.
+    io::InputFileStream in(modelPath);
+    WordIndex v = 0;
+    std::map<std::string,std::set<std::string>> factorTypeMap; // [type name] -> {factor-type names}
+    std::vector<std::string> deferredFactorVocab; // factor surface forms are presently expected to be at the end of factorVocab_, so collect them here first
+    while(io::getline(in, line)) {
+      utils::splitAny(line, tokBuf, " \t");
+      if (tokBuf.empty() || tokBuf[0][0] == '#') // skip comments and blank lines
+        continue;
+      const auto& lhs = tokBuf[0];
+      const auto& op = tokBuf.size() > 1 ? tokBuf[1] : "";
+      if (lhs[0] == '_') { // factor name
+        if (utils::beginsWith(lhs, "_has_")) {
+          const auto fName = lhs.substr(5); // skip _has_
+          ABORT_IF(factorTypeMap.find(fName) == factorTypeMap.end(), "Factor trait '{}' requires a factor named '{}' to exist", lhs, fName);
+          ABORT_IF(tokBuf.size() != 1, "Extraneous characters after factor trait: '{}'", line);
+          continue;
+        }
+        else if (op == "<->") {
+          ABORT_IF(lhs == "_lemma" && tokBuf.size() != 2, "Lemma factor distribution cannot be conditioned: '{}'", line);
+          ABORT_IF(lhs != "_lemma" && (tokBuf.size() != 3 || tokBuf[2] != "_has" + lhs), "Factor distribution can only be conditioned on nothing or on _has{}: '{}'", lhs, line);
+          continue;
+        }
+        else { // this declares a new factor
+          ABORT_IF(tokBuf.size() != 1, "Extraneous characters after factor declaration: '{}'", line);
+          const auto& fName = lhs.substr(1); // skip _
+          ABORT_IF(factorTypeMap.empty() && fName != "lemma", "First factor must be _lemma");
+          auto rv = factorTypeMap.insert(std::make_pair(fName, std::set<std::string>())); // create new factor
+          ABORT_IF(!rv.second, "Factor declared twice: '{}'", line);
+          groupPrefixes_.push_back(fName == "lemma" ? "(lemma)" : ("|" + fName));
+          continue;
+        }
+      }
+      else { // if not _ then it is a surface form
+        ABORT_IF(op != ":" || 2 >= tokBuf.size(), "Factor-lemma declaration should have the form LEMMA : _FACTOR, _has_FACTOR, _has_FACTOR... in '{}'", line);
+        ABORT_IF(tokBuf[2][0] != '_', "Factor name should begin with _ in '{}'", line);
+        ABORT_IF(utils::beginsWith(tokBuf[2], "_has_"), "The first factor after : must not begin with _has_ in '{}'", line);
+        // add to surface-form dictionary
+        const auto& fName = tokBuf[2].substr(1); // skip _
+        auto isLemma = fName == "lemma";
+        if (isLemma)
+          factorVocab_.add(lhs, v++); // note: each item can only be declared once
+        else
+          deferredFactorVocab.push_back(lhs);        // add surface form to its declared factor type
+        auto surfaceFormSet = factorTypeMap.find(fName); // set of surface forms for this factor
+        ABORT_IF(surfaceFormSet == factorTypeMap.end(), "Unknown factor name in '{}'", line);
+        auto rv = surfaceFormSet->second.insert(lhs); // insert surface form into its declared factor type
+        ABORT_IF(!rv.second, "Factor declared twice: '{}'", line);
+        auto tokenizedMapLine = isLemma ? std::vector<std::string>{ lhs, lhs } : std::vector<std::string>();
+        // associated factors
+        for (size_t i = 3; i < tokBuf.size(); i++) {
+          const auto& has = tokBuf[i];
+          ABORT_IF(!utils::beginsWith(has, "_has_"), "Factor associations must use the form _has_X in '{}'", line);
+          ABORT_IF(!isLemma, "Factor associations are only allowed when factor type is _lemma: '{}', line");
+          const auto& faName = has.substr(5); // skip _has_ and prepend |
+          // for tokenized map, we pick one example of the factor names
+          auto iter = factorTypeMap.find(faName);
+          ABORT_IF(iter == factorTypeMap.end(), "Invalid factor association {}, no such factor: '{}'", has, line);
+          const auto& factorNames = iter->second;
+          ABORT_IF(factorNames.empty(), "Factor association {} refers to empty factor type: '{}'", has, line);
+          const auto& oneFactorName = "|" + *factorNames.begin(); // pick the first entry as one example
+          tokenizedMapLine[0] += oneFactorName;
+          tokenizedMapLine.push_back(oneFactorName);
+        }
+        if (isLemma)
+          factorMapTokenized.push_back(std::move(tokenizedMapLine));
+        continue;
+      }
+      ABORT("Malformed .fsv input line {}", line); // we only get here for lines we could not process
+    }
+    for (auto factorTypeName : deferredFactorVocab)
+      factorVocab_.add("|" + factorTypeName, v++);
   } else {  // legacy for old configs
+    // legacy format: one factor map, one flat list of factor surface forms
     // load factor vocabulary
+    factorSeparator_ = '@';
     auto factorVocabPath = modelPath;
     factorVocabPath.back() = 'l'; // map .fm to .fl
     factorVocab_.load(factorVocabPath);
     groupPrefixes_ = { "(lemma)", "@C", "@GL", "@GR", "@WB"/*, "@WE"*/, "@CB"/*, "@CE"*/ }; // @TODO: hard-coded for these initial experiments
     // @TODO: add checks for empty factor groups until it stops crashing (training already works; decoder still crashes)
 
-    std::vector<std::string> tokBuf;
-    std::string line;
     io::InputFileStream in(modelPath);
     for (WordIndex v = 0; io::getline(in, line); v++) {
       utils::splitAny(line, tokBuf, " \t");
@@ -360,7 +439,7 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
     return getUnkId();
 }
 
-/*virtual*/ const std::string& FactoredVocab::operator[](Word word) const /*overrworde final*/ {
+/*virtual*/ const std::string& FactoredVocab::operator[](Word word) const /*override final*/ {
   //LOG(info, "Looking up Word {}={}", word.toWordIndex(), word2string(word));
 #if 1 // @BUGBUG: our manually prepared dict does not contain @CI tags for single letters, but it's a valid factor
   if (vocab_.isGap(word.toWordIndex())) {
