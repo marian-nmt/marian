@@ -50,6 +50,11 @@ struct IUnaryLayer {
   }
 };
 
+struct IHasShortList {
+  virtual void setShortlist(Ptr<data::Shortlist> shortlist) = 0;
+  virtual void clear() = 0;
+};
+
 // Embedding from corpus sub-batch to (emb, mask)
 struct IEmbeddingLayer {
   virtual std::tuple<Expr/*embeddings*/, Expr/*mask*/> apply(Ptr<data::SubBatch> subBatch) const = 0;
@@ -190,7 +195,7 @@ public:
   Expr apply(Expr input) override { return apply(std::vector<Expr>({input})); }
 };
 
-class Output : public LayerBase, public IUnaryLogitLayer {
+class Output : public LayerBase, public IUnaryLogitLayer, public IHasShortList {
 private:
   // parameters held by this layer
   Expr Wt_; // weight matrix is stored transposed for efficiency
@@ -218,7 +223,7 @@ public:
       tiedParam_ = tied;
   }
 
-  void setShortlist(Ptr<data::Shortlist> shortlist) {
+  void setShortlist(Ptr<data::Shortlist> shortlist) override final {
     if (shortlist_)
       ABORT_IF(shortlist.get() != shortlist_.get(), "Output shortlist cannot be changed except after clear()");
     else {
@@ -230,7 +235,7 @@ public:
 
   // this is expected to be called in sync with graph->clear(), which invalidates
   // cachedShortWt_ and cachedShortb_ in the graph's short-term cache
-  void clear() {
+  void clear() override final {
     shortlist_ = nullptr;
     cachedShortWt_ = nullptr;
     cachedShortb_  = nullptr;

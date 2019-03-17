@@ -239,7 +239,8 @@ private:
   }
 
 public:
-  DecoderS2S(Ptr<Options> options) : DecoderBase(options) {}
+  DecoderS2S(Ptr<Options> options) : DecoderBase(options) {
+  }
 
   virtual Ptr<DecoderState> startState(
       Ptr<ExpressionGraph> graph,
@@ -346,9 +347,6 @@ public:
       last("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored outputs
       last("lemma-dim-emb", opt<int>("lemma-dim-emb", 0)); // for factored outputs
 
-      if(shortlist_)
-        last.setShortlist(shortlist_);
-
       // assemble layers into MLP and apply to embeddings, decoder context and
       // aligned source context
       output_ = mlp::mlp()              //
@@ -356,6 +354,9 @@ public:
                     .push_back(last)
                     .construct(graph);
     }
+
+    if (shortlist_)
+      output_->setShortlist(shortlist_);
 
     Logits logits;
     if(alignedContext)
@@ -381,7 +382,8 @@ public:
 
   void clear() override {
     rnn_ = nullptr;
-    output_ = nullptr;
+    if (output_)
+      output_->clear();
   }
 };
 }  // namespace marian

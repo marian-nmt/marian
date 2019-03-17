@@ -108,7 +108,7 @@ typedef Accumulator<OutputFactory> output;
 /**
  * Multi-layer network, holds and applies layers.
  */
-class MLP : public IUnaryLogitLayer {
+class MLP : public IUnaryLogitLayer, public IHasShortList {
 protected:
   Ptr<ExpressionGraph> graph_;
   Ptr<Options> options_;
@@ -159,6 +159,20 @@ public:
 
   void push_back(Ptr<IUnaryLayer> layer) { layers_.push_back(layer); }
   void push_back(Ptr<IUnaryLogitLayer> layer) { layers_.push_back(layer); }
+
+  void setShortlist(Ptr<data::Shortlist> shortlist) override final {
+    auto p = tryAsHasShortlist();
+    ABORT_IF(!p, "setShortlist() called on an MLP with an output layer that does not support short lists");
+    p->setShortlist(shortlist);
+  }
+
+  void clear() override final {
+    auto p = tryAsHasShortlist();
+    if (p)
+      p->clear();
+  }
+private:
+  Ptr<IHasShortList> tryAsHasShortlist() const { return std::dynamic_pointer_cast<IHasShortList>(layers_.back()); }
 };
 
 /**
