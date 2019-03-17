@@ -343,6 +343,8 @@ public:
           tiedPrefix = "Wemb";
         last.tieTransposed(tiedPrefix);
       }
+      last("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored outputs
+      last("lemma-dim-emb", opt<int>("lemma-dim-emb", 0)); // for factored outputs
 
       if(shortlist_)
         last.setShortlist(shortlist_);
