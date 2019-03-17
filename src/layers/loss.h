@@ -42,6 +42,7 @@ public:
 
   Expr loss() const { return loss_; }
 
+  // @TODO: remove this function, as it does not add too much value over loss()->get(...)
   template <typename T>
   void loss(std::vector<T>& losses) const {
     ABORT_IF(!loss_, "Loss has not been defined");
@@ -56,6 +57,7 @@ public:
 
   Expr count() const { return count_; }
 
+  // @TODO: remove this function, as it does not add too much value over count()->get(...)
   template <typename T>
   void count(std::vector<T>& labels) const {
     ABORT_IF(!count_, "Labels have not been defined");
@@ -369,14 +371,16 @@ protected:
  */
 class RescorerLoss : public CrossEntropyLoss {
 public:
-  // sentence-wise CE, hence reduce only over time axis. CE reduces over last axis (-1)
-  RescorerLoss() : CrossEntropyLoss(/*axes=*/{-3}, /*smoothing=*/0.f) {}
+  // sentence-wise CE, hence reduce only over time axis
+  // This class differs from CrossEntropy in the different 'axes' setting, and that label smoothing is disabled.
+  RescorerLoss() : CrossEntropyLoss(/*axes=*/{-3} /*time axis*/, /*smoothing=*/0.f) {}
 
-  virtual RationalLoss apply(Logits logits, const Words& labels,
-                             Expr mask = nullptr, Expr labelWeights = nullptr) override {
-    auto ce = CrossEntropyLoss::apply(logits, labels, mask, labelWeights);
-    return RationalLoss(ce.loss(), ce.count());
-  }
+  // @TODO: this adds nothing; remove
+  //virtual RationalLoss apply(Logits logits, const Words& labels,
+  //                           Expr mask = nullptr, Expr labelWeights = nullptr) override {
+  //  auto ce = CrossEntropyLoss::apply(logits, labels, mask, labelWeights);
+  //  return RationalLoss(ce.loss(), ce.count());
+  //}
 };
 
 /**
