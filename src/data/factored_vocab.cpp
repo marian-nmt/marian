@@ -456,13 +456,13 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
 }
 
 /*virtual*/ std::string FactoredVocab::toUpper(const std::string& line) const /*override final*/ {
-  return utils::findReplace(utils::findReplace(line, "@CI", "@CA", /*all=*/true), "@CN", "@CA", /*all=*/true);
+  return utils::findReplace(utils::findReplace(utils::findReplace(utils::findReplace(line, "|ci", "|ca", /*all=*/true), "|cn", "|ca", /*all=*/true), "@CI", "@CA", /*all=*/true), "@CN", "@CA", /*all=*/true);
 }
 
 /*virtual*/ std::string FactoredVocab::toEnglishTitleCase(const std::string& line) const /*override final*/ {
   // @BUGBUG: does not handle the special words that should remain lower-case
   // note: this presently supports both @WB and @GL- (legacy)
-  return utils::findReplace(utils::findReplace(line, "@CN@WB", "@CI@WB", /*all=*/true), "@CN@GL-", "@CI@GL-", /*all=*/true);
+  return utils::findReplace(utils::findReplace(utils::findReplace(utils::findReplace(line, "|cn|wb", "|ci|wb", /*all=*/true), "|cn|gl-", "|ci|gl-", /*all=*/true), "@CN@WB", "@CI@WB", /*all=*/true), "@CN@GL-", "@CI@GL-", /*all=*/true);
 }
 
 // generate a valid random factored word (used by collectStats())
