@@ -430,8 +430,8 @@ public:
     auto model = options_->get<std::string>("model");
     builder_->save(graphs[0], model + ".dev.npz", true);
 
-    auto command = options_->get<std::string>("valid-script-path");
-    auto valStr = utils::exec(command);
+    auto valStr = utils::exec(options_->get<std::string>("valid-script-path"),
+                              options_->get<std::vector<std::string>>("valid-script-args"));
     float val = (float)std::atof(valStr.c_str());
     updateStalled(graphs, val);
 
@@ -558,8 +558,11 @@ public:
 
     // Run post-processing script if given
     if(options_->hasAndNotEmpty("valid-script-path")) {
-      auto command = options_->get<std::string>("valid-script-path") + " " + fileName;
-      auto valStr = utils::exec(command);
+      //auto command = options_->get<std::string>("valid-script-path") + " " + fileName;
+      //auto valStr = utils::exec(command);
+      auto valStr = utils::exec(options_->get<std::string>("valid-script-path"),
+                                options_->get<std::vector<std::string>>("valid-script-args"),
+                                fileName);
       val = (float)std::atof(valStr.c_str());
       updateStalled(graphs, val);
     }

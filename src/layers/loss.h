@@ -42,7 +42,6 @@ public:
 
   Expr loss() const { return loss_; }
 
-  // @TODO: remove this function, as it does not add too much value over loss()->get(...)
   template <typename T>
   void loss(std::vector<T>& losses) const {
     ABORT_IF(!loss_, "Loss has not been defined");
@@ -57,7 +56,6 @@ public:
 
   Expr count() const { return count_; }
 
-  // @TODO: remove this function, as it does not add too much value over count()->get(...)
   template <typename T>
   void count(std::vector<T>& labels) const {
     ABORT_IF(!count_, "Labels have not been defined");

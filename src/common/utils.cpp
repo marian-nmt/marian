@@ -93,19 +93,30 @@ std::string join(const std::vector<std::string>& words, const std::string& del /
   return ss.str();
 }
 
-std::string exec(const std::string& cmd) {
+// escapes a string for passing to popen, which uses /bin/sh to parse its argument string
+static std::string escapeForPOpen(const std::string& arg) {
+  // e.g. abc -> 'abc'; my file.txt -> 'my file.txt'; $10 -> '$10'; it's -> 'it'\''s'
+  return "'" + findReplace(arg, "'", "'\\''", /*all=*/ true) + "'";
+}
+
+std::string exec(const std::string& cmd, const std::vector<std::string>& args /*= {}*/, const std::string& arg /*= ""*/) {
   std::array<char, 128> buffer;
   std::string result;
 #ifdef _WIN32
 #define popen _popen
 #define pclose _pclose
 #endif
-  std::shared_ptr<std::FILE> pipe(popen(cmd.c_str(), "r"), pclose);
+  auto cmdLine = escapeForPOpen(cmd);
+  for (const auto& a : args) // @TODO: proper escaping
+    cmdLine += " " + escapeForPOpen(a);
+  if (!arg.empty())
+    cmdLine += " " + escapeForPOpen(arg);
+  std::shared_ptr<std::FILE> pipe(popen(cmdLine.c_str(), "r"), pclose);
   if(!pipe)
     ABORT("popen() failed!");
 
   while(!std::feof(pipe.get())) {
-    if(std::fgets(buffer.data(), 128, pipe.get()) != NULL)
+    if(std::fgets(buffer.data(), buffer.size(), pipe.get()) != NULL)
       result += buffer.data();
   }
   return result;

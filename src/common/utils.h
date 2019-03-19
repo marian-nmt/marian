@@ -30,7 +30,7 @@ std::vector<std::string> splitAny(const std::string& line,
 
 std::string join(const std::vector<std::string>& words, const std::string& del = " ");
 
-std::string exec(const std::string& cmd);
+std::string exec(const std::string& cmd, const std::vector<std::string>& args = {}, const std::string& arg = "");
 
 std::pair<std::string, int> hostnameAndProcessId();
 

@@ -33,6 +33,7 @@ const std::set<std::string> PATHS = {
   "embedding-vectors",
   "valid-sets",
   "valid-script-path",
+  "valid-script-args",
   "valid-log",
   "valid-translation-output",
   "input",            // except: stdin
@@ -471,6 +472,9 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
      " It should print a single score to stdout."
      " If the option is used with validating translation, the output"
      " translation file will be passed as a first argument");
+  cli.add<std::vector<std::string>>("--valid-script-args",
+      "Additional args passed to --valid-script-path. These are inserted"
+      " between the script path and the output translation-file path");
   cli.add<std::string>("--valid-translation-output",
      "Path to store the translation");
 
