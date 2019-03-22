@@ -4,6 +4,8 @@
 #include <random>
 
 #include "common/utils.h"
+#include "common/filesystem.h"
+
 #include "data/corpus.h"
 
 namespace marian {
@@ -44,6 +46,7 @@ SentenceTuple Corpus::next() {
       }
       else {
         bool gotLine = io::getline(*files_[i], line);
+        // LOG(debug,"[{}][{}] {}", i, pos_ - 1, line);
         if(!gotLine) {
           eofsHit++;
           continue;
@@ -85,16 +88,22 @@ void Corpus::shuffle() {
 // Call either reset() or shuffle().
 // @TODO: make shuffle() private, instad pass a shuffle() flag to reset(), to clarify mutual exclusiveness with shuffle()
 void Corpus::reset() {
-  files_.clear();
   corpusInRAM_.clear();
   ids_.clear();
   pos_ = 0;
-  for(auto& path : paths_) {
-    if(path == "stdin")
-      files_.emplace_back(new io::InputFileStream(std::cin));
-    else
-      files_.emplace_back(new io::InputFileStream(path));
-  }
+  for (size_t i = 0; i < paths_.size(); ++i)
+    {
+      if(paths_[i] == "stdin") {
+        files_[i].reset(new io::InputFileStream(std::cin));
+        // Probably not necessary, unless there are some buffers
+        // that we want flushed.
+      }
+      else if (!filesystem::is_fifo(paths_[i].c_str())) {
+        // Do NOT reset named pipes; that closes them and triggers a SIGPIPE
+        // (lost pipe) at the writing end.
+        files_[i].reset(new io::InputFileStream(paths_[i]));
+      }
+    }
 }
 
 void Corpus::restore(Ptr<TrainingState> ts) {

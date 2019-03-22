@@ -22,6 +22,8 @@
 namespace marian {
 namespace filesystem {
 
+  bool is_fifo(char const* path);
+
   class Path {
     private:
       Pathie::Path path;
