@@ -17,6 +17,7 @@ add_library(marian STATIC
   common/config_validator.cpp
   common/binary.cpp
   common/io.cpp
+  common/filesystem.cpp
 
   data/alignment.cpp
   data/vocab.cpp
