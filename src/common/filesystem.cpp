@@ -13,5 +13,9 @@ bool is_fifo(char const* path) {
   return S_ISFIFO(buf.st_mode);
 }
 
+bool is_fifo(std::string const& path) {
+  return is_fifo(path.c_str());
+}
+
 } // end of namespace marian::filesystem
 } // end of namespace marian

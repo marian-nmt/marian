@@ -23,6 +23,7 @@ namespace marian {
 namespace filesystem {
 
   bool is_fifo(char const* path);
+  bool is_fifo(std::string const& path);
 
   class Path {
     private:
