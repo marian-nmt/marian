@@ -41,6 +41,10 @@ bool endsWith(const std::string& text, const std::string& suffix);
 std::string utf8ToUpper(const std::string& s);
 std::string toEnglishTitleCase(const std::string& s);
 
+std::u32string utf8ToUnicodeString(const std::string& s);
+std::string utf8FromUnicodeString(const std::u32string& s);
+bool isContinuousScript(char32_t c);
+
 std::string findReplace(const std::string& in, const std::string& what, const std::string& withWhat, bool all = false);
 
 double parseDouble(std::string s);

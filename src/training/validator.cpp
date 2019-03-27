@@ -26,10 +26,13 @@ std::vector<Ptr<ValidatorBase/*<data::Corpus>*/>> Validators(
       auto validator = New<TranslationValidator>(vocabs, config);
       validators.push_back(validator);
     } else if(metric == "bleu") {
-      auto validator = New<BleuValidator>(vocabs, config, false);
+      auto validator = New<BleuValidator>(vocabs, config, BleuValidator::NoDetok);
       validators.push_back(validator);
     } else if(metric == "bleu-detok") {
-      auto validator = New<BleuValidator>(vocabs, config, true);
+      auto validator = New<BleuValidator>(vocabs, config, BleuValidator::DetokSacreBLEUWestern);
+      validators.push_back(validator);
+    } else if(metric == "bleu-detok-ms") {
+      auto validator = New<BleuValidator>(vocabs, config, BleuValidator::DetokMS);
       validators.push_back(validator);
     } else if(metric == "accuracy") {
       auto validator = New<AccuracyValidator>(vocabs, config);

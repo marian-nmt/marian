@@ -446,6 +446,7 @@ protected:
   }
 };
 
+// validator that translates and computes BLEU (or any metric) with an external script
 class TranslationValidator : public Validator<data::Corpus, models::IModel> {
 public:
   TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
@@ -580,30 +581,26 @@ protected:
   }
 };
 
+// validator that translates and computes BLEU internally, with or without decoding
 // @TODO: combine with TranslationValidator (above) to avoid code duplication
 class BleuValidator : public Validator<data::Corpus, models::IModel> {
-private:
-  bool detok_{false};
-
 public:
-  BleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, bool detok = false)
+  enum DetokType {
+    NoDetok,               // tokens are raw tokens as used for decoding
+    DetokSacreBLEUWestern, // tokens are SacreBleu-compatible, assuming Western languages and no text normalization
+    DetokMS                // MS-internal: tokens are DetokLatin1 except for continuous-script chars, which are counted as individual tokens
+  };
+
+  BleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, DetokType detok = NoDetok)
       : Validator(vocabs, options, false),
         detok_(detok),
         quiet_(options_->get<bool>("quiet-translation")) {
     builder_ = models::createModelFromOptions(options_, models::usage::translation);
 
-#ifdef USE_SENTENCEPIECE
     auto vocab = vocabs_.back();
-    ABORT_IF(detok_ && vocab->type() != "SentencePieceVocab",
-             "Detokenizing BLEU validator expects the target vocabulary to be SentencePieceVocab. "
+    ABORT_IF(detok_ != NoDetok && vocab->type() != "SentencePieceVocab" && vocab->type() != "FactoredVocab",
+             "Detokenizing BLEU validator expects the target vocabulary to be SentencePieceVocab or FactoredVocab. "
              "Current vocabulary type is {}", vocab->type());
-#else
-    ABORT_IF(detok_,
-             "Detokenizing BLEU validator expects the target vocabulary to be SentencePieceVocab. "
-             "Marian has not been compiled with SentencePieceVocab support");
-#endif
-
-    createBatchGenerator(/*isTranslating=*/true);
   }
 
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
@@ -713,13 +710,19 @@ public:
     return val;
   };
 
-  std::string type() override { return detok_ ? "bleu-detok" : "bleu"; }
+  // @TODO: why do we return this string, but not pass it to the constructor?
+  std::string type() override {
+    switch (detok_) {
+    case NoDetok:               return "bleu";
+    case DetokSacreBLEUWestern: return "bleu-detok";
+    case DetokMS:               return "bleu-detok-ms";
+    default: ABORT("Unexpected DetokType??");
+    }
+  }
 
 protected:
-  bool quiet_{false};
-
   // Tokenizer function adapted from multi-bleu-detok.pl, corresponds to sacreBLEU.py
-  std::string tokenize(const std::string& text) {
+  static std::string tokenizeSacreBLEUWestern(const std::string& text) {
     std::string normText = text;
 
     // language-independent part:
@@ -743,10 +746,34 @@ protected:
 
     return normText;
   }
+public:
+  static std::string tokenizeContinuousScript(const std::string& sUTF8) {
+    // We want BLEU-like scores that are comparable across different tokenization schemes.
+    // For continuous scripts )Chinese, Japanese, Thai), we would need a language-specific
+    // statistical word segmenter, which is outside the scope of Marian. As a practical
+    // compromise, we segment continuous-script sequences into individual characters, while
+    // leaving Western scripts as words. This way we can use the same settings for Western
+    // languages, where Marian would report SacreBLEU scores, and Asian languages, where
+    // scores are not standard but internally comparable across tokenization schemes.
+    auto in = utils::utf8ToUnicodeString(sUTF8);
+    auto out = in.substr(0, 0); // (out should be same type as in, don't want to bother with exact type)
+    for (auto c : in) {
+      auto isCS = utils::isContinuousScript(c);
+      if (isCS) // surround continuous-script chars by spaces on each side
+        out.push_back(' '); // (duplicate spaces are ignored when splitting later)
+      out.push_back(c);
+      if (isCS)
+        out.push_back(' ');
+    }
+    return utils::utf8FromUnicodeString(out);
+  }
 
   std::vector<std::string> decode(const Words& words, bool addEOS = false) {
     auto vocab = vocabs_.back();
-    auto tokens = utils::splitAny(tokenize(vocab->decode(words)), " ");
+    auto tokenString = tokenizeSacreBLEUWestern(vocab->decode(words));
+    if (detok_ == DetokMS) // score continuous-script sequences as individual characters
+      tokenString = tokenizeContinuousScript(tokenString);
+    auto tokens = utils::splitAny(tokenString, " ");
     if(addEOS)
       tokens.push_back("</s>");
     return tokens;
@@ -834,6 +861,10 @@ protected:
   virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& /*graphs*/) override {
     return 0;
   }
+
+private:
+  DetokType detok_;
+  bool quiet_{ false };
 };
 
 /**
