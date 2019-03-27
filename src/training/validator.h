@@ -838,7 +838,7 @@ public:
       ref.push_back(w);
     }
 
-    if(detok_)
+    if(detok_ != NoDetok)
       updateStats(stats, decode(cand, /*addEOS=*/ true), decode(ref));
     else
       updateStats(stats, cand, ref);
