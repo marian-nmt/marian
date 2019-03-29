@@ -45,6 +45,8 @@ std::string toEnglishTitleCase(const std::string& s);
 
 std::u32string utf8ToUnicodeString(const std::string& s);
 std::string utf8FromUnicodeString(const std::u32string& s);
+std::u16string utf8ToUtf16String(const std::string& s);
+std::string utf8FromUtf16String(const std::u16string& s);
 bool isContinuousScript(char32_t c);
 
 std::string findReplace(const std::string& in, const std::string& what, const std::string& withWhat, bool all = false);

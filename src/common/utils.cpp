@@ -177,6 +177,28 @@ std::string utf8FromUnicodeString(const std::u32string& s) {
 #endif
 }
 
+std::u16string utf8ToUtf16String(std::string const& s) {
+#ifdef _MSC_VER // workaround for a known bug in VS CRT
+  std::wstring_convert<std::codecvt_utf8<wchar_t/*char16_t*/>, wchar_t/*char16_t*/> converter;
+  auto res = converter.from_bytes(s);
+  return std::u16string(res.begin(), res.end());
+#else
+  std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> converter;
+  return converter.from_bytes(s);
+#endif
+}
+
+std::string utf8FromUtf16String(const std::u16string& s) {
+#ifdef _MSC_VER // workaround for a known bug in VS CRT
+  std::wstring_convert<std::codecvt_utf8<wchar_t/*char16_t*/>, wchar_t/*char16_t*/> converter;
+  std::basic_string<wchar_t> si(s.begin(), s.end());
+  return converter.to_bytes(si);
+#else
+  std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> converter;
+  return converter.to_bytes(s);
+#endif
+}
+
 bool isContinuousScript(char32_t c) {
   // currently, this table is hand-coded, and may need to be extended when the standard grows
   auto in = [c](char32_t minVal, char32_t maxVal) { return c >= minVal && c <= maxVal; };

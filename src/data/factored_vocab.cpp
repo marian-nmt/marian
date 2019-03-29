@@ -501,6 +501,25 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
   return utils::join(decoded, " ");
 }
 
+// helper to unescape \x.. and \u....
+static void unescapeHexEscapes(std::string& utf8Lemma) {
+  if (utf8Lemma.find('\\') == std::string::npos)
+    return; // nothing to do
+  auto lemma = utils::utf8ToUtf16String(utf8Lemma); // \u.... implies we must operate on UTF-16 level
+  auto pos = lemma.find('\\');
+  while (pos != std::string::npos) {
+    ABORT_IF(pos + 1 >= lemma.size() || (lemma[pos+1] != 'x' && lemma[pos + 1] != 'u'), "Malformed escape in factored encoding: {}", utf8Lemma);
+    int numDigits = 2 + (lemma[pos + 1] == 'u');
+    ABORT_IF(pos + 2 + numDigits > lemma.size(), "Malformed escape in factored encoding: {}", utf8Lemma);
+    auto digits = utils::utf8FromUtf16String(lemma.substr(pos + 2, numDigits));
+    auto c = std::strtoul(digits.c_str(), nullptr, 16);
+    lemma[pos] = (char16_t)c;
+    lemma.erase(pos + 1, 1 + numDigits);
+    pos = lemma.find('\\', pos+1);
+  }
+  utf8Lemma = utils::utf8FromUtf16String(lemma);
+}
+
 // interpret the capitalization and glue factors
 // This assumes a specific notation of factors, emulating our C# code for generating these factors:
 //  - | as separator symbol
@@ -511,12 +530,12 @@ std::string FactoredVocab::surfaceForm(const Words& sentence) const /*override f
   res.reserve(sentence.size() * 10);
   bool prevHadGlueRight = true; // no space at sentence start
   for(auto w : sentence) {
-    auto token = (*this)[w];
     if (w == getEosId())
       break;
+    auto token = (*this)[w];
     auto tokens = utils::split(token, "|");
     //std::cerr << token << " ";
-    const auto& lemma = tokens[0];
+    auto lemma = tokens[0];
     std::set<std::string> tokenSet(tokens.begin() + 1, tokens.end());
     auto has = [&](const char* factor) { return tokenSet.find(factor) != tokenSet.end(); };
     // spacing
@@ -527,12 +546,12 @@ std::string FactoredVocab::surfaceForm(const Words& sentence) const /*override f
       res.push_back(' ');
     prevHadGlueRight = hasGlueRight;
     // capitalization
-    std::string surfaceForm;
-    if      (has("ci")) surfaceForm = utils::utf8Capitalized(lemma);
-    else if (has("ca")) surfaceForm = utils::utf8ToUpper    (lemma);
-    else if (has("cn")) surfaceForm = utils::utf8ToLower    (lemma);
-    else                surfaceForm =                        lemma ;
-    res.append(surfaceForm);
+    unescapeHexEscapes(lemma); // unescape \x.. and \u....
+    if      (has("ci")) lemma = utils::utf8Capitalized(lemma);
+    else if (has("ca")) lemma = utils::utf8ToUpper    (lemma);
+    else if (has("cn")) lemma = utils::utf8ToLower    (lemma);
+    else                lemma =                        lemma ;
+    res.append(lemma);
   }
   //std::cerr << "\n" << res << "\n";
   return res;
