@@ -34,6 +34,7 @@ public:
 
   virtual std::string decode(const Words& sentence,
                              bool ignoreEos = true) const = 0;
+  virtual std::string surfaceForm(const Words& sentence) const = 0;
 
   virtual const std::string& operator[](Word id) const = 0;
 
@@ -43,8 +44,10 @@ public:
   virtual Word getEosId() const = 0;
   virtual Word getUnkId() const = 0;
 
-  virtual std::string toUpper(const std::string& line) const { return utils::utf8ToUpper(line); }
-  virtual std::string toEnglishTitleCase(const std::string& line) const { return utils::toEnglishTitleCase(line); }
+  // without specific knowledge of tokenization, these two functions can do nothing
+  // Both SentencePieceVocab and FactoredSegmenterVocab
+  virtual std::string toUpper(const std::string& line) const { return line; }
+  virtual std::string toEnglishTitleCase(const std::string& line) const { return line; }
 
   virtual void createFake() = 0;
 

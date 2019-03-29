@@ -1,11 +1,11 @@
 #pragma once
 
-#ifdef _GNUC_
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsuggest-override"
 #endif
 #include <boost/timer/timer.hpp>
-#ifdef _GNUC_
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
 

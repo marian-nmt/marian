@@ -14,7 +14,7 @@
 #define NodeOp(op) [=]() { op; }
 
 // helper macro to disable optimization (gcc only)
-#ifdef _GNUC_
+#ifdef __GNUC__
 #define DONT_OPTIMIZE __attribute__((optimize("O0")))
 #else
 #define DONT_OPTIMIZE // silently ignore on Visual Studio, where this is less of a problem

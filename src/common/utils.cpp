@@ -193,8 +193,9 @@ bool isContinuousScript(char32_t c) {
   return isHan || isKana || isThai;
 }
 
-// convert a UTF-8 string to all-caps
-struct UTF8Mapper : std::map<char32_t, char32_t> { // Hack because MS-internal Philly servers do not have UTF-8 locale installed
+// convert UTF-8 characters to lower or upper case
+struct UTF8Mapper { // can't use the standard lib functions because MS-internal Philly servers do not have UTF-8 locale installed
+  std::map<char32_t, char32_t> toUpperMap, toLowerMap;
   UTF8Mapper() {
     /*
       env LC_ALL=en_US.UTF-8 sed 's/\(.\)/\1\n/g'   TEXT_FILE_CONTAINING_ALL_CHARS > l
@@ -213,29 +214,39 @@ struct UTF8Mapper : std::map<char32_t, char32_t> { // Hack because MS-internal P
       auto from = utf8ToUnicodeString(p8.first);
       auto to   = utf8ToUnicodeString(p8.second);
       ABORT_IF(from.size() != 1 || to.size() != 1, "Incorrect character encoding??");
-      insert(std::make_pair(from.front(), to.front()));
+      toUpperMap.insert(std::make_pair(from.front(), to.front()));
+      toLowerMap.insert(std::make_pair(to.front(), from.front()));
     }
   }
-  char32_t towupper(char32_t c) const {
-    auto iter = find(c);
-    if (iter == end())
+  char32_t toUpperOrLower(char32_t c, bool toLower) const { return mapChar(toLower ? toLowerMap : toUpperMap, c); }
+private:
+  static char32_t mapChar(const std::map<char32_t, char32_t>& map, char32_t c) {
+    auto iter = map.find(c);
+    if (iter == map.end())
       return c;
     else
       return iter->second;
   }
 };
 
-std::string utf8ToUpper(const std::string& s) {
-  static UTF8Mapper mapper;
+// shared implementation of toUpper, toLower, and toCapitalized
+static std::string utf8ToUpperOrLower(const std::string& s, bool toLower, bool toInitCap) {
+  static UTF8Mapper utf8Mapper;
   auto ws = utf8ToUnicodeString(s);
-  for (auto& c : ws)
-    c = mapper.towupper(c);
+  for (auto& c : ws) {
+    c = utf8Mapper.toUpperOrLower(c, toLower);
+    if (toInitCap)
+      toLower = true;
+  }
   return utf8FromUnicodeString(ws);
 }
 
+std::string utf8ToUpper(const std::string& s)     { return utf8ToUpperOrLower(s, /*toLower=*/false, /*toInitCap=*/false); }
+std::string utf8ToLower(const std::string& s)     { return utf8ToUpperOrLower(s, /*toLower=*/true , /*toInitCap=*/false); }
+std::string utf8Capitalized(const std::string& s) { return utf8ToUpperOrLower(s, /*toLower=*/false, /*toInitCap=*/true ); }
+
 // convert an English sentence to title case
 // Since title case is an English thing, we only consider ASCII characters.
-// @BUGBUG: This only works for untokenized text, and is therefore useless.
 std::string toEnglishTitleCase(const std::string& s) {
   auto res = s;
   // process token by token

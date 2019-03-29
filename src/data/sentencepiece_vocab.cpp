@@ -231,6 +231,11 @@ public:
     return line;
   }
 
+  std::string surfaceForm(const Words& sentence) const override {
+    // with SentencePiece, decoded form and surface form are identical
+    return decode(sentence, /*ignoreEOS=*/true);
+  }
+
   size_t size() const override {
     return spm_->GetPieceSize();
   }
@@ -252,6 +257,8 @@ public:
     return spm_->GetPieceSize();
   }
 
+  std::string toUpper(const std::string& line) const override { return utils::utf8ToUpper(line); }
+  std::string toEnglishTitleCase(const std::string& line) const override { return utils::toEnglishTitleCase(line); }
 };
 #endif // USE_SENTENCEPIECE
 

@@ -585,22 +585,18 @@ protected:
 // @TODO: combine with TranslationValidator (above) to avoid code duplication
 class BleuValidator : public Validator<data::Corpus, models::IModel> {
 public:
-  enum DetokType {
-    NoDetok,               // tokens are raw tokens as used for decoding
-    DetokSacreBLEUWestern, // tokens are SacreBleu-compatible, assuming Western languages and no text normalization
-    DetokMS                // MS-internal: tokens are DetokLatin1 except for continuous-script chars, which are counted as individual tokens
-  };
-
-  BleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, DetokType detok = NoDetok)
+  BleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, bool detok = false)
       : Validator(vocabs, options, false),
         detok_(detok),
         quiet_(options_->get<bool>("quiet-translation")) {
     builder_ = models::createModelFromOptions(options_, models::usage::translation);
 
     auto vocab = vocabs_.back();
-    ABORT_IF(detok_ != NoDetok && vocab->type() != "SentencePieceVocab" && vocab->type() != "FactoredVocab",
+    ABORT_IF(detok_ && vocab->type() != "SentencePieceVocab" && vocab->type() != "FactoredVocab",
              "Detokenizing BLEU validator expects the target vocabulary to be SentencePieceVocab or FactoredVocab. "
              "Current vocabulary type is {}", vocab->type());
+
+    createBatchGenerator(/*isTranslating=*/true);
   }
 
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
@@ -711,18 +707,11 @@ public:
   };
 
   // @TODO: why do we return this string, but not pass it to the constructor?
-  std::string type() override {
-    switch (detok_) {
-    case NoDetok:               return "bleu";
-    case DetokSacreBLEUWestern: return "bleu-detok";
-    case DetokMS:               return "bleu-detok-ms";
-    default: ABORT("Unexpected DetokType??");
-    }
-  }
+  std::string type() override { return detok_ ? "bleu-detok" : "bleu"; }
 
 protected:
   // Tokenizer function adapted from multi-bleu-detok.pl, corresponds to sacreBLEU.py
-  static std::string tokenizeSacreBLEUWestern(const std::string& text) {
+  static std::string tokenize(const std::string& text) {
     std::string normText = text;
 
     // language-independent part:
@@ -770,9 +759,8 @@ public:
 
   std::vector<std::string> decode(const Words& words, bool addEOS = false) {
     auto vocab = vocabs_.back();
-    auto tokenString = tokenizeSacreBLEUWestern(vocab->decode(words));
-    if (detok_ == DetokMS) // score continuous-script sequences as individual characters
-      tokenString = tokenizeContinuousScript(tokenString);
+    auto tokenString = tokenize(vocab->surfaceForm(words));
+    tokenString = tokenizeContinuousScript(tokenString);
     auto tokens = utils::splitAny(tokenString, " ");
     if(addEOS)
       tokens.push_back("</s>");
@@ -838,7 +826,7 @@ public:
       ref.push_back(w);
     }
 
-    if(detok_ != NoDetok)
+    if(detok_)
       updateStats(stats, decode(cand, /*addEOS=*/ true), decode(ref));
     else
       updateStats(stats, cand, ref);
@@ -863,7 +851,7 @@ public:
   }
 
 private:
-  DetokType detok_;
+  bool detok_;
   bool quiet_{ false };
 };
 

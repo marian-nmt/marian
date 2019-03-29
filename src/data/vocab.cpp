@@ -112,11 +112,18 @@ Words Vocab::encode(const std::string& line,
   return vImpl_->encode(line, addEOS, inference);
 }
 
-// list of token ids to single line, can perform detokenization
+// convert sequence of token ids to single line, can perform detokenization
 std::string Vocab::decode(const Words& sentence,
                     bool ignoreEOS) const {
   return vImpl_->decode(sentence, ignoreEOS);
 }
+
+// convert sequence of token its to surface form (incl. removng spaces, applying factors)
+// for in-process BLEU validation
+std::string Vocab::surfaceForm(const Words& sentence) const {
+  return vImpl_->surfaceForm(sentence);
+}
+
 
 // number of vocabulary items
 size_t Vocab::size() const { return vImpl_->size(); }

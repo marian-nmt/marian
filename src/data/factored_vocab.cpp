@@ -435,7 +435,7 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
     return Word::fromWordIndex(index);
   else
     //ABORT("Unknown word {} mapped to {}", word, word2string(getUnkId()));
-    LOG(info, "WARNING: Unknown word {} mapped to {}", word, word2string(getUnkId()));
+    LOG_ONCE(info, "WARNING: Unknown word {} mapped to {}", word, word2string(getUnkId()));
     return getUnkId();
 }
 
@@ -499,6 +499,43 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
       decoded.push_back((*this)[w]);
   }
   return utils::join(decoded, " ");
+}
+
+// interpret the capitalization and glue factors
+// This assumes a specific notation of factors, emulating our C# code for generating these factors:
+//  - | as separator symbol
+//  - capitalization factors are cn, ci, and ca
+//  - glue factors are gl+, gr+, wbn, wen, cbn, cen
+std::string FactoredVocab::surfaceForm(const Words& sentence) const /*override final*/ {
+  std::string res;
+  res.reserve(sentence.size() * 10);
+  bool prevHadGlueRight = true; // no space at sentence start
+  for(auto w : sentence) {
+    auto token = (*this)[w];
+    if (w == getEosId())
+      break;
+    auto tokens = utils::split(token, "|");
+    //std::cerr << token << " ";
+    const auto& lemma = tokens[0];
+    std::set<std::string> tokenSet(tokens.begin() + 1, tokens.end());
+    auto has = [&](const char* factor) { return tokenSet.find(factor) != tokenSet.end(); };
+    // spacing
+    bool hasGlueRight = has("gr+") || has("wen") || has("cen");
+    bool hasGlueLeft  = has("gl+") || has("wbn") || has("cbn");
+    bool insertSpaceBefore = !prevHadGlueRight && !hasGlueLeft;
+    if (insertSpaceBefore)
+      res.push_back(' ');
+    prevHadGlueRight = hasGlueRight;
+    // capitalization
+    std::string surfaceForm;
+    if      (has("ci")) surfaceForm = utils::utf8Capitalized(lemma);
+    else if (has("ca")) surfaceForm = utils::utf8ToUpper    (lemma);
+    else if (has("cn")) surfaceForm = utils::utf8ToLower    (lemma);
+    else                surfaceForm =                        lemma ;
+    res.append(surfaceForm);
+  }
+  //std::cerr << "\n" << res << "\n";
+  return res;
 }
 
 // create a CSR matrix M[V,U] from words[] with

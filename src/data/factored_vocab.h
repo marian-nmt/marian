@@ -23,6 +23,7 @@ public:
   };
 
   // from IVocab:
+  // @TODO: Why are these virtual and final at the same time? Seems we should remove all the 'virtual' here
   virtual size_t load(const std::string& factoredVocabPath, size_t maxSizeUnused = 0) override final;
   virtual void create(const std::string& vocabPath, const std::vector<std::string>& trainPaths, size_t maxSize) override final { vocabPath, trainPaths, maxSize; ABORT("Factored vocab cannot be created on the fly"); }
   virtual const std::string& canonicalExtension() const override final { return suffixes()[0]; }
@@ -30,6 +31,7 @@ public:
   virtual Word operator[](const std::string& word) const override final;
   virtual Words encode(const std::string& line, bool addEOS = true, bool inference = false) const override final;
   virtual std::string decode(const Words& sentence, bool ignoreEos = true) const override final;
+  virtual std::string surfaceForm(const Words& sentence) const override final;
   virtual const std::string& operator[](Word id) const override final;
   virtual size_t size() const override final;
   virtual std::string type() const override final { return "FactoredVocab"; }

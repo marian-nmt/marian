@@ -50,9 +50,13 @@ public:
                bool addEOS = true,
                bool inference = false) const;
 
-  // list of token ids to single line, can perform detokenization
+  // convert sequence of token ids to single line, can perform detokenization
   std::string decode(const Words& sentence,
                      bool ignoreEOS = true) const;
+
+  // convert sequence of token its to surface form (incl. removng spaces, applying factors)
+  // for in-process BLEU validation
+  std::string surfaceForm(const Words& sentence) const;
 
   // number of vocabulary items
   size_t size() const;
