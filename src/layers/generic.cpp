@@ -191,6 +191,16 @@ namespace marian {
     return Logits(std::move(newLogits), factoredVocab_);
   }
 
+  Logits Logits::applyUnaryFunctions(const std::function<Expr(Expr)>& f1, const std::function<Expr(Expr)>& fother) const {
+      std::vector<Ptr<RationalLoss>> newLogits;
+      bool first = true;
+      for (const auto& l : logits_) {
+        newLogits.emplace_back(New<RationalLoss>((first?f1:fother)(l->loss()), l->count())); // f1 for first, fother for all others
+        first = false;
+      }
+      return Logits(std::move(newLogits), factoredVocab_);
+  }
+
   // @TODO: code dup with above; we can merge it into applyToRationalLoss()
   Logits Logits::withCounts(const Expr& count) const { // create new Logits with 'count' implanted into all logits_
     std::vector<Ptr<RationalLoss>> newLogits;

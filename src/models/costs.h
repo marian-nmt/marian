@@ -224,12 +224,11 @@ public:
 class GumbelSoftmaxStep : public ILogProbStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
-    // @TODO: @HACK must know about individual parts; make it a loop
-    state->setLogProbs(state->getLogProbs().applyUnaryFunction([](Expr logits){
-      //auto logits = state->getLogProbs().getLogits();
-      return logsoftmax(logits + constant_like(logits, inits::gumbel));
-    }));
-    //state->setLogProbs(logprobs);
+    state->setLogProbs(state->getLogProbs().applyUnaryFunctions(
+      [](Expr logits){ // lemma gets gumbelled
+        return logsoftmax(logits + constant_like(logits, inits::gumbel));
+      },
+      logsoftmax)); // factors don't
     return state;
   }
 };

@@ -594,7 +594,7 @@ public:
     auto vocab = vocabs_.back();
 #if 1 // hack for now, to get this feature when running under Flo
     if (vocab->type() == "FactoredVocab")
-        detok_ = true; // always use bleu-detok
+      detok_ = true; // always use bleu-detok
 #endif
     ABORT_IF(detok_ && vocab->type() != "SentencePieceVocab" && vocab->type() != "FactoredVocab",
              "Detokenizing BLEU validator expects the target vocabulary to be SentencePieceVocab or FactoredVocab. "

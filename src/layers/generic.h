@@ -85,6 +85,7 @@ public:
     //Ptr<RationalLoss> getRationalLoss() const; // assume it holds a loss: get that
     Expr applyLossFunction(const Words& labels, const std::function<Expr(Expr/*logits*/,Expr/*indices*/)>& lossFn) const;
     Logits applyUnaryFunction(const std::function<Expr(Expr)>& f) const; // clone this but apply f to all loss values
+    Logits applyUnaryFunctions(const std::function<Expr(Expr)>& f1, const std::function<Expr(Expr)>& fother) const; // clone this but apply f1 to first and fother to to all other values
 
     struct MaskedFactorIndices {
       std::vector<WordIndex> indices; // factor index, or 0 if masked
