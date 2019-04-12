@@ -9,6 +9,7 @@
 #include "translator/beam_search.h"
 #include "translator/scorers.h"
 #include "data/alignment.h"
+#include "data/vocab_base.h"
 
 namespace marian {
 
@@ -31,6 +32,20 @@ Ptr<Options> newOptions() {
   return New<Options>();
 }
 
+class VocabWrapper : public IVocabWrapper {
+  Ptr<Vocab> pImpl_;
+public:
+  VocabWrapper(Ptr<Vocab> vocab) : pImpl_(vocab) {}
+  WordIndex encode(const std::string& word) const {
+    auto enc = pImpl_->encode(word, /*addEOS=*/false, /*inference=*/true);
+    ABORT_IF(enc.size() != 1, "QuickSAND passed an invalid word '{}' to Marian (empty or contains a space)", word);
+    return enc[0].toWordIndex();
+  }
+  size_t size() const { return pImpl_->size(); }
+  std::string decode(WordIndex id) const { return pImpl_->decode({ Word::fromWordIndex(id) }); }
+  Ptr<Vocab> getVocab() const { return pImpl_; }
+};
+
 class BeamSearchDecoder : public IBeamSearchDecoder {
 private:
   Ptr<ExpressionGraph> graph_;
@@ -38,11 +53,18 @@ private:
 
   std::vector<Ptr<Scorer>> scorers_;
 
+  std::vector<Ptr<Vocab>> vocabs_;
+
 public:
   BeamSearchDecoder(Ptr<Options> options,
                     const std::vector<const void*>& ptrs,
-                    Word eos)
+                    const std::vector<Ptr<IVocabWrapper>>& vocabs,
+                    WordIndex eos)
       : IBeamSearchDecoder(options, ptrs, eos) {
+
+    // copy the vocabs
+    for (auto vi : vocabs)
+      vocabs_.push_back(std::dynamic_pointer_cast<VocabWrapper>(vi)->getVocab());
 
     // setting 16-bit optimization to false for now. Re-enable with better caching or pre-computation
     graph_ = New<ExpressionGraph>(/*inference=*/true, /*optimize=*/false);
@@ -94,7 +116,7 @@ public:
 
   QSNBestBatch decode(const QSBatch& qsBatch,
                       size_t maxLength,
-                      const std::unordered_set<Word>& shortlist) override {
+                      const std::unordered_set<WordIndex>& shortlist) override {
     if(shortlist.size() > 0) {
       auto shortListGen = New<data::FakeShortlistGenerator>(shortlist);
       for(auto scorer : scorers_)
@@ -103,7 +125,7 @@ public:
 
     // form source batch, by interleaving the words over sentences in the batch, and setting the mask
     size_t batchSize = qsBatch.size();
-    auto subBatch = New<data::SubBatch>(batchSize, maxLength, nullptr);
+    auto subBatch = New<data::SubBatch>(batchSize, maxLength, vocabs_[0]);
     for(size_t i = 0; i < maxLength; ++i) {
       for(size_t j = 0; j < batchSize; ++j) {
         const auto& sent = qsBatch[j];
@@ -114,8 +136,8 @@ public:
         }
       }
     }
-    std::vector<Ptr<data::SubBatch>> subBatches;
-    subBatches.push_back(subBatch);
+    auto tgtSubBatch = New<data::SubBatch>(batchSize, 0, vocabs_[1]); // only holds a vocab, but data is dummy
+    std::vector<Ptr<data::SubBatch>> subBatches{ subBatch, tgtSubBatch };
     std::vector<size_t> sentIds(batchSize, 0);
 
     auto batch = New<data::CorpusBatch>(subBatches);
@@ -165,8 +187,26 @@ public:
 
 Ptr<IBeamSearchDecoder> newDecoder(Ptr<Options> options,
                                    const std::vector<const void*>& ptrs,
-                                   Word eos) {
-  return New<BeamSearchDecoder>(options, ptrs, eos);
+                                   const std::vector<Ptr<IVocabWrapper>>& vocabs,
+                                   WordIndex eos) {
+  return New<BeamSearchDecoder>(options, ptrs, vocabs, eos);
+}
+
+std::vector<Ptr<IVocabWrapper>> loadVocabs(const std::vector<std::string>& vocabPaths) {
+  std::vector<Ptr<IVocabWrapper>> res(vocabPaths.size());
+  for (size_t i = 0; i < vocabPaths.size(); i++) {
+    if (i > 0 && vocabPaths[i] == vocabPaths[i-1]) {
+      res[i] = res[i-1];
+      LOG(info, "[data] Input {} sharing vocabulary with input {}", i, i-1);
+    }
+    else {
+      auto vocab = New<Vocab>(New<Options>(), i); // (empty options, since they are only used for creating vocabs)
+      auto size = vocab->load(vocabPaths[i]);
+      LOG(info, "[data] Loaded vocabulary size for input {} of size {}", i, size);
+      res[i] = New<VocabWrapper>(vocab);
+    }
+  }
+  return res;
 }
 
 }  // namespace quicksand

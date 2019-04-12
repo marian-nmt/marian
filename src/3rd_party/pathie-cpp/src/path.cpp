@@ -149,6 +149,8 @@ Path::Path(const std::vector<Path>& components)
  */
 void Path::sanitize()
 {
+  bool isWindowsUNCPath = m_path.c_str()[0] == '\\' && m_path.c_str()[1] == '\\'; // UNC path
+
   // Replace any backslashes \ with forward slashes /.
   size_t cur = string::npos;
   while ((cur = m_path.find("\\")) != string::npos) { // assignment intended
@@ -156,8 +158,9 @@ void Path::sanitize()
   }
 
   // Replace all double slashes // with a single one
+  // [fseide] except for the first position, which would be a Windows UNC path
   cur = string::npos;
-  while ((cur = m_path.find("//")) != string::npos) { // assignment intended
+  while ((cur = m_path.find("//", isWindowsUNCPath ? 1 : 0)) != string::npos) { // assignment intended
     m_path.replace(cur, 2, "/");
   }
 
