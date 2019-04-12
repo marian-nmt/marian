@@ -41,8 +41,8 @@ public:
     ABORT_IF(enc.size() != 1, "QuickSAND passed an invalid word '{}' to Marian (empty or contains a space)", word);
     return enc[0].toWordIndex();
   }
-  size_t size() const { return pImpl_->size(); }
   std::string decode(WordIndex id) const { return pImpl_->decode({ Word::fromWordIndex(id) }); }
+  size_t size() const { return pImpl_->size(); }
   Ptr<Vocab> getVocab() const { return pImpl_; }
 };
 
