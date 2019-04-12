@@ -149,7 +149,7 @@ Path::Path(const std::vector<Path>& components)
  */
 void Path::sanitize()
 {
-  bool isWindowsUNCPath = m_path.c_str()[0] == '\\' && m_path.c_str()[1] == '\\'; // UNC path
+  bool isWindowsUNCPath = m_path.size() >= 2 && (m_path[0] == '\\' && m_path[1] == '\\'); // UNC path
 
   // Replace any backslashes \ with forward slashes /.
   size_t cur = string::npos;
