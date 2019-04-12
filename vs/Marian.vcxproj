@@ -944,7 +944,6 @@
     <ClInclude Include="..\src\tensors\tensor.h" />
     <ClInclude Include="..\src\tensors\tensor_allocator.h" />
     <ClInclude Include="..\src\tensors\tensor_operators.h" />
-    <ClInclude Include="..\src\tensors\types.h" />
     <ClInclude Include="..\src\tensors\cpu\add.h" />
     <ClInclude Include="..\src\tensors\cpu\backend.h" />
     <ClInclude Include="..\src\tensors\cpu\element.h" />
