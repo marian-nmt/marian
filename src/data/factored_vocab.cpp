@@ -124,10 +124,9 @@ namespace marian {
   //  - all factors not matching a prefix get lumped into yet another class (the lemmas)
   //  - factor vocab must be sorted such that all groups are consecutive
   //  - result of Output layer is nevertheless logits, not a normalized probability, due to the sigmoid entries
-  auto vocabSize = factorShape_.elements(); // size of vocab space including gaps
-  vocab_.resize(vocabSize);
+  //vocab_.resize(vocabSize);
   //factorMap_.resize(vocabSize);
-  auto factorVocabSize = factorVocab_.size();
+  //auto factorVocabSize = this->factorVocabSize();
   lemmaHasFactorGroup_.resize(groupRanges_[0].second - groupRanges_[0].first);
   size_t numTotalFactors = 0;
   for (WordIndex v = 0; v < factorMapTokenized.size(); v++) {
@@ -171,12 +170,13 @@ namespace marian {
     //  LOG(info, "{} -> {}", tokens.front(), word2string(word));
   }
   LOG(info, "[embedding] Factored-embedding map read with total/unique of {}/{} factors for {} valid words (in space of {})",
-      numTotalFactors, factorVocabSize, vocab_.numValid(), size());
+      numTotalFactors, factorVocabSize(), vocab_.size()/*numValid()*/, size());
 
   // enumerate all combinations of factors for each lemma
   // @TODO: switch to factor-spec, which no longer enumerates all combinations. Then don't set vocab string here.
   size_t numMissing = 0;
-  for (size_t v = 0; v < vocabSize; v++) {
+  auto vocabSize = size(); // size of vocab space including gaps
+  for (size_t v = 0; v < vocabSize; v++) { // @BUGBUG:L This will run forever
     auto word = Word::fromWordIndex(v);
     bool isValid = true;
     for (size_t g = 0; isValid && g < numGroups; g++) {
@@ -197,8 +197,10 @@ namespace marian {
   if (numMissing > 0)
     LOG(info, "[embedding] completed {} factor combinations missing from the original vocab file", numMissing);
 
+#ifdef FACTOR_FULL_EXPANSION
   // create mappings needed for normalization in factored outputs
   constructNormalizationInfoForVocab();
+#endif
 
   // </s> and <unk> must exist in the vocabulary
   eosId_ = Word::fromWordIndex(vocab_[DEFAULT_EOS_STR]);
@@ -206,8 +208,8 @@ namespace marian {
   //LOG(info, "eos: {}; unk: {}", word2string(eosId_), word2string(unkId_));
 
 #if 1   // dim-vocabs stores numValid() in legacy model files, and would now have been size()
-  if (maxSizeUnused == vocab_.numValid())
-    maxSizeUnused = vocab_.size();
+  if (maxSizeUnused == vocab_.size()/*numValid()*/)
+    maxSizeUnused = vocabSize;
 #endif
   //ABORT_IF(maxSizeUnused != 0 && maxSizeUnused != size(), "Factored vocabulary does not allow on-the-fly clipping to a maximum vocab size (from {} to {})", size(), maxSizeUnused);
   // @TODO: ^^ disabled now that we are generating the full combination of factors; reenable once we have consistent setups again
@@ -217,7 +219,7 @@ namespace marian {
 void FactoredVocab::constructGroupInfoFromFactorVocab() {
   // form groups
   size_t numGroups = groupPrefixes_.size();
-  size_t factorVocabSize = factorVocab_.size();
+  size_t factorVocabSize = this->factorVocabSize();
   factorGroups_.resize(factorVocabSize, 0);
   for (size_t g = 1; g < groupPrefixes_.size(); g++) { // set group labels; what does not match any prefix will stay in group 0
     const auto& groupPrefix = groupPrefixes_[g];
@@ -391,6 +393,7 @@ size_t FactoredVocab::getFactor(Word word, size_t groupIndex) const {
 //  ABORT("Not implemented");
 //}
 
+#ifdef FACTOR_FULL_EXPANSION
 void FactoredVocab::constructNormalizationInfoForVocab() {
   // create mappings needed for normalization in factored outputs
   //size_t numGroups = groupPrefixes_.size();
@@ -427,6 +430,7 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
     data.push_back(Word::fromWordIndex(v));
   globalFactorMatrix_ = csr_rows(data); // [V x U]
 }
+#endif
 
 /*virtual*/ Word FactoredVocab::operator[](const std::string& word) const /*override final*/ {
   WordIndex index;
@@ -441,7 +445,9 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
 
 /*virtual*/ const std::string& FactoredVocab::operator[](Word word) const /*override final*/ {
   //LOG(info, "Looking up Word {}={}", word.toWordIndex(), word2string(word));
-#if 1 // @BUGBUG: our manually prepared dict does not contain @CI tags for single letters, but it's a valid factor
+#if 1 // @TODO: remove this
+  ABORT_IF(vocab_.isGap(word.toWordIndex()), "Invalid factor combination {}", word2string(word));
+#else // @BUGBUG: our manually prepared dict does not contain @CI tags for single letters, but it's a valid factor
   if (vocab_.isGap(word.toWordIndex())) {
     LOG/*_ONCE*/(info, "Factor combination {} missing in external dict, generating fake entry (only showing this warning once)", word2string(word));
     //const_cast<WordLUT&>(vocab_).add("??" + word2string(word), word.toWordIndex());
@@ -449,10 +455,6 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
   }
 #endif
   return vocab_[word.toWordIndex()];
-}
-
-/*virtual*/ size_t FactoredVocab::size() const /*override final*/ {
-  return vocab_.size();
 }
 
 /*virtual*/ std::string FactoredVocab::toUpper(const std::string& line) const /*override final*/ {
@@ -596,16 +598,9 @@ FactoredVocab::CSRData FactoredVocab::csr_rows(const Words& words) const {
         weights.push_back(1.0f);
       }
     }
-#if 0 // @BUGBUG: No, this is wrong! The vector must be 1s, since we use it in backprop transposition.
-    else {
-      // push a dummy entry. Not sure if this is needed.
-      indices.push_back(0);
-      weights.push_back(0.0f);
-    }
-#endif
     offsets.push_back((IndexType)indices.size()); // next matrix row begins at this offset
   }
-  return { Shape({(int)words.size(), (int)factorVocab_.size()}), weights, indices, offsets };
+  return { Shape({(int)words.size(), (int)factorVocabSize()}), weights, indices, offsets };
 }
 
 // Helper to construct and load a FactordVocab from a path is given (non-empty) and if it specifies a factored vocab.
@@ -625,16 +620,20 @@ WordIndex FactoredVocab::WordLUT::add(const std::string& word, WordIndex index) 
   ABORT_IF(word.empty(), "Attempted to add the empty word to a dictionary");
   auto wasInserted = str2index_.insert(std::make_pair(word, index)).second;
   ABORT_IF(!wasInserted, "Duplicate vocab entry for '{}', new index {} vs. existing index {}", word, index, str2index_[word]);
-  while (index2str_.size() <= index)
-    index2str_.emplace_back(); // @TODO: what's the right way to get linear complexity in steps?
-  ABORT_IF(!index2str_[index].empty(), "Duplicate vocab entry for index {} (new: '{}'; existing: '{}')", index, word, index2str_[index]);
-  index2str_[index] = word;
+  wasInserted = index2str_.insert(std::make_pair(index, word)).second;
+  ABORT_IF(!wasInserted, "Duplicate vocab entry for index {} (new: '{}'; existing: '{}')", index, word, index2str_[index]);
+  //if (vocabSize_ < index2str_.size())
+  //  vocabSize_ = index2str_.size();
   return index;
 }
+static const std::string g_emptyString;
 const std::string& FactoredVocab::WordLUT::operator[](WordIndex index) const {
-  const auto& word = index2str_[index];
-  //ABORT_IF(word.empty(), "Invalid access to dictionary gap item");
-  return word;
+  auto iter = index2str_.find(index);
+  //ABORT_IF(iter == index2str_.end(), "Invalid access to dictionary gap item");
+  if (iter == index2str_.end())
+    return g_emptyString; // (using a global since we return a reference)
+  else
+    return iter->second;
 }
 WordIndex FactoredVocab::WordLUT::operator[](const std::string& word) const {
   auto iter = str2index_.find(word);
@@ -648,10 +647,10 @@ bool FactoredVocab::WordLUT::tryFind(const std::string& word, WordIndex& index) 
   index = iter->second;
   return true;
 }
-void FactoredVocab::WordLUT::resize(size_t num) {
-  ABORT_IF(num < index2str_.size(), "Word table cannot be shrunk");
-  index2str_.resize(num); // gets filled up with gap items (empty strings)
-}
+//void FactoredVocab::WordLUT::resize(size_t num) {
+//  ABORT_IF(num < size(), "Word table cannot be shrunk");
+//  vocabSize_ = num;
+//}
 size_t FactoredVocab::WordLUT::load(const std::string& path) {
   std::string line;
   io::InputFileStream in(path);

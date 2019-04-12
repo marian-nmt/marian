@@ -11,6 +11,8 @@
 
 #include <numeric> // for std::iota()
 
+#undef FACTOR_FULL_EXPANSION // define this to get full expansion. @TODO: infeasible for many factors; just delete this
+
 namespace marian {
 
 class FactoredVocab : public IVocab {
@@ -33,7 +35,7 @@ public:
   virtual std::string decode(const Words& sentence, bool ignoreEos = true) const override final;
   virtual std::string surfaceForm(const Words& sentence) const override final;
   virtual const std::string& operator[](Word id) const override final;
-  virtual size_t size() const override final;
+  virtual size_t size() const override final { return factorShape_.elements(); } // virtual vocab size with all factor combinations including gaps
   virtual std::string type() const override final { return "FactoredVocab"; }
   virtual Word getEosId() const override final { return eosId_; }
   virtual Word getUnkId() const override final { return unkId_; }
@@ -44,16 +46,20 @@ public:
   virtual Word randWord() const override final;
 
   // factor-specific. These methods are consumed by Output and Embedding.
-  size_t factorVocabSize() const { return factorVocab_.size(); }
+  size_t factorVocabSize() const { return factorVocab_.size(); } // total number of factors across all types
 
-  CSRData csr_rows(const Words& words) const;
+  CSRData csr_rows(const Words& words) const; // sparse matrix for summing up factors from the concatenated embedding matrix for each word
 
+#ifdef FACTOR_FULL_EXPANSION
   const CSRData& getGlobalFactorMatrix() const { return globalFactorMatrix_; }   // [v,u] (sparse) -> =1 if u is factor of v  --only used in getLogits()
+#endif
   size_t getNumGroups() const { return groupRanges_.size(); }
   std::pair<size_t, size_t> getGroupRange(size_t g)    const { return groupRanges_[g]; }   // [g] -> (u_begin, u_end)
   //const std::vector<float>&     getFactorMasks(size_t g)   const { return factorMasks_[g]; }   // [g][v] 1.0 if word v has factor g
   //const std::vector<IndexType>& getFactorIndices(size_t g) const { return factorIndices_[g]; } // [g][v] local index u_g = u - u_g,begin of factor g for word v; 0 if not a factor
+#ifdef FACTOR_FULL_EXPANSION
   const std::vector<float>& getGapLogMask() const { return gapLogMask_; } // [v] -inf if v is a gap entry, else 0
+#endif
 
   // convert representations
   Word factors2word(const std::vector<size_t>& factors) const;
@@ -74,21 +80,25 @@ public:
 private:
   void constructGroupInfoFromFactorVocab();
   void constructFactorIndexConversion();
+#ifdef FACTOR_FULL_EXPANSION
   void constructNormalizationInfoForVocab();
+#endif
   size_t factorUnit2FactorIndex(WordIndex u) const;
 private:
   class WordLUT { // map between strings and WordIndex
     std::map<std::string, WordIndex> str2index_;
-    std::vector<std::string> index2str_;
+    std::map<WordIndex, std::string> index2str_;
+    //size_t vocabSize_; // total number of vocab items as set by user
   public:
     WordIndex add(const std::string& word, WordIndex index);
     const std::string& operator[](WordIndex index) const;
     WordIndex operator[](const std::string& word) const;
-    bool isGap(WordIndex index) const { return index2str_[index].empty(); }
+    bool isGap(WordIndex index) const { return index2str_.find(index) == index2str_.end(); }
     bool tryFind(const std::string& word, WordIndex& index) const;
-    void resize(size_t num);
-    size_t size() const { return index2str_.size(); } // nominal size including gap items
-    size_t numValid() const { return str2index_.size(); } // actual non-gaps items
+    //void resize(size_t num); // @TODO: remove this, and remove the distinction of size() and numValid()
+    //size_t size() const { return vocabSize_; } // nominal size including gap items
+    //size_t numValid() const { return str2index_.size(); } // actual non-gaps items
+    size_t size() const { return str2index_.size(); }
     size_t load(const std::string& path);
   };
 
@@ -102,7 +112,9 @@ private:
   WordLUT factorVocab_;                                // [factor name] -> factor index = row of E_
   std::vector<std::string> groupPrefixes_;             // [group id g] shared prefix of factors (used for grouping)
   //std::vector<std::vector<WordIndex>> factorMap_;      // [word index v] -> set of factor indices u
+#ifdef FACTOR_FULL_EXPANSION
   CSRData globalFactorMatrix_;                         // [v,u] (sparse) -> =1 if u is factor of v
+#endif
   std::vector<size_t> factorGroups_;                   // [u] -> group id of factor u
   std::vector<std::pair<size_t, size_t>> groupRanges_; // [group id g] -> (u_begin,u_end) index range of factors u for this group. These don't overlap.
   std::vector<std::vector<bool>>lemmaHasFactorGroup_;  // [factor 0 index][g] -> true if lemma has factor group
@@ -110,7 +122,9 @@ private:
   std::vector<size_t> factorStrides_;                  // [g] stride for factor dimension
   //std::vector<std::vector<float>>     factorMasks_;    // [g][v] 1.0 if word v has factor g
   //std::vector<std::vector<IndexType>> factorIndices_;  // [g][v] relative index u - u_begin of factor g (or any valid index if it does not have it; we use 0)
+#ifdef FACTOR_FULL_EXPANSION
   std::vector<float> gapLogMask_;                      // [v] -1e8 if this is a gap, else 0
+#endif
 };
 
 }  // namespace marian
