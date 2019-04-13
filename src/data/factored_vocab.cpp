@@ -121,7 +121,6 @@ namespace marian {
   // construct mapping tables for factors
   constructGroupInfoFromFactorVocab();
   constructFactorIndexConversion();
-  auto numGroups = getNumGroups();
 
   // load and parse factorMap
   // modelPath = path to file with entries in order of vocab entries of the form
@@ -190,6 +189,11 @@ namespace marian {
   auto virtualVocabSize = (WordIndex)size(); // size of vocab space including gaps
   ABORT_IF((size_t)virtualVocabSize != size(), "Too many factors, virtual index space {} exceeds the bit limit of WordIndex type", utils::withCommas(size()));
   LOG(info, "[vocab] Expanding all valid vocab entries out of {}...", utils::withCommas(size()));
+  std::vector<size_t> factorIndices(getNumGroups());
+#if 1
+  rCompleteVocab(factorIndices, /*g=*/0);
+#else
+  auto numGroups = getNumGroups();
   for (WordIndex v = 0; v < virtualVocabSize; v++) { // @BUGBUG: This is SLOOOW. Need further changes to remove this altogether
     // determine whether this bit combination is a thing
     bool isValid = true;
@@ -204,6 +208,7 @@ namespace marian {
     else if (!isValid && !vocab_.isGap(v))
       LOG(info, "WARNING: Factored vocab mismatch for {}: isValid={}, isGap={}", word2string(word), isValid, vocab_.isGap(v));
   }
+#endif
   LOG(info, "[vocab] Completed, total {} valid combinations", vocab_.size()/*numValid()*/);
   vocab_.dumpToFile(modelPath + "_expanded");
 
@@ -224,6 +229,32 @@ namespace marian {
   //ABORT_IF(maxSizeUnused != 0 && maxSizeUnused != size(), "Factored vocabulary does not allow on-the-fly clipping to a maximum vocab size (from {} to {})", size(), maxSizeUnused);
   // @TODO: ^^ disabled now that we are generating the full combination of factors; reenable once we have consistent setups again
   return size();
+}
+
+// helper to add missing words to vocab_
+// factorIndices has been formed up to *ex*cluding position [g].
+void FactoredVocab::rCompleteVocab(std::vector<size_t>& factorIndices, size_t g) {
+  // reached the end
+  if (g == getNumGroups()) {
+    auto word = factors2word(factorIndices);
+    auto v = word.toWordIndex(); // by design, we only generate those that are still missing
+    //auto ws = word2string(word);
+    //ABORT_IF(!vocab_.isGap(v), "Incorrect vocab_ construction sequence?? {}", word2string(word));
+    if (vocab_.isGap(v)) // add if missing
+      vocab_.add(word2string(word), v);
+    return;
+  }
+  // try next factor
+  if (g == 0 || lemmaHasFactorGroup(factorIndices[0], g)) {
+    for (size_t g1 = 0; g1 < factorShape_[g] - 1; g1++) {
+      factorIndices[g] = g1;
+      rCompleteVocab(factorIndices, g + 1);
+    }
+  }
+  else {
+    factorIndices[g] = FACTOR_NOT_APPLICABLE;
+    rCompleteVocab(factorIndices, g + 1);
+  }
 }
 
 void FactoredVocab::constructGroupInfoFromFactorVocab() {

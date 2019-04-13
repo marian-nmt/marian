@@ -80,6 +80,7 @@ public:
 private:
   void constructGroupInfoFromFactorVocab();
   void constructFactorIndexConversion();
+  void rCompleteVocab(std::vector<size_t>& factorIndices, size_t g);
 #ifdef FACTOR_FULL_EXPANSION
   void constructNormalizationInfoForVocab();
 #endif
