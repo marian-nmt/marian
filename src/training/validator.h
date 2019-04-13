@@ -711,7 +711,7 @@ public:
   };
 
   // @TODO: why do we return this string, but not pass it to the constructor?
-  std::string type() override { return detok_ ? "bleu-detok" : "bleu"; }
+  std::string type() override { return /*detok_ ? "bleu-detok" :*/ "bleu"; }
 
 protected:
   // Tokenizer function adapted from multi-bleu-detok.pl, corresponds to sacreBLEU.py
