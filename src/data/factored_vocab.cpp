@@ -8,11 +8,12 @@
 namespace marian {
 
 /*virtual*/ size_t FactoredVocab::load(const std::string& modelPath, size_t maxSizeUnused /*= 0*/) /*override final*/ {
+  maxSizeUnused;
   // If model has already been loaded, then assume this is a shared object, and skip loading it again.
   // This can be multi-threaded, so must run under lock.
   static std::mutex s_mtx;
   std::lock_guard<std::mutex> criticalSection(s_mtx);
-  if (vocab_.size() != 0) {
+  if (size() != 0) {
     LOG(info, "[vocab] Attempting to load model a second time; skipping (assuming shared vocab)");
     return size();
   }
@@ -179,15 +180,13 @@ namespace marian {
     //  LOG(info, "{} -> {}", tokens.front(), word2string(word));
   }
   LOG(info, "[vocab] Factored-embedding map read with total/unique of {}/{} factors from {} example words (in space of {})",
-      numTotalFactors, factorVocabSize(), vocab_.size()/*numValid()*/, utils::withCommas(size()));
+      numTotalFactors, factorVocabSize(), vocab_.size()/*numValid()*/, utils::withCommas(virtualVocabSize()));
   vocab_.dumpToFile(modelPath + "_examples");
 
   // enumerate all combinations of factors for each lemma
   // @TODO: switch to factor-spec, which no longer enumerates all combinations. Then don't set vocab string here.
   //        This enumerates all possible combinations (incl. invalid ones), and stores all valid ones
-  auto virtualVocabSize = (WordIndex)size(); // size of vocab space including gaps
-  ABORT_IF((size_t)virtualVocabSize != size(), "Too many factors, virtual index space {} exceeds the bit limit of WordIndex type", utils::withCommas(size()));
-  LOG(info, "[vocab] Expanding all valid vocab entries out of {}...", utils::withCommas(size()));
+  LOG(info, "[vocab] Expanding all valid vocab entries out of {}...", utils::withCommas(virtualVocabSize()));
   std::vector<size_t> factorIndices(getNumGroups());
   rCompleteVocab(factorIndices, /*g=*/0);
   LOG(info, "[vocab] Completed, total {} valid combinations", vocab_.size()/*numValid()*/);
@@ -203,10 +202,10 @@ namespace marian {
   unkId_ = Word::fromWordIndex(vocab_[DEFAULT_UNK_STR]);
   //LOG(info, "eos: {}; unk: {}", word2string(eosId_), word2string(unkId_));
 
-#if 1   // dim-vocabs stores numValid() in legacy model files, and would now have been size()
-  if (maxSizeUnused == vocab_.size()/*numValid()*/)
-    maxSizeUnused = virtualVocabSize;
-#endif
+//#if 1   // dim-vocabs stores numValid() in legacy model files, and would now have been size()
+//  if (maxSizeUnused == vocab_.size()/*numValid()*/)
+//    maxSizeUnused = virtualVocabSize;
+//#endif
   //ABORT_IF(maxSizeUnused != 0 && maxSizeUnused != size(), "Factored vocabulary does not allow on-the-fly clipping to a maximum vocab size (from {} to {})", size(), maxSizeUnused);
   // @TODO: ^^ disabled now that we are generating the full combination of factors; reenable once we have consistent setups again
   return size();
@@ -285,6 +284,8 @@ void FactoredVocab::constructFactorIndexConversion() {
   factorStrides_.resize(factorShape_.size(), 1);
   for (size_t g = factorStrides_.size() - 1; g --> 0; )
     factorStrides_[g] = factorStrides_[g + 1] * (size_t)factorShape_[g + 1];
+  ABORT_IF((WordIndex)virtualVocabSize() != virtualVocabSize(),
+      "Too many factors, virtual index space {} exceeds the bit limit of WordIndex type", utils::withCommas(virtualVocabSize()));
 }
 
 // encode factors into a Word struct
@@ -417,7 +418,7 @@ size_t FactoredVocab::getFactor(Word word, size_t groupIndex) const {
 void FactoredVocab::constructNormalizationInfoForVocab() {
   // create mappings needed for normalization in factored outputs
   //size_t numGroups = groupPrefixes_.size();
-  size_t vocabSize = size();
+  size_t vocabSize = virtualVocabSize();
   //factorMasks_  .resize(numGroups, std::vector<float>(vocabSize, 0));     // [g][v] 1.0 if word v has factor g
   //factorIndices_.resize(numGroups, std::vector<IndexType>(vocabSize, 0)); // [g][v] index of factor (or any valid index if it does not have it; we use 0)
   gapLogMask_.resize(vocabSize, -1e8f);
@@ -667,10 +668,6 @@ bool FactoredVocab::WordLUT::tryFind(const std::string& word, WordIndex& index) 
   index = iter->second;
   return true;
 }
-//void FactoredVocab::WordLUT::resize(size_t num) {
-//  ABORT_IF(num < size(), "Word table cannot be shrunk");
-//  vocabSize_ = num;
-//}
 size_t FactoredVocab::WordLUT::load(const std::string& path) {
   std::string line;
   io::InputFileStream in(path);

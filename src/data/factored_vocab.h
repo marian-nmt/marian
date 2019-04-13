@@ -35,7 +35,7 @@ public:
   virtual std::string decode(const Words& sentence, bool ignoreEos = true) const override final;
   virtual std::string surfaceForm(const Words& sentence) const override final;
   virtual const std::string& operator[](Word id) const override final;
-  virtual size_t size() const override final { return factorShape_.elements<size_t>(); } // valid WordIndex range (representing all factor combinations including gaps); virtual and huge
+  virtual size_t size() const override final { return vocab_.size(); } // active factored vocabulary size (counting all valid combinations but not gaps)
   virtual std::string type() const override final { return "FactoredVocab"; }
   virtual Word getEosId() const override final { return eosId_; }
   virtual Word getUnkId() const override final { return unkId_; }
@@ -47,6 +47,7 @@ public:
 
   // factor-specific. These methods are consumed by Output and Embedding.
   size_t factorVocabSize() const { return factorVocab_.size(); } // total number of factors across all types
+  size_t virtualVocabSize() const { return factorShape_.elements<size_t>(); } // valid WordIndex range (representing all factor combinations including gaps); virtual and huge
 
   CSRData csr_rows(const Words& words) const; // sparse matrix for summing up factors from the concatenated embedding matrix for each word
 
