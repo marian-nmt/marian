@@ -94,7 +94,7 @@ private:
     WordIndex add(const std::string& word, WordIndex index);
     const std::string& operator[](WordIndex index) const;
     WordIndex operator[](const std::string& word) const;
-    bool isGap(WordIndex index) const { return index2str_.find(index) == index2str_.end(); }
+    bool contains(WordIndex index) const { return index2str_.find(index) != index2str_.end(); }
     bool tryFind(const std::string& word, WordIndex& index) const;
     //void resize(size_t num); // @TODO: remove this, and remove the distinction of size() and numValid()
     //size_t size() const { return vocabSize_; } // nominal size including gap items

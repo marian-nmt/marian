@@ -203,10 +203,10 @@ namespace marian {
       // @TODO: we have a hack in getFactor() to return not-specified if factor is specified but not applicable, making it invalid
       isValid = factorIndex != FACTOR_NOT_SPECIFIED; // FACTOR_NOT_APPLICABLE is a valid value
     }
-    if (isValid && vocab_.isGap(v)) // add if missing
+    if (isValid && !vocab_.contains(v)) // add if missing
       vocab_.add(word2string(word), word.toWordIndex());
-    else if (!isValid && !vocab_.isGap(v))
-      LOG(info, "WARNING: Factored vocab mismatch for {}: isValid={}, isGap={}", word2string(word), isValid, vocab_.isGap(v));
+    else if (!isValid && vocab_.contains(v))
+      LOG(info, "WARNING: Factored vocab mismatch for {}: isValid={}, contains={}", word2string(word), isValid, vocab_.contains(v));
   }
 #endif
   LOG(info, "[vocab] Completed, total {} valid combinations", vocab_.size()/*numValid()*/);
@@ -237,10 +237,8 @@ void FactoredVocab::rCompleteVocab(std::vector<size_t>& factorIndices, size_t g)
   // reached the end
   if (g == getNumGroups()) {
     auto word = factors2word(factorIndices);
-    auto v = word.toWordIndex(); // by design, we only generate those that are still missing
-    //auto ws = word2string(word);
-    //ABORT_IF(!vocab_.isGap(v), "Incorrect vocab_ construction sequence?? {}", word2string(word));
-    if (vocab_.isGap(v)) // add if missing
+    auto v = word.toWordIndex();
+    if (!vocab_.contains(v)) // add if missing
       vocab_.add(word2string(word), v);
     return;
   }
@@ -445,7 +443,7 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
   gapLogMask_.resize(vocabSize, -1e8f);
   for (WordIndex v = 0; v < vocabSize; v++) {
 #if 1 // @TODO: TEST THIS again by disabling factored decoding in beam_search.h
-    if (!vocab_.isGap(v))
+    if (vocab_.contains(v))
       gapLogMask_[v] = 0.0f; // valid entry
 #else
     for (auto u : factorMap_[v]) {
@@ -488,9 +486,9 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
 /*virtual*/ const std::string& FactoredVocab::operator[](Word word) const /*override final*/ {
   //LOG(info, "Looking up Word {}={}", word.toWordIndex(), word2string(word));
 #if 1 // @TODO: remove this
-  ABORT_IF(vocab_.isGap(word.toWordIndex()), "Invalid factor combination {}", word2string(word));
+  ABORT_IF(!vocab_.contains(word.toWordIndex()), "Invalid factor combination {}", word2string(word));
 #else // @BUGBUG: our manually prepared dict does not contain @CI tags for single letters, but it's a valid factor
-  if (vocab_.isGap(word.toWordIndex())) {
+  if (!vocab_.contains(word.toWordIndex())) {
     LOG/*_ONCE*/(info, "Factor combination {} missing in external dict, generating fake entry (only showing this warning once)", word2string(word));
     //const_cast<WordLUT&>(vocab_).add("??" + word2string(word), word.toWordIndex());
     const_cast<WordLUT&>(vocab_).add(word2string(word), word.toWordIndex());
@@ -614,7 +612,7 @@ FactoredVocab::CSRData FactoredVocab::csr_rows(const Words& words) const {
   offsets.push_back((IndexType)indices.size());
   std::vector<size_t> factorIndices;
   for (auto word : words) {
-    if (!vocab_.isGap(word.toWordIndex())) { // skip invalid combinations in the space (can only happen during initialization)  --@TODO: add a check?
+    if (vocab_.contains(word.toWordIndex())) { // skip invalid combinations in the space (can only happen during initialization)  --@TODO: add a check?
       word2factors(word, factorIndices);
 #if 0 // original code; enable this to try
       numGroups;
