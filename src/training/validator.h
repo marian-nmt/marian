@@ -592,10 +592,6 @@ public:
     builder_ = models::createModelFromOptions(options_, models::usage::translation);
 
     auto vocab = vocabs_.back();
-#if 1 // hack for now, to get this feature when running under Flo
-    if (vocab->type() == "FactoredVocab")
-      detok_ = true; // always use bleu-detok
-#endif
     ABORT_IF(detok_ && vocab->type() != "SentencePieceVocab" && vocab->type() != "FactoredVocab",
              "Detokenizing BLEU validator expects the target vocabulary to be SentencePieceVocab or FactoredVocab. "
              "Current vocabulary type is {}", vocab->type());
@@ -711,7 +707,7 @@ public:
   };
 
   // @TODO: why do we return this string, but not pass it to the constructor?
-  std::string type() override { return /*detok_ ? "bleu-detok" :*/ "bleu"; }
+  std::string type() override { return detok_ ? "bleu-detok" : "bleu"; }
 
 protected:
   // Tokenizer function adapted from multi-bleu-detok.pl, corresponds to sacreBLEU.py
@@ -830,7 +826,14 @@ public:
       ref.push_back(w);
     }
 
-    if(detok_)
+    bool detok = detok_;
+#if 1 // hack for now, to get this feature when running under Flo
+    if (vocabs_.back()->type() == "FactoredVocab") {
+      LOG_ONCE(info, "[valid] FactoredVocab implies using detokenized BLEU");
+      detok = true; // always use bleu-detok
+    }
+#endif
+    if(detok)
       updateStats(stats, decode(cand, /*addEOS=*/ true), decode(ref));
     else
       updateStats(stats, cand, ref);
