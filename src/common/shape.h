@@ -100,10 +100,11 @@ public:
       return stride[size() + i];
   }
 
-  inline int elements() const {
-    int el = 1;
+  template<typename T = int> // using a template so that FactoredSegmenter, which uses this as well, can pass size_t
+  inline T elements() const {
+    T el = 1;
     for(auto s : shape_)
-      el *= s;
+      el *= (T)s;
     return el;
   }
 
