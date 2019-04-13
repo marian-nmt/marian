@@ -7,7 +7,6 @@
 
 namespace marian {
 
-    DONT_OPTIMIZE
 /*virtual*/ size_t FactoredVocab::load(const std::string& modelPath, size_t maxSizeUnused /*= 0*/) /*override final*/ {
   // If model has already been loaded, then assume this is a shared object, and skip loading it again.
   // This can be multi-threaded, so must run under lock.
@@ -190,25 +189,7 @@ namespace marian {
   ABORT_IF((size_t)virtualVocabSize != size(), "Too many factors, virtual index space {} exceeds the bit limit of WordIndex type", utils::withCommas(size()));
   LOG(info, "[vocab] Expanding all valid vocab entries out of {}...", utils::withCommas(size()));
   std::vector<size_t> factorIndices(getNumGroups());
-#if 1
   rCompleteVocab(factorIndices, /*g=*/0);
-#else
-  auto numGroups = getNumGroups();
-  for (WordIndex v = 0; v < virtualVocabSize; v++) { // @BUGBUG: This is SLOOOW. Need further changes to remove this altogether
-    // determine whether this bit combination is a thing
-    bool isValid = true;
-    auto word = Word::fromWordIndex(v);
-    for (size_t g = 0; isValid && g < numGroups; g++) {
-      auto factorIndex = getFactor(word, g);
-      // @TODO: we have a hack in getFactor() to return not-specified if factor is specified but not applicable, making it invalid
-      isValid = factorIndex != FACTOR_NOT_SPECIFIED; // FACTOR_NOT_APPLICABLE is a valid value
-    }
-    if (isValid && !vocab_.contains(v)) // add if missing
-      vocab_.add(word2string(word), word.toWordIndex());
-    else if (!isValid && vocab_.contains(v))
-      LOG(info, "WARNING: Factored vocab mismatch for {}: isValid={}, contains={}", word2string(word), isValid, vocab_.contains(v));
-  }
-#endif
   LOG(info, "[vocab] Completed, total {} valid combinations", vocab_.size()/*numValid()*/);
   vocab_.dumpToFile(modelPath + "_expanded");
 
@@ -363,7 +344,6 @@ size_t FactoredVocab::factorUnit2FactorIndex(WordIndex u) const {
   return u - groupRanges_[g].first;
 }
 
-DONT_OPTIMIZE
 void FactoredVocab::word2factors(Word word, std::vector<size_t>& factorIndices /* [numGroups] */) const {
   size_t numGroups = getNumGroups();
   factorIndices.resize(numGroups);
