@@ -144,7 +144,10 @@ protected:
 
   virtual void keepBest(const std::vector<Ptr<ExpressionGraph>>& graphs) {
     auto model = options_->get<std::string>("model");
-    builder_->save(graphs[0], model + ".best-" + type() + ".npz", true);
+    std::string suffix = model.substr(model.size() - 4);
+    ABORT_IF(suffix != ".npz" && suffix != ".bin", "Unknown model suffix {}", suffix);
+
+    builder_->save(graphs[0], model + ".best-" + type() + suffix, true);
   }
 };
 
@@ -428,7 +431,10 @@ public:
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     using namespace data;
     auto model = options_->get<std::string>("model");
-    builder_->save(graphs[0], model + ".dev.npz", true);
+    std::string suffix = model.substr(model.size() - 4);
+    ABORT_IF(suffix != ".npz" && suffix != ".bin", "Unknown model suffix {}", suffix);
+
+    builder_->save(graphs[0], model + ".dev" + suffix, true);
 
     auto valStr = utils::exec(options_->get<std::string>("valid-script-path"),
                               options_->get<std::vector<std::string>>("valid-script-args"));
