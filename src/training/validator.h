@@ -834,11 +834,18 @@ public:
 
     bool detok = detok_;
 #if 1 // hack for now, to get this feature when running under Flo
+    // Problem is that Flo pieces that pass 'bleu' do not know whether vocab is factored,
+    // hence cannot select 'bleu-detok'.
     if (vocabs_.back()->type() == "FactoredVocab") {
       LOG_ONCE(info, "[valid] FactoredVocab implies using detokenized BLEU");
       detok = true; // always use bleu-detok
     }
 #endif
+    if(detok) { // log the first detokenized string
+      LOG_ONCE(info, "[valid] First sentence's tokens after detokenization, as scored:");
+      LOG_ONCE(info, "[valid]  Hyp: {}", utils::join(decode(cand, /*addEOS=*/ true)));
+      LOG_ONCE(info, "[valid]  Ref: {}", utils::join(decode(ref)));
+    }
     if(detok)
       updateStats(stats, decode(cand, /*addEOS=*/ true), decode(ref));
     else
