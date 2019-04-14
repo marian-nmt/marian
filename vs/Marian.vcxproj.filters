@@ -1117,9 +1117,6 @@
     <ClInclude Include="..\src\tensors\tensor_operators.h">
       <Filter>tensors</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\tensors\types.h">
-      <Filter>tensors</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\tensors\cpu\add.h">
       <Filter>tensors\cpu</Filter>
     </ClInclude>

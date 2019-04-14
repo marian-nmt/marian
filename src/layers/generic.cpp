@@ -84,7 +84,6 @@ namespace marian {
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
     auto sel = logits_[groupIndex]->loss(); // [localBeamSize, 1, dimBatch, dimFactorVocab]
 
-
     // normalize for decoding:
     //  - all secondary factors: subtract their max
     //  - lemma: add all maxes of applicable factors
@@ -108,6 +107,8 @@ namespace marian {
 
   // This function assumes that the object holds one or more factor logits, which are summed up
   // into output-vocab logits according to the factored model (with correct normalization of factors).
+  // This is infeasible for realistic factor sets, and therefore only implemented for 1 factor.
+  // @TODO: remove altogether
   Expr Logits::getLogits() const {
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
     if (!factoredVocab_) {
@@ -115,6 +116,7 @@ namespace marian {
       return getFactoredLogits(0);
     }
 
+#ifdef FACTOR_FULL_EXPANSION
     // compute normalized factor log probs
     std::vector<Expr> logProbs(logits_.size());
     for (size_t g = 0; g < logits_.size(); g++)
@@ -137,6 +139,9 @@ namespace marian {
     y = y + graph->constant({ (int)gapLogMask.size() }, inits::from_vector(gapLogMask), Type::float32);
 
     return y;
+#else
+    ABORT("getLogits() no longer supported for actual factored vocab"); // because it is infeasible
+#endif
   }
 
   void Logits::MaskedFactorIndices::push_back(size_t factorIndex) {

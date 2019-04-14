@@ -8,6 +8,16 @@
 namespace marian {
 
 /*virtual*/ size_t FactoredVocab::load(const std::string& modelPath, size_t maxSizeUnused /*= 0*/) /*override final*/ {
+  maxSizeUnused;
+  // If model has already been loaded, then assume this is a shared object, and skip loading it again.
+  // This can be multi-threaded, so must run under lock.
+  static std::mutex s_mtx;
+  std::lock_guard<std::mutex> criticalSection(s_mtx);
+  if (size() != 0) {
+    //LOG(info, "[vocab] Attempting to load model a second time; skipping (assuming shared vocab)");
+    return size();
+  }
+
   std::vector<std::vector<std::string>> factorMapTokenized;
   std::string line;
   std::vector<std::string> tokBuf;
@@ -111,7 +121,6 @@ namespace marian {
   // construct mapping tables for factors
   constructGroupInfoFromFactorVocab();
   constructFactorIndexConversion();
-  auto numGroups = getNumGroups();
 
   // load and parse factorMap
   // modelPath = path to file with entries in order of vocab entries of the form
@@ -124,10 +133,9 @@ namespace marian {
   //  - all factors not matching a prefix get lumped into yet another class (the lemmas)
   //  - factor vocab must be sorted such that all groups are consecutive
   //  - result of Output layer is nevertheless logits, not a normalized probability, due to the sigmoid entries
-  auto vocabSize = factorShape_.elements(); // size of vocab space including gaps
-  vocab_.resize(vocabSize);
+  //vocab_.resize(vocabSize);
   //factorMap_.resize(vocabSize);
-  auto factorVocabSize = factorVocab_.size();
+  //auto factorVocabSize = this->factorVocabSize();
   lemmaHasFactorGroup_.resize(groupRanges_[0].second - groupRanges_[0].first);
   size_t numTotalFactors = 0;
   for (WordIndex v = 0; v < factorMapTokenized.size(); v++) {
@@ -143,7 +151,8 @@ namespace marian {
       factorUnits.push_back(u);
     }
     // convert to fully unrolled factors representation
-    std::vector<size_t> factorIndices(groupRanges_.size(), FACTOR_NOT_APPLICABLE); // default for unused factors
+    auto na = FACTOR_NOT_APPLICABLE; // (gcc compiler bug: sometimes it cannot find this if passed directly)
+    std::vector<size_t> factorIndices(groupRanges_.size(), na); // default for unused factors
     std::vector<bool> hasFactorGroupFlags(groupRanges_.size(), false);
     for (auto u : factorUnits) {
       factorIndices[factorGroups_[u]] = factorUnit2FactorIndex(u);
@@ -163,61 +172,75 @@ namespace marian {
     // add to vocab (the wordIndex are not dense, so the vocab will have holes)
     //if (tokens.front().front() == '<') // all others are auto-expanded
     // for now add what we get, and then expand more below
-    vocab_.add(tokens.front(), wordIndex);
-    if (tokens.front() != word2string(word))
-      LOG_ONCE(info, "[embedding] Word name in .wl file {} differs from canonical form {} (this warning is only shown once)", tokens.front(), word2string(word));
+    auto wordString = word2string(word);
+    if (tokens.front() != wordString) // order may differ, since we formed the input based on the factors in the user file, which may be in any order
+      LOG_ONCE(info, "[vocab] Word name in vocab file {} differs from canonical form {} (this warning is only shown once)", tokens.front(), wordString);
+    vocab_.add(wordString, wordIndex);
     numTotalFactors += tokens.size() - 1;
     //if (v % 5000 == 0)
     //  LOG(info, "{} -> {}", tokens.front(), word2string(word));
   }
-  LOG(info, "[embedding] Factored-embedding map read with total/unique of {}/{} factors for {} valid words (in space of {})",
-      numTotalFactors, factorVocabSize, vocab_.numValid(), size());
+  LOG(info, "[vocab] Factored-embedding map read with total/unique of {}/{} factors from {} example words (in space of {})",
+      numTotalFactors, factorVocabSize(), vocab_.size()/*numValid()*/, utils::withCommas(virtualVocabSize()));
+  //vocab_.dumpToFile(modelPath + "_examples");
 
-  // enumerate all combinations of factors for each lemma
-  // @TODO: switch to factor-spec, which no longer enumerates all combinations. Then don't set vocab string here.
-  size_t numMissing = 0;
-  for (size_t v = 0; v < vocabSize; v++) {
-    auto word = Word::fromWordIndex(v);
-    bool isValid = true;
-    for (size_t g = 0; isValid && g < numGroups; g++) {
-      auto factorIndex = getFactor(word, g);
-      // @TODO: we have a hack in getFactor() to return not-specified if factor is specified but not applicable, making it invalid
-      isValid = factorIndex != FACTOR_NOT_SPECIFIED; // FACTOR_NOT_APPLICABLE is a valid value
-    }
-    if (isValid != !vocab_.isGap((WordIndex)v)) {
-      //LOG(info, "WARNING: Factored vocab mismatch for {}: isValid={}, isGap={}", word2string(word), isValid, vocab_.isGap((WordIndex)v));
-      if (isValid) { // add the missing word (albeit with a poor grapheme)
-        vocab_.add(word2string(word), word.toWordIndex());
-        //(*this)[word];
-        // @TODO: ^^disabled to test getLogits(), which no longer works with this enabled (I guess since model has not seen the new units)
-        numMissing++;
-      }
-    }
-  }
-  if (numMissing > 0)
-    LOG(info, "[embedding] completed {} factor combinations missing from the original vocab file", numMissing);
+  // enumerate all valid combinations of factors for each lemma and add them to vocab_
+  // Having vocab_ makes life easier, although it is not strictly needed. Typical expanded valid vocabs
+  // are on the order of 200k entries. If we ever go much larger, we'd want to elimimate vocab_
+  // and fully virtualize its function.
+  LOG(info, "[vocab] Expanding all valid vocab entries out of {}...", utils::withCommas(virtualVocabSize()));
+  std::vector<size_t> factorIndices(getNumGroups());
+  rCompleteVocab(factorIndices, /*g=*/0);
+  LOG(info, "[vocab] Completed, total {} valid combinations", vocab_.size()/*numValid()*/);
+  //vocab_.dumpToFile(modelPath + "_expanded");
 
+#ifdef FACTOR_FULL_EXPANSION
   // create mappings needed for normalization in factored outputs
   constructNormalizationInfoForVocab();
+#endif
 
   // </s> and <unk> must exist in the vocabulary
   eosId_ = Word::fromWordIndex(vocab_[DEFAULT_EOS_STR]);
   unkId_ = Word::fromWordIndex(vocab_[DEFAULT_UNK_STR]);
   //LOG(info, "eos: {}; unk: {}", word2string(eosId_), word2string(unkId_));
 
-#if 1   // dim-vocabs stores numValid() in legacy model files, and would now have been size()
-  if (maxSizeUnused == vocab_.numValid())
-    maxSizeUnused = vocab_.size();
-#endif
+//#if 1   // dim-vocabs stores numValid() in legacy model files, and would now have been size()
+//  if (maxSizeUnused == vocab_.size()/*numValid()*/)
+//    maxSizeUnused = virtualVocabSize;
+//#endif
   //ABORT_IF(maxSizeUnused != 0 && maxSizeUnused != size(), "Factored vocabulary does not allow on-the-fly clipping to a maximum vocab size (from {} to {})", size(), maxSizeUnused);
   // @TODO: ^^ disabled now that we are generating the full combination of factors; reenable once we have consistent setups again
   return size();
 }
 
+// helper to add missing words to vocab_
+// factorIndices has been formed up to *ex*cluding position [g].
+void FactoredVocab::rCompleteVocab(std::vector<size_t>& factorIndices, size_t g) {
+  // reached the end
+  if (g == getNumGroups()) {
+    auto word = factors2word(factorIndices);
+    auto v = word.toWordIndex();
+    if (!vocab_.contains(v)) // add if missing
+      vocab_.add(word2string(word), v);
+    return;
+  }
+  // try next factor
+  if (g == 0 || lemmaHasFactorGroup(factorIndices[0], g)) {
+    for (size_t g1 = 0; g1 < factorShape_[g] - 1; g1++) {
+      factorIndices[g] = g1;
+      rCompleteVocab(factorIndices, g + 1);
+    }
+  }
+  else {
+    factorIndices[g] = FACTOR_NOT_APPLICABLE;
+    rCompleteVocab(factorIndices, g + 1);
+  }
+}
+
 void FactoredVocab::constructGroupInfoFromFactorVocab() {
   // form groups
   size_t numGroups = groupPrefixes_.size();
-  size_t factorVocabSize = factorVocab_.size();
+  size_t factorVocabSize = this->factorVocabSize();
   factorGroups_.resize(factorVocabSize, 0);
   for (size_t g = 1; g < groupPrefixes_.size(); g++) { // set group labels; what does not match any prefix will stay in group 0
     const auto& groupPrefix = groupPrefixes_[g];
@@ -241,7 +264,7 @@ void FactoredVocab::constructGroupInfoFromFactorVocab() {
     groupCounts[g]++;
   }
   for (size_t g = 0; g < numGroups; g++) { // detect non-overlapping groups
-    LOG(info, "[embedding] Factor group '{}' has {} members", groupPrefixes_[g], groupCounts[g]);
+    LOG(info, "[vocab] Factor group '{}' has {} members", groupPrefixes_[g], groupCounts[g]);
     if (groupCounts[g] == 0) { // factor group is unused  --@TODO: once this is not hard-coded, this is an error condition
       groupRanges_[g].first = g > 0 ? groupRanges_[g-1].second : 0; // fix up the entry
       groupRanges_[g].second = groupRanges_[g].first;
@@ -263,6 +286,8 @@ void FactoredVocab::constructFactorIndexConversion() {
   factorStrides_.resize(factorShape_.size(), 1);
   for (size_t g = factorStrides_.size() - 1; g --> 0; )
     factorStrides_[g] = factorStrides_[g + 1] * (size_t)factorShape_[g + 1];
+  ABORT_IF((WordIndex)virtualVocabSize() != virtualVocabSize(),
+      "Too many factors, virtual index space {} exceeds the bit limit of WordIndex type", utils::withCommas(virtualVocabSize()));
 }
 
 // encode factors into a Word struct
@@ -322,7 +347,6 @@ size_t FactoredVocab::factorUnit2FactorIndex(WordIndex u) const {
   return u - groupRanges_[g].first;
 }
 
-
 void FactoredVocab::word2factors(Word word, std::vector<size_t>& factorIndices /* [numGroups] */) const {
   size_t numGroups = getNumGroups();
   factorIndices.resize(numGroups);
@@ -332,7 +356,8 @@ void FactoredVocab::word2factors(Word word, std::vector<size_t>& factorIndices /
   }
 #if 1
   auto test = factors2word(factorIndices);
-  ABORT_IF(test != word, "Word <-> factor conversion broken??");
+  ABORT_IF(test != word, "Word <-> factor conversion broken?? {} vs{}, '{}' vs. '{}'",
+           test.toWordIndex(), word.toWordIndex(), word2string(test), word2string(word));
 #endif
 }
 
@@ -359,6 +384,28 @@ std::string FactoredVocab::word2string(Word word) const {
   }
   //res.append(")");
   return res;
+}
+
+Word FactoredVocab::string2word(const std::string& w) const {
+  auto sep = std::string(1, factorSeparator_);
+  auto parts = utils::splitAny(w, sep);
+  auto na = FACTOR_NOT_APPLICABLE; // (gcc compiler bug: sometimes it cannot find this if passed directly)
+  std::vector<size_t> factorIndices(groupRanges_.size(), na); // default for unused factors
+  for (size_t i = 0; i < parts.size(); i++) {
+    WordIndex u;
+    bool found = factorVocab_.tryFind(i == 0 ? parts[i] : sep + parts[i], u);
+    if (!found) {
+      LOG_ONCE(info, "WARNING: Unknown factor '{}' in '{}'; mapping to '{}'", parts[i], w, word2string(getUnkId()));
+      return getUnkId();
+    }
+    // convert u to relative u within factor group range
+    auto g = factorGroups_[u];
+    ABORT_IF(u < groupRanges_[g].first || u >= groupRanges_[g].second, "Invalid factorGroups_ entry??");
+    factorIndices[g] = u - groupRanges_[g].first;
+  }
+  auto word = factors2word(factorIndices);
+  //auto w2 = word2string(word);
+  return word;
 }
 
 size_t FactoredVocab::getFactor(Word word, size_t groupIndex) const {
@@ -391,16 +438,17 @@ size_t FactoredVocab::getFactor(Word word, size_t groupIndex) const {
 //  ABORT("Not implemented");
 //}
 
+#ifdef FACTOR_FULL_EXPANSION
 void FactoredVocab::constructNormalizationInfoForVocab() {
   // create mappings needed for normalization in factored outputs
   //size_t numGroups = groupPrefixes_.size();
-  size_t vocabSize = size();
+  size_t vocabSize = virtualVocabSize();
   //factorMasks_  .resize(numGroups, std::vector<float>(vocabSize, 0));     // [g][v] 1.0 if word v has factor g
   //factorIndices_.resize(numGroups, std::vector<IndexType>(vocabSize, 0)); // [g][v] index of factor (or any valid index if it does not have it; we use 0)
   gapLogMask_.resize(vocabSize, -1e8f);
   for (WordIndex v = 0; v < vocabSize; v++) {
 #if 1 // @TODO: TEST THIS again by disabling factored decoding in beam_search.h
-    if (!vocab_.isGap(v))
+    if (vocab_.contains(v))
       gapLogMask_[v] = 0.0f; // valid entry
 #else
     for (auto u : factorMap_[v]) {
@@ -427,6 +475,7 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
     data.push_back(Word::fromWordIndex(v));
   globalFactorMatrix_ = csr_rows(data); // [V x U]
 }
+#endif
 
 /*virtual*/ Word FactoredVocab::operator[](const std::string& word) const /*override final*/ {
   WordIndex index;
@@ -434,25 +483,24 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
   if (found)
     return Word::fromWordIndex(index);
   else
+    return string2word(word);
     //ABORT("Unknown word {} mapped to {}", word, word2string(getUnkId()));
-    LOG_ONCE(info, "WARNING: Unknown word {} mapped to {}", word, word2string(getUnkId()));
-    return getUnkId();
+    //LOG_ONCE(info, "WARNING: Unknown word {} mapped to {}", word, word2string(getUnkId()));
+    //return getUnkId();
 }
 
 /*virtual*/ const std::string& FactoredVocab::operator[](Word word) const /*override final*/ {
   //LOG(info, "Looking up Word {}={}", word.toWordIndex(), word2string(word));
-#if 1 // @BUGBUG: our manually prepared dict does not contain @CI tags for single letters, but it's a valid factor
-  if (vocab_.isGap(word.toWordIndex())) {
+#if 1 // @TODO: remove this
+  ABORT_IF(!vocab_.contains(word.toWordIndex()), "Invalid factor combination {}", word2string(word));
+#else // @BUGBUG: our manually prepared dict does not contain @CI tags for single letters, but it's a valid factor
+  if (!vocab_.contains(word.toWordIndex())) {
     LOG/*_ONCE*/(info, "Factor combination {} missing in external dict, generating fake entry (only showing this warning once)", word2string(word));
     //const_cast<WordLUT&>(vocab_).add("??" + word2string(word), word.toWordIndex());
     const_cast<WordLUT&>(vocab_).add(word2string(word), word.toWordIndex());
   }
 #endif
   return vocab_[word.toWordIndex()];
-}
-
-/*virtual*/ size_t FactoredVocab::size() const /*override final*/ {
-  return vocab_.size();
 }
 
 /*virtual*/ std::string FactoredVocab::toUpper(const std::string& line) const /*override final*/ {
@@ -570,7 +618,7 @@ FactoredVocab::CSRData FactoredVocab::csr_rows(const Words& words) const {
   offsets.push_back((IndexType)indices.size());
   std::vector<size_t> factorIndices;
   for (auto word : words) {
-    if (!vocab_.isGap(word.toWordIndex())) { // skip invalid combinations in the space (can only happen during initialization)  --@TODO: add a check?
+    if (vocab_.contains(word.toWordIndex())) { // skip invalid combinations in the space (can only happen during initialization)  --@TODO: add a check?
       word2factors(word, factorIndices);
 #if 0 // original code; enable this to try
       numGroups;
@@ -596,16 +644,9 @@ FactoredVocab::CSRData FactoredVocab::csr_rows(const Words& words) const {
         weights.push_back(1.0f);
       }
     }
-#if 0 // @BUGBUG: No, this is wrong! The vector must be 1s, since we use it in backprop transposition.
-    else {
-      // push a dummy entry. Not sure if this is needed.
-      indices.push_back(0);
-      weights.push_back(0.0f);
-    }
-#endif
     offsets.push_back((IndexType)indices.size()); // next matrix row begins at this offset
   }
-  return { Shape({(int)words.size(), (int)factorVocab_.size()}), weights, indices, offsets };
+  return { Shape({(int)words.size(), (int)factorVocabSize()}), weights, indices, offsets };
 }
 
 // Helper to construct and load a FactordVocab from a path is given (non-empty) and if it specifies a factored vocab.
@@ -625,16 +666,20 @@ WordIndex FactoredVocab::WordLUT::add(const std::string& word, WordIndex index) 
   ABORT_IF(word.empty(), "Attempted to add the empty word to a dictionary");
   auto wasInserted = str2index_.insert(std::make_pair(word, index)).second;
   ABORT_IF(!wasInserted, "Duplicate vocab entry for '{}', new index {} vs. existing index {}", word, index, str2index_[word]);
-  while (index2str_.size() <= index)
-    index2str_.emplace_back(); // @TODO: what's the right way to get linear complexity in steps?
-  ABORT_IF(!index2str_[index].empty(), "Duplicate vocab entry for index {} (new: '{}'; existing: '{}')", index, word, index2str_[index]);
-  index2str_[index] = word;
+  wasInserted = index2str_.insert(std::make_pair(index, word)).second;
+  ABORT_IF(!wasInserted, "Duplicate vocab entry for index {} (new: '{}'; existing: '{}')", index, word, index2str_[index]);
+  //if (vocabSize_ < index2str_.size())
+  //  vocabSize_ = index2str_.size();
   return index;
 }
+static const std::string g_emptyString;
 const std::string& FactoredVocab::WordLUT::operator[](WordIndex index) const {
-  const auto& word = index2str_[index];
-  //ABORT_IF(word.empty(), "Invalid access to dictionary gap item");
-  return word;
+  auto iter = index2str_.find(index);
+  //ABORT_IF(iter == index2str_.end(), "Invalid access to dictionary gap item");
+  if (iter == index2str_.end())
+    return g_emptyString; // (using a global since we return a reference)
+  else
+    return iter->second;
 }
 WordIndex FactoredVocab::WordLUT::operator[](const std::string& word) const {
   auto iter = str2index_.find(word);
@@ -648,10 +693,6 @@ bool FactoredVocab::WordLUT::tryFind(const std::string& word, WordIndex& index) 
   index = iter->second;
   return true;
 }
-void FactoredVocab::WordLUT::resize(size_t num) {
-  ABORT_IF(num < index2str_.size(), "Word table cannot be shrunk");
-  index2str_.resize(num); // gets filled up with gap items (empty strings)
-}
 size_t FactoredVocab::WordLUT::load(const std::string& path) {
   std::string line;
   io::InputFileStream in(path);
@@ -660,13 +701,33 @@ size_t FactoredVocab::WordLUT::load(const std::string& path) {
   return size();
 }
 
+void FactoredVocab::WordLUT::dumpToFile(const std::string& path) {
+  io::OutputFileStream out(path);
+  for (auto kvp : index2str_)
+    out << kvp.second << "\t" << utils::withCommas(kvp.first) << "\n";
+}
+
 const static std::vector<std::string> exts{ ".fsv", ".fm"/*legacy*/ };
 
 // Note: This does not actually load it, only checks the path for the type.
+// Since loading takes a while, we cache instances.
 Ptr<IVocab> createFactoredVocab(const std::string& vocabPath) {
+  // this can be multi-threaded, so must run under lock
+  static std::mutex s_mtx;
+  std::lock_guard<std::mutex> criticalSection(s_mtx);
+
   bool isFactoredVocab = std::any_of(exts.begin(), exts.end(), [&](const std::string& ext) { return utils::endsWith(vocabPath, ext); });
-  if(isFactoredVocab)
-    return New<FactoredVocab>();
+  if (isFactoredVocab) {
+    static std::map<std::string, Ptr<IVocab>> s_cache;
+    auto iter = s_cache.find(vocabPath);
+    if (iter != s_cache.end()) {
+      LOG(info, "[vocab] Reusing existing vocabulary object in memory");
+      return iter->second;
+    }
+    auto vocab = New<FactoredVocab>();
+    s_cache.insert(std::make_pair(vocabPath, vocab));
+    return vocab;
+  }
   else
     return nullptr;
 }

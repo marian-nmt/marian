@@ -144,7 +144,10 @@ protected:
 
   virtual void keepBest(const std::vector<Ptr<ExpressionGraph>>& graphs) {
     auto model = options_->get<std::string>("model");
-    builder_->save(graphs[0], model + ".best-" + type() + ".npz", true);
+    std::string suffix = model.substr(model.size() - 4);
+    ABORT_IF(suffix != ".npz" && suffix != ".bin", "Unknown model suffix {}", suffix);
+
+    builder_->save(graphs[0], model + ".best-" + type() + suffix, true);
   }
 };
 
@@ -428,7 +431,10 @@ public:
   virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     using namespace data;
     auto model = options_->get<std::string>("model");
-    builder_->save(graphs[0], model + ".dev.npz", true);
+    std::string suffix = model.substr(model.size() - 4);
+    ABORT_IF(suffix != ".npz" && suffix != ".bin", "Unknown model suffix {}", suffix);
+
+    builder_->save(graphs[0], model + ".dev" + suffix, true);
 
     auto valStr = utils::exec(options_->get<std::string>("valid-script-path"),
                               options_->get<std::vector<std::string>>("valid-script-args"));
@@ -592,10 +598,6 @@ public:
     builder_ = models::createModelFromOptions(options_, models::usage::translation);
 
     auto vocab = vocabs_.back();
-#if 1 // hack for now, to get this feature when running under Flo
-    if (vocab->type() == "FactoredVocab")
-      detok_ = true; // always use bleu-detok
-#endif
     ABORT_IF(detok_ && vocab->type() != "SentencePieceVocab" && vocab->type() != "FactoredVocab",
              "Detokenizing BLEU validator expects the target vocabulary to be SentencePieceVocab or FactoredVocab. "
              "Current vocabulary type is {}", vocab->type());
@@ -830,7 +832,21 @@ public:
       ref.push_back(w);
     }
 
-    if(detok_)
+    bool detok = detok_;
+#if 1 // hack for now, to get this feature when running under Flo
+    // Problem is that Flo pieces that pass 'bleu' do not know whether vocab is factored,
+    // hence cannot select 'bleu-detok'.
+    if (vocabs_.back()->type() == "FactoredVocab") {
+      LOG_ONCE(info, "[valid] FactoredVocab implies using detokenized BLEU");
+      detok = true; // always use bleu-detok
+    }
+#endif
+    if(detok) { // log the first detokenized string
+      LOG_ONCE(info, "[valid] First sentence's tokens after detokenization, as scored:");
+      LOG_ONCE(info, "[valid]  Hyp: {}", utils::join(decode(cand, /*addEOS=*/ true)));
+      LOG_ONCE(info, "[valid]  Ref: {}", utils::join(decode(ref)));
+    }
+    if(detok)
       updateStats(stats, decode(cand, /*addEOS=*/ true), decode(ref));
     else
       updateStats(stats, cand, ref);

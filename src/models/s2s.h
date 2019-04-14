@@ -119,12 +119,12 @@ public:
     return context;
   }
 
-  Ptr<IEmbeddingLayer> createSourceEmbedding(Ptr<ExpressionGraph> graph) {
+  Ptr<IEmbeddingLayer> createSourceEmbeddingLayer(Ptr<ExpressionGraph> graph) {
     // create source embeddings
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");
 
-    // @TODO: code dup with Decider and EncoderTransformer; actually diverged by now. Unify this.
+    // @TODO: code dup with Decoder and EncoderTransformer; actually diverged by now. Unify this.
     auto embFactory = embedding()  //
         ("dimVocab", dimVoc)       //
         ("dimEmb", dimEmb);
@@ -144,14 +144,21 @@ public:
           ("normalization", opt<bool>("embedding-normalization"));
     }
 
+    embFactory("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored embeddings
     return embFactory.construct(graph);
   }
 
   EncoderS2S(Ptr<Options> options) : EncoderBase(options) {}
 
+  std::vector<Ptr<IEmbeddingLayer>> embedding_; // @TODO: move away, also rename
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
                                   Ptr<data::CorpusBatch> batch) override {
-    auto embedding = createSourceEmbedding(graph);
+    // lazily create embedding layer
+    if (embedding_.empty() || !embedding_[batchIndex_]) { // lazy
+      embedding_.resize(batch->sets());
+      embedding_[batchIndex_] = createSourceEmbeddingLayer(graph);
+    }
+    auto embedding = embedding_[batchIndex_];
 
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask; std::tie
