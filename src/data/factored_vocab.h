@@ -77,7 +77,8 @@ public:
   static bool isFactorValid(size_t factorIndex) { return factorIndex < FACTOR_NOT_SPECIFIED; }
 
   static Ptr<FactoredVocab> tryCreateAndLoad(const std::string& path); // load from "vocab" option if it specifies a factored vocab
-  std::string word2string(Word word) const; // (diagnostics only)
+  std::string word2string(Word word) const;
+  Word string2word(const std::string& w) const;
 private:
   void constructGroupInfoFromFactorVocab();
   void constructFactorIndexConversion();
@@ -120,7 +121,7 @@ private:
 #endif
   std::vector<size_t> factorGroups_;                   // [u] -> group id of factor u
   std::vector<std::pair<size_t, size_t>> groupRanges_; // [group id g] -> (u_begin,u_end) index range of factors u for this group. These don't overlap.
-  std::vector<std::vector<bool>>lemmaHasFactorGroup_;  // [factor 0 index][g] -> true if lemma has factor group
+  std::vector<std::vector<bool>> lemmaHasFactorGroup_; // [factor 0 index][g] -> true if lemma has factor group
   Shape factorShape_;                                  // [g] number of factors in each factor group
   std::vector<size_t> factorStrides_;                  // [g] stride for factor dimension
   //std::vector<std::vector<float>>     factorMasks_;    // [g][v] 1.0 if word v has factor g

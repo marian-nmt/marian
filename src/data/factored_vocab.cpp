@@ -172,25 +172,27 @@ namespace marian {
     // add to vocab (the wordIndex are not dense, so the vocab will have holes)
     //if (tokens.front().front() == '<') // all others are auto-expanded
     // for now add what we get, and then expand more below
-    vocab_.add(tokens.front(), wordIndex);
-    if (tokens.front() != word2string(word))
-      LOG_ONCE(info, "[vocab] Word name in vocab file {} differs from canonical form {} (this warning is only shown once)", tokens.front(), word2string(word));
+    auto wordString = word2string(word);
+    if (tokens.front() != wordString) // order may differ, since we formed the input based on the factors in the user file, which may be in any order
+      LOG_ONCE(info, "[vocab] Word name in vocab file {} differs from canonical form {} (this warning is only shown once)", tokens.front(), wordString);
+    vocab_.add(wordString, wordIndex);
     numTotalFactors += tokens.size() - 1;
     //if (v % 5000 == 0)
     //  LOG(info, "{} -> {}", tokens.front(), word2string(word));
   }
   LOG(info, "[vocab] Factored-embedding map read with total/unique of {}/{} factors from {} example words (in space of {})",
       numTotalFactors, factorVocabSize(), vocab_.size()/*numValid()*/, utils::withCommas(virtualVocabSize()));
-  vocab_.dumpToFile(modelPath + "_examples");
+  //vocab_.dumpToFile(modelPath + "_examples");
 
-  // enumerate all combinations of factors for each lemma
-  // @TODO: switch to factor-spec, which no longer enumerates all combinations. Then don't set vocab string here.
-  //        This enumerates all possible combinations (incl. invalid ones), and stores all valid ones
+  // enumerate all valid combinations of factors for each lemma and add them to vocab_
+  // Having vocab_ makes life easier, although it is not strictly needed. Typical expanded valid vocabs
+  // are on the order of 200k entries. If we ever go much larger, we'd want to elimimate vocab_
+  // and fully virtualize its function.
   LOG(info, "[vocab] Expanding all valid vocab entries out of {}...", utils::withCommas(virtualVocabSize()));
   std::vector<size_t> factorIndices(getNumGroups());
   rCompleteVocab(factorIndices, /*g=*/0);
   LOG(info, "[vocab] Completed, total {} valid combinations", vocab_.size()/*numValid()*/);
-  vocab_.dumpToFile(modelPath + "_expanded");
+  //vocab_.dumpToFile(modelPath + "_expanded");
 
 #ifdef FACTOR_FULL_EXPANSION
   // create mappings needed for normalization in factored outputs
@@ -384,6 +386,28 @@ std::string FactoredVocab::word2string(Word word) const {
   return res;
 }
 
+Word FactoredVocab::string2word(const std::string& w) const {
+  auto sep = std::string(1, factorSeparator_);
+  auto parts = utils::splitAny(w, sep);
+  auto na = FACTOR_NOT_APPLICABLE; // (gcc compiler bug: sometimes it cannot find this if passed directly)
+  std::vector<size_t> factorIndices(groupRanges_.size(), na); // default for unused factors
+  for (size_t i = 0; i < parts.size(); i++) {
+    WordIndex u;
+    bool found = factorVocab_.tryFind(i == 0 ? parts[i] : sep + parts[i], u);
+    if (!found) {
+      LOG_ONCE(info, "WARNING: Unknown factor '{}' in '{}'; mapping to '{}'", parts[i], w, word2string(getUnkId()));
+      return getUnkId();
+    }
+    // convert u to relative u within factor group range
+    auto g = factorGroups_[u];
+    ABORT_IF(u < groupRanges_[g].first || u >= groupRanges_[g].second, "Invalid factorGroups_ entry??");
+    factorIndices[g] = u - groupRanges_[g].first;
+  }
+  auto word = factors2word(factorIndices);
+  //auto w2 = word2string(word);
+  return word;
+}
+
 size_t FactoredVocab::getFactor(Word word, size_t groupIndex) const {
   size_t index = word.toWordIndex();
   size_t factor0Index = index / factorStrides_[0];
@@ -459,9 +483,10 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
   if (found)
     return Word::fromWordIndex(index);
   else
+    return string2word(word);
     //ABORT("Unknown word {} mapped to {}", word, word2string(getUnkId()));
-    LOG_ONCE(info, "WARNING: Unknown word {} mapped to {}", word, word2string(getUnkId()));
-    return getUnkId();
+    //LOG_ONCE(info, "WARNING: Unknown word {} mapped to {}", word, word2string(getUnkId()));
+    //return getUnkId();
 }
 
 /*virtual*/ const std::string& FactoredVocab::operator[](Word word) const /*override final*/ {

@@ -36,13 +36,9 @@ class VocabWrapper : public IVocabWrapper {
   Ptr<Vocab> pImpl_;
 public:
   VocabWrapper(Ptr<Vocab> vocab) : pImpl_(vocab) {}
-  WordIndex encode(const std::string& word) const override {
-    auto enc = pImpl_->encode(word, /*addEOS=*/false, /*inference=*/true);
-    ABORT_IF(enc.size() != 1, "QuickSAND passed an invalid word '{}' to Marian (empty or contains a space)", word);
-    return enc[0].toWordIndex();
-  }
+  WordIndex encode(const std::string& word) const override { return (*pImpl_)[word].toWordIndex(); }
+  std::string decode(WordIndex id) const override { return (*pImpl_)[Word::fromWordIndex(id)]; }
   size_t size() const override { return pImpl_->size(); }
-  std::string decode(WordIndex id) const override { return pImpl_->decode({ Word::fromWordIndex(id) }); }
   Ptr<Vocab> getVocab() const { return pImpl_; }
 };
 
