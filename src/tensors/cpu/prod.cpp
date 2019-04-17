@@ -198,9 +198,8 @@ void CSRProd(marian::Tensor C,
     std::swap(rowsS, colsS);
   }
   // sparse arrays
-  auto numValues  = S_values->shape().elements();
   auto numOffsets = S_offsets->shape().elements() - 1; // -1 since last value is length
-  ABORT_IF(numOffsets != rowsS, "Unexpected number of rows in CSR argument");
+  ABORT_IF(numOffsets != rowsS, "Unexpected number of rows in CSR argument"); numOffsets;
   ABORT_IF(S_values->shape() != S_indices->shape(), "CSR values and indices must have the same size");
   if (!transS && !swapOperands) {
     // C = S * D, where D = CSR matrix
