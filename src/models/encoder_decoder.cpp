@@ -164,14 +164,14 @@ Ptr<DecoderState> EncoderDecoder::startState(Ptr<ExpressionGraph> graph,
 Ptr<DecoderState> EncoderDecoder::step(Ptr<ExpressionGraph> graph,
                                        Ptr<DecoderState> state,
                                        const std::vector<IndexType>& hypIndices, // [beamIndex * activeBatchSize + batchIndex]
-                                       const std::vector<IndexType>& embIndices, // [beamIndex * activeBatchSize + batchIndex]
+                                       const Words& words,                       // [beamIndex * activeBatchSize + batchIndex]
                                        int dimBatch,
                                        int beamSize) {
   // create updated state that reflects reordering and dropping of hypotheses
   state = hypIndices.empty() ? state : state->select(hypIndices, beamSize);
 
-  // Fill state with embeddings based on last prediction
-  decoders_[0]->embeddingsFromPrediction(graph, state, embIndices, dimBatch, beamSize);
+  // Fill stte with embeddings based on last prediction
+  decoders_[0]->embeddingsFromPrediction(graph, state, words, dimBatch, beamSize);
   auto nextState = decoders_[0]->step(graph, state);
 
   return nextState;
@@ -195,16 +195,16 @@ Ptr<DecoderState> EncoderDecoder::stepAll(Ptr<ExpressionGraph> graph,
   return nextState;
 }
 
-Ptr<RationalLoss> EncoderDecoder::build(Ptr<ExpressionGraph> graph,
-                                        Ptr<data::CorpusBatch> batch,
-                                        bool clearGraph) {
+Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
+                           Ptr<data::CorpusBatch> batch,
+                           bool clearGraph) {
   auto state = stepAll(graph, batch, clearGraph);
 
   // returns raw logits
-  return New<RationalLoss>(state->getLogProbs(), state->getTargetMask()); // @TODO: hacky hack hack
+  return state->getLogProbs();
 }
 
-Ptr<RationalLoss> EncoderDecoder::build(Ptr<ExpressionGraph> graph,
+Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
                            Ptr<data::Batch> batch,
                            bool clearGraph) {
   auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);

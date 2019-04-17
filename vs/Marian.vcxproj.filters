@@ -1390,7 +1390,6 @@
     <ClInclude Include="..\src\3rd_party\sentencepiece\src\word_model_trainer.h">
       <Filter>3rd_party\sentencepiece\src</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\command\marian_train.cpp" />
     <ClInclude Include="..\src\3rd_party\nccl\src\collectives\collectives.h">
       <Filter>3rd_party\nccl\src\collectives</Filter>
     </ClInclude>
@@ -1517,7 +1516,22 @@
     <ClInclude Include="..\src\examples\mnist\validator.h">
       <Filter>examples\mnist</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\command\marian_train.cpp">
+      <Filter>command</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\models\transformer.h">
+      <Filter>models</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\models\bert.h">
+      <Filter>models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\data\vocab_base.h">
+      <Filter>data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\models\classifier.h">
+      <Filter>models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\models\encoder_classifier.h">
       <Filter>models</Filter>
     </ClInclude>
     <ClInclude Include="..\src\models\transformer.h">
@@ -1854,6 +1868,12 @@
     </None>
     <None Include="..\src\tensors\gpu\prod.cpp">
       <Filter>tensors\gpu</Filter>
+    </None>
+    <None Include="..\src\translator\helpers.cu">
+      <Filter>translator</Filter>
+    </None>
+    <None Include="..\src\translator\nth_element.cu">
+      <Filter>translator</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

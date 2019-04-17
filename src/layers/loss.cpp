@@ -7,12 +7,9 @@ Ptr<LabelwiseLoss> newLoss(Ptr<Options> options, bool inference) {
   float smoothing = inference ? 0.f : options->get<float>("label-smoothing");
   std::string costType = options->get<std::string>("cost-type", "ce-mean");
   
-  if(costType == "ce-rescore") {
+  if(costType == "ce-rescore") { // returns per-batch-item scores (while ce-mean reduces over batch)
     return New<RescorerLoss>();
-  } else if(costType == "ce-rescore-mean") {
-    ABORT("Check me");
-    return New<RescorerLoss>();
-  } else {  // same as ce-mean
+  } else {  // same as ce-mean  --@TODO: better check all allowed values, and fail for invalid ones. E.g. what about ce-sum?
     return New<CrossEntropyLoss>(smoothing);
   }
 }

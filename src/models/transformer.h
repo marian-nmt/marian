@@ -75,7 +75,7 @@ public:
       for(int i = 0; i < std::min(dimWords, numPos); ++i)
         positions[i] = i;
 
-      auto signal = embeddingLayer->apply(positions, {dimWords, 1, dimEmb});
+      auto signal = embeddingLayer->applyIndices(positions, {dimWords, 1, dimEmb});
       embeddings = embeddings + signal;
     } else {
       // @TODO : test if embeddings should be scaled when trainable

@@ -700,6 +700,7 @@
     <ClInclude Include="..\src\common\timer.h" />
     <ClInclude Include="..\src\common\types.h" />
     <ClInclude Include="..\src\common\version.h" />
+    <ClInclude Include="..\src\data\vocab_base.h" />
     <ClInclude Include="..\src\examples\mnist\dataset.h" />
     <ClInclude Include="..\src\examples\mnist\model.h" />
     <ClInclude Include="..\src\examples\mnist\model_lenet.h" />
@@ -897,9 +898,11 @@
     <ClInclude Include="..\src\models\amun.h" />
     <ClInclude Include="..\src\models\bert.h" />
     <ClInclude Include="..\src\models\char_s2s.h" />
+    <ClInclude Include="..\src\models\classifier.h" />
     <ClInclude Include="..\src\models\costs.h" />
     <ClInclude Include="..\src\models\decoder.h" />
     <ClInclude Include="..\src\models\encoder.h" />
+    <ClInclude Include="..\src\models\encoder_classifier.h" />
     <ClInclude Include="..\src\models\encoder_decoder.h" />
     <ClInclude Include="..\src\models\model_base.h" />
     <ClInclude Include="..\src\models\model_factory.h" />
@@ -1113,6 +1116,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
     <None Include="..\src\training\communicator_nccl.h" />
+    <None Include="..\src\translator\helpers.cu" />
+    <None Include="..\src\translator\nth_element.cu" />
     <None Include=".editorConfig" />
   </ItemGroup>
   <ItemGroup>

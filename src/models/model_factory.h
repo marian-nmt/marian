@@ -56,7 +56,7 @@ public:
     return Accumulator<EncoderDecoderFactory>(*this);
   }
 
-  virtual Ptr<ModelBase> construct(Ptr<ExpressionGraph> graph);
+  virtual Ptr<IModel> construct(Ptr<ExpressionGraph> graph);
 };
 
 typedef Accumulator<EncoderDecoderFactory> encoder_decoder;
@@ -80,13 +80,15 @@ public:
     return Accumulator<EncoderClassifierFactory>(*this);
   }
 
-  virtual Ptr<ModelBase> construct(Ptr<ExpressionGraph> graph);
+  virtual Ptr<IModel> construct(Ptr<ExpressionGraph> graph);
 };
 
 typedef Accumulator<EncoderClassifierFactory> encoder_classifier;
 
-Ptr<ModelBase> by_type(std::string type, usage, Ptr<Options> options);
+Ptr<IModel> createBaseModelByType(std::string type, usage, Ptr<Options> options);
 
-Ptr<ModelBase> from_options(Ptr<Options> options, usage);
+Ptr<IModel> createModelFromOptions(Ptr<Options> options, usage);
+
+Ptr<ICriterionFunction> createCriterionFunctionFromOptions(Ptr<Options> options, usage);
 }  // namespace models
 }  // namespace marian

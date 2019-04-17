@@ -13,7 +13,7 @@ namespace marian {
 //  - back pointer to previous hypothesis for traceback
 class Hypothesis {
 public:
-  Hypothesis() : prevHyp_(nullptr), prevBeamHypIdx_(0), word_(0), pathScore_(0.0) {}
+  Hypothesis() : prevHyp_(nullptr), prevBeamHypIdx_(0), word_(Word::ZERO), pathScore_(0.0) {}
 
   Hypothesis(const Ptr<Hypothesis> prevHyp,
              Word word,

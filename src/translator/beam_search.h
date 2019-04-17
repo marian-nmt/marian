@@ -15,8 +15,8 @@ private:
   Ptr<Options> options_;
   std::vector<Ptr<Scorer>> scorers_;
   size_t beamSize_;
-  Word trgEosId_ = (Word)-1;
-  Word trgUnkId_ = (Word)-1;
+  Word trgEosId_{Word::NONE};
+  Word trgUnkId_{Word::NONE};
 
   static constexpr auto INVALID_PATH_SCORE = -9999; // (@TODO: change to -9999.0 once C++ allows that)
 
@@ -24,7 +24,7 @@ public:
   BeamSearch(Ptr<Options> options,
              const std::vector<Ptr<Scorer>>& scorers,
              Word trgEosId,
-             Word trgUnkId = -1)
+             Word trgUnkId = Word::NONE)
       : options_(options),
         scorers_(scorers),
         beamSize_(options_->has("beam-size")
@@ -48,7 +48,7 @@ public:
     const auto dimBatch = beams.size();
     Beams newBeams(dimBatch);   // return value of this function goes here
 
-    for(size_t i = 0; i < nBestKeys.size(); ++i) {
+    for(size_t i = 0; i < nBestKeys.size(); ++i) { // [dimBatch, beamSize] flattened
       // Keys encode batchIdx, beamHypIdx, and word index in the entire beam.
       // They can be between 0 and (vocabSize * nBestBeamSize * batchSize)-1.
       // (beamHypIdx refers to the GPU tensors, *not* the beams[] array; they are not the same in case of purging)
@@ -56,16 +56,16 @@ public:
       const float pathScore = nBestPathScores[i]; // expanded path score for (batchIdx, beamHypIdx, word)
 
       // decompose key into individual indices (batchIdx, beamHypIdx, wordIdx)
-      const auto wordIdx    = (Word)(key % vocabSize);
-      const auto beamHypIdx =       (key / vocabSize) % nBestBeamSize;
-      const auto batchIdx   =       (key / vocabSize) / nBestBeamSize;
+      const auto wordIdx    = (WordIndex)(key % vocabSize);
+      const auto beamHypIdx =            (key / vocabSize) % nBestBeamSize;
+      const auto batchIdx   =            (key / vocabSize) / nBestBeamSize;
 
       const auto& beam = beams[batchIdx];
       auto& newBeam = newBeams[batchIdx];
 
       if (newBeam.size() >= beam.size()) // getNBestList() generates N for all batch entries incl. those that already have a narrower beam
         continue;
-      if (pathScore <= INVALID_PATH_SCORE) // (unused slot)
+      if (pathScore <= INVALID_PATH_SCORE) // (dummy slot or word that cannot be expanded by current factor)
         continue;
 
       ABORT_IF(beamHypIdx >= beam.size(), "Out of bounds beamHypIdx??");
@@ -76,9 +76,9 @@ public:
       // rather than the true word index.
       auto shortlist = scorers_[0]->getShortlist();
       if (shortlist)
-        word = shortlist->reverseMap(wordIdx);
+        word = Word::fromWordIndex(shortlist->reverseMap(wordIdx));
       else
-        word = wordIdx;
+        word = Word::fromWordIndex(wordIdx);
 
       auto hyp = New<Hypothesis>(beam[beamHypIdx], word, (IndexType)beamHypIdx, pathScore);
 
@@ -269,7 +269,7 @@ public:
 
       //**********************************************************************
       // suppress specific symbols if not at right positions
-      if(trgUnkId_ != -1 && options_->has("allow-unk") && !options_->get<bool>("allow-unk"))
+      if(trgUnkId_ != Word::NONE && options_->has("allow-unk") && !options_->get<bool>("allow-unk"))
         suppressWord(expandedPathScores, trgUnkId_);
       for(auto state : states)
         state->blacklist(expandedPathScores, batch);

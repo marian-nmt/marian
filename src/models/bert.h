@@ -2,7 +2,7 @@
 
 #include "data/corpus_base.h"
 #include "models/encoder_classifier.h"
-#include "models/transformer.h"
+#include "models/transformer.h"   // @BUGBUG: transformer.h is large and was meant to be compiled separately
 #include "data/rng_engine.h"
 
 namespace marian {
@@ -25,7 +25,7 @@ namespace data {
 class BertBatch : public CorpusBatch {
 private:
   std::vector<IndexType> maskedPositions_;
-  std::vector<IndexType> maskedWords_;
+  Words maskedWords_;
   std::vector<IndexType> sentenceIndices_;
 
   std::string maskSymbol_;
@@ -33,7 +33,7 @@ private:
   std::string clsSymbol_;
 
   // Selects a random word from the vocabulary
-  std::unique_ptr<std::uniform_int_distribution<Word>> randomWord_;
+  std::unique_ptr<std::uniform_int_distribution<WordIndex>> randomWord_;
 
   // Selects a random integer between 0 and 99
   std::unique_ptr<std::uniform_real_distribution<float>> randomPercent_;
@@ -51,7 +51,7 @@ private:
     if (r < 0.1f) { // for 10% of cases return same word
       return word;
     } else if (r < 0.2f) { // for 10% return random word
-      Word randWord = (*randomWord_)(engine);
+      Word randWord = Word::fromWordIndex((*randomWord_)(engine));
       if(dontMask_.count(randWord) > 0) // some words, e.g. [CLS] or </s>, may not be used as random words
         return mask;                    // for those, return the mask symbol instead
       else
@@ -80,7 +80,7 @@ public:
     const auto& vocab = *subBatch->vocab();
 
     // Initialize to sample random vocab id
-    randomWord_.reset(new std::uniform_int_distribution<Word>(0, (Word)vocab.size()));
+    randomWord_.reset(new std::uniform_int_distribution<WordIndex>(0, (WordIndex)vocab.size()));
 
     // Intialize to sample random percentage
     randomPercent_.reset(new std::uniform_real_distribution<float>(0.f, 1.f));
@@ -163,7 +163,7 @@ public:
   }
 
   const std::vector<IndexType>& bertMaskedPositions() { return maskedPositions_; }
-  const std::vector<IndexType>& bertMaskedWords()     { return maskedWords_; }
+  const Words& bertMaskedWords() { return maskedWords_; }
   const std::vector<IndexType>& bertSentenceIndices() { return sentenceIndices_; }
 };
 
@@ -214,6 +214,8 @@ public:
  * BERT-specific modifications to EncoderTransformer
  * Actually all that is needed is to intercept the creation of special embeddings,
  * here sentence embeddings for sentence A and B.
+ * @BUGBUG: transformer.h was meant to be compiled separately. I.e., one cannot derive from it.
+ *          Is there a way to maybe instead include a reference in here, instead of deriving from it?
  */
 class BertEncoder : public EncoderTransformer {
 public:
@@ -238,7 +240,7 @@ public:
                                ("dimVocab", dimTypeVocab) // sentence A or sentence B
                                ("dimEmb", dimEmb)
                                .construct(graph_);
-      signal = sentenceEmbeddings->apply(bertBatch->bertSentenceIndices(), {dimWords, dimBatch, dimEmb});
+      signal = sentenceEmbeddings->applyIndices(bertBatch->bertSentenceIndices(), {dimWords, dimBatch, dimEmb});
     } else {
       // @TODO: factory for positional embeddings?
       // constant sinusoidal position embeddings, no backprob
