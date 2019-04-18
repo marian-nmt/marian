@@ -78,6 +78,7 @@ add_library(marian STATIC
   training/graph_group_multinode_sync.cpp
   training/validator.cpp
   training/communicator.cpp
+  training/scheduler.cpp
 
   # this is only compiled to catch build errors, but not linked
   microsoft/quicksand.cpp

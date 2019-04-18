@@ -19,6 +19,13 @@ private:
   timer::Timer timer_;
   timer::Timer heartBeatTimer_;
 
+  std::string validFreq_;
+  std::string saveFreq_;
+
+  static bool sigterm_, sigusr1_, sigusr2_;
+  void installSignalHandlers_();
+  static void signalHandler_(int sig);
+
   // determine scheduled LR decay factor (--lr-decay-inv-sqrt option)
   float getScheduledLRDecayFactor(const TrainingState& state) const {
     auto args = options_->get<std::vector<std::string>>("lr-decay-inv-sqrt");
@@ -105,6 +112,10 @@ private:
   }
 
 public:
+  bool gotSigTerm() const { return sigterm_; }
+  // bool gotSigUsr1() const { return sigusr1_; } // currently has no effect
+  // bool gotSigUsr2() const { return sigusr2_; } // currently has no effect
+
   // test if any parameters specify dynamic MB scaling
   bool isDynamicMBSizeScaling() const {
     auto mbWarmup = SchedulingParameter::parse(options_->get<std::string>("mini-batch-warmup"));
@@ -144,11 +155,17 @@ public:
 
   Scheduler(Ptr<Options> options, Ptr<TrainingState> state)
       : options_(options), state_(state) {
+    validFreq_ = options_->get<std::string>("valid-freq");
+    saveFreq_ = options_->get<std::string>("save-freq");
     ABORT_IF(state_->factor != 1, "state.factor unexpectedly not 1 at this point??");
     updateLearningRate(*state);
   }
 
-  bool keepGoing() {
+  bool keepGoing(bool checkForSigTerm=true) {
+
+    if (checkForSigTerm && sigterm_) // received signam SIGERM => exit gracefully
+      return false;
+
     // stop if it reached the maximum number of epochs
     size_t stopAfterEpochs = options_->get<size_t>("after-epochs");
     if(stopAfterEpochs > 0 && state_->epochs > stopAfterEpochs)
@@ -175,7 +192,12 @@ public:
   }
 
   void started() { LOG(info, "Training started"); }
-  void finished() { LOG(info, "Training finished"); }
+  void finished() {
+    if (keepGoing(false)) // false means: ignore sigterm flag
+      LOG(info, "Training finished");
+    else
+      LOG(info, "Training interrupted (SIGTERM).");
+  }
 
   void addValidator(Ptr<ValidatorBase> validator) {
     validators_.push_back(validator);
@@ -192,20 +214,22 @@ public:
 
   bool validating() {
     return (!validators_.empty()
-            && state_->enteredNewPeriodOf(options_->get<std::string>("valid-freq"))
+            && state_->enteredNewPeriodOf(validFreq_)
             && keepGoing());
   }
 
   bool saving() {
-    return state_->enteredNewPeriodOf(options_->get<std::string>("save-freq"));
+    return state_->enteredNewPeriodOf(saveFreq_);
   }
 
   void validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
                 bool final = false) {
-    // Do not validate if already validated (for instance, after the model is
-    // loaded) or if validation is scheduled for another update
-    if(state_->validated
-       || (!state_->enteredNewPeriodOf(options_->get<std::string>("valid-freq")) && !final))
+    // SKIP VALIDATION IF
+    // - it's not time to validate anyway
+    // - we received SIGTERM
+    // - the current state has been validated (e.g., model was just loaded)
+    if((!state_->enteredNewPeriodOf(validFreq_) && !final)
+       || state_->validated || sigterm_)
       return;
 
     bool firstValidator = true;
@@ -236,7 +260,7 @@ public:
       }
 
       state_->validators[validator->type()]["last-best"]
-          = validator->lastBest();
+        = validator->lastBest();
       state_->validators[validator->type()]["stalled"] = validator->stalled();
 
       // notify training observers if the first validator did not improve
