@@ -84,7 +84,10 @@ private:
   // this runs on a bg thread; sequencing is handled by caller, but locking is done in here
   std::deque<BatchPtr> fetchBatches() {
     typedef typename Sample::value_type Item;
-    auto itemCmp = [](const Item& sa, const Item& sb) { return sa.size() < sb.size(); }; // sort by element length, not content
+    auto itemCmp = [](const Item& sa, const Item& sb) {
+      // sort by element length, not content
+      return sa.size() < sb.size();
+    };
 
     auto cmpSrc = [itemCmp](const Sample& a, const Sample& b) {
       return std::lexicographical_compare(
@@ -96,7 +99,10 @@ private:
           a.rbegin(), a.rend(), b.rbegin(), b.rend(), itemCmp);
     };
 
-    auto cmpNone = [](const Sample& a, const Sample& b) { return &a < &b; }; // instead sort by address, so we have something to work with
+    auto cmpNone = [](const Sample& a, const Sample& b) {
+      // sort by address, so we have something to work with
+      return &a < &b;
+    };
 
     typedef std::function<bool(const Sample&, const Sample&)> cmp_type;
     typedef std::priority_queue<Sample, Samples, cmp_type> sample_queue;
@@ -252,7 +258,7 @@ public:
   BatchGenerator(Ptr<DataSet> data,
                  Ptr<Options> options,
                  Ptr<BatchStats> stats = nullptr)
-      : data_(data), options_(options), stats_(stats), threadPool_(1) {}
+    : data_(data), options_(options), stats_(stats), threadPool_(1) { }
 
   ~BatchGenerator() {
     if (futureBufferedBatches_.valid()) // bg thread holds a reference to 'this',
@@ -268,7 +274,11 @@ public:
   }
 
   // @TODO: get rid of this function, begin() or constructor should figure this out
-  void prepare(bool shuffle = true) {
+  void prepare(bool shuffle) {
+    if(restored_) { // state was just restored, restore() calls prepare()
+      restored_ = false;
+      return;
+    }
     if(shuffle)
       data_->shuffle();
     else
@@ -276,6 +286,12 @@ public:
     newlyPrepared_ = true;
 
     // @TODO: solve this better, maybe use options
+    // => for this to work best, we need to replace --no-shuffle by --shuffle
+    // which is true by default for train, false otherwise, or explicitly set
+    // --no-shuffle=true by default for translate, validate, score etc. [UG]
+    // for the time begin, let's stick with the explicit function parameter
+    // (I've disabled the default value, because it's prone to cause problems
+    // sooner or later; callers should know if they want to shuffle or not).
     shuffle_ = shuffle;
 
     // start the background pre-fetch operation
@@ -286,6 +302,8 @@ public:
   // an interrupted and resumed training.
   bool restore(Ptr<TrainingState> state, bool shuffle) {
     if(state->epochs == 1 && state->batchesEpoch == 0)
+      return false;
+    if (options_->get<bool>("no-restore-corpus"))
       return false;
 
     LOG(info,
@@ -302,6 +320,7 @@ public:
     for(size_t i = 0; i < state->batchesEpoch; ++i)
       next();
 
+    restored_ = true;
     return true;
   }
 
