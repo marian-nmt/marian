@@ -11,6 +11,27 @@
 
 namespace marian {
 
+template<class ModelWrapper>
+Ptr<data::BatchStats>
+miniBatchFit(Ptr<Options> options, Ptr<data::CorpusBase> data,
+             Ptr<Scheduler> scheduler, Ptr<IMPIWrapper> mpi) {
+  // collect stats for fitting minibatches to available memory
+  Ptr<data::BatchStats> stats;
+  if(options->get<bool>("mini-batch-fit")) {
+    LOG(info,
+        "[batching] Collecting statistics for batch fitting with step size {}",
+        options->get<size_t>("mini-batch-fit-step"));
+    // @TODO this should receive a function object that can generate a fake batch;
+    // that way vocabs would not be exposed.
+    auto model = New<ModelWrapper>(options, mpi);
+    model->setScheduler(scheduler); // collectStats() needs to know about dynamic MB scaling
+    stats = model->collectStats(data->getVocabs());
+    LOG(info, "[batching] Done. Typical MB size is {} target words",
+        stats->estimateTypicalTrgWords());
+  }
+  return stats;
+}
+
 template <class ModelWrapper>
 class Train : public ModelTask {
 private:
@@ -22,64 +43,35 @@ public:
   void run() override {
     using namespace data;
 
-    Ptr<CorpusBase> dataset;
-    if(!options_->get<std::string>("sqlite").empty())
-#ifndef _MSC_VER // @TODO: include SqLite in Visual Studio project
-      dataset = New<CorpusSQLite>(options_);
-#else
-      ABORT("SqLite presently not supported on Windows");
-#endif
-    else
-      dataset = New<Corpus>(options_);
-
-    dataset->prepare();
-
+    // TRAINING RUN SETUP
+    Ptr<CorpusBase> dataset = prepareTrainingData(options_);
     auto trainState = New<TrainingState>(options_->get<float>("learn-rate"));
     auto scheduler = New<Scheduler>(options_, trainState);
-    auto mpi = initMPI(/*multiThreaded=*/!options_->get<bool>("sync-sgd")); // @TODO: do we need the multiThreaded distinction at all?
+    auto mpi = initMPI(/*multiThreaded=*/!options_->get<bool>("sync-sgd"));
+    // @TODO: do we need the multiThreaded distinction in initMPI at all?
 
-    Ptr<BatchStats> stats;
-    if(options_->get<bool>("mini-batch-fit")) {
-      LOG(info,
-          "[batching] Collecting statistics for batch fitting with step size {}",
-          options_->get<size_t>("mini-batch-fit-step"));
-      // @TODO this should receive a function object that can generate a fake batch;
-      // that way vocabs would not be exposed.
-      auto model = New<ModelWrapper>(options_, mpi);
-      model->setScheduler(scheduler); // collectStats() needs to know about dynamic MB scaling
-      stats = model->collectStats(dataset->getVocabs());
-      LOG(info, "[batching] Done. Typical MB size is {} target words", stats->estimateTypicalTrgWords());
-    }
-
-    if((options_->hasAndNotEmpty("valid-sets") || options_->hasAndNotEmpty("valid-script-path"))
-       && SchedulingParameter::parse(options_->get<std::string>("valid-freq"))) {
-      for(auto validator : Validators(dataset->getVocabs(), options_))
-        scheduler->addValidator(validator);
-    }
-
+    Ptr<BatchStats> stats
+      = miniBatchFit<ModelWrapper>(options_, dataset, scheduler, mpi);
     auto batchGenerator = New<CorpusBatchGenerator>(dataset, options_, stats);
-
+    scheduler->setupValidators(dataset->getVocabs());
     scheduler->registerTrainingObserver(batchGenerator);
 
     auto model = New<ModelWrapper>(options_, mpi);
     model->setScheduler(scheduler);
-    model->setTypicalTrgBatchWords(batchGenerator->estimateTypicalTrgBatchWords()); // needed for dynamic MB scaling
-    model->load();
-
-    // @TODO: shuffle_ as a private attribute in BG
-    auto shuffle = !options_->get<bool>("no-shuffle");
-    bool restored = !options_->get<bool>("no-restore-corpus")
-                    && batchGenerator->restore(trainState, shuffle);
+    model->setTypicalTrgBatchWords(batchGenerator->estimateTypicalTrgBatchWords());
+    // typical no. of trg wrds in batch is needed for dynamic MiniBatch scaling
+    model->load(); //!! ALSO CHANGES scheduler AND trainState ON A RESUMED RUN!
 
     // -- main training loop
     scheduler->started();
+    bool shuffle = !options_->get<bool>("no-shuffle");
+    batchGenerator->restore(trainState,shuffle);
     while(scheduler->keepGoing()) {
-      if(!restored)
-        batchGenerator->prepare(shuffle);
-      restored = false;
+      batchGenerator->prepare(shuffle);
 
       // main training loop for one epoch
-      for(auto batchIt = std::begin(*batchGenerator); // @TODO: try to use for(auto ...)
+      // @TODO: try to use for(auto ...)
+      for(auto batchIt = std::begin(*batchGenerator);
           batchIt != std::end(*batchGenerator);
           batchIt++) {
         if (!scheduler->keepGoing())
