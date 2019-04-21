@@ -4,6 +4,7 @@
 #include "training/training_state.h"
 #include "training/validator.h"
 #include "training/communicator.h"
+#include "data/vocab.h"
 #include "layers/loss.h"
 
 namespace marian {
@@ -197,6 +198,19 @@ public:
       LOG(info, "Training finished");
     else
       LOG(info, "Training interrupted (SIGTERM).");
+  }
+
+  void setupValidators(std::vector<Ptr<Vocab>>& vocabs) {
+    // setup validators if specified
+    if (!SchedulingParameter::parse(options_->get<std::string>("valid-freq")))
+      return; // no validation interval given
+
+    if(!options_->hasAndNotEmpty("valid-sets") &&
+       !options_->hasAndNotEmpty("valid-script-path"))
+      return; // no validators specified
+
+    for(auto validator : Validators(vocabs, options_))
+      addValidator(validator);
   }
 
   void addValidator(Ptr<ValidatorBase> validator) {
