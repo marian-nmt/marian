@@ -16,6 +16,8 @@
 namespace marian {
 namespace data {
 
+Ptr<CorpusBase> prepareTrainingData(Ptr<Options> options);
+
 class Corpus : public CorpusBase {
 private:
   std::vector<UPtr<io::TemporaryFile>> tempFiles_;

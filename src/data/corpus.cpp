@@ -171,5 +171,24 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
   }
   pos_ = 0;
 }
+
+Ptr<CorpusBase> prepareTrainingData(Ptr<Options> options) {
+  // factory function to set up the training corpus for training
+  // code moved here from Train::run() in training.h
+  Ptr<CorpusBase> dataset;
+#ifndef _MSC_VER // @TODO: include SqLite in Visual Studio project
+  if(!options->get<std::string>("sqlite").empty())
+    ABORT("SqLite presently not supported on Windows");
+#else
+  if(!options->get<std::string>("sqlite").empty())
+    dataset = New<CorpusSQLite>(options);
+#endif
+  else
+    dataset = New<Corpus>(options);
+  dataset->prepare();
+  return dataset;
+}
+
+
 }  // namespace data
 }  // namespace marian
