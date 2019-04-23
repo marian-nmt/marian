@@ -68,15 +68,20 @@ void loadItems(const void* current, std::vector<io::Item>& items, bool mapped) {
 void loadItems(const std::string& fileName, std::vector<io::Item>& items) {
   // Read file into buffer
   size_t fileSize = filesystem::fileSize(fileName);
-  char* ptr = new char[fileSize];
+  std::vector<char> buf(fileSize);
+#if 1 // for some reason, the #else branch fails with "file not found" in the *read* operation (open succeeds)
+  FILE *f = fopen(fileName.c_str(), "rb");
+  ABORT_IF(f == nullptr, "Error {} ('{}') opening file '{}'", errno, strerror(errno), fileName);
+  auto rc = fread(buf.data(), sizeof(*buf.data()), buf.size(), f);
+  ABORT_IF(rc != buf.size(), "Error {} ('{}') reading file '{}'", errno, strerror(errno), fileName);
+  fclose(f);
+#else
   io::InputFileStream in(fileName);
-  in.read(ptr, fileSize);
+  in.read(buf.data(), buf.size());
+#endif
 
   // Load items from buffer without mapping
-  loadItems(ptr, items, false);
-
-  // Delete buffer
-  delete[] ptr;
+  loadItems(buf.data(), items, false);
 }
 
 io::Item getItem(const void* current, const std::string& varName) {

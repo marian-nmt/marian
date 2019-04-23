@@ -49,6 +49,9 @@ public:
   virtual std::string toUpper(const std::string& line) const { return line; }
   virtual std::string toEnglishTitleCase(const std::string& line) const { return line; }
 
+  // this function is an identity mapping for default vocabularies, hence do nothing
+  virtual void transcodeToShortlistInPlace(WordIndex* ptr, size_t num) const { }
+
   virtual void createFake() = 0;
 
   virtual Word randWord() const {

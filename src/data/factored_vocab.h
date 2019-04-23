@@ -41,6 +41,7 @@ public:
   virtual Word getUnkId() const override final { return unkId_; }
   virtual std::string toUpper(const std::string& line) const override final;
   virtual std::string toEnglishTitleCase(const std::string& line) const override final;
+  virtual void transcodeToShortlistInPlace(WordIndex* ptr, size_t num) const override final;
   WordIndex getUnkIndex() const { return (WordIndex)getFactor(getUnkId(), 0); } // used in decoding
   virtual void createFake() override final { ABORT("[data] Fake FactoredVocab vocabulary not supported"); }
   virtual Word randWord() const override final;

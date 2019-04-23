@@ -39,6 +39,7 @@ public:
   WordIndex encode(const std::string& word) const override { return (*pImpl_)[word].toWordIndex(); }
   std::string decode(WordIndex id) const override { return (*pImpl_)[Word::fromWordIndex(id)]; }
   size_t size() const override { return pImpl_->size(); }
+  void transcodeToShortlistInPlace(WordIndex* ptr, size_t num) const override { pImpl_->transcodeToShortlistInPlace(ptr, num); }
   Ptr<Vocab> getVocab() const { return pImpl_; }
 };
 

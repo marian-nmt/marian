@@ -81,7 +81,7 @@ public:
     Logits(std::vector<Ptr<RationalLoss>>&& logits, Ptr<FactoredVocab> embeddingFactorMapping) // factored-output constructor
       : logits_(std::move(logits)), factoredVocab_(embeddingFactorMapping) {}
     Expr getLogits() const; // assume it holds logits: get them, possibly aggregating over factors
-    Expr getFactoredLogits(size_t groupIndex, const std::vector<IndexType>& hypIndices = {}, size_t beamSize = 0) const; // get logits for only one factor group, with optional reshuffle
+    Expr getFactoredLogits(size_t groupIndex, Ptr<data::Shortlist> shortlist = nullptr, const std::vector<IndexType>& hypIndices = {}, size_t beamSize = 0) const; // get logits for only one factor group, with optional reshuffle
     //Ptr<RationalLoss> getRationalLoss() const; // assume it holds a loss: get that
     Expr applyLossFunction(const Words& labels, const std::function<Expr(Expr/*logits*/,Expr/*indices*/)>& lossFn) const;
     Logits applyUnaryFunction(const std::function<Expr(Expr)>& f) const; // clone this but apply f to all loss values
@@ -97,7 +97,6 @@ public:
     };
     std::vector<MaskedFactorIndices> factorizeWords(const Words& words) const; // breaks encoded Word into individual factor indices
     //std::vector<float> getFactorMasks(const Words& words, size_t factorGroup) const;
-    std::vector<float> getFactorMasks(size_t factorGroup) const;
     float getLogitAt(size_t i) const { return getLogits()->val()->get(i); } // used for breakDown() only; @TODO: avoid the fully expanded logits; pass separate indices instead of 'i'
     size_t getNumFactorGroups() const { return logits_.size(); }
     bool empty() const { return logits_.empty(); }
@@ -109,6 +108,7 @@ private:
     Expr constant(const Shape& shape, const std::vector<uint32_t>& data) const { return graph()->constant(shape, inits::from_vector(data), Type::uint32);  }
     template<typename T> Expr constant(const std::vector<T>& data) const { return constant(Shape{(int)data.size()}, data); } // same as constant() but assuming vector
     Expr indices(const std::vector<uint32_t>& data) const { return graph()->indices(data); } // actually the same as constant(data) for this data type
+    std::vector<float> getFactorMasks(size_t factorGroup, const std::vector<WordIndex>& indices) const;
 private:
     // members
     // @HACK: The interplay between Logits and RationalLoss is weird. Here, we allow RationalLoss with count == nullptr.

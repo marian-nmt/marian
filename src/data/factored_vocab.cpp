@@ -517,6 +517,18 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
   return utils::findReplace(utils::findReplace(utils::findReplace(utils::findReplace(line, "|cn|wb", "|ci|wb", /*all=*/true), "|cn|gl-", "|ci|gl-", /*all=*/true), "@CN@WB", "@CI@WB", /*all=*/true), "@CN@GL-", "@CI@GL-", /*all=*/true);
 }
 
+// convert word indices to indices of shortlist items
+// We only shortlist the lemmas, hence return the lemma index (offset to correctly index into the concatenated W matrix).
+// This strange pointer-based interface is for ease of interaction with our production environment.
+/*virtual*/ void FactoredVocab::transcodeToShortlistInPlace(WordIndex* ptr, size_t num) const {
+  for (; num-- > 0; ptr++) {
+    auto word = Word::fromWordIndex(*ptr);
+    auto wordString = word2string(word);
+    auto lemmaIndex = getFactor(word, 0) + groupRanges_[0].first;
+    *ptr = lemmaIndex;
+  }
+}
+
 // generate a valid random factored word (used by collectStats())
 /*virtual*/ Word FactoredVocab::randWord() const /*override final*/ {
   auto numGroups = getNumGroups();
