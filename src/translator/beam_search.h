@@ -79,13 +79,11 @@ public:
       // If short list has been set, then wordIdx is an index into the short-listed word set,
       // rather than the true word index.
       auto shortlist = scorers_[0]->getShortlist();
-      if (shortlist)
-        word = Word::fromWordIndex(shortlist->reverseMap(wordIdx));
-      else if (factoredVocab) {
+      if (factoredVocab) {
         // For factored decoding, the word is built over multiple decoding steps,
         // starting with the lemma, then adding factors one by one.
         if (factorGroup == 0) {
-          word = factoredVocab->lemma2Word(wordIdx);
+          word = factoredVocab->lemma2Word(shortlist ? shortlist->reverseMap(wordIdx) : wordIdx); // @BUGBUG: reverseMap is only correct if factoredVocab_->getGroupRange(0).first == 0
           //LOG(info, "new lemma {}={}", word.toWordIndex(), factoredVocab->word2string(word));
         }
         else {
@@ -98,6 +96,8 @@ public:
           prevHyp = prevHyp->getPrevHyp(); // short-circuit the backpointer, so that the traceback doesnot contain partially factored words
         }
       }
+      else if (shortlist)
+        word = Word::fromWordIndex(shortlist->reverseMap(wordIdx));
       else
         word = Word::fromWordIndex(wordIdx);
 
@@ -331,7 +331,10 @@ public:
           if (numFactorGroups == 1) // @TODO: this branch can go away
             logProbs = states[i]->getLogProbs().getLogits(); // [localBeamSize, 1, dimBatch, dimVocab]
           else
-            logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup); // [localBeamSize, 1, dimBatch, dimVocab]
+          {
+            auto shortlist = scorers_[i]->getShortlist();
+            logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup, shortlist); // [localBeamSize, 1, dimBatch, dimVocab]
+          }
           //logProbs->debug("logProbs");
         }
         else {
@@ -344,7 +347,7 @@ public:
           // and push out other hypotheses. Hence, we exclude those here by setting the path score to
           // INVALID_PATH_SCORE. Instead, toHyps() explicitly propagates those hyps by simply copying the
           // previous hypothesis.
-          logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup, hypIndices, localBeamSize); // [localBeamSize, 1, dimBatch, dimVocab]
+          logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup, /*shortlist=*/ nullptr, hypIndices, localBeamSize); // [localBeamSize, 1, dimBatch, dimVocab]
         }
         // expand all hypotheses, [localBeamSize, 1, dimBatch, 1] -> [localBeamSize, 1, dimBatch, dimVocab]
         expandedPathScores = expandedPathScores + scorers_[i]->getWeight() * logProbs;

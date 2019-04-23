@@ -143,4 +143,7 @@ std::string Vocab::toUpper(const std::string& line) const { return vImpl_->toUpp
 // for corpus augmentation: convert string to title case
 std::string Vocab::toEnglishTitleCase(const std::string& line) const { return vImpl_->toEnglishTitleCase(line); }
 
+// for short-list generation
+void Vocab::transcodeToShortlistInPlace(WordIndex* ptr, size_t num) const { vImpl_->transcodeToShortlistInPlace(ptr, num); }
+
 }  // namespace marian

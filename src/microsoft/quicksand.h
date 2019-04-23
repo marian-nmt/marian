@@ -35,6 +35,7 @@ public:
   virtual WordIndex encode(const std::string& word) const = 0;
   virtual std::string decode(WordIndex id) const = 0;
   virtual size_t size() const = 0;
+  virtual void transcodeToShortlistInPlace(WordIndex* ptr, size_t num) const = 0;
 };
 
 class IBeamSearchDecoder {

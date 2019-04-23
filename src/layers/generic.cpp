@@ -80,7 +80,8 @@ namespace marian {
   //}
 
   // get logits for one factor group
-  Expr Logits::getFactoredLogits(size_t groupIndex, const std::vector<IndexType>& selIdx /*= {}*/, size_t beamSize /*= 0*/) const {
+  // For groupIndex == 0, the function also requires the shortlist if there is one.
+  Expr Logits::getFactoredLogits(size_t groupIndex, Ptr<data::Shortlist> shortlist /*= nullptr*/, const std::vector<IndexType>& selIdx /*= {}*/, size_t beamSize /*= 0*/) const {
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
     auto sel = logits_[groupIndex]->loss(); // [localBeamSize, 1, dimBatch, dimFactorVocab]
 
@@ -94,7 +95,7 @@ namespace marian {
       auto numGroups = getNumFactorGroups();
       for (size_t g = 1; g < numGroups; g++) {
         auto factorMaxima = max(logits_[g]->loss(), -1);
-        auto factorMasks = constant(getFactorMasks(g));
+        auto factorMasks = constant(getFactorMasks(g, shortlist ? shortlist->indices() : std::vector<WordIndex>()));
         sel = sel + factorMaxima * factorMasks; // those lemmas that don't have a factor get multiplied with 0
       }
     }
@@ -178,13 +179,15 @@ namespace marian {
   //}
 
   // return a vector of 1 or 0 indicating for each lemma whether it has a specific factor
-  std::vector<float> Logits::getFactorMasks(size_t factorGroup) const { // [lemmaIndex] -> 1.0 for words that do have this factor; else 0
-    size_t numLemmas = factoredVocab_->getGroupRange(0).second - factoredVocab_->getGroupRange(0).first;
+  // If 'indices' is given, then return the masks for the indices; otherwise for all lemmas
+  std::vector<float> Logits::getFactorMasks(size_t factorGroup, const std::vector<WordIndex>& indices) const { // [lemmaIndex] -> 1.0 for words that do have this factor; else 0
+    size_t n = indices.empty() ? (factoredVocab_->getGroupRange(0).second - factoredVocab_->getGroupRange(0).first) : indices.size();
     std::vector<float> res;
-    res.reserve(numLemmas);
-    // @TODO: we should rearange lemmaHasFactorGroup as vector[groups[lemma] of float; then move this into FactoredVocab
-    for (size_t lemma = 0; lemma < numLemmas; lemma++) {
-      res.push_back((float)factoredVocab_->lemmaHasFactorGroup(lemma, factorGroup));
+    res.reserve(n);
+    // @TODO: we should rearrange lemmaHasFactorGroup as vector[groups[i] of float; then move this into FactoredVocab
+    for (size_t i = 0; i < n; i++) {
+      auto lemma = indices.empty() ? i : (indices[i] - factoredVocab_->getGroupRange(0).first);
+      res.push_back((float)factoredVocab_->lemmaHasFactorGroup(i, factorGroup));
     }
     return res;
   }
@@ -225,7 +228,6 @@ namespace marian {
 
       factoredVocab_ = FactoredVocab::tryCreateAndLoad(options_->get<std::string>("vocab", ""));
       if (factoredVocab_) {
-        ABORT_IF(shortlist_, "Shortlists are presently not compatible with factored embeddings");
         numOutputClasses = (int)factoredVocab_->factorVocabSize();
         LOG(info, "[embedding] Factored outputs enabled");
       }
@@ -247,14 +249,12 @@ namespace marian {
     Logits Output::applyAsLogits(Expr input) /*override final*/ {
       lazyConstruct(input->shape()[-1]);
 
-      if (shortlist_) {
-        if (!cachedShortWt_) { // short versions of parameters are cached within one batch, then clear()ed
-          cachedShortWt_ = index_select(Wt_, isLegacyUntransposedW ? -1 : 0, shortlist_->indices());
-          cachedShortb_  = index_select(b_ ,                             -1, shortlist_->indices());
-        }
-        return Logits(affine(input, cachedShortWt_, cachedShortb_, false, /*transB=*/isLegacyUntransposedW ? false : true));
+      if (shortlist_ && !cachedShortWt_) { // shortlisted versions of parameters are cached within one batch, then clear()ed
+        cachedShortWt_ = index_select(Wt_, isLegacyUntransposedW ? -1 : 0, shortlist_->indices());
+        cachedShortb_  = index_select(b_ ,                             -1, shortlist_->indices());
       }
-      else if (factoredVocab_) {
+
+      if (factoredVocab_) {
         auto graph = input->graph();
 
         // project each factor separately
@@ -268,8 +268,15 @@ namespace marian {
             continue;
           ABORT_IF(g > 0 && range.first != factoredVocab_->getGroupRange(g-1).second, "Factor groups must be consecutive (group {} vs predecessor)", g);
           // slice this group's section out of W_
-          auto factorWt = slice(Wt_, isLegacyUntransposedW ? -1 : 0, Slice((int)range.first, (int)range.second));
-          auto factorB  = slice(b_,                              -1, Slice((int)range.first, (int)range.second));
+          Expr factorWt, factorB;
+          if (g == 0 && shortlist_) {
+            factorWt = cachedShortWt_;
+            factorB  = cachedShortb_;
+          }
+          else {
+            factorWt = slice(Wt_, isLegacyUntransposedW ? -1 : 0, Slice((int)range.first, (int)range.second));
+            factorB  = slice(b_,                              -1, Slice((int)range.first, (int)range.second));
+          }
           // @TODO: b_ should be a vector, not a matrix; but shotlists use cols() in, which requires a matrix
           auto factorLogits = affine(input1, factorWt, factorB, false, /*transB=*/isLegacyUntransposedW ? false : true); // [B... x U] factor logits
           // optionally add lemma-dependent bias
@@ -285,6 +292,7 @@ namespace marian {
           // optionally add a soft embedding of lemma back to create some lemma dependency
           // @TODO: if this works, move it into lazyConstruct
           const int lemmaDimEmb = options_->get<int>("lemma-dim-emb", 0);
+          ABORT_IF(shortlist_ && lemmaDimEmb != 0, "Lemma re-embedding with short list is not yet implemented");
           if (lemmaDimEmb < 0 && g == 0) {
             LOG_ONCE(info, "[embedding] using lemma-dependent bias");
             factorLogits = logsoftmax(factorLogits); // explicitly, since we do that again later
@@ -307,6 +315,8 @@ namespace marian {
         }
         return Logits(std::move(allLogits), factoredVocab_);
       }
+      else if (shortlist_)
+        return Logits(affine(input, cachedShortWt_, cachedShortb_, false, /*transB=*/isLegacyUntransposedW ? false : true));
       else
         return Logits(affine(input, Wt_, b_, false, /*transB=*/isLegacyUntransposedW ? false : true));
     }

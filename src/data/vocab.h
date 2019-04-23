@@ -76,6 +76,9 @@ public:
   // for corpus augmentation: convert string to title case
   std::string toEnglishTitleCase(const std::string& line) const;
 
+  // for short-list generation
+  void transcodeToShortlistInPlace(WordIndex* ptr, size_t num) const;
+
   // create fake vocabulary for collecting batch statistics
   void createFake();
 
