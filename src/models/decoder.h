@@ -87,12 +87,12 @@ public:
                                         const Words& words,
                                         int dimBatch,
                                         int dimBeam) {
+    lazyCreateEmbedding(graph);
     Expr selectedEmbs;
     int dimEmb = opt<int>("dim-emb");
     if(words.empty()) {
       selectedEmbs = graph->constant({1, 1, dimBatch, dimEmb}, inits::zeros);
     } else {
-      lazyCreateEmbedding(graph);
       selectedEmbs = embedding_[batchIndex_]->apply(words, {dimBeam, 1, dimBatch, dimEmb});
     }
     state->setTargetHistoryEmbeddings(selectedEmbs);
