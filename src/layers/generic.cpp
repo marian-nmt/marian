@@ -187,7 +187,7 @@ namespace marian {
     // @TODO: we should rearrange lemmaHasFactorGroup as vector[groups[i] of float; then move this into FactoredVocab
     for (size_t i = 0; i < n; i++) {
       auto lemma = indices.empty() ? i : (indices[i] - factoredVocab_->getGroupRange(0).first);
-      res.push_back((float)factoredVocab_->lemmaHasFactorGroup(i, factorGroup));
+      res.push_back((float)factoredVocab_->lemmaHasFactorGroup(lemma, factorGroup));
     }
     return res;
   }
