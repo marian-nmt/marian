@@ -279,18 +279,16 @@ public:
     auto classEmbeddings = slice(context, /*axis=*/-3, /*i=*/0); // [CLS] symbol is first symbol in each sequence
 
     int dimModel = classEmbeddings->shape()[-1];
-//    int dimTrgCls = opt<std::vector<int>>("dim-vocabs")[batchIndex_]; // Target vocab is used as class labels
+    int dimTrgCls = opt<std::vector<int>>("dim-vocabs")[batchIndex_]; // Target vocab is used as class labels
 
     auto output = mlp::mlp()                                          //
                     .push_back(mlp::dense()                           //
                                  ("prefix", prefix_ + "_ff_logit_l1") //
                                  ("dim", dimModel)                    //
                                  ("activation", mlp::act::tanh))      // @TODO: do we actually need this?
-#if 0 // @TODO: Not supported presently since Output has a different signature now
                     .push_back(mlp::output()                          //
                                  ("dim", dimTrgCls))                  //
                                  ("prefix", prefix_ + "_ff_logit_l2") //
-#endif
                     .construct(graph);
 
     auto logits = output->apply(classEmbeddings); // class logits for each batch entry

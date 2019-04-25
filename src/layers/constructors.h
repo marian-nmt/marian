@@ -135,7 +135,7 @@ public:
   Logits applyAsLogits(const std::vector<Expr>& av) override {
     // same as apply() except  for the last layer, we invoke applyAsLogits(), which has a different return type
     auto lastLayer = std::dynamic_pointer_cast<IUnaryLogitLayer>(layers_.back());
-    ABORT_IF(!lastLayer, "MLP::applyAsLogits() applied but last MLP layer is not IUnaryLogitLayer");
+    ABORT_IF(!lastLayer, "MLP::applyAsLogits() was called on an MLP whose last layer is not an IUnaryLogitLayer");
     if (layers_.size() == 1) {
       if (av.size() == 1)
         return lastLayer->applyAsLogits(av[0]);

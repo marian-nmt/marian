@@ -1,9 +1,18 @@
+// This is the main implementation of factored models, which are driven by the vocabulary.
+// Decoding, embedding, and output layer call into the vocab to drive their behavior.
+
 #include "data/vocab_base.h"
 #include "common/definitions.h"
 #include "data/types.h"
 #include "common/options.h"
 #include "common/regex.h"
 #include "data/factored_vocab.h"
+
+// @TODO: review all comments and clarify nomenclature:
+// * factor type (e.g. caps: |c* ); currently called a "group"
+// * factor name (e.g. all-caps: |ca )
+// * factor index (e.g. |ca is index 0 inside |ca |ci |cn)
+// * factor unit index (|ca is unit 41324 in joint factor vocab)
 
 namespace marian {
 
@@ -18,10 +27,11 @@ namespace marian {
     return size();
   }
 
+  // load factor-vocab file and parse it
   std::vector<std::vector<std::string>> factorMapTokenized;
   std::string line;
   std::vector<std::string> tokBuf;
-  if (utils::endsWith(modelPath, ".fsv")) {
+  if (utils::endsWith(modelPath, ".fsv")) { // @TODO: this extension check is only for backcompat; can be removed once we no longer support the old format
     // this is a fake parser for the generic factor spec, which makes a few hard assumptions:
     //     - all types starting with _ except _has_* are factor names
     //     - X : _x makes surface form X part of prob distribution _x except for _has_*
@@ -122,7 +132,7 @@ namespace marian {
   constructGroupInfoFromFactorVocab();
   constructFactorIndexConversion();
 
-  // load and parse factorMap
+  // parse factorMap
   // modelPath = path to file with entries in order of vocab entries of the form
   //   WORD FACTOR1 FACTOR2 FACTOR3...
   // Factors are grouped
@@ -133,10 +143,9 @@ namespace marian {
   //  - all factors not matching a prefix get lumped into yet another class (the lemmas)
   //  - factor vocab must be sorted such that all groups are consecutive
   //  - result of Output layer is nevertheless logits, not a normalized probability, due to the sigmoid entries
-  //vocab_.resize(vocabSize);
-  //factorMap_.resize(vocabSize);
-  //auto factorVocabSize = this->factorVocabSize();
-  lemmaHasFactorGroup_.resize(groupRanges_[0].second - groupRanges_[0].first);
+  // For every lemma, the factor map contains one example. At the end of this loop, we have a vocabulary
+  // vocab_ that contains those examples, but not all possible combinations
+  lemmaHasFactorGroup_.resize(groupRanges_[0].second - groupRanges_[0].first); // group 0 is the lemmas; this difference is the number of lemma symbols
   size_t numTotalFactors = 0;
   for (WordIndex v = 0; v < factorMapTokenized.size(); v++) {
     const auto& tokens = factorMapTokenized[v];
@@ -145,7 +154,7 @@ namespace marian {
     // Not every word has all other factors, so the n-th item is not always in the same factor group.
     // @TODO: change to just use the .wl file, and manually split at @
     ABORT_IF(tokens.size() < 2, "Factor map must have at least one factor per word", modelPath);
-    std::vector<WordIndex> factorUnits;
+    std::vector<WordIndex> factorUnits; // units in the joint factor vocab that belong to a specific factor type
     for (size_t i = 1/*first factor*/; i < tokens.size(); i++) {
       auto u = factorVocab_[tokens[i]];
       factorUnits.push_back(u);
@@ -167,18 +176,13 @@ namespace marian {
       ABORT_IF(lemmaFlags != hasFactorGroupFlags, "Inconsistent factor groups used for word {}", tokens.front());
     // map factors to non-dense integer
     auto word = factors2word(factorIndices);
-    auto wordIndex = word.toWordIndex();
-    //factorMap_[wordIndex] = std::move(factorUnits);
     // add to vocab (the wordIndex are not dense, so the vocab will have holes)
-    //if (tokens.front().front() == '<') // all others are auto-expanded
     // for now add what we get, and then expand more below
     auto wordString = word2string(word);
     if (tokens.front() != wordString) // order may differ, since we formed the input based on the factors in the user file, which may be in any order
       LOG_ONCE(info, "[vocab] Word name in vocab file {} differs from canonical form {} (this warning is only shown once)", tokens.front(), wordString);
-    vocab_.add(wordString, wordIndex);
+    vocab_.add(wordString, word.toWordIndex());
     numTotalFactors += tokens.size() - 1;
-    //if (v % 5000 == 0)
-    //  LOG(info, "{} -> {}", tokens.front(), word2string(word));
   }
   LOG(info, "[vocab] Factored-embedding map read with total/unique of {}/{} factors from {} example words (in space of {})",
       numTotalFactors, factorVocabSize(), vocab_.size()/*numValid()*/, utils::withCommas(virtualVocabSize()));
@@ -204,12 +208,6 @@ namespace marian {
   unkId_ = Word::fromWordIndex(vocab_[DEFAULT_UNK_STR]);
   //LOG(info, "eos: {}; unk: {}", word2string(eosId_), word2string(unkId_));
 
-//#if 1   // dim-vocabs stores numValid() in legacy model files, and would now have been size()
-//  if (maxSizeUnused == vocab_.size()/*numValid()*/)
-//    maxSizeUnused = virtualVocabSize;
-//#endif
-  //ABORT_IF(maxSizeUnused != 0 && maxSizeUnused != size(), "Factored vocabulary does not allow on-the-fly clipping to a maximum vocab size (from {} to {})", size(), maxSizeUnused);
-  // @TODO: ^^ disabled now that we are generating the full combination of factors; reenable once we have consistent setups again
   return size();
 }
 
@@ -291,6 +289,10 @@ void FactoredVocab::constructFactorIndexConversion() {
 }
 
 // encode factors into a Word struct
+// inputs:
+//  - factorIndices[factorType] = factorIndex (e.g. 0 for |ca )
+// output:
+//  - representation as 'Word' (which is, in fact, a single big integer)
 Word FactoredVocab::factors2word(const std::vector<size_t>& factorIndices /* [numGroups] */) const {
   size_t index = 0;
   size_t numGroups = getNumGroups();
@@ -311,6 +313,10 @@ Word FactoredVocab::factors2word(const std::vector<size_t>& factorIndices /* [nu
   return Word::fromWordIndex(index);
 }
 
+// encode only a lemma into a 'Word'
+// The result is incomplete, in that the lemma likely has additional factors that are not yet specified.
+// Those are encoded as the value FACTOR_NOT_SPECIFIED. This function is used during beam search,
+// which starts with lemma scores, and then adds factors one by one to the path score.
 Word FactoredVocab::lemma2Word(size_t factor0Index) const {
   size_t numGroups = getNumGroups();
   std::vector<size_t> factorIndices;
@@ -341,12 +347,16 @@ Word FactoredVocab::expandFactoredWord(Word word, size_t groupIndex, size_t fact
   return word;
 }
 
+// factor unit: index of factor name in the joint factor vocabulary
+// factor index: relative index within factor type, e.g. 0 for |ca
 size_t FactoredVocab::factorUnit2FactorIndex(WordIndex u) const {
   auto g = factorGroups_[u]; // convert u to relative u within factor group range
   ABORT_IF(u < groupRanges_[g].first || u >= groupRanges_[g].second, "Invalid factorGroups_ entry??");
   return u - groupRanges_[g].first;
 }
 
+// split the 'Word' representation, which is really a single big integer, into the individual
+// factor indices for all factor types
 void FactoredVocab::word2factors(Word word, std::vector<size_t>& factorIndices /* [numGroups] */) const {
   size_t numGroups = getNumGroups();
   factorIndices.resize(numGroups);
@@ -361,13 +371,13 @@ void FactoredVocab::word2factors(Word word, std::vector<size_t>& factorIndices /
 #endif
 }
 
+// serialize 'Word' representation into its string form
 std::string FactoredVocab::word2string(Word word) const {
   // this function has some code dup, so that we can bypass some checks for debugging
   size_t numGroups = getNumGroups();
   size_t factor0Index = word.toWordIndex() / factorStrides_[0];
   std::string res;
   for (size_t g = 0; g < numGroups; g++) {
-    //res.append(res.empty() ? "(" : ", ");
     size_t index = word.toWordIndex();
     index = index / factorStrides_[g];
     index = index % (size_t)factorShape_[g];
@@ -376,16 +386,14 @@ std::string FactoredVocab::word2string(Word word) const {
         res.append("(lemma oob)");
       else if (lemmaHasFactorGroup(factor0Index, g))
         res.append("?");
-      //else
-      //  res.append("n/a");
     }
     else
       res.append(factorVocab_[(WordIndex)(index + groupRanges_[g].first)]);
   }
-  //res.append(")");
   return res;
 }
 
+// deserialize factored string form (e.g. HELLO|ci|wb) into its internal binary 'Word' representation
 Word FactoredVocab::string2word(const std::string& w) const {
   auto sep = std::string(1, factorSeparator_);
   auto parts = utils::splitAny(w, sep);
@@ -408,10 +416,10 @@ Word FactoredVocab::string2word(const std::string& w) const {
     factorIndices[g] = u - groupRanges_[g].first;
   }
   auto word = factors2word(factorIndices);
-  //auto w2 = word2string(word);
   return word;
 }
 
+// extract the factor index of a given factor type from the 'Word' representation
 size_t FactoredVocab::getFactor(Word word, size_t groupIndex) const {
   size_t index = word.toWordIndex();
   size_t factor0Index = index / factorStrides_[0];
@@ -436,11 +444,6 @@ size_t FactoredVocab::getFactor(Word word, size_t groupIndex) const {
   }
   return index;
 }
-
-//std::pair<WordIndex, bool> FactoredVocab::getFactorUnit(Word word, size_t groupIndex) const {
-//  word; groupIndex;
-//  ABORT("Not implemented");
-//}
 
 #ifdef FACTOR_FULL_EXPANSION
 void FactoredVocab::constructNormalizationInfoForVocab() {
@@ -482,35 +485,27 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
 #endif
 
 /*virtual*/ Word FactoredVocab::operator[](const std::string& word) const /*override final*/ {
+  // @TODO: do away with vocab_ altogether, and just always parse.
   WordIndex index;
   bool found = vocab_.tryFind(word, index);
   if (found)
     return Word::fromWordIndex(index);
   else
     return string2word(word);
-    //ABORT("Unknown word {} mapped to {}", word, word2string(getUnkId()));
-    //LOG_ONCE(info, "WARNING: Unknown word {} mapped to {}", word, word2string(getUnkId()));
-    //return getUnkId();
 }
 
 /*virtual*/ const std::string& FactoredVocab::operator[](Word word) const /*override final*/ {
   //LOG(info, "Looking up Word {}={}", word.toWordIndex(), word2string(word));
-#if 1 // @TODO: remove this
   ABORT_IF(!vocab_.contains(word.toWordIndex()), "Invalid factor combination {}", word2string(word));
-#else // @BUGBUG: our manually prepared dict does not contain @CI tags for single letters, but it's a valid factor
-  if (!vocab_.contains(word.toWordIndex())) {
-    LOG/*_ONCE*/(info, "Factor combination {} missing in external dict, generating fake entry (only showing this warning once)", word2string(word));
-    //const_cast<WordLUT&>(vocab_).add("??" + word2string(word), word.toWordIndex());
-    const_cast<WordLUT&>(vocab_).add(word2string(word), word.toWordIndex());
-  }
-#endif
   return vocab_[word.toWordIndex()];
 }
 
+// convert a string representation of a token sequence to all-caps by changing all capitalization factors to |ca
 /*virtual*/ std::string FactoredVocab::toUpper(const std::string& line) const /*override final*/ {
   return utils::findReplace(utils::findReplace(utils::findReplace(utils::findReplace(line, "|ci", "|ca", /*all=*/true), "|cn", "|ca", /*all=*/true), "@CI", "@CA", /*all=*/true), "@CN", "@CA", /*all=*/true);
 }
 
+// convert a string representation of a token sequence to English title case by changing the capitalization factors to |ci
 /*virtual*/ std::string FactoredVocab::toEnglishTitleCase(const std::string& line) const /*override final*/ {
   // @BUGBUG: does not handle the special words that should remain lower-case
   // note: this presently supports both @WB and @GL- (legacy)
@@ -525,7 +520,7 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
     auto word = Word::fromWordIndex(*ptr);
     auto wordString = word2string(word);
     auto lemmaIndex = getFactor(word, 0) + groupRanges_[0].first;
-    *ptr = lemmaIndex;
+    *ptr = (WordIndex)lemmaIndex;
   }
 }
 
@@ -544,6 +539,7 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
   return factors2word(factorIndices);
 }
 
+// encode a string representation of an entire token sequence, as found in the corpus file, into a 'Word' array
 /*virtual*/ Words FactoredVocab::encode(const std::string& line, bool addEOS /*= true*/, bool /*inference*/ /*= false*/) const /*override final*/ {
   std::vector<std::string> lineTokens;
   utils::split(line, lineTokens, " ");
@@ -555,6 +551,7 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
   return res;
 }
 
+// decode a 'Word' array into the external string representation of that token sequence, as written to output files
 /*virtual*/ std::string FactoredVocab::decode(const Words& sentence, bool ignoreEOS /*= true*/) const /*override final*/ {
   std::vector<std::string> decoded;
   decoded.reserve(sentence.size());
@@ -584,7 +581,8 @@ static void unescapeHexEscapes(std::string& utf8Lemma) {
   utf8Lemma = utils::utf8FromUtf16String(lemma);
 }
 
-// interpret the capitalization and glue factors
+// convert a 'Word' sequence to its final human-readable surface form
+// This interprets the capitalization and glue factors.
 // This assumes a specific notation of factors, emulating our C# code for generating these factors:
 //  - | as separator symbol
 //  - capitalization factors are cn, ci, and ca
@@ -621,8 +619,13 @@ std::string FactoredVocab::surfaceForm(const Words& sentence) const /*override f
   return res;
 }
 
-// create a CSR matrix M[V,U] from words[] with
-// M[v,u] = 1/c(u) if factor u is a factor of word v, and c(u) is how often u is referenced
+// create a CSR matrix M[V,U] from words[] with M[v,u] = 1 if factor u is a factor of word v
+// This is used to form the embedding of a multi-factor token.
+// That embedding is a sum of the embeddings of the individual factors.
+// Those individual embeddings are assumed to be concatenated into one joint large embedding matrix.
+// The factor embeddings are summed up by multiplying the joint embedding matrix with a sparse matrix
+// that contains a 1 for all positions in the joint matrix that should be summed up.
+// This function creates that sparse matrix in CSR form.
 FactoredVocab::CSRData FactoredVocab::csr_rows(const Words& words) const {
   auto numGroups = getNumGroups();
   std::vector<float> weights;
@@ -636,27 +639,12 @@ FactoredVocab::CSRData FactoredVocab::csr_rows(const Words& words) const {
   for (auto word : words) {
     if (vocab_.contains(word.toWordIndex())) { // skip invalid combinations in the space (can only happen during initialization)  --@TODO: add a check?
       word2factors(word, factorIndices);
-#if 0 // original code; enable this to try
-      numGroups;
-      const auto& m = factorMap_[word.toWordIndex()];
-      for (auto u : m) {
-        indices.push_back(u);
-#else
-#if 0 // special handling of the missing single capitalized letters
-      // costs about 0.1 BLEU when original model never saw this combination (which is quite nicely low)
-      // @TODO: remove this once we use the factor-spec file
-      const auto& lemma = factorVocab_[(WordIndex)(factorIndices[0] + groupRanges_[0].first)];
-      if (lemma.size() == 1 && factorIndices[1]/*@C*/ == 1/*@CI*/) // skip one-letter factors with 
-          LOG_ONCE(info, "Suppressing embedding for word {} (only showing this warning once)", word2string(word));
-      else
-#endif
       for (size_t g = 0; g < numGroups; g++) { // @TODO: make this faster by having a list of all factors to consider for a lemma?
         auto factorIndex = factorIndices[g];
         ABORT_IF(factorIndex == FACTOR_NOT_SPECIFIED, "Attempted to embed a word with a factor not specified");
         if (factorIndex == FACTOR_NOT_APPLICABLE)
           continue;
         indices.push_back((IndexType)(factorIndex + groupRanges_[g].first)); // map to unit index
-#endif
         weights.push_back(1.0f);
       }
     }
@@ -684,15 +672,15 @@ WordIndex FactoredVocab::WordLUT::add(const std::string& word, WordIndex index) 
   ABORT_IF(!wasInserted, "Duplicate vocab entry for '{}', new index {} vs. existing index {}", word, index, str2index_[word]);
   wasInserted = index2str_.insert(std::make_pair(index, word)).second;
   ABORT_IF(!wasInserted, "Duplicate vocab entry for index {} (new: '{}'; existing: '{}')", index, word, index2str_[index]);
-  //if (vocabSize_ < index2str_.size())
-  //  vocabSize_ = index2str_.size();
   return index;
 }
+
 static const std::string g_emptyString;
 const std::string& FactoredVocab::WordLUT::operator[](WordIndex index) const {
   auto iter = index2str_.find(index);
-  //ABORT_IF(iter == index2str_.end(), "Invalid access to dictionary gap item");
   if (iter == index2str_.end())
+    // returns an empty string for unknown index values
+    // @TODO: is that ever used ? If so, document.If not, remove this feature and let it fail.static const std::string g_emptyString;
     return g_emptyString; // (using a global since we return a reference)
   else
     return iter->second;

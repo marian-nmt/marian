@@ -349,22 +349,6 @@ void CSRProd(marian::Tensor C,
   else {
     // C = S x D for row-major matrices
     // Implemented via cusparse as C' = D' x S' ("gemmi") where C' and D' are column-major.
-    //if (St_values) {
-    //  auto vals = get<float>(St_values, C->getBackend());  vals.resize(numValues);
-    //  auto inds = get<IndexType>(St_indices, C->getBackend()); inds.resize(numValues);
-    //  auto offs = get<IndexType>(St_offsets, C->getBackend()); offs.resize(rowsS + 1);
-    //  LOG(info, "[{} x {}] = [{} x {}] * [{} x {}]", colsC, rowsC, colsD, rowsD, -1, offs.size() - 1);
-    //  for (auto v : vals)
-    //    ABORT_IF(v != 1, "v={}", v);
-    //  for (auto i : inds)
-    //    ABORT_IF(i >= rowsC, "i={}", i);
-    //  for (auto o : offs)
-    //    ABORT_IF(o > inds.size(), "o={}", o);
-    //  ABORT_IF(colsC != colsD, "0");
-    //  std::vector<float> dData; D->get(dData); ABORT_IF(dData.size() != colsD * rowsD, "1");
-    //  std::vector<float> cData; C->get(cData); ABORT_IF(cData.size() != colsC * rowsC, "2");
-    //  ABORT_IF(rowsC != rowsS, "3: {} != {}, asz={}", rowsC, rowsS, St_offsets->size()/4);
-    //}
     CUSPARSE_CHECK(cusparseSgemmiEx(cusparseHandle,
         /*m=*/ colsD, // #rows of first (col-major) factor = #cols of row-major D
         /*n=*/ rowsC, // #cols of second (CSC) factor and (col-major) result = #rows of row-major C

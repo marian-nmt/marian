@@ -744,7 +744,7 @@ protected:
 public:
   static std::string tokenizeContinuousScript(const std::string& sUTF8) {
     // We want BLEU-like scores that are comparable across different tokenization schemes.
-    // For continuous scripts )Chinese, Japanese, Thai), we would need a language-specific
+    // For continuous scripts (Chinese, Japanese, Thai), we would need a language-specific
     // statistical word segmenter, which is outside the scope of Marian. As a practical
     // compromise, we segment continuous-script sequences into individual characters, while
     // leaving Western scripts as words. This way we can use the same settings for Western
@@ -765,8 +765,9 @@ public:
 
   std::vector<std::string> decode(const Words& words, bool addEOS = false) {
     auto vocab = vocabs_.back();
-    auto tokenString = tokenize(vocab->surfaceForm(words));
-    tokenString = tokenizeContinuousScript(tokenString);
+    auto tokenString = vocab->surfaceForm(words);        // detokenize to surface form
+    tokenString = tokenize(tokenString);                 // tokenize according to SacreBLEU rules
+    tokenString = tokenizeContinuousScript(tokenString); // CJT scripts only: further break into characters
     auto tokens = utils::splitAny(tokenString, " ");
     if(addEOS)
       tokens.push_back("</s>");
@@ -836,6 +837,9 @@ public:
 #if 1 // hack for now, to get this feature when running under Flo
     // Problem is that Flo pieces that pass 'bleu' do not know whether vocab is factored,
     // hence cannot select 'bleu-detok'.
+    // @TODO: We agreed that we will replace bleu-detok by bleu with an additional
+    // parameter to select the detokenization method, which will default to detok for FactoredSegmenter,
+    // and no-op for base vocab.
     if (vocabs_.back()->type() == "FactoredVocab") {
       LOG_ONCE(info, "[valid] FactoredVocab implies using detokenized BLEU");
       detok = true; // always use bleu-detok

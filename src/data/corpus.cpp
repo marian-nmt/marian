@@ -31,11 +31,10 @@ void Corpus::preprocessLine(std::string& line, size_t streamId) {
     else
       LOG_ONCE(info, "[data] Target all-caps'ed line to: {}", line);
   }
-  else if (titleCaseEvery_ != 0 && pos_ % titleCaseEvery_ == 1 && !inference_
-      
-      &&   streamId == 0       // @HACK: Hard-coding EN-X direction for now; needs an option in the future
-      
-      ) {
+  else if (titleCaseEvery_ != 0 && pos_ % titleCaseEvery_ == 1 && !inference_ && streamId == 0) {
+    // Only applied to stream 0 (source) since this feature is aimed at robustness against
+    // title case in the source (and not at translating into title case).
+    // Note: It is user's responsibility to not enable this if the source language is not English.
     line = vocabs_[streamId]->toEnglishTitleCase(line);
     if (streamId == 0)
       LOG_ONCE(info, "[data] Source English-title-case'd line to: {}", line);

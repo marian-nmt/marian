@@ -15,7 +15,7 @@ protected:
   std::string prefix_{"decoder"};
   bool inference_{false};
   size_t batchIndex_{1};
-  std::vector<Ptr<IEmbeddingLayer>> embedding_; // @TODO: find a more grammattical name
+  std::vector<Ptr<IEmbeddingLayer>> embedding_; // @TODO: find a more grammatical name
 
   Ptr<data::Shortlist> shortlist_;
 
@@ -35,7 +35,7 @@ public:
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
 
-  void lazyCreateEmbedding(Ptr<ExpressionGraph> graph) {
+  void lazyCreateEmbeddingLayer(Ptr<ExpressionGraph> graph) {
     // @TODO: code dup with EncoderTransformer
     if (embedding_.size() <= batchIndex_ || !embedding_[batchIndex_]) { // lazy
       if (embedding_.size() <= batchIndex_)
@@ -64,7 +64,7 @@ public:
                                    Ptr<data::CorpusBatch> batch) {
     auto subBatch = (*batch)[batchIndex_];
 
-    lazyCreateEmbedding(graph);
+    lazyCreateEmbeddingLayer(graph);
     Expr y, yMask; std::tie
     (y, yMask) = embedding_[batchIndex_]->apply(subBatch);
 
@@ -87,7 +87,7 @@ public:
                                         const Words& words,
                                         int dimBatch,
                                         int dimBeam) {
-    lazyCreateEmbedding(graph);
+    lazyCreateEmbeddingLayer(graph);
     Expr selectedEmbs;
     int dimEmb = opt<int>("dim-emb");
     if(words.empty()) {

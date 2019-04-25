@@ -99,6 +99,12 @@ static std::string escapeForPOpen(const std::string& arg) {
   return "'" + findReplace(arg, "'", "'\\''", /*all=*/ true) + "'";
 }
 
+// execute an external command
+// The command is composed of three pieces:
+//  - the executable path, e.g. --valid-script-path
+//  - an optional array of arguments. Meant for options. E.g. --valid-script-args. Options with leading  - can only be passed via Yaml/Json.
+//  - one more optional single argument. Meant as the main filename argument.
+// Each item will be escaped for shell syntax.
 std::string exec(const std::string& cmd, const std::vector<std::string>& args /*= {}*/, const std::string& arg /*= ""*/) {
   std::array<char, 128> buffer;
   std::string result;
@@ -199,6 +205,8 @@ std::string utf8FromUtf16String(const std::u16string& s) {
 #endif
 }
 
+// test whether a Unicode code point is in continuous script (e.g. Chinese or Thai)
+// This is used for detok bleu scoring where we have CJT characters.
 bool isContinuousScript(char32_t c) {
   // currently, this table is hand-coded, and may need to be extended when the standard grows
   auto in = [c](char32_t minVal, char32_t maxVal) { return c >= minVal && c <= maxVal; };

@@ -67,9 +67,11 @@ struct IEmbeddingLayer {
 
 class FactoredVocab;
 
-// @HACK: Frank's quick implementation of factored outputs. To be re-thought once it works.
-// Output layer returns a Logits object, which is able to compute some things on the fly
-// for factored embeddings.
+// To support factors, any output projection (that is followed by a softmax) must
+// retain multiple outputs, one for each factor. Such layer returns not a single Expr,
+// but a Logits object that contains multiple.
+// This allows to compute softmax values in a factored manner, where we never create
+// a fully expanded list of all factor combinations.
 class RationalLoss;
 class Logits {
 public:
@@ -96,7 +98,6 @@ public:
       MaskedFactorIndices(const Words& words) { indices = toWordIndexVector(words); } // we can leave masks uninitialized for this special use case
     };
     std::vector<MaskedFactorIndices> factorizeWords(const Words& words) const; // breaks encoded Word into individual factor indices
-    //std::vector<float> getFactorMasks(const Words& words, size_t factorGroup) const;
     float getLogitAt(size_t i) const { return getLogits()->val()->get(i); } // used for breakDown() only; @TODO: avoid the fully expanded logits; pass separate indices instead of 'i'
     size_t getNumFactorGroups() const { return logits_.size(); }
     bool empty() const { return logits_.empty(); }
@@ -111,13 +112,15 @@ private:
     std::vector<float> getFactorMasks(size_t factorGroup, const std::vector<WordIndex>& indices) const;
 private:
     // members
-    // @HACK: The interplay between Logits and RationalLoss is weird. Here, we allow RationalLoss with count == nullptr.
-    std::vector<Ptr<RationalLoss>> logits_; // [group id][B..., num factors in group]  --@TODO: we don't use the RationalLoss component anymore, can be removed again
+    // @TODO: we don't use the RationalLoss component anymore, can be removed again, and replaced just by the Expr
+    std::vector<Ptr<RationalLoss>> logits_; // [group id][B..., num factors in group]
     Ptr<FactoredVocab> factoredVocab_;
 };
 
 // Unary function that returns a Logits object
 // Also implements IUnaryLayer, since Logits can be cast to Expr.
+// This interface is implemented by all layers that are of the form of a unary function
+// that returns multiple logits, to support factors.
 struct IUnaryLogitLayer : public IUnaryLayer {
   virtual Logits applyAsLogits(Expr) = 0;
   virtual Logits applyAsLogits(const std::vector<Expr>& es) {

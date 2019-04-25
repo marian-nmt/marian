@@ -341,7 +341,7 @@ protected:
     auto ce = logits.applyLossFunction(labels, [&](Expr logits, Expr indices) {
       logits = atleast_3d(logits); // we always assuma a time and batch dimension exists.
       // for bert training or classification the time dimension is lot.
-      // Here safeguard against 2d classifier output, adds 1 on the left, non-op.      Expr ce = cross_entropy(logits, indices);
+      // Here safeguard against 2d classifier output, adds 1 on the left, non-op.
       Expr ce = cross_entropy(logits, indices);
       if (labelSmoothing_ > 0) {
         // ce = -sum_i y^_i log y_i(h)

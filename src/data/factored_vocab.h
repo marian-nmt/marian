@@ -9,8 +9,6 @@
 #include "data/types.h"
 #include "data/vocab_base.h"
 
-#include <numeric> // for std::iota()
-
 #undef FACTOR_FULL_EXPANSION // define this to get full expansion. @TODO: infeasible for many factors; just delete this
 
 namespace marian {
@@ -25,7 +23,6 @@ public:
   };
 
   // from IVocab:
-  // @TODO: Why are these virtual and final at the same time? Seems we should remove all the 'virtual' here
   virtual size_t load(const std::string& factoredVocabPath, size_t maxSizeUnused = 0) override final;
   virtual void create(const std::string& vocabPath, const std::vector<std::string>& trainPaths, size_t maxSize) override final { vocabPath, trainPaths, maxSize; ABORT("Factored vocab cannot be created on the fly"); }
   virtual const std::string& canonicalExtension() const override final { return suffixes()[0]; }
@@ -57,8 +54,6 @@ public:
 #endif
   size_t getNumGroups() const { return groupRanges_.size(); }
   std::pair<size_t, size_t> getGroupRange(size_t g)    const { return groupRanges_[g]; }   // [g] -> (u_begin, u_end)
-  //const std::vector<float>&     getFactorMasks(size_t g)   const { return factorMasks_[g]; }   // [g][v] 1.0 if word v has factor g
-  //const std::vector<IndexType>& getFactorIndices(size_t g) const { return factorIndices_[g]; } // [g][v] local index u_g = u - u_g,begin of factor g for word v; 0 if not a factor
 #ifdef FACTOR_FULL_EXPANSION
   const std::vector<float>& getGapLogMask() const { return gapLogMask_; } // [v] -inf if v is a gap entry, else 0
 #endif
@@ -70,7 +65,6 @@ public:
   Word expandFactoredWord(Word word, size_t groupIndex, size_t factorIndex) const;
   bool canExpandFactoredWord(Word word, size_t groupIndex) const { return lemmaHasFactorGroup(getFactor(word, 0), groupIndex); }
   size_t getFactor(Word word, size_t groupIndex) const;
-  //std::pair<WordIndex, bool> getFactorUnit(Word word, size_t groupIndex) const;
   bool lemmaHasFactorGroup(size_t factor0Index, size_t g) const { return lemmaHasFactorGroup_[factor0Index][g]; }
 
   static constexpr size_t FACTOR_NOT_APPLICABLE = (SIZE_MAX - 1);
@@ -89,19 +83,16 @@ private:
 #endif
   size_t factorUnit2FactorIndex(WordIndex u) const;
 private:
+  // @TODO: Should we move WordLUT to utils?
   class WordLUT { // map between strings and WordIndex
     std::map<std::string, WordIndex> str2index_;
     std::map<WordIndex, std::string> index2str_;
-    //size_t vocabSize_; // total number of vocab items as set by user
   public:
     WordIndex add(const std::string& word, WordIndex index);
     const std::string& operator[](WordIndex index) const;
     WordIndex operator[](const std::string& word) const;
     bool contains(WordIndex index) const { return index2str_.find(index) != index2str_.end(); }
     bool tryFind(const std::string& word, WordIndex& index) const;
-    //void resize(size_t num); // @TODO: remove this, and remove the distinction of size() and numValid()
-    //size_t size() const { return vocabSize_; } // nominal size including gap items
-    //size_t numValid() const { return str2index_.size(); } // actual non-gaps items
     size_t size() const { return str2index_.size(); }
     size_t load(const std::string& path);
     void dumpToFile(const std::string& path);
@@ -116,7 +107,6 @@ private:
   char factorSeparator_ = '|';                         // separator symbol for parsing factored words
   WordLUT factorVocab_;                                // [factor name] -> factor index = row of E_
   std::vector<std::string> groupPrefixes_;             // [group id g] shared prefix of factors (used for grouping)
-  //std::vector<std::vector<WordIndex>> factorMap_;      // [word index v] -> set of factor indices u
 #ifdef FACTOR_FULL_EXPANSION
   CSRData globalFactorMatrix_;                         // [v,u] (sparse) -> =1 if u is factor of v
 #endif
@@ -125,8 +115,6 @@ private:
   std::vector<std::vector<bool>> lemmaHasFactorGroup_; // [factor 0 index][g] -> true if lemma has factor group
   Shape factorShape_;                                  // [g] number of factors in each factor group
   std::vector<size_t> factorStrides_;                  // [g] stride for factor dimension
-  //std::vector<std::vector<float>>     factorMasks_;    // [g][v] 1.0 if word v has factor g
-  //std::vector<std::vector<IndexType>> factorIndices_;  // [g][v] relative index u - u_begin of factor g (or any valid index if it does not have it; we use 0)
 #ifdef FACTOR_FULL_EXPANSION
   std::vector<float> gapLogMask_;                      // [v] -1e8 if this is a gap, else 0
 #endif
