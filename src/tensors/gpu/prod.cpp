@@ -12,6 +12,7 @@ namespace marian {
 
 namespace gpu {
 
+#if CUDA_VERSION >= 9000
 static void setTensorMode(cublasHandle_t cublasHandle) {
   static int mode = 0;  // 1: use TC; -1: do not use TC; 0: not set yet
   if (mode == 0) { // multi-thread note: this is sort-of thread-safe, since multiple threads would determine the same value
@@ -37,6 +38,7 @@ static void setTensorMode(cublasHandle_t cublasHandle) {
   }
   CUBLAS_CHECK(cublasSetMathMode(cublasHandle, mode > 0 ? CUBLAS_TENSOR_OP_MATH : CUBLAS_DEFAULT_MATH));
 }
+#endif
 
 void Prod(marian::Tensor C,
           const marian::Tensor& A,
