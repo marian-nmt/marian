@@ -105,15 +105,12 @@ public:
 
       // Set score breakdown for n-best lists
       if(options_->get<bool>("n-best")) {
-        std::vector<float> breakDown(states.size(), 0);
-        beam[beamHypIdx]->getScoreBreakdown().resize(states.size(), 0); // @TODO: Why? Can we just guard the read-out below, then make it const? Or getScoreBreakdown(j)?
+        auto breakDown = beam[beamHypIdx]->getScoreBreakdown();
+        breakDown.resize(states.size(), 0); // reset to 0 if at start
         for(size_t j = 0; j < states.size(); ++j) {
           size_t flattenedLogitIndex = (beamHypIdx * dimBatch + batchIdx) * vocabSize + wordIdx;  // (beam idx, batch idx, word idx); note: beam and batch are transposed, compared to 'key'
-          flattenedLogitIndex;
-#if 0   // @BUGBUG: This currently segfaults with factors.
-          breakDown[j] = states[j]->breakDown(flattenedLogitIndex) + beam[beamHypIdx]->getScoreBreakdown()[j];
-#endif
-          // @TODO: pass those 3 indices directly into breakDown (state knows the dimensions)
+          // @TODO: push the index through into breakDown(), which has all dimensions
+          breakDown[j] += states[j]->breakDown(flattenedLogitIndex);
         }
         hyp->setScoreBreakdown(breakDown);
       }

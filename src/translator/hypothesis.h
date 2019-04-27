@@ -29,7 +29,7 @@ public:
 
   float getPathScore() const { return pathScore_; }
 
-  std::vector<float>& getScoreBreakdown() { return scoreBreakdown_; } // @TODO: make this const
+  const std::vector<float>& getScoreBreakdown() { return scoreBreakdown_; }
   void setScoreBreakdown(const std::vector<float>& scoreBreaddown) { scoreBreakdown_ = scoreBreaddown; }
 
   const std::vector<float>& getAlignment() { return alignment_; }
