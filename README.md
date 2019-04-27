@@ -1,8 +1,10 @@
 Marian
 ======
 
-[![Build Status](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev.svg?label=CUDA)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev/)
-[![CPU Build Status](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cpu.svg?label=CPU)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cpu/)
+[![Build Status CUDA 8.0](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cuda-8.0.svg?label=CUDA%208.0)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cuda-8.0/)
+[![Build Status CUDA 9.2](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev.svg?label=CUDA%209.2)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev/)
+[![Build Status CUDA 10.0](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cuda-10.0.svg?label=CUDA%2010.0)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cuda-10.0/)
+[![Build Status CPU](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cpu.svg?label=CPU)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cpu/)
 [![Tests Status](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-regression-tests.svg?label=tests)](http://vali.inf.ed.ac.uk/jenkins/job/marian-regression-tests/)
 [![Latest release](https://img.shields.io/github/release/marian-nmt/marian.svg?label=release)](https://github.com/marian-nmt/marian/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE.md)
@@ -66,6 +68,7 @@ _Horizon 2020 Research and Innovation Programme_ under grant agreements
 645487 ([Modern MT](http://www.modernmt.eu); 2015-2017),
 644333 ([TraMOOC](http://tramooc.eu/); 2015-2017),
 644402 ([HiML](http://www.himl.eu/); 2015-2017),
+825303 ([Bergamot](https://browser.mt/); 2019-2021),
 the Amazon Academic Research Awards program,
 the World Intellectual Property Organization,
 and is based upon work supported in part by the Office of the Director of
