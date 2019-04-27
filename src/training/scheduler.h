@@ -160,6 +160,7 @@ public:
     saveFreq_ = options_->get<std::string>("save-freq");
     ABORT_IF(state_->factor != 1, "state.factor unexpectedly not 1 at this point??");
     updateLearningRate(*state);
+    installSignalHandlers_();
   }
 
   bool keepGoing(bool checkForSigTerm=true) {
@@ -195,9 +196,9 @@ public:
   void started() { LOG(info, "Training started"); }
   void finished() {
     if (keepGoing(false)) // false means: ignore sigterm flag
-      LOG(info, "Training finished");
-    else
       LOG(info, "Training interrupted (SIGTERM).");
+    else
+      LOG(info, "Training finished");
   }
 
   void setupValidators(std::vector<Ptr<Vocab>>& vocabs) {
