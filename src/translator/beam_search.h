@@ -90,7 +90,8 @@ public:
           //LOG(info, "expand word {}={} with factor[{}] {}", beam[beamHypIdx]->getWord().toWordIndex(),
           //    factoredVocab->word2string(beam[beamHypIdx]->getWord()), factorGroup, wordIdx);
           word = beam[beamHypIdx]->getWord();
-          ABORT_IF(!factoredVocab->canExpandFactoredWord(word, factorGroup), "A word without this factor snuck through to here??");
+          ABORT_IF(!factoredVocab->canExpandFactoredWord(word, factorGroup),
+                   "A word without this factor snuck through to here??");
           word = factoredVocab->expandFactoredWord(word, factorGroup, wordIdx);
           prevBeamHypIdx = prevHyp->getPrevStateIndex();
           prevHyp = prevHyp->getPrevHyp(); // short-circuit the backpointer, so that the traceback doesnot contain partially factored words
@@ -106,11 +107,15 @@ public:
       // Set score breakdown for n-best lists
       if(options_->get<bool>("n-best")) {
         auto breakDown = beam[beamHypIdx]->getScoreBreakdown();
+        ABORT_IF(factoredVocab && factorGroup > 0 && !factoredVocab->canExpandFactoredWord(word, factorGroup),
+                 "A word without this factor snuck through to here??");
         breakDown.resize(states.size(), 0); // reset to 0 if at start
         for(size_t j = 0; j < states.size(); ++j) {
+          auto lval = states[j]->getLogProbs().getFactoredLogitsTensor(factorGroup); // [localBeamSize, 1, dimBatch, dimFactorVocab]
           size_t flattenedLogitIndex = (beamHypIdx * dimBatch + batchIdx) * vocabSize + wordIdx;  // (beam idx, batch idx, word idx); note: beam and batch are transposed, compared to 'key'
-          // @TODO: push the index through into breakDown(), which has all dimensions
-          breakDown[j] += states[j]->breakDown(flattenedLogitIndex);
+          // @TODO: use a function on shape() to index, or new method val->at({i1, i2, i3, i4}) with broadcasting
+          ABORT_IF(lval->shape() != Shape({(int)beams.size(), 1, (int)dimBatch, (int)vocabSize}), "Unexpected shape of logits??");
+          breakDown[j] += lval->get(i);
         }
         hyp->setScoreBreakdown(breakDown);
       }
