@@ -236,11 +236,11 @@ namespace marian {
         Wt_ = tiedParam_;
       } else {
         if (graph_->get(name + "_W")) { // support of legacy models that did not transpose
-          Wt_ = graph_->param(name + "_W", {inputDim, numOutputClasses}, inits::glorot_uniform);
+          Wt_ = graph_->param(name + "_W", {inputDim, numOutputClasses}, inits::glorot_uniform2(true, false));
           isLegacyUntransposedW = true;
         }
         else // this is the regular case:
-          Wt_ = graph_->param(name + "_Wt", {numOutputClasses, inputDim}, inits::glorot_uniform);
+          Wt_ = graph_->param(name + "_Wt", {numOutputClasses, inputDim}, inits::glorot_uniform2(false, true));
       }
 
       b_ = graph_->param(name + "_b", {1, numOutputClasses}, inits::zeros);
@@ -336,9 +336,10 @@ namespace marian {
     }
 
     // Embedding layer initialization should depend only on embedding size, hence fanIn=false
-    //NodeInitializer initFunc = inits::glorot_uniform2(/*fanIn=*/false, /*fanOut=*/true);
-    NodeInitializer initFunc = inits::glorot_uniform;
-    if (options_->has("embFile")) {
+    NodeInitializer initFunc = inits::glorot_uniform2(/*fanIn=*/false, /*fanOut=*/true);
+    //NodeInitializer initFunc = inits::glorot_uniform;
+    
+if (options_->has("embFile")) {
       std::string file = opt<std::string>("embFile");
       if (!file.empty()) {
         bool norm = opt<bool>("normalization", false);
