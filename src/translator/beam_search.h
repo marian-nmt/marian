@@ -45,7 +45,7 @@ public:
                Ptr<FactoredVocab/*const*/> factoredVocab, size_t factorGroup) const {
     std::vector<float> align;
     if(options_->hasAndNotEmpty("alignment"))
-      align = scorers_[0]->getAlignment(); // use alignments from the first scorer, even if ensemble
+      align = scorers_[0]->getAlignment(); // [beam depth, max src length, batch size, 1]; use alignments from the first scorer, even if ensemble
 
     const auto dimBatch = beams.size();
     Beams newBeams(dimBatch);   // return value of this function goes here
@@ -116,7 +116,7 @@ public:
       }
 
       // Set alignments
-      if(!align.empty()) {
+      if(!align.empty() && factorGroup == 0) {
         hyp->setAlignment(getAlignmentsForHypothesis(align, batch, (int)beamHypIdx, (int)batchIdx));
       }
 
@@ -150,10 +150,10 @@ public:
   }
 
   std::vector<float> getAlignmentsForHypothesis(
-      const std::vector<float> alignAll,
+      const std::vector<float> alignAll, // [beam depth, max src length, batch size, 1]
       Ptr<data::CorpusBatch> batch,
       int beamHypIdx,
-      int beamIdx) const {
+      int batchIdx) const {
     // Let's B be the beam size, N be the number of batched sentences,
     // and L the number of words in the longest sentence in the batch.
     // The alignment vector:
@@ -171,13 +171,15 @@ public:
     // in a single beam, i.e.:
     //   * [word1-batch1, word1-batch2, ..., word2-batch1, ...]
     //
-    size_t batchSize = batch->size();
-    size_t batchWidth = batch->width() * batchSize;
+    size_t batchSize = batch->size();                // number of sentences in batch
+    size_t batchWidth = batch->width();              // max src length
+    size_t batchWidthXSize = batchWidth * batchSize; // total number of words in the batch incl. padding
     std::vector<float> align;
 
-    for(size_t w = 0; w < batchWidth / batchSize; ++w) {
-      size_t a = ((batchWidth * beamHypIdx) + beamIdx) + (batchSize * w);
-      size_t m = a % batchWidth;
+    // loop over words of batch entry 'batchIdx' and beam entry 'beamHypIdx'
+    for(size_t w = 0; w < batchWidth; ++w) {
+      size_t a = ((batchWidthXSize * beamHypIdx) + batchIdx) + (batchSize * w);
+      size_t m = a % batchWidthXSize; // == batchIdx + (batchSize * w)
       if(batch->front()->mask()[m] != 0)
         align.emplace_back(alignAll[a]);
     }

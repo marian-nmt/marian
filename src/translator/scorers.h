@@ -130,7 +130,7 @@ public:
   };
 
   virtual std::vector<float> getAlignment() override {
-    return encdec_->getAlignment().front();
+    return encdec_->getAlignment().front(); // [beam depth, max src length, batch size, 1]
   }
 };
 
