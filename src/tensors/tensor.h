@@ -141,7 +141,7 @@ public:
   template <typename T>
   void set(const T* begin, const T* end) {
     ABORT_IF(end - begin != shape_.elements(),
-             "Vector size ({}) and underlying type ({}) do not match",
+             "Vector size ({}) and underlying shape ({}) do not match",
              end - begin,
              std::string(shape_));
     ABORT_IF(!matchType<T>(type_),
