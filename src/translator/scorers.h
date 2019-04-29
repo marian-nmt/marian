@@ -11,8 +11,6 @@ class ScorerState {
 public:
   virtual Logits getLogProbs() const = 0;
 
-  virtual float breakDown(size_t i) const { return getLogProbs().getLogitAt(i); }
-
   virtual void blacklist(Expr /*totalCosts*/, Ptr<data::CorpusBatch> /*batch*/){};
 };
 

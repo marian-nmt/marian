@@ -106,6 +106,13 @@ namespace marian {
     return sel;
   }
 
+  // used for breakDown() only
+  // Index is flattened
+  Tensor Logits::getFactoredLogitsTensor(size_t groupIndex) const {
+    ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
+    return logits_[groupIndex]->loss()->val();
+  }
+
   // This function assumes that the object holds one or more factor logits, which are summed up
   // into output-vocab logits according to the factored model (with correct normalization of factors).
   // This is infeasible for realistic factor sets, and therefore only implemented for 1 factor.

@@ -90,7 +90,8 @@ public:
           //LOG(info, "expand word {}={} with factor[{}] {}", beam[beamHypIdx]->getWord().toWordIndex(),
           //    factoredVocab->word2string(beam[beamHypIdx]->getWord()), factorGroup, wordIdx);
           word = beam[beamHypIdx]->getWord();
-          ABORT_IF(!factoredVocab->canExpandFactoredWord(word, factorGroup), "A word without this factor snuck through to here??");
+          ABORT_IF(!factoredVocab->canExpandFactoredWord(word, factorGroup),
+                   "A word without this factor snuck through to here??");
           word = factoredVocab->expandFactoredWord(word, factorGroup, wordIdx);
           prevBeamHypIdx = prevHyp->getPrevStateIndex();
           prevHyp = prevHyp->getPrevHyp(); // short-circuit the backpointer, so that the traceback doesnot contain partially factored words
@@ -105,15 +106,16 @@ public:
 
       // Set score breakdown for n-best lists
       if(options_->get<bool>("n-best")) {
-        std::vector<float> breakDown(states.size(), 0);
-        beam[beamHypIdx]->getScoreBreakdown().resize(states.size(), 0); // @TODO: Why? Can we just guard the read-out below, then make it const? Or getScoreBreakdown(j)?
+        auto breakDown = beam[beamHypIdx]->getScoreBreakdown();
+        ABORT_IF(factoredVocab && factorGroup > 0 && !factoredVocab->canExpandFactoredWord(word, factorGroup),
+                 "A word without this factor snuck through to here??");
+        breakDown.resize(states.size(), 0); // reset to 0 if at start
         for(size_t j = 0; j < states.size(); ++j) {
+          auto lval = states[j]->getLogProbs().getFactoredLogitsTensor(factorGroup); // [localBeamSize, 1, dimBatch, dimFactorVocab]
           size_t flattenedLogitIndex = (beamHypIdx * dimBatch + batchIdx) * vocabSize + wordIdx;  // (beam idx, batch idx, word idx); note: beam and batch are transposed, compared to 'key'
-          flattenedLogitIndex;
-#if 0   // @BUGBUG: This currently segfaults with factors.
-          breakDown[j] = states[j]->breakDown(flattenedLogitIndex) + beam[beamHypIdx]->getScoreBreakdown()[j];
-#endif
-          // @TODO: pass those 3 indices directly into breakDown (state knows the dimensions)
+          // @TODO: use a function on shape() to index, or new method val->at({i1, i2, i3, i4}) with broadcasting
+          ABORT_IF(lval->shape() != Shape({(int)beams.size(), 1, (int)dimBatch, (int)vocabSize}), "Unexpected shape of logits??");
+          breakDown[j] += lval->get(i);
         }
         hyp->setScoreBreakdown(breakDown);
       }
