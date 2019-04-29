@@ -109,13 +109,13 @@ public:
         auto breakDown = beam[beamHypIdx]->getScoreBreakdown();
         ABORT_IF(factoredVocab && factorGroup > 0 && !factoredVocab->canExpandFactoredWord(word, factorGroup),
                  "A word without this factor snuck through to here??");
-        breakDown.resize(states.size(), 0); // reset to 0 if at start
+        breakDown.resize(states.size(), 0); // at start, this is empty, so this will set the initial score to 0
         for(size_t j = 0; j < states.size(); ++j) {
           auto lval = states[j]->getLogProbs().getFactoredLogitsTensor(factorGroup); // [localBeamSize, 1, dimBatch, dimFactorVocab]
           size_t flattenedLogitIndex = (beamHypIdx * dimBatch + batchIdx) * vocabSize + wordIdx;  // (beam idx, batch idx, word idx); note: beam and batch are transposed, compared to 'key'
           // @TODO: use a function on shape() to index, or new method val->at({i1, i2, i3, i4}) with broadcasting
-          ABORT_IF(lval->shape() != Shape({(int)beams.size(), 1, (int)dimBatch, (int)vocabSize}), "Unexpected shape of logits??");
-          breakDown[j] += lval->get(i);
+          ABORT_IF(lval->shape() != Shape({(int)beam.size(), 1, (int)dimBatch, (int)vocabSize}), "Unexpected shape of logits??");
+          breakDown[j] += lval->get(flattenedLogitIndex);
         }
         hyp->setScoreBreakdown(breakDown);
       }
@@ -128,7 +128,8 @@ public:
       newBeam.push_back(hyp);
     }
 
-    // also propagate factored hypotheses that do not get expanded in this step as they don't have this factor
+    // if factored vocab and this is not the first factor, we need to
+    // also propagate factored hypotheses that do not get expanded in this step because they don't have this factor
     if (factorGroup > 0) {
       for (size_t batchIdx = 0; batchIdx < beams.size(); batchIdx++) {
         const auto& beam = beams[batchIdx];
@@ -218,7 +219,7 @@ public:
     factoredVocab.reset();
 #endif
     size_t numFactorGroups = factoredVocab ? factoredVocab->getNumGroups() : 1;
-    if (numFactorGroups == 1) // if no factors then reset
+    if (numFactorGroups == 1) // if no factors then we didn't need this object in the first place
       factoredVocab.reset();
 
     const int dimBatch = (int)batch->size();
@@ -275,7 +276,7 @@ public:
         break;
 
       for (size_t factorGroup = 0; factorGroup < numFactorGroups; factorGroup++) {
-      // Note: not indenting the block, for easier merging
+      // @TODO: Indent the body of this loop. Not done for this commit for easier reviewing.
       // for factored vocabs, we do one factor at a time, but without updating the scorer for secondary factors
 
       //**********************************************************************
