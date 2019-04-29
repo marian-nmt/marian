@@ -597,6 +597,7 @@ public:
         quiet_(options_->get<bool>("quiet-translation")) {
     builder_ = models::createModelFromOptions(options_, models::usage::translation);
 
+    // @TODO: replace bleu-detok by a separate parameter to enable (various forms of) detok
     auto vocab = vocabs_.back();
     ABORT_IF(detok_ && vocab->type() != "SentencePieceVocab" && vocab->type() != "FactoredVocab",
              "Detokenizing BLEU validator expects the target vocabulary to be SentencePieceVocab or FactoredVocab. "
