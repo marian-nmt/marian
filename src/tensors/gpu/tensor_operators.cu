@@ -105,7 +105,7 @@ __global__ void gInsertCols(float* out,
                             size_t offset_in) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
-    if(j < rows) {
+    if(j < rows) { // @TODO: change to if j == rows then break, as that's what it means. In 4 functions in here.
       float* rowOut = out + j * cols_out + offset_out;
       const float* rowIn = in + j * cols_in + offset_in;
 
@@ -488,7 +488,6 @@ __global__ void gSoftmax(float* out,
           so[i] = so[i] / sum;
         }
       }
-      __syncthreads();
     }
     __syncthreads();
   }
@@ -574,7 +573,6 @@ __global__ void gLogSoftmax(float* out,
         if(id < cols)
           so[id] -= __logf(_sum[0]);
       }
-      __syncthreads();
     }
     __syncthreads();
   }
@@ -635,7 +633,6 @@ __global__ void gSoftmaxGrad(float* grad,
             gradRow[id] += val;
         }
       }
-      __syncthreads();
     }
     __syncthreads();
   }
@@ -694,7 +691,6 @@ __global__ void gLogSoftmaxGrad(float* grad,
         if(id < cols)
           gradRow[id] += adjRow[id] - (expf(valRow[id]) * _sum[0]);
       }
-      __syncthreads();
     }
     __syncthreads();
   }

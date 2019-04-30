@@ -286,7 +286,7 @@ public:
   size_t sizeTrg() const override { return subBatches_.back()->batchSize(); }
 
   /**
-   * @brief The number of words for the longest sentence in the batch plus one.
+   * @brief The total number of words in the batch (not counting masked-out words).
    */
   size_t wordsTrg() const override { return subBatches_.back()->batchWords(); };
 

@@ -117,6 +117,7 @@ std::string exec(const std::string& cmd, const std::vector<std::string>& args /*
     cmdLine += " " + escapeForPOpen(a);
   if (!arg.empty())
     cmdLine += " " + escapeForPOpen(arg);
+  //std::cerr << "###" << cmdLine << "###" << std::endl;
   std::shared_ptr<std::FILE> pipe(popen(cmdLine.c_str(), "r"), pclose);
   if(!pipe)
     ABORT("popen() failed!");

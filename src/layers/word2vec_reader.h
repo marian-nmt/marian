@@ -64,13 +64,14 @@ public:
       }
     }
 
+    embs.resize(dimVoc * dimEmb, 0); // @TODO: is it correct to zero out the remaining embeddings?
     return embs;
   }
 
 private:
   std::vector<float> randomEmbeddings(int dimVoc, int dimEmb) {
     std::vector<float> values;
-    values.reserve(dimEmb);
+    values.resize(dimEmb);
     // Glorot numal distribution
     float scale = sqrtf(2.0f / (dimVoc + dimEmb));
 

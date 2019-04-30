@@ -10,22 +10,6 @@ namespace mlp {
  * Base class for layer factories, can be used in a multi-layer network factory.
  */
 struct LayerFactory : public Factory {
-  //LayerFactory() : Factory() {}
-  //LayerFactory(const LayerFactory&) = default;
-  //LayerFactory(LayerFactory&&) = default;
-  //
-  //virtual ~LayerFactory() {}
-
-  //template <typename Cast>
-  //inline Ptr<Cast> as() {
-  //  return std::dynamic_pointer_cast<Cast>(shared_from_this());
-  //}
-  //
-  //template <typename Cast>
-  //inline bool is() {
-  //  return as<Cast>() != nullptr;
-  //}
-
   virtual Ptr<IUnaryLayer> construct(Ptr<ExpressionGraph> graph) = 0;
 };
 
@@ -52,24 +36,10 @@ typedef Accumulator<DenseFactory> dense;
  * Factory for output layers, can be used in a multi-layer network factory.
  */
 struct LogitLayerFactory : public Factory {
-  //LogitLayerFactory() : Factory() {}
-  //LogitLayerFactory(const LogitLayerFactory&) = default;
-  //LogitLayerFactory(LogitLayerFactory&&) = default;
-  //
-  //virtual ~LogitLayerFactory() {}
-  //
-  //template <typename Cast>
-  //inline Ptr<Cast> as() {
-  //  return std::dynamic_pointer_cast<Cast>(shared_from_this());
-  //}
-  //
-  //template <typename Cast>
-  //inline bool is() {
-  //  return as<Cast>() != nullptr;
-  //}
-
   virtual Ptr<IUnaryLogitLayer> construct(Ptr<ExpressionGraph> graph) = 0;
 };
+
+// @TODO: In the long run, I hope we can get rid of the abstract factories altogether.
 class OutputFactory : public LogitLayerFactory {
 protected:
   std::string tiedTransposedName_;
@@ -199,7 +169,9 @@ public:
     return Accumulator<MLPFactory>(*this);
   }
 
-  // special case for last layer, which may be a IUnaryLogitLayer. Requires some hackery
+  // Special case for last layer, which may be a IUnaryLogitLayer. Requires some hackery,
+  // which will go away if we get rid of the abstract factories, and instead just construct
+  // all layers immediately, which is my long-term goal for Marian.
 private:
   template<class WrappedFactory>
   class AsLayerFactory : public LayerFactory {

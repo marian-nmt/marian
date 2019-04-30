@@ -13,6 +13,7 @@
 // * factor name (e.g. all-caps: |ca )
 // * factor index (e.g. |ca is index 0 inside |ca |ci |cn)
 // * factor unit index (|ca is unit 41324 in joint factor vocab)
+// Also remove references to older outdated versions.
 
 namespace marian {
 
@@ -39,7 +40,7 @@ namespace marian {
     //     - _x <-> form only allows "_x <->" or "_x <-> _has_x" (same x), and is otherwise unused
     //     - _lemma is special
     // The current version of the code just converts it internally to the legacy form.
-    // Once the legacy form is no longer needed, must of this can be simplified a lot.
+    // @TODO: Once the legacy form is no longer needed, simplify this.
     io::InputFileStream in(modelPath);
     WordIndex v = 0;
     std::map<std::string,std::set<std::string>> factorTypeMap; // [type name] -> {factor-type names}
@@ -711,7 +712,7 @@ void FactoredVocab::WordLUT::dumpToFile(const std::string& path) {
     out << kvp.second << "\t" << utils::withCommas(kvp.first) << "\n";
 }
 
-const static std::vector<std::string> exts{ ".fsv", ".fm"/*legacy*/ };
+const static std::vector<std::string> exts{ ".fsv", ".fm"/*legacy*/ }; // @TODO: delete the legacy one
 
 // Note: This does not actually load it, only checks the path for the type.
 // Since loading takes a while, we cache instances.
