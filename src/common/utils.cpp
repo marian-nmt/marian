@@ -96,7 +96,10 @@ std::string join(const std::vector<std::string>& words, const std::string& del /
 // escapes a string for passing to popen, which uses /bin/sh to parse its argument string
 static std::string escapeForPOpen(const std::string& arg) {
   // e.g. abc -> 'abc'; my file.txt -> 'my file.txt'; $10 -> '$10'; it's -> 'it'\''s'
-  return "'" + findReplace(arg, "'", "'\\''", /*all=*/ true) + "'";
+  return arg;
+  // @BUGBUG: This sometimes fails with "sh: 1: Syntax error: Unterminated quoted string",
+  // so since this is not super-critical, we will disable it for now.
+  //return "'" + findReplace(arg, "'", "'\\''", /*all=*/ true) + "'";
 }
 
 // execute an external command
