@@ -14,6 +14,8 @@
 #define NodeOp(op) [=]() { op; }
 
 // helper macro to disable optimization (gcc only)
+// To use this, just insert DONT_OPTIMIZE right before the function definition
+// (e.g. where the "static" keyword would go).
 #ifdef __GNUC__
 #define DONT_OPTIMIZE __attribute__((optimize("O0")))
 #else

@@ -412,4 +412,15 @@ public:
 };
 
 typedef std::shared_ptr<TensorBase> Tensor;
+
+// debugging helper, to read out a memory piece into an STL vector (e.g. for inspection in debugger)
+template<typename T>
+static inline std::vector<T> get(Ptr<MemoryPiece> memory, Ptr<Backend> backend) {
+  size_t n = memory->size() / sizeof(T);
+  TensorBase t(memory, Shape({ (int)n }), getType<T>(), backend);
+  std::vector<T> res;
+  t.get(res);
+  return res;
+}
+
 }  // namespace marian

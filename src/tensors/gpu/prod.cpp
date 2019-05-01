@@ -227,16 +227,6 @@ void ProdBatched(marian::Tensor C,
   allocator->free(mp_cptr);
 }
 
-// debugging helper   --@TODO: move it to some shared place?
-template<typename T>
-static std::vector<T> get(Ptr<MemoryPiece> memory, Ptr<marian::Backend> backend) {
-  size_t n = memory->size() / sizeof(T);
-  TensorBase t(memory, Shape({(int)n}), getType<T>(), backend);
-  std::vector<T> res;
-  t.get(res);
-  return res;
-}
-
 // bug in cuSparse: sparse matrix is limited to 65535 columns
 // This function is a drop-in replacement that handles it (by slicing).
 cusparseStatus_t
