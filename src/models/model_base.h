@@ -3,6 +3,7 @@
 #include <string>
 #include "marian.h"
 #include "layers/loss.h"
+#include "layers/generic.h"
 
 namespace marian {
 namespace models {
@@ -28,9 +29,9 @@ public:
                     bool saveTranslatorConfig = false)
       = 0;
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                          Ptr<data::Batch> batch,
-                          bool clearGraph = true)
+  virtual Logits build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::Batch> batch,
+                       bool clearGraph = true)
       = 0;
 
   virtual void clear(Ptr<ExpressionGraph> graph) = 0;

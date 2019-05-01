@@ -497,7 +497,7 @@ struct ReduceNodeOp : public UnaryNodeOp {
       return {NodeOp(Add((_1 == _2) * _3, child(0)->grad(), child(0)->val(), val_, adj_))};
     case ReduceNodeOpCode::logSumExp:
       // y = log(sum_j exp(x_j))
-       // dJ/dx_i = dJ/dy * 1/(sum_j exp(x_j)) exp(x_i) = dJ/dy * exp(x_i - y))  --@REVIEW: is this correct?
+      // dJ/dx_i = dJ/dy * 1/(sum_j exp(x_j)) exp(x_i) = dJ/dy * exp(x_i - y))  --@REVIEW: is this correct?
       return {NodeOp(Add(_1 * exp(_2 - _3), child(0)->grad(), adj_, child(0)->val(), val_))};
     default:
       ABORT("Unexpected reduction op-code {}", (int)opCode_);

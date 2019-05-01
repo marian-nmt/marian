@@ -119,11 +119,12 @@ public:
     return context;
   }
 
-  Ptr<IEmbeddingLayer> createSourceEmbedding(Ptr<ExpressionGraph> graph) {
+  Ptr<IEmbeddingLayer> createSourceEmbeddingLayer(Ptr<ExpressionGraph> graph) {
     // create source embeddings
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");
 
+    // @TODO: code dup with Decoder and EncoderTransformer; actually diverged by now. Unify this.
     auto embFactory = embedding()  //
         ("dimVocab", dimVoc)       //
         ("dimEmb", dimEmb);
@@ -143,14 +144,21 @@ public:
           ("normalization", opt<bool>("embedding-normalization"));
     }
 
+    embFactory("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored embeddings
     return embFactory.construct(graph);
   }
 
   EncoderS2S(Ptr<Options> options) : EncoderBase(options) {}
 
+  std::vector<Ptr<IEmbeddingLayer>> embedding_; // @TODO: move away, also rename
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
                                   Ptr<data::CorpusBatch> batch) override {
-    auto embedding = createSourceEmbedding(graph);
+    // lazily create embedding layer
+    if (embedding_.empty() || !embedding_[batchIndex_]) { // lazy
+      embedding_.resize(batch->sets());
+      embedding_[batchIndex_] = createSourceEmbeddingLayer(graph);
+    }
+    auto embedding = embedding_[batchIndex_];
 
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask; std::tie
@@ -238,7 +246,8 @@ private:
   }
 
 public:
-  DecoderS2S(Ptr<Options> options) : DecoderBase(options) {}
+  DecoderS2S(Ptr<Options> options) : DecoderBase(options) {
+  }
 
   virtual Ptr<DecoderState> startState(
       Ptr<ExpressionGraph> graph,
@@ -277,7 +286,7 @@ public:
     }
 
     rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
-    return New<DecoderState>(startStates, nullptr, encStates, batch);
+    return New<DecoderState>(startStates, Logits(), encStates, batch);
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
@@ -342,9 +351,8 @@ public:
           tiedPrefix = "Wemb";
         last.tieTransposed(tiedPrefix);
       }
-
-      if(shortlist_)
-        last.setShortlist(shortlist_);
+      last("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored outputs
+      last("lemma-dim-emb", opt<int>("lemma-dim-emb", 0)); // for factored outputs
 
       // assemble layers into MLP and apply to embeddings, decoder context and
       // aligned source context
@@ -354,15 +362,18 @@ public:
                     .construct(graph);
     }
 
-    Expr logits;
+    if (shortlist_)
+      output_->setShortlist(shortlist_);
+
+    Logits logits;
     if(alignedContext)
-      logits = output_->apply(embeddings, decoderContext, alignedContext);
+      logits = output_->applyAsLogits({embeddings, decoderContext, alignedContext});
     else
-      logits = output_->apply(embeddings, decoderContext);
+      logits = output_->applyAsLogits({embeddings, decoderContext});
 
     // return unormalized(!) probabilities
     auto nextState = New<DecoderState>(
-        decoderStates, logits, state->getEncoderStates(), state->getBatch());
+      decoderStates, logits, state->getEncoderStates(), state->getBatch());
 
     // Advance current target token position by one
     nextState->setPosition(state->getPosition() + 1);
@@ -378,7 +389,8 @@ public:
 
   void clear() override {
     rnn_ = nullptr;
-    output_ = nullptr;
+    if (output_)
+      output_->clear();
   }
 };
 }  // namespace marian

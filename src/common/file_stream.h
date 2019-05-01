@@ -18,6 +18,15 @@
 #include <iostream>
 #include <memory>
 
+#ifdef __GNUC__ // not supported; maybe we just need to increment a standard flag in gcc/cmake?
+namespace std {
+  template<typename T, typename... Args>
+  std::unique_ptr<T> make_unique(Args&&... args) {
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+  }
+}
+#endif
+
 #ifdef _MSC_VER
 #include <fcntl.h>
 #include <io.h>
@@ -139,10 +148,10 @@ public:
     ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
 
     if(file_.extension() == marian::filesystem::Path(".gz"))
-      // @TODO: consider make_unique for next refactoring
-      istream_.reset(new zstr::ifstream(file_.string()));
+      istream_ = std::make_unique<zstr::ifstream>(file_.string());
     else
-      istream_.reset(new std::ifstream(file_.string()));
+      istream_ = std::make_unique<std::ifstream>(file_.string());
+    ABORT_IF(fail(), "Error {} ({}) opening file '{}'", errno, strerror(errno), path());
   }
 
   InputFileStream(TemporaryFile& tempfile)
@@ -150,8 +159,8 @@ public:
     lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
 
     namespace bio = boost::iostreams;
-    fdsBuffer_.reset(new bio::stream_buffer<bio::file_descriptor_source>(fds_));
-    istream_.reset(new std::istream(fdsBuffer_.get()));
+    fdsBuffer_ = std::make_unique<bio::stream_buffer<bio::file_descriptor_source>>(fds_);
+    istream_ = std::make_unique<std::istream>(fdsBuffer_.get());
   }
 
   InputFileStream(std::istream& strm)
@@ -187,7 +196,7 @@ public:
   friend InputFileStream& operator>>(InputFileStream& stream, T& t) {
     *stream.istream_ >> t;
     // bad() seems to be correct here. Should not abort on EOF.
-    ABORT_IF(stream.bad(), "Error reading from file '{}'", stream.path());
+    ABORT_IF(stream.bad(), "Error {} ({}) reading from file '{}'", errno, strerror(errno), stream.path());
     return stream;
   }
 
@@ -195,7 +204,7 @@ public:
   size_t read(T* ptr, size_t num = 1) {
     istream_->read((char*)ptr, num * sizeof(T));
     // fail() seems to be correct here. Failure to read should abort.
-    ABORT_IF(fail(), "Error reading from file '{}'", path());
+    ABORT_IF(fail(), "Error {} ({}) reading from file '{}'", errno, strerror(errno), path());
     return num * sizeof(T);
   }
 
@@ -236,10 +245,9 @@ class OutputFileStream {
 public:
   OutputFileStream(const std::string& file) : file_(file) {
     if(file_.extension() == marian::filesystem::Path(".gz"))
-      ostream_.reset(new zstr::ofstream(file_.string()));
+      ostream_ = std::make_unique<zstr::ofstream>(file_.string());
     else
-      ostream_.reset(new std::ofstream(file_.string()));
-
+      ostream_ = std::make_unique<std::ofstream>(file_.string());
     ABORT_IF(!marian::filesystem::exists(file_), "File '{}' could not be opened", file);
   }
 
@@ -248,25 +256,21 @@ public:
     lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
 
     namespace bio = boost::iostreams;
-    fdsBuffer_.reset(new bio::stream_buffer<bio::file_descriptor_sink>(fds_));
-    ostream_.reset(new std::ostream(fdsBuffer_.get()));
+    fdsBuffer_ = std::make_unique<bio::stream_buffer<bio::file_descriptor_sink>>(fds_);
+    ostream_ = std::make_unique<std::ostream>(fdsBuffer_.get());
   }
 
   OutputFileStream(std::ostream& strm) {
-    ostream_.reset(new std::ostream(strm.rdbuf()));
+    ostream_ = std::make_unique<std::ostream>(strm.rdbuf());
   }
 
   operator std::ostream&() { return *ostream_; }
 
   operator bool() { return (bool)*ostream_; }
 
-  bool bad() const {
-    return ostream_->bad();
-  }
+  bool bad() const { return ostream_->bad(); }
 
-  bool fail() const {
-    return ostream_->fail();
-  }
+  bool fail() const { return ostream_->fail(); }
 
   template <typename T>
   friend OutputFileStream& operator<<(OutputFileStream& stream, const T& t) {

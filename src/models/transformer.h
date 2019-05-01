@@ -6,7 +6,6 @@
 #include "marian.h"
 
 #include "layers/constructors.h"
-#include "layers/factory.h"
 #include "models/decoder.h"
 #include "models/encoder.h"
 #include "models/states.h"
@@ -524,7 +523,7 @@ public:
     return embFactory.construct(graph_);
   }
 
-  Ptr<IEmbeddingLayer> createWordEmbeddingLayer(size_t subBatchIndex) const {
+  Ptr<IEmbeddingLayer> createSourceEmbeddingLayer(size_t subBatchIndex) const {
     // standard encoder word embeddings
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[subBatchIndex];
     int dimEmb = opt<int>("dim-emb");
@@ -540,6 +539,7 @@ public:
       embFactory("embFile", embFiles[subBatchIndex])
                 ("normalization", opt<bool>("embedding-normalization"));
     }
+    embFactory("vocab", opt<std::vector<std::string>>("vocabs")[subBatchIndex]); // for factored embeddings
     return embFactory.construct(graph_);
   }
 
@@ -549,19 +549,22 @@ public:
     return apply(batch);
   }
 
-  virtual Ptr<EncoderState> apply(Ptr<data::CorpusBatch> batch) {
+  std::vector<Ptr<IEmbeddingLayer>> embedding_; // @TODO: move away, also rename
+  Ptr<EncoderState> apply(Ptr<data::CorpusBatch> batch) {
     int dimBatch = (int)batch->size();
     int dimSrcWords = (int)(*batch)[batchIndex_]->batchWidth();
     // create the embedding matrix, considering tying and some other options
     // embed the source words in the batch
     Expr batchEmbeddings, batchMask;
-    Ptr<IEmbeddingLayer> embedding;
-    if (options_->has("ulr") && options_->get<bool>("ulr") == true)
-      embedding = createULREmbeddingLayer(); // embedding uses ULR
-    else
-      embedding = createWordEmbeddingLayer(batchIndex_);
-    std::tie(batchEmbeddings, batchMask) = embedding->apply((*batch)[batchIndex_]);
 
+    if (embedding_.empty() || !embedding_[batchIndex_]) { // lazy
+      embedding_.resize(batch->sets());
+      if (options_->has("ulr") && options_->get<bool>("ulr") == true)
+        embedding_[batchIndex_] = createULREmbeddingLayer(); // embedding uses ULR
+      else
+        embedding_[batchIndex_] = createSourceEmbeddingLayer(batchIndex_);
+    }
+    std::tie(batchEmbeddings, batchMask) = embedding_[batchIndex_]->apply((*batch)[batchIndex_]);
     // apply dropout over source words
     float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");
     if(dropoutSrc) {
@@ -611,7 +614,7 @@ public:
 class TransformerState : public DecoderState {
 public:
   TransformerState(const rnn::States& states,
-                   Expr logProbs,
+                   Logits logProbs,
                    const std::vector<Ptr<EncoderState>>& encStates,
                    Ptr<data::CorpusBatch> batch)
       : DecoderState(states, logProbs, encStates, batch) {}
@@ -651,6 +654,9 @@ private:
       outputFactory.tieTransposed(tiedPrefix);
     }
 
+    outputFactory("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored outputs
+    outputFactory("lemma-dim-emb", opt<int>("lemma-dim-emb", 0)); // for factored outputs
+
     output_ = std::dynamic_pointer_cast<mlp::Output>(outputFactory.construct(graph_)); // (construct() returns only the underlying interface)
   }
 
@@ -672,11 +678,11 @@ public:
       rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
 
       // don't use TransformerState for RNN layers
-      return New<DecoderState>(startStates, nullptr, encStates, batch);
+      return New<DecoderState>(startStates, Logits(), encStates, batch);
     }
     else {
       rnn::States startStates;
-      return New<TransformerState>(startStates, nullptr, encStates, batch);
+      return New<TransformerState>(startStates, Logits(), encStates, batch);
     }
   }
 
@@ -835,16 +841,16 @@ public:
     // final feed-forward layer (output)
     if(shortlist_)
       output_->setShortlist(shortlist_);
-    Expr logits = output_->apply(decoderContext); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab or shortlist dim]
+    auto logits = output_->applyAsLogits(decoderContext); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab or shortlist dim]
 
     // return unormalized(!) probabilities
     Ptr<DecoderState> nextState;
     if (opt<std::string>("transformer-decoder-autoreg", "self-attention") == "rnn") {
       nextState = New<DecoderState>(
-          decoderStates, logits, state->getEncoderStates(), state->getBatch());
+        decoderStates, logits, state->getEncoderStates(), state->getBatch());
     } else {
       nextState = New<TransformerState>(
-          decoderStates, logits, state->getEncoderStates(), state->getBatch());
+        decoderStates, logits, state->getEncoderStates(), state->getBatch());
     }
     nextState->setPosition(state->getPosition() + 1);
     return nextState;

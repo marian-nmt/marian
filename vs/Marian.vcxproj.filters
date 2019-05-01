@@ -481,6 +481,12 @@
     <ClCompile Include="..\src\models\transformer_stub.cpp">
       <Filter>models</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\layers\generic.cpp">
+      <Filter>layers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\factored_vocab.cpp">
+      <Filter>data</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -1111,9 +1117,6 @@
     <ClInclude Include="..\src\tensors\tensor_operators.h">
       <Filter>tensors</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\tensors\types.h">
-      <Filter>tensors</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\tensors\cpu\add.h">
       <Filter>tensors\cpu</Filter>
     </ClInclude>
@@ -1526,6 +1529,9 @@
       <Filter>models</Filter>
     </ClInclude>
     <ClInclude Include="..\src\data\vocab_base.h">
+      <Filter>data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\data\factored_vocab.h">
       <Filter>data</Filter>
     </ClInclude>
     <ClInclude Include="..\src\models\classifier.h">

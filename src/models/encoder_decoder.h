@@ -28,14 +28,14 @@ public:
 
   virtual void clear(Ptr<ExpressionGraph> graph) override = 0;
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::Batch> batch,
-                     bool clearGraph = true) override = 0;
+  virtual Logits build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::Batch> batch,
+                       bool clearGraph = true) override = 0;
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::CorpusBatch> batch,
-                     bool clearGraph = true) = 0;  
-                                  
+  virtual Logits build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::CorpusBatch> batch,
+                       bool clearGraph = true) = 0;
+
   virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
                                        Ptr<data::CorpusBatch> batch) = 0;
 
@@ -46,7 +46,6 @@ public:
                                  int dimBatch,
                                  int beamSize)
       = 0;
-
 
   virtual Ptr<Options> getOptions() = 0;
 
@@ -156,13 +155,13 @@ public:
                                     Ptr<data::CorpusBatch> batch,
                                     bool clearGraph = true);
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                          Ptr<data::CorpusBatch> batch,
-                          bool clearGraph = true) override;
+  virtual Logits build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::CorpusBatch> batch,
+                       bool clearGraph = true) override;
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                          Ptr<data::Batch> batch,
-                          bool clearGraph = true) override;
+  virtual Logits build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::Batch> batch,
+                       bool clearGraph = true) override;
 };
 
 }  // namespace marian

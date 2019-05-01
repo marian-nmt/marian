@@ -96,7 +96,7 @@ private:
           a.rbegin(), a.rend(), b.rbegin(), b.rend(), itemCmp);
     };
 
-    auto cmpNone = [](const Sample& a, const Sample& b) { return &a < &b; }; // instead sort by address, so we have something to work with
+    auto cmpNone = [](const Sample& a, const Sample& b) { return a.getId() > b.getId(); }; // sort in order of original ids = original data order unless shuffling
 
     typedef std::function<bool(const Sample&, const Sample&)> cmp_type;
     typedef std::priority_queue<Sample, Samples, cmp_type> sample_queue;
@@ -130,9 +130,9 @@ private:
     while(current_ != data_->end() && maxiBatch->size() < maxSize) { // loop over data
       maxiBatch->push(*current_);
       sets = current_->size();
-        // do not consume more than required for the maxi batch as this causes
-        // that line-by-line translation is delayed by one sentence
-        bool last = maxiBatch->size() == maxSize;
+      // do not consume more than required for the maxi batch as this causes
+      // that line-by-line translation is delayed by one sentence
+      bool last = maxiBatch->size() == maxSize;
       if(!last)
         ++current_; // this actually reads the next line and pre-processes it
     }

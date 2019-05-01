@@ -140,6 +140,10 @@ public:
 
   template <typename T>
   void set(const T* begin, const T* end) {
+    ABORT_IF(end - begin != shape_.elements(),
+             "Vector size ({}) and underlying shape ({}) do not match",
+             end - begin,
+             std::string(shape_));
     ABORT_IF(!matchType<T>(type_),
              "Requested type ({}) and underlying type ({}) do not match",
              request<T>(),
@@ -408,4 +412,15 @@ public:
 };
 
 typedef std::shared_ptr<TensorBase> Tensor;
+
+// debugging helper, to read out a memory piece into an STL vector (e.g. for inspection in debugger)
+template<typename T>
+static inline std::vector<T> get(Ptr<MemoryPiece> memory, Ptr<Backend> backend) {
+  size_t n = memory->size() / sizeof(T);
+  TensorBase t(memory, Shape({ (int)n }), getType<T>(), backend);
+  std::vector<T> res;
+  t.get(res);
+  return res;
+}
+
 }  // namespace marian

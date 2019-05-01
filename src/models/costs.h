@@ -117,7 +117,7 @@ public:
     // multi-objective training
     Ptr<MultiRationalLoss> multiLoss = newMultiLoss(options_);
     for(int i = 0; i < states.size(); ++i) {
-      auto partialLoss = loss_->apply(states[i]->getLogProbs(),
+      auto partialLoss = loss_->apply(Logits(states[i]->getLogProbs()),
                                       states[i]->getTargetWords(),
                                       /*mask=*/nullptr,
                                       /*weights=*/nullptr);
@@ -151,8 +151,8 @@ public:
   }
 
   virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
-                                  Ptr<data::Batch> batch,
-                                  bool clearGraph = true) override {
+                       Ptr<data::Batch> batch,
+                       bool clearGraph = true) override {
     return cost_->apply(model_, graph, batch, clearGraph);
   };
 
@@ -161,7 +161,7 @@ public:
 
 class ILogProb {
 public:
-  virtual Expr apply(Ptr<IModel> model,
+  virtual Logits apply(Ptr<IModel> model,
                      Ptr<ExpressionGraph> graph,
                      Ptr<data::Batch> batch,
                      bool clearGraph = true) = 0;
@@ -193,7 +193,7 @@ public:
     model_->save(graph, name, saveTranslatorConfig);
   }
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
+  virtual Logits build(Ptr<ExpressionGraph> graph,
                      Ptr<data::Batch> batch,
                      bool clearGraph = true) override {
     return logProb_->apply(model_, graph, batch, clearGraph);
@@ -204,6 +204,8 @@ public:
 
 class ILogProbStep {
 public:
+  // @BUGBUG: This is not a function application. Rather, it updates 'state' in-place.
+  // Suggest to call it updateState, and not return the state object.
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) = 0;
 };
 
@@ -211,11 +213,7 @@ class LogSoftmaxStep : public ILogProbStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     // decoder needs normalized probabilities (note: skipped if beam 1 and --skip-cost)
-    auto logits = state->getLogProbs();
-
-    auto logprobs = logsoftmax(logits);
-
-    state->setLogProbs(logprobs);
+    state->setLogProbs(state->getLogProbs().applyUnaryFunction(logsoftmax));
     return state;
   }
 };
@@ -226,11 +224,11 @@ public:
 class GumbelSoftmaxStep : public ILogProbStep {
 public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
-    auto logits = state->getLogProbs();
-
-    auto logprobs = logsoftmax(logits + constant_like(logits, inits::gumbel));
-
-    state->setLogProbs(logprobs);
+    state->setLogProbs(state->getLogProbs().applyUnaryFunctions(
+      [](Expr logits){ // lemma gets gumbelled
+        return logsoftmax(logits + constant_like(logits, inits::gumbel));
+      },
+      logsoftmax)); // factors don't
     return state;
   }
 };
@@ -267,9 +265,9 @@ public:
 
   virtual void clear(Ptr<ExpressionGraph> graph) override { encdec_->clear(graph); }
 
-  virtual Expr build(Ptr<ExpressionGraph> graph,
-                     Ptr<data::Batch> batch,
-                     bool clearGraph = true) override {
+  virtual Logits build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::Batch> batch,
+                       bool clearGraph = true) override {
     auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
     return build(graph, corpusBatch, clearGraph);
   }
@@ -290,11 +288,10 @@ public:
     return cost_->apply(nextState);
   }
 
-  virtual Expr build(Ptr<ExpressionGraph> /*graph*/,
-                     Ptr<data::CorpusBatch> /*batch*/,
-                     bool /*clearGraph*/ = true) override {
+  virtual Logits build(Ptr<ExpressionGraph> /*graph*/,
+                       Ptr<data::CorpusBatch> /*batch*/,
+                       bool /*clearGraph*/ = true) override {
     ABORT("Wrong wrapper. Use models::Trainer or models::Scorer");
-    return nullptr;
   }
 
   virtual Ptr<Options> getOptions() override { return encdec_->getOptions(); };

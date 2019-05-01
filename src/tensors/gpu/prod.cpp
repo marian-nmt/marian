@@ -227,6 +227,30 @@ void ProdBatched(marian::Tensor C,
   allocator->free(mp_cptr);
 }
 
+// bug in cuSparse: sparse matrix is limited to 65535 columns
+// This function is a drop-in replacement that handles it (by slicing).
+cusparseStatus_t
+static cusparseSgemmiEx(cusparseHandle_t handle, int m,
+  int n, // the offending number of columns of matrices B and C
+  int k, int nnz, const float *alpha, const float *A, int lda,
+  const float *cscValB, const int *cscColPtrB, const int *cscRowIndB, const float *beta,
+  float *C, int ldc)
+{
+  const int nMax = 65535; // max. number of columns allowed by cuSparse 10 implementation
+  for (int j0 = 0; j0 < n; j0 += 65535) { // loop over column slices, j0 = index of first column
+    // Call original function on a column slice.
+    // Replace all parameters that relate to the column slice.
+    // nnz does not need to be corrected.
+    auto n1 = std::min(n - j0, nMax);   // width of column slice is limited to max
+    auto C1 = C + j0 * ldc;             // column slice into result matrix C
+    auto cscColPtrB1 = cscColPtrB + j0; // column slice into sparse factor B
+    auto rc = cusparseSgemmi(handle, m, n1, k, nnz, alpha, A, lda, cscValB, cscColPtrB1, cscRowIndB, beta, C1, ldc);
+    if (rc != CUSPARSE_STATUS_SUCCESS)
+      return rc;
+  }
+  return CUSPARSE_STATUS_SUCCESS;
+}
+
 // C = op(S) x D if not swapOperands else C = D x op(S)
 // op(S) = S if not transA else S^T
 void CSRProd(marian::Tensor C,
@@ -315,7 +339,7 @@ void CSRProd(marian::Tensor C,
   else {
     // C = S x D for row-major matrices
     // Implemented via cusparse as C' = D' x S' ("gemmi") where C' and D' are column-major.
-    CUSPARSE_CHECK(cusparseSgemmi(cusparseHandle,
+    CUSPARSE_CHECK(cusparseSgemmiEx(cusparseHandle,
         /*m=*/ colsD, // #rows of first (col-major) factor = #cols of row-major D
         /*n=*/ rowsC, // #cols of second (CSC) factor and (col-major) result = #rows of row-major C
         /*k=*/ rowsD, // #cols of first (col-major) factor = #rows of row-major D
@@ -324,11 +348,14 @@ void CSRProd(marian::Tensor C,
         /*A=*/ D->data(),
         /*lda=*/ colsD, // stride
         /*cscValB=*/    St_values  ? St_values ->data<float>() :       S_values ->data<float>(),
-        /*cscRowPtrB=*/ St_offsets ? St_offsets->data<int>()   : (int*)S_offsets->data<IndexType>(),
-        /*cscColIndB=*/ St_indices ? St_indices->data<int>()   : (int*)S_indices->data<IndexType>(),
+        /*cscColPtrB=*/ St_offsets ? St_offsets->data<int>()   : (int*)S_offsets->data<IndexType>(),
+        /*cscRowIndB=*/ St_indices ? St_indices->data<int>()   : (int*)S_indices->data<IndexType>(),
         &beta,
         C->data(),
         /*ldc=*/ colsC)); // stride
+    // Note: cuSparse 10 docs says this about cscColPtrB:
+    //   "integer array of k + 1 elements that contains the start of every row and the end of the last row plus one."
+    // This is wrong. It should be col instead of row, and n instead of k.
   }
   if(St_values ) allocator->free(St_values );
   if(St_indices) allocator->free(St_indices);

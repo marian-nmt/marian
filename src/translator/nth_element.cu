@@ -365,9 +365,9 @@ public:
     const auto inputN    = scores->shape()[-2];
     const auto dimBatch  = scores->shape()[-4];
     ABORT_IF(inputN != (isFirst ? 1 : N), "Input tensor has wrong beam dim??"); // @TODO: Remove isFirst argument altogether
-    ABORT_IF(vocabSize > MAX_VOCAB_SIZE, "GetNBestList(): actual vocab size exceeds MAX_VOCAB_SIZE");
-    ABORT_IF(dimBatch > maxBatchSize_, "GetNBestList(): actual batch size exceeds initialization parameter");
-    ABORT_IF(std::max(N, (size_t)inputN) > maxBeamSize_, "GetNBestList(): actual beam size exceeds initialization parameter");
+    ABORT_IF(vocabSize > MAX_VOCAB_SIZE, "GetNBestList(): actual vocab size {} exceeds MAX_VOCAB_SIZE of {}", vocabSize, MAX_VOCAB_SIZE);
+    ABORT_IF(dimBatch > maxBatchSize_, "GetNBestList(): actual batch size {} exceeds initialization parameter {}", dimBatch, maxBatchSize_);
+    ABORT_IF(std::max(N, (size_t)inputN) > maxBeamSize_, "GetNBestList(): actual beam size {} exceeds initialization parameter {}", N, maxBeamSize_);
 
     const std::vector<size_t> beamSizes(dimBatch, N);
     std::vector<int> cumulativeBeamSizes(beamSizes.size() + 1, 0);
@@ -434,7 +434,7 @@ private:
 
   DeviceId deviceId_;
 
-  const int MAX_VOCAB_SIZE = 100000;
+  const int MAX_VOCAB_SIZE = 500000;
   size_t maxBeamSize_;
   size_t maxBatchSize_;
 

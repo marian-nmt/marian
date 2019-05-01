@@ -9,9 +9,7 @@ namespace marian {
 
 class ScorerState {
 public:
-  virtual Expr getLogProbs() const = 0;
-
-  float breakDown(size_t i) const { return getLogProbs()->val()->get(i); }
+  virtual Logits getLogProbs() const = 0;
 
   virtual void blacklist(Expr /*totalCosts*/, Ptr<data::CorpusBatch> /*batch*/){};
 };
@@ -57,7 +55,7 @@ public:
 
   virtual Ptr<DecoderState> getState() { return state_; }
 
-  virtual Expr getLogProbs() const override { return state_->getLogProbs(); };
+  virtual Logits getLogProbs() const override { return state_->getLogProbs(); };
 
   virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) override {
     state_->blacklist(totalCosts, batch);
@@ -130,7 +128,7 @@ public:
   };
 
   virtual std::vector<float> getAlignment() override {
-    return encdec_->getAlignment().front();
+    return encdec_->getAlignment().front(); // [beam depth, max src length, batch size, 1]
   }
 };
 

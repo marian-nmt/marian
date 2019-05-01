@@ -44,6 +44,7 @@ protected:
   };
 
 public:
+  // @TODO: choose between 'virtual' and 'final'. Can we derive from this class?
   virtual const std::string& canonicalExtension() const override { return suffixes_[0]; }
   virtual const std::vector<std::string>& suffixes() const override { return suffixes_; }
 
@@ -61,9 +62,13 @@ public:
   }
 
   std::string decode(const Words& sentence, bool ignoreEOS) const override {
-    std::string line;
     auto tokens = (*this)(sentence, ignoreEOS);
     return utils::join(tokens, " ");
+  }
+
+  std::string surfaceForm(const Words& sentence) const override {
+    sentence;
+    ABORT("surfaceForm() not supported by this vocabulary type");
   }
 
   virtual std::string type() const override { return "DefaultVocab"; }
@@ -108,7 +113,6 @@ public:
                 vocabPath);
         auto wasInserted = vocab.insert({line, Word::fromWordIndex(vocab.size())}).second;
         ABORT_IF(!wasInserted, "Duplicate vocabulary entry {}", line);
-
       }
       ABORT_IF(in.bad(), "DefaultVocabulary file {} could not be read", vocabPath);
     }

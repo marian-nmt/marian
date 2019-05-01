@@ -57,6 +57,7 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
   modelFeatures_.insert("ulr");
   modelFeatures_.insert("ulr-trainable-transformation");
   modelFeatures_.insert("ulr-dim-emb");
+  modelFeatures_.insert("lemma-dim-emb");
 }
 
 std::vector<Ptr<EncoderBase>>& EncoderDecoder::getEncoders() {
@@ -170,7 +171,7 @@ Ptr<DecoderState> EncoderDecoder::step(Ptr<ExpressionGraph> graph,
   // create updated state that reflects reordering and dropping of hypotheses
   state = hypIndices.empty() ? state : state->select(hypIndices, beamSize);
 
-  // Fill stte with embeddings based on last prediction
+  // Fill state with embeddings based on last prediction
   decoders_[0]->embeddingsFromPrediction(graph, state, words, dimBatch, beamSize);
   auto nextState = decoders_[0]->step(graph, state);
 
@@ -195,7 +196,7 @@ Ptr<DecoderState> EncoderDecoder::stepAll(Ptr<ExpressionGraph> graph,
   return nextState;
 }
 
-Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
+Logits EncoderDecoder::build(Ptr<ExpressionGraph> graph,
                            Ptr<data::CorpusBatch> batch,
                            bool clearGraph) {
   auto state = stepAll(graph, batch, clearGraph);
@@ -204,7 +205,7 @@ Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
   return state->getLogProbs();
 }
 
-Expr EncoderDecoder::build(Ptr<ExpressionGraph> graph,
+Logits EncoderDecoder::build(Ptr<ExpressionGraph> graph,
                            Ptr<data::Batch> batch,
                            bool clearGraph) {
   auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);

@@ -71,6 +71,7 @@ public:
       const auto& hypo = std::get<1>(result);
       best1 << " ||| " << getAlignment(hypo);
     }
+
     best1 << std::flush;
   }
 

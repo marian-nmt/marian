@@ -21,13 +21,10 @@ public:
   NthElementCPU(const NthElementCPU& copy) = delete;
 
 private:
-    void selectNBest(const float* scores,
-                     const std::vector<int>& batchFirstElementIdxs,
-                     const std::vector<int>& cumulativeBeamSizes) {
-    // For each batch, select the max N elements, where N is the beam size for
-    // this batch. Locally record these elements (their current value and index
-    // in 'scores').
-
+  // for each batch, select the max N elements, where N is the beam size for this batch.
+  void selectNBest(const float* scores,
+                   const std::vector<int>& batchFirstElementIdxs,
+                   const std::vector<int>& cumulativeBeamSizes) {
     int numProbs = batchFirstElementIdxs.back();
     std::vector<int> idxs(numProbs);
     std::iota(idxs.begin(), idxs.end(), 0);
@@ -47,7 +44,6 @@ private:
         int idx = *begin++;
         h_res_idx[pos] = idx;
         h_res[pos] = scores[idx];
-        //scores[idx] = std::numeric_limits<float>::lowest();
         ++pos;
       }
     }
@@ -68,18 +64,10 @@ public:
     std::vector<int> batchFirstElementIdxs(dimBatch + 1, 0);
 
     for(int batchIdx = 0; batchIdx < dimBatch; ++batchIdx) {
-#if 1
       cumulativeBeamSizes[batchIdx + 1] = (batchIdx + 1) * (int)N;
       batchFirstElementIdxs[batchIdx + 1] += (batchIdx + 1) * inputN * vocabSize;
       ABORT_IF(cumulativeBeamSizes[batchIdx + 1] != cumulativeBeamSizes[batchIdx] + (int)N, "cumulativeBeamSizes wrong??");
       ABORT_IF((isFirst ? batchIdx + 1 : cumulativeBeamSizes[batchIdx + 1]) != (batchIdx + 1) * inputN, "inputN wrong??");
-#else
-      cumulativeBeamSizes[batchIdx + 1] = cumulativeBeamSizes[batchIdx] + (int)N;
-      ABORT_IF(cumulativeBeamSizes[batchIdx + 1] != (batchIdx + 1) * N, "cumulativeBeamSizes wrong??");
-      batchFirstElementIdxs[batchIdx + 1]
-          += (isFirst ? batchIdx + 1 : cumulativeBeamSizes[batchIdx + 1]) * vocabSize;
-      ABORT_IF((isFirst ? batchIdx + 1 : cumulativeBeamSizes[batchIdx + 1]) != (batchIdx + 1) * inputN, "inputN wrong??");
-#endif
     }
     ABORT_IF(cumulativeBeamSizes.back() != dimBatch * N, "cumulativeBeamSizes.back() wrong??");
 

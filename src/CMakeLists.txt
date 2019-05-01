@@ -21,6 +21,7 @@ add_library(marian STATIC
   data/vocab.cpp
   data/default_vocab.cpp
   data/sentencepiece_vocab.cpp
+  data/factored_vocab.cpp
   data/corpus_base.cpp
   data/corpus.cpp
   data/corpus_sqlite.cpp
@@ -47,6 +48,7 @@ add_library(marian STATIC
   graph/node_initializers.cpp
 
   layers/convolution.cpp
+  layers/generic.cpp
   layers/loss.cpp
   layers/weight.cpp
 

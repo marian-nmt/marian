@@ -33,6 +33,7 @@ const std::set<std::string> PATHS = {
   "embedding-vectors",
   "valid-sets",
   "valid-script-path",
+  "valid-script-args",
   "valid-log",
   "valid-translation-output",
   "input",            // except: stdin
@@ -121,6 +122,9 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
   cli.add<int>("--dim-emb",
       "Size of embedding vector",
       512);
+  cli.add<int>("--lemma-dim-emb",
+      "Re-embedding dimension of lemma in factors",
+      0);
   cli.add<int>("--dim-rnn",
       "Size of rnn hidden state", 1024);
   cli.add<std::string>("--enc-type",
@@ -468,6 +472,9 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
      " It should print a single score to stdout."
      " If the option is used with validating translation, the output"
      " translation file will be passed as a first argument");
+  cli.add<std::vector<std::string>>("--valid-script-args",
+      "Additional args passed to --valid-script-path. These are inserted"
+      " between the script path and the output translation-file path");
   cli.add<std::string>("--valid-translation-output",
      "Path to store the translation");
 
@@ -630,6 +637,10 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
 
   cli.add<bool>("--shuffle-in-ram",
       "Keep shuffled corpus in RAM, do not write to temp file");
+  cli.add<size_t>("--all-caps-every",
+      "When forming minibatches, preprocess every Nth line on the fly to all-caps. Assumes UTF-8");
+  cli.add<size_t>("--english-title-case-every",
+      "When forming minibatches, preprocess every Nth line on the fly to title-case. Assumes English (ASCII only)");
 
   cli.add<int>("--mini-batch-words-ref",
       "If given, the following hyper parameters are adjusted as-if we had this mini-batch size: "

@@ -556,6 +556,7 @@
     <ClCompile Include="..\src\common\version.cpp" />
     <ClCompile Include="..\src\data\alignment.cpp" />
     <ClCompile Include="..\src\data\default_vocab.cpp" />
+    <ClCompile Include="..\src\data\factored_vocab.cpp" />
     <ClCompile Include="..\src\data\sentencepiece_vocab.cpp" />
     <ClCompile Include="..\src\data\vocab.cpp" />
     <ClCompile Include="..\src\data\corpus_base.cpp" />
@@ -575,6 +576,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\src\layers\generic.cpp" />
     <ClCompile Include="..\src\layers\loss.cpp" />
     <ClCompile Include="..\src\layers\weight.cpp" />
     <ClCompile Include="..\src\microsoft\quicksand.cpp">
@@ -700,6 +702,7 @@
     <ClInclude Include="..\src\common\timer.h" />
     <ClInclude Include="..\src\common\types.h" />
     <ClInclude Include="..\src\common\version.h" />
+    <ClInclude Include="..\src\data\factored_vocab.h" />
     <ClInclude Include="..\src\data\vocab_base.h" />
     <ClInclude Include="..\src\examples\mnist\dataset.h" />
     <ClInclude Include="..\src\examples\mnist\model.h" />
@@ -941,7 +944,6 @@
     <ClInclude Include="..\src\tensors\tensor.h" />
     <ClInclude Include="..\src\tensors\tensor_allocator.h" />
     <ClInclude Include="..\src\tensors\tensor_operators.h" />
-    <ClInclude Include="..\src\tensors\types.h" />
     <ClInclude Include="..\src\tensors\cpu\add.h" />
     <ClInclude Include="..\src\tensors\cpu\backend.h" />
     <ClInclude Include="..\src\tensors\cpu\element.h" />

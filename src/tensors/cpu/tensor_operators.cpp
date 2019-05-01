@@ -392,6 +392,7 @@ void CopyRows(Tensor out_,
   size_t cols = in_->shape()[-1];
   size_t rows = indices->size();
 
+  // note: may also be applied to IndexType; works by luck. Fix with fp16
   float* out = out_->data();
   const float* in = in_->data();
 

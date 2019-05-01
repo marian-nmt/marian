@@ -17,19 +17,19 @@ public:
 
   Hypothesis(const Ptr<Hypothesis> prevHyp,
              Word word,
-             IndexType prevIndex, // (beamHypIdx, batchIdx) flattened as beamHypIdx * dimBatch + batchIdx
+             size_t prevBeamHypIdx, // beam-hyp index that this hypothesis originated from
              float pathScore)
-      : prevHyp_(prevHyp), prevBeamHypIdx_(prevIndex), word_(word), pathScore_(pathScore) {}
+      : prevHyp_(prevHyp), prevBeamHypIdx_(prevBeamHypIdx), word_(word), pathScore_(pathScore) {}
 
   const Ptr<Hypothesis> getPrevHyp() const { return prevHyp_; }
 
   Word getWord() const { return word_; }
 
-  IndexType getPrevBeamHypIndex() const { return prevBeamHypIdx_; }
+  size_t getPrevStateIndex() const { return prevBeamHypIdx_; }
 
   float getPathScore() const { return pathScore_; }
 
-  std::vector<float>& getScoreBreakdown() { return scoreBreakdown_; } // @TODO: make this const
+  const std::vector<float>& getScoreBreakdown() { return scoreBreakdown_; }
   void setScoreBreakdown(const std::vector<float>& scoreBreaddown) { scoreBreakdown_ = scoreBreaddown; }
 
   const std::vector<float>& getAlignment() { return alignment_; }
@@ -40,8 +40,8 @@ public:
   {
       Words targetWords;
       for (auto hyp = this; hyp->getPrevHyp(); hyp = hyp->getPrevHyp().get()) {
-          targetWords.push_back(hyp->getWord());
-          // std::cerr << hyp->getWord() << " " << hyp << std::endl;
+        targetWords.push_back(hyp->getWord());
+        // std::cerr << hyp->getWord() << " " << hyp << std::endl;
       }
       std::reverse(targetWords.begin(), targetWords.end());
       return targetWords;
@@ -61,7 +61,7 @@ public:
 
 private:
   const Ptr<Hypothesis> prevHyp_;
-  const IndexType prevBeamHypIdx_;
+  const size_t prevBeamHypIdx_;
   const Word word_;
   const float pathScore_;
 

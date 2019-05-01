@@ -73,6 +73,10 @@ template <> inline bool matchType<float>(Type type)  { return type == Type::floa
 template <> inline bool matchType<double>(Type type) { return type == Type::float64; }
 // clang-format on
 
+template <typename T> inline Type getType();
+template <> inline Type getType<float>() { return Type::float32; }
+template <> inline Type getType<uint32_t>() { return Type::uint32; }
+
 static inline std::ostream& operator<<(std::ostream& out, Type type) {
   switch(type) {
     case Type::int8: out << "int8"; break;
