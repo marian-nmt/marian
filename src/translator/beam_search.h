@@ -114,7 +114,8 @@ public:
           auto lval = states[j]->getLogProbs().getFactoredLogitsTensor(factorGroup); // [localBeamSize, 1, dimBatch, dimFactorVocab]
           size_t flattenedLogitIndex = (beamHypIdx * dimBatch + batchIdx) * vocabSize + wordIdx;  // (beam idx, batch idx, word idx); note: beam and batch are transposed, compared to 'key'
           // @TODO: use a function on shape() to index, or new method val->at({i1, i2, i3, i4}) with broadcasting
-          ABORT_IF(lval->shape() != Shape({(int)nBestBeamSize, 1, (int)dimBatch, (int)vocabSize}), 
+          ABORT_IF(lval->shape() != Shape({(int)nBestBeamSize, 1, (int)dimBatch, (int)vocabSize}) &&
+                   (beamHypIdx == 0 && lval->shape() != Shape({1, 1, (int)dimBatch, (int)vocabSize})),
                    "Unexpected shape of logits?? {} != {}", lval->shape(), Shape({(int)nBestBeamSize, 1, (int)dimBatch, (int)vocabSize}));
           breakDown[j] += lval->get(flattenedLogitIndex);
         }
