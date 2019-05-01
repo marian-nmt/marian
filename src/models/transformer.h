@@ -502,6 +502,7 @@ public:
 };
 
 class EncoderTransformer : public Transformer<EncoderBase> {
+  std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
 public:
   EncoderTransformer(Ptr<Options> options) : Transformer(options) {}
   virtual ~EncoderTransformer() {}
@@ -549,7 +550,6 @@ public:
     return apply(batch);
   }
 
-  std::vector<Ptr<IEmbeddingLayer>> embedding_; // @TODO: move away, also rename
   Ptr<EncoderState> apply(Ptr<data::CorpusBatch> batch) {
     int dimBatch = (int)batch->size();
     int dimSrcWords = (int)(*batch)[batchIndex_]->batchWidth();
@@ -557,14 +557,14 @@ public:
     // embed the source words in the batch
     Expr batchEmbeddings, batchMask;
 
-    if (embedding_.empty() || !embedding_[batchIndex_]) { // lazy
-      embedding_.resize(batch->sets());
+    if (embeddingLayers_.empty() || !embeddingLayers_[batchIndex_]) { // lazy
+      embeddingLayers_.resize(batch->sets());
       if (options_->has("ulr") && options_->get<bool>("ulr") == true)
-        embedding_[batchIndex_] = createULREmbeddingLayer(); // embedding uses ULR
+        embeddingLayers_[batchIndex_] = createULREmbeddingLayer(); // embedding uses ULR
       else
-        embedding_[batchIndex_] = createSourceEmbeddingLayer(batchIndex_);
+        embeddingLayers_[batchIndex_] = createSourceEmbeddingLayer(batchIndex_);
     }
-    std::tie(batchEmbeddings, batchMask) = embedding_[batchIndex_]->apply((*batch)[batchIndex_]);
+    std::tie(batchEmbeddings, batchMask) = embeddingLayers_[batchIndex_]->apply((*batch)[batchIndex_]);
     // apply dropout over source words
     float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");
     if(dropoutSrc) {
@@ -636,6 +636,7 @@ private:
   Ptr<mlp::Output> output_;
 
 private:
+  // @TODO: move this out for sharing with other models
   void lazyCreateOutputLayer()
   {
     if(output_) // create it lazily

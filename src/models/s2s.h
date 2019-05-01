@@ -9,6 +9,7 @@
 namespace marian {
 
 class EncoderS2S : public EncoderBase {
+  std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
 public:
   Expr applyEncoderRNN(Ptr<ExpressionGraph> graph,
                        Expr embeddings,
@@ -150,15 +151,14 @@ public:
 
   EncoderS2S(Ptr<Options> options) : EncoderBase(options) {}
 
-  std::vector<Ptr<IEmbeddingLayer>> embedding_; // @TODO: move away, also rename
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
                                   Ptr<data::CorpusBatch> batch) override {
     // lazily create embedding layer
-    if (embedding_.empty() || !embedding_[batchIndex_]) { // lazy
-      embedding_.resize(batch->sets());
-      embedding_[batchIndex_] = createSourceEmbeddingLayer(graph);
+    if (embeddingLayers_.empty() || !embeddingLayers_[batchIndex_]) { // lazy
+      embeddingLayers_.resize(batch->sets());
+      embeddingLayers_[batchIndex_] = createSourceEmbeddingLayer(graph);
     }
-    auto embedding = embedding_[batchIndex_];
+    auto embedding = embeddingLayers_[batchIndex_];
 
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask; std::tie
@@ -246,8 +246,7 @@ private:
   }
 
 public:
-  DecoderS2S(Ptr<Options> options) : DecoderBase(options) {
-  }
+  DecoderS2S(Ptr<Options> options) : DecoderBase(options) {}
 
   virtual Ptr<DecoderState> startState(
       Ptr<ExpressionGraph> graph,

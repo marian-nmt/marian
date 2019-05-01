@@ -742,7 +742,7 @@ protected:
 
     return normText;
   }
-public:
+
   static std::string tokenizeContinuousScript(const std::string& sUTF8) {
     // We want BLEU-like scores that are comparable across different tokenization schemes.
     // For continuous scripts (Chinese, Japanese, Thai), we would need a language-specific
@@ -751,6 +751,7 @@ public:
     // leaving Western scripts as words. This way we can use the same settings for Western
     // languages, where Marian would report SacreBLEU scores, and Asian languages, where
     // scores are not standard but internally comparable across tokenization schemes.
+    // @TODO: Check what sacrebleu.py is doing, and whether we can replicate that here faithfully.
     auto in = utils::utf8ToUnicodeString(sUTF8);
     auto out = in.substr(0, 0); // (out should be same type as in, don't want to bother with exact type)
     for (auto c : in) {
@@ -842,7 +843,8 @@ public:
     // parameter to select the detokenization method, which will default to detok for FactoredSegmenter,
     // and no-op for base vocab.
     if (vocabs_.back()->type() == "FactoredVocab") {
-      LOG_ONCE(info, "[valid] FactoredVocab implies using detokenized BLEU");
+      if (!quiet_)
+        LOG_ONCE(info, "[valid] FactoredVocab implies using detokenized BLEU");
       detok = true; // always use bleu-detok
     }
 #endif

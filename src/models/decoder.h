@@ -15,7 +15,7 @@ protected:
   std::string prefix_{"decoder"};
   bool inference_{false};
   size_t batchIndex_{1};
-  std::vector<Ptr<IEmbeddingLayer>> embedding_; // @TODO: find a more grammatical name
+  std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
 
   Ptr<data::Shortlist> shortlist_;
 
@@ -37,9 +37,9 @@ public:
 
   void lazyCreateEmbeddingLayer(Ptr<ExpressionGraph> graph) {
     // @TODO: code dup with EncoderTransformer
-    if (embedding_.size() <= batchIndex_ || !embedding_[batchIndex_]) { // lazy
-      if (embedding_.size() <= batchIndex_)
-        embedding_.resize(batchIndex_ + 1);
+    if (embeddingLayers_.size() <= batchIndex_ || !embeddingLayers_[batchIndex_]) { // lazy
+      if (embeddingLayers_.size() <= batchIndex_)
+        embeddingLayers_.resize(batchIndex_ + 1);
       int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
       int dimEmb = opt<int>("dim-emb");
       auto embFactory = embedding()("dimVocab", dimVoc)("dimEmb", dimEmb);
@@ -55,7 +55,7 @@ public:
             ("normalization", opt<bool>("embedding-normalization"));
       }
       embFactory("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored embeddings
-      embedding_[batchIndex_] = embFactory.construct(graph);
+      embeddingLayers_[batchIndex_] = embFactory.construct(graph);
     }
   }
 
@@ -66,7 +66,7 @@ public:
 
     lazyCreateEmbeddingLayer(graph);
     Expr y, yMask; std::tie
-    (y, yMask) = embedding_[batchIndex_]->apply(subBatch);
+    (y, yMask) = embeddingLayers_[batchIndex_]->apply(subBatch);
 
     const Words& data =
       /*if*/ (shortlist_) ?
@@ -93,7 +93,7 @@ public:
     if(words.empty()) {
       selectedEmbs = graph->constant({1, 1, dimBatch, dimEmb}, inits::zeros);
     } else {
-      selectedEmbs = embedding_[batchIndex_]->apply(words, {dimBeam, 1, dimBatch, dimEmb});
+      selectedEmbs = embeddingLayers_[batchIndex_]->apply(words, {dimBeam, 1, dimBatch, dimEmb});
     }
     state->setTargetHistoryEmbeddings(selectedEmbs);
   }
