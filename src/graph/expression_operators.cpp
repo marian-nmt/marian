@@ -79,7 +79,7 @@ Expr softmax(Expr a, Expr zeroOneMask, int axis /*=-1*/) {
 
 Expr logsoftmax(Expr a) {
   if (a->type() == "logsoftmax") // logsoftmax(logsoftmax(x)) == logsoftmax(x)
-    // @TODO: Is this correct? logsoftmax is idempotent in forward(), but not in backward()
+    // @TODO: Remove this. First add an ABORT() for a while to catch who relies on this, and if noone, then delete.
     return a;
   return Expression<LogSoftmaxNodeOp>(a);
 }

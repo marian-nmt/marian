@@ -214,6 +214,7 @@ public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     // decoder needs normalized probabilities (note: skipped if beam 1 and --skip-cost)
     state->setLogProbs(state->getLogProbs().applyUnaryFunction(logsoftmax));
+    // @TODO: This is becoming more and more opaque ^^. Can we simplify this?
     return state;
   }
 };

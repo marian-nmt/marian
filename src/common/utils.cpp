@@ -165,6 +165,7 @@ bool endsWith(const std::string& text, const std::string& suffix) {
          && !text.compare(text.size() - suffix.size(), suffix.size(), suffix);
 }
 
+// @TODO: sort these functions into a separate header.
 std::u32string utf8ToUnicodeString(std::string const& s) {
 #ifdef _MSC_VER // workaround for a known bug in VS CRT
   std::wstring_convert<std::codecvt_utf8<unsigned int/*char32_t*/>, unsigned int/*char32_t*/> converter;

@@ -637,6 +637,7 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
 
   cli.add<bool>("--shuffle-in-ram",
       "Keep shuffled corpus in RAM, do not write to temp file");
+  // @TODO: Consider making the next two options options of the vocab instead, to make it more local in scope.
   cli.add<size_t>("--all-caps-every",
       "When forming minibatches, preprocess every Nth line on the fly to all-caps. Assumes UTF-8");
   cli.add<size_t>("--english-title-case-every",
