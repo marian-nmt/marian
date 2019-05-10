@@ -204,10 +204,12 @@ private:
   // parameters held by this layer
   Expr Wt_; // weight matrix is stored transposed for efficiency
   Expr b_;
+  Expr lemmaEt_; // re-embedding matrix for lemmas [lemmaDimEmb x lemmaVocabSize]
   bool isLegacyUntransposedW{false}; // legacy-model emulation: W is stored in non-transposed form
   Expr cachedShortWt_;  // short-listed version, cached (cleared by clear())
   Expr cachedShortb_;   // these match the current value of shortlist_
-  Ptr<FactoredVocab > factoredVocab_;
+  Expr cachedShortLemmaEt_;
+  Ptr<FactoredVocab> factoredVocab_;
 
   // optional parameters set/updated after construction
   Expr tiedParam_;
@@ -231,18 +233,19 @@ public:
     if (shortlist_)
       ABORT_IF(shortlist.get() != shortlist_.get(), "Output shortlist cannot be changed except after clear()");
     else {
-      ABORT_IF(cachedShortWt_ || cachedShortb_, "No shortlist but cached parameters??");
+      ABORT_IF(cachedShortWt_ || cachedShortb_ || cachedShortLemmaEt_, "No shortlist but cached parameters??");
       shortlist_ = shortlist;
     }
     // cachedShortWt_ and cachedShortb_ will be created lazily inside apply()
   }
 
   // this is expected to be called in sync with graph->clear(), which invalidates
-  // cachedShortWt_ and cachedShortb_ in the graph's short-term cache
+  // cachedShortWt_ etc. in the graph's short-term cache
   void clear() override final {
     shortlist_ = nullptr;
     cachedShortWt_ = nullptr;
     cachedShortb_  = nullptr;
+    cachedShortLemmaEt_ = nullptr;
   }
 
   Logits applyAsLogits(Expr input) override final;
