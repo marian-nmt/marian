@@ -217,15 +217,42 @@ bool isContinuousScript(char32_t c) {
   auto in = [c](char32_t minVal, char32_t maxVal) { return c >= minVal && c <= maxVal; };
   bool isHan = in(0x2E80, 0x2E99) || in(0x2E9B, 0x2EF3) || in(0x2F00, 0x2FD5) || in(0x3005, 0x3005) ||
                in(0x3007, 0x3007) || in(0x3021, 0x3029) || in(0x3038, 0x303A) || in(0x303B, 0x303b) ||
-               in(0x3400, 0x4DB5) || in(0x4E00, 0x9FEF) || in(0xF900, 0xFA6D) || in(0xFA70, 0xFAD9) ||
-               in(0x20000, 0x2A6D6) || in(0x2A700, 0x2B734) || in(0x2B740, 0x2B81D) || in(0x2B820, 0x2CEA1) ||
-               in(0x2CEB0, 0x2EBE0) || in(0x2F800, 0x2FA1D) ||
-               in(0x3200, 0x32FF); // Enclosed CJK Letters and Months, https://en.wikipedia.org/wiki/Enclosed_CJK_Letters_and_Months
+               in(0x3200, 0x32FF) || // Enclosed CJK Letters and Months, https://en.wikipedia.org/wiki/Enclosed_CJK_Letters_and_Months
+               in(0x3400, 0x4DB5) || // up to here, we have a few gaps compared to sacrebleu
+               in(0x4E00, 0x9FEF) || // sacrebleu: only up to 0x9fbb
+               in(0xF900, 0xFA6D) || in(0xFA70, 0xFAD9) || // similar to sacrebleu
+               in(0x20000, 0x2A6D6) ||
+               in(0x2A700, 0x2B734) || in(0x2B740, 0x2B81D) || in(0x2B820, 0x2CEA1) || in(0x2CEB0, 0x2EBE0) || // not in sacrebleu
+               in(0x2F800, 0x2FA1D);
   bool isKana = in(0x3040, 0x30FF) ||   // Hiragana, Katakana
                 in(0x1B000, 0x1B0FF) || // Kana supplement, https://en.wikipedia.org/wiki/Kana_Supplement
                 in(0x1B130, 0x1B16F);   // small Kana, https://en.wikipedia.org/wiki/Small_Kana_Extension
   bool isThai = in(0x0E00, 0x0E7F); // https://en.wikipedia.org/wiki/Thai_(Unicode_block)
   return isHan || isKana || isThai;
+  // Korean characters (Hangul syllables): 0xac00..0xd7a3
+  // Korean subwords (Hangul Jamo): 0x1100..0x11ff [https://en.wikipedia.org/wiki/Hangul_Jamo_(Unicode_block)]
+  // Sacrebleu uses characters units for Chinese characters; specifically, these ranges:
+  /* (ranges as used in sacrebleuy.py)
+        uchar >= u'\u2600' and uchar <= u'\u27bf'  ## missing above
+        uchar >= u'\u2e80'                         # CJK Radicals Supplement
+        uchar >= u'\u2f00' and uchar <= u'\u2fdf'  # Kangxi Radicals
+        uchar >= u'\u2ff0'                         # Chinese character structure
+        uchar >= u'\u3000' and uchar <= u'\u303f'  # CJK punctuation mark           ## 3040..30ff = Kana
+        uchar >= u'\u3100' and uchar <= u'\u312f'  # Phonetic symbols
+        uchar >= u'\u31a0'                         # Phonetic symbols (Taiwanese and Hakka expansion)
+        uchar >= u'\u31c0' and uchar <= u'\u31ef'  # CJK stroke
+        uchar >= u'\u3200' and uchar <= u'\u4db5'  # CJK Unified Ideographs Extension A, release 3.0
+        uchar >= u'\u4e00'                         # CJK Unified Ideographs, release 1.1
+        uchar >= u'\u9fa6' and uchar <= u'\u9fbb'  # CJK Unified Ideographs, release 4.1
+        uchar >= u'\uf900' and uchar <= u'\ufa2d'  # CJK Compatibility Ideographs, release 1.1
+        uchar >= u'\ufa30' and uchar <= u'\ufa6a'  # CJK Compatibility Ideographs, release 3.2
+        uchar >= u'\ufa70' and uchar <= u'\ufad9'  # CJK Compatibility Ideographs, release 4.1
+        uchar >= u'\ufe10' and uchar <= u'\ufe1f'  ## missing above
+        uchar >= u'\ufe30' and uchar <= u'\ufe4f'  ## missing above
+        uchar >= u'\uff00' and uchar <= u'\uffef'  # Full width ASCII, full width of English punctuation, half width Katakana, half wide half width kana, Korean alphabet
+        uchar >= u'\u20000' and uchar <= u'\u2a6d6'  # CJK Unified Ideographs Extension B, release 3.1
+        uchar >= u'\u2f800' and uchar <= u'\u2fa1d'  # CJK Compatibility Supplement, release 3.1
+  */
 }
 
 // convert UTF-8 characters to lower or upper case
