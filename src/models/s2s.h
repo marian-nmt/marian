@@ -119,35 +119,6 @@ public:
     return context;
   }
 
-  Ptr<IEmbeddingLayer> createSourceEmbeddingLayer(Ptr<ExpressionGraph> graph) {
-    // create source embeddings
-    int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
-    int dimEmb = opt<int>("dim-emb");
-
-    // @TODO: code dup with Decoder and EncoderTransformer; actually diverged by now. Unify this.
-    auto embFactory = embedding()  //
-        ("dimVocab", dimVoc)       //
-        ("dimEmb", dimEmb);
-
-    if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
-      embFactory("prefix", "Wemb");
-    else
-      embFactory("prefix", prefix_ + "_Wemb");
-
-    if(options_->has("embedding-fix-src"))
-      embFactory("fixed", opt<bool>("embedding-fix-src"));
-
-    if(options_->hasAndNotEmpty("embedding-vectors")) {
-      auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
-      embFactory                              //
-          ("embFile", embFiles[batchIndex_])  //
-          ("normalization", opt<bool>("embedding-normalization"));
-    }
-
-    embFactory("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored embeddings
-    return embFactory.construct(graph);
-  }
-
   EncoderS2S(Ptr<Options> options) : EncoderBase(options) {}
 
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,

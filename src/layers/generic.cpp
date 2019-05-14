@@ -457,8 +457,36 @@ namespace marian {
     return embFactory.construct(graph);
   }
 
+  Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createSourceEmbeddingLayer(Ptr<ExpressionGraph> graph) {
+    // create source embeddings
+    int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
+    int dimEmb = opt<int>("dim-emb");
+
+    // @TODO: code dup with Decoder and EncoderTransformer; actually diverged by now. Unify this.
+    auto embFactory = embedding()  //
+        ("dimVocab", dimVoc)       //
+        ("dimEmb", dimEmb);
+
+    if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
+      embFactory("prefix", "Wemb");
+    else
+      embFactory("prefix", prefix_ + "_Wemb");
+
+    if(options_->has("embedding-fix-src"))
+      embFactory("fixed", opt<bool>("embedding-fix-src"));
+
+    if(options_->hasAndNotEmpty("embedding-vectors")) {
+      auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
+      embFactory                              //
+          ("embFile", embFiles[batchIndex_])  //
+          ("normalization", opt<bool>("embedding-normalization"));
+    }
+
+    embFactory("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored embeddings
+    return embFactory.construct(graph);
+  }
+
   void EncoderDecoderLayerBase::lazyCreateEmbeddingLayer(Ptr<ExpressionGraph> graph) {
-    // @TODO: code dup with above
     if (embeddingLayers_.size() <= batchIndex_ || !embeddingLayers_[batchIndex_]) { // lazy
       if (embeddingLayers_.size() <= batchIndex_)
         embeddingLayers_.resize(batchIndex_ + 1);
