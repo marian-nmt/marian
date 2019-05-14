@@ -69,8 +69,9 @@ protected:
   const std::string prefix_;
   const std::string dropoutParamName_; // "dropout-src" or "dropout-trg"
   const std::string embeddingFixParamName_; // "embedding-fix-src" or "embedding-fix-trg"
-  const bool inference_{false};
-  const size_t batchIndex_{1};
+  const bool inference_;
+  const float dropout_;
+  const size_t batchIndex_;
   std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
 
   EncoderDecoderLayerBase(const std::string& prefix, size_t batchIndex, Ptr<Options> options,
@@ -81,6 +82,7 @@ protected:
       dropoutParamName_(dropoutParamName),
       embeddingFixParamName_(embeddingFixParamName),
       inference_(options->get<bool>("inference", false)),
+      dropout_(inference_ ? 0 : opt<float>(dropoutParamName)),
       batchIndex_(options->get<size_t>("index", batchIndex)) {}
 
   virtual ~EncoderDecoderLayerBase() {}

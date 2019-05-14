@@ -421,7 +421,7 @@ namespace marian {
     return reshape(rows(E_, embIdx), shape);
   }
 
-  Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createEmbeddingLayer(Ptr<ExpressionGraph> graph) const {
+  /*private*/ Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createEmbeddingLayer(Ptr<ExpressionGraph> graph) const {
     // standard encoder word embeddings
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");
@@ -441,7 +441,7 @@ namespace marian {
     return embFactory.construct(graph);
   }
 
-  Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createULREmbeddingLayer(Ptr<ExpressionGraph> graph) const {
+  /*private*/ Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createULREmbeddingLayer(Ptr<ExpressionGraph> graph) const {
     // standard encoder word embeddings
     int dimSrcVoc = opt<std::vector<int>>("dim-vocabs")[0];  //ULR multi-lingual src
     int dimTgtVoc = opt<std::vector<int>>("dim-vocabs")[1];  //ULR monon tgt
@@ -455,6 +455,7 @@ namespace marian {
     return embFactory.construct(graph);
   }
 
+  // get embedding layer for this encoder or decoder; lazily create it if not created yet
   Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::getEmbeddingLayer(Ptr<ExpressionGraph> graph, bool ulr) {
     if (embeddingLayers_.size() <= batchIndex_ || !embeddingLayers_[batchIndex_]) { // lazy
       if (embeddingLayers_.size() <= batchIndex_)
