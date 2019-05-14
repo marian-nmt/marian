@@ -5,14 +5,12 @@
 #include "data/shortlist.h"
 #include "layers/factory.h"
 
-namespace marian {
-namespace mlp {
-/**
- * @brief Activation functions
- */
-enum struct act : int { linear, tanh, sigmoid, ReLU, LeakyReLU, PReLU, swish };
-}  // namespace mlp
-}  // namespace marian
+namespace marian { namespace mlp {
+  /**
+   * @brief Activation functions
+   */
+  enum struct act : int { linear, tanh, sigmoid, ReLU, LeakyReLU, PReLU, swish };
+}}
 
 YAML_REGISTER_TYPE(marian::mlp::act, int)
 
@@ -31,12 +29,12 @@ public:
       : graph_(graph), options_(options) {}
 
   template <typename T>
-  T opt(const std::string key) {
+  T opt(const std::string key) const {
     return options_->get<T>(key);
   }
 
   template <typename T>
-  T opt(const std::string key, T defaultValue) {
+  T opt(const std::string key, const T& defaultValue) const {
     return options_->get<T>(key, defaultValue);
   }
 };
@@ -67,9 +65,8 @@ struct IEmbeddingLayer {
 
 // base class for Encoder and Decoder classes, which have embeddings and a batch index (=stream index)
 // @TODO: also base this on LayerBase, which holds options_
-class EncoderDecoderLayerBase {
+class EncoderDecoderLayerBase : public LayerBase {
 protected:
-  Ptr<Options> options_;
   const std::string prefix_;
   const std::string embeddingFixParamName_; // "embedding-fix-src" or "embedding-fix-trg"
   const bool inference_{false};
@@ -77,23 +74,13 @@ protected:
   std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
 
   EncoderDecoderLayerBase(const std::string& prefix, size_t batchIndex, Ptr<Options> options, const std::string& embeddingFixParamName) :
-      options_(options),
+      LayerBase(/*graph=*/nullptr, options), // @BUGBUG: we really should pass the graph in here
       prefix_(options->get<std::string>("prefix", prefix)),
       embeddingFixParamName_(embeddingFixParamName),
       inference_(options->get<bool>("inference", false)),
       batchIndex_(options->get<size_t>("index", batchIndex)) {}
 
 public:
-  template <typename T>
-  T opt(const std::string& key) const {
-    return options_->get<T>(key);
-  }
-
-  template <typename T>
-  T opt(const std::string& key, const T& def) {
-    return options_->get<T>(key, def);
-  }
-
   virtual ~EncoderDecoderLayerBase() {}
 
   Ptr<IEmbeddingLayer> getEmbeddingLayer(Ptr<ExpressionGraph> graph);

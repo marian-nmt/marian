@@ -24,8 +24,8 @@ class Transformer : public EncoderOrDecoderBase {
   typedef EncoderOrDecoderBase Base;
 
 protected:
-  using Base::options_; using Base::inference_; using Base::batchIndex_;
-  std::unordered_map<std::string, Expr> cache_;
+  using Base::options_; using Base::inference_; using Base::batchIndex_; using Base::graph_;
+  std::unordered_map<std::string, Expr> cache_;  // caching transformation of the encoder that should not be created again
 
   // attention weights produced by step()
   // If enabled, it is set once per batch during training, and once per step during translation.
@@ -36,8 +36,6 @@ protected:
   // FIXME: that separate options assignment is weird
 
   template <typename T> T opt(const std::string& key, const T& def) const { Ptr<Options> options = options_; if (options->has(key)) return options->get<T>(key); else return def; }
-
-  Ptr<ExpressionGraph> graph_;
 
 public:
   Transformer(Ptr<Options> options)
