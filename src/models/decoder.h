@@ -29,9 +29,8 @@ public:
                                    Ptr<data::CorpusBatch> batch) {
     auto subBatch = (*batch)[batchIndex_];
 
-    lazyCreateEmbeddingLayer(graph);
     Expr y, yMask; std::tie
-    (y, yMask) = embeddingLayers_[batchIndex_]->apply(subBatch);
+    (y, yMask) = lazyCreateEmbeddingLayer(graph)->apply(subBatch);
     // dropout target words
     float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
     if (dropoutTrg) {
@@ -58,13 +57,13 @@ public:
                                         const Words& words,
                                         int dimBatch,
                                         int dimBeam) {
-    lazyCreateEmbeddingLayer(graph);
+    auto embeddingLayer = lazyCreateEmbeddingLayer(graph);
     Expr selectedEmbs;
     int dimEmb = opt<int>("dim-emb");
     if(words.empty()) {
       selectedEmbs = graph->constant({1, 1, dimBatch, dimEmb}, inits::zeros);
     } else {
-      selectedEmbs = embeddingLayers_[batchIndex_]->apply(words, {dimBeam, 1, dimBatch, dimEmb});
+      selectedEmbs = embeddingLayer->apply(words, {dimBeam, 1, dimBatch, dimEmb});
       // dropout target words   --does not make sense here since this is always inference. Keep it regular though.
       float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
       if (dropoutTrg) {

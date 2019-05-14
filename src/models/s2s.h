@@ -123,17 +123,9 @@ public:
 
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
                                   Ptr<data::CorpusBatch> batch) override {
-    // lazily create embedding layer
-    // @TODO: use shared function in base class once disentangled
-    if (embeddingLayers_.empty() || !embeddingLayers_[batchIndex_]) { // lazy
-      embeddingLayers_.resize(batch->sets());
-      embeddingLayers_[batchIndex_] = createSourceEmbeddingLayer(graph);
-    }
-    auto embedding = embeddingLayers_[batchIndex_];
-
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask; std::tie
-    (batchEmbeddings, batchMask) = embedding->apply((*batch)[batchIndex_]);
+    (batchEmbeddings, batchMask) = lazyCreateEmbeddingLayer(graph)->apply((*batch)[batchIndex_]);
     // apply dropout over source words
     float dropProb = inference_ ? 0 : opt<float>("dropout-src");
     if(dropProb) {

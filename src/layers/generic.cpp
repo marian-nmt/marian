@@ -455,11 +455,12 @@ namespace marian {
     return embFactory.construct(graph);
   }
 
-  void EncoderDecoderLayerBase::lazyCreateEmbeddingLayer(Ptr<ExpressionGraph> graph) {
+  Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::lazyCreateEmbeddingLayer(Ptr<ExpressionGraph> graph) {
     if (embeddingLayers_.size() <= batchIndex_ || !embeddingLayers_[batchIndex_]) { // lazy
       if (embeddingLayers_.size() <= batchIndex_)
         embeddingLayers_.resize(batchIndex_ + 1);
       embeddingLayers_[batchIndex_] = createSourceEmbeddingLayer(graph);
     }
+    return embeddingLayers_[batchIndex_];
   }
 }  // namespace marian
