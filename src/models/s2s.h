@@ -125,7 +125,7 @@ public:
                                   Ptr<data::CorpusBatch> batch) override {
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask; std::tie
-    (batchEmbeddings, batchMask) = lazyCreateEmbeddingLayer(graph)->apply((*batch)[batchIndex_]);
+    (batchEmbeddings, batchMask) = getEmbeddingLayer(graph)->apply((*batch)[batchIndex_]);
     // apply dropout over source words
     float dropProb = inference_ ? 0 : opt<float>("dropout-src");
     if(dropProb) {

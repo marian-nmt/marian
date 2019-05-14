@@ -30,7 +30,7 @@ public:
     auto subBatch = (*batch)[batchIndex_];
 
     Expr y, yMask; std::tie
-    (y, yMask) = lazyCreateEmbeddingLayer(graph)->apply(subBatch);
+    (y, yMask) = getEmbeddingLayer(graph)->apply(subBatch);
     // dropout target words
     float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
     if (dropoutTrg) {
@@ -57,7 +57,7 @@ public:
                                         const Words& words,
                                         int dimBatch,
                                         int dimBeam) {
-    auto embeddingLayer = lazyCreateEmbeddingLayer(graph);
+    auto embeddingLayer = getEmbeddingLayer(graph);
     Expr selectedEmbs;
     int dimEmb = opt<int>("dim-emb");
     if(words.empty()) {

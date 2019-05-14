@@ -96,7 +96,7 @@ public:
 
   virtual ~EncoderDecoderLayerBase() {}
 
-  Ptr<IEmbeddingLayer> lazyCreateEmbeddingLayer(Ptr<ExpressionGraph> graph);
+  Ptr<IEmbeddingLayer> getEmbeddingLayer(Ptr<ExpressionGraph> graph);
   Ptr<IEmbeddingLayer> createULREmbeddingLayer(Ptr<ExpressionGraph> graph) const;
   Ptr<IEmbeddingLayer> createSourceEmbeddingLayer(Ptr<ExpressionGraph> graph) const;
 };
