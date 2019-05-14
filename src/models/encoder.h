@@ -9,7 +9,9 @@ class EncoderBase : public EncoderDecoderLayerBase {
 protected:
 public:
   EncoderBase(Ptr<Options> options) :
-    EncoderDecoderLayerBase("encoder", /*batchIndex=*/0, options, /*embeddingFixParamName=*/"embedding-fix-src") {}
+    EncoderDecoderLayerBase("encoder", /*batchIndex=*/0, options,
+        /*dropoutParamName=*/"dropout-src",
+        /*embeddingFixParamName=*/"embedding-fix-src") {}
 
   // @TODO: turn into an interface. Also see if we can get rid of the graph parameter.
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph>, Ptr<data::CorpusBatch>) = 0;

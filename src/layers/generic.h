@@ -64,28 +64,34 @@ struct IEmbeddingLayer {
 };
 
 // base class for Encoder and Decoder classes, which have embeddings and a batch index (=stream index)
-// @TODO: also base this on LayerBase, which holds options_
 class EncoderDecoderLayerBase : public LayerBase {
 protected:
   const std::string prefix_;
+  const std::string dropoutParamName_; // "dropout-src" or "dropout-trg"
   const std::string embeddingFixParamName_; // "embedding-fix-src" or "embedding-fix-trg"
   const bool inference_{false};
   const size_t batchIndex_{1};
   std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
 
-  EncoderDecoderLayerBase(const std::string& prefix, size_t batchIndex, Ptr<Options> options, const std::string& embeddingFixParamName) :
+  EncoderDecoderLayerBase(const std::string& prefix, size_t batchIndex, Ptr<Options> options,
+        const std::string& dropoutParamName,
+        const std::string& embeddingFixParamName) :
       LayerBase(/*graph=*/nullptr, options), // @BUGBUG: we really should pass the graph in here
       prefix_(options->get<std::string>("prefix", prefix)),
+      dropoutParamName_(dropoutParamName),
       embeddingFixParamName_(embeddingFixParamName),
       inference_(options->get<bool>("inference", false)),
       batchIndex_(options->get<size_t>("index", batchIndex)) {}
 
-public:
   virtual ~EncoderDecoderLayerBase() {}
 
-  Ptr<IEmbeddingLayer> getEmbeddingLayer(Ptr<ExpressionGraph> graph);
+private:
+  Ptr<IEmbeddingLayer> createEmbeddingLayer(Ptr<ExpressionGraph> graph) const;
   Ptr<IEmbeddingLayer> createULREmbeddingLayer(Ptr<ExpressionGraph> graph) const;
-  Ptr<IEmbeddingLayer> createSourceEmbeddingLayer(Ptr<ExpressionGraph> graph) const;
+
+public:
+  // get embedding layer; lazily create on first call
+  Ptr<IEmbeddingLayer> getEmbeddingLayer(Ptr<ExpressionGraph> graph, bool ulr = false);
 };
 
 class FactoredVocab;

@@ -517,14 +517,8 @@ public:
     // embed the source words in the batch
     Expr batchEmbeddings, batchMask;
 
-    if (embeddingLayers_.empty() || !embeddingLayers_[batchIndex_]) { // lazy
-      embeddingLayers_.resize(batch->sets());
-      if (options_->has("ulr") && options_->get<bool>("ulr") == true)
-        embeddingLayers_[batchIndex_] = createULREmbeddingLayer(graph_); // embedding uses ULR
-      else
-        embeddingLayers_[batchIndex_] = createSourceEmbeddingLayer(graph_);
-    }
-    std::tie(batchEmbeddings, batchMask) = embeddingLayers_[batchIndex_]->apply((*batch)[batchIndex_]);
+    auto embeddingLayer = getEmbeddingLayer(graph_, options_->has("ulr") && options_->get<bool>("ulr"));
+    std::tie(batchEmbeddings, batchMask) = embeddingLayer->apply((*batch)[batchIndex_]);
     // apply dropout over source words
     float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");
     if(dropoutSrc) {

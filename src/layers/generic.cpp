@@ -421,21 +421,7 @@ namespace marian {
     return reshape(rows(E_, embIdx), shape);
   }
 
-  Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createULREmbeddingLayer(Ptr<ExpressionGraph> graph) const {
-    // standard encoder word embeddings
-    int dimSrcVoc = opt<std::vector<int>>("dim-vocabs")[0];  //ULR multi-lingual src
-    int dimTgtVoc = opt<std::vector<int>>("dim-vocabs")[1];  //ULR monon tgt
-    int dimEmb = opt<int>("dim-emb");
-    int dimUlrEmb = opt<int>("ulr-dim-emb");
-    auto embFactory = ulr_embedding()("dimSrcVoc", dimSrcVoc)("dimTgtVoc", dimTgtVoc)
-                                     ("dimUlrEmb", dimUlrEmb)("dimEmb", dimEmb)
-                                     ("ulrTrainTransform", opt<bool>("ulr-trainable-transformation"))
-                                     ("ulrQueryFile", opt<std::string>("ulr-query-vectors"))
-                                     ("ulrKeysFile", opt<std::string>("ulr-keys-vectors"));
-    return embFactory.construct(graph);
-  }
-
-  Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createSourceEmbeddingLayer(Ptr<ExpressionGraph> graph) const {
+  Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createEmbeddingLayer(Ptr<ExpressionGraph> graph) const {
     // standard encoder word embeddings
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");
@@ -455,11 +441,28 @@ namespace marian {
     return embFactory.construct(graph);
   }
 
-  Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::getEmbeddingLayer(Ptr<ExpressionGraph> graph) {
+  Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createULREmbeddingLayer(Ptr<ExpressionGraph> graph) const {
+    // standard encoder word embeddings
+    int dimSrcVoc = opt<std::vector<int>>("dim-vocabs")[0];  //ULR multi-lingual src
+    int dimTgtVoc = opt<std::vector<int>>("dim-vocabs")[1];  //ULR monon tgt
+    int dimEmb = opt<int>("dim-emb");
+    int dimUlrEmb = opt<int>("ulr-dim-emb");
+    auto embFactory = ulr_embedding()("dimSrcVoc", dimSrcVoc)("dimTgtVoc", dimTgtVoc)
+                                     ("dimUlrEmb", dimUlrEmb)("dimEmb", dimEmb)
+                                     ("ulrTrainTransform", opt<bool>("ulr-trainable-transformation"))
+                                     ("ulrQueryFile", opt<std::string>("ulr-query-vectors"))
+                                     ("ulrKeysFile", opt<std::string>("ulr-keys-vectors"));
+    return embFactory.construct(graph);
+  }
+
+  Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::getEmbeddingLayer(Ptr<ExpressionGraph> graph, bool ulr) {
     if (embeddingLayers_.size() <= batchIndex_ || !embeddingLayers_[batchIndex_]) { // lazy
       if (embeddingLayers_.size() <= batchIndex_)
         embeddingLayers_.resize(batchIndex_ + 1);
-      embeddingLayers_[batchIndex_] = createSourceEmbeddingLayer(graph);
+      if (ulr)
+        embeddingLayers_[batchIndex_] = createULREmbeddingLayer(graph); // embedding uses ULR
+      else
+        embeddingLayers_[batchIndex_] = createEmbeddingLayer(graph);
     }
     return embeddingLayers_[batchIndex_];
   }
