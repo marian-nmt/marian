@@ -70,10 +70,12 @@ public:
     return *this;
   }
 
+#if 0
   Accumulator& operator()(Config::YamlNode yaml) {
     Factory::getOptions()->merge(yaml);
     return *this;
   }
+#endif
 
   Accumulator& operator()(Ptr<Options> options) {
     Factory::getOptions()->merge(options);

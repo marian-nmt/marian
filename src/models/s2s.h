@@ -9,7 +9,6 @@
 namespace marian {
 
 class EncoderS2S : public EncoderBase {
-  std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
 public:
   Expr applyEncoderRNN(Ptr<ExpressionGraph> graph,
                        Expr embeddings,
@@ -163,7 +162,6 @@ public:
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask; std::tie
     (batchEmbeddings, batchMask) = embedding->apply((*batch)[batchIndex_]);
-
     // apply dropout over source words
     float dropProb = inference_ ? 0 : opt<float>("dropout-src");
     if(dropProb) {
@@ -188,6 +186,7 @@ private:
   Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
                                     Ptr<DecoderState> state) {
     float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
+
     auto rnn = rnn::rnn()                                          //
         ("type", opt<std::string>("dec-cell"))                     //
         ("dimInput", opt<int>("dim-emb"))                          //
@@ -292,13 +291,6 @@ public:
                                  Ptr<DecoderState> state) override {
 
     auto embeddings = state->getTargetHistoryEmbeddings();
-
-    // dropout target words
-    float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
-    if(dropoutTrg) {
-      int trgWords = embeddings->shape()[-3];
-      embeddings = dropout(embeddings, dropoutTrg, {trgWords, 1, 1});
-    }
 
     if(!rnn_)
       rnn_ = constructDecoderRNN(graph, state);

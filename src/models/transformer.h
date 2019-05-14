@@ -502,7 +502,6 @@ public:
 };
 
 class EncoderTransformer : public Transformer<EncoderBase> {
-  std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
 public:
   EncoderTransformer(Ptr<Options> options) : Transformer(options) {}
   virtual ~EncoderTransformer() {}
@@ -697,13 +696,6 @@ public:
   Ptr<DecoderState> step(Ptr<DecoderState> state) {
     auto embeddings  = state->getTargetHistoryEmbeddings(); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vector dim]
     auto decoderMask = state->getTargetMask();              // [max length, batch size, 1]  --this is a hypothesis
-
-    // dropout target words
-    float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
-    if(dropoutTrg) {
-      int trgWords = embeddings->shape()[-3];
-      embeddings = dropout(embeddings, dropoutTrg, {trgWords, 1, 1});
-    }
 
     //************************************************************************//
 

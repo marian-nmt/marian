@@ -58,8 +58,8 @@ public:
     ba_ = graph->param(prefix + "_b_att", {1, dimEncState}, inits::zeros);
 
     if(dropout_ > 0.0f) {
-      dropMaskContext_ = graph->dropout(dropout_, {1, dimEncState});
-      dropMaskState_ = graph->dropout(dropout_, {1, dimDecState});
+      dropMaskContext_ = graph->dropoutMask(dropout_, {1, dimEncState});
+      dropMaskState_   = graph->dropoutMask(dropout_, {1, dimDecState});
     }
 
     if(dropMaskContext_)

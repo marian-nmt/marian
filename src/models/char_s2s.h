@@ -18,7 +18,6 @@ public:
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask; std::tie
     (batchEmbeddings, batchMask) = embedding->apply(batch->front());
-
     // apply dropout over source words
     float dropProb = inference_ ? 0 : opt<float>("dropout-src");
     if(dropProb) {

@@ -12,9 +12,9 @@ namespace marian {
 class DecoderBase {
 protected:
   Ptr<Options> options_;
-  std::string prefix_{"decoder"};
-  bool inference_{false};
-  size_t batchIndex_{1};
+  const std::string prefix_{"decoder"};
+  const bool inference_{false};
+  const size_t batchIndex_{1};
   std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
 
   Ptr<data::Shortlist> shortlist_;
@@ -67,6 +67,12 @@ public:
     lazyCreateEmbeddingLayer(graph);
     Expr y, yMask; std::tie
     (y, yMask) = embeddingLayers_[batchIndex_]->apply(subBatch);
+    // dropout target words
+    float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
+    if (dropoutTrg) {
+      int trgWords = y->shape()[-3];
+      y = dropout(y, dropoutTrg, {trgWords, 1, 1});
+    }
 
     const Words& data =
       /*if*/ (shortlist_) ?
@@ -94,6 +100,12 @@ public:
       selectedEmbs = graph->constant({1, 1, dimBatch, dimEmb}, inits::zeros);
     } else {
       selectedEmbs = embeddingLayers_[batchIndex_]->apply(words, {dimBeam, 1, dimBatch, dimEmb});
+      // dropout target words   --does not make sense here since this is always inference. Keep it regular though.
+      float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
+      if (dropoutTrg) {
+        int trgWords = selectedEmbs->shape()[-3];
+        selectedEmbs = dropout(selectedEmbs, dropoutTrg, { trgWords, 1, 1 });
+      }
     }
     state->setTargetHistoryEmbeddings(selectedEmbs);
   }

@@ -46,8 +46,8 @@ public:
 
     if(dropout_ > 0.0f) {
       if(dimInput)
-        dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
-      dropMaskS_ = graph->dropout(dropout_, {1, dimState});
+        dropMaskX_ = graph->dropoutMask(dropout_, {1, dimInput});
+      dropMaskS_ = graph->dropoutMask(dropout_, {1, dimState});
     }
 
     if(layerNorm_) {
@@ -139,8 +139,8 @@ public:
 
     if(dropout_ > 0.0f) {
       if(dimInput)
-        dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
-      dropMaskS_ = graph->dropout(dropout_, {1, dimState});
+        dropMaskX_ = graph->dropoutMask(dropout_, {1, dimInput});
+      dropMaskS_ = graph->dropoutMask(dropout_, {1, dimState});
     }
 
     if(layerNorm_) {
@@ -256,8 +256,8 @@ public:
 
     if(dropout_ > 0.0f) {
       if(dimInput)
-        dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
-      dropMaskS_ = graph->dropout(dropout_, {1, dimState});
+        dropMaskX_ = graph->dropoutMask(dropout_, {1, dimInput});
+      dropMaskS_ = graph->dropoutMask(dropout_, {1, dimState});
     }
 
     if(layerNorm_) {
@@ -420,8 +420,8 @@ public:
 
     if(dropout_ > 0.0f) {
       if(dimInput)
-        dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
-      dropMaskS_ = graph->dropout(dropout_, {1, dimState});
+        dropMaskX_ = graph->dropoutMask(dropout_, {1, dimInput});
+      dropMaskS_ = graph->dropoutMask(dropout_, {1, dimState});
     }
 
     if(layerNorm_) {
@@ -584,8 +584,8 @@ public:
 
     if(dropout_ > 0.0f) {
       if(dimInput)
-        dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
-      dropMaskS_ = graph->dropout(dropout_, {1, dimState});
+        dropMaskX_ = graph->dropoutMask(dropout_, {1, dimInput});
+      dropMaskS_ = graph->dropoutMask(dropout_, {1, dimState});
     }
 
     if(layerNorm_) {
@@ -930,7 +930,7 @@ public:
     br_ = graph->param(prefix + "_br", {1, dimInput}, inits::zeros);
 
     if(dropout_ > 0.0f) {
-      dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
+      dropMaskX_ = graph->dropoutMask(dropout_, {1, dimInput});
     }
 
     if(layerNorm_) {
@@ -1021,7 +1021,7 @@ public:
     bf_ = graph->param(prefix + "_bf", {1, dimInput}, inits::zeros);
 
     if(dropout_ > 0.0f) {
-      dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
+      dropMaskX_ = graph->dropoutMask(dropout_, {1, dimInput});
     }
 
     if(layerNorm_) {
@@ -1104,7 +1104,7 @@ public:
 //         prefix + "_bf", {1, dimInput}, inits::zeros);
 
 //     if(dropout_ > 0.0f) {
-//       dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
+//       dropMaskX_ = graph->dropoutMask(dropout_, {1, dimInput});
 //     }
 //   }
 

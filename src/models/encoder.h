@@ -8,10 +8,11 @@ namespace marian {
 class EncoderBase {
 protected:
   Ptr<Options> options_;
-  std::string prefix_{"encoder"};
-  bool inference_{false};
-  size_t batchIndex_{0};
-public: 
+  const std::string prefix_{"encoder"};
+  const bool inference_{false};
+  const size_t batchIndex_{0};
+  std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
+public:
   EncoderBase(Ptr<Options> options)
       : options_(options),
         prefix_(options->get<std::string>("prefix", "encoder")),

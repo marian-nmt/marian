@@ -63,12 +63,11 @@ protected:
   Ptr<Options> options_;
   Ptr<data::ShortlistGenerator> shortlistGenerator_;
 
-  std::string prefix_;
+  const std::string prefix_;
+  const bool inference_{ false };
 
   std::vector<Ptr<EncoderBase>> encoders_;
   std::vector<Ptr<DecoderBase>> decoders_;
-
-  bool inference_{false};
 
   std::set<std::string> modelFeatures_;
 

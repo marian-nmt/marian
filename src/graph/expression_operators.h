@@ -214,7 +214,7 @@ static inline Expr dropout(Expr x, float dropProb, Shape shape) {
   if(dropProb == 0)
     return x;
   auto graph = x->graph();
-  auto mask = graph->dropout(dropProb, shape);
+  auto mask = graph->dropoutMask(dropProb, shape);
   return dropout(x, mask);
 }
 

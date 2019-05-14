@@ -364,12 +364,13 @@ namespace marian {
     // multi-hot factor vectors are represented as a sparse CSR matrix
     // [row index = word position index] -> set of factor indices for word at this position
     ABORT_IF(factoredData.shape != Shape({(int)factoredData.offsets.size()-1/*=rows of CSR*/, E_->shape()[0]}), "shape mismatch??");
-    return csr_dot( // the CSR matrix is passed in pieces
-        factoredData.shape,
-        graph->constant({(int)factoredData.weights.size()}, inits::from_vector(factoredData.weights), Type::float32),
-        graph->constant({(int)factoredData.indices.size()}, inits::from_vector(factoredData.indices), Type::uint32),
-        graph->constant({(int)factoredData.offsets.size()}, inits::from_vector(factoredData.offsets), Type::uint32),
-        E_);
+    // the CSR matrix is passed in pieces
+    auto weights = graph->constant({ (int)factoredData.weights.size() }, inits::from_vector(factoredData.weights), Type::float32);
+    auto indices = graph->constant({ (int)factoredData.indices.size() }, inits::from_vector(factoredData.indices), Type::uint32);
+    auto offsets = graph->constant({ (int)factoredData.offsets.size() }, inits::from_vector(factoredData.offsets), Type::uint32);
+    // apply dropout  --@TODO
+    // perform the product
+    return csr_dot(factoredData.shape, weights, indices, offsets, E_);
   }
 
   std::tuple<Expr/*embeddings*/, Expr/*mask*/> Embedding::apply(Ptr<data::SubBatch> subBatch) const /*override final*/ {
@@ -406,16 +407,7 @@ namespace marian {
     //        - but forward pass weighs them down, so that all factors are in a similar numeric range
     //        - if it is required to be in a different range, the embeddings can still learn that, but more slowly
 
-#if 1
     auto batchEmbeddings = apply(subBatch->data(), {dimWords, dimBatch, dimEmb});
-#else
-    Expr selectedEmbs;
-    if (factoredVocab_)
-      selectedEmbs = multiRows(subBatch->data());
-    else
-      selectedEmbs = rows(E_, subBatch->data());
-    auto batchEmbeddings = reshape(selectedEmbs, { dimWords, dimBatch, dimEmb });
-#endif
     auto batchMask = graph->constant({dimWords, dimBatch, 1},
                                      inits::from_vector(subBatch->mask()));
     return std::make_tuple(batchEmbeddings, batchMask);

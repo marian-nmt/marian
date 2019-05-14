@@ -14,9 +14,9 @@ namespace marian {
 class ClassifierBase {
 protected:
   Ptr<Options> options_;
-  std::string prefix_{"classifier"};
-  bool inference_{false};
-  size_t batchIndex_{0};
+  const std::string prefix_{"classifier"};
+  const bool inference_{false};
+  const size_t batchIndex_{0};
 
 public:
   ClassifierBase(Ptr<Options> options)

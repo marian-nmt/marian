@@ -31,8 +31,8 @@ class EncoderDecoderCECost : public ICost {
 protected:
   Ptr<Options> options_;
 
-  bool inference_{false};
-  bool toBeWeighted_{false};
+  const bool inference_{false};
+  /*const*/ bool toBeWeighted_{false};
 
   // @TODO: single loss seems wrong
   Ptr<LabelwiseLoss> loss_;
@@ -92,7 +92,7 @@ public:
 class EncoderClassifierCECost : public ICost {
 protected:
   Ptr<Options> options_;
-  bool inference_{false};
+  const bool inference_{false};
 
   // @TODO: single loss seems wrong, especially since we support multiple objectives here,
   // also not sure this needs to be a member at all.
