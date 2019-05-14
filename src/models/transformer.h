@@ -524,7 +524,7 @@ public:
       if (options_->has("ulr") && options_->get<bool>("ulr") == true)
         embeddingLayers_[batchIndex_] = createULREmbeddingLayer(graph_); // embedding uses ULR
       else
-        embeddingLayers_[batchIndex_] = createSourceEmbeddingLayer(graph_, batchIndex_);
+        embeddingLayers_[batchIndex_] = createSourceEmbeddingLayer(graph_);
     }
     std::tie(batchEmbeddings, batchMask) = embeddingLayers_[batchIndex_]->apply((*batch)[batchIndex_]);
     // apply dropout over source words

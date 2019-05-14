@@ -124,6 +124,7 @@ public:
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
                                   Ptr<data::CorpusBatch> batch) override {
     // lazily create embedding layer
+    // @TODO: use shared function in base class once disentangled
     if (embeddingLayers_.empty() || !embeddingLayers_[batchIndex_]) { // lazy
       embeddingLayers_.resize(batch->sets());
       embeddingLayers_[batchIndex_] = createSourceEmbeddingLayer(graph);

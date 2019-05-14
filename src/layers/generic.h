@@ -71,13 +71,15 @@ class EncoderDecoderLayerBase {
 protected:
   Ptr<Options> options_;
   const std::string prefix_;
+  const std::string embeddingFixParamName_; // "embedding-fix-src" or "embedding-fix-trg"
   const bool inference_{false};
   const size_t batchIndex_{1};
   std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
 
-  EncoderDecoderLayerBase(const std::string& prefix, size_t batchIndex, Ptr<Options> options) :
+  EncoderDecoderLayerBase(const std::string& prefix, size_t batchIndex, Ptr<Options> options, const std::string& embeddingFixParamName) :
       options_(options),
       prefix_(options->get<std::string>("prefix", prefix)),
+      embeddingFixParamName_(embeddingFixParamName),
       inference_(options->get<bool>("inference", false)),
       batchIndex_(options->get<size_t>("index", batchIndex)) {}
 
@@ -96,9 +98,7 @@ public:
 
   void lazyCreateEmbeddingLayer(Ptr<ExpressionGraph> graph);
   Ptr<IEmbeddingLayer> createULREmbeddingLayer(Ptr<ExpressionGraph> graph) const;
-  Ptr<IEmbeddingLayer> createSourceEmbeddingLayer(Ptr<ExpressionGraph> graph, size_t subBatchIndex,
-      const std::string& embeddingFixParamName = "embedding-fix-src") const;
-  Ptr<IEmbeddingLayer> createSourceEmbeddingLayer(Ptr<ExpressionGraph> graph);
+  Ptr<IEmbeddingLayer> createSourceEmbeddingLayer(Ptr<ExpressionGraph> graph) const;
 };
 
 class FactoredVocab;
