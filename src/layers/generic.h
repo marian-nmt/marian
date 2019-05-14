@@ -96,7 +96,9 @@ public:
 
   void lazyCreateEmbeddingLayer(Ptr<ExpressionGraph> graph);
   Ptr<IEmbeddingLayer> createULREmbeddingLayer(Ptr<ExpressionGraph> graph) const;
-  Ptr<IEmbeddingLayer> createSourceEmbeddingLayer(Ptr<ExpressionGraph> graph, size_t subBatchIndex) const;
+  Ptr<IEmbeddingLayer> createSourceEmbeddingLayer(Ptr<ExpressionGraph> graph, size_t subBatchIndex,
+      const std::string& embeddingFixParamName = "embedding-fix-src") const;
+  Ptr<IEmbeddingLayer> createSourceEmbeddingLayer(Ptr<ExpressionGraph> graph);
 };
 
 class FactoredVocab;
