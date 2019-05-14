@@ -9,24 +9,13 @@
 
 namespace marian {
 
-class DecoderBase {
+class DecoderBase : public EncoderDecoderLayerBase {
 protected:
-  Ptr<Options> options_;
-  const std::string prefix_{"decoder"};
-  const bool inference_{false};
-  const size_t batchIndex_{1};
-  std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
-
   Ptr<data::Shortlist> shortlist_;
 
 public:
-  DecoderBase(Ptr<Options> options)
-      : options_(options),
-        prefix_(options->get<std::string>("prefix", "decoder")),
-        inference_(options->get<bool>("inference", false)),
-        batchIndex_(options->get<size_t>("index", 1)) {}
-
-  virtual ~DecoderBase() {}
+  DecoderBase(Ptr<Options> options) :
+    EncoderDecoderLayerBase("decoder", /*batchIndex=*/1, options) {}
 
   virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph>,
                                        Ptr<data::CorpusBatch> batch,
@@ -34,30 +23,6 @@ public:
       = 0;
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph>, Ptr<DecoderState>) = 0;
-
-  void lazyCreateEmbeddingLayer(Ptr<ExpressionGraph> graph) {
-    // @TODO: code dup with EncoderTransformer
-    if (embeddingLayers_.size() <= batchIndex_ || !embeddingLayers_[batchIndex_]) { // lazy
-      if (embeddingLayers_.size() <= batchIndex_)
-        embeddingLayers_.resize(batchIndex_ + 1);
-      int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
-      int dimEmb = opt<int>("dim-emb");
-      auto embFactory = embedding()("dimVocab", dimVoc)("dimEmb", dimEmb);
-      if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
-        embFactory("prefix", "Wemb");
-      else
-        embFactory("prefix", prefix_ + "_Wemb");
-      if(options_->has("embedding-fix-trg"))
-        embFactory("fixed", opt<bool>("embedding-fix-trg"));
-      if(options_->hasAndNotEmpty("embedding-vectors")) {
-        auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
-        embFactory("embFile", embFiles[batchIndex_])  //
-            ("normalization", opt<bool>("embedding-normalization"));
-      }
-      embFactory("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored embeddings
-      embeddingLayers_[batchIndex_] = embFactory.construct(graph);
-    }
-  }
 
   virtual void embeddingsFromBatch(Ptr<ExpressionGraph> graph,
                                    Ptr<DecoderState> state,
@@ -115,16 +80,6 @@ public:
   virtual Ptr<data::Shortlist> getShortlist() { return shortlist_; }
   virtual void setShortlist(Ptr<data::Shortlist> shortlist) {
     shortlist_ = shortlist;
-  }
-
-  template <typename T>
-  T opt(const std::string& key) const {
-    return options_->get<T>(key);
-  }
-
-  template <typename T>
-  T opt(const std::string& key, const T& def) {
-    return options_->get<T>(key, def);
   }
 
   virtual void clear() = 0;

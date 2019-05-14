@@ -5,28 +5,14 @@
 
 namespace marian {
 
-class EncoderBase {
+class EncoderBase : public EncoderDecoderLayerBase {
 protected:
-  Ptr<Options> options_;
-  const std::string prefix_{"encoder"};
-  const bool inference_{false};
-  const size_t batchIndex_{0};
-  std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
 public:
-  EncoderBase(Ptr<Options> options)
-      : options_(options),
-        prefix_(options->get<std::string>("prefix", "encoder")),
-        inference_(options->get<bool>("inference", false)),
-        batchIndex_(options->get<size_t>("index", 0)) {}
+  EncoderBase(Ptr<Options> options) :
+    EncoderDecoderLayerBase("encoder", /*batchIndex=*/0, options) {}
 
-  virtual ~EncoderBase() {}
-
+  // @TODO: turn into an interface. Also see if we can get rid of the graph parameter.
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph>, Ptr<data::CorpusBatch>) = 0;
-
-  template <typename T>
-  T opt(const std::string& key) const {
-    return options_->get<T>(key);
-  }
 
   virtual void clear() = 0;
 };

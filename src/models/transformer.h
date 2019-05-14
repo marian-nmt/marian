@@ -506,43 +506,6 @@ public:
   EncoderTransformer(Ptr<Options> options) : Transformer(options) {}
   virtual ~EncoderTransformer() {}
 
-  // returns the embedding matrix based on options
-  // and based on batchIndex_.
-
-  Ptr<IEmbeddingLayer> createULREmbeddingLayer() const {
-    // standard encoder word embeddings
-    int dimSrcVoc = opt<std::vector<int>>("dim-vocabs")[0];  //ULR multi-lingual src
-    int dimTgtVoc = opt<std::vector<int>>("dim-vocabs")[1];  //ULR monon tgt
-    int dimEmb = opt<int>("dim-emb");
-    int dimUlrEmb = opt<int>("ulr-dim-emb");
-    auto embFactory = ulr_embedding()("dimSrcVoc", dimSrcVoc)("dimTgtVoc", dimTgtVoc)
-                                     ("dimUlrEmb", dimUlrEmb)("dimEmb", dimEmb)
-                                     ("ulrTrainTransform", opt<bool>("ulr-trainable-transformation"))
-                                     ("ulrQueryFile", opt<std::string>("ulr-query-vectors"))
-                                     ("ulrKeysFile", opt<std::string>("ulr-keys-vectors"));
-    return embFactory.construct(graph_);
-  }
-
-  Ptr<IEmbeddingLayer> createSourceEmbeddingLayer(size_t subBatchIndex) const {
-    // standard encoder word embeddings
-    int dimVoc = opt<std::vector<int>>("dim-vocabs")[subBatchIndex];
-    int dimEmb = opt<int>("dim-emb");
-    auto embFactory = embedding()("dimVocab", dimVoc)("dimEmb", dimEmb);
-    if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
-      embFactory("prefix", "Wemb");
-    else
-      embFactory("prefix", prefix_ + "_Wemb");
-    if(options_->has("embedding-fix-src"))
-      embFactory("fixed", opt<bool>("embedding-fix-src"));
-    if(options_->hasAndNotEmpty("embedding-vectors")) {
-      auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
-      embFactory("embFile", embFiles[subBatchIndex])
-                ("normalization", opt<bool>("embedding-normalization"));
-    }
-    embFactory("vocab", opt<std::vector<std::string>>("vocabs")[subBatchIndex]); // for factored embeddings
-    return embFactory.construct(graph_);
-  }
-
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
                                   Ptr<data::CorpusBatch> batch) override {
     graph_ = graph;
@@ -559,9 +522,9 @@ public:
     if (embeddingLayers_.empty() || !embeddingLayers_[batchIndex_]) { // lazy
       embeddingLayers_.resize(batch->sets());
       if (options_->has("ulr") && options_->get<bool>("ulr") == true)
-        embeddingLayers_[batchIndex_] = createULREmbeddingLayer(); // embedding uses ULR
+        embeddingLayers_[batchIndex_] = createULREmbeddingLayer(graph_); // embedding uses ULR
       else
-        embeddingLayers_[batchIndex_] = createSourceEmbeddingLayer(batchIndex_);
+        embeddingLayers_[batchIndex_] = createSourceEmbeddingLayer(graph_, batchIndex_);
     }
     std::tie(batchEmbeddings, batchMask) = embeddingLayers_[batchIndex_]->apply((*batch)[batchIndex_]);
     // apply dropout over source words

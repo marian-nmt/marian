@@ -65,6 +65,40 @@ struct IEmbeddingLayer {
   virtual Expr applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const = 0;
 };
 
+// base class for Encoder and Decoder classes, which have embeddings and a batch index (=stream index)
+// @TODO: also base this on LayerBase, which holds options_
+class EncoderDecoderLayerBase {
+protected:
+  Ptr<Options> options_;
+  const std::string prefix_;
+  const bool inference_{false};
+  const size_t batchIndex_{1};
+  std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
+
+  EncoderDecoderLayerBase(const std::string& prefix, size_t batchIndex, Ptr<Options> options) :
+      options_(options),
+      prefix_(options->get<std::string>("prefix", prefix)),
+      inference_(options->get<bool>("inference", false)),
+      batchIndex_(options->get<size_t>("index", batchIndex)) {}
+
+public:
+  template <typename T>
+  T opt(const std::string& key) const {
+    return options_->get<T>(key);
+  }
+
+  template <typename T>
+  T opt(const std::string& key, const T& def) {
+    return options_->get<T>(key, def);
+  }
+
+  virtual ~EncoderDecoderLayerBase() {}
+
+  void lazyCreateEmbeddingLayer(Ptr<ExpressionGraph> graph);
+  Ptr<IEmbeddingLayer> createULREmbeddingLayer(Ptr<ExpressionGraph> graph) const;
+  Ptr<IEmbeddingLayer> createSourceEmbeddingLayer(Ptr<ExpressionGraph> graph, size_t subBatchIndex) const;
+};
+
 class FactoredVocab;
 
 // To support factors, any output projection (that is followed by a softmax) must
