@@ -141,6 +141,7 @@ public:
 typedef Accumulator<StackedCellFactory> stacked_cell;
 
 class RNNFactory : public Factory {
+  using Factory::Factory;
 protected:
   std::vector<Ptr<CellFactory>> layerFactories_;
 

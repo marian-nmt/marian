@@ -357,9 +357,9 @@ public:
     intermediate = layerNorm(intermediate, gamma, beta);
 
     auto layer2 = mlp::mlp()
-      .push_back(mlp::output()
-                 ("prefix", prefix_ + "_ff_logit_l2")
-                 ("dim", dimVoc)
+      .push_back(mlp::output(
+                  "prefix", prefix_ + "_ff_logit_l2",
+                  "dim", dimVoc)
                  .tieTransposed("Wemb"))
       .construct(graph);
 

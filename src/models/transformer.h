@@ -470,14 +470,14 @@ public:
                        int /*startPos*/) const {
     float dropoutRnn = inference_ ? 0.f : opt<float>("dropout-rnn");
 
-    auto rnn = rnn::rnn()                                          //
-        ("type", opt<std::string>("dec-cell"))                     //
-        ("prefix", prefix)                                         //
-        ("dimInput", opt<int>("dim-emb"))                          //
-        ("dimState", opt<int>("dim-emb"))                          //
-        ("dropout", dropoutRnn)                                    //
-        ("layer-normalization", opt<bool>("layer-normalization"))  //
-        .push_back(rnn::cell())                                    //
+    auto rnn = rnn::rnn(
+         "type", opt<std::string>("dec-cell"),
+         "prefix", prefix,
+         "dimInput", opt<int>("dim-emb"),
+         "dimState", opt<int>("dim-emb"),
+         "dropout", dropoutRnn,
+         "layer-normalization", opt<bool>("layer-normalization"))
+        .push_back(rnn::cell())
         .construct(graph_);
 
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
@@ -589,19 +589,14 @@ private:
 
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
-    auto outputFactory = mlp::output()         //
-        ("prefix", prefix_ + "_ff_logit_out")  //
-        ("dim", dimTrgVoc);
+    auto outputFactory = mlp::OutputFactory(
+        "prefix", prefix_ + "_ff_logit_out",
+        "dim", dimTrgVoc,
+        "vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_], // for factored outputs
+        "lemma-dim-emb", opt<int>("lemma-dim-emb", 0)); // for factored outputs
 
-    if(opt<bool>("tied-embeddings") || opt<bool>("tied-embeddings-all")) {
-      std::string tiedPrefix = prefix_ + "_Wemb";
-      if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
-        tiedPrefix = "Wemb";
-      outputFactory.tieTransposed(tiedPrefix);
-    }
-
-    outputFactory("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored outputs
-    outputFactory("lemma-dim-emb", opt<int>("lemma-dim-emb", 0)); // for factored outputs
+    if(opt<bool>("tied-embeddings") || opt<bool>("tied-embeddings-all"))
+      outputFactory.tieTransposed(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src") ? "Wemb" : prefix_ + "_Wemb");
 
     output_ = std::dynamic_pointer_cast<mlp::Output>(outputFactory.construct(graph_)); // (construct() returns only the underlying interface)
   }
