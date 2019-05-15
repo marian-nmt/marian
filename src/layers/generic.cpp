@@ -433,9 +433,8 @@ namespace marian {
         "dimEmb",   opt<int>("dim-emb"),
         "dropout",  dropout_,
         "prefix",   (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all")) ? "Wemb" : prefix_ + "_Wemb",
+        "fixed",    embeddingFix_,
         "vocab",    opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored embeddings
-    if(options_->has(embeddingFixParamName_))
-      options->set("fixed", opt<bool>(embeddingFixParamName_));
     if(options_->hasAndNotEmpty("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
       options->set(
@@ -459,8 +458,10 @@ namespace marian {
         "ulrKeysFile",       opt<std::string>("ulr-keys-vectors")));
   }
 
-  // get embedding layer for this encoder or decoder; lazily create it if not created yet
-  Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::getEmbeddingLayer(bool ulr) {
+  // get embedding layer for this encoder or decoder
+  // This is lazy mostly because the constructors of the consuming objects are not
+  // guaranteed presently to have access to their graph.
+  Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::getEmbeddingLayer(bool ulr) const {
     if (embeddingLayers_.size() <= batchIndex_ || !embeddingLayers_[batchIndex_]) { // lazy
       if (embeddingLayers_.size() <= batchIndex_)
         embeddingLayers_.resize(batchIndex_ + 1);

@@ -151,6 +151,7 @@ private:
  * to accumulate options for later lazy construction.
  */
 class MLPFactory : public Factory {
+  using Factory::Factory;
 private:
   std::vector<Ptr<LayerFactory>> layers_;
 

@@ -44,7 +44,7 @@ public:
 
   // constructor that clones and zero or more updates
   // options->with("var1", val1, "var2", val2, ...)
-  template <typename T, typename... Args>
+  template <typename... Args>
   Ptr<Options> with(Args&&... args) const {
     auto options = New<Options>(*this);
     options->set(std::forward<Args>(args)...);

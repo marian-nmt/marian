@@ -8,9 +8,10 @@ namespace marian {
 namespace rnn {
 
 struct StackableFactory : public Factory {
-  StackableFactory() : Factory() {}
-  StackableFactory(const StackableFactory&) = default;
-  StackableFactory(StackableFactory&&) = default;
+  using Factory::Factory;
+  //StackableFactory() : Factory() {}
+  //StackableFactory(const StackableFactory&) = default;
+  //StackableFactory(StackableFactory&&) = default;
 
   virtual ~StackableFactory() {}
 

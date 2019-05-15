@@ -16,8 +16,8 @@ protected:
 public:
   DecoderBase(Ptr<Options> options) :
     EncoderDecoderLayerBase("decoder", /*batchIndex=*/1, options,
-        /*dropoutParamName=*/"dropout-trg",
-        /*embeddingFixParamName=*/"embedding-fix-trg") {}
+        options->get<float>("dropout-trg", 0.0f),
+        options->get<bool>("embedding-fix-trg", false)) {}
 
   virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph>,
                                        Ptr<data::CorpusBatch> batch,

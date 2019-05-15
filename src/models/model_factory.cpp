@@ -135,10 +135,10 @@ Ptr<IModel> createBaseModelByType(std::string type, usage use, Ptr<Options> opti
     dimVocabs.resize(idx + 1);
     std::fill(dimVocabs.begin(), dimVocabs.end(), vocab);
 
-    return models::encoder_decoder()(options)
-        ("usage", use)
-        ("type", "s2s")
-        ("original-type", type)
+    return models::encoder_decoder(options->with(
+         "usage", use,
+         "type", "s2s",
+         "original-type", type))
         .push_back(models::decoder()
                    ("index", idx)
                    ("dim-vocabs", dimVocabs))

@@ -15,17 +15,17 @@ public:
   Factory(Ptr<Options> options) : Factory() {
     options_->merge(options);
   }
-  // construct with one or more individual parameters
+  // construct with one or more individual option parameters
   // Factory("var1", val1, "var2", val2, ...)
   template <typename T, typename... Args>
   Factory(const std::string& key, T value, Args&&... moreArgs) : Factory() {
     setOpts(key, value, std::forward<Args>(moreArgs)...);
   }
-  // construct with options and one or more individual parameters
+  // construct with options and one or more individual option parameters
   // Factory(options, "var1", val1, "var2", val2, ...)
   template <typename... Args>
-  Factory(Ptr<Options> options, Args&&... moreArgs) : Factory(options) {
-    setOpts(std::forward<Args>(moreArgs)...);
+  Factory(Ptr<Options> options, Args&&... args) : Factory(options) {
+    setOpts(std::forward<Args>(args)...);
   }
 
   virtual ~Factory() {}
@@ -47,18 +47,12 @@ public:
     options_->set(key, value);
   }
 
-  // set multiple options
+  // set one or more options at once
   // setOpts("var1", val1, "var2", val2, ...);
-  template <typename T>
-  void setOpts(const std::string& key, T value) { options_->set(key, value); }
-
   template <typename T, typename... Args>
   void setOpts(const std::string& key, T value, Args&&... moreArgs) {
-    setOpt(key, value);
-    setOpts(std::forward<Args>(moreArgs)...); // recursively set the remaining args
+    options_->set(key, value, std::forward<Args>(moreArgs)...);
   }
-
-  //void mergeOpts(const std::string& yaml) { options_->parse(yaml); }
 
   void mergeOpts(Ptr<Options> options) { options_->merge(options); }
 

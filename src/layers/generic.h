@@ -67,20 +67,20 @@ struct IEmbeddingLayer {
 class EncoderDecoderLayerBase : public LayerBase {
 protected:
   const std::string prefix_;
-  const std::string embeddingFixParamName_; // "embedding-fix-src" or "embedding-fix-trg"
-  const bool inference_;
+  const bool embeddingFix_;
   const float dropout_;
+  const bool inference_;
   const size_t batchIndex_;
-  std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
+  mutable std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
 
   EncoderDecoderLayerBase(const std::string& prefix, size_t batchIndex, Ptr<Options> options,
-        const std::string& dropoutParamName,
-        const std::string& embeddingFixParamName) :
+        float dropout,
+        bool embeddingFix) :
       LayerBase(/*graph=*/nullptr, options), // @BUGBUG: we really should pass the graph in here
       prefix_(options->get<std::string>("prefix", prefix)),
-      embeddingFixParamName_(embeddingFixParamName),
+      embeddingFix_(embeddingFix),
+      dropout_(dropout),
       inference_(options->get<bool>("inference", false)),
-      dropout_(inference_ ? 0 : opt<float>(dropoutParamName)),
       batchIndex_(options->get<size_t>("index", batchIndex)) {}
 
   virtual ~EncoderDecoderLayerBase() {}
@@ -91,7 +91,7 @@ private:
 
 public:
   // get embedding layer; lazily create on first call
-  Ptr<IEmbeddingLayer> getEmbeddingLayer(bool ulr = false);
+  Ptr<IEmbeddingLayer> getEmbeddingLayer(bool ulr = false) const;
 };
 
 class FactoredVocab;
