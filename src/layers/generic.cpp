@@ -413,6 +413,7 @@ namespace marian {
       selectedEmbs = multiRows(words);
     else
       selectedEmbs = rows(E_, toWordIndexVector(words));
+    selectedEmbs = dropout(selectedEmbs, options_->get<float>("dropout", 0.0f), {selectedEmbs->shape()[-3], 1, 1});
     return reshape(selectedEmbs, shape);
   }
 
@@ -425,7 +426,7 @@ namespace marian {
     // standard encoder word embeddings
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
     int dimEmb = opt<int>("dim-emb");
-    auto embFactory = embedding()("dimVocab", dimVoc)("dimEmb", dimEmb);
+    auto embFactory = embedding()("dimVocab", dimVoc)("dimEmb", dimEmb)("dropout", dropout_);
     if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
       embFactory("prefix", "Wemb");
     else
@@ -449,6 +450,8 @@ namespace marian {
     int dimUlrEmb = opt<int>("ulr-dim-emb");
     auto embFactory = ulr_embedding()("dimSrcVoc", dimSrcVoc)("dimTgtVoc", dimTgtVoc)
                                      ("dimUlrEmb", dimUlrEmb)("dimEmb", dimEmb)
+                                     ("ulr-dropout", opt<float>("ulr-dropout"))
+                                     ("dropout", dropout_)
                                      ("ulrTrainTransform", opt<bool>("ulr-trainable-transformation"))
                                      ("ulrQueryFile", opt<std::string>("ulr-query-vectors"))
                                      ("ulrKeysFile", opt<std::string>("ulr-keys-vectors"));

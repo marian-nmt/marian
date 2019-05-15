@@ -33,12 +33,6 @@ public:
 
     Expr y, yMask; std::tie
     (y, yMask) = getEmbeddingLayer(graph)->apply(subBatch);
-    // dropout target words
-    float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
-    if (dropoutTrg) {
-      int trgWords = y->shape()[-3];
-      y = dropout(y, dropoutTrg, {trgWords, 1, 1});
-    }
 
     const Words& data =
       /*if*/ (shortlist_) ?
@@ -62,17 +56,10 @@ public:
     auto embeddingLayer = getEmbeddingLayer(graph);
     Expr selectedEmbs;
     int dimEmb = opt<int>("dim-emb");
-    if(words.empty()) {
+    if(words.empty())
       selectedEmbs = graph->constant({1, 1, dimBatch, dimEmb}, inits::zeros);
-    } else {
+    else
       selectedEmbs = embeddingLayer->apply(words, {dimBeam, 1, dimBatch, dimEmb});
-      // dropout target words   --does not make sense here since this is always inference. Keep it regular though.
-      float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
-      if (dropoutTrg) {
-        int trgWords = selectedEmbs->shape()[-3];
-        selectedEmbs = dropout(selectedEmbs, dropoutTrg, { trgWords, 1, 1 });
-      }
-    }
     state->setTargetHistoryEmbeddings(selectedEmbs);
   }
 

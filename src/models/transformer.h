@@ -519,12 +519,6 @@ public:
 
     auto embeddingLayer = getEmbeddingLayer(graph_, options_->has("ulr") && options_->get<bool>("ulr"));
     std::tie(batchEmbeddings, batchMask) = embeddingLayer->apply((*batch)[batchIndex_]);
-    // apply dropout over source words
-    float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");
-    if(dropoutSrc) {
-      int srcWords = batchEmbeddings->shape()[-3];
-      batchEmbeddings = dropout(batchEmbeddings, dropoutSrc, {srcWords, 1, 1});
-    }
 
     batchEmbeddings = addSpecialEmbeddings(batchEmbeddings, /*start=*/0, batch);
 

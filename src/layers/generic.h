@@ -67,7 +67,6 @@ struct IEmbeddingLayer {
 class EncoderDecoderLayerBase : public LayerBase {
 protected:
   const std::string prefix_;
-  const std::string dropoutParamName_; // "dropout-src" or "dropout-trg"
   const std::string embeddingFixParamName_; // "embedding-fix-src" or "embedding-fix-trg"
   const bool inference_;
   const float dropout_;
@@ -79,7 +78,6 @@ protected:
         const std::string& embeddingFixParamName) :
       LayerBase(/*graph=*/nullptr, options), // @BUGBUG: we really should pass the graph in here
       prefix_(options->get<std::string>("prefix", prefix)),
-      dropoutParamName_(dropoutParamName),
       embeddingFixParamName_(embeddingFixParamName),
       inference_(options->get<bool>("inference", false)),
       dropout_(inference_ ? 0 : opt<float>(dropoutParamName)),
@@ -281,6 +279,10 @@ public:
 
 }  // namespace mlp
 
+// A regular embedding layer.
+// Note that this also applies dropout if the option is passed (pass 0 when in inference mode).
+// It is best to not use Embedding directly, but rather via getEmbeddingLayer() in
+// EncoderDecoderLayerBase, which knows to pass on all required parameters from options.
 class Embedding : public LayerBase, public IEmbeddingLayer {
   Expr E_;
   Ptr<FactoredVocab> factoredVocab_;
@@ -396,6 +398,7 @@ public:
     auto graph = ulrEmbeddings_.front()->graph();
     auto batchMask = graph->constant({ dimWords, dimBatch, 1 },
                                      inits::from_vector(subBatch->mask()));
+    batchEmbeddings = dropout(batchEmbeddings, options_->get<float>("dropout", 0.0f), {batchEmbeddings->shape()[-3], 1, 1});
     return std::make_tuple(batchEmbeddings, batchMask);
   }
 
