@@ -110,9 +110,9 @@ public:
 
       if(sf->is<CellFactory>()) {
         auto cellFactory = sf->as<CellFactory>();
-        cellFactory->getOptions()->merge(options_);
+        cellFactory->mergeOpts(options_);
 
-        sf->getOptions()->set("dimInput", lastDimInput);
+        sf->setOpt("dimInput", lastDimInput);
         lastDimInput = 0;
 
         if(i == 0)
@@ -122,7 +122,7 @@ public:
         stacked->push_back(cellFactory->construct(graph));
       } else {
         auto inputFactory = sf->as<InputFactory>();
-        inputFactory->getOptions()->merge(options_);
+        inputFactory->mergeOpts(options_);
         auto input = inputFactory->construct(graph);
         stacked->push_back(input);
         lastDimInput += input->dimOutput();
@@ -150,29 +150,29 @@ public:
     for(size_t i = 0; i < layerFactories_.size(); ++i) {
       auto lf = layerFactories_[i];
 
-      lf->getOptions()->merge(options_);
+      lf->mergeOpts(options_);
       if(i > 0) {
         int dimInput
-            = layerFactories_[i - 1]->getOptions()->get<int>("dimState")
-              + lf->getOptions()->get<int>("dimInputExtra", 0);
+            = layerFactories_[i - 1]->opt<int>("dimState")
+              + lf->opt<int>("dimInputExtra", 0);
 
-        lf->getOptions()->set("dimInput", dimInput);
+        lf->setOpt("dimInput", dimInput);
       }
 
       if((rnn::dir)opt<int>("direction", (int)rnn::dir::forward)
          == rnn::dir::alternating_forward) {
         if(i % 2 == 0)
-          lf->getOptions()->set("direction", (int)rnn::dir::forward);
+          lf->setOpt("direction", (int)rnn::dir::forward);
         else
-          lf->getOptions()->set("direction", (int)rnn::dir::backward);
+          lf->setOpt("direction", (int)rnn::dir::backward);
       }
 
       if((rnn::dir)opt<int>("direction", (int)rnn::dir::forward)
          == rnn::dir::alternating_backward) {
         if(i % 2 == 1)
-          lf->getOptions()->set("direction", (int)rnn::dir::forward);
+          lf->setOpt("direction", (int)rnn::dir::forward);
         else
-          lf->getOptions()->set("direction", (int)rnn::dir::backward);
+          lf->setOpt("direction", (int)rnn::dir::backward);
       }
 
       rnn->push_back(lf->construct(graph));

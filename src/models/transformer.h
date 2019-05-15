@@ -514,7 +514,7 @@ public:
     // embed the source words in the batch
     Expr batchEmbeddings, batchMask;
 
-    auto embeddingLayer = getEmbeddingLayer(graph_, options_->has("ulr") && options_->get<bool>("ulr"));
+    auto embeddingLayer = getEmbeddingLayer(options_->has("ulr") && options_->get<bool>("ulr"));
     std::tie(batchEmbeddings, batchMask) = embeddingLayer->apply((*batch)[batchIndex_]);
 
     batchEmbeddings = addSpecialEmbeddings(batchEmbeddings, /*start=*/0, batch);

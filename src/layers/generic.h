@@ -91,7 +91,7 @@ private:
 
 public:
   // get embedding layer; lazily create on first call
-  Ptr<IEmbeddingLayer> getEmbeddingLayer(Ptr<ExpressionGraph> graph, bool ulr = false);
+  Ptr<IEmbeddingLayer> getEmbeddingLayer(bool ulr = false);
 };
 
 class FactoredVocab;

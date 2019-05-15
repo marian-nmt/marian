@@ -29,17 +29,19 @@ public:
   virtual void embeddingsFromBatch(Ptr<ExpressionGraph> graph,
                                    Ptr<DecoderState> state,
                                    Ptr<data::CorpusBatch> batch) {
+    graph_ = graph;
+
     auto subBatch = (*batch)[batchIndex_];
 
     Expr y, yMask; std::tie
-    (y, yMask) = getEmbeddingLayer(graph)->apply(subBatch);
+    (y, yMask) = getEmbeddingLayer()->apply(subBatch);
 
     const Words& data =
       /*if*/ (shortlist_) ?
         shortlist_->mappedIndices()
       /*else*/ :
         subBatch->data();
-    Expr yData = graph->indices(toWordIndexVector(data));
+    Expr yData = graph_->indices(toWordIndexVector(data));
 
     auto yShifted = shift(y, {1, 0, 0});
 
@@ -53,11 +55,12 @@ public:
                                         const Words& words,
                                         int dimBatch,
                                         int dimBeam) {
-    auto embeddingLayer = getEmbeddingLayer(graph);
+    graph_ = graph;
+    auto embeddingLayer = getEmbeddingLayer();
     Expr selectedEmbs;
     int dimEmb = opt<int>("dim-emb");
     if(words.empty())
-      selectedEmbs = graph->constant({1, 1, dimBatch, dimEmb}, inits::zeros);
+      selectedEmbs = graph_->constant({1, 1, dimBatch, dimEmb}, inits::zeros);
     else
       selectedEmbs = embeddingLayer->apply(words, {dimBeam, 1, dimBatch, dimEmb});
     state->setTargetHistoryEmbeddings(selectedEmbs);

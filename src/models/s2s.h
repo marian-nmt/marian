@@ -123,12 +123,13 @@ public:
 
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
                                   Ptr<data::CorpusBatch> batch) override {
+    graph_ = graph;
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask; std::tie
-    (batchEmbeddings, batchMask) = getEmbeddingLayer(graph)->apply((*batch)[batchIndex_]);
+    (batchEmbeddings, batchMask) = getEmbeddingLayer()->apply((*batch)[batchIndex_]);
 
     Expr context = applyEncoderRNN(
-        graph, batchEmbeddings, batchMask, opt<std::string>("enc-type"));
+        graph_, batchEmbeddings, batchMask, opt<std::string>("enc-type"));
 
     return New<EncoderState>(context, batchMask, batch);
   }

@@ -13,9 +13,10 @@ public:
 
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
                                   Ptr<data::CorpusBatch> batch) override {
+    graph_ = graph;
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask; std::tie
-    (batchEmbeddings, batchMask) = getEmbeddingLayer(graph)->apply(batch->front());
+    (batchEmbeddings, batchMask) = getEmbeddingLayer()->apply(batch->front());
 
     int dimEmb = opt<int>("dim-emb");
     auto convSizes = options_->get<std::vector<int>>("char-conv-filters-num");

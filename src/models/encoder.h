@@ -6,7 +6,6 @@
 namespace marian {
 
 class EncoderBase : public EncoderDecoderLayerBase {
-protected:
 public:
   EncoderBase(Ptr<Options> options) :
     EncoderDecoderLayerBase("encoder", /*batchIndex=*/0, options,

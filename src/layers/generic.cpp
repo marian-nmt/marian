@@ -422,51 +422,49 @@ namespace marian {
     return reshape(rows(E_, embIdx), shape);
   }
 
+  // standard encoder word embeddings
   /*private*/ Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createEmbeddingLayer(Ptr<ExpressionGraph> graph) const {
-    // standard encoder word embeddings
-    int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
-    int dimEmb = opt<int>("dim-emb");
-    auto embFactory = embedding()("dimVocab", dimVoc)("dimEmb", dimEmb)("dropout", dropout_);
-    if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
-      embFactory("prefix", "Wemb");
-    else
-      embFactory("prefix", prefix_ + "_Wemb");
+    auto embFactory = EmbeddingFactory(
+        "dimVocab", opt<std::vector<int>>("dim-vocabs")[batchIndex_],
+        "dimEmb", opt<int>("dim-emb"),
+        "dropout", dropout_,
+        "prefix", (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all")) ? "Wemb" : prefix_ + "_Wemb",
+        "vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored embeddings
     if(options_->has(embeddingFixParamName_))
-      embFactory("fixed", opt<bool>(embeddingFixParamName_));
+      embFactory.setOpt("fixed", opt<bool>(embeddingFixParamName_));
     if(options_->hasAndNotEmpty("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
-      embFactory("embFile", embFiles[batchIndex_])
-                ("normalization", opt<bool>("embedding-normalization"));
+      embFactory.setOpts(
+          "embFile", embFiles[batchIndex_],
+          "normalization", opt<bool>("embedding-normalization"));
     }
-    embFactory("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored embeddings
     return embFactory.construct(graph);
   }
 
+  // ULR word embeddings
   /*private*/ Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createULREmbeddingLayer(Ptr<ExpressionGraph> graph) const {
-    // standard encoder word embeddings
-    int dimSrcVoc = opt<std::vector<int>>("dim-vocabs")[0];  //ULR multi-lingual src
-    int dimTgtVoc = opt<std::vector<int>>("dim-vocabs")[1];  //ULR monon tgt
-    int dimEmb = opt<int>("dim-emb");
-    int dimUlrEmb = opt<int>("ulr-dim-emb");
-    auto embFactory = ulr_embedding()("dimSrcVoc", dimSrcVoc)("dimTgtVoc", dimTgtVoc)
-                                     ("dimUlrEmb", dimUlrEmb)("dimEmb", dimEmb)
-                                     ("ulr-dropout", opt<float>("ulr-dropout"))
-                                     ("dropout", dropout_)
-                                     ("ulrTrainTransform", opt<bool>("ulr-trainable-transformation"))
-                                     ("ulrQueryFile", opt<std::string>("ulr-query-vectors"))
-                                     ("ulrKeysFile", opt<std::string>("ulr-keys-vectors"));
-    return embFactory.construct(graph);
+    return ULREmbeddingFactory(
+        "dimSrcVoc", opt<std::vector<int>>("dim-vocabs")[0],  // ULR multi-lingual src
+        "dimTgtVoc", opt<std::vector<int>>("dim-vocabs")[1],  // ULR monon tgt
+        "dimUlrEmb", opt<int>("ulr-dim-emb"),
+        "dimEmb", opt<int>("dim-emb"),
+        "ulr-dropout", opt<float>("ulr-dropout"),
+        "dropout", dropout_,
+        "ulrTrainTransform", opt<bool>("ulr-trainable-transformation"),
+        "ulrQueryFile", opt<std::string>("ulr-query-vectors"),
+        "ulrKeysFile", opt<std::string>("ulr-keys-vectors"))
+        .construct(graph);
   }
 
   // get embedding layer for this encoder or decoder; lazily create it if not created yet
-  Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::getEmbeddingLayer(Ptr<ExpressionGraph> graph, bool ulr) {
+  Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::getEmbeddingLayer(bool ulr) {
     if (embeddingLayers_.size() <= batchIndex_ || !embeddingLayers_[batchIndex_]) { // lazy
       if (embeddingLayers_.size() <= batchIndex_)
         embeddingLayers_.resize(batchIndex_ + 1);
       if (ulr)
-        embeddingLayers_[batchIndex_] = createULREmbeddingLayer(graph); // embedding uses ULR
+        embeddingLayers_[batchIndex_] = createULREmbeddingLayer(graph_); // embedding uses ULR
       else
-        embeddingLayers_[batchIndex_] = createEmbeddingLayer(graph);
+        embeddingLayers_[batchIndex_] = createEmbeddingLayer(graph_);
     }
     return embeddingLayers_[batchIndex_];
   }

@@ -157,7 +157,7 @@ public:
   Ptr<MLP> construct(Ptr<ExpressionGraph> graph) {
     auto mlp = New<MLP>(graph, options_);
     for(auto layer : layers_) {
-      layer->getOptions()->merge(options_);
+      layer->mergeOpts(options_);
       mlp->push_back(layer->construct(graph));
     }
     return mlp;
