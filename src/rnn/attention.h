@@ -62,8 +62,7 @@ public:
       dropMaskState_   = graph->dropoutMask(dropout_, {1, dimDecState});
     }
 
-    if(dropMaskContext_)
-      contextDropped_ = dropout(contextDropped_, dropMaskContext_);
+    contextDropped_ = dropout(contextDropped_, dropMaskContext_);
 
     if(layerNorm_) {
       if(nematusNorm_) {
@@ -113,8 +112,7 @@ public:
     if(recState->shape().size() > 3)
       dimBeam = recState->shape()[-4];
 
-    if(dropMaskState_)
-      recState = dropout(recState, dropMaskState_);
+    recState = dropout(recState, dropMaskState_);
 
     auto mappedState = dot(recState, Wa_);
     if(layerNorm_) {

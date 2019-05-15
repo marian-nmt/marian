@@ -148,8 +148,7 @@ public:
     x = affine(x, W, b);
     if (actFn)
       x = actFn(x);
-    if (dropProb)
-      x = dropout(x, dropProb);
+    x = dropout(x, dropProb);
     return x;
   }
 
@@ -249,9 +248,7 @@ public:
       collectOneHead(weights, dimBeam);
 
     // optional dropout for attention weights
-    float dropProb
-        = inference_ ? 0 : opt<float>("transformer-dropout-attention");
-    weights = dropout(weights, dropProb);
+    weights = dropout(weights, inference_ ? 0 : opt<float>("transformer-dropout-attention"));
 
     // apply attention weights to values
     auto output = bdot(weights, v);   // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]

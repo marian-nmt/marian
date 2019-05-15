@@ -207,7 +207,10 @@ Expr highway(Expr y, Expr x, Expr t);
 Expr highway(const std::string prefix, Expr x);
 
 static inline Expr dropout(Expr x, Expr mask) {
-  return x * mask;
+  if (mask)
+    return x * mask;
+  else
+    return x;
 }
 
 static inline Expr dropout(Expr x, float dropProb, Shape shape) {
