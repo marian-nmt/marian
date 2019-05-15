@@ -427,37 +427,36 @@ namespace marian {
   }
 
   // standard encoder word embeddings
-  /*private*/ Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createEmbeddingLayer(Ptr<ExpressionGraph> graph) const {
-    auto embFactory = EmbeddingFactory(
+  /*private*/ Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createEmbeddingLayer() const {
+    auto options = New<Options>(
         "dimVocab", opt<std::vector<int>>("dim-vocabs")[batchIndex_],
-        "dimEmb", opt<int>("dim-emb"),
-        "dropout", dropout_,
-        "prefix", (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all")) ? "Wemb" : prefix_ + "_Wemb",
-        "vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored embeddings
+        "dimEmb",   opt<int>("dim-emb"),
+        "dropout",  dropout_,
+        "prefix",   (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all")) ? "Wemb" : prefix_ + "_Wemb",
+        "vocab",    opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored embeddings
     if(options_->has(embeddingFixParamName_))
-      embFactory.setOpt("fixed", opt<bool>(embeddingFixParamName_));
+      options->set("fixed", opt<bool>(embeddingFixParamName_));
     if(options_->hasAndNotEmpty("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
-      embFactory.setOpts(
+      options->set(
           "embFile", embFiles[batchIndex_],
           "normalization", opt<bool>("embedding-normalization"));
     }
-    return embFactory.construct(graph);
+    return New<Embedding>(graph_, options);
   }
 
   // ULR word embeddings
-  /*private*/ Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createULREmbeddingLayer(Ptr<ExpressionGraph> graph) const {
-    return ULREmbeddingFactory(
-        "dimSrcVoc", opt<std::vector<int>>("dim-vocabs")[0],  // ULR multi-lingual src
-        "dimTgtVoc", opt<std::vector<int>>("dim-vocabs")[1],  // ULR monon tgt
-        "dimUlrEmb", opt<int>("ulr-dim-emb"),
-        "dimEmb", opt<int>("dim-emb"),
-        "ulr-dropout", opt<float>("ulr-dropout"),
-        "dropout", dropout_,
+  /*private*/ Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createULREmbeddingLayer() const {
+    return New<ULREmbedding>(graph_, New<Options>(
+        "dimSrcVoc",         opt<std::vector<int>>("dim-vocabs")[0],  // ULR multi-lingual src
+        "dimTgtVoc",         opt<std::vector<int>>("dim-vocabs")[1],  // ULR monon tgt
+        "dimUlrEmb",         opt<int>("ulr-dim-emb"),
+        "dimEmb",            opt<int>("dim-emb"),
+        "ulr-dropout",       opt<float>("ulr-dropout"),
+        "dropout",           dropout_,
         "ulrTrainTransform", opt<bool>("ulr-trainable-transformation"),
-        "ulrQueryFile", opt<std::string>("ulr-query-vectors"),
-        "ulrKeysFile", opt<std::string>("ulr-keys-vectors"))
-        .construct(graph);
+        "ulrQueryFile",      opt<std::string>("ulr-query-vectors"),
+        "ulrKeysFile",       opt<std::string>("ulr-keys-vectors")));
   }
 
   // get embedding layer for this encoder or decoder; lazily create it if not created yet
@@ -466,9 +465,9 @@ namespace marian {
       if (embeddingLayers_.size() <= batchIndex_)
         embeddingLayers_.resize(batchIndex_ + 1);
       if (ulr)
-        embeddingLayers_[batchIndex_] = createULREmbeddingLayer(graph_); // embedding uses ULR
+        embeddingLayers_[batchIndex_] = createULREmbeddingLayer(); // embedding uses ULR
       else
-        embeddingLayers_[batchIndex_] = createEmbeddingLayer(graph_);
+        embeddingLayers_[batchIndex_] = createEmbeddingLayer();
     }
     return embeddingLayers_[batchIndex_];
   }

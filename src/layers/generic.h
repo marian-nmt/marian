@@ -86,8 +86,8 @@ protected:
   virtual ~EncoderDecoderLayerBase() {}
 
 private:
-  Ptr<IEmbeddingLayer> createEmbeddingLayer(Ptr<ExpressionGraph> graph) const;
-  Ptr<IEmbeddingLayer> createULREmbeddingLayer(Ptr<ExpressionGraph> graph) const;
+  Ptr<IEmbeddingLayer> createEmbeddingLayer() const;
+  Ptr<IEmbeddingLayer> createULREmbeddingLayer() const;
 
 public:
   // get embedding layer; lazily create on first call

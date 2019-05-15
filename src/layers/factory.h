@@ -106,11 +106,6 @@ public:
     return *this;
   }
 
-  //Accumulator& operator()(const std::string& yaml) {
-  //  Factory::mergeOpts(yaml);
-  //  return *this;
-  //}
-
   Accumulator& operator()(Ptr<Options> options) {
     Factory::mergeOpts(options);
     return *this;
