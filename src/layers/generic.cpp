@@ -413,13 +413,17 @@ namespace marian {
       selectedEmbs = multiRows(words);
     else
       selectedEmbs = rows(E_, toWordIndexVector(words));
+    selectedEmbs = reshape(selectedEmbs, shape);
     selectedEmbs = dropout(selectedEmbs, options_->get<float>("dropout", 0.0f), {selectedEmbs->shape()[-3], 1, 1});
-    return reshape(selectedEmbs, shape);
+    return selectedEmbs;
   }
 
   Expr Embedding::applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const /*override final*/ {
     ABORT_IF(factoredVocab_, "Embedding: applyIndices must not be used with a factored vocabulary");
-    return reshape(rows(E_, embIdx), shape);
+    auto selectedEmbs = rows(E_, embIdx);
+    selectedEmbs = reshape(selectedEmbs, shape);
+    selectedEmbs = dropout(selectedEmbs, options_->get<float>("dropout", 0.0f), { selectedEmbs->shape()[-3], 1, 1 });
+    return selectedEmbs;
   }
 
   // standard encoder word embeddings

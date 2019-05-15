@@ -18,7 +18,7 @@ public:
   // construct with one or more individual parameters
   // Factory("var1", val1, "var2", val2, ...)
   template <typename T, typename... Args>
-  Factory(const std::string& key, T value, Args&&... moreArgs) {
+  Factory(const std::string& key, T value, Args&&... moreArgs) : Factory() {
     setOpts(key, value, std::forward<Args>(moreArgs)...);
   }
   // construct with options and one or more individual parameters

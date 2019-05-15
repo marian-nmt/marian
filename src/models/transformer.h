@@ -61,10 +61,10 @@ public:
       Expr seenEmb = graph_->get("Wpos");
       int numPos = seenEmb ? seenEmb->shape()[-2] : maxLength;
 
-      auto embeddingLayer = embedding()
-                            ("prefix", "Wpos") // share positional embeddings across all encoders/decorders
-                            ("dimVocab", numPos)
-                            ("dimEmb", dimEmb)
+      auto embeddingLayer = embedding(
+                             "prefix", "Wpos", // share positional embeddings across all encoders/decorders
+                             "dimVocab", numPos,
+                             "dimEmb", dimEmb)
                             .construct(graph_);
 
       // fill with increasing numbers until current length or maxPos
