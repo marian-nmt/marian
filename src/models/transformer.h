@@ -22,6 +22,7 @@ namespace marian {
 template<class EncoderOrDecoderBase>
 class Transformer : public EncoderOrDecoderBase {
   typedef EncoderOrDecoderBase Base;
+  using Base::Base;
 
 protected:
   using Base::options_; using Base::inference_; using Base::batchIndex_; using Base::graph_;
@@ -38,10 +39,6 @@ protected:
   template <typename T> T opt(const std::string& key, const T& def) const { Ptr<Options> options = options_; if (options->has(key)) return options->get<T>(key); else return def; }
 
 public:
-  Transformer(Ptr<Options> options)
-    : EncoderOrDecoderBase(options) {
-  }
-
   static Expr transposeTimeBatch(Expr input) { return transpose(input, {0, 2, 1, 3}); }
 
   Expr addPositionalEmbeddings(Expr input, int start = 0, bool trainPosEmbeddings = false) const {
@@ -497,8 +494,10 @@ public:
 };
 
 class EncoderTransformer : public Transformer<EncoderBase> {
+  typedef Transformer<EncoderBase> Base;
+  using Base::Base;
 public:
-  EncoderTransformer(Ptr<Options> options) : Transformer(options) {}
+  //EncoderTransformer(Ptr<Options> options) : Transformer(options) {}
   virtual ~EncoderTransformer() {}
 
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
@@ -577,6 +576,8 @@ public:
 };
 
 class DecoderTransformer : public Transformer<DecoderBase> {
+  typedef Transformer<DecoderBase> Base;
+  using Base::Base;
 private:
   Ptr<mlp::Output> output_;
 
@@ -602,7 +603,7 @@ private:
   }
 
 public:
-  DecoderTransformer(Ptr<Options> options) : Transformer(options) {}
+  //DecoderTransformer(Ptr<ExpressionGraph> graph, Ptr<Options> options) : Transformer(graph, options) {}
 
   virtual Ptr<DecoderState> startState(
       Ptr<ExpressionGraph> graph,

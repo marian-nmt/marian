@@ -73,10 +73,10 @@ protected:
   const size_t batchIndex_;
   mutable std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
 
-  EncoderDecoderLayerBase(const std::string& prefix, size_t batchIndex, Ptr<Options> options,
+  EncoderDecoderLayerBase(Ptr<ExpressionGraph> graph, Ptr<Options> options, const std::string& prefix, size_t batchIndex,
         float dropout,
         bool embeddingFix) :
-      LayerBase(/*graph=*/nullptr, options), // @BUGBUG: we really should pass the graph in here
+      LayerBase(graph, options),
       prefix_(options->get<std::string>("prefix", prefix)),
       embeddingFix_(embeddingFix),
       dropout_(dropout),

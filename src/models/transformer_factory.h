@@ -7,6 +7,6 @@
 #include "models/encoder.h"
 
 namespace marian {
-Ptr<EncoderBase> NewEncoderTransformer(Ptr<Options> options);
-Ptr<DecoderBase> NewDecoderTransformer(Ptr<Options> options);
+Ptr<EncoderBase> NewEncoderTransformer(Ptr<ExpressionGraph> graph, Ptr<Options> options);
+Ptr<DecoderBase> NewDecoderTransformer(Ptr<ExpressionGraph> graph, Ptr<Options> options);
 }  // namespace marian

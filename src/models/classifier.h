@@ -11,7 +11,8 @@ namespace marian {
  * Simple base class for Classifiers to be used in EncoderClassifier framework
  * Currently only implementations are in bert.h
  */
-class ClassifierBase {
+class ClassifierBase :public LayerBase {
+  using LayerBase::LayerBase;
 protected:
   Ptr<Options> options_;
   const std::string prefix_{"classifier"};
@@ -19,8 +20,8 @@ protected:
   const size_t batchIndex_{0};
 
 public:
-  ClassifierBase(Ptr<Options> options)
-      : options_(options),
+  ClassifierBase(Ptr<ExpressionGraph> graph, Ptr<Options> options)
+      : LayerBase(graph, options),
         prefix_(options->get<std::string>("prefix", "classifier")),
         inference_(options->get<bool>("inference", false)),
         batchIndex_(options->get<size_t>("index", 1)) {} // assume that training input has batch index 0 and labels has 1

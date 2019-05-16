@@ -14,8 +14,8 @@ protected:
   Ptr<data::Shortlist> shortlist_;
 
 public:
-  DecoderBase(Ptr<Options> options) :
-    EncoderDecoderLayerBase("decoder", /*batchIndex=*/1, options,
+  DecoderBase(Ptr<ExpressionGraph> graph, Ptr<Options> options) :
+    EncoderDecoderLayerBase(graph, options, "decoder", /*batchIndex=*/1,
         options->get<float>("dropout-trg", 0.0f),
         options->get<bool>("embedding-fix-trg", false)) {}
 

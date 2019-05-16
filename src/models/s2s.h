@@ -9,6 +9,7 @@
 namespace marian {
 
 class EncoderS2S : public EncoderBase {
+  using EncoderBase::EncoderBase;
 public:
   Expr applyEncoderRNN(Ptr<ExpressionGraph> graph,
                        Expr embeddings,
@@ -119,7 +120,7 @@ public:
     return context;
   }
 
-  EncoderS2S(Ptr<Options> options) : EncoderBase(options) {}
+  //EncoderS2S(Ptr<Options> options) : EncoderBase(options) {}
 
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
                                   Ptr<data::CorpusBatch> batch) override {
@@ -138,6 +139,7 @@ public:
 };
 
 class DecoderS2S : public DecoderBase {
+  using DecoderBase::DecoderBase;
 private:
   Ptr<rnn::RNN> rnn_;
   Ptr<mlp::MLP> output_;
@@ -204,7 +206,7 @@ private:
   }
 
 public:
-  DecoderS2S(Ptr<Options> options) : DecoderBase(options) {}
+  //DecoderS2S(Ptr<Options> options) : DecoderBase(options) {}
 
   virtual Ptr<DecoderState> startState(
       Ptr<ExpressionGraph> graph,

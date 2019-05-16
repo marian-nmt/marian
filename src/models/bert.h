@@ -218,8 +218,9 @@ public:
  *          Is there a way to maybe instead include a reference in here, instead of deriving from it?
  */
 class BertEncoder : public EncoderTransformer {
+  using EncoderTransformer::EncoderTransformer;
 public:
-  BertEncoder(Ptr<Options> options) : EncoderTransformer(options) {}
+  //BertEncoder(Ptr<Options> options) : EncoderTransformer(options) {}
 
   Expr addSentenceEmbeddings(Expr embeddings,
                              Ptr<data::CorpusBatch> batch,
@@ -269,8 +270,9 @@ public:
  * @TODO: This is in fact so generic that we might move it out of here as the typical classifier implementation
  */
 class BertClassifier : public ClassifierBase {
+  using ClassifierBase::ClassifierBase;
 public:
-  BertClassifier(Ptr<Options> options) : ClassifierBase(options) {}
+  //BertClassifier(Ptr<Options> options) : ClassifierBase(options) {}
 
   Ptr<ClassifierState> apply(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch, const std::vector<Ptr<EncoderState>>& encoderStates) override {
     ABORT_IF(encoderStates.size() != 1, "Currently we only support a single encoder BERT model");
@@ -312,8 +314,9 @@ public:
  * as this is self-generating its labels from the source. Labels are dynamically created as complements of the masking process.
  */
 class BertMaskedLM : public ClassifierBase {
+  using ClassifierBase::ClassifierBase;
 public:
-  BertMaskedLM(Ptr<Options> options) : ClassifierBase(options) {}
+  //BertMaskedLM(Ptr<Options> options) : ClassifierBase(options) {}
 
   Ptr<ClassifierState> apply(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch, const std::vector<Ptr<EncoderState>>& encoderStates) override {
     Ptr<data::BertBatch> bertBatch = std::dynamic_pointer_cast<data::BertBatch>(batch);

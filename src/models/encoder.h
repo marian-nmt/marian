@@ -7,8 +7,8 @@ namespace marian {
 
 class EncoderBase : public EncoderDecoderLayerBase {
 public:
-  EncoderBase(Ptr<Options> options) :
-    EncoderDecoderLayerBase("encoder", /*batchIndex=*/0, options,
+  EncoderBase(Ptr<ExpressionGraph> graph, Ptr<Options> options) :
+    EncoderDecoderLayerBase(graph, options, "encoder", /*batchIndex=*/0,
         options->get<float>("dropout-src", 0.0f),
         options->get<bool>("embedding-fix-src", false)) {}
 
