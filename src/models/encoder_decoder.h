@@ -58,9 +58,8 @@ public:
   virtual data::SoftAlignment getAlignment() = 0;
 };
 
-class EncoderDecoder : public IEncoderDecoder {
+class EncoderDecoder : public IEncoderDecoder, public LayerBase {
 protected:
-  Ptr<Options> options_;
   Ptr<data::ShortlistGenerator> shortlistGenerator_;
 
   const std::string prefix_;
@@ -79,7 +78,7 @@ protected:
 public:
   typedef data::Corpus dataset_type;
 
-  EncoderDecoder(Ptr<Options> options);
+  EncoderDecoder(Ptr<ExpressionGraph> graph, Ptr<Options> options);
 
   virtual Ptr<Options> getOptions() override { return options_; }
 

@@ -55,21 +55,20 @@ Ptr<DecoderBase> DecoderFactory::construct(Ptr<ExpressionGraph> graph) {
 Ptr<ClassifierBase> ClassifierFactory::construct(Ptr<ExpressionGraph> /*graph*/) {
   if(options_->get<std::string>("type") == "bert-masked-lm")
     return New<BertMaskedLM>(options_);
-  if(options_->get<std::string>("type") == "bert-classifier")
+  else if(options_->get<std::string>("type") == "bert-classifier")
     return New<BertClassifier>(options_);
-  ABORT("Unknown classifier type");
+  else
+    ABORT("Unknown classifier type");
 }
 
 Ptr<IModel> EncoderDecoderFactory::construct(Ptr<ExpressionGraph> graph) {
   Ptr<EncoderDecoder> encdec;
-
   if(options_->get<std::string>("type") == "amun")
-    encdec = New<Amun>(options_);
-  if(options_->get<std::string>("type") == "nematus")
-    encdec = New<Nematus>(options_);
-
-  if(!encdec)
-    encdec = New<EncoderDecoder>(options_);
+    encdec = New<Amun>(graph, options_);
+  else if(options_->get<std::string>("type") == "nematus")
+    encdec = New<Nematus>(graph, options_);
+  else
+    encdec = New<EncoderDecoder>(graph, options_);
 
   for(auto& ef : encoders_)
     encdec->push_back(ef(options_).construct(graph));
@@ -82,13 +81,12 @@ Ptr<IModel> EncoderDecoderFactory::construct(Ptr<ExpressionGraph> graph) {
 
 Ptr<IModel> EncoderClassifierFactory::construct(Ptr<ExpressionGraph> graph) {
   Ptr<EncoderClassifier> enccls;
-  if(options_->get<std::string>("type") == "bert") {
+  if(options_->get<std::string>("type") == "bert")
     enccls = New<BertEncoderClassifier>(options_);
-  } else if(options_->get<std::string>("type") == "bert-classifier") {
+  else if(options_->get<std::string>("type") == "bert-classifier")
     enccls = New<BertEncoderClassifier>(options_);
-  } else {
+  else
     enccls = New<EncoderClassifier>(options_);
-  }
 
   for(auto& ef : encoders_)
     enccls->push_back(ef(options_).construct(graph));
@@ -114,7 +112,7 @@ Ptr<IModel> createBaseModelByType(std::string type, usage use, Ptr<Options> opti
   else if(type == "transformer") {
 #if 1
     auto newOptions = options->with("usage", use);
-    auto res = New<EncoderDecoder>(/*graph,*/ newOptions);
+    auto res = New<EncoderDecoder>(graph, newOptions);
     res->push_back(New<EncoderTransformer>(/*graph,*/ newOptions->with("type", "transformer")));
     res->push_back(New<DecoderTransformer>(/*graph,*/ newOptions->with("type", "transformer")));
     //res->push_back(models::encoder(newOptions->with("type", "transformer")).construct(graph));

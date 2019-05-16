@@ -4,8 +4,8 @@
 
 namespace marian {
 
-EncoderDecoder::EncoderDecoder(Ptr<Options> options)
-    : options_(options),
+EncoderDecoder::EncoderDecoder(Ptr<ExpressionGraph> graph, Ptr<Options> options)
+    : LayerBase(graph, options),
       prefix_(options->get<std::string>("prefix", "")),
       inference_(options->get<bool>("inference", false)) {
 
