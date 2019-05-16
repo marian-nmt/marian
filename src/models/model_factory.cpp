@@ -114,9 +114,11 @@ Ptr<IModel> createBaseModelByType(std::string type, usage use, Ptr<Options> opti
   else if(type == "transformer") {
 #if 1
     auto newOptions = options->with("usage", use);
-    auto res = New<EncoderDecoder>(/*graph,*/ newOptions); // @TODO: put EncoderDecoder on top of LayerBase
-    res->push_back(models::encoder(newOptions->with("type", "transformer")).construct(graph));
-    res->push_back(models::decoder(newOptions->with("type", "transformer")).construct(graph));
+    auto res = New<EncoderDecoder>(/*graph,*/ newOptions);
+    res->push_back(New<EncoderTransformer>(/*graph,*/ newOptions->with("type", "transformer")));
+    res->push_back(New<DecoderTransformer>(/*graph,*/ newOptions->with("type", "transformer")));
+    //res->push_back(models::encoder(newOptions->with("type", "transformer")).construct(graph));
+    //res->push_back(models::decoder(newOptions->with("type", "transformer")).construct(graph));
     return res;
 #else
     return models::encoder_decoder(options->with(
