@@ -245,6 +245,13 @@ namespace marian {
       }
 
       b_ = graph_->param(name + "_b", {1, numOutputClasses}, inits::zeros);
+
+      const int lemmaDimEmb = options_->get<int>("lemma-dim-emb", 0);
+      if (lemmaDimEmb > 0) {
+        auto range = factoredVocab_->getGroupRange(0);
+        auto lemmaVocabDim = (int)(range.second - range.first);
+        lemmaEt_ = graph_->param(name + "_lemmaEt", {lemmaDimEmb, lemmaVocabDim}, inits::glorot_uniform); // [L x U] L=lemmaDimEmb; transposed for speed
+      }
     }
 
     Logits Output::applyAsLogits(Expr input) /*override final*/ {
@@ -293,8 +300,8 @@ namespace marian {
           // optionally add a soft embedding of lemma back to create some lemma dependency
           // @TODO: if this works, move it into lazyConstruct
           const int lemmaDimEmb = options_->get<int>("lemma-dim-emb", 0);
-          ABORT_IF(shortlist_ && lemmaDimEmb != 0, "Lemma re-embedding with short list is not yet implemented");
           if (lemmaDimEmb < 0 && g == 0) {
+            ABORT_IF(shortlist_ && lemmaDimEmb != 0, "Lemma-dependent bias with short list is not yet implemented");
             LOG_ONCE(info, "[embedding] using lemma-dependent bias");
             factorLogits = logsoftmax(factorLogits); // explicitly, since we do that again later
             auto z = /*stopGradient*/(factorLogits);
@@ -302,16 +309,19 @@ namespace marian {
           }
           if (lemmaDimEmb > 0 && g == 0) {
             LOG_ONCE(info, "[embedding] enabled re-embedding of lemma, at dim {}", lemmaDimEmb);
-            int lemmaVocabDim = factorLogits->shape()[-1];
-            int inputDim  = input1->shape()[-1];
+            // compute softmax. We compute logsoftmax() separately because this way, computation will be reused later via CSE
+            factorLogits = logsoftmax(factorLogits);
+            // re-embedding lookup, soft-indexed by softmax
+            if (shortlist_ && !cachedShortLemmaEt_) // short-listed version of re-embedding matrix
+              cachedShortLemmaEt_ = index_select(lemmaEt_, -1, shortlist_->indices());
+            auto e = dot(exp(factorLogits), cachedShortLemmaEt_ ? cachedShortLemmaEt_ : lemmaEt_, false, true); // [B... x L]
+            // project it back to regular hidden dim
+            int inputDim = input1->shape()[-1];
             auto name = options_->get<std::string>("prefix");
-            factorLogits = logsoftmax(factorLogits); // explicitly, since we do that again later
-            Expr lemmaEt = graph_->param(name + "_lemmaEt", { lemmaDimEmb, lemmaVocabDim }, inits::glorot_uniform); // [L x U] L=lemmaDimEmb; transposed for speed
-            auto e = dot(exp(factorLogits), lemmaEt, false, true); // [B... x L]
-            //e = tanh(e); // make it non-scale-preserving
             Expr lemmaWt = inputDim == lemmaDimEmb ? nullptr : graph_->param(name + "_lemmaWt", { inputDim,  lemmaDimEmb }, inits::glorot_uniform); // [D x L] D=hidden-vector dimension
             auto f = lemmaWt ? dot(e, lemmaWt, false, true) : e; // [B... x D]
-            input1 = input1 + f; // augment the original hidden vector with this additional information
+            // augment the original hidden vector with this additional information
+            input1 = input1 + f;
           }
         }
         return Logits(std::move(allLogits), factoredVocab_);

@@ -47,7 +47,7 @@ public:
       return targetWords;
   }
 
-  // get soft alignments for each target word starting from the hyp one
+  // get soft alignments [t][s] -> P(s|t) for each target word starting from the hyp one
   typedef data::SoftAlignment SoftAlignment;
   SoftAlignment tracebackAlignment()
   {
@@ -56,7 +56,7 @@ public:
           align.push_back(hyp->getAlignment());
       }
       std::reverse(align.begin(), align.end());
-      return align;
+      return align; // [t][s] -> P(s|t)
   }
 
 private:

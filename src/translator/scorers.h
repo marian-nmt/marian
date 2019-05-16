@@ -128,7 +128,9 @@ public:
   };
 
   virtual std::vector<float> getAlignment() override {
-    return encdec_->getAlignment().front(); // [beam depth, max src length, batch size, 1]
+    // This is called during decoding, where alignments only exist for the last time step. Hence front().
+    // This makes as copy. @TODO: It should be OK to return this as a const&.
+    return encdec_->getAlignment().front(); // [beam depth * max src length * batch size]
   }
 };
 

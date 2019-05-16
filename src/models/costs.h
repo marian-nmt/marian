@@ -75,7 +75,7 @@ public:
     multiLoss->push_back(partialLoss);
 
     if(options_->get("guided-alignment", std::string("none")) != "none" && !inference_) {
-      auto attentionVectors = encdec->getDecoders()[0]->getAlignments();
+      auto attentionVectors = encdec->getDecoders()[0]->getAlignments(); // [tgt index][beam depth, max src length, batch size, 1]
       ABORT_IF(attentionVectors.empty(), "Model does not seem to support alignments");
 
       auto attention = concatenate(attentionVectors, /*axis =*/ -1);
