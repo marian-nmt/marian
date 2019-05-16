@@ -130,13 +130,15 @@ public:
     return decoders_[0]->getShortlist();
   };
 
+  // convert alignment tensors that live GPU-side into a CPU-side vector of vectors
   virtual data::SoftAlignment getAlignment() override {
-    data::SoftAlignment aligns;
-    for(auto aln : decoders_[0]->getAlignments()) {
-      aligns.push_back({});
-      aln->val()->get(aligns.back());
+    data::SoftAlignment softAlignments;
+    auto alignments = decoders_[0]->getAlignments(); // [tgt index][beam depth, max src length, batch size, 1]
+    for(auto alignment : alignments) { // [beam depth, max src length, batch size, 1]
+      softAlignments.push_back({});
+      alignment->val()->get(softAlignments.back());
     }
-    return aligns;
+    return softAlignments; // [tgt index][beam depth * max src length * batch size]
   };
 
   /*********************************************************************/

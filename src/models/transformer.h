@@ -206,20 +206,20 @@ public:
     auto head0 = slice(weights, -3, 0);
 
     int dimBatchBeam = head0->shape()[-4];
-    int srcWords = head0->shape()[-1];
-    int trgWords = head0->shape()[-2];
+    int srcWords = head0->shape()[-1]; // (max) length of src sequence
+    int trgWords = head0->shape()[-2]; // (max) length of trg sequence, or 1 in decoding
     int dimBatch = dimBatchBeam / dimBeam;
 
     // reshape and transpose to match the format guided_alignment expects
     head0 = reshape(head0, {dimBeam, dimBatch, trgWords, srcWords});
-    head0 = transpose(head0, {0, 3, 1, 2}); // [-4: beam depth, -3: max src length, -2: batch size, -1: max tgt length]
+    head0 = transpose(head0, {0, 3, 1, 2}); // [beam depth, max src length, batch size, max tgt length]
 
     // save only last alignment set. For training this will be all alignments,
     // for translation only the last one. Also split alignments by target words.
     // @TODO: make splitting obsolete
     alignments_.clear();
-    for(int i = 0; i < trgWords; ++i) {
-      alignments_.push_back(slice(head0, -1, i)); // [tgt index][-4: beam depth, -3: max src length, -2: batch size, -1: 1]
+    for(int i = 0; i < trgWords; ++i) { // loop over all trg positions. In decoding, there is only one.
+      alignments_.push_back(slice(head0, -1, i)); // [tgt index][beam depth, max src length, batch size, 1] P(src pos|trg pos, beam index, batch index)
     }
   }
 
@@ -860,7 +860,7 @@ public:
   // helper function for guided alignment
   // @TODO: const vector<> seems wrong. Either make it non-const or a const& (more efficient but dangerous)
   virtual const std::vector<Expr> getAlignments(int /*i*/ = 0) override {
-    return alignments_;
+    return alignments_; // [tgt index][beam depth, max src length, batch size, 1]
   }
 
   void clear() override {
