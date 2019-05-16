@@ -27,6 +27,7 @@ public:
   Factory(Ptr<Options> options, Args&&... args) : Factory(options) {
     setOpts(std::forward<Args>(args)...);
   }
+  Factory(const Factory& factory) = default;
 
   virtual ~Factory() {}
 
@@ -56,22 +57,20 @@ public:
 
   void mergeOpts(Ptr<Options> options) { options_->merge(options); }
 
-  template <typename Cast>
-  inline Ptr<Cast> as() {
-    return std::dynamic_pointer_cast<Cast>(shared_from_this());
-  }
+  template <class Cast>
+  inline Ptr<Cast> as() { return std::dynamic_pointer_cast<Cast>(shared_from_this()); }
 
-  template <typename Cast>
-  inline bool is() {
-    return as<Cast>() != nullptr;
-  }
+  // @TODO: this fails with 'target type must be a pointer or reference to a defined class'
+  //template <class Cast>
+  //inline bool is() { return dynamic_cast<Cast>(this) != nullptr; }
+  template <class Cast>
+  inline bool is() { return std::dynamic_pointer_cast<Cast>(shared_from_this()) != nullptr; }
 };
 
 // simplest form of Factory that just passes on options to the constructor of a layer type
 template<class Class>
 struct ConstructingFactory : public Factory {
-  template <typename... Args>
-  ConstructingFactory(Args&&... moreArgs) : Factory(std::forward<Args>(moreArgs)...) {}
+  using Factory::Factory;
 
   Ptr<Class> construct(Ptr<ExpressionGraph> graph) {
     return New<Class>(graph, options_);

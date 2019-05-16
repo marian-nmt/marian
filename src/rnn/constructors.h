@@ -7,24 +7,22 @@
 namespace marian {
 namespace rnn {
 
-struct StackableFactory : public Factory {
-  using Factory::Factory;
-  //StackableFactory() : Factory() {}
-  //StackableFactory(const StackableFactory&) = default;
-  //StackableFactory(StackableFactory&&) = default;
-
-  virtual ~StackableFactory() {}
-
-  template <typename Cast>
-  inline Ptr<Cast> as() {
-    return std::dynamic_pointer_cast<Cast>(shared_from_this());
-  }
-
-  template <typename Cast>
-  inline bool is() {
-    return as<Cast>() != nullptr;
-  }
-};
+typedef Factory StackableFactory;
+//struct StackableFactory : public Factory {StackableFactory
+//  using Factory::Factory;
+//
+//  virtual ~StackableFactory() {}
+//
+//  template <typename Cast>
+//  inline Ptr<Cast> as() {
+//    return std::dynamic_pointer_cast<Cast>(shared_from_this());
+//  }
+//
+//  template <typename Cast>
+//  inline bool is() {
+//    return as<Cast>() != nullptr;
+//  }
+//};
 
 struct InputFactory : public StackableFactory {
   virtual Ptr<CellInput> construct(Ptr<ExpressionGraph> graph) = 0;

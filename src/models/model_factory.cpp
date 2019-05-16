@@ -103,20 +103,28 @@ Ptr<IModel> createBaseModelByType(std::string type, usage use, Ptr<Options> opti
   Ptr<ExpressionGraph> graph = nullptr; // graph unknown at this stage
   // clang-format off
   if(type == "s2s" || type == "amun" || type == "nematus") {
-    return models::encoder_decoder()(options)
-        ("usage", use)
-        ("original-type", type)
+    return models::encoder_decoder(options->with(
+         "usage", use,
+         "original-type", type))
         .push_back(models::encoder()("type", "s2s"))
         .push_back(models::decoder()("type", "s2s"))
         .construct(graph);
   }
 
   else if(type == "transformer") {
-    return models::encoder_decoder()(options)
-        ("usage", use)
+#if 1
+    auto newOptions = options->with("usage", use);
+    auto res = New<EncoderDecoder>(/*graph,*/ newOptions); // @TODO: put EncoderDecoder on top of LayerBase
+    res->push_back(models::encoder(newOptions->with("type", "transformer")).construct(graph));
+    res->push_back(models::decoder(newOptions->with("type", "transformer")).construct(graph));
+    return res;
+#else
+    return models::encoder_decoder(options->with(
+         "usage", use))
         .push_back(models::encoder()("type", "transformer"))
         .push_back(models::decoder()("type", "transformer"))
         .construct(graph);
+#endif
   }
 
   else if(type == "transformer_s2s") {
