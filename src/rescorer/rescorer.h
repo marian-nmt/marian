@@ -35,7 +35,7 @@ public:
 
   data::SoftAlignment getAlignment() {
     auto model = std::static_pointer_cast<models::Trainer>(builder_)->getModel();
-    return std::static_pointer_cast<EncoderDecoderBase>(model)->getAlignment();
+    return std::static_pointer_cast<IEncoderDecoder>(model)->getAlignment();
   }
 };
 

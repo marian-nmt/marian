@@ -9,7 +9,7 @@
 
 namespace marian {
 
-class EncoderDecoderBase : public models::IModel {
+class IEncoderDecoder : public models::IModel {
 public:
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
@@ -58,7 +58,7 @@ public:
   virtual data::SoftAlignment getAlignment() = 0;
 };
 
-class EncoderDecoder : public EncoderDecoderBase {
+class EncoderDecoder : public IEncoderDecoder {
 protected:
   Ptr<Options> options_;
   Ptr<data::ShortlistGenerator> shortlistGenerator_;

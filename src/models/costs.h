@@ -234,16 +234,16 @@ public:
   }
 };
 
-// class to wrap an EncoderDecoderBase and a ILogProbStep that are executed in sequence,
-// wrapped again in the EncoderDecoderBase interface
+// class to wrap an IEncoderDecoder and a ILogProbStep that are executed in sequence,
+// wrapped again in the IEncoderDecoder interface
 // @TODO: seems we are conflating an interface defition with its implementation?
-class Stepwise : public EncoderDecoderBase {
+class Stepwise : public IEncoderDecoder {
 protected:
-  Ptr<EncoderDecoderBase> encdec_;
+  Ptr<IEncoderDecoder> encdec_;
   Ptr<ILogProbStep> cost_;
 
 public:
-  Stepwise(Ptr<EncoderDecoderBase> encdec, Ptr<ILogProbStep> cost)
+  Stepwise(Ptr<IEncoderDecoder> encdec, Ptr<ILogProbStep> cost)
       : encdec_(encdec), cost_(cost) {}
 
   virtual void load(Ptr<ExpressionGraph> graph,
