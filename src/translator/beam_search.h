@@ -44,8 +44,8 @@ public:
                Ptr<data::CorpusBatch /*const*/> batch, // for alignments only
                Ptr<FactoredVocab/*const*/> factoredVocab, size_t factorGroup) const {
     std::vector<float> align;
-    if(options_->hasAndNotEmpty("alignment"))
-      align = scorers_[0]->getAlignment(); // [beam depth, max src length, batch size, 1]; use alignments from the first scorer, even if ensemble
+    if(options_->hasAndNotEmpty("alignment") && factorGroup == 0)
+      align = scorers_[0]->getAlignment(); // [beam depth * max src length * batch size] -> P(s|t); use alignments from the first scorer, even if ensemble
 
     const auto dimBatch = beams.size();
     Beams newBeams(dimBatch);   // return value of this function goes here
@@ -73,8 +73,8 @@ public:
       ABORT_IF(beamHypIdx >= beam.size(), "Out of bounds beamHypIdx??");
 
       // map wordIdx to word
-      auto prevHyp = beam[beamHypIdx];
-      auto prevBeamHypIdx = beamHypIdx;
+      auto prevBeamHypIdx = beamHypIdx; // back pointer
+      auto prevHyp = beam[prevBeamHypIdx];
       Word word;
       // If short list has been set, then wordIdx is an index into the short-listed word set,
       // rather than the true word index.
@@ -94,7 +94,7 @@ public:
                    "A word without this factor snuck through to here??");
           word = factoredVocab->expandFactoredWord(word, factorGroup, wordIdx);
           prevBeamHypIdx = prevHyp->getPrevStateIndex();
-          prevHyp = prevHyp->getPrevHyp(); // short-circuit the backpointer, so that the traceback doesnot contain partially factored words
+          prevHyp = prevHyp->getPrevHyp(); // short-circuit the backpointer, so that the traceback does not contain partially factored words
         }
       }
       else if (shortlist)
@@ -123,9 +123,10 @@ public:
       }
 
       // Set alignments
-      if(!align.empty() && factorGroup == 0) {
+      if(!align.empty())
         hyp->setAlignment(getAlignmentsForHypothesis(align, batch, (int)beamHypIdx, (int)batchIdx));
-      }
+      else // not first factor: just copy
+        hyp->setAlignment(beam[beamHypIdx]->getAlignment());
 
       newBeam.push_back(hyp);
     }
@@ -157,8 +158,8 @@ public:
     return newBeams;
   }
 
-  std::vector<float> getAlignmentsForHypothesis(
-      const std::vector<float> alignAll, // [beam depth, max src length, batch size, 1]
+  std::vector<float> getAlignmentsForHypothesis( // -> P(s|t) for current t and given beam and batch dim
+      const std::vector<float> alignAll, // [beam depth, max src length, batch size, 1], flattened
       Ptr<data::CorpusBatch> batch,
       int beamHypIdx,
       int batchIdx) const {
@@ -179,19 +180,18 @@ public:
     // in a single beam, i.e.:
     //   * [word1-batch1, word1-batch2, ..., word2-batch1, ...]
     //
-    size_t batchSize = batch->size();                // number of sentences in batch
+    size_t batchSize  = batch->size();               // number of sentences in batch
     size_t batchWidth = batch->width();              // max src length
-    size_t batchWidthXSize = batchWidth * batchSize; // total number of words in the batch incl. padding
-    std::vector<float> align;
+    size_t batchWidthXSize = batchWidth * batchSize; // total number of words in the batch incl. padding = product of last 3 tensor dimensions
 
     // loop over words of batch entry 'batchIdx' and beam entry 'beamHypIdx'
-    for(size_t w = 0; w < batchWidth; ++w) {
-      size_t a = ((batchWidthXSize * beamHypIdx) + batchIdx) + (batchSize * w);
-      size_t m = a % batchWidthXSize; // == batchIdx + (batchSize * w)
+    std::vector<float> align;
+    for(size_t srcPos = 0; srcPos < batchWidth; ++srcPos) { // loop over source positions
+      size_t a = ((batchWidthXSize * beamHypIdx) + batchIdx) + (batchSize * srcPos); // = flatten [beam index, s, batch index, 0]
+      size_t m = a % batchWidthXSize; // == batchIdx + (batchSize * srcPos) = flatten [0, s, batch index, 0]
       if(batch->front()->mask()[m] != 0)
         align.emplace_back(alignAll[a]);
     }
-
     return align;
   }
 

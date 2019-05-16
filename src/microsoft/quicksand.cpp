@@ -169,8 +169,8 @@ public:
           data::WordAlignment align = data::ConvertSoftAlignToHardAlign(hyp->tracebackAlignment(), alignmentThreshold);
           // convert to QuickSAND format
           alignmentSets.resize(words.size());
-          for (const auto& p : align) // @TODO: Does the feature_model param max_alignment_links apply here?
-            alignmentSets[p.tgtPos].insert({p.srcPos, p.prob});
+          for (const auto& p : align)
+            alignmentSets[p.tgtPos].insert({p.srcPos, p.prob}); // [trgPos] -> {(srcPos, P(srcPos|trgPos))}
         }
         // form hypothesis to return
         qsNbest.emplace_back(toWordIndexVector(words), std::move(alignmentSets), score);

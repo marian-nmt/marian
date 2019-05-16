@@ -19,7 +19,7 @@ typedef uint32_t IndexType;
 typedef IndexType WordIndex;
 typedef std::vector<WordIndex> WordIndices;
 typedef std::vector<WordIndices> QSBatch;
-typedef std::vector<std::set<std::pair<size_t, float>>> AlignmentSets; // [tgtPos] -> set of (srcPos, score)
+typedef std::vector<std::set<std::pair<size_t, float>>> AlignmentSets; // [trgPos] -> set of (srcPos, P(srcPos|trgPos))
 
 typedef std::tuple<WordIndices, AlignmentSets, float> QSSentenceWithProb;
 typedef std::vector<QSSentenceWithProb> QSNBest;
