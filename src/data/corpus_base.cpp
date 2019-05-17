@@ -204,7 +204,8 @@ void CorpusBase::addWordsToSentenceTuple(const std::string& line,
 
   if(maxLengthCrop_ && words.size() > maxLength_) {
     words.resize(maxLength_);
-    words.back() = vocabs_[batchIndex]->getEosId();
+    if(addEOS_[batchIndex])
+      words.back() = vocabs_[batchIndex]->getEosId();
   }
 
   if(rightLeft_)
