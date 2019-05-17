@@ -200,12 +200,12 @@ void CorpusBase::addWordsToSentenceTuple(const std::string& line,
   // is used.
   Words words = vocabs_[batchIndex]->encode(line, /*addEOS =*/ addEOS_[batchIndex], inference_);
 
-  if(words.empty())
-    words.push_back(Word::ZERO);
+  ABORT_IF(words.empty(), "Empty input sequences are presently untested");
 
   if(maxLengthCrop_ && words.size() > maxLength_) {
     words.resize(maxLength_);
-    words.back() = Word::ZERO;  // @TODO: What does this do? Meant as sent-end token??
+    if(addEOS_[batchIndex])
+      words.back() = vocabs_[batchIndex]->getEosId();
   }
 
   if(rightLeft_)
