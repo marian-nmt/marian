@@ -206,8 +206,6 @@ private:
   }
 
 public:
-  //DecoderS2S(Ptr<Options> options) : DecoderBase(options) {}
-
   virtual Ptr<DecoderState> startState(
       Ptr<ExpressionGraph> graph,
       Ptr<data::CorpusBatch> batch,

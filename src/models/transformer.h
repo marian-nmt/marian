@@ -497,9 +497,6 @@ class EncoderTransformer : public Transformer<EncoderBase> {
   typedef Transformer<EncoderBase> Base;
   using Base::Base;
 public:
-  //EncoderTransformer(Ptr<Options> options) : Transformer(options) {}
-  virtual ~EncoderTransformer() {}
-
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
                                   Ptr<data::CorpusBatch> batch) override {
     graph_ = graph;

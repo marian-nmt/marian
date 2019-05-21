@@ -418,14 +418,14 @@ namespace marian {
   }
 
   Expr Embedding::apply(const Words& words, const Shape& shape) const /*override final*/ {
-    Expr selectedEmbs;
-    if (factoredVocab_)
-      selectedEmbs = multiRows(words);
+    if (factoredVocab_) {
+      Expr selectedEmbs = multiRows(words);
+      selectedEmbs = reshape(selectedEmbs, shape);
+      selectedEmbs = dropout(selectedEmbs, options_->get<float>("dropout", 0.0f), { selectedEmbs->shape()[-3], 1, 1 });
+      return selectedEmbs;
+    }
     else
-      selectedEmbs = rows(E_, toWordIndexVector(words));
-    selectedEmbs = reshape(selectedEmbs, shape);
-    selectedEmbs = dropout(selectedEmbs, options_->get<float>("dropout", 0.0f), {selectedEmbs->shape()[-3], 1, 1});
-    return selectedEmbs;
+      return applyIndices(toWordIndexVector(words), shape);
   }
 
   Expr Embedding::applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const /*override final*/ {

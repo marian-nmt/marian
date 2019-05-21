@@ -220,8 +220,6 @@ public:
 class BertEncoder : public EncoderTransformer {
   using EncoderTransformer::EncoderTransformer;
 public:
-  //BertEncoder(Ptr<Options> options) : EncoderTransformer(options) {}
-
   Expr addSentenceEmbeddings(Expr embeddings,
                              Ptr<data::CorpusBatch> batch,
                              bool learnedPosEmbeddings) const {
@@ -272,8 +270,6 @@ public:
 class BertClassifier : public ClassifierBase {
   using ClassifierBase::ClassifierBase;
 public:
-  //BertClassifier(Ptr<Options> options) : ClassifierBase(options) {}
-
   Ptr<ClassifierState> apply(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch, const std::vector<Ptr<EncoderState>>& encoderStates) override {
     ABORT_IF(encoderStates.size() != 1, "Currently we only support a single encoder BERT model");
 
@@ -316,8 +312,6 @@ public:
 class BertMaskedLM : public ClassifierBase {
   using ClassifierBase::ClassifierBase;
 public:
-  //BertMaskedLM(Ptr<Options> options) : ClassifierBase(options) {}
-
   Ptr<ClassifierState> apply(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch, const std::vector<Ptr<EncoderState>>& encoderStates) override {
     Ptr<data::BertBatch> bertBatch = std::dynamic_pointer_cast<data::BertBatch>(batch);
 

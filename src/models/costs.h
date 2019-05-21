@@ -237,6 +237,7 @@ public:
 // class to wrap an IEncoderDecoder and a ILogProbStep that are executed in sequence,
 // wrapped again in the IEncoderDecoder interface
 // @TODO: seems we are conflating an interface defition with its implementation?
+// @TODO: needs a better name. Stepwise is an adjective. Classes are things=nouns. StepwiseWhat?
 class Stepwise : public IEncoderDecoder {
 protected:
   Ptr<IEncoderDecoder> encdec_;

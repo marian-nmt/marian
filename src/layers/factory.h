@@ -44,16 +44,12 @@ public:
   // set a single option
   // setOpt("var", val);
   template <typename T>
-  void setOpt(const std::string& key, T value) {
-    options_->set(key, value);
-  }
+  void setOpt(const std::string& key, T value) { options_->set(key, value); }
 
   // set one or more options at once
   // setOpts("var1", val1, "var2", val2, ...);
   template <typename T, typename... Args>
-  void setOpts(const std::string& key, T value, Args&&... moreArgs) {
-    options_->set(key, value, std::forward<Args>(moreArgs)...);
-  }
+  void setOpts(const std::string& key, T value, Args&&... moreArgs) { options_->set(key, value, std::forward<Args>(moreArgs)...); }
 
   void mergeOpts(Ptr<Options> options) { options_->merge(options); }
 
