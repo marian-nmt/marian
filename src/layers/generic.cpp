@@ -361,7 +361,7 @@ namespace marian {
   }
 
   // helper to embed a sequence of words (given as indices) via factored embeddings
-  /*private*/ Expr Embedding::multiRows(const Words& data) const
+  /*private*/ Expr Embedding::multiRows(const Words& data, float dropProb) const
   {
     auto graph = E_->graph();
     auto factoredData = factoredVocab_->csr_rows(data);
@@ -372,7 +372,9 @@ namespace marian {
     auto weights = graph->constant({ (int)factoredData.weights.size() }, inits::from_vector(factoredData.weights), Type::float32);
     auto indices = graph->constant({ (int)factoredData.indices.size() }, inits::from_vector(factoredData.indices), Type::uint32);
     auto offsets = graph->constant({ (int)factoredData.offsets.size() }, inits::from_vector(factoredData.offsets), Type::uint32);
-    // apply dropout  --@TODO
+    // apply dropout
+    // We apply it to the weights, i.e. factors get dropped out separately, but always as entire vectors.
+    weights = dropout(weights, dropProb);
     // perform the product
     return csr_dot(factoredData.shape, weights, indices, offsets, E_);
   }
@@ -419,9 +421,9 @@ namespace marian {
 
   Expr Embedding::apply(const Words& words, const Shape& shape) const /*override final*/ {
     if (factoredVocab_) {
-      Expr selectedEmbs = multiRows(words);
-      selectedEmbs = reshape(selectedEmbs, shape);
-      selectedEmbs = dropout(selectedEmbs, options_->get<float>("dropout", 0.0f), { selectedEmbs->shape()[-3], 1, 1 });
+      Expr selectedEmbs = multiRows(words, options_->get<float>("dropout", 0.0f));        // [(B*W) x E]
+      selectedEmbs = reshape(selectedEmbs, shape); // [W, B, E]
+      //selectedEmbs = dropout(selectedEmbs, options_->get<float>("dropout", 0.0f), { selectedEmbs->shape()[-3], 1, 1 }); // @TODO: replace with factor dropout
       return selectedEmbs;
     }
     else
@@ -430,8 +432,9 @@ namespace marian {
 
   Expr Embedding::applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const /*override final*/ {
     ABORT_IF(factoredVocab_, "Embedding: applyIndices must not be used with a factored vocabulary");
-    auto selectedEmbs = rows(E_, embIdx);
-    selectedEmbs = reshape(selectedEmbs, shape);
+    auto selectedEmbs = rows(E_, embIdx);        // [(B*W) x E]
+    selectedEmbs = reshape(selectedEmbs, shape); // [W, B, E]
+    // @BUGBUG: We should not broadcast along dimBatch=[-2]. Then we can also dropout before reshape() (test that separately)
     selectedEmbs = dropout(selectedEmbs, options_->get<float>("dropout", 0.0f), { selectedEmbs->shape()[-3], 1, 1 });
     return selectedEmbs;
   }

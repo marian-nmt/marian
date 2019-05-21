@@ -289,7 +289,7 @@ public:
 class Embedding : public LayerBase, public IEmbeddingLayer {
   Expr E_;
   Ptr<FactoredVocab> factoredVocab_;
-  Expr multiRows(const Words& data) const;
+  Expr multiRows(const Words& data, float dropProb) const;
 public:
   Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options);
 
