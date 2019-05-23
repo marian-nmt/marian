@@ -35,6 +35,22 @@ public:
   Options() {}
   Options(const Options& other) : options_(YAML::Clone(other.options_)) {}
 
+  // constructor with one or more key-value pairs
+  // New<Options>("var1", val1, "var2", val2, ...)
+  template <typename T, typename... Args>
+  Options(const std::string& key, T value, Args&&... moreArgs) : Options() {
+    set(key, value, std::forward<Args>(moreArgs)...);
+  }
+
+  // constructor that clones and zero or more updates
+  // options->with("var1", val1, "var2", val2, ...)
+  template <typename... Args>
+  Ptr<Options> with(Args&&... args) const {
+    auto options = New<Options>(*this);
+    options->set(std::forward<Args>(args)...);
+    return options;
+  }
+
   /**
    * @brief Return a copy of the object that can be safely modified.
    */
@@ -76,6 +92,14 @@ public:
   template <typename T>
   void set(const std::string& key, T value) {
     options_[key] = value;
+  }
+
+  // set multiple
+  // options->set("var1", val1, "var2", val2, ...)
+  template <typename T, typename... Args>
+  void set(const std::string& key, T value, Args&&... moreArgs) {
+    set(key, value);
+    set(std::forward<Args>(moreArgs)...);
   }
 
   template <typename T>

@@ -28,7 +28,7 @@ namespace models {
 
 Ptr<EncoderBase> EncoderFactory::construct(Ptr<ExpressionGraph> graph) {
   if(options_->get<std::string>("type") == "s2s")
-    return New<EncoderS2S>(options_);
+    return New<EncoderS2S>(graph, options_);
 
 #ifdef CUDNN
   if(options_->get<std::string>("type") == "char-s2s")
@@ -36,40 +36,39 @@ Ptr<EncoderBase> EncoderFactory::construct(Ptr<ExpressionGraph> graph) {
 #endif
 
   if(options_->get<std::string>("type") == "transformer")
-    return NewEncoderTransformer(options_);
+    return NewEncoderTransformer(graph, options_);
 
   if(options_->get<std::string>("type") == "bert-encoder")
-    return New<BertEncoder>(options_);
+    return New<BertEncoder>(graph, options_);
 
   ABORT("Unknown encoder type");
 }
 
 Ptr<DecoderBase> DecoderFactory::construct(Ptr<ExpressionGraph> graph) {
   if(options_->get<std::string>("type") == "s2s")
-    return New<DecoderS2S>(options_);
+    return New<DecoderS2S>(graph, options_);
   if(options_->get<std::string>("type") == "transformer")
-    return NewDecoderTransformer(options_);
+    return NewDecoderTransformer(graph, options_);
   ABORT("Unknown decoder type");
 }
 
-Ptr<ClassifierBase> ClassifierFactory::construct(Ptr<ExpressionGraph> /*graph*/) {
+Ptr<ClassifierBase> ClassifierFactory::construct(Ptr<ExpressionGraph> graph) {
   if(options_->get<std::string>("type") == "bert-masked-lm")
-    return New<BertMaskedLM>(options_);
-  if(options_->get<std::string>("type") == "bert-classifier")
-    return New<BertClassifier>(options_);
-  ABORT("Unknown classifier type");
+    return New<BertMaskedLM>(graph, options_);
+  else if(options_->get<std::string>("type") == "bert-classifier")
+    return New<BertClassifier>(graph, options_);
+  else
+    ABORT("Unknown classifier type");
 }
 
 Ptr<IModel> EncoderDecoderFactory::construct(Ptr<ExpressionGraph> graph) {
   Ptr<EncoderDecoder> encdec;
-
   if(options_->get<std::string>("type") == "amun")
-    encdec = New<Amun>(options_);
-  if(options_->get<std::string>("type") == "nematus")
-    encdec = New<Nematus>(options_);
-
-  if(!encdec)
-    encdec = New<EncoderDecoder>(options_);
+    encdec = New<Amun>(graph, options_);
+  else if(options_->get<std::string>("type") == "nematus")
+    encdec = New<Nematus>(graph, options_);
+  else
+    encdec = New<EncoderDecoder>(graph, options_);
 
   for(auto& ef : encoders_)
     encdec->push_back(ef(options_).construct(graph));
@@ -82,13 +81,12 @@ Ptr<IModel> EncoderDecoderFactory::construct(Ptr<ExpressionGraph> graph) {
 
 Ptr<IModel> EncoderClassifierFactory::construct(Ptr<ExpressionGraph> graph) {
   Ptr<EncoderClassifier> enccls;
-  if(options_->get<std::string>("type") == "bert") {
+  if(options_->get<std::string>("type") == "bert")
     enccls = New<BertEncoderClassifier>(options_);
-  } else if(options_->get<std::string>("type") == "bert-classifier") {
+  else if(options_->get<std::string>("type") == "bert-classifier")
     enccls = New<BertEncoderClassifier>(options_);
-  } else {
+  else
     enccls = New<EncoderClassifier>(options_);
-  }
 
   for(auto& ef : encoders_)
     enccls->push_back(ef(options_).construct(graph));
@@ -103,20 +101,28 @@ Ptr<IModel> createBaseModelByType(std::string type, usage use, Ptr<Options> opti
   Ptr<ExpressionGraph> graph = nullptr; // graph unknown at this stage
   // clang-format off
   if(type == "s2s" || type == "amun" || type == "nematus") {
-    return models::encoder_decoder()(options)
-        ("usage", use)
-        ("original-type", type)
+    return models::encoder_decoder(options->with(
+         "usage", use,
+         "original-type", type))
         .push_back(models::encoder()("type", "s2s"))
         .push_back(models::decoder()("type", "s2s"))
         .construct(graph);
   }
 
   else if(type == "transformer") {
-    return models::encoder_decoder()(options)
-        ("usage", use)
+#if 1
+    auto newOptions = options->with("usage", use);
+    auto res = New<EncoderDecoder>(graph, newOptions);
+    res->push_back(New<EncoderTransformer>(graph, newOptions->with("type", "transformer")));
+    res->push_back(New<DecoderTransformer>(graph, newOptions->with("type", "transformer")));
+    return res;
+#else
+    return models::encoder_decoder(options->with(
+         "usage", use))
         .push_back(models::encoder()("type", "transformer"))
         .push_back(models::decoder()("type", "transformer"))
         .construct(graph);
+#endif
   }
 
   else if(type == "transformer_s2s") {
@@ -135,10 +141,10 @@ Ptr<IModel> createBaseModelByType(std::string type, usage use, Ptr<Options> opti
     dimVocabs.resize(idx + 1);
     std::fill(dimVocabs.begin(), dimVocabs.end(), vocab);
 
-    return models::encoder_decoder()(options)
-        ("usage", use)
-        ("type", "s2s")
-        ("original-type", type)
+    return models::encoder_decoder(options->with(
+         "usage", use,
+         "type", "s2s",
+         "original-type", type))
         .push_back(models::decoder()
                    ("index", idx)
                    ("dim-vocabs", dimVocabs))

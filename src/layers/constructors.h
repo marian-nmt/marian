@@ -36,11 +36,13 @@ typedef Accumulator<DenseFactory> dense;
  * Factory for output layers, can be used in a multi-layer network factory.
  */
 struct LogitLayerFactory : public Factory {
+  using Factory::Factory;
   virtual Ptr<IUnaryLogitLayer> construct(Ptr<ExpressionGraph> graph) = 0;
 };
 
 // @TODO: In the long run, I hope we can get rid of the abstract factories altogether.
 class OutputFactory : public LogitLayerFactory {
+  using LogitLayerFactory::LogitLayerFactory;
 protected:
   std::string tiedTransposedName_;
   Ptr<data::Shortlist> shortlist_;
@@ -51,9 +53,8 @@ public:
     return Accumulator<OutputFactory>(*this);
   }
 
-  Accumulator<OutputFactory> setShortlist(Ptr<data::Shortlist> shortlist) {
+  void setShortlist(Ptr<data::Shortlist> shortlist) {
     shortlist_ = shortlist;
-    return Accumulator<OutputFactory>(*this);
   }
 
   Ptr<IUnaryLogitLayer> construct(Ptr<ExpressionGraph> graph) override {
@@ -150,6 +151,7 @@ private:
  * to accumulate options for later lazy construction.
  */
 class MLPFactory : public Factory {
+  using Factory::Factory;
 private:
   std::vector<Ptr<LayerFactory>> layers_;
 
@@ -157,7 +159,7 @@ public:
   Ptr<MLP> construct(Ptr<ExpressionGraph> graph) {
     auto mlp = New<MLP>(graph, options_);
     for(auto layer : layers_) {
-      layer->getOptions()->merge(options_);
+      layer->mergeOpts(options_);
       mlp->push_back(layer->construct(graph));
     }
     return mlp;

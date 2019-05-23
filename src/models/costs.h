@@ -31,8 +31,8 @@ class EncoderDecoderCECost : public ICost {
 protected:
   Ptr<Options> options_;
 
-  bool inference_{false};
-  bool toBeWeighted_{false};
+  const bool inference_{false};
+  /*const*/ bool toBeWeighted_{false};
 
   // @TODO: single loss seems wrong
   Ptr<LabelwiseLoss> loss_;
@@ -92,7 +92,7 @@ public:
 class EncoderClassifierCECost : public ICost {
 protected:
   Ptr<Options> options_;
-  bool inference_{false};
+  const bool inference_{false};
 
   // @TODO: single loss seems wrong, especially since we support multiple objectives here,
   // also not sure this needs to be a member at all.
@@ -234,16 +234,17 @@ public:
   }
 };
 
-// class to wrap an EncoderDecoderBase and a ILogProbStep that are executed in sequence,
-// wrapped again in the EncoderDecoderBase interface
+// class to wrap an IEncoderDecoder and a ILogProbStep that are executed in sequence,
+// wrapped again in the IEncoderDecoder interface
 // @TODO: seems we are conflating an interface defition with its implementation?
-class Stepwise : public EncoderDecoderBase {
+// @TODO: needs a better name. Stepwise is an adjective. Classes are things=nouns. StepwiseWhat?
+class Stepwise : public IEncoderDecoder {
 protected:
-  Ptr<EncoderDecoderBase> encdec_;
+  Ptr<IEncoderDecoder> encdec_;
   Ptr<ILogProbStep> cost_;
 
 public:
-  Stepwise(Ptr<EncoderDecoderBase> encdec, Ptr<ILogProbStep> cost)
+  Stepwise(Ptr<IEncoderDecoder> encdec, Ptr<ILogProbStep> cost)
       : encdec_(encdec), cost_(cost) {}
 
   virtual void load(Ptr<ExpressionGraph> graph,

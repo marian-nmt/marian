@@ -22,10 +22,11 @@ namespace marian {
 template<class EncoderOrDecoderBase>
 class Transformer : public EncoderOrDecoderBase {
   typedef EncoderOrDecoderBase Base;
+  using Base::Base;
 
 protected:
-  using Base::options_; using Base::inference_; using Base::batchIndex_;
-  std::unordered_map<std::string, Expr> cache_;
+  using Base::options_; using Base::inference_; using Base::batchIndex_; using Base::graph_;
+  std::unordered_map<std::string, Expr> cache_;  // caching transformation of the encoder that should not be created again
 
   // attention weights produced by step()
   // If enabled, it is set once per batch during training, and once per step during translation.
@@ -37,13 +38,7 @@ protected:
 
   template <typename T> T opt(const std::string& key, const T& def) const { Ptr<Options> options = options_; if (options->has(key)) return options->get<T>(key); else return def; }
 
-  Ptr<ExpressionGraph> graph_;
-
 public:
-  Transformer(Ptr<Options> options)
-    : EncoderOrDecoderBase(options) {
-  }
-
   static Expr transposeTimeBatch(Expr input) { return transpose(input, {0, 2, 1, 3}); }
 
   Expr addPositionalEmbeddings(Expr input, int start = 0, bool trainPosEmbeddings = false) const {
@@ -63,10 +58,10 @@ public:
       Expr seenEmb = graph_->get("Wpos");
       int numPos = seenEmb ? seenEmb->shape()[-2] : maxLength;
 
-      auto embeddingLayer = embedding()
-                            ("prefix", "Wpos") // share positional embeddings across all encoders/decorders
-                            ("dimVocab", numPos)
-                            ("dimEmb", dimEmb)
+      auto embeddingLayer = embedding(
+                             "prefix", "Wpos", // share positional embeddings across all encoders/decorders
+                             "dimVocab", numPos,
+                             "dimEmb", dimEmb)
                             .construct(graph_);
 
       // fill with increasing numbers until current length or maxPos
@@ -150,8 +145,7 @@ public:
     x = affine(x, W, b);
     if (actFn)
       x = actFn(x);
-    if (dropProb)
-      x = dropout(x, dropProb);
+    x = dropout(x, dropProb);
     return x;
   }
 
@@ -251,9 +245,7 @@ public:
       collectOneHead(weights, dimBeam);
 
     // optional dropout for attention weights
-    float dropProb
-        = inference_ ? 0 : opt<float>("transformer-dropout-attention");
-    weights = dropout(weights, dropProb);
+    weights = dropout(weights, inference_ ? 0 : opt<float>("transformer-dropout-attention"));
 
     // apply attention weights to values
     auto output = bdot(weights, v);   // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]
@@ -475,14 +467,14 @@ public:
                        int /*startPos*/) const {
     float dropoutRnn = inference_ ? 0.f : opt<float>("dropout-rnn");
 
-    auto rnn = rnn::rnn()                                          //
-        ("type", opt<std::string>("dec-cell"))                     //
-        ("prefix", prefix)                                         //
-        ("dimInput", opt<int>("dim-emb"))                          //
-        ("dimState", opt<int>("dim-emb"))                          //
-        ("dropout", dropoutRnn)                                    //
-        ("layer-normalization", opt<bool>("layer-normalization"))  //
-        .push_back(rnn::cell())                                    //
+    auto rnn = rnn::rnn(
+         "type", opt<std::string>("dec-cell"),
+         "prefix", prefix,
+         "dimInput", opt<int>("dim-emb"),
+         "dimState", opt<int>("dim-emb"),
+         "dropout", dropoutRnn,
+         "layer-normalization", opt<bool>("layer-normalization"))
+        .push_back(rnn::cell())
         .construct(graph_);
 
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
@@ -502,48 +494,9 @@ public:
 };
 
 class EncoderTransformer : public Transformer<EncoderBase> {
-  std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
+  typedef Transformer<EncoderBase> Base;
+  using Base::Base;
 public:
-  EncoderTransformer(Ptr<Options> options) : Transformer(options) {}
-  virtual ~EncoderTransformer() {}
-
-  // returns the embedding matrix based on options
-  // and based on batchIndex_.
-
-  Ptr<IEmbeddingLayer> createULREmbeddingLayer() const {
-    // standard encoder word embeddings
-    int dimSrcVoc = opt<std::vector<int>>("dim-vocabs")[0];  //ULR multi-lingual src
-    int dimTgtVoc = opt<std::vector<int>>("dim-vocabs")[1];  //ULR monon tgt
-    int dimEmb = opt<int>("dim-emb");
-    int dimUlrEmb = opt<int>("ulr-dim-emb");
-    auto embFactory = ulr_embedding()("dimSrcVoc", dimSrcVoc)("dimTgtVoc", dimTgtVoc)
-                                     ("dimUlrEmb", dimUlrEmb)("dimEmb", dimEmb)
-                                     ("ulrTrainTransform", opt<bool>("ulr-trainable-transformation"))
-                                     ("ulrQueryFile", opt<std::string>("ulr-query-vectors"))
-                                     ("ulrKeysFile", opt<std::string>("ulr-keys-vectors"));
-    return embFactory.construct(graph_);
-  }
-
-  Ptr<IEmbeddingLayer> createSourceEmbeddingLayer(size_t subBatchIndex) const {
-    // standard encoder word embeddings
-    int dimVoc = opt<std::vector<int>>("dim-vocabs")[subBatchIndex];
-    int dimEmb = opt<int>("dim-emb");
-    auto embFactory = embedding()("dimVocab", dimVoc)("dimEmb", dimEmb);
-    if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
-      embFactory("prefix", "Wemb");
-    else
-      embFactory("prefix", prefix_ + "_Wemb");
-    if(options_->has("embedding-fix-src"))
-      embFactory("fixed", opt<bool>("embedding-fix-src"));
-    if(options_->hasAndNotEmpty("embedding-vectors")) {
-      auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
-      embFactory("embFile", embFiles[subBatchIndex])
-                ("normalization", opt<bool>("embedding-normalization"));
-    }
-    embFactory("vocab", opt<std::vector<std::string>>("vocabs")[subBatchIndex]); // for factored embeddings
-    return embFactory.construct(graph_);
-  }
-
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
                                   Ptr<data::CorpusBatch> batch) override {
     graph_ = graph;
@@ -557,20 +510,8 @@ public:
     // embed the source words in the batch
     Expr batchEmbeddings, batchMask;
 
-    if (embeddingLayers_.empty() || !embeddingLayers_[batchIndex_]) { // lazy
-      embeddingLayers_.resize(batch->sets());
-      if (options_->has("ulr") && options_->get<bool>("ulr") == true)
-        embeddingLayers_[batchIndex_] = createULREmbeddingLayer(); // embedding uses ULR
-      else
-        embeddingLayers_[batchIndex_] = createSourceEmbeddingLayer(batchIndex_);
-    }
-    std::tie(batchEmbeddings, batchMask) = embeddingLayers_[batchIndex_]->apply((*batch)[batchIndex_]);
-    // apply dropout over source words
-    float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");
-    if(dropoutSrc) {
-      int srcWords = batchEmbeddings->shape()[-3];
-      batchEmbeddings = dropout(batchEmbeddings, dropoutSrc, {srcWords, 1, 1});
-    }
+    auto embeddingLayer = getEmbeddingLayer(options_->has("ulr") && options_->get<bool>("ulr"));
+    std::tie(batchEmbeddings, batchMask) = embeddingLayer->apply((*batch)[batchIndex_]);
 
     batchEmbeddings = addSpecialEmbeddings(batchEmbeddings, /*start=*/0, batch);
 
@@ -632,6 +573,8 @@ public:
 };
 
 class DecoderTransformer : public Transformer<DecoderBase> {
+  typedef Transformer<DecoderBase> Base;
+  using Base::Base;
 private:
   Ptr<mlp::Output> output_;
 
@@ -644,25 +587,20 @@ private:
 
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
-    auto outputFactory = mlp::output()         //
-        ("prefix", prefix_ + "_ff_logit_out")  //
-        ("dim", dimTrgVoc);
+    auto outputFactory = mlp::OutputFactory(
+        "prefix", prefix_ + "_ff_logit_out",
+        "dim", dimTrgVoc,
+        "vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_], // for factored outputs
+        "lemma-dim-emb", opt<int>("lemma-dim-emb", 0)); // for factored outputs
 
-    if(opt<bool>("tied-embeddings") || opt<bool>("tied-embeddings-all")) {
-      std::string tiedPrefix = prefix_ + "_Wemb";
-      if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
-        tiedPrefix = "Wemb";
-      outputFactory.tieTransposed(tiedPrefix);
-    }
-
-    outputFactory("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored outputs
-    outputFactory("lemma-dim-emb", opt<int>("lemma-dim-emb", 0)); // for factored outputs
+    if(opt<bool>("tied-embeddings") || opt<bool>("tied-embeddings-all"))
+      outputFactory.tieTransposed(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src") ? "Wemb" : prefix_ + "_Wemb");
 
     output_ = std::dynamic_pointer_cast<mlp::Output>(outputFactory.construct(graph_)); // (construct() returns only the underlying interface)
   }
 
 public:
-  DecoderTransformer(Ptr<Options> options) : Transformer(options) {}
+  //DecoderTransformer(Ptr<ExpressionGraph> graph, Ptr<Options> options) : Transformer(graph, options) {}
 
   virtual Ptr<DecoderState> startState(
       Ptr<ExpressionGraph> graph,
@@ -697,13 +635,6 @@ public:
   Ptr<DecoderState> step(Ptr<DecoderState> state) {
     auto embeddings  = state->getTargetHistoryEmbeddings(); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vector dim]
     auto decoderMask = state->getTargetMask();              // [max length, batch size, 1]  --this is a hypothesis
-
-    // dropout target words
-    float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
-    if(dropoutTrg) {
-      int trgWords = embeddings->shape()[-3];
-      embeddings = dropout(embeddings, dropoutTrg, {trgWords, 1, 1});
-    }
 
     //************************************************************************//
 

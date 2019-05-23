@@ -20,7 +20,7 @@ void ExpressionGraph::setDevice(DeviceId deviceId, Ptr<Device> device) {
   }
 }
 
-Expr ExpressionGraph::dropout(float prob, const Shape& shape) {
+Expr ExpressionGraph::dropoutMask(float prob, const Shape& shape) {
   return constant(shape, inits::dropout(prob));
 }
 

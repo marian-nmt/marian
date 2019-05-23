@@ -93,7 +93,7 @@ public:
 
 protected:
   Ptr<Options> options_;
-  bool inference_{false};
+  const bool inference_{false};
 
   /**
    * @brief Builds an expression graph representing a feed-forward classifier.

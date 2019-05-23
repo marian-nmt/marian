@@ -62,10 +62,10 @@ public:
   }
 };
 
-// class to wrap EncoderDecoderBase in a Scorer interface
+// class to wrap IEncoderDecoder in a Scorer interface
 class ScorerWrapper : public Scorer {
 private:
-  Ptr<EncoderDecoderBase> encdec_;
+  Ptr<IEncoderDecoder> encdec_;
   std::string fname_;
   const void* ptr_;
 
@@ -75,7 +75,7 @@ public:
                 float weight,
                 const std::string& fname)
       : Scorer(name, weight),
-        encdec_(std::static_pointer_cast<EncoderDecoderBase>(encdec)),
+        encdec_(std::static_pointer_cast<IEncoderDecoder>(encdec)),
         fname_(fname),
         ptr_{0} {}
 
@@ -84,7 +84,7 @@ public:
                 float weight,
                 const void* ptr)
       : Scorer(name, weight),
-        encdec_(std::static_pointer_cast<EncoderDecoderBase>(encdec)),
+        encdec_(std::static_pointer_cast<IEncoderDecoder>(encdec)),
         ptr_{ptr} {}
 
   virtual void init(Ptr<ExpressionGraph> graph) override {

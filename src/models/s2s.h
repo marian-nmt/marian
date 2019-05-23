@@ -9,7 +9,7 @@
 namespace marian {
 
 class EncoderS2S : public EncoderBase {
-  std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
+  using EncoderBase::EncoderBase;
 public:
   Expr applyEncoderRNN(Ptr<ExpressionGraph> graph,
                        Expr embeddings,
@@ -120,59 +120,17 @@ public:
     return context;
   }
 
-  Ptr<IEmbeddingLayer> createSourceEmbeddingLayer(Ptr<ExpressionGraph> graph) {
-    // create source embeddings
-    int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
-    int dimEmb = opt<int>("dim-emb");
-
-    // @TODO: code dup with Decoder and EncoderTransformer; actually diverged by now. Unify this.
-    auto embFactory = embedding()  //
-        ("dimVocab", dimVoc)       //
-        ("dimEmb", dimEmb);
-
-    if(opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
-      embFactory("prefix", "Wemb");
-    else
-      embFactory("prefix", prefix_ + "_Wemb");
-
-    if(options_->has("embedding-fix-src"))
-      embFactory("fixed", opt<bool>("embedding-fix-src"));
-
-    if(options_->hasAndNotEmpty("embedding-vectors")) {
-      auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
-      embFactory                              //
-          ("embFile", embFiles[batchIndex_])  //
-          ("normalization", opt<bool>("embedding-normalization"));
-    }
-
-    embFactory("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored embeddings
-    return embFactory.construct(graph);
-  }
-
-  EncoderS2S(Ptr<Options> options) : EncoderBase(options) {}
+  //EncoderS2S(Ptr<Options> options) : EncoderBase(options) {}
 
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
                                   Ptr<data::CorpusBatch> batch) override {
-    // lazily create embedding layer
-    if (embeddingLayers_.empty() || !embeddingLayers_[batchIndex_]) { // lazy
-      embeddingLayers_.resize(batch->sets());
-      embeddingLayers_[batchIndex_] = createSourceEmbeddingLayer(graph);
-    }
-    auto embedding = embeddingLayers_[batchIndex_];
-
+    graph_ = graph;
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask; std::tie
-    (batchEmbeddings, batchMask) = embedding->apply((*batch)[batchIndex_]);
-
-    // apply dropout over source words
-    float dropProb = inference_ ? 0 : opt<float>("dropout-src");
-    if(dropProb) {
-      int srcWords = batchEmbeddings->shape()[-3];
-      batchEmbeddings = dropout(batchEmbeddings, dropProb, {srcWords, 1, 1});
-    }
+    (batchEmbeddings, batchMask) = getEmbeddingLayer()->apply((*batch)[batchIndex_]);
 
     Expr context = applyEncoderRNN(
-        graph, batchEmbeddings, batchMask, opt<std::string>("enc-type"));
+        graph_, batchEmbeddings, batchMask, opt<std::string>("enc-type"));
 
     return New<EncoderState>(context, batchMask, batch);
   }
@@ -181,6 +139,7 @@ public:
 };
 
 class DecoderS2S : public DecoderBase {
+  using DecoderBase::DecoderBase;
 private:
   Ptr<rnn::RNN> rnn_;
   Ptr<mlp::MLP> output_;
@@ -188,6 +147,7 @@ private:
   Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
                                     Ptr<DecoderState> state) {
     float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
+
     auto rnn = rnn::rnn()                                          //
         ("type", opt<std::string>("dec-cell"))                     //
         ("dimInput", opt<int>("dim-emb"))                          //
@@ -246,8 +206,6 @@ private:
   }
 
 public:
-  DecoderS2S(Ptr<Options> options) : DecoderBase(options) {}
-
   virtual Ptr<DecoderState> startState(
       Ptr<ExpressionGraph> graph,
       Ptr<data::CorpusBatch> batch,
@@ -292,13 +250,6 @@ public:
                                  Ptr<DecoderState> state) override {
 
     auto embeddings = state->getTargetHistoryEmbeddings();
-
-    // dropout target words
-    float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
-    if(dropoutTrg) {
-      int trgWords = embeddings->shape()[-3];
-      embeddings = dropout(embeddings, dropoutTrg, {trgWords, 1, 1});
-    }
 
     if(!rnn_)
       rnn_ = constructDecoderRNN(graph, state);

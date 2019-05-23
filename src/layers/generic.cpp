@@ -1,20 +1,14 @@
 #include "marian.h"
 
 #include "layers/generic.h"
+#include "layers/constructors.h"
 #include "layers/loss.h"
 #include "data/factored_vocab.h"
 #include "rnn/types.h" // for State::select()
 
-using std::size_t; // not sure why this is needed
+//using std::size_t; // not sure why this is needed
 
 namespace marian {
-  //struct CSRSparseTensor { // simplistic for now
-  //  Shape shape;
-  //  Expr values;  // [k_i..k_{i+1}-1] -> value at [i,j]
-  //  Expr indices; // [k_i..k_{i+1}-1] -> j of non-null value
-  //  Expr offsets; // [i] -> k_i
-  //};
-
   Logits::Logits(Expr logits) : Logits(New<RationalLoss>(logits, nullptr)) {} // single-output constructor from Expr only (RationalLoss has no count)
 
   Ptr<ExpressionGraph> Logits::graph() const {
@@ -367,19 +361,22 @@ namespace marian {
   }
 
   // helper to embed a sequence of words (given as indices) via factored embeddings
-  /*private*/ Expr Embedding::multiRows(const Words& data) const
+  /*private*/ Expr Embedding::multiRows(const Words& data, float dropProb) const
   {
     auto graph = E_->graph();
     auto factoredData = factoredVocab_->csr_rows(data);
     // multi-hot factor vectors are represented as a sparse CSR matrix
     // [row index = word position index] -> set of factor indices for word at this position
     ABORT_IF(factoredData.shape != Shape({(int)factoredData.offsets.size()-1/*=rows of CSR*/, E_->shape()[0]}), "shape mismatch??");
-    return csr_dot( // the CSR matrix is passed in pieces
-        factoredData.shape,
-        graph->constant({(int)factoredData.weights.size()}, inits::from_vector(factoredData.weights), Type::float32),
-        graph->constant({(int)factoredData.indices.size()}, inits::from_vector(factoredData.indices), Type::uint32),
-        graph->constant({(int)factoredData.offsets.size()}, inits::from_vector(factoredData.offsets), Type::uint32),
-        E_);
+    // the CSR matrix is passed in pieces
+    auto weights = graph->constant({ (int)factoredData.weights.size() }, inits::from_vector(factoredData.weights), Type::float32);
+    auto indices = graph->constant({ (int)factoredData.indices.size() }, inits::from_vector(factoredData.indices), Type::uint32);
+    auto offsets = graph->constant({ (int)factoredData.offsets.size() }, inits::from_vector(factoredData.offsets), Type::uint32);
+    // apply dropout
+    // We apply it to the weights, i.e. factors get dropped out separately, but always as entire vectors.
+    weights = dropout(weights, dropProb);
+    // perform the product
+    return csr_dot(factoredData.shape, weights, indices, offsets, E_);
   }
 
   std::tuple<Expr/*embeddings*/, Expr/*mask*/> Embedding::apply(Ptr<data::SubBatch> subBatch) const /*override final*/ {
@@ -416,32 +413,76 @@ namespace marian {
     //        - but forward pass weighs them down, so that all factors are in a similar numeric range
     //        - if it is required to be in a different range, the embeddings can still learn that, but more slowly
 
-#if 1
     auto batchEmbeddings = apply(subBatch->data(), {dimWords, dimBatch, dimEmb});
-#else
-    Expr selectedEmbs;
-    if (factoredVocab_)
-      selectedEmbs = multiRows(subBatch->data());
-    else
-      selectedEmbs = rows(E_, subBatch->data());
-    auto batchEmbeddings = reshape(selectedEmbs, { dimWords, dimBatch, dimEmb });
-#endif
     auto batchMask = graph->constant({dimWords, dimBatch, 1},
                                      inits::from_vector(subBatch->mask()));
     return std::make_tuple(batchEmbeddings, batchMask);
   }
 
   Expr Embedding::apply(const Words& words, const Shape& shape) const /*override final*/ {
-    Expr selectedEmbs;
-    if (factoredVocab_)
-      selectedEmbs = multiRows(words);
+    if (factoredVocab_) {
+      Expr selectedEmbs = multiRows(words, options_->get<float>("dropout", 0.0f));        // [(B*W) x E]
+      selectedEmbs = reshape(selectedEmbs, shape); // [W, B, E]
+      //selectedEmbs = dropout(selectedEmbs, options_->get<float>("dropout", 0.0f), { selectedEmbs->shape()[-3], 1, 1 }); // @TODO: replace with factor dropout
+      return selectedEmbs;
+    }
     else
-      selectedEmbs = rows(E_, toWordIndexVector(words));
-    return reshape(selectedEmbs, shape);
+      return applyIndices(toWordIndexVector(words), shape);
   }
 
   Expr Embedding::applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const /*override final*/ {
-    ABORT_IF(factoredVocab_ /*&& factoredVocab_->getNumGroups() > 1*/, "Embedding: applyIndices must not be used with a factored vocabulary");
-    return reshape(rows(E_, embIdx), shape);
+    ABORT_IF(factoredVocab_, "Embedding: applyIndices must not be used with a factored vocabulary");
+    auto selectedEmbs = rows(E_, embIdx);        // [(B*W) x E]
+    selectedEmbs = reshape(selectedEmbs, shape); // [W, B, E]
+    // @BUGBUG: We should not broadcast along dimBatch=[-2]. Then we can also dropout before reshape() (test that separately)
+    selectedEmbs = dropout(selectedEmbs, options_->get<float>("dropout", 0.0f), { selectedEmbs->shape()[-3], 1, 1 });
+    return selectedEmbs;
+  }
+
+  // standard encoder word embeddings
+  /*private*/ Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createEmbeddingLayer() const {
+    auto options = New<Options>(
+        "dimVocab", opt<std::vector<int>>("dim-vocabs")[batchIndex_],
+        "dimEmb",   opt<int>("dim-emb"),
+        "dropout",  dropout_,
+        "prefix",   (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all")) ? "Wemb" : prefix_ + "_Wemb",
+        "fixed",    embeddingFix_,
+        "vocab",    opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored embeddings
+    if(options_->hasAndNotEmpty("embedding-vectors")) {
+      auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
+      options->set(
+          "embFile", embFiles[batchIndex_],
+          "normalization", opt<bool>("embedding-normalization"));
+    }
+    return New<Embedding>(graph_, options);
+  }
+
+  // ULR word embeddings
+  /*private*/ Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createULREmbeddingLayer() const {
+    return New<ULREmbedding>(graph_, New<Options>(
+        "dimSrcVoc",         opt<std::vector<int>>("dim-vocabs")[0],  // ULR multi-lingual src
+        "dimTgtVoc",         opt<std::vector<int>>("dim-vocabs")[1],  // ULR monon tgt
+        "dimUlrEmb",         opt<int>("ulr-dim-emb"),
+        "dimEmb",            opt<int>("dim-emb"),
+        "ulr-dropout",       opt<float>("ulr-dropout"),
+        "dropout",           dropout_,
+        "ulrTrainTransform", opt<bool>("ulr-trainable-transformation"),
+        "ulrQueryFile",      opt<std::string>("ulr-query-vectors"),
+        "ulrKeysFile",       opt<std::string>("ulr-keys-vectors")));
+  }
+
+  // get embedding layer for this encoder or decoder
+  // This is lazy mostly because the constructors of the consuming objects are not
+  // guaranteed presently to have access to their graph.
+  Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::getEmbeddingLayer(bool ulr) const {
+    if (embeddingLayers_.size() <= batchIndex_ || !embeddingLayers_[batchIndex_]) { // lazy
+      if (embeddingLayers_.size() <= batchIndex_)
+        embeddingLayers_.resize(batchIndex_ + 1);
+      if (ulr)
+        embeddingLayers_[batchIndex_] = createULREmbeddingLayer(); // embedding uses ULR
+      else
+        embeddingLayers_[batchIndex_] = createEmbeddingLayer();
+    }
+    return embeddingLayers_[batchIndex_];
   }
 }  // namespace marian

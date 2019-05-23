@@ -10,42 +10,36 @@ namespace marian {
 namespace models {
 
 class EncoderFactory : public Factory {
+  using Factory::Factory;
 public:
-  EncoderFactory(Ptr<ExpressionGraph> graph = nullptr) : Factory() {}
-
   virtual Ptr<EncoderBase> construct(Ptr<ExpressionGraph> graph);
 };
 
 typedef Accumulator<EncoderFactory> encoder;
 
 class DecoderFactory : public Factory {
+  using Factory::Factory;
 public:
-  DecoderFactory(Ptr<ExpressionGraph> graph = nullptr) : Factory() {}
-
   virtual Ptr<DecoderBase> construct(Ptr<ExpressionGraph> graph);
 };
 
 typedef Accumulator<DecoderFactory> decoder;
 
 class ClassifierFactory : public Factory {
+  using Factory::Factory;
 public:
-  ClassifierFactory(Ptr<ExpressionGraph> graph = nullptr) 
-     : Factory() {}
-
   virtual Ptr<ClassifierBase> construct(Ptr<ExpressionGraph> graph);
 };
 
 typedef Accumulator<ClassifierFactory> classifier;
 
 class EncoderDecoderFactory : public Factory {
+  using Factory::Factory;
 private:
   std::vector<encoder> encoders_;
   std::vector<decoder> decoders_;
 
 public:
-  EncoderDecoderFactory(Ptr<ExpressionGraph> graph = nullptr)
-      : Factory() {}
-
   Accumulator<EncoderDecoderFactory> push_back(encoder enc) {
     encoders_.push_back(enc);
     return Accumulator<EncoderDecoderFactory>(*this);
@@ -62,14 +56,12 @@ public:
 typedef Accumulator<EncoderDecoderFactory> encoder_decoder;
 
 class EncoderClassifierFactory : public Factory {
+  using Factory::Factory;
 private:
   std::vector<encoder> encoders_;
   std::vector<classifier> classifiers_;
 
 public:
-  EncoderClassifierFactory(Ptr<ExpressionGraph> graph = nullptr)
-      : Factory() {}
-
   Accumulator<EncoderClassifierFactory> push_back(encoder enc) {
     encoders_.push_back(enc);
     return Accumulator<EncoderClassifierFactory>(*this);

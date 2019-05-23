@@ -5,14 +5,12 @@
 #include "data/shortlist.h"
 #include "layers/factory.h"
 
-namespace marian {
-namespace mlp {
-/**
- * @brief Activation functions
- */
-enum struct act : int { linear, tanh, sigmoid, ReLU, LeakyReLU, PReLU, swish };
-}  // namespace mlp
-}  // namespace marian
+namespace marian { namespace mlp {
+  /**
+   * @brief Activation functions
+   */
+  enum struct act : int { linear, tanh, sigmoid, ReLU, LeakyReLU, PReLU, swish };
+}}
 
 YAML_REGISTER_TYPE(marian::mlp::act, int)
 
@@ -31,12 +29,12 @@ public:
       : graph_(graph), options_(options) {}
 
   template <typename T>
-  T opt(const std::string key) {
+  T opt(const std::string key) const {
     return options_->get<T>(key);
   }
 
   template <typename T>
-  T opt(const std::string key, T defaultValue) {
+  T opt(const std::string key, const T& defaultValue) const {
     return options_->get<T>(key, defaultValue);
   }
 };
@@ -63,6 +61,37 @@ struct IEmbeddingLayer {
 
   // alternative from indices directly
   virtual Expr applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const = 0;
+};
+
+// base class for Encoder and Decoder classes, which have embeddings and a batch index (=stream index)
+class EncoderDecoderLayerBase : public LayerBase {
+protected:
+  const std::string prefix_;
+  const bool embeddingFix_;
+  const float dropout_;
+  const bool inference_;
+  const size_t batchIndex_;
+  mutable std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
+
+  EncoderDecoderLayerBase(Ptr<ExpressionGraph> graph, Ptr<Options> options, const std::string& prefix, size_t batchIndex,
+        float dropout,
+        bool embeddingFix) :
+      LayerBase(graph, options),
+      prefix_(options->get<std::string>("prefix", prefix)),
+      embeddingFix_(embeddingFix),
+      dropout_(dropout),
+      inference_(options->get<bool>("inference", false)),
+      batchIndex_(options->get<size_t>("index", batchIndex)) {}
+
+  virtual ~EncoderDecoderLayerBase() {}
+
+private:
+  Ptr<IEmbeddingLayer> createEmbeddingLayer() const;
+  Ptr<IEmbeddingLayer> createULREmbeddingLayer() const;
+
+public:
+  // get embedding layer; lazily create on first call
+  Ptr<IEmbeddingLayer> getEmbeddingLayer(bool ulr = false) const;
 };
 
 class FactoredVocab;
@@ -253,10 +282,14 @@ public:
 
 }  // namespace mlp
 
+// A regular embedding layer.
+// Note that this also applies dropout if the option is passed (pass 0 when in inference mode).
+// It is best to not use Embedding directly, but rather via getEmbeddingLayer() in
+// EncoderDecoderLayerBase, which knows to pass on all required parameters from options.
 class Embedding : public LayerBase, public IEmbeddingLayer {
   Expr E_;
   Ptr<FactoredVocab> factoredVocab_;
-  Expr multiRows(const Words& data) const;
+  Expr multiRows(const Words& data, float dropProb) const;
 public:
   Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options);
 
@@ -368,6 +401,7 @@ public:
     auto graph = ulrEmbeddings_.front()->graph();
     auto batchMask = graph->constant({ dimWords, dimBatch, 1 },
                                      inits::from_vector(subBatch->mask()));
+    batchEmbeddings = dropout(batchEmbeddings, options_->get<float>("dropout", 0.0f), {batchEmbeddings->shape()[-3], 1, 1});
     return std::make_tuple(batchEmbeddings, batchMask);
   }
 
