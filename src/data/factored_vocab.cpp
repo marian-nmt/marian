@@ -607,13 +607,15 @@ std::string FactoredVocab::surfaceForm(const Words& sentence) const /*override f
     auto has = [&](const char* factor) { return tokenSet.find(factor) != tokenSet.end(); };
     // spacing
     bool hasGlueRight = has("gr+") || has("wen") || has("cen");
-    bool hasGlueLeft  = has("gl+") || has("wbn") || has("cbn");
+    bool hasGlueLeft  = has("gl+") || has("wbn") || has("cbn") || has("wi");
     bool insertSpaceBefore = !prevHadGlueRight && !hasGlueLeft;
     if (insertSpaceBefore)
       res.push_back(' ');
     prevHadGlueRight = hasGlueRight;
     // capitalization
     unescapeHexEscapes(lemma); // unescape \x.. and \u....
+    if (utils::beginsWith(lemma, "\xE2\x96\x81"))  // remove leading _ (\u2581, for DistinguishInitialAndInternalPieces mode)
+        lemma = lemma.substr(3);
     if      (has("ci")) lemma = utils::utf8Capitalized(lemma);
     else if (has("ca")) lemma = utils::utf8ToUpper    (lemma);
     else if (has("cn")) lemma = utils::utf8ToLower    (lemma);
