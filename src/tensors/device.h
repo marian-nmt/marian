@@ -11,8 +11,8 @@ class Device {
 protected:
   DeviceId deviceId_;
 
-  uint8_t* data_{0};
-  size_t size_{0};
+  uint8_t* data_;
+  size_t size_;
   size_t alignment_;
 
   size_t align(size_t size) {

@@ -30,9 +30,9 @@ namespace cpu {
 #endif
 
 Device::~Device() {
-  FREE(data_);
-  data_ = nullptr;
   size_ = 0;
+  data_ = nullptr;
+  FREE(data_);
 }
 
 void Device::reserve(size_t size) {
