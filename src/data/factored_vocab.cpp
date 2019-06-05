@@ -301,9 +301,13 @@ Word FactoredVocab::factors2word(const std::vector<size_t>& factorIndices /* [nu
   for (size_t g = 0; g < numGroups; g++) {
     auto factorIndex = factorIndices[g];
     if (factorIndex != FACTOR_NOT_SPECIFIED) { // check validity
-      auto factor0Index = factorIndices[0]; // lemma
+      auto factor0Index = factorIndices[0];    // lemma
       ABORT_IF(factor0Index == FACTOR_NOT_SPECIFIED, "Without lemma, no other factor may be specified");
-      ABORT_IF(lemmaHasFactorGroup(factor0Index, g) == (factorIndex == FACTOR_NOT_APPLICABLE), "Lemma {} does not have factor group {}", factor0Index, g);
+      ABORT_IF(lemmaHasFactorGroup(factor0Index, g) == (factorIndex == FACTOR_NOT_APPLICABLE),
+               "Lemma '{}' {} factor group '{}'",
+               factorVocab_[WordIndex(factor0Index + groupRanges_[0].first)],
+               lemmaHasFactorGroup(factor0Index, g) ? "needs" : "does not have",
+               groupPrefixes_[g]);
     }
     if (factorIndex == FACTOR_NOT_APPLICABLE || factorIndex == FACTOR_NOT_SPECIFIED)
       factorIndex = (size_t)factorShape_[g] - 1; // sentinel for "unused" or "not specified"

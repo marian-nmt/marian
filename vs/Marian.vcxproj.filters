@@ -487,6 +487,9 @@
     <ClCompile Include="..\src\data\factored_vocab.cpp">
       <Filter>data</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\tensors\gpu\prod.cpp">
+      <Filter>tensors\gpu</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -1543,6 +1546,15 @@
     <ClInclude Include="..\src\models\transformer.h">
       <Filter>models</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\training\communicator_nccl.h">
+      <Filter>training</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\gpu\element.inc">
+      <Filter>tensors\gpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\gpu\add.inc">
+      <Filter>tensors\gpu</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
@@ -1712,48 +1724,17 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include=".editorConfig" />
-    <None Include="..\src\training\communicator_nccl.h">
-      <Filter>training</Filter>
+    <None Include="..\src\3rd_party\nccl\src\bootstrap.cu">
+      <Filter>3rd_party\nccl\src</Filter>
     </None>
-    <None Include="..\src\tensors\gpu\add.cu">
-      <Filter>tensors\gpu</Filter>
-    </None>
-    <None Include="..\src\tensors\gpu\add.inc">
-      <Filter>tensors\gpu</Filter>
-    </None>
-    <None Include="..\src\tensors\gpu\algorithm.cu">
-      <Filter>tensors\gpu</Filter>
-    </None>
-    <None Include="..\src\tensors\gpu\cudnn_wrappers.cu">
-      <Filter>tensors\gpu</Filter>
-    </None>
-    <None Include="..\src\tensors\gpu\device.cu">
-      <Filter>tensors\gpu</Filter>
-    </None>
-    <None Include="..\src\tensors\gpu\element.cu">
-      <Filter>tensors\gpu</Filter>
-    </None>
-    <None Include="..\src\tensors\gpu\element.inc">
-      <Filter>tensors\gpu</Filter>
-    </None>
-    <None Include="..\src\tensors\gpu\sparse.cu">
-      <Filter>tensors\gpu</Filter>
-    </None>
-    <None Include="..\src\tensors\gpu\tensor_operators.cu">
-      <Filter>tensors\gpu</Filter>
+    <None Include="..\src\3rd_party\nccl\src\init.cu">
+      <Filter>3rd_party\nccl\src</Filter>
     </None>
     <None Include="..\src\3rd_party\sentencepiece\src\sentencepiece.proto">
       <Filter>3rd_party\sentencepiece\src</Filter>
     </None>
     <None Include="..\src\3rd_party\sentencepiece\src\sentencepiece_model.proto">
       <Filter>3rd_party\sentencepiece\src</Filter>
-    </None>
-    <None Include="..\src\3rd_party\nccl\src\bootstrap.cu">
-      <Filter>3rd_party\nccl\src</Filter>
-    </None>
-    <None Include="..\src\3rd_party\nccl\src\init.cu">
-      <Filter>3rd_party\nccl\src</Filter>
     </None>
     <None Include="..\src\3rd_party\nccl\src\Makefile">
       <Filter>3rd_party\nccl\src</Filter>
@@ -1845,16 +1826,7 @@
     <None Include="..\src\3rd_party\pathie-cpp\README.md">
       <Filter>3rd_party\pathie-cpp</Filter>
     </None>
-    <None Include="..\src\tests\conv_char_test.cu">
-      <Filter>tests</Filter>
-    </None>
-    <None Include="..\src\tests\conv_test.cu">
-      <Filter>tests</Filter>
-    </None>
     <None Include="..\src\tests\README.md">
-      <Filter>tests</Filter>
-    </None>
-    <None Include="..\src\tests\tensor_test.cu">
       <Filter>tests</Filter>
     </None>
     <None Include="..\src\examples\mnist\download.sh">
@@ -1872,15 +1844,6 @@
     <None Include="..\src\examples\README.md">
       <Filter>examples</Filter>
     </None>
-    <None Include="..\src\tensors\gpu\prod.cpp">
-      <Filter>tensors\gpu</Filter>
-    </None>
-    <None Include="..\src\translator\helpers.cu">
-      <Filter>translator</Filter>
-    </None>
-    <None Include="..\src\translator\nth_element.cu">
-      <Filter>translator</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\src\3rd_party\sentencepiece\src\CMakeLists.txt">
@@ -1895,5 +1858,40 @@
     <Text Include="..\src\examples\CMakeLists.txt">
       <Filter>examples</Filter>
     </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\src\tensors\gpu\add.cu">
+      <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\algorithm.cu">
+      <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\cudnn_wrappers.cu">
+      <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\device.cu">
+      <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\element.cu">
+      <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\translator\helpers.cu">
+      <Filter>translator</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\translator\nth_element.cu">
+      <Filter>translator</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\tensor_operators.cu">
+      <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\sparse.cu">
+      <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\training\gradient_dropping\gpu\dropper.cu">
+      <Filter>training\gradient_dropping\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\training\gradient_dropping\gpu\sparse_algorithm.cu">
+      <Filter>training\gradient_dropping\gpu</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

@@ -1,4 +1,8 @@
 
+#ifdef _MSC_VER
+#pragma warning(disable: 4505) // warning C4505: '__float2half_rz': unreferenced local function has been removed (missing 'static inline')
+#endif
+
 #include <cublas_v2.h>
 #include <cusparse.h>
 
@@ -45,7 +49,7 @@ void Prod(marian::Tensor C,
           bool transB,
           float beta,
           float scalar) {
-  cudaSetDevice(C->getDeviceId().no);
+  cudaSetDevice((int)C->getDeviceId().no);
   float alpha = scalar;
 
   size_t m = A->shape().elements() / A->shape().back();
@@ -79,17 +83,17 @@ void Prod(marian::Tensor C,
   CUBLAS_CHECK(cublasSgemm(cublasHandle,
               opB,
               opA,
-              n,
-              m,
-              k,
+              (int)n,
+              (int)m,
+              (int)k,
               &alpha,
               B->data(),
-              ldb,
+              (int)ldb,
               A->data(),
-              lda,
+              (int)lda,
               &beta,
               C->data(),
-              ldc));
+              (int)ldc));
 #if CUDA_VERSION >= 9000
   cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
 #endif
@@ -144,7 +148,7 @@ void ProdBatched(marian::Tensor C,
                  bool transB,
                  float beta,
                  float scalar) {
-  cudaSetDevice(C->getDeviceId().no);
+  cudaSetDevice((int)C->getDeviceId().no);
   float alpha = scalar;
 
   size_t batchA = A->shape().elements() / (A->shape()[-1] * A->shape()[-2]);
@@ -173,10 +177,10 @@ void ProdBatched(marian::Tensor C,
   auto cublasHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
                           ->getCublasHandle();
 
-  int strideA = batchA == 1 ? 0 : m * k;
-  int strideB = batchB == 1 ? 0 : n * k;
-  int strideC = n * m;
-  int batchC = std::max(batchA, batchB);
+  auto strideA = batchA == 1 ? 0 : m * k;
+  auto strideB = batchB == 1 ? 0 : n * k;
+  auto strideC = n * m;
+  auto batchC = std::max(batchA, batchB);
 
   std::vector<const float*> aptr;
   std::vector<const float*> bptr;
@@ -206,18 +210,18 @@ void ProdBatched(marian::Tensor C,
   CUBLAS_CHECK(cublasSgemmBatched(cublasHandle,
                      opB,
                      opA,
-                     n,
-                     m,
-                     k,
+                     (int)n,
+                     (int)m,
+                     (int)k,
                      &alpha,
                      mp_bptr->data<const float*>(),
-                     ldb,
+                     (int)ldb,
                      mp_aptr->data<const float*>(),
-                     lda,
+                     (int)lda,
                      &beta,
                      mp_cptr->data<float*>(),
-                     ldc,
-                     batchC));
+                     (int)ldc,
+                     (int)batchC));
 #if CUDA_VERSION >= 9000
   cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
 #endif
@@ -262,7 +266,7 @@ void CSRProd(marian::Tensor C,
              bool transS,
              bool swapOperands,
              float beta) {
-  cudaSetDevice(C->getDeviceId().no);
+  cudaSetDevice((int)C->getDeviceId().no);
   auto cusparseHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
                               ->getCusparseHandle();
   // interpret tensor dimensions as matrix dimensions
