@@ -571,11 +571,11 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
 static void unescapeHexEscapes(std::string& utf8Lemma) {
   if (utf8Lemma.find('\\') == std::string::npos)
     return; // nothing to do
-  auto lemma = utils::utf8ToUtf16String(utf8Lemma); // \u.... implies we must operate on UTF-16 level
+  auto lemma = utils::utf8ToUtf16String(utf8Lemma); // \u.... implies we must operate on UTF-16 level (not UCS-4)
   auto pos = lemma.find('\\');
   while (pos != std::string::npos) {
     ABORT_IF(pos + 1 >= lemma.size() || (lemma[pos+1] != 'x' && lemma[pos + 1] != 'u'), "Malformed escape in factored encoding: {}", utf8Lemma);
-    int numDigits = 2 + (lemma[pos + 1] == 'u');
+    int numDigits = 2 + 2 * (lemma[pos + 1] == 'u'); // 2 for \x, 4 for \u
     ABORT_IF(pos + 2 + numDigits > lemma.size(), "Malformed escape in factored encoding: {}", utf8Lemma);
     auto digits = utils::utf8FromUtf16String(lemma.substr(pos + 2, numDigits));
     auto c = std::strtoul(digits.c_str(), nullptr, 16);
