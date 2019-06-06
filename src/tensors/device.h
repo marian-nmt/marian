@@ -11,8 +11,8 @@ class Device {
 protected:
   DeviceId deviceId_;
 
-  uint8_t* data_;
-  size_t size_;
+  uint8_t* data_{0};
+  size_t size_{0};
   size_t alignment_;
 
   size_t align(size_t size) {
@@ -21,7 +21,7 @@ protected:
 
 public:
   Device(DeviceId deviceId, size_t alignment = 256)
-      : deviceId_(deviceId), data_(0), size_(0), alignment_(alignment) {}
+      : deviceId_(deviceId), alignment_(alignment) {}
 
   virtual ~Device(){};
 

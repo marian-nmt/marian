@@ -30,8 +30,6 @@ namespace cpu {
 #endif
 
 Device::~Device() {
-  size_ = 0;
-  data_ = nullptr;
   FREE(data_);
 }
 
