@@ -21,7 +21,7 @@ protected:
 
 public:
   Device(DeviceId deviceId, size_t alignment = 256)
-      : deviceId_(deviceId), data_(0), size_(0), alignment_(alignment) {}
+      : deviceId_(deviceId), alignment_(alignment) {}
 
   virtual ~Device(){};
 
