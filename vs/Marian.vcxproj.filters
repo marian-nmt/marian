@@ -490,6 +490,9 @@
     <ClCompile Include="..\src\tensors\gpu\prod.cpp">
       <Filter>tensors\gpu</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\tensors\cpu\sharp\packed_gemm.cpp">
+      <Filter>tensors\cpu\sharp</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -1555,6 +1558,51 @@
     <ClInclude Include="..\src\tensors\gpu\add.inc">
       <Filter>tensors\gpu</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\tensors\cpu\expanded_gemm.h">
+      <Filter>tensors\cpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\cpu\sharp\packed_gemm.h">
+      <Filter>tensors\cpu\sharp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\ConvUtils.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\Fbgemm.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\FbgemmBuild.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\FbgemmFP16.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\FbgemmI8DepthwiseAvx2.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\FbgemmI8Spmdm.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\OutputProcessing-inl.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\PackingTraits-inl.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\QuantUtils.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\QuantUtilsAvx2.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\Types.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\Utils.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\UtilsAvx2.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
@@ -1721,6 +1769,15 @@
     </Filter>
     <Filter Include="tests">
       <UniqueIdentifier>{a86d650a-2268-43d9-9d74-cb17cd6b534b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm">
+      <UniqueIdentifier>{4bb88f6d-7ddf-41e0-91be-a43dbcd0e9b0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\include">
+      <UniqueIdentifier>{6c2bef00-97a0-4881-a6f0-ded54b8520bf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\include\fbgemm">
+      <UniqueIdentifier>{95f7ce7c-c649-4d57-8d2a-d724bd75fe84}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

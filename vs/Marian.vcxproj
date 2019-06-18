@@ -49,8 +49,8 @@
     <LinkIncremental>false</LinkIncremental>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
     <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\Marian\</IntDir>
-    <IncludePath>%CUDA_PATH%\include;..\src;..\src\3rd_party;%BOOST_INCLUDE_PATH%;%ZLIB_PATH%\include;%MKL_PATH%\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>%CUDA_PATH%\lib\x64;%BOOST_LIB_PATH%;%ZLIB_PATH%\lib;%MKL_PATH%\lib\intel64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
+    <IncludePath>%MKL_PATH%\include;..\src\3rd_party\fbgemm\include;%CUDA_PATH%\include;..\src;..\src\3rd_party;%BOOST_INCLUDE_PATH%;%ZLIB_PATH%\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>deps;%CUDA_PATH%\lib\x64;%BOOST_LIB_PATH%;%ZLIB_PATH%\lib;%MKL_PATH%\lib\intel64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -104,12 +104,12 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>CUDA_FOUND=1; MKL_FOUND=1; MPI_FOUND=1; BLAS_FOUND=1; MKL_ILP64; WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>FBGEMM_STATIC;USE_FBGEMM=1;CUDA_FOUND=1; MKL_FOUND=1; MPI_FOUND=1; BLAS_FOUND=1; MKL_ILP64; WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalOptions>/d2Zi+ /bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/d2Zi+ /bigobj %(AdditionalOptions) /arch:AVX2</AdditionalOptions>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MultiThreaded</RuntimeLibrary>
       <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Release_NoOpt|x64'">MultiThreaded</RuntimeLibrary>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <OmitFramePointers>true</OmitFramePointers>
@@ -121,7 +121,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>cudart_static.lib;cublas.lib;cusparse.lib;curand.lib;zlib.lib;msmpi.lib;mkl_intel_ilp64.lib;mkl_sequential.lib;mkl_core.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cudart_static.lib;cublas.lib;cusparse.lib;curand.lib;zlib.lib;msmpi.lib;mkl_intel_ilp64.lib;mkl_sequential.lib;mkl_core.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;shlwapi.lib;%(AdditionalDependencies);fbgemm.lib;cpuinfo.lib;clog.lib</AdditionalDependencies>
       <StackReserveSize>100000000</StackReserveSize>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
     </Link>
@@ -346,6 +346,19 @@
     <ClCompile Include="..\src\3rd_party\yaml-cpp\binary_renamed.cpp" />
     <ClCompile Include="..\src\3rd_party\yaml-cpp\yaml-node.cpp" />
     <ClInclude Include="..\src\3rd_party\ExceptionWithCallStack.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\ConvUtils.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\Fbgemm.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\FbgemmBuild.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\FbgemmFP16.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\FbgemmI8DepthwiseAvx2.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\FbgemmI8Spmdm.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\OutputProcessing-inl.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\PackingTraits-inl.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\QuantUtils.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\QuantUtilsAvx2.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\Types.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\Utils.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\UtilsAvx2.h" />
     <ClInclude Include="..\src\3rd_party\nccl\src\collectives\collectives.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
@@ -612,6 +625,7 @@
     <ClCompile Include="..\src\tensors\cpu\prod.cpp" />
     <ClCompile Include="..\src\tensors\cpu\sharp\avx_gemm.cpp" />
     <ClCompile Include="..\src\tensors\cpu\sharp\int_gemm.cpp" />
+    <ClCompile Include="..\src\tensors\cpu\sharp\packed_gemm.cpp" />
     <ClCompile Include="..\src\tensors\cpu\sharp\sse_gemm.cpp" />
     <ClCompile Include="..\src\tensors\cpu\tensor_operators.cpp" />
     <ClCompile Include="..\src\graph\expression_graph.cpp" />
@@ -951,7 +965,9 @@
     <ClInclude Include="..\src\rnn\types.h" />
     <ClInclude Include="..\src\tensors\allocator.h" />
     <ClInclude Include="..\src\tensors\backend.h" />
+    <ClInclude Include="..\src\tensors\cpu\expanded_gemm.h" />
     <ClInclude Include="..\src\tensors\cpu\sharp\int_gemm.h" />
+    <ClInclude Include="..\src\tensors\cpu\sharp\packed_gemm.h" />
     <ClInclude Include="..\src\tensors\device.h" />
     <ClInclude Include="..\src\tensors\dispatch.h" />
     <ClInclude Include="..\src\tensors\gpu\add.h" />

@@ -20,7 +20,7 @@ class AutoTuner : public AutoTunerRecorder {
 private:
   typedef std::function<Return(Args...)> Algorithm;
 
-  const size_t max = 100;
+  const size_t max = 50;
 
   UPtr<timer::CPUTimer> timer_;
 
