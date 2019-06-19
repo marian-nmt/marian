@@ -10,7 +10,7 @@ using namespace fbgemm;
 
 namespace marian {
 namespace cpu {
-namespace pack {
+namespace variant {
 
 enum class PackMatrix : uint8_t {
   A = 0x00,
@@ -71,23 +71,17 @@ struct PackNodeOp : public UnaryNodeOp {
     // Should be 2D - weight matrix
     ABORT_IF(shapeMat.size() != 2,
              "Weight Matrix should be 2D");
-   if (true) {
-    // if (shapeMat[0] < 32000 && shapeMat[1] < 32000) {
-      nrow_ = transpose ? shapeMat[1] : shapeMat[0];
-      ncol_ = transpose ? shapeMat[0] : shapeMat[1];
-      kernel_ncol_blocks_ = 2;
-      brow_ = 512;
-      bcol_ = 8 * kernel_ncol_blocks_;
-      last_brow_ = nrow_ % brow_ == 0 ? brow_ : nrow_ % brow_;
-      nbrow_ = nrow_ % brow_ == 0 ? nrow_ / brow_ : (nrow_ + brow_) / brow_;
-      nbcol_ = ncol_ % bcol_ == 0 ? ncol_ / bcol_ : (ncol_ + bcol_) / bcol_;
-      const int padding = 1024;  // required by sw pipelined kernels
-      const int specialMem = 256;
-      packsize_ = ((nbrow_ * brow_) * (nbcol_ * bcol_)) * sizeof(fbgemm::float16) + padding + specialMem;
-    } else {
-      // use int 8 implementation
-      packsize_ = 1;
-    }
+    nrow_ = transpose ? shapeMat[1] : shapeMat[0];
+    ncol_ = transpose ? shapeMat[0] : shapeMat[1];
+    kernel_ncol_blocks_ = 2;
+    brow_ = 512;
+    bcol_ = 8 * kernel_ncol_blocks_;
+    last_brow_ = nrow_ % brow_ == 0 ? brow_ : nrow_ % brow_;
+    nbrow_ = nrow_ % brow_ == 0 ? nrow_ / brow_ : (nrow_ + brow_) / brow_;
+    nbcol_ = ncol_ % bcol_ == 0 ? ncol_ / bcol_ : (ncol_ + bcol_) / bcol_;
+    const int padding = 1024;  // required by sw pipelined kernels
+    const int specialMem = 256;
+    packsize_ = ((nbrow_ * brow_) * (nbcol_ * bcol_)) * sizeof(fbgemm::float16) + padding + specialMem;
 
     Shape outShape({(int)packsize_});
 
@@ -147,39 +141,15 @@ public:
   }
 
   NodeOps forwardOps() override {
-    // if (n_ < 32000) {
-   if (true) {
-      return {
-        NodeOp(GemmPackFp32(val_,
-                                  child(0)->val(),
-                                  child(1)->val(),
-                                  child(2)->val(),
-                                  m_,
-                                  n_,
-                                  //k_,
-                                  //1,
-                                  //0,
-                                  transA_))
-                                  //transB_,
-                                  //idx_))
-      };
-    } else {
-      return {
-        NodeOp(GemmPackFp32(val_,
-                                  child(0)->val(),
-                                  child(1)->val(),
-                                  child(2)->val(),
-                                  m_,
-                                  n_,
-                                  //k_,
-                                  //1,
-                                  //0,
-                                  transA_);
-                                  //transB_,
-                                  //idx_);
-                AddBias(val_, child(2)->val()))
-      };
-    }
+    return {
+      NodeOp(GemmPackFp32(val_,
+                                child(0)->val(),
+                                child(1)->val(),
+                                child(2)->val(),
+                                m_,
+                                n_,
+                                transA_))
+    };
   }
 
   NodeOps backwardOps() override {
@@ -192,13 +162,13 @@ public:
 
 static inline Expr affine(Expr a, Expr b, Shape bShape, Expr c, bool transA, bool transB, float scalar) {
   std::vector<Expr> nodes = {a, b, c};
-  return Expression<cpu::pack::AffineNodeOp>(nodes, bShape, transA, transB, scalar);
+  return Expression<cpu::variant::AffineNodeOp>(nodes, bShape, transA, transB, scalar);
 }
 
 static inline Expr pack(Expr a, PackMatrix packMat, bool transpose, float clipValue) {
-  return Expression<cpu::pack::PackNodeOp>(a, packMat, transpose, clipValue);
+  return Expression<cpu::variant::PackNodeOp>(a, packMat, transpose, clipValue);
 }
 
-}  // namespace pack
+}  // namespace variant
 }  // namespace cpu
 }  // namespace marian

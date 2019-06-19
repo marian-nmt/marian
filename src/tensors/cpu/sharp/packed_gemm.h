@@ -4,7 +4,7 @@
 
 namespace marian {
 namespace cpu {
-namespace pack {
+namespace variant {
 
 void PackFp32(marian::Tensor out,
               const marian::Tensor in,
@@ -25,15 +25,10 @@ void GemmPackFp32(marian::Tensor C,
                   const marian::Tensor bias,
                   const int64_t m,
                   const int64_t n,
-                  // const int64_t k,
-                  // const float beta = 1,
-                  // const int layout = 0,
                   const int transA = 0);
-                  //const int transB = 0,
-                  //const size_t idx = 0);
 
 void AddBias(marian::Tensor C, const marian::Tensor Bias);
 
-}  // namespace pack
+}  // namespace variant
 }  // namespace cpu
 }  // namespace marian

@@ -444,10 +444,10 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
         };
 
         auto alg1 = [=]() {
-          auto packed = cpu::pack::pack(b, cpu::pack::PackMatrix::B, transB, clipValue);
+          auto packed = cpu::variant::pack(b, cpu::variant::PackMatrix::B, transB, clipValue);
 
           return rec1(
-              cpu::pack::affine(
+              cpu::variant::affine(
               clip(a, clipValue), packed,
               b->shape(),
               bias,
@@ -509,12 +509,12 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
 
     } else {
       if(b->memoize()) {
-        auto packed = cpu::pack::pack(b, cpu::pack::PackMatrix::B, transB, clipValue);
+        auto packed = cpu::variant::pack(b, cpu::variant::PackMatrix::B, transB, clipValue);
         // auto packed = transB ? 
-        //               cpu::pack::pack(transpose(b), cpu::pack::PackMatrix::B, false, clipValue) :
-        //               cpu::pack::pack(b, cpu::pack::PackMatrix::B, false, clipValue);
+        //               cpu::variant::pack(transpose(b), cpu::pack::PackMatrix::B, false, clipValue) :
+        //               cpu::variant::pack(b, cpu::pack::PackMatrix::B, false, clipValue);
 
-        return cpu::pack::affine(
+        return cpu::variant::affine(
             clip(a, clipValue), packed,
             b->shape(),
             bias,
