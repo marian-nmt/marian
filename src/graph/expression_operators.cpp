@@ -508,6 +508,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
       return tuner->run();
 
     } else {
+#if USE_FBGEMM
       if(b->memoize()) {
         auto packed = cpu::variant::pack(b, cpu::variant::PackMatrix::B, transB, clipValue);
         // auto packed = transB ? 
@@ -533,6 +534,14 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
         std::vector<Expr> nodes = {clip(a, clipValue), clip(b, clipValue), bias, ones};
         return Expression<AffineNodeOp>(nodes, transA, transB, scale);
       }
+#else // USE_FBGEMM
+      // cpu int16 version
+      return cpu::int16::affine(
+          cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
+          cpu::int16::quantize(transB ? b : transpose(b), clipValue),
+          bias,
+          scale);
+#endif  // USE_FBGEMM
     }
   } else {
     // general version, MKL, CBlas or CUDA

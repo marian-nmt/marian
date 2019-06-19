@@ -170,7 +170,7 @@ void GemmPackFp32(marian::Tensor C,
 #else // USE_FBGEMM && MKL_FOUND
 void PackFp32(marian::Tensor out,
               const marian::Tensor in,
-              bool tranpose,
+              bool transpose,
               int nrow,
               int ncol,
               int kernel_ncol_blocks,
@@ -188,12 +188,7 @@ void GemmPackFp32(marian::Tensor C,
                   const marian::Tensor bias,
                   const int64_t m,
                   const int64_t n,
-                  const int64_t k,
-                  const float beta,
-                  const int layout,
-                  const int transA,
-                  const int transB,
-                  size_t idx) {
+                  int transA) {
                 // does nothing. supports only FBGEMM based packed gemm at this moment.
 }
 #endif // USE_FBGEMM && MKL_FOUND
