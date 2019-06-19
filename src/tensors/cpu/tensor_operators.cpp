@@ -191,7 +191,7 @@ void Transpose0213(Tensor out, Tensor in) {
 }
 
 template <bool add>
-void Transposexxx3(Tensor out, Tensor in, const std::vector<int>& vAxis) {
+void TransposeFirst3In4(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 #if MKL_FOUND
   int innermost = in->shape()[-1];
 
@@ -323,7 +323,7 @@ void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
     Transpose0213<false>(out, in);
 #if MKL_FOUND
   else if(vAxis.size() == 4 && vAxis[3] == 3)
-    Transposexxx3<false>(out, in, vAxis);
+    TransposeFirst3In4<false>(out, in, vAxis);
 #endif  // MKL_FOUND
   else if(vAxis == std::vector<int>({1, 0}) && in->shape()[-1] % 16 == 0
           && in->shape()[-2] % 16 == 0)
