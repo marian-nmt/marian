@@ -137,6 +137,7 @@ private:
   std::string namespace_;
 
   bool throwNaN_{false};
+  GemmType gemmType_;
 
 protected:
   // Delete, copy and move constructors
@@ -148,7 +149,7 @@ public:
    *
    * Constructor should be used as New<ExpressionGraph>()
    */
-  ExpressionGraph(bool inference = false, bool optimized = false);
+  ExpressionGraph(bool inference = false, bool optimized = false, std::string gemmType = "auto");
 
   void setInference(bool inference) { inferenceOnly_ = inference; }
   bool isInference() { return inferenceOnly_; }
@@ -167,6 +168,7 @@ public:
 
   void setOptimized(bool optimized) { optimized_ = optimized; }
   bool isOptimized() { return (optimized_ && inferenceOnly_); }
+  GemmType getGemmType() { return gemmType_; } 
 
   void switchParams(const std::string& newNamespace) {
     namespace_ = newNamespace;

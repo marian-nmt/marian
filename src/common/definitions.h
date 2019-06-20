@@ -116,4 +116,13 @@ typedef Ptr<RunBase> RunBasePtr;
 
 
 const float NEMATUS_LN_EPS = 1e-5f;
+
+/* GEMM type enum */
+typedef enum { Auto     = 0,
+               Mkl      = 1,
+               Int16    = 2,
+               PackedFb = 10,
+               Int8Fb   = 11
+} GemmType;
+
 }  // namespace marian

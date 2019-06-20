@@ -411,8 +411,8 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
   float clipValue = a->graph()->getBackend()->getClip();
 
   if(a->graph()->isOptimized() && device == DeviceType::cpu) {
-    bool autotune = false;
-    if(autotune) {
+    GemmType gemmType = a->graph()->getGemmType();
+    if(gemmType == GemmType::Auto) {
       thread_local Ptr<AutoTuner<Expr>> tuner = New<AutoTuner<Expr>>();
 
       // start with new set of algorithms
@@ -508,40 +508,60 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
       return tuner->run();
 
     } else {
-#if USE_FBGEMM
-      if(b->memoize()) {
-        auto packed = cpu::variant::pack(b, cpu::variant::PackMatrix::B, transB, clipValue);
-        // auto packed = transB ? 
-        //               cpu::variant::pack(transpose(b), cpu::pack::PackMatrix::B, false, clipValue) :
-        //               cpu::variant::pack(b, cpu::pack::PackMatrix::B, false, clipValue);
-
-        return cpu::variant::affine(
-            clip(a, clipValue), packed,
-            b->shape(),
-            bias,
-            transA,
-            transB,
-            scale);
+      if (gemmType == GemmType::Int16) {
         // cpu int16 version
-        // return cpu::int16::affine(
-        //     cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
-        //     cpu::int16::quantize(transB ? b : transpose(b), clipValue),
-        //     bias,
-        //     scale);
-      } else {
+        return cpu::int16::affine(
+            cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
+            cpu::int16::quantize(transB ? b : transpose(b), clipValue),
+            bias,
+            scale);
+      } else if (gemmType == GemmType::PackedFb) {
+#if USE_FBGEMM
+        if(b->memoize()) {
+          auto packed = cpu::variant::pack(b, cpu::variant::PackMatrix::B, transB, clipValue);
+          // auto packed = transB ? 
+          //               cpu::variant::pack(transpose(b), cpu::pack::PackMatrix::B, false, clipValue) :
+          //               cpu::variant::pack(b, cpu::pack::PackMatrix::B, false, clipValue);
+
+          return cpu::variant::affine(
+              clip(a, clipValue), packed,
+              b->shape(),
+              bias,
+              transA,
+              transB,
+              scale);
+          // cpu int16 version
+          // return cpu::int16::affine(
+          //     cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
+          //     cpu::int16::quantize(transB ? b : transpose(b), clipValue),
+          //     bias,
+          //     scale);
+        } else {
+          int rows = a->shape().elements() / a->shape()[-1];
+          Expr ones = a->graph()->ones({rows, 1});
+          std::vector<Expr> nodes = {clip(a, clipValue), clip(b, clipValue), bias, ones};
+          return Expression<AffineNodeOp>(nodes, transA, transB, scale);
+        }
+#else
+        ABORT("Packed GEMM not implemented");
+#endif  // USE_FBGEMM
+
+      } else if (gemmType == GemmType::Mkl) {
+        // general version, MKL, CBlas or CUDA
+
+        // if clipValue > 0, the inputs will be clipped to range [-clipValue,
+        // clipValue] This is meant to keep values at the same range as used during
+        // training when optimizing for 8-bit integer products. Likely to be removed
+        // in the future when we explore better ways to handle this.
+
         int rows = a->shape().elements() / a->shape()[-1];
         Expr ones = a->graph()->ones({rows, 1});
-        std::vector<Expr> nodes = {clip(a, clipValue), clip(b, clipValue), bias, ones};
+        std::vector<Expr> nodes
+            = {clip(a, clipValue), clip(b, clipValue), bias, ones};
         return Expression<AffineNodeOp>(nodes, transA, transB, scale);
+      } else {
+        ABORT("Not implemented");
       }
-#else // USE_FBGEMM
-      // cpu int16 version
-      return cpu::int16::affine(
-          cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
-          cpu::int16::quantize(transB ? b : transpose(b), clipValue),
-          bias,
-          scale);
-#endif  // USE_FBGEMM
     }
   } else {
     // general version, MKL, CBlas or CUDA

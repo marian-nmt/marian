@@ -190,8 +190,16 @@ void Transpose0213(Tensor out, Tensor in) {
   }
 }
 
+/**
+ * Given a 4D array, transpose the initial 3 dimensions while keeping the last dimension.
+ *
+ * @param out output tensor
+ * @param in input tensor
+ * @param vAxis target (transposed) axes of each given axes
+ */
 template <bool add>
 void TransposeFirst3In4(Tensor out, Tensor in, const std::vector<int>& vAxis) {
+  ABORT_IF(vAxis.size() != 4, "This function handles only 4D arrays.");
 #if MKL_FOUND
   int innermost = in->shape()[-1];
 
@@ -199,7 +207,9 @@ void TransposeFirst3In4(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   int l2 = in->shape()[vAxis[1]];
   int l3 = in->shape()[vAxis[2]];
 
-  int oi = 0, oj = 0, ok = 0;
+  // find the mapping between the transposed output dimensional indices (oi, oj, ok) 
+  // and original input dimensional indices (i, j, k)
+  int oi, oj, ok;
 #pragma omp parallel for
   for(int k = 0; k < l1; ++k) {
     int shift = k * l2 * l3;

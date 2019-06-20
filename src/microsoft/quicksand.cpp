@@ -64,7 +64,8 @@ public:
       vocabs_.push_back(std::dynamic_pointer_cast<VocabWrapper>(vi)->getVocab());
 
     // setting 16-bit optimization to false for now. Re-enable with better caching or pre-computation
-    graph_ = New<ExpressionGraph>(/*inference=*/true, /*optimize=*/false);
+    graph_ = New<ExpressionGraph>(/*inference=*/true, /*optimize=*/options->get<bool>("optimize"), 
+                                  /*gemmType=*/options->get<std::string>("gemm-type"));
 
     DeviceId deviceId{0, DeviceType::cpu};
     device_ = New<cpu::WrappedDevice>(deviceId);

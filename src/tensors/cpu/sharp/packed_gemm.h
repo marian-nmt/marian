@@ -4,20 +4,20 @@
 
 namespace marian {
 namespace cpu {
-namespace variant {
+namespace variant { // Variants of GEMM implementations
 
 void PackFp32(marian::Tensor out,
               const marian::Tensor in,
-              bool transpose,
-              int nrow,
-              int ncol,
-              int kernel_ncol_blocks,
-              int brow,
-              int bcol,
-              int last_brow,
-              int nbrow,
-              int nbcol,
-              uint64_t packsize);
+              const bool transpose,
+              const int nrow,
+              const int ncol,
+              const int kernel_ncol_blocks,
+              const int brow,
+              const int bcol,
+              const int last_brow,
+              const int nbrow,
+              const int nbcol,
+              const uint64_t packsize);
 
 void GemmPackFp32(marian::Tensor C,
                   const marian::Tensor A,
