@@ -321,7 +321,8 @@ namespace marian {
             if (hardmax) {
               lemmaDimEmb = lemmaDimEmb & 0xfffffffe;
               LOG_ONCE(info, "[embedding] HARDMAX_HACK enabled. Actual dim is {}", lemmaDimEmb);
-              factorSoftmax = eq(factorSoftmax, max(factorSoftmax, -1));
+              auto maxVal = max(factorSoftmax, -1);
+              factorSoftmax = eq(factorSoftmax, maxVal);
             }
 #endif
             // re-embedding lookup, soft-indexed by softmax

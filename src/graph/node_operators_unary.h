@@ -477,6 +477,10 @@ struct ReduceNodeOp : public UnaryNodeOp {
 
   NodeOps backwardOps() override {
     using namespace functional;
+#if 1 // @BUGBUG: This is a workaround for not correctly propagating non-trainable information. @TODO: Do this the right and general way.
+    if (adj_ == nullptr)
+      return {};
+#endif
     switch (opCode_) {
     case ReduceNodeOpCode::sum:
       return {NodeOp(Add(_1, child(0)->grad(), adj_))};
