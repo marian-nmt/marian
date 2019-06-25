@@ -38,7 +38,7 @@ namespace variant { // Variants of GEMM implementations
 
 #if USE_FBGEMM
 // initialize with a dummy
-static PackedGemmMatrixFP16 packedPlaceholder(1, 1, 1, 1, 1, 1, 1, 1);
+static thread_local PackedGemmMatrixFP16 packedPlaceholder(1, 1, 1, 1, 1, 1, 1, 1);
 
 // This is copied from FBGEMM code
 // A better way?
