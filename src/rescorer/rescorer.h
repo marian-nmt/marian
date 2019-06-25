@@ -67,9 +67,10 @@ public:
     auto devices = Config::getDevices(options_);
 
     for(auto device : devices) {
-      auto graph = New<ExpressionGraph>(true, options_->get<bool>("optimize"), 
-                                        options_->get<std::string>("gemm-type"));
+      auto graph = New<ExpressionGraph>(true);
       graph->setDevice(device);
+      graph->getBackend()->setOptimized(options_->get<bool>("optimize"));
+      graph->getBackend()->setGemmType(options_->get<std::string>("gemm-type"));
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
     }

@@ -5,15 +5,8 @@
 
 namespace marian {
 
-ExpressionGraph::ExpressionGraph(bool inference, bool optimized, std::string gemmType)
-    : inferenceOnly_(inference), optimized_(optimized), backend_(nullptr) {
-  if (gemmType == "auto") gemmType_ = GemmType::Auto;
-  else if (gemmType == "mkl") gemmType_ = GemmType::Mkl;
-  else if (gemmType == "int16") gemmType_ = GemmType::Int16;
-  else if (gemmType == "packed") gemmType_ = GemmType::PackedFb;
-  else if (gemmType == "int8") gemmType_ = GemmType::Int8Fb;
-  else ABORT("Unknow GEMM type");
-}
+ExpressionGraph::ExpressionGraph(bool inference)
+    : inferenceOnly_(inference), backend_(nullptr) {}
 
 void ExpressionGraph::setDevice(DeviceId deviceId, Ptr<Device> device) {
   if(!backend_) {

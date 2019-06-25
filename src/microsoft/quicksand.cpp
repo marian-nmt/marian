@@ -64,12 +64,15 @@ public:
       vocabs_.push_back(std::dynamic_pointer_cast<VocabWrapper>(vi)->getVocab());
 
     // setting 16-bit optimization to false for now. Re-enable with better caching or pre-computation
-    graph_ = New<ExpressionGraph>(/*inference=*/true, /*optimize=*/true, 
-                                  /*gemmType=*/"packed");
+    graph_ = New<ExpressionGraph>(/*inference=*/true);
 
     DeviceId deviceId{0, DeviceType::cpu};
     device_ = New<cpu::WrappedDevice>(deviceId);
     graph_->setDevice(deviceId, device_);
+
+    // Use packed GEMM for the production
+    graph_->getBackend()->setOptimized(true);
+    graph_->getBackend()->setGemmType("packed");
 
 #ifdef MKL_FOUND
     mkl_set_num_threads(options->get<int>("mkl-threads", 1));

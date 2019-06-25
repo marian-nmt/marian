@@ -16,9 +16,7 @@ protected:
 
 public:
   Backend(DeviceId deviceId, size_t seed)
-  : deviceId_(deviceId),
-    seed_(seed),
-    randomGenerator_(createRandomGenerator(seed, deviceId)) {}
+      : deviceId_(deviceId), seed_(seed), randomGenerator_(createRandomGenerator(seed, deviceId)) {}
 
   virtual DeviceId getDeviceId() { return deviceId_; };
   virtual Ptr<RandomGenerator> getRandomGenerator() { return randomGenerator_; }
@@ -29,6 +27,13 @@ public:
 
   virtual void setClip(float clipValue) { clipValue_ = clipValue; }
   float getClip() { return clipValue_; }
+
+  // for CPU & inference only, sets to use optimized code for inference. Does nothing for GPU.
+  virtual void setOptimized(bool optimize) = 0;
+  virtual bool isOptimized() = 0;
+  // for CPU only, selects different GEMM types for the inference. Does nothing for GPU.
+  virtual void setGemmType(std::string gemmType) = 0;
+  virtual GemmType getGemmType() = 0;
 };
 
 Ptr<Backend> BackendByDeviceId(DeviceId deviceId, size_t seed);

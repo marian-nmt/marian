@@ -1,13 +1,14 @@
 #pragma once
 
 #include "common/config.h"
-#include "tensors/backend.h" // note: this is one folder up
+#include "tensors/backend.h"  // note: this is one folder up
 #include "tensors/gpu/cuda_helpers.h"
+#include "common/logging.h"
 
-#include <cuda.h>
 #include <cublas_v2.h>
-#include <cusparse.h>
+#include <cuda.h>
 #include <curand.h>
+#include <cusparse.h>
 
 namespace marian {
 namespace gpu {
@@ -32,6 +33,19 @@ public:
 
   cublasHandle_t getCublasHandle() { return cublasHandle_; }
   cusparseHandle_t getCusparseHandle() { return cusparseHandle_; }
+
+  // for CPU & inference only, sets to use optimized code for inference. Does nothing for GPU.
+  void setOptimized(bool optimize) override { ABORT("Not supported for GPU_{}", optimize); }
+  bool isOptimized() override {
+    ABORT("Not supported for GPU");
+    return false;
+  }
+  // for CPU only, selects different GEMM types for the inference. Does nothing for GPU.
+  void setGemmType(std::string gemmType) override { ABORT("Not supported for GPU_{}", gemmType); }
+  GemmType getGemmType() override {
+    ABORT("Not supported for GPU");
+    return GemmType::Auto;
+  }
 
 private:
   cublasHandle_t cublasHandle_;

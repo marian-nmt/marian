@@ -387,8 +387,8 @@ Expr dot(Expr a, Expr b, bool transA, bool transB, float scale) {
 
   // Currently only true when command line options
   // --optimize --cpu-thread=N with N > 0 are set.
-  if(a->graph()->isOptimized() && device == DeviceType::cpu
-    && a->graph()->getGemmType() == GemmType::Int16) {
+  if(a->graph()->getBackend()->isOptimized() && device == DeviceType::cpu
+    && a->graph()->getBackend()->getGemmType() == GemmType::Int16) {
     // dotInt16 computes A * B.T, hence the transpose for B to get A * B
     // if transA = false and transB = false.
 
@@ -411,8 +411,8 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
 
   float clipValue = a->graph()->getBackend()->getClip();
 
-  if(a->graph()->isOptimized() && device == DeviceType::cpu) {
-    GemmType gemmType = a->graph()->getGemmType();
+  if(a->graph()->getBackend()->isOptimized() && device == DeviceType::cpu) {
+    GemmType gemmType = a->graph()->getBackend()->getGemmType();
     if(gemmType == GemmType::Auto) {
       thread_local Ptr<AutoTuner<Expr>> tuner = New<AutoTuner<Expr>>();
 
