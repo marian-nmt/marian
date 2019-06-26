@@ -24,12 +24,12 @@ public:
   bool isOptimized() override { return optimized_; }
   // for CPU only, selects different GEMM types for the inference. Does nothing for GPU.
   void setGemmType(std::string gemmType) override {
-    if      (gemmType == "auto") gemmType_ = GemmType::Auto;
-    else if (gemmType == "mkl") gemmType_ = GemmType::MklFp32;
-    else if (gemmType == "int16") gemmType_ = GemmType::IntrinsicInt16;
-    else if (gemmType == "packed") gemmType_ = GemmType::FbFp16Packed;
-    else if (gemmType == "int8") gemmType_ = GemmType::FbInt8Packed;
-    else ABORT("Unknow GEMM type");
+    if      (gemmType == "auto")        gemmType_ = GemmType::Auto;
+    else if (gemmType == "mklfp32")     gemmType_ = GemmType::MklFp32;
+    else if (gemmType == "intrinint16") gemmType_ = GemmType::IntrinInt16;
+    else if (gemmType == "fp16packed")  gemmType_ = GemmType::FbFp16Packed;
+    else if (gemmType == "int8packed")  gemmType_ = GemmType::FbInt8Packed;
+    else ABORT("Unknown GEMM type");
   }
   GemmType getGemmType() override { return gemmType_; }
 };
