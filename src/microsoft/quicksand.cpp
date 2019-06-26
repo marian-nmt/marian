@@ -72,7 +72,7 @@ public:
 
     // Use packed GEMM for the production
     graph_->getBackend()->setOptimized(true);
-    graph_->getBackend()->setGemmType("packed");
+    graph_->getBackend()->setGemmType("fp16packed");
 
 #ifdef MKL_FOUND
     mkl_set_num_threads(options->get<int>("mkl-threads", 1));

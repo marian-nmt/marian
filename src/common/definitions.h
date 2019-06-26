@@ -116,5 +116,4 @@ typedef Ptr<RunBase> RunBasePtr;
 
 
 const float NEMATUS_LN_EPS = 1e-5f;
-
 }  // namespace marian

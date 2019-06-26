@@ -157,7 +157,7 @@ public:
     return {NodeOp(0)};
   }
 
-  const std::string type() override { return "affinePacked"; }
+  const std::string type() override { return "fp16packed"; }
 };
 
 static inline Expr affine(Expr a, Expr b, Shape bShape, Expr c, bool transA, bool transB, float scalar) {

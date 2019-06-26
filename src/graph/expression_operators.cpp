@@ -413,6 +413,10 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
 
   if(a->graph()->getBackend()->isOptimized() && device == DeviceType::cpu) {
     GemmType gemmType = a->graph()->getBackend()->getGemmType();
+    // When gemmType is set to 'auto', an autotuner decides the best algorithm available.
+    // A new autotuner is created, then different kinds of algorithms are added to the autotuner.
+    // For each GEMM size, there is a unique hash key.
+    // (e.g. m, n, k, transpose A, transpose B, bias size for GEMM)
     if(gemmType == GemmType::Auto) {
       thread_local Ptr<AutoTuner<Expr>> tuner = New<AutoTuner<Expr>>();
 
@@ -434,76 +438,87 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
       util::hash_combine(hash, transB);
 
 #if USE_FBGEMM
-      // Use Packed GEMM only if it's memoized
+      // Use Packed GEMM only if the node b in the graph is memoized.
+      // More specifically, packed GEMM is used only if the B matrix (weight) is constant.
+      // In general, 'memoized' means that the node is a constant variable or
+      // a combination of contant nodes which is also a constant variable
+      // when it's computed once.
+      // Those memoized nodes are cached to avoid duplicated computations.
       if(b->memoize()) {
-        // add third algorithm variant (Packed GEMM)
-        size_t hash1 = hash;
-        util::hash_combine(hash1, 1);
-        auto rec1 = [=](Expr e, bool stop = false) {
-          e->record(tuner, hash1, stop);
+        // add packed GEMM algorithm variant (Packed GEMM) to the autotuner
+        // Once an algorithm is added to the autotuner,
+        // autotuner runs all the added algorithms for a designated times.
+        // One algorithm is run per one this operation call
+        // and the stat for that algorithm is collected.
+        // When all the algorithms reach the maximum stat collection count,
+        // the autotuner decide the best algorithm, and keep using it afterward.
+        size_t hashPack = hash;
+        util::hash_combine(hashPack, 1);
+        auto recPack = [=](Expr e, bool stop = false) {
+          e->record(tuner, hashPack, stop);
           return e;
         };
 
-        auto alg1 = [=]() {
+        auto algPack = [=]() {
           auto packed = cpu::variant::pack(b, cpu::variant::PackMatrix::B, transB, clipValue);
 
-          return rec1(
-              cpu::variant::affine(
-              clip(a, clipValue), packed,
-              b->shape(),
-              bias,
-              transA,
-              transB,
-              scale),
+          return recPack(
+            cpu::variant::affine(clip(a, clipValue),
+                                 packed,
+                                 b->shape(),
+                                 bias,
+                                 transA,
+                                 transB,
+                                 scale),
             true);
         };
-        tuner->insert({hash1, alg1});
+        tuner->insert({hashPack, algPack});
       }
 #endif // USE_FBGEMM
 
-      // add first algorithm variant (Int16)
-      size_t hash2 = hash;
-      util::hash_combine(hash2, 2);
-      auto rec2 = [=](Expr e, bool stop = false) {
-        e->record(tuner, hash2, stop);
+      // add second algorithm variant (Int16) to the autotuner
+      size_t hashInt16 = hash;
+      util::hash_combine(hashInt16, 2);
+      auto recInt16 = [=](Expr e, bool stop = false) {
+        e->record(tuner, hashInt16, stop);
         return e;
       };
-      auto alg2 = [=]() {
-        return rec2(
-            cpu::int16::affine(
-                rec2(cpu::int16::quantize(transA ? rec2(transpose(a)) : a,
-                                          clipValue)),
-                cpu::int16::quantize(transB ? b : transpose(b), clipValue),
-                bias,
-                scale),
-            true);
+      auto algInt16 = [=]() {
+        return recInt16(
+          cpu::int16::affine(
+                recInt16(cpu::int16::quantize(transA ? recInt16(transpose(a)) : a,
+                                      clipValue)),
+            cpu::int16::quantize(transB ? b : transpose(b), clipValue),
+            bias,
+            scale),
+          true);
       };
-      tuner->insert({hash2, alg2});
+      tuner->insert({hashInt16, algInt16});
 
-      // add second algorithm variant (CBlas)
-      size_t hash3 = hash;
-      util::hash_combine(hash3, 3);
-      auto rec3 = [=](Expr e, bool stop = false) {
-        e->record(tuner, hash3, stop);
+      // add third algorithm variant (CBlas) to the autotuner
+      size_t hashCblas = hash;
+      util::hash_combine(hashCblas, 3);
+      auto recCblas = [=](Expr e, bool stop = false) {
+        e->record(tuner, hashCblas, stop);
         return e;
       };
 
-      auto alg3 = [=]() {
+      auto algCblas = [=]() {
         auto ac = clip(a, clipValue);
         if(ac != a)
-          ac = rec3(ac);
+          ac = recCblas(ac);
 
         auto bc = clip(b, clipValue);
         if(bc != b)
-          bc = rec3(bc);
+          bc = recCblas(bc);
 
         int rows = ac->shape().elements() / ac->shape()[-1];
         Expr ones = ac->graph()->ones({rows, 1});
         std::vector<Expr> nodes = {ac, bc, bias, ones};
-        return rec3(Expression<AffineNodeOp>(nodes, transA, transB, scale),
+        return recCblas(Expression<AffineNodeOp>(nodes, transA, transB, scale),
                     true);
       };
-      tuner->insert({hash3, alg3});
+      tuner->insert({hashCblas, algCblas});
 
       // execute algorithm with autotuning
       return tuner->run();
@@ -512,25 +527,22 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
       if(gemmType == GemmType::IntrinInt16) {
         // cpu int16 version
         return cpu::int16::affine(
-            cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
-            cpu::int16::quantize(transB ? b : transpose(b), clipValue),
-            bias,
-            scale);
+          cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
+          cpu::int16::quantize(transB ? b : transpose(b), clipValue),
+          bias,
+          scale);
       } else if(gemmType == GemmType::FbFp16Packed) {
 #if USE_FBGEMM
         if(b->memoize()) {
           auto packed = cpu::variant::pack(b, cpu::variant::PackMatrix::B, transB, clipValue);
-          // auto packed = transB ? 
-          //               cpu::variant::pack(transpose(b), cpu::pack::PackMatrix::B, false, clipValue) :
-          //               cpu::variant::pack(b, cpu::pack::PackMatrix::B, false, clipValue);
 
-          return cpu::variant::affine(
-              clip(a, clipValue), packed,
-              b->shape(),
-              bias,
-              transA,
-              transB,
-              scale);
+          return cpu::variant::affine(clip(a, clipValue),
+                                      packed,
+                                      b->shape(),
+                                      bias,
+                                      transA,
+                                      transB,
+                                      scale);
         } else {
           int rows = a->shape().elements() / a->shape()[-1];
           Expr ones = a->graph()->ones({rows, 1});
@@ -538,7 +550,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
           return Expression<AffineNodeOp>(nodes, transA, transB, scale);
         }
 #else
-        ABORT("Packed GEMM not implemented");
+        ABORT("Packed GEMM is not available in this build");
 #endif  // USE_FBGEMM
 
       } else if(gemmType == GemmType::MklFp32) {
@@ -555,7 +567,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
             = {clip(a, clipValue), clip(b, clipValue), bias, ones};
         return Expression<AffineNodeOp>(nodes, transA, transB, scale);
       } else {
-        ABORT("Not implemented");
+        ABORT("GemmType..{} not available by affine()", gemmType);
       }
     }
   } else {
