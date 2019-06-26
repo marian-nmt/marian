@@ -10,11 +10,6 @@
 #include <cassert>
 #include <cstddef>
 
-#ifdef _MSC_VER
-#pragma warning(disable : 4310)
-#pragma warning(disable : 4324)
-#endif
-
 #ifdef __AVX512F__
 
 namespace marian {

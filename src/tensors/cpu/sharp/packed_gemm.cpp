@@ -90,8 +90,6 @@ void PackFp32(marian::Tensor out,
               const int nbrow,
               const int nbcol,
               const uint64_t packsize) {
-  //auto t_start = std::chrono::high_resolution_clock::now();
-  // for the last embedding layer, pack it into int8
   // initialize memory
   uint8_t* outmemorg = out->data<uint8_t>();
   for(auto i = 0; i < packsize; i++) {
@@ -121,10 +119,6 @@ void PackFp32(marian::Tensor out,
     }
   }
   delete dummy;
-
-  //auto t_end = std::chrono::high_resolution_clock::now();
-  //packingTime += (float) std::chrono::duration<double, std::milli>(t_end-t_start).count();
-  //std::cout << "Packing time: " << packingTime << std::endl;
 }
 
 void GemmPackFp32(marian::Tensor C,

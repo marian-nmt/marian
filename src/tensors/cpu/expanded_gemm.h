@@ -12,11 +12,26 @@ namespace marian {
 namespace cpu {
 namespace variant {
 
+// Enumeration for the Matrix used in pack functions
+// A matrix - 0, B matrix - 1
 enum class PackMatrix : uint8_t {
   A = 0x00,
   B = 0x01
 };
 
+// Pack a matrix into cache utilization efficient way (block format)
+// PackMatrix packMat_: the type of packed matrix - A or B matrix
+// bool transpose_: transpose
+// int nrow_: the number of rows
+// int ncol_: the number of columns
+// int kernel_ncol_blocks_: the number of column blocks
+// int brow_: the number of rows in a block
+// int bcol_: the number of columns in a block
+// int last_brow_: the number of rows in the last block
+// int nbrow_: row index in a block
+// int nbcol_: column index in a block
+// uint64_t packsize_: the size of the packed matrix
+//                    (the number of fp16 elements + padding (1024) + extra temporary memory (256))
 struct PackNodeOp : public UnaryNodeOp {
   PackMatrix packMat_;
   bool transpose_;
@@ -39,7 +54,7 @@ struct PackNodeOp : public UnaryNodeOp {
     if(clipValue != 0)
       ABORT("Clipping is not supported");
     if(!memoize_)
-      ABORT("Only memoizeable node is supported");
+      ABORT("Only constant weight node can be packed");
   }
 
   NodeOps forwardOps() override {
@@ -59,7 +74,7 @@ struct PackNodeOp : public UnaryNodeOp {
   }
 
   NodeOps backwardOps() override {
-    ABORT("Only used for inference");
+    ABORT("PackNodeOp only available for inference");
     return {NodeOp(0)};
   }
 
@@ -87,12 +102,19 @@ struct PackNodeOp : public UnaryNodeOp {
 
     return outShape;
 #else // USE_FBGEMM
-    ABORT("Only FBGEMM based packed GEMM is supported");
+    ABORT("Packed GEMM requires a build with USE_FBGEMM enabled");
     return Shape();
 #endif  // USE_FBGEMM
   }
 };
 
+// Affine transform (matrix multiplication) using packed B matrix
+// float scalar_: scalar multiplier
+// int64_t m_: m
+// int64_t n_: n
+// int64_t k_: k
+// bool transA_: transpose A
+// bool transB_: transpose B
 class AffineNodeOp : public NaryNodeOp {
 private:
   float scalar_;
@@ -101,7 +123,6 @@ private:
   int64_t k_;
   bool transA_;
   bool transB_;
-  size_t idx_;
 
 public:
   AffineNodeOp(const std::vector<Expr>& nodes, Shape bShape, bool transA, bool transB, float scalar)
@@ -143,12 +164,12 @@ public:
   NodeOps forwardOps() override {
     return {
       NodeOp(GemmPackFp32(val_,
-                                child(0)->val(),
-                                child(1)->val(),
-                                child(2)->val(),
-                                m_,
-                                n_,
-                                transA_))
+                          child(0)->val(),
+                          child(1)->val(),
+                          child(2)->val(),
+                          m_,
+                          n_,
+                          transA_))
     };
   }
 

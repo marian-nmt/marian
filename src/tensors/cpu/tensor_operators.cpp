@@ -190,13 +190,14 @@ void Transpose0213(Tensor out, Tensor in) {
   }
 }
 
-/**
- * Given a 4D array, transpose the initial 3 dimensions while keeping the last dimension.
- *
- * @param out output tensor
- * @param in input tensor
- * @param vAxis target (transposed) axes of each given axes
- */
+// Given a 4D array, transpose (swap) the initial 3 dimensions while keeping the last dimension.
+// e.g. 1234 --> 2134, 1234 --> 3214 (4 is always kept).
+// This is an optimized version for swapping first 3 dimensions 
+// assuming the last dimension is large enough to get benefits from vectorized copy.
+//
+// @param out output tensor
+// @param in input tensor
+// @param vAxis target (transposed) axes of each given axes
 template <bool add>
 void TransposeFirst3In4(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   ABORT_IF(vAxis.size() != 4, "This function handles only 4D arrays.");
@@ -252,6 +253,7 @@ void TransposeFirst3In4(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   }
 #else
   // it shouldn't come into here. This function is called only when MKL is available.
+  ABORT("Should not get here");
 #endif  // MKL_FOUND
 }
 
