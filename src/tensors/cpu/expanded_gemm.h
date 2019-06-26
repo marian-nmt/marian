@@ -110,17 +110,17 @@ struct PackNodeOp : public UnaryNodeOp {
 
 // Affine transform (matrix multiplication) using packed B matrix
 // float scalar_: scalar multiplier
-// int64_t m_: m
-// int64_t n_: n
-// int64_t k_: k
+// size_t m_: m
+// size_t n_: n
+// size_t k_: k
 // bool transA_: transpose A
 // bool transB_: transpose B
 class AffineNodeOp : public NaryNodeOp {
 private:
   float scalar_;
-  int64_t m_;
-  int64_t n_;
-  int64_t k_;
+  size_t m_;
+  size_t n_;
+  size_t k_;
   bool transA_;
   bool transB_;
 
@@ -135,7 +135,7 @@ public:
     if(transA)
       std::swap(m_, k_);
 
-    int64_t l = bShape.elements() / bShape[-1];
+    size_t l = bShape.elements() / bShape[-1];
     n_ = bShape[-1];
     if(transB)
       std::swap(l, n_);

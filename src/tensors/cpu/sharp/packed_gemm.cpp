@@ -125,8 +125,8 @@ void GemmPackFp32(marian::Tensor C,
                   const marian::Tensor A,
                   const marian::Tensor B,
                   const marian::Tensor bias,
-                  const int64_t m,
-                  const int64_t n,
+                  const size_t m,
+                  const size_t n,
                   const int transA) {
   // row major
   // keep the original mem
@@ -201,8 +201,8 @@ void GemmPackFp32(marian::Tensor C,
                   const marian::Tensor A,
                   const marian::Tensor B,
                   const marian::Tensor bias,
-                  const int64_t m,
-                  const int64_t n,
+                  const size_t m,
+                  const size_t n,
                   const int transA) {
                 // does nothing. supports only FBGEMM based packed gemm at this moment.
                 ABORT("FBGEMM is needed to use packed GEMM.");

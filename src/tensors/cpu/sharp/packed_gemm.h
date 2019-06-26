@@ -23,8 +23,8 @@ void GemmPackFp32(marian::Tensor C,
                   const marian::Tensor A,
                   const marian::Tensor B,
                   const marian::Tensor bias,
-                  const int64_t m,
-                  const int64_t n,
+                  const size_t m,
+                  const size_t n,
                   const int transA = 0);
 
 }  // namespace variant
