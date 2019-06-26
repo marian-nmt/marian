@@ -98,6 +98,7 @@ void PackFp32(marian::Tensor out,
   // save the other auxiliary variables
   uint64_t* auxmemsize = (uint64_t*)outmemorg;
   auxmemsize[0] = packsize;
+  // save FBGEMM related parameters into the header of the allocated memory by marian
   int32_t* auxmem = (int32_t*)(auxmemsize + 1);
   auxmem[0] = nrow;
   auxmem[1] = ncol;
@@ -121,6 +122,14 @@ void PackFp32(marian::Tensor out,
   delete dummy;
 }
 
+// GEMM operation on the packed B matrix
+// C: output matrix
+// A: A matrix
+// B: B matrix (packed)
+// m: the number of rows in A and C
+// n: the number of columns in B and C
+// transA: transpose of A matrix
+// B is already packed. So, we don't need transB
 void GemmPackFp32(marian::Tensor C,
                   const marian::Tensor A,
                   const marian::Tensor B,

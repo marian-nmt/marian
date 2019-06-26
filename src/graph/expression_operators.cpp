@@ -387,7 +387,7 @@ Expr dot(Expr a, Expr b, bool transA, bool transB, float scale) {
 
   // Currently only true when command line options
   // --optimize --cpu-thread=N with N > 0 are set.
-  if(a->graph()->getBackend()->isOptimized() && device == DeviceType::cpu
+  if(device == DeviceType::cpu && a->graph()->getBackend()->isOptimized()
      && a->graph()->getBackend()->getGemmType() == GemmType::IntrinInt16) {
     // dotInt16 computes A * B.T, hence the transpose for B to get A * B
     // if transA = false and transB = false.

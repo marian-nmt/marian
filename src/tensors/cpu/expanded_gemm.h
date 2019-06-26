@@ -110,9 +110,9 @@ struct PackNodeOp : public UnaryNodeOp {
 
 // Affine transform (matrix multiplication) using packed B matrix
 // float scalar_: scalar multiplier
-// size_t m_: m
-// size_t n_: n
-// size_t k_: k
+// size_t m_: the number of rows in A and C
+// size_t n_: the number of columns in B and C
+// size_t k_: the number of columns in A and the number of rows in C
 // bool transA_: transpose A
 // bool transB_: transpose B
 class AffineNodeOp : public NaryNodeOp {
