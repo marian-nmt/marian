@@ -27,8 +27,6 @@ void GemmPackFp32(marian::Tensor C,
                   const int64_t n,
                   const int transA = 0);
 
-void AddBias(marian::Tensor C, const marian::Tensor Bias);
-
 }  // namespace variant
 }  // namespace cpu
 }  // namespace marian

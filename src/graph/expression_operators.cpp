@@ -388,7 +388,7 @@ Expr dot(Expr a, Expr b, bool transA, bool transB, float scale) {
   // Currently only true when command line options
   // --optimize --cpu-thread=N with N > 0 are set.
   if(a->graph()->getBackend()->isOptimized() && device == DeviceType::cpu
-    && a->graph()->getBackend()->getGemmType() == GemmType::Int16) {
+     && a->graph()->getBackend()->getGemmType() == GemmType::IntrinsicInt16) {
     // dotInt16 computes A * B.T, hence the transpose for B to get A * B
     // if transA = false and transB = false.
 
@@ -509,14 +509,14 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
       return tuner->run();
 
     } else {
-      if (gemmType == GemmType::Int16) {
+      if(gemmType == GemmType::IntrinsicInt16) {
         // cpu int16 version
         return cpu::int16::affine(
             cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
             cpu::int16::quantize(transB ? b : transpose(b), clipValue),
             bias,
             scale);
-      } else if (gemmType == GemmType::PackedFb) {
+      } else if(gemmType == GemmType::FbFp16Packed) {
 #if USE_FBGEMM
         if(b->memoize()) {
           auto packed = cpu::variant::pack(b, cpu::variant::PackMatrix::B, transB, clipValue);
@@ -547,7 +547,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
         ABORT("Packed GEMM not implemented");
 #endif  // USE_FBGEMM
 
-      } else if (gemmType == GemmType::Mkl) {
+      } else if(gemmType == GemmType::MklFp32) {
         // general version, MKL, CBlas or CUDA
 
         // if clipValue > 0, the inputs will be clipped to range [-clipValue,

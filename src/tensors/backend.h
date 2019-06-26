@@ -5,6 +5,14 @@
 
 namespace marian {
 
+// GEMM type enum
+typedef enum { Auto = 0,            // auto tuning between available GEMMs
+               MklFp32 = 1,         // MKL based GEMM, fp32
+               IntrinsicInt16 = 2,  // Intrinsic implementation of Int 16 GEMM
+               FbFp16Packed = 10,   // FBGEMM based fp16 GEMM with packing
+               FbInt8Packed = 11    // FBGEMM based int8 GEMM with packing
+} GemmType;
+
 class Backend {
 protected:
   DeviceId deviceId_;
