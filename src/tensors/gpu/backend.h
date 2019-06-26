@@ -34,13 +34,15 @@ public:
   cublasHandle_t getCublasHandle() { return cublasHandle_; }
   cusparseHandle_t getCusparseHandle() { return cusparseHandle_; }
 
-  // for CPU & inference only, sets to use optimized code for inference. Does nothing for GPU.
+  // for CPU & inference only, sets to use optimized code for inference.
+  // The program aborts if these are called from GPU device.
   void setOptimized(bool optimize) override { ABORT("Not supported for GPU_{}", optimize); }
   bool isOptimized() override {
     ABORT("Not supported for GPU");
     return false;
   }
-  // for CPU only, selects different GEMM types for the inference. Does nothing for GPU.
+  // for CPU only, selects different GEMM types for the inference.
+  // The program aborts if these are called from GPU device.
   void setGemmType(std::string gemmType) override { ABORT("Not supported for GPU_{}", gemmType); }
   GemmType getGemmType() override {
     ABORT("Not supported for GPU");

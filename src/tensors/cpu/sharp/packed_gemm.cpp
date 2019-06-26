@@ -38,6 +38,8 @@ namespace variant { // Variants of GEMM implementations
 
 #if USE_FBGEMM
 // initialize with a dummy
+// In a multi marian instance setting (as a dynamic library),
+// different marian instances should not share this variable.
 static thread_local PackedGemmMatrixFP16 packedPlaceholder(1, 1, 1, 1, 1, 1, 1, 1);
 
 // This is copied from FBGEMM code
