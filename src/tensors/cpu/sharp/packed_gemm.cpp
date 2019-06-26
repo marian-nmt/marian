@@ -99,15 +99,16 @@ void PackFp32(marian::Tensor out,
   uint64_t* auxmemsize = (uint64_t*)outmemorg;
   auxmemsize[0] = packsize;
   // save FBGEMM related parameters into the header of the allocated memory by marian
-  int32_t* auxmem = (int32_t*)(auxmemsize + 1);
-  auxmem[0] = nrow;
-  auxmem[1] = ncol;
-  auxmem[2] = kernel_ncol_blocks;
-  auxmem[3] = brow;
-  auxmem[4] = bcol;
-  auxmem[5] = last_brow;
-  auxmem[6] = nbrow;
-  auxmem[7] = nbcol;
+  int32_t header[8];
+  header[0] = nrow;
+  header[1] = ncol;
+  header[2] = kernel_ncol_blocks;
+  header[3] = brow;
+  header[4] = bcol;
+  header[5] = last_brow;
+  header[6] = nbrow;
+  header[7] = nbcol;
+  memcpy(auxmemsize + 1, header, sizeof(header));
   // cast to float16
   fbgemm::float16* outmem = (fbgemm::float16*)(outmemorg + 256);
   fbgemm::float16* dummy = new fbgemm::float16;
@@ -143,15 +144,16 @@ void GemmPackFp32(marian::Tensor C,
   // retreive aux fields from the memory
   uint64_t* packedmemSize = (uint64_t*)B->data();
   packedPlaceholder.size_ = packedmemSize[0];
-  int32_t* packedmemAux = (int32_t*)(packedmemSize + 1);
-  packedPlaceholder.nrow_ = packedmemAux[0];
-  packedPlaceholder.ncol_ = packedmemAux[1];
-  packedPlaceholder.kernel_ncol_blocks_ = packedmemAux[2];
-  packedPlaceholder.brow_ = packedmemAux[3];
-  packedPlaceholder.bcol_ = packedmemAux[4];
-  packedPlaceholder.last_brow_ = packedmemAux[5];
-  packedPlaceholder.nbrow_ = packedmemAux[6];
-  packedPlaceholder.nbcol_ = packedmemAux[7];
+  int32_t header[8];
+  memcpy(header, packedmemSize + 1, sizeof(header));
+  packedPlaceholder.nrow_ = header[0];
+  packedPlaceholder.ncol_ = header[1];
+  packedPlaceholder.kernel_ncol_blocks_ = header[2];
+  packedPlaceholder.brow_ = header[3];
+  packedPlaceholder.bcol_ = header[4];
+  packedPlaceholder.last_brow_ = header[5];
+  packedPlaceholder.nbrow_ = header[6];
+  packedPlaceholder.nbcol_ = header[7];
 
   // packed matrix
   packedPlaceholder.pmat_ = (fbgemm::float16*)(B->data<uint8_t>() + 256);
