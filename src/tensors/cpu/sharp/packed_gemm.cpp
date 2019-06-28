@@ -38,6 +38,17 @@ namespace variant { // Variants of GEMM implementations
 
 #if USE_FBGEMM
 // initialize with a dummy
+// When this class is instantiated,
+// the actual packing operation is happening.If we create this instance every time we call GEMM,
+// we are doing packing every time and very slow.
+// In Caffe2, the operator is stateful and hold an instance of this.
+// But, we don't have any logic for this in marian. We can only cache a tensor (which means a memory chunk).
+// So, for now, we keep the packed memory on our own 1D tensor, then when we call GEMM,
+// we just reuse this instance again and again by replacing the class members (including memory pointer). Eventually,
+// I will add a new constructor to the class in FBGEMM which accepts
+// pre - allocated and pre - packed memory as a parameter.After it's done,
+// this temporary buffer will be removed.
+//
 // In a multi marian instance setting (as a dynamic library),
 // different marian instances should not share this variable.
 static thread_local PackedGemmMatrixFP16 packedPlaceholder(1, 1, 1, 1, 1, 1, 1, 1);
