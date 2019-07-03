@@ -411,7 +411,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
 
   float clipValue = a->graph()->getBackend()->getClip();
 
-  if(a->graph()->getBackend()->isOptimized() && device == DeviceType::cpu) {
+  if(device == DeviceType::cpu && a->graph()->getBackend()->isOptimized()) {
     GemmType gemmType = a->graph()->getBackend()->getGemmType();
     // When gemmType is set to 'auto', an autotuner decides the best algorithm available.
     // A new autotuner is created, then different kinds of algorithms are added to the autotuner.
