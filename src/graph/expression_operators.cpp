@@ -463,14 +463,15 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
           auto packed = cpu::variant::pack(b, cpu::variant::PackMatrix::B, transB, clipValue);
 
           return recPack(
-            cpu::variant::affine(clip(a, clipValue),
-                                 packed,
-                                 b->shape(),
-                                 bias,
-                                 transA,
-                                 transB,
-                                 scale),
-            true);
+              cpu::variant::affine(
+                  clip(a, clipValue),
+                  packed,
+                  b->shape(),
+                  bias,
+                  transA,
+                  transB,
+                  scale),
+              true);
         };
         tuner->insert({hashPack, algPack});
       }
@@ -485,13 +486,17 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
       };
       auto algInt16 = [=]() {
         return recInt16(
-          cpu::int16::affine(
-                recInt16(cpu::int16::quantize(transA ? recInt16(transpose(a)) : a,
-                                      clipValue)),
-            cpu::int16::quantize(transB ? b : transpose(b), clipValue),
-            bias,
-            scale),
-          true);
+            cpu::int16::affine(
+                recInt16(
+                    cpu::int16::quantize(
+                        transA ? recInt16(transpose(a)) : a,
+                        clipValue)),
+                cpu::int16::quantize(
+                    transB ? b : transpose(b),
+                    clipValue),
+                bias,
+                scale),
+            true);
       };
       tuner->insert({hashInt16, algInt16});
 
@@ -516,7 +521,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
         Expr ones = ac->graph()->ones({rows, 1});
         std::vector<Expr> nodes = {ac, bc, bias, ones};
         return recCblas(Expression<AffineNodeOp>(nodes, transA, transB, scale),
-                    true);
+                        true);
       };
       tuner->insert({hashCblas, algCblas});
 
@@ -527,22 +532,23 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
       if(gemmType == GemmType::IntrinInt16) {
         // cpu int16 version
         return cpu::int16::affine(
-          cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
-          cpu::int16::quantize(transB ? b : transpose(b), clipValue),
-          bias,
-          scale);
+            cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
+            cpu::int16::quantize(transB ? b : transpose(b), clipValue),
+            bias,
+            scale);
       } else if(gemmType == GemmType::FbFp16Packed) {
 #if USE_FBGEMM
         if(b->memoize()) {
           auto packed = cpu::variant::pack(b, cpu::variant::PackMatrix::B, transB, clipValue);
 
-          return cpu::variant::affine(clip(a, clipValue),
-                                      packed,
-                                      b->shape(),
-                                      bias,
-                                      transA,
-                                      transB,
-                                      scale);
+          return cpu::variant::affine(
+              clip(a, clipValue),
+              packed,
+              b->shape(),
+              bias,
+              transA,
+              transB,
+              scale);
         } else {
           int rows = a->shape().elements() / a->shape()[-1];
           Expr ones = a->graph()->ones({rows, 1});
