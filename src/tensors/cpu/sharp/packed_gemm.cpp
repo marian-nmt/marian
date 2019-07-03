@@ -15,7 +15,7 @@
 #pragma warning(disable: 4505) // warning C4505: 'fbgemmAlignedAlloc' in fbgemm.h: unreferenced local function has been removed (missing 'static inline')
 #endif
 
-#if USE_FBGEMM
+#ifdef USE_FBGEMM
 #include "3rd_party/fbgemm/include/fbgemm/FbgemmFP16.h"
 #include "3rd_party/fbgemm/include/fbgemm/QuantUtils.h"
 #include "3rd_party/fbgemm/include/fbgemm/Fbgemm.h"
@@ -24,7 +24,7 @@
 #include <omp.h>
 #endif
 
-#if MKL_FOUND
+#ifdef MKL_FOUND
 #include <mkl.h>
 #include <mkl_types.h>
 #endif
@@ -36,7 +36,7 @@ namespace marian {
 namespace cpu {
 namespace variant { // Variants of GEMM implementations
 
-#if USE_FBGEMM
+#ifdef USE_FBGEMM
 // initialize with a dummy
 // When this class is instantiated,
 // the actual packing operation is happening.If we create this instance every time we call GEMM,
@@ -171,7 +171,7 @@ void GemmPackFp32(marian::Tensor C,
   // packed matrix
   packedPlaceholder.pmat_ = (fbgemm::float16*)(B->data<uint8_t>() + 256);
 
-#if MKL_FOUND
+#ifdef MKL_FOUND
   for(int i = 0; i < m; ++i) {
     mkl_somatcopy('R', 'N', 1, n, 1, bias->data(), n, C->data() + n * i, n);
   }

@@ -12,7 +12,7 @@
 #include <stdexcept>
 #include <string>
 
-#if MKL_FOUND
+#ifdef MKL_FOUND
 #include <mkl.h>
 #else
 #if BLAS_FOUND

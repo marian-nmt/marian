@@ -3,7 +3,7 @@
 #include "graph/node.h"
 #include "tensors/cpu/sharp/packed_gemm.h"
 
-#if USE_FBGEMM
+#ifdef USE_FBGEMM
 #include "3rd_party/fbgemm/include/fbgemm/FbgemmFP16.h"
 using namespace fbgemm;
 #endif  // USE_FBGEMM
@@ -81,7 +81,7 @@ struct PackNodeOp : public UnaryNodeOp {
   const std::string type() override { return "packMat"; }
 
   Shape newShape(Expr a, bool transpose) {
-#if USE_FBGEMM
+#ifdef USE_FBGEMM
     auto shapeMat = a->shape();
     // Should be 2D - weight matrix
     ABORT_IF(shapeMat.size() != 2,
