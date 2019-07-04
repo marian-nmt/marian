@@ -10,7 +10,7 @@ foreach(test ${UNIT_TESTS})
   add_executable("run_${test}" run_tests.cpp "${test}.cpp")
 
   if(CUDA_FOUND)
-    target_link_libraries("run_${test}" marian marian_cuda ${EXT_LIBS} Catch)
+    target_link_libraries("run_${test}" ${EXT_LIBS} marian ${EXT_LIBS} marian_cuda ${EXT_LIBS} Catch)
   else(CUDA_FOUND)
     target_link_libraries("run_${test}" marian ${EXT_LIBS} Catch)
   endif(CUDA_FOUND)

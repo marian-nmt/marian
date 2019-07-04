@@ -16,7 +16,7 @@ foreach(test ${APP_TESTS})
   add_executable("test_${test}" "${test}.cpp")
 
   if(CUDA_FOUND)
-    target_link_libraries("test_${test}" marian marian_cuda ${EXT_LIBS})
+    target_link_libraries("test_${test}" ${EXT_LIBS} marian ${EXT_LIBS} marian_cuda ${EXT_LIBS})
   else(CUDA_FOUND)
     target_link_libraries("test_${test}" marian ${EXT_LIBS})
   endif(CUDA_FOUND)
