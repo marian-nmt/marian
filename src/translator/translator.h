@@ -58,8 +58,10 @@ public:
         auto graph = New<ExpressionGraph>(true);
         graph->setDevice(device);
         graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
-        graph->getBackend()->setOptimized(options_->get<bool>("optimize"));
-        graph->getBackend()->setGemmType(options_->get<std::string>("gemm-type"));
+        if (device.type == DeviceType::cpu) {
+          graph->getBackend()->setOptimized(options_->get<bool>("optimize"));
+          graph->getBackend()->setGemmType(options_->get<std::string>("gemm-type"));
+        }
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_[id] = graph;
 
@@ -172,8 +174,10 @@ public:
       auto graph = New<ExpressionGraph>(true);
       graph->setDevice(device);
       graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
-      graph->getBackend()->setOptimized(options_->get<bool>("optimize"));
-      graph->getBackend()->setGemmType(options_->get<std::string>("gemm-type"));
+      if (device.type == DeviceType::cpu) {
+        graph->getBackend()->setOptimized(options_->get<bool>("optimize"));
+        graph->getBackend()->setGemmType(options_->get<std::string>("gemm-type"));
+      }
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
 

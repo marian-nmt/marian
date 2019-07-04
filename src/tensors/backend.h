@@ -36,12 +36,12 @@ public:
   virtual void setClip(float clipValue) { clipValue_ = clipValue; }
   float getClip() { return clipValue_; }
 
-  // for CPU & inference only, sets to use optimized code for inference.
-  // The program aborts if these are called from GPU device.
+  // for CPU, sets to use optimized code for inference.
+  // for GPU, this is always false.
   virtual void setOptimized(bool optimize) = 0;
   virtual bool isOptimized() = 0;
-  // for CPU only, selects different GEMM types for the inference.
-  // The program aborts if these are called from GPU device.
+  // for CPU, selects different GEMM types for the inference.
+  // for GPU, there's no gemm type. so, it does nothing.
   virtual void setGemmType(std::string gemmType) = 0;
   virtual GemmType getGemmType() = 0;
 };
