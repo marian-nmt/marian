@@ -55,9 +55,13 @@ public:
     size_t id = 0;
     for(auto device : devices) {
       auto task = [&](DeviceId device, size_t id) {
-        auto graph = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
+        auto graph = New<ExpressionGraph>(true);
         graph->setDevice(device);
         graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
+        if (device.type == DeviceType::cpu) {
+          graph->getBackend()->setOptimized(options_->get<bool>("optimize"));
+          graph->getBackend()->setGemmType(options_->get<std::string>("gemm-type"));
+        }
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_[id] = graph;
 
@@ -167,9 +171,13 @@ public:
 
     // initialize scorers
     for(auto device : devices) {
-      auto graph = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
+      auto graph = New<ExpressionGraph>(true);
       graph->setDevice(device);
       graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
+      if (device.type == DeviceType::cpu) {
+        graph->getBackend()->setOptimized(options_->get<bool>("optimize"));
+        graph->getBackend()->setGemmType(options_->get<std::string>("gemm-type"));
+      }
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
 

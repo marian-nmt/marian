@@ -8,9 +8,9 @@
 namespace marian {
 
 class CharS2SEncoder : public EncoderS2S {
+  using EncoderS2S::EncoderS2S;
+  
 public:
-  CharS2SEncoder(Ptr<Options> options) : EncoderS2S(options) {}
-
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
                                   Ptr<data::CorpusBatch> batch) override {
     graph_ = graph;

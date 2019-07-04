@@ -1,7 +1,7 @@
 #include "quicksand.h"
 #include "marian.h"
 
-#ifdef MKL_FOUND
+#if MKL_FOUND
 #include "mkl.h"
 #endif
 
@@ -64,13 +64,17 @@ public:
       vocabs_.push_back(std::dynamic_pointer_cast<VocabWrapper>(vi)->getVocab());
 
     // setting 16-bit optimization to false for now. Re-enable with better caching or pre-computation
-    graph_ = New<ExpressionGraph>(/*inference=*/true, /*optimize=*/false);
+    graph_ = New<ExpressionGraph>(/*inference=*/true);
 
     DeviceId deviceId{0, DeviceType::cpu};
     device_ = New<cpu::WrappedDevice>(deviceId);
     graph_->setDevice(deviceId, device_);
 
-#ifdef MKL_FOUND
+    // Use packed GEMM for the production
+    graph_->getBackend()->setOptimized(true);
+    graph_->getBackend()->setGemmType("fp16packed");
+
+#if MKL_FOUND
     mkl_set_num_threads(options->get<int>("mkl-threads", 1));
 #endif
 
