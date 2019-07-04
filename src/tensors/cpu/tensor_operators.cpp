@@ -10,7 +10,7 @@
 #include "functional/functional.h"
 #include "functional/tensor.h"
 
-#ifdef MKL_FOUND
+#if MKL_FOUND
 #include <mkl.h>
 #endif
 
@@ -201,7 +201,7 @@ void Transpose0213(Tensor out, Tensor in) {
 template <bool add>
 void TransposeFirst3In4(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   ABORT_IF(vAxis.size() != 4, "This function handles only 4D arrays.");
-#ifdef MKL_FOUND
+#if MKL_FOUND
   int innermost = in->shape()[-1];
 
   int l1 = in->shape()[vAxis[0]];
@@ -333,7 +333,7 @@ void TransposeGeneric(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   if(vAxis == std::vector<int>({0, 2, 1, 3}))
     Transpose0213<false>(out, in);
-#ifdef MKL_FOUND
+#if MKL_FOUND
   else if(vAxis.size() == 4 && vAxis[3] == 3)
     TransposeFirst3In4<false>(out, in, vAxis);
 #endif  // MKL_FOUND

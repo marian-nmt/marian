@@ -7,7 +7,7 @@
 #include "tensors/tensor.h"
 #include "tensors/tensor_allocator.h"
 
-#ifdef MKL_FOUND
+#if MKL_FOUND
 #include <mkl.h>
 #else
 #if BLAS_FOUND

@@ -1,7 +1,7 @@
 #include "quicksand.h"
 #include "marian.h"
 
-#ifdef MKL_FOUND
+#if MKL_FOUND
 #include "mkl.h"
 #endif
 
@@ -74,7 +74,7 @@ public:
     graph_->getBackend()->setOptimized(true);
     graph_->getBackend()->setGemmType("fp16packed");
 
-#ifdef MKL_FOUND
+#if MKL_FOUND
     mkl_set_num_threads(options->get<int>("mkl-threads", 1));
 #endif
 

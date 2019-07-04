@@ -37,7 +37,7 @@ public:
   float getClip() { return clipValue_; }
 
   // for CPU, sets to use optimized code for inference.
-  // for GPU, this is always false.
+  // for GPU, this is invalid. for gpu, isOptimized() function always returns false.
   virtual void setOptimized(bool optimize) = 0;
   virtual bool isOptimized() = 0;
   // for CPU, selects different GEMM types for the inference.

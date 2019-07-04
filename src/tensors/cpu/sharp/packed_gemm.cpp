@@ -15,7 +15,7 @@
 #pragma warning(disable: 4505) // warning C4505: 'fbgemmAlignedAlloc' in fbgemm.h: unreferenced local function has been removed (missing 'static inline')
 #endif
 
-#ifdef USE_FBGEMM
+#if USE_FBGEMM
 #include "3rd_party/fbgemm/include/fbgemm/FbgemmFP16.h"
 #include "3rd_party/fbgemm/include/fbgemm/QuantUtils.h"
 #include "3rd_party/fbgemm/include/fbgemm/Fbgemm.h"
@@ -24,7 +24,7 @@
 #include <omp.h>
 #endif
 
-#ifdef MKL_FOUND
+#if MKL_FOUND
 #include <mkl.h>
 #include <mkl_types.h>
 #endif
@@ -36,10 +36,10 @@ namespace marian {
 namespace cpu {
 namespace variant { // Variants of GEMM implementations
 
-#ifdef USE_FBGEMM
+#if USE_FBGEMM
 // initialize with a dummy
 // When this class is instantiated,
-// the actual packing operation is happening.If we create this instance every time we call GEMM,
+// the actual packing operation is happening. If we create this instance every time we call GEMM,
 // we are doing packing every time and very slow.
 // In Caffe2, the operator is stateful and hold an instance of this.
 // But, we don't have any logic for this in marian. We can only cache a tensor (which means a memory chunk).
@@ -48,6 +48,7 @@ namespace variant { // Variants of GEMM implementations
 // I will add a new constructor to the class in FBGEMM which accepts
 // pre - allocated and pre - packed memory as a parameter.After it's done,
 // this temporary buffer will be removed.
+// When constructing this dummy buffer, ones are used for all the parameters to allocate minimum amount of memory.
 //
 // In a multi marian instance setting (as a dynamic library),
 // different marian instances should not share this variable.
@@ -171,7 +172,7 @@ void GemmPackFp32(marian::Tensor C,
   // packed matrix
   packedPlaceholder.pmat_ = (fbgemm::float16*)(B->data<uint8_t>() + 256);
 
-#ifdef MKL_FOUND
+#if MKL_FOUND
   for(int i = 0; i < m; ++i) {
     mkl_somatcopy('R', 'N', 1, n, 1, bias->data(), n, C->data() + n * i, n);
   }

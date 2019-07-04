@@ -27,7 +27,7 @@ public:
     if      (gemmType == "auto")        gemmType_ = GemmType::Auto;
     else if (gemmType == "mklfp32")     gemmType_ = GemmType::MklFp32;
     else if (gemmType == "intrinint16") gemmType_ = GemmType::IntrinInt16;
-#ifdef USE_FBGEMM
+#if USE_FBGEMM
     else if (gemmType == "fp16packed")  gemmType_ = GemmType::FbFp16Packed;
     else if (gemmType == "int8packed")  gemmType_ = GemmType::FbInt8Packed;
 #endif // USE_FBGEMM
