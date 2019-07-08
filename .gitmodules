@@ -12,5 +12,5 @@
 	url = https://github.com/marian-nmt/nccl
 [submodule "src/3rd_party/fbgemm"]
 	path = src/3rd_party/fbgemm
-	url = https://machinetranslation.visualstudio.com/DefaultCollection/MachineTranslation/_git/FBGEMM-internal
+	url = https://github.com/marian-nmt/FBGEMM
 	branch = master
