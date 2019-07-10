@@ -9,6 +9,10 @@
 #include "tensors/cpu/int16.h"
 #include "tensors/cpu/expanded_gemm.h"
 
+#if USE_FBGEMM
+#include "fbgemm/Utils.h"
+#endif
+
 namespace marian {
 
 Expr debug(Expr a, const std::string& message) {
@@ -444,7 +448,8 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
       // a combination of contant nodes which is also a constant variable
       // when it's computed once.
       // Those memoized nodes are cached to avoid duplicated computations.
-      if(b->memoize()) {
+      // 07/10/2019 - Use packed GEMM only if the cpu architecture supports AVX2
+      if(fbgemm::fbgemmHasAvx2Support() && b->memoize()) {
         // add packed GEMM algorithm variant (Packed GEMM) to the autotuner
         // Once an algorithm is added to the autotuner,
         // autotuner runs all the added algorithms for a designated times.
@@ -538,7 +543,8 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
             scale);
       } else if(gemmType == GemmType::FbFp16Packed) {
 #if USE_FBGEMM
-        if(b->memoize()) {
+        // 07/10/2019 - Use packed GEMM only if the cpu architecture supports AVX2
+        if(fbgemm::fbgemmHasAvx2Support() && b->memoize()) {
           auto packed = cpu::variant::pack(b, cpu::variant::PackMatrix::B, transB, clipValue);
 
           return cpu::variant::affine(
