@@ -449,6 +449,10 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
       // when it's computed once.
       // Those memoized nodes are cached to avoid duplicated computations.
       // 07/10/2019 - Use packed GEMM only if the cpu architecture supports AVX2
+      // one of the fbgemm's sub modules, cpuinfo (https://github.com/pytorch/cpuinfo).
+      // It looks at the cpu register 
+      // (https://github.com/pytorch/cpuinfo/blob/master/src/x86/isa.c#L391),
+      // and this cpu lookup is executed only once and the state is kept in FBGEMM.
       if(fbgemm::fbgemmHasAvx2Support() && b->memoize()) {
         // add packed GEMM algorithm variant (Packed GEMM) to the autotuner
         // Once an algorithm is added to the autotuner,
@@ -544,6 +548,10 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
       } else if(gemmType == GemmType::FbFp16Packed) {
 #if USE_FBGEMM
         // 07/10/2019 - Use packed GEMM only if the cpu architecture supports AVX2
+        // one of the fbgemm's sub modules, cpuinfo (https://github.com/pytorch/cpuinfo).
+        // It looks at the cpu register
+        // (https://github.com/pytorch/cpuinfo/blob/master/src/x86/isa.c#L391),
+        // and this cpu lookup is executed only once and the state is kept in FBGEMM.
         if(fbgemm::fbgemmHasAvx2Support() && b->memoize()) {
           auto packed = cpu::variant::pack(b, cpu::variant::PackMatrix::B, transB, clipValue);
 
