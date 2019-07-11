@@ -42,13 +42,11 @@ class IBeamSearchDecoder {
 protected:
   Ptr<Options> options_;
   std::vector<const void*> ptrs_;
-  WordIndex eos_;
 
 public:
   IBeamSearchDecoder(Ptr<Options> options,
-                     const std::vector<const void*>& ptrs,
-                     WordIndex eos)
-      : options_(options), ptrs_(ptrs), eos_(eos) {}
+                     const std::vector<const void*>& ptrs)
+      : options_(options), ptrs_(ptrs) {}
 
   virtual QSNBestBatch decode(const QSBatch& qsBatch,
                               size_t maxLength,
@@ -61,7 +59,7 @@ public:
 Ptr<IBeamSearchDecoder> newDecoder(Ptr<Options> options,
                                    const std::vector<const void*>& ptrs,
                                    const std::vector<Ptr<IVocabWrapper>>& vocabs,
-                                   WordIndex eos);
+                                   WordIndex eos/*dummy --@TODO: remove*/);
 
 // load src and tgt vocabs
 std::vector<Ptr<IVocabWrapper>> loadVocabs(const std::vector<std::string>& vocabPaths);
