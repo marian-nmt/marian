@@ -141,7 +141,8 @@ public:
     batch->setSentenceIds(sentIds);
 
     // decode
-    auto search = New<BeamSearch>(options_, scorers_, marian::Word::fromWordIndex(eos_));
+    ABORT_IF(marian::Word::fromWordIndex(eos_) != vocabs_[1]->getEosId(), "Inconsistent eos_ vs. vocabs_[1]"); // @TODO: do we still need eos_?
+    auto search = New<BeamSearch>(options_, scorers_, vocabs_[1]);
     Histories histories = search->search(graph_, batch);
 
     // convert to QuickSAND format

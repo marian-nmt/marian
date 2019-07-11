@@ -27,6 +27,7 @@ namespace marian {
     //LOG(info, "[vocab] Attempting to load model a second time; skipping (assuming shared vocab)");
     return size();
   }
+  LOG(info, "[vocab] Loading vocab spec file {}", modelPath);
 
   // load factor-vocab file and parse it
   std::vector<std::vector<std::string>> factorMapTokenized;
@@ -732,7 +733,7 @@ Ptr<IVocab> createFactoredVocab(const std::string& vocabPath) {
     static std::map<std::string, Ptr<IVocab>> s_cache;
     auto iter = s_cache.find(vocabPath);
     if (iter != s_cache.end()) {
-      LOG(info, "[vocab] Reusing existing vocabulary object in memory");
+      LOG(info, "[vocab] Reusing existing vocabulary object in memory (vocab size {})", iter->second->size());
       return iter->second;
     }
     auto vocab = New<FactoredVocab>();

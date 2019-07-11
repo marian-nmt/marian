@@ -24,15 +24,14 @@ private:
 public:
   BeamSearch(Ptr<Options> options,
              const std::vector<Ptr<Scorer>>& scorers,
-             Word trgEosId,
-             Word trgUnkId = Word::NONE)
+             Ptr<Vocab> trgVocab)
       : options_(options),
         scorers_(scorers),
         beamSize_(options_->has("beam-size")
                       ? options_->get<size_t>("beam-size")
                       : 3),
-        trgEosId_(trgEosId),
-        trgUnkId_(trgUnkId) {}
+        trgEosId_(trgVocab->getEosId()),
+        trgUnkId_(trgVocab->getUnkId()) {}
 
   // combine new expandedPathScores and previous beams into new set of beams
   Beams toHyps(const std::vector<unsigned int>& nBestKeys, // [dimBatch, beamSize] flattened -> ((batchIdx, beamHypIdx) flattened, word idx) flattened
