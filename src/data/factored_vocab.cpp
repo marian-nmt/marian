@@ -27,6 +27,7 @@ namespace marian {
     //LOG(info, "[vocab] Attempting to load model a second time; skipping (assuming shared vocab)");
     return size();
   }
+  LOG(info, "[vocab] Loading vocab spec file {}", modelPath);
 
   // load factor-vocab file and parse it
   std::vector<std::vector<std::string>> factorMapTokenized;
@@ -571,11 +572,11 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
 static void unescapeHexEscapes(std::string& utf8Lemma) {
   if (utf8Lemma.find('\\') == std::string::npos)
     return; // nothing to do
-  auto lemma = utils::utf8ToUtf16String(utf8Lemma); // \u.... implies we must operate on UTF-16 level
+  auto lemma = utils::utf8ToUtf16String(utf8Lemma); // \u.... implies we must operate on UTF-16 level (not UCS-4)
   auto pos = lemma.find('\\');
   while (pos != std::string::npos) {
     ABORT_IF(pos + 1 >= lemma.size() || (lemma[pos+1] != 'x' && lemma[pos + 1] != 'u'), "Malformed escape in factored encoding: {}", utf8Lemma);
-    int numDigits = 2 + (lemma[pos + 1] == 'u');
+    int numDigits = 2 + 2 * (lemma[pos + 1] == 'u'); // 2 for \x, 4 for \u
     ABORT_IF(pos + 2 + numDigits > lemma.size(), "Malformed escape in factored encoding: {}", utf8Lemma);
     auto digits = utils::utf8FromUtf16String(lemma.substr(pos + 2, numDigits));
     auto c = std::strtoul(digits.c_str(), nullptr, 16);
@@ -607,13 +608,15 @@ std::string FactoredVocab::surfaceForm(const Words& sentence) const /*override f
     auto has = [&](const char* factor) { return tokenSet.find(factor) != tokenSet.end(); };
     // spacing
     bool hasGlueRight = has("gr+") || has("wen") || has("cen");
-    bool hasGlueLeft  = has("gl+") || has("wbn") || has("cbn");
+    bool hasGlueLeft  = has("gl+") || has("wbn") || has("cbn") || has("wi");
     bool insertSpaceBefore = !prevHadGlueRight && !hasGlueLeft;
     if (insertSpaceBefore)
       res.push_back(' ');
     prevHadGlueRight = hasGlueRight;
     // capitalization
     unescapeHexEscapes(lemma); // unescape \x.. and \u....
+    if (utils::beginsWith(lemma, "\xE2\x96\x81"))  // remove leading _ (\u2581, for DistinguishInitialAndInternalPieces mode)
+        lemma = lemma.substr(3);
     if      (has("ci")) lemma = utils::utf8Capitalized(lemma);
     else if (has("ca")) lemma = utils::utf8ToUpper    (lemma);
     else if (has("cn")) lemma = utils::utf8ToLower    (lemma);
@@ -730,7 +733,7 @@ Ptr<IVocab> createFactoredVocab(const std::string& vocabPath) {
     static std::map<std::string, Ptr<IVocab>> s_cache;
     auto iter = s_cache.find(vocabPath);
     if (iter != s_cache.end()) {
-      LOG(info, "[vocab] Reusing existing vocabulary object in memory");
+      LOG(info, "[vocab] Reusing existing vocabulary object in memory (vocab size {})", iter->second->size());
       return iter->second;
     }
     auto vocab = New<FactoredVocab>();

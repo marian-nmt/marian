@@ -103,7 +103,7 @@ public:
           scorers = scorers_[id % numDevices_];
         }
 
-        auto search = New<Search>(options_, scorers, trgVocab_->getEosId(), trgVocab_->getUnkId());
+        auto search = New<Search>(options_, scorers, trgVocab_);
         auto histories = search->search(graph, batch);
 
         for(auto history : histories) {
@@ -212,7 +212,7 @@ public:
             scorers = scorers_[id % numDevices_];
           }
 
-          auto search = New<Search>(options_, scorers, trgVocab_->getEosId(), trgVocab_->getUnkId());
+          auto search = New<Search>(options_, scorers, trgVocab_);
           auto histories = search->search(graph, batch);
 
           for(auto history : histories) {

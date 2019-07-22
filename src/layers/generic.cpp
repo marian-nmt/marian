@@ -246,8 +246,12 @@ namespace marian {
 
       b_ = graph_->param(name + "_b", {1, numOutputClasses}, inits::zeros);
 
-      const int lemmaDimEmb = options_->get<int>("lemma-dim-emb", 0);
+      /*const*/ int lemmaDimEmb = options_->get<int>("lemma-dim-emb", 0);
       if (lemmaDimEmb > 0) {
+#define HARDMAX_HACK
+#ifdef HARDMAX_HACK
+        lemmaDimEmb = lemmaDimEmb & 0xfffffffe;
+#endif
         auto range = factoredVocab_->getGroupRange(0);
         auto lemmaVocabDim = (int)(range.second - range.first);
         lemmaEt_ = graph_->param(name + "_lemmaEt", {lemmaDimEmb, lemmaVocabDim}, inits::glorot_uniform); // [L x U] L=lemmaDimEmb; transposed for speed
@@ -299,7 +303,7 @@ namespace marian {
           allLogits[g] = New<RationalLoss>(factorLogits, nullptr);
           // optionally add a soft embedding of lemma back to create some lemma dependency
           // @TODO: if this works, move it into lazyConstruct
-          const int lemmaDimEmb = options_->get<int>("lemma-dim-emb", 0);
+          /*const*/ int lemmaDimEmb = options_->get<int>("lemma-dim-emb", 0);
           if (lemmaDimEmb < 0 && g == 0) {
             ABORT_IF(shortlist_ && lemmaDimEmb != 0, "Lemma-dependent bias with short list is not yet implemented");
             LOG_ONCE(info, "[embedding] using lemma-dependent bias");
@@ -310,11 +314,21 @@ namespace marian {
           if (lemmaDimEmb > 0 && g == 0) {
             LOG_ONCE(info, "[embedding] enabled re-embedding of lemma, at dim {}", lemmaDimEmb);
             // compute softmax. We compute logsoftmax() separately because this way, computation will be reused later via CSE
-            factorLogits = logsoftmax(factorLogits);
+            auto factorLogSoftmax = logsoftmax(factorLogits);
+            auto factorSoftmax = exp(factorLogSoftmax);
+#ifdef HARDMAX_HACK
+            bool hardmax = (lemmaDimEmb & 1) != 0; // odd value triggers hardmax for now (for quick experimentation)
+            if (hardmax) {
+              lemmaDimEmb = lemmaDimEmb & 0xfffffffe;
+              LOG_ONCE(info, "[embedding] HARDMAX_HACK enabled. Actual dim is {}", lemmaDimEmb);
+              auto maxVal = max(factorSoftmax, -1);
+              factorSoftmax = eq(factorSoftmax, maxVal);
+            }
+#endif
             // re-embedding lookup, soft-indexed by softmax
             if (shortlist_ && !cachedShortLemmaEt_) // short-listed version of re-embedding matrix
               cachedShortLemmaEt_ = index_select(lemmaEt_, -1, shortlist_->indices());
-            auto e = dot(exp(factorLogits), cachedShortLemmaEt_ ? cachedShortLemmaEt_ : lemmaEt_, false, true); // [B... x L]
+            auto e = dot(factorSoftmax, cachedShortLemmaEt_ ? cachedShortLemmaEt_ : lemmaEt_, false, true); // [B... x L]
             // project it back to regular hidden dim
             int inputDim = input1->shape()[-1];
             auto name = options_->get<std::string>("prefix");

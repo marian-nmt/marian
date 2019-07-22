@@ -16,23 +16,20 @@ private:
   Ptr<Options> options_;
   std::vector<Ptr<Scorer>> scorers_;
   size_t beamSize_;
-  Word trgEosId_{Word::NONE};
-  Word trgUnkId_{Word::NONE};
+  Ptr<Vocab> trgVocab_;
 
   static constexpr auto INVALID_PATH_SCORE = -9999; // (@TODO: change to -9999.0 once C++ allows that)
 
 public:
   BeamSearch(Ptr<Options> options,
              const std::vector<Ptr<Scorer>>& scorers,
-             Word trgEosId,
-             Word trgUnkId = Word::NONE)
+             Ptr<Vocab> trgVocab)
       : options_(options),
         scorers_(scorers),
         beamSize_(options_->has("beam-size")
                       ? options_->get<size_t>("beam-size")
                       : 3),
-        trgEosId_(trgEosId),
-        trgUnkId_(trgUnkId) {}
+        trgVocab_(trgVocab) {}
 
   // combine new expandedPathScores and previous beams into new set of beams
   Beams toHyps(const std::vector<unsigned int>& nBestKeys, // [dimBatch, beamSize] flattened -> ((batchIdx, beamHypIdx) flattened, word idx) flattened
@@ -197,11 +194,12 @@ public:
 
   // remove all beam entries that have reached EOS
   Beams purgeBeams(const Beams& beams) {
+    const auto trgEosId = trgVocab_->getEosId();
     Beams newBeams;
     for(auto beam : beams) {
       Beam newBeam;
       for(auto hyp : beam) {
-        if(hyp->getWord() != trgEosId_) {
+        if(hyp->getWord() != trgEosId) {
           newBeam.push_back(hyp);
         }
       }
@@ -213,10 +211,7 @@ public:
   //**********************************************************************
   // main decoding function
   Histories search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
-    ABORT_IF(batch->back()->vocab() && batch->back()->vocab()->getEosId() != trgEosId_,
-        "Batch uses different EOS token than was passed to BeamSearch originally");
-
-    auto factoredVocab = batch->back()->vocab()->tryAs<FactoredVocab>();
+    auto factoredVocab = trgVocab_->tryAs<FactoredVocab>();
 #if 0   // use '1' here to disable factored decoding, e.g. for comparisons
     factoredVocab.reset();
 #endif
@@ -225,6 +220,8 @@ public:
       factoredVocab.reset();
 
     const int dimBatch = (int)batch->size();
+    const auto trgEosId = trgVocab_->getEosId();
+    const auto trgUnkId = trgVocab_->getUnkId();
 
     auto getNBestList = createGetNBestListFn(beamSize_, dimBatch, graph->getDeviceId());
 
@@ -249,7 +246,7 @@ public:
     Beams beams(dimBatch, Beam(beamSize_, New<Hypothesis>())); // array [dimBatch] of array [localBeamSize] of Hypothesis
 
     for(int i = 0; i < dimBatch; ++i)
-      histories[i]->add(beams[i], trgEosId_);
+      histories[i]->add(beams[i], trgEosId);
 
     // the decoding process updates the following state information in each output time step:
     //  - beams: array [dimBatch] of array [localBeamSize] of Hypothesis
@@ -307,7 +304,7 @@ public:
               prevScores.push_back(canExpand ? hyp->getPathScore() : INVALID_PATH_SCORE);
             } else {  // pad to localBeamSize (dummy hypothesis)
               hypIndices.push_back(0);
-              prevWords.push_back(trgEosId_);  // (unused, but must be valid)
+              prevWords.push_back(trgEosId);  // (unused, but must be valid)
               prevScores.push_back((float)INVALID_PATH_SCORE);
             }
           }
@@ -371,8 +368,8 @@ public:
 
       //**********************************************************************
       // suppress specific symbols if not at right positions
-      if(trgUnkId_ != Word::NONE && options_->has("allow-unk") && !options_->get<bool>("allow-unk") && factorGroup == 0)
-        suppressWord(expandedPathScores, factoredVocab ? factoredVocab->getUnkIndex() : trgUnkId_.toWordIndex());
+      if(trgUnkId != Word::NONE && options_->has("allow-unk") && !options_->get<bool>("allow-unk") && factorGroup == 0)
+        suppressWord(expandedPathScores, factoredVocab ? factoredVocab->getUnkIndex() : trgUnkId.toWordIndex());
       for(auto state : states)
         state->blacklist(expandedPathScores, batch);
 
@@ -411,7 +408,7 @@ public:
         if(!beams[i].empty()) {
           if (histories[i]->size() >= options_->get<float>("max-length-factor") * batch->front()->batchWidth())
             maxLengthReached = true;
-          histories[i]->add(beams[i], trgEosId_, purgedNewBeams[i].empty() || maxLengthReached);
+          histories[i]->add(beams[i], trgEosId, purgedNewBeams[i].empty() || maxLengthReached);
         }
       }
       if (maxLengthReached) // early exit if max length limit was reached

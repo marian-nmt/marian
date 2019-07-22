@@ -55,9 +55,8 @@ private:
 public:
   BeamSearchDecoder(Ptr<Options> options,
                     const std::vector<const void*>& ptrs,
-                    const std::vector<Ptr<IVocabWrapper>>& vocabs,
-                    WordIndex eos)
-      : IBeamSearchDecoder(options, ptrs, eos) {
+                    const std::vector<Ptr<IVocabWrapper>>& vocabs)
+      : IBeamSearchDecoder(options, ptrs) {
 
     // copy the vocabs
     for (auto vi : vocabs)
@@ -145,7 +144,7 @@ public:
     batch->setSentenceIds(sentIds);
 
     // decode
-    auto search = New<BeamSearch>(options_, scorers_, marian::Word::fromWordIndex(eos_));
+    auto search = New<BeamSearch>(options_, scorers_, vocabs_[1]);
     Histories histories = search->search(graph_, batch);
 
     // convert to QuickSAND format
@@ -189,8 +188,10 @@ public:
 Ptr<IBeamSearchDecoder> newDecoder(Ptr<Options> options,
                                    const std::vector<const void*>& ptrs,
                                    const std::vector<Ptr<IVocabWrapper>>& vocabs,
-                                   WordIndex eos) {
-  return New<BeamSearchDecoder>(options, ptrs, vocabs, eos);
+                                   WordIndex eosDummy) { // @TODO: remove this parameter
+  ABORT_IF(marian::Word::fromWordIndex(eosDummy) != std::dynamic_pointer_cast<VocabWrapper>(vocabs[1])->getVocab()->getEosId(), "Inconsistent eos vs. vocabs_[1]");
+
+  return New<BeamSearchDecoder>(options, ptrs, vocabs/*, eos*/);
 }
 
 std::vector<Ptr<IVocabWrapper>> loadVocabs(const std::vector<std::string>& vocabPaths) {

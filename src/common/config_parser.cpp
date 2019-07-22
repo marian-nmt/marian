@@ -671,7 +671,7 @@ void ConfigParser::addSuboptionsInputLength(cli::CLIWrapper& cli) {
       "Maximum length of a sentence in a training sentence pair",
       defaultMaxLength);
   cli.add<bool>("--max-length-crop",
-      "Crop a sentence to max-length instead of ommitting it if longer than max-length");
+      "Crop a sentence to max-length instead of omitting it if longer than max-length");
   // clang-format on
 }
 
