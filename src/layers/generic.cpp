@@ -254,7 +254,8 @@ namespace marian {
 #endif
         auto range = factoredVocab_->getGroupRange(0);
         auto lemmaVocabDim = (int)(range.second - range.first);
-        lemmaEt_ = graph_->param(name + "_lemmaEt", {lemmaDimEmb, lemmaVocabDim}, inits::glorot_uniform); // [L x U] L=lemmaDimEmb; transposed for speed
+        auto initFunc = inits::glorot_uniform2(/*fanIn=*/true, /*fanOut=*/false); // -> embedding vectors have roughly unit length
+        lemmaEt_ = graph_->param(name + "_lemmaEt", {lemmaDimEmb, lemmaVocabDim}, initFunc); // [L x U] L=lemmaDimEmb; transposed for speed
       }
     }
 
@@ -332,6 +333,7 @@ namespace marian {
             // project it back to regular hidden dim
             int inputDim = input1->shape()[-1];
             auto name = options_->get<std::string>("prefix");
+            // note: if the lemmaEt[:,w] have unit length (var = 1/L), then lemmaWt @ lemmaEt is also length 1
             Expr lemmaWt = inputDim == lemmaDimEmb ? nullptr : graph_->param(name + "_lemmaWt", { inputDim,  lemmaDimEmb }, inits::glorot_uniform); // [D x L] D=hidden-vector dimension
             auto f = lemmaWt ? dot(e, lemmaWt, false, true) : e; // [B... x D]
             // augment the original hidden vector with this additional information
@@ -361,7 +363,7 @@ namespace marian {
     }
 
     // Embedding layer initialization should depend only on embedding size, hence fanIn=false
-    NodeInitializer initFunc = inits::glorot_uniform2(/*fanIn=*/false, /*fanOut=*/true);
+    auto initFunc = inits::glorot_uniform2(/*fanIn=*/false, /*fanOut=*/true); // -> embedding vectors have roughly unit length
     
     if (options_->has("embFile")) {
       std::string file = opt<std::string>("embFile");
