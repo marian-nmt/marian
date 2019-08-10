@@ -88,7 +88,7 @@ public:
         isJson ? "JSON/Yaml" : "text",
         vocabPath);
     ABORT_IF(!filesystem::exists(vocabPath),
-            "DefaultVocabulary file {} does not exits",
+            "DefaultVocabulary file {} does not exist",
             vocabPath);
 
     std::map<std::string, Word> vocab;

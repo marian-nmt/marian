@@ -142,6 +142,11 @@ endif()
 
 find_package(CUDA "8.0")
 if(CUDA_FOUND)
+  # CUDA >= 10.0 requires CMake >= 3.12.2
+  if((CUDA_VERSION VERSION_EQUAL "10.0" OR CUDA_VERSION VERSION_GREATER "10.0") AND (CMAKE_VERSION VERSION_LESS "3.12.2"))
+      message(FATAL_ERROR "CUDA 10.0+ requires CMake 3.12.2+, while you use CMake ${CMAKE_VERSION}")
+  endif()
+
   if(USE_STATIC_LIBS)
     find_library(CUDA_culibos_LIBRARY NAMES culibos PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib64)
     set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_culibos_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})
@@ -149,7 +154,7 @@ if(CUDA_FOUND)
   else(USE_STATIC_LIBS)
     set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})
     message(STATUS "Found CUDA libraries: ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES}")
-endif(USE_STATIC_LIBS)
+  endif(USE_STATIC_LIBS)
 
   if(USE_CUDNN)
     find_package(CUDNN "7.0")
@@ -175,9 +180,9 @@ endif(USE_STATIC_LIBS)
     LIST(APPEND CUDA_NVCC_FLAGS -DUSE_NCCL; )
   endif(USE_NCCL)
 
-if(USE_STATIC_LIBS)
-  set(CMAKE_FIND_LIBRARY_SUFFIXES ${_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
-endif()
+  if(USE_STATIC_LIBS)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ${_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
+  endif()
 
 else(CUDA_FOUND)
   message(FATAL_ERROR "CUDA has not been found, set -DCOMPILE_CUDA=off to avoid this check and to compile the CPU version only")
