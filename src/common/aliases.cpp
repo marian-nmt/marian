@@ -30,45 +30,95 @@ void ConfigParser::addAliases(cli::CLIWrapper& cli) {
     config["dec-cell-high-depth"] = 2;
     config["dec-depth"] = 4;
     config["skip"] = true;
+
+    // Training specific options
+    config["learn-rate"] = 0.0003;
+    config["cost-type"] = "ce-mean-words";
+    config["lr-decay-inv-sqrt"] = 16000;
+    config["label-smoothing"] = 0.1;
+    config["clip-norm"] = 5;
+    config["sync-sgd"] = true;
+    config["exponential-smoothing"] = 1e-4;
+    config["mini-batch-fit"] = true;
+    config["mini-batch"] = 1000;
+    config["maxi-batch"] = 1000;
+    // config["workspace"] = 6500;
   });
 
-  // Architecture and proposed training settings for a Transformer BASE model introduced in
+  // Architecture and proposed training settings for a Transformer "base" model introduced in
   // https://papers.nips.cc/paper/7181-attention-is-all-you-need.pdf
-  cli.alias("task", "transformer", [](YAML::Node& config) {
+  cli.alias("task", "transformer-base", [](YAML::Node& config) {
+    // Model options
     config["type"] = "transformer";
     config["enc-depth"] = 6;
     config["dec-depth"] = 6;
+    config["dim-emb"] = 512;
+    config["tied-embeddings-all"] = true;
+    config["transformer-dim-ffn"] = 2048;
     config["transformer-heads"] = 8;
+    config["transformer-postprocess"] = "an";
+    config["transformer-preprocess"] = "d";
+    config["transformer-ffn-activation"] = "relu";
+    config["transformer-dropout"] = 0.1;
+
+    // Training specific options
     config["learn-rate"] = 0.0003;
     config["cost-type"] = "ce-mean-words";
     config["lr-warmup"] = 16000;
     config["lr-decay-inv-sqrt"] = 16000;
-    config["transformer-dropout"] = 0.1;
     config["label-smoothing"] = 0.1;
     config["clip-norm"] = 5;
+    config["sync-sgd"] = true;
+    config["exponential-smoothing"] = 1e-4;
+    config["max-length"] = 100;
+    config["mini-batch-fit"] = true;
+    config["mini-batch"] = 1000;
+    config["maxi-batch"] = 1000;
+    config["workspace"] = 9500;
+    config["optimizer-params"] = std::vector<float>({0.9, 0.98, 1e-09});
+
+    // Validation specific options
+    config["beam-size"] = 8;
+    config["valid-mini-batch"] = 16;
+    config["normalize"] = 1.0;
   });
 
-  // Architecture and proposed training settings for a Transformer BIG model introduced in
+  // Architecture and proposed training settings for a Transformer "big" model introduced in
   // https://papers.nips.cc/paper/7181-attention-is-all-you-need.pdf
   cli.alias("task", "transformer-big", [](YAML::Node& config) {
+    // Model options
     config["type"] = "transformer";
     config["enc-depth"] = 6;
     config["dec-depth"] = 6;
     config["dim-emb"] = 1024;
+    config["tied-embeddings-all"] = true;
     config["transformer-dim-ffn"] = 4096;
     config["transformer-heads"] = 16;
-    config["transformer-postprocess"] = "dan";
+    config["transformer-postprocess"] = "an";
     config["transformer-preprocess"] = "d";
     config["transformer-ffn-activation"] = "relu";
+    config["transformer-dropout"] = 0.1;
+
+    // Training specific options
     config["learn-rate"] = 0.0002;
     config["cost-type"] = "ce-mean-words";
     config["lr-warmup"] = 8000;
     config["lr-decay-inv-sqrt"] = 8000;
-    config["transformer-dropout"] = 0.1;
-    config["transformer-dropout-attention"] = 0.1;
-    config["transformer-dropout-ffn"] = 0.1;
     config["label-smoothing"] = 0.1;
     config["clip-norm"] = 5;
+    config["sync-sgd"] = true;
+    config["exponential-smoothing"] = 1e-4;
+    config["max-length"] = 100;
+    config["mini-batch-fit"] = true;
+    config["mini-batch"] = 1000;
+    config["maxi-batch"] = 1000;
+    config["workspace"] = 13000;
+    config["optimizer-params"] = std::vector<float>({0.9, 0.998, 1e-09});
+
+    // Validation specific options
+    config["beam-size"] = 8;
+    config["valid-mini-batch"] = 8;
+    config["normalize"] = 1.0;
   });
 }
 
