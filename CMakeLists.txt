@@ -103,8 +103,8 @@ list(APPEND ALL_WARNINGS -Wall; -Werror; -Wno-unused-result; -Wno-deprecated; -W
     list(APPEND ALL_WARNINGS -Wsuggest-override)
   endif()
 
-  set(CMAKE_CXX_FLAGS                 "-std=c++11 -g -pthread -Wl,--no-as-needed -fPIC ${DISABLE_GLOBALLY}")
-  set(CMAKE_CXX_FLAGS_RELEASE         "-g -rdynamic -Ofast -m64 -march=${BUILD_ARCH} ${INTRINSICS} -funroll-loops -ffinite-math-only")
+  set(CMAKE_CXX_FLAGS                 "-std=c++11 -g -pthread -Wl,--no-as-needed -fPIC ${DISABLE_GLOBALLY} -march=${BUILD_ARCH} ${INTRINSICS}")
+  set(CMAKE_CXX_FLAGS_RELEASE         "-g -rdynamic -Ofast -m64 -funroll-loops -ffinite-math-only")
   set(CMAKE_CXX_FLAGS_DEBUG           "-g -rdynamic -O0")
   set(CMAKE_CXX_FLAGS_SLIM            "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG")
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO  "${CMAKE_CXX_FLAGS_RELEASE}")
