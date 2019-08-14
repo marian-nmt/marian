@@ -1,5 +1,6 @@
 #include "models/encoder_decoder.h"
 #include "common/cli_helper.h"
+#include "common/filesystem.h"
 #include "common/version.h"
 
 namespace marian {
@@ -77,18 +78,40 @@ void EncoderDecoder::push_back(Ptr<DecoderBase> decoder) {
 
 void EncoderDecoder::createDecoderConfig(const std::string& name) {
   Config::YamlNode decoder;
-  decoder["models"] = std::vector<std::string>({name});
-  decoder["vocabs"] = options_->get<std::vector<std::string>>("vocabs");
+
+  if(options_->get<bool>("relative-paths")) {
+    decoder["relative-paths"] = true;
+    // we can safely use a bare model file name here, because the config file is created in the same
+    // directory as the model file
+    auto modelFileName = filesystem::Path{name}.filename().string();
+    decoder["models"] = std::vector<std::string>({modelFileName});
+
+    // create relative paths to vocabs
+    auto dirPath = filesystem::Path{name}.parentPath();
+    std::vector<std::string> relativeVocabs;
+    const auto& vocabs = options_->get<std::vector<std::string>>("vocabs");
+    std::transform(
+        vocabs.begin(),
+        vocabs.end(),
+        std::back_inserter(relativeVocabs),
+        [&](const std::string& p) -> std::string {
+          return filesystem::relative(filesystem::Path{p}, dirPath).string();
+        });
+
+    decoder["vocabs"] = relativeVocabs;
+  } else {
+    decoder["relative-paths"] = false;
+    decoder["models"] = std::vector<std::string>({name});
+    decoder["vocabs"] = options_->get<std::vector<std::string>>("vocabs");
+  }
+
   decoder["beam-size"] = opt<size_t>("beam-size");
   decoder["normalize"] = opt<float>("normalize");
   decoder["word-penalty"] = opt<float>("word-penalty");
 
   decoder["mini-batch"] = opt<size_t>("valid-mini-batch");
   decoder["maxi-batch"] = opt<size_t>("valid-mini-batch") > 1 ? 100 : 1;
-  decoder["maxi-batch-sort"]
-      = opt<size_t>("valid-mini-batch") > 1 ? "src" : "none";
-
-  decoder["relative-paths"] = false;
+  decoder["maxi-batch-sort"] = opt<size_t>("valid-mini-batch") > 1 ? "src" : "none";
 
   io::OutputFileStream out(name + ".decoder.yml");
   out << decoder;
