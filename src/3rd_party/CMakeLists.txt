@@ -16,9 +16,19 @@ if(USE_SENTENCEPIECE)
     endif()
   endif()
 
-  set(SPM_ENABLE_SHARED OFF CACHE BOOL "Builds shared libaries in addition to static libraries." FORCE)
   set(SPM_ENABLE_TCMALLOC ON CACHE BOOL "Enable TCMalloc if available." FORCE)
-  set(SPM_TCMALLOC_STATIC ON CACHE BOOL "Link static library of TCMALLOC." FORCE)
+
+  if(USE_STATIC_LIBS)
+    message(WARNING "You are compiling SentencePiece binaries with -DUSE_STATIC_LIBS=on. \
+    This will cause spm_train to segfault. No need to worry if you do not intend to use that binary. \
+    Marian support for SentencePiece will work fine.")
+    
+    set(SPM_ENABLE_SHARED OFF CACHE BOOL "Builds shared libaries in addition to static libraries." FORCE)
+    set(SPM_TCMALLOC_STATIC ON CACHE BOOL "Link static library of TCMALLOC." FORCE)
+  else(USE_STATIC_LIBS)
+    set(SPM_ENABLE_SHARED ON CACHE BOOL "Builds shared libaries in addition to static libraries." FORCE)
+    set(SPM_TCMALLOC_STATIC OFF CACHE BOOL "Link static library of TCMALLOC." FORCE)
+  endif(USE_STATIC_LIBS)
 
   add_subdirectory(./sentencepiece)
   include_directories(./sentencepiece)
