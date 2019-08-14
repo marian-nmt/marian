@@ -788,11 +788,11 @@ ConfigParser::parseOptions(int argc, char** argv, bool doValidate){
     config_.remove("dump-config");
 
     if(dumpMode == "expand") {
-      cli.parseAliases();
+      cli_.parseAliases();
     }
 
     bool minimal = (dumpMode == "minimal" || dumpMode == "expand");
-    std::cout << cli.dumpConfig(minimal) << std::endl;
+    std::cout << cli_.dumpConfig(minimal) << std::endl;
     exit(0);
   }
 
