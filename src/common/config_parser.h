@@ -1,3 +1,4 @@
+// -*- mode: c++; indent-tabs-mode: nil; tab-width: 2 -*-
 #pragma once
 
 #include "3rd_party/yaml-cpp/yaml.h"
@@ -14,7 +15,6 @@
 namespace marian {
 
 namespace cli {
-// CLI mode
 enum struct mode { training, translation, scoring, server };
 }  // namespace cli
 
@@ -25,10 +25,47 @@ enum struct mode { training, translation, scoring, server };
  */
 class ConfigParser {
 public:
+
+  ConfigParser(cli::mode mode);
+
   ConfigParser(int argc, char** argv, cli::mode mode, bool validate = false)
-      : modeServer_(mode == cli::mode::server),
-        mode_(mode == cli::mode::server ? cli::mode::translation : mode) {
+    : ConfigParser(mode) {
     parseOptions(argc, argv, validate);
+  }
+
+  template<typename T>
+  ConfigParser&
+  addOption(const std::string& args,
+            const std::string& group,
+            const std::string& help,
+            const T val) {
+    std::string previous_group = cli_.switchGroup(group);
+    cli_.add<T>(args,help,val);
+    cli_.switchGroup(previous_group);
+    return *this;
+  }
+
+  template<typename T>
+  ConfigParser&
+  addOption(const std::string& args,
+            const std::string& group,
+            const std::string& help,
+            const T val, const T implicit_val) {
+    std::string previous_group = cli_.switchGroup(group);
+    cli_.add<T>(args,help,val)->implicit_val(implicit_val);
+    cli_.switchGroup(previous_group);
+    return *this;
+  }
+
+  template<typename T>
+  ConfigParser&
+  addOption(const std::string& args,
+            const std::string& group,
+            const std::string& help) {
+    std::string previous_group = cli_.switchGroup(group);
+    cli_.add<T>(args,help);
+    cli_.switchGroup(previous_group);
+    return *this;
   }
 
   /**
@@ -47,15 +84,19 @@ public:
    * @param argc
    * @param argv
    * @param validate Do or do not validate parsed options
+   * @return (YAML::Node const&)config_
    */
-  void parseOptions(int argc, char** argv, bool validate);
 
-  YAML::Node getConfig() const;
-
+  YAML::Node const& parseOptions(int argc, char** argv, bool validate);
+  YAML::Node const& getConfig() const;
+  cli::mode getMode() const;
+  std::string const& cmdLine() const;
 private:
-  bool modeServer_;
+  // bool modeServer_;
+  cli::CLIWrapper cli_;
   cli::mode mode_;
   YAML::Node config_;
+  std::string cmdLine_;
 
   // Check if the config contains value for option key
   bool has(const std::string& key) const {

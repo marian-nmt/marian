@@ -110,8 +110,12 @@ CLIWrapper::CLIWrapper(Ptr<marian::Options> options,
 
 CLIWrapper::~CLIWrapper() {}
 
-void CLIWrapper::switchGroup(const std::string &name) {
-  currentGroup_ = name.empty() ? defaultGroup_ : name;
+// set current group to name, return previous group
+std::string CLIWrapper::switchGroup(std::string name) {
+  currentGroup_.swap(name);
+  if (currentGroup_.empty())
+    currentGroup_ = defaultGroup_;
+  return name;
 }
 
 void CLIWrapper::parse(int argc, char **argv) {

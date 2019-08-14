@@ -3,6 +3,7 @@
 #include <sstream>
 #include <string>
 #include "common/definitions.h"
+#include "common/config_parser.h"
 
 #include "3rd_party/yaml-cpp/yaml.h"
 
@@ -32,22 +33,20 @@ protected:
   YAML::Node options_;
 
 public:
-  Options() {}
-  Options(const Options& other) : options_(YAML::Clone(other.options_)) {}
+  Options();
+  Options(const Options& other);
+  Options(ConfigParser& cp, int argc, char** argv, bool validate);
 
   /**
    * @brief Return a copy of the object that can be safely modified.
    */
-  Options clone() const { return Options(*this); }
+  Options clone() const;
 
-  YAML::Node& getYaml() { return options_; }
-  const YAML::Node& getYaml() const { return options_; }
+  YAML::Node& getYaml();
 
-  void parse(const std::string& yaml) {
-    auto node = YAML::Load(yaml);
-    for(auto it : node)
-      options_[it.first.as<std::string>()] = YAML::Clone(it.second);
-  }
+  const YAML::Node& getYaml() const;
+
+  void parse(const std::string& yaml);
 
   /**
    * @brief Splice options from a YAML node
@@ -58,20 +57,10 @@ public:
    * @param node a YAML node to transfer the options from
    * @param overwrite overwrite all options
    */
-  void merge(YAML::Node& node, bool overwrite = false) {
-    for(auto it : node)
-      if(overwrite || !options_[it.first.as<std::string>()])
-        options_[it.first.as<std::string>()] = YAML::Clone(it.second);
-  }
+  void merge(const YAML::Node& node, bool overwrite = false);
+  void merge(Ptr<Options> options);
 
-  void merge(const YAML::Node& node, bool overwrite = false) { merge(node, overwrite); }
-  void merge(Ptr<Options> options) { merge(options->getYaml()); }
-
-  std::string str() {
-    std::stringstream ss;
-    ss << options_;
-    return ss.str();
-  }
+  std::string str();
 
   template <typename T>
   void set(const std::string& key, T value) {
@@ -79,13 +68,13 @@ public:
   }
 
   template <typename T>
-  T get(const std::string& key) {
+  T get(const std::string& key) const {
     ABORT_IF(!has(key), "Required option '{}' has not been set", key);
     return options_[key].as<T>();
   }
 
   template <typename T>
-  T get(const std::string& key, T defaultValue) {
+  T get(const std::string& key, T defaultValue) const {
     if(has(key))
       return options_[key].as<T>();
     else
@@ -102,22 +91,9 @@ public:
    *
    * @return true if the option is defined and is a nonempty sequence or string
    */
-  bool hasAndNotEmpty(const std::string& key) const {
-    if(!has(key)) {
-      return false;
-    }
-    if(options_[key].IsSequence()) {
-      return options_[key].size() != 0;
-    }
-    try {
-      return !options_[key].as<std::string>().empty();
-    } catch(const YAML::BadConversion& e) {
-      ABORT("Option '{}' is neither a sequence nor a text");
-    }
-    return false;
-  }
+  bool hasAndNotEmpty(const std::string& key) const;
 
-  bool has(const std::string& key) const { return options_[key]; }
+  bool has(const std::string& key) const;
 };
 
 }  // namespace marian
