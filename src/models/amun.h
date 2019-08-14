@@ -201,8 +201,6 @@ private:
 
     amun["scorers"]["F0"]["type"] = "Nematus";
     amun["weights"]["F0"] = 1.0f;
-
-    amun["devices"] = options_->get<std::vector<size_t>>("devices");
     amun["normalize"] = opt<float>("normalize") > 0;
     amun["beam-size"] = opt<size_t>("beam-size");
 
