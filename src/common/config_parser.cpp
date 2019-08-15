@@ -85,6 +85,7 @@ ConfigParser::ConfigParser(cli::mode mode)
     case cli::mode::training:
       addOptionsTraining(cli_);
       addOptionsValidation(cli_);
+      addAliases(cli_);
       break;
     case cli::mode::translation:
       addOptionsTranslation(cli_);
