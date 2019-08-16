@@ -1,18 +1,11 @@
 // -*- mode: c++; indent-tabs-mode: nil; tab-width: 2 -*-
 #include "options.h"
-#include "common/config.h"
 
 namespace marian {
   Options::Options() {}
 
   Options::Options(const Options& other)
     : options_(YAML::Clone(other.options_)) {}
-
-  Options::Options(ConfigParser& cp, int argc, char** argv, bool validate){
-    cp.parseOptions(argc, argv, validate);
-    merge(Config(cp).get());
-  }
-
 
   Options Options::clone() const {
     return Options(*this);

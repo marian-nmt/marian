@@ -258,7 +258,7 @@ std::vector<DeviceId> Config::getDevices(Ptr<Options> options,
 Ptr<Options>
 parseOptions(int argc, char** argv, cli::mode mode, bool validate){
   ConfigParser cp(mode);
-  return New<Options>(cp, argc, argv, validate);
+  return cp.parseOptions(argc, argv, validate);
 }
 
 std::ostream& operator<<(std::ostream& out, const Config& config) {

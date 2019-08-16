@@ -87,7 +87,7 @@ public:
    * @return (YAML::Node const&)config_
    */
 
-  YAML::Node const& parseOptions(int argc, char** argv, bool validate);
+  Ptr<Options> parseOptions(int argc, char** argv, bool validate);
   YAML::Node const& getConfig() const;
   cli::mode getMode() const;
   std::string const& cmdLine() const;

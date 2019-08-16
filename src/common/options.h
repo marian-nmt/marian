@@ -3,7 +3,6 @@
 #include <sstream>
 #include <string>
 #include "common/definitions.h"
-#include "common/config_parser.h"
 
 #include "3rd_party/yaml-cpp/yaml.h"
 
@@ -35,7 +34,7 @@ protected:
 public:
   Options();
   Options(const Options& other);
-  Options(ConfigParser& cp, int argc, char** argv, bool validate);
+  // Options(ConfigParser& cp, int argc, char** argv, bool validate);
 
   /**
    * @brief Return a copy of the object that can be safely modified.

@@ -756,7 +756,7 @@ void ConfigParser::addSuboptionsULR(cli::CLIWrapper& cli) {
 
 cli::mode ConfigParser::getMode() const { return mode_; }
 
-YAML::Node const&
+Ptr<Options>
 ConfigParser::parseOptions(int argc, char** argv, bool doValidate){
   cmdLine_ = escapeCmdLine(argc,argv);
 
@@ -798,7 +798,9 @@ ConfigParser::parseOptions(int argc, char** argv, bool doValidate){
   }
 
   cli_.parseAliases();
-  return getConfig();
+  auto opts = New<Options>();
+  opts->merge(Config(*this).get());
+  return opts;
 }
 
 std::vector<std::string> ConfigParser::findConfigPaths() {
