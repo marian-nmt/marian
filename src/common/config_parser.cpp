@@ -382,6 +382,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
 
   cli.add<double>("--label-smoothing",
      "Epsilon for label smoothing (0 to disable)");
+  cli.add<double>("--factor-weight",
+     "Weight for loss function for factors (factored vocab only) (1 to disable)", 1.0f);
   cli.add<float>("--clip-norm",
      "Clip gradient norm to  arg  (0 to disable)",
      1.f);

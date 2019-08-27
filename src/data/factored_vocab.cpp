@@ -4,9 +4,9 @@
 #include "data/vocab_base.h"
 #include "common/definitions.h"
 #include "data/types.h"
-#include "common/options.h"
 #include "common/regex.h"
 #include "data/factored_vocab.h"
+#include <set>
 
 // @TODO: review all comments and clarify nomenclature:
 // * factor type (e.g. caps: |c* ); currently called a "group"

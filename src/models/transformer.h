@@ -74,7 +74,7 @@ public:
     } else {
       // @TODO : test if embeddings should be scaled when trainable
       // according to paper embeddings are scaled up by \sqrt(d_m)
-      embeddings = std::sqrt((float)dimEmb) * embeddings;
+      embeddings = std::sqrt((float)dimEmb) * embeddings; // embeddings were initialized to unit length; so norms will be in order of sqrt(dimEmb)
 
       auto signal = graph_->constant({dimWords, 1, dimEmb},
                                      inits::sinusoidalPositionEmbeddings(start));
