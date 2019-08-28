@@ -42,22 +42,11 @@ namespace marian {
     Expr loss;
     for (size_t g = 0; g < numGroups; g++) {
       if (!logits_[g])
-        continue; // empty factor  --@TODO: handle this more nicely
+        continue; // empty factor  --@TODO: use an array of indices of non-empty logits_[]
       const auto& maskedFactoredLabels = allMaskedFactoredLabels[g]; // array of (word index, mask)
-#if 1
       auto factorIndices = indices (maskedFactoredLabels.indices); // [B... flattened] factor-label indices, or 0 if factor does not apply
       auto factorMask    = constant(maskedFactoredLabels.masks);   // [B... flattened] loss values get multiplied with 0 for labels that don't have this factor
-#else // @TODO: if this^^ works, we can remove the stuff below (quite a bit code)
-      maskedFactoredLabels;
-      indices; // [B... * 1] all batch items flattened
-      auto factorMaskVector  = factoredVocab_->getFactorMasks(g);   // [v] 1.0 if v has factor of group g
-      auto factorIndexVector = factoredVocab_->getFactorIndices(g); // [v] index of factor for word v in group p; must be 0 if factor is not used
-      auto factorMaskMatrix  = constant({(int)factorMaskVector.size(),  1}, factorMaskVector);  // [V x 1]
-      auto factorIndexMatrix = constant({(int)factorIndexVector.size(), 1}, factorIndexVector); // [V x 1(Ug)]
-      auto factorIndices = rows(factorIndexMatrix, indices); // [B... * 1(Ug)] map word indices to factor indices (indices into factorLogits)
-      auto factorMask    = rows(factorMaskMatrix,  indices); // [B... * 1]     flag whether word has the factor in the first place
-#endif
-      auto factorLogits = logits_[g];                       // [B... * Ug] label-wise loss values (not aggregated yet)
+      auto factorLogits  = logits_[g];                             // [B... * Ug] label-wise loss values (not aggregated yet)
       // For each location in [B...] select [indices[B...]]. If not using factor, select [0] and mask it out next.
       auto factorLoss = lossFn(factorLogits->loss(), factorIndices); // [B... x 1]
       factorLoss = factorLoss * reshape(factorMask, factorLoss->shape()); // mask out factor for words that do not have that factor
@@ -297,7 +286,7 @@ namespace marian {
             int lemmaVocabDim = Plemma->shape()[-1];
             int factorVocabDim = factorLogits->shape()[-1];
             auto name = options_->get<std::string>("prefix");
-            Expr lemmaBt = graph_->param(name + "_lemmaBt_" + std::to_string(g), {factorVocabDim, lemmaVocabDim}, inits::zeros/*glorot_uniform*/); // [U x U0] U0=#lemmas one bias per class per lemma
+            Expr lemmaBt = graph_->param(name + "_lemmaBt_" + std::to_string(g), {factorVocabDim, lemmaVocabDim}, inits::zeros); // [U x U0] U0=#lemmas one bias per class per lemma
             auto b = dot(Plemma, lemmaBt, false, true); // [B... x U]
             factorLogits = factorLogits + b;
           }
@@ -308,8 +297,8 @@ namespace marian {
           if (lemmaDimEmb < 0 && g == 0) {
             ABORT_IF(shortlist_ && lemmaDimEmb != 0, "Lemma-dependent bias with short list is not yet implemented");
             LOG_ONCE(info, "[embedding] using lemma-dependent bias");
-            factorLogits = logsoftmax(factorLogits); // explicitly, since we do that again later
-            auto z = /*stopGradient*/(factorLogits);
+            auto factorLogSoftmax = logsoftmax(factorLogits); // (we do that again later, CSE will kick in)
+            auto z = /*stopGradient*/(factorLogSoftmax);
             Plemma = exp(z); // [B... x U]
           }
           if (lemmaDimEmb > 0 && g == 0) {
