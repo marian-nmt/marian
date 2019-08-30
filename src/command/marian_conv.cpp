@@ -31,8 +31,9 @@ int main(int argc, char** argv) {
   marian::io::getYamlFromModel(config, "special:model.yml", modelFrom);
   configStr << config;
 
-  auto graph = New<ExpressionGraph>(true, false);
+  auto graph = New<ExpressionGraph>(true);
   graph->setDevice(CPU0);
+  graph->getBackend()->setOptimized(false);
 
   graph->load(modelFrom);
   graph->forward();

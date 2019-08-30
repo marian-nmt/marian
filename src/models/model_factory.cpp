@@ -32,7 +32,7 @@ Ptr<EncoderBase> EncoderFactory::construct(Ptr<ExpressionGraph> graph) {
 
 #ifdef CUDNN
   if(options_->get<std::string>("type") == "char-s2s")
-    return New<CharS2SEncoder>(options_);
+    return New<CharS2SEncoder>(graph, options_);
 #endif
 
   if(options_->get<std::string>("type") == "transformer")

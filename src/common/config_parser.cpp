@@ -527,6 +527,9 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
       "Optimize speed aggressively sacrificing memory or precision");
   cli.add<bool>("--skip-cost",
       "Ignore model cost during translation, not recommended for beam-size > 1");
+  cli.add<std::string>("--gemm-type",
+      "Select GEMM options: auto, mklfp32, intrinint16, fp16packed, int8packed",
+      "auto");
 
   cli.add<std::vector<std::string>>("--shortlist",
      "Use softmax shortlist: path first best prune");

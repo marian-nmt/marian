@@ -4,6 +4,7 @@ include_directories(.)
 include_directories(3rd_party)
 include_directories(3rd_party/SQLiteCpp/include)
 include_directories(3rd_party/sentencepiece)
+include_directories(3rd_party/fbgemm/include)
 
 add_library(marian STATIC
   common/version.cpp
@@ -40,6 +41,7 @@ add_library(marian STATIC
   tensors/cpu/sharp/int_gemm.cpp
   tensors/cpu/sharp/avx_gemm.cpp
   tensors/cpu/sharp/sse_gemm.cpp
+  tensors/cpu/sharp/packed_gemm.cpp
 
   graph/expression_graph.cpp
   graph/expression_operators.cpp

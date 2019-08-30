@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/config.h"
-#include "common/definitions.h"
 
 #include "tensors/backend.h"
 #include "tensors/tensor_allocator.h"
@@ -130,7 +129,6 @@ private:
   std::unordered_map<size_t, std::vector<Expr>> memoized_;
 
   bool inferenceOnly_{false};
-  bool optimized_{false};
   Ptr<Backend> backend_;
 
   bool reloaded_{false};
@@ -148,7 +146,7 @@ public:
    *
    * Constructor should be used as New<ExpressionGraph>()
    */
-  ExpressionGraph(bool inference = false, bool optimized = false);
+  ExpressionGraph(bool inference = false);
 
   void setInference(bool inference) { inferenceOnly_ = inference; }
   bool isInference() { return inferenceOnly_; }
@@ -164,9 +162,6 @@ public:
   DeviceId getDeviceId() { return backend_->getDeviceId(); }
 
   Ptr<Backend> getBackend() { return backend_; }
-
-  void setOptimized(bool optimized) { optimized_ = optimized; }
-  bool isOptimized() { return (optimized_ && inferenceOnly_); }
 
   void switchParams(const std::string& newNamespace) {
     namespace_ = newNamespace;
