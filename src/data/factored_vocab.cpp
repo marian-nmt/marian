@@ -4,9 +4,9 @@
 #include "data/vocab_base.h"
 #include "common/definitions.h"
 #include "data/types.h"
-#include "common/options.h"
 #include "common/regex.h"
 #include "data/factored_vocab.h"
+#include <set>
 
 // @TODO: review all comments and clarify nomenclature:
 // * factor type (e.g. caps: |c* ); currently called a "group"
@@ -508,14 +508,14 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
 
 // convert a string representation of a token sequence to all-caps by changing all capitalization factors to |ca
 /*virtual*/ std::string FactoredVocab::toUpper(const std::string& line) const /*override final*/ {
-  return utils::findReplace(utils::findReplace(utils::findReplace(utils::findReplace(line, "|ci", "|ca", /*all=*/true), "|cn", "|ca", /*all=*/true), "@CI", "@CA", /*all=*/true), "@CN", "@CA", /*all=*/true);
+  return utils::findReplace(utils::findReplace(utils::findReplace(utils::findReplace(utils::findReplace(line, "|scl", "|scu", /*all=*/true), "|ci", "|ca", /*all=*/true), "|cn", "|ca", /*all=*/true), "@CI", "@CA", /*all=*/true), "@CN", "@CA", /*all=*/true);
 }
 
 // convert a string representation of a token sequence to English title case by changing the capitalization factors to |ci
 /*virtual*/ std::string FactoredVocab::toEnglishTitleCase(const std::string& line) const /*override final*/ {
   // @BUGBUG: does not handle the special words that should remain lower-case
   // note: this presently supports both @WB and @GL- (legacy)
-  return utils::findReplace(utils::findReplace(utils::findReplace(utils::findReplace(line, "|cn|wb", "|ci|wb", /*all=*/true), "|cn|gl-", "|ci|gl-", /*all=*/true), "@CN@WB", "@CI@WB", /*all=*/true), "@CN@GL-", "@CI@GL-", /*all=*/true);
+  return utils::findReplace(utils::findReplace(utils::findReplace(utils::findReplace(utils::findReplace(line, "|scl", "|scu", /*all=*/true), "|cn|wb", "|ci|wb", /*all=*/true), "|cn|gl-", "|ci|gl-", /*all=*/true), "@CN@WB", "@CI@WB", /*all=*/true), "@CN@GL-", "@CI@GL-", /*all=*/true);
 }
 
 // convert word indices to indices of shortlist items
