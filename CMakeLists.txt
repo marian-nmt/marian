@@ -33,6 +33,11 @@ message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 execute_process(COMMAND git submodule update --init --recursive --no-fetch
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
+if(NOT CMAKE_BUILD_TYPE)
+  message(WARNING "CMAKE_BUILD_TYPE not set; setting to Release")
+  set(CMAKE_BUILD_TYPE "Release")
+endif()
+
 # Set compilation flags
 if(MSVC)
 # These are used in src/CMakeLists.txt on a per-target basis
@@ -121,6 +126,16 @@ else(MSVC)
   set(CMAKE_CXX_FLAGS_PROFILE         "${CMAKE_CXX_FLAGS_RELEASE} -pg")
   set(CMAKE_CXX_FLAGS_PROFGEN         "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-generate -fprofile-correction")
   set(CMAKE_CXX_FLAGS_PROFUSE         "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-use -fprofile-correction")
+
+  # these need to be set separately
+  set(CMAKE_C_FLAGS                 "-pthread -Wl,--no-as-needed -fPIC ${DISABLE_GLOBALLY} -march=${BUILD_ARCH} ${INTRINSICS}")
+  set(CMAKE_C_FLAGS_RELEASE         "-O3 -m64 -funroll-loops -ffinite-math-only -g -rdynamic")
+  set(CMAKE_C_FLAGS_DEBUG           "-O0 -g -rdynamic")
+  set(CMAKE_C_FLAGS_SLIM            "-O3 -m64 -funroll-loops -ffinite-math-only -DNDEBUG")
+  set(CMAKE_C_FLAGS_RELWITHDEBINFO  "${CMAKE_C_FLAGS_RELEASE}")
+  set(CMAKE_C_FLAGS_PROFILE         "${CMAKE_C_FLAGS_RELEASE} -pg")
+  set(CMAKE_C_FLAGS_PROFGEN         "${CMAKE_C_FLAGS_RELEASE} -fprofile-generate -fprofile-correction")
+  set(CMAKE_C_FLAGS_PROFUSE         "${CMAKE_C_FLAGS_RELEASE} -fprofile-use -fprofile-correction")
 endif(MSVC)
 
 # Downloading SentencePiece if requested and set to compile with it.
@@ -129,11 +144,6 @@ if(USE_SENTENCEPIECE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_SENTENCEPIECE")
   LIST(APPEND CUDA_NVCC_FLAGS -DUSE_SENTENCEPIECE; )
   set(EXT_LIBS ${EXT_LIBS} sentencepiece sentencepiece_train)
-endif()
-
-if(NOT CMAKE_BUILD_TYPE)
-  message(WARNING "CMAKE_BUILD_TYPE not set; setting to Release")
-  set(CMAKE_BUILD_TYPE "Release")
 endif()
 
 # Find packages
