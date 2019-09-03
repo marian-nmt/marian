@@ -78,6 +78,11 @@ namespace filesystem {
     return p.getImpl().absolute(base.getImpl()).expand();
   }
 
+  static inline Path relative(const Path& p, const Path& base) {
+    // create a path relative to the base path
+    return p.getImpl().absolute().expand().relative(base.getImpl().absolute().expand());
+  }
+
   static inline bool exists(const Path& p) {
     return p.getImpl().exists();
   }

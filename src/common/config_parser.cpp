@@ -80,7 +80,7 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   cli.add<bool>("--relative-paths",
     "All paths are relative to the config file location");
   cli.add<std::string>("--dump-config",
-    "Dump current (modified) configuration to stdout and exit. Possible values: full, minimal")
+    "Dump current (modified) configuration to stdout and exit. Possible values: full, minimal, expand")
     ->implicit_val("full");
   // clang-format on
 }
@@ -419,8 +419,12 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<bool>("--multi-node-overlap",
      "Overlap model computations with MPI communication",
      true);
+
   // add ULR settings
   addSuboptionsULR(cli);
+
+  cli.add<std::vector<std::string>>("--task",
+     "Use predefined set of options. Possible values: transformer, transformer-big");
   // clang-format on
 }
 
@@ -704,27 +708,6 @@ void ConfigParser::addSuboptionsULR(cli::CLIWrapper& cli) {
   // clang-format on
 }
 
-void ConfigParser::expandAliases(cli::CLIWrapper& cli) {
-  YAML::Node config;
-  // The order of aliases does matter as later options overwrite earlier
-
-  if(config_["best-deep"].as<bool>()) {
-    config["layer-normalization"] = true;
-    config["tied-embeddings"] = true;
-    config["enc-type"] = "alternating";
-    config["enc-cell-depth"] = 2;
-    config["enc-depth"] = 4;
-    config["dec-cell-base-depth"] = 4;
-    config["dec-cell-high-depth"] = 2;
-    config["dec-depth"] = 4;
-    config["skip"] = true;
-  }
-
-  if(config) {
-    cli.updateConfig(config, "Unknown option(s) in aliases");
-  }
-}
-
 void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   cli::CLIWrapper cli(config_,
                       "Marian: Fast Neural Machine Translation in C++",
@@ -742,6 +725,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     case cli::mode::training:
       addOptionsTraining(cli);
       addOptionsValidation(cli);
+      addAliases(cli);
       break;
     case cli::mode::translation:
       addOptionsTranslation(cli);
@@ -762,7 +746,9 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   auto configPaths = findConfigPaths();
   if(!configPaths.empty()) {
     auto config = loadConfigFiles(configPaths);
-    cli.updateConfig(config, "There are option(s) in a config file that are not expected");
+    cli.updateConfig(config,
+                     cli::Priority::ConfigFile,
+                     "There are option(s) in a config file that are not expected");
   }
 
   if(get<bool>("interpolate-env-vars")) {
@@ -770,7 +756,6 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   }
 
   if(doValidate) {
-    // this aborts the program on first validation error
     ConfigValidator(config_).validateOptions(mode_);
   }
 
@@ -778,13 +763,19 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   config_.remove("config");
 
   if(!get<std::string>("dump-config").empty() && get<std::string>("dump-config") != "false") {
-    bool skipDefault = get<std::string>("dump-config") == "minimal";
+    auto dumpMode = get<std::string>("dump-config");
     config_.remove("dump-config");
-    std::cout << cli.dumpConfig(skipDefault) << std::endl;
+
+    if(dumpMode == "expand") {
+      cli.parseAliases();
+    }
+
+    bool minimal = (dumpMode == "minimal" || dumpMode == "expand");
+    std::cout << cli.dumpConfig(minimal) << std::endl;
     exit(0);
   }
 
-  expandAliases(cli);
+  cli.parseAliases();
 }
 
 std::vector<std::string> ConfigParser::findConfigPaths() {

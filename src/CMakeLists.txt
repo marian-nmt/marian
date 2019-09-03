@@ -5,6 +5,7 @@ include_directories(3rd_party)
 include_directories(3rd_party/SQLiteCpp/include)
 include_directories(3rd_party/sentencepiece)
 include_directories(3rd_party/fbgemm/include)
+include_directories(${CMAKE_BINARY_DIR}/local/include)
 
 add_library(marian STATIC
   common/version.cpp
@@ -14,6 +15,7 @@ add_library(marian STATIC
   common/cli_wrapper.cpp
   common/config.cpp
   common/config_parser.cpp
+  common/aliases.cpp
   common/config_validator.cpp
   common/binary.cpp
   common/io.cpp
@@ -95,13 +97,31 @@ target_compile_options(marian PUBLIC ${ALL_WARNINGS})
 # Generate git_revision.h to reflect current git revision information
 # [https://stackoverflow.com/questions/1435953/how-can-i-pass-git-sha1-to-compiler-as-definition-using-cmake]
 # Git updates .git/logs/HEAD file whenever you pull or commit something.
+
+# If Marian is checked out as a submodule in another repository,
+# there's no .git directory in ${CMAKE_SOURCE_DIR}. Instead .git is a
+# file that specifies the relative path from ${CMAKE_SOURCE_DIR} to
+# ./git/modules/<MARIAN_ROOT_DIR> in the root of the repository that
+# contains Marian as a submodule. We set MARIAN_GIT_DIR to the appropriate
+# path, depending on whether ${CMAKE_SOURCE_DIR}/.git is a directory or file.
+if(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/.git) # not a submodule
+  set(MARIAN_GIT_DIR ${CMAKE_SOURCE_DIR}/.git)
+else(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/.git)
+  file(READ ${CMAKE_SOURCE_DIR}/.git MARIAN_GIT_DIR)
+  string(REGEX REPLACE "gitdir: (.*)\n" "\\1" MARIAN_GIT_DIR ${MARIAN_GIT_DIR})
+  get_filename_component(MARIAN_GIT_DIR "${CMAKE_SOURCE_DIR}/${MARIAN_GIT_DIR}" ABSOLUTE)
+endif(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/.git)
+
 add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/common/git_revision.h
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMAND git log -1 --pretty=format:\#define\ GIT_REVISION\ \"\%h\ \%ai\" > ${CMAKE_CURRENT_SOURCE_DIR}/common/git_revision.h
-  DEPENDS ${CMAKE_SOURCE_DIR}/.git/logs/HEAD
+  DEPENDS ${MARIAN_GIT_DIR}/logs/HEAD
   VERBATIM
 )
 add_custom_target(marian_version DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/common/git_revision.h)
 add_dependencies(marian marian_version) # marian must depend on it so that it gets created first
+# make sure all local dependencies are installed first before this is built
+add_dependencies(marian 3rd_party_installs)
 
 if(CUDA_FOUND)
 cuda_add_library(marian_cuda
@@ -119,6 +139,8 @@ cuda_add_library(marian_cuda
   STATIC)
 
   target_compile_options(marian_cuda PUBLIC ${ALL_WARNINGS})
+  # make sure all local dependencies are installed first before this is built
+  add_dependencies(marian_cuda 3rd_party_installs)
 endif(CUDA_FOUND)
 
 set_target_properties(marian PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")

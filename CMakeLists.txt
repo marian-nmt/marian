@@ -32,7 +32,7 @@ message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 
 execute_process(COMMAND git submodule update --init --recursive --no-fetch
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
- 
+
 # Set compilation flags
 if(MSVC)
 # These are used in src/CMakeLists.txt on a per-target basis
@@ -42,7 +42,7 @@ if(MSVC)
   # C4310: cast truncates constant value
   # C4324: 'marian::cpu::int16::`anonymous-namespace'::ScatterPut': structure was padded due to alignment specifier
   set(DISABLE_GLOBALLY "/wd\"4310\" /wd\"4324\"")
-  
+
   set(INTRINSICS "/arch:AVX")
 
   # Or maybe use these?
@@ -57,7 +57,7 @@ if(MSVC)
   set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS} /DEBUG /LTCG:incremental /INCREMENTAL:NO /NODEFAULTLIB:MSVCRT /ignore:4049")
   set(CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} /LTCG:incremental")
 
-  find_library(SHLWAPI Shlwapi.lib) 
+  find_library(SHLWAPI Shlwapi.lib)
   set(EXT_LIBS ${EXT_LIBS} SHLWAPI)
 else(MSVC)
 
@@ -113,12 +113,12 @@ else(MSVC)
     list(APPEND ALL_WARNINGS -Wsuggest-override)
   endif()
 
-  set(CMAKE_CXX_FLAGS                 "-std=c++11 -O3 -Ofast -m64 -pthread -march=${BUILD_ARCH} ${INTRINSICS} -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC ${DISABLE_GLOBALLY}")
-  set(CMAKE_CXX_FLAGS_RELEASE         "${CMAKE_CXX_FLAGS} -g -rdynamic")
-  set(CMAKE_CXX_FLAGS_DEBUG           "-std=c++11 -g -rdynamic -O0 -pthread -Wl,--no-as-needed -fPIC -Wno-unused-result -Wno-deprecated -Wno-pragmas")
-  set(CMAKE_CXX_FLAGS_SLIM            "${CMAKE_CXX_FLAGS} -DNDEBUG")
-  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO  "${CMAKE_CXX_FLAGS} -g -rdynamic")
-  set(CMAKE_CXX_FLAGS_PROFILE         "${CMAKE_CXX_FLAGS_RELEASE} -pg -g -rdynamic")
+  set(CMAKE_CXX_FLAGS                 "-std=c++11 -pthread -Wl,--no-as-needed -fPIC ${DISABLE_GLOBALLY} -march=${BUILD_ARCH} ${INTRINSICS}")
+  set(CMAKE_CXX_FLAGS_RELEASE         "-Ofast -m64 -funroll-loops -ffinite-math-only -g -rdynamic")
+  set(CMAKE_CXX_FLAGS_DEBUG           "-O0 -g -rdynamic")
+  set(CMAKE_CXX_FLAGS_SLIM            "-Ofast -m64 -funroll-loops -ffinite-math-only -DNDEBUG")
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO  "${CMAKE_CXX_FLAGS_RELEASE}")
+  set(CMAKE_CXX_FLAGS_PROFILE         "${CMAKE_CXX_FLAGS_RELEASE} -pg")
   set(CMAKE_CXX_FLAGS_PROFGEN         "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-generate -fprofile-correction")
   set(CMAKE_CXX_FLAGS_PROFUSE         "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-use -fprofile-correction")
 endif(MSVC)
@@ -131,6 +131,10 @@ if(USE_SENTENCEPIECE)
   set(EXT_LIBS ${EXT_LIBS} sentencepiece sentencepiece_train)
 endif()
 
+if(NOT CMAKE_BUILD_TYPE)
+  message(WARNING "CMAKE_BUILD_TYPE not set; setting to Release")
+  set(CMAKE_BUILD_TYPE "Release")
+endif()
 
 # Find packages
 set(EXT_LIBS ${EXT_LIBS} ${CMAKE_DL_LIBS})
@@ -152,6 +156,11 @@ endif()
 
 find_package(CUDA "8.0")
 if(CUDA_FOUND)
+  # CUDA >= 10.0 requires CMake >= 3.12.2
+  if((CUDA_VERSION VERSION_EQUAL "10.0" OR CUDA_VERSION VERSION_GREATER "10.0") AND (CMAKE_VERSION VERSION_LESS "3.12.2"))
+      message(WARNING "On some Unix systems CUDA 10.0+ requires CMake 3.12.2+; you use CMake ${CMAKE_VERSION}")
+  endif()
+
   if(USE_STATIC_LIBS)
     find_library(CUDA_culibos_LIBRARY NAMES culibos PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib64)
     set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_culibos_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})
@@ -159,7 +168,7 @@ if(CUDA_FOUND)
   else(USE_STATIC_LIBS)
     set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})
     message(STATUS "Found CUDA libraries: ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES}")
-endif(USE_STATIC_LIBS)
+  endif(USE_STATIC_LIBS)
 
   if(USE_CUDNN)
     find_package(CUDNN "7.0")
@@ -178,46 +187,16 @@ endif(USE_STATIC_LIBS)
     list(APPEND CUDA_NVCC_FLAGS -DBOOST_PP_VARIADICS=0; )
   endif()
 
-  # We compile NCCL ourselves, using the NVidia Makefile rather than CMake, this requires to pass a couple of parameters from
-  # Cmake. This is also fairly untested, let's hope it does not explode.
-  # @TODO: Make sure it does not use pre-installed NCCL headers
   if(USE_NCCL)
-    # define and set the include dir for the generated nccl.h header
-    set(NCCL_HEADER_LOCATION "${CMAKE_CURRENT_BINARY_DIR}/nccl/include")
-    include_directories(${NCCL_HEADER_LOCATION})
-
-    # set the path for the generated static lib
-    set(NCCL_LIB_STATIC "${CMAKE_CURRENT_BINARY_DIR}/nccl/lib/libnccl_static.a")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_NCCL")
-
-    LIST(APPEND CUDA_NVCC_FLAGS -DUSE_NCCL; )
-
-    # disables compilation for sm_30 to avoid ptxas warning... that's general Kepler support. But K80s are supported for instance by sm_35
-    set(GENCODE "-gencode=arch=compute_35,code=sm_35 -gencode=arch=compute_50,code=sm_50 -gencode=arch=compute_60,code=sm_60 -gencode=arch=compute_61,code=sm_61")
-
-    # We build using NVidia's custom makefile, for that we pass a number of variables from CMake.
-    # Sets output to the chosen build folder, i.e. where the binaries and objects are generated.
-    # Also passes CUDA location from FindCUDA, sets c++ compiler to the same one CMake uses.
-    add_custom_command(OUTPUT ${NCCL_LIB_STATIC}
-                       COMMAND ${CMAKE_MAKE_PROGRAM} src.build
-                       BUILDDIR=${CMAKE_CURRENT_BINARY_DIR}/nccl
-                       CUDA_HOME=${CUDA_TOOLKIT_ROOT_DIR}
-                       CUDA8_GENCODE=${GENCODE}
-                       CXX=${CMAKE_CXX_COMPILER}
-                       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/3rd_party/nccl)
-    add_custom_target(nccl_target DEPENDS ${NCCL_LIB_STATIC})
     add_library(nccl STATIC IMPORTED)
-    set_target_properties(nccl PROPERTIES IMPORTED_LOCATION ${NCCL_LIB_STATIC})
-    add_dependencies(nccl nccl_target)
     set(EXT_LIBS ${EXT_LIBS} nccl)
-
-    # adds the resulting files to be removed by `make clean`
-    set_directory_properties(PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${CMAKE_CURRENT_BINARY_DIR}/nccl)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_NCCL")
+    LIST(APPEND CUDA_NVCC_FLAGS -DUSE_NCCL; )
   endif(USE_NCCL)
 
-if(USE_STATIC_LIBS)
-  set(CMAKE_FIND_LIBRARY_SUFFIXES ${_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
-endif()
+  if(USE_STATIC_LIBS)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ${_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
+  endif()
 
 else(CUDA_FOUND)
   message(FATAL_ERROR "CUDA has not been found, set -DCOMPILE_CUDA=off to avoid this check and to compile the CPU version only")
