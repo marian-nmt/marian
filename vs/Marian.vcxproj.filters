@@ -709,6 +709,9 @@
     <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\deps\clog\src\clog.c">
       <Filter>3rd_party\fbgemm\third_party\cpuinfo\deps\clog\src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\common\aliases.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />

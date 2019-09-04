@@ -8,12 +8,20 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsuggest-override"
 #endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
 #include "3rd_party/zstr/zstr.hpp"
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/stream_buffer.hpp>
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 
 #include <iostream>
 #include <memory>
