@@ -930,6 +930,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClCompile Include="..\src\common\aliases.cpp" />
     <ClCompile Include="..\src\common\binary.cpp" />
     <ClCompile Include="..\src\common\cli_helper.cpp" />
     <ClCompile Include="..\src\common\cli_wrapper.cpp" />
