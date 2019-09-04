@@ -5,8 +5,8 @@
 
 namespace marian {
 
-ExpressionGraph::ExpressionGraph(bool inference, bool optimized)
-    : inferenceOnly_(inference), optimized_(optimized), backend_(nullptr) {}
+ExpressionGraph::ExpressionGraph(bool inference)
+    : inferenceOnly_(inference), backend_(nullptr) {}
 
 void ExpressionGraph::setDevice(DeviceId deviceId, Ptr<Device> device) {
   if(!backend_) {
@@ -20,7 +20,7 @@ void ExpressionGraph::setDevice(DeviceId deviceId, Ptr<Device> device) {
   }
 }
 
-Expr ExpressionGraph::dropout(float prob, const Shape& shape) {
+Expr ExpressionGraph::dropoutMask(float prob, const Shape& shape) {
   return constant(shape, inits::dropout(prob));
 }
 

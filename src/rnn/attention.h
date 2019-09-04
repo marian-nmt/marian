@@ -58,12 +58,11 @@ public:
     ba_ = graph->param(prefix + "_b_att", {1, dimEncState}, inits::zeros);
 
     if(dropout_ > 0.0f) {
-      dropMaskContext_ = graph->dropout(dropout_, {1, dimEncState});
-      dropMaskState_ = graph->dropout(dropout_, {1, dimDecState});
+      dropMaskContext_ = graph->dropoutMask(dropout_, {1, dimEncState});
+      dropMaskState_   = graph->dropoutMask(dropout_, {1, dimDecState});
     }
 
-    if(dropMaskContext_)
-      contextDropped_ = dropout(contextDropped_, dropMaskContext_);
+    contextDropped_ = dropout(contextDropped_, dropMaskContext_);
 
     if(layerNorm_) {
       if(nematusNorm_) {
@@ -113,8 +112,7 @@ public:
     if(recState->shape().size() > 3)
       dimBeam = recState->shape()[-4];
 
-    if(dropMaskState_)
-      recState = dropout(recState, dropMaskState_);
+    recState = dropout(recState, dropMaskState_);
 
     auto mappedState = dot(recState, Wa_);
     if(layerNorm_) {

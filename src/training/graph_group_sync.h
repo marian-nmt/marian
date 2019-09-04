@@ -13,12 +13,11 @@ class SyncGraphGroup : public GraphGroup, public ExponentialSmoothing {
   Ptr<ICommunicator> comm_; // [not null] communicator, e.g. NCCLCommunicator
   Ptr<IMPIWrapper> mpi_;    // [not null] all MPI-like communication goes through this (this is a dummy implementation if no MPI run)
 
-  std::vector<DeviceId> devices_;                  // [deviceIndex]
-  std::vector<Ptr<models::ModelBase>> builders_;   // [deviceIndex]
-  std::vector<Ptr<ExpressionGraph>> graphs_;       // [deviceIndex]
+  std::vector<DeviceId> devices_;                         // [deviceIndex]
+  std::vector<Ptr<models::ICriterionFunction>> builders_; // [deviceIndex]
+  std::vector<Ptr<ExpressionGraph>> graphs_;              // [deviceIndex]
 
   std::vector<Ptr<OptimizerBase>> shardOpt_;       // [deviceIndex]
-
   std::vector<Tensor> paramsAvg_;                  // [deviceIndex] exponentially smoothed parameters, sharded
   // @TODO: instead, create an array of ExponentialSmoothing objects, and don't use ExponentialSmoothing as a base class
   std::vector<Ptr<TensorAllocator>> paramsAllocs_; // [deviceIndex] we must hold a reference to the memory until this class dies

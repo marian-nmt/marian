@@ -33,12 +33,12 @@ public:
              "Unexpected length of embedding vectors");
 
     // Read embedding vectors into a map
-    std::unordered_map<Word, std::vector<float>> word2vec;
+    std::unordered_map<WordIndex, std::vector<float>> word2vec;
     while(io::getline(embFile, line)) {
       values.clear();
       utils::split(line, values);
 
-      Word word = std::stoi(values.front());
+      WordIndex word = std::stoi(values.front());
       if(word >= (size_t)dimVoc)
         continue;
 
@@ -54,7 +54,7 @@ public:
     embs.reserve(dimVoc * dimEmb);
 
     // Populate output vector with embedding
-    for(Word word = 0; word < (Word)dimVoc; ++word) {
+    for(WordIndex word = 0; word < (WordIndex)dimVoc; ++word) {
       // For words not occuring in the file use uniform distribution
       if(word2vec.find(word) == word2vec.end()) {
         auto randVals = randomEmbeddings(dimVoc, dimEmb);
@@ -64,13 +64,14 @@ public:
       }
     }
 
+    embs.resize(dimVoc * dimEmb, 0); // @TODO: is it correct to zero out the remaining embeddings?
     return embs;
   }
 
 private:
   std::vector<float> randomEmbeddings(int dimVoc, int dimEmb) {
     std::vector<float> values;
-    values.reserve(dimEmb);
+    values.resize(dimEmb);
     // Glorot numal distribution
     float scale = sqrtf(2.0f / (dimVoc + dimEmb));
 

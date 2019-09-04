@@ -8,23 +8,15 @@
 namespace marian {
 
 class CharS2SEncoder : public EncoderS2S {
+  using EncoderS2S::EncoderS2S;
+  
 public:
-  CharS2SEncoder(Ptr<Options> options) : EncoderS2S(options) {}
-
   virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
                                   Ptr<data::CorpusBatch> batch) override {
-    auto embedding = createSourceEmbedding(graph);
-
+    graph_ = graph;
     // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask; std::tie
-    (batchEmbeddings, batchMask) = embedding->apply(batch->front());
-
-    // apply dropout over source words
-    float dropProb = inference_ ? 0 : opt<float>("dropout-src");
-    if(dropProb) {
-      int srcWords = batchEmbeddings->shape()[-3];
-      batchEmbeddings = dropout(batchEmbeddings, dropProb, {srcWords, 1, 1});
-    }
+    (batchEmbeddings, batchMask) = getEmbeddingLayer()->apply(batch->front());
 
     int dimEmb = opt<int>("dim-emb");
     auto convSizes = options_->get<std::vector<int>>("char-conv-filters-num");

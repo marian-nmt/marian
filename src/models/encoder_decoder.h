@@ -9,7 +9,7 @@
 
 namespace marian {
 
-class EncoderDecoderBase : public models::ModelBase {
+class IEncoderDecoder : public models::IModel {
 public:
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
@@ -28,25 +28,24 @@ public:
 
   virtual void clear(Ptr<ExpressionGraph> graph) override = 0;
 
-  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
-                                  Ptr<data::Batch> batch,
-                                  bool clearGraph = true) override = 0;
+  virtual Logits build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::Batch> batch,
+                       bool clearGraph = true) override = 0;
 
-  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
-                                  Ptr<data::CorpusBatch> batch,
-                                  bool clearGraph = true) = 0;  
-                                  
+  virtual Logits build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::CorpusBatch> batch,
+                       bool clearGraph = true) = 0;
+
   virtual Ptr<DecoderState> startState(Ptr<ExpressionGraph> graph,
                                        Ptr<data::CorpusBatch> batch) = 0;
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state,
                                  const std::vector<IndexType>& hypIndices,
-                                 const std::vector<IndexType>& embIndices,
+                                 const Words& words,
                                  int dimBatch,
                                  int beamSize)
       = 0;
-
 
   virtual Ptr<Options> getOptions() = 0;
 
@@ -59,17 +58,15 @@ public:
   virtual data::SoftAlignment getAlignment() = 0;
 };
 
-class EncoderDecoder : public EncoderDecoderBase {
+class EncoderDecoder : public IEncoderDecoder, public LayerBase {
 protected:
-  Ptr<Options> options_;
   Ptr<data::ShortlistGenerator> shortlistGenerator_;
 
-  std::string prefix_;
+  const std::string prefix_;
+  const bool inference_{ false };
 
   std::vector<Ptr<EncoderBase>> encoders_;
   std::vector<Ptr<DecoderBase>> decoders_;
-
-  bool inference_{false};
 
   std::set<std::string> modelFeatures_;
 
@@ -81,7 +78,7 @@ protected:
 public:
   typedef data::Corpus dataset_type;
 
-  EncoderDecoder(Ptr<Options> options);
+  EncoderDecoder(Ptr<ExpressionGraph> graph, Ptr<Options> options);
 
   virtual Ptr<Options> getOptions() override { return options_; }
 
@@ -131,13 +128,15 @@ public:
     return decoders_[0]->getShortlist();
   };
 
+  // convert alignment tensors that live GPU-side into a CPU-side vector of vectors
   virtual data::SoftAlignment getAlignment() override {
-    data::SoftAlignment aligns;
-    for(auto aln : decoders_[0]->getAlignments()) {
-      aligns.push_back({});
-      aln->val()->get(aligns.back());
+    data::SoftAlignment softAlignments;
+    auto alignments = decoders_[0]->getAlignments(); // [tgt index][beam depth, max src length, batch size, 1]
+    for(auto alignment : alignments) { // [beam depth, max src length, batch size, 1]
+      softAlignments.push_back({});
+      alignment->val()->get(softAlignments.back());
     }
-    return aligns;
+    return softAlignments; // [tgt index][beam depth * max src length * batch size]
   };
 
   /*********************************************************************/
@@ -148,7 +147,7 @@ public:
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state,
                                  const std::vector<IndexType>& hypIndices,
-                                 const std::vector<IndexType>& embIndices,
+                                 const Words& words,
                                  int dimBatch,
                                  int beamSize) override;
 
@@ -156,13 +155,13 @@ public:
                                     Ptr<data::CorpusBatch> batch,
                                     bool clearGraph = true);
 
-  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
-                                  Ptr<data::CorpusBatch> batch,
-                                  bool clearGraph = true) override;
+  virtual Logits build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::CorpusBatch> batch,
+                       bool clearGraph = true) override;
 
-  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
-                                  Ptr<data::Batch> batch,
-                                  bool clearGraph = true) override;
+  virtual Logits build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::Batch> batch,
+                       bool clearGraph = true) override;
 };
 
 }  // namespace marian

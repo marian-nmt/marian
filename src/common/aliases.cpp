@@ -6,12 +6,19 @@ namespace marian {
 /**
  * Add all aliases
  *
- * An alias is a shortcut option for a predefined set of options. It is triggered if the option has
- * the requested value. The alias option has to be first defined using cli.add<T>(). Defining
- * multiple aliases for the same option name but with different value is allowed.
+ * An alias is a command line option name and value pair that sets multiple other non-alias 
+ * (standard) command line options. And example would be `--task transformer-big` which -- 
+ * as a whole -- is an alias for setting options and hyperparameters that would be reasonable 
+ * for training a Google-style Transformer-Big model. Below key-value pairs 
+ * ("task", "transformer-base") and ("task", "transformer-big") are different aliases that result
+ * in different option sets to be defined.
+ * 
+ * The alias option has to be first defined using cli.add<T>(). Defining
+ * multiple aliases for the same option name but with different values is allowed.
  *
- * Values are compared as std::string. If the alias option is a vector, the alias will be triggered
- * if the requested value exists in that vector at least once.
+ * As aliases are key-value pairs by default, values are compared as std::string. 
+ * If the command line option corresponding to the alias is a vector, the alias 
+ * will be triggered if the requested value exists in that vector at least once.
  *
  * @see CLIWrapper::alias()
  *

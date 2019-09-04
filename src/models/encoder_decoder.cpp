@@ -5,8 +5,8 @@
 
 namespace marian {
 
-EncoderDecoder::EncoderDecoder(Ptr<Options> options)
-    : options_(options),
+EncoderDecoder::EncoderDecoder(Ptr<ExpressionGraph> graph, Ptr<Options> options)
+    : LayerBase(graph, options),
       prefix_(options->get<std::string>("prefix", "")),
       inference_(options->get<bool>("inference", false)) {
 
@@ -58,6 +58,7 @@ EncoderDecoder::EncoderDecoder(Ptr<Options> options)
   modelFeatures_.insert("ulr");
   modelFeatures_.insert("ulr-trainable-transformation");
   modelFeatures_.insert("ulr-dim-emb");
+  modelFeatures_.insert("lemma-dim-emb");
 }
 
 std::vector<Ptr<EncoderBase>>& EncoderDecoder::getEncoders() {
@@ -86,7 +87,7 @@ void EncoderDecoder::createDecoderConfig(const std::string& name) {
     auto modelFileName = filesystem::Path{name}.filename().string();
     decoder["models"] = std::vector<std::string>({modelFileName});
 
-    // create relative paths to vocabs
+    // create relative paths to vocabs with regard to saved model checkpoint
     auto dirPath = filesystem::Path{name}.parentPath();
     std::vector<std::string> relativeVocabs;
     const auto& vocabs = options_->get<std::vector<std::string>>("vocabs");
@@ -187,15 +188,14 @@ Ptr<DecoderState> EncoderDecoder::startState(Ptr<ExpressionGraph> graph,
 Ptr<DecoderState> EncoderDecoder::step(Ptr<ExpressionGraph> graph,
                                        Ptr<DecoderState> state,
                                        const std::vector<IndexType>& hypIndices, // [beamIndex * activeBatchSize + batchIndex]
-                                       const std::vector<IndexType>& embIndices, // [beamIndex * activeBatchSize + batchIndex]
+                                       const Words& words,                       // [beamIndex * activeBatchSize + batchIndex]
                                        int dimBatch,
                                        int beamSize) {
   // create updated state that reflects reordering and dropping of hypotheses
   state = hypIndices.empty() ? state : state->select(hypIndices, beamSize);
 
-  // Fill stte with embeddings based on last prediction
-  decoders_[0]->embeddingsFromPrediction(
-      graph, state, embIndices, dimBatch, beamSize);
+  // Fill state with embeddings based on last prediction
+  decoders_[0]->embeddingsFromPrediction(graph, state, words, dimBatch, beamSize);
   auto nextState = decoders_[0]->step(graph, state);
 
   return nextState;
@@ -214,21 +214,21 @@ Ptr<DecoderState> EncoderDecoder::stepAll(Ptr<ExpressionGraph> graph,
   decoders_[0]->embeddingsFromBatch(graph, state, batch);
   auto nextState = decoders_[0]->step(graph, state);
   nextState->setTargetMask(state->getTargetMask());
-  nextState->setTargetIndices(state->getTargetIndices());
+  nextState->setTargetWords(state->getTargetWords());
 
   return nextState;
 }
 
-Ptr<RationalLoss> EncoderDecoder::build(Ptr<ExpressionGraph> graph,
-                                        Ptr<data::CorpusBatch> batch,
-                                        bool clearGraph) {
+Logits EncoderDecoder::build(Ptr<ExpressionGraph> graph,
+                           Ptr<data::CorpusBatch> batch,
+                           bool clearGraph) {
   auto state = stepAll(graph, batch, clearGraph);
 
   // returns raw logits
-  return New<RationalLoss>(state->getLogProbs(), state->getTargetMask()); // @TODO: hacky hack hack
+  return state->getLogProbs();
 }
 
-Ptr<RationalLoss> EncoderDecoder::build(Ptr<ExpressionGraph> graph,
+Logits EncoderDecoder::build(Ptr<ExpressionGraph> graph,
                            Ptr<data::Batch> batch,
                            bool clearGraph) {
   auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);

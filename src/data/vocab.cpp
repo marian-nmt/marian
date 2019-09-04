@@ -3,21 +3,26 @@
 
 namespace marian {
 
-Ptr<VocabBase> createDefaultVocab();
-Ptr<VocabBase> createClassVocab();
-Ptr<VocabBase> createSentencePieceVocab(const std::string& /*vocabPath*/, Ptr<Options>, size_t /*batchIndex*/);
+Word Word::NONE = Word();
+Word Word::ZERO = Word(0);
+Word Word::DEFAULT_EOS_ID = Word(0);
+Word Word::DEFAULT_UNK_ID = Word(1);
 
 // @TODO: make each vocab peek on type
-Ptr<VocabBase> createVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
+Ptr<IVocab> createVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
+  // try SentencePiece
   auto vocab = createSentencePieceVocab(vocabPath, options, batchIndex);
-  if(vocab) {
+  if(vocab)
     return vocab; // this is defined which means that a sentencepiece vocabulary could be created, so return it
-  } else {
-    // check type of input, if not given, assume "sequence"
-    auto inputTypes = options->get<std::vector<std::string>>("input-types", {});
-    std::string inputType = inputTypes.size() > batchIndex ? inputTypes[batchIndex] : "sequence";
-    return inputType == "class" ? createClassVocab() : createDefaultVocab();
-  }
+  // try factored
+  vocab = createFactoredVocab(vocabPath);
+  if (vocab)
+    return vocab;
+  // regular vocab
+  // check type of input, if not given, assume "sequence"
+  auto inputTypes = options->get<std::vector<std::string>>("input-types", {});
+  std::string inputType = inputTypes.size() > batchIndex ? inputTypes[batchIndex] : "sequence";
+  return inputType == "class" ? createClassVocab() : createDefaultVocab();
 }
 
 size_t Vocab::loadOrCreate(const std::string& vocabPath,
@@ -86,6 +91,10 @@ void Vocab::createFake() {
   vImpl_->createFake();
 }
 
+Word Vocab::randWord() {
+  return vImpl_->randWord();
+}
+
 // string token to token id
 Word Vocab::operator[](const std::string& word) const {
   return vImpl_->operator[](word);
@@ -103,11 +112,18 @@ Words Vocab::encode(const std::string& line,
   return vImpl_->encode(line, addEOS, inference);
 }
 
-// list of token ids to single line, can perform detokenization
+// convert sequence of token ids to single line, can perform detokenization
 std::string Vocab::decode(const Words& sentence,
                     bool ignoreEOS) const {
   return vImpl_->decode(sentence, ignoreEOS);
 }
+
+// convert sequence of token its to surface form (incl. removng spaces, applying factors)
+// for in-process BLEU validation
+std::string Vocab::surfaceForm(const Words& sentence) const {
+  return vImpl_->surfaceForm(sentence);
+}
+
 
 // number of vocabulary items
 size_t Vocab::size() const { return vImpl_->size(); }
@@ -120,5 +136,14 @@ Word Vocab::getEosId() const { return vImpl_->getEosId(); }
 
 // return UNK symbol id
 Word Vocab::getUnkId() const { return vImpl_->getUnkId(); }
+
+// for corpus augmentation: convert string to all-caps
+std::string Vocab::toUpper(const std::string& line) const { return vImpl_->toUpper(line); }
+
+// for corpus augmentation: convert string to title case
+std::string Vocab::toEnglishTitleCase(const std::string& line) const { return vImpl_->toEnglishTitleCase(line); }
+
+// for short-list generation
+void Vocab::transcodeToShortlistInPlace(WordIndex* ptr, size_t num) const { vImpl_->transcodeToShortlistInPlace(ptr, num); }
 
 }  // namespace marian

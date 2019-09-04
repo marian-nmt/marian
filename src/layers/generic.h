@@ -5,14 +5,12 @@
 #include "data/shortlist.h"
 #include "layers/factory.h"
 
-namespace marian {
-namespace mlp {
-/**
- * @brief Activation functions
- */
-enum struct act : int { linear, tanh, sigmoid, ReLU, LeakyReLU, PReLU, swish };
-}  // namespace mlp
-}  // namespace marian
+namespace marian { namespace mlp {
+  /**
+   * @brief Activation functions
+   */
+  enum struct act : int { linear, tanh, sigmoid, ReLU, LeakyReLU, PReLU, swish };
+}}
 
 YAML_REGISTER_TYPE(marian::mlp::act, int)
 
@@ -31,12 +29,12 @@ public:
       : graph_(graph), options_(options) {}
 
   template <typename T>
-  T opt(const std::string key) {
+  T opt(const std::string key) const {
     return options_->get<T>(key);
   }
 
   template <typename T>
-  T opt(const std::string key, T defaultValue) {
+  T opt(const std::string key, const T& defaultValue) const {
     return options_->get<T>(key, defaultValue);
   }
 };
@@ -44,15 +42,122 @@ public:
 // Simplest layer interface: Unary function
 struct IUnaryLayer {
   virtual Expr apply(Expr) = 0;
-  virtual Expr apply(const std::vector<Expr>&) = 0;
+  virtual Expr apply(const std::vector<Expr>& es) {
+    ABORT_IF(es.size() > 1, "Not implemented"); // simple stub
+    return apply(es.front());
+  }
+};
+
+struct IHasShortList {
+  virtual void setShortlist(Ptr<data::Shortlist> shortlist) = 0;
+  virtual void clear() = 0;
 };
 
 // Embedding from corpus sub-batch to (emb, mask)
 struct IEmbeddingLayer {
   virtual std::tuple<Expr/*embeddings*/, Expr/*mask*/> apply(Ptr<data::SubBatch> subBatch) const = 0;
 
-  // alternative version from index vector, and with batch dims/shape
-  virtual Expr apply(const std::vector<IndexType>& embIdx, const Shape& shape) const = 0;
+  virtual Expr apply(const Words& embIdx, const Shape& shape) const = 0;
+
+  // alternative from indices directly
+  virtual Expr applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const = 0;
+};
+
+// base class for Encoder and Decoder classes, which have embeddings and a batch index (=stream index)
+class EncoderDecoderLayerBase : public LayerBase {
+protected:
+  const std::string prefix_;
+  const bool embeddingFix_;
+  const float dropout_;
+  const bool inference_;
+  const size_t batchIndex_;
+  mutable std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
+
+  EncoderDecoderLayerBase(Ptr<ExpressionGraph> graph, Ptr<Options> options, const std::string& prefix, size_t batchIndex,
+        float dropout,
+        bool embeddingFix) :
+      LayerBase(graph, options),
+      prefix_(options->get<std::string>("prefix", prefix)),
+      embeddingFix_(embeddingFix),
+      dropout_(dropout),
+      inference_(options->get<bool>("inference", false)),
+      batchIndex_(options->get<size_t>("index", batchIndex)) {}
+
+  virtual ~EncoderDecoderLayerBase() {}
+
+private:
+  Ptr<IEmbeddingLayer> createEmbeddingLayer() const;
+  Ptr<IEmbeddingLayer> createULREmbeddingLayer() const;
+
+public:
+  // get embedding layer; lazily create on first call
+  Ptr<IEmbeddingLayer> getEmbeddingLayer(bool ulr = false) const;
+};
+
+class FactoredVocab;
+
+// To support factors, any output projection (that is followed by a softmax) must
+// retain multiple outputs, one for each factor. Such layer returns not a single Expr,
+// but a Logits object that contains multiple.
+// This allows to compute softmax values in a factored manner, where we never create
+// a fully expanded list of all factor combinations.
+class RationalLoss;
+class Logits {
+public:
+    Logits() {}
+    explicit Logits(Ptr<RationalLoss> logits) { // single-output constructor
+      logits_.push_back(logits);
+    }
+    explicit Logits(Expr logits); // single-output constructor from Expr only (RationalLoss has no count)
+    Logits(std::vector<Ptr<RationalLoss>>&& logits, Ptr<FactoredVocab> embeddingFactorMapping) // factored-output constructor
+      : logits_(std::move(logits)), factoredVocab_(embeddingFactorMapping) {}
+    Expr getLogits() const; // assume it holds logits: get them, possibly aggregating over factors
+    Expr getFactoredLogits(size_t groupIndex, Ptr<data::Shortlist> shortlist = nullptr, const std::vector<IndexType>& hypIndices = {}, size_t beamSize = 0) const; // get logits for only one factor group, with optional reshuffle
+    //Ptr<RationalLoss> getRationalLoss() const; // assume it holds a loss: get that
+    Expr applyLossFunction(const Words& labels, const std::function<Expr(Expr/*logits*/,Expr/*indices*/)>& lossFn) const;
+    Logits applyUnaryFunction(const std::function<Expr(Expr)>& f) const; // clone this but apply f to all loss values
+    Logits applyUnaryFunctions(const std::function<Expr(Expr)>& f1, const std::function<Expr(Expr)>& fother) const; // clone this but apply f1 to first and fother to to all other values
+
+    struct MaskedFactorIndices {
+      std::vector<WordIndex> indices; // factor index, or 0 if masked
+      std::vector<float> masks;
+      void reserve(size_t n) { indices.reserve(n); masks.reserve(n); }
+      void push_back(size_t factorIndex); // push back into both arrays, setting mask and index to 0 for invalid entries
+      MaskedFactorIndices() {}
+      MaskedFactorIndices(const Words& words) { indices = toWordIndexVector(words); } // we can leave masks uninitialized for this special use case
+    };
+    std::vector<MaskedFactorIndices> factorizeWords(const Words& words) const; // breaks encoded Word into individual factor indices
+    Tensor getFactoredLogitsTensor(size_t factorGroup) const; // used for breakDown() only
+    size_t getNumFactorGroups() const { return logits_.size(); }
+    bool empty() const { return logits_.empty(); }
+    Logits withCounts(const Expr& count) const; // create new Logits with 'count' implanted into all logits_
+private:
+    // helper functions
+    Ptr<ExpressionGraph> graph() const;
+    Expr constant(const Shape& shape, const std::vector<float>&    data) const { return graph()->constant(shape, inits::from_vector(data), Type::float32); }
+    Expr constant(const Shape& shape, const std::vector<uint32_t>& data) const { return graph()->constant(shape, inits::from_vector(data), Type::uint32);  }
+    template<typename T> Expr constant(const std::vector<T>& data) const { return constant(Shape{(int)data.size()}, data); } // same as constant() but assuming vector
+    Expr indices(const std::vector<uint32_t>& data) const { return graph()->indices(data); } // actually the same as constant(data) for this data type
+    std::vector<float> getFactorMasks(size_t factorGroup, const std::vector<WordIndex>& indices) const;
+private:
+    // members
+    // @TODO: we don't use the RationalLoss component anymore, can be removed again, and replaced just by the Expr
+    std::vector<Ptr<RationalLoss>> logits_; // [group id][B..., num factors in group]
+    Ptr<FactoredVocab> factoredVocab_;
+};
+
+// Unary function that returns a Logits object
+// Also implements IUnaryLayer, since Logits can be cast to Expr.
+// This interface is implemented by all layers that are of the form of a unary function
+// that returns multiple logits, to support factors.
+struct IUnaryLogitLayer : public IUnaryLayer {
+  virtual Logits applyAsLogits(Expr) = 0;
+  virtual Logits applyAsLogits(const std::vector<Expr>& es) {
+    ABORT_IF(es.size() > 1, "Not implemented"); // simple stub
+    return applyAsLogits(es.front());
+  }
+  virtual Expr apply(Expr e) override { return applyAsLogits(e).getLogits(); }
+  virtual Expr apply(const std::vector<Expr>& es) override { return applyAsLogits(es).getLogits(); }
 };
 
 namespace mlp {
@@ -123,19 +228,23 @@ public:
   Expr apply(Expr input) override { return apply(std::vector<Expr>({input})); }
 };
 
-class Output : public LayerBase, public IUnaryLayer {
+class Output : public LayerBase, public IUnaryLogitLayer, public IHasShortList {
 private:
   // parameters held by this layer
   Expr Wt_; // weight matrix is stored transposed for efficiency
   Expr b_;
+  Expr lemmaEt_; // re-embedding matrix for lemmas [lemmaDimEmb x lemmaVocabSize]
   bool isLegacyUntransposedW{false}; // legacy-model emulation: W is stored in non-transposed form
   Expr cachedShortWt_;  // short-listed version, cached (cleared by clear())
   Expr cachedShortb_;   // these match the current value of shortlist_
+  Expr cachedShortLemmaEt_;
+  Ptr<FactoredVocab> factoredVocab_;
 
   // optional parameters set/updated after construction
   Expr tiedParam_;
   Ptr<data::Shortlist> shortlist_;
 
+  void lazyConstruct(int inputDim);
 public:
   Output(Ptr<ExpressionGraph> graph, Ptr<Options> options)
       : LayerBase(graph, options) {
@@ -149,101 +258,46 @@ public:
       tiedParam_ = tied;
   }
 
-  void setShortlist(Ptr<data::Shortlist> shortlist) {
+  void setShortlist(Ptr<data::Shortlist> shortlist) override final {
     if (shortlist_)
       ABORT_IF(shortlist.get() != shortlist_.get(), "Output shortlist cannot be changed except after clear()");
     else {
-      ABORT_IF(cachedShortWt_ || cachedShortb_, "No shortlist but cached parameters??");
+      ABORT_IF(cachedShortWt_ || cachedShortb_ || cachedShortLemmaEt_, "No shortlist but cached parameters??");
       shortlist_ = shortlist;
     }
     // cachedShortWt_ and cachedShortb_ will be created lazily inside apply()
   }
 
   // this is expected to be called in sync with graph->clear(), which invalidates
-  // cachedShortWt_ and cachedShortb_ in the graph's short-term cache
-  void clear() {
+  // cachedShortWt_ etc. in the graph's short-term cache
+  void clear() override final {
     shortlist_ = nullptr;
     cachedShortWt_ = nullptr;
     cachedShortb_  = nullptr;
+    cachedShortLemmaEt_ = nullptr;
   }
 
-  Expr apply(Expr input) override {
-    if(!Wt_) { // create lazily because we need input's dimension
-      auto name = options_->get<std::string>("prefix");
-      auto dim = options_->get<int>("dim");
-
-      if(tiedParam_) {
-        Wt_ = tiedParam_;
-      } else {
-        if (graph_->get(name + "_W")) { // support of legacy models that did not transpose
-          Wt_ = graph_->param(name + "_W", {input->shape()[-1], dim}, inits::glorot_uniform2(/*fanIn=*/true, /*fanOut=*/false)); // @TODO: unify initializers, already done in other branch
-          isLegacyUntransposedW = true;
-        }
-        else // this is the regular case:
-          Wt_ = graph_->param(name + "_Wt", {dim, input->shape()[-1]}, inits::glorot_uniform2(/*fanIn=*/false, /*fanOut=*/true)); // @TODO: unify initializers, already done in other branch
-      }
-      b_ = graph_->param(name + "_b", {1, dim}, inits::zeros);
-    }
-
-    if (shortlist_) {
-      if (!cachedShortWt_) { // short versions of parameters are cached within one batch, then clear()ed
-        cachedShortWt_ = index_select(Wt_, isLegacyUntransposedW ? -1 : 0, shortlist_->indices());
-        cachedShortb_  = index_select(b_ ,                             -1, shortlist_->indices());
-      }
-      return affine(input, cachedShortWt_, cachedShortb_, false, /*transB=*/isLegacyUntransposedW ? false : true);
-    }
-    else
-      return affine(input, Wt_, b_, false, /*transB=*/isLegacyUntransposedW ? false : true);
-  }
-
-  virtual Expr apply(const std::vector<Expr>& /*inputs*/) override {
-    ABORT("Not implemented");
-  };
+  Logits applyAsLogits(Expr input) override final;
 };
 
 }  // namespace mlp
 
+// A regular embedding layer.
+// Note that this also applies dropout if the option is passed (pass 0 when in inference mode).
+// It is best to not use Embedding directly, but rather via getEmbeddingLayer() in
+// EncoderDecoderLayerBase, which knows to pass on all required parameters from options.
 class Embedding : public LayerBase, public IEmbeddingLayer {
   Expr E_;
+  Ptr<FactoredVocab> factoredVocab_;
+  Expr multiRows(const Words& data, float dropProb) const;
 public:
-  Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options) : LayerBase(graph, options) {
-    std::string name = opt<std::string>("prefix");
-    int dimVoc = opt<int>("dimVocab");
-    int dimEmb = opt<int>("dimEmb");
+  Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options);
 
-    bool fixed = opt<bool>("fixed", false);
+  std::tuple<Expr/*embeddings*/, Expr/*mask*/> apply(Ptr<data::SubBatch> subBatch) const override final;
 
-    // Embedding layer initialization should depend only on embedding size, hence fanIn=false
-    NodeInitializer initFunc = inits::glorot_uniform2(/*fanIn=*/false, /*fanOut=*/true);
+  Expr apply(const Words& words, const Shape& shape) const override final;
 
-    if (options_->has("embFile")) {
-      std::string file = opt<std::string>("embFile");
-      if (!file.empty()) {
-        bool norm = opt<bool>("normalization", false);
-        initFunc = inits::from_word2vec(file, dimVoc, dimEmb, norm);
-      }
-    }
-
-    E_ = graph_->param(name, {dimVoc, dimEmb}, initFunc, fixed);
-  }
-
-  std::tuple<Expr/*embeddings*/, Expr/*mask*/> apply(Ptr<data::SubBatch> subBatch) const override final {
-    auto graph = E_->graph();
-    int dimBatch = (int)subBatch->batchSize();
-    int dimEmb = E_->shape()[-1];
-    int dimWords = (int)subBatch->batchWidth();
-
-    auto batchEmbeddings = apply(subBatch->data(), { dimWords, dimBatch, dimEmb });
-    auto batchMask = graph->constant({ dimWords, dimBatch, 1 },
-                                     inits::from_vector(subBatch->mask()));
-    return std::make_tuple(batchEmbeddings, batchMask);
-  }
-
-  // special version used in decoding or for learned positional embeddings
-  Expr apply(const std::vector<IndexType>& embIdx, const Shape& shape) const override final {
-    auto selectedEmbs = rows(E_, embIdx);
-    return reshape(selectedEmbs, shape);
-  }
+  Expr applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const override final;
 };
 
 class ULREmbedding : public LayerBase, public IEmbeddingLayer {
@@ -326,9 +380,10 @@ public:
     // note all above can be precombuted and serialized if A is not trainiable and during decoding (TBD)
     // here we need to handle the mini-batch
     // extract raws corresponding to Xs in this minibatch from Q
-    auto queryEmbeddings = rows(queryEmbed, subBatch->data());
-    auto srcEmbeddings = rows(srcEmbed, subBatch->data());   // extract trainable src embeddings
-    auto alpha = rows(ulrSharable, subBatch->data());  // extract sharable flags
+    auto embIdx = toWordIndexVector(subBatch->data());
+    auto queryEmbeddings = rows(queryEmbed, embIdx);
+    auto srcEmbeddings = rows(srcEmbed, embIdx);   // extract trainable src embeddings
+    auto alpha = rows(ulrSharable, embIdx);  // extract sharable flags
     auto qt = dot(queryEmbeddings, ulrTransform, false, false);  //A: transform embeddings based on similarity A :  dimUlrEmb*dimUlrEmb
     auto sqrtDim=std::sqrt((float)queryEmbeddings->shape()[-1]);
     qt = qt/sqrtDim;  // normalize accordin to embed size to avoid dot prodcut growing large in magnitude with larger embeds sizes
@@ -346,18 +401,17 @@ public:
     auto graph = ulrEmbeddings_.front()->graph();
     auto batchMask = graph->constant({ dimWords, dimBatch, 1 },
                                      inits::from_vector(subBatch->mask()));
+    batchEmbeddings = dropout(batchEmbeddings, options_->get<float>("dropout", 0.0f), {batchEmbeddings->shape()[-3], 1, 1});
     return std::make_tuple(batchEmbeddings, batchMask);
   }
 
-  Expr apply(const std::vector<IndexType>& embIdx, const Shape& shape) const override final {
+  Expr apply(const Words& words, const Shape& shape) const override final {
+    return applyIndices(toWordIndexVector(words), shape);
+  }
+
+  Expr applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const override final {
     embIdx; shape;
     ABORT("not implemented"); // @TODO: implement me
   }
 };
-
-typedef ConstructingFactory<Embedding> EmbeddingFactory;
-typedef ConstructingFactory<ULREmbedding> ULREmbeddingFactory;
-
-typedef Accumulator<EmbeddingFactory> embedding;
-typedef Accumulator<ULREmbeddingFactory> ulr_embedding;
 }  // namespace marian

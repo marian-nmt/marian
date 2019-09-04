@@ -8,8 +8,7 @@ namespace marian {
 
 class Nematus : public EncoderDecoder {
 public:
-  template <class... Args>
-  Nematus(Ptr<Options> options) : EncoderDecoder(options), nameMap_(createNameMap()) {
+  Nematus(Ptr<ExpressionGraph> graph, Ptr<Options> options) : EncoderDecoder(graph, options), nameMap_(createNameMap()) {
     ABORT_IF(options_->get<std::string>("enc-type") != "bidirectional",
              "--type nematus does not currently support other encoder "
              "type than bidirectional, use --type s2s");

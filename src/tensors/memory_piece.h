@@ -40,4 +40,5 @@ public:
     return out;
   }
 };
+
 }  // namespace marian

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "marian.h"
+#include "layers/generic.h" // @HACK: for factored embeddings only so far
 #include "rnn/types.h"
 
 namespace marian {
@@ -29,20 +30,20 @@ public:
 class DecoderState {
 protected:
   rnn::States states_; // states of individual decoder layers
-  Expr logProbs_;
+  Logits logProbs_;
   std::vector<Ptr<EncoderState>> encStates_;
   Ptr<data::CorpusBatch> batch_;
 
-  Expr targetEmbeddings_;
+  Expr targetHistoryEmbeddings_; // decoder history (teacher-forced or from decoding), embedded
   Expr targetMask_;
-  Expr targetIndices_;
+  Words targetWords_;            // target labels
 
   // Keep track of current target token position during translation
   size_t position_{0};
 
 public:
   DecoderState(const rnn::States& states,
-               Expr logProbs,
+               Logits logProbs,
                const std::vector<Ptr<EncoderState>>& encStates,
                Ptr<data::CorpusBatch> batch)
       : states_(states), logProbs_(logProbs), encStates_(encStates), batch_(batch) {}
@@ -52,8 +53,8 @@ public:
     return encStates_;
   }
 
-  virtual Expr getLogProbs() const { return logProbs_; }
-  virtual void setLogProbs(Expr logProbs) { logProbs_ = logProbs; }
+  virtual Logits getLogProbs() const { return logProbs_; }
+  virtual void setLogProbs(Logits logProbs) { logProbs_ = logProbs; }
 
   // @TODO: should this be a constructor? Then derived classes can call this without the New<> in the loop
   virtual Ptr<DecoderState> select(const std::vector<IndexType>& selIdx,
@@ -69,20 +70,13 @@ public:
 
   virtual const rnn::States& getStates() const { return states_; }
 
-  virtual Expr getTargetEmbeddings() const { return targetEmbeddings_; };
+  virtual Expr getTargetHistoryEmbeddings() const { return targetHistoryEmbeddings_; };
+  virtual void setTargetHistoryEmbeddings(Expr targetHistoryEmbeddings) { targetHistoryEmbeddings_ = targetHistoryEmbeddings; }
 
-  virtual void setTargetEmbeddings(Expr targetEmbeddings) {
-    targetEmbeddings_ = targetEmbeddings;
-  }
-
-  virtual Expr getTargetIndices() const { return targetIndices_; };
-
-  virtual void setTargetIndices(Expr targetIndices) {
-    targetIndices_ = targetIndices;
-  }
+  virtual const Words& getTargetWords() const { return targetWords_; };
+  virtual void setTargetWords(const Words& targetWords) { targetWords_ = targetWords; }
 
   virtual Expr getTargetMask() const { return targetMask_; };
-
   virtual void setTargetMask(Expr targetMask) { targetMask_ = targetMask; }
 
   virtual const Words& getSourceWords() const {
@@ -111,15 +105,14 @@ private:
   Ptr<data::CorpusBatch> batch_;
 
   Expr targetMask_;
-  Expr targetIndices_;
+  Words targetWords_;
 
 public:
   virtual Expr getLogProbs() const { return logProbs_; }
   virtual void setLogProbs(Expr logProbs) { logProbs_ = logProbs; }
 
-  virtual Expr getTargetIndices() const { return targetIndices_; };
-
-  virtual void setTargetIndices(Expr targetIndices) { targetIndices_ = targetIndices; }
+  virtual const Words& getTargetWords() const { return targetWords_; };
+  virtual void setTargetWords(const Words& targetWords) { targetWords_ = targetWords; }
 
   virtual Expr getTargetMask() const { return targetMask_; };
 

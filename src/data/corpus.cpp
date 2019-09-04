@@ -12,12 +12,38 @@ namespace marian {
 namespace data {
 
 Corpus::Corpus(Ptr<Options> options, bool translate /*= false*/)
-    : CorpusBase(options, translate), shuffleInRAM_(options_->get<bool>("shuffle-in-ram")) {}
+    : CorpusBase(options, translate),
+        shuffleInRAM_(options_->get<bool>("shuffle-in-ram")),
+        allCapsEvery_(options_->get<size_t>("all-caps-every")),
+        titleCaseEvery_(options_->get<size_t>("english-title-case-every")) {}
 
 Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
                Ptr<Options> options)
-    : CorpusBase(paths, vocabs, options), shuffleInRAM_(options_->get<bool>("shuffle-in-ram")) {}
+    : CorpusBase(paths, vocabs, options),
+        shuffleInRAM_(options_->get<bool>("shuffle-in-ram")),
+        allCapsEvery_(options_->get<size_t>("all-caps-every")),
+        titleCaseEvery_(options_->get<size_t>("english-title-case-every")) {}
+
+void Corpus::preprocessLine(std::string& line, size_t streamId) {
+  if (allCapsEvery_ != 0 && pos_ % allCapsEvery_ == 0 && !inference_) {
+    line = vocabs_[streamId]->toUpper(line);
+    if (streamId == 0)
+      LOG_ONCE(info, "[data] Source all-caps'ed line to: {}", line);
+    else
+      LOG_ONCE(info, "[data] Target all-caps'ed line to: {}", line);
+  }
+  else if (titleCaseEvery_ != 0 && pos_ % titleCaseEvery_ == 1 && !inference_ && streamId == 0) {
+    // Only applied to stream 0 (source) since this feature is aimed at robustness against
+    // title case in the source (and not at translating into title case).
+    // Note: It is user's responsibility to not enable this if the source language is not English.
+    line = vocabs_[streamId]->toEnglishTitleCase(line);
+    if (streamId == 0)
+      LOG_ONCE(info, "[data] Source English-title-case'd line to: {}", line);
+    else
+      LOG_ONCE(info, "[data] Target English-title-case'd line to: {}", line);
+  }
+}
 
 SentenceTuple Corpus::next() {
   for(;;) { // (this is a retry loop for skipping invalid sentences)
@@ -57,6 +83,7 @@ SentenceTuple Corpus::next() {
       } else if(i > 0 && i == weightFileIdx_) {
         addWeightsToSentenceTuple(line, tup);
       } else {
+        preprocessLine(line, i);
         addWordsToSentenceTuple(line, i, tup);
       }
     }

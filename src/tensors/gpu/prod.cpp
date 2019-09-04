@@ -1,4 +1,8 @@
 
+#ifdef _MSC_VER
+#pragma warning(disable: 4505) // warning C4505: '__float2half_rz': unreferenced local function has been removed (missing 'static inline')
+#endif
+
 #include <cublas_v2.h>
 #include <cusparse.h>
 
@@ -12,8 +16,9 @@ namespace marian {
 
 namespace gpu {
 
-#if CUDA_VERSION >= 9000
 static void setTensorMode(cublasHandle_t cublasHandle) {
+  cublasHandle; // fool warnings
+#if CUDA_VERSION >= 9000
   static int mode = 0;  // 1: use TC; -1: do not use TC; 0: not set yet
   if (mode == 0) { // multi-thread note: this is sort-of thread-safe, since multiple threads would determine the same value
     const char* var = getenv("ENABLE_CUBLAS_TENSOR_OP_MATH_FP32");
@@ -37,8 +42,15 @@ static void setTensorMode(cublasHandle_t cublasHandle) {
       LOG(info, "[gpu] 16-bit TensorCores enabled for float32 matrix operations");
   }
   CUBLAS_CHECK(cublasSetMathMode(cublasHandle, mode > 0 ? CUBLAS_TENSOR_OP_MATH : CUBLAS_DEFAULT_MATH));
-}
 #endif
+}
+
+static void unsetTensorMode(cublasHandle_t cublasHandle) {
+  cublasHandle; // fool warnings
+#if CUDA_VERSION >= 9000
+  CUBLAS_CHECK(cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH));
+#endif
+}
 
 void Prod(marian::Tensor C,
           const marian::Tensor& A,
@@ -47,7 +59,7 @@ void Prod(marian::Tensor C,
           bool transB,
           float beta,
           float scalar) {
-  cudaSetDevice(C->getDeviceId().no);
+  cudaSetDevice((int)C->getDeviceId().no);
   float alpha = scalar;
 
   size_t m = A->shape().elements() / A->shape().back();
@@ -73,70 +85,23 @@ void Prod(marian::Tensor C,
   auto cublasHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
                           ->getCublasHandle();
 
-#if CUDA_VERSION >= 9000
   setTensorMode(cublasHandle);
-  //cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
-#endif
-
   CUBLAS_CHECK(cublasSgemm(cublasHandle,
               opB,
               opA,
-              n,
-              m,
-              k,
+              (int)n,
+              (int)m,
+              (int)k,
               &alpha,
               B->data(),
-              ldb,
+              (int)ldb,
               A->data(),
-              lda,
+              (int)lda,
               &beta,
               C->data(),
-              ldc));
-#if CUDA_VERSION >= 9000
-  cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
-#endif
+              (int)ldc));
+  unsetTensorMode(cublasHandle);
 }
-
-#if 0 // @TODO: remove, then rename from .cu to .cpp
-__global__ void gAddBias(float* out,
-                         const float* bias,
-                         size_t length,
-                         size_t cols) {
-  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
-    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
-    if(index < length) {
-      size_t index2 = index % cols;
-      out[index] += bias[index2];
-    }
-  }
-}
-
-void AddBias(marian::Tensor C, const marian::Tensor bias) {
-  cudaSetDevice(C->getDeviceId().no);
-
-  int length = C->shape().elements();
-  int cols = bias->shape().elements();
-
-  int threads = std::min(MAX_THREADS, length);
-  int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
-
-  gAddBias<<<blocks, threads>>>(C->data(), bias->data(), length, cols); // @TODO: CUDA_CHECK
-
-  CUDA_CHECK(cudaStreamSynchronize(0)); // @BUGBUG: Should not be here. Prod() also does not have this.
-}
-
-void ProdWithBias(marian::Tensor C,
-                  const marian::Tensor& A,
-                  const marian::Tensor& B,
-                  const marian::Tensor& bias,
-                  bool transA,
-                  bool transB,
-                  float beta,
-                  float scalar) {
-  marian::gpu::Prod(C, A, B, transA, transB, beta, scalar);
-  marian::gpu::AddBias(C, bias);
-}
-#endif
 
 void ProdBatched(marian::Tensor C,
                  Ptr<Allocator> allocator,
@@ -146,7 +111,7 @@ void ProdBatched(marian::Tensor C,
                  bool transB,
                  float beta,
                  float scalar) {
-  cudaSetDevice(C->getDeviceId().no);
+  cudaSetDevice((int)C->getDeviceId().no);
   float alpha = scalar;
 
   size_t batchA = A->shape().elements() / (A->shape()[-1] * A->shape()[-2]);
@@ -175,10 +140,10 @@ void ProdBatched(marian::Tensor C,
   auto cublasHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
                           ->getCublasHandle();
 
-  int strideA = batchA == 1 ? 0 : m * k;
-  int strideB = batchB == 1 ? 0 : n * k;
-  int strideC = n * m;
-  int batchC = std::max(batchA, batchB);
+  auto strideA = batchA == 1 ? 0 : m * k;
+  auto strideB = batchB == 1 ? 0 : n * k;
+  auto strideC = n * m;
+  auto batchC = std::max(batchA, batchB);
 
   std::vector<const float*> aptr;
   std::vector<const float*> bptr;
@@ -201,32 +166,51 @@ void ProdBatched(marian::Tensor C,
   auto mp_cptr = allocator->alloc<float*>(cptr.size());
   CudaCopy(cptr.data(), cptr.data() + cptr.size(), mp_cptr->data<float*>());
 
-#if CUDA_VERSION >= 9000
   setTensorMode(cublasHandle);
-  //cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
-#endif
   CUBLAS_CHECK(cublasSgemmBatched(cublasHandle,
                      opB,
                      opA,
-                     n,
-                     m,
-                     k,
+                     (int)n,
+                     (int)m,
+                     (int)k,
                      &alpha,
                      mp_bptr->data<const float*>(),
-                     ldb,
+                     (int)ldb,
                      mp_aptr->data<const float*>(),
-                     lda,
+                     (int)lda,
                      &beta,
                      mp_cptr->data<float*>(),
-                     ldc,
-                     batchC));
-#if CUDA_VERSION >= 9000
-  cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
-#endif
+                     (int)ldc,
+                     (int)batchC));
+  unsetTensorMode(cublasHandle);
 
   allocator->free(mp_aptr);
   allocator->free(mp_bptr);
   allocator->free(mp_cptr);
+}
+
+// bug in cuSparse: sparse matrix is limited to 65535 columns
+// This function is a drop-in replacement that handles it (by slicing).
+cusparseStatus_t
+static cusparseSgemmiEx(cusparseHandle_t handle, int m,
+  int n, // the offending number of columns of matrices B and C
+  int k, int nnz, const float *alpha, const float *A, int lda,
+  const float *cscValB, const int *cscColPtrB, const int *cscRowIndB, const float *beta,
+  float *C, int ldc)
+{
+  const int nMax = 65535; // max. number of columns allowed by cuSparse 10 implementation
+  for (int j0 = 0; j0 < n; j0 += 65535) { // loop over column slices, j0 = index of first column
+    // Call original function on a column slice.
+    // Replace all parameters that relate to the column slice.
+    // nnz does not need to be corrected.
+    auto n1 = std::min(n - j0, nMax);   // width of column slice is limited to max
+    auto C1 = C + j0 * ldc;             // column slice into result matrix C
+    auto cscColPtrB1 = cscColPtrB + j0; // column slice into sparse factor B
+    auto rc = cusparseSgemmi(handle, m, n1, k, nnz, alpha, A, lda, cscValB, cscColPtrB1, cscRowIndB, beta, C1, ldc);
+    if (rc != CUSPARSE_STATUS_SUCCESS)
+      return rc;
+  }
+  return CUSPARSE_STATUS_SUCCESS;
 }
 
 // C = op(S) x D if not swapOperands else C = D x op(S)
@@ -240,7 +224,7 @@ void CSRProd(marian::Tensor C,
              bool transS,
              bool swapOperands,
              float beta) {
-  cudaSetDevice(C->getDeviceId().no);
+  cudaSetDevice((int)C->getDeviceId().no);
   auto cusparseHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
                               ->getCusparseHandle();
   // interpret tensor dimensions as matrix dimensions
@@ -317,7 +301,7 @@ void CSRProd(marian::Tensor C,
   else {
     // C = S x D for row-major matrices
     // Implemented via cusparse as C' = D' x S' ("gemmi") where C' and D' are column-major.
-    CUSPARSE_CHECK(cusparseSgemmi(cusparseHandle,
+    CUSPARSE_CHECK(cusparseSgemmiEx(cusparseHandle,
         /*m=*/ colsD, // #rows of first (col-major) factor = #cols of row-major D
         /*n=*/ rowsC, // #cols of second (CSC) factor and (col-major) result = #rows of row-major C
         /*k=*/ rowsD, // #cols of first (col-major) factor = #rows of row-major D
@@ -326,11 +310,14 @@ void CSRProd(marian::Tensor C,
         /*A=*/ D->data(),
         /*lda=*/ colsD, // stride
         /*cscValB=*/    St_values  ? St_values ->data<float>() :       S_values ->data<float>(),
-        /*cscRowPtrB=*/ St_offsets ? St_offsets->data<int>()   : (int*)S_offsets->data<IndexType>(),
-        /*cscColIndB=*/ St_indices ? St_indices->data<int>()   : (int*)S_indices->data<IndexType>(),
+        /*cscColPtrB=*/ St_offsets ? St_offsets->data<int>()   : (int*)S_offsets->data<IndexType>(),
+        /*cscRowIndB=*/ St_indices ? St_indices->data<int>()   : (int*)S_indices->data<IndexType>(),
         &beta,
         C->data(),
         /*ldc=*/ colsC)); // stride
+    // Note: cuSparse 10 docs says this about cscColPtrB:
+    //   "integer array of k + 1 elements that contains the start of every row and the end of the last row plus one."
+    // This is wrong. It should be col instead of row, and n instead of k.
   }
   if(St_values ) allocator->free(St_values );
   if(St_indices) allocator->free(St_indices);

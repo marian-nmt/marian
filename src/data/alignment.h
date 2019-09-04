@@ -52,7 +52,9 @@ public:
   std::string toString() const;
 };
 
-typedef std::vector<std::vector<float>> SoftAlignment;
+// soft alignment = P(src pos|trg pos) for each beam and batch index, stored in a flattened CPU-side array
+// Also used on QuickSAND boundary where beam and batch size is 1. Then it is simply [t][s] -> P(s|t)
+typedef std::vector<std::vector<float>> SoftAlignment; // [trg pos][beam depth * max src length * batch size]
 
 WordAlignment ConvertSoftAlignToHardAlign(SoftAlignment alignSoft,
                                           float threshold = 1.f);

@@ -14,21 +14,21 @@ namespace data {
 
 class Shortlist {
 private:
-  std::vector<Word> indices_;
-  std::vector<Word> mappedIndices_;
-  std::vector<Word> reverseMap_;
+  std::vector<WordIndex> indices_;
+  Words mappedIndices_;
+  std::vector<WordIndex> reverseMap_;
 
 public:
-  Shortlist(const std::vector<Word>& indices,
-            const std::vector<Word>& mappedIndices,
-            const std::vector<Word>& reverseMap)
+  Shortlist(const std::vector<WordIndex>& indices,
+            const Words& mappedIndices,
+            const std::vector<WordIndex>& reverseMap)
       : indices_(indices),
         mappedIndices_(mappedIndices),
         reverseMap_(reverseMap) {}
 
-  std::vector<Word>& indices() { return indices_; }
-  std::vector<Word>& mappedIndices() { return mappedIndices_; }
-  Word reverseMap(Word idx) { return reverseMap_[idx]; }
+  const std::vector<WordIndex>& indices() const { return indices_; }
+  const Words& mappedIndices() const { return mappedIndices_; }
+  WordIndex reverseMap(WordIndex idx) { return reverseMap_[idx]; }
 };
 
 class ShortlistGenerator {
@@ -73,40 +73,40 @@ public:
     auto trgBatch = (*batch)[trgIdx_];
 
     // add firstNum most frequent words
-    std::unordered_set<Word> idxSet;
-    for(Word i = 0; i < firstNum_ && i < maxVocab_; ++i)
+    std::unordered_set<WordIndex> idxSet;
+    for(WordIndex i = 0; i < firstNum_ && i < maxVocab_; ++i)
       idxSet.insert(i);
 
     // add all words from ground truth
     for(auto i : trgBatch->data())
-      idxSet.insert(i);
+      idxSet.insert(i.toWordIndex());
 
     // add all words from source
     if(shared_)
       for(auto i : srcBatch->data())
-        idxSet.insert(i);
+        idxSet.insert(i.toWordIndex());
 
     std::uniform_int_distribution<> dis((int)firstNum_, (int)maxVocab_);
     while(idxSet.size() < total_ && idxSet.size() < maxVocab_)
       idxSet.insert(dis(gen_));
 
     // turn into vector and sort (selected indices)
-    std::vector<Word> idx(idxSet.begin(), idxSet.end());
+    std::vector<WordIndex> idx(idxSet.begin(), idxSet.end());
     std::sort(idx.begin(), idx.end());
 
     // assign new shifted position
-    std::unordered_map<Word, Word> pos;
-    std::vector<Word> reverseMap;
+    std::unordered_map<WordIndex, WordIndex> pos;
+    std::vector<WordIndex> reverseMap;
 
-    for(Word i = 0; i < idx.size(); ++i) {
+    for(WordIndex i = 0; i < idx.size(); ++i) {
       pos[idx[i]] = i;
       reverseMap.push_back(idx[i]);
     }
 
-    std::vector<Word> mapped;
+    Words mapped;
     for(auto i : trgBatch->data()) {
       // mapped postions for cross-entropy
-      mapped.push_back(pos[i]);
+      mapped.push_back(Word::fromWordIndex(pos[i.toWordIndex()]));
     }
 
     return New<Shortlist>(idx, mapped, reverseMap);
@@ -126,7 +126,7 @@ private:
   size_t firstNum_{100};
   size_t bestNum_{100};
 
-  std::vector<std::unordered_map<Word, float>> data_;
+  std::vector<std::unordered_map<WordIndex, float>> data_; // [WordIndex src] -> [WordIndex tgt] -> P_trans(tgt|src) --@TODO: rename data_ accordingly
 
   void load(const std::string& fname) {
     io::InputFileStream in(fname);
@@ -138,8 +138,8 @@ private:
       if(src == "NULL" || trg == "NULL")
         continue;
 
-      Word sId = (*srcVocab_)[src];
-      Word tId = (*trgVocab_)[trg];
+      auto sId = (*srcVocab_)[src].toWordIndex();
+      auto tId = (*trgVocab_)[trg].toWordIndex();
 
       if(data_.size() <= sId)
         data_.resize(sId + 1);
@@ -150,12 +150,12 @@ private:
   void prune(float threshold = 0.f) {
     size_t i = 0;
     for(auto& probs : data_) {
-      std::vector<std::pair<float, Word>> sorter;
+      std::vector<std::pair<float, WordIndex>> sorter;
       for(auto& it : probs)
-        sorter.emplace_back(it.second, (Word)it.first);
+        sorter.emplace_back(it.second, it.first);
 
       std::sort(
-          sorter.begin(), sorter.end(), std::greater<std::pair<float, Word>>());
+          sorter.begin(), sorter.end(), std::greater<std::pair<float, WordIndex>>()); // sort by prob
 
       probs.clear();
       for(auto& it : sorter) {
@@ -210,15 +210,15 @@ public:
     // Dump top most frequent words from target vocabulary
     LOG(info, "[data] Saving shortlist dump to {}", prefix + ".{top,dic}");
     io::OutputFileStream outTop(prefix + ".top");
-    for(Word i = 0; i < firstNum_ && i < trgVocab_->size(); ++i)
-      outTop << (*trgVocab_)[i] << std::endl;
+    for(WordIndex i = 0; i < firstNum_ && i < trgVocab_->size(); ++i)
+      outTop << (*trgVocab_)[Word::fromWordIndex(i)] << std::endl;
 
     // Dump translation pairs from dictionary
     io::OutputFileStream outDic(prefix + ".dic");
-    for(Word srcId = 0; srcId < data_.size(); srcId++) {
-      for(auto& it : data_[srcId]) { // @TODO: change data_.first from size_t to Word
-        Word trgId = (Word)it.first;
-        outDic << (*srcVocab_)[srcId] << "\t" << (*trgVocab_)[trgId] << std::endl;
+    for(WordIndex srcId = 0; srcId < data_.size(); srcId++) {
+      for(auto& it : data_[srcId]) {
+        auto trgId = it.first;
+        outDic << (*srcVocab_)[Word::fromWordIndex(srcId)] << "\t" << (*trgVocab_)[Word::fromWordIndex(trgId)] << std::endl;
       }
     }
   }
@@ -228,41 +228,41 @@ public:
     // auto trgBatch = (*batch)[trgIdx_];
 
     // add firstNum most frequent words
-    std::unordered_set<Word> idxSet;
-    for(Word i = 0; i < firstNum_ && i < trgVocab_->size(); ++i)
+    std::unordered_set<WordIndex> idxSet;
+    for(WordIndex i = 0; i < firstNum_ && i < trgVocab_->size(); ++i)
       idxSet.insert(i);
 
     // add all words from ground truth
     // for(auto i : trgBatch->data())
-    //  idxSet.insert(i);
+    //  idxSet.insert(i.toWordIndex());
 
     // collect unique words form source
-    std::unordered_set<Word> srcSet;
+    std::unordered_set<WordIndex> srcSet;
     for(auto i : srcBatch->data())
-      srcSet.insert(i);
+      srcSet.insert(i.toWordIndex());
 
     // add aligned target words
     for(auto i : srcSet) {
       if(shared_)
         idxSet.insert(i);
       for(auto& it : data_[i])
-        idxSet.insert((Word)it.first); // @TODO: change it.first to Word
+        idxSet.insert(it.first);
     }
 
     // turn into vector and sort (selected indices)
-    std::vector<Word> idx(idxSet.begin(), idxSet.end());
+    std::vector<WordIndex> idx(idxSet.begin(), idxSet.end());
     std::sort(idx.begin(), idx.end());
 
     // assign new shifted position
-    // std::unordered_map<Word, Word> pos;
-    std::vector<Word> reverseMap;
+    // std::unordered_map<WordIndex, WordIndex> pos;
+    std::vector<WordIndex> reverseMap;
 
-    for(Word i = 0; i < idx.size(); ++i) {
+    for(WordIndex i = 0; i < idx.size(); ++i) {
       // pos[idx[i]] = i;
       reverseMap.push_back(idx[i]);
     }
 
-    std::vector<Word> mapped;
+    Words mapped;
     // for(auto i : trgBatch->data()) {
     // mapped postions for cross-entropy
     // mapped.push_back(pos[i]);
@@ -274,21 +274,21 @@ public:
 
 class FakeShortlistGenerator : public ShortlistGenerator {
 private:
-  std::vector<Word> idx_;
-  std::vector<Word> reverseIdx_;
+  std::vector<WordIndex> idx_;
+  std::vector<WordIndex> reverseIdx_;
 
 public:
-  FakeShortlistGenerator(const std::unordered_set<Word>& idxSet)
+  FakeShortlistGenerator(const std::unordered_set<WordIndex>& idxSet)
       : idx_(idxSet.begin(), idxSet.end()) {
     std::sort(idx_.begin(), idx_.end());
     // assign new shifted position
-    for(Word i = 0; i < idx_.size(); ++i) {
+    for(WordIndex i = 0; i < idx_.size(); ++i) {
       reverseIdx_.push_back(idx_[i]);
     }
   }
 
   Ptr<Shortlist> generate(Ptr<data::CorpusBatch> /*batch*/) override {
-    std::vector<Word> tmp;
+    Words tmp;
     return New<Shortlist>(idx_, tmp, reverseIdx_);
   }
 };

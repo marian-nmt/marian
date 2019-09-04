@@ -169,15 +169,73 @@ void ProdWithBias(marian::Tensor C,
 
 void CSRProd(marian::Tensor C,
              Ptr<Allocator> /*allocator*/,
-             const marian::Tensor& A_values,
-             const marian::Tensor& A_indices,
-             const marian::Tensor& A_offsets,
-             const marian::Tensor& B,
-             bool transA,
+             const marian::Tensor& S_values,
+             const marian::Tensor& S_indices,
+             const marian::Tensor& S_offsets,
+             const marian::Tensor& D,
+             bool transS,
              bool swapOperands,
              float beta) {
-  C, A_values, A_indices, A_offsets, B, transA, swapOperands, beta;
-  ABORT("CSRProd is not yet implemented for CPU");
+  C, S_values, S_indices, S_offsets, D;
+
+  // Note: The CPU implementation currently only implements what's needed for decoding.
+
+  // interpret tensor dimensions as matrix dimensions
+  const auto& shapeC = C->shape();
+  const auto& shapeD = D->shape();
+  // If swapOperands, S and D are swapped (C = D x S instead of C = S x D).
+  // In that case, in the next 6 lines, please read all dimensions as if they were reversed in order.
+  auto rowsC = shapeC[-(int)swapOperands];
+  auto colsC = shapeC.elements() / rowsC;
+  auto rowsD = shapeD[-(int)swapOperands];
+  auto colsD = shapeD.elements() / rowsD;
+  auto rowsS = transS ? rowsD : rowsC;
+  auto colsS = transS ? rowsC : rowsD;
+  ABORT_IF(colsD != colsC, "Inconsistent outer dimensions in CSR product");
+  if (swapOperands) { // make rowsX actual row dimensions again, likewise colsX
+    std::swap(rowsC, colsC);
+    std::swap(rowsD, colsD);
+    std::swap(rowsS, colsS);
+  }
+  // sparse arrays
+  auto numOffsets = S_offsets->shape().elements() - 1; // -1 since last value is length
+  ABORT_IF(numOffsets != rowsS, "Unexpected number of rows in CSR argument"); numOffsets;
+  ABORT_IF(S_values->shape() != S_indices->shape(), "CSR values and indices must have the same size");
+  if (!transS && !swapOperands) {
+    // C = S * D, where D = CSR matrix
+    const auto* offsets = S_offsets->data<IndexType>();
+    const auto* indices = S_indices->data<IndexType>();
+    const auto* values  = S_values->data<float>();
+    const auto* dataD   = D->data<float>();
+    auto*       dataC   = C->data<float>();
+    ABORT_IF(beta != 0 && beta != 1, "cpu::CSRProd only supports beta = 0 or 1");
+    for (size_t i = 0; i < rowsC; i++) {
+      auto add = (beta == 1); // first element: overwrite or add according to beta; subsequent elements: add
+      for (size_t kk = offsets[i]; kk < offsets[i + 1]; kk++) {
+        auto k = indices[kk];    // fetch the non-zero row
+        auto valS = values[kk]; // and the value from that row
+        // This code is written with the hope for good vectorization, and the hope
+        // that adding to memory will be done efficiently by the caching system.
+        if (valS == 1)
+          if (!add)
+            for (size_t j = 0; j < colsC; j++)
+              dataC[i * colsC/*==colsD*/ + j] = dataD[k * colsC/*==colsD*/ + j]; // this is a memcpy()
+          else
+            for (size_t j = 0; j < colsC; j++)
+              dataC[i * colsC/*==colsD*/ + j] += dataD[k * colsC/*==colsD*/ + j]; // this is a contiguous-vector addition
+        else
+          if (!add)
+            for (size_t j = 0; j < colsC; j++)
+              dataC[i * colsC/*==colsD*/ + j] = valS * dataD[k * colsC/*==colsD*/ + j];
+          else
+            for (size_t j = 0; j < colsC; j++)
+              dataC[i * colsC/*==colsD*/ + j] += valS * dataD[k * colsC/*==colsD*/ + j]; // notice the +=
+        add = true; // next iteration will add to existing result
+      }
+    }
+  }
+  else
+    ABORT("CSRProd for transS={}, swapOperands={} is not yet implemented for CPU", transS, swapOperands);
 }
 
 }  // namespace cpu

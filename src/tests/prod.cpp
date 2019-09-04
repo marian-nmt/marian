@@ -5,8 +5,9 @@ int main(int argc, char** argv) {
     using namespace marian;
 
     {
-        auto g = New<ExpressionGraph>(true, false);
+        auto g = New<ExpressionGraph>(true);
         g->setDevice({0, DeviceType::cpu});
+        g->getBackend()->setOptimized(false);
         g->reserveWorkspaceMB(2512);
 
         timer::AutoTimer timer;
@@ -37,8 +38,10 @@ int main(int argc, char** argv) {
     }
 
     {
-        auto g = New<ExpressionGraph>(true, true);
+        auto g = New<ExpressionGraph>(true);
         g->setDevice({0, DeviceType::cpu});
+        g->getBackend()->setOptimized(true);
+        g->getBackend()->setGemmType("auto");
         g->reserveWorkspaceMB(2512);
 
         timer::AutoTimer timer;

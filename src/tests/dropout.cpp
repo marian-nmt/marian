@@ -20,8 +20,8 @@ int main(int argc, char** argv) {
 
   for(int i = 0; i < 10; ++i) {
     g->clear();
-    auto mask1 = g->dropout(0.2, {10, 3072});
-    auto mask2 = g->dropout(0.3, {1, 3072});
+    auto mask1 = g->dropoutMask(0.2, {10, 3072});
+    auto mask2 = g->dropoutMask(0.3, {1, 3072});
     auto mask = mask1 + mask2;
     debug(mask1, "mask1");
     debug(mask2, "mask2");

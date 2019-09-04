@@ -19,11 +19,11 @@ using namespace data;
 
 class Rescorer {
 private:
-  Ptr<models::ModelBase> builder_;
+  Ptr<models::ICriterionFunction> builder_;
 
 public:
   Rescorer(Ptr<Options> options)
-      : builder_(models::from_options(options, models::usage::scoring)) {}
+      : builder_(models::createCriterionFunctionFromOptions(options, models::usage::scoring)) {}
 
   void load(Ptr<ExpressionGraph> graph, const std::string& modelFile) {
     builder_->load(graph, modelFile);
@@ -34,8 +34,8 @@ public:
   }
 
   data::SoftAlignment getAlignment() {
-    auto model = std::static_pointer_cast<models::Scorer>(builder_)->getModel();
-    return std::static_pointer_cast<EncoderDecoderBase>(model)->getAlignment();
+    auto model = std::static_pointer_cast<models::Trainer>(builder_)->getModel();
+    return std::static_pointer_cast<IEncoderDecoder>(model)->getAlignment();
   }
 };
 
@@ -56,8 +56,7 @@ public:
              "Normalization by length cannot be used with summary scores");
 
     options_->set("inference", true);
-    // @TODO: make normalize here a float and pass into loss to compute the same way as in decoding
-    options_->set("cost-type", options_->get<bool>("normalize") ? "ce-rescore-mean" : "ce-rescore");
+    options_->set("cost-type", "ce-rescore"); // indicates that to keep separate per-batch-item scoresForSummary
 
     if(options_->get<bool>("n-best"))
       corpus_ = New<CorpusNBest>(options_);
@@ -68,8 +67,12 @@ public:
     auto devices = Config::getDevices(options_);
 
     for(auto device : devices) {
-      auto graph = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
+      auto graph = New<ExpressionGraph>(true);
       graph->setDevice(device);
+      if (device.type == DeviceType::cpu) {
+        graph->getBackend()->setOptimized(options_->get<bool>("optimize"));
+        graph->getBackend()->setGemmType(options_->get<std::string>("gemm-type"));
+      }
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
     }
@@ -102,6 +105,7 @@ public:
     auto alignment = options_->get<std::string>("alignment", "");
     auto summary = options_->get<std::string>("summary", "");
     bool summarize = !summary.empty();
+    // @TODO: make normalize here a float and pass into loss to compute the same way as in decoding
     bool normalize = options_->get<bool>("normalize");
 
     float sumLoss = 0;
@@ -130,17 +134,27 @@ public:
 
           graph->forward();
 
-          std::vector<float> scores;
-          dynamicLoss->loss(scores);
+          // get loss
+          std::vector<float> scoresForSummary;
+          dynamicLoss->loss(scoresForSummary);
+          std::vector<float> sentScores(scoresForSummary); // if '--normalize' then report scoresForSummary length-normalized
+          if (normalize) {
+            std::vector<float> sentLengths;
+            dynamicLoss->count(sentLengths);
+            for (size_t i = 0; i < scoresForSummary.size(); i++) {
+              if (sentScores[i] != 0) // (avoid 0/0)
+                sentScores[i] /= (sentLengths.size() == 1 ? sentLengths[0] : sentLengths[i]); // emulate broadcasting semantics
+            }
+          }
 
           // soft alignments for each sentence in the batch
-          std::vector<data::SoftAlignment> aligns(batch->size());
+          std::vector<data::SoftAlignment> aligns(batch->size()); // @TODO: do this resize inside getAlignmentsForBatch()
           if(!alignment.empty()) {
             getAlignmentsForBatch(builder->getAlignment(), batch, aligns);
           }
 
           std::unique_lock<std::mutex> lock(smutex);
-          for(auto s : scores)
+          for(auto s : scoresForSummary)
             sumLoss += s;
           sumWords += batch->back()->batchWords();
           sumSamples += batch->size();
@@ -148,7 +162,7 @@ public:
           if(!summarize) {
             for(size_t i = 0; i < batch->size(); ++i) {
               output->Write((long)batch->getSentenceIds()[i],
-                             -1.f * scores[i], // report logProb while score is CE, hence negate
+                             -1.f * sentScores[i], // report logProb while score is CE, hence negate
                              aligns[i]);
             }
           }
