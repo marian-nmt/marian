@@ -46,7 +46,6 @@ SentenceTuple Corpus::next() {
       }
       else {
         bool gotLine = io::getline(*files_[i], line);
-        // LOG(debug,"[{}][{}] {}", i, pos_ - 1, line);
         if(!gotLine) {
           eofsHit++;
           continue;
