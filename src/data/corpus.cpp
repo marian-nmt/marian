@@ -92,15 +92,14 @@ void Corpus::reset() {
   if (pos_ == 0) // no data read yet
     return;
   pos_ = 0;
-  for (size_t i = 0; i < paths_.size(); ++i)
-    {
+  for (size_t i = 0; i < paths_.size(); ++i) {
       if(paths_[i] == "stdin") {
         files_[i].reset(new io::InputFileStream(std::cin));
         // Probably not necessary, unless there are some buffers
         // that we want flushed.
       }
       else {
-        ABORT_IF(files_[i] and filesystem::is_fifo(paths_[i]),
+        ABORT_IF(files_[i] && filesystem::is_fifo(paths_[i]),
                  "File '", paths_[i], "' is a pipe and cannot be re-opened.");
         // Do NOT reset named pipes; that closes them and triggers a SIGPIPE
         // (lost pipe) at the writing end, which may do whatever it wants
