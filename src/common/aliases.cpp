@@ -82,7 +82,7 @@ void ConfigParser::addAliases(cli::CLIWrapper& cli) {
     config["mini-batch"] = 1000;
     config["maxi-batch"] = 1000;
     config["workspace"] = 9500;
-    config["optimizer-params"] = std::vector<float>({0.9, 0.98, 1e-09});
+    config["optimizer-params"] = std::vector<float>({0.9f, 0.98f, 1e-09f});
 
     // Validation specific options
     config["beam-size"] = 8;
@@ -120,7 +120,7 @@ void ConfigParser::addAliases(cli::CLIWrapper& cli) {
     config["mini-batch"] = 1000;
     config["maxi-batch"] = 1000;
     config["workspace"] = 13000;
-    config["optimizer-params"] = std::vector<float>({0.9, 0.998, 1e-09});
+    config["optimizer-params"] = std::vector<float>({0.9f, 0.998f, 1e-09f});
 
     // Validation specific options
     config["beam-size"] = 8;
