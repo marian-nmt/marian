@@ -47,6 +47,8 @@ public:
     std::copy(shape.begin(), shape.end(), begin());
   }
 
+  Shape& operator=(const Shape& p) = default;
+
   inline size_t size() const { return shape_.size(); }
 
   void resize(size_t n) { shape_.resize(n, 1); }

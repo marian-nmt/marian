@@ -29,6 +29,7 @@ namespace filesystem {
     public:
       Path() {}
       Path(const Path& p) : path{p.path} {}
+      Path& operator=(const Path& p) = default;
       Path(const std::string& s) : path{s} {}
       Path(const Pathie::Path& p) : path{p} {}
 
