@@ -4,6 +4,8 @@
 #include <random>
 
 #include "common/utils.h"
+#include "common/filesystem.h"
+
 #include "data/corpus.h"
 
 namespace marian {
@@ -85,16 +87,26 @@ void Corpus::shuffle() {
 // Call either reset() or shuffle().
 // @TODO: make shuffle() private, instad pass a shuffle() flag to reset(), to clarify mutual exclusiveness with shuffle()
 void Corpus::reset() {
-  files_.clear();
   corpusInRAM_.clear();
   ids_.clear();
+  if (pos_ == 0) // no data read yet
+    return;
   pos_ = 0;
-  for(auto& path : paths_) {
-    if(path == "stdin")
-      files_.emplace_back(new io::InputFileStream(std::cin));
-    else
-      files_.emplace_back(new io::InputFileStream(path));
-  }
+  for (size_t i = 0; i < paths_.size(); ++i) {
+      if(paths_[i] == "stdin") {
+        files_[i].reset(new io::InputFileStream(std::cin));
+        // Probably not necessary, unless there are some buffers
+        // that we want flushed.
+      }
+      else {
+        ABORT_IF(files_[i] && filesystem::is_fifo(paths_[i]),
+                 "File '", paths_[i], "' is a pipe and cannot be re-opened.");
+        // Do NOT reset named pipes; that closes them and triggers a SIGPIPE
+        // (lost pipe) at the writing end, which may do whatever it wants
+        // in this situation.
+        files_[i].reset(new io::InputFileStream(paths_[i]));
+      }
+    }
 }
 
 void Corpus::restore(Ptr<TrainingState> ts) {
