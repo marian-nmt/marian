@@ -1,4 +1,14 @@
 #!/usr/bin/env python
+"""
+This script takes multiple Marian *.npz model files and outputs an elementwise average of the model,
+meant to do check-point averaging from: 
+
+https://www.aclweb.org/anthology/W16-2316
+
+usage:
+
+./average.py -m model.1.npz model.2.npz --output model.avg.npz
+"""
 
 from __future__ import print_function
 

@@ -10,8 +10,9 @@ namespace marian {
  * the requested value. The alias option has to be first defined using cli.add<T>(). Defining
  * multiple aliases for the same option name but with different value is allowed.
  *
- * Values are compared as std::string. If the alias option is a vector, the alias will be triggered
- * if the requested value exists in that vector at least once.
+ * Aliases are key-value pairs by default. Values are compared as std::string. 
+ * If the command line option corresponding to the alias is a vector, the alias 
+ * will be triggered if the requested value exists in that vector at least once.
  *
  * @see CLIWrapper::alias()
  *

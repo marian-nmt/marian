@@ -87,7 +87,7 @@ void EncoderDecoder::createDecoderConfig(const std::string& name) {
     auto modelFileName = filesystem::Path{name}.filename().string();
     decoder["models"] = std::vector<std::string>({modelFileName});
 
-    // create relative paths to vocabs
+    // create relative paths to vocabs with regard to saved model checkpoint
     auto dirPath = filesystem::Path{name}.parentPath();
     std::vector<std::string> relativeVocabs;
     const auto& vocabs = options_->get<std::vector<std::string>>("vocabs");

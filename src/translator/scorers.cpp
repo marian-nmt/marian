@@ -73,7 +73,7 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options) {
       LOG(warn, "No model settings found in model file");
     }
 
-    // check if there are left-to-right and right-to-left models together
+    // l2r and r2l cannot be used in the same ensemble
     if(models.size() > 1 && modelOptions->has("right-left")) {
       if(i == 0) {
         isPrevRightLeft = modelOptions->get<bool>("right-left");

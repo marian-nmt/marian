@@ -747,7 +747,7 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   if(!configPaths.empty()) {
     auto config = loadConfigFiles(configPaths);
     cli.updateConfig(config,
-                     cli::Priority::ConfigFile,
+                     cli::OptionPriority::ConfigFile,
                      "There are option(s) in a config file that are not expected");
   }
 
