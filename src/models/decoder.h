@@ -36,11 +36,18 @@ public:
     Expr y, yMask; std::tie
     (y, yMask) = getEmbeddingLayer()->apply(subBatch);
 
+    // @TODO: during training there is currently no code path that leads to using a shortlist
+#if 0
     const Words& data =
       /*if*/ (shortlist_) ?
         shortlist_->mappedIndices()
       /*else*/ :
         subBatch->data();
+#endif
+
+    ABORT_IF(shortlist_, "How did a shortlist make it into training?");
+
+    const Words& data = subBatch->data();
     Expr yData = graph_->indices(toWordIndexVector(data));
 
     auto yShifted = shift(y, {1, 0, 0});
