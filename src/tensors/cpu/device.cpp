@@ -9,12 +9,6 @@
 namespace marian {
 namespace cpu {
 
-Device::~Device() {
-  free(data_);
-  data_ = nullptr;
-  size_ = 0;
-}
-
 // allocate function for tensor reserve() below. 
 // Needed for AVX512, while not available on all compilers. It seems clang
 // does not have aligned_alloc for all cstlib versions. If AVX512 is not used
@@ -34,6 +28,10 @@ Device::~Device() {
 #else
 #define FREE(ptr) free(ptr)
 #endif
+
+Device::~Device() {
+  FREE(data_);
+}
 
 void Device::reserve(size_t size) {
   size = align(size);

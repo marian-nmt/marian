@@ -8,7 +8,7 @@ namespace marian {
 
 class Amun : public EncoderDecoder {
 public:
-  Amun(Ptr<Options> options) : EncoderDecoder(options) {
+  Amun(Ptr<ExpressionGraph> graph, Ptr<Options> options) : EncoderDecoder(graph, options) {
     ABORT_IF(opt<int>("enc-depth") > 1,
              "--type amun does not currently support multiple encoder "
              "layers, use --type s2s");

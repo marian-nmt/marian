@@ -4,18 +4,46 @@
 #include <random>
 
 #include "common/utils.h"
+#include "common/filesystem.h"
+
 #include "data/corpus.h"
 
 namespace marian {
 namespace data {
 
 Corpus::Corpus(Ptr<Options> options, bool translate /*= false*/)
-    : CorpusBase(options, translate), shuffleInRAM_(options_->get<bool>("shuffle-in-ram")) {}
+    : CorpusBase(options, translate),
+        shuffleInRAM_(options_->get<bool>("shuffle-in-ram")),
+        allCapsEvery_(options_->get<size_t>("all-caps-every")),
+        titleCaseEvery_(options_->get<size_t>("english-title-case-every")) {}
 
 Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
                Ptr<Options> options)
-    : CorpusBase(paths, vocabs, options), shuffleInRAM_(options_->get<bool>("shuffle-in-ram")) {}
+    : CorpusBase(paths, vocabs, options),
+        shuffleInRAM_(options_->get<bool>("shuffle-in-ram")),
+        allCapsEvery_(options_->get<size_t>("all-caps-every")),
+        titleCaseEvery_(options_->get<size_t>("english-title-case-every")) {}
+
+void Corpus::preprocessLine(std::string& line, size_t streamId) {
+  if (allCapsEvery_ != 0 && pos_ % allCapsEvery_ == 0 && !inference_) {
+    line = vocabs_[streamId]->toUpper(line);
+    if (streamId == 0)
+      LOG_ONCE(info, "[data] Source all-caps'ed line to: {}", line);
+    else
+      LOG_ONCE(info, "[data] Target all-caps'ed line to: {}", line);
+  }
+  else if (titleCaseEvery_ != 0 && pos_ % titleCaseEvery_ == 1 && !inference_ && streamId == 0) {
+    // Only applied to stream 0 (source) since this feature is aimed at robustness against
+    // title case in the source (and not at translating into title case).
+    // Note: It is user's responsibility to not enable this if the source language is not English.
+    line = vocabs_[streamId]->toEnglishTitleCase(line);
+    if (streamId == 0)
+      LOG_ONCE(info, "[data] Source English-title-case'd line to: {}", line);
+    else
+      LOG_ONCE(info, "[data] Target English-title-case'd line to: {}", line);
+  }
+}
 
 SentenceTuple Corpus::next() {
   for(;;) { // (this is a retry loop for skipping invalid sentences)
@@ -55,6 +83,7 @@ SentenceTuple Corpus::next() {
       } else if(i > 0 && i == weightFileIdx_) {
         addWeightsToSentenceTuple(line, tup);
       } else {
+        preprocessLine(line, i);
         addWordsToSentenceTuple(line, i, tup);
       }
     }
@@ -85,16 +114,26 @@ void Corpus::shuffle() {
 // Call either reset() or shuffle().
 // @TODO: make shuffle() private, instad pass a shuffle() flag to reset(), to clarify mutual exclusiveness with shuffle()
 void Corpus::reset() {
-  files_.clear();
   corpusInRAM_.clear();
   ids_.clear();
+  if (pos_ == 0) // no data read yet
+    return;
   pos_ = 0;
-  for(auto& path : paths_) {
-    if(path == "stdin")
-      files_.emplace_back(new io::InputFileStream(std::cin));
-    else
-      files_.emplace_back(new io::InputFileStream(path));
-  }
+  for (size_t i = 0; i < paths_.size(); ++i) {
+      if(paths_[i] == "stdin") {
+        files_[i].reset(new io::InputFileStream(std::cin));
+        // Probably not necessary, unless there are some buffers
+        // that we want flushed.
+      }
+      else {
+        ABORT_IF(files_[i] && filesystem::is_fifo(paths_[i]),
+                 "File '", paths_[i], "' is a pipe and cannot be re-opened.");
+        // Do NOT reset named pipes; that closes them and triggers a SIGPIPE
+        // (lost pipe) at the writing end, which may do whatever it wants
+        // in this situation.
+        files_[i].reset(new io::InputFileStream(paths_[i]));
+      }
+    }
 }
 
 void Corpus::restore(Ptr<TrainingState> ts) {

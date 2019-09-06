@@ -22,6 +22,9 @@
 namespace marian {
 namespace filesystem {
 
+  bool is_fifo(char const* path);
+  bool is_fifo(std::string const& path);
+
   class Path {
     private:
       Pathie::Path path;
@@ -29,6 +32,7 @@ namespace filesystem {
     public:
       Path() {}
       Path(const Path& p) : path{p.path} {}
+      Path& operator=(const Path& p) = default;
       Path(const std::string& s) : path{s} {}
       Path(const Pathie::Path& p) : path{p} {}
 

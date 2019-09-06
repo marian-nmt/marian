@@ -89,7 +89,10 @@ find_library(MKL_CORE_LIBRARY
              NO_DEFAULT_PATH)
 
 set(MKL_INCLUDE_DIRS ${MKL_INCLUDE_DIR})
-set(MKL_LIBRARIES ${MKL_INTERFACE_LIBRARY} ${MKL_SEQUENTIAL_LAYER_LIBRARY} ${MKL_CORE_LIBRARY})
+# Added -Wl block to avoid circular dependencies.
+# https://stackoverflow.com/questions/5651869/what-are-the-start-group-and-end-group-command-line-options
+# https://software.intel.com/en-us/articles/intel-mkl-link-line-advisor
+set(MKL_LIBRARIES -Wl,--start-group ${MKL_INTERFACE_LIBRARY} ${MKL_SEQUENTIAL_LAYER_LIBRARY} ${MKL_CORE_LIBRARY} -Wl,--end-group)
 
 # message("1 ${MKL_INCLUDE_DIR}")
 # message("2 ${MKL_INTERFACE_LIBRARY}")

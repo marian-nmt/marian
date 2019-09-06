@@ -5,7 +5,6 @@ if (POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW) # CMake 3.12
 endif ()
 
-
 project(marian CXX C)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,6 +21,7 @@ option(USE_MPI "Use MPI library" OFF)
 option(COMPILE_EXAMPLES "Compile examples" OFF)
 option(COMPILE_TESTS "Compile tests" OFF)
 option(COMPILE_SERVER "Compile marian-server" ON)
+option(USE_FBGEMM "Use FBGEMM" ON)
 
 # Project versioning
 find_package(Git QUIET)
@@ -32,6 +32,11 @@ message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 
 execute_process(COMMAND git submodule update --init --recursive --no-fetch
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+if(NOT CMAKE_BUILD_TYPE)
+  message(WARNING "CMAKE_BUILD_TYPE not set; setting to Release")
+  set(CMAKE_BUILD_TYPE "Release")
+endif()
 
 # Set compilation flags
 if(MSVC)
@@ -59,44 +64,54 @@ if(MSVC)
 
   find_library(SHLWAPI Shlwapi.lib)
   set(EXT_LIBS ${EXT_LIBS} SHLWAPI)
-else()
+else(MSVC)
 
-# Detect support CPU instrinsics for the current platform. This will
-# only by used with BUILD_ARCH=native. For overridden BUILD_ARCH we
-# minimally use -msse4.1. This seems to work with MKL.
-set(INTRINSICS "")
-if(BUILD_ARCH STREQUAL "native")
-  message(STATUS "Checking support for CPU intrinsics")
-  include(FindSSE)
-  if(SSE2_FOUND)
-    message(STATUS "SSE2 support found")
-    set(INTRINSICS "${INTRINSICS} -msse2")
-  endif(SSE2_FOUND)
-  if(SSE3_FOUND)
-    message(STATUS "SSE3 support found")
-    set(INTRINSICS "${INTRINSICS} -msse3")
-  endif(SSE3_FOUND)
-  if(SSE4_1_FOUND)
-    message(STATUS "SSE4.1 support found")
-    set(INTRINSICS "${INTRINSICS} -msse4.1")
-  endif(SSE4_1_FOUND)
-  if(AVX_FOUND)
-    message(STATUS "AVX support found")
-    set(INTRINSICS "${INTRINSICS} -mavx")
-  endif(AVX_FOUND)
-  if(AVX2_FOUND)
-    message(STATUS "AVX2 support found")
-    set(INTRINSICS "${INTRINSICS} -mavx2")
-  endif(AVX2_FOUND)
-else()
-  set(INTRINSICS "-msse4.1")
-endif()
+  # Detect support CPU instrinsics for the current platform. This will
+  # only by used with BUILD_ARCH=native. For overridden BUILD_ARCH we
+  # minimally use -msse4.1. This seems to work with MKL.
+  set(INTRINSICS "")
+  if(BUILD_ARCH STREQUAL "native")
+    message(STATUS "Checking support for CPU intrinsics")
+    include(FindSSE)
+    if(SSE2_FOUND)
+      message(STATUS "SSE2 support found")
+      set(INTRINSICS "${INTRINSICS} -msse2")
+    endif(SSE2_FOUND)
+    if(SSE3_FOUND)
+      message(STATUS "SSE3 support found")
+      set(INTRINSICS "${INTRINSICS} -msse3")
+    endif(SSE3_FOUND)
+    if(SSE4_1_FOUND)
+      message(STATUS "SSE4.1 support found")
+      set(INTRINSICS "${INTRINSICS} -msse4.1")
+    endif(SSE4_1_FOUND)
+    if(AVX_FOUND)
+      message(STATUS "AVX support found")
+      set(INTRINSICS "${INTRINSICS} -mavx")
+    endif(AVX_FOUND)
+    if(AVX2_FOUND)
+      message(STATUS "AVX2 support found")
+      set(INTRINSICS "${INTRINSICS} -mavx2")
+    endif(AVX2_FOUND)
+    if(AVX512_FOUND)
+      message(STATUS "AVX512 support found")
+      set(INTRINSICS "${INTRINSICS} -mavx512f")
+      list(APPEND INTRINSICS_NVCC -Xcompiler\ -mavx512f)
+    endif(AVX512_FOUND)
+  else()
+    set(INTRINSICS "-msse4.1")
+  endif()
 
-set(DISABLE_GLOBALLY "-Wno-unused-result")
+  if(USE_FBGEMM)
+    set(EXT_LIBS ${EXT_LIBS} fbgemm dl)
+    add_definitions(-DUSE_FBGEMM=1)
+  endif(USE_FBGEMM)
 
-# These are used in src/CMakeLists.txt on a per-target basis
-list(APPEND ALL_WARNINGS -Wall; -Werror; -Wno-unused-result; -Wno-deprecated; -Wno-pragmas; -Wno-unused-parameter; -Wextra; -Wno-unused-function;
-                         -Wno-unused-value; -Wno-unknown-pragmas; -Wno-sign-compare; -Wno-missing-field-initializers;)
+  set(DISABLE_GLOBALLY "-Wno-unused-result")
+
+  # These are used in src/CMakeLists.txt on a per-target basis
+  list(APPEND ALL_WARNINGS -Wall; -Werror; -Wno-unused-result; -Wno-deprecated; -Wno-pragmas; -Wno-unused-parameter; -Wextra; -Wno-unused-function;
+                          -Wno-unused-value; -Wno-unknown-pragmas; -Wno-sign-compare; -Wno-missing-field-initializers;)
 
   # This warning does not exist prior to gcc 5.0
   if(CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.0)
@@ -111,7 +126,17 @@ list(APPEND ALL_WARNINGS -Wall; -Werror; -Wno-unused-result; -Wno-deprecated; -W
   set(CMAKE_CXX_FLAGS_PROFILE         "${CMAKE_CXX_FLAGS_RELEASE} -pg")
   set(CMAKE_CXX_FLAGS_PROFGEN         "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-generate -fprofile-correction")
   set(CMAKE_CXX_FLAGS_PROFUSE         "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-use -fprofile-correction")
-  endif()
+
+  # these need to be set separately
+  set(CMAKE_C_FLAGS                 "-pthread -Wl,--no-as-needed -fPIC ${DISABLE_GLOBALLY} -march=${BUILD_ARCH} ${INTRINSICS}")
+  set(CMAKE_C_FLAGS_RELEASE         "-O3 -m64 -funroll-loops -ffinite-math-only -g -rdynamic")
+  set(CMAKE_C_FLAGS_DEBUG           "-O0 -g -rdynamic")
+  set(CMAKE_C_FLAGS_SLIM            "-O3 -m64 -funroll-loops -ffinite-math-only -DNDEBUG")
+  set(CMAKE_C_FLAGS_RELWITHDEBINFO  "${CMAKE_C_FLAGS_RELEASE}")
+  set(CMAKE_C_FLAGS_PROFILE         "${CMAKE_C_FLAGS_RELEASE} -pg")
+  set(CMAKE_C_FLAGS_PROFGEN         "${CMAKE_C_FLAGS_RELEASE} -fprofile-generate -fprofile-correction")
+  set(CMAKE_C_FLAGS_PROFUSE         "${CMAKE_C_FLAGS_RELEASE} -fprofile-use -fprofile-correction")
+endif(MSVC)
 
 # Downloading SentencePiece if requested and set to compile with it.
 # Requires all the dependencies imposed by SentencePiece
@@ -119,11 +144,6 @@ if(USE_SENTENCEPIECE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_SENTENCEPIECE")
   LIST(APPEND CUDA_NVCC_FLAGS -DUSE_SENTENCEPIECE; )
   set(EXT_LIBS ${EXT_LIBS} sentencepiece sentencepiece_train)
-endif()
-
-if(NOT CMAKE_BUILD_TYPE)
-  message(WARNING "CMAKE_BUILD_TYPE not set; setting to Release")
-  set(CMAKE_BUILD_TYPE "Release")
 endif()
 
 # Find packages

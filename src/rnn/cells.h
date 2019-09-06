@@ -46,8 +46,8 @@ public:
 
     if(dropout_ > 0.0f) {
       if(dimInput)
-        dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
-      dropMaskS_ = graph->dropout(dropout_, {1, dimState});
+        dropMaskX_ = graph->dropoutMask(dropout_, {1, dimInput});
+      dropMaskS_ = graph->dropoutMask(dropout_, {1, dimState});
     }
 
     if(layerNorm_) {
@@ -72,8 +72,7 @@ public:
     else
       input = inputs.front();
 
-    if(dropMaskX_)
-      input = dropout(input, dropMaskX_);
+    input = dropout(input, dropMaskX_);
 
     auto xW = dot(input, W_);
 
@@ -87,8 +86,7 @@ public:
     Expr recState = state.output;
 
     auto stateDropped = recState;
-    if(dropMaskS_)
-      stateDropped = dropout(recState, dropMaskS_);
+    stateDropped = dropout(recState, dropMaskS_);
     auto sU = dot(stateDropped, U_);
     if(layerNorm_)
       sU = layerNorm(sU, gamma2_);
@@ -139,8 +137,8 @@ public:
 
     if(dropout_ > 0.0f) {
       if(dimInput)
-        dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
-      dropMaskS_ = graph->dropout(dropout_, {1, dimState});
+        dropMaskX_ = graph->dropoutMask(dropout_, {1, dimInput});
+      dropMaskS_ = graph->dropoutMask(dropout_, {1, dimState});
     }
 
     if(layerNorm_) {
@@ -163,8 +161,7 @@ public:
     else
       input = inputs.front();
 
-    if(dropMaskX_)
-      input = dropout(input, dropMaskX_);
+    input = dropout(input, dropMaskX_);
 
     auto xW = dot(input, W_);
 
@@ -178,8 +175,7 @@ public:
     Expr recState = state.output;
 
     auto stateDropped = recState;
-    if(dropMaskS_)
-      stateDropped = dropout(recState, dropMaskS_);
+    stateDropped = dropout(recState, dropMaskS_);
     auto sU = dot(stateDropped, U_);
     if(layerNorm_)
       sU = layerNorm(sU, gamma2_);
@@ -256,8 +252,8 @@ public:
 
     if(dropout_ > 0.0f) {
       if(dimInput)
-        dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
-      dropMaskS_ = graph->dropout(dropout_, {1, dimState});
+        dropMaskX_ = graph->dropoutMask(dropout_, {1, dimInput});
+      dropMaskS_ = graph->dropoutMask(dropout_, {1, dimState});
     }
 
     if(layerNorm_) {
@@ -284,8 +280,7 @@ public:
     else
       input = inputs[0];
 
-    if(dropMaskX_)
-      input = dropout(input, dropMaskX_);
+    input = dropout(input, dropMaskX_);
 
     auto xW = dot(input, W_);
     if(layerNorm_)
@@ -299,8 +294,7 @@ public:
                            Expr mask = nullptr) override {
     auto stateOrig = state.output;
     auto stateDropped = stateOrig;
-    if(dropMaskS_)
-      stateDropped = dropout(stateOrig, dropMaskS_);
+    stateDropped = dropout(stateOrig, dropMaskS_);
 
     auto sU = dot(stateDropped, U_);
     if(layerNorm_)
@@ -420,8 +414,8 @@ public:
 
     if(dropout_ > 0.0f) {
       if(dimInput)
-        dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
-      dropMaskS_ = graph->dropout(dropout_, {1, dimState});
+        dropMaskX_ = graph->dropoutMask(dropout_, {1, dimInput});
+      dropMaskS_ = graph->dropoutMask(dropout_, {1, dimState});
     }
 
     if(layerNorm_) {
@@ -460,8 +454,7 @@ public:
     else
       input = inputs[0];
 
-    if(dropMaskX_)
-      input = dropout(input, dropMaskX_);
+    input = dropout(input, dropMaskX_);
 
     Expr xW;
     if(layerNorm_) {
@@ -494,8 +487,7 @@ public:
 
     auto stateOrig = state.output;
     auto stateDropped = stateOrig;
-    if(dropMaskS_)
-      stateDropped = dropout(stateOrig, dropMaskS_);
+    stateDropped = dropout(stateOrig, dropMaskS_);
 
     Expr sU;
     if(layerNorm_) {
@@ -584,8 +576,8 @@ public:
 
     if(dropout_ > 0.0f) {
       if(dimInput)
-        dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
-      dropMaskS_ = graph->dropout(dropout_, {1, dimState});
+        dropMaskX_ = graph->dropoutMask(dropout_, {1, dimInput});
+      dropMaskS_ = graph->dropoutMask(dropout_, {1, dimState});
     }
 
     if(layerNorm_) {
@@ -612,8 +604,7 @@ public:
     } else
       input = inputs.front();
 
-    if(dropMaskX_)
-      input = dropout(input, dropMaskX_);
+    input = dropout(input, dropMaskX_);
 
     auto xW = dot(input, W_);
 
@@ -630,8 +621,7 @@ public:
     auto cellState = state.cell;
 
     auto recStateDropped = recState;
-    if(dropMaskS_)
-      recStateDropped = dropout(recState, dropMaskS_);
+    recStateDropped = dropout(recState, dropMaskS_);
 
     auto sU = dot(recStateDropped, U_);
 
@@ -930,7 +920,7 @@ public:
     br_ = graph->param(prefix + "_br", {1, dimInput}, inits::zeros);
 
     if(dropout_ > 0.0f) {
-      dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
+      dropMaskX_ = graph->dropoutMask(dropout_, {1, dimInput});
     }
 
     if(layerNorm_) {
@@ -954,7 +944,7 @@ public:
     else
       input = inputs.front();
 
-    auto inputDropped = dropMaskX_ ? dropout(input, dropMaskX_) : input;
+    auto inputDropped = dropout(input, dropMaskX_);
 
     Expr x, f, r;
     if(layerNorm_) {
@@ -1021,7 +1011,7 @@ public:
     bf_ = graph->param(prefix + "_bf", {1, dimInput}, inits::zeros);
 
     if(dropout_ > 0.0f) {
-      dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
+      dropMaskX_ = graph->dropoutMask(dropout_, {1, dimInput});
     }
 
     if(layerNorm_) {
@@ -1044,7 +1034,7 @@ public:
     else
       input = inputs.front();
 
-    auto inputDropped = dropMaskX_ ? dropout(input, dropMaskX_) : input;
+    auto inputDropped = dropout(input, dropMaskX_);
 
     Expr x, f;
     if(layerNorm_) {
@@ -1104,7 +1094,7 @@ public:
 //         prefix + "_bf", {1, dimInput}, inits::zeros);
 
 //     if(dropout_ > 0.0f) {
-//       dropMaskX_ = graph->dropout(dropout_, {1, dimInput});
+//       dropMaskX_ = graph->dropoutMask(dropout_, {1, dimInput});
 //     }
 //   }
 
@@ -1121,7 +1111,7 @@ public:
 //     else
 //       input = inputs.front();
 
-//     auto inputDropped = dropMaskX_ ? dropout(input, dropMaskX_) : input;
+//     auto inputDropped = dropout(input, dropMaskX_);
 
 //     auto x = dot(inputDropped, W_);
 //     auto f = affine(inputDropped, Wf_, bf_);

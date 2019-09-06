@@ -79,12 +79,11 @@ public:
     HANDLE_MPI_ERROR(MPI_Init_thread(&argc, &argvp, MPI_THREAD_MULTIPLE, &providedThreadingMode));
     MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN); // have errors reported as return codes
 
-    ABORT_IF(
-      providedThreadingMode < requiredThreadingMode,
-      "Your version of MPI does not support multi-threaded communication.");
-
     MPI_Comm_size(MPI_COMM_WORLD, &comm_world_size_);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank_);
+
+    ABORT_IF(comm_world_size_ > 1 && providedThreadingMode < requiredThreadingMode,
+      "Your version of MPI does not support multi-threaded communication.");
 
     // patch logging pattern to include the MPI rank, so that we can associate error messages with nodes
     if (numMPIProcesses() > 1) {

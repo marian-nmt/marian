@@ -477,6 +477,10 @@ struct ReduceNodeOp : public UnaryNodeOp {
 
   NodeOps backwardOps() override {
     using namespace functional;
+#if 1 // @BUGBUG: This is a workaround for not correctly propagating non-trainable information. @TODO: Do this the right and general way.
+    if (adj_ == nullptr)
+      return {};
+#endif
     switch (opCode_) {
     case ReduceNodeOpCode::sum:
       return {NodeOp(Add(_1, child(0)->grad(), adj_))};
@@ -497,7 +501,7 @@ struct ReduceNodeOp : public UnaryNodeOp {
       return {NodeOp(Add((_1 == _2) * _3, child(0)->grad(), child(0)->val(), val_, adj_))};
     case ReduceNodeOpCode::logSumExp:
       // y = log(sum_j exp(x_j))
-       // dJ/dx_i = dJ/dy * 1/(sum_j exp(x_j)) exp(x_i) = dJ/dy * exp(x_i - y))  --@REVIEW: is this correct?
+      // dJ/dx_i = dJ/dy * 1/(sum_j exp(x_j)) exp(x_i) = dJ/dy * exp(x_i - y))  --@REVIEW: is this correct?
       return {NodeOp(Add(_1 * exp(_2 - _3), child(0)->grad(), adj_, child(0)->val(), val_))};
     default:
       ABORT("Unexpected reduction op-code {}", (int)opCode_);
@@ -717,6 +721,8 @@ private:
 
 public:
   ReshapeNodeOp(Expr a, Shape shape) : UnaryNodeOp(a, shape, a->value_type()), reshapee_(a) {
+    ABORT_IF(a->shape().elements() != shape.elements(),
+             "Reshape must not change the number of elements (from {} to {})", a->shape().toString(), shape.toString());
     Node::destroy_ = false;
   }
 

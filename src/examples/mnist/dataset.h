@@ -19,7 +19,12 @@ namespace data {
 
 typedef std::vector<float> Data;
 typedef std::vector<IndexType> Labels;
-typedef std::vector<Data> Example;
+struct Example : public std::vector<Data> { // a std::vector<Data> with a getId() method
+  size_t id;
+  size_t getId() const { return id; }
+  Example(std::vector<Data>&& data, size_t id) : std::vector<Data>(std::move(data)), id(id) {}
+  Example() : id(SIZE_MAX) {}
+};
 typedef std::vector<Example> Examples;
 
 typedef Examples::const_iterator ExampleIterator;
@@ -147,12 +152,11 @@ public:
     ABORT_IF(features.size() != labels.size(), "Features do not match labels");
 
     for(size_t i = 0; i < features.size(); ++i) {
-      Example ex = {features[i], labels[i]};
-      examples_.emplace_back(ex);
+      examples_.emplace_back(std::vector<Data>{ features[i], labels[i] }, i);
     }
   }
 
-  Example next() override { return{ }; } //@TODO: this return was added to fix a warning. Is it correct?
+  Example next() override { return Example(); } //@TODO: this return was added to fix a warning. Is it correct?
 
 private:
   typedef unsigned char uchar;

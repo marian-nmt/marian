@@ -9,7 +9,7 @@ using namespace marian;
 void tests(DeviceType type) {
   auto floatApprox = [](float x, float y) { return x == Approx(y).epsilon(0.01); };
 
-  Words vWords = {
+  std::vector<WordIndex> vWords = {
     43, 2, 83, 78,
     6, 38, 80, 40,
     40, 70, 26, 60,

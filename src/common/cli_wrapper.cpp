@@ -172,7 +172,7 @@ void CLIWrapper::parseAliases() {
   }
 }
 
-void CLIWrapper::updateConfig(const YAML::Node &config, cli::Priority priority, const std::string &errorMsg) {
+void CLIWrapper::updateConfig(const YAML::Node &config, cli::OptionPriority priority, const std::string &errorMsg) {
   auto cmdOptions = getParsedOptionNames();
   // Keep track of unrecognized options from the provided config
   std::vector<std::string> unknownOpts;
@@ -234,7 +234,7 @@ std::string CLIWrapper::dumpConfig(bool skipUnmodified /*= false*/) const {
     if(!config_[key])
       continue;
     // Do not dump options that were not passed via the command line
-    if(skipUnmodified && options_.at(key).priority == cli::Priority::DefaultValue)
+    if(skipUnmodified && options_.at(key).priority == cli::OptionPriority::DefaultValue)
       continue;
     // Put the group name as a comment before the first option in the group
     auto group = options_.at(key).opt->get_group();

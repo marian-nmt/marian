@@ -17,7 +17,7 @@ namespace marian {
  * @TODO: this should probably be unified somehow with EncoderDecoder which could allow for deocder/classifier
  * multi-objective training.
  */
-class EncoderClassifierBase : public models::ModelBase {
+class EncoderClassifierBase : public models::IModel {
 public:
   virtual ~EncoderClassifierBase() {}
 
@@ -41,13 +41,13 @@ public:
   virtual std::vector<Ptr<ClassifierState>> apply(Ptr<ExpressionGraph>, Ptr<data::CorpusBatch>, bool) = 0;
 
 
-  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
-                                  Ptr<data::Batch> batch,
-                                  bool clearGraph = true) override = 0;
+  virtual Logits build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::Batch> batch,
+                       bool clearGraph = true) override = 0;
 
-  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
-                                  Ptr<data::CorpusBatch> batch,
-                                  bool clearGraph = true) = 0;
+  virtual Logits build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::CorpusBatch> batch,
+                       bool clearGraph = true) = 0;
 
   virtual Ptr<Options> getOptions() = 0;
 };
@@ -136,6 +136,7 @@ public:
     modelFeatures_.insert("ulr");
     modelFeatures_.insert("ulr-trainable-transformation");
     modelFeatures_.insert("ulr-dim-emb");
+    modelFeatures_.insert("lemma-dim-emb");
   }
 
   virtual Ptr<Options> getOptions() override { return options_; }
@@ -206,17 +207,17 @@ public:
     return classifierStates;
   }
 
-  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
-                                  Ptr<data::CorpusBatch> batch,
-                                  bool clearGraph = true) override {
+  virtual Logits build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::CorpusBatch> batch,
+                       bool clearGraph = true) override {
     auto states = apply(graph, batch, clearGraph);
     // returns raw logits
-    return New<RationalLoss>(states[0]->getLogProbs(), nullptr); // @TODO: Check if this is actually used
+    return Logits(states[0]->getLogProbs());
   }
 
-  virtual Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph,
-                                  Ptr<data::Batch> batch,
-                                  bool clearGraph = true) override {
+  virtual Logits build(Ptr<ExpressionGraph> graph,
+                       Ptr<data::Batch> batch,
+                       bool clearGraph = true) override {
     auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
     return build(graph, corpusBatch, clearGraph);
   }

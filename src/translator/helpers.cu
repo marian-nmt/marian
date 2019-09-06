@@ -37,8 +37,8 @@ void SetColumn(Tensor in_, size_t col, float value) {
   gSetColumn<<<nBlocks, nThreads>>>(in_->data(), nColumns, nRows, col, value);
 }
 
-void suppressWord(Expr probs, Word id) {
-  SetColumn(probs->val(), id, std::numeric_limits<float>::lowest());
+void suppressWord(Expr probs, WordIndex wordIndex) {
+  SetColumn(probs->val(), wordIndex, std::numeric_limits<float>::lowest());
 }
 }  // namespace gpu
 }  // namespace marian

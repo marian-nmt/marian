@@ -24,18 +24,18 @@ void SetColumn(Tensor in_, size_t col, float value) {
   }
 }
 
-void suppressWord(Expr logProbs, Word id) {
-  SetColumn(logProbs->val(), id, std::numeric_limits<float>::lowest());
+void suppressWord(Expr logProbs, WordIndex wordIndex) {
+  SetColumn(logProbs->val(), wordIndex, std::numeric_limits<float>::lowest());
 }
 }  // namespace cpu
 
-void suppressWord(Expr logProbs, Word id) {
+void suppressWord(Expr logProbs, WordIndex wordIndex) {
   if(logProbs->val()->getBackend()->getDeviceId().type == DeviceType::cpu) {
-    cpu::suppressWord(logProbs, id);
+    cpu::suppressWord(logProbs, wordIndex);
   }
 #ifdef CUDA_FOUND
   else {
-    gpu::suppressWord(logProbs, id);
+    gpu::suppressWord(logProbs, wordIndex);
   }
 #endif
 }

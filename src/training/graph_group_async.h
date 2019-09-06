@@ -16,7 +16,7 @@ public:
 protected:
   bool first_{true};
 
-  std::vector<Ptr<models::ModelBase>> builders_;
+  std::vector<Ptr<models::ICriterionFunction>> builders_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
   std::vector<DeviceId> devices_;
 

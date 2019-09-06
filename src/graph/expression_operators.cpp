@@ -7,6 +7,11 @@
 
 #include "graph/auto_tuner.h"
 #include "tensors/cpu/int16.h"
+#include "tensors/cpu/expanded_gemm.h"
+
+#if USE_FBGEMM
+#include "fbgemm/Utils.h"
+#endif
 
 namespace marian {
 
@@ -78,6 +83,9 @@ Expr softmax(Expr a, Expr zeroOneMask, int axis /*=-1*/) {
 }
 
 Expr logsoftmax(Expr a) {
+  if (a->type() == "logsoftmax") // logsoftmax(logsoftmax(x)) == logsoftmax(x)
+    // @TODO: Remove this. First add an ABORT() for a while to catch who relies on this, and if noone, then delete.
+    return a;
   return Expression<LogSoftmaxNodeOp>(a);
 }
 
@@ -135,31 +143,49 @@ Expr le(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant(
 /*********************************************************/
 
 Expr operator+(Expr a, float b) {
-  return Expression<ScalarAddNodeOp>(a, b);
+  if (b == 0)
+    return a;
+  else
+    return Expression<ScalarAddNodeOp>(a, b);
 }
 
 Expr operator+(float a, Expr b) {
-  return Expression<ScalarAddNodeOp>(b, a);
+  if (a == 0)
+    return b;
+  else
+    return Expression<ScalarAddNodeOp>(b, a);
 }
 
 Expr operator-(Expr a, float b) {
-  return Expression<ScalarAddNodeOp>(a, -b);
+  if (b == 0)
+    return a;
+  else
+    return Expression<ScalarAddNodeOp>(a, -b);
 }
 
 Expr operator-(float a, Expr b) {
-  return Expression<ScalarAddNodeOp>(-b, a);
+  if (a == 0)
+    return -b;
+  else
+    return Expression<ScalarAddNodeOp>(-b, a);
 }
 
 Expr operator*(float a, Expr b) {
-  return Expression<ScalarMultNodeOp>(b, a);
+  if (a == 1.0f)
+    return b;
+  else
+    return Expression<ScalarMultNodeOp>(b, a);
 }
 
 Expr operator*(Expr a, float b) {
-  return Expression<ScalarMultNodeOp>(a, b);
+  if (b == 1.0f)
+    return a;
+  else
+    return Expression<ScalarMultNodeOp>(a, b);
 }
 
 Expr operator/(Expr a, float b) {
-  return Expression<ScalarMultNodeOp>(a, 1.f / b);
+  return a * (1.f / b);
 }
 
 // TODO: efficient version of this without constant()
@@ -195,6 +221,8 @@ Expr repeat(Expr a, size_t repeats, int ax) {
 }
 
 Expr reshape(Expr a, Shape shape) {
+  if (a->shape() == shape)
+    return a;
   return Expression<ReshapeNodeOp>(a, shape);
 }
 
@@ -238,7 +266,7 @@ Expr flatten_2d(Expr a) {
 
 Expr stopGradient(Expr a) {
   // implemented as a dummy reshape that is not trainable
-  auto res = reshape(a, a->shape());
+  auto res = Expression<ReshapeNodeOp>(a, a->shape());
   res->setTrainable(false);
   return res;
 }
@@ -254,7 +282,12 @@ Expr gather(Expr a, int axis, Expr indices) {
   return Expression<GatherNodeOp>(a, axis, indices);
 }
 
-// index_select() -- gather arbitrary elements along an axis; unbatched (indices are specified as a 1D vector)
+// index_select() -- gather arbitrary elements along an axis from an unbatched
+// input 'a'. Indices are specified as a 1D vector.
+// This is used e.g. for embedding lookup.
+// Note: To use a batch of index vectors, reshape them into a single vector,
+// call index_select(), then reshape the result back. Reshapes are cheap.
+// This function has the same semantics as PyTorch operation of the same name.
 Expr index_select(Expr a, int axis, Expr indices) {
   ABORT_IF(indices->shape().size() != 1, "Indices must be a 1D tensor");
   // We have specialized kernels for non-batched indexing of first or last axis of a 2D tensor.
@@ -358,7 +391,8 @@ Expr dot(Expr a, Expr b, bool transA, bool transB, float scale) {
 
   // Currently only true when command line options
   // --optimize --cpu-thread=N with N > 0 are set.
-  if(a->graph()->isOptimized() && device == DeviceType::cpu) {
+  if(device == DeviceType::cpu && a->graph()->getBackend()->isOptimized()
+     && a->graph()->getBackend()->getGemmType() == GemmType::IntrinInt16) {
     // dotInt16 computes A * B.T, hence the transpose for B to get A * B
     // if transA = false and transB = false.
 
@@ -381,9 +415,13 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
 
   float clipValue = a->graph()->getBackend()->getClip();
 
-  if(a->graph()->isOptimized() && device == DeviceType::cpu) {
-    bool autotune = true;
-    if(autotune) {
+  if(device == DeviceType::cpu && a->graph()->getBackend()->isOptimized()) {
+    GemmType gemmType = a->graph()->getBackend()->getGemmType();
+    // When gemmType is set to 'auto', an autotuner decides the best algorithm available.
+    // A new autotuner is created, then different kinds of algorithms are added to the autotuner.
+    // For each GEMM size, there is a unique hash key.
+    // (e.g. m, n, k, transpose A, transpose B, bias size for GEMM)
+    if(gemmType == GemmType::Auto) {
       thread_local Ptr<AutoTuner<Expr>> tuner = New<AutoTuner<Expr>>();
 
       // start with new set of algorithms
@@ -403,60 +441,154 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
       util::hash_combine(hash, transA);
       util::hash_combine(hash, transB);
 
-      // add first algorithm variant (Int16)
-      size_t hash1 = hash;
-      util::hash_combine(hash1, 1);
-      auto rec1 = [=](Expr e, bool stop = false) {
-        e->record(tuner, hash1, stop);
+#if USE_FBGEMM
+      // Use Packed GEMM only if the node b in the graph is memoized.
+      // More specifically, packed GEMM is used only if the B matrix (weight) is constant.
+      // In general, 'memoized' means that the node is a constant variable or
+      // a combination of contant nodes which is also a constant variable
+      // when it's computed once.
+      // Those memoized nodes are cached to avoid duplicated computations.
+      // 07/10/2019 - Use packed GEMM only if the cpu architecture supports AVX2
+      // one of the fbgemm's sub modules, cpuinfo (https://github.com/pytorch/cpuinfo).
+      // It looks at the cpu register 
+      // (https://github.com/pytorch/cpuinfo/blob/master/src/x86/isa.c#L391),
+      // and this cpu lookup is executed only once and the state is kept in FBGEMM.
+      if(fbgemm::fbgemmHasAvx2Support() && b->memoize()) {
+        // add packed GEMM algorithm variant (Packed GEMM) to the autotuner
+        // Once an algorithm is added to the autotuner,
+        // autotuner runs all the added algorithms for a designated times.
+        // One algorithm is run per one this operation call
+        // and the stat for that algorithm is collected.
+        // When all the algorithms reach the maximum stat collection count,
+        // the autotuner decide the best algorithm, and keep using it afterward.
+        size_t hashPack = hash;
+        util::hash_combine(hashPack, 1);
+        auto recPack = [=](Expr e, bool stop = false) {
+          e->record(tuner, hashPack, stop);
+          return e;
+        };
+
+        auto algPack = [=]() {
+          auto packed = cpu::variant::pack(b, cpu::variant::PackMatrix::B, transB, clipValue);
+
+          return recPack(
+              cpu::variant::affine(
+                  clip(a, clipValue),
+                  packed,
+                  b->shape(),
+                  bias,
+                  transA,
+                  transB,
+                  scale),
+              true);
+        };
+        tuner->insert({hashPack, algPack});
+      }
+#endif // USE_FBGEMM
+
+      // add second algorithm variant (Int16) to the autotuner
+      size_t hashInt16 = hash;
+      util::hash_combine(hashInt16, 2);
+      auto recInt16 = [=](Expr e, bool stop = false) {
+        e->record(tuner, hashInt16, stop);
         return e;
       };
-      auto alg1 = [=]() {
-        return rec1(
+      auto algInt16 = [=]() {
+        return recInt16(
             cpu::int16::affine(
-                rec1(cpu::int16::quantize(transA ? rec1(transpose(a)) : a,
-                                          clipValue)),
-                cpu::int16::quantize(transB ? b : transpose(b), clipValue),
+                recInt16(
+                    cpu::int16::quantize(
+                        transA ? recInt16(transpose(a)) : a,
+                        clipValue)),
+                cpu::int16::quantize(
+                    transB ? b : transpose(b),
+                    clipValue),
                 bias,
                 scale),
             true);
       };
-      tuner->insert({hash1, alg1});
+      tuner->insert({hashInt16, algInt16});
 
-      // add second algorithm variant (CBlas)
-      size_t hash2 = hash;
-      util::hash_combine(hash2, 2);
-      auto rec2 = [=](Expr e, bool stop = false) {
-        e->record(tuner, hash2, stop);
+      // add third algorithm variant (CBlas) to the autotuner
+      size_t hashCblas = hash;
+      util::hash_combine(hashCblas, 3);
+      auto recCblas = [=](Expr e, bool stop = false) {
+        e->record(tuner, hashCblas, stop);
         return e;
       };
 
-      auto alg2 = [=]() {
+      auto algCblas = [=]() {
         auto ac = clip(a, clipValue);
         if(ac != a)
-          ac = rec2(ac);
+          ac = recCblas(ac);
 
         auto bc = clip(b, clipValue);
         if(bc != b)
-          bc = rec2(bc);
+          bc = recCblas(bc);
 
         int rows = ac->shape().elements() / ac->shape()[-1];
         Expr ones = ac->graph()->ones({rows, 1});
         std::vector<Expr> nodes = {ac, bc, bias, ones};
-        return rec2(Expression<AffineNodeOp>(nodes, transA, transB, scale),
-                    true);
+        return recCblas(Expression<AffineNodeOp>(nodes, transA, transB, scale),
+                        true);
       };
-      tuner->insert({hash2, alg2});
+      tuner->insert({hashCblas, algCblas});
 
       // execute algorithm with autotuning
       return tuner->run();
 
     } else {
-      // cpu int16 version
-      return cpu::int16::affine(
-          cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
-          cpu::int16::quantize(transB ? b : transpose(b), clipValue),
-          bias,
-          scale);
+      if(gemmType == GemmType::IntrinInt16) {
+        // cpu int16 version
+        return cpu::int16::affine(
+            cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
+            cpu::int16::quantize(transB ? b : transpose(b), clipValue),
+            bias,
+            scale);
+      } else if(gemmType == GemmType::FbFp16Packed) {
+#if USE_FBGEMM
+        // 07/10/2019 - Use packed GEMM only if the cpu architecture supports AVX2
+        // one of the fbgemm's sub modules, cpuinfo (https://github.com/pytorch/cpuinfo).
+        // It looks at the cpu register
+        // (https://github.com/pytorch/cpuinfo/blob/master/src/x86/isa.c#L391),
+        // and this cpu lookup is executed only once and the state is kept in FBGEMM.
+        if(fbgemm::fbgemmHasAvx2Support() && b->memoize()) {
+          auto packed = cpu::variant::pack(b, cpu::variant::PackMatrix::B, transB, clipValue);
+
+          return cpu::variant::affine(
+              clip(a, clipValue),
+              packed,
+              b->shape(),
+              bias,
+              transA,
+              transB,
+              scale);
+        } else {
+          int rows = a->shape().elements() / a->shape()[-1];
+          Expr ones = a->graph()->ones({rows, 1});
+          std::vector<Expr> nodes = {clip(a, clipValue), clip(b, clipValue), bias, ones};
+          return Expression<AffineNodeOp>(nodes, transA, transB, scale);
+        }
+#else
+        ABORT("Packed GEMM is not available in this build");
+#endif  // USE_FBGEMM
+
+      } else if(gemmType == GemmType::MklFp32) {
+        // general version, MKL, CBlas or CUDA
+
+        // if clipValue > 0, the inputs will be clipped to range [-clipValue,
+        // clipValue] This is meant to keep values at the same range as used during
+        // training when optimizing for 8-bit integer products. Likely to be removed
+        // in the future when we explore better ways to handle this.
+
+        int rows = a->shape().elements() / a->shape()[-1];
+        Expr ones = a->graph()->ones({rows, 1});
+        std::vector<Expr> nodes
+            = {clip(a, clipValue), clip(b, clipValue), bias, ones};
+        return Expression<AffineNodeOp>(nodes, transA, transB, scale);
+      } else {
+        ABORT("GemmType..{} not available by affine()", gemmType);
+      }
     }
   } else {
     // general version, MKL, CBlas or CUDA
@@ -507,13 +639,28 @@ Expr transpose(Expr a, const std::vector<int>& axes) {
 
 Expr swapAxes(Expr x, int axis1, int axis2)
 {
-  axis1 = x->shape().axis(axis1);
-  axis2 = x->shape().axis(axis2);
+  const auto& shape = x->shape();
+  axis1 = shape.axis(axis1);
+  axis2 = shape.axis(axis2);
   if (axis1 == axis2)
     return x;
+  if (shape[axis1] == 1 || shape[axis2] == 1) { // can we use a reshape instead?
+    if (axis1 > axis2)
+      std::swap(axis1, axis2);
+    bool canReshape = true;
+    for (int ax = axis1 + 1; ax < axis2 && canReshape; ax++)
+      canReshape &= (shape[ax] == 1);
+    if (canReshape) {
+      auto newShape = shape;
+      newShape.set(axis1, shape[axis2]);
+      newShape.set(axis2, shape[axis1]);
+      //LOG(info, "SwapAxes() did a reshape from {} to {}", shape.toString(), newShape.toString());
+      return reshape(x, newShape);
+    }
+  }
   // TODO: This is code dup from transpose(x). Implement transpose(x) as swapAxes(x, 0, 1)
-  std::vector<int> axes(x->shape().size());
-  for (int i = 0; i < axes.size(); ++i)
+  std::vector<int> axes(shape.size());
+  for (int i = 0; i < axes.size(); ++i) // @TODO: use std::iota()
     axes[i] = i;
   std::swap(axes[axis1], axes[axis2]);
   return transpose(x, axes);

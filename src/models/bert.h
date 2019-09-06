@@ -2,7 +2,7 @@
 
 #include "data/corpus_base.h"
 #include "models/encoder_classifier.h"
-#include "models/transformer.h"
+#include "models/transformer.h"   // @BUGBUG: transformer.h is large and was meant to be compiled separately
 #include "data/rng_engine.h"
 
 namespace marian {
@@ -25,7 +25,7 @@ namespace data {
 class BertBatch : public CorpusBatch {
 private:
   std::vector<IndexType> maskedPositions_;
-  std::vector<IndexType> maskedWords_;
+  Words maskedWords_;
   std::vector<IndexType> sentenceIndices_;
 
   std::string maskSymbol_;
@@ -33,7 +33,7 @@ private:
   std::string clsSymbol_;
 
   // Selects a random word from the vocabulary
-  std::unique_ptr<std::uniform_int_distribution<Word>> randomWord_;
+  std::unique_ptr<std::uniform_int_distribution<WordIndex>> randomWord_;
 
   // Selects a random integer between 0 and 99
   std::unique_ptr<std::uniform_real_distribution<float>> randomPercent_;
@@ -51,7 +51,7 @@ private:
     if (r < 0.1f) { // for 10% of cases return same word
       return word;
     } else if (r < 0.2f) { // for 10% return random word
-      Word randWord = (*randomWord_)(engine);
+      Word randWord = Word::fromWordIndex((*randomWord_)(engine));
       if(dontMask_.count(randWord) > 0) // some words, e.g. [CLS] or </s>, may not be used as random words
         return mask;                    // for those, return the mask symbol instead
       else
@@ -80,7 +80,7 @@ public:
     const auto& vocab = *subBatch->vocab();
 
     // Initialize to sample random vocab id
-    randomWord_.reset(new std::uniform_int_distribution<Word>(0, (Word)vocab.size()));
+    randomWord_.reset(new std::uniform_int_distribution<WordIndex>(0, (WordIndex)vocab.size()));
 
     // Intialize to sample random percentage
     randomPercent_.reset(new std::uniform_real_distribution<float>(0.f, 1.f));
@@ -163,7 +163,7 @@ public:
   }
 
   const std::vector<IndexType>& bertMaskedPositions() { return maskedPositions_; }
-  const std::vector<IndexType>& bertMaskedWords()     { return maskedWords_; }
+  const Words& bertMaskedWords() { return maskedWords_; }
   const std::vector<IndexType>& bertSentenceIndices() { return sentenceIndices_; }
 };
 
@@ -214,11 +214,12 @@ public:
  * BERT-specific modifications to EncoderTransformer
  * Actually all that is needed is to intercept the creation of special embeddings,
  * here sentence embeddings for sentence A and B.
+ * @BUGBUG: transformer.h was meant to be compiled separately. I.e., one cannot derive from it.
+ *          Is there a way to maybe instead include a reference in here, instead of deriving from it?
  */
 class BertEncoder : public EncoderTransformer {
+  using EncoderTransformer::EncoderTransformer;
 public:
-  BertEncoder(Ptr<Options> options) : EncoderTransformer(options) {}
-
   Expr addSentenceEmbeddings(Expr embeddings,
                              Ptr<data::CorpusBatch> batch,
                              bool learnedPosEmbeddings) const {
@@ -238,7 +239,7 @@ public:
                                ("dimVocab", dimTypeVocab) // sentence A or sentence B
                                ("dimEmb", dimEmb)
                                .construct(graph_);
-      signal = sentenceEmbeddings->apply(bertBatch->bertSentenceIndices(), {dimWords, dimBatch, dimEmb});
+      signal = sentenceEmbeddings->applyIndices(bertBatch->bertSentenceIndices(), {dimWords, dimBatch, dimEmb});
     } else {
       // @TODO: factory for positional embeddings?
       // constant sinusoidal position embeddings, no backprob
@@ -267,9 +268,8 @@ public:
  * @TODO: This is in fact so generic that we might move it out of here as the typical classifier implementation
  */
 class BertClassifier : public ClassifierBase {
+  using ClassifierBase::ClassifierBase;
 public:
-  BertClassifier(Ptr<Options> options) : ClassifierBase(options) {}
-
   Ptr<ClassifierState> apply(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch, const std::vector<Ptr<EncoderState>>& encoderStates) override {
     ABORT_IF(encoderStates.size() != 1, "Currently we only support a single encoder BERT model");
 
@@ -296,7 +296,7 @@ public:
 
     // Filled externally, for BERT these are NextSentence prediction labels
     const auto& classLabels = (*batch)[batchIndex_]->data();
-    state->setTargetIndices(graph->indices(classLabels));
+    state->setTargetWords(classLabels);
 
     return state;
   }
@@ -310,9 +310,8 @@ public:
  * as this is self-generating its labels from the source. Labels are dynamically created as complements of the masking process.
  */
 class BertMaskedLM : public ClassifierBase {
+  using ClassifierBase::ClassifierBase;
 public:
-  BertMaskedLM(Ptr<Options> options) : ClassifierBase(options) {}
-
   Ptr<ClassifierState> apply(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch, const std::vector<Ptr<EncoderState>>& encoderStates) override {
     Ptr<data::BertBatch> bertBatch = std::dynamic_pointer_cast<data::BertBatch>(batch);
 
@@ -321,8 +320,8 @@ public:
 
     auto context = encoderStates[0]->getContext();
 
-    auto bertMaskedPositions = graph->indices(bertBatch->bertMaskedPositions()); // positions in batch of masked entries
-    auto bertMaskedWords     = graph->indices(bertBatch->bertMaskedWords());   // vocab ids of entries that have been masked
+    auto bertMaskedPositions    = graph->indices(bertBatch->bertMaskedPositions()); // positions in batch of masked entries
+    const auto& bertMaskedWords = bertBatch->bertMaskedWords();   // vocab ids of entries that have been masked
 
     int dimModel = context->shape()[-1];
     int dimBatch = context->shape()[-2];
@@ -355,9 +354,9 @@ public:
     intermediate = layerNorm(intermediate, gamma, beta);
 
     auto layer2 = mlp::mlp()
-      .push_back(mlp::output()
-                 ("prefix", prefix_ + "_ff_logit_l2")
-                 ("dim", dimVoc)
+      .push_back(mlp::output(
+                  "prefix", prefix_ + "_ff_logit_l2",
+                  "dim", dimVoc)
                  .tieTransposed("Wemb"))
       .construct(graph);
 
@@ -365,7 +364,7 @@ public:
 
     auto state = New<ClassifierState>();
     state->setLogProbs(logits);
-    state->setTargetIndices(bertMaskedWords);
+    state->setTargetWords(bertMaskedWords);
 
     return state;
   }

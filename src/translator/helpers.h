@@ -11,13 +11,13 @@ namespace marian {
 
 namespace cpu {
 
-void suppressWord(Expr logProbs, Word id);
+void suppressWord(Expr logProbs, WordIndex wordIndex);
 }
 
 namespace gpu {
 
-void suppressWord(Expr logProbs, Word id);
+void suppressWord(Expr logProbs, WordIndex wordIndex);
 }
 
-void suppressWord(Expr logProbs, Word id);
+void suppressWord(Expr logProbs, WordIndex wordIndex);
 }  // namespace marian
