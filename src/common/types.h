@@ -277,11 +277,10 @@ template <> inline Type typeId<double>()   { return Type::float64; }
 // Abort if given C++ does not correspond to runtime type
 template <typename T>
 void matchOrAbort(Type type) {
-  // @TODO: hacky hack for WGNMT, turn this back on
-  // ABORT_IF(!matchType<T>(type),
-  //          "Requested type ({}) and underlying type ({}) do not match",
-  //          request<T>(),
-  //          type);
+  ABORT_IF(!matchType<T>(type),
+           "Requested type ({}) and underlying type ({}) do not match",
+           request<T>(),
+           type);
 }
 
 template <typename T>

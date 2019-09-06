@@ -11,12 +11,12 @@ namespace marian {
 
 namespace gpu {
 
-template <size_t K, class Functor, class AggFunctor>
-__global__ void gAggregateGeneric(Functor functor, float aggInit, AggFunctor aggFunctor,
-                            const functional::Shape full,
-                            functional::Tensor<float> out,
-                            functional::Array<functional::Tensor<float>, K> ins,
-                            float scale = 1.0) {
+template <size_t K, class Functor, class AggFunctor, typename T, typename AccType>
+__global__ void gAggregateGeneric(Functor functor, AccType aggInit, AggFunctor aggFunctor,
+                                  const functional::Shape full,
+                                  functional::Tensor<T> out,
+                                  functional::Array<functional::Tensor<T>, K> ins,
+                                  AccType scale = 1.0) {
   int outLength = out.shape().elements();
   bool same = outLength == full.elements();
   for(int i = 0; i < K; ++i)
@@ -32,21 +32,21 @@ __global__ void gAggregateGeneric(Functor functor, float aggInit, AggFunctor agg
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < outLength) {
       if(same) {
-        out[index] = aggFunctor(out[index], functional::apply(functor, ins, index) * scale);
+        out[index] = aggFunctor(out[index], functional::apply(functor, ins, index) * (T)scale);
       } else {
         out.shape().dims(index, dims);
-        out[index] = aggFunctor(out[index], functional::loops(functor, aggInit, aggFunctor, ins, len, dims) * scale);
+        out[index] = aggFunctor(out[index], (T)(functional::loops(functor, aggInit, aggFunctor, ins, len, dims) * scale));
       }
     }
   }
 }
 
-template <size_t K, class Functor, class AggFunctor>
+template <size_t K, class Functor, class AggFunctor, typename T, typename AccType>
 __global__ void gAggregateEqual(Functor functor, AggFunctor aggFunctor,
-                          functional::Tensor<float> out,
-                          functional::Array<functional::Tensor<float>, K> ins,
-                          float scale,
-                          bool broadcast) {
+                                functional::Tensor<T> out,
+                                functional::Array<functional::Tensor<T>, K> ins,
+                                AccType scale,
+                                bool broadcast) {
   int length = out.shape().elements();
   functional::Array<int, functional::Shape::size()> dims;
 
@@ -62,17 +62,17 @@ __global__ void gAggregateEqual(Functor functor, AggFunctor aggFunctor,
           indices[i] = ins[i].shape().bindex(dims);
       }
 
-      out[index] = aggFunctor(out[index], functional::apply(functor, ins, indices) * scale);
+      out[index] = aggFunctor(out[index], functional::apply(functor, ins, indices) * (T)scale);
     }
   }
 }
 
-template <size_t K, class Functor, class AggFunctor>
-__global__ void gAggregateReduce(Functor functor, float aggInit, AggFunctor aggFunctor,
-                           const functional::Shape full,
-                           functional::Tensor<float> out,
-                           functional::Array<functional::Tensor<float>, K> ins,
-                           float scale = 1.0) {
+template <size_t K, class Functor, class AggFunctor, typename T, typename AccType = float>
+__global__ void gAggregateReduce(Functor functor, AccType aggInit, AggFunctor aggFunctor,
+                                 const functional::Shape full,
+                                 functional::Tensor<T> out,
+                                 functional::Array<functional::Tensor<T>, K> ins,
+                                 AccType scale = 1.0) {
   int rows = full.elements() / full.back();
   int cols = full.back();
 
@@ -83,15 +83,17 @@ __global__ void gAggregateReduce(Functor functor, float aggInit, AggFunctor aggF
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
-      extern __shared__ float _share[];
-      float* _sum = _share;
+      // make sure shared memory is the same for different types
+      // by using bytes instead of type T
+      extern __shared__ uint8_t _sharedBytes[];
+      AccType* _sum = (AccType*)_sharedBytes;
 
       if(same) {
         _sum[threadIdx.x] = aggInit;
         for(int tid = 0; tid < cols; tid += blockDim.x) {
           int id = tid + threadIdx.x;
           if(id < cols)
-            _sum[threadIdx.x] = aggFunctor(_sum[threadIdx.x], functional::apply(functor, ins, j * cols + id));
+            _sum[threadIdx.x] = aggFunctor(_sum[threadIdx.x], (AccType)functional::apply(functor, ins, j * cols + id));
         }
       } else {
         functional::Array<int, functional::Shape::size()> dims;
@@ -104,7 +106,7 @@ __global__ void gAggregateReduce(Functor functor, float aggInit, AggFunctor aggF
             functional::Array<int, K> indices;
             for(int i = 0; i < K; ++i)
               indices[i] = ins[i].shape().bindex(dims);
-            _sum[threadIdx.x] = aggFunctor(_sum[threadIdx.x], functional::apply(functor, ins, indices));
+            _sum[threadIdx.x] = aggFunctor(_sum[threadIdx.x], (AccType)functional::apply(functor, ins, indices));
           }
         }
       }
@@ -119,14 +121,14 @@ __global__ void gAggregateReduce(Functor functor, float aggInit, AggFunctor aggF
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      out[j] = aggFunctor(out[j], _sum[0] * scale);
+      out[j] = aggFunctor(out[j], (T)(_sum[0] * scale));
     }
     __syncthreads();
   }
 }
 
-template <class Functor, class AggFunctor, class... Tensors>
-void Aggregate(Functor functor, float aggInit, AggFunctor aggFunctor, float scale, marian::Tensor out, Tensors... tensors) {
+template <typename T, typename AccType, class Functor, class AggFunctor, class... Tensors>
+void AggregateTyped(Functor functor, AccType aggInit, AggFunctor aggFunctor, AccType scale, marian::Tensor out, Tensors... tensors) {
   cudaSetDevice(out->getDeviceId().no);
 
   auto full = marian::Shape::broadcast({out, tensors...});
@@ -135,8 +137,8 @@ void Aggregate(Functor functor, float aggInit, AggFunctor aggFunctor, float scal
 
   constexpr size_t K = sizeof...(Tensors);
 
-  functional::Tensor<float> gOut = out;
-  functional::Array<functional::Tensor<float>, K> gIns = {tensors...};
+  functional::Tensor<T> gOut = out;
+  functional::Array<functional::Tensor<T>, K> gIns = {tensors...};
 
   if(full.back() != 1 && out->shape().back() == 1) {
     size_t m = full.elements() / length;
@@ -144,14 +146,13 @@ void Aggregate(Functor functor, float aggInit, AggFunctor aggFunctor, float scal
 
     int blocks = std::min(MAX_BLOCKS, (int)m);
     int threads = std::min(MAX_THREADS, (int)k);
-    int shared = sizeof(float) * threads;
+    int shared = sizeof(AccType) * threads; 
 
-    gAggregateReduce<<<blocks, threads, shared>>>(functor, aggInit, aggFunctor, full, gOut, gIns, scale);
+    gAggregateReduce<K, Functor, AggFunctor, T, AccType><<<blocks, threads, shared>>>(functor, aggInit, aggFunctor, full, gOut, gIns, scale);
 
   } else if(out->shape() == full) {
     int threads = std::min(MAX_THREADS, length);
-    int blocks
-        = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
+    int blocks  = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
     bool broadcast = false;
     for(int i = 0; i < K; ++i)
@@ -159,55 +160,29 @@ void Aggregate(Functor functor, float aggInit, AggFunctor aggFunctor, float scal
     gAggregateEqual<<<blocks, threads>>>(functor, aggFunctor, gOut, gIns, scale, broadcast);
   } else {
     int threads = std::min(MAX_THREADS, length);
-    int blocks
-        = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
+    int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
     gAggregateGeneric<<<blocks, threads>>>(functor, aggInit, aggFunctor, full, gOut, gIns, scale);
   }
 }
 
-// @TODO: this is a duplicate; can be removed, but need to redo all the add.inc entries...
+template <class Functor, class AggFunctor, class... Tensors>
+void Aggregate(Functor functor, float aggInit, AggFunctor aggFunctor, float scale, marian::Tensor out, Tensors... tensors) {
+  if(out->type() == Type::float32) {
+    AggregateTyped<float, float>(functor, aggInit, aggFunctor, scale, out, tensors...);
+#if 0
+  } else if(out->type() == Type::float16) {
+    AggregateTyped<half,  float>(functor, aggInit, aggFunctor, scale, out, tensors...);
+#endif
+  } else {
+    ABORT("Type {} not yet supported", out->type());
+  }
+}
+
 template <class Functor, class... Tensors>
 void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
-  cudaSetDevice(out->getDeviceId().no);
-
-  auto full = marian::Shape::broadcast({out, tensors...});
-
-  int length = out->shape().elements();
-
-  constexpr size_t K = sizeof...(Tensors);
-
-  functional::Tensor<float> gOut = out;
-  functional::Array<functional::Tensor<float>, K> gIns = {tensors...};
-
   auto addFunctor = functional::_1 + functional::_2;
-
-  if(full.back() != 1 && out->shape().back() == 1) {
-    size_t m = full.elements() / length;
-    size_t k = full.back();
-
-    int blocks = std::min(MAX_BLOCKS, (int)m);
-    int threads = std::min(MAX_THREADS, (int)k);
-    int shared = sizeof(float) * threads;
-
-    gAggregateReduce<<<blocks, threads, shared>>>(functor, 0, addFunctor, full, gOut, gIns, scale);
-
-  } else if(out->shape() == full) {
-    int threads = std::min(MAX_THREADS, length);
-    int blocks
-        = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
-
-    bool broadcast = false;
-    for(int i = 0; i < K; ++i)
-      broadcast = broadcast || gOut.shape() != gIns[i].shape();
-    gAggregateEqual<<<blocks, threads>>>(functor, addFunctor, gOut, gIns, scale, broadcast);
-  } else {
-    int threads = std::min(MAX_THREADS, length);
-    int blocks
-        = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
-
-    gAggregateGeneric<<<blocks, threads>>>(functor, 0, addFunctor, full, gOut, gIns, scale);
-  }
+  Aggregate(functor, 0.f, addFunctor, scale, out, tensors...);
 }
 
 #include "tensors/gpu/add.inc"
