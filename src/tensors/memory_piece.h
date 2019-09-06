@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/definitions.h"
+
 #include <iostream>
 
 namespace marian {
@@ -9,9 +11,21 @@ private:
   uint8_t* data_;
   size_t size_;
 
-public:
+  ENABLE_INTRUSIVE_PTR(MemoryPiece)
+  
+  // Contructor is private, use MemoryPiece::New(...)
   MemoryPiece(uint8_t* data, size_t size) : data_(data), size_(size) {}
 
+public:
+  // Use this whenever pointing to MemoryPiece
+  typedef IPtr<MemoryPiece> PtrType;
+
+  // Use this whenever creating a pointer to MemoryPiece
+  template <class ...Args>
+  static PtrType New(Args&& ...args) {
+    return PtrType(new MemoryPiece(std::forward<Args>(args)...));
+  }
+  
   uint8_t* data() const { return data_; }
   uint8_t* data() { return data_; }
 
@@ -39,6 +53,6 @@ public:
         << " size: " << mp.size();
     return out;
   }
-};
 
+};
 }  // namespace marian

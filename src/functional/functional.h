@@ -2,6 +2,7 @@
 
 #include "functional/operands.h"
 #include "functional/predicates.h"
+#include "functional/operators.h"
 
 namespace marian {
 namespace functional {

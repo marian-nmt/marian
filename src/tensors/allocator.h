@@ -88,11 +88,7 @@ private:
   bool throw_{false};
 
   std::set<Gap> gaps_;
-  std::unordered_map<uint8_t*, Ptr<MemoryPiece>> allocated_;
-
-  size_t align(size_t size) {
-    return (size_t)(ceil(size / (float)alignment_) * alignment_);
-  }
+  std::unordered_map<uint8_t*, MemoryPiece::PtrType> allocated_;
 
   void grow(size_t add) {
     add = align(add);
@@ -109,7 +105,7 @@ private:
                        gap.size()));
     insertGap(Gap(device_->data() + oldSize, add));
 
-    std::unordered_map<uint8_t*, Ptr<MemoryPiece>> oldAllocated;
+    std::unordered_map<uint8_t*, MemoryPiece::PtrType> oldAllocated;
     allocated_.swap(oldAllocated);
     for(auto it : oldAllocated) {
       uint8_t* newPtr = device_->data() + std::distance(oldData, it.first);
@@ -123,6 +119,7 @@ private:
     auto it = std::lower_bound(gaps_.begin(), gaps_.end(), Gap(nullptr, size));
 
     if(throw_ && it == gaps_.end()) {
+      //ABORT("Trying to allocate {}, but only {} available.", available_, size);
       throw AllocationException(available_, size);
     }
 
@@ -178,6 +175,10 @@ public:
     reserve(bytes);
   }
 
+  size_t align(size_t size) {
+    return (size_t)(ceil(size / (float)alignment_) * alignment_);
+  }
+
   void throwAtReallocation(bool throwRealloc) { throw_ = throwRealloc; }
 
   void reserve(size_t bytes) {
@@ -194,16 +195,16 @@ public:
 
   size_t capacity(size_t num, Type type) { return align(num * sizeOf(type)); }
 
-  Ptr<MemoryPiece> alloc(size_t num, Type type) {
+  MemoryPiece::PtrType alloc(size_t num, Type type) {
     return alloc(num * sizeOf(type));
   }
 
   template <typename T>
-  Ptr<MemoryPiece> alloc(size_t num) {
+  MemoryPiece::PtrType alloc(size_t num) {
     return alloc(capacity<T>(num));
   }
 
-  Ptr<MemoryPiece> alloc(size_t bytes) {
+  MemoryPiece::PtrType alloc(size_t bytes) {
     bytes = align(bytes);
     Gap gap = getGap(bytes);
 
@@ -212,7 +213,7 @@ public:
     }
 
     auto ptr = gap.data();
-    auto mp = New<MemoryPiece>(ptr, bytes);
+    auto mp = MemoryPiece::New(ptr, bytes);
     allocated_[ptr] = mp;
     return mp;
   }
@@ -234,7 +235,7 @@ public:
     return false;
   }
 
-  bool free(Ptr<MemoryPiece> mp) {
+  bool free(MemoryPiece::PtrType mp) {
     if(free(mp->data(), mp->size())) {
       mp->set(nullptr, 0);
       return true;
@@ -249,8 +250,8 @@ public:
     insertGap({device_->data(), device_->size()}, false);
   }
 
-  Ptr<MemoryPiece> memory() {
-    return New<MemoryPiece>(device_->data(), device_->size());
+  MemoryPiece::PtrType memory() {
+    return MemoryPiece::New(device_->data(), device_->size());
   }
 
   size_t size() { return device_->size(); }

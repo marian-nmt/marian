@@ -83,7 +83,7 @@ struct F {
   static constexpr auto binary = V;
 
   template <typename... Args>
-  __HDI__ constexpr float operator()(Args&&... args) const {
+  HOST_DEVICE_INLINE constexpr float operator()(Args&&... args) const {
     return value;
   }
 

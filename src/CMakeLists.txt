@@ -37,6 +37,7 @@ add_library(marian STATIC
 
   tensors/backend.cpp
   tensors/rand.cpp
+  tensors/tensor.cpp
   tensors/cpu/device.cpp
   tensors/cpu/prod.cpp
   tensors/cpu/tensor_operators.cpp
