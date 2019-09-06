@@ -1,4 +1,3 @@
-// -*- mode: c++; indent-tabs-mode: nil; tab-width: 2 -*-
 #pragma once
 
 #include "3rd_party/yaml-cpp/yaml.h"
@@ -22,6 +21,18 @@ enum struct mode { training, translation, scoring, server };
  * @brief Command-line options parser
  *
  * New options and aliases should be defined within `addOptions*` methods.
+ * ... unless they are specific to certain executables.
+ * In that case, use a pattern like this (e.g., for a server):
+ * int main(int argc, char* argv[]) {
+ *   ConfigParser cp(cli::mode::translation);
+ *   cp.addOption<int>("--port", // option name
+ *                     "Server Options", // option group name
+ *                     "Port for server.", // help string
+ *                     5678); // default value
+ *   auto opts = cp.parseOptions(argc,argv,true); // 'true' for validation
+ *   ...
+ *
+ *
  */
 class ConfigParser {
 public:
@@ -50,7 +61,8 @@ public:
   addOption(const std::string& args,
             const std::string& group,
             const std::string& help,
-            const T val, const T implicit_val) {
+            const T val,
+            const T implicit_val) {
     std::string previous_group = cli_.switchGroup(group);
     cli_.add<T>(args,help,val)->implicit_val(implicit_val);
     cli_.switchGroup(previous_group);
@@ -92,7 +104,6 @@ public:
   cli::mode getMode() const;
   std::string const& cmdLine() const;
 private:
-  // bool modeServer_;
   cli::CLIWrapper cli_;
   cli::mode mode_;
   YAML::Node config_;

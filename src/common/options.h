@@ -34,7 +34,6 @@ protected:
 public:
   Options();
   Options(const Options& other);
-  // Options(ConfigParser& cp, int argc, char** argv, bool validate);
 
   /**
    * @brief Return a copy of the object that can be safely modified.

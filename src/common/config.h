@@ -49,7 +49,6 @@ public:
   Config(const Options& options);
 
   void initialize(ConfigParser const& cp);
-  // void initialize(int argc, char** argv, cli::mode mode, bool validate);
 
   bool has(const std::string& key) const;
 

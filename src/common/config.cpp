@@ -1,11 +1,11 @@
 #include "common/config.h"
-#include "common/options.h"
 #include "common/config_parser.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
+#include "common/options.h"
+#include "common/regex.h"
 #include "common/utils.h"
 #include "common/version.h"
-#include "common/regex.h"
 
 #include <algorithm>
 #include <set>

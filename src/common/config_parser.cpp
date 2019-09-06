@@ -1,14 +1,13 @@
-#include "common/config_parser.h"
-
-#include "common/definitions.h"
 #include "common/cli_helper.h"
+#include "common/config.h"
+#include "common/config_parser.h"
 #include "common/config_validator.h"
+#include "common/definitions.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
 #include "common/options.h"
-#include "common/config.h"
-#include "common/utils.h"
 #include "common/regex.h"
+#include "common/utils.h"
 #include <algorithm>
 #include <set>
 #include <stdexcept>
@@ -72,7 +71,6 @@ std::string const& ConfigParser::cmdLine() const {
 ConfigParser::ConfigParser(cli::mode mode)
   : cli_(config_,"Marian: Fast Neural Machine Translation in C++",
          "General options", "", 40),
-    // modeServer_(mode == cli::mode::server),
     mode_(mode == cli::mode::server ? cli::mode::translation : mode) {
 
   addOptionsGeneral(cli_);
