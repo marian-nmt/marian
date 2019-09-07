@@ -39,7 +39,8 @@ public:
                const Beams& beams,
                const std::vector<Ptr<ScorerState /*const*/>>& states,
                Ptr<data::CorpusBatch /*const*/> batch, // for alignments only
-               Ptr<FactoredVocab/*const*/> factoredVocab, size_t factorGroup) const {
+               Ptr<FactoredVocab/*const*/> factoredVocab, size_t factorGroup,
+               bool first) const {
     std::vector<float> align;
     if(options_->hasAndNotEmpty("alignment") && factorGroup == 0)
       align = scorers_[0]->getAlignment(); // [beam depth * max src length * batch size] -> P(s|t); use alignments from the first scorer, even if ensemble
@@ -98,6 +99,15 @@ public:
         word = Word::fromWordIndex(shortlist->reverseMap(wordIdx));
       else
         word = Word::fromWordIndex(wordIdx);
+
+      // Prune out all hyps for which the first input batch entry is <EOS>
+      // That way empty lines get mapped to empty lines 
+      if(first) {
+        const auto srcEosId = batch->front()->vocab()->getEosId();
+        const auto trgEosId = trgVocab_->getEosId();
+        if(batch->front()->data()[dimBatch] == srcEosId)
+          word = trgEosId;
+      }
 
       auto hyp = New<Hypothesis>(prevHyp, word, prevBeamHypIdx, pathScore);
 
@@ -393,7 +403,8 @@ public:
                      beams,
                      states,    // used for keeping track of per-ensemble-member path score
                      batch,     // only used for propagating alignment info
-                     factoredVocab, factorGroup);
+                     factoredVocab, factorGroup,
+                     /*first=*/t == 0 && factorGroup == 0);
 
       } // END FOR factorGroup = 0 .. numFactorGroups-1
 
