@@ -62,7 +62,7 @@ NodeInitializer glorot_uniform2(bool fanIn, bool fanOut) {
     if(fanIn && fanOut)
       scale = sqrtf(6.0f / (tensor->shape()[-2] + tensor->shape()[-1]));
     else if(!fanIn && fanOut)
-      scale = sqrtf(3.0f / tensor->shape()[-1]);
+      scale = sqrtf(3.0f / tensor->shape()[-1]); // results in columns of matrix to be ~unit length
     else if(fanIn && !fanOut)
       scale = sqrtf(3.0f / tensor->shape()[-2]);
     else

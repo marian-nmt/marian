@@ -17,6 +17,8 @@ namespace marian {
 namespace gpu {
 
 static void setTensorMode(cublasHandle_t cublasHandle) {
+  cublasHandle; // fool warnings
+#if CUDA_VERSION >= 9000
   static int mode = 0;  // 1: use TC; -1: do not use TC; 0: not set yet
   if (mode == 0) { // multi-thread note: this is sort-of thread-safe, since multiple threads would determine the same value
     const char* var = getenv("ENABLE_CUBLAS_TENSOR_OP_MATH_FP32");
@@ -40,6 +42,14 @@ static void setTensorMode(cublasHandle_t cublasHandle) {
       LOG(info, "[gpu] 16-bit TensorCores enabled for float32 matrix operations");
   }
   CUBLAS_CHECK(cublasSetMathMode(cublasHandle, mode > 0 ? CUBLAS_TENSOR_OP_MATH : CUBLAS_DEFAULT_MATH));
+#endif
+}
+
+static void unsetTensorMode(cublasHandle_t cublasHandle) {
+  cublasHandle; // fool warnings
+#if CUDA_VERSION >= 9000
+  CUBLAS_CHECK(cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH));
+#endif
 }
 
 void Prod(marian::Tensor C,
@@ -75,11 +85,7 @@ void Prod(marian::Tensor C,
   auto cublasHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
                           ->getCublasHandle();
 
-#if CUDA_VERSION >= 9000
   setTensorMode(cublasHandle);
-  //cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
-#endif
-
   CUBLAS_CHECK(cublasSgemm(cublasHandle,
               opB,
               opA,
@@ -94,51 +100,8 @@ void Prod(marian::Tensor C,
               &beta,
               C->data(),
               (int)ldc));
-#if CUDA_VERSION >= 9000
-  cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
-#endif
+  unsetTensorMode(cublasHandle);
 }
-
-#if 0 // @TODO: remove, then rename from .cu to .cpp
-__global__ void gAddBias(float* out,
-                         const float* bias,
-                         size_t length,
-                         size_t cols) {
-  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
-    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
-    if(index < length) {
-      size_t index2 = index % cols;
-      out[index] += bias[index2];
-    }
-  }
-}
-
-void AddBias(marian::Tensor C, const marian::Tensor bias) {
-  cudaSetDevice(C->getDeviceId().no);
-
-  int length = C->shape().elements();
-  int cols = bias->shape().elements();
-
-  int threads = std::min(MAX_THREADS, length);
-  int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
-
-  gAddBias<<<blocks, threads>>>(C->data(), bias->data(), length, cols); // @TODO: CUDA_CHECK
-
-  CUDA_CHECK(cudaStreamSynchronize(0)); // @BUGBUG: Should not be here. Prod() also does not have this.
-}
-
-void ProdWithBias(marian::Tensor C,
-                  const marian::Tensor& A,
-                  const marian::Tensor& B,
-                  const marian::Tensor& bias,
-                  bool transA,
-                  bool transB,
-                  float beta,
-                  float scalar) {
-  marian::gpu::Prod(C, A, B, transA, transB, beta, scalar);
-  marian::gpu::AddBias(C, bias);
-}
-#endif
 
 void ProdBatched(marian::Tensor C,
                  Ptr<Allocator> allocator,
@@ -203,10 +166,7 @@ void ProdBatched(marian::Tensor C,
   auto mp_cptr = allocator->alloc<float*>(cptr.size());
   CudaCopy(cptr.data(), cptr.data() + cptr.size(), mp_cptr->data<float*>());
 
-#if CUDA_VERSION >= 9000
   setTensorMode(cublasHandle);
-  //cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
-#endif
   CUBLAS_CHECK(cublasSgemmBatched(cublasHandle,
                      opB,
                      opA,
@@ -222,9 +182,7 @@ void ProdBatched(marian::Tensor C,
                      mp_cptr->data<float*>(),
                      (int)ldc,
                      (int)batchC));
-#if CUDA_VERSION >= 9000
-  cublasSetMathMode(cublasHandle, CUBLAS_DEFAULT_MATH);
-#endif
+  unsetTensorMode(cublasHandle);
 
   allocator->free(mp_aptr);
   allocator->free(mp_bptr);

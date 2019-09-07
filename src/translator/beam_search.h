@@ -82,11 +82,12 @@ public:
         // starting with the lemma, then adding factors one by one.
         if (factorGroup == 0) {
           word = factoredVocab->lemma2Word(shortlist ? shortlist->reverseMap(wordIdx) : wordIdx); // @BUGBUG: reverseMap is only correct if factoredVocab_->getGroupRange(0).first == 0
-          //LOG(info, "new lemma {}={}", word.toWordIndex(), factoredVocab->word2string(word));
+          //std::vector<size_t> factorIndices; factoredVocab->word2factors(word, factorIndices);
+          //LOG(info, "new lemma {},{}={} -> {}->{}", word.toWordIndex(), factorIndices[0], factoredVocab->word2string(word), prevHyp->getPathScore(), pathScore);
         }
         else {
-          //LOG(info, "expand word {}={} with factor[{}] {}", beam[beamHypIdx]->getWord().toWordIndex(),
-          //    factoredVocab->word2string(beam[beamHypIdx]->getWord()), factorGroup, wordIdx);
+          //LOG(info, "expand word {}={} with factor[{}] {} -> {}->{}", beam[beamHypIdx]->getWord().toWordIndex(),
+          //    factoredVocab->word2string(beam[beamHypIdx]->getWord()), factorGroup, wordIdx, prevHyp->getPathScore(), pathScore);
           word = beam[beamHypIdx]->getWord();
           ABORT_IF(!factoredVocab->canExpandFactoredWord(word, factorGroup),
                    "A word without this factor snuck through to here??");
@@ -258,6 +259,15 @@ public:
     for(int i = 0; i < dimBatch; ++i)
       histories[i]->add(beams[i], trgEosId);
 
+    // determine index of UNK in the log prob vectors if we want to suppress it in the decoding process
+    int unkColId = -1;
+    if (trgUnkId != Word::NONE && !options_->get<bool>("allow-unk", false)) { // do we need to suppress unk?
+        unkColId = factoredVocab ? factoredVocab->getUnkIndex() : trgUnkId.toWordIndex(); // what's the raw index of unk in the log prob vector?
+        auto shortlist = scorers_[0]->getShortlist();      // first shortlist is generally ok, @TODO: make sure they are the same across scorers?
+        if (shortlist)
+            unkColId = shortlist->tryForwardMap(unkColId); // use shifted postion of unk in case of using a shortlist, shortlist may have removed unk which results in -1
+    }
+
     // the decoding process updates the following state information in each output time step:
     //  - beams: array [dimBatch] of array [localBeamSize] of Hypothesis
     //     - current output time step's set of active hypotheses, aka active search space
@@ -378,8 +388,9 @@ public:
 
       //**********************************************************************
       // suppress specific symbols if not at right positions
-      if(trgUnkId != Word::NONE && options_->has("allow-unk") && !options_->get<bool>("allow-unk") && factorGroup == 0)
-        suppressWord(expandedPathScores, factoredVocab ? factoredVocab->getUnkIndex() : trgUnkId.toWordIndex());
+
+      if(unkColId != -1 && factorGroup == 0)
+        suppressWord(expandedPathScores, unkColId);
       for(auto state : states)
         state->blacklist(expandedPathScores, batch);
 

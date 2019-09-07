@@ -28,9 +28,19 @@ if(USE_SENTENCEPIECE)
     endif()
   endif()
 
-  set(SPM_ENABLE_SHARED OFF CACHE BOOL "Builds shared libaries in addition to static libraries." FORCE)
   set(SPM_ENABLE_TCMALLOC ON CACHE BOOL "Enable TCMalloc if available." FORCE)
-  set(SPM_TCMALLOC_STATIC ON CACHE BOOL "Link static library of TCMALLOC." FORCE)
+
+  if(USE_STATIC_LIBS)
+    message(WARNING "You are compiling SentencePiece binaries with -DUSE_STATIC_LIBS=on. \
+    This will cause spm_train to segfault. No need to worry if you do not intend to use that binary. \
+    Marian support for SentencePiece will work fine.")
+    
+    set(SPM_ENABLE_SHARED OFF CACHE BOOL "Builds shared libaries in addition to static libraries." FORCE)
+    set(SPM_TCMALLOC_STATIC ON CACHE BOOL "Link static library of TCMALLOC." FORCE)
+  else(USE_STATIC_LIBS)
+    set(SPM_ENABLE_SHARED ON CACHE BOOL "Builds shared libaries in addition to static libraries." FORCE)
+    set(SPM_TCMALLOC_STATIC OFF CACHE BOOL "Link static library of TCMALLOC." FORCE)
+  endif(USE_STATIC_LIBS)
 
   add_subdirectory(./sentencepiece)
   include_directories(./sentencepiece)
@@ -50,3 +60,35 @@ include_directories(./pathie-cpp/include)
 
 include_directories(./zlib)
 
+include(ExternalProject)
+
+set(INSTALLS "") # this will contain a list of 3rd part dependencies that we install locally
+if(CUDA_FOUND)
+  if(USE_NCCL)
+
+    # disables compilation for sm_30 to avoid ptxas warning... that's general Kepler support. But K80s are supported for instance by sm_35
+    set(GENCODE "-gencode=arch=compute_35,code=sm_35 -gencode=arch=compute_50,code=sm_50 -gencode=arch=compute_60,code=sm_60 -gencode=arch=compute_61,code=sm_61")
+
+    # install nccl in ${CMAKE_BINARY_DIR}/local similar to /usr/local linux installation
+    ExternalProject_Add(nccl_install
+      SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/nccl
+      BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/nccl
+      CONFIGURE_COMMAND ""
+      BUILD_COMMAND
+        $(MAKE) -f ${CMAKE_CURRENT_SOURCE_DIR}/nccl/Makefile src.build
+        BUILDDIR=${CMAKE_BINARY_DIR}/local CUDA_HOME=${CUDA_TOOLKIT_ROOT_DIR}
+        CUDA8_GENCODE=${GENCODE} CXX=${CMAKE_CXX_COMPILER}
+      INSTALL_COMMAND "")
+
+    set_target_properties(nccl PROPERTIES IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/local/lib/libnccl_static.a)
+    add_dependencies(nccl nccl_install)
+    set(INSTALLS ${INSTALLS} nccl_install)
+
+  endif(USE_NCCL)
+endif(CUDA_FOUND)
+
+# @TODO: do the same for SentencePiece, Protobuf etc.
+# make clean will clean "${CMAKE_BINARY_DIR}/local"
+set_directory_properties(PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${CMAKE_BINARY_DIR}/local)
+
+add_custom_target(3rd_party_installs DEPENDS ${INSTALLS})

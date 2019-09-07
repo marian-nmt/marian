@@ -10,7 +10,10 @@ bool ConfigValidator::has(const std::string& key) const {
   return config_[key];
 }
 
-ConfigValidator::ConfigValidator(const YAML::Node& config) : config_(config) {}
+ConfigValidator::ConfigValidator(const YAML::Node& config)
+    : config_(config),
+      dumpConfigOnly_(config["dump-config"] && !config["dump-config"].as<std::string>().empty()
+                      && config["dump-config"].as<std::string>() != "false") {}
 
 ConfigValidator::~ConfigValidator() {}
 
@@ -45,16 +48,25 @@ void ConfigValidator::validateOptionsTranslation() const {
   ABORT_IF(models.empty() && configs.empty(),
            "You need to provide at least one model file or a config file");
 
-  auto vocabs = get<std::vector<std::string>>("vocabs");
-  ABORT_IF(vocabs.empty(), "Translating, but vocabularies are not given!");
-
   for(const auto& modelFile : models) {
     filesystem::Path modelPath(modelFile);
     ABORT_IF(!filesystem::exists(modelPath), "Model file does not exist: " + modelFile);
   }
+
+  auto vocabs = get<std::vector<std::string>>("vocabs");
+  ABORT_IF(vocabs.empty(), "Translating, but vocabularies are not given");
+
+  for(const auto& vocabFile : vocabs) {
+    filesystem::Path vocabPath(vocabFile);
+    ABORT_IF(!filesystem::exists(vocabPath), "Vocabulary file does not exist: " + vocabFile);
+  }
 }
 
 void ConfigValidator::validateOptionsParallelData() const {
+  // Do not check these constraints if only goal is to dump config
+  if(dumpConfigOnly_)
+    return;
+
   auto trainSets = get<std::vector<std::string>>("train-sets");
   ABORT_IF(trainSets.empty(), "No train sets given in config file or on command line");
 
@@ -65,10 +77,15 @@ void ConfigValidator::validateOptionsParallelData() const {
 
 void ConfigValidator::validateOptionsScoring() const {
   filesystem::Path modelPath(get<std::string>("model"));
-
   ABORT_IF(!filesystem::exists(modelPath), "Model file does not exist: " + modelPath.string());
-  ABORT_IF(get<std::vector<std::string>>("vocabs").empty(),
-           "Scoring, but vocabularies are not given!");
+
+  auto vocabs = get<std::vector<std::string>>("vocabs");
+  ABORT_IF(vocabs.empty(), "Scoring, but vocabularies are not given");
+
+  for(const auto& vocabFile : vocabs) {
+    filesystem::Path vocabPath(vocabFile);
+    ABORT_IF(!filesystem::exists(vocabPath), "Vocabulary file does not exist: " + vocabFile);
+  }
 }
 
 void ConfigValidator::validateOptionsTraining() const {

@@ -7,24 +7,40 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.8.0] - 2019-09-04
+
 ### Added
-- Automatic detection of CPU intrisics when building with -arch=native 
+- Alias options and new --task option
+- Automatic detection of CPU intrisics when building with -arch=native
 - First version of BERT-training and BERT-classifier, currently not compatible with TF models
 - New reduction operators
+- Use Cmake's ExternalProject to build NCCL and potentially other external libs
+- Code for Factored Vocabulary, currently not usable yet without outside tools
 
 ### Fixed
+- Issue with relative paths in automatically generated decoder config files
+- Bug with overlapping CXX flags and building spm_train executable
+- Compilation with gcc 8
+- Overwriting and unsetting vector options
 - Windows build with recent changes
 - Bug with read-ahead buffer
-- Fixed handling of "dump-config: false" in YAML config
+- Handling of "dump-config: false" in YAML config
 - Errors due to warnings
-- Fixed issue concerning failed saving with single GPU training and --sync-sgd option. 
-- Fixed NaN problem when training with Tensor Cores on Volta GPUs
+- Issue concerning failed saving with single GPU training and --sync-sgd option.
+- NaN problem when training with Tensor Cores on Volta GPUs
+- Fix pipe-handling
+- Fix compilation with GCC 9.1
+- Fix CMake build types
 
 ### Changed
+- Error message when using left-to-right and right-to-left models together in ensembles
+- Regression tests included as a submodule
+- Update NCCL to 2.4.2
 - Add zlib source to Marian's source tree, builds now as object lib
 - -DUSE_STATIC_LIBS=on now also looks for static versions of CUDA libraries
 - Include NCCL build from github.com/marian-nmt/nccl and compile within source tree
-- Set nearly all warnings as errors for Marian's own targets. Disable warnings for 3rd party.
+- Set nearly all warnings as errors for Marian's own targets. Disable warnings for 3rd party
+- Refactored beam search
 
 ## [1.7.0] - 2018-11-27
 

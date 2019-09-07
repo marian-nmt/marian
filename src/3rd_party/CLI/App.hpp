@@ -1590,7 +1590,12 @@ class App {
         }
 
         // Unlimited vector parser
+        // RG: A negative number for the total number of expected values means that the option is a
+        // vector and accepts an unlimited number of values
         if(num < 0) {
+            // RG: We need to keep track if the vector option is empty and handle this separately as
+            // otherwise the parser will mark the command-line option as not set
+            bool emptyVectorArgs = true;
             while(!args.empty() && _recognize(args.back()) == detail::Classifer::NONE) {
                 if(collected >= -num) {
                     // We could break here for allow extras, but we don't
@@ -1603,12 +1608,28 @@ class App {
                 parse_order_.push_back(op.get());
                 args.pop_back();
                 collected++;
+                emptyVectorArgs = false;
             }
 
             // Allow -- to end an unlimited list and "eat" it
             if(!args.empty() && _recognize(args.back()) == detail::Classifer::POSITIONAL_MARK)
                 args.pop_back();
 
+            // RG: Handle empty vector-like options
+            if(emptyVectorArgs) {
+                // RG: Set implicit value(s) if the option has it (them)
+                if(op->get_implicit()) {
+                    for(const auto& ival : detail::split_up(op->get_implicitval())) {
+                        op->add_result(ival);
+                        parse_order_.push_back(op.get());
+                    }
+                // RG: Abort if there is a minimum number of values expected. Note: get_expected()
+                // equals to -N means at least N values are expected
+                } else if (op->get_expected() < 0) {
+                    parse_order_.push_back(op.get());
+                    throw ArgumentMismatch(op->get_name(), op->get_expected(), 0);
+                }
+            }
         } else {
             while(num > 0 && !args.empty()) {
                 num--;
