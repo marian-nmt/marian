@@ -461,7 +461,7 @@ public:
   /**
    * @brief Prints the batch in a readable form on stderr for debugging.
    */
-  void debug(bool printIndices_ = false) override {
+  void debug(bool printIndices = false) override {
     std::cerr << "batches: " << sets() << std::endl;
 
     if(!sentenceIds_.empty()) {
@@ -480,7 +480,7 @@ public:
         for(size_t j = 0; j < sb->batchSize(); j++) {
           size_t idx = i * sb->batchSize() + j;
           Word w = sb->data()[idx];
-          if (vocab && !printIndices_)
+          if (vocab && !printIndices)
             std::cerr << (*vocab)[w] << " ";
           else
             std::cerr << w.toString() << " "; // if not loaded then print numeric id instead
