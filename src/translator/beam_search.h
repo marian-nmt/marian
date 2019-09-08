@@ -52,8 +52,8 @@ public:
       // Keys encode batchIdx, beamHypIdx, and word index in the entire beam.
       // They can be between 0 and (vocabSize * nBestBeamSize * batchSize)-1.
       // (beamHypIdx refers to the GPU tensors, *not* the beams[] array; they are not the same in case of purging)
-      const auto  key       = nBestKeys[i];
-      const float pathScore = nBestPathScores[i]; // expanded path score for (batchIdx, beamHypIdx, word)
+      const auto key  = nBestKeys[i];
+      float pathScore = nBestPathScores[i]; // expanded path score for (batchIdx, beamHypIdx, word)
 
       // decompose key into individual indices (batchIdx, beamHypIdx, wordIdx)
       const auto wordIdx    = (WordIndex)(key % vocabSize);
@@ -106,8 +106,10 @@ public:
       if(first) {
         const auto srcEosId = batch->front()->vocab()->getEosId();
         const auto trgEosId = trgVocab_->getEosId();
-        if(batch->front()->data()[dimBatch] == srcEosId)
+        if(batch->front()->data()[batchIdx] == srcEosId) {
           word = trgEosId;
+          pathScore = 0.f;
+        }
       }
 
       auto hyp = New<Hypothesis>(prevHyp, word, prevBeamHypIdx, pathScore);
