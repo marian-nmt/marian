@@ -101,7 +101,7 @@ public:
       else
         word = Word::fromWordIndex(wordIdx);
 
-      // Set word to <EOS> out for all hyps for which the first input batch entry is <EOS>.
+      // Set word to <EOS> output for all hyps for which the first input batch entry is <EOS>.
       // That way empty lines get mapped to empty lines.
       if(first) {
         const auto srcEosId = batch->front()->vocab()->getEosId();
