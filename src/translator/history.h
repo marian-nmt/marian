@@ -47,7 +47,7 @@ public:
 
       const size_t start = bestHypCoord.i; // last time step of this hypothesis
       const size_t j     = bestHypCoord.j; // which beam entry
-      Ptr<Hypothesis> bestHyp = history_[start][j];
+      Hypothesis::PtrType bestHyp = history_[start][j];
       // float c = bestHypCoord.normalizedPathScore;
       // std::cerr << "h: " << start << " " << j << " " << c << std::endl;
 
