@@ -39,8 +39,7 @@ public:
                const Beams& beams,
                const std::vector<Ptr<ScorerState /*const*/>>& states,
                Ptr<data::CorpusBatch /*const*/> batch, // for alignments only
-               Ptr<FactoredVocab/*const*/> factoredVocab, size_t factorGroup,
-               bool first) const {
+               Ptr<FactoredVocab/*const*/> factoredVocab, size_t factorGroup) const {
     std::vector<float> align;
     if(options_->hasAndNotEmpty("alignment") && factorGroup == 0)
       align = scorers_[0]->getAlignment(); // [beam depth * max src length * batch size] -> P(s|t); use alignments from the first scorer, even if ensemble
@@ -100,17 +99,6 @@ public:
         word = Word::fromWordIndex(shortlist->reverseMap(wordIdx));
       else
         word = Word::fromWordIndex(wordIdx);
-
-      // Set word to <EOS> output for all hyps for which the first input batch entry is <EOS>.
-      // That way empty lines get mapped to empty lines.
-      if(first) {
-        const auto srcEosId = batch->front()->vocab()->getEosId();
-        const auto trgEosId = trgVocab_->getEosId();
-        if(batch->front()->data()[batchIdx] == srcEosId) {
-          word = trgEosId;
-          pathScore = 0.f;
-        }
-      }
 
       auto hyp = New<Hypothesis>(prevHyp, word, prevBeamHypIdx, pathScore);
 
@@ -256,10 +244,26 @@ public:
       states.push_back(scorer->startState(graph, batch));
     }
 
+    // create beam with null-hypotheses
     Beams beams(dimBatch, Beam(beamSize_, New<Hypothesis>())); // array [dimBatch] of array [localBeamSize] of Hypothesis
 
-    for(int i = 0; i < dimBatch; ++i)
-      histories[i]->add(beams[i], trgEosId);
+    const auto srcEosId = batch->front()->vocab()->getEosId();
+    for(int batchIdx = 0; batchIdx < dimBatch; ++batchIdx) {
+      auto& beam = beams[batchIdx];
+      histories[batchIdx]->add(beam, trgEosId); // add beams with null-hypotheses to histories
+
+      // Handle batch entries that consist only of source <EOS> i.e. these are empty lines
+      if(batch->front()->data()[batchIdx] == srcEosId) { // if input is empty, i.e. first word is source <EOS>
+        // create an target <EOS> hypothesis that extends the null-hypothesis
+        auto eosHyp = New<Hypothesis>(/*prevHyp=*/    beam[0], 
+                                      /*currWord=*/   trgEosId, 
+                                      /*prevHypIdx=*/ 0, 
+                                      /*pathScore=*/  0.f);
+        auto eosBeam = Beam(beamSize_, eosHyp);      // create a dummy beam filled with <EOS>-hyps
+        histories[batchIdx]->add(eosBeam, trgEosId); // push dummy <EOS>-beam to history
+        beam.clear(); // zero out current beam, so it does not get used for further symbols as empty beams get omitted/dummy-filled everywhere
+      }
+    }
 
     // determine index of UNK in the log prob vectors if we want to suppress it in the decoding process
     int unkColId = -1;
@@ -416,9 +420,7 @@ public:
                      beams,
                      states,    // used for keeping track of per-ensemble-member path score
                      batch,     // only used for propagating alignment info
-                     factoredVocab, factorGroup,
-                     /*first=*/t == 0 && factorGroup == 0);
-
+                     factoredVocab, factorGroup);
       } // END FOR factorGroup = 0 .. numFactorGroups-1
 
       // remove all hyps that end in EOS
