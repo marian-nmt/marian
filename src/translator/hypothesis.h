@@ -14,7 +14,10 @@ namespace marian {
 class Hypothesis {
 public:
   typedef IPtr<Hypothesis> PtrType;
-  
+
+private:
+  // Constructors are private, use Hypothesis::New(...)
+
   Hypothesis() : prevHyp_(nullptr), prevBeamHypIdx_(0), word_(Word::ZERO), pathScore_(0.0) {}
 
   Hypothesis(const PtrType prevHyp,
@@ -23,7 +26,7 @@ public:
              float pathScore)
       : prevHyp_(prevHyp), prevBeamHypIdx_(prevBeamHypIdx), word_(word), pathScore_(pathScore) {}
 
-
+public:
  // Use this whenever creating a pointer to MemoryPiece
  template <class ...Args>
  static PtrType New(Args&& ...args) {

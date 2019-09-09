@@ -27,6 +27,7 @@ private:
 
   ENABLE_INTRUSIVE_PTR(TensorBase)
 
+  // Constructors are private, use TensorBase::New(...)
   TensorBase(MemoryPiece::PtrType memory,
              Shape shape,
              Type type,
