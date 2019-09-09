@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+- Automatic vectorization of elementwise operations on CPU for tensors dims that 
+  are divible by 4 (AVX) and 8 (AVX2)
+- Replacing std::shared_ptr<T> with custom IntrusivePtr<T> for small objects like 
+  Tensors, Hypotheses and Expressions.
+- First steps towards integrating FP16 support, currently no-ops.
+
 ### Fixed
+- Sort parameters by lexicographical order during allocation to ensure consistent 
+  memory-layout during allocation, loading, saving.
 - Output empty line when input is empty line. Previous behavior might result in 
   hallucinated outputs.
 
