@@ -76,7 +76,7 @@ public:
 
       // sort parameters by name before allocation to make sure the memory layout after allocation is always the same
       std::sort(params_.begin(), params_.end(), [](Expr n1, Expr n2){ return n1->name() < n2->name(); });
-
+      
       for(auto p : params_) {
         if(!p->val()) {
           vals_->allocate(p->val(), p->shape(), p->value_type());
