@@ -51,8 +51,8 @@ public:
       // Keys encode batchIdx, beamHypIdx, and word index in the entire beam.
       // They can be between 0 and (vocabSize * nBestBeamSize * batchSize)-1.
       // (beamHypIdx refers to the GPU tensors, *not* the beams[] array; they are not the same in case of purging)
-      const auto key  = nBestKeys[i];
-      float pathScore = nBestPathScores[i]; // expanded path score for (batchIdx, beamHypIdx, word)
+      const auto key        = nBestKeys[i];
+      const float pathScore = nBestPathScores[i]; // expanded path score for (batchIdx, beamHypIdx, word)
 
       // decompose key into individual indices (batchIdx, beamHypIdx, wordIdx)
       const auto wordIdx    = (WordIndex)(key % vocabSize);
@@ -244,17 +244,17 @@ public:
       states.push_back(scorer->startState(graph, batch));
     }
 
-    // create beam with null-hypotheses
+    // create one beam per batch entry with sentence-start hypothesis
     Beams beams(dimBatch, Beam(beamSize_, New<Hypothesis>())); // array [dimBatch] of array [localBeamSize] of Hypothesis
 
     const auto srcEosId = batch->front()->vocab()->getEosId();
     for(int batchIdx = 0; batchIdx < dimBatch; ++batchIdx) {
       auto& beam = beams[batchIdx];
-      histories[batchIdx]->add(beam, trgEosId); // add beams with null-hypotheses to histories
+      histories[batchIdx]->add(beam, trgEosId); // add beams with start-hypotheses to histories
 
       // Handle batch entries that consist only of source <EOS> i.e. these are empty lines
       if(batch->front()->data()[batchIdx] == srcEosId) { // if input is empty, i.e. first word is source <EOS>
-        // create an target <EOS> hypothesis that extends the null-hypothesis
+        // create an target <EOS> hypothesis that extends the start-hypothesis
         auto eosHyp = New<Hypothesis>(/*prevHyp=*/    beam[0], 
                                       /*currWord=*/   trgEosId, 
                                       /*prevHypIdx=*/ 0, 
