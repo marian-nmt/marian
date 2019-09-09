@@ -250,17 +250,17 @@ public:
     const auto srcEosId = batch->front()->vocab()->getEosId();
     for(int batchIdx = 0; batchIdx < dimBatch; ++batchIdx) {
       auto& beam = beams[batchIdx];
-      histories[batchIdx]->add(beam, trgEosId); // add beams with start-hypotheses to histories
+      histories[batchIdx]->add(beam, trgEosId); // add beams with start-hypotheses to traceback grid
 
       // Handle batch entries that consist only of source <EOS> i.e. these are empty lines
-      if(batch->front()->data()[batchIdx] == srcEosId) { // if input is empty, i.e. first word is source <EOS>
+      if(batch->front()->data()[batchIdx] == srcEosId) {
         // create an target <EOS> hypothesis that extends the start-hypothesis
         auto eosHyp = New<Hypothesis>(/*prevHyp=*/    beam[0], 
                                       /*currWord=*/   trgEosId, 
                                       /*prevHypIdx=*/ 0, 
                                       /*pathScore=*/  0.f);
         auto eosBeam = Beam(beamSize_, eosHyp);      // create a dummy beam filled with <EOS>-hyps
-        histories[batchIdx]->add(eosBeam, trgEosId); // push dummy <EOS>-beam to history
+        histories[batchIdx]->add(eosBeam, trgEosId); // push dummy <EOS>-beam to traceback grid
         beam.clear(); // zero out current beam, so it does not get used for further symbols as empty beams get omitted/dummy-filled everywhere
       }
     }
