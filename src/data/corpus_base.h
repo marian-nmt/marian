@@ -461,7 +461,8 @@ public:
   /**
    * @brief Prints the batch in a readable form on stderr for debugging.
    */
-  void debug(bool printIndices = false) override {
+  void debug(bool printIndices = false) override { // prints word string if subbatch has vocab and 
+                                                   // printIndices == false otherwise only numeric indices
     std::cerr << "batches: " << sets() << std::endl;
 
     if(!sentenceIds_.empty()) {
