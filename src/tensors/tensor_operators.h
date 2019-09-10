@@ -161,7 +161,52 @@ static inline void Deconcatenate(std::vector<marian::Tensor>& outputs,
 
 // clang-format off
 DISPATCH5(LayerNormalization, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, float)
-DISPATCH9(LayerNormalizationGrad, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, float)
+
+#ifdef CUDA_FOUND
+namespace gpu {
+void LayerNormalizationGrad(Ptr<Allocator> allocator,
+                            Tensor gradX,
+                            Tensor gradGamma,
+                            Tensor gradBeta,
+                            Tensor adj,
+                            Tensor y,
+                            Tensor x,
+                            Tensor gamma,
+                            Tensor beta,
+                            float eps);
+}
+#endif
+
+namespace cpu {
+void LayerNormalizationGrad(Tensor gradX,
+                            Tensor gradGamma,
+                            Tensor gradBeta,
+                            Tensor adj,
+                            Tensor y,
+                            Tensor x,
+                            Tensor gamma,
+                            Tensor beta,
+                            float eps);
+}
+
+static inline void LayerNormalizationGrad(
+                            Ptr<Allocator> allocator,
+                            Tensor gradX,
+                            Tensor gradGamma,
+                            Tensor gradBeta,
+                            Tensor adj,
+                            Tensor y,
+                            Tensor x,
+                            Tensor gamma,
+                            Tensor beta,
+                            float eps) {
+#ifdef CUDA_FOUND
+  if(gradX->getBackend()->getDeviceId().type == DeviceType::gpu)
+    gpu::LayerNormalizationGrad(allocator, gradX, gradGamma, gradBeta, adj, y, x, gamma, beta, eps);
+  else
+#endif
+    cpu::LayerNormalizationGrad(gradX, gradGamma, gradBeta, adj, y, x, gamma, beta, eps);
+}
 
 DISPATCH4(HighwayForward, marian::Tensor, const marian::Tensor, const marian::Tensor, const marian::Tensor)
 DISPATCH7(HighwayBackward, marian::Tensor, marian::Tensor, marian::Tensor, const marian::Tensor, const marian::Tensor, const marian::Tensor, const marian::Tensor)
