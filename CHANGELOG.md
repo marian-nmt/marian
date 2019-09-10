@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+- Output empty line when input is empty line. Previous behavior might result in 
+  hallucinated outputs.
+
 ## [1.8.0] - 2019-09-04
 
 ### Added

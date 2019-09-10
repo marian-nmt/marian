@@ -931,12 +931,21 @@ struct ConcatenateNodeOp : public NaryNodeOp {
   }
 
   Shape newShape(const std::vector<Expr>& nodes, int ax) {
-    Shape shape = nodes.back()->shape();
+    ABORT_IF(nodes.empty(), "No child nodes given");
+
+    Shape shape = nodes[0]->shape();
     ax_ = shape.axis(ax);
 
     int sum = 0;
-    for(auto child : nodes)
+    auto checkShape = shape;
+    for(auto child : nodes) {
+      checkShape.set(ax_, child->shape()[ax_]); // don't abort on different sizes on axis dim.
+      ABORT_IF(checkShape != child->shape(), 
+               "Child shapes {} and {} cannot be concatenated along axis {}", 
+               shape, child->shape(), ax);
+
       sum += child->shape()[ax_];
+    }
     shape.set(ax_, sum);
 
     return shape;
@@ -953,8 +962,7 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     std::vector<Tensor> deconcatenees;
     for(size_t i = 0; i < children_.size(); ++i) {
       auto childPtr = child(i);
-      childPtr
-          ->set_zero_adjoint();  // @TODO: this is a hotfix, do this properly
+      childPtr->set_zero_adjoint();  // @TODO: this is a hotfix, do this properly
       deconcatenees.push_back(childPtr->grad());
     }
     Deconcatenate(deconcatenees, adj_, ax_);
