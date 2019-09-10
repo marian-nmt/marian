@@ -3,6 +3,7 @@
 #include "common/types.h"
 #include <cmath>
 
+// only compile with fp16 support for compute_70, i.e. VOLTA 100 and above.
 #if __CUDA_ARCH__ >= 700
 #include <cuda_fp16.h>
 #endif
