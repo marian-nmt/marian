@@ -3,7 +3,7 @@
 #include "common/types.h"
 #include <cmath>
 
-#ifdef __CUDA_ARCH__
+#if __CUDA_ARCH__ >= 700
 #include <cuda_fp16.h>
 #endif
 
@@ -426,7 +426,7 @@ struct Ops<float32x8> {
 
 #endif
 
-#ifdef __CUDA_ARCH__
+#if __CUDA_ARCH__ >= 700
 
 // Specialization for half
 template <>
@@ -437,9 +437,10 @@ struct Ops<half> {
   static DEVICE_INLINE half tan(const half& x)  { return hsin(x) / hcos(x); }
   static DEVICE_INLINE half log(const half& x)  { return hlog(x); }
   static DEVICE_INLINE half exp(const half& x)  { return hexp(x); }
-  static DEVICE_INLINE half abs(const half& x)  { return fabs((float)x); }// @TODO half has this information somewhere in the struct, right?
   static DEVICE_INLINE half sqrt(const half& x) { return hsqrt(x); }
   static DEVICE_INLINE half neg(const half& x)  { return -x; }
+  
+  static DEVICE_INLINE half abs(const half& x)  { return fabs((float)x); }// @TODO half has this information somewhere in the struct, right?
   static DEVICE_INLINE half sgn(const half& x)  { half zero = 0.f; return (zero < x) - (x < zero); } // @TODO half has this information somewhere in the struct, right?
 
   static DEVICE_INLINE half add(const half& x, const half& y)  { return x + y; }
