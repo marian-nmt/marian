@@ -561,7 +561,9 @@ void PasteCols(Tensor out_,
   }
 }
 
-void Select2(Tensor out,
+// Optimized version of Select for axis=2
+// @TODO: make this generally fast without this special version
+void SelectAxis2(Tensor out,
              const Tensor in,
              const Tensor indices) {
 
@@ -606,7 +608,7 @@ void Select(Tensor out,
   int axisCPU = (int)(axis + functional::Shape::size() - out->shape().size());
 
   if(axisCPU == 2) // specialization for axis==2, assuming N=4
-    return Select2(out, in, indices);
+    return SelectAxis2(out, in, indices);
 
   auto odata = out->data();
   const auto idata = in->data();

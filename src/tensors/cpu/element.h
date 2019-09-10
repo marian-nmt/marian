@@ -18,15 +18,15 @@ namespace cpu {
 // computation.
 // Compiler optimizes this to single construct with nested(?) loops.
 
-namespace f = marian::functional;
+namespace F = marian::functional;
 
 template <size_t I = 0>
 struct E {
   template <size_t numArg, class Functor, typename ElementType>
   static inline void element(
       const Functor& functor,
-      f::Array<f::Tensor<ElementType>, numArg>& tensors,
-      f::Array<int, numArg> indices) {
+      F::Array<F::Tensor<ElementType>, numArg>& tensors,
+      F::Array<int, numArg> indices) {
     const auto& shape = tensors[0].shape();
 
     // loop over outer-most dimension
@@ -49,15 +49,15 @@ struct E {
 // specialization for inner-most single element (recursive stopping criterion)
 // using const reference for indices here to avoid copying. No loop.
 template <>
-struct E<f::Shape::size()> {
+struct E<F::Shape::size()> {
   template <size_t numArg, class Functor, typename ElementType>
   static inline void element(
       const Functor& functor,
-      f::Array<f::Tensor<ElementType>, numArg>& tensors,
-      const f::Array<int, numArg>& indices) {
+      F::Array<F::Tensor<ElementType>, numArg>& tensors,
+      const F::Array<int, numArg>& indices) {
     // just apply the function for all indexed elements across all tensors
     // @TODO: use converting operator[] on tensor
-    tensors[0].data()[indices[0]] = f::apply(functor, tensors, indices);
+    tensors[0].data()[indices[0]] = F::apply(functor, tensors, indices);
   }
 };
 
@@ -67,15 +67,18 @@ void element(const Functor& functor, marian::Tensor out, Tensors... tensors) {
   // Number of input tensors + 1 (output tensor)
   constexpr size_t argNum = sizeof...(tensors) + 1;
   // create and initialize indices to 0, one index per tensor
-  f::Array<int, argNum> indices;
+  F::Array<int, argNum> indices;
   indices.fill(0);
 
   // call elementwise operation going from outer-most dimension
   // to inner-most element.
-  f::Array<f::Tensor<ElementType>, argNum> gTensors = {out, tensors...};
+  F::Array<F::Tensor<ElementType>, argNum> gTensors = {out, tensors...};
   E<0>::element(functor, gTensors, indices);
 }
 
+// Dispatch elementwise functions with float element type based on number of 
+// elements. If dividable by 8 and AVX2 is available (TODO: check this?) use
+// AVX2 specific intrinsics. Similar for 4 and AVX. TODO: Add AVX512 support.
 template <class Functor, class... Tensors>
 void elementFloat(const Functor& functor, marian::Tensor out, Tensors... tensors) {
 #ifndef __CUDA_ARCH__
