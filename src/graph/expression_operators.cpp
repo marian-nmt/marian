@@ -277,7 +277,7 @@ Expr flatten_2d(Expr a) {
 
 Expr stopGradient(Expr a) {
   // implemented as a dummy reshape that is not trainable
-  auto res = reshape(a, a->shape());
+  auto res = Expression<ReshapeNodeOp>(a, a->shape());
   res->setTrainable(false);
   return res;
 }
