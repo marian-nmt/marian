@@ -10,6 +10,12 @@
 
 namespace marian {
 
+// @TODO: Currently an ExpressionGraph only supports one Parameters object and 
+// the type of parameters has to be the inside on Parameters object. This limits
+// parameter types to a single chosen type, e.g. only fp32 or only fp16. This should
+// be extended to allow multiple sets of parameters. 
+// The reason here is to be able to efficiently compute updates of whole parameter
+// sets of one type.
 class Parameters {
 protected:
   /** @brief List of all parameter nodes of this expression graph. */

@@ -74,13 +74,13 @@ private:
 public:
   float32x4() {}
   float32x4(const __m128& f) : f_(f) {}
-  float32x4(const float& f) : f_(_mm_set1_ps(f)) {}
+  float32x4(const float& f) : f_(_mm_set1_ps(f)) {} // __m128 _mm_set1_ps(float) copies value into all slots
 
   operator const __m128&() const { return f_; }
   operator __m128&() { return f_; }
 
   float operator[] (size_t i) const {
-    return *(((float*)&f_) + i);
+    return *(((float*)&f_) + i); 
   }
 
   friend std::ostream& operator<<(std::ostream& out, float32x4 f4) {
