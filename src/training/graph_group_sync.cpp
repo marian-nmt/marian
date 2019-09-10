@@ -82,7 +82,12 @@ void SyncGraphGroup::initializeAvg() {
     // Load the averaged parameters into a temporary graph
     graphAvg = New<ExpressionGraph>();
     graphAvg->setDevice({0, DeviceType::cpu});
-    graphAvg->load(name, false);
+
+    // load model through builder to activate model specific loading functions.
+    // This is important if a model is overloading Model::load(...) and e.g. 
+    // mapping matrix names as in Amun.h
+    auto builder = models::createCriterionFunctionFromOptions(options_, models::usage::training);
+    builder->load(graphAvg, name, false);
     graphAvg->forward(); // initialize parameters if needed
   }
 

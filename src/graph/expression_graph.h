@@ -90,13 +90,13 @@ public:
     auto it = shortterm_->find(hash);
     if(it != shortterm_->end()) {
       for(auto foundWeak : it->second) {
-        auto found = foundWeak.lock();
+        auto found = foundWeak;
         if(node->equal(found)) {
           return found;
         }
       }
     }
-    (*shortterm_)[hash].push_back(node);
+    (*shortterm_)[hash].push_back(node.get());
     return nullptr;
   }
 

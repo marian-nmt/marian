@@ -100,7 +100,7 @@ public:
       else
         word = Word::fromWordIndex(wordIdx);
 
-      auto hyp = New<Hypothesis>(prevHyp, word, prevBeamHypIdx, pathScore);
+      auto hyp = Hypothesis::New(prevHyp, word, prevBeamHypIdx, pathScore);
 
       // Set score breakdown for n-best lists
       if(options_->get<bool>("n-best")) {
@@ -145,7 +145,7 @@ public:
         }
         if (newBeam.size() > beam.size()) {
           //LOG(info, "Size {}, sorting...", newBeam.size());
-          std::nth_element(newBeam.begin(), newBeam.begin() + beam.size(), newBeam.end(), [](Ptr<Hypothesis> a, Ptr<Hypothesis> b) {
+          std::nth_element(newBeam.begin(), newBeam.begin() + beam.size(), newBeam.end(), [](Hypothesis::PtrType a, Hypothesis::PtrType b) {
             return a->getPathScore() > b->getPathScore(); // (sort highest score first)
           });
           //LOG(info, "Size {}, sorted...", newBeam.size());
@@ -245,7 +245,7 @@ public:
     }
 
     // create one beam per batch entry with sentence-start hypothesis
-    Beams beams(dimBatch, Beam(beamSize_, New<Hypothesis>())); // array [dimBatch] of array [localBeamSize] of Hypothesis
+    Beams beams(dimBatch, Beam(beamSize_, Hypothesis::New())); // array [dimBatch] of array [localBeamSize] of Hypothesis
 
     const auto srcEosId = batch->front()->vocab()->getEosId();
     for(int batchIdx = 0; batchIdx < dimBatch; ++batchIdx) {
@@ -255,7 +255,7 @@ public:
       // Handle batch entries that consist only of source <EOS> i.e. these are empty lines
       if(batch->front()->data()[batchIdx] == srcEosId) {
         // create a target <EOS> hypothesis that extends the start-hypothesis
-        auto eosHyp = New<Hypothesis>(/*prevHyp=*/    beam[0], 
+        auto eosHyp = Hypothesis::New(/*prevHyp=*/    beam[0], 
                                       /*currWord=*/   trgEosId, 
                                       /*prevHypIdx=*/ 0, 
                                       /*pathScore=*/  0.f);
@@ -268,10 +268,10 @@ public:
     // determine index of UNK in the log prob vectors if we want to suppress it in the decoding process
     int unkColId = -1;
     if (trgUnkId != Word::NONE && !options_->get<bool>("allow-unk", false)) { // do we need to suppress unk?
-        unkColId = factoredVocab ? factoredVocab->getUnkIndex() : trgUnkId.toWordIndex(); // what's the raw index of unk in the log prob vector?
-        auto shortlist = scorers_[0]->getShortlist();      // first shortlist is generally ok, @TODO: make sure they are the same across scorers?
-        if (shortlist)
-            unkColId = shortlist->tryForwardMap(unkColId); // use shifted postion of unk in case of using a shortlist, shortlist may have removed unk which results in -1
+      unkColId = factoredVocab ? factoredVocab->getUnkIndex() : trgUnkId.toWordIndex(); // what's the raw index of unk in the log prob vector?
+      auto shortlist = scorers_[0]->getShortlist();      // first shortlist is generally ok, @TODO: make sure they are the same across scorers?
+      if (shortlist)
+        unkColId = shortlist->tryForwardMap(unkColId); // use shifted postion of unk in case of using a shortlist, shortlist may have removed unk which results in -1
     }
 
     // the decoding process updates the following state information in each output time step:

@@ -177,7 +177,7 @@ NodeInitializer from_item(const io::Item& item) {
                "Memory mapping only works for CPU tensors");
       ABORT_IF(!matchType<float>(t->type()),
                "Tensor type and type for mapping do not match");
-      auto mp = New<MemoryPiece>((uint8_t*)item.ptr, t->size() * sizeof(float));
+      auto mp = MemoryPiece::New((uint8_t*)item.ptr, t->size() * sizeof(float));
       t->reset(mp);
     };
   } else {
