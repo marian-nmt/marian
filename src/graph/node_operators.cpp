@@ -5,6 +5,17 @@
 
 namespace marian {
 
+ConstantNode::ConstantNode(Ptr<ExpressionGraph> graph,
+                          const Shape& shape,
+                          const Ptr<inits::NodeInitializer>& init,
+                          Type value_type)
+    : Node(graph, shape, value_type),
+      init_(init),
+      initialized_(false) {
+  init_->setAllocator(graph->allocator());
+  setTrainable(false);
+}
+
 size_t ConstantNode::allocate() {
   size_t elements = 0;
   if(!val_) {
@@ -16,7 +27,7 @@ size_t ConstantNode::allocate() {
 
 void ConstantNode::init() {
   if(!initialized_) {
-    (*init_)(val_);
+    init_->apply(val_);
     initialized_ = true;
   }
   init_.reset();
@@ -24,18 +35,26 @@ void ConstantNode::init() {
 
 ParamNode::ParamNode(Ptr<ExpressionGraph> graph,
                      const Shape& shape,
-                     const NodeInitializer& init,
+                     const Ptr<inits::NodeInitializer>& init,
                      bool fixed)
-    : Node(graph, shape),  // TODO: add value_type
-      init_(new NodeInitializer(init)),
+    : ParamNode(graph, shape, init, Type::float32, fixed) {}
+
+ParamNode::ParamNode(Ptr<ExpressionGraph> graph,
+                     const Shape& shape,
+                     const Ptr<inits::NodeInitializer>& init,
+                     const Type& valueType,
+                     bool fixed)
+    : Node(graph, shape, valueType),
+      init_(init),
       initialized_(false) {
+  init_->setAllocator(graph->allocator());
   setTrainable(!fixed);
   setMemoize(graph->isInference());
 }
 
 void ParamNode::init() {
   if(!initialized_) {
-    (*init_)(val_);
+    init_->apply(val_);
     initialized_ = true;
   }
   init_.reset();

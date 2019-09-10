@@ -16,7 +16,7 @@ Expr DataWeighting::getWeights(Ptr<ExpressionGraph> graph,
   int dimBatch = (int)batch->size();
   int dimWords = sentenceWeighting ? 1 : (int)batch->back()->batchWidth();
   auto weights = graph->constant({1, dimWords, dimBatch, 1},
-                                 inits::from_vector(batch->getDataWeights()));
+                                 inits::fromVector(batch->getDataWeights()));
   return weights;
 }
 }  // namespace marian

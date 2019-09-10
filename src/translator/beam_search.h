@@ -311,7 +311,7 @@ public:
         Expr prevPathScores;               // [localBeamSize, 1, dimBatch, 1], path score that a hyp ended in (last axis will broadcast into vocab size when adding expandedPathScores)
         bool anyCanExpand = false; // stays false if all hyps are invalid factor expansions
         if(t == 0 && factorGroup == 0) { // no scores yet
-          prevPathScores = graph->constant({1, 1, 1, 1}, inits::from_value(0));
+          prevPathScores = graph->constant({1, 1, 1, 1}, inits::fromValue(0));
           anyCanExpand = true;
         } else {
           std::vector<float> prevScores;
@@ -334,7 +334,7 @@ public:
               }
             }
           }
-          prevPathScores = graph->constant({(int)localBeamSize, 1, dimBatch, 1}, inits::from_vector(prevScores));
+          prevPathScores = graph->constant({(int)localBeamSize, 1, dimBatch, 1}, inits::fromVector(prevScores));
         }
         if (!anyCanExpand) // all words cannot expand this factor: skip
           continue;

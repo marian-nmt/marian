@@ -34,7 +34,8 @@ void copy(Ptr<Backend> backend, const InIt beg, const InIt end, OutIt it) {
     std::copy(beg, end, it);
 }
 
-DISPATCH5(IsNan, const Tensor, Ptr<Allocator>, bool&, bool&, bool);
+DISPATCH2(CopyCast, marian::Tensor, const marian::Tensor);
+DISPATCH4(IsNan, const Tensor, Ptr<Allocator>, bool&, bool&);
 
 template <class Functor, class... Tensors>
 void Element(Functor functor, marian::Tensor out, Tensors... tensors) {
@@ -118,19 +119,19 @@ DISPATCH3(Concatenate, marian::Tensor, const std::vector<marian::Tensor>&, int)
 
 // clang-format on
 
-static inline void Bernoulli(Tensor resultTensor, float keepProb, float scale = 1.f) {
+// Bernoulli(tensor, 0.5f, 2.f, -1.f) generates a tensor composed of 50% of 1 and 50% of -1. 
+static inline void Bernoulli(Tensor resultTensor, float keepProb, float scale = 1.f, float shift = 0.f) {
   // in-place uniform distribution
   auto rnd = resultTensor->getBackend()->getRandomGenerator();
   rnd->uniform(resultTensor, 0.f, 1.f); // temporarily mis-use this to hold the random numbers
   using namespace functional;
-  Element(_1 = (_1 < keepProb) * scale, resultTensor);
+  Element(_1 = (_1 < keepProb) * scale + shift, resultTensor);
 }
-
 
 static inline void Dropout(Tensor tensor, float dropProb) {
   float keepProb = 1.f - dropProb;
   float scale = 1.f / keepProb;
-  Bernoulli(tensor, keepProb, scale);
+  Bernoulli(tensor, keepProb, scale, 0.f);
 }
 
 #ifdef CUDA_FOUND

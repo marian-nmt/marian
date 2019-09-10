@@ -22,16 +22,16 @@ Expr buildIrisClassifier(Ptr<ExpressionGraph> graph,
   graph->clear();
 
   // Define the input layer
-  auto x = graph->constant({N, NUM_FEATURES}, inits::from_vector(inputData));
+  auto x = graph->constant({N, NUM_FEATURES}, inits::fromVector(inputData));
 
   // Define the hidden layer
   auto W1 = graph->param("W1", {NUM_FEATURES, 5}, inits::uniform(-0.1f, 0.1f));
-  auto b1 = graph->param("b1", {1, 5}, inits::zeros);
+  auto b1 = graph->param("b1", {1, 5}, inits::zeros());
   auto h = tanh(affine(x, W1, b1));
 
   // Define the output layer
   auto W2 = graph->param("W2", {5, NUM_LABELS}, inits::uniform(-0.1f, 0.1f));
-  auto b2 = graph->param("b2", {1, NUM_LABELS}, inits::zeros);
+  auto b2 = graph->param("b2", {1, NUM_LABELS}, inits::zeros());
   auto o = affine(h, W2, b2);
 
   if(train) {

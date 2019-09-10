@@ -3,56 +3,141 @@
 
 #include "common/config.h"
 #include "tensors/tensor.h"
+#include "tensors/tensor_operators.h"
 
 #include <functional>
 #include <random>
 
 namespace marian {
 
-typedef std::function<void(Tensor)> NodeInitializer;
+class ExpressionGraph; // Forward declaration
 
 namespace inits {
 
-void zeros(Tensor t);
+/**
+ * Base class for specialized NodeInitializers.
+ *
+ * A NodeInitializer is a functor that can be invoked on a tensor
+ * during node intialization. You need to override operator()(Tensor)
+ * with your own functionality.
+ *
+ * See node_initializers.cpp for examples.
+ */
+class NodeInitializer {
+protected:
+  Weak<Allocator> allocator_;
 
-void ones(Tensor t);
+public:
+  virtual void apply(Tensor t) = 0;
+  void setAllocator(Ptr<Allocator> allocator) { allocator_ = allocator; }
+};
 
-NodeInitializer from_value(float v);
+/**
+ * Use a lambda function of form [](Tensor t) { do something with t } to initalize tensor
+ */
+Ptr<NodeInitializer> lambda(std::function<void(Tensor)>&& func);
 
-NodeInitializer eye(float val = 1.f);
+/**
+ * Use a lambda function of form [](Tensor t) { do something with t } to initalize tensor
+ * Create temporary tensor of Type intermediateType first, initialize and then copy/convert to actual Tensor
+ * Useful for functions that can only operator on a specific type of tensor
+ */
+Ptr<NodeInitializer> lambda(std::function<void(Tensor)>&& func, Type intermediateType);
 
-NodeInitializer normal(float mean = 0.f, float stddev = 1.f);
+/**
+ * Fill tensor with given value
+ *
+ * Creates a NodeInitializer that will fill the given tensor
+ * with `value`. Works with any underlying numeric tensor type.
+ *
+ * @return A NodeInitializer which can be called on any tensor
+ */
+Ptr<NodeInitializer> fromValue(float value);
 
-NodeInitializer uniform(float a = 0.f, float b = 1.f);
+/**
+ * Fill tensor with `0`
+ *
+ * Creates a NodeInitializer that will fill the given tensor
+ * with `0`. Works with any underlying numeric tensor type.
+ *
+ * @return A NodeInitializer which can be called on any tensor
+ */
+Ptr<NodeInitializer> zeros();
 
-void glorot_uniform(Tensor t);
-NodeInitializer glorot_uniform2(bool fanIn = true, bool fanOut = true);
+/**
+ * Fill tensor with `1`
+ *
+ * Creates a NodeInitializer that will fill the given tensor
+ * with `1`. Works with any underlying numeric tensor type.
+ *
+ * @return A NodeInitializer which can be called on any tensor
+ */
+Ptr<NodeInitializer> ones();
 
-void glorot_normal(Tensor t);
-NodeInitializer glorot_normal2(bool fanIn = true, bool fanOut = true);
+/**
+ * Set diagonal of two dimensional quadratic tensor to `value`.
+ *
+ * Sets all values of the tensor to 0 and fills the diagonal with
+ * the given `value`. If no value is specified `1` is used by default.
+ *
+ * @return A NodeInitializer which can be called on any tensor
+ */
+Ptr<NodeInitializer> eye(float value = 1.f);
 
-NodeInitializer bernoulli(float p, float scale = 1.f);
+/**
+ * Fill tensor with normally distributed random numbers
+ *
+ * Be default this generates floating point numbers from the
+ * normal distribution N(0, 1) unless specified differently.
+ *
+ * If compiled with `CUDA`, `marian` will use the `cuRand` library
+ * for both, GPU and CPU computation. The random sequences generated
+ * are the same on both devices.
+ *
+ * If `marian` is compiled without `CUDA`, a random generator
+ * from the C++ standard library is used. These random generators
+ * do not have the same random sequences.
+ *
+ * @return A NodeInitializer which can be called on any tensor
+ */
+Ptr<NodeInitializer> normal(float mean = 0.f, float stddev = 1.f);
 
-NodeInitializer dropout(float dropProb);
+/**
+ * Fill tensor with uniformly distributed random numbers
+ *
+ * Be default this generates floating point numbers from the
+ * uniform distribution U(0, 1) unless specified differently.
+ *
+ * If compiled with `CUDA`, `marian` will use the `cuRand` library
+ * for both, GPU and CPU computation. The random sequences generated
+ * are the same on both devices.
+ *
+ * If `marian` is compiled without `CUDA`, a random generator
+ * from the C++ standard library is used. These random generators
+ * do not have the same random sequences.
+ *
+ * @return A NodeInitializer which can be called on any tensor
+ */
+Ptr<NodeInitializer> uniform(float a = 0.f, float b = 1.f);
 
-void gumbel(Tensor t);
+Ptr<NodeInitializer> bernoulli(float p, float scale = 1.f, float shift = 0.f);
+Ptr<NodeInitializer> glorotUniform(bool fanIn = false, bool fanOut = false, float scale = 1.f);
+Ptr<NodeInitializer> glorotNormal(bool fanIn = false, bool fanOut = false, float scale = 1.f);
 
-static inline void dummy(Tensor) {}
+Ptr<NodeInitializer> dropout(float dropoutProbabilty);
+Ptr<NodeInitializer> gumbel(float eps = 1e-5f);
+Ptr<NodeInitializer> dummy();
 
-NodeInitializer from_vector(const std::vector<float>& v);
-NodeInitializer from_vector(const std::vector<IndexType>& v);
+template <typename T>
+Ptr<NodeInitializer> fromVector(const std::vector<T>& v);
+Ptr<NodeInitializer> fromSparseVector(std::pair<std::vector<size_t>, std::vector<float>>& v);
+Ptr<NodeInitializer> fromItem(const io::Item& item);
+Ptr<NodeInitializer> fromTensor(Tensor tensor);
 
-NodeInitializer from_item(const io::Item& item);
-
-NodeInitializer from_sparse_vector(
-    std::pair<std::vector<size_t>, std::vector<float>>& v);
-
-// NodeInitializer from_numpy(const cnpy::NpyArrayPtr& np);
-
-NodeInitializer from_word2vec(const std::string& file,
-                              int dimVoc,
-                              int dimEmb,
-                              bool normalize = false);
+Ptr<NodeInitializer> fromWord2vec(const std::string& file,
+                                  int dimVoc,
+                                  int dimEmb,
+                                  bool normalize = false);
 
 /**
  * Computes Google's sinusoidal position embeddings
@@ -66,7 +151,7 @@ NodeInitializer from_word2vec(const std::string& file,
  * embeddings are the same for each batch entry and change
  * over time.
  */
-NodeInitializer sinusoidalPositionEmbeddings(int start);
+Ptr<NodeInitializer> sinusoidalPositionEmbeddings(int start);
 
 }  // namespace inits
 

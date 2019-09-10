@@ -17,8 +17,7 @@ namespace marian {
  * implements most common functions demanded by Chainable.
  * Each operation in a computation graph is a node.
  */
-class Node : public Chainable<Tensor>,
-             public std::enable_shared_from_this<Node> {
+class Node : public Chainable<Tensor> {
 protected:
   size_t id_{0};
   size_t edges_{0};
@@ -27,10 +26,11 @@ protected:
   bool memoize_{false};
 
   std::vector<Expr> children_;
+  Ptr<std::list<Expr>> subtape_;
 
   Weak<ExpressionGraph> graph_;
   Shape shape_{1, 1, 1, 1};
-  Type value_type_{Type::float32};
+  Type valueType_{Type::float32};
 
   std::string name_{"none"};
 
@@ -40,18 +40,18 @@ protected:
   bool markedForDebug_{false};
   std::string debugMessage_;
 
+  bool isCheckpoint_{false};
+
   Ptr<AutoTunerRecorder> recorder_;
   size_t recorderHash_;
   bool recorderStop_;
 
 public:
-  Node(Ptr<ExpressionGraph> graph, Shape shape, Type value_type = Type::float32)
-      : graph_(graph), shape_(shape), value_type_(value_type) {}
+  Node(Ptr<ExpressionGraph> graph, const Shape& shape, const Type& valueType = Type::float32)
+    : graph_(graph), shape_(shape), valueType_(valueType) {}
 
   virtual ~Node() {
-    if(destroy_) {
-      free();
-    }
+    free();
   }
 
   virtual float scalar() override;
@@ -104,7 +104,7 @@ public:
 
   virtual void free() override;
 
-  virtual void init() override{};
+  virtual void init() override {};
 
   virtual void init_dependent() override;
 
@@ -115,7 +115,7 @@ public:
   virtual Tensor& grad() override { return adj_; };
 
   virtual const Shape& shape() override { return shape_; }
-  virtual const Type& value_type() override { return value_type_; }
+  virtual const Type& value_type() override { return valueType_; }
 
   void set_name(const std::string& name) override { name_ = name; }
 
@@ -138,10 +138,22 @@ public:
 
   virtual std::string graphviz() override {
     std::stringstream ss;
-    ss << "\"" << this << "\" [shape=\"" << form() << "\", label=" << label()
-       << ", style=\"filled\", fillcolor=\"" << color() << "\"]" << std::endl;
+    ss << "\"" << this << "\" [" 
+      << "shape=\"" << form() << "\", "
+      << "label="   << label() << ", "
+      << "style=\"filled\", "
+      << (isCheckpoint_ ? "penwidth=3, " : "penwidth=1, ")
+      << "fillcolor=\"" << color() << "\"];" << std::endl;
+
     for(auto&& child : children())
-      ss << "\"" << child << "\" -> \"" << this << "\"" << std::endl;
+      ss << "\"" << child << "\" -> \"" << this << "\";" << std::endl;
+    
+    if(subtape_) {
+      for(auto&& dep : *subtape_)
+        ss << "\"" << dep << "\" -> \"" << this << "\" [style=dotted];" << std::endl;
+
+    }
+
     ss << std::endl;
     return ss.str();
   }
@@ -153,15 +165,49 @@ public:
   Ptr<Backend> getBackend();
 
   void record(Ptr<AutoTunerRecorder>, size_t, bool) override;
+
+  virtual void markCheckpoint() override {
+    isCheckpoint_ = true;
+  }
+
+  virtual bool isCheckpoint() const override {
+    return (children_.empty() || isCheckpoint_); // this node is a checkPoint if it's a leaf or if it has been marked.
+  }
+
+  virtual void setSubtape(Ptr<std::list<Expr>> subtape) override {
+    subtape_ = subtape;
+  }
+
+  virtual Ptr<std::list<Expr>> getSubtape() override {
+    return subtape_;
+  };
 };
 
 struct NaryNodeOp : public Node {
   size_t hash_{0};
 
+  // deduce type automatically, but then all types must be the same
+  Type commonType(const std::vector<Expr>& nodes) {
+    ABORT_IF(nodes.size() == 0, "NaryNodeOp has no children");
+    Type type = nodes[0]->value_type();
+    for(int i = 1; i < nodes.size(); ++i)
+      ABORT_IF(nodes[i]->value_type() != type,
+               "Child {} has different type (first: {} != child: {})",
+               i, type, nodes[i]->value_type());
+    return type;
+  }
+
+  NaryNodeOp(const std::vector<Expr>& nodes)
+  : NaryNodeOp(nodes, nodes[0]->shape()) {}
+
+  NaryNodeOp(const std::vector<Expr>& nodes, Shape shape)
+  : NaryNodeOp(nodes, shape, commonType(nodes)) {}
+
   NaryNodeOp(const std::vector<Expr>& nodes,
              Shape shape,
-             Type value_type = Type::float32)
+             Type value_type)
       : Node(nodes.front()->graph(), shape, value_type) {
+
     children_.resize(nodes.size());
     for(size_t i = 0; i < nodes.size(); ++i)
       children_[i] = nodes[i];
@@ -174,9 +220,6 @@ struct NaryNodeOp : public Node {
         nodes.begin(), nodes.end(), [](Expr a) { return a->memoize(); }));
   }
 
-  NaryNodeOp(const std::vector<Expr>& nodes)
-      : NaryNodeOp(nodes, nodes[0]->shape()) {}
-
   virtual ~NaryNodeOp() {}
 
   std::vector<Expr>& children() override { return children_; }
@@ -185,6 +228,7 @@ struct NaryNodeOp : public Node {
     if(!hash_) {
       std::size_t seed = util::hash<std::string>()(name());
       util::hash_combine(seed, type());
+      util::hash_combine(seed, (size_t)value_type());
       for(size_t i = 0; i < children_.size(); ++i)
         util::hash_combine(seed, child(i)->hash());
       hash_ = seed;
@@ -196,6 +240,8 @@ struct NaryNodeOp : public Node {
     if(type() != node->type())
       return false;
     if(name() != node->name())
+      return false;
+    if(value_type() != node->value_type())
       return false;
     if(children().size() != node->children().size())
       return false;

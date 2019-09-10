@@ -106,5 +106,10 @@ public:
   virtual bool equal(Expr) = 0;
 
   virtual void record(Ptr<AutoTunerRecorder>, size_t, bool) = 0;
+
+  virtual void markCheckpoint() = 0;
+  virtual bool isCheckpoint() const = 0;
+  virtual void setSubtape(Ptr<std::list<Expr>>) = 0;
+  virtual Ptr<std::list<Expr>> getSubtape() = 0;
 };
 }  // namespace marian

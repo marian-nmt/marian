@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/config.h"
+#include "common/definitions.h"
 
 #include "tensors/backend.h"
 #include "tensors/tensor_allocator.h"
@@ -90,13 +91,14 @@ public:
     auto it = shortterm_->find(hash);
     if(it != shortterm_->end()) {
       for(auto foundWeak : it->second) {
-        auto found = foundWeak;
+        //auto found = foundWeak.lock();
+        Expr found = foundWeak; // DO NOT LEAVE THIS HERE!!!
         if(node->equal(found)) {
           return found;
         }
       }
     }
-    (*shortterm_)[hash].push_back(node.get());
+    (*shortterm_)[hash].push_back(node.get()); // weakPtr
     return nullptr;
   }
 
@@ -111,7 +113,6 @@ public:
 };
 
 class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
-private:
   size_t count_{0};
 
   std::list<Expr> nodesForward_;
@@ -119,57 +120,73 @@ private:
 
   std::unordered_set<Expr> topNodes_; // current set of roots. In the end, all but one must have been consumed.
 
-  // Holds memory and expressions that correspond to graph parameters
-  Ptr<Parameters> params_;
-
   // Holds memory and expressions that correspond to temporary expressions.
   // This gets cleared before a new graph is built.
   Ptr<Tensors> tensors_;
 
   std::unordered_map<size_t, std::vector<Expr>> memoized_;
 
+  Type parameterType_{Type::float32};
+  Type saveType_{Type::float32};
+
   bool inferenceOnly_{false};
-  Ptr<Backend> backend_;
+  bool optimized_{false};
+
+  bool checkpointing_{false};
+  bool isFake_{false};
 
   bool reloaded_{false};
   std::string namespace_;
 
-  bool throwNaN_{false};
+  bool throwNan_{false};
 
 protected:
   // Delete, copy and move constructors
   ExpressionGraph(const ExpressionGraph&) = delete;
   ExpressionGraph(ExpressionGraph&&) = delete;
 
+  // Holds memory and expressions that correspond to graph parameters
+  Ptr<Parameters> params_;
+  Ptr<Backend> backend_;
+
 public:
   /** @brief Constructs a new expression graph
    *
    * Constructor should be used as New<ExpressionGraph>()
    */
-  ExpressionGraph(bool inference = false);
+  ExpressionGraph(bool inference = false, bool optimized = false);
 
-  void setInference(bool inference) { inferenceOnly_ = inference; }
-  bool isInference() { return inferenceOnly_; }
-
-  ~ExpressionGraph() {
+  virtual ~ExpressionGraph() {
     clear();
     params_->clear();
   }
 
-  void setDevice(DeviceId deviceId = {0, DeviceType::gpu},
+  virtual void setDevice(DeviceId deviceId = {0, DeviceType::gpu},
                  Ptr<Device> device = nullptr);
 
   DeviceId getDeviceId() { return backend_->getDeviceId(); }
 
   Ptr<Backend> getBackend() { return backend_; }
 
+  void setInference(bool inference) { inferenceOnly_ = inference; }
+  bool isInference() { return inferenceOnly_; }
+
+  void setOptimized(bool optimized) { optimized_ = optimized; }
+  bool isOptimized() { return (optimized_ && inferenceOnly_); }
+
+  void setCheckpointing(bool checkpointing) { checkpointing_ = checkpointing; }
+  bool isCheckpointing() { return checkpointing_; }
+
+  void setFake(bool fake) { isFake_ = fake; }
+  bool isFake() { return isFake_; }
+
   void switchParams(const std::string& newNamespace) {
     namespace_ = newNamespace;
   }
 
-  void copyParams(Ptr<ExpressionGraph> graph) {
+  virtual void copyParams(Ptr<ExpressionGraph> graph) {
     for(auto p : *graph->params())
-      param(p->name(), p->shape(), inits::dummy);
+      param(p->name(), p->shape(), inits::dummy(), p->value_type());
     params()->allocateForward();
     params()->vals()->copyFrom(graph->params()->vals());
   }
@@ -207,86 +224,17 @@ public:
     return true;
   }
 
+  void checkNan(Tensor t, bool& isNan, bool& isInf);
+
   void forward() {
     params_->allocateForward();
     forwardNext();
   }
 
-  void checkNan(Tensor t);
+  void forwardNext();
+  void forward(std::list<Expr>& forwardTape, bool finalPass);
 
-  void forwardNext() {
-    // @TODO: check if allocation works properly
-    tensors_->clearShorttermMemory();
-
-    while(!nodesForward_.empty()) {
-      auto v = nodesForward_.front();
-      v->allocate();
-      v->init();
-      v->forward();
-
-      checkNan(v->val());
-
-      if(v->marked_for_debug()) {
-        std::cerr << "Debug: " << v->debug_message() << " op=" << v->type()
-                  << std::endl;
-        std::cerr << v->val()->debug() << std::endl;
-      }
-
-      if(inferenceOnly_)
-        v->children().clear();
-      nodesForward_.pop_front();
-    }
-  }
-
-  void backward(bool zero = true) {
-    if(topNodes_.size() > 1) {
-      LOG(critical, "There are more ({}) than one top most node for backward step:", topNodes_.size());
-      for(auto node : topNodes_) {
-        LOG(critical,
-            "\tType: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
-            node->type(),
-            node->shape(),
-            node->name(),
-            node->getId(),
-            node->hash());
-      }
-      ABORT("Aborting");
-    }
-
-    params_->allocateBackward();
-    if(zero)
-      params_->set_zero_adjoint();
-
-    for(auto&& v : topNodes_)
-      v->init_dependent();
-
-    // named_.clear();
-    topNodes_.clear();
-
-    tensors_->clearShorttermMemory();
-
-    while(!nodesBackward_.empty()) {
-      auto v = nodesBackward_.back();
-      nodesBackward_.pop_back();
-
-      for(auto&& child : v->children()) {
-        if(child->trainable() && child->type() != "param")
-          child->set_zero_adjoint();
-      }
-
-      if(v->trainable())
-        v->backward();
-
-      checkNan(v->grad());
-
-      if(v->trainable() && v->marked_for_debug()) {
-        std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
-        std::cerr << v->grad()->debug() << std::endl;
-      }
-
-      v->children().clear();
-    }
-  }
+  void backward(bool zero = true, float clipValue = 0.f);
 
   std::string graphviz() {
     std::stringstream ss;
@@ -313,7 +261,8 @@ public:
 
   Expr param(const std::string& pname,
              const Shape& shape,
-             const NodeInitializer& init,
+             const Ptr<inits::NodeInitializer>& init,
+             const Type valueType,
              bool fixed = false) {
     std::string name = pname;
     if(!namespace_.empty())
@@ -344,7 +293,7 @@ public:
     ABORT_IF(get(name), "Non-parameter with name '{}' already exists", name);
 
     // create parameter node (adds to tape)
-    p = Expression<ParamNode>(shared_from_this(), shape, init, fixed);
+    p = Expression<ParamNode>(shared_from_this(), shape, init, valueType, fixed);
 
     // set name and id and add to list of parameters
     p->set_name(name);
@@ -353,8 +302,22 @@ public:
     return p;
   }
 
-  Expr constant(const Shape& shape, const NodeInitializer& init, Type value_type = Type::float32) {
-    return Expression<ConstantNode>(shared_from_this(), shape, init, value_type);
+  Expr param(const std::string& pname,
+             const Shape& shape,
+             const Ptr<inits::NodeInitializer>& init,
+             bool fixed = false) {
+    return param(pname, shape, init, parameterType_, fixed);
+  }
+
+  Expr constant(const Shape& shape,
+                const Ptr<inits::NodeInitializer>& init,
+                Type valueType) {
+    return Expression<ConstantNode>(shared_from_this(), shape, init, valueType);
+  }
+
+  Expr constant(const Shape& shape,
+                const Ptr<inits::NodeInitializer>& init) {
+    return Expression<ConstantNode>(shared_from_this(), shape, init, parameterType_);
   }
 
   // @TODO: add version with iterators
@@ -362,7 +325,7 @@ public:
   // like rows or select
   Expr indices(const std::vector<IndexType>& indicesVector) {
     return constant({(int)indicesVector.size()},
-                    inits::from_vector(indicesVector),
+                    inits::fromVector(indicesVector),
                     Type::uint32);
   }
   // this version sets up the shape such that the indices are in a given axis
@@ -373,19 +336,26 @@ public:
     shape.resize(indexee->shape().size());
     shape.set(axis, indicesVector.size());
     return constant(Shape(shape),
-                    inits::from_vector(indicesVector),
+                    inits::fromVector(indicesVector),
                     Type::uint32);
   }
 
+  Expr ones(const Shape& shape, Type valueType) {
+    return constant(shape, inits::ones(), valueType);
+  }
   Expr ones(const Shape& shape) {
-    return constant(shape, inits::ones);
+    return constant(shape, inits::ones(), parameterType_);
   }
 
+  Expr zeros(const Shape& shape, Type valueType) {
+    return constant(shape, inits::zeros(), valueType);
+  }
   Expr zeros(const Shape& shape) {
-    return constant(shape, inits::zeros);
+    return constant(shape, inits::zeros(), parameterType_);
   }
 
   // prob = dropProb, e.g. 0.1 means 90% of values are kept
+  Expr dropoutMask(float dropProb, const Shape& shape, Type valueType);
   Expr dropoutMask(float dropProb, const Shape& shape);
 
   Expr get(std::string name) {
@@ -400,27 +370,20 @@ public:
 
   Ptr<Parameters>& params() { return params_; }
 
-  Expr add(Expr node) {
-    auto found = tensors_->findOrRemember(node);
-    if(found) {
-      return found;
-    } else {
-      node->setId(count_++);
-
-      // record in foward graph
-      nodesForward_.push_back(node);
-
-      // record in backward graph if training, and keep track of roots
-      if(!inferenceOnly_ && node->trainable()) {
-        nodesBackward_.push_back(node);
-        topNodes_.insert(node); // opportunistically record all new nodes as roots (gets removed once consumed)
-      }
-      for(auto child : node->children())
-        topNodes_.erase(child); // this child is consumed and therefore not a root
-
-      return node;
-    }
+  Type getParameterType() {
+    return parameterType_;
   }
+
+  Type getSaveType() {
+    return parameterType_;
+  }
+
+  void setParameterType(Type parameterType, Type saveType = Type::float32) {
+    parameterType_ = parameterType;
+    saveType_ = saveType;
+  }
+
+  Expr add(Expr node);
 
   void allocateForward(Expr node) {
     if(tensors_)
@@ -455,18 +418,19 @@ public:
 
   void setReloaded(bool reloaded) { reloaded_ = reloaded; }
 
-  void setThrowNaN(bool throwNaN) { throwNaN_ = throwNaN; }
+  void setThrowNan(bool throwNan) { throwNan_ = throwNan; }
+  bool getThrowNan() { return throwNan_; }
 
 public:
-  // convert all parameters into an array of IoItem elements, for loading
-  void load(const std::vector<io::Item>& ioItems, bool markReloaded = true) {
+  // loading from array of io::Items
+  void load(std::vector<io::Item>& ioItems, bool markReloaded = true) {
     setReloaded(false);
     for(auto& item : ioItems) {
       std::string pName = item.name;
       // skip over special parameters starting with "special:"
       if(pName.substr(0, 8) == "special:")
         continue;
-      param(pName, item.shape, inits::from_item(item));
+      param(pName, item.shape, inits::fromItem(item));
     }
     if(markReloaded)
       setReloaded(true);
@@ -474,12 +438,14 @@ public:
 
   void load(const std::string& name, bool markReloaded = true) {
     LOG(info, "Loading model from {}", name);
-    load(io::loadItems(name), markReloaded);
+    auto items = io::loadItems(name);
+    load(items, markReloaded);
   }
 
   void load(const void* ptr, bool markReloaded = true) {
     LOG(info, "Loading model from buffer at {}", ptr);
-    load(io::loadItems(ptr), markReloaded);
+    auto items = io::loadItems(ptr);
+    load(items, markReloaded);
   }
 
   void mmap(const void* ptr, bool markReloaded = true) {
@@ -490,7 +456,8 @@ public:
     params_->init(backend_);
 
     LOG(info, "Memory mapping model at {}", ptr);
-    load(io::mmapItems(ptr), markReloaded);
+    auto items = io::mmapItems(ptr);
+    load(items, markReloaded);
   }
 
 public:

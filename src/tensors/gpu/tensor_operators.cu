@@ -28,23 +28,17 @@ __device__ inline float stableSigmoid(float x) {
 }
 
 template <typename T>
-__global__ void gIsNan(T* in, int length, bool* isNan, bool* isInf, bool zero) {
+__global__ void gIsNan(const T* in, int length, bool* isNan, bool* isInf) {
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      if(isnan((float)in[index])) {
-        if(zero) in[index] = (T)0.f;
-        *isNan = true;
-      }
-      else if(isinf((float)in[index])) {
-        if(zero) in[index] = (T)0.f;
-        *isInf = true;
-      }
+      if(isnan((float)in[index])) *isNan = true;
+      if(isinf((float)in[index])) *isInf = true;
     }
   }
 }
 
-void IsNan(Tensor in, Ptr<Allocator> allocator, bool& isNan, bool& isInf, bool zero) {
+void IsNan(const Tensor in, Ptr<Allocator> allocator, bool& isNan, bool& isInf) {
   cudaSetDevice(in->getDeviceId().no);
 
   int length = in->size();
@@ -58,7 +52,9 @@ void IsNan(Tensor in, Ptr<Allocator> allocator, bool& isNan, bool& isInf, bool z
   fill(in->getBackend(), dIsNan, dIsNan + 2, false);
 
   if(in->type() == Type::float32) {
-    gIsNan<<<blocks, threads>>>(in->data<float>(), length, dIsNan, dIsInf, zero);
+    gIsNan<<<blocks, threads>>>(in->data<float>(), length, dIsNan, dIsInf);
+  } else if(in->type() == Type::float16) {
+    gIsNan<<<blocks, threads>>>(in->data<half>(), length, dIsNan, dIsInf);
   } else {
     ABORT("IsNan for type {} not implemented", in->type());
   }
@@ -69,6 +65,50 @@ void IsNan(Tensor in, Ptr<Allocator> allocator, bool& isNan, bool& isInf, bool z
   allocator->free(mem);
 
   cudaStreamSynchronize(0);
+}
+
+template <typename To, typename From>
+__global__ void gCopyCastTo(To* out, const From* in, int length) {
+  for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
+    int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
+    if(index < length) {
+      out[index] = in[index];
+    }
+  }
+}
+
+template <typename To, typename From>
+void CopyCastTo(To* out, const From* in, int length) {
+  int threads = std::min(MAX_THREADS, length);
+  int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
+  gCopyCastTo<<<blocks, threads>>>(out, in, length);
+}
+
+template <typename T>
+void CopyCastFrom(Tensor out, const T* in, int length) {
+  if(out->type() == Type::float32) {
+    CopyCastTo(out->data<float>(), in, length);
+  } else if(out->type() == Type::float16) {
+    CopyCastTo(out->data<half>(), in, length);
+  } else if(out->type() == Type::float64) {
+    CopyCastTo(out->data<double>(), in, length);
+  } else {
+    ABORT("CopyCastTo to type {} not implemented", out->type());
+  }
+}
+
+void CopyCast(Tensor out, const Tensor in) {
+  cudaSetDevice(out->getDeviceId().no);
+
+  if(in->type() == Type::float32) {
+    CopyCastFrom(out, in->data<float>(), (int)in->size());
+  } else if(in->type() == Type::float16) {
+    CopyCastFrom(out, in->data<half>(), (int)in->size());
+  } else if(in->type() == Type::float64) {
+    CopyCastFrom(out, in->data<double>(), (int)in->size());
+  } else {
+    ABORT("CopyCastFrom from type {} not implemented", in->type());
+  }
 }
 
 void ConcatCont(Tensor out, const std::vector<Tensor>& inputs, int axis) {
