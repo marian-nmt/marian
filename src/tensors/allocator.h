@@ -91,7 +91,7 @@ private:
   std::unordered_map<uint8_t*, MemoryPiece::PtrType> allocated_;
 
   void grow(size_t add) {
-    add = align(add);
+    add = alignedSize(add);
     uint8_t* oldData = device_->data();
     size_t oldSize = device_->size();
 
@@ -115,7 +115,7 @@ private:
   }
 
   Gap getGap(size_t size) {
-    size = align(size);
+    size = alignedSize(size);
     auto it = std::lower_bound(gaps_.begin(), gaps_.end(), Gap(nullptr, size));
 
     if(throw_ && it == gaps_.end()) {
@@ -175,14 +175,14 @@ public:
     reserve(bytes);
   }
 
-  size_t align(size_t size) {
-    return (size_t)(ceil(size / (float)alignment_) * alignment_);
+  size_t alignedSize(size_t size) {
+    return (size_t)(ceil(size / (double)alignment_) * alignment_);
   }
 
   void throwAtReallocation(bool throwRealloc) { throw_ = throwRealloc; }
 
   void reserve(size_t bytes) {
-    bytes = align(bytes);
+    bytes = alignedSize(bytes);
     if(bytes > 0)
       device_->reserve(bytes);
     clear();
@@ -190,10 +190,10 @@ public:
 
   template <typename T>
   size_t capacity(size_t num) {
-    return align(num * sizeof(T));
+    return alignedSize(num * sizeof(T));
   }
 
-  size_t capacity(size_t num, Type type) { return align(num * sizeOf(type)); }
+  size_t capacity(size_t num, Type type) { return alignedSize(num * sizeOf(type)); }
 
   MemoryPiece::PtrType alloc(size_t num, Type type) {
     return alloc(num * sizeOf(type));
@@ -205,7 +205,7 @@ public:
   }
 
   MemoryPiece::PtrType alloc(size_t bytes) {
-    bytes = align(bytes);
+    bytes = alignedSize(bytes);
     Gap gap = getGap(bytes);
 
     if(gap.size() > bytes) {
@@ -219,7 +219,7 @@ public:
   }
 
   bool free(uint8_t* ptr, size_t bytes) {
-    bytes = align(bytes);
+    bytes = alignedSize(bytes);
 
     ABORT_IF(ptr == 0, "Double free?");
 

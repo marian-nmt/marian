@@ -13,8 +13,9 @@ namespace functional {
 
 #define CONST_SHAPE_DIMS 4
 
+// attempts at low-level slicing and proper views, not integrated yet
+#if 0 
 const int MAX_INT = std::numeric_limits<int>::max();
-
 struct Slice {
   static const int END{MAX_INT}; // fix
 
@@ -45,6 +46,7 @@ struct Slice {
 };
 
 const Slice All;
+#endif
 
 /**
  * @brief Represents the size of each dimension in a tensor.
@@ -86,8 +88,8 @@ struct ConstantShape {
   }
 
   HOST_DEVICE ConstantShape(const Array<int, N>& shape,
-                       const Array<int, N>& stride,
-                       size_t offset)
+                            const Array<int, N>& stride,
+                            size_t offset)
   : shape_(shape), stride_(stride), offset_(offset) {
     updateElements();
   }
@@ -232,6 +234,8 @@ struct ConstantShape {
     return strm.str();
   }
 
+// @TODO: attempts at proper slicing. Works but not integrated anywhere. To be revisited.
+#if 0
   // Performs numpy-like slicing on a given shape object. The number
   // of slices corresponds to the number of dimensions.
   HOST_DEVICE_INLINE ConstantShape<N> slice(const Array<Slice, N>& slices) {
@@ -283,6 +287,7 @@ struct ConstantShape {
 
 //     return ConstantShape<D>(other.shape_, stride, offset_);
 //   }
+#endif
 
   friend std::ostream& operator<<(std::ostream& strm, const ConstantShape<N>& shape) {
     strm << shape.toString();

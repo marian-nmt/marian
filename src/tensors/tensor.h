@@ -89,6 +89,8 @@ public:
     return TensorBase::New(mem, Shape{1, (int)size}, type(), backend_);
   }
 
+  // @TODO: review if we can eliminate GPU-specific code here, 
+  // potentially by moving this to non-class members.
   template <typename T>
   T get(size_t i) {
     if(!matchType<T>(type_)) {

@@ -30,12 +30,15 @@ namespace marian {
 // This minimizes bandwith at little cost.
 typedef uint32_t IndexType;
 
+// @TODO: come up with better short name. "I..." stands for interface now. Here it stands
+// for "intrusive". Not a good overlap.
 template <class T>
 using IPtr = IntrusivePtr<T>;
 
 template <class T>
 using UPtr = std::unique_ptr<T>;
 
+// @TODO: come up with better short name. "I..." stands for interface now.
 template <class T>
 using IWeak = T*;
 

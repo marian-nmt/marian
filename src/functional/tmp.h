@@ -1,3 +1,5 @@
+// TMP here stands for Template Meta-Programming
+
 #pragma once
 
 #include "functional/array.h"

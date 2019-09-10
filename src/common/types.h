@@ -67,6 +67,8 @@ do { \
 namespace marian {
 
 #ifndef __CUDA_ARCH__
+
+// @TODO: check what intrinsics are actually available.
 struct float32x4 {
 private:
   __m128 f_;
@@ -80,7 +82,7 @@ public:
   operator __m128&() { return f_; }
 
   float operator[] (size_t i) const {
-    return *(((float*)&f_) + i); 
+    return *(((float*)&f_) + i); // potentially undefined, but efficient. In practice __m128 is an array of floats
   }
 
   friend std::ostream& operator<<(std::ostream& out, float32x4 f4) {
@@ -93,6 +95,7 @@ public:
   }
 };
 
+// @TODO: consider how code can be shared via templating
 struct float32x8 {
 private:
   __m256 f_;
@@ -100,13 +103,13 @@ private:
 public:
   float32x8() {}
   float32x8(const __m256& f) : f_(f) {}
-  float32x8(const float& f) : f_(_mm256_set1_ps(f)) {}
+  float32x8(const float& f) : f_(_mm256_set1_ps(f)) {} // __m256 _mm_set1_ps(float) copies value into all slots
 
   operator const __m256&() const { return f_; }
   operator __m256&() { return f_; }
 
   float operator[] (size_t i) const {
-    return *(((float*)&f_) + i);
+    return *(((float*)&f_) + i); // potentially undefined, but efficient. In practice __m128 is an array of floats
   }
 
   friend std::ostream& operator<<(std::ostream& out, float32x8 f8) {

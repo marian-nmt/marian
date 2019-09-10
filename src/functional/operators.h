@@ -191,6 +191,8 @@ struct Ops<double> {
 
 };
 
+// stay invisible to NVCC as it seems to have problems with intrinsics;
+// will still be compiled into the binary by cpu-side gcc/g++
 #ifndef __CUDA_ARCH__
 
 #include "3rd_party/sse_mathfun.h"

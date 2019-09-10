@@ -47,7 +47,7 @@ public:
   void reserveExact(const std::vector<size_t>& bytes) {
     size_t total = 0;
     for(auto part : bytes)
-      total += allocator_->align(part);
+      total += allocator_->alignedSize(part);
     reserveExact(total);
   }  
 

@@ -7,6 +7,8 @@
 
 #include <cuda_fp16.h>
 
+// @TODO: look at typedefs and decide whether to use float16, half or __half.
+
 namespace marian {
 namespace gpu {
 

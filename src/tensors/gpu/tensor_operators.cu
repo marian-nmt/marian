@@ -1351,9 +1351,9 @@ float L2Norm(Tensor in) {
   uint8_t* data;
   cudaMalloc(&data, blocks * sizeof(float));
   Tensor out(TensorBase::New(MemoryPiece::New(data, blocks * sizeof(float)),
-                            Shape({1, blocks}),
-                            Type::float32,
-                            in->getBackend()));
+                             Shape({1, blocks}),
+                             Type::float32,
+                             in->getBackend()));
 
   using namespace functional;
   ReduceAll(_1 * _1, out, in);

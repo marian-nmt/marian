@@ -113,6 +113,8 @@ template std::string TensorBase::debug<int16_t>(int, int);
 template std::string TensorBase::debug<int32_t>(int, int);
 template std::string TensorBase::debug<int64_t>(int, int);
 
+// fill an io::item with data from a Tensor, used for saving 
+// and other IO operations.
 void TensorBase::get(io::Item& item, const std::string& name) {
   item.name  = name;
   item.shape = shape_;

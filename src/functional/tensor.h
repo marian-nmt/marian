@@ -7,10 +7,10 @@
 namespace marian {
 namespace functional {
 
-// general case, do nothing. Usually the number of elements in a tensor is correctly mirrored in the
-// shape object. Only special multi-element types like float32x4 (4 floats), float32x8 (8 floats)
-// and half2 (2 half) require special handling. Similar for multi-element integer types to be added
-// later.
+// By default for single valued types like float do nothing. Usually the number of elements in a tensor 
+// is correctly mirrored in the shape object. Only special multi-element types like float32x4 (4 floats), 
+// float32x8 (8 floats) and half2 (2 half) require special handling done by specializations below.
+// Similar for multi-element integer types to be added later.
 template <typename T>
 inline marian::Shape adapt(const marian::Shape& shape) {
   return shape;
@@ -156,6 +156,8 @@ struct View {
   }
 };
 
+// @TODO: Attempts at correct slicing, not supported anywhere yet.
+#if 0
 template <typename T, const int D>
 HOST_DEVICE_INLINE View<T, D> slice(View<T, D> view, const Array<Slice, D>& slices) {
   const auto& slicedShape = view.shape().slice(slices);
@@ -203,6 +205,7 @@ HOST_DEVICE_INLINE View<T, 4> slice(View<T, 4>& view,
 //   auto reshaped = view.shape().reshape(shape);
 //   return View<T, D2>(view.data(), reshaped);
 // }
+#endif
 
 template <typename T>
 using Tensor = View<T, CONST_SHAPE_DIMS>;
