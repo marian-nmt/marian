@@ -120,20 +120,46 @@ Ptr<NodeInitializer> normal(float mean = 0.f, float stddev = 1.f);
  */
 Ptr<NodeInitializer> uniform(float a = 0.f, float b = 1.f);
 
+// @TODO: add documentation
 Ptr<NodeInitializer> bernoulli(float p, float scale = 1.f, float shift = 0.f);
+
+// @TODO: add documentation
 Ptr<NodeInitializer> glorotUniform(bool fanIn = false, bool fanOut = false, float scale = 1.f);
+
+// @TODO: add documentation
 Ptr<NodeInitializer> glorotNormal(bool fanIn = false, bool fanOut = false, float scale = 1.f);
 
+// @TODO: add documentation
 Ptr<NodeInitializer> dropout(float dropoutProbabilty);
+
+/**
+ * Fill with gumbel noise, i.e. -log(-log(u)) where u ~ U(0 + eps, 1 - eps)
+ * 
+ * @return A NodeInitializer which can be called on any tensor
+ */
 Ptr<NodeInitializer> gumbel(float eps = 1e-5f);
+
+/** 
+ * Don't do anything, used as a placeholder
+ * 
+ * @return A NodeInitializer that wraps an empty lambda
+ */
 Ptr<NodeInitializer> dummy();
 
+// @TODO: add documentation
 template <typename T>
 Ptr<NodeInitializer> fromVector(const std::vector<T>& v);
+
+// @TODO: add documentation
 Ptr<NodeInitializer> fromSparseVector(std::pair<std::vector<size_t>, std::vector<float>>& v);
+
+// @TODO: add documentation
 Ptr<NodeInitializer> fromItem(const io::Item& item);
+
+// @TODO: add documentation
 Ptr<NodeInitializer> fromTensor(Tensor tensor);
 
+// @TODO: add documentation
 Ptr<NodeInitializer> fromWord2vec(const std::string& file,
                                   int dimVoc,
                                   int dimEmb,
