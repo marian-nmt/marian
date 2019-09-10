@@ -53,6 +53,7 @@ ParamNode::ParamNode(Ptr<ExpressionGraph> graph,
 }
 
 void ParamNode::init() {
+  std::cerr << name() << " " << shape() << std::endl;
   if(!initialized_) {
     init_->apply(val_);
     initialized_ = true;

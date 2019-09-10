@@ -647,7 +647,6 @@ Expr transpose(Expr a, const std::vector<int>& axes) {
   return Expression<TransposeNodeOp>(a, axes);
 }
 
-
 Expr swapAxes(Expr x, int axis1, int axis2)
 {
   const auto& shape = x->shape();

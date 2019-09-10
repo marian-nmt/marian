@@ -48,16 +48,13 @@ Expr ExpressionGraph::add(Expr node) {
 
 // Call on every checkpoint in backwards order
 void createSubtape(Expr node) {
-  //std::cerr << "Recursing: " << node->getId() << " " << node->type() << std::endl;
   auto subtape = New<std::list<Expr>>();
 
   for(auto child : node->children()) {
     if(child->isCheckpoint()) {
-      //std::cerr << "cut" << std::endl;
       /* do not descend */
     } else {
       if(child->getSubtape()) {
-        //std::cerr << "Already visited: " << node->getId() << " " << node->type() << std::endl;
         /* already visited */
       } else {
         createSubtape(child);
@@ -101,8 +98,6 @@ void ExpressionGraph::forwardNext() {
     }
   }
 
-  // graphviz("dump.dot");
-
   forward(nodesForward_, /*finalPass=*/!checkpointing_); // if checkPointing, this is not final
 }
 
@@ -110,16 +105,13 @@ void ExpressionGraph::forward(std::list<Expr>& forwardTape, bool finalPass) {
   while(!forwardTape.empty()) {
     auto v = forwardTape.front();
 
-    //std::cerr << "Forward: " << v->getId() << " " << v->type() << " ";
-    //std::cerr << v->isCheckpoint() << std::endl;
-
     v->allocate();
-    /*if(!isFake())*/ v->init();
+    v->init();
 
     for(auto& child : v->children())
       ABORT_IF(!child->val(), "De-allocated child {} {} of {} {}", child->getId(), child->type(), v->getId(), v->type());
 
-    /*if(!isFake())*/ v->forward();
+    v->forward();
 
     if(v->trainable() && throwNan_) {
       bool isNan = false, isInf = false;
@@ -155,7 +147,6 @@ void ExpressionGraph::forward(std::list<Expr>& forwardTape, bool finalPass) {
       auto subtape = v->getSubtape();
       if(subtape) {
         for(auto& node : *subtape) {
-          //std::cerr << "Freeing: " << node->getId() << " " << node->type() << " " << node.useCount() << std::endl;
           node->free();
         }
       }
@@ -181,13 +172,12 @@ void ExpressionGraph::backward(bool zero, float clipValue) {
   }
 
   params_->allocateBackward();
-  if(zero /*&& !isFake()*/)
+  if(zero)
     params_->set_zero_adjoint();
 
   for(auto&& v : topNodes_)
     v->init_dependent();
 
-  // named_.clear();
   topNodes_.clear();
 
   tensors_->clearShorttermMemory();
@@ -202,7 +192,6 @@ void ExpressionGraph::backward(bool zero, float clipValue) {
         child->set_zero_adjoint();
 
     if(checkpointing_ && v->getSubtape()) {
-      //std::cerr << "Back: " << v->getId() << " " << v->type() << " " << v->getSubtape()->size() << std::endl;
       forward(*v->getSubtape(), /*finalPass=*/true);
     }
 
@@ -216,7 +205,7 @@ void ExpressionGraph::backward(bool zero, float clipValue) {
       Element(_1 = clip(_1, clipValue), v->grad());
     }
 
-    if(v->trainable()/* && !isFake()*/)
+    if(v->trainable())
       v->backward();
 
     if(throwNan_ && firstNan) {

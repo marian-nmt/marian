@@ -90,9 +90,7 @@ public:
 
     auto it = shortterm_->find(hash);
     if(it != shortterm_->end()) {
-      for(auto foundWeak : it->second) {
-        //auto found = foundWeak.lock();
-        Expr found = foundWeak; // DO NOT LEAVE THIS HERE!!!
+      for(auto found : it->second) {
         if(node->equal(found)) {
           return found;
         }
@@ -126,14 +124,13 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
   std::unordered_map<size_t, std::vector<Expr>> memoized_;
 
-  Type parameterType_{Type::float32};
-  Type saveType_{Type::float32};
+  Type parameterType_{Type::float32}; // Type used for storing parameters, currently all parameters have to have the same type
+  Type saveType_{Type::float32};      // Type used for saving to disk, can be different, e.g. double or float16.
 
   bool inferenceOnly_{false};
   bool optimized_{false};
 
-  bool checkpointing_{false};
-  bool isFake_{false};
+  bool checkpointing_{false}; // use gradient checkpointing if true
 
   bool reloaded_{false};
   std::string namespace_;
@@ -176,9 +173,6 @@ public:
 
   void setCheckpointing(bool checkpointing) { checkpointing_ = checkpointing; }
   bool isCheckpointing() { return checkpointing_; }
-
-  void setFake(bool fake) { isFake_ = fake; }
-  bool isFake() { return isFake_; }
 
   void switchParams(const std::string& newNamespace) {
     namespace_ = newNamespace;
