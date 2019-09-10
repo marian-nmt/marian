@@ -561,6 +561,37 @@ void PasteCols(Tensor out_,
   }
 }
 
+// Optimized version of Select for axis=2
+// @TODO: make this generally fast without this special version
+void SelectAxis2(Tensor out,
+             const Tensor in,
+             const Tensor indices) {
+
+  matchOrAbort<IndexType>(indices->type());
+
+  functional::Shape outShape = out->shape();
+  functional::Shape inShape = in->shape();
+  
+  auto idxData = indices->data<IndexType>();
+  auto odata = out->data();
+  const auto idata = in->data();
+
+  int size = outShape[3];
+
+  for(int k = 0; k < outShape[0]; ++k) {
+    for(int j = 0; j < outShape[1]; ++j) {
+      int outOffset = k * j * outShape[2] * size + j * outShape[2] * size;
+      int inOffset = k * j * inShape[2] * size + j * inShape[2] * size;
+      for(int i = 0; i < outShape[2]; ++i) {
+        auto idx = idxData[i];
+        int outIndex = outOffset +   i * size;
+        int inIndex  = inOffset  + idx * size;
+        std::copy(idata + inIndex, idata + inIndex + size, odata + outIndex);
+      }
+    }
+  }
+}
+
 void Select(Tensor out,
             const Tensor in,
             const Tensor indices,
@@ -576,13 +607,18 @@ void Select(Tensor out,
   functional::Array<int, functional::Shape::size()> dims;
   int axisCPU = (int)(axis + functional::Shape::size() - out->shape().size());
 
+  if(axisCPU == 2) // specialization for axis==2, assuming N=4
+    return SelectAxis2(out, in, indices);
+
+  auto odata = out->data();
+  const auto idata = in->data();
+
   for(int index = 0; index < length; ++index) {
     outShape.dims(index, dims);
     dims[axisCPU] = (int)indices->data<IndexType>()[dims[axisCPU]];
     int inIndex = inShape.index(dims);
-    out->data()[index] = in->data()[inIndex];
+    odata[index] = idata[inIndex];
   }
-
 }
 
 void Insert(Tensor out,
@@ -1309,29 +1345,13 @@ void LSTMOutputBackward(std::vector<Tensor> outputs,
   }
 }
 
-// void HighwayForward(Tensor out,
-//                    const Tensor in1,
-//                    const Tensor in2,
-//                    const Tensor t) {
-//  size_t length = out->shape().elements();
-//  for(size_t i = 0; i < length; ++i) {
-//    float sigma = stableSigmoid(t->data()[i]);
-//    out->data()[i] = sigma * in1->data()[i] + (1.f - sigma) * in2->data()[i];
-//  }
-//}
-
 void HighwayForward(Tensor out,
-                    const Tensor in1,
-                    const Tensor in2,
-                    const Tensor t) {
-  size_t length = out->shape().elements();
-
-  static functional::Approx<10, 0, 100> approxSigmoid(stableSigmoid);
-
-  for(size_t i = 0; i < length; ++i) {
-    float sigma = approxSigmoid(t->data()[i]);
-    out->data()[i] = sigma * in1->data()[i] + (1.f - sigma) * in2->data()[i];
-  }
+                   const Tensor in1,
+                   const Tensor in2,
+                   const Tensor t) {
+  using namespace functional;
+  cpu::Element(_1 = sigmoid(_2), out, t);
+  cpu::Element(_1 = _1 * _2 + (1.f - _1) * _3, out, in1, in2);
 }
 
 void HighwayBackward(Tensor /*out1*/,

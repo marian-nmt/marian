@@ -2,7 +2,7 @@
 
 namespace marian {
 
-std::string OutputPrinter::getAlignment(const Ptr<Hypothesis>& hyp) {
+std::string OutputPrinter::getAlignment(const Hypothesis::PtrType& hyp) {
   data::SoftAlignment align;
   auto last = hyp;
   // get soft alignments for each target word starting from the last one

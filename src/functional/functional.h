@@ -1,7 +1,10 @@
 #pragma once
 
+// this header is meant to be included for all operations from the "functional" namespace.
+
 #include "functional/operands.h"
 #include "functional/predicates.h"
+#include "functional/operators.h"
 
 namespace marian {
 namespace functional {

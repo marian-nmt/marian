@@ -8,7 +8,7 @@ namespace marian {
 size_t ConstantNode::allocate() {
   size_t elements = 0;
   if(!val_) {
-    graph()->allocateForward(shared_from_this());
+    graph()->allocateForward(this);
     elements = val_->shape().elements();
   }
   return elements;

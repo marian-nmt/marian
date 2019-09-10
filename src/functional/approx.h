@@ -6,7 +6,7 @@ namespace marian {
 namespace functional {
 
 // approximate any unary float function within range with
-// piecewise linear functions in equal steps. 
+// piecewise linear functions in equal steps.
 //
 // Example:
 // static Approx<10, 0, 100> approxSigmoid(stableSigmoid);
@@ -14,12 +14,12 @@ namespace functional {
 //
 // Creates a functor for range [-10,10] with piecewise linear
 // approximations of a sigmoid, 100 pieces, step 0.2.
-// This is quite fast on the CPU. 
+// This is quite fast on the CPU.
 //
-// approxSigmoid.grad(x) computes the corresponding gradient. 
-// 
-// When used as a local variable, use static keyword to create 
-// only once. 
+// approxSigmoid.grad(x) computes the corresponding gradient.
+//
+// When used as a local variable, use static keyword to create
+// only once.
 
 template <int radius = 5, int offset = 0, int pieces = 10>
 struct Approx {
@@ -55,7 +55,7 @@ struct Approx {
 
   }
 
-  __HDI__ int index(float x) const {
+  HOST_DEVICE_INLINE int index(float x) const {
     if(x <= -radius)
       return 0;
     if(x < radius)  // +1 because 0 holds value for x < -radius
@@ -63,16 +63,16 @@ struct Approx {
     return pieces + 1;
   }
 
-  __HDI__ float domain(int i) const {
+  HOST_DEVICE_INLINE float domain(int i) const {
     return i * ((2.f * radius) / pieces) + offset - radius;
   }
 
-  __HDI__ float operator()(float x) const {
+  HOST_DEVICE_INLINE float operator()(float x) const {
     int i = index(x);
     return a[i] * x + b[i];
   }
 
-  __HDI__ float grad(float x) const {
+  HOST_DEVICE_INLINE float grad(float x) const {
     int i = index(x);
     return a[i];
   }

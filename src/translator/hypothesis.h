@@ -13,15 +13,27 @@ namespace marian {
 //  - back pointer to previous hypothesis for traceback
 class Hypothesis {
 public:
+  typedef IPtr<Hypothesis> PtrType;
+
+private:
+  // Constructors are private, use Hypothesis::New(...)
+
   Hypothesis() : prevHyp_(nullptr), prevBeamHypIdx_(0), word_(Word::ZERO), pathScore_(0.0) {}
 
-  Hypothesis(const Ptr<Hypothesis> prevHyp,
+  Hypothesis(const PtrType prevHyp,
              Word word,
              size_t prevBeamHypIdx, // beam-hyp index that this hypothesis originated from
              float pathScore)
       : prevHyp_(prevHyp), prevBeamHypIdx_(prevBeamHypIdx), word_(word), pathScore_(pathScore) {}
 
-  const Ptr<Hypothesis> getPrevHyp() const { return prevHyp_; }
+public:
+ // Use this whenever creating a pointer to MemoryPiece
+ template <class ...Args>
+ static PtrType New(Args&& ...args) {
+   return PtrType(new Hypothesis(std::forward<Args>(args)...));
+ }
+
+  const PtrType getPrevHyp() const { return prevHyp_; }
 
   Word getWord() const { return word_; }
 
@@ -60,17 +72,19 @@ public:
   }
 
 private:
-  const Ptr<Hypothesis> prevHyp_;
+  const PtrType prevHyp_;
   const size_t prevBeamHypIdx_;
   const Word word_;
   const float pathScore_;
 
   std::vector<float> scoreBreakdown_; // [num scorers]
   std::vector<float> alignment_;
+
+  ENABLE_INTRUSIVE_PTR(Hypothesis)
 };
 
-typedef std::vector<Ptr<Hypothesis>> Beam;                // Beam = vector [beamSize] of hypotheses
+typedef std::vector<IPtr<Hypothesis>> Beam;                // Beam = vector [beamSize] of hypotheses
 typedef std::vector<Beam> Beams;                          // Beams = vector [batchDim] of vector [beamSize] of hypotheses
-typedef std::tuple<Words, Ptr<Hypothesis>, float> Result; // (word ids for hyp, hyp, normalized sentence score for hyp)
+typedef std::tuple<Words, IPtr<Hypothesis>, float> Result; // (word ids for hyp, hyp, normalized sentence score for hyp)
 typedef std::vector<Result> NBestList;                    // sorted vector of (word ids, hyp, sent score) tuples
 }  // namespace marian

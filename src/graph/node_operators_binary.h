@@ -628,7 +628,7 @@ struct GatherNodeOp : public NaryNodeOp {
   virtual bool equal(Expr node) override {
     if(!NaryNodeOp::equal(node))
       return false;
-    Ptr<GatherNodeOp> cnode = std::dynamic_pointer_cast<GatherNodeOp>(node);
+    auto cnode = std::dynamic_pointer_cast<GatherNodeOp>(node);
     if(!cnode)
       return false;
     if(axis_ != cnode->axis_)
