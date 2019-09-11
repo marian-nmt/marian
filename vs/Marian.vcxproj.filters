@@ -712,6 +712,9 @@
     <ClCompile Include="..\src\common\aliases.cpp">
       <Filter>common</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\3rd_party\half_float\HalfPrecisionFloatTest.cpp">
+      <Filter>3rd_party\half_float</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -2002,6 +2005,27 @@
     <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\deps\clog\include\clog.h">
       <Filter>3rd_party\fbgemm\third_party\cpuinfo\deps\clog\include</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\3rd_party\half_float\stdint.h">
+      <Filter>3rd_party\half_float</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\half_float\umHalf.h">
+      <Filter>3rd_party\half_float</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\any_type.h">
+      <Filter>3rd_party</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\avx_mathfun.h">
+      <Filter>3rd_party</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sse_mathfun.h">
+      <Filter>3rd_party</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\functional\approx.h">
+      <Filter>functional</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\functional\operators.h">
+      <Filter>functional</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
@@ -2232,6 +2256,9 @@
     <Filter Include="3rd_party\fbgemm\third_party\cpuinfo\deps\clog\src">
       <UniqueIdentifier>{8fd74b1e-d3c1-4158-ad46-4a447222934e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rd_party\half_float">
+      <UniqueIdentifier>{defd3aec-3c56-4d70-a4bb-90ba9003d98d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\3rd_party\nccl\src\bootstrap.cu">
@@ -2353,6 +2380,12 @@
     </None>
     <None Include="..\src\examples\README.md">
       <Filter>examples</Filter>
+    </None>
+    <None Include="..\src\3rd_party\half_float\Readme.md">
+      <Filter>3rd_party\half_float</Filter>
+    </None>
+    <None Include="..\src\3rd_party\half_float\umHalf.inl">
+      <Filter>3rd_party\half_float</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

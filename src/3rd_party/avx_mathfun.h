@@ -32,8 +32,13 @@
 #include <immintrin.h>
 
 /* yes I know, the top of this file is quite ugly */
+#ifdef _MSC_VER
+# define ALIGN32_BEG __declspec(align(32))
+# define ALIGN32_END 
+#else /* gcc or icc */
 # define ALIGN32_BEG
 # define ALIGN32_END __attribute__((aligned(32)))
+#endif
 
 /* __m128 is ugly to write */
 typedef __m256  v8sf; // vector of 8 float (avx)
@@ -94,17 +99,17 @@ typedef union imm_xmm_union {
   v4si xmm[2];
 } imm_xmm_union;
 
-#define COPY_IMM_TO_XMM(imm_, xmm0_, xmm1_) {    \
-    imm_xmm_union u __attribute__((aligned(32)));  \
-    u.imm = imm_;				   \
-    xmm0_ = u.xmm[0];                            \
-    xmm1_ = u.xmm[1];                            \
+#define COPY_IMM_TO_XMM(imm_, xmm0_, xmm1_) { \
+    ALIGN32_BEG imm_xmm_union u ALIGN32_END;  \
+    u.imm = imm_;                             \
+    xmm0_ = u.xmm[0];                         \
+    xmm1_ = u.xmm[1];                         \
 }
 
-#define COPY_XMM_TO_IMM(xmm0_, xmm1_, imm_) {                       \
-    imm_xmm_union u __attribute__((aligned(32))); \
+#define COPY_XMM_TO_IMM(xmm0_, xmm1_, imm_) {     \
+    ALIGN32_BEG imm_xmm_union u ALIGN32_END;      \
     u.xmm[0]=xmm0_; u.xmm[1]=xmm1_; imm_ = u.imm; \
-  }
+}
 
 
 #define AVX2_BITOP_USING_SSE2(fn) \
