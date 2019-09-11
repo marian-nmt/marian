@@ -1,6 +1,13 @@
 #pragma once
 
+#if __GNUC__ >= 7
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
+#endif
 #include "half_float/umHalf.h"
+#if __GNUC__ >= 7
+#pragma GCC diagnostic pop
+#endif
 
 #include <iostream>
 #include <string>
