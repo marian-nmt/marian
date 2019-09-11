@@ -239,7 +239,7 @@ public:
       int dimBatch = (int)batch->size();
       int dimRnn = opt<int>("dim-rnn");
 
-      start = graph->constant({dimBatch, dimRnn}, inits::zeros);
+      start = graph->constant({dimBatch, dimRnn}, inits::zeros());
     }
 
     rnn::States startStates(opt<size_t>("dec-depth"), {start, start});

@@ -31,7 +31,7 @@ private:
 
 public:
   DotNodeOp(Expr a, Expr b, float scalar)
-      : NaryNodeOp({a, b}, newShape(a, b)), scalar_(scalar) {}
+      : NaryNodeOp({a, b}, newShape(a, b), Type::float32), scalar_(scalar) {}
 
   Shape newShape(Expr a, Expr b) {
     auto shapeA = a->shape();
@@ -66,7 +66,7 @@ private:
 
 public:
   AffineNodeOp(const std::vector<Expr>& nodes, float scalar)
-      : NaryNodeOp(nodes, newShape(nodes[0], nodes[1])), scalar_(scalar) {}
+      : NaryNodeOp(nodes, newShape(nodes[0], nodes[1]), Type::float32), scalar_(scalar) {}
 
   Shape newShape(Expr a, Expr b) {
     auto shapeA = a->shape();

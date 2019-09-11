@@ -211,7 +211,6 @@ public:
                       scalar_)),
           NodeOp(Prod(
               child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f))
-          // NodeOp(Add(_1, child(2)->grad(), adj_))
       };
 
     if(transA_ && !transB_)
@@ -232,7 +231,6 @@ public:
                       scalar_)),
           NodeOp(Prod(
               child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f))
-          // NodeOp(Add(_1, child(2)->grad(), adj_))
       };
 
     if(transA_ && transB_)
@@ -253,7 +251,6 @@ public:
                       scalar_)),
           NodeOp(Prod(
               child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f))
-          // NodeOp(Add(_1, child(2)->grad(), adj_))
       };
 
     return {
@@ -273,7 +270,6 @@ public:
                     scalar_)),
         NodeOp(Prod(
             child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f))
-        // NodeOp(Add(_1, child(2)->grad(), adj_))
     };
   }
 
@@ -416,8 +412,8 @@ class CSRDotNodeOp : public NaryNodeOp {
   bool swapOperands_;
 public:
   CSRDotNodeOp(const Shape& S_shape, Expr S_values, Expr S_indices, Expr S_offsets, Expr D, bool transS, bool swapOperands)
-      : NaryNodeOp({ S_values, S_indices, S_offsets, D }, newShape(S_shape, S_values, S_indices, S_offsets, D, transS, swapOperands)),
-                   transS_(transS), swapOperands_(swapOperands){
+      : NaryNodeOp({ S_values, S_indices, S_offsets, D }, newShape(S_shape, S_values, S_indices, S_offsets, D, transS, swapOperands), commonType({S_values, D})),
+                   transS_(transS), swapOperands_(swapOperands) {
     matchOrAbort<IndexType>(S_indices->value_type());
     matchOrAbort<IndexType>(S_offsets->value_type());
   }
@@ -513,8 +509,8 @@ struct ScalarProductNodeOp : public NaryNodeOp {
 
 struct RowsNodeOp : public NaryNodeOp {
   RowsNodeOp(Expr a, Expr indices)
-      : NaryNodeOp({a, indices}, newShape(a, indices->shape().elements()), a->value_type()) {
-    matchOrAbort<IndexType>(indices->value_type());
+    : NaryNodeOp({a, indices}, newShape(a, indices), a->value_type()) {
+      matchOrAbort<IndexType>(indices->value_type());
   }
 
   NodeOps forwardOps() override {
@@ -526,11 +522,11 @@ struct RowsNodeOp : public NaryNodeOp {
     return {NodeOp(PasteRows(child(0)->grad(), adj_, child(1)->val()))};
   }
 
-  Shape newShape(Expr a, size_t num) {
+  Shape newShape(Expr a, Expr indices) {
     Shape shape = a->shape();
     ABORT_IF(shape.size() != 2,
              "rows operator can only be used with 2-dimensional tensors");
-    shape.set(0, num);
+    shape.set(0, (int)indices->shape().elements());
     return shape;
   }
 
@@ -641,7 +637,7 @@ struct GatherNodeOp : public NaryNodeOp {
 
 struct ColsNodeOp : public NaryNodeOp {
   ColsNodeOp(Expr a, Expr indices)
-    : NaryNodeOp({a, indices}, newShape(a, indices->shape().elements()), a->value_type()) {
+    : NaryNodeOp({a, indices}, newShape(a, indices), a->value_type()) {
     matchOrAbort<IndexType>(indices->value_type());
   }
 
@@ -653,9 +649,9 @@ struct ColsNodeOp : public NaryNodeOp {
     return {NodeOp(PasteCols(child(0)->grad(), adj_, child(1)->val()))};
   }
 
-  Shape newShape(Expr a, size_t num) {
+  Shape newShape(Expr a, Expr indices) {
     Shape shape = a->shape();
-    shape.set(1, num);
+    shape.set(1, (int)indices->shape().elements());
     return shape;
   }
 
@@ -666,7 +662,8 @@ struct ColsNodeOp : public NaryNodeOp {
 
 
 struct ElementBinaryNodeOp : public NaryNodeOp {
-  ElementBinaryNodeOp(Expr a, Expr b) : NaryNodeOp({a, b}, newShape(a, b)) {}
+  ElementBinaryNodeOp(Expr a, Expr b)
+   : NaryNodeOp({a, b}, newShape(a, b)) {}
 
   Shape newShape(Expr a, Expr b) { return Shape::broadcast({a, b}); }
 
@@ -900,7 +897,8 @@ private:
 // that matches the label indexed by i (the picked element).
 // C = sum_{v in V}(-logsoftmax(A) * delta(v, i) = -logsoftmax(A)[i]
 struct CrossEntropyNodeOp : public NaryNodeOp {
-  CrossEntropyNodeOp(Expr a, Expr indices) : NaryNodeOp({a, indices}, newShape(a)) {
+  CrossEntropyNodeOp(Expr a, Expr indices)
+    : NaryNodeOp({a, indices}, newShape(a), a->value_type()) {
     matchOrAbort<IndexType>(indices->value_type());
     int rows   = a->shape().elements() / a->shape()[-1];
     int labels = indices->shape().elements();
@@ -1005,7 +1003,9 @@ public:
   }
 
   NodeOps backwardOps() override {
-    return {NodeOp(LayerNormalizationGrad(
+    return {NodeOp(
+      LayerNormalizationGrad(
+        graph()->allocator(),
         child(0)->grad(),
         child(1)->grad(),
         (children_.size() == 3) ? child(2)->grad() : nullptr,

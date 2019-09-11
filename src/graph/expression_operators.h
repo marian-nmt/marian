@@ -6,6 +6,8 @@ namespace marian {
 
 Expr debug(Expr a, const std::string& message = "");
 
+Expr checkpoint(Expr a);
+
 typedef Expr(ActivationFunction)(Expr);
 
 Expr plus(const std::vector<Expr>&);
@@ -123,10 +125,14 @@ Expr transpose(Expr a, const std::vector<int>& axes);
 
 Expr swapAxes(Expr x, int axis1, int axis2);
 
+Expr cast(Expr a, Type type = Type::float32);
+
 Expr concatenate(const std::vector<Expr>& concats, int ax = 0);
 Expr repeat(Expr a, size_t repeats, int ax = 0);
 
 Expr reshape(Expr a, Shape shape);
+
+Expr clipGradient(Expr a, float clipValue);
 
 Expr atleast_1d(Expr a);
 Expr atleast_2d(Expr a);
@@ -135,7 +141,7 @@ Expr atleast_4d(Expr a);
 Expr atleast_nd(Expr a, size_t dims);
 
 // create a constant of shape a->shape() and initialize with init
-Expr constant_like(Expr a, const NodeInitializer& init);
+Expr constant_like(Expr a, const Ptr<inits::NodeInitializer>& init);
 
 Expr flatten(Expr a);
 Expr flatten_2d(Expr a);

@@ -47,11 +47,11 @@ void tests(DeviceType type) {
 
     auto emb = graph->param("Embeddings",
                             {128, dimEmb},
-                            inits::glorot_uniform);
+                            inits::glorotUniform());
 
     auto input = reshape(rows(emb, vWords), {dimTime, dimBatch, dimEmb});
     auto mask = graph->constant({dimTime, dimBatch, 1},
-                                inits::from_vector(vMask));
+                                inits::fromVector(vMask));
 
     auto rnn = rnn::rnn()         //
           ("prefix", "rnntest")        //
@@ -76,7 +76,7 @@ void tests(DeviceType type) {
                   [](){ static int n = -32; return n++ / 64.f; });
 
     rnn::State state({graph->constant({1, 1, 4, 16},
-                                     inits::from_vector(vState)),
+                                     inits::fromVector(vState)),
                       nullptr});
 
     auto aligned = att->apply(state);

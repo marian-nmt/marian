@@ -20,6 +20,11 @@ Expr debug(Expr a, const std::string& message) {
   return a;
 }
 
+Expr checkpoint(Expr a) {
+  a->markCheckpoint();
+  return a;
+}
+
 // logistic function. Note: scipy name is expit()
 Expr sigmoid(Expr a) {
   return Expression<SigmoidNodeOp>(a);
@@ -78,14 +83,16 @@ Expr softmax(Expr a, int axis /*=-1*/)
 }
 
 Expr softmax(Expr a, Expr zeroOneMask, int axis /*=-1*/) {
-  auto logMask = (1 - zeroOneMask) * -99999999.f;
+  // This will return the smallest value / 2 for the input type converted to float
+  // So for Type::Float16 that will be the smallest fp16 value expressed as float
+  // We divide by 2 to allow for some tolerance and overflow protection.
+  float smallestFloat = -NumericLimits<float>(a->value_type()).max / 2.f;
+  auto logMask = (1.f - zeroOneMask) * smallestFloat;
   return softmax(a + logMask, axis);
 }
 
+// @TODO: add mask
 Expr logsoftmax(Expr a) {
-  if (a->type() == "logsoftmax") // logsoftmax(logsoftmax(x)) == logsoftmax(x)
-    // @TODO: Remove this. First add an ABORT() for a while to catch who relies on this, and if noone, then delete.
-    return a;
   return Expression<LogSoftmaxNodeOp>(a);
 }
 
@@ -126,19 +133,19 @@ Expr ge(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b, -1,  true); }
 Expr ne(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b,  0,  true); }
 Expr le(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b,  1,  true); }
 
-Expr lt(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b, -1, false); }
-Expr eq(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b,  0, false); }
-Expr gt(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b,  1, false); }
-Expr ge(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b, -1,  true); }
-Expr ne(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b,  0,  true); }
-Expr le(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::from_value(a), b->value_type()), b,  1,  true); }
+Expr lt(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::fromValue(a), b->value_type()), b, -1, false); }
+Expr eq(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::fromValue(a), b->value_type()), b,  0, false); }
+Expr gt(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::fromValue(a), b->value_type()), b,  1, false); }
+Expr ge(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::fromValue(a), b->value_type()), b, -1,  true); }
+Expr ne(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::fromValue(a), b->value_type()), b,  0,  true); }
+Expr le(float a, Expr b) { return Expression<CmpNodeOp>(b->graph()->constant({}, inits::fromValue(a), b->value_type()), b,  1,  true); }
 
-Expr lt(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()), -1, false); }
-Expr eq(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()),  0, false); }
-Expr gt(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()),  1, false); }
-Expr ge(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()), -1,  true); }
-Expr ne(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()),  0,  true); }
-Expr le(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::from_value(b), a->value_type()),  1,  true); }
+Expr lt(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::fromValue(b), a->value_type()), -1, false); }
+Expr eq(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::fromValue(b), a->value_type()),  0, false); }
+Expr gt(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::fromValue(b), a->value_type()),  1, false); }
+Expr ge(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::fromValue(b), a->value_type()), -1,  true); }
+Expr ne(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::fromValue(b), a->value_type()),  0,  true); }
+Expr le(Expr a, float b) { return Expression<CmpNodeOp>(a, a->graph()->constant({}, inits::fromValue(b), a->value_type()),  1,  true); }
 
 /*********************************************************/
 
@@ -190,7 +197,7 @@ Expr operator/(Expr a, float b) {
 
 // TODO: efficient version of this without constant()
 Expr operator/(float a, Expr b) {
-  auto aExpr = b->graph()->constant({}, inits::from_value(a));
+  auto aExpr = b->graph()->constant({}, inits::fromValue(a));
   return aExpr / b;
 }
 
@@ -224,6 +231,12 @@ Expr reshape(Expr a, Shape shape) {
   if (a->shape() == shape)
     return a;
   return Expression<ReshapeNodeOp>(a, shape);
+}
+
+// @TODO: remove this if it turns out that we can train FP16 without that
+Expr clipGradient(Expr a, float clipValue) {
+  // don't create node if no clipping
+  return clipValue != 0.f ? Expression<ClipGradientNodeOp>(a, clipValue) : a;
 }
 
 Expr atleast_1d(Expr a) {
@@ -271,10 +284,9 @@ Expr stopGradient(Expr a) {
   return res;
 }
 
-Expr constant_like(Expr a, const NodeInitializer& init) {
-  const auto& shape = a->shape();
+Expr constant_like(Expr a, const Ptr<inits::NodeInitializer>& init) {
   auto graph = a->graph();
-  return graph->constant(shape, init);
+  return graph->constant(a->shape(), init, a->value_type());
 }
 
 // gather() -- gather arbitrary elements along an axis; batched or non-batched
@@ -441,7 +453,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
       util::hash_combine(hash, transA);
       util::hash_combine(hash, transB);
 
-#if USE_FBGEMM
+      #if USE_FBGEMM
       // Use Packed GEMM only if the node b in the graph is memoized.
       // More specifically, packed GEMM is used only if the B matrix (weight) is constant.
       // In general, 'memoized' means that the node is a constant variable or
@@ -527,7 +539,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
           bc = recCblas(bc);
 
         int rows = ac->shape().elements() / ac->shape()[-1];
-        Expr ones = ac->graph()->ones({rows, 1});
+        Expr ones = ac->graph()->ones({rows, 1}, bias->value_type());
         std::vector<Expr> nodes = {ac, bc, bias, ones};
         return recCblas(Expression<AffineNodeOp>(nodes, transA, transB, scale),
                         true);
@@ -565,7 +577,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
               scale);
         } else {
           int rows = a->shape().elements() / a->shape()[-1];
-          Expr ones = a->graph()->ones({rows, 1});
+          Expr ones = a->graph()->ones({rows, 1}, bias->value_type());
           std::vector<Expr> nodes = {clip(a, clipValue), clip(b, clipValue), bias, ones};
           return Expression<AffineNodeOp>(nodes, transA, transB, scale);
         }
@@ -582,7 +594,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
         // in the future when we explore better ways to handle this.
 
         int rows = a->shape().elements() / a->shape()[-1];
-        Expr ones = a->graph()->ones({rows, 1});
+        Expr ones = a->graph()->ones({rows, 1}, bias->value_type());
         std::vector<Expr> nodes
             = {clip(a, clipValue), clip(b, clipValue), bias, ones};
         return Expression<AffineNodeOp>(nodes, transA, transB, scale);
@@ -666,6 +678,14 @@ Expr swapAxes(Expr x, int axis1, int axis2)
   return transpose(x, axes);
 }
 
+Expr cast(Expr a, Type type) {
+  if(a->value_type() == type) {
+    return a;
+  } else {
+    return Expression<CastNodeOp>(a, type);
+  }
+}
+
 Expr cross_entropy(Expr a, Expr indices) {
   return Expression<CrossEntropyNodeOp>(a, indices);
 }
@@ -718,6 +738,8 @@ Expr layerNorm(Expr x,
                Expr gamma,
                Expr beta /*= nullptr*/,
                float eps /*= 1e-9*/) {
+
+  // layerNorm accumulates in float, so small eps is fine
   std::vector<Expr> nodes = {x, gamma};
   if(beta)
     nodes.push_back(beta);
@@ -747,24 +769,9 @@ Expr highway(const std::string prefix, Expr x) {
   // clang-format on
 }
 
-// Expr batch_norm(Expr x, Expr gamma, Expr beta) {
-//  auto mju = mean(x, keywords::axis=0);
-//  auto xmmju = x - mju;
-//  auto std = sqrt(mean(square(xmmju), keywords::axis=0), 1e-9);
-//
-//  if(beta)
-//    return gamma * (xmmju / std) + beta;
-//  else
-//    return gamma * (xmmju / std);
-//}
-
 Expr shift(Expr a, Shape shift, float padValue) {
   return Expression<ShiftNodeOp>(a, shift, padValue);
 }
-
-// Expr lexical_bias(Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf) {
-//  return Expression<LexicalProbNodeOp>(logits, att, eps, lf);
-//}
 
 #ifdef CUDA_FOUND
 #ifdef CUDNN

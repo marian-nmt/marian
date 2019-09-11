@@ -33,7 +33,7 @@ public:
 
   RationalLoss(Expr loss, float count)
   : loss_(loss),
-    count_(constant_like(loss, inits::from_value(count))) {}
+    count_(constant_like(loss, inits::fromValue(count))) {}
 
   RationalLoss(const RationalLoss& other)
   : loss_(other.loss_), count_(other.count_) {}
@@ -249,7 +249,7 @@ private:
     if(count_)
       return count_; // keep the existing '1'
     else
-      return current.count()->graph()->ones({1}); // just '1' as labels are factored into loss_
+      return current.count()->graph()->ones({1}, current.loss()->value_type()); // just '1' as labels are factored into loss_
   }
 
 public:
@@ -281,8 +281,8 @@ protected:
     ABORT_IF(!loss, "Loss has not been computed");
     ABORT_IF(!labels, "Labels have not been computed");
 
-    Expr lossSum   = loss;
-    Expr labelsSum = labels;
+    Expr lossSum   = cast(loss, Type::float32);   // accumulate in float32
+    Expr labelsSum = cast(labels, Type::float32); // accumulate in float32
     for(int i = 0; i < axes_.size(); ++i) {
       lossSum   = sum(lossSum, axes_[i]);
       labelsSum = sum(labelsSum, axes_[i]);
@@ -295,7 +295,7 @@ protected:
   RationalLoss reduce(Expr loss) {
     ABORT_IF(!loss, "Loss has not been computed");
 
-    Expr  lossSum    = loss;
+    Expr  lossSum    = cast(loss, Type::float32);
     for(int i = 0; i < axes_.size(); ++i)
       lossSum = sum(lossSum, axes_[i]);
 
@@ -343,7 +343,7 @@ protected:
       logits = atleast_3d(logits); // we always assuma a time and batch dimension exists.
       // for bert training or classification the time dimension is lot.
       // Here safeguard against 2d classifier output, adds 1 on the left, non-op.
-      Expr ce = cross_entropy(logits, indices);
+      Expr ce = cast(cross_entropy(logits, indices), Type::float32);
       if (inFactor) {
         LOG_ONCE("scaling factor losses with weight {}", factorWeight_);
         ce = ce * factorWeight_;
@@ -354,7 +354,8 @@ protected:
         // ce' = -sum_i ((1-labelSmoothing_) y^_i + labelSmoothing_/N) log y_i(h)
         //     = -(1-labelSmoothing_) sum_i y^_i log y_i(h) - labelSmoothing_ mean_i log y_i(h)
         //     = (1-labelSmoothing_) ce - labelSmoothing_ mean_i log y_i(h)
-        auto ceqNeg = mean(logits, /*axis=*/ -1) - logsumexp(logits, /*axis=*/ -1);
+        auto logits32 = cast(logits, Type::float32);
+        auto ceqNeg = mean(logits32, /*axis=*/ -1) - logsumexp(logits32, /*axis=*/ -1);
         ce = (1 - labelSmoothing_) * ce - labelSmoothing_ * ceqNeg;
         //ce = ce - labelSmoothing_ * (ce + ceqNeg); // writing it this way saves one op :)
         inFactor = true;
@@ -363,10 +364,10 @@ protected:
     });
 
     if(mask)
-      ce = ce * mask;
+      ce = ce * cast(mask, Type::float32);
 
     if(labelWeights)
-      ce = ce * labelWeights;
+      ce = ce * cast(labelWeights, Type::float32);
 
     return ce;
   }

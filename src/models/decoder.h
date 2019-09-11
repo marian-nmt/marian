@@ -67,7 +67,7 @@ public:
     Expr selectedEmbs;
     int dimEmb = opt<int>("dim-emb");
     if(words.empty())
-      selectedEmbs = graph_->constant({1, 1, dimBatch, dimEmb}, inits::zeros);
+      selectedEmbs = graph_->constant({1, 1, dimBatch, dimEmb}, inits::zeros());
     else
       selectedEmbs = embeddingLayer->apply(words, {dimBeam, 1, dimBatch, dimEmb});
     state->setTargetHistoryEmbeddings(selectedEmbs);

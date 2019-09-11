@@ -9,6 +9,8 @@ namespace rnn {
 
 Expr attOps(Expr va, Expr context, Expr state);
 
+// Attitive attention used in RNN cells.
+// @TODO: come up with common framework for attention in RNNs and Transformer.
 class GlobalAttention : public CellInput {
 private:
   Expr Wa_, ba_, Ua_, va_;
@@ -50,12 +52,12 @@ public:
 
     Wa_ = graph->param(prefix + "_W_comb_att",
                        {dimDecState, dimEncState},
-                       inits::glorot_uniform);
+                       inits::glorotUniform());
     Ua_ = graph->param(
-        prefix + "_Wc_att", {dimEncState, dimEncState}, inits::glorot_uniform);
+        prefix + "_Wc_att", {dimEncState, dimEncState}, inits::glorotUniform());
     va_ = graph->param(
-        prefix + "_U_att", {dimEncState, 1}, inits::glorot_uniform);
-    ba_ = graph->param(prefix + "_b_att", {1, dimEncState}, inits::zeros);
+        prefix + "_U_att", {dimEncState, 1}, inits::glorotUniform());
+    ba_ = graph->param(prefix + "_b_att", {1, dimEncState}, inits::zeros());
 
     if(dropout_ > 0.0f) {
       dropMaskContext_ = graph->dropoutMask(dropout_, {1, dimEncState});
@@ -68,15 +70,15 @@ public:
       if(nematusNorm_) {
         // instead of gammaContext_
         Wc_att_lns_ = graph->param(
-            prefix + "_Wc_att_lns", {1, dimEncState}, inits::from_value(1.f));
+            prefix + "_Wc_att_lns", {1, dimEncState}, inits::fromValue(1.f));
         Wc_att_lnb_ = graph->param(
-            prefix + "_Wc_att_lnb", {1, dimEncState}, inits::zeros);
+            prefix + "_Wc_att_lnb", {1, dimEncState}, inits::zeros());
         // instead of gammaState_
         W_comb_att_lns_ = graph->param(prefix + "_W_comb_att_lns",
                                        {1, dimEncState},
-                                       inits::from_value(1.f));
+                                       inits::fromValue(1.f));
         W_comb_att_lnb_ = graph->param(
-            prefix + "_W_comb_att_lnb", {1, dimEncState}, inits::zeros);
+            prefix + "_W_comb_att_lnb", {1, dimEncState}, inits::zeros());
 
         mappedContext_ = layerNorm(affine(contextDropped_, Ua_, ba_),
                                    Wc_att_lns_,
@@ -84,9 +86,9 @@ public:
                                    NEMATUS_LN_EPS);
       } else {
         gammaContext_ = graph->param(
-            prefix + "_att_gamma1", {1, dimEncState}, inits::from_value(1.0));
+            prefix + "_att_gamma1", {1, dimEncState}, inits::fromValue(1.0));
         gammaState_ = graph->param(
-            prefix + "_att_gamma2", {1, dimEncState}, inits::from_value(1.0));
+            prefix + "_att_gamma2", {1, dimEncState}, inits::fromValue(1.0));
 
         mappedContext_
             = layerNorm(dot(contextDropped_, Ua_), gammaContext_, ba_);

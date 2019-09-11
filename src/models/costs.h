@@ -227,7 +227,7 @@ public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     state->setLogProbs(state->getLogProbs().applyUnaryFunctions(
       [](Expr logits){ // lemma gets gumbelled
-        return logsoftmax(logits + constant_like(logits, inits::gumbel));
+        return logsoftmax(logits + constant_like(logits, inits::gumbel()));
       },
       logsoftmax)); // factors don't
     return state;

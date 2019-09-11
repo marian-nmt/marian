@@ -42,10 +42,10 @@ int main(int argc, char** argv) {
   }
 
   auto x = graph->param("x", {dimBatch, dimWord, batchLength},
-                        inits::from_vector(embData));
+                        inits::fromVector(embData));
 
   auto xMask = graph->constant({dimBatch, 1, batchLength},
-                               inits::from_vector(embMask));
+                               inits::fromVector(embMask));
 
   // auto pooling = MaxPooling("pooling")(x, xMask);
   // auto idx = graph->constant({elemNum, 1}, inits::zeros);

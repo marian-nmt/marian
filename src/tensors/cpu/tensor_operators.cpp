@@ -18,11 +18,6 @@ namespace marian {
 
 namespace cpu {
 
-void IsNan(const Tensor in, Ptr<Allocator> allocator, bool& isNan, bool& isInf, bool zero) {
-  isNan; isInf; zero;
-  ABORT("Not implemented");
-}
-
 inline float stableSigmoid(float x) {
   if(x >= 0) {
     float z = expf(-x);
@@ -30,6 +25,43 @@ inline float stableSigmoid(float x) {
   } else {
     float z = expf(x);
     return z / (1.0f + z);
+  }
+}
+
+void IsNaN(const Tensor in, Ptr<Allocator> allocator, bool& isNaN, bool& isInf) {
+  ABORT("Not implemented");
+}
+
+template <typename To, typename From>
+void CopyCastTo(To* out, const From* in, int length) {
+  for(int i = 0; i < length; ++i)
+    out[i] = in[i];
+}
+
+// Casting has been factored into two functions "CopyCastFrom" and
+// "CopyCastTo". This only serves the purpuse to autmatically create
+// the full Carthesian product of possible type cast via template magic.
+// Extending CopyCast and CopyCastFrom with a new branch in the "if" clause
+// adds all possible variants.
+template <typename T>
+void CopyCastFrom(Tensor out, const T* in, int length) {
+  if(out->type() == Type::float32) {
+    CopyCastTo(out->data<float>(), in, length);
+  } else if(out->type() == Type::float16) {
+    CopyCastTo(out->data<float16>(), in, length);
+  } else {
+    ABORT("CopyCastTo to type {} not implemented", out->type());
+  }
+}
+
+// currently useless on the CPU until more types are added
+void CopyCast(Tensor out, const Tensor in) {
+  if(in->type() == Type::float32) {
+    CopyCastFrom(out, in->data<float>(), (int)in->size());
+  } else if(in->type() == Type::float16) {
+    CopyCastFrom(out, in->data<float16>(), (int)in->size());
+  } else {
+    ABORT("CopyCastFrom from type {} not implemented", in->type());
   }
 }
 

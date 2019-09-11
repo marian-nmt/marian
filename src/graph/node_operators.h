@@ -9,13 +9,8 @@ namespace marian {
 struct ConstantNode : public Node {
   ConstantNode(Ptr<ExpressionGraph> graph,
                const Shape& shape,
-               const NodeInitializer& init,
-               Type value_type = Type::float32)
-      : Node(graph, shape, value_type),
-        init_(new NodeInitializer(init)),
-        initialized_(false) {
-    setTrainable(false);
-  }
+               const Ptr<inits::NodeInitializer>& init,
+               Type valueType = Type::float32);
 
   ~ConstantNode() {}
 
@@ -37,14 +32,20 @@ struct ConstantNode : public Node {
   virtual void record(Ptr<AutoTunerRecorder>, size_t, bool) override{};
 
 private:
-  UPtr<NodeInitializer> init_;
+  Ptr<inits::NodeInitializer> init_;
   bool initialized_;
 };
 
 struct ParamNode : public Node {
   ParamNode(Ptr<ExpressionGraph> graph,
             const Shape& shape,
-            const NodeInitializer& init,
+            const Ptr<inits::NodeInitializer>& init,
+            bool fixed = false);
+
+  ParamNode(Ptr<ExpressionGraph> graph,
+            const Shape& shape,
+            const Ptr<inits::NodeInitializer>& init,
+            Type valueType,
             bool fixed = false);
 
   ~ParamNode() {}
@@ -72,7 +73,7 @@ struct ParamNode : public Node {
   virtual void record(Ptr<AutoTunerRecorder>, size_t, bool) override{};
 
 private:
-  UPtr<NodeInitializer> init_;
+  Ptr<inits::NodeInitializer> init_;
   bool initialized_;
 };
 }  // namespace marian
