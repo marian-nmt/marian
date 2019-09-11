@@ -128,14 +128,13 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
   Type saveType_{Type::float32};      // Type used for saving to disk, can be different, e.g. double or float16.
 
   bool inferenceOnly_{false};
-  bool optimized_{false};
-
+  bool optimized_{false};     // during inference, use optimizations that might lead to precision loss, e.g. 8-bit MatMul.
   bool checkpointing_{false}; // use gradient checkpointing if true
 
   bool reloaded_{false};
   std::string namespace_;
 
-  bool throwNan_{false};
+  bool throwNaN_{false};
 
 protected:
   // Delete, copy and move constructors
@@ -180,9 +179,8 @@ public:
 
   virtual void copyParams(Ptr<ExpressionGraph> graph) {
     for(auto p : *graph->params())
-      param(p->name(), p->shape(), inits::dummy(), p->value_type());
-    params()->allocateForward();
-    params()->vals()->copyFrom(graph->params()->vals());
+      param(p->name(), p->shape(), inits::fromTensor(p->val()), p->value_type());
+    forward(); // this will allocate parameters, execute the intializers and therefore copy parameter values
   }
 
   void reserveWorkspaceMB(size_t num) {
@@ -218,7 +216,7 @@ public:
     return true;
   }
 
-  void checkNan(Tensor t, bool& isNan, bool& isInf);
+  void checkNaN(Tensor t, bool& isNaN, bool& isInf);
 
   void forward() {
     params_->allocateForward();
@@ -228,7 +226,7 @@ public:
   void forwardNext();
   void forward(std::list<Expr>& forwardTape, bool finalPass);
 
-  void backward(bool zero = true, float clipValue = 0.f);
+  void backward(bool reset = true, float clipValue = 0.f);
 
   std::string graphviz() {
     std::stringstream ss;
@@ -412,8 +410,8 @@ public:
 
   void setReloaded(bool reloaded) { reloaded_ = reloaded; }
 
-  void setThrowNan(bool throwNan) { throwNan_ = throwNan; }
-  bool getThrowNan() { return throwNan_; }
+  void setThrowNaN(bool throwNaN) { throwNaN_ = throwNaN; }
+  bool getThrowNaN() { return throwNaN_; }
 
 public:
   // loading from array of io::Items

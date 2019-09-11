@@ -8,8 +8,8 @@ namespace marian {
 ConstantNode::ConstantNode(Ptr<ExpressionGraph> graph,
                           const Shape& shape,
                           const Ptr<inits::NodeInitializer>& init,
-                          Type value_type)
-    : Node(graph, shape, value_type),
+                          Type valueType)
+    : Node(graph, shape, valueType),
       init_(init),
       initialized_(false) {
   init_->setAllocator(graph->allocator());
@@ -42,7 +42,7 @@ ParamNode::ParamNode(Ptr<ExpressionGraph> graph,
 ParamNode::ParamNode(Ptr<ExpressionGraph> graph,
                      const Shape& shape,
                      const Ptr<inits::NodeInitializer>& init,
-                     const Type& valueType,
+                     Type valueType,
                      bool fixed)
     : Node(graph, shape, valueType),
       init_(init),

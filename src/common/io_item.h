@@ -31,6 +31,7 @@ struct Item {
       return bytes.size();
   }
 
+  // Extend this item with data and shape from the input item, creating a flattened concatenation.
   void append(const Item& other) {
     ABORT_IF(mapped, "Memory-mapped items cannot be appended");
     ABORT_IF(type != other.type, "Only item of same type can be appended");

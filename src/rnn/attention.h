@@ -9,6 +9,8 @@ namespace rnn {
 
 Expr attOps(Expr va, Expr context, Expr state);
 
+// Attitive attention used in RNN cells.
+// @TODO: come up with common framework for attention in RNNs and Transformer.
 class GlobalAttention : public CellInput {
 private:
   Expr Wa_, ba_, Ua_, va_;

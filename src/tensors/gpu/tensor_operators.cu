@@ -28,17 +28,17 @@ __device__ inline float stableSigmoid(float x) {
 }
 
 template <typename T>
-__global__ void gIsNan(const T* in, int length, bool* isNan, bool* isInf) {
+__global__ void gIsNaN(const T* in, int length, bool* isNaN, bool* isInf) {
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      if(isnan((float)in[index])) *isNan = true;
+      if(isnan((float)in[index])) *isNaN = true;
       if(isinf((float)in[index])) *isInf = true;
     }
   }
 }
 
-void IsNan(const Tensor in, Ptr<Allocator> allocator, bool& isNan, bool& isInf) {
+void IsNaN(const Tensor in, Ptr<Allocator> allocator, bool& isNaN, bool& isInf) {
   cudaSetDevice(in->getDeviceId().no);
 
   int length = in->size();
@@ -47,19 +47,19 @@ void IsNan(const Tensor in, Ptr<Allocator> allocator, bool& isNan, bool& isInf) 
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
   auto mem = allocator->alloc<bool>(2);
-  bool* dIsNan = &mem->data<bool>()[0];
+  bool* dIsNaN = &mem->data<bool>()[0];
   bool* dIsInf = &mem->data<bool>()[1];
-  fill(in->getBackend(), dIsNan, dIsNan + 2, false);
+  fill(in->getBackend(), dIsNaN, dIsNaN + 2, false);
 
   if(in->type() == Type::float32) {
-    gIsNan<<<blocks, threads>>>(in->data<float>(), length, dIsNan, dIsInf);
+    gIsNaN<<<blocks, threads>>>(in->data<float>(), length, dIsNaN, dIsInf);
   } else if(in->type() == Type::float16) {
-    gIsNan<<<blocks, threads>>>(in->data<half>(), length, dIsNan, dIsInf);
+    gIsNaN<<<blocks, threads>>>(in->data<half>(), length, dIsNaN, dIsInf);
   } else {
-    ABORT("IsNan for type {} not implemented", in->type());
+    ABORT("IsNaN for type {} not implemented", in->type());
   }
 
-  CudaCopy(dIsNan, dIsNan + 1, &isNan);
+  CudaCopy(dIsNaN, dIsNaN + 1, &isNaN);
   CudaCopy(dIsInf, dIsInf + 1, &isInf);
 
   allocator->free(mem);
@@ -1774,11 +1774,11 @@ void LayerNormalizationGrad(Ptr<Allocator> allocator,
   int threads = std::min(MAX_THREADS, cols);
   int blocks = std::min(MAX_BLOCKS, rows);
 
-  IPtr<MemoryPiece> tempGradGammaMemory = allocator->alloc(adj->memory()->size(), adj->type());
+  auto tempGradGammaMemory = allocator->alloc(adj->memory()->size(), adj->type());
   Tensor tempGradGamma = TensorBase::New(tempGradGammaMemory, adj->shape(), adj->type(), adj->getBackend());
   tempGradGamma->set(0.f);
 
-  IPtr<MemoryPiece> tempOnesMemory = allocator->alloc(rows * sizeOf(adj->type()), adj->type());
+  auto tempOnesMemory = allocator->alloc(rows * sizeOf(adj->type()), adj->type());
   Tensor tempOnes = TensorBase::New(tempOnesMemory, Shape({1, rows}), adj->type(), adj->getBackend());
   tempOnes->set(1.f);
 

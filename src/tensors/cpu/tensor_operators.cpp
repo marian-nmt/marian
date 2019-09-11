@@ -28,7 +28,7 @@ inline float stableSigmoid(float x) {
   }
 }
 
-void IsNan(const Tensor in, Ptr<Allocator> allocator, bool& isNan, bool& isInf) {
+void IsNaN(const Tensor in, Ptr<Allocator> allocator, bool& isNaN, bool& isInf) {
   ABORT("Not implemented");
 }
 
@@ -38,6 +38,11 @@ void CopyCastTo(To* out, const From* in, int length) {
     out[i] = in[i];
 }
 
+// Casting has been factored into two functions "CopyCastFrom" and
+// "CopyCastTo". This only serves the purpuse to autmatically create
+// the full Carthesian product of possible type cast via template magic.
+// Extending CopyCast and CopyCastFrom with a new branch in the "if" clause
+// adds all possible variants.
 template <typename T>
 void CopyCastFrom(Tensor out, const T* in, int length) {
   if(out->type() == Type::float32) {

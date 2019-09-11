@@ -26,7 +26,6 @@ protected:
   bool memoize_{false};
 
   std::vector<Expr> children_;
-  Ptr<std::list<Expr>> subtape_;
 
   Weak<ExpressionGraph> graph_;
   Shape shape_{1, 1, 1, 1};
@@ -40,7 +39,8 @@ protected:
   bool markedForDebug_{false};
   std::string debugMessage_;
 
-  bool isCheckpoint_{false};
+  Ptr<std::list<Expr>> subtape_; // a subtape is used to keep track of nodes that need to be freed and recomputed with gradient-checkpointing.
+  bool isCheckpoint_{false};     // true if this node has been selected to be a checkpoint, currently only done manually. 
 
   Ptr<AutoTunerRecorder> recorder_;
   size_t recorderHash_;
@@ -151,7 +151,6 @@ public:
     if(subtape_) {
       for(auto&& dep : *subtape_)
         ss << "\"" << dep << "\" -> \"" << this << "\" [style=dotted];" << std::endl;
-
     }
 
     ss << std::endl;
@@ -166,6 +165,7 @@ public:
 
   void record(Ptr<AutoTunerRecorder>, size_t, bool) override;
 
+  // this is currently only called manually by checkpoint(Expr). In the future we will figure out a general algorithm
   virtual void markCheckpoint() override {
     isCheckpoint_ = true;
   }
@@ -186,7 +186,10 @@ public:
 struct NaryNodeOp : public Node {
   size_t hash_{0};
 
-  // deduce type automatically, but then all types must be the same
+  // Deduce type automatically, but then all types must be the same
+  // this is called automatically when no output type is specified.
+  // If the input types are mixed, the output type needs to be specified 
+  // in the constructor.
   Type commonType(const std::vector<Expr>& nodes) {
     ABORT_IF(nodes.size() == 0, "NaryNodeOp has no children");
     Type type = nodes[0]->value_type();
@@ -200,9 +203,11 @@ struct NaryNodeOp : public Node {
   NaryNodeOp(const std::vector<Expr>& nodes)
   : NaryNodeOp(nodes, nodes[0]->shape()) {}
 
+  // this contructor will try to deduce the node type automatically
   NaryNodeOp(const std::vector<Expr>& nodes, Shape shape)
   : NaryNodeOp(nodes, shape, commonType(nodes)) {}
 
+  // this contructor will takes a node type
   NaryNodeOp(const std::vector<Expr>& nodes,
              Shape shape,
              Type value_type)
@@ -239,16 +244,18 @@ struct NaryNodeOp : public Node {
   virtual bool equal(Expr node) override {
     if(type() != node->type())
       return false;
-    if(name() != node->name())
+    else if(name() != node->name())
       return false;
-    if(value_type() != node->value_type())
+    else if(value_type() != node->value_type())
       return false;
-    if(children().size() != node->children().size())
+    else if(children().size() != node->children().size())
       return false;
-    for(size_t i = 0; i < children().size(); ++i)
-      if(children()[i]->getId() != node->children()[i]->getId())
-        return false;
-    return true;
+    else {
+      for(size_t i = 0; i < children().size(); ++i)
+        if(children()[i]->getId() != node->children()[i]->getId())
+          return false;
+      return true;
+    }
   }
 };
 }  // namespace marian

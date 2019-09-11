@@ -10,7 +10,7 @@ struct ConstantNode : public Node {
   ConstantNode(Ptr<ExpressionGraph> graph,
                const Shape& shape,
                const Ptr<inits::NodeInitializer>& init,
-               Type value_type = Type::float32);
+               Type valueType = Type::float32);
 
   ~ConstantNode() {}
 
@@ -45,7 +45,7 @@ struct ParamNode : public Node {
   ParamNode(Ptr<ExpressionGraph> graph,
             const Shape& shape,
             const Ptr<inits::NodeInitializer>& init,
-            const Type& valueType,
+            Type valueType,
             bool fixed = false);
 
   ~ParamNode() {}

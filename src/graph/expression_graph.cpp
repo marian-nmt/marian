@@ -87,7 +87,7 @@ void ExpressionGraph::forwardNext() {
     }
 
     // To avoid recomputation of range from last checkpoint to the top,
-    // turn all node on last subtape into checkpoints and clear subtape.
+    // turn all nodes on last subtape into checkpoints and clear subtape.
     // @TODO: put this into special backprob function? Needs to know that we are done with adding nodes
     for(auto top : topNodes_) {
       if(top->getSubtape()) {
@@ -113,11 +113,11 @@ void ExpressionGraph::forward(std::list<Expr>& forwardTape, bool finalPass) {
 
     v->forward();
 
-    if(v->trainable() && throwNan_) {
-      bool isNan = false, isInf = false;
-      checkNan(v->val(), isNan, isInf);
-      if(isNan || isInf) {
-        LOG(critical, "Detected NaN ({}) or Inf ({}) in value (forward pass)", isNan, isInf);
+    if(v->trainable() && throwNaN_) {
+      bool isNaN = false, isInf = false;
+      checkNaN(v->val(), isNaN, isInf);
+      if(isNaN || isInf) {
+        LOG(critical, "Detected NaN ({}) or Inf ({}) in value (forward pass)", isNaN, isInf);
         LOG(critical, "\tType: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
             v->type(), v->shape(), v->name(), v->getId(), v->hash());
         LOG(critical, "Children: {}", v->children().size());
@@ -156,7 +156,7 @@ void ExpressionGraph::forward(std::list<Expr>& forwardTape, bool finalPass) {
   }
 }
 
-void ExpressionGraph::backward(bool zero, float clipValue) {
+void ExpressionGraph::backward(bool reset, float clipValue) {
   if(topNodes_.size() > 1) {
     LOG(critical, "There are more ({}) than one top most nodes for backward pass:", topNodes_.size());
     for(auto node : topNodes_) {
@@ -172,7 +172,7 @@ void ExpressionGraph::backward(bool zero, float clipValue) {
   }
 
   params_->allocateBackward();
-  if(zero)
+  if(reset)
     params_->set_zero_adjoint();
 
   for(auto&& v : topNodes_)
@@ -182,7 +182,7 @@ void ExpressionGraph::backward(bool zero, float clipValue) {
 
   tensors_->clearShorttermMemory();
 
-  bool firstNan = true;
+  bool firstNaN = true;
   while(!nodesBackward_.empty()) {
     auto v = nodesBackward_.back();
     nodesBackward_.pop_back();
@@ -208,23 +208,22 @@ void ExpressionGraph::backward(bool zero, float clipValue) {
     if(v->trainable())
       v->backward();
 
-    if(throwNan_ && firstNan) {
+    if(throwNaN_ && firstNaN) {
       for(auto&& child : v->children()) {
         if(child->trainable()) {
-          bool isNan = false, isInf = false;
-          checkNan(child->grad(), isNan, isInf);
-          if(isNan) {
-            LOG(critical, "Detected NaN ({}) or Inf ({}) in gradient (backward pass) of child node", isNan, isInf);
+          bool isNaN = false, isInf = false;
+          checkNaN(child->grad(), isNaN, isInf);
+          if(isNaN) {
+            LOG(critical, "Detected NaN ({}) or Inf ({}) in gradient (backward pass) of child node", isNaN, isInf);
             LOG(critical, "Child - Type: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
                 child->type(), child->shape(), child->name(), child->getId(), child->hash());
             LOG(critical, "Parent - Type: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
                 v->type(), v->shape(), v->name(), v->getId(), v->hash());
-            firstNan = false;
+            firstNaN = false;
           }
         }
       }
     }
-
 
     v->children().clear();
   }
@@ -238,8 +237,8 @@ Expr ExpressionGraph::dropoutMask(float prob, const Shape& shape) {
   return constant(shape, inits::dropout(prob), parameterType_);
 }
 
-void ExpressionGraph::checkNan(Tensor t, bool& isNan, bool& isInf) {
-  IsNan(t, allocator(), isNan, isInf);
+void ExpressionGraph::checkNaN(Tensor t, bool& isNaN, bool& isInf) {
+  IsNaN(t, allocator(), isNaN, isInf);
 }
 
 void ExpressionGraph::save(std::vector<io::Item>& ioItems) {

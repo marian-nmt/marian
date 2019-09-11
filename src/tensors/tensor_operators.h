@@ -35,7 +35,7 @@ void copy(Ptr<Backend> backend, const InIt beg, const InIt end, OutIt it) {
 }
 
 DISPATCH2(CopyCast, marian::Tensor, const marian::Tensor);
-DISPATCH4(IsNan, const Tensor, Ptr<Allocator>, bool&, bool&);
+DISPATCH4(IsNaN, const Tensor, Ptr<Allocator>, bool&, bool&);
 
 template <class Functor, class... Tensors>
 void Element(Functor functor, marian::Tensor out, Tensors... tensors) {
@@ -131,7 +131,7 @@ static inline void Bernoulli(Tensor resultTensor, float keepProb, float scale = 
 static inline void Dropout(Tensor tensor, float dropProb) {
   float keepProb = 1.f - dropProb;
   float scale = 1.f / keepProb;
-  Bernoulli(tensor, keepProb, scale, 0.f);
+  Bernoulli(tensor, keepProb, scale, /*shift=*/0.f);
 }
 
 #ifdef CUDA_FOUND

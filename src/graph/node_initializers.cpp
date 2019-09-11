@@ -26,7 +26,8 @@ class LambdaInit : public NodeInitializer {
 class LambdaInitConvert : public NodeInitializer {
   private:
     std::function<void(Tensor)> lambda_;
-    Type intermediateType_;
+    Type intermediateType_; // is used for the creation of a temporary intermedia tensor on which the lambda actually operates.
+                            // This tensor is then automatically cast and copied to the type of the actual tensor. 
 
   public:
     LambdaInitConvert(std::function<void(Tensor)>&& lambda,
@@ -36,7 +37,7 @@ class LambdaInitConvert : public NodeInitializer {
     void apply(Tensor tensor) override {
       if(tensor->type() != intermediateType_) {
         auto sharedAllocator = allocator_.lock();
-        ABORT_IF(!sharedAllocator, "Allocator in LambdaInitConvert has not been set or is expired");
+        ABORT_IF(!sharedAllocator, "Allocator in LambdaInitConvert has not been set or expired");
 
         auto memory = sharedAllocator->alloc(tensor->size(), intermediateType_);
         auto temp = TensorBase::New(memory,
@@ -44,7 +45,7 @@ class LambdaInitConvert : public NodeInitializer {
                                     intermediateType_,
                                     tensor->getBackend());
         lambda_(temp);
-        CopyCast(tensor, temp); // Casting from temp to tensor
+        CopyCast(tensor, temp); // Cast and copy from temp to tensor
         sharedAllocator->free(memory);
       }
       else {
@@ -53,24 +54,16 @@ class LambdaInitConvert : public NodeInitializer {
     }
 };
 
-Ptr<NodeInitializer> lambda(std::function<void(Tensor)>&& func) {
+Ptr<NodeInitializer> fromLambda(std::function<void(Tensor)>&& func) {
   return New<LambdaInit>(std::move(func));
 }
 
-Ptr<NodeInitializer> lambda(std::function<void(Tensor)>&& func, Type intermediateType) {
+Ptr<NodeInitializer> fromLambda(std::function<void(Tensor)>&& func, Type intermediateType) {
   return New<LambdaInitConvert>(std::move(func), intermediateType);
 }
 
 Ptr<NodeInitializer> fromValue(float v) {
-  return lambda([v](Tensor t){ t->set(v); });
-}
-
-Ptr<NodeInitializer> zeros() {
-  return fromValue(0.0f);
-}
-
-Ptr<NodeInitializer> ones() {
-  return fromValue(1.0f);
+  return fromLambda([v](Tensor t){ t->set(v); });
 }
 
 // diagonal matrix with value val along diagonal
@@ -88,21 +81,21 @@ Ptr<NodeInitializer> eye(float val) {
     t->set(vec);
   };
 
-  return lambda(eyeLambda, Type::float32);
+  return fromLambda(eyeLambda, Type::float32);
 }
 
 Ptr<NodeInitializer> uniform(float a, float b) {
   // only works for float, hence the conversion through intermedia type Type::float32
-  return lambda([a, b](Tensor t) { t->getBackend()->getRandomGenerator()->uniform(t, a, b); }, Type::float32);
+  return fromLambda([a, b](Tensor t) { t->getBackend()->getRandomGenerator()->uniform(t, a, b); }, Type::float32);
 }
 
 Ptr<NodeInitializer> normal(float mean, float stddev) {
   // only works for float, hence the conversion through intermedia type Type::float32
-  return lambda([mean, stddev](Tensor t) { t->getBackend()->getRandomGenerator()->normal(t, mean, stddev); }, Type::float32);
+  return fromLambda([mean, stddev](Tensor t) { t->getBackend()->getRandomGenerator()->normal(t, mean, stddev); }, Type::float32);
 }
 
 Ptr<NodeInitializer> glorotUniform(bool fanIn, bool fanOut, float scalingFactor) {
-  return lambda([fanIn, fanOut, scalingFactor](Tensor t) {
+  return fromLambda([fanIn, fanOut, scalingFactor](Tensor t) {
     float scale = sqrtf(6.0f / (t->shape()[-2] + t->shape()[-1]));
     if(fanIn && !fanOut)
       scale = sqrtf(3.0f / t->shape()[-2]); // results in columns of matrix to be ~unit length
@@ -116,7 +109,7 @@ Ptr<NodeInitializer> glorotUniform(bool fanIn, bool fanOut, float scalingFactor)
 }
 
 Ptr<NodeInitializer> glorotNormal(bool fanIn, bool fanOut, float scalingFactor) {
-  return lambda([fanIn, fanOut, scalingFactor](Tensor t) {
+  return fromLambda([fanIn, fanOut, scalingFactor](Tensor t) {
     float scale = sqrtf(2.0f / (t->shape()[-2] + t->shape()[-1]));
     if(fanIn && !fanOut)
       scale = sqrtf(1.0f / t->shape()[-2]);
@@ -130,17 +123,17 @@ Ptr<NodeInitializer> glorotNormal(bool fanIn, bool fanOut, float scalingFactor) 
 }
 
 Ptr<NodeInitializer> bernoulli(float prob, float scale, float shift) {
-  return lambda([prob, scale, shift](Tensor t) { Bernoulli(t, prob, scale, shift); }, Type::float32);
+  return fromLambda([prob, scale, shift](Tensor t) { Bernoulli(t, prob, scale, shift); }, Type::float32);
 }
 
 Ptr<NodeInitializer> dropout(float dropProb) {
-  return lambda([dropProb](Tensor t) { Dropout(t, dropProb); }, Type::float32);
+  return fromLambda([dropProb](Tensor t) { Dropout(t, dropProb); }, Type::float32);
 }
 
 // gumbel noise:
 // -log(-log(uniform(0.f + eps, 1.f - eps)));
 Ptr<NodeInitializer> gumbel(float eps) {
-  return lambda([eps](Tensor tensor) {
+  return fromLambda([eps](Tensor tensor) {
     tensor->getBackend()->getRandomGenerator()->uniform(tensor, 0.f + eps, 1.f - eps);
     using namespace functional;
     Element(_1 = -log(-log(_1)), tensor);
@@ -149,7 +142,7 @@ Ptr<NodeInitializer> gumbel(float eps) {
 
 template <typename T>
 Ptr<NodeInitializer> fromVector(const std::vector<T>& v) {
-  return lambda([v](Tensor t) { t->set(v.data(), v.data() + v.size()); }, typeId<T>());
+  return fromLambda([v](Tensor t) { t->set(v.data(), v.data() + v.size()); }, typeId<T>());
 }
 
 template Ptr<NodeInitializer> fromVector<float16>(const std::vector<float16>& v);
@@ -157,7 +150,7 @@ template Ptr<NodeInitializer> fromVector<float>(const std::vector<float>& v);
 template Ptr<NodeInitializer> fromVector<IndexType>(const std::vector<IndexType>& v);
 
 Ptr<NodeInitializer> fromSparseVector(std::pair<std::vector<size_t>, std::vector<float>>& v) {
-  return lambda([v](Tensor t) { t->set(1e-6); t->setSparse(v.first, v.second); });
+  return fromLambda([v](Tensor t) { t->set(1e-6); t->setSparse(v.first, v.second); });
 }
 
 // move this somewhere else
@@ -165,7 +158,7 @@ Ptr<NodeInitializer> fromWord2vec(const std::string& file,
                               int dimVoc,
                               int dimEmb,
                               bool normalize /*= false*/) {
-  return lambda([file, dimVoc, dimEmb, normalize](Tensor t) {
+  return fromLambda([file, dimVoc, dimEmb, normalize](Tensor t) {
     auto embs = Word2VecReader().read(file, dimVoc, dimEmb);
     if(normalize) {
       float norm = 0;
@@ -182,7 +175,7 @@ Ptr<NodeInitializer> fromWord2vec(const std::string& file,
 
 Ptr<NodeInitializer> fromItem(const io::Item& item) {
   if(item.mapped) {
-    return lambda([item](Tensor tensor) {
+    return fromLambda([item](Tensor tensor) {
       // @TODO: implement other types, for now croak loudly.
       ABORT_IF(tensor->getBackend()->getDeviceId().type != DeviceType::cpu,
                "Memory mapping only works for CPU tensors");
@@ -198,23 +191,19 @@ Ptr<NodeInitializer> fromItem(const io::Item& item) {
       tensor->reset(mp);
     });
   } else {
-    return lambda(
+    return fromLambda(
       [item](Tensor tensor) { tensor->set(item); },
       item.type);
   }
 }
 
 Ptr<NodeInitializer> fromTensor(Tensor externalTensor) {
-  return lambda([externalTensor](Tensor t) { t->copyFrom(externalTensor); }, externalTensor->type());
-}
-
-Ptr<NodeInitializer> dummy() {
-  return lambda([](Tensor /*t*/) { });
+  return fromLambda([externalTensor](Tensor t) { t->copyFrom(externalTensor); }, externalTensor->type());
 }
 
 // Computes Google's sinusoidal position embeddings
 Ptr<NodeInitializer> sinusoidalPositionEmbeddings(int start) {
-  return lambda([start](Tensor t) {
+  return fromLambda([start](Tensor t) {
     int dimEmb   = t->shape()[-1];
     int dimWords = (int)t->size() / dimEmb;
 

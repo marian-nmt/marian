@@ -83,9 +83,10 @@ Expr softmax(Expr a, int axis /*=-1*/)
 }
 
 Expr softmax(Expr a, Expr zeroOneMask, int axis /*=-1*/) {
-  // This will return the smallest value for the input type converted to float
+  // This will return the smallest value / 2 for the input type converted to float
   // So for Type::Float16 that will be the smallest fp16 value expressed as float
-  float smallestFloat = -NumericLimits<float>(a->value_type()).max;
+  // We divide by 2 to allow for some tolerance and overflow protection.
+  float smallestFloat = -NumericLimits<float>(a->value_type()).max / 2.f;
   auto logMask = (1.f - zeroOneMask) * smallestFloat;
   return softmax(a + logMask, axis);
 }
@@ -191,7 +192,7 @@ Expr operator*(Expr a, float b) {
 }
 
 Expr operator/(Expr a, float b) {
-  return Expression<ScalarMultNodeOp>(a, 1.f / b);
+  return a * (1.f / b);
 }
 
 // TODO: efficient version of this without constant()
@@ -232,6 +233,7 @@ Expr reshape(Expr a, Shape shape) {
   return Expression<ReshapeNodeOp>(a, shape);
 }
 
+// @TODO: remove this if it turns out that we can train FP16 without that
 Expr clipGradient(Expr a, float clipValue) {
   // don't create node if no clipping
   return clipValue != 0.f ? Expression<ClipGradientNodeOp>(a, clipValue) : a;
