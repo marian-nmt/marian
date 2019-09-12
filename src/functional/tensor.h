@@ -58,7 +58,7 @@ struct View {
   HOST View(marian::Tensor t) : data_(t->data<T>()), shape_(adapt<T>(t->shape())) {}
 
   HOST_DEVICE_INLINE T& operator[](size_t i) {
-     return data_[shape_.index(i)];
+     return data_[shape_.index((int)i)];
   }
 
   HOST_DEVICE_INLINE const T& operator[](size_t i) const {

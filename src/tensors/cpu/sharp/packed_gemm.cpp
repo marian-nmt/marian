@@ -11,11 +11,14 @@
 #include <unordered_map>
 //#include <chrono>
 
-#ifdef _MSC_VER
-#pragma warning(disable: 4505) // warning C4505: 'fbgemmAlignedAlloc' in fbgemm.h: unreferenced local function has been removed (missing 'static inline')
-#endif
-
 #if USE_FBGEMM
+#ifdef _MSC_VER
+#pragma warning(disable: 4505) // 'fbgemmAlignedAlloc' in fbgemm.h: unreferenced local function has been removed (missing 'static inline')
+#pragma warning(disable: 4251) // 'fbgemm::CompressedSparseColumn::colptr_': class 'std::vector<int,std::allocator<_Ty>>' needs to have dll-interface to be used by clients of class 'fbgemm::CompressedSparseColumn'
+// the following does not work; need to manually disable them in Linker options
+//#pragma comment(linker, "/ignore:4049") // locally defined symbol ...asmjit... imported
+//#pragma comment(linker, "/ignore:4217") // locally defined symbol ...asmjit... imported
+#endif
 #include "3rd_party/fbgemm/include/fbgemm/FbgemmFP16.h"
 #include "3rd_party/fbgemm/include/fbgemm/QuantUtils.h"
 #include "3rd_party/fbgemm/include/fbgemm/Fbgemm.h"

@@ -7,7 +7,7 @@
 
 #define VALIDATE(x) if (!(x)){std::cout << "Failed: " <<  #x << std::endl;assert((x));}
 
-int main(int argc, char* argv[])
+int main(int, char*)
 {
    half h = 1.f, h2 = 2.f;
    --h2;
@@ -57,33 +57,33 @@ int main(int argc, char* argv[])
    // ****************************************************************************
 
    // identical exponents
-   for (float f = 0.f; f < 1000.f; ++f)
+   for (float v = 0.f; v < 1000.f; ++v)
    {
-	  half one = f;
-	  half two = f;
+	  half one = v;
+	  half two = v;
       half three = one + two;
       f2 = three;
-      VALIDATE(f*2.f == f2);
+      VALIDATE(v*2.f == f2);
    }
 
     // different exponents
-   for (float f = 0.f, fp = 1000.f; f < 500.f; ++f, --fp)
+   for (float v = 0.f, fp = 1000.f; v < 500.f; ++v, --fp)
    {
-	  half one = f;
+	  half one = v;
 	  half two = fp;
       half three = one + two;
       f2 = three;
-      VALIDATE(f+fp == f2);
+      VALIDATE(v+fp == f2);
    }
 
    // very small numbers - this is already beyond the accuracy of 16 bit floats.
-   for (float f = 0.003f; f < 1000.f; f += 0.0005f)
+   for (float v = 0.003f; v < 1000.f; v += 0.0005f)
    {
-	  half one = f;
-	  half two = f;
+	  half one = v;
+	  half two = v;
       half three = one + two;
       f2 = three;
-	  float m = f*2.f;
+	  float m = v*2.f;
       VALIDATE(f2 > (m-0.05*m) && f2 < (m+0.05*m));
    }
 
@@ -92,23 +92,23 @@ int main(int argc, char* argv[])
    // ****************************************************************************
 
    // identical exponents
-   for (float f = 0.f; f < 1000.f; ++f)
+   for (float v = 0.f; v < 1000.f; ++v)
    {
-	  half one = f;
-	  half two = f;
+	  half one = v;
+	  half two = v;
       half three = one - two;
       f2 = three;
       VALIDATE(0.f == f2);
    }
 
-    // different exponents
-   for (float f = 0.f, fp = 1000.f; f < 500.f; ++f, --fp)
+   // different exponents
+   for (float v = 0.f, fp = 1000.f; v < 500.f; ++v, --fp)
    {
-	  half one = f;
+	  half one = v;
 	  half two = fp;
       half three = one - two;
       f2 = three;
-      VALIDATE(f-fp == f2);
+      VALIDATE(v-fp == f2);
    }
    return 0;		
 }

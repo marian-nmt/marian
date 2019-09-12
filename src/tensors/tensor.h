@@ -19,7 +19,6 @@
 namespace marian {
 
 class TensorBase {
-private:
   MemoryPiece::PtrType memory_;
   Shape shape_;
   Type type_{Type::float32};
@@ -76,9 +75,9 @@ public:
     return get<T>(0);
   }
 
-  // this version converts all numeric types to float
+  // this non-template version converts all numeric types to float
   virtual float scalar() {
-    DISPATCH_BY_TYPE0(type_, scalar);
+    DISPATCH_BY_TYPE0(type_, (float)scalar);
   }
 
   Ptr<Backend> getBackend() { return backend_; }
@@ -94,7 +93,7 @@ public:
   template <typename T>
   T get(size_t i) {
     if(!matchType<T>(type_)) {
-      DISPATCH_BY_TYPE1(type_, get, i);
+      DISPATCH_BY_TYPE1(type_, (T)get, i);
     } else {
       T temp = 0;
       if(backend_->getDeviceId().type == DeviceType::cpu) {
@@ -203,7 +202,7 @@ public:
   template <typename T>
   void set(T value) {
     if(!matchType<T>(type_)) {
-      DISPATCH_BY_TYPE1(type_, set, value);
+      DISPATCH_BY_TYPE1(type_, setAs, value);
     } else {
       if(backend_->getDeviceId().type == DeviceType::cpu) {
         std::fill(data<T>(), data<T>() + size(), value);
@@ -215,6 +214,10 @@ public:
   #endif
     }
   }
+private: // subroutine for above: helper that accepts any type and casts it to <T>
+    template <typename Tas, typename Tval>
+    void setAs(Tval value) { set((Tas)value); }
+public:
 
   void setSparse(const std::vector<size_t>& k, const std::vector<float>& v) {
     ABORT_IF(!matchType<float>(type_),
