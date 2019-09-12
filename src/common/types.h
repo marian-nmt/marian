@@ -17,11 +17,11 @@
 #include <immintrin.h>
 #endif
 
-#ifdef __CUDA_ARCH__
+//#ifdef __CUDA_ARCH__
 //#if __CUDA_ARCH__ >= 600 && CUDA_VERSION >= 10000 // @TODO: set this from 600 to 700, currently only testing on Pascal
-#define __USE_FP16__
+//#define __USE_FP16__
 //#endif
-#endif
+//#endif
 
 #define DISPATCH_BY_TYPE0(type, func) \
 do { \

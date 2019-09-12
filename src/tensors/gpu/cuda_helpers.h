@@ -4,9 +4,7 @@
 
 #include <cuda_runtime.h>
 
-#ifdef __USE_FP16__
 #include <cuda_fp16.h>
-#endif
 
 // template <> inline bool matchType<__half>(Type type)  { return type == Type::float16; }
 // template <> inline std::string request<__half>()  { return "float16"; }

@@ -62,15 +62,15 @@ void fill<float16>(Ptr<Backend> backend, float16* begin, float16* end, float16 v
   int size = end - begin;
   if (size == 0)
     return;
-#ifdef __USE_FP16__
+// #ifdef __USE_FP16__
   CUDA_CHECK(cudaSetDevice(backend->getDeviceId().no));
   int threadsPerBlock = std::min(MAX_THREADS, size);
   int blocks = (size / threadsPerBlock) + (size % threadsPerBlock != 0); // @TODO: (size+threadsPerBlock-1)/threadsPerBlock or CeilDiv(a,b)
   gFill<<<blocks, threadsPerBlock>>>((__half*)begin, size, (__half)value);
   CUDA_CHECK(cudaStreamSynchronize(0));
-#else
-  ABORT("FP16 not supported with current hardware or CUDA version");
-#endif
+// #else
+//   ABORT("FP16 not supported with current hardware or CUDA version");
+// #endif
 }
 
 template void fill<bool>(Ptr<Backend>, bool*, bool*, bool);
@@ -126,15 +126,15 @@ void swap_ranges<float16>(Ptr<Backend> backend, float16* begin, float16* end, fl
   if (size == 0)
     return;
 
-#ifdef __USE_FP16__
+// #ifdef __USE_FP16__
   CUDA_CHECK(cudaSetDevice(backend->getDeviceId().no));
   int threadsPerBlock = std::min(MAX_THREADS, size);
   int blocks = (size / threadsPerBlock) + (size % threadsPerBlock != 0); // @TODO: (size+threadsPerBlock-1)/threadsPerBlock or CeilDiv(a,b)
   gSwap<<<blocks, threadsPerBlock>>>((__half*)begin, (__half*)dest, size);
   CUDA_CHECK(cudaStreamSynchronize(0));
-#else
-  ABORT("FP16 not supported with current hardware or CUDA version");
-#endif
+// #else
+//   ABORT("FP16 not supported with current hardware or CUDA version");
+// #endif
 }
 
 // clang-format off

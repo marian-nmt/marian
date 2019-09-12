@@ -311,21 +311,21 @@ DISPATCH7(AttBack, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tenso
 
 #ifdef CUDA_FOUND
 namespace gpu {
-float L2Norm(marian::Tensor in);
+float L2Norm(marian::Tensor in, Ptr<Allocator> allocator);
 }
 #endif
 
 namespace cpu {
-float L2Norm(marian::Tensor in);
+float L2Norm(marian::Tensor in, Ptr<Allocator> allocator);
 }
 
-static inline float L2Norm(marian::Tensor in) {
+static inline float L2Norm(marian::Tensor in, Ptr<Allocator> allocator) {
 #ifdef CUDA_FOUND
   if(in->getBackend()->getDeviceId().type == DeviceType::gpu)
-    return gpu::L2Norm(in);
+    return gpu::L2Norm(in, allocator);
   else
 #endif
-    return cpu::L2Norm(in);
+    return cpu::L2Norm(in, allocator);
 }
 
 // clang-format off
