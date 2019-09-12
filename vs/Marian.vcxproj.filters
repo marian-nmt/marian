@@ -715,6 +715,12 @@
     <ClCompile Include="..\src\3rd_party\half_float\HalfPrecisionFloatTest.cpp">
       <Filter>3rd_party\half_float</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\tensors\tensor.cpp">
+      <Filter>tensors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\filesystem.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />

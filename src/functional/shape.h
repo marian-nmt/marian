@@ -193,11 +193,11 @@ struct ConstantShape {
   };
 
   HOST_DEVICE_INLINE int index(const Array<int, N>& dims) const {
-    return offset_ + I<N-1, N>::index(dims, stride_);
+    return (int)offset_ + I<N-1, N>::index(dims, stride_);
   }
 
   HOST_DEVICE_INLINE int index(int si) const {
-    return offset_ + I<N-1, N>::index(si, shape_, stride_);
+    return (int)offset_ + I<N-1, N>::index(si, shape_, stride_);
   }
 
   HOST_DEVICE_INLINE void dims(int si, Array<int, N>& dims) const {

@@ -10,6 +10,8 @@
 #include <immintrin.h>
 #endif
 
+// @BUGBUG: Visual Studio somehow fails on template expansions for float16.
+//          To be able to build on Windows, we temporarily disable this, until the greater merge has happened.
 #define DISPATCH_BY_TYPE0(type, func) \
 do { \
   switch(type) { \
@@ -21,7 +23,7 @@ do { \
     case Type::uint16:  return func<uint16_t>(); \
     case Type::uint32:  return func<uint32_t>(); \
     case Type::uint64:  return func<uint64_t>(); \
-    case Type::float16: return func<float16 >(); \
+    case Type::float16: ABORT("Broken type {}", type);/*return func<float16 >();*/ \
     case Type::float32: return func<float   >(); \
     case Type::float64: return func<double  >(); \
     default: ABORT("Unknown type {}", type); \
@@ -39,7 +41,7 @@ do { \
     case Type::uint16:  return func<uint16_t>(arg1); \
     case Type::uint32:  return func<uint32_t>(arg1); \
     case Type::uint64:  return func<uint64_t>(arg1); \
-    case Type::float16: return func<float16 >(arg1); \
+    case Type::float16: ABORT("Broken type {}", type);/*return func<float16 >(arg1);*/ \
     case Type::float32: return func<float   >(arg1); \
     case Type::float64: return func<double  >(arg1); \
     default: ABORT("Unknown type {}", type); \
