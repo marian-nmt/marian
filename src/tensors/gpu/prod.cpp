@@ -52,15 +52,53 @@ static void unsetTensorMode(cublasHandle_t cublasHandle) {
 #endif
 }
 
-void Prod(marian::Tensor C,
+cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
+                               cublasOperation_t transa, 
+                               cublasOperation_t transb,
+                               int m, int n, int k,
+                               const float* alpha,
+                               const float* A, int lda,
+                               const float* B, int ldb,
+                               const float* beta,
+                               float* C, int ldc) {
+  return cublasGemmEx(handle, transa, transb, 
+                     m, n, k, alpha, 
+                     A, CUDA_R_32F, lda, 
+                     B, CUDA_R_32F, ldb, beta, 
+                     C, CUDA_R_32F, ldc,
+                     CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP); // @TODO: review algorithm
+}
+
+cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
+                               cublasOperation_t transa, 
+                               cublasOperation_t transb,
+                               int m, int n, int k,
+                               const half* alpha,
+                               const half* A, int lda,
+                               const half* B, int ldb,
+                               const half* beta,
+                               half* C, int ldc) {
+  //float alphaf = __half2float(*alpha); // has to match computeType
+  //float betaf = __half2float(*beta);   // has to match computeType
+
+  return cublasGemmEx(handle, transa, transb, 
+                     m, n, k, alpha, 
+                     A, CUDA_R_16F, lda, 
+                     B, CUDA_R_16F, ldb, beta, 
+                     C, CUDA_R_16F, ldc,
+                     CUDA_R_16F, CUBLAS_GEMM_DEFAULT_TENSOR_OP); // @TODO: review algorithm
+}
+
+template <typename T>
+void ProdTyped(marian::Tensor C,
           const marian::Tensor& A,
           const marian::Tensor& B,
           bool transA,
           bool transB,
-          float beta,
-          float scalar) {
+          T beta,
+          T scalar) {
   cudaSetDevice((int)C->getDeviceId().no);
-  float alpha = scalar;
+  T alpha = scalar;
 
   size_t m = A->shape().elements() / A->shape().back();
   size_t k = A->shape().back();
@@ -86,33 +124,91 @@ void Prod(marian::Tensor C,
                           ->getCublasHandle();
 
   setTensorMode(cublasHandle);
-  CUBLAS_CHECK(cublasSgemm(cublasHandle,
-              opB,
-              opA,
-              (int)n,
-              (int)m,
-              (int)k,
-              &alpha,
-              B->data(),
-              (int)ldb,
-              A->data(),
-              (int)lda,
-              &beta,
-              C->data(),
-              (int)ldc));
+  CUBLAS_CHECK(cublasGemmTyped(cublasHandle,
+                  opB,
+                  opA,
+                  n,
+                  m,
+                  k,
+                  &alpha,
+                  B->data<T>(),
+                  ldb,
+                  A->data<T>(),
+                  lda,
+                  &beta,
+                  C->data<T>(),
+                  ldc));
   unsetTensorMode(cublasHandle);
 }
 
-void ProdBatched(marian::Tensor C,
+void Prod(marian::Tensor C,
+          const marian::Tensor& A,
+          const marian::Tensor& B,
+          bool transA,
+          bool transB,
+          float beta,
+          float scalar) {
+  if(C->type() == Type::float32) {
+    ProdTyped<float>(C, A, B, transA, transB, beta, scalar);
+  } else if(C->type() == Type::float16) {
+    ProdTyped<half>(C, A, B, transA, transB, __float2half(beta), __float2half(scalar));
+  } else {
+    ABORT("Prod not implemented for type {}", C->type());
+  }
+}
+
+cublasStatus_t cublasGemmBatchedTyped(cublasHandle_t handle,
+                                      cublasOperation_t transa, 
+                                      cublasOperation_t transb,
+                                      int m, int n, int k,
+                                      const float *alpha,
+                                      const float *Aarray[], int lda,
+                                      const float *Barray[], int ldb,
+                                      const float *beta,
+                                      float *Carray[], int ldc, 
+                                      int batchCount) {
+  return
+  cublasGemmBatchedEx(handle, transa, transb, 
+                      m, n, k, alpha, 
+                      (void* const*)Aarray, CUDA_R_32F, lda, 
+                      (void* const*)Barray, CUDA_R_32F, ldb, beta,
+                      (void**)Carray, CUDA_R_32F, ldc, batchCount,
+                      CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
+}
+
+cublasStatus_t cublasGemmBatchedTyped(cublasHandle_t handle,
+                                      cublasOperation_t transa, 
+                                      cublasOperation_t transb,
+                                      int m, int n, int k,
+                                      const half *alpha,
+                                      const half *Aarray[], int lda,
+                                      const half *Barray[], int ldb,
+                                      const half *beta,
+                                      half *Carray[], int ldc, 
+                                      int batchCount) {
+  //float alphaf = __half2float(*alpha); // has to match computeType
+  //float betaf = __half2float(*beta);   // has to match computeType
+
+  return
+  cublasGemmBatchedEx(handle, transa, transb, 
+                      m, n, k, alpha, 
+                      (void* const*)Aarray, CUDA_R_16F, lda, 
+                      (void* const*)Barray, CUDA_R_16F, ldb, beta,
+                      (void**)Carray, CUDA_R_16F, ldc, batchCount,
+                      CUDA_R_16F, CUBLAS_GEMM_DEFAULT_TENSOR_OP); // @TODO: to 16, this is testing
+}
+
+template <typename T>
+void ProdBatchedTyped(marian::Tensor C,                 
                  Ptr<Allocator> allocator,
                  const marian::Tensor A,
                  const marian::Tensor B,
                  bool transA,
                  bool transB,
-                 float beta,
-                 float scalar) {
+                 T beta,
+                 T scalar) {
   cudaSetDevice((int)C->getDeviceId().no);
-  float alpha = scalar;
+  T alpha = scalar;
 
   size_t batchA = A->shape().elements() / (A->shape()[-1] * A->shape()[-2]);
   size_t batchB = B->shape().elements() / (B->shape()[-1] * B->shape()[-2]);
@@ -145,48 +241,64 @@ void ProdBatched(marian::Tensor C,
   auto strideC = n * m;
   auto batchC = std::max(batchA, batchB);
 
-  std::vector<const float*> aptr;
-  std::vector<const float*> bptr;
-  std::vector<float*> cptr;
+  std::vector<const T*> aptr;
+  std::vector<const T*> bptr;
+  std::vector<T*> cptr;
 
   for(int i = 0; i < batchC; i++) {
-    aptr.push_back(A->data() + (i % batchA) * strideA);
-    bptr.push_back(B->data() + (i % batchB) * strideB);
-    cptr.push_back(C->data() + i * strideC);
+    aptr.push_back(A->data<T>() + (i % batchA) * strideA);
+    bptr.push_back(B->data<T>() + (i % batchB) * strideB);
+    cptr.push_back(C->data<T>() + i * strideC);
   }
 
-  auto mp_aptr = allocator->alloc<const float*>(aptr.size());
-  CudaCopy(
-      aptr.data(), aptr.data() + aptr.size(), mp_aptr->data<const float*>());
+  // auto fails here from weird reason
+  IPtr<MemoryPiece> mp_aptr = allocator->alloc<const T*>(aptr.size());
+  CudaCopy(aptr.data(), aptr.data() + aptr.size(), mp_aptr->data<const T*>());
 
-  auto mp_bptr = allocator->alloc<const float*>(bptr.size());
-  CudaCopy(
-      bptr.data(), bptr.data() + bptr.size(), mp_bptr->data<const float*>());
+  IPtr<MemoryPiece> mp_bptr = allocator->alloc<const T*>(bptr.size());
+  CudaCopy(bptr.data(), bptr.data() + bptr.size(), mp_bptr->data<const T*>());
 
-  auto mp_cptr = allocator->alloc<float*>(cptr.size());
-  CudaCopy(cptr.data(), cptr.data() + cptr.size(), mp_cptr->data<float*>());
+  IPtr<MemoryPiece> mp_cptr = allocator->alloc<T*>(cptr.size());
+  CudaCopy(cptr.data(), cptr.data() + cptr.size(), mp_cptr->data<T*>());
 
   setTensorMode(cublasHandle);
-  CUBLAS_CHECK(cublasSgemmBatched(cublasHandle,
-                     opB,
-                     opA,
-                     (int)n,
-                     (int)m,
-                     (int)k,
-                     &alpha,
-                     mp_bptr->data<const float*>(),
-                     (int)ldb,
-                     mp_aptr->data<const float*>(),
-                     (int)lda,
-                     &beta,
-                     mp_cptr->data<float*>(),
-                     (int)ldc,
-                     (int)batchC));
+  CUBLAS_CHECK(cublasGemmBatchedTyped(cublasHandle,
+                         opB,
+                         opA,
+                         n,
+                         m,
+                         k,
+                         &alpha,
+                         mp_bptr->data<const T*>(),
+                         ldb,
+                         mp_aptr->data<const T*>(),
+                         lda,
+                         &beta,
+                         mp_cptr->data<T*>(),
+                         ldc,
+                         batchC));
   unsetTensorMode(cublasHandle);
 
   allocator->free(mp_aptr);
   allocator->free(mp_bptr);
   allocator->free(mp_cptr);
+}
+
+void ProdBatched(marian::Tensor C,
+                 Ptr<Allocator> allocator,
+                 const marian::Tensor A,
+                 const marian::Tensor B,
+                 bool transA,
+                 bool transB,
+                 float beta,
+                 float scalar) {
+  if(C->type() == Type::float32) {
+    ProdBatchedTyped<float>(C, allocator, A, B, transA, transB, beta, scalar);
+  } else if(C->type() == Type::float16) {
+    ProdBatchedTyped<half>(C, allocator, A, B, transA, transB, __float2half(beta), __float2half(scalar));
+  } else {
+    ABORT("ProdBatched not implemented for type {}", C->type());
+  }
 }
 
 // bug in cuSparse: sparse matrix is limited to 65535 columns
@@ -212,6 +324,8 @@ static cusparseSgemmiEx(cusparseHandle_t handle, int m,
   }
   return CUSPARSE_STATUS_SUCCESS;
 }
+
+// @TODO: make this work with fp16
 
 // C = op(S) x D if not swapOperands else C = D x op(S)
 // op(S) = S if not transA else S^T
