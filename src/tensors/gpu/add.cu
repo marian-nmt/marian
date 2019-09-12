@@ -170,9 +170,11 @@ template <class Functor, class AggFunctor, class... Tensors>
 void Aggregate(Functor functor, float aggInit, AggFunctor aggFunctor, float scale, marian::Tensor out, Tensors... tensors) {
   if(out->type() == Type::float32) {
     AggregateTyped<float, float>(functor, aggInit, aggFunctor, scale, out, tensors...);
-#if 0
   } else if(out->type() == Type::float16) {
+#ifdef __USE_FP16__
     AggregateTyped<half,  float>(functor, aggInit, aggFunctor, scale, out, tensors...);
+#else
+    ABORT("FP16 not supported with current hardware or CUDA version");
 #endif
   } else {
     ABORT("Type {} not yet supported", out->type());

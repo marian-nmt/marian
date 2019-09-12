@@ -17,6 +17,12 @@
 #include <immintrin.h>
 #endif
 
+#ifdef __CUDA_ARCH__
+#if __CUDA_ARCH__ >= 700 && CUDA_VERSION >= 10000
+#define __USE_FP16__
+#endif
+#endif
+
 #define DISPATCH_BY_TYPE0(type, func) \
 do { \
   switch(type) { \

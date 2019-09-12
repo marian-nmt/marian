@@ -5,10 +5,6 @@
 #include "tensors/gpu/cuda_helpers.h"
 // clang-format on
 
-#include <cuda_fp16.h>
-
-// @TODO: look at typedefs and decide whether to use float16, half or __half.
-
 namespace marian {
 namespace gpu {
 
@@ -32,6 +28,7 @@ template void copy<uint64_t>(Ptr<Backend>, const uint64_t*, const uint64_t*, uin
 
 template void copy<char>(Ptr<Backend>, const char*, const char*, char*);
 template void copy<float16>(Ptr<Backend>, const float16*, const float16*, float16*);
+
 template void copy<float>(Ptr<Backend>, const float*, const float*, float*);
 template void copy<double>(Ptr<Backend>, const double*, const double*, double*);
 // clang-format on
@@ -65,11 +62,15 @@ void fill<float16>(Ptr<Backend> backend, float16* begin, float16* end, float16 v
   int size = end - begin;
   if (size == 0)
     return;
+#ifdef __USE_FP16__
   CUDA_CHECK(cudaSetDevice(backend->getDeviceId().no));
   int threadsPerBlock = std::min(MAX_THREADS, size);
   int blocks = (size / threadsPerBlock) + (size % threadsPerBlock != 0); // @TODO: (size+threadsPerBlock-1)/threadsPerBlock or CeilDiv(a,b)
   gFill<<<blocks, threadsPerBlock>>>((__half*)begin, size, (__half)value);
   CUDA_CHECK(cudaStreamSynchronize(0));
+#else
+  ABORT("FP16 not supported with current hardware or CUDA version");
+#endif
 }
 
 template void fill<bool>(Ptr<Backend>, bool*, bool*, bool);
@@ -125,11 +126,15 @@ void swap_ranges<float16>(Ptr<Backend> backend, float16* begin, float16* end, fl
   if (size == 0)
     return;
 
+#ifdef __USE_FP16__
   CUDA_CHECK(cudaSetDevice(backend->getDeviceId().no));
   int threadsPerBlock = std::min(MAX_THREADS, size);
   int blocks = (size / threadsPerBlock) + (size % threadsPerBlock != 0); // @TODO: (size+threadsPerBlock-1)/threadsPerBlock or CeilDiv(a,b)
   gSwap<<<blocks, threadsPerBlock>>>((__half*)begin, (__half*)dest, size);
   CUDA_CHECK(cudaStreamSynchronize(0));
+#else
+  ABORT("FP16 not supported with current hardware or CUDA version");
+#endif
 }
 
 // clang-format off

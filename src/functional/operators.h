@@ -3,11 +3,6 @@
 #include "common/types.h"
 #include <cmath>
 
-// only compile with fp16 support for compute_70, i.e. VOLTA 100 and above.
-#if __CUDA_ARCH__ >= 700
-#include <cuda_fp16.h>
-#endif
-
 namespace marian {
 namespace functional {
 
@@ -191,11 +186,17 @@ struct Ops<double> {
 
 };
 
+} // end namespace functional
+} // end namespace marian
+
 // stay invisible to NVCC as it seems to have problems with intrinsics;
 // will still be compiled into the binary by cpu-side gcc/g++
 #ifndef __CUDA_ARCH__
 
 #include "3rd_party/sse_mathfun.h"
+
+namespace marian {
+namespace functional {
 
 // Specialization for float32x8 (=__m128, CPU SSE intrisics)
 template <>
@@ -314,7 +315,13 @@ struct Ops<float32x4> {
 
 };
 
+} // end namespace functional
+} // end namespace marian
+
 #include "3rd_party/avx_mathfun.h"
+
+namespace marian {
+namespace functional {
 
 //*******************************************************************************************
 // Specialization for float32x8 (=__m256, CPU AVX intrisics)
@@ -427,9 +434,16 @@ struct Ops<float32x8> {
   }
 };
 
+}}
+
 #endif
 
-#if __CUDA_ARCH__ >= 700
+#ifdef __USE_FP16__
+// only compile with fp16 support for compute_70, i.e. VOLTA 100 and above.
+#include <cuda_fp16.h>
+
+namespace marian {
+namespace functional {
 
 // Specialization for half
 template <>
@@ -525,12 +539,18 @@ struct Ops<half> {
 
 };
 
+} // end namespace functional
+} // end namespace marian
+
 #endif
 
 //*******************************************************************************************
 
 #include "functional/defs.h"
 #include "functional/predicates.h"
+
+namespace marian {
+namespace functional {
 
 UNARY(Tanh,    tanh,       Ops<ElementType>::tanh(x));
 UNARY(Sin,     sin,        Ops<ElementType>::sin(x));
@@ -574,6 +594,5 @@ UNARY(sReLUBack,   ReLUback,  Ops<ElementType>::reluBack(x));
 BINARY(sPReLU,     PReLU,     Ops<ElementType>::prelu(x, y));
 BINARY(sPReLUBack, PReLUback, Ops<ElementType>::preluBack(x, y));
 
-
-}
-}
+} // end namespace functional
+} // end namespace marian

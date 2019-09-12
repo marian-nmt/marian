@@ -53,6 +53,21 @@ TEST_CASE("Expression graph can be initialized with constant values",
     vals->val()->get(values);
     REQUIRE(values == v);
   }
+
+  SECTION("initializing float16 node from vector") {
+    graph->clear();
+    std::vector<float16> values16;
+    std::vector<float16> v({1, 2, 3, 4, 5, 6});
+    auto vals1 = graph->param("vs1", {2, 3}, inits::fromVector(v), Type::float16);
+    auto vals2 = graph->param("vs2", {2, 3}, inits::fromValue(5), Type::float16);
+
+    debug(vals1 + vals2);
+    graph->forward();
+
+    REQUIRE(values.empty());
+    vals1->val()->get(values16);
+    REQUIRE(values16 == v);
+  }
 }
 #endif
 

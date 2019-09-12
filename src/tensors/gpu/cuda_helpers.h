@@ -1,6 +1,15 @@
 #pragma once
 #include "common/logging.h"
-#include "cuda_runtime.h"
+#include "common/types.h"
+
+#include <cuda_runtime.h>
+
+#ifdef __USE_FP16__
+#include <cuda_fp16.h>
+#endif
+
+// template <> inline bool matchType<__half>(Type type)  { return type == Type::float16; }
+// template <> inline std::string request<__half>()  { return "float16"; }
 
 // fixes a missing constant in CUDA device code
 #define CUDA_FLT_MAX 1.70141e+38; // note: 'static __constant__' causes a warning on gcc; non-static fails CUDA, so #define instead
