@@ -2011,9 +2011,6 @@
     <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\deps\clog\include\clog.h">
       <Filter>3rd_party\fbgemm\third_party\cpuinfo\deps\clog\include</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\3rd_party\half_float\stdint.h">
-      <Filter>3rd_party\half_float</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\3rd_party\half_float\umHalf.h">
       <Filter>3rd_party\half_float</Filter>
     </ClInclude>

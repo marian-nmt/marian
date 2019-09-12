@@ -44,11 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <limits>
 #include <algorithm>
 
-//#ifdef _MSC_VER
-//#include "stdint.h"
-//#else
 #include <stdint.h>
-//#endif
 
 #undef min
 #undef max
