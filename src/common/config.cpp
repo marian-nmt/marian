@@ -1,9 +1,11 @@
 #include "common/config.h"
+#include "common/config_parser.h"
 #include "common/file_stream.h"
 #include "common/logging.h"
+#include "common/options.h"
+#include "common/regex.h"
 #include "common/utils.h"
 #include "common/version.h"
-#include "common/regex.h"
 
 #include <algorithm>
 #include <set>
@@ -14,35 +16,26 @@ namespace marian {
 // @TODO: keep seed in a single place, now it is kept here and in Config/Options
 size_t Config::seed = (size_t)time(0);
 
-Config::Config(int argc,
-               char** argv,
-               cli::mode mode,
-               bool validate /*= true*/) {
-  initialize(argc, argv, mode, validate);
+
+Config::Config(ConfigParser const& cp) {
+  initialize(cp);
 }
+
+Config::Config(int argc, char** argv, cli::mode mode, bool validate /*= true*/)
+  : Config(ConfigParser(argc, argv, mode, validate)) {}
 
 Config::Config(const Config& other) : config_(YAML::Clone(other.config_)) {}
 Config::Config(const Options& options) : config_(YAML::Clone(options.getYaml())) {}
 
-void Config::initialize(int argc, char** argv, cli::mode mode, bool validate) {
-  auto parser = ConfigParser(argc, argv, mode, validate);
-  config_ = parser.getConfig();
+void Config::initialize(ConfigParser const& cp) {
+  config_ = YAML::Clone(cp.getConfig());
+  cli::mode mode = cp.getMode();
 
   createLoggers(this);
 
   // echo version and command line
   LOG(info, "[marian] Marian {}", buildVersion());
-  std::string cmdLine;
-  for(int i = 0; i < argc; i++) {
-    std::string arg = argv[i];
-    std::string quote; // attempt to quote special chars
-    if(arg.empty() || arg.find_first_of(" #`\"'\\${}|&^?*!()%><") != std::string::npos)
-      quote = "'";
-    arg = regex::regex_replace(arg, regex::regex("'"), "'\\''");
-    if(!cmdLine.empty())
-      cmdLine.push_back(' ');
-    cmdLine += quote + arg + quote;
-  }
+  std::string cmdLine = cp.cmdLine();
   std::string hostname; int pid; std::tie
   (hostname, pid) = utils::hostnameAndProcessId();
   LOG(info, "[marian] Running on {} as process {} with command line:", hostname, pid);
@@ -262,14 +255,17 @@ std::vector<DeviceId> Config::getDevices(Ptr<Options> options,
   return devices;
 }
 
-Ptr<Options> parseOptions(int argc,
-                          char** argv,
-                          cli::mode mode,
-                          bool validate /*= true*/) {
-  auto config = New<Config>(argc, argv, mode, validate);
-  auto options = New<Options>();
-  options->merge(config->get());
-  return options;
+Ptr<Options>
+parseOptions(int argc, char** argv, cli::mode mode, bool validate){
+  ConfigParser cp(mode);
+  return cp.parseOptions(argc, argv, validate);
+}
+
+std::ostream& operator<<(std::ostream& out, const Config& config) {
+  YAML::Emitter outYaml;
+  cli::OutputYaml(config.get(), outYaml);
+  out << outYaml.c_str();
+  return out;
 }
 
 }  // namespace marian
