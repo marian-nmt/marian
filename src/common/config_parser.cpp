@@ -558,7 +558,7 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   cli.add<bool>("--fp16", 
       "Shortcut for mixed precision inference with float16, corresponds to: --precision float16");
   cli.add<std::vector<std::string>>("--precision",
-      "Mixed precision training for forward/backward pass and optimizaton",
+      "Mixed precision for inference, set parameter type in expression graph",
       {"float32"});
 
   cli.add<std::vector<std::string>>("--shortlist",
@@ -616,7 +616,7 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
   cli.add<bool>("--fp16", 
       "Shortcut for mixed precision inference with float16, corresponds to: --precision float16");
   cli.add<std::vector<std::string>>("--precision",
-      "Mixed precision training for forward/backward pass and optimizaton",
+      "Mixed precision for inference, set parameter type in expression graph",
       {"float32"});
   
   // clang-format on
@@ -766,13 +766,15 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     case cli::mode::training:
       addOptionsTraining(cli);
       addOptionsValidation(cli);
-      addAliases(cli);
+      addAliases(cli); // @TODO: add the mode here?
       break;
     case cli::mode::translation:
       addOptionsTranslation(cli);
+      addAliases(cli); // @TODO: add the mode here?
       break;
     case cli::mode::scoring:
       addOptionsScoring(cli);
+      addAliases(cli); // @TODO: add the mode here?
       break;
     default:
       ABORT("wrong CLI mode");
