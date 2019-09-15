@@ -31,12 +31,11 @@ void ConfigParser::addAliases(cli::CLIWrapper& cli) {
     config["shuffle"] = "none";
   });
 
-#if 0 // @TODO: not available yet
   cli.alias("fp16", "true", [](YAML::Node& config) {
     config["precision"] = std::vector<std::string>({"float16", "float32", "float32"});
-    config["cost-scaling"] = std::vector<std::string>({"7", "2000", "2", "0.05", "10", "1"});
+    if(config["cost-scaling"]) // set by parser hence override @TODO: this is a bit hacky, should we rather see modes like "training" or "tanslating"?
+      config["cost-scaling"] = std::vector<std::string>({"7", "2000", "2", "0.05", "10", "1"});
   });
-#endif
 
   // Options setting the BiDeep architecture proposed in http://www.aclweb.org/anthology/W17-4710
   cli.alias("best-deep", "true", [](YAML::Node& config) {

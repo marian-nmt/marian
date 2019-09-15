@@ -422,7 +422,6 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<bool>("--embedding-fix-trg",
      "Fix target embeddings. Affects all decoders");
 
-#if 0 // not doing anything yet, next PR
   // mixed precision training
   cli.add<bool>("--fp16", 
       "Shortcut for mixed precision training with float16 and cost-scaling, "
@@ -435,7 +434,6 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "Dynamic cost scaling for mixed precision training: "
       "power of 2, scaling window, scaling factor, tolerance")->implicit_val("7.f 2000 2.f 0.05f 10 1.f");
   cli.add<bool>("--normalize-gradient", "Normalize gradient by multiplying with worldsize / total labels");
-#endif
 
   // multi-node training
   cli.add<bool>("--multi-node",
@@ -556,6 +554,12 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   cli.add<std::string>("--gemm-type",
       "Select GEMM options: auto, mklfp32, intrinint16, fp16packed, int8packed",
       "auto");
+  
+  cli.add<bool>("--fp16", 
+      "Shortcut for mixed precision inference with float16, corresponds to: --precision float16");
+  cli.add<std::vector<std::string>>("--precision",
+      "Mixed precision training for forward/backward pass and optimizaton",
+      {"float32"});
 
   cli.add<std::vector<std::string>>("--shortlist",
      "Use softmax shortlist: path first best prune");
@@ -606,6 +610,15 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
 
   cli.add<bool>("--optimize",
       "Optimize speed aggressively sacrificing memory or precision");
+
+  //@TODO: gemm-type missing? fix this
+
+  cli.add<bool>("--fp16", 
+      "Shortcut for mixed precision inference with float16, corresponds to: --precision float16");
+  cli.add<std::vector<std::string>>("--precision",
+      "Mixed precision training for forward/backward pass and optimizaton",
+      {"float32"});
+  
   // clang-format on
 }
 

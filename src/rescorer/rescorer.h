@@ -70,10 +70,16 @@ public:
     for(auto device : devices) {
       auto graph = New<ExpressionGraph>(true);
       graph->setDevice(device);
+
+      auto precison = options_->get<std::vector<std::string>>("precision", {"float32"});
+      graph->setParameterType(typeFromString(precison[0])); // only use first type, used for parameter type in graph
+
+      graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
       if (device.type == DeviceType::cpu) {
         graph->getBackend()->setOptimized(options_->get<bool>("optimize"));
         graph->getBackend()->setGemmType(options_->get<std::string>("gemm-type"));
       }
+
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
     }

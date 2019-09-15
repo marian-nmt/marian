@@ -182,9 +182,10 @@ public:
     for(auto device : devices) {
       auto graph = New<ExpressionGraph>(true);
       graph->setDevice(device);
-      auto prec = options_->get<std::vector<std::string>>("precision", {"float32"});
+      
+      auto precison = options_->get<std::vector<std::string>>("precision", {"float32"});
+      graph->setParameterType(typeFromString(precison[0])); // only use first type, used for parameter type in graph
 
-      graph->setParameterType(typeFromString(prec[0]));
       graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
       if (device.type == DeviceType::cpu) {
         graph->getBackend()->setOptimized(options_->get<bool>("optimize"));
