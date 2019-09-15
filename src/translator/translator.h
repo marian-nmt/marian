@@ -29,12 +29,12 @@ private:
   size_t numDevices_;
 
 public:
-  Translate(Ptr<Options> options) : options_(options) {
+  Translate(Ptr<Options> options) : options_(New<Options>(options->clone())) { // @TODO: clone should return Ptr<Options> same as "with"?
     // This is currently safe as the translator is either created stand-alone or
     // or config is created anew from Options in the validator
+
     options_->set("inference", true);
     options_->set("shuffle", "none");
-    ABORT("Fix this");
 
     corpus_ = New<data::Corpus>(options_, true);
 
