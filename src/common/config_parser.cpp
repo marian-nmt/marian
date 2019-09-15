@@ -213,6 +213,8 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "dan");
   cli.add<bool>("--transformer-train-position-embeddings",
       "Train positional embeddings instead of using static sinusoidal embeddings");
+  cli.add<bool>("--transformer-depth-scaling",
+      "Scale down weight initialization in transformer layers by 1 / sqrt(depth)");
 
   cli.add<std::string>("--bert-mask-symbol", "Masking symbol for BERT masked-LM training", "[MASK]");
   cli.add<std::string>("--bert-sep-symbol", "Sentence separator symbol for BERT next sentence prediction training", "[SEP]");
@@ -310,8 +312,12 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   addSuboptionsInputLength(cli);
 
   // data management options
+  cli.add<std::string>("--shuffle",
+      "How to shuffle input data (data: shuffles data and sorted batches; batches: "
+      "data is read in order into batches, but batches are shuffled; none: no shuffling). "
+      "Use with '--maxi-batch-sort none' in order to achieve exact reading order", "data");
   cli.add<bool>("--no-shuffle",
-      "Skip shuffling of training data before each epoch");
+      "Shortcut for backwards compatiblity, equivalent to --shuffle none (deprecated)");
   cli.add<bool>("--no-restore-corpus",
       "Skip restoring corpus state after training is restarted");
   cli.add<std::string>("--tempdir,-T",
@@ -416,6 +422,22 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<bool>("--embedding-fix-trg",
      "Fix target embeddings. Affects all decoders");
 
+#if 0 // not doing anything yet, next PR
+  // mixed precision training
+  cli.add<bool>("--fp16", 
+      "Shortcut for mixed precision training with float16 and cost-scaling, "
+      "corresponds to: --precision float16 float32 float32 --cost-scaling 7 2000 2 0.05 10 1");
+  cli.add<std::vector<std::string>>("--precision",
+      "Mixed precision training for forward/backward pass and optimizaton. "
+      "Defines types for: forward/backward, optimization, saving.",
+      {"float32", "float32", "float32"});
+  cli.add<std::vector<std::string>>("--cost-scaling",
+      "Dynamic cost scaling for mixed precision training: "
+      "power of 2, scaling window, scaling factor, tolerance")->implicit_val("7.f 2000 2.f 0.05f 10 1.f");
+  cli.add<bool>("--normalize-gradient", "Normalize gradient by multiplying with worldsize / total labels");
+#endif
+
+  // multi-node training
   cli.add<bool>("--multi-node",
      "Enable asynchronous multi-node training through MPI (and legacy sync if combined with --sync-sgd)");
   cli.add<bool>("--multi-node-overlap",
@@ -635,6 +657,10 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
     cli.add<size_t>("--mini-batch-fit-step",
       "Step size for mini-batch-fit statistics",
       10);
+#if 0 // @TODO: not available yet
+    cli.add<bool>("--gradient-checkpointing", 
+      "Use gradient checkpointing to minimize memory usage");
+#endif
   }
 
   cli.add<int>("--maxi-batch",

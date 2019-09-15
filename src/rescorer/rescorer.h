@@ -95,7 +95,7 @@ public:
     LOG(info, "Scoring");
 
     auto batchGenerator = New<BatchGenerator<CorpusBase>>(corpus_, options_);
-    batchGenerator->prepare(false);
+    batchGenerator->prepare();
 
     Ptr<ScoreCollector> output = options_->get<bool>("n-best")
                                      ? std::static_pointer_cast<ScoreCollector>(

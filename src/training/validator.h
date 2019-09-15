@@ -56,7 +56,7 @@ public:
   }
 };
 
-template <class DataSet, class BuilderType>
+template <class DataSet, class BuilderType> // @TODO: BuilderType doesn't really serve a purpose here? Review and remove.
 class Validator : public ValidatorBase {
 public:
   Validator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, bool lowerIsBetter = true)
@@ -66,8 +66,12 @@ public:
         options_(New<Options>(options->clone())) {
     // set options common for all validators
     options_->set("inference", true);
-    if(options_->has("valid-max-length"))
+    options_->set("shuffle", "none"); // don't shuffle validation sets
+
+    if(options_->has("valid-max-length")) {
       options_->set("max-length", options_->get<size_t>("valid-max-length"));
+      options_->set("max-length-crop", true); // @TODO: make this configureable
+    }
     if(options_->has("valid-mini-batch"))
       options_->set("mini-batch", options_->get<size_t>("valid-mini-batch"));
     options_->set("mini-batch-sort", "src");
@@ -75,32 +79,14 @@ public:
   }
 
 protected:
+  // Create the BatchGenerator. Note that ScriptValidator does not use batchGenerator_.
   void createBatchGenerator(bool isTranslating) {
-    // Create the BatchGenerator. Note that ScriptValidator does not use batchGenerator_.
-
-    // Update validation options
-    auto opts = New<Options>();
-    opts->merge(options_);
-    opts->set("inference", true);
-
-    if (isTranslating) { // TranslationValidator and BleuValidator
-      opts->set("max-length", 1000);
-      opts->set("mini-batch", options_->get<int>("valid-mini-batch"));
-      opts->set("maxi-batch", 10);
-    }
-    else { // CrossEntropyValidator
-      opts->set("max-length", options_->get<size_t>("valid-max-length"));
-      if(options_->has("valid-mini-batch"))
-        opts->set("mini-batch", options_->get<size_t>("valid-mini-batch"));
-      opts->set("mini-batch-sort", "src");
-    }
-
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     auto corpus = New<DataSet>(validPaths, vocabs_, options_);
 
     // Create batch generator
-    batchGenerator_ = New<data::BatchGenerator<DataSet>>(corpus, opts);
+    batchGenerator_ = New<data::BatchGenerator<DataSet>>(corpus, options_);
   }
 public:
 
@@ -108,7 +94,7 @@ public:
     for(auto graph : graphs)
       graph->setInference(true);
 
-    batchGenerator_->prepare(false);
+    batchGenerator_->prepare();
 
     // Validate on batches
     float val = validateBG(graphs);
@@ -123,7 +109,7 @@ public:
 protected:
   std::vector<Ptr<Vocab>> vocabs_;
   Ptr<Options> options_;
-  Ptr<BuilderType> builder_;
+  Ptr<BuilderType> builder_; // @TODO: remove, this is not guaranteed to be state-free, hence not thread-safe, but we are using validators with multi-threading.
   Ptr<data::BatchGenerator<DataSet>> batchGenerator_;
 
   virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>&)
@@ -157,11 +143,9 @@ public:
       : Validator(vocabs, options) {
     createBatchGenerator(/*isTranslating=*/false);
 
-    // @TODO: check if this is required.
-    Ptr<Options> opts = New<Options>();
-    opts->merge(options);
-    opts->set("inference", true);
-    opts->set("cost-type", "ce-sum");
+    auto opts = options_->with("inference", true, // @TODO: check if required
+                               "cost-type", "ce-sum");
+    // @TODO: remove, only used for saving?
     builder_ = models::createCriterionFunctionFromOptions(opts, models::usage::scoring);
   }
 
@@ -170,7 +154,11 @@ public:
 protected:
   virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
     auto ctype = options_->get<std::string>("cost-type");
-    options_->set("cost-type", "ce-sum"); // @TODO: check if still needed, most likely not.
+
+    // @TODO: use with(...) everywhere, this will help with creating immutable options. 
+    // Make options const everywhere and get rid of "set"?
+    auto opts = options_->with("inference", true, 
+                               "cost-type", "ce-sum");
 
     StaticLoss loss;
     size_t samples = 0;
@@ -182,12 +170,17 @@ protected:
       TaskBarrier taskBarrier;
       for(auto batch : *batchGenerator_) {
         auto task = [=, &loss, &samples](size_t id) {
-          thread_local Ptr<ExpressionGraph> graph;
-          thread_local auto builder = models::createCriterionFunctionFromOptions(options_, models::usage::scoring);
-
-          if(!graph) {
-            graph = graphs[id % graphs.size()];
+          thread_local size_t workerNo = (size_t)-1; // set to something silly
+          {
+            std::unique_lock<std::mutex> lock(mutex_);
+            if(workerNo == (size_t)-1) // if silly, set to actual worker id
+              workerNo = id % graphs.size(); // @TODO: this is not really safe, only works because processing a
+                                             // batch takes a long time and id % graph.size() is unlikely to occur
+                                             // again before cycling through all threads.
           }
+
+          auto graph = graphs[workerNo];
+          auto builder = models::createCriterionFunctionFromOptions(options_, models::usage::scoring);
 
           builder->clear(graph);
           auto dynamicLoss = builder->build(graph, batch);
@@ -203,9 +196,6 @@ protected:
       }
       // ~TaskBarrier waits until all are done
     }
-
-    // get back to the original cost type
-    options_->set("cost-type", ctype); // @TODO: check if still needed, most likely not.
 
     if(ctype == "perplexity")
       return std::exp(loss.loss / loss.count);
@@ -225,11 +215,8 @@ public:
       : Validator(vocabs, options, /*lowerIsBetter=*/false) {
     createBatchGenerator(/*isTranslating=*/false);
 
-    // @TODO: check if this is required.
-    Ptr<Options> opts = New<Options>();
-    opts->merge(options);
-    opts->set("inference", true);
-    builder_ = models::createModelFromOptions(opts, models::usage::raw);
+    // @TODO: remove, only used for saving?
+    builder_ = models::createModelFromOptions(options_, models::usage::raw);
   }
 
   std::string type() override { return "accuracy"; }
@@ -247,12 +234,17 @@ protected:
       TaskBarrier taskBarrier;
       for(auto batch : *batchGenerator_) {
         auto task = [=, &correct, &totalLabels](size_t id) {
-          thread_local Ptr<ExpressionGraph> graph;
-          thread_local auto builder = models::createModelFromOptions(options_, models::usage::raw);
-
-          if(!graph) {
-            graph = graphs[id % graphs.size()];
+          thread_local size_t workerNo = (size_t)-1; // set to something silly
+          {
+            std::unique_lock<std::mutex> lock(mutex_);
+            if(workerNo == (size_t)-1) // if silly, set to actual worker id
+              workerNo = id % graphs.size(); // @TODO: this is not really safe, only works because processing a
+                                             // batch takes a long time and id % graph.size() is unlikely to occur
+                                             // again before cycling through all threads.
           }
+
+          auto graph = graphs[workerNo];
+          auto builder = models::createModelFromOptions(options_, models::usage::raw);
 
           // @TODO: requires argmax implementation and integer arithmetics
           // builder->clear(graph);
@@ -317,12 +309,8 @@ public:
       : Validator(vocabs, options, /*lowerIsBetter=*/false),
         evalMaskedLM_(evalMaskedLM) {
     createBatchGenerator(/*isTranslating=*/false);
-
-    // @TODO: check if this is required.
-    Ptr<Options> opts = New<Options>();
-    opts->merge(options);
-    opts->set("inference", true);
-    builder_ = models::createModelFromOptions(opts, models::usage::raw);
+    // @TODO: remove, only used for saving?
+    builder_ = models::createModelFromOptions(options_, models::usage::raw);
   }
 
   std::string type() override {
@@ -345,14 +333,19 @@ protected:
       TaskBarrier taskBarrier;
       for(auto batch : *batchGenerator_) {
         auto task = [=, &correct, &totalLabels](size_t id) {
-          thread_local Ptr<ExpressionGraph> graph;
-          thread_local auto builder = models::createModelFromOptions(options_, models::usage::raw);
-          thread_local std::unique_ptr<std::mt19937> engine;
-
-          if(!graph) {
-            graph = graphs[id % graphs.size()];
+          thread_local size_t workerNo = (size_t)-1; // set to something silly
+          {
+            std::unique_lock<std::mutex> lock(mutex_);
+            if(workerNo == (size_t)-1) // if silly, set to actual worker id
+              workerNo = id % graphs.size(); // @TODO: this is not really safe, only works because processing a
+                                             // batch takes a long time and id % graph.size() is unlikely to occur
+                                             // again before cycling through all threads.
           }
 
+          auto graph = graphs[workerNo];
+          auto builder = models::createModelFromOptions(options_, models::usage::raw);
+
+          thread_local std::unique_ptr<std::mt19937> engine;
           if(!engine)
             engine.reset(new std::mt19937((unsigned int)(Config::seed + id)));
 
@@ -422,6 +415,7 @@ class ScriptValidator : public Validator<data::Corpus, models::IModel> {
 public:
   ScriptValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options, false) {
+    // @TODO: remove, only used for saving?
     builder_ = models::createModelFromOptions(options_, models::usage::raw);
 
     ABORT_IF(!options_->hasAndNotEmpty("valid-script-path"),
@@ -458,6 +452,7 @@ public:
   TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options, false),
         quiet_(options_->get<bool>("quiet-translation")) {
+    // @TODO: remove, only used for saving?
     builder_ = models::createModelFromOptions(options_, models::usage::translation);
 
     if(!options_->hasAndNotEmpty("valid-script-path"))
@@ -470,15 +465,10 @@ public:
     using namespace data;
 
     // Generate batches
-    batchGenerator_->prepare(false);
+    batchGenerator_->prepare();
 
     // Create scorer
     auto model = options_->get<std::string>("model");
-
-    // Temporary options for translation
-    auto mopts = New<Options>();
-    mopts->merge(options_);
-    mopts->set("inference", true);
 
     std::vector<Ptr<Scorer>> scorers;
     for(auto graph : graphs) {
@@ -524,13 +514,17 @@ public:
       TaskBarrier taskBarrier;
       for(auto batch : *batchGenerator_) {
         auto task = [=](size_t id) {
-          thread_local Ptr<ExpressionGraph> graph;
-          thread_local Ptr<Scorer> scorer;
-
-          if(!graph) {
-            graph = graphs[id % graphs.size()];
-            scorer = scorers[id % graphs.size()];
+          thread_local size_t workerNo = (size_t)-1; // set to something silly
+          {
+            std::unique_lock<std::mutex> lock(mutex_);
+            if(workerNo == (size_t)-1) // if silly, set to actual worker id
+              workerNo = id % graphs.size(); // @TODO: this is not really safe, only works because processing a
+                                             // batch takes a long time and id % graph.size() is unlikely to occur
+                                             // again before cycling through all threads.
           }
+
+          auto graph = graphs[workerNo];
+          auto scorer = scorers[workerNo];
 
           auto search = New<BeamSearch>(options_,
                                         std::vector<Ptr<Scorer>>{scorer},
@@ -594,6 +588,7 @@ public:
       : Validator(vocabs, options, false),
         detok_(detok),
         quiet_(options_->get<bool>("quiet-translation")) {
+    // @TODO: remove, only used for saving?
     builder_ = models::createModelFromOptions(options_, models::usage::translation);
 
     // @TODO: replace bleu-detok by a separate parameter to enable (various forms of) detok
@@ -609,7 +604,7 @@ public:
     using namespace data;
 
     // Generate batches
-    batchGenerator_->prepare(false);
+    batchGenerator_->prepare();
 
     // Create scorer
     auto model = options_->get<std::string>("model");
@@ -662,13 +657,17 @@ public:
       TaskBarrier taskBarrier;
       for(auto batch : *batchGenerator_) {
         auto task = [=, &stats](size_t id) {
-          thread_local Ptr<ExpressionGraph> graph;
-          thread_local Ptr<Scorer> scorer;
-
-          if(!graph) {
-            graph = graphs[id % graphs.size()];
-            scorer = scorers[id % graphs.size()];
+          thread_local size_t workerNo = (size_t)-1; // set to something silly
+          {
+            std::unique_lock<std::mutex> lock(mutex_);
+            if(workerNo == (size_t)-1) // if silly, set to actual worker id
+              workerNo = id % graphs.size(); // @TODO: this is not really safe, only works because processing a
+                                             // batch takes a long time and id % graph.size() is unlikely to occur
+                                             // again before cycling through all threads.
           }
+
+          auto graph = graphs[workerNo];
+          auto scorer = scorers[workerNo];
 
           auto search = New<BeamSearch>(options_,
                                         std::vector<Ptr<Scorer>>{scorer},

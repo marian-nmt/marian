@@ -26,6 +26,18 @@ namespace marian {
  * regardless of its order in the command line or config file.
  */
 void ConfigParser::addAliases(cli::CLIWrapper& cli) {
+  // for backwards-compatibility with older version, "--no-shuffle" maps to "--shuffle none"
+  cli.alias("no-shuffle", "true", [](YAML::Node& config) {
+    config["shuffle"] = "none";
+  });
+
+#if 0 // @TODO: not available yet
+  cli.alias("fp16", "true", [](YAML::Node& config) {
+    config["precision"] = std::vector<std::string>({"float16", "float32", "float32"});
+    config["cost-scaling"] = std::vector<std::string>({"7", "2000", "2", "0.05", "10", "1"});
+  });
+#endif
+
   // Options setting the BiDeep architecture proposed in http://www.aclweb.org/anthology/W17-4710
   cli.alias("best-deep", "true", [](YAML::Node& config) {
     config["layer-normalization"] = true;
@@ -63,8 +75,8 @@ void ConfigParser::addAliases(cli::CLIWrapper& cli) {
     config["tied-embeddings-all"] = true;
     config["transformer-dim-ffn"] = 2048;
     config["transformer-heads"] = 8;
-    config["transformer-postprocess"] = "an";
-    config["transformer-preprocess"] = "d";
+    config["transformer-postprocess"] = "dan";
+    config["transformer-preprocess"] = "";
     config["transformer-ffn-activation"] = "relu";
     config["transformer-dropout"] = 0.1;
 
@@ -101,8 +113,8 @@ void ConfigParser::addAliases(cli::CLIWrapper& cli) {
     config["tied-embeddings-all"] = true;
     config["transformer-dim-ffn"] = 4096;
     config["transformer-heads"] = 16;
-    config["transformer-postprocess"] = "an";
-    config["transformer-preprocess"] = "d";
+    config["transformer-postprocess"] = "dan";
+    config["transformer-preprocess"] = "";
     config["transformer-ffn-activation"] = "relu";
     config["transformer-dropout"] = 0.1;
 
