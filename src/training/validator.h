@@ -78,6 +78,8 @@ public:
     options_->set("maxi-batch", 10);
   }
 
+  typedef typename DataSet::batch_ptr BatchPtr;
+
 protected:
   // Create the BatchGenerator. Note that ScriptValidator does not use batchGenerator_.
   void createBatchGenerator(bool isTranslating) {
@@ -138,6 +140,8 @@ protected:
 };
 
 class CrossEntropyValidator : public Validator<data::Corpus, models::ICriterionFunction> {
+  using Validator::BatchPtr;
+
 public:
   CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
       : Validator(vocabs, options) {
@@ -162,38 +166,34 @@ protected:
 
     StaticLoss loss;
     size_t samples = 0;
-    size_t batchId = 0;
+    std::deque<Ptr<ExpressionGraph>> graphQueue(graphs.begin(), graphs.end());
+
+    auto task = [=, &loss, &samples, &graphQueue](BatchPtr batch) {
+      thread_local Ptr<ExpressionGraph> graph;
+      
+      if(!graph) {
+        std::unique_lock<std::mutex> lock(mutex_);
+        ABORT_IF(graphQueue.empty(), "Asking for graph, but none left on queue");
+        graph = graphQueue.front();
+        graphQueue.pop_front();
+      }
+    
+      auto builder = models::createCriterionFunctionFromOptions(options_, models::usage::scoring);
+
+      builder->clear(graph);
+      auto dynamicLoss = builder->build(graph, batch);
+      graph->forward();
+
+      std::unique_lock<std::mutex> lock(mutex_);
+      loss += *dynamicLoss;
+      samples += batch->size();
+    };
 
     {
       threadPool_.reserve(graphs.size());
-
       TaskBarrier taskBarrier;
-      for(auto batch : *batchGenerator_) {
-        auto task = [=, &loss, &samples](size_t id) {
-          thread_local size_t workerNo = (size_t)-1; // set to something silly
-          {
-            std::unique_lock<std::mutex> lock(mutex_);
-            if(workerNo == (size_t)-1) // if silly, set to actual worker id
-              workerNo = id % graphs.size(); // @TODO: this is not really safe, only works because processing a
-                                             // batch takes a long time and id % graph.size() is unlikely to occur
-                                             // again before cycling through all threads.
-          }
-
-          auto graph = graphs[workerNo];
-          auto builder = models::createCriterionFunctionFromOptions(options_, models::usage::scoring);
-
-          builder->clear(graph);
-          auto dynamicLoss = builder->build(graph, batch);
-          graph->forward();
-
-          std::unique_lock<std::mutex> lock(mutex_);
-          loss += *dynamicLoss;
-          samples += batch->size();
-        };
-
-        taskBarrier.push_back(threadPool_.enqueue(task, batchId));
-        batchId++;
-      }
+      for(auto batch : *batchGenerator_)
+        taskBarrier.push_back(threadPool_.enqueue(task, batch));
       // ~TaskBarrier waits until all are done
     }
 
@@ -226,73 +226,60 @@ protected:
 
     size_t correct     = 0;
     size_t totalLabels = 0;
-    size_t batchId     = 0;
+    std::deque<Ptr<ExpressionGraph>> graphQueue(graphs.begin(), graphs.end());
+
+    auto task = [=, &correct, &totalLabels, &graphQueue](BatchPtr batch) {
+      thread_local Ptr<ExpressionGraph> graph;
+      
+      if(!graph) {
+        std::unique_lock<std::mutex> lock(mutex_);
+        ABORT_IF(graphQueue.empty(), "Asking for graph, but none left on queue");
+        graph = graphQueue.front();
+        graphQueue.pop_front();
+      }
+    
+      auto builder = models::createModelFromOptions(options_, models::usage::raw);
+
+      builder->clear(graph);
+      Expr logits = builder->build(graph, batch).getLogits();
+      graph->forward();
+
+      std::vector<float> vLogits;
+      logits->val()->get(vLogits);
+
+      const auto& groundTruth = batch->back()->data();
+
+      IndexType cols = logits->shape()[-1];
+
+      size_t thisCorrect = 0;
+      size_t thisLabels  = groundTruth.size();
+
+      for(int i = 0; i < thisLabels; ++i) {
+        // CPU-side Argmax
+        Word bestWord = Word::NONE;
+        float bestValue = std::numeric_limits<float>::lowest();
+        for(IndexType j = 0; j < cols; ++j) {
+          float currValue = vLogits[i * cols + j];
+          if(currValue > bestValue) {
+            bestValue = currValue;
+            bestWord = Word::fromWordIndex(j);
+          }
+        }
+        thisCorrect += (size_t)(bestWord == groundTruth[i]);
+      }
+
+      std::unique_lock<std::mutex> lock(mutex_);
+      totalLabels += thisLabels;
+      correct     += thisCorrect;
+    };
 
     {
       threadPool_.reserve(graphs.size());
 
       TaskBarrier taskBarrier;
-      for(auto batch : *batchGenerator_) {
-        auto task = [=, &correct, &totalLabels](size_t id) {
-          thread_local size_t workerNo = (size_t)-1; // set to something silly
-          {
-            std::unique_lock<std::mutex> lock(mutex_);
-            if(workerNo == (size_t)-1) // if silly, set to actual worker id
-              workerNo = id % graphs.size(); // @TODO: this is not really safe, only works because processing a
-                                             // batch takes a long time and id % graph.size() is unlikely to occur
-                                             // again before cycling through all threads.
-          }
+      for(auto batch : *batchGenerator_)
+        taskBarrier.push_back(threadPool_.enqueue(task, batch));
 
-          auto graph = graphs[workerNo];
-          auto builder = models::createModelFromOptions(options_, models::usage::raw);
-
-          // @TODO: requires argmax implementation and integer arithmetics
-          // builder->clear(graph);
-          // auto predicted = argmax(builder->build(graph, batch), /*axis*/-1);
-          // auto labels    = graph->indices(batch->back()->data());
-          // auto correct   = sum(flatten(predicted) == labels);
-          // graph->forward();
-
-          // std::unique_lock<std::mutex> lock(mutex_);
-          // totalLabels += labels->shape().elements();
-          // correct     += correct->scalar<IndexType>();
-
-          builder->clear(graph);
-          Expr logits = builder->build(graph, batch).getLogits();
-          graph->forward();
-
-          std::vector<float> vLogits;
-          logits->val()->get(vLogits);
-
-          const auto& groundTruth = batch->back()->data();
-
-          IndexType cols = logits->shape()[-1];
-
-          size_t thisCorrect = 0;
-          size_t thisLabels  = groundTruth.size();
-
-          for(int i = 0; i < thisLabels; ++i) {
-            // CPU-side Argmax
-            Word bestWord = Word::NONE;
-            float bestValue = std::numeric_limits<float>::lowest();
-            for(IndexType j = 0; j < cols; ++j) {
-              float currValue = vLogits[i * cols + j];
-              if(currValue > bestValue) {
-                bestValue = currValue;
-                bestWord = Word::fromWordIndex(j);
-              }
-            }
-            thisCorrect += (size_t)(bestWord == groundTruth[i]);
-          }
-
-          std::unique_lock<std::mutex> lock(mutex_);
-          totalLabels += thisLabels;
-          correct     += thisCorrect;
-        };
-
-        taskBarrier.push_back(threadPool_.enqueue(task, batchId));
-        batchId++;
-      }
       // ~TaskBarrier waits until all are done
     }
 
@@ -326,81 +313,80 @@ protected:
     size_t correct     = 0;
     size_t totalLabels = 0;
     size_t batchId     = 0;
+    std::deque<Ptr<ExpressionGraph>> graphQueue(graphs.begin(), graphs.end());
+
+    auto task = [=, &correct, &totalLabels, &graphQueue](BatchPtr batch, size_t batchId) {
+      thread_local Ptr<ExpressionGraph> graph;
+      
+      if(!graph) {
+        std::unique_lock<std::mutex> lock(mutex_);
+        ABORT_IF(graphQueue.empty(), "Asking for graph, but none left on queue");
+        graph = graphQueue.front();
+        graphQueue.pop_front();
+      }
+      
+      auto builder = models::createModelFromOptions(options_, models::usage::raw);
+
+      thread_local std::unique_ptr<std::mt19937> engine;
+      if(!engine)
+        engine.reset(new std::mt19937((unsigned int)(Config::seed + batchId)));
+
+      auto bertBatch = New<data::BertBatch>(batch,
+                                            *engine,
+                                            options_->get<float>("bert-masking-fraction"),
+                                            options_->get<std::string>("bert-mask-symbol"),
+                                            options_->get<std::string>("bert-sep-symbol"),
+                                            options_->get<std::string>("bert-class-symbol"),
+                                            options_->get<int>("bert-type-vocab-size"));
+
+      builder->clear(graph);
+      auto classifierStates = std::dynamic_pointer_cast<BertEncoderClassifier>(builder)->apply(graph, bertBatch, true);
+      graph->forward();
+
+      auto maskedLMLogits = classifierStates[0]->getLogProbs();
+      const auto& maskedLMLabels = bertBatch->bertMaskedWords();
+
+      auto sentenceLogits = classifierStates[1]->getLogProbs();
+      const auto& sentenceLabels = bertBatch->back()->data();
+
+      auto count = [=, &correct, &totalLabels](Expr logits, const Words& labels) {
+        IndexType cols = logits->shape()[-1];
+        size_t thisCorrect = 0;
+        size_t thisLabels  = labels.size();
+
+        std::vector<float> vLogits;
+        logits->val()->get(vLogits);
+
+        for(int i = 0; i < thisLabels; ++i) {
+          // CPU-side Argmax
+          IndexType bestIndex = 0;
+          float bestValue = std::numeric_limits<float>::lowest();
+          for(IndexType j = 0; j < cols; ++j) {
+            float currValue = vLogits[i * cols + j];
+            if(currValue > bestValue) {
+              bestValue = currValue;
+              bestIndex = j;
+            }
+          }
+          thisCorrect += (size_t)(bestIndex == labels[i].toWordIndex());
+        }
+
+        std::unique_lock<std::mutex> lock(mutex_);
+        totalLabels += thisLabels;
+        correct     += thisCorrect;
+      };
+
+      if(evalMaskedLM_)
+        count(maskedLMLogits, maskedLMLabels);
+      else
+        count(sentenceLogits, sentenceLabels);
+    };
 
     {
       threadPool_.reserve(graphs.size());
-
       TaskBarrier taskBarrier;
       for(auto batch : *batchGenerator_) {
-        auto task = [=, &correct, &totalLabels](size_t id) {
-          thread_local size_t workerNo = (size_t)-1; // set to something silly
-          {
-            std::unique_lock<std::mutex> lock(mutex_);
-            if(workerNo == (size_t)-1) // if silly, set to actual worker id
-              workerNo = id % graphs.size(); // @TODO: this is not really safe, only works because processing a
-                                             // batch takes a long time and id % graph.size() is unlikely to occur
-                                             // again before cycling through all threads.
-          }
-
-          auto graph = graphs[workerNo];
-          auto builder = models::createModelFromOptions(options_, models::usage::raw);
-
-          thread_local std::unique_ptr<std::mt19937> engine;
-          if(!engine)
-            engine.reset(new std::mt19937((unsigned int)(Config::seed + id)));
-
-          auto bertBatch = New<data::BertBatch>(batch,
-                                                *engine,
-                                                options_->get<float>("bert-masking-fraction"),
-                                                options_->get<std::string>("bert-mask-symbol"),
-                                                options_->get<std::string>("bert-sep-symbol"),
-                                                options_->get<std::string>("bert-class-symbol"),
-                                                options_->get<int>("bert-type-vocab-size"));
-
-          builder->clear(graph);
-          auto classifierStates = std::dynamic_pointer_cast<BertEncoderClassifier>(builder)->apply(graph, bertBatch, true);
-          graph->forward();
-
-          auto maskedLMLogits = classifierStates[0]->getLogProbs();
-          const auto& maskedLMLabels = bertBatch->bertMaskedWords();
-
-          auto sentenceLogits = classifierStates[1]->getLogProbs();
-          const auto& sentenceLabels = bertBatch->back()->data();
-
-          auto count = [=, &correct, &totalLabels](Expr logits, const Words& labels) {
-            IndexType cols = logits->shape()[-1];
-            size_t thisCorrect = 0;
-            size_t thisLabels  = labels.size();
-
-            std::vector<float> vLogits;
-            logits->val()->get(vLogits);
-
-            for(int i = 0; i < thisLabels; ++i) {
-              // CPU-side Argmax
-              IndexType bestIndex = 0;
-              float bestValue = std::numeric_limits<float>::lowest();
-              for(IndexType j = 0; j < cols; ++j) {
-                float currValue = vLogits[i * cols + j];
-                if(currValue > bestValue) {
-                  bestValue = currValue;
-                  bestIndex = j;
-                }
-              }
-              thisCorrect += (size_t)(bestIndex == labels[i].toWordIndex());
-            }
-
-            std::unique_lock<std::mutex> lock(mutex_);
-            totalLabels += thisLabels;
-            correct     += thisCorrect;
-          };
-
-          if(evalMaskedLM_)
-            count(maskedLMLogits, maskedLMLabels);
-          else
-            count(sentenceLogits, sentenceLabels);
-        };
-
-        taskBarrier.push_back(threadPool_.enqueue(task, batchId));
+        taskBarrier.push_back(threadPool_.enqueue(task, batch, batchId));
         batchId++;
       }
       // ~TaskBarrier waits until all are done
@@ -474,7 +460,7 @@ public:
     for(auto graph : graphs) {
       auto builder = models::createModelFromOptions(options_, models::usage::translation);
       Ptr<Scorer> scorer = New<ScorerWrapper>(builder, "", 1.0f, model);
-      scorers.push_back(scorer);
+      scorers.push_back(scorer); // @TODO: should this be done in the contructor?
     }
 
     // Set up output file
@@ -508,43 +494,43 @@ public:
       else
         collector->setPrintingStrategy(New<GeometricPrinting>());
 
+      std::deque<Ptr<ExpressionGraph>> graphQueue(graphs.begin(), graphs.end());
+      std::deque<Ptr<Scorer>> scorerQueue(scorers.begin(), scorers.end());
+      auto task = [=, &graphQueue, &scorerQueue](BatchPtr batch) {
+        thread_local Ptr<ExpressionGraph> graph;
+        thread_local Ptr<Scorer> scorer;
+        
+        if(!graph) {
+          std::unique_lock<std::mutex> lock(mutex_);
+          ABORT_IF(graphQueue.empty(), "Asking for graph, but none left on queue");
+          graph = graphQueue.front();
+          graphQueue.pop_front();
+
+          ABORT_IF(scorerQueue.empty(), "Asking for scorer, but none left on queue");
+          scorer = scorerQueue.front();
+          scorerQueue.pop_front();
+        }
+      
+        auto search = New<BeamSearch>(options_,
+                                      std::vector<Ptr<Scorer>>{scorer},
+                                      vocabs_.back());
+        auto histories = search->search(graph, batch);
+
+        for(auto history : histories) {
+          std::stringstream best1;
+          std::stringstream bestn;
+          printer->print(history, best1, bestn);
+          collector->Write((long)history->getLineNum(),
+                            best1.str(),
+                            bestn.str(),
+                            options_->get<bool>("n-best"));
+        }
+      };
+
       threadPool_.reserve(graphs.size());
-
-      size_t sentenceId = 0;
-      TaskBarrier taskBarrier;
-      for(auto batch : *batchGenerator_) {
-        auto task = [=](size_t id) {
-          thread_local size_t workerNo = (size_t)-1; // set to something silly
-          {
-            std::unique_lock<std::mutex> lock(mutex_);
-            if(workerNo == (size_t)-1) // if silly, set to actual worker id
-              workerNo = id % graphs.size(); // @TODO: this is not really safe, only works because processing a
-                                             // batch takes a long time and id % graph.size() is unlikely to occur
-                                             // again before cycling through all threads.
-          }
-
-          auto graph = graphs[workerNo];
-          auto scorer = scorers[workerNo];
-
-          auto search = New<BeamSearch>(options_,
-                                        std::vector<Ptr<Scorer>>{scorer},
-                                        vocabs_.back());
-          auto histories = search->search(graph, batch);
-
-          for(auto history : histories) {
-            std::stringstream best1;
-            std::stringstream bestn;
-            printer->print(history, best1, bestn);
-            collector->Write((long)history->getLineNum(),
-                             best1.str(),
-                             bestn.str(),
-                             options_->get<bool>("n-best"));
-          }
-        };
-
-        taskBarrier.push_back(threadPool_.enqueue(task, sentenceId));
-        sentenceId++;
-      }
+      TaskBarrier taskBarrier;      
+      for(auto batch : *batchGenerator_)
+        taskBarrier.push_back(threadPool_.enqueue(task, batch));
       // ~TaskBarrier waits until all are done
     }
 
@@ -651,50 +637,50 @@ public:
       else
         collector->setPrintingStrategy(New<GeometricPrinting>());
 
+      std::deque<Ptr<ExpressionGraph>> graphQueue(graphs.begin(), graphs.end());
+      std::deque<Ptr<Scorer>> scorerQueue(scorers.begin(), scorers.end());
+      auto task = [=, &stats, &graphQueue, &scorerQueue](BatchPtr batch) {
+        thread_local Ptr<ExpressionGraph> graph;
+        thread_local Ptr<Scorer> scorer;
+        
+        if(!graph) {
+          std::unique_lock<std::mutex> lock(mutex_);
+          ABORT_IF(graphQueue.empty(), "Asking for graph, but none left on queue");
+          graph = graphQueue.front();
+          graphQueue.pop_front();
+
+          ABORT_IF(scorerQueue.empty(), "Asking for scorer, but none left on queue");
+          scorer = scorerQueue.front();
+          scorerQueue.pop_front();
+        }
+      
+        auto search = New<BeamSearch>(options_,
+                                      std::vector<Ptr<Scorer>>{scorer},
+                                      vocabs_.back());
+        auto histories = search->search(graph, batch);
+
+        size_t no = 0;
+        std::lock_guard<std::mutex> statsLock(mutex_);
+        for(auto history : histories) {
+          auto result = history->top();
+          const auto& words = std::get<0>(result);
+          updateStats(stats, words, batch, no, vocabs_.back()->getEosId());
+
+          std::stringstream best1;
+          std::stringstream bestn;
+          printer->print(history, best1, bestn);
+          collector->Write((long)history->getLineNum(),
+                            best1.str(),
+                            bestn.str(),
+                            /*nbest=*/ false);
+          no++;
+        }
+      };
+
       threadPool_.reserve(graphs.size());
-
-      size_t sentenceId = 0;
       TaskBarrier taskBarrier;
-      for(auto batch : *batchGenerator_) {
-        auto task = [=, &stats](size_t id) {
-          thread_local size_t workerNo = (size_t)-1; // set to something silly
-          {
-            std::unique_lock<std::mutex> lock(mutex_);
-            if(workerNo == (size_t)-1) // if silly, set to actual worker id
-              workerNo = id % graphs.size(); // @TODO: this is not really safe, only works because processing a
-                                             // batch takes a long time and id % graph.size() is unlikely to occur
-                                             // again before cycling through all threads.
-          }
-
-          auto graph = graphs[workerNo];
-          auto scorer = scorers[workerNo];
-
-          auto search = New<BeamSearch>(options_,
-                                        std::vector<Ptr<Scorer>>{scorer},
-                                        vocabs_.back());
-          auto histories = search->search(graph, batch);
-
-          size_t no = 0;
-          std::lock_guard<std::mutex> statsLock(mutex_);
-          for(auto history : histories) {
-            auto result = history->top();
-            const auto& words = std::get<0>(result);
-            updateStats(stats, words, batch, no, vocabs_.back()->getEosId());
-
-            std::stringstream best1;
-            std::stringstream bestn;
-            printer->print(history, best1, bestn);
-            collector->Write((long)history->getLineNum(),
-                             best1.str(),
-                             bestn.str(),
-                             /*nbest=*/ false);
-            no++;
-          }
-        };
-
-        taskBarrier.push_back(threadPool_.enqueue(task, sentenceId));
-        sentenceId++;
-      }
+      for(auto batch : *batchGenerator_)
+        taskBarrier.push_back(threadPool_.enqueue(task, batch));
       // ~TaskBarrier waits until all are done
     }
 

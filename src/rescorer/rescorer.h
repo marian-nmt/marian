@@ -56,6 +56,7 @@ public:
              "Normalization by length cannot be used with summary scores");
 
     options_->set("inference", true);
+    options_->set("shuffle", "none");
     options_->set("cost-type", "ce-rescore"); // indicates that to keep separate per-batch-item scoresForSummary
 
     if(options_->get<bool>("n-best"))
