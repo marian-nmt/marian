@@ -1386,14 +1386,17 @@ void HighwayForward(Tensor out,
   cpu::Element(_1 = _1 * _2 + (1.f - _1) * _3, out, in1, in2);
 }
 
-void HighwayBackward(Tensor /*out1*/,
-                     Tensor /*out2*/,
-                     Tensor /*outt*/,
-                     const Tensor /*in1*/,
-                     const Tensor /*in2*/,
-                     const Tensor /*t*/,
-                     const Tensor /*adj*/) {
-  ABORT("Not implemented!");
+void HighwayBackward(Tensor out1,
+                     Tensor out2,
+                     Tensor outt,
+                     const Tensor in1,
+                     const Tensor in2,
+                     const Tensor t,
+                     const Tensor adj) {
+  using namespace functional;
+  cpu::Element(_1 +=        sigmoid(_2)  * _3, out1, t, adj);
+  cpu::Element(_1 += (1.f - sigmoid(_2)) * _3, out2, t, adj);
+  cpu::Element(_1 += sigmoid(_2) * (1.f - sigmoid(_2)) * (_3 - _4) * _5, outt, t, in1, in2, adj);
 }
 
 void PoolingWithMaskingForward(Tensor /*out*/,

@@ -236,6 +236,7 @@ namespace marian {
       b_ = graph_->param(name + "_b", {1, numOutputClasses}, inits::zeros());
 
       /*const*/ int lemmaDimEmb = options_->get<int>("lemma-dim-emb", 0);
+      ABORT_IF(lemmaDimEmb && !factoredVocab_, "--lemma-dim-emb requires a factored vocabulary");
       if (lemmaDimEmb > 0) {
 #define HARDMAX_HACK
 #ifdef HARDMAX_HACK

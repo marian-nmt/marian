@@ -617,10 +617,11 @@ std::string FactoredVocab::surfaceForm(const Words& sentence) const /*override f
     unescapeHexEscapes(lemma); // unescape \x.. and \u....
     if (utils::beginsWith(lemma, "\xE2\x96\x81"))  // remove leading _ (\u2581, for DistinguishInitialAndInternalPieces mode)
         lemma = lemma.substr(3);
-    if      (has("ci")) lemma = utils::utf8Capitalized(lemma);
-    else if (has("ca")) lemma = utils::utf8ToUpper    (lemma);
-    else if (has("cn")) lemma = utils::utf8ToLower    (lemma);
-    else                lemma =                        lemma ;
+    if      (has("ci"))  lemma = utils::utf8Capitalized(lemma);
+    else if (has("ca"))  lemma = utils::utf8ToUpper    (lemma);
+    else if (has("cn"))  lemma = utils::utf8ToLower    (lemma);
+    else if (has("scu")) lemma = utils::utf8ToUpper    (lemma);
+    else if (has("scl")) lemma = utils::utf8ToLower    (lemma);
     res.append(lemma);
   }
   //std::cerr << "\n" << res << "\n";
