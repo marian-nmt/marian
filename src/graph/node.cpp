@@ -15,14 +15,17 @@ size_t Node::allocate() {
 }
 
 void Node::free() {
-  if(graph()) {
-    if(val_) {
-      graph()->free(val_);
-      val_ = nullptr;
-    }
-    if(adj_) {
-      graph()->free(adj_);
-      adj_ = nullptr;
+  if(destroy_) { // don't free views, @TODO: better naming
+    //std::cerr << "Freeing" << std::endl;
+    if(graph()) {
+      if(val_) {
+        graph()->free(val_);
+        val_ = nullptr;
+      }
+      if(adj_) {
+        graph()->free(adj_);
+        adj_ = nullptr;
+      }
     }
   }
 }

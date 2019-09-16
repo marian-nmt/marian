@@ -120,14 +120,14 @@ namespace marian {
     y = dot_csr(
         y,  // [B x U]
         factorMatrix.shape,
-        graph->constant({(int)factorMatrix.weights.size()}, inits::from_vector(factorMatrix.weights), Type::float32),
-        graph->constant({(int)factorMatrix.indices.size()}, inits::from_vector(factorMatrix.indices), Type::uint32),
-        graph->constant({(int)factorMatrix.offsets.size()}, inits::from_vector(factorMatrix.offsets), Type::uint32),
+        graph->constant({(int)factorMatrix.weights.size()}, inits::fromVector(factorMatrix.weights), Type::float32),
+        graph->constant({(int)factorMatrix.indices.size()}, inits::fromVector(factorMatrix.indices), Type::uint32),
+        graph->constant({(int)factorMatrix.offsets.size()}, inits::fromVector(factorMatrix.offsets), Type::uint32),
         /*transB=*/ true); // -> [B x V]
 
     // mask out gaps
     auto gapLogMask = factoredVocab_->getGapLogMask(); // [V]
-    y = y + graph->constant({ (int)gapLogMask.size() }, inits::from_vector(gapLogMask), Type::float32);
+    y = y + graph->constant({ (int)gapLogMask.size() }, inits::fromVector(gapLogMask), Type::float32);
 
     return y;
 #else
@@ -226,14 +226,14 @@ namespace marian {
         Wt_ = tiedParam_;
       } else {
         if (graph_->get(name + "_W")) { // support of legacy models that did not transpose
-          Wt_ = graph_->param(name + "_W", {inputDim, numOutputClasses}, inits::glorot_uniform2(true, false));
+          Wt_ = graph_->param(name + "_W", {inputDim, numOutputClasses}, inits::glorotUniform(true, false));
           isLegacyUntransposedW = true;
         }
         else // this is the regular case:
-          Wt_ = graph_->param(name + "_Wt", {numOutputClasses, inputDim}, inits::glorot_uniform2(false, true));
+          Wt_ = graph_->param(name + "_Wt", {numOutputClasses, inputDim}, inits::glorotUniform(false, true));
       }
 
-      b_ = graph_->param(name + "_b", {1, numOutputClasses}, inits::zeros);
+      b_ = graph_->param(name + "_b", {1, numOutputClasses}, inits::zeros());
 
       /*const*/ int lemmaDimEmb = options_->get<int>("lemma-dim-emb", 0);
       ABORT_IF(lemmaDimEmb && !factoredVocab_, "--lemma-dim-emb requires a factored vocabulary");
@@ -244,7 +244,7 @@ namespace marian {
 #endif
         auto range = factoredVocab_->getGroupRange(0);
         auto lemmaVocabDim = (int)(range.second - range.first);
-        auto initFunc = inits::glorot_uniform2(/*fanIn=*/true, /*fanOut=*/false); // -> embedding vectors have roughly unit length
+        auto initFunc = inits::glorotUniform(/*fanIn=*/true, /*fanOut=*/false); // -> embedding vectors have roughly unit length
         lemmaEt_ = graph_->param(name + "_lemmaEt", {lemmaDimEmb, lemmaVocabDim}, initFunc); // [L x U] L=lemmaDimEmb; transposed for speed
       }
     }
@@ -287,7 +287,7 @@ namespace marian {
             int lemmaVocabDim = Plemma->shape()[-1];
             int factorVocabDim = factorLogits->shape()[-1];
             auto name = options_->get<std::string>("prefix");
-            Expr lemmaBt = graph_->param(name + "_lemmaBt_" + std::to_string(g), {factorVocabDim, lemmaVocabDim}, inits::zeros); // [U x U0] U0=#lemmas one bias per class per lemma
+            Expr lemmaBt = graph_->param(name + "_lemmaBt_" + std::to_string(g), {factorVocabDim, lemmaVocabDim}, inits::zeros()); // [U x U0] U0=#lemmas one bias per class per lemma
             auto b = dot(Plemma, lemmaBt, false, true); // [B... x U]
             factorLogits = factorLogits + b;
           }
@@ -324,7 +324,7 @@ namespace marian {
             int inputDim = input1->shape()[-1];
             auto name = options_->get<std::string>("prefix");
             // note: if the lemmaEt[:,w] have unit length (var = 1/L), then lemmaWt @ lemmaEt is also length 1
-            Expr lemmaWt = inputDim == lemmaDimEmb ? nullptr : graph_->param(name + "_lemmaWt", { inputDim,  lemmaDimEmb }, inits::glorot_uniform); // [D x L] D=hidden-vector dimension
+            Expr lemmaWt = inputDim == lemmaDimEmb ? nullptr : graph_->param(name + "_lemmaWt", { inputDim,  lemmaDimEmb }, inits::glorotUniform()); // [D x L] D=hidden-vector dimension
             auto f = lemmaWt ? dot(e, lemmaWt, false, true) : e; // [B... x D]
             // augment the original hidden vector with this additional information
             input1 = input1 + f;
@@ -353,13 +353,13 @@ namespace marian {
     }
 
     // Embedding layer initialization should depend only on embedding size, hence fanIn=false
-    auto initFunc = inits::glorot_uniform2(/*fanIn=*/false, /*fanOut=*/true); // -> embedding vectors have roughly unit length
+    auto initFunc = inits::glorotUniform(/*fanIn=*/false, /*fanOut=*/true); // -> embedding vectors have roughly unit length
     
     if (options_->has("embFile")) {
       std::string file = opt<std::string>("embFile");
       if (!file.empty()) {
         bool norm = opt<bool>("normalization", false);
-        initFunc = inits::from_word2vec(file, dimVoc, dimEmb, norm);
+        initFunc = inits::fromWord2vec(file, dimVoc, dimEmb, norm);
       }
     }
 
@@ -375,9 +375,9 @@ namespace marian {
     // [row index = word position index] -> set of factor indices for word at this position
     ABORT_IF(factoredData.shape != Shape({(int)factoredData.offsets.size()-1/*=rows of CSR*/, E_->shape()[0]}), "shape mismatch??");
     // the CSR matrix is passed in pieces
-    auto weights = graph->constant({ (int)factoredData.weights.size() }, inits::from_vector(factoredData.weights), Type::float32);
-    auto indices = graph->constant({ (int)factoredData.indices.size() }, inits::from_vector(factoredData.indices), Type::uint32);
-    auto offsets = graph->constant({ (int)factoredData.offsets.size() }, inits::from_vector(factoredData.offsets), Type::uint32);
+    auto weights = graph->constant({ (int)factoredData.weights.size() }, inits::fromVector(factoredData.weights), Type::float32);
+    auto indices = graph->constant({ (int)factoredData.indices.size() }, inits::fromVector(factoredData.indices), Type::uint32);
+    auto offsets = graph->constant({ (int)factoredData.offsets.size() }, inits::fromVector(factoredData.offsets), Type::uint32);
     // apply dropout
     // We apply it to the weights, i.e. factors get dropped out separately, but always as entire vectors.
     weights = dropout(weights, dropProb);
@@ -421,7 +421,7 @@ namespace marian {
 
     auto batchEmbeddings = apply(subBatch->data(), {dimWords, dimBatch, dimEmb});
     auto batchMask = graph->constant({dimWords, dimBatch, 1},
-                                     inits::from_vector(subBatch->mask()));
+                                     inits::fromVector(subBatch->mask()));
     return std::make_tuple(batchEmbeddings, batchMask);
   }
 

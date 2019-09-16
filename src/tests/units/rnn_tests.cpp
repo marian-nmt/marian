@@ -41,7 +41,7 @@ void tests(DeviceType type) {
     std::vector<float> values;
 
     auto input = graph->constant({4, 1, 4},
-                                 inits::glorot_uniform);
+                                 inits::glorotUniform());
 
     auto rnn = rnn::rnn()         //
           ("prefix", "rnntest")   //
@@ -200,11 +200,11 @@ void tests(DeviceType type) {
 
     auto emb = graph->param("Embeddings",
                             {128, dimEmb},
-                            inits::glorot_uniform);
+                            inits::glorotUniform());
 
     auto input = reshape(rows(emb, vWords), {dimTime, dimBatch, dimEmb});
     auto mask = graph->constant({dimTime, dimBatch, 1},
-                                inits::from_vector(vMask));
+                                inits::fromVector(vMask));
 
     int dimRnn = 32;
     auto context1 = buildRnn("enc1", input, mask, dimRnn);

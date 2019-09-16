@@ -19,10 +19,10 @@ Expr Convolution::apply(Expr x) {
   auto kernel
       = graph->param(prefix + "_conv_kernels",
                       {layerIn, kernelNum, kernelDims.first, kernelDims.second},
-                      inits::glorot_uniform);
+                      inits::glorotUniform());
 
   auto bias = graph->param(
-      prefix + "_conv_bias", {1, kernelNum, 1, 1}, inits::zeros);
+      prefix + "_conv_bias", {1, kernelNum, 1, 1}, inits::zeros());
 
   std::vector<Expr> nodes = {x, kernel, bias};
   return Expression<ConvolutionOp>(

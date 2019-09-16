@@ -349,8 +349,8 @@ public:
     else
       ABORT("Activation function {} not supported in BERT masked LM", activationType);
 
-    auto gamma = graph->param(prefix_ + "_ff_ln_scale", {1, dimModel}, inits::ones);
-    auto beta  = graph->param(prefix_ + "_ff_ln_bias",  {1, dimModel}, inits::zeros);
+    auto gamma = graph->param(prefix_ + "_ff_ln_scale", {1, dimModel}, inits::ones());
+    auto beta  = graph->param(prefix_ + "_ff_ln_bias",  {1, dimModel}, inits::zeros());
     intermediate = layerNorm(intermediate, gamma, beta);
 
     auto layer2 = mlp::mlp()

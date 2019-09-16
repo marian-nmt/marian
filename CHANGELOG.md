@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Replacing std::shared_ptr<T> with custom IntrusivePtr<T> for small objects like 
   Tensors, Hypotheses and Expressions.
 - First steps towards integrating FP16 support, currently no-ops.
+- Gradient-checkpointing
 
 ### Fixed
 - Sort parameters by lexicographical order during allocation to ensure consistent 
@@ -20,6 +21,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Output empty line when input is empty line. Previous behavior might result in 
   hallucinated outputs.
 - Compilation with CUDA 10.1
+
+### Changed
+- Unified node intializers, same function API.
 
 ## [1.8.0] - 2019-09-04
 

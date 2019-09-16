@@ -62,6 +62,24 @@ public:
   }
 };
 
+// Cast a tensor to a different type
+struct CastNodeOp : public UnaryNodeOp {
+public:
+  CastNodeOp(Expr a, Type type) : UnaryNodeOp(a, type) {}
+
+  NodeOps forwardOps() override {
+    using namespace functional;
+    return { NodeOp(CopyCast(val_, child(0)->val())) };
+  }
+
+  NodeOps backwardOps() override {
+    using namespace functional;
+    return { NodeOp(CopyCast(child(0)->grad(), adj_)) };
+  }
+
+  const std::string type() override { return "cast"; }
+};
+
 struct ScalarMultNodeOp : public UnaryNodeOp {
 private:
   float scalar_{0};
@@ -772,6 +790,75 @@ public:
     if(!cnode)
       return false;
     if(shape() != cnode->shape())
+      return false;
+    return true;
+  }
+};
+
+// @TODO: review if still required as this is an ugly hack anyway.
+// Memory less operator that clips gradients during backward step
+// Executes this as an additional operation on the gradient.
+class ClipGradientNodeOp : public UnaryNodeOp {
+private:
+  Expr clipee_;
+  float clipValue_{0};
+
+public:
+  ClipGradientNodeOp(Expr a, float clipValue)
+   : UnaryNodeOp(a), clipee_(a), clipValue_(clipValue) {
+    Node::destroy_ = false;
+  }
+
+  ~ClipGradientNodeOp() {}
+
+  size_t allocate() override { return 0; }
+  void free() override {}
+
+  void forward() override {}
+
+  void backward() override {
+    using namespace marian::functional;
+    Element(_1 = clip(_1, clipValue_), adj_);
+  }
+
+  void init_dependent() override { clipee_->init_dependent(); }
+
+  void set_zero_adjoint() override { clipee_->set_zero_adjoint(); }
+
+  Tensor& val() override {
+    auto childVal = clipee_->val();
+    auto temp = TensorBase::New(childVal->memory(), shape(), childVal->type(), childVal->getBackend());
+    val_.swap(temp);
+    return val_;
+  };
+
+  Tensor& grad() override {
+    auto childGrad = clipee_->grad();
+    auto temp = TensorBase::New(childGrad->memory(), shape(), childGrad->type(), childGrad->getBackend());
+    adj_.swap(temp);
+    return adj_;
+  };
+
+  const std::string type() override { return "clipGradient"; }
+
+  const std::string color() override { return "grey"; }
+
+  virtual size_t hash() override {
+    if(!hash_) {
+      size_t seed = NaryNodeOp::hash();
+      util::hash_combine(seed, clipValue_);
+      hash_ = seed;
+    }
+    return hash_;
+  }
+
+  virtual bool equal(Expr node) override {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    auto cnode = std::dynamic_pointer_cast<ClipGradientNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(clipValue_ != cnode->clipValue_)
       return false;
     return true;
   }

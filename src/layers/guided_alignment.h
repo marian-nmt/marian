@@ -18,7 +18,7 @@ static inline RationalLoss guidedAlignmentCost(Ptr<ExpressionGraph> graph,
   float guidedScalar = options->get<float>("guided-alignment-weight");
   
   float epsilon = 1e-6f;
-  Expr alignment = constant_like(attention, inits::from_vector(batch->getGuidedAlignment()));
+  Expr alignment = constant_like(attention, inits::fromVector(batch->getGuidedAlignment()));
   Expr alignmentLoss; // sum up loss over all attention/alignment positions
   if(guidedLossType == "mse") {
     alignmentLoss = sum(flatten(square(attention - alignment))) / 2.f;
