@@ -766,21 +766,20 @@ void ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
     case cli::mode::training:
       addOptionsTraining(cli);
       addOptionsValidation(cli);
-      addAliases(cli); // @TODO: add the mode here?
       break;
     case cli::mode::translation:
       addOptionsTranslation(cli);
-      addAliases(cli); // @TODO: add the mode here?
       break;
     case cli::mode::scoring:
       addOptionsScoring(cli);
-      addAliases(cli); // @TODO: add the mode here?
       break;
     default:
       ABORT("wrong CLI mode");
       break;
   }
   // clang-format on
+
+  addAliases(cli);
 
   // parse command-line options and fill wrapped YAML config
   cli.parse(argc, argv);
