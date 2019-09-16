@@ -1,4 +1,5 @@
 #pragma once
+#include "common/logging.h" // for ABORT and ABORT_IF
 
 #if __GNUC__ >= 7
 #pragma GCC diagnostic push
@@ -17,11 +18,15 @@
 #include <immintrin.h>
 #endif
 
-//#ifdef __CUDA_ARCH__
-//#if __CUDA_ARCH__ >= 600 && CUDA_VERSION >= 10000 // @TODO: set this from 600 to 700, currently only testing on Pascal
-//#define __USE_FP16__
-//#endif
-//#endif
+#ifdef __CUDACC__ // nvcc is compiling this code
+  #if (__CUDA_ARCH__ >= 600 || !defined(__CUDA_ARCH__))
+    #define __USE_FP16__ 1 // we are in GPU code and we know what to do with FP16 code
+  #else
+    #define __USE_FP16__ 0 // we are in GPU code, but compute capability is too low to use FP16
+  #endif
+#else // other compiler, likely host code
+  #define __USE_FP16__ 0
+#endif
 
 #ifdef _MSC_VER
 // @BUGBUG: Visual Studio somehow fails on template expansions for float16.

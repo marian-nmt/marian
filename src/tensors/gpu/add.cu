@@ -171,11 +171,11 @@ void Aggregate(Functor functor, float aggInit, AggFunctor aggFunctor, float scal
   if(out->type() == Type::float32) {
     AggregateTyped<float, float>(functor, aggInit, aggFunctor, scale, out, tensors...);
   } else if(out->type() == Type::float16) {
-// #ifdef __USE_FP16__
+#if __USE_FP16__
     AggregateTyped<half,  float>(functor, aggInit, aggFunctor, scale, out, tensors...);
-// #else
-//     ABORT("FP16 not supported with current hardware or CUDA version");
-// #endif
+#else
+     ABORT("FP16 not supported with current hardware or CUDA version");
+#endif
   } else {
     ABORT("Type {} not yet supported", out->type());
   }

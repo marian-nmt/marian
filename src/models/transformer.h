@@ -515,7 +515,7 @@ public:
     auto embeddingLayer = getEmbeddingLayer(options_->has("ulr") && options_->get<bool>("ulr"));
     std::tie(batchEmbeddings, batchMask) = embeddingLayer->apply((*batch)[batchIndex_]);
     batchEmbeddings = addSpecialEmbeddings(batchEmbeddings, /*start=*/0, batch);
-
+    
     // reorganize batch and timestep
     batchEmbeddings = atleast_nd(batchEmbeddings, 4);
     batchMask = atleast_nd(batchMask, 4);
