@@ -294,7 +294,7 @@ void ProdBatched(marian::Tensor C,
                  float scalar) {
   if(C->type() == Type::float32) {
     ProdBatchedTyped<float>(C, allocator, A, B, transA, transB, beta, scalar);
-  } else if(C->type() == Type::float16) {
+  } else if(C->type() == Type::float16) { // not a *.cu file
     ProdBatchedTyped<half>(C, allocator, A, B, transA, transB, __float2half(beta), __float2half(scalar));
   } else {
     ABORT("ProdBatched not implemented for type {}", C->type());

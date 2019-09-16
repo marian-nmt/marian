@@ -24,8 +24,8 @@
   #else
     #define __USE_FP16__ 0 // we are in GPU code, but compute capability is too low to use FP16
   #endif
-#else // other compiler, likely host code
-  #define __USE_FP16__ 0
+#else // other compiler, likely host code. Sould be fine with seeing the correct includes with host code
+  #define __USE_FP16__ 1
 #endif
 
 #ifdef _MSC_VER
