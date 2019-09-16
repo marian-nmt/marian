@@ -72,7 +72,7 @@ struct Ops<float> {
   static HOST_DEVICE_INLINE float abs(const float& x)  { return fabs(x); }
   static HOST_DEVICE_INLINE float sqrt(const float& x) { return sqrtf(x); }
   static HOST_DEVICE_INLINE float neg(const float& x)  { return -x; }
-  static HOST_DEVICE_INLINE float sgn(const float& x)  { return (0 < x) - (x < 0); }
+  static HOST_DEVICE_INLINE float sgn(const float& x)  { return (float)((0 < x) - (x < 0)); }
 
   static HOST_DEVICE_INLINE float add(const float& x, const float& y)  { return x + y; }
   static HOST_DEVICE_INLINE float sub(const float& x, const float& y)  { return x - y; }

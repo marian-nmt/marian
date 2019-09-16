@@ -44,11 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <limits>
 #include <algorithm>
 
-#ifdef _MSC_VER
-#include "stdint.h"
-#else
 #include <stdint.h>
-#endif
 
 #undef min
 #undef max
@@ -243,7 +239,7 @@ class numeric_limits<HalfFloat> {
     static HalfFloat min ()
 		{return HalfFloat(0,1,0);}
     static HalfFloat max ()
-		{return HalfFloat(~0,HalfFloat::MAX_EXPONENT_VALUE-1,0);}
+		{return HalfFloat((uint16_t)~0,HalfFloat::MAX_EXPONENT_VALUE-1,0);}
     static const int radix = 2;
     static const int digits = 10;   // conservative assumption
     static const int digits10 = 2;  // conservative assumption
@@ -255,7 +251,7 @@ class numeric_limits<HalfFloat> {
     static const bool is_bounded	= true;
 
 	static const HalfFloat lowest() {
-	  return HalfFloat(~0,HalfFloat::MAX_EXPONENT_VALUE-1,~0);
+	  return HalfFloat((uint16_t)~0,HalfFloat::MAX_EXPONENT_VALUE-1,(uint16_t)~0);
 	}
 
 	// Floating point specific.

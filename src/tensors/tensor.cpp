@@ -99,16 +99,16 @@ std::string TensorBase::debug(int precision, int dispCols) {
   return strm.str();
 }
 
-template std::string TensorBase::debug<float>(int, int);
 template std::string TensorBase::debug<float16>(int, int);
-template std::string TensorBase::debug<double>(int, int);
+template std::string TensorBase::debug<float  >(int, int);
+template std::string TensorBase::debug<double >(int, int);
 
-template std::string TensorBase::debug<uint8_t>(int, int);
+template std::string TensorBase::debug<uint8_t >(int, int);
 template std::string TensorBase::debug<uint16_t>(int, int);
 template std::string TensorBase::debug<uint32_t>(int, int);
 template std::string TensorBase::debug<uint64_t>(int, int);
 
-template std::string TensorBase::debug<int8_t>(int, int);
+template std::string TensorBase::debug<int8_t >(int, int);
 template std::string TensorBase::debug<int16_t>(int, int);
 template std::string TensorBase::debug<int32_t>(int, int);
 template std::string TensorBase::debug<int64_t>(int, int);
