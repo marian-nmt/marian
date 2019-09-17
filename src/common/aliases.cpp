@@ -28,9 +28,8 @@ namespace marian {
 void ConfigParser::addAliases(cli::CLIWrapper& cli) {
   cli.alias("fp16", "true", [&](YAML::Node& config) {
     if(mode_ == cli::mode::training) {
-      config["precision"] = std::vector<std::string>({"float16", "float32", "float32"});
-      if(config["cost-scaling"]) // set by parser hence override @TODO: this is a bit hacky, should we rather see modes like "training" or "tanslating"?
-        config["cost-scaling"] = std::vector<std::string>({"7", "2000", "2", "0.05", "10", "1"});
+      config["precision"] = std::vector<std::string>({"float16", "float32", "float32"}); // inference type, optimization type, save type
+      config["cost-scaling"] = std::vector<std::string>({"7", "2000", "2", "0.05", "10", "1"});
     } else {
       config["precision"] = std::vector<std::string>({"float16"}); // for inference we do not need the other types
     }

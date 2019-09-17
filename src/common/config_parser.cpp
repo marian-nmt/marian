@@ -670,10 +670,8 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
     cli.add<size_t>("--mini-batch-fit-step",
       "Step size for mini-batch-fit statistics",
       10);
-#if 0 // @TODO: not available yet
     cli.add<bool>("--gradient-checkpointing", 
       "Use gradient checkpointing to minimize memory usage");
-#endif
   }
 
   cli.add<int>("--maxi-batch",
