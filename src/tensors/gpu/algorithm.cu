@@ -20,15 +20,12 @@ template void copy<int8_t>(Ptr<Backend>, const int8_t*, const int8_t*, int8_t*);
 template void copy<int16_t>(Ptr<Backend>, const int16_t*, const int16_t*, int16_t*);
 template void copy<int32_t>(Ptr<Backend>, const int32_t*, const int32_t*, int32_t*);
 template void copy<int64_t>(Ptr<Backend>, const int64_t*, const int64_t*, int64_t*);
-
 template void copy<uint8_t>(Ptr<Backend>, const uint8_t*, const uint8_t*, uint8_t*);
 template void copy<uint16_t>(Ptr<Backend>, const uint16_t*, const uint16_t*, uint16_t*);
 template void copy<uint32_t>(Ptr<Backend>, const uint32_t*, const uint32_t*, uint32_t*);
 template void copy<uint64_t>(Ptr<Backend>, const uint64_t*, const uint64_t*, uint64_t*);
-
 template void copy<char>(Ptr<Backend>, const char*, const char*, char*);
 template void copy<float16>(Ptr<Backend>, const float16*, const float16*, float16*);
-
 template void copy<float>(Ptr<Backend>, const float*, const float*, float*);
 template void copy<double>(Ptr<Backend>, const double*, const double*, double*);
 // clang-format on
