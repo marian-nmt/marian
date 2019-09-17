@@ -398,11 +398,11 @@ public:
     }
 
     if(scores->type() == Type::float32) {
-      float minimal = std::numeric_limits<float>::lowest();
+      float minimal = NumericLimits<float>(scores->type()).lowest;
       selectNBest(scores->data<float>(), batchFirstElementIdxs, cumulativeBeamSizes, minimal);
 #if __USE_FP16__
     } else if(scores->type() == Type::float16) {
-      float minimal = std::numeric_limits<float16>::lowest();
+      float minimal = NumericLimits<float>(scores->type()).lowest;
       selectNBest(scores->data<half>(), batchFirstElementIdxs, cumulativeBeamSizes, minimal);
 #endif
     } else {
