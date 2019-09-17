@@ -13,6 +13,7 @@
 #include <iostream>
 #include <string>
 #include <functional>
+#include <type_traits>
 
 #ifndef __CUDA_ARCH__
 #include <immintrin.h>
@@ -344,14 +345,35 @@ void matchOrAbort(Type type) {
            type);
 }
 
-template <typename T>
+namespace typeMagic { // just in case, let's not pollute the namespace
+  template <typename RequestType, typename ReturnType>
+  constexpr bool fitsIntoMax() { return std::numeric_limits<RequestType>::max() <= std::numeric_limits<ReturnType>::max(); } // for built-in types everything is constexpr
+
+  // add specializations here when needed
+  template <> constexpr bool fitsIntoMax<float16, float>() { return true; };  // for float16 conversion to float is not constexpr, hence specializations
+  template <> constexpr bool fitsIntoMax<float, float16>() { return false; }; // for float16 conversion to float is not constexpr, hence specializations
+}
+
+template <typename ReturnType>
 class NumericLimits {
 private:
-  template <typename L>
+  
+  template <typename MaxType> void setLimitsMax() {
+    max    = std::numeric_limits<MaxType>::max();
+    min    = std::numeric_limits<MaxType>::min();
+    lowest = std::numeric_limits<MaxType>::lowest();
+  }
+
+  template <typename RequestType>
   void setLimits() {
-    max = std::numeric_limits<L>::max();
-    min = std::numeric_limits<L>::min();
-    lowest = std::numeric_limits<L>::lowest();
+    // check if the maximum of type RequestType fits into ReturnType
+    constexpr bool fits = typeMagic::fitsIntoMax<RequestType, ReturnType>();
+    // and then use the smaller of each types to determine max, min, lowest.
+    using MaxType = typename std::conditional<fits, RequestType, ReturnType>::type;
+    setLimitsMax<MaxType>();
+
+    // @TODO: should we rather abort if the RequestType does not fit into ReturnType instead of clipping to smaller type? 
+    // ABORT_IF(!fits, "Type {} is too small to contain max of type {}", typeId<ReturnType>(), typeId<RequestType>());
   }
 
   void setLimits(Type type) {
@@ -359,9 +381,9 @@ private:
   }
 
 public:
-  T max;
-  T min;
-  T lowest;
+  ReturnType max;
+  ReturnType min;
+  ReturnType lowest;
 
   NumericLimits(Type type) {
     setLimits(type);

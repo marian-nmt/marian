@@ -86,7 +86,7 @@ Expr softmax(Expr a, Expr zeroOneMask, int axis /*=-1*/) {
   // This will return the smallest value / 2 for the input type converted to float
   // So for Type::Float16 that will be the smallest fp16 value expressed as float
   // We divide by 2 to allow for some tolerance and overflow protection.
-  float smallestFloat = -NumericLimits<float>(a->value_type()).max / 2.f;
+  float smallestFloat = NumericLimits<float>(a->value_type()).lowest / 2.f;
   auto logMask = (1.f - zeroOneMask) * smallestFloat;
   return softmax(a + logMask, axis);
 }
