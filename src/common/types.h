@@ -293,9 +293,9 @@ class NumericLimits {
 private:
   template <typename L>
   void setLimits() {
-    max = std::numeric_limits<L>::max();
-    min = std::numeric_limits<L>::min();
-    lowest = std::numeric_limits<L>::lowest();
+    max    = (T)std::numeric_limits<L>::max();
+    min    = (T)std::numeric_limits<L>::min();
+    lowest = (T)std::numeric_limits<L>::lowest();
   }
 
   void setLimits(Type type) {
