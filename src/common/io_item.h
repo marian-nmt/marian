@@ -74,7 +74,7 @@ struct Item {
     if(type == Type::float32)
       convertFromTo<float, T>();
     else if(type == Type::float16)
-      convertFromTo<float16, T>();
+      convertFromTo<HalfFloat, T>();
     else 
       ABORT("convert from type {} not implemented", type);
   }
