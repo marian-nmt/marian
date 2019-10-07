@@ -432,7 +432,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       {"float32", "float32", "float32"});
   cli.add<std::vector<std::string>>("--cost-scaling",
       "Dynamic cost scaling for mixed precision training: "
-      "power of 2, scaling window, scaling factor, tolerance")->implicit_val("7.f 2000 2.f 0.05f 10 1.f");
+      "power of 2, scaling window, scaling factor, tolerance, range, minimum factor")->implicit_val("7.f 2000 2.f 0.05f 10 1.f");
   cli.add<bool>("--normalize-gradient", "Normalize gradient by multiplying with worldsize / total labels");
 
   // multi-node training
@@ -671,7 +671,7 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
       "Step size for mini-batch-fit statistics",
       10);
     cli.add<bool>("--gradient-checkpointing", 
-      "Use gradient checkpointing to minimize memory usage");
+      "Enable gradient-checkpointing to minimize memory usage");
   }
 
   cli.add<int>("--maxi-batch",

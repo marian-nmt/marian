@@ -21,12 +21,12 @@
 
 #ifdef __CUDACC__ // nvcc is compiling this code
   #if (__CUDA_ARCH__ >= 600 || !defined(__CUDA_ARCH__))
-    #define __USE_FP16__ 1 // we are in GPU code and we know what to do with FP16 code
+    #define COMPILE_FP16 1 // we are in GPU code and we know what to do with FP16 code
   #else
-    #define __USE_FP16__ 0 // we are in GPU code, but compute capability is too low to use FP16
+    #define COMPILE_FP16 0 // we are in GPU code, but compute capability is too low to use FP16
   #endif
 #else // other compiler, likely host code. Sould be fine with seeing the correct includes with host code
-  #define __USE_FP16__ 1
+  #define COMPILE_FP16 1
 #endif
 
 #ifdef _MSC_VER
@@ -345,7 +345,9 @@ void matchOrAbort(Type type) {
            type);
 }
 
-namespace typeMagic { // just in case, let's not pollute the namespace
+namespace typeFitting { // own namespace instead of in class, otherwise we get error "explicit specialization in non-namespace scope"
+
+  // compares max for different types as constexpr, so can be used at compile-time to determine if RequestType type max fits into ReturnType max, see std::conditional below.
   template <typename RequestType, typename ReturnType>
   constexpr bool fitsIntoMax() { return std::numeric_limits<RequestType>::max() <= std::numeric_limits<ReturnType>::max(); } // for built-in types everything is constexpr
 
@@ -360,14 +362,13 @@ private:
   
   template <typename MaxType> void setLimitsMax() {
     max    = std::numeric_limits<MaxType>::max();
-    min    = std::numeric_limits<MaxType>::min();
     lowest = std::numeric_limits<MaxType>::lowest();
   }
 
   template <typename RequestType>
   void setLimits() {
     // check if the maximum of type RequestType fits into ReturnType
-    constexpr bool fits = typeMagic::fitsIntoMax<RequestType, ReturnType>();
+    constexpr bool fits = typeFitting::fitsIntoMax<RequestType, ReturnType>();
     // and then use the smaller of each types to determine max, min, lowest.
     using MaxType = typename std::conditional<fits, RequestType, ReturnType>::type;
     setLimitsMax<MaxType>();
@@ -382,7 +383,6 @@ private:
 
 public:
   ReturnType max;
-  ReturnType min;
   ReturnType lowest;
 
   NumericLimits(Type type) {

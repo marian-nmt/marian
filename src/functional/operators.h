@@ -440,7 +440,7 @@ struct Ops<float32x8> {
 #endif // of "#ifndef __CUDA_ARCH__"
 
 #ifdef __CUDA_ARCH__
-#if __USE_FP16__
+#if COMPILE_FP16
 // only compile with fp16 support for compute_70, i.e. VOLTA 100 and above.
 #include <cuda_fp16.h>
 

@@ -64,7 +64,7 @@ void Element(Functor functor, Tensor out, Tensors... tensors) {
   if(out->type() == Type::float32) {
     ElementTyped<float>(functor, out, tensors...);
   } else if(out->type() == Type::float16) {
-#if __USE_FP16__
+#if COMPILE_FP16
     ElementTyped<__half>(functor, out, tensors...);
 #else
     ABORT("FP16 not supported with chosen current hardware or CUDA version");

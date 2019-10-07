@@ -39,7 +39,7 @@ void SetColumn(Tensor in, size_t col, float value) {
 
  if(in->type() == Type::float32) {
    gSetColumn<<<nBlocks, nThreads>>>(in->data<float>(), nColumns, nRows, col, value);
-#if __USE_FP16__
+#if COMPILE_FP16
  } else if(in->type() == Type::float16) {
    gSetColumn<<<nBlocks, nThreads>>>(in->data<half>(), nColumns, nRows, col, (half)value);
 #endif

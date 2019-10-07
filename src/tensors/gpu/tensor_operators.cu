@@ -22,7 +22,7 @@ static inline  __device__ void atomicAdd(float *address, float val) {
   ::atomicAdd(address, val);
 }
 
-#if __USE_FP16__
+#if COMPILE_FP16
 // @TODO: copied from CuTorch, adapt this better, give credit.
 static inline  __device__ void atomicAdd(half *address, half val) {
   //*address += val;
@@ -82,7 +82,7 @@ void IsNaN(const Tensor in, Ptr<Allocator> allocator, bool& isNaN, bool& isInf) 
 
   if(in->type() == Type::float32) {
     gIsNaN<<<blocks, threads>>>(in->data<float>(), length, dIsNaN, dIsInf);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if(in->type() == Type::float16) {
     gIsNaN<<<blocks, threads>>>(in->data<half>(), length, dIsNaN, dIsInf);
 #endif
@@ -119,9 +119,9 @@ template <typename T>
 void CopyCastFrom(Tensor out, const T* in, int length) {
   if(out->type() == Type::float32) {
     CopyCastTo(out->data<float>(), in, length);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if(out->type() == Type::float16) {
-    CopyCastTo(out->data<__half>(), in, length);
+    CopyCastTo(out->data<half>(), in, length);
 #endif
   } else if(out->type() == Type::float64) {
     CopyCastTo(out->data<double>(), in, length);
@@ -135,7 +135,7 @@ void CopyCast(Tensor out, const Tensor in) {
 
   if(in->type() == Type::float32) {
     CopyCastFrom(out, in->data<float>(), (int)in->size());
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if(in->type() == Type::float16) {
     CopyCastFrom(out, in->data<half>(), (int)in->size());
 #endif
@@ -196,6 +196,7 @@ __global__ void gInsertCols(T* out,
   }
 }
 
+// Special version for axis = -1 @TODO: write common better version
 void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
   cudaSetDevice(out->getDeviceId().no);
 
@@ -215,7 +216,7 @@ void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
     if(out->type() == Type::float32) {
       gInsertCols<false><<<blocks, threads>>>(
           out->data<float>(), in->data<float>(), rows, cols_in, cols_out, cols_in, offset, 0);
-#if __USE_FP16__
+#if COMPILE_FP16
     } else if(out->type() == Type::float16) {
       gInsertCols<false><<<blocks, threads>>>(
           out->data<half>(), in->data<half>(), rows, cols_in, cols_out, cols_in, offset, 0);
@@ -266,6 +267,7 @@ __global__ void gJoin2(T* out,
   }
 }
 
+// Special version for axis = -2 @TODO: write common better version
 void Concatenate2(Tensor out, Tensor in1, Tensor in2) {
   cudaSetDevice(out->getDeviceId().no);
 
@@ -288,7 +290,7 @@ void Concatenate2(Tensor out, Tensor in1, Tensor in2) {
                                  rowStride1,
                                  in2->data<float>(),
                                  rowStride2);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if(out->type() == Type::float16) {
      gJoin2<<<blocks, threads>>>(out->data<half>(),
                                  rowBatch,
@@ -331,7 +333,7 @@ void Split1(std::vector<Tensor>& outputs, const Tensor in) {
     if(out->type() == Type::float32) {
       gInsertCols<true><<<blocks, threads>>>(
           out->data<float>(), in->data<float>(), rows, cols_out, cols_out, cols_in, 0, offset);
-#if __USE_FP16__
+#if COMPILE_FP16
     } else if(out->type() == Type::float16) {
       gInsertCols<true><<<blocks, threads>>>(
           out->data<half>(), in->data<half>(), rows, cols_out, cols_out, cols_in, 0, offset);
@@ -381,12 +383,10 @@ void SplitCont(std::vector<Tensor>& outputs, const Tensor in, int axis) {
       int blocks = std::min(MAX_BLOCKS, size / threads + (size % threads != 0));
 
       if(out->type() == Type::float32) {
-        gAddRow<<<blocks, threads>>>(
-            out->data<float>() + offset2, in->data<float>() + offset1, size);
-#if __USE_FP16__
+        gAddRow<<<blocks, threads>>>(out->data<float>() + offset2, in->data<float>() + offset1, size);
+#if COMPILE_FP16
       } else if(out->type() == Type::float16) {
-        gAddRow<<<blocks, threads>>>(
-            out->data<half>() + offset2, in->data<half>() + offset1, size);
+        gAddRow<<<blocks, threads>>>(out->data<half>() + offset2, in->data<half>() + offset1, size);
 #endif
       } else {
         ABORT("SplitCont not implemented for type {}", out->type());
@@ -480,9 +480,9 @@ void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 
     if(in->type() == Type::float32) {
       gTranspose0213<false><<<blocks, threads>>>(out->data<float>(), in->data<float>(), rows, cols, stride1, stride2);
-#if __USE_FP16__
+#if COMPILE_FP16
     } else if(in->type() == Type::float16) {
-      gTranspose0213<false><<<blocks, threads>>>(out->data<__half>(), in->data<__half>(), rows, cols, stride1, stride2);
+      gTranspose0213<false><<<blocks, threads>>>(out->data<half>(), in->data<half>(), rows, cols, stride1, stride2);
 #endif
     } else {
       ABORT("Transpose for type {} not implemented", in->type());
@@ -503,9 +503,9 @@ void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 
     if(in->type() == Type::float32) {
       gTransposeND<false, float><<<blocks, threads>>>(out, in, axes);
-#if __USE_FP16__
+#if COMPILE_FP16
     } else if(in->type() == Type::float16) {
-      gTransposeND<false, __half><<<blocks, threads>>>(out, in, axes);
+      gTransposeND<false, half><<<blocks, threads>>>(out, in, axes);
 #endif
     } else {
       ABORT("Transpose for type {} not implemented", in->type());
@@ -528,9 +528,9 @@ void TransposeNDGrad(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 
     if(in->type() == Type::float32) {
       gTranspose0213<true><<<blocks, threads>>>(out->data<float>(), in->data<float>(), rows, cols, stride1, stride2);
-#if __USE_FP16__
+#if COMPILE_FP16
     } else if(in->type() == Type::float16) {
-      gTranspose0213<true><<<blocks, threads>>>(out->data<__half>(), in->data<__half>(), rows, cols, stride1, stride2);
+      gTranspose0213<true><<<blocks, threads>>>(out->data<half>(), in->data<half>(), rows, cols, stride1, stride2);
 #endif
     } else {
       ABORT("Transpose for type {} not implemented", in->type());
@@ -550,9 +550,9 @@ void TransposeNDGrad(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 
     if(in->type() == Type::float32) {
       gTransposeND<true, float><<<blocks, threads>>>(out, in, axes);
-#if __USE_FP16__
+#if COMPILE_FP16
     } else if(in->type() == Type::float16) {
-      gTransposeND<true, __half><<<blocks, threads>>>(out, in, axes);
+      gTransposeND<true, half><<<blocks, threads>>>(out, in, axes);
 #endif
     } else {
       ABORT("Transpose for type {} not implemented", in->type());
@@ -567,7 +567,7 @@ void TransposeNDGrad(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 // rows are time, batch or beam dimensions
 // number of threads is number of cols or MAX_THREADS
 // number of blocks is number of rows or MAX_BLOCKS
-// @TODO: handle __half2
+// @TODO: handle half2
 template <typename T, typename AccType = float>
 __global__ void gSoftmax(T* out,
                          functional::Shape outShape,
@@ -666,9 +666,9 @@ void Softmax(Tensor out, Tensor in) {
 
   if(in->type() == Type::float32) {
     gSoftmax<float, float><<<blocks, threads, shared>>>(out->data<float>(), out->shape(), in->data<float>());
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (in->type() == Type::float16) {
-    gSoftmax<half, float><<<blocks, threads, shared>>>(out->data<__half>(), out->shape(), in->data<__half>());
+    gSoftmax<half, float><<<blocks, threads, shared>>>(out->data<half>(), out->shape(), in->data<half>());
 #endif
   } else {
     ABORT("Softmax not implemented for type {}", in->type());
@@ -767,9 +767,9 @@ void LogSoftmax(Tensor out, Tensor in) {
 
   if(in->type() == Type::float32) {
     gLogSoftmax<float, float><<<blocks, threads, shared>>>(out->data<float>(), out->shape(), in->data<float>());
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (in->type() == Type::float16) {
-    gLogSoftmax<half, float><<<blocks, threads, shared>>>(out->data<__half>(), out->shape(), in->data<__half>());
+    gLogSoftmax<half, float><<<blocks, threads, shared>>>(out->data<half>(), out->shape(), in->data<half>());
 #endif
   } else {
     ABORT("LogSoftmax not implemented for type {}", in->type());
@@ -841,7 +841,7 @@ void SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
   if(grad->type() == Type::float32) {
     gSoftmaxGrad<float, float><<<blocks, threads, shared>>>(
       grad->data<float>(), adj->data<float>(), val->data<float>(), m, k);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (grad->type() == Type::float16) {
     // Accumulate into float
     gSoftmaxGrad<half, float><<<blocks, threads, shared>>>(
@@ -911,7 +911,7 @@ void LogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val) {
   if(grad->type() == Type::float32) {
     gLogSoftmaxGrad<float, float><<<blocks, threads, shared>>>(
       grad->data<float>(), adj->data<float>(), val->data<float>(), m, k);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (grad->type() == Type::float16) {
     // accumulate into float
     gLogSoftmaxGrad<half, float><<<blocks, threads, shared>>>(
@@ -965,7 +965,7 @@ void CopyRows(Tensor out,
   if(out->type() == Type::float32) {
     gCopyRows<<<blocks, threads>>>(
       out->data<float>(), in->data<float>(), cols, indices->data<IndexType>(), rowsToCopy);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (out->type() == Type::float16) {
     gCopyRows<<<blocks, threads>>>(
       out->data<half>(), in->data<half>(), cols, indices->data<IndexType>(), rowsToCopy);
@@ -1018,7 +1018,7 @@ void PasteRows(Tensor out,
   if(out->type() == Type::float32) {
     gPasteRows<<<blocks, threads>>>(
       out->data<float>(), in->data<float>(), cols, indices->data<IndexType>(), rowsToCopy);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (out->type() == Type::float16) {
     gPasteRows<<<blocks, threads>>>(
       out->data<half>(), in->data<half>(), cols, indices->data<IndexType>(), rowsToCopy);
@@ -1068,7 +1068,7 @@ void CopyCols(Tensor out, const Tensor in, const Tensor indices) {
   if(out->type() == Type::float32) {
     gCopyCols<<<blocks, threads>>>(
       out->data<float>(), in->data<float>(), rows, cols, indices->data<IndexType>(), colsToCopy);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (out->type() == Type::float16) {
     gCopyCols<<<blocks, threads>>>(
       out->data<half>(), in->data<half>(), rows, cols, indices->data<IndexType>(), colsToCopy);
@@ -1118,7 +1118,7 @@ void PasteCols(Tensor out,
   if(out->type() == Type::float32) {
     gPasteCols<<<blocks, threads>>>(
       out->data<float>(), in->data<float>(), rows, cols, indices->data<IndexType>(), colsToCopy);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (out->type() == Type::float16) {
     gPasteCols<<<blocks, threads>>>(
       out->data<half>(), in->data<half>(), rows, cols, indices->data<IndexType>(), colsToCopy);
@@ -1192,7 +1192,7 @@ void Select(Tensor out,
                                 in->shape(),
                                 axisGPU,
                                 indices->data<IndexType>());
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (out->type() == Type::float16) {
     gSelect<<<blocks, threads>>>(out->data<half>(),
                                 out->shape(),
@@ -1227,7 +1227,7 @@ void Insert(Tensor out,
                                 in->shape(),
                                 axisGPU,
                                 indices->data<IndexType>());
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (out->type() == Type::float16) {
     gInsert<<<blocks, threads>>>(out->data<half>(),
                                 out->shape(),
@@ -1305,7 +1305,7 @@ void GRUFastForward(Tensor out, std::vector<Tensor> inputs, bool final) {
         rows,
         cols,
         final);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (out->type() == Type::float16) {
     gGRUFastForward<<<blocks, threads>>>(
         out->data<half>(),                                // output
@@ -1440,7 +1440,7 @@ void GRUFastBackward(std::vector<Tensor> outputs,
         rows,
         cols,
         final);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (adj->type() == Type::float16) {
     gGRUFastBackward<<<blocks, threads>>>(
         outputs[0] ? outputs[0]->data<half>() : 0,        // state - adj
@@ -1554,7 +1554,7 @@ void CrossEntropyPick(Tensor out, Tensor in, Tensor indices) {
   if(out->type() == Type::float32) {
     gCrossEntropyPick<float, float><<<blocks, threads, shared>>>(
       out->data<float>(), out->shape(), in->data<float>(), in->shape(), indices->data<IndexType>());
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if(out->type() == Type::float16) {
     gCrossEntropyPick<half, float><<<blocks, threads, shared>>>(
       out->data<half>(), out->shape(), in->data<half>(), in->shape(), indices->data<IndexType>());
@@ -1653,7 +1653,7 @@ void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor indices) 
   if(out->type() == Type::float32) {
     gCrossEntropyPickBackward<float, float><<<blocks, threads, shared>>>(
       out->data<float>(), out->shape(), adj->data<float>(), a->data<float>(), indices->data<IndexType>());
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if(out->type() == Type::float16) {
     gCrossEntropyPickBackward<half, float><<<blocks, threads, shared>>>(
       out->data<half>(), out->shape(), adj->data<half>(), a->data<half>(), indices->data<IndexType>());
@@ -1677,7 +1677,7 @@ float L2Norm(Tensor in, Ptr<Allocator> allocator) {
     using namespace functional;
     if(in->type() == Type::float32) {
       ReduceAll<float, float>(_1 * _1, blockMem, in);
-#if __USE_FP16__
+#if COMPILE_FP16
     } else if(in->type() == Type::float16) {
       ReduceAll<half, float>(_1 * _1, blockMem, in);
 #endif
@@ -1698,7 +1698,7 @@ float L2Norm(Tensor in, Ptr<Allocator> allocator) {
     using namespace functional;
     if(in->type() == Type::float32) {
       ReduceAll<float, float>(_1 * _1, out, in);
-#if __USE_FP16__
+#if COMPILE_FP16
     } else if(in->type() == Type::float16) {
       ReduceAll<half, float>(_1 * _1, out, in);
 #endif
@@ -1775,7 +1775,7 @@ void Att(Tensor out, Tensor va, Tensor context, Tensor state) {
   if(out->type() == Type::float32) {
     gAtt<float, float><<<blocks, threads, shared>>>(
       out->data<float>(), va->data<float>(), context->data<float>(), state->data<float>(), m, k, b, t);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (out->type() == Type::float16) {
     gAtt<half, float><<<blocks, threads, shared>>>(
       out->data<half>(), va->data<half>(), context->data<half>(), state->data<half>(), m, k, b, t);
@@ -1852,7 +1852,7 @@ void AttBack(Tensor gVa,
                                   m,
                                   k,
                                   n);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (gVa->type() == Type::float16) {
     gAttBack<<<blocks, threads>>>(gVa->data<half>(),
                                   gContext->data<half>(),
@@ -1973,7 +1973,7 @@ void LayerNormalization(Tensor out,
                                                  rows,
                                                  cols,
                                                  eps);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (out->type() == Type::float16) {
     gLNormalization<half, float><<<blocks, threads, shared>>>(out->data<half>(),
                                                  in->data<half>(),
@@ -2151,7 +2151,7 @@ void LayerNormalizationGrad(Ptr<Allocator> allocator,
       rows,
       cols,
       eps);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (gradX->type() == Type::float16) {
     // accumulate in float
     int shared = sizeof(float) * threads * 4;
@@ -2230,7 +2230,7 @@ void Shift(Tensor out,
   if(out->type() == Type::float32) {
     gShift<false>
         <<<blocks, threads>>>(out->data<float>(), in->data<float>(), length, offset, padValue);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if(out->type() == Type::float16) {
     gShift<false>
         <<<blocks, threads>>>(out->data<half>(), in->data<half>(), length, offset, padValue);
@@ -2262,7 +2262,7 @@ void ShiftGrad(Tensor out, Tensor in, marian::Shape shift, bool invert) {
   if(out->type() == Type::float32) {
     gShift<true>
         <<<blocks, threads>>>(out->data<float>(), in->data<float>(), length, offset, 0.f); // @TODO: What about padValue?
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if(out->type() == Type::float16) {
     gShift<true>
         <<<blocks, threads>>>(out->data<half>(), in->data<half>(), length, offset, 0.f);
@@ -2370,7 +2370,7 @@ void LSTMCellForward(Tensor out, std::vector<Tensor> inputs) {
       inputs.size() > 4 ? inputs[4]->data<float>() : 0,  // mask
       rows,
       cols);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (out->type() == Type::float16) {
     gLSTMCellForward<<<blocks, threads>>>(
       out->data<half>(),                                // output
@@ -2433,7 +2433,7 @@ void LSTMOutputForward(Tensor out, std::vector<Tensor> inputs) {
                                             inputs[3]->data<float>(),  // b
                                             rows,
                                             cols);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (out->type() == Type::float16) {
     gLSTMOutputForward<<<blocks, threads>>>(out->data<half>(),        // output
                                             inputs[0]->data<half>(),  // cell state
@@ -2550,7 +2550,7 @@ void LSTMCellBackward(std::vector<Tensor> outputs,
       adj->data<float>(),
       rows,
       cols);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (adj->type() == Type::float16) {
     gLSTMCellBackward<<<blocks, threads>>>(
       outputs[0] ? outputs[0]->data<half>() : 0,        // state - adj
@@ -2649,7 +2649,7 @@ void LSTMOutputBackward(std::vector<Tensor> outputs,
         adj->data<float>(),
         rows,
         cols);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if (adj->type() == Type::float16) {
     gLSTMOutputBackward<<<blocks, threads>>>(
         outputs[0] ? outputs[0]->data<half>() : 0,  // state - adj
@@ -2698,7 +2698,7 @@ void HighwayForward(Tensor out,
   if(out->type() == Type::float32) {
     gHighwayForward<<<blocks, threads>>>(
         out->data<float>(), in1->data<float>(), in2->data<float>(), t->data<float>(), length);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if(out->type() == Type::float16) {
     gHighwayForward<<<blocks, threads>>>(
         out->data<half>(), in1->data<half>(), in2->data<half>(), t->data<half>(), length);
@@ -2752,7 +2752,7 @@ void HighwayBackward(Tensor out1,
                                           t->data<float>(),
                                           adj->data<float>(),
                                           length);
-#if __USE_FP16__
+#if COMPILE_FP16
   } else if(out1->type() == Type::float16) {
     gHighwayBackward<<<blocks, threads>>>(out1->data<half>(),
                                           out2->data<half>(),

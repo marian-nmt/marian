@@ -1,3 +1,5 @@
+// This software contains source code provided by NVIDIA Corporation.
+
 /*
  * Copyright 1993-2015 NVIDIA Corporation.  All rights reserved.
  *
@@ -6,8 +8,32 @@
  * this software. Any use, reproduction, disclosure, or distribution of
  * this software and related documentation outside the terms of the EULA
  * is strictly prohibited.
- *
  */
+
+/*
+MJD: Relevant text from the NVIDIA EULA:
+
+2.1 Sample Source Code Modification, Ownership and Distribution
+
+Subject to the terms of the SLA and this Supplement, NVIDIA hereby grants you a non-
+exclusive, non-transferable license, without the right to sublicense, during the applicable
+license term unless earlier terminated pursuant to the SLA, to have Authorized Users
+modify and create derivative works of CUDA Licensed Software that constitutes sample
+source code, when provided to you by NVIDIA in source code form. You hold all rights,
+title and interest in and to your modifications and derivative works of the sample source
+code software that you create as permitted hereunder (collective, Derivatives”), subject
+to NVIDIA’s underlying Intellectual Property Rights in and to the CUDA Licensed
+Software; provided, however that you grant NVIDIA and its Affiliates an irrevocable,
+perpetual, nonexclusive, worldwide, royalty-free paid-up license to make, have made,
+use, have used, reproduce, license, distribute, sublicense, transfer and otherwise
+commercialize Derivatives including (without limitation) with the CUDA Licensed
+Software or other NVIDIA products, technologies or materials. You may distribute the
+CUDA Supplement to Software License Agreement End User License Agreements (EULA) 
+DR-06739-001_v01_v9.0 | 14 sample source code as delivered by NVIDIA and/or your Derivatives, 
+provided that all NVIDIA copyright notices and trademarks are maintained and used properly 
+and the sample source code includes the following notice: “This software contains source code
+provided by NVIDIA Corporation.”
+*/
 
 #pragma once
 

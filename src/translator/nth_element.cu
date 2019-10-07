@@ -26,7 +26,7 @@ __global__ void gMaxElement(float* d_out,
                             T* d_in, // this is the probs array, only one with type float or half
                             int numBatches,
                             int* batchFirstElementIdxs,
-                            float minimal) // minimal is used to blank out found values, type-depdendent
+                            float disabledPathScore) // disabledPathScore is used to blank out found values, type-dependent
 {
   extern __shared__ float sdata[];
   __shared__ int indices[512];
@@ -39,7 +39,7 @@ __global__ void gMaxElement(float* d_out,
 
     int i = begin + blockIdx.x * (blockDim.x * 2) + tid;
 
-    sdata[tid] = minimal;
+    sdata[tid] = disabledPathScore;
 
     if(i < end) {
       sdata[tid] = (float)d_in[i];
@@ -112,7 +112,7 @@ __global__ void gMaxElementUpdate(float* binCosts,
                                   int* outIdxs,
                                   int* cumulativeBeamSizes,
                                   int NUM_BLOCKS,
-                                  float minimal) {
+                                  float disabledPathScore) {
   extern __shared__ float sdata[];
   __shared__ int indices[512];
   __shared__ float bestBinCost;
@@ -131,7 +131,7 @@ __global__ void gMaxElementUpdate(float* binCosts,
       ++pos) {
     int i = tid;
 
-    sdata[tid] = minimal;
+    sdata[tid] = disabledPathScore;
 
     if(i < num_bins) {
       sdata[tid] = binCosts[batchIdx * NUM_BLOCKS + i];
@@ -191,7 +191,7 @@ __global__ void gMaxElementUpdate(float* binCosts,
       bestBinCost = sdata[0];
       bestBinCostIdx = batchIdx * NUM_BLOCKS + indices[0];
 
-      probs[binIdxs[bestBinCostIdx]] = minimal;
+      probs[binIdxs[bestBinCostIdx]] = disabledPathScore;
 
       outIdxs[pos] = binIdxs[bestBinCostIdx];
       outCosts[pos] = bestBinCost;
@@ -203,7 +203,7 @@ __global__ void gMaxElementUpdate(float* binCosts,
         + (bestBinCostIdx - batchIdx * NUM_BLOCKS) * (blockDim.x * 2) + tid;
     const int dist = num_bins * 2 * blockDim.x;
 
-    sdata[tid] = minimal;
+    sdata[tid] = disabledPathScore;
 
     if(i < batchFirstElements[batchIdx + 1]) {
       sdata[tid] = (float)probs[i];
@@ -326,7 +326,7 @@ private:
   void selectNBest(T* probs,
                    const std::vector<int>& batchFirstElementIdxs,
                    const std::vector<int>& cumulativeBeamSizes,
-                   float minimal) {
+                   float disabledPathScore) {
 
     cudaSetDevice(deviceId_.no);
     CUDA_CHECK(cudaMemcpyAsync(d_batchPosition,
@@ -346,7 +346,7 @@ private:
                   BLOCK_SIZE,
                   BLOCK_SIZE * sizeof(float), // shared memory size
                   /* stream_ */ 0>>>(
-        d_out, d_ind, probs, numBatches, d_batchPosition, minimal);
+        d_out, d_ind, probs, numBatches, d_batchPosition, disabledPathScore);
 
     gMaxElementUpdate<<<numBatches,
                         BLOCK_SIZE,
@@ -359,7 +359,7 @@ private:
                                            d_res_idx,
                                            d_cumBeamSizes,
                                            NUM_BLOCKS,
-                                           minimal);
+                                           disabledPathScore);
   }
 
 public:
@@ -398,12 +398,12 @@ public:
     }
 
     if(scores->type() == Type::float32) {
-      float minimal = NumericLimits<float>(scores->type()).lowest;
-      selectNBest(scores->data<float>(), batchFirstElementIdxs, cumulativeBeamSizes, minimal);
-#if __USE_FP16__
+      float disabledPathScore = NumericLimits<float>(scores->type()).lowest;
+      selectNBest(scores->data<float>(), batchFirstElementIdxs, cumulativeBeamSizes, disabledPathScore);
+#if COMPILE_FP16
     } else if(scores->type() == Type::float16) {
-      float minimal = NumericLimits<float>(scores->type()).lowest;
-      selectNBest(scores->data<half>(), batchFirstElementIdxs, cumulativeBeamSizes, minimal);
+      float disabledPathScore = NumericLimits<float>(scores->type()).lowest;
+      selectNBest(scores->data<half>(), batchFirstElementIdxs, cumulativeBeamSizes, disabledPathScore);
 #endif
     } else {
       ABORT("getNBestList not implemented for type {}", scores->type());

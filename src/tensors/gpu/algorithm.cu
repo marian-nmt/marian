@@ -59,7 +59,7 @@ void fill<float16>(Ptr<Backend> backend, float16* begin, float16* end, float16 v
   int size = end - begin;
   if (size == 0)
     return;
-#if __USE_FP16__
+#if COMPILE_FP16
   CUDA_CHECK(cudaSetDevice(backend->getDeviceId().no));
   int threadsPerBlock = std::min(MAX_THREADS, size);
   int blocks = (size / threadsPerBlock) + (size % threadsPerBlock != 0); // @TODO: (size+threadsPerBlock-1)/threadsPerBlock or CeilDiv(a,b)
@@ -123,7 +123,7 @@ void swap_ranges<float16>(Ptr<Backend> backend, float16* begin, float16* end, fl
   if (size == 0)
     return;
 
-#if __USE_FP16__
+#if COMPILE_FP16
   CUDA_CHECK(cudaSetDevice(backend->getDeviceId().no));
   int threadsPerBlock = std::min(MAX_THREADS, size);
   int blocks = (size / threadsPerBlock) + (size % threadsPerBlock != 0); // @TODO: (size+threadsPerBlock-1)/threadsPerBlock or CeilDiv(a,b)

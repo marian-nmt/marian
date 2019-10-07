@@ -65,8 +65,13 @@ protected:
   Ptr<DataSet> data_;
   Ptr<Options> options_;
   bool restored_{false};
-  bool shuffleData_{false};
-  bool shuffleBatches_{false};
+
+  // replacing old shuffle_ with two variants that determine more fine-grained shuffling behavior. 
+  // Both set to false is equivalent to old shuffle_ == false. 
+  // Now we can not shuffle the data, but shuffle batches. Useful for linear reading of very large data sets with pre-reading.
+  // Parameters like maxi-batch determine how much data is pre-read and sorted by length or other criteria. 
+  bool shuffleData_{false};    // determine if full data should be shuffled before reading and batching.
+  bool shuffleBatches_{false}; // determine if batches should be shuffled after batching.
 
 private:
   Ptr<BatchStats> stats_;

@@ -4,7 +4,7 @@
 
 #include <cuda_runtime.h>
 
-#if __USE_FP16__
+#if COMPILE_FP16
 #include <cuda_fp16.h>
 #endif
 

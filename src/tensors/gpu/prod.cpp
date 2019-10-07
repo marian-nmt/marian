@@ -52,6 +52,7 @@ static void unsetTensorMode(cublasHandle_t cublasHandle) {
 #endif
 }
 
+// overload for float, contains configuratio settings for float32
 cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
                                cublasOperation_t transa, 
                                cublasOperation_t transb,
@@ -62,13 +63,14 @@ cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
                                const float* beta,
                                float* C, int ldc) {
   return cublasGemmEx(handle, transa, transb, 
-                     m, n, k, alpha, 
-                     A, CUDA_R_32F, lda, 
-                     B, CUDA_R_32F, ldb, beta, 
-                     C, CUDA_R_32F, ldc,
-                     CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP); // @TODO: review algorithm
+                      m, n, k, alpha, 
+                      A, CUDA_R_32F, lda, 
+                      B, CUDA_R_32F, ldb, beta, 
+                      C, CUDA_R_32F, ldc,
+                      CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP); // @TODO: review algorithm
 }
 
+// overload for half, contains configuratio settings for float16
 cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
                                cublasOperation_t transa, 
                                cublasOperation_t transb,
@@ -82,37 +84,37 @@ cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
   //float betaf = __half2float(*beta);   // has to match computeType
 
   return cublasGemmEx(handle, transa, transb, 
-                     m, n, k, alpha, 
-                     A, CUDA_R_16F, lda, 
-                     B, CUDA_R_16F, ldb, beta, 
-                     C, CUDA_R_16F, ldc,
-                     CUDA_R_16F, CUBLAS_GEMM_DEFAULT_TENSOR_OP); // @TODO: review algorithm
+                      m, n, k, alpha, 
+                      A, CUDA_R_16F, lda, 
+                      B, CUDA_R_16F, ldb, beta, 
+                      C, CUDA_R_16F, ldc,
+                      CUDA_R_16F, CUBLAS_GEMM_DEFAULT_TENSOR_OP); // @TODO: review algorithm
 }
 
 template <typename T>
 void ProdTyped(marian::Tensor C,
-          const marian::Tensor& A,
-          const marian::Tensor& B,
-          bool transA,
-          bool transB,
-          T beta,
-          T scalar) {
+               const marian::Tensor& A,
+               const marian::Tensor& B,
+               bool transA,
+               bool transB,
+               T beta,
+               T scalar) {
   cudaSetDevice((int)C->getDeviceId().no);
   T alpha = scalar;
 
-  size_t m = A->shape().elements() / A->shape().back();
-  size_t k = A->shape().back();
+  int m = A->shape().elements() / A->shape().back();
+  int k = A->shape().back();
   if(transA)
     std::swap(m, k);
 
-  size_t l = B->shape().elements() / B->shape().back();
-  size_t n = B->shape().back();
+  int l = B->shape().elements() / B->shape().back();
+  int n = B->shape().back();
   if(transB)
     std::swap(l, n);
 
-  size_t lda = A->shape().back();
-  size_t ldb = B->shape().back();
-  size_t ldc = B->shape().back();
+  int lda = A->shape().back();
+  int ldb = B->shape().back();
+  int ldc = B->shape().back();
 
   if(transB)
     ldc = B->shape().elements() / B->shape().back();
@@ -125,19 +127,19 @@ void ProdTyped(marian::Tensor C,
 
   setTensorMode(cublasHandle);
   CUBLAS_CHECK(cublasGemmTyped(cublasHandle,
-                  opB,
-                  opA,
-                  n,
-                  m,
-                  k,
-                  &alpha,
-                  B->data<T>(),
-                  ldb,
-                  A->data<T>(),
-                  lda,
-                  &beta,
-                  C->data<T>(),
-                  ldc));
+                               opB,
+                               opA,
+                               n,
+                               m,
+                               k,
+                               &alpha,
+                               B->data<T>(),
+                               ldb,
+                               A->data<T>(),
+                               lda,
+                               &beta,
+                               C->data<T>(),
+                               ldc));
   unsetTensorMode(cublasHandle);
 }
 
@@ -210,22 +212,22 @@ void ProdBatchedTyped(marian::Tensor C,
   cudaSetDevice((int)C->getDeviceId().no);
   T alpha = scalar;
 
-  size_t batchA = A->shape().elements() / (A->shape()[-1] * A->shape()[-2]);
-  size_t batchB = B->shape().elements() / (B->shape()[-1] * B->shape()[-2]);
+  int batchA = A->shape().elements() / (A->shape()[-1] * A->shape()[-2]);
+  int batchB = B->shape().elements() / (B->shape()[-1] * B->shape()[-2]);
 
-  size_t m = A->shape()[-2];
-  size_t k = A->shape()[-1];
+  int m = A->shape()[-2];
+  int k = A->shape()[-1];
   if(transA)
     std::swap(m, k);
 
-  size_t l = B->shape()[-2];
-  size_t n = B->shape()[-1];
+  int l = B->shape()[-2];
+  int n = B->shape()[-1];
   if(transB)
     std::swap(l, n);
 
-  size_t lda = A->shape()[-1];
-  size_t ldb = B->shape()[-1];
-  size_t ldc = B->shape()[-1];
+  int lda = A->shape()[-1];
+  int ldb = B->shape()[-1];
+  int ldc = B->shape()[-1];
 
   if(transB)
     ldc = B->shape()[-2];
@@ -263,20 +265,20 @@ void ProdBatchedTyped(marian::Tensor C,
 
   setTensorMode(cublasHandle);
   CUBLAS_CHECK(cublasGemmBatchedTyped(cublasHandle,
-                         opB,
-                         opA,
-                         n,
-                         m,
-                         k,
-                         &alpha,
-                         mp_bptr->data<const T*>(),
-                         ldb,
-                         mp_aptr->data<const T*>(),
-                         lda,
-                         &beta,
-                         mp_cptr->data<T*>(),
-                         ldc,
-                         batchC));
+                                      opB,
+                                      opA,
+                                      n,
+                                      m,
+                                      k,
+                                      &alpha,
+                                      mp_bptr->data<const T*>(),
+                                      ldb,
+                                      mp_aptr->data<const T*>(),
+                                      lda,
+                                      &beta,
+                                      mp_cptr->data<T*>(),
+                                      ldc,
+                                      batchC));
   unsetTensorMode(cublasHandle);
 
   allocator->free(mp_aptr);
