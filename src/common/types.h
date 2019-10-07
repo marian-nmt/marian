@@ -361,8 +361,8 @@ class NumericLimits {
 private:
   
   template <typename MaxType> void setLimitsMax() {
-    max    = std::numeric_limits<MaxType>::max();
-    lowest = std::numeric_limits<MaxType>::lowest();
+    max    = (ReturnType)std::numeric_limits<MaxType>::max();
+    lowest = (ReturnType)std::numeric_limits<MaxType>::lowest();
   }
 
   template <typename RequestType>
@@ -372,7 +372,6 @@ private:
     // and then use the smaller of each types to determine max, min, lowest.
     using MaxType = typename std::conditional<fits, RequestType, ReturnType>::type;
     setLimitsMax<MaxType>();
-
     // @TODO: should we rather abort if the RequestType does not fit into ReturnType instead of clipping to smaller type? 
     // ABORT_IF(!fits, "Type {} is too small to contain max of type {}", typeId<ReturnType>(), typeId<RequestType>());
   }

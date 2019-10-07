@@ -47,6 +47,12 @@ namespace marian {
     std::map<std::string,std::set<std::string>> factorTypeMap; // [type name] -> {factor-type names}
     std::vector<std::string> deferredFactorVocab; // factor surface forms are presently expected to be at the end of factorVocab_, so collect them here first
     while(io::getline(in, line)) {
+#if 1 // workaround for a bug fix in FactoredSegmenter that made old .fsv files incompatible
+      if (line      == "\xef\xb8\x8f : _lemma _has_wb")         // old vocabs have a wrong factor in here
+        line         = "\xef\xb8\x8f : _lemma _has_gl _has_gr"; // patch it to the correct one
+      else if (line == "\xef\xb8\x8e : _lemma _has_wb")
+        line         = "\xef\xb8\x8e : _lemma _has_gl _has_gr";
+#endif
       utils::splitAny(line, tokBuf, " \t");
       if (tokBuf.empty() || tokBuf[0][0] == '#') // skip comments and blank lines
         continue;
